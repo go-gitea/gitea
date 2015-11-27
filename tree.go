@@ -136,7 +136,7 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 }
 
 // ListEntries returns all entries of current tree.
-func (t *Tree) ListEntries(relpath string) (Entries, error) {
+func (t *Tree) ListEntries() (Entries, error) {
 	if t.entriesParsed {
 		return t.entries, nil
 	}

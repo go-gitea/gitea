@@ -31,6 +31,10 @@ type TreeEntry struct {
 	sized bool
 }
 
+func (te *TreeEntry) Name() string {
+	return te.name
+}
+
 func (te *TreeEntry) IsDir() bool {
 	return te.mode == ENTRY_MODE_TREE
 }

@@ -24,7 +24,7 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 	tree := t
 	for i, name := range parts {
 		if i == len(parts)-1 {
-			entries, err := tree.ListEntries(path.Dir(relpath))
+			entries, err := tree.ListEntries()
 			if err != nil {
 				return nil, err
 			}
