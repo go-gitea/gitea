@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 // Command represents a command with its subcommands or arguments.
@@ -38,14 +39,17 @@ func (c *Command) AddArguments(args ...string) *Command {
 	return c
 }
 
-func (c *Command) run(dir string) (string, error) {
+const DEFAULT_TIMEOUT = 60 * time.Second
+
+// RunInDirTimeout executes the command in given directory with given timeout,
+// and returns stdout in []byte and error (combined with stderr).
+func (c *Command) RunInDirTimeout(timeout time.Duration, dir string) ([]byte, error) {
+	if timeout == -1 {
+		timeout = DEFAULT_TIMEOUT
+	}
+
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-
-	cmd := exec.Command(c.name, c.args...)
-	cmd.Dir = dir
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
 
 	if len(dir) == 0 {
 		log(c.String())
@@ -53,24 +57,61 @@ func (c *Command) run(dir string) (string, error) {
 		log("%s: %v", dir, c)
 	}
 
-	if err := cmd.Run(); err != nil {
-		return stdout.String(), concatenateError(err, stderr.String())
+	cmd := exec.Command(c.name, c.args...)
+	cmd.Dir = dir
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	if err := cmd.Start(); err != nil {
+		return nil, concatenateError(err, stderr.String())
 	}
+
+	done := make(chan error)
+	go func() {
+		done <- cmd.Wait()
+	}()
+
+	var err error
+	select {
+	case <-time.After(timeout):
+		if cmd.Process != nil && cmd.ProcessState != nil && !cmd.ProcessState.Exited() {
+			if err := cmd.Process.Kill(); err != nil {
+				return nil, fmt.Errorf("fail to kill process: %v", err)
+			}
+		}
+
+		<-done
+		return nil, ErrExecTimeout{timeout}
+	case err = <-done:
+	}
+
+	if err != nil {
+		return nil, concatenateError(err, stderr.String())
+	}
+
 	if stdout.Len() > 0 {
 		log("stdout:\n%s", stdout)
 	}
-
-	return stdout.String(), nil
-}
-
-// Run executes the command in defualt working directory
-// and returns stdout and error (combined with stderr).
-func (c *Command) Run() (string, error) {
-	return c.run("")
+	return stdout.Bytes(), nil
 }
 
 // RunInDir executes the command in given directory
-// and returns stdout and error (combined with stderr).
+// and returns stdout in []byte and error (combined with stderr).
+func (c *Command) RunInDirBytes(dir string) ([]byte, error) {
+	return c.RunInDirTimeout(-1, dir)
+}
+
+// RunInDir executes the command in given directory
+// and returns stdout in string and error (combined with stderr).
 func (c *Command) RunInDir(dir string) (string, error) {
-	return c.run(dir)
+	stdout, err := c.RunInDirTimeout(-1, dir)
+	if err != nil {
+		return "", err
+	}
+	return string(stdout), nil
+}
+
+// Run executes the command in defualt working directory
+// and returns stdout in string and error (combined with stderr).
+func (c *Command) Run() (string, error) {
+	return c.RunInDir("")
 }

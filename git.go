@@ -49,3 +49,7 @@ func Version() (string, error) {
 	gitVersion = fields[2]
 	return gitVersion, nil
 }
+
+func init() {
+	Version()
+}

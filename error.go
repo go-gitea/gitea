@@ -6,11 +6,32 @@ package git
 
 import (
 	"fmt"
+	"time"
 )
 
-func concatenateError(err error, stderr string) error {
-	if len(stderr) == 0 {
-		return err
-	}
-	return fmt.Errorf("%v - %s", err, stderr)
+type ErrExecTimeout struct {
+	Duration time.Duration
+}
+
+func IsErrExecTimeout(err error) bool {
+	_, ok := err.(ErrExecTimeout)
+	return ok
+}
+
+func (err ErrExecTimeout) Error() string {
+	return fmt.Sprintf("execution is timeout [duration: %v]", err.Duration)
+}
+
+type ErrNotExist struct {
+	ID      string
+	RelPath string
+}
+
+func IsErrNotExist(err error) bool {
+	_, ok := err.(ErrNotExist)
+	return ok
+}
+
+func (err ErrNotExist) Error() string {
+	return fmt.Sprintf("object does not exist [id: %s, rel_path: %s]", err.ID, err.RelPath)
 }
