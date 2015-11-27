@@ -24,6 +24,10 @@ type Commit struct {
 	// submodules map[string]*SubModule
 }
 
+func (c *Commit) GetCommitOfRelPath(relpath string) (*Commit, error) {
+	return c.repo.getCommitOfRelPath(c.ID, relpath)
+}
+
 // AddAllChanges marks local changes to be ready for commit.
 func AddChanges(repoPath string, all bool, files ...string) error {
 	cmd := NewCommand("add")

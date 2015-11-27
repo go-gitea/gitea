@@ -122,6 +122,20 @@ func (repo *Repository) GetCommitOfBranch(branch string) (*Commit, error) {
 	return repo.GetCommit(commitID)
 }
 
+func (repo *Repository) getCommitOfRelPath(id sha1, relpath string) (*Commit, error) {
+	stdout, err := NewCommand("log", "-1", _PRETTY_LOG_FORMAT, id.String(), "--", relpath).RunInDir(repo.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	id, err = NewIDFromString(stdout)
+	if err != nil {
+		return nil, err
+	}
+
+	return repo.getCommit(id)
+}
+
 // GetCommitByPath returns the last commit of relative path.
 func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 	stdout, err := NewCommand("log", "-1", _PRETTY_LOG_FORMAT, "--", relpath).RunInDirBytes(repo.Path)
