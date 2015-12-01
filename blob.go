@@ -9,15 +9,22 @@ import (
 	"io"
 )
 
+// Blob represents a Git object.
 type Blob struct {
 	repo *Repository
 	*TreeEntry
 }
 
+// Data gets content of blob all at once and wrap it as io.Reader.
+// This can be very slow and memory consuming for huge content.
 func (b *Blob) Data() (io.Reader, error) {
 	stdout, err := NewCommand("show", b.ID.String()).RunInDirBytes(b.repo.Path)
 	if err != nil {
 		return nil, err
 	}
 	return bytes.NewBuffer(stdout), nil
+}
+
+func (b *Blob) DataPipeline(stdout, stderr io.Writer) error {
+	return NewCommand("show", b.ID.String()).RunInDirPipeline(b.repo.Path, stdout, stderr)
 }

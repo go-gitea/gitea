@@ -7,6 +7,7 @@ package git
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os/exec"
 	"strings"
 	"time"
@@ -41,28 +42,25 @@ func (c *Command) AddArguments(args ...string) *Command {
 
 const DEFAULT_TIMEOUT = 60 * time.Second
 
-// RunInDirTimeout executes the command in given directory with given timeout,
-// and returns stdout in []byte and error (combined with stderr).
-func (c *Command) RunInDirTimeout(timeout time.Duration, dir string) ([]byte, error) {
+// RunInDirTimeoutPipeline executes the command in given directory with given timeout,
+// it pipes stdout and stderr to given io.Writer.
+func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, stdout, stderr io.Writer) error {
 	if timeout == -1 {
 		timeout = DEFAULT_TIMEOUT
 	}
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-
-	// if len(dir) == 0 {
-	// 	log(c.String())
-	// } else {
-	// 	log("%s: %v", dir, c)
-	// }
+	if len(dir) == 0 {
+		log(c.String())
+	} else {
+		log("%s: %v", dir, c)
+	}
 
 	cmd := exec.Command(c.name, c.args...)
 	cmd.Dir = dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if err := cmd.Start(); err != nil {
-		return nil, concatenateError(err, stderr.String())
+		return err
 	}
 
 	done := make(chan error)
@@ -75,23 +73,37 @@ func (c *Command) RunInDirTimeout(timeout time.Duration, dir string) ([]byte, er
 	case <-time.After(timeout):
 		if cmd.Process != nil && cmd.ProcessState != nil && !cmd.ProcessState.Exited() {
 			if err := cmd.Process.Kill(); err != nil {
-				return nil, fmt.Errorf("fail to kill process: %v", err)
+				return fmt.Errorf("fail to kill process: %v", err)
 			}
 		}
 
 		<-done
-		return nil, ErrExecTimeout{timeout}
+		return ErrExecTimeout{timeout}
 	case err = <-done:
 	}
 
-	if err != nil {
+	return err
+}
+
+// RunInDirTimeout executes the command in given directory with given timeout,
+// and returns stdout in []byte and error (combined with stderr).
+func (c *Command) RunInDirTimeout(timeout time.Duration, dir string) ([]byte, error) {
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	if err := c.RunInDirTimeoutPipeline(timeout, dir, stdout, stderr); err != nil {
 		return nil, concatenateError(err, stderr.String())
 	}
 
-	// if stdout.Len() > 0 {
-	// 	log("stdout:\n%s", stdout)
-	// }
+	if stdout.Len() > 0 {
+		log("stdout:\n%s", stdout)
+	}
 	return stdout.Bytes(), nil
+}
+
+// RunInDirPipeline executes the command in given directory,
+// it pipes stdout and stderr to given io.Writer.
+func (c *Command) RunInDirPipeline(dir string, stdout, stderr io.Writer) error {
+	return c.RunInDirTimeoutPipeline(-1, dir, stdout, stderr)
 }
 
 // RunInDir executes the command in given directory

@@ -16,6 +16,9 @@ var (
 )
 
 func log(format string, args ...interface{}) {
+	// FIXME: need a better way handle log, such as write to file.
+	return
+
 	if !Debug {
 		return
 	}

@@ -90,8 +90,8 @@ func Push(repoPath, remote, branch string) error {
 	return err
 }
 
-// Reset resets HEAD to given revision or head of branch.
-func Reset(repoPath string, hard bool, revision string) error {
+// ResetHEAD resets HEAD to given revision or head of branch.
+func ResetHEAD(repoPath string, hard bool, revision string) error {
 	cmd := NewCommand("reset")
 	if hard {
 		cmd.AddArguments("--hard")

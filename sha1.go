@@ -23,17 +23,27 @@ func (s sha1) String() string {
 	return string(result)
 }
 
-// NewID creates a new sha1 from a [20]byte array.
-func NewID(b []byte) (sha1, error) {
+// MustID always creates a new sha1 from a [20]byte array with no validation of input.
+func MustID(b []byte) sha1 {
 	var id sha1
-	if len(b) != 20 {
-		return id, fmt.Errorf("Length must be 20: %v", b)
-	}
-
 	for i := 0; i < 20; i++ {
 		id[i] = b[i]
 	}
-	return id, nil
+	return id
+}
+
+// NewID creates a new sha1 from a [20]byte array.
+func NewID(b []byte) (sha1, error) {
+	if len(b) != 20 {
+		return sha1{}, fmt.Errorf("Length must be 20: %v", b)
+	}
+	return MustID(b), nil
+}
+
+// MustIDFromString always creates a new sha from a ID with no validation of input.
+func MustIDFromString(s string) sha1 {
+	b, _ := hex.DecodeString(s)
+	return MustID(b)
 }
 
 // NewIDFromString creates a new sha1 from a ID string of length 40.
