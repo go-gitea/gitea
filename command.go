@@ -51,11 +51,11 @@ func (c *Command) RunInDirTimeout(timeout time.Duration, dir string) ([]byte, er
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 
-	if len(dir) == 0 {
-		log(c.String())
-	} else {
-		log("%s: %v", dir, c)
-	}
+	// if len(dir) == 0 {
+	// 	log(c.String())
+	// } else {
+	// 	log("%s: %v", dir, c)
+	// }
 
 	cmd := exec.Command(c.name, c.args...)
 	cmd.Dir = dir
@@ -88,9 +88,9 @@ func (c *Command) RunInDirTimeout(timeout time.Duration, dir string) ([]byte, er
 		return nil, concatenateError(err, stderr.String())
 	}
 
-	if stdout.Len() > 0 {
-		log("stdout:\n%s", stdout)
-	}
+	// if stdout.Len() > 0 {
+	// 	log("stdout:\n%s", stdout)
+	// }
 	return stdout.Bytes(), nil
 }
 
