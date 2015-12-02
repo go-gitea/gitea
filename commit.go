@@ -24,6 +24,35 @@ type Commit struct {
 	// submodules map[string]*SubModule
 }
 
+// ParentID returns oid of n-th parent (0-based index).
+// It returns nil if no such parent exists.
+func (c *Commit) ParentID(n int) (sha1, error) {
+	if n >= len(c.parents) {
+		return sha1{}, ErrNotExist{"", ""}
+	}
+	return c.parents[n], nil
+}
+
+// Parent returns n-th parent (0-based index) of the commit.
+func (c *Commit) Parent(n int) (*Commit, error) {
+	id, err := c.ParentID(n)
+	if err != nil {
+		return nil, err
+	}
+	parent, err := c.repo.getCommit(id)
+	if err != nil {
+		return nil, err
+	}
+	return parent, nil
+}
+
+// ParentCount returns number of parents of the commit.
+// 0 if this is the root commit, otherwise 1,2, etc.
+func (c *Commit) ParentCount() int {
+	return len(c.parents)
+}
+
+// GetCommitOfRelPath return the commit of relative path object.
 func (c *Commit) GetCommitOfRelPath(relpath string) (*Commit, error) {
 	return c.repo.getCommitOfRelPath(c.ID, relpath)
 }
