@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 )
 
 // Repository represents a Git repository.
@@ -65,12 +66,37 @@ func OpenRepository(repoPath string) (*Repository, error) {
 	return &Repository{Path: repoPath}, nil
 }
 
-// Clone clones original repository to target path.
-func Clone(from, to string) error {
-	toDir := path.Dir(to)
-	os.MkdirAll(toDir, os.ModePerm)
+type CloneRepoOptions struct {
+	Mirror  bool
+	Bare    bool
+	Quiet   bool
+	Timeout time.Duration
+}
 
-	_, err := NewCommand("clone", from, to).Run()
+// Clone clones original repository to target path.
+func Clone(from, to string, opts CloneRepoOptions) (err error) {
+	toDir := path.Dir(to)
+	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
+		return err
+	}
+
+	cmd := NewCommand("clone")
+	if opts.Mirror {
+		cmd.AddArguments("--mirror")
+	}
+	if opts.Bare {
+		cmd.AddArguments("--bare")
+	}
+	if opts.Quiet {
+		cmd.AddArguments("--quiet")
+	}
+	cmd.AddArguments(from, to)
+
+	if opts.Timeout <= 0 {
+		opts.Timeout = -1
+	}
+
+	_, err = cmd.RunTimeout(opts.Timeout)
 	return err
 }
 

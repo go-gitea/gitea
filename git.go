@@ -11,14 +11,12 @@ import (
 
 var (
 	// Debug enables verbose logging on everything.
-	Debug  = true
+	// This should be false in case Gogs starts in SSH mode.
+	Debug  = false
 	Prefix = "[git-shell] "
 )
 
 func log(format string, args ...interface{}) {
-	// FIXME: need a better way handle log, such as write to file.
-	return
-
 	if !Debug {
 		return
 	}
