@@ -7,6 +7,7 @@ package git
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 var (
@@ -53,4 +54,10 @@ func Version() (string, error) {
 
 func init() {
 	Version()
+}
+
+// Fsck verifies the connectivity and validity of the objects in the database
+func Fsck(repoPath string, timeout time.Duration, args ...string) error {
+	_, err := NewCommand("fsck").AddArguments(args...).RunInDirTimeout(timeout, repoPath)
+	return err
 }
