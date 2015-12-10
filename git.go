@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+const _VERSION = "0.1.0"
+
+func Version() string {
+	return _VERSION
+}
+
 var (
 	// Debug enables verbose logging on everything.
 	// This should be false in case Gogs starts in SSH mode.
@@ -33,7 +39,7 @@ func log(format string, args ...interface{}) {
 var gitVersion string
 
 // Version returns current Git version from shell.
-func Version() (string, error) {
+func BinVersion() (string, error) {
 	if len(gitVersion) > 0 {
 		return gitVersion, nil
 	}
@@ -53,7 +59,7 @@ func Version() (string, error) {
 }
 
 func init() {
-	Version()
+	BinVersion()
 }
 
 // Fsck verifies the connectivity and validity of the objects in the database

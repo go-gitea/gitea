@@ -19,6 +19,7 @@ type Repository struct {
 	Path string
 
 	commitCache map[sha1]*Commit
+	tagCache    map[sha1]*Tag
 }
 
 const _PRETTY_LOG_FORMAT = `--pretty=format:%H`

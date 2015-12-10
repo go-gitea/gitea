@@ -6,21 +6,29 @@ package git
 
 import (
 	"bytes"
+	"container/list"
+	"fmt"
+	"strconv"
 	"strings"
 )
 
-// getCommitIDOfRef returns the last commit ID string of given reference (branch or tag).
-func (repo *Repository) getCommitIDOfRef(refName string) (string, error) {
-	stdout, err := NewCommand("show-ref", "--verify", refName).RunInDir(repo.Path)
+// getRefCommitID returns the last commit ID string of given reference (branch or tag).
+func (repo *Repository) getRefCommitID(name string) (string, error) {
+	stdout, err := NewCommand("show-ref", "--verify", name).RunInDir(repo.Path)
 	if err != nil {
 		return "", err
 	}
 	return strings.Split(stdout, " ")[0], nil
 }
 
-// GetCommitIDOfBranch returns last commit ID string of given branch.
-func (repo *Repository) GetCommitIDOfBranch(branch string) (string, error) {
-	return repo.getCommitIDOfRef(BRANCH_PREFIX + branch)
+// GetBranchCommitID returns last commit ID string of given branch.
+func (repo *Repository) GetBranchCommitID(name string) (string, error) {
+	return repo.getRefCommitID(BRANCH_PREFIX + name)
+}
+
+// GetTagCommitID returns last commit ID string of given tag.
+func (repo *Repository) GetTagCommitID(name string) (string, error) {
+	return repo.getRefCommitID(TAG_PREFIX + name)
 }
 
 // parseCommitData parses commit information from the (uncompressed) raw
@@ -113,16 +121,24 @@ func (repo *Repository) GetCommit(commitID string) (*Commit, error) {
 	return repo.getCommit(id)
 }
 
-// GetCommitOfBranch returns the last commit of given branch.
-func (repo *Repository) GetCommitOfBranch(branch string) (*Commit, error) {
-	commitID, err := repo.GetCommitIDOfBranch(branch)
+// GetBranchCommit returns the last commit of given branch.
+func (repo *Repository) GetBranchCommit(name string) (*Commit, error) {
+	commitID, err := repo.GetBranchCommitID(name)
 	if err != nil {
 		return nil, err
 	}
 	return repo.GetCommit(commitID)
 }
 
-func (repo *Repository) getCommitOfRelPath(id sha1, relpath string) (*Commit, error) {
+func (repo *Repository) GetTagCommit(name string) (*Commit, error) {
+	commitID, err := repo.GetTagCommitID(name)
+	if err != nil {
+		return nil, err
+	}
+	return repo.GetCommit(commitID)
+}
+
+func (repo *Repository) getCommitByPathWithID(id sha1, relpath string) (*Commit, error) {
 	stdout, err := NewCommand("log", "-1", _PRETTY_LOG_FORMAT, id.String(), "--", relpath).RunInDir(repo.Path)
 	if err != nil {
 		return nil, err
@@ -148,4 +164,143 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 		return nil, err
 	}
 	return commits.Front().Value.(*Commit), nil
+}
+
+var CommitsRangeSize = 50
+
+func (repo *Repository) commitsByRange(id sha1, page int) (*list.List, error) {
+	stdout, err := NewCommand("log", id.String(), "--skip="+strconv.Itoa((page-1)*CommitsRangeSize),
+		"--max-count="+strconv.Itoa(CommitsRangeSize), _PRETTY_LOG_FORMAT).RunInDirBytes(repo.Path)
+	if err != nil {
+		return nil, err
+	}
+	return repo.parsePrettyFormatLogToList(stdout)
+}
+
+func (repo *Repository) searchCommits(id sha1, keyword string) (*list.List, error) {
+	stdout, err := NewCommand("log", id.String(), "-100", "-i", "--grep="+keyword, _PRETTY_LOG_FORMAT).RunInDirBytes(repo.Path)
+	if err != nil {
+		return nil, err
+	}
+	return repo.parsePrettyFormatLogToList(stdout)
+}
+
+func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
+	return commitsCount(repo.Path, revision, file)
+}
+
+func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (*list.List, error) {
+	stdout, err := NewCommand("log", revision, "--skip="+strconv.Itoa((page-1)*50),
+		"--max-count="+strconv.Itoa(CommitsRangeSize), _PRETTY_LOG_FORMAT, "--", file).RunInDirBytes(repo.Path)
+	if err != nil {
+		return nil, err
+	}
+	return repo.parsePrettyFormatLogToList(stdout)
+}
+
+func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (int, error) {
+	stdout, err := NewCommand("diff", "--name-only", startCommitID+"..."+endCommitID).RunInDir(repo.Path)
+	if err != nil {
+		return 0, err
+	}
+	return len(strings.Split(stdout, "\n")) - 1, nil
+}
+
+func (repo *Repository) CommitsBetween(last *Commit, before *Commit) (*list.List, error) {
+	l := list.New()
+	if last == nil || last.ParentCount() == 0 {
+		return l, nil
+	}
+
+	var err error
+	cur := last
+	for {
+		if cur.ID.Equal(before.ID) {
+			break
+		}
+		l.PushBack(cur)
+		if cur.ParentCount() == 0 {
+			break
+		}
+		cur, err = cur.Parent(0)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return l, nil
+}
+
+func (repo *Repository) CommitsBetweenIDs(last, before string) (*list.List, error) {
+	lastCommit, err := repo.GetCommit(last)
+	if err != nil {
+		return nil, err
+	}
+	beforeCommit, err := repo.GetCommit(before)
+	if err != nil {
+		return nil, err
+	}
+	return repo.CommitsBetween(lastCommit, beforeCommit)
+}
+
+func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
+	return commitsCount(repo.Path, start+"..."+end, "")
+}
+
+func (repo *Repository) commitsBefore(l *list.List, parent *list.Element, id sha1, limit int) error {
+	commit, err := repo.getCommit(id)
+	if err != nil {
+		return fmt.Errorf("getCommit: %v", err)
+	}
+
+	var e *list.Element
+	if parent == nil {
+		e = l.PushBack(commit)
+	} else {
+		var in = parent
+		for {
+			if in == nil {
+				break
+			} else if in.Value.(*Commit).ID.Equal(commit.ID) {
+				return nil
+			} else {
+				if in.Next() == nil {
+					break
+				}
+				if in.Value.(*Commit).Committer.When.Equal(commit.Committer.When) {
+					break
+				}
+
+				if in.Value.(*Commit).Committer.When.After(commit.Committer.When) &&
+					in.Next().Value.(*Commit).Committer.When.Before(commit.Committer.When) {
+					break
+				}
+			}
+			in = in.Next()
+		}
+
+		e = l.InsertAfter(commit, in)
+	}
+
+	var pr = parent
+	if commit.ParentCount() > 1 {
+		pr = e
+	}
+
+	for i := 0; i < commit.ParentCount(); i++ {
+		id, err := commit.ParentID(i)
+		if err != nil {
+			return err
+		}
+		err = repo.commitsBefore(l, pr, id, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (repo *Repository) getCommitsBefore(id sha1) (*list.List, error) {
+	l := list.New()
+	return l, repo.commitsBefore(l, nil, id, 0)
 }

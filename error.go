@@ -35,3 +35,16 @@ func IsErrNotExist(err error) bool {
 func (err ErrNotExist) Error() string {
 	return fmt.Sprintf("object does not exist [id: %s, rel_path: %s]", err.ID, err.RelPath)
 }
+
+type ErrUnsupportedVersion struct {
+	Required string
+}
+
+func IsErrUnsupportedVersion(err error) bool {
+	_, ok := err.(ErrUnsupportedVersion)
+	return ok
+}
+
+func (err ErrUnsupportedVersion) Error() string {
+	return fmt.Sprintf("Operation requires higher version [required: %s]", err.Required)
+}

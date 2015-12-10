@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // isDir returns true if given path is a directory,
@@ -30,6 +31,13 @@ func isFile(filePath string) bool {
 	return !f.IsDir()
 }
 
+// isExist checks whether a file or directory exists.
+// It returns false when the file or directory does not exist.
+func isExist(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil || os.IsExist(err)
+}
+
 func concatenateError(err error, stderr string) error {
 	if len(stderr) == 0 {
 		return err
@@ -42,4 +50,17 @@ func concatenateError(err error, stderr string) error {
 // It does not test if the file exists.
 func filepathFromSHA1(rootdir, sha1 string) string {
 	return filepath.Join(rootdir, "objects", sha1[:2], sha1[2:])
+}
+
+func RefEndName(refStr string) string {
+	if strings.HasPrefix(refStr, "refs/heads/") {
+		// trim the "refs/heads/"
+		return refStr[len("refs/heads/"):]
+	}
+
+	index := strings.LastIndex(refStr, "/")
+	if index != -1 {
+		return refStr[index+1:]
+	}
+	return refStr
 }

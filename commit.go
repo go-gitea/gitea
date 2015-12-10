@@ -5,7 +5,10 @@
 package git
 
 import (
+	"bufio"
+	"container/list"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -20,8 +23,18 @@ type Commit struct {
 	Committer     *Signature
 	CommitMessage string
 
-	parents []sha1 // SHA1 strings
-	// submodules map[string]*SubModule
+	parents    []sha1 // SHA1 strings
+	submodules map[string]*SubModule
+}
+
+// Message returns the commit message. Same as retrieving CommitMessage directly.
+func (c *Commit) Message() string {
+	return c.CommitMessage
+}
+
+// Summary returns first line of commit message.
+func (c *Commit) Summary() string {
+	return strings.Split(c.CommitMessage, "\n")[0]
 }
 
 // ParentID returns oid of n-th parent (0-based index).
@@ -47,14 +60,41 @@ func (c *Commit) Parent(n int) (*Commit, error) {
 }
 
 // ParentCount returns number of parents of the commit.
-// 0 if this is the root commit, otherwise 1,2, etc.
+// 0 if this is the root commit,  otherwise 1,2, etc.
 func (c *Commit) ParentCount() int {
 	return len(c.parents)
 }
 
-// GetCommitOfRelPath return the commit of relative path object.
-func (c *Commit) GetCommitOfRelPath(relpath string) (*Commit, error) {
-	return c.repo.getCommitOfRelPath(c.ID, relpath)
+func isImageFile(data []byte) (string, bool) {
+	contentType := http.DetectContentType(data)
+	if strings.Index(contentType, "image/") != -1 {
+		return contentType, true
+	}
+	return contentType, false
+}
+
+func (c *Commit) IsImageFile(name string) bool {
+	blob, err := c.GetBlobByPath(name)
+	if err != nil {
+		return false
+	}
+
+	dataRc, err := blob.Data()
+	if err != nil {
+		return false
+	}
+	buf := make([]byte, 1024)
+	n, _ := dataRc.Read(buf)
+	if n > 0 {
+		buf = buf[:n]
+	}
+	_, isImage := isImageFile(buf)
+	return isImage
+}
+
+// GetCommitByPath return the commit of relative path object.
+func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
+	return c.repo.getCommitByPathWithID(c.ID, relpath)
 }
 
 // AddAllChanges marks local changes to be ready for commit.
@@ -82,19 +122,102 @@ func CommitChanges(repoPath, message string, author *Signature) error {
 	return err
 }
 
-// CommitsCount returns number of total commits of until given revision.
-func CommitsCount(repoPath, revision string) (int64, error) {
+func commitsCount(repoPath, revision, relpath string) (int64, error) {
+	var cmd *Command
+	isFallback := false
 	if version.Compare(gitVersion, "1.8.0", "<") {
-		stdout, err := NewCommand("log", "--pretty=format:''", revision).RunInDir(repoPath)
-		if err != nil {
-			return 0, err
-		}
-		return int64(len(strings.Split(stdout, "\n"))), nil
+		isFallback = true
+		cmd = NewCommand("log", "--pretty=format:''")
+	} else {
+		cmd = NewCommand("rev-list", "--count")
+	}
+	cmd.AddArguments(revision)
+	if len(relpath) > 0 {
+		cmd.AddArguments("--", relpath)
 	}
 
-	stdout, err := NewCommand("rev-list", "--count", revision).RunInDir(repoPath)
+	stdout, err := cmd.RunInDir(repoPath)
 	if err != nil {
 		return 0, err
 	}
+
+	if isFallback {
+		return int64(len(strings.Split(stdout, "\n"))), nil
+	}
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
+}
+
+// CommitsCount returns number of total commits of until given revision.
+func CommitsCount(repoPath, revision string) (int64, error) {
+	return commitsCount(repoPath, revision, "")
+}
+
+func (c *Commit) CommitsCount() (int64, error) {
+	return CommitsCount(c.repo.Path, c.ID.String())
+}
+
+func (c *Commit) CommitsByRange(page int) (*list.List, error) {
+	return c.repo.commitsByRange(c.ID, page)
+}
+
+func (c *Commit) CommitsBefore() (*list.List, error) {
+	return c.repo.getCommitsBefore(c.ID)
+}
+
+func (c *Commit) CommitsBeforeUntil(commitID string) (*list.List, error) {
+	endCommit, err := c.repo.GetCommit(commitID)
+	if err != nil {
+		return nil, err
+	}
+	return c.repo.CommitsBetween(c, endCommit)
+}
+
+func (c *Commit) SearchCommits(keyword string) (*list.List, error) {
+	return c.repo.searchCommits(c.ID, keyword)
+}
+
+func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
+	modules, err := c.GetSubModules()
+	if err != nil {
+		return nil, err
+	}
+	return modules[entryname], nil
+}
+
+func (c *Commit) GetSubModules() (map[string]*SubModule, error) {
+	if c.submodules != nil {
+		return c.submodules, nil
+	}
+
+	entry, err := c.GetTreeEntryByPath(".gitmodules")
+	if err != nil {
+		return nil, err
+	}
+	rd, err := entry.Blob().Data()
+	if err != nil {
+		return nil, err
+	}
+
+	scanner := bufio.NewScanner(rd)
+	c.submodules = make(map[string]*SubModule)
+	var ismodule bool
+	var path string
+	for scanner.Scan() {
+		if strings.HasPrefix(scanner.Text(), "[submodule") {
+			ismodule = true
+			continue
+		}
+		if ismodule {
+			fields := strings.Split(scanner.Text(), "=")
+			k := strings.TrimSpace(fields[0])
+			if k == "path" {
+				path = strings.TrimSpace(fields[1])
+			} else if k == "url" {
+				c.submodules[path] = &SubModule{path, strings.TrimSpace(fields[1])}
+				ismodule = false
+			}
+		}
+	}
+
+	return c.submodules, nil
 }

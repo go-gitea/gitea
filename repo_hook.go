@@ -4,20 +4,10 @@
 
 package git
 
-import (
-	"io/ioutil"
-	"os"
-	"path"
-)
+func (repo *Repository) GetHook(name string) (*Hook, error) {
+	return GetHook(repo.Path, name)
+}
 
-const (
-	HOOK_PATH_UPDATE = "hooks/update"
-)
-
-// SetUpdateHook writes given content to update hook of the reposiotry.
-func SetUpdateHook(repoPath, content string) error {
-	log("Setting update hook: %s", repoPath)
-	hookPath := path.Join(repoPath, HOOK_PATH_UPDATE)
-	os.MkdirAll(path.Dir(hookPath), os.ModePerm)
-	return ioutil.WriteFile(hookPath, []byte(content), 0777)
+func (repo *Repository) Hooks() ([]*Hook, error) {
+	return ListHooks(repo.Path)
 }

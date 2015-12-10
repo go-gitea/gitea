@@ -12,6 +12,36 @@ import (
 
 type sha1 [20]byte
 
+// Equal returns true if s has the same sha1 as caller.
+// Support 40-length-string, []byte, sha1.
+func (id sha1) Equal(s2 interface{}) bool {
+	switch v := s2.(type) {
+	case string:
+		if len(v) != 40 {
+			return false
+		}
+		return v == id.String()
+	case []byte:
+		if len(v) != 20 {
+			return false
+		}
+		for i, v := range v {
+			if id[i] != v {
+				return false
+			}
+		}
+	case sha1:
+		for i, v := range v {
+			if id[i] != v {
+				return false
+			}
+		}
+	default:
+		return false
+	}
+	return true
+}
+
 // String returns string (hex) representation of the Oid.
 func (s sha1) String() string {
 	result := make([]byte, 0, 40)

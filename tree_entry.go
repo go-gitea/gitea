@@ -4,6 +4,12 @@
 
 package git
 
+import (
+	"sort"
+	"strconv"
+	"strings"
+)
+
 type EntryMode int
 
 // There are only a few file modes in Git. They look like unix file modes, but they can only be
@@ -35,6 +41,27 @@ func (te *TreeEntry) Name() string {
 	return te.name
 }
 
+func (te *TreeEntry) Size() int64 {
+	if te.IsDir() {
+		return 0
+	} else if te.sized {
+		return te.size
+	}
+
+	stdout, err := NewCommand("cat-file", "-s", te.ID.String()).RunInDir(te.ptree.repo.Path)
+	if err != nil {
+		return 0
+	}
+
+	te.sized = true
+	te.size, _ = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
+	return te.size
+}
+
+func (te *TreeEntry) IsSubModule() bool {
+	return te.mode == ENTRY_MODE_COMMIT
+}
+
 func (te *TreeEntry) IsDir() bool {
 	return te.mode == ENTRY_MODE_TREE
 }
@@ -47,3 +74,33 @@ func (te *TreeEntry) Blob() *Blob {
 }
 
 type Entries []*TreeEntry
+
+var sorter = []func(t1, t2 *TreeEntry) bool{
+	func(t1, t2 *TreeEntry) bool {
+		return (t1.IsDir() || t1.IsSubModule()) && !t2.IsDir() && !t2.IsSubModule()
+	},
+	func(t1, t2 *TreeEntry) bool {
+		return t1.name < t2.name
+	},
+}
+
+func (bs Entries) Len() int      { return len(bs) }
+func (bs Entries) Swap(i, j int) { bs[i], bs[j] = bs[j], bs[i] }
+func (bs Entries) Less(i, j int) bool {
+	t1, t2 := bs[i], bs[j]
+	var k int
+	for k = 0; k < len(sorter)-1; k++ {
+		sort := sorter[k]
+		switch {
+		case sort(t1, t2):
+			return true
+		case sort(t2, t1):
+			return false
+		}
+	}
+	return sorter[k](t1, t2)
+}
+
+func (bs Entries) Sort() {
+	sort.Sort(bs)
+}
