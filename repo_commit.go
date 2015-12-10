@@ -246,7 +246,13 @@ func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 	return commitsCount(repo.Path, start+"..."+end, "")
 }
 
-func (repo *Repository) commitsBefore(l *list.List, parent *list.Element, id sha1, limit int) error {
+// The limit is depth, not total number of returned commits.
+func (repo *Repository) commitsBefore(l *list.List, parent *list.Element, id sha1, current, limit int) error {
+	// Reach the limit
+	if limit > 0 && current > limit {
+		return nil
+	}
+
 	commit, err := repo.getCommit(id)
 	if err != nil {
 		return fmt.Errorf("getCommit: %v", err)
@@ -262,26 +268,26 @@ func (repo *Repository) commitsBefore(l *list.List, parent *list.Element, id sha
 				break
 			} else if in.Value.(*Commit).ID.Equal(commit.ID) {
 				return nil
-			} else {
-				if in.Next() == nil {
-					break
-				}
-				if in.Value.(*Commit).Committer.When.Equal(commit.Committer.When) {
-					break
-				}
-
-				if in.Value.(*Commit).Committer.When.After(commit.Committer.When) &&
-					in.Next().Value.(*Commit).Committer.When.Before(commit.Committer.When) {
-					break
-				}
+			} else if in.Next() == nil {
+				break
 			}
+
+			if in.Value.(*Commit).Committer.When.Equal(commit.Committer.When) {
+				break
+			}
+
+			if in.Value.(*Commit).Committer.When.After(commit.Committer.When) &&
+				in.Next().Value.(*Commit).Committer.When.Before(commit.Committer.When) {
+				break
+			}
+
 			in = in.Next()
 		}
 
 		e = l.InsertAfter(commit, in)
 	}
 
-	var pr = parent
+	pr := parent
 	if commit.ParentCount() > 1 {
 		pr = e
 	}
@@ -291,7 +297,7 @@ func (repo *Repository) commitsBefore(l *list.List, parent *list.Element, id sha
 		if err != nil {
 			return err
 		}
-		err = repo.commitsBefore(l, pr, id, 0)
+		err = repo.commitsBefore(l, pr, id, current+1, limit)
 		if err != nil {
 			return err
 		}
@@ -302,5 +308,10 @@ func (repo *Repository) commitsBefore(l *list.List, parent *list.Element, id sha
 
 func (repo *Repository) getCommitsBefore(id sha1) (*list.List, error) {
 	l := list.New()
-	return l, repo.commitsBefore(l, nil, id, 0)
+	return l, repo.commitsBefore(l, nil, id, 1, 0)
+}
+
+func (repo *Repository) getCommitsBeforeLimit(id sha1, num int) (*list.List, error) {
+	l := list.New()
+	return l, repo.commitsBefore(l, nil, id, 1, num)
 }

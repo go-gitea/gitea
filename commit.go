@@ -164,6 +164,10 @@ func (c *Commit) CommitsBefore() (*list.List, error) {
 	return c.repo.getCommitsBefore(c.ID)
 }
 
+func (c *Commit) CommitsBeforeLimit(num int) (*list.List, error) {
+	return c.repo.getCommitsBeforeLimit(c.ID, num)
+}
+
 func (c *Commit) CommitsBeforeUntil(commitID string) (*list.List, error) {
 	endCommit, err := c.repo.GetCommit(commitID)
 	if err != nil {
