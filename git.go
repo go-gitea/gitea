@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const _VERSION = "0.1.0"
+const _VERSION = "0.1.1"
 
 func Version() string {
 	return _VERSION
@@ -47,6 +47,13 @@ func BinVersion() (string, error) {
 	stdout, err := NewCommand("version").Run()
 	if err != nil {
 		return "", err
+	}
+
+	// Handle special case on Windows.
+	i := strings.Index(stdout, "windows")
+	if i >= 1 {
+		gitVersion = stdout[:i-1]
+		return gitVersion, nil
 	}
 
 	fields := strings.Fields(stdout)
