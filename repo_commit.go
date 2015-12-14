@@ -36,6 +36,7 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 // \n\n separate headers from message
 func parseCommitData(data []byte) (*Commit, error) {
 	commit := new(Commit)
+	commit.submoduleCache = newObjectCache()
 	commit.parents = make([]sha1, 0, 1)
 	// we now have the contents of the commit object. Let's investigate...
 	nextline := 0
@@ -86,13 +87,10 @@ l:
 }
 
 func (repo *Repository) getCommit(id sha1) (*Commit, error) {
-	if repo.commitCache != nil {
+	c, ok := repo.commitCache.Get(id.String())
+	if ok {
 		log("Hit cache: %s", id)
-		if c, ok := repo.commitCache[id]; ok {
-			return c, nil
-		}
-	} else {
-		repo.commitCache = make(map[sha1]*Commit, 10)
+		return c.(*Commit), nil
 	}
 
 	data, err := NewCommand("cat-file", "-p", id.String()).RunInDirBytes(repo.Path)
@@ -107,7 +105,7 @@ func (repo *Repository) getCommit(id sha1) (*Commit, error) {
 	commit.repo = repo
 	commit.ID = id
 
-	repo.commitCache[id] = commit
+	repo.commitCache.Set(id.String(), commit)
 	return commit, nil
 }
 

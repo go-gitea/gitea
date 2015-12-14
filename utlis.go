@@ -9,7 +9,35 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
+
+// objectCache provides thread-safe cache opeations.
+type objectCache struct {
+	lock  sync.RWMutex
+	cache map[string]interface{}
+}
+
+func newObjectCache() *objectCache {
+	return &objectCache{
+		cache: make(map[string]interface{}, 10),
+	}
+}
+
+func (oc *objectCache) Set(id string, obj interface{}) {
+	oc.lock.Lock()
+	defer oc.lock.Unlock()
+
+	oc.cache[id] = obj
+}
+
+func (oc *objectCache) Get(id string) (interface{}, bool) {
+	oc.lock.RLock()
+	defer oc.lock.RUnlock()
+
+	obj, has := oc.cache[id]
+	return obj, has
+}
 
 // isDir returns true if given path is a directory,
 // or returns false when it's a file or does not exist.

@@ -27,12 +27,10 @@ func (repo *Repository) CreateTag(name, revision string) error {
 }
 
 func (repo *Repository) getTag(id sha1) (*Tag, error) {
-	if repo.tagCache != nil {
-		if t, ok := repo.tagCache[id]; ok {
-			return t, nil
-		}
-	} else {
-		repo.tagCache = make(map[sha1]*Tag, 10)
+	t, ok := repo.tagCache.Get(id.String())
+	if ok {
+		log("Hit cache: %s", id)
+		return t.(*Tag), nil
 	}
 
 	// Get tag type
@@ -50,7 +48,8 @@ func (repo *Repository) getTag(id sha1) (*Tag, error) {
 			Type:   string(OBJECT_COMMIT),
 			repo:   repo,
 		}
-		repo.tagCache[id] = tag
+
+		repo.tagCache.Set(id.String(), tag)
 		return tag, nil
 	}
 
@@ -68,7 +67,7 @@ func (repo *Repository) getTag(id sha1) (*Tag, error) {
 	tag.ID = id
 	tag.repo = repo
 
-	repo.tagCache[id] = tag
+	repo.tagCache.Set(id.String(), tag)
 	return tag, nil
 }
 

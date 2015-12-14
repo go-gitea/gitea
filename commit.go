@@ -23,8 +23,8 @@ type Commit struct {
 	Committer     *Signature
 	CommitMessage string
 
-	parents    []sha1 // SHA1 strings
-	submodules map[string]*SubModule
+	parents        []sha1 // SHA1 strings
+	submoduleCache *objectCache
 }
 
 // Message returns the commit message. Same as retrieving CommitMessage directly.
@@ -180,17 +180,9 @@ func (c *Commit) SearchCommits(keyword string) (*list.List, error) {
 	return c.repo.searchCommits(c.ID, keyword)
 }
 
-func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
-	modules, err := c.GetSubModules()
-	if err != nil {
-		return nil, err
-	}
-	return modules[entryname], nil
-}
-
-func (c *Commit) GetSubModules() (map[string]*SubModule, error) {
-	if c.submodules != nil {
-		return c.submodules, nil
+func (c *Commit) GetSubModules() (*objectCache, error) {
+	if c.submoduleCache != nil {
+		return c.submoduleCache, nil
 	}
 
 	entry, err := c.GetTreeEntryByPath(".gitmodules")
@@ -203,7 +195,6 @@ func (c *Commit) GetSubModules() (map[string]*SubModule, error) {
 	}
 
 	scanner := bufio.NewScanner(rd)
-	c.submodules = make(map[string]*SubModule)
 	var ismodule bool
 	var path string
 	for scanner.Scan() {
@@ -217,11 +208,24 @@ func (c *Commit) GetSubModules() (map[string]*SubModule, error) {
 			if k == "path" {
 				path = strings.TrimSpace(fields[1])
 			} else if k == "url" {
-				c.submodules[path] = &SubModule{path, strings.TrimSpace(fields[1])}
+				c.submoduleCache.Set(path, &SubModule{path, strings.TrimSpace(fields[1])})
 				ismodule = false
 			}
 		}
 	}
 
-	return c.submodules, nil
+	return c.submoduleCache, nil
+}
+
+func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
+	modules, err := c.GetSubModules()
+	if err != nil {
+		return nil, err
+	}
+
+	module, has := modules.Get(entryname)
+	if has {
+		return module.(*SubModule), nil
+	}
+	return nil, nil
 }

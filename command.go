@@ -95,7 +95,7 @@ func (c *Command) RunInDirTimeout(timeout time.Duration, dir string) ([]byte, er
 	}
 
 	if stdout.Len() > 0 {
-		log("stdout:\n%s", stdout)
+		log("stdout:\n%s", stdout.Bytes()[:1024])
 	}
 	return stdout.Bytes(), nil
 }

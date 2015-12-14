@@ -5,6 +5,9 @@
 package git
 
 import (
+	"fmt"
+	"path"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -84,10 +87,10 @@ var sorter = []func(t1, t2 *TreeEntry) bool{
 	},
 }
 
-func (bs Entries) Len() int      { return len(bs) }
-func (bs Entries) Swap(i, j int) { bs[i], bs[j] = bs[j], bs[i] }
-func (bs Entries) Less(i, j int) bool {
-	t1, t2 := bs[i], bs[j]
+func (tes Entries) Len() int      { return len(tes) }
+func (tes Entries) Swap(i, j int) { tes[i], tes[j] = tes[j], tes[i] }
+func (tes Entries) Less(i, j int) bool {
+	t1, t2 := tes[i], tes[j]
 	var k int
 	for k = 0; k < len(sorter)-1; k++ {
 		sort := sorter[k]
@@ -101,6 +104,83 @@ func (bs Entries) Less(i, j int) bool {
 	return sorter[k](t1, t2)
 }
 
-func (bs Entries) Sort() {
-	sort.Sort(bs)
+func (tes Entries) Sort() {
+	sort.Sort(tes)
+}
+
+type commitInfo struct {
+	id    string
+	infos []interface{}
+	err   error
+}
+
+// GetCommitsInfo takes advantages of concurrey to speed up getting information
+// of all commits that are corresponding to these entries.
+// TODO: limit max goroutines at same time
+func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interface{}, error) {
+	if len(tes) == 0 {
+		return nil, nil
+	}
+
+	revChan := make(chan commitInfo, 10)
+
+	infoMap := make(map[string][]interface{}, len(tes))
+	for i := range tes {
+		if tes[i].Type != OBJECT_COMMIT {
+			go func(i int) {
+				cinfo := commitInfo{id: tes[i].ID.String()}
+				c, err := commit.GetCommitByPath(filepath.Join(treePath, tes[i].Name()))
+				if err != nil {
+					cinfo.err = fmt.Errorf("GetCommitByPath (%s/%s): %v", treePath, tes[i].Name(), err)
+				} else {
+					cinfo.infos = []interface{}{tes[i], c}
+				}
+				revChan <- cinfo
+			}(i)
+			continue
+		}
+
+		// Handle submodule
+		go func(i int) {
+			cinfo := commitInfo{id: tes[i].ID.String()}
+			sm, err := commit.GetSubModule(path.Join(treePath, tes[i].Name()))
+			if err != nil {
+				cinfo.err = fmt.Errorf("GetSubModule (%s/%s): %v", treePath, tes[i].Name(), err)
+				revChan <- cinfo
+				return
+			}
+
+			smUrl := ""
+			if sm != nil {
+				smUrl = sm.Url
+			}
+
+			c, err := commit.GetCommitByPath(filepath.Join(treePath, tes[i].Name()))
+			if err != nil {
+				cinfo.err = fmt.Errorf("GetCommitByPath (%s/%s): %v", treePath, tes[i].Name(), err)
+			} else {
+				cinfo.infos = []interface{}{tes[i], NewSubModuleFile(c, smUrl, tes[i].ID.String())}
+			}
+			revChan <- cinfo
+		}(i)
+	}
+
+	i := 0
+	for info := range revChan {
+		if info.err != nil {
+			return nil, info.err
+		}
+
+		infoMap[info.id] = info.infos
+		i++
+		if i == len(tes) {
+			break
+		}
+	}
+
+	commitsInfo := make([][]interface{}, len(tes))
+	for i := 0; i < len(tes); i++ {
+		commitsInfo[i] = infoMap[tes[i].ID.String()]
+	}
+	return commitsInfo, nil
 }

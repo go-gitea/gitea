@@ -18,8 +18,8 @@ import (
 type Repository struct {
 	Path string
 
-	commitCache map[sha1]*Commit
-	tagCache    map[sha1]*Tag
+	commitCache *objectCache
+	tagCache    *objectCache
 }
 
 const _PRETTY_LOG_FORMAT = `--pretty=format:%H`
@@ -64,7 +64,11 @@ func OpenRepository(repoPath string) (*Repository, error) {
 		return nil, errors.New("no such file or directory")
 	}
 
-	return &Repository{Path: repoPath}, nil
+	return &Repository{
+		Path:        repoPath,
+		commitCache: newObjectCache(),
+		tagCache:    newObjectCache(),
+	}, nil
 }
 
 type CloneRepoOptions struct {
