@@ -49,7 +49,7 @@ l:
 			spacepos := bytes.IndexByte(line, ' ')
 			reftype := line[:spacepos]
 			switch string(reftype) {
-			case "tree":
+			case "tree", "object":
 				id, err := NewIDFromString(string(line[spacepos+1:]))
 				if err != nil {
 					return nil, err
@@ -62,7 +62,7 @@ l:
 					return nil, err
 				}
 				commit.parents = append(commit.parents, oid)
-			case "author":
+			case "author", "tagger":
 				sig, err := newSignatureFromCommitline(line[spacepos+1:])
 				if err != nil {
 					return nil, err
