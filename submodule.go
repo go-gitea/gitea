@@ -4,11 +4,7 @@
 
 package git
 
-import (
-	"strings"
-
-	"github.com/gogits/gogs/modules/setting"
-)
+import "strings"
 
 type SubModule struct {
 	Name string
@@ -33,7 +29,7 @@ func NewSubModuleFile(c *Commit, refUrl, refId string) *SubModuleFile {
 
 // FIXME: remove import of setting
 // RefUrl guesses and returns reference URL.
-func (sf *SubModuleFile) RefUrl() string {
+func (sf *SubModuleFile) RefUrl(urlPrefix string) string {
 	if sf.refUrl == "" {
 		return ""
 	}
@@ -55,8 +51,8 @@ func (sf *SubModuleFile) RefUrl() string {
 	j := strings.LastIndex(url, ":")
 	if i > -1 && j > -1 {
 		// fix problem with reverse proxy works only with local server
-		if strings.Contains(setting.AppUrl, url[i+1:j]) {
-			return setting.AppUrl + url[j+1:]
+		if strings.Contains(urlPrefix, url[i+1:j]) {
+			return urlPrefix + url[j+1:]
 		} else {
 			return "http://" + url[i+1:j] + "/" + url[j+1:]
 		}
