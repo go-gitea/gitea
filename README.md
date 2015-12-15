@@ -1,6 +1,6 @@
 # Git Shell [![Build Status](https://travis-ci.org/gogits/git-shell.svg?branch=master)](https://travis-ci.org/gogits/git-shell)
 
-Package git-shell provides Git access through shell commands.
+Package git-module is a Go module for Git access through shell commands.
 
 ## Limitations
 
