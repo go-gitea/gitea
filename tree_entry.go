@@ -109,10 +109,10 @@ func (tes Entries) Sort() {
 }
 
 type commitInfo struct {
-	id    string
-	entry string
-	infos []interface{}
-	err   error
+	id        string
+	entryName string
+	infos     []interface{}
+	err       error
 }
 
 // GetCommitsInfo takes advantages of concurrey to speed up getting information
@@ -129,7 +129,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interfac
 	for i := range tes {
 		if tes[i].Type != OBJECT_COMMIT {
 			go func(i int) {
-				cinfo := commitInfo{id: tes[i].ID.String(), entry: tes[i].Name()}
+				cinfo := commitInfo{id: tes[i].ID.String(), entryName: tes[i].Name()}
 				c, err := commit.GetCommitByPath(filepath.Join(treePath, tes[i].Name()))
 				if err != nil {
 					cinfo.err = fmt.Errorf("GetCommitByPath (%s/%s): %v", treePath, tes[i].Name(), err)
@@ -143,7 +143,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interfac
 
 		// Handle submodule
 		go func(i int) {
-			cinfo := commitInfo{id: tes[i].ID.String(), entry: tes[i].Name()}
+			cinfo := commitInfo{id: tes[i].ID.String(), entryName: tes[i].Name()}
 			sm, err := commit.GetSubModule(path.Join(treePath, tes[i].Name()))
 			if err != nil {
 				cinfo.err = fmt.Errorf("GetSubModule (%s/%s): %v", treePath, tes[i].Name(), err)
@@ -172,7 +172,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interfac
 			return nil, info.err
 		}
 
-		infoMap[info.entry] = info.infos
+		infoMap[info.entryName] = info.infos
 		i++
 		if i == len(tes) {
 			break
