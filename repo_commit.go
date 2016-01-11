@@ -137,6 +137,11 @@ func (repo *Repository) GetTagCommit(name string) (*Commit, error) {
 }
 
 func (repo *Repository) getCommitByPathWithID(id sha1, relpath string) (*Commit, error) {
+	// File name starts with ':' must be escaped.
+	if relpath[0] == ':' {
+		relpath = `\` + relpath
+	}
+
 	stdout, err := NewCommand("log", "-1", _PRETTY_LOG_FORMAT, id.String(), "--", relpath).RunInDir(repo.Path)
 	if err != nil {
 		return nil, err

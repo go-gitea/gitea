@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const _VERSION = "0.2.2"
+const _VERSION = "0.2.3"
 
 func Version() string {
 	return _VERSION
@@ -20,7 +20,7 @@ var (
 	// Debug enables verbose logging on everything.
 	// This should be false in case Gogs starts in SSH mode.
 	Debug  = false
-	Prefix = "[git-shell] "
+	Prefix = "[git-module] "
 )
 
 func log(format string, args ...interface{}) {
