@@ -36,7 +36,6 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 // \n\n separate headers from message
 func parseCommitData(data []byte) (*Commit, error) {
 	commit := new(Commit)
-	commit.submoduleCache = newObjectCache()
 	commit.parents = make([]sha1, 0, 1)
 	// we now have the contents of the commit object. Let's investigate...
 	nextline := 0

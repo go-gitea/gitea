@@ -144,7 +144,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interfac
 		go func(i int) {
 			cinfo := commitInfo{entryName: tes[i].Name()}
 			sm, err := commit.GetSubModule(path.Join(treePath, tes[i].Name()))
-			if err != nil {
+			if err != nil && !IsErrNotExist(err) {
 				cinfo.err = fmt.Errorf("GetSubModule (%s/%s): %v", treePath, tes[i].Name(), err)
 				revChan <- cinfo
 				return
