@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const _VERSION = "0.2.3"
+const _VERSION = "0.2.4"
 
 func Version() string {
 	return _VERSION
@@ -71,6 +71,10 @@ func init() {
 
 // Fsck verifies the connectivity and validity of the objects in the database
 func Fsck(repoPath string, timeout time.Duration, args ...string) error {
+	// Make sure timeout makes sense.
+	if timeout <= 0 {
+		timeout == -1
+	}
 	_, err := NewCommand("fsck").AddArguments(args...).RunInDirTimeout(timeout, repoPath)
 	return err
 }
