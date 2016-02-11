@@ -86,9 +86,10 @@ func RefEndName(refStr string) string {
 		return refStr[len("refs/heads/"):]
 	}
 
-	index := strings.LastIndex(refStr, "/")
-	if index != -1 {
-		return refStr[index+1:]
+	if strings.HasPrefix(refStr, "refs/tags/") {
+		// trim the "refs/heads/"
+		return refStr[len("refs/tags/"):]
 	}
+
 	return refStr
 }
