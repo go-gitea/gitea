@@ -81,14 +81,12 @@ func filepathFromSHA1(rootdir, sha1 string) string {
 }
 
 func RefEndName(refStr string) string {
-	if strings.HasPrefix(refStr, "refs/heads/") {
-		// trim the "refs/heads/"
-		return refStr[len("refs/heads/"):]
+	if strings.HasPrefix(refStr, BRANCH_PREFIX) {
+		return refStr[len(BRANCH_PREFIX):]
 	}
 
-	if strings.HasPrefix(refStr, "refs/tags/") {
-		// trim the "refs/heads/"
-		return refStr[len("refs/tags/"):]
+	if strings.HasPrefix(refStr, TAG_PREFIX) {
+		return refStr[len(TAG_PREFIX):]
 	}
 
 	return refStr
