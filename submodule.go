@@ -49,7 +49,9 @@ func (sf *SubModuleFile) RefUrl(urlPrefix string) string {
 	// sysuser@xxx:user/repo
 	i := strings.Index(url, "@")
 	j := strings.LastIndex(url, ":")
-	if i > -1 && j > -1 {
+
+	// Only process when i < j because git+ssh://git@git.forwardbias.in/npploader.git
+	if i > -1 && j > -1 && i < j {
 		// fix problem with reverse proxy works only with local server
 		if strings.Contains(urlPrefix, url[i+1:j]) {
 			return urlPrefix + url[j+1:]
