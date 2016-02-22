@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type EntryMode int
@@ -116,18 +117,47 @@ type commitInfo struct {
 
 // GetCommitsInfo takes advantages of concurrey to speed up getting information
 // of all commits that are corresponding to these entries.
-// TODO: limit max goroutines at same time
+// TODO: limit max goroutines number should be configurable
 func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interface{}, error) {
 	if len(tes) == 0 {
 		return nil, nil
 	}
 
+	// Length of taskChan determines how many goroutines (subprocesses) can run at the same time.
+	// The length of revChan should be same as taskChan so goroutines whoever finished job can
+	// exit as early as possible, only store data inside channel.
+	taskChan := make(chan bool, 10)
 	revChan := make(chan commitInfo, 10)
+	doneChan := make(chan error)
 
+	// Receive loop will exit when it collects same number of data pieces as tree entries.
+	// It notifies doneChan before exits or notify early with possible error.
 	infoMap := make(map[string][]interface{}, len(tes))
+	go func() {
+		i := 0
+		for info := range revChan {
+			if info.err != nil {
+				doneChan <- info.err
+				return
+			}
+
+			infoMap[info.entryName] = info.infos
+			i++
+			if i == len(tes) {
+				break
+			}
+		}
+		doneChan <- nil
+	}()
+
 	for i := range tes {
+		// When taskChan is idle (or has empty slots), put operation will not block.
+		// However when taskChan is full, code will block and wait any running goroutines to finish.
+		taskChan <- true
+
 		if tes[i].Type != OBJECT_COMMIT {
 			go func(i int) {
+				time.Sleep(200 * time.Millisecond)
 				cinfo := commitInfo{entryName: tes[i].Name()}
 				c, err := commit.GetCommitByPath(filepath.Join(treePath, tes[i].Name()))
 				if err != nil {
@@ -136,6 +166,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interfac
 					cinfo.infos = []interface{}{tes[i], c}
 				}
 				revChan <- cinfo
+				<-taskChan // Clear one slot from taskChan to allow new goroutines to start.
 			}(i)
 			continue
 		}
@@ -162,20 +193,12 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interfac
 				cinfo.infos = []interface{}{tes[i], NewSubModuleFile(c, smUrl, tes[i].ID.String())}
 			}
 			revChan <- cinfo
+			<-taskChan
 		}(i)
 	}
 
-	i := 0
-	for info := range revChan {
-		if info.err != nil {
-			return nil, info.err
-		}
-
-		infoMap[info.entryName] = info.infos
-		i++
-		if i == len(tes) {
-			break
-		}
+	if err := <-doneChan; err != nil {
+		return nil, err
 	}
 
 	commitsInfo := make([][]interface{}, len(tes))
