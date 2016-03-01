@@ -105,13 +105,23 @@ func Clone(from, to string, opts CloneRepoOptions) (err error) {
 	return err
 }
 
+type PullRemoteOptions struct {
+	All     bool
+	Timeout time.Duration
+}
+
 // Pull pulls changes from remotes.
-func Pull(repoPath string, all bool) error {
+func Pull(repoPath string, opts PullRemoteOptions) error {
 	cmd := NewCommand("pull")
-	if all {
+	if opts.All {
 		cmd.AddArguments("--all")
 	}
-	_, err := cmd.RunInDir(repoPath)
+
+	if opts.Timeout <= 0 {
+		opts.Timeout = -1
+	}
+
+	_, err := cmd.RunInDirTimeout(opts.Timeout, repoPath)
 	return err
 }
 
