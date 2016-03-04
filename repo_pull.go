@@ -28,16 +28,22 @@ func (repo *Repository) GetMergeBase(base, head string) (string, error) {
 // GetPullRequestInfo generates and returns pull request information
 // between base and head branches of repositories.
 func (repo *Repository) GetPullRequestInfo(basePath, baseBranch, headBranch string) (_ *PullRequestInfo, err error) {
-	// Add a temporary remote
-	tmpRemote := strconv.FormatInt(time.Now().UnixNano(), 10)
-	if err = repo.AddRemote(tmpRemote, basePath, true); err != nil {
-		return nil, fmt.Errorf("AddRemote: %v", err)
-	}
-	defer func() {
-		repo.RemoveRemote(tmpRemote)
-	}()
+	var remoteBranch string
 
-	remoteBranch := "remotes/" + tmpRemote + "/" + baseBranch
+	// We don't need a temporary remote for same repository.
+	if repo.Path != basePath {
+		// Add a temporary remote
+		tmpRemote := strconv.FormatInt(time.Now().UnixNano(), 10)
+		if err = repo.AddRemote(tmpRemote, basePath, true); err != nil {
+			return nil, fmt.Errorf("AddRemote: %v", err)
+		}
+		defer repo.RemoveRemote(tmpRemote)
+
+		remoteBranch = "remotes/" + tmpRemote + "/" + baseBranch
+	} else {
+		remoteBranch = baseBranch
+	}
+
 	prInfo := new(PullRequestInfo)
 	prInfo.MergeBase, err = repo.GetMergeBase(remoteBranch, headBranch)
 	if err != nil {
