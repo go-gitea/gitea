@@ -103,7 +103,8 @@ func (repo *Repository) GetTags() ([]string, error) {
 		return nil, err
 	}
 
-	tags := strings.Split(strings.TrimSpace(stdout), "\n")
+	tags := strings.Split(stdout, "\n")
+	tags = tags[:len(tags)-1]
 
 	if version.Compare(gitVersion, "2.0.0", "<") {
 		version.Sort(tags)
