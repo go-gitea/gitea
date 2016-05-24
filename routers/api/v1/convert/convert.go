@@ -73,6 +73,18 @@ func ToPublicKey(apiLink string, key *models.PublicKey) *api.PublicKey {
 	}
 }
 
+// ToPublicGPGKey converts models.PublicGPGKey to api.PublicGPGKey
+//TODO be more specific to GPG key with a api.PublicGPGKey ?
+func ToPublicGPGKey(apiLink string, key *models.PublicGPGKey) *api.PublicKey {
+	return &api.PublicKey{
+		ID:      key.ID,
+		Key:     key.Content,
+		URL:     apiLink + com.ToStr(key.ID),
+		Title:   key.Name,
+		Created: key.Created,
+	}
+}
+
 // ToHook convert models.Webhook to api.Hook
 func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 	config := map[string]string{

@@ -246,7 +246,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 			m.Group("/gpg_keys", func() {
 				m.Combo("").Get(user.ListMyPublicGPGKeys).
-					Post(bind(api.CreateGPGKeyOption{}), user.CreatePublicGPGKey)
+					Post(bind(api.CreateKeyOption{}), user.CreatePublicGPGKey) //TODO use specific api descriptor
 				m.Combo("/:id").Get(user.GetPublicGPGKey).
 					Delete(user.DeletePublicGPGKey)
 			})

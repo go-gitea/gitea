@@ -26,7 +26,7 @@ func listPublicGPGKeys(ctx *context.APIContext, uid int64) {
 	}
 
 	apiLink := composePublicGPGKeysAPILink()
-	apiKeys := make([]*api.PublicGPGKey, len(keys))
+	apiKeys := make([]*api.PublicKey, len(keys))
 	for i := range keys {
 		apiKeys[i] = convert.ToPublicGPGKey(apiLink, keys[i])
 	}
@@ -56,7 +56,7 @@ func GetPublicGPGKey(ctx *context.APIContext) {
 }
 
 // CreateUserPublicGPGKey creates new public GPG key to given user by ID.
-func CreateUserPublicGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption, uid int64) {
+func CreateUserPublicGPGKey(ctx *context.APIContext, form api.CreateKeyOption, uid int64) {
 	content, err := models.CheckPublicGPGKeyString(form.Key)
 	if err != nil {
 		repo.HandleCheckGPGKeyStringError(ctx, err)
@@ -72,8 +72,9 @@ func CreateUserPublicGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption
 	ctx.JSON(201, convert.ToPublicKey(apiLink, key))
 }
 
+//TODO Update api
 // https://github.com/gogits/go-gogs-client/wiki/Users-Public-GPG-Keys#create-a-public-key
-func CreatePublicGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption) {
+func CreatePublicGPGKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	CreateUserPublicGPGKey(ctx, form, ctx.User.Id)
 }
 
