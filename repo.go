@@ -76,6 +76,7 @@ type CloneRepoOptions struct {
 	Bare    bool
 	Quiet   bool
 	Timeout time.Duration
+	Branch  string
 }
 
 // Clone clones original repository to target path.
@@ -95,6 +96,9 @@ func Clone(from, to string, opts CloneRepoOptions) (err error) {
 	if opts.Quiet {
 		cmd.AddArguments("--quiet")
 	}
+	if len(opts.Branch) > 0 {
+		cmd.AddArguments("-b", opts.Branch)
+	}
 	cmd.AddArguments(from, to)
 
 	if opts.Timeout <= 0 {
@@ -107,6 +111,8 @@ func Clone(from, to string, opts CloneRepoOptions) (err error) {
 
 type PullRemoteOptions struct {
 	All     bool
+	Remote  string
+	Branch  string
 	Timeout time.Duration
 }
 
@@ -115,6 +121,9 @@ func Pull(repoPath string, opts PullRemoteOptions) error {
 	cmd := NewCommand("pull")
 	if opts.All {
 		cmd.AddArguments("--all")
+	} else {
+		cmd.AddArguments(opts.Remote)
+		cmd.AddArguments(opts.Branch)
 	}
 
 	if opts.Timeout <= 0 {
@@ -131,6 +140,33 @@ func Push(repoPath, remote, branch string) error {
 	return err
 }
 
+type CheckoutOptions struct {
+	Branch  string
+	OldBranch string
+	Timeout time.Duration
+}
+
+// Checkout checkouts a branch
+func Checkout(repoPath string, opts CheckoutOptions) error {
+	cmd := NewCommand("checkout")
+	if len(opts.OldBranch) > 0 {
+		cmd.AddArguments("-b")
+	}
+
+	if opts.Timeout <= 0 {
+		opts.Timeout = -1
+	}
+
+	cmd.AddArguments(opts.Branch)
+
+	if len(opts.OldBranch) > 0 {
+		cmd.AddArguments(opts.OldBranch)
+	}
+
+	_, err := cmd.RunInDirTimeout(opts.Timeout, repoPath)
+	return err
+}
+
 // ResetHEAD resets HEAD to given revision or head of branch.
 func ResetHEAD(repoPath string, hard bool, revision string) error {
 	cmd := NewCommand("reset")
@@ -138,5 +174,13 @@ func ResetHEAD(repoPath string, hard bool, revision string) error {
 		cmd.AddArguments("--hard")
 	}
 	_, err := cmd.AddArguments(revision).RunInDir(repoPath)
+	return err
+}
+
+// MoveFile moves a file to another file or directory
+func MoveFile(repoPath, oldTreeName, newTreeName string) error {
+	cmd := NewCommand("mv")
+	cmd.AddArguments(oldTreeName, newTreeName)
+	_, err := cmd.RunInDir(repoPath)
 	return err
 }

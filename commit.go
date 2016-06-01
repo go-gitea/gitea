@@ -180,6 +180,10 @@ func (c *Commit) SearchCommits(keyword string) (*list.List, error) {
 	return c.repo.searchCommits(c.ID, keyword)
 }
 
+func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error) {
+	return c.repo.getFilesChanged(pastCommit, c.ID.String())
+}
+
 func (c *Commit) GetSubModules() (*objectCache, error) {
 	if c.submoduleCache != nil {
 		return c.submoduleCache, nil

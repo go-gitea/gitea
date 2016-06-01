@@ -187,6 +187,14 @@ func (repo *Repository) searchCommits(id sha1, keyword string) (*list.List, erro
 	return repo.parsePrettyFormatLogToList(stdout)
 }
 
+func (repo *Repository) getFilesChanged(id1 string, id2 string) ([]string, error) {
+	stdout, err := NewCommand("diff", "--name-only", id1, id2).RunInDirBytes(repo.Path)
+	if err != nil {
+		return nil, err
+	}
+	return strings.Split(string(stdout), "\n"), nil
+}
+
 func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
 	return commitsCount(repo.Path, revision, file)
 }
