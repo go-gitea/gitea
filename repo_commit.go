@@ -110,6 +110,13 @@ func (repo *Repository) getCommit(id sha1) (*Commit, error) {
 
 // GetCommit returns commit object of by ID string.
 func (repo *Repository) GetCommit(commitID string) (*Commit, error) {
+	if len(commitID) != 40 {
+		var err error
+		commitID, err = NewCommand("rev-parse", commitID).RunInDir(repo.Path)
+		if err != nil {
+			return nil, err
+		}
+	}
 	id, err := NewIDFromString(commitID)
 	if err != nil {
 		return nil, err
