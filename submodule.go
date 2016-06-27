@@ -8,33 +8,32 @@ import "strings"
 
 type SubModule struct {
 	Name string
-	Url  string
+	URL  string
 }
 
 // SubModuleFile represents a file with submodule type.
 type SubModuleFile struct {
 	*Commit
 
-	refUrl string
-	refId  string
+	refURL string
+	refID  string
 }
 
-func NewSubModuleFile(c *Commit, refUrl, refId string) *SubModuleFile {
+func NewSubModuleFile(c *Commit, refURL, refID string) *SubModuleFile {
 	return &SubModuleFile{
 		Commit: c,
-		refUrl: refUrl,
-		refId:  refId,
+		refURL: refURL,
+		refID:  refID,
 	}
 }
 
-// FIXME: remove import of setting
-// RefUrl guesses and returns reference URL.
-func (sf *SubModuleFile) RefUrl(urlPrefix string, parentPath string) string {
-	if sf.refUrl == "" {
+// RefURL guesses and returns reference URL.
+func (sf *SubModuleFile) RefURL(urlPrefix string, parentPath string) string {
+	if sf.refURL == "" {
 		return ""
 	}
 
-	url := strings.TrimSuffix(sf.refUrl, ".git")
+	url := strings.TrimSuffix(sf.refURL, ".git")
 
 	// git://xxx/user/repo
 	if strings.HasPrefix(url, "git://") {
@@ -46,12 +45,14 @@ func (sf *SubModuleFile) RefUrl(urlPrefix string, parentPath string) string {
 		return url
 	}
 
-	// relative url prefix check (according to git submodule documentation)
+	// Relative url prefix check (according to git submodule documentation)
 	if strings.HasPrefix(url, "./") || strings.HasPrefix(url, "../") {
 		// ...construct and return correct submodule url here...
-		idx := strings.LastIndex(parentPath, "/src/")
-		rel_url := strings.TrimSuffix(urlPrefix, "/") + parentPath[:idx] + "/" + url
-		return rel_url
+		idx := strings.Index(parentPath, "/src/")
+		if idx == -1 {
+			return url
+		}
+		return strings.TrimSuffix(urlPrefix, "/") + parentPath[:idx] + "/" + url
 	}
 
 	// sysuser@xxx:user/repo
@@ -71,7 +72,7 @@ func (sf *SubModuleFile) RefUrl(urlPrefix string, parentPath string) string {
 	return url
 }
 
-// RefId returns reference ID.
-func (sf *SubModuleFile) RefId() string {
-	return sf.refId
+// RefID returns reference ID.
+func (sf *SubModuleFile) RefID() string {
+	return sf.refID
 }

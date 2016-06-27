@@ -181,16 +181,16 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interfac
 				return
 			}
 
-			smUrl := ""
+			smURL := ""
 			if sm != nil {
-				smUrl = sm.Url
+				smURL = sm.URL
 			}
 
 			c, err := commit.GetCommitByPath(filepath.Join(treePath, tes[i].Name()))
 			if err != nil {
 				cinfo.err = fmt.Errorf("GetCommitByPath (%s/%s): %v", treePath, tes[i].Name(), err)
 			} else {
-				cinfo.infos = []interface{}{tes[i], NewSubModuleFile(c, smUrl, tes[i].ID.String())}
+				cinfo.infos = []interface{}{tes[i], NewSubModuleFile(c, smURL, tes[i].ID.String())}
 			}
 			revChan <- cinfo
 			<-taskChan
