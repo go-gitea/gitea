@@ -29,7 +29,7 @@ func NewSubModuleFile(c *Commit, refUrl, refId string) *SubModuleFile {
 
 // FIXME: remove import of setting
 // RefUrl guesses and returns reference URL.
-func (sf *SubModuleFile) RefUrl(urlPrefix string) string {
+func (sf *SubModuleFile) RefUrl(urlPrefix string, parentPath string) string {
 	if sf.refUrl == "" {
 		return ""
 	}
@@ -44,6 +44,14 @@ func (sf *SubModuleFile) RefUrl(urlPrefix string) string {
 	// http[s]://xxx/user/repo
 	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
 		return url
+	}
+
+	// relative url prefix check (according to git submodule documentation)
+	if strings.HasPrefix(url, "./") || strings.HasPrefix(url, "../") {
+		// ...construct and return correct submodule url here...
+		idx := strings.LastIndex(parentPath, "/src/")
+		rel_url := strings.TrimSuffix(urlPrefix, "/") + parentPath[:idx] + "/" + url
+		return rel_url
 	}
 
 	// sysuser@xxx:user/repo
