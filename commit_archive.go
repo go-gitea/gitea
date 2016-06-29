@@ -4,7 +4,11 @@
 
 package git
 
-import "fmt"
+import (
+	"fmt"
+	"path"
+	"strings"
+)
 
 type ArchiveType int
 
@@ -13,7 +17,7 @@ const (
 	TARGZ
 )
 
-func (c *Commit) CreateArchive(path string, archiveType ArchiveType) error {
+func (c *Commit) CreateArchive(target string, archiveType ArchiveType) error {
 	var format string
 	switch archiveType {
 	case ZIP:
@@ -24,6 +28,6 @@ func (c *Commit) CreateArchive(path string, archiveType ArchiveType) error {
 		return fmt.Errorf("unknown format: %v", archiveType)
 	}
 
-	_, err := NewCommand("archive", "--format="+format, "-o", path, c.ID.String()).RunInDir(c.repo.Path)
+	_, err := NewCommand("archive", "--prefix="+path.Base(strings.TrimSuffix(c.repo.Path, ".git"))+"/", "--format="+format, "-o", target, c.ID.String()).RunInDir(c.repo.Path)
 	return err
 }
