@@ -163,6 +163,15 @@
 								<div class="item text purple">
 									{{$.i18n.Tr "repo.pulls.has_merged"}}
 								</div>
+								{{if .IsPullBranchDeletable}}
+									<div class="ui divider"></div>
+									<div>
+										<form class="ui form" action="{{.DeleteBranchLink}}" method="post">
+											{{.CsrfTokenHtml}}
+											<button class="ui red button">{{$.i18n.Tr "repo.pulls.delete_branch"}}</button>
+										</form>
+									</div>
+								{{end}}
 							{{else if .Issue.IsClosed}}
 								<div class="item text grey">
 									{{$.i18n.Tr "repo.pulls.reopen_to_merge"}}
@@ -265,7 +274,7 @@
 					<div class="item">
 						<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{.Name}}</a>
 					</div>
-					
+
 				{{end}}
 			</div>
 
