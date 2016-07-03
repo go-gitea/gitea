@@ -81,6 +81,25 @@ func (repo *Repository) GetBranches() ([]string, error) {
 	return branches, nil
 }
 
+// Option(s) for delete branch
+type DeleteBranchOptions struct {
+	Force bool
+}
+
+// DeleteBranch delete a branch by name on repository.
+func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) error {
+	cmd := NewCommand("branch", "-d")
+
+	if opts.Force {
+		cmd.AddArguments("-f")
+	}
+
+	cmd.AddArguments(name)
+	_, err := cmd.RunInDir(repo.Path)
+
+	return err
+}
+
 // AddRemote adds a new remote to repository.
 func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 	cmd := NewCommand("remote", "add")
