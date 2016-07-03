@@ -100,6 +100,19 @@ func SignIn(ctx *context.Context) {
 	ctx.HTML(200, tplSignIn)
 }
 
+// OpenIDVerify handles response from OpenID provider
+func OpenIDVerify(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("sign_in")
+
+	log.Trace("Incoming call to: " + ctx.Req.Request.URL.String())
+
+	fullURL := setting.AppURL + ctx.Req.Request.URL.String()[1:]
+	log.Trace(fullURL)
+	models.LoginViaOpenIDVerification(fullURL, true)
+
+	ctx.HTML(200, tplSignIn)
+}
+
 // SignInPost response for sign in request
 func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
@@ -113,6 +126,8 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
+		} else if models.IsErrDelegatedAuth(err) {
+			ctx.Redirect(err.Error())
 		} else {
 			ctx.Handle(500, "UserSignIn", err)
 		}

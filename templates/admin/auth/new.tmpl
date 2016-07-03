@@ -133,6 +133,10 @@
 							<input id="pam_service_name" name="pam_service_name" value="{{.pam_service_name}}" />
 						</div>
 
+						<!-- OpenID -->
+						<div class="openid required field {{if not (eq .type 6)}}hide{{end}}">
+						</div>
+
 						<div class="ldap field">
 							<div class="ui checkbox">
 								<label><strong>{{.i18n.Tr "admin.auths.attributes_in_bind"}}</strong></label>

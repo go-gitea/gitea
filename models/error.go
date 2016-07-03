@@ -78,6 +78,22 @@ func (err ErrUserNotExist) Error() string {
 	return fmt.Sprintf("user does not exist [uid: %d, name: %s, keyid: %d]", err.UID, err.Name, err.KeyID)
 }
 
+// ErrDelegatedAuth is not a real error but notifies code that
+// authentication is delegated to a second request.
+type ErrDelegatedAuth struct {
+	OP string // OpenID Provider
+}
+
+// IsErrDelegatedAuth checks if an error is a ErrDelegatedAuth.
+func IsErrDelegatedAuth(err error) bool {
+	_, ok := err.(ErrDelegatedAuth)
+	return ok
+}
+
+func (err ErrDelegatedAuth) Error() string {
+	return err.OP
+}
+
 // ErrEmailAlreadyUsed represents a "EmailAlreadyUsed" kind of error.
 type ErrEmailAlreadyUsed struct {
 	Email string

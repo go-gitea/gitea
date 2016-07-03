@@ -53,6 +53,7 @@ var (
 		{models.LoginNames[models.LoginDLDAP], models.LoginDLDAP},
 		{models.LoginNames[models.LoginSMTP], models.LoginSMTP},
 		{models.LoginNames[models.LoginPAM], models.LoginPAM},
+		{models.LoginNames[models.LoginOpenID], models.LoginOpenID},
 	}
 	securityProtocols = []dropdownItem{
 		{models.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted], ldap.SecurityProtocolUnencrypted},
@@ -137,6 +138,10 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	case models.LoginPAM:
 		config = &models.PAMConfig{
 			ServiceName: form.PAMServiceName,
+		}
+	case models.LoginOpenID:
+		config = &models.OpenIDConfig{
+		//ServiceName: form.PAMServiceName,
 		}
 	default:
 		ctx.Error(400)
