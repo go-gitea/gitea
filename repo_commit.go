@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/mcuadros/go-version"
 )
 
 // getRefCommitID returns the last commit ID string of given reference (branch or tag).
@@ -223,7 +225,18 @@ func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (in
 	return len(strings.Split(stdout, "\n")) - 1, nil
 }
 
+// CommitsBetween returns a list that contains commits between [last, before).
 func (repo *Repository) CommitsBetween(last *Commit, before *Commit) (*list.List, error) {
+	if version.Compare(gitVersion, "1.8.0", ">=") {
+		stdout, err := NewCommand("rev-list", before.ID.String()+"..."+last.ID.String()).RunInDirBytes(repo.Path)
+		if err != nil {
+			return nil, err
+		}
+		return repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
+	}
+
+	// Fallback to stupid solution, which iterates all commits of the repository
+	// if before is not an ancestor of last.
 	l := list.New()
 	if last == nil || last.ParentCount() == 0 {
 		return l, nil
