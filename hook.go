@@ -10,6 +10,8 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"github.com/Unknwon/com"
 )
 
 // hookNames is a list of Git hooks' name that are supported.
@@ -119,9 +121,16 @@ const (
 )
 
 // SetUpdateHook writes given content to update hook of the reposiotry.
-func SetUpdateHook(repoPath, content string) error {
+func SetUpdateHook(repoPath, content string) (err error) {
 	log("Setting update hook: %s", repoPath)
 	hookPath := path.Join(repoPath, HOOK_PATH_UPDATE)
-	os.MkdirAll(path.Dir(hookPath), os.ModePerm)
+	if com.IsExist(hookPath) {
+		err = os.Remove(hookPath)
+	} else {
+		err = os.MkdirAll(path.Dir(hookPath), os.ModePerm)
+	}
+	if err != nil {
+		return err
+	}
 	return ioutil.WriteFile(hookPath, []byte(content), 0777)
 }
