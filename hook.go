@@ -14,26 +14,11 @@ import (
 	"github.com/Unknwon/com"
 )
 
-// hookNames is a list of Git hooks' name that are supported.
+// hookNames is a list of Git server hooks' name that are supported.
 var hookNames = []string{
-	"applypatch-msg",
-	"pre-applypatch",
-	"post-applypatch",
-	"pre-commit",
-	"prepare-commit-msg",
-	"commit-msg",
-	"post-commit",
-	"pre-rebase",
-	"post-checkout",
-	"post-merge",
-	"pre-push",
 	"pre-receive",
 	// "update",
 	"post-receive",
-	"post-update",
-	"push-to-checkout",
-	"pre-auto-gc",
-	"post-rewrite",
 }
 
 var (
