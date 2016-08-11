@@ -43,6 +43,15 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, err
 	return l, nil
 }
 
+// IsRepoURLAccessible checks if given repository URL is accessible.
+func IsRepoURLAccessible(url string) bool {
+	_, err := NewCommand("ls-remote", "-q", "-h", url, "HEAD").Run()
+	if err != nil {
+		return false
+	}
+	return true
+}
+
 // InitRepository initializes a new Git repository.
 func InitRepository(repoPath string, bare bool) error {
 	os.MkdirAll(repoPath, os.ModePerm)
@@ -141,9 +150,9 @@ func Push(repoPath, remote, branch string) error {
 }
 
 type CheckoutOptions struct {
-	Branch  string
+	Branch    string
 	OldBranch string
-	Timeout time.Duration
+	Timeout   time.Duration
 }
 
 // Checkout checkouts a branch
