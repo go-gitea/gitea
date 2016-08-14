@@ -58,7 +58,7 @@ func (repo *Repository) SetDefaultBranch(name string) error {
 		return ErrUnsupportedVersion{"1.7.10"}
 	}
 
-	_, err := NewCommand("symbolic-ref", "HEAD", "refs/heads/"+name).RunInDir(repo.Path)
+	_, err := NewCommand("symbolic-ref", "HEAD", BRANCH_PREFIX+name).RunInDir(repo.Path)
 	return err
 }
 
@@ -76,7 +76,7 @@ func (repo *Repository) GetBranches() ([]string, error) {
 		if len(fields) != 2 {
 			continue // NOTE: I should believe git will not give me wrong string.
 		}
-		branches[i] = strings.TrimPrefix(fields[1], "refs/heads/")
+		branches[i] = strings.TrimPrefix(fields[1], BRANCH_PREFIX)
 	}
 	return branches, nil
 }
