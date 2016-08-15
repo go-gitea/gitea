@@ -186,7 +186,7 @@ func ResetHEAD(repoPath string, hard bool, revision string) error {
 	return err
 }
 
-// MoveFile moves a file to another file or directory
+// MoveFile moves a file to another file or directory.
 func MoveFile(repoPath, oldTreeName, newTreeName string) error {
 	cmd := NewCommand("mv")
 	cmd.AddArguments(oldTreeName, newTreeName)

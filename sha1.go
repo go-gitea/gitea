@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+const EMPTY_SHA = "0000000000000000000000000000000000000000"
+
 type sha1 [20]byte
 
 // Equal returns true if s has the same sha1 as caller.
