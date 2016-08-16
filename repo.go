@@ -81,10 +81,10 @@ func OpenRepository(repoPath string) (*Repository, error) {
 }
 
 type CloneRepoOptions struct {
+	Timeout time.Duration
 	Mirror  bool
 	Bare    bool
 	Quiet   bool
-	Timeout time.Duration
 	Branch  string
 }
 
@@ -119,10 +119,10 @@ func Clone(from, to string, opts CloneRepoOptions) (err error) {
 }
 
 type PullRemoteOptions struct {
+	Timeout time.Duration
 	All     bool
 	Remote  string
 	Branch  string
-	Timeout time.Duration
 }
 
 // Pull pulls changes from remotes.
@@ -150,9 +150,9 @@ func Push(repoPath, remote, branch string) error {
 }
 
 type CheckoutOptions struct {
+	Timeout   time.Duration
 	Branch    string
 	OldBranch string
-	Timeout   time.Duration
 }
 
 // Checkout checkouts a branch
@@ -188,8 +188,6 @@ func ResetHEAD(repoPath string, hard bool, revision string) error {
 
 // MoveFile moves a file to another file or directory.
 func MoveFile(repoPath, oldTreeName, newTreeName string) error {
-	cmd := NewCommand("mv")
-	cmd.AddArguments(oldTreeName, newTreeName)
-	_, err := cmd.RunInDir(repoPath)
+	_, err := NewCommand("mv").AddArguments(oldTreeName, newTreeName).RunInDir(repoPath)
 	return err
 }
