@@ -18,6 +18,9 @@ import (
 func (repo *Repository) getRefCommitID(name string) (string, error) {
 	stdout, err := NewCommand("show-ref", "--verify", name).RunInDir(repo.Path)
 	if err != nil {
+		if strings.Contains(err.Error(), "not a valid ref") {
+			return "", ErrNotExist{name, ""}
+		}
 		return "", err
 	}
 	return strings.Split(stdout, " ")[0], nil
