@@ -107,14 +107,30 @@ func AddChanges(repoPath string, all bool, files ...string) error {
 	return err
 }
 
-// CommitChanges commits local changes with given message and author.
-func CommitChanges(repoPath, message string, author *Signature) error {
-	cmd := NewCommand("commit", "-m", message)
-	if author != nil {
-		cmd.AddArguments(fmt.Sprintf("--author='%s <%s>'", author.Name, author.Email))
-	}
-	_, err := cmd.RunInDir(repoPath)
+type CommitChangesOptions struct {
+	Committer *Signature
+	Author    *Signature
+	Message   string
+}
 
+// CommitChanges commits local changes with given committer, author and message.
+// If author is nil, it will be the same as committer.
+func CommitChanges(repoPath string, opts CommitChangesOptions) error {
+	cmd := NewCommand()
+	if opts.Committer != nil {
+		cmd.AddArguments("-c", "user.name="+opts.Committer.Name, "-c", "user.email="+opts.Committer.Email)
+	}
+	cmd.AddArguments("commit")
+
+	if opts.Author == nil {
+		opts.Author = opts.Committer
+	}
+	if opts.Author != nil {
+		cmd.AddArguments(fmt.Sprintf("--author='%s <%s>'", opts.Author.Name, opts.Author.Email))
+	}
+	cmd.AddArguments("-m", opts.Message)
+
+	_, err := cmd.RunInDir(repoPath)
 	// No stderr but exit status 1 means nothing to commit.
 	if err != nil && err.Error() == "exit status 1" {
 		return nil

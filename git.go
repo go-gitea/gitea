@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const _VERSION = "0.3.8"
+const _VERSION = "0.4.0"
 
 func Version() string {
 	return _VERSION
