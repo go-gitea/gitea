@@ -6,7 +6,7 @@ package git
 
 import (
 	"fmt"
-	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -28,6 +28,6 @@ func (c *Commit) CreateArchive(target string, archiveType ArchiveType) error {
 		return fmt.Errorf("unknown format: %v", archiveType)
 	}
 
-	_, err := NewCommand("archive", "--prefix="+path.Base(strings.TrimSuffix(c.repo.Path, ".git"))+"/", "--format="+format, "-o", target, c.ID.String()).RunInDir(c.repo.Path)
+	_, err := NewCommand("archive", "--prefix="+filepath.Base(strings.TrimSuffix(c.repo.Path, ".git"))+"/", "--format="+format, "-o", target, c.ID.String()).RunInDir(c.repo.Path)
 	return err
 }
