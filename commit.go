@@ -142,7 +142,7 @@ func commitsCount(repoPath, revision, relpath string) (int64, error) {
 	}
 
 	if isFallback {
-		return int64(strings.Count(stdout, "\n")), nil
+		return int64(strings.Count(stdout, "\n")) + 1, nil
 	}
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 }
