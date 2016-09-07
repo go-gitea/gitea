@@ -6,6 +6,7 @@ package setting
 
 import (
 	"fmt"
+	"net/mail"
 	"net/url"
 	"os"
 	"os/exec"
@@ -714,6 +715,7 @@ type Mailer struct {
 	Name                  string
 	Host                  string
 	From                  string
+	FromEmail             string
 	User, Passwd          string
 	DisableHelo           bool
 	HeloHostname          string
@@ -749,6 +751,13 @@ func newMailService() {
 		EnableHTMLAlternative: sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
+
+	parsed, err := mail.ParseAddress(MailService.From)
+	if err != nil {
+		log.Fatal(4, "Invalid mailer.FROM (%s): %v", MailService.From, err)
+	}
+	MailService.FromEmail = parsed.Address
+
 	log.Info("Mail Service Enabled")
 }
 
