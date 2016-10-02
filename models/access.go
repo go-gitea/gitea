@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/go-gitea/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 type AccessMode int
@@ -133,11 +134,11 @@ func (user *User) GetAccessibleRepositories(limit int) (repos []*Repository, _ e
 	}
 
 	if setting.UsePostgreSQL {
-		sess = sess.Join("LEFT", "star", `"repository".id=star.repo_id AND star.uid = ?`, userID)
+		sess = sess.Join("LEFT", "star", `"repository".id=star.repo_id AND star.uid = ?`, user.ID)
 	} else {
-		sess = sess.Join("LEFT", "star", "repository.id=star.repo_id AND star.uid = ?", userID)
+		sess = sess.Join("LEFT", "star", "repository.id=star.repo_id AND star.uid = ?", user.ID)
 	}
-	
+
 	return repos, sess.Join("INNER", "access", "access.user_id = ? AND access.repo_id = repository.id", user.ID).Find(&repos)
 }
 
