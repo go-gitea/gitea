@@ -124,13 +124,20 @@ func (u *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 // GetAccessibleRepositories finds repositories which the user has access but does not own.
 // If limit is smaller than 1 means returns all found results.
 func (user *User) GetAccessibleRepositories(limit int) (repos []*Repository, _ error) {
-	sess := x.Where("owner_id !=? ", user.ID).Desc("updated_unix")
+	sess := x.Where("owner_id !=? ", user.ID).Desc("uid").Desc("updated_unix")
 	if limit > 0 {
 		sess.Limit(limit)
 		repos = make([]*Repository, 0, limit)
 	} else {
 		repos = make([]*Repository, 0, 10)
 	}
+
+	if setting.UsePostgreSQL {
+		sess = sess.Join("LEFT", "star", `"repository".id=star.repo_id AND star.uid = ?`, userID)
+	} else {
+		sess = sess.Join("LEFT", "star", "repository.id=star.repo_id AND star.uid = ?", userID)
+	}
+	
 	return repos, sess.Join("INNER", "access", "access.user_id = ? AND access.repo_id = repository.id", user.ID).Find(&repos)
 }
 
