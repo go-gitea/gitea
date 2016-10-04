@@ -488,7 +488,7 @@ func NewGhostUser() *User {
 }
 
 var (
-	reversedUsernames    = []string{"debug", "raw", "install", "api", "avatar", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "new", ".", ".."}
+	reversedUsernames    = []string{"assets", "css", "img", "js", "less", "plugins", "debug", "raw", "install", "api", "avatar", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "new", ".", ".."}
 	reversedUserPatterns = []string{"*.keys"}
 )
 
