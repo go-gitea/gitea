@@ -502,7 +502,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Data["Title"] = issue.Title
+	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
 
 	// Make sure type and URL matches.
 	if ctx.Params(":type") == "issues" && issue.IsPull {
