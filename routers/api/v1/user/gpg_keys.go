@@ -36,7 +36,7 @@ func listPublicGPGKeys(ctx *context.APIContext, uid int64) {
 
 // https://github.com/gogits/go-gogs-client/wiki/Users-Public-GPG-Keys#list-your-public-keys
 func ListMyPublicGPGKeys(ctx *context.APIContext) {
-	listPublicGPGKeys(ctx, ctx.User.Id)
+	listPublicGPGKeys(ctx, ctx.User.ID)
 }
 
 // https://github.com/gogits/go-gogs-client/wiki/Users-Public-GPG-Keys#get-a-single-public-key
@@ -75,7 +75,7 @@ func CreateUserPublicGPGKey(ctx *context.APIContext, form api.CreateKeyOption, u
 //TODO Update api
 // https://github.com/gogits/go-gogs-client/wiki/Users-Public-GPG-Keys#create-a-public-key
 func CreatePublicGPGKey(ctx *context.APIContext, form api.CreateKeyOption) {
-	CreateUserPublicGPGKey(ctx, form, ctx.User.Id)
+	CreateUserPublicGPGKey(ctx, form, ctx.User.ID)
 }
 
 // https://github.com/gogits/go-gogs-client/wiki/Users-Public-Keys#delete-a-public-key
