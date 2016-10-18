@@ -58,6 +58,14 @@ func ToCommit(c *git.Commit) *api.PayloadCommit {
 			Email:    c.Committer.Email,
 			UserName: committerUsername,
 		},
+		/* TODO in api "github.com/gogits/go-gogs-client"
+		Verification: &api.PayloadVerification{
+			Verified:  true || c.Verification.Verified,	//TODO check sign
+			Reason:    "Not implemented", //TODO check sign
+			Signature: c.Verification.Signature,
+			Payload:   c.Verification.Payload,
+		},
+		*/
 		Timestamp: c.Author.When,
 	}
 }

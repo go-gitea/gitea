@@ -61,3 +61,45 @@ func DeletePublicGPGKey(doer *User, id int64) (err error) {
 	//TODO Implement
 	return nil
 }
+
+/*  TODO
+// CheckCommitWithSign checks if author's signature of commit is corresponsind to a user.
+func CheckCommitWithSign(c *git.Commit) *User {
+	u, err := GetUserByEmail(c.Author.Email)
+	if err != nil {
+		return nil
+	}
+	ks, err := ListPublicGPGKeys(u.ID)
+	if err != nil {
+		return nil
+	}
+	return u
+}
+
+// CheckCommitsWithSign checks if author's signature of commits are corresponding to users.
+func CheckCommitsWithSign(oldCommits *list.List) *list.List {
+	var (
+		u          *User
+		emails     = map[string]*User{}
+		newCommits = list.New()
+		e          = oldCommits.Front()
+	)
+	for e != nil {
+		c := e.Value.(*git.Commit)
+
+		if v, ok := emails[c.Author.Email]; !ok {
+			u, _ = GetUserByEmail(c.Author.Email)
+			emails[c.Author.Email] = u
+		} else {
+			u = v
+		}
+
+		newCommits.PushBack(UserCommit{
+			User:   u,
+			Commit: c,
+		})
+		e = e.Next()
+	}
+	return newCommits
+}
+*/

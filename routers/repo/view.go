@@ -45,6 +45,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	entries.Sort()
 
 	ctx.Data["Files"], err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath)
+	//TODO 	commits = models.CheckCommitsWithSign(commits)
 	if err != nil {
 		ctx.Handle(500, "GetCommitsInfo", err)
 		return
