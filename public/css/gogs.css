@@ -31,18 +31,23 @@ pre.wrap,
 code.wrap {
   white-space: pre-wrap;
   /* CSS 3 */
+
   word-break: break-word;
 }
 .dont-break-out {
   /* These are technically the same, but use both */
+
   overflow-wrap: break-word;
   word-wrap: break-word;
   -ms-word-break: break-all;
   /* This is the dangerous one in WebKit, as it breaks things wherever */
+
   word-break: break-all;
   /* Instead use this non-standard one: */
+
   word-break: break-word;
   /* Adds a hyphen where the word breaks, if supported (No Blink) */
+
   -ms-hyphens: auto;
   -moz-hyphens: auto;
   -webkit-hyphens: auto;
@@ -812,7 +817,7 @@ footer .ui.language .menu {
   border: solid 1px #ccc;
   border-bottom-color: #bbb;
   border-radius: 3px;
-  box-shadow: inset 0 -1px 0 #bbb;
+  box-shadow: inset 0 -1px 0 #bbbbbb;
 }
 .markdown:not(code) input[type="checkbox"] {
   vertical-align: middle !important;
@@ -883,7 +888,7 @@ footer .ui.language .menu {
 }
 .install form label {
   text-align: right;
-  width: 320px !important;
+  width: 320px;
 }
 .install form input {
   width: 35% !important;
@@ -892,7 +897,7 @@ footer .ui.language .menu {
   text-align: left;
 }
 .install form .field .help {
-  margin-left: 335px !important;
+  margin-left: 335px;
 }
 .install form .field.optional .title {
   margin-left: 38%;
@@ -927,18 +932,18 @@ footer .ui.language .menu {
   text-align: center;
 }
 #create-page-form form .header {
-  padding-left: 280px !important;
+  padding-left: 280px;
 }
 #create-page-form form .inline.field > label {
   text-align: right;
-  width: 250px !important;
+  width: 250px;
   word-wrap: break-word;
 }
 #create-page-form form .help {
-  margin-left: 265px !important;
+  margin-left: 265px;
 }
 #create-page-form form .optional .title {
-  margin-left: 250px !important;
+  margin-left: 250px;
 }
 #create-page-form form input,
 #create-page-form form textarea {
@@ -964,7 +969,7 @@ footer .ui.language .menu {
 .user.reset.password form .header,
 .user.signin form .header,
 .user.signup form .header {
-  padding-left: 280px !important;
+  padding-left: 280px;
 }
 .user.activate form .inline.field > label,
 .user.forgot.password form .inline.field > label,
@@ -972,7 +977,7 @@ footer .ui.language .menu {
 .user.signin form .inline.field > label,
 .user.signup form .inline.field > label {
   text-align: right;
-  width: 250px !important;
+  width: 250px;
   word-wrap: break-word;
 }
 .user.activate form .help,
@@ -980,14 +985,14 @@ footer .ui.language .menu {
 .user.reset.password form .help,
 .user.signin form .help,
 .user.signup form .help {
-  margin-left: 265px !important;
+  margin-left: 265px;
 }
 .user.activate form .optional .title,
 .user.forgot.password form .optional .title,
 .user.reset.password form .optional .title,
 .user.signin form .optional .title,
 .user.signup form .optional .title {
-  margin-left: 250px !important;
+  margin-left: 250px;
 }
 .user.activate form input,
 .user.forgot.password form input,
@@ -1013,14 +1018,15 @@ footer .ui.language .menu {
 .user.reset.password form .header,
 .user.signin form .header,
 .user.signup form .header {
-  padding-left: 230px !important;
+  padding-left: 0 !important;
+  text-align: center;
 }
 .user.activate form .inline.field > label,
 .user.forgot.password form .inline.field > label,
 .user.reset.password form .inline.field > label,
 .user.signin form .inline.field > label,
 .user.signup form .inline.field > label {
-  width: 200px !important;
+  width: 200px;
 }
 .repository.new.repo form,
 .repository.new.migrate form,
@@ -1036,24 +1042,24 @@ footer .ui.language .menu {
 .repository.new.repo form .header,
 .repository.new.migrate form .header,
 .repository.new.fork form .header {
-  padding-left: 280px !important;
+  padding-left: 280px;
 }
 .repository.new.repo form .inline.field > label,
 .repository.new.migrate form .inline.field > label,
 .repository.new.fork form .inline.field > label {
   text-align: right;
-  width: 250px !important;
+  width: 250px;
   word-wrap: break-word;
 }
 .repository.new.repo form .help,
 .repository.new.migrate form .help,
 .repository.new.fork form .help {
-  margin-left: 265px !important;
+  margin-left: 265px;
 }
 .repository.new.repo form .optional .title,
 .repository.new.migrate form .optional .title,
 .repository.new.fork form .optional .title {
-  margin-left: 250px !important;
+  margin-left: 250px;
 }
 .repository.new.repo form input,
 .repository.new.migrate form input,
@@ -1078,11 +1084,17 @@ footer .ui.language .menu {
 .repository.new.fork form .dropdown .text i {
   margin-right: 0!important;
 }
+.repository.new.repo form .header,
+.repository.new.migrate form .header,
+.repository.new.fork form .header {
+  padding-left: 0 !important;
+  text-align: center;
+}
 .repository.new.repo .ui.form .selection.dropdown:not(.owner) {
   width: 50%!important;
 }
 .repository.new.repo .ui.form #auto-init {
-  margin-left: 265px !important;
+  margin-left: 265px;
 }
 .new.webhook form .help {
   margin-left: 25px;
@@ -2328,14 +2340,18 @@ footer .ui.language .menu {
 }
 .settings .hook.list .item a {
   /* These are technically the same, but use both */
+
   overflow-wrap: break-word;
   word-wrap: break-word;
   -ms-word-break: break-all;
   /* This is the dangerous one in WebKit, as it breaks things wherever */
+
   word-break: break-all;
   /* Instead use this non-standard one: */
+
   word-break: break-word;
   /* Adds a hyphen where the word breaks, if supported (No Blink) */
+
   -ms-hyphens: auto;
   -moz-hyphens: auto;
   -webkit-hyphens: auto;
@@ -2534,22 +2550,26 @@ footer .ui.language .menu {
   text-align: center;
 }
 .organization.new.org form .header {
-  padding-left: 280px !important;
+  padding-left: 280px;
 }
 .organization.new.org form .inline.field > label {
   text-align: right;
-  width: 250px !important;
+  width: 250px;
   word-wrap: break-word;
 }
 .organization.new.org form .help {
-  margin-left: 265px !important;
+  margin-left: 265px;
 }
 .organization.new.org form .optional .title {
-  margin-left: 250px !important;
+  margin-left: 250px;
 }
 .organization.new.org form input,
 .organization.new.org form textarea {
   width: 50%!important;
+}
+.organization.new.org form .header {
+  padding-left: 0 !important;
+  text-align: center;
 }
 .organization.options input {
   min-width: 300px;
