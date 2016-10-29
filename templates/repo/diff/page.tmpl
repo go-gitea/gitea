@@ -14,7 +14,11 @@
 			<div class="ui attached info segment">
 				{{if .Author}}
 					<img class="ui avatar image" src="{{.Author.RelAvatarLink}}" />
-					<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a> {{if .IsSigned}}<{{.Commit.Author.Email}}>{{end}}
+				  {{if .Author.FullName}}
+			  	  <a href="{{.Author.HomeLink}}"><strong>{{.Author.FullName}}</strong></a> {{if .IsSigned}}<{{.Commit.Author.Email}}>{{end}}
+				  {{else}}
+  				  <a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a> {{if .IsSigned}}<{{.Commit.Author.Email}}>{{end}}
+				  {{end}}
 				{{else}}
 					<img class="ui avatar image" src="{{AvatarLink .Commit.Author.Email}}" />
 					<strong>{{.Commit.Author.Name}}</strong>
