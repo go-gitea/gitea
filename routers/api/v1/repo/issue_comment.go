@@ -105,6 +105,7 @@ func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	ctx.JSON(200, comment.APIFormat())
 }
 
+// DeleteIssueComment delete a comment from an issue
 func DeleteIssueComment(ctx *context.APIContext) {
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -119,7 +120,7 @@ func DeleteIssueComment(ctx *context.APIContext) {
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Status(403)
 		return
-	} else if comment.Type != models.COMMENT_TYPE_COMMENT {
+	} else if comment.Type != models.CommentTypeComment {
 		ctx.Status(204)
 		return
 	}
