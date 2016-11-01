@@ -1241,3 +1241,18 @@ func GetStarredRepos(userID int64, private bool) ([]*Repository, error) {
 	}
 	return repos, nil
 }
+
+// GetWatchedRepos returns the repos watched by a particular user
+func GetWatchedRepos(userID int64, private bool) ([]*Repository, error) {
+	sess := x.Where("watch.user_id=?", userID).
+		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
+	if !private {
+		sess = sess.And("is_private=?", false)
+	}
+	repos := make([]*Repository, 0, 10)
+	err := sess.Find(&repos)
+	if err != nil {
+		return nil, err
+	}
+	return repos, nil
+}
