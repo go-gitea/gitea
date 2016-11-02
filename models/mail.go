@@ -12,11 +12,11 @@ import (
 	"gopkg.in/gomail.v2"
 	"gopkg.in/macaron.v1"
 
-	"github.com/gogits/gogs/modules/base"
-	"github.com/gogits/gogs/modules/log"
-	"github.com/gogits/gogs/modules/mailer"
-	"github.com/gogits/gogs/modules/markdown"
-	"github.com/gogits/gogs/modules/setting"
+	"github.com/go-gitea/gitea/modules/base"
+	"github.com/go-gitea/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/mailer"
+	"github.com/go-gitea/gitea/modules/markdown"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 const (

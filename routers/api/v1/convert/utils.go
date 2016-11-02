@@ -5,7 +5,7 @@
 package convert
 
 import (
-	"github.com/gogits/gogs/modules/setting"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 // ToCorrectPageSize makes sure page size is in allowed range.
