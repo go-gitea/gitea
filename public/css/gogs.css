@@ -964,7 +964,8 @@ footer .ui.language .menu {
 .user.reset.password form .header,
 .user.signin form .header,
 .user.signup form .header {
-  padding-left: 280px !important;
+  padding-left: 0 !important;
+  text-align: center;
 }
 .user.activate form .inline.field > label,
 .user.forgot.password form .inline.field > label,
@@ -1013,7 +1014,8 @@ footer .ui.language .menu {
 .user.reset.password form .header,
 .user.signin form .header,
 .user.signup form .header {
-  padding-left: 230px !important;
+  padding-left: 0 !important;
+  text-align: center;
 }
 .user.activate form .inline.field > label,
 .user.forgot.password form .inline.field > label,
@@ -1036,7 +1038,8 @@ footer .ui.language .menu {
 .repository.new.repo form .header,
 .repository.new.migrate form .header,
 .repository.new.fork form .header {
-  padding-left: 280px !important;
+  padding-left: 0 !important;
+  text-align: center;
 }
 .repository.new.repo form .inline.field > label,
 .repository.new.migrate form .inline.field > label,
@@ -2534,7 +2537,8 @@ footer .ui.language .menu {
   text-align: center;
 }
 .organization.new.org form .header {
-  padding-left: 280px !important;
+  padding-left: 0 !important;
+  text-align: center;
 }
 .organization.new.org form .inline.field > label {
   text-align: right;
