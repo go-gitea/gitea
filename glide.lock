@@ -81,7 +81,7 @@ imports:
   version: ec7fdbb58eb3e300c8595ad5ac74a5aa50019cc7
   subpackages:
   - diffmatchpatch
-- name: github.com/strk/go-libravatar
+- name: strk.kbt.io/projects/go/libravatar
   version: 5eed7bff870ae19ef51c5773dbc8f3e9fcbd0982
 - name: github.com/shurcooL/sanitized_anchor_name
   version: 10ef21a441db47d8b13ebcc5fd2310f636973c77

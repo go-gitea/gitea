@@ -40,7 +40,7 @@ import:
 - package: github.com/sergi/go-diff
   subpackages:
   - diffmatchpatch
-- package: github.com/strk/go-libravatar
+- package: strk.kbt.io/projects/go/libravatar
 - package: golang.org/x/crypto
   subpackages:
   - ssh
