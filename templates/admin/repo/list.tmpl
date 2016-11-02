@@ -15,7 +15,6 @@
 					<table class="ui very basic striped table">
 						<thead>
 							<tr>
-								<th>ID</th>
 								<th>{{.i18n.Tr "admin.repos.owner"}}</th>
 								<th>{{.i18n.Tr "admin.repos.name"}}</th>
 								<th>{{.i18n.Tr "admin.repos.private"}}</th>
@@ -29,7 +28,6 @@
 						<tbody>
 							{{range .Repos}}
 								<tr>
-									<td>{{.ID}}</td>
 									<td><a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a></td>
 									<td><a href="{{AppSubUrl}}/{{.Owner.Name}}/{{.Name}}">{{.Name}}</a></td>
 									<td><i class="fa fa{{if .IsPrivate}}-check{{end}}-square-o"></i></td>
