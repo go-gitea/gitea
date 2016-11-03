@@ -99,7 +99,7 @@ func checkVersion() {
 	for _, c := range checkers {
 		if !version.Compare(c.Version(), c.Expected, ">=") {
 			log.Fatal(4, `Dependency outdated!
-Package '%s' current version (%s) is below requirement (%s),
+Package '%s' current version (%s) is below requirement (%s), 
 please use following command to update this package and recompile Gogs:
 go get -u %[1]s`, c.ImportPath, c.Version(), c.Expected)
 		}
