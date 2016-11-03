@@ -15,7 +15,6 @@
 					<table class="ui very basic striped table">
 						<thead>
 							<tr>
-								<th>ID</th>
 								<th>{{.i18n.Tr "admin.orgs.name"}}</th>
 								<th>{{.i18n.Tr "admin.orgs.teams"}}</th>
 								<th>{{.i18n.Tr "admin.orgs.members"}}</th>
@@ -27,7 +26,6 @@
 						<tbody>
 							{{range .Users}}
 								<tr>
-									<td>{{.ID}}</td>
 									<td><a href="{{.HomeLink}}">{{.Name}}</a></td>
 									<td>{{.NumTeams}}</td>
 									<td>{{.NumMembers}}</td>
