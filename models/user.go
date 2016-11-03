@@ -1121,3 +1121,22 @@ func UnfollowUser(userID, followID int64) (err error) {
 	}
 	return sess.Commit()
 }
+
+func GetStarredRepos(userID int64) ([]*Repository, error) {
+	sess := x.NewSession()
+	defer sessionRelease(sess)
+	stars := make([]*Star, 0, 10)
+	err := sess.Find(&stars, &Star{UID: userID})
+	if err != nil {
+		return nil, err
+	}
+	repos := make([]*Repository, len(stars))
+	for i, star := range stars {
+		r, err := GetRepositoryByID(star.RepoID)
+		if err != nil {
+			return nil, err
+		}
+		repos[i] = r
+	}
+	return repos, nil
+}

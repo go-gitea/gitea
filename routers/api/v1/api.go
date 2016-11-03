@@ -200,6 +200,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("", user.ListFollowing)
 					m.Get("/:target", user.CheckFollowing)
 				})
+
+				m.Get("/starred", user.GetStarredRepos)
 			})
 		}, reqToken())
 
@@ -220,6 +222,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Post(bind(api.CreateKeyOption{}), user.CreatePublicKey)
 				m.Combo("/:id").Get(user.GetPublicKey).
 					Delete(user.DeletePublicKey)
+			})
+
+			m.Group("/starred", func() {
+				m.Get("", user.GetMyStarredRepos)
+				m.Group("/:username/:reponame", func() {
+					m.Get("", user.IsStarring)
+					m.Put("", user.Star)
+					m.Delete("", user.Unstar)
+				})
 			})
 		}, reqToken())
 
