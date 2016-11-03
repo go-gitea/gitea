@@ -13,12 +13,12 @@ import (
 	"github.com/Unknwon/com"
 	"gopkg.in/macaron.v1"
 
-	"github.com/gogits/gogs/models"
-	"github.com/gogits/gogs/modules/base"
-	"github.com/gogits/gogs/modules/context"
-	"github.com/gogits/gogs/modules/cron"
-	"github.com/gogits/gogs/modules/process"
-	"github.com/gogits/gogs/modules/setting"
+	"github.com/go-gitea/gitea/models"
+	"github.com/go-gitea/gitea/modules/base"
+	"github.com/go-gitea/gitea/modules/context"
+	"github.com/go-gitea/gitea/modules/cron"
+	"github.com/go-gitea/gitea/modules/process"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 const (

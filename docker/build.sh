@@ -20,8 +20,8 @@ go install
 
 # Build Gogs
 mkdir -p ${GOPATH}/src/github.com/gogits/
-ln -s /app/gogs/ ${GOPATH}/src/github.com/gogits/gogs
-cd ${GOPATH}/src/github.com/gogits/gogs
+ln -s /app/gogs/ ${GOPATH}/src/github.com/go-gitea/gitea
+cd ${GOPATH}/src/github.com/go-gitea/gitea
 glide install
 make build TAGS="sqlite cert pam"
 

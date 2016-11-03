@@ -7,8 +7,8 @@ package user
 import (
 	api "github.com/gogits/go-gogs-client"
 
-	"github.com/gogits/gogs/models"
-	"github.com/gogits/gogs/modules/context"
+	"github.com/go-gitea/gitea/models"
+	"github.com/go-gitea/gitea/modules/context"
 )
 
 // https://github.com/gogits/go-gogs-client/wiki/Users#list-access-tokens-for-a-user

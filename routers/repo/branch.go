@@ -5,8 +5,8 @@
 package repo
 
 import (
-	"github.com/gogits/gogs/modules/base"
-	"github.com/gogits/gogs/modules/context"
+	"github.com/go-gitea/gitea/modules/base"
+	"github.com/go-gitea/gitea/modules/context"
 )
 
 const (

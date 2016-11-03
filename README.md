@@ -1,9 +1,15 @@
-Gogs - Go Git Service [![Build Status](https://travis-ci.org/gogits/gogs.svg?branch=master)](https://travis-ci.org/gogits/gogs) [![Crowdin](https://d322cqt584bo4o.cloudfront.net/gogs/localized.svg)](https://crowdin.com/project/gogs) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/gogits/gogs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-=====================
+# Gitea - Git with a cup of tea
 
-![](https://github.com/gogits/gogs/blob/master/public/img/gogs-large-resize.png?raw=true)
+[![Build Status](https://travis-ci.org/go-gitea/gitea.svg?branch=master)](https://travis-ci.org/go-gitea/gitea)
+[![codecov](https://codecov.io/gh/go-gitea/gitea/branch/master/graph/badge.svg)](https://codecov.io/gh/go-gitea/gitea)
+[![Go Report Card](https://goreportcard.com/badge/github.com/go-gitea/gitea)](https://goreportcard.com/report/github.com/go-gitea/gitea)
+[![GoDoc](https://godoc.org/github.com/go-gitea/gitea?status.svg)](https://godoc.org/github.com/go-gitea/gitea)
+[![](https://images.microbadger.com/badges/image/gitea/gitea.svg)](http://microbadger.com/images/gitea/gitea "Get your own image badge on microbadger.com")
+[![Join the chat at https://gitter.im/go-gitea/gitea](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-gitea/gitea?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-##### Current tip version: 0.9.99 (see [Releases](https://github.com/gogits/gogs/releases) for binary versions or submit a task on [alpha stage automated binary building system](https://build.gogs.io/))
+![](https://github.com/go-gitea/gitea/blob/master/public/img/gogs-large-resize.png?raw=true)
+
+##### Current tip version: 0.9.99 (see [Releases](https://github.com/go-gitea/gitea/releases) for binary versions or submit a task on [alpha stage automated binary building system](https://build.gogs.io/))
 
 | Web | UI  | Preview  |
 |:-------------:|:-------:|:-------:|
@@ -13,7 +19,7 @@ Gogs - Go Git Service [![Build Status](https://travis-ci.org/gogits/gogs.svg?bra
 
 ### Important Notes
 
-1. **YOU MUST READ [Contributing Code](https://github.com/gogits/gogs/wiki/Contributing-Code) BEFORE STARTING TO WORK ON A PULL REQUEST**.
+1. **YOU MUST READ [Contributing Code](https://github.com/go-gitea/gitea/wiki/Contributing-Code) BEFORE STARTING TO WORK ON A PULL REQUEST**.
 2. Due to testing purpose, data of [try.gogs.io](https://try.gogs.io) was reset in **Jan 28, 2015** and will reset multiple times after. Please do **NOT** put your important data on the site.
 3. The demo site [try.gogs.io](https://try.gogs.io) is running under `develop` branch.
 4. If you think there are vulnerabilities in the project, please talk privately to **u@gogs.io**. Thanks!
@@ -72,7 +78,7 @@ There are 5 ways to install Gogs:
 - [Install from binary](https://gogs.io/docs/installation/install_from_binary.html)
 - [Install from source](https://gogs.io/docs/installation/install_from_source.html)
 - [Install from packages](https://gogs.io/docs/installation/install_from_packages.html)
-- [Ship with Docker](https://github.com/gogits/gogs/tree/master/docker)
+- [Ship with Docker](https://github.com/go-gitea/gitea/tree/master/docker)
 - [Install with Vagrant](https://github.com/geerlingguy/ansible-vagrant-examples/tree/master/gogs)
 
 ### Tutorials
@@ -130,9 +136,9 @@ There are 5 ways to install Gogs:
 ## Contributors
 
 - Ex-team members [@lunny](https://github.com/lunny), [@fuxiaohei](https://github.com/fuxiaohei) and [@slene](https://github.com/slene).
-- See [contributors page](https://github.com/gogits/gogs/graphs/contributors) for full list of contributors.
+- See [contributors page](https://github.com/go-gitea/gitea/graphs/contributors) for full list of contributors.
 - See [TRANSLATORS](conf/locale/TRANSLATORS) for public list of translators.
 
 ## License
 
-This project is under the MIT License. See the [LICENSE](https://github.com/gogits/gogs/blob/master/LICENSE) file for the full license text.
+This project is under the MIT License. See the [LICENSE](https://github.com/go-gitea/gitea/blob/master/LICENSE) file for the full license text.

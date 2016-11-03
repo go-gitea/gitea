@@ -9,9 +9,9 @@ import (
 
 	"github.com/Unknwon/com"
 
-	"github.com/gogits/gogs/modules/log"
-	"github.com/gogits/gogs/modules/markdown"
-	"github.com/gogits/gogs/modules/setting"
+	"github.com/go-gitea/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/markdown"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 func (issue *Issue) MailSubject() string {

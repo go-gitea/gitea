@@ -15,7 +15,7 @@ Depends on the situation, you will:
 
 ### Bug Report
 
-If you find something you consider a bug, please create a issue on [GitHub](https://github.com/gogits/gogs/issues). To avoid wasting time and reduce back-and-forth communication with team members, please include at least the following information in a form comfortable for you:
+If you find something you consider a bug, please create a issue on [GitHub](https://github.com/go-gitea/gitea/issues). To avoid wasting time and reduce back-and-forth communication with team members, please include at least the following information in a form comfortable for you:
 
 - Bug Description
 - Gogs Version
@@ -24,7 +24,7 @@ If you find something you consider a bug, please create a issue on [GitHub](http
 - Error Log
 - Other information
 
-Please take a moment to check that an issue on [GitHub](https://github.com/gogits/gogs/issues) doesn't already exist documenting your bug report or improvement proposal. If it does, it never hurts to add a quick "+1" or "I have this problem too". This will help prioritize the most common problems and requests.
+Please take a moment to check that an issue on [GitHub](https://github.com/go-gitea/gitea/issues) doesn't already exist documenting your bug report or improvement proposal. If it does, it never hurts to add a quick "+1" or "I have this problem too". This will help prioritize the most common problems and requests.
 
 #### Bug Report Example
 
@@ -42,7 +42,7 @@ There is no standard form of making a feature request. Just try to describe the 
 
 ### Pull Request
 
-Please read detailed information on [Wiki](https://github.com/gogits/gogs/wiki/Contributing-Code).
+Please read detailed information on [Wiki](https://github.com/go-gitea/gitea/wiki/Contributing-Code).
 
 ### Ask For Help
 

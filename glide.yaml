@@ -1,4 +1,4 @@
-package: github.com/gogits/gogs
+package: github.com/go-gitea/gitea
 import:
 - package: github.com/Unknwon/cae
   subpackages:
@@ -40,7 +40,7 @@ import:
 - package: github.com/sergi/go-diff
   subpackages:
   - diffmatchpatch
-- package: github.com/strk/go-libravatar
+- package: strk.kbt.io/projects/go/libravatar
 - package: golang.org/x/crypto
   subpackages:
   - ssh
