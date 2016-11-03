@@ -1,4 +1,4 @@
-package: github.com/gogits/gogs
+package: github.com/go-gitea/gitea
 import:
 - package: github.com/Unknwon/cae
   subpackages:

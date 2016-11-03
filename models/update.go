@@ -12,7 +12,7 @@ import (
 
 	git "github.com/gogits/git-module"
 
-	"github.com/gogits/gogs/modules/log"
+	"github.com/go-gitea/gitea/modules/log"
 )
 
 type UpdateTask struct {

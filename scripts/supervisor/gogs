@@ -1,6 +1,6 @@
 [program:gogs]
-directory=/home/git/go/src/github.com/gogits/gogs/
-command=/home/git/go/src/github.com/gogits/gogs/gogs web
+directory=/home/git/go/src/github.com/go-gitea/gitea/
+command=/home/git/go/src/github.com/go-gitea/gitea/gogs web
 autostart=true
 autorestart=true
 startsecs=10

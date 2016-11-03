@@ -1,12 +1,12 @@
 package markdown_test
 
 import (
-	. "github.com/gogits/gogs/modules/markdown"
+	. "github.com/go-gitea/gitea/modules/markdown"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 
 	"bytes"
-	"github.com/gogits/gogs/modules/setting"
+	"github.com/go-gitea/gitea/modules/setting"
 	"github.com/russross/blackfriday"
 )
 

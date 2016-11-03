@@ -26,8 +26,8 @@ import (
 
 	"github.com/gogits/chardet"
 
-	"github.com/gogits/gogs/modules/log"
-	"github.com/gogits/gogs/modules/setting"
+	"github.com/go-gitea/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 // EncodeMD5 encodes string to md5 hex value.
