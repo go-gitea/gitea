@@ -50,7 +50,7 @@ func (org *User) GetOwnerTeam() (*Team, error) {
 }
 
 func (org *User) getTeams(e Engine) error {
-	return e.Where("org_id=?", org.ID).Find(&org.Teams)
+	return e.Where("org_id=?", org.ID).OrderBy("CASE WHEN name LIKE '" + OWNER_TEAM + "' THEN '' ELSE name END").Find(&org.Teams)
 }
 
 // GetTeams returns all teams that belong to organization.
@@ -495,7 +495,7 @@ func (org *User) GetUserRepositories(userID int64, page, pageSize int) ([]*Repos
 	repos := make([]*Repository, 0, pageSize)
 	// FIXME: use XORM chain operations instead of raw SQL.
 	if err = x.Sql(fmt.Sprintf(`SELECT repository.* FROM repository
-	INNER JOIN team_repo 
+	INNER JOIN team_repo
 	ON team_repo.repo_id = repository.id
 	WHERE (repository.owner_id = ? AND repository.is_private = ?) OR team_repo.team_id IN (%s)
 	GROUP BY repository.id
@@ -507,7 +507,7 @@ func (org *User) GetUserRepositories(userID int64, page, pageSize int) ([]*Repos
 	}
 
 	results, err := x.Query(fmt.Sprintf(`SELECT repository.id FROM repository
-	INNER JOIN team_repo 
+	INNER JOIN team_repo
 	ON team_repo.repo_id = repository.id
 	WHERE (repository.owner_id = ? AND repository.is_private = ?) OR team_repo.team_id IN (%s)
 	GROUP BY repository.id
@@ -534,7 +534,7 @@ func (org *User) GetUserMirrorRepositories(userID int64) ([]*Repository, error) 
 
 	repos := make([]*Repository, 0, 10)
 	if err = x.Sql(fmt.Sprintf(`SELECT repository.* FROM repository
-	INNER JOIN team_repo 
+	INNER JOIN team_repo
 	ON team_repo.repo_id = repository.id AND repository.is_mirror = ?
 	WHERE (repository.owner_id = ? AND repository.is_private = ?) OR team_repo.team_id IN (%s)
 	GROUP BY repository.id
