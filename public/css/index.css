@@ -888,7 +888,7 @@ footer .ui.language .menu {
 }
 .install form label {
   text-align: right;
-  width: 320px;
+  width: 320px !important;
 }
 .install form input {
   width: 35% !important;

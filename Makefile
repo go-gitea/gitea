@@ -3,7 +3,7 @@ LDFLAGS += -X "github.com/go-gitea/gitea/modules/setting.BuildGitHash=$(shell gi
 
 DATA_FILES := $(shell find conf | sed 's/ /\\ /g')
 LESS_FILES := $(wildcard public/less/gogs.less public/less/_*.less)
-GENERATED  := modules/bindata/bindata.go public/css/gogs.css
+GENERATED  := modules/bindata/bindata.go public/css/index.css
 
 TAGS = ""
 BUILD_FLAGS = "-v"
@@ -15,7 +15,7 @@ GOVET = go tool vet -composites=false -methods=false -structtags=false
 
 .PHONY: build pack release bindata clean
 
-.IGNORE: public/css/gogs.css
+.IGNORE: public/css/index.css
 
 all: build
 
@@ -53,9 +53,9 @@ bindata: modules/bindata/bindata.go
 modules/bindata/bindata.go: $(DATA_FILES)
 	go-bindata -o=$@ -ignore="\\.DS_Store|README.md|TRANSLATORS" -pkg=bindata conf/...
 
-less: public/css/gogs.css
+less: public/css/index.css
 
-public/css/gogs.css: $(LESS_FILES)
+public/css/index.css: $(LESS_FILES)
 	lessc $< $@
 
 clean:
