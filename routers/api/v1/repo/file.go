@@ -7,9 +7,9 @@ package repo
 import (
 	"github.com/gogits/git-module"
 
-	"github.com/gogits/gogs/models"
-	"github.com/gogits/gogs/modules/context"
-	"github.com/gogits/gogs/routers/repo"
+	"github.com/go-gitea/gitea/models"
+	"github.com/go-gitea/gitea/modules/context"
+	"github.com/go-gitea/gitea/routers/repo"
 )
 
 // https://github.com/gogits/go-gogs-client/wiki/Repositories-Contents#download-raw-content

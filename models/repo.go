@@ -28,12 +28,12 @@ import (
 	git "github.com/gogits/git-module"
 	api "github.com/gogits/go-gogs-client"
 
-	"github.com/gogits/gogs/modules/bindata"
-	"github.com/gogits/gogs/modules/log"
-	"github.com/gogits/gogs/modules/markdown"
-	"github.com/gogits/gogs/modules/process"
-	"github.com/gogits/gogs/modules/setting"
-	"github.com/gogits/gogs/modules/sync"
+	"github.com/go-gitea/gitea/modules/bindata"
+	"github.com/go-gitea/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/markdown"
+	"github.com/go-gitea/gitea/modules/process"
+	"github.com/go-gitea/gitea/modules/setting"
+	"github.com/go-gitea/gitea/modules/sync"
 )
 
 const (

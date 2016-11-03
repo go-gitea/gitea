@@ -25,9 +25,9 @@ import (
 	"strk.kbt.io/projects/go/libravatar"
 	"gopkg.in/ini.v1"
 
-	"github.com/gogits/gogs/modules/bindata"
-	"github.com/gogits/gogs/modules/log"
-	"github.com/gogits/gogs/modules/user"
+	"github.com/go-gitea/gitea/modules/bindata"
+	"github.com/go-gitea/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/user"
 )
 
 type Scheme string

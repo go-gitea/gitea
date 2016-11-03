@@ -10,13 +10,13 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/core"
 
-	"github.com/gogits/gogs/models"
-	"github.com/gogits/gogs/modules/auth"
-	"github.com/gogits/gogs/modules/auth/ldap"
-	"github.com/gogits/gogs/modules/base"
-	"github.com/gogits/gogs/modules/context"
-	"github.com/gogits/gogs/modules/log"
-	"github.com/gogits/gogs/modules/setting"
+	"github.com/go-gitea/gitea/models"
+	"github.com/go-gitea/gitea/modules/auth"
+	"github.com/go-gitea/gitea/modules/auth/ldap"
+	"github.com/go-gitea/gitea/modules/base"
+	"github.com/go-gitea/gitea/modules/context"
+	"github.com/go-gitea/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 const (

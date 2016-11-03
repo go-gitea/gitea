@@ -17,8 +17,8 @@ import (
 	"github.com/jaytaylor/html2text"
 	"gopkg.in/gomail.v2"
 
-	"github.com/gogits/gogs/modules/log"
-	"github.com/gogits/gogs/modules/setting"
+	"github.com/go-gitea/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 type Message struct {

@@ -1,5 +1,5 @@
-LDFLAGS += -X "github.com/gogits/gogs/modules/setting.BuildTime=$(shell date -u '+%Y-%m-%d %I:%M:%S %Z')"
-LDFLAGS += -X "github.com/gogits/gogs/modules/setting.BuildGitHash=$(shell git rev-parse HEAD)"
+LDFLAGS += -X "github.com/go-gitea/gitea/modules/setting.BuildTime=$(shell date -u '+%Y-%m-%d %I:%M:%S %Z')"
+LDFLAGS += -X "github.com/go-gitea/gitea/modules/setting.BuildGitHash=$(shell git rev-parse HEAD)"
 
 DATA_FILES := $(shell find conf | sed 's/ /\\ /g')
 LESS_FILES := $(wildcard public/less/gogs.less public/less/_*.less)

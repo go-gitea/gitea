@@ -1,5 +1,5 @@
 [target]
-path = github.com/gogits/gogs
+path = github.com/go-gitea/gitea
 
 [deps]
 github.com/bradfitz/gomemcache = commit:fb1f79c

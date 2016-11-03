@@ -14,8 +14,8 @@ import (
 
 	api "github.com/gogits/go-gogs-client"
 
-	"github.com/gogits/gogs/modules/log"
-	"github.com/gogits/gogs/modules/markdown"
+	"github.com/go-gitea/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/markdown"
 )
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
