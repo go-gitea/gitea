@@ -1,30 +1,34 @@
 language: go
 
 go:
-  - 1.4
-  - 1.5
   - 1.6
   - 1.7
 
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y libpam-dev
-  - go get github.com/msteinert/pam 
+  - go get github.com/msteinert/pam
 
 install:
   - go get -t -v ./...
 
-script: 
-  - go build -v -tags "pam"
-  - go test -v -cover -race ./...
+script: |
+  go build -v -tags "pam"
+
+  for pkg in $(go list ./... | grep -v /vendor/)
+  do
+    go test -v -race -cover -coverprofile $GOPATH/src/$pkg/coverage.out $pkg || exit 1
+  done
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
 
 notifications:
-  email:
-    - u@gogs.io
-  slack: gophercn:o5pSanyTeNhnfYc3QnG0X7Wx
   webhooks:
+    on_success: change
+    on_failure: always
+    on_start: never
     urls:
-      - https://webhooks.gitter.im/e/b590f8e03882f7aedc3e
-    on_success: change 
-    on_failure: always 
-    on_start: never     
+      - https://webhooks.gitter.im/e/ee6b822f3cf54c98e70c
+      - https://webhooks.gitter.im/e/87428658ef177ce8a7e4
+      - https://webhooks.gitter.im/e/a1d2b69804dfda72187e
