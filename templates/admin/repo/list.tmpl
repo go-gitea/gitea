@@ -20,6 +20,7 @@
 						<th>{{.i18n.Tr "admin.repos.watches"}}</th>
 						<th>{{.i18n.Tr "admin.repos.stars"}}</th>
 						<th>{{.i18n.Tr "admin.repos.issues"}}</th>
+						<th>{{.i18n.Tr "admin.repos.size"}}</th>
 						<th>{{.i18n.Tr "admin.users.created"}}</th>
 						<th>{{.i18n.Tr "admin.notices.op"}}</th>
 					</tr>
@@ -34,6 +35,7 @@
 							<td>{{.NumWatches}}</td>
 							<td>{{.NumStars}}</td>
 							<td>{{.NumIssues}}</td>
+							<td>{{SizeFmt .Size}}</td>
 							<td><span title="{{DateFmtLong .Created}}">{{DateFmtShort .Created}}</span></td>
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Current}}" data-id="{{.ID}}"><i class="trash icon text red"></i></a></td>
 						</tr>

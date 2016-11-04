@@ -101,6 +101,10 @@ func PushUpdate(opts PushUpdateOptions) (err error) {
 		return fmt.Errorf("GetRepositoryByName: %v", err)
 	}
 
+	if err = repo.UpdateSize(); err != nil {
+		log.Error(4, "Failed to update size for repository: %v", err)
+	}
+
 	// Push tags.
 	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 		if err := CommitRepoAction(CommitRepoActionOptions{
