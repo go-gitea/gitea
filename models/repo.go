@@ -5,10 +5,12 @@
 package models
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -16,6 +18,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -195,6 +198,7 @@ type Repository struct {
 	IsFork   bool `xorm:"NOT NULL DEFAULT false"`
 	ForkID   int64
 	BaseRepo *Repository `xorm:"-"`
+	RepoSize int64       `xorm:"NOT NULL DEFAULT 0"`
 
 	Created     time.Time `xorm:"-"`
 	CreatedUnix int64
@@ -426,6 +430,19 @@ func (repo *Repository) HasAccess(u *User) bool {
 
 func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID
+}
+
+func (repo *Repository) GetRepoSize() int64 {
+	return repo.RepoSize
+}
+
+func (repo *Repository) ComputeRepoSize() (err error) {
+	repoInfoSize, err := GitRepoSize(repo.RepoPath())
+	if err != nil {
+		return err
+	}
+	repo.RepoSize = repoInfoSize.Size + repoInfoSize.SizePack
+	return nil
 }
 
 // CanBeForked returns true if repository meets the requirements of being forked.
@@ -673,6 +690,11 @@ func MigrateRepository(u *User, opts MigrateRepoOptions) (*Repository, error) {
 		if headBranch != nil {
 			repo.DefaultBranch = headBranch.Name
 		}
+	}
+
+	err = repo.ComputeRepoSize()
+	if err != nil {
+		return repo, fmt.Errorf("ComputeRepoSize: %v", err)
 	}
 
 	if opts.IsMirror {
@@ -1268,6 +1290,11 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 				return fmt.Errorf("updateRepository[%d]: %v", forkRepos[i].ID, err)
 			}
 		}
+
+		err = repo.ComputeRepoSize()
+		if err != nil {
+			return fmt.Errorf("ComputeRepoSize: %v", err)
+		}
 	}
 
 	return nil
@@ -1664,6 +1691,125 @@ func GitGcRepos() error {
 			}
 			return nil
 		})
+}
+
+// Maybe move this to gogits/git-module
+type CountObject struct {
+	Count       int
+	Size        int64
+	InPack      int64
+	Packs       int
+	SizePack    int64
+	PrunePack   int
+	Garbage     int
+	SizeGarbage int
+}
+
+const STAT_COUNT = "count: "
+const STAT_SIZE = "size: "
+const STAT_INPACK = "in-pack: "
+const STAT_PACKS = "packs: "
+const STAT_SIZEPACK = "size-pack: "
+const STAT_PRUNEPACKAGE = "prune-package: "
+const STAT_GARBAGE = "garbage: "
+const STAT_SIZEGARBAGE = "size-garbage: "
+
+func GitRepoSize(repoPath string) (*CountObject, error) {
+	var cmd *exec.Cmd
+	cmd = exec.Command("git", "count-objects", "-v")
+	cmd.Dir = repoPath
+	cmd.Stderr = os.Stderr
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("StdoutPipe: %v", err)
+	}
+	if err = cmd.Start(); err != nil {
+		return nil, fmt.Errorf("Start: %v", err)
+	}
+
+	repoSize, err := ParseSize(stdout)
+	if err != nil {
+		return nil, fmt.Errorf("ParsePatch: %v", err)
+	}
+
+	if err = cmd.Wait(); err != nil {
+		return nil, fmt.Errorf("Wait: %v", err)
+	}
+
+	return repoSize, nil
+}
+
+func ParseSize(reader io.Reader) (*CountObject, error) {
+	repoSize := &CountObject{}
+	input := bufio.NewReader(reader)
+	isEOF := false
+
+	for !isEOF {
+		line, err := input.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				isEOF = true
+				continue
+			} else {
+				return nil, fmt.Errorf("ReadString: %v", err)
+			}
+		}
+
+		if len(line) > 0 && line[len(line)-1] == '\n' {
+			// Remove line break.
+			line = line[:len(line)-1]
+		}
+
+		switch {
+		case strings.HasPrefix(line, STAT_COUNT):
+			repoSize.Count, err = strconv.Atoi(line[7:])
+		case strings.HasPrefix(line, STAT_SIZE):
+			repoSize.Size, err = strconv.ParseInt(line[6:], 10, 64)
+			repoSize.Size = repoSize.Size * 1024
+		case strings.HasPrefix(line, STAT_INPACK):
+			repoSize.InPack, err = strconv.ParseInt(line[9:], 10, 64)
+			repoSize.InPack = repoSize.InPack * 1024
+		case strings.HasPrefix(line, STAT_PACKS):
+			repoSize.Packs, err = strconv.Atoi(line[7:])
+		case strings.HasPrefix(line, STAT_SIZEPACK):
+			repoSize.SizePack, err = strconv.ParseInt(line[11:], 10, 64)
+			repoSize.SizePack = repoSize.SizePack * 1024
+		case strings.HasPrefix(line, STAT_PRUNEPACKAGE):
+			repoSize.PrunePack, err = strconv.Atoi(line[16:])
+		case strings.HasPrefix(line, STAT_GARBAGE):
+			repoSize.Garbage, err = strconv.Atoi(line[9:])
+		case strings.HasPrefix(line, STAT_SIZEGARBAGE):
+			repoSize.SizeGarbage, err = strconv.Atoi(line[14:])
+		}
+		if err != nil {
+			log.Error(4, "Parsing count-objects failed: %v", err)
+			return nil, err
+		}
+	}
+	return repoSize, nil
+}
+
+func UpdateRepoSize(repoUserName, repoName string) error {
+	log.Info("Compute Size of %s - %s", repoUserName, repoName)
+
+	repoPath := RepoPath(repoUserName, repoName)
+	repoInfoSize, err := GitRepoSize(repoPath)
+	if err != nil {
+		return err
+	}
+	repoSize := repoInfoSize.Size + repoInfoSize.SizePack
+	log.Info(strconv.FormatInt(repoSize, 10))
+	sess := x.NewSession()
+	defer sessionRelease(sess)
+	if err = sess.Begin(); err != nil {
+		return nil
+	}
+	if _, err := sess.Where("name=?", repoName).Update(&Repository{RepoSize: repoSize}); err != nil {
+		return fmt.Errorf("Update repo size failed: %v", err)
+	}
+
+	return sess.Commit()
 }
 
 type repoChecker struct {
