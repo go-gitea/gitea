@@ -7,18 +7,14 @@ go:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y libpam-dev
-  - go get github.com/msteinert/pam
 
-install:
-  - go get -t -v ./...
-
-script: |
-  go build -v -tags "pam"
-
-  for pkg in $(go list ./... | grep -v /vendor/)
-  do
-    go test -v -race -cover -coverprofile $GOPATH/src/$pkg/coverage.out $pkg || exit 1
-  done
+script:
+  - go build -v -tags 'cert sqlite pam miniwinsvc'
+  - |
+    for pkg in $(go list ./... | grep -v /vendor/)
+    do
+      go test -v -race -cover -coverprofile $GOPATH/src/$pkg/coverage.out $pkg || exit 1
+    done
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
