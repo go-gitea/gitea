@@ -289,7 +289,7 @@ func (f *NewWikiForm) Validate(ctx *macaron.Context, errs binding.Errors) bindin
 type EditRepoFileForm struct {
 	TreePath      string `binding:"Required;MaxSize(500)"`
 	Content       string `binding:"Required"`
-	CommitSummary string `binding:"MaxSize(100)`
+	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
 	NewBranchName string `binding:"AlphaDashDot;MaxSize(100)"`
@@ -317,8 +317,8 @@ func (f *EditPreviewDiffForm) Validate(ctx *macaron.Context, errs binding.Errors
 //
 
 type UploadRepoFileForm struct {
-	TreePath      string `binding:MaxSize(500)"`
-	CommitSummary string `binding:"MaxSize(100)`
+	TreePath      string `binding:"MaxSize(500)"`
+	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
 	NewBranchName string `binding:"AlphaDashDot;MaxSize(100)"`
@@ -345,7 +345,7 @@ func (f *RemoveUploadFileForm) Validate(ctx *macaron.Context, errs binding.Error
 //         \/     \/          \/          \/
 
 type DeleteRepoFileForm struct {
-	CommitSummary string `binding:"MaxSize(100)`
+	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
 	NewBranchName string `binding:"AlphaDashDot;MaxSize(100)"`
