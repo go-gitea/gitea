@@ -26,9 +26,10 @@ import (
 )
 
 const (
-	_ACCESS_DENIED_MESSAGE = "Repository does not exist or you do not have access"
+	accessDenied = "Repository does not exist or you do not have access"
 )
 
+// CmdServ represents the available serv sub-command.
 var CmdServ = cli.Command{
 	Name:        "serv",
 	Usage:       "This command should only be called by SSH shell",
@@ -179,7 +180,7 @@ func runServ(c *cli.Context) error {
 	repo, err := models.GetRepositoryByName(repoUser.ID, reponame)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
-			fail(_ACCESS_DENIED_MESSAGE, "Repository does not exist: %s/%s", repoUser.Name, reponame)
+			fail(accessDenied, "Repository does not exist: %s/%s", repoUser.Name, reponame)
 		}
 		fail("Internal error", "Failed to get repository: %v", err)
 	}
@@ -241,7 +242,7 @@ func runServ(c *cli.Context) error {
 			if err != nil {
 				fail("Internal error", "Fail to check access: %v", err)
 			} else if mode < requestedMode {
-				clientMessage := _ACCESS_DENIED_MESSAGE
+				clientMessage := accessDenied
 				if mode >= models.ACCESS_MODE_READ {
 					clientMessage = "You do not have sufficient authorization for this action"
 				}

@@ -14,6 +14,7 @@ import (
 )
 
 var (
+	// CmdAdmin represents the available admin sub-command.
 	CmdAdmin = cli.Command{
 		Name:  "admin",
 		Usage: "Preform admin operations on command line",
