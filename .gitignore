@@ -29,8 +29,9 @@ gitea
 *.db
 *.log
 
+/bin
+/dist
 /custom
 /data
+/log
 /public/img/avatar
-/dist
-/bin
