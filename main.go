@@ -16,18 +16,19 @@ import (
 	"github.com/urfave/cli"
 )
 
-const APP_VER = "0.9.99.0915"
+// Version holds the current Gitea version
+const Version = "0.9.99.0915"
 
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	setting.AppVer = APP_VER
+	setting.AppVer = Version
 }
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "Gogs"
 	app.Usage = "Go Git Service: a painless self-hosted Git service"
-	app.Version = APP_VER
+	app.Version = Version
 	app.Commands = []cli.Command{
 		cmd.CmdWeb,
 		cmd.CmdServ,
