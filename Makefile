@@ -24,7 +24,7 @@ check: test
 dist: release
 
 govet:
-	$(GOVET) gogs.go
+	$(GOVET) main.go
 	$(GOVET) models modules routers
 
 build: $(GENERATED)

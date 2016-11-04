@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 outPlattform=freebsd
 outArch=amd64
 outPath=./output_$outPlattform_$outArch
@@ -5,7 +6,7 @@ outPath=./output_$outPlattform_$outArch
 rm -rf $outPath
 mkdir $outPath
 
-CGO_ENABLED=0 GOOS=$outPlattform GOARCH=$outArch go build ../gogs.go
+CGO_ENABLED=0 GOOS=$outPlattform GOARCH=$outArch go build ../main.go -o gitea
 chmod +x gogs
 mv gogs $outPath/
 

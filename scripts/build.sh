@@ -1,9 +1,10 @@
+#!/usr/bin/env bash
 outPath=./output
 
 rm -rf $outPath
 mkdir $outPath
 
-go build ../gogs.go
+go build ../main.go -o gitea
 PLATFORM=`uname | cut -d _ -f 1`
 if [ $PLATFORM = "MINGW32" ] || [ $PLATFORM = "MINGW64" ] || [ $PLATFORM = "CYGWIN" ]; then
 	GOGS_EXE=gogs.exe
