@@ -7,7 +7,6 @@ package cmd
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/fcgi"
@@ -30,6 +29,7 @@ import (
 	"code.gitea.io/gitea/routers/org"
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
+	"github.com/go-macaron/bindata"
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/captcha"
@@ -73,45 +73,6 @@ type VerChecker struct {
 	Expected   string
 }
 
-// checkVersion checks if binary matches the version of templates files.
-func checkVersion() {
-	// Templates.
-	data, err := ioutil.ReadFile(setting.StaticRootPath + "/templates/.VERSION")
-	if err != nil {
-		log.Fatal(4, "Fail to read 'templates/.VERSION': %v", err)
-	}
-	tplVer := string(data)
-	if tplVer != setting.AppVer {
-		if version.Compare(tplVer, setting.AppVer, ">") {
-			log.Fatal(4, "Binary version is lower than template file version, did you forget to recompile Gogs?")
-		} else {
-			log.Fatal(4, "Binary version is higher than template file version, did you forget to update template files?")
-		}
-	}
-
-	// Check dependency version.
-	checkers := []VerChecker{
-		{"github.com/go-xorm/xorm", func() string { return xorm.Version }, "0.5.5"},
-		{"github.com/go-macaron/binding", binding.Version, "0.3.2"},
-		{"github.com/go-macaron/cache", cache.Version, "0.1.2"},
-		{"github.com/go-macaron/csrf", csrf.Version, "0.1.0"},
-		{"github.com/go-macaron/i18n", i18n.Version, "0.3.0"},
-		{"github.com/go-macaron/session", session.Version, "0.1.6"},
-		{"github.com/go-macaron/toolbox", toolbox.Version, "0.1.0"},
-		{"gopkg.in/ini.v1", ini.Version, "1.8.4"},
-		{"gopkg.in/macaron.v1", macaron.Version, "1.1.7"},
-		{"code.gitea.io/git", git.Version, "0.4.1"},
-	}
-	for _, c := range checkers {
-		if !version.Compare(c.Version(), c.Expected, ">=") {
-			log.Fatal(4, `Dependency outdated!
-Package '%s' current version (%s) is below requirement (%s),
-please use following command to update this package and recompile Gogs:
-go get -u %[1]s`, c.ImportPath, c.Version(), c.Expected)
-		}
-	}
-}
-
 // newMacaron initializes Macaron instance.
 func newMacaron() *macaron.Macaron {
 	m := macaron.New()
@@ -126,9 +87,16 @@ func newMacaron() *macaron.Macaron {
 		m.SetURLPrefix(setting.AppSubURL)
 	}
 	m.Use(macaron.Static(
-		path.Join(setting.StaticRootPath, "public"),
+		"public",
 		macaron.StaticOptions{
 			SkipLogging: setting.DisableRouterLog,
+			FileSystem: bindata.Static(bindata.Options{
+				Asset:      public.Asset,
+				AssetDir:   public.AssetDir,
+				AssetInfo:  public.AssetInfo,
+				AssetNames: public.AssetNames,
+				Prefix:     "",
+			}),
 		},
 	))
 	m.Use(macaron.Static(
@@ -139,23 +107,31 @@ func newMacaron() *macaron.Macaron {
 		},
 	))
 
+	templateOptions := bindata.Options{
+		Asset:      templates.Asset,
+		AssetDir:   templates.AssetDir,
+		AssetInfo:  templates.AssetInfo,
+		AssetNames: templates.AssetNames,
+		Prefix:     "",
+	}
+
 	funcMap := template.NewFuncMap()
 	m.Use(macaron.Renderer(macaron.RenderOptions{
-		Directory:         path.Join(setting.StaticRootPath, "templates"),
-		AppendDirectories: []string{path.Join(setting.CustomPath, "templates")},
-		Funcs:             funcMap,
-		IndentJSON:        macaron.Env != macaron.PROD,
+		AppendDirectories:  []string{path.Join(setting.CustomPath, "templates")},
+		Funcs:              funcMap,
+		IndentJSON:         macaron.Env != macaron.PROD,
+		TemplateFileSystem: bindata.Templates(templateOptions),
 	}))
-	models.InitMailRender(path.Join(setting.StaticRootPath, "templates/mail"),
+	models.InitMailRender(templateOptions,
 		path.Join(setting.CustomPath, "templates/mail"), funcMap)
 
-	localeNames, err := bindata.AssetDir("conf/locale")
+	localeNames, err := conf.AssetDir("locale")
 	if err != nil {
 		log.Fatal(4, "Fail to list locale files: %v", err)
 	}
 	localFiles := make(map[string][]byte)
 	for _, name := range localeNames {
-		localFiles[name] = bindata.MustAsset("conf/locale/" + name)
+		localFiles[name] = conf.MustAsset("locale/" + name)
 	}
 	m.Use(i18n.I18n(i18n.Options{
 		SubURL:          setting.AppSubURL,
@@ -199,7 +175,6 @@ func runWeb(ctx *cli.Context) error {
 		setting.CustomConf = ctx.String("config")
 	}
 	routers.GlobalInit()
-	checkVersion()
 
 	m := newMacaron()
 
