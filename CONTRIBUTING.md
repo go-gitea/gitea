@@ -11,9 +11,9 @@ Sensitive security-related issues should be reported to [security@gitea.io](mail
 ## Discuss your design
 
 The project welcomes submissions but please let everyone know what
-you're working on if you want to change or add to the Gitea repositories.
+you're working on if you want to change or add something to the Gitea repositories.
 
-Before undertaking to write something new for the Gitea project,
+Before starting to write something new for the Gitea project,
 please [file an issue](https://github.com/go-gitea/gitea/issues/new).
 Significant changes must go through the
 [change proposal process](https://github.com/go-gitea/proposals)
@@ -28,7 +28,7 @@ the code review tool is not the place for high-level discussions.
 ## Testing redux
 
 Before sending code out for review, run all the tests for the whole
-tree to make sure the changes don't break other usage and keep the compitable when upgrade:
+tree to make sure the changes don't break other usage and keep the compatibility on upgrade:
 
 After running for a while, the command should print
 
@@ -39,37 +39,37 @@ ALL TESTS PASSED
 ## Code review
 
 Changes to Gitea must be reviewed before they are accepted,
-no matter who makes the change even if you are the owners or maintainers.
-We use github's pull request workflow to do that and use lgtm to keep every PR has more than 2 maintainers to reviewed.
+no matter who makes the change even if an owners or a maintainer.
+We use github's pull request workflow to do that and use [lgtm](http://lgtm.co) to ensure every PR is reviewed by at least 2 maintainers.
 
-## Contributers
+## Contributors
 
-Everyone who sent a PR to gitea(or gogs) and accepted will be as a contributor. Please send a PR to add your name on
-[CONTRIBUTORS](CONTRIBUTORS) and write PR numbers on the PR comment. For the format, see the [CONTRIBUTORS](CONTRIBUTORS).
+Everyone who sent a PR to Gitea that gets accepted will be as a contributor. Please send a PR to add your name to
+[CONTRIBUTORS](CONTRIBUTORS). For the format, see the [CONTRIBUTORS](CONTRIBUTORS).
 
 ## Maintainers
 
-To keep every PR have been checked, we make a team maintainers. Any PR(include owners' PR) MUST be reviewed and by other two maintainers to check before merged.
-Maintainers should be a contributor of gitea(or gogs) and contributed more than 4 PRs(included). And a contributar should apply as a maintainer in [gitter gitea develop](https://gitter.im/go-gitea/develop).
-And the owners or the maintainers team maintainer could invite the contributor. A maintainer should spend some time on code view PRs. If some maintainer have no time
+To make sure every PR have been checked, we make a team maintainers. Any PR MUST be reviewed and by at least two maintainers before it can get merged.
+Maintainers should be a contributor of gitea(or gogs) and contributed at least 4 accepted PRs. And a contributor should apply as a maintainer in [gitter Gitea develop](https://gitter.im/go-gitea/develop).
+And the owners or the team maintainer could invite the contributor. A maintainer should spend some time on code reviews. If some maintainer have no time
 to do that, he should apply to leave maintainers team and we will give him an honor to be as a member of advisor team. Of course, if an advisor have time to code view, welcome it back to maintainers team.
 If some one have no time to code view and forget to leave the maintainers, the owners have the power to move him from maintainers team to advisors team.
 
 ## Owners
 
-Since gitea is a pure community organization with no any company support now, to keep it development healthly We will elect the owners every year. Every time we will elect three owners.
+Since Gitea is a pure community organization without any company support, to keep the development healthly We will elect the owners every year. Every time we will elect three owners.
 All the contributers could vote for three owners, one is the main owner, the other two are assistant owners. When the new owners have been elected, the old owners MUST move the power to the new owners. 
-If someone owners don't obey this CONTRIBUTING, all the contributors could fork a new project and continue the project. 
+If some owner don't obey these rules, the other owners are allowed to revoke his owner status.
 
-After the election, the new owners should say he agree with the CONTRIBUTING on the [Gitter Gitea Channel](https://gitter.im/go-gitea/gitea). Below is the word to speak
+After the election, the new owners should say he agrees with these rules on the [CONTRIBUTING](CONTRIBUTING.md) on the [Gitter Gitea Channel](https://gitter.im/go-gitea/gitea). Below is the word to speak
 
 ```
-I'm glad to be as an owner of gitea, I agree with [CONTRIBUTING](CONTRIBUTING.md). I will spend part of my time on gitea and lead the development of gitea.
+I'm glad to be an owner of Gitea, I agree with [CONTRIBUTING](CONTRIBUTING.md). I will spend part of my time on gitea and lead the development of gitea.
 ```
 
 For a honor to the owners, this document will add the history owners below:
 
-2016 - 2017 lunny<xiaolunwen@gmail.com> tboerger<thomas@webhippie.de> bkcsoft<kim.carlbacker@gmail.com>
+2016-11-04 ~ 2017-12-31 lunny<xiaolunwen@gmail.com> tboerger<thomas@webhippie.de> bkcsoft<kim.carlbacker@gmail.com>
 
 ## Versions
 
@@ -84,10 +84,10 @@ All the PRs to all the branches should be review by two maintainers and pass the
 Code that you contribute should use the standard copyright header:
 
 ```
-// Copyright 2016 The Gitea Authors. All rights reserved.
+// Copyright 2016 - 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 ```
 
-Files in the repository are copyright the year they are added. It is not
-necessary to update the copyright year on files that you change.
+Files in the repository are copyright the year they are added and the year they are last changed. If the copyright author is changed, just copy the head
+below the old one.

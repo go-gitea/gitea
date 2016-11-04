@@ -1,14 +1,8 @@
 # This is the official list of people who have spent time on code review Pull Requests on the Gitea repository.
+# This document should be reviewed and approved by owners.
 #
 # The submission process automatically checks to make sure
 # that people submitting code are listed in this file (by email address).
-#
-# Names should be added to this file only after verifying that
-# the individual or the individual's organization has agreed to
-# the appropriate Contributor License Agreement, found here:
-#
-#     http://code.google.com/legal/individual-cla-v1.0.html
-#     http://code.google.com/legal/corporate-cla-v1.0.html
 #
 # The agreement for individuals can be filled out on the web.
 #
@@ -22,6 +16,6 @@
 # that the other addresses should be recognized as the
 # same person when interacting with github.
 
-# Please keep the list sorted.
+# Please keep the list sorted. 
 
 Lunny Xiao <xiaolunwen@gmail.com>
