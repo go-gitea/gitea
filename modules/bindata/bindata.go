@@ -230,11 +230,11 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"strings"
-	"os"
-	"time"
 	"io/ioutil"
+	"os"
 	"path/filepath"
+	"strings"
+	"time"
 )
 
 func bindataRead(data []byte, name string) ([]byte, error) {
@@ -263,9 +263,9 @@ type asset struct {
 }
 
 type bindataFileInfo struct {
-	name string
-	size int64
-	mode os.FileMode
+	name    string
+	size    int64
+	mode    os.FileMode
 	modTime time.Time
 }
 
@@ -304,7 +304,7 @@ func confAppIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/app.ini", size: 13899, mode: os.FileMode(420), modTime: time.Unix(1473984144, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -324,7 +324,7 @@ func confGitignoreActionscript() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Actionscript", size: 300, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -344,7 +344,7 @@ func confGitignoreAda() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Ada", size: 51, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -364,7 +364,7 @@ func confGitignoreAgda() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Agda", size: 8, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -384,7 +384,7 @@ func confGitignoreAndroid() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Android", size: 394, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -404,7 +404,7 @@ func confGitignoreAnjuta() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Anjuta", size: 78, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -424,7 +424,7 @@ func confGitignoreAppengine() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/AppEngine", size: 58, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -444,7 +444,7 @@ func confGitignoreAppceleratortitanium() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/AppceleratorTitanium", size: 45, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -464,7 +464,7 @@ func confGitignoreArchlinuxpackages() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/ArchLinuxPackages", size: 75, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -484,7 +484,7 @@ func confGitignoreArchives() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Archives", size: 295, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -504,7 +504,7 @@ func confGitignoreAutotools() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Autotools", size: 181, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -524,7 +524,7 @@ func confGitignoreBricxcc() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/BricxCC", size: 72, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -544,7 +544,7 @@ func confGitignoreC() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/C", size: 246, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -564,7 +564,7 @@ func confGitignoreCSharp() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/C Sharp", size: 1521, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -584,7 +584,7 @@ func confGitignoreC2() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/C++", size: 242, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -604,7 +604,7 @@ func confGitignoreCfwheels() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/CFWheels", size: 205, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -624,7 +624,7 @@ func confGitignoreCmake() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/CMake", size: 89, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -644,7 +644,7 @@ func confGitignoreCuda() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/CUDA", size: 38, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -664,7 +664,7 @@ func confGitignoreCvs() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/CVS", size: 39, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -684,7 +684,7 @@ func confGitignoreCakephp() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/CakePHP", size: 136, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -704,7 +704,7 @@ func confGitignoreChefcookbook() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/ChefCookbook", size: 77, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -724,7 +724,7 @@ func confGitignoreCloud9() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Cloud9", size: 45, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -744,7 +744,7 @@ func confGitignoreCodeigniter() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/CodeIgniter", size: 106, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -764,7 +764,7 @@ func confGitignoreCodekit() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/CodeKit", size: 54, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -784,7 +784,7 @@ func confGitignoreCommonlisp() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/CommonLisp", size: 26, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -804,7 +804,7 @@ func confGitignoreComposer() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Composer", size: 250, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -824,7 +824,7 @@ func confGitignoreConcrete5() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Concrete5", size: 42, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -844,7 +844,7 @@ func confGitignoreCoq() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Coq", size: 18, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -864,7 +864,7 @@ func confGitignoreCraftcms() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/CraftCMS", size: 120, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -884,7 +884,7 @@ func confGitignoreDm() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/DM", size: 29, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -904,7 +904,7 @@ func confGitignoreDart() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Dart", size: 234, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -924,7 +924,7 @@ func confGitignoreDarteditor() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/DartEditor", size: 19, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -944,7 +944,7 @@ func confGitignoreDelphi() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Delphi", size: 1347, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -964,7 +964,7 @@ func confGitignoreDreamweaver() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Dreamweaver", size: 47, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -984,7 +984,7 @@ func confGitignoreDrupal() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Drupal", size: 605, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1004,7 +1004,7 @@ func confGitignoreEpiserver() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/EPiServer", size: 81, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1024,7 +1024,7 @@ func confGitignoreEagle() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Eagle", size: 401, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1044,7 +1044,7 @@ func confGitignoreEclipse() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Eclipse", size: 458, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1064,7 +1064,7 @@ func confGitignoreEiffelstudio() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/EiffelStudio", size: 35, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1084,7 +1084,7 @@ func confGitignoreElisp() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Elisp", size: 36, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1104,7 +1104,7 @@ func confGitignoreElixir() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Elixir", size: 34, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1124,7 +1124,7 @@ func confGitignoreEmacs() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Emacs", size: 320, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1144,7 +1144,7 @@ func confGitignoreEnsime() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Ensime", size: 57, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1164,7 +1164,7 @@ func confGitignoreErlang() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Erlang", size: 95, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1184,7 +1184,7 @@ func confGitignoreEspresso() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Espresso", size: 9, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1204,7 +1204,7 @@ func confGitignoreExpressionengine() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/ExpressionEngine", size: 342, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1224,7 +1224,7 @@ func confGitignoreExtjs() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/ExtJs", size: 38, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1244,7 +1244,7 @@ func confGitignoreFancy() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Fancy", size: 12, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1264,7 +1264,7 @@ func confGitignoreFinale() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Finale", size: 184, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1284,7 +1284,7 @@ func confGitignoreFlexbuilder() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/FlexBuilder", size: 29, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1304,7 +1304,7 @@ func confGitignoreForcedotcom() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/ForceDotCom", size: 57, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1324,7 +1324,7 @@ func confGitignoreFuelphp() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/FuelPHP", size: 39, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1344,7 +1344,7 @@ func confGitignoreGwt() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/GWT", size: 395, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1364,7 +1364,7 @@ func confGitignoreGcov() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Gcov", size: 56, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1384,7 +1384,7 @@ func confGitignoreGitbook() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/GitBook", size: 353, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1404,7 +1404,7 @@ func confGitignoreGo() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Go", size: 266, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1424,7 +1424,7 @@ func confGitignoreGradle() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Gradle", size: 157, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1444,7 +1444,7 @@ func confGitignoreGrails() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Grails", size: 583, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1464,7 +1464,7 @@ func confGitignoreHaskell() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Haskell", size: 135, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1484,7 +1484,7 @@ func confGitignoreIgorpro() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/IGORPro", size: 121, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1504,7 +1504,7 @@ func confGitignoreIpythonnotebook() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/IPythonNotebook", size: 37, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1524,7 +1524,7 @@ func confGitignoreIdris() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Idris", size: 10, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1544,7 +1544,7 @@ func confGitignoreJdeveloper() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/JDeveloper", size: 255, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1564,7 +1564,7 @@ func confGitignoreJava() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Java", size: 189, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1584,7 +1584,7 @@ func confGitignoreJboss() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Jboss", size: 509, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1604,7 +1604,7 @@ func confGitignoreJekyll() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Jekyll", size: 37, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1624,7 +1624,7 @@ func confGitignoreJetbrains() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/JetBrains", size: 860, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1644,7 +1644,7 @@ func confGitignoreJoomla() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Joomla", size: 22387, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1664,7 +1664,7 @@ func confGitignoreKdevelop4() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/KDevelop4", size: 16, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1684,7 +1684,7 @@ func confGitignoreKate() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Kate", size: 34, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1704,7 +1704,7 @@ func confGitignoreKicad() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/KiCAD", size: 208, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1724,7 +1724,7 @@ func confGitignoreKohana() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Kohana", size: 39, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1744,7 +1744,7 @@ func confGitignoreLabview() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/LabVIEW", size: 142, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1764,7 +1764,7 @@ func confGitignoreLaravel() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Laravel", size: 49, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1784,7 +1784,7 @@ func confGitignoreLazarus() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Lazarus", size: 407, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1804,7 +1804,7 @@ func confGitignoreLeiningen() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Leiningen", size: 138, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1824,7 +1824,7 @@ func confGitignoreLemonstand() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/LemonStand", size: 348, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1844,7 +1844,7 @@ func confGitignoreLibreoffice() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/LibreOffice", size: 30, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1864,7 +1864,7 @@ func confGitignoreLilypond() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Lilypond", size: 33, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1884,7 +1884,7 @@ func confGitignoreLinux() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Linux", size: 118, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1904,7 +1904,7 @@ func confGitignoreLithium() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Lithium", size: 28, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1924,7 +1924,7 @@ func confGitignoreLua() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Lua", size: 324, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1944,7 +1944,7 @@ func confGitignoreLyx() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/LyX", size: 75, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1964,7 +1964,7 @@ func confGitignoreMagento() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Magento", size: 2599, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -1984,7 +1984,7 @@ func confGitignoreMatlab() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Matlab", size: 360, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2004,7 +2004,7 @@ func confGitignoreMaven() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Maven", size: 170, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2024,7 +2024,7 @@ func confGitignoreMercurial() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Mercurial", size: 50, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2044,7 +2044,7 @@ func confGitignoreMercury() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Mercury", size: 93, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2064,7 +2064,7 @@ func confGitignoreMetaprogrammingsystem() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/MetaProgrammingSystem", size: 391, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2084,7 +2084,7 @@ func confGitignoreMicrosoftoffice() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/MicrosoftOffice", size: 88, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2104,7 +2104,7 @@ func confGitignoreModelsim() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/ModelSim", size: 282, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2124,7 +2124,7 @@ func confGitignoreMomentics() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Momentics", size: 76, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2144,7 +2144,7 @@ func confGitignoreMonodevelop() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/MonoDevelop", size: 93, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2164,7 +2164,7 @@ func confGitignoreNanoc() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Nanoc", size: 197, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2184,7 +2184,7 @@ func confGitignoreNetbeans() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/NetBeans", size: 96, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2204,7 +2204,7 @@ func confGitignoreNim() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Nim", size: 10, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2224,7 +2224,7 @@ func confGitignoreNinja() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Ninja", size: 23, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2244,7 +2244,7 @@ func confGitignoreNode() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Node", size: 529, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2264,7 +2264,7 @@ func confGitignoreNotepadpp() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/NotepadPP", size: 30, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2284,7 +2284,7 @@ func confGitignoreOcaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/OCaml", size: 178, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2304,7 +2304,7 @@ func confGitignoreOsx() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/OSX", size: 356, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2324,7 +2324,7 @@ func confGitignoreObjectiveC() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Objective-C", size: 837, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2344,7 +2344,7 @@ func confGitignoreOpa() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Opa", size: 90, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2364,7 +2364,7 @@ func confGitignoreOpencart() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/OpenCart", size: 115, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2384,7 +2384,7 @@ func confGitignoreOracleforms() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/OracleForms", size: 100, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2404,7 +2404,7 @@ func confGitignorePacker() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Packer", size: 55, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2424,7 +2424,7 @@ func confGitignorePerl() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Perl", size: 191, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2444,7 +2444,7 @@ func confGitignorePhalcon() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Phalcon", size: 29, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2464,7 +2464,7 @@ func confGitignorePlayframework() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/PlayFramework", size: 170, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2484,7 +2484,7 @@ func confGitignorePlone() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Plone", size: 137, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2504,7 +2504,7 @@ func confGitignorePrestashop() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Prestashop", size: 483, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2524,7 +2524,7 @@ func confGitignoreProcessing() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Processing", size: 120, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2544,7 +2544,7 @@ func confGitignorePython() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Python", size: 713, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2564,7 +2564,7 @@ func confGitignoreQooxdoo() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Qooxdoo", size: 58, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2584,7 +2584,7 @@ func confGitignoreQt() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Qt", size: 292, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2604,7 +2604,7 @@ func confGitignoreR() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/R", size: 255, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2624,7 +2624,7 @@ func confGitignoreRos() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/ROS", size: 493, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2644,7 +2644,7 @@ func confGitignoreRails() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Rails", size: 707, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2664,7 +2664,7 @@ func confGitignoreRedcar() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Redcar", size: 8, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2684,7 +2684,7 @@ func confGitignoreRedis() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Redis", size: 51, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2704,7 +2704,7 @@ func confGitignoreRhodesrhomobile() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/RhodesRhomobile", size: 77, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2724,7 +2724,7 @@ func confGitignoreRuby() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Ruby", size: 607, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2744,7 +2744,7 @@ func confGitignoreRust() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Rust", size: 91, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2764,7 +2764,7 @@ func confGitignoreSbt() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/SBT", size: 186, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2784,7 +2784,7 @@ func confGitignoreScons() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/SCons", size: 90, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2804,7 +2804,7 @@ func confGitignoreSvn() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/SVN", size: 6, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2824,7 +2824,7 @@ func confGitignoreSass() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Sass", size: 23, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2844,7 +2844,7 @@ func confGitignoreScala() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Scala", size: 185, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2864,7 +2864,7 @@ func confGitignoreScrivener() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Scrivener", size: 140, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2884,7 +2884,7 @@ func confGitignoreSdcc() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Sdcc", size: 55, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2904,7 +2904,7 @@ func confGitignoreSeamgen() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/SeamGen", size: 961, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2924,7 +2924,7 @@ func confGitignoreSketchup() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/SketchUp", size: 6, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2944,7 +2944,7 @@ func confGitignoreSlickedit() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/SlickEdit", size: 323, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2964,7 +2964,7 @@ func confGitignoreStella() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Stella", size: 207, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -2984,7 +2984,7 @@ func confGitignoreSublimetext() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/SublimeText", size: 354, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3004,7 +3004,7 @@ func confGitignoreSugarcrm() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/SugarCRM", size: 734, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3024,7 +3024,7 @@ func confGitignoreSwift() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Swift", size: 837, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3044,7 +3044,7 @@ func confGitignoreSymfony() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Symfony", size: 531, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3064,7 +3064,7 @@ func confGitignoreSymphonycms() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/SymphonyCMS", size: 90, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3084,7 +3084,7 @@ func confGitignoreSynopsysvcs() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/SynopsysVCS", size: 971, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3104,7 +3104,7 @@ func confGitignoreTags() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Tags", size: 177, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3124,7 +3124,7 @@ func confGitignoreTex() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/TeX", size: 1328, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3144,7 +3144,7 @@ func confGitignoreTextmate() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/TextMate", size: 28, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3164,7 +3164,7 @@ func confGitignoreTextpattern() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Textpattern", size: 177, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3184,7 +3184,7 @@ func confGitignoreTortoisegit() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/TortoiseGit", size: 38, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3204,7 +3204,7 @@ func confGitignoreTurbogears2() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/TurboGears2", size: 202, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3224,7 +3224,7 @@ func confGitignoreTypo3() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Typo3", size: 466, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3244,7 +3244,7 @@ func confGitignoreUmbraco() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Umbraco", size: 536, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3264,7 +3264,7 @@ func confGitignoreUnity() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Unity", size: 267, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3284,7 +3284,7 @@ func confGitignoreVvvv() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/VVVV", size: 57, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3304,7 +3304,7 @@ func confGitignoreVagrant() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Vagrant", size: 10, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3324,7 +3324,7 @@ func confGitignoreVim() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Vim", size: 66, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3344,7 +3344,7 @@ func confGitignoreVirtualenv() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/VirtualEnv", size: 151, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3364,7 +3364,7 @@ func confGitignoreVisualstudio() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/VisualStudio", size: 3412, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3384,7 +3384,7 @@ func confGitignoreVisualstudiocode() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/VisualStudioCode", size: 11, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3404,7 +3404,7 @@ func confGitignoreWaf() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Waf", size: 87, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3424,7 +3424,7 @@ func confGitignoreWebmethods() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/WebMethods", size: 424, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3444,7 +3444,7 @@ func confGitignoreWindows() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Windows", size: 211, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3464,7 +3464,7 @@ func confGitignoreWordpress() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/WordPress", size: 297, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3484,7 +3484,7 @@ func confGitignoreXcode() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Xcode", size: 361, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3504,7 +3504,7 @@ func confGitignoreXilinxise() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/XilinxISE", size: 566, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3524,7 +3524,7 @@ func confGitignoreXojo() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Xojo", size: 160, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3544,7 +3544,7 @@ func confGitignoreYeoman() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Yeoman", size: 52, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3564,7 +3564,7 @@ func confGitignoreYii() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Yii", size: 120, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3584,7 +3584,7 @@ func confGitignoreZendframework() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/ZendFramework", size: 217, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3604,7 +3604,7 @@ func confGitignoreZephir() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/gitignore/Zephir", size: 387, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3624,7 +3624,7 @@ func confLabelDefault() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/label/Default", size: 119, mode: os.FileMode(420), modTime: time.Unix(1472881344, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3644,7 +3644,7 @@ func confLicenseAbstylesLicense() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Abstyles License", size: 730, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3664,7 +3664,7 @@ func confLicenseAcademicFreeLicenseV11() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Academic Free License v1.1", size: 4660, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3684,7 +3684,7 @@ func confLicenseAcademicFreeLicenseV12() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Academic Free License v1.2", size: 4949, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3704,7 +3704,7 @@ func confLicenseAcademicFreeLicenseV20() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Academic Free License v2.0", size: 8937, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3724,7 +3724,7 @@ func confLicenseAcademicFreeLicenseV21() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Academic Free License v2.1", size: 8922, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3744,7 +3744,7 @@ func confLicenseAcademicFreeLicenseV30() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Academic Free License v3.0", size: 10306, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3764,7 +3764,7 @@ func confLicenseAfferoGeneralPublicLicenseV10() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Affero General Public License v1.0", size: 15837, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3784,7 +3784,7 @@ func confLicenseApacheLicense10() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Apache License 1.0", size: 2475, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3804,7 +3804,7 @@ func confLicenseApacheLicense11() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Apache License 1.1", size: 2508, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3824,7 +3824,7 @@ func confLicenseApacheLicense20() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Apache License 2.0", size: 10261, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3844,7 +3844,7 @@ func confLicenseArtisticLicense10() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Artistic License 1.0", size: 4789, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3864,7 +3864,7 @@ func confLicenseArtisticLicense20() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Artistic License 2.0", size: 8661, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3884,7 +3884,7 @@ func confLicenseBsd2ClauseLicense() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/BSD 2-clause License", size: 1286, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3904,7 +3904,7 @@ func confLicenseBsd3ClauseLicense() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/BSD 3-clause License", size: 1480, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3924,7 +3924,7 @@ func confLicenseBsd4ClauseLicense() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/BSD 4-clause License", size: 1624, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3944,7 +3944,7 @@ func confLicenseCreativeCommonsCc010Universal() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Creative Commons CC0 1.0 Universal", size: 6894, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3964,7 +3964,7 @@ func confLicenseEclipsePublicLicense10() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Eclipse Public License 1.0", size: 11248, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -3984,7 +3984,7 @@ func confLicenseEducationalCommunityLicenseV10() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Educational Community License v1.0", size: 2394, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4004,7 +4004,7 @@ func confLicenseEducationalCommunityLicenseV20() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Educational Community License v2.0", size: 11085, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4024,7 +4024,7 @@ func confLicenseGnuAfferoGeneralPublicLicenseV30() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/GNU Affero General Public License v3.0", size: 33818, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4044,7 +4044,7 @@ func confLicenseGnuFreeDocumentationLicenseV11() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/GNU Free Documentation License v1.1", size: 17912, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4064,7 +4064,7 @@ func confLicenseGnuFreeDocumentationLicenseV12() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/GNU Free Documentation License v1.2", size: 20209, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4084,7 +4084,7 @@ func confLicenseGnuFreeDocumentationLicenseV13() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/GNU Free Documentation License v1.3", size: 22732, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4104,7 +4104,7 @@ func confLicenseGnuGeneralPublicLicenseV10() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/GNU General Public License v1.0", size: 12165, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4124,7 +4124,7 @@ func confLicenseGnuGeneralPublicLicenseV20() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/GNU General Public License v2.0", size: 17277, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4144,7 +4144,7 @@ func confLicenseGnuGeneralPublicLicenseV30() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/GNU General Public License v3.0", size: 34570, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4164,7 +4164,7 @@ func confLicenseGnuLesserGeneralPublicLicenseV21() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/GNU Lesser General Public License v2.1", size: 25885, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4184,7 +4184,7 @@ func confLicenseGnuLesserGeneralPublicLicenseV30() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/GNU Lesser General Public License v3.0", size: 7355, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4204,7 +4204,7 @@ func confLicenseGnuLibraryGeneralPublicLicenseV20() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/GNU Library General Public License v2.0", size: 24758, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4224,7 +4224,7 @@ func confLicenseIscLicense() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/ISC license", size: 745, mode: os.FileMode(420), modTime: time.Unix(1472881344, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4244,7 +4244,7 @@ func confLicenseMitLicense() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/MIT License", size: 1077, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4264,7 +4264,7 @@ func confLicenseMozillaPublicLicense10() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Mozilla Public License 1.0", size: 18026, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4284,7 +4284,7 @@ func confLicenseMozillaPublicLicense11() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Mozilla Public License 1.1", size: 23361, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4304,7 +4304,7 @@ func confLicenseMozillaPublicLicense20() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/license/Mozilla Public License 2.0", size: 14827, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4324,7 +4324,7 @@ func confLocaleLocale_bgBgIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_bg-BG.ini", size: 85838, mode: os.FileMode(438), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4344,7 +4344,7 @@ func confLocaleLocale_csCzIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_cs-CZ.ini", size: 59187, mode: os.FileMode(438), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4364,7 +4364,7 @@ func confLocaleLocale_deDeIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_de-DE.ini", size: 60052, mode: os.FileMode(438), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4384,7 +4384,7 @@ func confLocaleLocale_enUsIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_en-US.ini", size: 56070, mode: os.FileMode(420), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4404,7 +4404,7 @@ func confLocaleLocale_esEsIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_es-ES.ini", size: 60596, mode: os.FileMode(438), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4424,7 +4424,7 @@ func confLocaleLocale_fiFiIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_fi-FI.ini", size: 57249, mode: os.FileMode(438), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4444,7 +4444,7 @@ func confLocaleLocale_frFrIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_fr-FR.ini", size: 60865, mode: os.FileMode(438), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4464,7 +4464,7 @@ func confLocaleLocale_itItIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_it-IT.ini", size: 57956, mode: os.FileMode(438), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4484,7 +4484,7 @@ func confLocaleLocale_jaJpIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_ja-JP.ini", size: 65261, mode: os.FileMode(438), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4504,7 +4504,7 @@ func confLocaleLocale_lvLvIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_lv-LV.ini", size: 60316, mode: os.FileMode(438), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4524,7 +4524,7 @@ func confLocaleLocale_nlNlIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_nl-NL.ini", size: 56700, mode: os.FileMode(438), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4544,7 +4544,7 @@ func confLocaleLocale_plPlIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_pl-PL.ini", size: 58080, mode: os.FileMode(438), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4564,7 +4564,7 @@ func confLocaleLocale_ptBrIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_pt-BR.ini", size: 58900, mode: os.FileMode(438), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4584,7 +4584,7 @@ func confLocaleLocale_ruRuIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_ru-RU.ini", size: 84322, mode: os.FileMode(438), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4604,7 +4604,7 @@ func confLocaleLocale_srSpIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_sr-SP.ini", size: 78980, mode: os.FileMode(438), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4624,7 +4624,7 @@ func confLocaleLocale_trTrIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_tr-TR.ini", size: 58523, mode: os.FileMode(438), modTime: time.Unix(1473984067, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4644,7 +4644,7 @@ func confLocaleLocale_zhCnIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_zh-CN.ini", size: 53494, mode: os.FileMode(438), modTime: time.Unix(1473984068, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4664,7 +4664,7 @@ func confLocaleLocale_zhHkIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_zh-HK.ini", size: 53515, mode: os.FileMode(438), modTime: time.Unix(1473984068, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4684,7 +4684,7 @@ func confLocaleLocale_zhTwIni() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/locale/locale_zh-TW.ini", size: 53381, mode: os.FileMode(438), modTime: time.Unix(1473984068, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4704,7 +4704,7 @@ func confReadmeDefault() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "conf/readme/Default", size: 23, mode: os.FileMode(420), modTime: time.Unix(1444419364, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -4727,7 +4727,7 @@ func Asset(name string) ([]byte, error) {
 // It simplifies safe initialization of global variables.
 func MustAsset(name string) []byte {
 	a, err := Asset(name)
-	if (err != nil) {
+	if err != nil {
 		panic("asset: Asset(" + name + "): " + err.Error())
 	}
 
@@ -4760,227 +4760,227 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"conf/app.ini": confAppIni,
-	"conf/gitignore/Actionscript": confGitignoreActionscript,
-	"conf/gitignore/Ada": confGitignoreAda,
-	"conf/gitignore/Agda": confGitignoreAgda,
-	"conf/gitignore/Android": confGitignoreAndroid,
-	"conf/gitignore/Anjuta": confGitignoreAnjuta,
-	"conf/gitignore/AppEngine": confGitignoreAppengine,
-	"conf/gitignore/AppceleratorTitanium": confGitignoreAppceleratortitanium,
-	"conf/gitignore/ArchLinuxPackages": confGitignoreArchlinuxpackages,
-	"conf/gitignore/Archives": confGitignoreArchives,
-	"conf/gitignore/Autotools": confGitignoreAutotools,
-	"conf/gitignore/BricxCC": confGitignoreBricxcc,
-	"conf/gitignore/C": confGitignoreC,
-	"conf/gitignore/C Sharp": confGitignoreCSharp,
-	"conf/gitignore/C++": confGitignoreC2,
-	"conf/gitignore/CFWheels": confGitignoreCfwheels,
-	"conf/gitignore/CMake": confGitignoreCmake,
-	"conf/gitignore/CUDA": confGitignoreCuda,
-	"conf/gitignore/CVS": confGitignoreCvs,
-	"conf/gitignore/CakePHP": confGitignoreCakephp,
-	"conf/gitignore/ChefCookbook": confGitignoreChefcookbook,
-	"conf/gitignore/Cloud9": confGitignoreCloud9,
-	"conf/gitignore/CodeIgniter": confGitignoreCodeigniter,
-	"conf/gitignore/CodeKit": confGitignoreCodekit,
-	"conf/gitignore/CommonLisp": confGitignoreCommonlisp,
-	"conf/gitignore/Composer": confGitignoreComposer,
-	"conf/gitignore/Concrete5": confGitignoreConcrete5,
-	"conf/gitignore/Coq": confGitignoreCoq,
-	"conf/gitignore/CraftCMS": confGitignoreCraftcms,
-	"conf/gitignore/DM": confGitignoreDm,
-	"conf/gitignore/Dart": confGitignoreDart,
-	"conf/gitignore/DartEditor": confGitignoreDarteditor,
-	"conf/gitignore/Delphi": confGitignoreDelphi,
-	"conf/gitignore/Dreamweaver": confGitignoreDreamweaver,
-	"conf/gitignore/Drupal": confGitignoreDrupal,
-	"conf/gitignore/EPiServer": confGitignoreEpiserver,
-	"conf/gitignore/Eagle": confGitignoreEagle,
-	"conf/gitignore/Eclipse": confGitignoreEclipse,
-	"conf/gitignore/EiffelStudio": confGitignoreEiffelstudio,
-	"conf/gitignore/Elisp": confGitignoreElisp,
-	"conf/gitignore/Elixir": confGitignoreElixir,
-	"conf/gitignore/Emacs": confGitignoreEmacs,
-	"conf/gitignore/Ensime": confGitignoreEnsime,
-	"conf/gitignore/Erlang": confGitignoreErlang,
-	"conf/gitignore/Espresso": confGitignoreEspresso,
-	"conf/gitignore/ExpressionEngine": confGitignoreExpressionengine,
-	"conf/gitignore/ExtJs": confGitignoreExtjs,
-	"conf/gitignore/Fancy": confGitignoreFancy,
-	"conf/gitignore/Finale": confGitignoreFinale,
-	"conf/gitignore/FlexBuilder": confGitignoreFlexbuilder,
-	"conf/gitignore/ForceDotCom": confGitignoreForcedotcom,
-	"conf/gitignore/FuelPHP": confGitignoreFuelphp,
-	"conf/gitignore/GWT": confGitignoreGwt,
-	"conf/gitignore/Gcov": confGitignoreGcov,
-	"conf/gitignore/GitBook": confGitignoreGitbook,
-	"conf/gitignore/Go": confGitignoreGo,
-	"conf/gitignore/Gradle": confGitignoreGradle,
-	"conf/gitignore/Grails": confGitignoreGrails,
-	"conf/gitignore/Haskell": confGitignoreHaskell,
-	"conf/gitignore/IGORPro": confGitignoreIgorpro,
-	"conf/gitignore/IPythonNotebook": confGitignoreIpythonnotebook,
-	"conf/gitignore/Idris": confGitignoreIdris,
-	"conf/gitignore/JDeveloper": confGitignoreJdeveloper,
-	"conf/gitignore/Java": confGitignoreJava,
-	"conf/gitignore/Jboss": confGitignoreJboss,
-	"conf/gitignore/Jekyll": confGitignoreJekyll,
-	"conf/gitignore/JetBrains": confGitignoreJetbrains,
-	"conf/gitignore/Joomla": confGitignoreJoomla,
-	"conf/gitignore/KDevelop4": confGitignoreKdevelop4,
-	"conf/gitignore/Kate": confGitignoreKate,
-	"conf/gitignore/KiCAD": confGitignoreKicad,
-	"conf/gitignore/Kohana": confGitignoreKohana,
-	"conf/gitignore/LabVIEW": confGitignoreLabview,
-	"conf/gitignore/Laravel": confGitignoreLaravel,
-	"conf/gitignore/Lazarus": confGitignoreLazarus,
-	"conf/gitignore/Leiningen": confGitignoreLeiningen,
-	"conf/gitignore/LemonStand": confGitignoreLemonstand,
-	"conf/gitignore/LibreOffice": confGitignoreLibreoffice,
-	"conf/gitignore/Lilypond": confGitignoreLilypond,
-	"conf/gitignore/Linux": confGitignoreLinux,
-	"conf/gitignore/Lithium": confGitignoreLithium,
-	"conf/gitignore/Lua": confGitignoreLua,
-	"conf/gitignore/LyX": confGitignoreLyx,
-	"conf/gitignore/Magento": confGitignoreMagento,
-	"conf/gitignore/Matlab": confGitignoreMatlab,
-	"conf/gitignore/Maven": confGitignoreMaven,
-	"conf/gitignore/Mercurial": confGitignoreMercurial,
-	"conf/gitignore/Mercury": confGitignoreMercury,
-	"conf/gitignore/MetaProgrammingSystem": confGitignoreMetaprogrammingsystem,
-	"conf/gitignore/MicrosoftOffice": confGitignoreMicrosoftoffice,
-	"conf/gitignore/ModelSim": confGitignoreModelsim,
-	"conf/gitignore/Momentics": confGitignoreMomentics,
-	"conf/gitignore/MonoDevelop": confGitignoreMonodevelop,
-	"conf/gitignore/Nanoc": confGitignoreNanoc,
-	"conf/gitignore/NetBeans": confGitignoreNetbeans,
-	"conf/gitignore/Nim": confGitignoreNim,
-	"conf/gitignore/Ninja": confGitignoreNinja,
-	"conf/gitignore/Node": confGitignoreNode,
-	"conf/gitignore/NotepadPP": confGitignoreNotepadpp,
-	"conf/gitignore/OCaml": confGitignoreOcaml,
-	"conf/gitignore/OSX": confGitignoreOsx,
-	"conf/gitignore/Objective-C": confGitignoreObjectiveC,
-	"conf/gitignore/Opa": confGitignoreOpa,
-	"conf/gitignore/OpenCart": confGitignoreOpencart,
-	"conf/gitignore/OracleForms": confGitignoreOracleforms,
-	"conf/gitignore/Packer": confGitignorePacker,
-	"conf/gitignore/Perl": confGitignorePerl,
-	"conf/gitignore/Phalcon": confGitignorePhalcon,
-	"conf/gitignore/PlayFramework": confGitignorePlayframework,
-	"conf/gitignore/Plone": confGitignorePlone,
-	"conf/gitignore/Prestashop": confGitignorePrestashop,
-	"conf/gitignore/Processing": confGitignoreProcessing,
-	"conf/gitignore/Python": confGitignorePython,
-	"conf/gitignore/Qooxdoo": confGitignoreQooxdoo,
-	"conf/gitignore/Qt": confGitignoreQt,
-	"conf/gitignore/R": confGitignoreR,
-	"conf/gitignore/ROS": confGitignoreRos,
-	"conf/gitignore/Rails": confGitignoreRails,
-	"conf/gitignore/Redcar": confGitignoreRedcar,
-	"conf/gitignore/Redis": confGitignoreRedis,
-	"conf/gitignore/RhodesRhomobile": confGitignoreRhodesrhomobile,
-	"conf/gitignore/Ruby": confGitignoreRuby,
-	"conf/gitignore/Rust": confGitignoreRust,
-	"conf/gitignore/SBT": confGitignoreSbt,
-	"conf/gitignore/SCons": confGitignoreScons,
-	"conf/gitignore/SVN": confGitignoreSvn,
-	"conf/gitignore/Sass": confGitignoreSass,
-	"conf/gitignore/Scala": confGitignoreScala,
-	"conf/gitignore/Scrivener": confGitignoreScrivener,
-	"conf/gitignore/Sdcc": confGitignoreSdcc,
-	"conf/gitignore/SeamGen": confGitignoreSeamgen,
-	"conf/gitignore/SketchUp": confGitignoreSketchup,
-	"conf/gitignore/SlickEdit": confGitignoreSlickedit,
-	"conf/gitignore/Stella": confGitignoreStella,
-	"conf/gitignore/SublimeText": confGitignoreSublimetext,
-	"conf/gitignore/SugarCRM": confGitignoreSugarcrm,
-	"conf/gitignore/Swift": confGitignoreSwift,
-	"conf/gitignore/Symfony": confGitignoreSymfony,
-	"conf/gitignore/SymphonyCMS": confGitignoreSymphonycms,
-	"conf/gitignore/SynopsysVCS": confGitignoreSynopsysvcs,
-	"conf/gitignore/Tags": confGitignoreTags,
-	"conf/gitignore/TeX": confGitignoreTex,
-	"conf/gitignore/TextMate": confGitignoreTextmate,
-	"conf/gitignore/Textpattern": confGitignoreTextpattern,
-	"conf/gitignore/TortoiseGit": confGitignoreTortoisegit,
-	"conf/gitignore/TurboGears2": confGitignoreTurbogears2,
-	"conf/gitignore/Typo3": confGitignoreTypo3,
-	"conf/gitignore/Umbraco": confGitignoreUmbraco,
-	"conf/gitignore/Unity": confGitignoreUnity,
-	"conf/gitignore/VVVV": confGitignoreVvvv,
-	"conf/gitignore/Vagrant": confGitignoreVagrant,
-	"conf/gitignore/Vim": confGitignoreVim,
-	"conf/gitignore/VirtualEnv": confGitignoreVirtualenv,
-	"conf/gitignore/VisualStudio": confGitignoreVisualstudio,
-	"conf/gitignore/VisualStudioCode": confGitignoreVisualstudiocode,
-	"conf/gitignore/Waf": confGitignoreWaf,
-	"conf/gitignore/WebMethods": confGitignoreWebmethods,
-	"conf/gitignore/Windows": confGitignoreWindows,
-	"conf/gitignore/WordPress": confGitignoreWordpress,
-	"conf/gitignore/Xcode": confGitignoreXcode,
-	"conf/gitignore/XilinxISE": confGitignoreXilinxise,
-	"conf/gitignore/Xojo": confGitignoreXojo,
-	"conf/gitignore/Yeoman": confGitignoreYeoman,
-	"conf/gitignore/Yii": confGitignoreYii,
-	"conf/gitignore/ZendFramework": confGitignoreZendframework,
-	"conf/gitignore/Zephir": confGitignoreZephir,
-	"conf/label/Default": confLabelDefault,
-	"conf/license/Abstyles License": confLicenseAbstylesLicense,
-	"conf/license/Academic Free License v1.1": confLicenseAcademicFreeLicenseV11,
-	"conf/license/Academic Free License v1.2": confLicenseAcademicFreeLicenseV12,
-	"conf/license/Academic Free License v2.0": confLicenseAcademicFreeLicenseV20,
-	"conf/license/Academic Free License v2.1": confLicenseAcademicFreeLicenseV21,
-	"conf/license/Academic Free License v3.0": confLicenseAcademicFreeLicenseV30,
-	"conf/license/Affero General Public License v1.0": confLicenseAfferoGeneralPublicLicenseV10,
-	"conf/license/Apache License 1.0": confLicenseApacheLicense10,
-	"conf/license/Apache License 1.1": confLicenseApacheLicense11,
-	"conf/license/Apache License 2.0": confLicenseApacheLicense20,
-	"conf/license/Artistic License 1.0": confLicenseArtisticLicense10,
-	"conf/license/Artistic License 2.0": confLicenseArtisticLicense20,
-	"conf/license/BSD 2-clause License": confLicenseBsd2ClauseLicense,
-	"conf/license/BSD 3-clause License": confLicenseBsd3ClauseLicense,
-	"conf/license/BSD 4-clause License": confLicenseBsd4ClauseLicense,
-	"conf/license/Creative Commons CC0 1.0 Universal": confLicenseCreativeCommonsCc010Universal,
-	"conf/license/Eclipse Public License 1.0": confLicenseEclipsePublicLicense10,
-	"conf/license/Educational Community License v1.0": confLicenseEducationalCommunityLicenseV10,
-	"conf/license/Educational Community License v2.0": confLicenseEducationalCommunityLicenseV20,
-	"conf/license/GNU Affero General Public License v3.0": confLicenseGnuAfferoGeneralPublicLicenseV30,
-	"conf/license/GNU Free Documentation License v1.1": confLicenseGnuFreeDocumentationLicenseV11,
-	"conf/license/GNU Free Documentation License v1.2": confLicenseGnuFreeDocumentationLicenseV12,
-	"conf/license/GNU Free Documentation License v1.3": confLicenseGnuFreeDocumentationLicenseV13,
-	"conf/license/GNU General Public License v1.0": confLicenseGnuGeneralPublicLicenseV10,
-	"conf/license/GNU General Public License v2.0": confLicenseGnuGeneralPublicLicenseV20,
-	"conf/license/GNU General Public License v3.0": confLicenseGnuGeneralPublicLicenseV30,
-	"conf/license/GNU Lesser General Public License v2.1": confLicenseGnuLesserGeneralPublicLicenseV21,
-	"conf/license/GNU Lesser General Public License v3.0": confLicenseGnuLesserGeneralPublicLicenseV30,
+	"conf/app.ini":                                         confAppIni,
+	"conf/gitignore/Actionscript":                          confGitignoreActionscript,
+	"conf/gitignore/Ada":                                   confGitignoreAda,
+	"conf/gitignore/Agda":                                  confGitignoreAgda,
+	"conf/gitignore/Android":                               confGitignoreAndroid,
+	"conf/gitignore/Anjuta":                                confGitignoreAnjuta,
+	"conf/gitignore/AppEngine":                             confGitignoreAppengine,
+	"conf/gitignore/AppceleratorTitanium":                  confGitignoreAppceleratortitanium,
+	"conf/gitignore/ArchLinuxPackages":                     confGitignoreArchlinuxpackages,
+	"conf/gitignore/Archives":                              confGitignoreArchives,
+	"conf/gitignore/Autotools":                             confGitignoreAutotools,
+	"conf/gitignore/BricxCC":                               confGitignoreBricxcc,
+	"conf/gitignore/C":                                     confGitignoreC,
+	"conf/gitignore/C Sharp":                               confGitignoreCSharp,
+	"conf/gitignore/C++":                                   confGitignoreC2,
+	"conf/gitignore/CFWheels":                              confGitignoreCfwheels,
+	"conf/gitignore/CMake":                                 confGitignoreCmake,
+	"conf/gitignore/CUDA":                                  confGitignoreCuda,
+	"conf/gitignore/CVS":                                   confGitignoreCvs,
+	"conf/gitignore/CakePHP":                               confGitignoreCakephp,
+	"conf/gitignore/ChefCookbook":                          confGitignoreChefcookbook,
+	"conf/gitignore/Cloud9":                                confGitignoreCloud9,
+	"conf/gitignore/CodeIgniter":                           confGitignoreCodeigniter,
+	"conf/gitignore/CodeKit":                               confGitignoreCodekit,
+	"conf/gitignore/CommonLisp":                            confGitignoreCommonlisp,
+	"conf/gitignore/Composer":                              confGitignoreComposer,
+	"conf/gitignore/Concrete5":                             confGitignoreConcrete5,
+	"conf/gitignore/Coq":                                   confGitignoreCoq,
+	"conf/gitignore/CraftCMS":                              confGitignoreCraftcms,
+	"conf/gitignore/DM":                                    confGitignoreDm,
+	"conf/gitignore/Dart":                                  confGitignoreDart,
+	"conf/gitignore/DartEditor":                            confGitignoreDarteditor,
+	"conf/gitignore/Delphi":                                confGitignoreDelphi,
+	"conf/gitignore/Dreamweaver":                           confGitignoreDreamweaver,
+	"conf/gitignore/Drupal":                                confGitignoreDrupal,
+	"conf/gitignore/EPiServer":                             confGitignoreEpiserver,
+	"conf/gitignore/Eagle":                                 confGitignoreEagle,
+	"conf/gitignore/Eclipse":                               confGitignoreEclipse,
+	"conf/gitignore/EiffelStudio":                          confGitignoreEiffelstudio,
+	"conf/gitignore/Elisp":                                 confGitignoreElisp,
+	"conf/gitignore/Elixir":                                confGitignoreElixir,
+	"conf/gitignore/Emacs":                                 confGitignoreEmacs,
+	"conf/gitignore/Ensime":                                confGitignoreEnsime,
+	"conf/gitignore/Erlang":                                confGitignoreErlang,
+	"conf/gitignore/Espresso":                              confGitignoreEspresso,
+	"conf/gitignore/ExpressionEngine":                      confGitignoreExpressionengine,
+	"conf/gitignore/ExtJs":                                 confGitignoreExtjs,
+	"conf/gitignore/Fancy":                                 confGitignoreFancy,
+	"conf/gitignore/Finale":                                confGitignoreFinale,
+	"conf/gitignore/FlexBuilder":                           confGitignoreFlexbuilder,
+	"conf/gitignore/ForceDotCom":                           confGitignoreForcedotcom,
+	"conf/gitignore/FuelPHP":                               confGitignoreFuelphp,
+	"conf/gitignore/GWT":                                   confGitignoreGwt,
+	"conf/gitignore/Gcov":                                  confGitignoreGcov,
+	"conf/gitignore/GitBook":                               confGitignoreGitbook,
+	"conf/gitignore/Go":                                    confGitignoreGo,
+	"conf/gitignore/Gradle":                                confGitignoreGradle,
+	"conf/gitignore/Grails":                                confGitignoreGrails,
+	"conf/gitignore/Haskell":                               confGitignoreHaskell,
+	"conf/gitignore/IGORPro":                               confGitignoreIgorpro,
+	"conf/gitignore/IPythonNotebook":                       confGitignoreIpythonnotebook,
+	"conf/gitignore/Idris":                                 confGitignoreIdris,
+	"conf/gitignore/JDeveloper":                            confGitignoreJdeveloper,
+	"conf/gitignore/Java":                                  confGitignoreJava,
+	"conf/gitignore/Jboss":                                 confGitignoreJboss,
+	"conf/gitignore/Jekyll":                                confGitignoreJekyll,
+	"conf/gitignore/JetBrains":                             confGitignoreJetbrains,
+	"conf/gitignore/Joomla":                                confGitignoreJoomla,
+	"conf/gitignore/KDevelop4":                             confGitignoreKdevelop4,
+	"conf/gitignore/Kate":                                  confGitignoreKate,
+	"conf/gitignore/KiCAD":                                 confGitignoreKicad,
+	"conf/gitignore/Kohana":                                confGitignoreKohana,
+	"conf/gitignore/LabVIEW":                               confGitignoreLabview,
+	"conf/gitignore/Laravel":                               confGitignoreLaravel,
+	"conf/gitignore/Lazarus":                               confGitignoreLazarus,
+	"conf/gitignore/Leiningen":                             confGitignoreLeiningen,
+	"conf/gitignore/LemonStand":                            confGitignoreLemonstand,
+	"conf/gitignore/LibreOffice":                           confGitignoreLibreoffice,
+	"conf/gitignore/Lilypond":                              confGitignoreLilypond,
+	"conf/gitignore/Linux":                                 confGitignoreLinux,
+	"conf/gitignore/Lithium":                               confGitignoreLithium,
+	"conf/gitignore/Lua":                                   confGitignoreLua,
+	"conf/gitignore/LyX":                                   confGitignoreLyx,
+	"conf/gitignore/Magento":                               confGitignoreMagento,
+	"conf/gitignore/Matlab":                                confGitignoreMatlab,
+	"conf/gitignore/Maven":                                 confGitignoreMaven,
+	"conf/gitignore/Mercurial":                             confGitignoreMercurial,
+	"conf/gitignore/Mercury":                               confGitignoreMercury,
+	"conf/gitignore/MetaProgrammingSystem":                 confGitignoreMetaprogrammingsystem,
+	"conf/gitignore/MicrosoftOffice":                       confGitignoreMicrosoftoffice,
+	"conf/gitignore/ModelSim":                              confGitignoreModelsim,
+	"conf/gitignore/Momentics":                             confGitignoreMomentics,
+	"conf/gitignore/MonoDevelop":                           confGitignoreMonodevelop,
+	"conf/gitignore/Nanoc":                                 confGitignoreNanoc,
+	"conf/gitignore/NetBeans":                              confGitignoreNetbeans,
+	"conf/gitignore/Nim":                                   confGitignoreNim,
+	"conf/gitignore/Ninja":                                 confGitignoreNinja,
+	"conf/gitignore/Node":                                  confGitignoreNode,
+	"conf/gitignore/NotepadPP":                             confGitignoreNotepadpp,
+	"conf/gitignore/OCaml":                                 confGitignoreOcaml,
+	"conf/gitignore/OSX":                                   confGitignoreOsx,
+	"conf/gitignore/Objective-C":                           confGitignoreObjectiveC,
+	"conf/gitignore/Opa":                                   confGitignoreOpa,
+	"conf/gitignore/OpenCart":                              confGitignoreOpencart,
+	"conf/gitignore/OracleForms":                           confGitignoreOracleforms,
+	"conf/gitignore/Packer":                                confGitignorePacker,
+	"conf/gitignore/Perl":                                  confGitignorePerl,
+	"conf/gitignore/Phalcon":                               confGitignorePhalcon,
+	"conf/gitignore/PlayFramework":                         confGitignorePlayframework,
+	"conf/gitignore/Plone":                                 confGitignorePlone,
+	"conf/gitignore/Prestashop":                            confGitignorePrestashop,
+	"conf/gitignore/Processing":                            confGitignoreProcessing,
+	"conf/gitignore/Python":                                confGitignorePython,
+	"conf/gitignore/Qooxdoo":                               confGitignoreQooxdoo,
+	"conf/gitignore/Qt":                                    confGitignoreQt,
+	"conf/gitignore/R":                                     confGitignoreR,
+	"conf/gitignore/ROS":                                   confGitignoreRos,
+	"conf/gitignore/Rails":                                 confGitignoreRails,
+	"conf/gitignore/Redcar":                                confGitignoreRedcar,
+	"conf/gitignore/Redis":                                 confGitignoreRedis,
+	"conf/gitignore/RhodesRhomobile":                       confGitignoreRhodesrhomobile,
+	"conf/gitignore/Ruby":                                  confGitignoreRuby,
+	"conf/gitignore/Rust":                                  confGitignoreRust,
+	"conf/gitignore/SBT":                                   confGitignoreSbt,
+	"conf/gitignore/SCons":                                 confGitignoreScons,
+	"conf/gitignore/SVN":                                   confGitignoreSvn,
+	"conf/gitignore/Sass":                                  confGitignoreSass,
+	"conf/gitignore/Scala":                                 confGitignoreScala,
+	"conf/gitignore/Scrivener":                             confGitignoreScrivener,
+	"conf/gitignore/Sdcc":                                  confGitignoreSdcc,
+	"conf/gitignore/SeamGen":                               confGitignoreSeamgen,
+	"conf/gitignore/SketchUp":                              confGitignoreSketchup,
+	"conf/gitignore/SlickEdit":                             confGitignoreSlickedit,
+	"conf/gitignore/Stella":                                confGitignoreStella,
+	"conf/gitignore/SublimeText":                           confGitignoreSublimetext,
+	"conf/gitignore/SugarCRM":                              confGitignoreSugarcrm,
+	"conf/gitignore/Swift":                                 confGitignoreSwift,
+	"conf/gitignore/Symfony":                               confGitignoreSymfony,
+	"conf/gitignore/SymphonyCMS":                           confGitignoreSymphonycms,
+	"conf/gitignore/SynopsysVCS":                           confGitignoreSynopsysvcs,
+	"conf/gitignore/Tags":                                  confGitignoreTags,
+	"conf/gitignore/TeX":                                   confGitignoreTex,
+	"conf/gitignore/TextMate":                              confGitignoreTextmate,
+	"conf/gitignore/Textpattern":                           confGitignoreTextpattern,
+	"conf/gitignore/TortoiseGit":                           confGitignoreTortoisegit,
+	"conf/gitignore/TurboGears2":                           confGitignoreTurbogears2,
+	"conf/gitignore/Typo3":                                 confGitignoreTypo3,
+	"conf/gitignore/Umbraco":                               confGitignoreUmbraco,
+	"conf/gitignore/Unity":                                 confGitignoreUnity,
+	"conf/gitignore/VVVV":                                  confGitignoreVvvv,
+	"conf/gitignore/Vagrant":                               confGitignoreVagrant,
+	"conf/gitignore/Vim":                                   confGitignoreVim,
+	"conf/gitignore/VirtualEnv":                            confGitignoreVirtualenv,
+	"conf/gitignore/VisualStudio":                          confGitignoreVisualstudio,
+	"conf/gitignore/VisualStudioCode":                      confGitignoreVisualstudiocode,
+	"conf/gitignore/Waf":                                   confGitignoreWaf,
+	"conf/gitignore/WebMethods":                            confGitignoreWebmethods,
+	"conf/gitignore/Windows":                               confGitignoreWindows,
+	"conf/gitignore/WordPress":                             confGitignoreWordpress,
+	"conf/gitignore/Xcode":                                 confGitignoreXcode,
+	"conf/gitignore/XilinxISE":                             confGitignoreXilinxise,
+	"conf/gitignore/Xojo":                                  confGitignoreXojo,
+	"conf/gitignore/Yeoman":                                confGitignoreYeoman,
+	"conf/gitignore/Yii":                                   confGitignoreYii,
+	"conf/gitignore/ZendFramework":                         confGitignoreZendframework,
+	"conf/gitignore/Zephir":                                confGitignoreZephir,
+	"conf/label/Default":                                   confLabelDefault,
+	"conf/license/Abstyles License":                        confLicenseAbstylesLicense,
+	"conf/license/Academic Free License v1.1":              confLicenseAcademicFreeLicenseV11,
+	"conf/license/Academic Free License v1.2":              confLicenseAcademicFreeLicenseV12,
+	"conf/license/Academic Free License v2.0":              confLicenseAcademicFreeLicenseV20,
+	"conf/license/Academic Free License v2.1":              confLicenseAcademicFreeLicenseV21,
+	"conf/license/Academic Free License v3.0":              confLicenseAcademicFreeLicenseV30,
+	"conf/license/Affero General Public License v1.0":      confLicenseAfferoGeneralPublicLicenseV10,
+	"conf/license/Apache License 1.0":                      confLicenseApacheLicense10,
+	"conf/license/Apache License 1.1":                      confLicenseApacheLicense11,
+	"conf/license/Apache License 2.0":                      confLicenseApacheLicense20,
+	"conf/license/Artistic License 1.0":                    confLicenseArtisticLicense10,
+	"conf/license/Artistic License 2.0":                    confLicenseArtisticLicense20,
+	"conf/license/BSD 2-clause License":                    confLicenseBsd2ClauseLicense,
+	"conf/license/BSD 3-clause License":                    confLicenseBsd3ClauseLicense,
+	"conf/license/BSD 4-clause License":                    confLicenseBsd4ClauseLicense,
+	"conf/license/Creative Commons CC0 1.0 Universal":      confLicenseCreativeCommonsCc010Universal,
+	"conf/license/Eclipse Public License 1.0":              confLicenseEclipsePublicLicense10,
+	"conf/license/Educational Community License v1.0":      confLicenseEducationalCommunityLicenseV10,
+	"conf/license/Educational Community License v2.0":      confLicenseEducationalCommunityLicenseV20,
+	"conf/license/GNU Affero General Public License v3.0":  confLicenseGnuAfferoGeneralPublicLicenseV30,
+	"conf/license/GNU Free Documentation License v1.1":     confLicenseGnuFreeDocumentationLicenseV11,
+	"conf/license/GNU Free Documentation License v1.2":     confLicenseGnuFreeDocumentationLicenseV12,
+	"conf/license/GNU Free Documentation License v1.3":     confLicenseGnuFreeDocumentationLicenseV13,
+	"conf/license/GNU General Public License v1.0":         confLicenseGnuGeneralPublicLicenseV10,
+	"conf/license/GNU General Public License v2.0":         confLicenseGnuGeneralPublicLicenseV20,
+	"conf/license/GNU General Public License v3.0":         confLicenseGnuGeneralPublicLicenseV30,
+	"conf/license/GNU Lesser General Public License v2.1":  confLicenseGnuLesserGeneralPublicLicenseV21,
+	"conf/license/GNU Lesser General Public License v3.0":  confLicenseGnuLesserGeneralPublicLicenseV30,
 	"conf/license/GNU Library General Public License v2.0": confLicenseGnuLibraryGeneralPublicLicenseV20,
-	"conf/license/ISC license": confLicenseIscLicense,
-	"conf/license/MIT License": confLicenseMitLicense,
-	"conf/license/Mozilla Public License 1.0": confLicenseMozillaPublicLicense10,
-	"conf/license/Mozilla Public License 1.1": confLicenseMozillaPublicLicense11,
-	"conf/license/Mozilla Public License 2.0": confLicenseMozillaPublicLicense20,
-	"conf/locale/locale_bg-BG.ini": confLocaleLocale_bgBgIni,
-	"conf/locale/locale_cs-CZ.ini": confLocaleLocale_csCzIni,
-	"conf/locale/locale_de-DE.ini": confLocaleLocale_deDeIni,
-	"conf/locale/locale_en-US.ini": confLocaleLocale_enUsIni,
-	"conf/locale/locale_es-ES.ini": confLocaleLocale_esEsIni,
-	"conf/locale/locale_fi-FI.ini": confLocaleLocale_fiFiIni,
-	"conf/locale/locale_fr-FR.ini": confLocaleLocale_frFrIni,
-	"conf/locale/locale_it-IT.ini": confLocaleLocale_itItIni,
-	"conf/locale/locale_ja-JP.ini": confLocaleLocale_jaJpIni,
-	"conf/locale/locale_lv-LV.ini": confLocaleLocale_lvLvIni,
-	"conf/locale/locale_nl-NL.ini": confLocaleLocale_nlNlIni,
-	"conf/locale/locale_pl-PL.ini": confLocaleLocale_plPlIni,
-	"conf/locale/locale_pt-BR.ini": confLocaleLocale_ptBrIni,
-	"conf/locale/locale_ru-RU.ini": confLocaleLocale_ruRuIni,
-	"conf/locale/locale_sr-SP.ini": confLocaleLocale_srSpIni,
-	"conf/locale/locale_tr-TR.ini": confLocaleLocale_trTrIni,
-	"conf/locale/locale_zh-CN.ini": confLocaleLocale_zhCnIni,
-	"conf/locale/locale_zh-HK.ini": confLocaleLocale_zhHkIni,
-	"conf/locale/locale_zh-TW.ini": confLocaleLocale_zhTwIni,
-	"conf/readme/Default": confReadmeDefault,
+	"conf/license/ISC license":                             confLicenseIscLicense,
+	"conf/license/MIT License":                             confLicenseMitLicense,
+	"conf/license/Mozilla Public License 1.0":              confLicenseMozillaPublicLicense10,
+	"conf/license/Mozilla Public License 1.1":              confLicenseMozillaPublicLicense11,
+	"conf/license/Mozilla Public License 2.0":              confLicenseMozillaPublicLicense20,
+	"conf/locale/locale_bg-BG.ini":                         confLocaleLocale_bgBgIni,
+	"conf/locale/locale_cs-CZ.ini":                         confLocaleLocale_csCzIni,
+	"conf/locale/locale_de-DE.ini":                         confLocaleLocale_deDeIni,
+	"conf/locale/locale_en-US.ini":                         confLocaleLocale_enUsIni,
+	"conf/locale/locale_es-ES.ini":                         confLocaleLocale_esEsIni,
+	"conf/locale/locale_fi-FI.ini":                         confLocaleLocale_fiFiIni,
+	"conf/locale/locale_fr-FR.ini":                         confLocaleLocale_frFrIni,
+	"conf/locale/locale_it-IT.ini":                         confLocaleLocale_itItIni,
+	"conf/locale/locale_ja-JP.ini":                         confLocaleLocale_jaJpIni,
+	"conf/locale/locale_lv-LV.ini":                         confLocaleLocale_lvLvIni,
+	"conf/locale/locale_nl-NL.ini":                         confLocaleLocale_nlNlIni,
+	"conf/locale/locale_pl-PL.ini":                         confLocaleLocale_plPlIni,
+	"conf/locale/locale_pt-BR.ini":                         confLocaleLocale_ptBrIni,
+	"conf/locale/locale_ru-RU.ini":                         confLocaleLocale_ruRuIni,
+	"conf/locale/locale_sr-SP.ini":                         confLocaleLocale_srSpIni,
+	"conf/locale/locale_tr-TR.ini":                         confLocaleLocale_trTrIni,
+	"conf/locale/locale_zh-CN.ini":                         confLocaleLocale_zhCnIni,
+	"conf/locale/locale_zh-HK.ini":                         confLocaleLocale_zhHkIni,
+	"conf/locale/locale_zh-TW.ini":                         confLocaleLocale_zhTwIni,
+	"conf/readme/Default":                                  confReadmeDefault,
 }
 
 // AssetDir returns the file names below a certain
@@ -5019,510 +5019,289 @@ func AssetDir(name string) ([]string, error) {
 }
 
 type bintree struct {
-	Func func() (*asset, error)
+	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
 	"conf": &bintree{nil, map[string]*bintree{
-		"app.ini": &bintree{confAppIni, map[string]*bintree{
-		}},
+		"app.ini": &bintree{confAppIni, map[string]*bintree{}},
 		"gitignore": &bintree{nil, map[string]*bintree{
-			"Actionscript": &bintree{confGitignoreActionscript, map[string]*bintree{
-			}},
-			"Ada": &bintree{confGitignoreAda, map[string]*bintree{
-			}},
-			"Agda": &bintree{confGitignoreAgda, map[string]*bintree{
-			}},
-			"Android": &bintree{confGitignoreAndroid, map[string]*bintree{
-			}},
-			"Anjuta": &bintree{confGitignoreAnjuta, map[string]*bintree{
-			}},
-			"AppEngine": &bintree{confGitignoreAppengine, map[string]*bintree{
-			}},
-			"AppceleratorTitanium": &bintree{confGitignoreAppceleratortitanium, map[string]*bintree{
-			}},
-			"ArchLinuxPackages": &bintree{confGitignoreArchlinuxpackages, map[string]*bintree{
-			}},
-			"Archives": &bintree{confGitignoreArchives, map[string]*bintree{
-			}},
-			"Autotools": &bintree{confGitignoreAutotools, map[string]*bintree{
-			}},
-			"BricxCC": &bintree{confGitignoreBricxcc, map[string]*bintree{
-			}},
-			"C": &bintree{confGitignoreC, map[string]*bintree{
-			}},
-			"C Sharp": &bintree{confGitignoreCSharp, map[string]*bintree{
-			}},
-			"C++": &bintree{confGitignoreC2, map[string]*bintree{
-			}},
-			"CFWheels": &bintree{confGitignoreCfwheels, map[string]*bintree{
-			}},
-			"CMake": &bintree{confGitignoreCmake, map[string]*bintree{
-			}},
-			"CUDA": &bintree{confGitignoreCuda, map[string]*bintree{
-			}},
-			"CVS": &bintree{confGitignoreCvs, map[string]*bintree{
-			}},
-			"CakePHP": &bintree{confGitignoreCakephp, map[string]*bintree{
-			}},
-			"ChefCookbook": &bintree{confGitignoreChefcookbook, map[string]*bintree{
-			}},
-			"Cloud9": &bintree{confGitignoreCloud9, map[string]*bintree{
-			}},
-			"CodeIgniter": &bintree{confGitignoreCodeigniter, map[string]*bintree{
-			}},
-			"CodeKit": &bintree{confGitignoreCodekit, map[string]*bintree{
-			}},
-			"CommonLisp": &bintree{confGitignoreCommonlisp, map[string]*bintree{
-			}},
-			"Composer": &bintree{confGitignoreComposer, map[string]*bintree{
-			}},
-			"Concrete5": &bintree{confGitignoreConcrete5, map[string]*bintree{
-			}},
-			"Coq": &bintree{confGitignoreCoq, map[string]*bintree{
-			}},
-			"CraftCMS": &bintree{confGitignoreCraftcms, map[string]*bintree{
-			}},
-			"DM": &bintree{confGitignoreDm, map[string]*bintree{
-			}},
-			"Dart": &bintree{confGitignoreDart, map[string]*bintree{
-			}},
-			"DartEditor": &bintree{confGitignoreDarteditor, map[string]*bintree{
-			}},
-			"Delphi": &bintree{confGitignoreDelphi, map[string]*bintree{
-			}},
-			"Dreamweaver": &bintree{confGitignoreDreamweaver, map[string]*bintree{
-			}},
-			"Drupal": &bintree{confGitignoreDrupal, map[string]*bintree{
-			}},
-			"EPiServer": &bintree{confGitignoreEpiserver, map[string]*bintree{
-			}},
-			"Eagle": &bintree{confGitignoreEagle, map[string]*bintree{
-			}},
-			"Eclipse": &bintree{confGitignoreEclipse, map[string]*bintree{
-			}},
-			"EiffelStudio": &bintree{confGitignoreEiffelstudio, map[string]*bintree{
-			}},
-			"Elisp": &bintree{confGitignoreElisp, map[string]*bintree{
-			}},
-			"Elixir": &bintree{confGitignoreElixir, map[string]*bintree{
-			}},
-			"Emacs": &bintree{confGitignoreEmacs, map[string]*bintree{
-			}},
-			"Ensime": &bintree{confGitignoreEnsime, map[string]*bintree{
-			}},
-			"Erlang": &bintree{confGitignoreErlang, map[string]*bintree{
-			}},
-			"Espresso": &bintree{confGitignoreEspresso, map[string]*bintree{
-			}},
-			"ExpressionEngine": &bintree{confGitignoreExpressionengine, map[string]*bintree{
-			}},
-			"ExtJs": &bintree{confGitignoreExtjs, map[string]*bintree{
-			}},
-			"Fancy": &bintree{confGitignoreFancy, map[string]*bintree{
-			}},
-			"Finale": &bintree{confGitignoreFinale, map[string]*bintree{
-			}},
-			"FlexBuilder": &bintree{confGitignoreFlexbuilder, map[string]*bintree{
-			}},
-			"ForceDotCom": &bintree{confGitignoreForcedotcom, map[string]*bintree{
-			}},
-			"FuelPHP": &bintree{confGitignoreFuelphp, map[string]*bintree{
-			}},
-			"GWT": &bintree{confGitignoreGwt, map[string]*bintree{
-			}},
-			"Gcov": &bintree{confGitignoreGcov, map[string]*bintree{
-			}},
-			"GitBook": &bintree{confGitignoreGitbook, map[string]*bintree{
-			}},
-			"Go": &bintree{confGitignoreGo, map[string]*bintree{
-			}},
-			"Gradle": &bintree{confGitignoreGradle, map[string]*bintree{
-			}},
-			"Grails": &bintree{confGitignoreGrails, map[string]*bintree{
-			}},
-			"Haskell": &bintree{confGitignoreHaskell, map[string]*bintree{
-			}},
-			"IGORPro": &bintree{confGitignoreIgorpro, map[string]*bintree{
-			}},
-			"IPythonNotebook": &bintree{confGitignoreIpythonnotebook, map[string]*bintree{
-			}},
-			"Idris": &bintree{confGitignoreIdris, map[string]*bintree{
-			}},
-			"JDeveloper": &bintree{confGitignoreJdeveloper, map[string]*bintree{
-			}},
-			"Java": &bintree{confGitignoreJava, map[string]*bintree{
-			}},
-			"Jboss": &bintree{confGitignoreJboss, map[string]*bintree{
-			}},
-			"Jekyll": &bintree{confGitignoreJekyll, map[string]*bintree{
-			}},
-			"JetBrains": &bintree{confGitignoreJetbrains, map[string]*bintree{
-			}},
-			"Joomla": &bintree{confGitignoreJoomla, map[string]*bintree{
-			}},
-			"KDevelop4": &bintree{confGitignoreKdevelop4, map[string]*bintree{
-			}},
-			"Kate": &bintree{confGitignoreKate, map[string]*bintree{
-			}},
-			"KiCAD": &bintree{confGitignoreKicad, map[string]*bintree{
-			}},
-			"Kohana": &bintree{confGitignoreKohana, map[string]*bintree{
-			}},
-			"LabVIEW": &bintree{confGitignoreLabview, map[string]*bintree{
-			}},
-			"Laravel": &bintree{confGitignoreLaravel, map[string]*bintree{
-			}},
-			"Lazarus": &bintree{confGitignoreLazarus, map[string]*bintree{
-			}},
-			"Leiningen": &bintree{confGitignoreLeiningen, map[string]*bintree{
-			}},
-			"LemonStand": &bintree{confGitignoreLemonstand, map[string]*bintree{
-			}},
-			"LibreOffice": &bintree{confGitignoreLibreoffice, map[string]*bintree{
-			}},
-			"Lilypond": &bintree{confGitignoreLilypond, map[string]*bintree{
-			}},
-			"Linux": &bintree{confGitignoreLinux, map[string]*bintree{
-			}},
-			"Lithium": &bintree{confGitignoreLithium, map[string]*bintree{
-			}},
-			"Lua": &bintree{confGitignoreLua, map[string]*bintree{
-			}},
-			"LyX": &bintree{confGitignoreLyx, map[string]*bintree{
-			}},
-			"Magento": &bintree{confGitignoreMagento, map[string]*bintree{
-			}},
-			"Matlab": &bintree{confGitignoreMatlab, map[string]*bintree{
-			}},
-			"Maven": &bintree{confGitignoreMaven, map[string]*bintree{
-			}},
-			"Mercurial": &bintree{confGitignoreMercurial, map[string]*bintree{
-			}},
-			"Mercury": &bintree{confGitignoreMercury, map[string]*bintree{
-			}},
-			"MetaProgrammingSystem": &bintree{confGitignoreMetaprogrammingsystem, map[string]*bintree{
-			}},
-			"MicrosoftOffice": &bintree{confGitignoreMicrosoftoffice, map[string]*bintree{
-			}},
-			"ModelSim": &bintree{confGitignoreModelsim, map[string]*bintree{
-			}},
-			"Momentics": &bintree{confGitignoreMomentics, map[string]*bintree{
-			}},
-			"MonoDevelop": &bintree{confGitignoreMonodevelop, map[string]*bintree{
-			}},
-			"Nanoc": &bintree{confGitignoreNanoc, map[string]*bintree{
-			}},
-			"NetBeans": &bintree{confGitignoreNetbeans, map[string]*bintree{
-			}},
-			"Nim": &bintree{confGitignoreNim, map[string]*bintree{
-			}},
-			"Ninja": &bintree{confGitignoreNinja, map[string]*bintree{
-			}},
-			"Node": &bintree{confGitignoreNode, map[string]*bintree{
-			}},
-			"NotepadPP": &bintree{confGitignoreNotepadpp, map[string]*bintree{
-			}},
-			"OCaml": &bintree{confGitignoreOcaml, map[string]*bintree{
-			}},
-			"OSX": &bintree{confGitignoreOsx, map[string]*bintree{
-			}},
-			"Objective-C": &bintree{confGitignoreObjectiveC, map[string]*bintree{
-			}},
-			"Opa": &bintree{confGitignoreOpa, map[string]*bintree{
-			}},
-			"OpenCart": &bintree{confGitignoreOpencart, map[string]*bintree{
-			}},
-			"OracleForms": &bintree{confGitignoreOracleforms, map[string]*bintree{
-			}},
-			"Packer": &bintree{confGitignorePacker, map[string]*bintree{
-			}},
-			"Perl": &bintree{confGitignorePerl, map[string]*bintree{
-			}},
-			"Phalcon": &bintree{confGitignorePhalcon, map[string]*bintree{
-			}},
-			"PlayFramework": &bintree{confGitignorePlayframework, map[string]*bintree{
-			}},
-			"Plone": &bintree{confGitignorePlone, map[string]*bintree{
-			}},
-			"Prestashop": &bintree{confGitignorePrestashop, map[string]*bintree{
-			}},
-			"Processing": &bintree{confGitignoreProcessing, map[string]*bintree{
-			}},
-			"Python": &bintree{confGitignorePython, map[string]*bintree{
-			}},
-			"Qooxdoo": &bintree{confGitignoreQooxdoo, map[string]*bintree{
-			}},
-			"Qt": &bintree{confGitignoreQt, map[string]*bintree{
-			}},
-			"R": &bintree{confGitignoreR, map[string]*bintree{
-			}},
-			"ROS": &bintree{confGitignoreRos, map[string]*bintree{
-			}},
-			"Rails": &bintree{confGitignoreRails, map[string]*bintree{
-			}},
-			"Redcar": &bintree{confGitignoreRedcar, map[string]*bintree{
-			}},
-			"Redis": &bintree{confGitignoreRedis, map[string]*bintree{
-			}},
-			"RhodesRhomobile": &bintree{confGitignoreRhodesrhomobile, map[string]*bintree{
-			}},
-			"Ruby": &bintree{confGitignoreRuby, map[string]*bintree{
-			}},
-			"Rust": &bintree{confGitignoreRust, map[string]*bintree{
-			}},
-			"SBT": &bintree{confGitignoreSbt, map[string]*bintree{
-			}},
-			"SCons": &bintree{confGitignoreScons, map[string]*bintree{
-			}},
-			"SVN": &bintree{confGitignoreSvn, map[string]*bintree{
-			}},
-			"Sass": &bintree{confGitignoreSass, map[string]*bintree{
-			}},
-			"Scala": &bintree{confGitignoreScala, map[string]*bintree{
-			}},
-			"Scrivener": &bintree{confGitignoreScrivener, map[string]*bintree{
-			}},
-			"Sdcc": &bintree{confGitignoreSdcc, map[string]*bintree{
-			}},
-			"SeamGen": &bintree{confGitignoreSeamgen, map[string]*bintree{
-			}},
-			"SketchUp": &bintree{confGitignoreSketchup, map[string]*bintree{
-			}},
-			"SlickEdit": &bintree{confGitignoreSlickedit, map[string]*bintree{
-			}},
-			"Stella": &bintree{confGitignoreStella, map[string]*bintree{
-			}},
-			"SublimeText": &bintree{confGitignoreSublimetext, map[string]*bintree{
-			}},
-			"SugarCRM": &bintree{confGitignoreSugarcrm, map[string]*bintree{
-			}},
-			"Swift": &bintree{confGitignoreSwift, map[string]*bintree{
-			}},
-			"Symfony": &bintree{confGitignoreSymfony, map[string]*bintree{
-			}},
-			"SymphonyCMS": &bintree{confGitignoreSymphonycms, map[string]*bintree{
-			}},
-			"SynopsysVCS": &bintree{confGitignoreSynopsysvcs, map[string]*bintree{
-			}},
-			"Tags": &bintree{confGitignoreTags, map[string]*bintree{
-			}},
-			"TeX": &bintree{confGitignoreTex, map[string]*bintree{
-			}},
-			"TextMate": &bintree{confGitignoreTextmate, map[string]*bintree{
-			}},
-			"Textpattern": &bintree{confGitignoreTextpattern, map[string]*bintree{
-			}},
-			"TortoiseGit": &bintree{confGitignoreTortoisegit, map[string]*bintree{
-			}},
-			"TurboGears2": &bintree{confGitignoreTurbogears2, map[string]*bintree{
-			}},
-			"Typo3": &bintree{confGitignoreTypo3, map[string]*bintree{
-			}},
-			"Umbraco": &bintree{confGitignoreUmbraco, map[string]*bintree{
-			}},
-			"Unity": &bintree{confGitignoreUnity, map[string]*bintree{
-			}},
-			"VVVV": &bintree{confGitignoreVvvv, map[string]*bintree{
-			}},
-			"Vagrant": &bintree{confGitignoreVagrant, map[string]*bintree{
-			}},
-			"Vim": &bintree{confGitignoreVim, map[string]*bintree{
-			}},
-			"VirtualEnv": &bintree{confGitignoreVirtualenv, map[string]*bintree{
-			}},
-			"VisualStudio": &bintree{confGitignoreVisualstudio, map[string]*bintree{
-			}},
-			"VisualStudioCode": &bintree{confGitignoreVisualstudiocode, map[string]*bintree{
-			}},
-			"Waf": &bintree{confGitignoreWaf, map[string]*bintree{
-			}},
-			"WebMethods": &bintree{confGitignoreWebmethods, map[string]*bintree{
-			}},
-			"Windows": &bintree{confGitignoreWindows, map[string]*bintree{
-			}},
-			"WordPress": &bintree{confGitignoreWordpress, map[string]*bintree{
-			}},
-			"Xcode": &bintree{confGitignoreXcode, map[string]*bintree{
-			}},
-			"XilinxISE": &bintree{confGitignoreXilinxise, map[string]*bintree{
-			}},
-			"Xojo": &bintree{confGitignoreXojo, map[string]*bintree{
-			}},
-			"Yeoman": &bintree{confGitignoreYeoman, map[string]*bintree{
-			}},
-			"Yii": &bintree{confGitignoreYii, map[string]*bintree{
-			}},
-			"ZendFramework": &bintree{confGitignoreZendframework, map[string]*bintree{
-			}},
-			"Zephir": &bintree{confGitignoreZephir, map[string]*bintree{
-			}},
+			"Actionscript":          &bintree{confGitignoreActionscript, map[string]*bintree{}},
+			"Ada":                   &bintree{confGitignoreAda, map[string]*bintree{}},
+			"Agda":                  &bintree{confGitignoreAgda, map[string]*bintree{}},
+			"Android":               &bintree{confGitignoreAndroid, map[string]*bintree{}},
+			"Anjuta":                &bintree{confGitignoreAnjuta, map[string]*bintree{}},
+			"AppEngine":             &bintree{confGitignoreAppengine, map[string]*bintree{}},
+			"AppceleratorTitanium":  &bintree{confGitignoreAppceleratortitanium, map[string]*bintree{}},
+			"ArchLinuxPackages":     &bintree{confGitignoreArchlinuxpackages, map[string]*bintree{}},
+			"Archives":              &bintree{confGitignoreArchives, map[string]*bintree{}},
+			"Autotools":             &bintree{confGitignoreAutotools, map[string]*bintree{}},
+			"BricxCC":               &bintree{confGitignoreBricxcc, map[string]*bintree{}},
+			"C":                     &bintree{confGitignoreC, map[string]*bintree{}},
+			"C Sharp":               &bintree{confGitignoreCSharp, map[string]*bintree{}},
+			"C++":                   &bintree{confGitignoreC2, map[string]*bintree{}},
+			"CFWheels":              &bintree{confGitignoreCfwheels, map[string]*bintree{}},
+			"CMake":                 &bintree{confGitignoreCmake, map[string]*bintree{}},
+			"CUDA":                  &bintree{confGitignoreCuda, map[string]*bintree{}},
+			"CVS":                   &bintree{confGitignoreCvs, map[string]*bintree{}},
+			"CakePHP":               &bintree{confGitignoreCakephp, map[string]*bintree{}},
+			"ChefCookbook":          &bintree{confGitignoreChefcookbook, map[string]*bintree{}},
+			"Cloud9":                &bintree{confGitignoreCloud9, map[string]*bintree{}},
+			"CodeIgniter":           &bintree{confGitignoreCodeigniter, map[string]*bintree{}},
+			"CodeKit":               &bintree{confGitignoreCodekit, map[string]*bintree{}},
+			"CommonLisp":            &bintree{confGitignoreCommonlisp, map[string]*bintree{}},
+			"Composer":              &bintree{confGitignoreComposer, map[string]*bintree{}},
+			"Concrete5":             &bintree{confGitignoreConcrete5, map[string]*bintree{}},
+			"Coq":                   &bintree{confGitignoreCoq, map[string]*bintree{}},
+			"CraftCMS":              &bintree{confGitignoreCraftcms, map[string]*bintree{}},
+			"DM":                    &bintree{confGitignoreDm, map[string]*bintree{}},
+			"Dart":                  &bintree{confGitignoreDart, map[string]*bintree{}},
+			"DartEditor":            &bintree{confGitignoreDarteditor, map[string]*bintree{}},
+			"Delphi":                &bintree{confGitignoreDelphi, map[string]*bintree{}},
+			"Dreamweaver":           &bintree{confGitignoreDreamweaver, map[string]*bintree{}},
+			"Drupal":                &bintree{confGitignoreDrupal, map[string]*bintree{}},
+			"EPiServer":             &bintree{confGitignoreEpiserver, map[string]*bintree{}},
+			"Eagle":                 &bintree{confGitignoreEagle, map[string]*bintree{}},
+			"Eclipse":               &bintree{confGitignoreEclipse, map[string]*bintree{}},
+			"EiffelStudio":          &bintree{confGitignoreEiffelstudio, map[string]*bintree{}},
+			"Elisp":                 &bintree{confGitignoreElisp, map[string]*bintree{}},
+			"Elixir":                &bintree{confGitignoreElixir, map[string]*bintree{}},
+			"Emacs":                 &bintree{confGitignoreEmacs, map[string]*bintree{}},
+			"Ensime":                &bintree{confGitignoreEnsime, map[string]*bintree{}},
+			"Erlang":                &bintree{confGitignoreErlang, map[string]*bintree{}},
+			"Espresso":              &bintree{confGitignoreEspresso, map[string]*bintree{}},
+			"ExpressionEngine":      &bintree{confGitignoreExpressionengine, map[string]*bintree{}},
+			"ExtJs":                 &bintree{confGitignoreExtjs, map[string]*bintree{}},
+			"Fancy":                 &bintree{confGitignoreFancy, map[string]*bintree{}},
+			"Finale":                &bintree{confGitignoreFinale, map[string]*bintree{}},
+			"FlexBuilder":           &bintree{confGitignoreFlexbuilder, map[string]*bintree{}},
+			"ForceDotCom":           &bintree{confGitignoreForcedotcom, map[string]*bintree{}},
+			"FuelPHP":               &bintree{confGitignoreFuelphp, map[string]*bintree{}},
+			"GWT":                   &bintree{confGitignoreGwt, map[string]*bintree{}},
+			"Gcov":                  &bintree{confGitignoreGcov, map[string]*bintree{}},
+			"GitBook":               &bintree{confGitignoreGitbook, map[string]*bintree{}},
+			"Go":                    &bintree{confGitignoreGo, map[string]*bintree{}},
+			"Gradle":                &bintree{confGitignoreGradle, map[string]*bintree{}},
+			"Grails":                &bintree{confGitignoreGrails, map[string]*bintree{}},
+			"Haskell":               &bintree{confGitignoreHaskell, map[string]*bintree{}},
+			"IGORPro":               &bintree{confGitignoreIgorpro, map[string]*bintree{}},
+			"IPythonNotebook":       &bintree{confGitignoreIpythonnotebook, map[string]*bintree{}},
+			"Idris":                 &bintree{confGitignoreIdris, map[string]*bintree{}},
+			"JDeveloper":            &bintree{confGitignoreJdeveloper, map[string]*bintree{}},
+			"Java":                  &bintree{confGitignoreJava, map[string]*bintree{}},
+			"Jboss":                 &bintree{confGitignoreJboss, map[string]*bintree{}},
+			"Jekyll":                &bintree{confGitignoreJekyll, map[string]*bintree{}},
+			"JetBrains":             &bintree{confGitignoreJetbrains, map[string]*bintree{}},
+			"Joomla":                &bintree{confGitignoreJoomla, map[string]*bintree{}},
+			"KDevelop4":             &bintree{confGitignoreKdevelop4, map[string]*bintree{}},
+			"Kate":                  &bintree{confGitignoreKate, map[string]*bintree{}},
+			"KiCAD":                 &bintree{confGitignoreKicad, map[string]*bintree{}},
+			"Kohana":                &bintree{confGitignoreKohana, map[string]*bintree{}},
+			"LabVIEW":               &bintree{confGitignoreLabview, map[string]*bintree{}},
+			"Laravel":               &bintree{confGitignoreLaravel, map[string]*bintree{}},
+			"Lazarus":               &bintree{confGitignoreLazarus, map[string]*bintree{}},
+			"Leiningen":             &bintree{confGitignoreLeiningen, map[string]*bintree{}},
+			"LemonStand":            &bintree{confGitignoreLemonstand, map[string]*bintree{}},
+			"LibreOffice":           &bintree{confGitignoreLibreoffice, map[string]*bintree{}},
+			"Lilypond":              &bintree{confGitignoreLilypond, map[string]*bintree{}},
+			"Linux":                 &bintree{confGitignoreLinux, map[string]*bintree{}},
+			"Lithium":               &bintree{confGitignoreLithium, map[string]*bintree{}},
+			"Lua":                   &bintree{confGitignoreLua, map[string]*bintree{}},
+			"LyX":                   &bintree{confGitignoreLyx, map[string]*bintree{}},
+			"Magento":               &bintree{confGitignoreMagento, map[string]*bintree{}},
+			"Matlab":                &bintree{confGitignoreMatlab, map[string]*bintree{}},
+			"Maven":                 &bintree{confGitignoreMaven, map[string]*bintree{}},
+			"Mercurial":             &bintree{confGitignoreMercurial, map[string]*bintree{}},
+			"Mercury":               &bintree{confGitignoreMercury, map[string]*bintree{}},
+			"MetaProgrammingSystem": &bintree{confGitignoreMetaprogrammingsystem, map[string]*bintree{}},
+			"MicrosoftOffice":       &bintree{confGitignoreMicrosoftoffice, map[string]*bintree{}},
+			"ModelSim":              &bintree{confGitignoreModelsim, map[string]*bintree{}},
+			"Momentics":             &bintree{confGitignoreMomentics, map[string]*bintree{}},
+			"MonoDevelop":           &bintree{confGitignoreMonodevelop, map[string]*bintree{}},
+			"Nanoc":                 &bintree{confGitignoreNanoc, map[string]*bintree{}},
+			"NetBeans":              &bintree{confGitignoreNetbeans, map[string]*bintree{}},
+			"Nim":                   &bintree{confGitignoreNim, map[string]*bintree{}},
+			"Ninja":                 &bintree{confGitignoreNinja, map[string]*bintree{}},
+			"Node":                  &bintree{confGitignoreNode, map[string]*bintree{}},
+			"NotepadPP":             &bintree{confGitignoreNotepadpp, map[string]*bintree{}},
+			"OCaml":                 &bintree{confGitignoreOcaml, map[string]*bintree{}},
+			"OSX":                   &bintree{confGitignoreOsx, map[string]*bintree{}},
+			"Objective-C":           &bintree{confGitignoreObjectiveC, map[string]*bintree{}},
+			"Opa":                   &bintree{confGitignoreOpa, map[string]*bintree{}},
+			"OpenCart":              &bintree{confGitignoreOpencart, map[string]*bintree{}},
+			"OracleForms":           &bintree{confGitignoreOracleforms, map[string]*bintree{}},
+			"Packer":                &bintree{confGitignorePacker, map[string]*bintree{}},
+			"Perl":                  &bintree{confGitignorePerl, map[string]*bintree{}},
+			"Phalcon":               &bintree{confGitignorePhalcon, map[string]*bintree{}},
+			"PlayFramework":         &bintree{confGitignorePlayframework, map[string]*bintree{}},
+			"Plone":                 &bintree{confGitignorePlone, map[string]*bintree{}},
+			"Prestashop":            &bintree{confGitignorePrestashop, map[string]*bintree{}},
+			"Processing":            &bintree{confGitignoreProcessing, map[string]*bintree{}},
+			"Python":                &bintree{confGitignorePython, map[string]*bintree{}},
+			"Qooxdoo":               &bintree{confGitignoreQooxdoo, map[string]*bintree{}},
+			"Qt":                    &bintree{confGitignoreQt, map[string]*bintree{}},
+			"R":                     &bintree{confGitignoreR, map[string]*bintree{}},
+			"ROS":                   &bintree{confGitignoreRos, map[string]*bintree{}},
+			"Rails":                 &bintree{confGitignoreRails, map[string]*bintree{}},
+			"Redcar":                &bintree{confGitignoreRedcar, map[string]*bintree{}},
+			"Redis":                 &bintree{confGitignoreRedis, map[string]*bintree{}},
+			"RhodesRhomobile":       &bintree{confGitignoreRhodesrhomobile, map[string]*bintree{}},
+			"Ruby":                  &bintree{confGitignoreRuby, map[string]*bintree{}},
+			"Rust":                  &bintree{confGitignoreRust, map[string]*bintree{}},
+			"SBT":                   &bintree{confGitignoreSbt, map[string]*bintree{}},
+			"SCons":                 &bintree{confGitignoreScons, map[string]*bintree{}},
+			"SVN":                   &bintree{confGitignoreSvn, map[string]*bintree{}},
+			"Sass":                  &bintree{confGitignoreSass, map[string]*bintree{}},
+			"Scala":                 &bintree{confGitignoreScala, map[string]*bintree{}},
+			"Scrivener":             &bintree{confGitignoreScrivener, map[string]*bintree{}},
+			"Sdcc":                  &bintree{confGitignoreSdcc, map[string]*bintree{}},
+			"SeamGen":               &bintree{confGitignoreSeamgen, map[string]*bintree{}},
+			"SketchUp":              &bintree{confGitignoreSketchup, map[string]*bintree{}},
+			"SlickEdit":             &bintree{confGitignoreSlickedit, map[string]*bintree{}},
+			"Stella":                &bintree{confGitignoreStella, map[string]*bintree{}},
+			"SublimeText":           &bintree{confGitignoreSublimetext, map[string]*bintree{}},
+			"SugarCRM":              &bintree{confGitignoreSugarcrm, map[string]*bintree{}},
+			"Swift":                 &bintree{confGitignoreSwift, map[string]*bintree{}},
+			"Symfony":               &bintree{confGitignoreSymfony, map[string]*bintree{}},
+			"SymphonyCMS":           &bintree{confGitignoreSymphonycms, map[string]*bintree{}},
+			"SynopsysVCS":           &bintree{confGitignoreSynopsysvcs, map[string]*bintree{}},
+			"Tags":                  &bintree{confGitignoreTags, map[string]*bintree{}},
+			"TeX":                   &bintree{confGitignoreTex, map[string]*bintree{}},
+			"TextMate":              &bintree{confGitignoreTextmate, map[string]*bintree{}},
+			"Textpattern":           &bintree{confGitignoreTextpattern, map[string]*bintree{}},
+			"TortoiseGit":           &bintree{confGitignoreTortoisegit, map[string]*bintree{}},
+			"TurboGears2":           &bintree{confGitignoreTurbogears2, map[string]*bintree{}},
+			"Typo3":                 &bintree{confGitignoreTypo3, map[string]*bintree{}},
+			"Umbraco":               &bintree{confGitignoreUmbraco, map[string]*bintree{}},
+			"Unity":                 &bintree{confGitignoreUnity, map[string]*bintree{}},
+			"VVVV":                  &bintree{confGitignoreVvvv, map[string]*bintree{}},
+			"Vagrant":               &bintree{confGitignoreVagrant, map[string]*bintree{}},
+			"Vim":                   &bintree{confGitignoreVim, map[string]*bintree{}},
+			"VirtualEnv":            &bintree{confGitignoreVirtualenv, map[string]*bintree{}},
+			"VisualStudio":          &bintree{confGitignoreVisualstudio, map[string]*bintree{}},
+			"VisualStudioCode":      &bintree{confGitignoreVisualstudiocode, map[string]*bintree{}},
+			"Waf":                   &bintree{confGitignoreWaf, map[string]*bintree{}},
+			"WebMethods":            &bintree{confGitignoreWebmethods, map[string]*bintree{}},
+			"Windows":               &bintree{confGitignoreWindows, map[string]*bintree{}},
+			"WordPress":             &bintree{confGitignoreWordpress, map[string]*bintree{}},
+			"Xcode":                 &bintree{confGitignoreXcode, map[string]*bintree{}},
+			"XilinxISE":             &bintree{confGitignoreXilinxise, map[string]*bintree{}},
+			"Xojo":                  &bintree{confGitignoreXojo, map[string]*bintree{}},
+			"Yeoman":                &bintree{confGitignoreYeoman, map[string]*bintree{}},
+			"Yii":                   &bintree{confGitignoreYii, map[string]*bintree{}},
+			"ZendFramework":         &bintree{confGitignoreZendframework, map[string]*bintree{}},
+			"Zephir":                &bintree{confGitignoreZephir, map[string]*bintree{}},
 		}},
 		"label": &bintree{nil, map[string]*bintree{
-			"Default": &bintree{confLabelDefault, map[string]*bintree{
-			}},
+			"Default": &bintree{confLabelDefault, map[string]*bintree{}},
 		}},
 		"license": &bintree{nil, map[string]*bintree{
-			"Abstyles License": &bintree{confLicenseAbstylesLicense, map[string]*bintree{
-			}},
-			"Academic Free License v1.1": &bintree{confLicenseAcademicFreeLicenseV11, map[string]*bintree{
-			}},
-			"Academic Free License v1.2": &bintree{confLicenseAcademicFreeLicenseV12, map[string]*bintree{
-			}},
-			"Academic Free License v2.0": &bintree{confLicenseAcademicFreeLicenseV20, map[string]*bintree{
-			}},
-			"Academic Free License v2.1": &bintree{confLicenseAcademicFreeLicenseV21, map[string]*bintree{
-			}},
-			"Academic Free License v3.0": &bintree{confLicenseAcademicFreeLicenseV30, map[string]*bintree{
-			}},
-			"Affero General Public License v1.0": &bintree{confLicenseAfferoGeneralPublicLicenseV10, map[string]*bintree{
-			}},
-			"Apache License 1.0": &bintree{confLicenseApacheLicense10, map[string]*bintree{
-			}},
-			"Apache License 1.1": &bintree{confLicenseApacheLicense11, map[string]*bintree{
-			}},
-			"Apache License 2.0": &bintree{confLicenseApacheLicense20, map[string]*bintree{
-			}},
-			"Artistic License 1.0": &bintree{confLicenseArtisticLicense10, map[string]*bintree{
-			}},
-			"Artistic License 2.0": &bintree{confLicenseArtisticLicense20, map[string]*bintree{
-			}},
-			"BSD 2-clause License": &bintree{confLicenseBsd2ClauseLicense, map[string]*bintree{
-			}},
-			"BSD 3-clause License": &bintree{confLicenseBsd3ClauseLicense, map[string]*bintree{
-			}},
-			"BSD 4-clause License": &bintree{confLicenseBsd4ClauseLicense, map[string]*bintree{
-			}},
-			"Creative Commons CC0 1.0 Universal": &bintree{confLicenseCreativeCommonsCc010Universal, map[string]*bintree{
-			}},
-			"Eclipse Public License 1.0": &bintree{confLicenseEclipsePublicLicense10, map[string]*bintree{
-			}},
-			"Educational Community License v1.0": &bintree{confLicenseEducationalCommunityLicenseV10, map[string]*bintree{
-			}},
-			"Educational Community License v2.0": &bintree{confLicenseEducationalCommunityLicenseV20, map[string]*bintree{
-			}},
-			"GNU Affero General Public License v3.0": &bintree{confLicenseGnuAfferoGeneralPublicLicenseV30, map[string]*bintree{
-			}},
-			"GNU Free Documentation License v1.1": &bintree{confLicenseGnuFreeDocumentationLicenseV11, map[string]*bintree{
-			}},
-			"GNU Free Documentation License v1.2": &bintree{confLicenseGnuFreeDocumentationLicenseV12, map[string]*bintree{
-			}},
-			"GNU Free Documentation License v1.3": &bintree{confLicenseGnuFreeDocumentationLicenseV13, map[string]*bintree{
-			}},
-			"GNU General Public License v1.0": &bintree{confLicenseGnuGeneralPublicLicenseV10, map[string]*bintree{
-			}},
-			"GNU General Public License v2.0": &bintree{confLicenseGnuGeneralPublicLicenseV20, map[string]*bintree{
-			}},
-			"GNU General Public License v3.0": &bintree{confLicenseGnuGeneralPublicLicenseV30, map[string]*bintree{
-			}},
-			"GNU Lesser General Public License v2.1": &bintree{confLicenseGnuLesserGeneralPublicLicenseV21, map[string]*bintree{
-			}},
-			"GNU Lesser General Public License v3.0": &bintree{confLicenseGnuLesserGeneralPublicLicenseV30, map[string]*bintree{
-			}},
-			"GNU Library General Public License v2.0": &bintree{confLicenseGnuLibraryGeneralPublicLicenseV20, map[string]*bintree{
-			}},
-			"ISC license": &bintree{confLicenseIscLicense, map[string]*bintree{
-			}},
-			"MIT License": &bintree{confLicenseMitLicense, map[string]*bintree{
-			}},
-			"Mozilla Public License 1.0": &bintree{confLicenseMozillaPublicLicense10, map[string]*bintree{
-			}},
-			"Mozilla Public License 1.1": &bintree{confLicenseMozillaPublicLicense11, map[string]*bintree{
-			}},
-			"Mozilla Public License 2.0": &bintree{confLicenseMozillaPublicLicense20, map[string]*bintree{
-			}},
+			"Abstyles License":                        &bintree{confLicenseAbstylesLicense, map[string]*bintree{}},
+			"Academic Free License v1.1":              &bintree{confLicenseAcademicFreeLicenseV11, map[string]*bintree{}},
+			"Academic Free License v1.2":              &bintree{confLicenseAcademicFreeLicenseV12, map[string]*bintree{}},
+			"Academic Free License v2.0":              &bintree{confLicenseAcademicFreeLicenseV20, map[string]*bintree{}},
+			"Academic Free License v2.1":              &bintree{confLicenseAcademicFreeLicenseV21, map[string]*bintree{}},
+			"Academic Free License v3.0":              &bintree{confLicenseAcademicFreeLicenseV30, map[string]*bintree{}},
+			"Affero General Public License v1.0":      &bintree{confLicenseAfferoGeneralPublicLicenseV10, map[string]*bintree{}},
+			"Apache License 1.0":                      &bintree{confLicenseApacheLicense10, map[string]*bintree{}},
+			"Apache License 1.1":                      &bintree{confLicenseApacheLicense11, map[string]*bintree{}},
+			"Apache License 2.0":                      &bintree{confLicenseApacheLicense20, map[string]*bintree{}},
+			"Artistic License 1.0":                    &bintree{confLicenseArtisticLicense10, map[string]*bintree{}},
+			"Artistic License 2.0":                    &bintree{confLicenseArtisticLicense20, map[string]*bintree{}},
+			"BSD 2-clause License":                    &bintree{confLicenseBsd2ClauseLicense, map[string]*bintree{}},
+			"BSD 3-clause License":                    &bintree{confLicenseBsd3ClauseLicense, map[string]*bintree{}},
+			"BSD 4-clause License":                    &bintree{confLicenseBsd4ClauseLicense, map[string]*bintree{}},
+			"Creative Commons CC0 1.0 Universal":      &bintree{confLicenseCreativeCommonsCc010Universal, map[string]*bintree{}},
+			"Eclipse Public License 1.0":              &bintree{confLicenseEclipsePublicLicense10, map[string]*bintree{}},
+			"Educational Community License v1.0":      &bintree{confLicenseEducationalCommunityLicenseV10, map[string]*bintree{}},
+			"Educational Community License v2.0":      &bintree{confLicenseEducationalCommunityLicenseV20, map[string]*bintree{}},
+			"GNU Affero General Public License v3.0":  &bintree{confLicenseGnuAfferoGeneralPublicLicenseV30, map[string]*bintree{}},
+			"GNU Free Documentation License v1.1":     &bintree{confLicenseGnuFreeDocumentationLicenseV11, map[string]*bintree{}},
+			"GNU Free Documentation License v1.2":     &bintree{confLicenseGnuFreeDocumentationLicenseV12, map[string]*bintree{}},
+			"GNU Free Documentation License v1.3":     &bintree{confLicenseGnuFreeDocumentationLicenseV13, map[string]*bintree{}},
+			"GNU General Public License v1.0":         &bintree{confLicenseGnuGeneralPublicLicenseV10, map[string]*bintree{}},
+			"GNU General Public License v2.0":         &bintree{confLicenseGnuGeneralPublicLicenseV20, map[string]*bintree{}},
+			"GNU General Public License v3.0":         &bintree{confLicenseGnuGeneralPublicLicenseV30, map[string]*bintree{}},
+			"GNU Lesser General Public License v2.1":  &bintree{confLicenseGnuLesserGeneralPublicLicenseV21, map[string]*bintree{}},
+			"GNU Lesser General Public License v3.0":  &bintree{confLicenseGnuLesserGeneralPublicLicenseV30, map[string]*bintree{}},
+			"GNU Library General Public License v2.0": &bintree{confLicenseGnuLibraryGeneralPublicLicenseV20, map[string]*bintree{}},
+			"ISC license":                             &bintree{confLicenseIscLicense, map[string]*bintree{}},
+			"MIT License":                             &bintree{confLicenseMitLicense, map[string]*bintree{}},
+			"Mozilla Public License 1.0":              &bintree{confLicenseMozillaPublicLicense10, map[string]*bintree{}},
+			"Mozilla Public License 1.1":              &bintree{confLicenseMozillaPublicLicense11, map[string]*bintree{}},
+			"Mozilla Public License 2.0":              &bintree{confLicenseMozillaPublicLicense20, map[string]*bintree{}},
 		}},
 		"locale": &bintree{nil, map[string]*bintree{
-			"locale_bg-BG.ini": &bintree{confLocaleLocale_bgBgIni, map[string]*bintree{
-			}},
-			"locale_cs-CZ.ini": &bintree{confLocaleLocale_csCzIni, map[string]*bintree{
-			}},
-			"locale_de-DE.ini": &bintree{confLocaleLocale_deDeIni, map[string]*bintree{
-			}},
-			"locale_en-US.ini": &bintree{confLocaleLocale_enUsIni, map[string]*bintree{
-			}},
-			"locale_es-ES.ini": &bintree{confLocaleLocale_esEsIni, map[string]*bintree{
-			}},
-			"locale_fi-FI.ini": &bintree{confLocaleLocale_fiFiIni, map[string]*bintree{
-			}},
-			"locale_fr-FR.ini": &bintree{confLocaleLocale_frFrIni, map[string]*bintree{
-			}},
-			"locale_it-IT.ini": &bintree{confLocaleLocale_itItIni, map[string]*bintree{
-			}},
-			"locale_ja-JP.ini": &bintree{confLocaleLocale_jaJpIni, map[string]*bintree{
-			}},
-			"locale_lv-LV.ini": &bintree{confLocaleLocale_lvLvIni, map[string]*bintree{
-			}},
-			"locale_nl-NL.ini": &bintree{confLocaleLocale_nlNlIni, map[string]*bintree{
-			}},
-			"locale_pl-PL.ini": &bintree{confLocaleLocale_plPlIni, map[string]*bintree{
-			}},
-			"locale_pt-BR.ini": &bintree{confLocaleLocale_ptBrIni, map[string]*bintree{
-			}},
-			"locale_ru-RU.ini": &bintree{confLocaleLocale_ruRuIni, map[string]*bintree{
-			}},
-			"locale_sr-SP.ini": &bintree{confLocaleLocale_srSpIni, map[string]*bintree{
-			}},
-			"locale_tr-TR.ini": &bintree{confLocaleLocale_trTrIni, map[string]*bintree{
-			}},
-			"locale_zh-CN.ini": &bintree{confLocaleLocale_zhCnIni, map[string]*bintree{
-			}},
-			"locale_zh-HK.ini": &bintree{confLocaleLocale_zhHkIni, map[string]*bintree{
-			}},
-			"locale_zh-TW.ini": &bintree{confLocaleLocale_zhTwIni, map[string]*bintree{
-			}},
+			"locale_bg-BG.ini": &bintree{confLocaleLocale_bgBgIni, map[string]*bintree{}},
+			"locale_cs-CZ.ini": &bintree{confLocaleLocale_csCzIni, map[string]*bintree{}},
+			"locale_de-DE.ini": &bintree{confLocaleLocale_deDeIni, map[string]*bintree{}},
+			"locale_en-US.ini": &bintree{confLocaleLocale_enUsIni, map[string]*bintree{}},
+			"locale_es-ES.ini": &bintree{confLocaleLocale_esEsIni, map[string]*bintree{}},
+			"locale_fi-FI.ini": &bintree{confLocaleLocale_fiFiIni, map[string]*bintree{}},
+			"locale_fr-FR.ini": &bintree{confLocaleLocale_frFrIni, map[string]*bintree{}},
+			"locale_it-IT.ini": &bintree{confLocaleLocale_itItIni, map[string]*bintree{}},
+			"locale_ja-JP.ini": &bintree{confLocaleLocale_jaJpIni, map[string]*bintree{}},
+			"locale_lv-LV.ini": &bintree{confLocaleLocale_lvLvIni, map[string]*bintree{}},
+			"locale_nl-NL.ini": &bintree{confLocaleLocale_nlNlIni, map[string]*bintree{}},
+			"locale_pl-PL.ini": &bintree{confLocaleLocale_plPlIni, map[string]*bintree{}},
+			"locale_pt-BR.ini": &bintree{confLocaleLocale_ptBrIni, map[string]*bintree{}},
+			"locale_ru-RU.ini": &bintree{confLocaleLocale_ruRuIni, map[string]*bintree{}},
+			"locale_sr-SP.ini": &bintree{confLocaleLocale_srSpIni, map[string]*bintree{}},
+			"locale_tr-TR.ini": &bintree{confLocaleLocale_trTrIni, map[string]*bintree{}},
+			"locale_zh-CN.ini": &bintree{confLocaleLocale_zhCnIni, map[string]*bintree{}},
+			"locale_zh-HK.ini": &bintree{confLocaleLocale_zhHkIni, map[string]*bintree{}},
+			"locale_zh-TW.ini": &bintree{confLocaleLocale_zhTwIni, map[string]*bintree{}},
 		}},
 		"readme": &bintree{nil, map[string]*bintree{
-			"Default": &bintree{confReadmeDefault, map[string]*bintree{
-			}},
+			"Default": &bintree{confReadmeDefault, map[string]*bintree{}},
 		}},
 	}},
 }}
 
 // RestoreAsset restores an asset under the given directory
 func RestoreAsset(dir, name string) error {
-        data, err := Asset(name)
-        if err != nil {
-                return err
-        }
-        info, err := AssetInfo(name)
-        if err != nil {
-                return err
-        }
-        err = os.MkdirAll(_filePath(dir, filepath.Dir(name)), os.FileMode(0755))
-        if err != nil {
-                return err
-        }
-        err = ioutil.WriteFile(_filePath(dir, name), data, info.Mode())
-        if err != nil {
-                return err
-        }
-        err = os.Chtimes(_filePath(dir, name), info.ModTime(), info.ModTime())
-        if err != nil {
-                return err
-        }
-        return nil
+	data, err := Asset(name)
+	if err != nil {
+		return err
+	}
+	info, err := AssetInfo(name)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(_filePath(dir, filepath.Dir(name)), os.FileMode(0755))
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(_filePath(dir, name), data, info.Mode())
+	if err != nil {
+		return err
+	}
+	err = os.Chtimes(_filePath(dir, name), info.ModTime(), info.ModTime())
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // RestoreAssets restores an asset under the given directory recursively
 func RestoreAssets(dir, name string) error {
-        children, err := AssetDir(name)
-        // File
-        if err != nil {
-                return RestoreAsset(dir, name)
-        }
-        // Dir
-        for _, child := range children {
-                err = RestoreAssets(dir, filepath.Join(name, child))
-                if err != nil {
-                        return err
-                }
-        }
-        return nil
+	children, err := AssetDir(name)
+	// File
+	if err != nil {
+		return RestoreAsset(dir, name)
+	}
+	// Dir
+	for _, child := range children {
+		err = RestoreAssets(dir, filepath.Join(name, child))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func _filePath(dir, name string) string {
-        cannonicalName := strings.Replace(name, "\\", "/", -1)
-        return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
+	cannonicalName := strings.Replace(name, "\\", "/", -1)
+	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-

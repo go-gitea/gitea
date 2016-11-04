@@ -11,7 +11,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/gogits/git-module"
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/auth"
 	"github.com/go-gitea/gitea/modules/base"
@@ -19,6 +18,7 @@ import (
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/setting"
 	"github.com/go-gitea/gitea/modules/template"
+	"github.com/gogits/git-module"
 )
 
 const (
