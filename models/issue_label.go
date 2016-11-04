@@ -15,7 +15,7 @@ import (
 
 	api "github.com/gogits/go-gogs-client"
 
-	"github.com/gogits/gogs/modules/base"
+	"github.com/go-gitea/gitea/modules/base"
 )
 
 var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")

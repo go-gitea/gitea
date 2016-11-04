@@ -13,8 +13,8 @@ import (
 
 	"github.com/urfave/cli"
 
-	"github.com/gogits/gogs/cmd"
-	"github.com/gogits/gogs/modules/setting"
+	"github.com/go-gitea/gitea/cmd"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 const APP_VER = "0.9.99.0915"

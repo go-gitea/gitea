@@ -14,7 +14,7 @@ import (
 
 	"github.com/gogits/git-module"
 
-	"github.com/gogits/gogs/modules/process"
+	"github.com/go-gitea/gitea/modules/process"
 )
 
 // Release represents a release of repository.

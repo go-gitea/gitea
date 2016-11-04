@@ -17,9 +17,9 @@ import (
 	"github.com/Unknwon/com"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/gogits/gogs/models"
-	"github.com/gogits/gogs/modules/log"
-	"github.com/gogits/gogs/modules/setting"
+	"github.com/go-gitea/gitea/models"
+	"github.com/go-gitea/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 func cleanCommand(cmd string) string {

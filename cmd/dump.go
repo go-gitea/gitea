@@ -16,8 +16,8 @@ import (
 	"github.com/Unknwon/cae/zip"
 	"github.com/urfave/cli"
 
-	"github.com/gogits/gogs/models"
-	"github.com/gogits/gogs/modules/setting"
+	"github.com/go-gitea/gitea/models"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 var CmdDump = cli.Command{

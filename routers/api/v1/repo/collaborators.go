@@ -7,8 +7,8 @@ package repo
 import (
 	api "github.com/gogits/go-gogs-client"
 
-	"github.com/gogits/gogs/models"
-	"github.com/gogits/gogs/modules/context"
+	"github.com/go-gitea/gitea/models"
+	"github.com/go-gitea/gitea/modules/context"
 )
 
 func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {

@@ -1,9 +1,9 @@
 .form {
 	.help {
 		color: #999999;
-	  padding-top: .6em;
-	  padding-bottom: .6em;
-	  display: inline-block;
+		padding-top: .6em;
+		padding-bottom: .6em;
+		display: inline-block;
 	}
 }
 .ui.attached.header {
@@ -56,7 +56,8 @@
 	form {
 		width: 700px!important;
 		.header {
-			padding-left: @input-padding+30px;
+			padding-left: 0 !important;
+			text-align: center;
 		}
 		.inline.field > label {
 			width: @input-padding;
@@ -81,6 +82,10 @@
 					}
 				}
 			}
+			.header {
+				padding-left: 0 !important;
+				text-align: center;
+			}			
 		}
 	}
 

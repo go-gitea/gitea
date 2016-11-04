@@ -7,8 +7,8 @@ package repo
 import (
 	api "github.com/gogits/go-gogs-client"
 
-	"github.com/gogits/gogs/modules/context"
-	"github.com/gogits/gogs/routers/api/v1/convert"
+	"github.com/go-gitea/gitea/modules/context"
+	"github.com/go-gitea/gitea/routers/api/v1/convert"
 )
 
 // https://github.com/gogits/go-gogs-client/wiki/Repositories#get-branch
