@@ -146,6 +146,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		repo.ExternalWikiURL = form.ExternalWikiURL
 		repo.EnableIssues = form.EnableIssues
 		repo.EnableExternalTracker = form.EnableExternalTracker
+		repo.ExternalTrackerURL = form.ExternalTrackerURL
 		repo.ExternalTrackerFormat = form.TrackerURLFormat
 		repo.ExternalTrackerStyle = form.TrackerIssueStyle
 		repo.EnablePulls = form.EnablePulls

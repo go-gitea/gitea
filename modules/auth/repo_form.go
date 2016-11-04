@@ -96,6 +96,7 @@ type RepoSettingForm struct {
 	ExternalWikiURL       string
 	EnableIssues          bool
 	EnableExternalTracker bool
+	ExternalTrackerURL    string
 	TrackerURLFormat      string
 	TrackerIssueStyle     string
 	EnablePulls           bool
