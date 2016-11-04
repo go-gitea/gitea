@@ -11,10 +11,9 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/urfave/cli"
-
 	"github.com/go-gitea/gitea/cmd"
 	"github.com/go-gitea/gitea/modules/setting"
+	"github.com/urfave/cli"
 )
 
 const APP_VER = "0.9.99.0915"
