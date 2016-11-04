@@ -8,13 +8,31 @@ It assumes you have followed the
 
 Sensitive security-related issues should be reported to [security@gitea.io](mailto:security@gitea.io).
 
+## Bug reports
+
+Please search the issues on the issue tracker with a variety of keywords to
+ensure your bug is not already reported.
+
+If unique, [open an issue](https://github.com/go-gitea/gitea/issues/new)
+and answer the questions so we can understand and reproduce the problematic
+behavior.
+
+The burden is on you to convince us that it is actually a bug in Gitea. This
+is easiest to do when you write clear, concise instructions so we can reproduce
+the behavior (even if it seems obvious). The more detailed and specific you are,
+the faster we will be able to help you. Check out
+[How to Report Bugs Effectively](http://www.chiark.greenend.org.uk/~sgtatham/bugs.html).
+
+Please be kind, remember that Gitea comes at no cost to you, and you're
+getting free help.
+
 ## Discuss your design
 
 The project welcomes submissions but please let everyone know what
 you're working on if you want to change or add something to the Gitea repositories.
 
 Before starting to write something new for the Gitea project,
-please [file an issue](https://github.com/go-gitea/gitea/issues/new).
+please [file an issue](https://github.com/go-gitea/gitea/issues/new).  
 Significant changes must go through the
 [change proposal process](https://github.com/go-gitea/proposals)
 before they can be accepted.
@@ -41,6 +59,22 @@ ALL TESTS PASSED
 Changes to Gitea must be reviewed before they are accepted,
 no matter who makes the change even if an owners or a maintainer.
 We use github's pull request workflow to do that and use [lgtm](http://lgtm.co) to ensure every PR is reviewed by at least 2 maintainers.
+
+## Sign your work
+
+The sign-off is a simple line at the end of the explanation for the patch. Your
+signature certifies that you wrote the patch or otherwise have the right to pass
+it on as an open-source patch. The rules are pretty simple: If you can certify
+[DCO](DCO), then you just add a line to every git commit message:
+
+```
+Signed-off-by: Joe Smith <joe.smith@email.com>
+```
+
+Please use your real name, we really dislike pseudonyms or anonymous
+contributions. We are in the opensource world without secrets. If you set your
+`user.name` and `user.email` git configs, you can sign your commit automatically
+with `git commit -s`.
 
 ## Contributors
 
@@ -69,7 +103,7 @@ I'm glad to be an owner of Gitea, I agree with [CONTRIBUTING](CONTRIBUTING.md). 
 
 For a honor to the owners, this document will add the history owners below:
 
-2016-11-04 ~ 2017-12-31 lunny<xiaolunwen@gmail.com> tboerger<thomas@webhippie.de> bkcsoft<kim.carlbacker@gmail.com>
+2016-11-04 ~ 2017-12-31 lunny <xiaolunwen@gmail.com> tboerger <thomas@webhippie.de> bkcsoft <kim.carlbacker@gmail.com>
 
 ## Versions
 
