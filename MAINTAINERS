@@ -1,0 +1,21 @@
+# This is the official list of people who have spent time on code review Pull Requests on the Gitea repository.
+# This document should be reviewed and approved by owners.
+#
+# The submission process automatically checks to make sure
+# that people submitting code are listed in this file (by email address).
+#
+# The agreement for individuals can be filled out on the web.
+#
+
+# Names should be added to this file like so:
+#     Individual's name <submission email address>
+#     Individual's name <submission email address> <email2> <emailN>
+#
+# An entry with multiple email addresses specifies that the
+# first address should be used in the submit logs and
+# that the other addresses should be recognized as the
+# same person when interacting with github.
+
+# Please keep the list sorted. 
+
+Lunny Xiao <xiaolunwen@gmail.com>
