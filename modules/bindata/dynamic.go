@@ -9,11 +9,29 @@ import (
 	"strings"
 )
 
-func resolveName(name string) (string, error) {
+var rootDir string
+var binData map[string] []byte
+var dirData map[string] []string
 
-	name = strings.Replace(name, "\\", "/", -1) // needed ?
+func setBinData(key string, data []byte) {
+	if binData == nil {
+		binData = make(map[string] []byte)
+	}
+	binData[key] = data
+}
 
-	// TODO: cache this
+func setDirData(key string, data []string) {
+	if dirData == nil {
+		dirData = make(map[string] []string)
+	}
+	dirData[key] = data
+}
+
+func getRootDir() (string, error) {
+	if rootDir != "" {
+		return rootDir, nil
+	}
+
 	dir, err := filepath.Abs(".")
 	if err != nil {
 		return "", fmt.Errorf("%v", err)
@@ -30,6 +48,18 @@ func resolveName(name string) (string, error) {
 			return "", fmt.Errorf("Could not find directory containing 'conf'")
 		}
 		dir = newdir
+	}
+	rootDir = dir
+	return dir, nil
+}
+
+func resolveName(name string) (string, error) {
+
+	name = strings.Replace(name, "\\", "/", -1) // needed ?
+
+	dir, err := getRootDir()
+	if err != nil {
+		return "", fmt.Errorf("%v", err)
 	}
 
 	return filepath.Join(dir,name), nil
@@ -56,12 +86,15 @@ func Asset(name string) ([]byte, error) {
 		return nil, fmt.Errorf("Asset %s can't read by error: %v", name, err)
 	}
 
-	// TODO: cache this
-	dat, err := ioutil.ReadFile(canonicalName)
+	dat := binData[canonicalName]
+	if dat != nil { return dat, nil }
 
+	dat, err = ioutil.ReadFile(canonicalName)
 	if err != nil {
 		return nil, fmt.Errorf("Asset %s can't read by error: %v", name, err)
 	}
+
+	setBinData(canonicalName, dat)
 	return dat, nil
 }
 
@@ -84,16 +117,19 @@ func AssetDir(name string) ([]string, error) {
 		return nil, fmt.Errorf("Asset %s can't read by error: %v", name, err)
 	}
 
-	// TODO: cache these
+	rv := dirData[canonicalName]
+	if rv != nil { return rv, nil }
+
 	files, err := ioutil.ReadDir(canonicalName)
 	if err != nil {
 		return nil, fmt.Errorf("Error reading directory %s: ", err)
 	}
 
-	rv := make([]string, 0, len(files))
+	rv = make([]string, 0, len(files))
 	for _, f := range files {
 		rv = append(rv, f.Name())
 	}
 
+	setDirData(canonicalName, rv)
 	return rv, nil
 }
