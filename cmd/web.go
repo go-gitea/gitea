@@ -15,13 +15,13 @@ import (
 	"strings"
 
 	"code.gitea.io/git"
+	"code.gitea.io/gitea/conf"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/bindata"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/template"
+	"code.gitea.io/gitea/public"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/admin"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/routers/org"
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
+	"code.gitea.io/gitea/templates"
 	"github.com/go-macaron/bindata"
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
@@ -86,17 +87,10 @@ func newMacaron() *macaron.Macaron {
 	if setting.Protocol == setting.FCGI {
 		m.SetURLPrefix(setting.AppSubURL)
 	}
-	m.Use(macaron.Static(
-		"public",
-		macaron.StaticOptions{
+	m.Use(public.Static(
+		&public.Options{
+			Directory:   path.Join(setting.StaticRootPath, "public"),
 			SkipLogging: setting.DisableRouterLog,
-			FileSystem: bindata.Static(bindata.Options{
-				Asset:      public.Asset,
-				AssetDir:   public.AssetDir,
-				AssetInfo:  public.AssetInfo,
-				AssetNames: public.AssetNames,
-				Prefix:     "",
-			}),
 		},
 	))
 	m.Use(macaron.Static(
@@ -107,23 +101,23 @@ func newMacaron() *macaron.Macaron {
 		},
 	))
 
-	templateOptions := bindata.Options{
-		Asset:      templates.Asset,
-		AssetDir:   templates.AssetDir,
-		AssetInfo:  templates.AssetInfo,
-		AssetNames: templates.AssetNames,
-		Prefix:     "",
-	}
+	m.Use(templates.Renderer(
+		&templates.Options{
+			Directory:         path.Join(setting.StaticRootPath, "templates"),
+			AppendDirectories: []string{path.Join(setting.CustomPath, "templates")},
+		},
+	))
 
-	funcMap := template.NewFuncMap()
-	m.Use(macaron.Renderer(macaron.RenderOptions{
-		AppendDirectories:  []string{path.Join(setting.CustomPath, "templates")},
-		Funcs:              funcMap,
-		IndentJSON:         macaron.Env != macaron.PROD,
-		TemplateFileSystem: bindata.Templates(templateOptions),
-	}))
-	models.InitMailRender(templateOptions,
-		path.Join(setting.CustomPath, "templates/mail"), funcMap)
+	// templateOptions := bindata.Options{
+	// 	Asset:      templates.Asset,
+	// 	AssetDir:   templates.AssetDir,
+	// 	AssetInfo:  templates.AssetInfo,
+	// 	AssetNames: templates.AssetNames,
+	// 	Prefix:     "",
+	// }
+
+	// models.InitMailRender(templateOptions,
+	// 	path.Join(setting.CustomPath, "templates/mail"), funcMap)
 
 	localeNames, err := conf.AssetDir("locale")
 	if err != nil {
