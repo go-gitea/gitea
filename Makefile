@@ -36,6 +36,7 @@ all: clean test build
 clean:
 	go clean -i ./...
 	rm -rf $(BIN) $(DIST)
+	rm -rf ./modules/bindata/bindata.go
 
 .PHONY: deps
 deps:
