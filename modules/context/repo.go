@@ -11,14 +11,12 @@ import (
 	"strings"
 
 	"github.com/Unknwon/com"
-	"gopkg.in/editorconfig/editorconfig-core-go.v1"
-	"gopkg.in/macaron.v1"
-
-	"github.com/gogits/git-module"
-
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/setting"
+	git "github.com/gogits/git-module"
+	editorconfig "gopkg.in/editorconfig/editorconfig-core-go.v1"
+	macaron "gopkg.in/macaron.v1"
 )
 
 type PullRequest struct {

@@ -12,17 +12,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-macaron/cache"
-	"github.com/go-macaron/csrf"
-	"github.com/go-macaron/i18n"
-	"github.com/go-macaron/session"
-	"gopkg.in/macaron.v1"
-
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/auth"
 	"github.com/go-gitea/gitea/modules/base"
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/setting"
+	"github.com/go-macaron/cache"
+	"github.com/go-macaron/csrf"
+	"github.com/go-macaron/i18n"
+	"github.com/go-macaron/session"
+	macaron "gopkg.in/macaron.v1"
 )
 
 // Context represents context of a request.

@@ -17,17 +17,15 @@ import (
 	"strings"
 
 	"github.com/Unknwon/com"
-	"github.com/sergi/go-diff/diffmatchpatch"
-	"golang.org/x/net/html/charset"
-	"golang.org/x/text/transform"
-
-	"github.com/gogits/git-module"
-
 	"github.com/go-gitea/gitea/modules/base"
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/process"
 	"github.com/go-gitea/gitea/modules/setting"
 	"github.com/go-gitea/gitea/modules/template/highlight"
+	git "github.com/gogits/git-module"
+	"github.com/sergi/go-diff/diffmatchpatch"
+	"golang.org/x/net/html/charset"
+	"golang.org/x/text/transform"
 )
 
 type DiffLineType uint8

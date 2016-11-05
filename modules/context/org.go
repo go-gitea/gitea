@@ -7,10 +7,9 @@ package context
 import (
 	"strings"
 
-	"gopkg.in/macaron.v1"
-
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/setting"
+	macaron "gopkg.in/macaron.v1"
 )
 
 type Organization struct {

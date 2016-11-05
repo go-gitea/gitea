@@ -9,11 +9,10 @@ import (
 	"strings"
 
 	"github.com/Unknwon/paginater"
-	"gopkg.in/macaron.v1"
-
 	"github.com/go-gitea/gitea/modules/base"
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/setting"
+	macaron "gopkg.in/macaron.v1"
 )
 
 type APIContext struct {

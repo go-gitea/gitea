@@ -9,10 +9,9 @@ import (
 	"strings"
 
 	"github.com/Unknwon/com"
-	"github.com/go-macaron/binding"
-	"gopkg.in/macaron.v1"
-
 	"github.com/go-gitea/gitea/models"
+	"github.com/go-macaron/binding"
+	macaron "gopkg.in/macaron.v1"
 )
 
 // _______________________________________    _________.______________________ _______________.___.

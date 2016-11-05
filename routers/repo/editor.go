@@ -18,7 +18,7 @@ import (
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/setting"
 	"github.com/go-gitea/gitea/modules/template"
-	"github.com/gogits/git-module"
+	git "github.com/gogits/git-module"
 )
 
 const (

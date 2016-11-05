@@ -12,15 +12,13 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-
-	"github.com/gogits/git-module"
-	api "github.com/gogits/go-gogs-client"
-
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/process"
 	"github.com/go-gitea/gitea/modules/setting"
 	"github.com/go-gitea/gitea/modules/sync"
+	"github.com/go-xorm/xorm"
+	git "github.com/gogits/git-module"
+	api "github.com/gogits/go-gogs-client"
 )
 
 var PullRequestQueue = sync.NewUniqueQueue(setting.Repository.PullRequestQueueLength)

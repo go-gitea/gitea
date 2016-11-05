@@ -21,19 +21,17 @@ import (
 
 	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-	"github.com/mcuadros/go-version"
-	"gopkg.in/ini.v1"
-
-	git "github.com/gogits/git-module"
-	api "github.com/gogits/go-gogs-client"
-
 	"github.com/go-gitea/gitea/modules/bindata"
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/markdown"
 	"github.com/go-gitea/gitea/modules/process"
 	"github.com/go-gitea/gitea/modules/setting"
 	"github.com/go-gitea/gitea/modules/sync"
+	"github.com/go-xorm/xorm"
+	git "github.com/gogits/git-module"
+	api "github.com/gogits/go-gogs-client"
+	version "github.com/mcuadros/go-version"
+	ini "gopkg.in/ini.v1"
 )
 
 const (

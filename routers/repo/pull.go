@@ -11,15 +11,13 @@ import (
 	"strings"
 
 	"github.com/Unknwon/com"
-
-	"github.com/gogits/git-module"
-
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/auth"
 	"github.com/go-gitea/gitea/modules/base"
 	"github.com/go-gitea/gitea/modules/context"
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/setting"
+	git "github.com/gogits/git-module"
 )
 
 const (
