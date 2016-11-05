@@ -4,6 +4,7 @@ package bindata
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"io/ioutil"
 	"strings"
@@ -32,7 +33,12 @@ func getRootDir() (string, error) {
 		return rootDir, nil
 	}
 
-	dir, err := filepath.Abs(".")
+	dir := os.Getenv("GITEA_ROOT")
+	if dir == "" {
+		dir = "."
+	}
+
+	dir, err := filepath.Abs(dir)
 	if err != nil {
 		return "", fmt.Errorf("%v", err)
 	}
@@ -45,10 +51,13 @@ func getRootDir() (string, error) {
 		// TODO: check that the error is a "file not found" error ?
 		newdir := filepath.Join(dir, "..")
 		if dir == newdir {
-			return "", fmt.Errorf("Could not find directory containing 'conf'")
+			return "", fmt.Errorf("Could not find directory containing 'conf', try setting GITEA_ROOT")
 		}
 		dir = newdir
 	}
+
+	fmt.Println("WARNING: this deveopment build of Gitea depends on a directory tree, we'll be using the one in ", dir)
+
 	rootDir = dir
 	return dir, nil
 }
