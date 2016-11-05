@@ -26,8 +26,6 @@
 5. If you're interested in using APIs, we have experimental support with [documentation](https://github.com/gogits/go-gogs-client/wiki).
 6. If your team/company is using Gogs and would like to put your logo on [our website](https://gogs.io), contact us by any means.
 
-[简体中文](README_ZH.md)
-
 ## Purpose
 
 The goal of this project is to make the easiest, fastest, and most painless way of setting up a self-hosted Git service. With Go, this can be done with an independent binary distribution across **ALL platforms** that Go supports, including Linux, Mac OS X, Windows and ARM.

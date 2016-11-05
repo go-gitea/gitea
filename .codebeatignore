@@ -1,7 +1,0 @@
-conf/**
-docker/**
-modules/bindata/**
-packager/**
-public/**
-scripts/**
-templates/**

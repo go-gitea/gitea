@@ -25,10 +25,11 @@ import (
 	"github.com/urfave/cli"
 )
 
+// CmdCert represents the available cert sub-command.
 var CmdCert = cli.Command{
 	Name:  "cert",
 	Usage: "Generate self-signed certificate",
-	Description: `Generate a self-signed X.509 certificate for a TLS server. 
+	Description: `Generate a self-signed X.509 certificate for a TLS server.
 Outputs to 'cert.pem' and 'key.pem' and will overwrite existing files.`,
 	Action: runCert,
 	Flags: []cli.Flag{
