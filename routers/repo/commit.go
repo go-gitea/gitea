@@ -179,11 +179,6 @@ func Diff(ctx *context.Context) {
 		}
 	}
 
-	setEditorconfigIfExists(ctx)
-	if ctx.Written() {
-		return
-	}
-
 	ctx.Data["CommitID"] = commitID
 	ctx.Data["IsSplitStyle"] = ctx.Query("style") == "split"
 	ctx.Data["Username"] = userName

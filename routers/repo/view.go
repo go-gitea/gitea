@@ -245,11 +245,6 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	setEditorconfigIfExists(ctx)
-	if ctx.Written() {
-		return
-	}
-
 	var treeNames []string
 	paths := make([]string, 0, 5)
 	if len(ctx.Repo.TreePath) > 0 {

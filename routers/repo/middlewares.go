@@ -8,7 +8,7 @@ import (
 	"github.com/gogits/git-module"
 )
 
-func setEditorconfigIfExists(ctx *context.Context) {
+func SetEditorconfigIfExists(ctx *context.Context) {
 	ec, err := ctx.Repo.GetEditorconfig()
 
 	if err != nil && !git.IsErrNotExist(err) {
