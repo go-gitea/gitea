@@ -3,6 +3,9 @@
 *.a
 *.so
 
+# Generated files
+modules/bindata/bindata.go
+
 # Folders
 _obj
 _test

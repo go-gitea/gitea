@@ -34,6 +34,7 @@ all: build
 clean:
 	go clean -i ./...
 	rm -rf $(EXECUTABLE) $(DIST)
+	rm -rf ./modules/bindata/bindata.go
 
 .PHONY: fmt
 fmt:
@@ -116,7 +117,7 @@ modules/bindata/bindata.go: $(BINDATA)
 	@which go-bindata > /dev/null; if [ $$? -ne 0 ]; then \
 		go get -u github.com/jteeuwen/go-bindata/...; \
 	fi
-	go-bindata -o=$@ -ignore="\\.go|README.md|TRANSLATORS" -pkg=bindata conf/...
+	go-bindata -tags bindata -o=$@ -ignore="\\.go|README.md|TRANSLATORS" -pkg=bindata conf/...
 	go fmt $@
 	sed -i.bak 's/confLocaleLocale_/confLocaleLocale/' $@
 	rm $@.bak
