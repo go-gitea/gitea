@@ -22,8 +22,8 @@ import (
 	_ "github.com/go-macaron/cache/redis"
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis"
-	"strk.kbt.io/projects/go/libravatar"
 	"gopkg.in/ini.v1"
+	"strk.kbt.io/projects/go/libravatar"
 
 	"github.com/go-gitea/gitea/modules/bindata"
 	"github.com/go-gitea/gitea/modules/log"

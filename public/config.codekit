@@ -11,11 +11,11 @@
 		"outputPathIsOutsideProject": 0,
 		"outputPathIsSetByUser": 0
 		},
-	"\/css\/gogs.css": {
+	"\/css\/index.css": {
 		"fileType": 16,
 		"ignore": 1,
 		"ignoreWasSetByUser": 0,
-		"inputAbbreviatedPath": "\/css\/gogs.css",
+		"inputAbbreviatedPath": "\/css\/index.css",
 		"outputAbbreviatedPath": "No Output Path",
 		"outputPathIsOutsideProject": 0,
 		"outputPathIsSetByUser": 0
@@ -128,11 +128,11 @@
 		"outputPathIsSetByUser": 0,
 		"processed": 1
 		},
-	"\/js\/gogs.js": {
+	"\/js\/index.js": {
 		"fileType": 64,
 		"ignore": 1,
 		"ignoreWasSetByUser": 1,
-		"inputAbbreviatedPath": "\/js\/gogs.js",
+		"inputAbbreviatedPath": "\/js\/index.js",
 		"outputAbbreviatedPath": "\/js\/min\/gogs-min.js",
 		"outputPathIsOutsideProject": 0,
 		"outputPathIsSetByUser": 0,
@@ -421,7 +421,7 @@
 		"strictMath": 0,
 		"strictUnits": 0
 		},
-	"\/less\/gogs.less": {
+	"\/less\/index.less": {
 		"allowInsecureImports": 0,
 		"createSourceMap": 0,
 		"disableJavascript": 0,
@@ -429,8 +429,8 @@
 		"ieCompatibility": 1,
 		"ignore": 0,
 		"ignoreWasSetByUser": 1,
-		"inputAbbreviatedPath": "\/less\/gogs.less",
-		"outputAbbreviatedPath": "\/css\/gogs.css",
+		"inputAbbreviatedPath": "\/less\/index.less",
+		"outputAbbreviatedPath": "\/css\/index.css",
 		"outputPathIsOutsideProject": 0,
 		"outputPathIsSetByUser": 1,
 		"outputStyle": 0,

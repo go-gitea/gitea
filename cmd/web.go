@@ -48,6 +48,7 @@ import (
 	"github.com/go-gitea/gitea/routers/user"
 )
 
+// CmdWeb represents the available web sub-command.
 var CmdWeb = cli.Command{
 	Name:  "web",
 	Usage: "Start Gogs web server",
@@ -60,6 +61,7 @@ and it takes care of all the other things for you`,
 	},
 }
 
+// VerChecker is a listing of required dependency versions.
 type VerChecker struct {
 	ImportPath string
 	Version    func() string
@@ -99,7 +101,7 @@ func checkVersion() {
 	for _, c := range checkers {
 		if !version.Compare(c.Version(), c.Expected, ">=") {
 			log.Fatal(4, `Dependency outdated!
-Package '%s' current version (%s) is below requirement (%s), 
+Package '%s' current version (%s) is below requirement (%s),
 please use following command to update this package and recompile Gogs:
 go get -u %[1]s`, c.ImportPath, c.Version(), c.Expected)
 		}
@@ -518,7 +520,8 @@ func runWeb(ctx *cli.Context) error {
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
 		})
 
-		m.Combo("/compare/*", repo.MustAllowPulls).Get(repo.CompareAndPullRequest).
+		m.Combo("/compare/*", repo.MustAllowPulls, repo.SetEditorconfigIfExists).
+			Get(repo.CompareAndPullRequest).
 			Post(bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
 
 		m.Group("", func() {
@@ -577,15 +580,15 @@ func runWeb(ctx *cli.Context) error {
 
 		m.Group("/pulls/:index", func() {
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
-			m.Get("/files", context.RepoRef(), repo.ViewPullFiles)
+			m.Get("/files", context.RepoRef(), repo.SetEditorconfigIfExists, repo.ViewPullFiles)
 			m.Post("/merge", reqRepoWriter, repo.MergePullRequest)
 		}, repo.MustAllowPulls)
 
 		m.Group("", func() {
-			m.Get("/src/*", repo.Home)
+			m.Get("/src/*", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("/raw/*", repo.SingleDownload)
 			m.Get("/commits/*", repo.RefCommits)
-			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.Diff)
+			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.SetEditorconfigIfExists, repo.Diff)
 			m.Get("/forks", repo.Forks)
 		}, context.RepoRef())
 		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)", repo.RawDiff)
@@ -599,8 +602,8 @@ func runWeb(ctx *cli.Context) error {
 
 	m.Group("/:username", func() {
 		m.Group("/:reponame", func() {
-			m.Get("", repo.Home)
-			m.Get("\\.git$", repo.Home)
+			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
+			m.Get("\\.git$", repo.SetEditorconfigIfExists, repo.Home)
 		}, ignSignIn, context.RepoAssignment(true), context.RepoRef())
 
 		m.Group("/:reponame", func() {
@@ -653,7 +656,7 @@ func runWeb(ctx *cli.Context) error {
 		os.Remove(listenAddr)
 
 		var listener *net.UnixListener
-		listener, err = net.ListenUnix("unix", &net.UnixAddr{listenAddr, "unix"})
+		listener, err = net.ListenUnix("unix", &net.UnixAddr{Name: listenAddr, Net: "unix"})
 		if err != nil {
 			break // Handle error after switch
 		}

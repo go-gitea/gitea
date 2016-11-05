@@ -179,13 +179,6 @@ func Diff(ctx *context.Context) {
 		}
 	}
 
-	ec, err := ctx.Repo.GetEditorconfig()
-	if err != nil && !git.IsErrNotExist(err) {
-		ctx.Handle(500, "ErrGettingEditorconfig", err)
-		return
-	}
-	ctx.Data["Editorconfig"] = ec
-
 	ctx.Data["CommitID"] = commitID
 	ctx.Data["IsSplitStyle"] = ctx.Query("style") == "split"
 	ctx.Data["Username"] = userName

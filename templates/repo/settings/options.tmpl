@@ -162,6 +162,11 @@
 							</div>
 							<div class="field {{if not .Repository.EnableExternalTracker}}disabled{{end}}" id="external_issue_box">
 								<div class="field">
+									<label for="external_tracker_url">{{.i18n.Tr "repo.settings.external_tracker_url"}}</label>
+									<input id="external_tracker_url" name="external_tracker_url" type="url" value="{{.Repository.ExternalTrackerURL}}">
+									<p class="help">{{.i18n.Tr "repo.settings.external_tracker_url_desc"}}</p>
+								</div>
+								<div class="field">
 									<label for="tracker_url_format">{{.i18n.Tr "repo.settings.tracker_url_format"}}</label>
 									<input id="tracker_url_format" name="tracker_url_format" type="url" value="{{.Repository.ExternalTrackerFormat}}" placeholder="e.g. https://github.com/{user}/{repo}/issues/{index}">
 									<p class="help">{{.i18n.Tr "repo.settings.tracker_url_format_desc" | Str2html}}</p>

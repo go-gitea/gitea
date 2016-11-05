@@ -1,7 +1,0 @@
-{
-	"GOLANG": {
-		"TOTAL_LOC": [500, 999, 1999, 9999],
-		"TOO_MANY_FUNCTIONS": [50, 99, 199, 999],
-		"TOO_MANY_IVARS": [20, 50, 70, 99]
-	}
-}

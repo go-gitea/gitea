@@ -186,6 +186,7 @@ type Repository struct {
 	ExternalWikiURL       string
 	EnableIssues          bool `xorm:"NOT NULL DEFAULT true"`
 	EnableExternalTracker bool
+	ExternalTrackerURL    string
 	ExternalTrackerFormat string
 	ExternalTrackerStyle  string
 	ExternalMetas         map[string]string `xorm:"-"`
