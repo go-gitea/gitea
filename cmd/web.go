@@ -520,7 +520,8 @@ func runWeb(ctx *cli.Context) error {
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
 		})
 
-		m.Combo("/compare/*", repo.MustAllowPulls).Get(repo.CompareAndPullRequest).
+		m.Combo("/compare/*", repo.MustAllowPulls, repo.SetEditorconfigIfExists).
+			Get(repo.CompareAndPullRequest).
 			Post(bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
 
 		m.Group("", func() {
@@ -579,15 +580,15 @@ func runWeb(ctx *cli.Context) error {
 
 		m.Group("/pulls/:index", func() {
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
-			m.Get("/files", context.RepoRef(), repo.ViewPullFiles)
+			m.Get("/files", context.RepoRef(), repo.SetEditorconfigIfExists, repo.ViewPullFiles)
 			m.Post("/merge", reqRepoWriter, repo.MergePullRequest)
 		}, repo.MustAllowPulls)
 
 		m.Group("", func() {
-			m.Get("/src/*", repo.Home)
+			m.Get("/src/*", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("/raw/*", repo.SingleDownload)
 			m.Get("/commits/*", repo.RefCommits)
-			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.Diff)
+			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.SetEditorconfigIfExists, repo.Diff)
 			m.Get("/forks", repo.Forks)
 		}, context.RepoRef())
 		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)", repo.RawDiff)
@@ -601,8 +602,8 @@ func runWeb(ctx *cli.Context) error {
 
 	m.Group("/:username", func() {
 		m.Group("/:reponame", func() {
-			m.Get("", repo.Home)
-			m.Get("\\.git$", repo.Home)
+			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
+			m.Get("\\.git$", repo.SetEditorconfigIfExists, repo.Home)
 		}, ignSignIn, context.RepoAssignment(true), context.RepoRef())
 
 		m.Group("/:reponame", func() {
