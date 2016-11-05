@@ -245,12 +245,10 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	ec, err := ctx.Repo.GetEditorconfig()
-	if err != nil && !git.IsErrNotExist(err) {
-		ctx.Handle(500, "Repo.GetEditorconfig", err)
+	setEditorconfigIfExists(ctx)
+	if ctx.Written() {
 		return
 	}
-	ctx.Data["Editorconfig"] = ec
 
 	var treeNames []string
 	paths := make([]string, 0, 5)

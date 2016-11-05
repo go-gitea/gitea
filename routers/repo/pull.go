@@ -368,12 +368,10 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	ec, err := ctx.Repo.GetEditorconfig()
-	if err != nil && !git.IsErrNotExist(err) {
-		ctx.Handle(500, "ErrGettingEditorconfig", err)
+	setEditorconfigIfExists(ctx)
+	if ctx.Written() {
 		return
 	}
-	ctx.Data["Editorconfig"] = ec
 
 	headTarget := path.Join(pull.HeadUserName, pull.HeadRepo.Name)
 	ctx.Data["IsSplitStyle"] = ctx.Query("style") == "split"
@@ -627,12 +625,10 @@ func CompareAndPullRequest(ctx *context.Context) {
 		}
 	}
 
-	ec, err := ctx.Repo.GetEditorconfig()
-	if err != nil && !git.IsErrNotExist(err) {
-		ctx.Handle(500, "ErrGettingEditorconfig", err)
+	setEditorconfigIfExists(ctx)
+	if ctx.Written() {
 		return
 	}
-	ctx.Data["Editorconfig"] = ec
 
 	ctx.HTML(200, COMPARE_PULL)
 }
