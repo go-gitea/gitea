@@ -38,7 +38,7 @@ import (
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
 	"github.com/go-xorm/xorm"
-	git "github.com/go-gitea/git"
+	"github.com/go-gitea/git"
 	gogs "github.com/gogits/go-gogs-client"
 	version "github.com/mcuadros/go-version"
 	"github.com/urfave/cli"

@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
-	git "github.com/go-gitea/git"
+	"github.com/go-gitea/git"
 	gouuid "github.com/satori/go.uuid"
 	"github.com/urfave/cli"
 

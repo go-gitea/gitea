@@ -21,7 +21,7 @@ import (
 	"github.com/go-gitea/gitea/modules/setting"
 	"github.com/go-gitea/gitea/modules/template"
 	"github.com/go-gitea/gitea/modules/template/highlight"
-	git "github.com/go-gitea/git"
+	"github.com/go-gitea/git"
 )
 
 const (

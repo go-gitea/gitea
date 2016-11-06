@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/context"
-	git "github.com/go-gitea/git"
+	"github.com/go-gitea/git"
 )
 
 func SetEditorconfigIfExists(ctx *context.Context) {

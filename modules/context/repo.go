@@ -14,7 +14,7 @@ import (
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/setting"
-	git "github.com/go-gitea/git"
+	"github.com/go-gitea/git"
 	editorconfig "gopkg.in/editorconfig/editorconfig-core-go.v1"
 	macaron "gopkg.in/macaron.v1"
 )

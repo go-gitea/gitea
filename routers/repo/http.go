@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	git "github.com/go-gitea/git"
+	"github.com/go-gitea/git"
 
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/base"
