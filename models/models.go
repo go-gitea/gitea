@@ -79,7 +79,7 @@ func init() {
 		new(Mirror), new(Release), new(LoginSource), new(Webhook),
 		new(UpdateTask), new(HookTask),
 		new(Team), new(OrgUser), new(TeamUser), new(TeamRepo),
-		new(Notice), new(EmailAddress))
+		new(Notice), new(EmailAddress), new(LFSMetaObject))
 
 	gonicNames := []string{"SSL", "UID"}
 	for _, name := range gonicNames {
