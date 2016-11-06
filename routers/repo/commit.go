@@ -9,11 +9,11 @@ import (
 	"path"
 
 	"github.com/Unknwon/paginater"
+	"github.com/go-gitea/git"
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/base"
 	"github.com/go-gitea/gitea/modules/context"
 	"github.com/go-gitea/gitea/modules/setting"
-	"github.com/go-gitea/git"
 )
 
 const (
@@ -158,7 +158,9 @@ func Diff(ctx *context.Context) {
 		}
 		return
 	}
-
+	if len(commitID) != 40 {
+		commitID = commit.ID.String()
+	}
 	diff, err := models.GetDiffCommit(models.RepoPath(userName, repoName),
 		commitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
