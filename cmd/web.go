@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/public"
@@ -29,6 +30,7 @@ import (
 	"code.gitea.io/gitea/routers/org"
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
+
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/captcha"
@@ -568,6 +570,29 @@ func runWeb(ctx *cli.Context) error {
 		})
 	})
 	// ***** END: Repository *****
+
+	// ***** START: LFS *****
+
+	if setting.LFS.StartServer {
+
+		lfsHandler := lfs.NewLFSHandler()
+
+		m.Group("/lfs", func() {
+
+			m.Post("/:user/:repo/objects/batch", lfsHandler.BatchHandler) // TODO MetaMatcher
+			m.Any("/:user/:repo/objects/:oid", lfsHandler.ObjectOidHandler)
+
+			m.Post("/:user/:repo/objects", lfsHandler.PostHandler) // TODO MetaMatcher
+			m.Post("/objects/batch", lfsHandler.BatchHandler)      // TODO MetaMatcher
+
+			m.Any("/objects/:oid", lfsHandler.ObjectOidHandler)
+			m.Post("/objects", lfsHandler.PostHandler) // TODO MetaMatcher
+
+		}, ignSignInAndCsrf)
+
+	}
+
+	// ***** END: LFS *****
 
 	m.Group("/api", func() {
 		apiv1.RegisterRoutes(m)
