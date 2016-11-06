@@ -5,10 +5,12 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/boltdb/bolt"
+	"github.com/dgrijalva/jwt-go"
 )
 
 // MetaStore implements a metadata storage. It stores user credentials and Meta information
@@ -52,7 +54,7 @@ func NewMetaStore(dbFile string) (*MetaStore, error) {
 // Get retrieves the Meta information for an object given information in
 // RequestVars
 func (s *MetaStore) Get(v *RequestVars) (*MetaObject, error) {
-	if !s.authenticate(v.Authorization) {
+	if !s.authenticate(v.Authorization, false) {
 		return nil, newAuthError()
 	}
 	meta, error := s.UnsafeGet(v)
@@ -89,7 +91,7 @@ func (s *MetaStore) UnsafeGet(v *RequestVars) (*MetaObject, error) {
 
 // Put writes meta information from RequestVars to the store.
 func (s *MetaStore) Put(v *RequestVars) (*MetaObject, error) {
-	if !s.authenticate(v.Authorization) {
+	if !s.authenticate(v.Authorization, true) {
 		return nil, newAuthError()
 	}
 
@@ -130,7 +132,7 @@ func (s *MetaStore) Put(v *RequestVars) (*MetaObject, error) {
 
 // Delete removes the meta information from RequestVars to the store.
 func (s *MetaStore) Delete(v *RequestVars) error {
-	if !s.authenticate(v.Authorization) {
+	if !s.authenticate(v.Authorization, true) {
 		return newAuthError()
 	}
 
@@ -242,13 +244,17 @@ func (s *MetaStore) Objects() ([]*MetaObject, error) {
 
 // authenticate uses the authorization string to determine whether
 // or not to proceed. This server assumes an HTTP Basic auth format.
-func (s *MetaStore) authenticate(authorization string) bool {
+func (s *MetaStore) authenticate(authorization string, requireWrite bool) bool {
 	if Config.IsPublic() {
 		return true
 	}
 
 	if authorization == "" {
 		return false
+	}
+
+	if s.authenticateToken(authorization, requireWrite) {
+		return true
 	}
 
 	if !strings.HasPrefix(authorization, "Basic ") {
@@ -288,6 +294,34 @@ func (s *MetaStore) authenticate(authorization string) bool {
 		return true
 	}
 	return false
+}
+
+func (s *MetaStore) authenticateToken(authorization string, requireWrite bool) bool {
+	if !strings.HasPrefix(authorization, "Bearer ") {
+		return false
+	}
+
+	token, err := jwt.Parse(authorization[7:], func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return Config.DecodeSecret()
+	})
+	if err != nil {
+		return false
+	}
+	claims, claimsOk := token.Claims.(jwt.MapClaims)
+	if !token.Valid || !claimsOk {
+		return false
+	}
+
+	opstr, ok := claims["op"].(string)
+	if !ok {
+		return false
+	}
+	op := strings.ToLower(strings.TrimSpace(opstr))
+	status := op == "upload" || (op == "download" && !requireWrite)
+	return status
 }
 
 type authError struct {
