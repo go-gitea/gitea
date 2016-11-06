@@ -18,6 +18,7 @@
 					<table class="ui very basic striped table">
 						<thead>
 							<tr>
+								<th>ID</th>
 								<th>{{.i18n.Tr "admin.users.name"}}</th>
 								<th>{{.i18n.Tr "email"}}</th>
 								<th>{{.i18n.Tr "admin.users.activated"}}</th>
@@ -30,6 +31,7 @@
 						<tbody>
 							{{range .Users}}
 								<tr>
+									<td>{{.ID}}</td>
 									<td><a href="{{AppSubUrl}}/{{.Name}}">{{.Name}}</a></td>
 									<td><span class="text truncate email">{{.Email}}</span></td>
 									<td><i class="fa fa{{if .IsActive}}-check{{end}}-square-o"></i></td>
