@@ -5,7 +5,10 @@
 package setting
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"net/mail"
 	"net/url"
 	"os"
@@ -87,6 +90,13 @@ var (
 		KeygenPath          string         `ini:"SSH_KEYGEN_PATH"`
 		MinimumKeySizeCheck bool           `ini:"-"`
 		MinimumKeySizes     map[string]int `ini:"-"`
+	}
+
+	LFS struct {
+		StartServer     bool   `ini:"LFS_START_SERVER"`
+		ContentPath     string `ini:"LFS_CONTENT_PATH"`
+		JWTSecretBase64 string `ini:"LFS_JWT_SECRET"`
+		JWTSecretBytes  []byte `ini:"-"`
 	}
 
 	// Security settings
@@ -580,6 +590,27 @@ please consider changing to GITEA_CUSTOM`)
 	for _, key := range minimumKeySizes {
 		if key.MustInt() != -1 {
 			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
+		}
+	}
+
+	if err = Cfg.Section("server").MapTo(&LFS); err != nil {
+		log.Fatal(4, "Fail to map LFS settings: %v", err)
+	}
+
+	if LFS.StartServer {
+		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
+			log.Fatal(4, "Fail to create '%s': %v", LFS.ContentPath, err)
+		}
+
+		LFS.JWTSecretBytes = make([]byte, 32)
+		n, err := base64.StdEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
+
+		if err != nil || n != 32 {
+			log.Warn("Failed loading LFS JWT secret, generating runtime secret key")
+			_, err = io.ReadFull(rand.Reader, LFS.JWTSecretBytes)
+			if err != nil {
+				log.Fatal(4, "Error generating temporary JWT secret for LFS server: %v", err)
+			}
 		}
 	}
 
