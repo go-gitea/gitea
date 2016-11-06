@@ -1,9 +1,10 @@
-package main
+package lfs
 
 import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"github.com/go-gitea/gitea/models"
 	"io"
 	"os"
 	"path/filepath"
@@ -30,7 +31,7 @@ func NewContentStore(base string) (*ContentStore, error) {
 
 // Get takes a Meta object and retreives the content from the store, returning
 // it as an io.Reader. If fromByte > 0, the reader starts from that byte
-func (s *ContentStore) Get(meta *MetaObject, fromByte int64) (io.Reader, error) {
+func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.Reader, error) {
 	path := filepath.Join(s.basePath, transformKey(meta.Oid))
 
 	f, err := os.Open(path)
@@ -44,7 +45,7 @@ func (s *ContentStore) Get(meta *MetaObject, fromByte int64) (io.Reader, error) 
 }
 
 // Put takes a Meta object and an io.Reader and writes the content to the store.
-func (s *ContentStore) Put(meta *MetaObject, r io.Reader) error {
+func (s *ContentStore) Put(meta *models.LFSMetaObject, r io.Reader) error {
 	path := filepath.Join(s.basePath, transformKey(meta.Oid))
 	tmpPath := path + ".tmp"
 
@@ -85,7 +86,7 @@ func (s *ContentStore) Put(meta *MetaObject, r io.Reader) error {
 }
 
 // Exists returns true if the object exists in the content store.
-func (s *ContentStore) Exists(meta *MetaObject) bool {
+func (s *ContentStore) Exists(meta *models.LFSMetaObject) bool {
 	path := filepath.Join(s.basePath, transformKey(meta.Oid))
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return false

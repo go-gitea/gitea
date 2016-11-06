@@ -1,19 +1,27 @@
-package main
+package lfs
 
 import (
-	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gorilla/context"
-	"github.com/gorilla/mux"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/go-gitea/gitea/models"
+	"github.com/go-gitea/gitea/modules/context"
+	"github.com/go-gitea/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/setting"
+	"gopkg.in/macaron.v1"
+)
+
+const (
+	contentMediaType = "application/vnd.git-lfs"
+	metaMediaType    = contentMediaType + "+json"
 )
 
 // RequestVars contain variables from the HTTP request. Variables from routing, json body decoding, and
@@ -31,13 +39,6 @@ type BatchVars struct {
 	Transfers []string       `json:"transfers,omitempty"`
 	Operation string         `json:"operation"`
 	Objects   []*RequestVars `json:"objects"`
-}
-
-// MetaObject is object metadata as seen by the object and metadata stores.
-type MetaObject struct {
-	Oid      string `json:"oid"`
-	Size     int64  `json:"size"`
-	Existing bool
 }
 
 type BatchResponse struct {
@@ -72,11 +73,7 @@ func (v *RequestVars) ObjectLink() string {
 
 	path += fmt.Sprintf("/objects/%s", v.Oid)
 
-	if Config.IsHTTPS() {
-		return fmt.Sprintf("%s://%s%s", Config.Scheme, Config.Host, path)
-	}
-
-	return fmt.Sprintf("http://%s%s", Config.Host, path)
+	return fmt.Sprintf("%slfs%s", setting.AppURL, path)
 }
 
 // link provides a structure used to build a hypermedia representation of an HTTP link.
@@ -86,204 +83,199 @@ type link struct {
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }
 
-// App links a Router, ContentStore, and MetaStore to provide the LFS server.
-type App struct {
-	router       *mux.Router
+type LFSHandler struct {
 	contentStore *ContentStore
-	metaStore    *MetaStore
 }
 
-// NewApp creates a new App using the ContentStore and MetaStore provided
-func NewApp(content *ContentStore, meta *MetaStore) *App {
-	app := &App{contentStore: content, metaStore: meta}
+func NewLFSHandler() *LFSHandler {
+	contentStore, err := NewContentStore(setting.LFS.ContentPath)
 
-	r := mux.NewRouter()
+	if err != nil {
+		log.Fatal(4, "Error initializing LFS content store: %s", err)
+	}
 
-	r.HandleFunc("/{user}/{repo}/objects/batch", app.BatchHandler).Methods("POST").MatcherFunc(MetaMatcher)
-	route := "/{user}/{repo}/objects/{oid}"
-	r.HandleFunc(route, app.GetContentHandler).Methods("GET", "HEAD").MatcherFunc(ContentMatcher)
-	r.HandleFunc(route, app.GetMetaHandler).Methods("GET", "HEAD").MatcherFunc(MetaMatcher)
-	r.HandleFunc(route, app.PutHandler).Methods("PUT").MatcherFunc(ContentMatcher)
-
-	r.HandleFunc("/{user}/{repo}/objects", app.PostHandler).Methods("POST").MatcherFunc(MetaMatcher)
-
-	r.HandleFunc("/objects/batch", app.BatchHandler).Methods("POST").MatcherFunc(MetaMatcher)
-	route = "/objects/{oid}"
-	r.HandleFunc(route, app.GetContentHandler).Methods("GET", "HEAD").MatcherFunc(ContentMatcher)
-	r.HandleFunc(route, app.GetMetaHandler).Methods("GET", "HEAD").MatcherFunc(MetaMatcher)
-	r.HandleFunc(route, app.PutHandler).Methods("PUT").MatcherFunc(ContentMatcher)
-
-	r.HandleFunc("/objects", app.PostHandler).Methods("POST").MatcherFunc(MetaMatcher)
-
-	app.addMgmt(r)
-
-	app.router = r
-
+	app := &LFSHandler{contentStore: contentStore}
 	return app
 }
 
-func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	b := make([]byte, 16)
-	_, err := rand.Read(b)
-	if err == nil {
-		context.Set(r, "RequestID", fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:]))
+func (a *LFSHandler) ObjectOidHandler(ctx *context.Context) {
+
+	if ctx.Req.Method == "GET" || ctx.Req.Method == "HEAD" {
+		if MetaMatcher(ctx.Req) {
+			a.GetMetaHandler(ctx)
+			return
+		}
+		if ContentMatcher(ctx.Req) {
+			a.GetContentHandler(ctx)
+			return
+		}
+	} else if ctx.Req.Method == "PUT" && ContentMatcher(ctx.Req) {
+		a.PutHandler(ctx)
+		return
 	}
 
-	a.router.ServeHTTP(w, r)
-}
-
-// Serve calls http.Serve with the provided Listener and the app's router
-func (a *App) Serve(l net.Listener) error {
-	return http.Serve(l, a)
 }
 
 // GetContentHandler gets the content from the content store
-func (a *App) GetContentHandler(w http.ResponseWriter, r *http.Request) {
-	rv := unpack(r)
-	meta, err := a.metaStore.Get(rv)
+func (a *LFSHandler) GetContentHandler(ctx *context.Context) {
+
+	rv := unpack(ctx)
+	if !authenticate(rv.Authorization, false) {
+		requireAuth(ctx)
+		return
+	}
+
+	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
 	if err != nil {
-		if isAuthError(err) {
-			requireAuth(w, r)
-		} else {
-			writeStatus(w, r, 404)
-		}
+		writeStatus(ctx, 404)
 		return
 	}
 
 	// Support resume download using Range header
 	var fromByte int64
 	statusCode := 200
-	if rangeHdr := r.Header.Get("Range"); rangeHdr != "" {
+	if rangeHdr := ctx.Req.Header.Get("Range"); rangeHdr != "" {
 		regex := regexp.MustCompile(`bytes=(\d+)\-.*`)
 		match := regex.FindStringSubmatch(rangeHdr)
 		if match != nil && len(match) > 1 {
 			statusCode = 206
 			fromByte, _ = strconv.ParseInt(match[1], 10, 32)
-			w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", fromByte, meta.Size-1, int64(meta.Size)-fromByte))
+			ctx.Resp.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", fromByte, meta.Size-1, int64(meta.Size)-fromByte))
 		}
 	}
 
 	content, err := a.contentStore.Get(meta, fromByte)
 	if err != nil {
-		writeStatus(w, r, 404)
+		writeStatus(ctx, 404)
 		return
 	}
 
-	w.WriteHeader(statusCode)
-	io.Copy(w, content)
-	logRequest(r, statusCode)
+	ctx.Resp.WriteHeader(statusCode)
+	io.Copy(ctx.Resp, content)
+	logRequest(ctx.Req, statusCode)
 }
 
 // GetMetaHandler retrieves metadata about the object
-func (a *App) GetMetaHandler(w http.ResponseWriter, r *http.Request) {
-	rv := unpack(r)
-	meta, err := a.metaStore.Get(rv)
-	if err != nil {
-		if isAuthError(err) {
-			requireAuth(w, r)
-		} else {
-			writeStatus(w, r, 404)
-		}
+func (a *LFSHandler) GetMetaHandler(ctx *context.Context) {
+
+	rv := unpack(ctx)
+	if !authenticate(rv.Authorization, false) {
+		requireAuth(ctx)
 		return
 	}
 
-	w.Header().Set("Content-Type", metaMediaType)
+	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
+	if err != nil {
+		writeStatus(ctx, 404)
+		return
+	}
 
-	if r.Method == "GET" {
-		enc := json.NewEncoder(w)
+	ctx.Resp.Header().Set("Content-Type", metaMediaType)
+
+	if ctx.Req.Method == "GET" {
+		enc := json.NewEncoder(ctx.Resp)
 		enc.Encode(a.Represent(rv, meta, true, false))
 	}
 
-	logRequest(r, 200)
+	logRequest(ctx.Req, 200)
 }
 
 // PostHandler instructs the client how to upload data
-func (a *App) PostHandler(w http.ResponseWriter, r *http.Request) {
-	rv := unpack(r)
-	meta, err := a.metaStore.Put(rv)
+func (a *LFSHandler) PostHandler(ctx *context.Context) {
+
+	rv := unpack(ctx)
+
+	if !authenticate(rv.Authorization, true) {
+		requireAuth(ctx)
+	}
+
+	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Oid: rv.Oid, Size: rv.Size})
+
 	if err != nil {
-		if isAuthError(err) {
-			requireAuth(w, r)
-		} else {
-			writeStatus(w, r, 404)
-		}
+		writeStatus(ctx, 404)
 		return
 	}
 
-	w.Header().Set("Content-Type", metaMediaType)
+	ctx.Resp.Header().Set("Content-Type", metaMediaType)
 
 	sentStatus := 202
 	if meta.Existing && a.contentStore.Exists(meta) {
 		sentStatus = 200
 	}
-	w.WriteHeader(sentStatus)
+	ctx.Resp.WriteHeader(sentStatus)
 
-	enc := json.NewEncoder(w)
+	enc := json.NewEncoder(ctx.Resp)
 	enc.Encode(a.Represent(rv, meta, meta.Existing, true))
-	logRequest(r, sentStatus)
+	logRequest(ctx.Req, sentStatus)
 }
 
 // BatchHandler provides the batch api
-func (a *App) BatchHandler(w http.ResponseWriter, r *http.Request) {
-	bv := unpackbatch(r)
+func (a *LFSHandler) BatchHandler(ctx *context.Context) {
+	bv := unpackbatch(ctx)
 
 	var responseObjects []*Representation
 
 	// Create a response object
 	for _, object := range bv.Objects {
-		meta, err := a.metaStore.Get(object)
+
+		if !authenticate(object.Authorization, true) {
+			requireAuth(ctx)
+			return
+		}
+
+		meta, err := models.GetLFSMetaObjectByOid(object.Oid)
+
 		if err == nil && a.contentStore.Exists(meta) { // Object is found and exists
 			responseObjects = append(responseObjects, a.Represent(object, meta, true, false))
 			continue
 		}
 
-		if isAuthError(err) {
-			requireAuth(w, r)
-			return
-		}
-
 		// Object is not found
-		meta, err = a.metaStore.Put(object)
+		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size})
+
 		if err == nil {
 			responseObjects = append(responseObjects, a.Represent(object, meta, meta.Existing, true))
 		}
 	}
 
-	w.Header().Set("Content-Type", metaMediaType)
+	ctx.Resp.Header().Set("Content-Type", metaMediaType)
 
 	respobj := &BatchResponse{Objects: responseObjects}
 
-	enc := json.NewEncoder(w)
+	enc := json.NewEncoder(ctx.Resp)
 	enc.Encode(respobj)
-	logRequest(r, 200)
+	logRequest(ctx.Req, 200)
 }
 
 // PutHandler receives data from the client and puts it into the content store
-func (a *App) PutHandler(w http.ResponseWriter, r *http.Request) {
-	rv := unpack(r)
-	meta, err := a.metaStore.Get(rv)
+func (a *LFSHandler) PutHandler(ctx *context.Context) {
+	rv := unpack(ctx)
+
+	if !authenticate(rv.Authorization, true) {
+		requireAuth(ctx)
+		return
+	}
+
+	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
+
 	if err != nil {
-		if isAuthError(err) {
-			requireAuth(w, r)
-		} else {
-			writeStatus(w, r, 404)
-		}
+		writeStatus(ctx, 404)
 		return
 	}
 
-	if err := a.contentStore.Put(meta, r.Body); err != nil {
-		a.metaStore.Delete(rv)
-		w.WriteHeader(500)
-		fmt.Fprintf(w, `{"message":"%s"}`, err)
+	if err := a.contentStore.Put(meta, ctx.Req.Body().ReadCloser()); err != nil {
+		models.RemoveLFSMetaObjectByOid(rv.Oid)
+		ctx.Resp.WriteHeader(500)
+		fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
 		return
 	}
 
-	logRequest(r, 200)
+	logRequest(ctx.Req, 200)
 }
 
 // Represent takes a RequestVars and Meta and turns it into a Representation suitable
 // for json encoding
-func (a *App) Represent(rv *RequestVars, meta *MetaObject, download, upload bool) *Representation {
+func (a *LFSHandler) Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload bool) *Representation {
 	rep := &Representation{
 		Oid:     meta.Oid,
 		Size:    meta.Size,
@@ -292,9 +284,8 @@ func (a *App) Represent(rv *RequestVars, meta *MetaObject, download, upload bool
 
 	header := make(map[string]string)
 	header["Accept"] = contentMediaType
-	if !Config.IsPublic() {
-		header["Authorization"] = rv.Authorization
-	}
+	header["Authorization"] = rv.Authorization
+
 	if download {
 		rep.Actions["download"] = &link{Href: rv.ObjectLink(), Header: header}
 	}
@@ -302,12 +293,13 @@ func (a *App) Represent(rv *RequestVars, meta *MetaObject, download, upload bool
 	if upload {
 		rep.Actions["upload"] = &link{Href: rv.ObjectLink(), Header: header}
 	}
+
 	return rep
 }
 
 // ContentMatcher provides a mux.MatcherFunc that only allows requests that contain
 // an Accept header with the contentMediaType
-func ContentMatcher(r *http.Request, m *mux.RouteMatch) bool {
+func ContentMatcher(r macaron.Request) bool {
 	mediaParts := strings.Split(r.Header.Get("Accept"), ";")
 	mt := mediaParts[0]
 	return mt == contentMediaType
@@ -315,24 +307,24 @@ func ContentMatcher(r *http.Request, m *mux.RouteMatch) bool {
 
 // MetaMatcher provides a mux.MatcherFunc that only allows requests that contain
 // an Accept header with the metaMediaType
-func MetaMatcher(r *http.Request, m *mux.RouteMatch) bool {
+func MetaMatcher(r macaron.Request) bool {
 	mediaParts := strings.Split(r.Header.Get("Accept"), ";")
 	mt := mediaParts[0]
 	return mt == metaMediaType
 }
 
-func unpack(r *http.Request) *RequestVars {
-	vars := mux.Vars(r)
+func unpack(ctx *context.Context) *RequestVars {
+	r := ctx.Req
 	rv := &RequestVars{
-		User:          vars["user"],
-		Repo:          vars["repo"],
-		Oid:           vars["oid"],
+		User:          ctx.Params("user"),
+		Repo:          ctx.Params("repo"),
+		Oid:           ctx.Params("oid"),
 		Authorization: r.Header.Get("Authorization"),
 	}
 
 	if r.Method == "POST" { // Maybe also check if +json
 		var p RequestVars
-		dec := json.NewDecoder(r.Body)
+		dec := json.NewDecoder(r.Body().ReadCloser())
 		err := dec.Decode(&p)
 		if err != nil {
 			return rv
@@ -346,55 +338,114 @@ func unpack(r *http.Request) *RequestVars {
 }
 
 // TODO cheap hack, unify with unpack
-func unpackbatch(r *http.Request) *BatchVars {
-	vars := mux.Vars(r)
+func unpackbatch(ctx *context.Context) *BatchVars {
 
+	r := ctx.Req
 	var bv BatchVars
 
-	dec := json.NewDecoder(r.Body)
+	dec := json.NewDecoder(r.Body().ReadCloser())
 	err := dec.Decode(&bv)
 	if err != nil {
 		return &bv
 	}
 
 	for i := 0; i < len(bv.Objects); i++ {
-		bv.Objects[i].User = vars["user"]
-		bv.Objects[i].Repo = vars["repo"]
+		bv.Objects[i].User = ctx.Params("user")
+		bv.Objects[i].Repo = ctx.Params("repo")
 		bv.Objects[i].Authorization = r.Header.Get("Authorization")
 	}
 
 	return &bv
 }
 
-func writeStatus(w http.ResponseWriter, r *http.Request, status int) {
+func writeStatus(ctx *context.Context, status int) {
 	message := http.StatusText(status)
 
-	mediaParts := strings.Split(r.Header.Get("Accept"), ";")
+	mediaParts := strings.Split(ctx.Req.Header.Get("Accept"), ";")
 	mt := mediaParts[0]
 	if strings.HasSuffix(mt, "+json") {
 		message = `{"message":"` + message + `"}`
 	}
 
-	w.WriteHeader(status)
-	fmt.Fprint(w, message)
-	logRequest(r, status)
+	ctx.Resp.WriteHeader(status)
+	fmt.Fprint(ctx.Resp, message)
+	logRequest(ctx.Req, status)
 }
 
-func logRequest(r *http.Request, status int) {
-	logger.Log(kv{"method": r.Method, "url": r.URL, "status": status, "request_id": context.Get(r, "RequestID")})
+func logRequest(r macaron.Request, status int) {
+	log.Debug("LFS request - Method: %s, URL: %s, Status %s", r.Method, r.URL, status)
 }
 
-func isAuthError(err error) bool {
-	type autherror interface {
-		AuthError() bool
+// authenticate uses the authorization string to determine whether
+// or not to proceed. This server assumes an HTTP Basic auth format.
+func authenticate(authorization string, requireWrite bool) bool {
+
+	if authorization == "" {
+		return false
 	}
-	if ae, ok := err.(autherror); ok {
-		return ae.AuthError()
+
+	if authenticateToken(authorization, requireWrite) {
+		return true
 	}
+
+	if !strings.HasPrefix(authorization, "Basic ") {
+		return false
+	}
+
+	c, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(authorization, "Basic "))
+	if err != nil {
+		return false
+	}
+	cs := string(c)
+	i := strings.IndexByte(cs, ':')
+	if i < 0 {
+		return false
+	}
+	user, password := cs[:i], cs[i+1:]
+	_ = user
+	_ = password
+	// TODO check Basic Authentication
+
 	return false
 }
 
-func requireAuth(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("WWW-Authenticate", "Basic realm=git-lfs-server")
-	writeStatus(w, r, 401)
+func authenticateToken(authorization string, requireWrite bool) bool {
+	if !strings.HasPrefix(authorization, "Bearer ") {
+		return false
+	}
+
+	token, err := jwt.Parse(authorization[7:], func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return setting.LFS.JWTSecretBytes, nil
+	})
+	if err != nil {
+		return false
+	}
+	claims, claimsOk := token.Claims.(jwt.MapClaims)
+	if !token.Valid || !claimsOk {
+		return false
+	}
+
+	opstr, ok := claims["op"].(string)
+	if !ok {
+		return false
+	}
+	op := strings.ToLower(strings.TrimSpace(opstr))
+	status := op == "upload" || (op == "download" && !requireWrite)
+	return status
+}
+
+type authError struct {
+	error
+}
+
+func (e authError) AuthError() bool {
+	return true
+}
+
+func requireAuth(ctx *context.Context) {
+	ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gogs-lfs")
+	writeStatus(ctx, 401)
 }

@@ -1,8 +1,9 @@
-package main
+package lfs
 
 import (
 	"bytes"
 	"fmt"
+	"github.com/gogits/gogs/models"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -14,7 +15,7 @@ func TestContenStorePut(t *testing.T) {
 	setup()
 	defer teardown()
 
-	m := &MetaObject{
+	m := &models.LFSMetaObject{
 		Oid:  "6ae8a75555209fd6c44157c0aed8016e763ff435a19cf186f76863140143ff72",
 		Size: 12,
 	}
@@ -35,7 +36,7 @@ func TestContenStorePutHashMismatch(t *testing.T) {
 	setup()
 	defer teardown()
 
-	m := &MetaObject{
+	m := &models.LFSMetaObject{
 		Oid:  "6ae8a75555209fd6c44157c0aed8016e763ff435a19cf186f76863140143ff72",
 		Size: 12,
 	}
@@ -56,7 +57,7 @@ func TestContenStorePutSizeMismatch(t *testing.T) {
 	setup()
 	defer teardown()
 
-	m := &MetaObject{
+	m := &models.LFSMetaObject{
 		Oid:  "6ae8a75555209fd6c44157c0aed8016e763ff435a19cf186f76863140143ff72",
 		Size: 14,
 	}
@@ -77,7 +78,7 @@ func TestContenStoreGet(t *testing.T) {
 	setup()
 	defer teardown()
 
-	m := &MetaObject{
+	m := &models.LFSMetaObject{
 		Oid:  "6ae8a75555209fd6c44157c0aed8016e763ff435a19cf186f76863140143ff72",
 		Size: 12,
 	}
@@ -103,7 +104,7 @@ func TestContenStoreGetWithRange(t *testing.T) {
 	setup()
 	defer teardown()
 
-	m := &MetaObject{
+	m := &models.LFSMetaObject{
 		Oid:  "6ae8a75555209fd6c44157c0aed8016e763ff435a19cf186f76863140143ff72",
 		Size: 12,
 	}
@@ -129,7 +130,7 @@ func TestContenStoreGetNonExisting(t *testing.T) {
 	setup()
 	defer teardown()
 
-	_, err := contentStore.Get(&MetaObject{Oid: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, 0)
+	_, err := contentStore.Get(&models.LFSMetaObject{Oid: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, 0)
 	if err == nil {
 		t.Fatalf("expected to get an error, but content existed")
 	}
@@ -139,7 +140,7 @@ func TestContenStoreExists(t *testing.T) {
 	setup()
 	defer teardown()
 
-	m := &MetaObject{
+	m := &models.LFSMetaObject{
 		Oid:  "6ae8a75555209fd6c44157c0aed8016e763ff435a19cf186f76863140143ff72",
 		Size: 12,
 	}
