@@ -69,8 +69,8 @@ func (org *User) GetMembers() error {
 	for i, ou := range ous {
 		ids[i] = ou.Uid
 	}
-	org.Members, _ = GetUsersByIDs(ids)
-	return nil
+	org.Members, err = GetUsersByIDs(ids)
+	return err
 }
 
 // AddMember adds new member to organization.
@@ -258,8 +258,11 @@ func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*User, e
 	if !showAll {
 		sess.And("`org_user`.is_public=?", true)
 	}
-	return orgs, sess.And("`org_user`.uid=?", userID).
-		Join("INNER", "`org_user`", "`org_user`.org_id=`user`.id").Asc("name").Find(&orgs)
+	return orgs, sess.
+		And("`org_user`.uid=?", userID).
+		Join("INNER", "`org_user`", "`org_user`.org_id=`user`.id").
+		Asc("`user`.name").
+		Find(&orgs)
 }
 
 // GetOrgsByUserID returns a list of organizations that the given user ID
@@ -276,8 +279,12 @@ func GetOrgsByUserIDDesc(userID int64, desc string, showAll bool) ([]*User, erro
 
 func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
-	return orgs, sess.Where("`org_user`.uid=?", userID).And("`org_user`.is_owner=?", true).
-		Join("INNER", "`org_user`", "`org_user`.org_id=`user`.id").Asc("name").Find(&orgs)
+	return orgs, sess.
+		Where("`org_user`.uid=?", userID).
+		And("`org_user`.is_owner=?", true).
+		Join("INNER", "`org_user`", "`org_user`.org_id=`user`.id").
+		Asc("`user`.name").
+		Find(&orgs)
 }
 
 // GetOwnedOrgsByUserID returns a list of organizations are owned by given user ID.
@@ -298,13 +305,13 @@ func GetOrgUsersByUserID(uid int64, all bool) ([]*OrgUser, error) {
 	ous := make([]*OrgUser, 0, 10)
 	sess := x.
 		Join("LEFT", "user", `"org_user".org_id="user".id`).
-		Where("uid=?", uid)
+		Where(`"org_user".uid=?`, uid)
 	if !all {
 		// Only show public organizations
 		sess.And("is_public=?", true)
 	}
 	err := sess.
-		Asc("name").
+		Asc("`user`.name").
 		Find(&ous)
 	return ous, err
 }
@@ -452,12 +459,14 @@ func RemoveOrgRepo(orgID, repoID int64) error {
 
 func (org *User) getUserTeams(e Engine, userID int64, cols ...string) ([]*Team, error) {
 	teams := make([]*Team, 0, org.NumTeams)
-	return teams, e.Where("team_user.org_id = ?", org.ID).
-		And("team_user.uid = ?", userID).
-		Join("INNER", "team_user", "team_user.team_id = team.id").
-		Join("INNER", "user", `"user".id=team_user.uid`).
-		Asc("user.name").
-		Cols(cols...).Find(&teams)
+	return teams, e.
+		Where("`team_user`.org_id = ?", org.ID).
+		Join("INNER", "team_user", "`team_user`.team_id = team.id").
+		Join("INNER", "user", "`user`.id=team_user.uid").
+		And("`team_user`.uid = ?", userID).
+	    Asc("`user`.name").
+		Cols(cols...).
+	    Find(&teams)
 }
 
 // GetUserTeamIDs returns of all team IDs of the organization that user is memeber of.
