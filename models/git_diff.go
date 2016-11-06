@@ -22,7 +22,7 @@ import (
 	"github.com/go-gitea/gitea/modules/process"
 	"github.com/go-gitea/gitea/modules/setting"
 	"github.com/go-gitea/gitea/modules/template/highlight"
-	git "github.com/gogits/git-module"
+	git "github.com/go-gitea/git"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"

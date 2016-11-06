@@ -39,6 +39,12 @@
 			"revisionTime": "2016-01-17T19:21:50Z"
 		},
 		{
+			"checksumSHA1": "K3Gp8Tv/B8otlbsOfQp3UpJGaaE=",
+			"path": "github.com/go-gitea/git",
+			"revision": "766747ef8b271a2b1142edd0a40735f556ec2c1d",
+			"revisionTime": "2016-11-06T09:52:37Z"
+		},
+		{
 			"checksumSHA1": "qM/kf31cT2cxjtHxdzbu8q8jPq0=",
 			"path": "github.com/go-macaron/binding",
 			"revision": "9440f336b443056c90d7d448a0a55ad8c7599880",
@@ -145,12 +151,6 @@
 			"path": "github.com/gogits/cron",
 			"revision": "7f3990acf1833faa5ebd0e86f0a4c72a4b5eba3c",
 			"revisionTime": "2016-08-10T03:50:02Z"
-		},
-		{
-			"checksumSHA1": "PIGpfND20BlypoaFJsy2cH6urxs=",
-			"path": "github.com/gogits/git-module",
-			"revision": "b3009dc4f5842cf9e2e80fef1e125e79c38e4949",
-			"revisionTime": "2016-08-31T20:58:24Z"
 		},
 		{
 			"checksumSHA1": "5P4i69584LOvCooguu2D/pNxU14=",

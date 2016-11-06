@@ -12,7 +12,7 @@ import (
 
 	"github.com/go-xorm/xorm"
 
-	"github.com/gogits/git-module"
+	"github.com/go-gitea/git"
 
 	"github.com/go-gitea/gitea/modules/process"
 )
