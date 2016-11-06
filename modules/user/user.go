@@ -4,9 +4,7 @@
 
 package user
 
-import (
-	"os"
-)
+import "os"
 
 func CurrentUsername() string {
 	curUserName := os.Getenv("USER")
