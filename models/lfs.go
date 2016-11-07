@@ -15,6 +15,11 @@ type LFSMetaObject struct {
 	CreatedUnix  int64
 }
 
+type LFSTokenResponse struct {
+	Header map[string]string `json:"header"`
+	Href   string            `json:"href"`
+}
+
 var (
 	ErrLFSObjectNotExist = errors.New("LFS Meta object does not exist")
 )

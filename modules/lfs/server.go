@@ -251,7 +251,12 @@ func (a *LFSHandler) BatchHandler(ctx *context.Context) {
 			return
 		}
 
-		if !authenticate(repository, object.Authorization, true) {
+		requireWrite := false
+		if bv.Operation == "upload" {
+			requireWrite = true
+		}
+
+		if !authenticate(repository, object.Authorization, requireWrite) {
 			requireAuth(ctx)
 			return
 		}
@@ -428,9 +433,9 @@ func authenticate(repository *models.Repository, authorization string, requireWr
 		return false
 	}
 
-	//if authenticateToken(authorization, requireWrite) {
-	//	return true
-	//}
+	if authenticateToken(repository, authorization, requireWrite) {
+		return true
+	}
 
 	if !strings.HasPrefix(authorization, "Basic ") {
 		return false
@@ -465,7 +470,6 @@ func authenticate(repository *models.Repository, authorization string, requireWr
 	return accessCheck
 }
 
-/*
 func authenticateToken(repository *models.Repository, authorization string, requireWrite bool) bool {
 	if !strings.HasPrefix(authorization, "Bearer ") {
 		return false
@@ -485,15 +489,26 @@ func authenticateToken(repository *models.Repository, authorization string, requ
 		return false
 	}
 
-	opstr, ok := claims["op"].(string)
+	opStr, ok := claims["op"].(string)
 	if !ok {
 		return false
 	}
-	op := strings.ToLower(strings.TrimSpace(opstr))
-	status := op == "upload" || (op == "download" && !requireWrite)
-	return status
+
+	if requireWrite && opStr != "upload" {
+		return false
+	}
+
+	repoId, ok := claims["repo"].(float64)
+	if !ok {
+		return false
+	}
+
+	if repository.ID != int64(repoId) {
+		return false
+	}
+
+	return true
 }
-*/
 
 type authError struct {
 	error
