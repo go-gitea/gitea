@@ -19,10 +19,7 @@ if [ "$version" != ".git" ]; then
 fi
 
 version=$(git rev-parse --abbrev-ref HEAD)
-echo "$version"
-
 tag=$(git describe --tag --always)
-echo "$tag"
 
 if [ "$version" != "HEAD" ]; then
     if [ "$version" == "master" ]; then
