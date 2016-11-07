@@ -95,7 +95,7 @@ func LoadConfigs() {
 		DbCfg.Passwd = sec.Key("PASSWD").String()
 	}
 	DbCfg.SSLMode = sec.Key("SSL_MODE").String()
-	DbCfg.Path = sec.Key("PATH").MustString("data/gogs.db")
+	DbCfg.Path = sec.Key("PATH").MustString("data/gitea.db")
 }
 
 // parsePostgreSQLHostPort parses given input in various forms defined in
