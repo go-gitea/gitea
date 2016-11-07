@@ -30,22 +30,22 @@ type LoginType int
 const (
 	LoginNotype LoginType = iota
 	LoginPlain            // 1
-	LoginLdap             // 2
-	LoginSmtp             // 3
-	LoginPam              // 4
-	LoginDldap            // 5
+	LoginLDAP             // 2
+	LoginSMTP             // 3
+	LoginPAM              // 4
+	LoginDLDAP            // 5
 )
 
 var LoginNames = map[LoginType]string{
-	LoginLdap:  "LDAP (via BindDN)",
-	LoginDldap: "LDAP (simple auth)", // Via direct bind
-	LoginSmtp:  "SMTP",
-	LoginPam:   "PAM",
+	LoginLDAP:  "LDAP (via BindDN)",
+	LoginDLDAP: "LDAP (simple auth)", // Via direct bind
+	LoginSMTP:  "SMTP",
+	LoginPAM:   "PAM",
 }
 
 var SecurityProtocolNames = map[ldap.SecurityProtocol]string{
 	ldap.SecurityProtocolUnencrypted: "Unencrypted",
-	ldap.SecurityProtocolLdaps:       "LDAPS",
+	ldap.SecurityProtocolLDAPS:       "LDAPS",
 	ldap.SecurityProtocolStartTls:   "StartTLS",
 }
 
@@ -139,11 +139,11 @@ func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
 		switch LoginType(Cell2Int64(val)) {
-		case LoginLdap, LoginDldap:
+		case LoginLDAP, LoginDLDAP:
 			source.Cfg = new(LDAPConfig)
-		case LoginSmtp:
+		case LoginSMTP:
 			source.Cfg = new(SMTPConfig)
-		case LoginPam:
+		case LoginPAM:
 			source.Cfg = new(PAMConfig)
 		default:
 			panic("unrecognized login source type: " + com.ToStr(*val))
@@ -165,19 +165,19 @@ func (source *LoginSource) TypeName() string {
 }
 
 func (source *LoginSource) IsLDAP() bool {
-	return source.Type == LoginLdap
+	return source.Type == LoginLDAP
 }
 
 func (source *LoginSource) IsDLDAP() bool {
-	return source.Type == LoginDldap
+	return source.Type == LoginDLDAP
 }
 
 func (source *LoginSource) IsSMTP() bool {
-	return source.Type == LoginSmtp
+	return source.Type == LoginSMTP
 }
 
 func (source *LoginSource) IsPAM() bool {
-	return source.Type == LoginPam
+	return source.Type == LoginPAM
 }
 
 func (source *LoginSource) HasTLS() bool {
@@ -188,9 +188,9 @@ func (source *LoginSource) HasTLS() bool {
 
 func (source *LoginSource) UseTLS() bool {
 	switch source.Type {
-	case LoginLdap, LoginDldap:
+	case LoginLDAP, LoginDLDAP:
 		return source.LDAP().SecurityProtocol != ldap.SecurityProtocolUnencrypted
-	case LoginSmtp:
+	case LoginSMTP:
 		return source.SMTP().TLS
 	}
 
@@ -199,9 +199,9 @@ func (source *LoginSource) UseTLS() bool {
 
 func (source *LoginSource) SkipVerify() bool {
 	switch source.Type {
-	case LoginLdap, LoginDldap:
+	case LoginLDAP, LoginDLDAP:
 		return source.LDAP().SkipVerify
-	case LoginSmtp:
+	case LoginSMTP:
 		return source.SMTP().SkipVerify
 	}
 
@@ -293,7 +293,7 @@ func composeFullName(firstname, surname, username string) string {
 // LoginViaLDAP queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
 func LoginViaLDAP(user *User, login, passowrd string, source *LoginSource, autoRegister bool) (*User, error) {
-	username, fn, sn, mail, isAdmin, succeed := source.Cfg.(*LDAPConfig).SearchEntry(login, passowrd, source.Type == LoginDldap)
+	username, fn, sn, mail, isAdmin, succeed := source.Cfg.(*LDAPConfig).SearchEntry(login, passowrd, source.Type == LoginDLDAP)
 	if !succeed {
 		// User not in LDAP, do nothing
 		return nil, ErrUserNotExist{0, login}
@@ -358,11 +358,11 @@ func (auth *smtpLoginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 }
 
 const (
-	SmtpPlain = "PLAIN"
-	SmtpLogin = "LOGIN"
+	SMTPPlain = "PLAIN"
+	SMTPLogin = "LOGIN"
 )
 
-var SMTPAuths = []string{SmtpPlain, SmtpLogin}
+var SMTPAuths = []string{SMTPPlain, SMTPLogin}
 
 func SMTPAuth(a smtp.Auth, cfg *SMTPConfig) error {
 	c, err := smtp.Dial(fmt.Sprintf("%s:%d", cfg.Host, cfg.Port))
@@ -411,9 +411,9 @@ func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPC
 	}
 
 	var auth smtp.Auth
-	if cfg.Auth == SmtpPlain {
+	if cfg.Auth == SMTPPlain {
 		auth = smtp.PlainAuth("", login, password, cfg.Host)
-	} else if cfg.Auth == SmtpLogin {
+	} else if cfg.Auth == SMTPLogin {
 		auth = &smtpLoginAuth{login, password}
 	} else {
 		return nil, errors.New("Unsupported SMTP auth type")
@@ -445,7 +445,7 @@ func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPC
 		Name:        strings.ToLower(username),
 		Email:       login,
 		Passwd:      password,
-		LoginType:   LoginSmtp,
+		LoginType:   LoginSMTP,
 		LoginSource: sourceID,
 		LoginName:   login,
 		IsActive:    true,
@@ -479,7 +479,7 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 		Name:        login,
 		Email:       login,
 		Passwd:      password,
-		LoginType:   LoginPam,
+		LoginType:   LoginPAM,
 		LoginSource: sourceID,
 		LoginName:   login,
 		IsActive:    true,
@@ -493,11 +493,11 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource, 
 	}
 
 	switch source.Type {
-	case LoginLdap, LoginDldap:
+	case LoginLDAP, LoginDLDAP:
 		return LoginViaLDAP(user, login, password, source, autoRegister)
-	case LoginSmtp:
+	case LoginSMTP:
 		return LoginViaSMTP(user, login, password, source.ID, source.Cfg.(*SMTPConfig), autoRegister)
-	case LoginPam:
+	case LoginPAM:
 		return LoginViaPAM(user, login, password, source.ID, source.Cfg.(*PAMConfig), autoRegister)
 	}
 

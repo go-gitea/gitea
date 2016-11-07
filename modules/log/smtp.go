@@ -17,7 +17,7 @@ const (
 )
 
 // smtpWriter implements LoggerInterface and is used to send emails via given SMTP-server.
-type SmtpWriter struct {
+type SMTPWriter struct {
 	Username           string   `json:"Username"`
 	Password           string   `json:"password"`
 	Host               string   `json:"Host"`
@@ -27,8 +27,8 @@ type SmtpWriter struct {
 }
 
 // create smtp writer.
-func NewSmtpWriter() LoggerInterface {
-	return &SmtpWriter{Level: TRACE}
+func NewSMTPWriter() LoggerInterface {
+	return &SMTPWriter{Level: TRACE}
 }
 
 // init smtp writer with json config.
@@ -41,13 +41,13 @@ func NewSmtpWriter() LoggerInterface {
 //		"sendTos":["email1","email2"],
 //		"level":LevelError
 //	}
-func (sw *SmtpWriter) Init(jsonconfig string) error {
+func (sw *SMTPWriter) Init(jsonconfig string) error {
 	return json.Unmarshal([]byte(jsonconfig), sw)
 }
 
 // write message in smtp writer.
 // it will send an email with subject and only this message.
-func (s *SmtpWriter) WriteMsg(msg string, skip, level int) error {
+func (s *SMTPWriter) WriteMsg(msg string, skip, level int) error {
 	if level < s.Level {
 		return nil
 	}
@@ -76,12 +76,12 @@ func (s *SmtpWriter) WriteMsg(msg string, skip, level int) error {
 	)
 }
 
-func (_ *SmtpWriter) Flush() {
+func (_ *SMTPWriter) Flush() {
 }
 
-func (_ *SmtpWriter) Destroy() {
+func (_ *SMTPWriter) Destroy() {
 }
 
 func init() {
-	Register("smtp", NewSmtpWriter)
+	Register("smtp", NewSMTPWriter)
 }

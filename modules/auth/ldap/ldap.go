@@ -21,7 +21,7 @@ type SecurityProtocol int
 // Note: new type must be added at the end of list to maintain compatibility.
 const (
 	SecurityProtocolUnencrypted SecurityProtocol = iota
-	SecurityProtocolLdaps
+	SecurityProtocolLDAPS
 	SecurityProtocolStartTls
 )
 
@@ -118,7 +118,7 @@ func dial(ls *Source) (*ldap.Conn, error) {
 		ServerName:         ls.Host,
 		InsecureSkipVerify: ls.SkipVerify,
 	}
-	if ls.SecurityProtocol == SecurityProtocolLdaps {
+	if ls.SecurityProtocol == SecurityProtocolLDAPS {
 		return ldap.DialTLS("tcp", fmt.Sprintf("%s:%d", ls.Host, ls.Port), tlsCfg)
 	}
 

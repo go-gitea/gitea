@@ -48,14 +48,14 @@ type dropdownItem struct {
 
 var (
 	authSources = []dropdownItem{
-		{models.LoginNames[models.LoginLdap], models.LoginLdap},
-		{models.LoginNames[models.LoginDldap], models.LoginDldap},
-		{models.LoginNames[models.LoginSmtp], models.LoginSmtp},
-		{models.LoginNames[models.LoginPam], models.LoginPam},
+		{models.LoginNames[models.LoginLDAP], models.LoginLDAP},
+		{models.LoginNames[models.LoginDLDAP], models.LoginDLDAP},
+		{models.LoginNames[models.LoginSMTP], models.LoginSMTP},
+		{models.LoginNames[models.LoginPAM], models.LoginPAM},
 	}
 	securityProtocols = []dropdownItem{
 		{models.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted], ldap.SecurityProtocolUnencrypted},
-		{models.SecurityProtocolNames[ldap.SecurityProtocolLdaps], ldap.SecurityProtocolLdaps},
+		{models.SecurityProtocolNames[ldap.SecurityProtocolLDAPS], ldap.SecurityProtocolLDAPS},
 		{models.SecurityProtocolNames[ldap.SecurityProtocolStartTls], ldap.SecurityProtocolStartTls},
 	}
 )
@@ -65,8 +65,8 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["type"] = models.LoginLdap
-	ctx.Data["CurrentTypeName"] = models.LoginNames[models.LoginLdap]
+	ctx.Data["type"] = models.LoginLDAP
+	ctx.Data["CurrentTypeName"] = models.LoginNames[models.LoginLDAP]
 	ctx.Data["CurrentSecurityProtocol"] = models.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted]
 	ctx.Data["smtp_auth"] = "PLAIN"
 	ctx.Data["is_active"] = true
@@ -125,13 +125,13 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	hasTLS := false
 	var config core.Conversion
 	switch models.LoginType(form.Type) {
-	case models.LoginLdap, models.LoginDldap:
+	case models.LoginLDAP, models.LoginDLDAP:
 		config = parseLDAPConfig(form)
 		hasTLS = ldap.SecurityProtocol(form.SecurityProtocol) > ldap.SecurityProtocolUnencrypted
-	case models.LoginSmtp:
+	case models.LoginSMTP:
 		config = parseSMTPConfig(form)
 		hasTLS = true
-	case models.LoginPam:
+	case models.LoginPAM:
 		config = &models.PAMConfig{
 			ServiceName: form.PAMServiceName,
 		}
@@ -208,11 +208,11 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 
 	var config core.Conversion
 	switch models.LoginType(form.Type) {
-	case models.LoginLdap, models.LoginDldap:
+	case models.LoginLDAP, models.LoginDLDAP:
 		config = parseLDAPConfig(form)
-	case models.LoginSmtp:
+	case models.LoginSMTP:
 		config = parseSMTPConfig(form)
-	case models.LoginPam:
+	case models.LoginPAM:
 		config = &models.PAMConfig{
 			ServiceName: form.PAMServiceName,
 		}
