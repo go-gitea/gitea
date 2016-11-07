@@ -19,17 +19,17 @@ import (
 )
 
 const (
-	SETTINGS_OPTIONS base.TplName = "repo/settings/options"
-	COLLABORATION    base.TplName = "repo/settings/collaboration"
-	GITHOOKS         base.TplName = "repo/settings/githooks"
-	GithookEdit     base.TplName = "repo/settings/githook_edit"
-	DEPLOY_KEYS      base.TplName = "repo/settings/deploy_keys"
+	tplSettingsOptions base.TplName = "repo/settings/options"
+	tplCollaboration   base.TplName = "repo/settings/collaboration"
+	tplGithooks        base.TplName = "repo/settings/githooks"
+	tplGithookEdit     base.TplName = "repo/settings/githook_edit"
+	tplDeployKeys      base.TplName = "repo/settings/deploy_keys"
 )
 
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
-	ctx.HTML(200, SETTINGS_OPTIONS)
+	ctx.HTML(200, tplSettingsOptions)
 }
 
 func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
@@ -41,7 +41,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 	switch ctx.Query("action") {
 	case "update":
 		if ctx.HasError() {
-			ctx.HTML(200, SETTINGS_OPTIONS)
+			ctx.HTML(200, tplSettingsOptions)
 			return
 		}
 
@@ -55,11 +55,11 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				ctx.Data["Err_RepoName"] = true
 				switch {
 				case models.IsErrRepoAlreadyExist(err):
-					ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), SETTINGS_OPTIONS, &form)
+					ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplSettingsOptions, &form)
 				case models.IsErrNameReserved(err):
-					ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), SETTINGS_OPTIONS, &form)
+					ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tplSettingsOptions, &form)
 				case models.IsErrNamePatternNotAllowed(err):
-					ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), SETTINGS_OPTIONS, &form)
+					ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
 				default:
 					ctx.Handle(500, "ChangeRepositoryName", err)
 				}
@@ -166,7 +166,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 		if repo.Name != form.RepoName {
-			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), SETTINGS_OPTIONS, nil)
+			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 			return
 		}
 
@@ -200,7 +200,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 		if repo.Name != form.RepoName {
-			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), SETTINGS_OPTIONS, nil)
+			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 			return
 		}
 
@@ -217,13 +217,13 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.Handle(500, "IsUserExist", err)
 			return
 		} else if !isExist {
-			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), SETTINGS_OPTIONS, nil)
+			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
 			return
 		}
 
 		if err = models.TransferOwnership(ctx.User, newOwner, repo); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
-				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), SETTINGS_OPTIONS, nil)
+				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else {
 				ctx.Handle(500, "TransferOwnership", err)
 			}
@@ -239,7 +239,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 		if repo.Name != form.RepoName {
-			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), SETTINGS_OPTIONS, nil)
+			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 			return
 		}
 
@@ -265,7 +265,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 		if repo.Name != form.RepoName {
-			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), SETTINGS_OPTIONS, nil)
+			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 			return
 		}
 
@@ -304,7 +304,7 @@ func Collaboration(ctx *context.Context) {
 	}
 	ctx.Data["Collaborators"] = users
 
-	ctx.HTML(200, COLLABORATION)
+	ctx.HTML(200, tplCollaboration)
 }
 
 func CollaborationPost(ctx *context.Context) {
@@ -407,7 +407,7 @@ func GitHooks(ctx *context.Context) {
 	}
 	ctx.Data["Hooks"] = hooks
 
-	ctx.HTML(200, GITHOOKS)
+	ctx.HTML(200, tplGithooks)
 }
 
 func GitHooksEdit(ctx *context.Context) {
@@ -425,7 +425,7 @@ func GitHooksEdit(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Hook"] = hook
-	ctx.HTML(200, GithookEdit)
+	ctx.HTML(200, tplGithookEdit)
 }
 
 func GitHooksEditPost(ctx *context.Context) {
@@ -458,7 +458,7 @@ func DeployKeys(ctx *context.Context) {
 	}
 	ctx.Data["Deploykeys"] = keys
 
-	ctx.HTML(200, DEPLOY_KEYS)
+	ctx.HTML(200, tplDeployKeys)
 }
 
 func DeployKeysPost(ctx *context.Context, form auth.AddSSHKeyForm) {
@@ -473,7 +473,7 @@ func DeployKeysPost(ctx *context.Context, form auth.AddSSHKeyForm) {
 	ctx.Data["Deploykeys"] = keys
 
 	if ctx.HasError() {
-		ctx.HTML(200, DEPLOY_KEYS)
+		ctx.HTML(200, tplDeployKeys)
 		return
 	}
 
@@ -496,10 +496,10 @@ func DeployKeysPost(ctx *context.Context, form auth.AddSSHKeyForm) {
 		switch {
 		case models.IsErrKeyAlreadyExist(err):
 			ctx.Data["Err_Content"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.settings.key_been_used"), DEPLOY_KEYS, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.settings.key_been_used"), tplDeployKeys, &form)
 		case models.IsErrKeyNameAlreadyUsed(err):
 			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), DEPLOY_KEYS, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
 		default:
 			ctx.Handle(500, "AddDeployKey", err)
 		}
