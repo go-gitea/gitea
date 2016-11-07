@@ -134,7 +134,7 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 		return
 	}
 
-	contentType := models.ContentTypeJson
+	contentType := models.ContentTypeJSON
 	if models.HookContentType(form.ContentType) == models.ContentTypeForm {
 		contentType = models.ContentTypeForm
 	}
@@ -192,7 +192,7 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 	w := &models.Webhook{
 		RepoID:       orCtx.RepoID,
 		URL:          form.PayloadURL,
-		ContentType:  models.ContentTypeJson,
+		ContentType:  models.ContentTypeJSON,
 		HookEvent:    ParseHookEvent(form.WebhookForm),
 		IsActive:     form.Active,
 		HookTaskType: models.SLACK,
@@ -281,7 +281,7 @@ func WebHooksEditPost(ctx *context.Context, form auth.NewWebhookForm) {
 		return
 	}
 
-	contentType := models.ContentTypeJson
+	contentType := models.ContentTypeJSON
 	if models.HookContentType(form.ContentType) == models.ContentTypeForm {
 		contentType = models.ContentTypeForm
 	}

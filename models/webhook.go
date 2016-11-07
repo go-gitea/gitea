@@ -28,12 +28,12 @@ var HookQueue = sync.NewUniqueQueue(setting.Webhook.QueueLength)
 type HookContentType int
 
 const (
-	ContentTypeJson HookContentType = iota + 1
+	ContentTypeJSON HookContentType = iota + 1
 	ContentTypeForm
 )
 
 var hookContentTypes = map[string]HookContentType{
-	"json": ContentTypeJson,
+	"json": ContentTypeJSON,
 	"form": ContentTypeForm,
 }
 
@@ -44,7 +44,7 @@ func ToHookContentType(name string) HookContentType {
 
 func (t HookContentType) Name() string {
 	switch t {
-	case ContentTypeJson:
+	case ContentTypeJSON:
 		return "json"
 	case ContentTypeForm:
 		return "form"
@@ -511,7 +511,7 @@ func (t *HookTask) deliver() {
 		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify})
 
 	switch t.ContentType {
-	case ContentTypeJson:
+	case ContentTypeJSON:
 		req = req.Header("Content-Type", "application/json").Body(t.PayloadContent)
 	case ContentTypeForm:
 		req.Param("payload", t.PayloadContent)
