@@ -108,14 +108,22 @@ func (a *LFSHandler) ObjectOidHandler(ctx *context.Context) {
 func (a *LFSHandler) GetContentHandler(ctx *context.Context) {
 
 	rv := unpack(ctx)
-	if !authenticate(rv.Authorization, false) {
-		requireAuth(ctx)
-		return
-	}
 
 	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
 	if err != nil {
 		writeStatus(ctx, 404)
+		return
+	}
+
+	repository, err := models.GetRepositoryByID(meta.RepositoryID)
+
+	if err != nil {
+		writeStatus(ctx, 404)
+		return
+	}
+
+	if !authenticate(repository, rv.Authorization, false) {
+		requireAuth(ctx)
 		return
 	}
 
@@ -147,14 +155,22 @@ func (a *LFSHandler) GetContentHandler(ctx *context.Context) {
 func (a *LFSHandler) GetMetaHandler(ctx *context.Context) {
 
 	rv := unpack(ctx)
-	if !authenticate(rv.Authorization, false) {
-		requireAuth(ctx)
-		return
-	}
 
 	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
 	if err != nil {
 		writeStatus(ctx, 404)
+		return
+	}
+
+	repository, err := models.GetRepositoryByID(meta.RepositoryID)
+
+	if err != nil {
+		writeStatus(ctx, 404)
+		return
+	}
+
+	if !authenticate(repository, rv.Authorization, false) {
+		requireAuth(ctx)
 		return
 	}
 
@@ -178,10 +194,6 @@ func (a *LFSHandler) PostHandler(ctx *context.Context) {
 
 	rv := unpack(ctx)
 
-	if !authenticate(rv.Authorization, true) {
-		requireAuth(ctx)
-	}
-
 	repositoryString := rv.User + "/" + rv.Repo
 	repository, err := models.GetRepositoryByRef(repositoryString)
 
@@ -189,6 +201,10 @@ func (a *LFSHandler) PostHandler(ctx *context.Context) {
 		log.Debug("Could not find repository: %s - %s", repositoryString, err)
 		writeStatus(ctx, 404)
 		return
+	}
+
+	if !authenticate(repository, rv.Authorization, true) {
+		requireAuth(ctx)
 	}
 
 	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Oid: rv.Oid, Size: rv.Size, RepositoryID: repository.ID})
@@ -226,7 +242,16 @@ func (a *LFSHandler) BatchHandler(ctx *context.Context) {
 	// Create a response object
 	for _, object := range bv.Objects {
 
-		if !authenticate(object.Authorization, true) {
+		repositoryString := object.User + "/" + object.Repo
+		repository, err := models.GetRepositoryByRef(repositoryString)
+
+		if err != nil {
+			log.Debug("Could not find repository: %s - %s", repositoryString, err)
+			writeStatus(ctx, 404)
+			return
+		}
+
+		if !authenticate(repository, object.Authorization, true) {
 			requireAuth(ctx)
 			return
 		}
@@ -236,15 +261,6 @@ func (a *LFSHandler) BatchHandler(ctx *context.Context) {
 		if err == nil && a.contentStore.Exists(meta) { // Object is found and exists
 			responseObjects = append(responseObjects, a.Represent(object, meta, true, false))
 			continue
-		}
-
-		repositoryString := object.User + "/" + object.Repo
-		repository, err := models.GetRepositoryByRef(repositoryString)
-
-		if err != nil {
-			log.Debug("Could not find repository: %s - %s", repositoryString, err)
-			writeStatus(ctx, 404)
-			return
 		}
 
 		// Object is not found
@@ -268,15 +284,22 @@ func (a *LFSHandler) BatchHandler(ctx *context.Context) {
 func (a *LFSHandler) PutHandler(ctx *context.Context) {
 	rv := unpack(ctx)
 
-	if !authenticate(rv.Authorization, true) {
-		requireAuth(ctx)
-		return
-	}
-
 	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
 
 	if err != nil {
 		writeStatus(ctx, 404)
+		return
+	}
+
+	repository, err := models.GetRepositoryByID(meta.RepositoryID)
+
+	if err != nil {
+		writeStatus(ctx, 404)
+		return
+	}
+
+	if !authenticate(repository, rv.Authorization, true) {
+		requireAuth(ctx)
 		return
 	}
 
@@ -395,15 +418,19 @@ func logRequest(r macaron.Request, status int) {
 
 // authenticate uses the authorization string to determine whether
 // or not to proceed. This server assumes an HTTP Basic auth format.
-func authenticate(authorization string, requireWrite bool) bool {
+func authenticate(repository *models.Repository, authorization string, requireWrite bool) bool {
+
+	if !repository.IsPrivate && !requireWrite {
+		return true
+	}
 
 	if authorization == "" {
 		return false
 	}
 
-	if authenticateToken(authorization, requireWrite) {
-		return true
-	}
+	//if authenticateToken(authorization, requireWrite) {
+	//	return true
+	//}
 
 	if !strings.HasPrefix(authorization, "Basic ") {
 		return false
@@ -419,14 +446,27 @@ func authenticate(authorization string, requireWrite bool) bool {
 		return false
 	}
 	user, password := cs[:i], cs[i+1:]
-	_ = user
-	_ = password
-	// TODO check Basic Authentication
 
-	return false
+	userModel, err := models.GetUserByName(user)
+	if err != nil {
+		return false
+	}
+
+	if !userModel.ValidatePassword(password) {
+		return false
+	}
+
+	accessMode := models.AccessModeRead
+	if requireWrite {
+		accessMode = models.AccessModeWrite
+	}
+
+	accessCheck, _ := models.HasAccess(userModel, repository, accessMode)
+	return accessCheck
 }
 
-func authenticateToken(authorization string, requireWrite bool) bool {
+/*
+func authenticateToken(repository *models.Repository, authorization string, requireWrite bool) bool {
 	if !strings.HasPrefix(authorization, "Bearer ") {
 		return false
 	}
@@ -453,6 +493,7 @@ func authenticateToken(authorization string, requireWrite bool) bool {
 	status := op == "upload" || (op == "download" && !requireWrite)
 	return status
 }
+*/
 
 type authError struct {
 	error
