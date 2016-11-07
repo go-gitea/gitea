@@ -61,19 +61,7 @@ type ObjectError struct {
 
 // ObjectLink builds a URL linking to the object.
 func (v *RequestVars) ObjectLink() string {
-	path := ""
-
-	if len(v.User) > 0 {
-		path += fmt.Sprintf("/%s", v.User)
-	}
-
-	if len(v.Repo) > 0 {
-		path += fmt.Sprintf("/%s", v.Repo)
-	}
-
-	path += fmt.Sprintf("/objects/%s", v.Oid)
-
-	return fmt.Sprintf("%slfs%s", setting.AppURL, path)
+	return fmt.Sprintf("%s%s/%s/info/lfs/objects/%s", setting.AppURL, v.User, v.Repo, v.Oid)
 }
 
 // link provides a structure used to build a hypermedia representation of an HTTP link.
@@ -189,7 +177,16 @@ func (a *LFSHandler) PostHandler(ctx *context.Context) {
 		requireAuth(ctx)
 	}
 
-	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Oid: rv.Oid, Size: rv.Size})
+	repositoryString := rv.User + "/" + rv.Repo
+	repository, err := models.GetRepositoryByRef(repositoryString)
+
+	if err != nil {
+		log.Debug("Could not find repository: %s - %s", repositoryString, err)
+		writeStatus(ctx, 404)
+		return
+	}
+
+	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Oid: rv.Oid, Size: rv.Size, RepositoryID: repository.ID})
 
 	if err != nil {
 		writeStatus(ctx, 404)
@@ -230,8 +227,17 @@ func (a *LFSHandler) BatchHandler(ctx *context.Context) {
 			continue
 		}
 
+		repositoryString := object.User + "/" + object.Repo
+		repository, err := models.GetRepositoryByRef(repositoryString)
+
+		if err != nil {
+			log.Debug("Could not find repository: %s - %s", repositoryString, err)
+			writeStatus(ctx, 404)
+			return
+		}
+
 		// Object is not found
-		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size})
+		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size, RepositoryID: repository.ID})
 
 		if err == nil {
 			responseObjects = append(responseObjects, a.Represent(object, meta, meta.Existing, true))
@@ -316,8 +322,8 @@ func MetaMatcher(r macaron.Request) bool {
 func unpack(ctx *context.Context) *RequestVars {
 	r := ctx.Req
 	rv := &RequestVars{
-		User:          ctx.Params("user"),
-		Repo:          ctx.Params("repo"),
+		User:          ctx.Params("username"),
+		Repo:          strings.TrimSuffix(ctx.Params("reponame"), ".git"),
 		Oid:           ctx.Params("oid"),
 		Authorization: r.Header.Get("Authorization"),
 	}
@@ -350,8 +356,8 @@ func unpackbatch(ctx *context.Context) *BatchVars {
 	}
 
 	for i := 0; i < len(bv.Objects); i++ {
-		bv.Objects[i].User = ctx.Params("user")
-		bv.Objects[i].Repo = ctx.Params("repo")
+		bv.Objects[i].User = ctx.Params("username")
+		bv.Objects[i].Repo = strings.TrimSuffix(ctx.Params("reponame"), ".git")
 		bv.Objects[i].Authorization = r.Header.Get("Authorization")
 	}
 
@@ -373,7 +379,7 @@ func writeStatus(ctx *context.Context, status int) {
 }
 
 func logRequest(r macaron.Request, status int) {
-	log.Debug("LFS request - Method: %s, URL: %s, Status %s", r.Method, r.URL, status)
+	log.Debug("LFS request - Method: %s, URL: %s, Status %d", r.Method, r.URL, status)
 }
 
 // authenticate uses the authorization string to determine whether

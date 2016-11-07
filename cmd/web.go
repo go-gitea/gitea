@@ -565,34 +565,21 @@ func runWeb(ctx *cli.Context) error {
 		}, ignSignIn, context.RepoAssignment(true), context.RepoRef())
 
 		m.Group("/:reponame", func() {
+
+			if setting.LFS.StartServer {
+				lfsHandler := lfs.NewLFSHandler()
+				m.Group("/info/lfs", func() {
+					m.Post("/objects/batch", lfsHandler.BatchHandler) // TODO MetaMatcher
+					m.Any("/objects/:oid", lfsHandler.ObjectOidHandler)
+					m.Post("/objects", lfsHandler.PostHandler) // TODO MetaMatcher
+				}, ignSignInAndCsrf)
+			}
+
 			m.Any("/*", ignSignInAndCsrf, repo.HTTP)
 			m.Head("/tasks/trigger", repo.TriggerTask)
 		})
 	})
 	// ***** END: Repository *****
-
-	// ***** START: LFS *****
-
-	if setting.LFS.StartServer {
-
-		lfsHandler := lfs.NewLFSHandler()
-
-		m.Group("/lfs", func() {
-
-			m.Post("/:user/:repo/objects/batch", lfsHandler.BatchHandler) // TODO MetaMatcher
-			m.Any("/:user/:repo/objects/:oid", lfsHandler.ObjectOidHandler)
-
-			m.Post("/:user/:repo/objects", lfsHandler.PostHandler) // TODO MetaMatcher
-			m.Post("/objects/batch", lfsHandler.BatchHandler)      // TODO MetaMatcher
-
-			m.Any("/objects/:oid", lfsHandler.ObjectOidHandler)
-			m.Post("/objects", lfsHandler.PostHandler) // TODO MetaMatcher
-
-		}, ignSignInAndCsrf)
-
-	}
-
-	// ***** END: LFS *****
 
 	m.Group("/api", func() {
 		apiv1.RegisterRoutes(m)

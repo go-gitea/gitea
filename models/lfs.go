@@ -7,12 +7,12 @@ import (
 )
 
 type LFSMetaObject struct {
-	ID          int64     `xorm:"pk autoincr"`
-	Oid         string    `xorm:"UNIQUE NOT NULL"`
-	Size        int64     `xorm:"NOT NULL"`
-	Existing    bool      `xorm:"-"`
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64
+	Oid          string    `xorm:"pk"`
+	Size         int64     `xorm:"NOT NULL"`
+	RepositoryID int64     `xorm:"NOT NULL"`
+	Existing     bool      `xorm:"-"`
+	Created      time.Time `xorm:"-"`
+	CreatedUnix  int64
 }
 
 var (
