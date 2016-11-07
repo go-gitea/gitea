@@ -32,7 +32,7 @@ const (
 	// Reference from a commit (not part of a pull request)
 	CommentTypeCommitRef
 	// Reference from a comment
-	CommentTypeComment_REF
+	CommentTypeCommentRef
 	// Reference from a pull request
 	CommentTypePullRef
 )
