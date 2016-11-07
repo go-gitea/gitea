@@ -603,13 +603,34 @@ please consider changing to GITEA_CUSTOM`)
 		}
 
 		LFS.JWTSecretBytes = make([]byte, 32)
-		n, err := base64.StdEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
+		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
 
 		if err != nil || n != 32 {
-			log.Warn("Failed loading LFS JWT secret, generating runtime secret key")
-			_, err = io.ReadFull(rand.Reader, LFS.JWTSecretBytes)
+			//Generate new secret and save to config
+
+			_, err := io.ReadFull(rand.Reader, LFS.JWTSecretBytes)
+
 			if err != nil {
-				log.Fatal(4, "Error generating temporary JWT secret for LFS server: %v", err)
+				log.Fatal(4, "Error reading random bytes: %s", err)
+			}
+
+			LFS.JWTSecretBase64 = base64.RawURLEncoding.EncodeToString(LFS.JWTSecretBytes)
+
+			// Save secret
+			cfg := ini.Empty()
+			if com.IsFile(CustomConf) {
+				// Keeps custom settings if there is already something.
+				if err := cfg.Append(CustomConf); err != nil {
+					log.Error(4, "Fail to load custom conf '%s': %v", CustomConf, err)
+				}
+			}
+
+			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
+
+			os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm)
+			if err := cfg.SaveTo(CustomConf); err != nil {
+				log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
+				return
 			}
 		}
 	}

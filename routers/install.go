@@ -254,6 +254,9 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		cfg.Section("server").Key("SSH_PORT").SetValue(com.ToStr(form.SSHPort))
 	}
 
+	//TODO Expose LFS settings in install form
+	cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(base.GetRandomBytesAsBase64(32))
+
 	if len(strings.TrimSpace(form.SMTPHost)) > 0 {
 		cfg.Section("mailer").Key("ENABLED").SetValue("true")
 		cfg.Section("mailer").Key("HOST").SetValue(form.SMTPHost)
