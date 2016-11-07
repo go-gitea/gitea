@@ -28,7 +28,7 @@ type LoginType int
 
 // Note: new type must append to the end of list to maintain compatibility.
 const (
-	LoginNotype LoginType = iota
+	LoginNoType LoginType = iota
 	LoginPlain            // 1
 	LoginLDAP             // 2
 	LoginSMTP             // 3
@@ -520,7 +520,7 @@ func UserSignIn(username, passowrd string) (*User, error) {
 
 	if hasUser {
 		switch user.LoginType {
-		case LoginNotype, LoginPlain:
+		case LoginNoType, LoginPlain:
 			if user.ValidatePassword(passowrd) {
 				return user, nil
 			}
