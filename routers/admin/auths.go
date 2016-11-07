@@ -56,7 +56,7 @@ var (
 	securityProtocols = []dropdownItem{
 		{models.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted], ldap.SecurityProtocolUnencrypted},
 		{models.SecurityProtocolNames[ldap.SecurityProtocolLDAPS], ldap.SecurityProtocolLDAPS},
-		{models.SecurityProtocolNames[ldap.SecurityProtocolStartTls], ldap.SecurityProtocolStartTls},
+		{models.SecurityProtocolNames[ldap.SecurityProtocolStartTLS], ldap.SecurityProtocolStartTLS},
 	}
 )
 

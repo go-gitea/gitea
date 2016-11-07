@@ -46,7 +46,7 @@ var LoginNames = map[LoginType]string{
 var SecurityProtocolNames = map[ldap.SecurityProtocol]string{
 	ldap.SecurityProtocolUnencrypted: "Unencrypted",
 	ldap.SecurityProtocolLDAPS:       "LDAPS",
-	ldap.SecurityProtocolStartTls:   "StartTLS",
+	ldap.SecurityProtocolStartTLS:   "StartTLS",
 }
 
 // Ensure structs implemented interface.

@@ -22,7 +22,7 @@ type SecurityProtocol int
 const (
 	SecurityProtocolUnencrypted SecurityProtocol = iota
 	SecurityProtocolLDAPS
-	SecurityProtocolStartTls
+	SecurityProtocolStartTLS
 )
 
 // Basic LDAP authentication service
@@ -127,7 +127,7 @@ func dial(ls *Source) (*ldap.Conn, error) {
 		return nil, fmt.Errorf("Dial: %v", err)
 	}
 
-	if ls.SecurityProtocol == SecurityProtocolStartTls {
+	if ls.SecurityProtocol == SecurityProtocolStartTLS {
 		if err = conn.StartTLS(tlsCfg); err != nil {
 			conn.Close()
 			return nil, fmt.Errorf("StartTLS: %v", err)
