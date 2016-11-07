@@ -14,6 +14,4 @@ config.codekit
 .editorconfig
 .gitignore
 Dockerfile*
-vendor
-vendor/**
 gogs
