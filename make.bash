@@ -7,7 +7,7 @@
 version="unknow"
 
 if [ -f VERSION ]; then
-	cat /etc/passwd | read version
+	version=$(cat VERSION)
     go build -ldflags "-w -s -X main.Version=${version}"
 	exit 0
 fi
@@ -31,4 +31,3 @@ if [ "$version" != "HEAD" ]; then
 else
     go build -ldflags "-X main.Version=${tag}"
 fi
-
