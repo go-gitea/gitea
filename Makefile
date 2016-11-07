@@ -36,6 +36,7 @@ all: clean test build
 clean:
 	go clean -i ./...
 	rm -rf $(BIN) $(DIST)
+	rm -rf ./modules/bindata/bindata.go
 
 .PHONY: deps
 deps:
@@ -111,7 +112,7 @@ bindata: modules/bindata/bindata.go
 
 .IGNORE: modules/bindata/bindata.go
 modules/bindata/bindata.go: $(BINDATA)
-	go-bindata -o=$@ -ignore="\\.go|README.md|TRANSLATORS" -pkg=bindata conf/...
+	go-bindata -tags bindata -o=$@ -ignore="\\.go|README.md|TRANSLATORS" -pkg=bindata conf/...
 	go fmt $@
 
 .PHONY: javascripts
