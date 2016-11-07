@@ -23,9 +23,9 @@ import (
 )
 
 const (
-	HOOKS        base.TplName = "repo/settings/hooks"
-	HookNew     base.TplName = "repo/settings/hook_new"
-	ORG_HookNew base.TplName = "org/settings/hook_new"
+	Hooks      base.TplName = "repo/settings/hooks"
+	HookNew    base.TplName = "repo/settings/hook_new"
+	OrgHookNew base.TplName = "org/settings/hook_new"
 )
 
 func Webhooks(ctx *context.Context) {
@@ -41,7 +41,7 @@ func Webhooks(ctx *context.Context) {
 	}
 	ctx.Data["Webhooks"] = ws
 
-	ctx.HTML(200, HOOKS)
+	ctx.HTML(200, Hooks)
 }
 
 type OrgRepoCtx struct {
@@ -65,7 +65,7 @@ func getOrgRepoCtx(ctx *context.Context) (*OrgRepoCtx, error) {
 		return &OrgRepoCtx{
 			OrgID:       ctx.Org.Organization.ID,
 			Link:        ctx.Org.OrgLink,
-			NewTemplate: ORG_HookNew,
+			NewTemplate: OrgHookNew,
 		}, nil
 	}
 
