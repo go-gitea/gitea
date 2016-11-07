@@ -171,6 +171,11 @@ func (a *LFSHandler) GetMetaHandler(ctx *context.Context) {
 // PostHandler instructs the client how to upload data
 func (a *LFSHandler) PostHandler(ctx *context.Context) {
 
+	if !MetaMatcher(ctx.Req) {
+		writeStatus(ctx, 500)
+		return
+	}
+
 	rv := unpack(ctx)
 
 	if !authenticate(rv.Authorization, true) {
@@ -208,6 +213,12 @@ func (a *LFSHandler) PostHandler(ctx *context.Context) {
 
 // BatchHandler provides the batch api
 func (a *LFSHandler) BatchHandler(ctx *context.Context) {
+
+	if !MetaMatcher(ctx.Req) {
+		writeStatus(ctx, 500)
+		return
+	}
+
 	bv := unpackbatch(ctx)
 
 	var responseObjects []*Representation

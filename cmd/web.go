@@ -569,9 +569,9 @@ func runWeb(ctx *cli.Context) error {
 			if setting.LFS.StartServer {
 				lfsHandler := lfs.NewLFSHandler()
 				m.Group("/info/lfs", func() {
-					m.Post("/objects/batch", lfsHandler.BatchHandler) // TODO MetaMatcher
+					m.Post("/objects/batch", lfsHandler.BatchHandler)
 					m.Any("/objects/:oid", lfsHandler.ObjectOidHandler)
-					m.Post("/objects", lfsHandler.PostHandler) // TODO MetaMatcher
+					m.Post("/objects", lfsHandler.PostHandler)
 				}, ignSignInAndCsrf)
 			}
 
