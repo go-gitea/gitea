@@ -20,15 +20,6 @@ type ContentStore struct {
 	basePath string
 }
 
-// NewContentStore creates a ContentStore at the base directory.
-func NewContentStore(base string) (*ContentStore, error) {
-	if err := os.MkdirAll(base, 0750); err != nil {
-		return nil, err
-	}
-
-	return &ContentStore{base}, nil
-}
-
 // Get takes a Meta object and retreives the content from the store, returning
 // it as an io.Reader. If fromByte > 0, the reader starts from that byte
 func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.Reader, error) {

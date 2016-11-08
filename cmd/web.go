@@ -565,16 +565,11 @@ func runWeb(ctx *cli.Context) error {
 		}, ignSignIn, context.RepoAssignment(true), context.RepoRef())
 
 		m.Group("/:reponame", func() {
-
-			if setting.LFS.StartServer {
-				lfsHandler := lfs.NewLFSHandler()
-				m.Group("/info/lfs", func() {
-					m.Post("/objects/batch", lfsHandler.BatchHandler)
-					m.Any("/objects/:oid", lfsHandler.ObjectOidHandler)
-					m.Post("/objects", lfsHandler.PostHandler)
-				}, ignSignInAndCsrf)
-			}
-
+			m.Group("/info/lfs", func() {
+				m.Post("/objects/batch", lfs.BatchHandler)
+				m.Any("/objects/:oid", lfs.ObjectOidHandler)
+				m.Post("/objects", lfs.PostHandler)
+			}, ignSignInAndCsrf)
 			m.Any("/*", ignSignInAndCsrf, repo.HTTP)
 			m.Head("/tasks/trigger", repo.TriggerTask)
 		})

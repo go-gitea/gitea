@@ -71,41 +71,31 @@ type link struct {
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }
 
-type LFSHandler struct {
-	contentStore *ContentStore
-}
+func ObjectOidHandler(ctx *context.Context) {
 
-func NewLFSHandler() *LFSHandler {
-	contentStore, err := NewContentStore(setting.LFS.ContentPath)
-
-	if err != nil {
-		log.Fatal(4, "Error initializing LFS content store: %s", err)
+	if !setting.LFS.StartServer {
+		writeStatus(ctx, 404)
+		return
 	}
-
-	app := &LFSHandler{contentStore: contentStore}
-	return app
-}
-
-func (a *LFSHandler) ObjectOidHandler(ctx *context.Context) {
 
 	if ctx.Req.Method == "GET" || ctx.Req.Method == "HEAD" {
 		if MetaMatcher(ctx.Req) {
-			a.GetMetaHandler(ctx)
+			GetMetaHandler(ctx)
 			return
 		}
 		if ContentMatcher(ctx.Req) {
-			a.GetContentHandler(ctx)
+			GetContentHandler(ctx)
 			return
 		}
 	} else if ctx.Req.Method == "PUT" && ContentMatcher(ctx.Req) {
-		a.PutHandler(ctx)
+		PutHandler(ctx)
 		return
 	}
 
 }
 
 // GetContentHandler gets the content from the content store
-func (a *LFSHandler) GetContentHandler(ctx *context.Context) {
+func GetContentHandler(ctx *context.Context) {
 
 	rv := unpack(ctx)
 
@@ -140,7 +130,8 @@ func (a *LFSHandler) GetContentHandler(ctx *context.Context) {
 		}
 	}
 
-	content, err := a.contentStore.Get(meta, fromByte)
+	contentStore := &ContentStore{basePath: setting.LFS.ContentPath}
+	content, err := contentStore.Get(meta, fromByte)
 	if err != nil {
 		writeStatus(ctx, 404)
 		return
@@ -152,7 +143,7 @@ func (a *LFSHandler) GetContentHandler(ctx *context.Context) {
 }
 
 // GetMetaHandler retrieves metadata about the object
-func (a *LFSHandler) GetMetaHandler(ctx *context.Context) {
+func GetMetaHandler(ctx *context.Context) {
 
 	rv := unpack(ctx)
 
@@ -178,14 +169,19 @@ func (a *LFSHandler) GetMetaHandler(ctx *context.Context) {
 
 	if ctx.Req.Method == "GET" {
 		enc := json.NewEncoder(ctx.Resp)
-		enc.Encode(a.Represent(rv, meta, true, false))
+		enc.Encode(Represent(rv, meta, true, false))
 	}
 
 	logRequest(ctx.Req, 200)
 }
 
 // PostHandler instructs the client how to upload data
-func (a *LFSHandler) PostHandler(ctx *context.Context) {
+func PostHandler(ctx *context.Context) {
+
+	if !setting.LFS.StartServer {
+		writeStatus(ctx, 404)
+		return
+	}
 
 	if !MetaMatcher(ctx.Req) {
 		writeStatus(ctx, 500)
@@ -217,18 +213,24 @@ func (a *LFSHandler) PostHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
 
 	sentStatus := 202
-	if meta.Existing && a.contentStore.Exists(meta) {
+	contentStore := &ContentStore{basePath: setting.LFS.ContentPath}
+	if meta.Existing && contentStore.Exists(meta) {
 		sentStatus = 200
 	}
 	ctx.Resp.WriteHeader(sentStatus)
 
 	enc := json.NewEncoder(ctx.Resp)
-	enc.Encode(a.Represent(rv, meta, meta.Existing, true))
+	enc.Encode(Represent(rv, meta, meta.Existing, true))
 	logRequest(ctx.Req, sentStatus)
 }
 
 // BatchHandler provides the batch api
-func (a *LFSHandler) BatchHandler(ctx *context.Context) {
+func BatchHandler(ctx *context.Context) {
+
+	if !setting.LFS.StartServer {
+		writeStatus(ctx, 404)
+		return
+	}
 
 	if !MetaMatcher(ctx.Req) {
 		writeStatus(ctx, 500)
@@ -263,8 +265,9 @@ func (a *LFSHandler) BatchHandler(ctx *context.Context) {
 
 		meta, err := models.GetLFSMetaObjectByOid(object.Oid)
 
-		if err == nil && a.contentStore.Exists(meta) { // Object is found and exists
-			responseObjects = append(responseObjects, a.Represent(object, meta, true, false))
+		contentStore := &ContentStore{basePath: setting.LFS.ContentPath}
+		if err == nil && contentStore.Exists(meta) { // Object is found and exists
+			responseObjects = append(responseObjects, Represent(object, meta, true, false))
 			continue
 		}
 
@@ -272,7 +275,7 @@ func (a *LFSHandler) BatchHandler(ctx *context.Context) {
 		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size, RepositoryID: repository.ID})
 
 		if err == nil {
-			responseObjects = append(responseObjects, a.Represent(object, meta, meta.Existing, true))
+			responseObjects = append(responseObjects, Represent(object, meta, meta.Existing, true))
 		}
 	}
 
@@ -286,7 +289,7 @@ func (a *LFSHandler) BatchHandler(ctx *context.Context) {
 }
 
 // PutHandler receives data from the client and puts it into the content store
-func (a *LFSHandler) PutHandler(ctx *context.Context) {
+func PutHandler(ctx *context.Context) {
 	rv := unpack(ctx)
 
 	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
@@ -308,7 +311,8 @@ func (a *LFSHandler) PutHandler(ctx *context.Context) {
 		return
 	}
 
-	if err := a.contentStore.Put(meta, ctx.Req.Body().ReadCloser()); err != nil {
+	contentStore := &ContentStore{basePath: setting.LFS.ContentPath}
+	if err := contentStore.Put(meta, ctx.Req.Body().ReadCloser()); err != nil {
 		models.RemoveLFSMetaObjectByOid(rv.Oid)
 		ctx.Resp.WriteHeader(500)
 		fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
@@ -320,7 +324,7 @@ func (a *LFSHandler) PutHandler(ctx *context.Context) {
 
 // Represent takes a RequestVars and Meta and turns it into a Representation suitable
 // for json encoding
-func (a *LFSHandler) Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload bool) *Representation {
+func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload bool) *Representation {
 	rep := &Representation{
 		Oid:     meta.Oid,
 		Size:    meta.Size,
