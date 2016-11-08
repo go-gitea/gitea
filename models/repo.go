@@ -1480,6 +1480,36 @@ func DeleteRepository(uid, repoID int64) error {
 		RemoveAllWithNotice("Delete attachment", attachmentPaths[i])
 	}
 
+	// Remove LFS objects
+	var lfsObjects []*LFSMetaObject
+
+	if err = sess.Where("repository_id=?", repoID).Find(&lfsObjects); err != nil {
+		return err
+	}
+
+	for _, v := range lfsObjects {
+
+		//Check that no other repository references this object
+		var matchedOidObjects []*LFSMetaObject
+		if err = sess.Where("oid=?", v.Oid).Find(&matchedOidObjects); err != nil {
+			return err
+		}
+
+		if len(matchedOidObjects) > 1 {
+			continue
+		}
+
+		oidPath := filepath.Join(v.Oid[0:2], v.Oid[2:4], v.Oid[4:len(v.Oid)])
+		err = os.Remove(filepath.Join(setting.LFS.ContentPath, oidPath))
+		if err != nil {
+			return err
+		}
+	}
+
+	if _, err = sess.Exec("DELETE FROM `lfs_meta_object` WHERE repository_id=?", repoID); err != nil {
+		return err
+	}
+
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
@@ -2238,6 +2268,34 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 
 	if err = createUpdateHook(repoPath); err != nil {
 		return nil, fmt.Errorf("createUpdateHook: %v", err)
+	}
+
+	//Commit repo to get Fork ID
+	err = sess.Commit()
+	if err != nil {
+		return nil, err
+	}
+	sessionRelease(sess)
+
+	// Copy LFS meta objects in new session
+	sess = x.NewSession()
+	defer sessionRelease(sess)
+	if err = sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	var lfsObjects []*LFSMetaObject
+
+	if err = sess.Where("repository_id=?", oldRepo.ID).Find(&lfsObjects); err != nil {
+		return nil, err
+	}
+
+	for _, v := range lfsObjects {
+		v.ID = 0
+		v.RepositoryID = repo.ID
+		if _, err = sess.Insert(v); err != nil {
+			return nil, err
+		}
 	}
 
 	return repo, sess.Commit()

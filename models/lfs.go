@@ -7,7 +7,8 @@ import (
 )
 
 type LFSMetaObject struct {
-	Oid          string    `xorm:"pk"`
+	ID           int64     `xorm:"pk autoincr"`
+	Oid          string    `xorm:"INDEX NOT NULL"`
 	Size         int64     `xorm:"NOT NULL"`
 	RepositoryID int64     `xorm:"NOT NULL"`
 	Existing     bool      `xorm:"-"`
