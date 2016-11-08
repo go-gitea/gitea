@@ -11,7 +11,7 @@
 
 ##### Status
 
-**Current version: 1.0.0** (see [Releases](https://github.com/go-gitea/gitea/releases)) 
+**Current version**: (see [Releases](https://github.com/go-gitea/gitea/releases)) 
 
 | Web | UI  | Preview  |
 |:-------------:|:-------:|:-------:|
@@ -23,7 +23,7 @@
 
 1. **YOU MUST READ THE [Contributors Guide](https://github.com/go-gitea/gitea/CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST**.
 4. If you think there are vulnerabilities in the project, please talk privately to **security@gitea.io**. Thanks!
-6. If your team/company is using Gogs and would like to put your logo on [our website](https://gitea.io), contact us by any means.
+6. If your team/company is using Gitea and would like to put your logo on [our website](https://gitea.io), contact us by any means.
 
 ## Purpose
 
@@ -62,7 +62,7 @@ The goal of this project is to make the easiest, fastest, and most painless way 
 
 **Note: As Gitea is a [Gogs](https://github.com/gogits/gogs) fork, tutorials and documentation related to gogs applies to Gitea too**
 
-There are 2 ways to install Gitea:
+How to install Gitea:
 
 - [Ship with Docker](https://github.com/go-gitea/gitea/tree/master/docker)
 - [Install with Vagrant](https://github.com/go-gitea/examples/tree/master/vagrant)
@@ -123,7 +123,7 @@ There are 2 ways to install Gitea:
 
 ## Contributors
 
-- see [Maintainer page](https://github.com/orgs/go-gitea/people)
+- See [Maintainer page](https://github.com/orgs/go-gitea/people)
 - See [contributors page](https://github.com/go-gitea/gitea/graphs/contributors) for full list of contributors.
 - See [TRANSLATORS](conf/locale/TRANSLATORS) for public list of translators.
 
