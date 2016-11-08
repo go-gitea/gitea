@@ -22,8 +22,8 @@
 ### Important Notes
 
 1. **YOU MUST READ THE [Contributors Guide](https://github.com/go-gitea/gitea/CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST**.
-4. If you think there are vulnerabilities in the project, please talk privately to **security@gitea.io**. Thanks!
-6. If your team/company is using Gitea and would like to put your logo on [our website](https://gitea.io), contact us by any means.
+2. If you think there are vulnerabilities in the project, please talk privately to **security@gitea.io**. Thanks!
+3. If you're interested in using APIs, we have experimental support with [documentation](https://godoc.org/github.com/go-gitea/go-sdk).
 
 ## Purpose
 
@@ -123,9 +123,9 @@ How to install Gitea:
 
 ## Contributors
 
-- See [Maintainer page](https://github.com/orgs/go-gitea/people)
-- See [contributors page](https://github.com/go-gitea/gitea/graphs/contributors) for full list of contributors.
-- See [TRANSLATORS](conf/locale/TRANSLATORS) for public list of translators.
+- See [Maintainer](https://github.com/orgs/go-gitea/people)
+- See [Contributors](https://github.com/go-gitea/gitea/graphs/contributors) for full list of contributors.
+- See [Translators](conf/locale/TRANSLATORS) for public list of translators.
 
 ## License
 
