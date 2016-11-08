@@ -1,0 +1,24 @@
+-
+    id: 1
+    owner_id: 1
+    lower_name: foo
+    name: foo
+    num_issues: 2
+
+-
+    id: 2
+    owner_id: 2
+    lower_name: bar
+    name: bar
+
+-
+    id: 3
+    owner_id: 3
+    lower_name: foo
+    name: foo
+
+-
+    id: 4
+    owner_id: 4
+    lower_name: bar
+    name: bar

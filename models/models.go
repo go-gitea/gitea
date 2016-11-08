@@ -57,6 +57,10 @@ var (
 	EnableTiDB    bool
 )
 
+func Database() *sql.DB {
+	return x.DB().DB
+}
+
 func init() {
 	tables = append(tables,
 		new(User), new(PublicKey), new(AccessToken),
