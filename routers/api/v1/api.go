@@ -10,7 +10,7 @@ import (
 	"github.com/go-macaron/binding"
 	"gopkg.in/macaron.v1"
 
-	api "github.com/gogits/go-gogs-client"
+	api "github.com/go-gitea/go-sdk/gitea"
 
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/auth"
@@ -63,7 +63,7 @@ func repoAssignment() macaron.Handler {
 		}
 
 		if ctx.IsSigned && ctx.User.IsAdmin {
-			ctx.Repo.AccessMode = models.ACCESS_MODE_OWNER
+			ctx.Repo.AccessMode = models.AccessModeOwner
 		} else {
 			mode, err := models.AccessLevel(ctx.User, repo)
 			if err != nil {

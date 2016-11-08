@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	git "github.com/gogits/git-module"
+	"github.com/go-gitea/git"
 
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/base"
@@ -133,9 +133,9 @@ func HTTP(ctx *context.Context) {
 		}
 
 		if !isPublicPull {
-			var tp = models.ACCESS_MODE_WRITE
+			var tp = models.AccessModeWrite
 			if isPull {
-				tp = models.ACCESS_MODE_READ
+				tp = models.AccessModeRead
 			}
 
 			has, err := models.HasAccess(authUser, repo, tp)
@@ -143,8 +143,8 @@ func HTTP(ctx *context.Context) {
 				ctx.Handle(http.StatusInternalServerError, "HasAccess", err)
 				return
 			} else if !has {
-				if tp == models.ACCESS_MODE_READ {
-					has, err = models.HasAccess(authUser, repo, models.ACCESS_MODE_WRITE)
+				if tp == models.AccessModeRead {
+					has, err = models.HasAccess(authUser, repo, models.AccessModeWrite)
 					if err != nil {
 						ctx.Handle(http.StatusInternalServerError, "HasAccess2", err)
 						return
@@ -479,6 +479,11 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 		for _, route := range routes {
 			r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
 			if m := route.reg.FindStringSubmatch(r.URL.Path); m != nil {
+				if setting.Repository.DisableHTTPGit {
+					w.WriteHeader(http.StatusForbidden)
+					w.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
+					return
+				}
 				if route.method != r.Method {
 					if r.Proto == "HTTP/1.1" {
 						w.WriteHeader(http.StatusMethodNotAllowed)

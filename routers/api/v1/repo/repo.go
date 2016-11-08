@@ -7,7 +7,7 @@ package repo
 import (
 	"path"
 
-	api "github.com/gogits/go-gogs-client"
+	api "github.com/go-gitea/go-sdk/gitea"
 
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/auth"
@@ -99,8 +99,8 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	for repo, access := range accessibleRepos {
 		repos[i] = repo.APIFormat(&api.Permission{
-			Admin: access >= models.ACCESS_MODE_ADMIN,
-			Push:  access >= models.ACCESS_MODE_WRITE,
+			Admin: access >= models.AccessModeAdmin,
+			Push:  access >= models.AccessModeWrite,
 			Pull:  true,
 		})
 		i++

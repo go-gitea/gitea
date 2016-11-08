@@ -24,12 +24,12 @@ func TestDiffToHTML(t *testing.T) {
 		dmp.Diff{dmp.DiffInsert, "bar"},
 		dmp.Diff{dmp.DiffDelete, " baz"},
 		dmp.Diff{dmp.DiffEqual, " biz"},
-	}, DIFF_LINE_ADD))
+	}, DiffLineAdd))
 
 	assertEqual(t, "-foo <span class=\"removed-code\">bar</span> biz", diffToHTML([]dmp.Diff{
 		dmp.Diff{dmp.DiffEqual, "foo "},
 		dmp.Diff{dmp.DiffDelete, "bar"},
 		dmp.Diff{dmp.DiffInsert, " baz"},
 		dmp.Diff{dmp.DiffEqual, " biz"},
-	}, DIFF_LINE_DEL))
+	}, DiffLineDel))
 }

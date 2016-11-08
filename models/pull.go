@@ -12,15 +12,13 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-
-	"github.com/gogits/git-module"
-	api "github.com/gogits/go-gogs-client"
-
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/process"
 	"github.com/go-gitea/gitea/modules/setting"
 	"github.com/go-gitea/gitea/modules/sync"
+	"github.com/go-xorm/xorm"
+	"github.com/go-gitea/git"
+	api "github.com/go-gitea/go-sdk/gitea"
 )
 
 var PullRequestQueue = sync.NewUniqueQueue(setting.Repository.PullRequestQueueLength)
@@ -28,16 +26,16 @@ var PullRequestQueue = sync.NewUniqueQueue(setting.Repository.PullRequestQueueLe
 type PullRequestType int
 
 const (
-	PULL_REQUEST_GOGS PullRequestType = iota
-	PLLL_ERQUEST_GIT
+	PullRequestGitea PullRequestType = iota
+	PullRequestGit
 )
 
 type PullRequestStatus int
 
 const (
-	PULL_REQUEST_STATUS_CONFLICT PullRequestStatus = iota
-	PULL_REQUEST_STATUS_CHECKING
-	PULL_REQUEST_STATUS_MERGEABLE
+	PullRequestStatusConflict PullRequestStatus = iota
+	PullRequestStatusChecking
+	PullRequestStatusMergeable
 )
 
 // PullRequest represents relation between pull request and repositories.
@@ -131,8 +129,8 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		HasMerged: pr.HasMerged,
 	}
 
-	if pr.Status != PULL_REQUEST_STATUS_CHECKING {
-		mergeable := pr.Status != PULL_REQUEST_STATUS_CONFLICT
+	if pr.Status != PullRequestStatusChecking {
+		mergeable := pr.Status != PullRequestStatusConflict
 		apiPullRequest.Mergeable = &mergeable
 	}
 	if pr.HasMerged {
@@ -170,12 +168,12 @@ func (pr *PullRequest) GetBaseRepo() (err error) {
 
 // IsChecking returns true if this pull request is still checking conflict.
 func (pr *PullRequest) IsChecking() bool {
-	return pr.Status == PULL_REQUEST_STATUS_CHECKING
+	return pr.Status == PullRequestStatusChecking
 }
 
 // CanAutoMerge returns true if this pull request can be merged automatically.
 func (pr *PullRequest) CanAutoMerge() bool {
-	return pr.Status == PULL_REQUEST_STATUS_MERGEABLE
+	return pr.Status == PullRequestStatusMergeable
 }
 
 // Merge merges pull request to base repository.
@@ -287,8 +285,8 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 		log.Error(4, "LoadAttributes: %v", err)
 		return nil
 	}
-	if err = PrepareWebhooks(pr.Issue.Repo, HOOK_EVENT_PULL_REQUEST, &api.PullRequestPayload{
-		Action:      api.HOOK_ISSUE_CLOSED,
+	if err = PrepareWebhooks(pr.Issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
+		Action:      api.HookIssueClosed,
 		Index:       pr.Index,
 		PullRequest: pr.APIFormat(),
 		Repository:  pr.Issue.Repo.APIFormat(nil),
@@ -325,7 +323,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 		Pusher:     pr.HeadRepo.MustOwner().APIFormat(),
 		Sender:     doer.APIFormat(),
 	}
-	if err = PrepareWebhooks(pr.BaseRepo, HOOK_EVENT_PUSH, p); err != nil {
+	if err = PrepareWebhooks(pr.BaseRepo, HookEventPush, p); err != nil {
 		return fmt.Errorf("PrepareWebhooks: %v", err)
 	}
 	return nil
@@ -369,7 +367,7 @@ func (pr *PullRequest) testPatch() (err error) {
 		return fmt.Errorf("UpdateLocalCopy: %v", err)
 	}
 
-	pr.Status = PULL_REQUEST_STATUS_CHECKING
+	pr.Status = PullRequestStatusChecking
 	_, stderr, err := process.ExecDir(-1, pr.BaseRepo.LocalCopyPath(),
 		fmt.Sprintf("testPatch (git apply --check): %d", pr.BaseRepo.ID),
 		"git", "apply", "--check", patchPath)
@@ -378,7 +376,7 @@ func (pr *PullRequest) testPatch() (err error) {
 			if strings.Contains(stderr, patchConflicts[i]) {
 				log.Trace("PullRequest[%d].testPatch (apply): has conflit", pr.ID)
 				fmt.Println(stderr)
-				pr.Status = PULL_REQUEST_STATUS_CONFLICT
+				pr.Status = PullRequestStatusConflict
 				return nil
 			}
 		}
@@ -416,8 +414,8 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		return fmt.Errorf("testPatch: %v", err)
 	}
 	// No conflict appears after test means mergeable.
-	if pr.Status == PULL_REQUEST_STATUS_CHECKING {
-		pr.Status = PULL_REQUEST_STATUS_MERGEABLE
+	if pr.Status == PullRequestStatusChecking {
+		pr.Status = PullRequestStatusMergeable
 	}
 
 	pr.IssueID = pull.ID
@@ -432,7 +430,7 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	if err = NotifyWatchers(&Action{
 		ActUserID:    pull.Poster.ID,
 		ActUserName:  pull.Poster.Name,
-		OpType:       ACTION_CREATE_PULL_REQUEST,
+		OpType:       ActionCreatePullRequest,
 		Content:      fmt.Sprintf("%d|%s", pull.Index, pull.Title),
 		RepoID:       repo.ID,
 		RepoUserName: repo.Owner.Name,
@@ -446,8 +444,8 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 
 	pr.Issue = pull
 	pull.PullRequest = pr
-	if err = PrepareWebhooks(repo, HOOK_EVENT_PULL_REQUEST, &api.PullRequestPayload{
-		Action:      api.HOOK_ISSUE_OPENED,
+	if err = PrepareWebhooks(repo, HookEventPullRequest, &api.PullRequestPayload{
+		Action:      api.HookIssueOpened,
 		Index:       pull.Index,
 		PullRequest: pr.APIFormat(),
 		Repository:  repo.APIFormat(nil),
@@ -620,7 +618,7 @@ func (pr *PullRequest) PushToBaseRepo() (err error) {
 // AddToTaskQueue adds itself to pull request test task queue.
 func (pr *PullRequest) AddToTaskQueue() {
 	go PullRequestQueue.AddFunc(pr.ID, func() {
-		pr.Status = PULL_REQUEST_STATUS_CHECKING
+		pr.Status = PullRequestStatusChecking
 		if err := pr.UpdateCols("status"); err != nil {
 			log.Error(5, "AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
 		}
@@ -695,8 +693,8 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 					log.Error(4, "LoadAttributes: %v", err)
 					continue
 				}
-				if err = PrepareWebhooks(pr.Issue.Repo, HOOK_EVENT_PULL_REQUEST, &api.PullRequestPayload{
-					Action:      api.HOOK_ISSUE_SYNCHRONIZED,
+				if err = PrepareWebhooks(pr.Issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
+					Action:      api.HookIssueSynchronized,
 					Index:       pr.Issue.Index,
 					PullRequest: pr.Issue.PullRequest.APIFormat(),
 					Repository:  pr.Issue.Repo.APIFormat(nil),
@@ -735,8 +733,8 @@ func ChangeUsernameInPullRequests(oldUserName, newUserName string) error {
 // and set to be either conflict or mergeable.
 func (pr *PullRequest) checkAndUpdateStatus() {
 	// Status is not changed to conflict means mergeable.
-	if pr.Status == PULL_REQUEST_STATUS_CHECKING {
-		pr.Status = PULL_REQUEST_STATUS_MERGEABLE
+	if pr.Status == PullRequestStatusChecking {
+		pr.Status = PullRequestStatusMergeable
 	}
 
 	// Make sure there is no waiting test to process before levaing the checking status.
@@ -752,7 +750,7 @@ func (pr *PullRequest) checkAndUpdateStatus() {
 func TestPullRequests() {
 	prs := make([]*PullRequest, 0, 10)
 	x.Iterate(PullRequest{
-		Status: PULL_REQUEST_STATUS_CHECKING,
+		Status: PullRequestStatusChecking,
 	},
 		func(idx int, bean interface{}) error {
 			pr := bean.(*PullRequest)

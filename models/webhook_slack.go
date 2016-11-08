@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gogits/git-module"
-	api "github.com/gogits/go-gogs-client"
+	"github.com/go-gitea/git"
+	api "github.com/go-gitea/go-sdk/gitea"
 
 	"github.com/go-gitea/gitea/modules/setting"
 )
@@ -139,32 +139,32 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 		fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
 	var text, title, attachmentText string
 	switch p.Action {
-	case api.HOOK_ISSUE_OPENED:
+	case api.HookIssueOpened:
 		text = fmt.Sprintf("[%s] Pull request submitted by %s", p.Repository.FullName, senderLink)
 		title = titleLink
 		attachmentText = SlackTextFormatter(p.PullRequest.Body)
-	case api.HOOK_ISSUE_CLOSED:
+	case api.HookIssueClosed:
 		if p.PullRequest.HasMerged {
 			text = fmt.Sprintf("[%s] Pull request merged: %s by %s", p.Repository.FullName, titleLink, senderLink)
 		} else {
 			text = fmt.Sprintf("[%s] Pull request closed: %s by %s", p.Repository.FullName, titleLink, senderLink)
 		}
-	case api.HOOK_ISSUE_REOPENED:
+	case api.HookIssueReopened:
 		text = fmt.Sprintf("[%s] Pull request re-opened: %s by %s", p.Repository.FullName, titleLink, senderLink)
-	case api.HOOK_ISSUE_EDITED:
+	case api.HookIssueEdited:
 		text = fmt.Sprintf("[%s] Pull request edited: %s by %s", p.Repository.FullName, titleLink, senderLink)
 		attachmentText = SlackTextFormatter(p.PullRequest.Body)
-	case api.HOOK_ISSUE_ASSIGNED:
+	case api.HookIssueAssigned:
 		text = fmt.Sprintf("[%s] Pull request assigned to %s: %s by %s", p.Repository.FullName,
 			SlackLinkFormatter(setting.AppUrl+p.PullRequest.Assignee.UserName, p.PullRequest.Assignee.UserName),
 			titleLink, senderLink)
-	case api.HOOK_ISSUE_UNASSIGNED:
+	case api.HookIssueUnassigned:
 		text = fmt.Sprintf("[%s] Pull request unassigned: %s by %s", p.Repository.FullName, titleLink, senderLink)
-	case api.HOOK_ISSUE_LABEL_UPDATED:
+	case api.HookIssueLabelUpdated:
 		text = fmt.Sprintf("[%s] Pull request labels updated: %s by %s", p.Repository.FullName, titleLink, senderLink)
-	case api.HOOK_ISSUE_LABEL_CLEARED:
+	case api.HookIssueLabelCleared:
 		text = fmt.Sprintf("[%s] Pull request labels cleared: %s by %s", p.Repository.FullName, titleLink, senderLink)
-	case api.HOOK_ISSUE_SYNCHRONIZED:
+	case api.HookIssueSynchronized:
 		text = fmt.Sprintf("[%s] Pull request synchronized: %s by %s", p.Repository.FullName, titleLink, senderLink)
 	}
 
@@ -190,11 +190,11 @@ func GetSlackPayload(p api.Payloader, event HookEventType, meta string) (*SlackP
 	}
 
 	switch event {
-	case HOOK_EVENT_CREATE:
+	case HookEventCreate:
 		return getSlackCreatePayload(p.(*api.CreatePayload), slack)
-	case HOOK_EVENT_PUSH:
+	case HookEventPush:
 		return getSlackPushPayload(p.(*api.PushPayload), slack)
-	case HOOK_EVENT_PULL_REQUEST:
+	case HookEventPullRequest:
 		return getSlackPullRequestPayload(p.(*api.PullRequestPayload), slack)
 	}
 

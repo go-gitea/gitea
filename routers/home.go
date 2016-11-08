@@ -172,7 +172,7 @@ func ExploreUsers(ctx *context.Context) {
 	ctx.Data["PageIsExploreUsers"] = true
 
 	RenderUserSearch(ctx, &UserSearchOptions{
-		Type:     models.USER_TYPE_INDIVIDUAL,
+		Type:     models.UserTypeIndividual,
 		Counter:  models.CountUsers,
 		Ranger:   models.Users,
 		PageSize: setting.UI.ExplorePagingNum,
@@ -187,7 +187,7 @@ func ExploreOrganizations(ctx *context.Context) {
 	ctx.Data["PageIsExploreOrganizations"] = true
 
 	RenderUserSearch(ctx, &UserSearchOptions{
-		Type:     models.USER_TYPE_ORGANIZATION,
+		Type:     models.UserTypeOrganization,
 		Counter:  models.CountOrganizations,
 		Ranger:   models.Organizations,
 		PageSize: setting.UI.ExplorePagingNum,

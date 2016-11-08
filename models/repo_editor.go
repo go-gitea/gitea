@@ -18,7 +18,7 @@ import (
 	"github.com/Unknwon/com"
 	gouuid "github.com/satori/go.uuid"
 
-	git "github.com/gogits/git-module"
+	"github.com/go-gitea/git"
 
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/process"

@@ -9,9 +9,7 @@ import (
 	"path"
 
 	"github.com/Unknwon/paginater"
-
-	"github.com/gogits/git-module"
-
+	"github.com/go-gitea/git"
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/base"
 	"github.com/go-gitea/gitea/modules/context"
@@ -160,7 +158,9 @@ func Diff(ctx *context.Context) {
 		}
 		return
 	}
-
+	if len(commitID) != 40 {
+		commitID = commit.ID.String()
+	}
 	diff, err := models.GetDiffCommit(models.RepoPath(userName, repoName),
 		commitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
@@ -178,13 +178,6 @@ func Diff(ctx *context.Context) {
 			return
 		}
 	}
-
-	ec, err := ctx.Repo.GetEditorconfig()
-	if err != nil && !git.IsErrNotExist(err) {
-		ctx.Handle(500, "ErrGettingEditorconfig", err)
-		return
-	}
-	ctx.Data["Editorconfig"] = ec
 
 	ctx.Data["CommitID"] = commitID
 	ctx.Data["IsSplitStyle"] = ctx.Query("style") == "split"

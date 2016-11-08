@@ -15,23 +15,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/go-macaron/binding"
-	"github.com/go-macaron/cache"
-	"github.com/go-macaron/captcha"
-	"github.com/go-macaron/csrf"
-	"github.com/go-macaron/gzip"
-	"github.com/go-macaron/i18n"
-	"github.com/go-macaron/session"
-	"github.com/go-macaron/toolbox"
-	"github.com/go-xorm/xorm"
-	"github.com/mcuadros/go-version"
-	"github.com/urfave/cli"
-	"gopkg.in/ini.v1"
-	"gopkg.in/macaron.v1"
-
-	"github.com/gogits/git-module"
-	"github.com/gogits/go-gogs-client"
-
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/auth"
 	"github.com/go-gitea/gitea/modules/bindata"
@@ -46,8 +29,23 @@ import (
 	"github.com/go-gitea/gitea/routers/org"
 	"github.com/go-gitea/gitea/routers/repo"
 	"github.com/go-gitea/gitea/routers/user"
+	"github.com/go-macaron/binding"
+	"github.com/go-macaron/cache"
+	"github.com/go-macaron/captcha"
+	"github.com/go-macaron/csrf"
+	"github.com/go-macaron/gzip"
+	"github.com/go-macaron/i18n"
+	"github.com/go-macaron/session"
+	"github.com/go-macaron/toolbox"
+	"github.com/go-xorm/xorm"
+	"github.com/go-gitea/git"
+	version "github.com/mcuadros/go-version"
+	"github.com/urfave/cli"
+	ini "gopkg.in/ini.v1"
+	macaron "gopkg.in/macaron.v1"
 )
 
+// CmdWeb represents the available web sub-command.
 var CmdWeb = cli.Command{
 	Name:  "web",
 	Usage: "Start Gogs web server",
@@ -60,6 +58,7 @@ and it takes care of all the other things for you`,
 	},
 }
 
+// VerChecker is a listing of required dependency versions.
 type VerChecker struct {
 	ImportPath string
 	Version    func() string
@@ -93,13 +92,12 @@ func checkVersion() {
 		{"github.com/go-macaron/toolbox", toolbox.Version, "0.1.0"},
 		{"gopkg.in/ini.v1", ini.Version, "1.8.4"},
 		{"gopkg.in/macaron.v1", macaron.Version, "1.1.7"},
-		{"github.com/gogits/git-module", git.Version, "0.4.1"},
-		{"github.com/gogits/go-gogs-client", gogs.Version, "0.12.1"},
+		{"github.com/go-gitea/git", git.Version, "0.4.1"},
 	}
 	for _, c := range checkers {
 		if !version.Compare(c.Version(), c.Expected, ">=") {
 			log.Fatal(4, `Dependency outdated!
-Package '%s' current version (%s) is below requirement (%s), 
+Package '%s' current version (%s) is below requirement (%s),
 please use following command to update this package and recompile Gogs:
 go get -u %[1]s`, c.ImportPath, c.Version(), c.Expected)
 		}
@@ -518,7 +516,8 @@ func runWeb(ctx *cli.Context) error {
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
 		})
 
-		m.Combo("/compare/*", repo.MustAllowPulls).Get(repo.CompareAndPullRequest).
+		m.Combo("/compare/*", repo.MustAllowPulls, repo.SetEditorconfigIfExists).
+			Get(repo.CompareAndPullRequest).
 			Post(bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
 
 		m.Group("", func() {
@@ -577,20 +576,20 @@ func runWeb(ctx *cli.Context) error {
 
 		m.Group("/pulls/:index", func() {
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
-			m.Get("/files", context.RepoRef(), repo.ViewPullFiles)
+			m.Get("/files", context.RepoRef(), repo.SetEditorconfigIfExists, repo.ViewPullFiles)
 			m.Post("/merge", reqRepoWriter, repo.MergePullRequest)
 		}, repo.MustAllowPulls)
 
 		m.Group("", func() {
-			m.Get("/src/*", repo.Home)
+			m.Get("/src/*", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("/raw/*", repo.SingleDownload)
 			m.Get("/commits/*", repo.RefCommits)
-			m.Get("/commit/:sha([a-z0-9]{7,40})$", repo.Diff)
+			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.SetEditorconfigIfExists, repo.Diff)
 			m.Get("/forks", repo.Forks)
 		}, context.RepoRef())
-		m.Get("/commit/:sha([a-z0-9]{7,40})\\.:ext(patch|diff)", repo.RawDiff)
+		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)", repo.RawDiff)
 
-		m.Get("/compare/:before([a-z0-9]{7,40})\\.\\.\\.:after([a-z0-9]{7,40})", repo.CompareDiff)
+		m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.CompareDiff)
 	}, ignSignIn, context.RepoAssignment(), repo.MustBeNotBare)
 	m.Group("/:username/:reponame", func() {
 		m.Get("/stars", repo.Stars)
@@ -599,8 +598,8 @@ func runWeb(ctx *cli.Context) error {
 
 	m.Group("/:username", func() {
 		m.Group("/:reponame", func() {
-			m.Get("", repo.Home)
-			m.Get("\\.git$", repo.Home)
+			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
+			m.Get("\\.git$", repo.SetEditorconfigIfExists, repo.Home)
 		}, ignSignIn, context.RepoAssignment(true), context.RepoRef())
 
 		m.Group("/:reponame", func() {
@@ -653,7 +652,7 @@ func runWeb(ctx *cli.Context) error {
 		os.Remove(listenAddr)
 
 		var listener *net.UnixListener
-		listener, err = net.ListenUnix("unix", &net.UnixAddr{listenAddr, "unix"})
+		listener, err = net.ListenUnix("unix", &net.UnixAddr{Name: listenAddr, Net: "unix"})
 		if err != nil {
 			break // Handle error after switch
 		}

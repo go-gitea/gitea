@@ -226,11 +226,11 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		var auth models.AccessMode
 		switch form.Permission {
 		case "read":
-			auth = models.ACCESS_MODE_READ
+			auth = models.AccessModeRead
 		case "write":
-			auth = models.ACCESS_MODE_WRITE
+			auth = models.AccessModeWrite
 		case "admin":
-			auth = models.ACCESS_MODE_ADMIN
+			auth = models.AccessModeAdmin
 		default:
 			ctx.Error(401)
 			return

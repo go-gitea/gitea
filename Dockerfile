@@ -6,7 +6,7 @@ ADD https://github.com/tianon/gosu/releases/download/1.9/gosu-amd64 /usr/sbin/go
 RUN chmod +x /usr/sbin/gosu \
  && apk --no-cache --no-progress add ca-certificates bash git linux-pam s6 curl openssh socat tzdata
 
-ENV GOGS_CUSTOM /data/gogs
+ENV GITEA_CUSTOM /data/gogs
 
 COPY . /app/gogs/
 WORKDIR /app/gogs/

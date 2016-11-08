@@ -104,7 +104,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateProfileForm) {
 
 // FIXME: limit size.
 func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *models.User) error {
-	ctxUser.UseCustomAvatar = form.Source == auth.AVATAR_LOCAL
+	ctxUser.UseCustomAvatar = form.Source == auth.AvatarLocal
 	if len(form.Gravatar) > 0 {
 		ctxUser.Avatar = base.EncodeMD5(form.Gravatar)
 		ctxUser.AvatarEmail = form.Gravatar

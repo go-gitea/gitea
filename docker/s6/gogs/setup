@@ -6,7 +6,7 @@ if ! test -d ~git/.ssh; then
 fi
 
 if ! test -f ~git/.ssh/environment; then
-    echo "GOGS_CUSTOM=${GOGS_CUSTOM}" > ~git/.ssh/environment
+    echo "GITEA_CUSTOM=${GITEA_CUSTOM}" > ~git/.ssh/environment
     chmod 600 ~git/.ssh/environment
 fi
 

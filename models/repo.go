@@ -21,23 +21,21 @@ import (
 
 	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-	"github.com/mcuadros/go-version"
-	"gopkg.in/ini.v1"
-
-	git "github.com/gogits/git-module"
-	api "github.com/gogits/go-gogs-client"
-
 	"github.com/go-gitea/gitea/modules/bindata"
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/markdown"
 	"github.com/go-gitea/gitea/modules/process"
 	"github.com/go-gitea/gitea/modules/setting"
 	"github.com/go-gitea/gitea/modules/sync"
+	"github.com/go-xorm/xorm"
+	"github.com/go-gitea/git"
+	api "github.com/go-gitea/go-sdk/gitea"
+	version "github.com/mcuadros/go-version"
+	ini "gopkg.in/ini.v1"
 )
 
 const (
-	_TPL_UPDATE_HOOK = "#!/usr/bin/env %s\n%s update $1 $2 $3 --config='%s'\n"
+	tplUpdateHook = "#!/usr/bin/env %s\n%s update $1 $2 $3 --config='%s'\n"
 )
 
 var repoWorkingPool = sync.NewExclusivePool()
@@ -186,6 +184,7 @@ type Repository struct {
 	ExternalWikiURL       string
 	EnableIssues          bool `xorm:"NOT NULL DEFAULT true"`
 	EnableExternalTracker bool
+	ExternalTrackerURL    string
 	ExternalTrackerFormat string
 	ExternalTrackerStyle  string
 	ExternalMetas         map[string]string `xorm:"-"`
@@ -335,7 +334,7 @@ func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
 	}
 
 	accesses := make([]*Access, 0, 10)
-	if err = e.Where("repo_id = ? AND mode >= ?", repo.ID, ACCESS_MODE_WRITE).Find(&accesses); err != nil {
+	if err = e.Where("repo_id = ? AND mode >= ?", repo.ID, AccessModeWrite).Find(&accesses); err != nil {
 		return nil, err
 	}
 
@@ -419,7 +418,7 @@ func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) strin
 }
 
 func (repo *Repository) HasAccess(u *User) bool {
-	has, _ := HasAccess(u, repo, ACCESS_MODE_READ)
+	has, _ := HasAccess(u, repo, AccessModeRead)
 	return has
 }
 
@@ -707,7 +706,7 @@ func cleanUpMigrateGitConfig(configPath string) error {
 
 func createUpdateHook(repoPath string) error {
 	return git.SetUpdateHook(repoPath,
-		fmt.Sprintf(_TPL_UPDATE_HOOK, setting.ScriptType, "\""+setting.AppPath+"\"", setting.CustomConf))
+		fmt.Sprintf(tplUpdateHook, setting.ScriptType, "\""+setting.AppPath+"\"", setting.CustomConf))
 }
 
 // Finish migrating repository and/or wiki with things that don't need to be done for mirrors.
@@ -1614,18 +1613,18 @@ func RewriteRepositoryUpdateHook() error {
 var taskStatusTable = sync.NewStatusTable()
 
 const (
-	_MIRROR_UPDATE = "mirror_update"
-	_GIT_FSCK      = "git_fsck"
-	_CHECK_REPOs   = "check_repos"
+	mirrorUpdate = "mirror_update"
+	gitFsck      = "git_fsck"
+	checkRepos   = "check_repos"
 )
 
 // GitFsck calls 'git fsck' to check repository health.
 func GitFsck() {
-	if taskStatusTable.IsRunning(_GIT_FSCK) {
+	if taskStatusTable.IsRunning(gitFsck) {
 		return
 	}
-	taskStatusTable.Start(_GIT_FSCK)
-	defer taskStatusTable.Stop(_GIT_FSCK)
+	taskStatusTable.Start(gitFsck)
+	defer taskStatusTable.Stop(gitFsck)
 
 	log.Trace("Doing: GitFsck")
 
@@ -1687,11 +1686,11 @@ func repoStatsCheck(checker *repoChecker) {
 }
 
 func CheckRepoStats() {
-	if taskStatusTable.IsRunning(_CHECK_REPOs) {
+	if taskStatusTable.IsRunning(checkRepos) {
 		return
 	}
-	taskStatusTable.Start(_CHECK_REPOs)
-	defer taskStatusTable.Stop(_CHECK_REPOs)
+	taskStatusTable.Start(checkRepos)
+	defer taskStatusTable.Stop(checkRepos)
 
 	log.Trace("Doing: CheckRepoStats")
 

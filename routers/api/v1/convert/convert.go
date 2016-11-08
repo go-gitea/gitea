@@ -9,8 +9,8 @@ import (
 
 	"github.com/Unknwon/com"
 
-	"github.com/gogits/git-module"
-	api "github.com/gogits/go-gogs-client"
+	"github.com/go-gitea/git"
+	api "github.com/go-gitea/go-sdk/gitea"
 
 	"github.com/go-gitea/gitea/models"
 )

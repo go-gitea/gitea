@@ -22,7 +22,7 @@ import (
 type NoticeType int
 
 const (
-	NOTICE_REPOSITORY NoticeType = iota + 1
+	NoticeRepository NoticeType = iota + 1
 )
 
 // Notice represents a system notice for admin.
@@ -65,9 +65,9 @@ func CreateNotice(tp NoticeType, desc string) error {
 	return err
 }
 
-// CreateRepositoryNotice creates new system notice with type NOTICE_REPOSITORY.
+// CreateRepositoryNotice creates new system notice with type NoticeRepository.
 func CreateRepositoryNotice(desc string) error {
-	return CreateNotice(NOTICE_REPOSITORY, desc)
+	return CreateNotice(NoticeRepository, desc)
 }
 
 // RemoveAllWithNotice removes all directories in given path and

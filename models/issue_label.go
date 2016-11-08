@@ -13,7 +13,7 @@ import (
 
 	"github.com/go-xorm/xorm"
 
-	api "github.com/gogits/go-gogs-client"
+	api "github.com/go-gitea/go-sdk/gitea"
 
 	"github.com/go-gitea/gitea/modules/base"
 )

@@ -20,6 +20,7 @@ import (
 	"github.com/go-gitea/gitea/modules/setting"
 )
 
+// CmdDump represents the available dump sub-command.
 var CmdDump = cli.Command{
 	Name:  "dump",
 	Usage: "Dump Gogs files and database",

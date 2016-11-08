@@ -12,7 +12,7 @@ import (
 
 	"github.com/Unknwon/com"
 
-	"github.com/gogits/git-module"
+	"github.com/go-gitea/git"
 
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/auth"

@@ -52,8 +52,13 @@ var (
 )
 
 func MustEnableIssues(ctx *context.Context) {
-	if !ctx.Repo.Repository.EnableIssues || ctx.Repo.Repository.EnableExternalTracker {
+	if !ctx.Repo.Repository.EnableIssues {
 		ctx.Handle(404, "MustEnableIssues", nil)
+		return
+	}
+
+	if ctx.Repo.Repository.EnableExternalTracker {
+		ctx.Redirect(ctx.Repo.Repository.ExternalTrackerURL)
 		return
 	}
 }
@@ -121,16 +126,16 @@ func Issues(ctx *context.Context) {
 		assigneeID = ctx.QueryInt64("assignee")
 		posterID   int64
 	)
-	filterMode := models.FM_ALL
+	filterMode := models.FilterModeAll
 	switch viewType {
 	case "assigned":
-		filterMode = models.FM_ASSIGN
+		filterMode = models.FilterModeAssign
 		assigneeID = ctx.User.ID
 	case "created_by":
-		filterMode = models.FM_CREATE
+		filterMode = models.FilterModeCreate
 		posterID = ctx.User.ID
 	case "mentioned":
-		filterMode = models.FM_MENTION
+		filterMode = models.FilterModeMention
 	}
 
 	var uid int64 = -1
@@ -174,7 +179,7 @@ func Issues(ctx *context.Context) {
 		MilestoneID: milestoneID,
 		Page:        pager.Current(),
 		IsClosed:    isShowClosed,
-		IsMention:   filterMode == models.FM_MENTION,
+		IsMention:   filterMode == models.FilterModeMention,
 		IsPull:      isPullList,
 		Labels:      selectLabels,
 		SortType:    sortType,
@@ -502,7 +507,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Data["Title"] = issue.Title
+	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
 
 	// Make sure type and URL matches.
 	if ctx.Params(":type") == "issues" && issue.IsPull {
@@ -594,7 +599,7 @@ func ViewIssue(ctx *context.Context) {
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 	for _, comment = range issue.Comments {
-		if comment.Type == models.COMMENT_TYPE_COMMENT {
+		if comment.Type == models.CommentTypeComment {
 			comment.RenderedContent = string(markdown.Render([]byte(comment.Content), ctx.Repo.RepoLink,
 				ctx.Repo.Repository.ComposeMetas()))
 
@@ -607,11 +612,11 @@ func ViewIssue(ctx *context.Context) {
 
 			if repo.IsOwnedBy(comment.PosterID) ||
 				(repo.Owner.IsOrganization() && repo.Owner.IsOwnedBy(comment.PosterID)) {
-				comment.ShowTag = models.COMMENT_TAG_OWNER
+				comment.ShowTag = models.CommentTagOwner
 			} else if comment.Poster.IsWriterOfRepo(repo) {
-				comment.ShowTag = models.COMMENT_TAG_WRITER
+				comment.ShowTag = models.CommentTagWriter
 			} else if comment.PosterID == issue.PosterID {
-				comment.ShowTag = models.COMMENT_TAG_POSTER
+				comment.ShowTag = models.CommentTagPoster
 			}
 
 			marked[comment.PosterID] = comment.ShowTag
@@ -887,7 +892,7 @@ func UpdateCommentContent(ctx *context.Context) {
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Error(403)
 		return
-	} else if comment.Type != models.COMMENT_TYPE_COMMENT {
+	} else if comment.Type != models.CommentTypeComment {
 		ctx.Error(204)
 		return
 	}
@@ -919,7 +924,7 @@ func DeleteComment(ctx *context.Context) {
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Error(403)
 		return
-	} else if comment.Type != models.COMMENT_TYPE_COMMENT {
+	} else if comment.Type != models.CommentTypeComment {
 		ctx.Error(204)
 		return
 	}

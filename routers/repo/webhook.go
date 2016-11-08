@@ -12,8 +12,8 @@ import (
 
 	"github.com/Unknwon/com"
 
-	git "github.com/gogits/git-module"
-	api "github.com/gogits/go-gogs-client"
+	"github.com/go-gitea/git"
+	api "github.com/go-gitea/go-sdk/gitea"
 
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/auth"
@@ -23,16 +23,16 @@ import (
 )
 
 const (
-	HOOKS        base.TplName = "repo/settings/hooks"
-	HOOK_NEW     base.TplName = "repo/settings/hook_new"
-	ORG_HOOK_NEW base.TplName = "org/settings/hook_new"
+	tplHooks      base.TplName = "repo/settings/hooks"
+	tplHookNew    base.TplName = "repo/settings/hook_new"
+	tplOrgHookNew base.TplName = "org/settings/hook_new"
 )
 
 func Webhooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.hooks")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["BaseLink"] = ctx.Repo.RepoLink
-	ctx.Data["Description"] = ctx.Tr("repo.settings.hooks_desc", "https://github.com/gogits/go-gogs-client/wiki/Repositories-Webhooks")
+	ctx.Data["Description"] = ctx.Tr("repo.settings.hooks_desc", "https://godoc.org/github.com/go-gitea/go-sdk/gitea")
 
 	ws, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
@@ -41,7 +41,7 @@ func Webhooks(ctx *context.Context) {
 	}
 	ctx.Data["Webhooks"] = ws
 
-	ctx.HTML(200, HOOKS)
+	ctx.HTML(200, tplHooks)
 }
 
 type OrgRepoCtx struct {
@@ -57,7 +57,7 @@ func getOrgRepoCtx(ctx *context.Context) (*OrgRepoCtx, error) {
 		return &OrgRepoCtx{
 			RepoID:      ctx.Repo.Repository.ID,
 			Link:        ctx.Repo.RepoLink,
-			NewTemplate: HOOK_NEW,
+			NewTemplate: tplHookNew,
 		}, nil
 	}
 
@@ -65,7 +65,7 @@ func getOrgRepoCtx(ctx *context.Context) (*OrgRepoCtx, error) {
 		return &OrgRepoCtx{
 			OrgID:       ctx.Org.Organization.ID,
 			Link:        ctx.Org.OrgLink,
-			NewTemplate: ORG_HOOK_NEW,
+			NewTemplate: tplOrgHookNew,
 		}, nil
 	}
 
@@ -134,9 +134,9 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 		return
 	}
 
-	contentType := models.JSON
-	if models.HookContentType(form.ContentType) == models.FORM {
-		contentType = models.FORM
+	contentType := models.ContentTypeJSON
+	if models.HookContentType(form.ContentType) == models.ContentTypeForm {
+		contentType = models.ContentTypeForm
 	}
 
 	w := &models.Webhook{
@@ -192,7 +192,7 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 	w := &models.Webhook{
 		RepoID:       orCtx.RepoID,
 		URL:          form.PayloadURL,
-		ContentType:  models.JSON,
+		ContentType:  models.ContentTypeJSON,
 		HookEvent:    ParseHookEvent(form.WebhookForm),
 		IsActive:     form.Active,
 		HookTaskType: models.SLACK,
@@ -281,9 +281,9 @@ func WebHooksEditPost(ctx *context.Context, form auth.NewWebhookForm) {
 		return
 	}
 
-	contentType := models.JSON
-	if models.HookContentType(form.ContentType) == models.FORM {
-		contentType = models.FORM
+	contentType := models.ContentTypeJSON
+	if models.HookContentType(form.ContentType) == models.ContentTypeForm {
+		contentType = models.ContentTypeForm
 	}
 
 	w.URL = form.PayloadURL
@@ -383,7 +383,7 @@ func TestWebhook(ctx *context.Context) {
 		Pusher: apiUser,
 		Sender: apiUser,
 	}
-	if err := models.PrepareWebhooks(ctx.Repo.Repository, models.HOOK_EVENT_PUSH, p); err != nil {
+	if err := models.PrepareWebhooks(ctx.Repo.Repository, models.HookEventPush, p); err != nil {
 		ctx.Flash.Error("PrepareWebhooks: " + err.Error())
 		ctx.Status(500)
 	} else {

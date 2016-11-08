@@ -51,15 +51,21 @@
 				<!-- Only show colne panel in repository home page -->
 				{{if eq $n 0}}
 					<div class="ui action small input" id="clone-panel">
-						<button class="ui basic clone button" id="repo-clone-https" data-link="{{.CloneLink.HTTPS}}">
-							{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
-						</button>
+						{{if not $.DisableHTTP}}
+							<button class="ui basic clone button" id="repo-clone-https" data-link="{{.CloneLink.HTTPS}}">
+								{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
+							</button>
+						{{end}}
 						{{if not $.DisableSSH}}
 							<button class="ui basic clone button" id="repo-clone-ssh" data-link="{{.CloneLink.SSH}}">
 								SSH
 							</button>
 						{{end}}
-						<input id="repo-clone-url" value="{{$.CloneLink.HTTPS}}" readonly>
+						{{if not $.DisableHTTP}}
+							<input id="repo-clone-url" value="{{$.CloneLink.HTTPS}}" readonly>
+						{{else}}
+							<input id="repo-clone-url" value="{{$.CloneLink.SSH}}" readonly>
+						{{end}}
 						<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
 							<i class="octicon octicon-clippy"></i>
 						</button>

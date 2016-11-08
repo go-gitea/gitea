@@ -24,8 +24,8 @@ import (
 	"github.com/go-xorm/xorm"
 	"github.com/nfnt/resize"
 
-	"github.com/gogits/git-module"
-	api "github.com/gogits/go-gogs-client"
+	"github.com/go-gitea/git"
+	api "github.com/go-gitea/go-sdk/gitea"
 
 	"github.com/go-gitea/gitea/modules/avatar"
 	"github.com/go-gitea/gitea/modules/base"
@@ -37,8 +37,8 @@ import (
 type UserType int
 
 const (
-	USER_TYPE_INDIVIDUAL UserType = iota // Historic reason to make it starts at 0.
-	USER_TYPE_ORGANIZATION
+	UserTypeIndividual UserType = iota // Historic reason to make it starts at 0.
+	UserTypeOrganization
 )
 
 var (
@@ -140,9 +140,9 @@ func (u *User) APIFormat() *api.User {
 	}
 }
 
-// returns true if user login type is LOGIN_PLAIN.
+// returns true if user login type is LoginPlain.
 func (u *User) IsLocal() bool {
-	return u.LoginType <= LOGIN_PLAIN
+	return u.LoginType <= LoginPlain
 }
 
 // HasForkedRepo checks if user has already forked a repository with given ID.
@@ -375,7 +375,7 @@ func (u *User) DeleteAvatar() error {
 
 // IsAdminOfRepo returns true if user has admin or higher access of repository.
 func (u *User) IsAdminOfRepo(repo *Repository) bool {
-	has, err := HasAccess(u, repo, ACCESS_MODE_ADMIN)
+	has, err := HasAccess(u, repo, AccessModeAdmin)
 	if err != nil {
 		log.Error(3, "HasAccess: %v", err)
 	}
@@ -384,7 +384,7 @@ func (u *User) IsAdminOfRepo(repo *Repository) bool {
 
 // IsWriterOfRepo returns true if user has write access to given repository.
 func (u *User) IsWriterOfRepo(repo *Repository) bool {
-	has, err := HasAccess(u, repo, ACCESS_MODE_WRITE)
+	has, err := HasAccess(u, repo, AccessModeWrite)
 	if err != nil {
 		log.Error(3, "HasAccess: %v", err)
 	}
@@ -393,7 +393,7 @@ func (u *User) IsWriterOfRepo(repo *Repository) bool {
 
 // IsOrganization returns true if user is actually a organization.
 func (u *User) IsOrganization() bool {
-	return u.Type == USER_TYPE_ORGANIZATION
+	return u.Type == UserTypeOrganization
 }
 
 // IsUserOrgOwner returns true if user is in the owner team of given organization.
@@ -886,7 +886,7 @@ func GetUserByID(id int64) (*User, error) {
 
 // GetAssigneeByID returns the user with write access of repository by given ID.
 func GetAssigneeByID(repo *Repository, userID int64) (*User, error) {
-	has, err := HasAccess(&User{ID: userID}, repo, ACCESS_MODE_WRITE)
+	has, err := HasAccess(&User{ID: userID}, repo, AccessModeWrite)
 	if err != nil {
 		return nil, err
 	} else if !has {

@@ -9,11 +9,10 @@ import (
 	"strings"
 
 	"github.com/Unknwon/paginater"
-	"gopkg.in/macaron.v1"
-
 	"github.com/go-gitea/gitea/modules/base"
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/setting"
+	macaron "gopkg.in/macaron.v1"
 )
 
 type APIContext struct {
@@ -37,7 +36,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 
 	ctx.JSON(status, map[string]string{
 		"message": message,
-		"url":     base.DOC_URL,
+		"url":     base.DocURL,
 	})
 }
 

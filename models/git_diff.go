@@ -17,35 +17,33 @@ import (
 	"strings"
 
 	"github.com/Unknwon/com"
-	"github.com/sergi/go-diff/diffmatchpatch"
-	"golang.org/x/net/html/charset"
-	"golang.org/x/text/transform"
-
-	"github.com/gogits/git-module"
-
 	"github.com/go-gitea/gitea/modules/base"
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/process"
 	"github.com/go-gitea/gitea/modules/setting"
 	"github.com/go-gitea/gitea/modules/template/highlight"
+	"github.com/go-gitea/git"
+	"github.com/sergi/go-diff/diffmatchpatch"
+	"golang.org/x/net/html/charset"
+	"golang.org/x/text/transform"
 )
 
 type DiffLineType uint8
 
 const (
-	DIFF_LINE_PLAIN DiffLineType = iota + 1
-	DIFF_LINE_ADD
-	DIFF_LINE_DEL
-	DIFF_LINE_SECTION
+	DiffLinePlain DiffLineType = iota + 1
+	DiffLineAdd
+	DiffLineDel
+	DiffLineSection
 )
 
 type DiffFileType uint8
 
 const (
-	DIFF_FILE_ADD DiffFileType = iota + 1
-	DIFF_FILE_CHANGE
-	DIFF_FILE_DEL
-	DIFF_FILE_RENAME
+	DiffFileAdd DiffFileType = iota + 1
+	DiffFileChange
+	DiffFileDel
+	DiffFileRename
 )
 
 type DiffLine struct {
@@ -75,19 +73,19 @@ func diffToHTML(diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTM
 
 	// Reproduce signs which are cutted for inline diff before.
 	switch lineType {
-	case DIFF_LINE_ADD:
+	case DiffLineAdd:
 		buf.WriteByte('+')
-	case DIFF_LINE_DEL:
+	case DiffLineDel:
 		buf.WriteByte('-')
 	}
 
 	for i := range diffs {
 		switch {
-		case diffs[i].Type == diffmatchpatch.DiffInsert && lineType == DIFF_LINE_ADD:
+		case diffs[i].Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
 			buf.Write(addedCodePrefix)
 			buf.WriteString(html.EscapeString(diffs[i].Text))
 			buf.Write(codeTagSuffix)
-		case diffs[i].Type == diffmatchpatch.DiffDelete && lineType == DIFF_LINE_DEL:
+		case diffs[i].Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
 			buf.Write(removedCodePrefix)
 			buf.WriteString(html.EscapeString(diffs[i].Text))
 			buf.Write(codeTagSuffix)
@@ -111,9 +109,9 @@ func (diffSection *DiffSection) GetLine(lineType DiffLineType, idx int) *DiffLin
 LOOP:
 	for _, diffLine := range diffSection.Lines {
 		switch diffLine.Type {
-		case DIFF_LINE_ADD:
+		case DiffLineAdd:
 			addCount++
-		case DIFF_LINE_DEL:
+		case DiffLineDel:
 			delCount++
 		default:
 			if matchDiffLine != nil {
@@ -125,11 +123,11 @@ LOOP:
 		}
 
 		switch lineType {
-		case DIFF_LINE_DEL:
+		case DiffLineDel:
 			if diffLine.RightIdx == 0 && diffLine.LeftIdx == idx-difference {
 				matchDiffLine = diffLine
 			}
-		case DIFF_LINE_ADD:
+		case DiffLineAdd:
 			if diffLine.LeftIdx == 0 && diffLine.RightIdx == idx+difference {
 				matchDiffLine = diffLine
 			}
@@ -161,15 +159,15 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 
 	// try to find equivalent diff line. ignore, otherwise
 	switch diffLine.Type {
-	case DIFF_LINE_ADD:
-		compareDiffLine = diffSection.GetLine(DIFF_LINE_DEL, diffLine.RightIdx)
+	case DiffLineAdd:
+		compareDiffLine = diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
 		if compareDiffLine == nil {
 			return template.HTML(html.EscapeString(diffLine.Content))
 		}
 		diff1 = compareDiffLine.Content
 		diff2 = diffLine.Content
-	case DIFF_LINE_DEL:
-		compareDiffLine = diffSection.GetLine(DIFF_LINE_ADD, diffLine.LeftIdx)
+	case DiffLineDel:
+		compareDiffLine = diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
 		if compareDiffLine == nil {
 			return template.HTML(html.EscapeString(diffLine.Content))
 		}
@@ -266,7 +264,7 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 
 		switch {
 		case line[0] == ' ':
-			diffLine := &DiffLine{Type: DIFF_LINE_PLAIN, Content: line, LeftIdx: leftLine, RightIdx: rightLine}
+			diffLine := &DiffLine{Type: DiffLinePlain, Content: line, LeftIdx: leftLine, RightIdx: rightLine}
 			leftLine++
 			rightLine++
 			curSection.Lines = append(curSection.Lines, diffLine)
@@ -275,7 +273,7 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 			curSection = &DiffSection{}
 			curFile.Sections = append(curFile.Sections, curSection)
 			ss := strings.Split(line, "@@")
-			diffLine := &DiffLine{Type: DIFF_LINE_SECTION, Content: line}
+			diffLine := &DiffLine{Type: DiffLineSection, Content: line}
 			curSection.Lines = append(curSection.Lines, diffLine)
 
 			// Parse line number.
@@ -291,14 +289,14 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 		case line[0] == '+':
 			curFile.Addition++
 			diff.TotalAddition++
-			diffLine := &DiffLine{Type: DIFF_LINE_ADD, Content: line, RightIdx: rightLine}
+			diffLine := &DiffLine{Type: DiffLineAdd, Content: line, RightIdx: rightLine}
 			rightLine++
 			curSection.Lines = append(curSection.Lines, diffLine)
 			continue
 		case line[0] == '-':
 			curFile.Deletion++
 			diff.TotalDeletion++
-			diffLine := &DiffLine{Type: DIFF_LINE_DEL, Content: line, LeftIdx: leftLine}
+			diffLine := &DiffLine{Type: DiffLineDel, Content: line, LeftIdx: leftLine}
 			if leftLine > 0 {
 				leftLine++
 			}
@@ -332,7 +330,7 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 			curFile = &DiffFile{
 				Name:     a,
 				Index:    len(diff.Files) + 1,
-				Type:     DIFF_FILE_CHANGE,
+				Type:     DiffFileChange,
 				Sections: make([]*DiffSection, 0, 10),
 			}
 			diff.Files = append(diff.Files, curFile)
@@ -356,15 +354,15 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 
 				switch {
 				case strings.HasPrefix(line, "new file"):
-					curFile.Type = DIFF_FILE_ADD
+					curFile.Type = DiffFileAdd
 					curFile.IsCreated = true
 				case strings.HasPrefix(line, "deleted"):
-					curFile.Type = DIFF_FILE_DEL
+					curFile.Type = DiffFileDel
 					curFile.IsDeleted = true
 				case strings.HasPrefix(line, "index"):
-					curFile.Type = DIFF_FILE_CHANGE
+					curFile.Type = DiffFileChange
 				case strings.HasPrefix(line, "similarity index 100%"):
-					curFile.Type = DIFF_FILE_RENAME
+					curFile.Type = DiffFileRename
 					curFile.IsRenamed = true
 					curFile.OldName = curFile.Name
 					curFile.Name = b
@@ -461,8 +459,8 @@ func GetDiffRange(repoPath, beforeCommitID, afterCommitID string, maxLines, maxL
 type RawDiffType string
 
 const (
-	RAW_DIFF_NORMAL RawDiffType = "diff"
-	RAW_DIFF_PATCH  RawDiffType = "patch"
+	RawDiffNormal RawDiffType = "diff"
+	RawDiffPatch  RawDiffType = "patch"
 )
 
 // GetRawDiff dumps diff results of repository in given commit ID to io.Writer.
@@ -480,14 +478,14 @@ func GetRawDiff(repoPath, commitID string, diffType RawDiffType, writer io.Write
 
 	var cmd *exec.Cmd
 	switch diffType {
-	case RAW_DIFF_NORMAL:
+	case RawDiffNormal:
 		if commit.ParentCount() == 0 {
 			cmd = exec.Command("git", "show", commitID)
 		} else {
 			c, _ := commit.Parent(0)
 			cmd = exec.Command("git", "diff", "-M", c.ID.String(), commitID)
 		}
-	case RAW_DIFF_PATCH:
+	case RawDiffPatch:
 		if commit.ParentCount() == 0 {
 			cmd = exec.Command("git", "format-patch", "--no-signature", "--stdout", "--root", commitID)
 		} else {

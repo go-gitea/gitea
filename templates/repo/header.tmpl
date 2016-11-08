@@ -52,9 +52,9 @@
 			<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}">
 				<i class="octicon octicon-code"></i> {{.i18n.Tr "repo.code"}}
 			</a>
-			{{if and .Repository.EnableIssues (not .Repository.EnableExternalTracker)}}
+			{{if .Repository.EnableIssues}}
 				<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
-					<i class="octicon octicon-issue-opened"></i> {{.i18n.Tr "repo.issues"}} <span class="ui {{if not .Repository.NumOpenIssues}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenIssues}}</span>
+					<i class="octicon octicon-issue-opened"></i> {{.i18n.Tr "repo.issues"}} {{if not .Repository.EnableExternalTracker}}<span class="ui {{if not .Repository.NumOpenIssues}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenIssues}}{{end}}</span>
 				</a>
 			{{end}}
 			{{if .Repository.AllowsPulls}}

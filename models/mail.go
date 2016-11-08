@@ -20,15 +20,15 @@ import (
 )
 
 const (
-	MAIL_AUTH_ACTIVATE        base.TplName = "auth/activate"
-	MAIL_AUTH_ACTIVATE_EMAIL  base.TplName = "auth/activate_email"
-	MAIL_AUTH_RESET_PASSWORD  base.TplName = "auth/reset_passwd"
-	MAIL_AUTH_REGISTER_NOTIFY base.TplName = "auth/register_notify"
+	MailAuthActivate        base.TplName = "auth/activate"
+	MailAuthActivateEmail  base.TplName = "auth/activate_email"
+	MailAuthResetPassword  base.TplName = "auth/reset_passwd"
+	MailAuthRegisterNotify base.TplName = "auth/register_notify"
 
-	MAIL_ISSUE_COMMENT base.TplName = "issue/comment"
-	MAIL_ISSUE_MENTION base.TplName = "issue/mention"
+	MailIssueComment base.TplName = "issue/comment"
+	MailIssueMention base.TplName = "issue/mention"
 
-	MAIL_NOTIFY_COLLABORATOR base.TplName = "notify/collaborator"
+	MailNotifyCollaborator base.TplName = "notify/collaborator"
 )
 
 type MailRender interface {
@@ -77,11 +77,11 @@ func SendUserMail(c *macaron.Context, u *User, tpl base.TplName, code, subject, 
 }
 
 func SendActivateAccountMail(c *macaron.Context, u *User) {
-	SendUserMail(c, u, MAIL_AUTH_ACTIVATE, u.GenerateActivateCode(), c.Tr("mail.activate_account"), "activate account")
+	SendUserMail(c, u, MailAuthActivate, u.GenerateActivateCode(), c.Tr("mail.activate_account"), "activate account")
 }
 
 func SendResetPasswordMail(c *macaron.Context, u *User) {
-	SendUserMail(c, u, MAIL_AUTH_RESET_PASSWORD, u.GenerateActivateCode(), c.Tr("mail.reset_password"), "reset password")
+	SendUserMail(c, u, MailAuthResetPassword, u.GenerateActivateCode(), c.Tr("mail.reset_password"), "reset password")
 }
 
 // SendActivateAccountMail sends confirmation email.
@@ -92,7 +92,7 @@ func SendActivateEmailMail(c *macaron.Context, u *User, email *EmailAddress) {
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
 	}
-	body, err := mailRender.HTMLString(string(MAIL_AUTH_ACTIVATE_EMAIL), data)
+	body, err := mailRender.HTMLString(string(MailAuthActivateEmail), data)
 	if err != nil {
 		log.Error(3, "HTMLString: %v", err)
 		return
@@ -109,7 +109,7 @@ func SendRegisterNotifyMail(c *macaron.Context, u *User) {
 	data := map[string]interface{}{
 		"Username": u.DisplayName(),
 	}
-	body, err := mailRender.HTMLString(string(MAIL_AUTH_REGISTER_NOTIFY), data)
+	body, err := mailRender.HTMLString(string(MailAuthRegisterNotify), data)
 	if err != nil {
 		log.Error(3, "HTMLString: %v", err)
 		return
@@ -131,7 +131,7 @@ func SendCollaboratorMail(u, doer *User, repo *Repository) {
 		"RepoName": repoName,
 		"Link":     repo.HTMLURL(),
 	}
-	body, err := mailRender.HTMLString(string(MAIL_NOTIFY_COLLABORATOR), data)
+	body, err := mailRender.HTMLString(string(MailNotifyCollaborator), data)
 	if err != nil {
 		log.Error(3, "HTMLString: %v", err)
 		return
@@ -171,7 +171,7 @@ func SendIssueCommentMail(issue *Issue, doer *User, tos []string) {
 		return
 	}
 
-	mailer.SendAsync(composeIssueMessage(issue, doer, MAIL_ISSUE_COMMENT, tos, "issue comment"))
+	mailer.SendAsync(composeIssueMessage(issue, doer, MailIssueComment, tos, "issue comment"))
 }
 
 // SendIssueMentionMail composes and sends issue mention emails to target receivers.
@@ -179,5 +179,5 @@ func SendIssueMentionMail(issue *Issue, doer *User, tos []string) {
 	if len(tos) == 0 {
 		return
 	}
-	mailer.SendAsync(composeIssueMessage(issue, doer, MAIL_ISSUE_MENTION, tos, "issue mention"))
+	mailer.SendAsync(composeIssueMessage(issue, doer, MailIssueMention, tos, "issue mention"))
 }

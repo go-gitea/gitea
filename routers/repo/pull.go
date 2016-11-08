@@ -6,19 +6,18 @@ package repo
 
 import (
 	"container/list"
+	"fmt"
 	"path"
 	"strings"
 
 	"github.com/Unknwon/com"
-
-	"github.com/gogits/git-module"
-
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/auth"
 	"github.com/go-gitea/gitea/modules/base"
 	"github.com/go-gitea/gitea/modules/context"
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/setting"
+	"github.com/go-gitea/git"
 )
 
 const (
@@ -148,7 +147,7 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 		}
 		return nil
 	}
-	ctx.Data["Title"] = issue.Title
+	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
 	ctx.Data["Issue"] = issue
 
 	if !issue.IsPull {
@@ -366,13 +365,6 @@ func ViewPullFiles(ctx *context.Context) {
 		ctx.Handle(500, "GetCommit", err)
 		return
 	}
-
-	ec, err := ctx.Repo.GetEditorconfig()
-	if err != nil && !git.IsErrNotExist(err) {
-		ctx.Handle(500, "ErrGettingEditorconfig", err)
-		return
-	}
-	ctx.Data["Editorconfig"] = ec
 
 	headTarget := path.Join(pull.HeadUserName, pull.HeadRepo.Name)
 	ctx.Data["IsSplitStyle"] = ctx.Query("style") == "split"
@@ -626,13 +618,6 @@ func CompareAndPullRequest(ctx *context.Context) {
 		}
 	}
 
-	ec, err := ctx.Repo.GetEditorconfig()
-	if err != nil && !git.IsErrNotExist(err) {
-		ctx.Handle(500, "ErrGettingEditorconfig", err)
-		return
-	}
-	ctx.Data["Editorconfig"] = ec
-
 	ctx.HTML(200, COMPARE_PULL)
 }
 
@@ -702,7 +687,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		HeadRepo:     headRepo,
 		BaseRepo:     repo,
 		MergeBase:    prInfo.MergeBase,
-		Type:         models.PULL_REQUEST_GOGS,
+		Type:         models.PullRequestGitea,
 	}
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.

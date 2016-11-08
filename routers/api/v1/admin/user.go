@@ -5,7 +5,7 @@
 package admin
 
 import (
-	api "github.com/gogits/go-gogs-client"
+	api "github.com/go-gitea/go-sdk/gitea"
 
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/context"
@@ -42,7 +42,7 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 		Email:     form.Email,
 		Passwd:    form.Password,
 		IsActive:  true,
-		LoginType: models.LOGIN_PLAIN,
+		LoginType: models.LoginPlain,
 	}
 
 	parseLoginSource(ctx, u, form.SourceID, form.LoginName)

@@ -12,7 +12,7 @@ import (
 
 	"github.com/go-xorm/xorm"
 
-	"github.com/gogits/git-module"
+	"github.com/go-gitea/git"
 
 	"github.com/go-gitea/gitea/modules/process"
 )
@@ -138,8 +138,11 @@ func GetReleaseByID(id int64) (*Release, error) {
 }
 
 // GetReleasesByRepoID returns a list of releases of repository.
-func GetReleasesByRepoID(repoID int64) (rels []*Release, err error) {
-	err = x.Desc("created_unix").Find(&rels, Release{RepoID: repoID})
+func GetReleasesByRepoID(repoID int64, page, pageSize int) (rels []*Release, err error) {
+	if page <= 0 {
+		page = 1
+	}
+	err = x.Desc("created_unix").Limit(pageSize, (page-1)*pageSize).Find(&rels, Release{RepoID: repoID})
 	return rels, err
 }
 

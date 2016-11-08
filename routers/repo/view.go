@@ -13,9 +13,6 @@ import (
 	"strings"
 
 	"github.com/Unknwon/paginater"
-
-	"github.com/gogits/git-module"
-
 	"github.com/go-gitea/gitea/models"
 	"github.com/go-gitea/gitea/modules/base"
 	"github.com/go-gitea/gitea/modules/context"
@@ -24,6 +21,7 @@ import (
 	"github.com/go-gitea/gitea/modules/setting"
 	"github.com/go-gitea/gitea/modules/template"
 	"github.com/go-gitea/gitea/modules/template/highlight"
+	"github.com/go-gitea/git"
 )
 
 const (
@@ -90,6 +88,9 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				ctx.Data["IsMarkdown"] = true
 				buf = markdown.Render(buf, treeLink, ctx.Repo.Repository.ComposeMetas())
 			default:
+				// FIXME This is the only way to show non-markdown files
+				// instead of a broken "View Raw" link
+				ctx.Data["IsMarkdown"] = true
 				buf = bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1)
 			}
 			ctx.Data["FileContent"] = string(buf)
@@ -158,8 +159,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 		readmeExist := isMarkdown || markdown.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
-		if readmeExist {
-			// TODO: don't need to render if it's a README but not Markdown file.
+		if readmeExist && isMarkdown {
 			ctx.Data["FileContent"] = string(markdown.Render(buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
 		} else {
 			// Building code view blocks with line number on server side.
@@ -244,13 +244,6 @@ func Home(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-
-	ec, err := ctx.Repo.GetEditorconfig()
-	if err != nil && !git.IsErrNotExist(err) {
-		ctx.Handle(500, "Repo.GetEditorconfig", err)
-		return
-	}
-	ctx.Data["Editorconfig"] = ec
 
 	var treeNames []string
 	paths := make([]string, 0, 5)

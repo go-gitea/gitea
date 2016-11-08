@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
-	git "github.com/gogits/git-module"
+	"github.com/go-gitea/git"
 	gouuid "github.com/satori/go.uuid"
 	"github.com/urfave/cli"
 
@@ -26,9 +26,10 @@ import (
 )
 
 const (
-	_ACCESS_DENIED_MESSAGE = "Repository does not exist or you do not have access"
+	accessDenied = "Repository does not exist or you do not have access"
 )
 
+// CmdServ represents the available serv sub-command.
 var CmdServ = cli.Command{
 	Name:        "serv",
 	Usage:       "This command should only be called by SSH shell",
@@ -63,9 +64,9 @@ func parseCmd(cmd string) (string, string) {
 
 var (
 	allowedCommands = map[string]models.AccessMode{
-		"git-upload-pack":    models.ACCESS_MODE_READ,
-		"git-upload-archive": models.ACCESS_MODE_READ,
-		"git-receive-pack":   models.ACCESS_MODE_WRITE,
+		"git-upload-pack":    models.AccessModeRead,
+		"git-upload-archive": models.AccessModeRead,
+		"git-receive-pack":   models.AccessModeWrite,
 	}
 )
 
@@ -179,7 +180,7 @@ func runServ(c *cli.Context) error {
 	repo, err := models.GetRepositoryByName(repoUser.ID, reponame)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
-			fail(_ACCESS_DENIED_MESSAGE, "Repository does not exist: %s/%s", repoUser.Name, reponame)
+			fail(accessDenied, "Repository does not exist: %s/%s", repoUser.Name, reponame)
 		}
 		fail("Internal error", "Failed to get repository: %v", err)
 	}
@@ -190,7 +191,7 @@ func runServ(c *cli.Context) error {
 	}
 
 	// Prohibit push to mirror repositories.
-	if requestedMode > models.ACCESS_MODE_READ && repo.IsMirror {
+	if requestedMode > models.AccessModeRead && repo.IsMirror {
 		fail("mirror repository is read-only", "")
 	}
 
@@ -199,7 +200,7 @@ func runServ(c *cli.Context) error {
 		keyID int64
 		user  *models.User
 	)
-	if requestedMode == models.ACCESS_MODE_WRITE || repo.IsPrivate {
+	if requestedMode == models.AccessModeWrite || repo.IsPrivate {
 		keys := strings.Split(c.Args()[0], "-")
 		if len(keys) != 2 {
 			fail("Key ID format error", "Invalid key argument: %s", c.Args()[0])
@@ -212,7 +213,7 @@ func runServ(c *cli.Context) error {
 		keyID = key.ID
 
 		// Check deploy key or user key.
-		if key.Type == models.KEY_TYPE_DEPLOY {
+		if key.Type == models.KeyTypeDeploy {
 			if key.Mode < requestedMode {
 				fail("Key permission denied", "Cannot push with deployment key: %d", key.ID)
 			}
@@ -241,8 +242,8 @@ func runServ(c *cli.Context) error {
 			if err != nil {
 				fail("Internal error", "Fail to check access: %v", err)
 			} else if mode < requestedMode {
-				clientMessage := _ACCESS_DENIED_MESSAGE
-				if mode >= models.ACCESS_MODE_READ {
+				clientMessage := accessDenied
+				if mode >= models.AccessModeRead {
 					clientMessage = "You do not have sufficient authorization for this action"
 				}
 				fail(clientMessage,
@@ -275,7 +276,7 @@ func runServ(c *cli.Context) error {
 		fail("Internal error", "Failed to execute git command: %v", err)
 	}
 
-	if requestedMode == models.ACCESS_MODE_WRITE {
+	if requestedMode == models.AccessModeWrite {
 		handleUpdateTask(uuid, user, repoUser, reponame, isWiki)
 	}
 

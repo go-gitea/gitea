@@ -16,6 +16,7 @@ import (
 	"html/template"
 	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -23,11 +24,9 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/i18n"
-
-	"github.com/gogits/chardet"
-
 	"github.com/go-gitea/gitea/modules/log"
 	"github.com/go-gitea/gitea/modules/setting"
+	"github.com/gogits/chardet"
 )
 
 // EncodeMD5 encodes string to md5 hex value.
@@ -44,11 +43,10 @@ func EncodeSha1(str string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+// ShortSha is basically just truncating.
+// It is DEPRECATED and will be removed in the future.
 func ShortSha(sha1 string) string {
-	if len(sha1) > 10 {
-		return sha1[:10]
-	}
-	return sha1
+	return TruncateString(sha1, 10)
 }
 
 func DetectEncoding(content []byte) (string, error) {
@@ -198,30 +196,24 @@ func CreateTimeLimitCode(data string, minutes int, startInf interface{}) string 
 // HashEmail hashes email address to MD5 string.
 // https://en.gravatar.com/site/implement/hash/
 func HashEmail(email string) string {
-	email = strings.ToLower(strings.TrimSpace(email))
-	h := md5.New()
-	h.Write([]byte(email))
-	return hex.EncodeToString(h.Sum(nil))
+	return EncodeMD5(strings.ToLower(strings.TrimSpace(email)))
 }
 
 // AvatarLink returns relative avatar link to the site domain by given email,
 // which includes app sub-url as prefix. However, it is possible
 // to return full URL if user enables Gravatar-like service.
-func AvatarLink(email string) (url string) {
+func AvatarLink(email string) string {
 	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
-		var err error
-		url, err = setting.LibravatarService.FromEmail(email)
-		if err != nil {
-			log.Error(1, "LibravatarService.FromEmail: %v", err)
-		}
+		// TODO: This doesn't check any error. AvatarLink should return (string, error)
+		url, _ := setting.LibravatarService.FromEmail(email)
+		return url
 	}
-	if len(url) == 0 && !setting.DisableGravatar {
-		url = setting.GravatarSource + HashEmail(email)
+
+	if !setting.DisableGravatar {
+		return setting.GravatarSource + HashEmail(email)
 	}
-	if len(url) == 0 {
-		url = setting.AppSubUrl + "/img/avatar_default.png"
-	}
-	return url
+
+	return setting.AppSubUrl + "/img/avatar_default.png"
 }
 
 // Seconds-based time units
@@ -470,7 +462,10 @@ func Subtract(left interface{}, right interface{}) interface{} {
 // EllipsisString returns a truncated short string,
 // it appends '...' in the end of the length of string is too large.
 func EllipsisString(str string, length int) string {
-	if len(str) < length {
+	if length <= 3 {
+		return "..."
+	}
+	if len(str) <= length {
 		return str
 	}
 	return str[:length-3] + "..."
@@ -498,7 +493,7 @@ func StringsToInt64s(strs []string) []int64 {
 func Int64sToStrings(ints []int64) []string {
 	strs := make([]string, len(ints))
 	for i := range ints {
-		strs[i] = com.ToStr(ints[i])
+		strs[i] = strconv.FormatInt(ints[i], 10)
 	}
 	return strs
 }

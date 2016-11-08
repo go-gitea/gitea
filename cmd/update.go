@@ -14,6 +14,7 @@ import (
 	"github.com/go-gitea/gitea/modules/setting"
 )
 
+// CmdUpdate represents the available update sub-command.
 var CmdUpdate = cli.Command{
 	Name:        "update",
 	Usage:       "This command should only be called by Git hook",

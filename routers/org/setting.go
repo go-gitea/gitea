@@ -84,7 +84,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 }
 
 func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
-	form.Source = auth.AVATAR_LOCAL
+	form.Source = auth.AvatarLocal
 	if err := user.UpdateAvatarSetting(ctx, form, ctx.Org.Organization); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {

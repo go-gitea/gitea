@@ -155,7 +155,7 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 		return fmt.Errorf("get team members: %v", err)
 	}
 	for _, u := range t.Members {
-		has, err := hasAccess(e, u, repo, ACCESS_MODE_READ)
+		has, err := hasAccess(e, u, repo, AccessModeRead)
 		if err != nil {
 			return err
 		} else if has {
@@ -194,11 +194,27 @@ func (t *Team) RemoveRepository(repoID int64) error {
 	return sess.Commit()
 }
 
+func IsUsableTeamName(name string) (err error) {
+	var reservedTeamNames = []string{"new"}
+
+	for i := range reservedTeamNames {
+		if name == reservedTeamNames[i] {
+			return ErrNameReserved{name}
+		}
+	}
+
+	return nil
+}
+
 // NewTeam creates a record of new team.
 // It's caller's responsibility to assign organization ID.
-func NewTeam(t *Team) error {
+func NewTeam(t *Team) (err error) {
 	if len(t.Name) == 0 {
 		return errors.New("empty team name")
+	}
+
+	if err = IsUsableTeamName(t.Name); err != nil {
+		return err
 	}
 
 	has, err := x.Id(t.OrgID).Get(new(User))

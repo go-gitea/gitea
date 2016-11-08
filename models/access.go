@@ -13,22 +13,22 @@ import (
 type AccessMode int
 
 const (
-	ACCESS_MODE_NONE  AccessMode = iota // 0
-	ACCESS_MODE_READ                    // 1
-	ACCESS_MODE_WRITE                   // 2
-	ACCESS_MODE_ADMIN                   // 3
-	ACCESS_MODE_OWNER                   // 4
+	AccessModeNone  AccessMode = iota // 0
+	AccessModeRead                    // 1
+	AccessModeWrite                   // 2
+	AccessModeAdmin                   // 3
+	AccessModeOwner                   // 4
 )
 
 func (mode AccessMode) String() string {
 	switch mode {
-	case ACCESS_MODE_READ:
+	case AccessModeRead:
 		return "read"
-	case ACCESS_MODE_WRITE:
+	case AccessModeWrite:
 		return "write"
-	case ACCESS_MODE_ADMIN:
+	case AccessModeAdmin:
 		return "admin"
-	case ACCESS_MODE_OWNER:
+	case AccessModeOwner:
 		return "owner"
 	default:
 		return "none"
@@ -39,11 +39,11 @@ func (mode AccessMode) String() string {
 func ParseAccessMode(permission string) AccessMode {
 	switch permission {
 	case "write":
-		return ACCESS_MODE_WRITE
+		return AccessModeWrite
 	case "admin":
-		return ACCESS_MODE_ADMIN
+		return AccessModeAdmin
 	default:
-		return ACCESS_MODE_READ
+		return AccessModeRead
 	}
 }
 
@@ -58,9 +58,9 @@ type Access struct {
 }
 
 func accessLevel(e Engine, u *User, repo *Repository) (AccessMode, error) {
-	mode := ACCESS_MODE_NONE
+	mode := AccessModeNone
 	if !repo.IsPrivate {
-		mode = ACCESS_MODE_READ
+		mode = AccessModeRead
 	}
 
 	if u == nil {
@@ -68,7 +68,7 @@ func accessLevel(e Engine, u *User, repo *Repository) (AccessMode, error) {
 	}
 
 	if u.ID == repo.OwnerID {
-		return ACCESS_MODE_OWNER, nil
+		return AccessModeOwner, nil
 	}
 
 	a := &Access{UserID: u.ID, RepoID: repo.ID}
@@ -135,7 +135,7 @@ func (user *User) GetAccessibleRepositories(limit int) (repos []*Repository, _ e
 }
 
 func maxAccessMode(modes ...AccessMode) AccessMode {
-	max := ACCESS_MODE_NONE
+	max := AccessModeNone
 	for _, mode := range modes {
 		if mode > max {
 			max = mode
@@ -146,9 +146,9 @@ func maxAccessMode(modes ...AccessMode) AccessMode {
 
 // FIXME: do corss-comparison so reduce deletions and additions to the minimum?
 func (repo *Repository) refreshAccesses(e Engine, accessMap map[int64]AccessMode) (err error) {
-	minMode := ACCESS_MODE_READ
+	minMode := AccessModeRead
 	if !repo.IsPrivate {
-		minMode = ACCESS_MODE_WRITE
+		minMode = AccessModeWrite
 	}
 
 	newAccesses := make([]Access, 0, len(accessMap))
@@ -212,7 +212,7 @@ func (repo *Repository) recalculateTeamAccesses(e Engine, ignTeamID int64) (err 
 		// Owner team gets owner access, and skip for teams that do not
 		// have relations with repository.
 		if t.IsOwnerTeam() {
-			t.Authorize = ACCESS_MODE_OWNER
+			t.Authorize = AccessModeOwner
 		} else if !t.hasRepository(e, repo.ID) {
 			continue
 		}

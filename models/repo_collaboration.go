@@ -18,11 +18,11 @@ type Collaboration struct {
 
 func (c *Collaboration) ModeI18nKey() string {
 	switch c.Mode {
-	case ACCESS_MODE_READ:
+	case AccessModeRead:
 		return "repo.settings.collaboration.read"
-	case ACCESS_MODE_WRITE:
+	case AccessModeWrite:
 		return "repo.settings.collaboration.write"
-	case ACCESS_MODE_ADMIN:
+	case AccessModeAdmin:
 		return "repo.settings.collaboration.admin"
 	default:
 		return "repo.settings.collaboration.undefined"
@@ -42,7 +42,7 @@ func (repo *Repository) AddCollaborator(u *User) error {
 	} else if has {
 		return nil
 	}
-	collaboration.Mode = ACCESS_MODE_WRITE
+	collaboration.Mode = AccessModeWrite
 
 	sess := x.NewSession()
 	defer sessionRelease(sess)
@@ -105,7 +105,7 @@ func (repo *Repository) GetCollaborators() ([]*Collaborator, error) {
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
 func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode AccessMode) error {
 	// Discard invalid input
-	if mode <= ACCESS_MODE_NONE || mode > ACCESS_MODE_OWNER {
+	if mode <= AccessModeNone || mode > AccessModeOwner {
 		return nil
 	}
 

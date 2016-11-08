@@ -4,21 +4,21 @@ go:
   - 1.6
   - 1.7
 
+env:
+  TAGS: cert sqlite pam miniwinsvc
+
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y libpam-dev
-  - go get github.com/msteinert/pam
 
-install:
-  - go get -t -v ./...
+script:
+  - make clean
+  - make vet
 
-script: |
-  go build -v -tags "pam"
+  # - make lint
 
-  for pkg in $(go list ./... | grep -v /vendor/)
-  do
-    go test -v -race -cover -coverprofile $GOPATH/src/$pkg/coverage.out $pkg || exit 1
-  done
+  - make test
+  - make build
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

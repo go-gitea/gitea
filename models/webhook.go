@@ -15,7 +15,7 @@ import (
 	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
 
-	api "github.com/gogits/go-gogs-client"
+	api "github.com/go-gitea/go-sdk/gitea"
 
 	"github.com/go-gitea/gitea/modules/httplib"
 	"github.com/go-gitea/gitea/modules/log"
@@ -28,13 +28,13 @@ var HookQueue = sync.NewUniqueQueue(setting.Webhook.QueueLength)
 type HookContentType int
 
 const (
-	JSON HookContentType = iota + 1
-	FORM
+	ContentTypeJSON HookContentType = iota + 1
+	ContentTypeForm
 )
 
 var hookContentTypes = map[string]HookContentType{
-	"json": JSON,
-	"form": FORM,
+	"json": ContentTypeJSON,
+	"form": ContentTypeForm,
 }
 
 // ToHookContentType returns HookContentType by given name.
@@ -44,9 +44,9 @@ func ToHookContentType(name string) HookContentType {
 
 func (t HookContentType) Name() string {
 	switch t {
-	case JSON:
+	case ContentTypeJSON:
 		return "json"
-	case FORM:
+	case ContentTypeForm:
 		return "form"
 	}
 	return ""
@@ -76,9 +76,9 @@ type HookEvent struct {
 type HookStatus int
 
 const (
-	HOOK_STATUS_NONE = iota
-	HOOK_STATUS_SUCCEED
-	HOOK_STATUS_FAILED
+	HookStatusNone = iota
+	HookStatusSucceed
+	HookStatusFail
 )
 
 // Webhook represents a web hook object.
@@ -323,9 +323,9 @@ func IsValidHookTaskType(name string) bool {
 type HookEventType string
 
 const (
-	HOOK_EVENT_CREATE       HookEventType = "create"
-	HOOK_EVENT_PUSH         HookEventType = "push"
-	HOOK_EVENT_PULL_REQUEST HookEventType = "pull_request"
+	HookEventCreate       HookEventType = "create"
+	HookEventPush         HookEventType = "push"
+	HookEventPullRequest HookEventType = "pull_request"
 )
 
 // HookRequest represents hook task request information.
@@ -367,10 +367,10 @@ type HookTask struct {
 
 func (t *HookTask) BeforeUpdate() {
 	if t.RequestInfo != nil {
-		t.RequestContent = t.MarshalJSON(t.RequestInfo)
+		t.RequestContent = t.SimpleMarshalJSON(t.RequestInfo)
 	}
 	if t.ResponseInfo != nil {
-		t.ResponseContent = t.MarshalJSON(t.ResponseInfo)
+		t.ResponseContent = t.SimpleMarshalJSON(t.ResponseInfo)
 	}
 }
 
@@ -402,7 +402,7 @@ func (t *HookTask) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
-func (t *HookTask) MarshalJSON(v interface{}) string {
+func (t *HookTask) SimpleMarshalJSON(v interface{}) string {
 	p, err := json.Marshal(v)
 	if err != nil {
 		log.Error(3, "Marshal [%d]: %v", t.ID, err)
@@ -459,15 +459,15 @@ func PrepareWebhooks(repo *Repository, event HookEventType, p api.Payloader) err
 	var payloader api.Payloader
 	for _, w := range ws {
 		switch event {
-		case HOOK_EVENT_CREATE:
+		case HookEventCreate:
 			if !w.HasCreateEvent() {
 				continue
 			}
-		case HOOK_EVENT_PUSH:
+		case HookEventPush:
 			if !w.HasPushEvent() {
 				continue
 			}
-		case HOOK_EVENT_PULL_REQUEST:
+		case HookEventPullRequest:
 			if !w.HasPullRequestEvent() {
 				continue
 			}
@@ -511,9 +511,9 @@ func (t *HookTask) deliver() {
 		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify})
 
 	switch t.ContentType {
-	case JSON:
+	case ContentTypeJSON:
 		req = req.Header("Content-Type", "application/json").Body(t.PayloadContent)
-	case FORM:
+	case ContentTypeForm:
 		req.Param("payload", t.PayloadContent)
 	}
 
@@ -544,9 +544,9 @@ func (t *HookTask) deliver() {
 			return
 		}
 		if t.IsSucceed {
-			w.LastStatus = HOOK_STATUS_SUCCEED
+			w.LastStatus = HookStatusSucceed
 		} else {
-			w.LastStatus = HOOK_STATUS_FAILED
+			w.LastStatus = HookStatusFail
 		}
 		if err = UpdateWebhook(w); err != nil {
 			log.Error(5, "UpdateWebhook: %v", err)

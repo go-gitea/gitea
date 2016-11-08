@@ -9,10 +9,9 @@ import (
 	"strings"
 
 	"github.com/Unknwon/com"
-	"github.com/go-macaron/binding"
-	"gopkg.in/macaron.v1"
-
 	"github.com/go-gitea/gitea/models"
+	"github.com/go-macaron/binding"
+	macaron "gopkg.in/macaron.v1"
 )
 
 // _______________________________________    _________.______________________ _______________.___.
@@ -96,6 +95,7 @@ type RepoSettingForm struct {
 	ExternalWikiURL       string
 	EnableIssues          bool
 	EnableExternalTracker bool
+	ExternalTrackerURL    string
 	TrackerURLFormat      string
 	TrackerIssueStyle     string
 	EnablePulls           bool
@@ -288,7 +288,7 @@ func (f *NewWikiForm) Validate(ctx *macaron.Context, errs binding.Errors) bindin
 type EditRepoFileForm struct {
 	TreePath      string `binding:"Required;MaxSize(500)"`
 	Content       string `binding:"Required"`
-	CommitSummary string `binding:"MaxSize(100)`
+	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
 	NewBranchName string `binding:"AlphaDashDot;MaxSize(100)"`
@@ -316,8 +316,8 @@ func (f *EditPreviewDiffForm) Validate(ctx *macaron.Context, errs binding.Errors
 //
 
 type UploadRepoFileForm struct {
-	TreePath      string `binding:MaxSize(500)"`
-	CommitSummary string `binding:"MaxSize(100)`
+	TreePath      string `binding:"MaxSize(500)"`
+	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
 	NewBranchName string `binding:"AlphaDashDot;MaxSize(100)"`
@@ -344,7 +344,7 @@ func (f *RemoveUploadFileForm) Validate(ctx *macaron.Context, errs binding.Error
 //         \/     \/          \/          \/
 
 type DeleteRepoFileForm struct {
-	CommitSummary string `binding:"MaxSize(100)`
+	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
 	NewBranchName string `binding:"AlphaDashDot;MaxSize(100)"`

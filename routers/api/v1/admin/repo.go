@@ -5,7 +5,7 @@
 package admin
 
 import (
-	api "github.com/gogits/go-gogs-client"
+	api "github.com/go-gitea/go-sdk/gitea"
 
 	"github.com/go-gitea/gitea/modules/context"
 	"github.com/go-gitea/gitea/routers/api/v1/repo"
