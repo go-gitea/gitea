@@ -184,7 +184,7 @@ func PostHandler(ctx *context.Context) {
 	}
 
 	if !MetaMatcher(ctx.Req) {
-		writeStatus(ctx, 500)
+		writeStatus(ctx, 400)
 		return
 	}
 
@@ -233,7 +233,7 @@ func BatchHandler(ctx *context.Context) {
 	}
 
 	if !MetaMatcher(ctx.Req) {
-		writeStatus(ctx, 500)
+		writeStatus(ctx, 400)
 		return
 	}
 
