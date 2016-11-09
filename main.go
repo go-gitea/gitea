@@ -8,6 +8,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"runtime"
 
@@ -38,5 +39,5 @@ func main() {
 		cmd.CmdAdmin,
 	}
 	app.Flags = append(app.Flags, []cli.Flag{}...)
-	app.Run(os.Args)
+	log.Fatal(app.Run(os.Args))
 }
