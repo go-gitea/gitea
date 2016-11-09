@@ -8,7 +8,7 @@ export PATH=${PATH}:${GOPATH}/bin
 export GO15VENDOREXPERIMENT=1
 
 # Install build deps
-apk --no-cache --no-progress add --virtual build-deps build-base linux-pam-dev go
+#apk --no-cache --no-progress add --virtual build-deps build-base linux-pam-dev go
 
 # Install glide
 #git clone -b 0.10.2 https://github.com/Masterminds/glide ${GOPATH}/src/github.com/Masterminds/glide
@@ -30,8 +30,6 @@ go install
 rm -r $GOPATH /app/gogs/vendor
 
 # Remove build deps
-apk --no-progress del build-deps
+#apk --no-progress del build-deps
 
-# Create git user for Gogs
-adduser -H -D -g 'Gogs Git User' git -h /data/git -s /bin/bash && passwd -u git
-echo "export GOGS_CUSTOM=${GOGS_CUSTOM}" >> /etc/profile
+mv /app/gogs/bin/gitea /app/gogs/gitea

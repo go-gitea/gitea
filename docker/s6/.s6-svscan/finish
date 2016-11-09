@@ -1,5 +1,0 @@
-#!/bin/sh
-
-# Cleanup SOCAT services and s6 event folder
-rm -rf $(find /app/gogs/docker/s6/ -name 'event')
-rm -rf /app/gogs/docker/s6/SOCAT_*

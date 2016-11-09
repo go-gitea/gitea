@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 create_socat_links() {
     # Bind linked docker container to localhost socket using socat
@@ -22,44 +22,16 @@ create_socat_links() {
 EOT
 }
 
-cleanup() {
-    # Cleanup SOCAT services and s6 event folder
-    # On start and on shutdown in case container has been killed
-    rm -rf $(find /app/gogs/docker/s6/ -name 'event')
+# Cleanup SOCAT services and s6 event folder
+# On start and on shutdown in case container has been killed
+if test -f /app/gogs/docker/s6/; then
+	rm -rf $(find /app/gogs/docker/s6/ -name 'event')
     rm -rf /app/gogs/docker/s6/SOCAT_*
-}
-
-create_volume_subfolder() {
-    # Create VOLUME subfolder
-    for f in /data/gogs/data /data/gogs/conf /data/gogs/log /data/git /data/ssh; do
-        if ! test -d $f; then
-            mkdir -p $f
-        fi
-    done
-}
-
-cleanup
-create_volume_subfolder
+fi
 
 LINK=$(echo "$SOCAT_LINK" | tr '[:upper:]' '[:lower:]')
 if [ "$LINK" = "false" -o "$LINK" = "0" ]; then
     echo "init:socat  | Will not try to create socat links as requested" 1>&2
 else
     create_socat_links
-fi
-
-CROND=$(echo "$RUN_CROND" | tr '[:upper:]' '[:lower:]')
-if [ "$CROND" = "true" -o "$CROND" = "1" ]; then
-    echo "init:crond  | Cron Daemon (crond) will be run as requested by s6" 1>&2
-    rm -f /app/gogs/docker/s6/crond/down
-else
-    # Tell s6 not to run the crond service
-    touch /app/gogs/docker/s6/crond/down
-fi
-
-# Exec CMD or S6 by default if nothing present
-if [ $# -gt 0 ];then
-    exec "$@"
-else
-    exec /bin/s6-svscan /app/gogs/docker/s6/
 fi
