@@ -11,7 +11,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type EntryMode int
@@ -157,7 +156,6 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interfac
 
 		if tes[i].Type != OBJECT_COMMIT {
 			go func(i int) {
-				time.Sleep(200 * time.Millisecond)
 				cinfo := commitInfo{entryName: tes[i].Name()}
 				c, err := commit.GetCommitByPath(filepath.Join(treePath, tes[i].Name()))
 				if err != nil {
