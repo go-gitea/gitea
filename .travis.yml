@@ -1,5 +1,7 @@
 language: go
 
+go_import_path: code.gitea.io/gitea
+
 go:
   - 1.6
   - 1.7
