@@ -10,16 +10,16 @@ import (
 	"github.com/go-macaron/binding"
 	"gopkg.in/macaron.v1"
 
-	api "github.com/go-gitea/go-sdk/gitea"
+	api "code.gitea.io/go-sdk/gitea"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/auth"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/gitea/routers/api/v1/admin"
-	"github.com/go-gitea/gitea/routers/api/v1/misc"
-	"github.com/go-gitea/gitea/routers/api/v1/org"
-	"github.com/go-gitea/gitea/routers/api/v1/repo"
-	"github.com/go-gitea/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/routers/api/v1/admin"
+	"code.gitea.io/gitea/routers/api/v1/misc"
+	"code.gitea.io/gitea/routers/api/v1/org"
+	"code.gitea.io/gitea/routers/api/v1/repo"
+	"code.gitea.io/gitea/routers/api/v1/user"
 )
 
 func repoAssignment() macaron.Handler {

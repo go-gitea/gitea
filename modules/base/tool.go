@@ -24,8 +24,8 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/i18n"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/gogits/chardet"
 )
 

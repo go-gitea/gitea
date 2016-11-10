@@ -11,10 +11,10 @@ import (
 	"strings"
 
 	"github.com/Unknwon/com"
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/setting"
-	"github.com/go-gitea/git"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/git"
 	editorconfig "gopkg.in/editorconfig/editorconfig-core-go.v1"
 	macaron "gopkg.in/macaron.v1"
 )

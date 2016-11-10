@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	. "github.com/go-gitea/gitea/modules/markdown"
-	"github.com/go-gitea/gitea/modules/setting"
+	. "code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/russross/blackfriday"
 	. "github.com/smartystreets/goconvey/convey"
 )

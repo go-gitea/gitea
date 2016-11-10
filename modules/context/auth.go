@@ -7,8 +7,8 @@ package context
 import (
 	"net/url"
 
-	"github.com/go-gitea/gitea/modules/auth"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/go-macaron/csrf"
 	macaron "gopkg.in/macaron.v1"
 )

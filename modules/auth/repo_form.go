@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/Unknwon/com"
-	"github.com/go-gitea/gitea/models"
+	"code.gitea.io/gitea/models"
 	"github.com/go-macaron/binding"
 	macaron "gopkg.in/macaron.v1"
 )

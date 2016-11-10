@@ -24,14 +24,14 @@ import (
 	"github.com/go-xorm/xorm"
 	"github.com/nfnt/resize"
 
-	"github.com/go-gitea/git"
-	api "github.com/go-gitea/go-sdk/gitea"
+	"code.gitea.io/git"
+	api "code.gitea.io/go-sdk/gitea"
 
-	"github.com/go-gitea/gitea/modules/avatar"
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/markdown"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/avatar"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 type UserType int

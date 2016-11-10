@@ -5,10 +5,10 @@
 package repo
 
 import (
-	api "github.com/go-gitea/go-sdk/gitea"
+	api "code.gitea.io/go-sdk/gitea"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/context"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/context"
 )
 
 func ListLabels(ctx *context.APIContext) {

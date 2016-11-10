@@ -12,9 +12,9 @@ import (
 
 	"github.com/go-xorm/xorm"
 
-	"github.com/go-gitea/git"
+	"code.gitea.io/git"
 
-	"github.com/go-gitea/gitea/modules/process"
+	"code.gitea.io/gitea/modules/process"
 )
 
 // Release represents a release of repository.

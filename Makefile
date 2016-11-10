@@ -2,7 +2,7 @@ DIST := dist
 BIN := bin
 
 EXECUTABLE := gitea
-IMPORT := github.com/go-gitea/gitea
+IMPORT := code.gitea.io/gitea
 
 SHA := $(shell git rev-parse --short HEAD)
 DATE := $(shell date -u '+%Y-%m-%d %I:%M:%S %Z')
@@ -11,8 +11,8 @@ BINDATA := $(shell find conf | sed 's/ /\\ /g')
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
 
-LDFLAGS += -X "github.com/go-gitea/gitea/modules/setting.BuildTime=$(DATE)"
-LDFLAGS += -X "github.com/go-gitea/gitea/modules/setting.BuildGitHash=$(SHA)"
+LDFLAGS += -X "code.gitea.io/gitea/modules/setting.BuildTime=$(DATE)"
+LDFLAGS += -X "code.gitea.io/gitea/modules/setting.BuildGitHash=$(SHA)"
 
 TARGETS ?= linux/*,darwin/*,windows/*
 PACKAGES ?= $(shell go list ./... | grep -v /vendor/)

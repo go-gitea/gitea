@@ -15,21 +15,21 @@ import (
 	"path"
 	"strings"
 
-	"github.com/go-gitea/git"
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/auth"
-	"github.com/go-gitea/gitea/modules/bindata"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/setting"
-	"github.com/go-gitea/gitea/modules/template"
-	"github.com/go-gitea/gitea/routers"
-	"github.com/go-gitea/gitea/routers/admin"
-	apiv1 "github.com/go-gitea/gitea/routers/api/v1"
-	"github.com/go-gitea/gitea/routers/dev"
-	"github.com/go-gitea/gitea/routers/org"
-	"github.com/go-gitea/gitea/routers/repo"
-	"github.com/go-gitea/gitea/routers/user"
+	"code.gitea.io/git"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/bindata"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/template"
+	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/routers/admin"
+	apiv1 "code.gitea.io/gitea/routers/api/v1"
+	"code.gitea.io/gitea/routers/dev"
+	"code.gitea.io/gitea/routers/org"
+	"code.gitea.io/gitea/routers/repo"
+	"code.gitea.io/gitea/routers/user"
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/captcha"
@@ -100,7 +100,7 @@ func checkVersion() {
 		{"github.com/go-macaron/toolbox", toolbox.Version, "0.1.0"},
 		{"gopkg.in/ini.v1", ini.Version, "1.8.4"},
 		{"gopkg.in/macaron.v1", macaron.Version, "1.1.7"},
-		{"github.com/go-gitea/git", git.Version, "0.4.1"},
+		{"code.gitea.io/git", git.Version, "0.4.1"},
 	}
 	for _, c := range checkers {
 		if !version.Compare(c.Version(), c.Expected, ">=") {

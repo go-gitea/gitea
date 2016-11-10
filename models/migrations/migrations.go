@@ -20,9 +20,9 @@ import (
 	gouuid "github.com/satori/go.uuid"
 	"gopkg.in/ini.v1"
 
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 const _MIN_DB_VER = 4

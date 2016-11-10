@@ -40,13 +40,13 @@
 		},
 		{
 			"checksumSHA1": "K3Gp8Tv/B8otlbsOfQp3UpJGaaE=",
-			"path": "github.com/go-gitea/git",
+			"path": "code.gitea.io/git",
 			"revision": "766747ef8b271a2b1142edd0a40735f556ec2c1d",
 			"revisionTime": "2016-11-06T09:52:37Z"
 		},
 		{
 			"checksumSHA1": "/uhZZppDeb3Rbp3h8C0ALR3hdrA=",
-			"path": "github.com/go-gitea/go-sdk/gitea",
+			"path": "code.gitea.io/go-sdk/gitea",
 			"revision": "0a0a04ccf7a5e6b93d9a5507701635330cf4579c",
 			"revisionTime": "2016-11-07T15:06:50Z"
 		},
@@ -519,5 +519,5 @@
 			"revisionTime": "2016-06-28T05:56:50Z"
 		}
 	],
-	"rootPath": "github.com/go-gitea/gitea"
+	"rootPath": "code.gitea.io/gitea"
 }

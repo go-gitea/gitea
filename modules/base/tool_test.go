@@ -3,7 +3,7 @@ package base
 import (
 	"testing"
 
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/stretchr/testify/assert"
 	"strk.kbt.io/projects/go/libravatar"
 )

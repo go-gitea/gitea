@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/Unknwon/cae/zip"
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/urfave/cli"
 )
 

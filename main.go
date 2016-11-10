@@ -10,8 +10,8 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/go-gitea/gitea/cmd"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/cmd"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/urfave/cli"
 )
 

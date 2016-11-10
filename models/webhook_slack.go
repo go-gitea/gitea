@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-gitea/git"
-	api "github.com/go-gitea/go-sdk/gitea"
+	"code.gitea.io/git"
+	api "code.gitea.io/go-sdk/gitea"
 
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 type SlackMeta struct {

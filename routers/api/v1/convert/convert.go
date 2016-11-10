@@ -9,10 +9,10 @@ import (
 
 	"github.com/Unknwon/com"
 
-	"github.com/go-gitea/git"
-	api "github.com/go-gitea/go-sdk/gitea"
+	"code.gitea.io/git"
+	api "code.gitea.io/go-sdk/gitea"
 
-	"github.com/go-gitea/gitea/models"
+	"code.gitea.io/gitea/models"
 )
 
 func ToEmail(email *models.EmailAddress) *api.Email {
