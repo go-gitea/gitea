@@ -1450,7 +1450,14 @@ func GetRepositoryByID(id int64) (*Repository, error) {
 
 // GetUserRepositories returns a list of repositories of given user.
 func GetUserRepositories(userID int64, private bool, page, pageSize int) ([]*Repository, error) {
-	sess := x.Where("owner_id = ?", userID).Desc("updated_unix")
+	sess := x.Where("owner_id = ?", userID).Desc("uid").Desc("updated_unix")
+
+	if setting.UsePostgreSQL {
+		sess = sess.Join("LEFT", "star", `"repository".id=star.repo_id AND star.uid = ?`, userID)
+	} else {
+		sess = sess.Join("LEFT", "star", "repository.id=star.repo_id AND star.uid = ?", userID)
+	}
+
 	if !private {
 		sess.And("is_private=?", false)
 	}
@@ -1467,7 +1474,15 @@ func GetUserRepositories(userID int64, private bool, page, pageSize int) ([]*Rep
 // GetUserRepositories returns a list of mirror repositories of given user.
 func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 	repos := make([]*Repository, 0, 10)
-	return repos, x.Where("owner_id = ?", userID).And("is_mirror = ?", true).Find(&repos)
+	sess := x.Where("owner_id = ?", userID).And("is_mirror = ?", true).Desc("uid")
+
+	if setting.UsePostgreSQL {
+		sess = sess.Join("LEFT", "star", `"repository".id=star.repo_id AND star.uid = ?`, userID)
+	} else {
+		sess = sess.Join("LEFT", "star", "repository.id=star.repo_id AND star.uid = ?", userID)
+	}
+
+	return repos, sess.Find(&repos)
 }
 
 // GetRecentUpdatedRepositories returns the list of repositories that are recently updated.
