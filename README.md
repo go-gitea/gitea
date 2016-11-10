@@ -7,9 +7,11 @@
 [![](https://images.microbadger.com/badges/image/gitea/gitea.svg)](http://microbadger.com/images/gitea/gitea "Get your own image badge on microbadger.com")
 [![Join the chat at https://gitter.im/go-gitea/gitea](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-gitea/gitea?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-![](https://github.com/go-gitea/gitea/blob/master/public/img/gogs-large-resize.png?raw=true)
+![](https://github.com/go-gitea/gitea/blob/master/public/img/gitea-large-resize.png?raw=true)
 
-##### Current tip version: 0.9.99 (see [Releases](https://github.com/go-gitea/gitea/releases) for binary versions or submit a task on [alpha stage automated binary building system](https://build.gogs.io/))
+##### Status
+
+**Current version: 1.0.0** (see [Releases](https://github.com/go-gitea/gitea/releases)) 
 
 | Web | UI  | Preview  |
 |:-------------:|:-------:|:-------:|
@@ -19,24 +21,13 @@
 
 ### Important Notes
 
-1. **YOU MUST READ [Contributing Code](https://github.com/go-gitea/gitea/wiki/Contributing-Code) BEFORE STARTING TO WORK ON A PULL REQUEST**.
-2. Due to testing purpose, data of [try.gogs.io](https://try.gogs.io) was reset in **Jan 28, 2015** and will reset multiple times after. Please do **NOT** put your important data on the site.
-3. The demo site [try.gogs.io](https://try.gogs.io) is running under `develop` branch.
-4. If you think there are vulnerabilities in the project, please talk privately to **u@gogs.io**. Thanks!
-5. If you're interested in using APIs, we have experimental support with [documentation](https://godoc.org/github.com/go-gitea/go-sdk).
-6. If your team/company is using Gogs and would like to put your logo on [our website](https://gogs.io), contact us by any means.
+1. **YOU MUST READ THE [Contributors Guide](https://github.com/go-gitea/gitea/CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST**.
+4. If you think there are vulnerabilities in the project, please talk privately to **security@gitea.io**. Thanks!
+6. If your team/company is using Gogs and would like to put your logo on [our website](https://gitea.io), contact us by any means.
 
 ## Purpose
 
 The goal of this project is to make the easiest, fastest, and most painless way of setting up a self-hosted Git service. With Go, this can be done with an independent binary distribution across **ALL platforms** that Go supports, including Linux, Mac OS X, Windows and ARM.
-
-## Overview
-
-- Please see the [Documentation](https://gogs.io/docs/intro) for common usages and change log.
-- See the [Trello Board](https://trello.com/b/uxAoeLUl/gogs-go-git-service) to follow the develop team.
-- Want to try it before doing anything else? Do it [online](https://try.gogs.io/gogs/gogs)!
-- Having trouble? Get help with [Troubleshooting](https://gogs.io/docs/intro/troubleshooting.html) or [User Forum](https://discuss.gogs.io/).
-- Want to help with localization? Check out the [guide](https://gogs.io/docs/features/i18n.html)!
 
 ## Features
 
@@ -69,15 +60,14 @@ The goal of this project is to make the easiest, fastest, and most painless way 
 
 ## Installation
 
-Make sure you install the [prerequisites](https://gogs.io/docs/installation) first.
+**Note: As Gitea is a [Gogs](https://github.com/gogits/gogs) fork, tutorials and documentation related to gogs applies to Gitea too**
 
-There are 5 ways to install Gogs:
+There are 2 ways to install Gitea:
 
-- [Install from binary](https://gogs.io/docs/installation/install_from_binary.html)
-- [Install from source](https://gogs.io/docs/installation/install_from_source.html)
-- [Install from packages](https://gogs.io/docs/installation/install_from_packages.html)
 - [Ship with Docker](https://github.com/go-gitea/gitea/tree/master/docker)
-- [Install with Vagrant](https://github.com/geerlingguy/ansible-vagrant-examples/tree/master/gogs)
+- [Install with Vagrant](https://github.com/go-gitea/examples/tree/master/vagrant)
+
+**Note: binary release will be available soon**
 
 ### Tutorials
 
@@ -133,7 +123,7 @@ There are 5 ways to install Gogs:
 
 ## Contributors
 
-- Ex-team members [@lunny](https://github.com/lunny), [@fuxiaohei](https://github.com/fuxiaohei) and [@slene](https://github.com/slene).
+- see [Maintainer page](https://github.com/orgs/go-gitea/people)
 - See [contributors page](https://github.com/go-gitea/gitea/graphs/contributors) for full list of contributors.
 - See [TRANSLATORS](conf/locale/TRANSLATORS) for public list of translators.
 
