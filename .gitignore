@@ -29,6 +29,7 @@ _testmain.go
 coverage.out
 
 *.db
+*.sqlite3
 *.log
 
 /gitea

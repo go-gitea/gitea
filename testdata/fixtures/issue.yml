@@ -1,0 +1,19 @@
+-
+    id: 1
+    repo_id: 1
+    index: 1
+    name: Title
+    poster_id: 1
+    content: Content
+    is_pull: false
+    is_closed: false
+
+-
+    id: 2
+    repo_id: 1
+    index: 2
+    name: Title
+    poster_id: 1
+    content: Content
+    is_pull: false
+    is_closed: false

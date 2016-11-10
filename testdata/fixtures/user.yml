@@ -1,0 +1,19 @@
+-
+    id: 1
+    lower_name: user1
+    name: user1
+    full_name: User 1
+    email: user1@gogs.io
+    passwd: ""
+    avatar: ""
+    avatar_email: ""
+
+-
+    id: 2
+    lower_name: user2
+    name: user2
+    full_name: User 2
+    email: user2@gogs.io
+    passwd: ""
+    avatar: ""
+    avatar_email: ""

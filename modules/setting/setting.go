@@ -37,6 +37,10 @@ const (
 	HTTPS       Scheme = "https"
 	FCGI        Scheme = "fcgi"
 	UNIX_SOCKET Scheme = "unix"
+
+	RUN_MODE_PROD = "prod"
+	RUN_MODE_DEV  = "dev"
+	RUN_MODE_TEST = "test"
 )
 
 type LandingPage string
@@ -59,6 +63,8 @@ var (
 	AppSubUrlDepth int // Number of slashes
 	AppPath        string
 	AppDataPath    string
+
+	AppRunMode string
 
 	// Server settings
 	Protocol             Scheme
@@ -263,6 +269,10 @@ var (
 	HasRobotsTxt bool
 )
 
+func GiteaPath() string {
+	return filepath.Join(os.Getenv("GOPATH"), "src/github.com/go-gitea/gitea")
+}
+
 // DateLang transforms standard language locale name to corresponding value in datetime plugin.
 func DateLang(lang string) string {
 	name, ok := dateLangs[lang]
@@ -361,7 +371,6 @@ func NewContext() {
 please consider changing to GITEA_CUSTOM`)
 		}
 	}
-
 	if len(CustomConf) == 0 {
 		CustomConf = CustomPath + "/conf/app.ini"
 	}
@@ -390,6 +399,7 @@ please consider changing to GITEA_CUSTOM`)
 	if AppUrl[len(AppUrl)-1] != '/' {
 		AppUrl += "/"
 	}
+	AppRunMode = Cfg.Section("").Key("RUN_MODE").In(RUN_MODE_PROD, []string{RUN_MODE_PROD, RUN_MODE_DEV, RUN_MODE_TEST})
 
 	// Check if has app suburl.
 	url, err := url.Parse(AppUrl)
@@ -498,8 +508,8 @@ please consider changing to GITEA_CUSTOM`)
 	}[Cfg.Section("time").Key("FORMAT").MustString("RFC1123")]
 
 	RunUser = Cfg.Section("").Key("RUN_USER").String()
-	// Does not check run user when the install lock is off.
-	if InstallLock {
+	// Does not check run user when the install lock is off or is running tests
+	if InstallLock && AppRunMode != RUN_MODE_TEST {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
 		if !match {
 			log.Fatal(4, "Expect user '%s' but current user is: %s", RunUser, currentUser)

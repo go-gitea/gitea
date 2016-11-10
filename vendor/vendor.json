@@ -39,6 +39,12 @@
 			"revisionTime": "2016-01-17T19:21:50Z"
 		},
 		{
+			"checksumSHA1": "Lf3uUXTkKK5DJ37BxQvxO1Fq+K8=",
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": "976c720a22c8eb4eb6a0b4348ad85ad12491a506",
+			"revisionTime": "2016-09-25T22:06:09Z"
+		},
+		{
 			"checksumSHA1": "K3Gp8Tv/B8otlbsOfQp3UpJGaaE=",
 			"path": "code.gitea.io/git",
 			"revision": "766747ef8b271a2b1142edd0a40735f556ec2c1d",
@@ -49,12 +55,6 @@
 			"path": "code.gitea.io/go-sdk/gitea",
 			"revision": "0a0a04ccf7a5e6b93d9a5507701635330cf4579c",
 			"revisionTime": "2016-11-07T15:06:50Z"
-		},
-		{
-			"checksumSHA1": "Lf3uUXTkKK5DJ37BxQvxO1Fq+K8=",
-			"path": "github.com/davecgh/go-spew/spew",
-			"revision": "976c720a22c8eb4eb6a0b4348ad85ad12491a506",
-			"revisionTime": "2016-09-25T22:06:09Z"
 		},
 		{
 			"checksumSHA1": "qM/kf31cT2cxjtHxdzbu8q8jPq0=",
@@ -511,6 +511,12 @@
 			"path": "gopkg.in/redis.v2",
 			"revision": "e6179049628164864e6e84e973cfb56335748dea",
 			"revisionTime": "2014-12-09T11:07:59Z"
+		},
+		{
+			"checksumSHA1": "LUbT9kZUJcQkU/6GSbnsai+b5t4=",
+			"path": "gopkg.in/testfixtures.v2",
+			"revision": "b9ef14dc461bf934d8df2dfc6f1f456be5664cca",
+			"revisionTime": "2016-10-15T20:31:37Z"
 		},
 		{
 			"checksumSHA1": "JQBqnAXO83ic7bwer/MwurhQMtg=",

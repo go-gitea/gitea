@@ -144,7 +144,11 @@ func NewRepoContext() {
 		log.Fatal(4, "Fail to execute 'git config --global core.quotepath false': %s", stderr)
 	}
 
-	RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
+	// FIXME: skipping this for tests by now, because Gogs is not connected to a
+	// database at this point while running tests, so create notice will fail.
+	if setting.AppRunMode != setting.RUN_MODE_TEST {
+		RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
+	}
 }
 
 // Repository represents a git repository.
