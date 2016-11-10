@@ -176,7 +176,7 @@ func ExploreUsers(ctx *context.Context) {
 		Counter:  models.CountUsers,
 		Ranger:   models.Users,
 		PageSize: setting.UI.ExplorePagingNum,
-		OrderBy:  "updated_unix DESC",
+		OrderBy:  "name ASC",
 		TplName:  EXPLORE_USERS,
 	})
 }
@@ -191,7 +191,7 @@ func ExploreOrganizations(ctx *context.Context) {
 		Counter:  models.CountOrganizations,
 		Ranger:   models.Organizations,
 		PageSize: setting.UI.ExplorePagingNum,
-		OrderBy:  "updated_unix DESC",
+		OrderBy:  "name ASC",
 		TplName:  EXPLORE_ORGANIZATIONS,
 	})
 }
