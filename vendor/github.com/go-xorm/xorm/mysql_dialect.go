@@ -6,7 +6,6 @@ package xorm
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -202,7 +201,7 @@ func (db *mysql) SqlType(c *core.Column) string {
 		res = core.Enum
 		res += "("
 		opts := ""
-		for v, _ := range c.EnumOptions {
+		for v := range c.EnumOptions {
 			opts += fmt.Sprintf(",'%v'", v)
 		}
 		res += strings.TrimLeft(opts, ",")
@@ -211,7 +210,7 @@ func (db *mysql) SqlType(c *core.Column) string {
 		res = core.Set
 		res += "("
 		opts := ""
-		for v, _ := range c.SetOptions {
+		for v := range c.SetOptions {
 			opts += fmt.Sprintf(",'%v'", v)
 		}
 		res += strings.TrimLeft(opts, ",")
@@ -227,8 +226,8 @@ func (db *mysql) SqlType(c *core.Column) string {
 		res = t
 	}
 
-	var hasLen1 bool = (c.Length > 0)
-	var hasLen2 bool = (c.Length2 > 0)
+	hasLen1 := (c.Length > 0)
+	hasLen2 := (c.Length2 > 0)
 
 	if res == core.BigInt && !hasLen1 && !hasLen2 {
 		c.Length = 20
@@ -373,9 +372,9 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 		col.Length = len1
 		col.Length2 = len2
 		if _, ok := core.SqlTypes[colType]; ok {
-			col.SQLType = core.SQLType{colType, len1, len2}
+			col.SQLType = core.SQLType{Name: colType, DefaultLength: len1, DefaultLength2: len2}
 		} else {
-			return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v", colType))
+			return nil, nil, fmt.Errorf("Unknown colType %v", colType)
 		}
 
 		if colKey == "PRI" {

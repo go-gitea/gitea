@@ -3,6 +3,18 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "K3Gp8Tv/B8otlbsOfQp3UpJGaaE=",
+			"path": "code.gitea.io/git",
+			"revision": "766747ef8b271a2b1142edd0a40735f556ec2c1d",
+			"revisionTime": "2016-11-06T09:52:37Z"
+		},
+		{
+			"checksumSHA1": "/uhZZppDeb3Rbp3h8C0ALR3hdrA=",
+			"path": "code.gitea.io/sdk/gitea",
+			"revision": "0a0a04ccf7a5e6b93d9a5507701635330cf4579c",
+			"revisionTime": "2016-11-07T15:06:50Z"
+		},
+		{
 			"checksumSHA1": "IyfS7Rbl6OgR83QR7TOfKdDCq+M=",
 			"path": "github.com/Unknwon/cae",
 			"revision": "c6aac99ea2cae2ebaf23f26f76b04fe3fcfc9f8c",
@@ -37,18 +49,6 @@
 			"path": "github.com/bradfitz/gomemcache/memcache",
 			"revision": "fb1f79c6b65acda83063cbc69f6bba1522558bfc",
 			"revisionTime": "2016-01-17T19:21:50Z"
-		},
-		{
-			"checksumSHA1": "K3Gp8Tv/B8otlbsOfQp3UpJGaaE=",
-			"path": "code.gitea.io/git",
-			"revision": "766747ef8b271a2b1142edd0a40735f556ec2c1d",
-			"revisionTime": "2016-11-06T09:52:37Z"
-		},
-		{
-			"checksumSHA1": "/uhZZppDeb3Rbp3h8C0ALR3hdrA=",
-			"path": "code.gitea.io/sdk/gitea",
-			"revision": "0a0a04ccf7a5e6b93d9a5507701635330cf4579c",
-			"revisionTime": "2016-11-07T15:06:50Z"
 		},
 		{
 			"checksumSHA1": "Lf3uUXTkKK5DJ37BxQvxO1Fq+K8=",
@@ -147,10 +147,10 @@
 			"revisionTime": "2016-11-01T01:36:51Z"
 		},
 		{
-			"checksumSHA1": "+h0UQPxV/rdGOIL3vqwNU6++TyM=",
+			"checksumSHA1": "eOdqyQnmqdF0VZpBgYoOaYQDaiw=",
 			"path": "github.com/go-xorm/xorm",
-			"revision": "2b4faaaeabd118dfa541e751564004db98a6e995",
-			"revisionTime": "2016-11-01T14:44:45Z"
+			"revision": "f2610e02a1a1240d663ebe5bcde6c9ad4f1372cb",
+			"revisionTime": "2016-11-11T16:13:12Z"
 		},
 		{
 			"checksumSHA1": "1ft/4j5MFa7C9dPI9whL03HSUzk=",

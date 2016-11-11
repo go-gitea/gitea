@@ -92,7 +92,7 @@ func (m *LRUCacher) GC() {
 	}
 }
 
-// Get all bean's ids according to sql and parameter from cache
+// GetIds returns all bean's ids according to sql and parameter from cache
 func (m *LRUCacher) GetIds(tableName, sql string) interface{} {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -121,7 +121,7 @@ func (m *LRUCacher) GetIds(tableName, sql string) interface{} {
 	return nil
 }
 
-// Get bean according tableName and id from cache
+// GetBean returns bean according tableName and id from cache
 func (m *LRUCacher) GetBean(tableName string, id string) interface{} {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()

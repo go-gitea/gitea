@@ -237,9 +237,10 @@ func (db *sqlite3) TableCheckSql(tableName string) (string, []interface{}) {
 }
 
 func (db *sqlite3) DropIndexSql(tableName string, index *core.Index) string {
-	quote := db.Quote
 	//var unique string
-	var idxName string = index.Name
+	quote := db.Quote
+	idxName := index.Name
+
 	if !strings.HasPrefix(idxName, "UQE_") &&
 		!strings.HasPrefix(idxName, "IDX_") {
 		if index.Type == core.UniqueType {
@@ -319,7 +320,7 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Colu
 				col.Name = strings.Trim(field, "`[] ")
 				continue
 			} else if idx == 1 {
-				col.SQLType = core.SQLType{field, 0, 0}
+				col.SQLType = core.SQLType{Name: field, DefaultLength: 0, DefaultLength2: 0}
 			}
 			switch field {
 			case "PRIMARY":
