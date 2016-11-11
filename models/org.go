@@ -555,7 +555,7 @@ func (org *User) GetUserRepositories(userID int64, page, pageSize int) ([]*Repos
 		GroupBy("`repository`.id").
 		Count(&Repository{})
 	if err != nil {
-		return nil, 0, fmt.Errorf("count user repositories in organization: %v", err)
+		return repos, 0, nil  // When an organization don't contains any repositories, SQL query return zero rows
 	}
 
 	return repos, repoCount, nil
