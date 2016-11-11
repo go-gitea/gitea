@@ -63,8 +63,9 @@ The goal of this project is to make the easiest, fastest, and most painless way 
 **Note: As Gitea is a [Gogs](https://github.com/gogits/gogs) fork, tutorials and documentation related to gogs applies to Gitea too**
 
 How to install Gitea:
+_Do note that this Gitea branch is **not** stable enough for builds_
 
-- go get code.gitea.io/gitea
+- `go get code.gitea.io/gitea`
 - [Ship with Docker](https://github.com/go-gitea/gitea/tree/master/docker)
 - [Install with Vagrant](https://github.com/go-gitea/examples/tree/master/vagrant)
 
