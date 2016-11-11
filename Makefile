@@ -74,6 +74,10 @@ build: $(BIN)/$(EXECUTABLE)
 
 $(BIN)/$(EXECUTABLE): $(wildcard *.go)
 	go build -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+	cp -r ./templates ./bin/
+	cp -r ./public ./bin/
+	cp -r ./conf ./bin/
+	cp -r ./scripts ./bin/
 
 .PHONY: release
 release: release-build release-copy release-check
