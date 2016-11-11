@@ -16,12 +16,12 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
-	api "code.gitea.io/go-sdk/gitea"
+	api "github.com/go-gitea/go-sdk/gitea"
 	gouuid "github.com/satori/go.uuid"
 
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"github.com/go-gitea/gitea/modules/base"
+	"github.com/go-gitea/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 var (
@@ -167,9 +167,9 @@ func (issue *Issue) HTMLURL() string {
 // State returns string representation of issue status.
 func (i *Issue) State() api.StateType {
 	if i.IsClosed {
-		return api.STATE_CLOSED
+		return api.StateClosed
 	}
-	return api.STATE_OPEN
+	return api.StateOpen
 }
 
 // This method assumes some fields assigned with values:
@@ -473,7 +473,7 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 		if isClosed {
 			apiPullRequest.Action = api.HookIssueClosed
 		} else {
-			apiPullRequest.Action = api.HookIssueReopened
+			apiPullRequest.Action = api.HookIssueReOpened
 		}
 		err = PrepareWebhooks(repo, HookEventPullRequest, apiPullRequest)
 	}
@@ -1397,9 +1397,9 @@ func (m *Milestone) AfterSet(colName string, _ xorm.Cell) {
 // State returns string representation of milestone status.
 func (m *Milestone) State() api.StateType {
 	if m.IsClosed {
-		return api.STATE_CLOSED
+		return api.StateClosed
 	}
-	return api.STATE_OPEN
+	return api.StateOpen
 }
 
 func (m *Milestone) APIFormat() *api.Milestone {

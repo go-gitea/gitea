@@ -7,7 +7,7 @@ package models
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/log"
 )
 
 type AccessMode int

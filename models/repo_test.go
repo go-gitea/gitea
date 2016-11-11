@@ -3,8 +3,8 @@ package models_test
 import (
 	"testing"
 
-	. "code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/markdown"
+	. "github.com/go-gitea/gitea/models"
+	"github.com/go-gitea/gitea/modules/markdown"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

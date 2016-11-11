@@ -5,7 +5,7 @@
 package models
 
 import (
-	"code.gitea.io/git"
+	"github.com/go-gitea/git"
 )
 
 type Branch struct {

@@ -5,7 +5,7 @@
 package context
 
 import (
-	"code.gitea.io/gitea/models"
+	"github.com/go-gitea/gitea/models"
 )
 
 type APIOrganization struct {

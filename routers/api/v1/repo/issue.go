@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"strings"
 
-	api "code.gitea.io/go-sdk/gitea"
+	api "github.com/go-gitea/go-sdk/gitea"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
+	"github.com/go-gitea/gitea/models"
+	"github.com/go-gitea/gitea/modules/context"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 func ListIssues(ctx *context.APIContext) {
@@ -161,7 +161,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 	if form.State != nil {
-		if err = issue.ChangeStatus(ctx.User, ctx.Repo.Repository, api.STATE_CLOSED == api.StateType(*form.State)); err != nil {
+		if err = issue.ChangeStatus(ctx.User, ctx.Repo.Repository, api.StateClosed == api.StateType(*form.State)); err != nil {
 			ctx.Error(500, "ChangeStatus", err)
 			return
 		}
