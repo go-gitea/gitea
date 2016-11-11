@@ -10,7 +10,7 @@ import (
 	"github.com/Unknwon/com"
 
 	"code.gitea.io/git"
-	api "code.gitea.io/go-sdk/gitea"
+	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/models"
 )

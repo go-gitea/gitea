@@ -12,7 +12,7 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 
-	api "code.gitea.io/go-sdk/gitea"
+	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markdown"

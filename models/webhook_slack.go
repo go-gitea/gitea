@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/git"
-	api "code.gitea.io/go-sdk/gitea"
+	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/modules/setting"
 )

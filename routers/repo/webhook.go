@@ -13,7 +13,7 @@ import (
 	"github.com/Unknwon/com"
 
 	"code.gitea.io/git"
-	api "code.gitea.io/go-sdk/gitea"
+	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -32,7 +32,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.hooks")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["BaseLink"] = ctx.Repo.RepoLink
-	ctx.Data["Description"] = ctx.Tr("repo.settings.hooks_desc", "https://godoc.org/code.gitea.io/go-sdk/gitea")
+	ctx.Data["Description"] = ctx.Tr("repo.settings.hooks_desc", "https://godoc.org/code.gitea.io/sdk/gitea")
 
 	ws, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {

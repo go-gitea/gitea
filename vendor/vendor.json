@@ -46,7 +46,7 @@
 		},
 		{
 			"checksumSHA1": "/uhZZppDeb3Rbp3h8C0ALR3hdrA=",
-			"path": "code.gitea.io/go-sdk/gitea",
+			"path": "code.gitea.io/sdk/gitea",
 			"revision": "0a0a04ccf7a5e6b93d9a5507701635330cf4579c",
 			"revisionTime": "2016-11-07T15:06:50Z"
 		},

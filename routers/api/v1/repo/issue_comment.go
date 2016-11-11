@@ -6,7 +6,7 @@ package repo
 import (
 	"time"
 
-	api "code.gitea.io/go-sdk/gitea"
+	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
