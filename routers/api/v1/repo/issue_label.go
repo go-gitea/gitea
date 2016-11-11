@@ -5,10 +5,10 @@
 package repo
 
 import (
-	api "code.gitea.io/go-sdk/gitea"
+	api "github.com/go-gitea/go-sdk/gitea"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
+	"github.com/go-gitea/gitea/models"
+	"github.com/go-gitea/gitea/modules/context"
 )
 
 func ListIssueLabels(ctx *context.APIContext) {

@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/git"
-	api "code.gitea.io/go-sdk/gitea"
+	"github.com/go-gitea/git"
+	api "github.com/go-gitea/go-sdk/gitea"
 
-	"code.gitea.io/gitea/modules/setting"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 type SlackMeta struct {
@@ -149,7 +149,7 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 		} else {
 			text = fmt.Sprintf("[%s] Pull request closed: %s by %s", p.Repository.FullName, titleLink, senderLink)
 		}
-	case api.HookIssueReopened:
+	case api.HookIssueReOpened:
 		text = fmt.Sprintf("[%s] Pull request re-opened: %s by %s", p.Repository.FullName, titleLink, senderLink)
 	case api.HookIssueEdited:
 		text = fmt.Sprintf("[%s] Pull request edited: %s by %s", p.Repository.FullName, titleLink, senderLink)

@@ -20,9 +20,9 @@ import (
 	gouuid "github.com/satori/go.uuid"
 	"gopkg.in/ini.v1"
 
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"github.com/go-gitea/gitea/modules/base"
+	"github.com/go-gitea/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 const _MIN_DB_VER = 4
@@ -96,7 +96,7 @@ func Migrate(x *xorm.Engine) error {
 
 	v := currentVersion.Version
 	if _MIN_DB_VER > v {
-		log.Fatal(4, `Gogs no longer supports auto-migration from your previously installed version. 
+		log.Fatal(4, `Gogs no longer supports auto-migration from your previously installed version.
 Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to current version.`)
 		return nil
 	}

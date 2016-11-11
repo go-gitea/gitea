@@ -15,10 +15,10 @@ import (
 
 	"github.com/Unknwon/com"
 
-	"code.gitea.io/git"
+	"github.com/go-gitea/git"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/sync"
+	"github.com/go-gitea/gitea/modules/setting"
+	"github.com/go-gitea/gitea/modules/sync"
 )
 
 var wikiWorkingPool = sync.NewExclusivePool()

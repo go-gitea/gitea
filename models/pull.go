@@ -12,13 +12,13 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/sync"
+	"github.com/go-gitea/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/process"
+	"github.com/go-gitea/gitea/modules/setting"
+	"github.com/go-gitea/gitea/modules/sync"
 	"github.com/go-xorm/xorm"
-	"code.gitea.io/git"
-	api "code.gitea.io/go-sdk/gitea"
+	"github.com/go-gitea/git"
+	api "github.com/go-gitea/go-sdk/gitea"
 )
 
 var PullRequestQueue = sync.NewUniqueQueue(setting.Repository.PullRequestQueueLength)
@@ -130,8 +130,7 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 	}
 
 	if pr.Status != PullRequestStatusChecking {
-		mergeable := pr.Status != PullRequestStatusConflict
-		apiPullRequest.Mergeable = &mergeable
+		apiPullRequest.Mergeable = pr.Status != PullRequestStatusConflict
 	}
 	if pr.HasMerged {
 		apiPullRequest.Merged = &pr.Merged

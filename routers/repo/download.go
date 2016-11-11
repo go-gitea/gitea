@@ -8,10 +8,10 @@ import (
 	"io"
 	"path"
 
-	"code.gitea.io/git"
+	"github.com/go-gitea/git"
 
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	"github.com/go-gitea/gitea/modules/base"
+	"github.com/go-gitea/gitea/modules/context"
 )
 
 func ServeData(ctx *context.Context, name string, reader io.Reader) error {

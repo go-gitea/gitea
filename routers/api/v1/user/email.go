@@ -5,12 +5,12 @@
 package user
 
 import (
-	api "code.gitea.io/go-sdk/gitea"
+	api "github.com/go-gitea/go-sdk/gitea"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/api/v1/convert"
+	"github.com/go-gitea/gitea/models"
+	"github.com/go-gitea/gitea/modules/context"
+	"github.com/go-gitea/gitea/modules/setting"
+	"github.com/go-gitea/gitea/routers/api/v1/convert"
 )
 
 // https://github.com/gogits/go-gogs-client/wiki/Users-Emails#list-email-addresses-for-a-user

@@ -11,10 +11,10 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/paginater"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
+	"github.com/go-gitea/gitea/models"
+	"github.com/go-gitea/gitea/modules/base"
+	"github.com/go-gitea/gitea/modules/context"
+	"github.com/go-gitea/gitea/modules/setting"
 )
 
 const (

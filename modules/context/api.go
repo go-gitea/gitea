@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/Unknwon/paginater"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"github.com/go-gitea/gitea/modules/base"
+	"github.com/go-gitea/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/setting"
 	macaron "gopkg.in/macaron.v1"
 )
 

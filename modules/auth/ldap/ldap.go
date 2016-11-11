@@ -13,7 +13,7 @@ import (
 
 	"gopkg.in/ldap.v2"
 
-	"code.gitea.io/gitea/modules/log"
+	"github.com/go-gitea/gitea/modules/log"
 )
 
 type SecurityProtocol int

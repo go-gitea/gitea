@@ -9,10 +9,10 @@ import (
 
 	"github.com/Unknwon/com"
 
-	"code.gitea.io/git"
-	api "code.gitea.io/go-sdk/gitea"
+	"github.com/go-gitea/git"
+	api "github.com/go-gitea/go-sdk/gitea"
 
-	"code.gitea.io/gitea/models"
+	"github.com/go-gitea/gitea/models"
 )
 
 func ToEmail(email *models.EmailAddress) *api.Email {
@@ -108,7 +108,7 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 func ToOrganization(org *models.User) *api.Organization {
 	return &api.Organization{
 		ID:          org.ID,
-		AvatarUrl:   org.AvatarLink(),
+		AvatarURL:   org.AvatarLink(),
 		UserName:    org.Name,
 		FullName:    org.FullName,
 		Description: org.Description,
