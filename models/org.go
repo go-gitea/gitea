@@ -323,8 +323,8 @@ func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
 func GetOrgUsersByUserID(uid int64, all bool) ([]*OrgUser, error) {
 	ous := make([]*OrgUser, 0, 10)
 	sess := x.
-		Join("LEFT", "user", `"org_user".org_id="user".id`).
-		Where(`"org_user".uid=?`, uid)
+		Join("LEFT", "user", "`org_user`.org_id=`user`.id").
+		Where("`org_user`.uid=?", uid)
 	if !all {
 		// Only show public organizations
 		sess.And("is_public=?", true)
