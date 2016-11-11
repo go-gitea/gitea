@@ -890,12 +890,19 @@ func UserPath(userName string) string {
 	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
 }
 
+// GetUserByKeyID get user information by user's public key id
 func GetUserByKeyID(keyID int64) (*User, error) {
-	user := new(User)
-	return user, x.
-		Join("INNER", "public_key", "`public_key`.owner_id = `user`.id").
+	var user User
+	has, err := x.Join("INNER", "public_key", "`public_key`.owner_id = `user`.id").
 		Where("`public_key`.id=?", keyID).
-		Find(user)
+		Get(user)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrUserNotExist{0, "", keyID}
+	}
+	return &user, nil
 }
 
 func getUserByID(e Engine, id int64) (*User, error) {
@@ -904,7 +911,7 @@ func getUserByID(e Engine, id int64) (*User, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{id, ""}
+		return nil, ErrUserNotExist{id, "", 0}
 	}
 	return u, nil
 }
@@ -920,7 +927,7 @@ func GetAssigneeByID(repo *Repository, userID int64) (*User, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{userID, ""}
+		return nil, ErrUserNotExist{userID, "", 0}
 	}
 	return GetUserByID(userID)
 }
@@ -928,14 +935,14 @@ func GetAssigneeByID(repo *Repository, userID int64) (*User, error) {
 // GetUserByName returns user by given name.
 func GetUserByName(name string) (*User, error) {
 	if len(name) == 0 {
-		return nil, ErrUserNotExist{0, name}
+		return nil, ErrUserNotExist{0, name, 0}
 	}
 	u := &User{LowerName: strings.ToLower(name)}
 	has, err := x.Get(u)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{0, name}
+		return nil, ErrUserNotExist{0, name, 0}
 	}
 	return u, nil
 }
@@ -1021,7 +1028,7 @@ func ValidateCommitsWithEmails(oldCommits *list.List) *list.List {
 // GetUserByEmail returns the user object by given e-mail if exists.
 func GetUserByEmail(email string) (*User, error) {
 	if len(email) == 0 {
-		return nil, ErrUserNotExist{0, "email"}
+		return nil, ErrUserNotExist{0, email, 0}
 	}
 
 	email = strings.ToLower(email)
@@ -1045,7 +1052,7 @@ func GetUserByEmail(email string) (*User, error) {
 		return GetUserByID(emailAddress.UID)
 	}
 
-	return nil, ErrUserNotExist{0, email}
+	return nil, ErrUserNotExist{0, email, 0}
 }
 
 type SearchUserOptions struct {
