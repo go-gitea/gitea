@@ -1,9 +1,10 @@
+// Copyright 2016 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// Gogs (Go Git Service) is a painless self-hosted Git Service.
-package main
+// Gitea (git with a cup of tea) is a painless self-hosted Git Service.
+package main // import "code.gitea.io/gitea"
 
 import (
 	"log"
@@ -25,8 +26,8 @@ func init() {
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "Gogs"
-	app.Usage = "Go Git Service: a painless self-hosted Git service"
+	app.Name = "Gitea"
+	app.Usage = "A painless self-hosted Git service"
 	app.Version = Version
 	app.Commands = []cli.Command{
 		cmd.CmdWeb,
