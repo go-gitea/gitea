@@ -514,14 +514,6 @@ func authenticateToken(repository *models.Repository, authorization string, requ
 	return true
 }
 
-type authError struct {
-	error
-}
-
-func (e authError) AuthError() bool {
-	return true
-}
-
 func requireAuth(ctx *context.Context) {
 	ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gogs-lfs")
 	writeStatus(ctx, 401)
