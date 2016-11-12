@@ -93,11 +93,11 @@ func (tes Entries) Less(i, j int) bool {
 	t1, t2 := tes[i], tes[j]
 	var k int
 	for k = 0; k < len(sorter)-1; k++ {
-		sort := sorter[k]
+		s := sorter[k]
 		switch {
-		case sort(t1, t2):
+		case s(t1, t2):
 			return true
-		case sort(t2, t1):
+		case s(t2, t1):
 			return false
 		}
 	}
