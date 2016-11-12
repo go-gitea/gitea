@@ -820,20 +820,12 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	sess := x.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
 
 	if opts.RepoID > 0 {
-		sess.
-			Where("issue.repo_id=?", opts.RepoID).
-			And("issue.is_closed=?", opts.IsClosed)
-	} else if opts.RepoIDs != nil {
+		sess.And("issue.repo_id=?", opts.RepoID)
+	} else if len(opts.RepoIDs) > 0 {
 		// In case repository IDs are provided but actually no repository has issue.
-		if len(opts.RepoIDs) == 0 {
-			return make([]*Issue, 0), nil
-		}
-		sess.
-			In("issue.repo_id", base.Int64sToStrings(opts.RepoIDs)).
-			And("issue.is_closed=?", opts.IsClosed)
-	} else {
-		sess.Where("issue.is_closed=?", opts.IsClosed)
+		sess.In("issue.repo_id", base.Int64sToStrings(opts.RepoIDs))
 	}
+	sess.And("issue.is_closed=?", opts.IsClosed)
 
 	if opts.AssigneeID > 0 {
 		sess.And("issue.assignee_id=?", opts.AssigneeID)
@@ -1185,9 +1177,9 @@ func GetUserIssueStats(repoID, uid int64, repoIDs []int64, filterMode int, isPul
 			Where("issue.is_closed = ?", isClosed).
 			And("issue.is_pull = ?", isPull)
 
-		if repoID > 0 || len(repoIDs) == 0 {
+		if repoID > 0 {
 			sess.And("repo_id = ?", repoID)
-		} else {
+		} else if len(repoIDs) > 0 {
 			sess.In("repo_id", repoIDs)
 		}
 
