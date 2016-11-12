@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"github.com/go-gitea/gitea/models"
+	"code.gitea.io/gitea/models"
 	"io"
 	"os"
 	"path/filepath"
