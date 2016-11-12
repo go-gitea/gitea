@@ -121,6 +121,7 @@ func Clone(from, to string, opts CloneRepoOptions) (err error) {
 type PullRemoteOptions struct {
 	Timeout time.Duration
 	All     bool
+	Rebase  bool
 	Remote  string
 	Branch  string
 }
@@ -128,6 +129,9 @@ type PullRemoteOptions struct {
 // Pull pulls changes from remotes.
 func Pull(repoPath string, opts PullRemoteOptions) error {
 	cmd := NewCommand("pull")
+	if opts.Rebase {
+		cmd.AddArguments("--rebase")
+	}
 	if opts.All {
 		cmd.AddArguments("--all")
 	} else {

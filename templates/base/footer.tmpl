@@ -7,7 +7,7 @@
 	<footer>
 		<div class="ui container">
 			<div class="ui left">
-				© 2016 Gogs {{if (or .ShowFooterVersion .PageIsAdmin)}}{{.i18n.Tr "version"}}: {{AppVer}}{{end}} {{if ShowFooterTemplateLoadTime}}{{.i18n.Tr "page"}}: <strong>{{LoadTimes .PageStartTime}}</strong> {{.i18n.Tr "template"}}: <strong>{{call .TmplLoadTimes}}</strong>{{end}}
+				© 2016 Gitea {{if (or .ShowFooterVersion .PageIsAdmin)}}{{.i18n.Tr "version"}}: {{AppVer}}{{end}} {{if ShowFooterTemplateLoadTime}}{{.i18n.Tr "page"}}: <strong>{{LoadTimes .PageStartTime}}</strong> {{.i18n.Tr "template"}}: <strong>{{call .TmplLoadTimes}}</strong>{{end}}
 			</div>
 			<div class="ui right links">
 				{{if .ShowFooterBranding}}
@@ -24,7 +24,7 @@
 						{{end}}
 					</div>
 				</div>
-				<a target="_blank" href="https://gogs.io">{{.i18n.Tr "website"}}</a>
+				<a target="_blank" href="https://gitea.io">{{.i18n.Tr "website"}}</a>
 				{{if (or .ShowFooterVersion .PageIsAdmin)}}<span class="version">{{GoVer}}</span>{{end}}
 			</div>
 		</div>

@@ -823,7 +823,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 		sess.And("issue.repo_id=?", opts.RepoID)
 	} else if len(opts.RepoIDs) > 0 {
 		// In case repository IDs are provided but actually no repository has issue.
-		sess.In("issue.repo_id", base.Int64sToStrings(opts.RepoIDs))
+		sess.In("issue.repo_id", opts.RepoIDs)
 	}
 	sess.And("issue.is_closed=?", opts.IsClosed)
 
