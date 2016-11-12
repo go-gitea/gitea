@@ -1506,7 +1506,7 @@ func DeleteRepository(uid, repoID int64) error {
 		}
 	}
 
-	if _, err = sess.Exec("DELETE FROM `lfs_meta_object` WHERE repository_id=?", repoID); err != nil {
+	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
 		return err
 	}
 
