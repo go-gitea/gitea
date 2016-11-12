@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -114,19 +115,31 @@ type commitInfo struct {
 	err       error
 }
 
-// GetCommitsInfo takes advantages of concurrey to speed up getting information
-// of all commits that are corresponding to these entries.
-// TODO: limit max goroutines number should be configurable
+// GetCommitsInfo takes advantages of concurrency to speed up getting information
+// of all commits that are corresponding to these entries. This method will automatically
+// choose the right number of goroutine (concurrency) to use related of the host CPU.
 func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interface{}, error) {
+	return tes.GetCommitsInfoWithCustomConcurrency(commit, treePath, 0)
+}
+
+// GetCommitsInfoWithCustomConcurrency takes advantages of concurrency to speed up getting information
+// of all commits that are corresponding to these entries. If the given maxConcurrency is negative or
+// equal to zero:  the right number of goroutine (concurrency) to use will be choosen related of the
+// host CPU.
+func (tes Entries) GetCommitsInfoWithCustomConcurrency(commit *Commit, treePath string, maxConcurrency int) ([][]interface{}, error) {
 	if len(tes) == 0 {
 		return nil, nil
+	}
+
+	if maxConcurrency <= 0 {
+		maxConcurrency = runtime.NumCPU()
 	}
 
 	// Length of taskChan determines how many goroutines (subprocesses) can run at the same time.
 	// The length of revChan should be same as taskChan so goroutines whoever finished job can
 	// exit as early as possible, only store data inside channel.
-	taskChan := make(chan bool, 10)
-	revChan := make(chan commitInfo, 10)
+	taskChan := make(chan bool, maxConcurrency)
+	revChan := make(chan commitInfo, maxConcurrency)
 	doneChan := make(chan error)
 
 	// Receive loop will exit when it collects same number of data pieces as tree entries.
