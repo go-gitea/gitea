@@ -11,7 +11,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type EntryMode int
@@ -94,11 +93,11 @@ func (tes Entries) Less(i, j int) bool {
 	t1, t2 := tes[i], tes[j]
 	var k int
 	for k = 0; k < len(sorter)-1; k++ {
-		sort := sorter[k]
+		s := sorter[k]
 		switch {
-		case sort(t1, t2):
+		case s(t1, t2):
 			return true
-		case sort(t2, t1):
+		case s(t2, t1):
 			return false
 		}
 	}
@@ -157,7 +156,6 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interfac
 
 		if tes[i].Type != OBJECT_COMMIT {
 			go func(i int) {
-				time.Sleep(200 * time.Millisecond)
 				cinfo := commitInfo{entryName: tes[i].Name()}
 				c, err := commit.GetCommitByPath(filepath.Join(treePath, tes[i].Name()))
 				if err != nil {
