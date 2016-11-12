@@ -102,13 +102,13 @@ func ListHooks(repoPath string) (_ []*Hook, err error) {
 }
 
 const (
-	HOOK_PATH_UPDATE = "hooks/update"
+	HookPathUpdate = "hooks/update"
 )
 
 // SetUpdateHook writes given content to update hook of the reposiotry.
 func SetUpdateHook(repoPath, content string) (err error) {
 	log("Setting update hook: %s", repoPath)
-	hookPath := path.Join(repoPath, HOOK_PATH_UPDATE)
+	hookPath := path.Join(repoPath, HookPathUpdate)
 	if com.IsExist(hookPath) {
 		err = os.Remove(hookPath)
 	} else {
