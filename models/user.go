@@ -107,6 +107,9 @@ type User struct {
 	NumMembers  int
 	Teams       []*Team `xorm:"-"`
 	Members     []*User `xorm:"-"`
+
+	// Preferences
+	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
 }
 
 func (u *User) BeforeInsert() {
@@ -124,6 +127,11 @@ func (u *User) BeforeUpdate() {
 // Set time to last login
 func (u *User) SetLastLogin() {
 	u.LastLoginUnix = time.Now().Unix()
+}
+
+func (u *User) UpdateDiffViewStyle(style string) error {
+	u.DiffViewStyle = style
+	return UpdateUser(u)
 }
 
 func (u *User) AfterSet(colName string, _ xorm.Cell) {

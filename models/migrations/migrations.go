@@ -72,6 +72,8 @@ var migrations = []Migration{
 
 	// v13 -> v14:v0.9.87
 	NewMigration("set comment updated with created", setCommentUpdatedWithCreated),
+
+	NewMigration("create user column diff view style", createUserColumnDiffViewStyle),
 }
 
 // Migrate database to current version
@@ -96,7 +98,7 @@ func Migrate(x *xorm.Engine) error {
 
 	v := currentVersion.Version
 	if _MIN_DB_VER > v {
-		log.Fatal(4, `Gogs no longer supports auto-migration from your previously installed version. 
+		log.Fatal(4, `Gogs no longer supports auto-migration from your previously installed version.
 Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to current version.`)
 		return nil
 	}

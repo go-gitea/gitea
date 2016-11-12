@@ -22,3 +22,15 @@ func setCommentUpdatedWithCreated(x *xorm.Engine) (err error) {
 	}
 	return nil
 }
+
+type UserV14 struct {
+	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
+}
+
+func (*UserV14) TableName() string {
+	return "user"
+}
+
+func createUserColumnDiffViewStyle(x *xorm.Engine) error {
+	return x.Sync2(new(UserV14))
+}
