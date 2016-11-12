@@ -7,7 +7,6 @@
 package main // import "code.gitea.io/gitea"
 
 import (
-	"log"
 	"os"
 	"runtime"
 
@@ -38,5 +37,5 @@ func main() {
 		cmd.CmdAdmin,
 	}
 	app.Flags = append(app.Flags, []cli.Flag{}...)
-	log.Fatal(app.Run(os.Args))
+	app.Run(os.Args)
 }
