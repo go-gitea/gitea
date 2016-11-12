@@ -1,0 +1,21 @@
+workspace:
+  base: /srv/app
+  path: src/code.gitea.io/git
+
+pipeline:
+  testing:
+    image: webhippie/golang:latest
+    pull: true
+    commands:
+      - make clean
+      - make vet
+      - make lint
+      - make test
+      - make build
+
+  coverage:
+    image: plugins/coverage
+    server: https://coverage.gitea.io
+
+  gitter:
+    image: plugins/gitter
