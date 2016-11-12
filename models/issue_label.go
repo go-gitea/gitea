@@ -14,8 +14,6 @@ import (
 	"github.com/go-xorm/xorm"
 
 	api "code.gitea.io/sdk/gitea"
-
-	"code.gitea.io/gitea/modules/base"
 )
 
 var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")
@@ -140,7 +138,7 @@ func GetLabelsInRepoByIDs(repoID int64, labelIDs []int64) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
 	return labels, x.
 		Where("repo_id = ?", repoID).
-		In("id", base.Int64sToStrings(labelIDs)).
+		In("id", labelIDs).
 		Asc("name").
 		Find(&labels)
 }
@@ -170,7 +168,7 @@ func getLabelsByIssueID(e Engine, issueID int64) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
 	return labels, e.
 		Where("id > 0").
-		In("id", base.Int64sToStrings(labelIDs)).
+		In("id", labelIDs).
 		Asc("name").
 		Find(&labels)
 }

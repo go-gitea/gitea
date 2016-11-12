@@ -14,7 +14,6 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -131,7 +130,7 @@ func DeleteNoticesByIDs(ids []int64) error {
 		return nil
 	}
 	_, err := x.
-		Where("id IN (" + strings.Join(base.Int64sToStrings(ids), ",") + ")").
+		In("id", ids).
 		Delete(new(Notice))
 	return err
 }

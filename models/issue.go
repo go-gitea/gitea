@@ -829,7 +829,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 			return make([]*Issue, 0), nil
 		}
 		sess.
-			In("issue.repo_id", base.Int64sToStrings(opts.RepoIDs)).
+			In("issue.repo_id", opts.RepoIDs).
 			And("issue.is_closed=?", opts.IsClosed)
 	} else {
 		sess.Where("issue.is_closed=?", opts.IsClosed)

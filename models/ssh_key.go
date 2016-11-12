@@ -22,7 +22,6 @@ import (
 	"github.com/go-xorm/xorm"
 	"golang.org/x/crypto/ssh"
 
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -476,7 +475,7 @@ func deletePublicKeys(e *xorm.Session, keyIDs ...int64) error {
 		return nil
 	}
 
-	_, err := e.In("id", strings.Join(base.Int64sToStrings(keyIDs), ",")).Delete(new(PublicKey))
+	_, err := e.In("id", keyIDs).Delete(new(PublicKey))
 	return err
 }
 
