@@ -895,7 +895,7 @@ func GetUserByKeyID(keyID int64) (*User, error) {
 	var user User
 	has, err := x.Join("INNER", "public_key", "`public_key`.owner_id = `user`.id").
 		Where("`public_key`.id=?", keyID).
-		Get(user)
+		Get(&user)
 	if err != nil {
 		return nil, err
 	}
