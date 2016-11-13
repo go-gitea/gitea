@@ -110,7 +110,7 @@ func (repo *Repository) GetTags() ([]string, error) {
 		version.Sort(tags)
 
 		// Reverse order
-		for i := 0; i < len(tags) / 2; i++ {
+		for i := 0; i < len(tags)/2; i++ {
 			j := len(tags) - i - 1
 			tags[i], tags[j] = tags[j], tags[i]
 		}
