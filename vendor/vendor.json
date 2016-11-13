@@ -1,0 +1,61 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "ly9VLPE9GKo2U7mnbZyjb2LDQ3w=",
+			"path": "github.com/Unknwon/com",
+			"revision": "28b053d5a2923b87ce8c5a08f3af779894a72758",
+			"revisionTime": "2015-10-08T13:54:07Z"
+		},
+		{
+			"checksumSHA1": "tewA7jXVGCw1zb5mA0BDecWi4iQ=",
+			"path": "github.com/jtolds/gls",
+			"revision": "8ddce2a84170772b95dd5d576c48d517b22cac63",
+			"revisionTime": "2016-01-05T22:08:40Z"
+		},
+		{
+			"checksumSHA1": "wf7QK5pRmd4/NORvkMK7uflvcO0=",
+			"path": "github.com/mcuadros/go-version",
+			"revision": "257f7b9a7d87427c8d7f89469a5958d57f8abd7c",
+			"revisionTime": "2016-11-05T18:36:18Z"
+		},
+		{
+			"checksumSHA1": "6AYg4fjEvFuAVN3wHakGApjhZAM=",
+			"path": "github.com/smartystreets/assertions",
+			"revision": "2063fd1cc7c975db70502811a34b06ad034ccdf2",
+			"revisionTime": "2016-07-07T19:03:55Z"
+		},
+		{
+			"checksumSHA1": "Vzb+dEH/LTYbvr8RXHmt6xJHz04=",
+			"path": "github.com/smartystreets/assertions/internal/go-render/render",
+			"revision": "2063fd1cc7c975db70502811a34b06ad034ccdf2",
+			"revisionTime": "2016-07-07T19:03:55Z"
+		},
+		{
+			"checksumSHA1": "SLC6TfV4icQA9l8YJQu8acJYbuo=",
+			"path": "github.com/smartystreets/assertions/internal/oglematchers",
+			"revision": "2063fd1cc7c975db70502811a34b06ad034ccdf2",
+			"revisionTime": "2016-07-07T19:03:55Z"
+		},
+		{
+			"checksumSHA1": "/mwAihy9AmznMzmbPQ5nWJXBiRU=",
+			"path": "github.com/smartystreets/goconvey/convey",
+			"revision": "019319c870f8f1d61dc9c34291abff5cd128b6e8",
+			"revisionTime": "2016-11-03T17:15:00Z"
+		},
+		{
+			"checksumSHA1": "9LakndErFi5uCXtY1KWl0iRnT4c=",
+			"path": "github.com/smartystreets/goconvey/convey/gotest",
+			"revision": "019319c870f8f1d61dc9c34291abff5cd128b6e8",
+			"revisionTime": "2016-11-03T17:15:00Z"
+		},
+		{
+			"checksumSHA1": "FWDhk37bhAwZ2363D/L2xePwR64=",
+			"path": "github.com/smartystreets/goconvey/convey/reporting",
+			"revision": "019319c870f8f1d61dc9c34291abff5cd128b6e8",
+			"revisionTime": "2016-11-03T17:15:00Z"
+		}
+	],
+	"rootPath": "code.gitea.io/git"
+}
