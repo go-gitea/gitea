@@ -9,7 +9,7 @@ pipeline:
     commands:
       - make clean
       - make vet
-      - make lint
+      # - make lint
       - make test
       - make build
 
