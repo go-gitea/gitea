@@ -104,6 +104,7 @@ func ListHooks(repoPath string) (_ []*Hook, err error) {
 }
 
 const (
+	// HookPathUpdate hook update path
 	HookPathUpdate = "hooks/update"
 )
 
