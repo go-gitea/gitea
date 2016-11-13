@@ -1488,14 +1488,13 @@ func DeleteRepository(uid, repoID int64) error {
 	}
 
 	for _, v := range lfsObjects {
+		count, err := sess.Count(&LFSMetaObject{Oid: v.Oid})
 
-		//Check that no other repository references this object
-		var matchedOidObjects []*LFSMetaObject
-		if err = sess.Where("oid=?", v.Oid).Find(&matchedOidObjects); err != nil {
+		if err != nil {
 			return err
 		}
 
-		if len(matchedOidObjects) > 1 {
+		if count > 1 {
 			continue
 		}
 
