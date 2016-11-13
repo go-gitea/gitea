@@ -1,10 +1,10 @@
 package lfs
 
 import (
+	"code.gitea.io/gitea/models"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"code.gitea.io/gitea/models"
 	"io"
 	"os"
 	"path/filepath"
@@ -22,7 +22,7 @@ type ContentStore struct {
 
 // Get takes a Meta object and retreives the content from the store, returning
 // it as an io.Reader. If fromByte > 0, the reader starts from that byte
-func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.Reader, error) {
+func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadCloser, error) {
 	path := filepath.Join(s.basePath, transformKey(meta.Oid))
 
 	f, err := os.Open(path)
