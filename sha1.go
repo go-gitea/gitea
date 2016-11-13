@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const EMPTY_SHA = "0000000000000000000000000000000000000000"
+const emptySHA = "0000000000000000000000000000000000000000"
 
 type sha1 [20]byte
 
@@ -45,12 +45,12 @@ func (id sha1) Equal(s2 interface{}) bool {
 }
 
 // String returns string (hex) representation of the Oid.
-func (s sha1) String() string {
+func (id sha1) String() string {
 	result := make([]byte, 0, 40)
 	hexvalues := []byte("0123456789abcdef")
 	for i := 0; i < 20; i++ {
-		result = append(result, hexvalues[s[i]>>4])
-		result = append(result, hexvalues[s[i]&0xf])
+		result = append(result, hexvalues[id[i]>>4])
+		result = append(result, hexvalues[id[i]&0xf])
 	}
 	return string(result)
 }

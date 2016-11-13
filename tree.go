@@ -22,6 +22,7 @@ type Tree struct {
 	entriesParsed bool
 }
 
+// NewTree create a new tree according the repository and commit id
 func NewTree(repo *Repository, id sha1) *Tree {
 	return &Tree{
 		ID:   id,
@@ -63,22 +64,22 @@ func parseTreeData(tree *Tree, data []byte) ([]*TreeEntry, error) {
 		step := 6
 		switch string(data[pos : pos+step]) {
 		case "100644":
-			entry.mode = ENTRY_MODE_BLOB
-			entry.Type = OBJECT_BLOB
+			entry.mode = EntryModeBlob
+			entry.Type = ObjectBlob
 		case "100755":
-			entry.mode = ENTRY_MODE_EXEC
-			entry.Type = OBJECT_BLOB
+			entry.mode = EntryModeExec
+			entry.Type = ObjectBlob
 		case "120000":
-			entry.mode = ENTRY_MODE_SYMLINK
-			entry.Type = OBJECT_BLOB
+			entry.mode = EntryModeSymlink
+			entry.Type = ObjectBlob
 		case "160000":
-			entry.mode = ENTRY_MODE_COMMIT
-			entry.Type = OBJECT_COMMIT
+			entry.mode = EntryModeCommit
+			entry.Type = ObjectCommit
 
 			step = 8
 		case "040000":
-			entry.mode = ENTRY_MODE_TREE
-			entry.Type = OBJECT_TREE
+			entry.mode = EntryModeTree
+			entry.Type = ObjectTree
 		default:
 			return nil, fmt.Errorf("unknown type: %v", string(data[pos:pos+step]))
 		}
@@ -107,6 +108,7 @@ func parseTreeData(tree *Tree, data []byte) ([]*TreeEntry, error) {
 	return entries, nil
 }
 
+// SubTree get a sub tree by the sub dir path
 func (t *Tree) SubTree(rpath string) (*Tree, error) {
 	if len(rpath) == 0 {
 		return t, nil

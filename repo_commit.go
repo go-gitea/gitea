@@ -28,12 +28,12 @@ func (repo *Repository) getRefCommitID(name string) (string, error) {
 
 // GetBranchCommitID returns last commit ID string of given branch.
 func (repo *Repository) GetBranchCommitID(name string) (string, error) {
-	return repo.getRefCommitID(BRANCH_PREFIX + name)
+	return repo.getRefCommitID(BranchPrefix + name)
 }
 
 // GetTagCommitID returns last commit ID string of given tag.
 func (repo *Repository) GetTagCommitID(name string) (string, error) {
-	return repo.getRefCommitID(TAG_PREFIX + name)
+	return repo.getRefCommitID(TagPrefix + name)
 }
 
 // parseCommitData parses commit information from the (uncompressed) raw
@@ -142,6 +142,7 @@ func (repo *Repository) GetBranchCommit(name string) (*Commit, error) {
 	return repo.GetCommit(commitID)
 }
 
+// GetTagCommit get the commit of the specific tag via name
 func (repo *Repository) GetTagCommit(name string) (*Commit, error) {
 	commitID, err := repo.GetTagCommitID(name)
 	if err != nil {
@@ -156,7 +157,7 @@ func (repo *Repository) getCommitByPathWithID(id sha1, relpath string) (*Commit,
 		relpath = `\` + relpath
 	}
 
-	stdout, err := NewCommand("log", "-1", _PRETTY_LOG_FORMAT, id.String(), "--", relpath).RunInDir(repo.Path)
+	stdout, err := NewCommand("log", "-1", prettyLogFormat, id.String(), "--", relpath).RunInDir(repo.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +172,7 @@ func (repo *Repository) getCommitByPathWithID(id sha1, relpath string) (*Commit,
 
 // GetCommitByPath returns the last commit of relative path.
 func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
-	stdout, err := NewCommand("log", "-1", _PRETTY_LOG_FORMAT, "--", relpath).RunInDirBytes(repo.Path)
+	stdout, err := NewCommand("log", "-1", prettyLogFormat, "--", relpath).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -183,11 +184,12 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 	return commits.Front().Value.(*Commit), nil
 }
 
+// CommitsRangeSize the default commits range size
 var CommitsRangeSize = 50
 
 func (repo *Repository) commitsByRange(id sha1, page int) (*list.List, error) {
 	stdout, err := NewCommand("log", id.String(), "--skip="+strconv.Itoa((page-1)*CommitsRangeSize),
-		"--max-count="+strconv.Itoa(CommitsRangeSize), _PRETTY_LOG_FORMAT).RunInDirBytes(repo.Path)
+		"--max-count="+strconv.Itoa(CommitsRangeSize), prettyLogFormat).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +197,7 @@ func (repo *Repository) commitsByRange(id sha1, page int) (*list.List, error) {
 }
 
 func (repo *Repository) searchCommits(id sha1, keyword string) (*list.List, error) {
-	stdout, err := NewCommand("log", id.String(), "-100", "-i", "--grep="+keyword, _PRETTY_LOG_FORMAT).RunInDirBytes(repo.Path)
+	stdout, err := NewCommand("log", id.String(), "-100", "-i", "--grep="+keyword, prettyLogFormat).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -210,19 +212,22 @@ func (repo *Repository) getFilesChanged(id1 string, id2 string) ([]string, error
 	return strings.Split(string(stdout), "\n"), nil
 }
 
+// FileCommitsCount return the number of files at a revison
 func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
 	return commitsCount(repo.Path, revision, file)
 }
 
+// CommitsByFileAndRange return the commits accroding revison file and the page
 func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (*list.List, error) {
 	stdout, err := NewCommand("log", revision, "--skip="+strconv.Itoa((page-1)*50),
-		"--max-count="+strconv.Itoa(CommitsRangeSize), _PRETTY_LOG_FORMAT, "--", file).RunInDirBytes(repo.Path)
+		"--max-count="+strconv.Itoa(CommitsRangeSize), prettyLogFormat, "--", file).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
 	return repo.parsePrettyFormatLogToList(stdout)
 }
 
+// FilesCountBetween return the number of files changed between two commits
 func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (int, error) {
 	stdout, err := NewCommand("diff", "--name-only", startCommitID+"..."+endCommitID).RunInDir(repo.Path)
 	if err != nil {
@@ -266,6 +271,7 @@ func (repo *Repository) CommitsBetween(last *Commit, before *Commit) (*list.List
 	return l, nil
 }
 
+// CommitsBetweenIDs return commits between twoe commits
 func (repo *Repository) CommitsBetweenIDs(last, before string) (*list.List, error) {
 	lastCommit, err := repo.GetCommit(last)
 	if err != nil {
@@ -278,11 +284,12 @@ func (repo *Repository) CommitsBetweenIDs(last, before string) (*list.List, erro
 	return repo.CommitsBetween(lastCommit, beforeCommit)
 }
 
+// CommitsCountBetween return numbers of commits between two commits
 func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 	return commitsCount(repo.Path, start+"..."+end, "")
 }
 
-// The limit is depth, not total number of returned commits.
+// commitsBefore the limit is depth, not total number of returned commits.
 func (repo *Repository) commitsBefore(l *list.List, parent *list.Element, id sha1, current, limit int) error {
 	// Reach the limit
 	if limit > 0 && current > limit {

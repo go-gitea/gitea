@@ -10,16 +10,16 @@ import (
 	"time"
 )
 
-const _VERSION = "0.4.2"
-
+// Version return this package's current version
 func Version() string {
-	return _VERSION
+	return "0.4.2"
 }
 
 var (
 	// Debug enables verbose logging on everything.
 	// This should be false in case Gogs starts in SSH mode.
-	Debug  = false
+	Debug = false
+	// Prefix the log prefix
 	Prefix = "[git-module] "
 )
 
@@ -38,7 +38,7 @@ func log(format string, args ...interface{}) {
 
 var gitVersion string
 
-// Version returns current Git version from shell.
+// BinVersion returns current Git version from shell.
 func BinVersion() (string, error) {
 	if len(gitVersion) > 0 {
 		return gitVersion, nil

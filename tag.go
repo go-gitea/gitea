@@ -17,6 +17,7 @@ type Tag struct {
 	Message string
 }
 
+// Commit return the commit of the tag reference
 func (tag *Tag) Commit() (*Commit, error) {
 	return tag.repo.getCommit(tag.Object)
 }

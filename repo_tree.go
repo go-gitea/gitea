@@ -16,7 +16,7 @@ func (repo *Repository) getTree(id sha1) (*Tree, error) {
 	return NewTree(repo, id), nil
 }
 
-// Find the tree object in the repository.
+// GetTree find the tree object in the repository.
 func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	id, err := NewIDFromString(idStr)
 	if err != nil {

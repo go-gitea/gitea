@@ -50,7 +50,7 @@ func (repo *Repository) GetPullRequestInfo(basePath, baseBranch, headBranch stri
 		return nil, fmt.Errorf("GetMergeBase: %v", err)
 	}
 
-	logs, err := NewCommand("log", prInfo.MergeBase+"..."+headBranch, _PRETTY_LOG_FORMAT).RunInDirBytes(repo.Path)
+	logs, err := NewCommand("log", prInfo.MergeBase+"..."+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}

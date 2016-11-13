@@ -80,13 +80,14 @@ func filepathFromSHA1(rootdir, sha1 string) string {
 	return filepath.Join(rootdir, "objects", sha1[:2], sha1[2:])
 }
 
+// RefEndName return the end name of a ref name
 func RefEndName(refStr string) string {
-	if strings.HasPrefix(refStr, BRANCH_PREFIX) {
-		return refStr[len(BRANCH_PREFIX):]
+	if strings.HasPrefix(refStr, BranchPrefix) {
+		return refStr[len(BranchPrefix):]
 	}
 
-	if strings.HasPrefix(refStr, TAG_PREFIX) {
-		return refStr[len(TAG_PREFIX):]
+	if strings.HasPrefix(refStr, TagPrefix) {
+		return refStr[len(TagPrefix):]
 	}
 
 	return refStr
