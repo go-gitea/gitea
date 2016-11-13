@@ -515,6 +515,6 @@ func authenticateToken(repository *models.Repository, authorization string, requ
 }
 
 func requireAuth(ctx *context.Context) {
-	ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gogs-lfs")
+	ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
 	writeStatus(ctx, 401)
 }
