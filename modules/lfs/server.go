@@ -130,7 +130,7 @@ func GetContentHandler(ctx *context.Context) {
 		}
 	}
 
-	contentStore := &ContentStore{basePath: setting.LFS.ContentPath}
+	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
 	content, err := contentStore.Get(meta, fromByte)
 	if err != nil {
 		writeStatus(ctx, 404)
@@ -214,7 +214,7 @@ func PostHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
 
 	sentStatus := 202
-	contentStore := &ContentStore{basePath: setting.LFS.ContentPath}
+	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
 	if meta.Existing && contentStore.Exists(meta) {
 		sentStatus = 200
 	}
@@ -266,7 +266,7 @@ func BatchHandler(ctx *context.Context) {
 
 		meta, err := models.GetLFSMetaObjectByOid(object.Oid)
 
-		contentStore := &ContentStore{basePath: setting.LFS.ContentPath}
+		contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
 		if err == nil && contentStore.Exists(meta) { // Object is found and exists
 			responseObjects = append(responseObjects, Represent(object, meta, true, false))
 			continue
@@ -312,7 +312,7 @@ func PutHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := &ContentStore{basePath: setting.LFS.ContentPath}
+	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
 	if err := contentStore.Put(meta, ctx.Req.Body().ReadCloser()); err != nil {
 		models.RemoveLFSMetaObjectByOid(rv.Oid)
 		ctx.Resp.WriteHeader(500)
