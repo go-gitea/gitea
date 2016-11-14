@@ -14,19 +14,22 @@ import (
 )
 
 const (
-	CREATE base.TplName = "org/create"
+	// TplCreateOrg template path for create organization
+	TplCreateOrg base.TplName = "org/create"
 )
 
+// Create render the page for create organization
 func Create(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_org")
-	ctx.HTML(200, CREATE)
+	ctx.HTML(200, TplCreateOrg)
 }
 
+// CreatePost response for create organization
 func CreatePost(ctx *context.Context, form auth.CreateOrgForm) {
 	ctx.Data["Title"] = ctx.Tr("new_org")
 
 	if ctx.HasError() {
-		ctx.HTML(200, CREATE)
+		ctx.HTML(200, TplCreateOrg)
 		return
 	}
 
@@ -40,11 +43,11 @@ func CreatePost(ctx *context.Context, form auth.CreateOrgForm) {
 		ctx.Data["Err_OrgName"] = true
 		switch {
 		case models.IsErrUserAlreadyExist(err):
-			ctx.RenderWithErr(ctx.Tr("form.org_name_been_taken"), CREATE, &form)
+			ctx.RenderWithErr(ctx.Tr("form.org_name_been_taken"), TplCreateOrg, &form)
 		case models.IsErrNameReserved(err):
-			ctx.RenderWithErr(ctx.Tr("org.form.name_reserved", err.(models.ErrNameReserved).Name), CREATE, &form)
+			ctx.RenderWithErr(ctx.Tr("org.form.name_reserved", err.(models.ErrNameReserved).Name), TplCreateOrg, &form)
 		case models.IsErrNamePatternNotAllowed(err):
-			ctx.RenderWithErr(ctx.Tr("org.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), CREATE, &form)
+			ctx.RenderWithErr(ctx.Tr("org.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), TplCreateOrg, &form)
 		default:
 			ctx.Handle(500, "CreateOrganization", err)
 		}
