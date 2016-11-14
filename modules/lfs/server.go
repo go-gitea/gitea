@@ -83,7 +83,7 @@ func ObjectOidHandler(ctx *context.Context) {
 			GetMetaHandler(ctx)
 			return
 		}
-		if ContentMatcher(ctx.Req) || ctx.IsSigned {
+		if ContentMatcher(ctx.Req) || len(ctx.Params("filename")) > 0 {
 			GetContentHandler(ctx)
 			return
 		}
