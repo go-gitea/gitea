@@ -345,7 +345,14 @@ func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload boo
 
 	header := make(map[string]string)
 	header["Accept"] = contentMediaType
-	header["Authorization"] = rv.Authorization
+
+	if rv.Authorization == "" {
+		//https://github.com/github/git-lfs/issues/1088
+		header["Authorization"] = "Authorization: Basic dummy"
+	} else {
+		header["Authorization"] = rv.Authorization
+	}
+
 
 	if download {
 		rep.Actions["download"] = &link{Href: rv.ObjectLink(), Header: header}
