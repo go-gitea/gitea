@@ -143,7 +143,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsTextFile"] = isTextFile
 
 	//Check for LFS meta file
-	if isTextFile {
+	if isTextFile && setting.LFS.StartServer {
 		headString := string(buf)
 		if strings.HasPrefix(headString, "version https://git-lfs.github.com/spec/v1") {
 			splitLines := strings.Split(headString, "\n")
@@ -155,6 +155,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 					meta := &models.LFSMetaObject{Oid: oid}
 					if contentStore.Exists(meta) {
 						ctx.Data["IsTextFile"] = false
+						isTextFile = false
 						ctx.Data["IsLFSFile"] = true
 						ctx.Data["FileSize"] = size
 						filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))

@@ -353,7 +353,6 @@ func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload boo
 		header["Authorization"] = rv.Authorization
 	}
 
-
 	if download {
 		rep.Actions["download"] = &link{Href: rv.ObjectLink(), Header: header}
 	}
@@ -453,13 +452,13 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		accessMode = models.AccessModeWrite
 	}
 
+	if !repository.IsPrivate && !requireWrite {
+		return true
+	}
+
 	if ctx.IsSigned {
 		accessCheck, _ := models.HasAccess(ctx.User, repository, accessMode)
 		return accessCheck
-	}
-
-	if !repository.IsPrivate && !requireWrite {
-		return true
 	}
 
 	if authorization == "" {
