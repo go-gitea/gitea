@@ -567,6 +567,7 @@ func runWeb(ctx *cli.Context) error {
 		m.Group("/:reponame", func() {
 			m.Group("/info/lfs", func() {
 				m.Post("/objects/batch", lfs.BatchHandler)
+				m.Get("/objects/:oid/:filename", lfs.ObjectOidHandler)
 				m.Any("/objects/:oid", lfs.ObjectOidHandler)
 				m.Post("/objects", lfs.PostHandler)
 			}, ignSignInAndCsrf)

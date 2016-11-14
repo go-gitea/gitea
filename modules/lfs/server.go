@@ -83,7 +83,7 @@ func ObjectOidHandler(ctx *context.Context) {
 			GetMetaHandler(ctx)
 			return
 		}
-		if ContentMatcher(ctx.Req) {
+		if ContentMatcher(ctx.Req) || ctx.IsSigned {
 			GetContentHandler(ctx)
 			return
 		}
@@ -112,7 +112,7 @@ func GetContentHandler(ctx *context.Context) {
 		return
 	}
 
-	if !authenticate(repository, rv.Authorization, false) {
+	if !authenticate(ctx, repository, rv.Authorization, false) {
 		requireAuth(ctx)
 		return
 	}
@@ -135,6 +135,17 @@ func GetContentHandler(ctx *context.Context) {
 	if err != nil {
 		writeStatus(ctx, 404)
 		return
+	}
+
+	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(meta.Size, 10))
+	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
+
+	filename := ctx.Params("filename")
+	if len(filename) > 0 {
+		decodedFilename, err := base64.RawURLEncoding.DecodeString(filename)
+		if err == nil {
+			ctx.Resp.Header().Set("Content-Disposition", "attachment; filename=\""+string(decodedFilename)+"\"")
+		}
 	}
 
 	ctx.Resp.WriteHeader(statusCode)
@@ -161,7 +172,7 @@ func GetMetaHandler(ctx *context.Context) {
 		return
 	}
 
-	if !authenticate(repository, rv.Authorization, false) {
+	if !authenticate(ctx, repository, rv.Authorization, false) {
 		requireAuth(ctx)
 		return
 	}
@@ -200,7 +211,7 @@ func PostHandler(ctx *context.Context) {
 		return
 	}
 
-	if !authenticate(repository, rv.Authorization, true) {
+	if !authenticate(ctx, repository, rv.Authorization, true) {
 		requireAuth(ctx)
 	}
 
@@ -259,7 +270,7 @@ func BatchHandler(ctx *context.Context) {
 			requireWrite = true
 		}
 
-		if !authenticate(repository, object.Authorization, requireWrite) {
+		if !authenticate(ctx, repository, object.Authorization, requireWrite) {
 			requireAuth(ctx)
 			return
 		}
@@ -307,7 +318,7 @@ func PutHandler(ctx *context.Context) {
 		return
 	}
 
-	if !authenticate(repository, rv.Authorization, true) {
+	if !authenticate(ctx, repository, rv.Authorization, true) {
 		requireAuth(ctx)
 		return
 	}
@@ -428,7 +439,17 @@ func logRequest(r macaron.Request, status int) {
 
 // authenticate uses the authorization string to determine whether
 // or not to proceed. This server assumes an HTTP Basic auth format.
-func authenticate(repository *models.Repository, authorization string, requireWrite bool) bool {
+func authenticate(ctx *context.Context, repository *models.Repository, authorization string, requireWrite bool) bool {
+
+	accessMode := models.AccessModeRead
+	if requireWrite {
+		accessMode = models.AccessModeWrite
+	}
+
+	if ctx.IsSigned {
+		accessCheck, _ := models.HasAccess(ctx.User, repository, accessMode)
+		return accessCheck
+	}
 
 	if !repository.IsPrivate && !requireWrite {
 		return true
@@ -464,11 +485,6 @@ func authenticate(repository *models.Repository, authorization string, requireWr
 
 	if !userModel.ValidatePassword(password) {
 		return false
-	}
-
-	accessMode := models.AccessModeRead
-	if requireWrite {
-		accessMode = models.AccessModeWrite
 	}
 
 	accessCheck, _ := models.HasAccess(userModel, repository, accessMode)
