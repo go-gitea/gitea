@@ -21,7 +21,7 @@
 
 ### Important Notes
 
-1. **YOU MUST READ THE [Contributors Guide](https://github.com/go-gitea/gitea/CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST**.
+1. **YOU MUST READ THE [Contributors Guide](./CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST**.
 2. If you think there are vulnerabilities in the project, please talk privately to **security@gitea.io**. Thanks!
 3. If you're interested in using APIs, we have experimental support with [documentation](https://godoc.org/github.com/go-gitea/go-sdk).
 
