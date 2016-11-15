@@ -1,13 +1,16 @@
-# Git Shell [![Build # Status](https://travis-ci.org/go-gitea/git.svg?branch=master)](https://travis-ci.org/go-gitea/git)
+# Git Shell
 
-Package git is a Go module for Git access through shell commands.
+[![Build Status](http://drone.gitea.io/api/badges/go-gitea/git/status.svg)](http://drone.gitea.io/go-gitea/git)
+[![Join the chat at https://gitter.im/go-gitea/gitea](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-gitea/gitea?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![](https://images.microbadger.com/badges/image/gitea/gitea.svg)](http://microbadger.com/images/gitea/gitea "Get your own image badge on microbadger.com")
+[![Coverage Status](https://coverage.gitea.io/badges/go-gitea/git/coverage.svg)](https://coverage.gitea.io/go-gitea/git)
+[![Go Report Card](https://goreportcard.com/badge/code.gitea.io/git)](https://goreportcard.com/report/code.gitea.io/git)
+[![GoDoc](https://godoc.org/code.gitea.io/git?status.svg)](https://godoc.org/code.gitea.io/git)
 
-## Limitations
-
-- Go version must be at least **1.3**.
-- Git version must be no less than **1.7.1**, and great than or equal to **1.8.0** is recommended.
-- For Windows users, try use as higher version as possible.
+This project is a Go module to access Git through shell commands. For further
+informations take a look at the current [documentation](https://godoc.org/code.gitea.io/git).
 
 ## License
 
-This project is under the MIT License. See the [LICENSE](LICENSE) file for the full license text.
+This project is under the MIT License. See the [LICENSE](LICENSE) file for the
+full license text.
