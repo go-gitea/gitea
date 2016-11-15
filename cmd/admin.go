@@ -74,6 +74,8 @@ func runCreateUser(c *cli.Context) error {
 
 	setting.NewContext()
 	models.LoadConfigs()
+
+	setting.NewXORMLogService(false)
 	if err := models.SetEngine(); err != nil {
 		return fmt.Errorf("models.SetEngine: %v", err)
 	}

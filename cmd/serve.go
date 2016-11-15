@@ -50,7 +50,6 @@ var CmdServ = cli.Command{
 func setup(logPath string) error {
 	setting.NewContext()
 	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
-
 	models.LoadConfigs()
 
 	if setting.UseSQLite3 || setting.UseTiDB {
@@ -60,6 +59,7 @@ func setup(logPath string) error {
 		}
 	}
 
+	setting.NewXORMLogService(true)
 	return models.SetEngine()
 }
 
