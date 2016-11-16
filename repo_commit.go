@@ -41,7 +41,7 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 // \n\n separate headers from message
 func parseCommitData(data []byte) (*Commit, error) {
 	commit := new(Commit)
-	commit.parents = make([]sha1, 0, 1)
+	commit.parents = make([]SHA1, 0, 1)
 	// we now have the contents of the commit object. Let's investigate...
 	nextline := 0
 l:
@@ -90,7 +90,7 @@ l:
 	return commit, nil
 }
 
-func (repo *Repository) getCommit(id sha1) (*Commit, error) {
+func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	c, ok := repo.commitCache.Get(id.String())
 	if ok {
 		log("Hit cache: %s", id)
@@ -151,7 +151,7 @@ func (repo *Repository) GetTagCommit(name string) (*Commit, error) {
 	return repo.GetCommit(commitID)
 }
 
-func (repo *Repository) getCommitByPathWithID(id sha1, relpath string) (*Commit, error) {
+func (repo *Repository) getCommitByPathWithID(id SHA1, relpath string) (*Commit, error) {
 	// File name starts with ':' must be escaped.
 	if relpath[0] == ':' {
 		relpath = `\` + relpath
@@ -187,7 +187,7 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 // CommitsRangeSize the default commits range size
 var CommitsRangeSize = 50
 
-func (repo *Repository) commitsByRange(id sha1, page int) (*list.List, error) {
+func (repo *Repository) commitsByRange(id SHA1, page int) (*list.List, error) {
 	stdout, err := NewCommand("log", id.String(), "--skip="+strconv.Itoa((page-1)*CommitsRangeSize),
 		"--max-count="+strconv.Itoa(CommitsRangeSize), prettyLogFormat).RunInDirBytes(repo.Path)
 	if err != nil {
@@ -196,7 +196,7 @@ func (repo *Repository) commitsByRange(id sha1, page int) (*list.List, error) {
 	return repo.parsePrettyFormatLogToList(stdout)
 }
 
-func (repo *Repository) searchCommits(id sha1, keyword string) (*list.List, error) {
+func (repo *Repository) searchCommits(id SHA1, keyword string) (*list.List, error) {
 	stdout, err := NewCommand("log", id.String(), "-100", "-i", "--grep="+keyword, prettyLogFormat).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
@@ -290,7 +290,7 @@ func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 }
 
 // commitsBefore the limit is depth, not total number of returned commits.
-func (repo *Repository) commitsBefore(l *list.List, parent *list.Element, id sha1, current, limit int) error {
+func (repo *Repository) commitsBefore(l *list.List, parent *list.Element, id SHA1, current, limit int) error {
 	// Reach the limit
 	if limit > 0 && current > limit {
 		return nil
@@ -349,12 +349,12 @@ func (repo *Repository) commitsBefore(l *list.List, parent *list.Element, id sha
 	return nil
 }
 
-func (repo *Repository) getCommitsBefore(id sha1) (*list.List, error) {
+func (repo *Repository) getCommitsBefore(id SHA1) (*list.List, error) {
 	l := list.New()
 	return l, repo.commitsBefore(l, nil, id, 1, 0)
 }
 
-func (repo *Repository) getCommitsBeforeLimit(id sha1, num int) (*list.List, error) {
+func (repo *Repository) getCommitsBeforeLimit(id SHA1, num int) (*list.List, error) {
 	l := list.New()
 	return l, repo.commitsBefore(l, nil, id, 1, num)
 }

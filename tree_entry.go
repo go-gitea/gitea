@@ -34,7 +34,7 @@ const (
 
 // TreeEntry the leaf in the git tree
 type TreeEntry struct {
-	ID   sha1
+	ID   SHA1
 	Type ObjectType
 
 	mode EntryMode

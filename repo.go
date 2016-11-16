@@ -18,8 +18,8 @@ import (
 type Repository struct {
 	Path string
 
-	commitCache *objectCache
-	tagCache    *objectCache
+	commitCache *ObjectCache
+	tagCache    *ObjectCache
 }
 
 const prettyLogFormat = `--pretty=format:%H`

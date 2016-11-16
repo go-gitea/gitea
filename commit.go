@@ -18,13 +18,13 @@ import (
 // Commit represents a git commit.
 type Commit struct {
 	Tree
-	ID            sha1 // The ID of this commit object
+	ID            SHA1 // The ID of this commit object
 	Author        *Signature
 	Committer     *Signature
 	CommitMessage string
 
-	parents        []sha1 // SHA1 strings
-	submoduleCache *objectCache
+	parents        []SHA1 // SHA1 strings
+	submoduleCache *ObjectCache
 }
 
 // Message returns the commit message. Same as retrieving CommitMessage directly.
@@ -39,9 +39,9 @@ func (c *Commit) Summary() string {
 
 // ParentID returns oid of n-th parent (0-based index).
 // It returns nil if no such parent exists.
-func (c *Commit) ParentID(n int) (sha1, error) {
+func (c *Commit) ParentID(n int) (SHA1, error) {
 	if n >= len(c.parents) {
-		return sha1{}, ErrNotExist{"", ""}
+		return SHA1{}, ErrNotExist{"", ""}
 	}
 	return c.parents[n], nil
 }
@@ -208,7 +208,7 @@ func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error)
 }
 
 // GetSubModules get all the sub modules of current revision git tree
-func (c *Commit) GetSubModules() (*objectCache, error) {
+func (c *Commit) GetSubModules() (*ObjectCache, error) {
 	if c.submoduleCache != nil {
 		return c.submoduleCache, nil
 	}
