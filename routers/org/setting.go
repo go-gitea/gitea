@@ -17,19 +17,19 @@ import (
 )
 
 const (
-	// TplSettingsOptions template path for render settings
-	TplSettingsOptions base.TplName = "org/settings/options"
-	// TplSettingsDelete template path for render delete repository
-	TplSettingsDelete base.TplName = "org/settings/delete"
-	// TplSettingsHooks template path for render hook settings
-	TplSettingsHooks base.TplName = "org/settings/hooks"
+	// tplSettingsOptions template path for render settings
+	tplSettingsOptions base.TplName = "org/settings/options"
+	// tplSettingsDelete template path for render delete repository
+	tplSettingsDelete base.TplName = "org/settings/delete"
+	// tplSettingsHooks template path for render hook settings
+	tplSettingsHooks base.TplName = "org/settings/hooks"
 )
 
 // Settings render the main settings page
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
-	ctx.HTML(200, TplSettingsOptions)
+	ctx.HTML(200, tplSettingsOptions)
 }
 
 // SettingsPost response for settings change submited
@@ -38,7 +38,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	ctx.Data["PageIsSettingsOptions"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, TplSettingsOptions)
+		ctx.HTML(200, tplSettingsOptions)
 		return
 	}
 
@@ -52,12 +52,12 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 			return
 		} else if isExist {
 			ctx.Data["OrgName"] = true
-			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), TplSettingsOptions, &form)
+			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
 			return
 		} else if err = models.ChangeUserName(org, form.Name); err != nil {
 			if err == models.ErrUserNameIllegal {
 				ctx.Data["OrgName"] = true
-				ctx.RenderWithErr(ctx.Tr("form.illegal_username"), TplSettingsOptions, &form)
+				ctx.RenderWithErr(ctx.Tr("form.illegal_username"), tplSettingsOptions, &form)
 			} else {
 				ctx.Handle(500, "ChangeUserName", err)
 			}
@@ -118,7 +118,7 @@ func SettingsDelete(ctx *context.Context) {
 	if ctx.Req.Method == "POST" {
 		if _, err := models.UserSignIn(ctx.User.Name, ctx.Query("password")); err != nil {
 			if models.IsErrUserNotExist(err) {
-				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), TplSettingsDelete, nil)
+				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsDelete, nil)
 			} else {
 				ctx.Handle(500, "UserSignIn", err)
 			}
@@ -139,7 +139,7 @@ func SettingsDelete(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, TplSettingsDelete)
+	ctx.HTML(200, tplSettingsDelete)
 }
 
 // Webhooks render webhook list page
@@ -156,7 +156,7 @@ func Webhooks(ctx *context.Context) {
 	}
 
 	ctx.Data["Webhooks"] = ws
-	ctx.HTML(200, TplSettingsHooks)
+	ctx.HTML(200, tplSettingsHooks)
 }
 
 // DeleteWebhook response for delete webhook

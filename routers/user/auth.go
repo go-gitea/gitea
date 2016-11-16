@@ -19,16 +19,14 @@ import (
 )
 
 const (
-	// TplSignIn template for sign in page
-	TplSignIn base.TplName = "user/auth/signin"
-	// TplSignUp
-	TplSignUp base.TplName = "user/auth/signup"
-	// TplActivate
-	TplActivate base.TplName = "user/auth/activate"
-	// TplForgotPassword
-	TplForgotPassword base.TplName = "user/auth/forgot_passwd"
-	// TplResetPassword
-	TplResetPassword base.TplName = "user/auth/reset_passwd"
+	// tplSignIn template for sign in page
+	tplSignIn base.TplName = "user/auth/signin"
+	// tplSignUp template path for sign up page
+	tplSignUp base.TplName = "user/auth/signup"
+	// TplActivate template path for activate user
+	TplActivate       base.TplName = "user/auth/activate"
+	tplForgotPassword base.TplName = "user/auth/forgot_passwd"
+	tplResetPassword  base.TplName = "user/auth/reset_passwd"
 )
 
 // AutoSignIn reads cookie and try to auto-login.
@@ -99,7 +97,7 @@ func SignIn(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, TplSignIn)
+	ctx.HTML(200, tplSignIn)
 }
 
 // SignInPost response for sign in request
@@ -107,14 +105,14 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
 	if ctx.HasError() {
-		ctx.HTML(200, TplSignIn)
+		ctx.HTML(200, tplSignIn)
 		return
 	}
 
 	u, err := models.UserSignIn(form.UserName, form.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), TplSignIn, &form)
+			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
 		} else {
 			ctx.Handle(500, "UserSignIn", err)
 		}
@@ -171,11 +169,11 @@ func SignUp(ctx *context.Context) {
 
 	if setting.Service.DisableRegistration {
 		ctx.Data["DisableRegistration"] = true
-		ctx.HTML(200, TplSignUp)
+		ctx.HTML(200, tplSignUp)
 		return
 	}
 
-	ctx.HTML(200, TplSignUp)
+	ctx.HTML(200, tplSignUp)
 }
 
 // SignUpPost response for sign up information submission
@@ -190,19 +188,19 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, TplSignUp)
+		ctx.HTML(200, tplSignUp)
 		return
 	}
 
 	if setting.Service.EnableCaptcha && !cpt.VerifyReq(ctx.Req) {
 		ctx.Data["Err_Captcha"] = true
-		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), TplSignUp, &form)
+		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUp, &form)
 		return
 	}
 
 	if form.Password != form.Retype {
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), TplSignUp, &form)
+		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplSignUp, &form)
 		return
 	}
 
@@ -216,16 +214,16 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		switch {
 		case models.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), TplSignUp, &form)
+			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSignUp, &form)
 		case models.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), TplSignUp, &form)
+			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSignUp, &form)
 		case models.IsErrNameReserved(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(models.ErrNameReserved).Name), TplSignUp, &form)
+			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(models.ErrNameReserved).Name), tplSignUp, &form)
 		case models.IsErrNamePatternNotAllowed(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), TplSignUp, &form)
+			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplSignUp, &form)
 		default:
 			ctx.Handle(500, "CreateUser", err)
 		}
@@ -313,13 +311,13 @@ func Activate(ctx *context.Context) {
 	ctx.HTML(200, TplActivate)
 }
 
-// ActivateEmail
+// ActivateEmail render the activate email page
 func ActivateEmail(ctx *context.Context) {
 	code := ctx.Query("code")
-	email_string := ctx.Query("email")
+	emailStr := ctx.Query("email")
 
 	// Verify code.
-	if email := models.VerifyActiveEmailCode(code, email_string); email != nil {
+	if email := models.VerifyActiveEmailCode(code, emailStr); email != nil {
 		if err := email.Activate(); err != nil {
 			ctx.Handle(500, "ActivateEmail", err)
 		}
@@ -332,19 +330,21 @@ func ActivateEmail(ctx *context.Context) {
 	return
 }
 
+// ForgotPasswd render the forget pasword page
 func ForgotPasswd(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password")
 
 	if setting.MailService == nil {
 		ctx.Data["IsResetDisable"] = true
-		ctx.HTML(200, TplForgotPassword)
+		ctx.HTML(200, tplForgotPassword)
 		return
 	}
 
 	ctx.Data["IsResetRequest"] = true
-	ctx.HTML(200, TplForgotPassword)
+	ctx.HTML(200, tplForgotPassword)
 }
 
+// ForgotPasswdPost response for forget password request
 func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password")
 
@@ -362,23 +362,23 @@ func ForgotPasswdPost(ctx *context.Context) {
 		if models.IsErrUserNotExist(err) {
 			ctx.Data["Hours"] = setting.Service.ActiveCodeLives / 60
 			ctx.Data["IsResetSent"] = true
-			ctx.HTML(200, TplForgotPassword)
+			ctx.HTML(200, tplForgotPassword)
 			return
-		} else {
-			ctx.Handle(500, "user.ResetPasswd(check existence)", err)
 		}
+
+		ctx.Handle(500, "user.ResetPasswd(check existence)", err)
 		return
 	}
 
 	if !u.IsLocal() {
 		ctx.Data["Err_Email"] = true
-		ctx.RenderWithErr(ctx.Tr("auth.non_local_account"), TplForgotPassword, nil)
+		ctx.RenderWithErr(ctx.Tr("auth.non_local_account"), tplForgotPassword, nil)
 		return
 	}
 
 	if ctx.Cache.IsExist("MailResendLimit_" + u.LowerName) {
 		ctx.Data["ResendLimited"] = true
-		ctx.HTML(200, TplForgotPassword)
+		ctx.HTML(200, tplForgotPassword)
 		return
 	}
 
@@ -389,9 +389,10 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	ctx.Data["Hours"] = setting.Service.ActiveCodeLives / 60
 	ctx.Data["IsResetSent"] = true
-	ctx.HTML(200, TplForgotPassword)
+	ctx.HTML(200, tplForgotPassword)
 }
 
+// ResetPasswd render the reset password page
 func ResetPasswd(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
 
@@ -402,9 +403,10 @@ func ResetPasswd(ctx *context.Context) {
 	}
 	ctx.Data["Code"] = code
 	ctx.Data["IsResetForm"] = true
-	ctx.HTML(200, TplResetPassword)
+	ctx.HTML(200, tplResetPassword)
 }
 
+// ResetPasswdPost response fro reset password request
 func ResetPasswdPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
 
@@ -421,7 +423,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		if len(passwd) < 6 {
 			ctx.Data["IsResetForm"] = true
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_too_short"), TplResetPassword, nil)
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short"), tplResetPassword, nil)
 			return
 		}
 
@@ -440,5 +442,5 @@ func ResetPasswdPost(ctx *context.Context) {
 	}
 
 	ctx.Data["IsResetFailed"] = true
-	ctx.HTML(200, TplResetPassword)
+	ctx.HTML(200, tplResetPassword)
 }

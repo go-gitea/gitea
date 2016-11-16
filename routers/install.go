@@ -34,8 +34,8 @@ import (
 )
 
 const (
-	// TplInstall template for installation page
-	TplInstall base.TplName = "install"
+	// tplInstall template for installation page
+	tplInstall base.TplName = "install"
 )
 
 func checkRunMode() {
@@ -179,7 +179,7 @@ func Install(ctx *context.Context) {
 	form.RequireSignInView = setting.Service.RequireSignInView
 
 	auth.AssignForm(form, ctx.Data)
-	ctx.HTML(200, TplInstall)
+	ctx.HTML(200, tplInstall)
 }
 
 // InstallPost response for submit install items
@@ -196,12 +196,12 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 			ctx.Data["Err_Admin"] = true
 		}
 
-		ctx.HTML(200, TplInstall)
+		ctx.HTML(200, tplInstall)
 		return
 	}
 
 	if _, err := exec.LookPath("git"); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.test_git_failed", err), TplInstall, &form)
+		ctx.RenderWithErr(ctx.Tr("install.test_git_failed", err), tplInstall, &form)
 		return
 	}
 
@@ -219,12 +219,12 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if (models.DbCfg.Type == "sqlite3" || models.DbCfg.Type == "tidb") &&
 		len(models.DbCfg.Path) == 0 {
 		ctx.Data["Err_DbPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.err_empty_db_path"), TplInstall, &form)
+		ctx.RenderWithErr(ctx.Tr("install.err_empty_db_path"), tplInstall, &form)
 		return
 	} else if models.DbCfg.Type == "tidb" &&
 		strings.ContainsAny(path.Base(models.DbCfg.Path), ".-") {
 		ctx.Data["Err_DbPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.err_invalid_tidb_name"), TplInstall, &form)
+		ctx.RenderWithErr(ctx.Tr("install.err_invalid_tidb_name"), tplInstall, &form)
 		return
 	}
 
@@ -233,10 +233,10 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if err := models.NewTestEngine(x); err != nil {
 		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
 			ctx.Data["Err_DbType"] = true
-			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://gogs.io/docs/installation/install_from_binary.html"), TplInstall, &form)
+			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://gogs.io/docs/installation/install_from_binary.html"), tplInstall, &form)
 		} else {
 			ctx.Data["Err_DbSetting"] = true
-			ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), TplInstall, &form)
+			ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)
 		}
 		return
 	}
@@ -245,7 +245,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	form.RepoRootPath = strings.Replace(form.RepoRootPath, "\\", "/", -1)
 	if err := os.MkdirAll(form.RepoRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_RepoRootPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.invalid_repo_path", err), TplInstall, &form)
+		ctx.RenderWithErr(ctx.Tr("install.invalid_repo_path", err), tplInstall, &form)
 		return
 	}
 
@@ -253,14 +253,14 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	form.LogRootPath = strings.Replace(form.LogRootPath, "\\", "/", -1)
 	if err := os.MkdirAll(form.LogRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_LogRootPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.invalid_log_root_path", err), TplInstall, &form)
+		ctx.RenderWithErr(ctx.Tr("install.invalid_log_root_path", err), tplInstall, &form)
 		return
 	}
 
 	currentUser, match := setting.IsRunUserMatchCurrentUser(form.RunUser)
 	if !match {
 		ctx.Data["Err_RunUser"] = true
-		ctx.RenderWithErr(ctx.Tr("install.run_user_not_match", form.RunUser, currentUser), TplInstall, &form)
+		ctx.RenderWithErr(ctx.Tr("install.run_user_not_match", form.RunUser, currentUser), tplInstall, &form)
 		return
 	}
 
@@ -268,7 +268,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if form.DisableRegistration && len(form.AdminName) == 0 {
 		ctx.Data["Err_Services"] = true
 		ctx.Data["Err_Admin"] = true
-		ctx.RenderWithErr(ctx.Tr("install.no_admin_and_disable_registration"), TplInstall, form)
+		ctx.RenderWithErr(ctx.Tr("install.no_admin_and_disable_registration"), tplInstall, form)
 		return
 	}
 
@@ -276,13 +276,13 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if len(form.AdminName) > 0 && len(form.AdminPasswd) == 0 {
 		ctx.Data["Err_Admin"] = true
 		ctx.Data["Err_AdminPasswd"] = true
-		ctx.RenderWithErr(ctx.Tr("install.err_empty_admin_password"), TplInstall, form)
+		ctx.RenderWithErr(ctx.Tr("install.err_empty_admin_password"), tplInstall, form)
 		return
 	}
 	if form.AdminPasswd != form.AdminConfirmPasswd {
 		ctx.Data["Err_Admin"] = true
 		ctx.Data["Err_AdminPasswd"] = true
-		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), TplInstall, form)
+		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplInstall, form)
 		return
 	}
 
@@ -352,12 +352,12 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	err := os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
 	if err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), TplInstall, &form)
+		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
 
 	if err := cfg.SaveTo(setting.CustomConf); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), TplInstall, &form)
+		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
 
@@ -377,7 +377,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true
 				ctx.Data["Err_AdminEmail"] = true
-				ctx.RenderWithErr(ctx.Tr("install.invalid_admin_setting", err), TplInstall, &form)
+				ctx.RenderWithErr(ctx.Tr("install.invalid_admin_setting", err), tplInstall, &form)
 				return
 			}
 			log.Info("Admin account already exist")
@@ -386,11 +386,11 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 		// Auto-login for admin
 		if err := ctx.Session.Set("uid", u.ID); err != nil {
-			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), TplInstall, &form)
+			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
 		}
 		if err := ctx.Session.Set("uname", u.Name); err != nil {
-			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), TplInstall, &form)
+			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
 		}
 	}

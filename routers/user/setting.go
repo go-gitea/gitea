@@ -21,22 +21,23 @@ import (
 )
 
 const (
-	SETTINGS_PROFILE      base.TplName = "user/settings/profile"
-	SETTINGS_AVATAR       base.TplName = "user/settings/avatar"
-	SETTINGS_PASSWORD     base.TplName = "user/settings/password"
-	SETTINGS_EMAILS       base.TplName = "user/settings/email"
-	SETTINGS_SSH_KEYS     base.TplName = "user/settings/sshkeys"
-	SETTINGS_SOCIAL       base.TplName = "user/settings/social"
-	SETTINGS_APPLICATIONS base.TplName = "user/settings/applications"
-	SETTINGS_DELETE       base.TplName = "user/settings/delete"
-	NOTIFICATION          base.TplName = "user/notification"
-	SECURITY              base.TplName = "user/security"
+	tplSettingsProfile      base.TplName = "user/settings/profile"
+	tplSettingsAvatar       base.TplName = "user/settings/avatar"
+	tplSettingsPassword     base.TplName = "user/settings/password"
+	tplSettingsEmails       base.TplName = "user/settings/email"
+	tplSettingsSSHKeys      base.TplName = "user/settings/sshkeys"
+	tplSettingsSocial       base.TplName = "user/settings/social"
+	tplSettingsApplications base.TplName = "user/settings/applications"
+	tplSettingsDelete       base.TplName = "user/settings/delete"
+	tplNotification         base.TplName = "user/notification"
+	tplSecurity             base.TplName = "user/security"
 )
 
+// Settings render user's profile page
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
-	ctx.HTML(200, SETTINGS_PROFILE)
+	ctx.HTML(200, tplSettingsProfile)
 }
 
 func handleUsernameChange(ctx *context.Context, newName string) {
@@ -74,12 +75,13 @@ func handleUsernameChange(ctx *context.Context, newName string) {
 	ctx.User.LowerName = strings.ToLower(newName)
 }
 
+// SettingsPost response for change user's profile
 func SettingsPost(ctx *context.Context, form auth.UpdateProfileForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, SETTINGS_PROFILE)
+		ctx.HTML(200, tplSettingsProfile)
 		return
 	}
 
@@ -102,6 +104,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateProfileForm) {
 	ctx.Redirect(setting.AppSubUrl + "/user/settings")
 }
 
+// UpdateAvatarSetting update user's avatar
 // FIXME: limit size.
 func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *models.User) error {
 	ctxUser.UseCustomAvatar = form.Source == auth.AvatarLocal
@@ -144,12 +147,14 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 	return nil
 }
 
+// SettingsAvatar render user avatar page
 func SettingsAvatar(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAvatar"] = true
-	ctx.HTML(200, SETTINGS_AVATAR)
+	ctx.HTML(200, tplSettingsAvatar)
 }
 
+// SettingsAvatarPost response for change user's avatar request
 func SettingsAvatarPost(ctx *context.Context, form auth.AvatarForm) {
 	if err := UpdateAvatarSetting(ctx, form, ctx.User); err != nil {
 		ctx.Flash.Error(err.Error())
@@ -160,6 +165,7 @@ func SettingsAvatarPost(ctx *context.Context, form auth.AvatarForm) {
 	ctx.Redirect(setting.AppSubUrl + "/user/settings/avatar")
 }
 
+// SettingsDeleteAvatar render delete avatar page
 func SettingsDeleteAvatar(ctx *context.Context) {
 	if err := ctx.User.DeleteAvatar(); err != nil {
 		ctx.Flash.Error(err.Error())
@@ -168,18 +174,20 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubUrl + "/user/settings/avatar")
 }
 
+// SettingsPassword render change user's password page
 func SettingsPassword(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsPassword"] = true
-	ctx.HTML(200, SETTINGS_PASSWORD)
+	ctx.HTML(200, tplSettingsPassword)
 }
 
+// SettingsPasswordPost response for change user's password
 func SettingsPasswordPost(ctx *context.Context, form auth.ChangePasswordForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsPassword"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, SETTINGS_PASSWORD)
+		ctx.HTML(200, tplSettingsPassword)
 		return
 	}
 
@@ -202,6 +210,7 @@ func SettingsPasswordPost(ctx *context.Context, form auth.ChangePasswordForm) {
 	ctx.Redirect(setting.AppSubUrl + "/user/settings/password")
 }
 
+// SettingsEmails render user's emails page
 func SettingsEmails(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsEmails"] = true
@@ -213,9 +222,10 @@ func SettingsEmails(ctx *context.Context) {
 	}
 	ctx.Data["Emails"] = emails
 
-	ctx.HTML(200, SETTINGS_EMAILS)
+	ctx.HTML(200, tplSettingsEmails)
 }
 
+// SettingsEmailPost response for change user's email
 func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsEmails"] = true
@@ -241,7 +251,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	ctx.Data["Emails"] = emails
 
 	if ctx.HasError() {
-		ctx.HTML(200, SETTINGS_EMAILS)
+		ctx.HTML(200, tplSettingsEmails)
 		return
 	}
 
@@ -252,7 +262,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	}
 	if err := models.AddEmailAddress(email); err != nil {
 		if models.IsErrEmailAlreadyUsed(err) {
-			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), SETTINGS_EMAILS, &form)
+			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsEmails, &form)
 			return
 		}
 		ctx.Handle(500, "AddEmailAddress", err)
@@ -275,6 +285,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	ctx.Redirect(setting.AppSubUrl + "/user/settings/email")
 }
 
+// DeleteEmail reponse for delete user's email
 func DeleteEmail(ctx *context.Context) {
 	if err := models.DeleteEmailAddress(&models.EmailAddress{ID: ctx.QueryInt64("id")}); err != nil {
 		ctx.Handle(500, "DeleteEmail", err)
@@ -288,6 +299,7 @@ func DeleteEmail(ctx *context.Context) {
 	})
 }
 
+// SettingsSSHKeys render user's SSH public keys page
 func SettingsSSHKeys(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSSHKeys"] = true
@@ -299,9 +311,10 @@ func SettingsSSHKeys(ctx *context.Context) {
 	}
 	ctx.Data["Keys"] = keys
 
-	ctx.HTML(200, SETTINGS_SSH_KEYS)
+	ctx.HTML(200, tplSettingsSSHKeys)
 }
 
+// SettingsSSHKeysPost response for change user's SSH keys
 func SettingsSSHKeysPost(ctx *context.Context, form auth.AddSSHKeyForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSSHKeys"] = true
@@ -314,7 +327,7 @@ func SettingsSSHKeysPost(ctx *context.Context, form auth.AddSSHKeyForm) {
 	ctx.Data["Keys"] = keys
 
 	if ctx.HasError() {
-		ctx.HTML(200, SETTINGS_SSH_KEYS)
+		ctx.HTML(200, tplSettingsSSHKeys)
 		return
 	}
 
@@ -334,10 +347,10 @@ func SettingsSSHKeysPost(ctx *context.Context, form auth.AddSSHKeyForm) {
 		switch {
 		case models.IsErrKeyAlreadyExist(err):
 			ctx.Data["Err_Content"] = true
-			ctx.RenderWithErr(ctx.Tr("settings.ssh_key_been_used"), SETTINGS_SSH_KEYS, &form)
+			ctx.RenderWithErr(ctx.Tr("settings.ssh_key_been_used"), tplSettingsSSHKeys, &form)
 		case models.IsErrKeyNameAlreadyUsed(err):
 			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErr(ctx.Tr("settings.ssh_key_name_used"), SETTINGS_SSH_KEYS, &form)
+			ctx.RenderWithErr(ctx.Tr("settings.ssh_key_name_used"), tplSettingsSSHKeys, &form)
 		default:
 			ctx.Handle(500, "AddPublicKey", err)
 		}
@@ -348,6 +361,7 @@ func SettingsSSHKeysPost(ctx *context.Context, form auth.AddSSHKeyForm) {
 	ctx.Redirect(setting.AppSubUrl + "/user/settings/ssh")
 }
 
+// DeleteSSHKey response for delete user's SSH key
 func DeleteSSHKey(ctx *context.Context) {
 	if err := models.DeletePublicKey(ctx.User, ctx.QueryInt64("id")); err != nil {
 		ctx.Flash.Error("DeletePublicKey: " + err.Error())
@@ -360,6 +374,7 @@ func DeleteSSHKey(ctx *context.Context) {
 	})
 }
 
+// SettingsApplications render user's access tokens page
 func SettingsApplications(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
@@ -371,9 +386,10 @@ func SettingsApplications(ctx *context.Context) {
 	}
 	ctx.Data["Tokens"] = tokens
 
-	ctx.HTML(200, SETTINGS_APPLICATIONS)
+	ctx.HTML(200, tplSettingsApplications)
 }
 
+// SettingsApplicationsPost response for add user's access token
 func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
@@ -385,7 +401,7 @@ func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm
 			return
 		}
 		ctx.Data["Tokens"] = tokens
-		ctx.HTML(200, SETTINGS_APPLICATIONS)
+		ctx.HTML(200, tplSettingsApplications)
 		return
 	}
 
@@ -404,6 +420,7 @@ func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm
 	ctx.Redirect(setting.AppSubUrl + "/user/settings/applications")
 }
 
+// SettingsDeleteApplication response for delete user access token
 func SettingsDeleteApplication(ctx *context.Context) {
 	if err := models.DeleteAccessTokenByID(ctx.QueryInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
@@ -416,6 +433,7 @@ func SettingsDeleteApplication(ctx *context.Context) {
 	})
 }
 
+// SettingsDelete render user suicide page and response for delete user himself
 func SettingsDelete(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsDelete"] = true
@@ -423,7 +441,7 @@ func SettingsDelete(ctx *context.Context) {
 	if ctx.Req.Method == "POST" {
 		if _, err := models.UserSignIn(ctx.User.Name, ctx.Query("password")); err != nil {
 			if models.IsErrUserNotExist(err) {
-				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), SETTINGS_DELETE, nil)
+				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsDelete, nil)
 			} else {
 				ctx.Handle(500, "UserSignIn", err)
 			}
@@ -448,5 +466,5 @@ func SettingsDelete(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, SETTINGS_DELETE)
+	ctx.HTML(200, tplSettingsDelete)
 }

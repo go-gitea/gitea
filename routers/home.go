@@ -17,14 +17,14 @@ import (
 )
 
 const (
-	// TplHome home page template
-	TplHome base.TplName = "home"
-	// TplExploreRepos explore repositories page template
-	TplExploreRepos base.TplName = "explore/repos"
-	// TplExploreUsers explore users page template
-	TplExploreUsers base.TplName = "explore/users"
-	// TplExploreOrganizations explore organizations page template
-	TplExploreOrganizations base.TplName = "explore/organizations"
+	// tplHome home page template
+	tplHome base.TplName = "home"
+	// tplExploreRepos explore repositories page template
+	tplExploreRepos base.TplName = "explore/repos"
+	// tplExploreUsers explore users page template
+	tplExploreUsers base.TplName = "explore/users"
+	// tplExploreOrganizations explore organizations page template
+	tplExploreOrganizations base.TplName = "explore/organizations"
 )
 
 // Home render home page
@@ -47,10 +47,10 @@ func Home(ctx *context.Context) {
 	}
 
 	ctx.Data["PageIsHome"] = true
-	ctx.HTML(200, TplHome)
+	ctx.HTML(200, tplHome)
 }
 
-// RepoSearchOptions options when calling search repositories
+// RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
 	Counter  func(bool) int64
 	Ranger   func(int, int) ([]*models.Repository, error)
@@ -120,7 +120,7 @@ func ExploreRepos(ctx *context.Context) {
 		Ranger:   models.GetRecentUpdatedRepositories,
 		PageSize: setting.UI.ExplorePagingNum,
 		OrderBy:  "updated_unix DESC",
-		TplName:  TplExploreRepos,
+		TplName:  tplExploreRepos,
 	})
 }
 
@@ -188,7 +188,7 @@ func ExploreUsers(ctx *context.Context) {
 		Ranger:   models.Users,
 		PageSize: setting.UI.ExplorePagingNum,
 		OrderBy:  "name ASC",
-		TplName:  TplExploreUsers,
+		TplName:  tplExploreUsers,
 	})
 }
 
@@ -204,7 +204,7 @@ func ExploreOrganizations(ctx *context.Context) {
 		Ranger:   models.Organizations,
 		PageSize: setting.UI.ExplorePagingNum,
 		OrderBy:  "name ASC",
-		TplName:  TplExploreOrganizations,
+		TplName:  tplExploreOrganizations,
 	})
 }
 

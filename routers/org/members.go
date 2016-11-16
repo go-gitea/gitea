@@ -15,10 +15,10 @@ import (
 )
 
 const (
-	// TplMembers template for organization members page
-	TplMembers base.TplName = "org/member/members"
-	// TplMemberInvite template for orgnization invite page
-	TplMemberInvite base.TplName = "org/member/invite"
+	// tplMembers template for organization members page
+	tplMembers base.TplName = "org/member/members"
+	// tplMemberInvite template for orgnization invite page
+	tplMemberInvite base.TplName = "org/member/invite"
 )
 
 // Members render orgnization users page
@@ -33,7 +33,7 @@ func Members(ctx *context.Context) {
 	}
 	ctx.Data["Members"] = org.Members
 
-	ctx.HTML(200, TplMembers)
+	ctx.HTML(200, tplMembers)
 }
 
 // MembersAction response for operation to a member of orgnization
@@ -124,5 +124,5 @@ func Invitation(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, TplMemberInvite)
+	ctx.HTML(200, tplMemberInvite)
 }

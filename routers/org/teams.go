@@ -17,14 +17,14 @@ import (
 )
 
 const (
-	// TplTeams template path for teams list page
-	TplTeams base.TplName = "org/team/teams"
-	// TplTeamNew template path for create new team page
-	TplTeamNew base.TplName = "org/team/new"
-	// TplTeamMembers template path for showing team members page
-	TplTeamMembers base.TplName = "org/team/members"
-	// TplTeamRepositories template path for showing team repositories page
-	TplTeamRepositories base.TplName = "org/team/repositories"
+	// tplTeams template path for teams list page
+	tplTeams base.TplName = "org/team/teams"
+	// tplTeamNew template path for create new team page
+	tplTeamNew base.TplName = "org/team/new"
+	// tplTeamMembers template path for showing team members page
+	tplTeamMembers base.TplName = "org/team/members"
+	// tplTeamRepositories template path for showing team repositories page
+	tplTeamRepositories base.TplName = "org/team/repositories"
 )
 
 // Teams render teams list page
@@ -41,7 +41,7 @@ func Teams(ctx *context.Context) {
 	}
 	ctx.Data["Teams"] = org.Teams
 
-	ctx.HTML(200, TplTeams)
+	ctx.HTML(200, tplTeams)
 }
 
 // TeamsAction response for join, leave, remove, add operations to team
@@ -154,7 +154,7 @@ func NewTeam(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Team"] = &models.Team{}
-	ctx.HTML(200, TplTeamNew)
+	ctx.HTML(200, tplTeamNew)
 }
 
 // NewTeamPost response for create new team
@@ -172,7 +172,7 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 	ctx.Data["Team"] = t
 
 	if ctx.HasError() {
-		ctx.HTML(200, TplTeamNew)
+		ctx.HTML(200, tplTeamNew)
 		return
 	}
 
@@ -180,7 +180,7 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		ctx.Data["Err_TeamName"] = true
 		switch {
 		case models.IsErrTeamAlreadyExist(err):
-			ctx.RenderWithErr(ctx.Tr("form.team_name_been_taken"), TplTeamNew, &form)
+			ctx.RenderWithErr(ctx.Tr("form.team_name_been_taken"), tplTeamNew, &form)
 		default:
 			ctx.Handle(500, "NewTeam", err)
 		}
@@ -198,7 +198,7 @@ func TeamMembers(ctx *context.Context) {
 		ctx.Handle(500, "GetMembers", err)
 		return
 	}
-	ctx.HTML(200, TplTeamMembers)
+	ctx.HTML(200, tplTeamMembers)
 }
 
 // TeamRepositories show the repositories of team
@@ -209,7 +209,7 @@ func TeamRepositories(ctx *context.Context) {
 		ctx.Handle(500, "GetRepositories", err)
 		return
 	}
-	ctx.HTML(200, TplTeamRepositories)
+	ctx.HTML(200, tplTeamRepositories)
 }
 
 // EditTeam render team edit page
@@ -218,7 +218,7 @@ func EditTeam(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["team_name"] = ctx.Org.Team.Name
 	ctx.Data["desc"] = ctx.Org.Team.Description
-	ctx.HTML(200, TplTeamNew)
+	ctx.HTML(200, tplTeamNew)
 }
 
 // EditTeamPost response for modify team information
@@ -229,7 +229,7 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 	ctx.Data["Team"] = t
 
 	if ctx.HasError() {
-		ctx.HTML(200, TplTeamNew)
+		ctx.HTML(200, tplTeamNew)
 		return
 	}
 
@@ -260,7 +260,7 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		ctx.Data["Err_TeamName"] = true
 		switch {
 		case models.IsErrTeamAlreadyExist(err):
-			ctx.RenderWithErr(ctx.Tr("form.team_name_been_taken"), TplTeamNew, &form)
+			ctx.RenderWithErr(ctx.Tr("form.team_name_been_taken"), tplTeamNew, &form)
 		default:
 			ctx.Handle(500, "UpdateTeam", err)
 		}
