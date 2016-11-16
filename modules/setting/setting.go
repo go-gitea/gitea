@@ -1015,6 +1015,7 @@ func newLogService() {
 	}
 }
 
+// NewXORMLogService initializes xorm logger service
 func NewXORMLogService(disableConsole bool) {
 	logModes := strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
 	var logConfigs string

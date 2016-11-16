@@ -238,6 +238,8 @@ func NewTestEngine(x *xorm.Engine) (err error) {
 		return fmt.Errorf("Connect to database: %v", err)
 	}
 
+	setting.NewXORMLogService(false)
+
 	x.SetMapper(core.GonicMapper{})
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
