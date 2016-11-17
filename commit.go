@@ -18,13 +18,13 @@ import (
 // Commit represents a git commit.
 type Commit struct {
 	Tree
-	ID            sha1 // The ID of this commit object
+	ID            SHA1 // The ID of this commit object
 	Author        *Signature
 	Committer     *Signature
 	CommitMessage string
 
-	parents        []sha1 // SHA1 strings
-	submoduleCache *objectCache
+	parents        []SHA1 // SHA1 strings
+	submoduleCache *ObjectCache
 }
 
 // Message returns the commit message. Same as retrieving CommitMessage directly.
@@ -39,9 +39,9 @@ func (c *Commit) Summary() string {
 
 // ParentID returns oid of n-th parent (0-based index).
 // It returns nil if no such parent exists.
-func (c *Commit) ParentID(n int) (sha1, error) {
+func (c *Commit) ParentID(n int) (SHA1, error) {
 	if n >= len(c.parents) {
-		return sha1{}, ErrNotExist{"", ""}
+		return SHA1{}, ErrNotExist{"", ""}
 	}
 	return c.parents[n], nil
 }
@@ -73,6 +73,7 @@ func isImageFile(data []byte) (string, bool) {
 	return contentType, false
 }
 
+// IsImageFile is a file image type
 func (c *Commit) IsImageFile(name string) bool {
 	blob, err := c.GetBlobByPath(name)
 	if err != nil {
@@ -95,7 +96,7 @@ func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
 	return c.repo.getCommitByPathWithID(c.ID, relpath)
 }
 
-// AddAllChanges marks local changes to be ready for commit.
+// AddChanges marks local changes to be ready for commit.
 func AddChanges(repoPath string, all bool, files ...string) error {
 	cmd := NewCommand("add")
 	if all {
@@ -105,6 +106,7 @@ func AddChanges(repoPath string, all bool, files ...string) error {
 	return err
 }
 
+// CommitChangesOptions the options when a commit created
 type CommitChangesOptions struct {
 	Committer *Signature
 	Author    *Signature
@@ -166,22 +168,27 @@ func CommitsCount(repoPath, revision string) (int64, error) {
 	return commitsCount(repoPath, revision, "")
 }
 
+// CommitsCount returns number of total commits of until current revision.
 func (c *Commit) CommitsCount() (int64, error) {
 	return CommitsCount(c.repo.Path, c.ID.String())
 }
 
+// CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
 func (c *Commit) CommitsByRange(page int) (*list.List, error) {
 	return c.repo.commitsByRange(c.ID, page)
 }
 
+// CommitsBefore returns all the commits before current revision
 func (c *Commit) CommitsBefore() (*list.List, error) {
 	return c.repo.getCommitsBefore(c.ID)
 }
 
+// CommitsBeforeLimit returns num commits before current revision
 func (c *Commit) CommitsBeforeLimit(num int) (*list.List, error) {
 	return c.repo.getCommitsBeforeLimit(c.ID, num)
 }
 
+// CommitsBeforeUntil returns the commits between commitID to current revision
 func (c *Commit) CommitsBeforeUntil(commitID string) (*list.List, error) {
 	endCommit, err := c.repo.GetCommit(commitID)
 	if err != nil {
@@ -190,15 +197,18 @@ func (c *Commit) CommitsBeforeUntil(commitID string) (*list.List, error) {
 	return c.repo.CommitsBetween(c, endCommit)
 }
 
+// SearchCommits returns the commits match the keyword before current revision
 func (c *Commit) SearchCommits(keyword string) (*list.List, error) {
 	return c.repo.searchCommits(c.ID, keyword)
 }
 
+// GetFilesChangedSinceCommit get all changed file names between pastCommit to current revision
 func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error) {
 	return c.repo.getFilesChanged(pastCommit, c.ID.String())
 }
 
-func (c *Commit) GetSubModules() (*objectCache, error) {
+// GetSubModules get all the sub modules of current revision git tree
+func (c *Commit) GetSubModules() (*ObjectCache, error) {
 	if c.submoduleCache != nil {
 		return c.submoduleCache, nil
 	}
@@ -236,6 +246,7 @@ func (c *Commit) GetSubModules() (*objectCache, error) {
 	return c.submoduleCache, nil
 }
 
+// GetSubModule get the sub module according entryname
 func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 	modules, err := c.GetSubModules()
 	if err != nil {

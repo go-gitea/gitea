@@ -9,14 +9,15 @@ import "bytes"
 // Tag represents a Git tag.
 type Tag struct {
 	Name    string
-	ID      sha1
+	ID      SHA1
 	repo    *Repository
-	Object  sha1 // The id of this commit object
+	Object  SHA1 // The id of this commit object
 	Type    string
 	Tagger  *Signature
 	Message string
 }
 
+// Commit return the commit of the tag reference
 func (tag *Tag) Commit() (*Commit, error) {
 	return tag.repo.getCommit(tag.Object)
 }
