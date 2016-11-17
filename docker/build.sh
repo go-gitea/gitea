@@ -7,29 +7,15 @@ export GOPATH=/tmp/go
 export PATH=${PATH}:${GOPATH}/bin
 export GO15VENDOREXPERIMENT=1
 
-# Install build deps
-#apk --no-cache --no-progress add --virtual build-deps build-base linux-pam-dev go
-
-# Install glide
-#git clone -b 0.10.2 https://github.com/Masterminds/glide ${GOPATH}/src/github.com/Masterminds/glide
-#cd ${GOPATH}/src/github.com/Masterminds/glide
-#make build
-#go install
-
-
-
-# Build Gogs
+# Build Gitea
 mkdir -p ${GOPATH}/src/github.com/go-gitea/
-ln -s /app/gogs/ ${GOPATH}/src/github.com/go-gitea/gitea
+ln -s /app/gitea/ ${GOPATH}/src/github.com/go-gitea/gitea
 cd ${GOPATH}/src/github.com/go-gitea/gitea
-#glide install
+
 make build TAGS="sqlite cert pam"
 go install
 
 # Cleanup GOPATH & vendoring dir
-rm -r $GOPATH /app/gogs/vendor
+rm -r $GOPATH /app/gitea/vendor
 
-# Remove build deps
-#apk --no-progress del build-deps
-
-mv /app/gogs/bin/gitea /app/gogs/gitea
+mv /app/gitea/bin/gitea /app/gitea/gitea

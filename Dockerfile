@@ -1,26 +1,22 @@
-FROM phusion/baseimage:0.9.19
+FROM willemvd/ubuntu-unprivileged-git-ssh:latest
+
+USER root
+
+COPY . /app/gitea/
+WORKDIR /app/gitea/
+
+# remove when using pre-build gitea
+RUN docker/prepare.sh && docker/build.sh && docker/cleanup.sh
+# end remove
+
+RUN docker/init/00-init-git-user-and-folders.sh && docker/init/10-setup-gitea.sh
+
+USER git
+
+# persistent volume for the host ssh key and gitea data
+VOLUME ["/etc/ssh/keys", "/data"]
+
+EXPOSE 2222 3000
 
 # Use baseimage-docker's init system.
-CMD ["/sbin/my_init"]
-
-# ...put your own build instructions here...
-RUN add-apt-repository -y ppa:ubuntu-lxc/lxd-stable \
-  && apt-get update \
-  && DEBIAN_FRONTEND=noninteractive apt-get install -y git socat libpam-runtime libpam0g-dev golang \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-ENV GOGS_CUSTOM /data/gogs
-
-RUN mkdir /etc/service/gitea
-COPY docker/gitea.sh /etc/service/gitea/run
-
-RUN mkdir -p /etc/my_init.d
-COPY docker/init/ /etc/my_init.d/
-
-COPY . /app/gogs/
-WORKDIR /app/gogs/
-RUN ./docker/build.sh
-
-# Clean up APT when done.
-#RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+ENTRYPOINT ["/sbin/my_init", "--"]
