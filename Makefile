@@ -9,6 +9,9 @@ BINDATA := $(shell find conf | sed 's/ /\\ /g')
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
 
+VERSION = $(shell git describe --tags --always)
+
+LDFLAGS += -X "code.gitea.io/gitea.Version=$(VERSION)"
 LDFLAGS += -X "code.gitea.io/gitea/modules/setting.BuildTime=$(DATE)"
 LDFLAGS += -X "code.gitea.io/gitea/modules/setting.BuildGitHash=$(SHA)"
 
