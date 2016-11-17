@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 	"github.com/Unknwon/com"
@@ -602,35 +603,69 @@ please consider changing to GITEA_CUSTOM`)
 			log.Fatal(4, "Fail to create '%s': %v", LFS.ContentPath, err)
 		}
 
-		LFS.JWTSecretBytes = make([]byte, 32)
-		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
+		//Disable LFS client hooks if installed for the current OS user
+		//Needs at least git v2.1.2
 
-		if err != nil || n != 32 {
-			//Generate new secret and save to config
+		binVersion, err := git.BinVersion()
+		if err != nil {
+			log.Fatal(4, "Error retrieving git version: %s", err)
+		}
 
-			_, err := io.ReadFull(rand.Reader, LFS.JWTSecretBytes)
+		splitVersion := strings.SplitN(binVersion, ".", 3)
 
-			if err != nil {
-				log.Fatal(4, "Error reading random bytes: %s", err)
-			}
+		majorVersion, err := strconv.ParseUint(splitVersion[0], 10, 64)
+		if err != nil {
+			log.Fatal(4, "Error parsing git major version: %s", err)
+		}
+		minorVersion, err := strconv.ParseUint(splitVersion[1], 10, 64)
+		if err != nil {
+			log.Fatal(4, "Error parsing git minor version: %s", err)
+		}
+		revisionVersion, err := strconv.ParseUint(splitVersion[2], 10, 64)
+		if err != nil {
+			log.Fatal(4, "Error parsing git revision version: %s", err)
+		}
 
-			LFS.JWTSecretBase64 = base64.RawURLEncoding.EncodeToString(LFS.JWTSecretBytes)
+		if !((majorVersion > 2) || (majorVersion == 2 && minorVersion > 1) ||
+			(majorVersion == 2 && minorVersion == 1 && revisionVersion >= 2)) {
 
-			// Save secret
-			cfg := ini.Empty()
-			if com.IsFile(CustomConf) {
-				// Keeps custom settings if there is already something.
-				if err := cfg.Append(CustomConf); err != nil {
-					log.Error(4, "Fail to load custom conf '%s': %v", CustomConf, err)
+			log.Error(4, "LFS server support needs at least Git v2.1.2")
+
+		} else {
+
+			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
+				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
+
+			LFS.JWTSecretBytes = make([]byte, 32)
+			n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
+
+			if err != nil || n != 32 {
+				//Generate new secret and save to config
+
+				_, err := io.ReadFull(rand.Reader, LFS.JWTSecretBytes)
+
+				if err != nil {
+					log.Fatal(4, "Error reading random bytes: %s", err)
 				}
-			}
 
-			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
+				LFS.JWTSecretBase64 = base64.RawURLEncoding.EncodeToString(LFS.JWTSecretBytes)
 
-			os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm)
-			if err := cfg.SaveTo(CustomConf); err != nil {
-				log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
-				return
+				// Save secret
+				cfg := ini.Empty()
+				if com.IsFile(CustomConf) {
+					// Keeps custom settings if there is already something.
+					if err := cfg.Append(CustomConf); err != nil {
+						log.Error(4, "Fail to load custom conf '%s': %v", CustomConf, err)
+					}
+				}
+
+				cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
+
+				os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm)
+				if err := cfg.SaveTo(CustomConf); err != nil {
+					log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
+					return
+				}
 			}
 		}
 	}
