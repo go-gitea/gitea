@@ -1,22 +1,22 @@
-FROM alpine:3.3
-MAINTAINER jp@roemer.im
+FROM willemvd/ubuntu-unprivileged-git-ssh:latest
 
-# Install system utils & Gogs runtime dependencies
-ADD https://github.com/tianon/gosu/releases/download/1.9/gosu-amd64 /usr/sbin/gosu
-RUN chmod +x /usr/sbin/gosu \
- && apk --no-cache --no-progress add ca-certificates bash git linux-pam s6 curl openssh socat tzdata
+USER root
 
-ENV GOGS_CUSTOM /data/gogs
+COPY . /app/gitea/
+WORKDIR /app/gitea/
 
-COPY . /app/gogs/
-WORKDIR /app/gogs/
-RUN ./docker/build.sh
+# remove when using pre-build gitea
+RUN docker/prepare.sh && docker/build.sh && docker/cleanup.sh
+# end remove
 
-# Configure LibC Name Service
-COPY docker/nsswitch.conf /etc/nsswitch.conf
+RUN docker/init/00-init-git-user-and-folders.sh && docker/init/10-setup-gitea.sh
 
-# Configure Docker Container
-VOLUME ["/data"]
-EXPOSE 22 3000
-ENTRYPOINT ["docker/start.sh"]
-CMD ["/bin/s6-svscan", "/app/gogs/docker/s6/"]
+USER git
+
+# persistent volume for the host ssh key and gitea data
+VOLUME ["/etc/ssh/keys", "/data"]
+
+EXPOSE 2222 3000
+
+# Use baseimage-docker's init system.
+ENTRYPOINT ["/sbin/my_init", "--"]
