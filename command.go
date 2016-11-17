@@ -13,6 +13,11 @@ import (
 	"time"
 )
 
+var (
+	// GlobalCommandArgs global command args for external package setting
+	GlobalCommandArgs []string
+)
+
 // Command represents a command with its subcommands or arguments.
 type Command struct {
 	name string
@@ -30,7 +35,7 @@ func (c *Command) String() string {
 func NewCommand(args ...string) *Command {
 	return &Command{
 		name: "git",
-		args: args,
+		args: append(GlobalCommandArgs, args...),
 	}
 }
 
