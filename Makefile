@@ -35,7 +35,6 @@ all: build
 clean:
 	go clean -i ./...
 	rm -rf $(EXECUTABLE) $(DIST)
-	rm templates/.VERSION
 
 .PHONY: fmt
 fmt:
