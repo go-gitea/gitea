@@ -5,7 +5,7 @@
 package auth
 
 import (
-	macaron "gopkg.in/macaron.v1"
+	"gopkg.in/macaron.v1"
 
 	"github.com/go-macaron/binding"
 )
