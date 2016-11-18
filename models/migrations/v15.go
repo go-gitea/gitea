@@ -4,7 +4,11 @@
 
 package migrations
 
-import "github.com/go-xorm/xorm"
+import (
+	"fmt"
+
+	"github.com/go-xorm/xorm"
+)
 
 type UserV15 struct {
 	AllowCreateOrganization bool
@@ -15,5 +19,10 @@ func (*UserV15) TableName() string {
 }
 
 func createAllowCreateOrganizationColumn(x *xorm.Engine) error {
-	return x.Sync2(new(UserV15))
+	if err := x.Sync2(new(UserV15)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
+	} else if _, err = x.Where("type=0").Cols("allow_create_organization").Update(&UserV15{AllowCreateOrganization: true}); err != nil {
+		return fmt.Errorf("set allow_create_organization: %v", err)
+	}
+	return nil
 }
