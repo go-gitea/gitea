@@ -17,23 +17,28 @@ import (
 )
 
 const (
-	SETTINGS_OPTIONS base.TplName = "org/settings/options"
-	SETTINGS_DELETE  base.TplName = "org/settings/delete"
-	SETTINGS_HOOKS   base.TplName = "org/settings/hooks"
+	// tplSettingsOptions template path for render settings
+	tplSettingsOptions base.TplName = "org/settings/options"
+	// tplSettingsDelete template path for render delete repository
+	tplSettingsDelete base.TplName = "org/settings/delete"
+	// tplSettingsHooks template path for render hook settings
+	tplSettingsHooks base.TplName = "org/settings/hooks"
 )
 
+// Settings render the main settings page
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
-	ctx.HTML(200, SETTINGS_OPTIONS)
+	ctx.HTML(200, tplSettingsOptions)
 }
 
+// SettingsPost response for settings change submited
 func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, SETTINGS_OPTIONS)
+		ctx.HTML(200, tplSettingsOptions)
 		return
 	}
 
@@ -47,12 +52,12 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 			return
 		} else if isExist {
 			ctx.Data["OrgName"] = true
-			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), SETTINGS_OPTIONS, &form)
+			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
 			return
 		} else if err = models.ChangeUserName(org, form.Name); err != nil {
 			if err == models.ErrUserNameIllegal {
 				ctx.Data["OrgName"] = true
-				ctx.RenderWithErr(ctx.Tr("form.illegal_username"), SETTINGS_OPTIONS, &form)
+				ctx.RenderWithErr(ctx.Tr("form.illegal_username"), tplSettingsOptions, &form)
 			} else {
 				ctx.Handle(500, "ChangeUserName", err)
 			}
@@ -83,6 +88,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	ctx.Redirect(ctx.Org.OrgLink + "/settings")
 }
 
+// SettingsAvatar response for change avatar on settings page
 func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
 	form.Source = auth.AvatarLocal
 	if err := user.UpdateAvatarSetting(ctx, form, ctx.Org.Organization); err != nil {
@@ -94,6 +100,7 @@ func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
 	ctx.Redirect(ctx.Org.OrgLink + "/settings")
 }
 
+// SettingsDeleteAvatar response for delete avatar on setings page
 func SettingsDeleteAvatar(ctx *context.Context) {
 	if err := ctx.Org.Organization.DeleteAvatar(); err != nil {
 		ctx.Flash.Error(err.Error())
@@ -102,6 +109,7 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 	ctx.Redirect(ctx.Org.OrgLink + "/settings")
 }
 
+// SettingsDelete response for delete repository
 func SettingsDelete(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsDelete"] = true
@@ -110,7 +118,7 @@ func SettingsDelete(ctx *context.Context) {
 	if ctx.Req.Method == "POST" {
 		if _, err := models.UserSignIn(ctx.User.Name, ctx.Query("password")); err != nil {
 			if models.IsErrUserNotExist(err) {
-				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), SETTINGS_DELETE, nil)
+				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsDelete, nil)
 			} else {
 				ctx.Handle(500, "UserSignIn", err)
 			}
@@ -131,9 +139,10 @@ func SettingsDelete(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, SETTINGS_DELETE)
+	ctx.HTML(200, tplSettingsDelete)
 }
 
+// Webhooks render webhook list page
 func Webhooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
@@ -147,9 +156,10 @@ func Webhooks(ctx *context.Context) {
 	}
 
 	ctx.Data["Webhooks"] = ws
-	ctx.HTML(200, SETTINGS_HOOKS)
+	ctx.HTML(200, tplSettingsHooks)
 }
 
+// DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
 	if err := models.DeleteWebhookByOrgID(ctx.Org.Organization.ID, ctx.QueryInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOrgID: " + err.Error())

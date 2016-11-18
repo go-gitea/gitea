@@ -238,46 +238,16 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	ctx.JSON(201, repo.APIFormat(&api.Permission{true, true, true}))
 }
 
-func parseOwnerAndRepo(ctx *context.APIContext) (*models.User, *models.Repository) {
-	owner, err := models.GetUserByName(ctx.Params(":username"))
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.Error(422, "", err)
-		} else {
-			ctx.Error(500, "GetUserByName", err)
-		}
-		return nil, nil
-	}
-
-	repo, err := models.GetRepositoryByName(owner.ID, ctx.Params(":reponame"))
-	if err != nil {
-		if models.IsErrRepoNotExist(err) {
-			ctx.Status(404)
-		} else {
-			ctx.Error(500, "GetRepositoryByName", err)
-		}
-		return nil, nil
-	}
-
-	return owner, repo
-}
-
 // https://github.com/gogits/go-gogs-client/wiki/Repositories#get
 func Get(ctx *context.APIContext) {
-	_, repo := parseOwnerAndRepo(ctx)
-	if ctx.Written() {
-		return
-	}
-
+	repo := ctx.Repo.Repository
 	ctx.JSON(200, repo.APIFormat(&api.Permission{true, true, true}))
 }
 
 // https://github.com/gogits/go-gogs-client/wiki/Repositories#delete
 func Delete(ctx *context.APIContext) {
-	owner, repo := parseOwnerAndRepo(ctx)
-	if ctx.Written() {
-		return
-	}
+	owner := ctx.Repo.Owner
+	repo := ctx.Repo.Repository
 
 	if owner.IsOrganization() && !owner.IsOwnedBy(ctx.User.ID) {
 		ctx.Error(403, "", "Given user is not owner of organization.")

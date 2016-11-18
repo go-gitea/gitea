@@ -19,10 +19,11 @@ import (
 )
 
 const (
-	FOLLOWERS base.TplName = "user/meta/followers"
-	STARS     base.TplName = "user/meta/stars"
+	tplFollowers base.TplName = "user/meta/followers"
+	tplStars     base.TplName = "user/meta/stars"
 )
 
+// GetUserByName get user by name
 func GetUserByName(ctx *context.Context, name string) *models.User {
 	user, err := models.GetUserByName(name)
 	if err != nil {
@@ -41,6 +42,7 @@ func GetUserByParams(ctx *context.Context) *models.User {
 	return GetUserByName(ctx, ctx.Params(":username"))
 }
 
+// Profile render user's profile page
 func Profile(ctx *context.Context) {
 	uname := ctx.Params(":username")
 	// Special handle for FireFox requests favicon.ico.
@@ -107,9 +109,10 @@ func Profile(ctx *context.Context) {
 		ctx.Data["Page"] = paginater.New(ctxUser.NumRepos, setting.UI.User.RepoPagingNum, page, 5)
 	}
 
-	ctx.HTML(200, PROFILE)
+	ctx.HTML(200, tplProfile)
 }
 
+// Followers render user's followers page
 func Followers(ctx *context.Context) {
 	u := GetUserByParams(ctx)
 	if ctx.Written() {
@@ -119,9 +122,10 @@ func Followers(ctx *context.Context) {
 	ctx.Data["CardsTitle"] = ctx.Tr("user.followers")
 	ctx.Data["PageIsFollowers"] = true
 	ctx.Data["Owner"] = u
-	repo.RenderUserCards(ctx, u.NumFollowers, u.GetFollowers, FOLLOWERS)
+	repo.RenderUserCards(ctx, u.NumFollowers, u.GetFollowers, tplFollowers)
 }
 
+// Following render user's followering page
 func Following(ctx *context.Context) {
 	u := GetUserByParams(ctx)
 	if ctx.Written() {
@@ -131,13 +135,15 @@ func Following(ctx *context.Context) {
 	ctx.Data["CardsTitle"] = ctx.Tr("user.following")
 	ctx.Data["PageIsFollowing"] = true
 	ctx.Data["Owner"] = u
-	repo.RenderUserCards(ctx, u.NumFollowing, u.GetFollowing, FOLLOWERS)
+	repo.RenderUserCards(ctx, u.NumFollowing, u.GetFollowing, tplFollowers)
 }
 
+// Stars show repositories user starred
 func Stars(ctx *context.Context) {
 
 }
 
+// Action response for follow/unfollow user request
 func Action(ctx *context.Context) {
 	u := GetUserByParams(ctx)
 	if ctx.Written() {

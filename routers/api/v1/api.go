@@ -200,6 +200,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("", user.ListFollowing)
 					m.Get("/:target", user.CheckFollowing)
 				})
+
+				m.Get("/starred", user.GetStarredRepos)
 			})
 		}, reqToken())
 
@@ -221,6 +223,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("/:id").Get(user.GetPublicKey).
 					Delete(user.DeletePublicKey)
 			})
+
+			m.Group("/starred", func() {
+				m.Get("", user.GetMyStarredRepos)
+				m.Group("/:username/:reponame", func() {
+					m.Get("", user.IsStarring)
+					m.Put("", user.Star)
+					m.Delete("", user.Unstar)
+				}, context.ExtractOwnerAndRepo())
+			})
 		}, reqToken())
 
 		// Repositories
@@ -234,7 +245,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/repos", func() {
 			m.Post("/migrate", bind(auth.MigrateRepoForm{}), repo.Migrate)
-			m.Combo("/:username/:reponame").Get(repo.Get).
+			m.Combo("/:username/:reponame", context.ExtractOwnerAndRepo()).
+				Get(repo.Get).
 				Delete(repo.Delete)
 
 			m.Group("/:username/:reponame", func() {

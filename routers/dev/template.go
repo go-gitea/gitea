@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// TemplatePreview render for previewing the indicated template
 func TemplatePreview(ctx *context.Context) {
 	ctx.Data["User"] = models.User{Name: "Unknown"}
 	ctx.Data["AppName"] = setting.AppName

@@ -1179,3 +1179,18 @@ func UnfollowUser(userID, followID int64) (err error) {
 	}
 	return sess.Commit()
 }
+
+// GetStarredRepos returns the repos starred by a particular user
+func GetStarredRepos(userID int64, private bool) ([]*Repository, error) {
+	sess := x.Where("star.uid=?", userID).
+		Join("LEFT", "star", "`repository`.id=`star`.repo_id")
+	if !private {
+		sess = sess.And("is_private=?", false)
+	}
+	repos := make([]*Repository, 0, 10)
+	err := sess.Find(&repos)
+	if err != nil {
+		return nil, err
+	}
+	return repos, nil
+}
