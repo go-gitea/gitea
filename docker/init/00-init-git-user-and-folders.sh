@@ -1,12 +1,14 @@
 #!/bin/bash
+
+source /etc/profile
+
 # Create VOLUME subfolder
-for f in /data/gitea/data /data/gitea/conf /data/gitea/custom /data/gitea/log /data/git /data/ssh; do
+for f in ${GOGS_CUSTOM}/data ${GOGS_CUSTOM}/conf ${GOGS_CUSTOM}/custom ${GOGS_CUSTOM}/log /data/git /data/ssh; do
 	if ! test -d $f; then
 		mkdir -p $f
 	fi
 done
 
-export GOGS_CUSTOM=/data/gitea
 
 if ! test -f ~git/.ssh/environment; then
     echo "GOGS_CUSTOM=${GOGS_CUSTOM}" > ~git/.ssh/environment
@@ -14,14 +16,11 @@ if ! test -f ~git/.ssh/environment; then
 fi
 
 # Link volumed data with app data
-ln -sf /data/gitea/log  ./log
-ln -sf /data/gitea/data ./data
-ln -sf /data/gitea/custom ./custom
+ln -sf ${GOGS_CUSTOM}/log  /app/gitea/log
+ln -sf ${GOGS_CUSTOM}/data /app/gitea/data
+ln -sf ${GOGS_CUSTOM}/custom /app/gitea/custom
 
 # Backward Compatibility with Gogs Container v0.6.15
 ln -sf /data/git /home/git
 
-chown -R git:root /data /app/gitea
-chmod 0775 /data /data/gitea /data/gitea/custom /data/gitea/log /data/gitea/data /app/gitea
-
-echo "export GOGS_CUSTOM=${GOGS_CUSTOM}" >> /etc/profile
+chmod 0775 ${GOGS_CUSTOM} ${GOGS_CUSTOM}/custom ${GOGS_CUSTOM}/log ${GOGS_CUSTOM}/data

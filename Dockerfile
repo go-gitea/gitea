@@ -9,7 +9,7 @@ WORKDIR /app/gitea/
 RUN docker/prepare.sh && docker/build.sh && docker/cleanup.sh
 # end remove
 
-RUN docker/init/00-init-git-user-and-folders.sh && docker/init/10-setup-gitea.sh
+RUN docker/init/10-setup-gitea.sh
 
 USER git
 
