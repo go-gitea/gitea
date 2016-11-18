@@ -18,7 +18,7 @@ import (
 )
 
 // Version holds the current Gitea version
-var Version = "v0.0.0"
+var Version "v0.9.0+dev"
 
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
