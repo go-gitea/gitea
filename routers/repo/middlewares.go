@@ -3,9 +3,9 @@ package repo
 import (
 	"fmt"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/git"
+	"code.gitea.io/git"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/context"
 )
 
 func SetEditorconfigIfExists(ctx *context.Context) {
@@ -20,4 +20,25 @@ func SetEditorconfigIfExists(ctx *context.Context) {
 	}
 
 	ctx.Data["Editorconfig"] = ec
+}
+
+func SetDiffViewStyle(ctx *context.Context) {
+	var (
+		userStyle  = ctx.User.DiffViewStyle
+		queryStyle = ctx.Query("style")
+		style      string
+	)
+
+	if queryStyle == "unified" || queryStyle == "split" {
+		style = queryStyle
+	} else if userStyle == "unified" || userStyle == "split" {
+		style = userStyle
+	} else {
+		style = "unified"
+	}
+
+	ctx.Data["IsSplitStyle"] = style == "split"
+	if err := ctx.User.UpdateDiffViewStyle(style); err != nil {
+		ctx.Handle(500, "ErrUpdateDiffViewStyle", err)
+	}
 }

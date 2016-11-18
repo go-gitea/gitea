@@ -17,13 +17,13 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/paginater"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/auth"
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/markdown"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 const (
@@ -126,16 +126,16 @@ func Issues(ctx *context.Context) {
 		assigneeID = ctx.QueryInt64("assignee")
 		posterID   int64
 	)
-	filterMode := models.FM_ALL
+	filterMode := models.FilterModeAll
 	switch viewType {
 	case "assigned":
-		filterMode = models.FM_ASSIGN
+		filterMode = models.FilterModeAssign
 		assigneeID = ctx.User.ID
 	case "created_by":
-		filterMode = models.FM_CREATE
+		filterMode = models.FilterModeCreate
 		posterID = ctx.User.ID
 	case "mentioned":
-		filterMode = models.FM_MENTION
+		filterMode = models.FilterModeMention
 	}
 
 	var uid int64 = -1
@@ -179,7 +179,7 @@ func Issues(ctx *context.Context) {
 		MilestoneID: milestoneID,
 		Page:        pager.Current(),
 		IsClosed:    isShowClosed,
-		IsMention:   filterMode == models.FM_MENTION,
+		IsMention:   filterMode == models.FilterModeMention,
 		IsPull:      isPullList,
 		Labels:      selectLabels,
 		SortType:    sortType,
@@ -599,7 +599,7 @@ func ViewIssue(ctx *context.Context) {
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 	for _, comment = range issue.Comments {
-		if comment.Type == models.COMMENT_TYPE_COMMENT {
+		if comment.Type == models.CommentTypeComment {
 			comment.RenderedContent = string(markdown.Render([]byte(comment.Content), ctx.Repo.RepoLink,
 				ctx.Repo.Repository.ComposeMetas()))
 
@@ -612,11 +612,11 @@ func ViewIssue(ctx *context.Context) {
 
 			if repo.IsOwnedBy(comment.PosterID) ||
 				(repo.Owner.IsOrganization() && repo.Owner.IsOwnedBy(comment.PosterID)) {
-				comment.ShowTag = models.COMMENT_TAG_OWNER
+				comment.ShowTag = models.CommentTagOwner
 			} else if comment.Poster.IsWriterOfRepo(repo) {
-				comment.ShowTag = models.COMMENT_TAG_WRITER
+				comment.ShowTag = models.CommentTagWriter
 			} else if comment.PosterID == issue.PosterID {
-				comment.ShowTag = models.COMMENT_TAG_POSTER
+				comment.ShowTag = models.CommentTagPoster
 			}
 
 			marked[comment.PosterID] = comment.ShowTag
@@ -892,7 +892,7 @@ func UpdateCommentContent(ctx *context.Context) {
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Error(403)
 		return
-	} else if comment.Type != models.COMMENT_TYPE_COMMENT {
+	} else if comment.Type != models.CommentTypeComment {
 		ctx.Error(204)
 		return
 	}
@@ -924,7 +924,7 @@ func DeleteComment(ctx *context.Context) {
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Error(403)
 		return
-	} else if comment.Type != models.COMMENT_TYPE_COMMENT {
+	} else if comment.Type != models.CommentTypeComment {
 		ctx.Error(204)
 		return
 	}

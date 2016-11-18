@@ -15,12 +15,12 @@ import (
 	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
 
-	api "github.com/gogits/go-gogs-client"
+	api "code.gitea.io/sdk/gitea"
 
-	"github.com/go-gitea/gitea/modules/httplib"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/setting"
-	"github.com/go-gitea/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/sync"
 )
 
 var HookQueue = sync.NewUniqueQueue(setting.Webhook.QueueLength)
@@ -28,13 +28,13 @@ var HookQueue = sync.NewUniqueQueue(setting.Webhook.QueueLength)
 type HookContentType int
 
 const (
-	JSON HookContentType = iota + 1
-	FORM
+	ContentTypeJSON HookContentType = iota + 1
+	ContentTypeForm
 )
 
 var hookContentTypes = map[string]HookContentType{
-	"json": JSON,
-	"form": FORM,
+	"json": ContentTypeJSON,
+	"form": ContentTypeForm,
 }
 
 // ToHookContentType returns HookContentType by given name.
@@ -44,9 +44,9 @@ func ToHookContentType(name string) HookContentType {
 
 func (t HookContentType) Name() string {
 	switch t {
-	case JSON:
+	case ContentTypeJSON:
 		return "json"
-	case FORM:
+	case ContentTypeForm:
 		return "form"
 	}
 	return ""
@@ -76,9 +76,9 @@ type HookEvent struct {
 type HookStatus int
 
 const (
-	HOOK_STATUS_NONE = iota
-	HOOK_STATUS_SUCCEED
-	HOOK_STATUS_FAILED
+	HookStatusNone = iota
+	HookStatusSucceed
+	HookStatusFail
 )
 
 // Webhook represents a web hook object.
@@ -276,7 +276,10 @@ func GetWebhooksByOrgID(orgID int64) (ws []*Webhook, err error) {
 
 // GetActiveWebhooksByOrgID returns all active webhooks for an organization.
 func GetActiveWebhooksByOrgID(orgID int64) (ws []*Webhook, err error) {
-	err = x.Where("org_id=?", orgID).And("is_active=?", true).Find(&ws)
+	err = x.
+		Where("org_id=?", orgID).
+		And("is_active=?", true).
+		Find(&ws)
 	return ws, err
 }
 
@@ -323,9 +326,9 @@ func IsValidHookTaskType(name string) bool {
 type HookEventType string
 
 const (
-	HOOK_EVENT_CREATE       HookEventType = "create"
-	HOOK_EVENT_PUSH         HookEventType = "push"
-	HOOK_EVENT_PULL_REQUEST HookEventType = "pull_request"
+	HookEventCreate      HookEventType = "create"
+	HookEventPush        HookEventType = "push"
+	HookEventPullRequest HookEventType = "pull_request"
 )
 
 // HookRequest represents hook task request information.
@@ -413,7 +416,11 @@ func (t *HookTask) SimpleMarshalJSON(v interface{}) string {
 // HookTasks returns a list of hook tasks by given conditions.
 func HookTasks(hookID int64, page int) ([]*HookTask, error) {
 	tasks := make([]*HookTask, 0, setting.Webhook.PagingNum)
-	return tasks, x.Limit(setting.Webhook.PagingNum, (page-1)*setting.Webhook.PagingNum).Where("hook_id=?", hookID).Desc("id").Find(&tasks)
+	return tasks, x.
+		Limit(setting.Webhook.PagingNum, (page-1)*setting.Webhook.PagingNum).
+		Where("hook_id=?", hookID).
+		Desc("id").
+		Find(&tasks)
 }
 
 // CreateHookTask creates a new hook task,
@@ -459,15 +466,15 @@ func PrepareWebhooks(repo *Repository, event HookEventType, p api.Payloader) err
 	var payloader api.Payloader
 	for _, w := range ws {
 		switch event {
-		case HOOK_EVENT_CREATE:
+		case HookEventCreate:
 			if !w.HasCreateEvent() {
 				continue
 			}
-		case HOOK_EVENT_PUSH:
+		case HookEventPush:
 			if !w.HasPushEvent() {
 				continue
 			}
-		case HOOK_EVENT_PULL_REQUEST:
+		case HookEventPullRequest:
 			if !w.HasPullRequestEvent() {
 				continue
 			}
@@ -511,9 +518,9 @@ func (t *HookTask) deliver() {
 		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify})
 
 	switch t.ContentType {
-	case JSON:
+	case ContentTypeJSON:
 		req = req.Header("Content-Type", "application/json").Body(t.PayloadContent)
-	case FORM:
+	case ContentTypeForm:
 		req.Param("payload", t.PayloadContent)
 	}
 
@@ -544,9 +551,9 @@ func (t *HookTask) deliver() {
 			return
 		}
 		if t.IsSucceed {
-			w.LastStatus = HOOK_STATUS_SUCCEED
+			w.LastStatus = HookStatusSucceed
 		} else {
-			w.LastStatus = HOOK_STATUS_FAILED
+			w.LastStatus = HookStatusFail
 		}
 		if err = UpdateWebhook(w); err != nil {
 			log.Error(5, "UpdateWebhook: %v", err)
@@ -580,13 +587,15 @@ func (t *HookTask) deliver() {
 // TODO: shoot more hooks at same time.
 func DeliverHooks() {
 	tasks := make([]*HookTask, 0, 10)
-	x.Where("is_delivered=?", false).Iterate(new(HookTask),
-		func(idx int, bean interface{}) error {
-			t := bean.(*HookTask)
-			t.deliver()
-			tasks = append(tasks, t)
-			return nil
-		})
+	x.
+		Where("is_delivered=?", false).
+		Iterate(new(HookTask),
+			func(idx int, bean interface{}) error {
+				t := bean.(*HookTask)
+				t.deliver()
+				tasks = append(tasks, t)
+				return nil
+			})
 
 	// Update hook task status.
 	for _, t := range tasks {

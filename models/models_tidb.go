@@ -1,4 +1,4 @@
-// +build tidb go1.4.2
+// +build tidb
 
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style

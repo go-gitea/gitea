@@ -16,32 +16,32 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 
-	"github.com/go-gitea/git"
-	api "github.com/gogits/go-gogs-client"
+	"code.gitea.io/git"
+	api "code.gitea.io/sdk/gitea"
 
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 type ActionType int
 
 const (
-	ACTION_CREATE_REPO         ActionType = iota + 1 // 1
-	ACTION_RENAME_REPO                               // 2
-	ACTION_STAR_REPO                                 // 3
-	ACTION_WATCH_REPO                                // 4
-	ACTION_COMMIT_REPO                               // 5
-	ACTION_CREATE_ISSUE                              // 6
-	ACTION_CREATE_PULL_REQUEST                       // 7
-	ACTION_TRANSFER_REPO                             // 8
-	ACTION_PUSH_TAG                                  // 9
-	ACTION_COMMENT_ISSUE                             // 10
-	ACTION_MERGE_PULL_REQUEST                        // 11
-	ACTION_CLOSE_ISSUE                               // 12
-	ACTION_REOPEN_ISSUE                              // 13
-	ACTION_CLOSE_PULL_REQUEST                        // 14
-	ACTION_REOPEN_PULL_REQUEST                       // 15
+	ActionCreateRepo        ActionType = iota + 1 // 1
+	ActionRenameRepo                              // 2
+	ActionStarRepo                                // 3
+	ActionWatchRepo                               // 4
+	ActionCommitRepo                              // 5
+	ActionCreateIssue                             // 6
+	ActionCreatePullRequest                       // 7
+	ActionTransferRepo                            // 8
+	ActionPushTag                                 // 9
+	ActionCommentIssue                            // 10
+	ActionMergePullRequest                        // 11
+	ActionCloseIssue                              // 12
+	ActionReopenIssue                             // 13
+	ActionClosePullRequest                        // 14
+	ActionReopenPullRequest                       // 15
 )
 
 var (
@@ -176,7 +176,7 @@ func newRepoAction(e Engine, u *User, repo *Repository) (err error) {
 	if err = notifyWatchers(e, &Action{
 		ActUserID:    u.ID,
 		ActUserName:  u.Name,
-		OpType:       ACTION_CREATE_REPO,
+		OpType:       ActionCreateRepo,
 		RepoID:       repo.ID,
 		RepoUserName: repo.Owner.Name,
 		RepoName:     repo.Name,
@@ -198,7 +198,7 @@ func renameRepoAction(e Engine, actUser *User, oldRepoName string, repo *Reposit
 	if err = notifyWatchers(e, &Action{
 		ActUserID:    actUser.ID,
 		ActUserName:  actUser.Name,
-		OpType:       ACTION_RENAME_REPO,
+		OpType:       ActionRenameRepo,
 		RepoID:       repo.ID,
 		RepoUserName: repo.Owner.Name,
 		RepoName:     repo.Name,
@@ -454,10 +454,10 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	}
 
 	isNewBranch := false
-	opType := ACTION_COMMIT_REPO
+	opType := ActionCommitRepo
 	// Check it's tag push or branch.
 	if strings.HasPrefix(opts.RefFullName, git.TAG_PREFIX) {
-		opType = ACTION_PUSH_TAG
+		opType = ActionPushTag
 		opts.Commits = &PushCommits{}
 	} else {
 		// if not the first commit, set the compare URL.
@@ -503,8 +503,8 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	apiPusher := pusher.APIFormat()
 	apiRepo := repo.APIFormat(nil)
 	switch opType {
-	case ACTION_COMMIT_REPO: // Push
-		if err = PrepareWebhooks(repo, HOOK_EVENT_PUSH, &api.PushPayload{
+	case ActionCommitRepo: // Push
+		if err = PrepareWebhooks(repo, HookEventPush, &api.PushPayload{
 			Ref:        opts.RefFullName,
 			Before:     opts.OldCommitID,
 			After:      opts.NewCommitID,
@@ -518,7 +518,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		}
 
 		if isNewBranch {
-			return PrepareWebhooks(repo, HOOK_EVENT_CREATE, &api.CreatePayload{
+			return PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
 				Ref:     refName,
 				RefType: "branch",
 				Repo:    apiRepo,
@@ -526,8 +526,8 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			})
 		}
 
-	case ACTION_PUSH_TAG: // Create
-		return PrepareWebhooks(repo, HOOK_EVENT_CREATE, &api.CreatePayload{
+	case ActionPushTag: // Create
+		return PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
 			Ref:     refName,
 			RefType: "tag",
 			Repo:    apiRepo,
@@ -542,7 +542,7 @@ func transferRepoAction(e Engine, doer, oldOwner *User, repo *Repository) (err e
 	if err = notifyWatchers(e, &Action{
 		ActUserID:    doer.ID,
 		ActUserName:  doer.Name,
-		OpType:       ACTION_TRANSFER_REPO,
+		OpType:       ActionTransferRepo,
 		RepoID:       repo.ID,
 		RepoUserName: repo.Owner.Name,
 		RepoName:     repo.Name,
@@ -572,7 +572,7 @@ func mergePullRequestAction(e Engine, doer *User, repo *Repository, issue *Issue
 	return notifyWatchers(e, &Action{
 		ActUserID:    doer.ID,
 		ActUserName:  doer.Name,
-		OpType:       ACTION_MERGE_PULL_REQUEST,
+		OpType:       ActionMergePullRequest,
 		Content:      fmt.Sprintf("%d|%s", issue.Index, issue.Title),
 		RepoID:       repo.ID,
 		RepoUserName: repo.Owner.Name,
@@ -591,9 +591,14 @@ func MergePullRequestAction(actUser *User, repo *Repository, pull *Issue) error 
 // actorID can be -1 when isProfile is true or to skip the permission check.
 func GetFeeds(ctxUser *User, actorID, offset int64, isProfile bool) ([]*Action, error) {
 	actions := make([]*Action, 0, 20)
-	sess := x.Limit(20, int(offset)).Desc("id").Where("user_id = ?", ctxUser.ID)
+	sess := x.
+		Limit(20, int(offset)).
+		Desc("id").
+		Where("user_id = ?", ctxUser.ID)
 	if isProfile {
-		sess.And("is_private = ?", false).And("act_user_id = ?", ctxUser.ID)
+		sess.
+			And("is_private = ?", false).
+			And("act_user_id = ?", ctxUser.ID)
 	} else if actorID != -1 && ctxUser.IsOrganization() {
 		// FIXME: only need to get IDs here, not all fields of repository.
 		repos, _, err := ctxUser.GetUserRepositories(actorID, 1, ctxUser.NumRepos)

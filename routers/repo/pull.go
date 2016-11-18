@@ -10,14 +10,14 @@ import (
 	"path"
 	"strings"
 
+	"code.gitea.io/git"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/auth"
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/setting"
-	"github.com/go-gitea/git"
 )
 
 const (
@@ -367,7 +367,6 @@ func ViewPullFiles(ctx *context.Context) {
 	}
 
 	headTarget := path.Join(pull.HeadUserName, pull.HeadRepo.Name)
-	ctx.Data["IsSplitStyle"] = ctx.Query("style") == "split"
 	ctx.Data["Username"] = pull.HeadUserName
 	ctx.Data["Reponame"] = pull.HeadRepo.Name
 	ctx.Data["IsImageFile"] = commit.IsImageFile
@@ -687,7 +686,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		HeadRepo:     headRepo,
 		BaseRepo:     repo,
 		MergeBase:    prInfo.MergeBase,
-		Type:         models.PULL_REQUEST_GOGS,
+		Type:         models.PullRequestGitea,
 	}
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.

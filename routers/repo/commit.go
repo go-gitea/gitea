@@ -8,12 +8,12 @@ import (
 	"container/list"
 	"path"
 
+	"code.gitea.io/git"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/paginater"
-	"github.com/go-gitea/git"
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/gitea/modules/setting"
 )
 
 const (
@@ -180,7 +180,6 @@ func Diff(ctx *context.Context) {
 	}
 
 	ctx.Data["CommitID"] = commitID
-	ctx.Data["IsSplitStyle"] = ctx.Query("style") == "split"
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
 	ctx.Data["IsImageFile"] = commit.IsImageFile
@@ -239,7 +238,6 @@ func CompareDiff(ctx *context.Context) {
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
 
-	ctx.Data["IsSplitStyle"] = ctx.Query("style") == "split"
 	ctx.Data["CommitRepoLink"] = ctx.Repo.RepoLink
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = commits.Len()

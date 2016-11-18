@@ -6,10 +6,10 @@ package repo
 import (
 	"time"
 
-	api "github.com/gogits/go-gogs-client"
+	api "code.gitea.io/sdk/gitea"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/context"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/context"
 )
 
 func ListIssueComments(ctx *context.APIContext) {
@@ -68,7 +68,7 @@ func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Status(403)
 		return
-	} else if comment.Type != models.COMMENT_TYPE_COMMENT {
+	} else if comment.Type != models.CommentTypeComment {
 		ctx.Status(204)
 		return
 	}

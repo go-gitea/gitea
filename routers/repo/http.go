@@ -20,13 +20,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-gitea/git"
+	"code.gitea.io/git"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func HTTP(ctx *context.Context) {
@@ -133,9 +133,9 @@ func HTTP(ctx *context.Context) {
 		}
 
 		if !isPublicPull {
-			var tp = models.ACCESS_MODE_WRITE
+			var tp = models.AccessModeWrite
 			if isPull {
-				tp = models.ACCESS_MODE_READ
+				tp = models.AccessModeRead
 			}
 
 			has, err := models.HasAccess(authUser, repo, tp)
@@ -143,8 +143,8 @@ func HTTP(ctx *context.Context) {
 				ctx.Handle(http.StatusInternalServerError, "HasAccess", err)
 				return
 			} else if !has {
-				if tp == models.ACCESS_MODE_READ {
-					has, err = models.HasAccess(authUser, repo, models.ACCESS_MODE_WRITE)
+				if tp == models.AccessModeRead {
+					has, err = models.HasAccess(authUser, repo, models.AccessModeWrite)
 					if err != nil {
 						ctx.Handle(http.StatusInternalServerError, "HasAccess2", err)
 						return

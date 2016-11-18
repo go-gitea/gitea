@@ -25,9 +25,9 @@ import (
 	"gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 
-	"github.com/go-gitea/gitea/modules/bindata"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/user"
+	"code.gitea.io/gitea/modules/bindata"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/user"
 )
 
 type Scheme string
@@ -297,8 +297,16 @@ func init() {
 
 // WorkDir returns absolute path of work directory.
 func WorkDir() (string, error) {
-	wd := os.Getenv("GOGS_WORK_DIR")
+	wd := os.Getenv("GITEA_WORK_DIR")
 	if len(wd) > 0 {
+		return wd, nil
+	}
+	// Use GOGS_WORK_DIR if available, for backward compatibility
+	// TODO: drop in 1.1.0 ?
+	wd = os.Getenv("GOGS_WORK_DIR")
+	if len(wd) > 0 {
+		log.Warn(`Usage of GOGS_WORK_DIR is deprecated and will be *removed* in a future release,
+please consider changing to GITEA_WORK_DIR`)
 		return wd, nil
 	}
 
@@ -341,9 +349,17 @@ func NewContext() {
 		log.Fatal(4, "Fail to parse 'conf/app.ini': %v", err)
 	}
 
-	CustomPath = os.Getenv("GOGS_CUSTOM")
+	CustomPath = os.Getenv("GITEA_CUSTOM")
 	if len(CustomPath) == 0 {
-		CustomPath = workDir + "/custom"
+		// For backward compatibility
+		// TODO: drop in 1.1.0 ?
+		CustomPath = os.Getenv("GOGS_CUSTOM")
+		if len(CustomPath) == 0 {
+			CustomPath = workDir + "/custom"
+		} else {
+			log.Warn(`Usage of GOGS_CUSTOM is deprecated and will be *removed* in a future release,
+please consider changing to GITEA_CUSTOM`)
+		}
 	}
 
 	if len(CustomConf) == 0 {
@@ -493,7 +509,7 @@ func NewContext() {
 	// Determine and create root git repository path.
 	sec = Cfg.Section("repository")
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
-	RepoRootPath = sec.Key("ROOT").MustString(path.Join(homeDir, "gogs-repositories"))
+	RepoRootPath = sec.Key("ROOT").MustString(path.Join(homeDir, "gitea-repositories"))
 	forcePathSeparator(RepoRootPath)
 	if !filepath.IsAbs(RepoRootPath) {
 		RepoRootPath = path.Join(workDir, RepoRootPath)

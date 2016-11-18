@@ -86,7 +86,7 @@
 				</div>
 				{{if ne .TabName "activity"}}
 					{{template "explore/repo_list" .}}
-					{{template "explore/page" .}}
+					{{template "base/paginate" .}}
 				{{else}}
 					<br>
 					<div class="feeds">

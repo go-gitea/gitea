@@ -5,7 +5,6 @@
 package xorm
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -526,8 +525,9 @@ func (db *oracle) SqlType(c *core.Column) string {
 		res = t
 	}
 
-	var hasLen1 bool = (c.Length > 0)
-	var hasLen2 bool = (c.Length2 > 0)
+	hasLen1 := (c.Length > 0)
+	hasLen2 := (c.Length2 > 0)
+
 	if hasLen2 {
 		res += "(" + strconv.Itoa(c.Length) + "," + strconv.Itoa(c.Length2) + ")"
 	} else if hasLen1 {
@@ -577,14 +577,14 @@ func (db *oracle) DropTableSql(tableName string) string {
 	return fmt.Sprintf("DROP TABLE `%s`", tableName)
 }
 
-func (b *oracle) CreateTableSql(table *core.Table, tableName, storeEngine, charset string) string {
+func (db *oracle) CreateTableSql(table *core.Table, tableName, storeEngine, charset string) string {
 	var sql string
 	sql = "CREATE TABLE "
 	if tableName == "" {
 		tableName = table.Name
 	}
 
-	sql += b.Quote(tableName) + " ("
+	sql += db.Quote(tableName) + " ("
 
 	pkList := table.PrimaryKeys
 
@@ -593,7 +593,7 @@ func (b *oracle) CreateTableSql(table *core.Table, tableName, storeEngine, chars
 		/*if col.IsPrimaryKey && len(pkList) == 1 {
 			sql += col.String(b.dialect)
 		} else {*/
-		sql += col.StringNoPk(b)
+		sql += col.StringNoPk(db)
 		//}
 		sql = strings.TrimSpace(sql)
 		sql += ", "
@@ -601,17 +601,17 @@ func (b *oracle) CreateTableSql(table *core.Table, tableName, storeEngine, chars
 
 	if len(pkList) > 0 {
 		sql += "PRIMARY KEY ( "
-		sql += b.Quote(strings.Join(pkList, b.Quote(",")))
+		sql += db.Quote(strings.Join(pkList, db.Quote(",")))
 		sql += " ), "
 	}
 
 	sql = sql[:len(sql)-2] + ")"
-	if b.SupportEngine() && storeEngine != "" {
+	if db.SupportEngine() && storeEngine != "" {
 		sql += " ENGINE=" + storeEngine
 	}
-	if b.SupportCharset() {
+	if db.SupportCharset() {
 		if len(charset) == 0 {
-			charset = b.URI().Charset
+			charset = db.URI().Charset
 		}
 		if len(charset) > 0 {
 			sql += " DEFAULT CHARSET " + charset
@@ -733,23 +733,23 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Colum
 
 		switch dt {
 		case "VARCHAR2":
-			col.SQLType = core.SQLType{core.Varchar, len1, len2}
+			col.SQLType = core.SQLType{Name: core.Varchar, DefaultLength: len1, DefaultLength2: len2}
 		case "NVARCHAR2":
-			col.SQLType = core.SQLType{core.NVarchar, len1, len2}
+			col.SQLType = core.SQLType{Name: core.NVarchar, DefaultLength: len1, DefaultLength2: len2}
 		case "TIMESTAMP WITH TIME ZONE":
-			col.SQLType = core.SQLType{core.TimeStampz, 0, 0}
+			col.SQLType = core.SQLType{Name: core.TimeStampz, DefaultLength: 0, DefaultLength2: 0}
 		case "NUMBER":
-			col.SQLType = core.SQLType{core.Double, len1, len2}
+			col.SQLType = core.SQLType{Name: core.Double, DefaultLength: len1, DefaultLength2: len2}
 		case "LONG", "LONG RAW":
-			col.SQLType = core.SQLType{core.Text, 0, 0}
+			col.SQLType = core.SQLType{Name: core.Text, DefaultLength: 0, DefaultLength2: 0}
 		case "RAW":
-			col.SQLType = core.SQLType{core.Binary, 0, 0}
+			col.SQLType = core.SQLType{Name: core.Binary, DefaultLength: 0, DefaultLength2: 0}
 		case "ROWID":
-			col.SQLType = core.SQLType{core.Varchar, 18, 0}
+			col.SQLType = core.SQLType{Name: core.Varchar, DefaultLength: 18, DefaultLength2: 0}
 		case "AQ$_SUBSCRIBERS":
 			ignore = true
 		default:
-			col.SQLType = core.SQLType{strings.ToUpper(dt), len1, len2}
+			col.SQLType = core.SQLType{Name: strings.ToUpper(dt), DefaultLength: len1, DefaultLength2: len2}
 		}
 
 		if ignore {
@@ -757,7 +757,7 @@ func (db *oracle) GetColumns(tableName string) ([]string, map[string]*core.Colum
 		}
 
 		if _, ok := core.SqlTypes[col.SQLType.Name]; !ok {
-			return nil, nil, errors.New(fmt.Sprintf("unkonw colType %v %v", *dataType, col.SQLType))
+			return nil, nil, fmt.Errorf("Unknown colType %v %v", *dataType, col.SQLType)
 		}
 
 		col.Length = dataLen
@@ -842,5 +842,5 @@ func (db *oracle) GetIndexes(tableName string) (map[string]*core.Index, error) {
 }
 
 func (db *oracle) Filters() []core.Filter {
-	return []core.Filter{&core.QuoteFilter{}, &core.SeqFilter{":", 1}, &core.IdFilter{}}
+	return []core.Filter{&core.QuoteFilter{}, &core.SeqFilter{Prefix: ":", Start: 1}, &core.IdFilter{}}
 }

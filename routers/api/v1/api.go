@@ -10,16 +10,16 @@ import (
 	"github.com/go-macaron/binding"
 	"gopkg.in/macaron.v1"
 
-	api "github.com/gogits/go-gogs-client"
+	api "code.gitea.io/sdk/gitea"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/auth"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/gitea/routers/api/v1/admin"
-	"github.com/go-gitea/gitea/routers/api/v1/misc"
-	"github.com/go-gitea/gitea/routers/api/v1/org"
-	"github.com/go-gitea/gitea/routers/api/v1/repo"
-	"github.com/go-gitea/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/routers/api/v1/admin"
+	"code.gitea.io/gitea/routers/api/v1/misc"
+	"code.gitea.io/gitea/routers/api/v1/org"
+	"code.gitea.io/gitea/routers/api/v1/repo"
+	"code.gitea.io/gitea/routers/api/v1/user"
 )
 
 func repoAssignment() macaron.Handler {
@@ -63,7 +63,7 @@ func repoAssignment() macaron.Handler {
 		}
 
 		if ctx.IsSigned && ctx.User.IsAdmin {
-			ctx.Repo.AccessMode = models.ACCESS_MODE_OWNER
+			ctx.Repo.AccessMode = models.AccessModeOwner
 		} else {
 			mode, err := models.AccessLevel(ctx.User, repo)
 			if err != nil {
@@ -200,6 +200,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("", user.ListFollowing)
 					m.Get("/:target", user.CheckFollowing)
 				})
+
+				m.Get("/starred", user.GetStarredRepos)
 			})
 		}, reqToken())
 
@@ -221,6 +223,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("/:id").Get(user.GetPublicKey).
 					Delete(user.DeletePublicKey)
 			})
+
+			m.Group("/starred", func() {
+				m.Get("", user.GetMyStarredRepos)
+				m.Group("/:username/:reponame", func() {
+					m.Get("", user.IsStarring)
+					m.Put("", user.Star)
+					m.Delete("", user.Unstar)
+				}, context.ExtractOwnerAndRepo())
+			})
 		}, reqToken())
 
 		// Repositories
@@ -234,7 +245,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/repos", func() {
 			m.Post("/migrate", bind(auth.MigrateRepoForm{}), repo.Migrate)
-			m.Combo("/:username/:reponame").Get(repo.Get).
+			m.Combo("/:username/:reponame", context.ExtractOwnerAndRepo()).
+				Get(repo.Get).
 				Delete(repo.Delete)
 
 			m.Group("/:username/:reponame", func() {

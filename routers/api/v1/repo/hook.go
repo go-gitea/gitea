@@ -9,11 +9,11 @@ import (
 
 	"github.com/Unknwon/com"
 
-	api "github.com/gogits/go-gogs-client"
+	api "code.gitea.io/sdk/gitea"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/gitea/routers/api/v1/convert"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
 // https://github.com/gogits/go-gogs-client/wiki/Repositories#list-hooks
@@ -59,9 +59,9 @@ func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 		HookEvent: &models.HookEvent{
 			ChooseEvents: true,
 			HookEvents: models.HookEvents{
-				Create:      com.IsSliceContainsStr(form.Events, string(models.HOOK_EVENT_CREATE)),
-				Push:        com.IsSliceContainsStr(form.Events, string(models.HOOK_EVENT_PUSH)),
-				PullRequest: com.IsSliceContainsStr(form.Events, string(models.HOOK_EVENT_PULL_REQUEST)),
+				Create:      com.IsSliceContainsStr(form.Events, string(models.HookEventCreate)),
+				Push:        com.IsSliceContainsStr(form.Events, string(models.HookEventPush)),
+				PullRequest: com.IsSliceContainsStr(form.Events, string(models.HookEventPullRequest)),
 			},
 		},
 		IsActive:     form.Active,
@@ -145,9 +145,9 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 	w.PushOnly = false
 	w.SendEverything = false
 	w.ChooseEvents = true
-	w.Create = com.IsSliceContainsStr(form.Events, string(models.HOOK_EVENT_CREATE))
-	w.Push = com.IsSliceContainsStr(form.Events, string(models.HOOK_EVENT_PUSH))
-	w.PullRequest = com.IsSliceContainsStr(form.Events, string(models.HOOK_EVENT_PULL_REQUEST))
+	w.Create = com.IsSliceContainsStr(form.Events, string(models.HookEventCreate))
+	w.Push = com.IsSliceContainsStr(form.Events, string(models.HookEventPush))
+	w.PullRequest = com.IsSliceContainsStr(form.Events, string(models.HookEventPullRequest))
 	if err = w.UpdateEvent(); err != nil {
 		ctx.Error(500, "UpdateEvent", err)
 		return

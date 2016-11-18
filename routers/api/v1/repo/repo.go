@@ -7,14 +7,14 @@ package repo
 import (
 	"path"
 
-	api "github.com/gogits/go-gogs-client"
+	api "code.gitea.io/sdk/gitea"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/auth"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/setting"
-	"github.com/go-gitea/gitea/routers/api/v1/convert"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
 // https://github.com/gogits/go-gogs-client/wiki/Repositories#search-repositories
@@ -99,8 +99,8 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	for repo, access := range accessibleRepos {
 		repos[i] = repo.APIFormat(&api.Permission{
-			Admin: access >= models.ACCESS_MODE_ADMIN,
-			Push:  access >= models.ACCESS_MODE_WRITE,
+			Admin: access >= models.AccessModeAdmin,
+			Push:  access >= models.AccessModeWrite,
 			Pull:  true,
 		})
 		i++
@@ -238,46 +238,16 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	ctx.JSON(201, repo.APIFormat(&api.Permission{true, true, true}))
 }
 
-func parseOwnerAndRepo(ctx *context.APIContext) (*models.User, *models.Repository) {
-	owner, err := models.GetUserByName(ctx.Params(":username"))
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.Error(422, "", err)
-		} else {
-			ctx.Error(500, "GetUserByName", err)
-		}
-		return nil, nil
-	}
-
-	repo, err := models.GetRepositoryByName(owner.ID, ctx.Params(":reponame"))
-	if err != nil {
-		if models.IsErrRepoNotExist(err) {
-			ctx.Status(404)
-		} else {
-			ctx.Error(500, "GetRepositoryByName", err)
-		}
-		return nil, nil
-	}
-
-	return owner, repo
-}
-
 // https://github.com/gogits/go-gogs-client/wiki/Repositories#get
 func Get(ctx *context.APIContext) {
-	_, repo := parseOwnerAndRepo(ctx)
-	if ctx.Written() {
-		return
-	}
-
+	repo := ctx.Repo.Repository
 	ctx.JSON(200, repo.APIFormat(&api.Permission{true, true, true}))
 }
 
 // https://github.com/gogits/go-gogs-client/wiki/Repositories#delete
 func Delete(ctx *context.APIContext) {
-	owner, repo := parseOwnerAndRepo(ctx)
-	if ctx.Written() {
-		return
-	}
+	owner := ctx.Repo.Owner
+	repo := ctx.Repo.Repository
 
 	if owner.IsOrganization() && !owner.IsOwnedBy(ctx.User.ID) {
 		ctx.Error(403, "", "Given user is not owner of organization.")

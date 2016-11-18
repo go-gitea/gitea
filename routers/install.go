@@ -17,24 +17,25 @@ import (
 	"gopkg.in/ini.v1"
 	"gopkg.in/macaron.v1"
 
-	"github.com/go-gitea/git"
+	"code.gitea.io/git"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/auth"
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/gitea/modules/cron"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/mailer"
-	"github.com/go-gitea/gitea/modules/markdown"
-	"github.com/go-gitea/gitea/modules/setting"
-	"github.com/go-gitea/gitea/modules/ssh"
-	"github.com/go-gitea/gitea/modules/template/highlight"
-	"github.com/go-gitea/gitea/modules/user"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/cron"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/mailer"
+	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/ssh"
+	"code.gitea.io/gitea/modules/template/highlight"
+	"code.gitea.io/gitea/modules/user"
 )
 
 const (
-	INSTALL base.TplName = "install"
+	// tplInstall template for installation page
+	tplInstall base.TplName = "install"
 )
 
 func checkRunMode() {
@@ -49,6 +50,7 @@ func checkRunMode() {
 	log.Info("Run Mode: %s", strings.Title(macaron.Env))
 }
 
+// NewServices init new services
 func NewServices() {
 	setting.NewServices()
 	mailer.NewContext()
@@ -97,6 +99,7 @@ func GlobalInit() {
 	}
 }
 
+// InstallInit prepare for rendering installation page
 func InstallInit(ctx *context.Context) {
 	if setting.InstallLock {
 		ctx.Handle(404, "Install", errors.New("Installation is prohibited"))
@@ -116,6 +119,7 @@ func InstallInit(ctx *context.Context) {
 	ctx.Data["DbOptions"] = dbOpts
 }
 
+// Install render installation page
 func Install(ctx *context.Context) {
 	form := auth.InstallForm{}
 
@@ -175,9 +179,10 @@ func Install(ctx *context.Context) {
 	form.RequireSignInView = setting.Service.RequireSignInView
 
 	auth.AssignForm(form, ctx.Data)
-	ctx.HTML(200, INSTALL)
+	ctx.HTML(200, tplInstall)
 }
 
+// InstallPost response for submit install items
 func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	ctx.Data["CurDbOption"] = form.DbType
 
@@ -191,12 +196,12 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 			ctx.Data["Err_Admin"] = true
 		}
 
-		ctx.HTML(200, INSTALL)
+		ctx.HTML(200, tplInstall)
 		return
 	}
 
 	if _, err := exec.LookPath("git"); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.test_git_failed", err), INSTALL, &form)
+		ctx.RenderWithErr(ctx.Tr("install.test_git_failed", err), tplInstall, &form)
 		return
 	}
 
@@ -214,12 +219,12 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if (models.DbCfg.Type == "sqlite3" || models.DbCfg.Type == "tidb") &&
 		len(models.DbCfg.Path) == 0 {
 		ctx.Data["Err_DbPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.err_empty_db_path"), INSTALL, &form)
+		ctx.RenderWithErr(ctx.Tr("install.err_empty_db_path"), tplInstall, &form)
 		return
 	} else if models.DbCfg.Type == "tidb" &&
 		strings.ContainsAny(path.Base(models.DbCfg.Path), ".-") {
 		ctx.Data["Err_DbPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.err_invalid_tidb_name"), INSTALL, &form)
+		ctx.RenderWithErr(ctx.Tr("install.err_invalid_tidb_name"), tplInstall, &form)
 		return
 	}
 
@@ -228,10 +233,10 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if err := models.NewTestEngine(x); err != nil {
 		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
 			ctx.Data["Err_DbType"] = true
-			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://gogs.io/docs/installation/install_from_binary.html"), INSTALL, &form)
+			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://gogs.io/docs/installation/install_from_binary.html"), tplInstall, &form)
 		} else {
 			ctx.Data["Err_DbSetting"] = true
-			ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), INSTALL, &form)
+			ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)
 		}
 		return
 	}
@@ -240,7 +245,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	form.RepoRootPath = strings.Replace(form.RepoRootPath, "\\", "/", -1)
 	if err := os.MkdirAll(form.RepoRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_RepoRootPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.invalid_repo_path", err), INSTALL, &form)
+		ctx.RenderWithErr(ctx.Tr("install.invalid_repo_path", err), tplInstall, &form)
 		return
 	}
 
@@ -248,14 +253,14 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	form.LogRootPath = strings.Replace(form.LogRootPath, "\\", "/", -1)
 	if err := os.MkdirAll(form.LogRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_LogRootPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.invalid_log_root_path", err), INSTALL, &form)
+		ctx.RenderWithErr(ctx.Tr("install.invalid_log_root_path", err), tplInstall, &form)
 		return
 	}
 
 	currentUser, match := setting.IsRunUserMatchCurrentUser(form.RunUser)
 	if !match {
 		ctx.Data["Err_RunUser"] = true
-		ctx.RenderWithErr(ctx.Tr("install.run_user_not_match", form.RunUser, currentUser), INSTALL, &form)
+		ctx.RenderWithErr(ctx.Tr("install.run_user_not_match", form.RunUser, currentUser), tplInstall, &form)
 		return
 	}
 
@@ -263,7 +268,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if form.DisableRegistration && len(form.AdminName) == 0 {
 		ctx.Data["Err_Services"] = true
 		ctx.Data["Err_Admin"] = true
-		ctx.RenderWithErr(ctx.Tr("install.no_admin_and_disable_registration"), INSTALL, form)
+		ctx.RenderWithErr(ctx.Tr("install.no_admin_and_disable_registration"), tplInstall, form)
 		return
 	}
 
@@ -271,13 +276,13 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if len(form.AdminName) > 0 && len(form.AdminPasswd) == 0 {
 		ctx.Data["Err_Admin"] = true
 		ctx.Data["Err_AdminPasswd"] = true
-		ctx.RenderWithErr(ctx.Tr("install.err_empty_admin_password"), INSTALL, form)
+		ctx.RenderWithErr(ctx.Tr("install.err_empty_admin_password"), tplInstall, form)
 		return
 	}
 	if form.AdminPasswd != form.AdminConfirmPasswd {
 		ctx.Data["Err_Admin"] = true
 		ctx.Data["Err_AdminPasswd"] = true
-		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), INSTALL, form)
+		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplInstall, form)
 		return
 	}
 
@@ -345,9 +350,14 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
 	cfg.Section("security").Key("SECRET_KEY").SetValue(base.GetRandomString(15))
 
-	os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
+	err := os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
+	if err != nil {
+		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+		return
+	}
+
 	if err := cfg.SaveTo(setting.CustomConf); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), INSTALL, &form)
+		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
 
@@ -367,7 +377,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true
 				ctx.Data["Err_AdminEmail"] = true
-				ctx.RenderWithErr(ctx.Tr("install.invalid_admin_setting", err), INSTALL, &form)
+				ctx.RenderWithErr(ctx.Tr("install.invalid_admin_setting", err), tplInstall, &form)
 				return
 			}
 			log.Info("Admin account already exist")
@@ -375,8 +385,14 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		}
 
 		// Auto-login for admin
-		ctx.Session.Set("uid", u.ID)
-		ctx.Session.Set("uname", u.Name)
+		if err := ctx.Session.Set("uid", u.ID); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+			return
+		}
+		if err := ctx.Session.Set("uname", u.Name); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+			return
+		}
 	}
 
 	log.Info("First-time run install finished!")

@@ -18,8 +18,8 @@ import (
 	"github.com/go-xorm/xorm"
 	_ "github.com/lib/pq"
 
-	"github.com/go-gitea/gitea/models/migrations"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/models/migrations"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // Engine represents a xorm engine or session.
@@ -33,7 +33,7 @@ type Engine interface {
 	Insert(...interface{}) (int64, error)
 	InsertOne(interface{}) (int64, error)
 	Iterate(interface{}, xorm.IterFunc) error
-	Sql(string, ...interface{}) *xorm.Session
+	SQL(interface{}, ...interface{}) *xorm.Session
 	Where(interface{}, ...interface{}) *xorm.Session
 }
 
@@ -95,7 +95,7 @@ func LoadConfigs() {
 		DbCfg.Passwd = sec.Key("PASSWD").String()
 	}
 	DbCfg.SSLMode = sec.Key("SSL_MODE").String()
-	DbCfg.Path = sec.Key("PATH").MustString("data/gogs.db")
+	DbCfg.Path = sec.Key("PATH").MustString("data/gitea.db")
 }
 
 // parsePostgreSQLHostPort parses given input in various forms defined in

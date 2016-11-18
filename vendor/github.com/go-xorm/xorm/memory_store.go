@@ -12,7 +12,7 @@ import (
 
 var _ core.CacheStore = NewMemoryStore()
 
-// memory store
+// MemoryStore represents in-memory store
 type MemoryStore struct {
 	store map[interface{}]interface{}
 	mutex sync.RWMutex

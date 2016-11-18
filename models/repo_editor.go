@@ -18,11 +18,11 @@ import (
 	"github.com/Unknwon/com"
 	gouuid "github.com/satori/go.uuid"
 
-	"github.com/go-gitea/git"
+	"code.gitea.io/git"
 
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/process"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // ___________    .___.__  __    ___________.__.__
@@ -387,7 +387,9 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 	for i := 0; i < len(uploads); i++ {
 		ids[i] = uploads[i].ID
 	}
-	if _, err = sess.In("id", ids).Delete(new(Upload)); err != nil {
+	if _, err = sess.
+		In("id", ids).
+		Delete(new(Upload)); err != nil {
 		return fmt.Errorf("delete uploads: %v", err)
 	}
 

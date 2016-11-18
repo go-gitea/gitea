@@ -15,20 +15,21 @@ import (
 	"path"
 	"strings"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/auth"
-	"github.com/go-gitea/gitea/modules/bindata"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/setting"
-	"github.com/go-gitea/gitea/modules/template"
-	"github.com/go-gitea/gitea/routers"
-	"github.com/go-gitea/gitea/routers/admin"
-	apiv1 "github.com/go-gitea/gitea/routers/api/v1"
-	"github.com/go-gitea/gitea/routers/dev"
-	"github.com/go-gitea/gitea/routers/org"
-	"github.com/go-gitea/gitea/routers/repo"
-	"github.com/go-gitea/gitea/routers/user"
+	"code.gitea.io/git"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/bindata"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/template"
+	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/routers/admin"
+	apiv1 "code.gitea.io/gitea/routers/api/v1"
+	"code.gitea.io/gitea/routers/dev"
+	"code.gitea.io/gitea/routers/org"
+	"code.gitea.io/gitea/routers/repo"
+	"code.gitea.io/gitea/routers/user"
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/captcha"
@@ -38,8 +39,6 @@ import (
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
 	"github.com/go-xorm/xorm"
-	"github.com/go-gitea/git"
-	gogs "github.com/gogits/go-gogs-client"
 	version "github.com/mcuadros/go-version"
 	"github.com/urfave/cli"
 	ini "gopkg.in/ini.v1"
@@ -54,8 +53,16 @@ var CmdWeb = cli.Command{
 and it takes care of all the other things for you`,
 	Action: runWeb,
 	Flags: []cli.Flag{
-		stringFlag("port, p", "3000", "Temporary port number to prevent conflict"),
-		stringFlag("config, c", "custom/conf/app.ini", "Custom configuration file path"),
+		cli.StringFlag{
+			Name:  "port, p",
+			Value: "3000",
+			Usage: "Temporary port number to prevent conflict",
+		},
+		cli.StringFlag{
+			Name:  "config, c",
+			Value: "custom/conf/app.ini",
+			Usage: "Custom configuration file path",
+		},
 	},
 }
 
@@ -93,8 +100,7 @@ func checkVersion() {
 		{"github.com/go-macaron/toolbox", toolbox.Version, "0.1.0"},
 		{"gopkg.in/ini.v1", ini.Version, "1.8.4"},
 		{"gopkg.in/macaron.v1", macaron.Version, "1.1.7"},
-		{"github.com/go-gitea/git", git.Version, "0.4.1"},
-		{"github.com/gogits/go-gogs-client", gogs.Version, "0.12.1"},
+		{"code.gitea.io/git", git.Version, "0.4.1"},
 	}
 	for _, c := range checkers {
 		if !version.Compare(c.Version(), c.Expected, ">=") {
@@ -178,7 +184,7 @@ func newMacaron() *macaron.Macaron {
 	}))
 	m.Use(toolbox.Toolboxer(m, toolbox.Options{
 		HealthCheckFuncs: []*toolbox.HealthCheckFuncDesc{
-			&toolbox.HealthCheckFuncDesc{
+			{
 				Desc: "Database connection",
 				Func: models.Ping,
 			},
@@ -578,7 +584,7 @@ func runWeb(ctx *cli.Context) error {
 
 		m.Group("/pulls/:index", func() {
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
-			m.Get("/files", context.RepoRef(), repo.SetEditorconfigIfExists, repo.ViewPullFiles)
+			m.Get("/files", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ViewPullFiles)
 			m.Post("/merge", reqRepoWriter, repo.MergePullRequest)
 		}, repo.MustAllowPulls)
 
@@ -586,12 +592,12 @@ func runWeb(ctx *cli.Context) error {
 			m.Get("/src/*", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("/raw/*", repo.SingleDownload)
 			m.Get("/commits/*", repo.RefCommits)
-			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.SetEditorconfigIfExists, repo.Diff)
+			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
 			m.Get("/forks", repo.Forks)
 		}, context.RepoRef())
 		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)", repo.RawDiff)
 
-		m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.CompareDiff)
+		m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.CompareDiff)
 	}, ignSignIn, context.RepoAssignment(), repo.MustBeNotBare)
 	m.Group("/:username/:reponame", func() {
 		m.Get("/stars", repo.Stars)

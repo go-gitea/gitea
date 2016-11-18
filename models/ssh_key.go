@@ -22,14 +22,13 @@ import (
 	"github.com/go-xorm/xorm"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/process"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 const (
-	_TPL_PUBLICK_KEY = `command="%s serv key-%d --config='%s'",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
+	tplPublicKey = `command="%s serv key-%d --config='%s'",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
 )
 
 var sshOpLocker sync.Mutex
@@ -37,8 +36,8 @@ var sshOpLocker sync.Mutex
 type KeyType int
 
 const (
-	KEY_TYPE_USER = iota + 1
-	KEY_TYPE_DEPLOY
+	KeyTypeUser = iota + 1
+	KeyTypeDeploy
 )
 
 // PublicKey represents a user or deploy SSH public key.
@@ -85,7 +84,7 @@ func (k *PublicKey) OmitEmail() string {
 
 // AuthorizedString returns formatted public key string for authorized_keys file.
 func (key *PublicKey) AuthorizedString() string {
-	return fmt.Sprintf(_TPL_PUBLICK_KEY, setting.AppPath, key.ID, setting.CustomConf, key.Content)
+	return fmt.Sprintf(tplPublicKey, setting.AppPath, key.ID, setting.CustomConf, key.Content)
 }
 
 func extractTypeFromBase64Key(key string) (string, error) {
@@ -352,7 +351,7 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 func checkKeyContent(content string) error {
 	has, err := x.Get(&PublicKey{
 		Content: content,
-		Type:    KEY_TYPE_USER,
+		Type:    KeyTypeUser,
 	})
 	if err != nil {
 		return err
@@ -398,7 +397,9 @@ func AddPublicKey(ownerID int64, name, content string) (*PublicKey, error) {
 	}
 
 	// Key name of same user cannot be duplicated.
-	has, err := x.Where("owner_id = ? AND name = ?", ownerID, name).Get(new(PublicKey))
+	has, err := x.
+		Where("owner_id = ? AND name = ?", ownerID, name).
+		Get(new(PublicKey))
 	if err != nil {
 		return nil, err
 	} else if has {
@@ -415,8 +416,8 @@ func AddPublicKey(ownerID int64, name, content string) (*PublicKey, error) {
 		OwnerID: ownerID,
 		Name:    name,
 		Content: content,
-		Mode:    ACCESS_MODE_WRITE,
-		Type:    KEY_TYPE_USER,
+		Mode:    AccessModeWrite,
+		Type:    KeyTypeUser,
 	}
 	if err = addKey(sess, key); err != nil {
 		return nil, fmt.Errorf("addKey: %v", err)
@@ -428,7 +429,9 @@ func AddPublicKey(ownerID int64, name, content string) (*PublicKey, error) {
 // GetPublicKeyByID returns public key by given ID.
 func GetPublicKeyByID(keyID int64) (*PublicKey, error) {
 	key := new(PublicKey)
-	has, err := x.Id(keyID).Get(key)
+	has, err := x.
+		Id(keyID).
+		Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -441,7 +444,9 @@ func GetPublicKeyByID(keyID int64) (*PublicKey, error) {
 // and returns public key found.
 func SearchPublicKeyByContent(content string) (*PublicKey, error) {
 	key := new(PublicKey)
-	has, err := x.Where("content like ?", content+"%").Get(key)
+	has, err := x.
+		Where("content like ?", content+"%").
+		Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -453,7 +458,9 @@ func SearchPublicKeyByContent(content string) (*PublicKey, error) {
 // ListPublicKeys returns a list of public keys belongs to given user.
 func ListPublicKeys(uid int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
-	return keys, x.Where("owner_id = ?", uid).Find(&keys)
+	return keys, x.
+		Where("owner_id = ?", uid).
+		Find(&keys)
 }
 
 // UpdatePublicKey updates given public key.
@@ -468,7 +475,7 @@ func deletePublicKeys(e *xorm.Session, keyIDs ...int64) error {
 		return nil
 	}
 
-	_, err := e.In("id", strings.Join(base.Int64sToStrings(keyIDs), ",")).Delete(new(PublicKey))
+	_, err := e.In("id", keyIDs).Delete(new(PublicKey))
 	return err
 }
 
@@ -595,14 +602,18 @@ func (k *DeployKey) GetContent() error {
 
 func checkDeployKey(e Engine, keyID, repoID int64, name string) error {
 	// Note: We want error detail, not just true or false here.
-	has, err := e.Where("key_id = ? AND repo_id = ?", keyID, repoID).Get(new(DeployKey))
+	has, err := e.
+		Where("key_id = ? AND repo_id = ?", keyID, repoID).
+		Get(new(DeployKey))
 	if err != nil {
 		return err
 	} else if has {
 		return ErrDeployKeyAlreadyExist{keyID, repoID}
 	}
 
-	has, err = e.Where("repo_id = ? AND name = ?", repoID, name).Get(new(DeployKey))
+	has, err = e.
+		Where("repo_id = ? AND name = ?", repoID, name).
+		Get(new(DeployKey))
 	if err != nil {
 		return err
 	} else if has {
@@ -630,7 +641,9 @@ func addDeployKey(e *xorm.Session, keyID, repoID int64, name, fingerprint string
 
 // HasDeployKey returns true if public key is a deploy key of given repository.
 func HasDeployKey(keyID, repoID int64) bool {
-	has, _ := x.Where("key_id = ? AND repo_id = ?", keyID, repoID).Get(new(DeployKey))
+	has, _ := x.
+		Where("key_id = ? AND repo_id = ?", keyID, repoID).
+		Get(new(DeployKey))
 	return has
 }
 
@@ -642,8 +655,8 @@ func AddDeployKey(repoID int64, name, content string) (*DeployKey, error) {
 
 	pkey := &PublicKey{
 		Content: content,
-		Mode:    ACCESS_MODE_READ,
-		Type:    KEY_TYPE_DEPLOY,
+		Mode:    AccessModeRead,
+		Type:    KeyTypeDeploy,
 	}
 	has, err := x.Get(pkey)
 	if err != nil {
@@ -720,7 +733,7 @@ func DeleteDeployKey(doer *User, id int64) error {
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
-		yes, err := HasAccess(doer, repo, ACCESS_MODE_ADMIN)
+		yes, err := HasAccess(doer, repo, AccessModeAdmin)
 		if err != nil {
 			return fmt.Errorf("HasAccess: %v", err)
 		} else if !yes {
@@ -739,7 +752,9 @@ func DeleteDeployKey(doer *User, id int64) error {
 	}
 
 	// Check if this is the last reference to same key content.
-	has, err := sess.Where("key_id = ?", key.KeyID).Get(new(DeployKey))
+	has, err := sess.
+		Where("key_id = ?", key.KeyID).
+		Get(new(DeployKey))
 	if err != nil {
 		return err
 	} else if !has {
@@ -754,5 +769,7 @@ func DeleteDeployKey(doer *User, id int64) error {
 // ListDeployKeys returns all deploy keys by given repository ID.
 func ListDeployKeys(repoID int64) ([]*DeployKey, error) {
 	keys := make([]*DeployKey, 0, 5)
-	return keys, x.Where("repo_id = ?", repoID).Find(&keys)
+	return keys, x.
+		Where("repo_id = ?", repoID).
+		Find(&keys)
 }

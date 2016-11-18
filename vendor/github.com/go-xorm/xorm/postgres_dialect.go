@@ -5,7 +5,6 @@
 package xorm
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -813,8 +812,9 @@ func (db *postgres) SqlType(c *core.Column) string {
 		res = t
 	}
 
-	var hasLen1 bool = (c.Length > 0)
-	var hasLen2 bool = (c.Length2 > 0)
+	hasLen1 := (c.Length > 0)
+	hasLen2 := (c.Length2 > 0)
+
 	if hasLen2 {
 		res += "(" + strconv.Itoa(c.Length) + "," + strconv.Itoa(c.Length2) + ")"
 	} else if hasLen1 {
@@ -880,9 +880,10 @@ func (db *postgres) ModifyColumnSql(tableName string, col *core.Column) string {
 }
 
 func (db *postgres) DropIndexSql(tableName string, index *core.Index) string {
-	quote := db.Quote
 	//var unique string
-	var idxName string = index.Name
+	quote := db.Quote
+	idxName := index.Name
+
 	if !strings.HasPrefix(idxName, "UQE_") &&
 		!strings.HasPrefix(idxName, "IDX_") {
 		if index.Type == core.UniqueType {
@@ -973,24 +974,24 @@ WHERE c.relkind = 'r'::char AND c.relname = $1 AND s.table_schema = $2 AND f.att
 
 		switch dataType {
 		case "character varying", "character":
-			col.SQLType = core.SQLType{core.Varchar, 0, 0}
+			col.SQLType = core.SQLType{Name: core.Varchar, DefaultLength: 0, DefaultLength2: 0}
 		case "timestamp without time zone":
-			col.SQLType = core.SQLType{core.DateTime, 0, 0}
+			col.SQLType = core.SQLType{Name: core.DateTime, DefaultLength: 0, DefaultLength2: 0}
 		case "timestamp with time zone":
-			col.SQLType = core.SQLType{core.TimeStampz, 0, 0}
+			col.SQLType = core.SQLType{Name: core.TimeStampz, DefaultLength: 0, DefaultLength2: 0}
 		case "double precision":
-			col.SQLType = core.SQLType{core.Double, 0, 0}
+			col.SQLType = core.SQLType{Name: core.Double, DefaultLength: 0, DefaultLength2: 0}
 		case "boolean":
-			col.SQLType = core.SQLType{core.Bool, 0, 0}
+			col.SQLType = core.SQLType{Name: core.Bool, DefaultLength: 0, DefaultLength2: 0}
 		case "time without time zone":
-			col.SQLType = core.SQLType{core.Time, 0, 0}
+			col.SQLType = core.SQLType{Name: core.Time, DefaultLength: 0, DefaultLength2: 0}
 		case "oid":
-			col.SQLType = core.SQLType{core.BigInt, 0, 0}
+			col.SQLType = core.SQLType{Name: core.BigInt, DefaultLength: 0, DefaultLength2: 0}
 		default:
-			col.SQLType = core.SQLType{strings.ToUpper(dataType), 0, 0}
+			col.SQLType = core.SQLType{Name: strings.ToUpper(dataType), DefaultLength: 0, DefaultLength2: 0}
 		}
 		if _, ok := core.SqlTypes[col.SQLType.Name]; !ok {
-			return nil, nil, errors.New(fmt.Sprintf("unknow colType: %v", dataType))
+			return nil, nil, fmt.Errorf("Unknown colType: %v", dataType)
 		}
 
 		col.Length = maxLen
@@ -1087,5 +1088,5 @@ func (db *postgres) GetIndexes(tableName string) (map[string]*core.Index, error)
 }
 
 func (db *postgres) Filters() []core.Filter {
-	return []core.Filter{&core.IdFilter{}, &core.QuoteFilter{}, &core.SeqFilter{"$", 1}}
+	return []core.Filter{&core.IdFilter{}, &core.QuoteFilter{}, &core.SeqFilter{Prefix: "$", Start: 1}}
 }

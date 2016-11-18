@@ -6,18 +6,16 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"time"
 
-	"io/ioutil"
-
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/cae/zip"
 	"github.com/urfave/cli"
-
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/setting"
 )
 
 // CmdDump represents the available dump sub-command.
@@ -28,9 +26,20 @@ var CmdDump = cli.Command{
 It can be used for backup and capture Gogs server image to send to maintainer`,
 	Action: runDump,
 	Flags: []cli.Flag{
-		stringFlag("config, c", "custom/conf/app.ini", "Custom configuration file path"),
-		boolFlag("verbose, v", "Show process details"),
-		stringFlag("tempdir, t", os.TempDir(), "Temporary dir path"),
+		cli.StringFlag{
+			Name:  "config, c",
+			Value: "custom/conf/app.ini",
+			Usage: "Custom configuration file path",
+		},
+		cli.BoolFlag{
+			Name:  "verbose, v",
+			Usage: "Show process details",
+		},
+		cli.StringFlag{
+			Name:  "tempdir, t",
+			Value: os.TempDir(),
+			Usage: "Temporary dir path",
+		},
 	},
 }
 

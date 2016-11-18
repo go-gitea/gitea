@@ -22,7 +22,9 @@ type EmailAddress struct {
 // GetEmailAddresses returns all email addresses belongs to given user.
 func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
 	emails := make([]*EmailAddress, 0, 5)
-	if err := x.Where("uid=?", uid).Find(&emails); err != nil {
+	if err := x.
+		Where("uid=?", uid).
+		Find(&emails); err != nil {
 		return nil, err
 	}
 
@@ -120,7 +122,10 @@ func (email *EmailAddress) Activate() error {
 	}
 
 	email.IsActivated = true
-	if _, err := sess.Id(email.ID).AllCols().Update(email); err != nil {
+	if _, err := sess.
+		Id(email.ID).
+		AllCols().
+		Update(email); err != nil {
 		return err
 	} else if err = updateUser(sess, user); err != nil {
 		return err
@@ -133,7 +138,9 @@ func DeleteEmailAddress(email *EmailAddress) (err error) {
 	if email.ID > 0 {
 		_, err = x.Id(email.ID).Delete(new(EmailAddress))
 	} else {
-		_, err = x.Where("email=?", email.Email).Delete(new(EmailAddress))
+		_, err = x.
+			Where("email=?", email.Email).
+			Delete(new(EmailAddress))
 	}
 	return err
 }
@@ -165,7 +172,7 @@ func MakeEmailPrimary(email *EmailAddress) error {
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrUserNotExist{email.UID, ""}
+		return ErrUserNotExist{email.UID, "", 0}
 	}
 
 	// Make sure the former primary email doesn't disappear.

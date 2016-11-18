@@ -9,9 +9,9 @@ import (
 
 	"github.com/urfave/cli"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // CmdUpdate represents the available update sub-command.
@@ -21,7 +21,11 @@ var CmdUpdate = cli.Command{
 	Description: `Update get pushed info and insert into database`,
 	Action:      runUpdate,
 	Flags: []cli.Flag{
-		stringFlag("config, c", "custom/conf/app.ini", "Custom configuration file path"),
+		cli.StringFlag{
+			Name:  "config, c",
+			Value: "custom/conf/app.ini",
+			Usage: "Custom configuration file path",
+		},
 	},
 }
 

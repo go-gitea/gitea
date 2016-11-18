@@ -9,7 +9,7 @@ RUN chmod +x /usr/sbin/gosu \
  && apk -U --no-progress upgrade && rm -f /var/cache/apk/APKINDEX.* \
  && apk --no-cache --no-progress add ca-certificates bash git linux-pam s6 curl openssh socat tzdata
 
-ENV GOGS_CUSTOM /data/gogs
+ENV GITEA_CUSTOM /data/gogs
 
 COPY . /app/gogs/
 WORKDIR /app/gogs/

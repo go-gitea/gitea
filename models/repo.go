@@ -19,23 +19,23 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/bindata"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/sync"
+	api "code.gitea.io/sdk/gitea"
 	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
-	"github.com/go-gitea/gitea/modules/bindata"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/markdown"
-	"github.com/go-gitea/gitea/modules/process"
-	"github.com/go-gitea/gitea/modules/setting"
-	"github.com/go-gitea/gitea/modules/sync"
 	"github.com/go-xorm/xorm"
-	"github.com/go-gitea/git"
-	api "github.com/gogits/go-gogs-client"
 	version "github.com/mcuadros/go-version"
 	ini "gopkg.in/ini.v1"
 )
 
 const (
-	_TPL_UPDATE_HOOK = "#!/usr/bin/env %s\n%s update $1 $2 $3 --config='%s'\n"
+	tplUpdateHook = "#!/usr/bin/env %s\n%s update $1 $2 $3 --config='%s'\n"
 )
 
 var repoWorkingPool = sync.NewExclusivePool()
@@ -334,7 +334,9 @@ func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
 	}
 
 	accesses := make([]*Access, 0, 10)
-	if err = e.Where("repo_id = ? AND mode >= ?", repo.ID, ACCESS_MODE_WRITE).Find(&accesses); err != nil {
+	if err = e.
+		Where("repo_id = ? AND mode >= ?", repo.ID, AccessModeWrite).
+		Find(&accesses); err != nil {
 		return nil, err
 	}
 
@@ -418,7 +420,7 @@ func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) strin
 }
 
 func (repo *Repository) HasAccess(u *User) bool {
-	has, _ := HasAccess(u, repo, ACCESS_MODE_READ)
+	has, _ := HasAccess(u, repo, AccessModeRead)
 	return has
 }
 
@@ -706,7 +708,7 @@ func cleanUpMigrateGitConfig(configPath string) error {
 
 func createUpdateHook(repoPath string) error {
 	return git.SetUpdateHook(repoPath,
-		fmt.Sprintf(_TPL_UPDATE_HOOK, setting.ScriptType, "\""+setting.AppPath+"\"", setting.CustomConf))
+		fmt.Sprintf(tplUpdateHook, setting.ScriptType, "\""+setting.AppPath+"\"", setting.CustomConf))
 }
 
 // Finish migrating repository and/or wiki with things that don't need to be done for mirrors.
@@ -1209,7 +1211,9 @@ func ChangeRepositoryName(u *User, oldRepoName, newRepoName string) (err error) 
 
 func getRepositoriesByForkID(e Engine, forkID int64) ([]*Repository, error) {
 	repos := make([]*Repository, 0, 10)
-	return repos, e.Where("fork_id=?", forkID).Find(&repos)
+	return repos, e.
+		Where("fork_id=?", forkID).
+		Find(&repos)
 }
 
 // GetRepositoriesByForkID returns all repositories with given fork ID.
@@ -1341,7 +1345,9 @@ func DeleteRepository(uid, repoID int64) error {
 	// Delete comments and attachments.
 	issues := make([]*Issue, 0, 25)
 	attachmentPaths := make([]string, 0, len(issues))
-	if err = sess.Where("repo_id=?", repoID).Find(&issues); err != nil {
+	if err = sess.
+		Where("repo_id=?", repoID).
+		Find(&issues); err != nil {
 		return err
 	}
 	for i := range issues {
@@ -1350,7 +1356,9 @@ func DeleteRepository(uid, repoID int64) error {
 		}
 
 		attachments := make([]*Attachment, 0, 5)
-		if err = sess.Where("issue_id=?", issues[i].ID).Find(&attachments); err != nil {
+		if err = sess.
+			Where("issue_id=?", issues[i].ID).
+			Find(&attachments); err != nil {
 			return err
 		}
 		for j := range attachments {
@@ -1450,7 +1458,9 @@ func GetRepositoryByID(id int64) (*Repository, error) {
 
 // GetUserRepositories returns a list of repositories of given user.
 func GetUserRepositories(userID int64, private bool, page, pageSize int) ([]*Repository, error) {
-	sess := x.Where("owner_id = ?", userID).Desc("updated_unix")
+	sess := x.
+		Where("owner_id = ?", userID).
+		Desc("updated_unix")
 	if !private {
 		sess.And("is_private=?", false)
 	}
@@ -1467,13 +1477,20 @@ func GetUserRepositories(userID int64, private bool, page, pageSize int) ([]*Rep
 // GetUserRepositories returns a list of mirror repositories of given user.
 func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 	repos := make([]*Repository, 0, 10)
-	return repos, x.Where("owner_id = ?", userID).And("is_mirror = ?", true).Find(&repos)
+	return repos, x.
+		Where("owner_id = ?", userID).
+		And("is_mirror = ?", true).
+		Find(&repos)
 }
 
 // GetRecentUpdatedRepositories returns the list of repositories that are recently updated.
 func GetRecentUpdatedRepositories(page, pageSize int) (repos []*Repository, err error) {
-	return repos, x.Limit(pageSize, (page-1)*pageSize).
-		Where("is_private=?", false).Limit(pageSize).Desc("updated_unix").Find(&repos)
+	return repos, x.
+		Limit(pageSize, (page-1)*pageSize).
+		Where("is_private=?", false).
+		Limit(pageSize).
+		Desc("updated_unix").
+		Find(&repos)
 }
 
 func getRepositoryCount(e Engine, u *User) (int64, error) {
@@ -1532,23 +1549,27 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos []*Repository, _ int
 
 // DeleteRepositoryArchives deletes all repositories' archives.
 func DeleteRepositoryArchives() error {
-	return x.Where("id > 0").Iterate(new(Repository),
-		func(idx int, bean interface{}) error {
-			repo := bean.(*Repository)
-			return os.RemoveAll(filepath.Join(repo.RepoPath(), "archives"))
-		})
+	return x.
+		Where("id > 0").
+		Iterate(new(Repository),
+			func(idx int, bean interface{}) error {
+				repo := bean.(*Repository)
+				return os.RemoveAll(filepath.Join(repo.RepoPath(), "archives"))
+			})
 }
 
 func gatherMissingRepoRecords() ([]*Repository, error) {
 	repos := make([]*Repository, 0, 10)
-	if err := x.Where("id > 0").Iterate(new(Repository),
-		func(idx int, bean interface{}) error {
-			repo := bean.(*Repository)
-			if !com.IsDir(repo.RepoPath()) {
-				repos = append(repos, repo)
-			}
-			return nil
-		}); err != nil {
+	if err := x.
+		Where("id > 0").
+		Iterate(new(Repository),
+			func(idx int, bean interface{}) error {
+				repo := bean.(*Repository)
+				if !com.IsDir(repo.RepoPath()) {
+					repos = append(repos, repo)
+				}
+				return nil
+			}); err != nil {
 		if err2 := CreateRepositoryNotice(fmt.Sprintf("gatherMissingRepoRecords: %v", err)); err2 != nil {
 			return nil, fmt.Errorf("CreateRepositoryNotice: %v", err)
 		}
@@ -1602,66 +1623,72 @@ func ReinitMissingRepositories() error {
 
 // RewriteRepositoryUpdateHook rewrites all repositories' update hook.
 func RewriteRepositoryUpdateHook() error {
-	return x.Where("id > 0").Iterate(new(Repository),
-		func(idx int, bean interface{}) error {
-			repo := bean.(*Repository)
-			return createUpdateHook(repo.RepoPath())
-		})
+	return x.
+		Where("id > 0").
+		Iterate(new(Repository),
+			func(idx int, bean interface{}) error {
+				repo := bean.(*Repository)
+				return createUpdateHook(repo.RepoPath())
+			})
 }
 
 // Prevent duplicate running tasks.
 var taskStatusTable = sync.NewStatusTable()
 
 const (
-	_MIRROR_UPDATE = "mirror_update"
-	_GIT_FSCK      = "git_fsck"
-	_CHECK_REPOs   = "check_repos"
+	mirrorUpdate = "mirror_update"
+	gitFsck      = "git_fsck"
+	checkRepos   = "check_repos"
 )
 
 // GitFsck calls 'git fsck' to check repository health.
 func GitFsck() {
-	if taskStatusTable.IsRunning(_GIT_FSCK) {
+	if taskStatusTable.IsRunning(gitFsck) {
 		return
 	}
-	taskStatusTable.Start(_GIT_FSCK)
-	defer taskStatusTable.Stop(_GIT_FSCK)
+	taskStatusTable.Start(gitFsck)
+	defer taskStatusTable.Stop(gitFsck)
 
 	log.Trace("Doing: GitFsck")
 
-	if err := x.Where("id>0").Iterate(new(Repository),
-		func(idx int, bean interface{}) error {
-			repo := bean.(*Repository)
-			repoPath := repo.RepoPath()
-			if err := git.Fsck(repoPath, setting.Cron.RepoHealthCheck.Timeout, setting.Cron.RepoHealthCheck.Args...); err != nil {
-				desc := fmt.Sprintf("Fail to health check repository (%s): %v", repoPath, err)
-				log.Warn(desc)
-				if err = CreateRepositoryNotice(desc); err != nil {
-					log.Error(4, "CreateRepositoryNotice: %v", err)
+	if err := x.
+		Where("id>0").
+		Iterate(new(Repository),
+			func(idx int, bean interface{}) error {
+				repo := bean.(*Repository)
+				repoPath := repo.RepoPath()
+				if err := git.Fsck(repoPath, setting.Cron.RepoHealthCheck.Timeout, setting.Cron.RepoHealthCheck.Args...); err != nil {
+					desc := fmt.Sprintf("Fail to health check repository (%s): %v", repoPath, err)
+					log.Warn(desc)
+					if err = CreateRepositoryNotice(desc); err != nil {
+						log.Error(4, "CreateRepositoryNotice: %v", err)
+					}
 				}
-			}
-			return nil
-		}); err != nil {
+				return nil
+			}); err != nil {
 		log.Error(4, "GitFsck: %v", err)
 	}
 }
 
 func GitGcRepos() error {
 	args := append([]string{"gc"}, setting.Git.GCArgs...)
-	return x.Where("id > 0").Iterate(new(Repository),
-		func(idx int, bean interface{}) error {
-			repo := bean.(*Repository)
-			if err := repo.GetOwner(); err != nil {
-				return err
-			}
-			_, stderr, err := process.ExecDir(
-				time.Duration(setting.Git.Timeout.GC)*time.Second,
-				RepoPath(repo.Owner.Name, repo.Name), "Repository garbage collection",
-				"git", args...)
-			if err != nil {
-				return fmt.Errorf("%v: %v", err, stderr)
-			}
-			return nil
-		})
+	return x.
+		Where("id > 0").
+		Iterate(new(Repository),
+			func(idx int, bean interface{}) error {
+				repo := bean.(*Repository)
+				if err := repo.GetOwner(); err != nil {
+					return err
+				}
+				_, stderr, err := process.ExecDir(
+					time.Duration(setting.Git.Timeout.GC)*time.Second,
+					RepoPath(repo.Owner.Name, repo.Name), "Repository garbage collection",
+					"git", args...)
+				if err != nil {
+					return fmt.Errorf("%v: %v", err, stderr)
+				}
+				return nil
+			})
 }
 
 type repoChecker struct {
@@ -1686,11 +1713,11 @@ func repoStatsCheck(checker *repoChecker) {
 }
 
 func CheckRepoStats() {
-	if taskStatusTable.IsRunning(_CHECK_REPOs) {
+	if taskStatusTable.IsRunning(checkRepos) {
 		return
 	}
-	taskStatusTable.Start(_CHECK_REPOs)
-	defer taskStatusTable.Stop(_CHECK_REPOs)
+	taskStatusTable.Start(checkRepos)
+	defer taskStatusTable.Stop(checkRepos)
 
 	log.Trace("Doing: CheckRepoStats")
 
@@ -1796,7 +1823,10 @@ func (repos RepositoryList) loadAttributes(e Engine) error {
 		userIDs = append(userIDs, userID)
 	}
 	users := make([]*User, 0, len(userIDs))
-	if err := e.Where("id > 0").In("id", userIDs).Find(&users); err != nil {
+	if err := e.
+		Where("id > 0").
+		In("id", userIDs).
+		Find(&users); err != nil {
 		return fmt.Errorf("find users: %v", err)
 	}
 	for i := range users {
@@ -1829,7 +1859,10 @@ func (repos MirrorRepositoryList) loadAttributes(e Engine) error {
 		repoIDs = append(repoIDs, repos[i].ID)
 	}
 	mirrors := make([]*Mirror, 0, len(repoIDs))
-	if err := e.Where("id > 0").In("repo_id", repoIDs).Find(&mirrors); err != nil {
+	if err := e.
+		Where("id > 0").
+		In("repo_id", repoIDs).
+		Find(&mirrors); err != nil {
 		return fmt.Errorf("find mirrors: %v", err)
 	}
 
@@ -1910,7 +1943,9 @@ func GetWatchers(repoID int64) ([]*Watch, error) {
 // Repository.GetWatchers returns range of users watching given repository.
 func (repo *Repository) GetWatchers(page int) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
-	sess := x.Limit(ItemsPerPage, (page-1)*ItemsPerPage).Where("watch.repo_id=?", repo.ID)
+	sess := x.
+		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
+		Where("watch.repo_id=?", repo.ID)
 	if setting.UsePostgreSQL {
 		sess = sess.Join("LEFT", "watch", `"user".id=watch.user_id`)
 	} else {
@@ -1998,7 +2033,9 @@ func IsStaring(userID, repoID int64) bool {
 
 func (repo *Repository) GetStargazers(page int) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
-	sess := x.Limit(ItemsPerPage, (page-1)*ItemsPerPage).Where("star.repo_id=?", repo.ID)
+	sess := x.
+		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
+		Where("star.repo_id=?", repo.ID)
 	if setting.UsePostgreSQL {
 		sess = sess.Join("LEFT", "star", `"user".id=star.uid`)
 	} else {
@@ -2017,7 +2054,9 @@ func (repo *Repository) GetStargazers(page int) ([]*User, error) {
 // HasForkedRepo checks if given user has already forked a repository with given ID.
 func HasForkedRepo(ownerID, repoID int64) (*Repository, bool) {
 	repo := new(Repository)
-	has, _ := x.Where("owner_id=? AND fork_id=?", ownerID, repoID).Get(repo)
+	has, _ := x.
+		Where("owner_id=? AND fork_id=?", ownerID, repoID).
+		Get(repo)
 	return repo, has
 }
 
@@ -2060,7 +2099,7 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 		repoPath, fmt.Sprintf("ForkRepository(git update-server-info): %s", repoPath),
 		"git", "update-server-info")
 	if err != nil {
-		return nil, fmt.Errorf("git update-server-info: %v", err)
+		return nil, fmt.Errorf("git update-server-info: %v", stderr)
 	}
 
 	if err = createUpdateHook(repoPath); err != nil {

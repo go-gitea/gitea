@@ -7,12 +7,13 @@ package repo
 import (
 	"fmt"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/auth"
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/markdown"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markdown"
+	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -58,7 +59,11 @@ func Releases(ctx *context.Context) {
 		return
 	}
 
-	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID)
+	page := ctx.QueryInt("page")
+	if page <= 1 {
+		page = 1
+	}
+	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, page, 10)
 	if err != nil {
 		ctx.Handle(500, "GetReleasesByRepoID", err)
 		return
@@ -141,6 +146,8 @@ func Releases(ctx *context.Context) {
 		r.Note = markdown.RenderString(r.Note, ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas())
 		tags = append(tags, r)
 	}
+	pager := paginater.New(ctx.Repo.Repository.NumTags, 10, page, 5)
+	ctx.Data["Page"] = pager
 	models.SortReleases(tags)
 	ctx.Data["Releases"] = tags
 	ctx.HTML(200, RELEASES)
@@ -240,6 +247,7 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["title"] = rel.Title
 	ctx.Data["content"] = rel.Note
 	ctx.Data["prerelease"] = rel.IsPrerelease
+	ctx.Data["IsDraft"] = rel.IsDraft
 
 	ctx.HTML(200, RELEASE_NEW)
 }

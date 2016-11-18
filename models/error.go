@@ -55,8 +55,9 @@ func (err ErrUserAlreadyExist) Error() string {
 }
 
 type ErrUserNotExist struct {
-	UID  int64
-	Name string
+	UID   int64
+	Name  string
+	KeyID int64
 }
 
 func IsErrUserNotExist(err error) bool {
@@ -65,7 +66,7 @@ func IsErrUserNotExist(err error) bool {
 }
 
 func (err ErrUserNotExist) Error() string {
-	return fmt.Sprintf("user does not exist [uid: %d, name: %s]", err.UID, err.Name)
+	return fmt.Sprintf("user does not exist [uid: %d, name: %s, keyid: %d]", err.UID, err.Name, err.KeyID)
 }
 
 type ErrEmailAlreadyUsed struct {

@@ -9,13 +9,13 @@ import (
 
 	"github.com/Unknwon/com"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/auth"
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/setting"
-	"github.com/go-gitea/gitea/routers"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/routers"
 )
 
 const (
@@ -30,7 +30,7 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsAdminUsers"] = true
 
 	routers.RenderUserSearch(ctx, &routers.UserSearchOptions{
-		Type:     models.USER_TYPE_INDIVIDUAL,
+		Type:     models.UserTypeIndividual,
 		Counter:  models.CountUsers,
 		Ranger:   models.Users,
 		PageSize: setting.UI.Admin.UserPagingNum,
@@ -81,7 +81,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCrateUserForm) {
 		Email:     form.Email,
 		Passwd:    form.Password,
 		IsActive:  true,
-		LoginType: models.LOGIN_PLAIN,
+		LoginType: models.LoginPlain,
 	}
 
 	if len(form.LoginType) > 0 {

@@ -11,7 +11,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/go-gitea/gitea/modules/log"
+	"code.gitea.io/gitea/modules/log"
 )
 
 var (

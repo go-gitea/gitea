@@ -10,11 +10,11 @@ import (
 	"path"
 	"strings"
 
+	"code.gitea.io/git"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/setting"
-	"github.com/go-gitea/git"
 	editorconfig "gopkg.in/editorconfig/editorconfig-core-go.v1"
 	macaron "gopkg.in/macaron.v1"
 )
@@ -51,22 +51,22 @@ type Repository struct {
 
 // IsOwner returns true if current user is the owner of repository.
 func (r *Repository) IsOwner() bool {
-	return r.AccessMode >= models.ACCESS_MODE_OWNER
+	return r.AccessMode >= models.AccessModeOwner
 }
 
 // IsAdmin returns true if current user has admin or higher access of repository.
 func (r *Repository) IsAdmin() bool {
-	return r.AccessMode >= models.ACCESS_MODE_ADMIN
+	return r.AccessMode >= models.AccessModeAdmin
 }
 
 // IsWriter returns true if current user has write or higher access of repository.
 func (r *Repository) IsWriter() bool {
-	return r.AccessMode >= models.ACCESS_MODE_WRITE
+	return r.AccessMode >= models.AccessModeWrite
 }
 
 // HasAccess returns true if the current user has at least read access for this repository
 func (r *Repository) HasAccess() bool {
-	return r.AccessMode >= models.ACCESS_MODE_READ
+	return r.AccessMode >= models.AccessModeRead
 }
 
 // CanEnableEditor returns true if repository is editable and user has proper access level.
@@ -146,10 +146,6 @@ func RepoAssignment(args ...bool) macaron.Handler {
 
 		userName := ctx.Params(":username")
 		repoName := ctx.Params(":reponame")
-		refName := ctx.Params(":branchname")
-		if len(refName) == 0 {
-			refName = ctx.Params(":path")
-		}
 
 		// Check if the user is the same as the repository owner
 		if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(userName) {
@@ -192,7 +188,7 @@ func RepoAssignment(args ...bool) macaron.Handler {
 
 		// Admin has super access.
 		if ctx.IsSigned && ctx.User.IsAdmin {
-			ctx.Repo.AccessMode = models.ACCESS_MODE_OWNER
+			ctx.Repo.AccessMode = models.AccessModeOwner
 		} else {
 			mode, err := models.AccessLevel(ctx.User, repo)
 			if err != nil {
@@ -203,7 +199,7 @@ func RepoAssignment(args ...bool) macaron.Handler {
 		}
 
 		// Check access.
-		if ctx.Repo.AccessMode == models.ACCESS_MODE_NONE {
+		if ctx.Repo.AccessMode == models.AccessModeNone {
 			if ctx.Query("go-get") == "1" {
 				earlyResponseForGoGetMeta(ctx)
 				return

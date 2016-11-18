@@ -18,8 +18,8 @@ import (
 	"github.com/russross/blackfriday"
 	"golang.org/x/net/html"
 
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 const (

@@ -124,27 +124,47 @@ func (engine *Engine) QuoteStr() string {
 }
 
 // Quote Use QuoteStr quote the string sql
-func (engine *Engine) Quote(sql string) string {
-	return engine.quoteTable(sql)
+func (engine *Engine) Quote(value string) string {
+	value = strings.TrimSpace(value)
+	if len(value) == 0 {
+		return value
+	}
+
+	if string(value[0]) == engine.dialect.QuoteStr() || value[0] == '`' {
+		return value
+	}
+
+	value = strings.Replace(value, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
+
+	return engine.dialect.QuoteStr() + value + engine.dialect.QuoteStr()
+}
+
+// QuoteTo quotes string and writes into the buffer
+func (engine *Engine) QuoteTo(buf *bytes.Buffer, value string) {
+
+	if buf == nil {
+		return
+	}
+
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return
+	}
+
+	if string(value[0]) == engine.dialect.QuoteStr() || value[0] == '`' {
+		buf.WriteString(value)
+		return
+	}
+
+	value = strings.Replace(value, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
+
+	buf.WriteString(engine.dialect.QuoteStr())
+	buf.WriteString(value)
+	buf.WriteString(engine.dialect.QuoteStr())
 }
 
 func (engine *Engine) quote(sql string) string {
 	return engine.dialect.QuoteStr() + sql + engine.dialect.QuoteStr()
-}
-
-func (engine *Engine) quoteTable(keyName string) string {
-	keyName = strings.TrimSpace(keyName)
-	if len(keyName) == 0 {
-		return keyName
-	}
-
-	if string(keyName[0]) == engine.dialect.QuoteStr() || keyName[0] == '`' {
-		return keyName
-	}
-
-	keyName = strings.Replace(keyName, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
-
-	return engine.dialect.QuoteStr() + keyName + engine.dialect.QuoteStr()
 }
 
 // SqlType will be depracated, please use SQLType instead

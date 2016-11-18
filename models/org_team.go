@@ -38,7 +38,9 @@ func (t *Team) IsMember(uid int64) bool {
 
 func (t *Team) getRepositories(e Engine) (err error) {
 	teamRepos := make([]*TeamRepo, 0, t.NumRepos)
-	if err = x.Where("team_id=?", t.ID).Find(&teamRepos); err != nil {
+	if err = x.
+		Where("team_id=?", t.ID).
+		Find(&teamRepos); err != nil {
 		return fmt.Errorf("get team-repos: %v", err)
 	}
 
@@ -155,7 +157,7 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 		return fmt.Errorf("get team members: %v", err)
 	}
 	for _, u := range t.Members {
-		has, err := hasAccess(e, u, repo, ACCESS_MODE_READ)
+		has, err := hasAccess(e, u, repo, AccessModeRead)
 		if err != nil {
 			return err
 		} else if has {
@@ -225,7 +227,10 @@ func NewTeam(t *Team) (err error) {
 	}
 
 	t.LowerName = strings.ToLower(t.Name)
-	has, err = x.Where("org_id=?", t.OrgID).And("lower_name=?", t.LowerName).Get(new(Team))
+	has, err = x.
+		Where("org_id=?", t.OrgID).
+		And("lower_name=?", t.LowerName).
+		Get(new(Team))
 	if err != nil {
 		return err
 	} else if has {
@@ -303,7 +308,11 @@ func UpdateTeam(t *Team, authChanged bool) (err error) {
 	}
 
 	t.LowerName = strings.ToLower(t.Name)
-	has, err := x.Where("org_id=?", t.OrgID).And("lower_name=?", t.LowerName).And("id!=?", t.ID).Get(new(Team))
+	has, err := x.
+		Where("org_id=?", t.OrgID).
+		And("lower_name=?", t.LowerName).
+		And("id!=?", t.ID).
+		Get(new(Team))
 	if err != nil {
 		return err
 	} else if has {
@@ -357,7 +366,10 @@ func DeleteTeam(t *Team) error {
 	}
 
 	// Delete team-user.
-	if _, err = sess.Where("org_id=?", org.ID).Where("team_id=?", t.ID).Delete(new(TeamUser)); err != nil {
+	if _, err = sess.
+		Where("org_id=?", org.ID).
+		Where("team_id=?", t.ID).
+		Delete(new(TeamUser)); err != nil {
 		return err
 	}
 
@@ -389,7 +401,11 @@ type TeamUser struct {
 }
 
 func isTeamMember(e Engine, orgID, teamID, uid int64) bool {
-	has, _ := e.Where("org_id=?", orgID).And("team_id=?", teamID).And("uid=?", uid).Get(new(TeamUser))
+	has, _ := e.
+		Where("org_id=?", orgID).
+		And("team_id=?", teamID).
+		And("uid=?", uid).
+		Get(new(TeamUser))
 	return has
 }
 
@@ -400,7 +416,9 @@ func IsTeamMember(orgID, teamID, uid int64) bool {
 
 func getTeamMembers(e Engine, teamID int64) (_ []*User, err error) {
 	teamUsers := make([]*TeamUser, 0, 10)
-	if err = e.Where("team_id=?", teamID).Find(&teamUsers); err != nil {
+	if err = e.
+		Where("team_id=?", teamID).
+		Find(&teamUsers); err != nil {
 		return nil, fmt.Errorf("get team-users: %v", err)
 	}
 	members := make([]*User, 0, len(teamUsers))
@@ -421,7 +439,10 @@ func GetTeamMembers(teamID int64) ([]*User, error) {
 
 func getUserTeams(e Engine, orgId, uid int64) ([]*Team, error) {
 	tus := make([]*TeamUser, 0, 5)
-	if err := e.Where("uid=?", uid).And("org_id=?", orgId).Find(&tus); err != nil {
+	if err := e.
+		Where("uid=?", uid).
+		And("org_id=?", orgId).
+		Find(&tus); err != nil {
 		return nil, err
 	}
 
@@ -492,7 +513,10 @@ func AddTeamMember(orgID, teamID, uid int64) error {
 
 	// We make sure it exists before.
 	ou := new(OrgUser)
-	if _, err = sess.Where("uid = ?", uid).And("org_id = ?", orgID).Get(ou); err != nil {
+	if _, err = sess.
+		Where("uid = ?", uid).
+		And("org_id = ?", orgID).
+		Get(ou); err != nil {
 		return err
 	}
 	ou.NumTeams++
@@ -541,7 +565,10 @@ func removeTeamMember(e Engine, orgID, teamID, uid int64) error {
 	}
 	if _, err := e.Delete(tu); err != nil {
 		return err
-	} else if _, err = e.Id(t.ID).AllCols().Update(t); err != nil {
+	} else if _, err = e.
+		Id(t.ID).
+		AllCols().
+		Update(t); err != nil {
 		return err
 	}
 
@@ -554,7 +581,10 @@ func removeTeamMember(e Engine, orgID, teamID, uid int64) error {
 
 	// This must exist.
 	ou := new(OrgUser)
-	_, err = e.Where("uid = ?", uid).And("org_id = ?", org.ID).Get(ou)
+	_, err = e.
+		Where("uid = ?", uid).
+		And("org_id = ?", org.ID).
+		Get(ou)
 	if err != nil {
 		return err
 	}
@@ -562,7 +592,10 @@ func removeTeamMember(e Engine, orgID, teamID, uid int64) error {
 	if t.IsOwnerTeam() {
 		ou.IsOwner = false
 	}
-	if _, err = e.Id(ou.ID).AllCols().Update(ou); err != nil {
+	if _, err = e.
+		Id(ou.ID).
+		AllCols().
+		Update(ou); err != nil {
 		return err
 	}
 	return nil
@@ -597,7 +630,11 @@ type TeamRepo struct {
 }
 
 func hasTeamRepo(e Engine, orgID, teamID, repoID int64) bool {
-	has, _ := e.Where("org_id=?", orgID).And("team_id=?", teamID).And("repo_id=?", repoID).Get(new(TeamRepo))
+	has, _ := e.
+		Where("org_id=?", orgID).
+		And("team_id=?", teamID).
+		And("repo_id=?", repoID).
+		Get(new(TeamRepo))
 	return has
 }
 

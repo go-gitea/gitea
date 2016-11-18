@@ -11,17 +11,17 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/paginater"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 const (
-	DASHBOARD base.TplName = "user/dashboard/dashboard"
-	ISSUES    base.TplName = "user/dashboard/issues"
-	PROFILE   base.TplName = "user/profile"
-	ORG_HOME  base.TplName = "org/home"
+	tplDashborad base.TplName = "user/dashboard/dashboard"
+	tplIssues    base.TplName = "user/dashboard/issues"
+	tplProfile   base.TplName = "user/profile"
+	tplOrgHome   base.TplName = "org/home"
 )
 
 // getDashboardContextUser finds out dashboard is viewing as which context user.
@@ -86,6 +86,7 @@ func retrieveFeeds(ctx *context.Context, ctxUser *models.User, userID, offset in
 	ctx.Data["Feeds"] = feeds
 }
 
+// Dashboard render the dashborad page
 func Dashboard(ctx *context.Context) {
 	ctxUser := getDashboardContextUser(ctx)
 	if ctx.Written() {
@@ -150,9 +151,10 @@ func Dashboard(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	ctx.HTML(200, DASHBOARD)
+	ctx.HTML(200, tplDashborad)
 }
 
+// Issues render the user issues page
 func Issues(ctx *context.Context) {
 	isPullList := ctx.Params(":type") == "pulls"
 	if isPullList {
@@ -172,7 +174,7 @@ func Issues(ctx *context.Context) {
 	var (
 		viewType   string
 		sortType   = ctx.Query("sort")
-		filterMode = models.FM_ALL
+		filterMode = models.FilterModeAll
 		assigneeID int64
 		posterID   int64
 	)
@@ -187,10 +189,10 @@ func Issues(ctx *context.Context) {
 
 		switch viewType {
 		case "assigned":
-			filterMode = models.FM_ASSIGN
+			filterMode = models.FilterModeAssign
 			assigneeID = ctxUser.ID
 		case "created_by":
-			filterMode = models.FM_CREATE
+			filterMode = models.FilterModeCreate
 			posterID = ctxUser.ID
 		}
 	}
@@ -235,7 +237,7 @@ func Issues(ctx *context.Context) {
 			allCount += repo.NumOpenIssues
 		}
 
-		if filterMode != models.FM_ALL {
+		if filterMode != models.FilterModeAll {
 			// Calculate repository issue count with filter mode.
 			numOpen, numClosed := repo.IssueStats(ctxUser.ID, filterMode, isPullList)
 			repo.NumOpenIssues, repo.NumClosedIssues = int(numOpen), int(numClosed)
@@ -308,9 +310,10 @@ func Issues(ctx *context.Context) {
 		ctx.Data["State"] = "open"
 	}
 
-	ctx.HTML(200, ISSUES)
+	ctx.HTML(200, tplIssues)
 }
 
+// ShowSSHKeys ouput all the ssh keys of user by uid
 func ShowSSHKeys(ctx *context.Context, uid int64) {
 	keys, err := models.ListPublicKeys(uid)
 	if err != nil {
@@ -373,9 +376,10 @@ func showOrgProfile(ctx *context.Context) {
 
 	ctx.Data["Teams"] = org.Teams
 
-	ctx.HTML(200, ORG_HOME)
+	ctx.HTML(200, tplOrgHome)
 }
 
+// Email2User show user page via email
 func Email2User(ctx *context.Context) {
 	u, err := models.GetUserByEmail(ctx.Query("email"))
 	if err != nil {

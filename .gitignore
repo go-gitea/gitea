@@ -7,6 +7,9 @@
 _obj
 _test
 
+# IntelliJ
+.idea
+
 # Architecture specific extensions/prefixes
 *.[568vq]
 [568vq].out
@@ -24,10 +27,11 @@ _testmain.go
 *.prof
 
 coverage.out
-gitea
 
 *.db
 *.log
+
+/gitea
 
 /bin
 /dist

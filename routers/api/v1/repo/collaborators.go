@@ -5,10 +5,10 @@
 package repo
 
 import (
-	api "github.com/gogits/go-gogs-client"
+	api "code.gitea.io/sdk/gitea"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/context"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/context"
 )
 
 func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {

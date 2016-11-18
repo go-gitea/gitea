@@ -13,10 +13,10 @@ import (
 	"github.com/go-xorm/xorm"
 	"gopkg.in/ini.v1"
 
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/process"
-	"github.com/go-gitea/gitea/modules/setting"
-	"github.com/go-gitea/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/sync"
 )
 
 var MirrorQueue = sync.NewUniqueQueue(setting.Repository.MirrorQueueLength)
@@ -191,24 +191,26 @@ func DeleteMirrorByRepoID(repoID int64) error {
 
 // MirrorUpdate checks and updates mirror repositories.
 func MirrorUpdate() {
-	if taskStatusTable.IsRunning(_MIRROR_UPDATE) {
+	if taskStatusTable.IsRunning(mirrorUpdate) {
 		return
 	}
-	taskStatusTable.Start(_MIRROR_UPDATE)
-	defer taskStatusTable.Stop(_MIRROR_UPDATE)
+	taskStatusTable.Start(mirrorUpdate)
+	defer taskStatusTable.Stop(mirrorUpdate)
 
 	log.Trace("Doing: MirrorUpdate")
 
-	if err := x.Where("next_update_unix<=?", time.Now().Unix()).Iterate(new(Mirror), func(idx int, bean interface{}) error {
-		m := bean.(*Mirror)
-		if m.Repo == nil {
-			log.Error(4, "Disconnected mirror repository found: %d", m.ID)
-			return nil
-		}
+	if err := x.
+		Where("next_update_unix<=?", time.Now().Unix()).
+		Iterate(new(Mirror), func(idx int, bean interface{}) error {
+			m := bean.(*Mirror)
+			if m.Repo == nil {
+				log.Error(4, "Disconnected mirror repository found: %d", m.ID)
+				return nil
+			}
 
-		MirrorQueue.Add(m.RepoID)
-		return nil
-	}); err != nil {
+			MirrorQueue.Add(m.RepoID)
+			return nil
+		}); err != nil {
 		log.Error(4, "MirrorUpdate: %v", err)
 	}
 }

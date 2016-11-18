@@ -33,12 +33,35 @@ var CmdCert = cli.Command{
 Outputs to 'cert.pem' and 'key.pem' and will overwrite existing files.`,
 	Action: runCert,
 	Flags: []cli.Flag{
-		stringFlag("host", "", "Comma-separated hostnames and IPs to generate a certificate for"),
-		stringFlag("ecdsa-curve", "", "ECDSA curve to use to generate a key. Valid values are P224, P256, P384, P521"),
-		intFlag("rsa-bits", 2048, "Size of RSA key to generate. Ignored if --ecdsa-curve is set"),
-		stringFlag("start-date", "", "Creation date formatted as Jan 1 15:04:05 2011"),
-		durationFlag("duration", 365*24*time.Hour, "Duration that certificate is valid for"),
-		boolFlag("ca", "whether this cert should be its own Certificate Authority"),
+		cli.StringFlag{
+			Name:  "host",
+			Value: "",
+			Usage: "Comma-separated hostnames and IPs to generate a certificate for",
+		},
+		cli.StringFlag{
+			Name:  "ecdsa-curve",
+			Value: "",
+			Usage: "ECDSA curve to use to generate a key. Valid values are P224, P256, P384, P521",
+		},
+		cli.IntFlag{
+			Name:  "rsa-bits",
+			Value: 2048,
+			Usage: "Size of RSA key to generate. Ignored if --ecdsa-curve is set",
+		},
+		cli.StringFlag{
+			Name:  "start-date",
+			Value: "",
+			Usage: "Creation date formatted as Jan 1 15:04:05 2011",
+		},
+		cli.DurationFlag{
+			Name:  "duration",
+			Value: 365 * 24 * time.Hour,
+			Usage: "Duration that certificate is valid for",
+		},
+		cli.BoolFlag{
+			Name:  "ca",
+			Usage: "whether this cert should be its own Certificate Authority",
+		},
 	},
 }
 

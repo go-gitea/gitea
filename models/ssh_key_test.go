@@ -11,7 +11,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func init() {

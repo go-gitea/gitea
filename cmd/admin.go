@@ -9,8 +9,8 @@ import (
 
 	"github.com/urfave/cli"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 var (
@@ -30,11 +30,30 @@ to make automatic initialization process more smoothly`,
 		Usage:  "Create a new user in database",
 		Action: runCreateUser,
 		Flags: []cli.Flag{
-			stringFlag("name", "", "Username"),
-			stringFlag("password", "", "User password"),
-			stringFlag("email", "", "User email address"),
-			boolFlag("admin", "User is an admin"),
-			stringFlag("config, c", "custom/conf/app.ini", "Custom configuration file path"),
+			cli.StringFlag{
+				Name:  "name",
+				Value: "",
+				Usage: "Username",
+			},
+			cli.StringFlag{
+				Name:  "password",
+				Value: "",
+				Usage: "User password",
+			},
+			cli.StringFlag{
+				Name:  "email",
+				Value: "",
+				Usage: "User email address",
+			},
+			cli.BoolFlag{
+				Name:  "admin",
+				Usage: "User is an admin",
+			},
+			cli.StringFlag{
+				Name:  "config, c",
+				Value: "custom/conf/app.ini",
+				Usage: "Custom configuration file path",
+			},
 		},
 	}
 )

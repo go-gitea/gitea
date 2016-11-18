@@ -9,25 +9,30 @@ import (
 
 	"github.com/Unknwon/paginater"
 
-	"github.com/go-gitea/gitea/models"
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/context"
-	"github.com/go-gitea/gitea/modules/setting"
-	"github.com/go-gitea/gitea/routers/user"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/routers/user"
 )
 
 const (
-	HOME                  base.TplName = "home"
-	EXPLORE_REPOS         base.TplName = "explore/repos"
-	EXPLORE_USERS         base.TplName = "explore/users"
-	EXPLORE_ORGANIZATIONS base.TplName = "explore/organizations"
+	// tplHome home page template
+	tplHome base.TplName = "home"
+	// tplExploreRepos explore repositories page template
+	tplExploreRepos base.TplName = "explore/repos"
+	// tplExploreUsers explore users page template
+	tplExploreUsers base.TplName = "explore/users"
+	// tplExploreOrganizations explore organizations page template
+	tplExploreOrganizations base.TplName = "explore/organizations"
 )
 
+// Home render home page
 func Home(ctx *context.Context) {
 	if ctx.IsSigned {
 		if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 			ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-			ctx.HTML(200, user.ACTIVATE)
+			ctx.HTML(200, user.TplActivate)
 		} else {
 			user.Dashboard(ctx)
 		}
@@ -42,9 +47,10 @@ func Home(ctx *context.Context) {
 	}
 
 	ctx.Data["PageIsHome"] = true
-	ctx.HTML(200, HOME)
+	ctx.HTML(200, tplHome)
 }
 
+// RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
 	Counter  func(bool) int64
 	Ranger   func(int, int) ([]*models.Repository, error)
@@ -54,6 +60,7 @@ type RepoSearchOptions struct {
 	TplName  base.TplName
 }
 
+// RenderRepoSearch render repositories search page
 func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	page := ctx.QueryInt("page")
 	if page <= 0 {
@@ -102,6 +109,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.HTML(200, opts.TplName)
 }
 
+// ExploreRepos render explore repositories page
 func ExploreRepos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
@@ -112,10 +120,11 @@ func ExploreRepos(ctx *context.Context) {
 		Ranger:   models.GetRecentUpdatedRepositories,
 		PageSize: setting.UI.ExplorePagingNum,
 		OrderBy:  "updated_unix DESC",
-		TplName:  EXPLORE_REPOS,
+		TplName:  tplExploreRepos,
 	})
 }
 
+// UserSearchOptions options when render search user page
 type UserSearchOptions struct {
 	Type     models.UserType
 	Counter  func() int64
@@ -125,6 +134,7 @@ type UserSearchOptions struct {
 	TplName  base.TplName
 }
 
+// RenderUserSearch render user search page
 func RenderUserSearch(ctx *context.Context, opts *UserSearchOptions) {
 	page := ctx.QueryInt("page")
 	if page <= 1 {
@@ -166,36 +176,39 @@ func RenderUserSearch(ctx *context.Context, opts *UserSearchOptions) {
 	ctx.HTML(200, opts.TplName)
 }
 
+// ExploreUsers render explore users page
 func ExploreUsers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreUsers"] = true
 
 	RenderUserSearch(ctx, &UserSearchOptions{
-		Type:     models.USER_TYPE_INDIVIDUAL,
+		Type:     models.UserTypeIndividual,
 		Counter:  models.CountUsers,
 		Ranger:   models.Users,
 		PageSize: setting.UI.ExplorePagingNum,
-		OrderBy:  "updated_unix DESC",
-		TplName:  EXPLORE_USERS,
+		OrderBy:  "name ASC",
+		TplName:  tplExploreUsers,
 	})
 }
 
+// ExploreOrganizations render explore organizations page
 func ExploreOrganizations(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreOrganizations"] = true
 
 	RenderUserSearch(ctx, &UserSearchOptions{
-		Type:     models.USER_TYPE_ORGANIZATION,
+		Type:     models.UserTypeOrganization,
 		Counter:  models.CountOrganizations,
 		Ranger:   models.Organizations,
 		PageSize: setting.UI.ExplorePagingNum,
-		OrderBy:  "updated_unix DESC",
-		TplName:  EXPLORE_ORGANIZATIONS,
+		OrderBy:  "name ASC",
+		TplName:  tplExploreOrganizations,
 	})
 }
 
+// NotFound render 404 page
 func NotFound(ctx *context.Context) {
 	ctx.Data["Title"] = "Page Not Found"
 	ctx.Handle(404, "home.NotFound", nil)

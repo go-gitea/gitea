@@ -211,8 +211,8 @@ function initInstall() {
 
     // Database type change detection.
     $("#db_type").change(function () {
-        var sqliteDefault = 'data/gogs.db';
-        var tidbDefault = 'data/gogs_tidb';
+        var sqliteDefault = 'data/gitea.db';
+        var tidbDefault = 'data/gitea_tidb';
 
         var dbType = $(this).val();
         if (dbType === "SQLite3" || dbType === "TiDB") {

@@ -14,15 +14,14 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 type NoticeType int
 
 const (
-	NOTICE_REPOSITORY NoticeType = iota + 1
+	NoticeRepository NoticeType = iota + 1
 )
 
 // Notice represents a system notice for admin.
@@ -65,9 +64,9 @@ func CreateNotice(tp NoticeType, desc string) error {
 	return err
 }
 
-// CreateRepositoryNotice creates new system notice with type NOTICE_REPOSITORY.
+// CreateRepositoryNotice creates new system notice with type NoticeRepository.
 func CreateRepositoryNotice(desc string) error {
-	return CreateNotice(NOTICE_REPOSITORY, desc)
+	return CreateNotice(NoticeRepository, desc)
 }
 
 // RemoveAllWithNotice removes all directories in given path and
@@ -103,7 +102,10 @@ func CountNotices() int64 {
 // Notices returns number of notices in given page.
 func Notices(page, pageSize int) ([]*Notice, error) {
 	notices := make([]*Notice, 0, pageSize)
-	return notices, x.Limit(pageSize, (page-1)*pageSize).Desc("id").Find(&notices)
+	return notices, x.
+		Limit(pageSize, (page-1)*pageSize).
+		Desc("id").
+		Find(&notices)
 }
 
 // DeleteNotice deletes a system notice by given ID.
@@ -127,6 +129,8 @@ func DeleteNoticesByIDs(ids []int64) error {
 	if len(ids) == 0 {
 		return nil
 	}
-	_, err := x.Where("id IN (" + strings.Join(base.Int64sToStrings(ids), ",") + ")").Delete(new(Notice))
+	_, err := x.
+		In("id", ids).
+		Delete(new(Notice))
 	return err
 }

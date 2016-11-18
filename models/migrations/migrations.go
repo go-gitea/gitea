@@ -20,9 +20,9 @@ import (
 	gouuid "github.com/satori/go.uuid"
 	"gopkg.in/ini.v1"
 
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 const _MIN_DB_VER = 4
@@ -72,6 +72,8 @@ var migrations = []Migration{
 
 	// v13 -> v14:v0.9.87
 	NewMigration("set comment updated with created", setCommentUpdatedWithCreated),
+
+	NewMigration("create user column diff view style", createUserColumnDiffViewStyle),
 }
 
 // Migrate database to current version
@@ -96,7 +98,7 @@ func Migrate(x *xorm.Engine) error {
 
 	v := currentVersion.Version
 	if _MIN_DB_VER > v {
-		log.Fatal(4, `Gogs no longer supports auto-migration from your previously installed version. 
+		log.Fatal(4, `Gogs no longer supports auto-migration from your previously installed version.
 Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to current version.`)
 		return nil
 	}
@@ -628,7 +630,7 @@ func convertDateToUnix(x *xorm.Engine) (err error) {
 		offset := 0
 		for {
 			beans := make([]*Bean, 0, 100)
-			if err = x.Sql(fmt.Sprintf("SELECT * FROM `%s` ORDER BY id ASC LIMIT 100 OFFSET %d",
+			if err = x.SQL(fmt.Sprintf("SELECT * FROM `%s` ORDER BY id ASC LIMIT 100 OFFSET %d",
 				table.name, offset)).Find(&beans); err != nil {
 				return fmt.Errorf("select beans [table: %s, offset: %d]: %v", table.name, offset, err)
 			}

@@ -24,21 +24,21 @@ import (
 	"github.com/go-xorm/xorm"
 	"github.com/nfnt/resize"
 
-	"github.com/go-gitea/git"
-	api "github.com/gogits/go-gogs-client"
+	"code.gitea.io/git"
+	api "code.gitea.io/sdk/gitea"
 
-	"github.com/go-gitea/gitea/modules/avatar"
-	"github.com/go-gitea/gitea/modules/base"
-	"github.com/go-gitea/gitea/modules/log"
-	"github.com/go-gitea/gitea/modules/markdown"
-	"github.com/go-gitea/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/avatar"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 type UserType int
 
 const (
-	USER_TYPE_INDIVIDUAL UserType = iota // Historic reason to make it starts at 0.
-	USER_TYPE_ORGANIZATION
+	UserTypeIndividual UserType = iota // Historic reason to make it starts at 0.
+	UserTypeOrganization
 )
 
 var (
@@ -71,10 +71,12 @@ type User struct {
 	Rands       string `xorm:"VARCHAR(10)"`
 	Salt        string `xorm:"VARCHAR(10)"`
 
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64
-	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64
+	Created       time.Time `xorm:"-"`
+	CreatedUnix   int64
+	Updated       time.Time `xorm:"-"`
+	UpdatedUnix   int64
+	LastLogin     time.Time `xorm:"-"`
+	LastLoginUnix int64
 
 	// Remember visibility choice for convenience, true for private
 	LastRepoVisibility bool
@@ -105,6 +107,9 @@ type User struct {
 	NumMembers  int
 	Teams       []*Team `xorm:"-"`
 	Members     []*User `xorm:"-"`
+
+	// Preferences
+	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
 }
 
 func (u *User) BeforeInsert() {
@@ -119,6 +124,16 @@ func (u *User) BeforeUpdate() {
 	u.UpdatedUnix = time.Now().Unix()
 }
 
+// Set time to last login
+func (u *User) SetLastLogin() {
+	u.LastLoginUnix = time.Now().Unix()
+}
+
+func (u *User) UpdateDiffViewStyle(style string) error {
+	u.DiffViewStyle = style
+	return UpdateUser(u)
+}
+
 func (u *User) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
 	case "full_name":
@@ -127,6 +142,8 @@ func (u *User) AfterSet(colName string, _ xorm.Cell) {
 		u.Created = time.Unix(u.CreatedUnix, 0).Local()
 	case "updated_unix":
 		u.Updated = time.Unix(u.UpdatedUnix, 0).Local()
+	case "last_login_unix":
+		u.LastLogin = time.Unix(u.LastLoginUnix, 0).Local()
 	}
 }
 
@@ -140,9 +157,9 @@ func (u *User) APIFormat() *api.User {
 	}
 }
 
-// returns true if user login type is LOGIN_PLAIN.
+// returns true if user login type is LoginPlain.
 func (u *User) IsLocal() bool {
-	return u.LoginType <= LOGIN_PLAIN
+	return u.LoginType <= LoginPlain
 }
 
 // HasForkedRepo checks if user has already forked a repository with given ID.
@@ -279,7 +296,9 @@ func (u *User) AvatarLink() string {
 // User.GetFollwoers returns range of user's followers.
 func (u *User) GetFollowers(page int) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
-	sess := x.Limit(ItemsPerPage, (page-1)*ItemsPerPage).Where("follow.follow_id=?", u.ID)
+	sess := x.
+		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
+		Where("follow.follow_id=?", u.ID)
 	if setting.UsePostgreSQL {
 		sess = sess.Join("LEFT", "follow", `"user".id=follow.user_id`)
 	} else {
@@ -295,7 +314,9 @@ func (u *User) IsFollowing(followID int64) bool {
 // GetFollowing returns range of user's following.
 func (u *User) GetFollowing(page int) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
-	sess := x.Limit(ItemsPerPage, (page-1)*ItemsPerPage).Where("follow.user_id=?", u.ID)
+	sess := x.
+		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
+		Where("follow.user_id=?", u.ID)
 	if setting.UsePostgreSQL {
 		sess = sess.Join("LEFT", "follow", `"user".id=follow.follow_id`)
 	} else {
@@ -375,7 +396,7 @@ func (u *User) DeleteAvatar() error {
 
 // IsAdminOfRepo returns true if user has admin or higher access of repository.
 func (u *User) IsAdminOfRepo(repo *Repository) bool {
-	has, err := HasAccess(u, repo, ACCESS_MODE_ADMIN)
+	has, err := HasAccess(u, repo, AccessModeAdmin)
 	if err != nil {
 		log.Error(3, "HasAccess: %v", err)
 	}
@@ -384,7 +405,7 @@ func (u *User) IsAdminOfRepo(repo *Repository) bool {
 
 // IsWriterOfRepo returns true if user has write access to given repository.
 func (u *User) IsWriterOfRepo(repo *Repository) bool {
-	has, err := HasAccess(u, repo, ACCESS_MODE_WRITE)
+	has, err := HasAccess(u, repo, AccessModeWrite)
 	if err != nil {
 		log.Error(3, "HasAccess: %v", err)
 	}
@@ -393,7 +414,7 @@ func (u *User) IsWriterOfRepo(repo *Repository) bool {
 
 // IsOrganization returns true if user is actually a organization.
 func (u *User) IsOrganization() bool {
-	return u.Type == USER_TYPE_ORGANIZATION
+	return u.Type == UserTypeOrganization
 }
 
 // IsUserOrgOwner returns true if user is in the owner team of given organization.
@@ -407,7 +428,9 @@ func (u *User) IsPublicMember(orgId int64) bool {
 }
 
 func (u *User) getOrganizationCount(e Engine) (int64, error) {
-	return e.Where("uid=?", u.ID).Count(new(OrgUser))
+	return e.
+		Where("uid=?", u.ID).
+		Count(new(OrgUser))
 }
 
 // GetOrganizationCount returns count of membership of organization of user.
@@ -470,7 +493,9 @@ func IsUserExist(uid int64, name string) (bool, error) {
 	if len(name) == 0 {
 		return false, nil
 	}
-	return x.Where("id!=?", uid).Get(&User{LowerName: strings.ToLower(name)})
+	return x.
+		Where("id!=?", uid).
+		Get(&User{LowerName: strings.ToLower(name)})
 }
 
 // GetUserSalt returns a ramdom user salt token.
@@ -488,12 +513,12 @@ func NewGhostUser() *User {
 }
 
 var (
-	reversedUsernames    = []string{"debug", "raw", "install", "api", "avatar", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "new", ".", ".."}
-	reversedUserPatterns = []string{"*.keys"}
+	reservedUsernames    = []string{"assets", "css", "img", "js", "less", "plugins", "debug", "raw", "install", "api", "avatar", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "new", ".", ".."}
+	reservedUserPatterns = []string{"*.keys"}
 )
 
 // isUsableName checks if name is reserved or pattern of name is not allowed
-// based on given reversed names and patterns.
+// based on given reserved names and patterns.
 // Names are exact match, patterns can be prefix or suffix match with placeholder '*'.
 func isUsableName(names, patterns []string, name string) error {
 	name = strings.TrimSpace(strings.ToLower(name))
@@ -518,7 +543,7 @@ func isUsableName(names, patterns []string, name string) error {
 }
 
 func IsUsableUsername(name string) error {
-	return isUsableName(reversedUsernames, reversedUserPatterns, name)
+	return isUsableName(reservedUsernames, reservedUserPatterns, name)
 }
 
 // CreateUser creates record of a new user.
@@ -566,7 +591,9 @@ func CreateUser(u *User) (err error) {
 }
 
 func countUsers(e Engine) int64 {
-	count, _ := e.Where("type=0").Count(new(User))
+	count, _ := e.
+		Where("type=0").
+		Count(new(User))
 	return count
 }
 
@@ -578,7 +605,11 @@ func CountUsers() int64 {
 // Users returns number of users in given page.
 func Users(page, pageSize int) ([]*User, error) {
 	users := make([]*User, 0, pageSize)
-	return users, x.Limit(pageSize, (page-1)*pageSize).Where("type=0").Asc("id").Find(&users)
+	return users, x.
+		Limit(pageSize, (page-1)*pageSize).
+		Where("type=0").
+		Asc("name").
+		Find(&users)
 }
 
 // get user by erify code
@@ -652,11 +683,13 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	}
 
 	// Delete all local copies of repository wiki that user owns.
-	if err = x.Where("owner_id=?", u.ID).Iterate(new(Repository), func(idx int, bean interface{}) error {
-		repo := bean.(*Repository)
-		RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
-		return nil
-	}); err != nil {
+	if err = x.
+		Where("owner_id=?", u.ID).
+		Iterate(new(Repository), func(idx int, bean interface{}) error {
+			repo := bean.(*Repository)
+			RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
+			return nil
+		}); err != nil {
 		return fmt.Errorf("Delete repository wiki local copy: %v", err)
 	}
 
@@ -667,7 +700,11 @@ func updateUser(e Engine, u *User) error {
 	// Organization does not need email
 	if !u.IsOrganization() {
 		u.Email = strings.ToLower(u.Email)
-		has, err := e.Where("id!=?", u.ID).And("type=?", u.Type).And("email=?", u.Email).Get(new(User))
+		has, err := e.
+			Where("id!=?", u.ID).
+			And("type=?", u.Type).
+			And("email=?", u.Email).
+			Get(new(User))
 		if err != nil {
 			return err
 		} else if has {
@@ -834,7 +871,9 @@ func DeleteUser(u *User) (err error) {
 // DeleteInactivateUsers deletes all inactivate users and email addresses.
 func DeleteInactivateUsers() (err error) {
 	users := make([]*User, 0, 10)
-	if err = x.Where("is_active = ?", false).Find(&users); err != nil {
+	if err = x.
+		Where("is_active = ?", false).
+		Find(&users); err != nil {
 		return fmt.Errorf("get all inactive users: %v", err)
 	}
 	// FIXME: should only update authorized_keys file once after all deletions.
@@ -848,7 +887,9 @@ func DeleteInactivateUsers() (err error) {
 		}
 	}
 
-	_, err = x.Where("is_activated = ?", false).Delete(new(EmailAddress))
+	_, err = x.
+		Where("is_activated = ?", false).
+		Delete(new(EmailAddress))
 	return err
 }
 
@@ -857,15 +898,19 @@ func UserPath(userName string) string {
 	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
 }
 
+// GetUserByKeyID get user information by user's public key id
 func GetUserByKeyID(keyID int64) (*User, error) {
-	user := new(User)
-	has, err := x.Sql("SELECT a.* FROM `user` AS a, public_key AS b WHERE a.id = b.owner_id AND b.id=?", keyID).Get(user)
+	var user User
+	has, err := x.Join("INNER", "public_key", "`public_key`.owner_id = `user`.id").
+		Where("`public_key`.id=?", keyID).
+		Get(&user)
 	if err != nil {
 		return nil, err
-	} else if !has {
-		return nil, ErrUserNotKeyOwner
 	}
-	return user, nil
+	if !has {
+		return nil, ErrUserNotExist{0, "", keyID}
+	}
+	return &user, nil
 }
 
 func getUserByID(e Engine, id int64) (*User, error) {
@@ -874,7 +919,7 @@ func getUserByID(e Engine, id int64) (*User, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{id, ""}
+		return nil, ErrUserNotExist{id, "", 0}
 	}
 	return u, nil
 }
@@ -886,11 +931,11 @@ func GetUserByID(id int64) (*User, error) {
 
 // GetAssigneeByID returns the user with write access of repository by given ID.
 func GetAssigneeByID(repo *Repository, userID int64) (*User, error) {
-	has, err := HasAccess(&User{ID: userID}, repo, ACCESS_MODE_WRITE)
+	has, err := HasAccess(&User{ID: userID}, repo, AccessModeWrite)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{userID, ""}
+		return nil, ErrUserNotExist{userID, "", 0}
 	}
 	return GetUserByID(userID)
 }
@@ -898,14 +943,14 @@ func GetAssigneeByID(repo *Repository, userID int64) (*User, error) {
 // GetUserByName returns user by given name.
 func GetUserByName(name string) (*User, error) {
 	if len(name) == 0 {
-		return nil, ErrUserNotExist{0, name}
+		return nil, ErrUserNotExist{0, name, 0}
 	}
 	u := &User{LowerName: strings.ToLower(name)}
 	has, err := x.Get(u)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{0, name}
+		return nil, ErrUserNotExist{0, name, 0}
 	}
 	return u, nil
 }
@@ -921,6 +966,16 @@ func GetUserEmailsByNames(names []string) []string {
 		mails = append(mails, u.Email)
 	}
 	return mails
+}
+
+// GetUsersByIDs returns all resolved users from a list of Ids.
+func GetUsersByIDs(ids []int64) ([]*User, error) {
+	ous := make([]*User, 0, len(ids))
+	err := x.
+		In("id", ids).
+		Asc("name").
+		Find(&ous)
+	return ous, err
 }
 
 // GetUserIDsByNames returns a slice of ids corresponds to names.
@@ -981,7 +1036,7 @@ func ValidateCommitsWithEmails(oldCommits *list.List) *list.List {
 // GetUserByEmail returns the user object by given e-mail if exists.
 func GetUserByEmail(email string) (*User, error) {
 	if len(email) == 0 {
-		return nil, ErrUserNotExist{0, "email"}
+		return nil, ErrUserNotExist{0, email, 0}
 	}
 
 	email = strings.ToLower(email)
@@ -1005,7 +1060,7 @@ func GetUserByEmail(email string) (*User, error) {
 		return GetUserByID(emailAddress.UID)
 	}
 
-	return nil, ErrUserNotExist{0, email}
+	return nil, ErrUserNotExist{0, email, 0}
 }
 
 type SearchUserOptions struct {
@@ -1034,7 +1089,8 @@ func SearchUserByName(opts *SearchUserOptions) (users []*User, _ int64, _ error)
 	searchQuery := "%" + opts.Keyword + "%"
 	users = make([]*User, 0, opts.PageSize)
 	// Append conditions
-	sess := x.Where("LOWER(lower_name) LIKE ?", searchQuery).
+	sess := x.
+		Where("LOWER(lower_name) LIKE ?", searchQuery).
 		Or("LOWER(full_name) LIKE ?", searchQuery).
 		And("type = ?", opts.Type)
 
@@ -1048,7 +1104,9 @@ func SearchUserByName(opts *SearchUserOptions) (users []*User, _ int64, _ error)
 	if len(opts.OrderBy) > 0 {
 		sess.OrderBy(opts.OrderBy)
 	}
-	return users, count, sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).Find(&users)
+	return users, count, sess.
+		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
+		Find(&users)
 }
 
 // ___________    .__  .__
@@ -1120,4 +1178,19 @@ func UnfollowUser(userID, followID int64) (err error) {
 		return err
 	}
 	return sess.Commit()
+}
+
+// GetStarredRepos returns the repos starred by a particular user
+func GetStarredRepos(userID int64, private bool) ([]*Repository, error) {
+	sess := x.Where("star.uid=?", userID).
+		Join("LEFT", "star", "`repository`.id=`star`.repo_id")
+	if !private {
+		sess = sess.And("is_private=?", false)
+	}
+	repos := make([]*Repository, 0, 10)
+	err := sess.Find(&repos)
+	if err != nil {
+		return nil, err
+	}
+	return repos, nil
 }
