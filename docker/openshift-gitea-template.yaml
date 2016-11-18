@@ -193,7 +193,7 @@ parameters:
   name: GITEA_SSH_KEYS_VOLUME_CAPACITY
   required: true
   value: 1Mi
-- description: Volume space available for Gogs repository data, e.g. 512Mi, 2Gi
+- description: Volume space available for Gitea repository data, e.g. 512Mi, 2Gi
   name: GITEA_DATA_VOLUME_CAPACITY
   required: true
   value: 2Gi

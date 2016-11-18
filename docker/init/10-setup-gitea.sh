@@ -7,8 +7,8 @@ cp /app/gitea/docker/gitea.sh /etc/service/99-gitea/run
 chmod -R 775 /etc/service/99-gitea
 chown -R git:root /etc/service/99-gitea
 
-export GOGS_CUSTOM=/data/gitea
-echo "export GOGS_CUSTOM=${GOGS_CUSTOM}" >> /etc/profile
+export GITEA_CUSTOM=/data/gitea
+echo "export GITEA_CUSTOM=${GITEA_CUSTOM}" >> /etc/profile
 
 chown -R git:root /data /app/gitea
 chmod 0775 /data /app/gitea
