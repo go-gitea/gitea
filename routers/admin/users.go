@@ -57,7 +57,7 @@ func NewUser(ctx *context.Context) {
 	ctx.HTML(200, USER_NEW)
 }
 
-func NewUserPost(ctx *context.Context, form auth.AdminCrateUserForm) {
+func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
@@ -206,6 +206,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	u.IsAdmin = form.Admin
 	u.AllowGitHook = form.AllowGitHook
 	u.AllowImportLocal = form.AllowImportLocal
+	u.AllowCreateOrganization = form.AllowCreateOrganization
 	u.ProhibitLogin = form.ProhibitLogin
 
 	if err := models.UpdateUser(u); err != nil {

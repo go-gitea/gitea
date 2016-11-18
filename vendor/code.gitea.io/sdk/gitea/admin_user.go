@@ -30,18 +30,19 @@ func (c *Client) AdminCreateUser(opt CreateUserOption) (*User, error) {
 }
 
 type EditUserOption struct {
-	SourceID         int64  `json:"source_id"`
-	LoginName        string `json:"login_name"`
-	FullName         string `json:"full_name" binding:"MaxSize(100)"`
-	Email            string `json:"email" binding:"Required;Email;MaxSize(254)"`
-	Password         string `json:"password" binding:"MaxSize(255)"`
-	Website          string `json:"website" binding:"MaxSize(50)"`
-	Location         string `json:"location" binding:"MaxSize(50)"`
-	Active           *bool  `json:"active"`
-	Admin            *bool  `json:"admin"`
-	AllowGitHook     *bool  `json:"allow_git_hook"`
-	AllowImportLocal *bool  `json:"allow_import_local"`
-	MaxRepoCreation  *int   `json:"max_repo_creation"`
+	SourceID                int64  `json:"source_id"`
+	LoginName               string `json:"login_name"`
+	FullName                string `json:"full_name" binding:"MaxSize(100)"`
+	Email                   string `json:"email" binding:"Required;Email;MaxSize(254)"`
+	Password                string `json:"password" binding:"MaxSize(255)"`
+	Website                 string `json:"website" binding:"MaxSize(50)"`
+	Location                string `json:"location" binding:"MaxSize(50)"`
+	Active                  *bool  `json:"active"`
+	Admin                   *bool  `json:"admin"`
+	AllowGitHook            *bool  `json:"allow_git_hook"`
+	AllowImportLocal        *bool  `json:"allow_import_local"`
+	AllowCreateOrganization *bool  `json:"allow_create_organization"`
+	MaxRepoCreation         *int   `json:"max_repo_creation"`
 }
 
 func (c *Client) AdminEditUser(user string, opt EditUserOption) error {

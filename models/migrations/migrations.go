@@ -18,7 +18,7 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
-	"gopkg.in/ini.v1"
+	ini "gopkg.in/ini.v1"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
@@ -72,8 +72,10 @@ var migrations = []Migration{
 
 	// v13 -> v14:v0.9.87
 	NewMigration("set comment updated with created", setCommentUpdatedWithCreated),
-
+	// v14
 	NewMigration("create user column diff view style", createUserColumnDiffViewStyle),
+	// v15
+	NewMigration("create user colum allow create organization", createAllowCreateOrganizationColumn),
 }
 
 // Migrate database to current version

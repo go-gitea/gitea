@@ -84,11 +84,12 @@ type User struct {
 	MaxRepoCreation int `xorm:"NOT NULL DEFAULT -1"`
 
 	// Permissions
-	IsActive         bool // Activate primary email
-	IsAdmin          bool
-	AllowGitHook     bool
-	AllowImportLocal bool // Allow migrate repository by local path
-	ProhibitLogin    bool
+	IsActive                bool // Activate primary email
+	IsAdmin                 bool
+	AllowGitHook            bool
+	AllowImportLocal        bool // Allow migrate repository by local path
+	AllowCreateOrganization bool
+	ProhibitLogin           bool
 
 	// Avatar
 	Avatar          string `xorm:"VARCHAR(2048) NOT NULL"`
@@ -183,6 +184,11 @@ func (u *User) CanCreateRepo() bool {
 		return u.NumRepos < setting.Repository.MaxCreationLimit
 	}
 	return u.NumRepos < u.MaxRepoCreation
+}
+
+// CanCreateOrg returns true if user can create organisation.
+func (u *User) CanCreateOrganization() bool {
+	return u.IsAdmin || u.AllowCreateOrganization
 }
 
 // CanEditGitHook returns true if user can edit Git hooks.
