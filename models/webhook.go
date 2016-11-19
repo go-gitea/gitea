@@ -23,12 +23,16 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 )
 
+// HookQueue is a global queue of web hooks
 var HookQueue = sync.NewUniqueQueue(setting.Webhook.QueueLength)
 
+// HookContentType is the content type of a web hook
 type HookContentType int
 
 const (
+	// ContentTypeJSON is a JSON payload for web hooks
 	ContentTypeJSON HookContentType = iota + 1
+	// ContentTypeForm is an url-encoded form payload for web hook
 	ContentTypeForm
 )
 
@@ -42,6 +46,7 @@ func ToHookContentType(name string) HookContentType {
 	return hookContentTypes[name]
 }
 
+// Name returns the name of a given web hook's content type
 func (t HookContentType) Name() string {
 	switch t {
 	case ContentTypeJSON:
@@ -58,6 +63,7 @@ func IsValidHookContentType(name string) bool {
 	return ok
 }
 
+// HookEvents is a set of web hook events
 type HookEvents struct {
 	Create      bool `json:"create"`
 	Push        bool `json:"push"`
@@ -73,8 +79,10 @@ type HookEvent struct {
 	HookEvents `json:"events"`
 }
 
+// HookStatus is the status of a web hook
 type HookStatus int
 
+// Possible statuses of a web hook
 const (
 	HookStatusNone = iota
 	HookStatusSucceed
@@ -103,15 +111,20 @@ type Webhook struct {
 	UpdatedUnix int64
 }
 
+// BeforeInsert will be invoked by XORM before inserting a record
+// representing this object
 func (w *Webhook) BeforeInsert() {
 	w.CreatedUnix = time.Now().Unix()
 	w.UpdatedUnix = w.CreatedUnix
 }
 
+// BeforeUpdate will be invoked by XORM before updating a record
+// representing this object
 func (w *Webhook) BeforeUpdate() {
 	w.UpdatedUnix = time.Now().Unix()
 }
 
+// AfterSet updates the webhook object upon setting a column
 func (w *Webhook) AfterSet(colName string, _ xorm.Cell) {
 	var err error
 	switch colName {
@@ -127,6 +140,7 @@ func (w *Webhook) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
+// GetSlackHook returns slack metadata
 func (w *Webhook) GetSlackHook() *SlackMeta {
 	s := &SlackMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
@@ -165,6 +179,7 @@ func (w *Webhook) HasPullRequestEvent() bool {
 		(w.ChooseEvents && w.HookEvents.PullRequest)
 }
 
+// EventsArray returns an array of hook events
 func (w *Webhook) EventsArray() []string {
 	events := make([]string, 0, 3)
 	if w.HasCreateEvent() {
@@ -290,8 +305,10 @@ func GetActiveWebhooksByOrgID(orgID int64) (ws []*Webhook, err error) {
 //  \___|_  / \____/ \____/|__|_ \ |____|  (____  /____  >__|_ \
 //        \/                    \/              \/     \/     \/
 
+// HookTaskType is the type of an hook task
 type HookTaskType int
 
+// Types of hook tasks
 const (
 	GOGS HookTaskType = iota + 1
 	SLACK
@@ -307,6 +324,7 @@ func ToHookTaskType(name string) HookTaskType {
 	return hookTaskTypes[name]
 }
 
+// Name returns the name of an hook task type
 func (t HookTaskType) Name() string {
 	switch t {
 	case GOGS:
@@ -323,8 +341,10 @@ func IsValidHookTaskType(name string) bool {
 	return ok
 }
 
+// HookEventType is the type of an hook event
 type HookEventType string
 
+// Types of hook events
 const (
 	HookEventCreate      HookEventType = "create"
 	HookEventPush        HookEventType = "push"
@@ -368,15 +388,18 @@ type HookTask struct {
 	ResponseInfo    *HookResponse `xorm:"-"`
 }
 
+// BeforeUpdate will be invoked by XORM before updating a record
+// representing this object
 func (t *HookTask) BeforeUpdate() {
 	if t.RequestInfo != nil {
-		t.RequestContent = t.SimpleMarshalJSON(t.RequestInfo)
+		t.RequestContent = t.simpleMarshalJSON(t.RequestInfo)
 	}
 	if t.ResponseInfo != nil {
-		t.ResponseContent = t.SimpleMarshalJSON(t.ResponseInfo)
+		t.ResponseContent = t.simpleMarshalJSON(t.ResponseInfo)
 	}
 }
 
+// AfterSet updates the webhook object upon setting a column
 func (t *HookTask) AfterSet(colName string, _ xorm.Cell) {
 	var err error
 	switch colName {
@@ -405,7 +428,7 @@ func (t *HookTask) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
-func (t *HookTask) SimpleMarshalJSON(v interface{}) string {
+func (t *HookTask) simpleMarshalJSON(v interface{}) string {
 	p, err := json.Marshal(v)
 	if err != nil {
 		log.Error(3, "Marshal [%d]: %v", t.ID, err)
@@ -624,6 +647,7 @@ func DeliverHooks() {
 	}
 }
 
+// InitDeliverHooks starts the hooks delivery thread
 func InitDeliverHooks() {
 	go DeliverHooks()
 }
