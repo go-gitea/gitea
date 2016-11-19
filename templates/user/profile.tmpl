@@ -75,23 +75,28 @@
 			</div>
 			<div class="ui eleven wide column">
 				<div class="ui secondary pointing menu">
-					<a class="{{if ne .TabName "activity"}}active{{end}} item" href="{{.Owner.HomeLink}}">
+					<a class='{{if and (ne .TabName "activity") (ne .TabName "stars")}}active{{end}} item' href="{{.Owner.HomeLink}}">
 						<i class="octicon octicon-repo"></i> {{.i18n.Tr "user.repositories"}}
 					</a>
-					<a class="item">
-						<a class="{{if eq .TabName "activity"}}active{{end}} item" href="{{.Owner.HomeLink}}?tab=activity">
-							<i class="octicon octicon-rss"></i> {{.i18n.Tr "user.activity"}}
-						</a>
+					<a class='{{if eq .TabName "activity"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=activity">
+						<i class="octicon octicon-rss"></i> {{.i18n.Tr "user.activity"}}
+					</a>
+					<a class='{{if eq .TabName "stars"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=stars">
+						<i class="octicon octicon-star"></i> {{.i18n.Tr "user.starred"}}
 					</a>
 				</div>
-				{{if ne .TabName "activity"}}
-					{{template "explore/repo_list" .}}
-					{{template "base/paginate" .}}
-				{{else}}
-					<br>
+
+				{{if eq .TabName "activity"}}
 					<div class="feeds">
 						{{template "user/dashboard/feeds" .}}
 					</div>
+				{{else if eq .TabName "stars"}}
+					<div class="stars">
+						{{template "explore/repo_list" .}}
+					</div>
+				{{else}}
+					{{template "explore/repo_list" .}}
+					{{template "base/paginate" .}}
 				{{end}}
 			</div>
 		</div>
