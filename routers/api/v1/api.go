@@ -202,6 +202,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 				})
 
 				m.Get("/starred", user.GetStarredRepos)
+
+				m.Get("/subscriptions", user.GetWatchedRepos)
 			})
 		}, reqToken())
 
@@ -230,6 +232,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("", user.IsStarring)
 					m.Put("", user.Star)
 					m.Delete("", user.Unstar)
+				}, context.ExtractOwnerAndRepo())
+			})
+
+			m.Group("/subscriptions", func() {
+				m.Get("", user.GetMyWatchedRepos)
+				m.Group("/:username/:reponame", func() {
+					m.Get("", user.IsWatching)
+					m.Put("", user.Watch)
+					m.Delete("", user.Unwatch)
 				}, context.ExtractOwnerAndRepo())
 			})
 		}, reqToken())
