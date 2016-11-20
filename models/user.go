@@ -88,7 +88,7 @@ type User struct {
 	IsAdmin                 bool
 	AllowGitHook            bool
 	AllowImportLocal        bool // Allow migrate repository by local path
-	AllowCreateOrganization bool
+	AllowCreateOrganization bool `xorm:"DEFAULT true"`
 	ProhibitLogin           bool
 
 	// Avatar
@@ -579,6 +579,7 @@ func CreateUser(u *User) (err error) {
 	u.Rands = GetUserSalt()
 	u.Salt = GetUserSalt()
 	u.EncodePasswd()
+	u.AllowCreateOrganization = true
 	u.MaxRepoCreation = -1
 
 	sess := x.NewSession()
