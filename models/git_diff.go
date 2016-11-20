@@ -200,6 +200,7 @@ type DiffFile struct {
 	IsCreated          bool
 	IsDeleted          bool
 	IsBin              bool
+	IsLFSFile          bool
 	IsRenamed          bool
 	IsSubmodule        bool
 	Sections           []*DiffSection
@@ -284,6 +285,7 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 
 				if err == nil && count > 0 {
 					curFile.IsBin = true
+					curFile.IsLFSFile = true
 					curSection.Lines = nil
 					break
 				}
