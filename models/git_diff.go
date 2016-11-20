@@ -245,6 +245,7 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 		leftLine, rightLine int
 		lineCount           int
 		curFileLinesCount   int
+		curFileLFSPrefix    bool
 	)
 
 	input := bufio.NewReader(reader)
@@ -266,6 +267,27 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 
 		if strings.HasPrefix(line, "+++ ") || strings.HasPrefix(line, "--- ") || len(line) == 0 {
 			continue
+		}
+
+		trimLine := strings.Trim(line, "+- ")
+
+		if trimLine == LFSMetaFileIdentifier {
+			curFileLFSPrefix = true
+		}
+
+		if curFileLFSPrefix && strings.HasPrefix(trimLine, LFSMetaFileOidPrefix) {
+			oid := strings.TrimPrefix(trimLine, LFSMetaFileOidPrefix)
+
+			if len(oid) == 64 {
+				m := &LFSMetaObject{Oid: oid}
+				count, err := x.Count(m)
+
+				if err == nil && count > 0 {
+					curFile.IsBin = true
+					curSection.Lines = nil
+					break
+				}
+			}
 		}
 
 		curFileLinesCount++
@@ -354,6 +376,7 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 				break
 			}
 			curFileLinesCount = 0
+			curFileLFSPrefix = false
 
 			// Check file diff type and is submodule.
 			for {

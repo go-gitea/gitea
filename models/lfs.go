@@ -25,6 +25,11 @@ var (
 	ErrLFSObjectNotExist = errors.New("LFS Meta object does not exist")
 )
 
+const (
+	LFSMetaFileIdentifier = "version https://git-lfs.github.com/spec/v1"
+	LFSMetaFileOidPrefix  = "oid sha256:"
+)
+
 func NewLFSMetaObject(m *LFSMetaObject) (*LFSMetaObject, error) {
 	var err error
 

@@ -145,10 +145,10 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	//Check for LFS meta file
 	if isTextFile && setting.LFS.StartServer {
 		headString := string(buf)
-		if strings.HasPrefix(headString, "version https://git-lfs.github.com/spec/v1") {
+		if strings.HasPrefix(headString, models.LFSMetaFileIdentifier) {
 			splitLines := strings.Split(headString, "\n")
 			if len(splitLines) >= 3 {
-				oid := strings.TrimPrefix(splitLines[1], "oid sha256:")
+				oid := strings.TrimPrefix(splitLines[1], models.LFSMetaFileOidPrefix)
 				size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
 				if len(oid) == 64 && err == nil {
 					contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
