@@ -25,11 +25,11 @@ func StarRepo(userID, repoID int64, star bool) error {
 			sess.Rollback()
 			return err
 		}
-		if _, err := x.Exec("UPDATE `repository` SET num_stars = num_stars + 1 WHERE id = ?", repoID); err != nil {
+		if _, err := sess.Exec("UPDATE `repository` SET num_stars = num_stars + 1 WHERE id = ?", repoID); err != nil {
 			sess.Rollback()
 			return err
 		}
-		if _, err := x.Exec("UPDATE `user` SET num_stars = num_stars + 1 WHERE id = ?", userID); err != nil {
+		if _, err := sess.Exec("UPDATE `user` SET num_stars = num_stars + 1 WHERE id = ?", userID); err != nil {
 			sess.Rollback()
 			return err
 		}
@@ -39,15 +39,15 @@ func StarRepo(userID, repoID int64, star bool) error {
 			return nil
 		}
 
-		if _, err := x.Delete(&Star{0, userID, repoID}); err != nil {
+		if _, err := sess.Delete(&Star{0, userID, repoID}); err != nil {
 			sess.Rollback()
 			return err
 		}
-		if _, err := x.Exec("UPDATE `repository` SET num_stars = num_stars - 1 WHERE id = ?", repoID); err != nil {
+		if _, err := sess.Exec("UPDATE `repository` SET num_stars = num_stars - 1 WHERE id = ?", repoID); err != nil {
 			sess.Rollback()
 			return err
 		}
-		if _, err := x.Exec("UPDATE `user` SET num_stars = num_stars - 1 WHERE id = ?", userID); err != nil {
+		if _, err := sess.Exec("UPDATE `user` SET num_stars = num_stars - 1 WHERE id = ?", userID); err != nil {
 			sess.Rollback()
 			return err
 		}
