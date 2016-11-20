@@ -77,7 +77,7 @@ func MustAllowPulls(ctx *context.Context) {
 }
 
 func RetrieveLabels(ctx *context.Context) {
-	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID)
+	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Query("sort"))
 	if err != nil {
 		ctx.Handle(500, "RetrieveLabels.GetLabels", err)
 		return
@@ -87,6 +87,7 @@ func RetrieveLabels(ctx *context.Context) {
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)
+	ctx.Data["SortType"] = ctx.Query("sort")
 }
 
 func Issues(ctx *context.Context) {
@@ -257,12 +258,12 @@ func renderAttachmentSettings(ctx *context.Context) {
 
 func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repository) {
 	var err error
-	ctx.Data["OpenMilestones"], err = models.GetMilestones(repo.ID, -1, false)
+	ctx.Data["OpenMilestones"], err = models.GetMilestones(repo.ID, -1, false, "")
 	if err != nil {
 		ctx.Handle(500, "GetMilestones", err)
 		return
 	}
-	ctx.Data["ClosedMilestones"], err = models.GetMilestones(repo.ID, -1, true)
+	ctx.Data["ClosedMilestones"], err = models.GetMilestones(repo.ID, -1, true, "")
 	if err != nil {
 		ctx.Handle(500, "GetMilestones", err)
 		return
@@ -280,7 +281,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.
 		return nil
 	}
 
-	labels, err := models.GetLabelsByRepoID(repo.ID)
+	labels, err := models.GetLabelsByRepoID(repo.ID, "")
 	if err != nil {
 		ctx.Handle(500, "GetLabelsByRepoID", err)
 		return nil
@@ -557,7 +558,7 @@ func ViewIssue(ctx *context.Context) {
 	for i := range issue.Labels {
 		labelIDMark[issue.Labels[i].ID] = true
 	}
-	labels, err := models.GetLabelsByRepoID(repo.ID)
+	labels, err := models.GetLabelsByRepoID(repo.ID, "")
 	if err != nil {
 		ctx.Handle(500, "GetLabelsByRepoID", err)
 		return
@@ -1039,6 +1040,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["OpenCount"] = openCount
 	ctx.Data["ClosedCount"] = closedCount
 
+	sortType := ctx.Query("sort")
 	page := ctx.QueryInt("page")
 	if page <= 1 {
 		page = 1
@@ -1052,7 +1054,7 @@ func Milestones(ctx *context.Context) {
 	}
 	ctx.Data["Page"] = paginater.New(total, setting.UI.IssuePagingNum, page, 5)
 
-	miles, err := models.GetMilestones(ctx.Repo.Repository.ID, page, isShowClosed)
+	miles, err := models.GetMilestones(ctx.Repo.Repository.ID, page, isShowClosed, sortType)
 	if err != nil {
 		ctx.Handle(500, "GetMilestones", err)
 		return
@@ -1068,8 +1070,9 @@ func Milestones(ctx *context.Context) {
 		ctx.Data["State"] = "open"
 	}
 
+	ctx.Data["SortType"] = sortType
 	ctx.Data["IsShowClosed"] = isShowClosed
-	ctx.HTML(200, MILESTONE)
+	ctx.HTML(200, tplMilestone)
 }
 
 func NewMilestone(ctx *context.Context) {
