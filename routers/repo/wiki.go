@@ -19,12 +19,13 @@ import (
 )
 
 const (
-	WIKI_START base.TplName = "repo/wiki/start"
-	WIKI_VIEW  base.TplName = "repo/wiki/view"
-	WIKI_NEW   base.TplName = "repo/wiki/new"
-	WIKI_PAGES base.TplName = "repo/wiki/pages"
+	tplWikiStart base.TplName = "repo/wiki/start"
+	tplWikiView  base.TplName = "repo/wiki/view"
+	tplWikiNew   base.TplName = "repo/wiki/new"
+	tplWikiPages base.TplName = "repo/wiki/pages"
 )
 
+// MustEnableWiki check if wiki is enabled, if external then redirect
 func MustEnableWiki(ctx *context.Context) {
 	if !ctx.Repo.Repository.EnableWiki {
 		ctx.Handle(404, "MustEnableWiki", nil)
@@ -37,6 +38,7 @@ func MustEnableWiki(ctx *context.Context) {
 	}
 }
 
+// PageMeta wiki page meat information
 type PageMeta struct {
 	Name    string
 	URL     string
@@ -115,12 +117,13 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, str
 	return wikiRepo, pageName
 }
 
+// Wiki render wiki page
 func Wiki(ctx *context.Context) {
 	ctx.Data["PageIsWiki"] = true
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
-		ctx.HTML(200, WIKI_START)
+		ctx.HTML(200, tplWikiStart)
 		return
 	}
 
@@ -137,9 +140,10 @@ func Wiki(ctx *context.Context) {
 	}
 	ctx.Data["Author"] = lastCommit.Author
 
-	ctx.HTML(200, WIKI_VIEW)
+	ctx.HTML(200, tplWikiView)
 }
 
+// WikiPages render wiki pages list page
 func WikiPages(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.pages")
 	ctx.Data["PageIsWiki"] = true
@@ -183,9 +187,10 @@ func WikiPages(ctx *context.Context) {
 	}
 	ctx.Data["Pages"] = pages
 
-	ctx.HTML(200, WIKI_PAGES)
+	ctx.HTML(200, tplWikiPages)
 }
 
+// NewWiki render wiki create page
 func NewWiki(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
@@ -195,23 +200,24 @@ func NewWiki(ctx *context.Context) {
 		ctx.Data["title"] = "Home"
 	}
 
-	ctx.HTML(200, WIKI_NEW)
+	ctx.HTML(200, tplWikiNew)
 }
 
+// NewWikiPost response fro wiki create request
 func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, WIKI_NEW)
+		ctx.HTML(200, tplWikiNew)
 		return
 	}
 
 	if err := ctx.Repo.Repository.AddWikiPage(ctx.User, form.Title, form.Content, form.Message); err != nil {
 		if models.IsErrWikiAlreadyExist(err) {
 			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.wiki.page_already_exists"), WIKI_NEW, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.wiki.page_already_exists"), tplWikiNew, &form)
 		} else {
 			ctx.Handle(500, "AddWikiPage", err)
 		}
@@ -221,6 +227,7 @@ func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + models.ToWikiPageURL(form.Title))
 }
 
+// EditWiki render wiki modify page
 func EditWiki(ctx *context.Context) {
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["PageIsWikiEdit"] = true
@@ -236,16 +243,17 @@ func EditWiki(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, WIKI_NEW)
+	ctx.HTML(200, tplWikiNew)
 }
 
+// EditWikiPost response fro wiki modify request
 func EditWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, WIKI_NEW)
+		ctx.HTML(200, tplWikiNew)
 		return
 	}
 
@@ -257,6 +265,7 @@ func EditWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + models.ToWikiPageURL(form.Title))
 }
 
+// DeleteWikiPagePost delete wiki page
 func DeleteWikiPagePost(ctx *context.Context) {
 	pageURL := ctx.Params(":page")
 	if len(pageURL) == 0 {
