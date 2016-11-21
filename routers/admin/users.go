@@ -19,11 +19,12 @@ import (
 )
 
 const (
-	USERS     base.TplName = "admin/user/list"
-	USER_NEW  base.TplName = "admin/user/new"
-	USER_EDIT base.TplName = "admin/user/edit"
+	tplUsers    base.TplName = "admin/user/list"
+	tplUserNew  base.TplName = "admin/user/new"
+	tplUserEdit base.TplName = "admin/user/edit"
 )
 
+// Users show all the users
 func Users(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users")
 	ctx.Data["PageIsAdmin"] = true
@@ -35,10 +36,11 @@ func Users(ctx *context.Context) {
 		Ranger:   models.Users,
 		PageSize: setting.UI.Admin.UserPagingNum,
 		OrderBy:  "id ASC",
-		TplName:  USERS,
+		TplName:  tplUsers,
 	})
 }
 
+// NewUser render adding a new user page
 func NewUser(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdmin"] = true
@@ -54,9 +56,10 @@ func NewUser(ctx *context.Context) {
 	ctx.Data["Sources"] = sources
 
 	ctx.Data["CanSendEmail"] = setting.MailService != nil
-	ctx.HTML(200, USER_NEW)
+	ctx.HTML(200, tplUserNew)
 }
 
+// NewUserPost response for adding a new user
 func NewUserPost(ctx *context.Context, form auth.AdminCrateUserForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdmin"] = true
@@ -72,7 +75,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCrateUserForm) {
 	ctx.Data["CanSendEmail"] = setting.MailService != nil
 
 	if ctx.HasError() {
-		ctx.HTML(200, USER_NEW)
+		ctx.HTML(200, tplUserNew)
 		return
 	}
 
@@ -97,16 +100,16 @@ func NewUserPost(ctx *context.Context, form auth.AdminCrateUserForm) {
 		switch {
 		case models.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), USER_NEW, &form)
+			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplUserNew, &form)
 		case models.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), USER_NEW, &form)
+			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserNew, &form)
 		case models.IsErrNameReserved(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(models.ErrNameReserved).Name), USER_NEW, &form)
+			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(models.ErrNameReserved).Name), tplUserNew, &form)
 		case models.IsErrNamePatternNotAllowed(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), USER_NEW, &form)
+			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplUserNew, &form)
 		default:
 			ctx.Handle(500, "CreateUser", err)
 		}
@@ -151,6 +154,7 @@ func prepareUserInfo(ctx *context.Context) *models.User {
 	return u
 }
 
+// EditUser show editting user page
 func EditUser(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
 	ctx.Data["PageIsAdmin"] = true
@@ -161,9 +165,10 @@ func EditUser(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, USER_EDIT)
+	ctx.HTML(200, tplUserEdit)
 }
 
+// EditUserPost response for editting user
 func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
 	ctx.Data["PageIsAdmin"] = true
@@ -175,7 +180,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, USER_EDIT)
+		ctx.HTML(200, tplUserEdit)
 		return
 	}
 
@@ -211,7 +216,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	if err := models.UpdateUser(u); err != nil {
 		if models.IsErrEmailAlreadyUsed(err) {
 			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), USER_EDIT, &form)
+			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
 		} else {
 			ctx.Handle(500, "UpdateUser", err)
 		}
@@ -223,6 +228,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	ctx.Redirect(setting.AppSubUrl + "/admin/users/" + ctx.Params(":userid"))
 }
 
+// DeleteUser response for deleting a user
 func DeleteUser(ctx *context.Context) {
 	u, err := models.GetUserByID(ctx.ParamsInt64(":userid"))
 	if err != nil {

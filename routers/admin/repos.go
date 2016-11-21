@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	REPOS base.TplName = "admin/repo/list"
+	tplRepos base.TplName = "admin/repo/list"
 )
 
+// Repos show all the repositories
 func Repos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
 	ctx.Data["PageIsAdmin"] = true
@@ -28,10 +29,11 @@ func Repos(ctx *context.Context) {
 		Private:  true,
 		PageSize: setting.UI.Admin.RepoPagingNum,
 		OrderBy:  "owner_id ASC, name ASC, id ASC",
-		TplName:  REPOS,
+		TplName:  tplRepos,
 	})
 }
 
+// DeleteRepo delete one repository
 func DeleteRepo(ctx *context.Context) {
 	repo, err := models.GetRepositoryByID(ctx.QueryInt64("id"))
 	if err != nil {

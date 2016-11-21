@@ -22,9 +22,9 @@ import (
 )
 
 const (
-	DASHBOARD base.TplName = "admin/dashboard"
-	CONFIG    base.TplName = "admin/config"
-	MONITOR   base.TplName = "admin/monitor"
+	tplDashboard base.TplName = "admin/dashboard"
+	tplConfig    base.TplName = "admin/config"
+	tplMonitor   base.TplName = "admin/monitor"
 )
 
 var (
@@ -110,19 +110,20 @@ func updateSystemStatus() {
 	sysStatus.NumGC = m.NumGC
 }
 
-// Operation types.
-type AdminOperation int
+// Operation Operation types.
+type Operation int
 
 const (
-	CLEAN_INACTIVATE_USER AdminOperation = iota + 1
-	CLEAN_REPO_ARCHIVES
-	CLEAN_MISSING_REPOS
-	GIT_GC_REPOS
-	SYNC_SSH_AUTHORIZED_KEY
-	SYNC_REPOSITORY_UPDATE_HOOK
-	REINIT_MISSING_REPOSITORY
+	cleanInactivateUser Operation = iota + 1
+	cleanRepoArchives
+	cleanMissingRepos
+	gitGCRepos
+	syncSSHAuthorizedKey
+	syncRepositoryUpdateHook
+	reinitMissingRepository
 )
 
+// Dashboard show admin panel dashboard
 func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
@@ -134,26 +135,26 @@ func Dashboard(ctx *context.Context) {
 		var err error
 		var success string
 
-		switch AdminOperation(op) {
-		case CLEAN_INACTIVATE_USER:
+		switch Operation(op) {
+		case cleanInactivateUser:
 			success = ctx.Tr("admin.dashboard.delete_inactivate_accounts_success")
 			err = models.DeleteInactivateUsers()
-		case CLEAN_REPO_ARCHIVES:
+		case cleanRepoArchives:
 			success = ctx.Tr("admin.dashboard.delete_repo_archives_success")
 			err = models.DeleteRepositoryArchives()
-		case CLEAN_MISSING_REPOS:
+		case cleanMissingRepos:
 			success = ctx.Tr("admin.dashboard.delete_missing_repos_success")
 			err = models.DeleteMissingRepositories()
-		case GIT_GC_REPOS:
+		case gitGCRepos:
 			success = ctx.Tr("admin.dashboard.git_gc_repos_success")
 			err = models.GitGcRepos()
-		case SYNC_SSH_AUTHORIZED_KEY:
+		case syncSSHAuthorizedKey:
 			success = ctx.Tr("admin.dashboard.resync_all_sshkeys_success")
 			err = models.RewriteAllPublicKeys()
-		case SYNC_REPOSITORY_UPDATE_HOOK:
+		case syncRepositoryUpdateHook:
 			success = ctx.Tr("admin.dashboard.resync_all_update_hooks_success")
 			err = models.RewriteRepositoryUpdateHook()
-		case REINIT_MISSING_REPOSITORY:
+		case reinitMissingRepository:
 			success = ctx.Tr("admin.dashboard.reinit_missing_repos_success")
 			err = models.ReinitMissingRepositories()
 		}
@@ -171,9 +172,10 @@ func Dashboard(ctx *context.Context) {
 	// FIXME: update periodically
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
-	ctx.HTML(200, DASHBOARD)
+	ctx.HTML(200, tplDashboard)
 }
 
+// SendTestMail send test mail to confirm mail service is OK
 func SendTestMail(ctx *context.Context) {
 	email := ctx.Query("email")
 	// Send a test email to the user's email address and redirect back to Config
@@ -186,6 +188,7 @@ func SendTestMail(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubUrl + "/admin/config")
 }
 
+// Config show admin config page
 func Config(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config")
 	ctx.Data["PageIsAdmin"] = true
@@ -235,14 +238,15 @@ func Config(ctx *context.Context) {
 	}
 	ctx.Data["Loggers"] = loggers
 
-	ctx.HTML(200, CONFIG)
+	ctx.HTML(200, tplConfig)
 }
 
+// Monitor show admin monitor page
 func Monitor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
 	ctx.Data["Processes"] = process.Processes
 	ctx.Data["Entries"] = cron.ListTasks()
-	ctx.HTML(200, MONITOR)
+	ctx.HTML(200, tplMonitor)
 }

@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	NOTICES base.TplName = "admin/notice"
+	tplNotices base.TplName = "admin/notice"
 )
 
+// Notices show notices for admin
 func Notices(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.notices")
 	ctx.Data["PageIsAdmin"] = true
@@ -39,9 +40,10 @@ func Notices(ctx *context.Context) {
 	ctx.Data["Notices"] = notices
 
 	ctx.Data["Total"] = total
-	ctx.HTML(200, NOTICES)
+	ctx.HTML(200, tplNotices)
 }
 
+// DeleteNotices delete the specific notices
 func DeleteNotices(ctx *context.Context) {
 	strs := ctx.QueryStrings("ids[]")
 	ids := make([]int64, 0, len(strs))
@@ -61,6 +63,7 @@ func DeleteNotices(ctx *context.Context) {
 	}
 }
 
+// EmptyNotices delete all the notices
 func EmptyNotices(ctx *context.Context) {
 	if err := models.DeleteNotices(0, 0); err != nil {
 		ctx.Handle(500, "DeleteNotices", err)

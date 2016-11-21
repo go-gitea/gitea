@@ -20,11 +20,12 @@ import (
 )
 
 const (
-	AUTHS     base.TplName = "admin/auth/list"
-	AUTH_NEW  base.TplName = "admin/auth/new"
-	AUTH_EDIT base.TplName = "admin/auth/edit"
+	tplAuths    base.TplName = "admin/auth/list"
+	tplAuthNew  base.TplName = "admin/auth/new"
+	tplAuthEdit base.TplName = "admin/auth/edit"
 )
 
+// Authentications show authentication config page
 func Authentications(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.authentication")
 	ctx.Data["PageIsAdmin"] = true
@@ -38,7 +39,7 @@ func Authentications(ctx *context.Context) {
 	}
 
 	ctx.Data["Total"] = models.CountLoginSources()
-	ctx.HTML(200, AUTHS)
+	ctx.HTML(200, tplAuths)
 }
 
 type dropdownItem struct {
@@ -60,6 +61,7 @@ var (
 	}
 )
 
+// NewAuthSource render adding a new auth source page
 func NewAuthSource(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
 	ctx.Data["PageIsAdmin"] = true
@@ -73,7 +75,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
-	ctx.HTML(200, AUTH_NEW)
+	ctx.HTML(200, tplAuthNew)
 }
 
 func parseLDAPConfig(form auth.AuthenticationForm) *models.LDAPConfig {
@@ -111,6 +113,7 @@ func parseSMTPConfig(form auth.AuthenticationForm) *models.SMTPConfig {
 	}
 }
 
+// NewAuthSourcePost response for adding an auth source
 func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
 	ctx.Data["PageIsAdmin"] = true
@@ -142,7 +145,7 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["HasTLS"] = hasTLS
 
 	if ctx.HasError() {
-		ctx.HTML(200, AUTH_NEW)
+		ctx.HTML(200, tplAuthNew)
 		return
 	}
 
@@ -154,7 +157,7 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	}); err != nil {
 		if models.IsErrLoginSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true
-			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(models.ErrLoginSourceAlreadyExist).Name), AUTH_NEW, form)
+			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(models.ErrLoginSourceAlreadyExist).Name), tplAuthNew, form)
 		} else {
 			ctx.Handle(500, "CreateSource", err)
 		}
@@ -167,6 +170,7 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Redirect(setting.AppSubUrl + "/admin/auths")
 }
 
+// EditAuthSource render editing auth source page
 func EditAuthSource(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.edit")
 	ctx.Data["PageIsAdmin"] = true
@@ -183,9 +187,10 @@ func EditAuthSource(ctx *context.Context) {
 	ctx.Data["Source"] = source
 	ctx.Data["HasTLS"] = source.HasTLS()
 
-	ctx.HTML(200, AUTH_EDIT)
+	ctx.HTML(200, tplAuthEdit)
 }
 
+// EditAuthSourcePost resposne for editing auth source
 func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.edit")
 	ctx.Data["PageIsAdmin"] = true
@@ -202,7 +207,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["HasTLS"] = source.HasTLS()
 
 	if ctx.HasError() {
-		ctx.HTML(200, AUTH_EDIT)
+		ctx.HTML(200, tplAuthEdit)
 		return
 	}
 
@@ -234,6 +239,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Redirect(setting.AppSubUrl + "/admin/auths/" + com.ToStr(form.ID))
 }
 
+// DeleteAuthSource response for deleting an auth source
 func DeleteAuthSource(ctx *context.Context) {
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
