@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 )
 
 var testBlob = &Blob{
@@ -19,9 +19,8 @@ var testBlob = &Blob{
 	},
 }
 
-func Test_Blob_Data(t *testing.T) {
-	Convey("Get blob data", t, func() {
-		_output := `Copyright (c) 2015 All Gogs Contributors
+func TestBlob_Data(t *testing.T) {
+	output := `Copyright (c) 2015 All Gogs Contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -41,23 +40,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.`
 
-		Convey("Get data all at once", func() {
-			r, err := testBlob.Data()
-			So(err, ShouldBeNil)
-			So(r, ShouldNotBeNil)
+	r, err := testBlob.Data()
+	assert.NoError(t, err)
+	assert.NotNil(t, r)
 
-			data, err := ioutil.ReadAll(r)
-			So(err, ShouldBeNil)
-			So(string(data), ShouldEqual, _output)
-		})
-
-		Convey("Get blob data with pipeline", func() {
-			stdout := new(bytes.Buffer)
-			err := testBlob.DataPipeline(stdout, nil)
-			So(err, ShouldBeNil)
-			So(stdout.String(), ShouldEqual, _output)
-		})
-	})
+	data, err := ioutil.ReadAll(r)
+	assert.NoError(t, err)
+	assert.Equal(t, output, string(data))
 }
 
 func Benchmark_Blob_Data(b *testing.B) {
