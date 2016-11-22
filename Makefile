@@ -9,7 +9,7 @@ BINDATA := $(shell find conf | sed 's/ /\\ /g')
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
 
-VERSION = $(shell git describe --tags --always | sed 's/-/+/')
+VERSION = $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
 
 LDFLAGS += -X "main.Version=$(VERSION)"
 
