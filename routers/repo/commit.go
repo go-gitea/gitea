@@ -17,10 +17,11 @@ import (
 )
 
 const (
-	COMMITS base.TplName = "repo/commits"
-	DIFF    base.TplName = "repo/diff/page"
+	tplCommits base.TplName = "repo/commits"
+	tplDiff    base.TplName = "repo/diff/page"
 )
 
+// RefCommits render commits page
 func RefCommits(ctx *context.Context) {
 	switch {
 	case len(ctx.Repo.TreePath) == 0:
@@ -32,7 +33,7 @@ func RefCommits(ctx *context.Context) {
 	}
 }
 
-func RenderIssueLinks(oldCommits *list.List, repoLink string) *list.List {
+func renderIssueLinks(oldCommits *list.List, repoLink string) *list.List {
 	newCommits := list.New()
 	for e := oldCommits.Front(); e != nil; e = e.Next() {
 		c := e.Value.(*git.Commit)
@@ -41,6 +42,7 @@ func RenderIssueLinks(oldCommits *list.List, repoLink string) *list.List {
 	return newCommits
 }
 
+// Commits render branch's commits
 func Commits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 
@@ -62,7 +64,7 @@ func Commits(ctx *context.Context) {
 		ctx.Handle(500, "CommitsByRange", err)
 		return
 	}
-	commits = RenderIssueLinks(commits, ctx.Repo.RepoLink)
+	commits = renderIssueLinks(commits, ctx.Repo.RepoLink)
 	commits = models.ValidateCommitsWithEmails(commits)
 	ctx.Data["Commits"] = commits
 
@@ -70,9 +72,10 @@ func Commits(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
 	ctx.Data["Branch"] = ctx.Repo.BranchName
-	ctx.HTML(200, COMMITS)
+	ctx.HTML(200, tplCommits)
 }
 
+// SearchCommits render commits filtered by keyword
 func SearchCommits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 
@@ -87,7 +90,7 @@ func SearchCommits(ctx *context.Context) {
 		ctx.Handle(500, "SearchCommits", err)
 		return
 	}
-	commits = RenderIssueLinks(commits, ctx.Repo.RepoLink)
+	commits = renderIssueLinks(commits, ctx.Repo.RepoLink)
 	commits = models.ValidateCommitsWithEmails(commits)
 	ctx.Data["Commits"] = commits
 
@@ -96,9 +99,10 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commits.Len()
 	ctx.Data["Branch"] = ctx.Repo.BranchName
-	ctx.HTML(200, COMMITS)
+	ctx.HTML(200, tplCommits)
 }
 
+// FileHistory show a file's reversions
 func FileHistory(ctx *context.Context) {
 	ctx.Data["IsRepoToolbarCommits"] = true
 
@@ -129,7 +133,7 @@ func FileHistory(ctx *context.Context) {
 		ctx.Handle(500, "CommitsByFileAndRange", err)
 		return
 	}
-	commits = RenderIssueLinks(commits, ctx.Repo.RepoLink)
+	commits = renderIssueLinks(commits, ctx.Repo.RepoLink)
 	commits = models.ValidateCommitsWithEmails(commits)
 	ctx.Data["Commits"] = commits
 
@@ -138,9 +142,10 @@ func FileHistory(ctx *context.Context) {
 	ctx.Data["FileName"] = fileName
 	ctx.Data["CommitCount"] = commitsCount
 	ctx.Data["Branch"] = branchName
-	ctx.HTML(200, COMMITS)
+	ctx.HTML(200, tplCommits)
 }
 
+// Diff show different from current commit to previous commit
 func Diff(ctx *context.Context) {
 	ctx.Data["PageIsDiff"] = true
 	ctx.Data["RequireHighlightJS"] = true
@@ -194,9 +199,10 @@ func Diff(ctx *context.Context) {
 		ctx.Data["BeforeSourcePath"] = setting.AppSubUrl + "/" + path.Join(userName, repoName, "src", parents[0])
 	}
 	ctx.Data["RawPath"] = setting.AppSubUrl + "/" + path.Join(userName, repoName, "raw", commitID)
-	ctx.HTML(200, DIFF)
+	ctx.HTML(200, tplDiff)
 }
 
+// RawDiff dumps diff results of repository in given commit ID to io.Writer
 func RawDiff(ctx *context.Context) {
 	if err := models.GetRawDiff(
 		models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name),
@@ -209,6 +215,7 @@ func RawDiff(ctx *context.Context) {
 	}
 }
 
+// CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
@@ -253,5 +260,5 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["SourcePath"] = setting.AppSubUrl + "/" + path.Join(userName, repoName, "src", afterCommitID)
 	ctx.Data["BeforeSourcePath"] = setting.AppSubUrl + "/" + path.Join(userName, repoName, "src", beforeCommitID)
 	ctx.Data["RawPath"] = setting.AppSubUrl + "/" + path.Join(userName, repoName, "raw", afterCommitID)
-	ctx.HTML(200, DIFF)
+	ctx.HTML(200, tplDiff)
 }

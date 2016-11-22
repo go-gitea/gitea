@@ -13,7 +13,8 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/user"
 )
 
-// https://github.com/gogits/go-gogs-client/wiki/Administration-Organizations#create-a-new-organization
+// CreateOrg api for create organization
+// see https://github.com/gogits/go-gogs-client/wiki/Administration-Organizations#create-a-new-organization
 func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {

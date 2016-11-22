@@ -16,7 +16,8 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
-// https://github.com/gogits/go-gogs-client/wiki/Repositories#list-hooks
+// ListHooks list all hooks of a repository
+// see https://github.com/gogits/go-gogs-client/wiki/Repositories#list-hooks
 func ListHooks(ctx *context.APIContext) {
 	hooks, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
@@ -31,7 +32,8 @@ func ListHooks(ctx *context.APIContext) {
 	ctx.JSON(200, &apiHooks)
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Repositories#create-a-hook
+// CreateHook create a hook for a repository
+// see https://github.com/gogits/go-gogs-client/wiki/Repositories#create-a-hook
 func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 	if !models.IsValidHookTaskType(form.Type) {
 		ctx.Error(422, "", "Invalid hook type")
@@ -97,7 +99,8 @@ func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 	ctx.JSON(201, convert.ToHook(ctx.Repo.RepoLink, w))
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Repositories#edit-a-hook
+// EditHook modify a hook of a repository
+// see https://github.com/gogits/go-gogs-client/wiki/Repositories#edit-a-hook
 func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 	w, err := models.GetWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -165,6 +168,7 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 	ctx.JSON(200, convert.ToHook(ctx.Repo.RepoLink, w))
 }
 
+// DeleteHook delete a hook of a repository
 func DeleteHook(ctx *context.APIContext) {
 	if err := models.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(500, "DeleteWebhookByRepoID", err)

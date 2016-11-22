@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
+// ListLabels list all the labels of a repository
 func ListLabels(ctx *context.APIContext) {
 	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
@@ -25,6 +26,7 @@ func ListLabels(ctx *context.APIContext) {
 	ctx.JSON(200, &apiLabels)
 }
 
+// GetLabel get label by repository and label id
 func GetLabel(ctx *context.APIContext) {
 	label, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -39,6 +41,7 @@ func GetLabel(ctx *context.APIContext) {
 	ctx.JSON(200, label.APIFormat())
 }
 
+// CreateLabel create a label for a repository
 func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
 	if !ctx.Repo.IsWriter() {
 		ctx.Status(403)
@@ -57,6 +60,7 @@ func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
 	ctx.JSON(201, label.APIFormat())
 }
 
+// EditLabel modify a label for a repository
 func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	if !ctx.Repo.IsWriter() {
 		ctx.Status(403)
@@ -86,6 +90,7 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	ctx.JSON(200, label.APIFormat())
 }
 
+// DeleteLabel delete a label for a repository
 func DeleteLabel(ctx *context.APIContext) {
 	if !ctx.Repo.IsWriter() {
 		ctx.Status(403)

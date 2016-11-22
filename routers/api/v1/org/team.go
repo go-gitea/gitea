@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
+// ListTeams list all the teams of an organization
 func ListTeams(ctx *context.APIContext) {
 	org := ctx.Org.Organization
 	if err := org.GetTeams(); err != nil {

@@ -11,7 +11,8 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
-// https://github.com/gogits/go-gogs-client/wiki/Repositories#get-branch
+// GetBranch get a branch of a repository
+// see https://github.com/gogits/go-gogs-client/wiki/Repositories#get-branch
 func GetBranch(ctx *context.APIContext) {
 	branch, err := ctx.Repo.Repository.GetBranch(ctx.Params(":branchname"))
 	if err != nil {
@@ -28,7 +29,8 @@ func GetBranch(ctx *context.APIContext) {
 	ctx.JSON(200, convert.ToBranch(branch, c))
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Repositories#list-branches
+// ListBranches list all the branches of a repository
+// see https://github.com/gogits/go-gogs-client/wiki/Repositories#list-branches
 func ListBranches(ctx *context.APIContext) {
 	branches, err := ctx.Repo.Repository.GetBranches()
 	if err != nil {

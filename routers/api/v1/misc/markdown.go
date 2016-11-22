@@ -11,7 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/markdown"
 )
 
-// https://github.com/gogits/go-gogs-client/wiki/Miscellaneous#render-an-arbitrary-markdown-document
+// Markdown render markdown document to HTML
+// see https://github.com/gogits/go-gogs-client/wiki/Miscellaneous#render-an-arbitrary-markdown-document
 func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	if ctx.HasApiError() {
 		ctx.Error(422, "", ctx.GetErrMsg())
@@ -31,7 +32,8 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	}
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Miscellaneous#render-a-markdown-document-in-raw-mode
+// MarkdownRaw render raw markdown HTML
+// see https://github.com/gogits/go-gogs-client/wiki/Miscellaneous#render-a-markdown-document-in-raw-mode
 func MarkdownRaw(ctx *context.APIContext) {
 	body, err := ctx.Req.Body().Bytes()
 	if err != nil {

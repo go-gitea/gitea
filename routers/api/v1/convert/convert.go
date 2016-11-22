@@ -9,12 +9,13 @@ import (
 
 	"github.com/Unknwon/com"
 
-	"code.gitea.io/git"
 	api "code.gitea.io/sdk/gitea"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 )
 
+// ToEmail convert models.EmailAddress to api.Email
 func ToEmail(email *models.EmailAddress) *api.Email {
 	return &api.Email{
 		Email:    email.Email,
@@ -23,6 +24,7 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 	}
 }
 
+// ToBranch convert a commit and branch to an api.Branch
 func ToBranch(b *models.Branch, c *git.Commit) *api.Branch {
 	return &api.Branch{
 		Name:   b.Name,
@@ -30,6 +32,7 @@ func ToBranch(b *models.Branch, c *git.Commit) *api.Branch {
 	}
 }
 
+// ToCommit convert a commit to api.PayloadCommit
 func ToCommit(c *git.Commit) *api.PayloadCommit {
 	authorUsername := ""
 	author, err := models.GetUserByEmail(c.Author.Email)
@@ -59,6 +62,7 @@ func ToCommit(c *git.Commit) *api.PayloadCommit {
 	}
 }
 
+// ToPublicKey convert models.PublicKey to api.PublicKey
 func ToPublicKey(apiLink string, key *models.PublicKey) *api.PublicKey {
 	return &api.PublicKey{
 		ID:      key.ID,
@@ -69,6 +73,7 @@ func ToPublicKey(apiLink string, key *models.PublicKey) *api.PublicKey {
 	}
 }
 
+// ToHook convert models.Webhook to api.Hook
 func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 	config := map[string]string{
 		"url":          w.URL,
@@ -94,6 +99,7 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 	}
 }
 
+// ToDeployKey convert models.DeployKey to api.DeployKey
 func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 	return &api.DeployKey{
 		ID:       key.ID,
@@ -105,6 +111,7 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 	}
 }
 
+// ToOrganization convert models.User to api.Organization
 func ToOrganization(org *models.User) *api.Organization {
 	return &api.Organization{
 		ID:          org.ID,
@@ -117,6 +124,7 @@ func ToOrganization(org *models.User) *api.Organization {
 	}
 }
 
+// ToTeam convert models.Team to api.Team
 func ToTeam(team *models.Team) *api.Team {
 	return &api.Team{
 		ID:          team.ID,

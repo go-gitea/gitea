@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
+// ListIssueLabels list all the labels of an issue
 func ListIssueLabels(ctx *context.APIContext) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
@@ -29,6 +30,7 @@ func ListIssueLabels(ctx *context.APIContext) {
 	ctx.JSON(200, &apiLabels)
 }
 
+// AddIssueLabels add labels for an issue
 func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	if !ctx.Repo.IsWriter() {
 		ctx.Status(403)
@@ -69,6 +71,7 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	ctx.JSON(200, &apiLabels)
 }
 
+// DeleteIssueLabel delete a label for an issue
 func DeleteIssueLabel(ctx *context.APIContext) {
 	if !ctx.Repo.IsWriter() {
 		ctx.Status(403)
@@ -103,6 +106,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	ctx.Status(204)
 }
 
+// ReplaceIssueLabels replace labels for an issue
 func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	if !ctx.Repo.IsWriter() {
 		ctx.Status(403)
@@ -143,6 +147,7 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	ctx.JSON(200, &apiLabels)
 }
 
+// ClearIssueLabels delete all the labels for an issue
 func ClearIssueLabels(ctx *context.APIContext) {
 	if !ctx.Repo.IsWriter() {
 		ctx.Status(403)

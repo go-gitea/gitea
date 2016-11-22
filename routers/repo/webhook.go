@@ -28,6 +28,7 @@ const (
 	tplOrgHookNew base.TplName = "org/settings/hook_new"
 )
 
+// Webhooks render web hooks list page
 func Webhooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.hooks")
 	ctx.Data["PageIsSettingsHooks"] = true
@@ -44,7 +45,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.HTML(200, tplHooks)
 }
 
-type OrgRepoCtx struct {
+type orgRepoCtx struct {
 	OrgID       int64
 	RepoID      int64
 	Link        string
@@ -52,9 +53,9 @@ type OrgRepoCtx struct {
 }
 
 // getOrgRepoCtx determines whether this is a repo context or organization context.
-func getOrgRepoCtx(ctx *context.Context) (*OrgRepoCtx, error) {
+func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 	if len(ctx.Repo.RepoLink) > 0 {
-		return &OrgRepoCtx{
+		return &orgRepoCtx{
 			RepoID:      ctx.Repo.Repository.ID,
 			Link:        ctx.Repo.RepoLink,
 			NewTemplate: tplHookNew,
@@ -62,7 +63,7 @@ func getOrgRepoCtx(ctx *context.Context) (*OrgRepoCtx, error) {
 	}
 
 	if len(ctx.Org.OrgLink) > 0 {
-		return &OrgRepoCtx{
+		return &orgRepoCtx{
 			OrgID:       ctx.Org.Organization.ID,
 			Link:        ctx.Org.OrgLink,
 			NewTemplate: tplOrgHookNew,
@@ -81,6 +82,7 @@ func checkHookType(ctx *context.Context) string {
 	return hookType
 }
 
+// WebhooksNew render creating webhook page
 func WebhooksNew(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
@@ -102,6 +104,7 @@ func WebhooksNew(ctx *context.Context) {
 	ctx.HTML(200, orCtx.NewTemplate)
 }
 
+// ParseHookEvent convert web form content to models.HookEvent
 func ParseHookEvent(form auth.WebhookForm) *models.HookEvent {
 	return &models.HookEvent{
 		PushOnly:       form.PushOnly(),
@@ -115,6 +118,7 @@ func ParseHookEvent(form auth.WebhookForm) *models.HookEvent {
 	}
 }
 
+// WebHooksNewPost response for creating webhook
 func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
@@ -161,6 +165,7 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 	ctx.Redirect(orCtx.Link + "/settings/hooks")
 }
 
+// SlackHooksNewPost response for creating slack hook
 func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
@@ -211,7 +216,7 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 	ctx.Redirect(orCtx.Link + "/settings/hooks")
 }
 
-func checkWebhook(ctx *context.Context) (*OrgRepoCtx, *models.Webhook) {
+func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 	ctx.Data["RequireHighlightJS"] = true
 
 	orCtx, err := getOrgRepoCtx(ctx)
@@ -251,6 +256,7 @@ func checkWebhook(ctx *context.Context) (*OrgRepoCtx, *models.Webhook) {
 	return orCtx, w
 }
 
+// WebHooksEdit render editing web hook page
 func WebHooksEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.update_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
@@ -265,6 +271,7 @@ func WebHooksEdit(ctx *context.Context) {
 	ctx.HTML(200, orCtx.NewTemplate)
 }
 
+// WebHooksEditPost response for editing web hook
 func WebHooksEditPost(ctx *context.Context, form auth.NewWebhookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.update_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
@@ -303,6 +310,7 @@ func WebHooksEditPost(ctx *context.Context, form auth.NewWebhookForm) {
 	ctx.Redirect(fmt.Sprintf("%s/settings/hooks/%d", orCtx.Link, w.ID))
 }
 
+// SlackHooksEditPost reponse for editing slack hook
 func SlackHooksEditPost(ctx *context.Context, form auth.NewSlackHookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
@@ -346,6 +354,7 @@ func SlackHooksEditPost(ctx *context.Context, form auth.NewSlackHookForm) {
 	ctx.Redirect(fmt.Sprintf("%s/settings/hooks/%d", orCtx.Link, w.ID))
 }
 
+// TestWebhook test if web hook is work fine
 func TestWebhook(ctx *context.Context) {
 	// Grab latest commit or fake one if it's empty repository.
 	commit := ctx.Repo.Commit
@@ -393,6 +402,7 @@ func TestWebhook(ctx *context.Context) {
 	}
 }
 
+// DeleteWebhook delete a webhook
 func DeleteWebhook(ctx *context.Context) {
 	if err := models.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.QueryInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByRepoID: " + err.Error())

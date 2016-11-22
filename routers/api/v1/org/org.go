@@ -26,12 +26,14 @@ func listUserOrgs(ctx *context.APIContext, u *models.User, all bool) {
 	ctx.JSON(200, &apiOrgs)
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Organizations#list-your-organizations
+// ListMyOrgs list all my orgs
+// see https://github.com/gogits/go-gogs-client/wiki/Organizations#list-your-organizations
 func ListMyOrgs(ctx *context.APIContext) {
 	listUserOrgs(ctx, ctx.User, true)
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Organizations#list-user-organizations
+// ListUserOrgs list user's orgs
+// see https://github.com/gogits/go-gogs-client/wiki/Organizations#list-user-organizations
 func ListUserOrgs(ctx *context.APIContext) {
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
@@ -40,12 +42,14 @@ func ListUserOrgs(ctx *context.APIContext) {
 	listUserOrgs(ctx, u, false)
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Organizations#get-an-organization
+// Get get an organization
+// see https://github.com/gogits/go-gogs-client/wiki/Organizations#get-an-organization
 func Get(ctx *context.APIContext) {
 	ctx.JSON(200, convert.ToOrganization(ctx.Org.Organization))
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Organizations#edit-an-organization
+// Edit change an organization's information
+// see https://github.com/gogits/go-gogs-client/wiki/Organizations#edit-an-organization
 func Edit(ctx *context.APIContext, form api.EditOrgOption) {
 	org := ctx.Org.Organization
 	if !org.IsOwnedBy(ctx.User.ID) {

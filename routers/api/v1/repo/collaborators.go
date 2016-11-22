@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
+// AddCollaborator add a collaborator of a repository
 func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
 	collaborator, err := models.GetUserByName(ctx.Params(":collaborator"))
 	if err != nil {

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// ListIssues list the issues of a repository
 func ListIssues(ctx *context.APIContext) {
 	issues, err := models.Issues(&models.IssuesOptions{
 		RepoID: ctx.Repo.Repository.ID,
@@ -39,6 +40,7 @@ func ListIssues(ctx *context.APIContext) {
 	ctx.JSON(200, &apiIssues)
 }
 
+// GetIssue get an issue of a repository
 func GetIssue(ctx *context.APIContext) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
@@ -52,6 +54,7 @@ func GetIssue(ctx *context.APIContext) {
 	ctx.JSON(200, issue.APIFormat())
 }
 
+// CreateIssue create an issue of a repository
 func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	issue := &models.Issue{
 		RepoID:   ctx.Repo.Repository.ID,
@@ -101,6 +104,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	ctx.JSON(201, issue.APIFormat())
 }
 
+// EditIssue modify an issue of a repository
 func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {

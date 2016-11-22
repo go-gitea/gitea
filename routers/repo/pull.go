@@ -21,16 +21,16 @@ import (
 )
 
 const (
-	FORK         base.TplName = "repo/pulls/fork"
-	COMPARE_PULL base.TplName = "repo/pulls/compare"
-	PULL_COMMITS base.TplName = "repo/pulls/commits"
-	PULL_FILES   base.TplName = "repo/pulls/files"
+	tplFork        base.TplName = "repo/pulls/fork"
+	tplComparePull base.TplName = "repo/pulls/compare"
+	tplPullCommits base.TplName = "repo/pulls/commits"
+	tplPullFiles   base.TplName = "repo/pulls/files"
 
-	PULL_REQUEST_TEMPLATE_KEY = "PullRequestTemplate"
+	pullRequestTemplateKey = "PullRequestTemplate"
 )
 
 var (
-	PullRequestTemplateCandidates = []string{
+	pullRequestTemplateCandidates = []string{
 		"PULL_REQUEST.md",
 		".gogs/PULL_REQUEST.md",
 		".github/PULL_REQUEST.md",
@@ -72,6 +72,7 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	return forkRepo
 }
 
+// Fork render repository fork page
 func Fork(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_fork")
 
@@ -81,9 +82,10 @@ func Fork(ctx *context.Context) {
 	}
 
 	ctx.Data["ContextUser"] = ctx.User
-	ctx.HTML(200, FORK)
+	ctx.HTML(200, tplFork)
 }
 
+// ForkPost response for forking a repository
 func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 	ctx.Data["Title"] = ctx.Tr("new_fork")
 
@@ -99,7 +101,7 @@ func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 	ctx.Data["ContextUser"] = ctxUser
 
 	if ctx.HasError() {
-		ctx.HTML(200, FORK)
+		ctx.HTML(200, tplFork)
 		return
 	}
 
@@ -122,11 +124,11 @@ func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 		ctx.Data["Err_RepoName"] = true
 		switch {
 		case models.IsErrRepoAlreadyExist(err):
-			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), FORK, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
 		case models.IsErrNameReserved(err):
-			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), FORK, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tplFork, &form)
 		case models.IsErrNamePatternNotAllowed(err):
-			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), FORK, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplFork, &form)
 		default:
 			ctx.Handle(500, "ForkPost", err)
 		}
@@ -171,6 +173,7 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 	return issue
 }
 
+// PrepareMergedViewPullInfo show meta information for a merged pull request view page
 func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) {
 	pull := issue.PullRequest
 	ctx.Data["HasMerged"] = true
@@ -190,6 +193,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) {
 	}
 }
 
+// PrepareViewPullInfo show meta information for a pull request preview page
 func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullRequestInfo {
 	repo := ctx.Repo.Repository
 	pull := issue.PullRequest
@@ -242,6 +246,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 	return prInfo
 }
 
+// ViewPullCommits show commits for a pull request
 func ViewPullCommits(ctx *context.Context) {
 	ctx.Data["PageIsPullList"] = true
 	ctx.Data["PageIsPullCommits"] = true
@@ -291,9 +296,10 @@ func ViewPullCommits(ctx *context.Context) {
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = commits.Len()
 
-	ctx.HTML(200, PULL_COMMITS)
+	ctx.HTML(200, tplPullCommits)
 }
 
+// ViewPullFiles render pull request changed files list page
 func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["PageIsPullList"] = true
 	ctx.Data["PageIsPullFiles"] = true
@@ -375,9 +381,10 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["RawPath"] = setting.AppSubUrl + "/" + path.Join(headTarget, "raw", endCommitID)
 	ctx.Data["RequireHighlightJS"] = true
 
-	ctx.HTML(200, PULL_FILES)
+	ctx.HTML(200, tplPullFiles)
 }
 
+// MergePullRequest response for merging pull request
 func MergePullRequest(ctx *context.Context) {
 	issue := checkPullInfo(ctx)
 	if ctx.Written() {
@@ -414,6 +421,7 @@ func MergePullRequest(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 }
 
+// ParseCompareInfo parse compare info between two commit for preparing pull request
 func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *git.Repository, *git.PullRequestInfo, string, string) {
 	baseRepo := ctx.Repo.Repository
 
@@ -520,6 +528,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	return headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch
 }
 
+// PrepareCompareDiff render pull request preview diff page
 func PrepareCompareDiff(
 	ctx *context.Context,
 	headUser *models.User,
@@ -578,12 +587,13 @@ func PrepareCompareDiff(
 	return false
 }
 
+// CompareAndPullRequest render pull request preview page
 func CompareAndPullRequest(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.pulls.compare_changes")
 	ctx.Data["PageIsComparePull"] = true
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireHighlightJS"] = true
-	setTemplateIfExists(ctx, PULL_REQUEST_TEMPLATE_KEY, PullRequestTemplateCandidates)
+	setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
 	headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
@@ -600,7 +610,7 @@ func CompareAndPullRequest(ctx *context.Context) {
 	} else {
 		ctx.Data["HasPullRequest"] = true
 		ctx.Data["PullRequest"] = pr
-		ctx.HTML(200, COMPARE_PULL)
+		ctx.HTML(200, tplComparePull)
 		return
 	}
 
@@ -617,9 +627,10 @@ func CompareAndPullRequest(ctx *context.Context) {
 		}
 	}
 
-	ctx.HTML(200, COMPARE_PULL)
+	ctx.HTML(200, tplComparePull)
 }
 
+// CompareAndPullRequestPost response for creating pull request
 func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.pulls.compare_changes")
 	ctx.Data["PageIsComparePull"] = true
@@ -656,7 +667,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 			return
 		}
 
-		ctx.HTML(200, COMPARE_PULL)
+		ctx.HTML(200, tplComparePull)
 		return
 	}
 
@@ -702,6 +713,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pullIssue.Index))
 }
 
+// TriggerTask response for a trigger task request
 func TriggerTask(ctx *context.Context) {
 	pusherID := ctx.QueryInt64("pusher")
 	branch := ctx.Query("branch")

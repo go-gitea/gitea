@@ -17,7 +17,8 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
-// https://github.com/gogits/go-gogs-client/wiki/Repositories#search-repositories
+// Search repositories via options
+// see https://github.com/gogits/go-gogs-client/wiki/Repositories#search-repositories
 func Search(ctx *context.APIContext) {
 	opts := &models.SearchRepoOptions{
 		Keyword:  path.Base(ctx.Query("q")),
@@ -76,7 +77,8 @@ func Search(ctx *context.APIContext) {
 	})
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Repositories#list-your-repositories
+// ListMyRepos list all my repositories
+// see https://github.com/gogits/go-gogs-client/wiki/Repositories#list-your-repositories
 func ListMyRepos(ctx *context.APIContext) {
 	ownRepos, err := models.GetUserRepositories(ctx.User.ID, true, 1, ctx.User.NumRepos)
 	if err != nil {
@@ -109,6 +111,7 @@ func ListMyRepos(ctx *context.APIContext) {
 	ctx.JSON(200, &repos)
 }
 
+// CreateUserRepo create a repository for a user
 func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateRepoOption) {
 	repo, err := models.CreateRepository(owner, models.CreateRepoOptions{
 		Name:        opt.Name,
@@ -138,7 +141,8 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 	ctx.JSON(201, repo.APIFormat(&api.Permission{true, true, true}))
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Repositories#create
+// Create create one repository of mine
+// see https://github.com/gogits/go-gogs-client/wiki/Repositories#create
 func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 	// Shouldn't reach this condition, but just in case.
 	if ctx.User.IsOrganization() {
@@ -148,6 +152,7 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 	CreateUserRepo(ctx, ctx.User, opt)
 }
 
+// CreateOrgRepo create one repository of the organization
 func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	org, err := models.GetOrgByName(ctx.Params(":org"))
 	if err != nil {
@@ -166,7 +171,8 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	CreateUserRepo(ctx, org, opt)
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Repositories#migrate
+// Migrate migrate remote git repository to gitea
+// see https://github.com/gogits/go-gogs-client/wiki/Repositories#migrate
 func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	ctxUser := ctx.User
 	// Not equal means context user is an organization,
@@ -238,13 +244,15 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	ctx.JSON(201, repo.APIFormat(&api.Permission{true, true, true}))
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Repositories#get
+// Get get one repository
+// see https://github.com/gogits/go-gogs-client/wiki/Repositories#get
 func Get(ctx *context.APIContext) {
 	repo := ctx.Repo.Repository
 	ctx.JSON(200, repo.APIFormat(&api.Permission{true, true, true}))
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Repositories#delete
+// Delete delete one repository
+// see https://github.com/gogits/go-gogs-client/wiki/Repositories#delete
 func Delete(ctx *context.APIContext) {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository

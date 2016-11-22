@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// HTTP implmentation git smart HTTP protocol
 func HTTP(ctx *context.Context) {
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
@@ -170,7 +171,7 @@ func HTTP(ctx *context.Context) {
 			return
 		}
 
-		var lastLine int64 = 0
+		var lastLine int64
 		for {
 			head := input[lastLine : lastLine+2]
 			if head[0] == '0' && head[1] == '0' {
@@ -193,15 +194,15 @@ func HTTP(ctx *context.Context) {
 
 				fields := strings.Fields(string(line))
 				if len(fields) >= 3 {
-					oldCommitId := fields[0][4:]
-					newCommitId := fields[1]
+					oldCommitID := fields[0][4:]
+					newCommitID := fields[1]
 					refFullName := fields[2]
 
 					// FIXME: handle error.
 					if err = models.PushUpdate(models.PushUpdateOptions{
 						RefFullName:  refFullName,
-						OldCommitID:  oldCommitId,
-						NewCommitID:  newCommitId,
+						OldCommitID:  oldCommitID,
+						NewCommitID:  newCommitID,
 						PusherID:     authUser.ID,
 						PusherName:   authUser.Name,
 						RepoUserName: username,
@@ -474,6 +475,7 @@ func getGitRepoPath(subdir string) (string, error) {
 	return fpath, nil
 }
 
+// HTTPBackend middleware for git smart HTTP protocol
 func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		for _, route := range routes {

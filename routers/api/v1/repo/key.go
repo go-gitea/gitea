@@ -19,7 +19,8 @@ func composeDeployKeysAPILink(repoPath string) string {
 	return setting.AppUrl + "api/v1/repos/" + repoPath + "/keys/"
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Repositories-Deploy-Keys#list-deploy-keys
+// ListDeployKeys list all the deploy keys of a repository
+// see https://github.com/gogits/go-gogs-client/wiki/Repositories-Deploy-Keys#list-deploy-keys
 func ListDeployKeys(ctx *context.APIContext) {
 	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID)
 	if err != nil {
@@ -40,7 +41,8 @@ func ListDeployKeys(ctx *context.APIContext) {
 	ctx.JSON(200, &apiKeys)
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Repositories-Deploy-Keys#get-a-deploy-key
+// GetDeployKey get a deploy key by id
+// see https://github.com/gogits/go-gogs-client/wiki/Repositories-Deploy-Keys#get-a-deploy-key
 func GetDeployKey(ctx *context.APIContext) {
 	key, err := models.GetDeployKeyByID(ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -61,6 +63,7 @@ func GetDeployKey(ctx *context.APIContext) {
 	ctx.JSON(200, convert.ToDeployKey(apiLink, key))
 }
 
+// HandleCheckKeyStringError handle check key error
 func HandleCheckKeyStringError(ctx *context.APIContext, err error) {
 	if models.IsErrKeyUnableVerify(err) {
 		ctx.Error(422, "", "Unable to verify key content")
@@ -69,6 +72,7 @@ func HandleCheckKeyStringError(ctx *context.APIContext, err error) {
 	}
 }
 
+// HandleAddKeyError handle add key error
 func HandleAddKeyError(ctx *context.APIContext, err error) {
 	switch {
 	case models.IsErrKeyAlreadyExist(err):
@@ -80,7 +84,8 @@ func HandleAddKeyError(ctx *context.APIContext, err error) {
 	}
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Repositories-Deploy-Keys#add-a-new-deploy-key
+// CreateDeployKey create deploy key for a repository
+// see https://github.com/gogits/go-gogs-client/wiki/Repositories-Deploy-Keys#add-a-new-deploy-key
 func CreateDeployKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	content, err := models.CheckPublicKeyString(form.Key)
 	if err != nil {
@@ -99,7 +104,8 @@ func CreateDeployKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	ctx.JSON(201, convert.ToDeployKey(apiLink, key))
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Repositories-Deploy-Keys#remove-a-deploy-key
+// DeleteDeploykey delete deploy key for a repository
+// see https://github.com/gogits/go-gogs-client/wiki/Repositories-Deploy-Keys#remove-a-deploy-key
 func DeleteDeploykey(ctx *context.APIContext) {
 	if err := models.DeleteDeployKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrKeyAccessDenied(err) {

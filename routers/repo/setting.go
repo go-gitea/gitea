@@ -26,12 +26,14 @@ const (
 	tplDeployKeys      base.TplName = "repo/settings/deploy_keys"
 )
 
+// Settings show a repository's settings page
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.HTML(200, tplSettingsOptions)
 }
 
+// SettingsPost response for changes of a repository
 func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
@@ -293,6 +295,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 	}
 }
 
+// Collaboration render a repository's collaboration page
 func Collaboration(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsCollaboration"] = true
@@ -307,6 +310,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.HTML(200, tplCollaboration)
 }
 
+// CollaborationPost response for actions for a collaboration of a repository
 func CollaborationPost(ctx *context.Context) {
 	name := strings.ToLower(ctx.Query("collaborator"))
 	if len(name) == 0 || ctx.Repo.Owner.LowerName == name {
@@ -352,6 +356,7 @@ func CollaborationPost(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubUrl + ctx.Req.URL.Path)
 }
 
+// ChangeCollaborationAccessMode response for changing access of a collaboration
 func ChangeCollaborationAccessMode(ctx *context.Context) {
 	if err := ctx.Repo.Repository.ChangeCollaborationAccessMode(
 		ctx.QueryInt64("uid"),
@@ -360,6 +365,7 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 	}
 }
 
+// DeleteCollaboration delete a collaboration for a repository
 func DeleteCollaboration(ctx *context.Context) {
 	if err := ctx.Repo.Repository.DeleteCollaboration(ctx.QueryInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteCollaboration: " + err.Error())
@@ -396,6 +402,7 @@ func parseOwnerAndRepo(ctx *context.Context) (*models.User, *models.Repository) 
 	return owner, repo
 }
 
+// GitHooks hooks of a repository
 func GitHooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.githooks")
 	ctx.Data["PageIsSettingsGitHooks"] = true
@@ -410,6 +417,7 @@ func GitHooks(ctx *context.Context) {
 	ctx.HTML(200, tplGithooks)
 }
 
+// GitHooksEdit render for editing a hook of repository page
 func GitHooksEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.githooks")
 	ctx.Data["PageIsSettingsGitHooks"] = true
@@ -428,6 +436,7 @@ func GitHooksEdit(ctx *context.Context) {
 	ctx.HTML(200, tplGithookEdit)
 }
 
+// GitHooksEditPost response for editing a git hook of a repository
 func GitHooksEditPost(ctx *context.Context) {
 	name := ctx.Params(":name")
 	hook, err := ctx.Repo.GitRepo.GetHook(name)
@@ -447,6 +456,7 @@ func GitHooksEditPost(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/hooks/git")
 }
 
+// DeployKeys render the deploy keys list of a repository page
 func DeployKeys(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
@@ -461,6 +471,7 @@ func DeployKeys(ctx *context.Context) {
 	ctx.HTML(200, tplDeployKeys)
 }
 
+// DeployKeysPost response for adding a deploy key of a repository
 func DeployKeysPost(ctx *context.Context, form auth.AddSSHKeyForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
@@ -511,6 +522,7 @@ func DeployKeysPost(ctx *context.Context, form auth.AddSSHKeyForm) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 
+// DeleteDeployKey response for deleting a deploy key
 func DeleteDeployKey(ctx *context.Context) {
 	if err := models.DeleteDeployKey(ctx.User, ctx.QueryInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteDeployKey: " + err.Error())

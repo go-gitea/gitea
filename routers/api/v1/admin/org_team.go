@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/user"
 )
 
+// CreateTeam api for create a team
 func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 	team := &models.Team{
 		OrgID:       ctx.Org.Organization.ID,
@@ -32,6 +33,7 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 	ctx.JSON(201, convert.ToTeam(team))
 }
 
+// AddTeamMember api for add a member to a team
 func AddTeamMember(ctx *context.APIContext) {
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
@@ -45,6 +47,7 @@ func AddTeamMember(ctx *context.APIContext) {
 	ctx.Status(204)
 }
 
+// RemoveTeamMember api for remove one member from a team
 func RemoveTeamMember(ctx *context.APIContext) {
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {

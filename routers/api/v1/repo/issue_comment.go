@@ -1,6 +1,7 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+
 package repo
 
 import (
@@ -12,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
+// ListIssueComments list all the comments of an issue
 func ListIssueComments(ctx *context.APIContext) {
 	var since time.Time
 	if len(ctx.Query("since")) > 0 {
@@ -38,6 +40,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	ctx.JSON(200, &apiComments)
 }
 
+// CreateIssueComment create a comment for an issue
 func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOption) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
@@ -54,6 +57,7 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 	ctx.JSON(201, comment.APIFormat())
 }
 
+// EditIssueComment modify a comment of an issue
 func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) {
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {

@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
+// ServeData download file from io.Reader
 func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	buf := make([]byte, 1024)
 	n, _ := reader.Read(buf)
@@ -34,6 +35,7 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	return err
 }
 
+// ServeBlob download a git.Blob
 func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 	dataRc, err := blob.Data()
 	if err != nil {
@@ -43,6 +45,7 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 	return ServeData(ctx, ctx.Repo.TreePath, dataRc)
 }
 
+// SingleDownload download a file by repos path
 func SingleDownload(ctx *context.Context) {
 	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
 	if err != nil {

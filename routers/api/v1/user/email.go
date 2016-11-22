@@ -13,7 +13,8 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
-// https://github.com/gogits/go-gogs-client/wiki/Users-Emails#list-email-addresses-for-a-user
+// ListEmails list all the emails of mine
+// see https://github.com/gogits/go-gogs-client/wiki/Users-Emails#list-email-addresses-for-a-user
 func ListEmails(ctx *context.APIContext) {
 	emails, err := models.GetEmailAddresses(ctx.User.ID)
 	if err != nil {
@@ -27,7 +28,8 @@ func ListEmails(ctx *context.APIContext) {
 	ctx.JSON(200, &apiEmails)
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Users-Emails#add-email-addresses
+// AddEmail add email for me
+// see https://github.com/gogits/go-gogs-client/wiki/Users-Emails#add-email-addresses
 func AddEmail(ctx *context.APIContext, form api.CreateEmailOption) {
 	if len(form.Emails) == 0 {
 		ctx.Status(422)
@@ -59,7 +61,8 @@ func AddEmail(ctx *context.APIContext, form api.CreateEmailOption) {
 	ctx.JSON(201, &apiEmails)
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Users-Emails#delete-email-addresses
+// DeleteEmail delete email
+// see https://github.com/gogits/go-gogs-client/wiki/Users-Emails#delete-email-addresses
 func DeleteEmail(ctx *context.APIContext, form api.CreateEmailOption) {
 	if len(form.Emails) == 0 {
 		ctx.Status(204)

@@ -34,7 +34,8 @@ func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, l
 	u.LoginName = loginName
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Administration-Users#create-a-new-user
+// CreateUser api for creating a user
+// see https://github.com/gogits/go-gogs-client/wiki/Administration-Users#create-a-new-user
 func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	u := &models.User{
 		Name:      form.Username,
@@ -71,7 +72,8 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	ctx.JSON(201, u.APIFormat())
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Administration-Users#edit-an-existing-user
+// EditUser api for modifying a user's information
+// see https://github.com/gogits/go-gogs-client/wiki/Administration-Users#edit-an-existing-user
 func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
@@ -123,6 +125,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	ctx.JSON(200, u.APIFormat())
 }
 
+// DeleteUser api for deleting a user
 // https://github.com/gogits/go-gogs-client/wiki/Administration-Users#delete-a-user
 func DeleteUser(ctx *context.APIContext) {
 	u := user.GetUserByParams(ctx)
@@ -144,7 +147,8 @@ func DeleteUser(ctx *context.APIContext) {
 	ctx.Status(204)
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Administration-Users#create-a-public-key-for-user
+// CreatePublicKey api for creating a public key to a user
+// see https://github.com/gogits/go-gogs-client/wiki/Administration-Users#create-a-public-key-for-user
 func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {

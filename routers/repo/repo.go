@@ -23,10 +23,11 @@ import (
 )
 
 const (
-	CREATE  base.TplName = "repo/create"
-	MIGRATE base.TplName = "repo/migrate"
+	tplCreate  base.TplName = "repo/create"
+	tplMigrate base.TplName = "repo/migrate"
 )
 
+// MustBeNotBare render when a repo is a bare git dir
 func MustBeNotBare(ctx *context.Context) {
 	if ctx.Repo.Repository.IsBare {
 		ctx.Handle(404, "MustBeNotBare", nil)
@@ -64,6 +65,7 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 	return org
 }
 
+// Create render creating repository page
 func Create(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
@@ -81,7 +83,7 @@ func Create(ctx *context.Context) {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	ctx.HTML(200, CREATE)
+	ctx.HTML(200, tplCreate)
 }
 
 func handleCreateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form interface{}) {
@@ -102,6 +104,7 @@ func handleCreateError(ctx *context.Context, owner *models.User, err error, name
 	}
 }
 
+// CreatePost response for creating repository
 func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
@@ -116,7 +119,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 	ctx.Data["ContextUser"] = ctxUser
 
 	if ctx.HasError() {
-		ctx.HTML(200, CREATE)
+		ctx.HTML(200, tplCreate)
 		return
 	}
 
@@ -141,9 +144,10 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		}
 	}
 
-	handleCreateError(ctx, ctxUser, err, "CreatePost", CREATE, &form)
+	handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
 }
 
+// Migrate render migration of repository page
 func Migrate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
 	ctx.Data["private"] = ctx.User.LastRepoVisibility
@@ -156,9 +160,10 @@ func Migrate(ctx *context.Context) {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	ctx.HTML(200, MIGRATE)
+	ctx.HTML(200, tplMigrate)
 }
 
+// MigratePost response for migrating from external git repository
 func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
 
@@ -169,7 +174,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	ctx.Data["ContextUser"] = ctxUser
 
 	if ctx.HasError() {
-		ctx.HTML(200, MIGRATE)
+		ctx.HTML(200, tplMigrate)
 		return
 	}
 
@@ -180,11 +185,11 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 			addrErr := err.(models.ErrInvalidCloneAddr)
 			switch {
 			case addrErr.IsURLError:
-				ctx.RenderWithErr(ctx.Tr("form.url_error"), MIGRATE, &form)
+				ctx.RenderWithErr(ctx.Tr("form.url_error"), tplMigrate, &form)
 			case addrErr.IsPermissionDenied:
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), MIGRATE, &form)
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tplMigrate, &form)
 			case addrErr.IsInvalidPath:
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), MIGRATE, &form)
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tplMigrate, &form)
 			default:
 				ctx.Handle(500, "Unknown error", err)
 			}
@@ -216,17 +221,18 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	if strings.Contains(err.Error(), "Authentication failed") ||
 		strings.Contains(err.Error(), "could not read Username") {
 		ctx.Data["Err_Auth"] = true
-		ctx.RenderWithErr(ctx.Tr("form.auth_failed", models.HandleCloneUserCredentials(err.Error(), true)), MIGRATE, &form)
+		ctx.RenderWithErr(ctx.Tr("form.auth_failed", models.HandleCloneUserCredentials(err.Error(), true)), tplMigrate, &form)
 		return
 	} else if strings.Contains(err.Error(), "fatal:") {
 		ctx.Data["Err_CloneAddr"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.migrate.failed", models.HandleCloneUserCredentials(err.Error(), true)), MIGRATE, &form)
+		ctx.RenderWithErr(ctx.Tr("repo.migrate.failed", models.HandleCloneUserCredentials(err.Error(), true)), tplMigrate, &form)
 		return
 	}
 
-	handleCreateError(ctx, ctxUser, err, "MigratePost", MIGRATE, &form)
+	handleCreateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
 }
 
+// Action response for actions to a repository
 func Action(ctx *context.Context) {
 	var err error
 	switch ctx.Params(":action") {
@@ -261,6 +267,7 @@ func Action(ctx *context.Context) {
 	ctx.Redirect(redirectTo)
 }
 
+// Download download an archive of a repository
 func Download(ctx *context.Context) {
 	var (
 		uri         = ctx.Params("*")
