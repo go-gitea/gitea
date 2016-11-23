@@ -11,44 +11,38 @@ type Star struct {
 func StarRepo(userID, repoID int64, star bool) error {
 	sess := x.NewSession()
 
+	defer sess.Close()
+
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
 	if star {
 		if IsStaring(userID, repoID) {
-			sess.Rollback()
 			return nil
 		}
 
 		if _, err := sess.Insert(&Star{UID: userID, RepoID: repoID}); err != nil {
-			sess.Rollback()
 			return err
 		}
 		if _, err := sess.Exec("UPDATE `repository` SET num_stars = num_stars + 1 WHERE id = ?", repoID); err != nil {
-			sess.Rollback()
 			return err
 		}
 		if _, err := sess.Exec("UPDATE `user` SET num_stars = num_stars + 1 WHERE id = ?", userID); err != nil {
-			sess.Rollback()
 			return err
 		}
 	} else {
 		if !IsStaring(userID, repoID) {
-			sess.Rollback()
 			return nil
 		}
 
 		if _, err := sess.Delete(&Star{0, userID, repoID}); err != nil {
-			sess.Rollback()
 			return err
 		}
 		if _, err := sess.Exec("UPDATE `repository` SET num_stars = num_stars - 1 WHERE id = ?", repoID); err != nil {
-			sess.Rollback()
 			return err
 		}
 		if _, err := sess.Exec("UPDATE `user` SET num_stars = num_stars - 1 WHERE id = ?", userID); err != nil {
-			sess.Rollback()
 			return err
 		}
 	}
