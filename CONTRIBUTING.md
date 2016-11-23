@@ -76,6 +76,19 @@ who makes the change even if an owners or a maintainer.  We use github's
 pull request workflow to do that and use [lgtm](http://lgtm.co) to ensure
 every PR is reviewed by at least 2 maintainers.
 
+Please, make the effort to make your pull request easy to review.
+[Read the "How to get faster PR reviews" document from the Kubernetes project](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/faster_reviews.md),
+it has useful tips for any project you may want to contribute. See some of the
+points:
+
+- Make small pull requests. The smaller, the faster to review and the more
+likely it will be merged soon.
+- Don't make changes unrelated to your PR. Maybe there are typos on some
+comments, maybe refactoring would welcome on a function... but if that is not
+related to you PR, please make *another* PR for that.
+- Split big pull requests in multiple. An incremental change will be faster to
+review than a huge PR.
+
 ## Sign your work
 
 The sign-off is a simple line at the end of the explanation for the
