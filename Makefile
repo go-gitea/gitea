@@ -86,9 +86,9 @@ install: $(wildcard *.go)
 	go install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
 .PHONY: build
-build: $(BIN)/$(EXECUTABLE)
+build: $(EXECUTABLE)
 
-$(BIN)/$(EXECUTABLE): $(wildcard *.go)
+$(EXECUTABLE): $(wildcard *.go)
 	go build -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
