@@ -51,6 +51,13 @@ fmt:
 vet:
 	go vet $(PACKAGES)
 
+.PHONY: errcheck
+errcheck:
+	@which errcheck > /dev/null; if [ $$? -ne 0 ]; then \
+		go get -u github.com/kisielk/errcheck; \
+	fi
+	errcheck $(PACKAGES)
+
 .PHONY: lint
 lint:
 	@which golint > /dev/null; if [ $$? -ne 0 ]; then \
