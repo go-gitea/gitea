@@ -62,6 +62,7 @@ type Label struct {
 	IsChecked       bool `xorm:"-"`
 }
 
+// APIFormat converts a Label to the api.Label format
 func (label *Label) APIFormat() *api.Label {
 	return &api.Label{
 		ID:    label.ID,
@@ -77,9 +78,9 @@ func (label *Label) CalOpenIssues() {
 
 // ForegroundColor calculates the text color for labels based
 // on their background color.
-func (l *Label) ForegroundColor() template.CSS {
-	if strings.HasPrefix(l.Color, "#") {
-		if color, err := strconv.ParseUint(l.Color[1:], 16, 64); err == nil {
+func (label *Label) ForegroundColor() template.CSS {
+	if strings.HasPrefix(label.Color, "#") {
+		if color, err := strconv.ParseUint(label.Color[1:], 16, 64); err == nil {
 			r := float32(0xFF & (color >> 16))
 			g := float32(0xFF & (color >> 8))
 			b := float32(0xFF & color)

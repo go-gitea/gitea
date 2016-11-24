@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func (issue *Issue) MailSubject() string {
+func (issue *Issue) mailSubject() string {
 	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.Name, issue.Title, issue.Index)
 }
 
