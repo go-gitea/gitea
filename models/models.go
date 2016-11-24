@@ -196,6 +196,10 @@ func NewEngine() (err error) {
 		return err
 	}
 
+	if err = x.Ping(); err != nil {
+		return err
+	}
+
 	if err = migrations.Migrate(x); err != nil {
 		return fmt.Errorf("migrate: %v", err)
 	}
