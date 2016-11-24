@@ -15,21 +15,13 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 	"gopkg.in/ini.v1"
-	"gopkg.in/macaron.v1"
-
-	"code.gitea.io/git"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/mailer"
-	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/ssh"
-	"code.gitea.io/gitea/modules/template/highlight"
 	"code.gitea.io/gitea/modules/user"
 )
 
@@ -37,67 +29,6 @@ const (
 	// tplInstall template for installation page
 	tplInstall base.TplName = "install"
 )
-
-func checkRunMode() {
-	switch setting.Cfg.Section("").Key("RUN_MODE").String() {
-	case "prod":
-		macaron.Env = macaron.PROD
-		macaron.ColorLog = false
-		setting.ProdMode = true
-	default:
-		git.Debug = true
-	}
-	log.Info("Run Mode: %s", strings.Title(macaron.Env))
-}
-
-// NewServices init new services
-func NewServices() {
-	setting.NewServices()
-	mailer.NewContext()
-}
-
-// GlobalInit is for global configuration reload-able.
-func GlobalInit() {
-	setting.NewContext()
-	log.Trace("Custom path: %s", setting.CustomPath)
-	log.Trace("Log path: %s", setting.LogRootPath)
-	models.LoadConfigs()
-	NewServices()
-
-	if setting.InstallLock {
-		highlight.NewContext()
-		markdown.BuildSanitizer()
-		if err := models.NewEngine(); err != nil {
-			log.Fatal(4, "Fail to initialize ORM engine: %v", err)
-		}
-		models.HasEngine = true
-
-		models.LoadRepoConfig()
-		models.NewRepoContext()
-
-		// Booting long running goroutines.
-		cron.NewContext()
-		models.InitSyncMirrors()
-		models.InitDeliverHooks()
-		models.InitTestPullRequests()
-		log.NewGitLogger(path.Join(setting.LogRootPath, "http.log"))
-	}
-	if models.EnableSQLite3 {
-		log.Info("SQLite3 Supported")
-	}
-	if models.EnableTiDB {
-		log.Info("TiDB Supported")
-	}
-	if setting.SupportMiniWinService {
-		log.Info("Builtin Windows Service Supported")
-	}
-	checkRunMode()
-
-	if setting.InstallLock && setting.SSH.StartBuiltinServer {
-		ssh.Listen(setting.SSH.ListenPort)
-		log.Info("SSH server started on :%v", setting.SSH.ListenPort)
-	}
-}
 
 // InstallInit prepare for rendering installation page
 func InstallInit(ctx *context.Context) {
