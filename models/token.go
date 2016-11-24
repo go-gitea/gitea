@@ -28,14 +28,17 @@ type AccessToken struct {
 	HasUsed           bool `xorm:"-"`
 }
 
+// BeforeInsert will be invoked by XORM before inserting a record representing this object.
 func (t *AccessToken) BeforeInsert() {
 	t.CreatedUnix = time.Now().Unix()
 }
 
+// BeforeUpdate is invoked from XORM before updating this object.
 func (t *AccessToken) BeforeUpdate() {
 	t.UpdatedUnix = time.Now().Unix()
 }
 
+// AfterSet is invoked from XORM after setting the value of a field of this object.
 func (t *AccessToken) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
 	case "created_unix":
