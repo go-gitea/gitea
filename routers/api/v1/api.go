@@ -167,6 +167,13 @@ func mustEnableIssues(ctx *context.APIContext) {
 	}
 }
 
+func mustAllowPulls(ctx *context.Context) {
+	if !ctx.Repo.Repository.AllowsPulls() {
+		ctx.Status(404)
+		return
+	}
+}
+
 // RegisterRoutes registers all v1 APIs routes to web application.
 // FIXME: custom form error response
 func RegisterRoutes(m *macaron.Macaron) {
@@ -305,6 +312,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Delete(reqRepoWriter(), repo.DeleteMilestone)
 				})
 				m.Get("/editorconfig/:filename", context.RepoRef(), repo.GetEditorconfig)
+				m.Group("/pulls", func() {
+					m.Combo("").Get(bind(api.ListPullRequestsOptions{}), repo.ListPullRequests).Post(reqRepoWriter(), bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
+					m.Group("/:index", func() {
+						m.Combo("").Get(repo.GetPullRequest).Patch(reqRepoWriter(), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
+						m.Combo("/merge").Get(repo.IsPullRequestMerged).Post(reqRepoWriter(), repo.MergePullRequest)
+					})
+
+				}, mustAllowPulls, context.ReferencesGitRepo())
 			}, repoAssignment())
 		}, reqToken())
 
