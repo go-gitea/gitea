@@ -18,10 +18,10 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
-	_ "github.com/go-macaron/cache/memcache"
+	_ "github.com/go-macaron/cache/memcache" // memcahe plugin for cache
 	_ "github.com/go-macaron/cache/redis"
 	"github.com/go-macaron/session"
-	_ "github.com/go-macaron/session/redis"
+	_ "github.com/go-macaron/session/redis" // redis plugin for store session
 	"gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 
@@ -30,44 +30,51 @@ import (
 	"code.gitea.io/gitea/modules/user"
 )
 
+// Scheme describes protocol types
 type Scheme string
 
+// enumerates all the scheme types
 const (
-	HTTP        Scheme = "http"
-	HTTPS       Scheme = "https"
-	FCGI        Scheme = "fcgi"
-	UNIX_SOCKET Scheme = "unix"
+	HTTP       Scheme = "http"
+	HTTPS      Scheme = "https"
+	FCGI       Scheme = "fcgi"
+	UNIXSOCKET Scheme = "unix"
 )
 
+// LandingPage describes the default page
 type LandingPage string
 
+// enumerates all the landing page types
 const (
-	LANDING_PAGE_HOME    LandingPage = "/"
-	LANDING_PAGE_EXPLORE LandingPage = "/explore"
+	LandingPageHome    LandingPage = "/"
+	LandingPageExplore LandingPage = "/explore"
 )
 
+// settings
 var (
-	// Build information should only be set by -ldflags.
+	// BuildTime information should only be set by -ldflags.
 	BuildTime    string
 	BuildGitHash string
 
-	// App settings
+	// AppVer settings
 	AppVer         string
 	AppName        string
-	AppUrl         string
-	AppSubUrl      string
-	AppSubUrlDepth int // Number of slashes
+	AppURL         string
+	AppSubURL      string
+	AppSubURLDepth int // Number of slashes
 	AppPath        string
 	AppDataPath    string
 
 	// Server settings
 	Protocol             Scheme
 	Domain               string
-	HTTPAddr, HTTPPort   string
+	HTTPAddr             string
+	HTTPPort             string
 	LocalURL             string
 	OfflineMode          bool
 	DisableRouterLog     bool
-	CertFile, KeyFile    string
+	CertFile             string
+	KeyFile              string
 	StaticRootPath       string
 	EnableGzip           bool
 	LandingPageURL       LandingPage
@@ -242,8 +249,9 @@ var (
 	}
 
 	// I18n settings
-	Langs, Names []string
-	dateLangs    map[string]string
+	Langs     []string
+	Names     []string
+	dateLangs map[string]string
 
 	// Highlight settings are loaded in modules/template/hightlight.go
 
@@ -386,20 +394,20 @@ please consider changing to GITEA_CUSTOM`)
 
 	sec := Cfg.Section("server")
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gogs: Go Git Service")
-	AppUrl = sec.Key("ROOT_URL").MustString("http://localhost:3000/")
-	if AppUrl[len(AppUrl)-1] != '/' {
-		AppUrl += "/"
+	AppURL = sec.Key("ROOT_URL").MustString("http://localhost:3000/")
+	if AppURL[len(AppURL)-1] != '/' {
+		AppURL += "/"
 	}
 
 	// Check if has app suburl.
-	url, err := url.Parse(AppUrl)
+	url, err := url.Parse(AppURL)
 	if err != nil {
-		log.Fatal(4, "Invalid ROOT_URL '%s': %s", AppUrl, err)
+		log.Fatal(4, "Invalid ROOT_URL '%s': %s", AppURL, err)
 	}
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
-	AppSubUrl = strings.TrimSuffix(url.Path, "/")
-	AppSubUrlDepth = strings.Count(AppSubUrl, "/")
+	AppSubURL = strings.TrimSuffix(url.Path, "/")
+	AppSubURLDepth = strings.Count(AppSubURL, "/")
 
 	Protocol = HTTP
 	if sec.Key("PROTOCOL").String() == "https" {
@@ -409,7 +417,7 @@ please consider changing to GITEA_CUSTOM`)
 	} else if sec.Key("PROTOCOL").String() == "fcgi" {
 		Protocol = FCGI
 	} else if sec.Key("PROTOCOL").String() == "unix" {
-		Protocol = UNIX_SOCKET
+		Protocol = UNIXSOCKET
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
 		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
 		if err != nil || UnixSocketPermissionParsed > 0777 {
@@ -429,9 +437,9 @@ please consider changing to GITEA_CUSTOM`)
 
 	switch sec.Key("LANDING_PAGE").MustString("home") {
 	case "explore":
-		LandingPageURL = LANDING_PAGE_EXPLORE
+		LandingPageURL = LandingPageExplore
 	default:
-		LandingPageURL = LANDING_PAGE_HOME
+		LandingPageURL = LandingPageHome
 	}
 
 	SSH.RootPath = path.Join(homeDir, ".ssh")
@@ -596,6 +604,7 @@ please consider changing to GITEA_CUSTOM`)
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 }
 
+// Service settings
 var Service struct {
 	ActiveCodeLives                int
 	ResetPwdCodeLives              int
@@ -719,7 +728,7 @@ func newSessionService() {
 		[]string{"memory", "file", "redis", "mysql"})
 	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").String(), "\" ")
 	SessionConfig.CookieName = Cfg.Section("session").Key("COOKIE_NAME").MustString("i_like_gogits")
-	SessionConfig.CookiePath = AppSubUrl
+	SessionConfig.CookiePath = AppSubURL
 	SessionConfig.Secure = Cfg.Section("session").Key("COOKIE_SECURE").MustBool()
 	SessionConfig.Gclifetime = Cfg.Section("session").Key("GC_INTERVAL_TIME").MustInt64(86400)
 	SessionConfig.Maxlifetime = Cfg.Section("session").Key("SESSION_LIFE_TIME").MustInt64(86400)
@@ -744,6 +753,7 @@ type Mailer struct {
 }
 
 var (
+	// MailService the global mailer
 	MailService *Mailer
 )
 
@@ -810,6 +820,7 @@ func newWebhookService() {
 	Webhook.PagingNum = sec.Key("PAGING_NUM").MustInt(10)
 }
 
+// NewServices initializes the services
 func NewServices() {
 	newService()
 	newLogService()

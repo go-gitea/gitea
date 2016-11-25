@@ -34,7 +34,7 @@ func GetUserByParams(ctx *context.APIContext) *models.User {
 }
 
 func composePublicKeysAPILink() string {
-	return setting.AppUrl + "api/v1/user/keys/"
+	return setting.AppURL + "api/v1/user/keys/"
 }
 
 func listPublicKeys(ctx *context.APIContext, uid int64) {

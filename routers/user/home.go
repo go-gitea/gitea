@@ -390,5 +390,5 @@ func Email2User(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Redirect(setting.AppSubUrl + "/user/" + u.Name)
+	ctx.Redirect(setting.AppSubURL + "/user/" + u.Name)
 }

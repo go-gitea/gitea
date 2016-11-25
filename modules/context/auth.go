@@ -26,7 +26,7 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 	return func(ctx *Context) {
 		// Cannot view any page before installation.
 		if !setting.InstallLock {
-			ctx.Redirect(setting.AppSubUrl + "/install")
+			ctx.Redirect(setting.AppSubURL + "/install")
 			return
 		}
 
@@ -38,14 +38,14 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 		}
 
 		// Check non-logged users landing page.
-		if !ctx.IsSigned && ctx.Req.RequestURI == "/" && setting.LandingPageURL != setting.LANDING_PAGE_HOME {
-			ctx.Redirect(setting.AppSubUrl + string(setting.LandingPageURL))
+		if !ctx.IsSigned && ctx.Req.RequestURI == "/" && setting.LandingPageURL != setting.LandingPageHome {
+			ctx.Redirect(setting.AppSubURL + string(setting.LandingPageURL))
 			return
 		}
 
 		// Redirect to dashboard if user tries to visit any non-login page.
 		if options.SignOutRequired && ctx.IsSigned && ctx.Req.RequestURI != "/" {
-			ctx.Redirect(setting.AppSubUrl + "/")
+			ctx.Redirect(setting.AppSubURL + "/")
 			return
 		}
 
@@ -66,8 +66,8 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 					return
 				}
 
-				ctx.SetCookie("redirect_to", url.QueryEscape(setting.AppSubUrl+ctx.Req.RequestURI), 0, setting.AppSubUrl)
-				ctx.Redirect(setting.AppSubUrl + "/user/login")
+				ctx.SetCookie("redirect_to", url.QueryEscape(setting.AppSubURL+ctx.Req.RequestURI), 0, setting.AppSubURL)
+				ctx.Redirect(setting.AppSubURL + "/user/login")
 				return
 			} else if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
@@ -79,8 +79,8 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 		// Redirect to log in page if auto-signin info is provided and has not signed in.
 		if !options.SignOutRequired && !ctx.IsSigned && !auth.IsAPIPath(ctx.Req.URL.Path) &&
 			len(ctx.GetCookie(setting.CookieUserName)) > 0 {
-			ctx.SetCookie("redirect_to", url.QueryEscape(setting.AppSubUrl+ctx.Req.RequestURI), 0, setting.AppSubUrl)
-			ctx.Redirect(setting.AppSubUrl + "/user/login")
+			ctx.SetCookie("redirect_to", url.QueryEscape(setting.AppSubURL+ctx.Req.RequestURI), 0, setting.AppSubURL)
+			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return
 		}
 

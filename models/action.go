@@ -152,8 +152,8 @@ func (a *Action) ShortRepoPath() string {
 
 // GetRepoLink returns relative link to action repository.
 func (a *Action) GetRepoLink() string {
-	if len(setting.AppSubUrl) > 0 {
-		return path.Join(setting.AppSubUrl, a.GetRepoPath())
+	if len(setting.AppSubURL) > 0 {
+		return path.Join(setting.AppSubURL, a.GetRepoPath())
 	}
 	return "/" + a.GetRepoPath()
 }
@@ -546,7 +546,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			Ref:        opts.RefFullName,
 			Before:     opts.OldCommitID,
 			After:      opts.NewCommitID,
-			CompareURL: setting.AppUrl + opts.Commits.CompareURL,
+			CompareURL: setting.AppURL + opts.Commits.CompareURL,
 			Commits:    opts.Commits.ToAPIPayloadCommits(repo.HTMLURL()),
 			Repo:       apiRepo,
 			Pusher:     apiPusher,

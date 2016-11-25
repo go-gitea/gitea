@@ -117,7 +117,7 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 
 // composeGoGetImport returns go-get-import meta content.
 func composeGoGetImport(owner, repo string) string {
-	return path.Join(setting.Domain, setting.AppSubUrl, owner, repo)
+	return path.Join(setting.Domain, setting.AppSubURL, owner, repo)
 }
 
 // earlyResponseForGoGetMeta responses appropriate go-get meta with status 200
@@ -331,7 +331,7 @@ func RepoAssignment(args ...bool) macaron.Handler {
 
 		if ctx.Query("go-get") == "1" {
 			ctx.Data["GoGetImport"] = composeGoGetImport(owner.Name, repo.Name)
-			prefix := setting.AppUrl + path.Join(owner.Name, repo.Name, "src", ctx.Repo.BranchName)
+			prefix := setting.AppURL + path.Join(owner.Name, repo.Name, "src", ctx.Repo.BranchName)
 			ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
 			ctx.Data["GoDocFile"] = prefix + "{/dir}/{file}#L{line}"
 		}

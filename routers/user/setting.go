@@ -52,16 +52,16 @@ func handleUsernameChange(ctx *context.Context, newName string) {
 			switch {
 			case models.IsErrUserAlreadyExist(err):
 				ctx.Flash.Error(ctx.Tr("newName_been_taken"))
-				ctx.Redirect(setting.AppSubUrl + "/user/settings")
+				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			case models.IsErrEmailAlreadyUsed(err):
 				ctx.Flash.Error(ctx.Tr("form.email_been_used"))
-				ctx.Redirect(setting.AppSubUrl + "/user/settings")
+				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			case models.IsErrNameReserved(err):
 				ctx.Flash.Error(ctx.Tr("user.newName_reserved"))
-				ctx.Redirect(setting.AppSubUrl + "/user/settings")
+				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			case models.IsErrNamePatternNotAllowed(err):
 				ctx.Flash.Error(ctx.Tr("user.newName_pattern_not_allowed"))
-				ctx.Redirect(setting.AppSubUrl + "/user/settings")
+				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			default:
 				ctx.Handle(500, "ChangeUserName", err)
 			}
@@ -101,7 +101,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateProfileForm) {
 
 	log.Trace("User settings updated: %s", ctx.User.Name)
 	ctx.Flash.Success(ctx.Tr("settings.update_profile_success"))
-	ctx.Redirect(setting.AppSubUrl + "/user/settings")
+	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 
 // UpdateAvatarSetting update user's avatar
@@ -162,7 +162,7 @@ func SettingsAvatarPost(ctx *context.Context, form auth.AvatarForm) {
 		ctx.Flash.Success(ctx.Tr("settings.update_avatar_success"))
 	}
 
-	ctx.Redirect(setting.AppSubUrl + "/user/settings/avatar")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/avatar")
 }
 
 // SettingsDeleteAvatar render delete avatar page
@@ -171,7 +171,7 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.Redirect(setting.AppSubUrl + "/user/settings/avatar")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/avatar")
 }
 
 // SettingsPassword render change user's password page
@@ -207,7 +207,7 @@ func SettingsPasswordPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
 	}
 
-	ctx.Redirect(setting.AppSubUrl + "/user/settings/password")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/password")
 }
 
 // SettingsEmails render user's emails page
@@ -238,7 +238,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 		}
 
 		log.Trace("Email made primary: %s", ctx.User.Name)
-		ctx.Redirect(setting.AppSubUrl + "/user/settings/email")
+		ctx.Redirect(setting.AppSubURL + "/user/settings/email")
 		return
 	}
 
@@ -282,7 +282,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	}
 
 	log.Trace("Email address added: %s", email.Email)
-	ctx.Redirect(setting.AppSubUrl + "/user/settings/email")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/email")
 }
 
 // DeleteEmail reponse for delete user's email
@@ -295,7 +295,7 @@ func DeleteEmail(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("settings.email_deletion_success"))
 	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubUrl + "/user/settings/email",
+		"redirect": setting.AppSubURL + "/user/settings/email",
 	})
 }
 
@@ -337,7 +337,7 @@ func SettingsSSHKeysPost(ctx *context.Context, form auth.AddSSHKeyForm) {
 			ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
 		} else {
 			ctx.Flash.Error(ctx.Tr("form.invalid_ssh_key", err.Error()))
-			ctx.Redirect(setting.AppSubUrl + "/user/settings/ssh")
+			ctx.Redirect(setting.AppSubURL + "/user/settings/ssh")
 			return
 		}
 	}
@@ -358,7 +358,7 @@ func SettingsSSHKeysPost(ctx *context.Context, form auth.AddSSHKeyForm) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.add_key_success", form.Title))
-	ctx.Redirect(setting.AppSubUrl + "/user/settings/ssh")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/ssh")
 }
 
 // DeleteSSHKey response for delete user's SSH key
@@ -370,7 +370,7 @@ func DeleteSSHKey(ctx *context.Context) {
 	}
 
 	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubUrl + "/user/settings/ssh",
+		"redirect": setting.AppSubURL + "/user/settings/ssh",
 	})
 }
 
@@ -417,7 +417,7 @@ func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm
 	ctx.Flash.Success(ctx.Tr("settings.generate_token_succees"))
 	ctx.Flash.Info(t.Sha1)
 
-	ctx.Redirect(setting.AppSubUrl + "/user/settings/applications")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
 }
 
 // SettingsDeleteApplication response for delete user access token
@@ -429,7 +429,7 @@ func SettingsDeleteApplication(ctx *context.Context) {
 	}
 
 	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubUrl + "/user/settings/applications",
+		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
 }
 
@@ -452,16 +452,16 @@ func SettingsDelete(ctx *context.Context) {
 			switch {
 			case models.IsErrUserOwnRepos(err):
 				ctx.Flash.Error(ctx.Tr("form.still_own_repo"))
-				ctx.Redirect(setting.AppSubUrl + "/user/settings/delete")
+				ctx.Redirect(setting.AppSubURL + "/user/settings/delete")
 			case models.IsErrUserHasOrgs(err):
 				ctx.Flash.Error(ctx.Tr("form.still_has_org"))
-				ctx.Redirect(setting.AppSubUrl + "/user/settings/delete")
+				ctx.Redirect(setting.AppSubURL + "/user/settings/delete")
 			default:
 				ctx.Handle(500, "DeleteUser", err)
 			}
 		} else {
 			log.Trace("Account deleted: %s", ctx.User.Name)
-			ctx.Redirect(setting.AppSubUrl + "/")
+			ctx.Redirect(setting.AppSubURL + "/")
 		}
 		return
 	}

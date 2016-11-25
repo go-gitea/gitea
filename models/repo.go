@@ -246,7 +246,7 @@ func (repo *Repository) FullName() string {
 }
 
 func (repo *Repository) HTMLURL() string {
-	return setting.AppUrl + repo.FullName()
+	return setting.AppURL + repo.FullName()
 }
 
 // Arguments that are allowed to be nil: permission
@@ -412,7 +412,7 @@ func (repo *Repository) RelLink() string {
 }
 
 func (repo *Repository) Link() string {
-	return setting.AppSubUrl + "/" + repo.FullName()
+	return setting.AppSubURL + "/" + repo.FullName()
 }
 
 func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) string {
@@ -550,7 +550,7 @@ type CloneLink struct {
 
 // ComposeHTTPSCloneURL returns HTTPS clone URL based on given owner and repository name.
 func ComposeHTTPSCloneURL(owner, repo string) string {
-	return fmt.Sprintf("%s%s/%s.git", setting.AppUrl, owner, repo)
+	return fmt.Sprintf("%s%s/%s.git", setting.AppURL, owner, repo)
 }
 
 func (repo *Repository) cloneLink(isWiki bool) *CloneLink {

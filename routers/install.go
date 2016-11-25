@@ -89,7 +89,7 @@ func Install(ctx *context.Context) {
 	form.Domain = setting.Domain
 	form.SSHPort = setting.SSH.Port
 	form.HTTPPort = setting.HTTPPort
-	form.AppUrl = setting.AppUrl
+	form.AppUrl = setting.AppURL
 	form.LogRootPath = setting.LogRootPath
 
 	// E-mail service settings

@@ -159,7 +159,7 @@ func Contexter() macaron.Handler {
 			Org: &Organization{},
 		}
 		// Compute current URL for real-time change language.
-		ctx.Data["Link"] = setting.AppSubUrl + strings.TrimSuffix(ctx.Req.URL.Path, "/")
+		ctx.Data["Link"] = setting.AppSubURL + strings.TrimSuffix(ctx.Req.URL.Path, "/")
 
 		ctx.Data["PageStartTime"] = time.Now()
 

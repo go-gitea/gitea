@@ -217,7 +217,7 @@ func AvatarLink(email string) string {
 		return setting.GravatarSource + HashEmail(email)
 	}
 
-	return setting.AppSubUrl + "/img/avatar_default.png"
+	return setting.AppSubURL + "/img/avatar_default.png"
 }
 
 // Seconds-based time units

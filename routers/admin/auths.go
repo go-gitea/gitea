@@ -167,7 +167,7 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	log.Trace("Authentication created by admin(%s): %s", ctx.User.Name, form.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.new_success", form.Name))
-	ctx.Redirect(setting.AppSubUrl + "/admin/auths")
+	ctx.Redirect(setting.AppSubURL + "/admin/auths")
 }
 
 // EditAuthSource render editing auth source page
@@ -236,7 +236,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	log.Trace("Authentication changed by admin(%s): %s", ctx.User.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.update_success"))
-	ctx.Redirect(setting.AppSubUrl + "/admin/auths/" + com.ToStr(form.ID))
+	ctx.Redirect(setting.AppSubURL + "/admin/auths/" + com.ToStr(form.ID))
 }
 
 // DeleteAuthSource response for deleting an auth source
@@ -254,7 +254,7 @@ func DeleteAuthSource(ctx *context.Context) {
 			ctx.Flash.Error(fmt.Sprintf("DeleteSource: %v", err))
 		}
 		ctx.JSON(200, map[string]interface{}{
-			"redirect": setting.AppSubUrl + "/admin/auths/" + ctx.Params(":authid"),
+			"redirect": setting.AppSubURL + "/admin/auths/" + ctx.Params(":authid"),
 		})
 		return
 	}
@@ -262,6 +262,6 @@ func DeleteAuthSource(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.deletion_success"))
 	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubUrl + "/admin/auths",
+		"redirect": setting.AppSubURL + "/admin/auths",
 	})
 }

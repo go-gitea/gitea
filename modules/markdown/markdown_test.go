@@ -16,7 +16,7 @@ func TestMarkdown(t *testing.T) {
 			urlPrefix                   = "/prefix"
 			metas     map[string]string = nil
 		)
-		setting.AppSubUrlDepth = 0
+		setting.AppSubURLDepth = 0
 
 		Convey("To the internal issue tracker", func() {
 			Convey("It should not render anything when there are no mentions", func() {
@@ -237,7 +237,7 @@ func TestMarkdown(t *testing.T) {
 	})
 
 	Convey("Rendering an issue URL", t, func() {
-		setting.AppUrl = "http://localhost:3000/"
+		setting.AppURL = "http://localhost:3000/"
 		htmlFlags := 0
 		htmlFlags |= blackfriday.HTML_SKIP_STYLE
 		htmlFlags |= blackfriday.HTML_OMIT_CONTENTS
@@ -279,7 +279,7 @@ func TestMarkdown(t *testing.T) {
 	})
 
 	Convey("Rendering a commit URL", t, func() {
-		setting.AppUrl = "http://localhost:3000/"
+		setting.AppURL = "http://localhost:3000/"
 		htmlFlags := 0
 		htmlFlags |= blackfriday.HTML_SKIP_STYLE
 		htmlFlags |= blackfriday.HTML_OMIT_CONTENTS
