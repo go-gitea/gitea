@@ -14,7 +14,7 @@ import (
 // Markdown render markdown document to HTML
 // see https://github.com/gogits/go-gogs-client/wiki/Miscellaneous#render-an-arbitrary-markdown-document
 func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
-	if ctx.HasApiError() {
+	if ctx.HasAPIError() {
 		ctx.Error(422, "", ctx.GetErrMsg())
 		return
 	}

@@ -13,6 +13,7 @@ import (
 	macaron "gopkg.in/macaron.v1"
 )
 
+// ToggleOptions contains required or check options
 type ToggleOptions struct {
 	SignInRequired  bool
 	SignOutRequired bool
@@ -20,6 +21,7 @@ type ToggleOptions struct {
 	DisableCSRF     bool
 }
 
+// Toggle returns toggle options as middleware
 func Toggle(options *ToggleOptions) macaron.Handler {
 	return func(ctx *Context) {
 		// Cannot view any page before installation.

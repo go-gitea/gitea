@@ -16,6 +16,7 @@ import (
 	macaron "gopkg.in/macaron.v1"
 )
 
+// APIContext is a specific macaron context for API service
 type APIContext struct {
 	*Context
 	Org *APIOrganization
@@ -63,6 +64,7 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 	}
 }
 
+// APIContexter returns apicontext as macaron middleware
 func APIContexter() macaron.Handler {
 	return func(c *Context) {
 		ctx := &APIContext{

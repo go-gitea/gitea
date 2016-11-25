@@ -19,6 +19,7 @@ import (
 	macaron "gopkg.in/macaron.v1"
 )
 
+// PullRequest contains informations to make a pull request
 type PullRequest struct {
 	BaseRepo *models.Repository
 	Allowed  bool
@@ -26,6 +27,7 @@ type PullRequest struct {
 	HeadInfo string // [<user>:]<branch>
 }
 
+// Repository contains informations to operate a repository
 type Repository struct {
 	AccessMode   models.AccessMode
 	IsWatching   bool
@@ -96,6 +98,7 @@ func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
 	return editorconfig.ParseBytes(data)
 }
 
+// RetrieveBaseRepo retrieves base repository
 func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 	// Non-fork repository will not return error in this method.
 	if err := repo.GetBaseRepo(); err != nil {
@@ -130,6 +133,7 @@ func earlyResponseForGoGetMeta(ctx *Context) {
 		})))
 }
 
+// RepoAssignment returns a macaron to handle repository assignment
 func RepoAssignment(args ...bool) macaron.Handler {
 	return func(ctx *Context) {
 		var (
@@ -446,6 +450,7 @@ func RepoRef() macaron.Handler {
 	}
 }
 
+// RequireRepoAdmin returns a macaron middleware for requiring repository admin permission
 func RequireRepoAdmin() macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.IsSigned || (!ctx.Repo.IsAdmin() && !ctx.User.IsAdmin) {
@@ -455,6 +460,7 @@ func RequireRepoAdmin() macaron.Handler {
 	}
 }
 
+// RequireRepoWriter returns a macaron middleware for requiring repository write permission
 func RequireRepoWriter() macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.IsSigned || (!ctx.Repo.IsWriter() && !ctx.User.IsAdmin) {

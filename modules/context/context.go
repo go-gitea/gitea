@@ -40,8 +40,8 @@ type Context struct {
 	Org  *Organization
 }
 
-// HasError returns true if error occurs in form validation.
-func (ctx *Context) HasApiError() bool {
+// HasAPIError returns true if error occurs in form validation.
+func (ctx *Context) HasAPIError() bool {
 	hasErr, ok := ctx.Data["HasError"]
 	if !ok {
 		return false
@@ -49,6 +49,7 @@ func (ctx *Context) HasApiError() bool {
 	return hasErr.(bool)
 }
 
+// GetErrMsg returns error message
 func (ctx *Context) GetErrMsg() string {
 	return ctx.Data["ErrorMsg"].(string)
 }
@@ -116,6 +117,7 @@ func (ctx *Context) NotFoundOrServerError(title string, errck func(error) bool, 
 	ctx.Handle(500, title, err)
 }
 
+// HandleText handles HTTP status code
 func (ctx *Context) HandleText(status int, title string) {
 	if (status/100 == 4) || (status/100 == 5) {
 		log.Error(4, "%s", title)
@@ -123,6 +125,7 @@ func (ctx *Context) HandleText(status int, title string) {
 	ctx.PlainText(status, []byte(title))
 }
 
+// ServeContent serves content to http request
 func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interface{}) {
 	modtime := time.Now()
 	for _, p := range params {
