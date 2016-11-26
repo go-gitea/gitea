@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
-	_ "github.com/go-macaron/cache/memcache" // memcahe plugin for cache
+	_ "github.com/go-macaron/cache/memcache" // memcache plugin for cache
 	_ "github.com/go-macaron/cache/redis"
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
@@ -38,7 +38,7 @@ const (
 	HTTP       Scheme = "http"
 	HTTPS      Scheme = "https"
 	FCGI       Scheme = "fcgi"
-	UNIXSOCKET Scheme = "unix"
+	UnixSocket Scheme = "unix"
 )
 
 // LandingPage describes the default page
@@ -417,7 +417,7 @@ please consider changing to GITEA_CUSTOM`)
 	} else if sec.Key("PROTOCOL").String() == "fcgi" {
 		Protocol = FCGI
 	} else if sec.Key("PROTOCOL").String() == "unix" {
-		Protocol = UNIXSOCKET
+		Protocol = UnixSocket
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
 		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
 		if err != nil || UnixSocketPermissionParsed > 0777 {

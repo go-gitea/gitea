@@ -640,7 +640,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	var listenAddr string
-	if setting.Protocol == setting.UNIXSOCKET {
+	if setting.Protocol == setting.UnixSocket {
 		listenAddr = fmt.Sprintf("%s", setting.HTTPAddr)
 	} else {
 		listenAddr = fmt.Sprintf("%s:%s", setting.HTTPAddr, setting.HTTPPort)
@@ -656,7 +656,7 @@ func runWeb(ctx *cli.Context) error {
 		err = server.ListenAndServeTLS(setting.CertFile, setting.KeyFile)
 	case setting.FCGI:
 		err = fcgi.Serve(nil, m)
-	case setting.UNIXSOCKET:
+	case setting.UnixSocket:
 		os.Remove(listenAddr)
 
 		var listener *net.UnixListener
