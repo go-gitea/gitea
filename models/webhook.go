@@ -91,24 +91,24 @@ const (
 
 // Webhook represents a web hook object.
 type Webhook struct {
-	ID           int64 `xorm:"pk autoincr"`
-	RepoID       int64
-	OrgID        int64
+	ID           int64  `xorm:"pk autoincr"`
+	RepoID       int64  `xorm:"INDEX"`
+	OrgID        int64  `xorm:"INDEX"`
 	URL          string `xorm:"url TEXT"`
 	ContentType  HookContentType
 	Secret       string `xorm:"TEXT"`
 	Events       string `xorm:"TEXT"`
 	*HookEvent   `xorm:"-"`
 	IsSSL        bool `xorm:"is_ssl"`
-	IsActive     bool
+	IsActive     bool `xorm:"INDEX"`
 	HookTaskType HookTaskType
 	Meta         string     `xorm:"TEXT"` // store hook-specific attributes
 	LastStatus   HookStatus // Last delivery status
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64
+	CreatedUnix int64     `xorm:"INDEX"`
 	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64
+	UpdatedUnix int64     `xorm:"INDEX"`
 }
 
 // BeforeInsert will be invoked by XORM before inserting a record

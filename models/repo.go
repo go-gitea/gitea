@@ -193,10 +193,10 @@ type Repository struct {
 	NumOpenMilestones   int `xorm:"-"`
 	NumTags             int `xorm:"-"`
 
-	IsPrivate bool
-	IsBare    bool
+	IsPrivate bool `xorm:"INDEX"`
+	IsBare    bool `xorm:"INDEX"`
 
-	IsMirror bool
+	IsMirror bool `xorm:"INDEX"`
 	*Mirror  `xorm:"-"`
 
 	// Advanced settings
@@ -211,14 +211,14 @@ type Repository struct {
 	ExternalMetas         map[string]string `xorm:"-"`
 	EnablePulls           bool              `xorm:"NOT NULL DEFAULT true"`
 
-	IsFork   bool `xorm:"NOT NULL DEFAULT false"`
-	ForkID   int64
+	IsFork   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
+	ForkID   int64       `xorm:"INDEX"`
 	BaseRepo *Repository `xorm:"-"`
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64
+	CreatedUnix int64     `xorm:"INDEX"`
 	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64
+	UpdatedUnix int64     `xorm:"INDEX"`
 }
 
 // BeforeInsert is invoked from XORM before inserting an object of this type.

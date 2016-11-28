@@ -20,8 +20,8 @@ import (
 // Release represents a release of repository.
 type Release struct {
 	ID               int64 `xorm:"pk autoincr"`
-	RepoID           int64
-	PublisherID      int64
+	RepoID           int64 `xorm:"INDEX"`
+	PublisherID      int64 `xorm:"INDEX"`
 	Publisher        *User `xorm:"-"`
 	TagName          string
 	LowerTagName     string
@@ -35,7 +35,7 @@ type Release struct {
 	IsPrerelease     bool
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64
+	CreatedUnix int64     `xorm:"INDEX"`
 }
 
 // BeforeInsert is invoked from XORM before inserting an object of this type.

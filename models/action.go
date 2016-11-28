@@ -71,19 +71,19 @@ func init() {
 // used in template render.
 type Action struct {
 	ID           int64 `xorm:"pk autoincr"`
-	UserID       int64 // Receiver user id.
+	UserID       int64 `xorm:"INDEX"` // Receiver user id.
 	OpType       ActionType
-	ActUserID    int64  // Action user id.
+	ActUserID    int64  `xorm:"INDEX"` // Action user id.
 	ActUserName  string // Action user name.
 	ActAvatar    string `xorm:"-"`
-	RepoID       int64
+	RepoID       int64  `xorm:"INDEX"`
 	RepoUserName string
 	RepoName     string
 	RefName      string
-	IsPrivate    bool      `xorm:"NOT NULL DEFAULT false"`
+	IsPrivate    bool      `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content      string    `xorm:"TEXT"`
 	Created      time.Time `xorm:"-"`
-	CreatedUnix  int64
+	CreatedUnix  int64     `xorm:"INDEX"`
 }
 
 // BeforeInsert will be invoked by XORM before inserting a record
