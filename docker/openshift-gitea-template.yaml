@@ -1,0 +1,199 @@
+kind: Template
+apiVersion: v1
+labels:
+  version: "0.1"
+  group: infrastructure
+metadata:
+  annotations:
+    description: The Gitea git server (https://gitea.io/)
+    tags: gitea,git,instant-app
+    version: "0.1"
+  name: gitea
+objects:
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    labels:
+      app: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    labels:
+      app: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+  spec:
+    tags:
+    - from:
+        kind: DockerImage
+        name: ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_VERSION}
+      name: ${DOCKER_IMAGE_VERSION}
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    labels:
+      app: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+  spec:
+    replicas: 1
+    selector:
+      app: ${APPLICATION_NAME}
+      deploymentconfig: ${APPLICATION_NAME}
+    strategy:
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: ${APPLICATION_NAME}
+          deploymentconfig: ${APPLICATION_NAME}
+      spec:
+        serviceAccountName: ${APPLICATION_NAME}
+        containers:
+        - image: " "
+          imagePullPolicy: Always
+          name: ${APPLICATION_NAME}
+          ports:
+          - containerPort: 2222
+            protocol: TCP
+          - containerPort: 3000
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /etc/ssh/keys
+            name: gitea-ssh-keys
+          - mountPath: /data
+            name: gitea-data
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 3
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: gitea-ssh-keys
+          persistentVolumeClaim:
+            claimName: gitea-ssh-keys
+        - name: gitea-data
+          persistentVolumeClaim:
+            claimName: gitea-data
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ${APPLICATION_NAME}
+        from:
+          kind: ImageStreamTag
+          name: ${APPLICATION_NAME}:latest
+      type: ImageChange
+- kind: Service
+  apiVersion: v1
+  metadata:
+    annotations:
+      description: The Gitea server's http port
+    labels:
+      app: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+  spec:
+    ports:
+    - name: 3000-http
+      port: 3000
+      protocol: TCP
+      targetPort: 3000
+    selector:
+      app: ${APPLICATION_NAME}
+      deploymentconfig: ${APPLICATION_NAME}
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- kind: Route
+  apiVersion: v1
+  metadata:
+    annotations:
+      description: Route for application's http service.
+    name: ${APPLICATION_NAME}
+    labels:
+      app: ${APPLICATION_NAME}
+  spec:
+    host: ${HOSTNAME}
+    to:
+      kind: Service
+      name: ${APPLICATION_NAME}
+      weight: 100
+    port:
+      targetPort: 3000-http
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+- kind: PersistentVolumeClaim
+  apiVersion: v1
+  metadata:
+    name: gitea-data
+  spec:
+    accessModes:
+      - ReadWriteMany
+    resources:
+      requests:
+        storage: ${GITEA_DATA_VOLUME_CAPACITY}
+- kind: PersistentVolumeClaim
+  apiVersion: v1
+  metadata:
+    name: gitea-ssh-keys
+  spec:
+    accessModes:
+      - ReadWriteMany
+    resources:
+      requests:
+        storage: ${GITEA_SSH_KEYS_VOLUME_CAPACITY}
+parameters:
+- description: The name for the application.
+  name: APPLICATION_NAME
+  required: true
+  value: gitea
+- description: Docker image name
+  name: DOCKER_IMAGE_NAME
+  required: true
+  value: willemvd/gitea
+- description: Docker image version
+  name: DOCKER_IMAGE_VERSION
+  required: true
+  value: latest
+- description: 'Custom hostname for http service route.  Leave blank for default hostname, e.g.: <application-name>-<project>.<default-domain-suffix>'
+  name: HOSTNAME
+  value: ""
+- description: Volume space available for data, e.g. 512Mi, 2Gi
+  name: GITEA_SSH_KEYS_VOLUME_CAPACITY
+  required: true
+  value: 1Mi
+- description: Volume space available for Gitea repository data, e.g. 512Mi, 2Gi
+  name: GITEA_DATA_VOLUME_CAPACITY
+  required: true
+  value: 2Gi
