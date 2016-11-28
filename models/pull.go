@@ -21,17 +21,21 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-var PullRequestQueue = sync.NewUniqueQueue(setting.Repository.PullRequestQueueLength)
+var pullRequestQueue = sync.NewUniqueQueue(setting.Repository.PullRequestQueueLength)
 
+// PullRequestType defines pull request type
 type PullRequestType int
 
+// Enumerate all the pull request types
 const (
 	PullRequestGitea PullRequestType = iota
 	PullRequestGit
 )
 
+// PullRequestStatus defines pull request status
 type PullRequestStatus int
 
+// Enumerate all the pull request status
 const (
 	PullRequestStatusConflict PullRequestStatus = iota
 	PullRequestStatusChecking
@@ -65,10 +69,12 @@ type PullRequest struct {
 	MergedUnix     int64
 }
 
+// BeforeUpdate is invoked from XORM before updating an object of this type.
 func (pr *PullRequest) BeforeUpdate() {
 	pr.MergedUnix = pr.Merged.Unix()
 }
 
+// AfterSet is invoked from XORM after setting the value of a field of this object.
 // Note: don't try to get Issue because will end up recursive querying.
 func (pr *PullRequest) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
@@ -96,10 +102,12 @@ func (pr *PullRequest) loadAttributes(e Engine) (err error) {
 	return nil
 }
 
+// LoadAttributes loads pull request attributes from database
 func (pr *PullRequest) LoadAttributes() error {
 	return pr.loadAttributes(x)
 }
 
+// LoadIssue loads issue information from database
 func (pr *PullRequest) LoadIssue() (err error) {
 	if pr.Issue != nil {
 		return nil
@@ -109,7 +117,7 @@ func (pr *PullRequest) LoadIssue() (err error) {
 	return err
 }
 
-// This method assumes following fields have been assigned with valid values:
+// APIFormat assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
 func (pr *PullRequest) APIFormat() *api.PullRequest {
@@ -150,10 +158,12 @@ func (pr *PullRequest) getHeadRepo(e Engine) (err error) {
 	return nil
 }
 
+// GetHeadRepo loads the head repository
 func (pr *PullRequest) GetHeadRepo() error {
 	return pr.getHeadRepo(x)
 }
 
+// GetBaseRepo loads the target repository
 func (pr *PullRequest) GetBaseRepo() (err error) {
 	if pr.BaseRepo != nil {
 		return nil
@@ -538,7 +548,7 @@ func (pr *PullRequest) Update() error {
 	return err
 }
 
-// Update updates specific fields of pull request.
+// UpdateCols updates specific fields of pull request.
 func (pr *PullRequest) UpdateCols(cols ...string) error {
 	_, err := x.Id(pr.ID).Cols(cols...).Update(pr)
 	return err
@@ -623,7 +633,7 @@ func (pr *PullRequest) PushToBaseRepo() (err error) {
 
 // AddToTaskQueue adds itself to pull request test task queue.
 func (pr *PullRequest) AddToTaskQueue() {
-	go PullRequestQueue.AddFunc(pr.ID, func() {
+	go pullRequestQueue.AddFunc(pr.ID, func() {
 		pr.Status = PullRequestStatusChecking
 		if err := pr.UpdateCols("status"); err != nil {
 			log.Error(5, "AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
@@ -631,6 +641,7 @@ func (pr *PullRequest) AddToTaskQueue() {
 	})
 }
 
+// PullRequestList defines a list of pull requests
 type PullRequestList []*PullRequest
 
 func (prs PullRequestList) loadAttributes(e Engine) error {
@@ -661,6 +672,7 @@ func (prs PullRequestList) loadAttributes(e Engine) error {
 	return nil
 }
 
+// LoadAttributes load all the prs attributes
 func (prs PullRequestList) LoadAttributes() error {
 	return prs.loadAttributes(x)
 }
@@ -730,6 +742,7 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 	}
 }
 
+// ChangeUsernameInPullRequests changes the name of head_user_name
 func ChangeUsernameInPullRequests(oldUserName, newUserName string) error {
 	pr := PullRequest{
 		HeadUserName: strings.ToLower(newUserName),
@@ -750,7 +763,7 @@ func (pr *PullRequest) checkAndUpdateStatus() {
 	}
 
 	// Make sure there is no waiting test to process before levaing the checking status.
-	if !PullRequestQueue.Exist(pr.ID) {
+	if !pullRequestQueue.Exist(pr.ID) {
 		if err := pr.UpdateCols("status"); err != nil {
 			log.Error(4, "Update[%d]: %v", pr.ID, err)
 		}
@@ -786,9 +799,9 @@ func TestPullRequests() {
 	}
 
 	// Start listening on new test requests.
-	for prID := range PullRequestQueue.Queue() {
+	for prID := range pullRequestQueue.Queue() {
 		log.Trace("TestPullRequests[%v]: processing test task", prID)
-		PullRequestQueue.Remove(prID)
+		pullRequestQueue.Remove(prID)
 
 		pr, err := GetPullRequestByID(com.StrTo(prID).MustInt64())
 		if err != nil {
@@ -803,6 +816,7 @@ func TestPullRequests() {
 	}
 }
 
+// InitTestPullRequests runs the task to test all the checking status pull requests
 func InitTestPullRequests() {
 	go TestPullRequests()
 }
