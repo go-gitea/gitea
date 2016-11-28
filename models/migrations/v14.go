@@ -23,10 +23,12 @@ func setCommentUpdatedWithCreated(x *xorm.Engine) (err error) {
 	return nil
 }
 
+// UserV14 describes the added fields for migrating from v13 -> v14
 type UserV14 struct {
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (*UserV14) TableName() string {
 	return "user"
 }

@@ -25,8 +25,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-const _MIN_DB_VER = 4
+const minDBVersion = 4
 
+// Migration describes on migration from lower version to high version
 type Migration interface {
 	Description() string
 	Migrate(*xorm.Engine) error
@@ -37,19 +38,22 @@ type migration struct {
 	migrate     func(*xorm.Engine) error
 }
 
+// NewMigration creates a new migration
 func NewMigration(desc string, fn func(*xorm.Engine) error) Migration {
 	return &migration{desc, fn}
 }
 
+// Description returns the migration's description
 func (m *migration) Description() string {
 	return m.description
 }
 
+// Migrate executes the migration
 func (m *migration) Migrate(x *xorm.Engine) error {
 	return m.migrate(x)
 }
 
-// The version table. Should have only one row with id==1
+// Version describes the version table. Should have only one row with id==1
 type Version struct {
 	ID      int64 `xorm:"pk autoincr"`
 	Version int64
@@ -57,11 +61,11 @@ type Version struct {
 
 // This is a sequence of migrations. Add new migrations to the bottom of the list.
 // If you want to "retire" a migration, remove it from the top of the list and
-// update _MIN_VER_DB accordingly
+// update minDBVersion accordingly
 var migrations = []Migration{
 	// v0 -> v4: before 0.6.0 -> 0.7.33
 	NewMigration("fix locale file load panic", fixLocaleFileLoadPanic),                           // V4 -> V5:v0.6.0
-	NewMigration("trim action compare URL prefix", trimCommitActionAppUrlPrefix),                 // V5 -> V6:v0.6.3
+	NewMigration("trim action compare URL prefix", trimCommitActionAppURLPrefix),                 // V5 -> V6:v0.6.3
 	NewMigration("generate issue-label from issue", issueToIssueLabel),                           // V6 -> V7:v0.6.4
 	NewMigration("refactor attachment table", attachmentRefactor),                                // V7 -> V8:v0.6.4
 	NewMigration("rename pull request fields", renamePullRequestFields),                          // V8 -> V9:v0.6.16
@@ -89,7 +93,7 @@ func Migrate(x *xorm.Engine) error {
 	} else if !has {
 		// If the version record does not exist we think
 		// it is a fresh installation and we can skip all migrations.
-		currentVersion.Version = int64(_MIN_DB_VER + len(migrations))
+		currentVersion.Version = int64(minDBVersion + len(migrations))
 
 		if _, err = x.InsertOne(currentVersion); err != nil {
 			return fmt.Errorf("insert: %v", err)
@@ -97,19 +101,19 @@ func Migrate(x *xorm.Engine) error {
 	}
 
 	v := currentVersion.Version
-	if _MIN_DB_VER > v {
+	if minDBVersion > v {
 		log.Fatal(4, `Gogs no longer supports auto-migration from your previously installed version.
 Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to current version.`)
 		return nil
 	}
 
-	if int(v-_MIN_DB_VER) > len(migrations) {
+	if int(v-minDBVersion) > len(migrations) {
 		// User downgraded Gogs.
-		currentVersion.Version = int64(len(migrations) + _MIN_DB_VER)
+		currentVersion.Version = int64(len(migrations) + minDBVersion)
 		_, err = x.Id(1).Update(currentVersion)
 		return err
 	}
-	for i, m := range migrations[v-_MIN_DB_VER:] {
+	for i, m := range migrations[v-minDBVersion:] {
 		log.Info("Migration: %s", m.Description())
 		if err = m.Migrate(x); err != nil {
 			return fmt.Errorf("do migrate: %v", err)
@@ -144,7 +148,7 @@ func fixLocaleFileLoadPanic(_ *xorm.Engine) error {
 	return nil
 }
 
-func trimCommitActionAppUrlPrefix(x *xorm.Engine) error {
+func trimCommitActionAppURLPrefix(x *xorm.Engine) error {
 	type PushCommit struct {
 		Sha1        string
 		Message     string
@@ -155,7 +159,7 @@ func trimCommitActionAppUrlPrefix(x *xorm.Engine) error {
 	type PushCommits struct {
 		Len        int
 		Commits    []*PushCommit
-		CompareUrl string
+		CompareURL string `json:"CompareUrl"`
 	}
 
 	type Action struct {
@@ -186,11 +190,11 @@ func trimCommitActionAppUrlPrefix(x *xorm.Engine) error {
 			return fmt.Errorf("unmarshal action content[%d]: %v", actID, err)
 		}
 
-		infos := strings.Split(pushCommits.CompareUrl, "/")
+		infos := strings.Split(pushCommits.CompareURL, "/")
 		if len(infos) <= 4 {
 			continue
 		}
-		pushCommits.CompareUrl = strings.Join(infos[len(infos)-4:], "/")
+		pushCommits.CompareURL = strings.Join(infos[len(infos)-4:], "/")
 
 		p, err := json.Marshal(pushCommits)
 		if err != nil {
@@ -463,27 +467,34 @@ func generateOrgRandsAndSalt(x *xorm.Engine) (err error) {
 	return sess.Commit()
 }
 
+// TAction defines the struct for migrating table action
 type TAction struct {
 	ID          int64 `xorm:"pk autoincr"`
 	CreatedUnix int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TAction) TableName() string { return "action" }
 
+// TNotice defines the struct for migrating table notice
 type TNotice struct {
 	ID          int64 `xorm:"pk autoincr"`
 	CreatedUnix int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TNotice) TableName() string { return "notice" }
 
+// TComment defines the struct for migrating table comment
 type TComment struct {
 	ID          int64 `xorm:"pk autoincr"`
 	CreatedUnix int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TComment) TableName() string { return "comment" }
 
+// TIssue defines the struct for migrating table issue
 type TIssue struct {
 	ID           int64 `xorm:"pk autoincr"`
 	DeadlineUnix int64
@@ -491,99 +502,124 @@ type TIssue struct {
 	UpdatedUnix  int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TIssue) TableName() string { return "issue" }
 
+// TMilestone defines the struct for migrating table milestone
 type TMilestone struct {
 	ID             int64 `xorm:"pk autoincr"`
 	DeadlineUnix   int64
 	ClosedDateUnix int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TMilestone) TableName() string { return "milestone" }
 
+// TAttachment defines the struct for migrating table attachment
 type TAttachment struct {
 	ID          int64 `xorm:"pk autoincr"`
 	CreatedUnix int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TAttachment) TableName() string { return "attachment" }
 
+// TLoginSource defines the struct for migrating table login_source
 type TLoginSource struct {
 	ID          int64 `xorm:"pk autoincr"`
 	CreatedUnix int64
 	UpdatedUnix int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TLoginSource) TableName() string { return "login_source" }
 
+// TPull defines the struct for migrating table pull_request
 type TPull struct {
 	ID         int64 `xorm:"pk autoincr"`
 	MergedUnix int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TPull) TableName() string { return "pull_request" }
 
+// TRelease defines the struct for migrating table release
 type TRelease struct {
 	ID          int64 `xorm:"pk autoincr"`
 	CreatedUnix int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TRelease) TableName() string { return "release" }
 
+// TRepo defines the struct for migrating table repository
 type TRepo struct {
 	ID          int64 `xorm:"pk autoincr"`
 	CreatedUnix int64
 	UpdatedUnix int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TRepo) TableName() string { return "repository" }
 
+// TMirror defines the struct for migrating table mirror
 type TMirror struct {
 	ID             int64 `xorm:"pk autoincr"`
 	UpdatedUnix    int64
 	NextUpdateUnix int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TMirror) TableName() string { return "mirror" }
 
+// TPublicKey defines the struct for migrating table public_key
 type TPublicKey struct {
 	ID          int64 `xorm:"pk autoincr"`
 	CreatedUnix int64
 	UpdatedUnix int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TPublicKey) TableName() string { return "public_key" }
 
+// TDeployKey defines the struct for migrating table deploy_key
 type TDeployKey struct {
 	ID          int64 `xorm:"pk autoincr"`
 	CreatedUnix int64
 	UpdatedUnix int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TDeployKey) TableName() string { return "deploy_key" }
 
+// TAccessToken defines the struct for migrating table access_token
 type TAccessToken struct {
 	ID          int64 `xorm:"pk autoincr"`
 	CreatedUnix int64
 	UpdatedUnix int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TAccessToken) TableName() string { return "access_token" }
 
+// TUser defines the struct for migrating table user
 type TUser struct {
 	ID          int64 `xorm:"pk autoincr"`
 	CreatedUnix int64
 	UpdatedUnix int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TUser) TableName() string { return "user" }
 
+// TWebhook defines the struct for migrating table webhook
 type TWebhook struct {
 	ID          int64 `xorm:"pk autoincr"`
 	CreatedUnix int64
 	UpdatedUnix int64
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (t *TWebhook) TableName() string { return "webhook" }
 
 func convertDateToUnix(x *xorm.Engine) (err error) {
