@@ -11,6 +11,7 @@ import (
 	"gopkg.in/macaron.v1"
 )
 
+// Static implements the macaron static handler for serving assets.
 func Static(opts *Options) macaron.Handler {
 	return macaron.Static(
 		opts.Directory,
