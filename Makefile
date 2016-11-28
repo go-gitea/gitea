@@ -37,12 +37,6 @@ clean:
 	go clean -i ./...
 	rm -rf $(BIN) $(DIST)
 
-.PHONY: deps
-deps:
-	@which go-bindata > /dev/null; if [ $$? -ne 0 ]; then \
-		go get -u github.com/jteeuwen/go-bindata/...; \
-	fi
-
 .PHONY: fmt
 fmt:
 	go fmt $(PACKAGES)
@@ -50,6 +44,13 @@ fmt:
 .PHONY: vet
 vet:
 	go vet $(PACKAGES)
+
+.PHONY: generate
+generate:
+	@which go-bindata > /dev/null; if [ $$? -ne 0 ]; then \
+		go get -u github.com/jteeuwen/go-bindata/...; \
+	fi
+	go generate $(PACKAGES)
 
 .PHONY: errcheck
 errcheck:
@@ -129,6 +130,9 @@ bindata: modules/bindata/bindata.go
 
 .IGNORE: modules/bindata/bindata.go
 modules/bindata/bindata.go: $(BINDATA)
+	@which go-bindata > /dev/null; if [ $$? -ne 0 ]; then \
+		go get -u github.com/jteeuwen/go-bindata/...; \
+	fi
 	go-bindata -o=$@ -ignore="\\.go|README.md|TRANSLATORS" -pkg=bindata conf/...
 	go fmt $@
 	sed -i.bak 's/confLocaleLocale_/confLocaleLocale/' $@
@@ -148,5 +152,5 @@ stylesheets: public/css/index.css
 public/css/index.css: $(STYLESHEETS)
 	lessc $< $@
 
-.PHONY: generate
-generate: bindata javascripts stylesheets
+.PHONY: assets
+assets: bindata javascripts stylesheets
