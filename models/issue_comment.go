@@ -53,7 +53,7 @@ const (
 type Comment struct {
 	ID              int64 `xorm:"pk autoincr"`
 	Type            CommentType
-	PosterID        int64
+	PosterID        int64 `xorm:"INDEX"`
 	Poster          *User `xorm:"-"`
 	IssueID         int64 `xorm:"INDEX"`
 	CommitID        int64
@@ -62,9 +62,9 @@ type Comment struct {
 	RenderedContent string `xorm:"-"`
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64
+	CreatedUnix int64     `xorm:"INDEX"`
 	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64
+	UpdatedUnix int64     `xorm:"INDEX"`
 
 	// Reference issue in commit message
 	CommitSHA string `xorm:"VARCHAR(40)"`

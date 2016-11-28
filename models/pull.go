@@ -54,21 +54,21 @@ type PullRequest struct {
 	Issue   *Issue `xorm:"-"`
 	Index   int64
 
-	HeadRepoID   int64
+	HeadRepoID   int64       `xorm:"INDEX"`
 	HeadRepo     *Repository `xorm:"-"`
-	BaseRepoID   int64
+	BaseRepoID   int64       `xorm:"INDEX"`
 	BaseRepo     *Repository `xorm:"-"`
 	HeadUserName string
 	HeadBranch   string
 	BaseBranch   string
 	MergeBase    string `xorm:"VARCHAR(40)"`
 
-	HasMerged      bool
-	MergedCommitID string `xorm:"VARCHAR(40)"`
-	MergerID       int64
+	HasMerged      bool      `xorm:"INDEX"`
+	MergedCommitID string    `xorm:"VARCHAR(40)"`
+	MergerID       int64     `xorm:"INDEX"`
 	Merger         *User     `xorm:"-"`
 	Merged         time.Time `xorm:"-"`
-	MergedUnix     int64
+	MergedUnix     int64     `xorm:"INDEX"`
 }
 
 // BeforeUpdate is invoked from XORM before updating an object of this type.

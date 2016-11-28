@@ -90,11 +90,11 @@ type User struct {
 	Salt        string `xorm:"VARCHAR(10)"`
 
 	Created       time.Time `xorm:"-"`
-	CreatedUnix   int64
+	CreatedUnix   int64     `xorm:"INDEX"`
 	Updated       time.Time `xorm:"-"`
-	UpdatedUnix   int64
+	UpdatedUnix   int64     `xorm:"INDEX"`
 	LastLogin     time.Time `xorm:"-"`
-	LastLoginUnix int64
+	LastLoginUnix int64     `xorm:"INDEX"`
 
 	// Remember visibility choice for convenience, true for private
 	LastRepoVisibility bool
@@ -102,7 +102,7 @@ type User struct {
 	MaxRepoCreation int `xorm:"NOT NULL DEFAULT -1"`
 
 	// Permissions
-	IsActive                bool // Activate primary email
+	IsActive                bool `xorm:"INDEX"` // Activate primary email
 	IsAdmin                 bool
 	AllowGitHook            bool
 	AllowImportLocal        bool // Allow migrate repository by local path

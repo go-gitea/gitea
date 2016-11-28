@@ -32,7 +32,7 @@ type Notice struct {
 	Type        NoticeType
 	Description string    `xorm:"TEXT"`
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64
+	CreatedUnix int64     `xorm:"INDEX"`
 }
 
 // BeforeInsert is invoked from XORM before inserting an object of this type.

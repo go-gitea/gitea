@@ -255,7 +255,7 @@ type OrgUser struct {
 	ID       int64 `xorm:"pk autoincr"`
 	UID      int64 `xorm:"INDEX UNIQUE(s)"`
 	OrgID    int64 `xorm:"INDEX UNIQUE(s)"`
-	IsPublic bool
+	IsPublic bool  `xorm:"INDEX"`
 	IsOwner  bool
 	NumTeams int
 }
