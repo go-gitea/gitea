@@ -540,6 +540,8 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 
 	apiPusher := pusher.APIFormat()
 	apiRepo := repo.APIFormat(nil)
+
+	var shaSum string
 	switch opType {
 	case ActionCommitRepo: // Push
 		if err = PrepareWebhooks(repo, HookEventPush, &api.PushPayload{
@@ -556,8 +558,17 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		}
 
 		if isNewBranch {
+			gitRepo, err := git.OpenRepository(repo.RepoPath())
+			if err != nil {
+				log.Error(4, "OpenRepository[%s]: %v", repo.RepoPath(), err)
+			}
+			shaSum, err = gitRepo.GetBranchCommitID(opts.RefFullName)
+			if err != nil {
+				log.Error(4, "GetBranchCommitID[%s]: %v", opts.RefFullName, err)
+			}
 			return PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
 				Ref:     refName,
+				Sha:     shaSum,
 				RefType: "branch",
 				Repo:    apiRepo,
 				Sender:  apiPusher,
@@ -565,7 +576,14 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		}
 
 	case ActionPushTag: // Create
-		shaSum := git.OpenRepository(repo.RepoPath()).GetTagCommitID(refName)
+		gitRepo, err := git.OpenRepository(repo.RepoPath())
+		if err != nil {
+			log.Error(4, "OpenRepository[%s]: %v", repo.RepoPath(), err)
+		}
+		shaSum, err = gitRepo.GetTagCommitID(opts.RefFullName)
+		if err != nil {
+			log.Error(4, "GetTagCommitID[%s]: %v", opts.RefFullName, err)
+		}
 		return PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
 			Ref:     refName,
 			Sha:     shaSum,
