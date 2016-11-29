@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"code.gitea.io/git"
-	"code.gitea.io/gitea/modules/bindata"
+	"code.gitea.io/gitea/conf"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/process"
@@ -80,7 +80,7 @@ func LoadRepoConfig() {
 	types := []string{"gitignore", "license", "readme", "label"}
 	typeFiles := make([][]string, 4)
 	for i, t := range types {
-		files, err := bindata.AssetDir("conf/" + t)
+		files, err := conf.AssetDir(t)
 		if err != nil {
 			log.Fatal(4, "Fail to get %s files: %v", t, err)
 		}
@@ -812,14 +812,14 @@ type CreateRepoOptions struct {
 }
 
 func getRepoInitFile(tp, name string) ([]byte, error) {
-	relPath := path.Join("conf", tp, strings.TrimLeft(name, "./"))
+	relPath := path.Join(tp, strings.TrimLeft(name, "./"))
 
 	// Use custom file when available.
-	customPath := path.Join(setting.CustomPath, relPath)
+	customPath := path.Join(setting.CustomPath, "conf", relPath)
 	if com.IsFile(customPath) {
 		return ioutil.ReadFile(customPath)
 	}
-	return bindata.Asset(relPath)
+	return conf.Asset(relPath)
 }
 
 func prepareRepoCommit(repo *Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {

@@ -25,7 +25,7 @@ import (
 	"gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 
-	"code.gitea.io/gitea/modules/bindata"
+	"code.gitea.io/gitea/conf"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 )
@@ -352,7 +352,7 @@ func NewContext() {
 		log.Fatal(4, "Fail to get work directory: %v", err)
 	}
 
-	Cfg, err = ini.Load(bindata.MustAsset("conf/app.ini"))
+	Cfg, err = ini.Load(conf.MustAsset("app.ini"))
 	if err != nil {
 		log.Fatal(4, "Fail to parse 'conf/app.ini': %v", err)
 	}

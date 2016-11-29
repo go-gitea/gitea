@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"path"
 
+	"github.com/go-macaron/bindata"
 	"gopkg.in/gomail.v2"
 	"gopkg.in/macaron.v1"
 
@@ -38,12 +39,12 @@ type mailRenderInterface interface {
 var mailRender mailRenderInterface
 
 // InitMailRender initializes the macaron mail renderer
-func InitMailRender(dir, appendDir string, funcMap []template.FuncMap) {
+func InitMailRender(templateOptions bindata.Options, appendDir string, funcMap []template.FuncMap) {
 	opt := &macaron.RenderOptions{
-		Directory:         dir,
-		AppendDirectories: []string{appendDir},
-		Funcs:             funcMap,
-		Extensions:        []string{".tmpl", ".html"},
+		TemplateFileSystem: bindata.Templates(templateOptions),
+		AppendDirectories:  []string{appendDir},
+		Funcs:              funcMap,
+		Extensions:         []string{".tmpl", ".html"},
 	}
 	ts := macaron.NewTemplateSet()
 	ts.Set(macaron.DEFAULT_TPL_SET_NAME, opt)

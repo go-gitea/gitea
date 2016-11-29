@@ -28,6 +28,9 @@ _testmain.go
 
 coverage.out
 
+/templates/bindata.go
+/public/bindata.go
+
 *.db
 *.log
 
