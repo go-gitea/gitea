@@ -565,8 +565,10 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		}
 
 	case ActionPushTag: // Create
+		shaSum := git.OpenRepository(repo.RepoPath()).GetTagCommitID(refName)
 		return PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
 			Ref:     refName,
+			Sha:     shaSum,
 			RefType: "tag",
 			Repo:    apiRepo,
 			Sender:  apiPusher,
