@@ -10,6 +10,7 @@ import (
 	"fmt"
 )
 
+// AdminCreateOrg create an organization
 func (c *Client) AdminCreateOrg(user string, opt CreateOrgOption) (*Organization, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {

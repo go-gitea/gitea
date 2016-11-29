@@ -10,10 +10,12 @@ import (
 	"fmt"
 )
 
+// AddCollaboratorOption options when add some user as a collaborator of a repository
 type AddCollaboratorOption struct {
 	Permission *string `json:"permission"`
 }
 
+// AddCollaborator add some user as a collaborator of a repository
 func (c *Client) AddCollaborator(user, repo, collaborator string, opt AddCollaboratorOption) error {
 	body, err := json.Marshal(&opt)
 	if err != nil {

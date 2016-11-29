@@ -47,16 +47,19 @@ func (c *Client) ListMyRepos() ([]*Repository, error) {
 	return repos, c.getParsedResponse("GET", "/user/repos", nil, nil, &repos)
 }
 
+// ListUserRepos list all repositories of one user by user's name
 func (c *Client) ListUserRepos(user string) ([]*Repository, error) {
 	repos := make([]*Repository, 0, 10)
 	return repos, c.getParsedResponse("GET", fmt.Sprintf("/users/%s/repos", user), nil, nil, &repos)
 }
 
+// ListOrgRepos list all repositories of one organization by organization's name
 func (c *Client) ListOrgRepos(org string) ([]*Repository, error) {
 	repos := make([]*Repository, 0, 10)
 	return repos, c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s/repos", org), nil, nil, &repos)
 }
 
+// CreateRepoOption options when creating repository
 type CreateRepoOption struct {
 	Name        string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 	Description string `json:"description" binding:"MaxSize(255)"`
@@ -99,6 +102,7 @@ func (c *Client) DeleteRepo(owner, repo string) error {
 	return err
 }
 
+// MigrateRepoOption options when migrate repository from an external place
 type MigrateRepoOption struct {
 	CloneAddr    string `json:"clone_addr" binding:"Required"`
 	AuthUsername string `json:"auth_username"`

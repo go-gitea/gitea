@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// Milestone milestone is a collection of issues on one repository
 type Milestone struct {
 	ID           int64      `json:"id"`
 	Title        string     `json:"title"`
@@ -22,22 +23,26 @@ type Milestone struct {
 	Deadline     *time.Time `json:"due_on"`
 }
 
+// ListRepoMilestones list all the milestones of one repository
 func (c *Client) ListRepoMilestones(owner, repo string) ([]*Milestone, error) {
 	milestones := make([]*Milestone, 0, 10)
 	return milestones, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/milestones", owner, repo), nil, nil, &milestones)
 }
 
+// GetMilestone get one milestone by repo name and milestone id
 func (c *Client) GetMilestone(owner, repo string, id int64) (*Milestone, error) {
 	milestone := new(Milestone)
 	return milestone, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/milestones/%d", owner, repo, id), nil, nil, milestone)
 }
 
+// CreateMilestoneOption options when creating milestone
 type CreateMilestoneOption struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
 	Deadline    *time.Time `json:"due_on"`
 }
 
+// CreateMilestone create one milestone with options
 func (c *Client) CreateMilestone(owner, repo string, opt CreateMilestoneOption) (*Milestone, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
@@ -47,6 +52,7 @@ func (c *Client) CreateMilestone(owner, repo string, opt CreateMilestoneOption) 
 	return milestone, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/milestones", owner, repo), jsonHeader, bytes.NewReader(body), milestone)
 }
 
+// EditMilestoneOption options when modify milestone
 type EditMilestoneOption struct {
 	Title       string     `json:"title"`
 	Description *string    `json:"description"`
@@ -54,6 +60,7 @@ type EditMilestoneOption struct {
 	Deadline    *time.Time `json:"due_on"`
 }
 
+// EditMilestone modify milestone with options
 func (c *Client) EditMilestone(owner, repo string, id int64, opt EditMilestoneOption) (*Milestone, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
@@ -63,6 +70,7 @@ func (c *Client) EditMilestone(owner, repo string, id int64, opt EditMilestoneOp
 	return milestone, c.getParsedResponse("PATCH", fmt.Sprintf("/repos/%s/%s/milestones/%d", owner, repo, id), jsonHeader, bytes.NewReader(body), milestone)
 }
 
+// DeleteMilestone delete one milestone by milestone id
 func (c *Client) DeleteMilestone(owner, repo string, id int64) error {
 	_, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/milestones/%d", owner, repo, id), nil, nil)
 	return err

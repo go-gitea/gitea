@@ -11,18 +11,23 @@ import (
 	"time"
 )
 
+// StateType issue state type
 type StateType string
 
 const (
-	STATE_OPEN   StateType = "open"
-	STATE_CLOSED StateType = "closed"
+	// StateOpen pr is opend
+	StateOpen StateType = "open"
+	// StateClosed pr is closed
+	StateClosed StateType = "closed"
 )
 
+// PullRequestMeta PR info if an issue is a PR
 type PullRequestMeta struct {
 	HasMerged bool       `json:"merged"`
 	Merged    *time.Time `json:"merged_at"`
 }
 
+// Issue an issue to a repository
 type Issue struct {
 	ID        int64      `json:"id"`
 	Index     int64      `json:"number"`
@@ -40,20 +45,37 @@ type Issue struct {
 	PullRequest *PullRequestMeta `json:"pull_request"`
 }
 
+// ListIssueOption list issue options
 type ListIssueOption struct {
-	Page int
+	Page  int
+	State string
 }
 
+// ListIssues returns all issues assigned the authenticated user
+func (c *Client) ListIssues(opt ListIssueOption) ([]*Issue, error) {
+	issues := make([]*Issue, 0, 10)
+	return issues, c.getParsedResponse("GET", fmt.Sprintf("/issues?page=%d", opt.Page), nil, nil, &issues)
+}
+
+// ListUserIssues returns all issues assigned to the authenticated user
+func (c *Client) ListUserIssues(opt ListIssueOption) ([]*Issue, error) {
+	issues := make([]*Issue, 0, 10)
+	return issues, c.getParsedResponse("GET", fmt.Sprintf("/user/issues?page=%d", opt.Page), nil, nil, &issues)
+}
+
+// ListRepoIssues returns all issues for a given repository
 func (c *Client) ListRepoIssues(owner, repo string, opt ListIssueOption) ([]*Issue, error) {
 	issues := make([]*Issue, 0, 10)
 	return issues, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/issues?page=%d", owner, repo, opt.Page), nil, nil, &issues)
 }
 
+// GetIssue returns a single issue for a given repository
 func (c *Client) GetIssue(owner, repo string, index int64) (*Issue, error) {
 	issue := new(Issue)
 	return issue, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/issues/%d", owner, repo, index), nil, nil, issue)
 }
 
+// CreateIssueOption options to create one issue
 type CreateIssueOption struct {
 	Title     string  `json:"title" binding:"Required"`
 	Body      string  `json:"body"`
@@ -63,6 +85,7 @@ type CreateIssueOption struct {
 	Closed    bool    `json:"closed"`
 }
 
+// CreateIssue create a new issue for a given repository
 func (c *Client) CreateIssue(owner, repo string, opt CreateIssueOption) (*Issue, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
@@ -73,6 +96,7 @@ func (c *Client) CreateIssue(owner, repo string, opt CreateIssueOption) (*Issue,
 		jsonHeader, bytes.NewReader(body), issue)
 }
 
+// EditIssueOption edit issue options
 type EditIssueOption struct {
 	Title     string  `json:"title"`
 	Body      *string `json:"body"`
@@ -81,6 +105,7 @@ type EditIssueOption struct {
 	State     *string `json:"state"`
 }
 
+// EditIssue modify an existing issue for a given repository
 func (c *Client) EditIssue(owner, repo string, index int64, opt EditIssueOption) (*Issue, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {

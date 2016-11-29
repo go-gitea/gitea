@@ -11,12 +11,13 @@ import (
 // User represents a API user.
 type User struct {
 	ID        int64  `json:"id"`
-	UserName  string `json:"username"`
+	UserName  string `json:"login"`
 	FullName  string `json:"full_name"`
 	Email     string `json:"email"`
-	AvatarUrl string `json:"avatar_url"`
+	AvatarURL string `json:"avatar_url"`
 }
 
+// GetUserInfo get user info by user's name
 func (c *Client) GetUserInfo(user string) (*User, error) {
 	u := new(User)
 	err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s", user), nil, nil, u)

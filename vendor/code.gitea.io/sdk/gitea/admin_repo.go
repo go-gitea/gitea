@@ -10,6 +10,7 @@ import (
 	"fmt"
 )
 
+// AdminCreateRepo create a repo
 func (c *Client) AdminCreateRepo(user string, opt CreateRepoOption) (*Repository, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {

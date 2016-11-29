@@ -10,10 +10,12 @@ import (
 	"fmt"
 )
 
+// AddOrgMembershipOption add user to organization options
 type AddOrgMembershipOption struct {
 	Role string `json:"role" binding:"Required"`
 }
 
+// AddOrgMembership add some one to an organization's member
 func (c *Client) AddOrgMembership(org, user string, opt AddOrgMembershipOption) error {
 	body, err := json.Marshal(&opt)
 	if err != nil {
