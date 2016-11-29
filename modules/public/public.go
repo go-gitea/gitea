@@ -4,7 +4,7 @@
 
 package public
 
-//go:generate go-bindata -tags bindata -ignore "\\.go|\\.less" -pkg public -o bindata.go ./...
+//go:generate go-bindata -tags "bindata" -ignore "\\.go|\\.less" -pkg "public" -o "bindata.go" ../../public/...
 //go:generate go fmt bindata.go
 
 // Options represents the available options to configure the macaron handler.
