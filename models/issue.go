@@ -173,9 +173,9 @@ func (issue *Issue) HTMLURL() string {
 // State returns string representation of issue status.
 func (issue *Issue) State() api.StateType {
 	if issue.IsClosed {
-		return api.STATE_CLOSED
+		return api.StateClosed
 	}
-	return api.STATE_OPEN
+	return api.StateOpen
 }
 
 // APIFormat assumes some fields assigned with values:
@@ -483,7 +483,7 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 		if isClosed {
 			apiPullRequest.Action = api.HookIssueClosed
 		} else {
-			apiPullRequest.Action = api.HookIssueReopened
+			apiPullRequest.Action = api.HookIssueReOpened
 		}
 		err = PrepareWebhooks(repo, HookEventPullRequest, apiPullRequest)
 	}
@@ -1409,9 +1409,9 @@ func (m *Milestone) AfterSet(colName string, _ xorm.Cell) {
 // State returns string representation of milestone status.
 func (m *Milestone) State() api.StateType {
 	if m.IsClosed {
-		return api.STATE_CLOSED
+		return api.StateClosed
 	}
-	return api.STATE_OPEN
+	return api.StateOpen
 }
 
 // APIFormat returns this Milestone in API format.

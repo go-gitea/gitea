@@ -139,7 +139,7 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 
 	if pr.Status != PullRequestStatusChecking {
 		mergeable := pr.Status != PullRequestStatusConflict
-		apiPullRequest.Mergeable = &mergeable
+		apiPullRequest.Mergeable = mergeable
 	}
 	if pr.HasMerged {
 		apiPullRequest.Merged = &pr.Merged

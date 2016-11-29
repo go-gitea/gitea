@@ -38,7 +38,7 @@ func Search(ctx *context.APIContext) {
 		results[i] = &api.User{
 			ID:        users[i].ID,
 			UserName:  users[i].Name,
-			AvatarUrl: users[i].AvatarLink(),
+			AvatarURL: users[i].AvatarLink(),
 			FullName:  users[i].FullName,
 		}
 		if ctx.IsSigned {
