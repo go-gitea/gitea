@@ -5,18 +5,18 @@
 package models
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"path"
-
-	"gopkg.in/gomail.v2"
-	"gopkg.in/macaron.v1"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"gopkg.in/gomail.v2"
+	"gopkg.in/macaron.v1"
 )
 
 const (
@@ -31,27 +31,11 @@ const (
 	mailNotifyCollaborator base.TplName = "notify/collaborator"
 )
 
-type mailRenderInterface interface {
-	HTMLString(string, interface{}, ...macaron.HTMLOptions) (string, error)
-}
-
-var mailRender mailRenderInterface
+var templates *template.Template
 
 // InitMailRender initializes the macaron mail renderer
-func InitMailRender(dir, appendDir string, funcMap []template.FuncMap) {
-	opt := &macaron.RenderOptions{
-		Directory:         dir,
-		AppendDirectories: []string{appendDir},
-		Funcs:             funcMap,
-		Extensions:        []string{".tmpl", ".html"},
-	}
-	ts := macaron.NewTemplateSet()
-	ts.Set(macaron.DEFAULT_TPL_SET_NAME, opt)
-
-	mailRender = &macaron.TplRender{
-		TemplateSet: ts,
-		Opt:         opt,
-	}
+func InitMailRender(tmpls *template.Template) {
+	templates = tmpls
 }
 
 // SendTestMail sends a test mail
@@ -67,13 +51,15 @@ func SendUserMail(c *macaron.Context, u *User, tpl base.TplName, code, subject, 
 		"ResetPwdCodeLives": setting.Service.ResetPwdCodeLives / 60,
 		"Code":              code,
 	}
-	body, err := mailRender.HTMLString(string(tpl), data)
-	if err != nil {
-		log.Error(3, "HTMLString: %v", err)
+
+	var content bytes.Buffer
+
+	if err := templates.ExecuteTemplate(&content, string(tpl), data); err != nil {
+		log.Error(3, "Template: %v", err)
 		return
 	}
 
-	msg := mailer.NewMessage([]string{u.Email}, subject, body)
+	msg := mailer.NewMessage([]string{u.Email}, subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, %s", u.ID, info)
 
 	mailer.SendAsync(msg)
@@ -97,13 +83,15 @@ func SendActivateEmailMail(c *macaron.Context, u *User, email *EmailAddress) {
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
 	}
-	body, err := mailRender.HTMLString(string(mailAuthActivateEmail), data)
-	if err != nil {
-		log.Error(3, "HTMLString: %v", err)
+
+	var content bytes.Buffer
+
+	if err := templates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
+		log.Error(3, "Template: %v", err)
 		return
 	}
 
-	msg := mailer.NewMessage([]string{email.Email}, c.Tr("mail.activate_email"), body)
+	msg := mailer.NewMessage([]string{email.Email}, c.Tr("mail.activate_email"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, activate email", u.ID)
 
 	mailer.SendAsync(msg)
@@ -114,13 +102,15 @@ func SendRegisterNotifyMail(c *macaron.Context, u *User) {
 	data := map[string]interface{}{
 		"Username": u.DisplayName(),
 	}
-	body, err := mailRender.HTMLString(string(mailAuthRegisterNotify), data)
-	if err != nil {
-		log.Error(3, "HTMLString: %v", err)
+
+	var content bytes.Buffer
+
+	if err := templates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
+		log.Error(3, "Template: %v", err)
 		return
 	}
 
-	msg := mailer.NewMessage([]string{u.Email}, c.Tr("mail.register_notify"), body)
+	msg := mailer.NewMessage([]string{u.Email}, c.Tr("mail.register_notify"), content.String())
 	msg.Info = fmt.Sprintf("UID: %d, registration notify", u.ID)
 
 	mailer.SendAsync(msg)
@@ -136,13 +126,15 @@ func SendCollaboratorMail(u, doer *User, repo *Repository) {
 		"RepoName": repoName,
 		"Link":     repo.HTMLURL(),
 	}
-	body, err := mailRender.HTMLString(string(mailNotifyCollaborator), data)
-	if err != nil {
-		log.Error(3, "HTMLString: %v", err)
+
+	var content bytes.Buffer
+
+	if err := templates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
+		log.Error(3, "Template: %v", err)
 		return
 	}
 
-	msg := mailer.NewMessage([]string{u.Email}, subject, body)
+	msg := mailer.NewMessage([]string{u.Email}, subject, content.String())
 	msg.Info = fmt.Sprintf("UID: %d, add collaborator", u.ID)
 
 	mailer.SendAsync(msg)
@@ -161,11 +153,14 @@ func composeIssueMessage(issue *Issue, doer *User, tplName base.TplName, tos []s
 	body := string(markdown.RenderSpecialLink([]byte(issue.Content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
 	data := composeTplData(subject, body, issue.HTMLURL())
 	data["Doer"] = doer
-	content, err := mailRender.HTMLString(string(tplName), data)
-	if err != nil {
-		log.Error(3, "HTMLString (%s): %v", tplName, err)
+
+	var content bytes.Buffer
+
+	if err := templates.ExecuteTemplate(&content, string(tplName), data); err != nil {
+		log.Error(3, "Template: %v", err)
 	}
-	msg := mailer.NewMessageFrom(tos, fmt.Sprintf(`"%s" <%s>`, doer.DisplayName(), setting.MailService.FromEmail), subject, content)
+
+	msg := mailer.NewMessageFrom(tos, fmt.Sprintf(`"%s" <%s>`, doer.DisplayName(), setting.MailService.FromEmail), subject, content.String())
 	msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 	return msg
 }
