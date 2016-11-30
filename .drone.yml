@@ -45,7 +45,7 @@ pipeline:
     image: karalabe/xgo-latest:latest
     pull: true
     commands:
-      - make publish
+      - make release
     when:
       event: [ push, tag ]
       branch: [ master, refs/tags/* ]

@@ -108,21 +108,6 @@ release-copy:
 release-check:
 	cd $(DIST)/release; $(foreach file,$(wildcard $(DIST)/release/$(EXECUTABLE)-*),sha256sum $(notdir $(file)) > $(notdir $(file)).sha256;)
 
-.PHONY: latest
-latest: release-build latest-copy latest-check
-
-.PHONY: latest-copy
-latest-copy:
-	mkdir -p $(DIST)/latest
-	$(foreach file,$(wildcard $(DIST)/binaries/$(EXECUTABLE)-*),cp $(file) $(DIST)/latest/$(subst $(EXECUTABLE)-$(VERSION),$(EXECUTABLE)-latest,$(notdir $(file)));)
-
-.PHONY: latest-check
-latest-check:
-	cd $(DIST)/latest; $(foreach file,$(wildcard $(DIST)/latest/$(EXECUTABLE)-*),sha256sum $(notdir $(file)) > $(notdir $(file)).sha256;)
-
-.PHONY: publish
-publish: release latest
-
 .PHONY: bindata
 bindata: modules/bindata/bindata.go
 
