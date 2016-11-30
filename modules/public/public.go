@@ -6,6 +6,8 @@ package public
 
 //go:generate go-bindata -tags "bindata" -ignore "\\.go|\\.less" -pkg "public" -o "bindata.go" ../../public/...
 //go:generate go fmt bindata.go
+//go:generate sed -i.bak s/..\/..\/public\/// bindata.go
+//go:generate rm -f bindata.go.bak
 
 // Options represents the available options to configure the macaron handler.
 type Options struct {
