@@ -453,6 +453,11 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		return
 	}
 
+	if err := models.CreateOrUpdateIssueNotifications(issue); err != nil {
+		ctx.Handle(500, "CreateOrUpdateIssueNotifications", err)
+		return
+	}
+
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
 }
