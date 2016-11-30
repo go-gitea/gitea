@@ -23,7 +23,7 @@ func Renderer(opts *Options) macaron.Handler {
 				AssetDir:   AssetDir,
 				AssetInfo:  AssetInfo,
 				AssetNames: AssetNames,
-				Prefix:     "../../templates",
+				Prefix:     "",
 			},
 		),
 	})
