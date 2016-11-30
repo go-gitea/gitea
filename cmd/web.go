@@ -76,21 +76,6 @@ type VerChecker struct {
 
 // checkVersion checks if binary matches the version of templates files.
 func checkVersion() {
-	// Templates.
-	data, err := ioutil.ReadFile(setting.StaticRootPath + "/templates/.VERSION")
-	if err != nil {
-		log.Fatal(4, "Fail to read 'templates/.VERSION': %v", err)
-	}
-	tplVer := string(data)
-	if tplVer != setting.AppVer {
-		if version.Compare(tplVer, setting.AppVer, ">") {
-			log.Fatal(4, "Binary version is lower than template file version, did you forget to recompile Gogs?")
-		} else {
-			log.Fatal(4, "Binary version is higher than template file version, did you forget to update template files?")
-		}
-	}
-
-	// Check dependency version.
 	checkers := []VerChecker{
 		{"github.com/go-xorm/xorm", func() string { return xorm.Version }, "0.5.5"},
 		{"github.com/go-macaron/binding", binding.Version, "0.3.2"},
