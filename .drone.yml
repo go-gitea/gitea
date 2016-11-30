@@ -8,7 +8,7 @@ pipeline:
     pull: true
     environment:
       CGO_ENABLED: 1
-      TAGS: cert sqlite pam miniwinsvc
+      TAGS: cert sqlite tidb pam miniwinsvc
     commands:
       - apk -U add linux-pam-dev openssh-client
       - make clean
