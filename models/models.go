@@ -192,7 +192,10 @@ func SetEngine() (err error) {
 	// WARNING: for serv command, MUST remove the output to os.stdout,
 	// so use log file to instead print to stdout.
 	logPath := path.Join(setting.LogRootPath, "xorm.log")
-	os.MkdirAll(path.Dir(logPath), os.ModePerm)
+
+	if err := os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
+		return fmt.Errorf("Fail to create dir %s: %v", logPath, err)
+	}
 
 	f, err := os.Create(logPath)
 	if err != nil {

@@ -654,8 +654,9 @@ func runWeb(ctx *cli.Context) error {
 	case setting.FCGI:
 		err = fcgi.Serve(nil, m)
 	case setting.UnixSocket:
-		os.Remove(listenAddr)
-
+		if err := os.Remove(listenAddr); err != nil {
+			log.Fatal(4, "Fail to remove unix socket directory %s: %v", listenAddr, err)
+		}
 		var listener *net.UnixListener
 		listener, err = net.ListenUnix("unix", &net.UnixAddr{Name: listenAddr, Net: "unix"})
 		if err != nil {

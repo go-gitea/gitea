@@ -218,7 +218,11 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 
 	// Clone base repo.
 	tmpBasePath := path.Join(setting.AppDataPath, "tmp/repos", com.ToStr(time.Now().Nanosecond())+".git")
-	os.MkdirAll(path.Dir(tmpBasePath), os.ModePerm)
+
+	if err := os.MkdirAll(path.Dir(tmpBasePath), os.ModePerm); err != nil {
+		return fmt.Errorf("Fail to create dir %s: %v", tmpBasePath, err)
+	}
+
 	defer os.RemoveAll(path.Dir(tmpBasePath))
 
 	var stderr string
@@ -622,8 +626,11 @@ func (pr *PullRequest) PushToBaseRepo() (err error) {
 	headFile := fmt.Sprintf("refs/pull/%d/head", pr.Index)
 
 	// Remove head in case there is a conflict.
-	os.Remove(path.Join(pr.BaseRepo.RepoPath(), headFile))
+	file := path.Join(pr.BaseRepo.RepoPath(), headFile)
 
+	if err := os.Remove(file); err != nil {
+		return fmt.Errorf("Fail to remove dir %s: %v", path.Join(pr.BaseRepo.RepoPath(), headFile), err)
+	}
 	if err = git.Push(headRepoPath, tmpRemoteName, fmt.Sprintf("%s:%s", pr.HeadBranch, headFile)); err != nil {
 		return fmt.Errorf("Push: %v", err)
 	}

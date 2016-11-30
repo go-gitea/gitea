@@ -79,7 +79,6 @@ func runDump(ctx *cli.Context) error {
 	log.Printf("Packing dump files...")
 	z, err := zip.Create(fileName)
 	if err != nil {
-		os.Remove(fileName)
 		log.Fatalf("Fail to create %s: %v", fileName, err)
 	}
 
@@ -102,7 +101,7 @@ func runDump(ctx *cli.Context) error {
 	}
 	// FIXME: SSH key file.
 	if err = z.Close(); err != nil {
-		os.Remove(fileName)
+		_ = os.Remove(fileName)
 		log.Fatalf("Fail to save %s: %v", fileName, err)
 	}
 
@@ -111,7 +110,10 @@ func runDump(ctx *cli.Context) error {
 	}
 
 	log.Printf("Removing tmp work dir: %s", TmpWorkDir)
-	os.RemoveAll(TmpWorkDir)
+
+	if err := os.RemoveAll(TmpWorkDir); err != nil {
+		log.Fatalf("Fail to remove %s: %v", TmpWorkDir, err)
+	}
 	log.Printf("Finish dumping in file %s", fileName)
 
 	return nil

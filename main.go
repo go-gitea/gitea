@@ -10,6 +10,8 @@ import (
 	"os"
 	"runtime"
 
+	"code.gitea.io/gitea/modules/log"
+
 	"code.gitea.io/gitea/cmd"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/urfave/cli"
@@ -37,5 +39,9 @@ func main() {
 		cmd.CmdAdmin,
 	}
 	app.Flags = append(app.Flags, []cli.Flag{}...)
-	app.Run(os.Args)
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatal(4, "Fail to run app with %s: %v", os.Args, err)
+	}
+
 }

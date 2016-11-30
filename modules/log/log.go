@@ -42,7 +42,12 @@ func NewLogger(bufLen int64, mode, config string) {
 // NewGitLogger create a logger for git
 // FIXME: use same log level as other loggers.
 func NewGitLogger(logPath string) {
-	os.MkdirAll(path.Dir(logPath), os.ModePerm)
+	path := path.Dir(logPath)
+
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
+		Fatal(4, "Fail to create dir %s: %v", path, err)
+	}
+
 	GitLogger = newLogger(0)
 	GitLogger.SetLogger("file", fmt.Sprintf(`{"level":0,"filename":"%s","rotate":false}`, logPath))
 }

@@ -112,7 +112,11 @@ func (repo *Repository) updateWikiPage(doer *User, oldTitle, title, content, mes
 			return ErrWikiAlreadyExist{filename}
 		}
 	} else {
-		os.Remove(path.Join(localPath, oldTitle+".md"))
+		file := path.Join(localPath, oldTitle+".md")
+
+		if err := os.Remove(file); err != nil {
+			return fmt.Errorf("Fail to remove %s: %v", file, err)
+		}
 	}
 
 	// SECURITY: if new file is a symlink to non-exist critical file,
@@ -120,7 +124,10 @@ func (repo *Repository) updateWikiPage(doer *User, oldTitle, title, content, mes
 	// as a new page operation.
 	// So we want to make sure the symlink is removed before write anything.
 	// The new file we created will be in normal text format.
-	os.Remove(filename)
+
+	if err := os.Remove(filename); err != nil {
+		return fmt.Errorf("Fail to remove %s: %v", filename, err)
+	}
 
 	if err = ioutil.WriteFile(filename, []byte(content), 0666); err != nil {
 		return fmt.Errorf("WriteFile: %v", err)
@@ -168,7 +175,10 @@ func (repo *Repository) DeleteWikiPage(doer *User, title string) (err error) {
 
 	title = ToWikiPageName(title)
 	filename := path.Join(localPath, title+".md")
-	os.Remove(filename)
+
+	if err := os.Remove(filename); err != nil {
+		return fmt.Errorf("Fail to remove %s: %v", filename, err)
+	}
 
 	message := "Delete page '" + title + "'"
 

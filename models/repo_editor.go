@@ -104,7 +104,11 @@ func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (
 	localPath := repo.LocalCopyPath()
 	oldFilePath := path.Join(localPath, opts.OldTreeName)
 	filePath := path.Join(localPath, opts.NewTreeName)
-	os.MkdirAll(path.Dir(filePath), os.ModePerm)
+	dir := path.Dir(filePath)
+
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return fmt.Errorf("Fail to create dir %s: %v", dir, err)
+	}
 
 	// If it's meant to be a new file, make sure it doesn't exist.
 	if opts.IsNewFile {
@@ -185,7 +189,12 @@ func (repo *Repository) GetDiffPreview(branch, treePath, content string) (diff *
 
 	localPath := repo.LocalCopyPath()
 	filePath := path.Join(localPath, treePath)
-	os.MkdirAll(filepath.Dir(filePath), os.ModePerm)
+	dir := filepath.Dir(filePath)
+
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("Fail to create dir %s: %v", dir, err)
+	}
+
 	if err = ioutil.WriteFile(filePath, []byte(content), 0666); err != nil {
 		return nil, fmt.Errorf("WriteFile: %v", err)
 	}
@@ -475,7 +484,10 @@ func (repo *Repository) UploadRepoFiles(doer *User, opts UploadRepoFileOptions) 
 
 	localPath := repo.LocalCopyPath()
 	dirPath := path.Join(localPath, opts.TreePath)
-	os.MkdirAll(dirPath, os.ModePerm)
+
+	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		return fmt.Errorf("Fail to create dir %s: %v", dirPath, err)
+	}
 
 	// Copy uploaded files into repository.
 	for _, upload := range uploads {
