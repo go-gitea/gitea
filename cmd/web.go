@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/template"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/admin"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
@@ -95,16 +96,15 @@ func newMacaron() *macaron.Macaron {
 			SkipLogging: setting.DisableRouterLog,
 		},
 	))
+	m.Use(templates.Renderer(
+		&templates.Options{
+			Directory: path.Join(setting.StaticRootPath, "templates"),
+			Custom:    []string{path.Join(setting.CustomPath, "templates")},
+		},
+	))
 
-	funcMap := template.NewFuncMap()
-	m.Use(macaron.Renderer(macaron.RenderOptions{
-		Directory:         path.Join(setting.StaticRootPath, "templates"),
-		AppendDirectories: []string{path.Join(setting.CustomPath, "templates")},
-		Funcs:             funcMap,
-		IndentJSON:        macaron.Env != macaron.PROD,
-	}))
 	models.InitMailRender(path.Join(setting.StaticRootPath, "templates/mail"),
-		path.Join(setting.CustomPath, "templates/mail"), funcMap)
+		path.Join(setting.CustomPath, "templates/mail"), template.NewFuncMap())
 
 	localeNames, err := bindata.AssetDir("conf/locale")
 	if err != nil {
