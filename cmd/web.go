@@ -7,7 +7,6 @@ package cmd
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/fcgi"
@@ -15,7 +14,6 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/bindata"
@@ -39,10 +37,7 @@ import (
 	"github.com/go-macaron/i18n"
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
-	"github.com/go-xorm/xorm"
-	version "github.com/mcuadros/go-version"
 	"github.com/urfave/cli"
-	ini "gopkg.in/ini.v1"
 	macaron "gopkg.in/macaron.v1"
 )
 
@@ -72,30 +67,6 @@ type VerChecker struct {
 	ImportPath string
 	Version    func() string
 	Expected   string
-}
-
-// checkVersion checks if binary matches the version of templates files.
-func checkVersion() {
-	checkers := []VerChecker{
-		{"github.com/go-xorm/xorm", func() string { return xorm.Version }, "0.5.5"},
-		{"github.com/go-macaron/binding", binding.Version, "0.3.2"},
-		{"github.com/go-macaron/cache", cache.Version, "0.1.2"},
-		{"github.com/go-macaron/csrf", csrf.Version, "0.1.0"},
-		{"github.com/go-macaron/i18n", i18n.Version, "0.3.0"},
-		{"github.com/go-macaron/session", session.Version, "0.1.6"},
-		{"github.com/go-macaron/toolbox", toolbox.Version, "0.1.0"},
-		{"gopkg.in/ini.v1", ini.Version, "1.8.4"},
-		{"gopkg.in/macaron.v1", macaron.Version, "1.1.7"},
-		{"code.gitea.io/git", git.Version, "0.4.1"},
-	}
-	for _, c := range checkers {
-		if !version.Compare(c.Version(), c.Expected, ">=") {
-			log.Fatal(4, `Dependency outdated!
-Package '%s' current version (%s) is below requirement (%s),
-please use following command to update this package and recompile Gogs:
-go get -u %[1]s`, c.ImportPath, c.Version(), c.Expected)
-		}
-	}
 }
 
 // newMacaron initializes Macaron instance.
@@ -185,7 +156,6 @@ func runWeb(ctx *cli.Context) error {
 		setting.CustomConf = ctx.String("config")
 	}
 	routers.GlobalInit()
-	checkVersion()
 
 	m := newMacaron()
 
