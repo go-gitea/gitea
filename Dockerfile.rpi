@@ -41,4 +41,4 @@ COPY docker /
 
 COPY public /app/gitea/public
 COPY templates /app/gitea/templates
-COPY bin/gitea /app/gitea/gitea
+COPY gitea /app/gitea/gitea
