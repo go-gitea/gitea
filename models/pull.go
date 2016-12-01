@@ -496,6 +496,7 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	return nil
 }
 
+// PullRequestsOptions holds the options for PRs
 type PullRequestsOptions struct {
 	Page  int
 	State string
@@ -572,6 +573,7 @@ func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequ
 		Find(&prs)
 }
 
+// GetPullRequestByIndex returns a pull request by the given index
 func GetPullRequestByIndex(repoID int64, index int64) (*PullRequest, error) {
 	pr := &PullRequest{
 		BaseRepoID: repoID,

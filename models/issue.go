@@ -170,6 +170,7 @@ func (issue *Issue) HTMLURL() string {
 	return fmt.Sprintf("%s/%s/%d", issue.Repo.HTMLURL(), path, issue.Index)
 }
 
+// DiffURL returns the absolute URL to this diff
 func (issue *Issue) DiffURL() string {
 	if issue.IsPull {
 		return fmt.Sprintf("%s/pulls/%d.diff", issue.Repo.HTMLURL(), issue.Index)
@@ -177,6 +178,7 @@ func (issue *Issue) DiffURL() string {
 	return ""
 }
 
+// PatchURL returns the absolute URL to this patch
 func (issue *Issue) PatchURL() string {
 	if issue.IsPull {
 		return fmt.Sprintf("%s/pulls/%d.patch", issue.Repo.HTMLURL(), issue.Index)

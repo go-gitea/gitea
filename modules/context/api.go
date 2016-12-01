@@ -105,7 +105,7 @@ func ExtractOwnerAndRepo() macaron.Handler {
 	}
 }
 
-// ReferencesGitRepo ... I have no clue what this does :laughing:
+// ReferencesGitRepo injects the GitRepo into the Context
 func ReferencesGitRepo() macaron.Handler {
 	return func(ctx *APIContext) {
 		// Empty repository does not have reference information.
