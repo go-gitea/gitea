@@ -119,22 +119,28 @@ func (pr *PullRequest) LoadIssue() (err error) {
 
 // APIFormat assumes following fields have been assigned with valid values:
 // Required - Issue
+// Required - HeadRepo
+// Required - BaseRepo
 // Optional - Merger
 func (pr *PullRequest) APIFormat() *api.PullRequest {
 	apiIssue := pr.Issue.APIFormat()
 	apiPullRequest := &api.PullRequest{
-		ID:        pr.ID,
-		Index:     pr.Index,
-		Poster:    apiIssue.Poster,
-		Title:     apiIssue.Title,
-		Body:      apiIssue.Body,
-		Labels:    apiIssue.Labels,
-		Milestone: apiIssue.Milestone,
-		Assignee:  apiIssue.Assignee,
-		State:     apiIssue.State,
-		Comments:  apiIssue.Comments,
-		HTMLURL:   pr.Issue.HTMLURL(),
-		HasMerged: pr.HasMerged,
+		ID:         pr.ID,
+		Index:      pr.Index,
+		Poster:     apiIssue.Poster,
+		Title:      apiIssue.Title,
+		Body:       apiIssue.Body,
+		Labels:     apiIssue.Labels,
+		Milestone:  apiIssue.Milestone,
+		Assignee:   apiIssue.Assignee,
+		State:      apiIssue.State,
+		Comments:   apiIssue.Comments,
+		HeadBranch: pr.HeadBranch,
+		HeadRepo:   pr.HeadRepo.APIFormat(nil),
+		BaseBranch: pr.BaseBranch,
+		BaseRepo:   pr.BaseRepo.APIFormat(nil),
+		HTMLURL:    pr.Issue.HTMLURL(),
+		HasMerged:  pr.HasMerged,
 	}
 
 	if pr.Status != PullRequestStatusChecking {
