@@ -9,6 +9,8 @@ import (
 
 	"github.com/Unknwon/paginater"
 
+	"bytes"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -60,6 +62,14 @@ type RepoSearchOptions struct {
 	TplName  base.TplName
 }
 
+var (
+	nullByte = []byte{0x00}
+)
+
+func isKeywordValid(keyword string) bool {
+	return !bytes.Contains([]byte(keyword), nullByte)
+}
+
 // RenderRepoSearch render repositories search page
 func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	page := ctx.QueryInt("page")
@@ -82,16 +92,18 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		}
 		count = opts.Counter(opts.Private)
 	} else {
-		repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-			Keyword:  keyword,
-			OrderBy:  opts.OrderBy,
-			Private:  opts.Private,
-			Page:     page,
-			PageSize: opts.PageSize,
-		})
-		if err != nil {
-			ctx.Handle(500, "SearchRepositoryByName", err)
-			return
+		if isKeywordValid(keyword) {
+			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
+				Keyword:  keyword,
+				OrderBy:  opts.OrderBy,
+				Private:  opts.Private,
+				Page:     page,
+				PageSize: opts.PageSize,
+			})
+			if err != nil {
+				ctx.Handle(500, "SearchRepositoryByName", err)
+				return
+			}
 		}
 	}
 	ctx.Data["Keyword"] = keyword
@@ -156,16 +168,18 @@ func RenderUserSearch(ctx *context.Context, opts *UserSearchOptions) {
 		}
 		count = opts.Counter()
 	} else {
-		users, count, err = models.SearchUserByName(&models.SearchUserOptions{
-			Keyword:  keyword,
-			Type:     opts.Type,
-			OrderBy:  opts.OrderBy,
-			Page:     page,
-			PageSize: opts.PageSize,
-		})
-		if err != nil {
-			ctx.Handle(500, "SearchUserByName", err)
-			return
+		if isKeywordValid(keyword) {
+			users, count, err = models.SearchUserByName(&models.SearchUserOptions{
+				Keyword:  keyword,
+				Type:     opts.Type,
+				OrderBy:  opts.OrderBy,
+				Page:     page,
+				PageSize: opts.PageSize,
+			})
+			if err != nil {
+				ctx.Handle(500, "SearchUserByName", err)
+				return
+			}
 		}
 	}
 	ctx.Data["Keyword"] = keyword
