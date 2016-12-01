@@ -62,6 +62,7 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 		return nil
 	}
 	ctx.Data["ForkFrom"] = forkRepo.Owner.Name + "/" + forkRepo.Name
+	ctx.Data["ForkFromOwnerID"] = forkRepo.Owner.ID
 
 	if err := ctx.User.GetOrganizations(true); err != nil {
 		ctx.Handle(500, "GetOrganizations", err)
