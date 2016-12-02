@@ -186,6 +186,7 @@ func RenderUserSearch(ctx *context.Context, opts *UserSearchOptions) {
 	ctx.Data["Total"] = count
 	ctx.Data["Page"] = paginater.New(int(count), opts.PageSize, page, 5)
 	ctx.Data["Users"] = users
+	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmailInExplore
 
 	ctx.HTML(200, opts.TplName)
 }
