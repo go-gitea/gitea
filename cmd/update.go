@@ -6,9 +6,12 @@ package cmd
 
 import (
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/urfave/cli"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -48,6 +51,17 @@ func runUpdate(c *cli.Context) error {
 		log.GitLogger.Fatal(2, "First argument 'refName' is empty, shouldn't use")
 	}
 
+	branchName := strings.TrimPrefix(args[0], git.BranchPrefix)
+	repoID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchRepoID), 10, 64)
+	accessMode := models.ParseAccessMode(os.Getenv(models.ProtectedBranchAccessMode))
+	// skip admin or owner AccessMode
+	if accessMode == models.AccessModeWrite {
+		if protectBranch, err := models.GetProtectedBranchBy(repoID, branchName); err == nil {
+			if protectBranch != nil && !protectBranch.CanPush {
+				log.GitLogger.Fatal(2, "protected branches can not be pushed to")
+			}
+		}
+	}
 	task := models.UpdateTask{
 		UUID:        os.Getenv("GITEA_UUID"),
 		RefName:     args[0],
