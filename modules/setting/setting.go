@@ -393,7 +393,7 @@ please consider changing to GITEA_CUSTOM`)
 	forcePathSeparator(LogRootPath)
 
 	sec := Cfg.Section("server")
-	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gogs: Go Git Service")
+	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 	AppURL = sec.Key("ROOT_URL").MustString("http://localhost:3000/")
 	if AppURL[len(AppURL)-1] != '/' {
 		AppURL += "/"
