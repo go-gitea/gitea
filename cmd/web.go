@@ -16,9 +16,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/bindata"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -99,22 +99,29 @@ func newMacaron() *macaron.Macaron {
 	m.Use(templates.Renderer())
 	models.InitMailRender(templates.Mailer())
 
-	localeNames, err := bindata.AssetDir("conf/locale")
+	localeNames, err := options.Dir("locale")
+
 	if err != nil {
 		log.Fatal(4, "Fail to list locale files: %v", err)
 	}
+
 	localFiles := make(map[string][]byte)
+
 	for _, name := range localeNames {
-		localFiles[name] = bindata.MustAsset("conf/locale/" + name)
+		localFiles[name], err = options.Locale(name)
+
+		if err != nil {
+			log.Fatal(4, "Failed to load %s locale file. %v", name, err)
+		}
 	}
+
 	m.Use(i18n.I18n(i18n.Options{
-		SubURL:          setting.AppSubURL,
-		Files:           localFiles,
-		CustomDirectory: path.Join(setting.CustomPath, "conf/locale"),
-		Langs:           setting.Langs,
-		Names:           setting.Names,
-		DefaultLang:     "en-US",
-		Redirect:        true,
+		SubURL:      setting.AppSubURL,
+		Files:       localFiles,
+		Langs:       setting.Langs,
+		Names:       setting.Names,
+		DefaultLang: "en-US",
+		Redirect:    true,
 	}))
 	m.Use(cache.Cacher(cache.Options{
 		Adapter:       setting.CacheAdapter,
