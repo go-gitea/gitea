@@ -498,8 +498,11 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 
 // PullRequestsOptions holds the options for PRs
 type PullRequestsOptions struct {
-	Page  int
-	State string
+	Page        int
+	State       string
+	SortType    string
+	Labels      []string
+	MilestoneID int64
 }
 
 func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) *xorm.Session {
