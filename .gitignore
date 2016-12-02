@@ -28,6 +28,7 @@ _testmain.go
 
 coverage.out
 
+/modules/options/bindata.go
 /modules/public/bindata.go
 /modules/templates/bindata.go
 
