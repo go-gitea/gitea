@@ -18,18 +18,18 @@ import (
 
 // ListPullRequests returns a list of all PRs
 func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions) {
-	/*prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
+	prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
 		Page:        ctx.QueryInt("page"),
 		State:       ctx.QueryTrim("state"),
 		SortType:    ctx.QueryTrim("sort"),
 		Labels:      ctx.QueryStrings("labels"),
 		MilestoneID: ctx.QueryInt64("milestone"),
-	})*/
+	})
 
-	prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
+	/*prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
 		Page:  form.Page,
 		State: form.State,
-	})
+	})*/
 	if err != nil {
 		ctx.Error(500, "PullRequests", err)
 		return
