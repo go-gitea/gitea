@@ -16,6 +16,7 @@ import (
 	api "code.gitea.io/sdk/gitea"
 )
 
+// ListPullRequests returns a list of all PRs
 func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions) {
 	/*prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
 		Page:        ctx.QueryInt("page"),
@@ -47,6 +48,7 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 	ctx.JSON(200, &apiPrs)
 }
 
+// GetPullRequest returns a single PR based on index
 func GetPullRequest(ctx *context.APIContext) {
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
@@ -63,6 +65,7 @@ func GetPullRequest(ctx *context.APIContext) {
 	ctx.JSON(200, pr.APIFormat())
 }
 
+// CreatePullRequest does what it says
 func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption) {
 	var (
 		repo        = ctx.Repo.Repository
@@ -85,7 +88,14 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 			return
 		}
 	} else {
-		err = models.ErrPullRequestAlreadyExists{existingPr.ID, existingPr.Index, existingPr.HeadRepoID, existingPr.BaseRepoID, existingPr.HeadBranch, existingPr.BaseBranch}
+		err = models.ErrPullRequestAlreadyExists{
+			ID:         existingPr.ID,
+			IssueID:    existingPr.Index,
+			HeadRepoID: existingPr.HeadRepoID,
+			BaseRepoID: existingPr.BaseRepoID,
+			HeadBranch: existingPr.HeadBranch,
+			BaseBranch: existingPr.BaseBranch,
+		}
 		ctx.Error(409, "GetUnmergedPullRequest", err)
 		return
 	}
@@ -178,6 +188,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	ctx.JSON(201, pr.APIFormat())
 }
 
+// EditPullRequest does what it says
 func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
@@ -261,6 +272,9 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	ctx.JSON(201, pr.APIFormat())
 }
 
+// IsPullRequestMerged checks if a PR exists given an index
+//  - Returns 204 if it exists
+//    Otherwise 404
 func IsPullRequestMerged(ctx *context.APIContext) {
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
@@ -278,6 +292,7 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 	ctx.Status(404)
 }
 
+// MergePullRequest merges a PR given an index
 func MergePullRequest(ctx *context.APIContext) {
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {

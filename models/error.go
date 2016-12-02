@@ -590,7 +590,7 @@ type ErrPullRequestAlreadyExists struct {
 	IssueID    int64
 	HeadRepoID int64
 	BaseRepoID int64
-	HeadBarcnh string
+	HeadBranch string
 	BaseBranch string
 }
 
