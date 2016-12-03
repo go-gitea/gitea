@@ -60,8 +60,8 @@ func (ls *Source) sanitizedUserQuery(username string) (string, bool) {
 
 func (ls *Source) sanitizedUserDN(username string) (string, bool) {
 	// See http://tools.ietf.org/search/rfc4514: "special characters"
-	badCharacters := "\x00()*\\,='\"#+;<> "
-	if strings.ContainsAny(username, badCharacters) {
+	badCharacters := "\x00()*\\,='\"#+;<>"
+	if strings.ContainsAny(username, badCharacters) || strings.HasPrefix(username, " ") || strings.HasSuffix(username, " ") {
 		log.Debug("'%s' contains invalid DN characters. Aborting.", username)
 		return "", false
 	}
