@@ -7,9 +7,12 @@
 package templates
 
 import (
+	"fmt"
 	"html/template"
+	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	template_func "code.gitea.io/gitea/modules/template"
@@ -34,15 +37,39 @@ func Mailer(opts *Options) *template.Template {
 	}
 
 	if _, err := os.Stat(opts.Directory); err == nil {
-		if _, err := templates.ParseGlob(path.Join(opts.Directory, "*", "*.tmpl")); err != nil {
-			log.Error(3, "Unable to parse template directory %s. %s", opts.Directory, err)
+		if err := filepath.Walk(opts.Directory, func(path string, info os.FileInfo, _ error) error {
+			if info.IsDir() || !strings.HasSuffix(path, ".tmpl") {
+				return nil
+			}
+			name := strings.TrimSuffix(strings.TrimPrefix(path, opts.Directory+"/"), ".tmpl")
+			log.Info("Found new template: %s", name)
+			ts, err := loadTemplate(name, path)
+			if err != nil {
+				return nil
+			}
+			_, err = templates.Parse(ts)
+			return err
+		}); err != nil {
+			log.Error(3, "Unable to parse template directory %s. %v", opts.Directory, err)
 		}
 	}
 
 	for _, asset := range opts.Custom {
 		if _, err := os.Stat(asset); err == nil {
-			if _, err := templates.ParseGlob(path.Join(asset, "*", "*.tmpl")); err != nil {
-				log.Error(3, "Unable to parse template directory %s. %s", asset, err)
+			if err := filepath.Walk(asset, func(path string, info os.FileInfo, _ error) error {
+				if info.IsDir() || !strings.HasSuffix(path, ".tmpl") {
+					return nil
+				}
+				name := strings.TrimSuffix(strings.TrimPrefix(path, asset+"/"), ".tmpl")
+				log.Info("Found new template: %s", name)
+				ts, err := loadTemplate(name, path)
+				if err != nil {
+					return nil
+				}
+				_, err = templates.Parse(ts)
+				return err
+			}); err != nil {
+				log.Error(3, "Unable to parse template directory %s. %v", asset, err)
 			}
 		}
 	}
@@ -50,4 +77,12 @@ func Mailer(opts *Options) *template.Template {
 	log.Error(3, templates.DefinedTemplates())
 
 	return templates
+}
+
+func loadTemplate(name, path string) (string, error) {
+	t, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf(`{{define "%s"}}%s{{end}}`, name, t), nil
 }
