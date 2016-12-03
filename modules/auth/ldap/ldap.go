@@ -151,6 +151,11 @@ func bindUser(l *ldap.Conn, userDN, passwd string) error {
 
 // SearchEntry : search an LDAP source if an entry (name, passwd) is valid and in the specific filter
 func (ls *Source) SearchEntry(name, passwd string, directBind bool) (string, string, string, string, bool, bool) {
+	// See https://tools.ietf.org/search/rfc4513#section-5.1.2
+	if len(passwd) == 0 {
+		log.Debug("Auth. failed for %s, password cannot be empty")
+		return "", "", "", "", false, false
+	}
 	l, err := dial(ls)
 	if err != nil {
 		log.Error(4, "LDAP Connect error, %s:%v", ls.Host, err)
