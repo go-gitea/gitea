@@ -132,14 +132,14 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 	if pr.BaseRepo == nil {
 		pr.BaseRepo, err = GetRepositoryByID(pr.BaseRepoID)
 		if err != nil {
-			log.Error(log.ERROR, "BaseRepo not set for PR %d", pr.ID)
+			log.Error(log.ERROR, "GetRepositoryById[%d]: %v", pr.ID, err)
 			return nil
 		}
 	}
 	if pr.HeadRepo == nil {
 		pr.HeadRepo, err = GetRepositoryByID(pr.HeadRepoID)
 		if err != nil {
-			log.Error(log.ERROR, "HeadRepo not set for PR %d", pr.ID)
+			log.Error(log.ERROR, "GetRepositoryById[%d]: %v", pr.ID, err)
 			return nil
 		}
 	}
