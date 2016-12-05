@@ -129,9 +129,19 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		err        error
 	)
 	apiIssue := pr.Issue.APIFormat()
-	if pr.BaseRepo == nil || pr.HeadRepo == nil {
-		log.Critical(log.CRITICAL, "Base/HeadRepo not set for PR!!!")
-		return nil
+	if pr.BaseRepo == nil {
+		pr.BaseRepo, err = GetRepositoryByID(pr.BaseRepoID)
+		if err != nil {
+			log.Error(log.ERROR, "BaseRepo not set for PR %d", pr.ID)
+			return nil
+		}
+	}
+	if pr.HeadRepo == nil {
+		pr.HeadRepo, err = GetRepositoryByID(pr.HeadRepoID)
+		if err != nil {
+			log.Error(log.ERROR, "HeadRepo not set for PR %d", pr.ID)
+			return nil
+		}
 	}
 	if baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch); err != nil {
 		return nil
