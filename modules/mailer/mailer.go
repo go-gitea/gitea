@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/smtp"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -92,7 +93,7 @@ type Sender struct {
 }
 
 // Send send email
-func (s *Sender) Send(from string, to []string, msg io.WriterTo) error {
+func (s *Sender) SendSMTP(from string, to []string, msg io.WriterTo) error {
 	opts := setting.MailService
 
 	host, port, err := net.SplitHostPort(opts.Host)
@@ -193,6 +194,47 @@ func (s *Sender) Send(from string, to []string, msg io.WriterTo) error {
 	}
 
 	return client.Quit()
+}
+
+func (s *Sender) SendSendmail(from string, to []string, msg io.WriterTo) error {
+	var err error
+	var closeError error
+	var waitError error
+
+	args := []string{"-F", from, "-i"}
+	args = append(args, to...)
+	cmd := exec.Command(setting.MailService.Host, args...)
+	pipe, err := cmd.StdinPipe()
+
+	if err != nil {
+		return err
+	}
+
+	if err = cmd.Start(); err != nil {
+		return err
+	}
+
+	_,err = msg.WriteTo(pipe)
+
+	// we MUST close the pipe or sendmail will hang waiting for more of the message
+	// Also we should wait on our sendmail command even if something fails
+	closeError = pipe.Close()
+	waitError =  cmd.Wait()
+	if err != nil {
+		return err
+	} else if closeError != nil {
+		return closeError
+	} else {
+		return waitError
+	}
+}
+
+func (s *Sender) Send(from string, to []string, msg io.WriterTo) error {
+	if strings.Contains(setting.MailService.Host, "/") {
+		return s.SendSendmail(from, to, msg)
+	} else {
+		return s.SendSMTP(from, to, msg)
+	}
 }
 
 func processMailQueue() {
