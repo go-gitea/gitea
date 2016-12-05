@@ -172,5 +172,11 @@ func PushUpdate(opts PushUpdateOptions) (err error) {
 	}); err != nil {
 		return fmt.Errorf("CommitRepoAction (branch): %v", err)
 	}
+
+	// Compute repo size
+	if err := UpdateRepoSize(opts.RepoUserName, opts.RepoName); err != nil {
+		return fmt.Errorf("Update repo size failed: %v", err)
+	}
+
 	return nil
 }
