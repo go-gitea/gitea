@@ -86,8 +86,7 @@ install: $(wildcard *.go)
 .PHONY: build
 build: $(EXECUTABLE)
 
-.PHONY: $(EXECUTABLE)
-$(EXECUTABLE): $(wildcard *.go)
+$(EXECUTABLE): $(shell find . -name "*.go" -type f)
 	go build -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
