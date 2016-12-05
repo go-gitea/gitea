@@ -4,13 +4,20 @@ import (
 	"time"
 )
 
-const (
-	NotificationStatusUnread = "U"
-	NotificationStatusRead   = "R"
+type (
+	NotificationStatus uint8
+	NotificationSource uint8
+)
 
-	NotificationSourceIssue       = "I"
-	NotificationSourcePullRequest = "P"
-	NotificationSourceCommit      = "C"
+const (
+	NotificationStatusUnread NotificationStatus = iota + 1
+	NotificationStatusRead
+)
+
+const (
+	NotificationSourceIssue NotificationSource = iota + 1
+	NotificationSourcePullRequest
+	NotificationSourceCommit
 )
 
 type Notification struct {
@@ -18,8 +25,8 @@ type Notification struct {
 	UserID int64 `xorm:"INDEX NOT NULL"`
 	RepoID int64 `xorm:"INDEX NOT NULL"`
 
-	Status string `xorm:"VARCHAR(1) INDEX NOT NULL"`
-	Source string `xorm:"VARCHAR(1) INDEX NOT NULL"`
+	Status NotificationStatus `xorm:"SMALLINT INDEX NOT NULL"`
+	Source NotificationSource `xorm:"SMALLINT INDEX NOT NULL"`
 
 	IssueID  int64  `xorm:"INDEX NOT NULL"`
 	PullID   int64  `xorm:"INDEX"`
