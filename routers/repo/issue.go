@@ -903,6 +903,11 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
+	if err := models.CreateOrUpdateIssueNotifications(issue); err != nil {
+		ctx.Handle(500, "CreateOrUpdateIssueNotifications", err)
+		return
+	}
+
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
 }
 
