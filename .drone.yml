@@ -8,11 +8,12 @@ pipeline:
     pull: true
     environment:
       CGO_ENABLED: 1
-      TAGS: sqlite
+      TAGS: sqlite bindata
       GOPATH: /srv/app
     commands:
       - apk -U add openssh-client
       - make clean
+      - make generate
       - make vet
       - make lint
       - make test
@@ -25,7 +26,7 @@ pipeline:
     pull: true
     environment:
       CGO_ENABLED: 1
-      TAGS: sqlite
+      TAGS: sqlite bindata
       GOPATH: /srv/app
     commands:
       - make test-mysql
@@ -37,7 +38,7 @@ pipeline:
     pull: true
     environment:
       CGO_ENABLED: 1
-      TAGS: sqlite
+      TAGS: sqlite bindata
       GOPATH: /srv/app
     commands:
       - make test-pgsql
@@ -49,7 +50,7 @@ pipeline:
     pull: true
     environment:
       CGO_ENABLED: 1
-      TAGS: sqlite
+      TAGS: sqlite bindata
       GOPATH: /srv/app
     commands:
       - make release
