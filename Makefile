@@ -90,6 +90,7 @@ build: $(EXECUTABLE) templates/.VERSION
 $(EXECUTABLE): $(wildcard *.go)
 	go build -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
+.PHONY: templates/.VERSION
 templates/.VERSION:
 	echo -n $(VERSION) > $@
 
