@@ -5,21 +5,29 @@ import (
 )
 
 type (
+	// NotificationStatus is the status of the notification (read or unread)
 	NotificationStatus uint8
+	// NotificationSource is the source of the notification (issue, PR, commit, etc)
 	NotificationSource uint8
 )
 
 const (
+	// NotificationStatusUnread represents an unread notification
 	NotificationStatusUnread NotificationStatus = iota + 1
+	// NotificationStatusRead represents a read notification
 	NotificationStatusRead
 )
 
 const (
+	// NotificationSourceIssue is a notification of an issue
 	NotificationSourceIssue NotificationSource = iota + 1
+	// NotificationSourcePullRequest is a notification of a pull request
 	NotificationSourcePullRequest
+	// NotificationSourceCommit is a notification of a commit
 	NotificationSourceCommit
 )
 
+// Notification represents a notification
 type Notification struct {
 	ID     int64 `xorm:"pk autoincr"`
 	UserID int64 `xorm:"INDEX NOT NULL"`
@@ -41,6 +49,7 @@ type Notification struct {
 	UpdatedUnix int64     `xorm:"INDEX NOT NULL"`
 }
 
+// BeforeInsert runs while inserting a record
 func (n *Notification) BeforeInsert() {
 	var (
 		now     = time.Now()
@@ -51,6 +60,8 @@ func (n *Notification) BeforeInsert() {
 	n.Updated = now
 	n.UpdatedUnix = nowUnix
 }
+
+// BeforeUpdate runs while updateing a record
 func (n *Notification) BeforeUpdate() {
 	var (
 		now     = time.Now()
@@ -60,6 +71,8 @@ func (n *Notification) BeforeUpdate() {
 	n.UpdatedUnix = nowUnix
 }
 
+// CreateOrUpdateIssueNotifications creates an issue notification
+// for each watcher, or updates it if already exists
 func CreateOrUpdateIssueNotifications(issue *Issue) error {
 	watches, err := getWatchers(x, issue.RepoID)
 	if err != nil {
@@ -70,7 +83,6 @@ func CreateOrUpdateIssueNotifications(issue *Issue) error {
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-
 	defer sess.Close()
 
 	for _, watch := range watches {
