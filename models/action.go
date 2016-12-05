@@ -539,7 +539,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	}()
 
 	apiPusher := pusher.APIFormat()
-	apiRepo := repo.APIFormat(nil)
+	apiRepo := repo.APIFormat(AccessModeNone)
 
 	var shaSum string
 	switch opType {

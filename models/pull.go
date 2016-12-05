@@ -160,14 +160,14 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		Ref:        pr.BaseBranch,
 		Sha:        baseCommit.ID.String(),
 		RepoID:     pr.BaseRepoID,
-		Repository: pr.BaseRepo.APIFormat(nil),
+		Repository: pr.BaseRepo.APIFormat(AccessModeNone),
 	}
 	apiHeadBranchInfo := &api.PRBranchInfo{
 		Name:       pr.HeadBranch,
 		Ref:        pr.HeadBranch,
 		Sha:        headCommit.ID.String(),
 		RepoID:     pr.HeadRepoID,
-		Repository: pr.HeadRepo.APIFormat(nil),
+		Repository: pr.HeadRepo.APIFormat(AccessModeNone),
 	}
 	apiPullRequest := &api.PullRequest{
 		ID:        pr.ID,
@@ -355,7 +355,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 		Action:      api.HookIssueClosed,
 		Index:       pr.Index,
 		PullRequest: pr.APIFormat(),
-		Repository:  pr.Issue.Repo.APIFormat(nil),
+		Repository:  pr.Issue.Repo.APIFormat(AccessModeNone),
 		Sender:      doer.APIFormat(),
 	}); err != nil {
 		log.Error(4, "PrepareWebhooks: %v", err)
@@ -385,7 +385,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 		After:      pr.MergedCommitID,
 		CompareURL: setting.AppURL + pr.BaseRepo.ComposeCompareURL(pr.MergeBase, pr.MergedCommitID),
 		Commits:    ListToPushCommits(l).ToAPIPayloadCommits(pr.BaseRepo.HTMLURL()),
-		Repo:       pr.BaseRepo.APIFormat(nil),
+		Repo:       pr.BaseRepo.APIFormat(AccessModeNone),
 		Pusher:     pr.HeadRepo.MustOwner().APIFormat(),
 		Sender:     doer.APIFormat(),
 	}
@@ -514,7 +514,7 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		Action:      api.HookIssueOpened,
 		Index:       pull.Index,
 		PullRequest: pr.APIFormat(),
-		Repository:  repo.APIFormat(nil),
+		Repository:  repo.APIFormat(AccessModeNone),
 		Sender:      pull.Poster.APIFormat(),
 	}); err != nil {
 		log.Error(4, "PrepareWebhooks: %v", err)
@@ -840,7 +840,7 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 					Action:      api.HookIssueSynchronized,
 					Index:       pr.Issue.Index,
 					PullRequest: pr.Issue.PullRequest.APIFormat(),
-					Repository:  pr.Issue.Repo.APIFormat(nil),
+					Repository:  pr.Issue.Repo.APIFormat(AccessModeNone),
 					Sender:      doer.APIFormat(),
 				}); err != nil {
 					log.Error(4, "PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
