@@ -121,12 +121,30 @@ func (pr *PullRequest) LoadIssue() (err error) {
 // Required - Issue
 // Optional - Merger
 func (pr *PullRequest) APIFormat() *api.PullRequest {
-
+	var (
+		baseBranch *Branch
+		headBranch *Branch
+		baseCommit *git.Commit
+		headCommit *git.Commit
+		err        error
+	)
 	apiIssue := pr.Issue.APIFormat()
-	baseBranch, _ := pr.BaseRepo.GetBranch(pr.BaseBranch)
-	baseCommit, _ := baseBranch.GetCommit()
-	headBranch, _ := pr.HeadRepo.GetBranch(pr.HeadBranch)
-	headCommit, _ := headBranch.GetCommit()
+	if pr.BaseRepo == nil || pr.HeadRepo == nil {
+		log.Critical(log.CRITICAL, "Base/HeadRepo not set for PR!!!")
+		return nil
+	}
+	if baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch); err != nil {
+		return nil
+	}
+	if baseCommit, err = baseBranch.GetCommit(); err != nil {
+		return nil
+	}
+	if headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch); err != nil {
+		return nil
+	}
+	if headCommit, err = headBranch.GetCommit(); err != nil {
+		return nil
+	}
 	apiBaseBranchInfo := &api.PRBranchInfo{
 		Name:       pr.BaseBranch,
 		Ref:        pr.BaseBranch,
@@ -590,8 +608,12 @@ func GetPullRequestByIndex(repoID int64, index int64) (*PullRequest, error) {
 		return nil, ErrPullRequestNotExist{0, repoID, index, 0, "", ""}
 	}
 
-	pr.LoadAttributes()
-	pr.LoadIssue()
+	if err = pr.LoadAttributes(); err != nil {
+		return nil, err
+	}
+	if err = pr.LoadIssue(); err != nil {
+		return nil, err
+	}
 
 	return pr, nil
 }
