@@ -93,7 +93,7 @@ type Sender struct {
 }
 
 // Send send email
-func (s *Sender) SendSMTP(from string, to []string, msg io.WriterTo) error {
+func (s *Sender) sendSMTP(from string, to []string, msg io.WriterTo) error {
 	opts := setting.MailService
 
 	host, port, err := net.SplitHostPort(opts.Host)
@@ -196,7 +196,7 @@ func (s *Sender) SendSMTP(from string, to []string, msg io.WriterTo) error {
 	return client.Quit()
 }
 
-func (s *Sender) SendSendmail(from string, to []string, msg io.WriterTo) error {
+func (s *Sender) sendSendmail(from string, to []string, msg io.WriterTo) error {
 	var err error
 	var closeError error
 	var waitError error
@@ -231,9 +231,9 @@ func (s *Sender) SendSendmail(from string, to []string, msg io.WriterTo) error {
 
 func (s *Sender) Send(from string, to []string, msg io.WriterTo) error {
 	if strings.Contains(setting.MailService.Host, "/") {
-		return s.SendSendmail(from, to, msg)
+		return s.sendSendmail(from, to, msg)
 	} else {
-		return s.SendSMTP(from, to, msg)
+		return s.sendSMTP(from, to, msg)
 	}
 }
 
