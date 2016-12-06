@@ -75,6 +75,12 @@
 
 								{{if .IsSigned}}
 									<div class="right menu">
+										<a href="/notifications" class="ui head link jump item poping up" data-content='{{.i18n.Tr "notifications"}}' data-variation="tiny inverted">
+											<span class="text">
+												<i class="octicon octicon-inbox"><span class="sr-only">{{.i18n.Tr "notifications"}}</span></i>
+											</span>
+										</a>
+
 										<div class="ui dropdown head link jump item poping up" data-content="{{.i18n.Tr "create_new"}}" data-variation="tiny inverted">
 											<span class="text">
 												<i class="octicon octicon-plus"><span class="sr-only">{{.i18n.Tr "create_new"}}</span></i>
