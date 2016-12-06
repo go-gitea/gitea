@@ -19,8 +19,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/template"
-	"code.gitea.io/gitea/modules/template/highlight"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/highlight"
 	"github.com/Unknwon/paginater"
 )
 
