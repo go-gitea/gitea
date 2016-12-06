@@ -7,82 +7,97 @@
 package templates
 
 import (
-	"fmt"
 	"html/template"
 	"io/ioutil"
-	"os"
-	"path/filepath"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	template_func "code.gitea.io/gitea/modules/template"
+	"code.gitea.io/gitea/modules/setting"
+	"github.com/Unknwon/com"
 	"gopkg.in/macaron.v1"
 )
 
+var (
+	templates = template.New("")
+)
+
 // Renderer implements the macaron handler for serving the templates.
-func Renderer(opts *Options) macaron.Handler {
+func Renderer() macaron.Handler {
 	return macaron.Renderer(macaron.RenderOptions{
-		Directory:         opts.Directory,
-		AppendDirectories: opts.Custom,
-		Funcs:             template_func.NewFuncMap(),
+		Funcs:     NewFuncMap(),
+		Directory: path.Join(setting.StaticRootPath, "templates"),
+		AppendDirectories: []string{
+			path.Join(setting.CustomPath, "templates"),
+		},
 	})
 }
 
 // Mailer provides the templates required for sending notification mails.
-func Mailer(opts *Options) *template.Template {
-	templates := template.New("")
-
-	for _, funcs := range template_func.NewFuncMap() {
+func Mailer() *template.Template {
+	for _, funcs := range NewFuncMap() {
 		templates.Funcs(funcs)
 	}
 
-	if _, err := os.Stat(opts.Directory); err == nil {
-		if err := filepath.Walk(opts.Directory, func(path string, info os.FileInfo, _ error) error {
-			if info.IsDir() || !strings.HasSuffix(path, ".tmpl") {
-				return nil
-			}
-			name := strings.TrimSuffix(strings.TrimPrefix(path, opts.Directory+"/"), ".tmpl")
-			log.Info("Found new template: %s", name)
-			ts, err := loadTemplate(name, path)
-			if err != nil {
-				return nil
-			}
-			_, err = templates.Parse(ts)
-			return err
-		}); err != nil {
-			log.Error(3, "Unable to parse template directory %s. %v", opts.Directory, err)
-		}
-	}
+	staticDir := path.Join(setting.StaticRootPath, "templates", "mail")
 
-	for _, asset := range opts.Custom {
-		if _, err := os.Stat(asset); err == nil {
-			if err := filepath.Walk(asset, func(path string, info os.FileInfo, _ error) error {
-				if info.IsDir() || !strings.HasSuffix(path, ".tmpl") {
-					return nil
+	if com.IsDir(staticDir) {
+		files, err := com.StatDir(staticDir)
+
+		if err != nil {
+			log.Warn("Failed to read %s templates dir. %v", staticDir, err)
+		} else {
+			for _, filePath := range files {
+				if !strings.HasSuffix(filePath, ".tmpl") {
+					continue
 				}
-				name := strings.TrimSuffix(strings.TrimPrefix(path, asset+"/"), ".tmpl")
-				log.Info("Found new template: %s", name)
-				ts, err := loadTemplate(name, path)
+
+				content, err := ioutil.ReadFile(path.Join(staticDir, filePath))
+
 				if err != nil {
-					return nil
+					log.Warn("Failed to read static %s template. %v", filePath, err)
+					continue
 				}
-				_, err = templates.Parse(ts)
-				return err
-			}); err != nil {
-				log.Error(3, "Unable to parse template directory %s. %v", asset, err)
+
+				templates.New(
+					strings.TrimSuffix(
+						filePath,
+						".tmpl",
+					),
+				).Parse(string(content))
 			}
 		}
 	}
 
-	log.Error(3, templates.DefinedTemplates())
+	customDir := path.Join(setting.CustomPath, "templates", "mail")
+
+	if com.IsDir(customDir) {
+		files, err := com.StatDir(customDir)
+
+		if err != nil {
+			log.Warn("Failed to read %s templates dir. %v", customDir, err)
+		} else {
+			for _, filePath := range files {
+				if !strings.HasSuffix(filePath, ".tmpl") {
+					continue
+				}
+
+				content, err := ioutil.ReadFile(path.Join(customDir, filePath))
+
+				if err != nil {
+					log.Warn("Failed to read custom %s template. %v", filePath, err)
+					continue
+				}
+
+				templates.New(
+					strings.TrimSuffix(
+						filePath,
+						".tmpl",
+					),
+				).Parse(string(content))
+			}
+		}
+	}
 
 	return templates
-}
-
-func loadTemplate(name, path string) (string, error) {
-	t, err := ioutil.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf(`{{define "%s"}}%s{{end}}`, name, t), nil
 }
