@@ -88,12 +88,12 @@ func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	return nil, nil
 }
 
-// Sender mail sender (SMTP)
-type SMTPSender struct {
+// Sender SMTP mail sender
+type smtpSender struct {
 }
 
 // Send send email
-func (s *SMTPSender) Send(from string, to []string, msg io.WriterTo) error {
+func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 	opts := setting.MailService
 
 	host, port, err := net.SplitHostPort(opts.Host)
@@ -196,12 +196,12 @@ func (s *SMTPSender) Send(from string, to []string, msg io.WriterTo) error {
 	return client.Quit()
 }
 
-// Sender mail sender (sendmail)
-type SendmailSender struct {
+// Sender sendmail mail sender
+type sendmailSender struct {
 }
 
 // Send send email
-func (s *SendmailSender) Send(from string, to []string, msg io.WriterTo) error {
+func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	var err error
 	var closeError error
 	var waitError error
@@ -264,9 +264,9 @@ func NewContext() {
 
 
 	if strings.Contains(setting.MailService.Host, "/") {
-		Sender = &SendmailSender{}
+		Sender = &sendmailSender{}
 	} else {
-		Sender = &SMTPSender{}
+		Sender = &smtpSender{}
 	}
 
 	mailQueue = make(chan *Message, setting.MailService.QueueLength)
