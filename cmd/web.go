@@ -95,17 +95,9 @@ func newMacaron() *macaron.Macaron {
 			SkipLogging: setting.DisableRouterLog,
 		},
 	))
-	m.Use(templates.Renderer(
-		&templates.Options{
-			Directory: path.Join(setting.StaticRootPath, "templates"),
-			Custom:    []string{path.Join(setting.CustomPath, "templates")},
-		},
-	))
 
-	models.InitMailRender(templates.Mailer(&templates.Options{
-		Directory: path.Join(setting.StaticRootPath, "templates", "mail"),
-		Custom:    []string{path.Join(setting.CustomPath, "templates", "mail")},
-	}))
+	m.Use(templates.Renderer())
+	models.InitMailRender(templates.Mailer())
 
 	localeNames, err := bindata.AssetDir("conf/locale")
 	if err != nil {
