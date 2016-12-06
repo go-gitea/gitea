@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -453,10 +454,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		return
 	}
 
-	if err := models.CreateOrUpdateIssueNotifications(issue); err != nil {
-		ctx.Handle(500, "CreateOrUpdateIssueNotifications", err)
-		return
-	}
+	notification.Service.NotifyIssue(issue)
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
@@ -903,10 +901,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
-	if err := models.CreateOrUpdateIssueNotifications(issue); err != nil {
-		ctx.Handle(500, "CreateOrUpdateIssueNotifications", err)
-		return
-	}
+	notification.Service.NotifyIssue(issue)
 
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
 }
