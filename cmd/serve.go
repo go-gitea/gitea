@@ -255,10 +255,10 @@ func runServ(c *cli.Context) error {
 					"User %s does not have level %v access to repository %s",
 					user.Name, requestedMode, repoPath)
 			}
+
+			os.Setenv("GITEA_PUSHER_NAME", user.Name)
 		}
 	}
-
-	os.Setenv("GITEA_PUSHER_NAME", user.Name)
 
 	uuid := gouuid.NewV4().String()
 	os.Setenv("GITEA_UUID", uuid)
