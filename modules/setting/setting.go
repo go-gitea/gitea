@@ -2,6 +2,11 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:generate go-bindata -nocompress -pkg "setting" -o "config.go" ../../conf/app.ini
+//go:generate go fmt config.go
+//go:generate sed -i.bak s/..\/..\/conf\/// config.go
+//go:generate rm -f config.go.bak
+
 package setting
 
 import (
@@ -347,7 +352,11 @@ func NewContext() {
 		log.Fatal(4, "Fail to get work directory: %v", err)
 	}
 
-	Cfg = ini.Empty()
+	Cfg, err = ini.Load(MustAsset("app.ini"))
+
+	if err != nil {
+		log.Fatal(4, "Fail to parse 'app.ini': %v", err)
+	}
 
 	CustomPath = os.Getenv("GITEA_CUSTOM")
 	if len(CustomPath) == 0 {
