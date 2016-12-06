@@ -16,11 +16,11 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/highlight"
 	"github.com/Unknwon/paginater"
 )
 
@@ -164,7 +164,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		} else {
 			// Building code view blocks with line number on server side.
 			var fileContent string
-			if content, err := template.ToUTF8WithErr(buf); err != nil {
+			if content, err := templates.ToUTF8WithErr(buf); err != nil {
 				if err != nil {
 					log.Error(4, "ToUTF8WithErr: %s", err)
 				}

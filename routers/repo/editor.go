@@ -74,7 +74,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		d, _ := ioutil.ReadAll(dataRc)
 		buf = append(buf, d...)
-		if content, err := template.ToUTF8WithErr(buf); err != nil {
+		if content, err := templates.ToUTF8WithErr(buf); err != nil {
 			if err != nil {
 				log.Error(4, "ToUTF8WithErr: %v", err)
 			}
