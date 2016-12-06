@@ -86,7 +86,7 @@ func CreateOrUpdateIssueNotifications(issue *Issue) error {
 	defer sess.Close()
 
 	for _, watch := range watches {
-		exists, err := issueNotificationExists(sess, watch.UserID, watch.RepoID)
+		exists, err := issueNotificationExists(sess, watch.UserID, issue.ID)
 		if err != nil {
 			return err
 		}
@@ -146,7 +146,7 @@ func updateIssueNotification(e Engine, userID, issueID int64) error {
 func getIssueNotification(e Engine, userID, issueID int64) (*Notification, error) {
 	notification := new(Notification)
 	_, err := e.
-		Where("user_id = ?").
+		Where("user_id = ?", userID).
 		And("issue_id = ?", issueID).
 		Get(notification)
 	return notification, err
