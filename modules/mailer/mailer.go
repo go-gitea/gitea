@@ -92,7 +92,6 @@ func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 type Sender struct {
 }
 
-// Send send email
 func (s *Sender) sendSMTP(from string, to []string, msg io.WriterTo) error {
 	opts := setting.MailService
 
@@ -229,12 +228,12 @@ func (s *Sender) sendSendmail(from string, to []string, msg io.WriterTo) error {
 	}
 }
 
+// Send send email
 func (s *Sender) Send(from string, to []string, msg io.WriterTo) error {
 	if strings.Contains(setting.MailService.Host, "/") {
 		return s.sendSendmail(from, to, msg)
-	} else {
-		return s.sendSMTP(from, to, msg)
 	}
+	return s.sendSMTP(from, to, msg)
 }
 
 func processMailQueue() {
