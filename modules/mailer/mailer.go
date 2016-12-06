@@ -88,11 +88,12 @@ func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	return nil, nil
 }
 
-// Sender mail sender
-type Sender struct {
+// Sender mail sender (SMTP)
+type SMTPSender struct {
 }
 
-func (s *Sender) sendSMTP(from string, to []string, msg io.WriterTo) error {
+// Send send email
+func (s *SMTPSender) Send(from string, to []string, msg io.WriterTo) error {
 	opts := setting.MailService
 
 	host, port, err := net.SplitHostPort(opts.Host)
@@ -195,7 +196,12 @@ func (s *Sender) sendSMTP(from string, to []string, msg io.WriterTo) error {
 	return client.Quit()
 }
 
-func (s *Sender) sendSendmail(from string, to []string, msg io.WriterTo) error {
+// Sender mail sender (sendmail)
+type SendmailSender struct {
+}
+
+// Send send email
+func (s *SendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	var err error
 	var closeError error
 	var waitError error
@@ -228,17 +234,7 @@ func (s *Sender) sendSendmail(from string, to []string, msg io.WriterTo) error {
 	}
 }
 
-// Send send email
-func (s *Sender) Send(from string, to []string, msg io.WriterTo) error {
-	if strings.Contains(setting.MailService.Host, "/") {
-		return s.sendSendmail(from, to, msg)
-	}
-	return s.sendSMTP(from, to, msg)
-}
-
-func processMailQueue() {
-	sender := &Sender{}
-
+func processMailQueue(sender gomail.Sender) {
 	for {
 		select {
 		case msg := <-mailQueue:
@@ -254,6 +250,9 @@ func processMailQueue() {
 
 var mailQueue chan *Message
 
+// Sender sender for sending mail synchronously
+var Sender gomail.Sender
+
 // NewContext start mail queue service
 func NewContext() {
 	// Need to check if mailQueue is nil because in during reinstall (user had installed
@@ -263,8 +262,15 @@ func NewContext() {
 		return
 	}
 
+
+	if strings.Contains(setting.MailService.Host, "/") {
+		Sender = &SendmailSender{}
+	} else {
+		Sender = &SMTPSender{}
+	}
+
 	mailQueue = make(chan *Message, setting.MailService.QueueLength)
-	go processMailQueue()
+	go processMailQueue(Sender)
 }
 
 // SendAsync send mail asynchronous

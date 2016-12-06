@@ -56,7 +56,7 @@ func InitMailRender(dir, appendDir string, funcMap []template.FuncMap) {
 
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {
-	return gomail.Send(&mailer.Sender{}, mailer.NewMessage([]string{email}, "Gogs Test Email!", "Gogs Test Email!").Message)
+	return gomail.Send(mailer.Sender, mailer.NewMessage([]string{email}, "Gogs Test Email!", "Gogs Test Email!").Message)
 }
 
 // SendUserMail sends a mail to the user
