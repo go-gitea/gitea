@@ -562,6 +562,8 @@ func runWeb(ctx *cli.Context) error {
 	})
 	// ***** END: Repository *****
 
+	m.Get("/notifications", reqSignIn, user.Notifications)
+
 	m.Group("/api", func() {
 		apiv1.RegisterRoutes(m)
 	}, ignSignIn)
