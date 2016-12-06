@@ -344,6 +344,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Combo("").Get(org.Get).Patch(bind(api.EditOrgOption{}), org.Edit)
 			m.Combo("/teams").Get(org.ListTeams)
 		}, orgAssignment(true))
+		m.Group("/teams/:teamid", func() {
+			m.Get("", org.GetTeam)
+			m.Get("/members", org.GetTeamMembers)
+			m.Get("/repos", org.GetTeamRepos)
+		}, orgAssignment(false, true))
 
 		m.Any("/*", func(ctx *context.Context) {
 			ctx.Error(404)
@@ -369,6 +374,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			})
 			m.Group("/teams", func() {
 				m.Group("/:teamid", func() {
+					m.Combo("").Patch(bind(api.EditTeamOption{}), admin.EditTeam).
+						Delete(admin.DeleteTeam)
 					m.Combo("/members/:username").Put(admin.AddTeamMember).Delete(admin.RemoveTeamMember)
 					m.Combo("/repos/:reponame").Put(admin.AddTeamRepository).Delete(admin.RemoveTeamRepository)
 				}, orgAssignment(false, true))
