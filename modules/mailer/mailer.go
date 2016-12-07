@@ -208,7 +208,8 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 
 	args := []string{"-F", from, "-i"}
 	args = append(args, to...)
-	cmd := exec.Command(setting.MailService.Host, args...)
+	log.Trace("Sending with: %s %v", setting.MailService.SendmailPath, args)
+	cmd := exec.Command(setting.MailService.SendmailPath, args...)
 	pipe, err := cmd.StdinPipe()
 
 	if err != nil {
@@ -263,7 +264,7 @@ func NewContext() {
 	}
 
 
-	if strings.Contains(setting.MailService.Host, "/") {
+	if setting.MailService.UseSendmail {
 		Sender = &sendmailSender{}
 	} else {
 		Sender = &smtpSender{}
