@@ -266,7 +266,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/hooks", func() {
 					m.Combo("").Get(repo.ListHooks).
 						Post(bind(api.CreateHookOption{}), repo.CreateHook)
-					m.Combo("/:id").Patch(bind(api.EditHookOption{}), repo.EditHook).
+					m.Combo("/:id").Get(repo.GetHook).
+						Patch(bind(api.EditHookOption{}), repo.EditHook).
 						Delete(repo.DeleteHook)
 				})
 				m.Put("/collaborators/:collaborator", bind(api.AddCollaboratorOption{}), repo.AddCollaborator)
@@ -343,6 +344,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/orgs/:orgname", func() {
 			m.Combo("").Get(org.Get).Patch(bind(api.EditOrgOption{}), org.Edit)
 			m.Combo("/teams").Get(org.ListTeams)
+			m.Group("/hooks", func() {
+				m.Combo("").Get(org.ListHooks).
+					Post(bind(api.CreateHookOption{}), org.CreateHook)
+				m.Combo("/:id").Get(org.GetHook).
+					Patch(bind(api.EditHookOption{}), org.EditHook).
+					Delete(org.DeleteHook)
+			})
 		}, orgAssignment(true))
 
 		m.Any("/*", func(ctx *context.Context) {
