@@ -276,7 +276,6 @@ func (repo *Repository) HTMLURL() string {
 }
 
 // APIFormat converts a Repository to api.Repository
-// Arguments that are allowed to be nil: permission
 func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
 	cloneLink := repo.CloneLink()
 	permission := &api.Permission{
