@@ -1089,7 +1089,7 @@ function searchUsers() {
                 if (response.ok && response.data.length) {
                     var html = '';
                     $.each(response.data, function (i, item) {
-                        html += '<div class="item"><img class="ui avatar image" src="' + item.avatar_url + '"><span class="username">' + item.username + '</span>';
+                        html += '<div class="item"><img class="ui avatar image" src="' + item.avatar_url + '"><span class="username">' + item.login + '</span>';
                         if (notEmpty(item.full_name)) {
                             html += ' (' + item.full_name + ')';
                         }
