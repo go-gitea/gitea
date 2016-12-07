@@ -102,7 +102,8 @@ func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 // EditHook modify a hook of a repository
 // see https://github.com/gogits/go-gogs-client/wiki/Repositories#edit-a-hook
 func EditHook(ctx *context.APIContext, form api.EditHookOption) {
-	w, err := models.GetWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	hookID := ctx.ParamsInt64(":id")
+	w, err := models.GetWebhookByRepoID(ctx.Repo.Repository.ID, hookID)
 	if err != nil {
 		if models.IsErrWebhookNotExist(err) {
 			ctx.Status(404)
@@ -165,7 +166,12 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 		return
 	}
 
-	ctx.JSON(200, convert.ToHook(ctx.Repo.RepoLink, w))
+	updated, err := models.GetWebhookByRepoID(ctx.Repo.Repository.ID, hookID)
+	if err != nil {
+		ctx.Error(500, "GetWebhookByRepoID", err)
+		return
+	}
+	ctx.JSON(200, convert.ToHook(ctx.Repo.RepoLink, updated))
 }
 
 // DeleteHook delete a hook of a repository
