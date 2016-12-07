@@ -235,12 +235,12 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	}
 }
 
-func processMailQueue(sender gomail.Sender) {
+func processMailQueue() {
 	for {
 		select {
 		case msg := <-mailQueue:
 			log.Trace("New e-mail sending request %s: %s", msg.GetHeader("To"), msg.Info)
-			if err := gomail.Send(sender, msg.Message); err != nil {
+			if err := gomail.Send(Sender, msg.Message); err != nil {
 				log.Error(3, "Fail to send emails %s: %s - %v", msg.GetHeader("To"), msg.Info, err)
 			} else {
 				log.Trace("E-mails sent %s: %s", msg.GetHeader("To"), msg.Info)
@@ -271,7 +271,7 @@ func NewContext() {
 	}
 
 	mailQueue = make(chan *Message, setting.MailService.QueueLength)
-	go processMailQueue(Sender)
+	go processMailQueue()
 }
 
 // SendAsync send mail asynchronous
