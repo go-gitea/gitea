@@ -429,6 +429,9 @@ func (pr *PullRequest) testPatch() (err error) {
 
 	log.Trace("PullRequest[%d].testPatch (patchPath): %s", pr.ID, patchPath)
 
+	// Delete old temp local copy before we create a new temp local copy
+	RemoveAllWithNotice("Deleting old local copy", pr.BaseRepo.LocalCopyPath())
+
 	if err := pr.BaseRepo.UpdateLocalCopyBranch(pr.BaseBranch); err != nil {
 		return fmt.Errorf("UpdateLocalCopy: %v", err)
 	}
