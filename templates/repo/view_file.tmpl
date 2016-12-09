@@ -44,7 +44,7 @@
 					{{if .IsImageFile}}
 						<img src="{{EscapePound $.RawFileLink}}">
 					{{else if .IsPDFFile}}
-						<iframe width="100%" height="600px" src="{{AppSubUrl}}/plugins/pdfjs-1.4.20/web/viewer.html?file={{EscapePound $.RawFileLink}}"></iframe>
+						<iframe width="100%" height="600px" src="{{AppSubUrl}}/assets/pdfjs/web/viewer.html?file={{EscapePound $.RawFileLink}}"></iframe>
 					{{else}}
 						<a href="{{EscapePound $.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.i18n.Tr "repo.file_view_raw"}}</a>
 					{{end}}
