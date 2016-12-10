@@ -29,7 +29,6 @@ const (
 	tplSettingsSocial       base.TplName = "user/settings/social"
 	tplSettingsApplications base.TplName = "user/settings/applications"
 	tplSettingsDelete       base.TplName = "user/settings/delete"
-	tplNotification         base.TplName = "user/notification"
 	tplSecurity             base.TplName = "user/security"
 )
 

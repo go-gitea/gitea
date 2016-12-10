@@ -151,3 +151,34 @@ func getIssueNotification(e Engine, userID, issueID int64) (*Notification, error
 		Get(notification)
 	return notification, err
 }
+
+// NotificationsForUser returns notifications for a given user and status
+func NotificationsForUser(user *User, status NotificationStatus) ([]*Notification, error) {
+	return notificationsForUser(x, user, status)
+}
+func notificationsForUser(e Engine, user *User, status NotificationStatus) (notifications []*Notification, err error) {
+	err = e.
+		Where("user_id = ?", user.ID).
+		And("status = ?", status).
+		OrderBy("updated_unix DESC").
+		Find(&notifications)
+	return
+}
+
+// GetRepo returns the repo of the notification
+func (n *Notification) GetRepo() (repo *Repository, err error) {
+	repo = new(Repository)
+	_, err = x.
+		Where("id = ?", n.RepoID).
+		Get(repo)
+	return
+}
+
+// GetIssue returns the issue of the notification
+func (n *Notification) GetIssue() (issue *Issue, err error) {
+	issue = new(Issue)
+	_, err = x.
+		Where("id = ?", n.IssueID).
+		Get(issue)
+	return
+}

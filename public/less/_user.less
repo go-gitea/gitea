@@ -74,4 +74,25 @@
 			}
 		}
 	}
+
+    &.notification {
+        .octicon {
+            float: left;
+            font-size: 2em;
+        }
+        .content {
+            float: left;
+            margin-left: 7px;
+        }
+
+        .octicon-issue-opened, .octicon-git-pull-request {
+            color: green;
+        }
+        .octicon-issue-closed {
+            color: red;
+        }
+        .octicon-git-merge {
+            color: purple;
+        }
+    }
 }
