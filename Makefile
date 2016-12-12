@@ -85,14 +85,10 @@ install: $(wildcard *.go)
 	go install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
 .PHONY: build
-build: $(EXECUTABLE) templates/.VERSION
+build: $(EXECUTABLE)
 
 $(EXECUTABLE): $(wildcard *.go)
 	go build -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
-
-.PHONY: templates/.VERSION
-templates/.VERSION:
-	echo -n $(VERSION) > $@
 
 .PHONY: release
 release: release-build release-copy release-check
