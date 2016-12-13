@@ -562,7 +562,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			if err != nil {
 				log.Error(4, "OpenRepository[%s]: %v", repo.RepoPath(), err)
 			}
-			shaSum, err = gitRepo.GetBranchCommitID(opts.RefFullName)
+			shaSum, err = gitRepo.GetBranchCommitID(refName)
 			if err != nil {
 				log.Error(4, "GetBranchCommitID[%s]: %v", opts.RefFullName, err)
 			}
