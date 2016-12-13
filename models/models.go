@@ -21,6 +21,9 @@ import (
 	// Needed for the Postgresql driver
 	_ "github.com/lib/pq"
 
+	// Needed for the MSSSQL driver
+	_ "github.com/denisenkom/go-mssqldb"
+
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -97,6 +100,8 @@ func LoadConfigs() {
 		setting.UsePostgreSQL = true
 	case "tidb":
 		setting.UseTiDB = true
+	case "mssql":
+		setting.UseMSSQL = true
 	}
 	DbCfg.Host = sec.Key("HOST").String()
 	DbCfg.Name = sec.Key("NAME").String()
@@ -120,6 +125,20 @@ func parsePostgreSQLHostPort(info string) (string, string) {
 	} else if len(info) > 0 {
 		host = info
 	}
+	return host, port
+}
+
+func parseMSSQLHostPort(info string) (string, string) {
+	host, port := "127.0.0.1", "1433"
+		if strings.Contains(info, ":") {
+			host = strings.Split(info, ":")[0]
+				port = strings.Split(info, ":")[1]
+		} else if strings.Contains(info, ",") {
+			host = strings.Split(info, ",")[0]
+				port = strings.TrimSpace(strings.Split(info, ",")[1])
+		} else if len(info) > 0 {
+			host = info
+		}
 	return host, port
 }
 
@@ -147,6 +166,9 @@ func getEngine() (*xorm.Engine, error) {
 			connStr = fmt.Sprintf("postgres://%s:%s@%s:%s/%s%ssslmode=%s",
 				url.QueryEscape(DbCfg.User), url.QueryEscape(DbCfg.Passwd), host, port, DbCfg.Name, Param, DbCfg.SSLMode)
 		}
+	case "mssql":
+		host, port := parseMSSQLHostPort(DbCfg.Host)
+		connStr = fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, DbCfg.Name, DbCfg.User, DbCfg.Passwd)
 	case "sqlite3":
 		if !EnableSQLite3 {
 			return nil, errors.New("this binary version does not build support for SQLite3")
