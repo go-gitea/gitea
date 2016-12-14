@@ -289,7 +289,11 @@ func Activate(ctx *context.Context) {
 	// Verify code.
 	if user := models.VerifyUserActiveCode(code); user != nil {
 		user.IsActive = true
-		user.Rands = models.GetUserSalt()
+		var err error
+		if user.Rands, err = models.GetUserSalt(); err != nil {
+			ctx.Handle(500, "UpdateUser", err)
+			return
+		}
 		if err := models.UpdateUser(user); err != nil {
 			if models.IsErrUserNotExist(err) {
 				ctx.Error(404)
@@ -428,8 +432,15 @@ func ResetPasswdPost(ctx *context.Context) {
 		}
 
 		u.Passwd = passwd
-		u.Rands = models.GetUserSalt()
-		u.Salt = models.GetUserSalt()
+		var err error
+		if u.Rands, err = models.GetUserSalt(); err != nil {
+			ctx.Handle(500, "UpdateUser", err)
+			return
+		}
+		if u.Salt, err = models.GetUserSalt(); err != nil {
+			ctx.Handle(500, "UpdateUser", err)
+			return
+		}
 		u.EncodePasswd()
 		if err := models.UpdateUser(u); err != nil {
 			ctx.Handle(500, "UpdateUser", err)

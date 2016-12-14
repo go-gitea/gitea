@@ -116,7 +116,9 @@ func (email *EmailAddress) Activate() error {
 	if err != nil {
 		return err
 	}
-	user.Rands = GetUserSalt()
+	if user.Rands, err = GetUserSalt(); err != nil {
+		return err
+	}
 
 	sess := x.NewSession()
 	defer sessionRelease(sess)
