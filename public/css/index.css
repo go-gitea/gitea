@@ -2926,6 +2926,10 @@ footer .ui.language .menu {
   width: 16px;
   text-align: center;
 }
+.navbar {
+  display: flex;
+  justify-content: space-between;
+}
 .ui.repository.list .item {
   padding-bottom: 25px;
 }

@@ -123,6 +123,12 @@ var (
 	UsePostgreSQL bool
 	UseTiDB       bool
 
+	// Indexer settings
+	Indexer struct {
+		IssuePath         string
+		UpdateQueueLength int
+	}
+
 	// Webhook settings
 	Webhook = struct {
 		QueueLength    int

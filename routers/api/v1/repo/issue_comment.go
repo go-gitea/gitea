@@ -125,7 +125,7 @@ func DeleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = models.DeleteCommentByID(comment.ID); err != nil {
+	if err = models.DeleteComment(comment); err != nil {
 		ctx.Error(500, "DeleteCommentByID", err)
 		return
 	}

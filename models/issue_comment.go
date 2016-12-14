@@ -454,28 +454,20 @@ func UpdateComment(c *Comment) error {
 	return err
 }
 
-// DeleteCommentByID deletes the comment by given ID.
-func DeleteCommentByID(id int64) error {
-	comment, err := GetCommentByID(id)
-	if err != nil {
-		if IsErrCommentNotExist(err) {
-			return nil
-		}
-		return err
-	}
-
+// DeleteComment deletes the comment
+func DeleteComment(comment *Comment) error {
 	sess := x.NewSession()
 	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if _, err = sess.Id(comment.ID).Delete(new(Comment)); err != nil {
+	if _, err := sess.Id(comment.ID).Delete(new(Comment)); err != nil {
 		return err
 	}
 
 	if comment.Type == CommentTypeComment {
-		if _, err = sess.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
+		if _, err := sess.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
 			return err
 		}
 	}

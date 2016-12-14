@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -25,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -158,20 +160,39 @@ func Issues(ctx *context.Context) {
 	milestoneID := ctx.QueryInt64("milestone")
 	isShowClosed := ctx.Query("state") == "closed"
 
+	keyword := ctx.Query("q")
+	if bytes.Contains([]byte(keyword), []byte{0x00}) {
+		keyword = ""
+	}
+
+	var issueIDs []int64
+	var err error
+	if len(keyword) > 0 {
+		issueIDs, err = models.SearchIssuesByKeyword(repo.ID, keyword)
+		if len(issueIDs) == 0 {
+			forceEmpty = true
+		}
+	}
+
 	var issueStats *models.IssueStats
 	if forceEmpty {
 		issueStats = &models.IssueStats{}
 	} else {
-		issueStats = models.GetIssueStats(&models.IssueStatsOptions{
+		var err error
+		issueStats, err = models.GetIssueStats(&models.IssueStatsOptions{
 			RepoID:      repo.ID,
 			Labels:      selectLabels,
 			MilestoneID: milestoneID,
 			AssigneeID:  assigneeID,
 			MentionedID: mentionedID,
 			IsPull:      isPullList,
+			IssueIDs:    issueIDs,
 		})
+		if err != nil {
+			ctx.Error(500, "GetSearchIssueStats")
+			return
+		}
 	}
-
 	page := ctx.QueryInt("page")
 	if page <= 1 {
 		page = 1
@@ -190,7 +211,6 @@ func Issues(ctx *context.Context) {
 	if forceEmpty {
 		issues = []*models.Issue{}
 	} else {
-		var err error
 		issues, err = models.Issues(&models.IssuesOptions{
 			AssigneeID:  assigneeID,
 			RepoID:      repo.ID,
@@ -198,10 +218,11 @@ func Issues(ctx *context.Context) {
 			MentionedID: mentionedID,
 			MilestoneID: milestoneID,
 			Page:        pager.Current(),
-			IsClosed:    isShowClosed,
-			IsPull:      isPullList,
+			IsClosed:    util.OptionalBoolOf(isShowClosed),
+			IsPull:      util.OptionalBoolOf(isPullList),
 			Labels:      selectLabels,
 			SortType:    sortType,
+			IssueIDs:    issueIDs,
 		})
 		if err != nil {
 			ctx.Handle(500, "Issues", err)
@@ -258,6 +279,7 @@ func Issues(ctx *context.Context) {
 	ctx.Data["MilestoneID"] = milestoneID
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["IsShowClosed"] = isShowClosed
+	ctx.Data["Keyword"] = keyword
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
 	} else {
@@ -934,7 +956,7 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if err = models.DeleteCommentByID(comment.ID); err != nil {
+	if err = models.DeleteComment(comment); err != nil {
 		ctx.Handle(500, "DeleteCommentByID", err)
 		return
 	}
