@@ -12,6 +12,10 @@
   - [ ] PostgreSQL
   - [ ] MySQL
   - [ ] SQLite
+- Can you reproduce the bug at https://try.gitea.io:
+  - [ ] Yes (provide example URL)
+  - [ ] No
+  - [ ] Not relevant
 - Log gist:
 
 ## Description
