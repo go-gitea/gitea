@@ -39,7 +39,4 @@ ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/bin/s6-svscan", "/etc/s6"]
 
 COPY docker /
-
-COPY public /app/gitea/public
-COPY templates /app/gitea/templates
 COPY gitea /app/gitea/gitea
