@@ -2886,6 +2886,9 @@ footer .ui.language .menu {
   width: 16px;
   text-align: center;
 }
+.navbar {
+  overflow: auto;
+}
 .ui.repository.list .item {
   padding-bottom: 25px;
 }

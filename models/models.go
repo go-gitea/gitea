@@ -111,6 +111,9 @@ func LoadConfigs() {
 	}
 	DbCfg.SSLMode = sec.Key("SSL_MODE").String()
 	DbCfg.Path = sec.Key("PATH").MustString("data/gitea.db")
+
+	sec = setting.Cfg.Section("indexer")
+	setting.IndexPath = sec.Key("ISSUE_INDEXER_PATH").MustString("indexers/issues.bleve")
 }
 
 // parsePostgreSQLHostPort parses given input in various forms defined in

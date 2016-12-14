@@ -41,5 +41,6 @@ coverage.out
 /dist
 /custom
 /data
+/indexers
 /log
 /public/img/avatar

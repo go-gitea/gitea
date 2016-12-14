@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -277,8 +278,8 @@ func Issues(ctx *context.Context) {
 		PosterID:   posterID,
 		RepoIDs:    repoIDs,
 		Page:       page,
-		IsClosed:   isShowClosed,
-		IsPull:     isPullList,
+		IsClosed:   util.OptionalBoolOf(isShowClosed),
+		IsPull:     util.OptionalBoolOf(isPullList),
 		SortType:   sortType,
 	})
 	if err != nil {

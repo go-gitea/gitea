@@ -4,6 +4,7 @@
 	<div class="ui container">
 		<div class="navbar">
 			{{template "repo/issue/navbar" .}}
+			{{template "repo/issue/search" .}}
 			<div class="ui right">
 				{{if .PageIsIssueList}}
 					<a class="ui green button" href="{{.RepoLink}}/issues/new">{{.i18n.Tr "repo.issues.new"}}</a>
@@ -14,11 +15,11 @@
 		</div>
 		<div class="ui divider"></div>
 		<div class="ui tiny basic status buttons">
-			<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
+			<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
 				<i class="octicon octicon-issue-opened"></i>
 				{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
 			</a>
-			<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
+			<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
 				<i class="octicon octicon-issue-closed"></i>
 				{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
 			</a>
@@ -31,9 +32,9 @@
 					<i class="dropdown icon"></i>
 				</span>
 				<div class="menu">
-					<a class="item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_label_no_select"}}</a>
+					<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_label_no_select"}}</a>
 					{{range .Labels}}
-						<a class="item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}"><span class="octicon {{if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+						<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}"><span class="octicon {{if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
 					{{end}}
 				</div>
 			</div>
@@ -45,7 +46,7 @@
 					<i class="dropdown icon"></i>
 				</span>
 				<div class="menu">
-					<a class="item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_milestone_no_select"}}</a>
+					<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_milestone_no_select"}}</a>
 					{{range .Milestones}}
 						<a class="{{if eq $.MilestoneID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&assignee={{$.AssigneeID}}">{{.Name}}</a>
 					{{end}}
@@ -59,7 +60,7 @@
 					<i class="dropdown icon"></i>
 				</span>
 				<div class="menu">
-					<a class="item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}">{{.i18n.Tr "repo.issues.filter_assginee_no_select"}}</a>
+					<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}">{{.i18n.Tr "repo.issues.filter_assginee_no_select"}}</a>
 					{{range .Assignees}}
 						<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{.ID}}"><img src="{{.RelAvatarLink}}"> {{.Name}}</a>
 					{{end}}
@@ -73,10 +74,10 @@
 					<i class="dropdown icon"></i>
 				</span>
 				<div class="menu">
-					<a class="{{if eq .ViewType "all"}}active{{end}} item" href="{{$.Link}}?type=all&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_type.all_issues"}}</a>
-					<a class="{{if eq .ViewType "assigned"}}active{{end}} item" href="{{$.Link}}?type=assigned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
-					<a class="{{if eq .ViewType "created_by"}}active{{end}} item" href="{{$.Link}}?type=created_by&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}</a>
-					<a class="{{if eq .ViewType "mentioned"}}active{{end}} item" href="{{$.Link}}?type=mentioned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}</a>
+					<a class="{{if eq .ViewType "all"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type=all&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_type.all_issues"}}</a>
+					<a class="{{if eq .ViewType "assigned"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type=assigned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
+					<a class="{{if eq .ViewType "created_by"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type=created_by&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}</a>
+					<a class="{{if eq .ViewType "mentioned"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type=mentioned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}</a>
 				</div>
 			</div>
 
@@ -87,12 +88,12 @@
 					<i class="dropdown icon"></i>
 				</span>
 				<div class="menu">
-					<a class="{{if or (eq .SortType "latest") (not .SortType)}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort=latest&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.latest"}}</a>
-					<a class="{{if eq .SortType "oldest"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort=oldest&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.oldest"}}</a>
-					<a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort=recentupdate&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-					<a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort=leastupdate&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</a>
-					<a class="{{if eq .SortType "mostcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort=mostcomment&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.mostcomment"}}</a>
-					<a class="{{if eq .SortType "leastcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort=leastcomment&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+					<a class="{{if or (eq .SortType "latest") (not .SortType)}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=latest&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.latest"}}</a>
+					<a class="{{if eq .SortType "oldest"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=oldest&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.oldest"}}</a>
+					<a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=recentupdate&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+					<a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=leastupdate&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+					<a class="{{if eq .SortType "mostcomment"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=mostcomment&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.mostcomment"}}</a>
+					<a class="{{if eq .SortType "leastcomment"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort=leastcomment&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_sort.leastcomment"}}</a>
 				</div>
 			</div>
 		</div>
@@ -105,7 +106,7 @@
 					<a class="title has-emoji" href="{{$.Link}}/{{.Index}}">{{.Title}}</a>
 
 					{{range .Labels}}
-						<a class="ui label" href="{{$.Link}}?type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{.Name}}</a>
+						<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{.Name}}</a>
 					{{end}}
 
 					{{if .NumComments}}
@@ -115,7 +116,7 @@
 					<p class="desc">
 						{{$.i18n.Tr "repo.issues.opened_by" $timeStr .Poster.HomeLink .Poster.Name | Safe}}
 						{{if .Milestone}}
-							<a class="milestone" href="{{$.Link}}?type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
+							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
 								<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
 							</a>
 						{{end}}
@@ -132,17 +133,17 @@
 				{{if gt .TotalPages 1}}
 					<div class="center page buttons">
 						<div class="ui borderless pagination menu">
-							<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&page={{.Previous}}"{{end}}>
+							<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&page={{.Previous}}"{{end}}>
 								<i class="left arrow icon"></i> {{$.i18n.Tr "repo.issues.previous"}}
 							</a>
 							{{range .Pages}}
 								{{if eq .Num -1}}
 									<a class="disabled item">...</a>
 								{{else}}
-									<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&page={{.Num}}"{{end}}>{{.Num}}</a>
+									<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&page={{.Num}}"{{end}}>{{.Num}}</a>
 								{{end}}
 							{{end}}
-							<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&page={{.Next}}"{{end}}>
+							<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&page={{.Next}}"{{end}}>
 								{{$.i18n.Tr "repo.issues.next"}}&nbsp;<i class="icon right arrow"></i>
 							</a>
 						</div>
