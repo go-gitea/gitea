@@ -22,7 +22,6 @@ import (
 	_ "github.com/go-macaron/cache/redis"
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
-	_ "github.com/kardianos/minwinsvc"      // import minwinsvc for windows services
 	"gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 
