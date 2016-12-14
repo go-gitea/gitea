@@ -91,6 +91,11 @@ build: $(EXECUTABLE)
 $(EXECUTABLE): $(SOURCES)
 	go build -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
+.PHONY: docker
+docker:
+	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="$(TAGS)" webhippie/golang:edge make clean generate build
+	docker build -t gitea/gitea:latest .
+
 .PHONY: release
 release: release-dirs release-build release-copy release-check
 
