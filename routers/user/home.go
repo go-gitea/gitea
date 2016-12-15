@@ -250,6 +250,9 @@ func Issues(ctx *context.Context) {
 		}
 	}
 	ctx.Data["Repos"] = showRepos
+	if len(repoIDs) == 0 {
+		repoIDs = []int64{-1}
+	}
 
 	issueStats := models.GetUserIssueStats(repoID, ctxUser.ID, repoIDs, filterMode, isPullList)
 	issueStats.AllCount = int64(allCount)
