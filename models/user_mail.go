@@ -5,8 +5,14 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+)
+
+var (
+	// ErrEmailAddressNotExist email address not exist
+	ErrEmailAddressNotExist = errors.New("Email address does not exist")
 )
 
 // EmailAddress is the list of all email addresses of a user. Can contain the
@@ -139,14 +145,25 @@ func (email *EmailAddress) Activate() error {
 
 // DeleteEmailAddress deletes an email address of given user.
 func DeleteEmailAddress(email *EmailAddress) (err error) {
-	if email.ID > 0 {
-		_, err = x.Id(email.ID).Delete(new(EmailAddress))
-	} else {
-		_, err = x.
-			Where("email=?", email.Email).
-			Delete(new(EmailAddress))
+	var deleted int64
+	// ask to check UID
+	var address = EmailAddress{
+		UID: email.UID,
 	}
-	return err
+	if email.ID > 0 {
+		deleted, err = x.Id(email.ID).Delete(&address)
+	} else {
+		deleted, err = x.
+			Where("email=?", email.Email).
+			Delete(&address)
+	}
+
+	if err != nil {
+		return err
+	} else if deleted != 1 {
+		return ErrEmailAddressNotExist
+	}
+	return nil
 }
 
 // DeleteEmailAddresses deletes multiple email addresses
