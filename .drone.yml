@@ -58,11 +58,11 @@ pipeline:
       event: [ push, tag ]
       branch: [ master, refs/tags/* ]
 
-  coverage:
-    image: plugins/coverage
-    server: https://coverage.gitea.io
-    when:
-      event: [ push, tag, pull_request ]
+  # coverage:
+  #   image: plugins/coverage
+  #   server: https://coverage.gitea.io
+  #   when:
+  #     event: [ push, tag, pull_request ]
 
   docker:
     image: plugins/docker
