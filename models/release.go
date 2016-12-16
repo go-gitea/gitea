@@ -189,7 +189,7 @@ func UpdateRelease(gitRepo *git.Repository, rel *Release) (err error) {
 }
 
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
-func DeleteReleaseByID(id int64) error {
+func DeleteReleaseByID(id int64, u *User) error {
 	rel, err := GetReleaseByID(id)
 	if err != nil {
 		return fmt.Errorf("GetReleaseByID: %v", err)
@@ -198,6 +198,13 @@ func DeleteReleaseByID(id int64) error {
 	repo, err := GetRepositoryByID(rel.RepoID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByID: %v", err)
+	}
+
+	has, err := HasAccess(u, repo, AccessModeWrite)
+	if err != nil {
+		return fmt.Errorf("HasAccess: %v", err)
+	} else if !has {
+		return fmt.Errorf("DeleteReleaseByID: permission denied")
 	}
 
 	_, stderr, err := process.ExecDir(-1, repo.RepoPath(),
