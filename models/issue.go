@@ -87,12 +87,19 @@ func (issue *Issue) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
-func (issue *Issue) loadAttributes(e Engine) (err error) {
+func (issue *Issue) loadRepo(e Engine) (err error) {
 	if issue.Repo == nil {
 		issue.Repo, err = getRepositoryByID(e, issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("getRepositoryByID [%d]: %v", issue.RepoID, err)
 		}
+	}
+	return nil
+}
+
+func (issue *Issue) loadAttributes(e Engine) (err error) {
+	if err := issue.loadRepo(e); err != nil {
+		return err
 	}
 
 	if issue.Poster == nil {
@@ -322,6 +329,16 @@ func (issue *Issue) removeLabel(e *xorm.Session, label *Label) error {
 
 // RemoveLabel removes a label from issue by given ID.
 func (issue *Issue) RemoveLabel(doer *User, label *Label) error {
+	if err := issue.loadRepo(x); err != nil {
+		return err
+	}
+
+	if has, err := HasAccess(doer, issue.Repo, AccessModeWrite); err != nil {
+		return err
+	} else if !has {
+		return ErrLabelNotExist{}
+	}
+
 	if err := DeleteIssueLabel(issue, label); err != nil {
 		return err
 	}
@@ -351,6 +368,16 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 	defer sessionRelease(sess)
 	if err = sess.Begin(); err != nil {
 		return err
+	}
+
+	if err := issue.loadRepo(sess); err != nil {
+		return err
+	}
+
+	if has, err := hasAccess(sess, doer, issue.Repo, AccessModeWrite); err != nil {
+		return err
+	} else if !has {
+		return ErrLabelNotExist{}
 	}
 
 	if err = issue.clearLabels(sess); err != nil {
