@@ -494,3 +494,7 @@ func IsImageFile(data []byte) bool {
 func IsPDFFile(data []byte) bool {
 	return strings.Index(http.DetectContentType(data), "application/pdf") != -1
 }
+
+func IsVideoFile(data []byte) bool {
+	return strings.Index(http.DetectContentType(data), "video/") != -1
+}
