@@ -12,6 +12,21 @@ const (
 	tplNotification base.TplName = "user/notification/notification"
 )
 
+// GetNotificationCount is the middleware that sets the notification count in the context
+func GetNotificationCount(c *context.Context) {
+	if !c.IsSigned {
+		return
+	}
+
+	count, err := models.GetNotificationUnreadCount(c.User)
+	if err != nil {
+		c.Handle(500, "GetNotificationCount", err)
+		return
+	}
+
+	c.Data["NotificationUnreadCount"] = count
+}
+
 // Notifications is the notifications page
 func Notifications(c *context.Context) {
 	var status models.NotificationStatus

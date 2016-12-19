@@ -159,6 +159,8 @@ func runWeb(ctx *cli.Context) error {
 
 	bindIgnErr := binding.BindIgnErr
 
+	m.Use(user.GetNotificationCount)
+
 	// FIXME: not all routes need go through same middlewares.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.

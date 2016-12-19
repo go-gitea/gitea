@@ -78,6 +78,12 @@
 										<a href="/notifications" class="ui head link jump item poping up" data-content='{{.i18n.Tr "notifications"}}' data-variation="tiny inverted">
 											<span class="text">
 												<i class="octicon octicon-inbox"><span class="sr-only">{{.i18n.Tr "notifications"}}</span></i>
+
+												{{if .NotificationUnreadCount}}
+													<span class="ui red label">
+														{{.NotificationUnreadCount}}
+													</span>
+												{{end}}
 											</span>
 										</a>
 

@@ -182,3 +182,26 @@ func (n *Notification) GetIssue() (issue *Issue, err error) {
 		Get(issue)
 	return
 }
+
+// GetNotificationReadCount returns the notification read count for user
+func GetNotificationReadCount(user *User) (int64, error) {
+	return GetNotificationCount(user, NotificationStatusRead)
+}
+
+// GetNotificationUnreadCount returns the notification unread count for user
+func GetNotificationUnreadCount(user *User) (int64, error) {
+	return GetNotificationCount(user, NotificationStatusUnread)
+}
+
+// GetNotificationCount returns the notification count for user
+func GetNotificationCount(user *User, status NotificationStatus) (int64, error) {
+	return getNotificationCount(x, user, status)
+}
+
+func getNotificationCount(e Engine, user *User, status NotificationStatus) (count int64, err error) {
+	count, err = e.
+		Where("user_id = ?", user.ID).
+		And("status = ?", status).
+		Count(&Notification{})
+	return
+}
