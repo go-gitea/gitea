@@ -431,7 +431,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		return
 	}
 
-	notification.Service.NotifyIssue(issue)
+	notification.Service.NotifyIssue(issue, ctx.User.ID)
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
@@ -878,7 +878,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
-	notification.Service.NotifyIssue(issue)
+	notification.Service.NotifyIssue(issue, ctx.User.ID)
 
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
 }

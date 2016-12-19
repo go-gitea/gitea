@@ -73,27 +73,32 @@ func (n *Notification) BeforeUpdate() {
 
 // CreateOrUpdateIssueNotifications creates an issue notification
 // for each watcher, or updates it if already exists
-func CreateOrUpdateIssueNotifications(issue *Issue) error {
+func CreateOrUpdateIssueNotifications(issue *Issue, notificationAuthorID int64) error {
 	sess := x.NewSession()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 	defer sess.Close()
 
-	if err := createOrUpdateIssueNotifications(sess, issue); err != nil {
+	if err := createOrUpdateIssueNotifications(sess, issue, notificationAuthorID); err != nil {
 		return err
 	}
 
 	return sess.Commit()
 }
 
-func createOrUpdateIssueNotifications(e Engine, issue *Issue) error {
+func createOrUpdateIssueNotifications(e Engine, issue *Issue, notificationAuthorID int64) error {
 	watches, err := getWatchers(e, issue.RepoID)
 	if err != nil {
 		return err
 	}
 
 	for _, watch := range watches {
+		// do not send notification for the own issuer/commenter
+		if watch.UserID == notificationAuthorID {
+			continue
+		}
+
 		exists, err := issueNotificationExists(e, watch.UserID, issue.ID)
 		if err != nil {
 			return err

@@ -466,7 +466,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 		return err
 	}
 
-	if err := createOrUpdateIssueNotifications(e, issue); err != nil {
+	if err := createOrUpdateIssueNotifications(e, issue, doer.ID); err != nil {
 		return err
 	}
 
@@ -711,7 +711,7 @@ func newIssue(e *xorm.Session, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	if err := createOrUpdateIssueNotifications(e, opts.Issue); err != nil {
+	if err := createOrUpdateIssueNotifications(e, opts.Issue, opts.Issue.PosterID); err != nil {
 		return err
 	}
 

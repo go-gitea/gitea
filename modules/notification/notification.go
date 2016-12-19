@@ -5,14 +5,21 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-type notificationService struct {
-	issueQueue chan *models.Issue
-}
+type (
+	notificationService struct {
+		issueQueue chan issueNotificationOpts
+	}
+
+	issueNotificationOpts struct {
+		issue                *models.Issue
+		notificationAuthorID int64
+	}
+)
 
 var (
 	// Service is the notification service
 	Service = &notificationService{
-		issueQueue: make(chan *models.Issue, 100),
+		issueQueue: make(chan issueNotificationOpts, 100),
 	}
 )
 
@@ -23,14 +30,17 @@ func init() {
 func (ns *notificationService) Run() {
 	for {
 		select {
-		case issue := <-ns.issueQueue:
-			if err := models.CreateOrUpdateIssueNotifications(issue); err != nil {
+		case opts := <-ns.issueQueue:
+			if err := models.CreateOrUpdateIssueNotifications(opts.issue, opts.notificationAuthorID); err != nil {
 				log.Error(4, "Was unable to create issue notification: %v", err)
 			}
 		}
 	}
 }
 
-func (ns *notificationService) NotifyIssue(issue *models.Issue) {
-	ns.issueQueue <- issue
+func (ns *notificationService) NotifyIssue(issue *models.Issue, notificationAuthorID int64) {
+	ns.issueQueue <- issueNotificationOpts{
+		issue,
+		notificationAuthorID,
+	}
 }
