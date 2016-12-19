@@ -12,7 +12,7 @@ type notificationService struct {
 var (
 	// Service is the notification service
 	Service = &notificationService{
-		issueQueue: make(chan *models.Issue),
+		issueQueue: make(chan *models.Issue, 100),
 	}
 )
 
