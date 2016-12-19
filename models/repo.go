@@ -1401,7 +1401,7 @@ func DeleteRepository(uid, repoID int64) error {
 		&Watch{RepoID: repoID},
 		&Star{RepoID: repoID},
 		&Mirror{RepoID: repoID},
-		&IssueUser{RepoID: repoID},
+		&Notification{RepoID: repoID},
 		&Milestone{RepoID: repoID},
 		&Release{RepoID: repoID},
 		&Collaboration{RepoID: repoID},

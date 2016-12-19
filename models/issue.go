@@ -416,8 +416,8 @@ func (issue *Issue) GetAssignee() (err error) {
 }
 
 // ReadBy sets issue to be read by given user.
-func (issue *Issue) ReadBy(uid int64) error {
-	return UpdateIssueUserByRead(uid, issue.ID)
+func (issue *Issue) ReadBy(userID int64) error {
+	return setNotificationStatusRead(x, userID, issue.ID)
 }
 
 func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
@@ -438,8 +438,6 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 	issue.IsClosed = isClosed
 
 	if err = updateIssueCols(e, issue, "is_closed"); err != nil {
-		return err
-	} else if err = updateIssueUsersByStatus(e, issue.ID, isClosed); err != nil {
 		return err
 	}
 
@@ -465,6 +463,10 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 
 	// New action comment
 	if _, err = createStatusComment(e, doer, repo, issue); err != nil {
+		return err
+	}
+
+	if err := createOrUpdateIssueNotifications(e, issue); err != nil {
 		return err
 	}
 
@@ -579,10 +581,6 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 // ChangeAssignee changes the Asssignee field of this issue.
 func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 	issue.AssigneeID = assigneeID
-	if err = UpdateIssueUserByAssignee(issue); err != nil {
-		return fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
-	}
-
 	issue.Assignee, err = GetUserByID(issue.AssigneeID)
 	if err != nil && !IsErrUserNotExist(err) {
 		log.Error(4, "GetUserByID [assignee_id: %v]: %v", issue.AssigneeID, err)
@@ -699,10 +697,6 @@ func newIssue(e *xorm.Session, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	if err = newIssueUsers(e, opts.Repo, opts.Issue); err != nil {
-		return err
-	}
-
 	if len(opts.Attachments) > 0 {
 		attachments, err := getAttachmentsByUUIDs(e, opts.Attachments)
 		if err != nil {
@@ -715,6 +709,10 @@ func newIssue(e *xorm.Session, opts NewIssueOptions) (err error) {
 				return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
 			}
 		}
+	}
+
+	if err := createOrUpdateIssueNotifications(e, opts.Issue); err != nil {
+		return err
 	}
 
 	return opts.Issue.loadAttributes(e)
@@ -921,181 +919,6 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	return issues, nil
 }
 
-// .___                             ____ ___
-// |   | ______ ________ __   ____ |    |   \______ ___________
-// |   |/  ___//  ___/  |  \_/ __ \|    |   /  ___// __ \_  __ \
-// |   |\___ \ \___ \|  |  /\  ___/|    |  /\___ \\  ___/|  | \/
-// |___/____  >____  >____/  \___  >______//____  >\___  >__|
-//          \/     \/            \/             \/     \/
-
-// IssueUser represents an issue-user relation.
-type IssueUser struct {
-	ID          int64 `xorm:"pk autoincr"`
-	UID         int64 `xorm:"INDEX"` // User ID.
-	IssueID     int64
-	RepoID      int64 `xorm:"INDEX"`
-	MilestoneID int64
-	IsRead      bool
-	IsAssigned  bool
-	IsMentioned bool
-	IsPoster    bool
-	IsClosed    bool
-}
-
-func newIssueUsers(e *xorm.Session, repo *Repository, issue *Issue) error {
-	assignees, err := repo.getAssignees(e)
-	if err != nil {
-		return fmt.Errorf("getAssignees: %v", err)
-	}
-
-	// Poster can be anyone, append later if not one of assignees.
-	isPosterAssignee := false
-
-	// Leave a seat for poster itself to append later, but if poster is one of assignee
-	// and just waste 1 unit is cheaper than re-allocate memory once.
-	issueUsers := make([]*IssueUser, 0, len(assignees)+1)
-	for _, assignee := range assignees {
-		isPoster := assignee.ID == issue.PosterID
-		issueUsers = append(issueUsers, &IssueUser{
-			IssueID:    issue.ID,
-			RepoID:     repo.ID,
-			UID:        assignee.ID,
-			IsPoster:   isPoster,
-			IsAssigned: assignee.ID == issue.AssigneeID,
-		})
-		if !isPosterAssignee && isPoster {
-			isPosterAssignee = true
-		}
-	}
-	if !isPosterAssignee {
-		issueUsers = append(issueUsers, &IssueUser{
-			IssueID:  issue.ID,
-			RepoID:   repo.ID,
-			UID:      issue.PosterID,
-			IsPoster: true,
-		})
-	}
-
-	if _, err = e.Insert(issueUsers); err != nil {
-		return err
-	}
-	return nil
-}
-
-// NewIssueUsers adds new issue-user relations for new issue of repository.
-func NewIssueUsers(repo *Repository, issue *Issue) (err error) {
-	sess := x.NewSession()
-	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if err = newIssueUsers(sess, repo, issue); err != nil {
-		return err
-	}
-
-	return sess.Commit()
-}
-
-// PairsContains returns true when pairs list contains given issue.
-func PairsContains(ius []*IssueUser, issueID, uid int64) int {
-	for i := range ius {
-		if ius[i].IssueID == issueID &&
-			ius[i].UID == uid {
-			return i
-		}
-	}
-	return -1
-}
-
-// GetIssueUsers returns issue-user pairs by given repository and user.
-func GetIssueUsers(rid, uid int64, isClosed bool) ([]*IssueUser, error) {
-	ius := make([]*IssueUser, 0, 10)
-	err := x.Where("is_closed=?", isClosed).Find(&ius, &IssueUser{RepoID: rid, UID: uid})
-	return ius, err
-}
-
-// GetIssueUserPairsByRepoIds returns issue-user pairs by given repository IDs.
-func GetIssueUserPairsByRepoIds(rids []int64, isClosed bool, page int) ([]*IssueUser, error) {
-	if len(rids) == 0 {
-		return []*IssueUser{}, nil
-	}
-
-	ius := make([]*IssueUser, 0, 10)
-	sess := x.
-		Limit(20, (page-1)*20).
-		Where("is_closed=?", isClosed).
-		In("repo_id", rids)
-	err := sess.Find(&ius)
-	return ius, err
-}
-
-// GetIssueUserPairsByMode returns issue-user pairs by given repository and user.
-func GetIssueUserPairsByMode(uid, rid int64, isClosed bool, page, filterMode int) ([]*IssueUser, error) {
-	ius := make([]*IssueUser, 0, 10)
-	sess := x.
-		Limit(20, (page-1)*20).
-		Where("uid=?", uid).
-		And("is_closed=?", isClosed)
-	if rid > 0 {
-		sess.And("repo_id=?", rid)
-	}
-
-	switch filterMode {
-	case FilterModeAssign:
-		sess.And("is_assigned=?", true)
-	case FilterModeCreate:
-		sess.And("is_poster=?", true)
-	default:
-		return ius, nil
-	}
-	err := sess.Find(&ius)
-	return ius, err
-}
-
-// UpdateIssueMentions extracts mentioned people from content and
-// updates issue-user relations for them.
-func UpdateIssueMentions(issueID int64, mentions []string) error {
-	if len(mentions) == 0 {
-		return nil
-	}
-
-	for i := range mentions {
-		mentions[i] = strings.ToLower(mentions[i])
-	}
-	users := make([]*User, 0, len(mentions))
-
-	if err := x.In("lower_name", mentions).Asc("lower_name").Find(&users); err != nil {
-		return fmt.Errorf("find mentioned users: %v", err)
-	}
-
-	ids := make([]int64, 0, len(mentions))
-	for _, user := range users {
-		ids = append(ids, user.ID)
-		if !user.IsOrganization() || user.NumMembers == 0 {
-			continue
-		}
-
-		memberIDs := make([]int64, 0, user.NumMembers)
-		orgUsers, err := GetOrgUsersByOrgID(user.ID)
-		if err != nil {
-			return fmt.Errorf("GetOrgUsersByOrgID [%d]: %v", user.ID, err)
-		}
-
-		for _, orgUser := range orgUsers {
-			memberIDs = append(memberIDs, orgUser.ID)
-		}
-
-		ids = append(ids, memberIDs...)
-	}
-
-	if err := UpdateIssueUsersByMentions(issueID, ids); err != nil {
-		return fmt.Errorf("UpdateIssueUsersByMentions: %v", err)
-	}
-
-	return nil
-}
-
 // IssueStats represents issue statistic information.
 type IssueStats struct {
 	OpenCount, ClosedCount int64
@@ -1281,77 +1104,6 @@ func updateIssue(e Engine, issue *Issue) error {
 // UpdateIssue updates all fields of given issue.
 func UpdateIssue(issue *Issue) error {
 	return updateIssue(x, issue)
-}
-
-func updateIssueUsersByStatus(e Engine, issueID int64, isClosed bool) error {
-	_, err := e.Exec("UPDATE `issue_user` SET is_closed=? WHERE issue_id=?", isClosed, issueID)
-	return err
-}
-
-// UpdateIssueUsersByStatus updates issue-user relations by issue status.
-func UpdateIssueUsersByStatus(issueID int64, isClosed bool) error {
-	return updateIssueUsersByStatus(x, issueID, isClosed)
-}
-
-func updateIssueUserByAssignee(e *xorm.Session, issue *Issue) (err error) {
-	if _, err = e.Exec("UPDATE `issue_user` SET is_assigned = ? WHERE issue_id = ?", false, issue.ID); err != nil {
-		return err
-	}
-
-	// Assignee ID equals to 0 means clear assignee.
-	if issue.AssigneeID > 0 {
-		if _, err = e.Exec("UPDATE `issue_user` SET is_assigned = ? WHERE uid = ? AND issue_id = ?", true, issue.AssigneeID, issue.ID); err != nil {
-			return err
-		}
-	}
-
-	return updateIssue(e, issue)
-}
-
-// UpdateIssueUserByAssignee updates issue-user relation for assignee.
-func UpdateIssueUserByAssignee(issue *Issue) (err error) {
-	sess := x.NewSession()
-	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if err = updateIssueUserByAssignee(sess, issue); err != nil {
-		return err
-	}
-
-	return sess.Commit()
-}
-
-// UpdateIssueUserByRead updates issue-user relation for reading.
-func UpdateIssueUserByRead(uid, issueID int64) error {
-	_, err := x.Exec("UPDATE `issue_user` SET is_read=? WHERE uid=? AND issue_id=?", true, uid, issueID)
-	return err
-}
-
-// UpdateIssueUsersByMentions updates issue-user pairs by mentioning.
-func UpdateIssueUsersByMentions(issueID int64, uids []int64) error {
-	for _, uid := range uids {
-		iu := &IssueUser{
-			UID:     uid,
-			IssueID: issueID,
-		}
-		has, err := x.Get(iu)
-		if err != nil {
-			return err
-		}
-
-		iu.IsMentioned = true
-		if has {
-			_, err = x.Id(iu.ID).AllCols().Update(iu)
-		} else {
-			_, err = x.Insert(iu)
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 //    _____  .__.__                   __

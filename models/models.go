@@ -84,7 +84,6 @@ func init() {
 		new(PullRequest),
 		new(Comment),
 		new(Attachment),
-		new(IssueUser),
 		new(Label),
 		new(IssueLabel),
 		new(Milestone),

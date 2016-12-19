@@ -74,27 +74,35 @@ func (n *Notification) BeforeUpdate() {
 // CreateOrUpdateIssueNotifications creates an issue notification
 // for each watcher, or updates it if already exists
 func CreateOrUpdateIssueNotifications(issue *Issue) error {
-	watches, err := getWatchers(x, issue.RepoID)
-	if err != nil {
-		return err
-	}
-
 	sess := x.NewSession()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 	defer sess.Close()
 
+	if err := createOrUpdateIssueNotifications(sess, issue); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+func createOrUpdateIssueNotifications(e Engine, issue *Issue) error {
+	watches, err := getWatchers(e, issue.RepoID)
+	if err != nil {
+		return err
+	}
+
 	for _, watch := range watches {
-		exists, err := issueNotificationExists(sess, watch.UserID, issue.ID)
+		exists, err := issueNotificationExists(e, watch.UserID, issue.ID)
 		if err != nil {
 			return err
 		}
 
 		if exists {
-			err = updateIssueNotification(sess, watch.UserID, issue.ID)
+			err = updateIssueNotification(e, watch.UserID, issue.ID)
 		} else {
-			err = createIssueNotification(sess, watch.UserID, issue)
+			err = createIssueNotification(e, watch.UserID, issue)
 		}
 
 		if err != nil {
@@ -102,7 +110,7 @@ func CreateOrUpdateIssueNotifications(issue *Issue) error {
 		}
 	}
 
-	return sess.Commit()
+	return nil
 }
 
 func issueNotificationExists(e Engine, userID, issueID int64) (bool, error) {
@@ -204,4 +212,17 @@ func getNotificationCount(e Engine, user *User, status NotificationStatus) (coun
 		And("status = ?", status).
 		Count(&Notification{})
 	return
+}
+
+func setNotificationStatusRead(e Engine, userID, issueID int64) error {
+	notification, err := getIssueNotification(e, userID, issueID)
+	// ignore if not exists
+	if err != nil {
+		return nil
+	}
+
+	notification.Status = NotificationStatusRead
+
+	_, err = e.Id(notification.ID).Update(notification)
+	return err
 }
