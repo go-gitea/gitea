@@ -18,6 +18,7 @@ import (
 
 const (
 	tplCommits base.TplName = "repo/commits"
+	tplGraph   base.TplName = "repo/graph"
 	tplDiff    base.TplName = "repo/diff/page"
 )
 
@@ -73,6 +74,32 @@ func Commits(ctx *context.Context) {
 	ctx.Data["CommitCount"] = commitsCount
 	ctx.Data["Branch"] = ctx.Repo.BranchName
 	ctx.HTML(200, tplCommits)
+}
+
+// Graph render commit graph - show commits from all branches.
+func Graph(ctx *context.Context) {
+	ctx.Data["PageIsCommits"] = true
+
+	commitsCount, err := ctx.Repo.Commit.CommitsCount()
+	if err != nil {
+		ctx.Handle(500, "GetCommitsCount", err)
+		return
+	}
+
+	graph, err := models.GetCommitGraph(ctx.Repo.GitRepo)
+	if err != nil {
+		ctx.Handle(500, "GetCommitGraph", err)
+		return
+	}
+
+	ctx.Data["Graph"] = graph
+	ctx.Data["Username"] = ctx.Repo.Owner.Name
+	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
+	ctx.Data["CommitCount"] = commitsCount
+	ctx.Data["Branch"] = ctx.Repo.BranchName
+	ctx.Data["RequireGitGraph"] = true
+	ctx.HTML(200, tplGraph)
+
 }
 
 // SearchCommits render commits filtered by keyword
