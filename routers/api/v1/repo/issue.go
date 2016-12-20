@@ -156,11 +156,6 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 			}
 			issue.AssigneeID = assignee.ID
 		}
-
-		if err = models.UpdateIssueUserByAssignee(issue); err != nil {
-			ctx.Error(500, "UpdateIssueUserByAssignee", err)
-			return
-		}
 	}
 	if ctx.Repo.IsWriter() && form.Milestone != nil &&
 		issue.MilestoneID != *form.Milestone {

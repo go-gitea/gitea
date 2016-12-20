@@ -148,9 +148,6 @@ func (c *Comment) EventTag() string {
 // and mentioned people.
 func (c *Comment) MailParticipants(opType ActionType, issue *Issue) (err error) {
 	mentions := markdown.FindAllMentions(c.Content)
-	if err = UpdateIssueMentions(c.IssueID, mentions); err != nil {
-		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
-	}
 
 	switch opType {
 	case ActionCommentIssue:

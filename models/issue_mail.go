@@ -69,9 +69,6 @@ func mailIssueCommentToParticipants(issue *Issue, doer *User, mentions []string)
 // and mentioned people.
 func (issue *Issue) MailParticipants() (err error) {
 	mentions := markdown.FindAllMentions(issue.Content)
-	if err = UpdateIssueMentions(issue.ID, mentions); err != nil {
-		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
-	}
 
 	if err = mailIssueCommentToParticipants(issue, issue.Poster, mentions); err != nil {
 		log.Error(4, "mailIssueCommentToParticipants: %v", err)

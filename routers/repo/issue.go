@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -193,29 +194,6 @@ func Issues(ctx *context.Context) {
 	if err != nil {
 		ctx.Handle(500, "Issues", err)
 		return
-	}
-
-	// Get issue-user relations.
-	pairs, err := models.GetIssueUsers(repo.ID, posterID, isShowClosed)
-	if err != nil {
-		ctx.Handle(500, "GetIssueUsers", err)
-		return
-	}
-
-	// Get posters.
-	for i := range issues {
-		if !ctx.IsSigned {
-			issues[i].IsRead = true
-			continue
-		}
-
-		// Check read status.
-		idx := models.PairsContains(pairs, issues[i].ID, ctx.User.ID)
-		if idx > -1 {
-			issues[i].IsRead = pairs[idx].IsRead
-		} else {
-			issues[i].IsRead = true
-		}
 	}
 	ctx.Data["Issues"] = issues
 
@@ -452,6 +430,8 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		ctx.Handle(500, "NewIssue", err)
 		return
 	}
+
+	notification.Service.NotifyIssue(issue, ctx.User.ID)
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
@@ -897,6 +877,8 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		ctx.Handle(500, "CreateIssueComment", err)
 		return
 	}
+
+	notification.Service.NotifyIssue(issue, ctx.User.ID)
 
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
 }
