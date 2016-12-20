@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
 
+	"github.com/facebookgo/grace/gracehttp"
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/captcha"
@@ -615,10 +616,29 @@ func runWeb(ctx *cli.Context) error {
 	var err error
 	switch setting.Protocol {
 	case setting.HTTP:
-		err = http.ListenAndServe(listenAddr, m)
+		err = gracehttp.Serve(&http.Server{
+			Addr:    listenAddr,
+			Handler: m,
+		})
 	case setting.HTTPS:
-		server := &http.Server{Addr: listenAddr, TLSConfig: &tls.Config{MinVersion: tls.VersionTLS10}, Handler: m}
-		err = server.ListenAndServeTLS(setting.CertFile, setting.KeyFile)
+		config := &tls.Config{
+			MinVersion: tls.VersionTLS10,
+		}
+		if config.NextProtos == nil {
+			config.NextProtos = []string{"http/1.1"}
+		}
+
+		config.Certificates = make([]tls.Certificate, 1)
+		config.Certificates[0], err = tls.LoadX509KeyPair(setting.CertFile, setting.KeyFile)
+		if err != nil {
+			log.Fatal(4, "Failed to load https cert file %s: %v", listenAddr, err)
+		}
+
+		err = gracehttp.Serve(&http.Server{
+			Addr:      listenAddr,
+			Handler:   m,
+			TLSConfig: config,
+		})
 	case setting.FCGI:
 		err = fcgi.Serve(nil, m)
 	case setting.UnixSocket:

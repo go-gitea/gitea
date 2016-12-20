@@ -93,6 +93,12 @@
 			"revisionTime": "2015-12-24T04:54:52Z"
 		},
 		{
+			"checksumSHA1": "al8G84fPO2HjlLiCGyZZqBVDTI0=",
+			"path": "github.com/facebookgo/grace/gracehttp",
+			"revision": "053ab5d25436faedf3fe76fbf3da797c8c27c659",
+			"revisionTime": "2015-08-07T21:49:31Z"
+		},
+		{
 			"checksumSHA1": "qTJizMr1DBhDTZiRNmC+khEClz8=",
 			"path": "github.com/go-macaron/bindata",
 			"revision": "de74a053830c7d338bf209adf3b711c969f63e59",
