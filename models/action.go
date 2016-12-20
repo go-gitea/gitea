@@ -580,7 +580,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		if err != nil {
 			log.Error(4, "OpenRepository[%s]: %v", repo.RepoPath(), err)
 		}
-		shaSum, err = gitRepo.GetTagCommitID(opts.RefFullName)
+		shaSum, err = gitRepo.GetTagCommitID(refName)
 		if err != nil {
 			log.Error(4, "GetTagCommitID[%s]: %v", opts.RefFullName, err)
 		}
