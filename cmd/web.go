@@ -44,8 +44,8 @@ import (
 // CmdWeb represents the available web sub-command.
 var CmdWeb = cli.Command{
 	Name:  "web",
-	Usage: "Start Gogs web server",
-	Description: `Gogs web server is the only thing you need to run,
+	Usage: "Start Gitea web server",
+	Description: `Gitea web server is the only thing you need to run,
 and it takes care of all the other things for you`,
 	Action: runWeb,
 	Flags: []cli.Flag{

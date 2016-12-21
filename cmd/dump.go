@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -21,9 +22,9 @@ import (
 // CmdDump represents the available dump sub-command.
 var CmdDump = cli.Command{
 	Name:  "dump",
-	Usage: "Dump Gogs files and database",
+	Usage: "Dump Gitea files and database",
 	Description: `Dump compresses all related files and database into zip file.
-It can be used for backup and capture Gogs server image to send to maintainer`,
+It can be used for backup and capture Gitea server image to send to maintainer`,
 	Action: runDump,
 	Flags: []cli.Flag{
 		cli.StringFlag{
@@ -55,14 +56,14 @@ func runDump(ctx *cli.Context) error {
 	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
 		log.Fatalf("Path does not exist: %s", tmpDir)
 	}
-	TmpWorkDir, err := ioutil.TempDir(tmpDir, "gogs-dump-")
+	TmpWorkDir, err := ioutil.TempDir(tmpDir, "gitea-dump-")
 	if err != nil {
 		log.Fatalf("Fail to create tmp work directory: %v", err)
 	}
 	log.Printf("Creating tmp work dir: %s", TmpWorkDir)
 
-	reposDump := path.Join(TmpWorkDir, "gogs-repo.zip")
-	dbDump := path.Join(TmpWorkDir, "gogs-db.sql")
+	reposDump := path.Join(TmpWorkDir, "gitea-repo.zip")
+	dbDump := path.Join(TmpWorkDir, "gitea-db.sql")
 
 	log.Printf("Dumping local repositories...%s", setting.RepoRootPath)
 	zip.Verbose = ctx.Bool("verbose")
@@ -75,18 +76,18 @@ func runDump(ctx *cli.Context) error {
 		log.Fatalf("Fail to dump database: %v", err)
 	}
 
-	fileName := fmt.Sprintf("gogs-dump-%d.zip", time.Now().Unix())
+	fileName := fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix())
 	log.Printf("Packing dump files...")
 	z, err := zip.Create(fileName)
 	if err != nil {
 		log.Fatalf("Fail to create %s: %v", fileName, err)
 	}
 
-	if err := z.AddFile("gogs-repo.zip", reposDump); err != nil {
-		log.Fatalf("Fail to include gogs-repo.zip: %v", err)
+	if err := z.AddFile("gitea-repo.zip", reposDump); err != nil {
+		log.Fatalf("Fail to include gitea-repo.zip: %v", err)
 	}
-	if err := z.AddFile("gogs-db.sql", dbDump); err != nil {
-		log.Fatalf("Fail to include gogs-db.sql: %v", err)
+	if err := z.AddFile("gitea-db.sql", dbDump); err != nil {
+		log.Fatalf("Fail to include gitea-db.sql: %v", err)
 	}
 	customDir, err := os.Stat(setting.CustomPath)
 	if err == nil && customDir.IsDir() {

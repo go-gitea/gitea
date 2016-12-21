@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -76,7 +77,7 @@ var (
 )
 
 func fail(userMessage, logMessage string, args ...interface{}) {
-	fmt.Fprintln(os.Stderr, "Gogs:", userMessage)
+	fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
 
 	if len(logMessage) > 0 {
 		if !setting.ProdMode {
@@ -144,7 +145,7 @@ func runServ(c *cli.Context) error {
 	setup("serv.log")
 
 	if setting.SSH.Disabled {
-		println("Gogs: SSH has been disabled")
+		println("Gitea: SSH has been disabled")
 		return nil
 	}
 
@@ -154,8 +155,8 @@ func runServ(c *cli.Context) error {
 
 	cmd := os.Getenv("SSH_ORIGINAL_COMMAND")
 	if len(cmd) == 0 {
-		println("Hi there, You've successfully authenticated, but Gogs does not provide shell access.")
-		println("If this is unexpected, please log in with password and setup Gogs under another user.")
+		println("Hi there, You've successfully authenticated, but Gitea does not provide shell access.")
+		println("If this is unexpected, please log in with password and setup Gitea under another user.")
 		return nil
 	}
 
