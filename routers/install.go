@@ -115,6 +115,7 @@ func Install(ctx *context.Context) {
 
 // InstallPost response for submit install items
 func InstallPost(ctx *context.Context, form auth.InstallForm) {
+	var err error
 	ctx.Data["CurDbOption"] = form.DbType
 
 	if ctx.HasError() {
@@ -131,7 +132,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		return
 	}
 
-	if _, err := exec.LookPath("git"); err != nil {
+	if _, err = exec.LookPath("git"); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.test_git_failed", err), tplInstall, &form)
 		return
 	}
@@ -161,7 +162,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	// Set test engine.
 	var x *xorm.Engine
-	if err := models.NewTestEngine(x); err != nil {
+	if err = models.NewTestEngine(x); err != nil {
 		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
 			ctx.Data["Err_DbType"] = true
 			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.io/installation/install_from_binary.html"), tplInstall, &form)
@@ -174,7 +175,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	// Test repository root path.
 	form.RepoRootPath = strings.Replace(form.RepoRootPath, "\\", "/", -1)
-	if err := os.MkdirAll(form.RepoRootPath, os.ModePerm); err != nil {
+	if err = os.MkdirAll(form.RepoRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_RepoRootPath"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_repo_path", err), tplInstall, &form)
 		return
@@ -182,7 +183,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	// Test log root path.
 	form.LogRootPath = strings.Replace(form.LogRootPath, "\\", "/", -1)
-	if err := os.MkdirAll(form.LogRootPath, os.ModePerm); err != nil {
+	if err = os.MkdirAll(form.LogRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_LogRootPath"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_log_root_path", err), tplInstall, &form)
 		return
@@ -225,7 +226,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg := ini.Empty()
 	if com.IsFile(setting.CustomConf) {
 		// Keeps custom settings if there is already something.
-		if err := cfg.Append(setting.CustomConf); err != nil {
+		if err = cfg.Append(setting.CustomConf); err != nil {
 			log.Error(4, "Fail to load custom conf '%s': %v", setting.CustomConf, err)
 		}
 	}
@@ -279,15 +280,20 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
-	cfg.Section("security").Key("SECRET_KEY").SetValue(base.GetRandomString(15))
+	var secretKey string
+	if secretKey, err = base.GetRandomString(10); err != nil {
+		ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
+		return
+	}
+	cfg.Section("security").Key("SECRET_KEY").SetValue(secretKey)
 
-	err := os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
+	err = os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
 	if err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
 
-	if err := cfg.SaveTo(setting.CustomConf); err != nil {
+	if err = cfg.SaveTo(setting.CustomConf); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
@@ -303,7 +309,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 			IsAdmin:  true,
 			IsActive: true,
 		}
-		if err := models.CreateUser(u); err != nil {
+		if err = models.CreateUser(u); err != nil {
 			if !models.IsErrUserAlreadyExist(err) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true
@@ -316,11 +322,11 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		}
 
 		// Auto-login for admin
-		if err := ctx.Session.Set("uid", u.ID); err != nil {
+		if err = ctx.Session.Set("uid", u.ID); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
 		}
-		if err := ctx.Session.Set("uname", u.Name); err != nil {
+		if err = ctx.Session.Set("uname", u.Name); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
 		}

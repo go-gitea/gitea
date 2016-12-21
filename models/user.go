@@ -25,6 +25,7 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 	"github.com/nfnt/resize"
+	"golang.org/x/crypto/pbkdf2"
 
 	"code.gitea.io/git"
 	api "code.gitea.io/sdk/gitea"
@@ -361,7 +362,7 @@ func (u *User) NewGitSig() *git.Signature {
 
 // EncodePasswd encodes password to safe format.
 func (u *User) EncodePasswd() {
-	newPasswd := base.PBKDF2([]byte(u.Passwd), []byte(u.Salt), 10000, 50, sha256.New)
+	newPasswd := pbkdf2.Key([]byte(u.Passwd), []byte(u.Salt), 10000, 50, sha256.New)
 	u.Passwd = fmt.Sprintf("%x", newPasswd)
 }
 
@@ -531,7 +532,7 @@ func IsUserExist(uid int64, name string) (bool, error) {
 }
 
 // GetUserSalt returns a ramdom user salt token.
-func GetUserSalt() string {
+func GetUserSalt() (string, error) {
 	return base.GetRandomString(10)
 }
 
@@ -603,8 +604,12 @@ func CreateUser(u *User) (err error) {
 	u.LowerName = strings.ToLower(u.Name)
 	u.AvatarEmail = u.Email
 	u.Avatar = base.HashEmail(u.AvatarEmail)
-	u.Rands = GetUserSalt()
-	u.Salt = GetUserSalt()
+	if u.Rands, err = GetUserSalt(); err != nil {
+		return err
+	}
+	if u.Salt, err = GetUserSalt(); err != nil {
+		return err
+	}
 	u.EncodePasswd()
 	u.MaxRepoCreation = -1
 

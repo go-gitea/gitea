@@ -18,10 +18,10 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/template/highlight"
 	"github.com/Unknwon/com"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"golang.org/x/net/html/charset"

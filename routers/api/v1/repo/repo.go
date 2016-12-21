@@ -95,16 +95,12 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	repos := make([]*api.Repository, numOwnRepos+len(accessibleRepos))
 	for i := range ownRepos {
-		repos[i] = ownRepos[i].APIFormat(&api.Permission{true, true, true})
+		repos[i] = ownRepos[i].APIFormat(models.AccessModeOwner)
 	}
 	i := numOwnRepos
 
 	for repo, access := range accessibleRepos {
-		repos[i] = repo.APIFormat(&api.Permission{
-			Admin: access >= models.AccessModeAdmin,
-			Push:  access >= models.AccessModeWrite,
-			Pull:  true,
-		})
+		repos[i] = repo.APIFormat(access)
 		i++
 	}
 
@@ -138,7 +134,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		return
 	}
 
-	ctx.JSON(201, repo.APIFormat(&api.Permission{true, true, true}))
+	ctx.JSON(201, repo.APIFormat(models.AccessModeOwner))
 }
 
 // Create one repository of mine
@@ -241,14 +237,19 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	}
 
 	log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
-	ctx.JSON(201, repo.APIFormat(&api.Permission{true, true, true}))
+	ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
 }
 
 // Get one repository
 // see https://github.com/gogits/go-gogs-client/wiki/Repositories#get
 func Get(ctx *context.APIContext) {
 	repo := ctx.Repo.Repository
-	ctx.JSON(200, repo.APIFormat(&api.Permission{true, true, true}))
+	access, err := models.AccessLevel(ctx.User, repo)
+	if err != nil {
+		ctx.Error(500, "GetRepository", err)
+		return
+	}
+	ctx.JSON(200, repo.APIFormat(access))
 }
 
 // GetByID returns a single Repository
@@ -263,7 +264,12 @@ func GetByID(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(200, repo.APIFormat(&api.Permission{true, true, true}))
+	access, err := models.AccessLevel(ctx.User, repo)
+	if err != nil {
+		ctx.Error(500, "GetRepositoryByID", err)
+		return
+	}
+	ctx.JSON(200, repo.APIFormat(access))
 }
 
 // Delete one repository

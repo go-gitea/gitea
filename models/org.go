@@ -109,8 +109,12 @@ func CreateOrganization(org, owner *User) (err error) {
 	}
 
 	org.LowerName = strings.ToLower(org.Name)
-	org.Rands = GetUserSalt()
-	org.Salt = GetUserSalt()
+	if org.Rands, err = GetUserSalt(); err != nil {
+		return err
+	}
+	if org.Salt, err = GetUserSalt(); err != nil {
+		return err
+	}
 	org.UseCustomAvatar = true
 	org.MaxRepoCreation = -1
 	org.NumTeams = 1

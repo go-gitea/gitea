@@ -1,3 +1,5 @@
+[简体中文](https://github.com/go-gitea/gitea/blob/master/README_ZH.md)
+
 # Gitea - Git with a cup of tea
 
 [![Build Status](http://drone.gitea.io/api/badges/go-gitea/gitea/status.svg)](http://drone.gitea.io/go-gitea/gitea)
@@ -29,6 +31,9 @@
 
 The goal of this project is to make the easiest, fastest, and most painless way of setting up a self-hosted Git service. With Go, this can be done with an independent binary distribution across **ALL platforms** that Go supports, including Linux, Mac OS X, Windows and ARM.
 
+Want to try it before doing anything else?
+Do it [online](https://try.gitea.io/)!
+
 ## Features
 
 - Activity timeline
@@ -46,7 +51,7 @@ The goal of this project is to make the easiest, fastest, and most painless way 
 - Mail service
 - Administration panel
 - Supports MySQL, PostgreSQL, SQLite3 and [TiDB](https://github.com/pingcap/tidb) (experimental)
-- Multi-language support ([20 languages](https://crowdin.com/project/gogs))
+- Multi-language support ([21 languages](https://crowdin.com/project/gogs))
 
 ## System Requirements
 

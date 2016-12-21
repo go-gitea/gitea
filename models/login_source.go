@@ -548,9 +548,9 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource, 
 func UserSignIn(username, password string) (*User, error) {
 	var user *User
 	if strings.Contains(username, "@") {
-		user = &User{Email: strings.ToLower(username)}
+		user = &User{Email: strings.ToLower(strings.TrimSpace(username))}
 	} else {
-		user = &User{LowerName: strings.ToLower(username)}
+		user = &User{LowerName: strings.ToLower(strings.TrimSpace(username))}
 	}
 
 	hasUser, err := x.Get(user)

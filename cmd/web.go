@@ -7,7 +7,6 @@ package cmd
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/fcgi"
@@ -15,7 +14,6 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/bindata"
@@ -23,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/template"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/admin"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
@@ -39,18 +37,15 @@ import (
 	"github.com/go-macaron/i18n"
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
-	"github.com/go-xorm/xorm"
-	version "github.com/mcuadros/go-version"
 	"github.com/urfave/cli"
-	ini "gopkg.in/ini.v1"
 	macaron "gopkg.in/macaron.v1"
 )
 
 // CmdWeb represents the available web sub-command.
 var CmdWeb = cli.Command{
 	Name:  "web",
-	Usage: "Start Gogs web server",
-	Description: `Gogs web server is the only thing you need to run,
+	Usage: "Start Gitea web server",
+	Description: `Gitea web server is the only thing you need to run,
 and it takes care of all the other things for you`,
 	Action: runWeb,
 	Flags: []cli.Flag{
@@ -72,45 +67,6 @@ type VerChecker struct {
 	ImportPath string
 	Version    func() string
 	Expected   string
-}
-
-// checkVersion checks if binary matches the version of templates files.
-func checkVersion() {
-	// Templates.
-	data, err := ioutil.ReadFile(setting.StaticRootPath + "/templates/.VERSION")
-	if err != nil {
-		log.Fatal(4, "Fail to read 'templates/.VERSION': %v", err)
-	}
-	tplVer := string(data)
-	if tplVer != setting.AppVer {
-		if version.Compare(tplVer, setting.AppVer, ">") {
-			log.Fatal(4, "Binary version is lower than template file version, did you forget to recompile Gogs?")
-		} else {
-			log.Fatal(4, "Binary version is higher than template file version, did you forget to update template files?")
-		}
-	}
-
-	// Check dependency version.
-	checkers := []VerChecker{
-		{"github.com/go-xorm/xorm", func() string { return xorm.Version }, "0.5.5"},
-		{"github.com/go-macaron/binding", binding.Version, "0.3.2"},
-		{"github.com/go-macaron/cache", cache.Version, "0.1.2"},
-		{"github.com/go-macaron/csrf", csrf.Version, "0.1.0"},
-		{"github.com/go-macaron/i18n", i18n.Version, "0.3.0"},
-		{"github.com/go-macaron/session", session.Version, "0.1.6"},
-		{"github.com/go-macaron/toolbox", toolbox.Version, "0.1.0"},
-		{"gopkg.in/ini.v1", ini.Version, "1.8.4"},
-		{"gopkg.in/macaron.v1", macaron.Version, "1.1.7"},
-		{"code.gitea.io/git", git.Version, "0.4.1"},
-	}
-	for _, c := range checkers {
-		if !version.Compare(c.Version(), c.Expected, ">=") {
-			log.Fatal(4, `Dependency outdated!
-Package '%s' current version (%s) is below requirement (%s),
-please use following command to update this package and recompile Gogs:
-go get -u %[1]s`, c.ImportPath, c.Version(), c.Expected)
-		}
-	}
 }
 
 // newMacaron initializes Macaron instance.
@@ -140,15 +96,8 @@ func newMacaron() *macaron.Macaron {
 		},
 	))
 
-	funcMap := template.NewFuncMap()
-	m.Use(macaron.Renderer(macaron.RenderOptions{
-		Directory:         path.Join(setting.StaticRootPath, "templates"),
-		AppendDirectories: []string{path.Join(setting.CustomPath, "templates")},
-		Funcs:             funcMap,
-		IndentJSON:        macaron.Env != macaron.PROD,
-	}))
-	models.InitMailRender(path.Join(setting.StaticRootPath, "templates/mail"),
-		path.Join(setting.CustomPath, "templates/mail"), funcMap)
+	m.Use(templates.Renderer())
+	models.InitMailRender(templates.Mailer())
 
 	localeNames, err := bindata.AssetDir("conf/locale")
 	if err != nil {
@@ -200,7 +149,6 @@ func runWeb(ctx *cli.Context) error {
 		setting.CustomConf = ctx.String("config")
 	}
 	routers.GlobalInit()
-	checkVersion()
 
 	m := newMacaron()
 

@@ -18,9 +18,17 @@ func getStarredRepos(userID int64, private bool) ([]*api.Repository, error) {
 	if err != nil {
 		return nil, err
 	}
+	user, err := models.GetUserByID(userID)
+	if err != nil {
+		return nil, err
+	}
 	repos := make([]*api.Repository, len(starredRepos))
 	for i, starred := range starredRepos {
-		repos[i] = starred.APIFormat(&api.Permission{true, true, true})
+		access, err := models.AccessLevel(user, starred)
+		if err != nil {
+			return nil, err
+		}
+		repos[i] = starred.APIFormat(access)
 	}
 	return repos, nil
 }

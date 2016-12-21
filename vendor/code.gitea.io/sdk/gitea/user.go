@@ -5,6 +5,7 @@
 package gitea
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -15,6 +16,16 @@ type User struct {
 	FullName  string `json:"full_name"`
 	Email     string `json:"email"`
 	AvatarURL string `json:"avatar_url"`
+}
+
+// MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility
+func (u User) MarshalJSON() ([]byte, error) {
+	// Re-declaring User to avoid recursion
+	type shadow User
+	return json.Marshal(struct {
+		shadow
+		CompatUserName string `json:"username"`
+	}{shadow(u), u.UserName})
 }
 
 // GetUserInfo get user info by user's name

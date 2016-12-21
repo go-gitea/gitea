@@ -9,8 +9,7 @@ BINDATA := $(shell find conf | sed 's/ /\\ /g')
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
 
-LDFLAGS += -X "code.gitea.io/gitea/modules/setting.BuildTime=$(DATE)"
-LDFLAGS += -X "code.gitea.io/gitea/modules/setting.BuildGitHash=$(SHA)"
+LDFLAGS += -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')"
 
 TARGETS ?= linux/*,darwin/*,windows/*
 PACKAGES ?= $(shell go list ./... | grep -v /vendor/)
@@ -89,6 +88,11 @@ build: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES)
 	go build -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+
+.PHONY: docker
+docker:
+	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="$(TAGS)" webhippie/golang:edge make clean generate build
+	docker build -t gitea/gitea:latest .
 
 .PHONY: release
 release: release-dirs release-build release-copy release-check

@@ -87,12 +87,19 @@ func (issue *Issue) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
-func (issue *Issue) loadAttributes(e Engine) (err error) {
+func (issue *Issue) loadRepo(e Engine) (err error) {
 	if issue.Repo == nil {
 		issue.Repo, err = getRepositoryByID(e, issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("getRepositoryByID [%d]: %v", issue.RepoID, err)
 		}
+	}
+	return nil
+}
+
+func (issue *Issue) loadAttributes(e Engine) (err error) {
+	if err := issue.loadRepo(e); err != nil {
+		return err
 	}
 
 	if issue.Poster == nil {
@@ -265,7 +272,7 @@ func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 			Action:      api.HookIssueLabelUpdated,
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(nil),
+			Repository:  issue.Repo.APIFormat(AccessModeNone),
 			Sender:      doer.APIFormat(),
 		})
 	}
@@ -322,6 +329,16 @@ func (issue *Issue) removeLabel(e *xorm.Session, label *Label) error {
 
 // RemoveLabel removes a label from issue by given ID.
 func (issue *Issue) RemoveLabel(doer *User, label *Label) error {
+	if err := issue.loadRepo(x); err != nil {
+		return err
+	}
+
+	if has, err := HasAccess(doer, issue.Repo, AccessModeWrite); err != nil {
+		return err
+	} else if !has {
+		return ErrLabelNotExist{}
+	}
+
 	if err := DeleteIssueLabel(issue, label); err != nil {
 		return err
 	}
@@ -353,6 +370,16 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		return err
 	}
 
+	if err := issue.loadRepo(sess); err != nil {
+		return err
+	}
+
+	if has, err := hasAccess(sess, doer, issue.Repo, AccessModeWrite); err != nil {
+		return err
+	} else if !has {
+		return ErrLabelNotExist{}
+	}
+
 	if err = issue.clearLabels(sess); err != nil {
 		return err
 	}
@@ -371,7 +398,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 			Action:      api.HookIssueLabelCleared,
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(nil),
+			Repository:  issue.Repo.APIFormat(AccessModeNone),
 			Sender:      doer.APIFormat(),
 		})
 	}
@@ -493,7 +520,7 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  repo.APIFormat(nil),
+			Repository:  repo.APIFormat(AccessModeNone),
 			Sender:      doer.APIFormat(),
 		}
 		if isClosed {
@@ -531,7 +558,7 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 				},
 			},
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(nil),
+			Repository:  issue.Repo.APIFormat(AccessModeNone),
 			Sender:      doer.APIFormat(),
 		})
 	}
@@ -563,7 +590,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 				},
 			},
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(nil),
+			Repository:  issue.Repo.APIFormat(AccessModeNone),
 			Sender:      doer.APIFormat(),
 		})
 	}
@@ -596,7 +623,7 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(nil),
+			Repository:  issue.Repo.APIFormat(AccessModeNone),
 			Sender:      doer.APIFormat(),
 		}
 		if isRemoveAssignee {

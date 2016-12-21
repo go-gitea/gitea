@@ -43,7 +43,9 @@ func TestBasicAuthEncode(t *testing.T) {
 }
 
 func TestGetRandomString(t *testing.T) {
-	assert.Len(t, GetRandomString(4), 4)
+	randomString, err := GetRandomString(4)
+	assert.NoError(t, err)
+	assert.Len(t, randomString, 4)
 }
 
 // TODO: Test PBKDF2()

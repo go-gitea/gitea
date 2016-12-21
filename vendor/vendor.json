@@ -9,10 +9,10 @@
 			"revisionTime": "2016-11-13T14:20:52Z"
 		},
 		{
-			"checksumSHA1": "x5jr5+UwaMg861XyFWIoNzYmmMM=",
+			"checksumSHA1": "KZEYDYPzVc12f0770V++kIHhfa0=",
 			"path": "code.gitea.io/sdk/gitea",
-			"revision": "140df7f34c05d0d7e5b03c2b4a7d38690b3a5152",
-			"revisionTime": "2016-11-29T07:37:12Z"
+			"revision": "76837c0ea4b9b9a011e7bb04d79e3d20caf1a45c",
+			"revisionTime": "2016-12-15T16:13:48Z"
 		},
 		{
 			"checksumSHA1": "IyfS7Rbl6OgR83QR7TOfKdDCq+M=",
@@ -871,6 +871,12 @@
 			"path": "golang.org/x/crypto/ed25519/internal/edwards25519",
 			"revision": "9477e0b78b9ac3d0b03822fd95422e2fe07627cd",
 			"revisionTime": "2016-10-31T15:37:30Z"
+		},
+		{
+			"checksumSHA1": "1MGpGDQqnUoRpv7VEcQrXOBydXE=",
+			"path": "golang.org/x/crypto/pbkdf2",
+			"revision": "8e06e8ddd9629eb88639aba897641bff8031f1d3",
+			"revisionTime": "2016-09-10T18:59:01Z"
 		},
 		{
 			"checksumSHA1": "LlElMHeTC34ng8eHzjvtUhAgrr8=",

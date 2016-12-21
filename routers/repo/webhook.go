@@ -388,7 +388,7 @@ func TestWebhook(ctx *context.Context) {
 				},
 			},
 		},
-		Repo:   ctx.Repo.Repository.APIFormat(nil),
+		Repo:   ctx.Repo.Repository.APIFormat(models.AccessModeNone),
 		Pusher: apiUser,
 		Sender: apiUser,
 	}

@@ -457,8 +457,12 @@ func generateOrgRandsAndSalt(x *xorm.Engine) (err error) {
 	}
 
 	for _, org := range orgs {
-		org.Rands = base.GetRandomString(10)
-		org.Salt = base.GetRandomString(10)
+		if org.Rands, err = base.GetRandomString(10); err != nil {
+			return err
+		}
+		if org.Salt, err = base.GetRandomString(10); err != nil {
+			return err
+		}
 		if _, err = sess.Id(org.ID).Update(org); err != nil {
 			return err
 		}

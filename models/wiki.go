@@ -33,6 +33,7 @@ func ToWikiPageURL(name string) string {
 // that are not belong to wiki repository.
 func ToWikiPageName(urlString string) string {
 	name, _ := url.QueryUnescape(strings.Replace(urlString, "-", " ", -1))
+	name = strings.Replace(name, "\t", " ", -1)
 	return strings.Replace(strings.TrimLeft(name, "./"), "/", " ", -1)
 }
 

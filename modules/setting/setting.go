@@ -53,10 +53,6 @@ const (
 
 // settings
 var (
-	// BuildTime information should only be set by -ldflags.
-	BuildTime    string
-	BuildGitHash string
-
 	// AppVer settings
 	AppVer         string
 	AppName        string
@@ -548,6 +544,8 @@ please consider changing to GITEA_CUSTOM`)
 		GravatarSource = "http://gravatar.duoshuo.com/avatar/"
 	case "gravatar":
 		GravatarSource = "https://secure.gravatar.com/avatar/"
+	case "libravatar":
+		GravatarSource = "https://seccdn.libravatar.org/avatar/"
 	default:
 		GravatarSource = source
 	}
@@ -641,11 +639,6 @@ var logLevels = map[string]string{
 
 func newLogService() {
 	log.Info("%s %s", AppName, AppVer)
-
-	if len(BuildTime) > 0 {
-		log.Info("Build Time: %s", BuildTime)
-		log.Info("Build Git Hash: %s", BuildGitHash)
-	}
 
 	// Get and check log mode.
 	LogModes = strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")

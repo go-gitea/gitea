@@ -276,9 +276,13 @@ func (repo *Repository) HTMLURL() string {
 }
 
 // APIFormat converts a Repository to api.Repository
-// Arguments that are allowed to be nil: permission
-func (repo *Repository) APIFormat(permission *api.Permission) *api.Repository {
+func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
 	cloneLink := repo.CloneLink()
+	permission := &api.Permission{
+		Admin: mode >= AccessModeAdmin,
+		Push:  mode >= AccessModeWrite,
+		Pull:  mode >= AccessModeRead,
+	}
 	return &api.Repository{
 		ID:            repo.ID,
 		Owner:         repo.Owner.APIFormat(),
@@ -506,7 +510,7 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 
 // LocalCopyPath returns the local repository copy path
 func (repo *Repository) LocalCopyPath() string {
-	return path.Join(setting.AppDataPath, "tmp/local-rpeo", com.ToStr(repo.ID))
+	return path.Join(setting.AppDataPath, "tmp/local-repo", com.ToStr(repo.ID))
 }
 
 // UpdateLocalCopyBranch pulls latest changes of given branch from repoPath to localPath.
