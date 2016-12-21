@@ -443,6 +443,9 @@ please consider changing to GITEA_CUSTOM`)
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
 		log.Fatal(4, "Fail to map SSH settings: %v", err)
 	}
+
+	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
+
 	// When disable SSH, start builtin server value is ignored.
 	if SSH.Disabled {
 		SSH.StartBuiltinServer = false
