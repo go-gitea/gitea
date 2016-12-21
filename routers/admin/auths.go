@@ -233,7 +233,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 		ctx.Handle(500, "UpdateSource", err)
 		return
 	}
-	log.Trace("Authentication changed by admin(%s): %s", ctx.User.Name, source.ID)
+	log.Trace("Authentication changed by admin(%s): %d", ctx.User.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.update_success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/auths/" + com.ToStr(form.ID))

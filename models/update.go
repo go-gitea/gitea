@@ -106,7 +106,7 @@ func PushUpdate(opts PushUpdateOptions) (err error) {
 	}
 
 	if isDelRef {
-		log.GitLogger.Info("Reference '%s' has been deleted from '%s/%s' by %d",
+		log.GitLogger.Info("Reference '%s' has been deleted from '%s/%s' by %s",
 			opts.RefFullName, opts.RepoUserName, opts.RepoName, opts.PusherName)
 		return nil
 	}

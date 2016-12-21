@@ -929,7 +929,7 @@ func TestPullRequests() {
 
 		pr, err := GetPullRequestByID(com.StrTo(prID).MustInt64())
 		if err != nil {
-			log.Error(4, "GetPullRequestByID[%d]: %v", prID, err)
+			log.Error(4, "GetPullRequestByID[%s]: %v", prID, err)
 			continue
 		} else if err = pr.testPatch(); err != nil {
 			log.Error(4, "testPatch[%d]: %v", pr.ID, err)
