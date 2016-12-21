@@ -51,7 +51,7 @@ Do it [online](https://try.gitea.io/)!
 - Mail service
 - Administration panel
 - Supports MySQL, PostgreSQL, SQLite3 and [TiDB](https://github.com/pingcap/tidb) (experimental)
-- Multi-language support ([20 languages](https://crowdin.com/project/gogs))
+- Multi-language support ([21 languages](https://crowdin.com/project/gogs))
 
 ## System Requirements
 
