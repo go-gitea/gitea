@@ -9,9 +9,7 @@ BINDATA := $(shell find conf | sed 's/ /\\ /g')
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
 
-VERSION = $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
-
-LDFLAGS += -X "main.Version=$(VERSION)"
+LDFLAGS += -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')"
 
 TARGETS ?= linux/*,darwin/*,windows/*
 PACKAGES ?= $(shell go list ./... | grep -v /vendor/)
