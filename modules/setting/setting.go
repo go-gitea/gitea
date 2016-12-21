@@ -2,11 +2,6 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-//go:generate go-bindata -nocompress -pkg "setting" -o "config.go" ../../conf/app.ini
-//go:generate go fmt config.go
-//go:generate sed -i.bak s/..\/..\/conf\/// config.go
-//go:generate rm -f config.go.bak
-
 package setting
 
 import (
@@ -352,7 +347,7 @@ func NewContext() {
 		log.Fatal(4, "Fail to get work directory: %v", err)
 	}
 
-	Cfg, err = ini.Load(MustAsset("app.ini"))
+	Cfg = ini.Empty()
 
 	if err != nil {
 		log.Fatal(4, "Fail to parse 'app.ini': %v", err)
@@ -597,7 +592,17 @@ please consider changing to GITEA_CUSTOM`)
 	}
 
 	Langs = Cfg.Section("i18n").Key("LANGS").Strings(",")
+	if len(Langs) == 0 {
+		Langs = []string{
+			"en-US",
+		}
+	}
 	Names = Cfg.Section("i18n").Key("NAMES").Strings(",")
+	if len(Names) == 0 {
+		Names = []string{
+			"English",
+		}
+	}
 	dateLangs = Cfg.Section("i18n.datelang").KeysHash()
 
 	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool()
@@ -643,16 +648,18 @@ var logLevels = map[string]string{
 }
 
 func newLogService() {
-	log.Info("%s %s", AppName, AppVer)
+	log.Info("Gitea v%s", AppVer)
 
-	// Get and check log mode.
 	LogModes = strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
 	LogConfigs = make([]string, len(LogModes))
+
 	for i, mode := range LogModes {
 		mode = strings.TrimSpace(mode)
+
 		sec, err := Cfg.GetSection("log." + mode)
+
 		if err != nil {
-			log.Fatal(4, "Unknown log mode: %s", mode)
+			sec, _ = Cfg.NewSection("log." + mode)
 		}
 
 		validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
