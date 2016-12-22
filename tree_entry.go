@@ -81,6 +81,11 @@ func (te *TreeEntry) IsDir() bool {
 	return te.mode == EntryModeTree
 }
 
+// IsLink if the entry is a symlink
+func (te *TreeEntry) IsLink() bool {
+	return te.mode == EntryModeSymlink
+}
+
 // Blob retrun the blob object the entry
 func (te *TreeEntry) Blob() *Blob {
 	return &Blob{
