@@ -445,6 +445,7 @@ please consider changing to GITEA_CUSTOM`)
 	}
 
 	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
+	SSH.Port = sec.Key("SSH_PORT").MustInt(22)
 
 	// When disable SSH, start builtin server value is ignored.
 	if SSH.Disabled {
@@ -504,7 +505,7 @@ please consider changing to GITEA_CUSTOM`)
 		"StampNano":   time.StampNano,
 	}[Cfg.Section("time").Key("FORMAT").MustString("RFC1123")]
 
-	RunUser = Cfg.Section("").Key("RUN_USER").String()
+	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
 	// Does not check run user when the install lock is off.
 	if InstallLock {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
