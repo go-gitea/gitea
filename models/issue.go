@@ -915,7 +915,10 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	}
 
 	if len(opts.Labels) > 0 && opts.Labels != "0" {
-		labelIDs := base.StringsToInt64s(strings.Split(opts.Labels, ","))
+		labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
+		if err != nil {
+			return nil, err
+		}
 		if len(labelIDs) > 0 {
 			sess.
 				Join("INNER", "issue_label", "issue.id = issue_label.issue_id").
@@ -1171,10 +1174,11 @@ func GetIssueStats(opts *IssueStatsOptions) *IssueStats {
 			And("is_pull = ?", opts.IsPull)
 
 		if len(opts.Labels) > 0 && opts.Labels != "0" {
-			labelIDs := base.StringsToInt64s(strings.Split(opts.Labels, ","))
-			if len(labelIDs) > 0 {
-				sess.
-					Join("INNER", "issue_label", "issue.id = issue_id").
+			labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
+			if err != nil {
+				log.Warn("Malformed Labels argument: %s", opts.Labels)
+			} else if len(labelIDs) > 0 {
+				sess.Join("INNER", "issue_label", "issue.id = issue_id").
 					In("label_id", labelIDs)
 			}
 		}

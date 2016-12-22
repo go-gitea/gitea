@@ -374,7 +374,10 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 	}
 
 	// Check labels.
-	labelIDs := base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
+	labelIDs, err := base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
+	if err != nil {
+		return nil, 0, 0
+	}
 	labelIDMark := base.Int64sToMap(labelIDs)
 	hasSelected := false
 	for i := range labels {

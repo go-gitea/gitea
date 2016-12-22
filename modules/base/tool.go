@@ -56,6 +56,9 @@ func DetectEncoding(content []byte) (string, error) {
 	}
 
 	result, err := chardet.NewTextDetector().DetectBest(content)
+	if err != nil {
+		return "", err
+	}
 	if result.Charset != "UTF-8" && len(setting.Repository.AnsiCharset) > 0 {
 		log.Debug("Using default AnsiCharset: %s", setting.Repository.AnsiCharset)
 		return setting.Repository.AnsiCharset, err
@@ -256,18 +259,24 @@ func computeTimeDiff(diff int64) (int64, string) {
 		diffStr = "1 year"
 	default:
 		diffStr = fmt.Sprintf("%d years", diff/Year)
-		diff = 0
+		diff -= (diff / Year) * Year
 	}
 	return diff, diffStr
 }
 
 // TimeSincePro calculates the time interval and generate full user-friendly string.
 func TimeSincePro(then time.Time) string {
-	now := time.Now()
+	return timeSincePro(then, time.Now())
+}
+
+func timeSincePro(then, now time.Time) string {
 	diff := now.Unix() - then.Unix()
 
 	if then.After(now) {
 		return "future"
+	}
+	if diff == 0 {
+		return "now"
 	}
 
 	var timeStr, diffStr string
@@ -282,9 +291,7 @@ func TimeSincePro(then time.Time) string {
 	return strings.TrimPrefix(timeStr, ", ")
 }
 
-func timeSince(then time.Time, lang string) string {
-	now := time.Now()
-
+func timeSince(then, now time.Time, lang string) string {
 	lbl := i18n.Tr(lang, "tool.ago")
 	diff := now.Unix() - then.Unix()
 	if then.After(now) {
@@ -295,7 +302,7 @@ func timeSince(then time.Time, lang string) string {
 	switch {
 	case diff <= 0:
 		return i18n.Tr(lang, "tool.now")
-	case diff <= 2:
+	case diff <= 1:
 		return i18n.Tr(lang, "tool.1s", lbl)
 	case diff < 1*Minute:
 		return i18n.Tr(lang, "tool.seconds", diff, lbl)
@@ -334,12 +341,18 @@ func timeSince(then time.Time, lang string) string {
 
 // RawTimeSince retrieves i18n key of time since t
 func RawTimeSince(t time.Time, lang string) string {
-	return timeSince(t, lang)
+	return timeSince(t, time.Now(), lang)
 }
 
 // TimeSince calculates the time interval and generate user-friendly string.
-func TimeSince(t time.Time, lang string) template.HTML {
-	return template.HTML(fmt.Sprintf(`<span class="time-since" title="%s">%s</span>`, t.Format(setting.TimeFormat), timeSince(t, lang)))
+func TimeSince(then time.Time, lang string) template.HTML {
+	return htmlTimeSince(then, time.Now(), lang)
+}
+
+func htmlTimeSince(then, now time.Time, lang string) template.HTML {
+	return template.HTML(fmt.Sprintf(`<span class="time-since" title="%s">%s</span>`,
+		then.Format(setting.TimeFormat),
+		timeSince(then, now, lang)))
 }
 
 // Storage space size types
@@ -424,10 +437,10 @@ func Subtract(left interface{}, right interface{}) interface{} {
 	case int64:
 		rright = right.(int64)
 	case float32:
-		fright = float64(left.(float32))
+		fright = float64(right.(float32))
 		isInt = false
 	case float64:
-		fleft = left.(float64)
+		fright = right.(float64)
 		isInt = false
 	}
 
@@ -459,12 +472,16 @@ func TruncateString(str string, limit int) string {
 }
 
 // StringsToInt64s converts a slice of string to a slice of int64.
-func StringsToInt64s(strs []string) []int64 {
+func StringsToInt64s(strs []string) ([]int64, error) {
 	ints := make([]int64, len(strs))
 	for i := range strs {
-		ints[i] = com.StrTo(strs[i]).MustInt64()
+		n, err := com.StrTo(strs[i]).Int64()
+		if err != nil {
+			return ints, err
+		}
+		ints[i] = n
 	}
-	return ints
+	return ints, nil
 }
 
 // Int64sToStrings converts a slice of int64 to a slice of string.
