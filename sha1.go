@@ -10,7 +10,8 @@ import (
 	"strings"
 )
 
-const emptySHA = "0000000000000000000000000000000000000000"
+// EmptySHA defines empty git SHA
+const EmptySHA = "0000000000000000000000000000000000000000"
 
 // SHA1 a git commit name
 type SHA1 [20]byte
