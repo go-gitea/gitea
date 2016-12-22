@@ -2,7 +2,6 @@
 
 DIR=/home/git/gitea
 USER=git
-PORT=3000
 
 start_stop_daemon_args="--user ${USER} --chdir ${DIR}"
 command="${DIR}/gitea"
