@@ -94,18 +94,18 @@ func createOrUpdateIssueNotifications(e Engine, issue *Issue, notificationAuthor
 		return err
 	}
 
+	notifications, err := getNotificationsByIssueID(e, issue.ID)
+	if err != nil {
+		return err
+	}
+
 	for _, watch := range watches {
 		// do not send notification for the own issuer/commenter
 		if watch.UserID == notificationAuthorID {
 			continue
 		}
 
-		exists, err := issueNotificationExists(e, watch.UserID, issue.ID)
-		if err != nil {
-			return err
-		}
-
-		if exists {
+		if notificationExists(notifications, issue.ID, watch.UserID) {
 			err = updateIssueNotification(e, watch.UserID, issue.ID, notificationAuthorID)
 		} else {
 			err = createIssueNotification(e, watch.UserID, issue, notificationAuthorID)
@@ -119,12 +119,21 @@ func createOrUpdateIssueNotifications(e Engine, issue *Issue, notificationAuthor
 	return nil
 }
 
-func issueNotificationExists(e Engine, userID, issueID int64) (bool, error) {
-	count, err := e.
-		Where("user_id = ?", userID).
-		And("issue_id = ?", issueID).
-		Count(Notification{})
-	return count > 0, err
+func getNotificationsByIssueID(e Engine, issueID int64) (notifications []*Notification, err error) {
+	err = e.
+		Where("issue_id = ?", issueID).
+		Find(&notifications)
+	return
+}
+
+func notificationExists(notifications []*Notification, issueID, userID int64) bool {
+	for _, notification := range notifications {
+		if notification.IssueID == issueID && notification.UserID == userID {
+			return true
+		}
+	}
+
+	return false
 }
 
 func createIssueNotification(e Engine, userID int64, issue *Issue, updatedByID int64) error {
