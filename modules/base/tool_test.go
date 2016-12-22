@@ -25,7 +25,7 @@ const (
 func TestMain(m *testing.M) {
 	// setup
 	macaroni18n.I18n(macaroni18n.Options{
-		Directory:   "../../conf/locale/",
+		Directory:   "../../options/locale/",
 		DefaultLang: "en-US",
 		Langs:       []string{"en-US"},
 		Names:       []string{"english"},
