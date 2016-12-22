@@ -380,7 +380,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 	l.PushFront(mergeCommit)
 
 	p := &api.PushPayload{
-		Ref:        git.BRANCH_PREFIX + pr.BaseBranch,
+		Ref:        git.BranchPrefix + pr.BaseBranch,
 		Before:     pr.MergeBase,
 		After:      pr.MergedCommitID,
 		CompareURL: setting.AppURL + pr.BaseRepo.ComposeCompareURL(pr.MergeBase, pr.MergedCommitID),

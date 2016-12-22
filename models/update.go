@@ -91,10 +91,10 @@ type PushUpdateOptions struct {
 // PushUpdate must be called for any push actions in order to
 // generates necessary push action history feeds.
 func PushUpdate(opts PushUpdateOptions) (err error) {
-	isNewRef := opts.OldCommitID == git.EMPTY_SHA
-	isDelRef := opts.NewCommitID == git.EMPTY_SHA
+	isNewRef := opts.OldCommitID == git.EmptySHA
+	isDelRef := opts.NewCommitID == git.EmptySHA
 	if isNewRef && isDelRef {
-		return fmt.Errorf("Old and new revisions are both %s", git.EMPTY_SHA)
+		return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 	}
 
 	repoPath := RepoPath(opts.RepoUserName, opts.RepoName)
@@ -127,7 +127,7 @@ func PushUpdate(opts PushUpdateOptions) (err error) {
 	}
 
 	// Push tags.
-	if strings.HasPrefix(opts.RefFullName, git.TAG_PREFIX) {
+	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 		if err := CommitRepoAction(CommitRepoActionOptions{
 			PusherName:  opts.PusherName,
 			RepoOwnerID: owner.ID,

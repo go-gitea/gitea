@@ -66,7 +66,7 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, str
 		}
 		pages := make([]PageMeta, 0, len(entries))
 		for i := range entries {
-			if entries[i].Type == git.OBJECT_BLOB && strings.HasSuffix(entries[i].Name(), ".md") {
+			if entries[i].Type == git.ObjectBlob && strings.HasSuffix(entries[i].Name(), ".md") {
 				name := strings.TrimSuffix(entries[i].Name(), ".md")
 				pages = append(pages, PageMeta{
 					Name: name,
@@ -171,7 +171,7 @@ func WikiPages(ctx *context.Context) {
 	}
 	pages := make([]PageMeta, 0, len(entries))
 	for i := range entries {
-		if entries[i].Type == git.OBJECT_BLOB && strings.HasSuffix(entries[i].Name(), ".md") {
+		if entries[i].Type == git.ObjectBlob && strings.HasSuffix(entries[i].Name(), ".md") {
 			c, err := wikiRepo.GetCommitByPath(entries[i].Name())
 			if err != nil {
 				ctx.Handle(500, "GetCommit", err)

@@ -494,12 +494,12 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	isNewBranch := false
 	opType := ActionCommitRepo
 	// Check it's tag push or branch.
-	if strings.HasPrefix(opts.RefFullName, git.TAG_PREFIX) {
+	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 		opType = ActionPushTag
 		opts.Commits = &PushCommits{}
 	} else {
 		// if not the first commit, set the compare URL.
-		if opts.OldCommitID == git.EMPTY_SHA {
+		if opts.OldCommitID == git.EmptySHA {
 			isNewBranch = true
 		} else {
 			opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)

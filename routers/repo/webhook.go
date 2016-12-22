@@ -361,7 +361,7 @@ func TestWebhook(ctx *context.Context) {
 	if commit == nil {
 		ghost := models.NewGhostUser()
 		commit = &git.Commit{
-			ID:            git.MustIDFromString(git.EMPTY_SHA),
+			ID:            git.MustIDFromString(git.EmptySHA),
 			Author:        ghost.NewGitSig(),
 			Committer:     ghost.NewGitSig(),
 			CommitMessage: "This is a fake commit",
@@ -370,7 +370,7 @@ func TestWebhook(ctx *context.Context) {
 
 	apiUser := ctx.User.APIFormat()
 	p := &api.PushPayload{
-		Ref:    git.BRANCH_PREFIX + ctx.Repo.Repository.DefaultBranch,
+		Ref:    git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
 		Before: commit.ID.String(),
 		After:  commit.ID.String(),
 		Commits: []*api.PayloadCommit{

@@ -14,20 +14,27 @@ import (
 	"strings"
 )
 
+// EntryMode the type of the object in the git tree
 type EntryMode int
 
 // There are only a few file modes in Git. They look like unix file modes, but they can only be
 // one of these.
 const (
-	ENTRY_MODE_BLOB    EntryMode = 0100644
-	ENTRY_MODE_EXEC    EntryMode = 0100755
-	ENTRY_MODE_SYMLINK EntryMode = 0120000
-	ENTRY_MODE_COMMIT  EntryMode = 0160000
-	ENTRY_MODE_TREE    EntryMode = 0040000
+	// EntryModeBlob
+	EntryModeBlob EntryMode = 0100644
+	// EntryModeExec
+	EntryModeExec EntryMode = 0100755
+	// EntryModeSymlink
+	EntryModeSymlink EntryMode = 0120000
+	// EntryModeCommit
+	EntryModeCommit EntryMode = 0160000
+	// EntryModeTree
+	EntryModeTree EntryMode = 0040000
 )
 
+// TreeEntry the leaf in the git tree
 type TreeEntry struct {
-	ID   sha1
+	ID   SHA1
 	Type ObjectType
 
 	mode EntryMode
@@ -41,10 +48,12 @@ type TreeEntry struct {
 	sized bool
 }
 
+// Name returns the name of the entry
 func (te *TreeEntry) Name() string {
 	return te.name
 }
 
+// Size returns the size of the entry
 func (te *TreeEntry) Size() int64 {
 	if te.IsDir() {
 		return 0
@@ -62,14 +71,22 @@ func (te *TreeEntry) Size() int64 {
 	return te.size
 }
 
+// IsSubModule if the entry is a sub module
 func (te *TreeEntry) IsSubModule() bool {
-	return te.mode == ENTRY_MODE_COMMIT
+	return te.mode == EntryModeCommit
 }
 
+// IsDir if the entry is a sub dir
 func (te *TreeEntry) IsDir() bool {
-	return te.mode == ENTRY_MODE_TREE
+	return te.mode == EntryModeTree
 }
 
+// IsLink if the entry is a symlink
+func (te *TreeEntry) IsLink() bool {
+	return te.mode == EntryModeSymlink
+}
+
+// Blob retrun the blob object the entry
 func (te *TreeEntry) Blob() *Blob {
 	return &Blob{
 		repo:      te.ptree.repo,
@@ -77,6 +94,7 @@ func (te *TreeEntry) Blob() *Blob {
 	}
 }
 
+// Entries a list of entry
 type Entries []*TreeEntry
 
 var sorter = []func(t1, t2 *TreeEntry) bool{
@@ -105,6 +123,7 @@ func (tes Entries) Less(i, j int) bool {
 	return sorter[k](t1, t2)
 }
 
+// Sort sort the list of entry
 func (tes Entries) Sort() {
 	sort.Sort(tes)
 }
@@ -167,7 +186,7 @@ func (tes Entries) GetCommitsInfoWithCustomConcurrency(commit *Commit, treePath 
 		// However when taskChan is full, code will block and wait any running goroutines to finish.
 		taskChan <- true
 
-		if tes[i].Type != OBJECT_COMMIT {
+		if tes[i].Type != ObjectCommit {
 			go func(i int) {
 				cinfo := commitInfo{entryName: tes[i].Name()}
 				c, err := commit.GetCommitByPath(filepath.Join(treePath, tes[i].Name()))

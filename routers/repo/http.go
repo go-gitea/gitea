@@ -208,7 +208,7 @@ func HTTP(ctx *context.Context) {
 						RepoUserName: username,
 						RepoName:     reponame,
 					}); err == nil {
-						go models.AddTestPullRequestTask(authUser, repo.ID, strings.TrimPrefix(refFullName, git.BRANCH_PREFIX), true)
+						go models.AddTestPullRequestTask(authUser, repo.ID, strings.TrimPrefix(refFullName, git.BranchPrefix), true)
 					}
 
 				}
