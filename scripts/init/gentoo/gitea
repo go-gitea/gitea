@@ -1,14 +1,14 @@
 #!/sbin/openrc-run
 
-DIR=/home/git/gogs
+DIR=/home/git/gitea
 USER=git
 PORT=3000
 
 start_stop_daemon_args="--user ${USER} --chdir ${DIR}"
-command="${DIR}/gogs"
+command="${DIR}/gitea"
 command_args="web -port ${PORT}"
 command_background=yes
-pidfile=/var/run/gogs.pid
+pidfile=/var/run/gitea.pid
 
 depend()
 {
