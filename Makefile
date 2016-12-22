@@ -2,9 +2,7 @@ DIST := dist
 EXECUTABLE := gitea
 IMPORT := code.gitea.io/gitea
 
-SHA := $(shell git rev-parse --short HEAD)
-DATE := $(shell date -u '+%Y-%m-%d %I:%M:%S %Z')
-
+BINDATA := modules/{options,public,templates}/bindata.go
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
 
@@ -32,7 +30,7 @@ all: build
 .PHONY: clean
 clean:
 	go clean -i ./...
-	rm -rf $(EXECUTABLE) $(DIST)
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA)
 
 .PHONY: fmt
 fmt:
