@@ -39,7 +39,7 @@ Fork -> Patch -> Push -> Pull Request
 
 * [Maintainers](https://github.com/orgs/go-gitea/people)
 * [Contributors](https://github.com/go-gitea/gitea/graphs/contributors)
-* [Translators](conf/locale/TRANSLATORS)
+* [Translators](options/locale/TRANSLATORS)
 
 ## License
 
