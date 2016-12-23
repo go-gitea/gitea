@@ -104,16 +104,21 @@ var (
 	UseTiDB       bool
 
 	// Webhook settings
-	Webhook struct {
+	Webhook = struct {
 		QueueLength    int
 		DeliverTimeout int
 		SkipTLSVerify  bool
 		Types          []string
 		PagingNum      int
+	}{
+		QueueLength:    1000,
+		DeliverTimeout: 5,
+		SkipTLSVerify:  false,
+		PagingNum:      10,
 	}
 
 	// Repository settings
-	Repository struct {
+	Repository = struct {
 		AnsiCharset            string
 		ForcePrivate           bool
 		MaxCreationLimit       int
@@ -136,9 +141,41 @@ var (
 			FileMaxSize  int64
 			MaxFiles     int
 		} `ini:"-"`
+	}{
+		AnsiCharset:            "",
+		ForcePrivate:           false,
+		MaxCreationLimit:       -1,
+		MirrorQueueLength:      1000,
+		PullRequestQueueLength: 1000,
+		PreferredLicenses:      []string{"Apache License 2.0,MIT License"},
+		DisableHTTPGit:         false,
+
+		// Repository editor settings
+		Editor: struct {
+			LineWrapExtensions   []string
+			PreviewableFileModes []string
+		}{
+			LineWrapExtensions:   strings.Split(".txt,.md,.markdown,.mdown,.mkd,", ","),
+			PreviewableFileModes: []string{"markdown"},
+		},
+
+		// Repository upload settings
+		Upload: struct {
+			Enabled      bool
+			TempPath     string
+			AllowedTypes []string `delim:"|"`
+			FileMaxSize  int64
+			MaxFiles     int
+		}{
+			Enabled:      true,
+			TempPath:     "data/tmp/uploads",
+			AllowedTypes: []string{},
+			FileMaxSize:  3,
+			MaxFiles:     5,
+		},
 	}
 	RepoRootPath string
-	ScriptType   string
+	ScriptType   = "bash"
 
 	// UI settings
 	UI = struct {
@@ -182,10 +219,13 @@ var (
 	}
 
 	// Markdown sttings
-	Markdown struct {
+	Markdown = struct {
 		EnableHardLineBreak bool
 		CustomURLSchemes    []string `ini:"CUSTOM_URL_SCHEMES"`
 		FileExtensions      []string
+	}{
+		EnableHardLineBreak: false,
+		FileExtensions:      strings.Split(".md,.markdown,.mdown,.mkd", ","),
 	}
 
 	// Picture settings
@@ -220,7 +260,7 @@ var (
 	CSRFCookieName = "_csrf"
 
 	// Cron tasks
-	Cron struct {
+	Cron = struct {
 		UpdateMirror struct {
 			Enabled    bool
 			RunAtStart bool
@@ -238,10 +278,37 @@ var (
 			RunAtStart bool
 			Schedule   string
 		} `ini:"cron.check_repo_stats"`
+	}{
+		UpdateMirror: struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+		}{
+			Schedule: "@every 10m",
+		},
+		RepoHealthCheck: struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+			Timeout    time.Duration
+			Args       []string `delim:" "`
+		}{
+			Schedule: "@every 24h",
+			Timeout:  60 * time.Second,
+			Args:     []string{},
+		},
+		CheckRepoStats: struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+		}{
+			RunAtStart: true,
+			Schedule:   "@every 24h",
+		},
 	}
 
 	// Git settings
-	Git struct {
+	Git = struct {
 		DisableDiffHighlight     bool
 		MaxGitDiffLines          int
 		MaxGitDiffLineCharacters int
@@ -254,16 +321,39 @@ var (
 			Pull    int
 			GC      int `ini:"GC"`
 		} `ini:"git.timeout"`
+	}{
+		DisableDiffHighlight:     false,
+		MaxGitDiffLines:          1000,
+		MaxGitDiffLineCharacters: 500,
+		MaxGitDiffFiles:          100,
+		GCArgs:                   []string{},
+		Timeout: struct {
+			Migrate int
+			Mirror  int
+			Clone   int
+			Pull    int
+			GC      int `ini:"GC"`
+		}{
+			Migrate: 600,
+			Mirror:  300,
+			Clone:   300,
+			Pull:    300,
+			GC:      60,
+		},
 	}
 
 	// Mirror settings
-	Mirror struct {
+	Mirror = struct {
 		DefaultInterval int
+	}{
+		DefaultInterval: 8,
 	}
 
 	// API settings
-	API struct {
+	API = struct {
 		MaxResponseItems int
+	}{
+		MaxResponseItems: 50,
 	}
 
 	// I18n settings
@@ -756,7 +846,7 @@ func newSessionService() {
 	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").String(), "\" ")
 	SessionConfig.CookieName = Cfg.Section("session").Key("COOKIE_NAME").MustString("i_like_gogits")
 	SessionConfig.CookiePath = AppSubURL
-	SessionConfig.Secure = Cfg.Section("session").Key("COOKIE_SECURE").MustBool()
+	SessionConfig.Secure = Cfg.Section("session").Key("COOKIE_SECURE").MustBool(false)
 	SessionConfig.Gclifetime = Cfg.Section("session").Key("GC_INTERVAL_TIME").MustInt64(86400)
 	SessionConfig.Maxlifetime = Cfg.Section("session").Key("SESSION_LIFE_TIME").MustInt64(86400)
 
