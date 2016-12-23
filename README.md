@@ -15,11 +15,12 @@
 
 **Current version**: (see [Releases](https://github.com/go-gitea/gitea/releases))
 
-| Web | UI  | Preview  |
+||||
 |:-------------:|:-------:|:-------:|
-|![Dashboard](https://gogs.io/img/screenshots/1.png)|![Repository](https://gogs.io/img/screenshots/2.png)|![Commits History](https://gogs.io/img/screenshots/3.png)|
-|![Profile](https://gogs.io/img/screenshots/4.png)|![Admin Dashboard](https://gogs.io/img/screenshots/5.png)|![Diff](https://gogs.io/img/screenshots/6.png)|
-|![Issues](https://gogs.io/img/screenshots/7.png)|![Releases](https://gogs.io/img/screenshots/8.png)|![Organization](https://gogs.io/img/screenshots/9.png)|
+|![Dashboard](https://i.imgur.com/3iEQsux.jpg)|![Repository](https://i.imgur.com/glqFnj8.jpg)|![Commits History](https://i.imgur.com/ad1FEpi.jpg)|
+|![Profile](https://i.imgur.com/q81EcGa.jpg)|![Admin Dashboard](https://i.imgur.com/L2CQeN0.jpg)|![Diff](https://i.imgur.com/cNuvMum.jpg)|
+|![Issues](https://i.imgur.com/xCYRqaF.jpg)|![Releases](https://i.imgur.com/ILpRBCe.jpg)|![Organization](https://i.imgur.com/0BHnrcL.jpg)|
+||||
 
 ### Important Notes
 
