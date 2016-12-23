@@ -141,7 +141,7 @@ var (
 	ScriptType   string
 
 	// UI settings
-	UI struct {
+	UI = struct {
 		ExplorePagingNum   int
 		IssuePagingNum     int
 		FeedMaxCommitNum   int
@@ -157,6 +157,28 @@ var (
 		User struct {
 			RepoPagingNum int
 		} `ini:"ui.user"`
+	}{
+		ExplorePagingNum:   20,
+		IssuePagingNum:     10,
+		FeedMaxCommitNum:   5,
+		ThemeColorMetaTag:  `#6cc644`,
+		MaxDisplayFileSize: 8388608,
+		Admin: struct {
+			UserPagingNum   int
+			RepoPagingNum   int
+			NoticePagingNum int
+			OrgPagingNum    int
+		}{
+			UserPagingNum:   50,
+			RepoPagingNum:   50,
+			NoticePagingNum: 25,
+			OrgPagingNum:    50,
+		},
+		User: struct {
+			RepoPagingNum int
+		}{
+			RepoPagingNum: 15,
+		},
 	}
 
 	// Markdown sttings
@@ -470,11 +492,11 @@ please consider changing to GITEA_CUSTOM`)
 	}
 
 	sec = Cfg.Section("security")
-	InstallLock = sec.Key("INSTALL_LOCK").MustBool()
-	SecretKey = sec.Key("SECRET_KEY").String()
-	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt()
-	CookieUserName = sec.Key("COOKIE_USERNAME").String()
-	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").String()
+	InstallLock = sec.Key("INSTALL_LOCK").MustBool(true)
+	SecretKey = sec.Key("SECRET_KEY").MustString("!#@FDEWREWR&*(")
+	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
+	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
+	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 
 	sec = Cfg.Section("attachment")
@@ -597,21 +619,17 @@ please consider changing to GITEA_CUSTOM`)
 
 	Langs = Cfg.Section("i18n").Key("LANGS").Strings(",")
 	if len(Langs) == 0 {
-		Langs = []string{
-			"en-US",
-		}
+		Langs = defaultLangs
 	}
 	Names = Cfg.Section("i18n").Key("NAMES").Strings(",")
 	if len(Names) == 0 {
-		Names = []string{
-			"English",
-		}
+		Names = defaultLangNames
 	}
 	dateLangs = Cfg.Section("i18n.datelang").KeysHash()
 
-	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool()
-	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool()
-	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool()
+	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool(false)
+	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
+	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 }
