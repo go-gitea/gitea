@@ -69,8 +69,10 @@ Do it [online](https://try.gitea.io/)!
 **Note: As Gitea is a [Gogs](https://github.com/gogits/gogs) fork, tutorials and documentation related to gogs applies to Gitea too**
 
 How to install Gitea:
+_Do note that this Gitea branch is **not** stable enough for builds_
+_Build from tags for the latest stable build, otherwise for development purposes, build from master_
 
-- go get code.gitea.io/gitea
+- `go get code.gitea.io/gitea`
 - [Ship with Docker](https://github.com/go-gitea/gitea/tree/master/docker)
 - [Install with Vagrant](https://github.com/go-gitea/examples/tree/master/vagrant)
 
