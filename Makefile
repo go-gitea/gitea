@@ -15,10 +15,10 @@ SOURCES ?= $(shell find . -name "*.go" -type f)
 TAGS ?=
 
 ifneq ($(DRONE_TAG),)
-	VERSION ?= $(DRONE_TAG)
+	VERSION ?= $(subst v,,$(DRONE_TAG))
 else
 	ifneq ($(DRONE_BRANCH),)
-		VERSION ?= $(DRONE_BRANCH)
+		VERSION ?= $(subst release/v,,$(DRONE_BRANCH))
 	else
 		VERSION ?= master
 	endif

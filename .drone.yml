@@ -56,7 +56,7 @@ pipeline:
       - make release
     when:
       event: [ push, tag ]
-      branch: [ master, refs/tags/* ]
+      branch: [ master, release/*, refs/tags/* ]
 
   coverage:
     image: plugins/coverage
@@ -67,10 +67,18 @@ pipeline:
   docker:
     image: plugins/docker
     repo: gitea/gitea
-    tags: [ '${DRONE_TAG}' ]
+    tags: [ '${DRONE_TAG##v}' ]
     when:
       event: [ tag ]
       branch: [ refs/tags/* ]
+
+  docker:
+    image: plugins/docker
+    repo: gitea/gitea
+    tags: [ '${DRONE_BRANCH##release/v}' ]
+    when:
+      event: [ push ]
+      branch: [ release/* ]
 
   docker:
     image: plugins/docker
@@ -85,20 +93,30 @@ pipeline:
     path_style: true
     strip_prefix: dist/release/
     source: dist/release/*
-    target: /gitea/master
+    target: /gitea/${DRONE_TAG##v}
     when:
-      event: [ push ]
-      branch: [ master ]
+      event: [ tag ]
+      branch: [ refs/tags/* ]
 
   release:
     image: plugins/s3
     path_style: true
     strip_prefix: dist/release/
     source: dist/release/*
-    target: /gitea/${DRONE_TAG}
+    target: /gitea/${DRONE_BRANCH##release/v}
     when:
-      event: [ tag ]
-      branch: [ refs/tags/* ]
+      event: [ push ]
+      branch: [ release/* ]
+
+  release:
+    image: plugins/s3
+    path_style: true
+    strip_prefix: dist/release/
+    source: dist/release/*
+    target: /gitea/master
+    when:
+      event: [ push ]
+      branch: [ master ]
 
   github:
     image: plugins/github-release
