@@ -76,14 +76,19 @@ func TestDetectEncoding(t *testing.T) {
 
 	// iso-8859-1: d<accented e>cor<newline>
 	b = []byte{0x44, 0xe9, 0x63, 0x6f, 0x72, 0x0a}
-	testSuccess(b, "ISO-8859-1")
+	encoding, err := DetectEncoding(b)
+	assert.NoError(t, err)
+	// due to a race condition in `chardet` library, it could either detect
+	// "ISO-8859-1" or "IS0-8859-2" here. Technically either is correct, so
+	// we accept either.
+	assert.Contains(t, encoding, "ISO-8859")
 
 	setting.Repository.AnsiCharset = "placeholder"
 	testSuccess(b, "placeholder")
 
 	// invalid bytes
 	b = []byte{0xfa}
-	_, err := DetectEncoding(b)
+	_, err = DetectEncoding(b)
 	assert.Error(t, err)
 }
 
