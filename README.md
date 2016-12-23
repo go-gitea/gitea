@@ -10,10 +10,6 @@
 [![GoDoc](https://godoc.org/code.gitea.io/gitea?status.svg)](https://godoc.org/code.gitea.io/gitea)
 [![Release](http://github-release-version.herokuapp.com/github/go-gitea/gitea/release.svg?style=flat)](https://github.com/go-gitea/gitea/releases/latest)
 
-[![](public/img/gitea-large-resize.png)](https://github.com/go-gitea/gitea)
-
-## Screenshots
-
 ||||
 |:-------------:|:-------:|:-------:|
 |![Dashboard](https://i.imgur.com/3iEQsux.jpg)|![Repository](https://i.imgur.com/glqFnj8.jpg)|![Commits History](https://i.imgur.com/ad1FEpi.jpg)|
