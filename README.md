@@ -30,10 +30,7 @@
 
 ## Purpose
 
-The goal of this project is to make the easiest, fastest, and most painless way of setting up a self-hosted Git service. With Go, this can be done with an independent binary distribution across **ALL platforms** that Go supports, including Linux, Mac OS X, Windows and ARM.
-
-Want to try it before doing anything else?
-Do it [online](https://try.gitea.io/)!
+The goal of this project is to make the easiest, fastest, and most painless way of setting up a self-hosted Git service. With Go, this can be done with an independent binary distribution across **ALL platforms** that Go supports, including Linux, Mac OS X, Windows and ARM. Want to try it before doing anything else? Do it [online](https://try.gitea.io/)!
 
 ## Features
 
@@ -66,65 +63,10 @@ Do it [online](https://try.gitea.io/)!
 
 ## Installation
 
-**Note: As Gitea is a [Gogs](https://github.com/gogits/gogs) fork, tutorials and documentation related to gogs applies to Gitea too**
-
 * [From binary](https://docs.gitea.io/en-us/install-from-binary/)
 * [From package](https://docs.gitea.io/en-us/install-from-package/)
 * [From source](https://docs.gitea.io/en-us/install-from-source/)
 * [With Docker](https://docs.gitea.io/en-us/install-with-docker/)
-
-### Tutorials
-
-- [How To Set Up Gogs on Ubuntu 14.04](https://www.digitalocean.com/community/tutorials/how-to-set-up-gogs-on-ubuntu-14-04)
-- [Run your own GitHub-like service with the help of Docker](http://blog.hypriot.com/post/run-your-own-github-like-service-with-docker/)
-- [Dockerized Gogs git server and alpine postgres in 20 minutes or less](http://garthwaite.org/docker-gogs.html)
-- [Host Your Own Private GitHub with Gogs.io](https://eladnava.com/host-your-own-private-github-with-gogs-io/)
-- [使用 Gogs 搭建自己的 Git 服务器](https://mynook.info/blog/post/host-your-own-git-server-using-gogs) (Chinese)
-- [阿里云上 Ubuntu 14.04 64 位安装 Gogs](http://my.oschina.net/luyao/blog/375654) (Chinese)
-- [Installing Gogs on FreeBSD](https://www.codejam.info/2015/03/installing-gogs-on-freebsd.html)
-- [Gogs on Raspberry Pi](http://blog.meinside.pe.kr/Gogs-on-Raspberry-Pi/)
-- [Cloudflare Full SSL with GOGS (Go Git Service) using NGINX](http://www.listekconsulting.com/articles/cloudflare-full-ssl-with-gogs-go-git-service-using-nginx/)
-
-### Screencasts
-
-- [How to install Gogs on a Linux Server (DigitalOcean)](https://www.youtube.com/watch?v=deSfX0gqefE)
-- [Instalando Gogs no Ubuntu](https://www.youtube.com/watch?v=4UkHAR1F7ZA) (Português)
-
-### Deploy to Cloud
-
-- [OpenShift](https://github.com/tkisme/gogs-openshift)
-- [Cloudron](https://cloudron.io/appstore.html#io.gogs.cloudronapp)
-- [Scaleway](https://www.scaleway.com/imagehub/gogs/)
-- [Portal](https://portaldemo.xyz/cloud/)
-- [Sandstorm](https://github.com/cem/gogs-sandstorm)
-- [sloppy.io](https://github.com/sloppyio/quickstarters/tree/master/gogs)
-- [YunoHost](https://github.com/mbugeia/gogs_ynh)
-- [DPlatform](https://github.com/j8r/DPlatform)
-
-## Software and Service Support
-
-- [Drone](https://github.com/drone/drone) (CI)
-- [Fabric8](http://fabric8.io/) (DevOps)
-- [Taiga](https://taiga.io/) (Project Management)
-- [Puppet](https://forge.puppetlabs.com/Siteminds/gogs) (IT)
-- [Kanboard](http://kanboard.net/plugin/gogs-webhook) (Project Management)
-- [BearyChat](https://bearychat.com/) (Team Communication)
-- [HiWork](http://www.hiwork.cc/) (Team Communication)
-
-### Product Support
-
-- [Synology](https://www.synology.com) (Docker)
-- [One Space](http://www.onespace.cc) (App Store)
-
-## Acknowledgments
-
-- Router and middleware mechanism of [Macaron](https://github.com/go-macaron/macaron).
-- System Monitor Status is inspired by [GoBlog](https://github.com/fuxiaohei/goblog).
-- Thanks [Rocker](http://weibo.com/rocker1989) for designing Logo.
-- Thanks [Crowdin](https://crowdin.com/project/gogs) for providing open source translation plan.
-- Thanks [DigitalOcean](https://www.digitalocean.com) for hosting home and demo sites.
-- Thanks [KeyCDN](https://www.keycdn.com/) and [QiNiu](http://www.qiniu.com/) for providing CDN service.
-
 
 ## Contributing
 
