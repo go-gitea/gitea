@@ -27,7 +27,7 @@ Gitea的首要目标是创建一个极易安装，运行非常快速，安装和
 
 1. **开始贡献代码之前请确保你已经看过了 [贡献者向导（英文）](CONTRIBUTING.md)**.
 2. 所有的安全问题，请私下发送邮件给 **security@gitea.io**。谢谢！
-3. 如果你要使用API，请参见 [API 文档](https://godoc.org/github.com/go-gitea/go-sdk).
+3. 如果你要使用API，请参见 [API 文档](https://godoc.org/code.gitea.io/sdk/gitea).
 
 ## 文档
 
