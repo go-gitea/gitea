@@ -22,7 +22,7 @@
 |![Issues](https://i.imgur.com/xCYRqaF.jpg)|![Releases](https://i.imgur.com/ILpRBCe.jpg)|![Organization](https://i.imgur.com/0BHnrcL.jpg)|
 ||||
 
-### Important Notes
+## Notes
 
 1. **YOU MUST READ THE [Contributors Guide](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST**.
 2. If you think there are vulnerabilities in the project, please talk privately to **security@gitea.io**. Thanks!
@@ -68,13 +68,10 @@ Do it [online](https://try.gitea.io/)!
 
 **Note: As Gitea is a [Gogs](https://github.com/gogits/gogs) fork, tutorials and documentation related to gogs applies to Gitea too**
 
-How to install Gitea:
-
-- go get code.gitea.io/gitea
-- [Ship with Docker](https://github.com/go-gitea/gitea/tree/master/docker)
-- [Install with Vagrant](https://github.com/go-gitea/examples/tree/master/vagrant)
-
-**Note: binary release will be available soon**
+* [From binary](https://docs.gitea.io/en-us/install-from-binary/)
+* [From package](https://docs.gitea.io/en-us/install-from-package/)
+* [From source](https://docs.gitea.io/en-us/install-from-source/)
+* [With Docker](https://docs.gitea.io/en-us/install-with-docker/)
 
 ### Tutorials
 
