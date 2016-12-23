@@ -843,6 +843,8 @@ func getRepoInitFile(tp, name string) ([]byte, error) {
 		return options.Gitignore(cleanedName)
 	case "license":
 		return options.License(cleanedName)
+	case "label":
+		return options.Labels(cleanedName)
 	default:
 		return []byte{}, fmt.Errorf("Invalid init file type")
 	}

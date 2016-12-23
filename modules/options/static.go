@@ -72,6 +72,11 @@ func License(name string) ([]byte, error) {
 	return fileFromDir(path.Join("license", name))
 }
 
+// Labels eads the content of a specific labels from static or custom path.
+func Labels(name string) ([]byte, error) {
+	return fileFromDir(path.Join("label", name))
+}
+
 // fileFromDir is a helper to read files from bindata or custom path.
 func fileFromDir(name string) ([]byte, error) {
 	customPath := path.Join(setting.CustomPath, "options", name)

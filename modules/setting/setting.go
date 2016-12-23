@@ -582,7 +582,7 @@ please consider changing to GITEA_CUSTOM`)
 	}
 
 	sec = Cfg.Section("security")
-	InstallLock = sec.Key("INSTALL_LOCK").MustBool(true)
+	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
 	SecretKey = sec.Key("SECRET_KEY").MustString("!#@FDEWREWR&*(")
 	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
 	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
