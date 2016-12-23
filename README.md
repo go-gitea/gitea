@@ -11,10 +11,6 @@
 
 [![](public/img/gitea-large-resize.png)](https://github.com/go-gitea/gitea)
 
-##### Status
-
-**Current version**: (see [Releases](https://github.com/go-gitea/gitea/releases))
-
 ||||
 |:-------------:|:-------:|:-------:|
 |![Dashboard](https://i.imgur.com/3iEQsux.jpg)|![Repository](https://i.imgur.com/glqFnj8.jpg)|![Commits History](https://i.imgur.com/ad1FEpi.jpg)|
