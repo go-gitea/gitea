@@ -25,3 +25,6 @@ indent_size = 4
 
 [Makefile]
 indent_style = tab
+
+[*.md]
+trim_trailing_whitespace = false
