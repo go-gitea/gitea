@@ -35,7 +35,6 @@ func Users(ctx *context.Context) {
 		Counter:  models.CountUsers,
 		Ranger:   models.Users,
 		PageSize: setting.UI.Admin.UserPagingNum,
-		OrderBy:  "id ASC",
 		TplName:  tplUsers,
 	})
 }

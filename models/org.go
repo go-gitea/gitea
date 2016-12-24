@@ -195,12 +195,19 @@ func CountOrganizations() int64 {
 }
 
 // Organizations returns number of organizations in given page.
-func Organizations(page, pageSize int) ([]*User, error) {
-	orgs := make([]*User, 0, pageSize)
-	return orgs, x.
-		Limit(pageSize, (page-1)*pageSize).
-		Where("type=1").
-		Asc("name").
+func Organizations(opts *SearchUserOptions) ([]*User, error) {
+	orgs := make([]*User, 0, opts.PageSize)
+
+	if len(opts.OrderBy) == 0 {
+		opts.OrderBy = "name ASC"
+	}
+
+	sess := x.
+		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
+		Where("type=1")
+
+	return orgs, sess.
+		OrderBy(opts.OrderBy).
 		Find(&orgs)
 }
 

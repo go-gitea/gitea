@@ -641,12 +641,18 @@ func CountUsers() int64 {
 }
 
 // Users returns number of users in given page.
-func Users(page, pageSize int) ([]*User, error) {
-	users := make([]*User, 0, pageSize)
-	return users, x.
-		Limit(pageSize, (page-1)*pageSize).
-		Where("type=0").
-		Asc("name").
+func Users(opts *SearchUserOptions) ([]*User, error) {
+	if len(opts.OrderBy) == 0 {
+		opts.OrderBy = "name ASC"
+	}
+
+	users := make([]*User, 0, opts.PageSize)
+	sess := x.
+		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
+		Where("type=0")
+
+	return users, sess.
+		OrderBy(opts.OrderBy).
 		Find(&users)
 }
 
