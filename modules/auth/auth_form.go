@@ -9,6 +9,7 @@ import (
 	"gopkg.in/macaron.v1"
 )
 
+// AuthenticationForm form for authentication
 type AuthenticationForm struct {
 	ID                int64
 	Type              int    `binding:"Range(2,5)"`
@@ -37,6 +38,7 @@ type AuthenticationForm struct {
 	PAMServiceName    string
 }
 
+// Validate validates fields
 func (f *AuthenticationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }

@@ -18,14 +18,14 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/template"
+	"code.gitea.io/gitea/modules/templates"
 )
 
 const (
-	EDIT_FILE         base.TplName = "repo/editor/edit"
-	EDIT_DIFF_PREVIEW base.TplName = "repo/editor/diff_preview"
-	DELETE_FILE       base.TplName = "repo/editor/delete"
-	UPLOAD_FILE       base.TplName = "repo/editor/upload"
+	tplEditFile        base.TplName = "repo/editor/edit"
+	tplEditDiffPreview base.TplName = "repo/editor/diff_preview"
+	tplDeleteFile      base.TplName = "repo/editor/delete"
+	tplUploadFile      base.TplName = "repo/editor/upload"
 )
 
 func editFile(ctx *context.Context, isNewFile bool) {
@@ -74,7 +74,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		d, _ := ioutil.ReadAll(dataRc)
 		buf = append(buf, d...)
-		if err, content := template.ToUTF8WithErr(buf); err != nil {
+		if content, err := templates.ToUTF8WithErr(buf); err != nil {
 			if err != nil {
 				log.Error(4, "ToUTF8WithErr: %v", err)
 			}
@@ -96,15 +96,17 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["MarkdownFileExts"] = strings.Join(setting.Markdown.FileExtensions, ",")
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["PreviewableFileModes"] = strings.Join(setting.Repository.Editor.PreviewableFileModes, ",")
-	ctx.Data["EditorconfigURLPrefix"] = fmt.Sprintf("%s/api/v1/repos/%s/editorconfig/", setting.AppSubUrl, ctx.Repo.Repository.FullName())
+	ctx.Data["EditorconfigURLPrefix"] = fmt.Sprintf("%s/api/v1/repos/%s/editorconfig/", setting.AppSubURL, ctx.Repo.Repository.FullName())
 
-	ctx.HTML(200, EDIT_FILE)
+	ctx.HTML(200, tplEditFile)
 }
 
+// EditFile render edit file page
 func EditFile(ctx *context.Context) {
 	editFile(ctx, false)
 }
 
+// NewFile render create file page
 func NewFile(ctx *context.Context) {
 	editFile(ctx, true)
 }
@@ -146,20 +148,20 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 	ctx.Data["PreviewableFileModes"] = strings.Join(setting.Repository.Editor.PreviewableFileModes, ",")
 
 	if ctx.HasError() {
-		ctx.HTML(200, EDIT_FILE)
+		ctx.HTML(200, tplEditFile)
 		return
 	}
 
 	if len(form.TreePath) == 0 {
 		ctx.Data["Err_TreePath"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.editor.filename_cannot_be_empty"), EDIT_FILE, &form)
+		ctx.RenderWithErr(ctx.Tr("repo.editor.filename_cannot_be_empty"), tplEditFile, &form)
 		return
 	}
 
 	if oldBranchName != branchName {
 		if _, err := ctx.Repo.Repository.GetBranch(branchName); err == nil {
 			ctx.Data["Err_NewBranchName"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), EDIT_FILE, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), tplEditFile, &form)
 			return
 		}
 	}
@@ -180,13 +182,18 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		if index != len(treeNames)-1 {
 			if !entry.IsDir() {
 				ctx.Data["Err_TreePath"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", part), EDIT_FILE, &form)
+				ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", part), tplEditFile, &form)
 				return
 			}
 		} else {
+			if entry.IsLink() {
+				ctx.Data["Err_TreePath"] = true
+				ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", part), tplEditFile, &form)
+				return
+			}
 			if entry.IsDir() {
 				ctx.Data["Err_TreePath"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", part), EDIT_FILE, &form)
+				ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", part), tplEditFile, &form)
 				return
 			}
 		}
@@ -197,7 +204,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		if err != nil {
 			if git.IsErrNotExist(err) {
 				ctx.Data["Err_TreePath"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.editor.file_editing_no_longer_exists", oldTreePath), EDIT_FILE, &form)
+				ctx.RenderWithErr(ctx.Tr("repo.editor.file_editing_no_longer_exists", oldTreePath), tplEditFile, &form)
 			} else {
 				ctx.Handle(500, "GetTreeEntryByPath", err)
 			}
@@ -212,7 +219,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 
 			for _, file := range files {
 				if file == form.TreePath {
-					ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+lastCommit+"..."+ctx.Repo.CommitID), EDIT_FILE, &form)
+					ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+lastCommit+"..."+ctx.Repo.CommitID), tplEditFile, &form)
 					return
 				}
 			}
@@ -230,7 +237,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		}
 		if entry != nil {
 			ctx.Data["Err_TreePath"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.file_already_exists", form.TreePath), EDIT_FILE, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.file_already_exists", form.TreePath), tplEditFile, &form)
 			return
 		}
 	}
@@ -260,21 +267,24 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		IsNewFile:    isNewFile,
 	}); err != nil {
 		ctx.Data["Err_TreePath"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_update_file", form.TreePath, err), EDIT_FILE, &form)
+		ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_update_file", form.TreePath, err), tplEditFile, &form)
 		return
 	}
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/src/" + branchName + "/" + strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(form.TreePath))
 }
 
+// EditFilePost response for editing file
 func EditFilePost(ctx *context.Context, form auth.EditRepoFileForm) {
 	editFilePost(ctx, form, false)
 }
 
+// NewFilePost response for creating file
 func NewFilePost(ctx *context.Context, form auth.EditRepoFileForm) {
 	editFilePost(ctx, form, true)
 }
 
+// DiffPreviewPost render preview diff page
 func DiffPreviewPost(ctx *context.Context, form auth.EditPreviewDiffForm) {
 	treePath := ctx.Repo.TreePath
 
@@ -299,9 +309,10 @@ func DiffPreviewPost(ctx *context.Context, form auth.EditPreviewDiffForm) {
 	}
 	ctx.Data["File"] = diff.Files[0]
 
-	ctx.HTML(200, EDIT_DIFF_PREVIEW)
+	ctx.HTML(200, tplEditDiffPreview)
 }
 
+// DeleteFile render delete file page
 func DeleteFile(ctx *context.Context) {
 	ctx.Data["PageIsDelete"] = true
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName
@@ -310,9 +321,10 @@ func DeleteFile(ctx *context.Context) {
 	ctx.Data["commit_message"] = ""
 	ctx.Data["commit_choice"] = "direct"
 	ctx.Data["new_branch_name"] = ""
-	ctx.HTML(200, DELETE_FILE)
+	ctx.HTML(200, tplDeleteFile)
 }
 
+// DeleteFilePost response for deleting file
 func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 	ctx.Data["PageIsDelete"] = true
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName
@@ -330,14 +342,14 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 	ctx.Data["new_branch_name"] = branchName
 
 	if ctx.HasError() {
-		ctx.HTML(200, DELETE_FILE)
+		ctx.HTML(200, tplDeleteFile)
 		return
 	}
 
 	if oldBranchName != branchName {
 		if _, err := ctx.Repo.Repository.GetBranch(branchName); err == nil {
 			ctx.Data["Err_NewBranchName"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), DELETE_FILE, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), tplDeleteFile, &form)
 			return
 		}
 	}
@@ -374,6 +386,7 @@ func renderUploadSettings(ctx *context.Context) {
 	ctx.Data["UploadMaxFiles"] = setting.Repository.Upload.MaxFiles
 }
 
+// UploadFile render upload file page
 func UploadFile(ctx *context.Context) {
 	ctx.Data["PageIsUpload"] = true
 	renderUploadSettings(ctx)
@@ -391,9 +404,10 @@ func UploadFile(ctx *context.Context) {
 	ctx.Data["commit_choice"] = "direct"
 	ctx.Data["new_branch_name"] = ""
 
-	ctx.HTML(200, UPLOAD_FILE)
+	ctx.HTML(200, tplUploadFile)
 }
 
+// UploadFilePost response for uploading file
 func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 	ctx.Data["PageIsUpload"] = true
 	renderUploadSettings(ctx)
@@ -422,14 +436,14 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 	ctx.Data["new_branch_name"] = branchName
 
 	if ctx.HasError() {
-		ctx.HTML(200, UPLOAD_FILE)
+		ctx.HTML(200, tplUploadFile)
 		return
 	}
 
 	if oldBranchName != branchName {
 		if _, err := ctx.Repo.Repository.GetBranch(branchName); err == nil {
 			ctx.Data["Err_NewBranchName"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), UPLOAD_FILE, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), tplUploadFile, &form)
 			return
 		}
 	}
@@ -451,7 +465,7 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		// User can only upload files to a directory.
 		if !entry.IsDir() {
 			ctx.Data["Err_TreePath"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", part), UPLOAD_FILE, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", part), tplUploadFile, &form)
 			return
 		}
 	}
@@ -475,13 +489,14 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		Files:        form.Files,
 	}); err != nil {
 		ctx.Data["Err_TreePath"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.editor.unable_to_upload_files", form.TreePath, err), UPLOAD_FILE, &form)
+		ctx.RenderWithErr(ctx.Tr("repo.editor.unable_to_upload_files", form.TreePath, err), tplUploadFile, &form)
 		return
 	}
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/src/" + branchName + "/" + form.TreePath)
 }
 
+// UploadFileToServer upload file to server file dir not git
 func UploadFileToServer(ctx *context.Context) {
 	file, header, err := ctx.Req.FormFile("file")
 	if err != nil {
@@ -525,6 +540,7 @@ func UploadFileToServer(ctx *context.Context) {
 	})
 }
 
+// RemoveUploadFileFromServer remove file from server file dir
 func RemoveUploadFileFromServer(ctx *context.Context, form auth.RemoveUploadFileForm) {
 	if len(form.File) == 0 {
 		ctx.Status(204)

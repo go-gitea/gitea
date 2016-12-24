@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -18,7 +19,7 @@ var (
 	CmdAdmin = cli.Command{
 		Name:  "admin",
 		Usage: "Preform admin operations on command line",
-		Description: `Allow using internal logic of Gogs without hacking into the source code
+		Description: `Allow using internal logic of Gitea without hacking into the source code
 to make automatic initialization process more smoothly`,
 		Subcommands: []cli.Command{
 			subcmdCreateUser,

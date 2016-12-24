@@ -11,8 +11,10 @@ import (
 	"runtime"
 )
 
+// Brush brush type
 type Brush func(string) string
 
+// NewBrush create a brush according color
 func NewBrush(color string) Brush {
 	pre := "\033["
 	reset := "\033[0m"
@@ -37,7 +39,7 @@ type ConsoleWriter struct {
 	Level int `json:"level"`
 }
 
-// create ConsoleWriter returning as LoggerInterface.
+// NewConsole create ConsoleWriter returning as LoggerInterface.
 func NewConsole() LoggerInterface {
 	return &ConsoleWriter{
 		lg:    log.New(os.Stdout, "", log.Ldate|log.Ltime),
@@ -45,10 +47,14 @@ func NewConsole() LoggerInterface {
 	}
 }
 
+// Init inits connection writer with json config.
+// json config only need key "level".
 func (cw *ConsoleWriter) Init(config string) error {
 	return json.Unmarshal([]byte(config), cw)
 }
 
+// WriteMsg writes message in console.
+// if OS is windows, ignore colors.
 func (cw *ConsoleWriter) WriteMsg(msg string, skip, level int) error {
 	if cw.Level > level {
 		return nil
@@ -61,11 +67,12 @@ func (cw *ConsoleWriter) WriteMsg(msg string, skip, level int) error {
 	return nil
 }
 
-func (_ *ConsoleWriter) Flush() {
-
+// Flush when log should be flushed
+func (cw *ConsoleWriter) Flush() {
 }
 
-func (_ *ConsoleWriter) Destroy() {
+// Destroy when writer is destroy
+func (cw *ConsoleWriter) Destroy() {
 }
 
 func init() {

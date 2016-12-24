@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 )
 
+// MirrorQueue holds an UniqueQueue object of the mirror
 var MirrorQueue = sync.NewUniqueQueue(setting.Repository.MirrorQueueLength)
 
 // Mirror represents mirror information of a repository.
@@ -37,16 +38,19 @@ type Mirror struct {
 	address string `xorm:"-"`
 }
 
+// BeforeInsert will be invoked by XORM before inserting a record
 func (m *Mirror) BeforeInsert() {
 	m.UpdatedUnix = time.Now().Unix()
 	m.NextUpdateUnix = m.NextUpdate.Unix()
 }
 
+// BeforeUpdate is invoked from XORM before updating this object.
 func (m *Mirror) BeforeUpdate() {
 	m.UpdatedUnix = time.Now().Unix()
 	m.NextUpdateUnix = m.NextUpdate.Unix()
 }
 
+// AfterSet is invoked from XORM after setting the value of a field of this object.
 func (m *Mirror) AfterSet(colName string, _ xorm.Cell) {
 	var err error
 	switch colName {
@@ -180,10 +184,12 @@ func updateMirror(e Engine, m *Mirror) error {
 	return err
 }
 
+// UpdateMirror updates the mirror
 func UpdateMirror(m *Mirror) error {
 	return updateMirror(x, m)
 }
 
+// DeleteMirrorByRepoID deletes a mirror by repoID
 func DeleteMirrorByRepoID(repoID int64) error {
 	_, err := x.Delete(&Mirror{RepoID: repoID})
 	return err
@@ -225,7 +231,7 @@ func SyncMirrors() {
 
 		m, err := GetMirrorByRepoID(com.StrTo(repoID).MustInt64())
 		if err != nil {
-			log.Error(4, "GetMirrorByRepoID [%d]: %v", repoID, err)
+			log.Error(4, "GetMirrorByRepoID [%s]: %v", repoID, err)
 			continue
 		}
 
@@ -235,12 +241,13 @@ func SyncMirrors() {
 
 		m.ScheduleNextUpdate()
 		if err = UpdateMirror(m); err != nil {
-			log.Error(4, "UpdateMirror [%d]: %v", repoID, err)
+			log.Error(4, "UpdateMirror [%s]: %v", repoID, err)
 			continue
 		}
 	}
 }
 
+// InitSyncMirrors initializes a go routine to sync the mirros
 func InitSyncMirrors() {
 	go SyncMirrors()
 }

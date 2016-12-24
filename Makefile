@@ -1,47 +1,36 @@
 DIST := dist
-BIN := bin
-
 EXECUTABLE := gitea
 IMPORT := code.gitea.io/gitea
 
-SHA := $(shell git rev-parse --short HEAD)
-DATE := $(shell date -u '+%Y-%m-%d %I:%M:%S %Z')
-
-BINDATA := $(shell find conf | sed 's/ /\\ /g')
+BINDATA := modules/{options,public,templates}/bindata.go
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
 
-LDFLAGS += -X "code.gitea.io/gitea/modules/setting.BuildTime=$(DATE)"
-LDFLAGS += -X "code.gitea.io/gitea/modules/setting.BuildGitHash=$(SHA)"
+LDFLAGS += -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')"
 
 TARGETS ?= linux/*,darwin/*,windows/*
 PACKAGES ?= $(shell go list ./... | grep -v /vendor/)
+SOURCES ?= $(shell find . -name "*.go" -type f)
 
 TAGS ?=
 
-ifneq ($(TRAVIS_TAG),)
-	VERSION ?= $(TRAVIS_TAG)
+ifneq ($(DRONE_TAG),)
+	VERSION ?= $(subst v,,$(DRONE_TAG))
 else
-	ifneq ($(TRAVIS_BRANCH),)
-		VERSION ?= $(TRAVIS_BRANCH)
+	ifneq ($(DRONE_BRANCH),)
+		VERSION ?= $(subst release/v,,$(DRONE_BRANCH))
 	else
 		VERSION ?= master
 	endif
 endif
 
 .PHONY: all
-all: clean test build
+all: build
 
 .PHONY: clean
 clean:
 	go clean -i ./...
-	rm -rf $(BIN) $(DIST)
-
-.PHONY: deps
-deps:
-	@which go-bindata > /dev/null; if [ $$? -ne 0 ]; then \
-		go get -u github.com/jteeuwen/go-bindata/...; \
-	fi
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA)
 
 .PHONY: fmt
 fmt:
@@ -50,6 +39,20 @@ fmt:
 .PHONY: vet
 vet:
 	go vet $(PACKAGES)
+
+.PHONY: generate
+generate:
+	@which go-bindata > /dev/null; if [ $$? -ne 0 ]; then \
+		go get -u github.com/jteeuwen/go-bindata/...; \
+	fi
+	go generate $(PACKAGES)
+
+.PHONY: errcheck
+errcheck:
+	@which errcheck > /dev/null; if [ $$? -ne 0 ]; then \
+		go get -u github.com/kisielk/errcheck; \
+	fi
+	errcheck $(PACKAGES)
 
 .PHONY: lint
 lint:
@@ -62,60 +65,56 @@ lint:
 test:
 	for PKG in $(PACKAGES); do go test -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
 
+.PHONY: test-mysql
+test-mysql:
+	@echo "Not integrated yet!"
+
+.PHONY: test-pgsql
+test-pgsql:
+	@echo "Not integrated yet!"
+
 .PHONY: check
 check: test
 
 .PHONY: install
-install: $(BIN)/$(EXECUTABLE)
-	cp $< $(GOPATH)/bin/
+install: $(wildcard *.go)
+	go install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
 .PHONY: build
-build: $(BIN)/$(EXECUTABLE)
+build: $(EXECUTABLE)
 
-$(BIN)/$(EXECUTABLE): $(wildcard *.go)
+$(EXECUTABLE): $(SOURCES)
 	go build -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
+.PHONY: docker
+docker:
+	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="$(TAGS)" webhippie/golang:edge make clean generate build
+	docker build -t gitea/gitea:latest .
+
 .PHONY: release
-release: release-build release-copy release-check
+release: release-dirs release-build release-copy release-check
+
+.PHONY: release-dirs
+release-dirs:
+	mkdir -p $(DIST)/binaries $(DIST)/release
 
 .PHONY: release-build
 release-build:
 	@which xgo > /dev/null; if [ $$? -ne 0 ]; then \
 		go get -u github.com/karalabe/xgo; \
 	fi
-	xgo -dest $(BIN) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets '$(TARGETS)' -out $(EXECUTABLE)-$(VERSION) $(IMPORT)
+	xgo -dest $(DIST)/binaries -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets '$(TARGETS)' -out $(EXECUTABLE)-$(VERSION) $(IMPORT)
+ifeq ($(CI),drone)
+	mv /build/* $(DIST)/binaries
+endif
 
 .PHONY: release-copy
 release-copy:
-	mkdir -p $(DIST)/release
-	$(foreach file,$(wildcard $(BIN)/$(EXECUTABLE)-*),cp $(file) $(DIST)/release/$(notdir $(file));)
+	$(foreach file,$(wildcard $(DIST)/binaries/$(EXECUTABLE)-*),cp $(file) $(DIST)/release/$(notdir $(file));)
 
 .PHONY: release-check
 release-check:
 	cd $(DIST)/release; $(foreach file,$(wildcard $(DIST)/release/$(EXECUTABLE)-*),sha256sum $(notdir $(file)) > $(notdir $(file)).sha256;)
-
-.PHONY: latest
-latest: release-build latest-copy latest-check
-
-.PHONY: latest-copy
-latest-copy:
-	mkdir -p $(DIST)/latest
-	$(foreach file,$(wildcard $(BIN)/$(EXECUTABLE)-*),cp $(file) $(DIST)/latest/$(subst $(EXECUTABLE)-$(VERSION),$(EXECUTABLE)-latest,$(notdir $(file)));)
-
-.PHONY: latest-check
-latest-check:
-	cd $(DIST)/latest; $(foreach file,$(wildcard $(DIST)/latest/$(EXECUTABLE)-*),sha256sum $(notdir $(file)) > $(notdir $(file)).sha256;)
-
-.PHONY: publish
-publish: release latest
-
-.PHONY: bindata
-bindata: modules/bindata/bindata.go
-
-.IGNORE: modules/bindata/bindata.go
-modules/bindata/bindata.go: $(BINDATA)
-	go-bindata -o=$@ -ignore="\\.go|README.md|TRANSLATORS" -pkg=bindata conf/...
-	go fmt $@
 
 .PHONY: javascripts
 javascripts: public/js/index.js
@@ -131,5 +130,5 @@ stylesheets: public/css/index.css
 public/css/index.css: $(STYLESHEETS)
 	lessc $< $@
 
-.PHONY: generate
-generate: bindata javascripts stylesheets
+.PHONY: assets
+assets: javascripts stylesheets

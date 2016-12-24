@@ -12,26 +12,28 @@ import (
 	"sync"
 )
 
-// objectCache provides thread-safe cache opeations.
-type objectCache struct {
+// ObjectCache provides thread-safe cache opeations.
+type ObjectCache struct {
 	lock  sync.RWMutex
 	cache map[string]interface{}
 }
 
-func newObjectCache() *objectCache {
-	return &objectCache{
+func newObjectCache() *ObjectCache {
+	return &ObjectCache{
 		cache: make(map[string]interface{}, 10),
 	}
 }
 
-func (oc *objectCache) Set(id string, obj interface{}) {
+// Set add obj to cache
+func (oc *ObjectCache) Set(id string, obj interface{}) {
 	oc.lock.Lock()
 	defer oc.lock.Unlock()
 
 	oc.cache[id] = obj
 }
 
-func (oc *objectCache) Get(id string) (interface{}, bool) {
+// Get get cached obj by id
+func (oc *ObjectCache) Get(id string) (interface{}, bool) {
 	oc.lock.RLock()
 	defer oc.lock.RUnlock()
 
@@ -80,13 +82,14 @@ func filepathFromSHA1(rootdir, sha1 string) string {
 	return filepath.Join(rootdir, "objects", sha1[:2], sha1[2:])
 }
 
+// RefEndName return the end name of a ref name
 func RefEndName(refStr string) string {
-	if strings.HasPrefix(refStr, BRANCH_PREFIX) {
-		return refStr[len(BRANCH_PREFIX):]
+	if strings.HasPrefix(refStr, BranchPrefix) {
+		return refStr[len(BranchPrefix):]
 	}
 
-	if strings.HasPrefix(refStr, TAG_PREFIX) {
-		return refStr[len(TAG_PREFIX):]
+	if strings.HasPrefix(refStr, TagPrefix) {
+		return refStr[len(TagPrefix):]
 	}
 
 	return refStr

@@ -1,22 +1,42 @@
-FROM alpine:3.3
-MAINTAINER jp@roemer.im
+FROM alpine:3.4
+MAINTAINER Thomas Boerger <thomas@webhippie.de>
 
-# Install system utils & Gogs runtime dependencies
-ADD https://github.com/tianon/gosu/releases/download/1.9/gosu-amd64 /usr/sbin/gosu
-RUN chmod +x /usr/sbin/gosu \
- && apk --no-cache --no-progress add ca-certificates bash git linux-pam s6 curl openssh socat tzdata
-
-ENV GITEA_CUSTOM /data/gogs
-
-COPY . /app/gogs/
-WORKDIR /app/gogs/
-RUN ./docker/build.sh
-
-# Configure LibC Name Service
-COPY docker/nsswitch.conf /etc/nsswitch.conf
-
-# Configure Docker Container
-VOLUME ["/data"]
 EXPOSE 22 3000
-ENTRYPOINT ["docker/start.sh"]
-CMD ["/bin/s6-svscan", "/app/gogs/docker/s6/"]
+
+RUN apk update && \
+  apk add \
+    su-exec \
+    ca-certificates \
+    sqlite \
+    bash \
+    git \
+    linux-pam \
+    s6 \
+    curl \
+    openssh \
+    tzdata && \
+  rm -rf \
+    /var/cache/apk/* && \
+  addgroup \
+    -S -g 1000 \
+    git && \
+  adduser \
+    -S -H -D \
+    -h /data/git \
+    -s /bin/bash \
+    -u 1000 \
+    -G git \
+    git && \
+  echo "git:$(date +%s | sha256sum | base64 | head -c 32)" | chpasswd
+
+ENV USER git
+ENV GITEA_CUSTOM /data/gitea
+ENV GODEBUG=netdns=go
+
+VOLUME ["/data"]
+
+ENTRYPOINT ["/usr/bin/entrypoint"]
+CMD ["/bin/s6-svscan", "/etc/s6"]
+
+COPY docker /
+COPY gitea /app/gitea/gitea

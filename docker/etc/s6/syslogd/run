@@ -1,0 +1,6 @@
+#!/bin/bash
+[[ -f ./setup ]] && source ./setup
+
+pushd /root > /dev/null
+    exec su-exec root /sbin/syslogd -nS -O-
+popd

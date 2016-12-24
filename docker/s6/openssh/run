@@ -1,7 +1,0 @@
-#!/bin/sh
-
-if test -f ./setup; then
-    source ./setup
-fi
-
-exec gosu root /usr/sbin/sshd -D -f /app/gogs/docker/sshd_config

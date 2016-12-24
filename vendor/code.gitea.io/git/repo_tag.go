@@ -10,23 +10,26 @@ import (
 	"github.com/mcuadros/go-version"
 )
 
-const TAG_PREFIX = "refs/tags/"
+// TagPrefix tags prefix path on the repository
+const TagPrefix = "refs/tags/"
 
 // IsTagExist returns true if given tag exists in the repository.
 func IsTagExist(repoPath, name string) bool {
-	return IsReferenceExist(repoPath, TAG_PREFIX+name)
+	return IsReferenceExist(repoPath, TagPrefix+name)
 }
 
+// IsTagExist returns true if given tag exists in the repository.
 func (repo *Repository) IsTagExist(name string) bool {
 	return IsTagExist(repo.Path, name)
 }
 
+// CreateTag create one tag in the repository
 func (repo *Repository) CreateTag(name, revision string) error {
 	_, err := NewCommand("tag", name, revision).RunInDir(repo.Path)
 	return err
 }
 
-func (repo *Repository) getTag(id sha1) (*Tag, error) {
+func (repo *Repository) getTag(id SHA1) (*Tag, error) {
 	t, ok := repo.tagCache.Get(id.String())
 	if ok {
 		log("Hit cache: %s", id)
@@ -41,11 +44,11 @@ func (repo *Repository) getTag(id sha1) (*Tag, error) {
 	tp = strings.TrimSpace(tp)
 
 	// Tag is a commit.
-	if ObjectType(tp) == OBJECT_COMMIT {
+	if ObjectType(tp) == ObjectCommit {
 		tag := &Tag{
 			ID:     id,
 			Object: id,
-			Type:   string(OBJECT_COMMIT),
+			Type:   string(ObjectCommit),
 			repo:   repo,
 		}
 

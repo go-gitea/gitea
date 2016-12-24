@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	BRANCH base.TplName = "repo/branch"
+	tplBranch base.TplName = "repo/branch"
 )
 
+// Branches render repository branch page
 func Branches(ctx *context.Context) {
 	ctx.Data["Title"] = "Branches"
 	ctx.Data["IsRepoToolbarBranches"] = true
@@ -27,5 +28,5 @@ func Branches(ctx *context.Context) {
 	}
 
 	ctx.Data["Branches"] = brs
-	ctx.HTML(200, BRANCH)
+	ctx.HTML(200, tplBranch)
 }

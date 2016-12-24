@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -51,7 +52,9 @@ func setup(logPath string) {
 
 	if setting.UseSQLite3 || setting.UseTiDB {
 		workDir, _ := setting.WorkDir()
-		os.Chdir(workDir)
+		if err := os.Chdir(workDir); err != nil {
+			log.GitLogger.Fatal(4, "Fail to change directory %s: %v", workDir, err)
+		}
 	}
 
 	models.SetEngine()
@@ -74,7 +77,7 @@ var (
 )
 
 func fail(userMessage, logMessage string, args ...interface{}) {
-	fmt.Fprintln(os.Stderr, "Gogs:", userMessage)
+	fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
 
 	if len(logMessage) > 0 {
 		if !setting.ProdMode {
@@ -118,7 +121,7 @@ func handleUpdateTask(uuid string, user, repoUser *models.User, reponame string,
 
 	// Ask for running deliver hook and test pull request tasks.
 	reqURL := setting.LocalURL + repoUser.Name + "/" + reponame + "/tasks/trigger?branch=" +
-		strings.TrimPrefix(task.RefName, git.BRANCH_PREFIX) + "&secret=" + base.EncodeMD5(repoUser.Salt) + "&pusher=" + com.ToStr(user.ID)
+		strings.TrimPrefix(task.RefName, git.BranchPrefix) + "&secret=" + base.EncodeMD5(repoUser.Salt) + "&pusher=" + com.ToStr(user.ID)
 	log.GitLogger.Trace("Trigger task: %s", reqURL)
 
 	resp, err := httplib.Head(reqURL).SetTLSClientConfig(&tls.Config{
@@ -142,7 +145,7 @@ func runServ(c *cli.Context) error {
 	setup("serv.log")
 
 	if setting.SSH.Disabled {
-		println("Gogs: SSH has been disabled")
+		println("Gitea: SSH has been disabled")
 		return nil
 	}
 
@@ -152,8 +155,8 @@ func runServ(c *cli.Context) error {
 
 	cmd := os.Getenv("SSH_ORIGINAL_COMMAND")
 	if len(cmd) == 0 {
-		println("Hi there, You've successfully authenticated, but Gogs does not provide shell access.")
-		println("If this is unexpected, please log in with password and setup Gogs under another user.")
+		println("Hi there, You've successfully authenticated, but Gitea does not provide shell access.")
+		println("If this is unexpected, please log in with password and setup Gitea under another user.")
 		return nil
 	}
 
@@ -253,10 +256,14 @@ func runServ(c *cli.Context) error {
 					"User %s does not have level %v access to repository %s",
 					user.Name, requestedMode, repoPath)
 			}
+
+			os.Setenv("GITEA_PUSHER_NAME", user.Name)
 		}
 	}
 
 	uuid := gouuid.NewV4().String()
+	os.Setenv("GITEA_UUID", uuid)
+	// Keep the old env variable name for backward compability
 	os.Setenv("uuid", uuid)
 
 	// Special handle for Windows.

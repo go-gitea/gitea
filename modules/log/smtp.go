@@ -16,7 +16,7 @@ const (
 	subjectPhrase = "Diagnostic message from server"
 )
 
-// smtpWriter implements LoggerInterface and is used to send emails via given SMTP-server.
+// SMTPWriter implements LoggerInterface and is used to send emails via given SMTP-server.
 type SMTPWriter struct {
 	Username           string   `json:"Username"`
 	Password           string   `json:"password"`
@@ -26,12 +26,12 @@ type SMTPWriter struct {
 	Level              int      `json:"level"`
 }
 
-// create smtp writer.
+// NewSMTPWriter creates smtp writer.
 func NewSMTPWriter() LoggerInterface {
 	return &SMTPWriter{Level: TRACE}
 }
 
-// init smtp writer with json config.
+// Init smtp writer with json config.
 // config like:
 //	{
 //		"Username":"example@gmail.com",
@@ -45,41 +45,43 @@ func (sw *SMTPWriter) Init(jsonconfig string) error {
 	return json.Unmarshal([]byte(jsonconfig), sw)
 }
 
-// write message in smtp writer.
+// WriteMsg writes message in smtp writer.
 // it will send an email with subject and only this message.
-func (s *SMTPWriter) WriteMsg(msg string, skip, level int) error {
-	if level < s.Level {
+func (sw *SMTPWriter) WriteMsg(msg string, skip, level int) error {
+	if level < sw.Level {
 		return nil
 	}
 
-	hp := strings.Split(s.Host, ":")
+	hp := strings.Split(sw.Host, ":")
 
 	// Set up authentication information.
 	auth := smtp.PlainAuth(
 		"",
-		s.Username,
-		s.Password,
+		sw.Username,
+		sw.Password,
 		hp[0],
 	)
 	// Connect to the server, authenticate, set the sender and recipient,
 	// and send the email all in one step.
-	content_type := "Content-Type: text/plain" + "; charset=UTF-8"
-	mailmsg := []byte("To: " + strings.Join(s.RecipientAddresses, ";") + "\r\nFrom: " + s.Username + "<" + s.Username +
-		">\r\nSubject: " + s.Subject + "\r\n" + content_type + "\r\n\r\n" + fmt.Sprintf(".%s", time.Now().Format("2006-01-02 15:04:05")) + msg)
+	contentType := "Content-Type: text/plain" + "; charset=UTF-8"
+	mailmsg := []byte("To: " + strings.Join(sw.RecipientAddresses, ";") + "\r\nFrom: " + sw.Username + "<" + sw.Username +
+		">\r\nSubject: " + sw.Subject + "\r\n" + contentType + "\r\n\r\n" + fmt.Sprintf(".%s", time.Now().Format("2006-01-02 15:04:05")) + msg)
 
 	return smtp.SendMail(
-		s.Host,
+		sw.Host,
 		auth,
-		s.Username,
-		s.RecipientAddresses,
+		sw.Username,
+		sw.RecipientAddresses,
 		mailmsg,
 	)
 }
 
-func (_ *SMTPWriter) Flush() {
+// Flush when log should be flushed
+func (sw *SMTPWriter) Flush() {
 }
 
-func (_ *SMTPWriter) Destroy() {
+// Destroy when writer is destroy
+func (sw *SMTPWriter) Destroy() {
 }
 
 func init() {

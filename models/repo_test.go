@@ -24,7 +24,7 @@ func TestRepo(t *testing.T) {
 			Convey("It should be nil even if other settings are present", func() {
 				repo.EnableExternalTracker = false
 				repo.ExternalTrackerFormat = "http://someurl.com/{user}/{repo}/{issue}"
-				repo.ExternalTrackerStyle = markdown.ISSUE_NAME_STYLE_NUMERIC
+				repo.ExternalTrackerStyle = markdown.IssueNameStyleNumeric
 				So(repo.ComposeMetas(), ShouldEqual, map[string]string(nil))
 			})
 		})
@@ -33,17 +33,17 @@ func TestRepo(t *testing.T) {
 			repo.EnableExternalTracker = true
 			Convey("It should default to numeric issue style", func() {
 				metas := repo.ComposeMetas()
-				So(metas["style"], ShouldEqual, markdown.ISSUE_NAME_STYLE_NUMERIC)
+				So(metas["style"], ShouldEqual, markdown.IssueNameStyleNumeric)
 			})
 			Convey("It should pass through numeric issue style setting", func() {
-				repo.ExternalTrackerStyle = markdown.ISSUE_NAME_STYLE_NUMERIC
+				repo.ExternalTrackerStyle = markdown.IssueNameStyleNumeric
 				metas := repo.ComposeMetas()
-				So(metas["style"], ShouldEqual, markdown.ISSUE_NAME_STYLE_NUMERIC)
+				So(metas["style"], ShouldEqual, markdown.IssueNameStyleNumeric)
 			})
 			Convey("It should pass through alphanumeric issue style setting", func() {
-				repo.ExternalTrackerStyle = markdown.ISSUE_NAME_STYLE_ALPHANUMERIC
+				repo.ExternalTrackerStyle = markdown.IssueNameStyleAlphanumeric
 				metas := repo.ComposeMetas()
-				So(metas["style"], ShouldEqual, markdown.ISSUE_NAME_STYLE_ALPHANUMERIC)
+				So(metas["style"], ShouldEqual, markdown.IssueNameStyleAlphanumeric)
 			})
 			Convey("It should contain the user name", func() {
 				metas := repo.ComposeMetas()
