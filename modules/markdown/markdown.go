@@ -161,9 +161,9 @@ func (r *Renderer) AutoLink(out *bytes.Buffer, link []byte, kind int) {
 			}
 
 			issue := string(m[i+7 : j])
-			fullRepoUrl := setting.AppURL + strings.TrimPrefix(r.urlPrefix, "/")
+			fullRepoURL := setting.AppURL + strings.TrimPrefix(r.urlPrefix, "/")
 			var link string
-			if strings.HasPrefix(string(m), fullRepoUrl) {
+			if strings.HasPrefix(string(m), fullRepoURL) {
 				// Use a short issue reference if the URL refers to this repository
 				link = fmt.Sprintf(`<a href="%s">#%s</a>`, m, issue)
 			} else {
