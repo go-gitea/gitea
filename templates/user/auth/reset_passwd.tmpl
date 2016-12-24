@@ -13,7 +13,7 @@
 					{{if .IsResetForm}}
 						<div class="required inline field {{if .Err_Password}}error{{end}}">
 							<label for="password">{{.i18n.Tr "password"}}</label>
-							<input id="password" name="password" type="password"  value="{{.password}}" autofocus required>
+							<input id="password" name="password" type="password"  value="{{.password}}" autocomplete="off" autofocus required>
 						</div>
 						<div class="ui divider"></div>
 						<div class="inline field">

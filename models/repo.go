@@ -20,9 +20,9 @@ import (
 	"time"
 
 	"code.gitea.io/git"
-	"code.gitea.io/gitea/modules/bindata"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
@@ -41,30 +41,50 @@ const (
 var repoWorkingPool = sync.NewExclusivePool()
 
 var (
-	ErrRepoFileNotExist  = errors.New("Repository file does not exist")
+	// ErrRepoFileNotExist repository file does not exist error
+	ErrRepoFileNotExist = errors.New("Repository file does not exist")
+
+	// ErrRepoFileNotLoaded repository file not loaded error
 	ErrRepoFileNotLoaded = errors.New("Repository file not loaded")
-	ErrMirrorNotExist    = errors.New("Mirror does not exist")
-	ErrInvalidReference  = errors.New("Invalid reference specified")
-	ErrNameEmpty         = errors.New("Name is empty")
+
+	// ErrMirrorNotExist mirror does not exist error
+	ErrMirrorNotExist = errors.New("Mirror does not exist")
+
+	// ErrInvalidReference invalid reference specified error
+	ErrInvalidReference = errors.New("Invalid reference specified")
+
+	// ErrNameEmpty name is empty error
+	ErrNameEmpty = errors.New("Name is empty")
 )
 
 var (
-	Gitignores, Licenses, Readmes, LabelTemplates []string
+	// Gitignores contains the gitiginore files
+	Gitignores []string
 
-	// Maximum items per page in forks, watchers and stars of a repo
+	// Licenses contains the license files
+	Licenses []string
+
+	// Readmes contains the readme files
+	Readmes []string
+
+	// LabelTemplates contains the label template files
+	LabelTemplates []string
+
+	// ItemsPerPage maximum items per page in forks, watchers and stars of a repo
 	ItemsPerPage = 40
 )
 
+// LoadRepoConfig loads the repository config
 func LoadRepoConfig() {
 	// Load .gitignore and license files and readme templates.
 	types := []string{"gitignore", "license", "readme", "label"}
 	typeFiles := make([][]string, 4)
 	for i, t := range types {
-		files, err := bindata.AssetDir("conf/" + t)
+		files, err := options.Dir(t)
 		if err != nil {
 			log.Fatal(4, "Fail to get %s files: %v", t, err)
 		}
-		customPath := path.Join(setting.CustomPath, "conf", t)
+		customPath := path.Join(setting.CustomPath, "options", t)
 		if com.IsDir(customPath) {
 			customFiles, err := com.StatDir(customPath)
 			if err != nil {
@@ -104,6 +124,7 @@ func LoadRepoConfig() {
 	Licenses = sortedLicenses
 }
 
+// NewRepoContext creates a new repository context
 func NewRepoContext() {
 	zip.Verbose = false
 
@@ -200,15 +221,18 @@ type Repository struct {
 	UpdatedUnix int64
 }
 
+// BeforeInsert is invoked from XORM before inserting an object of this type.
 func (repo *Repository) BeforeInsert() {
 	repo.CreatedUnix = time.Now().Unix()
 	repo.UpdatedUnix = repo.CreatedUnix
 }
 
+// BeforeUpdate is invoked from XORM before updating this object.
 func (repo *Repository) BeforeUpdate() {
 	repo.UpdatedUnix = time.Now().Unix()
 }
 
+// AfterSet is invoked from XORM after setting the value of a field of this object.
 func (repo *Repository) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
 	case "default_branch":
@@ -224,7 +248,7 @@ func (repo *Repository) AfterSet(colName string, _ xorm.Cell) {
 		repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
 	case "external_tracker_style":
 		if len(repo.ExternalTrackerStyle) == 0 {
-			repo.ExternalTrackerStyle = markdown.ISSUE_NAME_STYLE_NUMERIC
+			repo.ExternalTrackerStyle = markdown.IssueNameStyleNumeric
 		}
 	case "created_unix":
 		repo.Created = time.Unix(repo.CreatedUnix, 0).Local()
@@ -241,17 +265,24 @@ func (repo *Repository) MustOwner() *User {
 	return repo.mustOwner(x)
 }
 
+// FullName returns the repository full name
 func (repo *Repository) FullName() string {
 	return repo.MustOwner().Name + "/" + repo.Name
 }
 
+// HTMLURL returns the repository HTML URL
 func (repo *Repository) HTMLURL() string {
-	return setting.AppUrl + repo.FullName()
+	return setting.AppURL + repo.FullName()
 }
 
-// Arguments that are allowed to be nil: permission
-func (repo *Repository) APIFormat(permission *api.Permission) *api.Repository {
+// APIFormat converts a Repository to api.Repository
+func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
 	cloneLink := repo.CloneLink()
+	permission := &api.Permission{
+		Admin: mode >= AccessModeAdmin,
+		Push:  mode >= AccessModeWrite,
+		Pull:  mode >= AccessModeRead,
+	}
 	return &api.Repository{
 		ID:            repo.ID,
 		Owner:         repo.Owner.APIFormat(),
@@ -284,6 +315,7 @@ func (repo *Repository) getOwner(e Engine) (err error) {
 	return err
 }
 
+// GetOwner returns the repository owner
 func (repo *Repository) GetOwner() error {
 	return repo.getOwner(x)
 }
@@ -310,10 +342,10 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			"repo":   repo.Name,
 		}
 		switch repo.ExternalTrackerStyle {
-		case markdown.ISSUE_NAME_STYLE_ALPHANUMERIC:
-			repo.ExternalMetas["style"] = markdown.ISSUE_NAME_STYLE_ALPHANUMERIC
+		case markdown.IssueNameStyleAlphanumeric:
+			repo.ExternalMetas["style"] = markdown.IssueNameStyleAlphanumeric
 		default:
-			repo.ExternalMetas["style"] = markdown.ISSUE_NAME_STYLE_NUMERIC
+			repo.ExternalMetas["style"] = markdown.IssueNameStyleNumeric
 		}
 
 	}
@@ -381,11 +413,13 @@ func (repo *Repository) IssueStats(uid int64, filterMode int, isPull bool) (int6
 	return GetRepoIssueStats(repo.ID, uid, filterMode, isPull)
 }
 
+// GetMirror sets the repository mirror, returns an error upon failure
 func (repo *Repository) GetMirror() (err error) {
 	repo.Mirror, err = GetMirrorByRepoID(repo.ID)
 	return err
 }
 
+// GetBaseRepo returns the base repository
 func (repo *Repository) GetBaseRepo() (err error) {
 	if !repo.IsFork {
 		return nil
@@ -399,31 +433,38 @@ func (repo *Repository) repoPath(e Engine) string {
 	return RepoPath(repo.mustOwner(e).Name, repo.Name)
 }
 
+// RepoPath returns the repository path
 func (repo *Repository) RepoPath() string {
 	return repo.repoPath(x)
 }
 
+// GitConfigPath returns the repository git config path
 func (repo *Repository) GitConfigPath() string {
 	return filepath.Join(repo.RepoPath(), "config")
 }
 
+// RelLink returns the repository relative link
 func (repo *Repository) RelLink() string {
 	return "/" + repo.FullName()
 }
 
+// Link returns the repository link
 func (repo *Repository) Link() string {
-	return setting.AppSubUrl + "/" + repo.FullName()
+	return setting.AppSubURL + "/" + repo.FullName()
 }
 
+// ComposeCompareURL returns the repository comparison URL
 func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) string {
 	return fmt.Sprintf("%s/%s/compare/%s...%s", repo.MustOwner().Name, repo.Name, oldCommitID, newCommitID)
 }
 
+// HasAccess returns true when user has access to this repository
 func (repo *Repository) HasAccess(u *User) bool {
 	has, _ := HasAccess(u, repo, AccessModeRead)
 	return has
 }
 
+// IsOwnedBy returns true when user owns this repository
 func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID
 }
@@ -438,7 +479,7 @@ func (repo *Repository) CanEnablePulls() bool {
 	return !repo.IsMirror
 }
 
-// AllowPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
+// AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
 func (repo *Repository) AllowsPulls() bool {
 	return repo.CanEnablePulls() && repo.EnablePulls
 }
@@ -448,6 +489,7 @@ func (repo *Repository) CanEnableEditor() bool {
 	return !repo.IsMirror
 }
 
+// NextIssueIndex returns the next issue index
 // FIXME: should have a mutex to prevent producing same index for two issues that are created
 // closely enough.
 func (repo *Repository) NextIssueIndex() int64 {
@@ -455,22 +497,23 @@ func (repo *Repository) NextIssueIndex() int64 {
 }
 
 var (
-	DescPattern = regexp.MustCompile(`https?://\S+`)
+	descPattern = regexp.MustCompile(`https?://\S+`)
 )
 
-// DescriptionHtml does special handles to description and return HTML string.
-func (repo *Repository) DescriptionHtml() template.HTML {
+// DescriptionHTML does special handles to description and return HTML string.
+func (repo *Repository) DescriptionHTML() template.HTML {
 	sanitize := func(s string) string {
-		return fmt.Sprintf(`<a href="%[1]s" target="_blank">%[1]s</a>`, s)
+		return fmt.Sprintf(`<a href="%[1]s" target="_blank" rel="noopener">%[1]s</a>`, s)
 	}
-	return template.HTML(DescPattern.ReplaceAllStringFunc(markdown.Sanitizer.Sanitize(repo.Description), sanitize))
+	return template.HTML(descPattern.ReplaceAllStringFunc(markdown.Sanitizer.Sanitize(repo.Description), sanitize))
 }
 
+// LocalCopyPath returns the local repository copy path
 func (repo *Repository) LocalCopyPath() string {
-	return path.Join(setting.AppDataPath, "tmp/local-rpeo", com.ToStr(repo.ID))
+	return path.Join(setting.AppDataPath, "tmp/local-repo", com.ToStr(repo.ID))
 }
 
-// UpdateLocalCopy pulls latest changes of given branch from repoPath to localPath.
+// UpdateLocalCopyBranch pulls latest changes of given branch from repoPath to localPath.
 // It creates a new clone if local copy does not exist.
 // This function checks out target branch by default, it is safe to assume subsequent
 // operations are operating against target branch when caller has confidence for no race condition.
@@ -519,8 +562,12 @@ func (repo *Repository) SavePatch(index int64, patch []byte) error {
 	if err != nil {
 		return fmt.Errorf("PatchPath: %v", err)
 	}
+	dir := filepath.Dir(patchPath)
 
-	os.MkdirAll(filepath.Dir(patchPath), os.ModePerm)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return fmt.Errorf("Fail to create dir %s: %v", dir, err)
+	}
+
 	if err = ioutil.WriteFile(patchPath, patch, 0644); err != nil {
 		return fmt.Errorf("WriteFile: %v", err)
 	}
@@ -550,7 +597,7 @@ type CloneLink struct {
 
 // ComposeHTTPSCloneURL returns HTTPS clone URL based on given owner and repository name.
 func ComposeHTTPSCloneURL(owner, repo string) string {
-	return fmt.Sprintf("%s%s/%s.git", setting.AppUrl, owner, repo)
+	return fmt.Sprintf("%s%s/%s.git", setting.AppURL, owner, repo)
 }
 
 func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
@@ -575,6 +622,7 @@ func (repo *Repository) CloneLink() (cl *CloneLink) {
 	return repo.cloneLink(false)
 }
 
+// MigrateRepoOptions contains the repository migrate options
 type MigrateRepoOptions struct {
 	Name        string
 	Description string
@@ -629,7 +677,10 @@ func MigrateRepository(u *User, opts MigrateRepoOptions) (*Repository, error) {
 
 	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
 
-	os.RemoveAll(repoPath)
+	if err := os.RemoveAll(repoPath); err != nil {
+		return repo, fmt.Errorf("Fail to remove %s: %v", repoPath, err)
+	}
+
 	if err = git.Clone(opts.RemoteAddr, repoPath, git.CloneRepoOptions{
 		Mirror:  true,
 		Quiet:   true,
@@ -640,7 +691,11 @@ func MigrateRepository(u *User, opts MigrateRepoOptions) (*Repository, error) {
 
 	wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
 	if len(wikiRemotePath) > 0 {
-		os.RemoveAll(wikiPath)
+
+		if err := os.RemoveAll(wikiPath); err != nil {
+			return repo, fmt.Errorf("Fail to remove %s: %v", wikiPath, err)
+		}
+
 		if err = git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
 			Mirror:  true,
 			Quiet:   true,
@@ -711,7 +766,7 @@ func createUpdateHook(repoPath string) error {
 		fmt.Sprintf(tplUpdateHook, setting.ScriptType, "\""+setting.AppPath+"\"", setting.CustomConf))
 }
 
-// Finish migrating repository and/or wiki with things that don't need to be done for mirrors.
+// CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
 func CleanUpMigrateInfo(repo *Repository) (*Repository, error) {
 	repoPath := repo.RepoPath()
 	if err := createUpdateHook(repoPath); err != nil {
@@ -759,6 +814,7 @@ func initRepoCommit(tmpPath string, sig *git.Signature) (err error) {
 	return nil
 }
 
+// CreateRepoOptions contains the create repository options
 type CreateRepoOptions struct {
 	Name        string
 	Description string
@@ -771,14 +827,27 @@ type CreateRepoOptions struct {
 }
 
 func getRepoInitFile(tp, name string) ([]byte, error) {
-	relPath := path.Join("conf", tp, strings.TrimLeft(name, "./"))
+	cleanedName := strings.TrimLeft(name, "./")
+	relPath := path.Join("options", tp, cleanedName)
 
 	// Use custom file when available.
 	customPath := path.Join(setting.CustomPath, relPath)
 	if com.IsFile(customPath) {
 		return ioutil.ReadFile(customPath)
 	}
-	return bindata.Asset(relPath)
+
+	switch tp {
+	case "readme":
+		return options.Readme(cleanedName)
+	case "gitignore":
+		return options.Gitignore(cleanedName)
+	case "license":
+		return options.License(cleanedName)
+	case "label":
+		return options.Labels(cleanedName)
+	default:
+		return []byte{}, fmt.Errorf("Invalid init file type")
+	}
 }
 
 func prepareRepoCommit(repo *Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
@@ -861,7 +930,11 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 
 	// Initialize repository according to user's choice.
 	if opts.AutoInit {
-		os.MkdirAll(tmpDir, os.ModePerm)
+
+		if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
+			return fmt.Errorf("Fail to create dir %s: %v", tmpDir, err)
+		}
+
 		defer os.RemoveAll(tmpDir)
 
 		if err = prepareRepoCommit(repo, tmpDir, repoPath, opts); err != nil {
@@ -897,6 +970,7 @@ var (
 	reservedRepoPatterns = []string{"*.git", "*.wiki"}
 )
 
+// IsUsableRepoName returns true when repository is usable
 func IsUsableRepoName(name string) error {
 	return isUsableName(reservedRepoNames, reservedRepoPatterns, name)
 }
@@ -1030,6 +1104,7 @@ func CountUserRepositories(userID int64, private bool) int64 {
 	return countRepositories(userID, private)
 }
 
+// Repositories returns all repositories
 func Repositories(page, pageSize int) (_ []*Repository, err error) {
 	repos := make([]*Repository, 0, pageSize)
 	return repos, x.Limit(pageSize, (page-1)*pageSize).Asc("id").Find(&repos)
@@ -1155,7 +1230,12 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	// Rename remote repository to new path and delete local copy.
-	os.MkdirAll(UserPath(newOwner.Name), os.ModePerm)
+	dir := UserPath(newOwner.Name)
+
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return fmt.Errorf("Fail to create dir %s: %v", dir, err)
+	}
+
 	if err = os.Rename(RepoPath(owner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
@@ -1275,6 +1355,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 	return nil
 }
 
+// UpdateRepository updates a repository
 func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
 	sess := x.NewSession()
 	defer sessionRelease(sess)
@@ -1474,7 +1555,7 @@ func GetUserRepositories(userID int64, private bool, page, pageSize int) ([]*Rep
 	return repos, sess.Find(&repos)
 }
 
-// GetUserRepositories returns a list of mirror repositories of given user.
+// GetUserMirrorRepositories returns a list of mirror repositories of given user.
 func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 	repos := make([]*Repository, 0, 10)
 	return repos, x.
@@ -1502,6 +1583,7 @@ func GetRepositoryCount(u *User) (int64, error) {
 	return getRepositoryCount(x, u)
 }
 
+// SearchRepoOptions holds the search options
 type SearchRepoOptions struct {
 	Keyword  string
 	OwnerID  int64
@@ -1670,6 +1752,7 @@ func GitFsck() {
 	}
 }
 
+// GitGcRepos calls 'git gc' to remove unnecessary files and optimize the local repository
 func GitGcRepos() error {
 	args := append([]string{"gc"}, setting.Git.GCArgs...)
 	return x.
@@ -1712,6 +1795,7 @@ func repoStatsCheck(checker *repoChecker) {
 	}
 }
 
+// CheckRepoStats checks the repository stats
 func CheckRepoStats() {
 	if taskStatusTable.IsRunning(checkRepos) {
 		return
@@ -1806,6 +1890,7 @@ func CheckRepoStats() {
 	// ***** END: Repository.NumForks *****
 }
 
+// RepositoryList contains a list of repositories
 type RepositoryList []*Repository
 
 func (repos RepositoryList) loadAttributes(e Engine) error {
@@ -1838,10 +1923,12 @@ func (repos RepositoryList) loadAttributes(e Engine) error {
 	return nil
 }
 
+// LoadAttributes loads the attributes for the given RepositoryList
 func (repos RepositoryList) LoadAttributes() error {
 	return repos.loadAttributes(x)
 }
 
+// MirrorRepositoryList contains the mirror repositories
 type MirrorRepositoryList []*Repository
 
 func (repos MirrorRepositoryList) loadAttributes(e Engine) error {
@@ -1876,6 +1963,7 @@ func (repos MirrorRepositoryList) loadAttributes(e Engine) error {
 	return nil
 }
 
+// LoadAttributes loads the attributes for the given MirrorRepositoryList
 func (repos MirrorRepositoryList) LoadAttributes() error {
 	return repos.loadAttributes(x)
 }
@@ -1925,7 +2013,7 @@ func watchRepo(e Engine, userID, repoID int64, watch bool) (err error) {
 	return err
 }
 
-// Watch or unwatch repository.
+// WatchRepo watch or unwatch repository.
 func WatchRepo(userID, repoID int64, watch bool) (err error) {
 	return watchRepo(x, userID, repoID, watch)
 }
@@ -1940,7 +2028,7 @@ func GetWatchers(repoID int64) ([]*Watch, error) {
 	return getWatchers(x, repoID)
 }
 
-// Repository.GetWatchers returns range of users watching given repository.
+// GetWatchers returns range of users watching given repository.
 func (repo *Repository) GetWatchers(page int) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
 	sess := x.
@@ -1993,13 +2081,14 @@ func NotifyWatchers(act *Action) error {
 // /_______  /|__| (____  /__|
 //         \/           \/
 
+// Star contains the star information
 type Star struct {
 	ID     int64 `xorm:"pk autoincr"`
 	UID    int64 `xorm:"UNIQUE(s)"`
 	RepoID int64 `xorm:"UNIQUE(s)"`
 }
 
-// Star or unstar repository.
+// StarRepo star or unstar repository.
 func StarRepo(userID, repoID int64, star bool) (err error) {
 	if star {
 		if IsStaring(userID, repoID) {
@@ -2031,6 +2120,7 @@ func IsStaring(userID, repoID int64) bool {
 	return has
 }
 
+// GetStargazers returns the users who gave stars to this repository
 func (repo *Repository) GetStargazers(page int) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
 	sess := x.
@@ -2060,6 +2150,7 @@ func HasForkedRepo(ownerID, repoID int64) (*Repository, bool) {
 	return repo, has
 }
 
+// ForkRepository forks a repository
 func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Repository, err error) {
 	repo := &Repository{
 		OwnerID:       u.ID,
@@ -2109,6 +2200,7 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 	return repo, sess.Commit()
 }
 
+// GetForks returns all the forks of the repository
 func (repo *Repository) GetForks() ([]*Repository, error) {
 	forks := make([]*Repository, 0, repo.NumForks)
 	return forks, x.Find(&forks, &Repository{ForkID: repo.ID})
@@ -2122,6 +2214,7 @@ func (repo *Repository) GetForks() ([]*Repository, error) {
 //         \/             \/     \/     \/     \/
 //
 
+// CreateNewBranch creates a new repository branch
 func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName string) (err error) {
 	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
 	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))

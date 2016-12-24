@@ -11,17 +11,17 @@ trim_trailing_whitespace = true
 indent_style = tab
 indent_size = 8
 
-[*.tmpl]
+[*.{tmpl,html}]
 indent_style = tab
-indent_size = 2
-
-[Makefile]
-indent_style = tab
+indent_size = 4
 
 [*.{less,yml}]
 indent_style = space
-indent_size = 2
+indent_size = 4
 
 [*.js]
 indent_style = space
 indent_size = 4
+
+[Makefile]
+indent_style = tab

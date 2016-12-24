@@ -10,6 +10,7 @@ import (
 	"fmt"
 )
 
+// CreateUserOption create user options
 type CreateUserOption struct {
 	SourceID   int64  `json:"source_id"`
 	LoginName  string `json:"login_name"`
@@ -20,6 +21,7 @@ type CreateUserOption struct {
 	SendNotify bool   `json:"send_notify"`
 }
 
+// AdminCreateUser create a user
 func (c *Client) AdminCreateUser(opt CreateUserOption) (*User, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
@@ -29,6 +31,7 @@ func (c *Client) AdminCreateUser(opt CreateUserOption) (*User, error) {
 	return user, c.getParsedResponse("POST", "/admin/users", jsonHeader, bytes.NewReader(body), user)
 }
 
+// EditUserOption edit user options
 type EditUserOption struct {
 	SourceID         int64  `json:"source_id"`
 	LoginName        string `json:"login_name"`
@@ -44,6 +47,7 @@ type EditUserOption struct {
 	MaxRepoCreation  *int   `json:"max_repo_creation"`
 }
 
+// AdminEditUser modify user informations
 func (c *Client) AdminEditUser(user string, opt EditUserOption) error {
 	body, err := json.Marshal(&opt)
 	if err != nil {
@@ -53,11 +57,13 @@ func (c *Client) AdminEditUser(user string, opt EditUserOption) error {
 	return err
 }
 
+// AdminDeleteUser delete one user according name
 func (c *Client) AdminDeleteUser(user string) error {
 	_, err := c.getResponse("DELETE", fmt.Sprintf("/admin/users/%s", user), nil, nil)
 	return err
 }
 
+// AdminCreateUserPublicKey create one user with options
 func (c *Client) AdminCreateUserPublicKey(user string, opt CreateKeyOption) (*PublicKey, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {

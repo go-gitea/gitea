@@ -15,7 +15,9 @@ import (
 )
 
 var (
-	ErrOrgNotExist  = errors.New("Organization does not exist")
+	// ErrOrgNotExist organization does not exist
+	ErrOrgNotExist = errors.New("Organization does not exist")
+	// ErrTeamNotExist team does not exist
 	ErrTeamNotExist = errors.New("Team does not exist")
 )
 
@@ -39,7 +41,7 @@ func (org *User) GetTeam(name string) (*Team, error) {
 }
 
 func (org *User) getOwnerTeam(e Engine) (*Team, error) {
-	return org.getTeam(e, OWNER_TEAM)
+	return org.getTeam(e, ownerTeamName)
 }
 
 // GetOwnerTeam returns owner team of organization.
@@ -50,7 +52,7 @@ func (org *User) GetOwnerTeam() (*Team, error) {
 func (org *User) getTeams(e Engine) error {
 	return e.
 		Where("org_id=?", org.ID).
-		OrderBy("CASE WHEN name LIKE '" + OWNER_TEAM + "' THEN '' ELSE name END").
+		OrderBy("CASE WHEN name LIKE '" + ownerTeamName + "' THEN '' ELSE name END").
 		Find(&org.Teams)
 }
 
@@ -68,7 +70,7 @@ func (org *User) GetMembers() error {
 
 	var ids = make([]int64, len(ous))
 	for i, ou := range ous {
-		ids[i] = ou.Uid
+		ids[i] = ou.UID
 	}
 	org.Members, err = GetUsersByIDs(ids)
 	return err
@@ -107,8 +109,12 @@ func CreateOrganization(org, owner *User) (err error) {
 	}
 
 	org.LowerName = strings.ToLower(org.Name)
-	org.Rands = GetUserSalt()
-	org.Salt = GetUserSalt()
+	if org.Rands, err = GetUserSalt(); err != nil {
+		return err
+	}
+	if org.Salt, err = GetUserSalt(); err != nil {
+		return err
+	}
 	org.UseCustomAvatar = true
 	org.MaxRepoCreation = -1
 	org.NumTeams = 1
@@ -127,7 +133,7 @@ func CreateOrganization(org, owner *User) (err error) {
 
 	// Add initial creator to organization and owner team.
 	if _, err = sess.Insert(&OrgUser{
-		Uid:      owner.ID,
+		UID:      owner.ID,
 		OrgID:    org.ID,
 		IsOwner:  true,
 		NumTeams: 1,
@@ -138,8 +144,8 @@ func CreateOrganization(org, owner *User) (err error) {
 	// Create default owner team.
 	t := &Team{
 		OrgID:      org.ID,
-		LowerName:  strings.ToLower(OWNER_TEAM),
-		Name:       OWNER_TEAM,
+		LowerName:  strings.ToLower(ownerTeamName),
+		Name:       ownerTeamName,
 		Authorize:  AccessModeOwner,
 		NumMembers: 1,
 	}
@@ -148,7 +154,7 @@ func CreateOrganization(org, owner *User) (err error) {
 	}
 
 	if _, err = sess.Insert(&TeamUser{
-		Uid:    owner.ID,
+		UID:    owner.ID,
 		OrgID:  org.ID,
 		TeamID: t.ID,
 	}); err != nil {
@@ -235,7 +241,7 @@ func DeleteOrganization(org *User) (err error) {
 // OrgUser represents an organization-user relation.
 type OrgUser struct {
 	ID       int64 `xorm:"pk autoincr"`
-	Uid      int64 `xorm:"INDEX UNIQUE(s)"`
+	UID      int64 `xorm:"INDEX UNIQUE(s)"`
 	OrgID    int64 `xorm:"INDEX UNIQUE(s)"`
 	IsPublic bool
 	IsOwner  bool
@@ -243,29 +249,29 @@ type OrgUser struct {
 }
 
 // IsOrganizationOwner returns true if given user is in the owner team.
-func IsOrganizationOwner(orgId, uid int64) bool {
+func IsOrganizationOwner(orgID, uid int64) bool {
 	has, _ := x.
 		Where("is_owner=?", true).
 		And("uid=?", uid).
-		And("org_id=?", orgId).
+		And("org_id=?", orgID).
 		Get(new(OrgUser))
 	return has
 }
 
 // IsOrganizationMember returns true if given user is member of organization.
-func IsOrganizationMember(orgId, uid int64) bool {
+func IsOrganizationMember(orgID, uid int64) bool {
 	has, _ := x.
 		Where("uid=?", uid).
-		And("org_id=?", orgId).
+		And("org_id=?", orgID).
 		Get(new(OrgUser))
 	return has
 }
 
 // IsPublicMembership returns true if given user public his/her membership.
-func IsPublicMembership(orgId, uid int64) bool {
+func IsPublicMembership(orgID, uid int64) bool {
 	has, _ := x.
 		Where("uid=?", uid).
-		And("org_id=?", orgId).
+		And("org_id=?", orgID).
 		And("is_public=?", true).
 		Get(new(OrgUser))
 	return has
@@ -311,7 +317,7 @@ func GetOwnedOrgsByUserID(userID int64) ([]*User, error) {
 	return getOwnedOrgsByUserID(sess, userID)
 }
 
-// GetOwnedOrganizationsByUserIDDesc returns a list of organizations are owned by
+// GetOwnedOrgsByUserIDDesc returns a list of organizations are owned by
 // given user ID, ordered descending by the given condition.
 func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
 	sess := x.NewSession()
@@ -374,7 +380,7 @@ func AddOrgUser(orgID, uid int64) error {
 	}
 
 	ou := &OrgUser{
-		Uid:   uid,
+		UID:   uid,
 		OrgID: orgID,
 	}
 
@@ -498,7 +504,7 @@ func (org *User) getUserTeams(e Engine, userID int64, cols ...string) ([]*Team, 
 		Find(&teams)
 }
 
-// GetUserTeamIDs returns of all team IDs of the organization that user is memeber of.
+// GetUserTeamIDs returns of all team IDs of the organization that user is member of.
 func (org *User) GetUserTeamIDs(userID int64) ([]int64, error) {
 	teams, err := org.getUserTeams(x, userID, "team.id")
 	if err != nil {
@@ -512,7 +518,7 @@ func (org *User) GetUserTeamIDs(userID int64) ([]int64, error) {
 	return teamIDs, nil
 }
 
-// GetTeams returns all teams that belong to organization,
+// GetUserTeams returns all teams that belong to user,
 // and that the user has joined.
 func (org *User) GetUserTeams(userID int64) ([]*Team, error) {
 	return org.getUserTeams(x, userID)
@@ -560,7 +566,7 @@ func (org *User) GetUserRepositories(userID int64, page, pageSize int) ([]*Repos
 	return repos, repoCount, nil
 }
 
-// GetUserRepositories returns mirror repositories of the organization
+// GetUserMirrorRepositories returns mirror repositories of the user
 // that the user with the given userID has access to.
 func (org *User) GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 	teamIDs, err := org.GetUserTeamIDs(userID)

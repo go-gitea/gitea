@@ -12,7 +12,8 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/user"
 )
 
-// https://github.com/gogits/go-gogs-client/wiki/Administration-Repositories#create-a-new-repository
+// CreateRepo api for creating a repository
+// see https://github.com/gogits/go-gogs-client/wiki/Administration-Repositories#create-a-new-repository
 func CreateRepo(ctx *context.APIContext, form api.CreateRepoOption) {
 	owner := user.GetUserByParams(ctx)
 	if ctx.Written() {

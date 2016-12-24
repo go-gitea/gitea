@@ -16,18 +16,18 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/template"
-	"code.gitea.io/gitea/modules/template/highlight"
+	"code.gitea.io/gitea/modules/templates"
 	"github.com/Unknwon/paginater"
 )
 
 const (
-	HOME     base.TplName = "repo/home"
-	WATCHERS base.TplName = "repo/watchers"
-	FORKS    base.TplName = "repo/forks"
+	tplRepoHome base.TplName = "repo/home"
+	tplWatchers base.TplName = "repo/watchers"
+	tplForks    base.TplName = "repo/forks"
 )
 
 func renderDirectory(ctx *context.Context, treeLink string) {
@@ -164,7 +164,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		} else {
 			// Building code view blocks with line number on server side.
 			var fileContent string
-			if err, content := template.ToUTF8WithErr(buf); err != nil {
+			if content, err := templates.ToUTF8WithErr(buf); err != nil {
 				if err != nil {
 					log.Error(4, "ToUTF8WithErr: %s", err)
 				}
@@ -198,6 +198,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	case base.IsPDFFile(buf):
 		ctx.Data["IsPDFFile"] = true
+	case base.IsVideoFile(buf):
+		ctx.Data["IsVideoFile"] = true
 	case base.IsImageFile(buf):
 		ctx.Data["IsImageFile"] = true
 	}
@@ -212,6 +214,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 }
 
+// Home render repository home page
 func Home(ctx *context.Context) {
 	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
 	if len(ctx.Repo.Repository.Description) > 0 {
@@ -263,9 +266,10 @@ func Home(ctx *context.Context) {
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
-	ctx.HTML(200, HOME)
+	ctx.HTML(200, tplRepoHome)
 }
 
+// RenderUserCards render a page show users accroding the input templaet
 func RenderUserCards(ctx *context.Context, total int, getter func(page int) ([]*models.User, error), tpl base.TplName) {
 	page := ctx.QueryInt("page")
 	if page <= 0 {
@@ -284,20 +288,23 @@ func RenderUserCards(ctx *context.Context, total int, getter func(page int) ([]*
 	ctx.HTML(200, tpl)
 }
 
+// Watchers render repository's watch users
 func Watchers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.watchers")
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.watchers")
 	ctx.Data["PageIsWatchers"] = true
-	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, ctx.Repo.Repository.GetWatchers, WATCHERS)
+	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, ctx.Repo.Repository.GetWatchers, tplWatchers)
 }
 
+// Stars render repository's starred users
 func Stars(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.stargazers")
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.stargazers")
 	ctx.Data["PageIsStargazers"] = true
-	RenderUserCards(ctx, ctx.Repo.Repository.NumStars, ctx.Repo.Repository.GetStargazers, WATCHERS)
+	RenderUserCards(ctx, ctx.Repo.Repository.NumStars, ctx.Repo.Repository.GetStargazers, tplWatchers)
 }
 
+// Forks render repository's forked users
 func Forks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repos.forks")
 
@@ -315,5 +322,5 @@ func Forks(ctx *context.Context) {
 	}
 	ctx.Data["Forks"] = forks
 
-	ctx.HTML(200, FORKS)
+	ctx.HTML(200, tplForks)
 }

@@ -18,9 +18,11 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+//NoticeType describes the notice type
 type NoticeType int
 
 const (
+	//NoticeRepository type
 	NoticeRepository NoticeType = iota + 1
 )
 
@@ -33,10 +35,12 @@ type Notice struct {
 	CreatedUnix int64
 }
 
+// BeforeInsert is invoked from XORM before inserting an object of this type.
 func (n *Notice) BeforeInsert() {
 	n.CreatedUnix = time.Now().Unix()
 }
 
+// AfterSet is invoked from XORM after setting the value of a field of this object.
 func (n *Notice) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
 	case "created_unix":

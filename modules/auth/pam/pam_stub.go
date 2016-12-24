@@ -10,6 +10,7 @@ import (
 	"errors"
 )
 
-func PAMAuth(serviceName, userName, passwd string) error {
+// Auth not supported lack of pam tag
+func Auth(serviceName, userName, passwd string) error {
 	return errors.New("PAM not supported")
 }

@@ -50,6 +50,7 @@ func discardLocalRepoBranchChanges(localPath, branch string) error {
 	return nil
 }
 
+// DiscardLocalRepoBranchChanges discards the local repository branch changes
 func (repo *Repository) DiscardLocalRepoBranchChanges(branch string) error {
 	return discardLocalRepoBranchChanges(repo.LocalCopyPath(), branch)
 }
@@ -66,10 +67,12 @@ func checkoutNewBranch(repoPath, localPath, oldBranch, newBranch string) error {
 	return nil
 }
 
+// CheckoutNewBranch checks out a new branch
 func (repo *Repository) CheckoutNewBranch(oldBranch, newBranch string) error {
 	return checkoutNewBranch(repo.RepoPath(), repo.LocalCopyPath(), oldBranch, newBranch)
 }
 
+// UpdateRepoFileOptions holds the repository file update options
 type UpdateRepoFileOptions struct {
 	LastCommitID string
 	OldBranch    string
@@ -101,7 +104,11 @@ func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (
 	localPath := repo.LocalCopyPath()
 	oldFilePath := path.Join(localPath, opts.OldTreeName)
 	filePath := path.Join(localPath, opts.NewTreeName)
-	os.MkdirAll(path.Dir(filePath), os.ModePerm)
+	dir := path.Dir(filePath)
+
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return fmt.Errorf("Fail to create dir %s: %v", dir, err)
+	}
 
 	// If it's meant to be a new file, make sure it doesn't exist.
 	if opts.IsNewFile {
@@ -151,13 +158,13 @@ func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (
 	}
 	oldCommitID := opts.LastCommitID
 	if opts.NewBranch != opts.OldBranch {
-		oldCommitID = git.EMPTY_SHA
+		oldCommitID = git.EmptySHA
 	}
 	if err := CommitRepoAction(CommitRepoActionOptions{
 		PusherName:  doer.Name,
 		RepoOwnerID: repo.MustOwner().ID,
 		RepoName:    repo.Name,
-		RefFullName: git.BRANCH_PREFIX + opts.NewBranch,
+		RefFullName: git.BranchPrefix + opts.NewBranch,
 		OldCommitID: oldCommitID,
 		NewCommitID: commit.ID.String(),
 		Commits:     pushCommits,
@@ -182,7 +189,12 @@ func (repo *Repository) GetDiffPreview(branch, treePath, content string) (diff *
 
 	localPath := repo.LocalCopyPath()
 	filePath := path.Join(localPath, treePath)
-	os.MkdirAll(filepath.Dir(filePath), os.ModePerm)
+	dir := filepath.Dir(filePath)
+
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("Fail to create dir %s: %v", dir, err)
+	}
+
 	if err = ioutil.WriteFile(filePath, []byte(content), 0666); err != nil {
 		return nil, fmt.Errorf("WriteFile: %v", err)
 	}
@@ -223,6 +235,7 @@ func (repo *Repository) GetDiffPreview(branch, treePath, content string) (diff *
 //         \/     \/          \/          \/       \/                 \/
 //
 
+// DeleteRepoFileOptions holds the repository delete file options
 type DeleteRepoFileOptions struct {
 	LastCommitID string
 	OldBranch    string
@@ -231,6 +244,7 @@ type DeleteRepoFileOptions struct {
 	Message      string
 }
 
+// DeleteRepoFile deletes a repository file
 func (repo *Repository) DeleteRepoFile(doer *User, opts DeleteRepoFileOptions) (err error) {
 	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
 	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
@@ -283,7 +297,7 @@ func (repo *Repository) DeleteRepoFile(doer *User, opts DeleteRepoFileOptions) (
 		PusherName:  doer.Name,
 		RepoOwnerID: repo.MustOwner().ID,
 		RepoName:    repo.Name,
-		RefFullName: git.BRANCH_PREFIX + opts.NewBranch,
+		RefFullName: git.BranchPrefix + opts.NewBranch,
 		OldCommitID: opts.LastCommitID,
 		NewCommitID: commit.ID.String(),
 		Commits:     pushCommits,
@@ -351,6 +365,7 @@ func NewUpload(name string, buf []byte, file multipart.File) (_ *Upload, err err
 	return upload, nil
 }
 
+// GetUploadByUUID returns the Upload by UUID
 func GetUploadByUUID(uuid string) (*Upload, error) {
 	upload := &Upload{UUID: uuid}
 	has, err := x.Get(upload)
@@ -362,6 +377,7 @@ func GetUploadByUUID(uuid string) (*Upload, error) {
 	return upload, nil
 }
 
+// GetUploadsByUUIDs returns multiple uploads by UUIDS
 func GetUploadsByUUIDs(uuids []string) ([]*Upload, error) {
 	if len(uuids) == 0 {
 		return []*Upload{}, nil
@@ -372,6 +388,7 @@ func GetUploadsByUUIDs(uuids []string) ([]*Upload, error) {
 	return uploads, x.In("uuid", uuids).Find(&uploads)
 }
 
+// DeleteUploads deletes multiple uploads
 func DeleteUploads(uploads ...*Upload) (err error) {
 	if len(uploads) == 0 {
 		return nil
@@ -407,10 +424,12 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 	return sess.Commit()
 }
 
+// DeleteUpload delete a upload
 func DeleteUpload(u *Upload) error {
 	return DeleteUploads(u)
 }
 
+// DeleteUploadByUUID deletes a upload by UUID
 func DeleteUploadByUUID(uuid string) error {
 	upload, err := GetUploadByUUID(uuid)
 	if err != nil {
@@ -427,6 +446,7 @@ func DeleteUploadByUUID(uuid string) error {
 	return nil
 }
 
+// UploadRepoFileOptions contains the uploaded repository file options
 type UploadRepoFileOptions struct {
 	LastCommitID string
 	OldBranch    string
@@ -436,6 +456,7 @@ type UploadRepoFileOptions struct {
 	Files        []string // In UUID format.
 }
 
+// UploadRepoFiles uploads files to a repository
 func (repo *Repository) UploadRepoFiles(doer *User, opts UploadRepoFileOptions) (err error) {
 	if len(opts.Files) == 0 {
 		return nil
@@ -463,7 +484,10 @@ func (repo *Repository) UploadRepoFiles(doer *User, opts UploadRepoFileOptions) 
 
 	localPath := repo.LocalCopyPath()
 	dirPath := path.Join(localPath, opts.TreePath)
-	os.MkdirAll(dirPath, os.ModePerm)
+
+	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		return fmt.Errorf("Fail to create dir %s: %v", dirPath, err)
+	}
 
 	// Copy uploaded files into repository.
 	for _, upload := range uploads {
@@ -509,7 +533,7 @@ func (repo *Repository) UploadRepoFiles(doer *User, opts UploadRepoFileOptions) 
 		PusherName:  doer.Name,
 		RepoOwnerID: repo.MustOwner().ID,
 		RepoName:    repo.Name,
-		RefFullName: git.BRANCH_PREFIX + opts.NewBranch,
+		RefFullName: git.BranchPrefix + opts.NewBranch,
 		OldCommitID: opts.LastCommitID,
 		NewCommitID: commit.ID.String(),
 		Commits:     pushCommits,

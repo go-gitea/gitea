@@ -4,7 +4,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<p id="repo-desc">
-			{{if .Repository.DescriptionHtml}}<span class="description has-emoji">{{.Repository.DescriptionHtml}}</span>{{else}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
+			{{if .Repository.DescriptionHTML}}<span class="description has-emoji">{{.Repository.DescriptionHTML}}</span>{{else}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
 			<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
 		</p>
 		<div class="ui secondary menu">
@@ -69,7 +69,7 @@
 						<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
 							<i class="octicon octicon-clippy"></i>
 						</button>
-						<div class="ui basic jump dropdown icon button">
+						<div class="ui basic jump dropdown icon button poping up" data-content="{{.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
 							<i class="download icon"></i>
 							<div class="menu">
 								<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.zip"><i class="octicon octicon-file-zip"></i> ZIP</a>

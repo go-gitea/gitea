@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
+// Search search users
 func Search(ctx *context.APIContext) {
 	opts := &models.SearchUserOptions{
 		Keyword:  ctx.Query("q"),
@@ -37,7 +38,7 @@ func Search(ctx *context.APIContext) {
 		results[i] = &api.User{
 			ID:        users[i].ID,
 			UserName:  users[i].Name,
-			AvatarUrl: users[i].AvatarLink(),
+			AvatarURL: users[i].AvatarLink(),
 			FullName:  users[i].FullName,
 		}
 		if ctx.IsSigned {
@@ -51,6 +52,7 @@ func Search(ctx *context.APIContext) {
 	})
 }
 
+// GetInfo get user's information
 func GetInfo(ctx *context.APIContext) {
 	u, err := models.GetUserByName(ctx.Params(":username"))
 	if err != nil {
@@ -69,6 +71,7 @@ func GetInfo(ctx *context.APIContext) {
 	ctx.JSON(200, u.APIFormat())
 }
 
+// GetAuthenticatedUser get curent user's information
 func GetAuthenticatedUser(ctx *context.APIContext) {
 	ctx.JSON(200, ctx.User.APIFormat())
 }

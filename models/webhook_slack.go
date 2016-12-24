@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// SlackMeta contains the slack metdata
 type SlackMeta struct {
 	Channel  string `json:"channel"`
 	Username string `json:"username"`
@@ -23,6 +24,7 @@ type SlackMeta struct {
 	Color    string `json:"color"`
 }
 
+// SlackPayload contains the information about the slack channel
 type SlackPayload struct {
 	Channel     string            `json:"channel"`
 	Text        string            `json:"text"`
@@ -33,6 +35,7 @@ type SlackPayload struct {
 	Attachments []SlackAttachment `json:"attachments"`
 }
 
+// SlackAttachment contains the slack message
 type SlackAttachment struct {
 	Fallback string `json:"fallback"`
 	Color    string `json:"color"`
@@ -40,8 +43,10 @@ type SlackAttachment struct {
 	Text     string `json:"text"`
 }
 
+// SetSecret sets the slack secret
 func (p *SlackPayload) SetSecret(_ string) {}
 
+// JSONPayload Marshals the SlackPayload to json
 func (p *SlackPayload) JSONPayload() ([]byte, error) {
 	data, err := json.MarshalIndent(p, "", "  ")
 	if err != nil {
@@ -50,6 +55,7 @@ func (p *SlackPayload) JSONPayload() ([]byte, error) {
 	return data, nil
 }
 
+// SlackTextFormatter replaces &, <, > with HTML characters
 // see: https://api.slack.com/docs/formatting
 func SlackTextFormatter(s string) string {
 	// replace & < >
@@ -59,6 +65,7 @@ func SlackTextFormatter(s string) string {
 	return s
 }
 
+// SlackShortTextFormatter replaces &, <, > with HTML characters
 func SlackShortTextFormatter(s string) string {
 	s = strings.Split(s, "\n")[0]
 	// replace & < >
@@ -68,6 +75,7 @@ func SlackShortTextFormatter(s string) string {
 	return s
 }
 
+// SlackLinkFormatter creates a link compatablie with slack
 func SlackLinkFormatter(url string, text string) string {
 	return fmt.Sprintf("<%s|%s>", url, SlackTextFormatter(text))
 }
@@ -134,7 +142,7 @@ func getSlackPushPayload(p *api.PushPayload, slack *SlackMeta) (*SlackPayload, e
 }
 
 func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*SlackPayload, error) {
-	senderLink := SlackLinkFormatter(setting.AppUrl+p.Sender.UserName, p.Sender.UserName)
+	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
 	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index),
 		fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
 	var text, title, attachmentText string
@@ -149,14 +157,14 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 		} else {
 			text = fmt.Sprintf("[%s] Pull request closed: %s by %s", p.Repository.FullName, titleLink, senderLink)
 		}
-	case api.HookIssueReopened:
+	case api.HookIssueReOpened:
 		text = fmt.Sprintf("[%s] Pull request re-opened: %s by %s", p.Repository.FullName, titleLink, senderLink)
 	case api.HookIssueEdited:
 		text = fmt.Sprintf("[%s] Pull request edited: %s by %s", p.Repository.FullName, titleLink, senderLink)
 		attachmentText = SlackTextFormatter(p.PullRequest.Body)
 	case api.HookIssueAssigned:
 		text = fmt.Sprintf("[%s] Pull request assigned to %s: %s by %s", p.Repository.FullName,
-			SlackLinkFormatter(setting.AppUrl+p.PullRequest.Assignee.UserName, p.PullRequest.Assignee.UserName),
+			SlackLinkFormatter(setting.AppURL+p.PullRequest.Assignee.UserName, p.PullRequest.Assignee.UserName),
 			titleLink, senderLink)
 	case api.HookIssueUnassigned:
 		text = fmt.Sprintf("[%s] Pull request unassigned: %s by %s", p.Repository.FullName, titleLink, senderLink)
@@ -181,6 +189,7 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 	}, nil
 }
 
+// GetSlackPayload converts a slack webhook into a SlackPayload
 func GetSlackPayload(p api.Payloader, event HookEventType, meta string) (*SlackPayload, error) {
 	s := new(SlackPayload)
 

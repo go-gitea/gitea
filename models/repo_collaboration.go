@@ -16,6 +16,7 @@ type Collaboration struct {
 	Mode   AccessMode `xorm:"DEFAULT 2 NOT NULL"`
 }
 
+// ModeI18nKey returns the collaboration mode I18n Key
 func (c *Collaboration) ModeI18nKey() string {
 	switch c.Mode {
 	case AccessModeRead:
@@ -67,7 +68,7 @@ func (repo *Repository) AddCollaborator(u *User) error {
 }
 
 func (repo *Repository) getCollaborations(e Engine) ([]*Collaboration, error) {
-	collaborations := make([]*Collaboration, 0)
+	var collaborations []*Collaboration
 	return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
 }
 

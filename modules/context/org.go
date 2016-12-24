@@ -12,6 +12,7 @@ import (
 	macaron "gopkg.in/macaron.v1"
 )
 
+// Organization contains organization context
 type Organization struct {
 	IsOwner      bool
 	IsMember     bool
@@ -23,6 +24,7 @@ type Organization struct {
 	Team *models.Team
 }
 
+// HandleOrgAssignment handles organization assignment
 func HandleOrgAssignment(ctx *Context, args ...bool) {
 	var (
 		requireMember     bool
@@ -93,7 +95,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
 
-	ctx.Org.OrgLink = setting.AppSubUrl + "/org/" + org.Name
+	ctx.Org.OrgLink = setting.AppSubURL + "/org/" + org.Name
 	ctx.Data["OrgLink"] = ctx.Org.OrgLink
 
 	// Team.
@@ -145,6 +147,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 }
 
+// OrgAssignment returns a macaron middleware to handle organization assignment
 func OrgAssignment(args ...bool) macaron.Handler {
 	return func(ctx *Context) {
 		HandleOrgAssignment(ctx, args...)
