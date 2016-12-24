@@ -855,15 +855,14 @@ func GetIssueByID(id int64) (*Issue, error) {
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
-	UserID      int64
-	AssigneeID  int64
 	RepoID      int64
+	AssigneeID  int64
 	PosterID    int64
+	MentionedID int64
 	MilestoneID int64
 	RepoIDs     []int64
 	Page        int
 	IsClosed    bool
-	IsMention   bool
 	IsPull      bool
 	Labels      string
 	SortType    string
@@ -887,8 +886,16 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 
 	if opts.AssigneeID > 0 {
 		sess.And("issue.assignee_id=?", opts.AssigneeID)
-	} else if opts.PosterID > 0 {
+	}
+
+	if opts.PosterID > 0 {
 		sess.And("issue.poster_id=?", opts.PosterID)
+	}
+
+	if opts.MentionedID > 0 {
+		sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
+			And("issue_user.is_mentioned = ?", true).
+			And("issue_user.uid = ?", opts.MentionedID)
 	}
 
 	if opts.MilestoneID > 0 {
@@ -923,16 +930,6 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 			sess.
 				Join("INNER", "issue_label", "issue.id = issue_label.issue_id").
 				In("issue_label.label_id", labelIDs)
-		}
-	}
-
-	if opts.IsMention {
-		sess.
-			Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
-			And("issue_user.is_mentioned = ?", true)
-
-		if opts.UserID > 0 {
-			sess.And("issue_user.uid = ?", opts.UserID)
 		}
 	}
 
@@ -1156,11 +1153,11 @@ func parseCountResult(results []map[string][]byte) int64 {
 // IssueStatsOptions contains parameters accepted by GetIssueStats.
 type IssueStatsOptions struct {
 	RepoID      int64
-	UserID      int64
 	Labels      string
 	MilestoneID int64
 	AssigneeID  int64
-	FilterMode  int
+	MentionedID int64
+	PosterID    int64
 	IsPull      bool
 }
 
@@ -1191,43 +1188,25 @@ func GetIssueStats(opts *IssueStatsOptions) *IssueStats {
 			sess.And("assignee_id = ?", opts.AssigneeID)
 		}
 
+		if opts.PosterID > 0 {
+			sess.And("poster_id = ?", opts.PosterID)
+		}
+
+		if opts.MentionedID > 0 {
+			sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
+			And("issue_user.uid = ?", opts.MentionedID).
+			And("issue_user.is_mentioned = ?", true)
+		}
+
 		return sess
 	}
 
-	switch opts.FilterMode {
-	case FilterModeAll, FilterModeAssign:
-		stats.OpenCount, _ = countSession(opts).
-			And("is_closed = ?", false).
-			Count(&Issue{})
-
-		stats.ClosedCount, _ = countSession(opts).
-			And("is_closed = ?", true).
-			Count(&Issue{})
-	case FilterModeCreate:
-		stats.OpenCount, _ = countSession(opts).
-			And("poster_id = ?", opts.UserID).
-			And("is_closed = ?", false).
-			Count(&Issue{})
-
-		stats.ClosedCount, _ = countSession(opts).
-			And("poster_id = ?", opts.UserID).
-			And("is_closed = ?", true).
-			Count(&Issue{})
-	case FilterModeMention:
-		stats.OpenCount, _ = countSession(opts).
-			Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
-			And("issue_user.uid = ?", opts.UserID).
-			And("issue_user.is_mentioned = ?", true).
-			And("issue.is_closed = ?", false).
-			Count(&Issue{})
-
-		stats.ClosedCount, _ = countSession(opts).
-			Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
-			And("issue_user.uid = ?", opts.UserID).
-			And("issue_user.is_mentioned = ?", true).
-			And("issue.is_closed = ?", true).
-			Count(&Issue{})
-	}
+	stats.OpenCount, _ = countSession(opts).
+		And("is_closed = ?", false).
+		Count(&Issue{})
+	stats.ClosedCount, _ = countSession(opts).
+		And("is_closed = ?", true).
+		Count(&Issue{})
 	return stats
 }
 

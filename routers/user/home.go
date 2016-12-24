@@ -272,7 +272,6 @@ func Issues(ctx *context.Context) {
 
 	// Get issues.
 	issues, err := models.Issues(&models.IssuesOptions{
-		UserID:     ctxUser.ID,
 		AssigneeID: assigneeID,
 		RepoID:     repoID,
 		PosterID:   posterID,

@@ -130,38 +130,42 @@ func Issues(ctx *context.Context) {
 
 	var (
 		assigneeID = ctx.QueryInt64("assignee")
-		posterID   int64
+		posterID     int64
+		mentionedID  int64
+		forceEmpty   bool
 	)
-	filterMode := models.FilterModeAll
 	switch viewType {
 	case "assigned":
-		filterMode = models.FilterModeAssign
-		assigneeID = ctx.User.ID
+		if assigneeID > 0 && ctx.User.ID != assigneeID {
+			// two different assignees, must be empty
+			forceEmpty = true
+		} else {
+			assigneeID = ctx.User.ID
+		}
 	case "created_by":
-		filterMode = models.FilterModeCreate
 		posterID = ctx.User.ID
 	case "mentioned":
-		filterMode = models.FilterModeMention
-	}
-
-	var uid int64 = -1
-	if ctx.IsSigned {
-		uid = ctx.User.ID
+		mentionedID = ctx.User.ID
 	}
 
 	repo := ctx.Repo.Repository
 	selectLabels := ctx.Query("labels")
 	milestoneID := ctx.QueryInt64("milestone")
 	isShowClosed := ctx.Query("state") == "closed"
-	issueStats := models.GetIssueStats(&models.IssueStatsOptions{
-		RepoID:      repo.ID,
-		UserID:      uid,
-		Labels:      selectLabels,
-		MilestoneID: milestoneID,
-		AssigneeID:  assigneeID,
-		FilterMode:  filterMode,
-		IsPull:      isPullList,
-	})
+
+	var issueStats *models.IssueStats
+	if forceEmpty {
+		issueStats = &models.IssueStats{}
+	} else {
+		issueStats = models.GetIssueStats(&models.IssueStatsOptions{
+			RepoID:      repo.ID,
+			Labels:      selectLabels,
+			MilestoneID: milestoneID,
+			AssigneeID:  assigneeID,
+			MentionedID: mentionedID,
+			IsPull:      isPullList,
+		})
+	}
 
 	page := ctx.QueryInt("page")
 	if page <= 1 {
@@ -177,22 +181,28 @@ func Issues(ctx *context.Context) {
 	pager := paginater.New(total, setting.UI.IssuePagingNum, page, 5)
 	ctx.Data["Page"] = pager
 
-	issues, err := models.Issues(&models.IssuesOptions{
-		UserID:      uid,
-		AssigneeID:  assigneeID,
-		RepoID:      repo.ID,
-		PosterID:    posterID,
-		MilestoneID: milestoneID,
-		Page:        pager.Current(),
-		IsClosed:    isShowClosed,
-		IsMention:   filterMode == models.FilterModeMention,
-		IsPull:      isPullList,
-		Labels:      selectLabels,
-		SortType:    sortType,
-	})
-	if err != nil {
-		ctx.Handle(500, "Issues", err)
-		return
+
+	var issues []*models.Issue
+	if forceEmpty {
+		issues = []*models.Issue{}
+	} else {
+		var err error
+		issues, err = models.Issues(&models.IssuesOptions{
+			AssigneeID:  assigneeID,
+			RepoID:      repo.ID,
+			PosterID:    posterID,
+			MentionedID: mentionedID,
+			MilestoneID: milestoneID,
+			Page:        pager.Current(),
+			IsClosed:    isShowClosed,
+			IsPull:      isPullList,
+			Labels:      selectLabels,
+			SortType:    sortType,
+		})
+		if err != nil {
+			ctx.Handle(500, "Issues", err)
+			return
+		}
 	}
 
 	// Get issue-user relations.
@@ -233,7 +243,7 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
-	if viewType == "assigned" {
+	if ctx.QueryInt64("assignee") == 0 {
 		assigneeID = 0 // Reset ID to prevent unexpected selection of assignee.
 	}
 
