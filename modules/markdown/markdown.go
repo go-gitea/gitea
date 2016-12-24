@@ -161,14 +161,14 @@ func (r *Renderer) AutoLink(out *bytes.Buffer, link []byte, kind int) {
 			}
 
 			issue := string(m[i+7 : j])
-			fullRepoUrl := setting.AppUrl + strings.TrimPrefix(r.urlPrefix, "/")
+			fullRepoUrl := setting.AppURL + strings.TrimPrefix(r.urlPrefix, "/")
 			var link string
 			if strings.HasPrefix(string(m), fullRepoUrl) {
 				// Use a short issue reference if the URL refers to this repository
 				link = fmt.Sprintf(`<a href="%s">#%s</a>`, m, issue)
 			} else {
 				// Use a cross-repository issue reference if the URL refers to a different repository
-				repo := string(m[len(setting.AppUrl) : i-1])
+				repo := string(m[len(setting.AppURL) : i-1])
 				link = fmt.Sprintf(`<a href="%s">%s#%s</a>`, m, repo, issue)
 			}
 			out.WriteString(link)
@@ -289,7 +289,7 @@ func RenderCrossReferenceIssueIndexPattern(rawBytes []byte, urlPrefix string, me
 		repo := string(bytes.Split(m, []byte("#"))[0])
 		issue := string(bytes.Split(m, []byte("#"))[1])
 
-		link := fmt.Sprintf(`<a href="%s%s/issues/%s">%s</a>`, setting.AppUrl, repo, issue, m)
+		link := fmt.Sprintf(`<a href="%s%s/issues/%s">%s</a>`, setting.AppURL, repo, issue, m)
 		rawBytes = bytes.Replace(rawBytes, m, []byte(link), 1)
 	}
 	return rawBytes
