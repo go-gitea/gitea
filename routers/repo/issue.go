@@ -665,9 +665,9 @@ func ViewIssue(ctx *context.Context) {
 		pull := issue.PullRequest
 		ctx.Data["IsPullBranchDeletable"] = ctx.Repo.IsWriter() && ctx.Repo.GitRepo.IsBranchExist(pull.HeadBranch)
 
-		deleteBranchUrl := ctx.Repo.RepoLink + "/branches/" + pull.HeadBranch + "/delete"
+		deleteBranchURL := ctx.Repo.RepoLink + "/branches/" + pull.HeadBranch + "/delete"
 		queryParams := "?redirect_to=" + ctx.Data["Link"].(string)
-		ctx.Data["DeleteBranchLink"] = deleteBranchUrl + queryParams
+		ctx.Data["DeleteBranchLink"] = deleteBranchURL + queryParams
 	}
 
 	ctx.Data["Participants"] = participants
