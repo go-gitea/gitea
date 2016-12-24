@@ -228,22 +228,22 @@ function initInstall() {
             return;
         }
 
-        var mysqlDefault = '127.0.0.1:3306';
-        var postgresDefault = '127.0.0.1:5432';
+        var dbDefaults = {
+            "MySQL": "127.0.0.1:3306",
+            "PostgreSQL": "127.0.0.1:5432",
+            "MSSQL": "127.0.0.1:1433"
+        };
 
         $('#sqlite_settings').hide();
         $('#sql_settings').show();
-        if (dbType === "PostgreSQL") {
-            $('#pgsql_settings').show();
-            if ($('#db_host').val() == mysqlDefault) {
-                $('#db_host').val(postgresDefault);
+
+        $('#pgsql_settings').toggle(dbType === "PostgreSQL");
+        $.each(dbDefaults, function(type, defaultHost) {
+            if ($('#db_host').val() == defaultHost) {
+                $('#db_host').val(dbDefaults[dbType]);
+                return false;
             }
-        } else {
-            $('#pgsql_settings').hide();
-            if ($('#db_host').val() == postgresDefault) {
-                $('#db_host').val(mysqlDefault);
-            }
-        }
+        });
     });
 
     // TODO: better handling of exclusive relations.
