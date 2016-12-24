@@ -91,7 +91,7 @@ var (
 	IssueNumericPattern = regexp.MustCompile(`( |^|\()#[0-9]+\b`)
 	// IssueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
 	IssueAlphanumericPattern = regexp.MustCompile(`( |^|\()[A-Z]{1,10}-[1-9][0-9]*\b`)
-	// CrossReferenceIssueNumericPattern matches string that references a numeric issue in a difference repository
+	// CrossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. gogits/gogs#12345
 	CrossReferenceIssueNumericPattern = regexp.MustCompile(`( |^)[0-9a-zA-Z]+/[0-9a-zA-Z]+#[0-9]+\b`)
 
