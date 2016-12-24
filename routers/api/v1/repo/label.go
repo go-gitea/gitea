@@ -15,7 +15,7 @@ import (
 
 // ListLabels list all the labels of a repository
 func ListLabels(ctx *context.APIContext) {
-	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID)
+	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Query("sort"))
 	if err != nil {
 		ctx.Error(500, "GetLabelsByRepoID", err)
 		return

@@ -1503,12 +1503,28 @@ func GetMilestonesByRepoID(repoID int64) ([]*Milestone, error) {
 }
 
 // GetMilestones returns a list of milestones of given repository and status.
-func GetMilestones(repoID int64, page int, isClosed bool) ([]*Milestone, error) {
+func GetMilestones(repoID int64, page int, isClosed bool, sortType string) ([]*Milestone, error) {
 	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
 	sess := x.Where("repo_id = ? AND is_closed = ?", repoID, isClosed)
 	if page > 0 {
 		sess = sess.Limit(setting.UI.IssuePagingNum, (page-1)*setting.UI.IssuePagingNum)
 	}
+
+	switch sortType {
+	case "furthestduedate":
+		sess.Desc("deadline_unix")
+	case "leastcomplete":
+		sess.Asc("completeness")
+	case "mostcomplete":
+		sess.Desc("completeness")
+	case "leastissues":
+		sess.Asc("num_issues")
+	case "mostissues":
+		sess.Desc("num_issues")
+	default:
+		sess.Asc("deadline_unix")
+	}
+
 	return miles, sess.Find(&miles)
 }
 
