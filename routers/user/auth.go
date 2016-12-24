@@ -203,6 +203,11 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplSignUp, &form)
 		return
 	}
+	if len(form.Password) < setting.MinPasswordLength {
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplSignUp, &form)
+		return
+	}
 
 	u := &models.User{
 		Name:     form.UserName,
@@ -410,7 +415,7 @@ func ResetPasswd(ctx *context.Context) {
 	ctx.HTML(200, tplResetPassword)
 }
 
-// ResetPasswdPost response fro reset password request
+// ResetPasswdPost response from reset password request
 func ResetPasswdPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
 
@@ -424,10 +429,10 @@ func ResetPasswdPost(ctx *context.Context) {
 	if u := models.VerifyUserActiveCode(code); u != nil {
 		// Validate password length.
 		passwd := ctx.Query("password")
-		if len(passwd) < 6 {
+		if len(passwd) < setting.MinPasswordLength {
 			ctx.Data["IsResetForm"] = true
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_too_short"), tplResetPassword, nil)
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
 			return
 		}
 
