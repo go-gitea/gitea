@@ -590,11 +590,7 @@ please consider changing to GITEA_CUSTOM`)
 	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
-	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt()
-
-	if MinPasswordLength == 0 {
-		MinPasswordLength = 6
-	}
+	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
