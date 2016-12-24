@@ -10,6 +10,29 @@ import (
 	"fmt"
 )
 
+// ListCollaborators list a repository's collaborators
+func (c *Client) ListCollaborators(user, repo string) ([]*User, error) {
+	collaborators := make([]*User, 0, 10)
+	err := c.getParsedResponse("GET",
+		fmt.Sprintf("/repos/%s/%s/collaborators", user, repo),
+		nil, nil, &collaborators)
+	return collaborators, err
+}
+
+// IsCollaborator check if a user is a collaborator of a repository
+func (c *Client) IsCollaborator(user, repo, collaborator string) (bool, error) {
+	status, err := c.getStatusCode("GET",
+		fmt.Sprintf("/repos/%s/%s/collaborators/%s", user, repo, collaborator),
+		nil, nil)
+	if err != nil {
+		return false, err
+	}
+	if status == 204 {
+		return true, nil
+	}
+	return false, nil
+}
+
 // AddCollaboratorOption options when add some user as a collaborator of a repository
 type AddCollaboratorOption struct {
 	Permission *string `json:"permission"`
@@ -22,5 +45,13 @@ func (c *Client) AddCollaborator(user, repo, collaborator string, opt AddCollabo
 		return err
 	}
 	_, err = c.getResponse("PUT", fmt.Sprintf("/repos/%s/%s/collaborators/%s", user, repo, collaborator), nil, bytes.NewReader(body))
+	return err
+}
+
+// DeleteCollaborator remove a collaborator from a repository
+func (c *Client) DeleteCollaborator(user, repo, collaborator string) error {
+	_, err := c.getResponse("DELETE",
+		fmt.Sprintf("/repos/%s/%s/collaborators/%s", user, repo, collaborator),
+		nil, nil)
 	return err
 }

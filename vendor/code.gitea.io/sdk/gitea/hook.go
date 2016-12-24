@@ -30,10 +30,28 @@ type Hook struct {
 	Created time.Time         `json:"created_at"`
 }
 
+// ListOrgHooks list all the hooks of one organization
+func (c *Client) ListOrgHooks(org string) ([]*Hook, error) {
+	hooks := make([]*Hook, 0, 10)
+	return hooks, c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s/hooks", org), nil, nil, &hooks)
+}
+
 // ListRepoHooks list all the hooks of one repository
 func (c *Client) ListRepoHooks(user, repo string) ([]*Hook, error) {
 	hooks := make([]*Hook, 0, 10)
 	return hooks, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/hooks", user, repo), nil, nil, &hooks)
+}
+
+// GetOrgHook get a hook of an organization
+func (c *Client) GetOrgHook(org string, id int64) (*Hook, error) {
+	h := new(Hook)
+	return h, c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s/hooks/%d", org, id), nil, nil, h)
+}
+
+// GetRepoHook get a hook of a repository
+func (c *Client) GetRepoHook(user, repo string, id int64) (*Hook, error) {
+	h := new(Hook)
+	return h, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/hooks/%d", user, repo, id), nil, nil, h)
 }
 
 // CreateHookOption options when create a hook
@@ -44,7 +62,17 @@ type CreateHookOption struct {
 	Active bool              `json:"active"`
 }
 
-// CreateRepoHook create one hook with options
+// CreateOrgHook create one hook for an organization, with options
+func (c *Client) CreateOrgHook(org string, opt CreateHookOption) (*Hook, error) {
+	body, err := json.Marshal(&opt)
+	if err != nil {
+		return nil, err
+	}
+	h := new(Hook)
+	return h, c.getParsedResponse("POST", fmt.Sprintf("/orgs/%s/hooks", org), jsonHeader, bytes.NewReader(body), h)
+}
+
+// CreateRepoHook create one hook for a repository, with options
 func (c *Client) CreateRepoHook(user, repo string, opt CreateHookOption) (*Hook, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {
@@ -61,7 +89,17 @@ type EditHookOption struct {
 	Active *bool             `json:"active"`
 }
 
-// EditRepoHook modify one hook with hook id and options
+// EditOrgHook modify one hook of an organization, with hook id and options
+func (c *Client) EditOrgHook(org string, id int64, opt EditHookOption) error {
+	body, err := json.Marshal(&opt)
+	if err != nil {
+		return err
+	}
+	_, err = c.getResponse("PATCH", fmt.Sprintf("/orgs/%s/hooks/%d", org, id), jsonHeader, bytes.NewReader(body))
+	return err
+}
+
+// EditRepoHook modify one hook of a repository, with hook id and options
 func (c *Client) EditRepoHook(user, repo string, id int64, opt EditHookOption) error {
 	body, err := json.Marshal(&opt)
 	if err != nil {
@@ -71,7 +109,14 @@ func (c *Client) EditRepoHook(user, repo string, id int64, opt EditHookOption) e
 	return err
 }
 
-// DeleteRepoHook delete one hook with hook id
+// DeleteOrgHook delete one hook from an organization, with hook id
+func (c *Client) DeleteOrgHook(org string, id int64) error {
+	_, err := c.getResponse("DELETE", fmt.Sprintf("/org/%s/hooks/%d", org, id), nil, nil)
+	return err
+}
+
+
+// DeleteRepoHook delete one hook from a repository, with hook id
 func (c *Client) DeleteRepoHook(user, repo string, id int64) error {
 	_, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/hooks/%d", user, repo, id), nil, nil)
 	return err
