@@ -1,25 +1,44 @@
-FROM hypriot/rpi-alpine-scratch:v3.2
-MAINTAINER jp@roemer.im, raxetul@gmail.com
+FROM hypriot/rpi-alpine-scratch:v3.4
+MAINTAINER Thomas Boerger <thomas@webhippie.de>
 
-# Install system utils & Gogs runtime dependencies
-ADD https://github.com/tianon/gosu/releases/download/1.9/gosu-armhf /usr/sbin/gosu
-RUN chmod +x /usr/sbin/gosu \
- && echo "http://dl-4.alpinelinux.org/alpine/v3.3/main/"      | tee /etc/apk/repositories    \
- && echo "http://dl-4.alpinelinux.org/alpine/v3.3/community/" | tee -a /etc/apk/repositories \
- && apk -U --no-progress upgrade && rm -f /var/cache/apk/APKINDEX.* \
- && apk --no-cache --no-progress add ca-certificates bash git linux-pam s6 curl openssh socat tzdata
-
-ENV GITEA_CUSTOM /data/gogs
-
-COPY . /app/gogs/
-WORKDIR /app/gogs/
-RUN ./docker/build.sh
-
-# Configure LibC Name Service
-COPY docker/nsswitch.conf /etc/nsswitch.conf
-
-# Configure Docker Container
-VOLUME ["/data"]
 EXPOSE 22 3000
-ENTRYPOINT ["docker/start.sh"]
-CMD ["/bin/s6-svscan", "/app/gogs/docker/s6/"]
+
+RUN apk update && \
+  apk add \
+    su-exec \
+    ca-certificates \
+    sqlite \
+    bash \
+    git \
+    linux-pam \
+    s6 \
+    curl \
+    openssh \
+    tzdata && \
+  rm -rf \
+    /var/cache/apk/* && \
+  addgroup \
+    -S -g 1000 \
+    git && \
+  adduser \
+    -S -H -D \
+    -h /data/git \
+    -s /bin/bash \
+    -u 1000 \
+    -G git \
+    git
+
+ENV USER git
+ENV GITEA_CUSTOM /data/gitea
+ENV GODEBUG=netdns=go
+
+VOLUME ["/data"]
+
+ENTRYPOINT ["/usr/bin/entrypoint"]
+CMD ["/bin/s6-svscan", "/etc/s6"]
+
+COPY docker /
+
+COPY public /app/gitea/public
+COPY templates /app/gitea/templates
+COPY gitea /app/gitea/gitea

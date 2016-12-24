@@ -36,7 +36,7 @@ func createDefaultCookie() {
 	defaultCookieJar, _ = cookiejar.New(nil)
 }
 
-// Overwrite default settings
+// SetDefaultSetting overwrites default settings
 func SetDefaultSetting(setting Settings) {
 	settingMutex.Lock()
 	defer settingMutex.Unlock()
@@ -49,7 +49,7 @@ func SetDefaultSetting(setting Settings) {
 	}
 }
 
-// return *Request with specific method
+// newRequest returns *Request with specific method
 func newRequest(url, method string) *Request {
 	var resp http.Response
 	req := http.Request{
@@ -87,18 +87,19 @@ func Head(url string) *Request {
 	return newRequest(url, "HEAD")
 }
 
+// Settings is the default settings for http client
 type Settings struct {
 	ShowDebug        bool
 	UserAgent        string
 	ConnectTimeout   time.Duration
 	ReadWriteTimeout time.Duration
-	TlsClientConfig  *tls.Config
+	TLSClientConfig  *tls.Config
 	Proxy            func(*http.Request) (*url.URL, error)
 	Transport        http.RoundTripper
 	EnableCookie     bool
 }
 
-// HttpRequest provides more useful methods for requesting one url than http.Request.
+// Request provides more useful methods for requesting one url than http.Request.
 type Request struct {
 	url     string
 	req     *http.Request
@@ -109,7 +110,7 @@ type Request struct {
 	body    []byte
 }
 
-// Change request settings
+// Setting changes request settings
 func (r *Request) Setting(setting Settings) *Request {
 	r.setting = setting
 	return r
@@ -148,7 +149,7 @@ func (r *Request) SetTimeout(connectTimeout, readWriteTimeout time.Duration) *Re
 
 // SetTLSClientConfig sets tls connection configurations if visiting https url.
 func (r *Request) SetTLSClientConfig(config *tls.Config) *Request {
-	r.setting.TlsClientConfig = config
+	r.setting.TLSClientConfig = config
 	return r
 }
 
@@ -158,11 +159,12 @@ func (r *Request) Header(key, value string) *Request {
 	return r
 }
 
+// Headers returns headers in request.
 func (r *Request) Headers() http.Header {
 	return r.req.Header
 }
 
-// Set the protocol version for incoming requests.
+// SetProtocolVersion sets the protocol version for incoming requests.
 // Client requests always use HTTP/1.1.
 func (r *Request) SetProtocolVersion(vers string) *Request {
 	if len(vers) == 0 {
@@ -185,13 +187,13 @@ func (r *Request) SetCookie(cookie *http.Cookie) *Request {
 	return r
 }
 
-// Set transport to
+// SetTransport sets transport to
 func (r *Request) SetTransport(transport http.RoundTripper) *Request {
 	r.setting.Transport = transport
 	return r
 }
 
-// Set http proxy
+// SetProxy sets http proxy
 // example:
 //
 //	func(req *http.Request) (*url.URL, error) {
@@ -210,6 +212,7 @@ func (r *Request) Param(key, value string) *Request {
 	return r
 }
 
+// PostFile uploads file via http
 func (r *Request) PostFile(formname, filename string) *Request {
 	r.files[formname] = filename
 	return r
@@ -301,7 +304,7 @@ func (r *Request) getResponse() (*http.Response, error) {
 	if trans == nil {
 		// create default transport
 		trans = &http.Transport{
-			TLSClientConfig: r.setting.TlsClientConfig,
+			TLSClientConfig: r.setting.TLSClientConfig,
 			Proxy:           r.setting.Proxy,
 			Dial:            TimeoutDialer(r.setting.ConnectTimeout, r.setting.ReadWriteTimeout),
 		}
@@ -309,7 +312,7 @@ func (r *Request) getResponse() (*http.Response, error) {
 		// if r.transport is *http.Transport then set the settings.
 		if t, ok := trans.(*http.Transport); ok {
 			if t.TLSClientConfig == nil {
-				t.TLSClientConfig = r.setting.TlsClientConfig
+				t.TLSClientConfig = r.setting.TLSClientConfig
 			}
 			if t.Proxy == nil {
 				t.Proxy = r.setting.Proxy
@@ -409,9 +412,9 @@ func (r *Request) ToFile(filename string) error {
 	return err
 }
 
-// ToJson returns the map that marshals from the body bytes as json in response .
+// ToJSON returns the map that marshals from the body bytes as json in response .
 // it calls Response inner.
-func (r *Request) ToJson(v interface{}) error {
+func (r *Request) ToJSON(v interface{}) error {
 	data, err := r.Bytes()
 	if err != nil {
 		return err
@@ -420,9 +423,9 @@ func (r *Request) ToJson(v interface{}) error {
 	return err
 }
 
-// ToXml returns the map that marshals from the body bytes as xml in response .
+// ToXML returns the map that marshals from the body bytes as xml in response .
 // it calls Response inner.
-func (r *Request) ToXml(v interface{}) error {
+func (r *Request) ToXML(v interface{}) error {
 	data, err := r.Bytes()
 	if err != nil {
 		return err

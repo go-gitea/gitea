@@ -250,6 +250,9 @@ func Issues(ctx *context.Context) {
 		}
 	}
 	ctx.Data["Repos"] = showRepos
+	if len(repoIDs) == 0 {
+		repoIDs = []int64{-1}
+	}
 
 	issueStats := models.GetUserIssueStats(repoID, ctxUser.ID, repoIDs, filterMode, isPullList)
 	issueStats.AllCount = int64(allCount)
@@ -269,7 +272,6 @@ func Issues(ctx *context.Context) {
 
 	// Get issues.
 	issues, err := models.Issues(&models.IssuesOptions{
-		UserID:     ctxUser.ID,
 		AssigneeID: assigneeID,
 		RepoID:     repoID,
 		PosterID:   posterID,
@@ -313,7 +315,7 @@ func Issues(ctx *context.Context) {
 	ctx.HTML(200, tplIssues)
 }
 
-// ShowSSHKeys ouput all the ssh keys of user by uid
+// ShowSSHKeys output all the ssh keys of user by uid
 func ShowSSHKeys(ctx *context.Context, uid int64) {
 	keys, err := models.ListPublicKeys(uid)
 	if err != nil {
@@ -390,5 +392,5 @@ func Email2User(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Redirect(setting.AppSubUrl + "/user/" + u.Name)
+	ctx.Redirect(setting.AppSubURL + "/user/" + u.Name)
 }

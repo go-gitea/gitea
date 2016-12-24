@@ -10,14 +10,17 @@ import (
 
 var jsonHeader = http.Header{"content-type": []string{"application/json"}}
 
+// Bool return address of bool value
 func Bool(v bool) *bool {
 	return &v
 }
 
+// String return address of string value
 func String(v string) *string {
 	return &v
 }
 
+// Int64 return address of int64 value
 func Int64(v int64) *int64 {
 	return &v
 }

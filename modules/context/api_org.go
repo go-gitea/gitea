@@ -8,6 +8,7 @@ import (
 	"code.gitea.io/gitea/models"
 )
 
+// APIOrganization contains organization and team
 type APIOrganization struct {
 	Organization *models.User
 	Team         *models.Team

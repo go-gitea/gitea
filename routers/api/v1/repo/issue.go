@@ -15,14 +15,27 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// ListIssues list the issues of a repository
 func ListIssues(ctx *context.APIContext) {
-	issues, err := models.Issues(&models.IssuesOptions{
-		RepoID: ctx.Repo.Repository.ID,
-		Page:   ctx.QueryInt("page"),
-	})
+	issueOpts := models.IssuesOptions{
+		RepoID:   ctx.Repo.Repository.ID,
+		Page:     ctx.QueryInt("page"),
+		IsClosed: ctx.Query("state") == "closed",
+	}
+
+	issues, err := models.Issues(&issueOpts)
 	if err != nil {
 		ctx.Error(500, "Issues", err)
 		return
+	}
+	if ctx.Query("state") == "all" {
+		issueOpts.IsClosed = !issueOpts.IsClosed
+		tempIssues, err := models.Issues(&issueOpts)
+		if err != nil {
+			ctx.Error(500, "Issues", err)
+			return
+		}
+		issues = append(issues, tempIssues...)
 	}
 
 	// FIXME: use IssueList to improve performance.
@@ -39,6 +52,7 @@ func ListIssues(ctx *context.APIContext) {
 	ctx.JSON(200, &apiIssues)
 }
 
+// GetIssue get an issue of a repository
 func GetIssue(ctx *context.APIContext) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
@@ -52,6 +66,7 @@ func GetIssue(ctx *context.APIContext) {
 	ctx.JSON(200, issue.APIFormat())
 }
 
+// CreateIssue create an issue of a repository
 func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	issue := &models.Issue{
 		RepoID:   ctx.Repo.Repository.ID,
@@ -101,6 +116,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	ctx.JSON(201, issue.APIFormat())
 }
 
+// EditIssue modify an issue of a repository
 func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
@@ -161,7 +177,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 	if form.State != nil {
-		if err = issue.ChangeStatus(ctx.User, ctx.Repo.Repository, api.STATE_CLOSED == api.StateType(*form.State)); err != nil {
+		if err = issue.ChangeStatus(ctx.User, ctx.Repo.Repository, api.StateClosed == api.StateType(*form.State)); err != nil {
 			ctx.Error(500, "ChangeStatus", err)
 			return
 		}

@@ -6,19 +6,19 @@
 :: https://nssm.cc/download
 :: This script itself should run in the gogs path, too.
 :: In case of startup failure, please read carefully the log file.
-:: Make sure Gogs work running manually with "gogs web" before running
+:: Make sure Gitea work running manually with "gitea web" before running
 :: this script.
 :: And, please, read carefully the installation docs first:
 :: https://gogs.io/docs/installation
 :: To unistall the service, run "nssm remove gogs" and restart Windows.
 
-:: Set the folder where you extracted Gogs. Omit the last slash.
+:: Set the folder where you extracted Gitea. Omit the last slash.
 SET gogspath=C:\gogs
 
 nssm install gogs "%gogspath%\gogs.exe"
 nssm set gogs AppParameters "web"
 nssm set gogs Description "A painless self-hosted Git service."
-nssm set gogs DisplayName "Gogs - Go Git Service"
+nssm set gogs DisplayName "Gitea - Git with a cup of tea"
 nssm set gogs Start SERVICE_DELAYED_AUTO_START
 nssm set gogs AppStdout "%gogspath%\gogs.log"
 nssm start gogs

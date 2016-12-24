@@ -6,6 +6,7 @@ package user
 
 import "os"
 
+// CurrentUsername return current login OS user name
 func CurrentUsername() string {
 	curUserName := os.Getenv("USER")
 	if len(curUserName) > 0 {

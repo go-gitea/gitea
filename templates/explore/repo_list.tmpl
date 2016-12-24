@@ -16,8 +16,12 @@
 					<span class="text grey"><i class="octicon octicon-git-branch"></i> {{.NumForks}}</span>
 				</div>
 			</div>
-			{{if .DescriptionHtml}}<p class="has-emoji">{{.DescriptionHtml}}</p>{{end}}
+			{{if .DescriptionHTML}}<p class="has-emoji">{{.DescriptionHTML}}</p>{{end}}
 			<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Updated $.i18n.Lang}}</p>
 		</div>
+	{{else}}
+	<div>
+		{{$.i18n.Tr "explore.repo_no_results"}}
+	</div>
 	{{end}}
 </div>

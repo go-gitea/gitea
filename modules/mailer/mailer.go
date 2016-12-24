@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// Message mail body and log info
 type Message struct {
 	Info string // Message information for log purpose.
 	*gomail.Message
@@ -61,15 +62,17 @@ type loginAuth struct {
 	username, password string
 }
 
-// SMTP AUTH LOGIN Auth Handler
+// LoginAuth SMTP AUTH LOGIN Auth Handler
 func LoginAuth(username, password string) smtp.Auth {
 	return &loginAuth{username, password}
 }
 
+// Start start SMTP login auth
 func (a *loginAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
 	return "LOGIN", []byte{}, nil
 }
 
+// Next next step of SMTP login auth
 func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	if more {
 		switch string(fromServer) {
@@ -84,9 +87,11 @@ func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	return nil, nil
 }
 
+// Sender mail sender
 type Sender struct {
 }
 
+// Send send email
 func (s *Sender) Send(from string, to []string, msg io.WriterTo) error {
 	opts := setting.MailService
 
@@ -208,6 +213,7 @@ func processMailQueue() {
 
 var mailQueue chan *Message
 
+// NewContext start mail queue service
 func NewContext() {
 	// Need to check if mailQueue is nil because in during reinstall (user had installed
 	// before but swithed install lock off), this function will be called again
@@ -220,6 +226,7 @@ func NewContext() {
 	go processMailQueue()
 }
 
+// SendAsync send mail asynchronous
 func SendAsync(msg *Message) {
 	go func() {
 		mailQueue <- msg

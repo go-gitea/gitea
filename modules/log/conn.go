@@ -23,20 +23,20 @@ type ConnWriter struct {
 	Level          int    `json:"level"`
 }
 
-// create new ConnWrite returning as LoggerInterface.
+// NewConn creates new ConnWrite returning as LoggerInterface.
 func NewConn() LoggerInterface {
 	conn := new(ConnWriter)
 	conn.Level = TRACE
 	return conn
 }
 
-// init connection writer with json config.
+// Init inits connection writer with json config.
 // json config only need key "level".
 func (cw *ConnWriter) Init(jsonconfig string) error {
 	return json.Unmarshal([]byte(jsonconfig), cw)
 }
 
-// write message in connection.
+// WriteMsg writes message in connection.
 // if connection is down, try to re-connect.
 func (cw *ConnWriter) WriteMsg(msg string, skip, level int) error {
 	if cw.Level > level {
@@ -55,10 +55,11 @@ func (cw *ConnWriter) WriteMsg(msg string, skip, level int) error {
 	return nil
 }
 
-func (_ *ConnWriter) Flush() {
+// Flush no things for this implementation
+func (cw *ConnWriter) Flush() {
 }
 
-// destroy connection writer and close tcp listener.
+// Destroy destroy connection writer and close tcp listener.
 func (cw *ConnWriter) Destroy() {
 	if cw.innerWriter == nil {
 		return

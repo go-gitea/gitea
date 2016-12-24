@@ -10,14 +10,20 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+// AccessMode specifies the users access mode
 type AccessMode int
 
 const (
-	AccessModeNone  AccessMode = iota // 0
-	AccessModeRead                    // 1
-	AccessModeWrite                   // 2
-	AccessModeAdmin                   // 3
-	AccessModeOwner                   // 4
+	// AccessModeNone no access
+	AccessModeNone AccessMode = iota // 0
+	// AccessModeRead read access
+	AccessModeRead // 1
+	// AccessModeWrite write access
+	AccessModeWrite // 2
+	// AccessModeAdmin admin access
+	AccessModeAdmin // 3
+	// AccessModeOwner owner access
+	AccessModeOwner // 4
 )
 
 func (mode AccessMode) String() string {
@@ -57,21 +63,21 @@ type Access struct {
 	Mode   AccessMode
 }
 
-func accessLevel(e Engine, u *User, repo *Repository) (AccessMode, error) {
+func accessLevel(e Engine, user *User, repo *Repository) (AccessMode, error) {
 	mode := AccessModeNone
 	if !repo.IsPrivate {
 		mode = AccessModeRead
 	}
 
-	if u == nil {
+	if user == nil {
 		return mode, nil
 	}
 
-	if u.ID == repo.OwnerID {
+	if user.ID == repo.OwnerID {
 		return AccessModeOwner, nil
 	}
 
-	a := &Access{UserID: u.ID, RepoID: repo.ID}
+	a := &Access{UserID: user.ID, RepoID: repo.ID}
 	if has, err := e.Get(a); !has || err != nil {
 		return mode, err
 	}
@@ -80,24 +86,24 @@ func accessLevel(e Engine, u *User, repo *Repository) (AccessMode, error) {
 
 // AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
 // user does not have access. User can be nil!
-func AccessLevel(u *User, repo *Repository) (AccessMode, error) {
-	return accessLevel(x, u, repo)
+func AccessLevel(user *User, repo *Repository) (AccessMode, error) {
+	return accessLevel(x, user, repo)
 }
 
-func hasAccess(e Engine, u *User, repo *Repository, testMode AccessMode) (bool, error) {
-	mode, err := accessLevel(e, u, repo)
+func hasAccess(e Engine, user *User, repo *Repository, testMode AccessMode) (bool, error) {
+	mode, err := accessLevel(e, user, repo)
 	return testMode <= mode, err
 }
 
 // HasAccess returns true if someone has the request access level. User can be nil!
-func HasAccess(u *User, repo *Repository, testMode AccessMode) (bool, error) {
-	return hasAccess(x, u, repo, testMode)
+func HasAccess(user *User, repo *Repository, testMode AccessMode) (bool, error) {
+	return hasAccess(x, user, repo, testMode)
 }
 
 // GetRepositoryAccesses finds all repositories with their access mode where a user has access but does not own.
-func (u *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
+func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 	accesses := make([]*Access, 0, 10)
-	if err := x.Find(&accesses, &Access{UserID: u.ID}); err != nil {
+	if err := x.Find(&accesses, &Access{UserID: user.ID}); err != nil {
 		return nil, err
 	}
 
@@ -113,7 +119,7 @@ func (u *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 		}
 		if err = repo.GetOwner(); err != nil {
 			return nil, err
-		} else if repo.OwnerID == u.ID {
+		} else if repo.OwnerID == user.ID {
 			continue
 		}
 		repos[repo] = access.Mode
@@ -245,6 +251,6 @@ func (repo *Repository) recalculateAccesses(e Engine) error {
 }
 
 // RecalculateAccesses recalculates all accesses for repository.
-func (r *Repository) RecalculateAccesses() error {
-	return r.recalculateAccesses(x)
+func (repo *Repository) RecalculateAccesses() error {
+	return repo.recalculateAccesses(x)
 }

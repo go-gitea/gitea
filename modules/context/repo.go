@@ -19,6 +19,7 @@ import (
 	macaron "gopkg.in/macaron.v1"
 )
 
+// PullRequest contains informations to make a pull request
 type PullRequest struct {
 	BaseRepo *models.Repository
 	Allowed  bool
@@ -26,6 +27,7 @@ type PullRequest struct {
 	HeadInfo string // [<user>:]<branch>
 }
 
+// Repository contains informations to operate a repository
 type Repository struct {
 	AccessMode   models.AccessMode
 	IsWatching   bool
@@ -96,6 +98,7 @@ func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
 	return editorconfig.ParseBytes(data)
 }
 
+// RetrieveBaseRepo retrieves base repository
 func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 	// Non-fork repository will not return error in this method.
 	if err := repo.GetBaseRepo(); err != nil {
@@ -114,7 +117,7 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 
 // composeGoGetImport returns go-get-import meta content.
 func composeGoGetImport(owner, repo string) string {
-	return path.Join(setting.Domain, setting.AppSubUrl, owner, repo)
+	return path.Join(setting.Domain, setting.AppSubURL, owner, repo)
 }
 
 // earlyResponseForGoGetMeta responses appropriate go-get meta with status 200
@@ -130,6 +133,7 @@ func earlyResponseForGoGetMeta(ctx *Context) {
 		})))
 }
 
+// RepoAssignment returns a macaron to handle repository assignment
 func RepoAssignment(args ...bool) macaron.Handler {
 	return func(ctx *Context) {
 		var (
@@ -327,7 +331,7 @@ func RepoAssignment(args ...bool) macaron.Handler {
 
 		if ctx.Query("go-get") == "1" {
 			ctx.Data["GoGetImport"] = composeGoGetImport(owner.Name, repo.Name)
-			prefix := setting.AppUrl + path.Join(owner.Name, repo.Name, "src", ctx.Repo.BranchName)
+			prefix := setting.AppURL + path.Join(owner.Name, repo.Name, "src", ctx.Repo.BranchName)
 			ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
 			ctx.Data["GoDocFile"] = prefix + "{/dir}/{file}#L{line}"
 		}
@@ -446,6 +450,7 @@ func RepoRef() macaron.Handler {
 	}
 }
 
+// RequireRepoAdmin returns a macaron middleware for requiring repository admin permission
 func RequireRepoAdmin() macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.IsSigned || (!ctx.Repo.IsAdmin() && !ctx.User.IsAdmin) {
@@ -455,6 +460,7 @@ func RequireRepoAdmin() macaron.Handler {
 	}
 }
 
+// RequireRepoWriter returns a macaron middleware for requiring repository write permission
 func RequireRepoWriter() macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.IsSigned || (!ctx.Repo.IsWriter() && !ctx.User.IsAdmin) {

@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+// LoginType represents an login type.
 type LoginType int
 
 // Note: new type must append to the end of list to maintain compatibility.
@@ -36,6 +37,7 @@ const (
 	LoginDLDAP            // 5
 )
 
+// LoginNames contains the name of LoginType values.
 var LoginNames = map[LoginType]string{
 	LoginLDAP:  "LDAP (via BindDN)",
 	LoginDLDAP: "LDAP (simple auth)", // Via direct bind
@@ -43,6 +45,7 @@ var LoginNames = map[LoginType]string{
 	LoginPAM:   "PAM",
 }
 
+// SecurityProtocolNames contains the name of SecurityProtocol values.
 var SecurityProtocolNames = map[ldap.SecurityProtocol]string{
 	ldap.SecurityProtocolUnencrypted: "Unencrypted",
 	ldap.SecurityProtocolLDAPS:       "LDAPS",
@@ -56,22 +59,28 @@ var (
 	_ core.Conversion = &PAMConfig{}
 )
 
+// LDAPConfig holds configuration for LDAP login source.
 type LDAPConfig struct {
 	*ldap.Source
 }
 
+// FromDB fills up a LDAPConfig from serialized format.
 func (cfg *LDAPConfig) FromDB(bs []byte) error {
 	return json.Unmarshal(bs, &cfg)
 }
 
+// ToDB exports a LDAPConfig to a serialized format.
 func (cfg *LDAPConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
+// SecurityProtocolName returns the name of configured security
+// protocol.
 func (cfg *LDAPConfig) SecurityProtocolName() string {
 	return SecurityProtocolNames[cfg.SecurityProtocol]
 }
 
+// SMTPConfig holds configuration for the SMTP login source.
 type SMTPConfig struct {
 	Auth           string
 	Host           string
@@ -81,22 +90,27 @@ type SMTPConfig struct {
 	SkipVerify     bool
 }
 
+// FromDB fills up an SMTPConfig from serialized format.
 func (cfg *SMTPConfig) FromDB(bs []byte) error {
 	return json.Unmarshal(bs, cfg)
 }
 
+// ToDB exports an SMTPConfig to a serialized format.
 func (cfg *SMTPConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
+// PAMConfig holds configuration for the PAM login source.
 type PAMConfig struct {
 	ServiceName string // pam service (e.g. system-auth)
 }
 
+// FromDB fills up a PAMConfig from serialized format.
 func (cfg *PAMConfig) FromDB(bs []byte) error {
 	return json.Unmarshal(bs, &cfg)
 }
 
+// ToDB exports a PAMConfig to a serialized format.
 func (cfg *PAMConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
@@ -115,13 +129,15 @@ type LoginSource struct {
 	UpdatedUnix int64
 }
 
-func (s *LoginSource) BeforeInsert() {
-	s.CreatedUnix = time.Now().Unix()
-	s.UpdatedUnix = s.CreatedUnix
+// BeforeInsert is invoked from XORM before inserting an object of this type.
+func (source *LoginSource) BeforeInsert() {
+	source.CreatedUnix = time.Now().Unix()
+	source.UpdatedUnix = source.CreatedUnix
 }
 
-func (s *LoginSource) BeforeUpdate() {
-	s.UpdatedUnix = time.Now().Unix()
+// BeforeUpdate is invoked from XORM before updating this object.
+func (source *LoginSource) BeforeUpdate() {
+	source.UpdatedUnix = time.Now().Unix()
 }
 
 // Cell2Int64 converts a xorm.Cell type to int64,
@@ -135,6 +151,7 @@ func Cell2Int64(val xorm.Cell) int64 {
 	return (*val).(int64)
 }
 
+// BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
@@ -151,41 +168,49 @@ func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 	}
 }
 
-func (s *LoginSource) AfterSet(colName string, _ xorm.Cell) {
+// AfterSet is invoked from XORM after setting the value of a field of this object.
+func (source *LoginSource) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
 	case "created_unix":
-		s.Created = time.Unix(s.CreatedUnix, 0).Local()
+		source.Created = time.Unix(source.CreatedUnix, 0).Local()
 	case "updated_unix":
-		s.Updated = time.Unix(s.UpdatedUnix, 0).Local()
+		source.Updated = time.Unix(source.UpdatedUnix, 0).Local()
 	}
 }
 
+// TypeName return name of this login source type.
 func (source *LoginSource) TypeName() string {
 	return LoginNames[source.Type]
 }
 
+// IsLDAP returns true of this source is of the LDAP type.
 func (source *LoginSource) IsLDAP() bool {
 	return source.Type == LoginLDAP
 }
 
+// IsDLDAP returns true of this source is of the DLDAP type.
 func (source *LoginSource) IsDLDAP() bool {
 	return source.Type == LoginDLDAP
 }
 
+// IsSMTP returns true of this source is of the SMTP type.
 func (source *LoginSource) IsSMTP() bool {
 	return source.Type == LoginSMTP
 }
 
+// IsPAM returns true of this source is of the PAM type.
 func (source *LoginSource) IsPAM() bool {
 	return source.Type == LoginPAM
 }
 
+// HasTLS returns true of this source supports TLS.
 func (source *LoginSource) HasTLS() bool {
 	return ((source.IsLDAP() || source.IsDLDAP()) &&
 		source.LDAP().SecurityProtocol > ldap.SecurityProtocolUnencrypted) ||
 		source.IsSMTP()
 }
 
+// UseTLS returns true of this source is configured to use TLS.
 func (source *LoginSource) UseTLS() bool {
 	switch source.Type {
 	case LoginLDAP, LoginDLDAP:
@@ -197,6 +222,8 @@ func (source *LoginSource) UseTLS() bool {
 	return false
 }
 
+// SkipVerify returns true if this source is configured to skip SSL
+// verification.
 func (source *LoginSource) SkipVerify() bool {
 	switch source.Type {
 	case LoginLDAP, LoginDLDAP:
@@ -208,17 +235,23 @@ func (source *LoginSource) SkipVerify() bool {
 	return false
 }
 
+// LDAP returns LDAPConfig for this source, if of LDAP type.
 func (source *LoginSource) LDAP() *LDAPConfig {
 	return source.Cfg.(*LDAPConfig)
 }
 
+// SMTP returns SMTPConfig for this source, if of SMTP type.
 func (source *LoginSource) SMTP() *SMTPConfig {
 	return source.Cfg.(*SMTPConfig)
 }
 
+// PAM returns PAMConfig for this source, if of PAM type.
 func (source *LoginSource) PAM() *PAMConfig {
 	return source.Cfg.(*PAMConfig)
 }
+
+// CreateLoginSource inserts a LoginSource in the DB if not already
+// existing with the given name.
 func CreateLoginSource(source *LoginSource) error {
 	has, err := x.Get(&LoginSource{Name: source.Name})
 	if err != nil {
@@ -231,6 +264,7 @@ func CreateLoginSource(source *LoginSource) error {
 	return err
 }
 
+// LoginSources returns a slice of all login sources found in DB.
 func LoginSources() ([]*LoginSource, error) {
 	auths := make([]*LoginSource, 0, 5)
 	return auths, x.Find(&auths)
@@ -248,11 +282,13 @@ func GetLoginSourceByID(id int64) (*LoginSource, error) {
 	return source, nil
 }
 
+// UpdateSource updates a LoginSource record in DB.
 func UpdateSource(source *LoginSource) error {
 	_, err := x.Id(source.ID).AllCols().Update(source)
 	return err
 }
 
+// DeleteSource deletes a LoginSource record in DB.
 func DeleteSource(source *LoginSource) error {
 	count, err := x.Count(&User{LoginSource: source.ID})
 	if err != nil {
@@ -292,8 +328,8 @@ func composeFullName(firstname, surname, username string) string {
 
 // LoginViaLDAP queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
-func LoginViaLDAP(user *User, login, passowrd string, source *LoginSource, autoRegister bool) (*User, error) {
-	username, fn, sn, mail, isAdmin, succeed := source.Cfg.(*LDAPConfig).SearchEntry(login, passowrd, source.Type == LoginDLDAP)
+func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoRegister bool) (*User, error) {
+	username, fn, sn, mail, isAdmin, succeed := source.Cfg.(*LDAPConfig).SearchEntry(login, password, source.Type == LoginDLDAP)
 	if !succeed {
 		// User not in LDAP, do nothing
 		return nil, ErrUserNotExist{0, login, 0}
@@ -357,13 +393,16 @@ func (auth *smtpLoginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	return nil, nil
 }
 
+// SMTP authentication type names.
 const (
 	SMTPPlain = "PLAIN"
 	SMTPLogin = "LOGIN"
 )
 
+// SMTPAuths contains available SMTP authentication type names.
 var SMTPAuths = []string{SMTPPlain, SMTPLogin}
 
+// SMTPAuth performs an SMTP authentication.
 func SMTPAuth(a smtp.Auth, cfg *SMTPConfig) error {
 	c, err := smtp.Dial(fmt.Sprintf("%s:%d", cfg.Host, cfg.Port))
 	if err != nil {
@@ -463,7 +502,7 @@ func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPC
 // LoginViaPAM queries if login/password is valid against the PAM,
 // and create a local user if success when enabled.
 func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMConfig, autoRegister bool) (*User, error) {
-	if err := pam.PAMAuth(cfg.ServiceName, login, password); err != nil {
+	if err := pam.Auth(cfg.ServiceName, login, password); err != nil {
 		if strings.Contains(err.Error(), "Authentication failure") {
 			return nil, ErrUserNotExist{0, login, 0}
 		}
@@ -487,6 +526,7 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 	return user, CreateUser(user)
 }
 
+// ExternalUserLogin attempts a login using external source types.
 func ExternalUserLogin(user *User, login, password string, source *LoginSource, autoRegister bool) (*User, error) {
 	if !source.IsActived {
 		return nil, ErrLoginSourceNotActived
@@ -505,12 +545,12 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource, 
 }
 
 // UserSignIn validates user name and password.
-func UserSignIn(username, passowrd string) (*User, error) {
+func UserSignIn(username, password string) (*User, error) {
 	var user *User
 	if strings.Contains(username, "@") {
-		user = &User{Email: strings.ToLower(username)}
+		user = &User{Email: strings.ToLower(strings.TrimSpace(username))}
 	} else {
-		user = &User{LowerName: strings.ToLower(username)}
+		user = &User{LowerName: strings.ToLower(strings.TrimSpace(username))}
 	}
 
 	hasUser, err := x.Get(user)
@@ -521,7 +561,7 @@ func UserSignIn(username, passowrd string) (*User, error) {
 	if hasUser {
 		switch user.LoginType {
 		case LoginNoType, LoginPlain:
-			if user.ValidatePassword(passowrd) {
+			if user.ValidatePassword(password) {
 				return user, nil
 			}
 
@@ -536,7 +576,7 @@ func UserSignIn(username, passowrd string) (*User, error) {
 				return nil, ErrLoginSourceNotExist{user.LoginSource}
 			}
 
-			return ExternalUserLogin(user, user.LoginName, passowrd, &source, false)
+			return ExternalUserLogin(user, user.LoginName, password, &source, false)
 		}
 	}
 
@@ -546,7 +586,7 @@ func UserSignIn(username, passowrd string) (*User, error) {
 	}
 
 	for _, source := range sources {
-		authUser, err := ExternalUserLogin(nil, username, passowrd, source, true)
+		authUser, err := ExternalUserLogin(nil, username, password, source, true)
 		if err == nil {
 			return authUser, nil
 		}

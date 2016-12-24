@@ -44,8 +44,8 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	defer func() {
 		if !isSucceed {
 			log.Trace("auto-login cookie cleared: %s", uname)
-			ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubUrl)
-			ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubUrl)
+			ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL)
+			ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL)
 		}
 	}()
 
@@ -65,7 +65,7 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	isSucceed = true
 	ctx.Session.Set("uid", u.ID)
 	ctx.Session.Set("uname", u.Name)
-	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubUrl)
+	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
 	return true, nil
 }
 
@@ -82,17 +82,17 @@ func SignIn(ctx *context.Context) {
 
 	redirectTo := ctx.Query("redirect_to")
 	if len(redirectTo) > 0 {
-		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubUrl)
+		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL)
 	} else {
 		redirectTo, _ = url.QueryUnescape(ctx.GetCookie("redirect_to"))
 	}
 
 	if isSucceed {
 		if len(redirectTo) > 0 {
-			ctx.SetCookie("redirect_to", "", -1, setting.AppSubUrl)
+			ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
 			ctx.Redirect(redirectTo)
 		} else {
-			ctx.Redirect(setting.AppSubUrl + "/")
+			ctx.Redirect(setting.AppSubURL + "/")
 		}
 		return
 	}
@@ -121,16 +121,16 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 
 	if form.Remember {
 		days := 86400 * setting.LogInRememberDays
-		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubUrl)
+		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL)
 		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
-			setting.CookieRememberName, u.Name, days, setting.AppSubUrl)
+			setting.CookieRememberName, u.Name, days, setting.AppSubURL)
 	}
 
 	ctx.Session.Set("uid", u.ID)
 	ctx.Session.Set("uname", u.Name)
 
 	// Clear whatever CSRF has right now, force to generate a new one
-	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubUrl)
+	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
 
 	// Register last login
 	u.SetLastLogin()
@@ -140,12 +140,12 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	}
 
 	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 {
-		ctx.SetCookie("redirect_to", "", -1, setting.AppSubUrl)
+		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
 		ctx.Redirect(redirectTo)
 		return
 	}
 
-	ctx.Redirect(setting.AppSubUrl + "/")
+	ctx.Redirect(setting.AppSubURL + "/")
 }
 
 // SignOut sign out from login status
@@ -155,10 +155,10 @@ func SignOut(ctx *context.Context) {
 	ctx.Session.Delete("socialId")
 	ctx.Session.Delete("socialName")
 	ctx.Session.Delete("socialEmail")
-	ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubUrl)
-	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubUrl)
-	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubUrl)
-	ctx.Redirect(setting.AppSubUrl + "/")
+	ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL)
+	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL)
+	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
+	ctx.Redirect(setting.AppSubURL + "/")
 }
 
 // SignUp render the register page
@@ -260,7 +260,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		return
 	}
 
-	ctx.Redirect(setting.AppSubUrl + "/user/login")
+	ctx.Redirect(setting.AppSubURL + "/user/login")
 }
 
 // Activate render activate user page
@@ -294,7 +294,11 @@ func Activate(ctx *context.Context) {
 	// Verify code.
 	if user := models.VerifyUserActiveCode(code); user != nil {
 		user.IsActive = true
-		user.Rands = models.GetUserSalt()
+		var err error
+		if user.Rands, err = models.GetUserSalt(); err != nil {
+			ctx.Handle(500, "UpdateUser", err)
+			return
+		}
 		if err := models.UpdateUser(user); err != nil {
 			if models.IsErrUserNotExist(err) {
 				ctx.Error(404)
@@ -308,7 +312,7 @@ func Activate(ctx *context.Context) {
 
 		ctx.Session.Set("uid", user.ID)
 		ctx.Session.Set("uname", user.Name)
-		ctx.Redirect(setting.AppSubUrl + "/")
+		ctx.Redirect(setting.AppSubURL + "/")
 		return
 	}
 
@@ -331,7 +335,7 @@ func ActivateEmail(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 	}
 
-	ctx.Redirect(setting.AppSubUrl + "/user/settings/email")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/email")
 	return
 }
 
@@ -433,8 +437,15 @@ func ResetPasswdPost(ctx *context.Context) {
 		}
 
 		u.Passwd = passwd
-		u.Rands = models.GetUserSalt()
-		u.Salt = models.GetUserSalt()
+		var err error
+		if u.Rands, err = models.GetUserSalt(); err != nil {
+			ctx.Handle(500, "UpdateUser", err)
+			return
+		}
+		if u.Salt, err = models.GetUserSalt(); err != nil {
+			ctx.Handle(500, "UpdateUser", err)
+			return
+		}
 		u.EncodePasswd()
 		if err := models.UpdateUser(u); err != nil {
 			ctx.Handle(500, "UpdateUser", err)
@@ -442,7 +453,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		}
 
 		log.Trace("User password reset: %s", u.Name)
-		ctx.Redirect(setting.AppSubUrl + "/user/login")
+		ctx.Redirect(setting.AppSubURL + "/user/login")
 		return
 	}
 

@@ -22,11 +22,11 @@
 						</div>
 						<div class="required inline field {{if .Err_Password}}error{{end}}">
 							<label for="password">{{.i18n.Tr "password"}}</label>
-							<input id="password" name="password" type="password" value="{{.password}}" required>
+							<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
 						</div>
 						<div class="required inline field {{if .Err_Password}}error{{end}}">
 							<label for="retype">{{.i18n.Tr "re_type"}}</label>
-							<input id="retype" name="retype" type="password" value="{{.retype}}" required>
+							<input id="retype" name="retype" type="password" value="{{.retype}}" autocomplete="off" required>
 						</div>
 						{{if .EnableCaptcha}}
 							<div class="inline field">

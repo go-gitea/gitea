@@ -11,9 +11,7 @@
 			</div>
 			<div class="ui right links">
 				{{if .ShowFooterBranding}}
-					<a target="_blank" href="https://github.com/go-gitea/gitea"><i class="fa fa-github-square"></i><span class="sr-only">GitHub</span></a>
-					<a target="_blank" href="https://twitter.com/gogitservice"><i class="fa fa-twitter"></i><span class="sr-only">Twitter</span></a>
-					<a target="_blank" href="http://weibo.com/gogschina"><i class="fa fa-weibo"></i><span class="sr-only">Sina Weibo</span></a>
+					<a target="_blank" rel="noopener" href="https://github.com/go-gitea/gitea"><i class="fa fa-github-square"></i><span class="sr-only">GitHub</span></a>
 				{{end}}
 				<div class="ui language bottom floating slide up dropdown link item">
 					<i class="world icon"></i>
@@ -24,7 +22,7 @@
 						{{end}}
 					</div>
 				</div>
-				<a target="_blank" href="https://gitea.io">{{.i18n.Tr "website"}}</a>
+				<a target="_blank" rel="noopener" href="https://gitea.io">{{.i18n.Tr "website"}}</a>
 				{{if (or .ShowFooterVersion .PageIsAdmin)}}<span class="version">{{GoVer}}</span>{{end}}
 			</div>
 		</div>
