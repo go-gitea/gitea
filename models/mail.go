@@ -40,7 +40,7 @@ func InitMailRender(tmpls *template.Template) {
 
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {
-	return gomail.Send(&mailer.Sender{}, mailer.NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").Message)
+	return gomail.Send(mailer.Sender, mailer.NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").Message)
 }
 
 // SendUserMail sends a mail to the user

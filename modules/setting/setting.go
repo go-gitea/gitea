@@ -858,18 +858,25 @@ func newSessionService() {
 
 // Mailer represents mail service.
 type Mailer struct {
+    // Mailer
 	QueueLength           int
 	Name                  string
-	Host                  string
 	From                  string
 	FromEmail             string
+	EnableHTMLAlternative bool
+
+	// SMTP sender
+	Host                  string
 	User, Passwd          string
 	DisableHelo           bool
 	HeloHostname          string
 	SkipVerify            bool
 	UseCertificate        bool
 	CertFile, KeyFile     string
-	EnableHTMLAlternative bool
+
+	// Sendmail sender
+	UseSendmail           bool
+	SendmailPath          string
 }
 
 var (
@@ -887,6 +894,8 @@ func newMailService() {
 	MailService = &Mailer{
 		QueueLength:           sec.Key("SEND_BUFFER_LEN").MustInt(100),
 		Name:                  sec.Key("NAME").MustString(AppName),
+		EnableHTMLAlternative: sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(),
+
 		Host:                  sec.Key("HOST").String(),
 		User:                  sec.Key("USER").String(),
 		Passwd:                sec.Key("PASSWD").String(),
@@ -896,7 +905,9 @@ func newMailService() {
 		UseCertificate:        sec.Key("USE_CERTIFICATE").MustBool(),
 		CertFile:              sec.Key("CERT_FILE").String(),
 		KeyFile:               sec.Key("KEY_FILE").String(),
-		EnableHTMLAlternative: sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(),
+
+		UseSendmail:           sec.Key("USE_SENDMAIL").MustBool(),
+		SendmailPath:          sec.Key("SENDMAIL_PATH").MustString("sendmail"),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
 

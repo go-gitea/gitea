@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/smtp"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -87,12 +88,12 @@ func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	return nil, nil
 }
 
-// Sender mail sender
-type Sender struct {
+// Sender SMTP mail sender
+type smtpSender struct {
 }
 
 // Send send email
-func (s *Sender) Send(from string, to []string, msg io.WriterTo) error {
+func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 	opts := setting.MailService
 
 	host, port, err := net.SplitHostPort(opts.Host)
@@ -195,14 +196,51 @@ func (s *Sender) Send(from string, to []string, msg io.WriterTo) error {
 	return client.Quit()
 }
 
-func processMailQueue() {
-	sender := &Sender{}
+// Sender sendmail mail sender
+type sendmailSender struct {
+}
 
+// Send send email
+func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
+	var err error
+	var closeError error
+	var waitError error
+
+	args := []string{"-F", from, "-i"}
+	args = append(args, to...)
+	log.Trace("Sending with: %s %v", setting.MailService.SendmailPath, args)
+	cmd := exec.Command(setting.MailService.SendmailPath, args...)
+	pipe, err := cmd.StdinPipe()
+
+	if err != nil {
+		return err
+	}
+
+	if err = cmd.Start(); err != nil {
+		return err
+	}
+
+	_,err = msg.WriteTo(pipe)
+
+	// we MUST close the pipe or sendmail will hang waiting for more of the message
+	// Also we should wait on our sendmail command even if something fails
+	closeError = pipe.Close()
+	waitError =  cmd.Wait()
+	if err != nil {
+		return err
+	} else if closeError != nil {
+		return closeError
+	} else {
+		return waitError
+	}
+}
+
+func processMailQueue() {
 	for {
 		select {
 		case msg := <-mailQueue:
 			log.Trace("New e-mail sending request %s: %s", msg.GetHeader("To"), msg.Info)
-			if err := gomail.Send(sender, msg.Message); err != nil {
+			if err := gomail.Send(Sender, msg.Message); err != nil {
 				log.Error(3, "Fail to send emails %s: %s - %v", msg.GetHeader("To"), msg.Info, err)
 			} else {
 				log.Trace("E-mails sent %s: %s", msg.GetHeader("To"), msg.Info)
@@ -213,6 +251,9 @@ func processMailQueue() {
 
 var mailQueue chan *Message
 
+// Sender sender for sending mail synchronously
+var Sender gomail.Sender
+
 // NewContext start mail queue service
 func NewContext() {
 	// Need to check if mailQueue is nil because in during reinstall (user had installed
@@ -220,6 +261,13 @@ func NewContext() {
 	// while mail queue is already processing tasks, and produces a race condition.
 	if setting.MailService == nil || mailQueue != nil {
 		return
+	}
+
+
+	if setting.MailService.UseSendmail {
+		Sender = &sendmailSender{}
+	} else {
+		Sender = &smtpSender{}
 	}
 
 	mailQueue = make(chan *Message, setting.MailService.QueueLength)
