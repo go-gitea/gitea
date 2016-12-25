@@ -599,8 +599,41 @@ please consider changing to GITEA_CUSTOM`)
 	}
 
 	if LFS.StartServer {
+
 		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
 			log.Fatal(4, "Fail to create '%s': %v", LFS.ContentPath, err)
+		}
+
+		LFS.JWTSecretBytes = make([]byte, 32)
+		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
+
+		if err != nil || n != 32 {
+			//Generate new secret and save to config
+
+			_, err := io.ReadFull(rand.Reader, LFS.JWTSecretBytes)
+
+			if err != nil {
+				log.Fatal(4, "Error reading random bytes: %s", err)
+			}
+
+			LFS.JWTSecretBase64 = base64.RawURLEncoding.EncodeToString(LFS.JWTSecretBytes)
+
+			// Save secret
+			cfg := ini.Empty()
+			if com.IsFile(CustomConf) {
+				// Keeps custom settings if there is already something.
+				if err := cfg.Append(CustomConf); err != nil {
+					log.Error(4, "Fail to load custom conf '%s': %v", CustomConf, err)
+				}
+			}
+
+			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
+
+			os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm)
+			if err := cfg.SaveTo(CustomConf); err != nil {
+				log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
+				return
+			}
 		}
 
 		//Disable LFS client hooks if installed for the current OS user
@@ -629,6 +662,7 @@ please consider changing to GITEA_CUSTOM`)
 		if !((majorVersion > 2) || (majorVersion == 2 && minorVersion > 1) ||
 			(majorVersion == 2 && minorVersion == 1 && revisionVersion >= 2)) {
 
+			LFS.StartServer = false
 			log.Error(4, "LFS server support needs at least Git v2.1.2")
 
 		} else {
@@ -636,37 +670,6 @@ please consider changing to GITEA_CUSTOM`)
 			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
 				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
 
-			LFS.JWTSecretBytes = make([]byte, 32)
-			n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
-
-			if err != nil || n != 32 {
-				//Generate new secret and save to config
-
-				_, err := io.ReadFull(rand.Reader, LFS.JWTSecretBytes)
-
-				if err != nil {
-					log.Fatal(4, "Error reading random bytes: %s", err)
-				}
-
-				LFS.JWTSecretBase64 = base64.RawURLEncoding.EncodeToString(LFS.JWTSecretBytes)
-
-				// Save secret
-				cfg := ini.Empty()
-				if com.IsFile(CustomConf) {
-					// Keeps custom settings if there is already something.
-					if err := cfg.Append(CustomConf); err != nil {
-						log.Error(4, "Fail to load custom conf '%s': %v", CustomConf, err)
-					}
-				}
-
-				cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
-
-				os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm)
-				if err := cfg.SaveTo(CustomConf); err != nil {
-					log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
-					return
-				}
-			}
 		}
 	}
 
