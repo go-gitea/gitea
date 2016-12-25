@@ -167,10 +167,17 @@ func runServ(c *cli.Context) error {
 	verb, args := parseCmd(cmd)
 
 	var lfsVerb string
-	if verb == lfsAuthenticateVerb && strings.Contains(args, " ") {
-		argsSplit := strings.SplitN(args, " ", 2)
-		args = strings.TrimSpace(argsSplit[0])
-		lfsVerb = strings.TrimSpace(argsSplit[1])
+	if verb == lfsAuthenticateVerb {
+
+		if !setting.LFS.StartServer {
+			fail("Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
+		}
+
+		if strings.Contains(args, " ") {
+			argsSplit := strings.SplitN(args, " ", 2)
+			args = strings.TrimSpace(argsSplit[0])
+			lfsVerb = strings.TrimSpace(argsSplit[1])
+		}
 	}
 
 	repoPath := strings.ToLower(strings.Trim(args, "'"))
