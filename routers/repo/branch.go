@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 )
@@ -29,4 +30,22 @@ func Branches(ctx *context.Context) {
 
 	ctx.Data["Branches"] = brs
 	ctx.HTML(200, tplBranch)
+}
+
+// DeleteBranchPost responses for delete merged branch
+func DeleteBranchPost(ctx *context.Context) {
+	branchName := ctx.Params(":name")
+
+	if err := ctx.Repo.GitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
+		Force: false,
+	}); err != nil {
+		ctx.Handle(500, "DeleteBranch", err)
+		return
+	}
+
+	redirectTo := ctx.Query("redirect_to")
+	if len(redirectTo) == 0 {
+		redirectTo = ctx.Repo.RepoLink
+	}
+	ctx.Redirect(redirectTo)
 }
