@@ -166,10 +166,7 @@
 								{{if .IsPullBranchDeletable}}
 									<div class="ui divider"></div>
 									<div>
-										<form class="ui form" action="{{.DeleteBranchLink}}" method="post">
-											{{.CsrfTokenHtml}}
-											<button class="ui red button">{{$.i18n.Tr "repo.pulls.delete_branch"}}</button>
-										</form>
+										<a class="delete-button ui red button" href="" data-url="{{.DeleteBranchLink}}">{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</a>
 									</div>
 								{{end}}
 							{{else if .Issue.IsClosed}}
@@ -379,4 +376,17 @@
 
 <div class="hide" id="no-content">
 	<span class="no-content">{{.i18n.Tr "repo.issues.no_content"}}</span>
+</div>
+
+<div class="ui small basic delete modal">
+	<div class="ui icon header">
+		<i class="trash icon"></i>
+		{{.i18n.Tr "repo.branch.delete" .HeadTarget | Safe}}
+	</div>
+	<div class="content">
+		<p>{{.i18n.Tr "repo.branch.delete_desc" | Safe}}</p>
+		{{.i18n.Tr "repo.branch.delete_notices_1" | Safe}}<br>
+		{{.i18n.Tr "repo.branch.delete_notices_2" .HeadTarget | Safe}}<br>
+	</div>
+	{{template "base/delete_modal_actions" .}}
 </div>

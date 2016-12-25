@@ -17,6 +17,7 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/paginater"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -181,7 +182,6 @@ func Issues(ctx *context.Context) {
 	}
 	pager := paginater.New(total, setting.UI.IssuePagingNum, page, 5)
 	ctx.Data["Page"] = pager
-
 
 	var issues []*models.Issue
 	if forceEmpty {
@@ -663,11 +663,21 @@ func ViewIssue(ctx *context.Context) {
 
 	if issue.IsPull {
 		pull := issue.PullRequest
-		ctx.Data["IsPullBranchDeletable"] = ctx.Repo.IsWriter() && ctx.Repo.GitRepo.IsBranchExist(pull.HeadBranch)
+		canDelete := false
 
-		deleteBranchURL := ctx.Repo.RepoLink + "/branches/" + pull.HeadBranch + "/delete"
-		queryParams := "?redirect_to=" + ctx.Data["Link"].(string)
-		ctx.Data["DeleteBranchLink"] = deleteBranchURL + queryParams
+		if ctx.IsSigned && pull.HeadBranch != "master" {
+
+			if err := pull.GetHeadRepo(); err != nil {
+				log.Error(4, "GetHeadRepo: %v", err)
+			} else if ctx.User.IsWriterOfRepo(pull.HeadRepo) {
+				canDelete = true
+				deleteBranchURL := pull.HeadRepo.Link() + "/branches/" + pull.HeadBranch + "/delete"
+				ctx.Data["DeleteBranchLink"] = fmt.Sprintf("%s?commit=%s&redirect_to=%s", deleteBranchURL, pull.MergedCommitID, ctx.Data["Link"])
+
+			}
+		}
+
+		ctx.Data["IsPullBranchDeletable"] = canDelete && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 	}
 
 	ctx.Data["Participants"] = participants

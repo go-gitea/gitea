@@ -8,6 +8,7 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 )
 
 const (
@@ -35,17 +36,46 @@ func Branches(ctx *context.Context) {
 // DeleteBranchPost responses for delete merged branch
 func DeleteBranchPost(ctx *context.Context) {
 	branchName := ctx.Params(":name")
+	commitID := ctx.Query("commit")
+
+	defer func() {
+		redirectTo := ctx.Query("redirect_to")
+		if len(redirectTo) == 0 {
+			redirectTo = ctx.Repo.RepoLink
+		}
+
+		ctx.JSON(200, map[string]interface{}{
+			"redirect": redirectTo,
+		})
+	}()
+
+	fullBranchName := ctx.Repo.Owner.Name + "/" + branchName
+
+	if !ctx.Repo.GitRepo.IsBranchExist(branchName) || branchName == "master" {
+		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+		return
+	}
+
+	if len(commitID) > 0 {
+		branchCommitID, err := ctx.Repo.GitRepo.GetBranchCommitID(branchName)
+		if err != nil {
+			log.Error(4, "GetBranchCommitID: %v", err)
+			return
+		}
+
+		if branchCommitID != commitID {
+			ctx.Flash.Error(ctx.Tr("repo.branch.delete_branch_has_new_commits", fullBranchName))
+			return
+		}
+	}
 
 	if err := ctx.Repo.GitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
 		Force: false,
 	}); err != nil {
-		ctx.Handle(500, "DeleteBranch", err)
+		log.Error(4, "DeleteBranch: %v", err)
+		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
 	}
 
-	redirectTo := ctx.Query("redirect_to")
-	if len(redirectTo) == 0 {
-		redirectTo = ctx.Repo.RepoLink
-	}
-	ctx.Redirect(redirectTo)
+	ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", fullBranchName))
 }
