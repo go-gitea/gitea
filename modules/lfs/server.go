@@ -35,12 +35,16 @@ type RequestVars struct {
 	Authorization string
 }
 
+// BatchVars contains multiple RequestVars processed in one batch operation.
+// https://github.com/git-lfs/git-lfs/blob/master/docs/api/batch.md
 type BatchVars struct {
 	Transfers []string       `json:"transfers,omitempty"`
 	Operation string         `json:"operation"`
 	Objects   []*RequestVars `json:"objects"`
 }
 
+// BatchResponse contains multiple object metadata Representation structures
+// for use with the batch API.
 type BatchResponse struct {
 	Transfer string            `json:"transfer,omitempty"`
 	Objects  []*Representation `json:"objects"`
@@ -54,6 +58,7 @@ type Representation struct {
 	Error   *ObjectError     `json:"error,omitempty"`
 }
 
+// ObjectError defines the JSON structure returned to the client in case of an error
 type ObjectError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
@@ -71,6 +76,7 @@ type link struct {
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }
 
+// ObjectOidHandler is the main request routing entry point into LFS server functions
 func ObjectOidHandler(ctx *context.Context) {
 
 	if !setting.LFS.StartServer {
@@ -525,12 +531,12 @@ func authenticateToken(repository *models.Repository, authorization string, requ
 		return false
 	}
 
-	repoId, ok := claims["repo"].(float64)
+	repoID, ok := claims["repo"].(float64)
 	if !ok {
 		return false
 	}
 
-	if repository.ID != int64(repoId) {
+	if repository.ID != int64(repoID) {
 		return false
 	}
 

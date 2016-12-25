@@ -104,7 +104,7 @@ func GetRandomString(n int) (string, error) {
 	return string(buffer), nil
 }
 
-// GetRandomBytes generates a random base64 string from n bytes
+// GetRandomBytesAsBase64 generates a random base64 string from n bytes
 func GetRandomBytesAsBase64(n int) string {
 	bytes := make([]byte, 32)
 	_, err := io.ReadFull(rand.Reader, bytes)
