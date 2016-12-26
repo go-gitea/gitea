@@ -81,6 +81,12 @@
 			"revisionTime": "2016-11-28T23:08:40Z"
 		},
 		{
+			"checksumSHA1": "2Fy1Y6Z3lRRX1891WF/+HT4XS2I=",
+			"path": "github.com/dgrijalva/jwt-go",
+			"revision": "9ed569b5d1ac936e6494082958d63a6aa4fff99a",
+			"revisionTime": "2016-11-01T19:39:35Z"
+		},
+		{
 			"checksumSHA1": "5ftkjfUwI9A6xCQ1PwIAd5+qlo0=",
 			"path": "github.com/elazarl/go-bindata-assetfs",
 			"revision": "57eb5e1fc594ad4b0b1dbea7b286d299e0cb43c2",
@@ -879,16 +885,16 @@
 			"revisionTime": "2016-10-31T15:37:30Z"
 		},
 		{
-			"checksumSHA1": "1MGpGDQqnUoRpv7VEcQrXOBydXE=",
-			"path": "golang.org/x/crypto/pbkdf2",
-			"revision": "8e06e8ddd9629eb88639aba897641bff8031f1d3",
-			"revisionTime": "2016-09-10T18:59:01Z"
-    },
-    {
 			"checksumSHA1": "MCeXr2RNeiG1XG6V+er1OR0qyeo=",
 			"path": "golang.org/x/crypto/md4",
 			"revision": "ede567c8e044a5913dad1d1af3696d9da953104c",
 			"revisionTime": "2016-11-04T19:41:44Z"
+		},
+		{
+			"checksumSHA1": "1MGpGDQqnUoRpv7VEcQrXOBydXE=",
+			"path": "golang.org/x/crypto/pbkdf2",
+			"revision": "8e06e8ddd9629eb88639aba897641bff8031f1d3",
+			"revisionTime": "2016-09-10T18:59:01Z"
 		},
 		{
 			"checksumSHA1": "LlElMHeTC34ng8eHzjvtUhAgrr8=",

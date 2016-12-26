@@ -5,7 +5,10 @@
 package setting
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"net/mail"
 	"net/url"
 	"os"
@@ -17,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 	"github.com/Unknwon/com"
@@ -87,6 +91,13 @@ var (
 		KeygenPath          string         `ini:"SSH_KEYGEN_PATH"`
 		MinimumKeySizeCheck bool           `ini:"-"`
 		MinimumKeySizes     map[string]int `ini:"-"`
+	}
+
+	LFS struct {
+		StartServer     bool   `ini:"LFS_START_SERVER"`
+		ContentPath     string `ini:"LFS_CONTENT_PATH"`
+		JWTSecretBase64 string `ini:"LFS_JWT_SECRET"`
+		JWTSecretBytes  []byte `ini:"-"`
 	}
 
 	// Security settings
@@ -580,6 +591,85 @@ please consider changing to GITEA_CUSTOM`)
 	for _, key := range minimumKeySizes {
 		if key.MustInt() != -1 {
 			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
+		}
+	}
+
+	if err = Cfg.Section("server").MapTo(&LFS); err != nil {
+		log.Fatal(4, "Fail to map LFS settings: %v", err)
+	}
+
+	if LFS.StartServer {
+
+		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
+			log.Fatal(4, "Fail to create '%s': %v", LFS.ContentPath, err)
+		}
+
+		LFS.JWTSecretBytes = make([]byte, 32)
+		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
+
+		if err != nil || n != 32 {
+			//Generate new secret and save to config
+
+			_, err := io.ReadFull(rand.Reader, LFS.JWTSecretBytes)
+
+			if err != nil {
+				log.Fatal(4, "Error reading random bytes: %s", err)
+			}
+
+			LFS.JWTSecretBase64 = base64.RawURLEncoding.EncodeToString(LFS.JWTSecretBytes)
+
+			// Save secret
+			cfg := ini.Empty()
+			if com.IsFile(CustomConf) {
+				// Keeps custom settings if there is already something.
+				if err := cfg.Append(CustomConf); err != nil {
+					log.Error(4, "Fail to load custom conf '%s': %v", CustomConf, err)
+				}
+			}
+
+			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
+
+			os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm)
+			if err := cfg.SaveTo(CustomConf); err != nil {
+				log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
+				return
+			}
+		}
+
+		//Disable LFS client hooks if installed for the current OS user
+		//Needs at least git v2.1.2
+
+		binVersion, err := git.BinVersion()
+		if err != nil {
+			log.Fatal(4, "Error retrieving git version: %s", err)
+		}
+
+		splitVersion := strings.SplitN(binVersion, ".", 3)
+
+		majorVersion, err := strconv.ParseUint(splitVersion[0], 10, 64)
+		if err != nil {
+			log.Fatal(4, "Error parsing git major version: %s", err)
+		}
+		minorVersion, err := strconv.ParseUint(splitVersion[1], 10, 64)
+		if err != nil {
+			log.Fatal(4, "Error parsing git minor version: %s", err)
+		}
+		revisionVersion, err := strconv.ParseUint(splitVersion[2], 10, 64)
+		if err != nil {
+			log.Fatal(4, "Error parsing git revision version: %s", err)
+		}
+
+		if !((majorVersion > 2) || (majorVersion == 2 && minorVersion > 1) ||
+			(majorVersion == 2 && minorVersion == 1 && revisionVersion >= 2)) {
+
+			LFS.StartServer = false
+			log.Error(4, "LFS server support needs at least Git v2.1.2")
+
+		} else {
+
+			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
+				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
+
 		}
 	}
 

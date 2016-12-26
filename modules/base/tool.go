@@ -12,6 +12,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"html/template"
+	"io"
 	"math"
 	"math/big"
 	"net/http"
@@ -101,6 +102,18 @@ func GetRandomString(n int) (string, error) {
 	}
 
 	return string(buffer), nil
+}
+
+// GetRandomBytesAsBase64 generates a random base64 string from n bytes
+func GetRandomBytesAsBase64(n int) string {
+	bytes := make([]byte, 32)
+	_, err := io.ReadFull(rand.Reader, bytes)
+
+	if err != nil {
+		log.Fatal(4, "Error reading random bytes: %s", err)
+	}
+
+	return base64.RawURLEncoding.EncodeToString(bytes)
 }
 
 func randomInt(max *big.Int) (int, error) {

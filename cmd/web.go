@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/public"
@@ -29,6 +30,7 @@ import (
 	"code.gitea.io/gitea/routers/org"
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
+
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/captcha"
@@ -564,6 +566,12 @@ func runWeb(ctx *cli.Context) error {
 		}, ignSignIn, context.RepoAssignment(true), context.RepoRef())
 
 		m.Group("/:reponame", func() {
+			m.Group("/info/lfs", func() {
+				m.Post("/objects/batch", lfs.BatchHandler)
+				m.Get("/objects/:oid/:filename", lfs.ObjectOidHandler)
+				m.Any("/objects/:oid", lfs.ObjectOidHandler)
+				m.Post("/objects", lfs.PostHandler)
+			}, ignSignInAndCsrf)
 			m.Any("/*", ignSignInAndCsrf, repo.HTTP)
 			m.Head("/tasks/trigger", repo.TriggerTask)
 		})
@@ -599,6 +607,10 @@ func runWeb(ctx *cli.Context) error {
 		listenAddr = fmt.Sprintf("%s:%s", setting.HTTPAddr, setting.HTTPPort)
 	}
 	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
+
+	if setting.LFS.StartServer {
+		log.Info("LFS server enabled")
+	}
 
 	var err error
 	switch setting.Protocol {

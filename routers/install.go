@@ -79,6 +79,7 @@ func Install(ctx *context.Context) {
 	// Application general settings
 	form.AppName = setting.AppName
 	form.RepoRootPath = setting.RepoRootPath
+	form.LFSRootPath = setting.LFS.ContentPath
 
 	// Note(unknwon): it's hard for Windows users change a running user,
 	// 	so just use current one if config says default.
@@ -183,6 +184,16 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		return
 	}
 
+	// Test LFS root path if not empty, empty meaning disable LFS
+	if form.LFSRootPath != "" {
+		form.LFSRootPath = strings.Replace(form.LFSRootPath, "\\", "/", -1)
+		if err := os.MkdirAll(form.LFSRootPath, os.ModePerm); err != nil {
+			ctx.Data["Err_LFSRootPath"] = true
+			ctx.RenderWithErr(ctx.Tr("install.invalid_lfs_path", err), tplInstall, &form)
+			return
+		}
+	}
+
 	// Test log root path.
 	form.LogRootPath = strings.Replace(form.LogRootPath, "\\", "/", -1)
 	if err = os.MkdirAll(form.LogRootPath, os.ModePerm); err != nil {
@@ -252,6 +263,14 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	} else {
 		cfg.Section("server").Key("DISABLE_SSH").SetValue("false")
 		cfg.Section("server").Key("SSH_PORT").SetValue(com.ToStr(form.SSHPort))
+	}
+
+	if form.LFSRootPath != "" {
+		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
+		cfg.Section("server").Key("LFS_CONTENT_PATH").SetValue(form.LFSRootPath)
+		cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(base.GetRandomBytesAsBase64(32))
+	} else {
+		cfg.Section("server").Key("LFS_START_SERVER").SetValue("false")
 	}
 
 	if len(strings.TrimSpace(form.SMTPHost)) > 0 {

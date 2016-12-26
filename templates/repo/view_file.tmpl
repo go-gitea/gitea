@@ -5,11 +5,11 @@
 			{{if .ReadmeInList}}
 				<strong>{{.FileName}}</strong>
 			{{else}}
-				<strong>{{.FileName}}</strong> <span class="text grey normal">{{FileSize .FileSize}}</span>
+				<strong>{{.FileName}}</strong> <span class="text grey normal">{{FileSize .FileSize}}{{if .IsLFSFile}} ({{.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
 			{{end}}
 		{{else}}
 			<i class="file text outline icon ui left"></i>
-			<strong>{{.FileName}}</strong> <span class="text grey normal">{{FileSize .FileSize}}</span>
+			<strong>{{.FileName}}</strong> <span class="text grey normal">{{FileSize .FileSize}}{{if .IsLFSFile}} ({{.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
 		{{end}}
 		{{if not .ReadmeInList}}
 			<div class="ui right file-actions">
