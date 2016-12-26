@@ -91,6 +91,9 @@ var (
 	IssueNumericPattern = regexp.MustCompile(`( |^|\()#[0-9]+\b`)
 	// IssueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
 	IssueAlphanumericPattern = regexp.MustCompile(`( |^|\()[A-Z]{1,10}-[1-9][0-9]*\b`)
+	// CrossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
+	// e.g. gogits/gogs#12345
+	CrossReferenceIssueNumericPattern = regexp.MustCompile(`( |^)[0-9a-zA-Z]+/[0-9a-zA-Z]+#[0-9]+\b`)
 
 	// Sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
 	// FIXME: this pattern matches pure numbers as well, right now we do a hack to check in RenderSha1CurrentPattern
@@ -156,7 +159,19 @@ func (r *Renderer) AutoLink(out *bytes.Buffer, link []byte, kind int) {
 			if j == -1 {
 				j = len(m)
 			}
-			out.WriteString(fmt.Sprintf(`<a href="%s">#%s</a>`, m, base.ShortSha(string(m[i+7:j]))))
+
+			issue := string(m[i+7 : j])
+			fullRepoURL := setting.AppURL + strings.TrimPrefix(r.urlPrefix, "/")
+			var link string
+			if strings.HasPrefix(string(m), fullRepoURL) {
+				// Use a short issue reference if the URL refers to this repository
+				link = fmt.Sprintf(`<a href="%s">#%s</a>`, m, issue)
+			} else {
+				// Use a cross-repository issue reference if the URL refers to a different repository
+				repo := string(m[len(setting.AppURL) : i-1])
+				link = fmt.Sprintf(`<a href="%s">%s#%s</a>`, m, repo, issue)
+			}
+			out.WriteString(link)
 			return
 		}
 	}
@@ -263,6 +278,23 @@ func RenderIssueIndexPattern(rawBytes []byte, urlPrefix string, metas map[string
 	return rawBytes
 }
 
+// RenderCrossReferenceIssueIndexPattern renders issue indexes from other repositories to corresponding links.
+func RenderCrossReferenceIssueIndexPattern(rawBytes []byte, urlPrefix string, metas map[string]string) []byte {
+	ms := CrossReferenceIssueNumericPattern.FindAll(rawBytes, -1)
+	for _, m := range ms {
+		if m[0] == ' ' || m[0] == '(' {
+			m = m[1:] // ignore leading space or opening parentheses
+		}
+
+		repo := string(bytes.Split(m, []byte("#"))[0])
+		issue := string(bytes.Split(m, []byte("#"))[1])
+
+		link := fmt.Sprintf(`<a href="%s%s/issues/%s">%s</a>`, setting.AppURL, repo, issue, m)
+		rawBytes = bytes.Replace(rawBytes, m, []byte(link), 1)
+	}
+	return rawBytes
+}
+
 // RenderSha1CurrentPattern renders SHA1 strings to corresponding links that assumes in the same repository.
 func RenderSha1CurrentPattern(rawBytes []byte, urlPrefix string) []byte {
 	return []byte(Sha1CurrentPattern.ReplaceAllStringFunc(string(rawBytes[:]), func(m string) string {
@@ -283,6 +315,7 @@ func RenderSpecialLink(rawBytes []byte, urlPrefix string, metas map[string]strin
 	}
 
 	rawBytes = RenderIssueIndexPattern(rawBytes, urlPrefix, metas)
+	rawBytes = RenderCrossReferenceIssueIndexPattern(rawBytes, urlPrefix, metas)
 	rawBytes = RenderSha1CurrentPattern(rawBytes, urlPrefix)
 	return rawBytes
 }
