@@ -11,8 +11,72 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
+// ListCollaborators list a repository's collaborators
+func ListCollaborators(ctx *context.APIContext) {
+	access, err := models.AccessLevel(ctx.User, ctx.Repo.Repository)
+	if err != nil {
+		ctx.Error(500, "AccessLevel", err)
+		return
+	}
+	if access < models.AccessModeWrite {
+		ctx.Error(403, "", "User does not have push access")
+		return
+	}
+	collaborators, err := ctx.Repo.Repository.GetCollaborators()
+	if err != nil {
+		ctx.Error(500, "ListCollaborators", err)
+		return
+	}
+	users := make([]*api.User, len(collaborators))
+	for i, collaborator := range collaborators {
+		users[i] = collaborator.APIFormat()
+	}
+	ctx.JSON(200, users)
+}
+
+// IsCollaborator check if a user is a collaborator of a repository
+func IsCollaborator(ctx *context.APIContext) {
+	access, err := models.AccessLevel(ctx.User, ctx.Repo.Repository)
+	if err != nil {
+		ctx.Error(500, "AccessLevel", err)
+		return
+	}
+	if access < models.AccessModeWrite {
+		ctx.Error(403, "", "User does not have push access")
+		return
+	}
+	user, err := models.GetUserByName(ctx.Params(":collaborator"))
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(422, "", err)
+		} else {
+			ctx.Error(500, "GetUserByName", err)
+		}
+		return
+	}
+	isColab, err := ctx.Repo.Repository.IsCollaborator(user.ID)
+	if err != nil {
+		ctx.Error(500, "IsCollaborator", err)
+		return
+	}
+	if isColab {
+		ctx.Status(204)
+	} else {
+		ctx.Status(404)
+	}
+}
+
 // AddCollaborator add a collaborator of a repository
 func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
+	access, err := models.AccessLevel(ctx.User, ctx.Repo.Repository)
+	if err != nil {
+		ctx.Error(500, "AccessLevel", err)
+		return
+	}
+	if access < models.AccessModeWrite {
+		ctx.Error(403, "", "User does not have push access")
+		return
+	}
 	collaborator, err := models.GetUserByName(ctx.Params(":collaborator"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
@@ -35,5 +99,34 @@ func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
 		}
 	}
 
+	ctx.Status(204)
+}
+
+// DeleteCollaborator delete a collaborator from a repository
+func DeleteCollaborator(ctx *context.APIContext) {
+	access, err := models.AccessLevel(ctx.User, ctx.Repo.Repository)
+	if err != nil {
+		ctx.Error(500, "AccessLevel", err)
+		return
+	}
+	if access < models.AccessModeWrite {
+		ctx.Error(403, "", "User does not have push access")
+		return
+	}
+
+	collaborator, err := models.GetUserByName(ctx.Params(":collaborator"))
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(422, "", err)
+		} else {
+			ctx.Error(500, "GetUserByName", err)
+		}
+		return
+	}
+
+	if err := ctx.Repo.Repository.DeleteCollaboration(collaborator.ID); err != nil {
+		ctx.Error(500, "DeleteCollaboration", err)
+		return
+	}
 	ctx.Status(204)
 }

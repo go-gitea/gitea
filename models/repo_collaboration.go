@@ -103,6 +103,15 @@ func (repo *Repository) GetCollaborators() ([]*Collaborator, error) {
 	return repo.getCollaborators(x)
 }
 
+func (repo *Repository) isCollaborator(e Engine, userID int64) (bool, error) {
+	return e.Get(&Collaboration{RepoID: repo.ID, UserID: userID})
+}
+
+// IsCollaborator check if a user is a collaborator of a repository
+func (repo *Repository) IsCollaborator(userID int64) (bool, error) {
+	return repo.isCollaborator(x, userID)
+}
+
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
 func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode AccessMode) error {
 	// Discard invalid input
