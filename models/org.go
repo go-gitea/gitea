@@ -213,12 +213,9 @@ func Organizations(opts *SearchUserOptions) ([]*User, error) {
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(org *User) (err error) {
-	if err := DeleteUser(org); err != nil {
-		return err
-	}
-
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
+
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -235,7 +232,11 @@ func DeleteOrganization(org *User) (err error) {
 		return fmt.Errorf("deleteUser: %v", err)
 	}
 
-	return sess.Commit()
+	if err = sess.Commit(); err != nil {
+		return err
+	}
+
+	return RewriteAllPublicKeys()
 }
 
 // ________                ____ ___
