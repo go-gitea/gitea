@@ -269,7 +269,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Combo("/:id").Get(repo.GetHook).
 						Patch(bind(api.EditHookOption{}), repo.EditHook).
 						Delete(repo.DeleteHook)
-				})
+				}, reqRepoWriter())
 				m.Group("/collaborators", func() {
 					m.Get("", repo.ListCollaborators)
 					m.Combo("/:collaborator").Get(repo.IsCollaborator).
