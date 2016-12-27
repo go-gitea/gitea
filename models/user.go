@@ -885,8 +885,10 @@ func deleteUser(e *xorm.Session, u *User) error {
 	}
 
 	avatarPath := u.CustomAvatarPath()
-	if err := os.Remove(avatarPath); err != nil {
-		return fmt.Errorf("Fail to remove %s: %v", avatarPath, err)
+	if com.IsExist(avatarPath) {
+		if err := os.Remove(avatarPath); err != nil {
+			return fmt.Errorf("Fail to remove %s: %v", avatarPath, err)
+		}
 	}
 
 	return nil
