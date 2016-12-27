@@ -75,36 +75,6 @@ func APIContexter() macaron.Handler {
 	}
 }
 
-// ExtractOwnerAndRepo returns a handler that populates the `Repo.Owner` and
-// `Repo.Repository` fields of an APIContext
-func ExtractOwnerAndRepo() macaron.Handler {
-	return func(ctx *APIContext) {
-		owner, err := models.GetUserByName(ctx.Params(":username"))
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.Error(422, "", err)
-			} else {
-				ctx.Error(500, "GetUserByName", err)
-			}
-			return
-		}
-
-		repo, err := models.GetRepositoryByName(owner.ID, ctx.Params(":reponame"))
-		if err != nil {
-			if models.IsErrRepoNotExist(err) {
-				ctx.Status(404)
-			} else {
-				ctx.Error(500, "GetRepositoryByName", err)
-			}
-			return
-		}
-		ctx.Repo.Owner = owner
-		ctx.Data["Owner"] = owner
-		ctx.Repo.Repository = repo
-		ctx.Data["Repository"] = repo
-	}
-}
-
 // ReferencesGitRepo injects the GitRepo into the Context
 func ReferencesGitRepo() macaron.Handler {
 	return func(ctx *APIContext) {

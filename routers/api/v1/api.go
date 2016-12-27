@@ -239,7 +239,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("", user.IsStarring)
 					m.Put("", user.Star)
 					m.Delete("", user.Unstar)
-				}, context.ExtractOwnerAndRepo())
+				}, repoAssignment())
 			})
 
 			m.Get("/subscriptions", user.GetMyWatchedRepos)
@@ -258,11 +258,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/repos", func() {
 			m.Post("/migrate", bind(auth.MigrateRepoForm{}), repo.Migrate)
-			m.Combo("/:username/:reponame", context.ExtractOwnerAndRepo()).
-				Get(repo.Get).
-				Delete(repo.Delete)
 
 			m.Group("/:username/:reponame", func() {
+				m.Combo("").Get(repo.Get).Delete(repo.Delete)
 				m.Group("/hooks", func() {
 					m.Combo("").Get(repo.ListHooks).
 						Post(bind(api.CreateHookOption{}), repo.CreateHook)
@@ -330,7 +328,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("", user.IsWatching)
 					m.Put("", user.Watch)
 					m.Delete("", user.Unwatch)
-				}, context.ExtractOwnerAndRepo())
+				})
 				m.Get("/editorconfig/:filename", context.RepoRef(), repo.GetEditorconfig)
 				m.Group("/pulls", func() {
 					m.Combo("").Get(bind(api.ListPullRequestsOptions{}), repo.ListPullRequests).Post(reqRepoWriter(), bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
