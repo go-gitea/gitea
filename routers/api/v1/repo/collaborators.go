@@ -13,12 +13,7 @@ import (
 
 // ListCollaborators list a repository's collaborators
 func ListCollaborators(ctx *context.APIContext) {
-	access, err := models.AccessLevel(ctx.User, ctx.Repo.Repository)
-	if err != nil {
-		ctx.Error(500, "AccessLevel", err)
-		return
-	}
-	if access < models.AccessModeWrite {
+	if !ctx.Repo.IsWriter() {
 		ctx.Error(403, "", "User does not have push access")
 		return
 	}
@@ -36,12 +31,7 @@ func ListCollaborators(ctx *context.APIContext) {
 
 // IsCollaborator check if a user is a collaborator of a repository
 func IsCollaborator(ctx *context.APIContext) {
-	access, err := models.AccessLevel(ctx.User, ctx.Repo.Repository)
-	if err != nil {
-		ctx.Error(500, "AccessLevel", err)
-		return
-	}
-	if access < models.AccessModeWrite {
+	if !ctx.Repo.IsWriter() {
 		ctx.Error(403, "", "User does not have push access")
 		return
 	}
@@ -68,12 +58,7 @@ func IsCollaborator(ctx *context.APIContext) {
 
 // AddCollaborator add a collaborator of a repository
 func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
-	access, err := models.AccessLevel(ctx.User, ctx.Repo.Repository)
-	if err != nil {
-		ctx.Error(500, "AccessLevel", err)
-		return
-	}
-	if access < models.AccessModeWrite {
+	if !ctx.Repo.IsWriter() {
 		ctx.Error(403, "", "User does not have push access")
 		return
 	}
@@ -104,12 +89,7 @@ func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
 
 // DeleteCollaborator delete a collaborator from a repository
 func DeleteCollaborator(ctx *context.APIContext) {
-	access, err := models.AccessLevel(ctx.User, ctx.Repo.Repository)
-	if err != nil {
-		ctx.Error(500, "AccessLevel", err)
-		return
-	}
-	if access < models.AccessModeWrite {
+	if !ctx.Repo.IsWriter() {
 		ctx.Error(403, "", "User does not have push access")
 		return
 	}
