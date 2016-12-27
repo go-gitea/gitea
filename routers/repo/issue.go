@@ -126,6 +126,9 @@ func Issues(ctx *context.Context) {
 		mentionedID int64
 		forceEmpty  bool
 	)
+
+	filterMode := models.FilterModeAll
+
 	switch viewType {
 	case "assigned":
 		if assigneeID > 0 && ctx.User.ID != assigneeID {

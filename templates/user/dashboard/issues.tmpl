@@ -5,9 +5,9 @@
 		<div class="ui grid">
 			<div class="four wide column">
 				<div class="ui secondary vertical filter menu">
-					<a class="{{if eq .ViewType "all"}}ui basic blue button{{end}} item" href="{{.Link}}?repo={{.RepoID}}&sort={{$.SortType}}&state={{.State}}">
+					<a class="{{if eq .ViewType "your_repositories"}}ui basic blue button{{end}} item" href="{{.Link}}?type=your_repositories&repo={{.RepoID}}&sort={{$.SortType}}&state={{.State}}">
 						{{.i18n.Tr "home.issues.in_your_repos"}}
-						<strong class="ui right">{{.IssueStats.AllCount}}</strong>
+						<strong class="ui right">{{.IssueStats.YourRepositoriesCount}}</strong>
 					</a>
 					{{if not .ContextUser.IsOrganization}}
 						<a class="{{if eq .ViewType "assigned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=assigned&repo={{.RepoID}}&sort={{$.SortType}}&state={{.State}}">
@@ -22,7 +22,7 @@
 					<div class="ui divider"></div>
 					{{range .Repos}}
 						<a class="{{if eq $.RepoID .ID}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}{{if not (eq $.RepoID .ID)}}&repo={{.ID}}{{end}}&sort={{$.SortType}}&state={{$.State}}">
-							<span class="text truncate">{{$.ContextUser.Name}}/{{.Name}}</span>
+							<span class="text truncate">{{.FullName}}</span>
 							<div class="floating ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{if $.IsShowClosed}}{{.NumClosedIssues}}{{else}}{{.NumOpenIssues}}{{end}}</div>
 						</a>
 					{{end}}
@@ -61,7 +61,7 @@
 					{{range .Issues}}
 						{{ $timeStr:= TimeSince .Created $.Lang }}
 						<li class="item">
-							<div class="ui label">{{if not $.RepoID}}{{.Repo.Name}}{{end}}#{{.Index}}</div>
+							<div class="ui label">{{if not $.RepoID}}{{.Repo.FullName}}{{end}}#{{.Index}}</div>
 							<a class="title has-emoji" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/issues/{{.Index}}">{{.Title}}</a>
 
 							{{range .Labels}}
