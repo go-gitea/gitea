@@ -4,11 +4,7 @@
 
 package models
 
-import (
-	"fmt"
-
-	"code.gitea.io/gitea/modules/log"
-)
+import "fmt"
 
 // AccessMode specifies the users access mode
 type AccessMode int
@@ -103,26 +99,39 @@ func HasAccess(user *User, repo *Repository, testMode AccessMode) (bool, error) 
 // GetRepositoryAccesses finds all repositories with their access mode where a user has access but does not own.
 func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 	accesses := make([]*Access, 0, 10)
-	if err := x.Find(&accesses, &Access{UserID: user.ID}); err != nil {
-		return nil, err
+	type RepoAccess struct {
+		Access     `xorm:"extends"`
+		Repository `xorm:"extends"`
 	}
 
-	repos := make(map[*Repository]AccessMode, len(accesses))
-	for _, access := range accesses {
-		repo, err := GetRepositoryByID(access.RepoID)
+	rows, err := x.
+		Join("INNER", "repository", "respository.id = access.repo_id").
+		Where("access.user_id = ?", user.ID).
+		And("repository.owner_id <> ?", user.ID).
+		Rows(new(RepoAccess))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var repos = make(map[*Repository]AccessMode, len(accesses))
+	var ownerCache = make(map[int64]*User, len(accesses))
+	for rows.Next() {
+		var repo RepoAccess
+		err = rows.Scan(&repo)
 		if err != nil {
-			if IsErrRepoNotExist(err) {
-				log.Error(4, "GetRepositoryByID: %v", err)
-				continue
+			return nil, err
+		}
+
+		var ok bool
+		if repo.Owner, ok = ownerCache[repo.OwnerID]; !ok {
+			if err = repo.GetOwner(); err != nil {
+				return nil, err
 			}
-			return nil, err
+			ownerCache[repo.OwnerID] = repo.Owner
 		}
-		if err = repo.GetOwner(); err != nil {
-			return nil, err
-		} else if repo.OwnerID == user.ID {
-			continue
-		}
-		repos[repo] = access.Mode
+
+		repos[&repo.Repository] = repo.Access.Mode
 	}
 	return repos, nil
 }
