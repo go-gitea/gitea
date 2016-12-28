@@ -94,6 +94,25 @@ func (te *TreeEntry) Blob() *Blob {
 	}
 }
 
+// GetSubJumpablePathName return the full path of subdirectory jumpable ( contains only one directory )
+func (te *TreeEntry) GetSubJumpablePathName() string {
+	if te.IsSubModule() || !te.IsDir() {
+		return ""
+	}
+	tree, err := te.ptree.SubTree(te.name)
+	if err != nil {
+		return te.name
+	}
+	entries, _ := tree.ListEntries()
+	if len(entries) == 1 && entries[0].IsDir() {
+		name := entries[0].GetSubJumpablePathName()
+		if name != "" {
+			return te.name + "/" + name
+		}
+	}
+	return te.name
+}
+
 // Entries a list of entry
 type Entries []*TreeEntry
 
