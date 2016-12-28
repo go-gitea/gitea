@@ -117,6 +117,17 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return "tab-size-8"
 		},
+		"SubJumpablePath": func(str string) []string {
+			var path []string
+			index := strings.LastIndex(str, "/")
+			if index != -1 && index != len(str) {
+				path = append(path, string(str[0:index+1]))
+				path = append(path, string(str[index+1:]))
+			} else {
+				path = append(path, str)
+			}
+			return path
+		},
 	}}
 }
 
