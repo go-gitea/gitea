@@ -1,0 +1,44 @@
+{{template "base/head" .}}
+<div class="repository commits">
+	{{template "repo/header" .}}
+	<div class="ui container">
+
+
+	  <div id="git-graph-container">
+	    <div id="rel-container">
+	      <canvas id="graph-canvas">
+		<ul id="graph-raw-list">
+    		  {{ range .Graph }}
+		  <li><span class="node-relation">{{ .GraphAcii -}}</span></li>
+  		  {{ end }}
+		</ul>
+	      </canvas>
+	    </div>
+	    <div id="rev-container">
+	      <ul id="rev-list">
+		{{ range .Graph }}
+		<li>
+		  {{ if .OnlyRelation }}
+		  <span />
+		  {{ else }}
+		  <code id="{{.ShortRev}}">
+		    <a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.Rev}}">{{ .ShortRev}}</a>
+		  </code>
+		  <strong> {{.Branch}}</strong>
+		  <em>{{.Subject}}</em> by
+		  <span class="author">
+		    {{.Author}}
+		  </span>
+		  <span class="time">{{.Date}}</span>
+		  {{ end }}
+		</li>
+		{{ end }}
+	      </ul>
+	    </div>
+	  </div>
+
+
+
+	</div>
+</div>
+{{template "base/footer" .}}

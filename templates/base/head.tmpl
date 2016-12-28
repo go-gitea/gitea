@@ -31,6 +31,13 @@
 		</script>
 	{{end}}
 
+	{{if .RequireGitGraph}}
+	<!-- graph -->
+	<script src="{{AppSubUrl}}/js/libs/gitgraph.js"></script>
+	<script src="{{AppSubUrl}}/js/draw.js"></script>
+	<link rel="stylesheet" href="{{AppSubUrl}}/css/gitgraph.css">
+	{{end}}
+
 	<!-- Stylesheet -->
 	<link rel="stylesheet" href="{{AppSubUrl}}/css/semantic-2.2.1.min.css">
 	<link rel="stylesheet" href="{{AppSubUrl}}/css/index.css?v={{MD5 AppVer}}">
