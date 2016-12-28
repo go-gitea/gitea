@@ -437,8 +437,8 @@ func (pr *PullRequest) testPatch() (err error) {
 
 	var stderr string
 	_, stderr, err = process.ExecDirEnv(-1, "", fmt.Sprintf("testPatch (git read-tree): %d", pr.BaseRepo.ID),
-		[]string{"GIT_DIR=" + pr.BaseRepo.RepoPath()},
-		"git", "read-tree", "--index-output", indexTmpPath, pr.BaseBranch)
+		[]string{"GIT_DIR=" + pr.BaseRepo.RepoPath(), "GIT_INDEX_FILE=" + indexTmpPath},
+		"git", "read-tree", pr.BaseBranch)
 	if err != nil {
 		return fmt.Errorf("git read-tree --index-output=%s %s: %v - %s", indexTmpPath, pr.BaseBranch, err, stderr)
 	}
