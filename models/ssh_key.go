@@ -172,7 +172,7 @@ func parseKeyString(content string) (string, error) {
 // writeTmpKeyFile writes key content to a temporary file
 // and returns the name of that file, along with any possible errors.
 func writeTmpKeyFile(content string) (string, error) {
-	tmpFile, err := ioutil.TempFile(setting.SSH.KeyTestPath, "gogs_keytest")
+	tmpFile, err := ioutil.TempFile(setting.SSH.KeyTestPath, "gitea_keytest")
 	if err != nil {
 		return "", fmt.Errorf("TempFile: %v", err)
 	}

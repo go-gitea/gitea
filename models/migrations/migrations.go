@@ -103,13 +103,13 @@ func Migrate(x *xorm.Engine) error {
 
 	v := currentVersion.Version
 	if minDBVersion > v {
-		log.Fatal(4, `Gogs no longer supports auto-migration from your previously installed version.
+		log.Fatal(4, `Gitea no longer supports auto-migration from your previously installed version.
 Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to current version.`)
 		return nil
 	}
 
 	if int(v-minDBVersion) > len(migrations) {
-		// User downgraded Gogs.
+		// User downgraded Gitea.
 		currentVersion.Version = int64(len(migrations) + minDBVersion)
 		_, err = x.Id(1).Update(currentVersion)
 		return err
