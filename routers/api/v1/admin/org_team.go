@@ -33,6 +33,31 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 	ctx.JSON(201, convert.ToTeam(team))
 }
 
+// EditTeam api for edit a team
+func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
+	team := &models.Team{
+		ID:          ctx.Org.Team.ID,
+		OrgID:       ctx.Org.Team.OrgID,
+		Name:        form.Name,
+		Description: form.Description,
+		Authorize:   models.ParseAccessMode(form.Permission),
+	}
+	if err := models.UpdateTeam(team, true); err != nil {
+		ctx.Error(500, "EditTeam", err)
+		return
+	}
+	ctx.JSON(200, convert.ToTeam(team))
+}
+
+// DeleteTeam api for delete a team
+func DeleteTeam(ctx *context.APIContext) {
+	if err := models.DeleteTeam(ctx.Org.Team); err != nil {
+		ctx.Error(500, "DeleteTeam", err)
+		return
+	}
+	ctx.Status(204)
+}
+
 // AddTeamMember api for add a member to a team
 func AddTeamMember(ctx *context.APIContext) {
 	u := user.GetUserByParams(ctx)
