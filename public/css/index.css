@@ -1272,6 +1272,9 @@ footer .ui.language .menu {
 .repository.file.list #repo-files-table tr:hover {
   background-color: #ffffEE;
 }
+.repository.file.list #repo-files-table .jumpable-path {
+  color: #888;
+}
 .repository.file.list #file-content .header .icon {
   font-size: 1em;
   margin-top: -2px;
