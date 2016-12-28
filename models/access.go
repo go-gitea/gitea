@@ -128,6 +128,7 @@ func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 			if err = repo.GetOwner(); err != nil {
 				return nil, err
 			}
+			ownerCache[repo.OwnerID] = repo.Owner
 		}
 
 		repos[&repo.Repository] = repo.Access.Mode
