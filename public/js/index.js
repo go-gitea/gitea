@@ -1,5 +1,12 @@
 'use strict';
 
+require('jquery');
+require('octicons/build/octicons.css'); // TODO: svg $(ls ./node_modules/octicons/build/)
+require('font-awesome/css/font-awesome.css');
+require('jquery.are-you-sure');
+require('semantic-ui-css/semantic.css');
+require('semantic-ui-css/semantic.js');
+
 var csrf;
 var suburl;
 
