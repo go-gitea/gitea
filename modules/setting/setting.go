@@ -821,7 +821,7 @@ please consider changing to GITEA_CUSTOM`)
 	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
 	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
 
-	UI.ShowUserEmailInExplore = Cfg.Section("ui").Key("SHOW_USER_EMAIL_IN_EXPLORE").MustBool()
+	UI.ShowUserEmailInExplore = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool()
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 }
