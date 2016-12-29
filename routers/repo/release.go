@@ -73,6 +73,8 @@ func Releases(ctx *context.Context) {
 	// Temproray cache commits count of used branches to speed up.
 	countCache := make(map[string]int64)
 
+	var cacheUsers = make(map[int64]*models.User)
+	var ok bool
 	tags := make([]*models.Release, len(rawTags))
 	for i, rawTag := range rawTags {
 		for j, r := range releases {
@@ -80,14 +82,17 @@ func Releases(ctx *context.Context) {
 				continue
 			}
 			if r.TagName == rawTag {
-				r.Publisher, err = models.GetUserByID(r.PublisherID)
-				if err != nil {
-					if models.IsErrUserNotExist(err) {
-						r.Publisher = models.NewGhostUser()
-					} else {
-						ctx.Handle(500, "GetUserByID", err)
-						return
+				if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
+					r.Publisher, err = models.GetUserByID(r.PublisherID)
+					if err != nil {
+						if models.IsErrUserNotExist(err) {
+							r.Publisher = models.NewGhostUser()
+						} else {
+							ctx.Handle(500, "GetUserByID", err)
+							return
+						}
 					}
+					cacheUsers[r.PublisherID] = r.Publisher
 				}
 
 				if err := calReleaseNumCommitsBehind(ctx.Repo, r, countCache); err != nil {
@@ -129,14 +134,17 @@ func Releases(ctx *context.Context) {
 			continue
 		}
 
-		r.Publisher, err = models.GetUserByID(r.PublisherID)
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				r.Publisher = models.NewGhostUser()
-			} else {
-				ctx.Handle(500, "GetUserByID", err)
-				return
+		if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
+			r.Publisher, err = models.GetUserByID(r.PublisherID)
+			if err != nil {
+				if models.IsErrUserNotExist(err) {
+					r.Publisher = models.NewGhostUser()
+				} else {
+					ctx.Handle(500, "GetUserByID", err)
+					return
+				}
 			}
+			cacheUsers[r.PublisherID] = r.Publisher
 		}
 
 		if err := calReleaseNumCommitsBehind(ctx.Repo, r, countCache); err != nil {
