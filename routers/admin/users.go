@@ -35,7 +35,6 @@ func Users(ctx *context.Context) {
 		Counter:  models.CountUsers,
 		Ranger:   models.Users,
 		PageSize: setting.UI.Admin.UserPagingNum,
-		OrderBy:  "id ASC",
 		TplName:  tplUsers,
 	})
 }
@@ -197,7 +196,11 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 
 	if len(form.Password) > 0 {
 		u.Passwd = form.Password
-		u.Salt = models.GetUserSalt()
+		var err error
+		if u.Salt, err = models.GetUserSalt(); err != nil {
+			ctx.Handle(500, "UpdateUser", err)
+			return
+		}
 		u.EncodePasswd()
 	}
 

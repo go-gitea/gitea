@@ -87,7 +87,11 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 
 	if len(form.Password) > 0 {
 		u.Passwd = form.Password
-		u.Salt = models.GetUserSalt()
+		var err error
+		if u.Salt, err = models.GetUserSalt(); err != nil {
+			ctx.Error(500, "UpdateUser", err)
+			return
+		}
 		u.EncodePasswd()
 	}
 

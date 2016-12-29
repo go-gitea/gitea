@@ -584,6 +584,28 @@ func (err ErrPullRequestNotExist) Error() string {
 		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBarcnh, err.BaseBranch)
 }
 
+// ErrPullRequestAlreadyExists represents a "PullRequestAlreadyExists"-error
+type ErrPullRequestAlreadyExists struct {
+	ID         int64
+	IssueID    int64
+	HeadRepoID int64
+	BaseRepoID int64
+	HeadBranch string
+	BaseBranch string
+}
+
+// IsErrPullRequestAlreadyExists checks if an error is a ErrPullRequestAlreadyExists.
+func IsErrPullRequestAlreadyExists(err error) bool {
+	_, ok := err.(ErrPullRequestAlreadyExists)
+	return ok
+}
+
+// Error does pretty-printing :D
+func (err ErrPullRequestAlreadyExists) Error() string {
+	return fmt.Sprintf("pull request already exists for these targets [id: %d, issue_id: %d, head_repo_id: %d, base_repo_id: %d, head_branch: %s, base_branch: %s]",
+		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
+}
+
 // _________                                       __
 // \_   ___ \  ____   _____   _____   ____   _____/  |_
 // /    \  \/ /  _ \ /     \ /     \_/ __ \ /    \   __\

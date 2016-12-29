@@ -16,12 +16,15 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/template"
-	"code.gitea.io/gitea/modules/template/highlight"
+	"code.gitea.io/gitea/modules/templates"
+	"encoding/base64"
 	"github.com/Unknwon/paginater"
+	"strconv"
 )
 
 const (
@@ -139,6 +142,30 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	isTextFile := base.IsTextFile(buf)
 	ctx.Data["IsTextFile"] = isTextFile
 
+	//Check for LFS meta file
+	if isTextFile && setting.LFS.StartServer {
+		headString := string(buf)
+		if strings.HasPrefix(headString, models.LFSMetaFileIdentifier) {
+			splitLines := strings.Split(headString, "\n")
+			if len(splitLines) >= 3 {
+				oid := strings.TrimPrefix(splitLines[1], models.LFSMetaFileOidPrefix)
+				size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
+				if len(oid) == 64 && err == nil {
+					contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
+					meta := &models.LFSMetaObject{Oid: oid}
+					if contentStore.Exists(meta) {
+						ctx.Data["IsTextFile"] = false
+						isTextFile = false
+						ctx.Data["IsLFSFile"] = true
+						ctx.Data["FileSize"] = size
+						filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
+						ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), oid, filenameBase64)
+					}
+				}
+			}
+		}
+	}
+
 	// Assume file is not editable first.
 	if !isTextFile {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
@@ -164,7 +191,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		} else {
 			// Building code view blocks with line number on server side.
 			var fileContent string
-			if content, err := template.ToUTF8WithErr(buf); err != nil {
+			if content, err := templates.ToUTF8WithErr(buf); err != nil {
 				if err != nil {
 					log.Error(4, "ToUTF8WithErr: %s", err)
 				}
@@ -198,6 +225,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	case base.IsPDFFile(buf):
 		ctx.Data["IsPDFFile"] = true
+	case base.IsVideoFile(buf):
+		ctx.Data["IsVideoFile"] = true
 	case base.IsImageFile(buf):
 		ctx.Data["IsImageFile"] = true
 	}

@@ -5,16 +5,16 @@
 package base
 
 import (
-	"crypto/hmac"
 	"crypto/md5"
 	"crypto/rand"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"hash"
 	"html/template"
+	"io"
 	"math"
+	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
@@ -57,6 +57,9 @@ func DetectEncoding(content []byte) (string, error) {
 	}
 
 	result, err := chardet.NewTextDetector().DetectBest(content)
+	if err != nil {
+		return "", err
+	}
 	if result.Charset != "UTF-8" && len(setting.Repository.AnsiCharset) > 0 {
 		log.Debug("Using default AnsiCharset: %s", setting.Repository.AnsiCharset)
 		return setting.Repository.AnsiCharset, err
@@ -83,57 +86,43 @@ func BasicAuthEncode(username, password string) string {
 }
 
 // GetRandomString generate random string by specify chars.
-func GetRandomString(n int, alphabets ...byte) string {
+func GetRandomString(n int) (string, error) {
 	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-	var bytes = make([]byte, n)
-	rand.Read(bytes)
-	for i, b := range bytes {
-		if len(alphabets) == 0 {
-			bytes[i] = alphanum[b%byte(len(alphanum))]
-		} else {
-			bytes[i] = alphabets[b%byte(len(alphabets))]
+
+	buffer := make([]byte, n)
+	max := big.NewInt(int64(len(alphanum)))
+
+	for i := 0; i < n; i++ {
+		index, err := randomInt(max)
+		if err != nil {
+			return "", err
 		}
+
+		buffer[i] = alphanum[index]
 	}
-	return string(bytes)
+
+	return string(buffer), nil
 }
 
-// PBKDF2 http://code.google.com/p/go/source/browse/pbkdf2/pbkdf2.go?repo=crypto
-// FIXME: use https://godoc.org/golang.org/x/crypto/pbkdf2?
-func PBKDF2(password, salt []byte, iter, keyLen int, h func() hash.Hash) []byte {
-	prf := hmac.New(h, password)
-	hashLen := prf.Size()
-	numBlocks := (keyLen + hashLen - 1) / hashLen
+// GetRandomBytesAsBase64 generates a random base64 string from n bytes
+func GetRandomBytesAsBase64(n int) string {
+	bytes := make([]byte, 32)
+	_, err := io.ReadFull(rand.Reader, bytes)
 
-	var buf [4]byte
-	dk := make([]byte, 0, numBlocks*hashLen)
-	U := make([]byte, hashLen)
-	for block := 1; block <= numBlocks; block++ {
-		// N.B.: || means concatenation, ^ means XOR
-		// for each block T_i = U_1 ^ U_2 ^ ... ^ U_iter
-		// U_1 = PRF(password, salt || uint(i))
-		prf.Reset()
-		prf.Write(salt)
-		buf[0] = byte(block >> 24)
-		buf[1] = byte(block >> 16)
-		buf[2] = byte(block >> 8)
-		buf[3] = byte(block)
-		prf.Write(buf[:4])
-		dk = prf.Sum(dk)
-		T := dk[len(dk)-hashLen:]
-		copy(U, T)
-
-		// U_n = PRF(password, U_(n-1))
-		for n := 2; n <= iter; n++ {
-			prf.Reset()
-			prf.Write(U)
-			U = U[:0]
-			U = prf.Sum(U)
-			for x := range U {
-				T[x] ^= U[x]
-			}
-		}
+	if err != nil {
+		log.Fatal(4, "Error reading random bytes: %s", err)
 	}
-	return dk[:keyLen]
+
+	return base64.RawURLEncoding.EncodeToString(bytes)
+}
+
+func randomInt(max *big.Int) (int, error) {
+	rand, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(rand.Int64()), nil
 }
 
 // VerifyTimeLimitCode verify time limit code
@@ -283,18 +272,24 @@ func computeTimeDiff(diff int64) (int64, string) {
 		diffStr = "1 year"
 	default:
 		diffStr = fmt.Sprintf("%d years", diff/Year)
-		diff = 0
+		diff -= (diff / Year) * Year
 	}
 	return diff, diffStr
 }
 
 // TimeSincePro calculates the time interval and generate full user-friendly string.
 func TimeSincePro(then time.Time) string {
-	now := time.Now()
+	return timeSincePro(then, time.Now())
+}
+
+func timeSincePro(then, now time.Time) string {
 	diff := now.Unix() - then.Unix()
 
 	if then.After(now) {
 		return "future"
+	}
+	if diff == 0 {
+		return "now"
 	}
 
 	var timeStr, diffStr string
@@ -309,9 +304,7 @@ func TimeSincePro(then time.Time) string {
 	return strings.TrimPrefix(timeStr, ", ")
 }
 
-func timeSince(then time.Time, lang string) string {
-	now := time.Now()
-
+func timeSince(then, now time.Time, lang string) string {
 	lbl := i18n.Tr(lang, "tool.ago")
 	diff := now.Unix() - then.Unix()
 	if then.After(now) {
@@ -322,7 +315,7 @@ func timeSince(then time.Time, lang string) string {
 	switch {
 	case diff <= 0:
 		return i18n.Tr(lang, "tool.now")
-	case diff <= 2:
+	case diff <= 1:
 		return i18n.Tr(lang, "tool.1s", lbl)
 	case diff < 1*Minute:
 		return i18n.Tr(lang, "tool.seconds", diff, lbl)
@@ -361,12 +354,18 @@ func timeSince(then time.Time, lang string) string {
 
 // RawTimeSince retrieves i18n key of time since t
 func RawTimeSince(t time.Time, lang string) string {
-	return timeSince(t, lang)
+	return timeSince(t, time.Now(), lang)
 }
 
 // TimeSince calculates the time interval and generate user-friendly string.
-func TimeSince(t time.Time, lang string) template.HTML {
-	return template.HTML(fmt.Sprintf(`<span class="time-since" title="%s">%s</span>`, t.Format(setting.TimeFormat), timeSince(t, lang)))
+func TimeSince(then time.Time, lang string) template.HTML {
+	return htmlTimeSince(then, time.Now(), lang)
+}
+
+func htmlTimeSince(then, now time.Time, lang string) template.HTML {
+	return template.HTML(fmt.Sprintf(`<span class="time-since" title="%s">%s</span>`,
+		then.Format(setting.TimeFormat),
+		timeSince(then, now, lang)))
 }
 
 // Storage space size types
@@ -451,10 +450,10 @@ func Subtract(left interface{}, right interface{}) interface{} {
 	case int64:
 		rright = right.(int64)
 	case float32:
-		fright = float64(left.(float32))
+		fright = float64(right.(float32))
 		isInt = false
 	case float64:
-		fleft = left.(float64)
+		fright = right.(float64)
 		isInt = false
 	}
 
@@ -486,12 +485,16 @@ func TruncateString(str string, limit int) string {
 }
 
 // StringsToInt64s converts a slice of string to a slice of int64.
-func StringsToInt64s(strs []string) []int64 {
+func StringsToInt64s(strs []string) ([]int64, error) {
 	ints := make([]int64, len(strs))
 	for i := range strs {
-		ints[i] = com.StrTo(strs[i]).MustInt64()
+		n, err := com.StrTo(strs[i]).Int64()
+		if err != nil {
+			return ints, err
+		}
+		ints[i] = n
 	}
-	return ints
+	return ints, nil
 }
 
 // Int64sToStrings converts a slice of int64 to a slice of string.
@@ -534,4 +537,9 @@ func IsImageFile(data []byte) bool {
 // IsPDFFile detectes if data is a pdf format
 func IsPDFFile(data []byte) bool {
 	return strings.Index(http.DetectContentType(data), "application/pdf") != -1
+}
+
+// IsVideoFile detectes if data is an video format
+func IsVideoFile(data []byte) bool {
+	return strings.Index(http.DetectContentType(data), "video/") != -1
 }

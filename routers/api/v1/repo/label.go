@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"strconv"
+
 	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/models"
@@ -13,7 +15,7 @@ import (
 
 // ListLabels list all the labels of a repository
 func ListLabels(ctx *context.APIContext) {
-	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID)
+	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Query("sort"))
 	if err != nil {
 		ctx.Error(500, "GetLabelsByRepoID", err)
 		return
@@ -28,7 +30,16 @@ func ListLabels(ctx *context.APIContext) {
 
 // GetLabel get label by repository and label id
 func GetLabel(ctx *context.APIContext) {
-	label, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	var (
+		label *models.Label
+		err   error
+	)
+	strID := ctx.Params(":id")
+	if intID, err2 := strconv.ParseInt(strID, 10, 64); err2 != nil {
+		label, err = models.GetLabelInRepoByName(ctx.Repo.Repository.ID, strID)
+	} else {
+		label, err = models.GetLabelInRepoByID(ctx.Repo.Repository.ID, intID)
+	}
 	if err != nil {
 		if models.IsErrLabelNotExist(err) {
 			ctx.Status(404)

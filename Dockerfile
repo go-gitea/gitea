@@ -26,7 +26,8 @@ RUN apk update && \
     -s /bin/bash \
     -u 1000 \
     -G git \
-    git
+    git && \
+  echo "git:$(date +%s | sha256sum | base64 | head -c 32)" | chpasswd
 
 ENV USER git
 ENV GITEA_CUSTOM /data/gitea
@@ -38,7 +39,4 @@ ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/bin/s6-svscan", "/etc/s6"]
 
 COPY docker /
-
-COPY public /app/gitea/public
-COPY templates /app/gitea/templates
 COPY gitea /app/gitea/gitea

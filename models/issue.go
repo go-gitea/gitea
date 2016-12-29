@@ -87,12 +87,19 @@ func (issue *Issue) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
-func (issue *Issue) loadAttributes(e Engine) (err error) {
+func (issue *Issue) loadRepo(e Engine) (err error) {
 	if issue.Repo == nil {
 		issue.Repo, err = getRepositoryByID(e, issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("getRepositoryByID [%d]: %v", issue.RepoID, err)
 		}
+	}
+	return nil
+}
+
+func (issue *Issue) loadAttributes(e Engine) (err error) {
+	if err := issue.loadRepo(e); err != nil {
+		return err
 	}
 
 	if issue.Poster == nil {
@@ -168,6 +175,22 @@ func (issue *Issue) HTMLURL() string {
 		path = "issues"
 	}
 	return fmt.Sprintf("%s/%s/%d", issue.Repo.HTMLURL(), path, issue.Index)
+}
+
+// DiffURL returns the absolute URL to this diff
+func (issue *Issue) DiffURL() string {
+	if issue.IsPull {
+		return fmt.Sprintf("%s/pulls/%d.diff", issue.Repo.HTMLURL(), issue.Index)
+	}
+	return ""
+}
+
+// PatchURL returns the absolute URL to this patch
+func (issue *Issue) PatchURL() string {
+	if issue.IsPull {
+		return fmt.Sprintf("%s/pulls/%d.patch", issue.Repo.HTMLURL(), issue.Index)
+	}
+	return ""
 }
 
 // State returns string representation of issue status.
@@ -249,7 +272,7 @@ func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 			Action:      api.HookIssueLabelUpdated,
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(nil),
+			Repository:  issue.Repo.APIFormat(AccessModeNone),
 			Sender:      doer.APIFormat(),
 		})
 	}
@@ -306,6 +329,16 @@ func (issue *Issue) removeLabel(e *xorm.Session, label *Label) error {
 
 // RemoveLabel removes a label from issue by given ID.
 func (issue *Issue) RemoveLabel(doer *User, label *Label) error {
+	if err := issue.loadRepo(x); err != nil {
+		return err
+	}
+
+	if has, err := HasAccess(doer, issue.Repo, AccessModeWrite); err != nil {
+		return err
+	} else if !has {
+		return ErrLabelNotExist{}
+	}
+
 	if err := DeleteIssueLabel(issue, label); err != nil {
 		return err
 	}
@@ -337,6 +370,16 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		return err
 	}
 
+	if err := issue.loadRepo(sess); err != nil {
+		return err
+	}
+
+	if has, err := hasAccess(sess, doer, issue.Repo, AccessModeWrite); err != nil {
+		return err
+	} else if !has {
+		return ErrLabelNotExist{}
+	}
+
 	if err = issue.clearLabels(sess); err != nil {
 		return err
 	}
@@ -355,7 +398,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 			Action:      api.HookIssueLabelCleared,
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(nil),
+			Repository:  issue.Repo.APIFormat(AccessModeNone),
 			Sender:      doer.APIFormat(),
 		})
 	}
@@ -477,7 +520,7 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  repo.APIFormat(nil),
+			Repository:  repo.APIFormat(AccessModeNone),
 			Sender:      doer.APIFormat(),
 		}
 		if isClosed {
@@ -515,7 +558,7 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 				},
 			},
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(nil),
+			Repository:  issue.Repo.APIFormat(AccessModeNone),
 			Sender:      doer.APIFormat(),
 		})
 	}
@@ -547,7 +590,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 				},
 			},
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(nil),
+			Repository:  issue.Repo.APIFormat(AccessModeNone),
 			Sender:      doer.APIFormat(),
 		})
 	}
@@ -580,7 +623,7 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(nil),
+			Repository:  issue.Repo.APIFormat(AccessModeNone),
 			Sender:      doer.APIFormat(),
 		}
 		if isRemoveAssignee {
@@ -812,15 +855,14 @@ func GetIssueByID(id int64) (*Issue, error) {
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
-	UserID      int64
-	AssigneeID  int64
 	RepoID      int64
+	AssigneeID  int64
 	PosterID    int64
+	MentionedID int64
 	MilestoneID int64
 	RepoIDs     []int64
 	Page        int
 	IsClosed    bool
-	IsMention   bool
 	IsPull      bool
 	Labels      string
 	SortType    string
@@ -844,8 +886,16 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 
 	if opts.AssigneeID > 0 {
 		sess.And("issue.assignee_id=?", opts.AssigneeID)
-	} else if opts.PosterID > 0 {
+	}
+
+	if opts.PosterID > 0 {
 		sess.And("issue.poster_id=?", opts.PosterID)
+	}
+
+	if opts.MentionedID > 0 {
+		sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
+			And("issue_user.is_mentioned = ?", true).
+			And("issue_user.uid = ?", opts.MentionedID)
 	}
 
 	if opts.MilestoneID > 0 {
@@ -872,21 +922,14 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	}
 
 	if len(opts.Labels) > 0 && opts.Labels != "0" {
-		labelIDs := base.StringsToInt64s(strings.Split(opts.Labels, ","))
+		labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
+		if err != nil {
+			return nil, err
+		}
 		if len(labelIDs) > 0 {
 			sess.
 				Join("INNER", "issue_label", "issue.id = issue_label.issue_id").
 				In("issue_label.label_id", labelIDs)
-		}
-	}
-
-	if opts.IsMention {
-		sess.
-			Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
-			And("issue_user.is_mentioned = ?", true)
-
-		if opts.UserID > 0 {
-			sess.And("issue_user.uid = ?", opts.UserID)
 		}
 	}
 
@@ -1039,7 +1082,7 @@ func GetIssueUserPairsByMode(uid, rid int64, isClosed bool, page, filterMode int
 
 // UpdateIssueMentions extracts mentioned people from content and
 // updates issue-user relations for them.
-func UpdateIssueMentions(issueID int64, mentions []string) error {
+func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
 	if len(mentions) == 0 {
 		return nil
 	}
@@ -1049,7 +1092,7 @@ func UpdateIssueMentions(issueID int64, mentions []string) error {
 	}
 	users := make([]*User, 0, len(mentions))
 
-	if err := x.In("lower_name", mentions).Asc("lower_name").Find(&users); err != nil {
+	if err := e.In("lower_name", mentions).Asc("lower_name").Find(&users); err != nil {
 		return fmt.Errorf("find mentioned users: %v", err)
 	}
 
@@ -1073,7 +1116,7 @@ func UpdateIssueMentions(issueID int64, mentions []string) error {
 		ids = append(ids, memberIDs...)
 	}
 
-	if err := UpdateIssueUsersByMentions(issueID, ids); err != nil {
+	if err := UpdateIssueUsersByMentions(e, issueID, ids); err != nil {
 		return fmt.Errorf("UpdateIssueUsersByMentions: %v", err)
 	}
 
@@ -1110,11 +1153,11 @@ func parseCountResult(results []map[string][]byte) int64 {
 // IssueStatsOptions contains parameters accepted by GetIssueStats.
 type IssueStatsOptions struct {
 	RepoID      int64
-	UserID      int64
 	Labels      string
 	MilestoneID int64
 	AssigneeID  int64
-	FilterMode  int
+	MentionedID int64
+	PosterID    int64
 	IsPull      bool
 }
 
@@ -1128,10 +1171,11 @@ func GetIssueStats(opts *IssueStatsOptions) *IssueStats {
 			And("is_pull = ?", opts.IsPull)
 
 		if len(opts.Labels) > 0 && opts.Labels != "0" {
-			labelIDs := base.StringsToInt64s(strings.Split(opts.Labels, ","))
-			if len(labelIDs) > 0 {
-				sess.
-					Join("INNER", "issue_label", "issue.id = issue_id").
+			labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
+			if err != nil {
+				log.Warn("Malformed Labels argument: %s", opts.Labels)
+			} else if len(labelIDs) > 0 {
+				sess.Join("INNER", "issue_label", "issue.id = issue_id").
 					In("label_id", labelIDs)
 			}
 		}
@@ -1144,43 +1188,25 @@ func GetIssueStats(opts *IssueStatsOptions) *IssueStats {
 			sess.And("assignee_id = ?", opts.AssigneeID)
 		}
 
+		if opts.PosterID > 0 {
+			sess.And("poster_id = ?", opts.PosterID)
+		}
+
+		if opts.MentionedID > 0 {
+			sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
+			And("issue_user.uid = ?", opts.MentionedID).
+			And("issue_user.is_mentioned = ?", true)
+		}
+
 		return sess
 	}
 
-	switch opts.FilterMode {
-	case FilterModeAll, FilterModeAssign:
-		stats.OpenCount, _ = countSession(opts).
-			And("is_closed = ?", false).
-			Count(&Issue{})
-
-		stats.ClosedCount, _ = countSession(opts).
-			And("is_closed = ?", true).
-			Count(&Issue{})
-	case FilterModeCreate:
-		stats.OpenCount, _ = countSession(opts).
-			And("poster_id = ?", opts.UserID).
-			And("is_closed = ?", false).
-			Count(&Issue{})
-
-		stats.ClosedCount, _ = countSession(opts).
-			And("poster_id = ?", opts.UserID).
-			And("is_closed = ?", true).
-			Count(&Issue{})
-	case FilterModeMention:
-		stats.OpenCount, _ = countSession(opts).
-			Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
-			And("issue_user.uid = ?", opts.UserID).
-			And("issue_user.is_mentioned = ?", true).
-			And("issue.is_closed = ?", false).
-			Count(&Issue{})
-
-		stats.ClosedCount, _ = countSession(opts).
-			Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
-			And("issue_user.uid = ?", opts.UserID).
-			And("issue_user.is_mentioned = ?", true).
-			And("issue.is_closed = ?", true).
-			Count(&Issue{})
-	}
+	stats.OpenCount, _ = countSession(opts).
+		And("is_closed = ?", false).
+		Count(&Issue{})
+	stats.ClosedCount, _ = countSession(opts).
+		And("is_closed = ?", true).
+		Count(&Issue{})
 	return stats
 }
 
@@ -1314,22 +1340,22 @@ func UpdateIssueUserByRead(uid, issueID int64) error {
 }
 
 // UpdateIssueUsersByMentions updates issue-user pairs by mentioning.
-func UpdateIssueUsersByMentions(issueID int64, uids []int64) error {
+func UpdateIssueUsersByMentions(e Engine, issueID int64, uids []int64) error {
 	for _, uid := range uids {
 		iu := &IssueUser{
 			UID:     uid,
 			IssueID: issueID,
 		}
-		has, err := x.Get(iu)
+		has, err := e.Get(iu)
 		if err != nil {
 			return err
 		}
 
 		iu.IsMentioned = true
 		if has {
-			_, err = x.Id(iu.ID).AllCols().Update(iu)
+			_, err = e.Id(iu.ID).AllCols().Update(iu)
 		} else {
-			_, err = x.Insert(iu)
+			_, err = e.Insert(iu)
 		}
 		if err != nil {
 			return err
@@ -1477,12 +1503,28 @@ func GetMilestonesByRepoID(repoID int64) ([]*Milestone, error) {
 }
 
 // GetMilestones returns a list of milestones of given repository and status.
-func GetMilestones(repoID int64, page int, isClosed bool) ([]*Milestone, error) {
+func GetMilestones(repoID int64, page int, isClosed bool, sortType string) ([]*Milestone, error) {
 	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
 	sess := x.Where("repo_id = ? AND is_closed = ?", repoID, isClosed)
 	if page > 0 {
 		sess = sess.Limit(setting.UI.IssuePagingNum, (page-1)*setting.UI.IssuePagingNum)
 	}
+
+	switch sortType {
+	case "furthestduedate":
+		sess.Desc("deadline_unix")
+	case "leastcomplete":
+		sess.Asc("completeness")
+	case "mostcomplete":
+		sess.Desc("completeness")
+	case "leastissues":
+		sess.Asc("num_issues")
+	case "mostissues":
+		sess.Desc("num_issues")
+	default:
+		sess.Asc("deadline_unix")
+	}
+
 	return miles, sess.Find(&miles)
 }
 

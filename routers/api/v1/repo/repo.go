@@ -95,16 +95,12 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	repos := make([]*api.Repository, numOwnRepos+len(accessibleRepos))
 	for i := range ownRepos {
-		repos[i] = ownRepos[i].APIFormat(&api.Permission{true, true, true})
+		repos[i] = ownRepos[i].APIFormat(models.AccessModeOwner)
 	}
 	i := numOwnRepos
 
 	for repo, access := range accessibleRepos {
-		repos[i] = repo.APIFormat(&api.Permission{
-			Admin: access >= models.AccessModeAdmin,
-			Push:  access >= models.AccessModeWrite,
-			Pull:  true,
-		})
+		repos[i] = repo.APIFormat(access)
 		i++
 	}
 
@@ -138,10 +134,10 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		return
 	}
 
-	ctx.JSON(201, repo.APIFormat(&api.Permission{true, true, true}))
+	ctx.JSON(201, repo.APIFormat(models.AccessModeOwner))
 }
 
-// Create create one repository of mine
+// Create one repository of mine
 // see https://github.com/gogits/go-gogs-client/wiki/Repositories#create
 func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 	// Shouldn't reach this condition, but just in case.
@@ -241,17 +237,42 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	}
 
 	log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
-	ctx.JSON(201, repo.APIFormat(&api.Permission{true, true, true}))
+	ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
 }
 
-// Get get one repository
+// Get one repository
 // see https://github.com/gogits/go-gogs-client/wiki/Repositories#get
 func Get(ctx *context.APIContext) {
 	repo := ctx.Repo.Repository
-	ctx.JSON(200, repo.APIFormat(&api.Permission{true, true, true}))
+	access, err := models.AccessLevel(ctx.User, repo)
+	if err != nil {
+		ctx.Error(500, "GetRepository", err)
+		return
+	}
+	ctx.JSON(200, repo.APIFormat(access))
 }
 
-// Delete delete one repository
+// GetByID returns a single Repository
+func GetByID(ctx *context.APIContext) {
+	repo, err := models.GetRepositoryByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		if models.IsErrRepoNotExist(err) {
+			ctx.Status(404)
+		} else {
+			ctx.Error(500, "GetRepositoryByID", err)
+		}
+		return
+	}
+
+	access, err := models.AccessLevel(ctx.User, repo)
+	if err != nil {
+		ctx.Error(500, "GetRepositoryByID", err)
+		return
+	}
+	ctx.JSON(200, repo.APIFormat(access))
+}
+
+// Delete one repository
 // see https://github.com/gogits/go-gogs-client/wiki/Repositories#delete
 func Delete(ctx *context.APIContext) {
 	owner := ctx.Repo.Owner

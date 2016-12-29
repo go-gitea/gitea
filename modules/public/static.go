@@ -22,7 +22,7 @@ func Static(opts *Options) macaron.Handler {
 				AssetDir:   AssetDir,
 				AssetInfo:  AssetInfo,
 				AssetNames: AssetNames,
-				Prefix:     "../../public",
+				Prefix:     "",
 			}),
 		},
 	)

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"container/list"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -24,6 +25,7 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 	"github.com/nfnt/resize"
+	"golang.org/x/crypto/pbkdf2"
 
 	"code.gitea.io/git"
 	api "code.gitea.io/sdk/gitea"
@@ -360,7 +362,7 @@ func (u *User) NewGitSig() *git.Signature {
 
 // EncodePasswd encodes password to safe format.
 func (u *User) EncodePasswd() {
-	newPasswd := base.PBKDF2([]byte(u.Passwd), []byte(u.Salt), 10000, 50, sha256.New)
+	newPasswd := pbkdf2.Key([]byte(u.Passwd), []byte(u.Salt), 10000, 50, sha256.New)
 	u.Passwd = fmt.Sprintf("%x", newPasswd)
 }
 
@@ -368,7 +370,7 @@ func (u *User) EncodePasswd() {
 func (u *User) ValidatePassword(passwd string) bool {
 	newUser := &User{Passwd: passwd, Salt: u.Salt}
 	newUser.EncodePasswd()
-	return u.Passwd == newUser.Passwd
+	return subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(newUser.Passwd)) == 1
 }
 
 // UploadAvatar saves custom avatar for user.
@@ -392,7 +394,10 @@ func (u *User) UploadAvatar(data []byte) error {
 		return fmt.Errorf("updateUser: %v", err)
 	}
 
-	os.MkdirAll(setting.AvatarUploadPath, os.ModePerm)
+	if err := os.MkdirAll(setting.AvatarUploadPath, os.ModePerm); err != nil {
+		return fmt.Errorf("Fail to create dir %s: %v", setting.AvatarUploadPath, err)
+	}
+
 	fw, err := os.Create(u.CustomAvatarPath())
 	if err != nil {
 		return fmt.Errorf("Create: %v", err)
@@ -409,7 +414,10 @@ func (u *User) UploadAvatar(data []byte) error {
 // DeleteAvatar deletes the user's custom avatar.
 func (u *User) DeleteAvatar() error {
 	log.Trace("DeleteAvatar[%d]: %s", u.ID, u.CustomAvatarPath())
-	os.Remove(u.CustomAvatarPath())
+
+	if err := os.Remove(u.CustomAvatarPath()); err != nil {
+		return fmt.Errorf("Fail to remove %s: %v", u.CustomAvatarPath(), err)
+	}
 
 	u.UseCustomAvatar = false
 	if err := UpdateUser(u); err != nil {
@@ -524,7 +532,7 @@ func IsUserExist(uid int64, name string) (bool, error) {
 }
 
 // GetUserSalt returns a ramdom user salt token.
-func GetUserSalt() string {
+func GetUserSalt() (string, error) {
 	return base.GetRandomString(10)
 }
 
@@ -596,8 +604,12 @@ func CreateUser(u *User) (err error) {
 	u.LowerName = strings.ToLower(u.Name)
 	u.AvatarEmail = u.Email
 	u.Avatar = base.HashEmail(u.AvatarEmail)
-	u.Rands = GetUserSalt()
-	u.Salt = GetUserSalt()
+	if u.Rands, err = GetUserSalt(); err != nil {
+		return err
+	}
+	if u.Salt, err = GetUserSalt(); err != nil {
+		return err
+	}
 	u.EncodePasswd()
 	u.MaxRepoCreation = -1
 
@@ -629,12 +641,18 @@ func CountUsers() int64 {
 }
 
 // Users returns number of users in given page.
-func Users(page, pageSize int) ([]*User, error) {
-	users := make([]*User, 0, pageSize)
-	return users, x.
-		Limit(pageSize, (page-1)*pageSize).
-		Where("type=0").
-		Asc("name").
+func Users(opts *SearchUserOptions) ([]*User, error) {
+	if len(opts.OrderBy) == 0 {
+		opts.OrderBy = "name ASC"
+	}
+
+	users := make([]*User, 0, opts.PageSize)
+	sess := x.
+		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
+		Where("type=0")
+
+	return users, sess.
+		OrderBy(opts.OrderBy).
 		Find(&users)
 }
 
@@ -866,9 +884,18 @@ func deleteUser(e *xorm.Session, u *User) error {
 	// FIXME: system notice
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
+	path := UserPath(u.Name)
 
-	os.RemoveAll(UserPath(u.Name))
-	os.Remove(u.CustomAvatarPath())
+	if err := os.RemoveAll(path); err != nil {
+		return fmt.Errorf("Fail to RemoveAll %s: %v", path, err)
+	}
+
+	avatarPath := u.CustomAvatarPath()
+	if com.IsExist(avatarPath) {
+		if err := os.Remove(avatarPath); err != nil {
+			return fmt.Errorf("Fail to remove %s: %v", avatarPath, err)
+		}
+	}
 
 	return nil
 }
@@ -1212,6 +1239,21 @@ func UnfollowUser(userID, followID int64) (err error) {
 func GetStarredRepos(userID int64, private bool) ([]*Repository, error) {
 	sess := x.Where("star.uid=?", userID).
 		Join("LEFT", "star", "`repository`.id=`star`.repo_id")
+	if !private {
+		sess = sess.And("is_private=?", false)
+	}
+	repos := make([]*Repository, 0, 10)
+	err := sess.Find(&repos)
+	if err != nil {
+		return nil, err
+	}
+	return repos, nil
+}
+
+// GetWatchedRepos returns the repos watched by a particular user
+func GetWatchedRepos(userID int64, private bool) ([]*Repository, error) {
+	sess := x.Where("watch.user_id=?", userID).
+		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)
 	}

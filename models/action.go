@@ -494,12 +494,12 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	isNewBranch := false
 	opType := ActionCommitRepo
 	// Check it's tag push or branch.
-	if strings.HasPrefix(opts.RefFullName, git.TAG_PREFIX) {
+	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 		opType = ActionPushTag
 		opts.Commits = &PushCommits{}
 	} else {
 		// if not the first commit, set the compare URL.
-		if opts.OldCommitID == git.EMPTY_SHA {
+		if opts.OldCommitID == git.EmptySHA {
 			isNewBranch = true
 		} else {
 			opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
@@ -539,7 +539,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	}()
 
 	apiPusher := pusher.APIFormat()
-	apiRepo := repo.APIFormat(nil)
+	apiRepo := repo.APIFormat(AccessModeNone)
 
 	var shaSum string
 	switch opType {
@@ -562,7 +562,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			if err != nil {
 				log.Error(4, "OpenRepository[%s]: %v", repo.RepoPath(), err)
 			}
-			shaSum, err = gitRepo.GetBranchCommitID(opts.RefFullName)
+			shaSum, err = gitRepo.GetBranchCommitID(refName)
 			if err != nil {
 				log.Error(4, "GetBranchCommitID[%s]: %v", opts.RefFullName, err)
 			}
@@ -580,7 +580,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		if err != nil {
 			log.Error(4, "OpenRepository[%s]: %v", repo.RepoPath(), err)
 		}
-		shaSum, err = gitRepo.GetTagCommitID(opts.RefFullName)
+		shaSum, err = gitRepo.GetTagCommitID(refName)
 		if err != nil {
 			log.Error(4, "GetTagCommitID[%s]: %v", opts.RefFullName, err)
 		}

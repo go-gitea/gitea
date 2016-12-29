@@ -17,6 +17,7 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/paginater"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -82,7 +83,7 @@ func MustAllowPulls(ctx *context.Context) {
 
 // RetrieveLabels find all the labels of a repository
 func RetrieveLabels(ctx *context.Context) {
-	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID)
+	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Query("sort"))
 	if err != nil {
 		ctx.Handle(500, "RetrieveLabels.GetLabels", err)
 		return
@@ -92,6 +93,7 @@ func RetrieveLabels(ctx *context.Context) {
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)
+	ctx.Data["SortType"] = ctx.Query("sort")
 }
 
 // Issues render issues page
@@ -130,38 +132,42 @@ func Issues(ctx *context.Context) {
 
 	var (
 		assigneeID = ctx.QueryInt64("assignee")
-		posterID   int64
+		posterID     int64
+		mentionedID  int64
+		forceEmpty   bool
 	)
-	filterMode := models.FilterModeAll
 	switch viewType {
 	case "assigned":
-		filterMode = models.FilterModeAssign
-		assigneeID = ctx.User.ID
+		if assigneeID > 0 && ctx.User.ID != assigneeID {
+			// two different assignees, must be empty
+			forceEmpty = true
+		} else {
+			assigneeID = ctx.User.ID
+		}
 	case "created_by":
-		filterMode = models.FilterModeCreate
 		posterID = ctx.User.ID
 	case "mentioned":
-		filterMode = models.FilterModeMention
-	}
-
-	var uid int64 = -1
-	if ctx.IsSigned {
-		uid = ctx.User.ID
+		mentionedID = ctx.User.ID
 	}
 
 	repo := ctx.Repo.Repository
 	selectLabels := ctx.Query("labels")
 	milestoneID := ctx.QueryInt64("milestone")
 	isShowClosed := ctx.Query("state") == "closed"
-	issueStats := models.GetIssueStats(&models.IssueStatsOptions{
-		RepoID:      repo.ID,
-		UserID:      uid,
-		Labels:      selectLabels,
-		MilestoneID: milestoneID,
-		AssigneeID:  assigneeID,
-		FilterMode:  filterMode,
-		IsPull:      isPullList,
-	})
+
+	var issueStats *models.IssueStats
+	if forceEmpty {
+		issueStats = &models.IssueStats{}
+	} else {
+		issueStats = models.GetIssueStats(&models.IssueStatsOptions{
+			RepoID:      repo.ID,
+			Labels:      selectLabels,
+			MilestoneID: milestoneID,
+			AssigneeID:  assigneeID,
+			MentionedID: mentionedID,
+			IsPull:      isPullList,
+		})
+	}
 
 	page := ctx.QueryInt("page")
 	if page <= 1 {
@@ -177,22 +183,27 @@ func Issues(ctx *context.Context) {
 	pager := paginater.New(total, setting.UI.IssuePagingNum, page, 5)
 	ctx.Data["Page"] = pager
 
-	issues, err := models.Issues(&models.IssuesOptions{
-		UserID:      uid,
-		AssigneeID:  assigneeID,
-		RepoID:      repo.ID,
-		PosterID:    posterID,
-		MilestoneID: milestoneID,
-		Page:        pager.Current(),
-		IsClosed:    isShowClosed,
-		IsMention:   filterMode == models.FilterModeMention,
-		IsPull:      isPullList,
-		Labels:      selectLabels,
-		SortType:    sortType,
-	})
-	if err != nil {
-		ctx.Handle(500, "Issues", err)
-		return
+	var issues []*models.Issue
+	if forceEmpty {
+		issues = []*models.Issue{}
+	} else {
+		var err error
+		issues, err = models.Issues(&models.IssuesOptions{
+			AssigneeID:  assigneeID,
+			RepoID:      repo.ID,
+			PosterID:    posterID,
+			MentionedID: mentionedID,
+			MilestoneID: milestoneID,
+			Page:        pager.Current(),
+			IsClosed:    isShowClosed,
+			IsPull:      isPullList,
+			Labels:      selectLabels,
+			SortType:    sortType,
+		})
+		if err != nil {
+			ctx.Handle(500, "Issues", err)
+			return
+		}
 	}
 
 	// Get issue-user relations.
@@ -233,7 +244,7 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
-	if viewType == "assigned" {
+	if ctx.QueryInt64("assignee") == 0 {
 		assigneeID = 0 // Reset ID to prevent unexpected selection of assignee.
 	}
 
@@ -264,12 +275,12 @@ func renderAttachmentSettings(ctx *context.Context) {
 // RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
 func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repository) {
 	var err error
-	ctx.Data["OpenMilestones"], err = models.GetMilestones(repo.ID, -1, false)
+	ctx.Data["OpenMilestones"], err = models.GetMilestones(repo.ID, -1, false, "")
 	if err != nil {
 		ctx.Handle(500, "GetMilestones", err)
 		return
 	}
-	ctx.Data["ClosedMilestones"], err = models.GetMilestones(repo.ID, -1, true)
+	ctx.Data["ClosedMilestones"], err = models.GetMilestones(repo.ID, -1, true, "")
 	if err != nil {
 		ctx.Handle(500, "GetMilestones", err)
 		return
@@ -288,7 +299,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.
 		return nil
 	}
 
-	labels, err := models.GetLabelsByRepoID(repo.ID)
+	labels, err := models.GetLabelsByRepoID(repo.ID, "")
 	if err != nil {
 		ctx.Handle(500, "GetLabelsByRepoID", err)
 		return nil
@@ -374,7 +385,10 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 	}
 
 	// Check labels.
-	labelIDs := base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
+	labelIDs, err := base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
+	if err != nil {
+		return nil, 0, 0
+	}
 	labelIDMark := base.Int64sToMap(labelIDs)
 	hasSelected := false
 	for i := range labels {
@@ -570,7 +584,7 @@ func ViewIssue(ctx *context.Context) {
 	for i := range issue.Labels {
 		labelIDMark[issue.Labels[i].ID] = true
 	}
-	labels, err := models.GetLabelsByRepoID(repo.ID)
+	labels, err := models.GetLabelsByRepoID(repo.ID, "")
 	if err != nil {
 		ctx.Handle(500, "GetLabelsByRepoID", err)
 		return
@@ -645,6 +659,25 @@ func ViewIssue(ctx *context.Context) {
 				participants = append(participants, comment.Poster)
 			}
 		}
+	}
+
+	if issue.IsPull {
+		pull := issue.PullRequest
+		canDelete := false
+
+		if ctx.IsSigned && pull.HeadBranch != "master" {
+
+			if err := pull.GetHeadRepo(); err != nil {
+				log.Error(4, "GetHeadRepo: %v", err)
+			} else if ctx.User.IsWriterOfRepo(pull.HeadRepo) {
+				canDelete = true
+				deleteBranchURL := pull.HeadRepo.Link() + "/branches/" + pull.HeadBranch + "/delete"
+				ctx.Data["DeleteBranchLink"] = fmt.Sprintf("%s?commit=%s&redirect_to=%s", deleteBranchURL, pull.MergedCommitID, ctx.Data["Link"])
+
+			}
+		}
+
+		ctx.Data["IsPullBranchDeletable"] = canDelete && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 	}
 
 	ctx.Data["Participants"] = participants
@@ -1066,6 +1099,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["OpenCount"] = openCount
 	ctx.Data["ClosedCount"] = closedCount
 
+	sortType := ctx.Query("sort")
 	page := ctx.QueryInt("page")
 	if page <= 1 {
 		page = 1
@@ -1079,7 +1113,7 @@ func Milestones(ctx *context.Context) {
 	}
 	ctx.Data["Page"] = paginater.New(total, setting.UI.IssuePagingNum, page, 5)
 
-	miles, err := models.GetMilestones(ctx.Repo.Repository.ID, page, isShowClosed)
+	miles, err := models.GetMilestones(ctx.Repo.Repository.ID, page, isShowClosed, sortType)
 	if err != nil {
 		ctx.Handle(500, "GetMilestones", err)
 		return
@@ -1095,6 +1129,7 @@ func Milestones(ctx *context.Context) {
 		ctx.Data["State"] = "open"
 	}
 
+	ctx.Data["SortType"] = sortType
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.HTML(200, tplMilestone)
 }

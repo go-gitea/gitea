@@ -2,7 +2,7 @@
 #
 #       /etc/init.d/gitea
 #
-#       Runs the Gogs Go Git Service.
+#       Runs the Gitea Git with a cup of tea.
 #
 
 ### BEGIN INIT INFO
@@ -21,7 +21,7 @@ NAME=gitea
 GITEA_HOME=/home/git/gitea
 GITEA_PATH=${GITEA_HOME}/$NAME
 GITEA_USER=git
-SERVICENAME="Go Git Service"
+SERVICENAME="Git - with a cup of tea"
 LOCKFILE=/var/lock/subsys/gitea
 LOGPATH=${GITEA_HOME}/log
 LOGFILE=${LOGPATH}/error.log

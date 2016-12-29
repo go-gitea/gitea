@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
@@ -101,5 +102,26 @@ func ExtractOwnerAndRepo() macaron.Handler {
 		ctx.Data["Owner"] = owner
 		ctx.Repo.Repository = repo
 		ctx.Data["Repository"] = repo
+	}
+}
+
+// ReferencesGitRepo injects the GitRepo into the Context
+func ReferencesGitRepo() macaron.Handler {
+	return func(ctx *APIContext) {
+		// Empty repository does not have reference information.
+		if ctx.Repo.Repository.IsBare {
+			return
+		}
+
+		// For API calls.
+		if ctx.Repo.GitRepo == nil {
+			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+			gitRepo, err := git.OpenRepository(repoPath)
+			if err != nil {
+				ctx.Error(500, "RepoRef Invalid repo "+repoPath, err)
+				return
+			}
+			ctx.Repo.GitRepo = gitRepo
+		}
 	}
 }

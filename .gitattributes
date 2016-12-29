@@ -1,0 +1,6 @@
+conf/* linguist-vendored
+docker/* linguist-vendored
+options/* linguist-vendored
+public/* linguist-vendored
+scripts/* linguist-vendored
+templates/* linguist-vendored

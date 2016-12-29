@@ -8,10 +8,12 @@ pipeline:
     pull: true
     environment:
       CGO_ENABLED: 1
-      TAGS: sqlite tidb pam
+      TAGS: sqlite bindata
+      GOPATH: /srv/app
     commands:
-      - apk -U add linux-pam-dev openssh-client
+      - apk -U add openssh-client
       - make clean
+      - make generate
       - make vet
       - make lint
       - make test
@@ -22,18 +24,39 @@ pipeline:
   test-mysql:
     image: webhippie/golang:edge
     pull: true
+    environment:
+      CGO_ENABLED: 1
+      TAGS: sqlite bindata
+      GOPATH: /srv/app
     commands:
-     - make test-mysql
+      - make test-mysql
     when:
       event: [ push ]
 
   test-pgsql:
     image: webhippie/golang:edge
     pull: true
+    environment:
+      CGO_ENABLED: 1
+      TAGS: sqlite bindata
+      GOPATH: /srv/app
     commands:
-     - make test-pgsql
+      - make test-pgsql
     when:
       event: [ push ]
+
+  updater:
+    image: karalabe/xgo-latest:latest
+    pull: true
+    environment:
+      CGO_ENABLED: 1
+      TAGS: sqlite bindata
+      GOPATH: /srv/app
+    commands:
+      - make release
+    when:
+      event: [ push, tag ]
+      branch: [ master, release/*, refs/tags/* ]
 
   coverage:
     image: plugins/coverage
@@ -41,22 +64,21 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
-  updater:
-    image: karalabe/xgo-latest:latest
-    pull: true
-    commands:
-      - make release
+  docker:
+    image: plugins/docker
+    repo: gitea/gitea
+    tags: [ '${DRONE_TAG##v}' ]
     when:
-      event: [ push, tag ]
-      branch: [ master, refs/tags/* ]
+      event: [ tag ]
+      branch: [ refs/tags/* ]
 
   docker:
     image: plugins/docker
     repo: gitea/gitea
-    tags: [ '${TAG}' ]
+    tags: [ '${DRONE_BRANCH##release/v}' ]
     when:
-      event: [ tag ]
-      branch: [ refs/tags/* ]
+      event: [ push ]
+      branch: [ release/* ]
 
   docker:
     image: plugins/docker
@@ -71,20 +93,30 @@ pipeline:
     path_style: true
     strip_prefix: dist/release/
     source: dist/release/*
-    target: /gitea/master
+    target: /gitea/${DRONE_TAG##v}
     when:
-      event: [ push ]
-      branch: [ master ]
+      event: [ tag ]
+      branch: [ refs/tags/* ]
 
   release:
     image: plugins/s3
     path_style: true
     strip_prefix: dist/release/
     source: dist/release/*
-    target: /gitea/$$TAG
+    target: /gitea/${DRONE_BRANCH##release/v}
     when:
-      event: [ tag ]
-      branch: [ refs/tags/* ]
+      event: [ push ]
+      branch: [ release/* ]
+
+  release:
+    image: plugins/s3
+    path_style: true
+    strip_prefix: dist/release/
+    source: dist/release/*
+    target: /gitea/master
+    when:
+      event: [ push ]
+      branch: [ master ]
 
   github:
     image: plugins/github-release

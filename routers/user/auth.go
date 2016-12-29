@@ -203,6 +203,11 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplSignUp, &form)
 		return
 	}
+	if len(form.Password) < setting.MinPasswordLength {
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplSignUp, &form)
+		return
+	}
 
 	u := &models.User{
 		Name:     form.UserName,
@@ -289,7 +294,11 @@ func Activate(ctx *context.Context) {
 	// Verify code.
 	if user := models.VerifyUserActiveCode(code); user != nil {
 		user.IsActive = true
-		user.Rands = models.GetUserSalt()
+		var err error
+		if user.Rands, err = models.GetUserSalt(); err != nil {
+			ctx.Handle(500, "UpdateUser", err)
+			return
+		}
 		if err := models.UpdateUser(user); err != nil {
 			if models.IsErrUserNotExist(err) {
 				ctx.Error(404)
@@ -406,7 +415,7 @@ func ResetPasswd(ctx *context.Context) {
 	ctx.HTML(200, tplResetPassword)
 }
 
-// ResetPasswdPost response fro reset password request
+// ResetPasswdPost response from reset password request
 func ResetPasswdPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
 
@@ -420,16 +429,23 @@ func ResetPasswdPost(ctx *context.Context) {
 	if u := models.VerifyUserActiveCode(code); u != nil {
 		// Validate password length.
 		passwd := ctx.Query("password")
-		if len(passwd) < 6 {
+		if len(passwd) < setting.MinPasswordLength {
 			ctx.Data["IsResetForm"] = true
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_too_short"), tplResetPassword, nil)
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
 			return
 		}
 
 		u.Passwd = passwd
-		u.Rands = models.GetUserSalt()
-		u.Salt = models.GetUserSalt()
+		var err error
+		if u.Rands, err = models.GetUserSalt(); err != nil {
+			ctx.Handle(500, "UpdateUser", err)
+			return
+		}
+		if u.Salt, err = models.GetUserSalt(); err != nil {
+			ctx.Handle(500, "UpdateUser", err)
+			return
+		}
 		u.EncodePasswd()
 		if err := models.UpdateUser(u); err != nil {
 			ctx.Handle(500, "UpdateUser", err)

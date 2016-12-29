@@ -172,7 +172,7 @@ func parseKeyString(content string) (string, error) {
 // writeTmpKeyFile writes key content to a temporary file
 // and returns the name of that file, along with any possible errors.
 func writeTmpKeyFile(content string) (string, error) {
-	tmpFile, err := ioutil.TempFile(setting.SSH.KeyTestPath, "gogs_keytest")
+	tmpFile, err := ioutil.TempFile(setting.SSH.KeyTestPath, "gitea_keytest")
 	if err != nil {
 		return "", fmt.Errorf("TempFile: %v", err)
 	}
@@ -373,7 +373,12 @@ func addKey(e Engine, key *PublicKey) (err error) {
 	// Calculate fingerprint.
 	tmpPath := strings.Replace(path.Join(os.TempDir(), fmt.Sprintf("%d", time.Now().Nanosecond()),
 		"id_rsa.pub"), "\\", "/", -1)
-	os.MkdirAll(path.Dir(tmpPath), os.ModePerm)
+	dir := path.Dir(tmpPath)
+
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return fmt.Errorf("Fail to create dir %s: %v", dir, err)
+	}
+
 	if err = ioutil.WriteFile(tmpPath, []byte(key.Content), 0644); err != nil {
 		return err
 	}

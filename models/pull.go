@@ -121,7 +121,54 @@ func (pr *PullRequest) LoadIssue() (err error) {
 // Required - Issue
 // Optional - Merger
 func (pr *PullRequest) APIFormat() *api.PullRequest {
+	var (
+		baseBranch *Branch
+		headBranch *Branch
+		baseCommit *git.Commit
+		headCommit *git.Commit
+		err        error
+	)
 	apiIssue := pr.Issue.APIFormat()
+	if pr.BaseRepo == nil {
+		pr.BaseRepo, err = GetRepositoryByID(pr.BaseRepoID)
+		if err != nil {
+			log.Error(log.ERROR, "GetRepositoryById[%d]: %v", pr.ID, err)
+			return nil
+		}
+	}
+	if pr.HeadRepo == nil {
+		pr.HeadRepo, err = GetRepositoryByID(pr.HeadRepoID)
+		if err != nil {
+			log.Error(log.ERROR, "GetRepositoryById[%d]: %v", pr.ID, err)
+			return nil
+		}
+	}
+	if baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch); err != nil {
+		return nil
+	}
+	if baseCommit, err = baseBranch.GetCommit(); err != nil {
+		return nil
+	}
+	if headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch); err != nil {
+		return nil
+	}
+	if headCommit, err = headBranch.GetCommit(); err != nil {
+		return nil
+	}
+	apiBaseBranchInfo := &api.PRBranchInfo{
+		Name:       pr.BaseBranch,
+		Ref:        pr.BaseBranch,
+		Sha:        baseCommit.ID.String(),
+		RepoID:     pr.BaseRepoID,
+		Repository: pr.BaseRepo.APIFormat(AccessModeNone),
+	}
+	apiHeadBranchInfo := &api.PRBranchInfo{
+		Name:       pr.HeadBranch,
+		Ref:        pr.HeadBranch,
+		Sha:        headCommit.ID.String(),
+		RepoID:     pr.HeadRepoID,
+		Repository: pr.HeadRepo.APIFormat(AccessModeNone),
+	}
 	apiPullRequest := &api.PullRequest{
 		ID:        pr.ID,
 		Index:     pr.Index,
@@ -134,7 +181,12 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		State:     apiIssue.State,
 		Comments:  apiIssue.Comments,
 		HTMLURL:   pr.Issue.HTMLURL(),
+		DiffURL:   pr.Issue.DiffURL(),
+		PatchURL:  pr.Issue.PatchURL(),
 		HasMerged: pr.HasMerged,
+		Base:      apiBaseBranchInfo,
+		Head:      apiHeadBranchInfo,
+		MergeBase: pr.MergeBase,
 	}
 
 	if pr.Status != PullRequestStatusChecking {
@@ -218,7 +270,11 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 
 	// Clone base repo.
 	tmpBasePath := path.Join(setting.AppDataPath, "tmp/repos", com.ToStr(time.Now().Nanosecond())+".git")
-	os.MkdirAll(path.Dir(tmpBasePath), os.ModePerm)
+
+	if err := os.MkdirAll(path.Dir(tmpBasePath), os.ModePerm); err != nil {
+		return fmt.Errorf("Fail to create dir %s: %v", tmpBasePath, err)
+	}
+
 	defer os.RemoveAll(path.Dir(tmpBasePath))
 
 	var stderr string
@@ -299,7 +355,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 		Action:      api.HookIssueClosed,
 		Index:       pr.Index,
 		PullRequest: pr.APIFormat(),
-		Repository:  pr.Issue.Repo.APIFormat(nil),
+		Repository:  pr.Issue.Repo.APIFormat(AccessModeNone),
 		Sender:      doer.APIFormat(),
 	}); err != nil {
 		log.Error(4, "PrepareWebhooks: %v", err)
@@ -324,12 +380,12 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 	l.PushFront(mergeCommit)
 
 	p := &api.PushPayload{
-		Ref:        git.BRANCH_PREFIX + pr.BaseBranch,
+		Ref:        git.BranchPrefix + pr.BaseBranch,
 		Before:     pr.MergeBase,
 		After:      pr.MergedCommitID,
 		CompareURL: setting.AppURL + pr.BaseRepo.ComposeCompareURL(pr.MergeBase, pr.MergedCommitID),
 		Commits:    ListToPushCommits(l).ToAPIPayloadCommits(pr.BaseRepo.HTMLURL()),
-		Repo:       pr.BaseRepo.APIFormat(nil),
+		Repo:       pr.BaseRepo.APIFormat(AccessModeNone),
 		Pusher:     pr.HeadRepo.MustOwner().APIFormat(),
 		Sender:     doer.APIFormat(),
 	}
@@ -348,7 +404,6 @@ var patchConflicts = []string{
 }
 
 // testPatch checks if patch can be merged to base repository without conflict.
-// FIXME: make a mechanism to clean up stable local copies.
 func (pr *PullRequest) testPatch() (err error) {
 	if pr.BaseRepo == nil {
 		pr.BaseRepo, err = GetRepositoryByID(pr.BaseRepoID)
@@ -372,6 +427,9 @@ func (pr *PullRequest) testPatch() (err error) {
 	defer repoWorkingPool.CheckOut(com.ToStr(pr.BaseRepoID))
 
 	log.Trace("PullRequest[%d].testPatch (patchPath): %s", pr.ID, patchPath)
+
+	// Delete old temp local copy before we create a new temp local copy
+	RemoveAllWithNotice("Deleting old local copy", pr.BaseRepo.LocalCopyPath())
 
 	if err := pr.BaseRepo.UpdateLocalCopyBranch(pr.BaseBranch); err != nil {
 		return fmt.Errorf("UpdateLocalCopy: %v", err)
@@ -458,7 +516,7 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		Action:      api.HookIssueOpened,
 		Index:       pull.Index,
 		PullRequest: pr.APIFormat(),
-		Repository:  repo.APIFormat(nil),
+		Repository:  repo.APIFormat(AccessModeNone),
 		Sender:      pull.Poster.APIFormat(),
 	}); err != nil {
 		log.Error(4, "PrepareWebhooks: %v", err)
@@ -466,6 +524,46 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	go HookQueue.Add(repo.ID)
 
 	return nil
+}
+
+// PullRequestsOptions holds the options for PRs
+type PullRequestsOptions struct {
+	Page        int
+	State       string
+	SortType    string
+	Labels      []string
+	MilestoneID int64
+}
+
+func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) *xorm.Session {
+	sess := x.Where("pull_request.base_repo_id=?", baseRepoID)
+
+	sess.Join("INNER", "issue", "pull_request.issue_id = issue.id")
+	switch opts.State {
+	case "closed", "open":
+		sess.And("issue.is_closed=?", opts.State == "closed")
+	}
+
+	return sess
+}
+
+// PullRequests returns all pull requests for a base Repo by the given conditions
+func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, int64, error) {
+	if opts.Page <= 0 {
+		opts.Page = 1
+	}
+
+	countSession := listPullRequestStatement(baseRepoID, opts)
+	maxResults, err := countSession.Count(new(PullRequest))
+	if err != nil {
+		log.Error(4, "Count PRs", err)
+		return nil, maxResults, err
+	}
+
+	prs := make([]*PullRequest, 0, ItemsPerPage)
+	findSession := listPullRequestStatement(baseRepoID, opts)
+	findSession.Limit(ItemsPerPage, (opts.Page-1)*ItemsPerPage)
+	return prs, maxResults, findSession.Find(&prs)
 }
 
 // GetUnmergedPullRequest returnss a pull request that is open and has not been merged
@@ -506,6 +604,30 @@ func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequ
 			repoID, branch, false, false).
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
 		Find(&prs)
+}
+
+// GetPullRequestByIndex returns a pull request by the given index
+func GetPullRequestByIndex(repoID int64, index int64) (*PullRequest, error) {
+	pr := &PullRequest{
+		BaseRepoID: repoID,
+		Index:      index,
+	}
+
+	has, err := x.Get(pr)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrPullRequestNotExist{0, repoID, index, 0, "", ""}
+	}
+
+	if err = pr.LoadAttributes(); err != nil {
+		return nil, err
+	}
+	if err = pr.LoadIssue(); err != nil {
+		return nil, err
+	}
+
+	return pr, nil
 }
 
 func getPullRequestByID(e Engine, id int64) (*PullRequest, error) {
@@ -622,7 +744,9 @@ func (pr *PullRequest) PushToBaseRepo() (err error) {
 	headFile := fmt.Sprintf("refs/pull/%d/head", pr.Index)
 
 	// Remove head in case there is a conflict.
-	os.Remove(path.Join(pr.BaseRepo.RepoPath(), headFile))
+	file := path.Join(pr.BaseRepo.RepoPath(), headFile)
+
+	_ = os.Remove(file)
 
 	if err = git.Push(headRepoPath, tmpRemoteName, fmt.Sprintf("%s:%s", pr.HeadBranch, headFile)); err != nil {
 		return fmt.Errorf("Push: %v", err)
@@ -718,7 +842,7 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 					Action:      api.HookIssueSynchronized,
 					Index:       pr.Issue.Index,
 					PullRequest: pr.Issue.PullRequest.APIFormat(),
-					Repository:  pr.Issue.Repo.APIFormat(nil),
+					Repository:  pr.Issue.Repo.APIFormat(AccessModeNone),
 					Sender:      doer.APIFormat(),
 				}); err != nil {
 					log.Error(4, "PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
@@ -805,7 +929,7 @@ func TestPullRequests() {
 
 		pr, err := GetPullRequestByID(com.StrTo(prID).MustInt64())
 		if err != nil {
-			log.Error(4, "GetPullRequestByID[%d]: %v", prID, err)
+			log.Error(4, "GetPullRequestByID[%s]: %v", prID, err)
 			continue
 		} else if err = pr.testPatch(); err != nil {
 			log.Error(4, "testPatch[%d]: %v", pr.ID, err)

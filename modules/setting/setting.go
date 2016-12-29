@@ -5,7 +5,10 @@
 package setting
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"net/mail"
 	"net/url"
 	"os"
@@ -17,6 +20,9 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/user"
 	"github.com/Unknwon/com"
 	_ "github.com/go-macaron/cache/memcache" // memcache plugin for cache
 	_ "github.com/go-macaron/cache/redis"
@@ -25,10 +31,6 @@ import (
 	_ "github.com/kardianos/minwinsvc"      // import minwinsvc for windows services
 	"gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
-
-	"code.gitea.io/gitea/modules/bindata"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/user"
 )
 
 // Scheme describes protocol types
@@ -53,10 +55,6 @@ const (
 
 // settings
 var (
-	// BuildTime information should only be set by -ldflags.
-	BuildTime    string
-	BuildGitHash string
-
 	// AppVer settings
 	AppVer         string
 	AppName        string
@@ -81,17 +79,31 @@ var (
 	LandingPageURL       LandingPage
 	UnixSocketPermission uint32
 
-	SSH struct {
+	SSH = struct {
 		Disabled            bool           `ini:"DISABLE_SSH"`
 		StartBuiltinServer  bool           `ini:"START_SSH_SERVER"`
 		Domain              string         `ini:"SSH_DOMAIN"`
 		Port                int            `ini:"SSH_PORT"`
+		ListenHost          string         `ini:"SSH_LISTEN_HOST"`
 		ListenPort          int            `ini:"SSH_LISTEN_PORT"`
 		RootPath            string         `ini:"SSH_ROOT_PATH"`
 		KeyTestPath         string         `ini:"SSH_KEY_TEST_PATH"`
 		KeygenPath          string         `ini:"SSH_KEYGEN_PATH"`
 		MinimumKeySizeCheck bool           `ini:"-"`
 		MinimumKeySizes     map[string]int `ini:"-"`
+	}{
+		Disabled:           false,
+		StartBuiltinServer: false,
+		Domain:             "localhost",
+		Port:               22,
+		KeygenPath:         "ssh-keygen",
+	}
+
+	LFS struct {
+		StartServer     bool   `ini:"LFS_START_SERVER"`
+		ContentPath     string `ini:"LFS_CONTENT_PATH"`
+		JWTSecretBase64 string `ini:"LFS_JWT_SECRET"`
+		JWTSecretBytes  []byte `ini:"-"`
 	}
 
 	// Security settings
@@ -101,24 +113,31 @@ var (
 	CookieUserName       string
 	CookieRememberName   string
 	ReverseProxyAuthUser string
+	MinPasswordLength    int
 
 	// Database settings
 	UseSQLite3    bool
 	UseMySQL      bool
+	UseMSSQL      bool
 	UsePostgreSQL bool
 	UseTiDB       bool
 
 	// Webhook settings
-	Webhook struct {
+	Webhook = struct {
 		QueueLength    int
 		DeliverTimeout int
 		SkipTLSVerify  bool
 		Types          []string
 		PagingNum      int
+	}{
+		QueueLength:    1000,
+		DeliverTimeout: 5,
+		SkipTLSVerify:  false,
+		PagingNum:      10,
 	}
 
 	// Repository settings
-	Repository struct {
+	Repository = struct {
 		AnsiCharset            string
 		ForcePrivate           bool
 		MaxCreationLimit       int
@@ -141,9 +160,41 @@ var (
 			FileMaxSize  int64
 			MaxFiles     int
 		} `ini:"-"`
+	}{
+		AnsiCharset:            "",
+		ForcePrivate:           false,
+		MaxCreationLimit:       -1,
+		MirrorQueueLength:      1000,
+		PullRequestQueueLength: 1000,
+		PreferredLicenses:      []string{"Apache License 2.0,MIT License"},
+		DisableHTTPGit:         false,
+
+		// Repository editor settings
+		Editor: struct {
+			LineWrapExtensions   []string
+			PreviewableFileModes []string
+		}{
+			LineWrapExtensions:   strings.Split(".txt,.md,.markdown,.mdown,.mkd,", ","),
+			PreviewableFileModes: []string{"markdown"},
+		},
+
+		// Repository upload settings
+		Upload: struct {
+			Enabled      bool
+			TempPath     string
+			AllowedTypes []string `delim:"|"`
+			FileMaxSize  int64
+			MaxFiles     int
+		}{
+			Enabled:      true,
+			TempPath:     "data/tmp/uploads",
+			AllowedTypes: []string{},
+			FileMaxSize:  3,
+			MaxFiles:     5,
+		},
 	}
 	RepoRootPath string
-	ScriptType   string
+	ScriptType   = "bash"
 
 	// UI settings
 	UI struct {
@@ -163,13 +214,38 @@ var (
 		User struct {
 			RepoPagingNum int
 		} `ini:"ui.user"`
+	}{
+		ExplorePagingNum:   20,
+		IssuePagingNum:     10,
+		FeedMaxCommitNum:   5,
+		ThemeColorMetaTag:  `#6cc644`,
+		MaxDisplayFileSize: 8388608,
+		Admin: struct {
+			UserPagingNum   int
+			RepoPagingNum   int
+			NoticePagingNum int
+			OrgPagingNum    int
+		}{
+			UserPagingNum:   50,
+			RepoPagingNum:   50,
+			NoticePagingNum: 25,
+			OrgPagingNum:    50,
+		},
+		User: struct {
+			RepoPagingNum int
+		}{
+			RepoPagingNum: 15,
+		},
 	}
 
 	// Markdown sttings
-	Markdown struct {
+	Markdown = struct {
 		EnableHardLineBreak bool
 		CustomURLSchemes    []string `ini:"CUSTOM_URL_SCHEMES"`
 		FileExtensions      []string
+	}{
+		EnableHardLineBreak: false,
+		FileExtensions:      strings.Split(".md,.markdown,.mdown,.mkd", ","),
 	}
 
 	// Picture settings
@@ -204,7 +280,7 @@ var (
 	CSRFCookieName = "_csrf"
 
 	// Cron tasks
-	Cron struct {
+	Cron = struct {
 		UpdateMirror struct {
 			Enabled    bool
 			RunAtStart bool
@@ -222,10 +298,37 @@ var (
 			RunAtStart bool
 			Schedule   string
 		} `ini:"cron.check_repo_stats"`
+	}{
+		UpdateMirror: struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+		}{
+			Schedule: "@every 10m",
+		},
+		RepoHealthCheck: struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+			Timeout    time.Duration
+			Args       []string `delim:" "`
+		}{
+			Schedule: "@every 24h",
+			Timeout:  60 * time.Second,
+			Args:     []string{},
+		},
+		CheckRepoStats: struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+		}{
+			RunAtStart: true,
+			Schedule:   "@every 24h",
+		},
 	}
 
 	// Git settings
-	Git struct {
+	Git = struct {
 		DisableDiffHighlight     bool
 		MaxGitDiffLines          int
 		MaxGitDiffLineCharacters int
@@ -238,16 +341,39 @@ var (
 			Pull    int
 			GC      int `ini:"GC"`
 		} `ini:"git.timeout"`
+	}{
+		DisableDiffHighlight:     false,
+		MaxGitDiffLines:          1000,
+		MaxGitDiffLineCharacters: 500,
+		MaxGitDiffFiles:          100,
+		GCArgs:                   []string{},
+		Timeout: struct {
+			Migrate int
+			Mirror  int
+			Clone   int
+			Pull    int
+			GC      int `ini:"GC"`
+		}{
+			Migrate: 600,
+			Mirror:  300,
+			Clone:   300,
+			Pull:    300,
+			GC:      60,
+		},
 	}
 
 	// Mirror settings
-	Mirror struct {
+	Mirror = struct {
 		DefaultInterval int
+	}{
+		DefaultInterval: 8,
 	}
 
 	// API settings
-	API struct {
+	API = struct {
 		MaxResponseItems int
+	}{
+		MaxResponseItems: 50,
 	}
 
 	// I18n settings
@@ -353,9 +479,10 @@ func NewContext() {
 		log.Fatal(4, "Fail to get work directory: %v", err)
 	}
 
-	Cfg, err = ini.Load(bindata.MustAsset("conf/app.ini"))
+	Cfg = ini.Empty()
+
 	if err != nil {
-		log.Fatal(4, "Fail to parse 'conf/app.ini': %v", err)
+		log.Fatal(4, "Fail to parse 'app.ini': %v", err)
 	}
 
 	CustomPath = os.Getenv("GITEA_CUSTOM")
@@ -394,7 +521,7 @@ please consider changing to GITEA_CUSTOM`)
 	forcePathSeparator(LogRootPath)
 
 	sec := Cfg.Section("server")
-	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gogs: Go Git Service")
+	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 	AppURL = sec.Key("ROOT_URL").MustString("http://localhost:3000/")
 	if AppURL[len(AppURL)-1] != '/' {
 		AppURL += "/"
@@ -448,6 +575,10 @@ please consider changing to GITEA_CUSTOM`)
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
 		log.Fatal(4, "Fail to map SSH settings: %v", err)
 	}
+
+	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
+	SSH.Port = sec.Key("SSH_PORT").MustInt(22)
+
 	// When disable SSH, start builtin server value is ignored.
 	if SSH.Disabled {
 		SSH.StartBuiltinServer = false
@@ -470,13 +601,93 @@ please consider changing to GITEA_CUSTOM`)
 		}
 	}
 
+	if err = Cfg.Section("server").MapTo(&LFS); err != nil {
+		log.Fatal(4, "Fail to map LFS settings: %v", err)
+	}
+
+	if LFS.StartServer {
+
+		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
+			log.Fatal(4, "Fail to create '%s': %v", LFS.ContentPath, err)
+		}
+
+		LFS.JWTSecretBytes = make([]byte, 32)
+		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
+
+		if err != nil || n != 32 {
+			//Generate new secret and save to config
+
+			_, err := io.ReadFull(rand.Reader, LFS.JWTSecretBytes)
+
+			if err != nil {
+				log.Fatal(4, "Error reading random bytes: %s", err)
+			}
+
+			LFS.JWTSecretBase64 = base64.RawURLEncoding.EncodeToString(LFS.JWTSecretBytes)
+
+			// Save secret
+			cfg := ini.Empty()
+			if com.IsFile(CustomConf) {
+				// Keeps custom settings if there is already something.
+				if err := cfg.Append(CustomConf); err != nil {
+					log.Error(4, "Fail to load custom conf '%s': %v", CustomConf, err)
+				}
+			}
+
+			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
+
+			os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm)
+			if err := cfg.SaveTo(CustomConf); err != nil {
+				log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
+				return
+			}
+		}
+
+		//Disable LFS client hooks if installed for the current OS user
+		//Needs at least git v2.1.2
+
+		binVersion, err := git.BinVersion()
+		if err != nil {
+			log.Fatal(4, "Error retrieving git version: %s", err)
+		}
+
+		splitVersion := strings.SplitN(binVersion, ".", 3)
+
+		majorVersion, err := strconv.ParseUint(splitVersion[0], 10, 64)
+		if err != nil {
+			log.Fatal(4, "Error parsing git major version: %s", err)
+		}
+		minorVersion, err := strconv.ParseUint(splitVersion[1], 10, 64)
+		if err != nil {
+			log.Fatal(4, "Error parsing git minor version: %s", err)
+		}
+		revisionVersion, err := strconv.ParseUint(splitVersion[2], 10, 64)
+		if err != nil {
+			log.Fatal(4, "Error parsing git revision version: %s", err)
+		}
+
+		if !((majorVersion > 2) || (majorVersion == 2 && minorVersion > 1) ||
+			(majorVersion == 2 && minorVersion == 1 && revisionVersion >= 2)) {
+
+			LFS.StartServer = false
+			log.Error(4, "LFS server support needs at least Git v2.1.2")
+
+		} else {
+
+			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
+				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
+
+		}
+	}
+
 	sec = Cfg.Section("security")
-	InstallLock = sec.Key("INSTALL_LOCK").MustBool()
-	SecretKey = sec.Key("SECRET_KEY").String()
-	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt()
-	CookieUserName = sec.Key("COOKIE_USERNAME").String()
-	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").String()
+	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
+	SecretKey = sec.Key("SECRET_KEY").MustString("!#@FDEWREWR&*(")
+	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
+	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
+	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
+	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -506,7 +717,7 @@ please consider changing to GITEA_CUSTOM`)
 		"StampNano":   time.StampNano,
 	}[Cfg.Section("time").Key("FORMAT").MustString("RFC1123")]
 
-	RunUser = Cfg.Section("").Key("RUN_USER").String()
+	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
 	// Does not check run user when the install lock is off.
 	if InstallLock {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
@@ -549,6 +760,8 @@ please consider changing to GITEA_CUSTOM`)
 		GravatarSource = "http://gravatar.duoshuo.com/avatar/"
 	case "gravatar":
 		GravatarSource = "https://secure.gravatar.com/avatar/"
+	case "libravatar":
+		GravatarSource = "https://seccdn.libravatar.org/avatar/"
 	default:
 		GravatarSource = source
 	}
@@ -595,12 +808,18 @@ please consider changing to GITEA_CUSTOM`)
 	}
 
 	Langs = Cfg.Section("i18n").Key("LANGS").Strings(",")
+	if len(Langs) == 0 {
+		Langs = defaultLangs
+	}
 	Names = Cfg.Section("i18n").Key("NAMES").Strings(",")
+	if len(Names) == 0 {
+		Names = defaultLangNames
+	}
 	dateLangs = Cfg.Section("i18n.datelang").KeysHash()
 
-	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool()
-	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool()
-	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool()
+	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool(false)
+	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
+	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
 
 	UI.ShowUserEmailInExplore = Cfg.Section("ui").Key("SHOW_USER_EMAIL_IN_EXPLORE").MustBool()
 
@@ -643,21 +862,18 @@ var logLevels = map[string]string{
 }
 
 func newLogService() {
-	log.Info("%s %s", AppName, AppVer)
+	log.Info("Gitea v%s", AppVer)
 
-	if len(BuildTime) > 0 {
-		log.Info("Build Time: %s", BuildTime)
-		log.Info("Build Git Hash: %s", BuildGitHash)
-	}
-
-	// Get and check log mode.
 	LogModes = strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
 	LogConfigs = make([]string, len(LogModes))
+
 	for i, mode := range LogModes {
 		mode = strings.TrimSpace(mode)
+
 		sec, err := Cfg.GetSection("log." + mode)
+
 		if err != nil {
-			log.Fatal(4, "Unknown log mode: %s", mode)
+			sec, _ = Cfg.NewSection("log." + mode)
 		}
 
 		validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
@@ -695,11 +911,11 @@ func newLogService() {
 				sec.Key("PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"}),
 				sec.Key("ADDR").MustString(":7020"))
 		case "smtp":
-			LogConfigs[i] = fmt.Sprintf(`{"level":%s,"username":"%s","password":"%s","host":"%s","sendTos":"%s","subject":"%s"}`, level,
+			LogConfigs[i] = fmt.Sprintf(`{"level":%s,"username":"%s","password":"%s","host":"%s","sendTos":["%s"],"subject":"%s"}`, level,
 				sec.Key("USER").MustString("example@example.com"),
 				sec.Key("PASSWD").MustString("******"),
 				sec.Key("HOST").MustString("127.0.0.1:25"),
-				sec.Key("RECEIVERS").MustString("[]"),
+				strings.Replace(sec.Key("RECEIVERS").MustString("example@example.com"), ",", "\",\"", -1),
 				sec.Key("SUBJECT").MustString("Diagnostic message from serve"))
 		case "database":
 			LogConfigs[i] = fmt.Sprintf(`{"level":%s,"driver":"%s","conn":"%s"}`, level,
@@ -730,9 +946,9 @@ func newSessionService() {
 	SessionConfig.Provider = Cfg.Section("session").Key("PROVIDER").In("memory",
 		[]string{"memory", "file", "redis", "mysql"})
 	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").String(), "\" ")
-	SessionConfig.CookieName = Cfg.Section("session").Key("COOKIE_NAME").MustString("i_like_gogits")
+	SessionConfig.CookieName = Cfg.Section("session").Key("COOKIE_NAME").MustString("i_like_gitea")
 	SessionConfig.CookiePath = AppSubURL
-	SessionConfig.Secure = Cfg.Section("session").Key("COOKIE_SECURE").MustBool()
+	SessionConfig.Secure = Cfg.Section("session").Key("COOKIE_SECURE").MustBool(false)
 	SessionConfig.Gclifetime = Cfg.Section("session").Key("GC_INTERVAL_TIME").MustInt64(86400)
 	SessionConfig.Maxlifetime = Cfg.Section("session").Key("SESSION_LIFE_TIME").MustInt64(86400)
 
@@ -741,18 +957,25 @@ func newSessionService() {
 
 // Mailer represents mail service.
 type Mailer struct {
+	// Mailer
 	QueueLength           int
 	Name                  string
-	Host                  string
 	From                  string
 	FromEmail             string
-	User, Passwd          string
-	DisableHelo           bool
-	HeloHostname          string
-	SkipVerify            bool
-	UseCertificate        bool
-	CertFile, KeyFile     string
 	EnableHTMLAlternative bool
+
+	// SMTP sender
+	Host              string
+	User, Passwd      string
+	DisableHelo       bool
+	HeloHostname      string
+	SkipVerify        bool
+	UseCertificate    bool
+	CertFile, KeyFile string
+
+	// Sendmail sender
+	UseSendmail  bool
+	SendmailPath string
 }
 
 var (
@@ -768,18 +991,22 @@ func newMailService() {
 	}
 
 	MailService = &Mailer{
-		QueueLength:           sec.Key("SEND_BUFFER_LEN").MustInt(100),
-		Name:                  sec.Key("NAME").MustString(AppName),
-		Host:                  sec.Key("HOST").String(),
-		User:                  sec.Key("USER").String(),
-		Passwd:                sec.Key("PASSWD").String(),
-		DisableHelo:           sec.Key("DISABLE_HELO").MustBool(),
-		HeloHostname:          sec.Key("HELO_HOSTNAME").String(),
-		SkipVerify:            sec.Key("SKIP_VERIFY").MustBool(),
-		UseCertificate:        sec.Key("USE_CERTIFICATE").MustBool(),
-		CertFile:              sec.Key("CERT_FILE").String(),
-		KeyFile:               sec.Key("KEY_FILE").String(),
+		QueueLength: sec.Key("SEND_BUFFER_LEN").MustInt(100),
+		Name:        sec.Key("NAME").MustString(AppName),
 		EnableHTMLAlternative: sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(),
+
+		Host:           sec.Key("HOST").String(),
+		User:           sec.Key("USER").String(),
+		Passwd:         sec.Key("PASSWD").String(),
+		DisableHelo:    sec.Key("DISABLE_HELO").MustBool(),
+		HeloHostname:   sec.Key("HELO_HOSTNAME").String(),
+		SkipVerify:     sec.Key("SKIP_VERIFY").MustBool(),
+		UseCertificate: sec.Key("USE_CERTIFICATE").MustBool(),
+		CertFile:       sec.Key("CERT_FILE").String(),
+		KeyFile:        sec.Key("KEY_FILE").String(),
+
+		UseSendmail:  sec.Key("USE_SENDMAIL").MustBool(),
+		SendmailPath: sec.Key("SENDMAIL_PATH").MustString("sendmail"),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
 

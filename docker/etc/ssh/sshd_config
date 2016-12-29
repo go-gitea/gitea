@@ -18,7 +18,6 @@ UseDNS no
 AllowAgentForwarding no
 AllowTcpForwarding no
 PrintMotd no
-PrintLastLog no
 
 PermitUserEnvironment yes
 PermitRootLogin no

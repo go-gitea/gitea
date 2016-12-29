@@ -66,7 +66,7 @@
 							<span class="del" data-line="{{.Deletion}}">- {{.Deletion}}</span>
 						{{end}}
 					</div>
-					<span class="file">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}</span>
+					<span class="file">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
 					{{if not $file.IsSubmodule}}
 						<div class="ui right">
 							{{if $file.IsDeleted}}

@@ -13,6 +13,11 @@ import (
 	"time"
 )
 
+var (
+	// GlobalCommandArgs global command args for external package setting
+	GlobalCommandArgs []string
+)
+
 // Command represents a command with its subcommands or arguments.
 type Command struct {
 	name string
@@ -30,7 +35,7 @@ func (c *Command) String() string {
 func NewCommand(args ...string) *Command {
 	return &Command{
 		name: "git",
-		args: args,
+		args: append(GlobalCommandArgs, args...),
 	}
 }
 
@@ -40,13 +45,11 @@ func (c *Command) AddArguments(args ...string) *Command {
 	return c
 }
 
-const DEFAULT_TIMEOUT = 60 * time.Second
-
 // RunInDirTimeoutPipeline executes the command in given directory with given timeout,
 // it pipes stdout and stderr to given io.Writer.
 func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, stdout, stderr io.Writer) error {
 	if timeout == -1 {
-		timeout = DEFAULT_TIMEOUT
+		timeout = 60 * time.Second
 	}
 
 	if len(dir) == 0 {
@@ -106,7 +109,7 @@ func (c *Command) RunInDirPipeline(dir string, stdout, stderr io.Writer) error {
 	return c.RunInDirTimeoutPipeline(-1, dir, stdout, stderr)
 }
 
-// RunInDir executes the command in given directory
+// RunInDirBytes executes the command in given directory
 // and returns stdout in []byte and error (combined with stderr).
 func (c *Command) RunInDirBytes(dir string) ([]byte, error) {
 	return c.RunInDirTimeout(-1, dir)

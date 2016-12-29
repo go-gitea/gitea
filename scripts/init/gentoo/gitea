@@ -1,0 +1,15 @@
+#!/sbin/openrc-run
+
+DIR=/home/git/gitea
+USER=git
+
+start_stop_daemon_args="--user ${USER} --chdir ${DIR}"
+command="${DIR}/gitea"
+command_args="web"
+command_background=yes
+pidfile=/var/run/gitea.pid
+
+depend()
+{
+    need net
+}

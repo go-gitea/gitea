@@ -219,7 +219,10 @@ func (w *FileLogWriter) deleteOldLog() {
 
 		if !info.IsDir() && info.ModTime().Unix() < (time.Now().Unix()-60*60*24*w.Maxdays) {
 			if strings.HasPrefix(filepath.Base(path), filepath.Base(w.Filename)) {
-				os.Remove(path)
+
+				if err := os.Remove(path); err != nil {
+					returnErr = fmt.Errorf("Fail to remove %s: %v", path, err)
+				}
 			}
 		}
 		return returnErr

@@ -67,7 +67,7 @@ func (label *Label) APIFormat() *api.Label {
 	return &api.Label{
 		ID:    label.ID,
 		Name:  label.Name,
-		Color: label.Color,
+		Color: strings.TrimLeft(label.Color, "#"),
 	}
 }
 
@@ -102,6 +102,27 @@ func NewLabels(labels ...*Label) error {
 	return err
 }
 
+// getLabelInRepoByName returns a label by Name in given repository.
+// If pass repoID as 0, then ORM will ignore limitation of repository
+// and can return arbitrary label with any valid ID.
+func getLabelInRepoByName(e Engine, repoID int64, labelName string) (*Label, error) {
+	if len(labelName) <= 0 {
+		return nil, ErrLabelNotExist{0, repoID}
+	}
+
+	l := &Label{
+		Name:   labelName,
+		RepoID: repoID,
+	}
+	has, err := x.Get(l)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrLabelNotExist{0, l.RepoID}
+	}
+	return l, nil
+}
+
 // getLabelInRepoByID returns a label by ID in given repository.
 // If pass repoID as 0, then ORM will ignore limitation of repository
 // and can return arbitrary label with any valid ID.
@@ -128,6 +149,11 @@ func GetLabelByID(id int64) (*Label, error) {
 	return getLabelInRepoByID(x, 0, id)
 }
 
+// GetLabelInRepoByName returns a label by name in given repository.
+func GetLabelInRepoByName(repoID int64, labelName string) (*Label, error) {
+	return getLabelInRepoByName(x, repoID, labelName)
+}
+
 // GetLabelInRepoByID returns a label by ID in given repository.
 func GetLabelInRepoByID(repoID, labelID int64) (*Label, error) {
 	return getLabelInRepoByID(x, repoID, labelID)
@@ -145,12 +171,22 @@ func GetLabelsInRepoByIDs(repoID int64, labelIDs []int64) ([]*Label, error) {
 }
 
 // GetLabelsByRepoID returns all labels that belong to given repository by ID.
-func GetLabelsByRepoID(repoID int64) ([]*Label, error) {
+func GetLabelsByRepoID(repoID int64, sortType string) ([]*Label, error) {
 	labels := make([]*Label, 0, 10)
-	return labels, x.
-		Where("repo_id = ?", repoID).
-		Asc("name").
-		Find(&labels)
+	sess := x.Where("repo_id = ?", repoID)
+
+	switch sortType {
+	case "reversealphabetically":
+		sess.Desc("name")
+	case "leastissues":
+		sess.Asc("num_issues")
+	case "mostissues":
+		sess.Desc("num_issues")
+	default:
+		sess.Asc("name")
+	}
+
+	return labels, sess.Find(&labels)
 }
 
 func getLabelsByIssueID(e Engine, issueID int64) ([]*Label, error) {

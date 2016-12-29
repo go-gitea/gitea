@@ -40,7 +40,7 @@ func InstallInit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("install.install")
 	ctx.Data["PageIsInstall"] = true
 
-	dbOpts := []string{"MySQL", "PostgreSQL"}
+	dbOpts := []string{"MySQL", "PostgreSQL", "MSSQL"}
 	if models.EnableSQLite3 {
 		dbOpts = append(dbOpts, "SQLite3")
 	}
@@ -64,6 +64,8 @@ func Install(ctx *context.Context) {
 	switch models.DbCfg.Type {
 	case "postgres":
 		ctx.Data["CurDbOption"] = "PostgreSQL"
+	case "mssql":
+		ctx.Data["CurDbOption"] = "MSSQL"
 	case "sqlite3":
 		if models.EnableSQLite3 {
 			ctx.Data["CurDbOption"] = "SQLite3"
@@ -77,6 +79,7 @@ func Install(ctx *context.Context) {
 	// Application general settings
 	form.AppName = setting.AppName
 	form.RepoRootPath = setting.RepoRootPath
+	form.LFSRootPath = setting.LFS.ContentPath
 
 	// Note(unknwon): it's hard for Windows users change a running user,
 	// 	so just use current one if config says default.
@@ -115,6 +118,7 @@ func Install(ctx *context.Context) {
 
 // InstallPost response for submit install items
 func InstallPost(ctx *context.Context, form auth.InstallForm) {
+	var err error
 	ctx.Data["CurDbOption"] = form.DbType
 
 	if ctx.HasError() {
@@ -131,14 +135,14 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		return
 	}
 
-	if _, err := exec.LookPath("git"); err != nil {
+	if _, err = exec.LookPath("git"); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.test_git_failed", err), tplInstall, &form)
 		return
 	}
 
 	// Pass basic check, now test configuration.
 	// Test database setting.
-	dbTypes := map[string]string{"MySQL": "mysql", "PostgreSQL": "postgres", "SQLite3": "sqlite3", "TiDB": "tidb"}
+	dbTypes := map[string]string{"MySQL": "mysql", "PostgreSQL": "postgres", "MSSQL": "mssql", "SQLite3": "sqlite3", "TiDB": "tidb"}
 	models.DbCfg.Type = dbTypes[form.DbType]
 	models.DbCfg.Host = form.DbHost
 	models.DbCfg.User = form.DbUser
@@ -161,7 +165,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	// Set test engine.
 	var x *xorm.Engine
-	if err := models.NewTestEngine(x); err != nil {
+	if err = models.NewTestEngine(x); err != nil {
 		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
 			ctx.Data["Err_DbType"] = true
 			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.io/installation/install_from_binary.html"), tplInstall, &form)
@@ -174,15 +178,25 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	// Test repository root path.
 	form.RepoRootPath = strings.Replace(form.RepoRootPath, "\\", "/", -1)
-	if err := os.MkdirAll(form.RepoRootPath, os.ModePerm); err != nil {
+	if err = os.MkdirAll(form.RepoRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_RepoRootPath"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_repo_path", err), tplInstall, &form)
 		return
 	}
 
+	// Test LFS root path if not empty, empty meaning disable LFS
+	if form.LFSRootPath != "" {
+		form.LFSRootPath = strings.Replace(form.LFSRootPath, "\\", "/", -1)
+		if err := os.MkdirAll(form.LFSRootPath, os.ModePerm); err != nil {
+			ctx.Data["Err_LFSRootPath"] = true
+			ctx.RenderWithErr(ctx.Tr("install.invalid_lfs_path", err), tplInstall, &form)
+			return
+		}
+	}
+
 	// Test log root path.
 	form.LogRootPath = strings.Replace(form.LogRootPath, "\\", "/", -1)
-	if err := os.MkdirAll(form.LogRootPath, os.ModePerm); err != nil {
+	if err = os.MkdirAll(form.LogRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_LogRootPath"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_log_root_path", err), tplInstall, &form)
 		return
@@ -225,7 +239,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg := ini.Empty()
 	if com.IsFile(setting.CustomConf) {
 		// Keeps custom settings if there is already something.
-		if err := cfg.Append(setting.CustomConf); err != nil {
+		if err = cfg.Append(setting.CustomConf); err != nil {
 			log.Error(4, "Fail to load custom conf '%s': %v", setting.CustomConf, err)
 		}
 	}
@@ -240,7 +254,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("").Key("APP_NAME").SetValue(form.AppName)
 	cfg.Section("repository").Key("ROOT").SetValue(form.RepoRootPath)
 	cfg.Section("").Key("RUN_USER").SetValue(form.RunUser)
-	cfg.Section("server").Key("DOMAIN").SetValue(form.Domain)
+	cfg.Section("server").Key("SSH_DOMAIN").SetValue(form.Domain)
 	cfg.Section("server").Key("HTTP_PORT").SetValue(form.HTTPPort)
 	cfg.Section("server").Key("ROOT_URL").SetValue(form.AppURL)
 
@@ -249,6 +263,14 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	} else {
 		cfg.Section("server").Key("DISABLE_SSH").SetValue("false")
 		cfg.Section("server").Key("SSH_PORT").SetValue(com.ToStr(form.SSHPort))
+	}
+
+	if form.LFSRootPath != "" {
+		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
+		cfg.Section("server").Key("LFS_CONTENT_PATH").SetValue(form.LFSRootPath)
+		cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(base.GetRandomBytesAsBase64(32))
+	} else {
+		cfg.Section("server").Key("LFS_START_SERVER").SetValue("false")
 	}
 
 	if len(strings.TrimSpace(form.SMTPHost)) > 0 {
@@ -279,15 +301,20 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
-	cfg.Section("security").Key("SECRET_KEY").SetValue(base.GetRandomString(15))
+	var secretKey string
+	if secretKey, err = base.GetRandomString(10); err != nil {
+		ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
+		return
+	}
+	cfg.Section("security").Key("SECRET_KEY").SetValue(secretKey)
 
-	err := os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
+	err = os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
 	if err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
 
-	if err := cfg.SaveTo(setting.CustomConf); err != nil {
+	if err = cfg.SaveTo(setting.CustomConf); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
@@ -303,7 +330,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 			IsAdmin:  true,
 			IsActive: true,
 		}
-		if err := models.CreateUser(u); err != nil {
+		if err = models.CreateUser(u); err != nil {
 			if !models.IsErrUserAlreadyExist(err) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true
@@ -316,11 +343,11 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		}
 
 		// Auto-login for admin
-		if err := ctx.Session.Set("uid", u.ID); err != nil {
+		if err = ctx.Session.Set("uid", u.ID); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
 		}
-		if err := ctx.Session.Set("uname", u.Name); err != nil {
+		if err = ctx.Session.Set("uname", u.Name); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
 		}

@@ -18,3 +18,10 @@ type CreateTeamOption struct {
 	Description string `json:"description" binding:"MaxSize(255)"`
 	Permission  string `json:"permission"`
 }
+
+// EditTeamOption options when edit team
+type EditTeamOption struct {
+	Name        string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
+	Description string `json:"description" binding:"MaxSize(255)"`
+	Permission  string `json:"permission"`
+}

@@ -20,9 +20,9 @@ import (
 	"time"
 
 	"code.gitea.io/git"
-	"code.gitea.io/gitea/modules/bindata"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
@@ -80,11 +80,11 @@ func LoadRepoConfig() {
 	types := []string{"gitignore", "license", "readme", "label"}
 	typeFiles := make([][]string, 4)
 	for i, t := range types {
-		files, err := bindata.AssetDir("conf/" + t)
+		files, err := options.Dir(t)
 		if err != nil {
 			log.Fatal(4, "Fail to get %s files: %v", t, err)
 		}
-		customPath := path.Join(setting.CustomPath, "conf", t)
+		customPath := path.Join(setting.CustomPath, "options", t)
 		if com.IsDir(customPath) {
 			customFiles, err := com.StatDir(customPath)
 			if err != nil {
@@ -141,11 +141,11 @@ func NewRepoContext() {
 
 	log.Info("Git Version: %s", gitVer)
 	if version.Compare("1.7.1", gitVer, ">") {
-		log.Fatal(4, "Gogs requires Git version greater or equal to 1.7.1")
+		log.Fatal(4, "Gitea requires Git version greater or equal to 1.7.1")
 	}
 
 	// Git requires setting user.name and user.email in order to commit changes.
-	for configKey, defaultValue := range map[string]string{"user.name": "Gogs", "user.email": "gogs@fake.local"} {
+	for configKey, defaultValue := range map[string]string{"user.name": "Gitea", "user.email": "gitea@fake.local"} {
 		if stdout, stderr, err := process.Exec("NewRepoContext(get setting)", "git", "config", "--get", configKey); err != nil || strings.TrimSpace(stdout) == "" {
 			// ExitError indicates this config is not set
 			if _, ok := err.(*exec.ExitError); ok || strings.TrimSpace(stdout) == "" {
@@ -276,9 +276,13 @@ func (repo *Repository) HTMLURL() string {
 }
 
 // APIFormat converts a Repository to api.Repository
-// Arguments that are allowed to be nil: permission
-func (repo *Repository) APIFormat(permission *api.Permission) *api.Repository {
+func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
 	cloneLink := repo.CloneLink()
+	permission := &api.Permission{
+		Admin: mode >= AccessModeAdmin,
+		Push:  mode >= AccessModeWrite,
+		Pull:  mode >= AccessModeRead,
+	}
 	return &api.Repository{
 		ID:            repo.ID,
 		Owner:         repo.Owner.APIFormat(),
@@ -506,7 +510,7 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 
 // LocalCopyPath returns the local repository copy path
 func (repo *Repository) LocalCopyPath() string {
-	return path.Join(setting.AppDataPath, "tmp/local-rpeo", com.ToStr(repo.ID))
+	return path.Join(setting.AppDataPath, "tmp/local-repo", com.ToStr(repo.ID))
 }
 
 // UpdateLocalCopyBranch pulls latest changes of given branch from repoPath to localPath.
@@ -558,8 +562,12 @@ func (repo *Repository) SavePatch(index int64, patch []byte) error {
 	if err != nil {
 		return fmt.Errorf("PatchPath: %v", err)
 	}
+	dir := filepath.Dir(patchPath)
 
-	os.MkdirAll(filepath.Dir(patchPath), os.ModePerm)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return fmt.Errorf("Fail to create dir %s: %v", dir, err)
+	}
+
 	if err = ioutil.WriteFile(patchPath, patch, 0644); err != nil {
 		return fmt.Errorf("WriteFile: %v", err)
 	}
@@ -669,7 +677,10 @@ func MigrateRepository(u *User, opts MigrateRepoOptions) (*Repository, error) {
 
 	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
 
-	os.RemoveAll(repoPath)
+	if err := os.RemoveAll(repoPath); err != nil {
+		return repo, fmt.Errorf("Fail to remove %s: %v", repoPath, err)
+	}
+
 	if err = git.Clone(opts.RemoteAddr, repoPath, git.CloneRepoOptions{
 		Mirror:  true,
 		Quiet:   true,
@@ -680,7 +691,11 @@ func MigrateRepository(u *User, opts MigrateRepoOptions) (*Repository, error) {
 
 	wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
 	if len(wikiRemotePath) > 0 {
-		os.RemoveAll(wikiPath)
+
+		if err := os.RemoveAll(wikiPath); err != nil {
+			return repo, fmt.Errorf("Fail to remove %s: %v", wikiPath, err)
+		}
+
 		if err = git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
 			Mirror:  true,
 			Quiet:   true,
@@ -812,14 +827,27 @@ type CreateRepoOptions struct {
 }
 
 func getRepoInitFile(tp, name string) ([]byte, error) {
-	relPath := path.Join("conf", tp, strings.TrimLeft(name, "./"))
+	cleanedName := strings.TrimLeft(name, "./")
+	relPath := path.Join("options", tp, cleanedName)
 
 	// Use custom file when available.
 	customPath := path.Join(setting.CustomPath, relPath)
 	if com.IsFile(customPath) {
 		return ioutil.ReadFile(customPath)
 	}
-	return bindata.Asset(relPath)
+
+	switch tp {
+	case "readme":
+		return options.Readme(cleanedName)
+	case "gitignore":
+		return options.Gitignore(cleanedName)
+	case "license":
+		return options.License(cleanedName)
+	case "label":
+		return options.Labels(cleanedName)
+	default:
+		return []byte{}, fmt.Errorf("Invalid init file type")
+	}
 }
 
 func prepareRepoCommit(repo *Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
@@ -898,11 +926,15 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 		return fmt.Errorf("createUpdateHook: %v", err)
 	}
 
-	tmpDir := filepath.Join(os.TempDir(), "gogs-"+repo.Name+"-"+com.ToStr(time.Now().Nanosecond()))
+	tmpDir := filepath.Join(os.TempDir(), "gitea-"+repo.Name+"-"+com.ToStr(time.Now().Nanosecond()))
 
 	// Initialize repository according to user's choice.
 	if opts.AutoInit {
-		os.MkdirAll(tmpDir, os.ModePerm)
+
+		if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
+			return fmt.Errorf("Fail to create dir %s: %v", tmpDir, err)
+		}
+
 		defer os.RemoveAll(tmpDir)
 
 		if err = prepareRepoCommit(repo, tmpDir, repoPath, opts); err != nil {
@@ -1073,14 +1105,18 @@ func CountUserRepositories(userID int64, private bool) int64 {
 }
 
 // Repositories returns all repositories
-func Repositories(page, pageSize int) (_ []*Repository, err error) {
-	repos := make([]*Repository, 0, pageSize)
-	return repos, x.Limit(pageSize, (page-1)*pageSize).Asc("id").Find(&repos)
+func Repositories(opts *SearchRepoOptions) (_ []*Repository, err error) {
+	if len(opts.OrderBy) == 0 {
+		opts.OrderBy = "id ASC"
+	}
+
+	repos := make([]*Repository, 0, opts.PageSize)
+	return repos, x.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).OrderBy(opts.OrderBy).Find(&repos)
 }
 
 // RepositoriesWithUsers returns number of repos in given page.
-func RepositoriesWithUsers(page, pageSize int) (_ []*Repository, err error) {
-	repos, err := Repositories(page, pageSize)
+func RepositoriesWithUsers(opts *SearchRepoOptions) (_ []*Repository, err error) {
+	repos, err := Repositories(opts)
 	if err != nil {
 		return nil, fmt.Errorf("Repositories: %v", err)
 	}
@@ -1198,7 +1234,12 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	// Rename remote repository to new path and delete local copy.
-	os.MkdirAll(UserPath(newOwner.Name), os.ModePerm)
+	dir := UserPath(newOwner.Name)
+
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return fmt.Errorf("Fail to create dir %s: %v", dir, err)
+	}
+
 	if err = os.Rename(RepoPath(owner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
@@ -1439,6 +1480,35 @@ func DeleteRepository(uid, repoID int64) error {
 		RemoveAllWithNotice("Delete attachment", attachmentPaths[i])
 	}
 
+	// Remove LFS objects
+	var lfsObjects []*LFSMetaObject
+
+	if err = sess.Where("repository_id=?", repoID).Find(&lfsObjects); err != nil {
+		return err
+	}
+
+	for _, v := range lfsObjects {
+		count, err := sess.Count(&LFSMetaObject{Oid: v.Oid})
+
+		if err != nil {
+			return err
+		}
+
+		if count > 1 {
+			continue
+		}
+
+		oidPath := filepath.Join(v.Oid[0:2], v.Oid[2:4], v.Oid[4:len(v.Oid)])
+		err = os.Remove(filepath.Join(setting.LFS.ContentPath, oidPath))
+		if err != nil {
+			return err
+		}
+	}
+
+	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
+		return err
+	}
+
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
@@ -1528,12 +1598,31 @@ func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 }
 
 // GetRecentUpdatedRepositories returns the list of repositories that are recently updated.
-func GetRecentUpdatedRepositories(page, pageSize int) (repos []*Repository, err error) {
-	return repos, x.
-		Limit(pageSize, (page-1)*pageSize).
-		Where("is_private=?", false).
-		Limit(pageSize).
-		Desc("updated_unix").
+func GetRecentUpdatedRepositories(opts *SearchRepoOptions) (repos []*Repository, err error) {
+	if len(opts.OrderBy) == 0 {
+		opts.OrderBy = "updated_unix DESC"
+	}
+
+	sess := x.Where("is_private=?", false).
+		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
+		Limit(opts.PageSize)
+
+	if opts.Searcher != nil {
+		sess.Or("owner_id = ?", opts.Searcher.ID)
+
+		err := opts.Searcher.GetOrganizations(true)
+
+		if err != nil {
+			return nil, fmt.Errorf("Organization: %v", err)
+		}
+
+		for _, org := range opts.Searcher.Orgs {
+			sess.Or("owner_id = ?", org.ID)
+		}
+	}
+
+	return repos, sess.
+		OrderBy(opts.OrderBy).
 		Find(&repos)
 }
 
@@ -1550,6 +1639,7 @@ func GetRepositoryCount(u *User) (int64, error) {
 type SearchRepoOptions struct {
 	Keyword  string
 	OwnerID  int64
+	Searcher *User //ID of the person who's seeking
 	OrderBy  string
 	Private  bool // Include private repositories in results
 	Page     int
@@ -1579,6 +1669,25 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos []*Repository, _ int
 		sess.And("is_private=?", false)
 	}
 
+	if opts.Searcher != nil {
+
+		sess.Or("owner_id = ?", opts.Searcher.ID)
+
+		err := opts.Searcher.GetOrganizations(true)
+
+		if err != nil {
+			return nil, 0, fmt.Errorf("Organization: %v", err)
+		}
+
+		for _, org := range opts.Searcher.Orgs {
+			sess.Or("owner_id = ?", org.ID)
+		}
+	}
+
+	if len(opts.OrderBy) == 0 {
+		opts.OrderBy = "name ASC"
+	}
+
 	var countSess xorm.Session
 	countSess = *sess
 	count, err := countSess.Count(new(Repository))
@@ -1586,10 +1695,10 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos []*Repository, _ int
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
-	if len(opts.OrderBy) > 0 {
-		sess.OrderBy(opts.OrderBy)
-	}
-	return repos, count, sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).Find(&repos)
+	return repos, count, sess.
+		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
+		OrderBy(opts.OrderBy).
+		Find(&repos)
 }
 
 // DeleteRepositoryArchives deletes all repositories' archives.
@@ -2158,6 +2267,34 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 
 	if err = createUpdateHook(repoPath); err != nil {
 		return nil, fmt.Errorf("createUpdateHook: %v", err)
+	}
+
+	//Commit repo to get Fork ID
+	err = sess.Commit()
+	if err != nil {
+		return nil, err
+	}
+	sessionRelease(sess)
+
+	// Copy LFS meta objects in new session
+	sess = x.NewSession()
+	defer sessionRelease(sess)
+	if err = sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	var lfsObjects []*LFSMetaObject
+
+	if err = sess.Where("repository_id=?", oldRepo.ID).Find(&lfsObjects); err != nil {
+		return nil, err
+	}
+
+	for _, v := range lfsObjects {
+		v.ID = 0
+		v.RepositoryID = repo.ID
+		if _, err = sess.Insert(v); err != nil {
+			return nil, err
+		}
 	}
 
 	return repo, sess.Commit()

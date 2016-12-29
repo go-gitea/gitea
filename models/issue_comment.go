@@ -123,14 +123,55 @@ func (c *Comment) AfterDelete() {
 	}
 }
 
+// HTMLURL formats a URL-string to the issue-comment
+func (c *Comment) HTMLURL() string {
+	issue, err := GetIssueByID(c.IssueID)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error(4, "GetIssueByID(%d): %v", c.IssueID, err)
+		return ""
+	}
+	return fmt.Sprintf("%s#issuecomment-%d", issue.HTMLURL(), c.ID)
+}
+
+// IssueURL formats a URL-string to the issue
+func (c *Comment) IssueURL() string {
+	issue, err := GetIssueByID(c.IssueID)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error(4, "GetIssueByID(%d): %v", c.IssueID, err)
+		return ""
+	}
+
+	if issue.IsPull {
+		return ""
+	}
+	return issue.HTMLURL()
+}
+
+// PRURL formats a URL-string to the pull-request
+func (c *Comment) PRURL() string {
+	issue, err := GetIssueByID(c.IssueID)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error(4, "GetIssueByID(%d): %v", c.IssueID, err)
+		return ""
+	}
+
+	if !issue.IsPull {
+		return ""
+	}
+	return issue.HTMLURL()
+}
+
 // APIFormat converts a Comment to the api.Comment format
 func (c *Comment) APIFormat() *api.Comment {
 	return &api.Comment{
-		ID:      c.ID,
-		Poster:  c.Poster.APIFormat(),
-		Body:    c.Content,
-		Created: c.Created,
-		Updated: c.Updated,
+		ID:       c.ID,
+		Poster:   c.Poster.APIFormat(),
+		HTMLURL:  c.HTMLURL(),
+		IssueURL: c.IssueURL(),
+		PRURL:    c.PRURL(),
+		Body:     c.Content,
+		Created:  c.Created,
+		Updated:  c.Updated,
 	}
 }
 
@@ -146,9 +187,9 @@ func (c *Comment) EventTag() string {
 
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
-func (c *Comment) MailParticipants(opType ActionType, issue *Issue) (err error) {
+func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
 	mentions := markdown.FindAllMentions(c.Content)
-	if err = UpdateIssueMentions(c.IssueID, mentions); err != nil {
+	if err = UpdateIssueMentions(e, c.IssueID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}
 
@@ -262,7 +303,9 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		if err = notifyWatchers(e, act); err != nil {
 			log.Error(4, "notifyWatchers: %v", err)
 		}
-		comment.MailParticipants(act.OpType, opts.Issue)
+		if err = comment.MailParticipants(e, act.OpType, opts.Issue); err != nil {
+			log.Error(4, "MailParticipants: %v", err)
+		}
 	}
 
 	return comment, nil
@@ -375,6 +418,15 @@ func getCommentsByIssueIDSince(e Engine, issueID, since int64) ([]*Comment, erro
 	return comments, sess.Find(&comments)
 }
 
+func getCommentsByRepoIDSince(e Engine, repoID, since int64) ([]*Comment, error) {
+	comments := make([]*Comment, 0, 10)
+	sess := e.Where("issue.repo_id = ?", repoID).Join("INNER", "issue", "issue.id = comment.issue_id", repoID).Asc("created_unix")
+	if since > 0 {
+		sess.And("updated_unix >= ?", since)
+	}
+	return comments, sess.Find(&comments)
+}
+
 func getCommentsByIssueID(e Engine, issueID int64) ([]*Comment, error) {
 	return getCommentsByIssueIDSince(e, issueID, -1)
 }
@@ -387,6 +439,11 @@ func GetCommentsByIssueID(issueID int64) ([]*Comment, error) {
 // GetCommentsByIssueIDSince returns a list of comments of an issue since a given time point.
 func GetCommentsByIssueIDSince(issueID, since int64) ([]*Comment, error) {
 	return getCommentsByIssueIDSince(x, issueID, since)
+}
+
+// GetCommentsByRepoIDSince returns a list of comments for all issues in a repo since a given time point.
+func GetCommentsByRepoIDSince(repoID, since int64) ([]*Comment, error) {
+	return getCommentsByRepoIDSince(x, repoID, since)
 }
 
 // UpdateComment updates information of comment.

@@ -10,13 +10,17 @@ import (
 	"strings"
 )
 
+// ArchiveType archive types
 type ArchiveType int
 
 const (
+	// ZIP zip archive type
 	ZIP ArchiveType = iota + 1
+	// TARGZ tar gz archive type
 	TARGZ
 )
 
+// CreateArchive create archive content to the target path
 func (c *Commit) CreateArchive(target string, archiveType ArchiveType) error {
 	var format string
 	switch archiveType {
