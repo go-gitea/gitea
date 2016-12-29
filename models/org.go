@@ -536,24 +536,28 @@ func (org *User) GetUserTeams(userID int64) ([]*Team, error) {
 // that the user with the given userID has access to,
 // and total number of records based on given condition.
 func (org *User) GetUserRepositories(userID int64, page, pageSize int) ([]*Repository, int64, error) {
+	var cond builder.Cond = builder.Eq{
+		"`repository`.owner_id":   org.ID,
+		"`repository`.is_private": false,
+	}
+
 	teamIDs, err := org.GetUserTeamIDs(userID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("GetUserTeamIDs: %v", err)
 	}
-	if len(teamIDs) == 0 {
-		// user has no team but "IN ()" is invalid SQL
-		teamIDs = []int64{-1} // there is no repo with id=-1
+
+	if len(teamIDs) > 0 {
+		cond = cond.Or(builder.In("team_repo.team_id", teamIDs))
 	}
 
 	if page <= 0 {
 		page = 1
 	}
 	repos := make([]*Repository, 0, pageSize)
+
 	if err := x.
-		Select("`repository`.*").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
-		Where("(`repository`.owner_id=? AND `repository`.is_private=?)", org.ID, false).
-		Or(builder.In("team_repo.team_id", teamIDs)).
+		Where(cond).
 		GroupBy("`repository`.id").
 		OrderBy("updated_unix DESC").
 		Limit(pageSize, (page-1)*pageSize).
@@ -563,8 +567,7 @@ func (org *User) GetUserRepositories(userID int64, page, pageSize int) ([]*Repos
 
 	repoCount, err := x.
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
-		Where("(`repository`.owner_id=? AND `repository`.is_private=?)", org.ID, false).
-		Or(builder.In("team_repo.team_id", teamIDs)).
+		Where(cond).
 		GroupBy("`repository`.id").
 		Count(&Repository{})
 	if err != nil {
