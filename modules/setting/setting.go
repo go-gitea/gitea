@@ -198,12 +198,12 @@ var (
 
 	// UI settings
 	UI struct {
-		ExplorePagingNum       int
-		IssuePagingNum         int
-		FeedMaxCommitNum       int
-		ThemeColorMetaTag      string
-		MaxDisplayFileSize     int64
-		ShowUserEmailInExplore bool
+		ExplorePagingNum   int
+		IssuePagingNum     int
+		FeedMaxCommitNum   int
+		ThemeColorMetaTag  string
+		MaxDisplayFileSize int64
+		ShowUserEmail      bool
 
 		Admin struct {
 			UserPagingNum   int
@@ -821,7 +821,7 @@ please consider changing to GITEA_CUSTOM`)
 	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
 	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
 
-	UI.ShowUserEmailInExplore = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool()
+	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool()
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 }
