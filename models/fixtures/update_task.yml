@@ -1,0 +1,20 @@
+-
+  id: 1
+  uuid: uuid1
+  ref_name: refName1
+  old_commit_id: oldCommitId1
+  new_commit_id: newCommitId1
+
+-
+  id: 2
+  uuid: uuid2
+  ref_name: refName2
+  old_commit_id: oldCommitId2
+  new_commit_id: newCommitId2
+
+-
+  id: 3
+  uuid: uuid3
+  ref_name: refName3
+  old_commit_id: oldCommitId3
+  new_commit_id: newCommitId3
