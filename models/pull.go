@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -428,17 +430,22 @@ func (pr *PullRequest) testPatch() (err error) {
 
 	log.Trace("PullRequest[%d].testPatch (patchPath): %s", pr.ID, patchPath)
 
-	// Delete old temp local copy before we create a new temp local copy
-	RemoveAllWithNotice("Deleting old local copy", pr.BaseRepo.LocalCopyPath())
+	pr.Status = PullRequestStatusChecking
 
-	if err := pr.BaseRepo.UpdateLocalCopyBranch(pr.BaseBranch); err != nil {
-		return fmt.Errorf("UpdateLocalCopy: %v", err)
+	indexTmpPath := filepath.Join(os.TempDir(), "gitea-"+pr.BaseRepo.Name+"-"+strconv.Itoa(time.Now().Nanosecond()))
+	defer os.Remove(indexTmpPath)
+
+	var stderr string
+	_, stderr, err = process.ExecDirEnv(-1, "", fmt.Sprintf("testPatch (git read-tree): %d", pr.BaseRepo.ID),
+		[]string{"GIT_DIR=" + pr.BaseRepo.RepoPath(), "GIT_INDEX_FILE=" + indexTmpPath},
+		"git", "read-tree", pr.BaseBranch)
+	if err != nil {
+		return fmt.Errorf("git read-tree --index-output=%s %s: %v - %s", indexTmpPath, pr.BaseBranch, err, stderr)
 	}
 
-	pr.Status = PullRequestStatusChecking
-	_, stderr, err := process.ExecDir(-1, pr.BaseRepo.LocalCopyPath(),
-		fmt.Sprintf("testPatch (git apply --check): %d", pr.BaseRepo.ID),
-		"git", "apply", "--check", patchPath)
+	_, stderr, err = process.ExecDirEnv(-1, "", fmt.Sprintf("testPatch (git apply --check): %d", pr.BaseRepo.ID),
+		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
+		"git", "apply", "--check", "--cached", patchPath)
 	if err != nil {
 		for i := range patchConflicts {
 			if strings.Contains(stderr, patchConflicts[i]) {
