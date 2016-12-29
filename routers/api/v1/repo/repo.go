@@ -275,6 +275,10 @@ func GetByID(ctx *context.APIContext) {
 // Delete one repository
 // see https://github.com/gogits/go-gogs-client/wiki/Repositories#delete
 func Delete(ctx *context.APIContext) {
+	if !ctx.Repo.IsAdmin() {
+		ctx.Error(403, "", "Must have admin rights")
+		return
+	}
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
