@@ -432,7 +432,7 @@ func (pr *PullRequest) testPatch() (err error) {
 
 	pr.Status = PullRequestStatusChecking
 
-	indexTmpPath := filepath.Join(os.TempDir(), "-gitea-"+pr.BaseRepo.Name+"-"+strconv.Itoa(time.Now().Nanosecond()))
+	indexTmpPath := filepath.Join(os.TempDir(), "gitea-"+pr.BaseRepo.Name+"-"+strconv.Itoa(time.Now().Nanosecond()))
 	defer os.Remove(indexTmpPath)
 
 	var stderr string
