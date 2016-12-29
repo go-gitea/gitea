@@ -273,7 +273,6 @@ func runWeb(ctx *cli.Context) error {
 			m.Get("", user.Profile)
 			m.Get("/followers", user.Followers)
 			m.Get("/following", user.Following)
-			m.Get("/stars", user.Stars)
 		})
 
 		m.Get("/attachments/:uuid", func(ctx *context.Context) {

@@ -95,6 +95,14 @@ func Profile(ctx *context.Context) {
 		if ctx.Written() {
 			return
 		}
+	case "stars":
+		showPrivateRepos := ctx.IsSigned && ctx.User.ID == ctxUser.ID
+		starredRepos, err := ctxUser.GetStarredRepos(showPrivateRepos)
+		if err != nil {
+			ctx.Handle(500, "GetStarredRepos", err)
+			return
+		}
+		ctx.Data["Repos"] = starredRepos
 	default:
 		page := ctx.QueryInt("page")
 		if page <= 0 {
@@ -136,11 +144,6 @@ func Following(ctx *context.Context) {
 	ctx.Data["PageIsFollowing"] = true
 	ctx.Data["Owner"] = u
 	repo.RenderUserCards(ctx, u.NumFollowing, u.GetFollowing, tplFollowers)
-}
-
-// Stars show repositories user starred
-func Stars(ctx *context.Context) {
-
 }
 
 // Action response for follow/unfollow user request
