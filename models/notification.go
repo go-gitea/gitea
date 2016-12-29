@@ -45,8 +45,8 @@ type Notification struct {
 
 	UpdatedBy int64 `xorm:"INDEX NOT NULL"`
 
-	Issue       *Issue       `xorm:"-"`
-	PullRequest *PullRequest `xorm:"-"`
+	Issue      *Issue      `xorm:"-"`
+	Repository *Repository `xorm:"-"`
 
 	Created     time.Time `xorm:"-"`
 	CreatedUnix int64     `xorm:"INDEX NOT NULL"`
@@ -195,21 +195,21 @@ func notificationsForUser(e Engine, user *User, status NotificationStatus) (noti
 }
 
 // GetRepo returns the repo of the notification
-func (n *Notification) GetRepo() (repo *Repository, err error) {
-	repo = new(Repository)
-	_, err = x.
+func (n *Notification) GetRepo() (*Repository, error) {
+	n.Repository = new(Repository)
+	_, err := x.
 		Where("id = ?", n.RepoID).
-		Get(repo)
-	return
+		Get(n.Repository)
+	return n.Repository, err
 }
 
 // GetIssue returns the issue of the notification
-func (n *Notification) GetIssue() (issue *Issue, err error) {
-	issue = new(Issue)
-	_, err = x.
+func (n *Notification) GetIssue() (*Issue, error) {
+	n.Issue = new(Issue)
+	_, err := x.
 		Where("id = ?", n.IssueID).
-		Get(issue)
-	return
+		Get(n.Issue)
+	return n.Issue, err
 }
 
 // GetNotificationReadCount returns the notification read count for user
