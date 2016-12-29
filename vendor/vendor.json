@@ -807,6 +807,12 @@
 			"revisionTime": "2016-09-25T22:06:09Z"
 		},
 		{
+			"checksumSHA1": "2PpOCNkWnshDrXeCVH2kp3VHhIM=",
+			"path": "github.com/stretchr/testify/require",
+			"revision": "2402e8e7a02fc811447d11f881aa9746cdc57983",
+			"revisionTime": "2016-12-17T20:04:45Z"
+		},
+		{
 			"checksumSHA1": "MAnxhGyQfhoyoATeT1zJDPyWq7A=",
 			"path": "github.com/syndtr/goleveldb/leveldb",
 			"revision": "917f41c560270110ceb73c5b38be2a9127387071",
@@ -1111,6 +1117,18 @@
 			"path": "gopkg.in/redis.v2",
 			"revision": "e6179049628164864e6e84e973cfb56335748dea",
 			"revisionTime": "2014-12-09T11:07:59Z"
+		},
+		{
+			"checksumSHA1": "LUbT9kZUJcQkU/6GSbnsai+b5t4=",
+			"path": "gopkg.in/testfixtures.v2",
+			"revision": "b9ef14dc461bf934d8df2dfc6f1f456be5664cca",
+			"revisionTime": "2016-10-15T20:31:37Z"
+		},
+		{
+			"checksumSHA1": "12GqsW8PiRPnezDDy0v4brZrndM=",
+			"path": "gopkg.in/yaml.v2",
+			"revision": "a5b47d31c556af34a302ce5d659e6fea44d90de0",
+			"revisionTime": "2016-09-28T15:37:09Z"
 		},
 		{
 			"checksumSHA1": "JQBqnAXO83ic7bwer/MwurhQMtg=",

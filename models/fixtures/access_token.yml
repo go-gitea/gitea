@@ -1,0 +1,23 @@
+-
+  id: 1
+  uid: 1
+  name: Token A
+  sha1: hash1
+  created_unix: 946687980
+  updated_unix: 946687980
+
+-
+  id: 2
+  uid: 1
+  name: Token B
+  sha1: hash2
+  created_unix: 946687980
+  updated_unix: 946687980
+
+-
+  id: 3
+  uid: 2
+  name: Token A
+  sha1: hash3
+  created_unix: 946687980
+  updated_unix: 946687980
