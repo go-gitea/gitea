@@ -79,7 +79,7 @@ var (
 	LandingPageURL       LandingPage
 	UnixSocketPermission uint32
 
-	SSH struct {
+	SSH = struct {
 		Disabled            bool           `ini:"DISABLE_SSH"`
 		StartBuiltinServer  bool           `ini:"START_SSH_SERVER"`
 		Domain              string         `ini:"SSH_DOMAIN"`
@@ -91,6 +91,12 @@ var (
 		KeygenPath          string         `ini:"SSH_KEYGEN_PATH"`
 		MinimumKeySizeCheck bool           `ini:"-"`
 		MinimumKeySizes     map[string]int `ini:"-"`
+	}{
+		Disabled:           false,
+		StartBuiltinServer: false,
+		Domain:             "localhost",
+		Port:               22,
+		KeygenPath:         "ssh-keygen",
 	}
 
 	LFS struct {
@@ -948,7 +954,7 @@ func newSessionService() {
 
 // Mailer represents mail service.
 type Mailer struct {
-    // Mailer
+	// Mailer
 	QueueLength           int
 	Name                  string
 	From                  string
@@ -956,17 +962,17 @@ type Mailer struct {
 	EnableHTMLAlternative bool
 
 	// SMTP sender
-	Host                  string
-	User, Passwd          string
-	DisableHelo           bool
-	HeloHostname          string
-	SkipVerify            bool
-	UseCertificate        bool
-	CertFile, KeyFile     string
+	Host              string
+	User, Passwd      string
+	DisableHelo       bool
+	HeloHostname      string
+	SkipVerify        bool
+	UseCertificate    bool
+	CertFile, KeyFile string
 
 	// Sendmail sender
-	UseSendmail           bool
-	SendmailPath          string
+	UseSendmail  bool
+	SendmailPath string
 }
 
 var (
@@ -982,22 +988,22 @@ func newMailService() {
 	}
 
 	MailService = &Mailer{
-		QueueLength:           sec.Key("SEND_BUFFER_LEN").MustInt(100),
-		Name:                  sec.Key("NAME").MustString(AppName),
+		QueueLength: sec.Key("SEND_BUFFER_LEN").MustInt(100),
+		Name:        sec.Key("NAME").MustString(AppName),
 		EnableHTMLAlternative: sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(),
 
-		Host:                  sec.Key("HOST").String(),
-		User:                  sec.Key("USER").String(),
-		Passwd:                sec.Key("PASSWD").String(),
-		DisableHelo:           sec.Key("DISABLE_HELO").MustBool(),
-		HeloHostname:          sec.Key("HELO_HOSTNAME").String(),
-		SkipVerify:            sec.Key("SKIP_VERIFY").MustBool(),
-		UseCertificate:        sec.Key("USE_CERTIFICATE").MustBool(),
-		CertFile:              sec.Key("CERT_FILE").String(),
-		KeyFile:               sec.Key("KEY_FILE").String(),
+		Host:           sec.Key("HOST").String(),
+		User:           sec.Key("USER").String(),
+		Passwd:         sec.Key("PASSWD").String(),
+		DisableHelo:    sec.Key("DISABLE_HELO").MustBool(),
+		HeloHostname:   sec.Key("HELO_HOSTNAME").String(),
+		SkipVerify:     sec.Key("SKIP_VERIFY").MustBool(),
+		UseCertificate: sec.Key("USE_CERTIFICATE").MustBool(),
+		CertFile:       sec.Key("CERT_FILE").String(),
+		KeyFile:        sec.Key("KEY_FILE").String(),
 
-		UseSendmail:           sec.Key("USE_SENDMAIL").MustBool(),
-		SendmailPath:          sec.Key("SENDMAIL_PATH").MustString("sendmail"),
+		UseSendmail:  sec.Key("USE_SENDMAIL").MustBool(),
+		SendmailPath: sec.Key("SENDMAIL_PATH").MustString("sendmail"),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
 
