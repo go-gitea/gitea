@@ -131,10 +131,10 @@ func Issues(ctx *context.Context) {
 	}
 
 	var (
-		assigneeID = ctx.QueryInt64("assignee")
-		posterID     int64
-		mentionedID  int64
-		forceEmpty   bool
+		assigneeID  = ctx.QueryInt64("assignee")
+		posterID    int64
+		mentionedID int64
+		forceEmpty  bool
 	)
 	switch viewType {
 	case "assigned":
