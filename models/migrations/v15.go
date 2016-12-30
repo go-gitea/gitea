@@ -10,10 +10,12 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
+// UserV15 describes the added field for User
 type UserV15 struct {
 	AllowCreateOrganization bool
 }
 
+// TableName will be invoked by XORM to customrize the table name
 func (*UserV15) TableName() string {
 	return "user"
 }
