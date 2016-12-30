@@ -30,7 +30,7 @@ Before sending code out for review, run all the tests for the whole tree to make
 
 Changes to Gitea must be reviewed before they are accepted, no matter who makes the change even if it is an owner or a maintainer. We use GitHub's pull request workflow to do that and we also use [LGTM](http://lgtm.co) to ensure every PR is reviewed by at least 2 maintainers.
 
-Please try to make your pull request easy to review for us. Please read the "[How to get faster PR reviews](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/faster_reviews.md)" guide, it has lots of useful tips for any project you may want to contribute. Some of the key points:
+Please try to make your pull request easy to review for us. Please read the "[How to get faster PR reviews](https://github.com/kubernetes/community/blob/master/contributors/devel/faster_reviews.md)" guide, it has lots of useful tips for any project you may want to contribute. Some of the key points:
 
 * Make small pull requests. The smaller, the faster to review and the more likely it will be merged soon.
 * Don't make changes unrelated to your PR. Maybe there are typos on some comments, maybe refactoring would be welcome on a function... but if that is not related to your PR, please make *another* PR for that.
