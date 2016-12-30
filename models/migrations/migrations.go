@@ -79,7 +79,7 @@ var migrations = []Migration{
 	// v14
 	NewMigration("create user column diff view style", createUserColumnDiffViewStyle),
 	// v15
-	NewMigration("create user colum allow create organization", createAllowCreateOrganizationColumn),
+	NewMigration("create user column allow create organization", createAllowCreateOrganizationColumn),
 }
 
 // Migrate database to current version
