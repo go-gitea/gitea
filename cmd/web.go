@@ -168,6 +168,8 @@ func runWeb(ctx *cli.Context) error {
 
 	bindIgnErr := binding.BindIgnErr
 
+	m.Use(user.GetNotificationCount)
+
 	// FIXME: not all routes need go through same middlewares.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
@@ -577,6 +579,8 @@ func runWeb(ctx *cli.Context) error {
 		})
 	})
 	// ***** END: Repository *****
+
+	m.Get("/notifications", reqSignIn, user.Notifications)
 
 	m.Group("/api", func() {
 		apiv1.RegisterRoutes(m)
