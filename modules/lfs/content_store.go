@@ -90,5 +90,5 @@ func transformKey(key string) string {
 		return key
 	}
 
-	return filepath.Join(key[0:2], key[2:4], key[4:len(key)])
+	return filepath.Join(key[0:2], key[2:4], key[4:])
 }

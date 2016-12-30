@@ -94,7 +94,7 @@ func HTTP(ctx *context.Context) {
 				ctx.HandleText(401, "reverse proxy login error, got error while running GetUserByName")
 				return
 			}
-		}else{
+		} else {
 			authHead := ctx.Req.Header.Get("Authorization")
 			if len(authHead) == 0 {
 				ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=\".\"")

@@ -20,16 +20,16 @@ func assertLineEqual(t *testing.T, d1 *DiffLine, d2 *DiffLine) {
 
 func TestDiffToHTML(t *testing.T) {
 	assertEqual(t, "+foo <span class=\"added-code\">bar</span> biz", diffToHTML([]dmp.Diff{
-		dmp.Diff{dmp.DiffEqual, "foo "},
-		dmp.Diff{dmp.DiffInsert, "bar"},
-		dmp.Diff{dmp.DiffDelete, " baz"},
-		dmp.Diff{dmp.DiffEqual, " biz"},
+		{dmp.DiffEqual, "foo "},
+		{dmp.DiffInsert, "bar"},
+		{dmp.DiffDelete, " baz"},
+		{dmp.DiffEqual, " biz"},
 	}, DiffLineAdd))
 
 	assertEqual(t, "-foo <span class=\"removed-code\">bar</span> biz", diffToHTML([]dmp.Diff{
-		dmp.Diff{dmp.DiffEqual, "foo "},
-		dmp.Diff{dmp.DiffDelete, "bar"},
-		dmp.Diff{dmp.DiffInsert, " baz"},
-		dmp.Diff{dmp.DiffEqual, " biz"},
+		{dmp.DiffEqual, "foo "},
+		{dmp.DiffDelete, "bar"},
+		{dmp.DiffInsert, " baz"},
+		{dmp.DiffEqual, " biz"},
 	}, DiffLineDel))
 }

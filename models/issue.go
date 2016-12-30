@@ -1202,8 +1202,8 @@ func GetIssueStats(opts *IssueStatsOptions) *IssueStats {
 
 		if opts.MentionedID > 0 {
 			sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
-			And("issue_user.uid = ?", opts.MentionedID).
-			And("issue_user.is_mentioned = ?", true)
+				And("issue_user.uid = ?", opts.MentionedID).
+				And("issue_user.is_mentioned = ?", true)
 		}
 
 		return sess

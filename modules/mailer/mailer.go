@@ -220,12 +220,12 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 		return err
 	}
 
-	_,err = msg.WriteTo(pipe)
+	_, err = msg.WriteTo(pipe)
 
 	// we MUST close the pipe or sendmail will hang waiting for more of the message
 	// Also we should wait on our sendmail command even if something fails
 	closeError = pipe.Close()
-	waitError =  cmd.Wait()
+	waitError = cmd.Wait()
 	if err != nil {
 		return err
 	} else if closeError != nil {
@@ -262,7 +262,6 @@ func NewContext() {
 	if setting.MailService == nil || mailQueue != nil {
 		return
 	}
-
 
 	if setting.MailService.UseSendmail {
 		Sender = &sendmailSender{}
