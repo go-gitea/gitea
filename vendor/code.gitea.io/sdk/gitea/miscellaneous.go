@@ -4,6 +4,7 @@
 
 package gitea
 
+// MarkdownOption markdown options
 type MarkdownOption struct {
 	Text    string
 	Mode    string

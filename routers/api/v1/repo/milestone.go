@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
+// ListMilestones list all the milestones for a repository
 func ListMilestones(ctx *context.APIContext) {
 	milestones, err := models.GetMilestonesByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
@@ -27,6 +28,7 @@ func ListMilestones(ctx *context.APIContext) {
 	ctx.JSON(200, &apiMilestones)
 }
 
+// GetMilestone get a milestone for a repository
 func GetMilestone(ctx *context.APIContext) {
 	milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -40,6 +42,7 @@ func GetMilestone(ctx *context.APIContext) {
 	ctx.JSON(200, milestone.APIFormat())
 }
 
+// CreateMilestone create a milestone for a repository
 func CreateMilestone(ctx *context.APIContext, form api.CreateMilestoneOption) {
 	if form.Deadline == nil {
 		defaultDeadline, _ := time.ParseInLocation("2006-01-02", "9999-12-31", time.Local)
@@ -60,6 +63,7 @@ func CreateMilestone(ctx *context.APIContext, form api.CreateMilestoneOption) {
 	ctx.JSON(201, milestone.APIFormat())
 }
 
+// EditMilestone modify a milestone for a repository
 func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 	milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -88,6 +92,7 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 	ctx.JSON(200, milestone.APIFormat())
 }
 
+// DeleteMilestone delete a milestone for a repository
 func DeleteMilestone(ctx *context.APIContext) {
 	if err := models.DeleteMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(500, "DeleteMilestoneByRepoID", err)

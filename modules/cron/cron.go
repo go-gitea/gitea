@@ -16,6 +16,7 @@ import (
 
 var c = cron.New()
 
+// NewContext begins cron tasks
 func NewContext() {
 	var (
 		entry *cron.Entry

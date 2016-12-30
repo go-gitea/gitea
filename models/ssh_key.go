@@ -33,10 +33,13 @@ const (
 
 var sshOpLocker sync.Mutex
 
+// KeyType specifies the key type
 type KeyType int
 
 const (
+	// KeyTypeUser specifies the user key
 	KeyTypeUser = iota + 1
+	// KeyTypeDeploy specifies the deploy key
 	KeyTypeDeploy
 )
 
@@ -58,28 +61,31 @@ type PublicKey struct {
 	HasUsed           bool `xorm:"-"`
 }
 
-func (k *PublicKey) BeforeInsert() {
-	k.CreatedUnix = time.Now().Unix()
+// BeforeInsert will be invoked by XORM before inserting a record
+func (key *PublicKey) BeforeInsert() {
+	key.CreatedUnix = time.Now().Unix()
 }
 
-func (k *PublicKey) BeforeUpdate() {
-	k.UpdatedUnix = time.Now().Unix()
+// BeforeUpdate is invoked from XORM before updating this object.
+func (key *PublicKey) BeforeUpdate() {
+	key.UpdatedUnix = time.Now().Unix()
 }
 
-func (k *PublicKey) AfterSet(colName string, _ xorm.Cell) {
+// AfterSet is invoked from XORM after setting the value of a field of this object.
+func (key *PublicKey) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
 	case "created_unix":
-		k.Created = time.Unix(k.CreatedUnix, 0).Local()
+		key.Created = time.Unix(key.CreatedUnix, 0).Local()
 	case "updated_unix":
-		k.Updated = time.Unix(k.UpdatedUnix, 0).Local()
-		k.HasUsed = k.Updated.After(k.Created)
-		k.HasRecentActivity = k.Updated.Add(7 * 24 * time.Hour).After(time.Now())
+		key.Updated = time.Unix(key.UpdatedUnix, 0).Local()
+		key.HasUsed = key.Updated.After(key.Created)
+		key.HasRecentActivity = key.Updated.Add(7 * 24 * time.Hour).After(time.Now())
 	}
 }
 
 // OmitEmail returns content of public key without email address.
-func (k *PublicKey) OmitEmail() string {
-	return strings.Join(strings.Split(k.Content, " ")[:2], " ")
+func (key *PublicKey) OmitEmail() string {
+	return strings.Join(strings.Split(key.Content, " ")[:2], " ")
 }
 
 // AuthorizedString returns formatted public key string for authorized_keys file.
@@ -105,6 +111,8 @@ func extractTypeFromBase64Key(key string) (string, error) {
 func parseKeyString(content string) (string, error) {
 	// Transform all legal line endings to a single "\n".
 	content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
+	// remove trailing newline (and beginning spaces too)
+	content = strings.TrimSpace(content)
 	lines := strings.Split(content, "\n")
 
 	var keyType, keyContent, keyComment string
@@ -164,7 +172,7 @@ func parseKeyString(content string) (string, error) {
 // writeTmpKeyFile writes key content to a temporary file
 // and returns the name of that file, along with any possible errors.
 func writeTmpKeyFile(content string) (string, error) {
-	tmpFile, err := ioutil.TempFile(setting.SSH.KeyTestPath, "gogs_keytest")
+	tmpFile, err := ioutil.TempFile(setting.SSH.KeyTestPath, "gitea_keytest")
 	if err != nil {
 		return "", fmt.Errorf("TempFile: %v", err)
 	}
@@ -365,7 +373,12 @@ func addKey(e Engine, key *PublicKey) (err error) {
 	// Calculate fingerprint.
 	tmpPath := strings.Replace(path.Join(os.TempDir(), fmt.Sprintf("%d", time.Now().Nanosecond()),
 		"id_rsa.pub"), "\\", "/", -1)
-	os.MkdirAll(path.Dir(tmpPath), os.ModePerm)
+	dir := path.Dir(tmpPath)
+
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return fmt.Errorf("Fail to create dir %s: %v", dir, err)
+	}
+
 	if err = ioutil.WriteFile(tmpPath, []byte(key.Content), 0644); err != nil {
 		return err
 	}
@@ -571,32 +584,35 @@ type DeployKey struct {
 	HasUsed           bool `xorm:"-"`
 }
 
-func (k *DeployKey) BeforeInsert() {
-	k.CreatedUnix = time.Now().Unix()
+// BeforeInsert will be invoked by XORM before inserting a record
+func (key *DeployKey) BeforeInsert() {
+	key.CreatedUnix = time.Now().Unix()
 }
 
-func (k *DeployKey) BeforeUpdate() {
-	k.UpdatedUnix = time.Now().Unix()
+// BeforeUpdate is invoked from XORM before updating this object.
+func (key *DeployKey) BeforeUpdate() {
+	key.UpdatedUnix = time.Now().Unix()
 }
 
-func (k *DeployKey) AfterSet(colName string, _ xorm.Cell) {
+// AfterSet is invoked from XORM after setting the value of a field of this object.
+func (key *DeployKey) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
 	case "created_unix":
-		k.Created = time.Unix(k.CreatedUnix, 0).Local()
+		key.Created = time.Unix(key.CreatedUnix, 0).Local()
 	case "updated_unix":
-		k.Updated = time.Unix(k.UpdatedUnix, 0).Local()
-		k.HasUsed = k.Updated.After(k.Created)
-		k.HasRecentActivity = k.Updated.Add(7 * 24 * time.Hour).After(time.Now())
+		key.Updated = time.Unix(key.UpdatedUnix, 0).Local()
+		key.HasUsed = key.Updated.After(key.Created)
+		key.HasRecentActivity = key.Updated.Add(7 * 24 * time.Hour).After(time.Now())
 	}
 }
 
 // GetContent gets associated public key content.
-func (k *DeployKey) GetContent() error {
-	pkey, err := GetPublicKeyByID(k.KeyID)
+func (key *DeployKey) GetContent() error {
+	pkey, err := GetPublicKeyByID(key.KeyID)
 	if err != nil {
 		return err
 	}
-	k.Content = pkey.Content
+	key.Content = pkey.Content
 	return nil
 }
 

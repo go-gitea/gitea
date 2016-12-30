@@ -4,10 +4,12 @@
 
 package git
 
+// GetHook get one hook accroding the name on a repository
 func (repo *Repository) GetHook(name string) (*Hook, error) {
 	return GetHook(repo.Path, name)
 }
 
+// Hooks get all the hooks on the repository
 func (repo *Repository) Hooks() ([]*Hook, error) {
 	return ListHooks(repo.Path)
 }

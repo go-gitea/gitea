@@ -16,18 +16,21 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/template"
-	"code.gitea.io/gitea/modules/template/highlight"
+	"code.gitea.io/gitea/modules/templates"
+	"encoding/base64"
 	"github.com/Unknwon/paginater"
+	"strconv"
 )
 
 const (
-	HOME     base.TplName = "repo/home"
-	WATCHERS base.TplName = "repo/watchers"
-	FORKS    base.TplName = "repo/forks"
+	tplRepoHome base.TplName = "repo/home"
+	tplWatchers base.TplName = "repo/watchers"
+	tplForks    base.TplName = "repo/forks"
 )
 
 func renderDirectory(ctx *context.Context, treeLink string) {
@@ -139,6 +142,30 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	isTextFile := base.IsTextFile(buf)
 	ctx.Data["IsTextFile"] = isTextFile
 
+	//Check for LFS meta file
+	if isTextFile && setting.LFS.StartServer {
+		headString := string(buf)
+		if strings.HasPrefix(headString, models.LFSMetaFileIdentifier) {
+			splitLines := strings.Split(headString, "\n")
+			if len(splitLines) >= 3 {
+				oid := strings.TrimPrefix(splitLines[1], models.LFSMetaFileOidPrefix)
+				size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
+				if len(oid) == 64 && err == nil {
+					contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
+					meta := &models.LFSMetaObject{Oid: oid}
+					if contentStore.Exists(meta) {
+						ctx.Data["IsTextFile"] = false
+						isTextFile = false
+						ctx.Data["IsLFSFile"] = true
+						ctx.Data["FileSize"] = size
+						filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
+						ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), oid, filenameBase64)
+					}
+				}
+			}
+		}
+	}
+
 	// Assume file is not editable first.
 	if !isTextFile {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
@@ -164,7 +191,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		} else {
 			// Building code view blocks with line number on server side.
 			var fileContent string
-			if err, content := template.ToUTF8WithErr(buf); err != nil {
+			if content, err := templates.ToUTF8WithErr(buf); err != nil {
 				if err != nil {
 					log.Error(4, "ToUTF8WithErr: %s", err)
 				}
@@ -198,6 +225,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	case base.IsPDFFile(buf):
 		ctx.Data["IsPDFFile"] = true
+	case base.IsVideoFile(buf):
+		ctx.Data["IsVideoFile"] = true
 	case base.IsImageFile(buf):
 		ctx.Data["IsImageFile"] = true
 	}
@@ -212,6 +241,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 }
 
+// Home render repository home page
 func Home(ctx *context.Context) {
 	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
 	if len(ctx.Repo.Repository.Description) > 0 {
@@ -263,9 +293,10 @@ func Home(ctx *context.Context) {
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
-	ctx.HTML(200, HOME)
+	ctx.HTML(200, tplRepoHome)
 }
 
+// RenderUserCards render a page show users accroding the input templaet
 func RenderUserCards(ctx *context.Context, total int, getter func(page int) ([]*models.User, error), tpl base.TplName) {
 	page := ctx.QueryInt("page")
 	if page <= 0 {
@@ -284,20 +315,23 @@ func RenderUserCards(ctx *context.Context, total int, getter func(page int) ([]*
 	ctx.HTML(200, tpl)
 }
 
+// Watchers render repository's watch users
 func Watchers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.watchers")
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.watchers")
 	ctx.Data["PageIsWatchers"] = true
-	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, ctx.Repo.Repository.GetWatchers, WATCHERS)
+	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, ctx.Repo.Repository.GetWatchers, tplWatchers)
 }
 
+// Stars render repository's starred users
 func Stars(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.stargazers")
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.stargazers")
 	ctx.Data["PageIsStargazers"] = true
-	RenderUserCards(ctx, ctx.Repo.Repository.NumStars, ctx.Repo.Repository.GetStargazers, WATCHERS)
+	RenderUserCards(ctx, ctx.Repo.Repository.NumStars, ctx.Repo.Repository.GetStargazers, tplWatchers)
 }
 
+// Forks render repository's forked users
 func Forks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repos.forks")
 
@@ -315,5 +349,5 @@ func Forks(ctx *context.Context) {
 	}
 	ctx.Data["Forks"] = forks
 
-	ctx.HTML(200, FORKS)
+	ctx.HTML(200, tplForks)
 }

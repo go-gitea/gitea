@@ -9,6 +9,8 @@ import (
 
 	"github.com/Unknwon/paginater"
 
+	"bytes"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -42,7 +44,7 @@ func Home(ctx *context.Context) {
 	// Check auto-login.
 	uname := ctx.GetCookie(setting.CookieUserName)
 	if len(uname) != 0 {
-		ctx.Redirect(setting.AppSubUrl + "/user/login")
+		ctx.Redirect(setting.AppSubURL + "/user/login")
 		return
 	}
 
@@ -53,11 +55,19 @@ func Home(ctx *context.Context) {
 // RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
 	Counter  func(bool) int64
-	Ranger   func(int, int) ([]*models.Repository, error)
+	Ranger   func(*models.SearchRepoOptions) ([]*models.Repository, error)
+	Searcher *models.User
 	Private  bool
 	PageSize int
-	OrderBy  string
 	TplName  base.TplName
+}
+
+var (
+	nullByte = []byte{0x00}
+)
+
+func isKeywordValid(keyword string) bool {
+	return !bytes.Contains([]byte(keyword), nullByte)
 }
 
 // RenderRepoSearch render repositories search page
@@ -68,30 +78,55 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	}
 
 	var (
-		repos []*models.Repository
-		count int64
-		err   error
+		repos   []*models.Repository
+		count   int64
+		err     error
+		orderBy string
 	)
+	ctx.Data["SortType"] = ctx.Query("sort")
+
+	switch ctx.Query("sort") {
+	case "oldest":
+		orderBy = "created_unix ASC"
+	case "recentupdate":
+		orderBy = "updated_unix DESC"
+	case "leastupdate":
+		orderBy = "updated_unix ASC"
+	case "reversealphabetically":
+		orderBy = "name DESC"
+	case "alphabetically":
+		orderBy = "name ASC"
+	default:
+		orderBy = "created_unix DESC"
+	}
 
 	keyword := ctx.Query("q")
 	if len(keyword) == 0 {
-		repos, err = opts.Ranger(page, opts.PageSize)
+		repos, err = opts.Ranger(&models.SearchRepoOptions{
+			Page:     page,
+			PageSize: opts.PageSize,
+			Searcher: ctx.User,
+			OrderBy:  orderBy,
+		})
 		if err != nil {
 			ctx.Handle(500, "opts.Ranger", err)
 			return
 		}
 		count = opts.Counter(opts.Private)
 	} else {
-		repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-			Keyword:  keyword,
-			OrderBy:  opts.OrderBy,
-			Private:  opts.Private,
-			Page:     page,
-			PageSize: opts.PageSize,
-		})
-		if err != nil {
-			ctx.Handle(500, "SearchRepositoryByName", err)
-			return
+		if isKeywordValid(keyword) {
+			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
+				Keyword:  keyword,
+				OrderBy:  orderBy,
+				Private:  opts.Private,
+				Page:     page,
+				PageSize: opts.PageSize,
+				Searcher: ctx.User,
+			})
+			if err != nil {
+				ctx.Handle(500, "SearchRepositoryByName", err)
+				return
+			}
 		}
 	}
 	ctx.Data["Keyword"] = keyword
@@ -119,7 +154,7 @@ func ExploreRepos(ctx *context.Context) {
 		Counter:  models.CountRepositories,
 		Ranger:   models.GetRecentUpdatedRepositories,
 		PageSize: setting.UI.ExplorePagingNum,
-		OrderBy:  "updated_unix DESC",
+		Searcher: ctx.User,
 		TplName:  tplExploreRepos,
 	})
 }
@@ -128,9 +163,8 @@ func ExploreRepos(ctx *context.Context) {
 type UserSearchOptions struct {
 	Type     models.UserType
 	Counter  func() int64
-	Ranger   func(int, int) ([]*models.User, error)
+	Ranger   func(*models.SearchUserOptions) ([]*models.User, error)
 	PageSize int
-	OrderBy  string
 	TplName  base.TplName
 }
 
@@ -142,30 +176,53 @@ func RenderUserSearch(ctx *context.Context, opts *UserSearchOptions) {
 	}
 
 	var (
-		users []*models.User
-		count int64
-		err   error
+		users   []*models.User
+		count   int64
+		err     error
+		orderBy string
 	)
+
+	ctx.Data["SortType"] = ctx.Query("sort")
+	//OrderBy:  "id ASC",
+	switch ctx.Query("sort") {
+	case "oldest":
+		orderBy = "id ASC"
+	case "recentupdate":
+		orderBy = "updated_unix DESC"
+	case "leastupdate":
+		orderBy = "updated_unix ASC"
+	case "reversealphabetically":
+		orderBy = "name DESC"
+	case "alphabetically":
+		orderBy = "name ASC"
+	default:
+		orderBy = "id DESC"
+	}
 
 	keyword := ctx.Query("q")
 	if len(keyword) == 0 {
-		users, err = opts.Ranger(page, opts.PageSize)
+		users, err = opts.Ranger(&models.SearchUserOptions{OrderBy: orderBy,
+			Page:     page,
+			PageSize: opts.PageSize,
+		})
 		if err != nil {
 			ctx.Handle(500, "opts.Ranger", err)
 			return
 		}
 		count = opts.Counter()
 	} else {
-		users, count, err = models.SearchUserByName(&models.SearchUserOptions{
-			Keyword:  keyword,
-			Type:     opts.Type,
-			OrderBy:  opts.OrderBy,
-			Page:     page,
-			PageSize: opts.PageSize,
-		})
-		if err != nil {
-			ctx.Handle(500, "SearchUserByName", err)
-			return
+		if isKeywordValid(keyword) {
+			users, count, err = models.SearchUserByName(&models.SearchUserOptions{
+				Keyword:  keyword,
+				Type:     opts.Type,
+				OrderBy:  orderBy,
+				Page:     page,
+				PageSize: opts.PageSize,
+			})
+			if err != nil {
+				ctx.Handle(500, "SearchUserByName", err)
+				return
+			}
 		}
 	}
 	ctx.Data["Keyword"] = keyword
@@ -187,7 +244,6 @@ func ExploreUsers(ctx *context.Context) {
 		Counter:  models.CountUsers,
 		Ranger:   models.Users,
 		PageSize: setting.UI.ExplorePagingNum,
-		OrderBy:  "name ASC",
 		TplName:  tplExploreUsers,
 	})
 }
@@ -203,7 +259,6 @@ func ExploreOrganizations(ctx *context.Context) {
 		Counter:  models.CountOrganizations,
 		Ranger:   models.Organizations,
 		PageSize: setting.UI.ExplorePagingNum,
-		OrderBy:  "name ASC",
 		TplName:  tplExploreOrganizations,
 	})
 }

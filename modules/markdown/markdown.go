@@ -22,11 +22,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// Issue name styles
 const (
-	ISSUE_NAME_STYLE_NUMERIC      = "numeric"
-	ISSUE_NAME_STYLE_ALPHANUMERIC = "alphanumeric"
+	IssueNameStyleNumeric      = "numeric"
+	IssueNameStyleAlphanumeric = "alphanumeric"
 )
 
+// Sanitizer markdown sanitizer
 var Sanitizer = bluemonday.UGCPolicy()
 
 // BuildSanitizer initializes sanitizer with allowed attributes based on settings.
@@ -89,6 +91,9 @@ var (
 	IssueNumericPattern = regexp.MustCompile(`( |^|\()#[0-9]+\b`)
 	// IssueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
 	IssueAlphanumericPattern = regexp.MustCompile(`( |^|\()[A-Z]{1,10}-[1-9][0-9]*\b`)
+	// CrossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
+	// e.g. gogits/gogs#12345
+	CrossReferenceIssueNumericPattern = regexp.MustCompile(`( |^)[0-9a-zA-Z]+/[0-9a-zA-Z]+#[0-9]+\b`)
 
 	// Sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
 	// FIXME: this pattern matches pure numbers as well, right now we do a hack to check in RenderSha1CurrentPattern
@@ -133,7 +138,7 @@ func (r *Renderer) AutoLink(out *bytes.Buffer, link []byte, kind int) {
 
 	// Since this method could only possibly serve one link at a time,
 	// we do not need to find all.
-	if bytes.HasPrefix(link, []byte(setting.AppUrl)) {
+	if bytes.HasPrefix(link, []byte(setting.AppURL)) {
 		m := CommitPattern.Find(link)
 		if m != nil {
 			m = bytes.TrimSpace(m)
@@ -154,7 +159,19 @@ func (r *Renderer) AutoLink(out *bytes.Buffer, link []byte, kind int) {
 			if j == -1 {
 				j = len(m)
 			}
-			out.WriteString(fmt.Sprintf(`<a href="%s">#%s</a>`, m, base.ShortSha(string(m[i+7:j]))))
+
+			issue := string(m[i+7 : j])
+			fullRepoURL := setting.AppURL + strings.TrimPrefix(r.urlPrefix, "/")
+			var link string
+			if strings.HasPrefix(string(m), fullRepoURL) {
+				// Use a short issue reference if the URL refers to this repository
+				link = fmt.Sprintf(`<a href="%s">#%s</a>`, m, issue)
+			} else {
+				// Use a cross-repository issue reference if the URL refers to a different repository
+				repo := string(m[len(setting.AppURL) : i-1])
+				link = fmt.Sprintf(`<a href="%s">%s#%s</a>`, m, repo, issue)
+			}
+			out.WriteString(link)
 			return
 		}
 	}
@@ -163,7 +180,7 @@ func (r *Renderer) AutoLink(out *bytes.Buffer, link []byte, kind int) {
 }
 
 // ListItem defines how list items should be processed to produce corresponding HTML elements.
-func (options *Renderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
+func (r *Renderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
 	// Detect procedures to draw checkboxes.
 	switch {
 	case bytes.HasPrefix(text, []byte("[ ] ")):
@@ -171,7 +188,7 @@ func (options *Renderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
 	case bytes.HasPrefix(text, []byte("[x] ")):
 		text = append([]byte(`<input type="checkbox" disabled="" checked="" />`), text[3:]...)
 	}
-	options.Renderer.ListItem(out, text, flags)
+	r.Renderer.ListItem(out, text, flags)
 }
 
 // Note: this section is for purpose of increase performance and
@@ -223,7 +240,7 @@ func cutoutVerbosePrefix(prefix string) string {
 		if prefix[i] == '/' {
 			count++
 		}
-		if count >= 3+setting.AppSubUrlDepth {
+		if count >= 3+setting.AppSubURLDepth {
 			return prefix[:i]
 		}
 	}
@@ -235,7 +252,7 @@ func RenderIssueIndexPattern(rawBytes []byte, urlPrefix string, metas map[string
 	urlPrefix = cutoutVerbosePrefix(urlPrefix)
 
 	pattern := IssueNumericPattern
-	if metas["style"] == ISSUE_NAME_STYLE_ALPHANUMERIC {
+	if metas["style"] == IssueNameStyleAlphanumeric {
 		pattern = IssueAlphanumericPattern
 	}
 
@@ -249,13 +266,30 @@ func RenderIssueIndexPattern(rawBytes []byte, urlPrefix string, metas map[string
 			link = fmt.Sprintf(`<a href="%s/issues/%s">%s</a>`, urlPrefix, m[1:], m)
 		} else {
 			// Support for external issue tracker
-			if metas["style"] == ISSUE_NAME_STYLE_ALPHANUMERIC {
+			if metas["style"] == IssueNameStyleAlphanumeric {
 				metas["index"] = string(m)
 			} else {
 				metas["index"] = string(m[1:])
 			}
 			link = fmt.Sprintf(`<a href="%s">%s</a>`, com.Expand(metas["format"], metas), m)
 		}
+		rawBytes = bytes.Replace(rawBytes, m, []byte(link), 1)
+	}
+	return rawBytes
+}
+
+// RenderCrossReferenceIssueIndexPattern renders issue indexes from other repositories to corresponding links.
+func RenderCrossReferenceIssueIndexPattern(rawBytes []byte, urlPrefix string, metas map[string]string) []byte {
+	ms := CrossReferenceIssueNumericPattern.FindAll(rawBytes, -1)
+	for _, m := range ms {
+		if m[0] == ' ' || m[0] == '(' {
+			m = m[1:] // ignore leading space or opening parentheses
+		}
+
+		repo := string(bytes.Split(m, []byte("#"))[0])
+		issue := string(bytes.Split(m, []byte("#"))[1])
+
+		link := fmt.Sprintf(`<a href="%s%s/issues/%s">%s</a>`, setting.AppURL, repo, issue, m)
 		rawBytes = bytes.Replace(rawBytes, m, []byte(link), 1)
 	}
 	return rawBytes
@@ -277,10 +311,11 @@ func RenderSpecialLink(rawBytes []byte, urlPrefix string, metas map[string]strin
 	for _, m := range ms {
 		m = m[bytes.Index(m, []byte("@")):]
 		rawBytes = bytes.Replace(rawBytes, m,
-			[]byte(fmt.Sprintf(`<a href="%s/%s">%s</a>`, setting.AppSubUrl, m[1:], m)), -1)
+			[]byte(fmt.Sprintf(`<a href="%s/%s">%s</a>`, setting.AppSubURL, m[1:], m)), -1)
 	}
 
 	rawBytes = RenderIssueIndexPattern(rawBytes, urlPrefix, metas)
+	rawBytes = RenderCrossReferenceIssueIndexPattern(rawBytes, urlPrefix, metas)
 	rawBytes = RenderSha1CurrentPattern(rawBytes, urlPrefix)
 	return rawBytes
 }
@@ -322,10 +357,10 @@ var noEndTags = []string{"img", "input", "br", "hr"}
 
 // PostProcess treats different types of HTML differently,
 // and only renders special links for plain text blocks.
-func PostProcess(rawHtml []byte, urlPrefix string, metas map[string]string) []byte {
+func PostProcess(rawHTML []byte, urlPrefix string, metas map[string]string) []byte {
 	startTags := make([]string, 0, 5)
 	var buf bytes.Buffer
-	tokenizer := html.NewTokenizer(bytes.NewReader(rawHtml))
+	tokenizer := html.NewTokenizer(bytes.NewReader(rawHTML))
 
 OUTER_LOOP:
 	for html.ErrorToken != tokenizer.Next() {
@@ -387,7 +422,7 @@ OUTER_LOOP:
 
 	// If we are not at the end of the input, then some other parsing error has occurred,
 	// so return the input verbatim.
-	return rawHtml
+	return rawHTML
 }
 
 // Render renders Markdown to HTML with special links.

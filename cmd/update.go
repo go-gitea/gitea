@@ -49,7 +49,7 @@ func runUpdate(c *cli.Context) error {
 	}
 
 	task := models.UpdateTask{
-		UUID:        os.Getenv("uuid"),
+		UUID:        os.Getenv("GITEA_UUID"),
 		RefName:     args[0],
 		OldCommitID: args[1],
 		NewCommitID: args[2],

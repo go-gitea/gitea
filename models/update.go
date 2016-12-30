@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+// UpdateTask defines an UpdateTask
 type UpdateTask struct {
 	ID          int64  `xorm:"pk autoincr"`
 	UUID        string `xorm:"index"`
@@ -23,6 +24,7 @@ type UpdateTask struct {
 	NewCommitID string
 }
 
+// AddUpdateTask adds an UpdateTask
 func AddUpdateTask(task *UpdateTask) error {
 	_, err := x.Insert(task)
 	return err
@@ -42,6 +44,7 @@ func GetUpdateTaskByUUID(uuid string) (*UpdateTask, error) {
 	return task, nil
 }
 
+// DeleteUpdateTaskByUUID deletes an UpdateTask from the database
 func DeleteUpdateTaskByUUID(uuid string) error {
 	_, err := x.Delete(&UpdateTask{UUID: uuid})
 	return err
@@ -60,8 +63,9 @@ func CommitToPushCommit(commit *git.Commit) *PushCommit {
 	}
 }
 
+// ListToPushCommits transforms a list.List to PushCommits type.
 func ListToPushCommits(l *list.List) *PushCommits {
-	commits := make([]*PushCommit, 0)
+	var commits []*PushCommit
 	var actEmail string
 	for e := l.Front(); e != nil; e = e.Next() {
 		commit := e.Value.(*git.Commit)
@@ -73,6 +77,7 @@ func ListToPushCommits(l *list.List) *PushCommits {
 	return &PushCommits{l.Len(), commits, "", nil}
 }
 
+// PushUpdateOptions defines the push update options
 type PushUpdateOptions struct {
 	PusherID     int64
 	PusherName   string
@@ -86,10 +91,10 @@ type PushUpdateOptions struct {
 // PushUpdate must be called for any push actions in order to
 // generates necessary push action history feeds.
 func PushUpdate(opts PushUpdateOptions) (err error) {
-	isNewRef := opts.OldCommitID == git.EMPTY_SHA
-	isDelRef := opts.NewCommitID == git.EMPTY_SHA
+	isNewRef := opts.OldCommitID == git.EmptySHA
+	isDelRef := opts.NewCommitID == git.EmptySHA
 	if isNewRef && isDelRef {
-		return fmt.Errorf("Old and new revisions are both %s", git.EMPTY_SHA)
+		return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 	}
 
 	repoPath := RepoPath(opts.RepoUserName, opts.RepoName)
@@ -101,7 +106,7 @@ func PushUpdate(opts PushUpdateOptions) (err error) {
 	}
 
 	if isDelRef {
-		log.GitLogger.Info("Reference '%s' has been deleted from '%s/%s' by %d",
+		log.GitLogger.Info("Reference '%s' has been deleted from '%s/%s' by %s",
 			opts.RefFullName, opts.RepoUserName, opts.RepoName, opts.PusherName)
 		return nil
 	}
@@ -122,7 +127,7 @@ func PushUpdate(opts PushUpdateOptions) (err error) {
 	}
 
 	// Push tags.
-	if strings.HasPrefix(opts.RefFullName, git.TAG_PREFIX) {
+	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 		if err := CommitRepoAction(CommitRepoActionOptions{
 			PusherName:  opts.PusherName,
 			RepoOwnerID: owner.ID,

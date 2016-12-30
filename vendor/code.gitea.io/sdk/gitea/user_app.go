@@ -12,6 +12,7 @@ import (
 	"net/http"
 )
 
+// BasicAuthEncode generate base64 of basic auth head
 func BasicAuthEncode(user, pass string) string {
 	return base64.StdEncoding.EncodeToString([]byte(user + ":" + pass))
 }
@@ -22,16 +23,19 @@ type AccessToken struct {
 	Sha1 string `json:"sha1"`
 }
 
+// ListAccessTokens lista all the access tokens of user
 func (c *Client) ListAccessTokens(user, pass string) ([]*AccessToken, error) {
 	tokens := make([]*AccessToken, 0, 10)
 	return tokens, c.getParsedResponse("GET", fmt.Sprintf("/users/%s/tokens", user),
 		http.Header{"Authorization": []string{"Basic " + BasicAuthEncode(user, pass)}}, nil, &tokens)
 }
 
+// CreateAccessTokenOption options when create access token
 type CreateAccessTokenOption struct {
 	Name string `json:"name" binding:"Required"`
 }
 
+// CreateAccessToken create one access token with options
 func (c *Client) CreateAccessToken(user, pass string, opt CreateAccessTokenOption) (*AccessToken, error) {
 	body, err := json.Marshal(&opt)
 	if err != nil {

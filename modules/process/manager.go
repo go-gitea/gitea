@@ -15,13 +15,14 @@ import (
 )
 
 var (
+	// ErrExecTimeout represent a timeout error
 	ErrExecTimeout = errors.New("Process execution timeout")
-)
 
-// Common timeout.
-var (
+	// DefaultTimeout is the timeout used by Exec* family
+	// of function when timeout parameter is omitted or
+	// passed as -1
 	// NOTE: could be custom in config file for default.
-	DEFAULT = 60 * time.Second
+	DefaultTimeout = 60 * time.Second
 )
 
 // Process represents a working process inherit from Gogs.
@@ -51,10 +52,13 @@ func Add(desc string, cmd *exec.Cmd) int64 {
 	return pid
 }
 
-// Exec starts executing a command in given path, it records its process and timeout.
-func ExecDir(timeout time.Duration, dir, desc, cmdName string, args ...string) (string, string, error) {
+// ExecDirEnv runs a command in given path and environment variables, and waits for its completion
+// up to the given timeout (or DefaultTimeout if -1 is given).
+// Returns its complete stdout and stderr
+// outputs and an error, if any (including timeout)
+func ExecDirEnv(timeout time.Duration, dir, desc string, env []string, cmdName string, args ...string) (string, string, error) {
 	if timeout == -1 {
-		timeout = DEFAULT
+		timeout = DefaultTimeout
 	}
 
 	bufOut := new(bytes.Buffer)
@@ -62,6 +66,7 @@ func ExecDir(timeout time.Duration, dir, desc, cmdName string, args ...string) (
 
 	cmd := exec.Command(cmdName, args...)
 	cmd.Dir = dir
+	cmd.Env = env
 	cmd.Stdout = bufOut
 	cmd.Stderr = bufErr
 	if err := cmd.Start(); err != nil {
@@ -89,12 +94,22 @@ func ExecDir(timeout time.Duration, dir, desc, cmdName string, args ...string) (
 	return bufOut.String(), bufErr.String(), err
 }
 
-// Exec starts executing a command, it records its process and timeout.
+// ExecDir works exactly like ExecDirEnv except no environment variable is provided.
+func ExecDir(timeout time.Duration, dir, desc, cmdName string, args ...string) (string, string, error) {
+	return ExecDirEnv(timeout, dir, desc, nil, cmdName, args...)
+}
+
+// ExecTimeout runs a command and waits for its completion
+// up to the given timeout (or DefaultTimeout if -1 is given).
+// Returns its complete stdout and stderr
+// outputs and an error, if any (including timeout)
 func ExecTimeout(timeout time.Duration, desc, cmdName string, args ...string) (string, string, error) {
 	return ExecDir(timeout, "", desc, cmdName, args...)
 }
 
-// Exec starts executing a command, it records its process and has default timeout.
+// Exec runs a command and waits for its completion
+// up to DefaultTimeout. Returns its complete stdout and stderr
+// outputs and an error, if any (including timeout)
 func Exec(desc, cmdName string, args ...string) (string, string, error) {
 	return ExecDir(-1, "", desc, cmdName, args...)
 }

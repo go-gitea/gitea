@@ -41,7 +41,7 @@
 						<div class="ui bottom attached segment">
 							<div class="ui small images">
 								{{range .Issue.Attachments}}
-									<a target="_blank" href="{{AppSubUrl}}/attachments/{{.UUID}}">
+									<a target="_blank" rel="noopener" href="{{AppSubUrl}}/attachments/{{.UUID}}">
 										{{if FilenameIsImage .Name}}
 											<img class="ui image" src="{{AppSubUrl}}/attachments/{{.UUID}}" title='{{$.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
 										{{else}}
@@ -102,7 +102,7 @@
 								<div class="ui bottom attached segment">
 									<div class="ui small images">
 										{{range .Attachments}}
-											<a target="_blank" href="{{AppSubUrl}}/attachments/{{.UUID}}">
+											<a target="_blank" rel="noopener" href="{{AppSubUrl}}/attachments/{{.UUID}}">
 												{{if FilenameIsImage .Name}}
 													<img class="ui image" src="{{AppSubUrl}}/attachments/{{.UUID}}" title='{{$.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
 												{{else}}
@@ -163,6 +163,12 @@
 								<div class="item text purple">
 									{{$.i18n.Tr "repo.pulls.has_merged"}}
 								</div>
+								{{if .IsPullBranchDeletable}}
+									<div class="ui divider"></div>
+									<div>
+										<a class="delete-button ui red button" href="" data-url="{{.DeleteBranchLink}}">{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</a>
+									</div>
+								{{end}}
 							{{else if .Issue.IsClosed}}
 								<div class="item text grey">
 									{{$.i18n.Tr "repo.pulls.reopen_to_merge"}}
@@ -265,7 +271,7 @@
 					<div class="item">
 						<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{.Name}}</a>
 					</div>
-					
+
 				{{end}}
 			</div>
 
@@ -370,4 +376,17 @@
 
 <div class="hide" id="no-content">
 	<span class="no-content">{{.i18n.Tr "repo.issues.no_content"}}</span>
+</div>
+
+<div class="ui small basic delete modal">
+	<div class="ui icon header">
+		<i class="trash icon"></i>
+		{{.i18n.Tr "repo.branch.delete" .HeadTarget | Safe}}
+	</div>
+	<div class="content">
+		<p>{{.i18n.Tr "repo.branch.delete_desc" | Safe}}</p>
+		{{.i18n.Tr "repo.branch.delete_notices_1" | Safe}}<br>
+		{{.i18n.Tr "repo.branch.delete_notices_2" .HeadTarget | Safe}}<br>
+	</div>
+	{{template "base/delete_modal_actions" .}}
 </div>

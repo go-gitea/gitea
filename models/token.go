@@ -28,14 +28,17 @@ type AccessToken struct {
 	HasUsed           bool `xorm:"-"`
 }
 
+// BeforeInsert will be invoked by XORM before inserting a record representing this object.
 func (t *AccessToken) BeforeInsert() {
 	t.CreatedUnix = time.Now().Unix()
 }
 
+// BeforeUpdate is invoked from XORM before updating this object.
 func (t *AccessToken) BeforeUpdate() {
 	t.UpdatedUnix = time.Now().Unix()
 }
 
+// AfterSet is invoked from XORM after setting the value of a field of this object.
 func (t *AccessToken) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
 	case "created_unix":
@@ -85,7 +88,14 @@ func UpdateAccessToken(t *AccessToken) error {
 }
 
 // DeleteAccessTokenByID deletes access token by given ID.
-func DeleteAccessTokenByID(id int64) error {
-	_, err := x.Id(id).Delete(new(AccessToken))
-	return err
+func DeleteAccessTokenByID(id, userID int64) error {
+	cnt, err := x.Id(id).Delete(&AccessToken{
+		UID: userID,
+	})
+	if err != nil {
+		return err
+	} else if cnt != 1 {
+		return ErrAccessTokenNotExist{}
+	}
+	return nil
 }

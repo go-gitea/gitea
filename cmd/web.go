@@ -7,7 +7,6 @@ package cmd
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/fcgi"
@@ -15,14 +14,15 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/bindata"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/options"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/template"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/admin"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/routers/org"
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
+
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/captcha"
@@ -38,18 +39,15 @@ import (
 	"github.com/go-macaron/i18n"
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
-	"github.com/go-xorm/xorm"
-	version "github.com/mcuadros/go-version"
 	"github.com/urfave/cli"
-	ini "gopkg.in/ini.v1"
 	macaron "gopkg.in/macaron.v1"
 )
 
 // CmdWeb represents the available web sub-command.
 var CmdWeb = cli.Command{
 	Name:  "web",
-	Usage: "Start Gogs web server",
-	Description: `Gogs web server is the only thing you need to run,
+	Usage: "Start Gitea web server",
+	Description: `Gitea web server is the only thing you need to run,
 and it takes care of all the other things for you`,
 	Action: runWeb,
 	Flags: []cli.Flag{
@@ -73,45 +71,6 @@ type VerChecker struct {
 	Expected   string
 }
 
-// checkVersion checks if binary matches the version of templates files.
-func checkVersion() {
-	// Templates.
-	data, err := ioutil.ReadFile(setting.StaticRootPath + "/templates/.VERSION")
-	if err != nil {
-		log.Fatal(4, "Fail to read 'templates/.VERSION': %v", err)
-	}
-	tplVer := string(data)
-	if tplVer != setting.AppVer {
-		if version.Compare(tplVer, setting.AppVer, ">") {
-			log.Fatal(4, "Binary version is lower than template file version, did you forget to recompile Gogs?")
-		} else {
-			log.Fatal(4, "Binary version is higher than template file version, did you forget to update template files?")
-		}
-	}
-
-	// Check dependency version.
-	checkers := []VerChecker{
-		{"github.com/go-xorm/xorm", func() string { return xorm.Version }, "0.5.5"},
-		{"github.com/go-macaron/binding", binding.Version, "0.3.2"},
-		{"github.com/go-macaron/cache", cache.Version, "0.1.2"},
-		{"github.com/go-macaron/csrf", csrf.Version, "0.1.0"},
-		{"github.com/go-macaron/i18n", i18n.Version, "0.3.0"},
-		{"github.com/go-macaron/session", session.Version, "0.1.6"},
-		{"github.com/go-macaron/toolbox", toolbox.Version, "0.1.0"},
-		{"gopkg.in/ini.v1", ini.Version, "1.8.4"},
-		{"gopkg.in/macaron.v1", macaron.Version, "1.1.7"},
-		{"code.gitea.io/git", git.Version, "0.4.1"},
-	}
-	for _, c := range checkers {
-		if !version.Compare(c.Version(), c.Expected, ">=") {
-			log.Fatal(4, `Dependency outdated!
-Package '%s' current version (%s) is below requirement (%s),
-please use following command to update this package and recompile Gogs:
-go get -u %[1]s`, c.ImportPath, c.Version(), c.Expected)
-		}
-	}
-}
-
 // newMacaron initializes Macaron instance.
 func newMacaron() *macaron.Macaron {
 	m := macaron.New()
@@ -123,11 +82,11 @@ func newMacaron() *macaron.Macaron {
 		m.Use(gzip.Gziper())
 	}
 	if setting.Protocol == setting.FCGI {
-		m.SetURLPrefix(setting.AppSubUrl)
+		m.SetURLPrefix(setting.AppSubURL)
 	}
-	m.Use(macaron.Static(
-		path.Join(setting.StaticRootPath, "public"),
-		macaron.StaticOptions{
+	m.Use(public.Static(
+		&public.Options{
+			Directory:   path.Join(setting.StaticRootPath, "public"),
 			SkipLogging: setting.DisableRouterLog,
 		},
 	))
@@ -139,32 +98,32 @@ func newMacaron() *macaron.Macaron {
 		},
 	))
 
-	funcMap := template.NewFuncMap()
-	m.Use(macaron.Renderer(macaron.RenderOptions{
-		Directory:         path.Join(setting.StaticRootPath, "templates"),
-		AppendDirectories: []string{path.Join(setting.CustomPath, "templates")},
-		Funcs:             funcMap,
-		IndentJSON:        macaron.Env != macaron.PROD,
-	}))
-	models.InitMailRender(path.Join(setting.StaticRootPath, "templates/mail"),
-		path.Join(setting.CustomPath, "templates/mail"), funcMap)
+	m.Use(templates.Renderer())
+	models.InitMailRender(templates.Mailer())
 
-	localeNames, err := bindata.AssetDir("conf/locale")
+	localeNames, err := options.Dir("locale")
+
 	if err != nil {
 		log.Fatal(4, "Fail to list locale files: %v", err)
 	}
+
 	localFiles := make(map[string][]byte)
+
 	for _, name := range localeNames {
-		localFiles[name] = bindata.MustAsset("conf/locale/" + name)
+		localFiles[name], err = options.Locale(name)
+
+		if err != nil {
+			log.Fatal(4, "Failed to load %s locale file. %v", name, err)
+		}
 	}
+
 	m.Use(i18n.I18n(i18n.Options{
-		SubURL:          setting.AppSubUrl,
-		Files:           localFiles,
-		CustomDirectory: path.Join(setting.CustomPath, "conf/locale"),
-		Langs:           setting.Langs,
-		Names:           setting.Names,
-		DefaultLang:     "en-US",
-		Redirect:        true,
+		SubURL:      setting.AppSubURL,
+		Files:       localFiles,
+		Langs:       setting.Langs,
+		Names:       setting.Names,
+		DefaultLang: "en-US",
+		Redirect:    true,
 	}))
 	m.Use(cache.Cacher(cache.Options{
 		Adapter:       setting.CacheAdapter,
@@ -172,7 +131,7 @@ func newMacaron() *macaron.Macaron {
 		Interval:      setting.CacheInterval,
 	}))
 	m.Use(captcha.Captchaer(captcha.Options{
-		SubURL: setting.AppSubUrl,
+		SubURL: setting.AppSubURL,
 	}))
 	m.Use(session.Sessioner(setting.SessionConfig))
 	m.Use(csrf.Csrfer(csrf.Options{
@@ -180,7 +139,7 @@ func newMacaron() *macaron.Macaron {
 		Cookie:     setting.CSRFCookieName,
 		SetCookie:  true,
 		Header:     "X-Csrf-Token",
-		CookiePath: setting.AppSubUrl,
+		CookiePath: setting.AppSubURL,
 	}))
 	m.Use(toolbox.Toolboxer(m, toolbox.Options{
 		HealthCheckFuncs: []*toolbox.HealthCheckFuncDesc{
@@ -199,7 +158,6 @@ func runWeb(ctx *cli.Context) error {
 		setting.CustomConf = ctx.String("config")
 	}
 	routers.GlobalInit()
-	checkVersion()
 
 	m := newMacaron()
 
@@ -216,7 +174,7 @@ func runWeb(ctx *cli.Context) error {
 	m.Get("/", ignSignIn, routers.Home)
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
-			ctx.Redirect(setting.AppSubUrl + "/explore/repos")
+			ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		})
 		m.Get("/repos", routers.ExploreRepos)
 		m.Get("/users", routers.ExploreUsers)
@@ -315,7 +273,6 @@ func runWeb(ctx *cli.Context) error {
 			m.Get("", user.Profile)
 			m.Get("/followers", user.Followers)
 			m.Get("/following", user.Following)
-			m.Get("/stars", user.Stars)
 		})
 
 		m.Get("/attachments/:uuid", func(ctx *context.Context) {
@@ -336,11 +293,7 @@ func runWeb(ctx *cli.Context) error {
 			}
 			defer fr.Close()
 
-			ctx.Header().Set("Cache-Control", "public,max-age=86400")
-			ctx.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, attach.Name))
-			// Fix #312. Attachments with , in their name are not handled correctly by Google Chrome.
-			// We must put the name in " manually.
-			if err = repo.ServeData(ctx, "\""+attach.Name+"\"", fr); err != nil {
+			if err = repo.ServeData(ctx, attach.Name, fr); err != nil {
 				ctx.Handle(500, "ServeData", err)
 				return
 			}
@@ -566,6 +519,7 @@ func runWeb(ctx *cli.Context) error {
 		}, context.RepoRef())
 
 		// m.Get("/branches", repo.Branches)
+		m.Post("/branches/:name/delete", reqSignIn, reqRepoWriter, repo.DeleteBranchPost)
 
 		m.Group("/wiki", func() {
 			m.Get("/?:page", repo.Wiki)
@@ -592,6 +546,7 @@ func runWeb(ctx *cli.Context) error {
 			m.Get("/src/*", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("/raw/*", repo.SingleDownload)
 			m.Get("/commits/*", repo.RefCommits)
+			m.Get("/graph", repo.Graph)
 			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
 			m.Get("/forks", repo.Forks)
 		}, context.RepoRef())
@@ -611,6 +566,12 @@ func runWeb(ctx *cli.Context) error {
 		}, ignSignIn, context.RepoAssignment(true), context.RepoRef())
 
 		m.Group("/:reponame", func() {
+			m.Group("/info/lfs", func() {
+				m.Post("/objects/batch", lfs.BatchHandler)
+				m.Get("/objects/:oid/:filename", lfs.ObjectOidHandler)
+				m.Any("/objects/:oid", lfs.ObjectOidHandler)
+				m.Post("/objects", lfs.PostHandler)
+			}, ignSignInAndCsrf)
 			m.Any("/*", ignSignInAndCsrf, repo.HTTP)
 			m.Head("/tasks/trigger", repo.TriggerTask)
 		})
@@ -635,17 +596,21 @@ func runWeb(ctx *cli.Context) error {
 
 	// Flag for port number in case first time run conflict.
 	if ctx.IsSet("port") {
-		setting.AppUrl = strings.Replace(setting.AppUrl, setting.HTTPPort, ctx.String("port"), 1)
+		setting.AppURL = strings.Replace(setting.AppURL, setting.HTTPPort, ctx.String("port"), 1)
 		setting.HTTPPort = ctx.String("port")
 	}
 
 	var listenAddr string
-	if setting.Protocol == setting.UNIX_SOCKET {
+	if setting.Protocol == setting.UnixSocket {
 		listenAddr = fmt.Sprintf("%s", setting.HTTPAddr)
 	} else {
 		listenAddr = fmt.Sprintf("%s:%s", setting.HTTPAddr, setting.HTTPPort)
 	}
-	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubUrl)
+	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
+
+	if setting.LFS.StartServer {
+		log.Info("LFS server enabled")
+	}
 
 	var err error
 	switch setting.Protocol {
@@ -656,9 +621,10 @@ func runWeb(ctx *cli.Context) error {
 		err = server.ListenAndServeTLS(setting.CertFile, setting.KeyFile)
 	case setting.FCGI:
 		err = fcgi.Serve(nil, m)
-	case setting.UNIX_SOCKET:
-		os.Remove(listenAddr)
-
+	case setting.UnixSocket:
+		if err := os.Remove(listenAddr); err != nil {
+			log.Fatal(4, "Fail to remove unix socket directory %s: %v", listenAddr, err)
+		}
 		var listener *net.UnixListener
 		listener, err = net.ListenUnix("unix", &net.UnixAddr{Name: listenAddr, Net: "unix"})
 		if err != nil {

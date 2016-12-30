@@ -4,6 +4,7 @@
 
 package gitea
 
+// Team is a sub virtual organization of one Organization
 type Team struct {
 	ID          int64  `json:"id"`
 	Name        string `json:"name"`
@@ -11,7 +12,15 @@ type Team struct {
 	Permission  string `json:"permission"`
 }
 
+// CreateTeamOption options when create team
 type CreateTeamOption struct {
+	Name        string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
+	Description string `json:"description" binding:"MaxSize(255)"`
+	Permission  string `json:"permission"`
+}
+
+// EditTeamOption options when edit team
+type EditTeamOption struct {
 	Name        string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
 	Description string `json:"description" binding:"MaxSize(255)"`
 	Permission  string `json:"permission"`

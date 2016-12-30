@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// HTTP implmentation git smart HTTP protocol
 func HTTP(ctx *context.Context) {
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
@@ -82,85 +83,98 @@ func HTTP(ctx *context.Context) {
 
 	// check access
 	if askAuth {
-		authHead := ctx.Req.Header.Get("Authorization")
-		if len(authHead) == 0 {
-			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=\".\"")
-			ctx.Error(http.StatusUnauthorized)
-			return
-		}
-
-		auths := strings.Fields(authHead)
-		// currently check basic auth
-		// TODO: support digit auth
-		// FIXME: middlewares/context.go did basic auth check already,
-		// maybe could use that one.
-		if len(auths) != 2 || auths[0] != "Basic" {
-			ctx.HandleText(http.StatusUnauthorized, "no basic auth and digit auth")
-			return
-		}
-		authUsername, authPasswd, err = base.BasicAuthDecode(auths[1])
-		if err != nil {
-			ctx.HandleText(http.StatusUnauthorized, "no basic auth and digit auth")
-			return
-		}
-
-		authUser, err = models.UserSignIn(authUsername, authPasswd)
-		if err != nil {
-			if !models.IsErrUserNotExist(err) {
-				ctx.Handle(http.StatusInternalServerError, "UserSignIn error: %v", err)
+		if setting.Service.EnableReverseProxyAuth {
+			authUsername = ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
+			if len(authUsername) == 0 {
+				ctx.HandleText(401, "reverse proxy login error. authUsername empty")
+				return
+			}
+			authUser, err = models.GetUserByName(authUsername)
+			if err != nil {
+				ctx.HandleText(401, "reverse proxy login error, got error while running GetUserByName")
+				return
+			}
+		} else {
+			authHead := ctx.Req.Header.Get("Authorization")
+			if len(authHead) == 0 {
+				ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=\".\"")
+				ctx.Error(http.StatusUnauthorized)
 				return
 			}
 
-			// Assume username now is a token.
-			token, err := models.GetAccessTokenBySHA(authUsername)
+			auths := strings.Fields(authHead)
+			// currently check basic auth
+			// TODO: support digit auth
+			// FIXME: middlewares/context.go did basic auth check already,
+			// maybe could use that one.
+			if len(auths) != 2 || auths[0] != "Basic" {
+				ctx.HandleText(http.StatusUnauthorized, "no basic auth and digit auth")
+				return
+			}
+			authUsername, authPasswd, err = base.BasicAuthDecode(auths[1])
 			if err != nil {
-				if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
-					ctx.HandleText(http.StatusUnauthorized, "invalid token")
-				} else {
-					ctx.Handle(http.StatusInternalServerError, "GetAccessTokenBySha", err)
+				ctx.HandleText(http.StatusUnauthorized, "no basic auth and digit auth")
+				return
+			}
+
+			authUser, err = models.UserSignIn(authUsername, authPasswd)
+			if err != nil {
+				if !models.IsErrUserNotExist(err) {
+					ctx.Handle(http.StatusInternalServerError, "UserSignIn error: %v", err)
+					return
 				}
-				return
-			}
-			token.Updated = time.Now()
-			if err = models.UpdateAccessToken(token); err != nil {
-				ctx.Handle(http.StatusInternalServerError, "UpdateAccessToken", err)
-			}
-			authUser, err = models.GetUserByID(token.UID)
-			if err != nil {
-				ctx.Handle(http.StatusInternalServerError, "GetUserByID", err)
-				return
-			}
-		}
 
-		if !isPublicPull {
-			var tp = models.AccessModeWrite
-			if isPull {
-				tp = models.AccessModeRead
-			}
-
-			has, err := models.HasAccess(authUser, repo, tp)
-			if err != nil {
-				ctx.Handle(http.StatusInternalServerError, "HasAccess", err)
-				return
-			} else if !has {
-				if tp == models.AccessModeRead {
-					has, err = models.HasAccess(authUser, repo, models.AccessModeWrite)
-					if err != nil {
-						ctx.Handle(http.StatusInternalServerError, "HasAccess2", err)
-						return
-					} else if !has {
-						ctx.HandleText(http.StatusForbidden, "User permission denied")
-						return
+				// Assume username now is a token.
+				token, err := models.GetAccessTokenBySHA(authUsername)
+				if err != nil {
+					if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
+						ctx.HandleText(http.StatusUnauthorized, "invalid token")
+					} else {
+						ctx.Handle(http.StatusInternalServerError, "GetAccessTokenBySha", err)
 					}
-				} else {
-					ctx.HandleText(http.StatusForbidden, "User permission denied")
+					return
+				}
+				token.Updated = time.Now()
+				if err = models.UpdateAccessToken(token); err != nil {
+					ctx.Handle(http.StatusInternalServerError, "UpdateAccessToken", err)
+				}
+				authUser, err = models.GetUserByID(token.UID)
+				if err != nil {
+					ctx.Handle(http.StatusInternalServerError, "GetUserByID", err)
 					return
 				}
 			}
 
-			if !isPull && repo.IsMirror {
-				ctx.HandleText(http.StatusForbidden, "mirror repository is read-only")
-				return
+			if !isPublicPull {
+				var tp = models.AccessModeWrite
+				if isPull {
+					tp = models.AccessModeRead
+				}
+
+				has, err := models.HasAccess(authUser, repo, tp)
+				if err != nil {
+					ctx.Handle(http.StatusInternalServerError, "HasAccess", err)
+					return
+				} else if !has {
+					if tp == models.AccessModeRead {
+						has, err = models.HasAccess(authUser, repo, models.AccessModeWrite)
+						if err != nil {
+							ctx.Handle(http.StatusInternalServerError, "HasAccess2", err)
+							return
+						} else if !has {
+							ctx.HandleText(http.StatusForbidden, "User permission denied")
+							return
+						}
+					} else {
+						ctx.HandleText(http.StatusForbidden, "User permission denied")
+						return
+					}
+				}
+
+				if !isPull && repo.IsMirror {
+					ctx.HandleText(http.StatusForbidden, "mirror repository is read-only")
+					return
+				}
 			}
 		}
 	}
@@ -170,7 +184,7 @@ func HTTP(ctx *context.Context) {
 			return
 		}
 
-		var lastLine int64 = 0
+		var lastLine int64
 		for {
 			head := input[lastLine : lastLine+2]
 			if head[0] == '0' && head[1] == '0' {
@@ -193,21 +207,21 @@ func HTTP(ctx *context.Context) {
 
 				fields := strings.Fields(string(line))
 				if len(fields) >= 3 {
-					oldCommitId := fields[0][4:]
-					newCommitId := fields[1]
+					oldCommitID := fields[0][4:]
+					newCommitID := fields[1]
 					refFullName := fields[2]
 
 					// FIXME: handle error.
 					if err = models.PushUpdate(models.PushUpdateOptions{
 						RefFullName:  refFullName,
-						OldCommitID:  oldCommitId,
-						NewCommitID:  newCommitId,
+						OldCommitID:  oldCommitID,
+						NewCommitID:  newCommitID,
 						PusherID:     authUser.ID,
 						PusherName:   authUser.Name,
 						RepoUserName: username,
 						RepoName:     reponame,
 					}); err == nil {
-						go models.AddTestPullRequestTask(authUser, repo.ID, strings.TrimPrefix(refFullName, git.BRANCH_PREFIX), true)
+						go models.AddTestPullRequestTask(authUser, repo.ID, strings.TrimPrefix(refFullName, git.BranchPrefix), true)
 					}
 
 				}
@@ -474,6 +488,7 @@ func getGitRepoPath(subdir string) (string, error) {
 	return fpath, nil
 }
 
+// HTTPBackend middleware for git smart HTTP protocol
 func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		for _, route := range routes {

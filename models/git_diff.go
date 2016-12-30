@@ -18,18 +18,20 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/template/highlight"
 	"github.com/Unknwon/com"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
 )
 
+// DiffLineType represents the type of a DiffLine.
 type DiffLineType uint8
 
+// DiffLineType possible values.
 const (
 	DiffLinePlain DiffLineType = iota + 1
 	DiffLineAdd
@@ -37,8 +39,10 @@ const (
 	DiffLineSection
 )
 
+// DiffFileType represents the type of a DiffFile.
 type DiffFileType uint8
 
+// DiffFileType possible values.
 const (
 	DiffFileAdd DiffFileType = iota + 1
 	DiffFileChange
@@ -46,6 +50,7 @@ const (
 	DiffFileRename
 )
 
+// DiffLine represents a line difference in a DiffSection.
 type DiffLine struct {
 	LeftIdx  int
 	RightIdx int
@@ -53,10 +58,12 @@ type DiffLine struct {
 	Content  string
 }
 
+// GetType returns the type of a DiffLine.
 func (d *DiffLine) GetType() int {
 	return int(d.Type)
 }
 
+// DiffSection represents a section of a DiffFile.
 type DiffSection struct {
 	Name  string
 	Lines []*DiffLine
@@ -97,7 +104,7 @@ func diffToHTML(diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTM
 	return template.HTML(buf.Bytes())
 }
 
-// get an specific line by type (add or del) and file line number
+// GetLine gets a specific line by type (add or del) and file line number
 func (diffSection *DiffSection) GetLine(lineType DiffLineType, idx int) *DiffLine {
 	var (
 		difference    = 0
@@ -146,7 +153,7 @@ func init() {
 	diffMatchPatch.DiffEditCost = 100
 }
 
-// computes inline diff for the given line
+// GetComputedInlineDiffFor computes inline diff for the given line.
 func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) template.HTML {
 	if setting.Git.DisableDiffHighlight {
 		return template.HTML(html.EscapeString(diffLine.Content[1:]))
@@ -183,6 +190,7 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 	return diffToHTML(diffRecord, diffLine.Type)
 }
 
+// DiffFile represents a file diff.
 type DiffFile struct {
 	Name               string
 	OldName            string
@@ -192,32 +200,39 @@ type DiffFile struct {
 	IsCreated          bool
 	IsDeleted          bool
 	IsBin              bool
+	IsLFSFile          bool
 	IsRenamed          bool
 	IsSubmodule        bool
 	Sections           []*DiffSection
 	IsIncomplete       bool
 }
 
+// GetType returns type of diff file.
 func (diffFile *DiffFile) GetType() int {
 	return int(diffFile.Type)
 }
 
+// GetHighlightClass returns highlight class for a filename.
 func (diffFile *DiffFile) GetHighlightClass() string {
 	return highlight.FileNameToHighlightClass(diffFile.Name)
 }
 
+// Diff represents a difference between two git trees.
 type Diff struct {
 	TotalAddition, TotalDeletion int
 	Files                        []*DiffFile
 	IsIncomplete                 bool
 }
 
+// NumFiles returns number of files changes in a diff.
 func (diff *Diff) NumFiles() int {
 	return len(diff.Files)
 }
 
-const DIFF_HEAD = "diff --git "
+const cmdDiffHead = "diff --git "
 
+// ParsePatch builds a Diff object from a io.Reader and some
+// parameters.
 // TODO: move this function to gogits/git-module
 func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*Diff, error) {
 	var (
@@ -231,6 +246,7 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 		leftLine, rightLine int
 		lineCount           int
 		curFileLinesCount   int
+		curFileLFSPrefix    bool
 	)
 
 	input := bufio.NewReader(reader)
@@ -252,6 +268,28 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 
 		if strings.HasPrefix(line, "+++ ") || strings.HasPrefix(line, "--- ") || len(line) == 0 {
 			continue
+		}
+
+		trimLine := strings.Trim(line, "+- ")
+
+		if trimLine == LFSMetaFileIdentifier {
+			curFileLFSPrefix = true
+		}
+
+		if curFileLFSPrefix && strings.HasPrefix(trimLine, LFSMetaFileOidPrefix) {
+			oid := strings.TrimPrefix(trimLine, LFSMetaFileOidPrefix)
+
+			if len(oid) == 64 {
+				m := &LFSMetaObject{Oid: oid}
+				count, err := x.Count(m)
+
+				if err == nil && count > 0 {
+					curFile.IsBin = true
+					curFile.IsLFSFile = true
+					curSection.Lines = nil
+					break
+				}
+			}
 		}
 
 		curFileLinesCount++
@@ -307,19 +345,19 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 		}
 
 		// Get new file.
-		if strings.HasPrefix(line, DIFF_HEAD) {
+		if strings.HasPrefix(line, cmdDiffHead) {
 			middle := -1
 
 			// Note: In case file name is surrounded by double quotes (it happens only in git-shell).
 			// e.g. diff --git "a/xxx" "b/xxx"
-			hasQuote := line[len(DIFF_HEAD)] == '"'
+			hasQuote := line[len(cmdDiffHead)] == '"'
 			if hasQuote {
 				middle = strings.Index(line, ` "b/`)
 			} else {
 				middle = strings.Index(line, " b/")
 			}
 
-			beg := len(DIFF_HEAD)
+			beg := len(cmdDiffHead)
 			a := line[beg+2 : middle]
 			b := line[middle+3:]
 			if hasQuote {
@@ -340,6 +378,7 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 				break
 			}
 			curFileLinesCount = 0
+			curFileLFSPrefix = false
 
 			// Check file diff type and is submodule.
 			for {
@@ -405,6 +444,9 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 	return diff, nil
 }
 
+// GetDiffRange builds a Diff between two commits of a repository.
+// passing the empty string as beforeCommitID returns a diff from the
+// parent commit.
 func GetDiffRange(repoPath, beforeCommitID, afterCommitID string, maxLines, maxLineCharacteres, maxFiles int) (*Diff, error) {
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
@@ -456,8 +498,10 @@ func GetDiffRange(repoPath, beforeCommitID, afterCommitID string, maxLines, maxL
 	return diff, nil
 }
 
+// RawDiffType type of a raw diff.
 type RawDiffType string
 
+// RawDiffType possible values.
 const (
 	RawDiffNormal RawDiffType = "diff"
 	RawDiffPatch  RawDiffType = "patch"
@@ -509,6 +553,7 @@ func GetRawDiff(repoPath, commitID string, diffType RawDiffType, writer io.Write
 	return nil
 }
 
+// GetDiffCommit builds a Diff representing the given commitID.
 func GetDiffCommit(repoPath, commitID string, maxLines, maxLineCharacteres, maxFiles int) (*Diff, error) {
 	return GetDiffRange(repoPath, "", commitID, maxLines, maxLineCharacteres, maxFiles)
 }

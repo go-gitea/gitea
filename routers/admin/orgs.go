@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	ORGS base.TplName = "admin/org/list"
+	tplOrgs base.TplName = "admin/org/list"
 )
 
+// Organizations show all the organizations
 func Organizations(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.organizations")
 	ctx.Data["PageIsAdmin"] = true
@@ -26,7 +27,6 @@ func Organizations(ctx *context.Context) {
 		Counter:  models.CountOrganizations,
 		Ranger:   models.Organizations,
 		PageSize: setting.UI.Admin.OrgPagingNum,
-		OrderBy:  "id ASC",
-		TplName:  ORGS,
+		TplName:  tplOrgs,
 	})
 }

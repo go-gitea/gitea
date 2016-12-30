@@ -11,7 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
-// https://github.com/gogits/go-gogs-client/wiki/Users#list-access-tokens-for-a-user
+// ListAccessTokens list all the access tokens
+// see https://github.com/gogits/go-gogs-client/wiki/Users#list-access-tokens-for-a-user
 func ListAccessTokens(ctx *context.APIContext) {
 	tokens, err := models.ListAccessTokens(ctx.User.ID)
 	if err != nil {
@@ -26,7 +27,8 @@ func ListAccessTokens(ctx *context.APIContext) {
 	ctx.JSON(200, &apiTokens)
 }
 
-// https://github.com/gogits/go-gogs-client/wiki/Users#create-a-access-token
+// CreateAccessToken create access tokens
+// see https://github.com/gogits/go-gogs-client/wiki/Users#create-a-access-token
 func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption) {
 	t := &models.AccessToken{
 		UID:  ctx.User.ID,

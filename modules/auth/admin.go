@@ -10,6 +10,7 @@ import (
 	"github.com/go-macaron/binding"
 )
 
+// AdminCreateUserForm form for admin to create user
 type AdminCreateUserForm struct {
 	LoginType  string `binding:"Required"`
 	LoginName  string
@@ -19,10 +20,12 @@ type AdminCreateUserForm struct {
 	SendNotify bool
 }
 
+// Validate validates form fields
 func (f *AdminCreateUserForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// AdminEditUserForm form for admin to create user
 type AdminEditUserForm struct {
 	LoginType               string `binding:"Required"`
 	LoginName               string
@@ -40,6 +43,7 @@ type AdminEditUserForm struct {
 	ProhibitLogin           bool
 }
 
+// Validate validates form fields
 func (f *AdminEditUserForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }

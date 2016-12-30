@@ -5,8 +5,9 @@
 package repo
 
 import (
+	"fmt"
 	"io"
-	"path"
+	"strings"
 
 	"code.gitea.io/git"
 
@@ -14,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
+// ServeData download file from io.Reader
 func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	buf := make([]byte, 1024)
 	n, _ := reader.Read(buf)
@@ -21,19 +23,25 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 		buf = buf[:n]
 	}
 
-	if !base.IsTextFile(buf) {
-		if !base.IsImageFile(buf) {
-			ctx.Resp.Header().Set("Content-Disposition", "attachment; filename=\""+path.Base(ctx.Repo.TreePath)+"\"")
-			ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-		}
-	} else if !ctx.QueryBool("render") {
+	ctx.Resp.Header().Set("Cache-Control", "public,max-age=86400")
+
+	// Google Chrome dislike commas in filenames, so let's change it to a space
+	name = strings.Replace(name, ",", " ", -1)
+
+	if base.IsTextFile(buf) || ctx.QueryBool("render") {
 		ctx.Resp.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	} else if base.IsImageFile(buf) || base.IsPDFFile(buf) {
+		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
+	} else {
+		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
 	}
+
 	ctx.Resp.Write(buf)
 	_, err := io.Copy(ctx.Resp, reader)
 	return err
 }
 
+// ServeBlob download a git.Blob
 func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 	dataRc, err := blob.Data()
 	if err != nil {
@@ -43,6 +51,7 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 	return ServeData(ctx, ctx.Repo.TreePath, dataRc)
 }
 
+// SingleDownload download a file by repos path
 func SingleDownload(ctx *context.Context) {
 	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
 	if err != nil {

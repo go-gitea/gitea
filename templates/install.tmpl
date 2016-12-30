@@ -84,6 +84,11 @@
 						<input id="repo_root_path" name="repo_root_path" value="{{.repo_root_path}}" required>
 						<span class="help">{{.i18n.Tr "install.repo_path_helper"}}</span>
 					</div>
+					<div class="inline field {{if .Err_LFSRootPath}}error{{end}}">
+          	<label for="lfs_root_path">{{.i18n.Tr "install.lfs_path"}}</label>
+          	<input id="lfs_root_path" name="lfs_root_path" value="{{.lfs_root_path}}">
+          	<span class="help">{{.i18n.Tr "install.lfs_path_helper"}}</span>
+          </div>
 					<div class="inline required field {{if .Err_RunUser}}error{{end}}">
 						<label for="run_user">{{.i18n.Tr "install.run_user"}}</label>
 						<input id="run_user" name="run_user" value="{{.run_user}}" required>
@@ -91,7 +96,7 @@
 					</div>
 					<div class="inline required field">
 						<label for="domain">{{.i18n.Tr "install.domain"}}</label>
-						<input id="domain" name="domain" value="{{.domain}}" placeholder="e.g. try.gogs.io" required>
+						<input id="domain" name="domain" value="{{.domain}}" placeholder="e.g. try.gitea.io" required>
 						<span class="help">{{.i18n.Tr "install.domain_helper"}}</span>
 					</div>
 					<div class="inline required field">
@@ -106,7 +111,7 @@
 					</div>
 					<div class="inline required field">
 						<label for="app_url">{{.i18n.Tr "install.app_url"}}</label>
-						<input id="app_url" name="app_url" value="{{.app_url}}" placeholder="e.g. https://try.gogs.io" required>
+						<input id="app_url" name="app_url" value="{{.app_url}}" placeholder="e.g. https://try.gitea.io" required>
 						<span class="help">{{.i18n.Tr "install.app_url_helper"}}</span>
 					</div>
 					<div class="inline required field">
@@ -234,7 +239,7 @@
 					<div class="ui divider"></div>
 					<div class="inline field">
 						<label></label>
-						<button class="ui primary button">{{.i18n.Tr "install.install_gogs"}}</button>
+						<button class="ui primary button">{{.i18n.Tr "install.install_btn_confirm"}}</button>
 					</div>
 				</form>
 			</div>

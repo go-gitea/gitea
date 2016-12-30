@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,6 +7,7 @@ package cmd
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -20,12 +22,14 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
+	"github.com/dgrijalva/jwt-go"
 	gouuid "github.com/satori/go.uuid"
 	"github.com/urfave/cli"
 )
 
 const (
-	accessDenied = "Repository does not exist or you do not have access"
+	accessDenied        = "Repository does not exist or you do not have access"
+	lfsAuthenticateVerb = "git-lfs-authenticate"
 )
 
 // CmdServ represents the available serv sub-command.
@@ -51,7 +55,9 @@ func setup(logPath string) {
 
 	if setting.UseSQLite3 || setting.UseTiDB {
 		workDir, _ := setting.WorkDir()
-		os.Chdir(workDir)
+		if err := os.Chdir(workDir); err != nil {
+			log.GitLogger.Fatal(4, "Fail to change directory %s: %v", workDir, err)
+		}
 	}
 
 	models.SetEngine()
@@ -70,11 +76,12 @@ var (
 		"git-upload-pack":    models.AccessModeRead,
 		"git-upload-archive": models.AccessModeRead,
 		"git-receive-pack":   models.AccessModeWrite,
+		lfsAuthenticateVerb:  models.AccessModeNone,
 	}
 )
 
 func fail(userMessage, logMessage string, args ...interface{}) {
-	fmt.Fprintln(os.Stderr, "Gogs:", userMessage)
+	fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
 
 	if len(logMessage) > 0 {
 		if !setting.ProdMode {
@@ -118,7 +125,7 @@ func handleUpdateTask(uuid string, user, repoUser *models.User, reponame string,
 
 	// Ask for running deliver hook and test pull request tasks.
 	reqURL := setting.LocalURL + repoUser.Name + "/" + reponame + "/tasks/trigger?branch=" +
-		strings.TrimPrefix(task.RefName, git.BRANCH_PREFIX) + "&secret=" + base.EncodeMD5(repoUser.Salt) + "&pusher=" + com.ToStr(user.ID)
+		strings.TrimPrefix(task.RefName, git.BranchPrefix) + "&secret=" + base.EncodeMD5(repoUser.Salt) + "&pusher=" + com.ToStr(user.ID)
 	log.GitLogger.Trace("Trigger task: %s", reqURL)
 
 	resp, err := httplib.Head(reqURL).SetTLSClientConfig(&tls.Config{
@@ -142,7 +149,7 @@ func runServ(c *cli.Context) error {
 	setup("serv.log")
 
 	if setting.SSH.Disabled {
-		println("Gogs: SSH has been disabled")
+		println("Gitea: SSH has been disabled")
 		return nil
 	}
 
@@ -152,12 +159,27 @@ func runServ(c *cli.Context) error {
 
 	cmd := os.Getenv("SSH_ORIGINAL_COMMAND")
 	if len(cmd) == 0 {
-		println("Hi there, You've successfully authenticated, but Gogs does not provide shell access.")
-		println("If this is unexpected, please log in with password and setup Gogs under another user.")
+		println("Hi there, You've successfully authenticated, but Gitea does not provide shell access.")
+		println("If this is unexpected, please log in with password and setup Gitea under another user.")
 		return nil
 	}
 
 	verb, args := parseCmd(cmd)
+
+	var lfsVerb string
+	if verb == lfsAuthenticateVerb {
+
+		if !setting.LFS.StartServer {
+			fail("Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
+		}
+
+		if strings.Contains(args, " ") {
+			argsSplit := strings.SplitN(args, " ", 2)
+			args = strings.TrimSpace(argsSplit[0])
+			lfsVerb = strings.TrimSpace(argsSplit[1])
+		}
+	}
+
 	repoPath := strings.ToLower(strings.Trim(args, "'"))
 	rr := strings.SplitN(repoPath, "/", 2)
 	if len(rr) != 2 {
@@ -191,6 +213,14 @@ func runServ(c *cli.Context) error {
 	requestedMode, has := allowedCommands[verb]
 	if !has {
 		fail("Unknown git command", "Unknown git command %s", verb)
+	}
+
+	if verb == lfsAuthenticateVerb {
+		if lfsVerb == "upload" {
+			requestedMode = models.AccessModeWrite
+		} else {
+			requestedMode = models.AccessModeRead
+		}
 	}
 
 	// Prohibit push to mirror repositories.
@@ -253,10 +283,49 @@ func runServ(c *cli.Context) error {
 					"User %s does not have level %v access to repository %s",
 					user.Name, requestedMode, repoPath)
 			}
+
+			os.Setenv("GITEA_PUSHER_NAME", user.Name)
 		}
 	}
 
+	//LFS token authentication
+
+	if verb == lfsAuthenticateVerb {
+
+		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, repoUser.Name, repo.Name)
+
+		now := time.Now()
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"repo": repo.ID,
+			"op":   lfsVerb,
+			"exp":  now.Add(5 * time.Minute).Unix(),
+			"nbf":  now.Unix(),
+		})
+
+		// Sign and get the complete encoded token as a string using the secret
+		tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
+		if err != nil {
+			fail("Internal error", "Failed to sign JWT token: %v", err)
+		}
+
+		tokenAuthentication := &models.LFSTokenResponse{
+			Header: make(map[string]string),
+			Href:   url,
+		}
+		tokenAuthentication.Header["Authorization"] = fmt.Sprintf("Bearer %s", tokenString)
+
+		enc := json.NewEncoder(os.Stdout)
+		err = enc.Encode(tokenAuthentication)
+		if err != nil {
+			fail("Internal error", "Failed to encode LFS json response: %v", err)
+		}
+
+		return nil
+	}
+
 	uuid := gouuid.NewV4().String()
+	os.Setenv("GITEA_UUID", uuid)
+	// Keep the old env variable name for backward compability
 	os.Setenv("uuid", uuid)
 
 	// Special handle for Windows.

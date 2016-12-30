@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	RELEASES    base.TplName = "repo/release/list"
-	RELEASE_NEW base.TplName = "repo/release/new"
+	tplReleases   base.TplName = "repo/release/list"
+	tplReleaseNew base.TplName = "repo/release/new"
 )
 
 // calReleaseNumCommitsBehind calculates given release has how many commits behind release target.
@@ -49,6 +49,7 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *models.Rel
 	return nil
 }
 
+// Releases render releases list page
 func Releases(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 	ctx.Data["PageIsReleaseList"] = true
@@ -72,6 +73,8 @@ func Releases(ctx *context.Context) {
 	// Temproray cache commits count of used branches to speed up.
 	countCache := make(map[string]int64)
 
+	var cacheUsers = make(map[int64]*models.User)
+	var ok bool
 	tags := make([]*models.Release, len(rawTags))
 	for i, rawTag := range rawTags {
 		for j, r := range releases {
@@ -79,14 +82,17 @@ func Releases(ctx *context.Context) {
 				continue
 			}
 			if r.TagName == rawTag {
-				r.Publisher, err = models.GetUserByID(r.PublisherID)
-				if err != nil {
-					if models.IsErrUserNotExist(err) {
-						r.Publisher = models.NewGhostUser()
-					} else {
-						ctx.Handle(500, "GetUserByID", err)
-						return
+				if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
+					r.Publisher, err = models.GetUserByID(r.PublisherID)
+					if err != nil {
+						if models.IsErrUserNotExist(err) {
+							r.Publisher = models.NewGhostUser()
+						} else {
+							ctx.Handle(500, "GetUserByID", err)
+							return
+						}
 					}
+					cacheUsers[r.PublisherID] = r.Publisher
 				}
 
 				if err := calReleaseNumCommitsBehind(ctx.Repo, r, countCache); err != nil {
@@ -128,14 +134,17 @@ func Releases(ctx *context.Context) {
 			continue
 		}
 
-		r.Publisher, err = models.GetUserByID(r.PublisherID)
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				r.Publisher = models.NewGhostUser()
-			} else {
-				ctx.Handle(500, "GetUserByID", err)
-				return
+		if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
+			r.Publisher, err = models.GetUserByID(r.PublisherID)
+			if err != nil {
+				if models.IsErrUserNotExist(err) {
+					r.Publisher = models.NewGhostUser()
+				} else {
+					ctx.Handle(500, "GetUserByID", err)
+					return
+				}
 			}
+			cacheUsers[r.PublisherID] = r.Publisher
 		}
 
 		if err := calReleaseNumCommitsBehind(ctx.Repo, r, countCache); err != nil {
@@ -150,27 +159,29 @@ func Releases(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 	models.SortReleases(tags)
 	ctx.Data["Releases"] = tags
-	ctx.HTML(200, RELEASES)
+	ctx.HTML(200, tplReleases)
 }
 
+// NewRelease render creating release page
 func NewRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
-	ctx.HTML(200, RELEASE_NEW)
+	ctx.HTML(200, tplReleaseNew)
 }
 
+// NewReleasePost response for creating a release
 func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, RELEASE_NEW)
+		ctx.HTML(200, tplReleaseNew)
 		return
 	}
 
 	if !ctx.Repo.GitRepo.IsBranchExist(form.Target) {
-		ctx.RenderWithErr(ctx.Tr("form.target_branch_not_exist"), RELEASE_NEW, &form)
+		ctx.RenderWithErr(ctx.Tr("form.target_branch_not_exist"), tplReleaseNew, &form)
 		return
 	}
 
@@ -213,9 +224,9 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 		ctx.Data["Err_TagName"] = true
 		switch {
 		case models.IsErrReleaseAlreadyExist(err):
-			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_already_exist"), RELEASE_NEW, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_already_exist"), tplReleaseNew, &form)
 		case models.IsErrInvalidTagName(err):
-			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_invalid"), RELEASE_NEW, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_invalid"), tplReleaseNew, &form)
 		default:
 			ctx.Handle(500, "CreateRelease", err)
 		}
@@ -226,6 +237,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/releases")
 }
 
+// EditRelease render release edit page
 func EditRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
@@ -249,9 +261,10 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["prerelease"] = rel.IsPrerelease
 	ctx.Data["IsDraft"] = rel.IsDraft
 
-	ctx.HTML(200, RELEASE_NEW)
+	ctx.HTML(200, tplReleaseNew)
 }
 
+// EditReleasePost response for edit release
 func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
@@ -274,7 +287,7 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	ctx.Data["prerelease"] = rel.IsPrerelease
 
 	if ctx.HasError() {
-		ctx.HTML(200, RELEASE_NEW)
+		ctx.HTML(200, tplReleaseNew)
 		return
 	}
 
@@ -289,8 +302,9 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/releases")
 }
 
+// DeleteRelease delete a release
 func DeleteRelease(ctx *context.Context) {
-	if err := models.DeleteReleaseByID(ctx.QueryInt64("id")); err != nil {
+	if err := models.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User); err != nil {
 		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.release.deletion_success"))

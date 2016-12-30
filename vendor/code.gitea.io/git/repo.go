@@ -18,11 +18,11 @@ import (
 type Repository struct {
 	Path string
 
-	commitCache *objectCache
-	tagCache    *objectCache
+	commitCache *ObjectCache
+	tagCache    *ObjectCache
 }
 
-const _PRETTY_LOG_FORMAT = `--pretty=format:%H`
+const prettyLogFormat = `--pretty=format:%H`
 
 func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, error) {
 	l := list.New()
@@ -32,8 +32,8 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, err
 
 	parts := bytes.Split(logs, []byte{'\n'})
 
-	for _, commitId := range parts {
-		commit, err := repo.GetCommit(string(commitId))
+	for _, commitID := range parts {
+		commit, err := repo.GetCommit(string(commitID))
 		if err != nil {
 			return nil, err
 		}
@@ -80,6 +80,7 @@ func OpenRepository(repoPath string) (*Repository, error) {
 	}, nil
 }
 
+// CloneRepoOptions options when clone a repository
 type CloneRepoOptions struct {
 	Timeout time.Duration
 	Mirror  bool
@@ -118,6 +119,7 @@ func Clone(from, to string, opts CloneRepoOptions) (err error) {
 	return err
 }
 
+// PullRemoteOptions options when pull from remote
 type PullRemoteOptions struct {
 	Timeout time.Duration
 	All     bool
@@ -153,6 +155,7 @@ func Push(repoPath, remote, branch string) error {
 	return err
 }
 
+// CheckoutOptions options when heck out some branch
 type CheckoutOptions struct {
 	Timeout   time.Duration
 	Branch    string

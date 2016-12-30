@@ -2,8 +2,20 @@
 <div class="repository commits">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		{{template "repo/branch_dropdown" .}}
-		{{template "repo/commits_table" .}}
+	  <div class="ui secondary menu">
+	    {{template "repo/branch_dropdown" .}}
+	    <div class="fitted item">
+	      <div class="ui breadcrumb">
+		<a href="{{.RepoLink}}/graph">
+		  <span class="text">
+		    <i class="octicon octicon-git-branch"></i>
+		  </span>
+		  commit graph
+		</a>
+	      </div>
+	    </div>
+	  </div>
+	  {{template "repo/commits_table" .}}
 	</div>
 </div>
 {{template "base/footer" .}}

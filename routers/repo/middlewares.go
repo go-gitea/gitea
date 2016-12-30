@@ -8,6 +8,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
+// SetEditorconfigIfExists set editor config as render variable
 func SetEditorconfigIfExists(ctx *context.Context) {
 	ec, err := ctx.Repo.GetEditorconfig()
 
@@ -22,11 +23,18 @@ func SetEditorconfigIfExists(ctx *context.Context) {
 	ctx.Data["Editorconfig"] = ec
 }
 
+// SetDiffViewStyle set diff style as render variable
 func SetDiffViewStyle(ctx *context.Context) {
+	queryStyle := ctx.Query("style")
+
+	if !ctx.IsSigned {
+		ctx.Data["IsSplitStyle"] = queryStyle == "split"
+		return
+	}
+
 	var (
-		userStyle  = ctx.User.DiffViewStyle
-		queryStyle = ctx.Query("style")
-		style      string
+		userStyle = ctx.User.DiffViewStyle
+		style     string
 	)
 
 	if queryStyle == "unified" || queryStyle == "split" {

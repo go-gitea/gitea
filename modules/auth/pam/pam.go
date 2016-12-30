@@ -12,7 +12,8 @@ import (
 	"github.com/msteinert/pam"
 )
 
-func PAMAuth(serviceName, userName, passwd string) error {
+// Auth pam auth service
+func Auth(serviceName, userName, passwd string) error {
 	t, err := pam.StartFunc(serviceName, userName, func(s pam.Style, msg string) (string, error) {
 		switch s {
 		case pam.PromptEchoOff:

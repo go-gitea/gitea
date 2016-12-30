@@ -5,11 +5,17 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
 
-// EmailAdresses is the list of all email addresses of a user. Can contain the
+var (
+	// ErrEmailAddressNotExist email address not exist
+	ErrEmailAddressNotExist = errors.New("Email address does not exist")
+)
+
+// EmailAddress is the list of all email addresses of a user. Can contain the
 // primary email address, but is not obligatory.
 type EmailAddress struct {
 	ID          int64  `xorm:"pk autoincr"`
@@ -81,10 +87,12 @@ func addEmailAddress(e Engine, email *EmailAddress) error {
 	return err
 }
 
+// AddEmailAddress adds an email address to given user.
 func AddEmailAddress(email *EmailAddress) error {
 	return addEmailAddress(x, email)
 }
 
+// AddEmailAddresses adds an email address to given user.
 func AddEmailAddresses(emails []*EmailAddress) error {
 	if len(emails) == 0 {
 		return nil
@@ -108,12 +116,15 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 	return nil
 }
 
+// Activate activates the email address to given user.
 func (email *EmailAddress) Activate() error {
 	user, err := GetUserByID(email.UID)
 	if err != nil {
 		return err
 	}
-	user.Rands = GetUserSalt()
+	if user.Rands, err = GetUserSalt(); err != nil {
+		return err
+	}
 
 	sess := x.NewSession()
 	defer sessionRelease(sess)
@@ -134,17 +145,30 @@ func (email *EmailAddress) Activate() error {
 	return sess.Commit()
 }
 
+// DeleteEmailAddress deletes an email address of given user.
 func DeleteEmailAddress(email *EmailAddress) (err error) {
-	if email.ID > 0 {
-		_, err = x.Id(email.ID).Delete(new(EmailAddress))
-	} else {
-		_, err = x.
-			Where("email=?", email.Email).
-			Delete(new(EmailAddress))
+	var deleted int64
+	// ask to check UID
+	var address = EmailAddress{
+		UID: email.UID,
 	}
-	return err
+	if email.ID > 0 {
+		deleted, err = x.Id(email.ID).Delete(&address)
+	} else {
+		deleted, err = x.
+			Where("email=?", email.Email).
+			Delete(&address)
+	}
+
+	if err != nil {
+		return err
+	} else if deleted != 1 {
+		return ErrEmailAddressNotExist
+	}
+	return nil
 }
 
+// DeleteEmailAddresses deletes multiple email addresses
 func DeleteEmailAddresses(emails []*EmailAddress) (err error) {
 	for i := range emails {
 		if err = DeleteEmailAddress(emails[i]); err != nil {
@@ -155,6 +179,7 @@ func DeleteEmailAddresses(emails []*EmailAddress) (err error) {
 	return nil
 }
 
+// MakeEmailPrimary sets primary email address of given user.
 func MakeEmailPrimary(email *EmailAddress) error {
 	has, err := x.Get(email)
 	if err != nil {

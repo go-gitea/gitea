@@ -38,12 +38,14 @@ type Release struct {
 	CreatedUnix int64
 }
 
+// BeforeInsert is invoked from XORM before inserting an object of this type.
 func (r *Release) BeforeInsert() {
 	if r.CreatedUnix == 0 {
 		r.CreatedUnix = time.Now().Unix()
 	}
 }
 
+// AfterSet is invoked from XORM after setting the value of a field of this object.
 func (r *Release) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
 	case "created_unix":
@@ -151,15 +153,15 @@ func GetReleasesByRepoID(repoID int64, page, pageSize int) (rels []*Release, err
 	return rels, err
 }
 
-type ReleaseSorter struct {
+type releaseSorter struct {
 	rels []*Release
 }
 
-func (rs *ReleaseSorter) Len() int {
+func (rs *releaseSorter) Len() int {
 	return len(rs.rels)
 }
 
-func (rs *ReleaseSorter) Less(i, j int) bool {
+func (rs *releaseSorter) Less(i, j int) bool {
 	diffNum := rs.rels[i].NumCommits - rs.rels[j].NumCommits
 	if diffNum != 0 {
 		return diffNum > 0
@@ -167,13 +169,13 @@ func (rs *ReleaseSorter) Less(i, j int) bool {
 	return rs.rels[i].Created.After(rs.rels[j].Created)
 }
 
-func (rs *ReleaseSorter) Swap(i, j int) {
+func (rs *releaseSorter) Swap(i, j int) {
 	rs.rels[i], rs.rels[j] = rs.rels[j], rs.rels[i]
 }
 
 // SortReleases sorts releases by number of commits and created time.
 func SortReleases(rels []*Release) {
-	sorter := &ReleaseSorter{rels: rels}
+	sorter := &releaseSorter{rels: rels}
 	sort.Sort(sorter)
 }
 
@@ -187,7 +189,7 @@ func UpdateRelease(gitRepo *git.Repository, rel *Release) (err error) {
 }
 
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
-func DeleteReleaseByID(id int64) error {
+func DeleteReleaseByID(id int64, u *User) error {
 	rel, err := GetReleaseByID(id)
 	if err != nil {
 		return fmt.Errorf("GetReleaseByID: %v", err)
@@ -196,6 +198,13 @@ func DeleteReleaseByID(id int64) error {
 	repo, err := GetRepositoryByID(rel.RepoID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByID: %v", err)
+	}
+
+	has, err := HasAccess(u, repo, AccessModeWrite)
+	if err != nil {
+		return fmt.Errorf("HasAccess: %v", err)
+	} else if !has {
+		return fmt.Errorf("DeleteReleaseByID: permission denied")
 	}
 
 	_, stderr, err := process.ExecDir(-1, repo.RepoPath(),

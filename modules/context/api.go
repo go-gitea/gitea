@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
@@ -16,6 +17,7 @@ import (
 	macaron "gopkg.in/macaron.v1"
 )
 
+// APIContext is a specific macaron context for API service
 type APIContext struct {
 	*Context
 	Org *APIOrganization
@@ -46,16 +48,16 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 	page := paginater.New(total, pageSize, ctx.QueryInt("page"), 0)
 	links := make([]string, 0, 4)
 	if page.HasNext() {
-		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"next\"", setting.AppUrl, ctx.Req.URL.Path[1:], page.Next()))
+		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"next\"", setting.AppURL, ctx.Req.URL.Path[1:], page.Next()))
 	}
 	if !page.IsLast() {
-		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"last\"", setting.AppUrl, ctx.Req.URL.Path[1:], page.TotalPages()))
+		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"last\"", setting.AppURL, ctx.Req.URL.Path[1:], page.TotalPages()))
 	}
 	if !page.IsFirst() {
-		links = append(links, fmt.Sprintf("<%s%s?page=1>; rel=\"first\"", setting.AppUrl, ctx.Req.URL.Path[1:]))
+		links = append(links, fmt.Sprintf("<%s%s?page=1>; rel=\"first\"", setting.AppURL, ctx.Req.URL.Path[1:]))
 	}
 	if page.HasPrevious() {
-		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"prev\"", setting.AppUrl, ctx.Req.URL.Path[1:], page.Previous()))
+		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"prev\"", setting.AppURL, ctx.Req.URL.Path[1:], page.Previous()))
 	}
 
 	if len(links) > 0 {
@@ -63,6 +65,7 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 	}
 }
 
+// APIContexter returns apicontext as macaron middleware
 func APIContexter() macaron.Handler {
 	return func(c *Context) {
 		ctx := &APIContext{
@@ -72,32 +75,23 @@ func APIContexter() macaron.Handler {
 	}
 }
 
-// ExtractOwnerAndRepo returns a handler that populates the `Repo.Owner` and
-// `Repo.Repository` fields of an APIContext
-func ExtractOwnerAndRepo() macaron.Handler {
+// ReferencesGitRepo injects the GitRepo into the Context
+func ReferencesGitRepo() macaron.Handler {
 	return func(ctx *APIContext) {
-		owner, err := models.GetUserByName(ctx.Params(":username"))
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.Error(422, "", err)
-			} else {
-				ctx.Error(500, "GetUserByName", err)
-			}
+		// Empty repository does not have reference information.
+		if ctx.Repo.Repository.IsBare {
 			return
 		}
 
-		repo, err := models.GetRepositoryByName(owner.ID, ctx.Params(":reponame"))
-		if err != nil {
-			if models.IsErrRepoNotExist(err) {
-				ctx.Status(404)
-			} else {
-				ctx.Error(500, "GetRepositoryByName", err)
+		// For API calls.
+		if ctx.Repo.GitRepo == nil {
+			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+			gitRepo, err := git.OpenRepository(repoPath)
+			if err != nil {
+				ctx.Error(500, "RepoRef Invalid repo "+repoPath, err)
+				return
 			}
-			return
+			ctx.Repo.GitRepo = gitRepo
 		}
-		ctx.Repo.Owner = owner
-		ctx.Data["Owner"] = owner
-		ctx.Repo.Repository = repo
-		ctx.Data["Repository"] = repo
 	}
 }
