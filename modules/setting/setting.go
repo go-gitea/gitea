@@ -197,7 +197,7 @@ var (
 	ScriptType   = "bash"
 
 	// UI settings
-	UI struct {
+	UI = struct {
 		ExplorePagingNum   int
 		IssuePagingNum     int
 		FeedMaxCommitNum   int
