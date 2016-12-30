@@ -443,8 +443,16 @@ func (issue *Issue) GetAssignee() (err error) {
 }
 
 // ReadBy sets issue to be read by given user.
-func (issue *Issue) ReadBy(uid int64) error {
-	return UpdateIssueUserByRead(uid, issue.ID)
+func (issue *Issue) ReadBy(userID int64) error {
+	if err := UpdateIssueUserByRead(userID, issue.ID); err != nil {
+		return err
+	}
+
+	if err := setNotificationStatusRead(x, userID, issue.ID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
