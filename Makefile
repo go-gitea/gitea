@@ -34,7 +34,7 @@ clean:
 
 .PHONY: fmt
 fmt:
-	go fmt $(PACKAGES)
+	find . -name "*.go" -type f -not -path "./vendor/*" | xargs gofmt -s -w
 
 .PHONY: vet
 vet:
