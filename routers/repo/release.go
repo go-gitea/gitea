@@ -304,7 +304,8 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 
 // DeleteRelease delete a release
 func DeleteRelease(ctx *context.Context) {
-	if err := models.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User); err != nil {
+	delTag := ctx.QueryBool("delTag")
+	if err := models.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User, delTag); err != nil {
 		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.release.deletion_success"))
