@@ -691,7 +691,6 @@ func MigrateRepository(u *User, opts MigrateRepoOptions) (*Repository, error) {
 
 	wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
 	if len(wikiRemotePath) > 0 {
-
 		if err := os.RemoveAll(wikiPath); err != nil {
 			return repo, fmt.Errorf("Fail to remove %s: %v", wikiPath, err)
 		}
@@ -700,8 +699,12 @@ func MigrateRepository(u *User, opts MigrateRepoOptions) (*Repository, error) {
 			Mirror:  true,
 			Quiet:   true,
 			Timeout: migrateTimeout,
+			Branch:  "master",
 		}); err != nil {
-			log.Info("Clone wiki: %v", err)
+			log.Warn("Clone wiki: %v", err)
+			if err := os.RemoveAll(wikiPath); err != nil {
+				return repo, fmt.Errorf("Fail to remove %s: %v", wikiPath, err)
+			}
 		}
 	}
 
