@@ -147,10 +147,10 @@ func NewRepoContext() {
 
 	// Git requires setting user.name and user.email in order to commit changes.
 	for configKey, defaultValue := range map[string]string{"user.name": "Gitea", "user.email": "gitea@fake.local"} {
-		if stdout, stderr, err := process.Exec("NewRepoContext(get setting)", "git", "config", "--get", configKey); err != nil || strings.TrimSpace(stdout) == "" {
+		if stdout, stderr, err := process.GetManager().Exec("NewRepoContext(get setting)", "git", "config", "--get", configKey); err != nil || strings.TrimSpace(stdout) == "" {
 			// ExitError indicates this config is not set
 			if _, ok := err.(*exec.ExitError); ok || strings.TrimSpace(stdout) == "" {
-				if _, stderr, gerr := process.Exec("NewRepoContext(set "+configKey+")", "git", "config", "--global", configKey, defaultValue); gerr != nil {
+				if _, stderr, gerr := process.GetManager().Exec("NewRepoContext(set "+configKey+")", "git", "config", "--global", configKey, defaultValue); gerr != nil {
 					log.Fatal(4, "Fail to set git %s(%s): %s", configKey, gerr, stderr)
 				}
 				log.Info("Git config %s set to %s", configKey, defaultValue)
@@ -161,7 +161,7 @@ func NewRepoContext() {
 	}
 
 	// Set git some configurations.
-	if _, stderr, err := process.Exec("NewRepoContext(git config --global core.quotepath false)",
+	if _, stderr, err := process.GetManager().Exec("NewRepoContext(git config --global core.quotepath false)",
 		"git", "config", "--global", "core.quotepath", "false"); err != nil {
 		log.Fatal(4, "Fail to execute 'git config --global core.quotepath false': %s", stderr)
 	}
@@ -797,20 +797,20 @@ func CleanUpMigrateInfo(repo *Repository) (*Repository, error) {
 // initRepoCommit temporarily changes with work directory.
 func initRepoCommit(tmpPath string, sig *git.Signature) (err error) {
 	var stderr string
-	if _, stderr, err = process.ExecDir(-1,
+	if _, stderr, err = process.GetManager().ExecDir(-1,
 		tmpPath, fmt.Sprintf("initRepoCommit (git add): %s", tmpPath),
 		"git", "add", "--all"); err != nil {
 		return fmt.Errorf("git add: %s", stderr)
 	}
 
-	if _, stderr, err = process.ExecDir(-1,
+	if _, stderr, err = process.GetManager().ExecDir(-1,
 		tmpPath, fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath),
 		"git", "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
 		"-m", "Initial commit"); err != nil {
 		return fmt.Errorf("git commit: %s", stderr)
 	}
 
-	if _, stderr, err = process.ExecDir(-1,
+	if _, stderr, err = process.GetManager().ExecDir(-1,
 		tmpPath, fmt.Sprintf("initRepoCommit (git push): %s", tmpPath),
 		"git", "push", "origin", "master"); err != nil {
 		return fmt.Errorf("git push: %s", stderr)
@@ -856,8 +856,10 @@ func getRepoInitFile(tp, name string) ([]byte, error) {
 
 func prepareRepoCommit(repo *Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
 	// Clone to temporary path and do the init commit.
-	_, stderr, err := process.Exec(
-		fmt.Sprintf("initRepository(git clone): %s", repoPath), "git", "clone", repoPath, tmpDir)
+	_, stderr, err := process.GetManager().Exec(
+		fmt.Sprintf("initRepository(git clone): %s", repoPath),
+		"git", "clone", repoPath, tmpDir,
+	)
 	if err != nil {
 		return fmt.Errorf("git clone: %v - %s", err, stderr)
 	}
@@ -1066,7 +1068,7 @@ func CreateRepository(u *User, opts CreateRepoOptions) (_ *Repository, err error
 			return nil, fmt.Errorf("initRepository: %v", err)
 		}
 
-		_, stderr, err := process.ExecDir(-1,
+		_, stderr, err := process.GetManager().ExecDir(-1,
 			repoPath, fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath),
 			"git", "update-server-info")
 		if err != nil {
@@ -1839,7 +1841,7 @@ func GitGcRepos() error {
 				if err := repo.GetOwner(); err != nil {
 					return err
 				}
-				_, stderr, err := process.ExecDir(
+				_, stderr, err := process.GetManager().ExecDir(
 					time.Duration(setting.Git.Timeout.GC)*time.Second,
 					RepoPath(repo.Owner.Name, repo.Name), "Repository garbage collection",
 					"git", args...)
@@ -2192,14 +2194,14 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 	}
 
 	repoPath := RepoPath(u.Name, repo.Name)
-	_, stderr, err := process.ExecTimeout(10*time.Minute,
+	_, stderr, err := process.GetManager().ExecTimeout(10*time.Minute,
 		fmt.Sprintf("ForkRepository(git clone): %s/%s", u.Name, repo.Name),
 		"git", "clone", "--bare", oldRepo.RepoPath(), repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("git clone: %v", stderr)
 	}
 
-	_, stderr, err = process.ExecDir(-1,
+	_, stderr, err = process.GetManager().ExecDir(-1,
 		repoPath, fmt.Sprintf("ForkRepository(git update-server-info): %s", repoPath),
 		"git", "update-server-info")
 	if err != nil {

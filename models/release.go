@@ -10,14 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-xorm/xorm"
-
 	"code.gitea.io/git"
-
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-
 	api "code.gitea.io/sdk/gitea"
+	"github.com/go-xorm/xorm"
 )
 
 // Release represents a release of repository.
@@ -159,7 +156,7 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 
 func addReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
-	var attachments = make([]*Attachment,0)
+	var attachments = make([]*Attachment, 0)
 	for _, uuid := range attachmentUUIDs {
 		attach, err := getAttachmentByUUID(x, uuid)
 		if err != nil {
@@ -257,9 +254,10 @@ func GetReleasesByRepoIDAndNames(repoID int64, tagNames []string) (rels []*Relea
 }
 
 type releaseMetaSearch struct {
-	ID [] int64
-	Rel [] *Release
+	ID  []int64
+	Rel []*Release
 }
+
 func (s releaseMetaSearch) Len() int {
 	return len(s.ID)
 }
@@ -272,18 +270,18 @@ func (s releaseMetaSearch) Less(i, j int) bool {
 }
 
 // GetReleaseAttachments retrieves the attachments for releases
-func GetReleaseAttachments(rels ... *Release) (err error){
+func GetReleaseAttachments(rels ...*Release) (err error) {
 	if len(rels) == 0 {
 		return
 	}
 
-	// To keep this efficient as possible sort all releases by id, 
+	// To keep this efficient as possible sort all releases by id,
 	//    select attachments by release id,
 	//    then merge join them
 
 	// Sort
 	var sortedRels = releaseMetaSearch{ID: make([]int64, len(rels)), Rel: make([]*Release, len(rels))}
-	var attachments [] *Attachment
+	var attachments []*Attachment
 	for index, element := range rels {
 		element.Attachments = []*Attachment{}
 		sortedRels.ID[index] = element.ID
@@ -375,7 +373,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 	}
 
 	if delTag {
-		_, stderr, err := process.ExecDir(-1, repo.RepoPath(),
+		_, stderr, err := process.GetManager().ExecDir(-1, repo.RepoPath(),
 			fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID),
 			"git", "tag", "-d", rel.TagName)
 		if err != nil && !strings.Contains(stderr, "not found") {
