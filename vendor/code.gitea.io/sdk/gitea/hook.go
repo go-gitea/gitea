@@ -115,7 +115,6 @@ func (c *Client) DeleteOrgHook(org string, id int64) error {
 	return err
 }
 
-
 // DeleteRepoHook delete one hook from a repository, with hook id
 func (c *Client) DeleteRepoHook(user, repo string, id int64) error {
 	_, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/hooks/%d", user, repo, id), nil, nil)
