@@ -24,16 +24,16 @@ var MirrorQueue = sync.NewUniqueQueue(setting.Repository.MirrorQueueLength)
 
 // Mirror represents mirror information of a repository.
 type Mirror struct {
-	ID          int64 `xorm:"pk autoincr"`
-	RepoID      int64
+	ID          int64       `xorm:"pk autoincr"`
+	RepoID      int64       `xorm:"INDEX"`
 	Repo        *Repository `xorm:"-"`
 	Interval    int         // Hour.
 	EnablePrune bool        `xorm:"NOT NULL DEFAULT true"`
 
 	Updated        time.Time `xorm:"-"`
-	UpdatedUnix    int64
+	UpdatedUnix    int64     `xorm:"INDEX"`
 	NextUpdate     time.Time `xorm:"-"`
-	NextUpdateUnix int64
+	NextUpdateUnix int64     `xorm:"INDEX"`
 
 	address string `xorm:"-"`
 }

@@ -34,29 +34,29 @@ type Issue struct {
 	RepoID          int64       `xorm:"INDEX UNIQUE(repo_index)"`
 	Repo            *Repository `xorm:"-"`
 	Index           int64       `xorm:"UNIQUE(repo_index)"` // Index in one repository.
-	PosterID        int64
-	Poster          *User    `xorm:"-"`
-	Title           string   `xorm:"name"`
-	Content         string   `xorm:"TEXT"`
-	RenderedContent string   `xorm:"-"`
-	Labels          []*Label `xorm:"-"`
-	MilestoneID     int64
-	Milestone       *Milestone `xorm:"-"`
+	PosterID        int64       `xorm:"INDEX"`
+	Poster          *User       `xorm:"-"`
+	Title           string      `xorm:"name"`
+	Content         string      `xorm:"TEXT"`
+	RenderedContent string      `xorm:"-"`
+	Labels          []*Label    `xorm:"-"`
+	MilestoneID     int64       `xorm:"INDEX"`
+	Milestone       *Milestone  `xorm:"-"`
 	Priority        int
-	AssigneeID      int64
-	Assignee        *User `xorm:"-"`
-	IsClosed        bool
+	AssigneeID      int64        `xorm:"INDEX"`
+	Assignee        *User        `xorm:"-"`
+	IsClosed        bool         `xorm:"INDEX"`
 	IsRead          bool         `xorm:"-"`
-	IsPull          bool         // Indicates whether is a pull request or not.
+	IsPull          bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
 	PullRequest     *PullRequest `xorm:"-"`
 	NumComments     int
 
 	Deadline     time.Time `xorm:"-"`
-	DeadlineUnix int64
+	DeadlineUnix int64     `xorm:"INDEX"`
 	Created      time.Time `xorm:"-"`
-	CreatedUnix  int64
+	CreatedUnix  int64     `xorm:"INDEX"`
 	Updated      time.Time `xorm:"-"`
-	UpdatedUnix  int64
+	UpdatedUnix  int64     `xorm:"INDEX"`
 
 	Attachments []*Attachment `xorm:"-"`
 	Comments    []*Comment    `xorm:"-"`
