@@ -93,6 +93,36 @@
 			"revisionTime": "2015-12-24T04:54:52Z"
 		},
 		{
+			"checksumSHA1": "imR2wF388/0fBU6RRWx8RvTi8Q8=",
+			"path": "github.com/facebookgo/clock",
+			"revision": "600d898af40aa09a7a93ecb9265d87b0504b6f03",
+			"revisionTime": "2015-04-10T01:09:13Z"
+		},
+		{
+			"checksumSHA1": "j2O1k8Kvw6btFkJKt45nQQuAHM0=",
+			"path": "github.com/facebookgo/grace/gracehttp",
+			"revision": "5729e484473f52048578af1b80d0008c7024089b",
+			"revisionTime": "2016-09-26T23:17:15Z"
+		},
+		{
+			"checksumSHA1": "nj3ykV8Em7WOfvHNIo/XNTT9LOM=",
+			"path": "github.com/facebookgo/grace/gracenet",
+			"revision": "5729e484473f52048578af1b80d0008c7024089b",
+			"revisionTime": "2016-09-26T23:17:15Z"
+		},
+		{
+			"checksumSHA1": "8SgB/r3Cf+OvXmg8bIPnlEq03Bs=",
+			"path": "github.com/facebookgo/httpdown",
+			"revision": "a3b1354551a26449fbe05f5d855937f6e7acbd71",
+			"revisionTime": "2016-03-23T22:10:27Z"
+		},
+		{
+			"checksumSHA1": "SzXvrWxavFo8HD/2hnbdu17C3VE=",
+			"path": "github.com/facebookgo/stats",
+			"revision": "1b76add642e42c6ffba7211ad7b3939ce654526e",
+			"revisionTime": "2015-10-06T22:16:25Z"
+		},
+		{
 			"checksumSHA1": "qTJizMr1DBhDTZiRNmC+khEClz8=",
 			"path": "github.com/go-macaron/bindata",
 			"revision": "de74a053830c7d338bf209adf3b711c969f63e59",
