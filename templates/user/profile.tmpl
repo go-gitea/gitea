@@ -22,7 +22,7 @@
 							{{if .Owner.Location}}
 								<li><i class="octicon octicon-location"></i> {{.Owner.Location}}</li>
 							{{end}}
-							{{if and .Owner.Email .IsSigned}}
+							{{if and $.ShowUserEmail .Owner.Email .IsSigned}}
 								<li>
 									<i class="octicon octicon-mail"></i>
 									<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
