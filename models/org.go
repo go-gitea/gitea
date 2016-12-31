@@ -97,6 +97,10 @@ func (org *User) RemoveOrgRepo(repoID int64) error {
 
 // CreateOrganization creates record of a new organization.
 func CreateOrganization(org, owner *User) (err error) {
+	if !owner.CanCreateOrganization() {
+		return ErrUserNotAllowedCreateOrg{}
+	}
+
 	if err = IsUsableUsername(org.Name); err != nil {
 		return err
 	}

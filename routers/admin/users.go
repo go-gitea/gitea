@@ -214,6 +214,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	u.IsAdmin = form.Admin
 	u.AllowGitHook = form.AllowGitHook
 	u.AllowImportLocal = form.AllowImportLocal
+	u.AllowCreateOrganization = form.AllowCreateOrganization
 	u.ProhibitLogin = form.ProhibitLogin
 
 	if err := models.UpdateUser(u); err != nil {

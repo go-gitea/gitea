@@ -123,6 +123,20 @@ func (err ErrUserHasOrgs) Error() string {
 	return fmt.Sprintf("user still has membership of organizations [uid: %d]", err.UID)
 }
 
+// ErrUserNotAllowedCreateOrg represents a "UserNotAllowedCreateOrg" kind of error.
+type ErrUserNotAllowedCreateOrg struct {
+}
+
+// IsErrUserNotAllowedCreateOrg checks if an error is an ErrUserNotAllowedCreateOrg.
+func IsErrUserNotAllowedCreateOrg(err error) bool {
+	_, ok := err.(ErrUserNotAllowedCreateOrg)
+	return ok
+}
+
+func (err ErrUserNotAllowedCreateOrg) Error() string {
+	return fmt.Sprintf("user is not allowed to create organizations")
+}
+
 // ErrReachLimitOfRepo represents a "ReachLimitOfRepo" kind of error.
 type ErrReachLimitOfRepo struct {
 	Limit int

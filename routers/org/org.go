@@ -5,6 +5,8 @@
 package org
 
 import (
+	"errors"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -21,6 +23,10 @@ const (
 // Create render the page for create organization
 func Create(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_org")
+	if !ctx.User.CanCreateOrganization() {
+		ctx.Handle(500, "Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
+		return
+	}
 	ctx.HTML(200, tplCreateOrg)
 }
 
@@ -48,6 +54,8 @@ func CreatePost(ctx *context.Context, form auth.CreateOrgForm) {
 			ctx.RenderWithErr(ctx.Tr("org.form.name_reserved", err.(models.ErrNameReserved).Name), tplCreateOrg, &form)
 		case models.IsErrNamePatternNotAllowed(err):
 			ctx.RenderWithErr(ctx.Tr("org.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplCreateOrg, &form)
+		case models.IsErrUserNotAllowedCreateOrg(err):
+			ctx.RenderWithErr(ctx.Tr("org.form.create_org_not_allowed"), tplCreateOrg, &form)
 		default:
 			ctx.Handle(500, "CreateOrganization", err)
 		}
