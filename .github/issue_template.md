@@ -3,4 +3,4 @@
 3. Please take a moment to search that an issue doesn't already exist.
 4. Please give all relevant information below for bug reports, incomplete details will be handled as an invalid report.
 
-**You MUST delete the content above including this line before posting, otherwise your pull request will be invalid.**
+**You MUST delete the content above including this line before posting, otherwise your issue will be invalid.**
