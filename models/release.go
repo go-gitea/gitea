@@ -249,7 +249,7 @@ func UpdateRelease(gitRepo *git.Repository, rel *Release) (err error) {
 }
 
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
-func DeleteReleaseByID(id int64, u *User) error {
+func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 	rel, err := GetReleaseByID(id)
 	if err != nil {
 		return fmt.Errorf("GetReleaseByID: %v", err)
@@ -267,11 +267,13 @@ func DeleteReleaseByID(id int64, u *User) error {
 		return fmt.Errorf("DeleteReleaseByID: permission denied")
 	}
 
-	_, stderr, err := process.ExecDir(-1, repo.RepoPath(),
-		fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID),
-		"git", "tag", "-d", rel.TagName)
-	if err != nil && !strings.Contains(stderr, "not found") {
-		return fmt.Errorf("git tag -d: %v - %s", err, stderr)
+	if delTag {
+		_, stderr, err := process.ExecDir(-1, repo.RepoPath(),
+			fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID),
+			"git", "tag", "-d", rel.TagName)
+		if err != nil && !strings.Contains(stderr, "not found") {
+			return fmt.Errorf("git tag -d: %v - %s", err, stderr)
+		}
 	}
 
 	if _, err = x.Id(rel.ID).Delete(new(Release)); err != nil {
