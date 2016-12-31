@@ -1347,7 +1347,7 @@ $(document).ready(function () {
         var headers = {};
         $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
             var node = $(this);
-            var val = encodeURIComponent(node.text().toLowerCase().replace(/[^\w\- ]/g, '').replace(/[ ]/g, '-'));
+            var val = encodeURIComponent(node.text().toLowerCase().replace(/[^\u00C0-\u1FFF\u2C00-\uD7FF\w\- ]/g, '').replace(/[ ]/g, '-'));
             var name = val;
             if (headers[val] > 0) {
                 name = val + '-' + headers[val];
