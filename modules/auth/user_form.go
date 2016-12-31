@@ -38,12 +38,14 @@ type InstallForm struct {
 	RegisterConfirm bool
 	MailNotify      bool
 
-	OfflineMode           bool
-	DisableGravatar       bool
-	EnableFederatedAvatar bool
-	DisableRegistration   bool
-	EnableCaptcha         bool
-	RequireSignInView     bool
+	OfflineMode             bool
+	DisableGravatar         bool
+	EnableFederatedAvatar   bool
+	DisableRegistration     bool
+	EnableCaptcha           bool
+	RequireSignInView       bool
+	DefaultKeepEmailPrivate bool
+	NoReplyAddress          string
 
 	AdminName          string `binding:"OmitEmpty;AlphaDashDot;MaxSize(30)" locale:"install.admin_name"`
 	AdminPasswd        string `binding:"OmitEmpty;MaxSize(255)" locale:"install.admin_password"`
@@ -97,11 +99,12 @@ func (f *SignInForm) Validate(ctx *macaron.Context, errs binding.Errors) binding
 
 // UpdateProfileForm form for updating profile
 type UpdateProfileForm struct {
-	Name     string `binding:"OmitEmpty;MaxSize(35)"`
-	FullName string `binding:"MaxSize(100)"`
-	Email    string `binding:"Required;Email;MaxSize(254)"`
-	Website  string `binding:"Url;MaxSize(100)"`
-	Location string `binding:"MaxSize(50)"`
+	Name             string `binding:"OmitEmpty;MaxSize(35)"`
+	FullName         string `binding:"MaxSize(100)"`
+	Email            string `binding:"Required;Email;MaxSize(254)"`
+	KeepEmailPrivate bool
+	Website          string `binding:"Url;MaxSize(100)"`
+	Location         string `binding:"MaxSize(50)"`
 }
 
 // Validate valideates the fields

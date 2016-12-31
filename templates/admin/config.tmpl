@@ -119,6 +119,10 @@
 						<dd><i class="fa fa{{if .Service.DisableMinimumKeySizeCheck}}-check{{end}}-square-o"></i></dd>*/}}
 						<dt>{{.i18n.Tr "admin.config.enable_captcha"}}</dt>
 						<dd><i class="fa fa{{if .Service.EnableCaptcha}}-check{{end}}-square-o"></i></dd>
+						<dt>{{.i18n.Tr "admin.config.default_keep_email_private"}}</dt>
+						<dd><i class="fa fa{{if .Service.DefaultKeepEmailPrivate}}-check{{end}}-square-o"></i></dd>
+						<dt>{{.i18n.Tr "admin.config.no_reply_address"}}</dt>
+						<dd>{{if .Service.NoReplyAddress}}{{.Service.NoReplyAddress}}{{else}}-{{end}}</dd>
 						<div class="ui divider"></div>
 						<dt>{{.i18n.Tr "admin.config.active_code_lives"}}</dt>
 						<dd>{{.Service.ActiveCodeLives}} {{.i18n.Tr "tool.raw_minutes"}}</dd>

@@ -16,7 +16,7 @@
 									{{if .Location}}
 										<i class="octicon octicon-location"></i> {{.Location}}
 									{{end}}
-									{{if and $.ShowUserEmail .Email $.IsSigned}}
+									{{if and $.ShowUserEmail .Email $.IsSigned (not .KeepEmailPrivate)}}
 										<i class="octicon octicon-mail"></i>
 										<a href="mailto:{{.Email}}" rel="nofollow">{{.Email}}</a>
 									{{end}}
