@@ -331,6 +331,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Put("", user.Watch)
 					m.Delete("", user.Unwatch)
 				})
+				m.Group("/releases", func() {
+					m.Combo("").Get(repo.ListReleases).
+						Post(bind(api.CreateReleaseOption{}), repo.CreateRelease)
+					m.Combo("/:id").Get(repo.GetRelease).
+						Patch(bind(api.EditReleaseOption{}), repo.EditRelease).
+						Delete(repo.DeleteRelease)
+				})
 				m.Get("/editorconfig/:filename", context.RepoRef(), repo.GetEditorconfig)
 				m.Group("/pulls", func() {
 					m.Combo("").Get(bind(api.ListPullRequestsOptions{}), repo.ListPullRequests).Post(reqRepoWriter(), bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
