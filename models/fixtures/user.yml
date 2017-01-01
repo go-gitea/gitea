@@ -1,0 +1,25 @@
+- # NOTE: this user (id=1) is the admin
+  id: 1
+  lower_name: user1
+  name: user1
+  email: user1@example.com
+  passwd: password
+  type: 0 # individual
+  salt: salt
+  is_admin: true
+  avatar: avatar1
+  avatar_email: user2@example.com
+  num_repos: 0
+
+-
+  id: 2
+  lower_name: user2
+  name: user2
+  email: user2@example.com
+  passwd: password
+  type: 0 # individual
+  salt: salt
+  is_admin: false
+  avatar: avatar2
+  avatar_email: user2@example.com
+  num_repos: 2

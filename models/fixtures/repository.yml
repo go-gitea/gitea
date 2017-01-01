@@ -1,0 +1,21 @@
+-
+  id: 1
+  owner_id: 2
+  lower_name: repo1
+  name: repo1
+  is_private: false
+  num_issues: 1
+  num_closed_issues: 0
+  num_pulls: 2
+  num_closed_pulls: 0
+
+-
+  id: 2
+  owner_id: 2
+  lower_name: repo2
+  name: repo2
+  is_private: true
+  num_issues: 1
+  num_closed_issues: 1
+  num_pulls: 0
+  num_closed_pulls: 0
