@@ -1,6 +1,11 @@
 DIST := dist
-EXECUTABLE := gitea
 IMPORT := code.gitea.io/gitea
+
+ifeq ($(OS), Windows_NT)
+	EXECUTABLE := gitea.exe
+else
+	EXECUTABLE := gitea
+endif
 
 BINDATA := modules/{options,public,templates}/bindata.go
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
