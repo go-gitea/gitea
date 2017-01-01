@@ -163,7 +163,7 @@ func maxAccessMode(modes ...AccessMode) AccessMode {
 	return max
 }
 
-// FIXME: do corss-comparison so reduce deletions and additions to the minimum?
+// FIXME: do cross-comparison so reduce deletions and additions to the minimum?
 func (repo *Repository) refreshAccesses(e Engine, accessMap map[int64]AccessMode) (err error) {
 	minMode := AccessModeRead
 	if !repo.IsPrivate {

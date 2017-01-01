@@ -66,7 +66,7 @@ func (n *Notification) BeforeInsert() {
 	n.UpdatedUnix = nowUnix
 }
 
-// BeforeUpdate runs while updateing a record
+// BeforeUpdate runs while updating a record
 func (n *Notification) BeforeUpdate() {
 	var (
 		now     = time.Now()

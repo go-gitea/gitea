@@ -259,7 +259,7 @@ func DeleteLabel(repoID, labelID int64) error {
 // |___/____  >____  >____/  \___  >_______ (____  /___  /\___  >____/
 //          \/     \/            \/        \/    \/    \/     \/
 
-// IssueLabel represetns an issue-lable relation.
+// IssueLabel represents an issue-label relation.
 type IssueLabel struct {
 	ID      int64 `xorm:"pk autoincr"`
 	IssueID int64 `xorm:"UNIQUE(s)"`

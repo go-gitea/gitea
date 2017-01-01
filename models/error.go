@@ -583,7 +583,7 @@ type ErrPullRequestNotExist struct {
 	IssueID    int64
 	HeadRepoID int64
 	BaseRepoID int64
-	HeadBarcnh string
+	HeadBranch string
 	BaseBranch string
 }
 
@@ -595,7 +595,7 @@ func IsErrPullRequestNotExist(err error) bool {
 
 func (err ErrPullRequestNotExist) Error() string {
 	return fmt.Sprintf("pull request does not exist [id: %d, issue_id: %d, head_repo_id: %d, base_repo_id: %d, head_branch: %s, base_branch: %s]",
-		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBarcnh, err.BaseBranch)
+		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
 }
 
 // ErrPullRequestAlreadyExists represents a "PullRequestAlreadyExists"-error

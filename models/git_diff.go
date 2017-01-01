@@ -78,7 +78,7 @@ var (
 func diffToHTML(diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
 	buf := bytes.NewBuffer(nil)
 
-	// Reproduce signs which are cutted for inline diff before.
+	// Reproduce signs which are cut for inline diff before.
 	switch lineType {
 	case DiffLineAdd:
 		buf.WriteByte('+')
@@ -234,7 +234,7 @@ const cmdDiffHead = "diff --git "
 // ParsePatch builds a Diff object from a io.Reader and some
 // parameters.
 // TODO: move this function to gogits/git-module
-func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*Diff, error) {
+func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*Diff, error) {
 	var (
 		diff = &Diff{Files: make([]*DiffFile, 0)}
 
@@ -295,8 +295,8 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 		curFileLinesCount++
 		lineCount++
 
-		// Diff data too large, we only show the first about maxlines lines
-		if curFileLinesCount >= maxLines || len(line) >= maxLineCharacteres {
+		// Diff data too large, we only show the first about maxLines lines
+		if curFileLinesCount >= maxLines || len(line) >= maxLineCharacters {
 			curFile.IsIncomplete = true
 		}
 
@@ -447,7 +447,7 @@ func ParsePatch(maxLines, maxLineCharacteres, maxFiles int, reader io.Reader) (*
 // GetDiffRange builds a Diff between two commits of a repository.
 // passing the empty string as beforeCommitID returns a diff from the
 // parent commit.
-func GetDiffRange(repoPath, beforeCommitID, afterCommitID string, maxLines, maxLineCharacteres, maxFiles int) (*Diff, error) {
+func GetDiffRange(repoPath, beforeCommitID, afterCommitID string, maxLines, maxLineCharacters, maxFiles int) (*Diff, error) {
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
 		return nil, err
@@ -486,7 +486,7 @@ func GetDiffRange(repoPath, beforeCommitID, afterCommitID string, maxLines, maxL
 	pid := process.Add(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath), cmd)
 	defer process.Remove(pid)
 
-	diff, err := ParsePatch(maxLines, maxLineCharacteres, maxFiles, stdout)
+	diff, err := ParsePatch(maxLines, maxLineCharacters, maxFiles, stdout)
 	if err != nil {
 		return nil, fmt.Errorf("ParsePatch: %v", err)
 	}
@@ -554,6 +554,6 @@ func GetRawDiff(repoPath, commitID string, diffType RawDiffType, writer io.Write
 }
 
 // GetDiffCommit builds a Diff representing the given commitID.
-func GetDiffCommit(repoPath, commitID string, maxLines, maxLineCharacteres, maxFiles int) (*Diff, error) {
-	return GetDiffRange(repoPath, "", commitID, maxLines, maxLineCharacteres, maxFiles)
+func GetDiffCommit(repoPath, commitID string, maxLines, maxLineCharacters, maxFiles int) (*Diff, error) {
+	return GetDiffRange(repoPath, "", commitID, maxLines, maxLineCharacters, maxFiles)
 }

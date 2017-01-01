@@ -31,7 +31,7 @@ type GraphItems []GraphItem
 // GetCommitGraph return a list of commit (GraphItems) from all branches
 func GetCommitGraph(r *git.Repository) (GraphItems, error) {
 
-	var Commitgraph []GraphItem
+	var CommitGraph []GraphItem
 
 	format := "DATA:|%d|%H|%ad|%an|%ae|%h|%s"
 
@@ -47,19 +47,19 @@ func GetCommitGraph(r *git.Repository) (GraphItems, error) {
 	)
 	graph, err := graphCmd.RunInDir(r.Path)
 	if err != nil {
-		return Commitgraph, err
+		return CommitGraph, err
 	}
 
-	Commitgraph = make([]GraphItem, 0, 100)
+	CommitGraph = make([]GraphItem, 0, 100)
 	for _, s := range strings.Split(graph, "\n") {
 		GraphItem, err := graphItemFromString(s, r)
 		if err != nil {
-			return Commitgraph, err
+			return CommitGraph, err
 		}
-		Commitgraph = append(Commitgraph, GraphItem)
+		CommitGraph = append(CommitGraph, GraphItem)
 	}
 
-	return Commitgraph, nil
+	return CommitGraph, nil
 }
 
 func graphItemFromString(s string, r *git.Repository) (GraphItem, error) {
@@ -102,7 +102,7 @@ func graphItemFromString(s string, r *git.Repository) (GraphItem, error) {
 		rows[5],
 		rows[6],
 		rows[7],
-		len(rows[2]) == 0, // no commits refered to, only relation in current line.
+		len(rows[2]) == 0, // no commits referred to, only relation in current line.
 	}
 	return gi, nil
 }

@@ -24,7 +24,7 @@ func mailIssueCommentToParticipants(issue *Issue, doer *User, mentions []string)
 		return nil
 	}
 
-	// Mail wahtcers.
+	// Mail watchers.
 	watchers, err := GetWatchers(issue.RepoID)
 	if err != nil {
 		return fmt.Errorf("GetWatchers [%d]: %v", issue.RepoID, err)

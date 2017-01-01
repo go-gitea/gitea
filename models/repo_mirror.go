@@ -247,7 +247,7 @@ func SyncMirrors() {
 	}
 }
 
-// InitSyncMirrors initializes a go routine to sync the mirros
+// InitSyncMirrors initializes a go routine to sync the mirrors
 func InitSyncMirrors() {
 	go SyncMirrors()
 }
