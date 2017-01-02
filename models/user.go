@@ -599,7 +599,7 @@ func CreateUser(u *User) (err error) {
 		return ErrUserAlreadyExist{u.Name}
 	}
 	
-	has, err := e.
+	has, err := x.
 		Where("email=?", u.Email).
 		Get(new(User))
 	if err != nil {
