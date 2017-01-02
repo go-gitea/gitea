@@ -2704,13 +2704,13 @@ footer .ui.language .menu {
 }
 .user.notification .octicon-issue-opened,
 .user.notification .octicon-git-pull-request {
-  color: green;
+  color: #21ba45;
 }
 .user.notification .octicon-issue-closed {
-  color: red;
+  color: #d01919;
 }
 .user.notification .octicon-git-merge {
-  color: purple;
+  color: #a333c8;
 }
 .dashboard {
   padding-top: 15px;
