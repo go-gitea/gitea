@@ -598,7 +598,8 @@ func CreateUser(u *User) (err error) {
 	} else if isExist {
 		return ErrUserAlreadyExist{u.Name}
 	}
-	
+
+	u.Email = strings.ToLower(u.Email)
 	has, err := x.
 		Where("email=?", u.Email).
 		Get(new(User))
@@ -608,7 +609,6 @@ func CreateUser(u *User) (err error) {
 		return ErrEmailAlreadyUsed{u.Email}
 	}
 
-	u.Email = strings.ToLower(u.Email)
 	isExist, err = IsEmailUsed(u.Email)
 	if err != nil {
 		return err
