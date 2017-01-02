@@ -2,6 +2,7 @@ package user
 
 import (
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -14,6 +15,10 @@ const (
 
 // GetNotificationCount is the middleware that sets the notification count in the context
 func GetNotificationCount(c *context.Context) {
+	if strings.HasPrefix(c.Req.URL.Path, "/api") {
+		return
+	}
+
 	if !c.IsSigned {
 		return
 	}
