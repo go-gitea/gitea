@@ -1,11 +1,17 @@
+// Copyright 2016 The Xorm Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package builder
 
 import "fmt"
 
+// Neq defines not equal conditions
 type Neq map[string]interface{}
 
 var _ Cond = Neq{}
 
+// WriteTo writes SQL to Writer
 func (neq Neq) WriteTo(w Writer) error {
 	var args = make([]interface{}, 0, len(neq))
 	var i = 0
@@ -56,14 +62,17 @@ func (neq Neq) WriteTo(w Writer) error {
 	return nil
 }
 
+// And implements And with other conditions
 func (neq Neq) And(conds ...Cond) Cond {
 	return And(neq, And(conds...))
 }
 
+// Or implements Or with other conditions
 func (neq Neq) Or(conds ...Cond) Cond {
 	return Or(neq, Or(conds...))
 }
 
+// IsValid tests if this condition is valid
 func (neq Neq) IsValid() bool {
 	return len(neq) > 0
 }

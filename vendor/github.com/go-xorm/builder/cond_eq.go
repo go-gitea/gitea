@@ -1,11 +1,18 @@
+// Copyright 2016 The Xorm Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package builder
 
 import "fmt"
 
+// Incr implements a type used by Eq
 type Incr int
 
+// Decr implements a type used by Eq
 type Decr int
 
+// Eq defines equals conditions
 type Eq map[string]interface{}
 
 var _ Cond = Eq{}
@@ -68,18 +75,22 @@ func (eq Eq) opWriteTo(op string, w Writer) error {
 	return nil
 }
 
+// WriteTo writes SQL to Writer
 func (eq Eq) WriteTo(w Writer) error {
 	return eq.opWriteTo(" AND ", w)
 }
 
+// And implements And with other conditions
 func (eq Eq) And(conds ...Cond) Cond {
 	return And(eq, And(conds...))
 }
 
+// Or implements Or with other conditions
 func (eq Eq) Or(conds ...Cond) Cond {
 	return Or(eq, Or(conds...))
 }
 
+// IsValid tests if this Eq is valid
 func (eq Eq) IsValid() bool {
 	return len(eq) > 0
 }
