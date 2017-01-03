@@ -559,7 +559,7 @@ func (org *User) GetUserRepositories(userID int64, page, pageSize int) ([]*Repos
 	}
 	repos := make([]*Repository, 0, pageSize)
 
-	if err := x.
+	if err := x.Select("`repository`.*").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(cond).
 		GroupBy("`repository`.id").
