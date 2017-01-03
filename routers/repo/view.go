@@ -41,32 +41,14 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
-	query := ctx.Req.URL.Query()
-
-	var start, count int = 0, 100
-
-	if _start, ok := query["start"]; ok && len(_start) == 1 {
-		start, err = strconv.Atoi(_start[0])
-		if err != nil {
-			ctx.Handle(500, "QueryString", err)
-			return
-		}
-	}
-
-	if _count, ok := query["count"]; ok && len(_count) == 1 {
-		count, err = strconv.Atoi(_count[0])
-		if err != nil {
-			ctx.Handle(500, "QueryString", err)
-			return
-		}
-	}
-
 	entries, err := tree.ListEntries()
 	if err != nil {
 		ctx.Handle(500, "ListEntries", err)
 		return
 	}
 
+	start := ctx.QueryInt("start")
+	count := ctx.QueryInt("count")
 	entries = entries[start : start+count]
 
 	ctx.Data["Files"], err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath)
