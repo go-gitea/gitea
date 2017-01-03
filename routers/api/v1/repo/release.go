@@ -178,7 +178,7 @@ func DeleteRelease(ctx *context.APIContext) {
 		ctx.Status(404)
 		return
 	}
-	if err := models.DeleteReleaseByID(id, ctx.User); err != nil {
+	if err := models.DeleteReleaseByID(id, ctx.User, false); err != nil {
 		ctx.Error(500, "DeleteReleaseByID", err)
 		return
 	}
