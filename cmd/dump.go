@@ -41,6 +41,10 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Value: os.TempDir(),
 			Usage: "Temporary dir path",
 		},
+		cli.StringFlag{
+			Name:  "database, d",
+			Usage: "Specify the database SQL syntax",
+		},
 	},
 }
 
@@ -71,8 +75,14 @@ func runDump(ctx *cli.Context) error {
 		log.Fatalf("Fail to dump local repositories: %v", err)
 	}
 
-	log.Printf("Dumping database...")
-	if err := models.DumpDatabase(dbDump); err != nil {
+	targetDBType := ctx.String("database")
+	if len(targetDBType) > 0 && targetDBType != models.DbCfg.Type {
+		log.Printf("Dumping database %s => %s...", models.DbCfg.Type, targetDBType)
+	} else {
+		log.Printf("Dumping database...")
+	}
+
+	if err := models.DumpDatabase(dbDump, targetDBType); err != nil {
 		log.Fatalf("Fail to dump database: %v", err)
 	}
 

@@ -242,8 +242,8 @@ func (db *mssql) SqlType(c *core.Column) string {
 		c.Length = 7
 	case core.MediumInt:
 		res = core.Int
-	case core.MediumText, core.TinyText, core.LongText, core.Json:
-		res = core.Text
+	case core.Text, core.MediumText, core.TinyText, core.LongText, core.Json:
+		res = core.Varchar + "(MAX)"
 	case core.Double:
 		res = core.Real
 	case core.Uuid:

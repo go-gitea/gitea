@@ -1,3 +1,7 @@
+// Copyright 2016 The Xorm Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package builder
 
 import (
@@ -9,6 +13,7 @@ type condNotIn condIn
 
 var _ Cond = condNotIn{}
 
+// NotIn generate NOT IN condition
 func NotIn(col string, values ...interface{}) Cond {
 	return condNotIn{col, values}
 }

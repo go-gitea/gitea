@@ -1,3 +1,7 @@
+// Copyright 2016 The Xorm Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package builder
 
 import "fmt"
@@ -6,6 +10,7 @@ type condAnd []Cond
 
 var _ Cond = condAnd{}
 
+// And generates AND conditions
 func And(conds ...Cond) Cond {
 	var result = make(condAnd, 0, len(conds))
 	for _, cond := range conds {

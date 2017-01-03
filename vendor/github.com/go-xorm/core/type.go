@@ -54,7 +54,7 @@ func (s *SQLType) IsNumeric() bool {
 }
 
 func (s *SQLType) IsJson() bool {
-	return s.Name == Json
+	return s.Name == Json || s.Name == Jsonb
 }
 
 var (

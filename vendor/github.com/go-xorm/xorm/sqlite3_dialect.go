@@ -386,16 +386,16 @@ func (db *sqlite3) GetIndexes(tableName string) (map[string]*core.Index, error) 
 
 	indexes := make(map[string]*core.Index, 0)
 	for rows.Next() {
-		var tmpSql sql.NullString
-		err = rows.Scan(&tmpSql)
+		var tmpSQL sql.NullString
+		err = rows.Scan(&tmpSQL)
 		if err != nil {
 			return nil, err
 		}
 
-		if !tmpSql.Valid {
+		if !tmpSQL.Valid {
 			continue
 		}
-		sql := tmpSql.String
+		sql := tmpSQL.String
 
 		index := new(core.Index)
 		nNStart := strings.Index(sql, "INDEX")

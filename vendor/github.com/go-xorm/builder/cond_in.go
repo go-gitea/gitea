@@ -1,3 +1,7 @@
+// Copyright 2016 The Xorm Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package builder
 
 import (
@@ -12,6 +16,7 @@ type condIn struct {
 
 var _ Cond = condIn{}
 
+// In generates IN condition
 func In(col string, values ...interface{}) Cond {
 	return condIn{col, values}
 }
