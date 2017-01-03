@@ -319,7 +319,7 @@ func Ping() error {
 	return x.Ping()
 }
 
-// DumpToDatabase dumps all data from database according the special database SQL syntax to file system.
+// DumpDatabase dumps all data from database according the special database SQL syntax to file system.
 func DumpDatabase(filePath string, dbType string) error {
 	var tbs []*core.Table
 	for _, t := range tables {
