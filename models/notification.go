@@ -182,14 +182,20 @@ func getIssueNotification(e Engine, userID, issueID int64) (*Notification, error
 }
 
 // NotificationsForUser returns notifications for a given user and status
-func NotificationsForUser(user *User, status NotificationStatus) ([]*Notification, error) {
-	return notificationsForUser(x, user, status)
+func NotificationsForUser(user *User, status NotificationStatus, page, perPage int) ([]*Notification, error) {
+	return notificationsForUser(x, user, status, page, perPage)
 }
-func notificationsForUser(e Engine, user *User, status NotificationStatus) (notifications []*Notification, err error) {
-	err = e.
+func notificationsForUser(e Engine, user *User, status NotificationStatus, page, perPage int) (notifications []*Notification, err error) {
+	sess := e.
 		Where("user_id = ?", user.ID).
 		And("status = ?", status).
-		OrderBy("updated_unix DESC").
+		OrderBy("updated_unix DESC")
+
+	if page > 0 && perPage > 0 {
+		sess.Limit(perPage, (page-1)*perPage)
+	}
+
+	err = sess.
 		Find(&notifications)
 	return
 }
