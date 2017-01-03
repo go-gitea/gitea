@@ -67,7 +67,6 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
-	entries.Sort()
 	entries = entries[start : start+count]
 
 	ctx.Data["Files"], err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath)
