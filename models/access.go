@@ -96,28 +96,31 @@ func HasAccess(user *User, repo *Repository, testMode AccessMode) (bool, error) 
 	return hasAccess(x, user, repo, testMode)
 }
 
+type repoAccess struct {
+	Access     `xorm:"extends"`
+	Repository `xorm:"extends"`
+}
+
+func (repoAccess) TableName() string {
+	return "access"
+}
+
 // GetRepositoryAccesses finds all repositories with their access mode where a user has access but does not own.
 func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
-	accesses := make([]*Access, 0, 10)
-	type RepoAccess struct {
-		Access     `xorm:"extends"`
-		Repository `xorm:"extends"`
-	}
-
 	rows, err := x.
-		Join("INNER", "repository", "respository.id = access.repo_id").
+		Join("INNER", "repository", "repository.id = access.repo_id").
 		Where("access.user_id = ?", user.ID).
 		And("repository.owner_id <> ?", user.ID).
-		Rows(new(RepoAccess))
+		Rows(new(repoAccess))
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var repos = make(map[*Repository]AccessMode, len(accesses))
-	var ownerCache = make(map[int64]*User, len(accesses))
+	var repos = make(map[*Repository]AccessMode, 10)
+	var ownerCache = make(map[int64]*User, 10)
 	for rows.Next() {
-		var repo RepoAccess
+		var repo repoAccess
 		err = rows.Scan(&repo)
 		if err != nil {
 			return nil, err
