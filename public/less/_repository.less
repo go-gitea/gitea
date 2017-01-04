@@ -902,44 +902,42 @@
 			}
 			tbody {
 				tr {
+					td.halfwidth {
+						width: 50%;
+					}
 
-					&.tag-code {
-						td, pre {
-							background-color: #F0F0F0 !important;
-							border-color: #D2CECE!important;
-							padding-top: 4px;
-							padding-bottom: 4px;
-						}
-						td.halfwidth {
-							width: 50%;
-						}
+					&.tag-code td, td.tag-code {
+						background-color: #F0F0F0 !important;
+						border-color: #D2CECE !important;
+						padding-top: 8px;
+						padding-bottom: 8px;
 						// td.selected-line, td.selected-line pre {
 						// 	background-color: #ffffdd !important;
 						// }
 					}
+
 					// &.same-code {
 					// 	td.selected-line, td.selected-line pre {
 					// 		background-color: #ffffdd !important;
 					// 	}
 					// }
-					&.del-code {
-						td, pre {
-							background-color: #ffe0e0 !important;
-					    border-color: #f1c0c0 !important;
-						}
 
-						td.halfwidth {
-							width: 50%;
-						}
+					// light gray for empty lines before / after commit
+					&.add-code td:nth-child(1), &.add-code td:nth-child(2),
+					&.del-code td:nth-child(3), &.del-code td:nth-child(4) {
+						background-color: #fafafa;
 					}
-					&.add-code {
-						td, pre {
-							background-color: #d6fcd6 !important;
-							border-color: #c1e9c1 !important;
-						}
-						td.halfwidth {
-							width: 50%;
-						}
+
+					&.del-code td:nth-child(1),	&.del-code td:nth-child(2),
+					td.del-code {
+						background-color: #ffe0e0 !important;
+						border-color: #f1c0c0 !important;
+					}
+
+					&.add-code td:nth-child(3), &.add-code td:nth-child(4),
+					td.add-code{
+						background-color: #d6fcd6 !important;
+						border-color: #c1e9c1 !important;
 					}
 
 					.removed-code {
