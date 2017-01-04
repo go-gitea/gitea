@@ -50,8 +50,11 @@ var (
 	// IssueTemplateCandidates issue templates
 	IssueTemplateCandidates = []string{
 		"ISSUE_TEMPLATE.md",
-		".gogs/ISSUE_TEMPLATE.md",
+		"issue_template.md",
+		".gitea/ISSUE_TEMPLATE.md",
+		".gitea/issue_template.md",
 		".github/ISSUE_TEMPLATE.md",
+		".github/issue_template.md",
 	}
 )
 
