@@ -8,11 +8,9 @@ package main // import "code.gitea.io/gitea"
 
 import (
 	"os"
-	"runtime"
-
-	"code.gitea.io/gitea/modules/log"
 
 	"code.gitea.io/gitea/cmd"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/urfave/cli"
 )
@@ -21,7 +19,6 @@ import (
 var Version = "1.1.0+dev"
 
 func init() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
 	setting.AppVer = Version
 }
 
