@@ -1,0 +1,70 @@
+{{template "base/head" .}}
+
+<div class="user notification">
+	<div class="ui container">
+		<h1 class="ui header">{{.i18n.Tr "notification.notifications"}}</h1>
+
+		<div class="ui top attached tabular menu">
+			<a href="/notifications?q=unread">
+				<div class="{{if eq .Status 1}}active{{end}} item">
+					{{.i18n.Tr "notification.unread"}}
+					{{if eq .Status 1}}
+						<div class="ui label">{{len .Notifications}}</div>
+					{{end}}
+				</div>
+			</a>
+			<a href="/notifications?q=read">
+				<div class="{{if eq .Status 2}}active{{end}} item">
+					{{.i18n.Tr "notification.read"}}
+					{{if eq .Status 2}}
+						<div class="ui label">{{len .Notifications}}</div>
+					{{end}}
+				</div>
+			</a>
+		</div>
+		<div class="ui bottom attached active tab segment">
+			{{if eq (len .Notifications) 0}}
+				{{if eq .Status 1}}
+					{{.i18n.Tr "notification.no_unread"}}
+				{{else}}
+					{{.i18n.Tr "notification.no_read"}}
+				{{end}}
+			{{else}}
+				<div class="ui relaxed divided list">
+					{{range $notification := .Notifications}}
+						{{$issue := $notification.GetIssue}}
+						{{$repo := $notification.GetRepo}}
+						{{$repoOwner := $repo.MustOwner}}
+
+						<div class="item">
+							<a href="{{$.AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}/issues/{{$issue.Index}}">
+								{{if and $issue.IsPull}}
+									{{if $issue.IsClosed}}
+										<i class="octicon octicon-git-merge"></i>
+									{{else}}
+										<i class="octicon octicon-git-pull-request"></i>
+									{{end}}
+								{{else}}
+									{{if $issue.IsClosed}}
+										<i class="octicon octicon-issue-closed"></i>
+									{{else}}
+										<i class="octicon octicon-issue-opened"></i>
+									{{end}}
+								{{end}}
+
+								<div class="content">
+									<div class="header">{{$repoOwner.Name}}/{{$repo.Name}}</div>
+									<div class="description">#{{$issue.Index}} - {{$issue.Title}}</div>
+								</div>
+							</a>
+						</div>
+					{{end}}
+				</div>
+			{{end}}
+		</div>
+
+		{{template "base/paginate" .}}
+	</div>
+</div>
+
+{{template "base/footer" .}}

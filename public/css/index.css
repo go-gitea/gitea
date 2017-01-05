@@ -2704,6 +2704,24 @@ footer .ui.language .menu {
 .user.followers .follow .ui.button {
   padding: 8px 15px;
 }
+.user.notification .octicon {
+  float: left;
+  font-size: 2em;
+}
+.user.notification .content {
+  float: left;
+  margin-left: 7px;
+}
+.user.notification .octicon-issue-opened,
+.user.notification .octicon-git-pull-request {
+  color: #21ba45;
+}
+.user.notification .octicon-issue-closed {
+  color: #d01919;
+}
+.user.notification .octicon-git-merge {
+  color: #a333c8;
+}
 .dashboard {
   padding-top: 15px;
   padding-bottom: 80px;
