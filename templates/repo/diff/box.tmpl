@@ -85,7 +85,7 @@
 								<img src="{{$.RawPath}}/{{EscapePound .Name}}">
 							</div>
 						{{else}}
-							<div class="file-body file-code code-view code-diff">
+							<div class="file-body file-code code-view code-diff {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}}">
 								<table>
 									<tbody>
 										{{if $.IsSplitStyle}}
