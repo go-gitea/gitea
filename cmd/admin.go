@@ -74,7 +74,9 @@ func runCreateUser(c *cli.Context) error {
 
 	setting.NewContext()
 	models.LoadConfigs()
-	models.SetEngine()
+	if err := models.SetEngine(); err != nil {
+		return fmt.Errorf("models.SetEngine: %v", err)
+	}
 
 	if err := models.CreateUser(&models.User{
 		Name:     c.String("name"),
