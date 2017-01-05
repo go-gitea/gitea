@@ -1052,8 +1052,10 @@ func GetUserEmailsByNames(names []string) []string {
 // GetUsersByIDs returns all resolved users from a list of Ids.
 func GetUsersByIDs(ids []int64) ([]*User, error) {
 	ous := make([]*User, 0, len(ids))
-	err := x.
-		In("id", ids).
+	if len(ids) == 0 {
+		return ous, nil
+	}
+	err := x.In("id", ids).
 		Asc("name").
 		Find(&ous)
 	return ous, err
