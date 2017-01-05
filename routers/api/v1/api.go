@@ -327,6 +327,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Delete(reqRepoWriter(), repo.DeleteMilestone)
 				})
 				m.Get("/stargazers", repo.ListStargazers)
+				m.Get("/subscribers", repo.ListSubscribers)
 				m.Group("/subscription", func() {
 					m.Get("", user.IsWatching)
 					m.Put("", user.Watch)
