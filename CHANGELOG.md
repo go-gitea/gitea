@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.1](https://github.com/go-gitea/gitea/releases/tag/v1.0.1) - 2017-01-05
+
+* BUGFIXES
+  * Fixed localized MIN_PASSWORD_LENGTH [#501](https://github.com/go-gitea/gitea/pull/501)
+  * Fixed 500 error on organization delete [#507](https://github.com/go-gitea/gitea/pull/507)
+  * Ignore empty wiki repo on migrate [#544](https://github.com/go-gitea/gitea/pull/544)
+  * Proper check access for forking [#563](https://github.com/go-gitea/gitea/pull/563)
+  * Fix SSH domain on installer [#506](https://github.com/go-gitea/gitea/pull/506)
+  * Fix missing data rows on admin UI [#580](https://github.com/go-gitea/gitea/pull/580)
+  * Do not delete tags with releases by default [#579](https://github.com/go-gitea/gitea/pull/579)
+  * Fix missing session config data on admin UI [#578](https://github.com/go-gitea/gitea/pull/578)
+  * Properly show the version within footer on the UI [#593](https://github.com/go-gitea/gitea/pull/593)
+
 ## [1.0.0](https://github.com/go-gitea/gitea/releases/tag/v1.0.0) - 2016-12-23
 
 * BREAKING
