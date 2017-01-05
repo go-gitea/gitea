@@ -3,6 +3,10 @@ workspace:
   path: src/code.gitea.io/gitea
 
 pipeline:
+  clone:
+    image: plugins/git
+    tags: true
+
   test:
     image: webhippie/golang:edge
     pull: true
