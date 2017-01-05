@@ -922,24 +922,6 @@
 					// 	}
 					// }
 
-					// light gray for empty lines before / after commit
-					&.add-code td:nth-child(1), &.add-code td:nth-child(2),
-					&.del-code td:nth-child(3), &.del-code td:nth-child(4) {
-						background-color: #fafafa;
-					}
-
-					&.del-code td:nth-child(1),	&.del-code td:nth-child(2),
-					td.del-code {
-						background-color: #ffe0e0 !important;
-						border-color: #f1c0c0 !important;
-					}
-
-					&.add-code td:nth-child(3), &.add-code td:nth-child(4),
-					td.add-code{
-						background-color: #d6fcd6 !important;
-						border-color: #c1e9c1 !important;
-					}
-
 					.removed-code {
 					  background-color: #ff9999;
 					}
@@ -947,6 +929,36 @@
 					  background-color: #99ff99;
 					}
 				}
+			}
+		}
+		.code-diff-unified tbody tr {
+			&.del-code td {
+				background-color: #ffe0e0 !important;
+				border-color: #f1c0c0 !important;
+			}
+
+			&.add-code td {
+				background-color: #d6fcd6 !important;
+				border-color: #c1e9c1 !important;
+			}
+		}
+		.code-diff-split tbody tr {
+			// light gray for empty lines before / after commit
+			&.add-code td:nth-child(1), &.add-code td:nth-child(2),
+			&.del-code td:nth-child(3), &.del-code td:nth-child(4) {
+				background-color: #fafafa;
+			}
+
+			&.del-code td:nth-child(1),	&.del-code td:nth-child(2),
+			td.del-code {
+				background-color: #ffe0e0 !important;
+				border-color: #f1c0c0 !important;
+			}
+
+			&.add-code td:nth-child(3), &.add-code td:nth-child(4),
+			td.add-code{
+				background-color: #d6fcd6 !important;
+				border-color: #c1e9c1 !important;
 			}
 		}
 		&.file-content {
