@@ -372,7 +372,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 
 	// TODO: when squash commits, no need to append merge commit.
 	// It is possible that head branch is not fully sync with base branch for merge commits,
-	// so we need to get latest head commit and append merge commit manully
+	// so we need to get latest head commit and append merge commit manually
 	// to avoid strange diff commits produced.
 	mergeCommit, err := baseGitRepo.GetBranchCommit(pr.BaseBranch)
 	if err != nil {
@@ -419,9 +419,9 @@ func (pr *PullRequest) testPatch() (err error) {
 		return fmt.Errorf("BaseRepo.PatchPath: %v", err)
 	}
 
-	// Fast fail if patch does not exist, this assumes data is cruppted.
+	// Fast fail if patch does not exist, this assumes data is corrupted.
 	if !com.IsFile(patchPath) {
-		log.Trace("PullRequest[%d].testPatch: ignored cruppted data", pr.ID)
+		log.Trace("PullRequest[%d].testPatch: ignored corrupted data", pr.ID)
 		return nil
 	}
 
@@ -573,7 +573,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 	return prs, maxResults, findSession.Find(&prs)
 }
 
-// GetUnmergedPullRequest returnss a pull request that is open and has not been merged
+// GetUnmergedPullRequest returns a pull request that is open and has not been merged
 // by given head/base and repo/branch.
 func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch string) (*PullRequest, error) {
 	pr := new(PullRequest)
@@ -591,7 +591,7 @@ func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch
 	return pr, nil
 }
 
-// GetUnmergedPullRequestsByHeadInfo returnss all pull requests that are open and has not been merged
+// GetUnmergedPullRequestsByHeadInfo returns all pull requests that are open and has not been merged
 // by given head information (repo and branch).
 func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
@@ -602,7 +602,7 @@ func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequ
 		Find(&prs)
 }
 
-// GetUnmergedPullRequestsByBaseInfo returnss all pull requests that are open and has not been merged
+// GetUnmergedPullRequestsByBaseInfo returns all pull requests that are open and has not been merged
 // by given base information (repo and branch).
 func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
@@ -885,7 +885,7 @@ func ChangeUsernameInPullRequests(oldUserName, newUserName string) error {
 	return err
 }
 
-// checkAndUpdateStatus checks if pull request is possible to levaing checking status,
+// checkAndUpdateStatus checks if pull request is possible to leaving checking status,
 // and set to be either conflict or mergeable.
 func (pr *PullRequest) checkAndUpdateStatus() {
 	// Status is not changed to conflict means mergeable.
@@ -893,7 +893,7 @@ func (pr *PullRequest) checkAndUpdateStatus() {
 		pr.Status = PullRequestStatusMergeable
 	}
 
-	// Make sure there is no waiting test to process before levaing the checking status.
+	// Make sure there is no waiting test to process before leaving the checking status.
 	if !pullRequestQueue.Exist(pr.ID) {
 		if err := pr.UpdateCols("status"); err != nil {
 			log.Error(4, "Update[%d]: %v", pr.ID, err)

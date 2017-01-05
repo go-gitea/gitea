@@ -663,7 +663,7 @@ func Users(opts *SearchUserOptions) ([]*User, error) {
 		Find(&users)
 }
 
-// get user by erify code
+// get user by verify code
 func getVerifyUser(code string) (user *User) {
 	if len(code) <= base.TimeLimitCodeLength {
 		return nil
@@ -1057,7 +1057,7 @@ type UserCommit struct {
 	*git.Commit
 }
 
-// ValidateCommitWithEmail chceck if author's e-mail of commit is corresponsind to a user.
+// ValidateCommitWithEmail check if author's e-mail of commit is corresponding to a user.
 func ValidateCommitWithEmail(c *git.Commit) *User {
 	u, err := GetUserByEmail(c.Author.Email)
 	if err != nil {
@@ -1216,7 +1216,7 @@ func FollowUser(userID, followID int64) (err error) {
 	return sess.Commit()
 }
 
-// UnfollowUser unmarks someone be another's follower.
+// UnfollowUser unmarks someone as another's follower.
 func UnfollowUser(userID, followID int64) (err error) {
 	if userID == followID || !IsFollowing(userID, followID) {
 		return nil

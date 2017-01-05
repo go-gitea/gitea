@@ -145,7 +145,7 @@ func (a *Action) GetRepoPath() string {
 }
 
 // ShortRepoPath returns the virtual path to the action repository
-// trimed to max 20 + 1 + 33 chars.
+// trimmed to max 20 + 1 + 33 chars.
 func (a *Action) ShortRepoPath() string {
 	return path.Join(a.ShortRepoUserName(), a.ShortRepoName())
 }
@@ -418,7 +418,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) err
 			}
 		}
 
-		// It is conflict to have close and reopen at same time, so refsMarkd doesn't need to reinit here.
+		// It is conflict to have close and reopen at same time, so refsMarked doesn't need to reinit here.
 		for _, ref := range issueReopenKeywordsPat.FindAllString(c.Message, -1) {
 			ref = ref[strings.IndexByte(ref, byte(' '))+1:]
 			ref = strings.TrimRightFunc(ref, issueIndexTrimRight)

@@ -354,7 +354,7 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	return nil
 }
 
-// checkKeyContent onlys checks if key content has been used as public key,
+// checkKeyContent only checks if key content has been used as public key,
 // it is OK to use same key as deploy key for multiple repositories/users.
 func checkKeyContent(content string) error {
 	has, err := x.Get(&PublicKey{
@@ -526,7 +526,7 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 
 // RewriteAllPublicKeys removes any authorized key and rewrite all keys from database again.
 // Note: x.Iterate does not get latest data after insert/delete, so we have to call this function
-// outsite any session scope independently.
+// outside any session scope independently.
 func RewriteAllPublicKeys() error {
 	sshOpLocker.Lock()
 	defer sshOpLocker.Unlock()
