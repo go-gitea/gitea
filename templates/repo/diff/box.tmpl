@@ -133,16 +133,19 @@
 	{{if .IsSplitStyle}}
 		<script>
 			(function() {
-				$('.add-code').each(function() {
+				$('tr.add-code').each(function() {
 					var prev = $(this).prev();
 					if(prev.is('.del-code') && prev.children().eq(3).text().trim() === '') {
 						while(prev.prev().is('.del-code') && prev.prev().children().eq(3).text().trim() === '') {
 							prev = prev.prev();
 						}
-						prev.children().eq(3).html($(this).children().eq(3).html());
 						prev.children().eq(2).html($(this).children().eq(2).html());
-						prev.children().eq(3).addClass('add-code');
+						prev.children().eq(3).html($(this).children().eq(3).html());
+
+						prev.children().eq(0).addClass('del-code');
+						prev.children().eq(1).addClass('del-code');
 						prev.children().eq(2).addClass('add-code');
+						prev.children().eq(3).addClass('add-code');
 						$(this).remove();
 					}
 				});

@@ -1982,31 +1982,33 @@ footer .ui.language .menu {
   border-right: 1px solid #d4d4d5;
   padding: 0 5px;
 }
-.repository .diff-file-box .code-diff tbody tr.tag-code td,
-.repository .diff-file-box .code-diff tbody tr.tag-code pre {
-  background-color: #F0F0F0 !important;
-  border-color: #D2CECE!important;
-  padding-top: 4px;
-  padding-bottom: 4px;
-}
-.repository .diff-file-box .code-diff tbody tr.tag-code td.halfwidth {
+.repository .diff-file-box .code-diff tbody tr td.halfwidth {
   width: 50%;
 }
-.repository .diff-file-box .code-diff tbody tr.del-code td,
-.repository .diff-file-box .code-diff tbody tr.del-code pre {
+.repository .diff-file-box .code-diff tbody tr.tag-code td,
+.repository .diff-file-box .code-diff tbody tr td.tag-code {
+  background-color: #F0F0F0 !important;
+  border-color: #D2CECE !important;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.repository .diff-file-box .code-diff tbody tr.add-code td:nth-child(1),
+.repository .diff-file-box .code-diff tbody tr.add-code td:nth-child(2),
+.repository .diff-file-box .code-diff tbody tr.del-code td:nth-child(3),
+.repository .diff-file-box .code-diff tbody tr.del-code td:nth-child(4) {
+  background-color: #fafafa;
+}
+.repository .diff-file-box .code-diff tbody tr.del-code td:nth-child(1),
+.repository .diff-file-box .code-diff tbody tr.del-code td:nth-child(2),
+.repository .diff-file-box .code-diff tbody tr td.del-code {
   background-color: #ffe0e0 !important;
   border-color: #f1c0c0 !important;
 }
-.repository .diff-file-box .code-diff tbody tr.del-code td.halfwidth {
-  width: 50%;
-}
-.repository .diff-file-box .code-diff tbody tr.add-code td,
-.repository .diff-file-box .code-diff tbody tr.add-code pre {
+.repository .diff-file-box .code-diff tbody tr.add-code td:nth-child(3),
+.repository .diff-file-box .code-diff tbody tr.add-code td:nth-child(4),
+.repository .diff-file-box .code-diff tbody tr td.add-code {
   background-color: #d6fcd6 !important;
   border-color: #c1e9c1 !important;
-}
-.repository .diff-file-box .code-diff tbody tr.add-code td.halfwidth {
-  width: 50%;
 }
 .repository .diff-file-box .code-diff tbody tr .removed-code {
   background-color: #ff9999;
