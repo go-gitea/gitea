@@ -5,7 +5,7 @@
 		<h1 class="ui header">{{.i18n.Tr "notification.notifications"}}</h1>
 
 		<div class="ui top attached tabular menu">
-			<a href="/notifications?q=unread">
+			<a href="{{$.AppSubUrl}}/notifications?q=unread">
 				<div class="{{if eq .Status 1}}active{{end}} item">
 					{{.i18n.Tr "notification.unread"}}
 					{{if eq .Status 1}}
@@ -13,7 +13,7 @@
 					{{end}}
 				</div>
 			</a>
-			<a href="/notifications?q=read">
+			<a href="{{$.AppSubUrl}}/notifications?q=read">
 				<div class="{{if eq .Status 2}}active{{end}} item">
 					{{.i18n.Tr "notification.read"}}
 					{{if eq .Status 2}}
