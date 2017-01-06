@@ -46,7 +46,7 @@ func DelLogger(mode string) error {
 			return l.DelLogger(mode)
 		}
 	}
-	panic("log: unknown adapter \"" + mode + "\" (forgotten register?)")
+	panic(`log: unknown adapter "` + mode + `" (forgotten register?)`)
 }
 
 // NewGitLogger create a logger for git
