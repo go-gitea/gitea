@@ -120,13 +120,13 @@ type LoginSource struct {
 	ID        int64 `xorm:"pk autoincr"`
 	Type      LoginType
 	Name      string          `xorm:"UNIQUE"`
-	IsActived bool            `xorm:"NOT NULL DEFAULT false"`
+	IsActived bool            `xorm:"INDEX NOT NULL DEFAULT false"`
 	Cfg       core.Conversion `xorm:"TEXT"`
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64
+	CreatedUnix int64     `xorm:"INDEX"`
 	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64
+	UpdatedUnix int64     `xorm:"INDEX"`
 }
 
 // BeforeInsert is invoked from XORM before inserting an object of this type.
