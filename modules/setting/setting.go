@@ -867,6 +867,16 @@ func newLogService() {
 	LogModes = strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
 	LogConfigs = make([]string, len(LogModes))
 
+	useConsole := false;
+	for _, mode := range LogModes {
+		if "console" == mode {
+			useConsole = true;
+		}
+	}
+	if (!useConsole) {
+		log.DelLogger("console");
+	}
+
 	for i, mode := range LogModes {
 		mode = strings.TrimSpace(mode)
 

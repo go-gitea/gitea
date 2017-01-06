@@ -39,6 +39,15 @@ func NewLogger(bufLen int64, mode, config string) {
 	}
 }
 
+func DelLogger(mode string) error {
+	for _, l := range loggers {
+		if l.adapter == mode {
+			return l.DelLogger(mode)
+		}
+	}
+	panic("log: unknown adapter \"" + mode + "\" (forgotten register?)")
+}
+
 // NewGitLogger create a logger for git
 // FIXME: use same log level as other loggers.
 func NewGitLogger(logPath string) {
