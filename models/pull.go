@@ -21,6 +21,7 @@ import (
 	api "code.gitea.io/sdk/gitea"
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
+	"code.gitea.io/gitea/modules/base"
 )
 
 var pullRequestQueue = sync.NewUniqueQueue(setting.Repository.PullRequestQueueLength)
@@ -542,7 +543,7 @@ type PullRequestsOptions struct {
 	MilestoneID int64
 }
 
-func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) *xorm.Session {
+func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xorm.Session, error) {
 	sess := x.Where("pull_request.base_repo_id=?", baseRepoID)
 
 	sess.Join("INNER", "issue", "pull_request.issue_id = issue.id")
@@ -551,7 +552,20 @@ func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) *xorm
 		sess.And("issue.is_closed=?", opts.State == "closed")
 	}
 
-	return sess
+	sortIssuesSession(sess, opts.SortType)
+
+	if labelIDs, err := base.StringsToInt64s(opts.Labels); err != nil {
+		return nil, err
+	} else if len(labelIDs) > 0 {
+		sess.Join("INNER", "issue_label", "issue.id = issue_label.issue_id").
+			In("issue_label.label_id", labelIDs)
+	}
+
+	if opts.MilestoneID > 0 {
+		sess.And("issue.milestone_id=?", opts.MilestoneID)
+	}
+
+	return sess, nil
 }
 
 // PullRequests returns all pull requests for a base Repo by the given conditions
@@ -560,7 +574,11 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 		opts.Page = 1
 	}
 
-	countSession := listPullRequestStatement(baseRepoID, opts)
+	countSession, err := listPullRequestStatement(baseRepoID, opts)
+	if err != nil {
+		log.Error(4, "listPullRequestStatement", err)
+		return nil, 0, err
+	}
 	maxResults, err := countSession.Count(new(PullRequest))
 	if err != nil {
 		log.Error(4, "Count PRs", err)
@@ -568,7 +586,11 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 	}
 
 	prs := make([]*PullRequest, 0, ItemsPerPage)
-	findSession := listPullRequestStatement(baseRepoID, opts)
+	findSession, err := listPullRequestStatement(baseRepoID, opts)
+	if err != nil {
+		log.Error(4, "listPullRequestStatement", err)
+		return nil, maxResults, err
+	}
 	findSession.Limit(ItemsPerPage, (opts.Page-1)*ItemsPerPage)
 	return prs, maxResults, findSession.Find(&prs)
 }
@@ -624,7 +646,7 @@ func GetPullRequestByIndex(repoID int64, index int64) (*PullRequest, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrPullRequestNotExist{0, repoID, index, 0, "", ""}
+		return nil, ErrPullRequestNotExist{0, 0, 0, repoID, "", ""}
 	}
 
 	if err = pr.LoadAttributes(); err != nil {

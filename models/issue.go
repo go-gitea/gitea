@@ -876,6 +876,27 @@ type IssuesOptions struct {
 	SortType    string
 }
 
+// sortIssuesSession sort an issues-related session based on the provided
+// sortType string
+func sortIssuesSession(sess *xorm.Session, sortType string) {
+	switch sortType {
+	case "oldest":
+		sess.Asc("issue.created_unix")
+	case "recentupdate":
+		sess.Desc("issue.updated_unix")
+	case "leastupdate":
+		sess.Asc("issue.updated_unix")
+	case "mostcomment":
+		sess.Desc("issue.num_comments")
+	case "leastcomment":
+		sess.Asc("issue.num_comments")
+	case "priority":
+		sess.Desc("issue.priority")
+	default:
+		sess.Desc("issue.created_unix")
+	}
+}
+
 // Issues returns a list of issues by given conditions.
 func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	if opts.Page <= 0 {
@@ -912,22 +933,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 
 	sess.And("issue.is_pull=?", opts.IsPull)
 
-	switch opts.SortType {
-	case "oldest":
-		sess.Asc("issue.created_unix")
-	case "recentupdate":
-		sess.Desc("issue.updated_unix")
-	case "leastupdate":
-		sess.Asc("issue.updated_unix")
-	case "mostcomment":
-		sess.Desc("issue.num_comments")
-	case "leastcomment":
-		sess.Asc("issue.num_comments")
-	case "priority":
-		sess.Desc("issue.priority")
-	default:
-		sess.Desc("issue.created_unix")
-	}
+	sortIssuesSession(sess, opts.SortType)
 
 	if len(opts.Labels) > 0 && opts.Labels != "0" {
 		labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))

@@ -1,0 +1,28 @@
+-
+  id: 1
+  type: 0 # gitea pull request
+  status: 2 # mergable
+  issue_id: 2
+  index: 1
+  head_repo_id: 1
+  base_repo_id: 1
+  head_user_name: user1
+  head_branch: branch1
+  base_branch: master
+  merge_base: 1234567890abcdef
+  has_merged: true
+  merger_id: 2
+
+-
+  id: 2
+  type: 0 # gitea pull request
+  status: 1 # checking
+  issue_id: 3
+  index: 2
+  head_repo_id: 1
+  base_repo_id: 1
+  head_user_name: user1
+  head_branch: branch2
+  base_branch: master
+  merge_base: fedcba9876543210
+  has_merged: false
