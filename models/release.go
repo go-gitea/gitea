@@ -22,12 +22,12 @@ import (
 
 // Release represents a release of repository.
 type Release struct {
-	ID               int64 `xorm:"pk autoincr"`
-	RepoID           int64
+	ID               int64       `xorm:"pk autoincr"`
+	RepoID           int64       `xorm:"index unique(n)"`
 	Repo             *Repository `xorm:"-"`
 	PublisherID      int64
-	Publisher        *User `xorm:"-"`
-	TagName          string
+	Publisher        *User  `xorm:"-"`
+	TagName          string `xorm:"index unique(n)"`
 	LowerTagName     string
 	Target           string
 	Title            string
@@ -209,6 +209,15 @@ func GetReleasesByRepoID(repoID int64, page, pageSize int) (rels []*Release, err
 	err = x.
 		Desc("created_unix").
 		Limit(pageSize, (page-1)*pageSize).
+		Find(&rels, Release{RepoID: repoID})
+	return rels, err
+}
+
+// GetReleasesByRepoIDAndNames returns a list of releases of repository accroding repoID and tagNames.
+func GetReleasesByRepoIDAndNames(repoID int64, tagNames []string) (rels []*Release, err error) {
+	err = x.
+		Desc("created_unix").
+		In("tag_name", tagNames).
 		Find(&rels, Release{RepoID: repoID})
 	return rels, err
 }
