@@ -589,7 +589,10 @@ func runWeb(ctx *cli.Context) error {
 	})
 	// ***** END: Repository *****
 
-	m.Get("/notifications", reqSignIn, user.Notifications)
+	m.Group("/notifications", func() {
+		m.Get("", user.Notifications)
+		m.Post("/status", user.NotificationStatusPost)
+	}, reqSignIn)
 
 	m.Group("/api", func() {
 		apiv1.RegisterRoutes(m)

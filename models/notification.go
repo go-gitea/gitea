@@ -5,6 +5,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -20,6 +21,8 @@ const (
 	NotificationStatusUnread NotificationStatus = iota + 1
 	// NotificationStatusRead represents a read notification
 	NotificationStatusRead
+	// NotificationStatusPinned represents a pinned notification
+	NotificationStatusPinned
 )
 
 const (
@@ -252,4 +255,38 @@ func setNotificationStatusRead(e Engine, userID, issueID int64) error {
 
 	_, err = e.Id(notification.ID).Update(notification)
 	return err
+}
+
+// SetNotificationStatus change the notification status
+func SetNotificationStatus(notificationID int64, user *User, status NotificationStatus) error {
+	notification, err := getNotificationByID(notificationID)
+	if err != nil {
+		return err
+	}
+
+	if notification.UserID != user.ID {
+		return fmt.Errorf("Can't change notification of another user: %d, %d", notification.UserID, user.ID)
+	}
+
+	notification.Status = status
+
+	_, err = x.Id(notificationID).Update(notification)
+	return err
+}
+
+func getNotificationByID(notificationID int64) (*Notification, error) {
+	notification := new(Notification)
+	ok, err := x.
+		Where("id = ?", notificationID).
+		Get(notification)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !ok {
+		return nil, fmt.Errorf("Notification %d does not exists", notificationID)
+	}
+
+	return notification, nil
 }

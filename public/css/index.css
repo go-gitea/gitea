@@ -2712,6 +2712,9 @@ footer .ui.language .menu {
   float: left;
   margin-left: 7px;
 }
+.user.notification .buttons-panel button {
+  padding: 3px;
+}
 .user.notification .octicon-issue-opened,
 .user.notification .octicon-git-pull-request {
   color: #21ba45;

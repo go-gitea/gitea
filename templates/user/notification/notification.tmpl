@@ -30,34 +30,54 @@
 					{{.i18n.Tr "notification.no_read"}}
 				{{end}}
 			{{else}}
-				<div class="ui relaxed divided list">
+				<div class="ui relaxed divided selection list">
 					{{range $notification := .Notifications}}
 						{{$issue := $notification.GetIssue}}
 						{{$repo := $notification.GetRepo}}
 						{{$repoOwner := $repo.MustOwner}}
 
-						<div class="item">
-							<a href="{{$.AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}/issues/{{$issue.Index}}">
-								{{if and $issue.IsPull}}
-									{{if $issue.IsClosed}}
-										<i class="octicon octicon-git-merge"></i>
-									{{else}}
-										<i class="octicon octicon-git-pull-request"></i>
-									{{end}}
-								{{else}}
-									{{if $issue.IsClosed}}
-										<i class="octicon octicon-issue-closed"></i>
-									{{else}}
-										<i class="octicon octicon-issue-opened"></i>
-									{{end}}
+						<a class="item" href="{{$.AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}/issues/{{$issue.Index}}">
+							<div class="buttons-panel right floated content">
+								{{if eq $notification.Status 1}}
+									<form action="{{$.AppSubUrl}}/notifications/status" method="POST">
+										{{$.CsrfTokenHtml}}
+										<input type="hidden" name="notification_id" value="{{$notification.ID}}" />
+										<input type="hidden" name="status" value="read" />
+										<button class="ui button" title="Mark as read">
+											<i class="octicon octicon-check"></i>
+										</button>
+									</form>
+								{{else if eq $notification.Status 2}}
+									<form action="{{$.AppSubUrl}}/notifications/status" method="POST">
+										{{$.CsrfTokenHtml}}
+										<input type="hidden" name="notification_id" value="{{$notification.ID}}" />
+										<input type="hidden" name="status" value="unread" />
+										<button class="ui button" title="Mark as unread">
+											<i class="octicon octicon-bell"></i>
+										</button>
+									</form>
 								{{end}}
+							</div>
 
-								<div class="content">
-									<div class="header">{{$repoOwner.Name}}/{{$repo.Name}}</div>
-									<div class="description">#{{$issue.Index}} - {{$issue.Title}}</div>
-								</div>
-							</a>
-						</div>
+							{{if and $issue.IsPull}}
+								{{if $issue.IsClosed}}
+									<i class="octicon octicon-git-merge"></i>
+								{{else}}
+									<i class="octicon octicon-git-pull-request"></i>
+								{{end}}
+							{{else}}
+								{{if $issue.IsClosed}}
+									<i class="octicon octicon-issue-closed"></i>
+								{{else}}
+									<i class="octicon octicon-issue-opened"></i>
+								{{end}}
+							{{end}}
+
+							<div class="content">
+								<div class="header">{{$repoOwner.Name}}/{{$repo.Name}}</div>
+								<div class="description">#{{$issue.Index}} - {{$issue.Title}}</div>
+							</div>
+						</a>
 					{{end}}
 				</div>
 			{{end}}
