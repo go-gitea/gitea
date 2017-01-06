@@ -49,6 +49,12 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	start := ctx.QueryInt("start")
 	count := ctx.QueryInt("count")
+
+	// Check invalid values
+	if start < 0 || count < 0 || start+count > len(entries) {
+		start = 0
+		count = len(entries)
+	}
 	entries = entries[start : start+count]
 
 	ctx.Data["Files"], err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath)
