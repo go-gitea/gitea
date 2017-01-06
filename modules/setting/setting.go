@@ -122,6 +122,9 @@ var (
 	UsePostgreSQL bool
 	UseTiDB       bool
 
+	// Index settings
+	IndexPath string
+
 	// Webhook settings
 	Webhook = struct {
 		QueueLength    int

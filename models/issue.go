@@ -11,6 +11,7 @@ import (
 	"mime/multipart"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +23,10 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/blevesearch/bleve"
+	"github.com/blevesearch/bleve/search/query"
+	"github.com/blevesearch/bleve/analysis/analyzer/simple"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -456,8 +461,11 @@ func (issue *Issue) ReadBy(userID int64) error {
 }
 
 func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
-	_, err := e.Id(issue.ID).Cols(cols...).Update(issue)
-	return err
+	if _, err := e.Id(issue.ID).Cols(cols...).Update(issue); err != nil {
+		return err
+	}
+	AddToIssueIndex(issue)
+	return nil
 }
 
 // UpdateIssueCols only updates values of specific columns for given issue.
@@ -738,6 +746,8 @@ func newIssue(e *xorm.Session, opts NewIssueOptions) (err error) {
 		return err
 	}
 
+	AddToIssueIndex(opts.Issue)
+
 	if len(opts.Attachments) > 0 {
 		attachments, err := getAttachmentsByUUIDs(e, opts.Attachments)
 		if err != nil {
@@ -870,19 +880,36 @@ type IssuesOptions struct {
 	MilestoneID int64
 	RepoIDs     []int64
 	Page        int
-	IsClosed    bool
-	IsPull      bool
+	IsClosed    util.OptionalBool
+	IsPull      util.OptionalBool
 	Labels      string
 	SortType    string
+	Keyword     string
 }
+
+func numericQuery(value int64, field string) *query.NumericRangeQuery {
+	f := float64(value)
+	tru := true
+	q := bleve.NewNumericRangeInclusiveQuery(&f, &f, &tru, &tru)
+	q.SetField(field)
+	return q
+}
+
 
 // Issues returns a list of issues by given conditions.
 func Issues(opts *IssuesOptions) ([]*Issue, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
+	var sess *xorm.Session
+	if opts.Page >= 0 {
+		var start int
+		if opts.Page == 0 {
+			start = 0
+		} else {
+			start = (opts.Page - 1)*setting.UI.IssuePagingNum
+		}
+		sess = x.Limit(setting.UI.IssuePagingNum, start)
+	} else {
+		sess = x.NewSession()
 	}
-
-	sess := x.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
 
 	if opts.RepoID > 0 {
 		sess.And("issue.repo_id=?", opts.RepoID)
@@ -890,7 +917,12 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 		// In case repository IDs are provided but actually no repository has issue.
 		sess.In("issue.repo_id", opts.RepoIDs)
 	}
-	sess.And("issue.is_closed=?", opts.IsClosed)
+	switch opts.IsClosed {
+	case util.OptionalBoolTrue:
+		sess.And("issue.is_closed=true")
+	case util.OptionalBoolFalse:
+		sess.And("issue.is_closed=false")
+	}
 
 	if opts.AssigneeID > 0 {
 		sess.And("issue.assignee_id=?", opts.AssigneeID)
@@ -910,7 +942,13 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 		sess.And("issue.milestone_id=?", opts.MilestoneID)
 	}
 
-	sess.And("issue.is_pull=?", opts.IsPull)
+	switch opts.IsPull{
+	case util.OptionalBoolTrue:
+		sess.And("issue.is_pull=true")
+	case util.OptionalBoolFalse:
+		sess.And("issue.is_pull=false")
+	}
+
 
 	switch opts.SortType {
 	case "oldest":
@@ -944,6 +982,170 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	issues := make([]*Issue, 0, setting.UI.IssuePagingNum)
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
+	}
+
+	// FIXME: use IssueList to improve performance.
+	for i := range issues {
+		if err := issues[i].LoadAttributes(); err != nil {
+			return nil, fmt.Errorf("LoadAttributes [%d]: %v", issues[i].ID, err)
+		}
+	}
+
+	return issues, nil
+}
+
+// SearchIssues searches for issues by given conditions.
+func SearchIssues(opts *IssuesOptions) ([]*Issue, error) {
+	subqueries := []query.Query{
+		numericQuery(opts.RepoID, "RepoID"),
+	}
+
+	if len(opts.Keyword) > 0 {
+		fields := strings.Fields(strings.ToLower(opts.Keyword))
+		subqueries = append(subqueries, bleve.NewDisjunctionQuery(
+			bleve.NewPhraseQuery(fields, "Title"),
+			bleve.NewPhraseQuery(fields, "Content"),
+		))
+	}
+
+	switch opts.IsClosed {
+	case util.OptionalBoolTrue:
+		isClosedQuery := bleve.NewBoolFieldQuery(true)
+		isClosedQuery.SetField("IsClosed")
+		subqueries = append(subqueries, isClosedQuery)
+	case util.OptionalBoolFalse:
+		isClosedQuery := bleve.NewBoolFieldQuery(false)
+		isClosedQuery.SetField("IsClosed")
+		subqueries = append(subqueries, isClosedQuery)
+	}
+
+	switch opts.IsPull {
+	case util.OptionalBoolTrue:
+		isPullQuery := bleve.NewBoolFieldQuery(true)
+		isPullQuery.SetField("IsPull")
+		subqueries = append(subqueries, isPullQuery)
+	case util.OptionalBoolFalse:
+		isPullQuery := bleve.NewBoolFieldQuery(false)
+		isPullQuery.SetField("IsPull")
+		subqueries = append(subqueries, isPullQuery)
+	}
+
+	if opts.MilestoneID > 0 {
+		subqueries = append(subqueries, numericQuery(opts.MilestoneID, "MilestoneID"))
+	}
+
+	if opts.AssigneeID > 0 {
+		subqueries = append(subqueries, numericQuery(opts.AssigneeID, "AssigneeID"))
+	}
+	if opts.PosterID > 0 {
+		subqueries = append(subqueries, numericQuery(opts.PosterID, "PosterID"))
+	}
+	if opts.MentionedID > 0 {
+		subqueries = append(subqueries,
+			bleve.NewPhraseQuery([]string{strconv.FormatInt(opts.MentionedID, 36)},
+				"Mentions"))
+	}
+
+	if len(opts.Labels) > 0 && opts.Labels != "0" {
+		labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
+		if err != nil {
+			log.Warn("Invalid Labels argument: %s", opts.Labels)
+		} else {
+			for _, labelID := range labelIDs {
+				subqueries = append(subqueries,
+					bleve.NewPhraseQuery([]string{strconv.FormatInt(labelID, 36)},
+						"Labels"))
+			}
+		}
+	}
+
+	query := bleve.NewConjunctionQuery(subqueries...)
+	var search *bleve.SearchRequest
+	if opts.Page >= 0 {
+		var startFrom int
+		if opts.Page == 0 {
+			startFrom = 0
+		} else {
+			startFrom = (opts.Page - 1) * setting.UI.IssuePagingNum
+		}
+		search = bleve.NewSearchRequestOptions(query, setting.UI.IssuePagingNum, startFrom, false)
+	} else {
+		search = bleve.NewSearchRequestOptions(query, 2147483647, 0, false)
+	}
+
+	search.Fields = []string{
+		"ID",
+		"RepoID",
+		"Index",
+		"PosterID",
+		"Title",
+		"Content",
+		"MilestoneID",
+		"AssigneeID",
+		"IsClosed",
+		"IsPull",
+		"Labels",
+		"Mentions",
+		"CreatedUnix",
+		"DeadlineUnix",
+		"UpdatedUnix",
+		"NumComments",
+		"Priority",
+	}
+	switch opts.SortType {
+	case "oldest":
+		search.SortBy([]string{"CreatedUnix"})
+	case "recentupdate":
+		search.SortBy([]string{"-UpdatedUnix"})
+	case "leastupdate":
+		search.SortBy([]string{"UpdatedUnix"})
+	case "mostcomment":
+		search.SortBy([]string{"-NumComments"})
+	case "leastcomment":
+		search.SortBy([]string{"NumComments"})
+	case "priority":
+		search.SortBy([]string{"-Priority"})
+	default:
+		search.SortBy([]string{"-CreatedUnix"})
+	}
+
+	index, err := bleve.Open(setting.IndexPath)
+	if err != nil {
+		return nil, err
+	}
+	result, err := index.Search(search)
+	if err != nil {
+		index.Close()
+		return nil, err
+	}
+	if err = index.Close(); err != nil {
+		return nil, err
+	}
+
+	hits := result.Hits
+
+	issues := make([]*Issue, len(hits))
+	for i, hit := range hits {
+		issues[i] = &Issue{
+			ID: int64(hit.Fields["ID"].(float64)),
+			RepoID: int64(hit.Fields["RepoID"].(float64)),
+			Index: int64(hit.Fields["Index"].(float64)),
+			PosterID: int64(hit.Fields["PosterID"].(float64)),
+			Title: hit.Fields["Title"].(string),
+			Content: hit.Fields["Content"].(string),
+			MilestoneID: int64(hit.Fields["MilestoneID"].(float64)),
+			AssigneeID: int64(hit.Fields["AssigneeID"].(float64)),
+			IsClosed: hit.Fields["IsClosed"].(bool),
+			IsPull: hit.Fields["IsPull"].(bool),
+			CreatedUnix: int64(hit.Fields["CreatedUnix"].(float64)),
+			DeadlineUnix: int64(hit.Fields["DeadlineUnix"].(float64)),
+			UpdatedUnix: int64(hit.Fields["UpdatedUnix"].(float64)),
+			NumComments: int(hit.Fields["NumComments"].(float64)),
+			Priority: int(hit.Fields["Priority"].(float64)),
+		}
+		issues[i].Deadline = time.Unix(issues[i].DeadlineUnix, 0).Local()
+		issues[i].Created = time.Unix(issues[i].CreatedUnix, 0).Local()
+		issues[i].Updated = time.Unix(issues[i].UpdatedUnix, 0).Local()
 	}
 
 	// FIXME: use IssueList to improve performance.
@@ -1167,6 +1369,7 @@ type IssueStatsOptions struct {
 	MentionedID int64
 	PosterID    int64
 	IsPull      bool
+	Keyword     string
 }
 
 // GetIssueStats returns issue statistic information by given conditions.
@@ -1216,6 +1419,84 @@ func GetIssueStats(opts *IssueStatsOptions) *IssueStats {
 		And("is_closed = ?", true).
 		Count(&Issue{})
 	return stats
+}
+
+// GetSearchIssueStats return statistics of issues search by given conditions.
+func GetSearchIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
+	stats := &IssueStats{}
+
+	subqueries := []query.Query{
+		numericQuery(opts.RepoID, "RepoID"),
+	}
+	isPullQuery := bleve.NewBoolFieldQuery(opts.IsPull)
+	isPullQuery.SetField("IsPull")
+	subqueries = append(subqueries, isPullQuery)
+
+	if opts.MilestoneID > 0 {
+		subqueries = append(subqueries, numericQuery(opts.MilestoneID, "MilestoneID"))
+	}
+
+	if opts.AssigneeID > 0 {
+		subqueries = append(subqueries, numericQuery(opts.AssigneeID, "AssigneeID"))
+	}
+	if opts.PosterID > 0 {
+		subqueries = append(subqueries, numericQuery(opts.PosterID, "PosterID"))
+	}
+	if opts.MentionedID > 0 {
+		subqueries = append(subqueries,
+			bleve.NewPhraseQuery([]string{strconv.FormatInt(opts.MentionedID, 36)},
+				"Mentions"))
+	}
+
+	if len(opts.Keyword) > 0 {
+		fields := strings.Fields(strings.ToLower(opts.Keyword))
+		subqueries = append(subqueries, bleve.NewDisjunctionQuery(
+			bleve.NewPhraseQuery(fields, "Title"),
+			bleve.NewPhraseQuery(fields, "Content"),
+		))
+	}
+
+
+	if len(opts.Labels) > 0 && opts.Labels != "0" {
+		labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
+		if err != nil {
+			log.Warn("Invalid Labels argument: %s", opts.Labels)
+		} else {
+			for _, labelID := range labelIDs {
+				subqueries = append(subqueries,
+					bleve.NewPhraseQuery([]string{strconv.FormatInt(labelID, 36)},
+						"Labels"))
+			}
+		}
+	}
+
+	query := bleve.NewConjunctionQuery(subqueries...)
+	search := bleve.NewSearchRequestOptions(query, 2147483647, 0, false)
+	search.Fields = []string{
+		"IsClosed",
+	}
+
+	index, err := bleve.Open(setting.IndexPath)
+	if err != nil {
+		return nil, err
+	}
+	result, err := index.Search(search)
+	if err != nil {
+		index.Close()
+		return nil, err
+	}
+	if err = index.Close(); err != nil {
+		return nil, err
+	}
+
+	for _, hit := range result.Hits {
+		if hit.Fields["IsClosed"].(bool) {
+			stats.ClosedCount++
+		} else {
+			stats.OpenCount++
+		}
+	}
+	return stats, nil
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
@@ -1293,7 +1574,11 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 
 func updateIssue(e Engine, issue *Issue) error {
 	_, err := e.Id(issue.ID).AllCols().Update(issue)
-	return err
+	if err != nil {
+		return err
+	}
+	AddToIssueIndex(issue)
+	return nil
 }
 
 // UpdateIssue updates all fields of given issue.
@@ -1369,6 +1654,11 @@ func UpdateIssueUsersByMentions(e Engine, issueID int64, uids []int64) error {
 			return err
 		}
 	}
+	issue, err := GetIssueByID(issueID)
+	if err != nil {
+		return err
+	}
+	AddToIssueIndex(issue)
 	return nil
 }
 
@@ -1888,4 +2178,215 @@ func DeleteAttachmentsByComment(commentID int64, remove bool) (int, error) {
 	}
 
 	return DeleteAttachments(attachments, remove)
+}
+
+
+
+/* --- Issue Index --- */
+
+var indexUpdateQueue chan *Issue
+
+// IssueData issue data stored in the indexer
+type IssueData struct {
+	ID int64
+	RepoID int64
+	Index int64
+	PosterID int64
+	Title string
+	Content string
+	MilestoneID int64
+	AssigneeID int64
+	IsClosed bool
+	IsPull bool
+
+	Labels string
+	Mentions string
+
+	CreatedUnix int64
+	DeadlineUnix int64
+	UpdatedUnix int64
+	NumComments int
+	Priority int
+}
+
+// InitIssuesIndex initialize issue indexer
+func InitIssuesIndex() error {
+	_, err := os.Stat(setting.IndexPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			if err = CreateIssuesIndex(); err != nil {
+				return err
+			}
+			go func() {
+				if err := PopulateIssuesIndex(); err != nil {
+					fmt.Printf("ERROR: PopulateIssuesIndex: %v\n", err)
+				}
+			}()
+		} else {
+			return err
+		}
+	}
+	indexUpdateQueue = make(chan *Issue, 10)
+	go processIndexUpdateQueue()
+	return nil
+}
+
+// CreateIssuesIndex create an issue index
+func CreateIssuesIndex() error {
+	mapping := bleve.NewIndexMapping()
+	docMapping := bleve.NewDocumentMapping()
+
+	docMapping.AddFieldMappingsAt("ID", bleve.NewNumericFieldMapping())
+	docMapping.AddFieldMappingsAt("RepoID", bleve.NewNumericFieldMapping())
+	docMapping.AddFieldMappingsAt("Index", bleve.NewNumericFieldMapping())
+	docMapping.AddFieldMappingsAt("PosterID", bleve.NewNumericFieldMapping())
+	docMapping.AddFieldMappingsAt("MilestoneID", bleve.NewNumericFieldMapping())
+	docMapping.AddFieldMappingsAt("AssigneeID", bleve.NewNumericFieldMapping())
+	docMapping.AddFieldMappingsAt("IsClosed", bleve.NewBooleanFieldMapping())
+	docMapping.AddFieldMappingsAt("IsPull", bleve.NewBooleanFieldMapping())
+
+	textFieldMapping := bleve.NewTextFieldMapping()
+	textFieldMapping.Analyzer = simple.Name
+	docMapping.AddFieldMappingsAt("Labels", textFieldMapping)
+	docMapping.AddFieldMappingsAt("Mentions", textFieldMapping)
+	docMapping.AddFieldMappingsAt("Title", textFieldMapping)
+	docMapping.AddFieldMappingsAt("Content", textFieldMapping)
+
+	docMapping.AddFieldMappingsAt("CreatedUnix", bleve.NewNumericFieldMapping())
+	docMapping.AddFieldMappingsAt("DeadlineUnix", bleve.NewNumericFieldMapping())
+	docMapping.AddFieldMappingsAt("UpdatedUnix", bleve.NewNumericFieldMapping())
+	docMapping.AddFieldMappingsAt("NumComments", bleve.NewNumericFieldMapping())
+	docMapping.AddFieldMappingsAt("Priority", bleve.NewNumericFieldMapping())
+
+	mapping.AddDocumentMapping("issues", docMapping)
+	index, err := bleve.New(setting.IndexPath, mapping)
+	if err != nil {
+		return err
+	}
+	return index.Close()
+}
+
+// PopulateIssuesIndex write all issues in the database to the indexer
+func PopulateIssuesIndex() error {
+	index, err := bleve.Open(setting.IndexPath)
+	if err != nil {
+		return err
+	}
+	for page := 1; ; page++ {
+		repos, err := Repositories(&SearchRepoOptions{
+			Page: page,
+			PageSize: 5,
+		})
+		if err != nil {
+			index.Close()
+			return err
+		}
+		if len(repos) == 0 {
+			return index.Close()
+		}
+		batch := index.NewBatch()
+		for _, repo := range repos {
+			issues, err := Issues(&IssuesOptions{
+				RepoID: repo.ID,
+				IsClosed: util.OptionalBoolNone,
+				IsPull: util.OptionalBoolNone,
+				Page: -1, // do not page
+			})
+			if err != nil {
+				index.Close()
+				return err
+			}
+			for _, issue := range issues {
+				data, err := issue.issueData()
+				if err != nil {
+					index.Close()
+					return err
+				}
+				batch.Index(issue.indexUID(), data)
+			}
+		}
+		index.Batch(batch)
+	}
+}
+
+func processIndexUpdateQueue() {
+	for {
+		select {
+		case issue := <-indexUpdateQueue:
+			index, err := bleve.Open(setting.IndexPath)
+			if err != nil {
+				log.Error(4, "Open Index: %v", err)
+				continue
+			}
+			data, err := issue.issueData()
+			if err !=  nil {
+				log.Error(4, "Issue Data: %v", err)
+				index.Close()
+				continue
+			}
+			if err = index.Index(issue.indexUID(), data); err != nil {
+				log.Error(4, "Index: %v", err)
+				index.Close()
+				continue
+			}
+			if err = index.Close(); err != nil {
+				log.Error(4, "Close index: %v", err)
+			}
+		}
+	}
+}
+
+
+// indexUID a unique identifier for a issue used in full-text indices
+func (issue *Issue) indexUID() string {
+	return strconv.FormatInt(issue.ID, 36)
+}
+
+func (issue *Issue) issueData() (*IssueData, error) {
+	labelIDs := make([]string, len(issue.Labels))
+	for i, label := range issue.Labels {
+		labelIDs[i] = strconv.FormatInt(label.ID, 36)
+	}
+
+	mentionedUsers := make([]*IssueUser, 0, 10)
+	err := x.Where("issue_id = ?", issue.ID).
+		Where("is_mentioned = true").
+		Select("uid").
+		Find(&mentionedUsers)
+	if err != nil {
+		return nil, err
+	}
+	mentions := make([]string, len(mentionedUsers))
+	for i, issueUser := range mentionedUsers {
+		mentions[i] = strconv.FormatInt(issueUser.UID, 36)
+	}
+
+	return &IssueData{
+		ID: issue.ID,
+		RepoID: issue.RepoID,
+		Index: issue.Index,
+		PosterID: issue.PosterID,
+		Title: issue.Title,
+		Content: issue.Content,
+		MilestoneID: issue.MilestoneID,
+		AssigneeID: issue.AssigneeID,
+		IsClosed: issue.IsClosed,
+		IsPull: issue.IsPull,
+
+		Labels: strings.Join(labelIDs, " "),
+		Mentions: strings.Join(mentions, " "),
+
+		CreatedUnix: issue.CreatedUnix,
+		DeadlineUnix: issue.DeadlineUnix,
+		UpdatedUnix: issue.UpdatedUnix,
+		NumComments: issue.NumComments,
+		Priority: issue.Priority,
+	}, nil
+}
+
+// AddToIssueIndex add/update an issue to a repository's issue index
+func AddToIssueIndex(issue *Issue) {
+	go func() {
+		indexUpdateQueue <- issue
+	}()
 }

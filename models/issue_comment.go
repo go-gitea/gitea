@@ -356,7 +356,7 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 
 // CreateIssueComment creates a plain issue comment.
 func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content string, attachments []string) (*Comment, error) {
-	return CreateComment(&CreateCommentOptions{
+	comment, err := CreateComment(&CreateCommentOptions{
 		Type:        CommentTypeComment,
 		Doer:        doer,
 		Repo:        repo,
@@ -364,6 +364,12 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 		Content:     content,
 		Attachments: attachments,
 	})
+	if err != nil {
+		return nil, err
+	}
+	issue.NumComments++
+	AddToIssueIndex(issue)
+	return comment, nil
 }
 
 // CreateRefComment creates a commit reference comment to issue.
@@ -452,31 +458,31 @@ func UpdateComment(c *Comment) error {
 	return err
 }
 
-// DeleteCommentByID deletes the comment by given ID.
-func DeleteCommentByID(id int64) error {
-	comment, err := GetCommentByID(id)
-	if err != nil {
-		if IsErrCommentNotExist(err) {
-			return nil
-		}
-		return err
-	}
-
+// DeleteComment deletes the comment
+func DeleteComment(comment *Comment) error {
 	sess := x.NewSession()
 	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if _, err = sess.Id(comment.ID).Delete(new(Comment)); err != nil {
+	if _, err := sess.Id(comment.ID).Delete(new(Comment)); err != nil {
 		return err
 	}
 
 	if comment.Type == CommentTypeComment {
-		if _, err = sess.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
+		if _, err := sess.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
 			return err
 		}
 	}
 
-	return sess.Commit()
+	if err := sess.Commit(); err != nil {
+		return err
+	}
+	issue, err := GetIssueByID(comment.IssueID)
+	if err != nil {
+		return err
+	}
+	AddToIssueIndex(issue)
+	return nil
 }
