@@ -39,6 +39,7 @@ func NewLogger(bufLen int64, mode, config string) {
 	}
 }
 
+// DelLogger removes loggers that are for the given mode
 func DelLogger(mode string) error {
 	for _, l := range loggers {
 		if l.adapter == mode {
