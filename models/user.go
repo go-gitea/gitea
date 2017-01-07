@@ -86,6 +86,7 @@ type User struct {
 	Repos       []*Repository `xorm:"-"`
 	Location    string
 	Website     string
+	OpenID      string
 	Rands       string `xorm:"VARCHAR(10)"`
 	Salt        string `xorm:"VARCHAR(10)"`
 

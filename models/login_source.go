@@ -18,10 +18,13 @@ import (
 	"github.com/go-macaron/binding"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"github.com/yohcop/openid-go"
+	//"github.com/akavel/go-openid"
 
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // LoginType represents an login type.
@@ -35,14 +38,16 @@ const (
 	LoginSMTP             // 3
 	LoginPAM              // 4
 	LoginDLDAP            // 5
+	LoginOpenID           // 6
 )
 
 // LoginNames contains the name of LoginType values.
 var LoginNames = map[LoginType]string{
-	LoginLDAP:  "LDAP (via BindDN)",
-	LoginDLDAP: "LDAP (simple auth)", // Via direct bind
-	LoginSMTP:  "SMTP",
-	LoginPAM:   "PAM",
+	LoginLDAP:   "LDAP (via BindDN)",
+	LoginDLDAP:  "LDAP (simple auth)", // Via direct bind
+	LoginSMTP:   "SMTP",
+	LoginPAM:    "PAM",
+	LoginOpenID: "OpenID",
 }
 
 // SecurityProtocolNames contains the name of SecurityProtocol values.
@@ -57,6 +62,7 @@ var (
 	_ core.Conversion = &LDAPConfig{}
 	_ core.Conversion = &SMTPConfig{}
 	_ core.Conversion = &PAMConfig{}
+	_ core.Conversion = &OpenIDConfig{}
 )
 
 // LDAPConfig holds configuration for LDAP login source.
@@ -78,6 +84,21 @@ func (cfg *LDAPConfig) ToDB() ([]byte, error) {
 // protocol.
 func (cfg *LDAPConfig) SecurityProtocolName() string {
 	return SecurityProtocolNames[cfg.SecurityProtocol]
+}
+
+// OpenIDConfig holds an OpenID login source configuration.
+type OpenIDConfig struct {
+	//*openid.Source
+}
+
+// FromDB fills up an OpenIDConfig from serialized format.
+func (cfg *OpenIDConfig) FromDB(bs []byte) error {
+	return json.Unmarshal(bs, &cfg)
+}
+
+// ToDB exports an OpenIDConfig to a serialized format.
+func (cfg *OpenIDConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
 }
 
 // SMTPConfig holds configuration for the SMTP login source.
@@ -162,6 +183,8 @@ func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 			source.Cfg = new(SMTPConfig)
 		case LoginPAM:
 			source.Cfg = new(PAMConfig)
+		case LoginOpenID:
+			source.Cfg = new(OpenIDConfig)
 		default:
 			panic("unrecognized login source type: " + com.ToStr(*val))
 		}
@@ -526,6 +549,54 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 	return user, CreateUser(user)
 }
 
+// ________                       .___________
+// \_____  \ ______   ____   ____ |   \______ \
+//  /   |   \\____ \_/ __ \ /    \|   ||    |  \
+// /    |    \  |_> >  ___/|   |  \   ||    `   \
+// \_______  /   __/ \___  >___|  /___/_______  /
+//         \/|__|        \/     \/            \/
+
+// LoginViaOpenID authorizes against "id" (openid URL)
+// and create a local user if success when enabled.
+func LoginViaOpenID(user *User, id string, source *LoginSource, autoRegister bool) (*User, error) {
+
+	url, err := openid.RedirectURL(id, setting.AppURL+"user/login/openid/verify", setting.AppURL)
+	if err != nil {
+		return nil, err
+	}
+	return nil, ErrDelegatedAuth{OP: url}
+}
+
+var nonceStore = openid.NewSimpleNonceStore()
+var discoveryCache = openid.NewSimpleDiscoveryCache()
+
+// LoginViaOpenIDVerification verifies a given OpenID url.
+func LoginViaOpenIDVerification(url string, autoRegister bool) (*User, error) {
+
+	var id, err = openid.Verify(url, discoveryCache, nonceStore)
+	if err != nil {
+		log.Fatal(1, "Error verifying: %v", err)
+	}
+	log.Trace("Verified ID: " + id)
+
+	/*
+		login := id
+
+		user = &User{
+			LowerName:   strings.ToLower(login),
+			Name:        login,
+			Email:       login,
+			Passwd:      nil,
+			LoginType:   LoginOpenID,
+			LoginSource: sourceID,
+			LoginName:   login,
+			IsActive:    true,
+		}
+		return user, CreateUser(user)
+	*/
+	return nil, nil
+}
+
 // ExternalUserLogin attempts a login using external source types.
 func ExternalUserLogin(user *User, login, password string, source *LoginSource, autoRegister bool) (*User, error) {
 	if !source.IsActived {
@@ -539,6 +610,8 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource, 
 		return LoginViaSMTP(user, login, password, source.ID, source.Cfg.(*SMTPConfig), autoRegister)
 	case LoginPAM:
 		return LoginViaPAM(user, login, password, source.ID, source.Cfg.(*PAMConfig), autoRegister)
+	case LoginOpenID:
+		return LoginViaOpenID(user, login, source, autoRegister)
 	}
 
 	return nil, ErrUnsupportedLoginType
@@ -549,6 +622,8 @@ func UserSignIn(username, password string) (*User, error) {
 	var user *User
 	if strings.Contains(username, "@") {
 		user = &User{Email: strings.ToLower(strings.TrimSpace(username))}
+	} else if strings.Contains(username, "://") {
+		user = &User{OpenID: strings.ToLower(username)}
 	} else {
 		user = &User{LowerName: strings.ToLower(strings.TrimSpace(username))}
 	}
@@ -580,7 +655,7 @@ func UserSignIn(username, password string) (*User, error) {
 		}
 	}
 
-	sources := make([]*LoginSource, 0, 3)
+	sources := make([]*LoginSource, 0, 4)
 	if err = x.UseBool().Find(&sources, &LoginSource{IsActived: true}); err != nil {
 		return nil, err
 	}
@@ -589,6 +664,9 @@ func UserSignIn(username, password string) (*User, error) {
 		authUser, err := ExternalUserLogin(nil, username, password, source, true)
 		if err == nil {
 			return authUser, nil
+		}
+		if IsErrDelegatedAuth(err) {
+			return nil, err
 		}
 
 		log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
