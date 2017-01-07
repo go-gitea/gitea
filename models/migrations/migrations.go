@@ -94,6 +94,8 @@ var migrations = []Migration{
 	NewMigration("rewrite authorized_keys file via new format", useNewPublickeyFormat),
 	// v22 -> v23
 	NewMigration("generate and migrate wiki Git hooks", generateAndMigrateWikiGitHooks),
+	// v23 -> v24
+	NewMigration("add user openid table", addUserOpenID),
 }
 
 // Migrate database to current version

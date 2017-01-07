@@ -120,6 +120,10 @@ var (
 	MinPasswordLength    int
 	ImportLocalPaths     bool
 
+	// OpenID settings
+	EnableOpenIDSignIn bool
+	EnableOpenIDSignUp bool
+
 	// Database settings
 	UseSQLite3    bool
 	UseMySQL      bool
@@ -754,6 +758,10 @@ please consider changing to GITEA_CUSTOM`)
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
+
+	sec = Cfg.Section("openid")
+	EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(true)
+	EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(true)
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))

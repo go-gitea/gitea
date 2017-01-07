@@ -200,6 +200,19 @@ func runWeb(ctx *cli.Context) error {
 	m.Group("/user", func() {
 		m.Get("/login", user.SignIn)
 		m.Post("/login", bindIgnErr(auth.SignInForm{}), user.SignInPost)
+		if setting.EnableOpenIDSignIn {
+			m.Combo("/login/openid").
+				Get(user.SignInOpenID).
+				Post(bindIgnErr(auth.SignInOpenIDForm{}), user.SignInOpenIDPost)
+			m.Group("/openid", func() {
+				m.Combo("/connect").
+					Get(user.ConnectOpenID).
+					Post(bindIgnErr(auth.ConnectOpenIDForm{}), user.ConnectOpenIDPost)
+				m.Combo("/register").
+					Get(user.RegisterOpenID).
+					Post(bindIgnErr(auth.SignUpOpenIDForm{}), user.RegisterOpenIDPost)
+			})
+		}
 		m.Get("/sign_up", user.SignUp)
 		m.Post("/sign_up", bindIgnErr(auth.RegisterForm{}), user.SignUpPost)
 		m.Get("/reset_password", user.ResetPasswd)
@@ -230,6 +243,14 @@ func runWeb(ctx *cli.Context) error {
 		m.Post("/email/delete", user.DeleteEmail)
 		m.Get("/password", user.SettingsPassword)
 		m.Post("/password", bindIgnErr(auth.ChangePasswordForm{}), user.SettingsPasswordPost)
+		if setting.EnableOpenIDSignIn {
+			m.Group("/openid", func() {
+				m.Combo("").Get(user.SettingsOpenID).
+					Post(bindIgnErr(auth.AddOpenIDForm{}), user.SettingsOpenIDPost)
+				m.Post("/delete", user.DeleteOpenID)
+			})
+		}
+
 		m.Combo("/ssh").Get(user.SettingsSSHKeys).
 			Post(bindIgnErr(auth.AddSSHKeyForm{}), user.SettingsSSHKeysPost)
 		m.Post("/ssh/delete", user.DeleteSSHKey)

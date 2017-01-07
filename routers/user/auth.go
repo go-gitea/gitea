@@ -107,7 +107,6 @@ func checkAutoLogin(ctx *context.Context) bool {
 
 // SignIn render sign in page
 func SignIn(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("sign_in")
 
 	// Check auto-login.
 	if checkAutoLogin(ctx) {
@@ -120,6 +119,9 @@ func SignIn(ctx *context.Context) {
 		return
 	}
 	ctx.Data["OAuth2Providers"] = oauth2Providers
+	ctx.Data["Title"] = ctx.Tr("sign_in")
+	ctx.Data["PageIsSignIn"] = true
+	ctx.Data["PageIsLogin"] = true
 
 	ctx.HTML(200, tplSignIn)
 }
@@ -127,6 +129,8 @@ func SignIn(ctx *context.Context) {
 // SignInPost response for sign in request
 func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
+	ctx.Data["PageIsSignIn"] = true
+	ctx.Data["PageIsLogin"] = true
 
 	oauth2Providers, err := models.GetActiveOAuth2Providers()
 	if err != nil {
@@ -316,6 +320,10 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 			setting.CookieRememberName, u.Name, days, setting.AppSubURL)
 	}
 
+	ctx.Session.Delete("openid_verified_uri")
+	ctx.Session.Delete("openid_signin_remember")
+	ctx.Session.Delete("openid_determined_email")
+	ctx.Session.Delete("openid_determined_username")
 	ctx.Session.Delete("twofaUid")
 	ctx.Session.Delete("twofaRemember")
 	ctx.Session.Set("uid", u.ID)

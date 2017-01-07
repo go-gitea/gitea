@@ -964,6 +964,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 		&Action{UserID: u.ID},
 		&IssueUser{UID: u.ID},
 		&EmailAddress{UID: u.ID},
+		&UserOpenID{UID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
