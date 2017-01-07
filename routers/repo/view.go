@@ -6,14 +6,13 @@ package repo
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	gotemplate "html/template"
 	"io/ioutil"
 	"path"
-	"strings"
-
-	"encoding/base64"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
