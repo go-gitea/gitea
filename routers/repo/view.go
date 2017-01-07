@@ -47,6 +47,8 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
+	entries.Sort()
+
 	start := ctx.QueryInt("start")
 	count := ctx.QueryInt("count")
 
