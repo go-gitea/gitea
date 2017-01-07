@@ -578,6 +578,7 @@ please consider changing to GITEA_CUSTOM`)
 
 	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
 	SSH.Port = sec.Key("SSH_PORT").MustInt(22)
+	SSH.ListenPort = sec.Key("SSH_LISTEN_PORT").MustInt(SSH.Port)
 
 	// When disable SSH, start builtin server value is ignored.
 	if SSH.Disabled {
