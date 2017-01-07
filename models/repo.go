@@ -2107,13 +2107,10 @@ func GetWatchers(repoID int64) ([]*Watch, error) {
 // GetWatchers returns range of users watching given repository.
 func (repo *Repository) GetWatchers(page int) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
-	sess := x.
-		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
-		Where("watch.repo_id=?", repo.ID)
-	if setting.UsePostgreSQL {
-		sess = sess.Join("LEFT", "watch", `"user".id=watch.user_id`)
-	} else {
-		sess = sess.Join("LEFT", "watch", "user.id=watch.user_id")
+	sess := x.Where("watch.repo_id=?", repo.ID).
+		Join("LEFT", "watch", "`user`.id=`watch`.user_id")
+	if page > 0 {
+		sess = sess.Limit(ItemsPerPage, (page-1)*ItemsPerPage)
 	}
 	return users, sess.Find(&users)
 }
