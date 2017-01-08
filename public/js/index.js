@@ -210,7 +210,7 @@ function initInstall() {
     }
 
     $('#db_host').val("127.0.0.1:3306");
-    $('#db_user').val("root");
+    $('#db_user').val("gitea");
     $('#db_name').val("gitea");
 
     // Database type change detection.
