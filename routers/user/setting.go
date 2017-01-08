@@ -91,6 +91,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateProfileForm) {
 
 	ctx.User.FullName = form.FullName
 	ctx.User.Email = form.Email
+	ctx.User.KeepEmailPrivate = form.KeepEmailPrivate
 	ctx.User.Website = form.Website
 	ctx.User.Location = form.Location
 	if err := models.UpdateUser(ctx.User); err != nil {

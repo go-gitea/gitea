@@ -75,19 +75,20 @@ type User struct {
 	Name      string `xorm:"UNIQUE NOT NULL"`
 	FullName  string
 	// Email is the primary email address (to be used for communication)
-	Email       string `xorm:"NOT NULL"`
-	Passwd      string `xorm:"NOT NULL"`
-	LoginType   LoginType
-	LoginSource int64 `xorm:"NOT NULL DEFAULT 0"`
-	LoginName   string
-	Type        UserType
-	OwnedOrgs   []*User       `xorm:"-"`
-	Orgs        []*User       `xorm:"-"`
-	Repos       []*Repository `xorm:"-"`
-	Location    string
-	Website     string
-	Rands       string `xorm:"VARCHAR(10)"`
-	Salt        string `xorm:"VARCHAR(10)"`
+	Email            string `xorm:"NOT NULL"`
+	KeepEmailPrivate bool
+	Passwd           string `xorm:"NOT NULL"`
+	LoginType        LoginType
+	LoginSource      int64 `xorm:"NOT NULL DEFAULT 0"`
+	LoginName        string
+	Type             UserType
+	OwnedOrgs        []*User       `xorm:"-"`
+	Orgs             []*User       `xorm:"-"`
+	Repos            []*Repository `xorm:"-"`
+	Location         string
+	Website          string
+	Rands            string `xorm:"VARCHAR(10)"`
+	Salt             string `xorm:"VARCHAR(10)"`
 
 	Created       time.Time `xorm:"-"`
 	CreatedUnix   int64     `xorm:"INDEX"`
@@ -170,13 +171,22 @@ func (u *User) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
+// getEmail returns an noreply email, if the user has set to keep his
+// email address private, otherwise the primary email address.
+func (u *User) getEmail() string {
+	if u.KeepEmailPrivate {
+		return fmt.Sprintf("%s@%s", u.LowerName, setting.Service.NoReplyAddress)
+	}
+	return u.Email
+}
+
 // APIFormat converts a User to api.User
 func (u *User) APIFormat() *api.User {
 	return &api.User{
 		ID:        u.ID,
 		UserName:  u.Name,
 		FullName:  u.FullName,
-		Email:     u.Email,
+		Email:     u.getEmail(),
 		AvatarURL: u.AvatarLink(),
 	}
 }
@@ -361,7 +371,7 @@ func (u *User) GetFollowing(page int) ([]*User, error) {
 func (u *User) NewGitSig() *git.Signature {
 	return &git.Signature{
 		Name:  u.DisplayName(),
-		Email: u.Email,
+		Email: u.getEmail(),
 		When:  time.Now(),
 	}
 }
@@ -615,6 +625,8 @@ func CreateUser(u *User) (err error) {
 	} else if isExist {
 		return ErrEmailAlreadyUsed{u.Email}
 	}
+
+	u.KeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
 
 	u.LowerName = strings.ToLower(u.Name)
 	u.AvatarEmail = u.Email

@@ -27,6 +27,12 @@
 							<label for="email">{{.i18n.Tr "email"}}</label>
 							<input id="email" name="email" value="{{.SignedUser.Email}}">
 						</div>
+						<div class="inline field">
+							<div class="ui checkbox" id="keep-email-private">
+								<label class="poping up" data-content="{{.i18n.Tr "settings.keep_email_private_popup"}}"><strong>{{.i18n.Tr "settings.keep_email_private"}}</strong></label>
+								<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
+							</div>
+						</div>
 						<div class="field {{if .Err_Website}}error{{end}}">
 							<label for="website">{{.i18n.Tr "settings.website"}}</label>
 							<input id="website" name="website" type="url" value="{{.SignedUser.Website}}">
