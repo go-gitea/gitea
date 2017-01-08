@@ -1,0 +1,11 @@
+-
+  id: 1
+  repo_id: 3
+  user_id: 2
+  mode: 2 # write
+
+-
+  id: 2
+  repo_id: 4
+  user_id: 4
+  mode: 2 # write

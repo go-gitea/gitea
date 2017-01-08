@@ -23,3 +23,42 @@
   avatar: avatar2
   avatar_email: user2@example.com
   num_repos: 2
+
+-
+  id: 3
+  lower_name: user3
+  name: user3
+  email: user3@example.com
+  passwd: password
+  type: 1 # organization
+  salt: salt
+  is_admin: false
+  avatar: avatar3
+  avatar_email: user3@example.com
+  num_repos: 1
+
+-
+  id: 4
+  lower_name: user4
+  name: user4
+  email: user4@example.com
+  passwd: password
+  type: 1 # individual
+  salt: salt
+  is_admin: false
+  avatar: avatar4
+  avatar_email: user4@example.com
+  num_repos: 0
+
+-
+  id: 5
+  lower_name: user5
+  name: user5
+  email: user5@example.com
+  passwd: password
+  type: 1 # individual
+  salt: salt
+  is_admin: false
+  avatar: avatar5
+  avatar_email: user5@example.com
+  num_repos: 1

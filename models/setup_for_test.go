@@ -12,6 +12,7 @@ import (
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 	_ "github.com/mattn/go-sqlite3" // for the test engine
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/testfixtures.v2"
 )
 
@@ -44,4 +45,18 @@ func CreateTestEngine() error {
 // PrepareTestDatabase load test fixtures into test database
 func PrepareTestDatabase() error {
 	return fixtures.Load()
+}
+
+// LoadFixture load a test fixture from the test database, failing if fixture
+// does not exist
+func LoadTestFixture(t *testing.T, fixture interface{}, conditions... interface{}) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	for _, cond := range conditions {
+		sess = sess.Where(cond)
+	}
+	has, err := sess.Get(fixture)
+	assert.NoError(t, err)
+	assert.True(t, has)
 }

@@ -1,0 +1,7 @@
+-
+  id: 1
+  org_id: 3
+  lower_name: team1
+  name: team1
+  authorize: 2 # write
+  num_repos: 1
