@@ -209,6 +209,10 @@ function initInstall() {
         return;
     }
 
+    $('#db_host').val("127.0.0.1:3306");
+    $('#db_user').val("root");
+    $('#db_name').val("gitea");
+
     // Database type change detection.
     $("#db_type").change(function () {
         var sqliteDefault = 'data/gitea.db';
