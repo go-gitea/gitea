@@ -40,6 +40,10 @@ func TestGetUpdateTaskByUUID(t *testing.T) {
 	assert.Equal(t, "refName1", task.RefName)
 	assert.Equal(t, "oldCommitId1", task.OldCommitID)
 	assert.Equal(t, "newCommitId1", task.NewCommitID)
+
+	_, err = GetUpdateTaskByUUID("invalid")
+	assert.Error(t, err)
+	assert.True(t, IsErrUpdateTaskNotExist(err))
 }
 
 func TestDeleteUpdateTaskByUUID(t *testing.T) {
@@ -122,3 +126,5 @@ func TestListToPushCommits(t *testing.T) {
 	assert.Equal(t, "example@example.com", pushCommits.Commits[1].AuthorEmail)
 	assert.Equal(t, now, pushCommits.Commits[1].Timestamp)
 }
+
+// TODO TestPushUpdate
