@@ -59,7 +59,8 @@ func Notifications(c *context.Context) {
 		status = models.NotificationStatusUnread
 	}
 
-	notifications, err := models.NotificationsForUser(c.User, status, page, perPage)
+	statuses := []models.NotificationStatus{status, models.NotificationStatusPinned}
+	notifications, err := models.NotificationsForUser(c.User, statuses, page, perPage)
 	if err != nil {
 		c.Handle(500, "ErrNotificationsForUser", err)
 		return
