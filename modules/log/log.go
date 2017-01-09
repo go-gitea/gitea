@@ -42,11 +42,12 @@ func NewLogger(bufLen int64, mode, config string) {
 // DelLogger removes loggers that are for the given mode
 func DelLogger(mode string) error {
 	for _, l := range loggers {
-		if l.adapter == mode {
+		if _, ok := l.outputs[mode]; ok {
 			return l.DelLogger(mode)
 		}
 	}
-	panic(`log: unknown adapter "` + mode + `" (forgotten register?)`)
+	Trace("Log adapter %s not found, no need to delete", mode)
+	return nil
 }
 
 // NewGitLogger create a logger for git
