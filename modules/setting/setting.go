@@ -660,7 +660,9 @@ please consider changing to GITEA_CUSTOM`)
 
 			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
 
-			os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm)
+			if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
+				log.Fatal(4, "Fail to create '%s': %v", CustomConf, err)
+			}
 			if err := cfg.SaveTo(CustomConf); err != nil {
 				log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
 				return
