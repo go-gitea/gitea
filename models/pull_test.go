@@ -37,6 +37,9 @@ func TestPullRequest_LoadIssue(t *testing.T) {
 	assert.NoError(t, pr.LoadIssue())
 	assert.NotNil(t, pr.Issue)
 	assert.Equal(t, int64(2), pr.Issue.ID)
+	assert.NoError(t, pr.LoadIssue())
+	assert.NotNil(t, pr.Issue)
+	assert.Equal(t, int64(2), pr.Issue.ID)
 }
 
 // TODO TestPullRequest_APIFormat
@@ -44,6 +47,9 @@ func TestPullRequest_LoadIssue(t *testing.T) {
 func TestPullRequest_GetBaseRepo(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	pr := loadFixturePullRequest(t, 1)
+	assert.NoError(t, pr.GetBaseRepo())
+	assert.NotNil(t, pr.BaseRepo)
+	assert.Equal(t, pr.BaseRepoID, pr.BaseRepo.ID)
 	assert.NoError(t, pr.GetBaseRepo())
 	assert.NotNil(t, pr.BaseRepo)
 	assert.Equal(t, pr.BaseRepoID, pr.BaseRepo.ID)
@@ -231,6 +237,8 @@ func TestPullRequestList_LoadAttributes(t *testing.T) {
 		assert.NotNil(t, pr.Issue)
 		assert.Equal(t, pr.IssueID, pr.Issue.ID)
 	}
+
+	assert.NoError(t, PullRequestList([]*PullRequest{}).LoadAttributes())
 }
 
 // TODO TestAddTestPullRequestTask
