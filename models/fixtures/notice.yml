@@ -1,0 +1,14 @@
+-
+  id: 1
+  type: 1 # NoticeRepository
+  description: description1
+
+-
+  id: 2
+  type: 1 # NoticeRepository
+  description: description2
+
+-
+  id: 3
+  type: 1 # NoticeRepository
+  description: description3
