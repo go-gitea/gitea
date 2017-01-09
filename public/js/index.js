@@ -123,10 +123,10 @@ function initCommentForm() {
             }
         }
 
-        var labelIds = "";
+        var labelIds = [];
         $(this).parent().find('.item').each(function () {
             if ($(this).hasClass('checked')) {
-                labelIds += $(this).data('id') + ",";
+                labelIds.push($(this).data('id'));
                 $($(this).data('id-selector')).removeClass('hide');
             } else {
                 $($(this).data('id-selector')).addClass('hide');
@@ -137,7 +137,7 @@ function initCommentForm() {
         } else {
             $noSelect.addClass('hide');
         }
-        $($(this).parent().data('id')).val(labelIds);
+        $($(this).parent().data('id')).val(labelIds.join(","));
         return false;
     });
     $labelMenu.find('.no-select.item').click(function () {
