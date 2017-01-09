@@ -47,16 +47,27 @@ func PrepareTestDatabase() error {
 	return fixtures.Load()
 }
 
-// LoadFixture load a test fixture from the test database, failing if fixture
-// does not exist
-func LoadTestFixture(t *testing.T, fixture interface{}, conditions... interface{}) {
+func loadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
 	for _, cond := range conditions {
 		sess = sess.Where(cond)
 	}
-	has, err := sess.Get(fixture)
+	return sess.Get(bean)
+}
+
+// AssertExistsAndLoadBean assert that a bean exists and load it from the test
+// database
+func AssertExistsAndLoadBean(t *testing.T, bean interface{}, conditions ...interface{}) {
+	exists, err := loadBeanIfExists(bean, conditions...)
 	assert.NoError(t, err)
-	assert.True(t, has)
+	assert.True(t, exists)
+}
+
+// AssertNotExistsBean assert that a bean does not exist in the test database
+func AssertNotExistsBean(t *testing.T, bean interface{}, conditions ...interface{}) {
+	exists, err := loadBeanIfExists(bean, conditions...)
+	assert.NoError(t, err)
+	assert.False(t, exists)
 }

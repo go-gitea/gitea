@@ -2,6 +2,7 @@
   id: 1
   lower_name: user1
   name: user1
+  full_name: User One
   email: user1@example.com
   passwd: password
   type: 0 # individual
@@ -15,6 +16,7 @@
   id: 2
   lower_name: user2
   name: user2
+  full_name: User Two
   email: user2@example.com
   passwd: password
   type: 0 # individual
@@ -28,6 +30,7 @@
   id: 3
   lower_name: user3
   name: user3
+  full_name: User Three
   email: user3@example.com
   passwd: password
   type: 1 # organization
@@ -41,6 +44,7 @@
   id: 4
   lower_name: user4
   name: user4
+  full_name: User Four
   email: user4@example.com
   passwd: password
   type: 1 # individual
@@ -54,6 +58,7 @@
   id: 5
   lower_name: user5
   name: user5
+  full_name: User Five
   email: user5@example.com
   passwd: password
   type: 1 # individual
