@@ -250,10 +250,14 @@ func getNotificationCount(e Engine, user *User, status NotificationStatus) (coun
 	return
 }
 
-func setNotificationStatusRead(e Engine, userID, issueID int64) error {
+func setNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {
 	notification, err := getIssueNotification(e, userID, issueID)
 	// ignore if not exists
 	if err != nil {
+		return nil
+	}
+
+	if notification.Status != NotificationStatusUnread {
 		return nil
 	}
 
