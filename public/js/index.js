@@ -209,9 +209,11 @@ function initInstall() {
         return;
     }
 
-    $('#db_host').val("127.0.0.1:3306");
-    $('#db_user').val("gitea");
-    $('#db_name').val("gitea");
+    if ($('#db_host').val()=="") {
+        $('#db_host').val("127.0.0.1:3306");
+        $('#db_user').val("gitea");
+        $('#db_name').val("gitea");
+    }
 
     // Database type change detection.
     $("#db_type").change(function () {
