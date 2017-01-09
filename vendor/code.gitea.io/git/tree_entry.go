@@ -162,7 +162,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interfac
 
 // GetCommitsInfoWithCustomConcurrency takes advantages of concurrency to speed up getting information
 // of all commits that are corresponding to these entries. If the given maxConcurrency is negative or
-// equal to zero:  the right number of goroutine (concurrency) to use will be choosen related of the
+// equal to zero:  the right number of goroutine (concurrency) to use will be chosen related of the
 // host CPU.
 func (tes Entries) GetCommitsInfoWithCustomConcurrency(commit *Commit, treePath string, maxConcurrency int) ([][]interface{}, error) {
 	if len(tes) == 0 {

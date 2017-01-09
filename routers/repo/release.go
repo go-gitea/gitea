@@ -71,6 +71,11 @@ func Releases(ctx *context.Context) {
 		return
 	}
 
+	if len(rawTags) == 0 {
+		ctx.HTML(200, tplReleases)
+		return
+	}
+
 	if len(rawTags) <= (page-1)*limit {
 		ctx.Handle(500, "Releases", errors.New("no more pages"))
 		return
