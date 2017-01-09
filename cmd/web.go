@@ -60,6 +60,11 @@ and it takes care of all the other things for you`,
 			Value: "custom/conf/app.ini",
 			Usage: "Custom configuration file path",
 		},
+		cli.StringFlag{
+			Name:  "pid, P",
+			Value: "custom/run/app.pid",
+			Usage: "Custom pid file path",
+		},
 	},
 }
 
@@ -156,6 +161,11 @@ func runWeb(ctx *cli.Context) error {
 	if ctx.IsSet("config") {
 		setting.CustomConf = ctx.String("config")
 	}
+
+	if ctx.IsSet("pid") {
+		setting.CustomPID = ctx.String("pid")
+	}
+
 	routers.GlobalInit()
 
 	m := newMacaron()
