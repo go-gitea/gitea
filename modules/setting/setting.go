@@ -515,11 +515,9 @@ please consider changing to GITEA_CUSTOM`)
 		}
 	}
 
-	if len(CustomPID) == 0 {
-		CustomPID = CustomPath + "/run/app.pid"
+	if len(CustomPID) > 0 {
+		createPIDFile(CustomPID)
 	}
-
-	createPIDFile(CustomPID)
 
 	if len(CustomConf) == 0 {
 		CustomConf = CustomPath + "/conf/app.ini"
