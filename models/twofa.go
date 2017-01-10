@@ -6,17 +6,14 @@ package models
 
 import (
 	"crypto/subtle"
+	"encoding/base64"
 	"time"
-
-	"code.gitea.io/gitea/modules/log"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
-
-	"encoding/base64"
+	"github.com/pquerna/otp/totp"
 
 	"code.gitea.io/gitea/modules/base"
-	"github.com/pquerna/otp/totp"
 )
 
 // Twofa represents a two-factor authentication token.
@@ -52,8 +49,7 @@ func (t *Twofa) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
-// GenerateScratchToken recreates the scratch token the user is using. It is
-// effectively another password, hence it is also hashed.
+// GenerateScratchToken recreates the scratch token the user is using.
 func (t *Twofa) GenerateScratchToken() error {
 	token, err := base.GetRandomString(8)
 	if err != nil {
@@ -90,9 +86,6 @@ func (t *Twofa) SetSecret(secret string) error {
 	if err != nil {
 		return err
 	}
-	log.Debug("encrypted: %x", secretBytes)
-	log.Debug("secret: %s", secret)
-	log.Debug("key: %x", k)
 	t.Secret = base64.StdEncoding.EncodeToString(secretBytes)
 	return nil
 }
