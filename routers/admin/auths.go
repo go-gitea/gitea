@@ -53,6 +53,7 @@ var (
 		{models.LoginNames[models.LoginDLDAP], models.LoginDLDAP},
 		{models.LoginNames[models.LoginSMTP], models.LoginSMTP},
 		{models.LoginNames[models.LoginPAM], models.LoginPAM},
+		{models.LoginNames[models.LoginOAuth2], models.LoginOAuth2},
 	}
 	securityProtocols = []dropdownItem{
 		{models.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted], ldap.SecurityProtocolUnencrypted},
@@ -113,6 +114,16 @@ func parseSMTPConfig(form auth.AuthenticationForm) *models.SMTPConfig {
 	}
 }
 
+func parseOAuth2Config(form auth.AuthenticationForm) *models.OAuth2Config {
+	return &models.OAuth2Config{
+		Provider:	form.OAuth2Provider,
+		ClientId:	form.OAuth2ClientId,
+		ClientSecret:	form.OAuth2ClientSecret,
+		TLS:		form.TLS,
+		SkipVerify:	form.SkipVerify,
+	}
+}
+
 // NewAuthSourcePost response for adding an auth source
 func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
@@ -138,6 +149,8 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 		config = &models.PAMConfig{
 			ServiceName: form.PAMServiceName,
 		}
+	case models.LoginOAuth2:
+		config = parseOAuth2Config(form)
 	default:
 		ctx.Error(400)
 		return
@@ -221,6 +234,8 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 		config = &models.PAMConfig{
 			ServiceName: form.PAMServiceName,
 		}
+	case models.LoginOAuth2:
+		config = parseOAuth2Config(form)
 	default:
 		ctx.Error(400)
 		return

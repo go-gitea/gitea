@@ -21,6 +21,7 @@ import (
 
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/pam"
+	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -35,14 +36,16 @@ const (
 	LoginSMTP             // 3
 	LoginPAM              // 4
 	LoginDLDAP            // 5
+	LoginOAuth2           // 6
 )
 
 // LoginNames contains the name of LoginType values.
 var LoginNames = map[LoginType]string{
-	LoginLDAP:  "LDAP (via BindDN)",
-	LoginDLDAP: "LDAP (simple auth)", // Via direct bind
-	LoginSMTP:  "SMTP",
-	LoginPAM:   "PAM",
+	LoginLDAP:   "LDAP (via BindDN)",
+	LoginDLDAP:  "LDAP (simple auth)", // Via direct bind
+	LoginSMTP:   "SMTP",
+	LoginPAM:    "PAM",
+	LoginOAuth2: "OAuth2",
 }
 
 // SecurityProtocolNames contains the name of SecurityProtocol values.
@@ -57,6 +60,7 @@ var (
 	_ core.Conversion = &LDAPConfig{}
 	_ core.Conversion = &SMTPConfig{}
 	_ core.Conversion = &PAMConfig{}
+	_ core.Conversion = &OAuth2Config{}
 )
 
 // LDAPConfig holds configuration for LDAP login source.
@@ -115,6 +119,25 @@ func (cfg *PAMConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
+// OAuth2 holds configuration for the OAuth2 login source.
+type OAuth2Config struct {
+	Provider       string
+	ClientId       string
+	ClientSecret   string
+	TLS            bool
+	SkipVerify     bool
+}
+
+// FromDB fills up an OAuth2Config from serialized format.
+func (cfg *OAuth2Config) FromDB(bs []byte) error {
+	return json.Unmarshal(bs, cfg)
+}
+
+// ToDB exports an SMTPConfig to a serialized format.
+func (cfg *OAuth2Config) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
 // LoginSource represents an external way for authorizing users.
 type LoginSource struct {
 	ID        int64 `xorm:"pk autoincr"`
@@ -162,6 +185,8 @@ func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 			source.Cfg = new(SMTPConfig)
 		case LoginPAM:
 			source.Cfg = new(PAMConfig)
+		case LoginOAuth2:
+			source.Cfg = new(OAuth2Config)
 		default:
 			panic("unrecognized login source type: " + com.ToStr(*val))
 		}
@@ -203,11 +228,16 @@ func (source *LoginSource) IsPAM() bool {
 	return source.Type == LoginPAM
 }
 
+// IsOAuth2 returns true of this source is of the OAuth2 type.
+func (source *LoginSource) IsOAuth2() bool {
+	return source.Type == LoginOAuth2
+}
+
 // HasTLS returns true of this source supports TLS.
 func (source *LoginSource) HasTLS() bool {
 	return ((source.IsLDAP() || source.IsDLDAP()) &&
 		source.LDAP().SecurityProtocol > ldap.SecurityProtocolUnencrypted) ||
-		source.IsSMTP()
+		source.IsSMTP() || source.IsOAuth2()
 }
 
 // UseTLS returns true of this source is configured to use TLS.
@@ -217,6 +247,8 @@ func (source *LoginSource) UseTLS() bool {
 		return source.LDAP().SecurityProtocol != ldap.SecurityProtocolUnencrypted
 	case LoginSMTP:
 		return source.SMTP().TLS
+	case LoginOAuth2:
+		return source.OAuth2().TLS
 	}
 
 	return false
@@ -230,6 +262,8 @@ func (source *LoginSource) SkipVerify() bool {
 		return source.LDAP().SkipVerify
 	case LoginSMTP:
 		return source.SMTP().SkipVerify
+	case LoginOAuth2:
+		return source.OAuth2().SkipVerify
 	}
 
 	return false
@@ -250,6 +284,11 @@ func (source *LoginSource) PAM() *PAMConfig {
 	return source.Cfg.(*PAMConfig)
 }
 
+// OAuth2 returns OAuth2Config for this source, if of OAuth2 type.
+func (source *LoginSource) OAuth2() *OAuth2Config {
+	return source.Cfg.(*OAuth2Config)
+}
+
 // CreateLoginSource inserts a LoginSource in the DB if not already
 // existing with the given name.
 func CreateLoginSource(source *LoginSource) error {
@@ -266,7 +305,7 @@ func CreateLoginSource(source *LoginSource) error {
 
 // LoginSources returns a slice of all login sources found in DB.
 func LoginSources() ([]*LoginSource, error) {
-	auths := make([]*LoginSource, 0, 5)
+	auths := make([]*LoginSource, 0, 6)
 	return auths, x.Find(&auths)
 }
 
@@ -526,6 +565,38 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 	return user, CreateUser(user)
 }
 
+//  ________      _____          __  .__     ________
+//  \_____  \    /  _  \  __ ___/  |_|  |__  \_____  \
+//   /   |   \  /  /_\  \|  |  \   __\  |  \  /  ____/
+//  /    |    \/    |    \  |  /|  | |   Y  \/       \
+//  \_______  /\____|__  /____/ |__| |___|  /\_______ \
+//          \/         \/                 \/         \/
+
+// LoginViaOAuth2 queries if login/password is valid against the OAuth2.0 provider,
+// and create a local user if success when enabled.
+func LoginViaOAuth2(user *User, login, password string, sourceID int64, cfg *OAuth2Config, autoRegister bool) (*User, error) {
+	email, err := oauth2.Auth(cfg.Provider, cfg.ClientId, cfg.ClientSecret, login, password)
+	if err != nil {
+		return nil, err
+	}
+
+	if !autoRegister {
+		return user, nil
+	}
+
+	user = &User{
+		LowerName:   strings.ToLower(login),
+		Name:        login,
+		Email:       email,
+		Passwd:      password,
+		LoginType:   LoginOAuth2,
+		LoginSource: sourceID,
+		LoginName:   login,
+		IsActive:    true,
+	}
+	return user, CreateUser(user)
+}
+
 // ExternalUserLogin attempts a login using external source types.
 func ExternalUserLogin(user *User, login, password string, source *LoginSource, autoRegister bool) (*User, error) {
 	if !source.IsActived {
@@ -539,6 +610,8 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource, 
 		return LoginViaSMTP(user, login, password, source.ID, source.Cfg.(*SMTPConfig), autoRegister)
 	case LoginPAM:
 		return LoginViaPAM(user, login, password, source.ID, source.Cfg.(*PAMConfig), autoRegister)
+	case LoginOAuth2:
+		return LoginViaOAuth2(user, login, password, source.ID, source.Cfg.(*OAuth2Config), autoRegister)
 	}
 
 	return nil, ErrUnsupportedLoginType
@@ -580,7 +653,7 @@ func UserSignIn(username, password string) (*User, error) {
 		}
 	}
 
-	sources := make([]*LoginSource, 0, 3)
+	sources := make([]*LoginSource, 0, 6)
 	if err = x.UseBool().Find(&sources, &LoginSource{IsActived: true}); err != nil {
 		return nil, err
 	}
