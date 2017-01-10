@@ -765,6 +765,18 @@
 			"revisionTime": "2016-09-12T16:18:15Z"
 		},
 		{
+			"checksumSHA1": "UL3g+cyh3ufwt0tP0dvwbbjLX+c=",
+			"path": "github.com/pquerna/otp/hotp",
+			"revision": "54653902c20e47f3417541d35435cb6d6162e28a",
+			"revisionTime": "2016-09-12T16:18:15Z"
+		},
+		{
+			"checksumSHA1": "Ie55pTQw1rnOZ8KDekSDXUWDT1I=",
+			"path": "github.com/pquerna/otp/totp",
+			"revision": "54653902c20e47f3417541d35435cb6d6162e28a",
+			"revisionTime": "2016-09-12T16:18:15Z"
+		},
+		{
 			"checksumSHA1": "c7jHQZk5ZEsFR9EXsWJXkszPBZA=",
 			"path": "github.com/russross/blackfriday",
 			"revision": "5f33e7b7878355cd2b7e6b8eefc48a5472c69f70",
