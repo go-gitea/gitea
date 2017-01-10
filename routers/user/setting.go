@@ -5,12 +5,18 @@
 package user
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
 
 	"github.com/Unknwon/com"
+	"github.com/pquerna/otp/totp"
+
+	"encoding/base64"
+	"html/template"
+	"image/png"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -28,6 +34,8 @@ const (
 	tplSettingsSSHKeys      base.TplName = "user/settings/sshkeys"
 	tplSettingsSocial       base.TplName = "user/settings/social"
 	tplSettingsApplications base.TplName = "user/settings/applications"
+	tplSettingsTwofa        base.TplName = "user/settings/twofa"
+	tplSettingsTwofaEnroll  base.TplName = "user/settings/twofa_enroll"
 	tplSettingsDelete       base.TplName = "user/settings/delete"
 	tplSecurity             base.TplName = "user/security"
 )
@@ -435,6 +443,165 @@ func SettingsDeleteApplication(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
+}
+
+// SettingsTwofa renders the 2FA page.
+func SettingsTwofa(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsTwofa"] = true
+
+	enrolled := true
+	_, err := models.GetTwofaByUID(ctx.User.ID)
+	if err != nil {
+		if models.IsErrTwofaNotEnrolled(err) {
+			enrolled = false
+		} else {
+			ctx.Handle(500, "SettingsTwofa", err)
+			return
+		}
+	}
+
+	ctx.Data["TwofaEnrolled"] = enrolled
+	ctx.HTML(200, tplSettingsTwofa)
+}
+
+// SettingsTwofaRegenerateScratch regenerates the user's 2FA scratch code.
+func SettingsTwofaRegenerateScratch(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsTwofa"] = true
+
+	t, err := models.GetTwofaByUID(ctx.User.ID)
+	if err != nil {
+		ctx.Handle(500, "SettingsTwofa", err)
+		return
+	}
+
+	if err = t.GenerateScratchToken(); err != nil {
+		ctx.Handle(500, "SettingsTwofa", err)
+		return
+	}
+
+	if err = models.UpdateTwofa(t); err != nil {
+		ctx.Handle(500, "SettingsTwofa", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("settings.twofa_scratch_token_regenerated", t.ScratchToken))
+	ctx.Redirect(setting.AppSubURL + "/user/settings/2fa")
+}
+
+// SettingsTwofaDisable deletes the user's 2FA settings.
+func SettingsTwofaDisable(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsTwofa"] = true
+
+	t, err := models.GetTwofaByUID(ctx.User.ID)
+	if err != nil {
+		ctx.Handle(500, "SettingsTwofa", err)
+		return
+	}
+
+	if err = models.DeleteTwofaByID(t.ID, ctx.User.ID); err != nil {
+		ctx.Handle(500, "SettingsTwofa", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
+	ctx.Redirect(setting.AppSubURL + "/user/settings/2fa")
+}
+
+// SettingsTwofaEnroll shows the page where the user can enroll into 2FA.
+func SettingsTwofaEnroll(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsTwofa"] = true
+
+	t, err := models.GetTwofaByUID(ctx.User.ID)
+	if t != nil {
+		// already enrolled
+		ctx.Handle(500, "SettingsTwofa", err)
+		return
+	}
+	if err != nil && !models.IsErrTwofaNotEnrolled(err) {
+		ctx.Handle(500, "SettingsTwofa", err)
+		return
+	}
+
+	otp, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      setting.AppName,
+		AccountName: ctx.User.Name,
+	})
+	if err != nil {
+		ctx.Handle(500, "SettingsTwofa", err)
+		return
+	}
+
+	ctx.Data["TwofaSecret"] = otp.Secret()
+	img, err := otp.Image(320, 240)
+	if err != nil {
+		ctx.Handle(500, "SettingsTwofa", err)
+		return
+	}
+
+	var imgBytes bytes.Buffer
+	if err = png.Encode(&imgBytes, img); err != nil {
+		ctx.Handle(500, "SettingsTwofa", err)
+		return
+	}
+
+	ctx.Data["QrUri"] = template.URL("data:image/png;base64," + base64.StdEncoding.EncodeToString(imgBytes.Bytes()))
+	ctx.Session.Set("twofaSecret", otp.Secret())
+	ctx.HTML(200, tplSettingsTwofaEnroll)
+}
+
+// SettingsTwofaEnrollPost handles enrolling the user into 2FA.
+func SettingsTwofaEnrollPost(ctx *context.Context, form auth.TwofaAuthForm) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsTwofa"] = true
+
+	t, err := models.GetTwofaByUID(ctx.User.ID)
+	if t != nil {
+		// already enrolled
+		ctx.Handle(500, "SettingsTwofa", err)
+		return
+	}
+	if err != nil && !models.IsErrTwofaNotEnrolled(err) {
+		ctx.Handle(500, "SettingsTwofa", err)
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.HTML(200, tplSettingsTwofaEnroll)
+		return
+	}
+
+	secret := ctx.Session.Get("twofaSecret").(string)
+	if !totp.Validate(form.Passcode, secret) {
+		ctx.Flash.Error(ctx.Tr("settings.passcode_invalid"))
+		ctx.HTML(200, tplSettingsTwofaEnroll)
+		return
+	}
+
+	t = &models.Twofa{
+		UID: ctx.User.ID,
+	}
+	err = t.SetSecret(secret)
+	if err != nil {
+		ctx.Handle(500, "SettingsTwofa", err)
+		return
+	}
+	err = t.GenerateScratchToken()
+	if err != nil {
+		ctx.Handle(500, "SettingsTwofa", err)
+		return
+	}
+
+	if err = models.NewTwofa(t); err != nil {
+		ctx.Handle(500, "SettingsTwofa", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", t.ScratchToken))
+	ctx.Redirect(setting.AppSubURL + "/user/settings/2fa")
 }
 
 // SettingsDelete render user suicide page and response for delete user himself
