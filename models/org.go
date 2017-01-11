@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 )
@@ -224,23 +225,63 @@ func DeleteOrganization(org *User) (err error) {
 		return err
 	}
 
-	if err = deleteBeans(sess,
-		&Team{OrgID: org.ID},
-		&OrgUser{OrgID: org.ID},
-		&TeamUser{OrgID: org.ID},
-	); err != nil {
-		return fmt.Errorf("deleteBeans: %v", err)
-	}
-
-	if err = deleteUser(sess, org); err != nil {
-		return fmt.Errorf("deleteUser: %v", err)
+	if err = deleteOrg(sess, org); err != nil {
+		if IsErrUserOwnRepos(err) {
+			return err
+		} else if err != nil {
+			return fmt.Errorf("deleteOrg: %v", err)
+		}
 	}
 
 	if err = sess.Commit(); err != nil {
 		return err
 	}
 
-	return RewriteAllPublicKeys()
+	return nil
+}
+
+func deleteOrg(e *xorm.Session, u *User) error {
+	if !u.IsOrganization() {
+		return fmt.Errorf("You can't delete none organization user: %s", u.Name)
+	}
+
+	// Check ownership of repository.
+	count, err := getRepositoryCount(e, u)
+	if err != nil {
+		return fmt.Errorf("GetRepositoryCount: %v", err)
+	} else if count > 0 {
+		return ErrUserOwnRepos{UID: u.ID}
+	}
+
+	if err := deleteBeans(e,
+		&Team{OrgID: u.ID},
+		&OrgUser{OrgID: u.ID},
+		&TeamUser{OrgID: u.ID},
+	); err != nil {
+		return fmt.Errorf("deleteBeans: %v", err)
+	}
+
+	if _, err = e.Id(u.ID).Delete(new(User)); err != nil {
+		return fmt.Errorf("Delete: %v", err)
+	}
+
+	// FIXME: system notice
+	// Note: There are something just cannot be roll back,
+	//	so just keep error logs of those operations.
+	path := UserPath(u.Name)
+
+	if err := os.RemoveAll(path); err != nil {
+		return fmt.Errorf("Fail to RemoveAll %s: %v", path, err)
+	}
+
+	avatarPath := u.CustomAvatarPath()
+	if com.IsExist(avatarPath) {
+		if err := os.Remove(avatarPath); err != nil {
+			return fmt.Errorf("Fail to remove %s: %v", avatarPath, err)
+		}
+	}
+
+	return nil
 }
 
 // ________                ____ ___
