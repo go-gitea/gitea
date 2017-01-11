@@ -470,7 +470,7 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 	return IsOrganizationOwner(orgID, u.ID)
 }
 
-// IsPublicMember returns true if user public his/her membership in give organization.
+// IsPublicMember returns true if user public his/her membership in given organization.
 func (u *User) IsPublicMember(orgID int64) bool {
 	return IsPublicMembership(orgID, u.ID)
 }
