@@ -50,6 +50,43 @@
 				</p>
 			</div>
 		</div>
+	{{else if eq .Lang "zh-TW"}}
+		<div class="ui stackable middle very relaxed page grid">
+			<div class="eight wide center column">
+				<h1 class="hero ui icon header">
+					<i class="octicon octicon-flame"></i> 易安裝
+				</h1>
+				<p class="large">
+					直接用 <a target="_blank" rel="noopener" href="https://docs.gitea.io/zh-cn/install-from-binary/">執行檔安裝</a>，還可以透過 <a target="_blank" rel="noopener" href="https://github.com/go-gitea/gitea/tree/master/docker">Docker</a> 或 <a target="_blank" rel="noopener" href="https://github.com/geerlingguy/ansible-vagrant-examples/tree/master/gogs">Vagrant</a>，以及 <a target="_blank" rel="noopener" href="https://docs.gitea.io/zh-cn/install-from-package/">套件</a>安装。
+				</p>
+			</div>
+			<div class="eight wide center column">
+				<h1 class="hero ui icon header">
+					<i class="octicon octicon-device-desktop"></i> 跨平台
+				</h1>
+				<p class="large">
+					Gitea 可以運作在任何 <a target="_blank" rel="noopener" href="http://golang.org/">Go 語言</a>能夠編譯的平台: Windows, macOS, Linux, ARM 等等。挑一個您喜歡的就好。
+				</p>
+			</div>
+		</div>
+		<div class="ui stackable middle very relaxed page grid">
+			<div class="eight wide center column">
+				<h1 class="hero ui icon header">
+					<i class="octicon octicon-rocket"></i> 輕量級
+				</h1>
+				<p class="large">
+					一個便宜的樹莓派 Raspberry Pi 就可以滿足 Gitea 的最低系統需求，節省機器資源！
+				</p>
+			</div>
+			<div class="eight wide center column">
+				<h1 class="hero ui icon header">
+					<i class="octicon octicon-code"></i> 開源化
+				</h1>
+				<p class="large">
+					所有程式碼都在 <a target="_blank" rel="noopener" href="https://github.com/go-gitea/gitea/">GitHub</a> 上，加入我們讓 Gitea 更好，別害羞，你可以做到的。
+				</p>
+			</div>
+		</div>
 	{{else if eq .Lang "zh-CN"}}
 		<div class="ui stackable middle very relaxed page grid">
 			<div class="eight wide center column">
