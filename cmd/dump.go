@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -53,6 +54,7 @@ func runDump(ctx *cli.Context) error {
 		setting.CustomConf = ctx.String("config")
 	}
 	setting.NewContext()
+	setting.NewServices() // cannot access session settings otherwise
 	models.LoadConfigs()
 	models.SetEngine()
 
@@ -107,6 +109,20 @@ func runDump(ctx *cli.Context) error {
 	} else {
 		log.Printf("Custom dir %s doesn't exist, skipped", setting.CustomPath)
 	}
+
+	log.Printf("Packing data directory...%s", setting.AppDataPath)
+	var sessionAbsPath string
+	if setting.SessionConfig.Provider == "file" {
+		if len(setting.SessionConfig.ProviderConfig) == 0 {
+			setting.SessionConfig.ProviderConfig = "data/sessions"
+		}
+		sessionAbsPath, _ = filepath.Abs(setting.SessionConfig.ProviderConfig)
+	}
+
+	if err := zipAddDirectoryExclude(z, "data", setting.AppDataPath, sessionAbsPath); err != nil {
+		log.Fatalf("Fail to include data directory: %v", err)
+	}
+
 	if err := z.AddDir("log", setting.LogRootPath); err != nil {
 		log.Fatalf("Fail to include log: %v", err)
 	}
@@ -127,5 +143,42 @@ func runDump(ctx *cli.Context) error {
 	}
 	log.Printf("Finish dumping in file %s", fileName)
 
+	return nil
+}
+
+// zipAddDirectoryExclude zips absPath to specified zipPath inside z excluding excludeAbsPath
+func zipAddDirectoryExclude(zip *zip.ZipArchive, zipPath, absPath string, excludeAbsPath string) error {
+	absPath, err := filepath.Abs(absPath)
+	if err != nil {
+		return err
+	}
+	dir, err := os.Open(absPath)
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+
+	zip.AddEmptyDir(zipPath)
+
+	files, err := dir.Readdir(0)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		currentAbsPath := path.Join(absPath, file.Name())
+		currentZipPath := path.Join(zipPath, file.Name())
+		if file.IsDir() {
+			if currentAbsPath != excludeAbsPath {
+				if err = zipAddDirectoryExclude(zip, currentZipPath, currentAbsPath, excludeAbsPath); err != nil {
+					return err
+				}
+			}
+
+		} else {
+			if err = zip.AddFile(currentZipPath, currentAbsPath); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
