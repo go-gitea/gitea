@@ -43,7 +43,7 @@
 										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="notification_id" value="{{$notification.ID}}" />
 										<input type="hidden" name="status" value="pinned" />
-										<button class="ui button" title="Pin notification">
+										<button class="ui button" title='{{$.i18n.Tr "notification.pin"}}'>
 											<i class="octicon octicon-pin"></i>
 										</button>
 									</form>
@@ -53,7 +53,7 @@
 										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="notification_id" value="{{$notification.ID}}" />
 										<input type="hidden" name="status" value="read" />
-										<button class="ui button" title="Mark as read">
+										<button class="ui button" title='{{$.i18n.Tr "notification.mark_as_read"}}'>
 											<i class="octicon octicon-check"></i>
 										</button>
 									</form>
@@ -62,7 +62,7 @@
 										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="notification_id" value="{{$notification.ID}}" />
 										<input type="hidden" name="status" value="unread" />
-										<button class="ui button" title="Mark as unread">
+										<button class="ui button" title='{{$.i18n.Tr "notification.mark_as_unread"}}'>
 											<i class="octicon octicon-bell"></i>
 										</button>
 									</form>
