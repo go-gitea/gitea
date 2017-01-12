@@ -5,6 +5,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -20,6 +21,8 @@ const (
 	NotificationStatusUnread NotificationStatus = iota + 1
 	// NotificationStatusRead represents a read notification
 	NotificationStatusRead
+	// NotificationStatusPinned represents a pinned notification
+	NotificationStatusPinned
 )
 
 const (
@@ -182,13 +185,19 @@ func getIssueNotification(e Engine, userID, issueID int64) (*Notification, error
 }
 
 // NotificationsForUser returns notifications for a given user and status
-func NotificationsForUser(user *User, status NotificationStatus, page, perPage int) ([]*Notification, error) {
-	return notificationsForUser(x, user, status, page, perPage)
+func NotificationsForUser(user *User, statuses []NotificationStatus, page, perPage int) ([]*Notification, error) {
+	return notificationsForUser(x, user, statuses, page, perPage)
 }
-func notificationsForUser(e Engine, user *User, status NotificationStatus, page, perPage int) (notifications []*Notification, err error) {
+func notificationsForUser(e Engine, user *User, statuses []NotificationStatus, page, perPage int) (notifications []*Notification, err error) {
+	// FIXME: Xorm does not support aliases types (like NotificationStatus) on In() method
+	s := make([]uint8, len(statuses))
+	for i, status := range statuses {
+		s[i] = uint8(status)
+	}
+
 	sess := e.
 		Where("user_id = ?", user.ID).
-		And("status = ?", status).
+		In("status", s).
 		OrderBy("updated_unix DESC")
 
 	if page > 0 && perPage > 0 {
@@ -241,10 +250,14 @@ func getNotificationCount(e Engine, user *User, status NotificationStatus) (coun
 	return
 }
 
-func setNotificationStatusRead(e Engine, userID, issueID int64) error {
+func setNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {
 	notification, err := getIssueNotification(e, userID, issueID)
 	// ignore if not exists
 	if err != nil {
+		return nil
+	}
+
+	if notification.Status != NotificationStatusUnread {
 		return nil
 	}
 
@@ -252,4 +265,38 @@ func setNotificationStatusRead(e Engine, userID, issueID int64) error {
 
 	_, err = e.Id(notification.ID).Update(notification)
 	return err
+}
+
+// SetNotificationStatus change the notification status
+func SetNotificationStatus(notificationID int64, user *User, status NotificationStatus) error {
+	notification, err := getNotificationByID(notificationID)
+	if err != nil {
+		return err
+	}
+
+	if notification.UserID != user.ID {
+		return fmt.Errorf("Can't change notification of another user: %d, %d", notification.UserID, user.ID)
+	}
+
+	notification.Status = status
+
+	_, err = x.Id(notificationID).Update(notification)
+	return err
+}
+
+func getNotificationByID(notificationID int64) (*Notification, error) {
+	notification := new(Notification)
+	ok, err := x.
+		Where("id = ?", notificationID).
+		Get(notification)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !ok {
+		return nil, fmt.Errorf("Notification %d does not exists", notificationID)
+	}
+
+	return notification, nil
 }

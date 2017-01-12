@@ -1,7 +1,9 @@
 package user
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/Unknwon/paginater"
@@ -9,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 const (
@@ -56,7 +59,8 @@ func Notifications(c *context.Context) {
 		status = models.NotificationStatusUnread
 	}
 
-	notifications, err := models.NotificationsForUser(c.User, status, page, perPage)
+	statuses := []models.NotificationStatus{status, models.NotificationStatusPinned}
+	notifications, err := models.NotificationsForUser(c.User, statuses, page, perPage)
 	if err != nil {
 		c.Handle(500, "ErrNotificationsForUser", err)
 		return
@@ -78,4 +82,33 @@ func Notifications(c *context.Context) {
 	c.Data["Notifications"] = notifications
 	c.Data["Page"] = paginater.New(int(total), perPage, page, 5)
 	c.HTML(200, tplNotification)
+}
+
+// NotificationStatusPost is a route for changing the status of a notification
+func NotificationStatusPost(c *context.Context) {
+	var (
+		notificationID, _ = strconv.ParseInt(c.Req.PostFormValue("notification_id"), 10, 64)
+		statusStr         = c.Req.PostFormValue("status")
+		status            models.NotificationStatus
+	)
+
+	switch statusStr {
+	case "read":
+		status = models.NotificationStatusRead
+	case "unread":
+		status = models.NotificationStatusUnread
+	case "pinned":
+		status = models.NotificationStatusPinned
+	default:
+		c.Handle(500, "InvalidNotificationStatus", errors.New("Invalid notification status"))
+		return
+	}
+
+	if err := models.SetNotificationStatus(notificationID, c.User, status); err != nil {
+		c.Handle(500, "SetNotificationStatus", err)
+		return
+	}
+
+	url := fmt.Sprintf("%s/notifications", setting.AppSubURL)
+	c.Redirect(url, 303)
 }

@@ -2712,6 +2712,12 @@ footer .ui.language .menu {
   float: left;
   margin-left: 7px;
 }
+.user.notification .buttons-panel button {
+  padding: 3px;
+}
+.user.notification .buttons-panel form {
+  display: inline-block;
+}
 .user.notification .octicon-issue-opened,
 .user.notification .octicon-git-pull-request {
   color: #21ba45;
@@ -2721,6 +2727,9 @@ footer .ui.language .menu {
 }
 .user.notification .octicon-git-merge {
   color: #a333c8;
+}
+.user.notification .octicon-pin {
+  color: #2185d0;
 }
 .dashboard {
   padding-top: 15px;
