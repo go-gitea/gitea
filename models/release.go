@@ -38,6 +38,8 @@ type Release struct {
 	IsDraft          bool   `xorm:"NOT NULL DEFAULT false"`
 	IsPrerelease     bool
 
+	Attachments []*Attachment `xorm:"-"`
+
 	Created     time.Time `xorm:"-"`
 	CreatedUnix int64     `xorm:"INDEX"`
 }
@@ -156,7 +158,7 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 }
 
 // CreateRelease creates a new release of repository.
-func CreateRelease(gitRepo *git.Repository, rel *Release) error {
+func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []string) error {
 	isExist, err := IsReleaseExist(rel.RepoID, rel.TagName)
 	if err != nil {
 		return err
@@ -164,11 +166,35 @@ func CreateRelease(gitRepo *git.Repository, rel *Release) error {
 		return ErrReleaseAlreadyExist{rel.TagName}
 	}
 
+	// Check attachments
+	attachments := make([]*Attachment, 0, len(rel.Attachments))
+	for _, uuid := range attachmentUUIDs {
+		attach, err := getAttachmentByUUID(x, uuid)
+		if err != nil {
+			if IsErrAttachmentNotExist(err) {
+				continue
+			}
+			return fmt.Errorf("getAttachmentByUUID [%s]: %v", uuid, err)
+		}
+		attachments = append(attachments, attach)
+	}
+
 	if err = createTag(gitRepo, rel); err != nil {
 		return err
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
-	_, err = x.InsertOne(rel)
+
+	var issueID int64
+	issueID, err = x.InsertOne(rel)
+
+	for i := range attachments {
+		attachments[i].ReleaseID = issueID
+		// No assign value could be 0, so ignore AllCols().
+		if _, err = x.Id(attachments[i].ID).Update(attachments[i]); err != nil {
+			return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
+		}
+	}
+
 	return err
 }
 

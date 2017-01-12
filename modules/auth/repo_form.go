@@ -267,6 +267,7 @@ type NewReleaseForm struct {
 	Content    string
 	Draft      string
 	Prerelease bool
+	Files   []string
 }
 
 // Validate valideates the fields

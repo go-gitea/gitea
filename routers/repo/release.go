@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/paginater"
 )
 
@@ -162,6 +163,7 @@ func NewRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
+	renderAttachmentSettings(ctx);
 	ctx.HTML(200, tplReleaseNew)
 }
 
@@ -215,7 +217,12 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 		CreatedUnix:  tagCreatedUnix,
 	}
 
-	if err = models.CreateRelease(ctx.Repo.GitRepo, rel); err != nil {
+	var attachmentUUIDs []string
+	if setting.AttachmentEnabled {
+		attachmentUUIDs = form.Files
+	}
+
+	if err = models.CreateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
 		ctx.Data["Err_TagName"] = true
 		switch {
 		case models.IsErrReleaseAlreadyExist(err):
@@ -237,6 +244,7 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
+	renderAttachmentSettings(ctx);
 
 	tagName := ctx.Params("*")
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
