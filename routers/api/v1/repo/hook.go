@@ -59,9 +59,12 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 // DeleteHook delete a hook of a repository
 func DeleteHook(ctx *context.APIContext) {
 	if err := models.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
-		ctx.Error(500, "DeleteWebhookByRepoID", err)
+		if models.IsErrWebhookNotExist(err) {
+			ctx.Status(404)
+		} else {
+			ctx.Error(500, "DeleteWebhookByRepoID", err)
+		}
 		return
 	}
-
 	ctx.Status(204)
 }
