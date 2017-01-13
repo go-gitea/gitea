@@ -1371,7 +1371,7 @@ func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
 		return err
 	}
 
-	if err = updateRepository(x, repo, visibilityChanged); err != nil {
+	if err = updateRepository(sess, repo, visibilityChanged); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}
 
