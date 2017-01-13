@@ -162,6 +162,18 @@ func (issue *Issue) LoadAttributes() error {
 	return issue.loadAttributes(x)
 }
 
+// GetIsRead load the `IsRead` field of the issue
+func (issue *Issue) GetIsRead(userID int64) error {
+	issueUser := &IssueUser{IssueID: issue.ID, UID: userID}
+	if has, err := x.Get(issueUser); err != nil {
+		return err
+	} else if !has {
+		return ErrUserNotExist{UID: userID}
+	}
+	issue.IsRead = issueUser.IsRead
+	return nil
+}
+
 // HTMLURL returns the absolute URL to this issue.
 func (issue *Issue) HTMLURL() string {
 	var path string
@@ -472,8 +484,6 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 	issue.IsClosed = isClosed
 
 	if err = updateIssueCols(e, issue, "is_closed"); err != nil {
-		return err
-	} else if err = updateIssueUsersByStatus(e, issue.ID, isClosed); err != nil {
 		return err
 	}
 
@@ -999,13 +1009,9 @@ type IssueUser struct {
 	ID          int64 `xorm:"pk autoincr"`
 	UID         int64 `xorm:"INDEX"` // User ID.
 	IssueID     int64
-	RepoID      int64 `xorm:"INDEX"`
-	MilestoneID int64
 	IsRead      bool
 	IsAssigned  bool
 	IsMentioned bool
-	IsPoster    bool
-	IsClosed    bool
 }
 
 func newIssueUsers(e *xorm.Session, repo *Repository, issue *Issue) error {
@@ -1021,24 +1027,17 @@ func newIssueUsers(e *xorm.Session, repo *Repository, issue *Issue) error {
 	// and just waste 1 unit is cheaper than re-allocate memory once.
 	issueUsers := make([]*IssueUser, 0, len(assignees)+1)
 	for _, assignee := range assignees {
-		isPoster := assignee.ID == issue.PosterID
 		issueUsers = append(issueUsers, &IssueUser{
 			IssueID:    issue.ID,
-			RepoID:     repo.ID,
 			UID:        assignee.ID,
-			IsPoster:   isPoster,
 			IsAssigned: assignee.ID == issue.AssigneeID,
 		})
-		if !isPosterAssignee && isPoster {
-			isPosterAssignee = true
-		}
+		isPosterAssignee = isPosterAssignee || assignee.ID == issue.PosterID
 	}
 	if !isPosterAssignee {
 		issueUsers = append(issueUsers, &IssueUser{
-			IssueID:  issue.ID,
-			RepoID:   repo.ID,
-			UID:      issue.PosterID,
-			IsPoster: true,
+			IssueID: issue.ID,
+			UID:     issue.PosterID,
 		})
 	}
 
@@ -1061,62 +1060,6 @@ func NewIssueUsers(repo *Repository, issue *Issue) (err error) {
 	}
 
 	return sess.Commit()
-}
-
-// PairsContains returns true when pairs list contains given issue.
-func PairsContains(ius []*IssueUser, issueID, uid int64) int {
-	for i := range ius {
-		if ius[i].IssueID == issueID &&
-			ius[i].UID == uid {
-			return i
-		}
-	}
-	return -1
-}
-
-// GetIssueUsers returns issue-user pairs by given repository and user.
-func GetIssueUsers(rid, uid int64, isClosed bool) ([]*IssueUser, error) {
-	ius := make([]*IssueUser, 0, 10)
-	err := x.Where("is_closed=?", isClosed).Find(&ius, &IssueUser{RepoID: rid, UID: uid})
-	return ius, err
-}
-
-// GetIssueUserPairsByRepoIds returns issue-user pairs by given repository IDs.
-func GetIssueUserPairsByRepoIds(rids []int64, isClosed bool, page int) ([]*IssueUser, error) {
-	if len(rids) == 0 {
-		return []*IssueUser{}, nil
-	}
-
-	ius := make([]*IssueUser, 0, 10)
-	sess := x.
-		Limit(20, (page-1)*20).
-		Where("is_closed=?", isClosed).
-		In("repo_id", rids)
-	err := sess.Find(&ius)
-	return ius, err
-}
-
-// GetIssueUserPairsByMode returns issue-user pairs by given repository and user.
-func GetIssueUserPairsByMode(uid, rid int64, isClosed bool, page, filterMode int) ([]*IssueUser, error) {
-	ius := make([]*IssueUser, 0, 10)
-	sess := x.
-		Limit(20, (page-1)*20).
-		Where("uid=?", uid).
-		And("is_closed=?", isClosed)
-	if rid > 0 {
-		sess.And("repo_id=?", rid)
-	}
-
-	switch filterMode {
-	case FilterModeAssign:
-		sess.And("is_assigned=?", true)
-	case FilterModeCreate:
-		sess.And("is_poster=?", true)
-	default:
-		return ius, nil
-	}
-	err := sess.Find(&ius)
-	return ius, err
 }
 
 // UpdateIssueMentions extracts mentioned people from content and
@@ -1346,16 +1289,6 @@ func updateIssue(e Engine, issue *Issue) error {
 // UpdateIssue updates all fields of given issue.
 func UpdateIssue(issue *Issue) error {
 	return updateIssue(x, issue)
-}
-
-func updateIssueUsersByStatus(e Engine, issueID int64, isClosed bool) error {
-	_, err := e.Exec("UPDATE `issue_user` SET is_closed=? WHERE issue_id=?", isClosed, issueID)
-	return err
-}
-
-// UpdateIssueUsersByStatus updates issue-user relations by issue status.
-func UpdateIssueUsersByStatus(issueID int64, isClosed bool) error {
-	return updateIssueUsersByStatus(x, issueID, isClosed)
 }
 
 func updateIssueUserByAssignee(e *xorm.Session, issue *Issue) (err error) {
@@ -1702,8 +1635,6 @@ func changeMilestoneAssign(e *xorm.Session, issue *Issue, oldMilestoneID int64) 
 
 		if err = updateMilestone(e, m); err != nil {
 			return err
-		} else if _, err = e.Exec("UPDATE `issue_user` SET milestone_id = 0 WHERE issue_id = ?", issue.ID); err != nil {
-			return err
 		}
 	}
 
@@ -1719,8 +1650,6 @@ func changeMilestoneAssign(e *xorm.Session, issue *Issue, oldMilestoneID int64) 
 		}
 
 		if err = updateMilestone(e, m); err != nil {
-			return err
-		} else if _, err = e.Exec("UPDATE `issue_user` SET milestone_id = ? WHERE issue_id = ?", m.ID, issue.ID); err != nil {
 			return err
 		}
 	}
@@ -1774,8 +1703,6 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 	}
 
 	if _, err = sess.Exec("UPDATE `issue` SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
-		return err
-	} else if _, err = sess.Exec("UPDATE `issue_user` SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
 		return err
 	}
 	return sess.Commit()
