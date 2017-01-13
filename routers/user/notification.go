@@ -72,7 +72,7 @@ func Notifications(c *context.Context) {
 		return
 	}
 
-	title := "Notifications"
+	title := c.Tr("notifications")
 	if count := len(notifications); count > 0 {
 		title = fmt.Sprintf("(%d) %s", count, title)
 	}
