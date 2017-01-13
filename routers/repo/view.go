@@ -52,7 +52,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	count := ctx.QueryInt("count")
 
 	// Check invalid values
-	if (start == 0 && count == 0) || start+count < start || start+count > len(entries) {
+	if (start == 0 && count == 0) || count < 0 || start+count > len(entries) {
 		start = 0
 		count = len(entries)
 	}
