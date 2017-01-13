@@ -14,6 +14,7 @@ import (
 	"github.com/pquerna/otp/totp"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // Twofa represents a two-factor authentication token.
@@ -67,22 +68,9 @@ func (t *Twofa) VerifyScratchToken(token string) bool {
 	return subtle.ConstantTimeCompare([]byte(token), []byte(t.ScratchToken)) == 1
 }
 
-// TODO: Actually implement. For now, this is a static key.
-func getKey() ([]byte, error) {
-	k := make([]byte, 16)
-	for i := 0; i < 16; i++ {
-		k[i] = byte(i + 1)
-	}
-	return k, nil
-}
-
 // SetSecret sets the 2FA secret.
 func (t *Twofa) SetSecret(secret string) error {
-	k, err := getKey()
-	if err != nil {
-		return err
-	}
-	secretBytes, err := com.AESEncrypt(k, []byte(secret))
+	secretBytes, err := com.AESEncrypt([]byte(base.EncodeMD5(setting.SecretKey)), []byte(secret))
 	if err != nil {
 		return err
 	}
@@ -92,15 +80,11 @@ func (t *Twofa) SetSecret(secret string) error {
 
 // ValidateTOTP validates the provided passcode.
 func (t *Twofa) ValidateTOTP(passcode string) (bool, error) {
-	k, err := getKey()
-	if err != nil {
-		return false, err
-	}
 	decodedStoredSecret, err := base64.StdEncoding.DecodeString(t.Secret)
 	if err != nil {
 		return false, err
 	}
-	secret, err := com.AESDecrypt(k, decodedStoredSecret)
+	secret, err := com.AESDecrypt([]byte(base.EncodeMD5(setting.SecretKey)), decodedStoredSecret)
 	if err != nil {
 		return false, err
 	}

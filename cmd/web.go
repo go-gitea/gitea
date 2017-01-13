@@ -203,10 +203,12 @@ func runWeb(ctx *cli.Context) error {
 		m.Post("/sign_up", bindIgnErr(auth.RegisterForm{}), user.SignUpPost)
 		m.Get("/reset_password", user.ResetPasswd)
 		m.Post("/reset_password", user.ResetPasswdPost)
-		m.Get("/2fa", user.ShowTwofa)
-		m.Post("/2fa", bindIgnErr(auth.TwofaAuthForm{}), user.TwofaPost)
-		m.Get("/2fa_scratch", user.TwofaScratch)
-		m.Post("/2fa_scratch", bindIgnErr(auth.TwofaScratchAuthForm{}), user.TwofaScratchPost)
+		m.Group("/2fa", func() {
+			m.Get("", user.ShowTwofa)
+			m.Post("", bindIgnErr(auth.TwofaAuthForm{}), user.TwofaPost)
+			m.Get("/scratch", user.TwofaScratch)
+			m.Post("/scratch", bindIgnErr(auth.TwofaScratchAuthForm{}), user.TwofaScratchPost)
+		})
 	}, reqSignOut)
 
 	m.Group("/user/settings", func() {
@@ -227,11 +229,13 @@ func runWeb(ctx *cli.Context) error {
 			Post(bindIgnErr(auth.NewAccessTokenForm{}), user.SettingsApplicationsPost)
 		m.Post("/applications/delete", user.SettingsDeleteApplication)
 		m.Route("/delete", "GET,POST", user.SettingsDelete)
-		m.Get("/2fa", user.SettingsTwofa)
-		m.Post("/2fa/regenerate_scratch", user.SettingsTwofaRegenerateScratch)
-		m.Post("/2fa/disable", user.SettingsTwofaDisable)
-		m.Get("/2fa/enroll", user.SettingsTwofaEnroll)
-		m.Post("/2fa/enroll", bindIgnErr(auth.TwofaAuthForm{}), user.SettingsTwofaEnrollPost)
+		m.Group("/2fa", func() {
+			m.Get("", user.SettingsTwofa)
+			m.Post("/regenerate_scratch", user.SettingsTwofaRegenerateScratch)
+			m.Post("/disable", user.SettingsTwofaDisable)
+			m.Get("/enroll", user.SettingsTwofaEnroll)
+			m.Post("/enroll", bindIgnErr(auth.TwofaAuthForm{}), user.SettingsTwofaEnrollPost)
+		})
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
 	})
