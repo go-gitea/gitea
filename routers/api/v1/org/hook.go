@@ -58,7 +58,11 @@ func DeleteHook(ctx *context.APIContext) {
 	org := ctx.Org.Organization
 	hookID := ctx.ParamsInt64(":id")
 	if err := models.DeleteWebhookByOrgID(org.ID, hookID); err != nil {
-		ctx.Error(500, "DeleteWebhookByOrgID", err)
+		if models.IsErrWebhookNotExist(err) {
+			ctx.Status(404)
+		} else {
+			ctx.Error(500, "DeleteWebhookByOrgID", err)
+		}
 		return
 	}
 	ctx.Status(204)
