@@ -969,26 +969,28 @@ function initAdmin() {
     // New authentication
     if ($('.admin.new.authentication').length > 0) {
         $('#auth_type').change(function () {
-            $('.ldap').hide();
-            $('.dldap').hide();
-            $('.smtp').hide();
-            $('.pam').hide();
-            $('.has-tls').hide();
+            $('.ldap, .dldap, .smtp, .pam, .has-tls').hide();
+
+            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .has-tls input[required]').removeAttr('required');
 
             var authType = $(this).val();
             switch (authType) {
                 case '2':     // LDAP
                     $('.ldap').show();
+                    $('.ldap div.required input').attr('required', 'required');
                     break;
                 case '3':     // SMTP
                     $('.smtp').show();
                     $('.has-tls').show();
+                    $('.smtp div.required input, .has-tls').attr('required', 'required');
                     break;
                 case '4':     // PAM
                     $('.pam').show();
+                    $('.pam input').attr('required', 'required');
                     break;
                 case '5':     // LDAP
                     $('.dldap').show();
+                    $('.dldap div.required input').attr('required', 'required');
                     break;
             }
 
@@ -996,6 +998,7 @@ function initAdmin() {
                 onSecurityProtocolChange()
             }
         });
+        $('#auth_type').change();
         $('#security_protocol').change(onSecurityProtocolChange)
     }
     // Edit authentication
