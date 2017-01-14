@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/Unknwon/com"
+	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 
 	"encoding/base64"
@@ -510,6 +511,44 @@ func SettingsTwofaDisable(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/2fa")
 }
 
+func twofaGenerateSecretAndQr(ctx *context.Context) bool {
+	var otpKey *otp.Key
+	var err error
+	uri := ctx.Session.Get("twofaUri")
+	if uri != nil {
+		otpKey, err = otp.NewKeyFromURL(uri.(string))
+	}
+	if otpKey == nil {
+		err = nil // clear the error, in case the URL was invalid
+		otpKey, err = totp.Generate(totp.GenerateOpts{
+			Issuer:      setting.AppName,
+			AccountName: ctx.User.Name,
+		})
+		if err != nil {
+			ctx.Handle(500, "SettingsTwofa", err)
+			return false
+		}
+	}
+
+	ctx.Data["TwofaSecret"] = otpKey.Secret()
+	img, err := otpKey.Image(320, 240)
+	if err != nil {
+		ctx.Handle(500, "SettingsTwofa", err)
+		return false
+	}
+
+	var imgBytes bytes.Buffer
+	if err = png.Encode(&imgBytes, img); err != nil {
+		ctx.Handle(500, "SettingsTwofa", err)
+		return false
+	}
+
+	ctx.Data["QrUri"] = template.URL("data:image/png;base64," + base64.StdEncoding.EncodeToString(imgBytes.Bytes()))
+	ctx.Session.Set("twofaSecret", otpKey.Secret())
+	ctx.Session.Set("twofaUri", otpKey.String())
+	return true
+}
+
 // SettingsTwofaEnroll shows the page where the user can enroll into 2FA.
 func SettingsTwofaEnroll(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
@@ -526,30 +565,10 @@ func SettingsTwofaEnroll(ctx *context.Context) {
 		return
 	}
 
-	otp, err := totp.Generate(totp.GenerateOpts{
-		Issuer:      setting.AppName,
-		AccountName: ctx.User.Name,
-	})
-	if err != nil {
-		ctx.Handle(500, "SettingsTwofa", err)
+	if !twofaGenerateSecretAndQr(ctx) {
 		return
 	}
 
-	ctx.Data["TwofaSecret"] = otp.Secret()
-	img, err := otp.Image(320, 240)
-	if err != nil {
-		ctx.Handle(500, "SettingsTwofa", err)
-		return
-	}
-
-	var imgBytes bytes.Buffer
-	if err = png.Encode(&imgBytes, img); err != nil {
-		ctx.Handle(500, "SettingsTwofa", err)
-		return
-	}
-
-	ctx.Data["QrUri"] = template.URL("data:image/png;base64," + base64.StdEncoding.EncodeToString(imgBytes.Bytes()))
-	ctx.Session.Set("twofaSecret", otp.Secret())
 	ctx.HTML(200, tplSettingsTwofaEnroll)
 }
 
@@ -570,12 +589,18 @@ func SettingsTwofaEnrollPost(ctx *context.Context, form auth.TwofaAuthForm) {
 	}
 
 	if ctx.HasError() {
+		if !twofaGenerateSecretAndQr(ctx) {
+			return
+		}
 		ctx.HTML(200, tplSettingsTwofaEnroll)
 		return
 	}
 
 	secret := ctx.Session.Get("twofaSecret").(string)
 	if !totp.Validate(form.Passcode, secret) {
+		if !twofaGenerateSecretAndQr(ctx) {
+			return
+		}
 		ctx.Flash.Error(ctx.Tr("settings.passcode_invalid"))
 		ctx.HTML(200, tplSettingsTwofaEnroll)
 		return
@@ -600,6 +625,8 @@ func SettingsTwofaEnrollPost(ctx *context.Context, form auth.TwofaAuthForm) {
 		return
 	}
 
+	ctx.Session.Delete("twofaSecret")
+	ctx.Session.Delete("twofaUri")
 	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", t.ScratchToken))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/2fa")
 }
