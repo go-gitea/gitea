@@ -5,8 +5,11 @@
 package models
 
 import (
+	"crypto/md5"
 	"crypto/subtle"
 	"encoding/base64"
+	"io"
+	"strconv"
 	"time"
 
 	"github.com/Unknwon/com"
@@ -68,9 +71,18 @@ func (t *Twofa) VerifyScratchToken(token string) bool {
 	return subtle.ConstantTimeCompare([]byte(token), []byte(t.ScratchToken)) == 1
 }
 
+func (t *Twofa) getEncryptionKey() []byte {
+	hash := md5.New()
+	// User ID
+	io.WriteString(hash, strconv.FormatInt(t.UID, 10))
+	// Application secret key
+	io.WriteString(hash, setting.SecretKey)
+	return hash.Sum(nil)
+}
+
 // SetSecret sets the 2FA secret.
 func (t *Twofa) SetSecret(secret string) error {
-	secretBytes, err := com.AESEncrypt([]byte(base.EncodeMD5(setting.SecretKey)), []byte(secret))
+	secretBytes, err := com.AESEncrypt(t.getEncryptionKey(), []byte(secret))
 	if err != nil {
 		return err
 	}
@@ -84,7 +96,7 @@ func (t *Twofa) ValidateTOTP(passcode string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	secret, err := com.AESDecrypt([]byte(base.EncodeMD5(setting.SecretKey)), decodedStoredSecret)
+	secret, err := com.AESDecrypt(t.getEncryptionKey(), decodedStoredSecret)
 	if err != nil {
 		return false, err
 	}
