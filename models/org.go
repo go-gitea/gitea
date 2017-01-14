@@ -598,15 +598,29 @@ func (org *User) GetUserRepositories(userID int64, page, pageSize int) ([]*Repos
 	if page <= 0 {
 		page = 1
 	}
+
 	repos := make([]*Repository, 0, pageSize)
 
-	if err := x.Select("`repository`.*").
+	if err := x.
+		Select("`repository`.id").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(cond).
-		GroupBy("`repository`.id").
+		GroupBy("`repository`.id,`repository`.updated_unix").
 		OrderBy("updated_unix DESC").
 		Limit(pageSize, (page-1)*pageSize).
 		Find(&repos); err != nil {
+		return nil, 0, fmt.Errorf("get repository ids: %v", err)
+	}
+
+	repoIDs := make([]int64,pageSize)
+	for i := range repos {
+		repoIDs[i] = repos[i].ID
+	}
+
+	if err := x.
+		Select("`repository`.*").
+		Where(builder.In("`repository`.id",repoIDs)).
+		Find(&repos); err!=nil {
 		return nil, 0, fmt.Errorf("get repositories: %v", err)
 	}
 
