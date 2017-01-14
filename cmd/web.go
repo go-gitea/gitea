@@ -62,7 +62,7 @@ and it takes care of all the other things for you`,
 		},
 		cli.StringFlag{
 			Name:  "pid, P",
-			Value: "custom/run/app.pid",
+			Value: "/var/run/gitea.pid",
 			Usage: "Custom pid file path",
 		},
 	},
