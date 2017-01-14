@@ -8,8 +8,6 @@ import (
 	"crypto/md5"
 	"crypto/subtle"
 	"encoding/base64"
-	"io"
-	"strconv"
 	"time"
 
 	"github.com/Unknwon/com"
@@ -72,12 +70,8 @@ func (t *Twofa) VerifyScratchToken(token string) bool {
 }
 
 func (t *Twofa) getEncryptionKey() []byte {
-	hash := md5.New()
-	// User ID
-	io.WriteString(hash, strconv.FormatInt(t.UID, 10))
-	// Application secret key
-	io.WriteString(hash, setting.SecretKey)
-	return hash.Sum(nil)
+	k := md5.Sum([]byte(setting.SecretKey))
+	return k[:]
 }
 
 // SetSecret sets the 2FA secret.
