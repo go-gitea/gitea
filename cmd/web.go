@@ -29,7 +29,6 @@ import (
 	"code.gitea.io/gitea/routers/org"
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
-
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/captcha"
@@ -38,8 +37,11 @@ import (
 	"github.com/go-macaron/i18n"
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/cli"
 	macaron "gopkg.in/macaron.v1"
+	"code.gitea.io/gitea/modules/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // CmdWeb represents the available web sub-command.
@@ -603,6 +605,17 @@ func runWeb(ctx *cli.Context) error {
 		} else {
 			ctx.Error(404)
 		}
+	})
+
+	c:= metrics.NewCollector()
+	prometheus.MustRegister(c)
+
+	m.Get("/metrics", func(ctx *context.Context) {
+		if ctx.Query("type") == "json" {
+			ctx.JSON(200, models.GetStatistic())
+			return
+		}
+		promhttp.Handler().ServeHTTP(ctx.Resp, ctx.Req.Request)
 	})
 
 	// Not found handler.
