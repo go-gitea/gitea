@@ -89,7 +89,7 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, str
 	ctx.Data["title"] = pageName
 	ctx.Data["RequireHighlightJS"] = true
 
-	blob, err := commit.GetBlobByPath(pageName + ".md")
+	blob, err := commit.GetBlobByPath(pageURL + ".md")
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.Redirect(ctx.Repo.RepoLink + "/wiki/_pages")
@@ -114,7 +114,7 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, str
 		ctx.Data["content"] = string(data)
 	}
 
-	return wikiRepo, pageName
+	return wikiRepo, pageURL
 }
 
 // Wiki render wiki page
@@ -127,13 +127,13 @@ func Wiki(ctx *context.Context) {
 		return
 	}
 
-	wikiRepo, pageName := renderWikiPage(ctx, true)
+	wikiRepo, pagePath := renderWikiPage(ctx, true)
 	if ctx.Written() {
 		return
 	}
 
 	// Get last change information.
-	lastCommit, err := wikiRepo.GetCommitByPath(pageName + ".md")
+	lastCommit, err := wikiRepo.GetCommitByPath(pagePath + ".md")
 	if err != nil {
 		ctx.Handle(500, "GetCommitByPath", err)
 		return
@@ -214,7 +214,9 @@ func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 		return
 	}
 
-	if err := ctx.Repo.Repository.AddWikiPage(ctx.User, form.Title, form.Content, form.Message); err != nil {
+	wikiPath := models.ToWikiPageURL(form.Title)
+
+	if err := ctx.Repo.Repository.AddWikiPage(ctx.User, wikiPath, form.Content, form.Message); err != nil {
 		if models.IsErrWikiAlreadyExist(err) {
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.wiki.page_already_exists"), tplWikiNew, &form)
@@ -224,7 +226,7 @@ func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 		return
 	}
 
-	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + models.ToWikiPageURL(form.Title))
+	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wikiPath)
 }
 
 // EditWiki render wiki modify page
@@ -257,12 +259,15 @@ func EditWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 		return
 	}
 
-	if err := ctx.Repo.Repository.EditWikiPage(ctx.User, form.OldTitle, form.Title, form.Content, form.Message); err != nil {
+	oldWikiPath := ctx.Params(":page")
+	newWikiPath := models.ToWikiPageURL(form.Title)
+
+	if err := ctx.Repo.Repository.EditWikiPage(ctx.User, oldWikiPath, newWikiPath, form.Content, form.Message); err != nil {
 		ctx.Handle(500, "EditWikiPage", err)
 		return
 	}
 
-	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + models.ToWikiPageURL(form.Title))
+	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + newWikiPath)
 }
 
 // DeleteWikiPagePost delete wiki page
@@ -272,8 +277,7 @@ func DeleteWikiPagePost(ctx *context.Context) {
 		pageURL = "Home"
 	}
 
-	pageName := models.ToWikiPageName(pageURL)
-	if err := ctx.Repo.Repository.DeleteWikiPage(ctx.User, pageName); err != nil {
+	if err := ctx.Repo.Repository.DeleteWikiPage(ctx.User, pageURL); err != nil {
 		ctx.Handle(500, "DeleteWikiPage", err)
 		return
 	}
