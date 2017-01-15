@@ -309,7 +309,7 @@ func runWeb(ctx *cli.Context) error {
 				return
 			}
 		})
-		m.Post("/issues/attachments", repo.UploadIssueAttachment)
+		m.Post("/attachments", repo.UploadAttachment)
 	}, ignSignIn)
 
 	m.Group("/:username", func() {
@@ -463,13 +463,11 @@ func runWeb(ctx *cli.Context) error {
 			m.Get("/:id/:action", repo.ChangeMilestonStatus)
 			m.Post("/delete", repo.DeleteMilestone)
 		}, reqRepoWriter, context.RepoRef())
-
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
 			m.Post("/delete", repo.DeleteRelease)
 		}, reqRepoWriter, context.RepoRef())
-
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)
 			m.Post("/edit/*", bindIgnErr(auth.EditReleaseForm{}), repo.EditReleasePost)

@@ -38,6 +38,8 @@ type Release struct {
 	IsDraft          bool   `xorm:"NOT NULL DEFAULT false"`
 	IsPrerelease     bool
 
+	Attachments []*Attachment `xorm:"-"`
+
 	Created     time.Time `xorm:"-"`
 	CreatedUnix int64     `xorm:"INDEX"`
 }
@@ -155,8 +157,33 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 	return nil
 }
 
+func addReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error) {
+	// Check attachments
+	var attachments = make([]*Attachment,0)
+	for _, uuid := range attachmentUUIDs {
+		attach, err := getAttachmentByUUID(x, uuid)
+		if err != nil {
+			if IsErrAttachmentNotExist(err) {
+				continue
+			}
+			return fmt.Errorf("getAttachmentByUUID [%s]: %v", uuid, err)
+		}
+		attachments = append(attachments, attach)
+	}
+
+	for i := range attachments {
+		attachments[i].ReleaseID = releaseID
+		// No assign value could be 0, so ignore AllCols().
+		if _, err = x.Id(attachments[i].ID).Update(attachments[i]); err != nil {
+			return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
+		}
+	}
+
+	return
+}
+
 // CreateRelease creates a new release of repository.
-func CreateRelease(gitRepo *git.Repository, rel *Release) error {
+func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []string) error {
 	isExist, err := IsReleaseExist(rel.RepoID, rel.TagName)
 	if err != nil {
 		return err
@@ -168,7 +195,14 @@ func CreateRelease(gitRepo *git.Repository, rel *Release) error {
 		return err
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
+
 	_, err = x.InsertOne(rel)
+	if err != nil {
+		return err
+	}
+
+	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
+
 	return err
 }
 
@@ -222,6 +256,64 @@ func GetReleasesByRepoIDAndNames(repoID int64, tagNames []string) (rels []*Relea
 	return rels, err
 }
 
+type releaseMetaSearch struct {
+	ID [] int64
+	Rel [] *Release
+}
+func (s releaseMetaSearch) Len() int {
+	return len(s.ID)
+}
+func (s releaseMetaSearch) Swap(i, j int) {
+	s.ID[i], s.ID[j] = s.ID[j], s.ID[i]
+	s.Rel[i], s.Rel[j] = s.Rel[j], s.Rel[i]
+}
+func (s releaseMetaSearch) Less(i, j int) bool {
+	return s.ID[i] < s.ID[j]
+}
+
+// GetReleaseAttachments retrieves the attachments for releases
+func GetReleaseAttachments(rels ... *Release) (err error){
+	if len(rels) == 0 {
+		return
+	}
+
+	// To keep this efficient as possible sort all releases by id, 
+	//    select attachments by release id,
+	//    then merge join them
+
+	// Sort
+	var sortedRels = releaseMetaSearch{ID: make([]int64, len(rels)), Rel: make([]*Release, len(rels))}
+	var attachments [] *Attachment
+	for index, element := range rels {
+		element.Attachments = []*Attachment{}
+		sortedRels.ID[index] = element.ID
+		sortedRels.Rel[index] = element
+	}
+	sort.Sort(sortedRels)
+
+	// Select attachments
+	err = x.
+		Asc("release_id").
+		In("release_id", sortedRels.ID).
+		Find(&attachments, Attachment{})
+
+	if err != nil {
+		return err
+	}
+
+	// merge join
+	var currentIndex = 0
+	for _, attachment := range attachments {
+		for sortedRels.ID[currentIndex] < attachment.ReleaseID {
+			currentIndex++
+		}
+		sortedRels.Rel[currentIndex].Attachments = append(sortedRels.Rel[currentIndex].Attachments, attachment)
+	}
+
+	return
+
+}
+
 type releaseSorter struct {
 	rels []*Release
 }
@@ -249,11 +341,17 @@ func SortReleases(rels []*Release) {
 }
 
 // UpdateRelease updates information of a release.
-func UpdateRelease(gitRepo *git.Repository, rel *Release) (err error) {
+func UpdateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []string) (err error) {
 	if err = createTag(gitRepo, rel); err != nil {
 		return err
 	}
 	_, err = x.Id(rel.ID).AllCols().Update(rel)
+	if err != nil {
+		return err
+	}
+
+	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
+
 	return err
 }
 
