@@ -60,6 +60,11 @@ and it takes care of all the other things for you`,
 			Value: "custom/conf/app.ini",
 			Usage: "Custom configuration file path",
 		},
+		cli.StringFlag{
+			Name:  "pid, P",
+			Value: "/var/run/gitea.pid",
+			Usage: "Custom pid file path",
+		},
 	},
 }
 
@@ -156,6 +161,11 @@ func runWeb(ctx *cli.Context) error {
 	if ctx.IsSet("config") {
 		setting.CustomConf = ctx.String("config")
 	}
+
+	if ctx.IsSet("pid") {
+		setting.CustomPID = ctx.String("pid")
+	}
+
 	routers.GlobalInit()
 
 	m := newMacaron()
@@ -581,7 +591,10 @@ func runWeb(ctx *cli.Context) error {
 	})
 	// ***** END: Repository *****
 
-	m.Get("/notifications", reqSignIn, user.Notifications)
+	m.Group("/notifications", func() {
+		m.Get("", user.Notifications)
+		m.Post("/status", user.NotificationStatusPost)
+	}, reqSignIn)
 
 	m.Group("/api", func() {
 		apiv1.RegisterRoutes(m)

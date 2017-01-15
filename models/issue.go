@@ -448,7 +448,7 @@ func (issue *Issue) ReadBy(userID int64) error {
 		return err
 	}
 
-	if err := setNotificationStatusRead(x, userID, issue.ID); err != nil {
+	if err := setNotificationStatusReadIfUnread(x, userID, issue.ID); err != nil {
 		return err
 	}
 

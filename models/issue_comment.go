@@ -420,9 +420,11 @@ func getCommentsByIssueIDSince(e Engine, issueID, since int64) ([]*Comment, erro
 
 func getCommentsByRepoIDSince(e Engine, repoID, since int64) ([]*Comment, error) {
 	comments := make([]*Comment, 0, 10)
-	sess := e.Where("issue.repo_id = ?", repoID).Join("INNER", "issue", "issue.id = comment.issue_id", repoID).Asc("created_unix")
+	sess := e.Where("issue.repo_id = ?", repoID).
+		Join("INNER", "issue", "issue.id = comment.issue_id").
+		Asc("comment.created_unix")
 	if since > 0 {
-		sess.And("updated_unix >= ?", since)
+		sess.And("comment.updated_unix >= ?", since)
 	}
 	return comments, sess.Find(&comments)
 }

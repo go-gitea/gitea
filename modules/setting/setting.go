@@ -392,6 +392,7 @@ var (
 	Cfg          *ini.File
 	CustomPath   string // Custom directory path
 	CustomConf   string
+	CustomPID    string
 	ProdMode     bool
 	RunUser      string
 	IsWindows    bool
@@ -471,6 +472,22 @@ func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
 	return currentUser, runUser == currentUser
 }
 
+func createPIDFile(pidPath string) {
+	currentPid := os.Getpid()
+	if err := os.MkdirAll(filepath.Dir(pidPath), os.ModePerm); err != nil {
+		log.Fatal(4, "Can't create PID folder on %s", err)
+	}
+
+	file, err := os.Create(pidPath)
+	if err != nil {
+		log.Fatal(4, "Can't create PID file: %v", err)
+	}
+	defer file.Close()
+	if _, err := file.WriteString(strconv.FormatInt(int64(currentPid), 10)); err != nil {
+		log.Fatal(4, "Can'write PID information on %s", err)
+	}
+}
+
 // NewContext initializes configuration context.
 // NOTE: do not print any log except error.
 func NewContext() {
@@ -496,6 +513,10 @@ func NewContext() {
 			log.Warn(`Usage of GOGS_CUSTOM is deprecated and will be *removed* in a future release,
 please consider changing to GITEA_CUSTOM`)
 		}
+	}
+
+	if len(CustomPID) > 0 {
+		createPIDFile(CustomPID)
 	}
 
 	if len(CustomConf) == 0 {
@@ -637,7 +658,9 @@ please consider changing to GITEA_CUSTOM`)
 
 			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
 
-			os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm)
+			if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
+				log.Fatal(4, "Fail to create '%s': %v", CustomConf, err)
+			}
 			if err := cfg.SaveTo(CustomConf); err != nil {
 				log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
 				return

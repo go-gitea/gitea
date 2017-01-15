@@ -258,8 +258,10 @@ func deleteWebhook(bean *Webhook) (err error) {
 		return err
 	}
 
-	if _, err = sess.Delete(bean); err != nil {
+	if count, err := sess.Delete(bean); err != nil {
 		return err
+	} else if count == 0 {
+		return ErrWebhookNotExist{ID: bean.ID}
 	} else if _, err = sess.Delete(&HookTask{HookID: bean.ID}); err != nil {
 		return err
 	}

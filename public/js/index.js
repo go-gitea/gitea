@@ -123,10 +123,10 @@ function initCommentForm() {
             }
         }
 
-        var labelIds = "";
+        var labelIds = [];
         $(this).parent().find('.item').each(function () {
             if ($(this).hasClass('checked')) {
-                labelIds += $(this).data('id') + ",";
+                labelIds.push($(this).data('id'));
                 $($(this).data('id-selector')).removeClass('hide');
             } else {
                 $($(this).data('id-selector')).addClass('hide');
@@ -137,7 +137,7 @@ function initCommentForm() {
         } else {
             $noSelect.addClass('hide');
         }
-        $($(this).parent().data('id')).val(labelIds);
+        $($(this).parent().data('id')).val(labelIds.join(","));
         return false;
     });
     $labelMenu.find('.no-select.item').click(function () {
@@ -969,30 +969,32 @@ function initAdmin() {
     // New authentication
     if ($('.admin.new.authentication').length > 0) {
         $('#auth_type').change(function () {
-            $('.ldap').hide();
-            $('.dldap').hide();
-            $('.smtp').hide();
-            $('.pam').hide();
-            $('.oauth2').hide();
-            $('.has-tls').hide();
+            $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls').hide();
+
+            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required] .has-tls input[required]').removeAttr('required');
 
             var authType = $(this).val();
             switch (authType) {
                 case '2':     // LDAP
                     $('.ldap').show();
+                    $('.ldap div.required input').attr('required', 'required');
                     break;
                 case '3':     // SMTP
                     $('.smtp').show();
                     $('.has-tls').show();
+                    $('.smtp div.required input, .has-tls').attr('required', 'required');
                     break;
                 case '4':     // PAM
                     $('.pam').show();
+                    $('.pam input').attr('required', 'required');
                     break;
                 case '5':     // LDAP
                     $('.dldap').show();
+                    $('.dldap div.required input').attr('required', 'required');
                     break;
                 case '6':     // OAuth2
                     $('.oauth2').show();
+                    $('.oauth2 input').attr('required', 'required');
                     break;
             }
 
@@ -1000,6 +1002,7 @@ function initAdmin() {
                 onSecurityProtocolChange()
             }
         });
+        $('#auth_type').change();
         $('#security_protocol').change(onSecurityProtocolChange)
     }
     // Edit authentication

@@ -119,6 +119,44 @@ func reqRepoWriter() macaron.Handler {
 	}
 }
 
+func reqOrgMembership() macaron.Handler {
+	return func(ctx *context.APIContext) {
+		var orgID int64
+		if ctx.Org.Organization != nil {
+			orgID = ctx.Org.Organization.ID
+		} else if ctx.Org.Team != nil {
+			orgID = ctx.Org.Team.OrgID
+		} else {
+			ctx.Error(500, "", "reqOrgMembership: unprepared context")
+			return
+		}
+
+		if !models.IsOrganizationMember(orgID, ctx.User.ID) {
+			ctx.Error(403, "", "Must be an organization member")
+			return
+		}
+	}
+}
+
+func reqOrgOwnership() macaron.Handler {
+	return func(ctx *context.APIContext) {
+		var orgID int64
+		if ctx.Org.Organization != nil {
+			orgID = ctx.Org.Organization.ID
+		} else if ctx.Org.Team != nil {
+			orgID = ctx.Org.Team.OrgID
+		} else {
+			ctx.Error(500, "", "reqOrgOwnership: unprepared context")
+			return
+		}
+
+		if !models.IsOrganizationOwner(orgID, ctx.User.ID) {
+			ctx.Error(403, "", "Must be an organization member")
+			return
+		}
+	}
+}
+
 func orgAssignment(args ...bool) macaron.Handler {
 	var (
 		assignOrg  bool
@@ -362,9 +400,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("").Get(org.ListHooks).
 					Post(bind(api.CreateHookOption{}), org.CreateHook)
 				m.Combo("/:id").Get(org.GetHook).
-					Patch(bind(api.EditHookOption{}), org.EditHook).
-					Delete(org.DeleteHook)
-			})
+					Patch(reqOrgOwnership(), bind(api.EditHookOption{}), org.EditHook).
+					Delete(reqOrgOwnership(), org.DeleteHook)
+			}, reqOrgMembership())
 		}, orgAssignment(true))
 		m.Group("/teams/:teamid", func() {
 			m.Get("", org.GetTeam)

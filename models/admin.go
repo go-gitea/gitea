@@ -103,7 +103,7 @@ func CountNotices() int64 {
 	return count
 }
 
-// Notices returns number of notices in given page.
+// Notices returns notices in given page.
 func Notices(page, pageSize int) ([]*Notice, error) {
 	notices := make([]*Notice, 0, pageSize)
 	return notices, x.

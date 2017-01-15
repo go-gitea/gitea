@@ -118,7 +118,7 @@ func parseTag(line string, opt TagOption) (*Tag, error) {
 	}
 
 	left := strings.TrimSpace(line[25:])
-	start := strings.Index(left, "(tag: ")
+	start := strings.Index(left, "tag: ")
 	if start < 0 {
 		return nil, nil
 	}
@@ -127,11 +127,11 @@ func parseTag(line string, opt TagOption) (*Tag, error) {
 		return nil, nil
 	}
 	end = end + start + 1
-	part := strings.IndexByte(left[start+6:end], ',')
+	part := strings.IndexByte(left[start+5:end], ',')
 	if part > 0 {
-		tag.Name = strings.TrimSpace(left[start+6 : start+6+part])
+		tag.Name = strings.TrimSpace(left[start+5 : start+5+part])
 	} else {
-		tag.Name = strings.TrimSpace(left[start+6 : end])
+		tag.Name = strings.TrimSpace(left[start+5 : end])
 	}
 	next := strings.IndexByte(left[end+2:], ' ')
 	if next < 0 {
