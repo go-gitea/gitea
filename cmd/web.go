@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
@@ -37,11 +38,10 @@ import (
 	"github.com/go-macaron/i18n"
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/cli"
 	macaron "gopkg.in/macaron.v1"
-	"code.gitea.io/gitea/modules/metrics"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // CmdWeb represents the available web sub-command.
@@ -607,9 +607,8 @@ func runWeb(ctx *cli.Context) error {
 		}
 	})
 
-	c:= metrics.NewCollector()
+	c := metrics.NewCollector()
 	prometheus.MustRegister(c)
-
 	m.Get("/metrics", func(ctx *context.Context) {
 		if ctx.Query("type") == "json" {
 			ctx.JSON(200, models.GetStatistic())
