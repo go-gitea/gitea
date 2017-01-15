@@ -477,8 +477,8 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
 }
 
-// UploadIssueAttachment response for uploading issue's attachment
-func UploadIssueAttachment(ctx *context.Context) {
+// UploadAttachment response for uploading issue's attachment
+func UploadAttachment(ctx *context.Context) {
 	if !setting.AttachmentEnabled {
 		ctx.Error(404, "attachment is not enabled")
 		return

@@ -309,7 +309,7 @@ func runWeb(ctx *cli.Context) error {
 				return
 			}
 		})
-		m.Post("/attachments", repo.UploadIssueAttachment)
+		m.Post("/attachments", repo.UploadAttachment)
 	}, ignSignIn)
 
 	m.Group("/:username", func() {
