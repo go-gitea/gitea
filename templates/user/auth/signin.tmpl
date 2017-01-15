@@ -36,6 +36,14 @@
 							<a href="{{AppSubUrl}}/user/sign_up">{{.i18n.Tr "auth.sign_up_now" | Str2html}}</a>
 						</div>
 					{{end}}
+
+					{{if .OAuth2Providers}}
+					    {{range $key, $value := .OAuth2Providers}}
+					    <div>
+					        <a class="ui green button" href="{{AppSubUrl}}/user/oauth2/{{$key}}">Login with {{$value}}</a>
+					    </div>
+					    {{end}}
+					{{end}}
 				</div>
 			</form>
 		</div>

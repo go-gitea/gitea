@@ -40,7 +40,6 @@ import (
 	"github.com/go-macaron/toolbox"
 	"github.com/urfave/cli"
 	macaron "gopkg.in/macaron.v1"
-	"code.gitea.io/gitea/modules/auth/oauth2"
 )
 
 // CmdWeb represents the available web sub-command.
@@ -194,7 +193,8 @@ func runWeb(ctx *cli.Context) error {
 		m.Post("/sign_up", bindIgnErr(auth.RegisterForm{}), user.SignUpPost)
 		m.Get("/reset_password", user.ResetPasswd)
 		m.Post("/reset_password", user.ResetPasswdPost)
-		m.Get("/oauth2/:provider/callback", oauth2.Callback)
+		m.Get("/oauth2/:provider", user.SignInOAuth)
+		m.Get("/oauth2/:provider/callback", user.SignInOAuthCallback)
 	}, reqSignOut)
 
 	m.Group("/user/settings", func() {

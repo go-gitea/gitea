@@ -973,6 +973,7 @@ function initAdmin() {
             $('.dldap').hide();
             $('.smtp').hide();
             $('.pam').hide();
+            $('.oauth2').hide();
             $('.has-tls').hide();
 
             var authType = $(this).val();
@@ -989,6 +990,9 @@ function initAdmin() {
                     break;
                 case '5':     // LDAP
                     $('.dldap').show();
+                    break;
+                case '6':     // OAuth2
+                    $('.oauth2').show();
                     break;
             }
 

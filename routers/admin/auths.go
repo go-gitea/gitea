@@ -76,6 +76,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
+	ctx.Data["OAuth2Providers"] = models.GetOAuth2Providers()
 	ctx.HTML(200, tplAuthNew)
 }
 
@@ -116,11 +117,9 @@ func parseSMTPConfig(form auth.AuthenticationForm) *models.SMTPConfig {
 
 func parseOAuth2Config(form auth.AuthenticationForm) *models.OAuth2Config {
 	return &models.OAuth2Config{
-		Provider:	form.OAuth2Provider,
-		ClientId:	form.OAuth2ClientId,
-		ClientSecret:	form.OAuth2ClientSecret,
-		TLS:		form.TLS,
-		SkipVerify:	form.SkipVerify,
+		Provider:     form.Oauth2Provider,
+		ClientID:     form.Oauth2Key,
+		ClientSecret: form.Oauth2Secret,
 	}
 }
 
@@ -135,6 +134,7 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
+	ctx.Data["OAuth2Providers"] = models.GetOAuth2Providers()
 
 	hasTLS := false
 	var config core.Conversion
@@ -191,6 +191,7 @@ func EditAuthSource(ctx *context.Context) {
 
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
+	ctx.Data["OAuth2Providers"] = models.GetOAuth2Providers()
 
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
@@ -200,16 +201,20 @@ func EditAuthSource(ctx *context.Context) {
 	ctx.Data["Source"] = source
 	ctx.Data["HasTLS"] = source.HasTLS()
 
+	if source.IsOAuth2() {
+		ctx.Data["CurrentOAuth2Provider"] = models.GetOAuth2Providers()[source.OAuth2().Provider]
+	}
 	ctx.HTML(200, tplAuthEdit)
 }
 
-// EditAuthSourcePost resposne for editing auth source
+// EditAuthSourcePost response for editing auth source
 func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.edit")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
+	ctx.Data["OAuth2Providers"] = models.GetOAuth2Providers()
 
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {

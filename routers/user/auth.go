@@ -97,6 +97,8 @@ func SignIn(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["OAuth2Providers"] = models.GetOAuth2Providers()
+
 	ctx.HTML(200, tplSignIn)
 }
 
@@ -109,7 +111,7 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 		return
 	}
 
-	u, err := models.UserSignIn(form.UserName, form.Password)
+	u, err := models.UserSignIn(form.UserName, form.Password, ctx.Context, ctx.Session)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
@@ -124,6 +126,43 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL)
 		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
 			setting.CookieRememberName, u.Name, days, setting.AppSubURL)
+	}
+
+	ctx.Session.Set("uid", u.ID)
+	ctx.Session.Set("uname", u.Name)
+
+	// Clear whatever CSRF has right now, force to generate a new one
+	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
+
+	// Register last login
+	u.SetLastLogin()
+	if err := models.UpdateUser(u); err != nil {
+		ctx.Handle(500, "UpdateUser", err)
+		return
+	}
+
+	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 {
+		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
+		ctx.Redirect(redirectTo)
+		return
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/")
+}
+
+// SignInOAuth handles the OAuth2 login buttons
+func SignInOAuth(ctx *context.Context) {
+	provider := ctx.Params(":provider")
+	models.OAuth2UserLogin(provider, ctx.Context, ctx.Session)
+}
+
+// SignInOAuthCallback handles the callback from the given provider
+func SignInOAuthCallback(ctx *context.Context) {
+	u, _, err := models.OAuth2UserLoginCallback(ctx.Context, ctx.Session)
+
+	if err != nil {
+		ctx.Handle(500, "UserSignIn", err)
+		return
 	}
 
 	ctx.Session.Set("uid", u.ID)

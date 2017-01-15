@@ -23,6 +23,8 @@ import (
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/log"
+	"gopkg.in/macaron.v1"
+	"github.com/go-macaron/session"
 )
 
 // LoginType represents an login type.
@@ -31,12 +33,12 @@ type LoginType int
 // Note: new type must append to the end of list to maintain compatibility.
 const (
 	LoginNoType LoginType = iota
-	LoginPlain            // 1
-	LoginLDAP             // 2
-	LoginSMTP             // 3
-	LoginPAM              // 4
-	LoginDLDAP            // 5
-	LoginOAuth2           // 6
+	LoginPlain   // 1
+	LoginLDAP    // 2
+	LoginSMTP    // 3
+	LoginPAM     // 4
+	LoginDLDAP   // 5
+	LoginOAuth2  // 6
 )
 
 // LoginNames contains the name of LoginType values.
@@ -119,13 +121,11 @@ func (cfg *PAMConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
-// OAuth2 holds configuration for the OAuth2 login source.
+// OAuth2Config holds configuration for the OAuth2 login source.
 type OAuth2Config struct {
-	Provider       string
-	ClientId       string
-	ClientSecret   string
-	TLS            bool
-	SkipVerify     bool
+	Provider     string
+	ClientID     string
+	ClientSecret string
 }
 
 // FromDB fills up an OAuth2Config from serialized format.
@@ -237,7 +237,7 @@ func (source *LoginSource) IsOAuth2() bool {
 func (source *LoginSource) HasTLS() bool {
 	return ((source.IsLDAP() || source.IsDLDAP()) &&
 		source.LDAP().SecurityProtocol > ldap.SecurityProtocolUnencrypted) ||
-		source.IsSMTP() || source.IsOAuth2()
+		source.IsSMTP()
 }
 
 // UseTLS returns true of this source is configured to use TLS.
@@ -248,7 +248,7 @@ func (source *LoginSource) UseTLS() bool {
 	case LoginSMTP:
 		return source.SMTP().TLS
 	case LoginOAuth2:
-		return source.OAuth2().TLS
+		return true
 	}
 
 	return false
@@ -262,8 +262,6 @@ func (source *LoginSource) SkipVerify() bool {
 		return source.LDAP().SkipVerify
 	case LoginSMTP:
 		return source.SMTP().SkipVerify
-	case LoginOAuth2:
-		return source.OAuth2().SkipVerify
 	}
 
 	return false
@@ -483,7 +481,7 @@ func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPC
 		idx := strings.Index(login, "@")
 		if idx == -1 {
 			return nil, ErrUserNotExist{0, login, 0}
-		} else if !com.IsSliceContainsStr(strings.Split(cfg.AllowedDomains, ","), login[idx+1:]) {
+		} else if !com.IsSliceContainsStr(strings.Split(cfg.AllowedDomains, ","), login[idx + 1:]) {
 			return nil, ErrUserNotExist{0, login, 0}
 		}
 	}
@@ -574,31 +572,12 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 
 // LoginViaOAuth2 queries if login/password is valid against the OAuth2.0 provider,
 // and create a local user if success when enabled.
-func LoginViaOAuth2(user *User, login, password string, sourceID int64, cfg *OAuth2Config, autoRegister bool) (*User, error) {
-	email, err := oauth2.Auth(cfg.Provider, cfg.ClientId, cfg.ClientSecret, login, password)
-	if err != nil {
-		return nil, err
-	}
-
-	if !autoRegister {
-		return user, nil
-	}
-
-	user = &User{
-		LowerName:   strings.ToLower(login),
-		Name:        login,
-		Email:       email,
-		Passwd:      password,
-		LoginType:   LoginOAuth2,
-		LoginSource: sourceID,
-		LoginName:   login,
-		IsActive:    true,
-	}
-	return user, CreateUser(user)
+func LoginViaOAuth2(cfg *OAuth2Config, ctx *macaron.Context, sess session.Store) {
+	oauth2.Auth(cfg.Provider, cfg.ClientID, cfg.ClientSecret, ctx, sess)
 }
 
 // ExternalUserLogin attempts a login using external source types.
-func ExternalUserLogin(user *User, login, password string, source *LoginSource, autoRegister bool) (*User, error) {
+func ExternalUserLogin(user *User, login, password string, source *LoginSource, autoRegister bool, ctx *macaron.Context, sess session.Store) (*User, error) {
 	if !source.IsActived {
 		return nil, ErrLoginSourceNotActived
 	}
@@ -611,14 +590,15 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource, 
 	case LoginPAM:
 		return LoginViaPAM(user, login, password, source.ID, source.Cfg.(*PAMConfig), autoRegister)
 	case LoginOAuth2:
-		return LoginViaOAuth2(user, login, password, source.ID, source.Cfg.(*OAuth2Config), autoRegister)
+		LoginViaOAuth2(source.Cfg.(*OAuth2Config), ctx, sess)
+		return nil, nil
 	}
 
 	return nil, ErrUnsupportedLoginType
 }
 
 // UserSignIn validates user name and password.
-func UserSignIn(username, password string) (*User, error) {
+func UserSignIn(username, password string, ctx *macaron.Context, sess session.Store) (*User, error) {
 	var user *User
 	if strings.Contains(username, "@") {
 		user = &User{Email: strings.ToLower(strings.TrimSpace(username))}
@@ -649,17 +629,17 @@ func UserSignIn(username, password string) (*User, error) {
 				return nil, ErrLoginSourceNotExist{user.LoginSource}
 			}
 
-			return ExternalUserLogin(user, user.LoginName, password, &source, false)
+			return ExternalUserLogin(user, user.LoginName, password, &source, false, ctx, sess)
 		}
 	}
 
-	sources := make([]*LoginSource, 0, 6)
+	sources := make([]*LoginSource, 0, 5)
 	if err = x.UseBool().Find(&sources, &LoginSource{IsActived: true}); err != nil {
 		return nil, err
 	}
 
 	for _, source := range sources {
-		authUser, err := ExternalUserLogin(nil, username, password, source, true)
+		authUser, err := ExternalUserLogin(nil, username, password, source, true, ctx, sess)
 		if err == nil {
 			return authUser, nil
 		}
@@ -668,4 +648,86 @@ func UserSignIn(username, password string) (*User, error) {
 	}
 
 	return nil, ErrUserNotExist{user.ID, user.Name, 0}
+}
+
+
+// OAuth2UserLogin attempts a login using a OAuth2 source type
+func OAuth2UserLogin(provider string, ctx *macaron.Context, sess session.Store) (*User, error) {
+	sources := make([]*LoginSource, 0, 1)
+	if err := x.UseBool().Find(&sources, &LoginSource{IsActived: true, Type: LoginOAuth2}); err != nil {
+		return nil, err
+	}
+
+	for _, source := range sources {
+		// TODO how to put this in the xorm Find ?
+		if source.Cfg.(*OAuth2Config).Provider == provider {
+			LoginViaOAuth2(source.Cfg.(*OAuth2Config), ctx, sess)
+			return nil, nil
+		}
+	}
+
+	return nil, errors.New("No valid provider found")
+}
+
+// OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
+// login the user
+func OAuth2UserLoginCallback(ctx *macaron.Context, sess session.Store) (*User, string, error) {
+	provider := ctx.Params(":provider")
+
+	gothUser, redirectURL, error := oauth2.ProviderCallback(provider, ctx, sess)
+
+	if error != nil {
+		return nil, redirectURL, error
+	}
+
+	sources := make([]*LoginSource, 0, 1)
+	if err := x.UseBool().Find(&sources, &LoginSource{IsActived: true, Type: LoginOAuth2}); err != nil {
+		return nil, "", err
+	}
+
+	for _, source := range sources {
+		// TODO how to put this in the xorm Find ?
+		if source.Cfg.(*OAuth2Config).Provider == provider {
+			user := &User{
+				LoginName:   gothUser.UserID,
+				LoginType:   LoginOAuth2,
+				LoginSource: sources[0].ID,
+			}
+
+			hasUser, err := x.Get(user)
+			if err != nil {
+				return nil, "", err
+			}
+
+			if !hasUser {
+				user = &User{
+					LowerName:        strings.ToLower(gothUser.NickName),
+					Name:             gothUser.NickName,
+					Email:            gothUser.Email,
+					LoginType:        LoginOAuth2,
+					LoginSource:      sources[0].ID,
+					LoginName:        gothUser.NickName,
+					IsActive:         true,
+					// TODO should OAuth2 imported emails be private?
+					KeepEmailPrivate: true,
+				}
+				return user, redirectURL, CreateUser(user)
+			}
+
+			return user, redirectURL, nil
+		}
+	}
+
+	return nil, "", errors.New("No valid provider found")
+}
+
+// GetOAuth2Providers returns the map of registered OAuth2 providers
+// key is used as technical name (like in the callbackURL)
+// value is used to display
+func GetOAuth2Providers() map[string]string {
+	// TODO get this from database or somewhere else?
+	// Maybe also seperate used and unused providers so we can force the registration of only 1 active provider for each type
+	return map[string]string{
+		"github":   "GitHub",
+	}
 }

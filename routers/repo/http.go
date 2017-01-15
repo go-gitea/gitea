@@ -117,7 +117,7 @@ func HTTP(ctx *context.Context) {
 				return
 			}
 
-			authUser, err = models.UserSignIn(authUsername, authPasswd)
+			authUser, err = models.UserSignIn(authUsername, authPasswd, ctx.Context, ctx.Session)
 			if err != nil {
 				if !models.IsErrUserNotExist(err) {
 					ctx.Handle(http.StatusInternalServerError, "UserSignIn error: %v", err)
