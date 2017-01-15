@@ -157,17 +157,9 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 	return nil
 }
 
-// CreateRelease creates a new release of repository.
-func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []string) error {
-	isExist, err := IsReleaseExist(rel.RepoID, rel.TagName)
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrReleaseAlreadyExist{rel.TagName}
-	}
-
+func addReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
-	attachments := make([]*Attachment, 0, len(rel.Attachments))
+	var attachments = make([]*Attachment,0)
 	for _, uuid := range attachmentUUIDs {
 		attach, err := getAttachmentByUUID(x, uuid)
 		if err != nil {
@@ -179,20 +171,37 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 		attachments = append(attachments, attach)
 	}
 
+	for i := range attachments {
+		attachments[i].ReleaseID = releaseID
+		// No assign value could be 0, so ignore AllCols().
+		if _, err = x.Id(attachments[i].ID).Update(attachments[i]); err != nil {
+			return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
+		}
+	}
+
+	return
+}
+
+// CreateRelease creates a new release of repository.
+func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []string) error {
+	isExist, err := IsReleaseExist(rel.RepoID, rel.TagName)
+	if err != nil {
+		return err
+	} else if isExist {
+		return ErrReleaseAlreadyExist{rel.TagName}
+	}
+
 	if err = createTag(gitRepo, rel); err != nil {
 		return err
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
 	_, err = x.InsertOne(rel)
-
-	for i := range attachments {
-		attachments[i].ReleaseID = rel.ID
-		// No assign value could be 0, so ignore AllCols().
-		if _, err = x.Id(attachments[i].ID).Update(attachments[i]); err != nil {
-			return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
-		}
+	if err != nil {
+		return err
 	}
+
+	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
 
 	return err
 }
@@ -332,11 +341,17 @@ func SortReleases(rels []*Release) {
 }
 
 // UpdateRelease updates information of a release.
-func UpdateRelease(gitRepo *git.Repository, rel *Release) (err error) {
+func UpdateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []string) (err error) {
 	if err = createTag(gitRepo, rel); err != nil {
 		return err
 	}
 	_, err = x.Id(rel.ID).AllCols().Update(rel)
+	if err != nil {
+		return err
+	}
+
+	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
+
 	return err
 }
 

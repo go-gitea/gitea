@@ -145,7 +145,7 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	if form.IsPrerelease != nil {
 		rel.IsPrerelease = *form.IsPrerelease
 	}
-	if err := models.UpdateRelease(ctx.Repo.GitRepo, rel); err != nil {
+	if err := models.UpdateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
 		ctx.Error(500, "UpdateRelease", err)
 		return
 	}

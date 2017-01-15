@@ -281,6 +281,7 @@ type EditReleaseForm struct {
 	Content    string `form:"content"`
 	Draft      string `form:"draft"`
 	Prerelease bool   `form:"prerelease"`
+	Files   []string
 }
 
 // Validate valideates the fields

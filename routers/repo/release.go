@@ -300,11 +300,16 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 		return
 	}
 
+	var attachmentUUIDs []string
+	if setting.AttachmentEnabled {
+		attachmentUUIDs = form.Files
+	}
+
 	rel.Title = form.Title
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
-	if err = models.UpdateRelease(ctx.Repo.GitRepo, rel); err != nil {
+	if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
 		ctx.Handle(500, "UpdateRelease", err)
 		return
 	}
