@@ -100,6 +100,12 @@ func Releases(ctx *context.Context) {
 		return
 	}
 
+	err = models.GetReleaseAttachments(releases...)
+	if err != nil {
+		ctx.Handle(500, "GetReleaseAttachments", err)
+		return
+	}
+
 	// Temproray cache commits count of used branches to speed up.
 	countCache := make(map[string]int64)
 	var cacheUsers = make(map[int64]*models.User)
