@@ -129,7 +129,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 			if len(auths) == 2 && auths[0] == "Basic" {
 				uname, passwd, _ := base.BasicAuthDecode(auths[1])
 
-				u, err := models.UserSignIn(uname, passwd, ctx, sess)
+				u, err := models.UserSignIn(uname, passwd)
 				if err != nil {
 					if !models.IsErrUserNotExist(err) {
 						log.Error(4, "UserSignIn: %v", err)
@@ -188,7 +188,7 @@ func AssignForm(form interface{}, data map[string]interface{}) {
 func getRuleBody(field reflect.StructField, prefix string) string {
 	for _, rule := range strings.Split(field.Tag.Get("binding"), ";") {
 		if strings.HasPrefix(rule, prefix) {
-			return rule[len(prefix) : len(rule)-1]
+			return rule[len(prefix): len(rule) - 1]
 		}
 	}
 	return ""
@@ -246,7 +246,7 @@ func validate(errs binding.Errors, data map[string]interface{}, f Form, l macaro
 		}
 
 		if errs[0].FieldNames[0] == field.Name {
-			data["Err_"+field.Name] = true
+			data["Err_" + field.Name] = true
 
 			trName := field.Tag.Get("locale")
 			if len(trName) == 0 {

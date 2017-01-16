@@ -58,7 +58,7 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	}
 
 	if val, _ := ctx.GetSuperSecureCookie(
-		base.EncodeMD5(u.Rands+u.Passwd), setting.CookieRememberName); val != u.Name {
+		base.EncodeMD5(u.Rands + u.Passwd), setting.CookieRememberName); val != u.Name {
 		return false, nil
 	}
 
@@ -111,7 +111,7 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 		return
 	}
 
-	u, err := models.UserSignIn(form.UserName, form.Password, ctx.Context, ctx.Session)
+	u, err := models.UserSignIn(form.UserName, form.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
@@ -124,7 +124,7 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	if form.Remember {
 		days := 86400 * setting.LogInRememberDays
 		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL)
-		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
+		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands + u.Passwd),
 			setting.CookieRememberName, u.Name, days, setting.AppSubURL)
 	}
 
@@ -153,12 +153,14 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 // SignInOAuth handles the OAuth2 login buttons
 func SignInOAuth(ctx *context.Context) {
 	provider := ctx.Params(":provider")
-	models.OAuth2UserLogin(provider, ctx.Context, ctx.Session)
+	models.OAuth2UserLogin(provider, ctx.Req.Request, ctx.Resp, ctx.Session)
 }
 
 // SignInOAuthCallback handles the callback from the given provider
 func SignInOAuthCallback(ctx *context.Context) {
-	u, _, err := models.OAuth2UserLoginCallback(ctx.Context, ctx.Session)
+	provider := ctx.Params(":provider")
+
+	u, _, err := models.OAuth2UserLoginCallback(provider, ctx.Req.Request, ctx.Resp, ctx.Session)
 
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)

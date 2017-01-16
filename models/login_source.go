@@ -23,7 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/log"
-	"gopkg.in/macaron.v1"
+	"net/http"
 	"github.com/go-macaron/session"
 )
 
@@ -572,12 +572,12 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 
 // LoginViaOAuth2 queries if login/password is valid against the OAuth2.0 provider,
 // and create a local user if success when enabled.
-func LoginViaOAuth2(cfg *OAuth2Config, ctx *macaron.Context, sess session.Store) {
-	oauth2.Auth(cfg.Provider, cfg.ClientID, cfg.ClientSecret, ctx, sess)
+func LoginViaOAuth2(cfg *OAuth2Config, request *http.Request, response http.ResponseWriter, session session.Store) {
+	oauth2.Auth(cfg.Provider, cfg.ClientID, cfg.ClientSecret, request, response, session)
 }
 
 // ExternalUserLogin attempts a login using external source types.
-func ExternalUserLogin(user *User, login, password string, source *LoginSource, autoRegister bool, ctx *macaron.Context, sess session.Store) (*User, error) {
+func ExternalUserLogin(user *User, login, password string, source *LoginSource, autoRegister bool) (*User, error) {
 	if !source.IsActived {
 		return nil, ErrLoginSourceNotActived
 	}
@@ -589,16 +589,13 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource, 
 		return LoginViaSMTP(user, login, password, source.ID, source.Cfg.(*SMTPConfig), autoRegister)
 	case LoginPAM:
 		return LoginViaPAM(user, login, password, source.ID, source.Cfg.(*PAMConfig), autoRegister)
-	case LoginOAuth2:
-		LoginViaOAuth2(source.Cfg.(*OAuth2Config), ctx, sess)
-		return nil, nil
 	}
 
 	return nil, ErrUnsupportedLoginType
 }
 
 // UserSignIn validates user name and password.
-func UserSignIn(username, password string, ctx *macaron.Context, sess session.Store) (*User, error) {
+func UserSignIn(username, password string) (*User, error) {
 	var user *User
 	if strings.Contains(username, "@") {
 		user = &User{Email: strings.ToLower(strings.TrimSpace(username))}
@@ -629,7 +626,7 @@ func UserSignIn(username, password string, ctx *macaron.Context, sess session.St
 				return nil, ErrLoginSourceNotExist{user.LoginSource}
 			}
 
-			return ExternalUserLogin(user, user.LoginName, password, &source, false, ctx, sess)
+			return ExternalUserLogin(user, user.LoginName, password, &source, false)
 		}
 	}
 
@@ -639,7 +636,7 @@ func UserSignIn(username, password string, ctx *macaron.Context, sess session.St
 	}
 
 	for _, source := range sources {
-		authUser, err := ExternalUserLogin(nil, username, password, source, true, ctx, sess)
+		authUser, err := ExternalUserLogin(nil, username, password, source, true)
 		if err == nil {
 			return authUser, nil
 		}
@@ -650,9 +647,8 @@ func UserSignIn(username, password string, ctx *macaron.Context, sess session.St
 	return nil, ErrUserNotExist{user.ID, user.Name, 0}
 }
 
-
 // OAuth2UserLogin attempts a login using a OAuth2 source type
-func OAuth2UserLogin(provider string, ctx *macaron.Context, sess session.Store) (*User, error) {
+func OAuth2UserLogin(provider string, request *http.Request, response http.ResponseWriter, session session.Store) (*User, error) {
 	sources := make([]*LoginSource, 0, 1)
 	if err := x.UseBool().Find(&sources, &LoginSource{IsActived: true, Type: LoginOAuth2}); err != nil {
 		return nil, err
@@ -661,7 +657,7 @@ func OAuth2UserLogin(provider string, ctx *macaron.Context, sess session.Store) 
 	for _, source := range sources {
 		// TODO how to put this in the xorm Find ?
 		if source.Cfg.(*OAuth2Config).Provider == provider {
-			LoginViaOAuth2(source.Cfg.(*OAuth2Config), ctx, sess)
+			LoginViaOAuth2(source.Cfg.(*OAuth2Config), request, response, session)
 			return nil, nil
 		}
 	}
@@ -671,10 +667,8 @@ func OAuth2UserLogin(provider string, ctx *macaron.Context, sess session.Store) 
 
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
 // login the user
-func OAuth2UserLoginCallback(ctx *macaron.Context, sess session.Store) (*User, string, error) {
-	provider := ctx.Params(":provider")
-
-	gothUser, redirectURL, error := oauth2.ProviderCallback(provider, ctx, sess)
+func OAuth2UserLoginCallback(provider string, request *http.Request, response http.ResponseWriter, session session.Store) (*User, string, error) {
+	gothUser, redirectURL, error := oauth2.ProviderCallback(provider, request, response, session)
 
 	if error != nil {
 		return nil, redirectURL, error

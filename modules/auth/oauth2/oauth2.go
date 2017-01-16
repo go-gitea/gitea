@@ -6,13 +6,12 @@ import (
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/github"
-	"gopkg.in/macaron.v1"
 	"net/http"
 	"os"
-	"github.com/go-macaron/session"
 	"github.com/satori/go.uuid"
 	"encoding/base64"
 	"strings"
+	"github.com/go-macaron/session"
 )
 
 var (
@@ -26,7 +25,7 @@ func init() {
 }
 
 // Auth OAuth2 auth service
-func Auth(provider, clientID, clientSecret string, ctx *macaron.Context, session session.Store) {
+func Auth(provider, clientID, clientSecret string, request *http.Request, response http.ResponseWriter, session session.Store) {
 	callbackURL := setting.AppURL + "user/oauth2/" + provider + "/callback"
 
 	goth.UseProviders(
@@ -45,9 +44,6 @@ func Auth(provider, clientID, clientSecret string, ctx *macaron.Context, session
 		return state
 	}
 
-	request := ctx.Req.Request
-	response := ctx.Resp
-
 	/*
 	oauth2User := session.Get(oAuthUserSessionKey)
 	session.Delete(oAuthUserSessionKey)
@@ -63,16 +59,12 @@ func Auth(provider, clientID, clientSecret string, ctx *macaron.Context, session
 
 // ProviderCallback handles OAuth callback, resolve to a goth user and send back to original url
 // this will trigger a new authentication request, but because we save it in the session we can use that
-func ProviderCallback(provider string, ctx *macaron.Context, session session.Store) (goth.User, string, error) {
-	request := ctx.Req.Request
-
-	res := ctx.Resp
-
+func ProviderCallback(provider string, request *http.Request, response http.ResponseWriter, session session.Store) (goth.User, string, error) {
 	gothic.GetProviderName = func(req *http.Request) (string, error) {
 		return provider, nil
 	}
 
-	user, err := gothic.CompleteUserAuth(res, request)
+	user, err := gothic.CompleteUserAuth(response, request)
 	if err != nil {
 		return user, "", err
 	}
