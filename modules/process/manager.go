@@ -53,9 +53,8 @@ func GetManager() *Manager {
 
 // Add a process to the ProcessManager and returns its PID.
 func (pm *Manager) Add(description string, cmd *exec.Cmd) int64 {
-	pid := pm.counter + 1
-
 	pm.mutex.Lock()
+	pid := pm.counter + 1
 	pm.Processes[pid] = &Process{
 		PID:         pid,
 		Description: description,
