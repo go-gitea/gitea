@@ -33,7 +33,7 @@ type Process struct {
 	Cmd         *exec.Cmd
 }
 
-// ProcessManager knows about all processes and counts PIDs.
+// Manager knows about all processes and counts PIDs.
 type Manager struct {
 	mutex sync.Mutex
 
@@ -41,6 +41,7 @@ type Manager struct {
 	Processes map[int64]*Process
 }
 
+// GetManager returns a Manager and initializes one as singleton if there's none yet
 func GetManager() *Manager {
 	if manager == nil {
 		manager = &Manager{
@@ -79,7 +80,7 @@ func (pm *Manager) Exec(desc, cmdName string, args ...string) (string, string, e
 	return pm.ExecDir(-1, "", desc, cmdName, args...)
 }
 
-// Exec a command and use a specific timeout duration.
+// ExecTimeout a command and use a specific timeout duration.
 func (pm *Manager) ExecTimeout(timeout time.Duration, desc, cmdName string, args ...string) (string, string, error) {
 	return pm.ExecDir(timeout, "", desc, cmdName, args...)
 }
