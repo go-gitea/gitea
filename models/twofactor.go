@@ -21,7 +21,7 @@ import (
 // TwoFactor represents a two-factor authentication token.
 type TwoFactor struct {
 	ID           int64 `xorm:"pk autoincr"`
-	UID          int64 `xorm:"UNIQUE INDEX"`
+	UID          int64 `xorm:"UNIQUE"`
 	Secret       string
 	ScratchToken string
 
