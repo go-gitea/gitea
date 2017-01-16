@@ -204,8 +204,8 @@ func runWeb(ctx *cli.Context) error {
 		m.Get("/reset_password", user.ResetPasswd)
 		m.Post("/reset_password", user.ResetPasswdPost)
 		m.Group("/oauth2", func() {
-			m.Get("/oauth2/:provider", user.SignInOAuth)
-			m.Get("/oauth2/:provider/callback", user.SignInOAuthCallback)
+			m.Get("/:provider", user.SignInOAuth)
+			m.Get("/:provider/callback", user.SignInOAuthCallback)
 		})
 		m.Group("/two_factor", func() {
 			m.Get("", user.TwoFactor)
