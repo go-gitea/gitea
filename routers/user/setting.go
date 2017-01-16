@@ -446,18 +446,18 @@ func SettingsDeleteApplication(ctx *context.Context) {
 	})
 }
 
-// SettingsTwofa renders the 2FA page.
-func SettingsTwofa(ctx *context.Context) {
+// SettingsTwoFactor renders the 2FA page.
+func SettingsTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsTwofa"] = true
 
 	enrolled := true
-	_, err := models.GetTwofaByUID(ctx.User.ID)
+	_, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if err != nil {
-		if models.IsErrTwofaNotEnrolled(err) {
+		if models.IsErrTwoFactorNotEnrolled(err) {
 			enrolled = false
 		} else {
-			ctx.Handle(500, "SettingsTwofa", err)
+			ctx.Handle(500, "SettingsTwoFactor", err)
 			return
 		}
 	}
@@ -466,49 +466,49 @@ func SettingsTwofa(ctx *context.Context) {
 	ctx.HTML(200, tplSettingsTwofa)
 }
 
-// SettingsTwofaRegenerateScratch regenerates the user's 2FA scratch code.
-func SettingsTwofaRegenerateScratch(ctx *context.Context) {
+// SettingsTwoFactorRegenerateScratch regenerates the user's 2FA scratch code.
+func SettingsTwoFactorRegenerateScratch(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsTwofa"] = true
 
-	t, err := models.GetTwofaByUID(ctx.User.ID)
+	t, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if err != nil {
-		ctx.Handle(500, "SettingsTwofa", err)
+		ctx.Handle(500, "SettingsTwoFactor", err)
 		return
 	}
 
 	if err = t.GenerateScratchToken(); err != nil {
-		ctx.Handle(500, "SettingsTwofa", err)
+		ctx.Handle(500, "SettingsTwoFactor", err)
 		return
 	}
 
-	if err = models.UpdateTwofa(t); err != nil {
-		ctx.Handle(500, "SettingsTwofa", err)
+	if err = models.UpdateTwoFactor(t); err != nil {
+		ctx.Handle(500, "SettingsTwoFactor", err)
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_scratch_token_regenerated", t.ScratchToken))
-	ctx.Redirect(setting.AppSubURL + "/user/settings/2fa")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/two_factor")
 }
 
-// SettingsTwofaDisable deletes the user's 2FA settings.
-func SettingsTwofaDisable(ctx *context.Context) {
+// SettingsTwoFactorDisable deletes the user's 2FA settings.
+func SettingsTwoFactorDisable(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsTwofa"] = true
 
-	t, err := models.GetTwofaByUID(ctx.User.ID)
+	t, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if err != nil {
-		ctx.Handle(500, "SettingsTwofa", err)
+		ctx.Handle(500, "SettingsTwoFactor", err)
 		return
 	}
 
-	if err = models.DeleteTwofaByID(t.ID, ctx.User.ID); err != nil {
-		ctx.Handle(500, "SettingsTwofa", err)
+	if err = models.DeleteTwoFactorByID(t.ID, ctx.User.ID); err != nil {
+		ctx.Handle(500, "SettingsTwoFactor", err)
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
-	ctx.Redirect(setting.AppSubURL + "/user/settings/2fa")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/two_factor")
 }
 
 func twofaGenerateSecretAndQr(ctx *context.Context) bool {
@@ -525,7 +525,7 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 			AccountName: ctx.User.Name,
 		})
 		if err != nil {
-			ctx.Handle(500, "SettingsTwofa", err)
+			ctx.Handle(500, "SettingsTwoFactor", err)
 			return false
 		}
 	}
@@ -533,13 +533,13 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 	ctx.Data["TwofaSecret"] = otpKey.Secret()
 	img, err := otpKey.Image(320, 240)
 	if err != nil {
-		ctx.Handle(500, "SettingsTwofa", err)
+		ctx.Handle(500, "SettingsTwoFactor", err)
 		return false
 	}
 
 	var imgBytes bytes.Buffer
 	if err = png.Encode(&imgBytes, img); err != nil {
-		ctx.Handle(500, "SettingsTwofa", err)
+		ctx.Handle(500, "SettingsTwoFactor", err)
 		return false
 	}
 
@@ -549,19 +549,19 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 	return true
 }
 
-// SettingsTwofaEnroll shows the page where the user can enroll into 2FA.
-func SettingsTwofaEnroll(ctx *context.Context) {
+// SettingsTwoFactorEnroll shows the page where the user can enroll into 2FA.
+func SettingsTwoFactorEnroll(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsTwofa"] = true
 
-	t, err := models.GetTwofaByUID(ctx.User.ID)
+	t, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if t != nil {
 		// already enrolled
-		ctx.Handle(500, "SettingsTwofa", err)
+		ctx.Handle(500, "SettingsTwoFactor", err)
 		return
 	}
-	if err != nil && !models.IsErrTwofaNotEnrolled(err) {
-		ctx.Handle(500, "SettingsTwofa", err)
+	if err != nil && !models.IsErrTwoFactorNotEnrolled(err) {
+		ctx.Handle(500, "SettingsTwoFactor", err)
 		return
 	}
 
@@ -572,19 +572,19 @@ func SettingsTwofaEnroll(ctx *context.Context) {
 	ctx.HTML(200, tplSettingsTwofaEnroll)
 }
 
-// SettingsTwofaEnrollPost handles enrolling the user into 2FA.
-func SettingsTwofaEnrollPost(ctx *context.Context, form auth.TwofaAuthForm) {
+// SettingsTwoFactorEnrollPost handles enrolling the user into 2FA.
+func SettingsTwoFactorEnrollPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsTwofa"] = true
 
-	t, err := models.GetTwofaByUID(ctx.User.ID)
+	t, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if t != nil {
 		// already enrolled
-		ctx.Handle(500, "SettingsTwofa", err)
+		ctx.Handle(500, "SettingsTwoFactor", err)
 		return
 	}
-	if err != nil && !models.IsErrTwofaNotEnrolled(err) {
-		ctx.Handle(500, "SettingsTwofa", err)
+	if err != nil && !models.IsErrTwoFactorNotEnrolled(err) {
+		ctx.Handle(500, "SettingsTwoFactor", err)
 		return
 	}
 
@@ -606,29 +606,29 @@ func SettingsTwofaEnrollPost(ctx *context.Context, form auth.TwofaAuthForm) {
 		return
 	}
 
-	t = &models.Twofa{
+	t = &models.TwoFactor{
 		UID: ctx.User.ID,
 	}
 	err = t.SetSecret(secret)
 	if err != nil {
-		ctx.Handle(500, "SettingsTwofa", err)
+		ctx.Handle(500, "SettingsTwoFactor", err)
 		return
 	}
 	err = t.GenerateScratchToken()
 	if err != nil {
-		ctx.Handle(500, "SettingsTwofa", err)
+		ctx.Handle(500, "SettingsTwoFactor", err)
 		return
 	}
 
-	if err = models.NewTwofa(t); err != nil {
-		ctx.Handle(500, "SettingsTwofa", err)
+	if err = models.NewTwoFactor(t); err != nil {
+		ctx.Handle(500, "SettingsTwoFactor", err)
 		return
 	}
 
 	ctx.Session.Delete("twofaSecret")
 	ctx.Session.Delete("twofaUri")
 	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", t.ScratchToken))
-	ctx.Redirect(setting.AppSubURL + "/user/settings/2fa")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/two_factor")
 }
 
 // SettingsDelete render user suicide page and response for delete user himself

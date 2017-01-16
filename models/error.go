@@ -791,18 +791,18 @@ func (err ErrTeamAlreadyExist) Error() string {
 // Two-factor authentication
 //
 
-// ErrTwofaNotEnrolled indicates that a user is not enrolled in two-factor authentication.
-type ErrTwofaNotEnrolled struct {
+// ErrTwoFactorNotEnrolled indicates that a user is not enrolled in two-factor authentication.
+type ErrTwoFactorNotEnrolled struct {
 	UID int64
 }
 
-// IsErrTwofaNotEnrolled checks if an error is a ErrTwofaNotEnrolled.
-func IsErrTwofaNotEnrolled(err error) bool {
-	_, ok := err.(ErrTwofaNotEnrolled)
+// IsErrTwoFactorNotEnrolled checks if an error is a ErrTwoFactorNotEnrolled.
+func IsErrTwoFactorNotEnrolled(err error) bool {
+	_, ok := err.(ErrTwoFactorNotEnrolled)
 	return ok
 }
 
-func (err ErrTwofaNotEnrolled) Error() string {
+func (err ErrTwoFactorNotEnrolled) Error() string {
 	return fmt.Sprintf("user not enrolled in 2FA [uid: %d]", err.UID)
 }
 

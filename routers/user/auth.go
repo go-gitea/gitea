@@ -133,9 +133,9 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 
 	// If this user is enrolled in 2FA, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
-	_, err = models.GetTwofaByUID(u.ID)
+	_, err = models.GetTwoFactorByUID(u.ID)
 	if err != nil {
-		if models.IsErrTwofaNotEnrolled(err) {
+		if models.IsErrTwoFactorNotEnrolled(err) {
 			handleSignIn(ctx, u, form.Remember)
 		} else {
 			ctx.Handle(500, "UserSignIn", err)
@@ -146,11 +146,11 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	// User needs to use 2FA, save data and redirect to 2FA page.
 	ctx.Session.Set("twofaUid", u.ID)
 	ctx.Session.Set("twofaRemember", form.Remember)
-	ctx.Redirect(setting.AppSubURL + "/user/2fa")
+	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
 }
 
-// ShowTwofa shows the user a two-factor authentication page.
-func ShowTwofa(ctx *context.Context) {
+// TwoFactor shows the user a two-factor authentication page.
+func TwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa")
 
 	// Check auto-login.
@@ -167,8 +167,8 @@ func ShowTwofa(ctx *context.Context) {
 	ctx.HTML(200, tplTwofa)
 }
 
-// TwofaPost validates a user's two-factor authentication token.
-func TwofaPost(ctx *context.Context, form auth.TwofaAuthForm) {
+// TwoFactorPost validates a user's two-factor authentication token.
+func TwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 	ctx.Data["Title"] = ctx.Tr("twofa")
 
 	// Ensure user is in a 2FA session.
@@ -179,7 +179,7 @@ func TwofaPost(ctx *context.Context, form auth.TwofaAuthForm) {
 	}
 
 	id := idSess.(int64)
-	twofa, err := models.GetTwofaByUID(id)
+	twofa, err := models.GetTwoFactorByUID(id)
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)
 		return
@@ -204,11 +204,11 @@ func TwofaPost(ctx *context.Context, form auth.TwofaAuthForm) {
 		return
 	}
 
-	ctx.RenderWithErr(ctx.Tr("auth.twofa_passcode_incorrect"), tplTwofa, auth.TwofaAuthForm{})
+	ctx.RenderWithErr(ctx.Tr("auth.twofa_passcode_incorrect"), tplTwofa, auth.TwoFactorAuthForm{})
 }
 
-// TwofaScratch shows the scratch code form for two-factor authentication.
-func TwofaScratch(ctx *context.Context) {
+// TwoFactorScratch shows the scratch code form for two-factor authentication.
+func TwoFactorScratch(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa_scratch")
 
 	// Check auto-login.
@@ -225,8 +225,8 @@ func TwofaScratch(ctx *context.Context) {
 	ctx.HTML(200, tplTwofaScratch)
 }
 
-// TwofaScratchPost validates and invalidates a user's two-factor scratch token.
-func TwofaScratchPost(ctx *context.Context, form auth.TwofaScratchAuthForm) {
+// TwoFactorScratchPost validates and invalidates a user's two-factor scratch token.
+func TwoFactorScratchPost(ctx *context.Context, form auth.TwoFactorScratchAuthForm) {
 	ctx.Data["Title"] = ctx.Tr("twofa_scratch")
 
 	// Ensure user is in a 2FA session.
@@ -237,7 +237,7 @@ func TwofaScratchPost(ctx *context.Context, form auth.TwofaScratchAuthForm) {
 	}
 
 	id := idSess.(int64)
-	twofa, err := models.GetTwofaByUID(id)
+	twofa, err := models.GetTwoFactorByUID(id)
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)
 		return
@@ -247,7 +247,7 @@ func TwofaScratchPost(ctx *context.Context, form auth.TwofaScratchAuthForm) {
 	if twofa.VerifyScratchToken(form.Token) {
 		// Invalidate the scratch token.
 		twofa.ScratchToken = ""
-		if err = models.UpdateTwofa(twofa); err != nil {
+		if err = models.UpdateTwoFactor(twofa); err != nil {
 			ctx.Handle(500, "UserSignIn", err)
 			return
 		}
@@ -261,11 +261,11 @@ func TwofaScratchPost(ctx *context.Context, form auth.TwofaScratchAuthForm) {
 
 		handleSignInFull(ctx, u, remember, false)
 		ctx.Flash.Info(ctx.Tr("auth.twofa_scratch_used"))
-		ctx.Redirect(setting.AppSubURL + "/user/settings/2fa")
+		ctx.Redirect(setting.AppSubURL + "/user/settings/two_factor")
 		return
 	}
 
-	ctx.RenderWithErr(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplTwofaScratch, auth.TwofaScratchAuthForm{})
+	ctx.RenderWithErr(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplTwofaScratch, auth.TwoFactorScratchAuthForm{})
 }
 
 // This handles the final part of the sign-in process of the user.

@@ -18,8 +18,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// Twofa represents a two-factor authentication token.
-type Twofa struct {
+// TwoFactor represents a two-factor authentication token.
+type TwoFactor struct {
 	ID           int64 `xorm:"pk autoincr"`
 	UID          int64 `xorm:"UNIQUE INDEX"`
 	Secret       string
@@ -32,17 +32,17 @@ type Twofa struct {
 }
 
 // BeforeInsert will be invoked by XORM before inserting a record representing this object.
-func (t *Twofa) BeforeInsert() {
+func (t *TwoFactor) BeforeInsert() {
 	t.CreatedUnix = time.Now().Unix()
 }
 
 // BeforeUpdate is invoked from XORM before updating this object.
-func (t *Twofa) BeforeUpdate() {
+func (t *TwoFactor) BeforeUpdate() {
 	t.UpdatedUnix = time.Now().Unix()
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.
-func (t *Twofa) AfterSet(colName string, _ xorm.Cell) {
+func (t *TwoFactor) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
 	case "created_unix":
 		t.Created = time.Unix(t.CreatedUnix, 0).Local()
@@ -52,7 +52,7 @@ func (t *Twofa) AfterSet(colName string, _ xorm.Cell) {
 }
 
 // GenerateScratchToken recreates the scratch token the user is using.
-func (t *Twofa) GenerateScratchToken() error {
+func (t *TwoFactor) GenerateScratchToken() error {
 	token, err := base.GetRandomString(8)
 	if err != nil {
 		return err
@@ -62,20 +62,20 @@ func (t *Twofa) GenerateScratchToken() error {
 }
 
 // VerifyScratchToken verifies if the specified scratch token is valid.
-func (t *Twofa) VerifyScratchToken(token string) bool {
+func (t *TwoFactor) VerifyScratchToken(token string) bool {
 	if len(token) == 0 {
 		return false
 	}
 	return subtle.ConstantTimeCompare([]byte(token), []byte(t.ScratchToken)) == 1
 }
 
-func (t *Twofa) getEncryptionKey() []byte {
+func (t *TwoFactor) getEncryptionKey() []byte {
 	k := md5.Sum([]byte(setting.SecretKey))
 	return k[:]
 }
 
 // SetSecret sets the 2FA secret.
-func (t *Twofa) SetSecret(secret string) error {
+func (t *TwoFactor) SetSecret(secret string) error {
 	secretBytes, err := com.AESEncrypt(t.getEncryptionKey(), []byte(secret))
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func (t *Twofa) SetSecret(secret string) error {
 }
 
 // ValidateTOTP validates the provided passcode.
-func (t *Twofa) ValidateTOTP(passcode string) (bool, error) {
+func (t *TwoFactor) ValidateTOTP(passcode string) (bool, error) {
 	decodedStoredSecret, err := base64.StdEncoding.DecodeString(t.Secret)
 	if err != nil {
 		return false, err
@@ -98,8 +98,8 @@ func (t *Twofa) ValidateTOTP(passcode string) (bool, error) {
 	return totp.Validate(passcode, secretStr), nil
 }
 
-// NewTwofa creates a new two-factor authentication token.
-func NewTwofa(t *Twofa) error {
+// NewTwoFactor creates a new two-factor authentication token.
+func NewTwoFactor(t *TwoFactor) error {
 	err := t.GenerateScratchToken()
 	if err != nil {
 		return err
@@ -108,34 +108,34 @@ func NewTwofa(t *Twofa) error {
 	return err
 }
 
-// UpdateTwofa updates a two-factor authentication token.
-func UpdateTwofa(t *Twofa) error {
+// UpdateTwoFactor updates a two-factor authentication token.
+func UpdateTwoFactor(t *TwoFactor) error {
 	_, err := x.Id(t.ID).AllCols().Update(t)
 	return err
 }
 
-// GetTwofaByUID returns the two-factor authentication token associated with
+// GetTwoFactorByUID returns the two-factor authentication token associated with
 // the user, if any.
-func GetTwofaByUID(uid int64) (*Twofa, error) {
-	twofa := &Twofa{UID: uid}
+func GetTwoFactorByUID(uid int64) (*TwoFactor, error) {
+	twofa := &TwoFactor{UID: uid}
 	has, err := x.Get(twofa)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrTwofaNotEnrolled{uid}
+		return nil, ErrTwoFactorNotEnrolled{uid}
 	}
 	return twofa, nil
 }
 
-// DeleteTwofaByID deletes two-factor authentication token by given ID.
-func DeleteTwofaByID(id, userID int64) error {
-	cnt, err := x.Id(id).Delete(&Twofa{
+// DeleteTwoFactorByID deletes two-factor authentication token by given ID.
+func DeleteTwoFactorByID(id, userID int64) error {
+	cnt, err := x.Id(id).Delete(&TwoFactor{
 		UID: userID,
 	})
 	if err != nil {
 		return err
 	} else if cnt != 1 {
-		return ErrTwofaNotEnrolled{userID}
+		return ErrTwoFactorNotEnrolled{userID}
 	}
 	return nil
 }
