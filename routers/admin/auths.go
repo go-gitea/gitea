@@ -76,7 +76,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
-	ctx.Data["OAuth2Providers"] = models.GetOAuth2Providers()
+	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 	ctx.HTML(200, tplAuthNew)
 }
 
@@ -134,7 +134,7 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
-	ctx.Data["OAuth2Providers"] = models.GetOAuth2Providers()
+	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 
 	hasTLS := false
 	var config core.Conversion
@@ -191,7 +191,7 @@ func EditAuthSource(ctx *context.Context) {
 
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
-	ctx.Data["OAuth2Providers"] = models.GetOAuth2Providers()
+	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
@@ -202,7 +202,7 @@ func EditAuthSource(ctx *context.Context) {
 	ctx.Data["HasTLS"] = source.HasTLS()
 
 	if source.IsOAuth2() {
-		ctx.Data["CurrentOAuth2Provider"] = models.GetOAuth2Providers()[source.OAuth2().Provider]
+		ctx.Data["CurrentOAuth2Provider"] = models.OAuth2Providers[source.OAuth2().Provider]
 	}
 	ctx.HTML(200, tplAuthEdit)
 }
@@ -214,7 +214,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
-	ctx.Data["OAuth2Providers"] = models.GetOAuth2Providers()
+	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {

@@ -9,15 +9,10 @@ import (
 	"net/http"
 	"os"
 	"github.com/satori/go.uuid"
-	"encoding/base64"
-	"strings"
-	"github.com/go-macaron/session"
 )
 
 var (
-	sessionUsersStoreKey         = "gitea-oauth-sessions"
-	oAuthUserSessionKey          = "oauth2-user"
-	oAuthStateUniqueIDSessionKey = "oauth2-state-key"
+	sessionUsersStoreKey = "gitea-oauth-sessions"
 )
 
 func init() {
@@ -25,7 +20,7 @@ func init() {
 }
 
 // Auth OAuth2 auth service
-func Auth(provider, clientID, clientSecret string, request *http.Request, response http.ResponseWriter, session session.Store) {
+func Auth(provider, clientID, clientSecret string, request *http.Request, response http.ResponseWriter) {
 	callbackURL := setting.AppURL + "user/oauth2/" + provider + "/callback"
 
 	goth.UseProviders(
@@ -37,29 +32,15 @@ func Auth(provider, clientID, clientSecret string, request *http.Request, respon
 	}
 
 	gothic.SetState = func(req *http.Request) string {
-		state, uniqueID := encodeState(req.URL.String())
-
-		session.Set(oAuthStateUniqueIDSessionKey, uniqueID)
-
-		return state
+		return uuid.NewV4().String()
 	}
-
-	/*
-	oauth2User := session.Get(oAuthUserSessionKey)
-	session.Delete(oAuthUserSessionKey)
-	if oauth2User != nil {
-		// already authenticated, stop OAuth2 authentication flow
-		http.Redirect(response, request, callbackUrl, http.StatusTemporaryRedirect)
-		return
-	}
-	*/
 
 	gothic.BeginAuthHandler(response, request)
 }
 
 // ProviderCallback handles OAuth callback, resolve to a goth user and send back to original url
 // this will trigger a new authentication request, but because we save it in the session we can use that
-func ProviderCallback(provider string, request *http.Request, response http.ResponseWriter, session session.Store) (goth.User, string, error) {
+func ProviderCallback(provider string, request *http.Request, response http.ResponseWriter) (goth.User, string, error) {
 	gothic.GetProviderName = func(req *http.Request) (string, error) {
 		return provider, nil
 	}
@@ -69,56 +50,5 @@ func ProviderCallback(provider string, request *http.Request, response http.Resp
 		return user, "", err
 	}
 
-	redirectURL := ""
-
-	state := gothic.GetState(request)
-	if state == "" {
-		redirectURL = "TROUBLE"
-	}
-
-	if _, uniqueID, err := decodeState(state); err != nil {
-		redirectURL = "TROUBLE2"
-	} else {
-		uniqueIDSession := session.Get(oAuthStateUniqueIDSessionKey)
-		session.Delete(oAuthStateUniqueIDSessionKey)
-
-		if uniqueIDSession != nil && uniqueIDSession == uniqueID {
-			redirectURL = ""
-			session.Set(oAuthUserSessionKey, user)
-		} else {
-			redirectURL = "TROUBLE3"
-		}
-	}
-
-	return user, redirectURL, nil
-}
-
-func encodeState(state string) (string, string) {
-	uniqueID := uuid.NewV4().String()
-	data := []byte(uniqueID + "|" + state)
-
-	return base64.URLEncoding.EncodeToString(data), uniqueID
-}
-
-func decodeState(encodedState string) (string, string, error) {
-	data, err := base64.URLEncoding.DecodeString(encodedState)
-
-	if err != nil {
-		return "", "", err
-	}
-
-	decodedState := string(data[:])
-	slices := strings.Split(decodedState, "|")
-
-	uniqueID := slices[0]
-
-	// validate uuid
-	_, err = uuid.FromString(uniqueID)
-	if err != nil {
-		return "", "", err
-	}
-
-	state := slices[1]
-
-	return state, uniqueID, nil
+	return user, "", nil
 }

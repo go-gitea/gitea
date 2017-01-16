@@ -97,7 +97,12 @@ func SignIn(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["OAuth2Providers"] = models.GetOAuth2Providers()
+	oauth2Providers, err := models.GetActiveOAuth2Providers()
+	if err != nil {
+		ctx.Handle(500, "UserSignIn", err)
+		return
+	}
+	ctx.Data["OAuth2Providers"] = oauth2Providers
 
 	ctx.HTML(200, tplSignIn)
 }
@@ -153,14 +158,14 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 // SignInOAuth handles the OAuth2 login buttons
 func SignInOAuth(ctx *context.Context) {
 	provider := ctx.Params(":provider")
-	models.OAuth2UserLogin(provider, ctx.Req.Request, ctx.Resp, ctx.Session)
+	models.OAuth2UserLogin(provider, ctx.Req.Request, ctx.Resp)
 }
 
 // SignInOAuthCallback handles the callback from the given provider
 func SignInOAuthCallback(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
-	u, _, err := models.OAuth2UserLoginCallback(provider, ctx.Req.Request, ctx.Resp, ctx.Session)
+	u, _, err := models.OAuth2UserLoginCallback(provider, ctx.Req.Request, ctx.Resp)
 
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)
