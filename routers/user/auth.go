@@ -5,6 +5,7 @@
 package user
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -27,6 +28,8 @@ const (
 	TplActivate       base.TplName = "user/auth/activate"
 	tplForgotPassword base.TplName = "user/auth/forgot_passwd"
 	tplResetPassword  base.TplName = "user/auth/reset_passwd"
+	tplTwofa          base.TplName = "user/auth/twofa"
+	tplTwofaScratch   base.TplName = "user/auth/twofa_scratch"
 )
 
 // AutoSignIn reads cookie and try to auto-login.
@@ -69,15 +72,12 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	return true, nil
 }
 
-// SignIn render sign in page
-func SignIn(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("sign_in")
-
+func checkAutoLogin(ctx *context.Context) bool {
 	// Check auto-login.
 	isSucceed, err := AutoSignIn(ctx)
 	if err != nil {
 		ctx.Handle(500, "AutoSignIn", err)
-		return
+		return true
 	}
 
 	redirectTo := ctx.Query("redirect_to")
@@ -94,6 +94,18 @@ func SignIn(ctx *context.Context) {
 		} else {
 			ctx.Redirect(setting.AppSubURL + "/")
 		}
+		return true
+	}
+
+	return false
+}
+
+// SignIn render sign in page
+func SignIn(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("sign_in")
+
+	// Check auto-login.
+	if checkAutoLogin(ctx) {
 		return
 	}
 
@@ -119,13 +131,158 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 		return
 	}
 
-	if form.Remember {
+	// If this user is enrolled in 2FA, we can't sign the user in just yet.
+	// Instead, redirect them to the 2FA authentication page.
+	_, err = models.GetTwoFactorByUID(u.ID)
+	if err != nil {
+		if models.IsErrTwoFactorNotEnrolled(err) {
+			handleSignIn(ctx, u, form.Remember)
+		} else {
+			ctx.Handle(500, "UserSignIn", err)
+		}
+		return
+	}
+
+	// User needs to use 2FA, save data and redirect to 2FA page.
+	ctx.Session.Set("twofaUid", u.ID)
+	ctx.Session.Set("twofaRemember", form.Remember)
+	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
+}
+
+// TwoFactor shows the user a two-factor authentication page.
+func TwoFactor(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("twofa")
+
+	// Check auto-login.
+	if checkAutoLogin(ctx) {
+		return
+	}
+
+	// Ensure user is in a 2FA session.
+	if ctx.Session.Get("twofaUid") == nil {
+		ctx.Handle(500, "UserSignIn", errors.New("not in 2FA session"))
+		return
+	}
+
+	ctx.HTML(200, tplTwofa)
+}
+
+// TwoFactorPost validates a user's two-factor authentication token.
+func TwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
+	ctx.Data["Title"] = ctx.Tr("twofa")
+
+	// Ensure user is in a 2FA session.
+	idSess := ctx.Session.Get("twofaUid")
+	if idSess == nil {
+		ctx.Handle(500, "UserSignIn", errors.New("not in 2FA session"))
+		return
+	}
+
+	id := idSess.(int64)
+	twofa, err := models.GetTwoFactorByUID(id)
+	if err != nil {
+		ctx.Handle(500, "UserSignIn", err)
+		return
+	}
+
+	// Validate the passcode with the stored TOTP secret.
+	ok, err := twofa.ValidateTOTP(form.Passcode)
+	if err != nil {
+		ctx.Handle(500, "UserSignIn", err)
+		return
+	}
+
+	if ok {
+		remember := ctx.Session.Get("twofaRemember").(bool)
+		u, err := models.GetUserByID(id)
+		if err != nil {
+			ctx.Handle(500, "UserSignIn", err)
+			return
+		}
+
+		handleSignIn(ctx, u, remember)
+		return
+	}
+
+	ctx.RenderWithErr(ctx.Tr("auth.twofa_passcode_incorrect"), tplTwofa, auth.TwoFactorAuthForm{})
+}
+
+// TwoFactorScratch shows the scratch code form for two-factor authentication.
+func TwoFactorScratch(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("twofa_scratch")
+
+	// Check auto-login.
+	if checkAutoLogin(ctx) {
+		return
+	}
+
+	// Ensure user is in a 2FA session.
+	if ctx.Session.Get("twofaUid") == nil {
+		ctx.Handle(500, "UserSignIn", errors.New("not in 2FA session"))
+		return
+	}
+
+	ctx.HTML(200, tplTwofaScratch)
+}
+
+// TwoFactorScratchPost validates and invalidates a user's two-factor scratch token.
+func TwoFactorScratchPost(ctx *context.Context, form auth.TwoFactorScratchAuthForm) {
+	ctx.Data["Title"] = ctx.Tr("twofa_scratch")
+
+	// Ensure user is in a 2FA session.
+	idSess := ctx.Session.Get("twofaUid")
+	if idSess == nil {
+		ctx.Handle(500, "UserSignIn", errors.New("not in 2FA session"))
+		return
+	}
+
+	id := idSess.(int64)
+	twofa, err := models.GetTwoFactorByUID(id)
+	if err != nil {
+		ctx.Handle(500, "UserSignIn", err)
+		return
+	}
+
+	// Validate the passcode with the stored TOTP secret.
+	if twofa.VerifyScratchToken(form.Token) {
+		// Invalidate the scratch token.
+		twofa.ScratchToken = ""
+		if err = models.UpdateTwoFactor(twofa); err != nil {
+			ctx.Handle(500, "UserSignIn", err)
+			return
+		}
+
+		remember := ctx.Session.Get("twofaRemember").(bool)
+		u, err := models.GetUserByID(id)
+		if err != nil {
+			ctx.Handle(500, "UserSignIn", err)
+			return
+		}
+
+		handleSignInFull(ctx, u, remember, false)
+		ctx.Flash.Info(ctx.Tr("auth.twofa_scratch_used"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/two_factor")
+		return
+	}
+
+	ctx.RenderWithErr(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplTwofaScratch, auth.TwoFactorScratchAuthForm{})
+}
+
+// This handles the final part of the sign-in process of the user.
+func handleSignIn(ctx *context.Context, u *models.User, remember bool) {
+	handleSignInFull(ctx, u, remember, true)
+}
+
+func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyRedirect bool) {
+	if remember {
 		days := 86400 * setting.LogInRememberDays
 		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL)
 		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
 			setting.CookieRememberName, u.Name, days, setting.AppSubURL)
 	}
 
+	ctx.Session.Delete("twofaUid")
+	ctx.Session.Delete("twofaRemember")
 	ctx.Session.Set("uid", u.ID)
 	ctx.Session.Set("uname", u.Name)
 
@@ -141,11 +298,15 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 
 	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 {
 		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
-		ctx.Redirect(redirectTo)
+		if obeyRedirect {
+			ctx.Redirect(redirectTo)
+		}
 		return
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/")
+	if obeyRedirect {
+		ctx.Redirect(setting.AppSubURL + "/")
+	}
 }
 
 // SignOut sign out from login status

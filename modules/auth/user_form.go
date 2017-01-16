@@ -173,3 +173,23 @@ type NewAccessTokenForm struct {
 func (f *NewAccessTokenForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
+
+// TwoFactorAuthForm for logging in with 2FA token.
+type TwoFactorAuthForm struct {
+	Passcode string `binding:"Required"`
+}
+
+// Validate valideates the fields
+func (f *TwoFactorAuthForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// TwoFactorScratchAuthForm for logging in with 2FA scratch token.
+type TwoFactorScratchAuthForm struct {
+	Token string `binding:"Required"`
+}
+
+// Validate valideates the fields
+func (f *TwoFactorScratchAuthForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}

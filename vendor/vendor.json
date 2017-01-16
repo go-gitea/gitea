@@ -51,6 +51,24 @@
 			"revisionTime": "2016-03-26T03:18:27Z"
 		},
 		{
+			"checksumSHA1": "NClRfzxXDSt/g4lM5BIkKhYRVoQ=",
+			"path": "github.com/boombuler/barcode",
+			"revision": "fe0f26ff6d26693948ee8189aa064ee8c54141fa",
+			"revisionTime": "2016-12-26T21:19:16Z"
+		},
+		{
+			"checksumSHA1": "ion36oiOlMelz8OcoyPCHzMQNYY=",
+			"path": "github.com/boombuler/barcode/qr",
+			"revision": "fe0f26ff6d26693948ee8189aa064ee8c54141fa",
+			"revisionTime": "2016-12-26T21:19:16Z"
+		},
+		{
+			"checksumSHA1": "CxHIsJBPkKrTK1pfNM0VV0oow4o=",
+			"path": "github.com/boombuler/barcode/utils",
+			"revision": "fe0f26ff6d26693948ee8189aa064ee8c54141fa",
+			"revisionTime": "2016-12-26T21:19:16Z"
+		},
+		{
 			"checksumSHA1": "fNAC4qgZDqF3kxq74/yyk3PWdy8=",
 			"path": "github.com/bradfitz/gomemcache/memcache",
 			"revision": "fb1f79c6b65acda83063cbc69f6bba1522558bfc",
@@ -739,6 +757,24 @@
 			"path": "github.com/pmezard/go-difflib/difflib",
 			"revision": "976c720a22c8eb4eb6a0b4348ad85ad12491a506",
 			"revisionTime": "2016-09-25T22:06:09Z"
+		},
+		{
+			"checksumSHA1": "pcKYSF+UN342M6Y+GSL5QhqKVk0=",
+			"path": "github.com/pquerna/otp",
+			"revision": "54653902c20e47f3417541d35435cb6d6162e28a",
+			"revisionTime": "2016-09-12T16:18:15Z"
+		},
+		{
+			"checksumSHA1": "UL3g+cyh3ufwt0tP0dvwbbjLX+c=",
+			"path": "github.com/pquerna/otp/hotp",
+			"revision": "54653902c20e47f3417541d35435cb6d6162e28a",
+			"revisionTime": "2016-09-12T16:18:15Z"
+		},
+		{
+			"checksumSHA1": "Ie55pTQw1rnOZ8KDekSDXUWDT1I=",
+			"path": "github.com/pquerna/otp/totp",
+			"revision": "54653902c20e47f3417541d35435cb6d6162e28a",
+			"revisionTime": "2016-09-12T16:18:15Z"
 		},
 		{
 			"checksumSHA1": "c7jHQZk5ZEsFR9EXsWJXkszPBZA=",
