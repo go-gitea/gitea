@@ -205,6 +205,12 @@ func runWeb(ctx *cli.Context) error {
 		m.Post("/reset_password", user.ResetPasswdPost)
 		m.Get("/oauth2/:provider", user.SignInOAuth)
 		m.Get("/oauth2/:provider/callback", user.SignInOAuthCallback)
+		m.Group("/two_factor", func() {
+			m.Get("", user.TwoFactor)
+			m.Post("", bindIgnErr(auth.TwoFactorAuthForm{}), user.TwoFactorPost)
+			m.Get("/scratch", user.TwoFactorScratch)
+			m.Post("/scratch", bindIgnErr(auth.TwoFactorScratchAuthForm{}), user.TwoFactorScratchPost)
+		})
 	}, reqSignOut)
 
 	m.Group("/user/settings", func() {
@@ -225,6 +231,13 @@ func runWeb(ctx *cli.Context) error {
 			Post(bindIgnErr(auth.NewAccessTokenForm{}), user.SettingsApplicationsPost)
 		m.Post("/applications/delete", user.SettingsDeleteApplication)
 		m.Route("/delete", "GET,POST", user.SettingsDelete)
+		m.Group("/two_factor", func() {
+			m.Get("", user.SettingsTwoFactor)
+			m.Post("/regenerate_scratch", user.SettingsTwoFactorRegenerateScratch)
+			m.Post("/disable", user.SettingsTwoFactorDisable)
+			m.Get("/enroll", user.SettingsTwoFactorEnroll)
+			m.Post("/enroll", bindIgnErr(auth.TwoFactorAuthForm{}), user.SettingsTwoFactorEnrollPost)
+		})
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
 	})
@@ -311,7 +324,7 @@ func runWeb(ctx *cli.Context) error {
 				return
 			}
 		})
-		m.Post("/issues/attachments", repo.UploadIssueAttachment)
+		m.Post("/attachments", repo.UploadAttachment)
 	}, ignSignIn)
 
 	m.Group("/:username", func() {
@@ -465,13 +478,11 @@ func runWeb(ctx *cli.Context) error {
 			m.Get("/:id/:action", repo.ChangeMilestonStatus)
 			m.Post("/delete", repo.DeleteMilestone)
 		}, reqRepoWriter, context.RepoRef())
-
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
 			m.Post("/delete", repo.DeleteRelease)
 		}, reqRepoWriter, context.RepoRef())
-
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)
 			m.Post("/edit/*", bindIgnErr(auth.EditReleaseForm{}), repo.EditReleasePost)

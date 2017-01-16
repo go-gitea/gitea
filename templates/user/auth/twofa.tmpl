@@ -1,0 +1,27 @@
+{{template "base/head" .}}
+<div class="user signin">
+	<div class="ui middle very relaxed page grid">
+		<div class="column">
+			<form class="ui form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<h3 class="ui top attached header">
+					{{.i18n.Tr "twofa"}}
+				</h3>
+				<div class="ui attached segment">
+					{{template "base/alert" .}}
+					<div class="required inline field">
+						<label for="passcode">{{.i18n.Tr "passcode"}}</label>
+						<input id="passcode" name="passcode" type="text" autocomplete="off" required>
+					</div>
+
+					<div class="inline field">
+						<label></label>
+						<button class="ui green button">{{.i18n.Tr "auth.verify"}}</button>
+                        <a href="{{AppSubUrl}}/user/two_factor/scratch">{{.i18n.Tr "auth.use_scratch_code" | Str2html}}</a>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/paginater"
 )
 
@@ -99,6 +100,12 @@ func Releases(ctx *context.Context) {
 		return
 	}
 
+	err = models.GetReleaseAttachments(releases...)
+	if err != nil {
+		ctx.Handle(500, "GetReleaseAttachments", err)
+		return
+	}
+
 	// Temproray cache commits count of used branches to speed up.
 	countCache := make(map[string]int64)
 	var cacheUsers = make(map[int64]*models.User)
@@ -162,6 +169,7 @@ func NewRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
+	renderAttachmentSettings(ctx);
 	ctx.HTML(200, tplReleaseNew)
 }
 
@@ -215,7 +223,12 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 		CreatedUnix:  tagCreatedUnix,
 	}
 
-	if err = models.CreateRelease(ctx.Repo.GitRepo, rel); err != nil {
+	var attachmentUUIDs []string
+	if setting.AttachmentEnabled {
+		attachmentUUIDs = form.Files
+	}
+
+	if err = models.CreateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
 		ctx.Data["Err_TagName"] = true
 		switch {
 		case models.IsErrReleaseAlreadyExist(err):
@@ -237,6 +250,7 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
+	renderAttachmentSettings(ctx);
 
 	tagName := ctx.Params("*")
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
@@ -286,11 +300,16 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 		return
 	}
 
+	var attachmentUUIDs []string
+	if setting.AttachmentEnabled {
+		attachmentUUIDs = form.Files
+	}
+
 	rel.Title = form.Title
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
-	if err = models.UpdateRelease(ctx.Repo.GitRepo, rel); err != nil {
+	if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
 		ctx.Handle(500, "UpdateRelease", err)
 		return
 	}

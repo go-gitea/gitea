@@ -99,7 +99,7 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		IsPrerelease: form.IsPrerelease,
 		CreatedUnix:  commit.Author.When.Unix(),
 	}
-	if err := models.CreateRelease(ctx.Repo.GitRepo, rel); err != nil {
+	if err := models.CreateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
 		if models.IsErrReleaseAlreadyExist(err) {
 			ctx.Status(409)
 		} else {
@@ -145,7 +145,7 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	if form.IsPrerelease != nil {
 		rel.IsPrerelease = *form.IsPrerelease
 	}
-	if err := models.UpdateRelease(ctx.Repo.GitRepo, rel); err != nil {
+	if err := models.UpdateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
 		ctx.Error(500, "UpdateRelease", err)
 		return
 	}
