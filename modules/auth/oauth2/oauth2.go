@@ -13,26 +13,30 @@ import (
 
 var (
 	sessionUsersStoreKey = "gitea-oauth-sessions"
+	providerHeaderKey = "gitea-oauth-provider"
 )
 
 func init() {
 	gothic.Store = sessions.NewFilesystemStore(os.TempDir(), []byte(sessionUsersStoreKey))
+
+	gothic.SetState = func(req *http.Request) string {
+		return uuid.NewV4().String()
+	}
+
+	gothic.GetProviderName = func(req *http.Request) (string, error) {
+		return req.Header.Get(providerHeaderKey), nil
+	}
 }
 
 // Auth OAuth2 auth service
 func Auth(provider, clientID, clientSecret string, request *http.Request, response http.ResponseWriter) {
-	callbackURL := setting.AppURL + "user/oauth2/" + provider + "/callback"
+	// not sure if goth is thread safe (?) when using multiple providers
+	request.Header.Set(providerHeaderKey, provider)
 
-	goth.UseProviders(
-		github.New(clientID, clientSecret, callbackURL, "user:email"),
-	)
-
-	gothic.GetProviderName = func(req *http.Request) (string, error) {
-		return provider, nil
-	}
-
-	gothic.SetState = func(req *http.Request) string {
-		return uuid.NewV4().String()
+	if gothProvider, _ := goth.GetProvider(provider); gothProvider == nil {
+		goth.UseProviders(
+			github.New(clientID, clientSecret, setting.AppURL + "user/oauth2/" + provider + "/callback", "user:email"),
+		)
 	}
 
 	gothic.BeginAuthHandler(response, request)
@@ -41,9 +45,8 @@ func Auth(provider, clientID, clientSecret string, request *http.Request, respon
 // ProviderCallback handles OAuth callback, resolve to a goth user and send back to original url
 // this will trigger a new authentication request, but because we save it in the session we can use that
 func ProviderCallback(provider string, request *http.Request, response http.ResponseWriter) (goth.User, string, error) {
-	gothic.GetProviderName = func(req *http.Request) (string, error) {
-		return provider, nil
-	}
+		// not sure if goth is thread safe (?) when using multiple providers
+	request.Header.Set(providerHeaderKey, provider)
 
 	user, err := gothic.CompleteUserAuth(response, request)
 	if err != nil {
