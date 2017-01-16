@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/git"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/context"
 )
 
@@ -28,7 +29,9 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	// Google Chrome dislike commas in filenames, so let's change it to a space
 	name = strings.Replace(name, ",", " ", -1)
 
-	if base.IsTextFile(buf) || ctx.QueryBool("render") {
+	if setting.Repository.AlwaysRenderRawFiles {
+		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
+	} else if base.IsTextFile(buf) || ctx.QueryBool("render") {
 		ctx.Resp.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	} else if base.IsImageFile(buf) || base.IsPDFFile(buf) {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
@@ -40,6 +43,7 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	_, err := io.Copy(ctx.Resp, reader)
 	return err
 }
+
 
 // ServeBlob download a git.Blob
 func ServeBlob(ctx *context.Context, blob *git.Blob) error {

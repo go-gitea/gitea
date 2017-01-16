@@ -156,6 +156,7 @@ var (
 		PullRequestQueueLength int
 		PreferredLicenses      []string
 		DisableHTTPGit         bool
+		AlwaysRenderRawFiles   bool
 
 		// Repository editor settings
 		Editor struct {
@@ -179,6 +180,7 @@ var (
 		PullRequestQueueLength: 1000,
 		PreferredLicenses:      []string{"Apache License 2.0,MIT License"},
 		DisableHTTPGit:         false,
+		AlwaysRenderRawFiles:   false,
 
 		// Repository editor settings
 		Editor: struct {
@@ -824,6 +826,8 @@ please consider changing to GITEA_CUSTOM`)
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
 		Repository.Upload.TempPath = path.Join(workDir, Repository.Upload.TempPath)
 	}
+	
+	Repository.AlwaysRenderRawFiles = sec.Key("ALWAYS_RENDER_RAW_FILES").MustBool()
 
 	sec = Cfg.Section("picture")
 	AvatarUploadPath = sec.Key("AVATAR_UPLOAD_PATH").MustString(path.Join(AppDataPath, "avatars"))
