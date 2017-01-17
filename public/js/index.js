@@ -1243,6 +1243,11 @@ $(document).ready(function () {
         $($(this).data('target')).slideToggle(100);
     });
 
+    // make table <tr> element clickable like a link
+    $('tr[data-href]').click(function(event) {
+        window.location = $(this).data('href');
+    });
+
     // Highlight JS
     if (typeof hljs != 'undefined') {
         hljs.initHighlightingOnLoad();

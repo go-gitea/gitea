@@ -2704,9 +2704,6 @@ footer .ui.language .menu {
 .user.followers .follow .ui.button {
   padding: 8px 15px;
 }
-.user.notification .list .item {
-  padding: 0;
-}
 .user.notification .octicon {
   float: left;
   font-size: 2em;
@@ -2720,6 +2717,9 @@ footer .ui.language .menu {
 }
 .user.notification table button {
   padding: 3px;
+}
+.user.notification table tr {
+  cursor: pointer;
 }
 .user.notification .octicon-issue-opened,
 .user.notification .octicon-git-pull-request {

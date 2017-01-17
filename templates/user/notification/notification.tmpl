@@ -34,7 +34,7 @@
 							{{$repo := $notification.GetRepo}}
 							{{$repoOwner := $repo.MustOwner}}
 
-							<tr>
+							<tr data-href="{{$.AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}/issues/{{$issue.Index}}">
 								<td class="collapsing">
 									{{if eq $notification.Status 3}}
 										<i class="blue octicon octicon-pin"></i>
