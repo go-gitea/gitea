@@ -2716,7 +2716,7 @@ footer .ui.language .menu {
   display: inline-block;
 }
 .user.notification table button {
-  padding: 3px;
+  padding: 3px 3px 3px 5px;
 }
 .user.notification table tr {
   cursor: pointer;
