@@ -8,17 +8,14 @@
 			<a href="{{$.AppSubUrl}}/notifications?q=unread">
 				<div class="{{if eq .Status 1}}active{{end}} item">
 					{{.i18n.Tr "notification.unread"}}
-					{{if eq .Status 1}}
-						<div class="ui label">{{len .Notifications}}</div>
+					{{if .NotificationUnreadCount}}
+						<div class="ui label">{{.NotificationUnreadCount}}</div>
 					{{end}}
 				</div>
 			</a>
 			<a href="{{$.AppSubUrl}}/notifications?q=read">
 				<div class="{{if eq .Status 2}}active{{end}} item">
 					{{.i18n.Tr "notification.read"}}
-					{{if eq .Status 2}}
-						<div class="ui label">{{len .Notifications}}</div>
-					{{end}}
 				</div>
 			</a>
 		</div>
