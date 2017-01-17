@@ -44,7 +44,6 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	return err
 }
 
-
 // ServeBlob download a git.Blob
 func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 	dataRc, err := blob.Data()
