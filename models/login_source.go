@@ -246,8 +246,6 @@ func (source *LoginSource) UseTLS() bool {
 		return source.LDAP().SecurityProtocol != ldap.SecurityProtocolUnencrypted
 	case LoginSMTP:
 		return source.SMTP().TLS
-	case LoginOAuth2:
-		return true
 	}
 
 	return false
