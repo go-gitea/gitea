@@ -9,71 +9,108 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
 )
 
+// TODO: This packages still uses a singleton for the Manager.
+// Once there's a decent web framework and dependencies are passed around like they should,
+// then we delete the singleton.
+
 var (
 	// ErrExecTimeout represent a timeout error
 	ErrExecTimeout = errors.New("Process execution timeout")
-
-	// DefaultTimeout is the timeout used by Exec* family
-	// of function when timeout parameter is omitted or
-	// passed as -1
-	// NOTE: could be custom in config file for default.
-	DefaultTimeout = 60 * time.Second
+	manager        *Manager
 )
 
 // Process represents a working process inherit from Gogs.
 type Process struct {
-	Pid         int64 // Process ID, not system one.
+	PID         int64 // Process ID, not system one.
 	Description string
 	Start       time.Time
 	Cmd         *exec.Cmd
 }
 
-// List of existing processes.
-var (
-	curPid    int64 = 1
-	Processes []*Process
-)
+// Manager knows about all processes and counts PIDs.
+type Manager struct {
+	mutex sync.Mutex
 
-// Add adds a existing process and returns its PID.
-func Add(desc string, cmd *exec.Cmd) int64 {
-	pid := curPid
-	Processes = append(Processes, &Process{
-		Pid:         pid,
-		Description: desc,
+	counter   int64
+	Processes map[int64]*Process
+}
+
+// GetManager returns a Manager and initializes one as singleton if there's none yet
+func GetManager() *Manager {
+	if manager == nil {
+		manager = &Manager{
+			Processes: make(map[int64]*Process),
+		}
+	}
+	return manager
+}
+
+// Add a process to the ProcessManager and returns its PID.
+func (pm *Manager) Add(description string, cmd *exec.Cmd) int64 {
+	pm.mutex.Lock()
+	pid := pm.counter + 1
+	pm.Processes[pid] = &Process{
+		PID:         pid,
+		Description: description,
 		Start:       time.Now(),
 		Cmd:         cmd,
-	})
-	curPid++
+	}
+	pm.counter = pid
+	pm.mutex.Unlock()
+
 	return pid
+}
+
+// Remove a process from the ProcessManager.
+func (pm *Manager) Remove(pid int64) {
+	pm.mutex.Lock()
+	delete(pm.Processes, pid)
+	pm.mutex.Unlock()
+}
+
+// Exec a command and use the default timeout.
+func (pm *Manager) Exec(desc, cmdName string, args ...string) (string, string, error) {
+	return pm.ExecDir(-1, "", desc, cmdName, args...)
+}
+
+// ExecTimeout a command and use a specific timeout duration.
+func (pm *Manager) ExecTimeout(timeout time.Duration, desc, cmdName string, args ...string) (string, string, error) {
+	return pm.ExecDir(timeout, "", desc, cmdName, args...)
+}
+
+// ExecDir a command and use the default timeout.
+func (pm *Manager) ExecDir(timeout time.Duration, dir, desc, cmdName string, args ...string) (string, string, error) {
+	return pm.ExecDirEnv(timeout, dir, desc, nil, cmdName, args...)
 }
 
 // ExecDirEnv runs a command in given path and environment variables, and waits for its completion
 // up to the given timeout (or DefaultTimeout if -1 is given).
 // Returns its complete stdout and stderr
 // outputs and an error, if any (including timeout)
-func ExecDirEnv(timeout time.Duration, dir, desc string, env []string, cmdName string, args ...string) (string, string, error) {
+func (pm *Manager) ExecDirEnv(timeout time.Duration, dir, desc string, env []string, cmdName string, args ...string) (string, string, error) {
 	if timeout == -1 {
-		timeout = DefaultTimeout
+		timeout = 60 * time.Second
 	}
 
-	bufOut := new(bytes.Buffer)
-	bufErr := new(bytes.Buffer)
+	stdOut := new(bytes.Buffer)
+	stdErr := new(bytes.Buffer)
 
 	cmd := exec.Command(cmdName, args...)
 	cmd.Dir = dir
 	cmd.Env = env
-	cmd.Stdout = bufOut
-	cmd.Stderr = bufErr
+	cmd.Stdout = stdOut
+	cmd.Stderr = stdErr
 	if err := cmd.Start(); err != nil {
-		return "", err.Error(), err
+		return "", "", err
 	}
 
-	pid := Add(desc, cmd)
+	pid := pm.Add(desc, cmd)
 	done := make(chan error)
 	go func() {
 		done <- cmd.Wait()
@@ -82,61 +119,39 @@ func ExecDirEnv(timeout time.Duration, dir, desc string, env []string, cmdName s
 	var err error
 	select {
 	case <-time.After(timeout):
-		if errKill := Kill(pid); errKill != nil {
-			log.Error(4, "Exec(%d:%s): %v", pid, desc, errKill)
+		if errKill := pm.Kill(pid); errKill != nil {
+			log.Error(4, "exec(%d:%s) failed to kill: %v", pid, desc, errKill)
 		}
 		<-done
-		return "", ErrExecTimeout.Error(), ErrExecTimeout
+		return "", "", ErrExecTimeout
 	case err = <-done:
 	}
 
-	Remove(pid)
-	return bufOut.String(), bufErr.String(), err
-}
+	pm.Remove(pid)
 
-// ExecDir works exactly like ExecDirEnv except no environment variable is provided.
-func ExecDir(timeout time.Duration, dir, desc, cmdName string, args ...string) (string, string, error) {
-	return ExecDirEnv(timeout, dir, desc, nil, cmdName, args...)
-}
-
-// ExecTimeout runs a command and waits for its completion
-// up to the given timeout (or DefaultTimeout if -1 is given).
-// Returns its complete stdout and stderr
-// outputs and an error, if any (including timeout)
-func ExecTimeout(timeout time.Duration, desc, cmdName string, args ...string) (string, string, error) {
-	return ExecDir(timeout, "", desc, cmdName, args...)
-}
-
-// Exec runs a command and waits for its completion
-// up to DefaultTimeout. Returns its complete stdout and stderr
-// outputs and an error, if any (including timeout)
-func Exec(desc, cmdName string, args ...string) (string, string, error) {
-	return ExecDir(-1, "", desc, cmdName, args...)
-}
-
-// Remove removes a process from list.
-func Remove(pid int64) {
-	for i, proc := range Processes {
-		if proc.Pid == pid {
-			Processes = append(Processes[:i], Processes[i+1:]...)
-			return
-		}
+	if err != nil {
+		out := fmt.Errorf("exec(%d:%s) failed: %v stdout: %v stderr: %v", pid, desc, err, stdOut, stdErr)
+		return stdOut.String(), stdErr.String(), out
 	}
+
+	return stdOut.String(), stdErr.String(), nil
 }
 
-// Kill kills and removes a process from list.
-func Kill(pid int64) error {
-	for i, proc := range Processes {
-		if proc.Pid == pid {
-			if proc.Cmd != nil && proc.Cmd.Process != nil &&
-				proc.Cmd.ProcessState != nil && !proc.Cmd.ProcessState.Exited() {
-				if err := proc.Cmd.Process.Kill(); err != nil {
-					return fmt.Errorf("fail to kill process(%d/%s): %v", proc.Pid, proc.Description, err)
-				}
+// Kill and remove a process from list.
+func (pm *Manager) Kill(pid int64) error {
+	if proc, exists := pm.Processes[pid]; exists {
+		pm.mutex.Lock()
+		if proc.Cmd != nil &&
+			proc.Cmd.Process != nil &&
+			proc.Cmd.ProcessState != nil &&
+			!proc.Cmd.ProcessState.Exited() {
+			if err := proc.Cmd.Process.Kill(); err != nil {
+				return fmt.Errorf("failed to kill process(%d/%s): %v", pid, proc.Description, err)
 			}
-			Processes = append(Processes[:i], Processes[i+1:]...)
-			return nil
 		}
+		delete(pm.Processes, pid)
+		pm.mutex.Unlock()
 	}
+
 	return nil
 }
