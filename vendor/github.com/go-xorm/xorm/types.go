@@ -1,9 +1,9 @@
 package xorm
 
 import (
-    "reflect"
+	"reflect"
 
-    "github.com/go-xorm/core"
+	"github.com/go-xorm/core"
 )
 
 var (

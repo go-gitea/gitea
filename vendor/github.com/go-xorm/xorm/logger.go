@@ -12,6 +12,7 @@ import (
 	"github.com/go-xorm/core"
 )
 
+// default log options
 const (
 	DEFAULT_LOG_PREFIX = "[xorm]"
 	DEFAULT_LOG_FLAG   = log.Ldate | log.Lmicroseconds
