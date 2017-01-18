@@ -441,19 +441,15 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 			}
 		}
 
-		rows, err := engine.DB().Query("SELECT * FROM " + engine.Quote(table.Name))
+		cols := table.ColumnsSeq()
+		colNames := dialect.Quote(strings.Join(cols, dialect.Quote(", ")))
+
+		rows, err := engine.DB().Query("SELECT " + colNames + " FROM " + engine.Quote(table.Name))
 		if err != nil {
 			return err
 		}
 		defer rows.Close()
 
-		cols, err := rows.Columns()
-		if err != nil {
-			return err
-		}
-		if len(cols) == 0 {
-			continue
-		}
 		for rows.Next() {
 			dest := make([]interface{}, len(cols))
 			err = rows.ScanSlice(&dest)
@@ -461,7 +457,7 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 				return err
 			}
 
-			_, err = io.WriteString(w, "INSERT INTO "+dialect.Quote(table.Name)+" ("+dialect.Quote(strings.Join(cols, dialect.Quote(", ")))+") VALUES (")
+			_, err = io.WriteString(w, "INSERT INTO "+dialect.Quote(table.Name)+" ("+colNames+") VALUES (")
 			if err != nil {
 				return err
 			}
@@ -469,6 +465,10 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 			var temp string
 			for i, d := range dest {
 				col := table.GetColumn(cols[i])
+				if col == nil {
+					return errors.New("unknow column error")
+				}
+
 				if d == nil {
 					temp += ", NULL"
 				} else if col.SQLType.IsText() || col.SQLType.IsTime() {

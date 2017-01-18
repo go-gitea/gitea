@@ -322,8 +322,12 @@ func Ping() error {
 
 // DumpDatabase dumps all data from database according the special database SQL syntax to file system.
 func DumpDatabase(filePath string, dbType string) error {
-	if len(dbType) > 0 {
-		return x.DumpAllToFile(filePath, core.DbType(dbType))
+	var tbs []*core.Table
+	for _, t := range tables {
+		tbs = append(tbs, x.TableInfo(t).Table)
 	}
-	return x.DumpAllToFile(filePath)
+	if len(dbType) > 0 {
+		return x.DumpTablesToFile(tbs, filePath, core.DbType(dbType))
+	}
+	return x.DumpTablesToFile(tbs, filePath)
 }
