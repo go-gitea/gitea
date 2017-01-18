@@ -897,11 +897,11 @@ func newLogService() {
 
 	useConsole := false
 	for _, mode := range LogModes {
-		if mode == "console"  {
+		if mode == "console" {
 			useConsole = true
 		}
 	}
-	if (!useConsole) {
+	if !useConsole {
 		log.DelLogger("console")
 	}
 
