@@ -2712,11 +2712,14 @@ footer .ui.language .menu {
   float: left;
   margin-left: 7px;
 }
-.user.notification .buttons-panel button {
-  padding: 3px;
-}
-.user.notification .buttons-panel form {
+.user.notification table form {
   display: inline-block;
+}
+.user.notification table button {
+  padding: 3px 3px 3px 5px;
+}
+.user.notification table tr {
+  cursor: pointer;
 }
 .user.notification .octicon-issue-opened,
 .user.notification .octicon-git-pull-request {
