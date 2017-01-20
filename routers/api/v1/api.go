@@ -395,6 +395,16 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/users/:username/orgs", org.ListUserOrgs)
 		m.Group("/orgs/:orgname", func() {
 			m.Combo("").Get(org.Get).Patch(bind(api.EditOrgOption{}), org.Edit)
+			m.Group("/members", func() {
+				m.Get("", org.ListMembers)
+				m.Combo("/:username").Get(org.IsMember).Delete(org.DeleteMember)
+			})
+			m.Group("/public_members", func() {
+				m.Get("", org.ListPublicMembers)
+				m.Combo("/:username").Get(org.IsPublicMember).
+					Put(org.PublicizeMember).
+					Delete(org.ConcealMember)
+			})
 			m.Combo("/teams").Get(org.ListTeams)
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
