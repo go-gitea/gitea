@@ -470,7 +470,7 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 	return IsOrganizationOwner(orgID, u.ID)
 }
 
-// IsPublicMember returns true if user public his/her membership in give organization.
+// IsPublicMember returns true if user public his/her membership in given organization.
 func (u *User) IsPublicMember(orgID int64) bool {
 	return IsPublicMembership(orgID, u.ID)
 }
@@ -1052,8 +1052,10 @@ func GetUserEmailsByNames(names []string) []string {
 // GetUsersByIDs returns all resolved users from a list of Ids.
 func GetUsersByIDs(ids []int64) ([]*User, error) {
 	ous := make([]*User, 0, len(ids))
-	err := x.
-		In("id", ids).
+	if len(ids) == 0 {
+		return ous, nil
+	}
+	err := x.In("id", ids).
 		Asc("name").
 		Find(&ous)
 	return ous, err

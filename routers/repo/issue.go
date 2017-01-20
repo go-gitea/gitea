@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -268,14 +267,6 @@ func Issues(ctx *context.Context) {
 	ctx.HTML(200, tplIssues)
 }
 
-func renderAttachmentSettings(ctx *context.Context) {
-	ctx.Data["RequireDropzone"] = true
-	ctx.Data["IsAttachmentEnabled"] = setting.AttachmentEnabled
-	ctx.Data["AttachmentAllowedTypes"] = setting.AttachmentAllowedTypes
-	ctx.Data["AttachmentMaxSize"] = setting.AttachmentMaxSize
-	ctx.Data["AttachmentMaxFiles"] = setting.AttachmentMaxFiles
-}
-
 // RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
 func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repository) {
 	var err error
@@ -475,54 +466,6 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
-}
-
-// UploadAttachment response for uploading issue's attachment
-func UploadAttachment(ctx *context.Context) {
-	if !setting.AttachmentEnabled {
-		ctx.Error(404, "attachment is not enabled")
-		return
-	}
-
-	file, header, err := ctx.Req.FormFile("file")
-	if err != nil {
-		ctx.Error(500, fmt.Sprintf("FormFile: %v", err))
-		return
-	}
-	defer file.Close()
-
-	buf := make([]byte, 1024)
-	n, _ := file.Read(buf)
-	if n > 0 {
-		buf = buf[:n]
-	}
-	fileType := http.DetectContentType(buf)
-
-	allowedTypes := strings.Split(setting.AttachmentAllowedTypes, ",")
-	allowed := false
-	for _, t := range allowedTypes {
-		t := strings.Trim(t, " ")
-		if t == "*/*" || t == fileType {
-			allowed = true
-			break
-		}
-	}
-
-	if !allowed {
-		ctx.Error(400, ErrFileTypeForbidden.Error())
-		return
-	}
-
-	attach, err := models.NewAttachment(header.Filename, buf, file)
-	if err != nil {
-		ctx.Error(500, fmt.Sprintf("NewAttachment: %v", err))
-		return
-	}
-
-	log.Trace("New attachment uploaded: %s", attach.UUID)
-	ctx.JSON(200, map[string]string{
-		"uuid": attach.UUID,
-	})
 }
 
 // ViewIssue render issue view page
