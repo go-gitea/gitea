@@ -406,7 +406,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Delete(org.ConcealMember)
 			})
 			m.Combo("/teams").Get(org.ListTeams).
-				Post("", bind(api.CreateTeamOption{}), org.CreateTeam)
+				Post(bind(api.CreateTeamOption{}), org.CreateTeam)
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
 					Post(bind(api.CreateHookOption{}), org.CreateHook)
