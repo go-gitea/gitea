@@ -488,6 +488,18 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 					switch reflect.TypeOf(d).Kind() {
 					case reflect.Slice:
 						temp += fmt.Sprintf(", %s", string(d.([]byte)))
+					case reflect.Int16, reflect.Int8, reflect.Int32, reflect.Int64, reflect.Int:
+						if col.SQLType.Name == core.Bool {
+							temp += fmt.Sprintf(", %v", strconv.FormatBool(reflect.ValueOf(d).Int() > 0))
+						} else {
+							temp += fmt.Sprintf(", %v", d)
+						}
+					case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+						if col.SQLType.Name == core.Bool {
+							temp += fmt.Sprintf(", %v", strconv.FormatBool(reflect.ValueOf(d).Uint() > 0))
+						} else {
+							temp += fmt.Sprintf(", %v", d)
+						}
 					default:
 						temp += fmt.Sprintf(", %v", d)
 					}
