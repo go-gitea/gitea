@@ -15,9 +15,10 @@ import (
 	"strings"
 	"time"
 
+	"gopkg.in/editorconfig/editorconfig-core-go.v1"
+
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
-	"gopkg.in/editorconfig/editorconfig-core-go.v1"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"

@@ -7,10 +7,11 @@ package utils
 import (
 	api "code.gitea.io/sdk/gitea"
 
+	"encoding/json"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/api/v1/convert"
-	"encoding/json"
 	"github.com/Unknwon/com"
 )
 

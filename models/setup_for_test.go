@@ -9,11 +9,12 @@ import (
 	"os"
 	"testing"
 
+	"gopkg.in/testfixtures.v2"
+
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 	_ "github.com/mattn/go-sqlite3" // for the test engine
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/testfixtures.v2"
 )
 
 func TestMain(m *testing.M) {

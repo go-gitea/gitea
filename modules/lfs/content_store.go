@@ -1,13 +1,14 @@
 package lfs
 
 import (
-	"code.gitea.io/gitea/models"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"io"
 	"os"
 	"path/filepath"
+
+	"code.gitea.io/gitea/models"
 )
 
 var (
