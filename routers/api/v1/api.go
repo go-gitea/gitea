@@ -405,7 +405,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Put(org.PublicizeMember).
 					Delete(org.ConcealMember)
 			})
-			m.Combo("/teams").Get(org.ListTeams)
+			m.Combo("/teams").Get(org.ListTeams).
+				Post("", bind(api.CreateTeamOption{}), org.CreateTeam)
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
 					Post(bind(api.CreateHookOption{}), org.CreateHook)
@@ -415,9 +416,19 @@ func RegisterRoutes(m *macaron.Macaron) {
 			}, reqOrgMembership())
 		}, orgAssignment(true))
 		m.Group("/teams/:teamid", func() {
-			m.Get("", org.GetTeam)
-			m.Get("/members", org.GetTeamMembers)
-			m.Get("/repos", org.GetTeamRepos)
+			m.Combo("").Get(org.GetTeam).
+				Patch(bind(api.EditTeamOption{}), org.EditTeam).
+				Delete(org.DeleteTeam)
+			m.Group("/members", func() {
+				m.Get("", org.GetTeamMembers)
+				m.Combo("/:username").Put(org.AddTeamMember).
+					Delete(org.RemoveTeamMember)
+			})
+			m.Group("/repos", func() {
+				m.Get("", org.GetTeamRepos)
+				m.Combo("/:reponame").Put(admin.AddTeamRepository).
+					Delete(admin.RemoveTeamRepository)
+			})
 		}, orgAssignment(false, true))
 
 		m.Any("/*", func(ctx *context.Context) {
@@ -427,7 +438,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/admin", func() {
 			m.Group("/users", func() {
 				m.Post("", bind(api.CreateUserOption{}), admin.CreateUser)
-
 				m.Group("/:username", func() {
 					m.Combo("").Patch(bind(api.EditUserOption{}), admin.EditUser).
 						Delete(admin.DeleteUser)
@@ -435,20 +445,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/orgs", bind(api.CreateOrgOption{}), admin.CreateOrg)
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
 				})
-			})
-
-			m.Group("/orgs/:orgname", func() {
-				m.Group("/teams", func() {
-					m.Post("", orgAssignment(true), bind(api.CreateTeamOption{}), admin.CreateTeam)
-				})
-			})
-			m.Group("/teams", func() {
-				m.Group("/:teamid", func() {
-					m.Combo("").Patch(bind(api.EditTeamOption{}), admin.EditTeam).
-						Delete(admin.DeleteTeam)
-					m.Combo("/members/:username").Put(admin.AddTeamMember).Delete(admin.RemoveTeamMember)
-					m.Combo("/repos/:reponame").Put(admin.AddTeamRepository).Delete(admin.RemoveTeamRepository)
-				}, orgAssignment(false, true))
 			})
 		}, reqAdmin())
 	}, context.APIContexter())
