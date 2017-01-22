@@ -258,7 +258,9 @@ func (r *Router) NotFound(handlers ...Handler) {
 	validateHandlers(handlers)
 	r.notFound = func(rw http.ResponseWriter, req *http.Request) {
 		c := r.m.createContext(rw, req)
-		c.handlers = append(r.m.handlers, handlers...)
+		c.handlers = make([]Handler, 0, len(r.m.handlers)+len(handlers))
+		c.handlers = append(c.handlers, r.m.handlers...)
+		c.handlers = append(c.handlers, handlers...)
 		c.run()
 	}
 }
