@@ -17,13 +17,7 @@ func TestNewAccessToken(t *testing.T) {
 		Name: "Token C",
 	}
 	assert.NoError(t, NewAccessToken(token))
-	sess := x.NewSession()
-	defer sess.Close()
-	has, err := sess.Get(*token)
-	assert.NoError(t, err)
-	assert.True(t, has)
-	assert.Equal(t, int64(3), token.UID)
-	assert.Equal(t, "Token C", token.Name)
+	AssertExistsAndLoadBean(t, token)
 
 	invalidToken := &AccessToken{
 		ID:   token.ID, // duplicate
@@ -78,13 +72,7 @@ func TestUpdateAccessToken(t *testing.T) {
 	token.Name = "Token Z"
 
 	assert.NoError(t, UpdateAccessToken(token))
-
-	sess := x.NewSession()
-	defer sess.Close()
-	has, err := sess.Get(token)
-	assert.NoError(t, err)
-	assert.True(t, has)
-	assert.Equal(t, token.Name, "Token Z")
+	AssertExistsAndLoadBean(t, token)
 }
 
 func TestDeleteAccessTokenByID(t *testing.T) {
@@ -95,11 +83,7 @@ func TestDeleteAccessTokenByID(t *testing.T) {
 	assert.Equal(t, int64(1), token.UID)
 
 	assert.NoError(t, DeleteAccessTokenByID(token.ID, 1))
-	sess := x.NewSession()
-	defer sess.Close()
-	has, err := sess.Get(token)
-	assert.NoError(t, err)
-	assert.False(t, has)
+	AssertNotExistsBean(t, token)
 
 	err = DeleteAccessTokenByID(100, 100)
 	assert.Error(t, err)
