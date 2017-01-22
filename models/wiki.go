@@ -21,7 +21,10 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 )
 
-var wikiWorkingPool = sync.NewExclusivePool()
+var (
+	reservedWikiPaths = []string{"_pages", "_new", "_edit"}
+	wikiWorkingPool   = sync.NewExclusivePool()
+)
 
 // ToWikiPageURL formats a string to corresponding wiki URL name.
 func ToWikiPageURL(name string) string {
@@ -88,8 +91,22 @@ func discardLocalWikiChanges(localPath string) error {
 	return discardLocalRepoBranchChanges(localPath, "master")
 }
 
+// pathAllowed checks if a wiki path is allowed
+func pathAllowed(path string) error {
+	for i := range reservedWikiPaths {
+		if path == reservedWikiPaths[i] {
+			return ErrWikiAlreadyExist{path}
+		}
+	}
+	return nil
+}
+
 // updateWikiPage adds new page to repository wiki.
 func (repo *Repository) updateWikiPage(doer *User, oldWikiPath, wikiPath, content, message string, isNew bool) (err error) {
+	if err = pathAllowed(wikiPath); err != nil {
+		return err
+	}
+
 	wikiWorkingPool.CheckIn(com.ToStr(repo.ID))
 	defer wikiWorkingPool.CheckOut(com.ToStr(repo.ID))
 
