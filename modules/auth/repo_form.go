@@ -87,7 +87,7 @@ func (f MigrateRepoForm) ParseRemoteAddr(user *models.User) (string, error) {
 type RepoSettingForm struct {
 	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
 	Description   string `binding:"MaxSize(255)"`
-	Website       string `binding:"Url;MaxSize(100)"`
+	Website       string `binding:"Url;MaxSize(255)"`
 	Branch        string
 	Interval      int
 	MirrorAddress string
@@ -267,7 +267,7 @@ type NewReleaseForm struct {
 	Content    string
 	Draft      string
 	Prerelease bool
-	Files   []string
+	Files      []string
 }
 
 // Validate valideates the fields
@@ -281,7 +281,7 @@ type EditReleaseForm struct {
 	Content    string `form:"content"`
 	Draft      string `form:"draft"`
 	Prerelease bool   `form:"prerelease"`
-	Files   []string
+	Files      []string
 }
 
 // Validate valideates the fields
