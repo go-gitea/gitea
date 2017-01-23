@@ -317,7 +317,7 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Colu
 		col.DefaultIsEmpty = true
 		for idx, field := range fields {
 			if idx == 0 {
-				col.Name = strings.Trim(field, "`[] ")
+				col.Name = strings.Trim(strings.Trim(field, "`[] "), `"`)
 				continue
 			} else if idx == 1 {
 				col.SQLType = core.SQLType{Name: field, DefaultLength: 0, DefaultLength2: 0}
