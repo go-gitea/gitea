@@ -114,6 +114,7 @@ var (
 	CookieRememberName   string
 	ReverseProxyAuthUser string
 	MinPasswordLength    int
+	ImportLocalPaths     bool
 
 	// Database settings
 	UseSQLite3    bool
@@ -712,6 +713,7 @@ please consider changing to GITEA_CUSTOM`)
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
+	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -897,11 +899,11 @@ func newLogService() {
 
 	useConsole := false
 	for _, mode := range LogModes {
-		if mode == "console"  {
+		if mode == "console" {
 			useConsole = true
 		}
 	}
-	if (!useConsole) {
+	if !useConsole {
 		log.DelLogger("console")
 	}
 

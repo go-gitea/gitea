@@ -233,6 +233,9 @@ func (u *User) CanEditGitHook() bool {
 
 // CanImportLocal returns true if user can migrate repository by local path.
 func (u *User) CanImportLocal() bool {
+	if !setting.ImportLocalPaths {
+		return false
+	}
 	return u.IsAdmin || u.AllowImportLocal
 }
 
