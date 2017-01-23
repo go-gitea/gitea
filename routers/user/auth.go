@@ -353,26 +353,41 @@ func SignInOAuthCallback(ctx *context.Context) {
 		return
 	}
 
-	ctx.Session.Set("uid", u.ID)
-	ctx.Session.Set("uname", u.Name)
+	// If this user is enrolled in 2FA, we can't sign the user in just yet.
+	// Instead, redirect them to the 2FA authentication page.
+	_, err = models.GetTwoFactorByUID(u.ID)
+	if err != nil {
+		if models.IsErrTwoFactorNotEnrolled(err) {
+			ctx.Session.Set("uid", u.ID)
+			ctx.Session.Set("uname", u.Name)
 
-	// Clear whatever CSRF has right now, force to generate a new one
-	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
+			// Clear whatever CSRF has right now, force to generate a new one
+			ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
 
-	// Register last login
-	u.SetLastLogin()
-	if err := models.UpdateUser(u); err != nil {
-		ctx.Handle(500, "UpdateUser", err)
+			// Register last login
+			u.SetLastLogin()
+			if err := models.UpdateUser(u); err != nil {
+				ctx.Handle(500, "UpdateUser", err)
+				return
+			}
+
+			if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 {
+				ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
+				ctx.Redirect(redirectTo)
+				return
+			}
+
+			ctx.Redirect(setting.AppSubURL + "/")
+		} else {
+			ctx.Handle(500, "UserSignIn", err)
+		}
 		return
 	}
 
-	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 {
-		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
-		ctx.Redirect(redirectTo)
-		return
-	}
-
-	ctx.Redirect(setting.AppSubURL + "/")
+	// User needs to use 2FA, save data and redirect to 2FA page.
+	ctx.Session.Set("twofaUid", u.ID)
+	ctx.Session.Set("twofaRemember", false)
+	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
 }
 
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
