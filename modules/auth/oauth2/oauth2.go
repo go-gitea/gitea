@@ -19,13 +19,12 @@ var (
 )
 
 func init() {
-	dir, _ := setting.WorkDir()
-	tmpDir := filepath.Join(dir, "data", "sessions", "oauth2")
-	if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-		log.Fatal(4, "Fail to create dir %s: %v", tmpDir, err)
+	sessionDir := filepath.Join(setting.AppDataPath, "sessions", "oauth2")
+	if err := os.MkdirAll(sessionDir, 0700); err != nil {
+		log.Fatal(4, "Fail to create dir %s: %v", sessionDir, err)
 	}
 
-	gothic.Store = sessions.NewFilesystemStore(tmpDir, []byte(sessionUsersStoreKey))
+	gothic.Store = sessions.NewFilesystemStore(sessionDir, []byte(sessionUsersStoreKey))
 
 	gothic.SetState = func(req *http.Request) string {
 		return uuid.NewV4().String()
