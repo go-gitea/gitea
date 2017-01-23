@@ -189,6 +189,7 @@ type Repository struct {
 	NumPulls            int
 	NumClosedPulls      int
 	NumOpenPulls        int `xorm:"-"`
+	NumOpenReviews      int `xorm:"-"`
 	NumMilestones       int `xorm:"NOT NULL DEFAULT 0"`
 	NumClosedMilestones int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenMilestones   int `xorm:"-"`
@@ -211,6 +212,7 @@ type Repository struct {
 	ExternalTrackerStyle  string
 	ExternalMetas         map[string]string `xorm:"-"`
 	EnablePulls           bool              `xorm:"NOT NULL DEFAULT true"`
+	EnableReviews         bool              `xorm:"NOT NULL DEFAULT true"`
 
 	IsFork   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID   int64       `xorm:"INDEX"`
@@ -483,6 +485,11 @@ func (repo *Repository) CanEnablePulls() bool {
 // AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
 func (repo *Repository) AllowsPulls() bool {
 	return repo.CanEnablePulls() && repo.EnablePulls
+}
+
+// AllowsReviews returns true if repository meets the requirements of accepting pulls and has them enabled.
+func (repo *Repository) AllowsReviews() bool {
+	return repo.EnableReviews
 }
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.
@@ -1035,15 +1042,16 @@ func CreateRepository(u *User, opts CreateRepoOptions) (_ *Repository, err error
 	}
 
 	repo := &Repository{
-		OwnerID:      u.ID,
-		Owner:        u,
-		Name:         opts.Name,
-		LowerName:    strings.ToLower(opts.Name),
-		Description:  opts.Description,
-		IsPrivate:    opts.IsPrivate,
-		EnableWiki:   true,
-		EnableIssues: true,
-		EnablePulls:  true,
+		OwnerID:       u.ID,
+		Owner:         u,
+		Name:          opts.Name,
+		LowerName:     strings.ToLower(opts.Name),
+		Description:   opts.Description,
+		IsPrivate:     opts.IsPrivate,
+		EnableWiki:    true,
+		EnableIssues:  true,
+		EnablePulls:   true,
+		EnableReviews: true,
 	}
 
 	sess := x.NewSession()

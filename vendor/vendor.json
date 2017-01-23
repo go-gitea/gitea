@@ -273,6 +273,42 @@
 			"revisionTime": "2016-03-04T05:48:22Z"
 		},
 		{
+			"checksumSHA1": "IITmVQEfzVueGJGQJxPFAdt6t2w=",
+			"path": "github.com/google/git-appraise/repository",
+			"revision": "4a3502c80637eab79d6cb699a550abe9b6a1c158",
+			"revisionTime": "2016-09-21T00:24:38Z"
+		},
+		{
+			"checksumSHA1": "2LErsrVeFNuWrKRQJ/570SqrsQE=",
+			"path": "github.com/google/git-appraise/review",
+			"revision": "4a3502c80637eab79d6cb699a550abe9b6a1c158",
+			"revisionTime": "2016-09-21T00:24:38Z"
+		},
+		{
+			"checksumSHA1": "SZAJqeovAchS/gu5YHd2piRHD44=",
+			"path": "github.com/google/git-appraise/review/analyses",
+			"revision": "4a3502c80637eab79d6cb699a550abe9b6a1c158",
+			"revisionTime": "2016-09-21T00:24:38Z"
+		},
+		{
+			"checksumSHA1": "3JRKevH7OBnaUJHY8xHujdySCzo=",
+			"path": "github.com/google/git-appraise/review/ci",
+			"revision": "4a3502c80637eab79d6cb699a550abe9b6a1c158",
+			"revisionTime": "2016-09-21T00:24:38Z"
+		},
+		{
+			"checksumSHA1": "KXCHXZ8KrnNt08H32JaK6Ujrjwg=",
+			"path": "github.com/google/git-appraise/review/comment",
+			"revision": "4a3502c80637eab79d6cb699a550abe9b6a1c158",
+			"revisionTime": "2016-09-21T00:24:38Z"
+		},
+		{
+			"checksumSHA1": "cI6UctsmwxeoAEHTFH5oAfoh1tM=",
+			"path": "github.com/google/git-appraise/review/request",
+			"revision": "4a3502c80637eab79d6cb699a550abe9b6a1c158",
+			"revisionTime": "2016-09-21T00:24:38Z"
+		},
+		{
 			"checksumSHA1": "P3zGmsNjW8m15a+nks4FdVpFKwE=",
 			"path": "github.com/gopherjs/gopherjs/js",
 			"revision": "e34a5cd6a1bc7c4fde759f2d3039852fc68b5fcc",

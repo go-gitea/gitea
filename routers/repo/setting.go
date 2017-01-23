@@ -152,6 +152,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		repo.ExternalTrackerFormat = form.TrackerURLFormat
 		repo.ExternalTrackerStyle = form.TrackerIssueStyle
 		repo.EnablePulls = form.EnablePulls
+		repo.EnableReviews = form.EnableReviews
 
 		if err := models.UpdateRepository(repo, false); err != nil {
 			ctx.Handle(500, "UpdateRepository", err)

@@ -62,6 +62,11 @@
 					<i class="octicon octicon-git-pull-request"></i> {{.i18n.Tr "repo.pulls"}} <span class="ui {{if not .Repository.NumOpenPulls}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenPulls}}</span>
 				</a>
 			{{end}}
+			{{if .Repository.AllowsReviews}}
+				<a class="{{if .PageIsReviewList}}active{{end}} item" href="{{.RepoLink}}/reviews">
+					<i class="octicon octicon-git-review-request"></i> {{.i18n.Tr "repo.reviews"}} <span class="ui {{if not .Repository.NumOpenReviews}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenReviews}}</span>
+				</a>
+			{{end}}
 			<a class="{{if (or (.PageIsCommits) (.PageIsDiff))}}active{{end}} item" href="{{.RepoLink}}/commits/{{EscapePound .BranchName}}">
 				<i class="octicon octicon-history"></i> {{.i18n.Tr "repo.commits"}} <span class="ui {{if not .CommitsCount}}gray{{else}}blue{{end}} small label">{{.CommitsCount}}</span>
 			</a>

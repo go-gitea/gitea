@@ -15,6 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
+	"github.com/google/git-appraise/repository"
+	"github.com/google/git-appraise/review"
 	editorconfig "gopkg.in/editorconfig/editorconfig-core-go.v1"
 	macaron "gopkg.in/macaron.v1"
 )
@@ -285,6 +287,15 @@ func RepoAssignment(args ...bool) macaron.Handler {
 		}
 		ctx.Data["Branches"] = brs
 		ctx.Data["BrancheCount"] = len(brs)
+
+		// Count open reviews
+		if repo.AllowsReviews() {
+			appraiseRepo, err := repository.NewGitRepo(ctx.Repo.GitRepo.Path)
+			if err != nil {
+				ctx.Handle(500, "OpenGitRepository", err)
+			}
+			ctx.Repo.Repository.NumOpenReviews = len(review.ListOpen(appraiseRepo))
+		}
 
 		// If not branch selected, try default one.
 		// If default branch doesn't exists, fall back to some other branch.
