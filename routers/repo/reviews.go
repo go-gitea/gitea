@@ -1,4 +1,4 @@
-// Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/git-appraise/repository"
-	"github.com/google/git-appraise/review"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+
+	"github.com/google/git-appraise/repository"
+	"github.com/google/git-appraise/review"
 )
 
 const (
@@ -44,7 +44,6 @@ type Review struct {
 	UpdatedUnix int64
 	IsClosed    bool
 	IsRead      bool
-	IsPull      bool
 }
 
 // Reviews render issues page
@@ -76,7 +75,6 @@ func Reviews(ctx *context.Context) {
 			CreatedUnix: int64(timestamp),
 			IsClosed:    review.Submitted,
 			IsRead:      read,
-			IsPull:      true,
 		}
 		if !review.Submitted {
 			issues = append(issues, &issue)
