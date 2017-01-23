@@ -17,6 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"strings"
+	"net/http"
+	"code.gitea.io/gitea/modules/auth/oauth2"
 )
 
 const (
@@ -109,7 +112,7 @@ func SignIn(ctx *context.Context) {
 		return
 	}
 
-	oauth2Providers, err := models.GetActiveOAuth2Providers()
+	oauth2Providers, err := models.GetActiveOAuth2ProviderNames()
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)
 		return
@@ -319,14 +322,31 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 // SignInOAuth handles the OAuth2 login buttons
 func SignInOAuth(ctx *context.Context) {
 	provider := ctx.Params(":provider")
-	models.OAuth2UserLogin(provider, ctx.Req.Request, ctx.Resp)
+
+	loginSources, err := models.GetActiveOAuth2ProviderLoginSources()
+	if err != nil {
+		ctx.Handle(500, "SignIn", err)
+		return
+	}
+
+	for _, source := range loginSources {
+		// TODO how to put this in the xorm Find ?
+		cfg := source.OAuth2()
+		if cfg.Provider == provider {
+			oauth2.Auth(cfg.Provider, cfg.ClientID, cfg.ClientSecret, ctx.Req.Request, ctx.Resp)
+			return
+		}
+	}
+
+	ctx.Handle(500, "SignIn", errors.New("No valid provider found"))
+	return
 }
 
 // SignInOAuthCallback handles the callback from the given provider
 func SignInOAuthCallback(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
-	u, _, err := models.OAuth2UserLoginCallback(provider, ctx.Req.Request, ctx.Resp)
+	u, _, err := oAuth2UserLoginCallback(provider, ctx.Req.Request, ctx.Resp)
 
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)
@@ -353,6 +373,55 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/")
+}
+
+// OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
+// login the user
+func oAuth2UserLoginCallback(provider string, request *http.Request, response http.ResponseWriter) (*models.User, string, error) {
+	gothUser, redirectURL, error := oauth2.ProviderCallback(provider, request, response)
+
+	if error != nil {
+		return nil, redirectURL, error
+	}
+
+	loginSources, err := models.GetActiveOAuth2ProviderLoginSources()
+	if err != nil {
+		return nil, "", err
+	}
+
+	for _, source := range loginSources {
+		if source.OAuth2().Provider == provider {
+			user := &models.User{
+				LoginName:   gothUser.UserID,
+				LoginType:   models.LoginOAuth2,
+				LoginSource: source.ID,
+			}
+
+			hasUser, err := models.GetUser(user)
+			if err != nil {
+				return nil, "", err
+			}
+
+			if !hasUser {
+				user = &models.User{
+					LowerName:        strings.ToLower(gothUser.NickName),
+					Name:             gothUser.NickName,
+					Email:            gothUser.Email,
+					LoginType:        models.LoginOAuth2,
+					LoginSource:      source.ID,
+					LoginName:        gothUser.NickName,
+					IsActive:         true,
+					// TODO should OAuth2 imported emails be private?
+					KeepEmailPrivate: true,
+				}
+				return user, redirectURL, models.CreateUser(user)
+			}
+
+			return user, redirectURL, nil
+		}
+	}
+
+	return nil, "", errors.New("No valid provider found")
 }
 
 // SignOut sign out from login status

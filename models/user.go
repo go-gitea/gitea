@@ -1144,6 +1144,11 @@ func GetUserByEmail(email string) (*User, error) {
 	return nil, ErrUserNotExist{0, email, 0}
 }
 
+// GetUser checks if a user already exists
+func GetUser(user *User) (bool, error) {
+	return x.Get(user)
+}
+
 // SearchUserOptions contains the options for searching
 type SearchUserOptions struct {
 	Keyword  string

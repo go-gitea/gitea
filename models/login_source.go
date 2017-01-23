@@ -21,9 +21,7 @@ import (
 
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/pam"
-	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/log"
-	"net/http"
 )
 
 // LoginType represents an login type.
@@ -574,12 +572,6 @@ var OAuth2Providers = map[string]string{
 	"github":   "GitHub",
 }
 
-// LoginViaOAuth2 queries if login/password is valid against the OAuth2.0 provider,
-// and create a local user if success when enabled.
-func LoginViaOAuth2(cfg *OAuth2Config, request *http.Request, response http.ResponseWriter) {
-	oauth2.Auth(cfg.Provider, cfg.ClientID, cfg.ClientSecret, request, response)
-}
-
 // ExternalUserLogin attempts a login using external source types.
 func ExternalUserLogin(user *User, login, password string, source *LoginSource, autoRegister bool) (*User, error) {
 	if !source.IsActived {
@@ -651,87 +643,28 @@ func UserSignIn(username, password string) (*User, error) {
 	return nil, ErrUserNotExist{user.ID, user.Name, 0}
 }
 
-// OAuth2UserLogin attempts a login using a OAuth2 source type
-func OAuth2UserLogin(provider string, request *http.Request, response http.ResponseWriter) (*User, error) {
+// GetActiveOAuth2ProviderLoginSources returns all actived LoginOAuth2 sources
+func GetActiveOAuth2ProviderLoginSources() ([]*LoginSource, error) {
 	sources := make([]*LoginSource, 0, 1)
 	if err := x.UseBool().Find(&sources, &LoginSource{IsActived: true, Type: LoginOAuth2}); err != nil {
 		return nil, err
 	}
-
-	for _, source := range sources {
-		// TODO how to put this in the xorm Find ?
-		if source.Cfg.(*OAuth2Config).Provider == provider {
-			LoginViaOAuth2(source.Cfg.(*OAuth2Config), request, response)
-			return nil, nil
-		}
-	}
-
-	return nil, errors.New("No valid provider found")
+	return sources, nil
 }
 
-// OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
-// login the user
-func OAuth2UserLoginCallback(provider string, request *http.Request, response http.ResponseWriter) (*User, string, error) {
-	gothUser, redirectURL, error := oauth2.ProviderCallback(provider, request, response)
-
-	if error != nil {
-		return nil, redirectURL, error
-	}
-
-	sources := make([]*LoginSource, 0, 1)
-	if err := x.UseBool().Find(&sources, &LoginSource{IsActived: true, Type: LoginOAuth2}); err != nil {
-		return nil, "", err
-	}
-
-	for _, source := range sources {
-		// TODO how to put this in the xorm Find ?
-		if source.OAuth2().Provider == provider {
-			user := &User{
-				LoginName:   gothUser.UserID,
-				LoginType:   LoginOAuth2,
-				LoginSource: sources[0].ID,
-			}
-
-			hasUser, err := x.Get(user)
-			if err != nil {
-				return nil, "", err
-			}
-
-			if !hasUser {
-				user = &User{
-					LowerName:        strings.ToLower(gothUser.NickName),
-					Name:             gothUser.NickName,
-					Email:            gothUser.Email,
-					LoginType:        LoginOAuth2,
-					LoginSource:      sources[0].ID,
-					LoginName:        gothUser.NickName,
-					IsActive:         true,
-					// TODO should OAuth2 imported emails be private?
-					KeepEmailPrivate: true,
-				}
-				return user, redirectURL, CreateUser(user)
-			}
-
-			return user, redirectURL, nil
-		}
-	}
-
-	return nil, "", errors.New("No valid provider found")
-}
-
-// GetActiveOAuth2Providers returns the map of configured active OAuth2 providers
+// GetActiveOAuth2ProviderNames returns the map of configured active OAuth2 providers
 // key is used as technical name (like in the callbackURL)
 // value is used to display
-func GetActiveOAuth2Providers() (map[string]string, error) {
+func GetActiveOAuth2ProviderNames() (map[string]string, error) {
 	// Maybe also seperate used and unused providers so we can force the registration of only 1 active provider for each type
 
-	sources := make([]*LoginSource, 0, 1)
-	if err := x.UseBool().Find(&sources, &LoginSource{IsActived: true, Type: LoginOAuth2}); err != nil {
+	loginSources, err := GetActiveOAuth2ProviderLoginSources()
+	if err != nil {
 		return nil, err
 	}
 
 	providers := make(map[string]string)
-	for _, source := range sources {
+	for _, source := range loginSources {
 		providers[source.OAuth2().Provider] = OAuth2Providers[source.OAuth2().Provider]
 	}
 
