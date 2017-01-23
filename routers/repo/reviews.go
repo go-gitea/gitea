@@ -29,23 +29,6 @@ func MustAllowReviews(ctx *context.Context) {
 	}
 }
 
-// Review struct to Issue representation
-type Review struct {
-	Index       string
-	Poster      *models.User
-	Title       string
-	Labels      []*models.Label
-	Milestone   *models.Milestone
-	Assignee    *models.User
-	NumComments int
-	Created     time.Time
-	CreatedUnix int64
-	Updated     time.Time
-	UpdatedUnix int64
-	IsClosed    bool
-	IsRead      bool
-}
-
 // Reviews render issues page
 func Reviews(ctx *context.Context) {
 	repo, err := repository.NewGitRepo(ctx.Repo.GitRepo.Path)
@@ -54,7 +37,7 @@ func Reviews(ctx *context.Context) {
 	}
 	total := review.ListAll(repo)
 
-	issues := []*Review{}
+	issues := []*models.Issue{}
 
 	for _, review := range total {
 		timestamp, _ := strconv.Atoi(review.Request.Timestamp)
@@ -67,14 +50,15 @@ func Reviews(ctx *context.Context) {
 		if err != nil {
 			user = &models.User{Name: review.Request.Requester}
 		}
-		issue := Review{
-			Index:       review.Revision,
+		issue := models.Issue{
+			Revision:    review.Revision,
 			Title:       strings.Split(review.Request.Description, "\n\n")[0],
 			Poster:      user,
 			Created:     time,
 			CreatedUnix: int64(timestamp),
 			IsClosed:    review.Submitted,
 			IsRead:      read,
+			IsReview:    true,
 		}
 		if !review.Submitted {
 			issues = append(issues, &issue)

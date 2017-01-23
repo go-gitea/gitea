@@ -29,6 +29,7 @@ type Issue struct {
 	RepoID          int64       `xorm:"INDEX UNIQUE(repo_index)"`
 	Repo            *Repository `xorm:"-"`
 	Index           int64       `xorm:"UNIQUE(repo_index)"` // Index in one repository.
+	Revision        string      `xorm:"-"`                  // revision for appraise requests
 	PosterID        int64       `xorm:"INDEX"`
 	Poster          *User       `xorm:"-"`
 	Title           string      `xorm:"name"`
@@ -43,6 +44,7 @@ type Issue struct {
 	IsClosed        bool         `xorm:"INDEX"`
 	IsRead          bool         `xorm:"-"`
 	IsPull          bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
+	IsReview        bool         `xorm:"-"`     // Indicates whether is a review or not.
 	PullRequest     *PullRequest `xorm:"-"`
 	NumComments     int
 
@@ -1734,4 +1736,3 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 	}
 	return sess.Commit()
 }
-
