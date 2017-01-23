@@ -303,12 +303,6 @@
 			"revisionTime": "2016-02-12T04:00:40Z"
 		},
 		{
-			"checksumSHA1": "/dBJ2h8Jo359deiC5GQ8ZYzX8M8=",
-			"path": "github.com/kardianos/minwinsvc",
-			"revision": "cad6b2b879b0970e4245a20ebf1a81a756e2bb70",
-			"revisionTime": "2015-11-22T16:33:09Z"
-		},
-		{
 			"checksumSHA1": "fh+CcgeUUsnuwSORHYWg0ycbp+4=",
 			"path": "github.com/klauspost/compress/flate",
 			"revision": "8df558b6cb6f9b445f9586446cfe7223e7d8bd6b",
