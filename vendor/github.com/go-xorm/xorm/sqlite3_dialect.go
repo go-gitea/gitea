@@ -406,7 +406,7 @@ func (db *sqlite3) GetIndexes(tableName string) (map[string]*core.Index, error) 
 
 		indexName := strings.Trim(sql[nNStart+6:nNEnd], "` []")
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
-			index.Name = indexName[5+len(tableName) : len(indexName)]
+			index.Name = indexName[5+len(tableName):]
 		} else {
 			index.Name = indexName
 		}

@@ -75,7 +75,7 @@ type Statement struct {
 	cond            builder.Cond
 }
 
-// Init reset all the statment's fields
+// Init reset all the statement's fields
 func (statement *Statement) Init() {
 	statement.RefTable = nil
 	statement.Start = 0
@@ -147,12 +147,12 @@ func (statement *Statement) SQL(query interface{}, args ...interface{}) *Stateme
 	return statement
 }
 
-// Where add Where statment
+// Where add Where statement
 func (statement *Statement) Where(query interface{}, args ...interface{}) *Statement {
 	return statement.And(query, args...)
 }
 
-// And add Where & and statment
+// And add Where & and statement
 func (statement *Statement) And(query interface{}, args ...interface{}) *Statement {
 	switch query.(type) {
 	case string:
@@ -173,7 +173,7 @@ func (statement *Statement) And(query interface{}, args ...interface{}) *Stateme
 	return statement
 }
 
-// Or add Where & Or statment
+// Or add Where & Or statement
 func (statement *Statement) Or(query interface{}, args ...interface{}) *Statement {
 	switch query.(type) {
 	case string:
@@ -193,7 +193,7 @@ func (statement *Statement) Or(query interface{}, args ...interface{}) *Statemen
 	return statement
 }
 
-// In generate "Where column IN (?) " statment
+// In generate "Where column IN (?) " statement
 func (statement *Statement) In(column string, args ...interface{}) *Statement {
 	if len(args) == 0 {
 		return statement
@@ -204,7 +204,7 @@ func (statement *Statement) In(column string, args ...interface{}) *Statement {
 	return statement
 }
 
-// NotIn generate "Where column NOT IN (?) " statment
+// NotIn generate "Where column NOT IN (?) " statement
 func (statement *Statement) NotIn(column string, args ...interface{}) *Statement {
 	if len(args) == 0 {
 		return statement
@@ -706,14 +706,14 @@ func (statement *Statement) TableName() string {
 	return statement.tableName
 }
 
-// Id generate "where id = ? " statment or for composite key "where key1 = ? and key2 = ?"
+// Id generate "where id = ? " statement or for composite key "where key1 = ? and key2 = ?"
 //
 // Deprecated: use ID instead
 func (statement *Statement) Id(id interface{}) *Statement {
 	return statement.ID(id)
 }
 
-// ID generate "where id = ? " statment or for composite key "where key1 = ? and key2 = ?"
+// ID generate "where id = ? " statement or for composite key "where key1 = ? and key2 = ?"
 func (statement *Statement) ID(id interface{}) *Statement {
 	idValue := reflect.ValueOf(id)
 	idType := reflect.TypeOf(idValue.Interface())
@@ -741,7 +741,7 @@ func (statement *Statement) ID(id interface{}) *Statement {
 	return statement
 }
 
-// Incr Generate  "Update ... Set column = column + arg" statment
+// Incr Generate  "Update ... Set column = column + arg" statement
 func (statement *Statement) Incr(column string, arg ...interface{}) *Statement {
 	k := strings.ToLower(column)
 	if len(arg) > 0 {
@@ -752,7 +752,7 @@ func (statement *Statement) Incr(column string, arg ...interface{}) *Statement {
 	return statement
 }
 
-// Decr Generate  "Update ... Set column = column - arg" statment
+// Decr Generate  "Update ... Set column = column - arg" statement
 func (statement *Statement) Decr(column string, arg ...interface{}) *Statement {
 	k := strings.ToLower(column)
 	if len(arg) > 0 {
@@ -763,24 +763,24 @@ func (statement *Statement) Decr(column string, arg ...interface{}) *Statement {
 	return statement
 }
 
-// SetExpr Generate  "Update ... Set column = {expression}" statment
+// SetExpr Generate  "Update ... Set column = {expression}" statement
 func (statement *Statement) SetExpr(column string, expression string) *Statement {
 	k := strings.ToLower(column)
 	statement.exprColumns[k] = exprParam{column, expression}
 	return statement
 }
 
-// Generate  "Update ... Set column = column + arg" statment
+// Generate  "Update ... Set column = column + arg" statement
 func (statement *Statement) getInc() map[string]incrParam {
 	return statement.incrColumns
 }
 
-// Generate  "Update ... Set column = column - arg" statment
+// Generate  "Update ... Set column = column - arg" statement
 func (statement *Statement) getDec() map[string]decrParam {
 	return statement.decrColumns
 }
 
-// Generate  "Update ... Set column = {expression}" statment
+// Generate  "Update ... Set column = {expression}" statement
 func (statement *Statement) getExpr() map[string]exprParam {
 	return statement.exprColumns
 }

@@ -465,7 +465,7 @@ func (db *mysql) GetIndexes(tableName string) (map[string]*core.Index, error) {
 		colName = strings.Trim(colName, "` ")
 		var isRegular bool
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
-			indexName = indexName[5+len(tableName) : len(indexName)]
+			indexName = indexName[5+len(tableName):]
 			isRegular = true
 		}
 
