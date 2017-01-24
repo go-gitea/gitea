@@ -33,7 +33,7 @@ const (
 	UnitTypeExternalTracker            // 9 ExternalTracker
 )
 
-// Repo
+// Repo describes a repository
 type Repo struct {
 	ID                                                                               int64
 	EnableWiki, EnableExternalWiki, EnableIssues, EnableExternalTracker, EnablePulls bool

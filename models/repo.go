@@ -200,17 +200,6 @@ type Repository struct {
 	IsMirror bool `xorm:"INDEX"`
 	*Mirror  `xorm:"-"`
 
-	// Advanced settings
-	/*EnableWiki            bool `xorm:"NOT NULL DEFAULT true"`
-	EnableExternalWiki    bool
-	ExternalWikiURL       string
-	EnableIssues          bool `xorm:"NOT NULL DEFAULT true"`
-	EnableExternalTracker bool
-	ExternalTrackerURL    string
-	ExternalTrackerFormat string
-	ExternalTrackerStyle  string
-	EnablePulls           bool              `xorm:"NOT NULL DEFAULT true"`*/
-
 	ExternalMetas map[string]string `xorm:"-"`
 	Units         []*RepoUnit       `xorm:"-"`
 
@@ -249,10 +238,6 @@ func (repo *Repository) AfterSet(colName string, _ xorm.Cell) {
 		repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
 	case "num_closed_milestones":
 		repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
-	/*case "external_tracker_style":
-	if len(repo.ExternalTrackerStyle) == 0 {
-		repo.ExternalTrackerStyle = markdown.IssueNameStyleNumeric
-	}*/
 	case "created_unix":
 		repo.Created = time.Unix(repo.CreatedUnix, 0).Local()
 	case "updated_unix":
@@ -338,7 +323,7 @@ var (
 	ErrUnitNotExist = errors.New("Unit does not exist")
 )
 
-// MustGetUnit
+// MustGetUnit always returns a RepoUnit object
 func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
 	ru, err := repo.GetUnit(tp)
 	if err == nil {
@@ -350,7 +335,7 @@ func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
 	}
 }
 
-// GetUnit
+// GetUnit returns a RepoUnit object
 func (repo *Repository) GetUnit(tp UnitType) (*RepoUnit, error) {
 	if err := repo.getUnits(x); err != nil {
 		return nil, err
@@ -1455,7 +1440,7 @@ func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
 	return sess.Commit()
 }
 
-// UpdateRepositoryUnits
+// UpdateRepositoryUnits updates a repository's units
 func UpdateRepositoryUnits(repo *Repository, units []RepoUnit) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()

@@ -29,6 +29,7 @@ type Unit struct {
 	Idx     int
 }
 
+// Enumerate all the units
 var (
 	UnitCode = Unit{
 		UnitTypeCode,
