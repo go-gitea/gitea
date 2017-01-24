@@ -6,17 +6,13 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/tests/internal/utils"
 )
 
-const (
-	ServerHttpPort = "3001"
-	RetryLimit     = 10
-)
+// The HTTP port listened by the Gitea server.
+const ServerHttpPort = "3001"
 
 var Version string
 
@@ -24,15 +20,9 @@ func version(c *utils.Config) error {
 	var r *http.Response
 	var err error
 
-	for i := 0; i < RetryLimit; i++ {
-		r, err = http.Get("http://:" + ServerHttpPort + "/api/v1/version")
-		if err == nil {
-			break
-		}
-
-		// Give the server some amount of time to warm up.
-		fmt.Fprintf(os.Stderr, "Retry %d\n", i)
-		time.Sleep(500 * time.Millisecond)
+	r, err = http.Get("http://:" + ServerHttpPort + "/api/v1/version")
+	if err == nil {
+		return err
 	}
 
 	if err != nil {
