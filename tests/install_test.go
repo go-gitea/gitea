@@ -12,7 +12,8 @@ import (
 	"code.gitea.io/gitea/tests/internal/utils"
 )
 
-const _RetryLimit = 10
+// The HTTP port listened by the Gitea server.
+const ServerHttpPort = "3001"
 
 func makeSimpleSettings(user, workdir, port string) map[string][]string {
 	return map[string][]string{

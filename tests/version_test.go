@@ -11,9 +11,6 @@ import (
 	"code.gitea.io/gitea/tests/internal/utils"
 )
 
-// The HTTP port listened by the Gitea server.
-const ServerHttpPort = "3001"
-
 var Version string
 
 func version(c *utils.Config) error {
