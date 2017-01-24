@@ -88,13 +88,11 @@ func (c *Config) RunTest(tests ...func(*Config) error) (err error) {
 	log.Println("Done.")
 
 	defer func() {
-		if _err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
-			err = _err
-			return
-		}
+		// Do not early return. We have to call Wait anyway.
+		_ = cmd.Process.Signal(syscall.SIGTERM)
 
-		if _err := cmd.Wait(); err != nil {
-			if err.Error() != "signal: terminated" {
+		if _err := cmd.Wait(); _err != nil {
+			if _err.Error() != "signal: terminated" {
 				err = _err
 				return
 			}
