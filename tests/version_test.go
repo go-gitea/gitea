@@ -18,7 +18,7 @@ func version(c *utils.Config) error {
 	var r *http.Response
 	var err error
 
-	r, err = http.Get("http://:" + ServerHttpPort + "/api/v1/version")
+	r, err = http.Get("http://:" + ServerHTTPPort + "/api/v1/version")
 	if err == nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func version(c *utils.Config) error {
 
 	log.Printf("Actual: \"%s\" Expected: \"%s\"\n", string(actual), string(expected))
 	if !bytes.Equal(actual, expected) {
-		return fmt.Errorf("Do not match!")
+		return fmt.Errorf("do not match")
 	}
 	return nil
 }
@@ -48,7 +48,7 @@ func TestVersion(t *testing.T) {
 	conf := utils.Config{
 		Program: "../gitea",
 		WorkDir: "",
-		Args:    []string{"web", "--port", ServerHttpPort},
+		Args:    []string{"web", "--port", ServerHTTPPort},
 		//LogFile: os.Stderr,
 	}
 

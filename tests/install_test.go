@@ -13,7 +13,7 @@ import (
 )
 
 // The HTTP port listened by the Gitea server.
-const ServerHttpPort = "3001"
+const ServerHTTPPort = "3001"
 
 const _RetryLimit = 10
 

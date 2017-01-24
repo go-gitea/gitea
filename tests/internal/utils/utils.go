@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// Config Settings of the testing program
 type Config struct {
 	// The executable path of the tested program.
 	Program string
@@ -42,7 +43,7 @@ func redirect(cmd *exec.Cmd, f *os.File) error {
 	return nil
 }
 
-// Helper function for setting up a running Gitea server for functional testing and then gracefully terminating it.
+// RunTest Helper function for setting up a running Gitea server for functional testing and then gracefully terminating it.
 func (c *Config) RunTest(tests ...func(*Config) error) (err error) {
 	if c.Program == "" {
 		return errors.New("Need input file")
