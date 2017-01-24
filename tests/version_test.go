@@ -6,18 +6,36 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/tests/internal/utils"
 )
 
-// The variable is expected to be set by '-ldflags -X ...' which is used by the /version testing.
-var Version string
-
 func version(c *utils.Config) error {
-	var r *http.Response
 	var err error
 
+	path, err := filepath.Abs(c.Program)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(path, "--version")
+	out, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+
+	fields := strings.Fields(string(out))
+	if len(fields) != 3 {
+		return fmt.Errorf("unexpected version string")
+	}
+
+	expected := fields[2]
+
+	var r *http.Response
 	r, err = http.Get("http://:" + ServerHTTPPort + "/api/v1/version")
 	if err == nil {
 		return err
@@ -34,11 +52,10 @@ func version(c *utils.Config) error {
 		return err
 	}
 
-	actual := bytes.TrimSpace(buf)
-	expected := []byte(Version)
+	actual := string(bytes.TrimSpace(buf))
 
 	log.Printf("Actual: \"%s\" Expected: \"%s\"\n", string(actual), string(expected))
-	if !bytes.Equal(actual, expected) {
+	if actual != expected {
 		return fmt.Errorf("do not match")
 	}
 	return nil
@@ -50,10 +67,6 @@ func TestVersion(t *testing.T) {
 		WorkDir: "",
 		Args:    []string{"web", "--port", ServerHTTPPort},
 		//LogFile: os.Stderr,
-	}
-
-	if Version == "" {
-		log.Fatal("Please specify the version string via '-ldflags -X' for the package")
 	}
 
 	if err := conf.RunTest(install, version); err != nil {
