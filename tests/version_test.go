@@ -41,10 +41,6 @@ func version(c *utils.Config) error {
 		return err
 	}
 
-	if err != nil {
-		return err
-	}
-
 	defer r.Body.Close()
 
 	buf, err := ioutil.ReadAll(r.Body)
