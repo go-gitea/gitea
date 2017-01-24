@@ -18,6 +18,43 @@ const RetryLimit = 10
 
 var Version string
 
+func Version_(c *utils.Config) error {
+	var r *http.Response
+	var err error
+
+	for i := 0; i < RetryLimit; i++ {
+		// Give the server some amount of time to warm up.
+		time.Sleep(500 * time.Millisecond)
+
+		r, err = http.Get("http://:3001/api/v1/version")
+		if err == nil {
+			break
+		}
+		fmt.Fprintf(os.Stderr, "Retry %d\n", i)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	defer r.Body.Close()
+
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+
+	actual := bytes.TrimSpace(buf)
+	expected := []byte(Version)
+
+	log.Printf("Actual: \"%s\"\n", string(actual))
+	log.Printf("Expected: \"%s\"\n", string(expected))
+	if !bytes.Equal(actual, expected) {
+		return errors.New(fmt.Sprintf("Do not match!"))
+	}
+	return nil
+}
+
 func TestVersion(t *testing.T) {
 	conf := utils.Config{
 		Program: "../gitea",
@@ -30,42 +67,7 @@ func TestVersion(t *testing.T) {
 		log.Fatal("Please specify the version string via '-ldflags -X' for the package")
 	}
 
-	if err := conf.RunTest(func(*utils.Config) error {
-		var r *http.Response
-		var err error
-
-		for i := 0; i < RetryLimit; i++ {
-			// Give the server some amount of time to warm up.
-			time.Sleep(500 * time.Millisecond)
-
-			r, err = http.Get("http://:3001/api/v1/version")
-			if err == nil {
-				break
-			}
-			fmt.Fprintf(os.Stderr, "Retry %d\n", i)
-		}
-
-		if err != nil {
-			return err
-		}
-
-		defer r.Body.Close()
-
-		buf, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			return err
-		}
-
-		actual := bytes.TrimSpace(buf)
-		expected := []byte(Version)
-
-		log.Printf("Actual: \"%s\"\n", string(actual))
-		log.Printf("Expected: \"%s\"\n", string(expected))
-		if !bytes.Equal(actual, expected) {
-			return errors.New(fmt.Sprintf("Do not match!"))
-		}
-		return nil
-	}); err != nil {
+	if err := conf.RunTest(Install, Version_); err != nil {
 		t.Fatal(err)
 	}
 }
