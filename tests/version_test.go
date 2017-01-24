@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/tests/internal/utils"
 )
 
+// The variable is expected to be set by '-ldflags -X ...' which is used by the /version testing.
 var Version string
 
 func version(c *utils.Config) error {
