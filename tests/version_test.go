@@ -46,7 +46,7 @@ func version(c *utils.Config) error {
 	actual := bytes.TrimSpace(buf)
 	expected := []byte(Version)
 
-	log.Printf("Actual: \"%s\" <> Expected: %s\n", string(actual), string(expected))
+	log.Printf("Actual: \"%s\" Expected: %s\n", string(actual), string(expected))
 	if !bytes.Equal(actual, expected) {
 		return fmt.Errorf("Do not match!")
 	}
