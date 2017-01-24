@@ -15,6 +15,8 @@ import (
 // The HTTP port listened by the Gitea server.
 const ServerHttpPort = "3001"
 
+const _RetryLimit = 10
+
 func makeSimpleSettings(user, workdir, port string) map[string][]string {
 	return map[string][]string{
 		"db_type":        {"SQLite3"},
