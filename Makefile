@@ -67,7 +67,8 @@ lint:
 	for PKG in $(PACKAGES); do golint -set_exit_status $$PKG || exit 1; done;
 
 .PHONY: test
-test:
+test: TAGS=bindata sqlite
+test: build
 	for PKG in $(PACKAGES); do go test -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
 
 .PHONY: test-mysql
