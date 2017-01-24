@@ -81,7 +81,15 @@ func (u *User) GetStarredRepos(private bool) (repos []*Repository, err error) {
 		sess = sess.And("is_private = ?", false)
 	}
 
-	err = sess.
-		Find(&repos)
+	if err = sess.Find(&repos); err != nil {
+		return
+	}
+
+	for _, repo := range repos {
+		if err = repo.GetOwner(); err != nil {
+			return
+		}
+	}
+
 	return
 }
