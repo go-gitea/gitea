@@ -201,7 +201,7 @@ type Repository struct {
 	*Mirror  `xorm:"-"`
 
 	// Advanced settings
-	EnableWiki            bool `xorm:"NOT NULL DEFAULT true"`
+	/*EnableWiki            bool `xorm:"NOT NULL DEFAULT true"`
 	EnableExternalWiki    bool
 	ExternalWikiURL       string
 	EnableIssues          bool `xorm:"NOT NULL DEFAULT true"`
@@ -209,8 +209,10 @@ type Repository struct {
 	ExternalTrackerURL    string
 	ExternalTrackerFormat string
 	ExternalTrackerStyle  string
-	ExternalMetas         map[string]string `xorm:"-"`
-	EnablePulls           bool              `xorm:"NOT NULL DEFAULT true"`
+	EnablePulls           bool              `xorm:"NOT NULL DEFAULT true"`*/
+
+	ExternalMetas map[string]string `xorm:"-"`
+	Units         []*RepoUnit       `xorm:"-"`
 
 	IsFork   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID   int64       `xorm:"INDEX"`
@@ -247,10 +249,10 @@ func (repo *Repository) AfterSet(colName string, _ xorm.Cell) {
 		repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
 	case "num_closed_milestones":
 		repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
-	case "external_tracker_style":
-		if len(repo.ExternalTrackerStyle) == 0 {
-			repo.ExternalTrackerStyle = markdown.IssueNameStyleNumeric
-		}
+	/*case "external_tracker_style":
+	if len(repo.ExternalTrackerStyle) == 0 {
+		repo.ExternalTrackerStyle = markdown.IssueNameStyleNumeric
+	}*/
 	case "created_unix":
 		repo.Created = time.Unix(repo.CreatedUnix, 0).Local()
 	case "updated_unix":
@@ -307,6 +309,60 @@ func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
 	}
 }
 
+func (repo *Repository) getUnits(e Engine) (err error) {
+	if repo.Units != nil {
+		return nil
+	}
+
+	repo.Units, err = getUnitsByRepoID(e, repo.ID)
+	return err
+}
+
+func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
+	return units, e.Where("repo_id = ?", repoID).Find(&units)
+}
+
+// EnableUnit if this repository enabled some unit
+func (repo *Repository) EnableUnit(tp UnitType) bool {
+	repo.getUnits(x)
+	for _, unit := range repo.Units {
+		if unit.Type == tp {
+			return true
+		}
+	}
+	return false
+}
+
+var (
+	// ErrUnitNotExist organization does not exist
+	ErrUnitNotExist = errors.New("Unit does not exist")
+)
+
+// MustGetUnit
+func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
+	ru, err := repo.GetUnit(tp)
+	if err == nil {
+		return ru
+	}
+	return &RepoUnit{
+		Type:   tp,
+		Config: make(map[string]string),
+	}
+}
+
+// GetUnit
+func (repo *Repository) GetUnit(tp UnitType) (*RepoUnit, error) {
+	if err := repo.getUnits(x); err != nil {
+		return nil, err
+	}
+	for _, unit := range repo.Units {
+		if unit.Type == tp {
+			return unit, nil
+		}
+	}
+	return nil, ErrUnitNotExist
+}
+
 func (repo *Repository) getOwner(e Engine) (err error) {
 	if repo.Owner != nil {
 		return nil
@@ -334,15 +390,18 @@ func (repo *Repository) mustOwner(e Engine) *User {
 
 // ComposeMetas composes a map of metas for rendering external issue tracker URL.
 func (repo *Repository) ComposeMetas() map[string]string {
-	if !repo.EnableExternalTracker {
+	externalTracker, err := repo.GetUnit(UnitTypeExternalTracker)
+	if err != nil {
 		return nil
-	} else if repo.ExternalMetas == nil {
+	}
+
+	if repo.ExternalMetas == nil {
 		repo.ExternalMetas = map[string]string{
-			"format": repo.ExternalTrackerFormat,
+			"format": externalTracker.Config["ExternalTrackerFormat"],
 			"user":   repo.MustOwner().Name,
 			"repo":   repo.Name,
 		}
-		switch repo.ExternalTrackerStyle {
+		switch externalTracker.Config["ExternalTrackerStyle"] {
 		case markdown.IssueNameStyleAlphanumeric:
 			repo.ExternalMetas["style"] = markdown.IssueNameStyleAlphanumeric
 		default:
@@ -359,6 +418,8 @@ func (repo *Repository) DeleteWiki() {
 	for _, wikiPath := range wikiPaths {
 		RemoveAllWithNotice("Delete repository wiki", wikiPath)
 	}
+
+	x.Where("repo_id = ?", repo.ID).And("type = ?", UnitTypeWiki).Delete(new(RepoUnit))
 }
 
 func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
@@ -482,7 +543,7 @@ func (repo *Repository) CanEnablePulls() bool {
 
 // AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
 func (repo *Repository) AllowsPulls() bool {
-	return repo.CanEnablePulls() && repo.EnablePulls
+	return repo.CanEnablePulls() && repo.EnableUnit(UnitTypePullRequests)
 }
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.
@@ -997,6 +1058,20 @@ func createRepository(e *xorm.Session, u *User, repo *Repository) (err error) {
 		return err
 	}
 
+	// insert units for repo
+	var units = make([]RepoUnit, 0, len(defaultRepoUnits))
+	for i, tp := range defaultRepoUnits {
+		units = append(units, RepoUnit{
+			RepoID: repo.ID,
+			Type:   tp,
+			Index:  i,
+		})
+	}
+
+	if _, err = e.Insert(&units); err != nil {
+		return err
+	}
+
 	u.NumRepos++
 	// Remember visibility preference.
 	u.LastRepoVisibility = repo.IsPrivate
@@ -1035,15 +1110,15 @@ func CreateRepository(u *User, opts CreateRepoOptions) (_ *Repository, err error
 	}
 
 	repo := &Repository{
-		OwnerID:      u.ID,
-		Owner:        u,
-		Name:         opts.Name,
-		LowerName:    strings.ToLower(opts.Name),
-		Description:  opts.Description,
-		IsPrivate:    opts.IsPrivate,
-		EnableWiki:   true,
+		OwnerID:     u.ID,
+		Owner:       u,
+		Name:        opts.Name,
+		LowerName:   strings.ToLower(opts.Name),
+		Description: opts.Description,
+		IsPrivate:   opts.IsPrivate,
+		/*EnableWiki:   true,
 		EnableIssues: true,
-		EnablePulls:  true,
+		EnablePulls:  true,*/
 	}
 
 	sess := x.NewSession()
@@ -1380,6 +1455,25 @@ func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
 	return sess.Commit()
 }
 
+// UpdateRepositoryUnits
+func UpdateRepositoryUnits(repo *Repository, units []RepoUnit) (err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if _, err = sess.Where("repo_id = ?", repo.ID).Delete(new(RepoUnit)); err != nil {
+		return err
+	}
+
+	if _, err = sess.Insert(units); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
 // DeleteRepository deletes a repository for a user or organization.
 func DeleteRepository(uid, repoID int64) error {
 	repo := &Repository{ID: repoID, OwnerID: uid}
@@ -1462,6 +1556,10 @@ func DeleteRepository(uid, repoID int64) error {
 	}
 
 	if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
+		return err
+	}
+
+	if _, err = sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
 		return err
 	}
 

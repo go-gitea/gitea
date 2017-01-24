@@ -106,6 +106,7 @@ func init() {
 		new(IssueUser),
 		new(LFSMetaObject),
 		new(TwoFactor),
+		new(RepoUnit),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
