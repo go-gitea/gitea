@@ -38,7 +38,8 @@
   is_admin: false
   avatar: avatar3
   avatar_email: user3@example.com
-  num_repos: 1
+  num_repos: 2
+  num_members: 2
 
 -
   id: 4
@@ -47,7 +48,7 @@
   full_name: User Four
   email: user4@example.com
   passwd: password
-  type: 1 # individual
+  type: 0 # individual
   salt: salt
   is_admin: false
   avatar: avatar4
@@ -61,9 +62,40 @@
   full_name: User Five
   email: user5@example.com
   passwd: password
-  type: 1 # individual
+  type: 0 # individual
   salt: salt
   is_admin: false
   avatar: avatar5
   avatar_email: user5@example.com
   num_repos: 1
+  allow_create_organization: false
+
+-
+  id: 6
+  lower_name: user6
+  name: user6
+  full_name: User Six
+  email: user6@example.com
+  passwd: password
+  type: 1 # organization
+  salt: salt
+  is_admin: false
+  avatar: avatar6
+  avatar_email: user6@example.com
+  num_repos: 0
+  num_members: 1
+
+-
+  id: 7
+  lower_name: user7
+  name: user7
+  full_name: User Seven
+  email: user7@example.com
+  passwd: password
+  type: 1 # organization
+  salt: salt
+  is_admin: false
+  avatar: avatar7
+  avatar_email: user7@example.com
+  num_repos: 0
+  num_members: 1

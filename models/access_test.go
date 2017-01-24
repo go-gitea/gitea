@@ -106,7 +106,7 @@ func TestRepository_RecalculateAccesses(t *testing.T) {
 	has, err := x.Get(access)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.Equal(t, AccessModeWrite, access.Mode)
+	assert.Equal(t, AccessModeOwner, access.Mode)
 }
 
 func TestRepository_RecalculateAccesses2(t *testing.T) {
