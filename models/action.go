@@ -658,17 +658,14 @@ func GetFeeds(ctxUser *User, actorID, offset int64, isProfile bool) ([]*Action, 
 			And("is_private = ?", false).
 			And("act_user_id = ?", ctxUser.ID)
 	} else if actorID != -1 && ctxUser.IsOrganization() {
-		// FIXME: only need to get IDs here, not all fields of repository.
-		repos, _, err := ctxUser.GetUserRepositories(actorID, 1, ctxUser.NumRepos)
+		env, err := ctxUser.AccessibleReposEnv(actorID)
+		if err != nil {
+			return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
+		}
+		repoIDs, err := env.RepoIDs(1, ctxUser.NumRepos)
 		if err != nil {
 			return nil, fmt.Errorf("GetUserRepositories: %v", err)
 		}
-
-		var repoIDs []int64
-		for _, repo := range repos {
-			repoIDs = append(repoIDs, repo.ID)
-		}
-
 		if len(repoIDs) > 0 {
 			sess.In("repo_id", repoIDs)
 		}
