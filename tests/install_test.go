@@ -37,16 +37,17 @@ func install(conf *utils.Config) error {
 	var r *http.Response
 	var err error
 
-	for i := 0; i < _RetryLimit; i++ {
+	for i := 1; i <= _RetryLimit; i++ {
 
-		r, err = http.Get("http://:3001/")
+		r, err = http.Get("http://:" + ServerHTTPPort + "/")
 		if err == nil {
+			fmt.Fprintln(os.Stderr)
 			break
 		}
 
 		// Give the server some amount of time to warm up.
-		time.Sleep(500 * time.Millisecond)
-		fmt.Fprintf(os.Stderr, "Retry %d\n", i)
+		time.Sleep(100 * time.Millisecond)
+		fmt.Fprintf(os.Stderr, ".")
 	}
 
 	if err != nil {
