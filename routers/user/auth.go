@@ -126,6 +126,13 @@ func SignIn(ctx *context.Context) {
 func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
+	oauth2Providers, err := models.GetActiveOAuth2ProviderNames()
+	if err != nil {
+		ctx.Handle(500, "UserSignIn", err)
+		return
+	}
+	ctx.Data["OAuth2Providers"] = oauth2Providers
+
 	if ctx.HasError() {
 		ctx.HTML(200, tplSignIn)
 		return
@@ -407,7 +414,7 @@ func oAuth2UserLoginCallback(provider string, request *http.Request, response ht
 	for _, source := range loginSources {
 		if source.OAuth2().Provider == provider {
 			user := &models.User{
-				LoginName:   gothUser.UserID,
+				LoginName:   gothUser.NickName,
 				LoginType:   models.LoginOAuth2,
 				LoginSource: source.ID,
 			}
@@ -426,8 +433,6 @@ func oAuth2UserLoginCallback(provider string, request *http.Request, response ht
 					LoginSource:      source.ID,
 					LoginName:        gothUser.NickName,
 					IsActive:         true,
-					// TODO should OAuth2 imported emails be private?
-					KeepEmailPrivate: true,
 				}
 				return user, redirectURL, models.CreateUser(user)
 			}

@@ -200,7 +200,7 @@ func SettingsPasswordPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		return
 	}
 
-	if !ctx.User.ValidatePassword(form.OldPassword) {
+	if ctx.User.IsPasswordSet() && !ctx.User.ValidatePassword(form.OldPassword) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))

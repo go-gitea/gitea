@@ -196,6 +196,11 @@ func (u *User) IsLocal() bool {
 	return u.LoginType <= LoginPlain
 }
 
+// IsOAuth2 returns true if user login type is LoginOAuth2.
+func (u *User) IsOAuth2() bool {
+	return u.LoginType == LoginOAuth2
+}
+
 // HasForkedRepo checks if user has already forked a repository with given ID.
 func (u *User) HasForkedRepo(repoID int64) bool {
 	_, has := HasForkedRepo(u.ID, repoID)
@@ -387,6 +392,11 @@ func (u *User) ValidatePassword(passwd string) bool {
 	newUser := &User{Passwd: passwd, Salt: u.Salt}
 	newUser.EncodePasswd()
 	return subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(newUser.Passwd)) == 1
+}
+
+// IsPasswordSet checks if the password is set or left empty
+func (u *User) IsPasswordSet() bool {
+	return !u.ValidatePassword("")
 }
 
 // UploadAvatar saves custom avatar for user.
