@@ -38,13 +38,14 @@ func install(conf *utils.Config) error {
 	var err error
 
 	for i := 0; i < _RetryLimit; i++ {
-		// Give the server some amount of time to warm up.
-		time.Sleep(500 * time.Millisecond)
 
 		r, err = http.Get("http://:3001/")
 		if err == nil {
 			break
 		}
+
+		// Give the server some amount of time to warm up.
+		time.Sleep(500 * time.Millisecond)
 		fmt.Fprintf(os.Stderr, "Retry %d\n", i)
 	}
 
