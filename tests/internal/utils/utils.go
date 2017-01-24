@@ -85,7 +85,7 @@ func (c *Config) RunTest(tests ...func(*Config) error) (err error) {
 		return err
 	}
 
-	log.Println("Done.")
+	log.Println("Server started.")
 
 	defer func() {
 		// Do not early return. We have to call Wait anyway.
