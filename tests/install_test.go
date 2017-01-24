@@ -66,8 +66,8 @@ func install(conf *utils.Config) error {
 		return err
 	}
 
-	settings := makeSimpleSettings(_user.Username, path, "3001")
-	resp, err := http.PostForm("http://:3001/install", settings)
+	settings := makeSimpleSettings(_user.Username, path, ServerHTTPPort)
+	resp, err := http.PostForm("http://:"+ServerHTTPPort+"/install", settings)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func TestInstall(t *testing.T) {
 	conf := utils.Config{
 		Program: "../gitea",
 		WorkDir: "",
-		Args:    []string{"web", "--port", "3001"},
+		Args:    []string{"web", "--port", ServerHTTPPort},
 		//LogFile: os.Stderr,
 	}
 
