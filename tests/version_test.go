@@ -30,7 +30,7 @@ func TestVersion(t *testing.T) {
 		log.Fatal("Please specify the version string via '-ldflags -X' for the package")
 	}
 
-	if err := conf.RunTest(func() error {
+	if err := conf.RunTest(func(*utils.Config) error {
 		var r *http.Response
 		var err error
 

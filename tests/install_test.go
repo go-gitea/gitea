@@ -15,10 +15,6 @@ import (
 
 const _RetryLimit = 10
 
-//"db_user":        {},
-//"db_passwd":      {},
-//"db_name":        {},
-
 func makeSimpleSettings(user, workdir, port string) map[string][]string {
 	return map[string][]string{
 		"db_type":        {"SQLite3"},
@@ -35,6 +31,52 @@ func makeSimpleSettings(user, workdir, port string) map[string][]string {
 	}
 }
 
+func Install(conf *utils.Config) error {
+	var r *http.Response
+	var err error
+
+	for i := 0; i < _RetryLimit; i++ {
+		// Give the server some amount of time to warm up.
+		time.Sleep(500 * time.Millisecond)
+
+		r, err = http.Get("http://:3001/")
+		if err == nil {
+			break
+		}
+		fmt.Fprintf(os.Stderr, "Retry %d\n", i)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	defer r.Body.Close()
+
+	_user, err := user.Current()
+	if err != nil {
+		return err
+	}
+
+	path, err := filepath.Abs(conf.WorkDir)
+	if err != nil {
+		return err
+	}
+
+	settings := makeSimpleSettings(_user.Username, path, "3001")
+	resp, err := http.PostForm("http://:3001/install", settings)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	buf, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s\n", buf)
+	return nil
+}
+
 func TestInstall(t *testing.T) {
 	conf := utils.Config{
 		Program: "../gitea",
@@ -43,51 +85,7 @@ func TestInstall(t *testing.T) {
 		//LogFile: os.Stderr,
 	}
 
-	if err := conf.RunTest(func() error {
-		var r *http.Response
-		var err error
-
-		for i := 0; i < _RetryLimit; i++ {
-			// Give the server some amount of time to warm up.
-			time.Sleep(500 * time.Millisecond)
-
-			r, err = http.Get("http://:3001/")
-			if err == nil {
-				break
-			}
-			fmt.Fprintf(os.Stderr, "Retry %d\n", i)
-		}
-
-		if err != nil {
-			return err
-		}
-
-		defer r.Body.Close()
-
-		_user, err := user.Current()
-		if err != nil {
-			return err
-		}
-
-		path, err := filepath.Abs(conf.WorkDir)
-		if err != nil {
-			return err
-		}
-
-		settings := makeSimpleSettings(_user.Username, path, "3001")
-		resp, err := http.PostForm("http://:3001/install", settings)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-
-		buf, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("%s\n", buf)
-		return nil
-	}); err != nil {
+	if err := conf.RunTest(Install); err != nil {
 		t.Fatal(err)
 	}
 }

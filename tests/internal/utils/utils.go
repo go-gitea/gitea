@@ -43,7 +43,7 @@ func redirect(cmd *exec.Cmd, f *os.File) error {
 }
 
 // Helper function for setting up a running Gitea server for functional testing and then gracefully terminating it.
-func (c *Config) RunTest(testFunc func() error) (err error) {
+func (c *Config) RunTest(tests ...func(*Config) error) (err error) {
 	if c.Program == "" {
 		return errors.New("Need input file")
 	}
@@ -103,8 +103,10 @@ func (c *Config) RunTest(testFunc func() error) (err error) {
 		log.Println("Server exited")
 	}()
 
-	if err := testFunc(); err != nil {
-		return err
+	for _, fn := range tests {
+		if err := fn(c); err != nil {
+			return err
+		}
 	}
 
 	return nil
