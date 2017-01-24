@@ -18,7 +18,7 @@ const RetryLimit = 10
 
 var Version string
 
-func Version_(c *utils.Config) error {
+func version(c *utils.Config) error {
 	var r *http.Response
 	var err error
 
