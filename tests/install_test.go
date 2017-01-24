@@ -2,7 +2,6 @@ package tests
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/user"
@@ -69,11 +68,7 @@ func install(conf *utils.Config) error {
 	}
 	defer resp.Body.Close()
 
-	buf, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("%s\n", buf)
+	_ = resp
 	return nil
 }
 
