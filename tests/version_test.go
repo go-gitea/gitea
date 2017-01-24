@@ -13,7 +13,10 @@ import (
 	"code.gitea.io/gitea/tests/internal/utils"
 )
 
-const RetryLimit = 10
+const (
+	ServerHttpPort = "3001"
+	RetryLimit     = 10
+)
 
 var Version string
 
@@ -22,7 +25,7 @@ func version(c *utils.Config) error {
 	var err error
 
 	for i := 0; i < RetryLimit; i++ {
-		r, err = http.Get("http://:3001/api/v1/version")
+		r, err = http.Get("http://:" + ServerHttpPort + "/api/v1/version")
 		if err == nil {
 			break
 		}
@@ -57,7 +60,7 @@ func TestVersion(t *testing.T) {
 	conf := utils.Config{
 		Program: "../gitea",
 		WorkDir: "",
-		Args:    []string{"web", "--port", "3001"},
+		Args:    []string{"web", "--port", ServerHttpPort},
 		//LogFile: os.Stderr,
 	}
 
