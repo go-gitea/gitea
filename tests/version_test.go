@@ -2,7 +2,6 @@ package tests
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -47,10 +46,9 @@ func version(c *utils.Config) error {
 	actual := bytes.TrimSpace(buf)
 	expected := []byte(Version)
 
-	log.Printf("Actual: \"%s\"\n", string(actual))
-	log.Printf("Expected: \"%s\"\n", string(expected))
+	log.Printf("Actual: \"%s\" <> Expected: %s\n", string(actual), string(expected))
 	if !bytes.Equal(actual, expected) {
-		return errors.New(fmt.Sprintf("Do not match!"))
+		return fmt.Errorf("Do not match!")
 	}
 	return nil
 }
@@ -68,7 +66,6 @@ func TestVersion(t *testing.T) {
 	}
 
 	if err := conf.RunTest(install, version); err != nil {
-		fmt.Fprintf(os.Stderr, "ADDE")
 		t.Fatal(err)
 	}
 }
