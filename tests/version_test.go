@@ -23,14 +23,14 @@ func version(c *utils.Config) error {
 	var err error
 
 	for i := 0; i < RetryLimit; i++ {
-		// Give the server some amount of time to warm up.
-		time.Sleep(500 * time.Millisecond)
-
 		r, err = http.Get("http://:3001/api/v1/version")
 		if err == nil {
 			break
 		}
+
+		// Give the server some amount of time to warm up.
 		fmt.Fprintf(os.Stderr, "Retry %d\n", i)
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	if err != nil {
