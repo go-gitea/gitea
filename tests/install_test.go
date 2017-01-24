@@ -31,7 +31,7 @@ func makeSimpleSettings(user, workdir, port string) map[string][]string {
 	}
 }
 
-func Install(conf *utils.Config) error {
+func install(conf *utils.Config) error {
 	var r *http.Response
 	var err error
 
@@ -85,7 +85,7 @@ func TestInstall(t *testing.T) {
 		//LogFile: os.Stderr,
 	}
 
-	if err := conf.RunTest(Install); err != nil {
+	if err := conf.RunTest(install); err != nil {
 		t.Fatal(err)
 	}
 }

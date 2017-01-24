@@ -67,7 +67,8 @@ func TestVersion(t *testing.T) {
 		log.Fatal("Please specify the version string via '-ldflags -X' for the package")
 	}
 
-	if err := conf.RunTest(Install, Version_); err != nil {
+	if err := conf.RunTest(install, version); err != nil {
+		fmt.Fprintf(os.Stderr, "ADDE")
 		t.Fatal(err)
 	}
 }
