@@ -928,9 +928,9 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 
 	switch opts.IsClosed {
 	case util.OptionalBoolTrue:
-		sess.And("issue.is_closed=true")
+		sess.And("issue.is_closed=?", true)
 	case util.OptionalBoolFalse:
-		sess.And("issue.is_closed=false")
+		sess.And("issue.is_closed=?", false)
 	}
 
 	if opts.AssigneeID > 0 {
@@ -953,9 +953,9 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 
 	switch opts.IsPull {
 	case util.OptionalBoolTrue:
-		sess.And("issue.is_pull=true")
+		sess.And("issue.is_pull=?",true)
 	case util.OptionalBoolFalse:
-		sess.And("issue.is_pull=false")
+		sess.And("issue.is_pull=?",false)
 	}
 
 	sortIssuesSession(sess, opts.SortType)
