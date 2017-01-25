@@ -267,7 +267,7 @@ type NewReleaseForm struct {
 	Content    string
 	Draft      string
 	Prerelease bool
-	Files   []string
+	Files      []string
 }
 
 // Validate valideates the fields
@@ -281,7 +281,7 @@ type EditReleaseForm struct {
 	Content    string `form:"content"`
 	Draft      string `form:"draft"`
 	Prerelease bool   `form:"prerelease"`
-	Files   []string
+	Files      []string
 }
 
 // Validate valideates the fields

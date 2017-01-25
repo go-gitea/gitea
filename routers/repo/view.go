@@ -12,6 +12,9 @@ import (
 	"path"
 	"strings"
 
+	"encoding/base64"
+	"strconv"
+
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -22,9 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-	"encoding/base64"
 	"github.com/Unknwon/paginater"
-	"strconv"
 )
 
 const (

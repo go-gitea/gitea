@@ -612,15 +612,15 @@ func (org *User) GetUserRepositories(userID int64, page, pageSize int) ([]*Repos
 		return nil, 0, fmt.Errorf("get repository ids: %v", err)
 	}
 
-	repoIDs := make([]int64,pageSize)
+	repoIDs := make([]int64, pageSize)
 	for i := range repos {
 		repoIDs[i] = repos[i].ID
 	}
 
 	if err := x.
 		Select("`repository`.*").
-		Where(builder.In("`repository`.id",repoIDs)).
-		Find(&repos); err!=nil {
+		Where(builder.In("`repository`.id", repoIDs)).
+		Find(&repos); err != nil {
 		return nil, 0, fmt.Errorf("get repositories: %v", err)
 	}
 
