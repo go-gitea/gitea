@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	macaron "gopkg.in/macaron.v1"
+	"code.gitea.io/gitea/modules/indexer"
 )
 
 func checkRunMode() {
@@ -36,6 +37,7 @@ func checkRunMode() {
 func NewServices() {
 	setting.NewServices()
 	mailer.NewContext()
+	indexer.NewContext()
 }
 
 // GlobalInit is for global configuration reload-able.

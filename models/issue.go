@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -451,8 +452,11 @@ func (issue *Issue) ReadBy(userID int64) error {
 }
 
 func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
-	_, err := e.Id(issue.ID).Cols(cols...).Update(issue)
-	return err
+	if _, err := e.Id(issue.ID).Cols(cols...).Update(issue); err != nil {
+		return err
+	}
+	UpdateIssueIndexer(issue)
+	return nil
 }
 
 // UpdateIssueCols only updates values of specific columns for given issue.
@@ -733,6 +737,8 @@ func newIssue(e *xorm.Session, opts NewIssueOptions) (err error) {
 		return err
 	}
 
+	UpdateIssueIndexer(opts.Issue)
+
 	if len(opts.Attachments) > 0 {
 		attachments, err := getAttachmentsByUUIDs(e, opts.Attachments)
 		if err != nil {
@@ -865,10 +871,11 @@ type IssuesOptions struct {
 	MilestoneID int64
 	RepoIDs     []int64
 	Page        int
-	IsClosed    bool
-	IsPull      bool
+	IsClosed    util.OptionalBool
+	IsPull      util.OptionalBool
 	Labels      string
 	SortType    string
+	IssueIDs    []int64
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
@@ -894,11 +901,23 @@ func sortIssuesSession(sess *xorm.Session, sortType string) {
 
 // Issues returns a list of issues by given conditions.
 func Issues(opts *IssuesOptions) ([]*Issue, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
+	var sess *xorm.Session
+	if opts.Page >= 0 {
+		var start int
+		if opts.Page == 0 {
+			start = 0
+		} else {
+			start = (opts.Page - 1) * setting.UI.IssuePagingNum
+		}
+		sess = x.Limit(setting.UI.IssuePagingNum, start)
+	} else {
+		sess = x.NewSession()
+		defer sess.Close()
 	}
 
-	sess := x.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
+	if len(opts.IssueIDs) > 0 {
+		sess.In("issue.id", opts.IssueIDs)
+	}
 
 	if opts.RepoID > 0 {
 		sess.And("issue.repo_id=?", opts.RepoID)
@@ -906,7 +925,13 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 		// In case repository IDs are provided but actually no repository has issue.
 		sess.In("issue.repo_id", opts.RepoIDs)
 	}
-	sess.And("issue.is_closed=?", opts.IsClosed)
+
+	switch opts.IsClosed {
+	case util.OptionalBoolTrue:
+		sess.And("issue.is_closed=true")
+	case util.OptionalBoolFalse:
+		sess.And("issue.is_closed=false")
+	}
 
 	if opts.AssigneeID > 0 {
 		sess.And("issue.assignee_id=?", opts.AssigneeID)
@@ -926,7 +951,12 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 		sess.And("issue.milestone_id=?", opts.MilestoneID)
 	}
 
-	sess.And("issue.is_pull=?", opts.IsPull)
+	switch opts.IsPull {
+	case util.OptionalBoolTrue:
+		sess.And("issue.is_pull=true")
+	case util.OptionalBoolFalse:
+		sess.And("issue.is_pull=false")
+	}
 
 	sortIssuesSession(sess, opts.SortType)
 
@@ -1168,16 +1198,21 @@ type IssueStatsOptions struct {
 	MentionedID int64
 	PosterID    int64
 	IsPull      bool
+	IssueIDs    []int64
 }
 
 // GetIssueStats returns issue statistic information by given conditions.
-func GetIssueStats(opts *IssueStatsOptions) *IssueStats {
+func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 	stats := &IssueStats{}
 
 	countSession := func(opts *IssueStatsOptions) *xorm.Session {
 		sess := x.
 			Where("issue.repo_id = ?", opts.RepoID).
 			And("is_pull = ?", opts.IsPull)
+
+		if len(opts.IssueIDs) > 0 {
+			sess.In("issue.id", opts.IssueIDs)
+		}
 
 		if len(opts.Labels) > 0 && opts.Labels != "0" {
 			labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
@@ -1210,13 +1245,20 @@ func GetIssueStats(opts *IssueStatsOptions) *IssueStats {
 		return sess
 	}
 
-	stats.OpenCount, _ = countSession(opts).
+	var err error
+	stats.OpenCount, err = countSession(opts).
 		And("is_closed = ?", false).
 		Count(&Issue{})
-	stats.ClosedCount, _ = countSession(opts).
+	if err != nil {
+		return nil, err
+	}
+	stats.ClosedCount, err = countSession(opts).
 		And("is_closed = ?", true).
 		Count(&Issue{})
-	return stats
+	if err != nil {
+		return nil, err
+	}
+	return stats, nil
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
@@ -1294,7 +1336,11 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 
 func updateIssue(e Engine, issue *Issue) error {
 	_, err := e.Id(issue.ID).AllCols().Update(issue)
-	return err
+	if err != nil {
+		return err
+	}
+	UpdateIssueIndexer(issue)
+	return nil
 }
 
 // UpdateIssue updates all fields of given issue.
