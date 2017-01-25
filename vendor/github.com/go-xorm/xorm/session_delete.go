@@ -226,7 +226,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 				session.afterDeleteBeans[bean] = &afterClosures
 			}
 		} else {
-			if _, ok := interface{}(bean).(AfterInsertProcessor); ok {
+			if _, ok := interface{}(bean).(AfterDeleteProcessor); ok {
 				session.afterDeleteBeans[bean] = nil
 			}
 		}
