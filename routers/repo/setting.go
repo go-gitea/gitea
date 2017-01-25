@@ -329,12 +329,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		repo.DeleteWiki()
 		log.Trace("Repository wiki deleted: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
-		/*repo.EnableWiki = false
-		if err := models.UpdateRepository(repo, false); err != nil {
-			ctx.Handle(500, "UpdateRepository", err)
-			return
-		}*/
-
 		ctx.Flash.Success(ctx.Tr("repo.settings.wiki_deletion_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 

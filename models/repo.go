@@ -1101,9 +1101,6 @@ func CreateRepository(u *User, opts CreateRepoOptions) (_ *Repository, err error
 		LowerName:   strings.ToLower(opts.Name),
 		Description: opts.Description,
 		IsPrivate:   opts.IsPrivate,
-		/*EnableWiki:   true,
-		EnableIssues: true,
-		EnablePulls:  true,*/
 	}
 
 	sess := x.NewSession()
