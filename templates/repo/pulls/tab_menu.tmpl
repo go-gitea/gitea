@@ -1,15 +1,15 @@
 <div class="ui top attached pull tabular menu">
-	<a class="item {{if .PageIsPullConversation}}active{{end}}" href="{{.RepoLink}}/pulls/{{.Issue.Index}}">
+	<a class="item {{if .PageIsPullConversation}}active{{end}}" href="{{.RepoLink}}/{{if .Issue.IsReview}}reviews{{end}}{{if not .Issue.IsReview}}pulls{{end}}/{{.Issue.GetIndex}}">
 		<span class="octicon octicon-comment-discussion"></span>
 		{{$.i18n.Tr "repo.pulls.tab_conversation"}}
 		<span class="ui {{if not .Issue.NumComments}}gray{{else}}blue{{end}} small label">{{.Issue.NumComments}}</span>
 	</a>
-	<a class="item {{if .PageIsPullCommits}}active{{end}}" {{if .NumCommits}}href="{{.RepoLink}}/pulls/{{.Issue.Index}}/commits"{{end}}>
+	<a class="item {{if .PageIsPullCommits}}active{{end}}" {{if .NumCommits}}href="{{.RepoLink}}/{{if .Issue.IsReview}}reviews{{end}}{{if not .Issue.IsReview}}pulls{{end}}/{{.Issue.GetIndex}}/commits"{{end}}>
 		<span class="octicon octicon-git-commit"></span>
 		{{$.i18n.Tr "repo.pulls.tab_commits"}}
 		<span class="ui {{if not .NumCommits}}gray{{else}}blue{{end}} small label">{{if .NumCommits}}{{.NumCommits}}{{else}}N/A{{end}}</span>
 	</a>
-	<a class="item {{if .PageIsPullFiles}}active{{end}}" {{if .NumFiles}}href="{{.RepoLink}}/pulls/{{.Issue.Index}}/files"{{end}}>
+	<a class="item {{if .PageIsPullFiles}}active{{end}}" {{if .NumFiles}}href="{{.RepoLink}}/{{if .Issue.IsReview}}reviews{{end}}{{if not .Issue.IsReview}}pulls{{end}}/{{.Issue.GetIndex}}/files"{{end}}>
 		<span class="octicon octicon-diff"></span>
 		{{$.i18n.Tr "repo.pulls.tab_files"}}
 		<span class="ui {{if not .NumFiles}}gray{{else}}blue{{end}} small label">{{if .NumFiles}}{{.NumFiles}}{{else}}N/A{{end}}</span>

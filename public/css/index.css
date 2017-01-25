@@ -1514,6 +1514,11 @@ footer .ui.language .menu {
   font-size: 2.3rem;
   margin-bottom: 5px;
 }
+.repository.view.issue .title .revision {
+  top: -1rem;
+  padding-top: 0;
+  padding-bottom: 5px;
+}
 .repository.view.issue .title h1 .ui.input {
   font-size: 0.5em;
   vertical-align: top;
@@ -1531,6 +1536,7 @@ footer .ui.language .menu {
 }
 .repository.view.issue .title .label {
   margin-right: 10px;
+  margin-left: 0px;
 }
 .repository.view.issue .title .edit-zone {
   margin-top: 10px;
@@ -2264,6 +2270,13 @@ footer .ui.language .menu {
   font-size: 15px;
   font-weight: bold;
   margin: 0 6px;
+}
+.issue.list > .item .title.review {
+  margin: 0 0;
+}
+.issue.list > .item .revision {
+  font-size: 12px;
+  color: #aaa;
 }
 .issue.list > .item .title:hover {
   color: #000;

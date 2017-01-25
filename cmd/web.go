@@ -536,7 +536,8 @@ func runWeb(ctx *cli.Context) error {
 			m.Get("/releases", repo.Releases)
 			m.Get("/^:type(issues|pulls)$", repo.RetrieveLabels, repo.Issues)
 			m.Get("/^:type(issues|pulls)$/:index", repo.ViewIssue)
-			m.Get("/reviews", repo.Reviews)
+			m.Get("/reviews", repo.RetrieveLabels, repo.Reviews)
+			m.Get("/reviews/:index", repo.ViewReview)
 			m.Get("/labels/", repo.RetrieveLabels, repo.Labels)
 			m.Get("/milestones", repo.Milestones)
 		}, context.RepoRef())
@@ -564,6 +565,12 @@ func runWeb(ctx *cli.Context) error {
 			m.Get("/files", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ViewPullFiles)
 			m.Post("/merge", reqRepoWriter, repo.MergePullRequest)
 		}, repo.MustAllowPulls)
+
+		m.Group("/reviews/:index", func() {
+			m.Get("/commits", context.RepoRef(), repo.ViewReviewCommits)
+			m.Get("/files", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ViewReviewFiles)
+			m.Post("/merge", reqRepoWriter, repo.MergePullRequest)
+		}, repo.MustAllowReviews)
 
 		m.Group("", func() {
 			m.Get("/src/*", repo.SetEditorconfigIfExists, repo.Home)

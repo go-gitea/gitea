@@ -13,7 +13,7 @@
 			</div>
 		</div>
 		<div class="ui divider"></div>
-		{{if .Issue.IsPull}}
+		{{if or .Issue.IsPull .Issue.IsReview}}
 			{{template "repo/issue/view_title" .}}
 			{{template "repo/pulls/tab_menu" .}}
 			<div class="ui bottom attached tab pull segment active" data-tab="request-{{.ID}}">
