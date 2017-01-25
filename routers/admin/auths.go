@@ -77,6 +77,13 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
 	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
+
+	// only the first as default
+	for key := range models.OAuth2Providers {
+		ctx.Data["oauth2_provider"] = key
+		break
+	}
+
 	ctx.HTML(200, tplAuthNew)
 }
 
