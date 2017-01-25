@@ -37,7 +37,6 @@ func checkRunMode() {
 func NewServices() {
 	setting.NewServices()
 	mailer.NewContext()
-	indexer.NewContext()
 }
 
 // GlobalInit is for global configuration reload-able.
@@ -61,6 +60,7 @@ func GlobalInit() {
 
 		// Booting long running goroutines.
 		cron.NewContext()
+		indexer.NewContext()
 		models.InitSyncMirrors()
 		models.InitDeliverHooks()
 		models.InitTestPullRequests()
