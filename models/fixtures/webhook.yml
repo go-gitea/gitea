@@ -1,0 +1,24 @@
+-
+  id: 1
+  repo_id: 1
+  url: www.example.com/url1
+  content_type: 1 # json
+  events: '{"push_only":true,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":false}}'
+  is_active: true
+
+-
+  id: 2
+  repo_id: 1
+  url: www.example.com/url2
+  content_type: 1 # json
+  events: '{"push_only":false,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":true}}'
+  is_active: false
+
+-
+  id: 3
+  org_id: 3
+  repo_id: 3
+  url: www.example.com/url3
+  content_type: 1 # json
+  events: '{"push_only":false,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":true}}'
+  is_active: true

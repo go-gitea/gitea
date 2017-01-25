@@ -16,6 +16,8 @@ import (
 	"gopkg.in/testfixtures.v2"
 )
 
+const NonexistentID = 9223372036854775807
+
 func TestMain(m *testing.M) {
 	if err := CreateTestEngine(); err != nil {
 		fmt.Printf("Error creating test engine: %v\n", err)
