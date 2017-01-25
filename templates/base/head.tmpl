@@ -1,54 +1,50 @@
 <!DOCTYPE html>
 <html>
 <head data-suburl="{{AppSubUrl}}">
-	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-	<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+	<meta charset="utf-8">
+	<meta http-equiv="x-ua-compatible" content="ie=edge">
+	<title>{{if .Title}}{{.Title}} - {{end}}{{AppName}}</title>
+	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
 	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}Gitea - Git with a cup of tea{{end}}" />
 	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go{{end}}" />
 	<meta name="keywords" content="go, git, self-hosted, gitea">
 	<meta name="referrer" content="no-referrer" />
 	<meta name="_csrf" content="{{.CsrfToken}}" />
 	<meta name="_suburl" content="{{AppSubUrl}}" />
-	{{if .GoGetImport}}
-		<meta name="go-import" content="{{.GoGetImport}} git {{.CloneLink.HTTPS}}">
-		<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
-	{{end}}
+{{if .GoGetImport}}
+	<meta name="go-import" content="{{.GoGetImport}} git {{.CloneLink.HTTPS}}">
+	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
+{{end}}
 
 	<link rel="shortcut icon" href="{{AppSubUrl}}/img/favicon.png" />
-
-	<script src="{{AppSubUrl}}/js/jquery-1.11.3.min.js"></script>
-	<script src="{{AppSubUrl}}/js/libs/jquery.are-you-sure.js"></script>
 	<link rel="stylesheet" href="{{AppSubUrl}}/assets/font-awesome-4.6.3/css/font-awesome.min.css">
 	<link rel="stylesheet" href="{{AppSubUrl}}/assets/octicons-4.3.0/octicons.min.css">
 
-	{{if .RequireSimpleMDE}}
-		<link rel="stylesheet" href="{{AppSubUrl}}/plugins/simplemde-1.10.1/simplemde.min.css">
-		<script src="{{AppSubUrl}}/plugins/simplemde-1.10.1/simplemde.min.js"></script>
-		<script src="{{AppSubUrl}}/plugins/codemirror-5.17.0/addon/mode/loadmode.js"></script>
-		<script src="{{AppSubUrl}}/plugins/codemirror-5.17.0/mode/meta.js"></script>
-		<script>
-			CodeMirror.modeURL =  "{{AppSubUrl}}/plugins/codemirror-5.17.0/mode/%N/%N.js";
-		</script>
-	{{end}}
+{{if .RequireSimpleMDE}}
+	<link rel="stylesheet" href="{{AppSubUrl}}/plugins/simplemde-1.10.1/simplemde.min.css">
+{{end}}
 
-	{{if .RequireGitGraph}}
+{{if .RequireGitGraph}}
 	<!-- graph -->
-	<script src="{{AppSubUrl}}/js/libs/gitgraph.js"></script>
-	<script src="{{AppSubUrl}}/js/draw.js"></script>
 	<link rel="stylesheet" href="{{AppSubUrl}}/css/gitgraph.css">
-	{{end}}
+{{end}}
 
 	<!-- Stylesheet -->
 	<link rel="stylesheet" href="{{AppSubUrl}}/css/semantic-2.2.1.min.css">
 	<link rel="stylesheet" href="{{AppSubUrl}}/css/index.css?v={{MD5 AppVer}}">
 
-	<!-- JavaScript -->
-	<script src="{{AppSubUrl}}/js/semantic-2.2.1.min.js"></script>
-	<script src="{{AppSubUrl}}/js/index.js?v={{MD5 AppVer}}"></script>
-
-	<title>{{if .Title}}{{.Title}} - {{end}}{{AppName}}</title>
-
-	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
+{{if .RequireHighlightJS}}
+	<link rel="stylesheet" href="{{AppSubUrl}}/plugins/highlight-9.6.0/github.css">
+{{end}}
+{{if .RequireMinicolors}}
+	<link rel="stylesheet" href="{{AppSubUrl}}/plugins/jquery.minicolors-2.2.3/jquery.minicolors.css">
+{{end}}
+{{if .RequireDatetimepicker}}
+	<link rel="stylesheet" href="{{AppSubUrl}}/plugins/jquery.datetimepicker-2.4.5/jquery.datetimepicker.css">
+{{end}}
+{{if .RequireDropzone}}
+	<link rel="stylesheet" href="{{AppSubUrl}}/plugins/dropzone-4.2.0/dropzone.css">
+{{end}}
 </head>
 <body>
 	<div class="full height">
