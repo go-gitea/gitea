@@ -99,6 +99,7 @@ func newMacaron() *macaron.Macaron {
 		macaron.StaticOptions{
 			Prefix:      "avatars",
 			SkipLogging: setting.DisableRouterLog,
+			ETag:        true,
 		},
 	))
 

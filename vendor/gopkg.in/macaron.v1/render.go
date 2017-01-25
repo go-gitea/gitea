@@ -21,6 +21,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -72,6 +73,7 @@ type (
 	// TemplateFileSystem represents a interface of template file system that able to list all files.
 	TemplateFileSystem interface {
 		ListFiles() []TemplateFile
+		Get(string) (io.Reader, error)
 	}
 
 	// Delims represents a set of Left and Right delimiters for HTML template rendering
@@ -244,6 +246,15 @@ func NewTemplateFileSystem(opt RenderOptions, omitData bool) TplFileSystem {
 
 func (fs TplFileSystem) ListFiles() []TemplateFile {
 	return fs.files
+}
+
+func (fs TplFileSystem) Get(name string) (io.Reader, error) {
+	for i := range fs.files {
+		if fs.files[i].Name()+fs.files[i].Ext() == name {
+			return bytes.NewReader(fs.files[i].Data()), nil
+		}
+	}
+	return nil, fmt.Errorf("file '%s' not found", name)
 }
 
 func PrepareCharset(charset string) string {

@@ -353,10 +353,10 @@
 			"revisionTime": "2015-10-06T22:16:25Z"
 		},
 		{
-			"checksumSHA1": "qTJizMr1DBhDTZiRNmC+khEClz8=",
+			"checksumSHA1": "3w6jybRjyrhohNQJMnIxMC8cYXM=",
 			"path": "github.com/go-macaron/bindata",
-			"revision": "de74a053830c7d338bf209adf3b711c969f63e59",
-			"revisionTime": "2016-01-05T04:39:20Z"
+			"revision": "85786f57eee3e5544a9cc24fa2afe425b97a8652",
+			"revisionTime": "2016-12-22T09:30:48Z"
 		},
 		{
 			"checksumSHA1": "qM/kf31cT2cxjtHxdzbu8q8jPq0=",
@@ -1369,10 +1369,10 @@
 			"revisionTime": "2016-08-08T14:54:09Z"
 		},
 		{
-			"checksumSHA1": "wzuoHPA/Ccoe1CFnDL35rnL0JoI=",
+			"checksumSHA1": "u1dW5zfo2SWot04r5cL8dTbmtcc=",
 			"path": "gopkg.in/macaron.v1",
-			"revision": "4974334b10dbb6f5c0e17f4c10555ff050a16329",
-			"revisionTime": "2016-08-26T18:07:28Z"
+			"revision": "aa6b7ee41a182898a33d798c655df1cac9d2230b",
+			"revisionTime": "2017-01-22T14:42:53Z"
 		},
 		{
 			"checksumSHA1": "6QPjE+qflEBHg+JPJd9e4iQuRAk=",
