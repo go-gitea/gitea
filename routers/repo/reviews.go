@@ -401,7 +401,6 @@ func ViewReviewCommits(ctx *context.Context) {
 
 // ViewReviewFiles render pull request changed files list page
 func ViewReviewFiles(ctx *context.Context) {
-	ctx.Data["PageIsPullList"] = true
 	ctx.Data["PageIsPullFiles"] = true
 
 	_, reviewDetails, _ := prepareReviewInfo(ctx)
