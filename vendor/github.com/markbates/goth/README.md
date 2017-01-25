@@ -36,6 +36,7 @@ $ go get github.com/markbates/goth
 * Lastfm
 * Linkedin
 * OneDrive
+* OpenID Connect (auto discovery)
 * Paypal
 * SalesForce
 * Slack

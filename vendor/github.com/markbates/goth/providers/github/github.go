@@ -51,12 +51,17 @@ type Provider struct {
 	ClientKey   string
 	Secret      string
 	CallbackURL string
+	HTTPClient  *http.Client
 	config      *oauth2.Config
 }
 
 // Name is the name used to retrieve this provider later.
 func (p *Provider) Name() string {
 	return "github"
+}
+
+func (p *Provider) Client() *http.Client {
+	return goth.HTTPClientWithFallBack(p.HTTPClient)
 }
 
 // Debug is a no-op for the github package.
@@ -79,7 +84,7 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 		Provider:    p.Name(),
 	}
 
-	response, err := http.Get(ProfileURL + "?access_token=" + url.QueryEscape(sess.AccessToken))
+	response, err := p.Client().Get(ProfileURL + "?access_token=" + url.QueryEscape(sess.AccessToken))
 	if err != nil {
 		return user, err
 	}
@@ -146,7 +151,7 @@ func userFromReader(reader io.Reader, user *goth.User) error {
 }
 
 func getPrivateMail(p *Provider, sess *Session) (email string, err error) {
-	response, err := http.Get(EmailURL + "?access_token=" + url.QueryEscape(sess.AccessToken))
+	response, err := p.Client().Get(EmailURL + "?access_token=" + url.QueryEscape(sess.AccessToken))
 	if err != nil {
 		if response != nil {
 			response.Body.Close()

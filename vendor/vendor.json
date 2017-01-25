@@ -557,6 +557,24 @@
 			"revisionTime": "2016-11-03T02:43:54Z"
 		},
 		{
+			"checksumSHA1": "4qhmMAEMj7myggZi6D7o8ezDuxE=",
+			"path": "github.com/markbates/goth",
+			"revision": "e14124782db6fd5b43c32c254d3d8e5ef849c830",
+			"revisionTime": "2017-01-25T09:33:14Z"
+		},
+		{
+			"checksumSHA1": "zcRIxzOSWwSM4fzvDXey20d1Gl4=",
+			"path": "github.com/markbates/goth/gothic",
+			"revision": "e14124782db6fd5b43c32c254d3d8e5ef849c830",
+			"revisionTime": "2017-01-25T09:33:14Z"
+		},
+		{
+			"checksumSHA1": "/ECS41Dd3ucjCm/Tqxnaeyf/BWI=",
+			"path": "github.com/markbates/goth/providers/github",
+			"revision": "e14124782db6fd5b43c32c254d3d8e5ef849c830",
+			"revisionTime": "2017-01-25T09:33:14Z"
+		},
+		{
 			"checksumSHA1": "9FJUwn3EIgASVki+p8IHgWVC5vQ=",
 			"path": "github.com/mattn/go-sqlite3",
 			"revision": "86681de00adef4f8040947b7d35f97000fc5a230",
