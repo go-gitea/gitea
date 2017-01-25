@@ -73,8 +73,8 @@ func Notifications(c *context.Context) {
 	}
 
 	title := c.Tr("notifications")
-	if count := len(notifications); count > 0 {
-		title = fmt.Sprintf("(%d) %s", count, title)
+	if status == models.NotificationStatusUnread && total > 0 {
+		title = fmt.Sprintf("(%d) %s", total, title)
 	}
 	c.Data["Title"] = title
 	c.Data["Keyword"] = keyword

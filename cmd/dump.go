@@ -56,7 +56,11 @@ func runDump(ctx *cli.Context) error {
 	setting.NewContext()
 	setting.NewServices() // cannot access session settings otherwise
 	models.LoadConfigs()
-	models.SetEngine()
+
+	err := models.SetEngine()
+	if err != nil {
+		return err
+	}
 
 	tmpDir := ctx.String("tempdir")
 	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {

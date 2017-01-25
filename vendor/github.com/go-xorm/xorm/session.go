@@ -107,7 +107,7 @@ func (session *Session) resetStatement() {
 	}
 }
 
-// Prepare set a flag to session that should be prepare statment before execute query
+// Prepare set a flag to session that should be prepare statement before execute query
 func (session *Session) Prepare() *Session {
 	session.prepareStmt = true
 	return session
@@ -250,8 +250,8 @@ func (session *Session) NoCascade() *Session {
 // UseBool automatically retrieve condition according struct, but
 // if struct has bool field, it will ignore them. So use UseBool
 // to tell system to do not ignore them.
-// If no paramters, it will use all the bool field of struct, or
-// it will use paramters's columns
+// If no parameters, it will use all the bool field of struct, or
+// it will use parameters's columns
 func (session *Session) UseBool(columns ...string) *Session {
 	session.Statement.UseBool(columns...)
 	return session
@@ -271,7 +271,7 @@ func (session *Session) ForUpdate() *Session {
 	return session
 }
 
-// Omit Only not use the paramters as select or update columns
+// Omit Only not use the parameters as select or update columns
 func (session *Session) Omit(columns ...string) *Session {
 	session.Statement.Omit(columns...)
 	return session
@@ -1005,7 +1005,7 @@ func (session *Session) str2Time(col *core.Column, data string) (outTime time.Ti
 		sd, err := strconv.ParseInt(sdata, 10, 64)
 		if err == nil {
 			x = time.Unix(sd, 0)
-			// !nashtsai! HACK mymysql driver is casuing Local location being change to CHAT and cause wrong time conversion
+			// !nashtsai! HACK mymysql driver is causing Local location being change to CHAT and cause wrong time conversion
 			if col.TimeZone == nil {
 				x = x.In(session.Engine.TZLocation)
 			} else {

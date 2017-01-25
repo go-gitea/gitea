@@ -1,0 +1,13 @@
+<form class="ui form">
+	<div class="ui fluid action input">
+		<input type="hidden" name="type" value="{{$.ViewType}}"/>
+		<input type="hidden" name="state" value="{{$.State}}"/>
+		<input type="hidden" name="labels" value="{{.SelectLabels}}"/>
+		<input type="hidden" name="milestone" value="{{$.MilestoneID}}"/>
+		<input type="hidden" name="assignee" value="{{$.AssigneeID}}"/>
+		<div class="ui search action input">
+			<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+		</div>
+		<button class="ui blue button" type="submit">{{.i18n.Tr "explore.search"}}</button>
+	</div>
+</form>

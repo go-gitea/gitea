@@ -6,6 +6,7 @@ package models
 
 import (
 	"testing"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,10 +20,10 @@ var accessModes = []AccessMode{
 func TestAccessLevel(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	user1 := &User{ID: 2}; AssertExistsAndLoadBean(t, user1)
-	user2 := &User{ID: 4}; AssertExistsAndLoadBean(t, user2)
-	repo1 := &Repository{OwnerID: 2, IsPrivate: false}; AssertExistsAndLoadBean(t, repo1)
-	repo2 := &Repository{OwnerID: 3, IsPrivate: true}; AssertExistsAndLoadBean(t, repo2)
+	user1 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user2 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
+	repo1 := AssertExistsAndLoadBean(t, &Repository{OwnerID: 2, IsPrivate: false}).(*Repository)
+	repo2 := AssertExistsAndLoadBean(t, &Repository{OwnerID: 3, IsPrivate: true}).(*Repository)
 
 	level, err := AccessLevel(user1, repo1)
 	assert.NoError(t, err)
@@ -44,10 +45,10 @@ func TestAccessLevel(t *testing.T) {
 func TestHasAccess(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	user1 := &User{ID: 2}; AssertExistsAndLoadBean(t, user1)
-	user2 := &User{ID: 4}; AssertExistsAndLoadBean(t, user2)
-	repo1 := &Repository{OwnerID: 2, IsPrivate: false}; AssertExistsAndLoadBean(t, repo1)
-	repo2 := &Repository{OwnerID: 3, IsPrivate: true}; AssertExistsAndLoadBean(t, repo2)
+	user1 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user2 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
+	repo1 := AssertExistsAndLoadBean(t, &Repository{OwnerID: 2, IsPrivate: false}).(*Repository)
+	repo2 := AssertExistsAndLoadBean(t, &Repository{OwnerID: 3, IsPrivate: true}).(*Repository)
 
 	for _, accessMode := range accessModes {
 		has, err := HasAccess(user1, repo1, accessMode)
@@ -71,9 +72,7 @@ func TestHasAccess(t *testing.T) {
 func TestUser_GetRepositoryAccesses(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	user1 := &User{ID: 1}; AssertExistsAndLoadBean(t, user1)
-	user2 := &User{ID: 2}; AssertExistsAndLoadBean(t, user2)
-
+	user1 := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	accesses, err := user1.GetRepositoryAccesses()
 	assert.NoError(t, err)
 	assert.Len(t, accesses, 0)
@@ -82,23 +81,21 @@ func TestUser_GetRepositoryAccesses(t *testing.T) {
 func TestUser_GetAccessibleRepositories(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	user1 := &User{ID: 1}; AssertExistsAndLoadBean(t, user1)
-	user2 := &User{ID: 2}; AssertExistsAndLoadBean(t, user2)
-
+	user1 := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	repos, err := user1.GetAccessibleRepositories(0)
 	assert.NoError(t, err)
 	assert.Len(t, repos, 0)
 
+	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	repos, err = user2.GetAccessibleRepositories(0)
 	assert.NoError(t, err)
 	assert.Len(t, repos, 1)
 }
 
-
 func TestRepository_RecalculateAccesses(t *testing.T) {
 	// test with organization repo
 	assert.NoError(t, PrepareTestDatabase())
-	repo1 := &Repository{ID: 3}; AssertExistsAndLoadBean(t, repo1)
+	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	assert.NoError(t, repo1.GetOwner())
 
 	sess := x.NewSession()
@@ -119,7 +116,7 @@ func TestRepository_RecalculateAccesses(t *testing.T) {
 func TestRepository_RecalculateAccesses2(t *testing.T) {
 	// test with non-organization repo
 	assert.NoError(t, PrepareTestDatabase())
-	repo1 := &Repository{ID: 4}; AssertExistsAndLoadBean(t, repo1)
+	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
 	assert.NoError(t, repo1.GetOwner())
 
 	sess := x.NewSession()

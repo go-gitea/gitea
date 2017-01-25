@@ -114,6 +114,7 @@ var (
 	CookieRememberName   string
 	ReverseProxyAuthUser string
 	MinPasswordLength    int
+	ImportLocalPaths     bool
 
 	// Database settings
 	UseSQLite3    bool
@@ -121,6 +122,12 @@ var (
 	UseMSSQL      bool
 	UsePostgreSQL bool
 	UseTiDB       bool
+
+	// Indexer settings
+	Indexer struct {
+		IssuePath         string
+		UpdateQueueLength int
+	}
 
 	// Webhook settings
 	Webhook = struct {
@@ -712,6 +719,7 @@ please consider changing to GITEA_CUSTOM`)
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
+	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -895,6 +903,16 @@ func newLogService() {
 	LogModes = strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
 	LogConfigs = make([]string, len(LogModes))
 
+	useConsole := false
+	for _, mode := range LogModes {
+		if mode == "console" {
+			useConsole = true
+		}
+	}
+	if !useConsole {
+		log.DelLogger("console")
+	}
+
 	for i, mode := range LogModes {
 		mode = strings.TrimSpace(mode)
 
@@ -919,7 +937,7 @@ func newLogService() {
 		case "console":
 			LogConfigs[i] = fmt.Sprintf(`{"level":%s}`, level)
 		case "file":
-			logPath := sec.Key("FILE_NAME").MustString(path.Join(LogRootPath, "gogs.log"))
+			logPath := sec.Key("FILE_NAME").MustString(path.Join(LogRootPath, "gitea.log"))
 			if err = os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
 				panic(err.Error())
 			}

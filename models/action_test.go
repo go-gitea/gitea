@@ -29,10 +29,8 @@ func TestAction_GetRepoLink(t *testing.T) {
 func TestNewRepoAction(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	user := &User{ID: 2}
-	AssertExistsAndLoadBean(t, user)
-	repo := &Repository{OwnerID: user.ID}
-	AssertExistsAndLoadBean(t, repo)
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	repo := AssertExistsAndLoadBean(t, &Repository{OwnerID: user.ID}).(*Repository)
 	repo.Owner = user
 
 	actionBean := &Action{
@@ -53,10 +51,8 @@ func TestNewRepoAction(t *testing.T) {
 func TestRenameRepoAction(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	user := &User{ID: 2}
-	AssertExistsAndLoadBean(t, user)
-	repo := &Repository{OwnerID: user.ID}
-	AssertExistsAndLoadBean(t, repo)
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	repo := AssertExistsAndLoadBean(t, &Repository{OwnerID: user.ID}).(*Repository)
 	repo.Owner = user
 
 	oldRepoName := repo.Name
@@ -179,10 +175,8 @@ func TestUpdateIssuesCommit(t *testing.T) {
 		},
 	}
 
-	user := &User{ID: 2}
-	AssertExistsAndLoadBean(t, user)
-	repo := &Repository{ID: 1}
-	AssertExistsAndLoadBean(t, repo)
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	repo.Owner = user
 
 	commentBean := &Comment{
@@ -203,10 +197,8 @@ func TestUpdateIssuesCommit(t *testing.T) {
 func TestCommitRepoAction(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	user := &User{ID: 2}
-	AssertExistsAndLoadBean(t, user)
-	repo := &Repository{ID: 2, OwnerID: user.ID}
-	AssertExistsAndLoadBean(t, repo)
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 2, OwnerID: user.ID}).(*Repository)
 	repo.Owner = user
 
 	pushCommits := NewPushCommits()
@@ -255,12 +247,9 @@ func TestCommitRepoAction(t *testing.T) {
 func TestTransferRepoAction(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	user2 := &User{ID: 2}
-	AssertExistsAndLoadBean(t, user2)
-	user4 := &User{ID: 4}
-	AssertExistsAndLoadBean(t, user4)
-	repo := &Repository{ID: 1, OwnerID: user2.ID}
-	AssertExistsAndLoadBean(t, repo)
+	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1, OwnerID: user2.ID}).(*Repository)
 
 	repo.OwnerID = user4.ID
 	repo.Owner = user4
@@ -281,13 +270,10 @@ func TestTransferRepoAction(t *testing.T) {
 
 func TestMergePullRequestAction(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	user := &User{ID: 2}
-	AssertExistsAndLoadBean(t, user)
-	repo := &Repository{ID: 1, OwnerID: user.ID}
-	AssertExistsAndLoadBean(t, repo)
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1, OwnerID: user.ID}).(*Repository)
 	repo.Owner = user
-	issue := &Issue{ID: 3, RepoID: repo.ID}
-	AssertExistsAndLoadBean(t, issue)
+	issue := AssertExistsAndLoadBean(t, &Issue{ID: 3, RepoID: repo.ID}).(*Issue)
 
 	actionBean := &Action{
 		OpType:       ActionMergePullRequest,
@@ -306,8 +292,7 @@ func TestMergePullRequestAction(t *testing.T) {
 func TestGetFeeds(t *testing.T) {
 	// test with an individual user
 	assert.NoError(t, PrepareTestDatabase())
-	user := &User{ID: 2}
-	AssertExistsAndLoadBean(t, user)
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
 	actions, err := GetFeeds(user, user.ID, 0, false)
 	assert.NoError(t, err)
@@ -323,8 +308,7 @@ func TestGetFeeds(t *testing.T) {
 func TestGetFeeds2(t *testing.T) {
 	// test with an organization user
 	assert.NoError(t, PrepareTestDatabase())
-	user := &User{ID: 3}
-	AssertExistsAndLoadBean(t, user)
+	user := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
 
 	actions, err := GetFeeds(user, user.ID, 0, false)
 	assert.NoError(t, err)

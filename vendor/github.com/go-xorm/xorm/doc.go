@@ -38,7 +38,7 @@ ORM Methods
 
 There are 7 major ORM methods and many helpful methods to use to operate database.
 
-1. Insert one or multipe records to database
+1. Insert one or multiple records to database
 
     affected, err := engine.Insert(&struct)
     // INSERT INTO struct () values ()
@@ -81,7 +81,7 @@ another is Rows
     affected, err := engine.Id(...).Update(&user)
     // UPDATE user SET ...
 
-6. Delete one or more records, Delete MUST has conditon
+6. Delete one or more records, Delete MUST has condition
 
     affected, err := engine.Where(...).Delete(&user)
     // DELETE FROM user Where ...

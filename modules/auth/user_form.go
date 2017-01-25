@@ -103,7 +103,7 @@ type UpdateProfileForm struct {
 	FullName         string `binding:"MaxSize(100)"`
 	Email            string `binding:"Required;Email;MaxSize(254)"`
 	KeepEmailPrivate bool
-	Website          string `binding:"Url;MaxSize(100)"`
+	Website          string `binding:"Url;MaxSize(255)"`
 	Location         string `binding:"MaxSize(50)"`
 }
 

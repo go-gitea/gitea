@@ -17,13 +17,16 @@
 package bindata
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"os"
 
 	"github.com/elazarl/go-bindata-assetfs"
 	"gopkg.in/macaron.v1"
 )
 
-const _VERSION = "0.1.0"
+const _VERSION = "0.1.1"
 
 func Version() string {
 	return _VERSION
@@ -67,6 +70,15 @@ func Static(opt Options) *assetfs.AssetFS {
 
 func (templates templateFileSystem) ListFiles() []macaron.TemplateFile {
 	return templates.files
+}
+
+func (templates templateFileSystem) Get(name string) (io.Reader, error) {
+	for i := range templates.files {
+		if templates.files[i].Name()+templates.files[i].Ext() == name {
+			return bytes.NewReader(templates.files[i].Data()), nil
+		}
+	}
+	return nil, fmt.Errorf("file '%s' not found", name)
 }
 
 func (f *templateFile) Name() string {

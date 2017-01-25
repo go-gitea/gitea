@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	macaron "gopkg.in/macaron.v1"
+	"code.gitea.io/gitea/modules/indexer"
 )
 
 func checkRunMode() {
@@ -59,6 +60,7 @@ func GlobalInit() {
 
 		// Booting long running goroutines.
 		cron.NewContext()
+		indexer.NewContext()
 		models.InitSyncMirrors()
 		models.InitDeliverHooks()
 		models.InitTestPullRequests()

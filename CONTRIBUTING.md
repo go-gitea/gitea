@@ -48,7 +48,7 @@ Please use your real name, we really dislike pseudonyms or anonymous contributio
 
 ## Maintainers
 
-To make sure every PR is checked, we have team maintainers. Every PR **MUST** be reviewed by at least two maintainers (or owners) before it can get merged. A maintainer should be a contributor of Gitea (or Gogs) and contributed at least 4 accepted PRs. A contributor should apply as a maintainer in the [Gitter develop channel](https://gitter.im/go-gitea/develop). The owners or the team maintainers may invite the contributor. A maintainer should spend some time on code reviews. If a maintainer has no time to do that, they should apply to leave the maintainers team and we will give them the honor of being a member of the advisors team. Of course, if an advisor has time to code review, we will gladly welcome them back to the maintainers team. If someone has no time to code review and forgets to leave the maintainers team, the owners may move him or her from the maintainers team to the advisors team.
+To make sure every PR is checked, we have [team maintainers](https://github.com/orgs/go-gitea/teams/maintainers). Every PR **MUST** be reviewed by at least two maintainers (or owners) before it can get merged. A maintainer should be a contributor of Gitea (or Gogs) and contributed at least 4 accepted PRs. A contributor should apply as a maintainer in the [Gitter develop channel](https://gitter.im/go-gitea/develop). The owners or the team maintainers may invite the contributor. A maintainer should spend some time on code reviews. If a maintainer has no time to do that, they should apply to leave the maintainers team and we will give them the honor of being a member of the [advisors team](https://github.com/orgs/go-gitea/teams/advisors). Of course, if an advisor has time to code review, we will gladly welcome them back to the maintainers team. If a maintainer is inactive for more than 3 months and forgets to leave the maintainers team, the owners may move him or her from the maintainers team to the advisors team.
 
 ## Owners
 
@@ -78,7 +78,7 @@ Since the `master` branch is a tip version, if you wish to use Gitea in producti
 Code that you contribute should use the standard copyright header:
 
 ```
-// Copyright 2016 The Gitea Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 ```

@@ -23,13 +23,7 @@ func TestAddUpdateTask(t *testing.T) {
 		NewCommitID: "newCommitId4",
 	}
 	assert.NoError(t, AddUpdateTask(task))
-
-	sess := x.NewSession()
-	defer sess.Close()
-	has, err := sess.Get(task)
-	assert.NoError(t, err)
-	assert.True(t, has)
-	assert.Equal(t, "uuid4", task.UUID)
+	AssertExistsAndLoadBean(t, task)
 }
 
 func TestGetUpdateTaskByUUID(t *testing.T) {
@@ -49,11 +43,7 @@ func TestGetUpdateTaskByUUID(t *testing.T) {
 func TestDeleteUpdateTaskByUUID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	assert.NoError(t, DeleteUpdateTaskByUUID("uuid1"))
-	sess := x.NewSession()
-	defer sess.Close()
-	has, err := sess.Get(&UpdateTask{UUID: "uuid1"})
-	assert.NoError(t, err)
-	assert.False(t, has)
+	AssertNotExistsBean(t, &UpdateTask{UUID: "uuid1"})
 
 	assert.NoError(t, DeleteUpdateTaskByUUID("invalid"))
 }

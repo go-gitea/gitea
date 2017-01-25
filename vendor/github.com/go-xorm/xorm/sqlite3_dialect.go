@@ -317,7 +317,7 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Colu
 		col.DefaultIsEmpty = true
 		for idx, field := range fields {
 			if idx == 0 {
-				col.Name = strings.Trim(field, "`[] ")
+				col.Name = strings.Trim(strings.Trim(field, "`[] "), `"`)
 				continue
 			} else if idx == 1 {
 				col.SQLType = core.SQLType{Name: field, DefaultLength: 0, DefaultLength2: 0}
@@ -406,7 +406,7 @@ func (db *sqlite3) GetIndexes(tableName string) (map[string]*core.Index, error) 
 
 		indexName := strings.Trim(sql[nNStart+6:nNEnd], "` []")
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
-			index.Name = indexName[5+len(tableName) : len(indexName)]
+			index.Name = indexName[5+len(tableName):]
 		} else {
 			index.Name = indexName
 		}

@@ -21,7 +21,10 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 )
 
-var wikiWorkingPool = sync.NewExclusivePool()
+var (
+	reservedWikiPaths = []string{"_pages", "_new", "_edit"}
+	wikiWorkingPool   = sync.NewExclusivePool()
+)
 
 // ToWikiPageURL formats a string to corresponding wiki URL name.
 func ToWikiPageURL(name string) string {
@@ -88,8 +91,22 @@ func discardLocalWikiChanges(localPath string) error {
 	return discardLocalRepoBranchChanges(localPath, "master")
 }
 
+// pathAllowed checks if a wiki path is allowed
+func pathAllowed(path string) error {
+	for i := range reservedWikiPaths {
+		if path == reservedWikiPaths[i] {
+			return ErrWikiAlreadyExist{path}
+		}
+	}
+	return nil
+}
+
 // updateWikiPage adds new page to repository wiki.
-func (repo *Repository) updateWikiPage(doer *User, oldTitle, title, content, message string, isNew bool) (err error) {
+func (repo *Repository) updateWikiPage(doer *User, oldWikiPath, wikiPath, content, message string, isNew bool) (err error) {
+	if err = pathAllowed(wikiPath); err != nil {
+		return err
+	}
+
 	wikiWorkingPool.CheckIn(com.ToStr(repo.ID))
 	defer wikiWorkingPool.CheckOut(com.ToStr(repo.ID))
 
@@ -104,8 +121,8 @@ func (repo *Repository) updateWikiPage(doer *User, oldTitle, title, content, mes
 		return fmt.Errorf("UpdateLocalWiki: %v", err)
 	}
 
-	title = ToWikiPageName(title)
-	filename := path.Join(localPath, title+".md")
+	title := ToWikiPageName(wikiPath)
+	filename := path.Join(localPath, wikiPath+".md")
 
 	// If not a new file, show perform update not create.
 	if isNew {
@@ -113,7 +130,7 @@ func (repo *Repository) updateWikiPage(doer *User, oldTitle, title, content, mes
 			return ErrWikiAlreadyExist{filename}
 		}
 	} else {
-		file := path.Join(localPath, oldTitle+".md")
+		file := path.Join(localPath, oldWikiPath+".md")
 
 		if err := os.Remove(file); err != nil {
 			return fmt.Errorf("Fail to remove %s: %v", file, err)
@@ -149,19 +166,19 @@ func (repo *Repository) updateWikiPage(doer *User, oldTitle, title, content, mes
 	return nil
 }
 
-// AddWikiPage adds a new wiki page with a given title.
-func (repo *Repository) AddWikiPage(doer *User, title, content, message string) error {
-	return repo.updateWikiPage(doer, "", title, content, message, true)
+// AddWikiPage adds a new wiki page with a given wikiPath.
+func (repo *Repository) AddWikiPage(doer *User, wikiPath, content, message string) error {
+	return repo.updateWikiPage(doer, "", wikiPath, content, message, true)
 }
 
-// EditWikiPage updates a wiki page identified by its title,
-// optionally also changing title.
-func (repo *Repository) EditWikiPage(doer *User, oldTitle, title, content, message string) error {
-	return repo.updateWikiPage(doer, oldTitle, title, content, message, false)
+// EditWikiPage updates a wiki page identified by its wikiPath,
+// optionally also changing wikiPath.
+func (repo *Repository) EditWikiPage(doer *User, oldWikiPath, wikiPath, content, message string) error {
+	return repo.updateWikiPage(doer, oldWikiPath, wikiPath, content, message, false)
 }
 
-// DeleteWikiPage deletes a wiki page identified by its title.
-func (repo *Repository) DeleteWikiPage(doer *User, title string) (err error) {
+// DeleteWikiPage deletes a wiki page identified by its wikiPath.
+func (repo *Repository) DeleteWikiPage(doer *User, wikiPath string) (err error) {
 	wikiWorkingPool.CheckIn(com.ToStr(repo.ID))
 	defer wikiWorkingPool.CheckOut(com.ToStr(repo.ID))
 
@@ -172,13 +189,13 @@ func (repo *Repository) DeleteWikiPage(doer *User, title string) (err error) {
 		return fmt.Errorf("UpdateLocalWiki: %v", err)
 	}
 
-	title = ToWikiPageName(title)
-	filename := path.Join(localPath, title+".md")
+	filename := path.Join(localPath, wikiPath+".md")
 
 	if err := os.Remove(filename); err != nil {
 		return fmt.Errorf("Fail to remove %s: %v", filename, err)
 	}
 
+	title := ToWikiPageName(wikiPath)
 	message := "Delete page '" + title + "'"
 
 	if err = git.AddChanges(localPath, true); err != nil {

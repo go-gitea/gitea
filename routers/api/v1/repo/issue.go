@@ -13,14 +13,16 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ListIssues list the issues of a repository
 func ListIssues(ctx *context.APIContext) {
+	isClosed := ctx.Query("state") == "closed"
 	issueOpts := models.IssuesOptions{
 		RepoID:   ctx.Repo.Repository.ID,
 		Page:     ctx.QueryInt("page"),
-		IsClosed: ctx.Query("state") == "closed",
+		IsClosed: util.OptionalBoolOf(isClosed),
 	}
 
 	issues, err := models.Issues(&issueOpts)
@@ -29,7 +31,7 @@ func ListIssues(ctx *context.APIContext) {
 		return
 	}
 	if ctx.Query("state") == "all" {
-		issueOpts.IsClosed = !issueOpts.IsClosed
+		issueOpts.IsClosed = util.OptionalBoolOf(!isClosed)
 		tempIssues, err := models.Issues(&issueOpts)
 		if err != nil {
 			ctx.Error(500, "Issues", err)

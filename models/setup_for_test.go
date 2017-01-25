@@ -16,6 +16,8 @@ import (
 	"gopkg.in/testfixtures.v2"
 )
 
+const NonexistentID = 9223372036854775807
+
 func TestMain(m *testing.M) {
 	if err := CreateTestEngine(); err != nil {
 		fmt.Printf("Error creating test engine: %v\n", err)
@@ -59,10 +61,11 @@ func loadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error)
 
 // AssertExistsAndLoadBean assert that a bean exists and load it from the test
 // database
-func AssertExistsAndLoadBean(t *testing.T, bean interface{}, conditions ...interface{}) {
+func AssertExistsAndLoadBean(t *testing.T, bean interface{}, conditions ...interface{}) interface{} {
 	exists, err := loadBeanIfExists(bean, conditions...)
 	assert.NoError(t, err)
 	assert.True(t, exists)
+	return bean
 }
 
 // AssertNotExistsBean assert that a bean does not exist in the test database
