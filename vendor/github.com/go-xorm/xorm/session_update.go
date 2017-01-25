@@ -333,7 +333,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			}
 
 		} else {
-			if _, ok := interface{}(bean).(AfterInsertProcessor); ok {
+			if _, ok := interface{}(bean).(AfterUpdateProcessor); ok {
 				session.afterUpdateBeans[bean] = nil
 			}
 		}

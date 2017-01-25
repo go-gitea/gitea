@@ -462,7 +462,9 @@ func DeleteComment(comment *Comment) error {
 		return err
 	}
 
-	if _, err := sess.Id(comment.ID).Delete(new(Comment)); err != nil {
+	if _, err := sess.Delete(&Comment{
+		ID: comment.ID,
+	}); err != nil {
 		return err
 	}
 
