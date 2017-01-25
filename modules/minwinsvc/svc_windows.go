@@ -8,17 +8,22 @@ package minwinsvc
 
 import (
 	"os"
+	"strconv"
 	"sync"
 
 	"golang.org/x/sys/windows/svc"
 )
 
 var (
-	onExit func()
-	guard  sync.Mutex
+	onExit  func()
+	guard   sync.Mutex
+	skip, _ = strconv.ParseBool(os.Getenv("SKIP_MINWINSVC"))
 )
 
 func init() {
+	if skip {
+		return
+	}
 	interactive, err := svc.IsAnInteractiveSession()
 	if err != nil {
 		panic(err)
