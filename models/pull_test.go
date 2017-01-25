@@ -11,21 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// getPullRequest load a fixture pull request from the test database
-func loadFixturePullRequest(t *testing.T, id int64) *PullRequest {
-	sess := x.NewSession()
-	defer sess.Close()
-
-	pr := &PullRequest{ID: id}
-	has, err := sess.Get(pr)
-	assert.NoError(t, err)
-	assert.True(t, has)
-	return pr
-}
-
 func TestPullRequest_LoadAttributes(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	pr := loadFixturePullRequest(t, 1)
+	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.NoError(t, pr.LoadAttributes())
 	assert.NotNil(t, pr.Merger)
 	assert.Equal(t, pr.MergerID, pr.Merger.ID)
@@ -33,7 +21,7 @@ func TestPullRequest_LoadAttributes(t *testing.T) {
 
 func TestPullRequest_LoadIssue(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	pr := loadFixturePullRequest(t, 1)
+	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.NoError(t, pr.LoadIssue())
 	assert.NotNil(t, pr.Issue)
 	assert.Equal(t, int64(2), pr.Issue.ID)
@@ -46,7 +34,7 @@ func TestPullRequest_LoadIssue(t *testing.T) {
 
 func TestPullRequest_GetBaseRepo(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	pr := loadFixturePullRequest(t, 1)
+	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.NoError(t, pr.GetBaseRepo())
 	assert.NotNil(t, pr.BaseRepo)
 	assert.Equal(t, pr.BaseRepoID, pr.BaseRepo.ID)
@@ -57,7 +45,7 @@ func TestPullRequest_GetBaseRepo(t *testing.T) {
 
 func TestPullRequest_GetHeadRepo(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	pr := loadFixturePullRequest(t, 1)
+	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.NoError(t, pr.GetHeadRepo())
 	assert.NotNil(t, pr.HeadRepo)
 	assert.Equal(t, pr.HeadRepoID, pr.HeadRepo.ID)
@@ -175,12 +163,7 @@ func TestPullRequest_Update(t *testing.T) {
 	}
 	pr.Update()
 
-	sess := x.NewSession()
-	defer sess.Close()
-	pr = &PullRequest{ID: 1}
-	has, err := sess.Get(pr)
-	assert.NoError(t, err)
-	assert.True(t, has)
+	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.Equal(t, int64(100), pr.IssueID)
 	assert.Equal(t, "baseBranch", pr.BaseBranch)
 	assert.Equal(t, "headBranch", pr.HeadBranch)
@@ -196,12 +179,7 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 	}
 	pr.UpdateCols("issue_id", "head_branch")
 
-	sess := x.NewSession()
-	defer sess.Close()
-	pr = &PullRequest{ID: 1}
-	has, err := sess.Get(pr)
-	assert.NoError(t, err)
-	assert.True(t, has)
+	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.Equal(t, int64(100), pr.IssueID)
 	assert.Equal(t, "master", pr.BaseBranch)
 	assert.Equal(t, "headBranch", pr.HeadBranch)
@@ -214,14 +192,14 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	pr := loadFixturePullRequest(t, 1)
+	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	pr.AddToTaskQueue()
 
 	// briefly sleep so that background threads have time to run
 	time.Sleep(time.Millisecond)
 
 	assert.True(t, pullRequestQueue.Exist(pr.ID))
-	pr = loadFixturePullRequest(t, 1)
+	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.Equal(t, PullRequestStatusChecking, pr.Status)
 }
 
@@ -229,8 +207,8 @@ func TestPullRequestList_LoadAttributes(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	prs := []*PullRequest{
-		loadFixturePullRequest(t, 1),
-		loadFixturePullRequest(t, 2),
+		AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest),
+		AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest),
 	}
 	assert.NoError(t, PullRequestList(prs).LoadAttributes())
 	for _, pr := range prs {
