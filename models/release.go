@@ -198,9 +198,28 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 		return err
 	}
 
-	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
+	if err = addReleaseAttachments(rel.ID, attachmentUUIDs); err != nil {
+		return err
+	}
 
-	return err
+	if err = rel.LoadAttributes(); err != nil {
+		return err
+	}
+
+	if err = rel.Repo.GetOwner(); err != nil {
+		return err
+	}
+
+	return NotifyWatchers(&Action{
+		ActUserID:    rel.PublisherID,
+		ActUserName:  rel.Publisher.Name,
+		OpType:       ActionCreateRelease,
+		Content:      fmt.Sprintf("%d|%s", rel.ID, rel.Title),
+		RepoID:       rel.Repo.ID,
+		RepoUserName: rel.Repo.Owner.Name,
+		RepoName:     rel.Repo.Name,
+		IsPrivate:    rel.Repo.IsPrivate,
+	})
 }
 
 // GetRelease returns release by given ID.
