@@ -8,7 +8,7 @@ import (
 
 // XORMLogBridge a logger bridge from Logger to xorm
 type XORMLogBridge struct {
-	logger  *Logger
+	loggers []*Logger
 	showSQL bool
 	level   core.LogLevel
 }
@@ -22,69 +22,88 @@ var (
 func NewXORMLogger(bufferlen int64, mode, config string) {
 	logger := newLogger(bufferlen)
 	logger.SetLogger(mode, config)
-	XORMLogger = &XORMLogBridge{
-		logger:  logger,
-		showSQL: true,
+	if XORMLogger == nil {
+		XORMLogger = &XORMLogBridge{
+			showSQL: true,
+		}
 	}
+	XORMLogger.loggers = append(XORMLogger.loggers, logger)
+}
+
+func (l *XORMLogBridge) writerMsg(skip, level int, msg string) error {
+	for _, logger := range l.loggers {
+		if err := logger.writerMsg(skip, level, msg); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Debug show debug log
 func (l *XORMLogBridge) Debug(v ...interface{}) {
-	if l.level >= core.LOG_DEBUG {
+	if l.level <= core.LOG_DEBUG {
 		msg := fmt.Sprint(v...)
-		l.logger.writerMsg(0, DEBUG, "[D]"+msg)
+		l.writerMsg(0, DEBUG, "[D]"+msg)
 	}
 }
 
 // Debugf show debug log
 func (l *XORMLogBridge) Debugf(format string, v ...interface{}) {
-	if l.level >= core.LOG_DEBUG {
-		l.logger.Debug(format, v...)
+	if l.level <= core.LOG_DEBUG {
+		for _, logger := range l.loggers {
+			logger.Debug(format, v...)
+		}
 	}
 }
 
 // Error show error log
 func (l *XORMLogBridge) Error(v ...interface{}) {
-	if l.level >= core.LOG_ERR {
+	if l.level <= core.LOG_ERR {
 		msg := fmt.Sprint(v...)
-		l.logger.writerMsg(0, ERROR, "[E]"+msg)
+		l.writerMsg(0, ERROR, "[E]"+msg)
 	}
 }
 
 // Errorf show error log
 func (l *XORMLogBridge) Errorf(format string, v ...interface{}) {
-	if l.level >= core.LOG_ERR {
-		l.logger.Error(0, format, v...)
+	if l.level <= core.LOG_ERR {
+		for _, logger := range l.loggers {
+			logger.Error(0, format, v...)
+		}
 	}
 }
 
 // Info show information level log
 func (l *XORMLogBridge) Info(v ...interface{}) {
-	if l.level >= core.LOG_INFO {
+	if l.level <= core.LOG_INFO {
 		msg := fmt.Sprint(v...)
-		l.logger.writerMsg(0, INFO, "[I]"+msg)
+		l.writerMsg(0, INFO, "[I]"+msg)
 	}
 }
 
 // Infof show information level log
 func (l *XORMLogBridge) Infof(format string, v ...interface{}) {
-	if l.level >= core.LOG_INFO {
-		l.logger.Info(format, v...)
+	if l.level <= core.LOG_INFO {
+		for _, logger := range l.loggers {
+			logger.Info(format, v...)
+		}
 	}
 }
 
 // Warn show warnning log
 func (l *XORMLogBridge) Warn(v ...interface{}) {
-	if l.level >= core.LOG_WARNING {
+	if l.level <= core.LOG_WARNING {
 		msg := fmt.Sprint(v...)
-		l.logger.writerMsg(0, WARN, "[W] "+msg)
+		l.writerMsg(0, WARN, "[W] "+msg)
 	}
 }
 
 // Warnf show warnning log
 func (l *XORMLogBridge) Warnf(format string, v ...interface{}) {
-	if l.level >= core.LOG_WARNING {
-		l.logger.Warn(format, v...)
+	if l.level <= core.LOG_WARNING {
+		for _, logger := range l.loggers {
+			logger.Warn(format, v...)
+		}
 	}
 }
 
