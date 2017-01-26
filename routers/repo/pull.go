@@ -109,12 +109,6 @@ func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 		return
 	}
 
-	repo, has := models.HasForkedRepo(ctxUser.ID, forkRepo.ID)
-	if has {
-		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
-		return
-	}
-
 	// Check ownership of organization.
 	if ctxUser.IsOrganization() {
 		if !ctxUser.IsOwnedBy(ctx.User.ID) {
