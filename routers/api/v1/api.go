@@ -132,7 +132,11 @@ func reqOrgMembership() macaron.Handler {
 		}
 
 		if !models.IsOrganizationMember(orgID, ctx.User.ID) {
-			ctx.Error(403, "", "Must be an organization member")
+			if ctx.Org.Organization != nil {
+				ctx.Error(403, "", "Must be an organization member")
+			} else {
+				ctx.Status(404)
+			}
 			return
 		}
 	}
@@ -151,7 +155,11 @@ func reqOrgOwnership() macaron.Handler {
 		}
 
 		if !models.IsOrganizationOwner(orgID, ctx.User.ID) {
-			ctx.Error(403, "", "Must be an organization member")
+			if ctx.Org.Organization != nil {
+				ctx.Error(403, "", "Must be an organization owner")
+			} else {
+				ctx.Status(404)
+			}
 			return
 		}
 	}
@@ -394,18 +402,20 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/user/orgs", reqToken(), org.ListMyOrgs)
 		m.Get("/users/:username/orgs", org.ListUserOrgs)
 		m.Group("/orgs/:orgname", func() {
-			m.Combo("").Get(org.Get).Patch(bind(api.EditOrgOption{}), org.Edit)
+			m.Combo("").Get(org.Get).
+				Patch(reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit)
 			m.Group("/members", func() {
 				m.Get("", org.ListMembers)
-				m.Combo("/:username").Get(org.IsMember).Delete(org.DeleteMember)
+				m.Combo("/:username").Get(org.IsMember).
+					Delete(reqOrgOwnership(), org.DeleteMember)
 			})
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
 				m.Combo("/:username").Get(org.IsPublicMember).
-					Put(org.PublicizeMember).
-					Delete(org.ConcealMember)
+					Put(reqOrgMembership(), org.PublicizeMember).
+					Delete(reqOrgMembership(), org.ConcealMember)
 			})
-			m.Combo("/teams").Get(org.ListTeams).
+			m.Combo("/teams", reqOrgMembership()).Get(org.ListTeams).
 				Post(bind(api.CreateTeamOption{}), org.CreateTeam)
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
@@ -417,19 +427,21 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, orgAssignment(true))
 		m.Group("/teams/:teamid", func() {
 			m.Combo("").Get(org.GetTeam).
-				Patch(bind(api.EditTeamOption{}), org.EditTeam).
-				Delete(org.DeleteTeam)
+				Patch(reqOrgOwnership(), bind(api.EditTeamOption{}), org.EditTeam).
+				Delete(reqOrgOwnership(), org.DeleteTeam)
 			m.Group("/members", func() {
 				m.Get("", org.GetTeamMembers)
-				m.Combo("/:username").Put(org.AddTeamMember).
-					Delete(org.RemoveTeamMember)
+				m.Combo("/:username").
+					Put(reqOrgOwnership(), org.AddTeamMember).
+					Delete(reqOrgOwnership(), org.RemoveTeamMember)
 			})
 			m.Group("/repos", func() {
 				m.Get("", org.GetTeamRepos)
-				m.Combo("/:reponame").Put(admin.AddTeamRepository).
-					Delete(admin.RemoveTeamRepository)
+				m.Combo(":orgname/:reponame").
+					Put(org.AddTeamRepository).
+					Delete(org.RemoveTeamRepository)
 			})
-		}, orgAssignment(false, true))
+		}, reqOrgMembership(), orgAssignment(false, true))
 
 		m.Any("/*", func(ctx *context.Context) {
 			ctx.Error(404)

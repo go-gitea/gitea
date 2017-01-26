@@ -97,9 +97,6 @@ func PublicizeMember(ctx *context.APIContext) {
 	if userToPublicize.ID != ctx.User.ID {
 		ctx.Error(403, "", "Cannot publicize another member")
 		return
-	} else if !ctx.Org.Organization.IsOrgMember(userToPublicize.ID) {
-		ctx.Error(403, "", "Must be a member of the organization")
-		return
 	}
 	err := models.ChangeOrgUserStatus(ctx.Org.Organization.ID, userToPublicize.ID, true)
 	if err != nil {
@@ -115,9 +112,6 @@ func ConcealMember(ctx *context.APIContext) {
 	if userToConceal.ID != ctx.User.ID {
 		ctx.Error(403, "", "Cannot conceal another member")
 		return
-	} else if !ctx.Org.Organization.IsOrgMember(userToConceal.ID) {
-		ctx.Error(403, "", "Must be a member of the organization")
-		return
 	}
 	err := models.ChangeOrgUserStatus(ctx.Org.Organization.ID, userToConceal.ID, false)
 	if err != nil {
@@ -130,11 +124,8 @@ func ConcealMember(ctx *context.APIContext) {
 // DeleteMember remove a member from an organization
 func DeleteMember(ctx *context.APIContext) {
 	org := ctx.Org.Organization
-	if !org.IsOwnedBy(ctx.User.ID) {
-		ctx.Error(403, "", "You must be an owner of the organization.")
-		return
-	}
-	if err := org.RemoveMember(user.GetUserByParams(ctx).ID); err != nil {
+	memberID := user.GetUserByParams(ctx).ID
+	if err := org.RemoveMember(memberID); err != nil {
 		ctx.Error(500, "RemoveMember", err)
 	}
 	ctx.Status(204)

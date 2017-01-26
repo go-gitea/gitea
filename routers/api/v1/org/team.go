@@ -16,10 +16,6 @@ import (
 // ListTeams list all the teams of an organization
 func ListTeams(ctx *context.APIContext) {
 	org := ctx.Org.Organization
-	if !org.IsOrgMember(ctx.User.ID) {
-		ctx.Error(403, "", "Must be a member of the organization")
-		return
-	}
 	if err := org.GetTeams(); err != nil {
 		ctx.Error(500, "GetTeams", err)
 		return
@@ -34,40 +30,11 @@ func ListTeams(ctx *context.APIContext) {
 
 // GetTeam api for get a team
 func GetTeam(ctx *context.APIContext) {
-	if !models.IsOrganizationMember(ctx.Org.Team.OrgID, ctx.User.ID) {
-		ctx.Status(404)
-		return
-	}
 	ctx.JSON(200, convert.ToTeam(ctx.Org.Team))
-}
-
-// GetTeamRepos api for get a team's repos
-func GetTeamRepos(ctx *context.APIContext) {
-	team := ctx.Org.Team
-	if !models.IsOrganizationMember(team.OrgID, ctx.User.ID) {
-		ctx.Status(404)
-		return
-	}
-	if err := team.GetRepositories(); err != nil {
-		ctx.Error(500, "GetTeamRepos", err)
-	}
-	repos := make([]*api.Repository, len(team.Repos))
-	for i, repo := range team.Repos {
-		access, err := models.AccessLevel(ctx.User, repo)
-		if err != nil {
-			ctx.Error(500, "GetTeamRepos", err)
-			return
-		}
-		repos[i] = repo.APIFormat(access)
-	}
-	ctx.JSON(200, repos)
 }
 
 // CreateTeam api for create a team
 func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
-	if !ctx.Org.Organization.IsOrgMember(ctx.User.ID) {
-		ctx.Error(403, "", "Must be an organization member")
-	}
 	team := &models.Team{
 		OrgID:       ctx.Org.Organization.ID,
 		Name:        form.Name,
@@ -88,10 +55,6 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 
 // EditTeam api for edit a team
 func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
-	if !ctx.User.IsUserOrgOwner(ctx.Org.Team.OrgID) {
-		ctx.Error(403, "", "Must be an organization owner")
-		return
-	}
 	team := &models.Team{
 		ID:          ctx.Org.Team.ID,
 		OrgID:       ctx.Org.Team.OrgID,
@@ -108,10 +71,6 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 
 // DeleteTeam api for delete a team
 func DeleteTeam(ctx *context.APIContext) {
-	if !ctx.User.IsUserOrgOwner(ctx.Org.Team.OrgID) {
-		ctx.Error(403, "", "Must be an organization owner")
-		return
-	}
 	if err := models.DeleteTeam(ctx.Org.Team); err != nil {
 		ctx.Error(500, "DeleteTeam", err)
 		return
@@ -139,10 +98,6 @@ func GetTeamMembers(ctx *context.APIContext) {
 
 // AddTeamMember api for add a member to a team
 func AddTeamMember(ctx *context.APIContext) {
-	if !ctx.User.IsUserOrgOwner(ctx.Org.Team.OrgID) {
-		ctx.Error(403, "", "Must be an organization owner")
-		return
-	}
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -156,10 +111,6 @@ func AddTeamMember(ctx *context.APIContext) {
 
 // RemoveTeamMember api for remove one member from a team
 func RemoveTeamMember(ctx *context.APIContext) {
-	if !ctx.User.IsUserOrgOwner(ctx.Org.Team.OrgID) {
-		ctx.Error(403, "", "Must be an organization owner")
-		return
-	}
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -167,6 +118,78 @@ func RemoveTeamMember(ctx *context.APIContext) {
 
 	if err := ctx.Org.Team.RemoveMember(u.ID); err != nil {
 		ctx.Error(500, "RemoveMember", err)
+		return
+	}
+	ctx.Status(204)
+}
+
+// GetTeamRepos api for get a team's repos
+func GetTeamRepos(ctx *context.APIContext) {
+	team := ctx.Org.Team
+	if err := team.GetRepositories(); err != nil {
+		ctx.Error(500, "GetTeamRepos", err)
+	}
+	repos := make([]*api.Repository, len(team.Repos))
+	for i, repo := range team.Repos {
+		access, err := models.AccessLevel(ctx.User, repo)
+		if err != nil {
+			ctx.Error(500, "GetTeamRepos", err)
+			return
+		}
+		repos[i] = repo.APIFormat(access)
+	}
+	ctx.JSON(200, repos)
+}
+
+// getRepositoryByParams get repository by a team's organization ID and repo name
+func getRepositoryByParams(ctx *context.APIContext) *models.Repository {
+	repo, err := models.GetRepositoryByName(ctx.Org.Team.OrgID, ctx.Params(":reponame"))
+	if err != nil {
+		if models.IsErrRepoNotExist(err) {
+			ctx.Status(404)
+		} else {
+			ctx.Error(500, "GetRepositoryByName", err)
+		}
+		return nil
+	}
+	return repo
+}
+
+// AddTeamRepository api for adding a repository to a team
+func AddTeamRepository(ctx *context.APIContext) {
+	repo := getRepositoryByParams(ctx)
+	if ctx.Written() {
+		return
+	}
+	if access, err := models.AccessLevel(ctx.User, repo); err != nil {
+		ctx.Error(500, "AccessLevel", err)
+		return
+	} else if access < models.AccessModeAdmin {
+		ctx.Error(403, "", "Must have admin-level access to the repository")
+		return
+	}
+	if err := ctx.Org.Team.AddRepository(repo); err != nil {
+		ctx.Error(500, "AddRepository", err)
+		return
+	}
+	ctx.Status(204)
+}
+
+// RemoveTeamRepository api for removing a repository from a team
+func RemoveTeamRepository(ctx *context.APIContext) {
+	repo := getRepositoryByParams(ctx)
+	if ctx.Written() {
+		return
+	}
+	if access, err := models.AccessLevel(ctx.User, repo); err != nil {
+		ctx.Error(500, "AccessLevel", err)
+		return
+	} else if access < models.AccessModeAdmin {
+		ctx.Error(403, "", "Must have admin-level access to the repository")
+		return
+	}
+	if err := ctx.Org.Team.RemoveRepository(repo.ID); err != nil {
+		ctx.Error(500, "RemoveRepository", err)
 		return
 	}
 	ctx.Status(204)
