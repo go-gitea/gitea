@@ -73,7 +73,6 @@ xtest: build
 
 .PHONY: test
 test:
-test: build
 	for PKG in $(PACKAGES); do go test -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
 
 .PHONY: test-mysql
