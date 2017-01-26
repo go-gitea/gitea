@@ -51,14 +51,14 @@ func Auth(provider, clientID, clientSecret string, request *http.Request, respon
 
 // ProviderCallback handles OAuth callback, resolve to a goth user and send back to original url
 // this will trigger a new authentication request, but because we save it in the session we can use that
-func ProviderCallback(provider string, request *http.Request, response http.ResponseWriter) (goth.User, string, error) {
+func ProviderCallback(provider string, request *http.Request, response http.ResponseWriter) (goth.User, error) {
 	// not sure if goth is thread safe (?) when using multiple providers
 	request.Header.Set(providerHeaderKey, provider)
 
 	user, err := gothic.CompleteUserAuth(response, request)
 	if err != nil {
-		return user, "", err
+		return user, err
 	}
 
-	return user, "", nil
+	return user, nil
 }

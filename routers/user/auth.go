@@ -353,7 +353,7 @@ func SignInOAuth(ctx *context.Context) {
 func SignInOAuthCallback(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
-	u, _, err := oAuth2UserLoginCallback(provider, ctx.Req.Request, ctx.Resp)
+	u, err := oAuth2UserLoginCallback(provider, ctx.Req.Request, ctx.Resp)
 
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)
@@ -399,16 +399,16 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
 // login the user
-func oAuth2UserLoginCallback(provider string, request *http.Request, response http.ResponseWriter) (*models.User, string, error) {
-	gothUser, redirectURL, error := oauth2.ProviderCallback(provider, request, response)
+func oAuth2UserLoginCallback(provider string, request *http.Request, response http.ResponseWriter) (*models.User, error) {
+	gothUser, error := oauth2.ProviderCallback(provider, request, response)
 
 	if error != nil {
-		return nil, redirectURL, error
+		return nil, error
 	}
 
 	loginSources, err := models.GetActiveOAuth2ProviderLoginSources()
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	for _, source := range loginSources {
@@ -421,7 +421,7 @@ func oAuth2UserLoginCallback(provider string, request *http.Request, response ht
 
 			hasUser, err := models.GetUser(user)
 			if err != nil {
-				return nil, "", err
+				return nil, err
 			}
 
 			if !hasUser {
@@ -434,14 +434,14 @@ func oAuth2UserLoginCallback(provider string, request *http.Request, response ht
 					LoginName:        gothUser.NickName,
 					IsActive:         true,
 				}
-				return user, redirectURL, models.CreateUser(user)
+				return user, models.CreateUser(user)
 			}
 
-			return user, redirectURL, nil
+			return user, nil
 		}
 	}
 
-	return nil, "", errors.New("No valid provider found")
+	return nil, errors.New("No valid provider found")
 }
 
 // SignOut sign out from login status
