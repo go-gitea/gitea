@@ -69,7 +69,7 @@ lint:
 .PHONY: xtest
 xtest: TAGS=bindata sqlite
 xtest: build
-	go test code.gitea.io/gitea/tests || exit 1
+	go test code.gitea.io/gitea/tests
 
 .PHONY: test
 test:
