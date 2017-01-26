@@ -14,7 +14,7 @@ JAVASCRIPTS :=
 LDFLAGS := -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')" -X "main.Tags=$(TAGS)"
 
 TARGETS ?= linux/*,darwin/*,windows/*
-PACKAGES ?= $(shell go list ./... | grep -v /vendor/)
+PACKAGES ?= $(filter-out tests,$(shell go list ./... | grep -v /vendor/))
 SOURCES ?= $(shell find . -name "*.go" -type f)
 
 TAGS ?=
@@ -66,8 +66,13 @@ lint:
 	fi
 	for PKG in $(PACKAGES); do golint -set_exit_status $$PKG || exit 1; done;
 
+.PHONY: xtest
+xtest: TAGS=bindata sqlite
+xtest: build
+	go test code.gitea.io/gitea/tests || exit 1
+
 .PHONY: test
-test: TAGS=bindata sqlite
+test:
 test: build
 	for PKG in $(PACKAGES); do go test -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
 
