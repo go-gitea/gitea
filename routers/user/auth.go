@@ -340,7 +340,7 @@ func SignInOAuth(ctx *context.Context) {
 		// TODO how to put this in the xorm Find ?
 		cfg := source.OAuth2()
 		if cfg.Provider == provider {
-			oauth2.Auth(cfg.Provider, cfg.ClientID, cfg.ClientSecret, ctx.Req.Request, ctx.Resp)
+			oauth2.Auth(cfg.Provider, ctx.Req.Request, ctx.Resp)
 			return
 		}
 	}

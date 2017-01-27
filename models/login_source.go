@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/auth/oauth2"
 )
 
 // LoginType represents an login type.
@@ -293,6 +294,10 @@ func CreateLoginSource(source *LoginSource) error {
 	}
 
 	_, err = x.Insert(source)
+	if err == nil && source.IsOAuth2() {
+		oAuth2Config := source.OAuth2()
+		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret)
+	}
 	return err
 }
 
@@ -317,6 +322,11 @@ func GetLoginSourceByID(id int64) (*LoginSource, error) {
 // UpdateSource updates a LoginSource record in DB.
 func UpdateSource(source *LoginSource) error {
 	_, err := x.Id(source.ID).AllCols().Update(source)
+	if err != nil && source.IsOAuth2() {
+		oAuth2Config := source.OAuth2()
+		oauth2.RemoveProvider(source.Name)
+		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret)
+	}
 	return err
 }
 
@@ -329,6 +339,9 @@ func DeleteSource(source *LoginSource) error {
 		return ErrLoginSourceInUse{source.ID}
 	}
 	_, err = x.Id(source.ID).Delete(new(LoginSource))
+	if err != nil && source.IsOAuth2() {
+		oauth2.RemoveProvider(source.Name)
+	}
 	return err
 }
 
@@ -669,4 +682,15 @@ func GetActiveOAuth2ProviderNames() (map[string]string, error) {
 	}
 
 	return providers, nil
+}
+
+// InitOAuth2 initialize the OAuth2 lib and register all active OAuth2 providers in the library
+func InitOAuth2() {
+	oauth2.Init()
+	loginSources, _ := GetActiveOAuth2ProviderLoginSources()
+
+	for _, source := range loginSources {
+		oAuth2Config := source.OAuth2()
+		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret)
+	}
 }

@@ -6,11 +6,11 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
-	"github.com/markbates/goth/providers/github"
 	"net/http"
 	"os"
 	"github.com/satori/go.uuid"
 	"path/filepath"
+	"github.com/markbates/goth/providers/github"
 )
 
 var (
@@ -18,7 +18,8 @@ var (
 	providerHeaderKey    = "gitea-oauth2-provider"
 )
 
-func init() {
+// Init initialize the setup of the OAuth2 library
+func Init() {
 	sessionDir := filepath.Join(setting.AppDataPath, "sessions", "oauth2")
 	if err := os.MkdirAll(sessionDir, 0700); err != nil {
 		log.Fatal(4, "Fail to create dir %s: %v", sessionDir, err)
@@ -33,18 +34,13 @@ func init() {
 	gothic.GetProviderName = func(req *http.Request) (string, error) {
 		return req.Header.Get(providerHeaderKey), nil
 	}
+
 }
 
 // Auth OAuth2 auth service
-func Auth(provider, clientID, clientSecret string, request *http.Request, response http.ResponseWriter) {
+func Auth(provider string, request *http.Request, response http.ResponseWriter) {
 	// not sure if goth is thread safe (?) when using multiple providers
 	request.Header.Set(providerHeaderKey, provider)
-
-	if gothProvider, _ := goth.GetProvider(provider); gothProvider == nil {
-		goth.UseProviders(
-			github.New(clientID, clientSecret, setting.AppURL+"user/oauth2/"+provider+"/callback", "user:email"),
-		)
-	}
 
 	gothic.BeginAuthHandler(response, request)
 }
@@ -61,4 +57,33 @@ func ProviderCallback(provider string, request *http.Request, response http.Resp
 	}
 
 	return user, nil
+}
+
+// RegisterProvider register a OAuth2 provider in goth lib
+func RegisterProvider(providerName, providerType, clientID, clientSecret string) {
+	provider := createProvider(providerName, providerType, clientID, clientSecret)
+
+	goth.UseProviders(provider)
+}
+
+// RemoveProvider removes the given OAuth2 provider from the goth lib
+func RemoveProvider(providerName string) {
+	delete(goth.GetProviders(), providerName)
+}
+
+// used to create different types of goth providers
+func createProvider(providerName, providerType, clientID, clientSecret string) goth.Provider {
+	callbackURL := setting.AppURL + "user/oauth2/" + providerName + "/callback"
+
+	var provider goth.Provider
+
+	switch providerType {
+	case "github":
+		provider = github.New(clientID, clientSecret, callbackURL, "user:email")
+	}
+
+	// always set the name so we can support multiple setups of 1 provider
+	provider.SetName(providerName)
+
+	return provider
 }

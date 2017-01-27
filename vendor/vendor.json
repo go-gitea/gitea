@@ -557,22 +557,22 @@
 			"revisionTime": "2016-11-03T02:43:54Z"
 		},
 		{
-			"checksumSHA1": "4qhmMAEMj7myggZi6D7o8ezDuxE=",
+			"checksumSHA1": "KJkDtEZHGmFuEtUHrX2/bm2K74o=",
 			"path": "github.com/markbates/goth",
-			"revision": "e14124782db6fd5b43c32c254d3d8e5ef849c830",
-			"revisionTime": "2017-01-25T09:33:14Z"
+			"revision": "3b285de1061587f2a5ebb2b456da8d65a9cecee9",
+			"revisionTime": "2017-01-26T14:15:07Z"
 		},
 		{
 			"checksumSHA1": "zcRIxzOSWwSM4fzvDXey20d1Gl4=",
 			"path": "github.com/markbates/goth/gothic",
-			"revision": "e14124782db6fd5b43c32c254d3d8e5ef849c830",
-			"revisionTime": "2017-01-25T09:33:14Z"
+			"revision": "3b285de1061587f2a5ebb2b456da8d65a9cecee9",
+			"revisionTime": "2017-01-26T14:15:07Z"
 		},
 		{
-			"checksumSHA1": "/ECS41Dd3ucjCm/Tqxnaeyf/BWI=",
+			"checksumSHA1": "cR1jkLb/XPj+ffipSHlT4qnQ9g4=",
 			"path": "github.com/markbates/goth/providers/github",
-			"revision": "e14124782db6fd5b43c32c254d3d8e5ef849c830",
-			"revisionTime": "2017-01-25T09:33:14Z"
+			"revision": "3b285de1061587f2a5ebb2b456da8d65a9cecee9",
+			"revisionTime": "2017-01-26T14:15:07Z"
 		},
 		{
 			"checksumSHA1": "9FJUwn3EIgASVki+p8IHgWVC5vQ=",

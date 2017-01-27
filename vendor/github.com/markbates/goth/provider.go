@@ -12,6 +12,7 @@ import (
 // e.g. Facebook, Twitter, etc...
 type Provider interface {
 	Name() string
+	SetName(name string)
 	BeginAuth(state string) (Session, error)
 	UnmarshalSession(string) (Session, error)
 	FetchUser(Session) (User, error)
