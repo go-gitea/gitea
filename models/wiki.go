@@ -41,7 +41,7 @@ func ToWikiPageName(urlString string) string {
 }
 
 // WikiCloneLink returns clone URLs of repository wiki.
-func (repo *Repository) WikiCloneLink() (cl *CloneLink) {
+func (repo *Repository) WikiCloneLink() *CloneLink {
 	return repo.cloneLink(true)
 }
 

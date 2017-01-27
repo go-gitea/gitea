@@ -9,6 +9,8 @@ import (
 	"os"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 	_ "github.com/mattn/go-sqlite3" // for the test engine
@@ -23,6 +25,14 @@ func TestMain(m *testing.M) {
 		fmt.Printf("Error creating test engine: %v\n", err)
 		os.Exit(1)
 	}
+
+	setting.AppURL = "https://try.gitea.io/"
+	setting.RunUser = "runuser"
+	setting.SSH.Port = 3000
+	setting.SSH.Domain = "try.gitea.io"
+	setting.RepoRootPath = "/repos"
+	setting.AppDataPath = "/appdata"
+
 	os.Exit(m.Run())
 }
 
