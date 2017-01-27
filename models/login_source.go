@@ -665,6 +665,22 @@ func GetActiveOAuth2ProviderLoginSources() ([]*LoginSource, error) {
 	return sources, nil
 }
 
+// GetActiveOAuth2LoginSourceByName returns a OAuth2 LoginSource based on the given name
+func GetActiveOAuth2LoginSourceByName(name string) (*LoginSource, error) {
+	loginSource := &LoginSource{
+		Name:      name,
+		Type:      LoginOAuth2,
+		IsActived: true,
+	}
+
+	has, err := x.UseBool().Get(loginSource)
+	if !has || err != nil {
+		return nil, err
+	}
+
+	return loginSource, nil
+}
+
 // GetActiveOAuth2ProviderNames returns the map of configured active OAuth2 providers
 // key is used as technical name (like in the callbackURL)
 // value is used to display
