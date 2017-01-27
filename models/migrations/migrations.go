@@ -80,6 +80,8 @@ var migrations = []Migration{
 	NewMigration("create user column diff view style", createUserColumnDiffViewStyle),
 	// v15
 	NewMigration("create user column allow create organization", createAllowCreateOrganizationColumn),
+	// v16
+	NewMigration("add external login user", addExternalLoginUser),
 }
 
 // Migrate database to current version
