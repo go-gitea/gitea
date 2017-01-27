@@ -132,7 +132,7 @@ func GetContentHandler(ctx *context.Context) {
 		if match != nil && len(match) > 1 {
 			statusCode = 206
 			fromByte, _ = strconv.ParseInt(match[1], 10, 32)
-			ctx.Resp.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", fromByte, meta.Size-1, int64(meta.Size)-fromByte))
+			ctx.Resp.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", fromByte, meta.Size-1, meta.Size-fromByte))
 		}
 	}
 
