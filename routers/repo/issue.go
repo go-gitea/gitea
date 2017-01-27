@@ -292,6 +292,13 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.
 		return nil
 	}
 
+	brs, err := ctx.Repo.GitRepo.GetBranches()
+	if err != nil {
+		ctx.Handle(500, "GetBranches", err)
+		return nil
+	}
+	ctx.Data["Branches"] = brs
+
 	return labels
 }
 
@@ -418,6 +425,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["ReadOnly"] = false
 	renderAttachmentSettings(ctx)
 
 	var (
@@ -447,6 +455,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		MilestoneID: milestoneID,
 		AssigneeID:  assigneeID,
 		Content:     form.Content,
+		Ref:         form.Ref,
 	}
 	if err := models.NewIssue(repo, issue, labelIDs, attachments); err != nil {
 		ctx.Handle(500, "NewIssue", err)
@@ -668,6 +677,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
 	ctx.Data["Issue"] = issue
+	ctx.Data["ReadOnly"] = true
 	ctx.Data["IsIssueOwner"] = ctx.Repo.IsWriter() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
 	ctx.HTML(200, tplIssueView)

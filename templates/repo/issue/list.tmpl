@@ -171,6 +171,9 @@
 					<div class="ui {{if .IsRead}}black{{else}}green{{end}} label">#{{.Index}}</div>
 					<a class="title has-emoji" href="{{$.Link}}/{{.Index}}">{{.Title}}</a>
 
+					{{if .Ref}}
+						<a class="ui label" href="{{$.RepoLink}}/src/{{.Ref}}">{{.Ref}}</a>
+					{{end}}
 					{{range .Labels}}
 						<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{.Name | Sanitize}}</a>
 					{{end}}

@@ -1,5 +1,7 @@
 <div class="four wide column">
 	<div class="ui segment metas">
+		{{template "repo/issue/branch_selector_field" .}}
+
 		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-label dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
