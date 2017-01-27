@@ -338,10 +338,19 @@ func DeleteSource(source *LoginSource) error {
 	} else if count > 0 {
 		return ErrLoginSourceInUse{source.ID}
 	}
-	_, err = x.Id(source.ID).Delete(new(LoginSource))
-	if err != nil && source.IsOAuth2() {
+
+	count, err = x.Count(&ExternalLoginUser{LoginSourceID: source.ID})
+	if err != nil {
+		return err
+	} else if count > 0 {
+		return ErrLoginSourceInUse{source.ID}
+	}
+
+	if source.IsOAuth2() {
 		oauth2.RemoveProvider(source.Name)
 	}
+
+	_, err = x.Id(source.ID).Delete(new(LoginSource))
 	return err
 }
 
@@ -645,6 +654,10 @@ func UserSignIn(username, password string) (*User, error) {
 	}
 
 	for _, source := range sources {
+		if source.IsOAuth2() {
+			// don't try to authenticate against OAuth2 sources
+			continue
+		}
 		authUser, err := ExternalUserLogin(nil, username, password, source, true)
 		if err == nil {
 			return authUser, nil

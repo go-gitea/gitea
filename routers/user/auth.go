@@ -487,12 +487,23 @@ func LinkAccount(ctx *context.Context) {
 func LinkAccountPost(ctx *context.Context, form auth.SignInForm) {
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
+	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
+	ctx.Data["ShowRegistrationButton"] = false
+
+	gothUser := ctx.Session.Get("linkAccountGothUser")
+	if gothUser == nil {
+		ctx.Handle(500, "UserSignIn", errors.New("not in LinkAccount session"))
+		return
+	}
 
 	oauth2Providers, err := models.GetActiveOAuth2ProviderNames()
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)
 		return
 	}
+	// delete the OAuth2 provider the user used to get to this linkAccount (so he cannot try to register him self again with the same provider)
+	delete(oauth2Providers, gothUser.(goth.User).Provider)
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 
 	if ctx.HasError() {
@@ -503,9 +514,9 @@ func LinkAccountPost(ctx *context.Context, form auth.SignInForm) {
 	u, err := models.UserSignIn(form.UserName, form.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
+			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplLinkAccount, &form)
 		} else {
-			ctx.Handle(500, "UserSignIn", err)
+			ctx.Handle(500, "UserLinkAccount", err)
 		}
 		return
 	}
@@ -515,9 +526,10 @@ func LinkAccountPost(ctx *context.Context, form auth.SignInForm) {
 	_, err = models.GetTwoFactorByUID(u.ID)
 	if err != nil {
 		if models.IsErrTwoFactorNotEnrolled(err) {
+			models.LinkAccountToUser(u, gothUser.(goth.User))
 			handleSignIn(ctx, u, form.Remember)
 		} else {
-			ctx.Handle(500, "UserSignIn", err)
+			ctx.Handle(500, "UserLinkAccount", err)
 		}
 		return
 	}

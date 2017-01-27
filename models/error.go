@@ -829,3 +829,27 @@ func IsErrUploadNotExist(err error) bool {
 func (err ErrUploadNotExist) Error() string {
 	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
 }
+
+//  ___________         __                             .__    .____                 .__          ____ ___
+//  \_   _____/__  ____/  |_  ___________  ____ _____  |  |   |    |    ____   ____ |__| ____   |    |   \______ ___________
+//   |    __)_\  \/  /\   __\/ __ \_  __ \/    \\__  \ |  |   |    |   /  _ \ / ___\|  |/    \  |    |   /  ___// __ \_  __ \
+//   |        \>    <  |  | \  ___/|  | \/   |  \/ __ \|  |__ |    |__(  <_> ) /_/  >  |   |  \ |    |  /\___ \\  ___/|  | \/
+//  /_______  /__/\_ \ |__|  \___  >__|  |___|  (____  /____/ |_______ \____/\___  /|__|___|  / |______//____  >\___  >__|
+//          \/      \/           \/           \/     \/               \/    /_____/         \/               \/     \/
+
+// ErrExternalLoginUserAlreadyExist represents a "ExternalLoginUserAlreadyExist" kind of error.
+type ErrExternalLoginUserAlreadyExist struct {
+	ExternalID    string
+	UserID        int64
+	LoginSourceID int64
+}
+
+// IsErrExternalLoginUserAlreadyExist checks if an error is a ExternalLoginUserAlreadyExist.
+func IsErrExternalLoginUserAlreadyExist(err error) bool {
+	_, ok := err.(ErrExternalLoginUserAlreadyExist)
+	return ok
+}
+
+func (err ErrExternalLoginUserAlreadyExist) Error() string {
+	return fmt.Sprintf("external login user already exists [externalID: %s, userID: %d, loginSourceID: %d]", err.ExternalID, err.UserID, err.LoginSourceID)
+}

@@ -918,6 +918,12 @@ func deleteUser(e *xorm.Session, u *User) error {
 		return fmt.Errorf("clear assignee: %v", err)
 	}
 
+	// ***** START: ExternalLoginUser *****
+	if err = RemoveAllAccountLinks(u); err != nil {
+		return fmt.Errorf("ExternalLoginUser: %v", err)
+	}
+	// ***** END: ExternalLoginUser *****
+
 	if _, err = e.Id(u.ID).Delete(new(User)); err != nil {
 		return fmt.Errorf("Delete: %v", err)
 	}
