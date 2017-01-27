@@ -309,7 +309,7 @@ func UpdateTeam(t *Team, authChanged bool) (err error) {
 	}
 
 	t.LowerName = strings.ToLower(t.Name)
-	has, err := x.
+	has, err := sess.
 		Where("org_id=?", t.OrgID).
 		And("lower_name=?", t.LowerName).
 		And("id!=?", t.ID).

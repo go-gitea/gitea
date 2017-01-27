@@ -345,13 +345,15 @@ func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*User, e
 // GetOrgsByUserID returns a list of organizations that the given user ID
 // has joined.
 func GetOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
-	return getOrgsByUserID(x.NewSession(), userID, showAll)
+	sess := x.NewSession()
+	defer sess.Close()
+	return getOrgsByUserID(sess, userID, showAll)
 }
 
 // GetOrgsByUserIDDesc returns a list of organizations that the given user ID
 // has joined, ordered descending by the given condition.
 func GetOrgsByUserIDDesc(userID int64, desc string, showAll bool) ([]*User, error) {
-	return getOrgsByUserID(x.NewSession().Desc(desc), userID, showAll)
+	return getOrgsByUserID(x.Desc(desc), userID, showAll)
 }
 
 func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
@@ -367,14 +369,14 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 // GetOwnedOrgsByUserID returns a list of organizations are owned by given user ID.
 func GetOwnedOrgsByUserID(userID int64) ([]*User, error) {
 	sess := x.NewSession()
+	defer sess.Close()
 	return getOwnedOrgsByUserID(sess, userID)
 }
 
 // GetOwnedOrgsByUserIDDesc returns a list of organizations are owned by
 // given user ID, ordered descending by the given condition.
 func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
-	sess := x.NewSession()
-	return getOwnedOrgsByUserID(sess.Desc(desc), userID)
+	return getOwnedOrgsByUserID(x.Desc(desc), userID)
 }
 
 // GetOrgUsersByUserID returns all organization-user relations by user ID.

@@ -14,7 +14,6 @@ type Star struct {
 // StarRepo or unstar repository.
 func StarRepo(userID, repoID int64, star bool) error {
 	sess := x.NewSession()
-
 	defer sess.Close()
 
 	if err := sess.Begin(); err != nil {

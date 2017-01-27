@@ -98,16 +98,12 @@ func TestRepository_RecalculateAccesses(t *testing.T) {
 	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	assert.NoError(t, repo1.GetOwner())
 
-	sess := x.NewSession()
-	defer sess.Close()
-	_, err := sess.Delete(&Collaboration{UserID: 2, RepoID: 3})
+	_, err := x.Delete(&Collaboration{UserID: 2, RepoID: 3})
 	assert.NoError(t, err)
-
 	assert.NoError(t, repo1.RecalculateAccesses())
 
-	sess = x.NewSession()
 	access := &Access{UserID: 2, RepoID: 3}
-	has, err := sess.Get(access)
+	has, err := x.Get(access)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.Equal(t, AccessModeWrite, access.Mode)
@@ -119,15 +115,11 @@ func TestRepository_RecalculateAccesses2(t *testing.T) {
 	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
 	assert.NoError(t, repo1.GetOwner())
 
-	sess := x.NewSession()
-	defer sess.Close()
-	_, err := sess.Delete(&Collaboration{UserID: 4, RepoID: 4})
+	_, err := x.Delete(&Collaboration{UserID: 4, RepoID: 4})
 	assert.NoError(t, err)
-
 	assert.NoError(t, repo1.RecalculateAccesses())
 
-	sess = x.NewSession()
-	has, err := sess.Get(&Access{UserID: 4, RepoID: 4})
+	has, err := x.Get(&Access{UserID: 4, RepoID: 4})
 	assert.NoError(t, err)
 	assert.False(t, has)
 }
