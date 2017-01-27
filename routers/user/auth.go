@@ -338,9 +338,11 @@ func SignInOAuth(ctx *context.Context) {
 
 	for _, source := range loginSources {
 		// TODO how to put this in the xorm Find ?
-		cfg := source.OAuth2()
-		if cfg.Provider == provider {
-			oauth2.Auth(cfg.Provider, ctx.Req.Request, ctx.Resp)
+		if source.Name == provider {
+			err := oauth2.Auth(source.Name, ctx.Req.Request, ctx.Resp)
+			if err != nil {
+				ctx.Handle(500, "SignIn", err)
+			}
 			return
 		}
 	}

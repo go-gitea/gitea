@@ -38,11 +38,19 @@ func Init() {
 }
 
 // Auth OAuth2 auth service
-func Auth(provider string, request *http.Request, response http.ResponseWriter) {
+func Auth(provider string, request *http.Request, response http.ResponseWriter) error {
 	// not sure if goth is thread safe (?) when using multiple providers
 	request.Header.Set(providerHeaderKey, provider)
 
-	gothic.BeginAuthHandler(response, request)
+	// don't use the default gothic begin handler to prevent issues when some error occurs
+	// normally the gothic library will write some custom stuff to the response instead of our own nice error page
+	//gothic.BeginAuthHandler(response, request)
+
+	url, err := gothic.GetAuthURL(response, request)
+	if err == nil {
+		http.Redirect(response, request, url, http.StatusTemporaryRedirect)
+	}
+	return err
 }
 
 // ProviderCallback handles OAuth callback, resolve to a goth user and send back to original url
