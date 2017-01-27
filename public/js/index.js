@@ -1464,4 +1464,13 @@ function selectRange($list, $select, $from) {
 $(function () {
     if ($('.user.signin').length > 0) return;
     $('form').areYouSure();
+
+    $("#search_repo").on('change paste keyup',function(){
+        var value = $(this).val();
+        if(!value){
+            $('.list-search-style').html('');
+        } else{
+            $('.list-search-style').html('.search-list li:not([data-title*="' + value + '"]) {display: none;}');
+        }
+    });
 });
