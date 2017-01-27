@@ -1515,14 +1515,14 @@ func DeleteRepository(uid, repoID int64) error {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
-		return fmt.Errorf("Commit: %v", err)
-	}
-
 	if repo.NumForks > 0 {
-		if _, err = x.Exec("UPDATE `repository` SET fork_id=0,is_fork=? WHERE fork_id=?", false, repo.ID); err != nil {
+		if _, err = sess.Exec("UPDATE `repository` SET fork_id=0,is_fork=? WHERE fork_id=?", false, repo.ID); err != nil {
 			log.Error(4, "reset 'fork_id' and 'is_fork': %v", err)
 		}
+	}
+
+	if err = sess.Commit(); err != nil {
+		return fmt.Errorf("Commit: %v", err)
 	}
 
 	return nil
@@ -2217,30 +2217,29 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 	if err != nil {
 		return nil, err
 	}
-	sessionRelease(sess)
 
 	// Copy LFS meta objects in new session
-	sess = x.NewSession()
-	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
+	sess2 := x.NewSession()
+	defer sessionRelease(sess2)
+	if err = sess2.Begin(); err != nil {
 		return nil, err
 	}
 
 	var lfsObjects []*LFSMetaObject
 
-	if err = sess.Where("repository_id=?", oldRepo.ID).Find(&lfsObjects); err != nil {
+	if err = sess2.Where("repository_id=?", oldRepo.ID).Find(&lfsObjects); err != nil {
 		return nil, err
 	}
 
 	for _, v := range lfsObjects {
 		v.ID = 0
 		v.RepositoryID = repo.ID
-		if _, err = sess.Insert(v); err != nil {
+		if _, err = sess2.Insert(v); err != nil {
 			return nil, err
 		}
 	}
 
-	return repo, sess.Commit()
+	return repo, sess2.Commit()
 }
 
 // GetForks returns all the forks of the repository
