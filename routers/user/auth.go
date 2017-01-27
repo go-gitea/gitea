@@ -17,9 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"strings"
 	"net/http"
 	"code.gitea.io/gitea/modules/auth/oauth2"
+	"github.com/markbates/goth"
 )
 
 const (
@@ -33,6 +33,7 @@ const (
 	tplResetPassword  base.TplName = "user/auth/reset_passwd"
 	tplTwofa          base.TplName = "user/auth/twofa"
 	tplTwofaScratch   base.TplName = "user/auth/twofa_scratch"
+	tplLinkAccount    base.TplName = "user/auth/link_account"
 )
 
 // AutoSignIn reads cookie and try to auto-login.
@@ -359,10 +360,17 @@ func SignInOAuthCallback(ctx *context.Context) {
 		return
 	}
 
-	u, err := oAuth2UserLoginCallback(loginSource, ctx.Req.Request, ctx.Resp)
+	u, gothUser, err := oAuth2UserLoginCallback(loginSource, ctx.Req.Request, ctx.Resp)
 
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)
+		return
+	}
+
+	if u == nil {
+		// no existing user is found, request attach or new account
+		ctx.Session.Set("linkAccountGothUser", gothUser)
+		ctx.Redirect(setting.AppSubURL + "/user/linkaccount")
 		return
 	}
 
@@ -405,11 +413,11 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
 // login the user
-func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Request, response http.ResponseWriter) (*models.User, error) {
+func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Request, response http.ResponseWriter) (*models.User, goth.User, error) {
 	gothUser, err := oauth2.ProviderCallback(loginSource.Name, request, response)
 
 	if err != nil {
-		return nil, err
+		return nil, goth.User{}, err
 	}
 
 	user := &models.User{
@@ -420,24 +428,106 @@ func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Requ
 
 	hasUser, err := models.GetUser(user)
 	if err != nil {
-		return nil, err
+		return nil, goth.User{}, err
 	}
 
 	if hasUser {
-		return user, nil
+		return user, goth.User{}, nil
 	}
 
-	user = &models.User{
-		LowerName:        strings.ToLower(gothUser.NickName),
-		Name:             gothUser.NickName,
-		Email:            gothUser.Email,
-		LoginType:        models.LoginOAuth2,
-		LoginSource:      loginSource.ID,
-		LoginName:        gothUser.NickName,
-		IsActive:         true,
+	// search in external linked users
+	externalLoginUser := &models.ExternalLoginUser{
+		ExternalID:    gothUser.UserID,
+		LoginSourceID: loginSource.ID,
 	}
-	return user, models.CreateUser(user)
+	hasUser, err = models.GetExternalLogin(externalLoginUser)
+	if err != nil {
+		return nil, goth.User{}, err
+	}
+	if hasUser {
+		user, err = models.GetUserByID(externalLoginUser.UserID)
+		return user, goth.User{}, err
+	}
 
+	// no user found to login
+	return nil, gothUser, nil
+
+}
+
+// LinkAccount shows the page where the user can decide to login or create a new account
+func LinkAccount(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("link_account")
+	ctx.Data["LinkAccountMode"] = true
+	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
+	ctx.Data["ShowRegistrationButton"] = false
+
+	gothUser := ctx.Session.Get("linkAccountGothUser")
+	if gothUser == nil {
+		ctx.Handle(500, "UserSignIn", errors.New("not in LinkAccount session"))
+		return
+	}
+
+	ctx.Data["user_name"] = gothUser.(goth.User).NickName
+	ctx.Data["email"] = gothUser.(goth.User).Email
+
+	oauth2Providers, err := models.GetActiveOAuth2ProviderNames()
+	if err != nil {
+		ctx.Handle(500, "UserSignIn", err)
+		return
+	}
+	// delete the OAuth2 provider the user used to get to this linkAccount (so he cannot try to register him self again with the same provider)
+	delete(oauth2Providers, gothUser.(goth.User).Provider)
+	ctx.Data["OAuth2Providers"] = oauth2Providers
+
+	ctx.HTML(200, tplLinkAccount)
+}
+
+// LinkAccountPost handle the coupling of external account with another account
+func LinkAccountPost(ctx *context.Context, form auth.SignInForm) {
+	ctx.Data["Title"] = ctx.Tr("link_account")
+	ctx.Data["LinkAccountMode"] = true
+
+	oauth2Providers, err := models.GetActiveOAuth2ProviderNames()
+	if err != nil {
+		ctx.Handle(500, "UserSignIn", err)
+		return
+	}
+	ctx.Data["OAuth2Providers"] = oauth2Providers
+
+	if ctx.HasError() {
+		ctx.HTML(200, tplLinkAccount)
+		return
+	}
+
+	u, err := models.UserSignIn(form.UserName, form.Password)
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
+		} else {
+			ctx.Handle(500, "UserSignIn", err)
+		}
+		return
+	}
+
+	// If this user is enrolled in 2FA, we can't sign the user in just yet.
+	// Instead, redirect them to the 2FA authentication page.
+	_, err = models.GetTwoFactorByUID(u.ID)
+	if err != nil {
+		if models.IsErrTwoFactorNotEnrolled(err) {
+			handleSignIn(ctx, u, form.Remember)
+		} else {
+			ctx.Handle(500, "UserSignIn", err)
+		}
+		return
+	}
+
+	// User needs to use 2FA, save data and redirect to 2FA page.
+	ctx.Session.Set("twofaUid", u.ID)
+	ctx.Session.Set("twofaRemember", form.Remember)
+	ctx.Session.Set("linkAccount", true)
+
+	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
 }
 
 // SignOut sign out from login status
@@ -459,11 +549,7 @@ func SignUp(ctx *context.Context) {
 
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 
-	if setting.Service.DisableRegistration {
-		ctx.Data["DisableRegistration"] = true
-		ctx.HTML(200, tplSignUp)
-		return
-	}
+	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 
 	ctx.HTML(200, tplSignUp)
 }

@@ -208,6 +208,7 @@ func runWeb(ctx *cli.Context) error {
 			m.Get("/:provider", user.SignInOAuth)
 			m.Get("/:provider/callback", user.SignInOAuthCallback)
 		})
+		m.Combo("/linkaccount").Get(user.LinkAccount).Post(bindIgnErr(auth.SignInForm{}), user.LinkAccountPost)
 		m.Group("/two_factor", func() {
 			m.Get("", user.TwoFactor)
 			m.Post("", bindIgnErr(auth.TwoFactorAuthForm{}), user.TwoFactorPost)
