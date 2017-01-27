@@ -678,7 +678,7 @@ func GetActiveOAuth2ProviderNames() (map[string]string, error) {
 
 	providers := make(map[string]string)
 	for _, source := range loginSources {
-		providers[source.OAuth2().Provider] = OAuth2Providers[source.OAuth2().Provider]
+		providers[source.Name] = OAuth2Providers[source.OAuth2().Provider]
 	}
 
 	return providers, nil
