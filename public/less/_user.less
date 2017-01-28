@@ -99,17 +99,19 @@
             }
         }
 
-        .octicon-issue-opened, .octicon-git-pull-request {
-            color: #21ba45;
-        }
-        .octicon-issue-closed {
-            color: #d01919;
-        }
-        .octicon-git-merge {
-            color: #a333c8;
-        }
-        .octicon-pin {
-            color: #2185d0;
+        .octicon {
+            &.green {
+                color: #21ba45;
+            }
+            &.red {
+                color: #d01919;
+            }
+            &.purple {
+                color: #a333c8;
+            }
+            &.blue {
+                color: #2185d0;
+            }
         }
     }
 }

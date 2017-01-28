@@ -2726,17 +2726,16 @@ footer .ui.language .menu {
 .user.notification table tr {
   cursor: pointer;
 }
-.user.notification .octicon-issue-opened,
-.user.notification .octicon-git-pull-request {
+.user.notification .octicon.green {
   color: #21ba45;
 }
-.user.notification .octicon-issue-closed {
+.user.notification .octicon.red {
   color: #d01919;
 }
-.user.notification .octicon-git-merge {
+.user.notification .octicon.purple {
   color: #a333c8;
 }
-.user.notification .octicon-pin {
+.user.notification .octicon.blue {
   color: #2185d0;
 }
 .dashboard {

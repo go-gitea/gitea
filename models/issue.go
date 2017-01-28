@@ -93,6 +93,16 @@ func (issue *Issue) loadRepo(e Engine) (err error) {
 	return nil
 }
 
+// GetPullRequest returns the issue pull request
+func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
+	if !issue.IsPull {
+		return nil, fmt.Errorf("Issue is not a pull request")
+	}
+
+	pr, err = getPullRequestByIssueID(x, issue.ID)
+	return
+}
+
 func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err := issue.loadRepo(e); err != nil {
 		return err
@@ -953,9 +963,9 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 
 	switch opts.IsPull {
 	case util.OptionalBoolTrue:
-		sess.And("issue.is_pull=?",true)
+		sess.And("issue.is_pull=?", true)
 	case util.OptionalBoolFalse:
-		sess.And("issue.is_pull=?",false)
+		sess.And("issue.is_pull=?", false)
 	}
 
 	sortIssuesSession(sess, opts.SortType)
@@ -1780,4 +1790,3 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 	}
 	return sess.Commit()
 }
-
