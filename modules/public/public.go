@@ -4,6 +4,13 @@
 
 package public
 
+import (
+	"path"
+
+	"code.gitea.io/gitea/modules/setting"
+	"gopkg.in/macaron.v1"
+)
+
 //go:generate go-bindata -tags "bindata" -ignore "\\.go|\\.less" -pkg "public" -o "bindata.go" ../../public/...
 //go:generate go fmt bindata.go
 //go:generate sed -i.bak s/..\/..\/public\/// bindata.go
@@ -13,4 +20,14 @@ package public
 type Options struct {
 	Directory   string
 	SkipLogging bool
+}
+
+// Custom implements the macaron static handler for serving custom assets.
+func Custom(opts *Options) macaron.Handler {
+	return macaron.Static(
+		path.Join(setting.CustomPath, "public"),
+		macaron.StaticOptions{
+			SkipLogging: opts.SkipLogging,
+		},
+	)
 }
