@@ -40,15 +40,19 @@
 										<i class="blue octicon octicon-pin"></i>
 									{{else if $issue.IsPull}}
 										{{if $issue.IsClosed}}
-											<i class="octicon octicon-git-merge"></i>
+											{{if $issue.GetPullRequest.HasMerged}}
+												<i class="purple octicon octicon-git-merge"></i>
+											{{else}}
+												<i class="red octicon octicon-git-pull-request"></i>
+											{{end}}
 										{{else}}
-											<i class="octicon octicon-git-pull-request"></i>
+											<i class="green octicon octicon-git-pull-request"></i>
 										{{end}}
 									{{else}}
 										{{if $issue.IsClosed}}
-											<i class="octicon octicon-issue-closed"></i>
+											<i class="red octicon octicon-issue-closed"></i>
 										{{else}}
-											<i class="octicon octicon-issue-opened"></i>
+											<i class="green octicon octicon-issue-opened"></i>
 										{{end}}
 									{{end}}
 								</td>
