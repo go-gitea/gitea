@@ -953,9 +953,9 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 
 	switch opts.IsPull {
 	case util.OptionalBoolTrue:
-		sess.And("issue.is_pull=?",true)
+		sess.And("issue.is_pull=?", true)
 	case util.OptionalBoolFalse:
-		sess.And("issue.is_pull=?",false)
+		sess.And("issue.is_pull=?", false)
 	}
 
 	sortIssuesSession(sess, opts.SortType)
@@ -1780,4 +1780,3 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 	}
 	return sess.Commit()
 }
-

@@ -70,4 +70,3 @@ func UploadAttachment(ctx *context.Context) {
 		"uuid": attach.UUID,
 	})
 }
-
