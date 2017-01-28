@@ -31,7 +31,6 @@ type Attachment struct {
 	CreatedUnix int64
 }
 
-
 // BeforeInsert is invoked from XORM before inserting an object of this type.
 func (a *Attachment) BeforeInsert() {
 	a.CreatedUnix = time.Now().Unix()

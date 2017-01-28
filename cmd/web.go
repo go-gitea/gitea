@@ -88,6 +88,11 @@ func newMacaron() *macaron.Macaron {
 	if setting.Protocol == setting.FCGI {
 		m.SetURLPrefix(setting.AppSubURL)
 	}
+	m.Use(public.Custom(
+		&public.Options{
+			SkipLogging: setting.DisableRouterLog,
+		},
+	))
 	m.Use(public.Static(
 		&public.Options{
 			Directory:   path.Join(setting.StaticRootPath, "public"),
