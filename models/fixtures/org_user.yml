@@ -5,3 +5,27 @@
   is_public: true
   is_owner: true
   num_teams: 1
+
+-
+  id: 2
+  uid: 4
+  org_id: 3
+  is_public: false
+  is_owner: false
+  num_teams: 0
+
+-
+  id: 3
+  uid: 5
+  org_id: 6
+  is_public: true
+  is_owner: true
+  num_teams: 1
+
+-
+  id: 4
+  uid: 5
+  org_id: 7
+  is_public: false
+  is_owner: true
+  num_teams: 1

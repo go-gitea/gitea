@@ -59,6 +59,13 @@ func loadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error)
 	return sess.Get(bean)
 }
 
+// BeanExists for testing, check if a bean exists
+func BeanExists(t *testing.T, bean interface{}, conditions ...interface{}) bool {
+	exists, err := loadBeanIfExists(bean, conditions...)
+	assert.NoError(t, err)
+	return exists
+}
+
 // AssertExistsAndLoadBean assert that a bean exists and load it from the test
 // database
 func AssertExistsAndLoadBean(t *testing.T, bean interface{}, conditions ...interface{}) interface{} {

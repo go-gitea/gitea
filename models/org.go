@@ -124,6 +124,7 @@ func CreateOrganization(org, owner *User) (err error) {
 	org.MaxRepoCreation = -1
 	org.NumTeams = 1
 	org.NumMembers = 1
+	org.Type = UserTypeOrganization
 
 	sess := x.NewSession()
 	defer sessionRelease(sess)
@@ -350,12 +351,6 @@ func GetOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
 	return getOrgsByUserID(sess, userID, showAll)
 }
 
-// GetOrgsByUserIDDesc returns a list of organizations that the given user ID
-// has joined, ordered descending by the given condition.
-func GetOrgsByUserIDDesc(userID int64, desc string, showAll bool) ([]*User, error) {
-	return getOrgsByUserID(x.Desc(desc), userID, showAll)
-}
-
 func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	return orgs, sess.
@@ -464,10 +459,6 @@ func RemoveOrgUser(orgID, userID int64) error {
 		return nil
 	}
 
-	user, err := GetUserByID(userID)
-	if err != nil {
-		return fmt.Errorf("GetUserByID [%d]: %v", userID, err)
-	}
 	org, err := GetUserByID(orgID)
 	if err != nil {
 		return fmt.Errorf("GetUserByID [%d]: %v", orgID, err)
@@ -497,23 +488,23 @@ func RemoveOrgUser(orgID, userID int64) error {
 	}
 
 	// Delete all repository accesses and unwatch them.
-	env, err := org.AccessibleReposEnv(user.ID)
+	env, err := org.AccessibleReposEnv(userID)
 	if err != nil {
 		return fmt.Errorf("AccessibleReposEnv: %v", err)
 	}
 	repoIDs, err := env.RepoIDs(1, org.NumRepos)
 	if err != nil {
-		return fmt.Errorf("GetUserRepositories [%d]: %v", user.ID, err)
+		return fmt.Errorf("GetUserRepositories [%d]: %v", userID, err)
 	}
 	for _, repoID := range repoIDs {
-		if err = watchRepo(sess, user.ID, repoID, false); err != nil {
+		if err = watchRepo(sess, userID, repoID, false); err != nil {
 			return err
 		}
 	}
 
 	if len(repoIDs) > 0 {
 		if _, err = sess.
-			Where("user_id = ?", user.ID).
+			Where("user_id = ?", userID).
 			In("repo_id", repoIDs).
 			Delete(new(Access)); err != nil {
 			return err
@@ -521,12 +512,12 @@ func RemoveOrgUser(orgID, userID int64) error {
 	}
 
 	// Delete member in his/her teams.
-	teams, err := getUserTeams(sess, org.ID, user.ID)
+	teams, err := getUserTeams(sess, org.ID, userID)
 	if err != nil {
 		return err
 	}
 	for _, t := range teams {
-		if err = removeTeamMember(sess, org.ID, t.ID, user.ID); err != nil {
+		if err = removeTeamMember(sess, org.ID, t.ID, userID); err != nil {
 			return err
 		}
 	}
@@ -540,11 +531,6 @@ func removeOrgRepo(e Engine, orgID, repoID int64) error {
 		RepoID: repoID,
 	})
 	return err
-}
-
-// RemoveOrgRepo removes all team-repository relations of given organization.
-func RemoveOrgRepo(orgID, repoID int64) error {
-	return removeOrgRepo(x, orgID, repoID)
 }
 
 func (org *User) getUserTeams(e Engine, userID int64, cols ...string) ([]*Team, error) {
@@ -619,7 +605,7 @@ func (env *accessibleReposEnv) CountRepos() (int64, error) {
 	repoCount, err := x.
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
-		GroupBy("`repository`.id").
+		Distinct("`repository`.id").
 		Count(&Repository{})
 	if err != nil {
 		return 0, fmt.Errorf("count user repositories in organization: %v", err)
