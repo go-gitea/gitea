@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"code.gitea.io/gitea/tests/internal/utils"
 )
 
@@ -51,9 +53,8 @@ func version(t *utils.T) error {
 	actual := string(bytes.TrimSpace(buf))
 
 	log.Printf("Actual: \"%s\" Expected: \"%s\"\n", string(actual), string(expected))
-	if actual != expected {
-		return fmt.Errorf("do not match")
-	}
+	assert.Equal(t, expected, actual)
+
 	return nil
 }
 
