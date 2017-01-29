@@ -431,7 +431,7 @@ func init() {
 
 	var err error
 	if AppPath, err = execPath(); err != nil {
-		log.Fatal(4, "fail to get app path: %v\n", err)
+		log.Fatal(4, "Failed to get app path: %v", err)
 	}
 
 	// Note: we don't use path.Dir here because it does not handle case
@@ -483,16 +483,16 @@ func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
 func createPIDFile(pidPath string) {
 	currentPid := os.Getpid()
 	if err := os.MkdirAll(filepath.Dir(pidPath), os.ModePerm); err != nil {
-		log.Fatal(4, "Can't create PID folder on %s", err)
+		log.Fatal(4, "Failed to create PID folder: %v", err)
 	}
 
 	file, err := os.Create(pidPath)
 	if err != nil {
-		log.Fatal(4, "Can't create PID file: %v", err)
+		log.Fatal(4, "Failed to create PID file: %v", err)
 	}
 	defer file.Close()
 	if _, err := file.WriteString(strconv.FormatInt(int64(currentPid), 10)); err != nil {
-		log.Fatal(4, "Can'write PID information on %s", err)
+		log.Fatal(4, "Failed to write PID information: %v", err)
 	}
 }
 
@@ -501,13 +501,13 @@ func createPIDFile(pidPath string) {
 func NewContext() {
 	workDir, err := WorkDir()
 	if err != nil {
-		log.Fatal(4, "Fail to get work directory: %v", err)
+		log.Fatal(4, "Failed to get work directory: %v", err)
 	}
 
 	Cfg = ini.Empty()
 
 	if err != nil {
-		log.Fatal(4, "Fail to parse 'app.ini': %v", err)
+		log.Fatal(4, "Failed to parse 'app.ini': %v", err)
 	}
 
 	CustomPath = os.Getenv("GITEA_CUSTOM")
@@ -533,7 +533,7 @@ please consider changing to GITEA_CUSTOM`)
 
 	if com.IsFile(CustomConf) {
 		if err = Cfg.Append(CustomConf); err != nil {
-			log.Fatal(4, "Fail to load custom conf '%s': %v", CustomConf, err)
+			log.Fatal(4, "Failed to load custom conf '%s': %v", CustomConf, err)
 		}
 	} else {
 		log.Warn("Custom config '%s' not found, ignore this if you're running first time", CustomConf)
@@ -542,7 +542,7 @@ please consider changing to GITEA_CUSTOM`)
 
 	homeDir, err := com.HomeDir()
 	if err != nil {
-		log.Fatal(4, "Fail to get home directory: %v", err)
+		log.Fatal(4, "Failed to get home directory: %v", err)
 	}
 	homeDir = strings.Replace(homeDir, "\\", "/", -1)
 
@@ -578,7 +578,7 @@ please consider changing to GITEA_CUSTOM`)
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
 		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
 		if err != nil || UnixSocketPermissionParsed > 0777 {
-			log.Fatal(4, "Fail to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
+			log.Fatal(4, "Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
 		}
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	}
@@ -602,7 +602,7 @@ please consider changing to GITEA_CUSTOM`)
 	SSH.RootPath = path.Join(homeDir, ".ssh")
 	SSH.KeyTestPath = os.TempDir()
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
-		log.Fatal(4, "Fail to map SSH settings: %v", err)
+		log.Fatal(4, "Failed to map SSH settings: %v", err)
 	}
 
 	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
@@ -616,9 +616,9 @@ please consider changing to GITEA_CUSTOM`)
 
 	if !SSH.Disabled && !SSH.StartBuiltinServer {
 		if err := os.MkdirAll(SSH.RootPath, 0700); err != nil {
-			log.Fatal(4, "Fail to create '%s': %v", SSH.RootPath, err)
+			log.Fatal(4, "Failed to create '%s': %v", SSH.RootPath, err)
 		} else if err = os.MkdirAll(SSH.KeyTestPath, 0644); err != nil {
-			log.Fatal(4, "Fail to create '%s': %v", SSH.KeyTestPath, err)
+			log.Fatal(4, "Failed to create '%s': %v", SSH.KeyTestPath, err)
 		}
 	}
 
@@ -632,13 +632,13 @@ please consider changing to GITEA_CUSTOM`)
 	}
 
 	if err = Cfg.Section("server").MapTo(&LFS); err != nil {
-		log.Fatal(4, "Fail to map LFS settings: %v", err)
+		log.Fatal(4, "Failed to map LFS settings: %v", err)
 	}
 
 	if LFS.StartServer {
 
 		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
-			log.Fatal(4, "Fail to create '%s': %v", LFS.ContentPath, err)
+			log.Fatal(4, "Failed to create '%s': %v", LFS.ContentPath, err)
 		}
 
 		LFS.JWTSecretBytes = make([]byte, 32)
@@ -650,7 +650,7 @@ please consider changing to GITEA_CUSTOM`)
 			_, err := io.ReadFull(rand.Reader, LFS.JWTSecretBytes)
 
 			if err != nil {
-				log.Fatal(4, "Error reading random bytes: %s", err)
+				log.Fatal(4, "Error reading random bytes: %v", err)
 			}
 
 			LFS.JWTSecretBase64 = base64.RawURLEncoding.EncodeToString(LFS.JWTSecretBytes)
@@ -660,14 +660,14 @@ please consider changing to GITEA_CUSTOM`)
 			if com.IsFile(CustomConf) {
 				// Keeps custom settings if there is already something.
 				if err := cfg.Append(CustomConf); err != nil {
-					log.Error(4, "Fail to load custom conf '%s': %v", CustomConf, err)
+					log.Error(4, "Failed to load custom conf '%s': %v", CustomConf, err)
 				}
 			}
 
 			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
 
 			if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-				log.Fatal(4, "Fail to create '%s': %v", CustomConf, err)
+				log.Fatal(4, "Failed to create '%s': %v", CustomConf, err)
 			}
 			if err := cfg.SaveTo(CustomConf); err != nil {
 				log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
@@ -680,22 +680,22 @@ please consider changing to GITEA_CUSTOM`)
 
 		binVersion, err := git.BinVersion()
 		if err != nil {
-			log.Fatal(4, "Error retrieving git version: %s", err)
+			log.Fatal(4, "Error retrieving git version: %v", err)
 		}
 
 		splitVersion := strings.SplitN(binVersion, ".", 3)
 
 		majorVersion, err := strconv.ParseUint(splitVersion[0], 10, 64)
 		if err != nil {
-			log.Fatal(4, "Error parsing git major version: %s", err)
+			log.Fatal(4, "Error parsing git major version: %v", err)
 		}
 		minorVersion, err := strconv.ParseUint(splitVersion[1], 10, 64)
 		if err != nil {
-			log.Fatal(4, "Error parsing git minor version: %s", err)
+			log.Fatal(4, "Error parsing git minor version: %v", err)
 		}
 		revisionVersion, err := strconv.ParseUint(splitVersion[2], 10, 64)
 		if err != nil {
-			log.Fatal(4, "Error parsing git revision version: %s", err)
+			log.Fatal(4, "Error parsing git revision version: %v", err)
 		}
 
 		if !((majorVersion > 2) || (majorVersion == 2 && minorVersion > 1) ||
@@ -771,11 +771,11 @@ please consider changing to GITEA_CUSTOM`)
 	}
 	ScriptType = sec.Key("SCRIPT_TYPE").MustString("bash")
 	if err = Cfg.Section("repository").MapTo(&Repository); err != nil {
-		log.Fatal(4, "Fail to map Repository settings: %v", err)
+		log.Fatal(4, "Failed to map Repository settings: %v", err)
 	} else if err = Cfg.Section("repository.editor").MapTo(&Repository.Editor); err != nil {
-		log.Fatal(4, "Fail to map Repository.Editor settings: %v", err)
+		log.Fatal(4, "Failed to map Repository.Editor settings: %v", err)
 	} else if err = Cfg.Section("repository.upload").MapTo(&Repository.Upload); err != nil {
-		log.Fatal(4, "Fail to map Repository.Upload settings: %v", err)
+		log.Fatal(4, "Failed to map Repository.Upload settings: %v", err)
 	}
 
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
@@ -823,17 +823,17 @@ please consider changing to GITEA_CUSTOM`)
 	}
 
 	if err = Cfg.Section("ui").MapTo(&UI); err != nil {
-		log.Fatal(4, "Fail to map UI settings: %v", err)
+		log.Fatal(4, "Failed to map UI settings: %v", err)
 	} else if err = Cfg.Section("markdown").MapTo(&Markdown); err != nil {
-		log.Fatal(4, "Fail to map Markdown settings: %v", err)
+		log.Fatal(4, "Failed to map Markdown settings: %v", err)
 	} else if err = Cfg.Section("cron").MapTo(&Cron); err != nil {
-		log.Fatal(4, "Fail to map Cron settings: %v", err)
+		log.Fatal(4, "Failed to map Cron settings: %v", err)
 	} else if err = Cfg.Section("git").MapTo(&Git); err != nil {
-		log.Fatal(4, "Fail to map Git settings: %v", err)
+		log.Fatal(4, "Failed to map Git settings: %v", err)
 	} else if err = Cfg.Section("mirror").MapTo(&Mirror); err != nil {
-		log.Fatal(4, "Fail to map Mirror settings: %v", err)
+		log.Fatal(4, "Failed to map Mirror settings: %v", err)
 	} else if err = Cfg.Section("api").MapTo(&API); err != nil {
-		log.Fatal(4, "Fail to map API settings: %v", err)
+		log.Fatal(4, "Failed to map API settings: %v", err)
 	}
 
 	if Mirror.DefaultInterval <= 0 {

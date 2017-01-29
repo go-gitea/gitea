@@ -414,7 +414,7 @@ func (u *User) UploadAvatar(data []byte) error {
 	}
 
 	if err := os.MkdirAll(setting.AvatarUploadPath, os.ModePerm); err != nil {
-		return fmt.Errorf("Fail to create dir %s: %v", setting.AvatarUploadPath, err)
+		return fmt.Errorf("Failed to create dir %s: %v", setting.AvatarUploadPath, err)
 	}
 
 	fw, err := os.Create(u.CustomAvatarPath())
@@ -435,7 +435,7 @@ func (u *User) DeleteAvatar() error {
 	log.Trace("DeleteAvatar[%d]: %s", u.ID, u.CustomAvatarPath())
 
 	if err := os.Remove(u.CustomAvatarPath()); err != nil {
-		return fmt.Errorf("Fail to remove %s: %v", u.CustomAvatarPath(), err)
+		return fmt.Errorf("Failed to remove %s: %v", u.CustomAvatarPath(), err)
 	}
 
 	u.UseCustomAvatar = false
@@ -924,13 +924,13 @@ func deleteUser(e *xorm.Session, u *User) error {
 	path := UserPath(u.Name)
 
 	if err := os.RemoveAll(path); err != nil {
-		return fmt.Errorf("Fail to RemoveAll %s: %v", path, err)
+		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
 	}
 
 	avatarPath := u.CustomAvatarPath()
 	if com.IsExist(avatarPath) {
 		if err := os.Remove(avatarPath); err != nil {
-			return fmt.Errorf("Fail to remove %s: %v", avatarPath, err)
+			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 		}
 	}
 

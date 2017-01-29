@@ -8,9 +8,9 @@ package cmd
 
 import (
 	"crypto/tls"
-	"log"
 	"net/http"
 
+	"code.gitea.io/gitea/modules/log"
 	"github.com/facebookgo/grace/gracehttp"
 )
 

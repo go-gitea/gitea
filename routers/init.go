@@ -51,7 +51,7 @@ func GlobalInit() {
 		highlight.NewContext()
 		markdown.BuildSanitizer()
 		if err := models.NewEngine(); err != nil {
-			log.Fatal(4, "Fail to initialize ORM engine: %v", err)
+			log.Fatal(4, "Failed to initialize ORM engine: %v", err)
 		}
 		models.HasEngine = true
 

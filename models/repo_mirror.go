@@ -140,7 +140,7 @@ func (m *Mirror) runSync() bool {
 	if _, stderr, err := process.GetManager().ExecDir(
 		timeout, repoPath, fmt.Sprintf("Mirror.runSync: %s", repoPath),
 		"git", gitArgs...); err != nil {
-		desc := fmt.Sprintf("Fail to update mirror repository '%s': %s", repoPath, stderr)
+		desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", repoPath, stderr)
 		log.Error(4, desc)
 		if err = CreateRepositoryNotice(desc); err != nil {
 			log.Error(4, "CreateRepositoryNotice: %v", err)
@@ -151,7 +151,7 @@ func (m *Mirror) runSync() bool {
 		if _, stderr, err := process.GetManager().ExecDir(
 			timeout, wikiPath, fmt.Sprintf("Mirror.runSync: %s", wikiPath),
 			"git", "remote", "update", "--prune"); err != nil {
-			desc := fmt.Sprintf("Fail to update mirror wiki repository '%s': %s", wikiPath, stderr)
+			desc := fmt.Sprintf("Failed to update mirror wiki repository '%s': %s", wikiPath, stderr)
 			log.Error(4, desc)
 			if err = CreateRepositoryNotice(desc); err != nil {
 				log.Error(4, "CreateRepositoryNotice: %v", err)

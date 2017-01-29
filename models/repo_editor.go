@@ -107,7 +107,7 @@ func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (
 	dir := path.Dir(filePath)
 
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("Fail to create dir %s: %v", dir, err)
+		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
 	// If it's meant to be a new file, make sure it doesn't exist.
@@ -192,7 +192,7 @@ func (repo *Repository) GetDiffPreview(branch, treePath, content string) (diff *
 	dir := filepath.Dir(filePath)
 
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return nil, fmt.Errorf("Fail to create dir %s: %v", dir, err)
+		return nil, fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
 	if err = ioutil.WriteFile(filePath, []byte(content), 0666); err != nil {
@@ -486,7 +486,7 @@ func (repo *Repository) UploadRepoFiles(doer *User, opts UploadRepoFileOptions) 
 	dirPath := path.Join(localPath, opts.TreePath)
 
 	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
-		return fmt.Errorf("Fail to create dir %s: %v", dirPath, err)
+		return fmt.Errorf("Failed to create dir %s: %v", dirPath, err)
 	}
 
 	// Copy uploaded files into repository.

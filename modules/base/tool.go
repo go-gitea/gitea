@@ -110,7 +110,7 @@ func GetRandomBytesAsBase64(n int) string {
 	_, err := io.ReadFull(rand.Reader, bytes)
 
 	if err != nil {
-		log.Fatal(4, "Error reading random bytes: %s", err)
+		log.Fatal(4, "Error reading random bytes: %v", err)
 	}
 
 	return base64.RawURLEncoding.EncodeToString(bytes)
