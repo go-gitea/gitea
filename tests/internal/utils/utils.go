@@ -15,7 +15,7 @@ import (
 
 // T wraps testing.T and the configurations of the testing instance.
 type T struct {
-	T      *testing.T
+	*testing.T
 	Config *Config
 }
 
