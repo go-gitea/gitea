@@ -276,11 +276,19 @@ func HasIssueLabel(issueID, labelID int64) bool {
 	return hasIssueLabel(x, issueID, labelID)
 }
 
-func newIssueLabel(e *xorm.Session, issue *Issue, label *Label) (err error) {
+func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err error) {
 	if _, err = e.Insert(&IssueLabel{
 		IssueID: issue.ID,
 		LabelID: label.ID,
 	}); err != nil {
+		return err
+	}
+
+	if err = issue.loadRepo(e); err != nil {
+		return
+	}
+
+	if _, err = createLabelComment(e, doer, issue.Repo, issue, label, true); err != nil {
 		return err
 	}
 
@@ -292,7 +300,7 @@ func newIssueLabel(e *xorm.Session, issue *Issue, label *Label) (err error) {
 }
 
 // NewIssueLabel creates a new issue-label relation.
-func NewIssueLabel(issue *Issue, label *Label) (err error) {
+func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 	if HasIssueLabel(issue.ID, label.ID) {
 		return nil
 	}
@@ -303,20 +311,20 @@ func NewIssueLabel(issue *Issue, label *Label) (err error) {
 		return err
 	}
 
-	if err = newIssueLabel(sess, issue, label); err != nil {
+	if err = newIssueLabel(sess, issue, label, doer); err != nil {
 		return err
 	}
 
 	return sess.Commit()
 }
 
-func newIssueLabels(e *xorm.Session, issue *Issue, labels []*Label) (err error) {
+func newIssueLabels(e *xorm.Session, issue *Issue, labels []*Label, doer *User) (err error) {
 	for i := range labels {
 		if hasIssueLabel(e, issue.ID, labels[i].ID) {
 			continue
 		}
 
-		if err = newIssueLabel(e, issue, labels[i]); err != nil {
+		if err = newIssueLabel(e, issue, labels[i], doer); err != nil {
 			return fmt.Errorf("newIssueLabel: %v", err)
 		}
 	}
@@ -325,14 +333,14 @@ func newIssueLabels(e *xorm.Session, issue *Issue, labels []*Label) (err error) 
 }
 
 // NewIssueLabels creates a list of issue-label relations.
-func NewIssueLabels(issue *Issue, labels []*Label) (err error) {
+func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	sess := x.NewSession()
 	defer sessionRelease(sess)
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = newIssueLabels(sess, issue, labels); err != nil {
+	if err = newIssueLabels(sess, issue, labels, doer); err != nil {
 		return err
 	}
 
@@ -352,11 +360,19 @@ func GetIssueLabels(issueID int64) ([]*IssueLabel, error) {
 	return getIssueLabels(x, issueID)
 }
 
-func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label) (err error) {
+func deleteIssueLabel(e *xorm.Session, doer *User, issue *Issue, label *Label) (err error) {
 	if _, err = e.Delete(&IssueLabel{
 		IssueID: issue.ID,
 		LabelID: label.ID,
 	}); err != nil {
+		return err
+	}
+
+	if err = issue.loadRepo(e); err != nil {
+		return
+	}
+
+	if _, err = createLabelComment(e, doer, issue.Repo, issue, label, false); err != nil {
 		return err
 	}
 
@@ -368,14 +384,14 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label) (err error) {
 }
 
 // DeleteIssueLabel deletes issue-label relation.
-func DeleteIssueLabel(issue *Issue, label *Label) (err error) {
+func DeleteIssueLabel(issue *Issue, doer *User, label *Label) (err error) {
 	sess := x.NewSession()
 	defer sessionRelease(sess)
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = deleteIssueLabel(sess, issue, label); err != nil {
+	if err = deleteIssueLabel(sess, doer, issue, label); err != nil {
 		return err
 	}
 

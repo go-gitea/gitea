@@ -36,6 +36,8 @@ const (
 	CommentTypeCommentRef
 	// Reference from a pull request
 	CommentTypePullRef
+	// Labels changed
+	CommentTypeLabel
 )
 
 // CommentTag defines comment tag type
@@ -57,6 +59,8 @@ type Comment struct {
 	Poster          *User `xorm:"-"`
 	IssueID         int64 `xorm:"INDEX"`
 	CommitID        int64
+	LabelID         int64
+	Label           *Label `xorm:"-"`
 	Line            int64
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
@@ -185,6 +189,21 @@ func (c *Comment) EventTag() string {
 	return "event-" + com.ToStr(c.ID)
 }
 
+// LoadLabel if comment.Type is CommentTypeLabel, then load Label
+func (c *Comment) LoadLabel() error {
+	var label Label
+	has, err := x.ID(c.LabelID).Get(&label)
+	if err != nil {
+		return err
+	} else if !has {
+		return ErrLabelNotExist{
+			LabelID: c.LabelID,
+		}
+	}
+	c.Label = &label
+	return nil
+}
+
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
 func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
@@ -209,17 +228,26 @@ func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (e
 }
 
 func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
+	var LabelID int64
+	if opts.Label != nil {
+		LabelID = opts.Label.ID
+	}
 	comment := &Comment{
 		Type:      opts.Type,
 		PosterID:  opts.Doer.ID,
 		Poster:    opts.Doer,
 		IssueID:   opts.Issue.ID,
+		LabelID:   LabelID,
 		CommitID:  opts.CommitID,
 		CommitSHA: opts.CommitSHA,
 		Line:      opts.LineNum,
 		Content:   opts.Content,
 	}
 	if _, err = e.Insert(comment); err != nil {
+		return nil, err
+	}
+
+	if err = opts.Repo.getOwner(e); err != nil {
 		return nil, err
 	}
 
@@ -324,12 +352,28 @@ func createStatusComment(e *xorm.Session, doer *User, repo *Repository, issue *I
 	})
 }
 
+func createLabelComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, label *Label, add bool) (*Comment, error) {
+	var content string
+	if add {
+		content = "1"
+	}
+	return createComment(e, &CreateCommentOptions{
+		Type:    CommentTypeLabel,
+		Doer:    doer,
+		Repo:    repo,
+		Issue:   issue,
+		Label:   label,
+		Content: content,
+	})
+}
+
 // CreateCommentOptions defines options for creating comment
 type CreateCommentOptions struct {
 	Type  CommentType
 	Doer  *User
 	Repo  *Repository
 	Issue *Issue
+	Label *Label
 
 	CommitID    int64
 	CommitSHA   string

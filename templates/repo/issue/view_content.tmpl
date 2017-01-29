@@ -58,7 +58,7 @@
 			{{range .Issue.Comments}}
 				{{ $createdStr:= TimeSince .Created $.Lang }}
 
-				<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF, 5 = COMMENT_REF, 6 = PULL_REF -->
+				<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF, 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL -->
 				{{if eq .Type 0}}
 					<div class="comment" id="{{.HashTag}}">
 						<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
@@ -143,6 +143,15 @@
 							<span class="octicon octicon-git-commit"></span>
 							<span class="text grey">{{.Content | Str2html}}</span>
 						</div>
+					</div>
+				{{else if eq .Type 7}}
+					<div class="event">
+						<span class="octicon octicon-primitive-dot"></span>
+						<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+							<img src="{{.Poster.RelAvatarLink}}">
+						</a>
+						<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
+						{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color  .Label.Name $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color .Label.Name $createdStr | Safe}}{{end}}</span>
 					</div>
 				{{end}}
 
