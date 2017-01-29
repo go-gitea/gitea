@@ -35,7 +35,7 @@ func NewLogger(bufLen int64, mode, config string) {
 		loggers = append(loggers, logger)
 	}
 	if err := logger.SetLogger(mode, config); err != nil {
-		Fatal(2, "Fail to set logger (%s): %v", mode, err)
+		Fatal(2, "Failed to set logger (%s): %v", mode, err)
 	}
 }
 
@@ -56,7 +56,7 @@ func NewGitLogger(logPath string) {
 	path := path.Dir(logPath)
 
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		Fatal(4, "Fail to create dir %s: %v", path, err)
+		Fatal(4, "Failed to create dir %s: %v", path, err)
 	}
 
 	GitLogger = newLogger(0)

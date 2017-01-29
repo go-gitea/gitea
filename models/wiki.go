@@ -133,7 +133,7 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiPath, wikiPath, conten
 		file := path.Join(localPath, oldWikiPath+".md")
 
 		if err := os.Remove(file); err != nil {
-			return fmt.Errorf("Fail to remove %s: %v", file, err)
+			return fmt.Errorf("Failed to remove %s: %v", file, err)
 		}
 	}
 
@@ -192,7 +192,7 @@ func (repo *Repository) DeleteWikiPage(doer *User, wikiPath string) (err error) 
 	filename := path.Join(localPath, wikiPath+".md")
 
 	if err := os.Remove(filename); err != nil {
-		return fmt.Errorf("Fail to remove %s: %v", filename, err)
+		return fmt.Errorf("Failed to remove %s: %v", filename, err)
 	}
 
 	title := ToWikiPageName(wikiPath)

@@ -151,7 +151,7 @@ func (w *FileLogWriter) initFd() error {
 	fd := w.mw.fd
 	finfo, err := fd.Stat()
 	if err != nil {
-		return fmt.Errorf("get stat: %s", err)
+		return fmt.Errorf("get stat: %v", err)
 	}
 	w.maxsizeCursize = int(finfo.Size())
 	w.dailyOpenDate = time.Now().Day()
@@ -194,12 +194,12 @@ func (w *FileLogWriter) DoRotate() error {
 		// close fd before rename
 		// Rename the file to its newfound home
 		if err = os.Rename(w.Filename, fname); err != nil {
-			return fmt.Errorf("Rotate: %s", err)
+			return fmt.Errorf("Rotate: %v", err)
 		}
 
 		// re-start logger
 		if err = w.StartLogger(); err != nil {
-			return fmt.Errorf("Rotate StartLogger: %s", err)
+			return fmt.Errorf("Rotate StartLogger: %v", err)
 		}
 
 		go w.deleteOldLog()
@@ -221,7 +221,7 @@ func (w *FileLogWriter) deleteOldLog() {
 			if strings.HasPrefix(filepath.Base(path), filepath.Base(w.Filename)) {
 
 				if err := os.Remove(path); err != nil {
-					returnErr = fmt.Errorf("Fail to remove %s: %v", path, err)
+					returnErr = fmt.Errorf("Failed to remove %s: %v", path, err)
 				}
 			}
 		}

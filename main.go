@@ -38,7 +38,7 @@ func main() {
 	app.Flags = append(app.Flags, []cli.Flag{}...)
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Fatal(4, "Fail to run app with %s: %v", os.Args, err)
+		log.Fatal(4, "Failed to run app with %s: %v", os.Args, err)
 	}
 
 }

@@ -5,7 +5,6 @@
 package ssh
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -117,7 +116,7 @@ func handleServerConn(keyID string, chans <-chan ssh.NewChannel) {
 func listen(config *ssh.ServerConfig, host string, port int) {
 	listener, err := net.Listen("tcp", host+":"+com.ToStr(port))
 	if err != nil {
-		log.Fatal(4, "Fail to start SSH server: %v", err)
+		log.Fatal(4, "Failed to start SSH server: %v", err)
 	}
 	for {
 		// Once a ServerConfig has been configured, connections can be accepted.
@@ -169,23 +168,23 @@ func Listen(host string, port int) {
 		filePath := filepath.Dir(keyPath)
 
 		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
-			log.Error(4, "Fail to create dir %s: %v", filePath, err)
+			log.Error(4, "Failed to create dir %s: %v", filePath, err)
 		}
 
 		_, stderr, err := com.ExecCmd("ssh-keygen", "-f", keyPath, "-t", "rsa", "-N", "")
 		if err != nil {
-			panic(fmt.Sprintf("Fail to generate private key: %v - %s", err, stderr))
+			log.Fatal(4, "Failed to generate private key: %v - %s", err, stderr)
 		}
 		log.Trace("SSH: New private key is generateed: %s", keyPath)
 	}
 
 	privateBytes, err := ioutil.ReadFile(keyPath)
 	if err != nil {
-		panic("SSH: Fail to load private key")
+		log.Fatal(4, "SSH: Failed to load private key")
 	}
 	private, err := ssh.ParsePrivateKey(privateBytes)
 	if err != nil {
-		panic("SSH: Fail to parse private key")
+		log.Fatal(4, "SSH: Failed to parse private key")
 	}
 	config.AddHostKey(private)
 

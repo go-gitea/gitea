@@ -68,7 +68,7 @@ func runDump(ctx *cli.Context) error {
 	}
 	TmpWorkDir, err := ioutil.TempDir(tmpDir, "gitea-dump-")
 	if err != nil {
-		log.Fatalf("Fail to create tmp work directory: %v", err)
+		log.Fatalf("Failed to create tmp work directory: %v", err)
 	}
 	log.Printf("Creating tmp work dir: %s", TmpWorkDir)
 
@@ -78,7 +78,7 @@ func runDump(ctx *cli.Context) error {
 	log.Printf("Dumping local repositories...%s", setting.RepoRootPath)
 	zip.Verbose = ctx.Bool("verbose")
 	if err := zip.PackTo(setting.RepoRootPath, reposDump, true); err != nil {
-		log.Fatalf("Fail to dump local repositories: %v", err)
+		log.Fatalf("Failed to dump local repositories: %v", err)
 	}
 
 	targetDBType := ctx.String("database")
@@ -89,26 +89,26 @@ func runDump(ctx *cli.Context) error {
 	}
 
 	if err := models.DumpDatabase(dbDump, targetDBType); err != nil {
-		log.Fatalf("Fail to dump database: %v", err)
+		log.Fatalf("Failed to dump database: %v", err)
 	}
 
 	fileName := fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix())
 	log.Printf("Packing dump files...")
 	z, err := zip.Create(fileName)
 	if err != nil {
-		log.Fatalf("Fail to create %s: %v", fileName, err)
+		log.Fatalf("Failed to create %s: %v", fileName, err)
 	}
 
 	if err := z.AddFile("gitea-repo.zip", reposDump); err != nil {
-		log.Fatalf("Fail to include gitea-repo.zip: %v", err)
+		log.Fatalf("Failed to include gitea-repo.zip: %v", err)
 	}
 	if err := z.AddFile("gitea-db.sql", dbDump); err != nil {
-		log.Fatalf("Fail to include gitea-db.sql: %v", err)
+		log.Fatalf("Failed to include gitea-db.sql: %v", err)
 	}
 	customDir, err := os.Stat(setting.CustomPath)
 	if err == nil && customDir.IsDir() {
 		if err := z.AddDir("custom", setting.CustomPath); err != nil {
-			log.Fatalf("Fail to include custom: %v", err)
+			log.Fatalf("Failed to include custom: %v", err)
 		}
 	} else {
 		log.Printf("Custom dir %s doesn't exist, skipped", setting.CustomPath)
@@ -124,16 +124,16 @@ func runDump(ctx *cli.Context) error {
 	}
 
 	if err := zipAddDirectoryExclude(z, "data", setting.AppDataPath, sessionAbsPath); err != nil {
-		log.Fatalf("Fail to include data directory: %v", err)
+		log.Fatalf("Failed to include data directory: %v", err)
 	}
 
 	if err := z.AddDir("log", setting.LogRootPath); err != nil {
-		log.Fatalf("Fail to include log: %v", err)
+		log.Fatalf("Failed to include log: %v", err)
 	}
 	// FIXME: SSH key file.
 	if err = z.Close(); err != nil {
 		_ = os.Remove(fileName)
-		log.Fatalf("Fail to save %s: %v", fileName, err)
+		log.Fatalf("Failed to save %s: %v", fileName, err)
 	}
 
 	if err := os.Chmod(fileName, 0600); err != nil {
@@ -143,7 +143,7 @@ func runDump(ctx *cli.Context) error {
 	log.Printf("Removing tmp work dir: %s", TmpWorkDir)
 
 	if err := os.RemoveAll(TmpWorkDir); err != nil {
-		log.Fatalf("Fail to remove %s: %v", TmpWorkDir, err)
+		log.Fatalf("Failed to remove %s: %v", TmpWorkDir, err)
 	}
 	log.Printf("Finish dumping in file %s", fileName)
 

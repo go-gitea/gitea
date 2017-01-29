@@ -328,7 +328,7 @@ func attachmentRefactor(x *xorm.Engine) error {
 
 		dumpPath := path.Join(setting.LogRootPath, "attachment_path.dump")
 		ioutil.WriteFile(dumpPath, buf.Bytes(), 0666)
-		fmt.Println("Fail to rename some attachments, old and new paths are saved into:", dumpPath)
+		log.Info("Failed to rename some attachments, old and new paths are saved into: %s", dumpPath)
 	}()
 	for _, attach := range attachments {
 		if err = os.MkdirAll(path.Dir(attach.NewPath), os.ModePerm); err != nil {

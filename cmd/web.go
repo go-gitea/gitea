@@ -114,7 +114,7 @@ func newMacaron() *macaron.Macaron {
 	localeNames, err := options.Dir("locale")
 
 	if err != nil {
-		log.Fatal(4, "Fail to list locale files: %v", err)
+		log.Fatal(4, "Failed to list locale files: %v", err)
 	}
 
 	localFiles := make(map[string][]byte)
@@ -655,7 +655,7 @@ func runWeb(ctx *cli.Context) error {
 		err = fcgi.Serve(nil, m)
 	case setting.UnixSocket:
 		if err := os.Remove(listenAddr); err != nil {
-			log.Fatal(4, "Fail to remove unix socket directory %s: %v", listenAddr, err)
+			log.Fatal(4, "Failed to remove unix socket directory %s: %v", listenAddr, err)
 		}
 		var listener *net.UnixListener
 		listener, err = net.ListenUnix("unix", &net.UnixAddr{Name: listenAddr, Net: "unix"})
@@ -674,7 +674,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	if err != nil {
-		log.Fatal(4, "Fail to start server: %v", err)
+		log.Fatal(4, "Failed to start server: %v", err)
 	}
 
 	return nil

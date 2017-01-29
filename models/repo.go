@@ -83,13 +83,13 @@ func LoadRepoConfig() {
 	for i, t := range types {
 		files, err := options.Dir(t)
 		if err != nil {
-			log.Fatal(4, "Fail to get %s files: %v", t, err)
+			log.Fatal(4, "Failed to get %s files: %v", t, err)
 		}
 		customPath := path.Join(setting.CustomPath, "options", t)
 		if com.IsDir(customPath) {
 			customFiles, err := com.StatDir(customPath)
 			if err != nil {
-				log.Fatal(4, "Fail to get custom %s files: %v", t, err)
+				log.Fatal(4, "Failed to get custom %s files: %v", t, err)
 			}
 
 			for _, f := range customFiles {
@@ -131,13 +131,13 @@ func NewRepoContext() {
 
 	// Check Git installation.
 	if _, err := exec.LookPath("git"); err != nil {
-		log.Fatal(4, "Fail to test 'git' command: %v (forgotten install?)", err)
+		log.Fatal(4, "Failed to test 'git' command: %v (forgotten install?)", err)
 	}
 
 	// Check Git version.
 	gitVer, err := git.BinVersion()
 	if err != nil {
-		log.Fatal(4, "Fail to get Git version: %v", err)
+		log.Fatal(4, "Failed to get Git version: %v", err)
 	}
 
 	log.Info("Git Version: %s", gitVer)
@@ -151,11 +151,11 @@ func NewRepoContext() {
 			// ExitError indicates this config is not set
 			if _, ok := err.(*exec.ExitError); ok || strings.TrimSpace(stdout) == "" {
 				if _, stderr, gerr := process.GetManager().Exec("NewRepoContext(set "+configKey+")", "git", "config", "--global", configKey, defaultValue); gerr != nil {
-					log.Fatal(4, "Fail to set git %s(%s): %s", configKey, gerr, stderr)
+					log.Fatal(4, "Failed to set git %s(%s): %s", configKey, gerr, stderr)
 				}
 				log.Info("Git config %s set to %s", configKey, defaultValue)
 			} else {
-				log.Fatal(4, "Fail to get git %s(%s): %s", configKey, err, stderr)
+				log.Fatal(4, "Failed to get git %s(%s): %s", configKey, err, stderr)
 			}
 		}
 	}
@@ -163,7 +163,7 @@ func NewRepoContext() {
 	// Set git some configurations.
 	if _, stderr, err := process.GetManager().Exec("NewRepoContext(git config --global core.quotepath false)",
 		"git", "config", "--global", "core.quotepath", "false"); err != nil {
-		log.Fatal(4, "Fail to execute 'git config --global core.quotepath false': %s", stderr)
+		log.Fatal(4, "Failed to execute 'git config --global core.quotepath false': %s", stderr)
 	}
 
 	RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
@@ -566,7 +566,7 @@ func (repo *Repository) SavePatch(index int64, patch []byte) error {
 	dir := filepath.Dir(patchPath)
 
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("Fail to create dir %s: %v", dir, err)
+		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
 	if err = ioutil.WriteFile(patchPath, patch, 0644); err != nil {
@@ -679,7 +679,7 @@ func MigrateRepository(u *User, opts MigrateRepoOptions) (*Repository, error) {
 	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
 
 	if err := os.RemoveAll(repoPath); err != nil {
-		return repo, fmt.Errorf("Fail to remove %s: %v", repoPath, err)
+		return repo, fmt.Errorf("Failed to remove %s: %v", repoPath, err)
 	}
 
 	if err = git.Clone(opts.RemoteAddr, repoPath, git.CloneRepoOptions{
@@ -693,7 +693,7 @@ func MigrateRepository(u *User, opts MigrateRepoOptions) (*Repository, error) {
 	wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
 	if len(wikiRemotePath) > 0 {
 		if err := os.RemoveAll(wikiPath); err != nil {
-			return repo, fmt.Errorf("Fail to remove %s: %v", wikiPath, err)
+			return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 		}
 
 		if err = git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
@@ -704,7 +704,7 @@ func MigrateRepository(u *User, opts MigrateRepoOptions) (*Repository, error) {
 		}); err != nil {
 			log.Warn("Clone wiki: %v", err)
 			if err := os.RemoveAll(wikiPath); err != nil {
-				return repo, fmt.Errorf("Fail to remove %s: %v", wikiPath, err)
+				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 			}
 		}
 	}
@@ -938,7 +938,7 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 	if opts.AutoInit {
 
 		if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-			return fmt.Errorf("Fail to create dir %s: %v", tmpDir, err)
+			return fmt.Errorf("Failed to create dir %s: %v", tmpDir, err)
 		}
 
 		defer os.RemoveAll(tmpDir)
@@ -1243,7 +1243,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	dir := UserPath(newOwner.Name)
 
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("Fail to create dir %s: %v", dir, err)
+		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
 	if err = os.Rename(RepoPath(owner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
@@ -1818,7 +1818,7 @@ func GitFsck() {
 				repo := bean.(*Repository)
 				repoPath := repo.RepoPath()
 				if err := git.Fsck(repoPath, setting.Cron.RepoHealthCheck.Timeout, setting.Cron.RepoHealthCheck.Args...); err != nil {
-					desc := fmt.Sprintf("Fail to health check repository (%s): %v", repoPath, err)
+					desc := fmt.Sprintf("Failed to health check repository (%s): %v", repoPath, err)
 					log.Warn(desc)
 					if err = CreateRepositoryNotice(desc); err != nil {
 						log.Error(4, "CreateRepositoryNotice: %v", err)

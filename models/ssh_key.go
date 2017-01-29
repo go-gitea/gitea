@@ -376,7 +376,7 @@ func addKey(e Engine, key *PublicKey) (err error) {
 	dir := path.Dir(tmpPath)
 
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("Fail to create dir %s: %v", dir, err)
+		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
 	if err = ioutil.WriteFile(tmpPath, []byte(key.Content), 0644); err != nil {

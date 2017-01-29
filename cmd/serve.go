@@ -56,7 +56,7 @@ func setup(logPath string) {
 	if setting.UseSQLite3 || setting.UseTiDB {
 		workDir, _ := setting.WorkDir()
 		if err := os.Chdir(workDir); err != nil {
-			log.GitLogger.Fatal(4, "Fail to change directory %s: %v", workDir, err)
+			log.GitLogger.Fatal(4, "Failed to change directory %s: %v", workDir, err)
 		}
 	}
 
@@ -134,10 +134,10 @@ func handleUpdateTask(uuid string, user, repoUser *models.User, reponame string,
 	if err == nil {
 		resp.Body.Close()
 		if resp.StatusCode/100 != 2 {
-			log.GitLogger.Error(2, "Fail to trigger task: not 2xx response code")
+			log.GitLogger.Error(2, "Failed to trigger task: not 2xx response code")
 		}
 	} else {
-		log.GitLogger.Error(2, "Fail to trigger task: %v", err)
+		log.GitLogger.Error(2, "Failed to trigger task: %v", err)
 	}
 }
 
@@ -273,7 +273,7 @@ func runServ(c *cli.Context) error {
 
 			mode, err := models.AccessLevel(user, repo)
 			if err != nil {
-				fail("Internal error", "Fail to check access: %v", err)
+				fail("Internal error", "Failed to check access: %v", err)
 			} else if mode < requestedMode {
 				clientMessage := accessDenied
 				if mode >= models.AccessModeRead {
