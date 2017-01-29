@@ -1315,64 +1315,64 @@ footer .ui.language .menu {
 .repository.file.list #file-content .view-raw img {
   padding: 5px 5px 0 5px;
 }
-.repository.file.list #file-content .code-view * {
+.code-view * {
   font-size: 12px;
   font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
   line-height: 20px;
 }
-.repository.file.list #file-content .code-view table {
+.code-view table {
   width: 100%;
 }
-.repository.file.list #file-content .code-view .lines-num {
+.code-view .lines-num {
   vertical-align: top;
   text-align: right;
   color: #999;
   background: #f5f5f5;
   width: 1%;
 }
-.repository.file.list #file-content .code-view .lines-num span {
+.code-view .lines-num span {
   line-height: 20px;
   padding: 0 10px;
   cursor: pointer;
   display: block;
 }
-.repository.file.list #file-content .code-view .lines-num,
-.repository.file.list #file-content .code-view .lines-code {
+.code-view .lines-num,
+.code-view .lines-code {
   padding: 0;
 }
-.repository.file.list #file-content .code-view .lines-num pre,
-.repository.file.list #file-content .code-view .lines-code pre,
-.repository.file.list #file-content .code-view .lines-num ol,
-.repository.file.list #file-content .code-view .lines-code ol,
-.repository.file.list #file-content .code-view .lines-num .hljs,
-.repository.file.list #file-content .code-view .lines-code .hljs {
+.code-view .lines-num pre,
+.code-view .lines-code pre,
+.code-view .lines-num ol,
+.code-view .lines-code ol,
+.code-view .lines-num .hljs,
+.code-view .lines-code .hljs {
   background-color: white;
   margin: 0;
   padding: 0 !important;
 }
-.repository.file.list #file-content .code-view .lines-num pre li,
-.repository.file.list #file-content .code-view .lines-code pre li,
-.repository.file.list #file-content .code-view .lines-num ol li,
-.repository.file.list #file-content .code-view .lines-code ol li,
-.repository.file.list #file-content .code-view .lines-num .hljs li,
-.repository.file.list #file-content .code-view .lines-code .hljs li {
+.code-view .lines-num pre li,
+.code-view .lines-code pre li,
+.code-view .lines-num ol li,
+.code-view .lines-code ol li,
+.code-view .lines-num .hljs li,
+.code-view .lines-code .hljs li {
   display: inline-block;
   width: 100%;
 }
-.repository.file.list #file-content .code-view .lines-num pre li.active,
-.repository.file.list #file-content .code-view .lines-code pre li.active,
-.repository.file.list #file-content .code-view .lines-num ol li.active,
-.repository.file.list #file-content .code-view .lines-code ol li.active,
-.repository.file.list #file-content .code-view .lines-num .hljs li.active,
-.repository.file.list #file-content .code-view .lines-code .hljs li.active {
+.code-view .lines-num pre li.active,
+.code-view .lines-code pre li.active,
+.code-view .lines-num ol li.active,
+.code-view .lines-code ol li.active,
+.code-view .lines-num .hljs li.active,
+.code-view .lines-code .hljs li.active {
   background: #ffffdd;
 }
-.repository.file.list #file-content .code-view .lines-num pre li:before,
-.repository.file.list #file-content .code-view .lines-code pre li:before,
-.repository.file.list #file-content .code-view .lines-num ol li:before,
-.repository.file.list #file-content .code-view .lines-code ol li:before,
-.repository.file.list #file-content .code-view .lines-num .hljs li:before,
-.repository.file.list #file-content .code-view .lines-code .hljs li:before {
+.code-view .lines-num pre li:before,
+.code-view .lines-code pre li:before,
+.code-view .lines-num ol li:before,
+.code-view .lines-code ol li:before,
+.code-view .lines-num .hljs li:before,
+.code-view .lines-code .hljs li:before {
   content: ' ';
 }
 .repository.file.list .sidebar {

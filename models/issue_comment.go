@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	gotemplate "html/template"
 	"strings"
 	"time"
 
@@ -60,6 +61,10 @@ type Comment struct {
 	Line            int64
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
+
+	FileContent    gotemplate.HTML `xorm:"-"`
+	LineNums       gotemplate.HTML `xorm:"-"`
+	HighlightClass string          `xorm:"-"`
 
 	Created     time.Time `xorm:"-"`
 	CreatedUnix int64     `xorm:"INDEX"`

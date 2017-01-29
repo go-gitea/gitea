@@ -88,6 +88,18 @@
 								</div>
 							</div>
 							<div class="ui attached segment">
+								<div class="ui attached table segment">
+									<div class="file-view code-view has-emoji">
+										<table>
+											<tbody>
+												<tr>
+													<td class="lines-num">{{.LineNums}}</td>
+													<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol class="linenums">{{.FileContent}}</ol></code></pre></td>
+												</tr>
+											</tbody>
+										</table>
+									</div>
+								</div>
 								<div class="render-content markdown has-emoji">
 									{{if .RenderedContent}}
 										{{.RenderedContent|Str2html}}

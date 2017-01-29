@@ -5,7 +5,10 @@
 package repo
 
 import (
+	"bytes"
 	"container/list"
+	"fmt"
+	gotemplate "html/template"
 	"log"
 	"path"
 	"strconv"
@@ -15,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -132,7 +136,7 @@ func Reviews(ctx *context.Context) {
 	ctx.HTML(200, tplIssues)
 }
 
-func prepareReviewInfo(ctx *context.Context) (*review.Summary, *review.Review, *models.Issue) {
+func prepareReviewInfo(ctx *context.Context) (*repository.GitRepo, *review.Summary, *review.Review, *models.Issue) {
 	ctx.Data["PageIsReviewList"] = true
 
 	repo, err := repository.NewGitRepo(ctx.Repo.GitRepo.Path)
@@ -210,7 +214,7 @@ func prepareReviewInfo(ctx *context.Context) (*review.Summary, *review.Review, *
 		ctx.Handle(500, "Repo.GitRepo.FilesCountBetween", err)
 	}
 
-	return reviewSummary, reviewDetails, issue
+	return repo, reviewSummary, reviewDetails, issue
 }
 
 // ViewReview render issue view page
@@ -218,7 +222,7 @@ func ViewReview(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireDropzone"] = true
 
-	_, reviewDetails, issue := prepareReviewInfo(ctx)
+	repo, _, reviewDetails, issue := prepareReviewInfo(ctx)
 
 	MustAllowReviews(ctx)
 	if ctx.Written() {
@@ -298,9 +302,42 @@ func ViewReview(ctx *context.Context) {
 		reviewComment.RenderedContent = string(markdown.Render([]byte(reviewComment.Content), ctx.Repo.RepoLink,
 			ctx.Repo.Repository.ComposeMetas()))
 
-		commentCreatedTimestamp, _ := strconv.Atoi(reviewDetails.Request.Timestamp)
+		commentCreatedTimestamp, _ := strconv.Atoi(c.Comment.Timestamp)
 		commentCreated := time.Unix(int64(commentCreatedTimestamp), 0)
 		reviewComment.Created = commentCreated
+		// c.Comment.Location.Path
+		// c.Comment.Location.Commit
+		if c.Comment.Location != nil && c.Comment.Location.Range != nil {
+			reviewComment.Line = int64(c.Comment.Location.Range.StartLine)
+
+			contents, err := repo.Show(c.Comment.Location.Commit, c.Comment.Location.Path)
+			if err != nil {
+				continue
+			}
+			lines := strings.Split(contents, "\n")
+			if c.Comment.Location.Range.StartLine <= uint32(len(lines)) {
+				var firstLine uint32
+				lastLine := c.Comment.Location.Range.StartLine
+				if lastLine > 5 {
+					firstLine = lastLine - 5
+				}
+
+				var output bytes.Buffer
+				fileLines := lines[firstLine:lastLine]
+				for index, line := range fileLines {
+					output.WriteString(fmt.Sprintf(`<li class="L%d" rel="L%d">%s</li>`, index+1, index+1, gotemplate.HTMLEscapeString(line)) + "\n")
+				}
+				reviewComment.FileContent = gotemplate.HTML(output.String())
+
+				output.Reset()
+				for i := 0; i < len(fileLines); i++ {
+					output.WriteString(fmt.Sprintf(`<span id="L%d">%d</span>`, i+int(firstLine)+1, i+int(firstLine)+1))
+				}
+				reviewComment.LineNums = gotemplate.HTML(output.String())
+
+				reviewComment.HighlightClass = highlight.FileNameToHighlightClass(c.Comment.Location.Path)
+			}
+		}
 
 		//
 		// 		// Check tag.
@@ -361,12 +398,7 @@ func ViewReview(ctx *context.Context) {
 func ViewReviewCommits(ctx *context.Context) {
 	ctx.Data["PageIsPullCommits"] = true
 
-	repo, err := repository.NewGitRepo(ctx.Repo.GitRepo.Path)
-	if err != nil {
-		ctx.Handle(500, "OpenGitRepository", err)
-	}
-
-	_, reviewDetails, _ := prepareReviewInfo(ctx)
+	repo, _, reviewDetails, _ := prepareReviewInfo(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -403,16 +435,12 @@ func ViewReviewCommits(ctx *context.Context) {
 func ViewReviewFiles(ctx *context.Context) {
 	ctx.Data["PageIsPullFiles"] = true
 
-	_, reviewDetails, _ := prepareReviewInfo(ctx)
+	repo, _, reviewDetails, _ := prepareReviewInfo(ctx)
 
 	if ctx.Written() {
 		return
 	}
 
-	repo, err := repository.NewGitRepo(ctx.Repo.GitRepo.Path)
-	if err != nil {
-		ctx.Handle(500, "OpenGitRepository", err)
-	}
 	reviewCommits, err := repo.ListCommitsBetween(reviewDetails.Request.TargetRef, reviewDetails.Request.ReviewRef)
 	if err != nil {
 		ctx.Handle(500, "ListCommitsBetween", err)
