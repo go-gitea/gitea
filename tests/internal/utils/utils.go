@@ -9,8 +9,20 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
+	"testing"
 	"time"
 )
+
+// T wraps testing.T and the configurations of the testing instance.
+type T struct {
+	T      *testing.T
+	Config *Config
+}
+
+// New create an instance of T
+func New(t *testing.T, c *Config) *T {
+	return &T{T: t, Config: c}
+}
 
 // Config Settings of the testing program
 type Config struct {
@@ -44,19 +56,19 @@ func redirect(cmd *exec.Cmd, f *os.File) error {
 }
 
 // RunTest Helper function for setting up a running Gitea server for functional testing and then gracefully terminating it.
-func (c *Config) RunTest(tests ...func(*Config) error) (err error) {
-	if c.Program == "" {
+func (t *T) RunTest(tests ...func(*T) error) (err error) {
+	if t.Config.Program == "" {
 		return errors.New("Need input file")
 	}
 
-	path, err := filepath.Abs(c.Program)
+	path, err := filepath.Abs(t.Config.Program)
 	if err != nil {
 		return err
 	}
 
-	workdir := c.WorkDir
+	workdir := t.Config.WorkDir
 	if workdir == "" {
-		workdir, err = filepath.Abs(fmt.Sprintf("%s-%10d", filepath.Base(c.Program), time.Now().UnixNano()))
+		workdir, err = filepath.Abs(fmt.Sprintf("%s-%10d", filepath.Base(t.Config.Program), time.Now().UnixNano()))
 		if err != nil {
 			return err
 		}
@@ -71,13 +83,13 @@ func (c *Config) RunTest(tests ...func(*Config) error) (err error) {
 		return err
 	}
 
-	log.Printf("Starting the server: %s args:%s workdir:%s", newpath, c.Args, workdir)
+	log.Printf("Starting the server: %s args:%s workdir:%s", newpath, t.Config.Args, workdir)
 
-	cmd := exec.Command(newpath, c.Args...)
+	cmd := exec.Command(newpath, t.Config.Args...)
 	cmd.Dir = workdir
 
-	if c.LogFile != nil {
-		if err := redirect(cmd, c.LogFile); err != nil {
+	if t.Config.LogFile != nil {
+		if err := redirect(cmd, t.Config.LogFile); err != nil {
 			return err
 		}
 	}
@@ -103,7 +115,7 @@ func (c *Config) RunTest(tests ...func(*Config) error) (err error) {
 	}()
 
 	for _, fn := range tests {
-		if err := fn(c); err != nil {
+		if err := fn(t); err != nil {
 			return err
 		}
 	}

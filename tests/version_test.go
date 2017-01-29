@@ -14,10 +14,10 @@ import (
 	"code.gitea.io/gitea/tests/internal/utils"
 )
 
-func version(c *utils.Config) error {
+func version(t *utils.T) error {
 	var err error
 
-	path, err := filepath.Abs(c.Program)
+	path, err := filepath.Abs(t.Config.Program)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func TestVersion(t *testing.T) {
 		//LogFile: os.Stderr,
 	}
 
-	if err := conf.RunTest(install, version); err != nil {
+	if err := utils.New(t, &conf).RunTest(install, version); err != nil {
 		t.Fatal(err)
 	}
 }
