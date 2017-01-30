@@ -98,7 +98,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.DeleteIssueLabel(issue, label); err != nil {
+	if err := models.DeleteIssueLabel(issue, ctx.User, label); err != nil {
 		ctx.Error(500, "DeleteIssueLabel", err)
 		return
 	}
@@ -129,7 +129,7 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 		return
 	}
 
-	if err := issue.ReplaceLabels(labels); err != nil {
+	if err := issue.ReplaceLabels(labels, ctx.User); err != nil {
 		ctx.Error(500, "ReplaceLabels", err)
 		return
 	}

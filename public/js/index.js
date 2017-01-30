@@ -108,6 +108,10 @@ function initCommentForm() {
         });
     }
 
+    $('.select-label').dropdown('setting', 'onHide', function(){
+        location.reload();
+    });
+
     $labelMenu.find('.item:not(.no-select)').click(function () {
         if ($(this).hasClass('checked')) {
             $(this).removeClass('checked');

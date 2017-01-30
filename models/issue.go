@@ -7,6 +7,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -103,11 +104,17 @@ func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
 	return
 }
 
-func (issue *Issue) loadAttributes(e Engine) (err error) {
-	if err := issue.loadRepo(e); err != nil {
-		return err
+func (issue *Issue) loadLabels(e Engine) (err error) {
+	if issue.Labels == nil {
+		issue.Labels, err = getLabelsByIssueID(e, issue.ID)
+		if err != nil {
+			return fmt.Errorf("getLabelsByIssueID [%d]: %v", issue.ID, err)
+		}
 	}
+	return nil
+}
 
+func (issue *Issue) loadPoster(e Engine) (err error) {
 	if issue.Poster == nil {
 		issue.Poster, err = getUserByID(e, issue.PosterID)
 		if err != nil {
@@ -120,12 +127,20 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 			return
 		}
 	}
+	return
+}
 
-	if issue.Labels == nil {
-		issue.Labels, err = getLabelsByIssueID(e, issue.ID)
-		if err != nil {
-			return fmt.Errorf("getLabelsByIssueID [%d]: %v", issue.ID, err)
-		}
+func (issue *Issue) loadAttributes(e Engine) (err error) {
+	if err = issue.loadRepo(e); err != nil {
+		return
+	}
+
+	if err = issue.loadPoster(e); err != nil {
+		return
+	}
+
+	if err = issue.loadLabels(e); err != nil {
+		return
 	}
 
 	if issue.Milestone == nil && issue.MilestoneID > 0 {
@@ -289,13 +304,13 @@ func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 	}
 }
 
-func (issue *Issue) addLabel(e *xorm.Session, label *Label) error {
-	return newIssueLabel(e, issue, label)
+func (issue *Issue) addLabel(e *xorm.Session, label *Label, doer *User) error {
+	return newIssueLabel(e, issue, label, doer)
 }
 
 // AddLabel adds a new label to the issue.
 func (issue *Issue) AddLabel(doer *User, label *Label) error {
-	if err := NewIssueLabel(issue, label); err != nil {
+	if err := NewIssueLabel(issue, label, doer); err != nil {
 		return err
 	}
 
@@ -303,13 +318,13 @@ func (issue *Issue) AddLabel(doer *User, label *Label) error {
 	return nil
 }
 
-func (issue *Issue) addLabels(e *xorm.Session, labels []*Label) error {
-	return newIssueLabels(e, issue, labels)
+func (issue *Issue) addLabels(e *xorm.Session, labels []*Label, doer *User) error {
+	return newIssueLabels(e, issue, labels, doer)
 }
 
 // AddLabels adds a list of new labels to the issue.
 func (issue *Issue) AddLabels(doer *User, labels []*Label) error {
-	if err := NewIssueLabels(issue, labels); err != nil {
+	if err := NewIssueLabels(issue, labels, doer); err != nil {
 		return err
 	}
 
@@ -329,8 +344,8 @@ func (issue *Issue) getLabels(e Engine) (err error) {
 	return nil
 }
 
-func (issue *Issue) removeLabel(e *xorm.Session, label *Label) error {
-	return deleteIssueLabel(e, issue, label)
+func (issue *Issue) removeLabel(e *xorm.Session, doer *User, label *Label) error {
+	return deleteIssueLabel(e, doer, issue, label)
 }
 
 // RemoveLabel removes a label from issue by given ID.
@@ -345,7 +360,7 @@ func (issue *Issue) RemoveLabel(doer *User, label *Label) error {
 		return ErrLabelNotExist{}
 	}
 
-	if err := DeleteIssueLabel(issue, label); err != nil {
+	if err := DeleteIssueLabel(issue, doer, label); err != nil {
 		return err
 	}
 
@@ -353,13 +368,13 @@ func (issue *Issue) RemoveLabel(doer *User, label *Label) error {
 	return nil
 }
 
-func (issue *Issue) clearLabels(e *xorm.Session) (err error) {
+func (issue *Issue) clearLabels(e *xorm.Session, doer *User) (err error) {
 	if err = issue.getLabels(e); err != nil {
 		return fmt.Errorf("getLabels: %v", err)
 	}
 
 	for i := range issue.Labels {
-		if err = issue.removeLabel(e, issue.Labels[i]); err != nil {
+		if err = issue.removeLabel(e, doer, issue.Labels[i]); err != nil {
 			return fmt.Errorf("removeLabel: %v", err)
 		}
 	}
@@ -386,7 +401,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		return ErrLabelNotExist{}
 	}
 
-	if err = issue.clearLabels(sess); err != nil {
+	if err = issue.clearLabels(sess, doer); err != nil {
 		return err
 	}
 
@@ -417,19 +432,75 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 	return nil
 }
 
+type labelSorter []*Label
+
+func (ts labelSorter) Len() int {
+	return len([]*Label(ts))
+}
+
+func (ts labelSorter) Less(i, j int) bool {
+	return []*Label(ts)[i].ID < []*Label(ts)[j].ID
+}
+
+func (ts labelSorter) Swap(i, j int) {
+	[]*Label(ts)[i], []*Label(ts)[j] = []*Label(ts)[j], []*Label(ts)[i]
+}
+
 // ReplaceLabels removes all current labels and add new labels to the issue.
 // Triggers appropriate WebHooks, if any.
-func (issue *Issue) ReplaceLabels(labels []*Label) (err error) {
+func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 	sess := x.NewSession()
 	defer sessionRelease(sess)
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = issue.clearLabels(sess); err != nil {
-		return fmt.Errorf("clearLabels: %v", err)
-	} else if err = issue.addLabels(sess, labels); err != nil {
-		return fmt.Errorf("addLabels: %v", err)
+	if err = issue.loadLabels(sess); err != nil {
+		return err
+	}
+
+	sort.Sort(labelSorter(labels))
+	sort.Sort(labelSorter(issue.Labels))
+
+	var toAdd, toRemove []*Label
+	for _, l := range labels {
+		var exist bool
+		for _, oriLabel := range issue.Labels {
+			if oriLabel.ID == l.ID {
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			toAdd = append(toAdd, l)
+		}
+	}
+
+	for _, oriLabel := range issue.Labels {
+		var exist bool
+		for _, l := range labels {
+			if oriLabel.ID == l.ID {
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			toRemove = append(toRemove, oriLabel)
+		}
+	}
+
+	if len(toAdd) > 0 {
+		if err = issue.addLabels(sess, toAdd, doer); err != nil {
+			return fmt.Errorf("addLabels: %v", err)
+		}
+	}
+
+	if len(toRemove) > 0 {
+		for _, l := range toRemove {
+			if err = issue.removeLabel(sess, doer, l); err != nil {
+				return fmt.Errorf("removeLabel: %v", err)
+			}
+		}
 	}
 
 	return sess.Commit()
@@ -731,13 +802,17 @@ func newIssue(e *xorm.Session, opts NewIssueOptions) (err error) {
 			return fmt.Errorf("find all labels [label_ids: %v]: %v", opts.LableIDs, err)
 		}
 
+		if err = opts.Issue.loadPoster(e); err != nil {
+			return err
+		}
+
 		for _, label := range labels {
 			// Silently drop invalid labels.
 			if label.RepoID != opts.Repo.ID {
 				continue
 			}
 
-			if err = opts.Issue.addLabel(e, label); err != nil {
+			if err = opts.Issue.addLabel(e, label, opts.Issue.Poster); err != nil {
 				return fmt.Errorf("addLabel [id: %d]: %v", label.ID, err)
 			}
 		}
