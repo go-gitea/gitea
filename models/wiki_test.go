@@ -5,7 +5,10 @@
 package models
 
 import (
+	"path/filepath"
 	"testing"
+
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,13 +36,15 @@ func TestRepository_WikiCloneLink(t *testing.T) {
 
 func TestWikiPath(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	assert.Equal(t, "/repos/user2/repo1.wiki.git", WikiPath("user2", "repo1"))
+	expected := filepath.Join(setting.RepoRootPath, "user2/repo1.wiki.git")
+	assert.Equal(t, expected, WikiPath("user2", "repo1"))
 }
 
 func TestRepository_WikiPath(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	assert.Equal(t, "/repos/user2/repo1.wiki.git", repo.WikiPath())
+	expected := filepath.Join(setting.RepoRootPath, "user2/repo1.wiki.git")
+	assert.Equal(t, expected, repo.WikiPath())
 }
 
 // TODO TestRepository_HasWiki
@@ -49,7 +54,8 @@ func TestRepository_WikiPath(t *testing.T) {
 func TestRepository_LocalWikiPath(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	assert.Equal(t, "/appdata/tmp/local-wiki/1", repo.LocalWikiPath())
+	expected := filepath.Join(setting.AppDataPath, "tmp/local-wiki/1")
+	assert.Equal(t, expected, repo.LocalWikiPath())
 }
 
 // TODO TestRepository_UpdateLocalWiki

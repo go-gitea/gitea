@@ -30,8 +30,8 @@ func TestMain(m *testing.M) {
 	setting.RunUser = "runuser"
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
-	setting.RepoRootPath = "/repos"
-	setting.AppDataPath = "/appdata"
+	setting.RepoRootPath = "/tmp/repos"
+	setting.AppDataPath = "/tmp/appdata"
 
 	os.Exit(m.Run())
 }
