@@ -30,7 +30,7 @@ import (
 	_ "github.com/go-macaron/cache/redis"
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
-	"gopkg.in/ini.v1"
+	ini "gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
 
@@ -79,6 +79,7 @@ var (
 	EnableGzip           bool
 	LandingPageURL       LandingPage
 	UnixSocketPermission uint32
+	EnablePprof          bool
 
 	SSH = struct {
 		Disabled            bool           `ini:"DISABLE_SSH"`
@@ -591,6 +592,7 @@ please consider changing to GITEA_CUSTOM`)
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(workDir)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString("data")
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
+	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
 
 	switch sec.Key("LANDING_PAGE").MustString("home") {
 	case "explore":
