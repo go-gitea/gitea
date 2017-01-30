@@ -28,7 +28,7 @@ func GetNotificationCount(c *context.Context) {
 		return
 	}
 
-	count, err := models.GetNotificationCount(c.User, models.NotificationStatusRead)
+	count, err := models.GetNotificationCount(c.User, models.NotificationStatusUnread)
 	if err != nil {
 		c.Handle(500, "GetNotificationCount", err)
 		return
