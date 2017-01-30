@@ -15,6 +15,9 @@
 					<a class="item" data-tab="mirrors">{{.i18n.Tr "mirror"}}</a>
 				</div>
 				<div class="ui tab active list" data-tab="repos">
+					<div class="ui fluid input">
+						<input id="search_repo" name="q" value="" placeholder="{{.i18n.Tr "home.search_repos"}}" autofocus="">
+					</div>
 					<h4 class="ui top attached header">
 						{{.i18n.Tr "home.my_repos"}} <span class="ui grey label">{{.ContextUser.NumRepos}}</span>
 						<div class="ui right">
@@ -25,9 +28,9 @@
 						</div>
 					</h4>
 					<div class="ui attached table segment">
-						<ul class="repo-owner-name-list">
+						<ul class="repo-owner-name-list search-list">
 							{{range .Repos}}
-								<li {{if .IsPrivate}}class="private"{{end}}>
+								<li {{if .IsPrivate}}class="private"{{end}} data-title="{{.Name}}">
 									<a href="{{AppSubUrl}}/{{$.ContextUser.Name}}/{{.Name}}">
 										<i class="octicon octicon-{{if .IsFork}}repo-forked{{else if .IsPrivate}}lock{{else if .IsMirror}}repo-clone{{else}}repo{{end}}"></i>
 										<strong class="text truncate item-name">{{.Name}}</strong>
@@ -50,9 +53,9 @@
 							{{.i18n.Tr "home.collaborative_repos"}}
 						</h4>
 						<div class="ui attached table segment">
-							<ul id="collaborative-repo-list">
+							<ul id="collaborative-repo-list" class="search-list">
 								{{range .CollaborativeRepos}}
-									<li {{if .IsPrivate}}class="private"{{end}}>
+									<li {{if .IsPrivate}}class="private"{{end}} data-title="{{.Name}}">
 										<a href="{{AppSubUrl}}/{{.Owner.Name}}/{{.Name}}">
 											<i class="octicon octicon-{{if .IsPrivate}}lock{{else if .IsFork}}repo-forked{{else if .IsMirror}}repo-clone{{else}}repo{{end}}"></i>
 											<span class="text truncate owner-and-repo">
