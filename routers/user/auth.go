@@ -341,7 +341,7 @@ func SignInOAuth(ctx *context.Context) {
 	if err != nil {
 		ctx.Handle(500, "SignIn", err)
 	}
-	return
+	// redirect is done in oauth2.Auth
 }
 
 // SignInOAuthCallback handles the callback from the given provider
