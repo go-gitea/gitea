@@ -7,6 +7,7 @@ package models
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -30,8 +31,8 @@ func TestMain(m *testing.M) {
 	setting.RunUser = "runuser"
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
-	setting.RepoRootPath = "/tmp/repos"
-	setting.AppDataPath = "/tmp/appdata"
+	setting.RepoRootPath = filepath.Join(os.TempDir(), "repos")
+	setting.AppDataPath = filepath.Join(os.TempDir(), "appdata")
 
 	os.Exit(m.Run())
 }
