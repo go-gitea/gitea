@@ -7,6 +7,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -431,6 +432,20 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 	return nil
 }
 
+type labelSorter []*Label
+
+func (ts labelSorter) Len() int {
+	return len([]*Label(ts))
+}
+
+func (ts labelSorter) Less(i, j int) bool {
+	return []*Label(ts)[i].ID < []*Label(ts)[j].ID
+}
+
+func (ts labelSorter) Swap(i, j int) {
+	[]*Label(ts)[i], []*Label(ts)[j] = []*Label(ts)[j], []*Label(ts)[i]
+}
+
 // ReplaceLabels removes all current labels and add new labels to the issue.
 // Triggers appropriate WebHooks, if any.
 func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
@@ -443,6 +458,9 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 	if err = issue.loadLabels(sess); err != nil {
 		return err
 	}
+
+	sort.Sort(labelSorter(labels))
+	sort.Sort(labelSorter(issue.Labels))
 
 	var toAdd, toRemove []*Label
 	for _, l := range labels {
