@@ -37,6 +37,7 @@ const (
 	tplSettingsApplications base.TplName = "user/settings/applications"
 	tplSettingsTwofa        base.TplName = "user/settings/twofa"
 	tplSettingsTwofaEnroll  base.TplName = "user/settings/twofa_enroll"
+	tplSettingsAccountLink  base.TplName = "user/settings/account_link"
 	tplSettingsDelete       base.TplName = "user/settings/delete"
 	tplSecurity             base.TplName = "user/security"
 )
@@ -629,6 +630,43 @@ func SettingsTwoFactorEnrollPost(ctx *context.Context, form auth.TwoFactorAuthFo
 	ctx.Session.Delete("twofaUri")
 	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", t.ScratchToken))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/two_factor")
+}
+
+// SettingsAccountLinks render the account links settings page
+func SettingsAccountLinks(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsAccountLink"] = true
+
+	accountLinks, err := models.ListAccountLinks(ctx.User)
+	if err != nil {
+		ctx.Handle(500, "ListAccountLinks", err)
+		return
+	}
+
+	// map the provider display name with the LoginSource
+	sources := make(map[*models.LoginSource]string)
+	for _, externalAccount := range accountLinks {
+		if loginSource, err := models.GetLoginSourceByID(externalAccount.LoginSourceID); err == nil {
+			providerTechnicalName := loginSource.OAuth2().Provider
+			providerDisplayName := models.OAuth2Providers[providerTechnicalName]
+			sources[loginSource] = providerDisplayName
+		}
+	}
+	ctx.Data["AccountLinks"] = sources
+
+	ctx.HTML(200, tplSettingsAccountLink)
+}
+
+// SettingsDeleteAccountLink delete a single account link
+func SettingsDeleteAccountLink(ctx *context.Context) {
+	if _, err := models.RemoveAccountLink(ctx.User, ctx.QueryInt64("loginSourceID")); err != nil {
+		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/user/settings/account_link")
+	SettingsAccountLinks(ctx)
 }
 
 // SettingsDelete render user suicide page and response for delete user himself

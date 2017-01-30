@@ -853,3 +853,19 @@ func IsErrExternalLoginUserAlreadyExist(err error) bool {
 func (err ErrExternalLoginUserAlreadyExist) Error() string {
 	return fmt.Sprintf("external login user already exists [externalID: %s, userID: %d, loginSourceID: %d]", err.ExternalID, err.UserID, err.LoginSourceID)
 }
+
+// ErrExternalLoginUserNotExist represents a "ExternalLoginUserNotExist" kind of error.
+type ErrExternalLoginUserNotExist struct {
+	UserID        int64
+	LoginSourceID int64
+}
+
+// IsErrExternalLoginUserNotExist checks if an error is a ExternalLoginUserNotExist.
+func IsErrExternalLoginUserNotExist(err error) bool {
+	_, ok := err.(ErrExternalLoginUserNotExist)
+	return ok
+}
+
+func (err ErrExternalLoginUserNotExist) Error() string {
+	return fmt.Sprintf("external login user link does not exists [userID: %d, loginSourceID: %d]", err.UserID, err.LoginSourceID)
+}

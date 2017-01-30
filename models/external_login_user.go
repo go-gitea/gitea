@@ -14,6 +14,19 @@ func GetExternalLogin(externalLoginUser *ExternalLoginUser) (bool, error) {
 	return x.Get(externalLoginUser)
 }
 
+// ListAccountLinks returns a map with the ExternalLoginUser and its LoginSource
+func ListAccountLinks(user *User) ([]*ExternalLoginUser, error) {
+	externalAccounts := make([]*ExternalLoginUser, 0, 5)
+	err := x.Where("user_id=?", user.ID).
+		Desc("external_id").
+		Find(&externalAccounts)
+
+	if err != nil {
+		return nil, err
+	}
+	return externalAccounts, nil
+}
+
 // LinkAccountToUser link the gothUser to the user
 func LinkAccountToUser(user *User, gothUser goth.User) error {
 	loginSource, err := GetActiveOAuth2LoginSourceByName(gothUser.Provider)
@@ -35,6 +48,18 @@ func LinkAccountToUser(user *User, gothUser goth.User) error {
 
 	_, err = x.Insert(externalLoginUser)
 	return err
+}
+
+// RemoveAccountLink will remove all external login sources for the given user
+func RemoveAccountLink(user *User, loginSourceID int64) (int64, error) {
+	deleted, err := x.Delete(&ExternalLoginUser{UserID: user.ID, LoginSourceID: loginSourceID})
+	if err != nil {
+		return deleted, err
+	}
+	if deleted < 1 {
+		return deleted, ErrExternalLoginUserNotExist{user.ID, loginSourceID}
+	}
+	return deleted, err
 }
 
 // RemoveAllAccountLinks will remove all external login sources for the given user
