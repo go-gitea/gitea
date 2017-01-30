@@ -749,6 +749,11 @@ please consider changing to GITEA_CUSTOM`)
 		"StampMicro":  time.StampMicro,
 		"StampNano":   time.StampNano,
 	}[Cfg.Section("time").Key("FORMAT").MustString("RFC1123")]
+	// Determine When using custom time format like '2006-01-02 15:04:05'
+	if (TimeFormat == "") {
+		TimeFormat = Cfg.Section("time").Key("FORMAT").String()
+		log.Trace("Custom TimeFormat: %s", TimeFormat)
+	}
 
 	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
 	// Does not check run user when the install lock is off.
