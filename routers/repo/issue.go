@@ -67,7 +67,7 @@ func MustEnableIssues(ctx *context.Context) {
 
 	unit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
 	if err == nil {
-		ctx.Redirect(unit.Config["ExternalTrackerURL"])
+		ctx.Redirect(unit.ExternalTrackerConfig().ExternalTrackerURL)
 		return
 	}
 }

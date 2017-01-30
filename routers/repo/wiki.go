@@ -35,7 +35,7 @@ func MustEnableWiki(ctx *context.Context) {
 
 	unit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalWiki)
 	if err == nil {
-		ctx.Redirect(unit.Config["ExternalWikiURL"])
+		ctx.Redirect(unit.ExternalWikiConfig().ExternalWikiURL)
 		return
 	}
 }

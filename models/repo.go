@@ -329,9 +329,21 @@ func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
 	if err == nil {
 		return ru
 	}
+
+	if tp == UnitTypeExternalWiki {
+		return &RepoUnit{
+			Type:   tp,
+			Config: new(ExternalWikiConfig),
+		}
+	} else if tp == UnitTypeExternalTracker {
+		return &RepoUnit{
+			Type:   tp,
+			Config: new(ExternalTrackerConfig),
+		}
+	}
 	return &RepoUnit{
 		Type:   tp,
-		Config: make(map[string]string),
+		Config: new(UnitConfig),
 	}
 }
 
@@ -375,18 +387,18 @@ func (repo *Repository) mustOwner(e Engine) *User {
 
 // ComposeMetas composes a map of metas for rendering external issue tracker URL.
 func (repo *Repository) ComposeMetas() map[string]string {
-	externalTracker, err := repo.GetUnit(UnitTypeExternalTracker)
+	unit, err := repo.GetUnit(UnitTypeExternalTracker)
 	if err != nil {
 		return nil
 	}
 
 	if repo.ExternalMetas == nil {
 		repo.ExternalMetas = map[string]string{
-			"format": externalTracker.Config["ExternalTrackerFormat"],
+			"format": unit.ExternalTrackerConfig().ExternalTrackerFormat,
 			"user":   repo.MustOwner().Name,
 			"repo":   repo.Name,
 		}
-		switch externalTracker.Config["ExternalTrackerStyle"] {
+		switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
 		case markdown.IssueNameStyleAlphanumeric:
 			repo.ExternalMetas["style"] = markdown.IssueNameStyleAlphanumeric
 		default:

@@ -5,8 +5,11 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 )
 
@@ -16,9 +19,73 @@ type RepoUnit struct {
 	RepoID      int64    `xorm:"INDEX(s)"`
 	Type        UnitType `xorm:"INDEX(s)"`
 	Index       int
-	Config      map[string]string `xorm:"JSON"`
-	CreatedUnix int64             `xorm:"INDEX CREATED"`
-	Created     time.Time         `xorm:"-"`
+	Config      core.Conversion `xorm:"TEXT"`
+	CreatedUnix int64           `xorm:"INDEX CREATED"`
+	Created     time.Time       `xorm:"-"`
+}
+
+// UnitConfig describes common unit config
+type UnitConfig struct {
+}
+
+// FromDB fills up a UnitConfig from serialized format.
+func (cfg *UnitConfig) FromDB(bs []byte) error {
+	return json.Unmarshal(bs, &cfg)
+}
+
+// ToDB exports a UnitConfig to a serialized format.
+func (cfg *UnitConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
+// ExternalWikiConfig describes external wiki config
+type ExternalWikiConfig struct {
+	ExternalWikiURL string
+}
+
+// FromDB fills up a ExternalWikiConfig from serialized format.
+func (cfg *ExternalWikiConfig) FromDB(bs []byte) error {
+	return json.Unmarshal(bs, &cfg)
+}
+
+// ToDB exports a ExternalWikiConfig to a serialized format.
+func (cfg *ExternalWikiConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
+// ExternalTrackerConfig describes external tracker config
+type ExternalTrackerConfig struct {
+	ExternalTrackerURL    string
+	ExternalTrackerFormat string
+	ExternalTrackerStyle  string
+}
+
+// FromDB fills up a ExternalTrackerConfig from serialized format.
+func (cfg *ExternalTrackerConfig) FromDB(bs []byte) error {
+	return json.Unmarshal(bs, &cfg)
+}
+
+// ToDB exports a ExternalTrackerConfig to a serialized format.
+func (cfg *ExternalTrackerConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
+// BeforeSet is invoked from XORM before setting the value of a field of this object.
+func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
+	switch colName {
+	case "type":
+		switch UnitType(Cell2Int64(val)) {
+		case UnitTypeCode, UnitTypeIssues, UnitTypePullRequests, UnitTypeCommits, UnitTypeReleases,
+			UnitTypeWiki, UnitTypeSettings:
+			r.Config = new(UnitConfig)
+		case UnitTypeExternalWiki:
+			r.Config = new(ExternalWikiConfig)
+		case UnitTypeExternalTracker:
+			r.Config = new(ExternalTrackerConfig)
+		default:
+			panic("unrecognized repo unit type: " + com.ToStr(*val))
+		}
+	}
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.
@@ -32,4 +99,32 @@ func (r *RepoUnit) AfterSet(colName string, _ xorm.Cell) {
 // Unit returns Unit
 func (r *RepoUnit) Unit() Unit {
 	return Units[r.Type]
+}
+
+func (r *RepoUnit) CodeConfig() *UnitConfig {
+	return r.Config.(*UnitConfig)
+}
+
+func (r *RepoUnit) IssuesConfig() *UnitConfig {
+	return r.Config.(*UnitConfig)
+}
+
+func (r *RepoUnit) PullRequestsConfig() *UnitConfig {
+	return r.Config.(*UnitConfig)
+}
+
+func (r *RepoUnit) CommitsConfig() *UnitConfig {
+	return r.Config.(*UnitConfig)
+}
+
+func (r *RepoUnit) ReleasesConfig() *UnitConfig {
+	return r.Config.(*UnitConfig)
+}
+
+func (r *RepoUnit) ExternalWikiConfig() *ExternalWikiConfig {
+	return r.Config.(*ExternalWikiConfig)
+}
+
+func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
+	return r.Config.(*ExternalTrackerConfig)
 }

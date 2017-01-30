@@ -133,7 +133,7 @@
 							</div>
 							<div class="field {{if not (.Repository.EnableUnit $.UnitTypeExternalWiki)}}disabled{{end}}" id="external_wiki_box">
 								<label for="external_wiki_url">{{.i18n.Tr "repo.settings.external_wiki_url"}}</label>
-								<input id="external_wiki_url" name="external_wiki_url" type="url" value="{{(.Repository.MustGetUnit $.UnitTypeExternalWiki).Config.ExternalWikiURL}}">
+								<input id="external_wiki_url" name="external_wiki_url" type="url" value="{{(.Repository.MustGetUnit $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}">
 								<p class="help">{{.i18n.Tr "repo.settings.external_wiki_url_desc"}}</p>
 							</div>
 						</div>
@@ -163,12 +163,12 @@
 							<div class="field {{if not (.Repository.EnableUnit $.UnitTypeExternalTracker)}}disabled{{end}}" id="external_issue_box">
 								<div class="field">
 									<label for="external_tracker_url">{{.i18n.Tr "repo.settings.external_tracker_url"}}</label>
-									<input id="external_tracker_url" name="external_tracker_url" type="url" value="{{(.Repository.MustGetUnit $.UnitTypeExternalTracker).Config.ExternalTrackerURL}}">
+									<input id="external_tracker_url" name="external_tracker_url" type="url" value="{{(.Repository.MustGetUnit $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerURL}}">
 									<p class="help">{{.i18n.Tr "repo.settings.external_tracker_url_desc"}}</p>
 								</div>
 								<div class="field">
 									<label for="tracker_url_format">{{.i18n.Tr "repo.settings.tracker_url_format"}}</label>
-									<input id="tracker_url_format" name="tracker_url_format" type="url" value="{{(.Repository.MustGetUnit $.UnitTypeExternalTracker).Config.ExternalTrackerFormat}}" placeholder="e.g. https://github.com/{user}/{repo}/issues/{index}">
+									<input id="tracker_url_format" name="tracker_url_format" type="url" value="{{(.Repository.MustGetUnit $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerFormat}}" placeholder="e.g. https://github.com/{user}/{repo}/issues/{index}">
 									<p class="help">{{.i18n.Tr "repo.settings.tracker_url_format_desc" | Str2html}}</p>
 								</div>
 								<div class="inline fields">
@@ -176,14 +176,14 @@
 									<div class="field">
 										<div class="ui radio checkbox">
 										{{$externalTracker := (.Repository.MustGetUnit $.UnitTypeExternalTracker)}}
-										{{$externalTrackerStyle := $externalTracker.Config.ExternalTrackerStyle}}
+										{{$externalTrackerStyle := $externalTracker.ExternalTrackerConfig.ExternalTrackerStyle}}
 											<input class="hidden" tabindex="0" name="tracker_issue_style" type="radio" value="numeric" {{if $externalTrackerStyle}}{{if eq $externalTrackerStyle "numeric"}}checked=""{{end}}{{end}}/>
 											<label>{{.i18n.Tr "repo.settings.tracker_issue_style.numeric"}} <span class="ui light grey text">(#1234)</span></label>
 										</div>
 									</div>
 									<div class="field">
 										<div class="ui radio checkbox">
-											<input class="hidden" tabindex="0" name="tracker_issue_style" type="radio" value="alphanumeric" {{if $externalTrackerStyle}}{{if eq $externalTracker.Config.ExternalTrackerStyle "alphanumeric"}}checked=""{{end}}{{end}} />
+											<input class="hidden" tabindex="0" name="tracker_issue_style" type="radio" value="alphanumeric" {{if $externalTrackerStyle}}{{if eq $externalTracker.ExternalTrackerConfig.ExternalTrackerStyle "alphanumeric"}}checked=""{{end}}{{end}} />
 											<label>{{.i18n.Tr "repo.settings.tracker_issue_style.alphanumeric"}} <span class="ui light grey text">(ABC-123, DEFG-234)</span></label>
 										</div>
 									</div>
