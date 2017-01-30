@@ -9,7 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/fcgi"
-	_ "net/http/pprof"
+	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 	"os"
 	"path"
 	"strings"
