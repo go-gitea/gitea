@@ -98,7 +98,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.DeleteIssueLabel(issue, ctx.User, label); err != nil {
+	if err := models.DeleteIssueLabel(issue, label, ctx.User); err != nil {
 		ctx.Error(500, "DeleteIssueLabel", err)
 		return
 	}
