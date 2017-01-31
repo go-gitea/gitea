@@ -101,30 +101,37 @@ func (r *RepoUnit) Unit() Unit {
 	return Units[r.Type]
 }
 
+// CodeConfig returns config for UnitTypeCode
 func (r *RepoUnit) CodeConfig() *UnitConfig {
 	return r.Config.(*UnitConfig)
 }
 
+// IssuesConfig returns config for UnitTypeIssues
 func (r *RepoUnit) IssuesConfig() *UnitConfig {
 	return r.Config.(*UnitConfig)
 }
 
+// PullRequestsConfig returns config for UnitTypePullRequests
 func (r *RepoUnit) PullRequestsConfig() *UnitConfig {
 	return r.Config.(*UnitConfig)
 }
 
+// CommitsConfig returns config for UnitTypeCommits
 func (r *RepoUnit) CommitsConfig() *UnitConfig {
 	return r.Config.(*UnitConfig)
 }
 
+// ReleasesConfig returns config for UnitTypeReleases
 func (r *RepoUnit) ReleasesConfig() *UnitConfig {
 	return r.Config.(*UnitConfig)
 }
 
+// ExternalWikiConfig returns config for UnitTypeExternalWiki
 func (r *RepoUnit) ExternalWikiConfig() *ExternalWikiConfig {
 	return r.Config.(*ExternalWikiConfig)
 }
 
+// ExternalTrackerConfig returns config for UnitTypeExternalTracker
 func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return r.Config.(*ExternalTrackerConfig)
 }
