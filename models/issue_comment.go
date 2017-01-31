@@ -38,6 +38,8 @@ const (
 	CommentTypePullRef
 	// Labels changed
 	CommentTypeLabel
+	// Milestone changed
+	CommentTypeMilestone
 )
 
 // CommentTag defines comment tag type
@@ -58,9 +60,13 @@ type Comment struct {
 	PosterID        int64 `xorm:"INDEX"`
 	Poster          *User `xorm:"-"`
 	IssueID         int64 `xorm:"INDEX"`
-	CommitID        int64
 	LabelID         int64
 	Label           *Label `xorm:"-"`
+	OldMilestoneID  int64
+	MilestoneID     int64
+	OldMilestone    *Milestone `xorm:"-"`
+	Milestone       *Milestone `xorm:"-"`
+	CommitID        int64
 	Line            int64
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
@@ -204,6 +210,36 @@ func (c *Comment) LoadLabel() error {
 	return nil
 }
 
+// LoadMilestone if comment.Type is CommentTypeMilestone, then load milestone
+func (c *Comment) LoadMilestone() error {
+	if c.OldMilestoneID > 0 {
+		var oldMilestone Milestone
+		has, err := x.ID(c.OldMilestoneID).Get(&oldMilestone)
+		if err != nil {
+			return err
+		} else if !has {
+			return ErrMilestoneNotExist{
+				ID: c.OldMilestoneID,
+			}
+		}
+		c.OldMilestone = &oldMilestone
+	}
+
+	if c.MilestoneID > 0 {
+		var milestone Milestone
+		has, err := x.ID(c.MilestoneID).Get(&milestone)
+		if err != nil {
+			return err
+		} else if !has {
+			return ErrMilestoneNotExist{
+				ID: c.MilestoneID,
+			}
+		}
+		c.Milestone = &milestone
+	}
+	return nil
+}
+
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
 func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
@@ -233,15 +269,17 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		LabelID = opts.Label.ID
 	}
 	comment := &Comment{
-		Type:      opts.Type,
-		PosterID:  opts.Doer.ID,
-		Poster:    opts.Doer,
-		IssueID:   opts.Issue.ID,
-		LabelID:   LabelID,
-		CommitID:  opts.CommitID,
-		CommitSHA: opts.CommitSHA,
-		Line:      opts.LineNum,
-		Content:   opts.Content,
+		Type:           opts.Type,
+		PosterID:       opts.Doer.ID,
+		Poster:         opts.Doer,
+		IssueID:        opts.Issue.ID,
+		LabelID:        LabelID,
+		OldMilestoneID: opts.OldMilestoneID,
+		MilestoneID:    opts.MilestoneID,
+		CommitID:       opts.CommitID,
+		CommitSHA:      opts.CommitSHA,
+		Line:           opts.LineNum,
+		Content:        opts.Content,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -367,6 +405,17 @@ func createLabelComment(e *xorm.Session, doer *User, repo *Repository, issue *Is
 	})
 }
 
+func createMilestoneComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldMilestoneID, milestoneID int64) (*Comment, error) {
+	return createComment(e, &CreateCommentOptions{
+		Type:           CommentTypeMilestone,
+		Doer:           doer,
+		Repo:           repo,
+		Issue:          issue,
+		OldMilestoneID: oldMilestoneID,
+		MilestoneID:    milestoneID,
+	})
+}
+
 // CreateCommentOptions defines options for creating comment
 type CreateCommentOptions struct {
 	Type  CommentType
@@ -375,11 +424,13 @@ type CreateCommentOptions struct {
 	Issue *Issue
 	Label *Label
 
-	CommitID    int64
-	CommitSHA   string
-	LineNum     int64
-	Content     string
-	Attachments []string // UUIDs of attachments
+	OldMilestoneID int64
+	MilestoneID    int64
+	CommitID       int64
+	CommitSHA      string
+	LineNum        int64
+	Content        string
+	Attachments    []string // UUIDs of attachments
 }
 
 // CreateComment creates comment of issue or commit.

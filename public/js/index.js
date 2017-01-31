@@ -168,6 +168,12 @@ function initCommentForm() {
         var $list = $('.ui' + select_id + '.list');
         var hasUpdateAction = $menu.data('action') == 'update';
 
+        $(select_id).dropdown('setting', 'onHide', function(){
+            if (hasUpdateAction) {
+                location.reload();
+            }
+        });
+
         $menu.find('.item:not(.no-select)').click(function () {
             $(this).parent().find('.item').each(function () {
                 $(this).removeClass('selected active')

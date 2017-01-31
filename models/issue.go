@@ -739,7 +739,7 @@ type NewIssueOptions struct {
 	IsPull      bool
 }
 
-func newIssue(e *xorm.Session, opts NewIssueOptions) (err error) {
+func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
 	opts.Issue.Index = opts.Repo.NextIssueIndex()
 
@@ -754,9 +754,6 @@ func newIssue(e *xorm.Session, opts NewIssueOptions) (err error) {
 		if milestone != nil {
 			opts.Issue.MilestoneID = milestone.ID
 			opts.Issue.Milestone = milestone
-			if err = changeMilestoneAssign(e, opts.Issue, -1); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -783,6 +780,12 @@ func newIssue(e *xorm.Session, opts NewIssueOptions) (err error) {
 	// Milestone and assignee validation should happen before insert actual object.
 	if _, err = e.Insert(opts.Issue); err != nil {
 		return err
+	}
+
+	if opts.Issue.MilestoneID > 0 {
+		if err = changeMilestoneAssign(e, doer, opts.Issue, -1); err != nil {
+			return err
+		}
 	}
 
 	if opts.IsPull {
@@ -849,7 +852,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 		return err
 	}
 
-	if err = newIssue(sess, NewIssueOptions{
+	if err = newIssue(sess, issue.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       issue,
 		LableIDs:    labelIDs,
@@ -1773,7 +1776,7 @@ func ChangeMilestoneIssueStats(issue *Issue) (err error) {
 	return sess.Commit()
 }
 
-func changeMilestoneAssign(e *xorm.Session, issue *Issue, oldMilestoneID int64) error {
+func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilestoneID int64) error {
 	if oldMilestoneID > 0 {
 		m, err := getMilestoneByRepoID(e, issue.RepoID, oldMilestoneID)
 		if err != nil {
@@ -1810,18 +1813,28 @@ func changeMilestoneAssign(e *xorm.Session, issue *Issue, oldMilestoneID int64) 
 		}
 	}
 
+	if err := issue.loadRepo(e); err != nil {
+		return err
+	}
+
+	if oldMilestoneID > 0 || issue.MilestoneID > 0 {
+		if _, err := createMilestoneComment(e, doer, issue.Repo, issue, oldMilestoneID, issue.MilestoneID); err != nil {
+			return err
+		}
+	}
+
 	return updateIssue(e, issue)
 }
 
 // ChangeMilestoneAssign changes assignment of milestone for issue.
-func ChangeMilestoneAssign(issue *Issue, oldMilestoneID int64) (err error) {
+func ChangeMilestoneAssign(issue *Issue, doer *User, oldMilestoneID int64) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = changeMilestoneAssign(sess, issue, oldMilestoneID); err != nil {
+	if err = changeMilestoneAssign(sess, doer, issue, oldMilestoneID); err != nil {
 		return err
 	}
 	return sess.Commit()

@@ -470,7 +470,7 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		return err
 	}
 
-	if err = newIssue(sess, NewIssueOptions{
+	if err = newIssue(sess, pull.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       pull,
 		LableIDs:    labelIDs,

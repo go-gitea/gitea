@@ -384,22 +384,27 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 		return nil, 0, 0
 	}
 
-	// Check labels.
-	labelIDs, err := base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
-	if err != nil {
-		return nil, 0, 0
-	}
-	labelIDMark := base.Int64sToMap(labelIDs)
+	var labelIDs []int64
 	hasSelected := false
-	for i := range labels {
-		if labelIDMark[labels[i].ID] {
-			labels[i].IsChecked = true
-			hasSelected = true
+	// Check labels.
+	if len(form.LabelIDs) > 0 {
+		labelIDs, err = base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
+		if err != nil {
+			return nil, 0, 0
+		}
+		labelIDMark := base.Int64sToMap(labelIDs)
+
+		for i := range labels {
+			if labelIDMark[labels[i].ID] {
+				labels[i].IsChecked = true
+				hasSelected = true
+			}
 		}
 	}
+
+	ctx.Data["Labels"] = labels
 	ctx.Data["HasSelectedLabel"] = hasSelected
 	ctx.Data["label_ids"] = form.LabelIDs
-	ctx.Data["Labels"] = labels
 
 	// Check milestone.
 	milestoneID := form.MilestoneID
@@ -617,6 +622,11 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Handle(500, "LoadLabel", err)
 				return
 			}
+		} else if comment.Type == models.CommentTypeMilestone {
+			if err = comment.LoadMilestone(); err != nil {
+				ctx.Handle(500, "LoadMilestone", err)
+				return
+			}
 		}
 	}
 
@@ -625,7 +635,6 @@ func ViewIssue(ctx *context.Context) {
 		canDelete := false
 
 		if ctx.IsSigned && pull.HeadBranch != "master" {
-
 			if err := pull.GetHeadRepo(); err != nil {
 				log.Error(4, "GetHeadRepo: %v", err)
 			} else if ctx.User.IsWriterOfRepo(pull.HeadRepo) {
@@ -729,7 +738,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 
 	// Not check for invalid milestone id and give responsibility to owners.
 	issue.MilestoneID = milestoneID
-	if err := models.ChangeMilestoneAssign(issue, oldMilestoneID); err != nil {
+	if err := models.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
 		ctx.Handle(500, "ChangeMilestoneAssign", err)
 		return
 	}
