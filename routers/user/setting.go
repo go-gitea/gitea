@@ -647,8 +647,13 @@ func SettingsAccountLinks(ctx *context.Context) {
 	sources := make(map[*models.LoginSource]string)
 	for _, externalAccount := range accountLinks {
 		if loginSource, err := models.GetLoginSourceByID(externalAccount.LoginSourceID); err == nil {
-			providerTechnicalName := loginSource.OAuth2().Provider
-			providerDisplayName := models.OAuth2Providers[providerTechnicalName]
+			var providerDisplayName string
+			if loginSource.IsOAuth2() {
+				providerTechnicalName := loginSource.OAuth2().Provider
+				providerDisplayName = models.OAuth2Providers[providerTechnicalName]
+			} else {
+				providerDisplayName = loginSource.Name
+			}
 			sources[loginSource] = providerDisplayName
 		}
 	}
@@ -665,8 +670,9 @@ func SettingsDeleteAccountLink(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/account_link")
-	SettingsAccountLinks(ctx)
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/user/settings/account_link",
+	})
 }
 
 // SettingsDelete render user suicide page and response for delete user himself

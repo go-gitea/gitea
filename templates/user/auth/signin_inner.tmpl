@@ -1,18 +1,20 @@
 <div class="user signin{{if .LinkAccountMode}} icon{{end}}">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form" action="{{if not .LinkAccountMode}}{{.Link}}{{else}}{{.SignInLink}}{{end}}" method="post">
 				{{.CsrfTokenHtml}}
 				<h3 class="ui top attached header">
 					{{.i18n.Tr "sign_in"}}
 				</h3>
 				<div class="ui attached segment">
+					{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn)}}
 					{{template "base/alert" .}}
-					<div class="required inline field {{if .Err_UserName}}error{{end}}">
+					{{end}}
+					<div class="required inline field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 						<label for="user_name">{{.i18n.Tr "home.uname_holder"}}</label>
 						<input id="user_name" name="user_name" value="{{.user_name}}" autofocus required>
 					</div>
-					<div class="required inline field {{if .Err_Password}}error{{end}}">
+					<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 						<label for="password">{{.i18n.Tr "password"}}</label>
 						<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
 					</div>

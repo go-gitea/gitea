@@ -22,12 +22,13 @@ func GetExternalLogin(externalLoginUser *ExternalLoginUser) (bool, error) {
 func ListAccountLinks(user *User) ([]*ExternalLoginUser, error) {
 	externalAccounts := make([]*ExternalLoginUser, 0, 5)
 	err := x.Where("user_id=?", user.ID).
-		Desc("external_id").
+		Desc("login_source_id").
 		Find(&externalAccounts)
 
 	if err != nil {
 		return nil, err
 	}
+
 	return externalAccounts, nil
 }
 
