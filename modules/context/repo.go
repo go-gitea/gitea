@@ -185,10 +185,8 @@ func RepoAssignment(args ...bool) macaron.Handler {
 				ctx.Handle(500, "GetRepositoryByName", err)
 			}
 			return
-		} else if err = repo.GetOwner(); err != nil {
-			ctx.Handle(500, "GetOwner", err)
-			return
 		}
+		repo.Owner = owner
 
 		// Admin has super access.
 		if ctx.IsSigned && ctx.User.IsAdmin {
