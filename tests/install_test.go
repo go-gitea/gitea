@@ -51,7 +51,7 @@ func install(t *utils.T) error {
 
 		// Give the server some amount of time to warm up.
 		time.Sleep(100 * time.Millisecond)
-		fmt.Fprintf(os.Stderr, ".")
+		fmt.Fprint(os.Stderr, ".")
 	}
 
 	if err != nil {
