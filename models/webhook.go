@@ -538,6 +538,8 @@ func (t *HookTask) deliver() {
 	req := httplib.Post(t.URL).SetTimeout(timeout, timeout).
 		Header("X-Gogs-Delivery", t.UUID).
 		Header("X-Gogs-Event", string(t.EventType)).
+		Header("X-GitHub-Delivery", t.UUID).
+		Header("X-GitHub-Event", string(t.EventType)).
 		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify})
 
 	switch t.ContentType {
