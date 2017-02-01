@@ -114,7 +114,7 @@ func getLabelInRepoByName(e Engine, repoID int64, labelName string) (*Label, err
 		Name:   labelName,
 		RepoID: repoID,
 	}
-	has, err := x.Get(l)
+	has, err := e.Get(l)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -135,7 +135,7 @@ func getLabelInRepoByID(e Engine, repoID, labelID int64) (*Label, error) {
 		ID:     labelID,
 		RepoID: repoID,
 	}
-	has, err := x.Get(l)
+	has, err := e.Get(l)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -355,17 +355,14 @@ func getIssueLabels(e Engine, issueID int64) ([]*IssueLabel, error) {
 		Find(&issueLabels)
 }
 
-// GetIssueLabels returns all issue-label relations of given issue by ID.
-func GetIssueLabels(issueID int64) ([]*IssueLabel, error) {
-	return getIssueLabels(x, issueID)
-}
-
-func deleteIssueLabel(e *xorm.Session, doer *User, issue *Issue, label *Label) (err error) {
-	if _, err = e.Delete(&IssueLabel{
+func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err error) {
+	if count, err := e.Delete(&IssueLabel{
 		IssueID: issue.ID,
 		LabelID: label.ID,
 	}); err != nil {
 		return err
+	} else if count == 0 {
+		return nil
 	}
 
 	if err = issue.loadRepo(e); err != nil {
@@ -384,14 +381,14 @@ func deleteIssueLabel(e *xorm.Session, doer *User, issue *Issue, label *Label) (
 }
 
 // DeleteIssueLabel deletes issue-label relation.
-func DeleteIssueLabel(issue *Issue, doer *User, label *Label) (err error) {
+func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 	sess := x.NewSession()
 	defer sessionRelease(sess)
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = deleteIssueLabel(sess, doer, issue, label); err != nil {
+	if err = deleteIssueLabel(sess, issue, label, doer); err != nil {
 		return err
 	}
 

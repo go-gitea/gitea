@@ -44,3 +44,13 @@
   content: content4
   is_closed: true
   is_pull: false
+
+-
+  id: 5
+  repo_id: 1
+  index: 4
+  poster_id: 2
+  name: issue5
+  content: content5
+  is_closed: true
+  is_pull: false

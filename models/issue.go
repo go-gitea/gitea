@@ -345,7 +345,7 @@ func (issue *Issue) getLabels(e Engine) (err error) {
 }
 
 func (issue *Issue) removeLabel(e *xorm.Session, doer *User, label *Label) error {
-	return deleteIssueLabel(e, doer, issue, label)
+	return deleteIssueLabel(e, issue, label, doer)
 }
 
 // RemoveLabel removes a label from issue by given ID.
@@ -360,7 +360,7 @@ func (issue *Issue) RemoveLabel(doer *User, label *Label) error {
 		return ErrLabelNotExist{}
 	}
 
-	if err := DeleteIssueLabel(issue, doer, label); err != nil {
+	if err := DeleteIssueLabel(issue, label, doer); err != nil {
 		return err
 	}
 
