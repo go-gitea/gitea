@@ -168,7 +168,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
-		if err = models.ChangeMilestoneAssign(issue, oldMilestoneID); err != nil {
+		if err = models.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
 			ctx.Error(500, "ChangeMilestoneAssign", err)
 			return
 		}
