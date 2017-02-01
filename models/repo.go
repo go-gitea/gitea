@@ -1054,6 +1054,9 @@ func createRepository(e *xorm.Session, u *User, repo *Repository) (err error) {
 	if _, err = e.Insert(repo); err != nil {
 		return err
 	}
+	if err = deleteRepoRedirect(e, u.ID, repo.Name); err != nil {
+		return err
+	}
 
 	// insert units for repo
 	var units = make([]RepoUnit, 0, len(defaultRepoUnits))

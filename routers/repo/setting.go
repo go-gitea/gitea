@@ -68,6 +68,11 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				return
 			}
 
+			err := models.NewRepoRedirect(ctx.Repo.Owner.ID, repo.ID, repo.Name, newRepoName)
+			if err != nil {
+				ctx.Handle(500, "NewRepoRedirect", err)
+			}
+
 			log.Trace("Repository name changed: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newRepoName)
 		}
 		// In case it's just a case change.
