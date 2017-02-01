@@ -71,7 +71,8 @@ func install(t *utils.T) error {
 	}
 
 	settings := makeSimpleSettings(_user.Username, path, ServerHTTPPort)
-	if _, err := http.PostForm("http://:"+ServerHTTPPort+"/install", settings); err != nil {
+	resp, err := http.PostForm("http://:"+ServerHTTPPort+"/install", settings)
+	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
