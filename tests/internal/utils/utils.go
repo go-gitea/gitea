@@ -54,8 +54,8 @@ func redirect(cmd *exec.Cmd, f *os.File) error {
 		return err
 	}
 
-	go io.Copy(os.Stderr, stdout)
-	go io.Copy(os.Stdout, stderr)
+	go io.Copy(f, stdout)
+	go io.Copy(f, stderr)
 	return nil
 }
 
