@@ -16,8 +16,8 @@ func TestRepo(t *testing.T) {
 		repo.Owner.Name = "testuser"
 		externalTracker := RepoUnit{
 			Type: UnitTypeExternalTracker,
-			Config: map[string]string{
-				"ExternalTrackerFormat": "https://someurl.com/{user}/{repo}/{issue}",
+			Config: &ExternalTrackerConfig{
+				ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
 			},
 		}
 		repo.Units = []*RepoUnit{
@@ -44,12 +44,12 @@ func TestRepo(t *testing.T) {
 				So(metas["style"], ShouldEqual, markdown.IssueNameStyleNumeric)
 			})
 			Convey("It should pass through numeric issue style setting", func() {
-				externalTracker.Config["ExternalTrackerStyle"] = markdown.IssueNameStyleNumeric
+				externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markdown.IssueNameStyleNumeric
 				metas := repo.ComposeMetas()
 				So(metas["style"], ShouldEqual, markdown.IssueNameStyleNumeric)
 			})
 			Convey("It should pass through alphanumeric issue style setting", func() {
-				externalTracker.Config["ExternalTrackerStyle"] = markdown.IssueNameStyleAlphanumeric
+				externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markdown.IssueNameStyleAlphanumeric
 				metas := repo.ComposeMetas()
 				So(metas["style"], ShouldEqual, markdown.IssueNameStyleAlphanumeric)
 			})
