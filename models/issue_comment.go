@@ -247,7 +247,7 @@ func (c *Comment) LoadMilestone() error {
 	return nil
 }
 
-// LoadAssignee if comment.Type is CommentTypeAssignees, then load assignees
+// LoadAssignees if comment.Type is CommentTypeAssignees, then load assignees
 func (c *Comment) LoadAssignees() error {
 	if c.OldAssigneeID > 0 {
 		var oldAssignee User
