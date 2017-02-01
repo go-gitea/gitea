@@ -56,7 +56,7 @@ func version(t *utils.T) error {
 
 	actual := string(bytes.TrimSpace(buf))
 
-	log.Printf("Actual: \"%s\" Expected: \"%s\"\n", string(actual), string(expected))
+	log.Printf("Actual: \"%s\" Expected: \"%s\"\n", actual, expected)
 	assert.Equal(t, expected, actual)
 
 	return nil
