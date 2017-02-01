@@ -6,15 +6,14 @@ package utils
 
 import (
 	"errors"
-	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"syscall"
 	"testing"
-	"time"
 )
 
 // T wraps testing.T and the configurations of the testing instance.
@@ -72,11 +71,8 @@ func (t *T) RunTest(tests ...func(*T) error) (err error) {
 
 	workdir := t.Config.WorkDir
 	if workdir == "" {
-		workdir, err = filepath.Abs(fmt.Sprintf("%s-%10d", filepath.Base(t.Config.Program), time.Now().UnixNano()))
+		workdir, err = ioutil.TempDir(os.TempDir(), "gitea_tests-")
 		if err != nil {
-			return err
-		}
-		if err := os.Mkdir(workdir, 0700); err != nil {
 			return err
 		}
 		defer os.RemoveAll(workdir)
