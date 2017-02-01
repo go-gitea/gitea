@@ -162,6 +162,19 @@
 						<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
 						{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.change_milestone_at" .OldMilestone.Name .Milestone.Name $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_milestone_at" .OldMilestone.Name $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.add_milestone_at" .Milestone.Name $createdStr | Safe}}{{end}}</span>
 					</div>
+				{{else if eq .Type 9}}
+					<div class="event">
+						<span class="octicon octicon-primitive-dot"></span>
+						{{if gt .AssigneeID 0}}{{if eq .Poster.ID .AssigneeID}}<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+							<img src="{{.Poster.RelAvatarLink}}">
+						</a> <span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.self_assign_at" $createdStr | Safe}} </span>
+						{{else}}<a class="ui avatar image" href="{{.Assignee.HomeLink}}">
+							<img src="{{.Assignee.RelAvatarLink}}">
+						</a><span class="text grey"><a href="{{.Assignee.HomeLink}}">{{.Assignee.Name}}</a> {{$.i18n.Tr "repo.issues.add_assignee_at" .Poster.Name $createdStr | Safe}} </span>{{end}}{{else if gt .OldAssigneeID 0}}
+						<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+							<img src="{{.Poster.RelAvatarLink}}">
+						</a> <span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.remove_assignee_at" $createdStr | Safe}} </span>{{end}}
+					</div>
 				{{end}}
 
 			{{end}}

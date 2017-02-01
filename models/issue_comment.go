@@ -40,6 +40,8 @@ const (
 	CommentTypeLabel
 	// Milestone changed
 	CommentTypeMilestone
+	// Assignees changed
+	CommentTypeAssignees
 )
 
 // CommentTag defines comment tag type
@@ -55,17 +57,22 @@ const (
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID              int64 `xorm:"pk autoincr"`
-	Type            CommentType
-	PosterID        int64 `xorm:"INDEX"`
-	Poster          *User `xorm:"-"`
-	IssueID         int64 `xorm:"INDEX"`
-	LabelID         int64
-	Label           *Label `xorm:"-"`
-	OldMilestoneID  int64
-	MilestoneID     int64
-	OldMilestone    *Milestone `xorm:"-"`
-	Milestone       *Milestone `xorm:"-"`
+	ID             int64 `xorm:"pk autoincr"`
+	Type           CommentType
+	PosterID       int64 `xorm:"INDEX"`
+	Poster         *User `xorm:"-"`
+	IssueID        int64 `xorm:"INDEX"`
+	LabelID        int64
+	Label          *Label `xorm:"-"`
+	OldMilestoneID int64
+	MilestoneID    int64
+	OldMilestone   *Milestone `xorm:"-"`
+	Milestone      *Milestone `xorm:"-"`
+	OldAssigneeID  int64
+	AssigneeID     int64
+	Assignee       *User `xorm:"-"`
+	OldAssignee    *User `xorm:"-"`
+
 	CommitID        int64
 	Line            int64
 	Content         string `xorm:"TEXT"`
@@ -240,6 +247,36 @@ func (c *Comment) LoadMilestone() error {
 	return nil
 }
 
+// LoadAssignee if comment.Type is CommentTypeAssignees, then load assignees
+func (c *Comment) LoadAssignees() error {
+	if c.OldAssigneeID > 0 {
+		var oldAssignee User
+		has, err := x.ID(c.OldAssigneeID).Get(&oldAssignee)
+		if err != nil {
+			return err
+		} else if !has {
+			return ErrUserNotExist{
+				UID: c.OldAssigneeID,
+			}
+		}
+		c.OldAssignee = &oldAssignee
+	}
+
+	if c.AssigneeID > 0 {
+		var assignee User
+		has, err := x.ID(c.AssigneeID).Get(&assignee)
+		if err != nil {
+			return err
+		} else if !has {
+			return ErrUserNotExist{
+				UID: c.AssigneeID,
+			}
+		}
+		c.Assignee = &assignee
+	}
+	return nil
+}
+
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
 func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
@@ -276,6 +313,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		LabelID:        LabelID,
 		OldMilestoneID: opts.OldMilestoneID,
 		MilestoneID:    opts.MilestoneID,
+		OldAssigneeID:  opts.OldAssigneeID,
+		AssigneeID:     opts.AssigneeID,
 		CommitID:       opts.CommitID,
 		CommitSHA:      opts.CommitSHA,
 		Line:           opts.LineNum,
@@ -416,6 +455,17 @@ func createMilestoneComment(e *xorm.Session, doer *User, repo *Repository, issue
 	})
 }
 
+func createAssigneeComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldAssigneeID, assigneeID int64) (*Comment, error) {
+	return createComment(e, &CreateCommentOptions{
+		Type:          CommentTypeAssignees,
+		Doer:          doer,
+		Repo:          repo,
+		Issue:         issue,
+		OldAssigneeID: oldAssigneeID,
+		AssigneeID:    assigneeID,
+	})
+}
+
 // CreateCommentOptions defines options for creating comment
 type CreateCommentOptions struct {
 	Type  CommentType
@@ -426,6 +476,8 @@ type CreateCommentOptions struct {
 
 	OldMilestoneID int64
 	MilestoneID    int64
+	OldAssigneeID  int64
+	AssigneeID     int64
 	CommitID       int64
 	CommitSHA      string
 	LineNum        int64
