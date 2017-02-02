@@ -322,7 +322,7 @@ func GetLoginSourceByID(id int64) (*LoginSource, error) {
 // UpdateSource updates a LoginSource record in DB.
 func UpdateSource(source *LoginSource) error {
 	_, err := x.Id(source.ID).AllCols().Update(source)
-	if err != nil && source.IsOAuth2() {
+	if err == nil && source.IsOAuth2() {
 		oAuth2Config := source.OAuth2()
 		oauth2.RemoveProvider(source.Name)
 		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret)
