@@ -78,8 +78,9 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Title"] = ctxUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Owner"] = ctxUser
+	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID)
 
-	orgs, err := models.GetOrgsByUserID(ctxUser.ID, ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID))
+	orgs, err := models.GetOrgsByUserID(ctxUser.ID, showPrivate)
 	if err != nil {
 		ctx.Handle(500, "GetOrgsByUserIDDesc", err)
 		return
@@ -91,13 +92,12 @@ func Profile(ctx *context.Context) {
 	ctx.Data["TabName"] = tab
 	switch tab {
 	case "activity":
-		retrieveFeeds(ctx, ctxUser, -1, 0, true)
+		retrieveFeeds(ctx, ctxUser, -1, 0, !showPrivate)
 		if ctx.Written() {
 			return
 		}
 	case "stars":
-		showPrivateRepos := ctx.IsSigned && ctx.User.ID == ctxUser.ID
-		starredRepos, err := ctxUser.GetStarredRepos(showPrivateRepos)
+		starredRepos, err := ctxUser.GetStarredRepos(showPrivate)
 		if err != nil {
 			ctx.Handle(500, "GetStarredRepos", err)
 			return
@@ -109,7 +109,7 @@ func Profile(ctx *context.Context) {
 			page = 1
 		}
 
-		ctx.Data["Repos"], err = models.GetUserRepositories(ctxUser.ID, ctx.IsSigned && ctx.User.ID == ctxUser.ID, page, setting.UI.User.RepoPagingNum)
+		ctx.Data["Repos"], err = models.GetUserRepositories(ctxUser.ID, showPrivate, page, setting.UI.User.RepoPagingNum)
 		if err != nil {
 			ctx.Handle(500, "GetRepositories", err)
 			return
