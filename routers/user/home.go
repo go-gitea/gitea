@@ -65,7 +65,9 @@ func retrieveFeeds(ctx *context.Context, ctxUser *models.User, userID, offset in
 
 	// Check access of private repositories.
 	feeds := make([]*models.Action, 0, len(actions))
-	unameAvatars := make(map[string]string)
+	unameAvatars := map[string]string{
+		ctxUser.Name: ctxUser.RelAvatarLink(),
+	}
 	for _, act := range actions {
 		// Cache results to reduce queries.
 		_, ok := unameAvatars[act.ActUserName]
