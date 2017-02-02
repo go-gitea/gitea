@@ -69,14 +69,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 	uid := sess.Get("uid")
 	if uid == nil {
 		return 0
-	}
-	if id, ok := uid.(int64); ok {
-		if _, err := models.GetUserByID(id); err != nil {
-			if !models.IsErrUserNotExist(err) {
-				log.Error(4, "GetUserById: %v", err)
-			}
-			return 0
-		}
+	} else if id, ok := uid.(int64); ok {
 		return id
 	}
 	return 0
@@ -89,66 +82,64 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 		return nil, false
 	}
 
-	uid := SignedInID(ctx, sess)
-
-	if uid <= 0 {
-		if setting.Service.EnableReverseProxyAuth {
-			webAuthUser := ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
-			if len(webAuthUser) > 0 {
-				u, err := models.GetUserByName(webAuthUser)
-				if err != nil {
-					if !models.IsErrUserNotExist(err) {
-						log.Error(4, "GetUserByName: %v", err)
-						return nil, false
-					}
-
-					// Check if enabled auto-registration.
-					if setting.Service.EnableReverseProxyAutoRegister {
-						u := &models.User{
-							Name:     webAuthUser,
-							Email:    gouuid.NewV4().String() + "@localhost",
-							Passwd:   webAuthUser,
-							IsActive: true,
-						}
-						if err = models.CreateUser(u); err != nil {
-							// FIXME: should I create a system notice?
-							log.Error(4, "CreateUser: %v", err)
-							return nil, false
-						}
-						return u, false
-					}
-				}
-				return u, false
-			}
+	if uid := SignedInID(ctx, sess); uid > 0 {
+		user, err := models.GetUserByID(uid)
+		if err == nil {
+			return user, false
+		} else if !models.IsErrUserNotExist(err) {
+			log.Error(4, "GetUserById: %v", err)
 		}
+	}
 
-		// Check with basic auth.
-		baHead := ctx.Req.Header.Get("Authorization")
-		if len(baHead) > 0 {
-			auths := strings.Fields(baHead)
-			if len(auths) == 2 && auths[0] == "Basic" {
-				uname, passwd, _ := base.BasicAuthDecode(auths[1])
-
-				u, err := models.UserSignIn(uname, passwd)
-				if err != nil {
-					if !models.IsErrUserNotExist(err) {
-						log.Error(4, "UserSignIn: %v", err)
-					}
+	if setting.Service.EnableReverseProxyAuth {
+		webAuthUser := ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
+		if len(webAuthUser) > 0 {
+			u, err := models.GetUserByName(webAuthUser)
+			if err != nil {
+				if !models.IsErrUserNotExist(err) {
+					log.Error(4, "GetUserByName: %v", err)
 					return nil, false
 				}
 
-				return u, true
+				// Check if enabled auto-registration.
+				if setting.Service.EnableReverseProxyAutoRegister {
+					u := &models.User{
+						Name:     webAuthUser,
+						Email:    gouuid.NewV4().String() + "@localhost",
+						Passwd:   webAuthUser,
+						IsActive: true,
+					}
+					if err = models.CreateUser(u); err != nil {
+						// FIXME: should I create a system notice?
+						log.Error(4, "CreateUser: %v", err)
+						return nil, false
+					}
+					return u, false
+				}
 			}
+			return u, false
 		}
-		return nil, false
 	}
 
-	u, err := models.GetUserByID(uid)
-	if err != nil {
-		log.Error(4, "GetUserById: %v", err)
-		return nil, false
+	// Check with basic auth.
+	baHead := ctx.Req.Header.Get("Authorization")
+	if len(baHead) > 0 {
+		auths := strings.Fields(baHead)
+		if len(auths) == 2 && auths[0] == "Basic" {
+			uname, passwd, _ := base.BasicAuthDecode(auths[1])
+
+			u, err := models.UserSignIn(uname, passwd)
+			if err != nil {
+				if !models.IsErrUserNotExist(err) {
+					log.Error(4, "UserSignIn: %v", err)
+				}
+				return nil, false
+			}
+
+			return u, true
+		}
 	}
-	return u, false
+	return nil, false
 }
 
 // Form form binding interface
