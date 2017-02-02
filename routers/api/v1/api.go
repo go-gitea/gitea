@@ -57,10 +57,8 @@ func repoAssignment() macaron.Handler {
 				ctx.Error(500, "GetRepositoryByName", err)
 			}
 			return
-		} else if err = repo.GetOwner(); err != nil {
-			ctx.Error(500, "GetOwner", err)
-			return
 		}
+		repo.Owner = owner
 
 		if ctx.IsSigned && ctx.User.IsAdmin {
 			ctx.Repo.AccessMode = models.AccessModeOwner
