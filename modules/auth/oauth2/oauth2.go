@@ -75,7 +75,9 @@ func ProviderCallback(provider string, request *http.Request, response http.Resp
 func RegisterProvider(providerName, providerType, clientID, clientSecret string) {
 	provider := createProvider(providerName, providerType, clientID, clientSecret)
 
-	goth.UseProviders(provider)
+	if provider != nil {
+		goth.UseProviders(provider)
+	}
 }
 
 // RemoveProvider removes the given OAuth2 provider from the goth lib
@@ -94,8 +96,10 @@ func createProvider(providerName, providerType, clientID, clientSecret string) g
 		provider = github.New(clientID, clientSecret, callbackURL, "user:email")
 	}
 
-	// always set the name so we can support multiple setups of 1 provider
-	provider.SetName(providerName)
+	// always set the name if provider is created so we can support multiple setups of 1 provider
+	if provider != nil {
+		provider.SetName(providerName)
+	}
 
 	return provider
 }
