@@ -249,30 +249,19 @@ func (c *Comment) LoadMilestone() error {
 
 // LoadAssignees if comment.Type is CommentTypeAssignees, then load assignees
 func (c *Comment) LoadAssignees() error {
+	var err error
 	if c.OldAssigneeID > 0 {
-		var oldAssignee User
-		has, err := x.ID(c.OldAssigneeID).Get(&oldAssignee)
+		c.OldAssignee, err = getUserByID(x, c.OldAssigneeID)
 		if err != nil {
 			return err
-		} else if !has {
-			return ErrUserNotExist{
-				UID: c.OldAssigneeID,
-			}
 		}
-		c.OldAssignee = &oldAssignee
 	}
 
 	if c.AssigneeID > 0 {
-		var assignee User
-		has, err := x.ID(c.AssigneeID).Get(&assignee)
+		c.Assignee, err = getUserByID(x, c.AssigneeID)
 		if err != nil {
 			return err
-		} else if !has {
-			return ErrUserNotExist{
-				UID: c.AssigneeID,
-			}
 		}
-		c.Assignee = &assignee
 	}
 	return nil
 }
