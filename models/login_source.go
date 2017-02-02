@@ -587,11 +587,18 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 //  \_______  /\____|__  /____/ |__| |___|  /\_______ \
 //          \/         \/                 \/         \/
 
+// OAuth2Provider describes the display values of a single OAuth2 provider
+type OAuth2Provider struct {
+	Name string
+	DisplayName string
+	Image string
+}
+
 // OAuth2Providers contains the map of registered OAuth2 providers in Gitea (based on goth)
-// key is used as technical name (for use in the callbackURL)
-// value is used to display
-var OAuth2Providers = map[string]string{
-	"github":   "GitHub",
+// key is used to map the OAuth2Provider with the goth provider type (also in LoginSource.OAuth2Config.Provider)
+// value is used to store display data
+var OAuth2Providers = map[string]OAuth2Provider{
+	"github":   {Name: "github", DisplayName:"GitHub", Image: "/img/github.png"},
 }
 
 // ExternalUserLogin attempts a login using external source types.
@@ -694,10 +701,10 @@ func GetActiveOAuth2LoginSourceByName(name string) (*LoginSource, error) {
 	return loginSource, nil
 }
 
-// GetActiveOAuth2ProviderNames returns the map of configured active OAuth2 providers
+// GetActiveOAuth2Providers returns the map of configured active OAuth2 providers
 // key is used as technical name (like in the callbackURL)
-// value is used to display
-func GetActiveOAuth2ProviderNames() (map[string]string, error) {
+// values to display
+func GetActiveOAuth2Providers() (map[string]OAuth2Provider, error) {
 	// Maybe also seperate used and unused providers so we can force the registration of only 1 active provider for each type
 
 	loginSources, err := GetActiveOAuth2ProviderLoginSources()
@@ -705,7 +712,7 @@ func GetActiveOAuth2ProviderNames() (map[string]string, error) {
 		return nil, err
 	}
 
-	providers := make(map[string]string)
+	providers := make(map[string]OAuth2Provider)
 	for _, source := range loginSources {
 		providers[source.Name] = OAuth2Providers[source.OAuth2().Provider]
 	}

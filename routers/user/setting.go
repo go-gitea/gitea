@@ -650,7 +650,7 @@ func SettingsAccountLinks(ctx *context.Context) {
 			var providerDisplayName string
 			if loginSource.IsOAuth2() {
 				providerTechnicalName := loginSource.OAuth2().Provider
-				providerDisplayName = models.OAuth2Providers[providerTechnicalName]
+				providerDisplayName = models.OAuth2Providers[providerTechnicalName].DisplayName
 			} else {
 				providerDisplayName = loginSource.Name
 			}

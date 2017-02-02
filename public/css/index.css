@@ -2983,3 +2983,20 @@ footer .ui.language .menu {
   padding-top: 15px;
   padding-bottom: 5px;
 }
+.signin .oauth2 div {
+  display: inline-block;
+}
+.signin .oauth2 div p {
+  margin: 10px 5px 0 0;
+  float: left;
+}
+.signin .oauth2 a {
+  margin-right: 5px;
+}
+.signin .oauth2 a:last-child {
+  margin-right: 0px;
+}
+.signin .oauth2 img {
+  width: 32px;
+  height: 32px;
+}

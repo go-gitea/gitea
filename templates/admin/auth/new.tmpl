@@ -143,7 +143,7 @@
 									<i class="dropdown icon"></i>
 									<div class="menu">
 										{{range $key, $value := .OAuth2Providers}}
-											<div class="item" data-value="{{$key}}">{{$value}}</div>
+											<div class="item" data-value="{{$key}}">{{$value.DisplayName}}</div>
 										{{end}}
 									</div>
 								</div>

@@ -149,11 +149,11 @@
 								<label>{{.i18n.Tr "admin.auths.oauth2_provider"}}</label>
 								<div class="ui selection type dropdown">
 									<input type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{$cfg.Provider}}" required>
-									<div class="text">{{.CurrentOAuth2Provider}}</div>
+									<div class="text">{{.CurrentOAuth2Provider.DisplayName}}</div>
 									<i class="dropdown icon"></i>
 									<div class="menu">
 										{{range $key, $value := .OAuth2Providers}}
-											<div class="item" data-value="{{$key}}">{{$value}}</div>
+											<div class="item" data-value="{{$key}}">{{$value.DisplayName}}</div>
 										{{end}}
 									</div>
 								</div>

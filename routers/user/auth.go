@@ -114,7 +114,7 @@ func SignIn(ctx *context.Context) {
 		return
 	}
 
-	oauth2Providers, err := models.GetActiveOAuth2ProviderNames()
+	oauth2Providers, err := models.GetActiveOAuth2Providers()
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)
 		return
@@ -128,7 +128,7 @@ func SignIn(ctx *context.Context) {
 func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
-	oauth2Providers, err := models.GetActiveOAuth2ProviderNames()
+	oauth2Providers, err := models.GetActiveOAuth2Providers()
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)
 		return
