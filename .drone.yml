@@ -35,7 +35,7 @@ pipeline:
     commands:
       - make test-mysql
     when:
-      event: [ push ]
+      event: [ push, tag, pull_request ]
 
   test-pgsql:
     image: webhippie/golang:edge
@@ -47,7 +47,7 @@ pipeline:
     commands:
       - make test-pgsql
     when:
-      event: [ push ]
+      event: [ push, tag, pull_request ]
 
   updater:
     image: karalabe/xgo-latest:latest
@@ -59,8 +59,7 @@ pipeline:
     commands:
       - make release
     when:
-      event: [ push, tag ]
-      branch: [ master, release/*, refs/tags/* ]
+      event: [ push, tag, pull_request ]
 
   coverage:
     image: plugins/coverage
@@ -140,11 +139,11 @@ services:
       - MYSQL_DATABASE=test
       - MYSQL_ALLOW_EMPTY_PASSWORD=yes
     when:
-      event: [ push ]
+      event: [ push, tag, pull_request ]
 
   pgsql:
     image: postgres:9.5
     environment:
       - POSTGRES_DB=test
     when:
-      event: [ push ]
+      event: [ push, tag, pull_request ]
