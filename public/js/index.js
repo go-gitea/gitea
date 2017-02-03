@@ -989,7 +989,7 @@ function initAdmin() {
             switch (authType) {
                 case '2':     // LDAP
                     $('.ldap').show();
-                    $('.ldap div.required input').attr('required', 'required');
+                    $('.ldap div.required:not(.dldap) input').attr('required', 'required');
                     break;
                 case '3':     // SMTP
                     $('.smtp').show();
@@ -1002,7 +1002,7 @@ function initAdmin() {
                     break;
                 case '5':     // LDAP
                     $('.dldap').show();
-                    $('.dldap div.required input').attr('required', 'required');
+                    $('.dldap div.required:not(.ldap) input').attr('required', 'required');
                     break;
             }
 
