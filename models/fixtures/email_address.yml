@@ -1,0 +1,35 @@
+-
+  id: 1
+  uid: 1
+  email: user11@example.com
+  is_activated: false
+
+-
+  id: 2
+  uid: 1
+  email: user12@example.com
+  is_activated: false
+
+-
+  id: 3
+  uid: 2
+  email: user2@example.com
+  is_activated: true
+
+-
+  id: 4
+  uid: 2
+  email: user21@example.com
+  is_activated: false
+
+-
+  id: 5
+  uid: 9999999
+  email: user9999999@example.com
+  is_activated: true
+
+-
+  id: 6
+  uid: 10
+  email: user101@example.com
+  is_activated: true
