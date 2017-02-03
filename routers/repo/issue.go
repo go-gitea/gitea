@@ -213,26 +213,14 @@ func Issues(ctx *context.Context) {
 		}
 	}
 
-	// Get issue-user relations.
-	pairs, err := models.GetIssueUsers(repo.ID, posterID, isShowClosed)
-	if err != nil {
-		ctx.Handle(500, "GetIssueUsers", err)
-		return
-	}
-
 	// Get posters.
 	for i := range issues {
+		// Check read status
 		if !ctx.IsSigned {
 			issues[i].IsRead = true
-			continue
-		}
-
-		// Check read status.
-		idx := models.PairsContains(pairs, issues[i].ID, ctx.User.ID)
-		if idx > -1 {
-			issues[i].IsRead = pairs[idx].IsRead
-		} else {
-			issues[i].IsRead = true
+		} else if err = issues[i].GetIsRead(ctx.User.ID); err != nil {
+			ctx.Handle(500, "GetIsRead", err)
+			return
 		}
 	}
 	ctx.Data["Issues"] = issues

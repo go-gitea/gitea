@@ -1424,7 +1424,6 @@ func DeleteRepository(uid, repoID int64) error {
 		&Watch{RepoID: repoID},
 		&Star{RepoID: repoID},
 		&Mirror{RepoID: repoID},
-		&IssueUser{RepoID: repoID},
 		&Milestone{RepoID: repoID},
 		&Release{RepoID: repoID},
 		&Collaboration{RepoID: repoID},
@@ -1443,6 +1442,9 @@ func DeleteRepository(uid, repoID int64) error {
 	}
 	for i := range issues {
 		if _, err = sess.Delete(&Comment{IssueID: issues[i].ID}); err != nil {
+			return err
+		}
+		if _, err = sess.Delete(&IssueUser{IssueID: issues[i].ID}); err != nil {
 			return err
 		}
 
