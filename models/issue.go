@@ -703,9 +703,21 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 
 // ChangeAssignee changes the Asssignee field of this issue.
 func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
+	var oldAssigneeID = issue.AssigneeID
 	issue.AssigneeID = assigneeID
 	if err = UpdateIssueUserByAssignee(issue); err != nil {
 		return fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err = issue.loadRepo(sess); err != nil {
+		return fmt.Errorf("loadRepo: %v", err)
+	}
+
+	if _, err = createAssigneeComment(sess, doer, issue.Repo, issue, oldAssigneeID, assigneeID); err != nil {
+		return fmt.Errorf("createAssigneeComment: %v", err)
 	}
 
 	issue.Assignee, err = GetUserByID(issue.AssigneeID)
@@ -794,6 +806,15 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 	if opts.Issue.MilestoneID > 0 {
 		if err = changeMilestoneAssign(e, doer, opts.Issue, -1); err != nil {
+			return err
+		}
+	}
+
+	if opts.Issue.AssigneeID > 0 {
+		if err = opts.Issue.loadRepo(e); err != nil {
+			return err
+		}
+		if _, err = createAssigneeComment(e, doer, opts.Issue.Repo, opts.Issue, -1, opts.Issue.AssigneeID); err != nil {
 			return err
 		}
 	}

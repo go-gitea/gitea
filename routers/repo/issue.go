@@ -615,6 +615,11 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Handle(500, "LoadMilestone", err)
 				return
 			}
+		} else if comment.Type == models.CommentTypeAssignees {
+			if err = comment.LoadAssignees(); err != nil {
+				ctx.Handle(500, "LoadAssignees", err)
+				return
+			}
 		}
 	}
 
