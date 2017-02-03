@@ -1,0 +1,23 @@
+-
+  id: 1
+  uid: 1
+  issue_id: 1
+  is_read: true
+  is_assigned: true
+  is_mentioned: false
+
+-
+  id: 2
+  uid: 2
+  issue_id: 1
+  is_read: true
+  is_assigned: false
+  is_mentioned: false
+
+-
+  id: 3
+  uid: 4
+  issue_id: 1
+  is_read: false
+  is_assigned: false
+  is_mentioned: false
