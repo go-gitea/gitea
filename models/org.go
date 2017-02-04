@@ -526,10 +526,28 @@ func RemoveOrgUser(orgID, userID int64) error {
 }
 
 func removeOrgRepo(e Engine, orgID, repoID int64) error {
-	_, err := e.Delete(&TeamRepo{
+	teamRepos := make([]*TeamRepo, 0, 10)
+	if err := e.Find(&teamRepos, &TeamRepo{OrgID: orgID, RepoID: repoID}); err != nil {
+		return err
+	}
+
+	if len(teamRepos) == 0 {
+		return nil
+	}
+
+	if _, err := e.Delete(&TeamRepo{
 		OrgID:  orgID,
 		RepoID: repoID,
-	})
+	}); err != nil {
+		return err
+	}
+
+	teamIDs := make([]int64, len(teamRepos))
+	for i, teamRepo := range teamRepos {
+		teamIDs[i] = teamRepo.ID
+	}
+
+	_, err := x.Decr("num_repos").In("id", teamIDs).Update(new(Team))
 	return err
 }
 

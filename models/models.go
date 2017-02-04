@@ -30,12 +30,14 @@ import (
 
 // Engine represents a xorm engine or session.
 type Engine interface {
+	Decr(column string, arg ...interface{}) *xorm.Session
 	Delete(interface{}) (int64, error)
 	Exec(string, ...interface{}) (sql.Result, error)
 	Find(interface{}, ...interface{}) error
 	Get(interface{}) (bool, error)
 	Id(interface{}) *xorm.Session
 	In(string, ...interface{}) *xorm.Session
+	Incr(column string, arg ...interface{}) *xorm.Session
 	Insert(...interface{}) (int64, error)
 	InsertOne(interface{}) (int64, error)
 	Iterate(interface{}, xorm.IterFunc) error
