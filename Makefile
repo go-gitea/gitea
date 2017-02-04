@@ -90,6 +90,10 @@ build: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES)
 	go build -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+	cp -r ./templates ./bin/
+	cp -r ./public ./bin/
+	cp -r ./conf ./bin/
+	cp -r ./scripts ./bin/
 
 .PHONY: docker
 docker:
