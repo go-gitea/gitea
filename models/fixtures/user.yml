@@ -25,6 +25,7 @@
   avatar: avatar2
   avatar_email: user2@example.com
   num_repos: 2
+  num_stars: 2
 
 -
   id: 3
@@ -40,6 +41,7 @@
   avatar_email: user3@example.com
   num_repos: 2
   num_members: 2
+  num_teams: 2
 
 -
   id: 4
@@ -85,6 +87,7 @@
   avatar_email: user6@example.com
   num_repos: 0
   num_members: 1
+  num_teams: 1
 
 -
   id: 7
@@ -100,6 +103,7 @@
   avatar_email: user7@example.com
   num_repos: 0
   num_members: 1
+  num_teams: 1
 
 -
   id: 8
@@ -114,7 +118,6 @@
   avatar: avatar8
   avatar_email: user8@example.com
   num_repos: 0
-  num_members: 1
   is_active: true
 
 -
@@ -130,7 +133,6 @@
   avatar: avatar9
   avatar_email: user9@example.com
   num_repos: 0
-  num_members: 1
   is_active: false
 
 -
@@ -146,5 +148,4 @@
   avatar: avatar10
   avatar_email: user10@example.com
   num_repos: 0
-  num_members: 1
   is_active: true

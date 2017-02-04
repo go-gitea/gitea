@@ -4,7 +4,7 @@
   lower_name: owners
   name: owners
   authorize: 4 # owner
-  num_repos: 1
+  num_repos: 2
   num_members: 1
 
 -
