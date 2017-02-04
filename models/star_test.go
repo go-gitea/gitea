@@ -61,8 +61,8 @@ func TestUser_GetStarredRepos(t *testing.T) {
 	starred, err = user.GetStarredRepos(true)
 	assert.NoError(t, err)
 	assert.Len(t, starred, 2)
-	assert.Equal(t, int64(2), starred[0].ID)
-	assert.Equal(t, int64(4), starred[1].ID)
+	assert.Equal(t, int64(4), starred[0].ID)
+	assert.Equal(t, int64(2), starred[1].ID)
 }
 
 func TestUser_GetStarredRepos2(t *testing.T) {
