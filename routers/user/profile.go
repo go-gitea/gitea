@@ -109,12 +109,66 @@ func Profile(ctx *context.Context) {
 			page = 1
 		}
 
-		ctx.Data["Repos"], err = models.GetUserRepositories(ctxUser.ID, showPrivate, page, setting.UI.User.RepoPagingNum)
-		if err != nil {
-			ctx.Handle(500, "GetRepositories", err)
-			return
+		var (
+			repos   []*models.Repository
+			count   int64
+			err     error
+			orderBy string
+		)
+		switch ctx.Query("sort") {
+		case "newest":
+			orderBy = "created_unix DESC"
+		case "oldest":
+			orderBy = "created_unix ASC"
+		case "recentupdate":
+			orderBy = "updated_unix DESC"
+		case "leastupdate":
+			orderBy = "updated_unix ASC"
+		case "reversealphabetically":
+			orderBy = "name DESC"
+		case "alphabetically":
+			orderBy = "name ASC"
+		default:
+			orderBy = "updated_unix DESC"
 		}
-		ctx.Data["Page"] = paginater.New(ctxUser.NumRepos, setting.UI.User.RepoPagingNum, page, 5)
+
+		keyword := ctx.Query("q")
+		if len(keyword) == 0 {
+			repos, err = models.GetUserRepositories(ctxUser.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy)
+			if err != nil {
+				ctx.Handle(500, "GetRepositories", err)
+				return
+			}
+			ctx.Data["Repos"] = repos
+			ctx.Data["Page"] = paginater.New(ctxUser.NumRepos, setting.UI.User.RepoPagingNum, page, 5)
+			ctx.Data["Total"] = ctxUser.NumRepos
+		} else {
+			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
+				Keyword:  keyword,
+				OwnerID:  ctxUser.ID,
+				OrderBy:  orderBy,
+				Private:  ctx.IsSigned && ctx.User.ID == ctxUser.ID,
+				Page:     page,
+				PageSize: setting.UI.User.RepoPagingNum,
+			})
+			if err != nil {
+				ctx.Handle(500, "SearchRepositoryByName", err)
+				return
+			}
+
+			ctx.Data["Repos"] = repos
+			ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
+			ctx.Data["Total"] = count
+		}
+
+		// set default sort value.
+		if ctx.Query("sort") == "" {
+			ctx.Data["SortType"] = "recentupdate"
+		} else {
+			ctx.Data["SortType"] = ctx.Query("sort")
+		}
+
+		ctx.Data["Keyword"] = keyword
 	}
 
 	ctx.HTML(200, tplProfile)
