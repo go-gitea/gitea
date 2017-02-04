@@ -132,3 +132,19 @@
   num_repos: 0
   num_members: 1
   is_active: false
+
+-
+  id: 10
+  lower_name: user10
+  name: user10
+  full_name: User Ten
+  email: user10@example.com
+  passwd: password
+  type: 0 # user
+  salt: salt
+  is_admin: false
+  avatar: avatar10
+  avatar_email: user10@example.com
+  num_repos: 0
+  num_members: 1
+  is_active: true
