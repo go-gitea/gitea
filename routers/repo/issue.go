@@ -59,13 +59,15 @@ var (
 
 // MustEnableIssues check if repository enable internal issues
 func MustEnableIssues(ctx *context.Context) {
-	if !ctx.Repo.Repository.EnableIssues {
+	if !ctx.Repo.Repository.EnableUnit(models.UnitTypeIssues) &&
+		!ctx.Repo.Repository.EnableUnit(models.UnitTypeExternalTracker) {
 		ctx.Handle(404, "MustEnableIssues", nil)
 		return
 	}
 
-	if ctx.Repo.Repository.EnableExternalTracker {
-		ctx.Redirect(ctx.Repo.Repository.ExternalTrackerURL)
+	unit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
+	if err == nil {
+		ctx.Redirect(unit.ExternalTrackerConfig().ExternalTrackerURL)
 		return
 	}
 }

@@ -441,7 +441,7 @@ func runWeb(ctx *cli.Context) error {
 
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
-		})
+		}, context.UnitTypes())
 	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.RepoRef())
 
 	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), repo.Action)
@@ -535,7 +535,7 @@ func runWeb(ctx *cli.Context) error {
 				return
 			}
 		})
-	}, reqSignIn, context.RepoAssignment(), repo.MustBeNotBare)
+	}, reqSignIn, context.RepoAssignment(), repo.MustBeNotBare, context.UnitTypes())
 
 	m.Group("/:username/:reponame", func() {
 		m.Group("", func() {
@@ -581,7 +581,7 @@ func runWeb(ctx *cli.Context) error {
 		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)", repo.RawDiff)
 
 		m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.CompareDiff)
-	}, ignSignIn, context.RepoAssignment(), repo.MustBeNotBare)
+	}, ignSignIn, context.RepoAssignment(), repo.MustBeNotBare, context.UnitTypes())
 	m.Group("/:username/:reponame", func() {
 		m.Get("/stars", repo.Stars)
 		m.Get("/watchers", repo.Watchers)
@@ -591,7 +591,7 @@ func runWeb(ctx *cli.Context) error {
 		m.Group("/:reponame", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("\\.git$", repo.SetEditorconfigIfExists, repo.Home)
-		}, ignSignIn, context.RepoAssignment(true), context.RepoRef())
+		}, ignSignIn, context.RepoAssignment(true), context.RepoRef(), context.UnitTypes())
 
 		m.Group("/:reponame", func() {
 			m.Group("/info/lfs", func() {

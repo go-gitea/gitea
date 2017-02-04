@@ -143,18 +143,70 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "advanced":
-		repo.EnableWiki = form.EnableWiki
-		repo.EnableExternalWiki = form.EnableExternalWiki
-		repo.ExternalWikiURL = form.ExternalWikiURL
-		repo.EnableIssues = form.EnableIssues
-		repo.EnableExternalTracker = form.EnableExternalTracker
-		repo.ExternalTrackerURL = form.ExternalTrackerURL
-		repo.ExternalTrackerFormat = form.TrackerURLFormat
-		repo.ExternalTrackerStyle = form.TrackerIssueStyle
-		repo.EnablePulls = form.EnablePulls
+		var units []models.RepoUnit
 
-		if err := models.UpdateRepository(repo, false); err != nil {
-			ctx.Handle(500, "UpdateRepository", err)
+		for _, tp := range models.MustRepoUnits {
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Index:  int(tp),
+				Config: new(models.UnitConfig),
+			})
+		}
+
+		if form.EnableWiki {
+			if form.EnableExternalWiki {
+				units = append(units, models.RepoUnit{
+					RepoID: repo.ID,
+					Type:   models.UnitTypeExternalWiki,
+					Index:  int(models.UnitTypeExternalWiki),
+					Config: &models.ExternalWikiConfig{
+						ExternalWikiURL: form.ExternalWikiURL,
+					},
+				})
+			} else {
+				units = append(units, models.RepoUnit{
+					RepoID: repo.ID,
+					Type:   models.UnitTypeWiki,
+					Index:  int(models.UnitTypeWiki),
+					Config: new(models.UnitConfig),
+				})
+			}
+		}
+
+		if form.EnableIssues {
+			if form.EnableExternalTracker {
+				units = append(units, models.RepoUnit{
+					RepoID: repo.ID,
+					Type:   models.UnitTypeExternalWiki,
+					Index:  int(models.UnitTypeExternalWiki),
+					Config: &models.ExternalTrackerConfig{
+						ExternalTrackerURL:    form.ExternalTrackerURL,
+						ExternalTrackerFormat: form.TrackerURLFormat,
+						ExternalTrackerStyle:  form.TrackerIssueStyle,
+					},
+				})
+			} else {
+				units = append(units, models.RepoUnit{
+					RepoID: repo.ID,
+					Type:   models.UnitTypeIssues,
+					Index:  int(models.UnitTypeIssues),
+					Config: new(models.UnitConfig),
+				})
+			}
+		}
+
+		if form.EnablePulls {
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypePullRequests,
+				Index:  int(models.UnitTypePullRequests),
+				Config: new(models.UnitConfig),
+			})
+		}
+
+		if err := models.UpdateRepositoryUnits(repo, units); err != nil {
+			ctx.Handle(500, "UpdateRepositoryUnits", err)
 			return
 		}
 		log.Trace("Repository advanced settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -280,12 +332,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		repo.DeleteWiki()
 		log.Trace("Repository wiki deleted: %s/%s", ctx.Repo.Owner.Name, repo.Name)
-
-		repo.EnableWiki = false
-		if err := models.UpdateRepository(repo, false); err != nil {
-			ctx.Handle(500, "UpdateRepository", err)
-			return
-		}
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.wiki_deletion_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")

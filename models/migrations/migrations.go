@@ -76,10 +76,12 @@ var migrations = []Migration{
 
 	// v13 -> v14:v0.9.87
 	NewMigration("set comment updated with created", setCommentUpdatedWithCreated),
-	// v14
+	// v14 -> v15
 	NewMigration("create user column diff view style", createUserColumnDiffViewStyle),
-	// v15
+	// v15 -> v16
 	NewMigration("create user column allow create organization", createAllowCreateOrganizationColumn),
+	// V16 -> v17
+	NewMigration("create repo unit table and add units for all repos", addUnitsToTables),
 }
 
 // Migrate database to current version

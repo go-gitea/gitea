@@ -205,7 +205,7 @@ func orgAssignment(args ...bool) macaron.Handler {
 }
 
 func mustEnableIssues(ctx *context.APIContext) {
-	if !ctx.Repo.Repository.EnableIssues || ctx.Repo.Repository.EnableExternalTracker {
+	if !ctx.Repo.Repository.EnableUnit(models.UnitTypeIssues) {
 		ctx.Status(404)
 		return
 	}

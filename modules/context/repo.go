@@ -477,3 +477,18 @@ func GitHookService() macaron.Handler {
 		}
 	}
 }
+
+// UnitTypes returns a macaron middleware to set unit types to context variables.
+func UnitTypes() macaron.Handler {
+	return func(ctx *Context) {
+		ctx.Data["UnitTypeCode"] = models.UnitTypeCode
+		ctx.Data["UnitTypeIssues"] = models.UnitTypeIssues
+		ctx.Data["UnitTypePullRequests"] = models.UnitTypePullRequests
+		ctx.Data["UnitTypeCommits"] = models.UnitTypeCommits
+		ctx.Data["UnitTypeReleases"] = models.UnitTypeReleases
+		ctx.Data["UnitTypeWiki"] = models.UnitTypeWiki
+		ctx.Data["UnitTypeSettings"] = models.UnitTypeSettings
+		ctx.Data["UnitTypeExternalWiki"] = models.UnitTypeExternalWiki
+		ctx.Data["UnitTypeExternalTracker"] = models.UnitTypeExternalTracker
+	}
+}

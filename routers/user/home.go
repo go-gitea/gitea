@@ -236,7 +236,7 @@ func Issues(ctx *context.Context) {
 	for _, repo := range repos {
 		if (isPullList && repo.NumPulls == 0) ||
 			(!isPullList &&
-				(!repo.EnableIssues || repo.EnableExternalTracker || repo.NumIssues == 0)) {
+				(!repo.EnableUnit(models.UnitTypeIssues) || repo.NumIssues == 0)) {
 			continue
 		}
 
