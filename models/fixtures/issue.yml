@@ -3,6 +3,7 @@
   repo_id: 1
   index: 1
   poster_id: 1
+  assignee_id: 1
   name: issue1
   content: content1
   is_closed: false

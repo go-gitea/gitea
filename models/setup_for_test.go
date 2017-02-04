@@ -51,6 +51,7 @@ func CreateTestEngine() error {
 	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
 		return err
 	}
+
 	fixtures, err = testfixtures.NewFolder(x.DB().DB, &testfixtures.SQLite{}, "fixtures/")
 	return err
 }
@@ -82,7 +83,8 @@ func BeanExists(t *testing.T, bean interface{}, conditions ...interface{}) bool 
 func AssertExistsAndLoadBean(t *testing.T, bean interface{}, conditions ...interface{}) interface{} {
 	exists, err := loadBeanIfExists(bean, conditions...)
 	assert.NoError(t, err)
-	assert.True(t, exists)
+	assert.True(t, exists,
+		"Expected to find %+v (with conditions %+v), but did not", bean, conditions)
 	return bean
 }
 
@@ -91,4 +93,16 @@ func AssertNotExistsBean(t *testing.T, bean interface{}, conditions ...interface
 	exists, err := loadBeanIfExists(bean, conditions...)
 	assert.NoError(t, err)
 	assert.False(t, exists)
+}
+
+// AssertSuccessfulInsert assert that beans is successfully inserted
+func AssertSuccessfulInsert(t *testing.T, beans ...interface{}) {
+	_, err := x.Insert(beans...)
+	assert.NoError(t, err)
+}
+
+// AssertSuccessfulUpdate assert that bean is successfully updated
+func AssertSuccessfulUpdate(t *testing.T, bean interface{}, conditions ...interface{}) {
+	_, err := x.Update(bean, conditions...)
+	assert.NoError(t, err)
 }
