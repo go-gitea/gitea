@@ -732,6 +732,7 @@ please consider changing to GITEA_CUSTOM`)
 	AttachmentMaxFiles = sec.Key("MAX_FILES").MustInt(5)
 	AttachmentEnabled = sec.Key("ENABLE").MustBool(true)
 
+	TimeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("RFC1123")
 	TimeFormat = map[string]string{
 		"ANSIC":       time.ANSIC,
 		"UnixDate":    time.UnixDate,
@@ -748,7 +749,16 @@ please consider changing to GITEA_CUSTOM`)
 		"StampMilli":  time.StampMilli,
 		"StampMicro":  time.StampMicro,
 		"StampNano":   time.StampNano,
-	}[Cfg.Section("time").Key("FORMAT").MustString("RFC1123")]
+	}[TimeFormatKey]
+	// When the TimeFormatKey does not exist in the previous map e.g.'2006-01-02 15:04:05'
+	if len(TimeFormat) == 0 {
+		TimeFormat = TimeFormatKey
+		TestTimeFormat, _ := time.Parse(TimeFormat, TimeFormat)
+		if TestTimeFormat.Format(time.RFC3339) != "2006-01-02T15:04:05Z" {
+			log.Fatal(4, "Can't create time properly, please check your time format has 2006, 01, 02, 15, 04 and 05")
+		}
+		log.Trace("Custom TimeFormat: %s", TimeFormat)
+	}
 
 	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
 	// Does not check run user when the install lock is off.
