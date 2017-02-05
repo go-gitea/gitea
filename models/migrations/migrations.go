@@ -82,7 +82,7 @@ var migrations = []Migration{
 	NewMigration("create user column allow create organization", createAllowCreateOrganizationColumn),
 	// V16 -> v17
 	NewMigration("create repo unit table and add units for all repos", addUnitsToTables),
-	// v16
+	// v17 -> v18
 	NewMigration("add external login user", addExternalLoginUser),
 }
 
