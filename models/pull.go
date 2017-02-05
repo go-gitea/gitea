@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -20,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	api "code.gitea.io/sdk/gitea"
+
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 )
@@ -43,6 +45,7 @@ const (
 	PullRequestStatusConflict PullRequestStatus = iota
 	PullRequestStatusChecking
 	PullRequestStatusMergeable
+	PullRequestStatusManuallyMerged
 )
 
 // PullRequest represents relation between pull request and repositories.
@@ -255,16 +258,6 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false)
 	}()
 
-	sess := x.NewSession()
-	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if err = pr.Issue.changeStatus(sess, doer, pr.Issue.Repo, true); err != nil {
-		return fmt.Errorf("Issue.changeStatus: %v", err)
-	}
-
 	headRepoPath := RepoPath(pr.HeadUserName, pr.HeadRepo.Name)
 	headGitRepo, err := git.OpenRepository(headRepoPath)
 	if err != nil {
@@ -334,15 +327,12 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 		return fmt.Errorf("GetBranchCommit: %v", err)
 	}
 
-	pr.HasMerged = true
 	pr.Merged = time.Now()
+	pr.Merger = doer
 	pr.MergerID = doer.ID
-	if _, err = sess.Id(pr.ID).AllCols().Update(pr); err != nil {
-		return fmt.Errorf("update pull request: %v", err)
-	}
 
-	if err = sess.Commit(); err != nil {
-		return fmt.Errorf("Commit: %v", err)
+	if err = pr.setMerged(); err != nil {
+		log.Error(4, "setMerged [%d]: %v", pr.ID, err)
 	}
 
 	if err = MergePullRequestAction(doer, pr.Issue.Repo, pr.Issue); err != nil {
@@ -396,6 +386,138 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 		return fmt.Errorf("PrepareWebhooks: %v", err)
 	}
 	return nil
+}
+
+// setMerged sets a pull request to merged and closes the corresponding issue
+func (pr *PullRequest) setMerged() (err error) {
+	if pr.HasMerged {
+		return fmt.Errorf("PullRequest[%d] already merged", pr.Index)
+	}
+	if pr.MergedCommitID == "" || pr.Merged.IsZero() || pr.Merger == nil {
+		return fmt.Errorf("Unable to merge PullRequest[%d], some required fields are empty", pr.Index)
+	}
+
+	pr.HasMerged = true
+
+	sess := x.NewSession()
+	defer sessionRelease(sess)
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if err = pr.LoadIssue(); err != nil {
+		return err
+	}
+
+	if pr.Issue.Repo.Owner == nil {
+		if err = pr.Issue.Repo.GetOwner(); err != nil {
+			return err
+		}
+	}
+
+	if err = pr.Issue.changeStatus(sess, pr.Merger, pr.Issue.Repo, true); err != nil {
+		return fmt.Errorf("Issue.changeStatus: %v", err)
+	}
+	if _, err = sess.Id(pr.ID).AllCols().Update(pr); err != nil {
+		return fmt.Errorf("update pull request: %v", err)
+	}
+
+	if err = sess.Commit(); err != nil {
+		return fmt.Errorf("Commit: %v", err)
+	}
+	return nil
+}
+
+// manuallyMerged checks if a pull request got manually merged
+// When a pull request got manually merged mark the pull request as merged
+func (pr *PullRequest) manuallyMerged() bool {
+	commit, err := pr.getMergeCommit()
+	if err != nil {
+		log.Error(4, "PullRequest[%d].getMergeCommit: %v", pr.ID, err)
+		return false
+	}
+	if commit != nil {
+		pr.MergedCommitID = commit.ID.String()
+		pr.Merged = commit.Author.When
+		pr.Status = PullRequestStatusManuallyMerged
+		merger, _ := GetUserByEmail(commit.Author.Email)
+
+		// When the commit author is unknown set the BaseRepo owner as merger
+		if merger == nil {
+			if pr.BaseRepo.Owner == nil {
+				if err = pr.BaseRepo.getOwner(x); err != nil {
+					log.Error(4, "BaseRepo.getOwner[%d]: %v", pr.ID, err)
+					return false
+				}
+			}
+			merger = pr.BaseRepo.Owner
+		}
+		pr.Merger = merger
+		pr.MergerID = merger.ID
+
+		if err = pr.setMerged(); err != nil {
+			log.Error(4, "PullRequest[%d].setMerged : %v", pr.ID, err)
+			return false
+		}
+		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
+		return true
+	}
+	return false
+}
+
+// getMergeCommit checks if a pull request got merged
+// Returns the git.Commit of the pull request if merged
+func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
+	if pr.BaseRepo == nil {
+		var err error
+		pr.BaseRepo, err = GetRepositoryByID(pr.BaseRepoID)
+		if err != nil {
+			return nil, fmt.Errorf("GetRepositoryByID: %v", err)
+		}
+	}
+
+	indexTmpPath := filepath.Join(os.TempDir(), "gitea-"+pr.BaseRepo.Name+"-"+strconv.Itoa(time.Now().Nanosecond()))
+	defer os.Remove(indexTmpPath)
+
+	headFile := fmt.Sprintf("refs/pull/%d/head", pr.Index)
+
+	// Check if a pull request is merged into BaseBranch
+	_, stderr, err := process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("isMerged (git merge-base --is-ancestor): %d", pr.BaseRepo.ID),
+		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
+		"git", "merge-base", "--is-ancestor", headFile, pr.BaseBranch)
+
+	if err != nil {
+		// Errors are signaled by a non-zero status that is not 1
+		if err.Error() == "exit status 1" {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("git merge-base --is-ancestor: %v %v", stderr, err)
+	}
+
+	// We can ignore this error since we only get here when there's a valid commit in headFile
+	commitID, _ := ioutil.ReadFile(pr.BaseRepo.RepoPath() + "/" + headFile)
+	cmd := string(commitID)[:40] + ".." + pr.BaseBranch
+
+	// Get the commit from BaseBranch where the pull request got merged
+	mergeCommit, stderr, err := process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("isMerged (git rev-list --ancestry-path --merges --reverse): %d", pr.BaseRepo.ID),
+		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
+		"git", "rev-list", "--ancestry-path", "--merges", "--reverse", cmd)
+
+	if err != nil {
+		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v %v", stderr, err)
+	}
+
+	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	if err != nil {
+		return nil, fmt.Errorf("OpenRepository: %v", err)
+	}
+
+	commit, err := gitRepo.GetCommit(mergeCommit[:40])
+	if err != nil {
+		return nil, fmt.Errorf("GetCommit: %v", err)
+	}
+
+	return commit, nil
 }
 
 // patchConflicts is a list of conflict description from Git.
@@ -937,7 +1059,9 @@ func TestPullRequests() {
 				log.Error(3, "GetBaseRepo: %v", err)
 				return nil
 			}
-
+			if pr.manuallyMerged() {
+				return nil
+			}
 			if err := pr.testPatch(); err != nil {
 				log.Error(3, "testPatch: %v", err)
 				return nil
@@ -959,6 +1083,8 @@ func TestPullRequests() {
 		pr, err := GetPullRequestByID(com.StrTo(prID).MustInt64())
 		if err != nil {
 			log.Error(4, "GetPullRequestByID[%s]: %v", prID, err)
+			continue
+		} else if pr.manuallyMerged() {
 			continue
 		} else if err = pr.testPatch(); err != nil {
 			log.Error(4, "testPatch[%d]: %v", pr.ID, err)
