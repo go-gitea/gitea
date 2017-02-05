@@ -71,15 +71,25 @@ func (repo *Repository) GetStargazers(page int) ([]*User, error) {
 }
 
 // GetStarredRepos returns the repos the user starred.
-func (u *User) GetStarredRepos(private bool) (repos []*Repository, err error) {
+func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string) (repos []*Repository, err error) {
+	if len(orderBy) == 0 {
+		orderBy = "star.id"
+	}
 	sess := x.
 		Join("INNER", "star", "star.repo_id = repository.id").
 		Where("star.uid = ?", u.ID).
-		Desc("star.id")
+		Desc(orderBy)
 
 	if !private {
 		sess = sess.And("is_private = ?", false)
 	}
+
+	if page <= 0 {
+		page = 1
+	}
+	sess.Limit(pageSize, (page-1)*pageSize)
+
+	repos = make([]*Repository, 0, pageSize)
 
 	if err = sess.Find(&repos); err != nil {
 		return
@@ -92,4 +102,17 @@ func (u *User) GetStarredRepos(private bool) (repos []*Repository, err error) {
 	}
 
 	return
+}
+
+// GetStarredRepoCount returns the numbers of repo the user starred.
+func (u *User) GetStarredRepoCount(private bool) (int64, error) {
+	sess := x.
+		Join("INNER", "star", "star.repo_id = repository.id").
+		Where("star.uid = ?", u.ID)
+
+	if !private {
+		sess = sess.And("is_private = ?", false)
+	}
+
+	return sess.Count(&Repository{})
 }
