@@ -408,6 +408,22 @@ func (err ErrRepoAlreadyExist) Error() string {
 	return fmt.Sprintf("repository already exists [uname: %s, name: %s]", err.Uname, err.Name)
 }
 
+// ErrRepoRedirectNotExist represents a "RepoRedirectNotExist" kind of error.
+type ErrRepoRedirectNotExist struct {
+	OwnerID int64
+	RepoName string
+}
+
+// IsErrRepoRedirectNotExist check if an error is an ErrRepoRedirectNotExist
+func IsErrRepoRedirectNotExist(err error) bool {
+	_, ok := err.(ErrRepoRedirectNotExist)
+	return ok
+}
+
+func (err ErrRepoRedirectNotExist) Error() string {
+	return fmt.Sprintf("repository redirect does not exist [uid: %d, name: %s]", err.OwnerID, err.RepoName)
+}
+
 // ErrInvalidCloneAddr represents a "InvalidCloneAddr" kind of error.
 type ErrInvalidCloneAddr struct {
 	IsURLError         bool

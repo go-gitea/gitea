@@ -109,6 +109,7 @@ func init() {
 		new(LFSMetaObject),
 		new(TwoFactor),
 		new(RepoUnit),
+		new(RepoRedirect),
 	)
 
 	gonicNames := []string{"SSL", "UID"}

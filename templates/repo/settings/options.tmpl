@@ -14,7 +14,7 @@
 						{{.CsrfTokenHtml}}
 						<input type="hidden" name="action" value="update">
 						<div class="required field {{if .Err_RepoName}}error{{end}}">
-							<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}<span class="text red hide" id="repo-name-change-prompt"> {{.i18n.Tr "repo.settings.change_reponame_prompt"}}</span></label>
+							<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}</label>
 							<input id="repo_name" name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" autofocus required>
 						</div>
 						<div class="field {{if .Err_Description}}error{{end}}">

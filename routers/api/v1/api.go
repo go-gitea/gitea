@@ -52,7 +52,14 @@ func repoAssignment() macaron.Handler {
 		repo, err := models.GetRepositoryByName(owner.ID, repoName)
 		if err != nil {
 			if models.IsErrRepoNotExist(err) {
-				ctx.Status(404)
+				redirectRepoID, err := models.LookupRepoRedirect(owner.ID, repoName)
+				if err == nil {
+					context.RedirectToRepo(ctx.Context, redirectRepoID)
+				} else if models.IsErrRepoRedirectNotExist(err) {
+					ctx.Status(404)
+				} else {
+					ctx.Error(500, "LookupRepoRedirect", err)
+				}
 			} else {
 				ctx.Error(500, "GetRepositoryByName", err)
 			}
