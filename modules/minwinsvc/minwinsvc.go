@@ -2,7 +2,7 @@
 // Use of this source code is governed by a zlib-style
 // license that can be found in the LICENSE file.package service
 
-// Minimal non-invasive windows only service stub.
+// Package minwinsvc is a minimal non-invasive windows only service stub.
 //
 // Import to allow running as a windows service.
 //   import _ "github.com/kardianos/minwinsvc"

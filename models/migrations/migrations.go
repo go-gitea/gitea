@@ -76,10 +76,12 @@ var migrations = []Migration{
 
 	// v13 -> v14:v0.9.87
 	NewMigration("set comment updated with created", setCommentUpdatedWithCreated),
-	// v14
+	// v14 -> v15
 	NewMigration("create user column diff view style", createUserColumnDiffViewStyle),
-	// v15
+	// v15 -> v16
 	NewMigration("create user column allow create organization", createAllowCreateOrganizationColumn),
+	// V16 -> v17
+	NewMigration("create repo unit table and add units for all repos", addUnitsToTables),
 	// v16
 	NewMigration("add external login user", addExternalLoginUser),
 }
@@ -330,7 +332,7 @@ func attachmentRefactor(x *xorm.Engine) error {
 
 		dumpPath := path.Join(setting.LogRootPath, "attachment_path.dump")
 		ioutil.WriteFile(dumpPath, buf.Bytes(), 0666)
-		fmt.Println("Fail to rename some attachments, old and new paths are saved into:", dumpPath)
+		log.Info("Failed to rename some attachments, old and new paths are saved into: %s", dumpPath)
 	}()
 	for _, attach := range attachments {
 		if err = os.MkdirAll(path.Dir(attach.NewPath), os.ModePerm); err != nil {

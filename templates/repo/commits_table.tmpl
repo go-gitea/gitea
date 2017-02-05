@@ -6,6 +6,7 @@
 				<div class="ui tiny search input">
 					<input name="q" placeholder="{{.i18n.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
 				</div>
+				<input type="checkbox" name="all" id="all" value="true" {{.All}}><label for="all">{{.i18n.Tr "repo.commits.search_all"}}</label>
 				<button class="ui black tiny button" data-panel="#add-deploy-key-panel">{{.i18n.Tr "repo.commits.find"}}</button>
 			</form>
 		</div>

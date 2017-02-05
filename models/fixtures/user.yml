@@ -9,7 +9,7 @@
   salt: salt
   is_admin: true
   avatar: avatar1
-  avatar_email: user2@example.com
+  avatar_email: user1@example.com
   num_repos: 0
 
 -
@@ -25,6 +25,7 @@
   avatar: avatar2
   avatar_email: user2@example.com
   num_repos: 2
+  num_stars: 2
 
 -
   id: 3
@@ -38,7 +39,9 @@
   is_admin: false
   avatar: avatar3
   avatar_email: user3@example.com
-  num_repos: 1
+  num_repos: 2
+  num_members: 2
+  num_teams: 2
 
 -
   id: 4
@@ -47,7 +50,7 @@
   full_name: User Four
   email: user4@example.com
   passwd: password
-  type: 1 # individual
+  type: 0 # individual
   salt: salt
   is_admin: false
   avatar: avatar4
@@ -61,9 +64,88 @@
   full_name: User Five
   email: user5@example.com
   passwd: password
-  type: 1 # individual
+  type: 0 # individual
   salt: salt
   is_admin: false
   avatar: avatar5
   avatar_email: user5@example.com
   num_repos: 1
+  allow_create_organization: false
+  is_active: true
+
+-
+  id: 6
+  lower_name: user6
+  name: user6
+  full_name: User Six
+  email: user6@example.com
+  passwd: password
+  type: 1 # organization
+  salt: salt
+  is_admin: false
+  avatar: avatar6
+  avatar_email: user6@example.com
+  num_repos: 0
+  num_members: 1
+  num_teams: 1
+
+-
+  id: 7
+  lower_name: user7
+  name: user7
+  full_name: User Seven
+  email: user7@example.com
+  passwd: password
+  type: 1 # organization
+  salt: salt
+  is_admin: false
+  avatar: avatar7
+  avatar_email: user7@example.com
+  num_repos: 0
+  num_members: 1
+  num_teams: 1
+
+-
+  id: 8
+  lower_name: user8
+  name: user8
+  full_name: User Eight
+  email: user8@example.com
+  passwd: password
+  type: 0 # user
+  salt: salt
+  is_admin: false
+  avatar: avatar8
+  avatar_email: user8@example.com
+  num_repos: 0
+  is_active: true
+
+-
+  id: 9
+  lower_name: user9
+  name: user9
+  full_name: User Nine
+  email: user9@example.com
+  passwd: password
+  type: 0 # user
+  salt: salt
+  is_admin: false
+  avatar: avatar9
+  avatar_email: user9@example.com
+  num_repos: 0
+  is_active: false
+
+-
+  id: 10
+  lower_name: user10
+  name: user10
+  full_name: User Ten
+  email: user10@example.com
+  passwd: password
+  type: 0 # user
+  salt: salt
+  is_admin: false
+  avatar: avatar10
+  avatar_email: user10@example.com
+  num_repos: 0
+  is_active: true

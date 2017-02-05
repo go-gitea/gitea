@@ -14,7 +14,6 @@ type Star struct {
 // StarRepo or unstar repository.
 func StarRepo(userID, repoID int64, star bool) error {
 	sess := x.NewSession()
-
 	defer sess.Close()
 
 	if err := sess.Begin(); err != nil {
@@ -75,7 +74,8 @@ func (repo *Repository) GetStargazers(page int) ([]*User, error) {
 func (u *User) GetStarredRepos(private bool) (repos []*Repository, err error) {
 	sess := x.
 		Join("INNER", "star", "star.repo_id = repository.id").
-		Where("star.uid = ?", u.ID)
+		Where("star.uid = ?", u.ID).
+		Desc("star.id")
 
 	if !private {
 		sess = sess.And("is_private = ?", false)

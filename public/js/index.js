@@ -108,6 +108,12 @@ function initCommentForm() {
         });
     }
 
+    $('.select-label').dropdown('setting', 'onHide', function(){
+        if (hasLabelUpdateAction) {
+            location.reload();
+        }
+    });
+
     $labelMenu.find('.item:not(.no-select)').click(function () {
         if ($(this).hasClass('checked')) {
             $(this).removeClass('checked');
@@ -161,6 +167,12 @@ function initCommentForm() {
         var $menu = $(select_id + ' .menu');
         var $list = $('.ui' + select_id + '.list');
         var hasUpdateAction = $menu.data('action') == 'update';
+
+        $(select_id).dropdown('setting', 'onHide', function(){
+            if (hasUpdateAction) {
+                location.reload();
+            }
+        });
 
         $menu.find('.item:not(.no-select)').click(function () {
             $(this).parent().find('.item').each(function () {
@@ -432,6 +444,7 @@ function initRepository() {
                 function (data) {
                     $editInput.val(data.title);
                     $issueTitle.text(data.title);
+                    location.reload();
                 });
             return false;
         });
@@ -977,7 +990,7 @@ function initAdmin() {
             switch (authType) {
                 case '2':     // LDAP
                     $('.ldap').show();
-                    $('.ldap div.required input').attr('required', 'required');
+                    $('.ldap div.required:not(.dldap) input').attr('required', 'required');
                     break;
                 case '3':     // SMTP
                     $('.smtp').show();
@@ -990,7 +1003,7 @@ function initAdmin() {
                     break;
                 case '5':     // LDAP
                     $('.dldap').show();
-                    $('.dldap div.required input').attr('required', 'required');
+                    $('.dldap div.required:not(.ldap) input').attr('required', 'required');
                     break;
                 case '6':     // OAuth2
                     $('.oauth2').show();
@@ -1468,4 +1481,13 @@ function selectRange($list, $select, $from) {
 $(function () {
     if ($('.user.signin').length > 0) return;
     $('form').areYouSure();
+
+    $("#search_repo").on('change paste keyup',function(){
+        var value = $(this).val();
+        if(!value){
+            $('.list-search-style').html('');
+        } else{
+            $('.list-search-style').html('.search-list li:not([data-title*="' + value + '"]) {display: none;}');
+        }
+    });
 });

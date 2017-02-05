@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/fcgi"
+	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 	"os"
 	"path"
 	"strings"
@@ -88,6 +89,11 @@ func newMacaron() *macaron.Macaron {
 	if setting.Protocol == setting.FCGI {
 		m.SetURLPrefix(setting.AppSubURL)
 	}
+	m.Use(public.Custom(
+		&public.Options{
+			SkipLogging: setting.DisableRouterLog,
+		},
+	))
 	m.Use(public.Static(
 		&public.Options{
 			Directory:   path.Join(setting.StaticRootPath, "public"),
@@ -109,7 +115,7 @@ func newMacaron() *macaron.Macaron {
 	localeNames, err := options.Dir("locale")
 
 	if err != nil {
-		log.Fatal(4, "Fail to list locale files: %v", err)
+		log.Fatal(4, "Failed to list locale files: %v", err)
 	}
 
 	localFiles := make(map[string][]byte)
@@ -444,7 +450,7 @@ func runWeb(ctx *cli.Context) error {
 
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
-		})
+		}, context.UnitTypes())
 	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.RepoRef())
 
 	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), repo.Action)
@@ -538,7 +544,7 @@ func runWeb(ctx *cli.Context) error {
 				return
 			}
 		})
-	}, reqSignIn, context.RepoAssignment(), repo.MustBeNotBare)
+	}, reqSignIn, context.RepoAssignment(), repo.MustBeNotBare, context.UnitTypes())
 
 	m.Group("/:username/:reponame", func() {
 		m.Group("", func() {
@@ -584,7 +590,7 @@ func runWeb(ctx *cli.Context) error {
 		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)", repo.RawDiff)
 
 		m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.CompareDiff)
-	}, ignSignIn, context.RepoAssignment(), repo.MustBeNotBare)
+	}, ignSignIn, context.RepoAssignment(), repo.MustBeNotBare, context.UnitTypes())
 	m.Group("/:username/:reponame", func() {
 		m.Get("/stars", repo.Stars)
 		m.Get("/watchers", repo.Watchers)
@@ -594,7 +600,7 @@ func runWeb(ctx *cli.Context) error {
 		m.Group("/:reponame", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("\\.git$", repo.SetEditorconfigIfExists, repo.Home)
-		}, ignSignIn, context.RepoAssignment(true), context.RepoRef())
+		}, ignSignIn, context.RepoAssignment(true), context.RepoRef(), context.UnitTypes())
 
 		m.Group("/:reponame", func() {
 			m.Group("/info/lfs", func() {
@@ -648,6 +654,12 @@ func runWeb(ctx *cli.Context) error {
 		log.Info("LFS server enabled")
 	}
 
+	if setting.EnablePprof {
+		go func() {
+			log.Info("%v", http.ListenAndServe("localhost:6060", nil))
+		}()
+	}
+
 	var err error
 	switch setting.Protocol {
 	case setting.HTTP:
@@ -657,8 +669,8 @@ func runWeb(ctx *cli.Context) error {
 	case setting.FCGI:
 		err = fcgi.Serve(nil, m)
 	case setting.UnixSocket:
-		if err := os.Remove(listenAddr); err != nil {
-			log.Fatal(4, "Fail to remove unix socket directory %s: %v", listenAddr, err)
+		if err := os.Remove(listenAddr); err != nil && !os.IsNotExist(err) {
+			log.Fatal(4, "Failed to remove unix socket directory %s: %v", listenAddr, err)
 		}
 		var listener *net.UnixListener
 		listener, err = net.ListenUnix("unix", &net.UnixAddr{Name: listenAddr, Net: "unix"})
@@ -677,7 +689,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	if err != nil {
-		log.Fatal(4, "Fail to start server: %v", err)
+		log.Fatal(4, "Failed to start server: %v", err)
 	}
 
 	return nil

@@ -1,0 +1,15 @@
+-
+  id: 1
+  repo_id: 1
+  name: label1
+  color: '#abcdef'
+  num_issues: 2
+  num_closed_issues: 0
+
+-
+  id: 2
+  repo_id: 1
+  name: label2
+  color: '#000000'
+  num_issues: 1
+  num_closed_issues: 1

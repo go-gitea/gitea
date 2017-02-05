@@ -7,6 +7,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -93,11 +94,27 @@ func (issue *Issue) loadRepo(e Engine) (err error) {
 	return nil
 }
 
-func (issue *Issue) loadAttributes(e Engine) (err error) {
-	if err := issue.loadRepo(e); err != nil {
-		return err
+// GetPullRequest returns the issue pull request
+func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
+	if !issue.IsPull {
+		return nil, fmt.Errorf("Issue is not a pull request")
 	}
 
+	pr, err = getPullRequestByIssueID(x, issue.ID)
+	return
+}
+
+func (issue *Issue) loadLabels(e Engine) (err error) {
+	if issue.Labels == nil {
+		issue.Labels, err = getLabelsByIssueID(e, issue.ID)
+		if err != nil {
+			return fmt.Errorf("getLabelsByIssueID [%d]: %v", issue.ID, err)
+		}
+	}
+	return nil
+}
+
+func (issue *Issue) loadPoster(e Engine) (err error) {
 	if issue.Poster == nil {
 		issue.Poster, err = getUserByID(e, issue.PosterID)
 		if err != nil {
@@ -110,12 +127,20 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 			return
 		}
 	}
+	return
+}
 
-	if issue.Labels == nil {
-		issue.Labels, err = getLabelsByIssueID(e, issue.ID)
-		if err != nil {
-			return fmt.Errorf("getLabelsByIssueID [%d]: %v", issue.ID, err)
-		}
+func (issue *Issue) loadAttributes(e Engine) (err error) {
+	if err = issue.loadRepo(e); err != nil {
+		return
+	}
+
+	if err = issue.loadPoster(e); err != nil {
+		return
+	}
+
+	if err = issue.loadLabels(e); err != nil {
+		return
 	}
 
 	if issue.Milestone == nil && issue.MilestoneID > 0 {
@@ -160,6 +185,18 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 // LoadAttributes loads the attribute of this issue.
 func (issue *Issue) LoadAttributes() error {
 	return issue.loadAttributes(x)
+}
+
+// GetIsRead load the `IsRead` field of the issue
+func (issue *Issue) GetIsRead(userID int64) error {
+	issueUser := &IssueUser{IssueID: issue.ID, UID: userID}
+	if has, err := x.Get(issueUser); err != nil {
+		return err
+	} else if !has {
+		return ErrUserNotExist{UID: userID}
+	}
+	issue.IsRead = issueUser.IsRead
+	return nil
 }
 
 // HTMLURL returns the absolute URL to this issue.
@@ -279,13 +316,13 @@ func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 	}
 }
 
-func (issue *Issue) addLabel(e *xorm.Session, label *Label) error {
-	return newIssueLabel(e, issue, label)
+func (issue *Issue) addLabel(e *xorm.Session, label *Label, doer *User) error {
+	return newIssueLabel(e, issue, label, doer)
 }
 
 // AddLabel adds a new label to the issue.
 func (issue *Issue) AddLabel(doer *User, label *Label) error {
-	if err := NewIssueLabel(issue, label); err != nil {
+	if err := NewIssueLabel(issue, label, doer); err != nil {
 		return err
 	}
 
@@ -293,13 +330,13 @@ func (issue *Issue) AddLabel(doer *User, label *Label) error {
 	return nil
 }
 
-func (issue *Issue) addLabels(e *xorm.Session, labels []*Label) error {
-	return newIssueLabels(e, issue, labels)
+func (issue *Issue) addLabels(e *xorm.Session, labels []*Label, doer *User) error {
+	return newIssueLabels(e, issue, labels, doer)
 }
 
 // AddLabels adds a list of new labels to the issue.
 func (issue *Issue) AddLabels(doer *User, labels []*Label) error {
-	if err := NewIssueLabels(issue, labels); err != nil {
+	if err := NewIssueLabels(issue, labels, doer); err != nil {
 		return err
 	}
 
@@ -319,8 +356,8 @@ func (issue *Issue) getLabels(e Engine) (err error) {
 	return nil
 }
 
-func (issue *Issue) removeLabel(e *xorm.Session, label *Label) error {
-	return deleteIssueLabel(e, issue, label)
+func (issue *Issue) removeLabel(e *xorm.Session, doer *User, label *Label) error {
+	return deleteIssueLabel(e, issue, label, doer)
 }
 
 // RemoveLabel removes a label from issue by given ID.
@@ -335,7 +372,7 @@ func (issue *Issue) RemoveLabel(doer *User, label *Label) error {
 		return ErrLabelNotExist{}
 	}
 
-	if err := DeleteIssueLabel(issue, label); err != nil {
+	if err := DeleteIssueLabel(issue, label, doer); err != nil {
 		return err
 	}
 
@@ -343,13 +380,13 @@ func (issue *Issue) RemoveLabel(doer *User, label *Label) error {
 	return nil
 }
 
-func (issue *Issue) clearLabels(e *xorm.Session) (err error) {
+func (issue *Issue) clearLabels(e *xorm.Session, doer *User) (err error) {
 	if err = issue.getLabels(e); err != nil {
 		return fmt.Errorf("getLabels: %v", err)
 	}
 
 	for i := range issue.Labels {
-		if err = issue.removeLabel(e, issue.Labels[i]); err != nil {
+		if err = issue.removeLabel(e, doer, issue.Labels[i]); err != nil {
 			return fmt.Errorf("removeLabel: %v", err)
 		}
 	}
@@ -376,7 +413,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		return ErrLabelNotExist{}
 	}
 
-	if err = issue.clearLabels(sess); err != nil {
+	if err = issue.clearLabels(sess, doer); err != nil {
 		return err
 	}
 
@@ -407,19 +444,75 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 	return nil
 }
 
+type labelSorter []*Label
+
+func (ts labelSorter) Len() int {
+	return len([]*Label(ts))
+}
+
+func (ts labelSorter) Less(i, j int) bool {
+	return []*Label(ts)[i].ID < []*Label(ts)[j].ID
+}
+
+func (ts labelSorter) Swap(i, j int) {
+	[]*Label(ts)[i], []*Label(ts)[j] = []*Label(ts)[j], []*Label(ts)[i]
+}
+
 // ReplaceLabels removes all current labels and add new labels to the issue.
 // Triggers appropriate WebHooks, if any.
-func (issue *Issue) ReplaceLabels(labels []*Label) (err error) {
+func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 	sess := x.NewSession()
 	defer sessionRelease(sess)
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = issue.clearLabels(sess); err != nil {
-		return fmt.Errorf("clearLabels: %v", err)
-	} else if err = issue.addLabels(sess, labels); err != nil {
-		return fmt.Errorf("addLabels: %v", err)
+	if err = issue.loadLabels(sess); err != nil {
+		return err
+	}
+
+	sort.Sort(labelSorter(labels))
+	sort.Sort(labelSorter(issue.Labels))
+
+	var toAdd, toRemove []*Label
+	for _, l := range labels {
+		var exist bool
+		for _, oriLabel := range issue.Labels {
+			if oriLabel.ID == l.ID {
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			toAdd = append(toAdd, l)
+		}
+	}
+
+	for _, oriLabel := range issue.Labels {
+		var exist bool
+		for _, l := range labels {
+			if oriLabel.ID == l.ID {
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			toRemove = append(toRemove, oriLabel)
+		}
+	}
+
+	if len(toAdd) > 0 {
+		if err = issue.addLabels(sess, toAdd, doer); err != nil {
+			return fmt.Errorf("addLabels: %v", err)
+		}
+	}
+
+	if len(toRemove) > 0 {
+		for _, l := range toRemove {
+			if err = issue.removeLabel(sess, doer, l); err != nil {
+				return fmt.Errorf("removeLabel: %v", err)
+			}
+		}
 	}
 
 	return sess.Commit()
@@ -472,8 +565,6 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 	issue.IsClosed = isClosed
 
 	if err = updateIssueCols(e, issue, "is_closed"); err != nil {
-		return err
-	} else if err = updateIssueUsersByStatus(e, issue.ID, isClosed); err != nil {
 		return err
 	}
 
@@ -550,8 +641,23 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 	oldTitle := issue.Title
 	issue.Title = title
-	if err = UpdateIssueCols(issue, "name"); err != nil {
-		return fmt.Errorf("UpdateIssueCols: %v", err)
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if err = updateIssueCols(sess, issue, "name"); err != nil {
+		return fmt.Errorf("updateIssueCols: %v", err)
+	}
+
+	if _, err = createChangeTitleComment(sess, doer, issue.Repo, issue, oldTitle, title); err != nil {
+		return fmt.Errorf("createChangeTitleComment: %v", err)
+	}
+
+	if err = sess.Commit(); err != nil {
+		return err
 	}
 
 	if issue.IsPull {
@@ -612,9 +718,21 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 
 // ChangeAssignee changes the Asssignee field of this issue.
 func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
+	var oldAssigneeID = issue.AssigneeID
 	issue.AssigneeID = assigneeID
 	if err = UpdateIssueUserByAssignee(issue); err != nil {
 		return fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err = issue.loadRepo(sess); err != nil {
+		return fmt.Errorf("loadRepo: %v", err)
+	}
+
+	if _, err = createAssigneeComment(sess, doer, issue.Repo, issue, oldAssigneeID, assigneeID); err != nil {
+		return fmt.Errorf("createAssigneeComment: %v", err)
 	}
 
 	issue.Assignee, err = GetUserByID(issue.AssigneeID)
@@ -658,7 +776,7 @@ type NewIssueOptions struct {
 	IsPull      bool
 }
 
-func newIssue(e *xorm.Session, opts NewIssueOptions) (err error) {
+func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
 	opts.Issue.Index = opts.Repo.NextIssueIndex()
 
@@ -673,9 +791,6 @@ func newIssue(e *xorm.Session, opts NewIssueOptions) (err error) {
 		if milestone != nil {
 			opts.Issue.MilestoneID = milestone.ID
 			opts.Issue.Milestone = milestone
-			if err = changeMilestoneAssign(e, opts.Issue, -1); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -704,6 +819,21 @@ func newIssue(e *xorm.Session, opts NewIssueOptions) (err error) {
 		return err
 	}
 
+	if opts.Issue.MilestoneID > 0 {
+		if err = changeMilestoneAssign(e, doer, opts.Issue, -1); err != nil {
+			return err
+		}
+	}
+
+	if opts.Issue.AssigneeID > 0 {
+		if err = opts.Issue.loadRepo(e); err != nil {
+			return err
+		}
+		if _, err = createAssigneeComment(e, doer, opts.Issue.Repo, opts.Issue, -1, opts.Issue.AssigneeID); err != nil {
+			return err
+		}
+	}
+
 	if opts.IsPull {
 		_, err = e.Exec("UPDATE `repository` SET num_pulls = num_pulls + 1 WHERE id = ?", opts.Issue.RepoID)
 	} else {
@@ -721,13 +851,17 @@ func newIssue(e *xorm.Session, opts NewIssueOptions) (err error) {
 			return fmt.Errorf("find all labels [label_ids: %v]: %v", opts.LableIDs, err)
 		}
 
+		if err = opts.Issue.loadPoster(e); err != nil {
+			return err
+		}
+
 		for _, label := range labels {
 			// Silently drop invalid labels.
 			if label.RepoID != opts.Repo.ID {
 				continue
 			}
 
-			if err = opts.Issue.addLabel(e, label); err != nil {
+			if err = opts.Issue.addLabel(e, label, opts.Issue.Poster); err != nil {
 				return fmt.Errorf("addLabel [id: %d]: %v", label.ID, err)
 			}
 		}
@@ -764,7 +898,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 		return err
 	}
 
-	if err = newIssue(sess, NewIssueOptions{
+	if err = newIssue(sess, issue.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       issue,
 		LableIDs:    labelIDs,
@@ -953,9 +1087,9 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 
 	switch opts.IsPull {
 	case util.OptionalBoolTrue:
-		sess.And("issue.is_pull=?",true)
+		sess.And("issue.is_pull=?", true)
 	case util.OptionalBoolFalse:
-		sess.And("issue.is_pull=?",false)
+		sess.And("issue.is_pull=?", false)
 	}
 
 	sortIssuesSession(sess, opts.SortType)
@@ -985,138 +1119,6 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	}
 
 	return issues, nil
-}
-
-// .___                             ____ ___
-// |   | ______ ________ __   ____ |    |   \______ ___________
-// |   |/  ___//  ___/  |  \_/ __ \|    |   /  ___// __ \_  __ \
-// |   |\___ \ \___ \|  |  /\  ___/|    |  /\___ \\  ___/|  | \/
-// |___/____  >____  >____/  \___  >______//____  >\___  >__|
-//          \/     \/            \/             \/     \/
-
-// IssueUser represents an issue-user relation.
-type IssueUser struct {
-	ID          int64 `xorm:"pk autoincr"`
-	UID         int64 `xorm:"INDEX"` // User ID.
-	IssueID     int64
-	RepoID      int64 `xorm:"INDEX"`
-	MilestoneID int64
-	IsRead      bool
-	IsAssigned  bool
-	IsMentioned bool
-	IsPoster    bool
-	IsClosed    bool
-}
-
-func newIssueUsers(e *xorm.Session, repo *Repository, issue *Issue) error {
-	assignees, err := repo.getAssignees(e)
-	if err != nil {
-		return fmt.Errorf("getAssignees: %v", err)
-	}
-
-	// Poster can be anyone, append later if not one of assignees.
-	isPosterAssignee := false
-
-	// Leave a seat for poster itself to append later, but if poster is one of assignee
-	// and just waste 1 unit is cheaper than re-allocate memory once.
-	issueUsers := make([]*IssueUser, 0, len(assignees)+1)
-	for _, assignee := range assignees {
-		isPoster := assignee.ID == issue.PosterID
-		issueUsers = append(issueUsers, &IssueUser{
-			IssueID:    issue.ID,
-			RepoID:     repo.ID,
-			UID:        assignee.ID,
-			IsPoster:   isPoster,
-			IsAssigned: assignee.ID == issue.AssigneeID,
-		})
-		if !isPosterAssignee && isPoster {
-			isPosterAssignee = true
-		}
-	}
-	if !isPosterAssignee {
-		issueUsers = append(issueUsers, &IssueUser{
-			IssueID:  issue.ID,
-			RepoID:   repo.ID,
-			UID:      issue.PosterID,
-			IsPoster: true,
-		})
-	}
-
-	if _, err = e.Insert(issueUsers); err != nil {
-		return err
-	}
-	return nil
-}
-
-// NewIssueUsers adds new issue-user relations for new issue of repository.
-func NewIssueUsers(repo *Repository, issue *Issue) (err error) {
-	sess := x.NewSession()
-	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if err = newIssueUsers(sess, repo, issue); err != nil {
-		return err
-	}
-
-	return sess.Commit()
-}
-
-// PairsContains returns true when pairs list contains given issue.
-func PairsContains(ius []*IssueUser, issueID, uid int64) int {
-	for i := range ius {
-		if ius[i].IssueID == issueID &&
-			ius[i].UID == uid {
-			return i
-		}
-	}
-	return -1
-}
-
-// GetIssueUsers returns issue-user pairs by given repository and user.
-func GetIssueUsers(rid, uid int64, isClosed bool) ([]*IssueUser, error) {
-	ius := make([]*IssueUser, 0, 10)
-	err := x.Where("is_closed=?", isClosed).Find(&ius, &IssueUser{RepoID: rid, UID: uid})
-	return ius, err
-}
-
-// GetIssueUserPairsByRepoIds returns issue-user pairs by given repository IDs.
-func GetIssueUserPairsByRepoIds(rids []int64, isClosed bool, page int) ([]*IssueUser, error) {
-	if len(rids) == 0 {
-		return []*IssueUser{}, nil
-	}
-
-	ius := make([]*IssueUser, 0, 10)
-	sess := x.
-		Limit(20, (page-1)*20).
-		Where("is_closed=?", isClosed).
-		In("repo_id", rids)
-	err := sess.Find(&ius)
-	return ius, err
-}
-
-// GetIssueUserPairsByMode returns issue-user pairs by given repository and user.
-func GetIssueUserPairsByMode(uid, rid int64, isClosed bool, page, filterMode int) ([]*IssueUser, error) {
-	ius := make([]*IssueUser, 0, 10)
-	sess := x.
-		Limit(20, (page-1)*20).
-		Where("uid=?", uid).
-		And("is_closed=?", isClosed)
-	if rid > 0 {
-		sess.And("repo_id=?", rid)
-	}
-
-	switch filterMode {
-	case FilterModeAssign:
-		sess.And("is_assigned=?", true)
-	case FilterModeCreate:
-		sess.And("is_poster=?", true)
-	default:
-		return ius, nil
-	}
-	err := sess.Find(&ius)
-	return ius, err
 }
 
 // UpdateIssueMentions extracts mentioned people from content and
@@ -1346,77 +1348,6 @@ func updateIssue(e Engine, issue *Issue) error {
 // UpdateIssue updates all fields of given issue.
 func UpdateIssue(issue *Issue) error {
 	return updateIssue(x, issue)
-}
-
-func updateIssueUsersByStatus(e Engine, issueID int64, isClosed bool) error {
-	_, err := e.Exec("UPDATE `issue_user` SET is_closed=? WHERE issue_id=?", isClosed, issueID)
-	return err
-}
-
-// UpdateIssueUsersByStatus updates issue-user relations by issue status.
-func UpdateIssueUsersByStatus(issueID int64, isClosed bool) error {
-	return updateIssueUsersByStatus(x, issueID, isClosed)
-}
-
-func updateIssueUserByAssignee(e *xorm.Session, issue *Issue) (err error) {
-	if _, err = e.Exec("UPDATE `issue_user` SET is_assigned = ? WHERE issue_id = ?", false, issue.ID); err != nil {
-		return err
-	}
-
-	// Assignee ID equals to 0 means clear assignee.
-	if issue.AssigneeID > 0 {
-		if _, err = e.Exec("UPDATE `issue_user` SET is_assigned = ? WHERE uid = ? AND issue_id = ?", true, issue.AssigneeID, issue.ID); err != nil {
-			return err
-		}
-	}
-
-	return updateIssue(e, issue)
-}
-
-// UpdateIssueUserByAssignee updates issue-user relation for assignee.
-func UpdateIssueUserByAssignee(issue *Issue) (err error) {
-	sess := x.NewSession()
-	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if err = updateIssueUserByAssignee(sess, issue); err != nil {
-		return err
-	}
-
-	return sess.Commit()
-}
-
-// UpdateIssueUserByRead updates issue-user relation for reading.
-func UpdateIssueUserByRead(uid, issueID int64) error {
-	_, err := x.Exec("UPDATE `issue_user` SET is_read=? WHERE uid=? AND issue_id=?", true, uid, issueID)
-	return err
-}
-
-// UpdateIssueUsersByMentions updates issue-user pairs by mentioning.
-func UpdateIssueUsersByMentions(e Engine, issueID int64, uids []int64) error {
-	for _, uid := range uids {
-		iu := &IssueUser{
-			UID:     uid,
-			IssueID: issueID,
-		}
-		has, err := e.Get(iu)
-		if err != nil {
-			return err
-		}
-
-		iu.IsMentioned = true
-		if has {
-			_, err = e.Id(iu.ID).AllCols().Update(iu)
-		} else {
-			_, err = e.Insert(iu)
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 //    _____  .__.__                   __
@@ -1688,7 +1619,7 @@ func ChangeMilestoneIssueStats(issue *Issue) (err error) {
 	return sess.Commit()
 }
 
-func changeMilestoneAssign(e *xorm.Session, issue *Issue, oldMilestoneID int64) error {
+func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilestoneID int64) error {
 	if oldMilestoneID > 0 {
 		m, err := getMilestoneByRepoID(e, issue.RepoID, oldMilestoneID)
 		if err != nil {
@@ -1701,8 +1632,6 @@ func changeMilestoneAssign(e *xorm.Session, issue *Issue, oldMilestoneID int64) 
 		}
 
 		if err = updateMilestone(e, m); err != nil {
-			return err
-		} else if _, err = e.Exec("UPDATE `issue_user` SET milestone_id = 0 WHERE issue_id = ?", issue.ID); err != nil {
 			return err
 		}
 	}
@@ -1720,7 +1649,15 @@ func changeMilestoneAssign(e *xorm.Session, issue *Issue, oldMilestoneID int64) 
 
 		if err = updateMilestone(e, m); err != nil {
 			return err
-		} else if _, err = e.Exec("UPDATE `issue_user` SET milestone_id = ? WHERE issue_id = ?", m.ID, issue.ID); err != nil {
+		}
+	}
+
+	if err := issue.loadRepo(e); err != nil {
+		return err
+	}
+
+	if oldMilestoneID > 0 || issue.MilestoneID > 0 {
+		if _, err := createMilestoneComment(e, doer, issue.Repo, issue, oldMilestoneID, issue.MilestoneID); err != nil {
 			return err
 		}
 	}
@@ -1729,14 +1666,14 @@ func changeMilestoneAssign(e *xorm.Session, issue *Issue, oldMilestoneID int64) 
 }
 
 // ChangeMilestoneAssign changes assignment of milestone for issue.
-func ChangeMilestoneAssign(issue *Issue, oldMilestoneID int64) (err error) {
+func ChangeMilestoneAssign(issue *Issue, doer *User, oldMilestoneID int64) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = changeMilestoneAssign(sess, issue, oldMilestoneID); err != nil {
+	if err = changeMilestoneAssign(sess, doer, issue, oldMilestoneID); err != nil {
 		return err
 	}
 	return sess.Commit()
@@ -1775,9 +1712,6 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 
 	if _, err = sess.Exec("UPDATE `issue` SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
 		return err
-	} else if _, err = sess.Exec("UPDATE `issue_user` SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
-		return err
 	}
 	return sess.Commit()
 }
-

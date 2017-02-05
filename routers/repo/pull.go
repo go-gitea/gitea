@@ -16,7 +16,9 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/com"
 )
 
@@ -106,12 +108,6 @@ func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplFork)
-		return
-	}
-
-	repo, has := models.HasForkedRepo(ctxUser.ID, forkRepo.ID)
-	if has {
-		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
 		return
 	}
 
@@ -421,6 +417,8 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
+	notification.Service.NotifyIssue(pr.Issue, ctx.User.ID)
+
 	log.Trace("Pull request merged: %d", pr.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 }
@@ -712,6 +710,8 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		ctx.Handle(500, "PushToBaseRepo", err)
 		return
 	}
+
+	notification.Service.NotifyIssue(pullIssue, ctx.User.ID)
 
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pullIssue.Index))

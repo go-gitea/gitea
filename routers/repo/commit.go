@@ -111,8 +111,9 @@ func SearchCommits(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchName)
 		return
 	}
+	all := ctx.QueryBool("all")
 
-	commits, err := ctx.Repo.Commit.SearchCommits(keyword)
+	commits, err := ctx.Repo.Commit.SearchCommits(keyword, all)
 	if err != nil {
 		ctx.Handle(500, "SearchCommits", err)
 		return
@@ -122,6 +123,9 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["Commits"] = commits
 
 	ctx.Data["Keyword"] = keyword
+	if all {
+		ctx.Data["All"] = "checked"
+	}
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commits.Len()

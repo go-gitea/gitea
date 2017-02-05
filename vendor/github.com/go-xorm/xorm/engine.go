@@ -573,7 +573,7 @@ func (engine *Engine) Id(id interface{}) *Session {
 	return session.Id(id)
 }
 
-// ID mehtod provoide a condition as (id) = ?
+// ID method provoide a condition as (id) = ?
 func (engine *Engine) ID(id interface{}) *Session {
 	session := engine.NewSession()
 	session.IsAutoClose = true
@@ -1599,6 +1599,8 @@ func (engine *Engine) formatTime(tz *time.Location, sqlTypeName string, t time.T
 		return t
 	}
 	if tz != nil {
+		t = t.In(tz)
+	} else {
 		t = engine.TZTime(t)
 	}
 	switch sqlTypeName {

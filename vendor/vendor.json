@@ -3,10 +3,10 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "P2wIRW07gnEgqLZAcg7bz+Jw9Oc=",
+			"checksumSHA1": "km1AOUs34DCwgXT55fh6PrkPdiU=",
 			"path": "code.gitea.io/git",
-			"revision": "7477742b3c79d36d099baaf614864b6bbdfdecca",
-			"revisionTime": "2017-01-09T15:46:57Z"
+			"revision": "dd951bf625ebf5c16ef403f681aaec6c34324bca",
+			"revisionTime": "2017-02-05T02:50:57Z"
 		},
 		{
 			"checksumSHA1": "BKj0haFTDebzdC2nACpoGzp3s8A=",
@@ -455,10 +455,10 @@
 			"revisionTime": "2016-08-11T02:11:45Z"
 		},
 		{
-			"checksumSHA1": "V3Sy7+JY2PVw3EkfajS4DxCDBg8=",
+			"checksumSHA1": "pbmrxOvDzdm40iRgnsS25Ig+33o=",
 			"path": "github.com/go-xorm/xorm",
-			"revision": "57bcb65078410bcd5c7c8ee52d7494e7b5146a04",
-			"revisionTime": "2017-01-22T09:17:55Z"
+			"revision": "445a934d32ed0934aedf0ef99b4b7c69b22f8e58",
+			"revisionTime": "2017-01-25T11:54:21Z"
 		},
 		{
 			"checksumSHA1": "1ft/4j5MFa7C9dPI9whL03HSUzk=",
@@ -513,12 +513,6 @@
 			"path": "github.com/juju/errors",
 			"revision": "b2c7a7da5b2995941048f60146e67702a292e468",
 			"revisionTime": "2016-02-12T04:00:40Z"
-		},
-		{
-			"checksumSHA1": "/dBJ2h8Jo359deiC5GQ8ZYzX8M8=",
-			"path": "github.com/kardianos/minwinsvc",
-			"revision": "cad6b2b879b0970e4245a20ebf1a81a756e2bb70",
-			"revisionTime": "2015-11-22T16:33:09Z"
 		},
 		{
 			"checksumSHA1": "fh+CcgeUUsnuwSORHYWg0ycbp+4=",

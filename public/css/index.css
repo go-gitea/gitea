@@ -8,6 +8,7 @@ body {
   font-family: "Helvetica Neue", "Microsoft YaHei", Arial, Helvetica, sans-serif !important;
   background-color: #fff;
   overflow-y: scroll;
+  -webkit-font-smoothing: antialiased;
 }
 img {
   border-radius: 3px;
@@ -1129,6 +1130,10 @@ footer .ui.language .menu {
 .repository .head .octicon.octicon-repo-forked {
   margin-top: -1px;
   font-size: 15px;
+}
+.repository .navbar {
+  display: flex;
+  justify-content: space-between;
 }
 .repository .navbar .ui.label {
   margin-top: -2px;
@@ -2721,17 +2726,16 @@ footer .ui.language .menu {
 .user.notification table tr {
   cursor: pointer;
 }
-.user.notification .octicon-issue-opened,
-.user.notification .octicon-git-pull-request {
+.user.notification .octicon.green {
   color: #21ba45;
 }
-.user.notification .octicon-issue-closed {
+.user.notification .octicon.red {
   color: #d01919;
 }
-.user.notification .octicon-git-merge {
+.user.notification .octicon.purple {
   color: #a333c8;
 }
-.user.notification .octicon-pin {
+.user.notification .octicon.blue {
   color: #2185d0;
 }
 .dashboard {
@@ -2925,10 +2929,6 @@ footer .ui.language .menu {
 .explore .navbar .octicon {
   width: 16px;
   text-align: center;
-}
-.navbar {
-  display: flex;
-  justify-content: space-between;
 }
 .ui.repository.list .item {
   padding-bottom: 25px;

@@ -14,34 +14,42 @@ func TestRepo(t *testing.T) {
 		repo.Name = "testrepo"
 		repo.Owner = new(User)
 		repo.Owner.Name = "testuser"
-		repo.ExternalTrackerFormat = "https://someurl.com/{user}/{repo}/{issue}"
+		externalTracker := RepoUnit{
+			Type: UnitTypeExternalTracker,
+			Config: &ExternalTrackerConfig{
+				ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
+			},
+		}
+		repo.Units = []*RepoUnit{
+			&externalTracker,
+		}
 
 		Convey("When no external tracker is configured", func() {
 			Convey("It should be nil", func() {
-				repo.EnableExternalTracker = false
+				repo.Units = nil
 				So(repo.ComposeMetas(), ShouldEqual, map[string]string(nil))
 			})
 			Convey("It should be nil even if other settings are present", func() {
-				repo.EnableExternalTracker = false
-				repo.ExternalTrackerFormat = "http://someurl.com/{user}/{repo}/{issue}"
-				repo.ExternalTrackerStyle = markdown.IssueNameStyleNumeric
+				repo.Units = nil
 				So(repo.ComposeMetas(), ShouldEqual, map[string]string(nil))
 			})
 		})
 
 		Convey("When an external issue tracker is configured", func() {
-			repo.EnableExternalTracker = true
+			repo.Units = []*RepoUnit{
+				&externalTracker,
+			}
 			Convey("It should default to numeric issue style", func() {
 				metas := repo.ComposeMetas()
 				So(metas["style"], ShouldEqual, markdown.IssueNameStyleNumeric)
 			})
 			Convey("It should pass through numeric issue style setting", func() {
-				repo.ExternalTrackerStyle = markdown.IssueNameStyleNumeric
+				externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markdown.IssueNameStyleNumeric
 				metas := repo.ComposeMetas()
 				So(metas["style"], ShouldEqual, markdown.IssueNameStyleNumeric)
 			})
 			Convey("It should pass through alphanumeric issue style setting", func() {
-				repo.ExternalTrackerStyle = markdown.IssueNameStyleAlphanumeric
+				externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markdown.IssueNameStyleAlphanumeric
 				metas := repo.ComposeMetas()
 				So(metas["style"], ShouldEqual, markdown.IssueNameStyleAlphanumeric)
 			})

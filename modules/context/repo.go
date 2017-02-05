@@ -133,6 +133,26 @@ func earlyResponseForGoGetMeta(ctx *Context) {
 		})))
 }
 
+// RedirectToRepo redirect to a differently-named repository
+func RedirectToRepo(ctx *Context, redirectRepoID int64) {
+	ownerName := ctx.Params(":username")
+	previousRepoName := ctx.Params(":reponame")
+
+	repo, err := models.GetRepositoryByID(redirectRepoID)
+	if err != nil {
+		ctx.Handle(500, "GetRepositoryByID", err)
+		return
+	}
+
+	redirectPath := strings.Replace(
+		ctx.Req.URL.Path,
+		fmt.Sprintf("%s/%s", ownerName, previousRepoName),
+		fmt.Sprintf("%s/%s", ownerName, repo.Name),
+		1,
+	)
+	ctx.Redirect(redirectPath)
+}
+
 // RepoAssignment returns a macaron to handle repository assignment
 func RepoAssignment(args ...bool) macaron.Handler {
 	return func(ctx *Context) {
@@ -176,19 +196,24 @@ func RepoAssignment(args ...bool) macaron.Handler {
 		repo, err := models.GetRepositoryByName(owner.ID, repoName)
 		if err != nil {
 			if models.IsErrRepoNotExist(err) {
-				if ctx.Query("go-get") == "1" {
-					earlyResponseForGoGetMeta(ctx)
-					return
+				redirectRepoID, err := models.LookupRepoRedirect(owner.ID, repoName)
+				if err == nil {
+					RedirectToRepo(ctx, redirectRepoID)
+				} else if models.IsErrRepoRedirectNotExist(err) {
+					if ctx.Query("go-get") == "1" {
+						earlyResponseForGoGetMeta(ctx)
+						return
+					}
+					ctx.Handle(404, "GetRepositoryByName", err)
+				} else {
+					ctx.Handle(500, "LookupRepoRedirect", err)
 				}
-				ctx.Handle(404, "GetRepositoryByName", err)
 			} else {
 				ctx.Handle(500, "GetRepositoryByName", err)
 			}
 			return
-		} else if err = repo.GetOwner(); err != nil {
-			ctx.Handle(500, "GetOwner", err)
-			return
 		}
+		repo.Owner = owner
 
 		// Admin has super access.
 		if ctx.IsSigned && ctx.User.IsAdmin {
@@ -477,5 +502,20 @@ func GitHookService() macaron.Handler {
 			ctx.Handle(404, "GitHookService", nil)
 			return
 		}
+	}
+}
+
+// UnitTypes returns a macaron middleware to set unit types to context variables.
+func UnitTypes() macaron.Handler {
+	return func(ctx *Context) {
+		ctx.Data["UnitTypeCode"] = models.UnitTypeCode
+		ctx.Data["UnitTypeIssues"] = models.UnitTypeIssues
+		ctx.Data["UnitTypePullRequests"] = models.UnitTypePullRequests
+		ctx.Data["UnitTypeCommits"] = models.UnitTypeCommits
+		ctx.Data["UnitTypeReleases"] = models.UnitTypeReleases
+		ctx.Data["UnitTypeWiki"] = models.UnitTypeWiki
+		ctx.Data["UnitTypeSettings"] = models.UnitTypeSettings
+		ctx.Data["UnitTypeExternalWiki"] = models.UnitTypeExternalWiki
+		ctx.Data["UnitTypeExternalTracker"] = models.UnitTypeExternalTracker
 	}
 }

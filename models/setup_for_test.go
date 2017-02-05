@@ -7,7 +7,10 @@ package models
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
+
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
@@ -23,6 +26,14 @@ func TestMain(m *testing.M) {
 		fmt.Printf("Error creating test engine: %v\n", err)
 		os.Exit(1)
 	}
+
+	setting.AppURL = "https://try.gitea.io/"
+	setting.RunUser = "runuser"
+	setting.SSH.Port = 3000
+	setting.SSH.Domain = "try.gitea.io"
+	setting.RepoRootPath = filepath.Join(os.TempDir(), "repos")
+	setting.AppDataPath = filepath.Join(os.TempDir(), "appdata")
+
 	os.Exit(m.Run())
 }
 
@@ -40,6 +51,7 @@ func CreateTestEngine() error {
 	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
 		return err
 	}
+
 	fixtures, err = testfixtures.NewFolder(x.DB().DB, &testfixtures.SQLite{}, "fixtures/")
 	return err
 }
@@ -59,12 +71,20 @@ func loadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error)
 	return sess.Get(bean)
 }
 
+// BeanExists for testing, check if a bean exists
+func BeanExists(t *testing.T, bean interface{}, conditions ...interface{}) bool {
+	exists, err := loadBeanIfExists(bean, conditions...)
+	assert.NoError(t, err)
+	return exists
+}
+
 // AssertExistsAndLoadBean assert that a bean exists and load it from the test
 // database
 func AssertExistsAndLoadBean(t *testing.T, bean interface{}, conditions ...interface{}) interface{} {
 	exists, err := loadBeanIfExists(bean, conditions...)
 	assert.NoError(t, err)
-	assert.True(t, exists)
+	assert.True(t, exists,
+		"Expected to find %+v (with conditions %+v), but did not", bean, conditions)
 	return bean
 }
 
@@ -73,4 +93,16 @@ func AssertNotExistsBean(t *testing.T, bean interface{}, conditions ...interface
 	exists, err := loadBeanIfExists(bean, conditions...)
 	assert.NoError(t, err)
 	assert.False(t, exists)
+}
+
+// AssertSuccessfulInsert assert that beans is successfully inserted
+func AssertSuccessfulInsert(t *testing.T, beans ...interface{}) {
+	_, err := x.Insert(beans...)
+	assert.NoError(t, err)
+}
+
+// AssertSuccessfulUpdate assert that bean is successfully updated
+func AssertSuccessfulUpdate(t *testing.T, bean interface{}, conditions ...interface{}) {
+	_, err := x.Update(bean, conditions...)
+	assert.NoError(t, err)
 }

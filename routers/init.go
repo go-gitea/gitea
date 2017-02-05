@@ -12,13 +12,13 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	macaron "gopkg.in/macaron.v1"
-	"code.gitea.io/gitea/modules/indexer"
 )
 
 func checkRunMode() {
@@ -51,7 +51,7 @@ func GlobalInit() {
 		highlight.NewContext()
 		markdown.BuildSanitizer()
 		if err := models.NewEngine(); err != nil {
-			log.Fatal(4, "Fail to initialize ORM engine: %v", err)
+			log.Fatal(4, "Failed to initialize ORM engine: %v", err)
 		}
 		models.HasEngine = true
 		models.InitOAuth2()

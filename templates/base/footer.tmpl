@@ -27,26 +27,40 @@
 			</div>
 		</div>
 	</footer>
-</body>
+	<script src="{{AppSubUrl}}/js/jquery-1.11.3.min.js"></script>
+	<script src="{{AppSubUrl}}/js/libs/jquery.are-you-sure.js"></script>
+{{if .RequireSimpleMDE}}
+	<script src="{{AppSubUrl}}/plugins/simplemde-1.10.1/simplemde.min.js"></script>
+	<script src="{{AppSubUrl}}/plugins/codemirror-5.17.0/addon/mode/loadmode.js"></script>
+	<script src="{{AppSubUrl}}/plugins/codemirror-5.17.0/mode/meta.js"></script>
+	<script>
+		CodeMirror.modeURL =  "{{AppSubUrl}}/plugins/codemirror-5.17.0/mode/%N/%N.js";
+	</script>
+{{end}}
+{{if .RequireGitGraph}}
+	<!-- graph -->
+	<script src="{{AppSubUrl}}/js/libs/gitgraph.js"></script>
+	<script src="{{AppSubUrl}}/js/draw.js"></script>
+{{end}}
+
+<!-- JavaScript -->
+<script src="{{AppSubUrl}}/js/semantic-2.2.1.min.js"></script>
+<script src="{{AppSubUrl}}/js/index.js?v={{MD5 AppVer}}"></script>
 
 <!-- Third-party libraries -->
 {{if .RequireHighlightJS}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/plugins/highlight-9.6.0/github.css">
 	<script src="{{AppSubUrl}}/plugins/highlight-9.6.0/highlight.pack.js"></script>
 {{end}}
 {{if .RequireMinicolors}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/plugins/jquery.minicolors-2.2.3/jquery.minicolors.css">
 	<script src="{{AppSubUrl}}/plugins/jquery.minicolors-2.2.3/jquery.minicolors.min.js"></script>
 {{end}}
 {{if .RequireDatetimepicker}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/plugins/jquery.datetimepicker-2.4.5/jquery.datetimepicker.css">
 	<script src="{{AppSubUrl}}/plugins/jquery.datetimepicker-2.4.5/jquery.datetimepicker.js"></script>
 {{end}}
 {{if .RequireDropzone}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/plugins/dropzone-4.2.0/dropzone.css">
 	<script src="{{AppSubUrl}}/plugins/dropzone-4.2.0/dropzone.js"></script>
 {{end}}
-<script src="{{AppSubUrl}}/js/libs/emojify-1.1.0.min.js"></script>
-<script src="{{AppSubUrl}}/js/libs/clipboard-1.5.9.min.js"></script>
-
+	<script src="{{AppSubUrl}}/js/libs/emojify-1.1.0.min.js"></script>
+	<script src="{{AppSubUrl}}/js/libs/clipboard-1.5.9.min.js"></script>
+</body>
 </html>

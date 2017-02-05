@@ -121,8 +121,8 @@ func NewFuncMap() []template.FuncMap {
 			var path []string
 			index := strings.LastIndex(str, "/")
 			if index != -1 && index != len(str) {
-				path = append(path, string(str[0:index+1]))
-				path = append(path, string(str[index+1:]))
+				path = append(path, str[0:index+1])
+				path = append(path, str[index+1:])
 			} else {
 				path = append(path, str)
 			}

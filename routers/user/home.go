@@ -65,7 +65,9 @@ func retrieveFeeds(ctx *context.Context, ctxUser *models.User, userID, offset in
 
 	// Check access of private repositories.
 	feeds := make([]*models.Action, 0, len(actions))
-	unameAvatars := make(map[string]string)
+	unameAvatars := map[string]string{
+		ctxUser.Name: ctxUser.RelAvatarLink(),
+	}
 	for _, act := range actions {
 		// Cache results to reduce queries.
 		_, ok := unameAvatars[act.ActUserName]
@@ -114,15 +116,20 @@ func Dashboard(ctx *context.Context) {
 	var err error
 	var repos, mirrors []*models.Repository
 	if ctxUser.IsOrganization() {
-		repos, _, err = ctxUser.GetUserRepositories(ctx.User.ID, 1, setting.UI.User.RepoPagingNum)
+		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
 		if err != nil {
-			ctx.Handle(500, "GetUserRepositories", err)
+			ctx.Handle(500, "AccessibleReposEnv", err)
+			return
+		}
+		repos, err = env.Repos(1, setting.UI.User.RepoPagingNum)
+		if err != nil {
+			ctx.Handle(500, "env.Repos", err)
 			return
 		}
 
-		mirrors, err = ctxUser.GetUserMirrorRepositories(ctx.User.ID)
+		mirrors, err = env.MirrorRepos()
 		if err != nil {
-			ctx.Handle(500, "GetUserMirrorRepositories", err)
+			ctx.Handle(500, "env.MirrorRepos", err)
 			return
 		}
 	} else {
@@ -205,7 +212,12 @@ func Issues(ctx *context.Context) {
 	var err error
 	var repos []*models.Repository
 	if ctxUser.IsOrganization() {
-		repos, _, err = ctxUser.GetUserRepositories(ctx.User.ID, 1, ctxUser.NumRepos)
+		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
+		if err != nil {
+			ctx.Handle(500, "AccessibleReposEnv", err)
+			return
+		}
+		repos, err = env.Repos(1, ctxUser.NumRepos)
 		if err != nil {
 			ctx.Handle(500, "GetRepositories", err)
 			return
@@ -224,7 +236,7 @@ func Issues(ctx *context.Context) {
 	for _, repo := range repos {
 		if (isPullList && repo.NumPulls == 0) ||
 			(!isPullList &&
-				(!repo.EnableIssues || repo.EnableExternalTracker || repo.NumIssues == 0)) {
+				(!repo.EnableUnit(models.UnitTypeIssues) || repo.NumIssues == 0)) {
 			continue
 		}
 
@@ -353,15 +365,25 @@ func showOrgProfile(ctx *context.Context) {
 		err   error
 	)
 	if ctx.IsSigned && !ctx.User.IsAdmin {
-		repos, count, err = org.GetUserRepositories(ctx.User.ID, page, setting.UI.User.RepoPagingNum)
+		env, err := org.AccessibleReposEnv(ctx.User.ID)
 		if err != nil {
-			ctx.Handle(500, "GetUserRepositories", err)
+			ctx.Handle(500, "AccessibleReposEnv", err)
+			return
+		}
+		repos, err = env.Repos(page, setting.UI.User.RepoPagingNum)
+		if err != nil {
+			ctx.Handle(500, "env.Repos", err)
+			return
+		}
+		count, err = env.CountRepos()
+		if err != nil {
+			ctx.Handle(500, "env.CountRepos", err)
 			return
 		}
 		ctx.Data["Repos"] = repos
 	} else {
 		showPrivate := ctx.IsSigned && ctx.User.IsAdmin
-		repos, err = models.GetUserRepositories(org.ID, showPrivate, page, setting.UI.User.RepoPagingNum)
+		repos, err = models.GetUserRepositories(org.ID, showPrivate, page, setting.UI.User.RepoPagingNum, "")
 		if err != nil {
 			ctx.Handle(500, "GetRepositories", err)
 			return

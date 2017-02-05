@@ -108,7 +108,7 @@ release-build:
 	@which xgo > /dev/null; if [ $$? -ne 0 ]; then \
 		go get -u github.com/karalabe/xgo; \
 	fi
-	xgo -dest $(DIST)/binaries -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets '$(TARGETS)' -out $(EXECUTABLE)-$(VERSION) $(IMPORT)
+	xgo -dest $(DIST)/binaries -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets '$(TARGETS)' -out $(EXECUTABLE)-$(VERSION) .
 ifeq ($(CI),drone)
 	mv /build/* $(DIST)/binaries
 endif

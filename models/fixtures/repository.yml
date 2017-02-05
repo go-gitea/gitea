@@ -41,3 +41,15 @@
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+
+-
+  id: 5
+  owner_id: 3
+  lower_name: repo5
+  name: repo5
+  is_private: true
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: true

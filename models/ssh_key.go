@@ -219,7 +219,7 @@ func SSHKeyGenParsePublicKey(key string) (string, int, error) {
 func SSHNativeParsePublicKey(keyLine string) (string, int, error) {
 	fields := strings.Fields(keyLine)
 	if len(fields) < 2 {
-		return "", 0, fmt.Errorf("not enough fields in public key line: %s", string(keyLine))
+		return "", 0, fmt.Errorf("not enough fields in public key line: %s", keyLine)
 	}
 
 	raw, err := base64.StdEncoding.DecodeString(fields[1])
@@ -376,7 +376,7 @@ func addKey(e Engine, key *PublicKey) (err error) {
 	dir := path.Dir(tmpPath)
 
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("Fail to create dir %s: %v", dir, err)
+		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
 	if err = ioutil.WriteFile(tmpPath, []byte(key.Content), 0644); err != nil {

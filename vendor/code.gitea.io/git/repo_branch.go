@@ -102,6 +102,16 @@ func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) erro
 	return err
 }
 
+// CreateBranch create a new branch
+func (repo *Repository) CreateBranch(branch, newBranch string) error {
+	cmd := NewCommand("branch")
+	cmd.AddArguments(branch, newBranch)
+
+	_, err := cmd.RunInDir(repo.Path)
+
+	return err
+}
+
 // AddRemote adds a new remote to repository.
 func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 	cmd := NewCommand("remote", "add")

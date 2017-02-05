@@ -52,11 +52,6 @@ func Get(ctx *context.APIContext) {
 // see https://github.com/gogits/go-gogs-client/wiki/Organizations#edit-an-organization
 func Edit(ctx *context.APIContext, form api.EditOrgOption) {
 	org := ctx.Org.Organization
-	if !org.IsOwnedBy(ctx.User.ID) {
-		ctx.Status(403)
-		return
-	}
-
 	org.FullName = form.FullName
 	org.Description = form.Description
 	org.Website = form.Website

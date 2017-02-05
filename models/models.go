@@ -30,12 +30,14 @@ import (
 
 // Engine represents a xorm engine or session.
 type Engine interface {
+	Decr(column string, arg ...interface{}) *xorm.Session
 	Delete(interface{}) (int64, error)
 	Exec(string, ...interface{}) (sql.Result, error)
 	Find(interface{}, ...interface{}) error
 	Get(interface{}) (bool, error)
 	Id(interface{}) *xorm.Session
 	In(string, ...interface{}) *xorm.Session
+	Incr(column string, arg ...interface{}) *xorm.Session
 	Insert(...interface{}) (int64, error)
 	InsertOne(interface{}) (int64, error)
 	Iterate(interface{}, xorm.IterFunc) error
@@ -106,6 +108,8 @@ func init() {
 		new(IssueUser),
 		new(LFSMetaObject),
 		new(TwoFactor),
+		new(RepoUnit),
+		new(RepoRedirect),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -205,7 +209,7 @@ func getEngine() (*xorm.Engine, error) {
 			return nil, errors.New("this binary version does not build support for SQLite3")
 		}
 		if err := os.MkdirAll(path.Dir(DbCfg.Path), os.ModePerm); err != nil {
-			return nil, fmt.Errorf("Fail to create directories: %v", err)
+			return nil, fmt.Errorf("Failed to create directories: %v", err)
 		}
 		connStr = "file:" + DbCfg.Path + "?cache=shared&mode=rwc"
 	case "tidb":
@@ -213,7 +217,7 @@ func getEngine() (*xorm.Engine, error) {
 			return nil, errors.New("this binary version does not build support for TiDB")
 		}
 		if err := os.MkdirAll(path.Dir(DbCfg.Path), os.ModePerm); err != nil {
-			return nil, fmt.Errorf("Fail to create directories: %v", err)
+			return nil, fmt.Errorf("Failed to create directories: %v", err)
 		}
 		connStr = "goleveldb://" + DbCfg.Path
 	default:
@@ -237,7 +241,7 @@ func NewTestEngine(x *xorm.Engine) (err error) {
 func SetEngine() (err error) {
 	x, err = getEngine()
 	if err != nil {
-		return fmt.Errorf("Fail to connect to database: %v", err)
+		return fmt.Errorf("Failed to connect to database: %v", err)
 	}
 
 	x.SetMapper(core.GonicMapper{})
@@ -247,12 +251,12 @@ func SetEngine() (err error) {
 	logPath := path.Join(setting.LogRootPath, "xorm.log")
 
 	if err := os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
-		return fmt.Errorf("Fail to create dir %s: %v", logPath, err)
+		return fmt.Errorf("Failed to create dir %s: %v", logPath, err)
 	}
 
 	f, err := os.Create(logPath)
 	if err != nil {
-		return fmt.Errorf("Fail to create xorm.log: %v", err)
+		return fmt.Errorf("Failed to create xorm.log: %v", err)
 	}
 	x.SetLogger(xorm.NewSimpleLogger(f))
 	x.ShowSQL(true)
