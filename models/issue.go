@@ -641,8 +641,23 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 	oldTitle := issue.Title
 	issue.Title = title
-	if err = UpdateIssueCols(issue, "name"); err != nil {
-		return fmt.Errorf("UpdateIssueCols: %v", err)
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if err = updateIssueCols(sess, issue, "name"); err != nil {
+		return fmt.Errorf("updateIssueCols: %v", err)
+	}
+
+	if _, err = createChangeTitleComment(sess, doer, issue.Repo, issue, oldTitle, title); err != nil {
+		return fmt.Errorf("createChangeTitleComment: %v", err)
+	}
+
+	if err = sess.Commit(); err != nil {
+		return err
 	}
 
 	if issue.IsPull {
@@ -1105,7 +1120,6 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 
 	return issues, nil
 }
-
 
 // UpdateIssueMentions extracts mentioned people from content and
 // updates issue-user relations for them.

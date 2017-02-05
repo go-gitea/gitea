@@ -444,6 +444,7 @@ function initRepository() {
                 function (data) {
                     $editInput.val(data.title);
                     $issueTitle.text(data.title);
+                    location.reload();
                 });
             return false;
         });
