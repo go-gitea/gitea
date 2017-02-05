@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/fcgi"
+	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 	"os"
 	"path"
 	"strings"
@@ -643,6 +644,12 @@ func runWeb(ctx *cli.Context) error {
 
 	if setting.LFS.StartServer {
 		log.Info("LFS server enabled")
+	}
+
+	if setting.EnablePprof {
+		go func() {
+			log.Info("%v", http.ListenAndServe("localhost:6060", nil))
+		}()
 	}
 
 	var err error
