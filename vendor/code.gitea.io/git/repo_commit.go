@@ -196,8 +196,12 @@ func (repo *Repository) commitsByRange(id SHA1, page int) (*list.List, error) {
 	return repo.parsePrettyFormatLogToList(stdout)
 }
 
-func (repo *Repository) searchCommits(id SHA1, keyword string) (*list.List, error) {
-	stdout, err := NewCommand("log", id.String(), "-100", "-i", "--grep="+keyword, prettyLogFormat).RunInDirBytes(repo.Path)
+func (repo *Repository) searchCommits(id SHA1, keyword string, all bool) (*list.List, error) {
+	cmd := NewCommand("log", id.String(), "-100", "-i", "--grep="+keyword, prettyLogFormat)
+	if all {
+		cmd.AddArguments("--all")
+	}
+	stdout, err := cmd.RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}

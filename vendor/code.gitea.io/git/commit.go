@@ -198,8 +198,8 @@ func (c *Commit) CommitsBeforeUntil(commitID string) (*list.List, error) {
 }
 
 // SearchCommits returns the commits match the keyword before current revision
-func (c *Commit) SearchCommits(keyword string) (*list.List, error) {
-	return c.repo.searchCommits(c.ID, keyword)
+func (c *Commit) SearchCommits(keyword string, all bool) (*list.List, error) {
+	return c.repo.searchCommits(c.ID, keyword, all)
 }
 
 // GetFilesChangedSinceCommit get all changed file names between pastCommit to current revision
