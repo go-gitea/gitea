@@ -42,6 +42,8 @@ const (
 	CommentTypeMilestone
 	// Assignees changed
 	CommentTypeAssignees
+	// Change Title
+	CommentTypeChangeTitle
 )
 
 // CommentTag defines comment tag type
@@ -72,6 +74,8 @@ type Comment struct {
 	AssigneeID     int64
 	Assignee       *User `xorm:"-"`
 	OldAssignee    *User `xorm:"-"`
+	OldTitle       string
+	NewTitle       string
 
 	CommitID        int64
 	Line            int64
@@ -308,6 +312,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		CommitSHA:      opts.CommitSHA,
 		Line:           opts.LineNum,
 		Content:        opts.Content,
+		OldTitle:       opts.OldTitle,
+		NewTitle:       opts.NewTitle,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -455,6 +461,17 @@ func createAssigneeComment(e *xorm.Session, doer *User, repo *Repository, issue 
 	})
 }
 
+func createChangeTitleComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldTitle, newTitle string) (*Comment, error) {
+	return createComment(e, &CreateCommentOptions{
+		Type:     CommentTypeChangeTitle,
+		Doer:     doer,
+		Repo:     repo,
+		Issue:    issue,
+		OldTitle: oldTitle,
+		NewTitle: newTitle,
+	})
+}
+
 // CreateCommentOptions defines options for creating comment
 type CreateCommentOptions struct {
 	Type  CommentType
@@ -467,6 +484,8 @@ type CreateCommentOptions struct {
 	MilestoneID    int64
 	OldAssigneeID  int64
 	AssigneeID     int64
+	OldTitle       string
+	NewTitle       string
 	CommitID       int64
 	CommitSHA      string
 	LineNum        int64
