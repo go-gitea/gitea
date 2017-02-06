@@ -134,14 +134,27 @@ func Profile(ctx *context.Context) {
 
 		keyword := ctx.Query("q")
 		if len(keyword) == 0 {
+			var total int
 			repos, err = models.GetUserRepositories(ctxUser.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy)
 			if err != nil {
 				ctx.Handle(500, "GetRepositories", err)
 				return
 			}
 			ctx.Data["Repos"] = repos
-			ctx.Data["Page"] = paginater.New(ctxUser.NumRepos, setting.UI.User.RepoPagingNum, page, 5)
-			ctx.Data["Total"] = ctxUser.NumRepos
+
+			if showPrivate {
+				total = ctxUser.NumRepos
+			} else {
+				count, err := models.GetPublicRepositoryCount(ctxUser)
+				if err != nil {
+					ctx.Handle(500, "GetPublicRepositoryCount", err)
+					return
+				}
+				total = int(count)
+			}
+
+			ctx.Data["Page"] = paginater.New(total, setting.UI.User.RepoPagingNum, page, 5)
+			ctx.Data["Total"] = total
 		} else {
 			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
 				Keyword:  keyword,

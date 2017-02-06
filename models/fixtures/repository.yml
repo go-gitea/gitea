@@ -56,3 +56,39 @@
   num_pulls: 0
   num_closed_pulls: 0
   is_mirror: true
+
+-
+  id: 6
+  owner_id: 10
+  lower_name: repo6
+  name: repo6
+  is_private: true
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
+
+-
+  id: 7
+  owner_id: 10
+  lower_name: repo7
+  name: repo7
+  is_private: true
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
+
+-
+  id: 8
+  owner_id: 10
+  lower_name: repo8
+  name: repo8
+  is_private: false
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
