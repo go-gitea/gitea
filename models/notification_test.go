@@ -20,6 +20,7 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 	assert.Equal(t, NotificationStatusUnread, notf.Status)
 	notf = AssertExistsAndLoadBean(t, &Notification{UserID: 4, IssueID: issue.ID}).(*Notification)
 	assert.Equal(t, NotificationStatusUnread, notf.Status)
+	CheckConsistencyFor(t, &Issue{ID: issue.ID})
 }
 
 func TestNotificationsForUser(t *testing.T) {
