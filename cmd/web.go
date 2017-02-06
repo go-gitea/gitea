@@ -41,6 +41,7 @@ import (
 	"github.com/go-macaron/toolbox"
 	"github.com/urfave/cli"
 	macaron "gopkg.in/macaron.v1"
+	context2 "github.com/gorilla/context"
 )
 
 // CmdWeb represents the available web sub-command.
@@ -663,11 +664,11 @@ func runWeb(ctx *cli.Context) error {
 	var err error
 	switch setting.Protocol {
 	case setting.HTTP:
-		err = runHTTP(listenAddr, m)
+		err = runHTTP(listenAddr, context2.ClearHandler(m))
 	case setting.HTTPS:
-		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, m)
+		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
 	case setting.FCGI:
-		err = fcgi.Serve(nil, m)
+		err = fcgi.Serve(nil, context2.ClearHandler(m))
 	case setting.UnixSocket:
 		if err := os.Remove(listenAddr); err != nil && !os.IsNotExist(err) {
 			log.Fatal(4, "Failed to remove unix socket directory %s: %v", listenAddr, err)
@@ -683,7 +684,7 @@ func runWeb(ctx *cli.Context) error {
 		if err = os.Chmod(listenAddr, os.FileMode(setting.UnixSocketPermission)); err != nil {
 			log.Fatal(4, "Failed to set permission of unix socket: %v", err)
 		}
-		err = http.Serve(listener, m)
+		err = http.Serve(listener, context2.ClearHandler(m))
 	default:
 		log.Fatal(4, "Invalid protocol: %s", setting.Protocol)
 	}
