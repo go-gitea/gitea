@@ -243,6 +243,25 @@ func (err ErrKeyNameAlreadyUsed) Error() string {
 	return fmt.Sprintf("public key already exists [owner_id: %d, name: %s]", err.OwnerID, err.Name)
 }
 
+// ErrGPGKeyAccessDenied represents a "GPGKeyAccessDenied" kind of Error.
+type ErrGPGKeyAccessDenied struct {
+	UserID int64
+	KeyID  int64
+	Note   string
+}
+
+// IsErrGPGKeyAccessDenied checks if an error is a ErrGPGKeyAccessDenied.
+func IsErrGPGKeyAccessDenied(err error) bool {
+	_, ok := err.(ErrGPGKeyAccessDenied)
+	return ok
+}
+
+// Error pretty-prints an error of type ErrGPGKeyAccessDenied.
+func (err ErrGPGKeyAccessDenied) Error() string {
+	return fmt.Sprintf("user does not have access to the key [user_id: %d, key_id: %d, note: %s]",
+		err.UserID, err.KeyID, err.Note)
+}
+
 // ErrKeyAccessDenied represents a "KeyAccessDenied" kind of error.
 type ErrKeyAccessDenied struct {
 	UserID int64
@@ -256,6 +275,7 @@ func IsErrKeyAccessDenied(err error) bool {
 	return ok
 }
 
+// Error pretty-prints an error of type ErrKeyAccessDenied
 func (err ErrKeyAccessDenied) Error() string {
 	return fmt.Sprintf("user does not have access to the key [user_id: %d, key_id: %d, note: %s]",
 		err.UserID, err.KeyID, err.Note)

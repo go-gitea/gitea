@@ -294,6 +294,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 			})
 
 			m.Get("/subscriptions", user.GetMyWatchedRepos)
+
+			m.Group("/gpg_keys", func() {
+				m.Combo("").Get(user.ListMyPublicGPGKeys).
+					Post(bind(api.CreateKeyOption{}), user.CreatePublicGPGKey) //TODO use specific api descriptor
+				m.Combo("/:id").Get(user.GetPublicGPGKey).
+					Delete(user.DeletePublicGPGKey)
+			})
 		}, reqToken())
 
 		// Repositories

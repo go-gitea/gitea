@@ -63,6 +63,16 @@ func GetDeployKey(ctx *context.APIContext) {
 	ctx.JSON(200, convert.ToDeployKey(apiLink, key))
 }
 
+// HandleCheckGPGKeyStringError handle check GPGKey error
+func HandleCheckGPGKeyStringError(ctx *context.APIContext, err error) {
+	//TODO Implement
+}
+
+// HandleAddGPGKeyError handle add GPGKey error
+func HandleAddGPGKeyError(ctx *context.APIContext, err error) {
+	//TODO Implement
+}
+
 // HandleCheckKeyStringError handle check key error
 func HandleCheckKeyStringError(ctx *context.APIContext, err error) {
 	if models.IsErrKeyUnableVerify(err) {

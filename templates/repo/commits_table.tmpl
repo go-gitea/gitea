@@ -42,7 +42,14 @@
 						</td>
 
 						<td class="message collapsing has-emoji">
-							<a rel="nofollow" class="ui sha label" href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.ID}}">{{ShortSha .ID.String}}</a>
+							<a rel="nofollow" class="ui sha label" href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.ID}}">
+								{{ShortSha .ID.String}}
+								{{if .Verification}}
+									<div class="ui detail icon button" style="background: #FFF;margin: -6px -10px -4px 0px;padding: 5px 3px 5px 6px;border-left: 1px solid #BBB;" data-tooltip="{{ .Verification.Signature }}" data-position="right center">
+										<i class="check {{if .Verification.Verified }}green{{end}} icon"></i>
+									</div>
+								{{end}}
+							</a>
 							<span {{if gt .ParentCount 1}}class="grey text"{{end}}>{{RenderCommitMessage false .Summary $.RepoLink $.Repository.ComposeMetas}}</span>
 						</td>
 						<td class="grey text right aligned">{{TimeSince .Author.When $.Lang}}</td>
