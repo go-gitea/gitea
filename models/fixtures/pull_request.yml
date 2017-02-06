@@ -3,7 +3,7 @@
   type: 0 # gitea pull request
   status: 2 # mergable
   issue_id: 2
-  index: 1
+  index: 2
   head_repo_id: 1
   base_repo_id: 1
   head_user_name: user1
@@ -18,7 +18,7 @@
   type: 0 # gitea pull request
   status: 1 # checking
   issue_id: 3
-  index: 2
+  index: 3
   head_repo_id: 1
   base_repo_id: 1
   head_user_name: user1
