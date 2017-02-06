@@ -32,6 +32,10 @@ endif
 .PHONY: all
 all: build
 
+.PHONY: deps
+deps:
+	go get -u github.com/jteeuwen/go-bindata/...
+
 .PHONY: clean
 clean:
 	go clean -i ./...
