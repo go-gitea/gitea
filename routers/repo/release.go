@@ -158,7 +158,7 @@ func Releases(ctx *context.Context) {
 		}
 	}
 
-	pager := paginater.New(ctx.Repo.Repository.NumTags, limit, page, 5)
+	pager := paginater.New(len(rawTags), limit, page, 5)
 	ctx.Data["Page"] = pager
 	ctx.Data["Releases"] = releaseTags
 	ctx.HTML(200, tplReleases)
