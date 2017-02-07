@@ -2,307 +2,195 @@ package markdown_test
 
 import (
 	"bytes"
+	"fmt"
+	"net/url"
+	"path"
+	"strconv"
 	"testing"
 
 	. "code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/russross/blackfriday"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestMarkdown(t *testing.T) {
-	Convey("Rendering an issue mention", t, func() {
-		var (
-			urlPrefix                   = "/prefix"
-			metas     map[string]string = nil
-		)
-		setting.AppSubURLDepth = 0
+const urlPrefix = "/prefix"
 
-		Convey("To the internal issue tracker", func() {
-			Convey("It should not render anything when there are no mentions", func() {
-				testCases := []string{
-					"",
-					"this is a test",
-					"test 123 123 1234",
-					"#",
-					"# # #",
-					"# 123",
-					"#abcd",
-					"##1234",
-					"test#1234",
-					"#1234test",
-					" test #1234test",
-				}
+var numericMetas = map[string]string{
+	"format": "https://someurl.com/{user}/{repo}/{index}",
+	"user":   "someUser",
+	"repo":   "someRepo",
+	"style":  IssueNameStyleNumeric,
+}
 
-				for i := 0; i < len(testCases); i++ {
-					So(string(RenderIssueIndexPattern([]byte(testCases[i]), urlPrefix, metas)), ShouldEqual, testCases[i])
-				}
-			})
-			Convey("It should render freestanding mentions", func() {
-				testCases := []string{
-					"#1234 test", "<a href=\"/prefix/issues/1234\">#1234</a> test",
-					"test #1234 issue", "test <a href=\"/prefix/issues/1234\">#1234</a> issue",
-					"test issue #1234", "test issue <a href=\"/prefix/issues/1234\">#1234</a>",
-					"#5 test", "<a href=\"/prefix/issues/5\">#5</a> test",
-					"test #5 issue", "test <a href=\"/prefix/issues/5\">#5</a> issue",
-					"test issue #5", "test issue <a href=\"/prefix/issues/5\">#5</a>",
-				}
+var alphanumericMetas = map[string]string{
+	"format": "https://someurl.com/{user}/{repo}/{index}",
+	"user":   "someUser",
+	"repo":   "someRepo",
+	"style":  IssueNameStyleAlphanumeric,
+}
 
-				for i := 0; i < len(testCases); i += 2 {
-					So(string(RenderIssueIndexPattern([]byte(testCases[i]), urlPrefix, metas)), ShouldEqual, testCases[i+1])
-				}
-			})
-			Convey("It should not render issue mention without leading space", func() {
-				input := []byte("test#54321 issue")
-				expected := "test#54321 issue"
-				So(string(RenderIssueIndexPattern(input, urlPrefix, metas)), ShouldEqual, expected)
-			})
-			Convey("It should not render issue mention without trailing space", func() {
-				input := []byte("test #54321issue")
-				expected := "test #54321issue"
-				So(string(RenderIssueIndexPattern(input, urlPrefix, metas)), ShouldEqual, expected)
-			})
-			Convey("It should render issue mention in parentheses", func() {
-				testCases := []string{
-					"(#54321 issue)", "(<a href=\"/prefix/issues/54321\">#54321</a> issue)",
-					"test (#54321) issue", "test (<a href=\"/prefix/issues/54321\">#54321</a>) issue",
-					"test (#54321 extra) issue", "test (<a href=\"/prefix/issues/54321\">#54321</a> extra) issue",
-					"test (#54321 issue)", "test (<a href=\"/prefix/issues/54321\">#54321</a> issue)",
-					"test (#54321)", "test (<a href=\"/prefix/issues/54321\">#54321</a>)",
-				}
+// numericLink an HTML to a numeric-style issue
+func numericIssueLink(baseURL string, index int) string {
+	u, _ := url.Parse(baseURL)
+	u.Path = path.Join(u.Path, strconv.Itoa(index))
+	return link(u.String(), fmt.Sprintf("#%d", index))
+}
 
-				for i := 0; i < len(testCases); i += 2 {
-					So(string(RenderIssueIndexPattern([]byte(testCases[i]), urlPrefix, metas)), ShouldEqual, testCases[i+1])
-				}
-			})
-			Convey("It should render multiple issue mentions in the same line", func() {
-				testCases := []string{
-					"#54321 #1243", "<a href=\"/prefix/issues/54321\">#54321</a> <a href=\"/prefix/issues/1243\">#1243</a>",
-					"test #54321 #1243", "test <a href=\"/prefix/issues/54321\">#54321</a> <a href=\"/prefix/issues/1243\">#1243</a>",
-					"(#54321 #1243)", "(<a href=\"/prefix/issues/54321\">#54321</a> <a href=\"/prefix/issues/1243\">#1243</a>)",
-					"(#54321)(#1243)", "(<a href=\"/prefix/issues/54321\">#54321</a>)(<a href=\"/prefix/issues/1243\">#1243</a>)",
-					"text #54321 test #1243 issue", "text <a href=\"/prefix/issues/54321\">#54321</a> test <a href=\"/prefix/issues/1243\">#1243</a> issue",
-					"#1 (#4321) test", "<a href=\"/prefix/issues/1\">#1</a> (<a href=\"/prefix/issues/4321\">#4321</a>) test",
-				}
+// alphanumLink an HTML link to an alphanumeric-style issue
+func alphanumIssueLink(baseURL string, name string) string {
+	u, _ := url.Parse(baseURL)
+	u.Path = path.Join(u.Path, name)
+	return link(u.String(), name)
+}
 
-				for i := 0; i < len(testCases); i += 2 {
-					So(string(RenderIssueIndexPattern([]byte(testCases[i]), urlPrefix, metas)), ShouldEqual, testCases[i+1])
-				}
-			})
-		})
-		Convey("To an external issue tracker with numeric style", func() {
-			metas = make(map[string]string)
-			metas["format"] = "https://someurl.com/{user}/{repo}/{index}"
-			metas["user"] = "someuser"
-			metas["repo"] = "somerepo"
-			metas["style"] = IssueNameStyleNumeric
+// urlContentsLink an HTML link whose contents is the target URL
+func urlContentsLink(href string) string {
+	return link(href, href)
+}
 
-			Convey("should not render anything when there are no mentions", func() {
-				testCases := []string{
-					"this is a test",
-					"test 123 123 1234",
-					"#",
-					"# # #",
-					"# 123",
-					"#abcd",
-				}
+// link an HTML link
+func link(href, contents string) string {
+	return fmt.Sprintf("<a href=\"%s\">%s</a>", href, contents)
+}
 
-				for i := 0; i < len(testCases); i++ {
-					So(string(RenderIssueIndexPattern([]byte(testCases[i]), urlPrefix, metas)), ShouldEqual, testCases[i])
-				}
-			})
-			Convey("It should render freestanding issue mentions", func() {
-				testCases := []string{
-					"#1234 test", "<a href=\"https://someurl.com/someuser/somerepo/1234\">#1234</a> test",
-					"test #1234 issue", "test <a href=\"https://someurl.com/someuser/somerepo/1234\">#1234</a> issue",
-					"test issue #1234", "test issue <a href=\"https://someurl.com/someuser/somerepo/1234\">#1234</a>",
-					"#5 test", "<a href=\"https://someurl.com/someuser/somerepo/5\">#5</a> test",
-					"test #5 issue", "test <a href=\"https://someurl.com/someuser/somerepo/5\">#5</a> issue",
-					"test issue #5", "test issue <a href=\"https://someurl.com/someuser/somerepo/5\">#5</a>",
-				}
-				for i := 0; i < len(testCases); i += 2 {
-					So(string(RenderIssueIndexPattern([]byte(testCases[i]), urlPrefix, metas)), ShouldEqual, testCases[i+1])
-				}
-			})
-			Convey("It should not render issue mention without leading space", func() {
-				input := []byte("test#54321 issue")
-				expected := "test#54321 issue"
-				So(string(RenderIssueIndexPattern(input, urlPrefix, metas)), ShouldEqual, expected)
-			})
-			Convey("It should not render issue mention without trailing space", func() {
-				input := []byte("test #54321issue")
-				expected := "test #54321issue"
-				So(string(RenderIssueIndexPattern(input, urlPrefix, metas)), ShouldEqual, expected)
-			})
-			Convey("It should render issue mention in parentheses", func() {
-				testCases := []string{
-					"(#54321 issue)", "(<a href=\"https://someurl.com/someuser/somerepo/54321\">#54321</a> issue)",
-					"test (#54321) issue", "test (<a href=\"https://someurl.com/someuser/somerepo/54321\">#54321</a>) issue",
-					"test (#54321 extra) issue", "test (<a href=\"https://someurl.com/someuser/somerepo/54321\">#54321</a> extra) issue",
-					"test (#54321 issue)", "test (<a href=\"https://someurl.com/someuser/somerepo/54321\">#54321</a> issue)",
-					"test (#54321)", "test (<a href=\"https://someurl.com/someuser/somerepo/54321\">#54321</a>)",
-				}
+func testRenderIssueIndexPattern(t *testing.T, input, expected string, metas map[string]string) {
+	assert.Equal(t, expected,
+		string(RenderIssueIndexPattern([]byte(input), urlPrefix, metas)))
+}
 
-				for i := 0; i < len(testCases); i += 2 {
-					So(string(RenderIssueIndexPattern([]byte(testCases[i]), urlPrefix, metas)), ShouldEqual, testCases[i+1])
-				}
-			})
-			Convey("It should render multiple issue mentions in the same line", func() {
-				testCases := []string{
-					"#54321 #1243", "<a href=\"https://someurl.com/someuser/somerepo/54321\">#54321</a> <a href=\"https://someurl.com/someuser/somerepo/1243\">#1243</a>",
-					"test #54321 #1243", "test <a href=\"https://someurl.com/someuser/somerepo/54321\">#54321</a> <a href=\"https://someurl.com/someuser/somerepo/1243\">#1243</a>",
-					"(#54321 #1243)", "(<a href=\"https://someurl.com/someuser/somerepo/54321\">#54321</a> <a href=\"https://someurl.com/someuser/somerepo/1243\">#1243</a>)",
-					"(#54321)(#1243)", "(<a href=\"https://someurl.com/someuser/somerepo/54321\">#54321</a>)(<a href=\"https://someurl.com/someuser/somerepo/1243\">#1243</a>)",
-					"text #54321 test #1243 issue", "text <a href=\"https://someurl.com/someuser/somerepo/54321\">#54321</a> test <a href=\"https://someurl.com/someuser/somerepo/1243\">#1243</a> issue",
-					"#1 (#4321) test", "<a href=\"https://someurl.com/someuser/somerepo/1\">#1</a> (<a href=\"https://someurl.com/someuser/somerepo/4321\">#4321</a>) test",
-				}
+func TestRenderIssueIndexPattern(t *testing.T) {
+	// numeric: render inputs without valid mentions
+	test := func(s string) {
+		testRenderIssueIndexPattern(t, s, s, nil)
+		testRenderIssueIndexPattern(t, s, s, numericMetas)
+	}
 
-				for i := 0; i < len(testCases); i += 2 {
-					So(string(RenderIssueIndexPattern([]byte(testCases[i]), urlPrefix, metas)), ShouldEqual, testCases[i+1])
-				}
-			})
-		})
-		Convey("To an external issue tracker with alphanumeric style", func() {
-			metas = make(map[string]string)
-			metas["format"] = "https://someurl.com/{user}/{repo}/?b={index}"
-			metas["user"] = "someuser"
-			metas["repo"] = "somerepo"
-			metas["style"] = IssueNameStyleAlphanumeric
-			Convey("It should not render anything when there are no mentions", func() {
-				testCases := []string{
-					"",
-					"this is a test",
-					"test 123 123 1234",
-					"#",
-					"##1234",
-					"# 123",
-					"#abcd",
-					"test #123",
-					"abc-1234",         // issue prefix must be capital
-					"ABc-1234",         // issue prefix must be _all_ capital
-					"ABCDEFGHIJK-1234", // the limit is 10 characters in the prefix
-					"ABC1234",          // dash is required
-					"test ABC- test",   // number is required
-					"test -1234 test",  // prefix is required
-					"testABC-123 test", // leading space is required
-					"test ABC-123test", // trailing space is required
-					"ABC-0123",         // no leading zero
-				}
+	// should not render anything when there are no mentions
+	test("")
+	test("this is a test")
+	test("test 123 123 1234")
+	test("#")
+	test("# # #")
+	test("# 123")
+	test("#abcd")
+	test("##1234")
+	test("test#1234")
+	test("#1234test")
+	test(" test #1234test")
 
-				for i := 0; i < len(testCases); i += 2 {
-					So(string(RenderIssueIndexPattern([]byte(testCases[i]), urlPrefix, metas)), ShouldEqual, testCases[i])
-				}
-			})
-			Convey("It should render freestanding issue mention", func() {
-				testCases := []string{
-					"OTT-1234 test", "<a href=\"https://someurl.com/someuser/somerepo/?b=OTT-1234\">OTT-1234</a> test",
-					"test T-12 issue", "test <a href=\"https://someurl.com/someuser/somerepo/?b=T-12\">T-12</a> issue",
-					"test issue ABCDEFGHIJ-1234567890", "test issue <a href=\"https://someurl.com/someuser/somerepo/?b=ABCDEFGHIJ-1234567890\">ABCDEFGHIJ-1234567890</a>",
-					"A-1 test", "<a href=\"https://someurl.com/someuser/somerepo/?b=A-1\">A-1</a> test",
-					"test ZED-1 issue", "test <a href=\"https://someurl.com/someuser/somerepo/?b=ZED-1\">ZED-1</a> issue",
-					"test issue DEED-7154", "test issue <a href=\"https://someurl.com/someuser/somerepo/?b=DEED-7154\">DEED-7154</a>",
-				}
-				for i := 0; i < len(testCases); i += 2 {
-					So(string(RenderIssueIndexPattern([]byte(testCases[i]), urlPrefix, metas)), ShouldEqual, testCases[i+1])
-				}
-			})
-			Convey("It should render issue mention in parentheses", func() {
-				testCases := []string{
-					"(ABG-124 issue)", "(<a href=\"https://someurl.com/someuser/somerepo/?b=ABG-124\">ABG-124</a> issue)",
-					"test (ABG-124) issue", "test (<a href=\"https://someurl.com/someuser/somerepo/?b=ABG-124\">ABG-124</a>) issue",
-					"test (ABG-124 extra) issue", "test (<a href=\"https://someurl.com/someuser/somerepo/?b=ABG-124\">ABG-124</a> extra) issue",
-					"test (ABG-124 issue)", "test (<a href=\"https://someurl.com/someuser/somerepo/?b=ABG-124\">ABG-124</a> issue)",
-					"test (ABG-124)", "test (<a href=\"https://someurl.com/someuser/somerepo/?b=ABG-124\">ABG-124</a>)",
-				}
+	// should not render issue mention without leading space
+	test("test#54321 issue")
 
-				for i := 0; i < len(testCases); i += 2 {
-					So(string(RenderIssueIndexPattern([]byte(testCases[i]), urlPrefix, metas)), ShouldEqual, testCases[i+1])
-				}
-			})
-			Convey("It should render multiple issue mentions in the same line", func() {
-				testCases := []string{
-					"ABG-124 OTT-4321", "<a href=\"https://someurl.com/someuser/somerepo/?b=ABG-124\">ABG-124</a> <a href=\"https://someurl.com/someuser/somerepo/?b=OTT-4321\">OTT-4321</a>",
-					"test ABG-124 OTT-4321", "test <a href=\"https://someurl.com/someuser/somerepo/?b=ABG-124\">ABG-124</a> <a href=\"https://someurl.com/someuser/somerepo/?b=OTT-4321\">OTT-4321</a>",
-					"(ABG-124 OTT-4321)", "(<a href=\"https://someurl.com/someuser/somerepo/?b=ABG-124\">ABG-124</a> <a href=\"https://someurl.com/someuser/somerepo/?b=OTT-4321\">OTT-4321</a>)",
-					"(ABG-124)(OTT-4321)", "(<a href=\"https://someurl.com/someuser/somerepo/?b=ABG-124\">ABG-124</a>)(<a href=\"https://someurl.com/someuser/somerepo/?b=OTT-4321\">OTT-4321</a>)",
-					"text ABG-124 test OTT-4321 issue", "text <a href=\"https://someurl.com/someuser/somerepo/?b=ABG-124\">ABG-124</a> test <a href=\"https://someurl.com/someuser/somerepo/?b=OTT-4321\">OTT-4321</a> issue",
-					"A-1 (RRE-345) test", "<a href=\"https://someurl.com/someuser/somerepo/?b=A-1\">A-1</a> (<a href=\"https://someurl.com/someuser/somerepo/?b=RRE-345\">RRE-345</a>) test",
-				}
+	// should not render issue mention without trailing space
+	test("test #54321issue")
+}
 
-				for i := 0; i < len(testCases); i += 2 {
-					So(string(RenderIssueIndexPattern([]byte(testCases[i]), urlPrefix, metas)), ShouldEqual, testCases[i+1])
-				}
-			})
-		})
-	})
-
-	Convey("Rendering an issue URL", t, func() {
-		setting.AppURL = "http://localhost:3000/"
-		htmlFlags := 0
-		htmlFlags |= blackfriday.HTML_SKIP_STYLE
-		htmlFlags |= blackfriday.HTML_OMIT_CONTENTS
-		renderer := &Renderer{
-			Renderer: blackfriday.HtmlRenderer(htmlFlags, "", ""),
+func TestRenderIssueIndexPattern2(t *testing.T) {
+	// numeric: render inputs with valid mentions
+	test := func(s, expectedFmt string, indices ...int) {
+		links := make([]interface{}, len(indices))
+		for i, index := range indices {
+			links[i] = numericIssueLink(path.Join(urlPrefix, "issues"), index)
 		}
-		buffer := new(bytes.Buffer)
-		Convey("To the internal issue tracker", func() {
-			Convey("It should render valid issue URLs", func() {
-				testCases := []string{
-					"http://localhost:3000/user/repo/issues/3333", "<a href=\"http://localhost:3000/user/repo/issues/3333\">#3333</a>",
-				}
+		expectedNil := fmt.Sprintf(expectedFmt, links...)
+		testRenderIssueIndexPattern(t, s, expectedNil, nil)
 
-				for i := 0; i < len(testCases); i += 2 {
-					renderer.AutoLink(buffer, []byte(testCases[i]), blackfriday.LINK_TYPE_NORMAL)
-
-					line, _ := buffer.ReadString(0)
-					So(line, ShouldEqual, testCases[i+1])
-				}
-			})
-			Convey("It should render but not change non-issue URLs", func() {
-				testCases := []string{
-					"http://1111/2222/ssss-issues/3333?param=blah&blahh=333", "<a href=\"http://1111/2222/ssss-issues/3333?param=blah&amp;blahh=333\">http://1111/2222/ssss-issues/3333?param=blah&amp;blahh=333</a>",
-					"http://test.com/issues/33333", "<a href=\"http://test.com/issues/33333\">http://test.com/issues/33333</a>",
-					"http://test.com/issues/3", "<a href=\"http://test.com/issues/3\">http://test.com/issues/3</a>",
-					"http://issues/333", "<a href=\"http://issues/333\">http://issues/333</a>",
-					"https://issues/333", "<a href=\"https://issues/333\">https://issues/333</a>",
-					"http://tissues/0", "<a href=\"http://tissues/0\">http://tissues/0</a>",
-				}
-
-				for i := 0; i < len(testCases); i += 2 {
-					renderer.AutoLink(buffer, []byte(testCases[i]), blackfriday.LINK_TYPE_NORMAL)
-
-					line, _ := buffer.ReadString(0)
-					So(line, ShouldEqual, testCases[i+1])
-				}
-			})
-		})
-	})
-
-	Convey("Rendering a commit URL", t, func() {
-		setting.AppURL = "http://localhost:3000/"
-		htmlFlags := 0
-		htmlFlags |= blackfriday.HTML_SKIP_STYLE
-		htmlFlags |= blackfriday.HTML_OMIT_CONTENTS
-		renderer := &Renderer{
-			Renderer: blackfriday.HtmlRenderer(htmlFlags, "", ""),
+		for i, index := range indices {
+			links[i] = numericIssueLink("https://someurl.com/someUser/someRepo/", index)
 		}
+		expectedNum := fmt.Sprintf(expectedFmt, links...)
+		testRenderIssueIndexPattern(t, s, expectedNum, numericMetas)
+	}
+
+	// should render freestanding mentions
+	test("#1234 test", "%s test", 1234)
+	test("test #8 issue", "test %s issue", 8)
+	test("test issue #1234", "test issue %s", 1234)
+
+	// should render mentions in parentheses
+	test("(#54321 issue)", "(%s issue)", 54321)
+	test("test (#9801 extra) issue", "test (%s extra) issue", 9801)
+	test("test (#1)", "test (%s)", 1)
+
+	// should render multiple issue mentions in the same line
+	test("#54321 #1243", "%s %s", 54321, 1243)
+	test("wow (#54321 #1243)", "wow (%s %s)", 54321, 1243)
+	test("(#4)(#5)", "(%s)(%s)", 4, 5)
+	test("#1 (#4321) test", "%s (%s) test", 1, 4321)
+}
+
+func TestRenderIssueIndexPattern3(t *testing.T) {
+	// alphanumeric: render inputs without valid mentions
+	test := func(s string) {
+		testRenderIssueIndexPattern(t, s, s, alphanumericMetas)
+	}
+	test("")
+	test("this is a test")
+	test("test 123 123 1234")
+	test("#")
+	test("##1234")
+	test("# 123")
+	test("#abcd")
+	test("test #123")
+	test("abc-1234")         // issue prefix must be capital
+	test("ABc-1234")         // issue prefix must be _all_ capital
+	test("ABCDEFGHIJK-1234") // the limit is 10 characters in the prefix
+	test("ABC1234")          // dash is required
+	test("test ABC- test")   // number is required
+	test("test -1234 test")  // prefix is required
+	test("testABC-123 test") // leading space is required
+	test("test ABC-123test") // trailing space is required
+	test("ABC-0123")         // no leading zero
+}
+
+func TestRenderIssueIndexPattern4(t *testing.T) {
+	// alphanumeric: render inputs with valid mentions
+	test := func(s, expectedFmt string, names ...string) {
+		links := make([]interface{}, len(names))
+		for i, name := range names {
+			links[i] = alphanumIssueLink("https://someurl.com/someUser/someRepo/", name)
+		}
+		expected := fmt.Sprintf(expectedFmt, links...)
+		testRenderIssueIndexPattern(t, s, expected, alphanumericMetas)
+	}
+	test("OTT-1234 test", "%s test", "OTT-1234")
+	test("test T-12 issue", "test %s issue", "T-12")
+	test("test issue ABCDEFGHIJ-1234567890", "test issue %s", "ABCDEFGHIJ-1234567890")
+}
+
+func TestRenderer_AutoLink(t *testing.T) {
+	setting.AppURL = "http://localhost:3000/"
+	htmlFlags := blackfriday.HTML_SKIP_STYLE | blackfriday.HTML_OMIT_CONTENTS
+	renderer := &Renderer{
+		Renderer: blackfriday.HtmlRenderer(htmlFlags, "", ""),
+	}
+	test := func(input, expected string) {
 		buffer := new(bytes.Buffer)
-		Convey("To the internal issue tracker", func() {
-			Convey("It should correctly convert URLs", func() {
-				testCases := []string{
-					"http://localhost:3000/user/project/commit/d8a994ef243349f321568f9e36d5c3f444b99cae", " <code><a href=\"http://localhost:3000/user/project/commit/d8a994ef243349f321568f9e36d5c3f444b99cae\">d8a994ef24</a></code>",
-					"http://localhost:3000/user/project/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2", " <code><a href=\"http://localhost:3000/user/project/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2\">d8a994ef24</a></code>",
-					"https://external-link.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2", "<a href=\"https://external-link.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2\">https://external-link.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2</a>",
-					"https://commit/d8a994ef243349f321568f9e36d5c3f444b99cae", "<a href=\"https://commit/d8a994ef243349f321568f9e36d5c3f444b99cae\">https://commit/d8a994ef243349f321568f9e36d5c3f444b99cae</a>",
-				}
+		renderer.AutoLink(buffer, []byte(input), blackfriday.LINK_TYPE_NORMAL)
+		assert.Equal(t, expected, buffer.String())
+	}
 
-				for i := 0; i < len(testCases); i += 2 {
-					renderer.AutoLink(buffer, []byte(testCases[i]), blackfriday.LINK_TYPE_NORMAL)
+	// render valid issue URLs
+	test("http://localhost:3000/user/repo/issues/3333",
+		numericIssueLink("http://localhost:3000/user/repo/issues/", 3333))
 
-					line, _ := buffer.ReadString(0)
-					So(line, ShouldEqual, testCases[i+1])
-				}
-			})
-		})
-	})
+	// render, but not change, invalid issue URLs
+	test("http://1111/2222/ssss-issues/3333?param=blah&blahh=333",
+		urlContentsLink("http://1111/2222/ssss-issues/3333?param=blah&amp;blahh=333"))
+	test("http://test.com/issues/33333", urlContentsLink("http://test.com/issues/33333"))
+	test("https://issues/333", urlContentsLink("https://issues/333"))
+
+	// render valid commit URLs
+	test("http://localhost:3000/user/project/commit/d8a994ef243349f321568f9e36d5c3f444b99cae",
+		" <code><a href=\"http://localhost:3000/user/project/commit/d8a994ef243349f321568f9e36d5c3f444b99cae\">d8a994ef24</a></code>")
+	test("http://localhost:3000/user/project/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2",
+		" <code><a href=\"http://localhost:3000/user/project/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2\">d8a994ef24</a></code>")
+
+	// render other commit URLs
+	test("https://external-link.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2",
+		urlContentsLink("https://external-link.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2"))
+	test("https://commit/d8a994ef243349f321568f9e36d5c3f444b99cae",
+		urlContentsLink("https://commit/d8a994ef243349f321568f9e36d5c3f444b99cae"))
 }
