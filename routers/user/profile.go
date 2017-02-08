@@ -130,6 +130,8 @@ func Profile(ctx *context.Context) {
 			err     error
 			orderBy string
 		)
+
+		ctx.Data["SortType"] = ctx.Query("sort")
 		switch ctx.Query("sort") {
 		case "newest":
 			orderBy = "created_unix DESC"
@@ -144,10 +146,17 @@ func Profile(ctx *context.Context) {
 		case "alphabetically":
 			orderBy = "name ASC"
 		default:
+			ctx.Data["SortType"] = "recentupdate"
 			orderBy = "updated_unix DESC"
 		}
 
+		// set default sort value if sort is empty.
+		if ctx.Query("sort") == "" {
+			ctx.Data["SortType"] = "recentupdate"
+		}
+
 		keyword := ctx.Query("q")
+		ctx.Data["Keyword"] = keyword
 		if len(keyword) == 0 {
 			var total int
 			repos, err = models.GetUserRepositories(ctxUser.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy)
@@ -175,7 +184,7 @@ func Profile(ctx *context.Context) {
 				Keyword:  keyword,
 				OwnerID:  ctxUser.ID,
 				OrderBy:  orderBy,
-				Private:  ctx.IsSigned && ctx.User.ID == ctxUser.ID,
+				Private:  showPrivate,
 				Page:     page,
 				PageSize: setting.UI.User.RepoPagingNum,
 			})
@@ -188,15 +197,6 @@ func Profile(ctx *context.Context) {
 			ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
 			ctx.Data["Total"] = count
 		}
-
-		// set default sort value.
-		if ctx.Query("sort") == "" {
-			ctx.Data["SortType"] = "recentupdate"
-		} else {
-			ctx.Data["SortType"] = ctx.Query("sort")
-		}
-
-		ctx.Data["Keyword"] = keyword
 	}
 
 	ctx.HTML(200, tplProfile)
