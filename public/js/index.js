@@ -1486,4 +1486,13 @@ $(function () {
             $('.list-search-style').html('.search-list li:not([data-title*="' + value + '"]) {display: none;}');
         }
     });
+
+    // Parse SSH Key
+    $("#ssh-key-content").on('change paste keyup',function(){
+        var value = $(this).val();
+        var arrays = value.split(" ");
+        if (arrays.length === 3 && arrays[2] !== "") {
+            $("#ssh-key-title").val(arrays[2]);
+        }
+    });
 });
