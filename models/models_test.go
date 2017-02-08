@@ -7,27 +7,19 @@ package models
 import (
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_parsePostgreSQLHostPort(t *testing.T) {
-	testSuites := []struct {
-		input      string
-		host, port string
-	}{
-		{"127.0.0.1:1234", "127.0.0.1", "1234"},
-		{"127.0.0.1", "127.0.0.1", "5432"},
-		{"[::1]:1234", "[::1]", "1234"},
-		{"[::1]", "[::1]", "5432"},
-		{"/tmp/pg.sock:1234", "/tmp/pg.sock", "1234"},
-		{"/tmp/pg.sock", "/tmp/pg.sock", "5432"},
+	test := func (input, expectedHost, expectedPort string) {
+		host, port := parsePostgreSQLHostPort(input)
+		assert.Equal(t, expectedHost, host)
+		assert.Equal(t, expectedPort, port)
 	}
-
-	Convey("Parse PostgreSQL host and port", t, func() {
-		for _, suite := range testSuites {
-			host, port := parsePostgreSQLHostPort(suite.input)
-			So(host, ShouldEqual, suite.host)
-			So(port, ShouldEqual, suite.port)
-		}
-	})
+	test("127.0.0.1:1234", "127.0.0.1", "1234")
+	test("127.0.0.1", "127.0.0.1", "5432")
+	test("[::1]:1234", "[::1]", "1234")
+	test("[::1]", "[::1]", "5432")
+	test("/tmp/pg.sock:1234", "/tmp/pg.sock", "1234")
+	test("/tmp/pg.sock", "/tmp/pg.sock", "5432")
 }
