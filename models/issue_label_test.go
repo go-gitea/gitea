@@ -54,6 +54,7 @@ func TestNewLabels(t *testing.T) {
 	for _, label := range labels {
 		AssertExistsAndLoadBean(t, label)
 	}
+	CheckConsistencyFor(t, &Label{}, &Repository{})
 }
 
 func TestGetLabelByID(t *testing.T) {
@@ -138,6 +139,7 @@ func TestUpdateLabel(t *testing.T) {
 	assert.NoError(t, UpdateLabel(label))
 	newLabel := AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
 	assert.Equal(t, *label, *newLabel)
+	CheckConsistencyFor(t, &Label{}, &Repository{})
 }
 
 func TestDeleteLabel(t *testing.T) {
@@ -150,6 +152,7 @@ func TestDeleteLabel(t *testing.T) {
 	AssertNotExistsBean(t, &Label{ID: label.ID, RepoID: label.RepoID})
 
 	assert.NoError(t, DeleteLabel(NonexistentID, NonexistentID))
+	CheckConsistencyFor(t, &Label{}, &Repository{})
 }
 
 func TestHasIssueLabel(t *testing.T) {
@@ -180,6 +183,7 @@ func TestNewIssueLabel(t *testing.T) {
 
 	// re-add existing IssueLabel
 	assert.NoError(t, NewIssueLabel(issue, label, doer))
+	CheckConsistencyFor(t, &Issue{}, &Label{})
 }
 
 func TestNewIssueLabels(t *testing.T) {
@@ -208,6 +212,8 @@ func TestNewIssueLabels(t *testing.T) {
 
 	// corner case: test empty slice
 	assert.NoError(t, NewIssueLabels(issue, []*Label{}, doer))
+
+	CheckConsistencyFor(t, &Issue{}, &Label{})
 }
 
 func TestDeleteIssueLabel(t *testing.T) {
@@ -241,4 +247,6 @@ func TestDeleteIssueLabel(t *testing.T) {
 	testSuccess(1, 1, 2)
 	testSuccess(2, 5, 2)
 	testSuccess(1, 1, 2) // delete non-existent IssueLabel
+
+	CheckConsistencyFor(t, &Issue{}, &Label{})
 }
