@@ -17,12 +17,14 @@ $ go get github.com/markbates/goth
 ## Supported Providers
 
 * Amazon
+* Auth0
 * Bitbucket
 * Box
 * Cloud Foundry
 * Dailymotion
 * Deezer
 * Digital Ocean
+* Discord
 * Dropbox
 * Facebook
 * Fitbit
@@ -35,6 +37,7 @@ $ go get github.com/markbates/goth
 * Intercom
 * Lastfm
 * Linkedin
+* Meetup
 * OneDrive
 * OpenID Connect (auto discovery)
 * Paypal
@@ -55,6 +58,26 @@ $ go get github.com/markbates/goth
 
 See the [examples](examples) folder for a working application that lets users authenticate
 through Twitter, Facebook, Google Plus etc.
+
+To run the example either clone the source from GitHub
+
+```text
+$ git clone git@github.com:markbates/goth.git
+```
+or use
+```text
+$ go get github.com/markbates/goth
+```
+```text
+$ cd goth/examples
+$ go get -v
+$ go build 
+$ ./examples
+```
+
+Now open up your browser and go to [http://localhost:3000](http://localhost:3000) to see the example.
+
+To actually use the different providers, please make sure you configure them given the system environments as defined in the examples/main.go file
 
 ## Issues
 

@@ -338,6 +338,14 @@ func SignInOAuth(ctx *context.Context) {
 		return
 	}
 
+	// try to do a direct callback flow, so we don't authenticate the user again but use the valid accesstoken to get the user
+	user, gothUser, err := oAuth2UserLoginCallback(loginSource, ctx.Req.Request, ctx.Resp)
+	if err == nil && user != nil {
+		// we got the user without going through the whole OAuth2 authentication flow again
+		handleOAuth2SignIn(user, gothUser, ctx, err)
+		return
+	}
+
 	err = oauth2.Auth(loginSource.Name, ctx.Req.Request, ctx.Resp)
 	if err != nil {
 		ctx.Handle(500, "SignIn", err)
@@ -363,6 +371,10 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 	u, gothUser, err := oAuth2UserLoginCallback(loginSource, ctx.Req.Request, ctx.Resp)
 
+	handleOAuth2SignIn(u, gothUser, ctx, err)
+}
+
+func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context, err error) {
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)
 		return

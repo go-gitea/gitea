@@ -111,9 +111,8 @@ func GetAuthURL(res http.ResponseWriter, req *http.Request) (string, error) {
 		return "", err
 	}
 
-	session, _ := Store.Get(req, SessionName)
-	session.Values[SessionName] = sess.Marshal()
-	err = session.Save(req, res)
+	err = storeInSession(providerName, sess.Marshal(), req, res)
+
 	if err != nil {
 		return "", err
 	}
@@ -146,18 +145,29 @@ var CompleteUserAuth = func(res http.ResponseWriter, req *http.Request) (goth.Us
 		return goth.User{}, err
 	}
 
-	session, _ := Store.Get(req, SessionName)
-
-	if session.Values[SessionName] == nil {
-		return goth.User{}, errors.New("could not find a matching session for this request")
-	}
-
-	sess, err := provider.UnmarshalSession(session.Values[SessionName].(string))
+	value, err := getFromSession(providerName, req)
 	if err != nil {
 		return goth.User{}, err
 	}
 
+	sess, err := provider.UnmarshalSession(value)
+	if err != nil {
+		return goth.User{}, err
+	}
+
+	user, err := provider.FetchUser(sess)
+	if err == nil {
+		// user can be found with existing session data
+		return user, err
+	}
+
+	// get new token and retry fetch
 	_, err = sess.Authorize(provider, req.URL.Query())
+	if err != nil {
+		return goth.User{}, err
+	}
+
+	err = storeInSession(providerName, sess.Marshal(), req, res)
 
 	if err != nil {
 		return goth.User{}, err
@@ -187,4 +197,23 @@ func getProviderName(req *http.Request) (string, error) {
 		return provider, errors.New("you must select a provider")
 	}
 	return provider, nil
+}
+
+func storeInSession(key string, value string, req *http.Request, res http.ResponseWriter) error {
+	session, _ := Store.Get(req, key + SessionName)
+
+	session.Values[key] = value
+
+	return session.Save(req, res)
+}
+
+func getFromSession(key string, req *http.Request) (string, error) {
+	session, _ := Store.Get(req, key + SessionName)
+
+	value := session.Values[key]
+	if value == nil {
+		return "", errors.New("could not find a matching session for this request")
+	}
+
+	return value.(string), nil
 }
