@@ -870,7 +870,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	if !u.IsLocal() {
+	if !u.IsLocal() && !u.IsOAuth2() {
 		ctx.Data["Err_Email"] = true
 		ctx.RenderWithErr(ctx.Tr("auth.non_local_account"), tplForgotPassword, nil)
 		return
