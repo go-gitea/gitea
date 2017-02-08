@@ -155,34 +155,30 @@ func TestGetPullRequestByIssueID(t *testing.T) {
 
 func TestPullRequest_Update(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	pr := &PullRequest{
-		ID:         1,
-		IssueID:    100,
-		BaseBranch: "baseBranch",
-		HeadBranch: "headBranch",
-	}
+	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
+	pr.BaseBranch = "baseBranch"
+	pr.HeadBranch = "headBranch"
 	pr.Update()
 
-	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
-	assert.Equal(t, int64(100), pr.IssueID)
+	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: pr.ID}).(*PullRequest)
 	assert.Equal(t, "baseBranch", pr.BaseBranch)
 	assert.Equal(t, "headBranch", pr.HeadBranch)
+	CheckConsistencyFor(t, pr)
 }
 
 func TestPullRequest_UpdateCols(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	pr := &PullRequest{
 		ID:         1,
-		IssueID:    int64(100),
 		BaseBranch: "baseBranch",
 		HeadBranch: "headBranch",
 	}
-	pr.UpdateCols("issue_id", "head_branch")
+	pr.UpdateCols("head_branch")
 
 	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
-	assert.Equal(t, int64(100), pr.IssueID)
 	assert.Equal(t, "master", pr.BaseBranch)
 	assert.Equal(t, "headBranch", pr.HeadBranch)
+	CheckConsistencyFor(t, pr)
 }
 
 // TODO TestPullRequest_UpdatePatch
@@ -232,4 +228,5 @@ func TestChangeUsernameInPullRequests(t *testing.T) {
 	for _, pr := range prs {
 		assert.Equal(t, newUsername, pr.HeadUserName)
 	}
+	CheckConsistencyFor(t, &PullRequest{})
 }

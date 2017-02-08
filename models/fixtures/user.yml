@@ -112,7 +112,7 @@
   full_name: User Eight
   email: user8@example.com
   passwd: password
-  type: 0 # user
+  type: 0 # individual
   salt: salt
   is_admin: false
   avatar: avatar8
@@ -127,7 +127,7 @@
   full_name: User Nine
   email: user9@example.com
   passwd: password
-  type: 0 # user
+  type: 0 # individual
   salt: salt
   is_admin: false
   avatar: avatar9
@@ -142,10 +142,10 @@
   full_name: User Ten
   email: user10@example.com
   passwd: password
-  type: 0 # user
+  type: 0 # individual
   salt: salt
   is_admin: false
   avatar: avatar10
   avatar_email: user10@example.com
-  num_repos: 0
+  num_repos: 3
   is_active: true

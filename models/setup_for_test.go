@@ -56,6 +56,11 @@ func CreateTestEngine() error {
 	return err
 }
 
+func TestFixturesAreConsistent(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	CheckConsistencyForAll(t)
+}
+
 // PrepareTestDatabase load test fixtures into test database
 func PrepareTestDatabase() error {
 	return fixtures.Load()
@@ -84,7 +89,8 @@ func AssertExistsAndLoadBean(t *testing.T, bean interface{}, conditions ...inter
 	exists, err := loadBeanIfExists(bean, conditions...)
 	assert.NoError(t, err)
 	assert.True(t, exists,
-		"Expected to find %+v (with conditions %+v), but did not", bean, conditions)
+		"Expected to find %+v (of type %T, with conditions %+v), but did not",
+		bean, bean, conditions)
 	return bean
 }
 

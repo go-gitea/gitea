@@ -1737,9 +1737,27 @@ func getRepositoryCount(e Engine, u *User) (int64, error) {
 	return x.Count(&Repository{OwnerID: u.ID})
 }
 
+func getPublicRepositoryCount(e Engine, u *User) (int64, error) {
+	return x.Where("is_private = ?", false).Count(&Repository{OwnerID: u.ID})
+}
+
+func getPrivateRepositoryCount(e Engine, u *User) (int64, error) {
+	return x.Where("is_private = ?", true).Count(&Repository{OwnerID: u.ID})
+}
+
 // GetRepositoryCount returns the total number of repositories of user.
 func GetRepositoryCount(u *User) (int64, error) {
 	return getRepositoryCount(x, u)
+}
+
+// GetPublicRepositoryCount returns the total number of public repositories of user.
+func GetPublicRepositoryCount(u *User) (int64, error) {
+	return getPublicRepositoryCount(x, u)
+}
+
+// GetPrivateRepositoryCount returns the total number of private repositories of user.
+func GetPrivateRepositoryCount(u *User) (int64, error) {
+	return getPrivateRepositoryCount(x, u)
 }
 
 // SearchRepoOptions holds the search options

@@ -7,17 +7,13 @@ package avatar
 import (
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_RandomImage(t *testing.T) {
-	Convey("Generate a random avatar from email", t, func() {
-		_, err := RandomImage([]byte("gogs@local"))
-		So(err, ShouldBeNil)
+	_, err := RandomImage([]byte("gogs@local"))
+	assert.NoError(t, err)
 
-		Convey("Try to generate an image with size zero", func() {
-			_, err := RandomImageSize(0, []byte("gogs@local"))
-			So(err, ShouldNotBeNil)
-		})
-	})
+	_, err = RandomImageSize(0, []byte("gogs@local"))
+	assert.Error(t, err)
 }

@@ -97,12 +97,27 @@ func Profile(ctx *context.Context) {
 			return
 		}
 	case "stars":
-		starredRepos, err := ctxUser.GetStarredRepos(showPrivate)
+		page := ctx.QueryInt("page")
+		if page <= 0 {
+			page = 1
+		}
+
+		repos, err := ctxUser.GetStarredRepos(showPrivate, page, setting.UI.User.RepoPagingNum, "")
 		if err != nil {
 			ctx.Handle(500, "GetStarredRepos", err)
 			return
 		}
-		ctx.Data["Repos"] = starredRepos
+
+		counts, err := ctxUser.GetStarredRepoCount(showPrivate)
+		if err != nil {
+			ctx.Handle(500, "GetStarredRepoCount", err)
+			return
+		}
+
+		ctx.Data["Repos"] = repos
+		ctx.Data["Page"] = paginater.New(int(counts), setting.UI.User.RepoPagingNum, page, 5)
+		ctx.Data["Total"] = int(counts)
+		ctx.Data["Tabs"] = "stars"
 	default:
 		page := ctx.QueryInt("page")
 		if page <= 0 {
@@ -134,14 +149,27 @@ func Profile(ctx *context.Context) {
 
 		keyword := ctx.Query("q")
 		if len(keyword) == 0 {
+			var total int
 			repos, err = models.GetUserRepositories(ctxUser.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy)
 			if err != nil {
 				ctx.Handle(500, "GetRepositories", err)
 				return
 			}
 			ctx.Data["Repos"] = repos
-			ctx.Data["Page"] = paginater.New(ctxUser.NumRepos, setting.UI.User.RepoPagingNum, page, 5)
-			ctx.Data["Total"] = ctxUser.NumRepos
+
+			if showPrivate {
+				total = ctxUser.NumRepos
+			} else {
+				count, err := models.GetPublicRepositoryCount(ctxUser)
+				if err != nil {
+					ctx.Handle(500, "GetPublicRepositoryCount", err)
+					return
+				}
+				total = int(count)
+			}
+
+			ctx.Data["Page"] = paginater.New(total, setting.UI.User.RepoPagingNum, page, 5)
+			ctx.Data["Total"] = total
 		} else {
 			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
 				Keyword:  keyword,
