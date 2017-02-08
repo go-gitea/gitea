@@ -73,37 +73,46 @@ func (user *User) CheckForConsistency(t *testing.T) {
 	assertCount(t, &Team{OrgID: user.ID}, user.NumTeams)
 	assertCount(t, &Follow{UserID: user.ID}, user.NumFollowing)
 	assertCount(t, &Follow{FollowID: user.ID}, user.NumFollowers)
+	if user.Type != UserTypeOrganization {
+		assert.EqualValues(t, 0, user.NumMembers)
+		assert.EqualValues(t, 0, user.NumTeams)
+	}
 }
 
 func (repo *Repository) CheckForConsistency(t *testing.T) {
 	assertCount(t, &Star{RepoID: repo.ID}, repo.NumStars)
 	assertCount(t, &Watch{RepoID: repo.ID}, repo.NumWatches)
-	assertCount(t, &Issue{RepoID: repo.ID}, repo.NumIssues)
 	assertCount(t, &Milestone{RepoID: repo.ID}, repo.NumMilestones)
 	assertCount(t, &Repository{ForkID: repo.ID}, repo.NumForks)
 	if repo.IsFork {
 		AssertExistsAndLoadBean(t, &Repository{ID: repo.ForkID})
 	}
 
-	actual := getCount(t, x.Where("is_closed=1"), &Issue{RepoID: repo.ID})
+	actual := getCount(t, x.Where("is_pull=?", false), &Issue{RepoID: repo.ID})
+	assert.EqualValues(t, repo.NumIssues, actual,
+		"Unexpected number of issues for repo %+v", repo)
+
+	actual = getCount(t, x.Where("is_pull=? AND is_closed=?", false, true), &Issue{RepoID: repo.ID})
 	assert.EqualValues(t, repo.NumClosedIssues, actual,
 		"Unexpected number of closed issues for repo %+v", repo)
 
-	actual = getCount(t, x.Where("is_pull=1"), &Issue{RepoID: repo.ID})
+	actual = getCount(t, x.Where("is_pull=?", true), &Issue{RepoID: repo.ID})
 	assert.EqualValues(t, repo.NumPulls, actual,
 		"Unexpected number of pulls for repo %+v", repo)
 
-	actual = getCount(t, x.Where("is_pull=1 AND is_closed=1"), &Issue{RepoID: repo.ID})
+	actual = getCount(t, x.Where("is_pull=? AND is_closed=?", true, true), &Issue{RepoID: repo.ID})
 	assert.EqualValues(t, repo.NumClosedPulls, actual,
 		"Unexpected number of closed pulls for repo %+v", repo)
 
-	actual = getCount(t, x.Where("is_closed=1"), &Milestone{RepoID: repo.ID})
+	actual = getCount(t, x.Where("is_closed=?", true), &Milestone{RepoID: repo.ID})
 	assert.EqualValues(t, repo.NumClosedMilestones, actual,
 		"Unexpected number of closed milestones for repo %+v", repo)
 }
 
 func (issue *Issue) CheckForConsistency(t *testing.T) {
-	assertCount(t, &Comment{IssueID: issue.ID}, issue.NumComments)
+	actual := getCount(t, x.Where("type=?", CommentTypeComment), &Comment{IssueID: issue.ID})
+	assert.EqualValues(t, issue.NumComments, actual,
+		"Unexpected number of comments for issue %+v", issue)
 	if issue.IsPull {
 		pr := AssertExistsAndLoadBean(t, &PullRequest{IssueID: issue.ID}).(*PullRequest)
 		assert.EqualValues(t, pr.Index, issue.Index)
@@ -119,7 +128,7 @@ func (pr *PullRequest) CheckForConsistency(t *testing.T) {
 func (milestone *Milestone) CheckForConsistency(t *testing.T) {
 	assertCount(t, &Issue{MilestoneID: milestone.ID}, milestone.NumIssues)
 
-	actual := getCount(t, x.Where("is_closed=1"), &Issue{MilestoneID: milestone.ID})
+	actual := getCount(t, x.Where("is_closed=?", true), &Issue{MilestoneID: milestone.ID})
 	assert.EqualValues(t, milestone.NumClosedIssues, actual,
 		"Unexpected number of closed issues for milestone %+v", milestone)
 }
@@ -137,7 +146,7 @@ func (label *Label) CheckForConsistency(t *testing.T) {
 
 	expected := int64(0)
 	if len(issueIDs) > 0 {
-		expected = getCount(t, x.In("id", issueIDs).Where("is_closed=1"), &Issue{})
+		expected = getCount(t, x.In("id", issueIDs).Where("is_closed=?", true), &Issue{})
 	}
 	assert.EqualValues(t, expected, label.NumClosedIssues,
 		"Unexpected number of closed issues for label %+v", label)
