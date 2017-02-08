@@ -586,7 +586,7 @@ func runWeb(ctx *cli.Context) error {
 	m.Group("/:username/:reponame", func() {
 		m.Get("/stars", repo.Stars)
 		m.Get("/watchers", repo.Watchers)
-	}, ignSignIn, context.RepoAssignment(), context.RepoRef())
+	}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
 
 	m.Group("/:username", func() {
 		m.Group("/:reponame", func() {
