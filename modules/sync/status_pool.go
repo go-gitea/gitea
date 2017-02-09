@@ -27,23 +27,21 @@ func NewStatusTable() *StatusTable {
 // Start sets value of given name to true in the pool.
 func (p *StatusTable) Start(name string) {
 	p.lock.Lock()
-	defer p.lock.Unlock()
-
 	p.pool[name] = true
+	p.lock.Unlock()
 }
 
 // Stop sets value of given name to false in the pool.
 func (p *StatusTable) Stop(name string) {
 	p.lock.Lock()
-	defer p.lock.Unlock()
-
 	p.pool[name] = false
+	p.lock.Unlock()
 }
 
 // IsRunning checks if value of given name is set to true in the pool.
 func (p *StatusTable) IsRunning(name string) bool {
 	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	return p.pool[name]
+	res := p.pool[name]
+	p.lock.RUnlock()
+	return res
 }
