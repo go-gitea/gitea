@@ -1,0 +1,15 @@
+-
+  id: 1
+  repo_id: 1
+  name: milestone1
+  content: content1
+  is_closed: false
+  num_issues: 1
+
+-
+  id: 2
+  repo_id: 1
+  name: milestone2
+  content: content2
+  is_closed: false
+  num_issues: 0
