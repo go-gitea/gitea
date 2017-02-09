@@ -307,6 +307,12 @@ var (
 			RunAtStart bool
 			Schedule   string
 		} `ini:"cron.check_repo_stats"`
+		ArchiveCleanup struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+			OlderThan  time.Duration
+		} `ini:"cron.archive_cleanup"`
 	}{
 		UpdateMirror: struct {
 			Enabled    bool
@@ -333,6 +339,16 @@ var (
 		}{
 			RunAtStart: true,
 			Schedule:   "@every 24h",
+		},
+		ArchiveCleanup: struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+			OlderThan  time.Duration
+		}{
+			RunAtStart: true,
+			Schedule:   "@every 24h",
+			OlderThan:  24 * time.Hour,
 		},
 	}
 
