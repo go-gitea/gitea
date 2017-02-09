@@ -28,7 +28,7 @@
 							<option value="{{.}}">{{.}}</option>
 						{{end}}
           				</select><i class="dropdown icon"></i>
-		  
+
 						<div class="default text">{{.Repository.DefaultBranch}}</div>
 						<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
 						{{range .Branches}}
@@ -53,61 +53,45 @@
 						{{.CsrfTokenHtml}}
 					</form>
 						<input type="hidden" name="action" value="protected_branch">
-						<div class="item">
-						<!--
-							{{.i18n.Tr "repo.settings.protected_branch"}}
-							{{.i18n.Tr "repo.settings.protected_branch_can_push"}}
-							{{.i18n.Tr "repo.settings.protected_branch_can_push_yes"}}
-							{{.i18n.Tr "repo.settings.protected_branch_can_push_no"}}
-
-							{{.i18n.Tr "repo.settings.add_protected_branch"}}
-							{{.i18n.Tr "repo.settings.delete_protected_branch"}}
-							{{.i18n.Tr "repo.settings"}}
-							{{.i18n.Tr "repo.settings"}}
-							{{.i18n.Tr "repo.settings"}}
-						-->
-						</div>
 						<div class="ui grid padded">
 						<div class="eight wide column">
 						<div class="ui fluid dropdown selection visible" tabindex="0">
+
 						<select id="protectedBranch" name="branch" data-url="{{.Repository.Link}}/settings/branches?action=protected_branch">
 						{{range .LeftBranches}}
 							<option value="">Choose a branch...</option>
 							<option value="{{.}}">{{.}}</option>
 						{{end}}
           				</select><i class="dropdown icon"></i>
-		  
+
 						<div class="default text">Choose a branch...</div>
 						<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
 						{{range .LeftBranches}}
 						<div class="item" data-value="{{.}}">{{.}}</div>
 						{{end}}
-						</div></div>
+						</div>
+
+						</div>
 						</div>
 						</div>
 
-<div class="ui grid padded">
+						<div class="ui grid padded">
 						<div class="sixteen wide column">
 						<table class="ui single line table padded">
-  <tbody>
-  {{range .ProtectedBranches}}
-    <tr>
-      <td><div class="ui large label">{{.BranchName}}</div></td>
-      <td class="right aligned"><button class="rm ui red button" data-url="{{$.Repository.Link}}/settings/branches?action=protected_branch&id={{.ID}}">Delete</button></td>
-    </tr>
-	{{else}}
-	<tr class="center aligned">
-      <td>There is no protected branch</td>
-    </tr>
-    {{end}}
-  </tbody>
-</table>
-</div>
-</div>
-
-					
+						<tbody>
+						{{range .ProtectedBranches}}
+						<tr>
+							<td><div class="ui large label">{{.BranchName}}</div></td>
+							<td class="right aligned"><button class="rm ui red button" data-url="{{$.Repository.Link}}/settings/branches?action=protected_branch&id={{.ID}}">Delete</button></td>
+						</tr>
+						{{else}}
+						<tr class="center aligned"><td>There is no protected branch</td></tr>
+						{{end}}
+						</tbody>
+						</table>
+						</div>
+						</div>
 				</div>
-
 			</div>
 		</div>
 	</div>
