@@ -1312,7 +1312,7 @@ func GetUserIssueStats(repoID, uid int64, repoIDs []int64, filterMode int, isPul
 func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen int64, numClosed int64) {
 	countSession := func(isClosed, isPull bool, repoID int64) *xorm.Session {
 		sess := x.
-			Where("issue.repo_id = ?", isClosed).
+			Where("is_closed = ?", isClosed).
 			And("is_pull = ?", isPull).
 			And("repo_id = ?", repoID)
 
