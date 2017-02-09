@@ -51,7 +51,7 @@ func (q *UniqueQueue) AddFunc(id interface{}, fn func()) {
 
 	idStr := com.ToStr(id)
 	q.table.lock.Lock()
-	q.table.pool[idStr] = true
+	q.table.pool[idStr] = struct{}{}
 	if fn != nil {
 		fn()
 	}
