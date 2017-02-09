@@ -26,9 +26,9 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 
 	switch form.Mode {
 	case "gfm":
-		ctx.Write(markdown.Render([]byte(form.Text), form.Context, nil))
+		ctx.Write(markdown.Render([]byte(form.Text), ctx.Repo.RepoLink, nil))
 	default:
-		ctx.Write(markdown.RenderRaw([]byte(form.Text), ""))
+		ctx.Write(markdown.RenderRaw([]byte(form.Text), "", false))
 	}
 }
 
@@ -40,5 +40,5 @@ func MarkdownRaw(ctx *context.APIContext) {
 		ctx.Error(422, "", err)
 		return
 	}
-	ctx.Write(markdown.RenderRaw(body, ""))
+	ctx.Write(markdown.RenderRaw(body, "", false))
 }

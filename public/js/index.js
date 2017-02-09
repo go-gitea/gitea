@@ -613,6 +613,7 @@ function initWikiForm() {
                         function (data) {
                             preview.innerHTML = '<div class="markdown">' + data + '</div>';
                             emojify.run($('.editor-preview')[0]);
+                            $('.editor-preview').autolink();
                         }
                     );
                 }, 0);
@@ -1388,6 +1389,7 @@ $(document).ready(function () {
             node.append('<a class="anchor" href="#' + name + '"><span class="octicon octicon-link"></span></a>');
         });
     });
+    $('.markdown').autolink();
 
     buttonsClickOnEnter();
     searchUsers();
