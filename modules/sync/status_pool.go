@@ -14,36 +14,34 @@ import (
 // in different goroutines.
 type StatusTable struct {
 	lock sync.RWMutex
-	pool map[string]bool
+	pool map[string]struct{}
 }
 
 // NewStatusTable initializes and returns a new StatusTable object.
 func NewStatusTable() *StatusTable {
 	return &StatusTable{
-		pool: make(map[string]bool),
+		pool: make(map[string]struct{}),
 	}
 }
 
 // Start sets value of given name to true in the pool.
 func (p *StatusTable) Start(name string) {
 	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	p.pool[name] = true
+	p.pool[name] = struct{}{}
+	p.lock.Unlock()
 }
 
 // Stop sets value of given name to false in the pool.
 func (p *StatusTable) Stop(name string) {
 	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	p.pool[name] = false
+	delete(p.pool, name)
+	p.lock.Unlock()
 }
 
 // IsRunning checks if value of given name is set to true in the pool.
 func (p *StatusTable) IsRunning(name string) bool {
 	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	return p.pool[name]
+	_, ok := p.pool[name]
+	p.lock.RUnlock()
+	return ok
 }
