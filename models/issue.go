@@ -193,7 +193,8 @@ func (issue *Issue) GetIsRead(userID int64) error {
 	if has, err := x.Get(issueUser); err != nil {
 		return err
 	} else if !has {
-		return ErrUserNotExist{UID: userID}
+		issue.IsRead = false
+		return nil
 	}
 	issue.IsRead = issueUser.IsRead
 	return nil
