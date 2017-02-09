@@ -580,6 +580,42 @@ function initRepository() {
     }
 }
 
+function initProtectedBranch() {
+    $('#protectedBranch').change(function () {
+        var $this = $(this);
+        $.post($this.data('url'), {
+                "_csrf": csrf,
+                "canPush": true,
+                "branchName": $this.val(),
+            },
+            function (data) {
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    location.reload();
+                }
+            }
+        );
+    });
+
+    $('.rm').click(function () {
+        var $this = $(this);
+        $.post($this.data('url'), {
+                "_csrf": csrf,
+                "canPush": false,
+                "branchName": $this.val(),
+            },
+            function (data) {
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    location.reload();
+                }
+            }
+        );
+    });
+}
+
 function initRepositoryCollaboration() {
     console.log('initRepositoryCollaboration');
 
@@ -1400,6 +1436,7 @@ $(document).ready(function () {
     initEditForm();
     initEditor();
     initOrganization();
+    initProtectedBranch();
     initWebhook();
     initAdmin();
     initCodeView();

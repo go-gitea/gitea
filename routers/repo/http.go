@@ -42,8 +42,18 @@ func HTTP(ctx *context.Context) {
 	} else if service == "git-upload-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-pack") {
 		isPull = true
+	} else if service == "git-upload-archive" ||
+		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-archive") {
+		isPull = true
 	} else {
 		isPull = (ctx.Req.Method == "GET")
+	}
+
+	var accessMode models.AccessMode
+	if isPull {
+		accessMode = models.AccessModeRead
+	} else {
+		accessMode = models.AccessModeWrite
 	}
 
 	isWiki := false
@@ -146,17 +156,12 @@ func HTTP(ctx *context.Context) {
 			}
 
 			if !isPublicPull {
-				var tp = models.AccessModeWrite
-				if isPull {
-					tp = models.AccessModeRead
-				}
-
-				has, err := models.HasAccess(authUser, repo, tp)
+				has, err := models.HasAccess(authUser, repo, accessMode)
 				if err != nil {
 					ctx.Handle(http.StatusInternalServerError, "HasAccess", err)
 					return
 				} else if !has {
-					if tp == models.AccessModeRead {
+					if accessMode == models.AccessModeRead {
 						has, err = models.HasAccess(authUser, repo, models.AccessModeWrite)
 						if err != nil {
 							ctx.Handle(http.StatusInternalServerError, "HasAccess2", err)
@@ -232,13 +237,15 @@ func HTTP(ctx *context.Context) {
 		}
 	}
 
-	accessMode, err := models.AccessLevel(authUser, repo)
 	params := make(map[string]string)
-	params[models.ProtectedBranchUserID] = fmt.Sprintf("%d", authUser.ID)
-	if err == nil {
-		params[models.ProtectedBranchAccessMode] = accessMode.String()
+
+	if askAuth {
+		params[models.ProtectedBranchUserID] = fmt.Sprintf("%d", authUser.ID)
+		if err == nil {
+			params[models.ProtectedBranchAccessMode] = accessMode.String()
+		}
+		params[models.ProtectedBranchRepoID] = fmt.Sprintf("%d", repo.ID)
 	}
-	params[models.ProtectedBranchRepoID] = fmt.Sprintf("%d", repo.ID)
 
 	HTTPBackend(ctx, &serviceConfig{
 		UploadPack:  true,
@@ -404,6 +411,7 @@ func serviceRPC(h serviceHandler, service string) {
 		h.w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+
 	h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-result", service))
 
 	var (
@@ -438,17 +446,22 @@ func serviceRPC(h serviceHandler, service string) {
 		br = reqBody
 	}
 
+	// check protected branch
 	repoID, _ := strconv.ParseInt(h.cfg.Params[models.ProtectedBranchRepoID], 10, 64)
 	accessMode := models.ParseAccessMode(h.cfg.Params[models.ProtectedBranchAccessMode])
 	// skip admin or owner AccessMode
 	if accessMode == models.AccessModeWrite {
-		if protectBranch, err := models.GetProtectedBranchBy(repoID, branchName); err == nil {
-			log.Trace("%v", protectBranch)
-			if protectBranch != nil && !protectBranch.CanPush {
-				log.GitLogger.Error(2, "protected branches can not be pushed to")
-				h.w.WriteHeader(http.StatusForbidden)
-				return
-			}
+		protectBranch, err := models.GetProtectedBranchBy(repoID, branchName)
+		if err != nil {
+			log.GitLogger.Error(2, "fail to get protected branch information: %v", err)
+			h.w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if protectBranch != nil {
+			log.GitLogger.Error(2, "protected branches can not be pushed to")
+			h.w.WriteHeader(http.StatusForbidden)
+			return
 		}
 	}
 

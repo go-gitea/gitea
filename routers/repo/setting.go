@@ -431,6 +431,23 @@ func ProtectedBranch(ctx *context.Context) {
 	}
 	ctx.Data["ProtectedBranches"] = protectedBranches
 
+	branches := ctx.Data["Branches"].([]string)
+	leftBranches := make([]string, 0, len(branches)-len(protectedBranches))
+	for _, b := range branches {
+		var protected bool
+		for _, pb := range protectedBranches {
+			if b == pb.BranchName {
+				protected = true
+				break
+			}
+		}
+		if !protected {
+			leftBranches = append(leftBranches, b)
+		}
+	}
+
+	ctx.Data["LeftBranches"] = leftBranches
+
 	ctx.HTML(200, tplBranches)
 }
 
@@ -458,6 +475,10 @@ func ProtectedBranchPost(ctx *context.Context) {
 					return
 				}
 			}
+			if err := repo.UpdateDefaultBranch(); err != nil {
+				ctx.Handle(500, "SetDefaultBranch", err)
+				return
+			}
 		}
 
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -466,27 +487,45 @@ func ProtectedBranchPost(ctx *context.Context) {
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
 	case "protected_branch":
 		if ctx.HasError() {
-			ctx.HTML(200, tplBranches)
+			ctx.JSON(200, map[string]string{
+				"redirect": setting.AppSubURL + ctx.Req.URL.Path,
+			})
 			return
 		}
 
-		branchName := strings.ToLower(ctx.Query("branchName"))
 		canPush := ctx.QueryBool("canPush")
+		branchName := strings.ToLower(ctx.Query("branchName"))
 		if len(branchName) == 0 || ctx.Repo.Owner.LowerName == branchName {
-			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
+			ctx.JSON(200, map[string]string{
+				"redirect": setting.AppSubURL + ctx.Req.URL.Path,
+			})
 			return
 		}
 
-		if err := ctx.Repo.Repository.AddProtectedBranch(branchName, canPush); err != nil {
-			ctx.Handle(500, "AddProtectedBranch", err)
-			return
+		if canPush {
+			if err := ctx.Repo.Repository.AddProtectedBranch(branchName, canPush); err != nil {
+				ctx.Flash.Error(ctx.Tr("repo.settings.add_protected_branch_failed", branchName))
+				ctx.JSON(200, map[string]string{
+					"status": "ok",
+				})
+				return
+			}
+
+			ctx.Flash.Success(ctx.Tr("repo.settings.add_protected_branch_success", branchName))
+			ctx.JSON(200, map[string]string{
+				"redirect": setting.AppSubURL + ctx.Req.URL.Path,
+			})
+		} else {
+			if err := ctx.Repo.Repository.DeleteProtectedBranch(ctx.QueryInt64("id")); err != nil {
+				ctx.Flash.Error("DeleteProtectedBranch: " + err.Error())
+			} else {
+				ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success", branchName))
+			}
+
+			ctx.JSON(200, map[string]interface{}{
+				"status": "ok",
+			})
 		}
-
-		// TODO: fix this
-		// log.Trace("User:%s access:%v repository:%s reponame:%s ip:%s", ctx.Repo.Owner.Name, requestedMode, repo.Path, repo.Name, os.Getenv("REMOTE_ADDR"))
-
-		ctx.Flash.Success(ctx.Tr("repo.settings.add_protected_branch_success"))
-		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
 	default:
 		ctx.Handle(404, "", nil)
 	}
