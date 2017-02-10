@@ -1868,6 +1868,7 @@ func DeleteOldRepositoryArchives() {
 					}
 
 					files, err := file.Readdir(0)
+					file.Close()
 					if err != nil {
 						log.Warn("Unable to read directory %s: %v", path, err)
 						return err
