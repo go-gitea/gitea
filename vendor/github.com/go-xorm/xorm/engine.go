@@ -521,6 +521,14 @@ func (engine *Engine) dumpTables(tables []*core.Table, w io.Writer, tp ...core.D
 				return err
 			}
 		}
+
+		// FIXME: Hack for postgres
+		if string(dialect.DBType()) == core.POSTGRES && table.AutoIncrColumn() != nil {
+			_, err = io.WriteString(w, "SELECT setval('table_id_seq', COALESCE((SELECT MAX("+table.AutoIncrColumn().Name+") FROM "+dialect.Quote(table.Name)+"), 1), false);\n")
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
