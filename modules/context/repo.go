@@ -27,7 +27,7 @@ type PullRequest struct {
 	HeadInfo string // [<user>:]<branch>
 }
 
-// Repository contains informations to operate a repository
+// Repository contains information to operate a repository
 type Repository struct {
 	AccessMode   models.AccessMode
 	IsWatching   bool
@@ -330,7 +330,7 @@ func RepoAssignment(args ...bool) macaron.Handler {
 			}
 		}
 
-		// People who have push access or have fored repository can propose a new pull request.
+		// People who have push access or have forked repository can propose a new pull request.
 		if ctx.Repo.IsWriter() || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID)) {
 			// Pull request is allowed if this is a fork repository
 			// and base repository accepts pull requests.

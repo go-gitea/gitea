@@ -59,10 +59,10 @@ func (issues IssueList) loadPosters(e Engine) error {
 		return nil
 	}
 
-	postgerIDs := issues.getPosterIDs()
-	posterMaps := make(map[int64]*User, len(postgerIDs))
+	posterIDs := issues.getPosterIDs()
+	posterMaps := make(map[int64]*User, len(posterIDs))
 	err := e.
-		In("id", postgerIDs).
+		In("id", posterIDs).
 		Find(&posterMaps)
 	if err != nil {
 		return err

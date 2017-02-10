@@ -249,7 +249,7 @@ var (
 		},
 	}
 
-	// Markdown sttings
+	// Markdown settings
 	Markdown = struct {
 		EnableHardLineBreak bool
 		CustomURLSchemes    []string `ini:"CUSTOM_URL_SCHEMES"`
@@ -420,7 +420,7 @@ var (
 	Names     []string
 	dateLangs map[string]string
 
-	// Highlight settings are loaded in modules/template/hightlight.go
+	// Highlight settings are loaded in modules/template/highlight.go
 
 	// Other settings
 	ShowFooterBranding         bool

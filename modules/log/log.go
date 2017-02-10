@@ -84,7 +84,7 @@ func Info(format string, v ...interface{}) {
 	}
 }
 
-// Warn records warnning log
+// Warn records warning log
 func Warn(format string, v ...interface{}) {
 	for _, logger := range loggers {
 		logger.Warn(format, v...)
@@ -275,7 +275,7 @@ func (l *Logger) StartLogger() {
 	}
 }
 
-// Flush flushs all chan data.
+// Flush flushes all chan data.
 func (l *Logger) Flush() {
 	for _, l := range l.outputs {
 		l.Flush()
@@ -321,7 +321,7 @@ func (l *Logger) Info(format string, v ...interface{}) {
 	l.writerMsg(0, INFO, msg)
 }
 
-// Warn records warnning log
+// Warn records warning log
 func (l *Logger) Warn(format string, v ...interface{}) {
 	msg := fmt.Sprintf("[W] "+format, v...)
 	l.writerMsg(0, WARN, msg)

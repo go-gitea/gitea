@@ -117,15 +117,15 @@ func TestTeam_HasRepository(t *testing.T) {
 func TestTeam_AddRepository(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	testSucess := func(teamID, repoID int64) {
+	testSuccess := func(teamID, repoID int64) {
 		team := AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
 		assert.NoError(t, team.AddRepository(repo))
 		AssertExistsAndLoadBean(t, &TeamRepo{TeamID: teamID, RepoID: repoID})
 		CheckConsistencyFor(t, &Team{ID: teamID}, &Repository{ID: repoID})
 	}
-	testSucess(2, 3)
-	testSucess(2, 5)
+	testSuccess(2, 3)
+	testSuccess(2, 5)
 
 	team := AssertExistsAndLoadBean(t, &Team{ID: 1}).(*Team)
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)

@@ -733,7 +733,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	return nil
 }
 
-// ChangeAssignee changes the Asssignee field of this issue.
+// ChangeAssignee changes the Assignee field of this issue.
 func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 	var oldAssigneeID = issue.AssigneeID
 	issue.AssigneeID = assigneeID

@@ -73,7 +73,7 @@ func (r *Release) loadAttributes(e Engine) error {
 	return nil
 }
 
-// LoadAttributes load repo and publisher attributes for a realease
+// LoadAttributes load repo and publisher attributes for a release
 func (r *Release) LoadAttributes() error {
 	return r.loadAttributes(x)
 }
