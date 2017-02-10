@@ -123,6 +123,7 @@ type WebhookForm struct {
 	Events      string
 	Create      bool
 	Push        bool
+	Issue       bool
 	PullRequest bool
 	Active      bool
 }
