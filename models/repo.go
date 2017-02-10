@@ -1410,9 +1410,12 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 
 		// If repo has become private, we need to set its actions to private.
 		if repo.IsPrivate {
-			e.Where("repo_id = ?", repo.ID).Cols("is_private").Update(&Action{
+			_, err = e.Where("repo_id = ?", repo.ID).Cols("is_private").Update(&Action{
 				IsPrivate: true,
 			})
+			if err != nil {
+				return err
+			}
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
