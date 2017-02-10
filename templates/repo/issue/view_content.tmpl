@@ -185,6 +185,16 @@
 					<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
 					{{$.i18n.Tr "repo.issues.change_title_at" .OldTitle .NewTitle $createdStr | Safe}}
 					</span>
+				{{else if eq .Type 11}}
+					<div class="event">
+						<span class="octicon octicon-primitive-dot"></span>
+					</div>
+					<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+						<img src="{{.Poster.RelAvatarLink}}">
+					</a>
+					<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
+					{{$.i18n.Tr "repo.issues.delete_branch_at" .CommitSHA $createdStr | Safe}}
+					</span>
 				{{end}}
 
 			{{end}}
