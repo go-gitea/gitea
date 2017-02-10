@@ -7,6 +7,7 @@ package repo
 import (
 	"container/list"
 	"path"
+	"strings"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
@@ -106,7 +107,7 @@ func Graph(ctx *context.Context) {
 func SearchCommits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 
-	keyword := ctx.Query("q")
+	keyword := strings.Trim(ctx.Query("q"), " ")
 	if len(keyword) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchName)
 		return

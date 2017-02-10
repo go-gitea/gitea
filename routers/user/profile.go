@@ -155,7 +155,7 @@ func Profile(ctx *context.Context) {
 			ctx.Data["SortType"] = "recentupdate"
 		}
 
-		keyword := ctx.Query("q")
+		keyword := strings.Trim(ctx.Query("q"), " ")
 		ctx.Data["Keyword"] = keyword
 		if len(keyword) == 0 {
 			var total int
