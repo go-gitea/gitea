@@ -1847,47 +1847,48 @@ func DeleteOldRepositoryArchives() {
 
 	log.Trace("Doing: ArchiveCleanup")
 
-	if err := x.
-		Where("id > 0").
-		Iterate(new(Repository),
-			func(idx int, bean interface{}) error {
-				repo := bean.(*Repository)
-				basePath := filepath.Join(repo.RepoPath(), "archives")
-
-				for _, ty := range []string{"zip", "targz"} {
-					path := filepath.Join(basePath, ty)
-					file, err := os.Open(path)
-					if err != nil {
-						if !os.IsNotExist(err) {
-							log.Warn("Unable to open directory %s: %v", path, err)
-							return err
-						}
-
-						// If the directory doesn't exist, that's okay.
-						continue
-					}
-
-					files, err := file.Readdir(0)
-					file.Close()
-					if err != nil {
-						log.Warn("Unable to read directory %s: %v", path, err)
-						return err
-					}
-
-					minimumOldestTime := time.Now().Add(-setting.Cron.ArchiveCleanup.OlderThan)
-					for _, info := range files {
-						if info.ModTime().Before(minimumOldestTime) && !info.IsDir() {
-							toDelete := filepath.Join(path, info.Name())
-							// This is a best-effort purge, so we do not check error codes to confirm removal.
-							os.Remove(toDelete)
-						}
-					}
-				}
-
-				return nil
-			}); err != nil {
+	if err := x.Where("id > 0").Iterate(new(Repository), deleteOldRepositoryArchives); err != nil {
 		log.Error(4, "ArchiveClean: %v", err)
 	}
+}
+
+func deleteOldRepositoryArchives(idx int, bean interface{}) error {
+	repo := bean.(*Repository)
+	basePath := filepath.Join(repo.RepoPath(), "archives")
+
+	for _, ty := range []string{"zip", "targz"} {
+		path := filepath.Join(basePath, ty)
+		file, err := os.Open(path)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				log.Warn("Unable to open directory %s: %v", path, err)
+				return err
+			}
+
+			// If the directory doesn't exist, that's okay.
+			continue
+		}
+
+		files, err := file.Readdir(0)
+		file.Close()
+		if err != nil {
+			log.Warn("Unable to read directory %s: %v", path, err)
+			return err
+		}
+
+		minimumOldestTime := time.Now().Add(-setting.Cron.ArchiveCleanup.OlderThan)
+		for _, info := range files {
+			if info.ModTime().Before(minimumOldestTime) && !info.IsDir() {
+				toDelete := filepath.Join(path, info.Name())
+				// This is a best-effort purge, so we do not check error codes to confirm removal.
+				if err = os.Remove(toDelete); err != nil {
+					log.Trace("Unable to delete %s, but proceeding: %v", toDelete, err)
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 func gatherMissingRepoRecords() ([]*Repository, error) {
