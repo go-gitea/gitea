@@ -71,7 +71,7 @@ func DeleteBranchPost(ctx *context.Context) {
 	}
 
 	if err := ctx.Repo.GitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
-		Force: false,
+		Force: true,
 	}); err != nil {
 		log.Error(4, "DeleteBranch: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
