@@ -5,12 +5,16 @@ import (
 	"strconv"
 	"testing"
 
+	"strings"
+
 	. "code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/stretchr/testify/assert"
 )
 
 const AppURL = "http://localhost:3000/"
+const Repo = "gogits/gogs"
+const AppSubURL = AppURL + Repo + "/"
 
 var numericMetas = map[string]string{
 	"format": "https://someurl.com/{user}/{repo}/{index}",
@@ -48,7 +52,7 @@ func link(href, contents string) string {
 
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, metas map[string]string) {
 	assert.Equal(t, expected,
-		string(RenderIssueIndexPattern([]byte(input), AppURL, metas)))
+		string(RenderIssueIndexPattern([]byte(input), AppSubURL, metas)))
 }
 
 func TestRenderIssueIndexPattern(t *testing.T) {
@@ -80,7 +84,7 @@ func TestRenderIssueIndexPattern(t *testing.T) {
 
 func TestRenderIssueIndexPattern2(t *testing.T) {
 	setting.AppURL = AppURL
-	setting.AppSubURL = setting.AppURL
+	setting.AppSubURL = AppSubURL
 
 	// numeric: render inputs with valid mentions
 	test := func(s, expectedFmt string, indices ...int) {
@@ -116,6 +120,9 @@ func TestRenderIssueIndexPattern2(t *testing.T) {
 }
 
 func TestRenderIssueIndexPattern3(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
 	// alphanumeric: render inputs without valid mentions
 	test := func(s string) {
 		testRenderIssueIndexPattern(t, s, s, alphanumericMetas)
@@ -140,6 +147,9 @@ func TestRenderIssueIndexPattern3(t *testing.T) {
 }
 
 func TestRenderIssueIndexPattern4(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
 	// alphanumeric: render inputs with valid mentions
 	test := func(s, expectedFmt string, names ...string) {
 		links := make([]interface{}, len(names))
@@ -156,7 +166,8 @@ func TestRenderIssueIndexPattern4(t *testing.T) {
 
 func TestRenderer_AutoLink(t *testing.T) {
 	setting.AppURL = AppURL
-	setting.AppSubURL = URLJoin(setting.AppURL, "user", "repo")
+	setting.AppSubURL = AppSubURL
+
 	SubURLNoProtocol := setting.AppSubURL[5:]
 
 	test := func(input, expected string) {
@@ -184,6 +195,62 @@ func TestRenderer_AutoLink(t *testing.T) {
 	// render other commit URLs
 	tmp = "//external-link.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2"
 	test("https:"+tmp, "<a href=\""+tmp+"\">d8a994ef24 (diff-2)</a>")
+}
+
+func TestRender_ShortLinks(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	test := func(input, expected string) {
+		buffer := RenderString(input, setting.AppSubURL, nil)
+		assert.Equal(t, expected, string(buffer))
+	}
+
+	var url = URLJoin(AppSubURL, "wiki", "Link")
+	var imgurl = URLJoin(AppSubURL, "wiki", "raw", "Link.jpg")
+	var favicon = "http://google.com/favicon.ico"
+
+	test("[[Link]]", `<p><a href="`+url+`" rel="nofollow">Link</a></p>
+`)
+	test("[[Link.jpg]]", `<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="Link.jpg" title="Link.jpg"/></a></p>
+`)
+	test("[["+favicon+"]]", `<p><a href="`+favicon+`" rel="nofollow"><img src="`+favicon+`" title="favicon.ico"/></a></p>
+`)
+	test("[[Name|Link]]", `<p><a href="`+url+`" rel="nofollow">Name</a></p>
+`)
+	test("[[Name|Link.jpg]]", `<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="Name" title="Name"/></a></p>
+`)
+	test("[[Name|Link.jpg|alt=AltName]]", `<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="AltName"/></a></p>
+`)
+	test("[[Name|Link.jpg|title=Title]]", `<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="Title" title="Title"/></a></p>
+`)
+	test("[[Name|Link.jpg|alt=AltName|title=Title]]", `<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="Title"/></a></p>
+`)
+	test("[[Name|Link.jpg|alt=\"AltName\"|title='Title']]", `<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="Title"/></a></p>
+`)
+}
+
+func TestRender_Commits(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	test := func(input, expected string) {
+		buffer := RenderString(input, setting.AppSubURL, nil)
+		assert.Equal(t, expected, string(buffer))
+	}
+
+	var sha = "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
+	var commit = URLJoin(AppSubURL, "commit", sha)
+	var subtree = URLJoin(commit, "src")
+	var tree = strings.Replace(subtree, "/commit/", "/tree/", -1)
+	var src = strings.Replace(subtree, "/commit/", "/src/", -1)
+
+	test(sha, `<p><a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>
+`)
+	test(commit, `<p><a href="`+commit[5:]+`" rel="nofollow">b6dd6210ea</a></p>
+`)
+	test(tree, `<p><a href="`+src[5:]+`" rel="nofollow">b6dd6210ea/src</a></p>
+`)
 }
 
 func TestRegExp_MentionPattern(t *testing.T) {
@@ -457,6 +524,18 @@ func TestMisc_IsReadmeFile(t *testing.T) {
 	}
 }
 
+func TestMisc_IsSameDomain(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	var sha = "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
+	var commit = URLJoin(AppSubURL, "commit", sha)
+
+	assert.True(t, IsSameDomain(commit))
+	assert.False(t, IsSameDomain("http://google.com/ncr"))
+	assert.False(t, IsSameDomain("favicon.ico"))
+}
+
 // Test cases without ambiguous links
 var sameCases = []string{
 	// dear imgui wiki markdown extract: special wiki syntax
@@ -474,17 +553,17 @@ Ideas and codes
 	`<p>Wiki! Enjoy :)</p>
 
 <ul>
-<li><a href="` + AppURL + `wiki/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
-<li><a href="` + AppURL + `wiki/Tips" rel="nofollow">Tips</a></li>
+<li><a href="` + AppSubURL + `wiki/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
+<li><a href="` + AppSubURL + `wiki/Tips" rel="nofollow">Tips</a></li>
 </ul>
 
 <p>Ideas and codes</p>
 
 <ul>
-<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>)<a href="` + AppURL + `issues/786" rel="nofollow">#786</a></li>
-<li>Node graph editors<a href="` + AppURL + `issues/306" rel="nofollow">#306</a></li>
-<li><a href="` + AppURL + `wiki/memory_editor_example" rel="nofollow">Memory Editor</a></li>
-<li><a href="` + AppURL + `wiki/plot_var_example" rel="nofollow">Plot var helper</a></li>
+<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>)<a href="` + AppSubURL + `issues/786" rel="nofollow">#786</a></li>
+<li>Node graph editors<a href="` + AppSubURL + `issues/306" rel="nofollow">#306</a></li>
+<li><a href="` + AppSubURL + `wiki/memory_editor_example" rel="nofollow">Memory Editor</a></li>
+<li><a href="` + AppSubURL + `wiki/plot_var_example" rel="nofollow">Plot var helper</a></li>
 </ul>
 `,
 	// wine-staging wiki home extract: tables, special wiki syntax, images
@@ -512,24 +591,24 @@ Here are some links to the most important topics. You can find the full list of 
 <table>
 <thead>
 <tr>
-<th><a href="` + AppURL + `wiki/raw/images%2Ficon-install.png" rel="nofollow"><img src="` + AppURL + `wiki/raw/images%2Ficon-install.png" alt="images/icon-install.png" title="icon-install.png"/></a></th>
-<th><a href="` + AppURL + `wiki/Installation" rel="nofollow">Installation</a></th>
+<th><a href="` + AppSubURL + `wiki/raw/images%2Ficon-install.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images%2Ficon-install.png" alt="images/icon-install.png" title="icon-install.png"/></a></th>
+<th><a href="` + AppSubURL + `wiki/Installation" rel="nofollow">Installation</a></th>
 </tr>
 </thead>
 
 <tbody>
 <tr>
-<td><a href="` + AppURL + `wiki/raw/images%2Ficon-usage.png" rel="nofollow"><img src="` + AppURL + `wiki/raw/images%2Ficon-usage.png" alt="images/icon-usage.png" title="icon-usage.png"/></a></td>
-<td><a href="` + AppURL + `wiki/Usage" rel="nofollow">Usage</a></td>
+<td><a href="` + AppSubURL + `wiki/raw/images%2Ficon-usage.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images%2Ficon-usage.png" alt="images/icon-usage.png" title="icon-usage.png"/></a></td>
+<td><a href="` + AppSubURL + `wiki/Usage" rel="nofollow">Usage</a></td>
 </tr>
 
 <tr>
-<td><a href="` + AppURL + `wiki/raw/images%2Ficon-config.png" rel="nofollow"><img src="` + AppURL + `wiki/raw/images%2Ficon-config.png" alt="images/icon-config.png" title="icon-config.png"/></a></td>
-<td><a href="` + AppURL + `wiki/Configuration" rel="nofollow">Configuration</a></td>
+<td><a href="` + AppSubURL + `wiki/raw/images%2Ficon-config.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images%2Ficon-config.png" alt="images/icon-config.png" title="icon-config.png"/></a></td>
+<td><a href="` + AppSubURL + `wiki/Configuration" rel="nofollow">Configuration</a></td>
 </tr>
 
 <tr>
-<td><a href="` + AppURL + `wiki/raw/images%2Ficon-bug.png" rel="nofollow"><img src="` + AppURL + `wiki/raw/images%2Ficon-bug.png" alt="images/icon-bug.png" title="icon-bug.png"/></a></td>
+<td><a href="` + AppSubURL + `wiki/raw/images%2Ficon-bug.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images%2Ficon-bug.png" alt="images/icon-bug.png" title="icon-bug.png"/></a></td>
 <td><a href="http://bugs.wine-staging.com" rel="nofollow">Bugs</a></td>
 </tr>
 </tbody>
@@ -547,30 +626,30 @@ Here are some links to the most important topics. You can find the full list of 
 
 <ol>
 <li><a href="https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop" rel="nofollow">Package your libGDX application</a>
-<a href="` + AppURL + `wiki/raw/images%2F1.png" rel="nofollow"><img src="` + AppURL + `wiki/raw/images%2F1.png" alt="images/1.png" title="1.png"/></a></li>
+<a href="` + AppSubURL + `wiki/raw/images%2F1.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images%2F1.png" alt="images/1.png" title="1.png"/></a></li>
 <li>Perform a test run by hitting the Run! button.
-<a href="` + AppURL + `wiki/raw/images%2F2.png" rel="nofollow"><img src="` + AppURL + `wiki/raw/images%2F2.png" alt="images/2.png" title="2.png"/></a></li>
+<a href="` + AppSubURL + `wiki/raw/images%2F2.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images%2F2.png" alt="images/2.png" title="2.png"/></a></li>
 </ol>
 `,
 }
 
 func TestTotal_RenderString(t *testing.T) {
 	for i := 0; i < len(sameCases); i += 2 {
-		line := RenderString(sameCases[i], AppURL, map[string]string{})
+		line := RenderString(sameCases[i], AppSubURL, map[string]string{})
 		assert.Equal(t, sameCases[i+1], line)
 	}
 
 	testCases := []string{}
 
 	for i := 0; i < len(testCases); i += 2 {
-		line := RenderString(testCases[i], AppURL, map[string]string{})
+		line := RenderString(testCases[i], AppSubURL, map[string]string{})
 		assert.Equal(t, testCases[i+1], line)
 	}
 }
 
 func TestTotal_RenderWiki(t *testing.T) {
 	for i := 0; i < len(sameCases); i += 2 {
-		line := RenderWiki([]byte(sameCases[i]), AppURL, map[string]string{})
+		line := RenderWiki([]byte(sameCases[i]), AppSubURL, map[string]string{})
 		assert.Equal(t, sameCases[i+1], line)
 	}
 
@@ -578,17 +657,17 @@ func TestTotal_RenderWiki(t *testing.T) {
 		// Guard wiki sidebar: special syntax
 		`[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]`,
 		// rendered
-		`<p><a href="` + AppURL + `wiki/Guardfile-DSL---Configuring-Guard" rel="nofollow">Guardfile-DSL / Configuring-Guard</a></p>
+		`<p><a href="` + AppSubURL + `wiki/Guardfile-DSL---Configuring-Guard" rel="nofollow">Guardfile-DSL / Configuring-Guard</a></p>
 `,
 		// special syntax
 		`[[Name|Link]]`,
 		// rendered
-		`<p><a href="` + AppURL + `wiki/Link" rel="nofollow">Name</a></p>
+		`<p><a href="` + AppSubURL + `wiki/Link" rel="nofollow">Name</a></p>
 `,
 	}
 
 	for i := 0; i < len(testCases); i += 2 {
-		line := RenderWiki([]byte(testCases[i]), AppURL, map[string]string{})
+		line := RenderWiki([]byte(testCases[i]), AppSubURL, map[string]string{})
 		assert.Equal(t, testCases[i+1], line)
 	}
 }

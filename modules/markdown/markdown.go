@@ -194,7 +194,7 @@ var (
 func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byte) {
 	prefix := r.urlPrefix
 	if r.isWikiMarkdown {
-		prefix += "/wiki/src/"
+		prefix = URLJoin(prefix, "wiki", "src")
 	}
 	prefix = strings.Replace(prefix, "/src/", "/raw/", 1)
 	if len(link) > 0 {
@@ -284,19 +284,32 @@ func RenderIssueIndexPattern(rawBytes []byte, urlPrefix string, metas map[string
 	return rawBytes
 }
 
+// IsSameDomain checks if given url string has the same hostname as current Gitea instance
+func IsSameDomain(s string) bool {
+	if uapp, err := url.Parse(setting.AppURL); err == nil {
+		if u, err := url.Parse(s); err == nil {
+			return u.Host == uapp.Host
+		}
+		return false
+	}
+	return false
+}
+
 // renderFullSha1Pattern renders SHA containing URLs
 func renderFullSha1Pattern(rawBytes []byte, urlPrefix string) []byte {
 	ms := AnySHA1Pattern.FindAllSubmatch(rawBytes, -1)
 	for _, m := range ms {
 		all := m[0]
-		paths := m[1]
-		var path = "//" + string(paths)
+		paths := string(m[1])
+		var path = "//" + paths
 		author := string(m[2])
 		repoName := string(m[3])
 		path = URLJoin(path, author, repoName)
 		ltype := "src"
 		itemType := m[4]
-		if string(itemType) == "commit" {
+		if IsSameDomain(paths) {
+			ltype = string(itemType)
+		} else if string(itemType) == "commit" {
 			ltype = "commit"
 		}
 		sha := m[5]
@@ -312,7 +325,7 @@ func renderFullSha1Pattern(rawBytes []byte, urlPrefix string) []byte {
 		text := base.ShortSha(string(sha))
 		if subtree != "" {
 			urlSuffix = "/" + subtree
-			text = subtree
+			text += urlSuffix
 		}
 		if line != nil {
 			value := string(line)
@@ -468,7 +481,9 @@ func renderShortLinks(rawBytes []byte, urlPrefix string, noLink bool) []byte {
 			}
 		}
 		absoluteLink := isLink([]byte(link))
-		link = url.QueryEscape(link)
+		if !absoluteLink {
+			link = url.QueryEscape(link)
+		}
 		if image {
 			if !absoluteLink {
 				link = URLJoin(urlPrefix, "wiki", "raw", link)

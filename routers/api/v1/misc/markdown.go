@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // Markdown render markdown document to HTML
@@ -26,7 +27,7 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 
 	switch form.Mode {
 	case "gfm":
-		ctx.Write(markdown.Render([]byte(form.Text), ctx.Repo.RepoLink, nil))
+		ctx.Write(markdown.Render([]byte(form.Text), markdown.URLJoin(setting.AppURL, form.Context), nil))
 	default:
 		ctx.Write(markdown.RenderRaw([]byte(form.Text), "", false))
 	}
