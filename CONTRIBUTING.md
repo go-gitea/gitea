@@ -26,6 +26,14 @@ This process gives everyone a chance to validate the design, helps prevent dupli
 
 Before sending code out for review, run all the tests for the whole tree to make sure the changes don't break other usage and keep the compatibility on upgrade. To make sure you are running the test suite exactly like we do, you should install the CLI for [Drone CI](https://github.com/drone/drone), as we are using the server for continous testing, following [these instructions](http://readme.drone.io/0.5/install/cli/). After that you can simply call `drone exec` within your working directory and it will try to run the test suite locally.
 
+## Vendoring
+
+We keep a cached copy of dependencies within the `vendor/` directory, managing updates via [govendor](http://github.com/kardianos/govendor).
+
+Pull requests should only include `vendor/` updates if they are part of the same change, be it a bugfix or a feature addition.
+
+The `vendor/` update needs to be justified as part of the PR description, and must be verified by the reviewers and/or merger to always reference an existing upstream commit.
+
 ## Code review
 
 Changes to Gitea must be reviewed before they are accepted, no matter who makes the change even if it is an owner or a maintainer. We use GitHub's pull request workflow to do that and we also use [LGTM](http://lgtm.co) to ensure every PR is reviewed by at least 2 maintainers.
