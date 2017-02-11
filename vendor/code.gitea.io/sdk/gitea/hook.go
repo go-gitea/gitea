@@ -1,7 +1,4 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
-
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -260,6 +257,22 @@ func (p *PushPayload) Branch() string {
 // |___/____  >____  >____/  \___  >
 //          \/     \/            \/
 
+// BaseIssuePayload is the information about a pull request or an issue that
+// is included as an embedded struct in both pull requests and issues.
+type BaseIssuePayload struct {
+	Secret     string          `json:"secret"`
+	Action     HookIssueAction `json:"action"`
+	Index      int64           `json:"number"`
+	Changes    *ChangesPayload `json:"changes,omitempty"`
+	Repository *Repository     `json:"repository"`
+	Sender     *User           `json:"sender"`
+}
+
+// SetSecret modifies the secret of the BaseIssuePayload.
+func (p *BaseIssuePayload) SetSecret(secret string) {
+	p.Secret = secret
+}
+
 // HookIssueAction FIXME
 type HookIssueAction string
 
@@ -296,18 +309,8 @@ const (
 
 // IssuePayload represents the payload information that is sent along with an issue event.
 type IssuePayload struct {
-	Secret     string          `json:"secret"`
-	Action     HookIssueAction `json:"action"`
-	Index      int64           `json:"number"`
-	Changes    *ChangesPayload `json:"changes,omitempty"`
-	Issue      *Issue          `json:"issue"`
-	Repository *Repository     `json:"repository"`
-	Sender     *User           `json:"sender"`
-}
-
-// SetSecret FIXME
-func (p *IssuePayload) SetSecret(secret string) {
-	p.Secret = secret
+	BaseIssuePayload
+	Issue *Issue `json:"issue"`
 }
 
 // JSONPayload FIXME
@@ -336,18 +339,8 @@ type ChangesPayload struct {
 
 // PullRequestPayload represents a payload information of pull request event.
 type PullRequestPayload struct {
-	Secret      string          `json:"secret"`
-	Action      HookIssueAction `json:"action"`
-	Index       int64           `json:"number"`
-	Changes     *ChangesPayload `json:"changes,omitempty"`
-	PullRequest *PullRequest    `json:"pull_request"`
-	Repository  *Repository     `json:"repository"`
-	Sender      *User           `json:"sender"`
-}
-
-// SetSecret FIXME
-func (p *PullRequestPayload) SetSecret(secret string) {
-	p.Secret = secret
+	BaseIssuePayload
+	PullRequest *PullRequest `json:"pull_request"`
 }
 
 // JSONPayload FIXME
