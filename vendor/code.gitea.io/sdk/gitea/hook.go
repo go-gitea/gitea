@@ -2,6 +2,10 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+// Copyright 2017 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package gitea
 
 import (
@@ -147,6 +151,7 @@ type PayloadCommit struct {
 var (
 	_ Payloader = &CreatePayload{}
 	_ Payloader = &PushPayload{}
+	_ Payloader = &IssuePayload{}
 	_ Payloader = &PullRequestPayload{}
 )
 
@@ -277,7 +282,38 @@ const (
 	HookIssueLabelCleared HookIssueAction = "label_cleared"
 	// HookIssueSynchronized synchronized
 	HookIssueSynchronized HookIssueAction = "synchronized"
+	// HookIssueMilestoneSet is an issue action for when a milestone is set on an issue.
+	HookIssueMilestoneSet HookIssueAction = "milestone_set"
+	// HookIssueMilestoneCleared is an issue action for when a milestone is cleared on an issue.
+	HookIssueMilestoneCleared HookIssueAction = "milestone_cleared"
+	// HookIssueCommentAdded is an issue action sent when a comment is added to an issue.
+	HookIssueCommentAdded HookIssueAction = "comment_added"
+	// HookIssueCommentDeleted is an issue action sent when a comment on an issue is deleted.
+	HookIssueCommentDeleted HookIssueAction = "comment_deleted"
+	// HookIssueCommentEdited is an issue action sent when a comment on an issue is edited.
+	HookIssueCommentEdited HookIssueAction = "comment_edited"
 )
+
+// IssuePayload represents the payload information that is sent along with an issue event.
+type IssuePayload struct {
+	Secret     string          `json:"secret"`
+	Action     HookIssueAction `json:"action"`
+	Index      int64           `json:"number"`
+	Changes    *ChangesPayload `json:"changes,omitempty"`
+	Issue      *Issue          `json:"issue"`
+	Repository *Repository     `json:"repository"`
+	Sender     *User           `json:"sender"`
+}
+
+// SetSecret FIXME
+func (p *IssuePayload) SetSecret(secret string) {
+	p.Secret = secret
+}
+
+// JSONPayload FIXME
+func (p *IssuePayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
 
 // ChangesFromPayload FIXME
 type ChangesFromPayload struct {
@@ -286,8 +322,9 @@ type ChangesFromPayload struct {
 
 // ChangesPayload FIXME
 type ChangesPayload struct {
-	Title *ChangesFromPayload `json:"title,omitempty"`
-	Body  *ChangesFromPayload `json:"body,omitempty"`
+	Title   *ChangesFromPayload `json:"title,omitempty"`
+	Body    *ChangesFromPayload `json:"body,omitempty"`
+	Comment *Comment            `json:"comment,omitempty"`
 }
 
 // __________      .__  .__    __________                                     __
