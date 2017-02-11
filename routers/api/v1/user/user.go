@@ -5,6 +5,8 @@
 package user
 
 import (
+	"strings"
+
 	"github.com/Unknwon/com"
 
 	api "code.gitea.io/sdk/gitea"
@@ -16,7 +18,7 @@ import (
 // Search search users
 func Search(ctx *context.APIContext) {
 	opts := &models.SearchUserOptions{
-		Keyword:  ctx.Query("q"),
+		Keyword:  strings.Trim(ctx.Query("q"), " "),
 		Type:     models.UserTypeIndividual,
 		PageSize: com.StrTo(ctx.Query("limit")).MustInt(),
 	}

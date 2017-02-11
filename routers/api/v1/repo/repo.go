@@ -5,7 +5,7 @@
 package repo
 
 import (
-	"path"
+	"strings"
 
 	api "code.gitea.io/sdk/gitea"
 
@@ -21,7 +21,7 @@ import (
 // see https://github.com/gogits/go-gogs-client/wiki/Repositories#search-repositories
 func Search(ctx *context.APIContext) {
 	opts := &models.SearchRepoOptions{
-		Keyword:  path.Base(ctx.Query("q")),
+		Keyword:  strings.Trim(ctx.Query("q"), " "),
 		OwnerID:  ctx.QueryInt64("uid"),
 		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 	}

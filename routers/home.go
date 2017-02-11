@@ -5,11 +5,11 @@
 package routers
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/Unknwon/paginater"
-
-	"bytes"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -100,7 +100,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = "created_unix DESC"
 	}
 
-	keyword := ctx.Query("q")
+	keyword := strings.Trim(ctx.Query("q"), " ")
 	if len(keyword) == 0 {
 		repos, err = opts.Ranger(&models.SearchRepoOptions{
 			Page:     page,
@@ -199,7 +199,7 @@ func RenderUserSearch(ctx *context.Context, opts *UserSearchOptions) {
 		orderBy = "id DESC"
 	}
 
-	keyword := ctx.Query("q")
+	keyword := strings.Trim(ctx.Query("q"), " ")
 	if len(keyword) == 0 {
 		users, err = opts.Ranger(&models.SearchUserOptions{OrderBy: orderBy,
 			Page:     page,
