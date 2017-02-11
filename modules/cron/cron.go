@@ -55,6 +55,17 @@ func NewContext() {
 			go models.CheckRepoStats()
 		}
 	}
+	if setting.Cron.ArchiveCleanup.Enabled {
+		entry, err = c.AddFunc("Clean up old repository archives", setting.Cron.ArchiveCleanup.Schedule, models.DeleteOldRepositoryArchives)
+		if err != nil {
+			log.Fatal(4, "Cron[Clean up old repository archives]: %v", err)
+		}
+		if setting.Cron.ArchiveCleanup.RunAtStart {
+			entry.Prev = time.Now()
+			entry.ExecTimes++
+			go models.DeleteOldRepositoryArchives()
+		}
+	}
 	c.Start()
 }
 
