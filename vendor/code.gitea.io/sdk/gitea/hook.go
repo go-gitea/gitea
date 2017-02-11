@@ -279,16 +279,10 @@ const (
 	HookIssueLabelCleared HookIssueAction = "label_cleared"
 	// HookIssueSynchronized synchronized
 	HookIssueSynchronized HookIssueAction = "synchronized"
-	// HookIssueMilestoneSet is an issue action for when a milestone is set on an issue.
-	HookIssueMilestoneSet HookIssueAction = "milestone_set"
-	// HookIssueMilestoneCleared is an issue action for when a milestone is cleared on an issue.
-	HookIssueMilestoneCleared HookIssueAction = "milestone_cleared"
-	// HookIssueCommentAdded is an issue action sent when a comment is added to an issue.
-	HookIssueCommentAdded HookIssueAction = "comment_added"
-	// HookIssueCommentDeleted is an issue action sent when a comment on an issue is deleted.
-	HookIssueCommentDeleted HookIssueAction = "comment_deleted"
-	// HookIssueCommentEdited is an issue action sent when a comment on an issue is edited.
-	HookIssueCommentEdited HookIssueAction = "comment_edited"
+	// HookIssueMilestoned is an issue action for when a milestone is set on an issue.
+	HookIssueMilestoned HookIssueAction = "milestoned"
+	// HookIssueDemilestoned is an issue action for when a milestone is cleared on an issue.
+	HookIssueDemilestoned HookIssueAction = "demilestoned"
 )
 
 // IssuePayload represents the payload information that is sent along with an issue event.
@@ -319,9 +313,8 @@ type ChangesFromPayload struct {
 
 // ChangesPayload FIXME
 type ChangesPayload struct {
-	Title   *ChangesFromPayload `json:"title,omitempty"`
-	Body    *ChangesFromPayload `json:"body,omitempty"`
-	Comment *Comment            `json:"comment,omitempty"`
+	Title *ChangesFromPayload `json:"title,omitempty"`
+	Body  *ChangesFromPayload `json:"body,omitempty"`
 }
 
 // __________      .__  .__    __________                                     __
