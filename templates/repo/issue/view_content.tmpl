@@ -145,6 +145,7 @@
 						</div>
 					</div>
 				{{else if eq .Type 7}}
+					{{if .Label}}
 					<div class="event">
 						<span class="octicon octicon-primitive-dot"></span>
 						<a class="ui avatar image" href="{{.Poster.HomeLink}}">
@@ -153,6 +154,7 @@
 						<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
 						{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color .Label.Name $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color .Label.Name $createdStr | Safe}}{{end}}</span>
 					</div>
+					{{end}}
 				{{else if eq .Type 8}}
 					<div class="event">
 						<span class="octicon octicon-primitive-dot"></span>

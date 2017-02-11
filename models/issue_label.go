@@ -249,6 +249,11 @@ func DeleteLabel(repoID, labelID int64) error {
 		return err
 	}
 
+	// Clear label id in comment table
+	if _, err = sess.Where("label_id = ?", labelID).Cols("label_id").Update(&Comment{}); err != nil {
+		return err
+	}
+
 	return sess.Commit()
 }
 

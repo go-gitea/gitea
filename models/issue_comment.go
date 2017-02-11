@@ -214,12 +214,13 @@ func (c *Comment) LoadLabel() error {
 	has, err := x.ID(c.LabelID).Get(&label)
 	if err != nil {
 		return err
-	} else if !has {
-		return ErrLabelNotExist{
-			LabelID: c.LabelID,
-		}
+	} else if has {
+		c.Label = &label
+	} else {
+		// Ignore Label is deleted, but not clear this table
+		log.Warn("Commit %d cannot load label %d", c.ID, c.LabelID)
 	}
-	c.Label = &label
+
 	return nil
 }
 
