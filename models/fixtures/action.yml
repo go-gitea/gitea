@@ -20,3 +20,14 @@
   repo_name: repo3 # TODO old or new name?
   is_private: false
   content: oldRepoName
+
+-
+  id: 3
+  user_id: 11
+  op_type: 1 # create repo
+  act_user_id: 11
+  act_user_name: user11
+  repo_id: 9
+  repo_user_name: user11
+  repo_name: repo9
+  is_private: false
