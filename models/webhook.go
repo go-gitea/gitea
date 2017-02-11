@@ -668,3 +668,49 @@ func DeliverHooks() {
 func InitDeliverHooks() {
 	go DeliverHooks()
 }
+
+// baseIssueHook contains the information that is passed for webhooks of both
+// issues and pull requests.
+type baseIssueHook struct {
+	Secret     string
+	Action     api.HookIssueAction
+	Index      int64
+	Changes    *api.ChangesPayload
+	Repository *api.Repository
+	Sender     *api.User
+}
+
+func newBaseIssueHook(act api.HookIssueAction, issue *Issue, doer *User) *baseIssueHook {
+	return &baseIssueHook{
+		Action:     act,
+		Index:      issue.Index,
+		Repository: issue.Repo.APIFormat(AccessModeNone),
+		Sender:     doer.APIFormat(),
+	}
+}
+
+// ToPRPayload converts a baseIssueHook to a PullRequestPayload.
+func (b *baseIssueHook) ToPRPayload(pr *api.PullRequest) *api.PullRequestPayload {
+	return &api.PullRequestPayload{
+		Secret:      b.Secret,
+		Action:      b.Action,
+		Index:       b.Index,
+		Changes:     b.Changes,
+		Repository:  b.Repository,
+		Sender:      b.Sender,
+		PullRequest: pr,
+	}
+}
+
+// ToIssuePayload converts a baseIssueHook to an IssuePayload.
+func (b *baseIssueHook) ToIssuePayload(i *api.Issue) *api.IssuePayload {
+	return &api.IssuePayload{
+		Secret:     b.Secret,
+		Action:     b.Action,
+		Index:      b.Index,
+		Changes:    b.Changes,
+		Repository: b.Repository,
+		Sender:     b.Sender,
+		Issue:      i,
+	}
+}
