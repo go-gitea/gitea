@@ -73,3 +73,22 @@ func TestGetPrivateRepositoryCount(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
 }
+
+func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	// Get sample repo and change visibility
+	repo, err := GetRepositoryByID(9)
+	repo.IsPrivate = true
+
+	// Update it
+	err = UpdateRepository(repo, true)
+	assert.NoError(t, err)
+
+	// Check visibility of action has become private
+	act := Action{}
+	_, err = x.ID(3).Get(&act)
+
+	assert.NoError(t, err)
+	assert.Equal(t, true, act.IsPrivate)
+}
