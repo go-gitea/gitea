@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
 
+	"code.gitea.io/gitea/modules/log"
 	"github.com/go-xorm/xorm"
 )
 
@@ -311,6 +312,23 @@ func ChangeMilestoneAssign(issue *Issue, doer *User, oldMilestoneID int64) (err 
 	if err = changeMilestoneAssign(sess, doer, issue, oldMilestoneID); err != nil {
 		return err
 	}
+
+	base := newBaseIssueHook(api.HookIssueMilestoned, issue, doer)
+	if issue.MilestoneID == 0 {
+		base.Action = api.HookIssueDemilestoned
+	}
+	if issue.IsPull {
+		issue.PullRequest.Issue = issue
+		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, base.ToPRPayload(issue.PullRequest.APIFormat()))
+	} else {
+		err = PrepareWebhooks(issue.Repo, HookEventIssue, base.ToIssuePayload(issue.APIFormat()))
+	}
+	if err != nil {
+		log.Error(4, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+	} else {
+		go HookQueue.Add(issue.RepoID)
+	}
+
 	return sess.Commit()
 }
 
