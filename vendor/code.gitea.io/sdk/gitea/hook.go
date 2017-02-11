@@ -257,22 +257,6 @@ func (p *PushPayload) Branch() string {
 // |___/____  >____  >____/  \___  >
 //          \/     \/            \/
 
-// BaseIssuePayload is the information about a pull request or an issue that
-// is included as an embedded struct in both pull requests and issues.
-type BaseIssuePayload struct {
-	Secret     string          `json:"secret"`
-	Action     HookIssueAction `json:"action"`
-	Index      int64           `json:"number"`
-	Changes    *ChangesPayload `json:"changes,omitempty"`
-	Repository *Repository     `json:"repository"`
-	Sender     *User           `json:"sender"`
-}
-
-// SetSecret modifies the secret of the BaseIssuePayload.
-func (p *BaseIssuePayload) SetSecret(secret string) {
-	p.Secret = secret
-}
-
 // HookIssueAction FIXME
 type HookIssueAction string
 
@@ -309,11 +293,21 @@ const (
 
 // IssuePayload represents the payload information that is sent along with an issue event.
 type IssuePayload struct {
-	BaseIssuePayload
-	Issue *Issue `json:"issue"`
+	Secret     string          `json:"secret"`
+	Action     HookIssueAction `json:"action"`
+	Index      int64           `json:"number"`
+	Changes    *ChangesPayload `json:"changes,omitempty"`
+	Issue      *Issue          `json:"issue"`
+	Repository *Repository     `json:"repository"`
+	Sender     *User           `json:"sender"`
 }
 
-// JSONPayload FIXME
+// SetSecret modifies the secret of the IssuePayload.
+func (p *IssuePayload) SetSecret(secret string) {
+	p.Secret = secret
+}
+
+// JSONPayload encodes the IssuePayload to JSON, with an indentation of two spaces.
 func (p *IssuePayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
@@ -339,8 +333,18 @@ type ChangesPayload struct {
 
 // PullRequestPayload represents a payload information of pull request event.
 type PullRequestPayload struct {
-	BaseIssuePayload
-	PullRequest *PullRequest `json:"pull_request"`
+	Secret      string          `json:"secret"`
+	Action      HookIssueAction `json:"action"`
+	Index       int64           `json:"number"`
+	Changes     *ChangesPayload `json:"changes,omitempty"`
+	PullRequest *PullRequest    `json:"pull_request"`
+	Repository  *Repository     `json:"repository"`
+	Sender      *User           `json:"sender"`
+}
+
+// SetSecret modifies the secret of the PullRequestPayload.
+func (p *PullRequestPayload) SetSecret(secret string) {
+	p.Secret = secret
 }
 
 // JSONPayload FIXME
