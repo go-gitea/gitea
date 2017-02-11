@@ -775,14 +775,12 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 		} else {
 			apiPullRequest.Action = api.HookIssueAssigned
 		}
-		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, apiPullRequest)
+		if err := PrepareWebhooks(issue.Repo, HookEventPullRequest, apiPullRequest); err != nil {
+			log.Error(4, "PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, isRemoveAssignee, err)
+			return nil
+		}
 	}
-	if err != nil {
-		log.Error(4, "PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, isRemoveAssignee, err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
-	}
-
+	go HookQueue.Add(issue.RepoID)
 	return nil
 }
 
