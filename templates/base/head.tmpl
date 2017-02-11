@@ -46,6 +46,30 @@
 	<link rel="stylesheet" href="{{AppSubUrl}}/plugins/dropzone-4.2.0/dropzone.css">
 {{end}}
 	<style class="list-search-style"></style>
+
+	<!-- Open Graph -->
+{{if .PageIsUserProfile}}
+	<meta property="og:title" content="{{.Owner.Name}}" />
+	<meta property="og:type" content="profile" />
+	<meta property="og:image" content="{{.Owner.AvatarLink}}" />
+	<meta property="og:url" content="{{.Owner.HTMLURL}}" />
+	<meta property="og:site_name" content="{{AppName}}" />
+{{else if .Repository}}
+	<meta property="og:title" content="{{.Repository.Name}}" />
+	<meta property="og:type" content="object" />
+	<meta property="og:image" content="{{.Repository.Owner.AvatarLink}}" />
+	<meta property="og:url" content="{{.Repository.HTMLURL}}" />
+	{{if .Repository.Description}}
+	<meta property="og:description" content="{{.Repository.Description}}" />
+	{{end}}
+	<meta property="og:site_name" content="{{AppName}}" />
+{{else}}
+	<meta property="og:title" content="{{AppName}}">
+	<meta property="og:type" content="website" />
+	<meta property="og:image" content="{{AppSubUrl}}/img/gitea-lg.png" />
+	<meta property="og:url" content="{{AppUrl}}" />
+	<meta property="og:description" content="Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go">
+{{end}}
 </head>
 <body>
 	<div class="full height">

@@ -252,6 +252,11 @@ func (u *User) HomeLink() string {
 	return setting.AppSubURL + "/" + u.Name
 }
 
+// HTMLURL returns the user or organization's full link.
+func (u *User) HTMLURL() string {
+	return setting.AppURL + u.Name
+}
+
 // GenerateEmailActivateCode generates an activate code based on user information and given e-mail.
 func (u *User) GenerateEmailActivateCode(email string) string {
 	code := base.CreateTimeLimitCode(
