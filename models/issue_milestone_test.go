@@ -9,9 +9,10 @@ import (
 
 	api "code.gitea.io/sdk/gitea"
 
-	"github.com/stretchr/testify/assert"
 	"sort"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMilestone_State(t *testing.T) {
@@ -217,6 +218,7 @@ func TestChangeMilestoneAssign(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	issue := AssertExistsAndLoadBean(t, &Issue{RepoID: 1}).(*Issue)
 	doer := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	issue.Poster = doer
 
 	oldMilestoneID := issue.MilestoneID
 	issue.MilestoneID = 2
