@@ -190,23 +190,10 @@ func GetLabelsByRepoID(repoID int64, sortType string) ([]*Label, error) {
 }
 
 func getLabelsByIssueID(e Engine, issueID int64) ([]*Label, error) {
-	issueLabels, err := getIssueLabels(e, issueID)
-	if err != nil {
-		return nil, fmt.Errorf("getIssueLabels: %v", err)
-	} else if len(issueLabels) == 0 {
-		return []*Label{}, nil
-	}
-
-	labelIDs := make([]int64, len(issueLabels))
-	for i := range issueLabels {
-		labelIDs[i] = issueLabels[i].LabelID
-	}
-
-	labels := make([]*Label, 0, len(labelIDs))
-	return labels, e.
-		Where("id > 0").
-		In("id", labelIDs).
-		Asc("name").
+	var labels []*Label
+	return labels, e.Where("issue_label.issue_id = ?", issueID).
+		Join("LEFT", "issue_label", "issue_label.label_id = label.id").
+		Asc("label.name").
 		Find(&labels)
 }
 
