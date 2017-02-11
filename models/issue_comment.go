@@ -44,6 +44,8 @@ const (
 	CommentTypeAssignees
 	// Change Title
 	CommentTypeChangeTitle
+	// Delete Branch
+	CommentTypeDeleteBranch
 )
 
 // CommentTag defines comment tag type
@@ -469,6 +471,16 @@ func createChangeTitleComment(e *xorm.Session, doer *User, repo *Repository, iss
 		Issue:    issue,
 		OldTitle: oldTitle,
 		NewTitle: newTitle,
+	})
+}
+
+func createDeleteBranchComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, branchName string) (*Comment, error) {
+	return createComment(e, &CreateCommentOptions{
+		Type:      CommentTypeDeleteBranch,
+		Doer:      doer,
+		Repo:      repo,
+		Issue:     issue,
+		CommitSHA: branchName,
 	})
 }
 

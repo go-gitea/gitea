@@ -685,6 +685,24 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 	return nil
 }
 
+// AddDeletePRBranchComment adds delete branch comment for pull request issue
+func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branchName string) error {
+	issue, err := getIssueByID(x, issueID)
+	if err != nil {
+		return err
+	}
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if _, err := createDeleteBranchComment(sess, doer, repo, issue, branchName); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
 // ChangeContent changes issue content, as the given user.
 func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	oldContent := issue.Content

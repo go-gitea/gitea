@@ -635,7 +635,8 @@ func ViewIssue(ctx *context.Context) {
 			} else if ctx.User.IsWriterOfRepo(pull.HeadRepo) {
 				canDelete = true
 				deleteBranchURL := pull.HeadRepo.Link() + "/branches/" + pull.HeadBranch + "/delete"
-				ctx.Data["DeleteBranchLink"] = fmt.Sprintf("%s?commit=%s&redirect_to=%s", deleteBranchURL, pull.MergedCommitID, ctx.Data["Link"])
+				ctx.Data["DeleteBranchLink"] = fmt.Sprintf("%s?commit=%s&redirect_to=%s&issue_id=%d",
+					deleteBranchURL, pull.MergedCommitID, ctx.Data["Link"], issue.ID)
 
 			}
 		}
