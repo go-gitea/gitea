@@ -46,7 +46,7 @@ Please try to make your pull request easy to review for us. Please read the "[Ho
 
 ## Styleguide
 
-For imports you should use the following format
+For imports you should use the following format (_without_ the comments)
 ```go
 import (
   // stdlib
