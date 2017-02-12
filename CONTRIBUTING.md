@@ -53,11 +53,11 @@ import (
   "encoding/json"
   "fmt"
 
-  // local package
+  // local packages
   "code.gitea.io/gitea/models"
-
-  // external package
   "code.gitea.io/sdk/gitea"
+
+  // external packages
   "github.com/foo/bar"
   "gopkg.io/baz.v1"
 )
