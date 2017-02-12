@@ -67,6 +67,7 @@ func IsValidHookContentType(name string) bool {
 type HookEvents struct {
 	Create      bool `json:"create"`
 	Push        bool `json:"push"`
+	Issue       bool `json:"issue"`
 	PullRequest bool `json:"pull_request"`
 }
 
@@ -173,6 +174,12 @@ func (w *Webhook) HasPushEvent() bool {
 		(w.ChooseEvents && w.HookEvents.Push)
 }
 
+// HasIssueEvent returns true if hook enabled issue event.
+func (w *Webhook) HasIssueEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.Issue)
+}
+
 // HasPullRequestEvent returns true if hook enabled pull request event.
 func (w *Webhook) HasPullRequestEvent() bool {
 	return w.SendEverything ||
@@ -181,12 +188,15 @@ func (w *Webhook) HasPullRequestEvent() bool {
 
 // EventsArray returns an array of hook events
 func (w *Webhook) EventsArray() []string {
-	events := make([]string, 0, 3)
+	events := make([]string, 0, 4)
 	if w.HasCreateEvent() {
 		events = append(events, "create")
 	}
 	if w.HasPushEvent() {
 		events = append(events, "push")
+	}
+	if w.HasIssueEvent() {
+		events = append(events, "issue")
 	}
 	if w.HasPullRequestEvent() {
 		events = append(events, "pull_request")
@@ -348,6 +358,7 @@ type HookEventType string
 const (
 	HookEventCreate      HookEventType = "create"
 	HookEventPush        HookEventType = "push"
+	HookEventIssue       HookEventType = "issue"
 	HookEventPullRequest HookEventType = "pull_request"
 )
 
@@ -495,6 +506,10 @@ func PrepareWebhooks(repo *Repository, event HookEventType, p api.Payloader) err
 			}
 		case HookEventPush:
 			if !w.HasPushEvent() {
+				continue
+			}
+		case HookEventIssue:
+			if !w.HasIssueEvent() {
 				continue
 			}
 		case HookEventPullRequest:
@@ -652,4 +667,50 @@ func DeliverHooks() {
 // InitDeliverHooks starts the hooks delivery thread
 func InitDeliverHooks() {
 	go DeliverHooks()
+}
+
+// baseIssueHook contains the information that is passed for webhooks of both
+// issues and pull requests.
+type baseIssueHook struct {
+	Secret     string
+	Action     api.HookIssueAction
+	Index      int64
+	Changes    *api.ChangesPayload
+	Repository *api.Repository
+	Sender     *api.User
+}
+
+func newBaseIssueHook(act api.HookIssueAction, issue *Issue, doer *User) *baseIssueHook {
+	return &baseIssueHook{
+		Action:     act,
+		Index:      issue.Index,
+		Repository: issue.Repo.APIFormat(AccessModeNone),
+		Sender:     doer.APIFormat(),
+	}
+}
+
+// ToPRPayload converts a baseIssueHook to a PullRequestPayload.
+func (b *baseIssueHook) ToPRPayload(pr *api.PullRequest) *api.PullRequestPayload {
+	return &api.PullRequestPayload{
+		Secret:      b.Secret,
+		Action:      b.Action,
+		Index:       b.Index,
+		Changes:     b.Changes,
+		Repository:  b.Repository,
+		Sender:      b.Sender,
+		PullRequest: pr,
+	}
+}
+
+// ToIssuePayload converts a baseIssueHook to an IssuePayload.
+func (b *baseIssueHook) ToIssuePayload(i *api.Issue) *api.IssuePayload {
+	return &api.IssuePayload{
+		Secret:     b.Secret,
+		Action:     b.Action,
+		Index:      b.Index,
+		Changes:    b.Changes,
+		Repository: b.Repository,
+		Sender:     b.Sender,
+		Issue:      i,
+	}
 }
