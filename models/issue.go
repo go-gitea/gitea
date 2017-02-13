@@ -1210,6 +1210,7 @@ func parseCountResult(results []map[string][]byte) int64 {
 
 // IssueStatsOptions contains parameters accepted by GetIssueStats.
 type IssueStatsOptions struct {
+	FilterMode  int
 	RepoID      int64
 	Labels      string
 	MilestoneID int64
@@ -1276,25 +1277,25 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 			Count(new(Issue))
 	case FilterModeCreate:
 		stats.OpenCount, err = countSession(opts).
-			And("poster_id = ?", opts.UserID).
+			And("poster_id = ?", opts.PosterID).
 			And("is_closed = ?", false).
 			Count(new(Issue))
 
 		stats.ClosedCount, err = countSession(opts).
-			And("poster_id = ?", opts.UserID).
+			And("poster_id = ?", opts.PosterID).
 			And("is_closed = ?", true).
 			Count(new(Issue))
 	case FilterModeMention:
 		stats.OpenCount, err = countSession(opts).
 			Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
-			And("issue_user.uid = ?", opts.UserID).
+			And("issue_user.uid = ?", opts.PosterID).
 			And("issue_user.is_mentioned = ?", true).
 			And("issue.is_closed = ?", false).
 			Count(new(Issue))
 
 		stats.ClosedCount, err = countSession(opts).
 			Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
-			And("issue_user.uid = ?", opts.UserID).
+			And("issue_user.uid = ?", opts.PosterID).
 			And("issue_user.is_mentioned = ?", true).
 			And("issue.is_closed = ?", true).
 			Count(new(Issue))

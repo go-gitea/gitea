@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -182,20 +183,19 @@ func Issues(ctx *context.Context) {
 		viewType   string
 		sortType   = ctx.Query("sort")
 		filterMode = models.FilterModeAll
-		assigneeID int64
-		posterID   int64
 	)
+
 	if ctxUser.IsOrganization() {
-		viewType = "your_repositories"
+		viewType = "all"
 	} else {
 		viewType = ctx.Query("type")
-		types := []string{"your_repositories", "assigned", "created_by"}
+		types := []string{"all", "assigned", "created_by"}
 		if !com.IsSliceContainsStr(types, viewType) {
-			viewType = "your_repositories"
+			viewType = "all"
 		}
 
 		switch viewType {
-		case "your_repositories":
+		case "all":
 			filterMode = models.FilterModeAll
 		case "assigned":
 			filterMode = models.FilterModeAssign
@@ -247,37 +247,47 @@ func Issues(ctx *context.Context) {
 
 	var issues []*models.Issue
 	switch filterMode {
-	case models.FM_YOUR_REPOSITORIES:
+	case models.FilterModeAll:
 		// Get all issues from repositories from this user.
 		issues, err = models.Issues(&models.IssuesOptions{
 			RepoIDs:  userRepoIDs,
 			RepoID:   repoID,
 			Page:     page,
-			IsClosed: isShowClosed,
-			IsPull:   isPullList,
+			IsClosed: util.OptionalBoolOf(isShowClosed),
+			IsPull:   util.OptionalBoolOf(isPullList),
 			SortType: sortType,
 		})
 
-	case models.FM_ASSIGN:
+	case models.FilterModeAssign:
 		// Get all issues assigned to this user.
 		issues, err = models.Issues(&models.IssuesOptions{
 			RepoID:     repoID,
 			AssigneeID: ctxUser.ID,
 			Page:       page,
-			IsClosed:   isShowClosed,
-			IsPull:     isPullList,
+			IsClosed:   util.OptionalBoolOf(isShowClosed),
+			IsPull:     util.OptionalBoolOf(isPullList),
 			SortType:   sortType,
 		})
 
-	case models.FM_CREATE:
+	case models.FilterModeCreate:
 		// Get all issues created by this user.
 		issues, err = models.Issues(&models.IssuesOptions{
 			RepoID:   repoID,
 			PosterID: ctxUser.ID,
 			Page:     page,
-			IsClosed: isShowClosed,
-			IsPull:   isPullList,
+			IsClosed: util.OptionalBoolOf(isShowClosed),
+			IsPull:   util.OptionalBoolOf(isPullList),
 			SortType: sortType,
+		})
+	case models.FilterModeMention:
+		// Get all issues created by this user.
+		issues, err = models.Issues(&models.IssuesOptions{
+			RepoID:      repoID,
+			MentionedID: ctxUser.ID,
+			Page:        page,
+			IsClosed:    util.OptionalBoolOf(isShowClosed),
+			IsPull:      util.OptionalBoolOf(isPullList),
+			SortType:    sortType,
 		})
 	}
 
@@ -326,7 +336,7 @@ func Issues(ctx *context.Context) {
 		}
 
 		// Append repo to list of shown repos
-		if filterMode == models.FM_YOUR_REPOSITORIES {
+		if filterMode == models.FilterModeAll {
 			// Use a map to make sure we don't add the same Repository twice.
 			_, ok := showReposSet[issue.RepoID]
 			if !ok {
@@ -345,38 +355,6 @@ func Issues(ctx *context.Context) {
 	} else {
 		total = int(issueStats.ClosedCount)
 	}
-
-	/*
-		// Get issues.
-		issues, err := models.Issues(&models.IssuesOptions{
-			AssigneeID: assigneeID,
-			RepoID:     repoID,
-			PosterID:   posterID,
-			RepoIDs:    repoIDs,
-			Page:       page,
-			IsClosed:   util.OptionalBoolOf(isShowClosed),
-			IsPull:     util.OptionalBoolOf(isPullList),
-			SortType:   sortType,
-		})
-		if err != nil {
-			ctx.Handle(500, "Issues", err)
-			return
-		}
-
-		// Get posters and repository.
-		for i := range issues {
-			issues[i].Repo, err = models.GetRepositoryByID(issues[i].RepoID)
-			if err != nil {
-				ctx.Handle(500, "GetRepositoryByID", fmt.Errorf("[#%d]%v", issues[i].ID, err))
-				return
-			}
-
-			if err = issues[i].Repo.GetOwner(); err != nil {
-				ctx.Handle(500, "GetOwner", fmt.Errorf("[#%d]%v", issues[i].ID, err))
-				return
-			}
-		}
-	*/
 
 	ctx.Data["Issues"] = issues
 	ctx.Data["Repos"] = showRepos
