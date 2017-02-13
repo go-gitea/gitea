@@ -11,7 +11,7 @@ import (
 )
 
 func Test_parsePostgreSQLHostPort(t *testing.T) {
-	test := func (input, expectedHost, expectedPort string) {
+	test := func(input, expectedHost, expectedPort string) {
 		host, port := parsePostgreSQLHostPort(input)
 		assert.Equal(t, expectedHost, host)
 		assert.Equal(t, expectedPort, port)
