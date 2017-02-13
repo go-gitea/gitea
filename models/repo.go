@@ -1784,7 +1784,7 @@ type SearchRepoOptions struct {
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
-func SearchRepositoryByName(opts *SearchRepoOptions) (repos []*Repository, _ int64, _ error) {
+func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ int64, _ error) {
 	var sess *xorm.Session
 	if len(opts.Keyword) == 0 {
 		return repos, 0, nil
@@ -1848,11 +1848,10 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos []*Repository, _ int
 	}
 
 	if opts.Starred {
-		for _, repo := range repos {
-			if err = repo.GetOwner(); err != nil {
-				return
-			}
+		if err = repos.loadAttributes(x); err != nil {
+			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
 		}
+
 	}
 
 	return repos, count, nil
