@@ -1777,6 +1777,7 @@ type SearchRepoOptions struct {
 	Searcher *User //ID of the person who's seeking
 	OrderBy  string
 	Private  bool // Include private repositories in results
+	Starred  bool
 	Page     int
 	PageSize int // Can be smaller than or equal to setting.ExplorePagingNum
 }
@@ -1784,6 +1785,7 @@ type SearchRepoOptions struct {
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
 func SearchRepositoryByName(opts *SearchRepoOptions) (repos []*Repository, _ int64, _ error) {
+	var sess *xorm.Session
 	if len(opts.Keyword) == 0 {
 		return repos, 0, nil
 	}
@@ -1795,9 +1797,17 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos []*Repository, _ int
 
 	repos = make([]*Repository, 0, opts.PageSize)
 
+	if opts.Starred && opts.OwnerID > 0 {
+		sess = x.
+			Join("INNER", "star", "star.repo_id = repository.id").
+			Where("star.uid = ?", opts.OwnerID).
+			And("LOWER(lower_name) LIKE ?", "%"+opts.Keyword+"%")
+	} else {
+		sess = x.Where("LOWER(lower_name) LIKE ?", "%"+opts.Keyword+"%")
+	}
+
 	// Append conditions
-	sess := x.Where("LOWER(lower_name) LIKE ?", "%"+opts.Keyword+"%")
-	if opts.OwnerID > 0 {
+	if !opts.Starred && opts.OwnerID > 0 {
 		sess.And("owner_id = ?", opts.OwnerID)
 	}
 	if !opts.Private {
@@ -1830,10 +1840,22 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos []*Repository, _ int
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
-	return repos, count, sess.
+	if err = sess.
 		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
 		OrderBy(opts.OrderBy).
-		Find(&repos)
+		Find(&repos); err != nil {
+		return nil, 0, fmt.Errorf("Repo: %v", err)
+	}
+
+	if opts.Starred {
+		for _, repo := range repos {
+			if err = repo.GetOwner(); err != nil {
+				return
+			}
+		}
+	}
+
+	return repos, count, nil
 }
 
 // DeleteRepositoryArchives deletes all repositories' archives.
