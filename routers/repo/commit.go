@@ -292,5 +292,6 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", afterCommitID)
 	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", beforeCommitID)
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", afterCommitID)
+	ctx.Data["RequireHighlightJS"] = true
 	ctx.HTML(200, tplDiff)
 }
