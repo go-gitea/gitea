@@ -44,6 +44,25 @@ Please try to make your pull request easy to review for us. Please read the "[Ho
 * Don't make changes unrelated to your PR. Maybe there are typos on some comments, maybe refactoring would be welcome on a function... but if that is not related to your PR, please make *another* PR for that.
 * Split big pull requests into multiple small ones. An incremental change will be faster to review than a huge PR.
 
+## Styleguide
+
+For imports you should use the following format (_without_ the comments)
+```go
+import (
+  // stdlib
+  "encoding/json"
+  "fmt"
+
+  // local packages
+  "code.gitea.io/gitea/models"
+  "code.gitea.io/sdk/gitea"
+
+  // external packages
+  "github.com/foo/bar"
+  "gopkg.io/baz.v1"
+)
+```
+
 ## Sign your work
 
 The sign-off is a simple line at the end of the explanation for the patch. Your signature certifies that you wrote the patch or otherwise have the right to pass it on as an open-source patch. The rules are pretty simple: If you can certify [DCO](DCO), then you just add a line to every git commit message:
