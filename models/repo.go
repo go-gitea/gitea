@@ -1851,7 +1851,6 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 		if err = repos.loadAttributes(x); err != nil {
 			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
 		}
-
 	}
 
 	return repos, count, nil
