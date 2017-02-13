@@ -30,6 +30,7 @@ import (
 
 // Engine represents a xorm engine or session.
 type Engine interface {
+	Table(tableNameOrBean interface{}) *xorm.Session
 	Count(interface{}) (int64, error)
 	Decr(column string, arg ...interface{}) *xorm.Session
 	Delete(interface{}) (int64, error)

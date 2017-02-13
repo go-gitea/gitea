@@ -563,18 +563,22 @@ func (org *User) getUserTeams(e Engine, userID int64, cols ...string) ([]*Team, 
 		Find(&teams)
 }
 
+func (org *User) getOrgTeamIDs(e Engine, userID int64) ([]int64, error) {
+	teamIDs := make([]int64, 0, org.NumTeams)
+	return teamIDs, e.
+		Table("team").
+		Cols("team.id").
+		Where("`team_user`.org_id = ?", org.ID).
+		Join("INNER", "team_user", "`team_user`.team_id = team.id").
+		Join("INNER", "user", "`user`.id=team_user.uid").
+		And("`team_user`.uid = ?", userID).
+		Asc("`user`.name").
+		Find(&teamIDs)
+}
+
 // GetUserTeamIDs returns of all team IDs of the organization that user is member of.
 func (org *User) GetUserTeamIDs(userID int64) ([]int64, error) {
-	teams, err := org.getUserTeams(x, userID, "team.id")
-	if err != nil {
-		return nil, fmt.Errorf("getUserTeams [%d]: %v", userID, err)
-	}
-
-	teamIDs := make([]int64, len(teams))
-	for i := range teams {
-		teamIDs[i] = teams[i].ID
-	}
-	return teamIDs, nil
+	return org.getOrgTeamIDs(x, userID)
 }
 
 // GetUserTeams returns all teams that belong to user,
