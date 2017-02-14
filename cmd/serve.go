@@ -47,7 +47,7 @@ var CmdServ = cli.Command{
 	},
 }
 
-func setup(logPath string) {
+func setup(logPath string) error {
 	setting.NewContext()
 	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
 
@@ -60,7 +60,7 @@ func setup(logPath string) {
 		}
 	}
 
-	models.SetEngine()
+	return models.SetEngine()
 }
 
 func parseCmd(cmd string) (string, string) {
@@ -146,7 +146,9 @@ func runServ(c *cli.Context) error {
 		setting.CustomConf = c.String("config")
 	}
 
-	setup("serv.log")
+	if err := setup("serv.log"); err != nil {
+		fail("System init failed", fmt.Sprintf("setup: %v", err))
+	}
 
 	if setting.SSH.Disabled {
 		println("Gitea: SSH has been disabled")
