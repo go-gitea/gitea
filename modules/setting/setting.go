@@ -100,6 +100,7 @@ var (
 	// Database settings
 	UseSQLite3    bool
 	UseMySQL      bool
+	UseMSSQL      bool
 	UsePostgreSQL bool
 	UseTiDB       bool
 

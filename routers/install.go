@@ -40,7 +40,7 @@ func InstallInit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("install.install")
 	ctx.Data["PageIsInstall"] = true
 
-	dbOpts := []string{"MySQL", "PostgreSQL"}
+	dbOpts := []string{"MySQL", "PostgreSQL","MSSQL"}
 	if models.EnableSQLite3 {
 		dbOpts = append(dbOpts, "SQLite3")
 	}
@@ -64,6 +64,8 @@ func Install(ctx *context.Context) {
 	switch models.DbCfg.Type {
 	case "postgres":
 		ctx.Data["CurDbOption"] = "PostgreSQL"
+	case "mssql":
+		ctx.Data["CurDbOption"] = "MSSQL"
 	case "sqlite3":
 		if models.EnableSQLite3 {
 			ctx.Data["CurDbOption"] = "SQLite3"
@@ -139,7 +141,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	// Pass basic check, now test configuration.
 	// Test database setting.
-	dbTypes := map[string]string{"MySQL": "mysql", "PostgreSQL": "postgres", "SQLite3": "sqlite3", "TiDB": "tidb"}
+	dbTypes := map[string]string{"MySQL": "mysql", "PostgreSQL": "postgres", "MSSQL": "mssql", "SQLite3": "sqlite3", "TiDB": "tidb"}
 	models.DbCfg.Type = dbTypes[form.DbType]
 	models.DbCfg.Host = form.DbHost
 	models.DbCfg.User = form.DbUser
