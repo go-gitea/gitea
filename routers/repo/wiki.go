@@ -5,7 +5,10 @@
 package repo
 
 import (
+	"fmt"
 	"io/ioutil"
+	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -47,16 +50,145 @@ type PageMeta struct {
 	Updated time.Time
 }
 
-func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, string) {
+func urlEncoded(str string) string {
+	u, err := url.Parse(str)
+	if err != nil {
+		return str
+	}
+	return u.String()
+}
+func urlDecoded(str string) string {
+	res, err := url.QueryUnescape(str)
+	if err != nil {
+		return str
+	}
+	return res
+}
+
+// commitTreeBlobEntry processes found file and checks if it matches search target
+func commitTreeBlobEntry(entry *git.TreeEntry, path string, targets []string, textOnly bool) *git.TreeEntry {
+	name := entry.Name()
+	ext := filepath.Ext(name)
+	if !textOnly || markdown.IsMarkdownFile(name) || ext == ".textile" {
+		for _, target := range targets {
+			if matchName(path, target) || matchName(urlEncoded(path), target) || matchName(urlDecoded(path), target) {
+				return entry
+			}
+			pathNoExt := strings.TrimSuffix(path, ext)
+			if matchName(pathNoExt, target) || matchName(urlEncoded(pathNoExt), target) || matchName(urlDecoded(pathNoExt), target) {
+				return entry
+			}
+		}
+	}
+	return nil
+}
+
+// commitTreeDirEntry is a recursive file tree traversal function
+func commitTreeDirEntry(repo *git.Repository, commit *git.Commit, entries []*git.TreeEntry, prevPath string, targets []string, textOnly bool) (*git.TreeEntry, error) {
+	for i := range entries {
+		entry := entries[i]
+		var path string
+		if len(prevPath) == 0 {
+			path = entry.Name()
+		} else {
+			path = prevPath + "/" + entry.Name()
+		}
+		if entry.Type == git.ObjectBlob {
+			// File
+			if res := commitTreeBlobEntry(entry, path, targets, textOnly); res != nil {
+				return res, nil
+			}
+		} else if entry.IsDir() {
+			// Directory
+			// Get our tree entry, handling all possible errors
+			var err error
+			var tree *git.Tree
+			if tree, err = repo.GetTree(entry.ID.String()); tree == nil || err != nil {
+				if err == nil {
+					err = fmt.Errorf("repo.GetTree(%s) => nil", entry.ID.String())
+				}
+				return nil, err
+			}
+			// Found us, get children entries
+			var ls git.Entries
+			if ls, err = tree.ListEntries(); err != nil {
+				return nil, err
+			}
+			// Call itself recursively to find needed entry
+			var te *git.TreeEntry
+			if te, err = commitTreeDirEntry(repo, commit, ls, path, targets, textOnly); err != nil {
+				return nil, err
+			}
+			if te != nil {
+				return te, nil
+			}
+		}
+	}
+	return nil, nil
+}
+
+// commitTreeEntry is a first step of commitTreeDirEntry, which should be never called directly
+func commitTreeEntry(repo *git.Repository, commit *git.Commit, targets []string, textOnly bool) (*git.TreeEntry, error) {
+	entries, err := commit.ListEntries()
+	if err != nil {
+		return nil, err
+	}
+	return commitTreeDirEntry(repo, commit, entries, "", targets, textOnly)
+}
+
+// findFile finds the best match for given filename in repo file tree
+func findFile(repo *git.Repository, commit *git.Commit, target string, textOnly bool) (*git.TreeEntry, error) {
+	targets := []string{target, urlEncoded(target), urlDecoded(target)}
+	var entry *git.TreeEntry
+	var err error
+	if entry, err = commitTreeEntry(repo, commit, targets, textOnly); err != nil {
+		return nil, err
+	}
+	return entry, nil
+}
+
+// matchName matches generic name representation of the file with required one
+func matchName(target, name string) bool {
+	if len(target) != len(name) {
+		return false
+	}
+	name = strings.ToLower(name)
+	target = strings.ToLower(target)
+	if name == target {
+		return true
+	}
+	target = strings.Replace(target, " ", "?", -1)
+	target = strings.Replace(target, "-", "?", -1)
+	for i := range name {
+		ch := name[i]
+		reqCh := target[i]
+		if ch != reqCh {
+			if string(reqCh) != "?" {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {
 	wikiRepo, err := git.OpenRepository(ctx.Repo.Repository.WikiPath())
 	if err != nil {
-		ctx.Handle(500, "OpenRepository", err)
-		return nil, ""
+		// ctx.Handle(500, "OpenRepository", err)
+		return nil, nil, err
 	}
 	commit, err := wikiRepo.GetBranchCommit("master")
 	if err != nil {
 		ctx.Handle(500, "GetBranchCommit", err)
-		return nil, ""
+		return wikiRepo, nil, err
+	}
+	return wikiRepo, commit, nil
+}
+
+func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *git.TreeEntry) {
+	wikiRepo, commit, err := findWikiRepoCommit(ctx)
+	if err != nil {
+		return nil, nil
 	}
 
 	// Get page list.
@@ -64,16 +196,23 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, str
 		entries, err := commit.ListEntries()
 		if err != nil {
 			ctx.Handle(500, "ListEntries", err)
-			return nil, ""
+			return nil, nil
 		}
-		pages := make([]PageMeta, 0, len(entries))
+		pages := []PageMeta{}
 		for i := range entries {
-			if entries[i].Type == git.ObjectBlob && strings.HasSuffix(entries[i].Name(), ".md") {
-				name := strings.TrimSuffix(entries[i].Name(), ".md")
-				pages = append(pages, PageMeta{
-					Name: name,
-					URL:  models.ToWikiPageURL(name),
-				})
+			if entries[i].Type == git.ObjectBlob {
+				name := entries[i].Name()
+				ext := filepath.Ext(name)
+				if markdown.IsMarkdownFile(name) || ext == ".textile" {
+					name = strings.TrimSuffix(name, ext)
+					if name == "" || name == "_Sidebar" || name == "_Footer" || name == "_Header" {
+						continue
+					}
+					pages = append(pages, PageMeta{
+						Name: strings.Replace(name, "-", " ", -1),
+						URL:  models.ToWikiPageURL(name),
+					})
+				}
 			}
 		}
 		ctx.Data["Pages"] = pages
@@ -91,35 +230,71 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, str
 	ctx.Data["title"] = pageName
 	ctx.Data["RequireHighlightJS"] = true
 
-	blob, err := commit.GetBlobByPath(pageURL + ".md")
-	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.Redirect(ctx.Repo.RepoLink + "/wiki/_pages")
-		} else {
-			ctx.Handle(500, "GetBlobByPath", err)
-		}
-		return nil, ""
+	var entry *git.TreeEntry
+	if entry, err = findFile(wikiRepo, commit, pageName, true); err != nil {
+		ctx.Handle(500, "findFile", err)
+		return nil, nil
 	}
+	if entry == nil {
+		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/_pages")
+		return nil, nil
+	}
+	blob := entry.Blob()
 	r, err := blob.Data()
 	if err != nil {
 		ctx.Handle(500, "Data", err)
-		return nil, ""
+		return nil, nil
 	}
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		ctx.Handle(500, "ReadAll", err)
-		return nil, ""
+		return nil, nil
+	}
+	sidebarPresent := false
+	sidebarContent := []byte{}
+	sentry, err := findFile(wikiRepo, commit, "_Sidebar", true)
+	if err == nil && sentry != nil {
+		r, err = sentry.Blob().Data()
+		if err == nil {
+			dataSB, err := ioutil.ReadAll(r)
+			if err == nil {
+				sidebarPresent = true
+				sidebarContent = dataSB
+			}
+		}
+	}
+	footerPresent := false
+	footerContent := []byte{}
+	sentry, err = findFile(wikiRepo, commit, "_Footer", true)
+	if err == nil && sentry != nil {
+		r, err = sentry.Blob().Data()
+		if err == nil {
+			dataSB, err := ioutil.ReadAll(r)
+			if err == nil {
+				footerPresent = true
+				footerContent = dataSB
+			}
+		}
 	}
 	if isViewPage {
-		ctx.Data["content"] = string(markdown.Render(data, ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas()))
+		metas := ctx.Repo.Repository.ComposeMetas()
+		ctx.Data["content"] = markdown.RenderWiki(data, ctx.Repo.RepoLink, metas)
+		ctx.Data["sidebarPresent"] = sidebarPresent
+		ctx.Data["sidebarContent"] = markdown.RenderWiki(sidebarContent, ctx.Repo.RepoLink, metas)
+		ctx.Data["footerPresent"] = footerPresent
+		ctx.Data["footerContent"] = markdown.RenderWiki(footerContent, ctx.Repo.RepoLink, metas)
 	} else {
 		ctx.Data["content"] = string(data)
+		ctx.Data["sidebarPresent"] = false
+		ctx.Data["sidebarContent"] = ""
+		ctx.Data["footerPresent"] = false
+		ctx.Data["footerContent"] = ""
 	}
 
-	return wikiRepo, pageURL
+	return wikiRepo, entry
 }
 
-// Wiki render wiki page
+// Wiki renders single wiki page
 func Wiki(ctx *context.Context) {
 	ctx.Data["PageIsWiki"] = true
 
@@ -129,13 +304,18 @@ func Wiki(ctx *context.Context) {
 		return
 	}
 
-	wikiRepo, pagePath := renderWikiPage(ctx, true)
+	wikiRepo, entry := renderWikiPage(ctx, true)
 	if ctx.Written() {
 		return
 	}
 
+	ename := entry.Name()
+	if !markdown.IsMarkdownFile(ename) {
+		ext := strings.ToUpper(filepath.Ext(ename))
+		ctx.Data["FormatWarning"] = fmt.Sprintf("%s rendering is not supported at the moment. Rendered as Markdown.", ext)
+	}
 	// Get last change information.
-	lastCommit, err := wikiRepo.GetCommitByPath(pagePath + ".md")
+	lastCommit, err := wikiRepo.GetCommitByPath(ename)
 	if err != nil {
 		ctx.Handle(500, "GetCommitByPath", err)
 		return
@@ -155,14 +335,8 @@ func WikiPages(ctx *context.Context) {
 		return
 	}
 
-	wikiRepo, err := git.OpenRepository(ctx.Repo.Repository.WikiPath())
+	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
-		ctx.Handle(500, "OpenRepository", err)
-		return
-	}
-	commit, err := wikiRepo.GetBranchCommit("master")
-	if err != nil {
-		ctx.Handle(500, "GetBranchCommit", err)
 		return
 	}
 
@@ -173,23 +347,68 @@ func WikiPages(ctx *context.Context) {
 	}
 	pages := make([]PageMeta, 0, len(entries))
 	for i := range entries {
-		if entries[i].Type == git.ObjectBlob && strings.HasSuffix(entries[i].Name(), ".md") {
+		if entries[i].Type == git.ObjectBlob {
 			c, err := wikiRepo.GetCommitByPath(entries[i].Name())
 			if err != nil {
 				ctx.Handle(500, "GetCommit", err)
 				return
 			}
-			name := strings.TrimSuffix(entries[i].Name(), ".md")
-			pages = append(pages, PageMeta{
-				Name:    name,
-				URL:     models.ToWikiPageURL(name),
-				Updated: c.Author.When,
-			})
+			name := entries[i].Name()
+			ext := filepath.Ext(name)
+			if markdown.IsMarkdownFile(name) || ext == ".textile" {
+				name = strings.TrimSuffix(name, ext)
+				if name == "" {
+					continue
+				}
+				pages = append(pages, PageMeta{
+					Name:    name,
+					URL:     models.ToWikiPageURL(name),
+					Updated: c.Author.When,
+				})
+			}
 		}
 	}
 	ctx.Data["Pages"] = pages
 
 	ctx.HTML(200, tplWikiPages)
+}
+
+// WikiRaw outputs raw blob requested by user (image for example)
+func WikiRaw(ctx *context.Context) {
+	wikiRepo, commit, err := findWikiRepoCommit(ctx)
+	if err != nil {
+		if wikiRepo != nil {
+			return
+		}
+	}
+	uri := ctx.Params("*")
+	var entry *git.TreeEntry
+	if commit != nil {
+		entry, err = findFile(wikiRepo, commit, uri, false)
+	}
+	if err != nil || entry == nil {
+		if entry == nil || commit == nil {
+			defBranch := ctx.Repo.Repository.DefaultBranch
+			if commit, err = ctx.Repo.GitRepo.GetBranchCommit(defBranch); commit == nil || err != nil {
+				ctx.Handle(500, "GetBranchCommit", err)
+				return
+			}
+			if entry, err = findFile(ctx.Repo.GitRepo, commit, uri, false); err != nil {
+				ctx.Handle(500, "findFile", err)
+				return
+			}
+			if entry == nil {
+				ctx.Handle(404, "findFile", nil)
+				return
+			}
+		} else {
+			ctx.Handle(500, "findFile", err)
+			return
+		}
+	}
+	if err = ServeBlob(ctx, entry.Blob()); err != nil {
+		ctx.Handle(500, "ServeBlob", err)
+	}
 }
 
 // NewWiki render wiki create page

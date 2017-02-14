@@ -602,7 +602,7 @@ footer .ui.language .menu {
   list-style-type: lower-roman;
 }
 .markdown:not(code) li > p {
-  margin-top: 16px;
+  margin-top: 0;
 }
 .markdown:not(code) dl {
   padding: 0;
@@ -840,6 +840,11 @@ footer .ui.language .menu {
   font-weight: bold;
   background: #f8f8f8;
   border-top: 0;
+}
+.markdown:not(code) .ui.list .list,
+.markdown:not(code) ol.ui.list ol,
+.markdown:not(code) ul.ui.list ul {
+  padding-left: 2em;
 }
 .home {
   padding-bottom: 80px;

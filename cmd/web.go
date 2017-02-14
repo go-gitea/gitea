@@ -563,6 +563,11 @@ func runWeb(ctx *cli.Context) error {
 			}, reqSignIn, reqRepoWriter)
 		}, repo.MustEnableWiki, context.RepoRef())
 
+		m.Group("/wiki", func() {
+			m.Get("/raw/*", repo.WikiRaw)
+			m.Get("/*", repo.WikiRaw)
+		}, repo.MustEnableWiki)
+
 		m.Get("/archive/*", repo.Download)
 
 		m.Group("/pulls/:index", func() {
