@@ -1801,9 +1801,9 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 		sess = x.
 			Join("INNER", "star", "star.repo_id = repository.id").
 			Where("star.uid = ?", opts.OwnerID).
-			And("LOWER(lower_name) LIKE ?", "%"+opts.Keyword+"%")
+			And("lower_name LIKE ?", "%"+opts.Keyword+"%")
 	} else {
-		sess = x.Where("LOWER(lower_name) LIKE ?", "%"+opts.Keyword+"%")
+		sess = x.Where("lower_name LIKE ?", "%"+opts.Keyword+"%")
 	}
 
 	// Append conditions
