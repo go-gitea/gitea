@@ -152,8 +152,8 @@ func Dashboard(ctx *context.Context) {
 			success = ctx.Tr("admin.dashboard.resync_all_sshkeys_success")
 			err = models.RewriteAllPublicKeys()
 		case syncRepositoryUpdateHook:
-			success = ctx.Tr("admin.dashboard.resync_all_update_hooks_success")
-			err = models.RewriteRepositoryUpdateHook()
+			success = ctx.Tr("admin.dashboard.resync_all_hooks_success")
+			err = models.SyncRepositoryHooks()
 		case reinitMissingRepository:
 			success = ctx.Tr("admin.dashboard.reinit_missing_repos_success")
 			err = models.ReinitMissingRepositories()

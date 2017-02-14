@@ -86,6 +86,8 @@ var migrations = []Migration{
 	NewMigration("set protect branches updated with created", setProtectedBranchUpdatedWithCreated),
 	// v18 -> v19
 	NewMigration("add external login user", addExternalLoginUser),
+	// v19 -> v20
+	NewMigration("generate and migrate Git hooks", generateAndMigrateGitHooks),
 }
 
 // Migrate database to current version

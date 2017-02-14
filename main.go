@@ -30,7 +30,7 @@ func main() {
 	app.Commands = []cli.Command{
 		cmd.CmdWeb,
 		cmd.CmdServ,
-		cmd.CmdUpdate,
+		cmd.CmdHook,
 		cmd.CmdDump,
 		cmd.CmdCert,
 		cmd.CmdAdmin,
