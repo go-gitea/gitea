@@ -2372,6 +2372,17 @@ func HasForkedRepo(ownerID, repoID int64) (*Repository, bool) {
 
 // ForkRepository forks a repository
 func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Repository, err error) {
+	forkedRepo, err := oldRepo.GetUserFork(u.ID)
+	if err != nil {
+		return nil, err
+	}
+	if forkedRepo != nil {
+		return nil, ErrRepoAlreadyExist{
+			Uname: u.Name,
+			Name:  forkedRepo.Name,
+		}
+	}
+
 	repo := &Repository{
 		OwnerID:       u.ID,
 		Owner:         u,
@@ -2451,6 +2462,19 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 func (repo *Repository) GetForks() ([]*Repository, error) {
 	forks := make([]*Repository, 0, repo.NumForks)
 	return forks, x.Find(&forks, &Repository{ForkID: repo.ID})
+}
+
+// GetUserFork return user forked repository from this repository, if not forked return nil
+func (repo *Repository) GetUserFork(userID int64) (*Repository, error) {
+	var forkedRepo Repository
+	has, err := x.Where("fork_id = ?", repo.ID).And("owner_id = ?", userID).Get(&forkedRepo)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, nil
+	}
+	return &forkedRepo, nil
 }
 
 // __________                             .__
