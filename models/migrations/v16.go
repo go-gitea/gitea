@@ -42,7 +42,7 @@ type Repo struct {
 
 func addUnitsToTables(x *xorm.Engine) error {
 	var repos []Repo
-	err := x.Table("repository").Find(&repos)
+	err := x.Table("repository").Select("*").Find(&repos)
 	if err != nil {
 		return fmt.Errorf("Query repositories: %v", err)
 	}
