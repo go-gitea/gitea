@@ -657,9 +657,13 @@ func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*Repository, error) 
 	}
 
 	repos := make([]*Repository, 0, len(repoIDs))
+
+	if len(repoIDs) <= 0 {
+		return repos, nil
+	}
+
 	return repos, x.
-		Select("`repository`.*").
-		Where(builder.In("`repository`.id", repoIDs)).
+		In("`repository`.id", repoIDs).
 		Find(&repos)
 }
 
