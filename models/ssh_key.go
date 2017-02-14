@@ -364,7 +364,7 @@ func checkKeyFingerprint(e Engine, fingerprint string) error {
 	if err != nil {
 		return err
 	} else if has {
-		return ErrKeyAlreadyExist{0, fingerprint}
+		return ErrKeyAlreadyExist{0, fingerprint, ""}
 	}
 	return nil
 }
