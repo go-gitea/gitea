@@ -410,7 +410,7 @@ func (err ErrRepoAlreadyExist) Error() string {
 
 // ErrRepoRedirectNotExist represents a "RepoRedirectNotExist" kind of error.
 type ErrRepoRedirectNotExist struct {
-	OwnerID int64
+	OwnerID  int64
 	RepoName string
 }
 
