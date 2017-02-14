@@ -345,8 +345,14 @@ func runWeb(ctx *cli.Context) error {
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
-		m.Get("/create", org.Create)
-		m.Post("/create", bindIgnErr(auth.CreateOrgForm{}), org.CreatePost)
+		m.Group("", func() {
+			m.Get("/create", org.Create)
+			m.Post("/create", bindIgnErr(auth.CreateOrgForm{}), org.CreatePost)
+		}, func(ctx *context.Context) {
+			if !ctx.User.CanCreateOrganization() {
+				ctx.NotFound()
+			}
+		})
 
 		m.Group("/:org", func() {
 			m.Get("/dashboard", user.Dashboard)

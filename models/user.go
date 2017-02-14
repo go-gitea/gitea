@@ -223,7 +223,7 @@ func (u *User) CanCreateRepo() bool {
 
 // CanCreateOrganization returns true if user can create organisation.
 func (u *User) CanCreateOrganization() bool {
-	return u.IsAdmin || u.AllowCreateOrganization
+	return u.IsAdmin || (u.AllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation)
 }
 
 // CanEditGitHook returns true if user can edit Git hooks.
