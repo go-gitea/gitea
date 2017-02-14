@@ -96,7 +96,7 @@ var (
 	}{
 		Disabled:           false,
 		StartBuiltinServer: false,
-		Domain:             "localhost",
+		Domain:             "",
 		Port:               22,
 		KeygenPath:         "ssh-keygen",
 	}
@@ -623,6 +623,9 @@ please consider changing to GITEA_CUSTOM`)
 		LandingPageURL = LandingPageHome
 	}
 
+	if len(SSH.Domain) == 0 {
+		SSH.Domain = Domain
+	}
 	SSH.RootPath = path.Join(homeDir, ".ssh")
 	SSH.KeyTestPath = os.TempDir()
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
