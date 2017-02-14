@@ -213,8 +213,9 @@ func (err ErrKeyNotExist) Error() string {
 
 // ErrKeyAlreadyExist represents a "KeyAlreadyExist" kind of error.
 type ErrKeyAlreadyExist struct {
-	OwnerID int64
-	Content string
+	OwnerID     int64
+	Fingerprint string
+	Content     string
 }
 
 // IsErrKeyAlreadyExist checks if an error is a ErrKeyAlreadyExist.
@@ -224,7 +225,8 @@ func IsErrKeyAlreadyExist(err error) bool {
 }
 
 func (err ErrKeyAlreadyExist) Error() string {
-	return fmt.Sprintf("public key already exists [owner_id: %d, content: %s]", err.OwnerID, err.Content)
+	return fmt.Sprintf("public key already exists [owner_id: %d, finter_print: %s, content: %s]",
+		err.OwnerID, err.Fingerprint, err.Content)
 }
 
 // ErrKeyNameAlreadyUsed represents a "KeyNameAlreadyUsed" kind of error.
