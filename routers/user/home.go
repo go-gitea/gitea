@@ -227,22 +227,35 @@ func Issues(ctx *context.Context) {
 			ctx.Handle(500, "GetRepositories", err)
 			return
 		}
+
+		for _, repo := range repos {
+			if (isPullList && repo.NumPulls == 0) ||
+				(!isPullList &&
+					(!repo.EnableUnit(models.UnitTypeIssues) || repo.NumIssues == 0)) {
+				continue
+			}
+
+			userRepoIDs = append(userRepoIDs, repo.ID)
+		}
+
+		if len(userRepoIDs) <= 0 {
+			userRepoIDs = []int64{-1}
+		}
+
 	} else {
 		if err := ctxUser.GetRepositories(1, ctx.User.NumRepos); err != nil {
 			ctx.Handle(500, "GetRepositories", err)
 			return
 		}
 		repos = ctxUser.Repos
-	}
 
-	for _, repo := range repos {
-		if (isPullList && repo.NumPulls == 0) ||
-			(!isPullList &&
-				(!repo.EnableUnit(models.UnitTypeIssues) || repo.NumIssues == 0)) {
-			continue
+		for _, repo := range repos {
+			if (isPullList && repo.NumPulls == 0) ||
+				(!isPullList &&
+					(!repo.EnableUnit(models.UnitTypeIssues) || repo.NumIssues == 0)) {
+				continue
+			}
 		}
-
-		userRepoIDs = append(userRepoIDs, repo.ID)
 	}
 
 	var issues []*models.Issue
