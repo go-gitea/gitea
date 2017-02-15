@@ -329,8 +329,51 @@ func (repo *Repository) getUnits(e Engine) (err error) {
 	return err
 }
 
-func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
-	return units, e.Where("repo_id = ?", repoID).Find(&units)
+// LoadUnitsByUserID loads units according userID's permissions
+func (repo *Repository) LoadUnitsByUserID(userID int64) error {
+	return repo.getUnitsByUserID(x, userID)
+}
+
+func (repo *Repository) getUnitsByUserID(e Engine, userID int64) (err error) {
+	if repo.Units != nil {
+		return nil
+	}
+
+	if err = repo.getOwner(e); err != nil {
+		return
+	}
+
+	if !repo.Owner.IsOrganization() {
+		return repo.getUnits(e)
+	}
+
+	teams, err := getUserTeams(e, repo.Owner.ID, userID)
+	if err != nil {
+		return err
+	}
+
+	var allTypes = make([]UnitType, 0, len(teams)*len(allRepUnitTypes))
+	for _, team := range teams {
+		allTypes = append(allTypes, team.UnitTypes...)
+	}
+
+	var types = make([]UnitType, 0, len(allTypes))
+	// unique
+	for _, oriType := range allTypes {
+		for _, tp := range types {
+			var has bool
+			if oriType == tp {
+				has = true
+				break
+			}
+			if !has {
+				types = append(types, oriType)
+			}
+		}
+	}
+
+	repo.Units, err = getUnitsByRepoIDAndIDs(e, repo.ID, types)
+	return
 }
 
 // EnableUnit if this repository enabled some unit

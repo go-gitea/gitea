@@ -156,6 +156,7 @@ func NewTeam(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Team"] = &models.Team{}
+	ctx.Data["Units"] = models.Units
 	ctx.HTML(200, tplTeamNew)
 }
 
@@ -220,6 +221,7 @@ func EditTeam(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["team_name"] = ctx.Org.Team.Name
 	ctx.Data["desc"] = ctx.Org.Team.Description
+	ctx.Data["Units"] = models.Units
 	ctx.HTML(200, tplTeamNew)
 }
 

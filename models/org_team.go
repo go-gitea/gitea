@@ -24,6 +24,15 @@ type Team struct {
 	Members     []*User       `xorm:"-"`
 	NumRepos    int
 	NumMembers  int
+	UnitTypes   []UnitType `xorm:"json"`
+}
+
+// GetUnitTypes returns unit types the team owned, empty means all the unit types
+func (t *Team) GetUnitTypes() []UnitType {
+	if len(t.UnitTypes) == 0 {
+		return allRepUnitTypes
+	}
+	return t.UnitTypes
 }
 
 // IsOwnerTeam returns true if team is owner team.
@@ -181,6 +190,19 @@ func (t *Team) RemoveRepository(repoID int64) error {
 	}
 
 	return sess.Commit()
+}
+
+// EnableUnit returns if the team enables unit type t
+func (t *Team) EnableUnit(tp UnitType) bool {
+	if len(t.UnitTypes) == 0 {
+		return true
+	}
+	for _, u := range t.UnitTypes {
+		if u == tp {
+			return true
+		}
+	}
+	return false
 }
 
 // IsUsableTeamName tests if a name could be as team name

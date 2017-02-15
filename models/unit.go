@@ -20,6 +20,40 @@ const (
 	UnitTypeExternalTracker                     // 9 ExternalTracker
 )
 
+var (
+	// allRepUnitTypes contains all the unit types
+	allRepUnitTypes = []UnitType{
+		UnitTypeCode,
+		UnitTypeIssues,
+		UnitTypePullRequests,
+		UnitTypeCommits,
+		UnitTypeReleases,
+		UnitTypeWiki,
+		UnitTypeSettings,
+		UnitTypeExternalWiki,
+		UnitTypeExternalTracker,
+	}
+
+	// defaultRepoUnits contains the default unit types
+	defaultRepoUnits = []UnitType{
+		UnitTypeCode,
+		UnitTypeIssues,
+		UnitTypePullRequests,
+		UnitTypeCommits,
+		UnitTypeReleases,
+		UnitTypeWiki,
+		UnitTypeSettings,
+	}
+
+	// MustRepoUnits contains the units could be disabled currently
+	MustRepoUnits = []UnitType{
+		UnitTypeCode,
+		UnitTypeCommits,
+		UnitTypeReleases,
+		UnitTypeSettings,
+	}
+)
+
 // Unit is a tab page of one repository
 type Unit struct {
 	Type    UnitType
@@ -27,6 +61,11 @@ type Unit struct {
 	URI     string
 	DescKey string
 	Idx     int
+}
+
+// CanDisabled returns if this unit could be disabled.
+func (u *Unit) CanDisable() bool {
+	return u.Type != UnitTypeSettings
 }
 
 // Enumerate all the units
@@ -101,25 +140,6 @@ var (
 		"/settings",
 		"repo.settings_desc",
 		6,
-	}
-
-	// defaultRepoUnits contains all the default unit types
-	defaultRepoUnits = []UnitType{
-		UnitTypeCode,
-		UnitTypeIssues,
-		UnitTypePullRequests,
-		UnitTypeCommits,
-		UnitTypeReleases,
-		UnitTypeWiki,
-		UnitTypeSettings,
-	}
-
-	// MustRepoUnits contains the units could be disabled currently
-	MustRepoUnits = []UnitType{
-		UnitTypeCode,
-		UnitTypeCommits,
-		UnitTypeReleases,
-		UnitTypeSettings,
 	}
 
 	// Units contains all the units
