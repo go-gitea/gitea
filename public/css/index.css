@@ -2307,6 +2307,9 @@ footer .ui.language .menu {
   margin-top: -5px;
   margin-right: 5px;
 }
+.issue-actions {
+    display: none;
+}
 .page.buttons {
   padding-top: 15px;
 }

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strconv"
 	"strings"
 	"time"
 
@@ -644,6 +645,25 @@ func getActionIssue(ctx *context.Context) *models.Issue {
 	return issue
 }
 
+func getActionIssues(ctx *context.Context) []*models.Issue {
+	commaSeparatedIssueIDs := ctx.Query("issue_ids")
+	if len(commaSeparatedIssueIDs) == 0 {
+		return nil
+	}
+	stringIssueIDs := strings.Split(commaSeparatedIssueIDs, ",")
+	issues := make([]*models.Issue, len(stringIssueIDs))
+	for i, stringIssueID := range stringIssueIDs {
+		if issueID, err := strconv.ParseInt(stringIssueID, 10, 64); err != nil {
+			ctx.Handle(500, "ParseInt", err)
+			return nil
+		} else if issues[i], err = models.GetIssueByID(issueID); err != nil {
+			ctx.Handle(500, "GetIssueByID", err)
+			return nil
+		}
+	}
+	return issues
+}
+
 // UpdateIssueTitle change issue's title
 func UpdateIssueTitle(ctx *context.Context) {
 	issue := getActionIssue(ctx)
@@ -697,25 +717,22 @@ func UpdateIssueContent(ctx *context.Context) {
 
 // UpdateIssueMilestone change issue's milestone
 func UpdateIssueMilestone(ctx *context.Context) {
-	issue := getActionIssue(ctx)
+	issues := getActionIssues(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	oldMilestoneID := issue.MilestoneID
 	milestoneID := ctx.QueryInt64("id")
-	if oldMilestoneID == milestoneID {
-		ctx.JSON(200, map[string]interface{}{
-			"ok": true,
-		})
-		return
-	}
-
-	// Not check for invalid milestone id and give responsibility to owners.
-	issue.MilestoneID = milestoneID
-	if err := models.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
-		ctx.Handle(500, "ChangeMilestoneAssign", err)
-		return
+	for _, issue := range issues {
+		oldMilestoneID := issue.MilestoneID
+		if oldMilestoneID == milestoneID {
+			continue
+		}
+		issue.MilestoneID = milestoneID
+		if err := models.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
+			ctx.Handle(500, "ChangeMilestoneAssign", err)
+			return
+		}
 	}
 
 	ctx.JSON(200, map[string]interface{}{
@@ -725,24 +742,52 @@ func UpdateIssueMilestone(ctx *context.Context) {
 
 // UpdateIssueAssignee change issue's assignee
 func UpdateIssueAssignee(ctx *context.Context) {
-	issue := getActionIssue(ctx)
+	issues := getActionIssues(ctx)
 	if ctx.Written() {
 		return
 	}
 
 	assigneeID := ctx.QueryInt64("id")
-	if issue.AssigneeID == assigneeID {
-		ctx.JSON(200, map[string]interface{}{
-			"ok": true,
-		})
+	for _, issue := range issues {
+		if issue.AssigneeID == assigneeID {
+			continue
+		}
+		if err := issue.ChangeAssignee(ctx.User, assigneeID); err != nil {
+			ctx.Handle(500, "ChangeAssignee", err)
+			return
+		}
+	}
+	ctx.JSON(200, map[string]interface{}{
+		"ok": true,
+	})
+}
+
+// UpdateIssueStatus change issue's status
+func UpdateIssueStatus(ctx *context.Context) {
+	issues := getActionIssues(ctx)
+	if ctx.Written() {
 		return
 	}
 
-	if err := issue.ChangeAssignee(ctx.User, assigneeID); err != nil {
-		ctx.Handle(500, "ChangeAssignee", err)
-		return
+	var isClosed bool
+	switch action := ctx.Query("action"); action {
+	case "open":
+		isClosed = false
+	case "close":
+		isClosed = true
+	default:
+		log.Warn("Unrecognized action: %s", action)
 	}
 
+	for _, issue := range issues {
+		if repo, err := models.GetRepositoryByID(issue.RepoID); err != nil {
+			ctx.Handle(500, "GetRepositoryByID", err)
+			return
+		} else if err := issue.ChangeStatus(ctx.User, repo, isClosed); err != nil {
+			ctx.Handle(500, "ChangeStatus", err)
+			return
+		}
+	}
 	ctx.JSON(200, map[string]interface{}{
 		"ok": true,
 	})
