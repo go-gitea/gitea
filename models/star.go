@@ -71,7 +71,7 @@ func (repo *Repository) GetStargazers(page int) ([]*User, error) {
 }
 
 // GetStarredRepos returns the repos the user starred.
-func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string) (repos []*Repository, err error) {
+func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string) (repos RepositoryList, err error) {
 	if len(orderBy) == 0 {
 		orderBy = "updated_unix DESC"
 	}
@@ -95,10 +95,8 @@ func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string)
 		return
 	}
 
-	for _, repo := range repos {
-		if err = repo.GetOwner(); err != nil {
-			return
-		}
+	if err = repos.loadAttributes(x); err != nil {
+		return
 	}
 
 	return
