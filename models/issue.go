@@ -1399,3 +1399,41 @@ func updateIssue(e Engine, issue *Issue) error {
 func UpdateIssue(issue *Issue) error {
 	return updateIssue(x, issue)
 }
+
+// IssueList defines a list of issues
+type IssueList []*Issue
+
+func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
+	if len(issues) == 0 {
+		return nil, nil
+	}
+
+	// Load issues.
+	repoIDs := make([]int64, 0, len(issues))
+	for _, issue := range issues {
+		repoIDs = append(repoIDs, issue.RepoID)
+	}
+
+	repositories := make([]*Repository, 0, len(repoIDs))
+	if err := e.
+		Where("id > 0").
+		In("id", repoIDs).
+		Find(&repositories); err != nil {
+		return nil, fmt.Errorf("find repository: %v", err)
+	}
+
+	for _, issue := range issues {
+		for _, repo := range repositories {
+			if repo.ID == issue.RepoID {
+				issue.Repo = repo
+				break
+			}
+		}
+	}
+	return repositories, nil
+}
+
+// LoadRepositories loads issues' all repositories
+func (issues IssueList) LoadRepositories() ([]*Repository, error) {
+	return issues.loadRepositories(x)
+}
