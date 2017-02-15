@@ -6,16 +6,15 @@ package routers
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
-
-	"github.com/Unknwon/paginater"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/user"
+
+	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -55,7 +54,7 @@ func Home(ctx *context.Context) {
 // RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
 	Counter  func(bool) int64
-	Ranger   func(*models.SearchRepoOptions) ([]*models.Repository, error)
+	Ranger   func(*models.SearchRepoOptions) (models.RepositoryList, error)
 	Searcher *models.User
 	Private  bool
 	PageSize int
@@ -132,13 +131,6 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Total"] = count
 	ctx.Data["Page"] = paginater.New(int(count), opts.PageSize, page, 5)
-
-	for _, repo := range repos {
-		if err = repo.GetOwner(); err != nil {
-			ctx.Handle(500, "GetOwner", fmt.Errorf("%d: %v", repo.ID, err))
-			return
-		}
-	}
 	ctx.Data["Repos"] = repos
 
 	ctx.HTML(200, opts.TplName)

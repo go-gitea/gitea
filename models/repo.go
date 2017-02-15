@@ -1184,25 +1184,23 @@ func CountUserRepositories(userID int64, private bool) int64 {
 }
 
 // Repositories returns all repositories
-func Repositories(opts *SearchRepoOptions) (_ []*Repository, err error) {
+func Repositories(opts *SearchRepoOptions) (_ RepositoryList, err error) {
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "id ASC"
 	}
 
-	repos := make([]*Repository, 0, opts.PageSize)
-	return repos, x.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).OrderBy(opts.OrderBy).Find(&repos)
-}
+	repos := make(RepositoryList, 0, opts.PageSize)
 
-// RepositoriesWithUsers returns number of repos in given page.
-func RepositoriesWithUsers(opts *SearchRepoOptions) (_ []*Repository, err error) {
-	repos, err := Repositories(opts)
-	if err != nil {
-		return nil, fmt.Errorf("Repositories: %v", err)
+	if err = x.
+		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
+		OrderBy(opts.OrderBy).
+		Find(&repos); err != nil {
+		return nil, fmt.Errorf("Repo: %v", err)
 	}
 
-	for i := range repos {
-		if err = repos[i].GetOwner(); err != nil {
-			return nil, err
+	if opts.Searcher != nil || opts.Starred {
+		if err = repos.loadAttributes(x); err != nil {
+			return nil, fmt.Errorf("LoadAttributes: %v", err)
 		}
 	}
 
@@ -1716,7 +1714,7 @@ func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 }
 
 // GetRecentUpdatedRepositories returns the list of repositories that are recently updated.
-func GetRecentUpdatedRepositories(opts *SearchRepoOptions) (repos []*Repository, err error) {
+func GetRecentUpdatedRepositories(opts *SearchRepoOptions) (repos RepositoryList, err error) {
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "updated_unix DESC"
 	}
@@ -1739,9 +1737,19 @@ func GetRecentUpdatedRepositories(opts *SearchRepoOptions) (repos []*Repository,
 		}
 	}
 
-	return repos, sess.
+	if err = sess.
 		OrderBy(opts.OrderBy).
-		Find(&repos)
+		Find(&repos); err != nil {
+		return nil, fmt.Errorf("Repo: %v", err)
+	}
+
+	if opts.Searcher != nil || opts.Starred {
+		if err = repos.loadAttributes(x); err != nil {
+			return nil, fmt.Errorf("LoadAttributes: %v", err)
+		}
+	}
+
+	return repos, nil
 }
 
 func getRepositoryCount(e Engine, u *User) (int64, error) {
@@ -1848,7 +1856,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
 
-	if opts.Starred {
+	if opts.Searcher != nil || opts.Starred {
 		if err = repos.loadAttributes(x); err != nil {
 			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
 		}
