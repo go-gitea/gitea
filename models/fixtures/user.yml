@@ -164,3 +164,33 @@
   avatar_email: user11@example.com
   num_repos: 1
   is_active: true
+
+-
+  id: 12
+  lower_name: user12
+  name: user12
+  full_name: User 12
+  email: user12@example.com
+  passwd: password
+  type: 0 # individual
+  salt: salt
+  is_admin: false
+  avatar: avatar12
+  avatar_email: user12@example.com
+  num_repos: 1
+  is_active: true
+
+-
+  id: 13
+  lower_name: user13
+  name: user13
+  full_name: User 13
+  email: user13@example.com
+  passwd: password
+  type: 0 # individual
+  salt: salt
+  is_admin: false
+  avatar: avatar13
+  avatar_email: user13@example.com
+  num_repos: 1
+  is_active: true
