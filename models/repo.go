@@ -1198,10 +1198,8 @@ func Repositories(opts *SearchRepoOptions) (_ RepositoryList, err error) {
 		return nil, fmt.Errorf("Repo: %v", err)
 	}
 
-	if opts.Searcher != nil || opts.Starred {
-		if err = repos.loadAttributes(x); err != nil {
-			return nil, fmt.Errorf("LoadAttributes: %v", err)
-		}
+	if err = repos.loadAttributes(x); err != nil {
+		return nil, fmt.Errorf("LoadAttributes: %v", err)
 	}
 
 	return repos, nil
@@ -1743,10 +1741,8 @@ func GetRecentUpdatedRepositories(opts *SearchRepoOptions) (repos RepositoryList
 		return nil, fmt.Errorf("Repo: %v", err)
 	}
 
-	if opts.Searcher != nil || opts.Starred {
-		if err = repos.loadAttributes(x); err != nil {
-			return nil, fmt.Errorf("LoadAttributes: %v", err)
-		}
+	if err = repos.loadAttributes(x); err != nil {
+		return nil, fmt.Errorf("LoadAttributes: %v", err)
 	}
 
 	return repos, nil
@@ -1781,14 +1777,15 @@ func GetPrivateRepositoryCount(u *User) (int64, error) {
 
 // SearchRepoOptions holds the search options
 type SearchRepoOptions struct {
-	Keyword  string
-	OwnerID  int64
-	Searcher *User //ID of the person who's seeking
-	OrderBy  string
-	Private  bool // Include private repositories in results
-	Starred  bool
-	Page     int
-	PageSize int // Can be smaller than or equal to setting.ExplorePagingNum
+	Keyword   string
+	OwnerID   int64
+	Searcher  *User //ID of the person who's seeking
+	OrderBy   string
+	Private   bool // Include private repositories in results
+	Starred   bool
+	Page      int
+	IsProfile bool
+	PageSize  int // Can be smaller than or equal to setting.ExplorePagingNum
 }
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
@@ -1856,7 +1853,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
 
-	if opts.Searcher != nil || opts.Starred {
+	if !opts.IsProfile {
 		if err = repos.loadAttributes(x); err != nil {
 			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
 		}
