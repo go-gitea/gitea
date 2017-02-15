@@ -1198,8 +1198,10 @@ func Repositories(opts *SearchRepoOptions) (_ RepositoryList, err error) {
 		return nil, fmt.Errorf("Repo: %v", err)
 	}
 
-	if err = repos.loadAttributes(x); err != nil {
-		return nil, fmt.Errorf("LoadAttributes: %v", err)
+	if opts.Searcher != nil || opts.Starred {
+		if err = repos.loadAttributes(x); err != nil {
+			return nil, fmt.Errorf("LoadAttributes: %v", err)
+		}
 	}
 
 	return repos, nil
@@ -1741,8 +1743,10 @@ func GetRecentUpdatedRepositories(opts *SearchRepoOptions) (repos RepositoryList
 		return nil, fmt.Errorf("Repo: %v", err)
 	}
 
-	if err = repos.loadAttributes(x); err != nil {
-		return nil, fmt.Errorf("LoadAttributes: %v", err)
+	if opts.Searcher != nil || opts.Starred {
+		if err = repos.loadAttributes(x); err != nil {
+			return nil, fmt.Errorf("LoadAttributes: %v", err)
+		}
 	}
 
 	return repos, nil
@@ -1852,8 +1856,10 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
 
-	if err = repos.loadAttributes(x); err != nil {
-		return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
+	if opts.Searcher != nil || opts.Starred {
+		if err = repos.loadAttributes(x); err != nil {
+			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
+		}
 	}
 
 	return repos, count, nil
