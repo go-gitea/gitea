@@ -92,3 +92,36 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, true, act.IsPrivate)
 }
+
+func TestGetUserFork(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	// User13 has repo 11 forked from repo10
+	repo, err := GetRepositoryByID(10)
+	assert.NoError(t, err)
+	assert.NotNil(t, repo)
+	repo, err = repo.GetUserFork(13)
+	assert.NoError(t, err)
+	assert.NotNil(t, repo)
+
+	repo, err = GetRepositoryByID(9)
+	assert.NoError(t, err)
+	assert.NotNil(t, repo)
+	repo, err = repo.GetUserFork(13)
+	assert.NoError(t, err)
+	assert.Nil(t, repo)
+}
+
+func TestForkRepository(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	// User13 has repo 11 forked from repo10
+	repo, err := GetRepositoryByID(10)
+	assert.NoError(t, err)
+	assert.NotNil(t, repo)
+
+	repo, err = ForkRepository(&User{ID: 13}, repo, "test", "test")
+	assert.Nil(t, repo)
+	assert.Error(t, err)
+	assert.True(t, IsErrRepoAlreadyExist(err))
+}

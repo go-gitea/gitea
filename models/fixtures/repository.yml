@@ -105,3 +105,29 @@
   num_pulls: 0
   num_closed_pulls: 0
   is_mirror: false
+
+-
+  id: 10
+  owner_id: 12
+  lower_name: repo10
+  name: repo10
+  is_private: false
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
+  num_forks: 1
+
+-
+  id: 11
+  fork_id: 10
+  owner_id: 13
+  lower_name: repo11
+  name: repo11
+  is_private: false
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
