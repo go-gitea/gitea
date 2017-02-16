@@ -1493,7 +1493,8 @@ $(function () {
     $("#ssh-key-content").on('change paste keyup',function(){
         var value = $(this).val();
         var arrays = value.split(" ");
-        if (arrays.length === 3 && arrays[2] !== "") {
+        var $title = $("#ssh-key-title")
+        if ($title.val() === "" && arrays.length === 3 && arrays[2] !== "") {
             $("#ssh-key-title").val(arrays[2]);
         }
     });
