@@ -438,27 +438,12 @@ func GetTeamMembers(teamID int64) ([]*User, error) {
 	return getTeamMembers(x, teamID)
 }
 
-func getUserTeams(e Engine, orgID, userID int64) ([]*Team, error) {
-	tus := make([]*TeamUser, 0, 5)
-	if err := e.
-		Where("uid=?", userID).
-		And("org_id=?", orgID).
-		Find(&tus); err != nil {
-		return nil, err
-	}
-
-	ts := make([]*Team, len(tus))
-	for i, tu := range tus {
-		t := new(Team)
-		has, err := e.Id(tu.TeamID).Get(t)
-		if err != nil {
-			return nil, err
-		} else if !has {
-			return nil, ErrTeamNotExist
-		}
-		ts[i] = t
-	}
-	return ts, nil
+func getUserTeams(e Engine, orgID, userID int64) (teams []*Team, err error) {
+	return teams, e.
+		Join("INNER", "team_user", "team_user.team_id = team.id").
+		Where("team.org_id = ?", orgID).
+		And("team_user.uid=?", userID).
+		Find(&teams)
 }
 
 // GetUserTeams returns all teams that user belongs to in given organization.
