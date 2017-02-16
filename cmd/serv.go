@@ -28,10 +28,12 @@ import (
 )
 
 const (
-	accessDenied           = "Repository does not exist or you do not have access"
-	lfsAuthenticateVerb    = "git-lfs-authenticate"
-	envUpdateTaskUUID      = "GITEA_UUID"
-	envRepoCustomHooksPath = "REPO_CUSTOM_HOOKS_PATH"
+	accessDenied                = "Repository does not exist or you do not have access"
+	lfsAuthenticateVerb         = "git-lfs-authenticate"
+	envUpdateTaskUUID           = "GITEA_UUID"
+	envRepoUpdateHooksPath      = "GITEA_REPO_UPDATE_HOOKS_PATH"
+	envRepoPreReceiveHooksPath  = "GITEA_REPO_PRERECEIVE_HOOKS_PATH"
+	envRepoPostReceiveHooksPath = "GITEA_REPO_POSTRECEIVE_HOOKS_PATH"
 )
 
 // CmdServ represents the available serv sub-command.
@@ -333,7 +335,9 @@ func runServ(c *cli.Context) error {
 	os.Setenv(envUpdateTaskUUID, uuid)
 	// Keep the old env variable name for backward compability
 	os.Setenv("uuid", uuid)
-	os.Setenv(envRepoCustomHooksPath, filepath.Join(repo.RepoPath(), "custom_hooks"))
+	os.Setenv(envRepoUpdateHooksPath, filepath.Join(repo.RepoPath(), "hooks", "update.d"))
+	os.Setenv(envRepoPreReceiveHooksPath, filepath.Join(repo.RepoPath(), "hooks", "pre-receive.d"))
+	os.Setenv(envRepoPostReceiveHooksPath, filepath.Join(repo.RepoPath(), "hooks", "post-receive.d"))
 
 	// Special handle for Windows.
 	if setting.IsWindows {

@@ -5,12 +5,8 @@
 package cmd
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
 
 	"code.gitea.io/gitea/models"
 
@@ -64,21 +60,6 @@ func runHookPreReceive(c *cli.Context) error {
 		fail("Hook pre-receive init failed", fmt.Sprintf("setup: %v", err))
 	}
 
-	buf := bytes.NewBuffer(nil)
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		buf.Write(scanner.Bytes())
-		buf.WriteByte('\n')
-	}
-
-	customHooksPath := os.Getenv(envRepoCustomHooksPath)
-	hookCmd := exec.Command(filepath.Join(customHooksPath, "pre-receive"))
-	hookCmd.Stdout = os.Stdout
-	hookCmd.Stdin = buf
-	hookCmd.Stderr = os.Stderr
-	if err := hookCmd.Run(); err != nil {
-		fail("Internal error", "Fail to execute custom pre-receive hook: %v", err)
-	}
 	return nil
 }
 
@@ -108,14 +89,6 @@ func runHookUpdate(c *cli.Context) error {
 		fail("Internal error", "Fail to add update task '%s': %v", uuid, err)
 	}
 
-	customHooksPath := os.Getenv(envRepoCustomHooksPath)
-	hookCmd := exec.Command(filepath.Join(customHooksPath, "update"), args...)
-	hookCmd.Stdout = os.Stdout
-	hookCmd.Stdin = os.Stdin
-	hookCmd.Stderr = os.Stderr
-	if err := hookCmd.Run(); err != nil {
-		fail("Internal error", "Fail to execute custom pre-receive hook: %v", err)
-	}
 	return nil
 }
 
@@ -128,13 +101,5 @@ func runHookPostReceive(c *cli.Context) error {
 		fail("Hook post-receive init failed", fmt.Sprintf("setup: %v", err))
 	}
 
-	customHooksPath := os.Getenv(envRepoCustomHooksPath)
-	hookCmd := exec.Command(filepath.Join(customHooksPath, "post-receive"))
-	hookCmd.Stdout = os.Stdout
-	hookCmd.Stdin = os.Stdin
-	hookCmd.Stderr = os.Stderr
-	if err := hookCmd.Run(); err != nil {
-		fail("Internal error", "Fail to execute custom post-receive hook: %v", err)
-	}
 	return nil
 }
