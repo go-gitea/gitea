@@ -57,11 +57,11 @@
 							</div>
 							<div class="field {{if .Err_Title}}error{{end}}">
 								<label for="title">{{.i18n.Tr "repo.settings.title"}}</label>
-								<input id="title" name="title" value="{{.title}}" autofocus required>
+								<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
 							</div>
 							<div class="field {{if .Err_Content}}error{{end}}">
 								<label for="content">{{.i18n.Tr "repo.settings.deploy_key_content"}}</label>
-								<textarea id="content" name="content" required>{{.content}}</textarea>
+								<textarea id="ssh-key-content" name="content" required>{{.content}}</textarea>
 							</div>
 							<button class="ui green button">
 								{{.i18n.Tr "repo.settings.add_deploy_key"}}
