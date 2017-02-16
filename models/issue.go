@@ -1403,17 +1403,29 @@ func UpdateIssue(issue *Issue) error {
 // IssueList defines a list of issues
 type IssueList []*Issue
 
+func (issues IssueList) getRepoIDs() []int64 {
+	repoIDs := make([]int64, 0, len(issues))
+	for _, issue := range issues {
+		var has bool
+		for _, repoID := range repoIDs {
+			if repoID == issue.RepoID {
+				has = true
+				break
+			}
+		}
+		if !has {
+			repoIDs = append(repoIDs, issue.RepoID)
+		}
+	}
+	return repoIDs
+}
+
 func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
 	if len(issues) == 0 {
 		return nil, nil
 	}
 
-	// Load issues.
-	repoIDs := make([]int64, 0, len(issues))
-	for _, issue := range issues {
-		repoIDs = append(repoIDs, issue.RepoID)
-	}
-
+	repoIDs := issues.getRepoIDs()
 	rows, err := e.
 		Where("id > 0").
 		In("id", repoIDs).
