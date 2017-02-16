@@ -37,22 +37,8 @@ func (t *Team) IsMember(userID int64) bool {
 }
 
 func (t *Team) getRepositories(e Engine) (err error) {
-	teamRepos := make([]*TeamRepo, 0, t.NumRepos)
-	if err = x.
-		Where("team_id=?", t.ID).
-		Find(&teamRepos); err != nil {
-		return fmt.Errorf("get team-repos: %v", err)
-	}
-
-	t.Repos = make([]*Repository, 0, len(teamRepos))
-	for i := range teamRepos {
-		repo, err := getRepositoryByID(e, teamRepos[i].RepoID)
-		if err != nil {
-			return fmt.Errorf("getRepositoryById(%d): %v", teamRepos[i].RepoID, err)
-		}
-		t.Repos = append(t.Repos, repo)
-	}
-	return nil
+	return e.Join("INNER", "team_repo", "repository.id = team_repo.repo_id").
+		Where("team_repo.team_id=?", t.ID).Find(&t.Repos)
 }
 
 // GetRepositories returns all repositories in team of organization.
