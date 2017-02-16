@@ -1494,7 +1494,7 @@ $(function () {
         var arrays = $(this).val().split(" ");
         var $title = $("#ssh-key-title")
         if ($title.val() === "" && arrays.length === 3 && arrays[2] !== "") {
-            $("#ssh-key-title").val(arrays[2]);
+            $title.val(arrays[2]);
         }
     });
 });
