@@ -500,13 +500,13 @@ func (u *User) GetRepositories(page, pageSize int) (err error) {
 	return err
 }
 
-// GetRepositoryIDs returns repsitories IDs where user owned
+// GetRepositoryIDs returns repositories IDs where user owned
 func (u *User) GetRepositoryIDs() ([]int64, error) {
 	var ids []int64
 	return ids, x.Table("repository").Cols("id").Where("owner_id = ?", u.ID).Find(&ids)
 }
 
-// GetOrgRepositoryIDs returns repsitories IDs where user's team owned
+// GetOrgRepositoryIDs returns repositories IDs where user's team owned
 func (u *User) GetOrgRepositoryIDs() ([]int64, error) {
 	var ids []int64
 	return ids, x.Table("repository").

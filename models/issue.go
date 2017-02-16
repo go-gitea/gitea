@@ -1414,21 +1414,30 @@ func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
 		repoIDs = append(repoIDs, issue.RepoID)
 	}
 
-	repositories := make([]*Repository, 0, len(repoIDs))
-	if err := e.
+	rows, err := e.
 		Where("id > 0").
 		In("id", repoIDs).
-		Find(&repositories); err != nil {
+		Rows(new(Repository))
+	if err != nil {
 		return nil, fmt.Errorf("find repository: %v", err)
+	}
+	defer rows.Close()
+
+	repositories := make([]*Repository, 0, len(repoIDs))
+	repoMaps := make(map[int64]*Repository, len(repoIDs))
+	for rows.Next() {
+		var repo Repository
+		err = rows.Scan(&repo)
+		if err != nil {
+			return nil, fmt.Errorf("find repository: %v", err)
+		}
+
+		repositories = append(repositories, &repo)
+		repoMaps[repo.ID] = &repo
 	}
 
 	for _, issue := range issues {
-		for _, repo := range repositories {
-			if repo.ID == issue.RepoID {
-				issue.Repo = repo
-				break
-			}
-		}
+		issue.Repo = repoMaps[issue.RepoID]
 	}
 	return repositories, nil
 }
