@@ -33,6 +33,7 @@
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_watches: 0
 
 -
   id: 4
