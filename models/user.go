@@ -500,6 +500,34 @@ func (u *User) GetRepositories(page, pageSize int) (err error) {
 	return err
 }
 
+// GetRepositoryIDs returns repositories IDs where user owned
+func (u *User) GetRepositoryIDs() ([]int64, error) {
+	var ids []int64
+	return ids, x.Table("repository").Cols("id").Where("owner_id = ?", u.ID).Find(&ids)
+}
+
+// GetOrgRepositoryIDs returns repositories IDs where user's team owned
+func (u *User) GetOrgRepositoryIDs() ([]int64, error) {
+	var ids []int64
+	return ids, x.Table("repository").
+		Cols("repository.id").
+		Join("INNER", "team_user", "repository.owner_id = team_user.org_id AND team_user.uid = ?", u.ID).
+		GroupBy("repository.id").Find(&ids)
+}
+
+// GetAccessRepoIDs returns all repsitories IDs where user's or user is a team member orgnizations
+func (u *User) GetAccessRepoIDs() ([]int64, error) {
+	ids, err := u.GetRepositoryIDs()
+	if err != nil {
+		return nil, err
+	}
+	ids2, err := u.GetOrgRepositoryIDs()
+	if err != nil {
+		return nil, err
+	}
+	return append(ids, ids2...), nil
+}
+
 // GetMirrorRepositories returns mirror repositories that user owns, including private repositories.
 func (u *User) GetMirrorRepositories() ([]*Repository, error) {
 	return GetUserMirrorRepositories(u.ID)

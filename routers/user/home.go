@@ -214,48 +214,28 @@ func Issues(ctx *context.Context) {
 
 	// Get repositories.
 	var err error
-	var repos []*models.Repository
-	userRepoIDs := make([]int64, 0, len(repos))
+	var userRepoIDs []int64
 	if ctxUser.IsOrganization() {
 		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
 		if err != nil {
 			ctx.Handle(500, "AccessibleReposEnv", err)
 			return
 		}
-		repos, err = env.Repos(1, ctxUser.NumRepos)
+		userRepoIDs, err = env.RepoIDs(1, ctxUser.NumRepos)
 		if err != nil {
-			ctx.Handle(500, "GetRepositories", err)
+			ctx.Handle(500, "env.RepoIDs", err)
 			return
 		}
-
-		for _, repo := range repos {
-			if (isPullList && repo.NumPulls == 0) ||
-				(!isPullList &&
-					(!repo.EnableUnit(models.UnitTypeIssues) || repo.NumIssues == 0)) {
-				continue
-			}
-
-			userRepoIDs = append(userRepoIDs, repo.ID)
-		}
-
-		if len(userRepoIDs) <= 0 {
-			userRepoIDs = []int64{-1}
-		}
-
 	} else {
-		if err := ctxUser.GetRepositories(1, ctx.User.NumRepos); err != nil {
-			ctx.Handle(500, "GetRepositories", err)
+		userRepoIDs, err = ctxUser.GetAccessRepoIDs()
+		if err != nil {
+			ctx.Handle(500, "ctxUser.GetAccessRepoIDs", err)
 			return
 		}
-		repos = ctxUser.Repos
+	}
 
-		for _, repo := range repos {
-			if (isPullList && repo.NumPulls == 0) ||
-				(!isPullList &&
-					(!repo.EnableUnit(models.UnitTypeIssues) || repo.NumIssues == 0)) {
-				continue
-			}
-		}
+	if len(userRepoIDs) <= 0 {
+		userRepoIDs = []int64{-1}
 	}
 
 	var issues []*models.Issue
@@ -309,55 +289,41 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
-	showRepos := make([]*models.Repository, 0, len(issues))
-	showReposSet := make(map[int64]bool)
+	showRepos, err := models.IssueList(issues).LoadRepositories()
+	if err != nil {
+		ctx.Handle(500, "LoadRepositories", fmt.Errorf("%v", err))
+		return
+	}
 
 	if repoID > 0 {
-		repo, err := models.GetRepositoryByID(repoID)
-		if err != nil {
-			ctx.Handle(500, "GetRepositoryByID", fmt.Errorf("[#%d]%v", repoID, err))
-			return
+		var theRepo *models.Repository
+		for _, repo := range showRepos {
+			if repo.ID == repoID {
+				theRepo = repo
+				break
+			}
 		}
 
-		if err = repo.GetOwner(); err != nil {
-			ctx.Handle(500, "GetOwner", fmt.Errorf("[#%d]%v", repoID, err))
-			return
+		if theRepo == nil {
+			theRepo, err = models.GetRepositoryByID(repoID)
+			if err != nil {
+				ctx.Handle(500, "GetRepositoryByID", fmt.Errorf("[#%d]%v", repoID, err))
+				return
+			}
+			showRepos = append(showRepos, theRepo)
 		}
 
 		// Check if user has access to given repository.
-		if !repo.IsOwnedBy(ctxUser.ID) && !repo.HasAccess(ctxUser) {
+		if !theRepo.IsOwnedBy(ctxUser.ID) && !theRepo.HasAccess(ctxUser) {
 			ctx.Handle(404, "Issues", fmt.Errorf("#%d", repoID))
 			return
 		}
-
-		showReposSet[repoID] = true
-		showRepos = append(showRepos, repo)
 	}
 
-	for _, issue := range issues {
-		// Get Repository data.
-		issue.Repo, err = models.GetRepositoryByID(issue.RepoID)
-		if err != nil {
-			ctx.Handle(500, "GetRepositoryByID", fmt.Errorf("[#%d]%v", issue.RepoID, err))
-			return
-		}
-
-		// Get Owner data.
-		if err = issue.Repo.GetOwner(); err != nil {
-			ctx.Handle(500, "GetOwner", fmt.Errorf("[#%d]%v", issue.RepoID, err))
-			return
-		}
-
-		// Append repo to list of shown repos
-		if filterMode == models.FilterModeAll {
-			// Use a map to make sure we don't add the same Repository twice.
-			_, ok := showReposSet[issue.RepoID]
-			if !ok {
-				showReposSet[issue.RepoID] = true
-				// Append to list of shown Repositories.
-				showRepos = append(showRepos, issue.Repo)
-			}
-		}
+	err = models.RepositoryList(showRepos).LoadAttributes()
+	if err != nil {
+		ctx.Handle(500, "LoadAttributes", fmt.Errorf("%v", err))
+		return
 	}
 
 	issueStats := models.GetUserIssueStats(repoID, ctxUser.ID, userRepoIDs, filterMode, isPullList)
