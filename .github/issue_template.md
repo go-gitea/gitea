@@ -21,3 +21,8 @@
 ## Description
 
 ...
+
+
+## Screenshots
+
+**If regarding the Web Interface, please include a screenshot**
