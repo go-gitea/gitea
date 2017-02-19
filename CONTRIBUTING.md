@@ -73,6 +73,12 @@ Signed-off-by: Joe Smith <joe.smith@email.com>
 
 Please use your real name, we really dislike pseudonyms or anonymous contributions. We are in the open-source world without secrets. If you set your `user.name` and `user.email` git configs, you can sign your commit automatically with `git commit -s`.
 
+## Release Cycle
+
+We adopted a release schedule to streamline the process of working on, finishing, and issuing releases. The overall goal is to make a major release every two months, which breaks down into one month of general development followed by one month of testing and polishing known as the release freeze. A release is maintained by issuing minor releases to only correct critical problems such as crashes or security issues. All the feature pull requests should be merged in the first month of one release period. 
+
+The current release cycle is aligned to start on December 25 to February 24, next is February 25 to April 24, and etc. On this cycle, we also maybe publish the previous release minor version. For example, the current release version is v1.1, but we maybe also publish v1.0.2. When we publish v1.2, then we will stop publish v1.0.3.
+
 ## Maintainers
 
 To make sure every PR is checked, we have [team maintainers](https://github.com/orgs/go-gitea/teams/maintainers). Every PR **MUST** be reviewed by at least two maintainers (or owners) before it can get merged. A maintainer should be a contributor of Gitea (or Gogs) and contributed at least 4 accepted PRs. A contributor should apply as a maintainer in the [Gitter develop channel](https://gitter.im/go-gitea/develop). The owners or the team maintainers may invite the contributor. A maintainer should spend some time on code reviews. If a maintainer has no time to do that, they should apply to leave the maintainers team and we will give them the honor of being a member of the [advisors team](https://github.com/orgs/go-gitea/teams/advisors). Of course, if an advisor has time to code review, we will gladly welcome them back to the maintainers team. If a maintainer is inactive for more than 3 months and forgets to leave the maintainers team, the owners may move him or her from the maintainers team to the advisors team.
