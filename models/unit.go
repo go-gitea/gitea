@@ -63,7 +63,7 @@ type Unit struct {
 	Idx     int
 }
 
-// CanDisabled returns if this unit could be disabled.
+// CanDisable returns if this unit could be disabled.
 func (u *Unit) CanDisable() bool {
 	return u.Type != UnitTypeSettings
 }
