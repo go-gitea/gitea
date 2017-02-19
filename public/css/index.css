@@ -630,8 +630,7 @@ footer .ui.language .menu {
   margin-bottom: 0;
 }
 .markdown:not(code) table {
-  display: block;
-  width: 100%;
+  width: auto;
   overflow: auto;
   word-break: normal;
   word-break: keep-all;
