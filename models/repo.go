@@ -181,14 +181,14 @@ type Repository struct {
 	Website       string
 	DefaultBranch string
 
-	NumWatches          int
-	NumStars            int
-	NumForks            int
-	NumIssues           int
-	NumClosedIssues     int
+	NumWatches          int `xorm:"NOT NULL DEFAULT 0"`
+	NumStars            int `xorm:"NOT NULL DEFAULT 0"`
+	NumForks            int `xorm:"NOT NULL DEFAULT 0"`
+	NumIssues           int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedIssues     int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenIssues       int `xorm:"-"`
-	NumPulls            int
-	NumClosedPulls      int
+	NumPulls            int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedPulls      int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenPulls        int `xorm:"-"`
 	NumMilestones       int `xorm:"NOT NULL DEFAULT 0"`
 	NumClosedMilestones int `xorm:"NOT NULL DEFAULT 0"`
