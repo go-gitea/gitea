@@ -378,14 +378,23 @@ func serviceRPC(h serviceHandler, service string) {
 	}
 
 	if h.cfg.OnSucceed != nil {
-		input, err = ioutil.ReadAll(reqBody)
+		tmpfile, err := ioutil.TempFile("", "gogs")
 		if err != nil {
-			log.GitLogger.Error(2, "fail to read request body: %v", err)
+			log.GitLogger.Error(2, "fail to create temporary file: %v", err)
+			h.w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		defer os.Remove(tmpfile.Name())
+		defer tmpfile.Close()
+
+		_, err = io.Copy(tmpfile, reqBody)
+		if err != nil {
+			log.GitLogger.Error(2, "fail to save request body: %v", err)
 			h.w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		br = bytes.NewReader(input)
+		br = tmpfile
 	} else {
 		br = reqBody
 	}
