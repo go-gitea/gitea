@@ -945,18 +945,18 @@ func newLogService() {
 	LogConfigs = make([]string, len(LogModes))
 
 	useConsole := false
-	for _, mode := range LogModes {
-		if mode == "console" {
+	for i := 0; i < len(LogModes); i++ {
+		LogModes[i] = strings.TrimSpace(LogModes[i])
+		if LogModes[i] == "console" {
 			useConsole = true
 		}
 	}
+
 	if !useConsole {
 		log.DelLogger("console")
 	}
 
 	for i, mode := range LogModes {
-		mode = strings.TrimSpace(mode)
-
 		sec, err := Cfg.GetSection("log." + mode)
 
 		if err != nil {
@@ -1020,10 +1020,11 @@ func NewXORMLogService(disableConsole bool) {
 	logModes := strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
 	var logConfigs string
 	for _, mode := range logModes {
+		mode = strings.TrimSpace(mode)
+
 		if disableConsole && mode == "console" {
 			continue
 		}
-		mode = strings.TrimSpace(mode)
 		sec, err := Cfg.GetSection("log." + mode)
 		if err != nil {
 			log.Fatal(4, "Unknown log mode: %s", mode)
