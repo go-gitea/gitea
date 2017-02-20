@@ -54,7 +54,7 @@ func runUpdate(c *cli.Context) error {
 	// protected branch check
 	branchName := strings.TrimPrefix(args[0], git.BranchPrefix)
 	repoID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchRepoID), 10, 64)
-	log.GitLogger.Trace("pushing to", repoID, branchName)
+	log.GitLogger.Trace("pushing to %d %v", repoID, branchName)
 	accessMode := models.ParseAccessMode(os.Getenv(models.ProtectedBranchAccessMode))
 	// skip admin or owner AccessMode
 	if accessMode == models.AccessModeWrite {
@@ -65,7 +65,6 @@ func runUpdate(c *cli.Context) error {
 
 		if protectBranch != nil {
 			log.GitLogger.Fatal(2, "protected branches can not be pushed to")
-			fail("protected branches can not be pushed to", "protected branches can not be pushed to")
 		}
 	}
 

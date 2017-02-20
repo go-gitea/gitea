@@ -48,10 +48,6 @@
 					{{.i18n.Tr "repo.settings.protected_branch"}}
 				</h4>
 				<div class="ui attached table segment">
-					<form class="ui hook list form" action="{{.Link}}" method="post">
-						{{.CsrfTokenHtml}}
-					</form>
-					<input type="hidden" name="action" value="protected_branch">
 					<div class="ui grid padded">
 						<div class="eight wide column">
 							<div class="ui fluid dropdown selection visible" tabindex="0">

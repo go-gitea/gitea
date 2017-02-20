@@ -52,8 +52,14 @@ func GetProtectedBranchByRepoID(RepoID int64) ([]*ProtectedBranch, error) {
 // GetProtectedBranchBy getting protected branch by ID/Name
 func GetProtectedBranchBy(repoID int64, BranchName string) (*ProtectedBranch, error) {
 	rel := &ProtectedBranch{RepoID: repoID, BranchName: strings.ToLower(BranchName)}
-	_, err := x.Get(rel)
-	return rel, err
+	has, err := x.Get(rel)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, nil
+	}
+	return rel, nil
 }
 
 // GetProtectedBranches get all protected btanches
