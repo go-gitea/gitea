@@ -254,8 +254,8 @@ func runWeb(ctx *cli.Context) error {
 		m.Any("/activate", user.Activate)
 		m.Any("/activate_email", user.ActivateEmail)
 		m.Get("/email2user", user.Email2User)
-		m.Get("/forget_password", user.ForgotPasswd)
-		m.Post("/forget_password", user.ForgotPasswdPost)
+		m.Get("/forgot_password", user.ForgotPasswd)
+		m.Post("/forgot_password", user.ForgotPasswdPost)
 		m.Get("/logout", user.SignOut)
 	})
 	// ***** END: User *****

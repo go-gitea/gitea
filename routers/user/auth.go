@@ -864,7 +864,7 @@ func ActivateEmail(ctx *context.Context) {
 
 // ForgotPasswd render the forget pasword page
 func ForgotPasswd(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("auth.forgot_password")
+	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
 	if setting.MailService == nil {
 		ctx.Data["IsResetDisable"] = true
@@ -881,7 +881,7 @@ func ForgotPasswd(ctx *context.Context) {
 
 // ForgotPasswdPost response for forget password request
 func ForgotPasswdPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("auth.forgot_password")
+	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
 	if setting.MailService == nil {
 		ctx.Handle(403, "ForgotPasswdPost", nil)
