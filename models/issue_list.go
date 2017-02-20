@@ -10,20 +10,13 @@ import "fmt"
 type IssueList []*Issue
 
 func (issues IssueList) getRepoIDs() []int64 {
-	repoIDs := make([]int64, 0, len(issues))
+	repoIDs := make(map[int64]struct{}, len(issues))
 	for _, issue := range issues {
-		var has bool
-		for _, repoID := range repoIDs {
-			if repoID == issue.RepoID {
-				has = true
-				break
-			}
-		}
-		if !has {
-			repoIDs = append(repoIDs, issue.RepoID)
+		if _, ok := repoIDs[issue.RepoID]; !ok {
+			repoIDs[issue.RepoID] = struct{}{}
 		}
 	}
-	return repoIDs
+	return keysInt64(repoIDs)
 }
 
 func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
@@ -32,32 +25,18 @@ func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
 	}
 
 	repoIDs := issues.getRepoIDs()
-	rows, err := e.
-		Where("id > 0").
+	repoMaps := make(map[int64]*Repository, len(repoIDs))
+	err := e.
 		In("id", repoIDs).
-		Rows(new(Repository))
+		Find(&repoMaps)
 	if err != nil {
 		return nil, fmt.Errorf("find repository: %v", err)
-	}
-	defer rows.Close()
-
-	repositories := make([]*Repository, 0, len(repoIDs))
-	repoMaps := make(map[int64]*Repository, len(repoIDs))
-	for rows.Next() {
-		var repo Repository
-		err = rows.Scan(&repo)
-		if err != nil {
-			return nil, fmt.Errorf("find repository: %v", err)
-		}
-
-		repositories = append(repositories, &repo)
-		repoMaps[repo.ID] = &repo
 	}
 
 	for _, issue := range issues {
 		issue.Repo = repoMaps[issue.RepoID]
 	}
-	return repositories, nil
+	return valuesRepository(repoMaps), nil
 }
 
 // LoadRepositories loads issues' all repositories
@@ -66,20 +45,13 @@ func (issues IssueList) LoadRepositories() ([]*Repository, error) {
 }
 
 func (issues IssueList) getPosterIDs() []int64 {
-	posterIDs := make([]int64, 0, len(issues))
+	posterIDs := make(map[int64]struct{}, len(issues))
 	for _, issue := range issues {
-		var has bool
-		for _, posterID := range posterIDs {
-			if posterID == issue.PosterID {
-				has = true
-				break
-			}
-		}
-		if !has {
-			posterIDs = append(posterIDs, issue.PosterID)
+		if _, ok := posterIDs[issue.PosterID]; !ok {
+			posterIDs[issue.PosterID] = struct{}{}
 		}
 	}
-	return posterIDs
+	return keysInt64(posterIDs)
 }
 
 func (issues IssueList) loadPosters(e Engine) error {
@@ -90,7 +62,6 @@ func (issues IssueList) loadPosters(e Engine) error {
 	postgerIDs := issues.getPosterIDs()
 	posterMaps := make(map[int64]*User, len(postgerIDs))
 	err := e.
-		Where("id > 0").
 		In("id", postgerIDs).
 		Find(&posterMaps)
 	if err != nil {
@@ -148,20 +119,13 @@ func (issues IssueList) loadLabels(e Engine) error {
 }
 
 func (issues IssueList) getMilestoneIDs() []int64 {
-	var ids = make([]int64, 0, len(issues))
+	var ids = make(map[int64]struct{}, len(issues))
 	for _, issue := range issues {
-		var has bool
-		for _, id := range ids {
-			if id == issue.MilestoneID {
-				has = true
-				break
-			}
-		}
-		if !has {
-			ids = append(ids, issue.MilestoneID)
+		if _, ok := ids[issue.MilestoneID]; !ok {
+			ids[issue.MilestoneID] = struct{}{}
 		}
 	}
-	return ids
+	return keysInt64(ids)
 }
 
 func (issues IssueList) loadMilestones(e Engine) error {
@@ -172,7 +136,6 @@ func (issues IssueList) loadMilestones(e Engine) error {
 
 	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
 	err := e.
-		Where("id > 0").
 		In("id", milestoneIDs).
 		Find(&milestoneMaps)
 	if err != nil {
@@ -186,20 +149,13 @@ func (issues IssueList) loadMilestones(e Engine) error {
 }
 
 func (issues IssueList) getAssigneeIDs() []int64 {
-	var ids = make([]int64, 0, len(issues))
+	var ids = make(map[int64]struct{}, len(issues))
 	for _, issue := range issues {
-		var has bool
-		for _, id := range ids {
-			if id == issue.AssigneeID {
-				has = true
-				break
-			}
-		}
-		if !has {
-			ids = append(ids, issue.AssigneeID)
+		if _, ok := ids[issue.AssigneeID]; !ok {
+			ids[issue.AssigneeID] = struct{}{}
 		}
 	}
-	return ids
+	return keysInt64(ids)
 }
 
 func (issues IssueList) loadAssignees(e Engine) error {
@@ -210,7 +166,6 @@ func (issues IssueList) loadAssignees(e Engine) error {
 
 	assigneeMaps := make(map[int64]*User, len(assigneeIDs))
 	err := e.
-		Where("id > 0").
 		In("id", assigneeIDs).
 		Find(&assigneeMaps)
 	if err != nil {
@@ -241,7 +196,6 @@ func (issues IssueList) loadPullRequests(e Engine) error {
 
 	pullRequestMaps := make(map[int64]*PullRequest, len(issuesIDs))
 	rows, err := e.
-		Where("id > 0").
 		In("issue_id", issuesIDs).
 		Rows(new(PullRequest))
 	if err != nil {
