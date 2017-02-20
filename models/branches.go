@@ -122,7 +122,7 @@ func (repo *Repository) ChangeProtectedBranch(id int64, canPush bool) error {
 
 // DeleteProtectedBranch removes ProtectedBranch relation between the user and repository.
 func (repo *Repository) DeleteProtectedBranch(id int64) (err error) {
-	ProtectedBranch := &ProtectedBranch{
+	protectedBranch := &ProtectedBranch{
 		RepoID: repo.ID,
 		ID:     id,
 	}
@@ -133,8 +133,10 @@ func (repo *Repository) DeleteProtectedBranch(id int64) (err error) {
 		return err
 	}
 
-	if has, err := sess.Delete(ProtectedBranch); err != nil || has == 0 {
+	if affected, err := sess.Delete(protectedBranch); err != nil {
 		return err
+	} else if affected != 1 {
+		return fmt.Errorf("delete protected branch ID(%v) failed", id)
 	}
 
 	return sess.Commit()

@@ -603,7 +603,7 @@ function initProtectedBranch() {
         $.post($this.data('url'), {
                 "_csrf": csrf,
                 "canPush": false,
-                "branchName": $this.val(),
+                "branchName": $this.data('val'),
             },
             function (data) {
                 if (data.redirect) {

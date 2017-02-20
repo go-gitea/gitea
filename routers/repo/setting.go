@@ -493,14 +493,15 @@ func ProtectedBranchPost(ctx *context.Context) {
 			return
 		}
 
-		canPush := ctx.QueryBool("canPush")
 		branchName := strings.ToLower(ctx.Query("branchName"))
-		if len(branchName) == 0 || ctx.Repo.Owner.LowerName == branchName {
+		if len(branchName) == 0 || !ctx.Repo.GitRepo.IsBranchExist(branchName) {
 			ctx.JSON(200, map[string]string{
 				"redirect": setting.AppSubURL + ctx.Req.URL.Path,
 			})
 			return
 		}
+
+		canPush := ctx.QueryBool("canPush")
 
 		if canPush {
 			if err := ctx.Repo.Repository.AddProtectedBranch(branchName, canPush); err != nil {
