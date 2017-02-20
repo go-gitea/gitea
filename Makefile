@@ -13,7 +13,6 @@ JAVASCRIPTS :=
 
 LDFLAGS := -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')" -X "main.Tags=$(TAGS)"
 
-TARGETS ?= linux/*,darwin/*,windows/*
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations,$(shell go list ./... | grep -v /vendor/))
 SOURCES ?= $(shell find . -name "*.go" -type f)
 
@@ -102,18 +101,38 @@ docker:
 	docker build -t gitea/gitea:latest .
 
 .PHONY: release
-release: release-dirs release-build release-copy release-check
+release: release-dirs release-windows release-linux release-darwin release-copy release-check
 
 .PHONY: release-dirs
 release-dirs:
 	mkdir -p $(DIST)/binaries $(DIST)/release
 
-.PHONY: release-build
-release-build:
+.PHONY: release-windows
+release-windows:
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/karalabe/xgo; \
 	fi
-	xgo -dest $(DIST)/binaries -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets '$(TARGETS)' -out $(EXECUTABLE)-$(VERSION) .
+	xgo -dest $(DIST)/binaries -tags '$(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+ifeq ($(CI),drone)
+	mv /build/* $(DIST)/binaries
+endif
+
+.PHONY: release-linux
+release-linux:
+	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/karalabe/xgo; \
+	fi
+	xgo -dest $(DIST)/binaries -tags '$(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/*' -out gitea-$(VERSION) .
+ifeq ($(CI),drone)
+	mv /build/* $(DIST)/binaries
+endif
+
+.PHONY: release-darwin
+release-darwin:
+	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/karalabe/xgo; \
+	fi
+	xgo -dest $(DIST)/binaries -tags '$(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	mv /build/* $(DIST)/binaries
 endif
