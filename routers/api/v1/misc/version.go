@@ -7,9 +7,10 @@ package misc
 import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/sdk/gitea"
 )
 
 // ServerVersion shows the version of the Gitea server
-func ServerVersion(ctx *context.APIContext) {
-	ctx.Write([]byte(setting.AppVer))
+func Version(ctx *context.APIContext) {
+	ctx.JSON(200, &gitea.ServerVersion{Version: setting.AppVer})
 }

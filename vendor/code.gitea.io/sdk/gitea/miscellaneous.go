@@ -11,3 +11,12 @@ type MarkdownOption struct {
 	Context string
 	Wiki    bool
 }
+
+type ServerVersion struct {
+	Version string
+}
+
+func (c *Client) ServerVersion() (string, error) {
+	v := ServerVersion{}
+	return v.Version, c.getParsedResponse("GET", "/api/v1/version", nil, nil, &v)
+}
