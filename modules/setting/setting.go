@@ -958,7 +958,6 @@ func newLogService() {
 
 	for i, mode := range LogModes {
 		sec, err := Cfg.GetSection("log." + mode)
-
 		if err != nil {
 			sec, _ = Cfg.NewSection("log." + mode)
 		}
@@ -1025,9 +1024,10 @@ func NewXORMLogService(disableConsole bool) {
 		if disableConsole && mode == "console" {
 			continue
 		}
+
 		sec, err := Cfg.GetSection("log." + mode)
 		if err != nil {
-			log.Fatal(4, "Unknown log mode: %s", mode)
+			sec, _ = Cfg.NewSection("log." + mode)
 		}
 
 		validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
@@ -1079,7 +1079,9 @@ func NewXORMLogService(disableConsole bool) {
 		}
 
 		log.NewXORMLogger(Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000), mode, logConfigs)
-		log.Info("XORM Log Mode: %s(%s)", strings.Title(mode), levelName)
+		if !disableConsole {
+			log.Info("XORM Log Mode: %s(%s)", strings.Title(mode), levelName)
+		}
 
 		var lvl core.LogLevel
 		switch levelName {
