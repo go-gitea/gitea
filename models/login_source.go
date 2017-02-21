@@ -598,7 +598,8 @@ type OAuth2Provider struct {
 // key is used to map the OAuth2Provider with the goth provider type (also in LoginSource.OAuth2Config.Provider)
 // value is used to store display data
 var OAuth2Providers = map[string]OAuth2Provider{
-	"github":   {Name: "github", DisplayName:"GitHub", Image: "/img/github.png"},
+	"github":   {Name: "github", DisplayName:"GitHub", Image: "/img/auth/github.png"},
+	"gplus":   {Name: "gplus", DisplayName:"Google+", Image: "/img/auth/google_plus.png"},
 }
 
 // ExternalUserLogin attempts a login using external source types.

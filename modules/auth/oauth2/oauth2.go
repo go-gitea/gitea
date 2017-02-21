@@ -15,6 +15,7 @@ import (
 	"github.com/satori/go.uuid"
 	"path/filepath"
 	"github.com/markbates/goth/providers/github"
+	"github.com/markbates/goth/providers/gplus"
 )
 
 var (
@@ -94,6 +95,8 @@ func createProvider(providerName, providerType, clientID, clientSecret string) g
 	switch providerType {
 	case "github":
 		provider = github.New(clientID, clientSecret, callbackURL, "user:email")
+	case "gplus":
+		provider = gplus.New(clientID, clientSecret, callbackURL, "email")
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider
