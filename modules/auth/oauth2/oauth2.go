@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/gplus"
+	"github.com/markbates/goth/providers/gitlab"
 )
 
 var (
@@ -95,6 +96,8 @@ func createProvider(providerName, providerType, clientID, clientSecret string) g
 	switch providerType {
 	case "github":
 		provider = github.New(clientID, clientSecret, callbackURL, "user:email")
+	case "gitlab":
+		provider = gitlab.New(clientID, clientSecret, callbackURL)
 	case "gplus":
 		provider = gplus.New(clientID, clientSecret, callbackURL, "email")
 	}

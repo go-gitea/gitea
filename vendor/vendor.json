@@ -569,6 +569,12 @@
 			"revisionTime": "2017-02-06T19:46:32Z"
 		},
 		{
+			"checksumSHA1": "QO8bvOenTBbLPzr3ZvB7LCHJ0PY=",
+			"path": "github.com/markbates/goth/providers/gitlab",
+			"revision": "a0a751ca505adde67bc2c92e2aae99531b1e3213",
+			"revisionTime": "2017-02-20T13:56:36Z"
+		},
+		{
 			"checksumSHA1": "cX6kR9y94BWFZvI/7UFrsFsP3FQ=",
 			"path": "github.com/markbates/goth/providers/gplus",
 			"revision": "a0a751ca505adde67bc2c92e2aae99531b1e3213",
