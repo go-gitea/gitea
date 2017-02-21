@@ -20,6 +20,7 @@ import (
 	"github.com/markbates/goth/providers/bitbucket"
 	"github.com/markbates/goth/providers/twitter"
 	"github.com/markbates/goth/providers/facebook"
+	"github.com/markbates/goth/providers/dropbox"
 )
 
 var (
@@ -99,6 +100,8 @@ func createProvider(providerName, providerType, clientID, clientSecret string) g
 	switch providerType {
 	case "bitbucket":
 		provider = bitbucket.New(clientID, clientSecret, callbackURL, "account")
+	case "dropbox":
+		provider = dropbox.New(clientID, clientSecret, callbackURL)
 	case "facebook":
 		provider = facebook.New(clientID, clientSecret, callbackURL, "email")
 	case "github":
