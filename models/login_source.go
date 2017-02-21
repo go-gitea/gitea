@@ -600,6 +600,7 @@ type OAuth2Provider struct {
 // value is used to store display data
 var OAuth2Providers = map[string]OAuth2Provider{
 	"bitbucket": {Name: "bitbucket", DisplayName: "Bitbucket", Image: "/img/auth/bitbucket.png"},
+	"facebook":  {Name: "facebook", DisplayName: "Facebook", Image: "/img/auth/facebook.png"},
 	"github":    {Name: "github", DisplayName: "GitHub", Image: "/img/auth/github.png"},
 	"gitlab":    {Name: "gitlab", DisplayName: "GitLab", Image: "/img/auth/gitlab.png"},
 	"gplus":     {Name: "gplus", DisplayName: "Google+", Image: "/img/auth/google_plus.png"},
