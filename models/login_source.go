@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/auth/oauth2"
+	"sort"
 )
 
 // LoginType represents an login type.
@@ -705,20 +706,24 @@ func GetActiveOAuth2LoginSourceByName(name string) (*LoginSource, error) {
 // GetActiveOAuth2Providers returns the map of configured active OAuth2 providers
 // key is used as technical name (like in the callbackURL)
 // values to display
-func GetActiveOAuth2Providers() (map[string]OAuth2Provider, error) {
+func GetActiveOAuth2Providers() ([]string, map[string]OAuth2Provider, error) {
 	// Maybe also seperate used and unused providers so we can force the registration of only 1 active provider for each type
 
 	loginSources, err := GetActiveOAuth2ProviderLoginSources()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
+	var orderedKeys []string
 	providers := make(map[string]OAuth2Provider)
 	for _, source := range loginSources {
 		providers[source.Name] = OAuth2Providers[source.OAuth2().Provider]
+		orderedKeys = append(orderedKeys, source.Name)
 	}
 
-	return providers, nil
+	sort.Strings(orderedKeys)
+
+	return orderedKeys, providers, nil
 }
 
 // InitOAuth2 initialize the OAuth2 lib and register all active OAuth2 providers in the library
