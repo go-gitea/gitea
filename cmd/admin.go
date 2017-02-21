@@ -18,7 +18,7 @@ var (
 	// CmdAdmin represents the available admin sub-command.
 	CmdAdmin = cli.Command{
 		Name:  "admin",
-		Usage: "Preform admin operations on command line",
+		Usage: "Perform admin operations on command line",
 		Description: `Allow using internal logic of Gitea without hacking into the source code
 to make automatic initialization process more smoothly`,
 		Subcommands: []cli.Command{
