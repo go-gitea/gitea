@@ -79,7 +79,7 @@ func (t *T) RunTest(tests ...func(*T) error) (err error) {
 	}
 
 	newpath := filepath.Join(workdir, filepath.Base(path))
-	if err := os.Link(path, newpath); err != nil {
+	if err := os.Symlink(path, newpath); err != nil {
 		return err
 	}
 
