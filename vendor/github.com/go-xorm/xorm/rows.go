@@ -114,7 +114,8 @@ func (rows *Rows) Scan(bean interface{}) error {
 		return fmt.Errorf("scan arg is incompatible type to [%v]", rows.beanType)
 	}
 
-	return rows.session.row2Bean(rows.rows, rows.fields, rows.fieldsCount, bean)
+	_, err := rows.session.row2Bean(rows.rows, rows.fields, rows.fieldsCount, bean)
+	return err
 }
 
 // Close session if session.IsAutoClose is true, and claimed any opened resources

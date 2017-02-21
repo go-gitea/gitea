@@ -7,6 +7,11 @@
 		<a class="{{if .PageIsSettingsCollaboration}}active{{end}} item" href="{{.RepoLink}}/settings/collaboration">
 			{{.i18n.Tr "repo.settings.collaboration"}}
 		</a>
+		{{if not .Repository.IsBare}}
+			<a class="{{if .PageIsSettingsBranches}}active{{end}} item" href="{{.RepoLink}}/settings/branches">
+				{{.i18n.Tr "repo.settings.branches"}}
+			</a>
+		{{end}}
 		<a class="{{if .PageIsSettingsHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks">
 			{{.i18n.Tr "repo.settings.hooks"}}
 		</a>

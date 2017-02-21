@@ -354,41 +354,50 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	return nil
 }
 
-// checkKeyContent only checks if key content has been used as public key,
+// checkKeyFingerprint only checks if key fingerprint has been used as public key,
 // it is OK to use same key as deploy key for multiple repositories/users.
-func checkKeyContent(content string) error {
-	has, err := x.Get(&PublicKey{
-		Content: content,
-		Type:    KeyTypeUser,
+func checkKeyFingerprint(e Engine, fingerprint string) error {
+	has, err := e.Get(&PublicKey{
+		Fingerprint: fingerprint,
+		Type:        KeyTypeUser,
 	})
 	if err != nil {
 		return err
 	} else if has {
-		return ErrKeyAlreadyExist{0, content}
+		return ErrKeyAlreadyExist{0, fingerprint, ""}
 	}
 	return nil
 }
 
-func addKey(e Engine, key *PublicKey) (err error) {
+func calcFingerprint(publicKeyContent string) (string, error) {
 	// Calculate fingerprint.
 	tmpPath := strings.Replace(path.Join(os.TempDir(), fmt.Sprintf("%d", time.Now().Nanosecond()),
 		"id_rsa.pub"), "\\", "/", -1)
 	dir := path.Dir(tmpPath)
 
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
+		return "", fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
-	if err = ioutil.WriteFile(tmpPath, []byte(key.Content), 0644); err != nil {
-		return err
+	if err := ioutil.WriteFile(tmpPath, []byte(publicKeyContent), 0644); err != nil {
+		return "", err
 	}
 	stdout, stderr, err := process.GetManager().Exec("AddPublicKey", "ssh-keygen", "-lf", tmpPath)
 	if err != nil {
-		return fmt.Errorf("'ssh-keygen -lf %s' failed with error '%s': %s", tmpPath, err, stderr)
+		return "", fmt.Errorf("'ssh-keygen -lf %s' failed with error '%s': %s", tmpPath, err, stderr)
 	} else if len(stdout) < 2 {
-		return errors.New("not enough output for calculating fingerprint: " + stdout)
+		return "", errors.New("not enough output for calculating fingerprint: " + stdout)
 	}
-	key.Fingerprint = strings.Split(stdout, " ")[1]
+	return strings.Split(stdout, " ")[1], nil
+}
+
+func addKey(e Engine, key *PublicKey) (err error) {
+	if len(key.Fingerprint) <= 0 {
+		key.Fingerprint, err = calcFingerprint(key.Content)
+		if err != nil {
+			return err
+		}
+	}
 
 	// Save SSH key.
 	if _, err = e.Insert(key); err != nil {
@@ -405,7 +414,13 @@ func addKey(e Engine, key *PublicKey) (err error) {
 // AddPublicKey adds new public key to database and authorized_keys file.
 func AddPublicKey(ownerID int64, name, content string) (*PublicKey, error) {
 	log.Trace(content)
-	if err := checkKeyContent(content); err != nil {
+
+	fingerprint, err := calcFingerprint(content)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := checkKeyFingerprint(x, fingerprint); err != nil {
 		return nil, err
 	}
 
@@ -426,11 +441,12 @@ func AddPublicKey(ownerID int64, name, content string) (*PublicKey, error) {
 	}
 
 	key := &PublicKey{
-		OwnerID: ownerID,
-		Name:    name,
-		Content: content,
-		Mode:    AccessModeWrite,
-		Type:    KeyTypeUser,
+		OwnerID:     ownerID,
+		Name:        name,
+		Fingerprint: fingerprint,
+		Content:     content,
+		Mode:        AccessModeWrite,
+		Type:        KeyTypeUser,
 	}
 	if err = addKey(sess, key); err != nil {
 		return nil, fmt.Errorf("addKey: %v", err)
@@ -665,14 +681,15 @@ func HasDeployKey(keyID, repoID int64) bool {
 
 // AddDeployKey add new deploy key to database and authorized_keys file.
 func AddDeployKey(repoID int64, name, content string) (*DeployKey, error) {
-	if err := checkKeyContent(content); err != nil {
+	fingerprint, err := calcFingerprint(content)
+	if err != nil {
 		return nil, err
 	}
 
 	pkey := &PublicKey{
-		Content: content,
-		Mode:    AccessModeRead,
-		Type:    KeyTypeDeploy,
+		Fingerprint: fingerprint,
+		Mode:        AccessModeRead,
+		Type:        KeyTypeDeploy,
 	}
 	has, err := x.Get(pkey)
 	if err != nil {
@@ -687,6 +704,8 @@ func AddDeployKey(repoID int64, name, content string) (*DeployKey, error) {
 
 	// First time use this deploy key.
 	if !has {
+		pkey.Content = content
+		pkey.Name = name
 		if err = addKey(sess, pkey); err != nil {
 			return nil, fmt.Errorf("addKey: %v", err)
 		}

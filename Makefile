@@ -89,7 +89,7 @@ install: $(wildcard *.go)
 build: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES)
-	go build -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+	go build -i -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: docker
 docker:

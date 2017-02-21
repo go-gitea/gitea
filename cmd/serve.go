@@ -47,10 +47,9 @@ var CmdServ = cli.Command{
 	},
 }
 
-func setup(logPath string) {
+func setup(logPath string) error {
 	setting.NewContext()
 	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
-
 	models.LoadConfigs()
 
 	if setting.UseSQLite3 || setting.UseTiDB {
@@ -60,7 +59,8 @@ func setup(logPath string) {
 		}
 	}
 
-	models.SetEngine()
+	setting.NewXORMLogService(true)
+	return models.SetEngine()
 }
 
 func parseCmd(cmd string) (string, string) {
@@ -146,7 +146,9 @@ func runServ(c *cli.Context) error {
 		setting.CustomConf = c.String("config")
 	}
 
-	setup("serv.log")
+	if err := setup("serv.log"); err != nil {
+		fail("System init failed", fmt.Sprintf("setup: %v", err))
+	}
 
 	if setting.SSH.Disabled {
 		println("Gitea: SSH has been disabled")
@@ -340,6 +342,10 @@ func runServ(c *cli.Context) error {
 	} else {
 		gitcmd = exec.Command(verb, repoPath)
 	}
+
+	os.Setenv(models.ProtectedBranchAccessMode, requestedMode.String())
+	os.Setenv(models.ProtectedBranchRepoID, fmt.Sprintf("%d", repo.ID))
+
 	gitcmd.Dir = setting.RepoRootPath
 	gitcmd.Stdout = os.Stdout
 	gitcmd.Stdin = os.Stdin

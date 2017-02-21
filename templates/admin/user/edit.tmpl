@@ -97,12 +97,14 @@
 								<input name="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}}>
 							</div>
 						</div>
+						{{if not .DisableRegularOrgCreation}}
 						<div class="inline field">
 							<div class="ui checkbox">
 								<label><strong>{{.i18n.Tr "admin.users.allow_create_organization"}}</strong></label>
 								<input name="allow_create_organization" type="checkbox" {{if .User.CanCreateOrganization}}checked{{end}}>
 							</div>
 						</div>
+						{{end}}
 
 						<div class="ui divider"></div>
 

@@ -1,3 +1,7 @@
+// Copyright 2017 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package migrations
 
 import (
@@ -42,7 +46,7 @@ type Repo struct {
 
 func addUnitsToTables(x *xorm.Engine) error {
 	var repos []Repo
-	err := x.Table("repository").Find(&repos)
+	err := x.Table("repository").Select("*").Find(&repos)
 	if err != nil {
 		return fmt.Errorf("Query repositories: %v", err)
 	}

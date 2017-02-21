@@ -30,6 +30,7 @@ import (
 	_ "github.com/go-macaron/cache/redis"
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
+	"github.com/go-xorm/core"
 	ini "gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
@@ -96,7 +97,7 @@ var (
 	}{
 		Disabled:           false,
 		StartBuiltinServer: false,
-		Domain:             "localhost",
+		Domain:             "",
 		Port:               22,
 		KeygenPath:         "ssh-keygen",
 	}
@@ -257,6 +258,11 @@ var (
 		FileExtensions:      strings.Split(".md,.markdown,.mdown,.mkd", ","),
 	}
 
+	// Admin settings
+	Admin struct {
+		DisableRegularOrgCreation bool
+	}
+
 	// Picture settings
 	AvatarUploadPath      string
 	GravatarSource        string
@@ -307,6 +313,12 @@ var (
 			RunAtStart bool
 			Schedule   string
 		} `ini:"cron.check_repo_stats"`
+		ArchiveCleanup struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+			OlderThan  time.Duration
+		} `ini:"cron.archive_cleanup"`
 	}{
 		UpdateMirror: struct {
 			Enabled    bool
@@ -334,10 +346,21 @@ var (
 			RunAtStart: true,
 			Schedule:   "@every 24h",
 		},
+		ArchiveCleanup: struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+			OlderThan  time.Duration
+		}{
+			RunAtStart: true,
+			Schedule:   "@every 24h",
+			OlderThan:  24 * time.Hour,
+		},
 	}
 
 	// Git settings
 	Git = struct {
+		Version                  string `ini:"-"`
 		DisableDiffHighlight     bool
 		MaxGitDiffLines          int
 		MaxGitDiffLineCharacters int
@@ -601,6 +624,9 @@ please consider changing to GITEA_CUSTOM`)
 		LandingPageURL = LandingPageHome
 	}
 
+	if len(SSH.Domain) == 0 {
+		SSH.Domain = Domain
+	}
 	SSH.RootPath = path.Join(homeDir, ".ssh")
 	SSH.KeyTestPath = os.TempDir()
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
@@ -838,6 +864,8 @@ please consider changing to GITEA_CUSTOM`)
 		log.Fatal(4, "Failed to map UI settings: %v", err)
 	} else if err = Cfg.Section("markdown").MapTo(&Markdown); err != nil {
 		log.Fatal(4, "Failed to map Markdown settings: %v", err)
+	} else if err = Cfg.Section("admin").MapTo(&Admin); err != nil {
+		log.Fatal(4, "Fail to map Admin settings: %v", err)
 	} else if err = Cfg.Section("cron").MapTo(&Cron); err != nil {
 		log.Fatal(4, "Failed to map Cron settings: %v", err)
 	} else if err = Cfg.Section("git").MapTo(&Git); err != nil {
@@ -917,20 +945,19 @@ func newLogService() {
 	LogConfigs = make([]string, len(LogModes))
 
 	useConsole := false
-	for _, mode := range LogModes {
-		if mode == "console" {
+	for i := 0; i < len(LogModes); i++ {
+		LogModes[i] = strings.TrimSpace(LogModes[i])
+		if LogModes[i] == "console" {
 			useConsole = true
 		}
 	}
+
 	if !useConsole {
 		log.DelLogger("console")
 	}
 
 	for i, mode := range LogModes {
-		mode = strings.TrimSpace(mode)
-
 		sec, err := Cfg.GetSection("log." + mode)
-
 		if err != nil {
 			sec, _ = Cfg.NewSection("log." + mode)
 		}
@@ -984,6 +1011,90 @@ func newLogService() {
 
 		log.NewLogger(Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000), mode, LogConfigs[i])
 		log.Info("Log Mode: %s(%s)", strings.Title(mode), levelName)
+	}
+}
+
+// NewXORMLogService initializes xorm logger service
+func NewXORMLogService(disableConsole bool) {
+	logModes := strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
+	var logConfigs string
+	for _, mode := range logModes {
+		mode = strings.TrimSpace(mode)
+
+		if disableConsole && mode == "console" {
+			continue
+		}
+
+		sec, err := Cfg.GetSection("log." + mode)
+		if err != nil {
+			sec, _ = Cfg.NewSection("log." + mode)
+		}
+
+		validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
+		// Log level.
+		levelName := Cfg.Section("log."+mode).Key("LEVEL").In(
+			Cfg.Section("log").Key("LEVEL").In("Trace", validLevels),
+			validLevels)
+		level, ok := logLevels[levelName]
+		if !ok {
+			log.Fatal(4, "Unknown log level: %s", levelName)
+		}
+
+		// Generate log configuration.
+		switch mode {
+		case "console":
+			logConfigs = fmt.Sprintf(`{"level":%s}`, level)
+		case "file":
+			logPath := sec.Key("FILE_NAME").MustString(path.Join(LogRootPath, "xorm.log"))
+			if err = os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
+				panic(err.Error())
+			}
+			logPath = filepath.Join(filepath.Dir(logPath), "xorm.log")
+
+			logConfigs = fmt.Sprintf(
+				`{"level":%s,"filename":"%s","rotate":%v,"maxlines":%d,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
+				logPath,
+				sec.Key("LOG_ROTATE").MustBool(true),
+				sec.Key("MAX_LINES").MustInt(1000000),
+				1<<uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28)),
+				sec.Key("DAILY_ROTATE").MustBool(true),
+				sec.Key("MAX_DAYS").MustInt(7))
+		case "conn":
+			logConfigs = fmt.Sprintf(`{"level":%s,"reconnectOnMsg":%v,"reconnect":%v,"net":"%s","addr":"%s"}`, level,
+				sec.Key("RECONNECT_ON_MSG").MustBool(),
+				sec.Key("RECONNECT").MustBool(),
+				sec.Key("PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"}),
+				sec.Key("ADDR").MustString(":7020"))
+		case "smtp":
+			logConfigs = fmt.Sprintf(`{"level":%s,"username":"%s","password":"%s","host":"%s","sendTos":"%s","subject":"%s"}`, level,
+				sec.Key("USER").MustString("example@example.com"),
+				sec.Key("PASSWD").MustString("******"),
+				sec.Key("HOST").MustString("127.0.0.1:25"),
+				sec.Key("RECEIVERS").MustString("[]"),
+				sec.Key("SUBJECT").MustString("Diagnostic message from serve"))
+		case "database":
+			logConfigs = fmt.Sprintf(`{"level":%s,"driver":"%s","conn":"%s"}`, level,
+				sec.Key("DRIVER").String(),
+				sec.Key("CONN").String())
+		}
+
+		log.NewXORMLogger(Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000), mode, logConfigs)
+		if !disableConsole {
+			log.Info("XORM Log Mode: %s(%s)", strings.Title(mode), levelName)
+		}
+
+		var lvl core.LogLevel
+		switch levelName {
+		case "Trace", "Debug":
+			lvl = core.LOG_DEBUG
+		case "Info":
+			lvl = core.LOG_INFO
+		case "Warn":
+			lvl = core.LOG_WARNING
+		case "Error", "Critical":
+			lvl = core.LOG_ERR
+		}
+		log.XORMLogger.SetLevel(lvl)
 	}
 }
 
@@ -1113,6 +1224,7 @@ func newWebhookService() {
 func NewServices() {
 	newService()
 	newLogService()
+	NewXORMLogService(false)
 	newCacheService()
 	newSessionService()
 	newMailService()

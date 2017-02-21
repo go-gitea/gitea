@@ -26,6 +26,14 @@ This process gives everyone a chance to validate the design, helps prevent dupli
 
 Before sending code out for review, run all the tests for the whole tree to make sure the changes don't break other usage and keep the compatibility on upgrade. To make sure you are running the test suite exactly like we do, you should install the CLI for [Drone CI](https://github.com/drone/drone), as we are using the server for continous testing, following [these instructions](http://readme.drone.io/0.5/install/cli/). After that you can simply call `drone exec` within your working directory and it will try to run the test suite locally.
 
+## Vendoring
+
+We keep a cached copy of dependencies within the `vendor/` directory, managing updates via [govendor](http://github.com/kardianos/govendor).
+
+Pull requests should only include `vendor/` updates if they are part of the same change, be it a bugfix or a feature addition.
+
+The `vendor/` update needs to be justified as part of the PR description, and must be verified by the reviewers and/or merger to always reference an existing upstream commit.
+
 ## Code review
 
 Changes to Gitea must be reviewed before they are accepted, no matter who makes the change even if it is an owner or a maintainer. We use GitHub's pull request workflow to do that and we also use [LGTM](http://lgtm.co) to ensure every PR is reviewed by at least 2 maintainers.
@@ -36,6 +44,25 @@ Please try to make your pull request easy to review for us. Please read the "[Ho
 * Don't make changes unrelated to your PR. Maybe there are typos on some comments, maybe refactoring would be welcome on a function... but if that is not related to your PR, please make *another* PR for that.
 * Split big pull requests into multiple small ones. An incremental change will be faster to review than a huge PR.
 
+## Styleguide
+
+For imports you should use the following format (_without_ the comments)
+```go
+import (
+  // stdlib
+  "encoding/json"
+  "fmt"
+
+  // local packages
+  "code.gitea.io/gitea/models"
+  "code.gitea.io/sdk/gitea"
+
+  // external packages
+  "github.com/foo/bar"
+  "gopkg.io/baz.v1"
+)
+```
+
 ## Sign your work
 
 The sign-off is a simple line at the end of the explanation for the patch. Your signature certifies that you wrote the patch or otherwise have the right to pass it on as an open-source patch. The rules are pretty simple: If you can certify [DCO](DCO), then you just add a line to every git commit message:
@@ -45,6 +72,12 @@ Signed-off-by: Joe Smith <joe.smith@email.com>
 ```
 
 Please use your real name, we really dislike pseudonyms or anonymous contributions. We are in the open-source world without secrets. If you set your `user.name` and `user.email` git configs, you can sign your commit automatically with `git commit -s`.
+
+## Release Cycle
+
+We adopted a release schedule to streamline the process of working on, finishing, and issuing releases. The overall goal is to make a major release every two months, which breaks down into one month of general development followed by one month of testing and polishing known as the release freeze. A release is maintained by issuing minor releases to only correct critical problems such as crashes or security issues. All the feature pull requests should be merged in the first month of one release period. 
+
+The current release cycle is aligned to start on December 25 to February 24, next is February 25 to April 24, and etc. On this cycle, we also maybe publish the previous release minor version. For example, the current release version is v1.1, but we maybe also publish v1.0.2. When we publish v1.2, then we will stop publish v1.0.3.
 
 ## Maintainers
 

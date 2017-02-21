@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/url"
 	"strings"
 	"time"
 
@@ -108,16 +107,9 @@ func Issues(ctx *context.Context) {
 
 	viewType := ctx.Query("type")
 	sortType := ctx.Query("sort")
-	types := []string{"assigned", "created_by", "mentioned"}
+	types := []string{"all", "assigned", "created_by", "mentioned"}
 	if !com.IsSliceContainsStr(types, viewType) {
 		viewType = "all"
-	}
-
-	// Must sign in to see issues about you.
-	if viewType != "all" && !ctx.IsSigned {
-		ctx.SetCookie("redirect_to", "/"+url.QueryEscape(setting.AppSubURL+ctx.Req.RequestURI), 0, setting.AppSubURL)
-		ctx.Redirect(setting.AppSubURL + "/user/login")
-		return
 	}
 
 	var (
@@ -126,26 +118,13 @@ func Issues(ctx *context.Context) {
 		mentionedID int64
 		forceEmpty  bool
 	)
-	switch viewType {
-	case "assigned":
-		if assigneeID > 0 && ctx.User.ID != assigneeID {
-			// two different assignees, must be empty
-			forceEmpty = true
-		} else {
-			assigneeID = ctx.User.ID
-		}
-	case "created_by":
-		posterID = ctx.User.ID
-	case "mentioned":
-		mentionedID = ctx.User.ID
-	}
 
 	repo := ctx.Repo.Repository
 	selectLabels := ctx.Query("labels")
 	milestoneID := ctx.QueryInt64("milestone")
 	isShowClosed := ctx.Query("state") == "closed"
 
-	keyword := ctx.Query("q")
+	keyword := strings.Trim(ctx.Query("q"), " ")
 	if bytes.Contains([]byte(keyword), []byte{0x00}) {
 		keyword = ""
 	}
@@ -635,7 +614,8 @@ func ViewIssue(ctx *context.Context) {
 			} else if ctx.User.IsWriterOfRepo(pull.HeadRepo) {
 				canDelete = true
 				deleteBranchURL := pull.HeadRepo.Link() + "/branches/" + pull.HeadBranch + "/delete"
-				ctx.Data["DeleteBranchLink"] = fmt.Sprintf("%s?commit=%s&redirect_to=%s", deleteBranchURL, pull.MergedCommitID, ctx.Data["Link"])
+				ctx.Data["DeleteBranchLink"] = fmt.Sprintf("%s?commit=%s&redirect_to=%s&issue_id=%d",
+					deleteBranchURL, pull.MergedCommitID, ctx.Data["Link"], issue.ID)
 
 			}
 		}

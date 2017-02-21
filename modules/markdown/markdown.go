@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net/url"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -35,21 +36,15 @@ var Sanitizer = bluemonday.UGCPolicy()
 // This function should only be called once during entire application lifecycle.
 func BuildSanitizer() {
 	// Normal markdown-stuff
-	Sanitizer.AllowAttrs("class").Matching(regexp.MustCompile(`[\p{L}\p{N}\s\-_',:\[\]!\./\\\(\)&]*`)).OnElements("code")
+	Sanitizer.AllowAttrs("class").Matching(regexp.MustCompile(`[\p{L}\p{N}\s\-_',:\[\]!\./\\\(\)&]*`)).OnElements("code", "div", "ul", "ol", "dl")
 
 	// Checkboxes
 	Sanitizer.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
 	Sanitizer.AllowAttrs("checked", "disabled").OnElements("input")
+	Sanitizer.AllowNoAttrs().OnElements("label")
 
 	// Custom URL-Schemes
 	Sanitizer.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
-}
-
-var validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
-
-// isLink reports whether link fits valid format.
-func isLink(link []byte) bool {
-	return validLinksPattern.Match(link)
 }
 
 // IsMarkdownFile reports whether name looks like a Markdown file
@@ -65,7 +60,7 @@ func IsMarkdownFile(name string) bool {
 }
 
 // IsReadmeFile reports whether name looks like a README file
-// based on its extension.
+// based on its name.
 func IsReadmeFile(name string) bool {
 	name = strings.ToLower(name)
 	if len(name) < 6 {
@@ -80,13 +75,6 @@ var (
 	// MentionPattern matches string that mentions someone, e.g. @Unknwon
 	MentionPattern = regexp.MustCompile(`(\s|^|\W)@[0-9a-zA-Z-_\.]+`)
 
-	// CommitPattern matches link to certain commit with or without trailing hash,
-	// e.g. https://try.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2
-	CommitPattern = regexp.MustCompile(`(\s|^)https?.*commit/[0-9a-zA-Z]+(#+[0-9a-zA-Z-]*)?`)
-
-	// IssueFullPattern matches link to an issue with or without trailing hash,
-	// e.g. https://try.gogs.io/gogs/gogs/issues/4#issue-685
-	IssueFullPattern = regexp.MustCompile(`(\s|^)https?.*issues/[0-9]+(#+[0-9a-zA-Z-]*)?`)
 	// IssueNumericPattern matches string that references to a numeric issue, e.g. #1287
 	IssueNumericPattern = regexp.MustCompile(`( |^|\()#[0-9]+\b`)
 	// IssueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
@@ -96,10 +84,26 @@ var (
 	CrossReferenceIssueNumericPattern = regexp.MustCompile(`( |^)[0-9a-zA-Z]+/[0-9a-zA-Z]+#[0-9]+\b`)
 
 	// Sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
-	// FIXME: this pattern matches pure numbers as well, right now we do a hack to check in RenderSha1CurrentPattern
+	// FIXME: this pattern matches pure numbers as well, right now we do a hack to check in renderSha1CurrentPattern
 	// by converting string to a number.
-	Sha1CurrentPattern = regexp.MustCompile(`\b[0-9a-f]{40}\b`)
+	Sha1CurrentPattern = regexp.MustCompile(`(?:^|\s|\()[0-9a-f]{40}\b`)
+
+	// ShortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
+	ShortLinkPattern = regexp.MustCompile(`(\[\[.*\]\]\w*)`)
+
+	// AnySHA1Pattern allows to split url containing SHA into parts
+	AnySHA1Pattern = regexp.MustCompile(`http\S+//(\S+)/(\S+)/(\S+)/(\S+)/([0-9a-f]{40})(?:/?([^#\s]+)?(?:#(\S+))?)?`)
+
+	// IssueFullPattern allows to split issue (and pull) URLs into parts
+	IssueFullPattern = regexp.MustCompile(`(?:^|\s|\()http\S+//((?:[^\s/]+/)+)((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
+
+	validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
 )
+
+// isLink reports whether link fits valid format.
+func isLink(link []byte) bool {
+	return validLinksPattern.Match(link)
+}
 
 // FindAllMentions matches mention patterns in given content
 // and returns a list of found user names without @ prefix.
@@ -114,79 +118,67 @@ func FindAllMentions(content string) []string {
 // Renderer is a extended version of underlying render object.
 type Renderer struct {
 	blackfriday.Renderer
-	urlPrefix string
+	urlPrefix      string
+	isWikiMarkdown bool
 }
 
 // Link defines how formal links should be processed to produce corresponding HTML elements.
 func (r *Renderer) Link(out *bytes.Buffer, link []byte, title []byte, content []byte) {
 	if len(link) > 0 && !isLink(link) {
 		if link[0] != '#' {
-			link = []byte(path.Join(r.urlPrefix, string(link)))
+			mLink := URLJoin(r.urlPrefix, string(link))
+			if r.isWikiMarkdown {
+				mLink = URLJoin(r.urlPrefix, "wiki", string(link))
+			}
+			link = []byte(mLink)
 		}
 	}
 
 	r.Renderer.Link(out, link, title, content)
 }
 
-// AutoLink defines how auto-detected links should be processed to produce corresponding HTML elements.
-// Reference for kind: https://github.com/russross/blackfriday/blob/master/markdown.go#L69-L76
-func (r *Renderer) AutoLink(out *bytes.Buffer, link []byte, kind int) {
-	if kind != blackfriday.LINK_TYPE_NORMAL {
-		r.Renderer.AutoLink(out, link, kind)
+// List renders markdown bullet or digit lists to HTML
+func (r *Renderer) List(out *bytes.Buffer, text func() bool, flags int) {
+	marker := out.Len()
+	if out.Len() > 0 {
+		out.WriteByte('\n')
+	}
+
+	if flags&blackfriday.LIST_TYPE_DEFINITION != 0 {
+		out.WriteString("<dl>")
+	} else if flags&blackfriday.LIST_TYPE_ORDERED != 0 {
+		out.WriteString("<ol class='ui list'>")
+	} else {
+		out.WriteString("<ul class='ui list'>")
+	}
+	if !text() {
+		out.Truncate(marker)
 		return
 	}
-
-	// Since this method could only possibly serve one link at a time,
-	// we do not need to find all.
-	if bytes.HasPrefix(link, []byte(setting.AppURL)) {
-		m := CommitPattern.Find(link)
-		if m != nil {
-			m = bytes.TrimSpace(m)
-			i := strings.Index(string(m), "commit/")
-			j := strings.Index(string(m), "#")
-			if j == -1 {
-				j = len(m)
-			}
-			out.WriteString(fmt.Sprintf(` <code><a href="%s">%s</a></code>`, m, base.ShortSha(string(m[i+7:j]))))
-			return
-		}
-
-		m = IssueFullPattern.Find(link)
-		if m != nil {
-			m = bytes.TrimSpace(m)
-			i := strings.Index(string(m), "issues/")
-			j := strings.Index(string(m), "#")
-			if j == -1 {
-				j = len(m)
-			}
-
-			issue := string(m[i+7 : j])
-			fullRepoURL := setting.AppURL + strings.TrimPrefix(r.urlPrefix, "/")
-			var link string
-			if strings.HasPrefix(string(m), fullRepoURL) {
-				// Use a short issue reference if the URL refers to this repository
-				link = fmt.Sprintf(`<a href="%s">#%s</a>`, m, issue)
-			} else {
-				// Use a cross-repository issue reference if the URL refers to a different repository
-				repo := string(m[len(setting.AppURL) : i-1])
-				link = fmt.Sprintf(`<a href="%s">%s#%s</a>`, m, repo, issue)
-			}
-			out.WriteString(link)
-			return
-		}
+	if flags&blackfriday.LIST_TYPE_DEFINITION != 0 {
+		out.WriteString("</dl>\n")
+	} else if flags&blackfriday.LIST_TYPE_ORDERED != 0 {
+		out.WriteString("</ol>\n")
+	} else {
+		out.WriteString("</ul>\n")
 	}
-
-	r.Renderer.AutoLink(out, link, kind)
 }
 
 // ListItem defines how list items should be processed to produce corresponding HTML elements.
 func (r *Renderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
 	// Detect procedures to draw checkboxes.
+	prefix := ""
+	if bytes.HasPrefix(text, []byte("<p>")) {
+		prefix = "<p>"
+	}
 	switch {
-	case bytes.HasPrefix(text, []byte("[ ] ")):
-		text = append([]byte(`<input type="checkbox" disabled="" />`), text[3:]...)
-	case bytes.HasPrefix(text, []byte("[x] ")):
-		text = append([]byte(`<input type="checkbox" disabled="" checked="" />`), text[3:]...)
+	case bytes.HasPrefix(text, []byte(prefix+"[ ] ")):
+		text = append([]byte(`<div class="ui fitted disabled checkbox"><input type="checkbox" disabled="disabled" /><label /></div>`), text[3+len(prefix):]...)
+	case bytes.HasPrefix(text, []byte(prefix+"[x] ")):
+		text = append([]byte(`<div class="ui checked fitted disabled checkbox"><input type="checkbox" checked="" disabled="disabled" /><label /></div>`), text[3+len(prefix):]...)
+	}
+	if prefix != "" {
+		text = bytes.Replace(text, []byte("</p>"), []byte{}, 1)
 	}
 	r.Renderer.ListItem(out, text, flags)
 }
@@ -196,15 +188,15 @@ func (r *Renderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
 var (
 	svgSuffix         = []byte(".svg")
 	svgSuffixWithMark = []byte(".svg?")
-	spaceBytes        = []byte(" ")
-	spaceEncodedBytes = []byte("%20")
-	space             = " "
-	spaceEncoded      = "%20"
 )
 
 // Image defines how images should be processed to produce corresponding HTML elements.
 func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byte) {
-	prefix := strings.Replace(r.urlPrefix, "/src/", "/raw/", 1)
+	prefix := r.urlPrefix
+	if r.isWikiMarkdown {
+		prefix = URLJoin(prefix, "wiki", "src")
+	}
+	prefix = strings.Replace(prefix, "/src/", "/raw/", 1)
 	if len(link) > 0 {
 		if isLink(link) {
 			// External link with .svg suffix usually means CI status.
@@ -215,10 +207,11 @@ func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byt
 			}
 		} else {
 			if link[0] != '/' {
-				prefix += "/"
+				if !strings.HasSuffix(prefix, "/") {
+					prefix += "/"
+				}
 			}
-			link = bytes.Replace([]byte((prefix + string(link))), spaceBytes, spaceEncodedBytes, -1)
-			fmt.Println(333, string(link))
+			link = []byte(url.QueryEscape(prefix + string(link)))
 		}
 	}
 
@@ -247,6 +240,19 @@ func cutoutVerbosePrefix(prefix string) string {
 	return prefix
 }
 
+// URLJoin joins url components, like path.Join, but preserving contents
+func URLJoin(elem ...string) string {
+	res := ""
+	last := len(elem) - 1
+	for i, item := range elem {
+		res += item
+		if !strings.HasSuffix(res, "/") && i != last {
+			res += "/"
+		}
+	}
+	return res
+}
+
 // RenderIssueIndexPattern renders issue indexes to corresponding links.
 func RenderIssueIndexPattern(rawBytes []byte, urlPrefix string, metas map[string]string) []byte {
 	urlPrefix = cutoutVerbosePrefix(urlPrefix)
@@ -263,7 +269,7 @@ func RenderIssueIndexPattern(rawBytes []byte, urlPrefix string, metas map[string
 		}
 		var link string
 		if metas == nil {
-			link = fmt.Sprintf(`<a href="%s/issues/%s">%s</a>`, urlPrefix, m[1:], m)
+			link = fmt.Sprintf(`<a href="%s">%s</a>`, URLJoin(urlPrefix, "issues", string(m[1:])), m)
 		} else {
 			// Support for external issue tracker
 			if metas["style"] == IssueNameStyleAlphanumeric {
@@ -274,6 +280,238 @@ func RenderIssueIndexPattern(rawBytes []byte, urlPrefix string, metas map[string
 			link = fmt.Sprintf(`<a href="%s">%s</a>`, com.Expand(metas["format"], metas), m)
 		}
 		rawBytes = bytes.Replace(rawBytes, m, []byte(link), 1)
+	}
+	return rawBytes
+}
+
+// IsSameDomain checks if given url string has the same hostname as current Gitea instance
+func IsSameDomain(s string) bool {
+	if uapp, err := url.Parse(setting.AppURL); err == nil {
+		if u, err := url.Parse(s); err == nil {
+			return u.Host == uapp.Host
+		}
+		return false
+	}
+	return false
+}
+
+// renderFullSha1Pattern renders SHA containing URLs
+func renderFullSha1Pattern(rawBytes []byte, urlPrefix string) []byte {
+	ms := AnySHA1Pattern.FindAllSubmatch(rawBytes, -1)
+	for _, m := range ms {
+		all := m[0]
+		paths := string(m[1])
+		var path = "//" + paths
+		author := string(m[2])
+		repoName := string(m[3])
+		path = URLJoin(path, author, repoName)
+		ltype := "src"
+		itemType := m[4]
+		if IsSameDomain(paths) {
+			ltype = string(itemType)
+		} else if string(itemType) == "commit" {
+			ltype = "commit"
+		}
+		sha := m[5]
+		var subtree string
+		if len(m) > 6 && len(m[6]) > 0 {
+			subtree = string(m[6])
+		}
+		var line []byte
+		if len(m) > 7 && len(m[7]) > 0 {
+			line = m[7]
+		}
+		urlSuffix := ""
+		text := base.ShortSha(string(sha))
+		if subtree != "" {
+			urlSuffix = "/" + subtree
+			text += urlSuffix
+		}
+		if line != nil {
+			value := string(line)
+			urlSuffix += "#"
+			urlSuffix += value
+			text += " ("
+			text += value
+			text += ")"
+		}
+		rawBytes = bytes.Replace(rawBytes, all, []byte(fmt.Sprintf(
+			`<a href="%s">%s</a>`, URLJoin(path, ltype, string(sha))+urlSuffix, text)), -1)
+	}
+	return rawBytes
+}
+
+// renderFullIssuePattern renders issues-like URLs
+func renderFullIssuePattern(rawBytes []byte, urlPrefix string) []byte {
+	ms := IssueFullPattern.FindAllSubmatch(rawBytes, -1)
+	for _, m := range ms {
+		all := m[0]
+		paths := bytes.Split(m[1], []byte("/"))
+		paths = paths[:len(paths)-1]
+		if bytes.HasPrefix(paths[0], []byte("gist.")) {
+			continue
+		}
+		var path string
+		if len(paths) > 3 {
+			// Internal one
+			path = URLJoin(urlPrefix, "issues")
+		} else {
+			path = "//" + string(m[1])
+		}
+		id := string(m[2])
+		path = URLJoin(path, id)
+		var comment []byte
+		if len(m) > 3 {
+			comment = m[3]
+		}
+		urlSuffix := ""
+		text := "#" + id
+		if comment != nil {
+			urlSuffix += string(comment)
+			text += " <i class='comment icon'></i>"
+		}
+		rawBytes = bytes.Replace(rawBytes, all, []byte(fmt.Sprintf(
+			`<a href="%s%s">%s</a>`, path, urlSuffix, text)), -1)
+	}
+	return rawBytes
+}
+
+func firstIndexOfByte(sl []byte, target byte) int {
+	for i := 0; i < len(sl); i++ {
+		if sl[i] == target {
+			return i
+		}
+	}
+	return -1
+}
+
+func lastIndexOfByte(sl []byte, target byte) int {
+	for i := len(sl) - 1; i >= 0; i-- {
+		if sl[i] == target {
+			return i
+		}
+	}
+	return -1
+}
+
+// renderShortLinks processes [[syntax]]
+func renderShortLinks(rawBytes []byte, urlPrefix string, noLink bool) []byte {
+	ms := ShortLinkPattern.FindAll(rawBytes, -1)
+	for _, m := range ms {
+		orig := bytes.TrimSpace(m)
+		m = orig[2:]
+		tailPos := lastIndexOfByte(m, ']') + 1
+		tail := []byte{}
+		if tailPos < len(m) {
+			tail = m[tailPos:]
+			m = m[:tailPos-1]
+		}
+		m = m[:len(m)-2]
+		props := map[string]string{}
+
+		// MediaWiki uses [[link|text]], while GitHub uses [[text|link]]
+		// It makes page handling terrible, but we prefer GitHub syntax
+		// And fall back to MediaWiki only when it is obvious from the look
+		// Of text and link contents
+		sl := bytes.Split(m, []byte("|"))
+		for _, v := range sl {
+			switch bytes.Count(v, []byte("=")) {
+
+			// Piped args without = sign, these are mandatory arguments
+			case 0:
+				{
+					sv := string(v)
+					if props["name"] == "" {
+						if isLink(v) {
+							// If we clearly see it is a link, we save it so
+
+							// But first we need to ensure, that if both mandatory args provided
+							// look like links, we stick to GitHub syntax
+							if props["link"] != "" {
+								props["name"] = props["link"]
+							}
+
+							props["link"] = strings.TrimSpace(sv)
+						} else {
+							props["name"] = sv
+						}
+					} else {
+						props["link"] = strings.TrimSpace(sv)
+					}
+				}
+
+			// Piped args with = sign, these are optional arguments
+			case 1:
+				{
+					sep := firstIndexOfByte(v, '=')
+					key, val := string(v[:sep]), html.UnescapeString(string(v[sep+1:]))
+					lastCharIndex := len(val) - 1
+					if (val[0] == '"' || val[0] == '\'') && (val[lastCharIndex] == '"' || val[lastCharIndex] == '\'') {
+						val = val[1:lastCharIndex]
+					}
+					props[key] = val
+				}
+			}
+		}
+
+		var name string
+		var link string
+		if props["link"] != "" {
+			link = props["link"]
+		} else if props["name"] != "" {
+			link = props["name"]
+		}
+		if props["title"] != "" {
+			name = props["title"]
+		} else if props["name"] != "" {
+			name = props["name"]
+		} else {
+			name = link
+		}
+
+		name += string(tail)
+		image := false
+		ext := filepath.Ext(string(link))
+		if ext != "" {
+			switch ext {
+			case ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp", ".gif", ".bmp", ".ico", ".svg":
+				{
+					image = true
+				}
+			}
+		}
+		absoluteLink := isLink([]byte(link))
+		if !absoluteLink {
+			link = url.QueryEscape(link)
+		}
+		if image {
+			if !absoluteLink {
+				link = URLJoin(urlPrefix, "wiki", "raw", link)
+			}
+			title := props["title"]
+			if title == "" {
+				title = props["alt"]
+			}
+			if title == "" {
+				title = path.Base(string(name))
+			}
+			alt := props["alt"]
+			if alt == "" {
+				alt = name
+			}
+			if alt != "" {
+				alt = `alt="` + alt + `"`
+			}
+			name = fmt.Sprintf(`<img src="%s" %s title="%s" />`, link, alt, title)
+		} else if !absoluteLink {
+			link = URLJoin(urlPrefix, "wiki", link)
+		}
+		if noLink {
+			rawBytes = bytes.Replace(rawBytes, orig, []byte(name), -1)
+		} else {
+			rawBytes = bytes.Replace(rawBytes, orig,
+				[]byte(fmt.Sprintf(`<a href="%s">%s</a>`, link, name)), -1)
+		}
 	}
 	return rawBytes
 }
@@ -289,20 +527,24 @@ func RenderCrossReferenceIssueIndexPattern(rawBytes []byte, urlPrefix string, me
 		repo := string(bytes.Split(m, []byte("#"))[0])
 		issue := string(bytes.Split(m, []byte("#"))[1])
 
-		link := fmt.Sprintf(`<a href="%s%s/issues/%s">%s</a>`, setting.AppURL, repo, issue, m)
+		link := fmt.Sprintf(`<a href="%s">%s</a>`, URLJoin(urlPrefix, repo, "issues", issue), m)
 		rawBytes = bytes.Replace(rawBytes, m, []byte(link), 1)
 	}
 	return rawBytes
 }
 
-// RenderSha1CurrentPattern renders SHA1 strings to corresponding links that assumes in the same repository.
-func RenderSha1CurrentPattern(rawBytes []byte, urlPrefix string) []byte {
-	return []byte(Sha1CurrentPattern.ReplaceAllStringFunc(string(rawBytes[:]), func(m string) string {
-		if com.StrTo(m).MustInt() > 0 {
-			return m
+// renderSha1CurrentPattern renders SHA1 strings to corresponding links that assumes in the same repository.
+func renderSha1CurrentPattern(rawBytes []byte, urlPrefix string) []byte {
+	ms := Sha1CurrentPattern.FindAllSubmatch(rawBytes, -1)
+	for _, m := range ms {
+		all := m[0]
+		if com.StrTo(all).MustInt() > 0 {
+			continue
 		}
-		return fmt.Sprintf(`<a href="%s/commit/%s"><code>%s</code></a>`, urlPrefix, m, base.ShortSha(m))
-	}))
+		rawBytes = bytes.Replace(rawBytes, all, []byte(fmt.Sprintf(
+			`<a href="%s">%s</a>`, URLJoin(urlPrefix, "commit", string(all)), base.ShortSha(string(all)))), -1)
+	}
+	return rawBytes
 }
 
 // RenderSpecialLink renders mentions, indexes and SHA1 strings to corresponding links.
@@ -311,23 +553,27 @@ func RenderSpecialLink(rawBytes []byte, urlPrefix string, metas map[string]strin
 	for _, m := range ms {
 		m = m[bytes.Index(m, []byte("@")):]
 		rawBytes = bytes.Replace(rawBytes, m,
-			[]byte(fmt.Sprintf(`<a href="%s/%s">%s</a>`, setting.AppSubURL, m[1:], m)), -1)
+			[]byte(fmt.Sprintf(`<a href="%s">%s</a>`, URLJoin(setting.AppURL, string(m[1:])), m)), -1)
 	}
 
+	rawBytes = renderShortLinks(rawBytes, urlPrefix, false)
 	rawBytes = RenderIssueIndexPattern(rawBytes, urlPrefix, metas)
 	rawBytes = RenderCrossReferenceIssueIndexPattern(rawBytes, urlPrefix, metas)
-	rawBytes = RenderSha1CurrentPattern(rawBytes, urlPrefix)
+	rawBytes = renderFullSha1Pattern(rawBytes, urlPrefix)
+	rawBytes = renderSha1CurrentPattern(rawBytes, urlPrefix)
+	rawBytes = renderFullIssuePattern(rawBytes, urlPrefix)
 	return rawBytes
 }
 
 // RenderRaw renders Markdown to HTML without handling special links.
-func RenderRaw(body []byte, urlPrefix string) []byte {
+func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 	htmlFlags := 0
 	htmlFlags |= blackfriday.HTML_SKIP_STYLE
 	htmlFlags |= blackfriday.HTML_OMIT_CONTENTS
 	renderer := &Renderer{
-		Renderer:  blackfriday.HtmlRenderer(htmlFlags, "", ""),
-		urlPrefix: urlPrefix,
+		Renderer:       blackfriday.HtmlRenderer(htmlFlags, "", ""),
+		urlPrefix:      urlPrefix,
+		isWikiMarkdown: wikiMarkdown,
 	}
 
 	// set up the parser
@@ -335,9 +581,7 @@ func RenderRaw(body []byte, urlPrefix string) []byte {
 	extensions |= blackfriday.EXTENSION_NO_INTRA_EMPHASIS
 	extensions |= blackfriday.EXTENSION_TABLES
 	extensions |= blackfriday.EXTENSION_FENCED_CODE
-	extensions |= blackfriday.EXTENSION_AUTOLINK
 	extensions |= blackfriday.EXTENSION_STRIKETHROUGH
-	extensions |= blackfriday.EXTENSION_SPACE_HEADERS
 	extensions |= blackfriday.EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK
 
 	if setting.Markdown.EnableHardLineBreak {
@@ -379,10 +623,12 @@ OUTER_LOOP:
 					token = tokenizer.Token()
 
 					// Copy the token to the output verbatim
-					buf.WriteString(token.String())
+					buf.Write(renderShortLinks([]byte(token.String()), urlPrefix, true))
 
 					if token.Type == html.StartTagToken {
-						stackNum++
+						if !com.IsSliceContainsStr(noEndTags, token.Data) {
+							stackNum++
+						}
 					}
 
 					// If this is the close tag to the outer-most, we are done
@@ -425,16 +671,26 @@ OUTER_LOOP:
 	return rawHTML
 }
 
-// Render renders Markdown to HTML with special links.
-func Render(rawBytes []byte, urlPrefix string, metas map[string]string) []byte {
-	urlPrefix = strings.Replace(urlPrefix, space, spaceEncoded, -1)
-	result := RenderRaw(rawBytes, urlPrefix)
+// Render renders Markdown to HTML with all specific handling stuff.
+func render(rawBytes []byte, urlPrefix string, metas map[string]string, isWikiMarkdown bool) []byte {
+	urlPrefix = strings.Replace(urlPrefix, " ", "%20", -1)
+	result := RenderRaw(rawBytes, urlPrefix, isWikiMarkdown)
 	result = PostProcess(result, urlPrefix, metas)
 	result = Sanitizer.SanitizeBytes(result)
 	return result
 }
 
+// Render renders Markdown to HTML with all specific handling stuff.
+func Render(rawBytes []byte, urlPrefix string, metas map[string]string) []byte {
+	return render(rawBytes, urlPrefix, metas, false)
+}
+
 // RenderString renders Markdown to HTML with special links and returns string type.
 func RenderString(raw, urlPrefix string, metas map[string]string) string {
-	return string(Render([]byte(raw), urlPrefix, metas))
+	return string(render([]byte(raw), urlPrefix, metas, false))
+}
+
+// RenderWiki renders markdown wiki page to HTML and return HTML string
+func RenderWiki(rawBytes []byte, urlPrefix string, metas map[string]string) string {
+	return string(render(rawBytes, urlPrefix, metas, true))
 }

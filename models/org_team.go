@@ -37,22 +37,8 @@ func (t *Team) IsMember(userID int64) bool {
 }
 
 func (t *Team) getRepositories(e Engine) (err error) {
-	teamRepos := make([]*TeamRepo, 0, t.NumRepos)
-	if err = x.
-		Where("team_id=?", t.ID).
-		Find(&teamRepos); err != nil {
-		return fmt.Errorf("get team-repos: %v", err)
-	}
-
-	t.Repos = make([]*Repository, 0, len(teamRepos))
-	for i := range teamRepos {
-		repo, err := getRepositoryByID(e, teamRepos[i].RepoID)
-		if err != nil {
-			return fmt.Errorf("getRepositoryById(%d): %v", teamRepos[i].RepoID, err)
-		}
-		t.Repos = append(t.Repos, repo)
-	}
-	return nil
+	return e.Join("INNER", "team_repo", "repository.id = team_repo.repo_id").
+		Where("team_repo.team_id=?", t.ID).Find(&t.Repos)
 }
 
 // GetRepositories returns all repositories in team of organization.
@@ -438,27 +424,12 @@ func GetTeamMembers(teamID int64) ([]*User, error) {
 	return getTeamMembers(x, teamID)
 }
 
-func getUserTeams(e Engine, orgID, userID int64) ([]*Team, error) {
-	tus := make([]*TeamUser, 0, 5)
-	if err := e.
-		Where("uid=?", userID).
-		And("org_id=?", orgID).
-		Find(&tus); err != nil {
-		return nil, err
-	}
-
-	ts := make([]*Team, len(tus))
-	for i, tu := range tus {
-		t := new(Team)
-		has, err := e.Id(tu.TeamID).Get(t)
-		if err != nil {
-			return nil, err
-		} else if !has {
-			return nil, ErrTeamNotExist
-		}
-		ts[i] = t
-	}
-	return ts, nil
+func getUserTeams(e Engine, orgID, userID int64) (teams []*Team, err error) {
+	return teams, e.
+		Join("INNER", "team_user", "team_user.team_id = team.id").
+		Where("team.org_id = ?", orgID).
+		And("team_user.uid=?", userID).
+		Find(&teams)
 }
 
 // GetUserTeams returns all teams that user belongs to in given organization.

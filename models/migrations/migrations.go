@@ -83,6 +83,8 @@ var migrations = []Migration{
 	// V16 -> v17
 	NewMigration("create repo unit table and add units for all repos", addUnitsToTables),
 	// v17 -> v18
+	NewMigration("set protect branches updated with created", setProtectedBranchUpdatedWithCreated),
+	// v18 -> v19
 	NewMigration("add external login user", addExternalLoginUser),
 }
 

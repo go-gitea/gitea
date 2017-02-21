@@ -67,7 +67,7 @@ func (session *Session) nocacheGet(bean interface{}, sqlStr string, args ...inte
 	if rawRows.Next() {
 		fields, err := rawRows.Columns()
 		if err == nil {
-			err = session.row2Bean(rawRows, fields, len(fields), bean)
+			_, err = session.row2Bean(rawRows, fields, len(fields), bean)
 		}
 		return true, err
 	}

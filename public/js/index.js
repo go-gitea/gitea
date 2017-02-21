@@ -580,6 +580,42 @@ function initRepository() {
     }
 }
 
+function initProtectedBranch() {
+    $('#protectedBranch').change(function () {
+        var $this = $(this);
+        $.post($this.data('url'), {
+                "_csrf": csrf,
+                "canPush": true,
+                "branchName": $this.val(),
+            },
+            function (data) {
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    location.reload();
+                }
+            }
+        );
+    });
+
+    $('.rm').click(function () {
+        var $this = $(this);
+        $.post($this.data('url'), {
+                "_csrf": csrf,
+                "canPush": false,
+                "branchName": $this.data('val'),
+            },
+            function (data) {
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    location.reload();
+                }
+            }
+        );
+    });
+}
+
 function initRepositoryCollaboration() {
     console.log('initRepositoryCollaboration');
 
@@ -613,6 +649,7 @@ function initWikiForm() {
                         function (data) {
                             preview.innerHTML = '<div class="markdown">' + data + '</div>';
                             emojify.run($('.editor-preview')[0]);
+                            $('.editor-preview').autolink();
                         }
                     );
                 }, 0);
@@ -1392,6 +1429,7 @@ $(document).ready(function () {
             node.append('<a class="anchor" href="#' + name + '"><span class="octicon octicon-link"></span></a>');
         });
     });
+    $('.markdown').autolink();
 
     buttonsClickOnEnter();
     searchUsers();
@@ -1404,6 +1442,7 @@ $(document).ready(function () {
     initEditForm();
     initEditor();
     initOrganization();
+    initProtectedBranch();
     initWebhook();
     initAdmin();
     initCodeView();
@@ -1488,6 +1527,15 @@ $(function () {
             $('.list-search-style').html('');
         } else{
             $('.list-search-style').html('.search-list li:not([data-title*="' + value + '"]) {display: none;}');
+        }
+    });
+
+    // Parse SSH Key
+    $("#ssh-key-content").on('change paste keyup',function(){
+        var arrays = $(this).val().split(" ");
+        var $title = $("#ssh-key-title")
+        if ($title.val() === "" && arrays.length === 3 && arrays[2] !== "") {
+            $title.val(arrays[2]);
         }
     });
 });

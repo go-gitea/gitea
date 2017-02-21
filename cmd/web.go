@@ -354,8 +354,14 @@ func runWeb(ctx *cli.Context) error {
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
-		m.Get("/create", org.Create)
-		m.Post("/create", bindIgnErr(auth.CreateOrgForm{}), org.CreatePost)
+		m.Group("", func() {
+			m.Get("/create", org.Create)
+			m.Post("/create", bindIgnErr(auth.CreateOrgForm{}), org.CreatePost)
+		}, func(ctx *context.Context) {
+			if !ctx.User.CanCreateOrganization() {
+				ctx.NotFound()
+			}
+		})
 
 		m.Group("/:org", func() {
 			m.Get("/dashboard", user.Dashboard)
@@ -423,6 +429,11 @@ func runWeb(ctx *cli.Context) error {
 				m.Combo("").Get(repo.Collaboration).Post(repo.CollaborationPost)
 				m.Post("/access_mode", repo.ChangeCollaborationAccessMode)
 				m.Post("/delete", repo.DeleteCollaboration)
+			})
+			m.Group("/branches", func() {
+				m.Combo("").Get(repo.ProtectedBranch).Post(repo.ProtectedBranchPost)
+				m.Post("/can_push", repo.ChangeProtectedBranch)
+				m.Post("/delete", repo.DeleteProtectedBranch)
 			})
 
 			m.Group("/hooks", func() {
@@ -572,6 +583,11 @@ func runWeb(ctx *cli.Context) error {
 			}, reqSignIn, reqRepoWriter)
 		}, repo.MustEnableWiki, context.RepoRef())
 
+		m.Group("/wiki", func() {
+			m.Get("/raw/*", repo.WikiRaw)
+			m.Get("/*", repo.WikiRaw)
+		}, repo.MustEnableWiki)
+
 		m.Get("/archive/*", repo.Download)
 
 		m.Group("/pulls/:index", func() {
@@ -595,7 +611,7 @@ func runWeb(ctx *cli.Context) error {
 	m.Group("/:username/:reponame", func() {
 		m.Get("/stars", repo.Stars)
 		m.Get("/watchers", repo.Watchers)
-	}, ignSignIn, context.RepoAssignment(), context.RepoRef())
+	}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
 
 	m.Group("/:username", func() {
 		m.Group("/:reponame", func() {

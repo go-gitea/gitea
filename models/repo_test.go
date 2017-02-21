@@ -73,3 +73,55 @@ func TestGetPrivateRepositoryCount(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
 }
+
+func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	// Get sample repo and change visibility
+	repo, err := GetRepositoryByID(9)
+	repo.IsPrivate = true
+
+	// Update it
+	err = UpdateRepository(repo, true)
+	assert.NoError(t, err)
+
+	// Check visibility of action has become private
+	act := Action{}
+	_, err = x.ID(3).Get(&act)
+
+	assert.NoError(t, err)
+	assert.Equal(t, true, act.IsPrivate)
+}
+
+func TestGetUserFork(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	// User13 has repo 11 forked from repo10
+	repo, err := GetRepositoryByID(10)
+	assert.NoError(t, err)
+	assert.NotNil(t, repo)
+	repo, err = repo.GetUserFork(13)
+	assert.NoError(t, err)
+	assert.NotNil(t, repo)
+
+	repo, err = GetRepositoryByID(9)
+	assert.NoError(t, err)
+	assert.NotNil(t, repo)
+	repo, err = repo.GetUserFork(13)
+	assert.NoError(t, err)
+	assert.Nil(t, repo)
+}
+
+func TestForkRepository(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	// User13 has repo 11 forked from repo10
+	repo, err := GetRepositoryByID(10)
+	assert.NoError(t, err)
+	assert.NotNil(t, repo)
+
+	repo, err = ForkRepository(&User{ID: 13}, repo, "test", "test")
+	assert.Nil(t, repo)
+	assert.Error(t, err)
+	assert.True(t, IsErrRepoAlreadyExist(err))
+}

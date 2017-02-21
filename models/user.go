@@ -228,7 +228,7 @@ func (u *User) CanCreateRepo() bool {
 
 // CanCreateOrganization returns true if user can create organisation.
 func (u *User) CanCreateOrganization() bool {
-	return u.IsAdmin || u.AllowCreateOrganization
+	return u.IsAdmin || (u.AllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation)
 }
 
 // CanEditGitHook returns true if user can edit Git hooks.
@@ -255,6 +255,11 @@ func (u *User) DashboardLink() string {
 // HomeLink returns the user or organization home page link.
 func (u *User) HomeLink() string {
 	return setting.AppSubURL + "/" + u.Name
+}
+
+// HTMLURL returns the user or organization's full link.
+func (u *User) HTMLURL() string {
+	return setting.AppURL + u.Name
 }
 
 // GenerateEmailActivateCode generates an activate code based on user information and given e-mail.
@@ -503,6 +508,34 @@ func (u *User) GetOrganizationCount() (int64, error) {
 func (u *User) GetRepositories(page, pageSize int) (err error) {
 	u.Repos, err = GetUserRepositories(u.ID, true, page, pageSize, "")
 	return err
+}
+
+// GetRepositoryIDs returns repositories IDs where user owned
+func (u *User) GetRepositoryIDs() ([]int64, error) {
+	var ids []int64
+	return ids, x.Table("repository").Cols("id").Where("owner_id = ?", u.ID).Find(&ids)
+}
+
+// GetOrgRepositoryIDs returns repositories IDs where user's team owned
+func (u *User) GetOrgRepositoryIDs() ([]int64, error) {
+	var ids []int64
+	return ids, x.Table("repository").
+		Cols("repository.id").
+		Join("INNER", "team_user", "repository.owner_id = team_user.org_id AND team_user.uid = ?", u.ID).
+		GroupBy("repository.id").Find(&ids)
+}
+
+// GetAccessRepoIDs returns all repsitories IDs where user's or user is a team member orgnizations
+func (u *User) GetAccessRepoIDs() ([]int64, error) {
+	ids, err := u.GetRepositoryIDs()
+	if err != nil {
+		return nil, err
+	}
+	ids2, err := u.GetOrgRepositoryIDs()
+	if err != nil {
+		return nil, err
+	}
+	return append(ids, ids2...), nil
 }
 
 // GetMirrorRepositories returns mirror repositories that user owns, including private repositories.

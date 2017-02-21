@@ -6,6 +6,7 @@ package builder
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -195,11 +196,26 @@ func (condIn condIn) WriteTo(w Writer) error {
 		if len(condIn.vals) <= 0 {
 			return ErrNoInConditions
 		}
-		questionMark := strings.Repeat("?,", len(condIn.vals))
-		if _, err := fmt.Fprintf(w, "%s IN (%s)", condIn.col, questionMark[:len(questionMark)-1]); err != nil {
-			return err
+
+		v := reflect.ValueOf(condIn.vals[0])
+		if v.Kind() == reflect.Slice {
+			l := v.Len()
+
+			questionMark := strings.Repeat("?,", l)
+			if _, err := fmt.Fprintf(w, "%s IN (%s)", condIn.col, questionMark[:len(questionMark)-1]); err != nil {
+				return err
+			}
+
+			for i := 0; i < l; i++ {
+				w.Append(v.Index(i).Interface())
+			}
+		} else {
+			questionMark := strings.Repeat("?,", len(condIn.vals))
+			if _, err := fmt.Fprintf(w, "%s IN (%s)", condIn.col, questionMark[:len(questionMark)-1]); err != nil {
+				return err
+			}
+			w.Append(condIn.vals...)
 		}
-		w.Append(condIn.vals...)
 	}
 	return nil
 }

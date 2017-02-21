@@ -189,23 +189,20 @@ func NotificationsForUser(user *User, statuses []NotificationStatus, page, perPa
 	return notificationsForUser(x, user, statuses, page, perPage)
 }
 func notificationsForUser(e Engine, user *User, statuses []NotificationStatus, page, perPage int) (notifications []*Notification, err error) {
-	// FIXME: Xorm does not support aliases types (like NotificationStatus) on In() method
-	s := make([]uint8, len(statuses))
-	for i, status := range statuses {
-		s[i] = uint8(status)
+	if len(statuses) == 0 {
+		return
 	}
 
 	sess := e.
 		Where("user_id = ?", user.ID).
-		In("status", s).
+		In("status", statuses).
 		OrderBy("updated_unix DESC")
 
 	if page > 0 && perPage > 0 {
 		sess.Limit(perPage, (page-1)*perPage)
 	}
 
-	err = sess.
-		Find(&notifications)
+	err = sess.Find(&notifications)
 	return
 }
 

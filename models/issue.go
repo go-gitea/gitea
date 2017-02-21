@@ -193,7 +193,8 @@ func (issue *Issue) GetIsRead(userID int64) error {
 	if has, err := x.Get(issueUser); err != nil {
 		return err
 	} else if !has {
-		return ErrUserNotExist{UID: userID}
+		issue.IsRead = false
+		return nil
 	}
 	issue.IsRead = issueUser.IsRead
 	return nil
@@ -684,6 +685,24 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 	return nil
 }
 
+// AddDeletePRBranchComment adds delete branch comment for pull request issue
+func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branchName string) error {
+	issue, err := getIssueByID(x, issueID)
+	if err != nil {
+		return err
+	}
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if _, err := createDeleteBranchComment(sess, doer, repo, issue, branchName); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
 // ChangeContent changes issue content, as the given user.
 func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	oldContent := issue.Content
@@ -756,14 +775,12 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 		} else {
 			apiPullRequest.Action = api.HookIssueAssigned
 		}
-		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, apiPullRequest)
+		if err := PrepareWebhooks(issue.Repo, HookEventPullRequest, apiPullRequest); err != nil {
+			log.Error(4, "PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, isRemoveAssignee, err)
+			return nil
+		}
 	}
-	if err != nil {
-		log.Error(4, "PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, isRemoveAssignee, err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
-	}
-
+	go HookQueue.Add(issue.RepoID)
 	return nil
 }
 
@@ -1167,7 +1184,7 @@ func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
 // IssueStats represents issue statistic information.
 type IssueStats struct {
 	OpenCount, ClosedCount int64
-	AllCount               int64
+	YourRepositoriesCount  int64
 	AssignCount            int64
 	CreateCount            int64
 	MentionCount           int64
@@ -1193,6 +1210,7 @@ func parseCountResult(results []map[string][]byte) int64 {
 
 // IssueStatsOptions contains parameters accepted by GetIssueStats.
 type IssueStatsOptions struct {
+	FilterMode  int
 	RepoID      int64
 	Labels      string
 	MilestoneID int64
@@ -1248,19 +1266,41 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 	}
 
 	var err error
-	stats.OpenCount, err = countSession(opts).
-		And("is_closed = ?", false).
-		Count(&Issue{})
-	if err != nil {
-		return nil, err
+	switch opts.FilterMode {
+	case FilterModeAll, FilterModeAssign:
+		stats.OpenCount, err = countSession(opts).
+			And("is_closed = ?", false).
+			Count(new(Issue))
+
+		stats.ClosedCount, err = countSession(opts).
+			And("is_closed = ?", true).
+			Count(new(Issue))
+	case FilterModeCreate:
+		stats.OpenCount, err = countSession(opts).
+			And("poster_id = ?", opts.PosterID).
+			And("is_closed = ?", false).
+			Count(new(Issue))
+
+		stats.ClosedCount, err = countSession(opts).
+			And("poster_id = ?", opts.PosterID).
+			And("is_closed = ?", true).
+			Count(new(Issue))
+	case FilterModeMention:
+		stats.OpenCount, err = countSession(opts).
+			Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
+			And("issue_user.uid = ?", opts.PosterID).
+			And("issue_user.is_mentioned = ?", true).
+			And("issue.is_closed = ?", false).
+			Count(new(Issue))
+
+		stats.ClosedCount, err = countSession(opts).
+			Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
+			And("issue_user.uid = ?", opts.PosterID).
+			And("issue_user.is_mentioned = ?", true).
+			And("issue.is_closed = ?", true).
+			Count(new(Issue))
 	}
-	stats.ClosedCount, err = countSession(opts).
-		And("is_closed = ?", true).
-		Count(&Issue{})
-	if err != nil {
-		return nil, err
-	}
-	return stats, nil
+	return stats, err
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
@@ -1281,28 +1321,38 @@ func GetUserIssueStats(repoID, uid int64, repoIDs []int64, filterMode int, isPul
 		return sess
 	}
 
-	stats.AssignCount, _ = countSession(false, isPull, repoID, repoIDs).
+	stats.AssignCount, _ = countSession(false, isPull, repoID, nil).
 		And("assignee_id = ?", uid).
-		Count(&Issue{})
+		Count(new(Issue))
 
-	stats.CreateCount, _ = countSession(false, isPull, repoID, repoIDs).
+	stats.CreateCount, _ = countSession(false, isPull, repoID, nil).
 		And("poster_id = ?", uid).
-		Count(&Issue{})
+		Count(new(Issue))
 
-	openCountSession := countSession(false, isPull, repoID, repoIDs)
-	closedCountSession := countSession(true, isPull, repoID, repoIDs)
+	stats.YourRepositoriesCount, _ = countSession(false, isPull, repoID, repoIDs).
+		Count(new(Issue))
 
 	switch filterMode {
+	case FilterModeAll:
+		stats.OpenCount, _ = countSession(false, isPull, repoID, repoIDs).
+			Count(new(Issue))
+		stats.ClosedCount, _ = countSession(true, isPull, repoID, repoIDs).
+			Count(new(Issue))
 	case FilterModeAssign:
-		openCountSession.And("assignee_id = ?", uid)
-		closedCountSession.And("assignee_id = ?", uid)
+		stats.OpenCount, _ = countSession(false, isPull, repoID, nil).
+			And("assignee_id = ?", uid).
+			Count(new(Issue))
+		stats.ClosedCount, _ = countSession(true, isPull, repoID, nil).
+			And("assignee_id = ?", uid).
+			Count(new(Issue))
 	case FilterModeCreate:
-		openCountSession.And("poster_id = ?", uid)
-		closedCountSession.And("poster_id = ?", uid)
+		stats.OpenCount, _ = countSession(false, isPull, repoID, nil).
+			And("poster_id = ?", uid).
+			Count(new(Issue))
+		stats.ClosedCount, _ = countSession(true, isPull, repoID, nil).
+			And("poster_id = ?", uid).
+			Count(new(Issue))
 	}
-
-	stats.OpenCount, _ = openCountSession.Count(&Issue{})
-	stats.ClosedCount, _ = closedCountSession.Count(&Issue{})
 
 	return stats
 }
@@ -1311,7 +1361,7 @@ func GetUserIssueStats(repoID, uid int64, repoIDs []int64, filterMode int, isPul
 func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen int64, numClosed int64) {
 	countSession := func(isClosed, isPull bool, repoID int64) *xorm.Session {
 		sess := x.
-			Where("issue.repo_id = ?", isClosed).
+			Where("is_closed = ?", isClosed).
 			And("is_pull = ?", isPull).
 			And("repo_id = ?", repoID)
 
@@ -1330,8 +1380,8 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 		closedCountSession.And("poster_id = ?", uid)
 	}
 
-	openResult, _ := openCountSession.Count(&Issue{})
-	closedResult, _ := closedCountSession.Count(&Issue{})
+	openResult, _ := openCountSession.Count(new(Issue))
+	closedResult, _ := closedCountSession.Count(new(Issue))
 
 	return openResult, closedResult
 }
@@ -1350,368 +1400,61 @@ func UpdateIssue(issue *Issue) error {
 	return updateIssue(x, issue)
 }
 
-//    _____  .__.__                   __
-//   /     \ |__|  |   ____   _______/  |_  ____   ____   ____
-//  /  \ /  \|  |  | _/ __ \ /  ___/\   __\/  _ \ /    \_/ __ \
-// /    Y    \  |  |_\  ___/ \___ \  |  | (  <_> )   |  \  ___/
-// \____|__  /__|____/\___  >____  > |__|  \____/|___|  /\___  >
-//         \/             \/     \/                   \/     \/
+// IssueList defines a list of issues
+type IssueList []*Issue
 
-// Milestone represents a milestone of repository.
-type Milestone struct {
-	ID              int64 `xorm:"pk autoincr"`
-	RepoID          int64 `xorm:"INDEX"`
-	Name            string
-	Content         string `xorm:"TEXT"`
-	RenderedContent string `xorm:"-"`
-	IsClosed        bool
-	NumIssues       int
-	NumClosedIssues int
-	NumOpenIssues   int  `xorm:"-"`
-	Completeness    int  // Percentage(1-100).
-	IsOverDue       bool `xorm:"-"`
-
-	DeadlineString string    `xorm:"-"`
-	Deadline       time.Time `xorm:"-"`
-	DeadlineUnix   int64
-	ClosedDate     time.Time `xorm:"-"`
-	ClosedDateUnix int64
-}
-
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (m *Milestone) BeforeInsert() {
-	m.DeadlineUnix = m.Deadline.Unix()
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (m *Milestone) BeforeUpdate() {
-	if m.NumIssues > 0 {
-		m.Completeness = m.NumClosedIssues * 100 / m.NumIssues
-	} else {
-		m.Completeness = 0
-	}
-
-	m.DeadlineUnix = m.Deadline.Unix()
-	m.ClosedDateUnix = m.ClosedDate.Unix()
-}
-
-// AfterSet is invoked from XORM after setting the value of a field of
-// this object.
-func (m *Milestone) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "num_closed_issues":
-		m.NumOpenIssues = m.NumIssues - m.NumClosedIssues
-
-	case "deadline_unix":
-		m.Deadline = time.Unix(m.DeadlineUnix, 0).Local()
-		if m.Deadline.Year() == 9999 {
-			return
+func (issues IssueList) getRepoIDs() []int64 {
+	repoIDs := make([]int64, 0, len(issues))
+	for _, issue := range issues {
+		var has bool
+		for _, repoID := range repoIDs {
+			if repoID == issue.RepoID {
+				has = true
+				break
+			}
 		}
-
-		m.DeadlineString = m.Deadline.Format("2006-01-02")
-		if time.Now().Local().After(m.Deadline) {
-			m.IsOverDue = true
+		if !has {
+			repoIDs = append(repoIDs, issue.RepoID)
 		}
-
-	case "closed_date_unix":
-		m.ClosedDate = time.Unix(m.ClosedDateUnix, 0).Local()
 	}
+	return repoIDs
 }
 
-// State returns string representation of milestone status.
-func (m *Milestone) State() api.StateType {
-	if m.IsClosed {
-		return api.StateClosed
-	}
-	return api.StateOpen
-}
-
-// APIFormat returns this Milestone in API format.
-func (m *Milestone) APIFormat() *api.Milestone {
-	apiMilestone := &api.Milestone{
-		ID:           m.ID,
-		State:        m.State(),
-		Title:        m.Name,
-		Description:  m.Content,
-		OpenIssues:   m.NumOpenIssues,
-		ClosedIssues: m.NumClosedIssues,
-	}
-	if m.IsClosed {
-		apiMilestone.Closed = &m.ClosedDate
-	}
-	if m.Deadline.Year() < 9999 {
-		apiMilestone.Deadline = &m.Deadline
-	}
-	return apiMilestone
-}
-
-// NewMilestone creates new milestone of repository.
-func NewMilestone(m *Milestone) (err error) {
-	sess := x.NewSession()
-	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
-		return err
+func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
+	if len(issues) == 0 {
+		return nil, nil
 	}
 
-	if _, err = sess.Insert(m); err != nil {
-		return err
-	}
-
-	if _, err = sess.Exec("UPDATE `repository` SET num_milestones = num_milestones + 1 WHERE id = ?", m.RepoID); err != nil {
-		return err
-	}
-	return sess.Commit()
-}
-
-func getMilestoneByRepoID(e Engine, repoID, id int64) (*Milestone, error) {
-	m := &Milestone{
-		ID:     id,
-		RepoID: repoID,
-	}
-	has, err := e.Get(m)
+	repoIDs := issues.getRepoIDs()
+	rows, err := e.
+		Where("id > 0").
+		In("id", repoIDs).
+		Rows(new(Repository))
 	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrMilestoneNotExist{id, repoID}
+		return nil, fmt.Errorf("find repository: %v", err)
 	}
-	return m, nil
-}
+	defer rows.Close()
 
-// GetMilestoneByRepoID returns the milestone in a repository.
-func GetMilestoneByRepoID(repoID, id int64) (*Milestone, error) {
-	return getMilestoneByRepoID(x, repoID, id)
-}
-
-// GetMilestonesByRepoID returns all milestones of a repository.
-func GetMilestonesByRepoID(repoID int64) ([]*Milestone, error) {
-	miles := make([]*Milestone, 0, 10)
-	return miles, x.Where("repo_id = ?", repoID).Find(&miles)
-}
-
-// GetMilestones returns a list of milestones of given repository and status.
-func GetMilestones(repoID int64, page int, isClosed bool, sortType string) ([]*Milestone, error) {
-	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
-	sess := x.Where("repo_id = ? AND is_closed = ?", repoID, isClosed)
-	if page > 0 {
-		sess = sess.Limit(setting.UI.IssuePagingNum, (page-1)*setting.UI.IssuePagingNum)
-	}
-
-	switch sortType {
-	case "furthestduedate":
-		sess.Desc("deadline_unix")
-	case "leastcomplete":
-		sess.Asc("completeness")
-	case "mostcomplete":
-		sess.Desc("completeness")
-	case "leastissues":
-		sess.Asc("num_issues")
-	case "mostissues":
-		sess.Desc("num_issues")
-	default:
-		sess.Asc("deadline_unix")
-	}
-
-	return miles, sess.Find(&miles)
-}
-
-func updateMilestone(e Engine, m *Milestone) error {
-	_, err := e.Id(m.ID).AllCols().Update(m)
-	return err
-}
-
-// UpdateMilestone updates information of given milestone.
-func UpdateMilestone(m *Milestone) error {
-	return updateMilestone(x, m)
-}
-
-func countRepoMilestones(e Engine, repoID int64) int64 {
-	count, _ := e.
-		Where("repo_id=?", repoID).
-		Count(new(Milestone))
-	return count
-}
-
-// CountRepoMilestones returns number of milestones in given repository.
-func CountRepoMilestones(repoID int64) int64 {
-	return countRepoMilestones(x, repoID)
-}
-
-func countRepoClosedMilestones(e Engine, repoID int64) int64 {
-	closed, _ := e.
-		Where("repo_id=? AND is_closed=?", repoID, true).
-		Count(new(Milestone))
-	return closed
-}
-
-// CountRepoClosedMilestones returns number of closed milestones in given repository.
-func CountRepoClosedMilestones(repoID int64) int64 {
-	return countRepoClosedMilestones(x, repoID)
-}
-
-// MilestoneStats returns number of open and closed milestones of given repository.
-func MilestoneStats(repoID int64) (open int64, closed int64) {
-	open, _ = x.
-		Where("repo_id=? AND is_closed=?", repoID, false).
-		Count(new(Milestone))
-	return open, CountRepoClosedMilestones(repoID)
-}
-
-// ChangeMilestoneStatus changes the milestone open/closed status.
-func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
-	repo, err := GetRepositoryByID(m.RepoID)
-	if err != nil {
-		return err
-	}
-
-	sess := x.NewSession()
-	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	m.IsClosed = isClosed
-	if err = updateMilestone(sess, m); err != nil {
-		return err
-	}
-
-	repo.NumMilestones = int(countRepoMilestones(sess, repo.ID))
-	repo.NumClosedMilestones = int(countRepoClosedMilestones(sess, repo.ID))
-	if _, err = sess.Id(repo.ID).AllCols().Update(repo); err != nil {
-		return err
-	}
-	return sess.Commit()
-}
-
-func changeMilestoneIssueStats(e *xorm.Session, issue *Issue) error {
-	if issue.MilestoneID == 0 {
-		return nil
-	}
-
-	m, err := getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
-	if err != nil {
-		return err
-	}
-
-	if issue.IsClosed {
-		m.NumOpenIssues--
-		m.NumClosedIssues++
-	} else {
-		m.NumOpenIssues++
-		m.NumClosedIssues--
-	}
-
-	return updateMilestone(e, m)
-}
-
-// ChangeMilestoneIssueStats updates the open/closed issues counter and progress
-// for the milestone associated with the given issue.
-func ChangeMilestoneIssueStats(issue *Issue) (err error) {
-	sess := x.NewSession()
-	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if err = changeMilestoneIssueStats(sess, issue); err != nil {
-		return err
-	}
-
-	return sess.Commit()
-}
-
-func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilestoneID int64) error {
-	if oldMilestoneID > 0 {
-		m, err := getMilestoneByRepoID(e, issue.RepoID, oldMilestoneID)
+	repositories := make([]*Repository, 0, len(repoIDs))
+	repoMaps := make(map[int64]*Repository, len(repoIDs))
+	for rows.Next() {
+		var repo Repository
+		err = rows.Scan(&repo)
 		if err != nil {
-			return err
+			return nil, fmt.Errorf("find repository: %v", err)
 		}
 
-		m.NumIssues--
-		if issue.IsClosed {
-			m.NumClosedIssues--
-		}
-
-		if err = updateMilestone(e, m); err != nil {
-			return err
-		}
+		repositories = append(repositories, &repo)
+		repoMaps[repo.ID] = &repo
 	}
 
-	if issue.MilestoneID > 0 {
-		m, err := getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
-		if err != nil {
-			return err
-		}
-
-		m.NumIssues++
-		if issue.IsClosed {
-			m.NumClosedIssues++
-		}
-
-		if err = updateMilestone(e, m); err != nil {
-			return err
-		}
+	for _, issue := range issues {
+		issue.Repo = repoMaps[issue.RepoID]
 	}
-
-	if err := issue.loadRepo(e); err != nil {
-		return err
-	}
-
-	if oldMilestoneID > 0 || issue.MilestoneID > 0 {
-		if _, err := createMilestoneComment(e, doer, issue.Repo, issue, oldMilestoneID, issue.MilestoneID); err != nil {
-			return err
-		}
-	}
-
-	return updateIssue(e, issue)
+	return repositories, nil
 }
 
-// ChangeMilestoneAssign changes assignment of milestone for issue.
-func ChangeMilestoneAssign(issue *Issue, doer *User, oldMilestoneID int64) (err error) {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if err = changeMilestoneAssign(sess, doer, issue, oldMilestoneID); err != nil {
-		return err
-	}
-	return sess.Commit()
-}
-
-// DeleteMilestoneByRepoID deletes a milestone from a repository.
-func DeleteMilestoneByRepoID(repoID, id int64) error {
-	m, err := GetMilestoneByRepoID(repoID, id)
-	if err != nil {
-		if IsErrMilestoneNotExist(err) {
-			return nil
-		}
-		return err
-	}
-
-	repo, err := GetRepositoryByID(m.RepoID)
-	if err != nil {
-		return err
-	}
-
-	sess := x.NewSession()
-	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if _, err = sess.Id(m.ID).Delete(new(Milestone)); err != nil {
-		return err
-	}
-
-	repo.NumMilestones = int(countRepoMilestones(sess, repo.ID))
-	repo.NumClosedMilestones = int(countRepoClosedMilestones(sess, repo.ID))
-	if _, err = sess.Id(repo.ID).AllCols().Update(repo); err != nil {
-		return err
-	}
-
-	if _, err = sess.Exec("UPDATE `issue` SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
-		return err
-	}
-	return sess.Commit()
+// LoadRepositories loads issues' all repositories
+func (issues IssueList) LoadRepositories() ([]*Repository, error) {
+	return issues.loadRepositories(x)
 }
