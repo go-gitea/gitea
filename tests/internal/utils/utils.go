@@ -88,7 +88,7 @@ func (t *T) RunTest(tests ...func(*T) error) (err error) {
 	cmd := exec.Command(newpath, t.Config.Args...)
 	cmd.Dir = workdir
 
-	if t.Config.LogFile != nil {
+	if t.Config.LogFile != nil && testing.Verbose() {
 		if err := redirect(cmd, t.Config.LogFile); err != nil {
 			return err
 		}

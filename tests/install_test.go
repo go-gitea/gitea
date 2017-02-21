@@ -85,7 +85,7 @@ func TestInstall(t *testing.T) {
 		Program: "../gitea",
 		WorkDir: "",
 		Args:    []string{"web", "--port", ServerHTTPPort},
-		//LogFile: os.Stderr,
+		LogFile: os.Stderr,
 	}
 
 	if err := utils.New(t, &conf).RunTest(install); err != nil {
