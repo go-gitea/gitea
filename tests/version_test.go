@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -67,7 +68,7 @@ func TestVersion(t *testing.T) {
 		Program: "../gitea",
 		WorkDir: "",
 		Args:    []string{"web", "--port", ServerHTTPPort},
-		//LogFile: os.Stderr,
+		LogFile: os.Stderr,
 	}
 
 	if err := utils.New(t, &conf).RunTest(install, version); err != nil {
