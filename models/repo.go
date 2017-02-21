@@ -524,6 +524,12 @@ func (repo *Repository) HasAccess(u *User) bool {
 	return has
 }
 
+// UpdateDefaultBranch updates the default branch
+func (repo *Repository) UpdateDefaultBranch() error {
+	_, err := x.ID(repo.ID).Cols("default_branch").Update(repo)
+	return err
+}
+
 // IsOwnedBy returns true when user owns this repository
 func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID

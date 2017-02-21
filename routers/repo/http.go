@@ -42,8 +42,18 @@ func HTTP(ctx *context.Context) {
 	} else if service == "git-upload-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-pack") {
 		isPull = true
+	} else if service == "git-upload-archive" ||
+		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-archive") {
+		isPull = true
 	} else {
 		isPull = (ctx.Req.Method == "GET")
+	}
+
+	var accessMode models.AccessMode
+	if isPull {
+		accessMode = models.AccessModeRead
+	} else {
+		accessMode = models.AccessModeWrite
 	}
 
 	isWiki := false
@@ -146,17 +156,12 @@ func HTTP(ctx *context.Context) {
 			}
 
 			if !isPublicPull {
-				var tp = models.AccessModeWrite
-				if isPull {
-					tp = models.AccessModeRead
-				}
-
-				has, err := models.HasAccess(authUser, repo, tp)
+				has, err := models.HasAccess(authUser, repo, accessMode)
 				if err != nil {
 					ctx.Handle(http.StatusInternalServerError, "HasAccess", err)
 					return
 				} else if !has {
-					if tp == models.AccessModeRead {
+					if accessMode == models.AccessModeRead {
 						has, err = models.HasAccess(authUser, repo, models.AccessModeWrite)
 						if err != nil {
 							ctx.Handle(http.StatusInternalServerError, "HasAccess2", err)
@@ -232,9 +237,20 @@ func HTTP(ctx *context.Context) {
 		}
 	}
 
+	params := make(map[string]string)
+
+	if askAuth {
+		params[models.ProtectedBranchUserID] = fmt.Sprintf("%d", authUser.ID)
+		if err == nil {
+			params[models.ProtectedBranchAccessMode] = accessMode.String()
+		}
+		params[models.ProtectedBranchRepoID] = fmt.Sprintf("%d", repo.ID)
+	}
+
 	HTTPBackend(ctx, &serviceConfig{
 		UploadPack:  true,
 		ReceivePack: true,
+		Params:      params,
 		OnSucceed:   callback,
 	})(ctx.Resp, ctx.Req.Request)
 
@@ -244,6 +260,7 @@ func HTTP(ctx *context.Context) {
 type serviceConfig struct {
 	UploadPack  bool
 	ReceivePack bool
+	Params      map[string]string
 	OnSucceed   func(rpc string, input []byte)
 }
 
@@ -259,6 +276,42 @@ func (h *serviceHandler) setHeaderNoCache() {
 	h.w.Header().Set("Expires", "Fri, 01 Jan 1980 00:00:00 GMT")
 	h.w.Header().Set("Pragma", "no-cache")
 	h.w.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
+}
+
+func (h *serviceHandler) getBranch(input []byte) string {
+	var lastLine int64
+	var branchName string
+	for {
+		head := input[lastLine : lastLine+2]
+		if head[0] == '0' && head[1] == '0' {
+			size, err := strconv.ParseInt(string(input[lastLine+2:lastLine+4]), 16, 32)
+			if err != nil {
+				log.Error(4, "%v", err)
+				return branchName
+			}
+
+			if size == 0 {
+				//fmt.Println(string(input[lastLine:]))
+				break
+			}
+
+			line := input[lastLine : lastLine+size]
+			idx := bytes.IndexRune(line, '\000')
+			if idx > -1 {
+				line = line[:idx]
+			}
+
+			fields := strings.Fields(string(line))
+			if len(fields) >= 3 {
+				refFullName := fields[2]
+				branchName = strings.TrimPrefix(refFullName, git.BranchPrefix)
+			}
+			lastLine = lastLine + size
+		} else {
+			break
+		}
+	}
+	return branchName
 }
 
 func (h *serviceHandler) setHeaderCacheForever() {
@@ -358,13 +411,15 @@ func serviceRPC(h serviceHandler, service string) {
 		h.w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+
 	h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-result", service))
 
 	var (
-		reqBody = h.r.Body
-		input   []byte
-		br      io.Reader
-		err     error
+		reqBody    = h.r.Body
+		input      []byte
+		br         io.Reader
+		err        error
+		branchName string
 	)
 
 	// Handle GZIP.
@@ -385,9 +440,29 @@ func serviceRPC(h serviceHandler, service string) {
 			return
 		}
 
+		branchName = h.getBranch(input)
 		br = bytes.NewReader(input)
 	} else {
 		br = reqBody
+	}
+
+	// check protected branch
+	repoID, _ := strconv.ParseInt(h.cfg.Params[models.ProtectedBranchRepoID], 10, 64)
+	accessMode := models.ParseAccessMode(h.cfg.Params[models.ProtectedBranchAccessMode])
+	// skip admin or owner AccessMode
+	if accessMode == models.AccessModeWrite {
+		protectBranch, err := models.GetProtectedBranchBy(repoID, branchName)
+		if err != nil {
+			log.GitLogger.Error(2, "fail to get protected branch information: %v", err)
+			h.w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if protectBranch != nil {
+			log.GitLogger.Error(2, "protected branches can not be pushed to")
+			h.w.WriteHeader(http.StatusForbidden)
+			return
+		}
 	}
 
 	cmd := exec.Command("git", service, "--stateless-rpc", h.dir)

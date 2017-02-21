@@ -421,6 +421,11 @@ func runWeb(ctx *cli.Context) error {
 				m.Post("/access_mode", repo.ChangeCollaborationAccessMode)
 				m.Post("/delete", repo.DeleteCollaboration)
 			})
+			m.Group("/branches", func() {
+				m.Combo("").Get(repo.ProtectedBranch).Post(repo.ProtectedBranchPost)
+				m.Post("/can_push", repo.ChangeProtectedBranch)
+				m.Post("/delete", repo.DeleteProtectedBranch)
+			})
 
 			m.Group("/hooks", func() {
 				m.Get("", repo.Webhooks)
