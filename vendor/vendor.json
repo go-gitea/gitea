@@ -587,6 +587,12 @@
 			"revisionTime": "2017-02-20T13:56:36Z"
 		},
 		{
+			"checksumSHA1": "1w0V6jYXaGlEtZcMeYTOAAucvgw=",
+			"path": "github.com/markbates/goth/providers/twitter",
+			"revision": "7276be0fdf719ddff753f3574ef0f967e4a5a5f7",
+			"revisionTime": "2017-02-20T14:02:47Z"
+		},
+		{
 			"checksumSHA1": "9FJUwn3EIgASVki+p8IHgWVC5vQ=",
 			"path": "github.com/mattn/go-sqlite3",
 			"revision": "86681de00adef4f8040947b7d35f97000fc5a230",
@@ -603,6 +609,12 @@
 			"path": "github.com/microcosm-cc/bluemonday",
 			"revision": "f77f16ffc87a6a58814e64ae72d55f9c41374e6d",
 			"revisionTime": "2016-10-12T08:37:05Z"
+		},
+		{
+			"checksumSHA1": "/le/3bmROVfXmIQT9CbS22aqdcE=",
+			"path": "github.com/mrjones/oauth",
+			"revision": "1359071b7221e8f5ffa3985727f51336e16f741a",
+			"revisionTime": "2017-01-08T19:16:49Z"
 		},
 		{
 			"checksumSHA1": "lfOuMiAdiqc/dalUSBTvD5ZMSzA=",

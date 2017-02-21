@@ -603,6 +603,7 @@ var OAuth2Providers = map[string]OAuth2Provider{
 	"github":    {Name: "github", DisplayName: "GitHub", Image: "/img/auth/github.png"},
 	"gitlab":    {Name: "gitlab", DisplayName: "GitLab", Image: "/img/auth/gitlab.png"},
 	"gplus":     {Name: "gplus", DisplayName: "Google+", Image: "/img/auth/google_plus.png"},
+	"twitter":   {Name: "twitter", DisplayName: "Twitter", Image: "/img/auth/twitter.png"},
 }
 
 // ExternalUserLogin attempts a login using external source types.

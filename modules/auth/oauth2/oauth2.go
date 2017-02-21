@@ -18,6 +18,7 @@ import (
 	"github.com/markbates/goth/providers/gplus"
 	"github.com/markbates/goth/providers/gitlab"
 	"github.com/markbates/goth/providers/bitbucket"
+	"github.com/markbates/goth/providers/twitter"
 )
 
 var (
@@ -103,6 +104,8 @@ func createProvider(providerName, providerType, clientID, clientSecret string) g
 		provider = gitlab.New(clientID, clientSecret, callbackURL)
 	case "gplus":
 		provider = gplus.New(clientID, clientSecret, callbackURL, "email")
+	case "twitter":
+		provider = twitter.NewAuthenticate(clientID, clientSecret, callbackURL)
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider
