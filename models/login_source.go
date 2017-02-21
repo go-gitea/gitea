@@ -499,7 +499,7 @@ func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPC
 		idx := strings.Index(login, "@")
 		if idx == -1 {
 			return nil, ErrUserNotExist{0, login, 0}
-		} else if !com.IsSliceContainsStr(strings.Split(cfg.AllowedDomains, ","), login[idx + 1:]) {
+		} else if !com.IsSliceContainsStr(strings.Split(cfg.AllowedDomains, ","), login[idx+1:]) {
 			return nil, ErrUserNotExist{0, login, 0}
 		}
 	}
@@ -590,18 +590,19 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 
 // OAuth2Provider describes the display values of a single OAuth2 provider
 type OAuth2Provider struct {
-	Name string
+	Name        string
 	DisplayName string
-	Image string
+	Image       string
 }
 
 // OAuth2Providers contains the map of registered OAuth2 providers in Gitea (based on goth)
 // key is used to map the OAuth2Provider with the goth provider type (also in LoginSource.OAuth2Config.Provider)
 // value is used to store display data
 var OAuth2Providers = map[string]OAuth2Provider{
-	"github":   {Name: "github", DisplayName:"GitHub", Image: "/img/auth/github.png"},
-	"gitlab":	{Name: "gitlab", DisplayName:"GitLab", Image: "/img/auth/gitlab.png"},
-	"gplus":   	{Name: "gplus", DisplayName:"Google+", Image: "/img/auth/google_plus.png"},
+	"bitbucket": {Name: "bitbucket", DisplayName: "Bitbucket", Image: "/img/auth/bitbucket.png"},
+	"github":    {Name: "github", DisplayName: "GitHub", Image: "/img/auth/github.png"},
+	"gitlab":    {Name: "gitlab", DisplayName: "GitLab", Image: "/img/auth/gitlab.png"},
+	"gplus":     {Name: "gplus", DisplayName: "Google+", Image: "/img/auth/google_plus.png"},
 }
 
 // ExternalUserLogin attempts a login using external source types.

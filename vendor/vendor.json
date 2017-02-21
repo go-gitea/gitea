@@ -563,6 +563,12 @@
 			"revisionTime": "2017-02-06T19:46:32Z"
 		},
 		{
+			"checksumSHA1": "crNSlQADjX6hcxykON2tFCqY4iw=",
+			"path": "github.com/markbates/goth/providers/bitbucket",
+			"revision": "7276be0fdf719ddff753f3574ef0f967e4a5a5f7",
+			"revisionTime": "2017-02-20T14:02:47Z"
+		},
+		{
 			"checksumSHA1": "ZFqznX3/ZW65I4QeepiHQdE69nA=",
 			"path": "github.com/markbates/goth/providers/github",
 			"revision": "450379d2950a65070b23cc93c53436553add4484",
