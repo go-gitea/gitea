@@ -5,24 +5,25 @@
 package oauth2
 
 import (
-	"code.gitea.io/gitea/modules/setting"
+	"math"
+	"net/http"
+	"os"
+	"path/filepath"
+
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/gorilla/sessions"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
-	"net/http"
-	"os"
-	"github.com/satori/go.uuid"
-	"path/filepath"
-	"github.com/markbates/goth/providers/github"
-	"github.com/markbates/goth/providers/gplus"
-	"github.com/markbates/goth/providers/gitlab"
 	"github.com/markbates/goth/providers/bitbucket"
-	"github.com/markbates/goth/providers/twitter"
-	"github.com/markbates/goth/providers/facebook"
 	"github.com/markbates/goth/providers/dropbox"
+	"github.com/markbates/goth/providers/facebook"
+	"github.com/markbates/goth/providers/github"
+	"github.com/markbates/goth/providers/gitlab"
+	"github.com/markbates/goth/providers/gplus"
 	"github.com/markbates/goth/providers/openidConnect"
-	"math"
+	"github.com/markbates/goth/providers/twitter"
+	"github.com/satori/go.uuid"
 )
 
 var (

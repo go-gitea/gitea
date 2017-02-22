@@ -11,19 +11,18 @@ import (
 	"fmt"
 	"net/smtp"
 	"net/textproto"
+	"sort"
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/auth/ldap"
+	"code.gitea.io/gitea/modules/auth/oauth2"
+	"code.gitea.io/gitea/modules/auth/pam"
+	"code.gitea.io/gitea/modules/log"
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
-
-	"code.gitea.io/gitea/modules/auth/ldap"
-	"code.gitea.io/gitea/modules/auth/pam"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/auth/oauth2"
-	"sort"
 )
 
 // LoginType represents an login type.
@@ -763,11 +762,12 @@ func InitOAuth2() {
 		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL)
 	}
 }
+
 // wrapOpenIDConnectInitializeError is used to wrap the error but this cannot be done in modules/auth/oauth2
 // inside oauth2: import cycle not allowed models -> modules/auth/oauth2 -> models
 func wrapOpenIDConnectInitializeError(err error, providerName string, oAuth2Config *OAuth2Config) error {
 	if err != nil && "openidConnect" == oAuth2Config.Provider {
-		err = ErrOpenIDConnectInitialize{ProviderName:providerName,OpenIDConnectAutoDiscoveryURL:oAuth2Config.OpenIDConnectAutoDiscoveryURL,Cause:err}
+		err = ErrOpenIDConnectInitialize{ProviderName: providerName, OpenIDConnectAutoDiscoveryURL: oAuth2Config.OpenIDConnectAutoDiscoveryURL, Cause: err}
 	}
 	return err
 }
