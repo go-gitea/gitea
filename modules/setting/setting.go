@@ -1096,6 +1096,10 @@ func NewXORMLogService(disableConsole bool) {
 		}
 		log.XORMLogger.SetLevel(lvl)
 	}
+
+	if len(logConfigs) == 0 {
+		log.DiscardXORMLogger()
+	}
 }
 
 func newCacheService() {

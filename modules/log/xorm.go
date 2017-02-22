@@ -22,6 +22,13 @@ var (
 	XORMLogger *XORMLogBridge
 )
 
+// DiscardXORMLogger inits a blank logger for xorm
+func DiscardXORMLogger() {
+	XORMLogger = &XORMLogBridge{
+		showSQL: false,
+	}
+}
+
 // NewXORMLogger generate logger for xorm FIXME: configable
 func NewXORMLogger(bufferlen int64, mode, config string) {
 	logger := newLogger(bufferlen)
