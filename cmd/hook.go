@@ -1,4 +1,4 @@
-// Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"os"
 
-	"code.gitea.io/gitea/models"
-
 	"github.com/urfave/cli"
+
+	"code.gitea.io/gitea/models"
 )
 
 var (
@@ -68,7 +68,7 @@ func runHookUpdate(c *cli.Context) error {
 		return nil
 	}
 
-	if err := setup("hooks/pre-receive.log"); err != nil {
+	if err := setup("hooks/update.log"); err != nil {
 		fail("Hook update init failed", fmt.Sprintf("setup: %v", err))
 	}
 
@@ -97,7 +97,7 @@ func runHookPostReceive(c *cli.Context) error {
 		return nil
 	}
 
-	if err := setup("hooks/pre-receive.log"); err != nil {
+	if err := setup("hooks/post-receive.log"); err != nil {
 		fail("Hook post-receive init failed", fmt.Sprintf("setup: %v", err))
 	}
 

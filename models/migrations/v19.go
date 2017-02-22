@@ -27,9 +27,15 @@ func generateAndMigrateGitHooks(x *xorm.Engine) (err error) {
 		ID   int64
 		Name string
 	}
+
 	var (
 		hookNames = []string{"pre-receive", "update", "post-receive"}
 		hookTpls  = []string{
+			"cd ./pre-receive.d\nfor i in `ls`; do\n    sh $i\ndone",
+			"cd ./update.d\nfor i in `ls`; do\n    sh $i $1 $2 $3\ndone",
+			"cd ./post-receive.d\nfor i in `ls`; do\n    sh $i\ndone",
+		}
+		giteaHookTpls = []string{
 			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' pre-receive\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
 			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' update $1 $2 $3\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
 			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' post-receive\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
@@ -49,24 +55,29 @@ func generateAndMigrateGitHooks(x *xorm.Engine) (err error) {
 
 			repoPath := filepath.Join(setting.RepoRootPath, strings.ToLower(user.Name), strings.ToLower(repo.Name)) + ".git"
 			hookDir := filepath.Join(repoPath, "hooks")
-			customHookDir := filepath.Join(repoPath, "custom_hooks")
 
 			for i, hookName := range hookNames {
 				oldHookPath := filepath.Join(hookDir, hookName)
-				newHookPath := filepath.Join(customHookDir, hookName)
+				newHookPath := filepath.Join(hookDir, hookName+".d", "gitea")
 
-				// Gogs didn't allow user to set custom update hook thus no migration for it.
-				// In case user runs this migration multiple times, and custom hook exists,
-				// we assume it's been migrated already.
-				if hookName != "update" && com.IsFile(oldHookPath) && !com.IsExist(newHookPath) {
-					os.MkdirAll(customHookDir, os.ModePerm)
-					if err = os.Rename(oldHookPath, newHookPath); err != nil {
-						return fmt.Errorf("move hook file to custom directory '%s' -> '%s': %v", oldHookPath, newHookPath, err)
+				if err = os.MkdirAll(filepath.Join(hookDir, hookName+".d"), os.ModePerm); err != nil {
+					return fmt.Errorf("create hooks dir '%s': %v", filepath.Join(hookDir, hookName+".d"), err)
+				}
+
+				// WARNING: Old server-side hooks will be moved to sub directory with the same name
+				if hookName != "update" && com.IsExist(oldHookPath) {
+					newPlace := filepath.Join(hookDir, hookName+".d", hookName)
+					if err = os.Rename(oldHookPath, newPlace); err != nil {
+						return fmt.Errorf("Remove old hook file '%s' to '%s': %v", oldHookPath, newPlace, err)
 					}
 				}
 
 				if err = ioutil.WriteFile(oldHookPath, []byte(hookTpls[i]), 0777); err != nil {
-					return fmt.Errorf("write hook file '%s': %v", oldHookPath, err)
+					return fmt.Errorf("write old hook file '%s': %v", oldHookPath, err)
+				}
+
+				if err = ioutil.WriteFile(newHookPath, []byte(giteaHookTpls[i]), 0777); err != nil {
+					return fmt.Errorf("write new hook file '%s': %v", oldHookPath, err)
 				}
 			}
 			return nil

@@ -146,7 +146,6 @@ func NewRepoContext() {
 	if version.Compare("1.7.1", setting.Git.Version, ">") {
 		log.Fatal(4, "Gitea requires Git version greater or equal to 1.7.1")
 	}
-	git.HookDir = "custom_hooks"
 
 	// Git requires setting user.name and user.email in order to commit changes.
 	for configKey, defaultValue := range map[string]string{"user.name": "Gitea", "user.email": "gitea@fake.local"} {
@@ -832,21 +831,42 @@ func cleanUpMigrateGitConfig(configPath string) error {
 	return nil
 }
 
-var hooksTpls = map[string]string{
-	"pre-receive":  "#!/usr/bin/env %s\n\"%s\" hook --config='%s' pre-receive\n",
-	"update":       "#!/usr/bin/env %s\n\"%s\" hook --config='%s' update $1 $2 $3\n",
-	"post-receive": "#!/usr/bin/env %s\n\"%s\" hook --config='%s' post-receive\n",
-}
-
+// createDelegateHooks creates all the hooks scripts for the repo
 func createDelegateHooks(repoPath string) (err error) {
-	for _, name := range git.HookNames {
-		hookPath := filepath.Join(repoPath, "hooks", name)
-		if err = ioutil.WriteFile(hookPath,
-			[]byte(fmt.Sprintf(hooksTpls[name], setting.ScriptType, setting.AppPath, setting.CustomConf)),
-			os.ModePerm); err != nil {
-			return fmt.Errorf("create delegate hook '%s': %v", hookPath, err)
+	var (
+		hookNames = []string{"pre-receive", "update", "post-receive"}
+		hookTpls  = []string{
+			"cd ./pre-receive.d\nfor i in `ls`; do\n    sh $i\ndone",
+			"cd ./update.d\nfor i in `ls`; do\n    sh $i $1 $2 $3\ndone",
+			"cd ./post-receive.d\nfor i in `ls`; do\n    sh $i\ndone",
+		}
+		giteaHookTpls = []string{
+			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' pre-receive\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
+			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' update $1 $2 $3\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
+			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' post-receive\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
+		}
+	)
+
+	hookDir := filepath.Join(repoPath, "hooks")
+
+	for i, hookName := range hookNames {
+		oldHookPath := filepath.Join(hookDir, hookName)
+		newHookPath := filepath.Join(hookDir, hookName+".d", "gitea")
+
+		if err := os.MkdirAll(filepath.Join(hookDir, hookName+".d"), os.ModePerm); err != nil {
+			return fmt.Errorf("create hooks dir '%s': %v", filepath.Join(hookDir, hookName+".d"), err)
+		}
+
+		// WARNING: This will override all old server-side hooks
+		if err = ioutil.WriteFile(oldHookPath, []byte(hookTpls[i]), 0777); err != nil {
+			return fmt.Errorf("write old hook file '%s': %v", oldHookPath, err)
+		}
+
+		if err = ioutil.WriteFile(newHookPath, []byte(giteaHookTpls[i]), 0777); err != nil {
+			return fmt.Errorf("write new hook file '%s': %v", newHookPath, err)
 		}
 	}
+
 	return nil
 }
 
@@ -867,7 +887,7 @@ func CleanUpMigrateInfo(repo *Repository) (*Repository, error) {
 	}
 	if repo.HasWiki() {
 		if err := cleanUpMigrateGitConfig(path.Join(repo.WikiPath(), "config")); err != nil {
-			return repo, fmt.Errorf("cleanUpMigrateGitConfig.(wiki): %v", err)
+			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %v", err)
 		}
 	}
 
@@ -2028,7 +2048,10 @@ func ReinitMissingRepositories() error {
 func SyncRepositoryHooks() error {
 	return x.Where("id > 0").Iterate(new(Repository),
 		func(idx int, bean interface{}) error {
-			return createDelegateHooks(bean.(*Repository).RepoPath())
+			if err := createDelegateHooks(bean.(*Repository).RepoPath()); err != nil {
+				return err
+			}
+			return nil
 		})
 }
 
