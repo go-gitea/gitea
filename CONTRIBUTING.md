@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This document explains how to contribute changes to the Gitea project. It assumes you have followed the [installation instructions](https://github.com/go-gitea/docs/tree/master/en-US/installation). Sensitive security-related issues should be reported to [security@gitea.io](mailto:security@gitea.io).
+This document explains how to contribute changes to the Gitea project. It assumes you have followed the [installation instructions](https://docs.gitea.io/en-us/). Sensitive security-related issues should be reported to [security@gitea.io](mailto:security@gitea.io).
 
 ## Bug reports
 
@@ -24,7 +24,7 @@ This process gives everyone a chance to validate the design, helps prevent dupli
 
 ## Testing redux
 
-Before sending code out for review, run all the tests for the whole tree to make sure the changes don't break other usage and keep the compatibility on upgrade. To make sure you are running the test suite exactly like we do, you should install the CLI for [Drone CI](https://github.com/drone/drone), as we are using the server for continous testing, following [these instructions](http://readme.drone.io/0.5/install/cli/). After that you can simply call `drone exec` within your working directory and it will try to run the test suite locally.
+Before sending code out for review, run all the tests for the whole tree to make sure the changes don't break other usage and keep the compatibility on upgrade. To make sure you are running the test suite exactly like we do, you should install the CLI for [Drone CI](https://github.com/drone/drone), as we are using the server for continous testing, following [these instructions](http://readme.drone.io/usage/getting-started-cli). After that you can simply call `drone exec` within your working directory and it will try to run the test suite locally.
 
 ## Vendoring
 
