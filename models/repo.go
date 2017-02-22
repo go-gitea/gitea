@@ -1814,14 +1814,13 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 
 	repos = make([]*Repository, 0, opts.PageSize)
 
+	cond = builder.NewCond()
 	if opts.Starred && opts.OwnerID > 0 {
 		cond = builder.Eq{
 			"star.uid": opts.OwnerID,
 		}
-		cond = cond.And(builder.Like{"lower_name", opts.Keyword})
-	} else {
-		cond = builder.Like{"lower_name", opts.Keyword}
 	}
+	cond = cond.And(builder.Like{"lower_name", opts.Keyword})
 
 	// Append conditions
 	if !opts.Starred && opts.OwnerID > 0 {
