@@ -27,6 +27,7 @@ type Repository struct {
 	Description   string      `json:"description"`
 	Private       bool        `json:"private"`
 	Fork          bool        `json:"fork"`
+	Mirror        bool        `json:"mirror"`
 	HTMLURL       string      `json:"html_url"`
 	SSHURL        string      `json:"ssh_url"`
 	CloneURL      string      `json:"clone_url"`
