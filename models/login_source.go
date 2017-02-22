@@ -122,9 +122,10 @@ func (cfg *PAMConfig) ToDB() ([]byte, error) {
 
 // OAuth2Config holds configuration for the OAuth2 login source.
 type OAuth2Config struct {
-	Provider     string
-	ClientID     string
-	ClientSecret string
+	Provider                      string
+	ClientID                      string
+	ClientSecret                  string
+	OpenIDConnectAutoDiscoveryURL string
 }
 
 // FromDB fills up an OAuth2Config from serialized format.
@@ -295,9 +296,15 @@ func CreateLoginSource(source *LoginSource) error {
 	}
 
 	_, err = x.Insert(source)
-	if err == nil && source.IsOAuth2() {
+	if err == nil && source.IsOAuth2() && source.IsActived {
 		oAuth2Config := source.OAuth2()
-		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret)
+		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL)
+		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
+
+		if err != nil {
+			// remove the LoginSource in case of errors while registering OAuth2 providers
+			x.Delete(source)
+		}
 	}
 	return err
 }
@@ -322,11 +329,25 @@ func GetLoginSourceByID(id int64) (*LoginSource, error) {
 
 // UpdateSource updates a LoginSource record in DB.
 func UpdateSource(source *LoginSource) error {
+	var originalLoginSource *LoginSource
+	if source.IsOAuth2() {
+		// keep track of the original values so we can restore in case of errors while registering OAuth2 providers
+		var err error
+		if originalLoginSource, err = GetLoginSourceByID(source.ID); err != nil {
+			return err
+		}
+	}
+
 	_, err := x.Id(source.ID).AllCols().Update(source)
-	if err == nil && source.IsOAuth2() {
+	if err == nil && source.IsOAuth2() && source.IsActived {
 		oAuth2Config := source.OAuth2()
-		oauth2.RemoveProvider(source.Name)
-		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret)
+		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL)
+		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
+
+		if err != nil {
+			// restore original values since we cannot update the provider it self
+			x.Id(source.ID).AllCols().Update(originalLoginSource)
+		}
 	}
 	return err
 }
@@ -599,13 +620,14 @@ type OAuth2Provider struct {
 // key is used to map the OAuth2Provider with the goth provider type (also in LoginSource.OAuth2Config.Provider)
 // value is used to store display data
 var OAuth2Providers = map[string]OAuth2Provider{
-	"bitbucket": {Name: "bitbucket", DisplayName: "Bitbucket", Image: "/img/auth/bitbucket.png"},
-	"dropbox":   {Name: "dropbox", DisplayName: "Dropbox", Image: "/img/auth/dropbox.png"},
-	"facebook":  {Name: "facebook", DisplayName: "Facebook", Image: "/img/auth/facebook.png"},
-	"github":    {Name: "github", DisplayName: "GitHub", Image: "/img/auth/github.png"},
-	"gitlab":    {Name: "gitlab", DisplayName: "GitLab", Image: "/img/auth/gitlab.png"},
-	"gplus":     {Name: "gplus", DisplayName: "Google+", Image: "/img/auth/google_plus.png"},
-	"twitter":   {Name: "twitter", DisplayName: "Twitter", Image: "/img/auth/twitter.png"},
+	"bitbucket":     {Name: "bitbucket", DisplayName: "Bitbucket", Image: "/img/auth/bitbucket.png"},
+	"dropbox":       {Name: "dropbox", DisplayName: "Dropbox", Image: "/img/auth/dropbox.png"},
+	"facebook":      {Name: "facebook", DisplayName: "Facebook", Image: "/img/auth/facebook.png"},
+	"github":        {Name: "github", DisplayName: "GitHub", Image: "/img/auth/github.png"},
+	"gitlab":        {Name: "gitlab", DisplayName: "GitLab", Image: "/img/auth/gitlab.png"},
+	"gplus":         {Name: "gplus", DisplayName: "Google+", Image: "/img/auth/google_plus.png"},
+	"openidConnect": {Name: "openidConnect", DisplayName: "OpenID Connect", Image: "/img/auth/openid_connect.png"},
+	"twitter":       {Name: "twitter", DisplayName: "Twitter", Image: "/img/auth/twitter.png"},
 }
 
 // ExternalUserLogin attempts a login using external source types.
@@ -738,6 +760,14 @@ func InitOAuth2() {
 
 	for _, source := range loginSources {
 		oAuth2Config := source.OAuth2()
-		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret)
+		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL)
 	}
+}
+// wrapOpenIDConnectInitializeError is used to wrap the error but this cannot be done in modules/auth/oauth2
+// inside oauth2: import cycle not allowed models -> modules/auth/oauth2 -> models
+func wrapOpenIDConnectInitializeError(err error, providerName string, oAuth2Config *OAuth2Config) error {
+	if err != nil && "openidConnect" == oAuth2Config.Provider {
+		err = ErrOpenIDConnectInitialize{ProviderName:providerName,OpenIDConnectAutoDiscoveryURL:oAuth2Config.OpenIDConnectAutoDiscoveryURL,Cause:err}
+	}
+	return err
 }

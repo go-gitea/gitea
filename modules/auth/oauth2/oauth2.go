@@ -21,6 +21,8 @@ import (
 	"github.com/markbates/goth/providers/twitter"
 	"github.com/markbates/goth/providers/facebook"
 	"github.com/markbates/goth/providers/dropbox"
+	"github.com/markbates/goth/providers/openidConnect"
+	"math"
 )
 
 var (
@@ -35,7 +37,15 @@ func Init() {
 		log.Fatal(4, "Fail to create dir %s: %v", sessionDir, err)
 	}
 
-	gothic.Store = sessions.NewFilesystemStore(sessionDir, []byte(sessionUsersStoreKey))
+	store := sessions.NewFilesystemStore(sessionDir, []byte(sessionUsersStoreKey))
+	// according to the Goth lib:
+	// set the maxLength of the cookies stored on the disk to a larger number to prevent issues with:
+	// securecookie: the value is too long
+	// when using OpenID Connect , since this can contain a large amount of extra information in the id_token
+
+	// Note, when using the FilesystemStore only the session.ID is written to a browser cookie, so this is explicit for the storage on disk
+	store.MaxLength(math.MaxInt64)
+	gothic.Store = store
 
 	gothic.SetState = func(req *http.Request) string {
 		return uuid.NewV4().String()
@@ -78,12 +88,14 @@ func ProviderCallback(provider string, request *http.Request, response http.Resp
 }
 
 // RegisterProvider register a OAuth2 provider in goth lib
-func RegisterProvider(providerName, providerType, clientID, clientSecret string) {
-	provider := createProvider(providerName, providerType, clientID, clientSecret)
+func RegisterProvider(providerName, providerType, clientID, clientSecret, openIDConnectAutoDiscoveryURL string) error {
+	provider, err := createProvider(providerName, providerType, clientID, clientSecret, openIDConnectAutoDiscoveryURL)
 
-	if provider != nil {
+	if err == nil && provider != nil {
 		goth.UseProviders(provider)
 	}
+
+	return err
 }
 
 // RemoveProvider removes the given OAuth2 provider from the goth lib
@@ -92,10 +104,11 @@ func RemoveProvider(providerName string) {
 }
 
 // used to create different types of goth providers
-func createProvider(providerName, providerType, clientID, clientSecret string) goth.Provider {
+func createProvider(providerName, providerType, clientID, clientSecret, openIDConnectAutoDiscoveryURL string) (goth.Provider, error) {
 	callbackURL := setting.AppURL + "user/oauth2/" + providerName + "/callback"
 
 	var provider goth.Provider
+	var err error
 
 	switch providerType {
 	case "bitbucket":
@@ -110,14 +123,18 @@ func createProvider(providerName, providerType, clientID, clientSecret string) g
 		provider = gitlab.New(clientID, clientSecret, callbackURL)
 	case "gplus":
 		provider = gplus.New(clientID, clientSecret, callbackURL, "email")
+	case "openidConnect":
+		if provider, err = openidConnect.New(clientID, clientSecret, callbackURL, openIDConnectAutoDiscoveryURL); err != nil {
+			log.Warn("Failed to create OpenID Connect Provider with name '%s' with url '%s': %v", providerName, openIDConnectAutoDiscoveryURL, err)
+		}
 	case "twitter":
 		provider = twitter.NewAuthenticate(clientID, clientSecret, callbackURL)
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider
-	if provider != nil {
+	if err == nil && provider != nil {
 		provider.SetName(providerName)
 	}
 
-	return provider
+	return provider, err
 }

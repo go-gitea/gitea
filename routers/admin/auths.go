@@ -124,9 +124,10 @@ func parseSMTPConfig(form auth.AuthenticationForm) *models.SMTPConfig {
 
 func parseOAuth2Config(form auth.AuthenticationForm) *models.OAuth2Config {
 	return &models.OAuth2Config{
-		Provider:     form.Oauth2Provider,
-		ClientID:     form.Oauth2Key,
-		ClientSecret: form.Oauth2Secret,
+		Provider:                      form.Oauth2Provider,
+		ClientID:                      form.Oauth2Key,
+		ClientSecret:                  form.Oauth2Secret,
+		OpenIDConnectAutoDiscoveryURL: form.OpenIDConnectAutoDiscoveryURL,
 	}
 }
 
@@ -257,7 +258,12 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	source.IsActived = form.IsActive
 	source.Cfg = config
 	if err := models.UpdateSource(source); err != nil {
-		ctx.Handle(500, "UpdateSource", err)
+		if models.IsErrOpenIDConnectInitialize(err) {
+			ctx.Flash.Error(err.Error(), true)
+			ctx.HTML(200, tplAuthEdit)
+		} else {
+			ctx.Handle(500, "UpdateSource", err)
+		}
 		return
 	}
 	log.Trace("Authentication changed by admin(%s): %d", ctx.User.Name, source.ID)

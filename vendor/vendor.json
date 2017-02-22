@@ -599,6 +599,12 @@
 			"revisionTime": "2017-02-20T13:56:36Z"
 		},
 		{
+			"checksumSHA1": "sMYKhqAUZXM1+T/TjlMhWh8Vveo=",
+			"path": "github.com/markbates/goth/providers/openidConnect",
+			"revision": "7276be0fdf719ddff753f3574ef0f967e4a5a5f7",
+			"revisionTime": "2017-02-20T14:02:47Z"
+		},
+		{
 			"checksumSHA1": "1w0V6jYXaGlEtZcMeYTOAAucvgw=",
 			"path": "github.com/markbates/goth/providers/twitter",
 			"revision": "7276be0fdf719ddff753f3574ef0f967e4a5a5f7",

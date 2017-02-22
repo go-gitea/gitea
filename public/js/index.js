@@ -1016,6 +1016,17 @@ function initAdmin() {
         }
     }
 
+    function onOAuth2Change() {
+        var provider = $('#oauth2_provider').val();
+        if (provider == 'openidConnect') {
+            $('#open_id_connect_auto_discovery_url input').attr('required', 'required');
+            $('.openid-connect-auto-discovery-url').show();
+        } else {
+            $('#open_id_connect_auto_discovery_url input[required]').removeAttr('required');
+            $('.openid-connect-auto-discovery-url').hide();
+        }
+    }
+
     // New authentication
     if ($('.admin.new.authentication').length > 0) {
         $('#auth_type').change(function () {
@@ -1045,21 +1056,24 @@ function initAdmin() {
                 case '6':     // OAuth2
                     $('.oauth2').show();
                     $('.oauth2 input').attr('required', 'required');
+                    onOAuth2Change();
                     break;
             }
-
             if (authType == '2' || authType == '5') {
                 onSecurityProtocolChange()
             }
         });
         $('#auth_type').change();
-        $('#security_protocol').change(onSecurityProtocolChange)
+        $('#security_protocol').change(onSecurityProtocolChange);
+        $('#oauth2_provider').change(onOAuth2Change);
     }
     // Edit authentication
     if ($('.admin.edit.authentication').length > 0) {
         var authType = $('#auth_type').val();
         if (authType == '2' || authType == '5') {
             $('#security_protocol').change(onSecurityProtocolChange);
+        } else if (authType == '6') {
+            $('#oauth2_provider').change(onOAuth2Change);
         }
     }
 

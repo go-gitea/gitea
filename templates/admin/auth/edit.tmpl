@@ -166,6 +166,10 @@
 								<label for="oauth2_secret">{{.i18n.Tr "admin.auths.oauth2_clientSecret"}}</label>
 								<input id="oauth2_secret" name="oauth2_secret" value="{{$cfg.ClientSecret}}" required>
 							</div>
+							<div class="openid-connect-auto-discovery-url required field">
+								<label for="open_id_connect_auto_discovery_url">{{.i18n.Tr "admin.auths.openIdConnectAutoDiscoveryURL"}}</label>
+								<input id="open_id_connect_auto_discovery_url" name="open_id_connect_auto_discovery_url" value="{{$cfg.OpenIDConnectAutoDiscoveryURL}}">
+							</div>
 						{{end}}
 
 						<div class="inline field {{if not .Source.IsSMTP}}hide{{end}}">
