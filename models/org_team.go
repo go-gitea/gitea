@@ -36,7 +36,7 @@ func (t *Team) IsMember(userID int64) bool {
 	return IsTeamMember(t.OrgID, t.ID, userID)
 }
 
-func (t *Team) getRepositories(e Engine) (err error) {
+func (t *Team) getRepositories(e Engine) error {
 	return e.Join("INNER", "team_repo", "repository.id = team_repo.repo_id").
 		Where("team_repo.team_id=?", t.ID).Find(&t.Repos)
 }
@@ -183,16 +183,13 @@ func (t *Team) RemoveRepository(repoID int64) error {
 }
 
 // IsUsableTeamName tests if a name could be as team name
-func IsUsableTeamName(name string) (err error) {
-	var reservedTeamNames = []string{"new"}
-
-	for i := range reservedTeamNames {
-		if name == reservedTeamNames[i] {
-			return ErrNameReserved{name}
-		}
+func IsUsableTeamName(name string) error {
+	switch name {
+	case "new":
+		return ErrNameReserved{name}
+	default:
+		return nil
 	}
-
-	return nil
 }
 
 // NewTeam creates a record of new team.
@@ -313,7 +310,7 @@ func UpdateTeam(t *Team, authChanged bool) (err error) {
 	// Update access for team members if needed.
 	if authChanged {
 		if err = t.getRepositories(sess); err != nil {
-			return fmt.Errorf("getRepositories:%v", err)
+			return fmt.Errorf("getRepositories: %v", err)
 		}
 
 		for _, repo := range t.Repos {
@@ -350,6 +347,13 @@ func DeleteTeam(t *Team) error {
 		if err = repo.recalculateTeamAccesses(sess, t.ID); err != nil {
 			return err
 		}
+	}
+
+	// Delete team-repo
+	if _, err = sess.
+		Where("team_id=?", t.ID).
+		Delete(new(TeamRepo)); err != nil {
+		return err
 	}
 
 	// Delete team-user.
@@ -624,20 +628,10 @@ func addTeamRepo(e Engine, orgID, teamID, repoID int64) error {
 	return err
 }
 
-// AddTeamRepo adds new repository relation to team.
-func AddTeamRepo(orgID, teamID, repoID int64) error {
-	return addTeamRepo(x, orgID, teamID, repoID)
-}
-
 func removeTeamRepo(e Engine, teamID, repoID int64) error {
 	_, err := e.Delete(&TeamRepo{
 		TeamID: teamID,
 		RepoID: repoID,
 	})
 	return err
-}
-
-// RemoveTeamRepo deletes repository relation to team.
-func RemoveTeamRepo(teamID, repoID int64) error {
-	return removeTeamRepo(x, teamID, repoID)
 }
