@@ -44,7 +44,7 @@ func Init() {
 	// when using OpenID Connect , since this can contain a large amount of extra information in the id_token
 
 	// Note, when using the FilesystemStore only the session.ID is written to a browser cookie, so this is explicit for the storage on disk
-	store.MaxLength(math.MaxInt64)
+	store.MaxLength(math.MaxInt16)
 	gothic.Store = store
 
 	gothic.SetState = func(req *http.Request) string {
