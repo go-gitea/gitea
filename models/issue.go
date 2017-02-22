@@ -1128,11 +1128,8 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
-	// FIXME: use IssueList to improve performance.
-	for i := range issues {
-		if err := issues[i].LoadAttributes(); err != nil {
-			return nil, fmt.Errorf("LoadAttributes [%d]: %v", issues[i].ID, err)
-		}
+	if err := IssueList(issues).LoadAttributes(); err != nil {
+		return nil, fmt.Errorf("LoadAttributes: %v", err)
 	}
 
 	return issues, nil
@@ -1398,63 +1395,4 @@ func updateIssue(e Engine, issue *Issue) error {
 // UpdateIssue updates all fields of given issue.
 func UpdateIssue(issue *Issue) error {
 	return updateIssue(x, issue)
-}
-
-// IssueList defines a list of issues
-type IssueList []*Issue
-
-func (issues IssueList) getRepoIDs() []int64 {
-	repoIDs := make([]int64, 0, len(issues))
-	for _, issue := range issues {
-		var has bool
-		for _, repoID := range repoIDs {
-			if repoID == issue.RepoID {
-				has = true
-				break
-			}
-		}
-		if !has {
-			repoIDs = append(repoIDs, issue.RepoID)
-		}
-	}
-	return repoIDs
-}
-
-func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
-	if len(issues) == 0 {
-		return nil, nil
-	}
-
-	repoIDs := issues.getRepoIDs()
-	rows, err := e.
-		Where("id > 0").
-		In("id", repoIDs).
-		Rows(new(Repository))
-	if err != nil {
-		return nil, fmt.Errorf("find repository: %v", err)
-	}
-	defer rows.Close()
-
-	repositories := make([]*Repository, 0, len(repoIDs))
-	repoMaps := make(map[int64]*Repository, len(repoIDs))
-	for rows.Next() {
-		var repo Repository
-		err = rows.Scan(&repo)
-		if err != nil {
-			return nil, fmt.Errorf("find repository: %v", err)
-		}
-
-		repositories = append(repositories, &repo)
-		repoMaps[repo.ID] = &repo
-	}
-
-	for _, issue := range issues {
-		issue.Repo = repoMaps[issue.RepoID]
-	}
-	return repositories, nil
-}
-
-// LoadRepositories loads issues' all repositories
-func (issues IssueList) LoadRepositories() ([]*Repository, error) {
-	return issues.loadRepositories(x)
 }
