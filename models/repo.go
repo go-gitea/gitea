@@ -1800,7 +1800,7 @@ type SearchRepoOptions struct {
 func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ int64, _ error) {
 	var (
 		sess *xorm.Session
-		cond builder.Cond
+		cond builder.Cond = builder.NewCond()
 	)
 
 	if len(opts.Keyword) == 0 {
@@ -1814,7 +1814,6 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 
 	repos = make([]*Repository, 0, opts.PageSize)
 
-	cond = builder.NewCond()
 	if opts.Starred && opts.OwnerID > 0 {
 		cond = builder.Eq{
 			"star.uid": opts.OwnerID,
