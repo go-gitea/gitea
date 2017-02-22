@@ -53,6 +53,7 @@ var (
 		{models.LoginNames[models.LoginDLDAP], models.LoginDLDAP},
 		{models.LoginNames[models.LoginSMTP], models.LoginSMTP},
 		{models.LoginNames[models.LoginPAM], models.LoginPAM},
+		{models.LoginNames[models.LoginOAuth2], models.LoginOAuth2},
 	}
 	securityProtocols = []dropdownItem{
 		{models.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted], ldap.SecurityProtocolUnencrypted},
@@ -75,6 +76,14 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
+	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
+
+	// only the first as default
+	for key := range models.OAuth2Providers {
+		ctx.Data["oauth2_provider"] = key
+		break
+	}
+
 	ctx.HTML(200, tplAuthNew)
 }
 
@@ -113,6 +122,14 @@ func parseSMTPConfig(form auth.AuthenticationForm) *models.SMTPConfig {
 	}
 }
 
+func parseOAuth2Config(form auth.AuthenticationForm) *models.OAuth2Config {
+	return &models.OAuth2Config{
+		Provider:     form.Oauth2Provider,
+		ClientID:     form.Oauth2Key,
+		ClientSecret: form.Oauth2Secret,
+	}
+}
+
 // NewAuthSourcePost response for adding an auth source
 func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
@@ -124,6 +141,7 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
+	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 
 	hasTLS := false
 	var config core.Conversion
@@ -138,6 +156,8 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 		config = &models.PAMConfig{
 			ServiceName: form.PAMServiceName,
 		}
+	case models.LoginOAuth2:
+		config = parseOAuth2Config(form)
 	default:
 		ctx.Error(400)
 		return
@@ -178,6 +198,7 @@ func EditAuthSource(ctx *context.Context) {
 
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
+	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
@@ -187,16 +208,20 @@ func EditAuthSource(ctx *context.Context) {
 	ctx.Data["Source"] = source
 	ctx.Data["HasTLS"] = source.HasTLS()
 
+	if source.IsOAuth2() {
+		ctx.Data["CurrentOAuth2Provider"] = models.OAuth2Providers[source.OAuth2().Provider]
+	}
 	ctx.HTML(200, tplAuthEdit)
 }
 
-// EditAuthSourcePost resposne for editing auth source
+// EditAuthSourcePost response for editing auth source
 func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.edit")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
+	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
@@ -221,6 +246,8 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 		config = &models.PAMConfig{
 			ServiceName: form.PAMServiceName,
 		}
+	case models.LoginOAuth2:
+		config = parseOAuth2Config(form)
 	default:
 		ctx.Error(400)
 		return

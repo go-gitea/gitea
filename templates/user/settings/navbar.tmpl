@@ -22,6 +22,9 @@
 		<a class="{{if .PageIsSettingsTwofa}}active{{end}} item" href="{{AppSubUrl}}/user/settings/two_factor">
 			{{.i18n.Tr "settings.twofa"}}
 		</a>
+		<a class="{{if .PageIsSettingsAccountLink}}active{{end}} item" href="{{AppSubUrl}}/user/settings/account_link">
+			{{.i18n.Tr "settings.account_link"}}
+		</a>
 		<a class="{{if .PageIsSettingsDelete}}active{{end}} item" href="{{AppSubUrl}}/user/settings/delete">
 			{{.i18n.Tr "settings.delete"}}
 		</a>

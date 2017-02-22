@@ -12,7 +12,7 @@ import (
 // AuthenticationForm form for authentication
 type AuthenticationForm struct {
 	ID                int64
-	Type              int    `binding:"Range(2,5)"`
+	Type              int    `binding:"Range(2,6)"`
 	Name              string `binding:"Required;MaxSize(30)"`
 	Host              string
 	Port              int
@@ -36,6 +36,9 @@ type AuthenticationForm struct {
 	TLS               bool
 	SkipVerify        bool
 	PAMServiceName    string
+	Oauth2Provider    string
+	Oauth2Key	  string
+	Oauth2Secret      string
 }
 
 // Validate validates fields

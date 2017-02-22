@@ -1019,9 +1019,9 @@ function initAdmin() {
     // New authentication
     if ($('.admin.new.authentication').length > 0) {
         $('#auth_type').change(function () {
-            $('.ldap, .dldap, .smtp, .pam, .has-tls').hide();
+            $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls').hide();
 
-            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .has-tls input[required]').removeAttr('required');
+            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required] .has-tls input[required]').removeAttr('required');
 
             var authType = $(this).val();
             switch (authType) {
@@ -1041,6 +1041,10 @@ function initAdmin() {
                 case '5':     // LDAP
                     $('.dldap').show();
                     $('.dldap div.required:not(.ldap) input').attr('required', 'required');
+                    break;
+                case '6':     // OAuth2
+                    $('.oauth2').show();
+                    $('.oauth2 input').attr('required', 'required');
                     break;
             }
 

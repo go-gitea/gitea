@@ -59,7 +59,7 @@ func HTTP(ctx *context.Context) {
 	isWiki := false
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
-		reponame = reponame[:len(reponame)-5]
+		reponame = reponame[:len(reponame) - 5]
 	}
 
 	repoUser, err := models.GetUserByName(username)
@@ -191,9 +191,9 @@ func HTTP(ctx *context.Context) {
 
 		var lastLine int64
 		for {
-			head := input[lastLine : lastLine+2]
+			head := input[lastLine: lastLine + 2]
 			if head[0] == '0' && head[1] == '0' {
-				size, err := strconv.ParseInt(string(input[lastLine+2:lastLine+4]), 16, 32)
+				size, err := strconv.ParseInt(string(input[lastLine + 2:lastLine + 4]), 16, 32)
 				if err != nil {
 					log.Error(4, "%v", err)
 					return
@@ -204,7 +204,7 @@ func HTTP(ctx *context.Context) {
 					break
 				}
 
-				line := input[lastLine : lastLine+size]
+				line := input[lastLine: lastLine + size]
 				idx := bytes.IndexRune(line, '\000')
 				if idx > -1 {
 					line = line[:idx]
@@ -370,7 +370,7 @@ func gitCommand(dir string, args ...string) []byte {
 
 func getGitConfig(option, dir string) string {
 	out := string(gitCommand(dir, "config", option))
-	return out[0 : len(out)-1]
+	return out[0: len(out) - 1]
 }
 
 func getConfigSetting(service, dir string) bool {
@@ -501,7 +501,7 @@ func updateServerInfo(dir string) []byte {
 }
 
 func packetWrite(str string) []byte {
-	s := strconv.FormatInt(int64(len(str)+4), 16)
+	s := strconv.FormatInt(int64(len(str) + 4), 16)
 	if len(s)%4 != 0 {
 		s = strings.Repeat("0", 4-len(s)%4) + s
 	}

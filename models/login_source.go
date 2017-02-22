@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/auth/oauth2"
 )
 
 // LoginType represents an login type.
@@ -30,19 +31,21 @@ type LoginType int
 // Note: new type must append to the end of list to maintain compatibility.
 const (
 	LoginNoType LoginType = iota
-	LoginPlain            // 1
-	LoginLDAP             // 2
-	LoginSMTP             // 3
-	LoginPAM              // 4
-	LoginDLDAP            // 5
+	LoginPlain   // 1
+	LoginLDAP    // 2
+	LoginSMTP    // 3
+	LoginPAM     // 4
+	LoginDLDAP   // 5
+	LoginOAuth2  // 6
 )
 
 // LoginNames contains the name of LoginType values.
 var LoginNames = map[LoginType]string{
-	LoginLDAP:  "LDAP (via BindDN)",
-	LoginDLDAP: "LDAP (simple auth)", // Via direct bind
-	LoginSMTP:  "SMTP",
-	LoginPAM:   "PAM",
+	LoginLDAP:   "LDAP (via BindDN)",
+	LoginDLDAP:  "LDAP (simple auth)", // Via direct bind
+	LoginSMTP:   "SMTP",
+	LoginPAM:    "PAM",
+	LoginOAuth2: "OAuth2",
 }
 
 // SecurityProtocolNames contains the name of SecurityProtocol values.
@@ -57,6 +60,7 @@ var (
 	_ core.Conversion = &LDAPConfig{}
 	_ core.Conversion = &SMTPConfig{}
 	_ core.Conversion = &PAMConfig{}
+	_ core.Conversion = &OAuth2Config{}
 )
 
 // LDAPConfig holds configuration for LDAP login source.
@@ -115,6 +119,23 @@ func (cfg *PAMConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
+// OAuth2Config holds configuration for the OAuth2 login source.
+type OAuth2Config struct {
+	Provider     string
+	ClientID     string
+	ClientSecret string
+}
+
+// FromDB fills up an OAuth2Config from serialized format.
+func (cfg *OAuth2Config) FromDB(bs []byte) error {
+	return json.Unmarshal(bs, cfg)
+}
+
+// ToDB exports an SMTPConfig to a serialized format.
+func (cfg *OAuth2Config) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
 // LoginSource represents an external way for authorizing users.
 type LoginSource struct {
 	ID        int64 `xorm:"pk autoincr"`
@@ -162,6 +183,8 @@ func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 			source.Cfg = new(SMTPConfig)
 		case LoginPAM:
 			source.Cfg = new(PAMConfig)
+		case LoginOAuth2:
+			source.Cfg = new(OAuth2Config)
 		default:
 			panic("unrecognized login source type: " + com.ToStr(*val))
 		}
@@ -201,6 +224,11 @@ func (source *LoginSource) IsSMTP() bool {
 // IsPAM returns true of this source is of the PAM type.
 func (source *LoginSource) IsPAM() bool {
 	return source.Type == LoginPAM
+}
+
+// IsOAuth2 returns true of this source is of the OAuth2 type.
+func (source *LoginSource) IsOAuth2() bool {
+	return source.Type == LoginOAuth2
 }
 
 // HasTLS returns true of this source supports TLS.
@@ -250,6 +278,11 @@ func (source *LoginSource) PAM() *PAMConfig {
 	return source.Cfg.(*PAMConfig)
 }
 
+// OAuth2 returns OAuth2Config for this source, if of OAuth2 type.
+func (source *LoginSource) OAuth2() *OAuth2Config {
+	return source.Cfg.(*OAuth2Config)
+}
+
 // CreateLoginSource inserts a LoginSource in the DB if not already
 // existing with the given name.
 func CreateLoginSource(source *LoginSource) error {
@@ -261,12 +294,16 @@ func CreateLoginSource(source *LoginSource) error {
 	}
 
 	_, err = x.Insert(source)
+	if err == nil && source.IsOAuth2() {
+		oAuth2Config := source.OAuth2()
+		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret)
+	}
 	return err
 }
 
 // LoginSources returns a slice of all login sources found in DB.
 func LoginSources() ([]*LoginSource, error) {
-	auths := make([]*LoginSource, 0, 5)
+	auths := make([]*LoginSource, 0, 6)
 	return auths, x.Find(&auths)
 }
 
@@ -285,6 +322,11 @@ func GetLoginSourceByID(id int64) (*LoginSource, error) {
 // UpdateSource updates a LoginSource record in DB.
 func UpdateSource(source *LoginSource) error {
 	_, err := x.Id(source.ID).AllCols().Update(source)
+	if err == nil && source.IsOAuth2() {
+		oAuth2Config := source.OAuth2()
+		oauth2.RemoveProvider(source.Name)
+		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret)
+	}
 	return err
 }
 
@@ -296,6 +338,18 @@ func DeleteSource(source *LoginSource) error {
 	} else if count > 0 {
 		return ErrLoginSourceInUse{source.ID}
 	}
+
+	count, err = x.Count(&ExternalLoginUser{LoginSourceID: source.ID})
+	if err != nil {
+		return err
+	} else if count > 0 {
+		return ErrLoginSourceInUse{source.ID}
+	}
+
+	if source.IsOAuth2() {
+		oauth2.RemoveProvider(source.Name)
+	}
+
 	_, err = x.Id(source.ID).Delete(new(LoginSource))
 	return err
 }
@@ -444,7 +498,7 @@ func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPC
 		idx := strings.Index(login, "@")
 		if idx == -1 {
 			return nil, ErrUserNotExist{0, login, 0}
-		} else if !com.IsSliceContainsStr(strings.Split(cfg.AllowedDomains, ","), login[idx+1:]) {
+		} else if !com.IsSliceContainsStr(strings.Split(cfg.AllowedDomains, ","), login[idx + 1:]) {
 			return nil, ErrUserNotExist{0, login, 0}
 		}
 	}
@@ -526,6 +580,27 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 	return user, CreateUser(user)
 }
 
+//  ________      _____          __  .__     ________
+//  \_____  \    /  _  \  __ ___/  |_|  |__  \_____  \
+//   /   |   \  /  /_\  \|  |  \   __\  |  \  /  ____/
+//  /    |    \/    |    \  |  /|  | |   Y  \/       \
+//  \_______  /\____|__  /____/ |__| |___|  /\_______ \
+//          \/         \/                 \/         \/
+
+// OAuth2Provider describes the display values of a single OAuth2 provider
+type OAuth2Provider struct {
+	Name string
+	DisplayName string
+	Image string
+}
+
+// OAuth2Providers contains the map of registered OAuth2 providers in Gitea (based on goth)
+// key is used to map the OAuth2Provider with the goth provider type (also in LoginSource.OAuth2Config.Provider)
+// value is used to store display data
+var OAuth2Providers = map[string]OAuth2Provider{
+	"github":   {Name: "github", DisplayName:"GitHub", Image: "/img/github.png"},
+}
+
 // ExternalUserLogin attempts a login using external source types.
 func ExternalUserLogin(user *User, login, password string, source *LoginSource, autoRegister bool) (*User, error) {
 	if !source.IsActived {
@@ -560,7 +635,7 @@ func UserSignIn(username, password string) (*User, error) {
 
 	if hasUser {
 		switch user.LoginType {
-		case LoginNoType, LoginPlain:
+		case LoginNoType, LoginPlain, LoginOAuth2:
 			if user.ValidatePassword(password) {
 				return user, nil
 			}
@@ -580,12 +655,16 @@ func UserSignIn(username, password string) (*User, error) {
 		}
 	}
 
-	sources := make([]*LoginSource, 0, 3)
+	sources := make([]*LoginSource, 0, 5)
 	if err = x.UseBool().Find(&sources, &LoginSource{IsActived: true}); err != nil {
 		return nil, err
 	}
 
 	for _, source := range sources {
+		if source.IsOAuth2() {
+			// don't try to authenticate against OAuth2 sources
+			continue
+		}
 		authUser, err := ExternalUserLogin(nil, username, password, source, true)
 		if err == nil {
 			return authUser, nil
@@ -595,4 +674,59 @@ func UserSignIn(username, password string) (*User, error) {
 	}
 
 	return nil, ErrUserNotExist{user.ID, user.Name, 0}
+}
+
+// GetActiveOAuth2ProviderLoginSources returns all actived LoginOAuth2 sources
+func GetActiveOAuth2ProviderLoginSources() ([]*LoginSource, error) {
+	sources := make([]*LoginSource, 0, 1)
+	if err := x.UseBool().Find(&sources, &LoginSource{IsActived: true, Type: LoginOAuth2}); err != nil {
+		return nil, err
+	}
+	return sources, nil
+}
+
+// GetActiveOAuth2LoginSourceByName returns a OAuth2 LoginSource based on the given name
+func GetActiveOAuth2LoginSourceByName(name string) (*LoginSource, error) {
+	loginSource := &LoginSource{
+		Name:      name,
+		Type:      LoginOAuth2,
+		IsActived: true,
+	}
+
+	has, err := x.UseBool().Get(loginSource)
+	if !has || err != nil {
+		return nil, err
+	}
+
+	return loginSource, nil
+}
+
+// GetActiveOAuth2Providers returns the map of configured active OAuth2 providers
+// key is used as technical name (like in the callbackURL)
+// values to display
+func GetActiveOAuth2Providers() (map[string]OAuth2Provider, error) {
+	// Maybe also seperate used and unused providers so we can force the registration of only 1 active provider for each type
+
+	loginSources, err := GetActiveOAuth2ProviderLoginSources()
+	if err != nil {
+		return nil, err
+	}
+
+	providers := make(map[string]OAuth2Provider)
+	for _, source := range loginSources {
+		providers[source.Name] = OAuth2Providers[source.OAuth2().Provider]
+	}
+
+	return providers, nil
+}
+
+// InitOAuth2 initialize the OAuth2 lib and register all active OAuth2 providers in the library
+func InitOAuth2() {
+	oauth2.Init()
+	loginSources, _ := GetActiveOAuth2ProviderLoginSources()
+
+	for _, source := range loginSources {
+		oAuth2Config := source.OAuth2()
+		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret)
+	}
 }

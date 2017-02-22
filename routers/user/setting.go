@@ -37,6 +37,7 @@ const (
 	tplSettingsApplications base.TplName = "user/settings/applications"
 	tplSettingsTwofa        base.TplName = "user/settings/twofa"
 	tplSettingsTwofaEnroll  base.TplName = "user/settings/twofa_enroll"
+	tplSettingsAccountLink  base.TplName = "user/settings/account_link"
 	tplSettingsDelete       base.TplName = "user/settings/delete"
 	tplSecurity             base.TplName = "user/security"
 )
@@ -200,7 +201,7 @@ func SettingsPasswordPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		return
 	}
 
-	if !ctx.User.ValidatePassword(form.OldPassword) {
+	if ctx.User.IsPasswordSet() && !ctx.User.ValidatePassword(form.OldPassword) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
@@ -629,6 +630,49 @@ func SettingsTwoFactorEnrollPost(ctx *context.Context, form auth.TwoFactorAuthFo
 	ctx.Session.Delete("twofaUri")
 	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", t.ScratchToken))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/two_factor")
+}
+
+// SettingsAccountLinks render the account links settings page
+func SettingsAccountLinks(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsAccountLink"] = true
+
+	accountLinks, err := models.ListAccountLinks(ctx.User)
+	if err != nil {
+		ctx.Handle(500, "ListAccountLinks", err)
+		return
+	}
+
+	// map the provider display name with the LoginSource
+	sources := make(map[*models.LoginSource]string)
+	for _, externalAccount := range accountLinks {
+		if loginSource, err := models.GetLoginSourceByID(externalAccount.LoginSourceID); err == nil {
+			var providerDisplayName string
+			if loginSource.IsOAuth2() {
+				providerTechnicalName := loginSource.OAuth2().Provider
+				providerDisplayName = models.OAuth2Providers[providerTechnicalName].DisplayName
+			} else {
+				providerDisplayName = loginSource.Name
+			}
+			sources[loginSource] = providerDisplayName
+		}
+	}
+	ctx.Data["AccountLinks"] = sources
+
+	ctx.HTML(200, tplSettingsAccountLink)
+}
+
+// SettingsDeleteAccountLink delete a single account link
+func SettingsDeleteAccountLink(ctx *context.Context) {
+	if _, err := models.RemoveAccountLink(ctx.User, ctx.QueryInt64("loginSourceID")); err != nil {
+		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/user/settings/account_link",
+	})
 }
 
 // SettingsDelete render user suicide page and response for delete user himself

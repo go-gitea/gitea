@@ -142,6 +142,32 @@
 							</div>
 						{{end}}
 
+						<!-- OAuth2 -->
+						{{if .Source.IsOAuth2}}
+							{{ $cfg:=.Source.OAuth2 }}
+							<div class="inline required field">
+								<label>{{.i18n.Tr "admin.auths.oauth2_provider"}}</label>
+								<div class="ui selection type dropdown">
+									<input type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{$cfg.Provider}}" required>
+									<div class="text">{{.CurrentOAuth2Provider.DisplayName}}</div>
+									<i class="dropdown icon"></i>
+									<div class="menu">
+										{{range $key, $value := .OAuth2Providers}}
+											<div class="item" data-value="{{$key}}">{{$value.DisplayName}}</div>
+										{{end}}
+									</div>
+								</div>
+							</div>
+							<div class="required field">
+								<label for="oauth2_key">{{.i18n.Tr "admin.auths.oauth2_clientID"}}</label>
+								<input id="oauth2_key" name="oauth2_key" value="{{$cfg.ClientID}}" required>
+							</div>
+							<div class="required field">
+								<label for="oauth2_secret">{{.i18n.Tr "admin.auths.oauth2_clientSecret"}}</label>
+								<input id="oauth2_secret" name="oauth2_secret" value="{{$cfg.ClientSecret}}" required>
+							</div>
+						{{end}}
+
 						<div class="inline field {{if not .Source.IsSMTP}}hide{{end}}">
 							<div class="ui checkbox">
 								<label><strong>{{.i18n.Tr "admin.auths.enable_tls"}}</strong></label>

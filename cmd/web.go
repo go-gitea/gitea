@@ -41,6 +41,7 @@ import (
 	"github.com/go-macaron/toolbox"
 	"github.com/urfave/cli"
 	macaron "gopkg.in/macaron.v1"
+	context2 "github.com/gorilla/context"
 )
 
 // CmdWeb represents the available web sub-command.
@@ -210,6 +211,13 @@ func runWeb(ctx *cli.Context) error {
 		m.Post("/sign_up", bindIgnErr(auth.RegisterForm{}), user.SignUpPost)
 		m.Get("/reset_password", user.ResetPasswd)
 		m.Post("/reset_password", user.ResetPasswdPost)
+		m.Group("/oauth2", func() {
+			m.Get("/:provider", user.SignInOAuth)
+			m.Get("/:provider/callback", user.SignInOAuthCallback)
+		})
+		m.Get("/link_account", user.LinkAccount)
+		m.Post("/link_account_signin", bindIgnErr(auth.SignInForm{}), user.LinkAccountPostSignIn)
+		m.Post("/link_account_signup", bindIgnErr(auth.RegisterForm{}), user.LinkAccountPostRegister)
 		m.Group("/two_factor", func() {
 			m.Get("", user.TwoFactor)
 			m.Post("", bindIgnErr(auth.TwoFactorAuthForm{}), user.TwoFactorPost)
@@ -236,6 +244,7 @@ func runWeb(ctx *cli.Context) error {
 			Post(bindIgnErr(auth.NewAccessTokenForm{}), user.SettingsApplicationsPost)
 		m.Post("/applications/delete", user.SettingsDeleteApplication)
 		m.Route("/delete", "GET,POST", user.SettingsDelete)
+		m.Combo("/account_link").Get(user.SettingsAccountLinks).Post(user.SettingsDeleteAccountLink)
 		m.Group("/two_factor", func() {
 			m.Get("", user.SettingsTwoFactor)
 			m.Post("/regenerate_scratch", user.SettingsTwoFactorRegenerateScratch)
@@ -671,11 +680,11 @@ func runWeb(ctx *cli.Context) error {
 	var err error
 	switch setting.Protocol {
 	case setting.HTTP:
-		err = runHTTP(listenAddr, m)
+		err = runHTTP(listenAddr, context2.ClearHandler(m))
 	case setting.HTTPS:
-		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, m)
+		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
 	case setting.FCGI:
-		err = fcgi.Serve(nil, m)
+		err = fcgi.Serve(nil, context2.ClearHandler(m))
 	case setting.UnixSocket:
 		if err := os.Remove(listenAddr); err != nil && !os.IsNotExist(err) {
 			log.Fatal(4, "Failed to remove unix socket directory %s: %v", listenAddr, err)
@@ -691,7 +700,7 @@ func runWeb(ctx *cli.Context) error {
 		if err = os.Chmod(listenAddr, os.FileMode(setting.UnixSocketPermission)); err != nil {
 			log.Fatal(4, "Failed to set permission of unix socket: %v", err)
 		}
-		err = http.Serve(listener, m)
+		err = http.Serve(listener, context2.ClearHandler(m))
 	default:
 		log.Fatal(4, "Invalid protocol: %s", setting.Protocol)
 	}
