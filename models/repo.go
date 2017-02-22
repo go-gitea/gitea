@@ -1800,7 +1800,7 @@ type SearchRepoOptions struct {
 func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ int64, _ error) {
 	var (
 		sess *xorm.Session
-		cond builder.Cond = builder.NewCond()
+		cond = builder.NewCond()
 	)
 
 	if len(opts.Keyword) == 0 {
