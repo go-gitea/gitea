@@ -30,6 +30,7 @@ import (
 
 	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	version "github.com/mcuadros/go-version"
 	ini "gopkg.in/ini.v1"
@@ -1797,7 +1798,11 @@ type SearchRepoOptions struct {
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
 func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ int64, _ error) {
-	var sess *xorm.Session
+	var (
+		sess *xorm.Session
+		cond builder.Cond = builder.NewCond()
+	)
+
 	if len(opts.Keyword) == 0 {
 		return repos, 0, nil
 	}
@@ -1810,26 +1815,24 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 	repos = make([]*Repository, 0, opts.PageSize)
 
 	if opts.Starred && opts.OwnerID > 0 {
-		sess = x.
-			Join("INNER", "star", "star.repo_id = repository.id").
-			Where("star.uid = ?", opts.OwnerID).
-			And("lower_name LIKE ?", "%"+opts.Keyword+"%")
-	} else {
-		sess = x.Where("lower_name LIKE ?", "%"+opts.Keyword+"%")
+		cond = builder.Eq{
+			"star.uid": opts.OwnerID,
+		}
 	}
+	cond = cond.And(builder.Like{"lower_name", opts.Keyword})
 
 	// Append conditions
 	if !opts.Starred && opts.OwnerID > 0 {
-		sess.And("owner_id = ?", opts.OwnerID)
+		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
 	if !opts.Private {
-		sess.And("is_private=?", false)
+		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
 	if opts.Searcher != nil {
+		var ownerIds []int64
 
-		sess.Or("owner_id = ?", opts.Searcher.ID)
-
+		ownerIds = append(ownerIds, opts.Searcher.ID)
 		err := opts.Searcher.GetOrganizations(true)
 
 		if err != nil {
@@ -1837,12 +1840,22 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 		}
 
 		for _, org := range opts.Searcher.Orgs {
-			sess.Or("owner_id = ?", org.ID)
+			ownerIds = append(ownerIds, org.ID)
 		}
+
+		cond = cond.Or(builder.And(builder.Like{"lower_name", opts.Keyword}, builder.In("owner_id", ownerIds)))
 	}
 
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "name ASC"
+	}
+
+	if opts.Starred && opts.OwnerID > 0 {
+		sess = x.
+			Join("INNER", "star", "star.repo_id = repository.id").
+			Where(cond)
+	} else {
+		sess = x.Where(cond)
 	}
 
 	var countSess xorm.Session
