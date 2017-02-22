@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/urfave/cli"
-
 	"code.gitea.io/gitea/models"
+
+	"github.com/urfave/cli"
 )
 
 var (

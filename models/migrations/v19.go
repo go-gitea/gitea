@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
-
-	"code.gitea.io/gitea/modules/setting"
 )
 
 func generateAndMigrateGitHooks(x *xorm.Engine) (err error) {
