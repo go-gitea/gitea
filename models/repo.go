@@ -836,9 +836,9 @@ func createDelegateHooks(repoPath string) (err error) {
 	var (
 		hookNames = []string{"pre-receive", "update", "post-receive"}
 		hookTpls  = []string{
-			"cd ./pre-receive.d\nfor i in `ls`; do\n    sh $i\ndone",
-			"cd ./update.d\nfor i in `ls`; do\n    sh $i $1 $2 $3\ndone",
-			"cd ./post-receive.d\nfor i in `ls`; do\n    sh $i\ndone",
+			fmt.Sprintf("#!/usr/bin/env %s\nORI_DIR=`pwd`\nSHELL_FOLDER=$(cd \"$(dirname \"$0\")\";pwd)\ncd \"$ORI_DIR\"\nfor i in `ls \"$SHELL_FOLDER/pre-receive.d\"`; do\n    sh \"$SHELL_FOLDER/pre-receive.d/$i\"\ndone", setting.ScriptType),
+			fmt.Sprintf("#!/usr/bin/env %s\nORI_DIR=`pwd`\nSHELL_FOLDER=$(cd \"$(dirname \"$0\")\";pwd)\ncd \"$ORI_DIR\"\nfor i in `ls \"$SHELL_FOLDER/update.d\"`; do\n    sh \"$SHELL_FOLDER/update.d/$i\" $1 $2 $3\ndone", setting.ScriptType),
+			fmt.Sprintf("#!/usr/bin/env %s\nORI_DIR=`pwd`\nSHELL_FOLDER=$(cd \"$(dirname \"$0\")\";pwd)\ncd \"$ORI_DIR\"\nfor i in `ls \"$SHELL_FOLDER/post-receive.d\"`; do\n    sh \"$SHELL_FOLDER/post-receive.d/$i\"\ndone", setting.ScriptType),
 		}
 		giteaHookTpls = []string{
 			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' pre-receive\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
@@ -2049,7 +2049,7 @@ func SyncRepositoryHooks() error {
 	return x.Where("id > 0").Iterate(new(Repository),
 		func(idx int, bean interface{}) error {
 			if err := createDelegateHooks(bean.(*Repository).RepoPath()); err != nil {
-				return err
+				return fmt.Errorf("SyncRepositoryHook: %v", err)
 			}
 			return nil
 		})

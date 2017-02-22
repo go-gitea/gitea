@@ -18,7 +18,7 @@ var (
 	CmdHook = cli.Command{
 		Name:        "hook",
 		Usage:       "Delegate commands to corresponding Git hooks",
-		Description: "All sub-commands should only be called by Git",
+		Description: "This should only be called by Git",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "config, c",
