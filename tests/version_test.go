@@ -16,9 +16,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"code.gitea.io/gitea/tests/internal/utils"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func version(t *utils.T) error {
