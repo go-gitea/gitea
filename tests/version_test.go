@@ -37,7 +37,7 @@ func version(t *utils.T) error {
 
 	fields := strings.Fields(string(out))
 	if len(fields) != 3 {
-		return fmt.Errorf("unexpected version string")
+		return fmt.Errorf("unexpected version string '%s'", out)
 	}
 
 	expected := fields[2]
