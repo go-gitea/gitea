@@ -15,6 +15,16 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+// env keys for git hooks need
+const (
+	EnvRepoName     = "GITEA_REPO_NAME"
+	EnvRepoUsername = "GITEA_REPO_USER_NAME"
+	EnvRepoUserSalt = "GITEA_REPO_USER_SALT"
+	EnvRepoIsWiki   = "GITEA_REPO_IS_WIKI"
+	EnvPusherName   = "GITEA_PUSHER_NAME"
+	EnvPusherID     = "GITEA_PUSHER_ID"
+)
+
 // UpdateTask defines an UpdateTask
 type UpdateTask struct {
 	ID          int64  `xorm:"pk autoincr"`

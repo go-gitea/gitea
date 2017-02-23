@@ -6,7 +6,6 @@
 package cmd
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -15,22 +14,17 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
-	gouuid "github.com/satori/go.uuid"
 	"github.com/urfave/cli"
 )
 
 const (
 	accessDenied        = "Repository does not exist or you do not have access"
 	lfsAuthenticateVerb = "git-lfs-authenticate"
-	envUpdateTaskUUID   = "GITEA_UUID"
 )
 
 // CmdServ represents the available serv sub-command.
@@ -96,52 +90,6 @@ func fail(userMessage, logMessage string, args ...interface{}) {
 	os.Exit(1)
 }
 
-func handleUpdateTask(uuid string, user, repoUser *models.User, reponame string, isWiki bool) {
-	task, err := models.GetUpdateTaskByUUID(uuid)
-	if err != nil {
-		if models.IsErrUpdateTaskNotExist(err) {
-			log.GitLogger.Trace("No update task is presented: %s", uuid)
-			return
-		}
-		log.GitLogger.Fatal(2, "GetUpdateTaskByUUID: %v", err)
-	} else if err = models.DeleteUpdateTaskByUUID(uuid); err != nil {
-		log.GitLogger.Fatal(2, "DeleteUpdateTaskByUUID: %v", err)
-	}
-
-	if isWiki {
-		return
-	}
-
-	if err = models.PushUpdate(models.PushUpdateOptions{
-		RefFullName:  task.RefName,
-		OldCommitID:  task.OldCommitID,
-		NewCommitID:  task.NewCommitID,
-		PusherID:     user.ID,
-		PusherName:   user.Name,
-		RepoUserName: repoUser.Name,
-		RepoName:     reponame,
-	}); err != nil {
-		log.GitLogger.Error(2, "Update: %v", err)
-	}
-
-	// Ask for running deliver hook and test pull request tasks.
-	reqURL := setting.LocalURL + repoUser.Name + "/" + reponame + "/tasks/trigger?branch=" +
-		strings.TrimPrefix(task.RefName, git.BranchPrefix) + "&secret=" + base.EncodeMD5(repoUser.Salt) + "&pusher=" + com.ToStr(user.ID)
-	log.GitLogger.Trace("Trigger task: %s", reqURL)
-
-	resp, err := httplib.Head(reqURL).SetTLSClientConfig(&tls.Config{
-		InsecureSkipVerify: true,
-	}).Response()
-	if err == nil {
-		resp.Body.Close()
-		if resp.StatusCode/100 != 2 {
-			log.GitLogger.Error(2, "Failed to trigger task: not 2xx response code")
-		}
-	} else {
-		log.GitLogger.Error(2, "Failed to trigger task: %v", err)
-	}
-}
-
 func runServ(c *cli.Context) error {
 	if c.IsSet("config") {
 		setting.CustomConf = c.String("config")
@@ -187,6 +135,7 @@ func runServ(c *cli.Context) error {
 	if len(rr) != 2 {
 		fail("Invalid repository path", "Invalid repository path: %v", args)
 	}
+
 	username := strings.ToLower(rr[0])
 	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
 
@@ -196,6 +145,14 @@ func runServ(c *cli.Context) error {
 		reponame = reponame[:len(reponame)-5]
 	}
 
+	os.Setenv(models.EnvRepoUsername, username)
+	if isWiki {
+		os.Setenv(models.EnvRepoIsWiki, "true")
+	} else {
+		os.Setenv(models.EnvRepoIsWiki, "false")
+	}
+	os.Setenv(models.EnvRepoName, reponame)
+
 	repoUser, err := models.GetUserByName(username)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
@@ -203,6 +160,8 @@ func runServ(c *cli.Context) error {
 		}
 		fail("Internal error", "Failed to get repository owner (%s): %v", username, err)
 	}
+
+	os.Setenv(models.EnvRepoUserSalt, repoUser.Salt)
 
 	repo, err := models.GetRepositoryByName(repoUser.ID, reponame)
 	if err != nil {
@@ -286,7 +245,8 @@ func runServ(c *cli.Context) error {
 					user.Name, requestedMode, repoPath)
 			}
 
-			os.Setenv("GITEA_PUSHER_NAME", user.Name)
+			os.Setenv(models.EnvPusherName, user.Name)
+			os.Setenv(models.EnvPusherID, fmt.Sprintf("%d", user.ID))
 		}
 	}
 
@@ -323,11 +283,6 @@ func runServ(c *cli.Context) error {
 		return nil
 	}
 
-	uuid := gouuid.NewV4().String()
-	os.Setenv(envUpdateTaskUUID, uuid)
-	// Keep the old env variable name for backward compability
-	os.Setenv("uuid", uuid)
-
 	// Special handle for Windows.
 	if setting.IsWindows {
 		verb = strings.Replace(verb, "-", " ", 1)
@@ -341,7 +296,6 @@ func runServ(c *cli.Context) error {
 		gitcmd = exec.Command(verb, repoPath)
 	}
 
-	os.Setenv(models.ProtectedBranchAccessMode, requestedMode.String())
 	os.Setenv(models.ProtectedBranchRepoID, fmt.Sprintf("%d", repo.ID))
 
 	gitcmd.Dir = setting.RepoRootPath
@@ -350,10 +304,6 @@ func runServ(c *cli.Context) error {
 	gitcmd.Stderr = os.Stderr
 	if err = gitcmd.Run(); err != nil {
 		fail("Internal error", "Failed to execute git command: %v", err)
-	}
-
-	if requestedMode == models.AccessModeWrite {
-		handleUpdateTask(uuid, user, repoUser, reponame, isWiki)
 	}
 
 	// Update user key activity.
