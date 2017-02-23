@@ -69,7 +69,7 @@ lint:
 .PHONY: integration-test
 integration-test: TAGS=bindata sqlite
 integration-test: build
-	go test code.gitea.io/gitea/integration-tests
+	go test code.gitea.io/gitea/tests/integration
 
 .PHONY: test
 test:

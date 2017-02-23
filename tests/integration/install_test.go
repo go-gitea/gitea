@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package tests
+package integration
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/tests/internal/utils"
+	"code.gitea.io/gitea/tests/integration/internal/utils"
 )
 
 // The HTTP port listened by the Gitea server.
@@ -82,7 +82,7 @@ func install(t *utils.T) error {
 
 func TestInstall(t *testing.T) {
 	conf := utils.Config{
-		Program: "../gitea",
+		Program: "../../gitea",
 		WorkDir: "",
 		Args:    []string{"web", "--port", ServerHTTPPort},
 		LogFile: os.Stderr,
