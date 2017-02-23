@@ -114,6 +114,8 @@ func init() {
 		new(TwoFactor),
 		new(RepoUnit),
 		new(RepoRedirect),
+		new(ExternalLoginUser),
+		new(ProtectedBranch),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
