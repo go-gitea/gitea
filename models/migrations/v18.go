@@ -13,8 +13,8 @@ import (
 // ExternalLoginUser makes the connecting between some existing user and additional external login sources
 type ExternalLoginUser struct {
 	ExternalID    string `xorm:"NOT NULL"`
-	UserID        int64 `xorm:"NOT NULL"`
-	LoginSourceID int64 `xorm:"NOT NULL"`
+	UserID        int64  `xorm:"NOT NULL"`
+	LoginSourceID int64  `xorm:"NOT NULL"`
 }
 
 func addExternalLoginUser(x *xorm.Engine) error {

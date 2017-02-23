@@ -30,6 +30,7 @@ import (
 const (
 	accessDenied        = "Repository does not exist or you do not have access"
 	lfsAuthenticateVerb = "git-lfs-authenticate"
+	envUpdateTaskUUID   = "GITEA_UUID"
 )
 
 // CmdServ represents the available serv sub-command.
@@ -170,7 +171,6 @@ func runServ(c *cli.Context) error {
 
 	var lfsVerb string
 	if verb == lfsAuthenticateVerb {
-
 		if !setting.LFS.StartServer {
 			fail("Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
 		}
@@ -291,9 +291,7 @@ func runServ(c *cli.Context) error {
 	}
 
 	//LFS token authentication
-
 	if verb == lfsAuthenticateVerb {
-
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, repoUser.Name, repo.Name)
 
 		now := time.Now()
@@ -326,7 +324,7 @@ func runServ(c *cli.Context) error {
 	}
 
 	uuid := gouuid.NewV4().String()
-	os.Setenv("GITEA_UUID", uuid)
+	os.Setenv(envUpdateTaskUUID, uuid)
 	// Keep the old env variable name for backward compability
 	os.Setenv("uuid", uuid)
 

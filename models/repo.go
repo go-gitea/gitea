@@ -831,20 +831,54 @@ func cleanUpMigrateGitConfig(configPath string) error {
 	return nil
 }
 
-func createUpdateHook(repoPath string) error {
-	return git.SetUpdateHook(repoPath,
-		fmt.Sprintf(tplUpdateHook, setting.ScriptType, "\""+setting.AppPath+"\"", setting.CustomConf))
+// createDelegateHooks creates all the hooks scripts for the repo
+func createDelegateHooks(repoPath string) (err error) {
+	var (
+		hookNames = []string{"pre-receive", "update", "post-receive"}
+		hookTpls  = []string{
+			fmt.Sprintf("#!/usr/bin/env %s\nORI_DIR=`pwd`\nSHELL_FOLDER=$(cd \"$(dirname \"$0\")\";pwd)\ncd \"$ORI_DIR\"\nfor i in `ls \"$SHELL_FOLDER/pre-receive.d\"`; do\n    sh \"$SHELL_FOLDER/pre-receive.d/$i\"\ndone", setting.ScriptType),
+			fmt.Sprintf("#!/usr/bin/env %s\nORI_DIR=`pwd`\nSHELL_FOLDER=$(cd \"$(dirname \"$0\")\";pwd)\ncd \"$ORI_DIR\"\nfor i in `ls \"$SHELL_FOLDER/update.d\"`; do\n    sh \"$SHELL_FOLDER/update.d/$i\" $1 $2 $3\ndone", setting.ScriptType),
+			fmt.Sprintf("#!/usr/bin/env %s\nORI_DIR=`pwd`\nSHELL_FOLDER=$(cd \"$(dirname \"$0\")\";pwd)\ncd \"$ORI_DIR\"\nfor i in `ls \"$SHELL_FOLDER/post-receive.d\"`; do\n    sh \"$SHELL_FOLDER/post-receive.d/$i\"\ndone", setting.ScriptType),
+		}
+		giteaHookTpls = []string{
+			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' pre-receive\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
+			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' update $1 $2 $3\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
+			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' post-receive\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
+		}
+	)
+
+	hookDir := filepath.Join(repoPath, "hooks")
+
+	for i, hookName := range hookNames {
+		oldHookPath := filepath.Join(hookDir, hookName)
+		newHookPath := filepath.Join(hookDir, hookName+".d", "gitea")
+
+		if err := os.MkdirAll(filepath.Join(hookDir, hookName+".d"), os.ModePerm); err != nil {
+			return fmt.Errorf("create hooks dir '%s': %v", filepath.Join(hookDir, hookName+".d"), err)
+		}
+
+		// WARNING: This will override all old server-side hooks
+		if err = ioutil.WriteFile(oldHookPath, []byte(hookTpls[i]), 0777); err != nil {
+			return fmt.Errorf("write old hook file '%s': %v", oldHookPath, err)
+		}
+
+		if err = ioutil.WriteFile(newHookPath, []byte(giteaHookTpls[i]), 0777); err != nil {
+			return fmt.Errorf("write new hook file '%s': %v", newHookPath, err)
+		}
+	}
+
+	return nil
 }
 
 // CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
 func CleanUpMigrateInfo(repo *Repository) (*Repository, error) {
 	repoPath := repo.RepoPath()
-	if err := createUpdateHook(repoPath); err != nil {
-		return repo, fmt.Errorf("createUpdateHook: %v", err)
+	if err := createDelegateHooks(repoPath); err != nil {
+		return repo, fmt.Errorf("createDelegateHooks: %v", err)
 	}
 	if repo.HasWiki() {
-		if err := createUpdateHook(repo.WikiPath()); err != nil {
-			return repo, fmt.Errorf("createUpdateHook (wiki): %v", err)
+		if err := createDelegateHooks(repo.WikiPath()); err != nil {
+			return repo, fmt.Errorf("createDelegateHooks.(wiki): %v", err)
 		}
 	}
 
@@ -994,8 +1028,8 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 	// Init bare new repository.
 	if err = git.InitRepository(repoPath, true); err != nil {
 		return fmt.Errorf("InitRepository: %v", err)
-	} else if err = createUpdateHook(repoPath); err != nil {
-		return fmt.Errorf("createUpdateHook: %v", err)
+	} else if err = createDelegateHooks(repoPath); err != nil {
+		return fmt.Errorf("createDelegateHooks: %v", err)
 	}
 
 	tmpDir := filepath.Join(os.TempDir(), "gitea-"+repo.Name+"-"+com.ToStr(time.Now().Nanosecond()))
@@ -2009,15 +2043,16 @@ func ReinitMissingRepositories() error {
 	return nil
 }
 
-// RewriteRepositoryUpdateHook rewrites all repositories' update hook.
-func RewriteRepositoryUpdateHook() error {
-	return x.
-		Where("id > 0").
-		Iterate(new(Repository),
-			func(idx int, bean interface{}) error {
-				repo := bean.(*Repository)
-				return createUpdateHook(repo.RepoPath())
-			})
+// SyncRepositoryHooks rewrites all repositories' pre-receive, update and post-receive hooks
+// to make sure the binary and custom conf path are up-to-date.
+func SyncRepositoryHooks() error {
+	return x.Where("id > 0").Iterate(new(Repository),
+		func(idx int, bean interface{}) error {
+			if err := createDelegateHooks(bean.(*Repository).RepoPath()); err != nil {
+				return fmt.Errorf("SyncRepositoryHook: %v", err)
+			}
+			return nil
+		})
 }
 
 // Prevent duplicate running tasks.
@@ -2345,8 +2380,8 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 		return nil, fmt.Errorf("git update-server-info: %v", stderr)
 	}
 
-	if err = createUpdateHook(repoPath); err != nil {
-		return nil, fmt.Errorf("createUpdateHook: %v", err)
+	if err = createDelegateHooks(repoPath); err != nil {
+		return nil, fmt.Errorf("createDelegateHooks: %v", err)
 	}
 
 	//Commit repo to get Fork ID

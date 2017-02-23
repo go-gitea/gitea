@@ -3,10 +3,10 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "km1AOUs34DCwgXT55fh6PrkPdiU=",
+			"checksumSHA1": "nt2y/SNJe3Rl0tzdaEyGQfCc4L4=",
 			"path": "code.gitea.io/git",
-			"revision": "dd951bf625ebf5c16ef403f681aaec6c34324bca",
-			"revisionTime": "2017-02-05T02:50:57Z"
+			"revision": "b4c06a53d0f619e84a99eb042184663d4ad8a32b",
+			"revisionTime": "2017-02-22T02:52:05Z"
 		},
 		{
 			"checksumSHA1": "BKj0haFTDebzdC2nACpoGzp3s8A=",
