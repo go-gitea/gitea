@@ -6,7 +6,7 @@ package models
 
 func keysInt64(m map[int64]struct{}) []int64 {
 	var keys = make([]int64, 0, len(m))
-	for k, _ := range m {
+	for k := range m {
 		keys = append(keys, k)
 	}
 	return keys
