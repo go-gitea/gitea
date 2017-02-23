@@ -53,8 +53,7 @@ func Home(ctx *context.Context) {
 
 // RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
-	Counter  func(bool) int64
-	Ranger   func(*models.SearchRepoOptions) (models.RepositoryList, error)
+	Ranger   func(*models.SearchRepoOptions) (models.RepositoryList, int64, error)
 	Searcher *models.User
 	Private  bool
 	PageSize int
@@ -101,17 +100,17 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	if len(keyword) == 0 {
-		repos, err = opts.Ranger(&models.SearchRepoOptions{
+		repos, count, err = opts.Ranger(&models.SearchRepoOptions{
 			Page:     page,
 			PageSize: opts.PageSize,
 			Searcher: ctx.User,
 			OrderBy:  orderBy,
+			Private:  opts.Private,
 		})
 		if err != nil {
 			ctx.Handle(500, "opts.Ranger", err)
 			return
 		}
-		count = opts.Counter(opts.Private)
 	} else {
 		if isKeywordValid(keyword) {
 			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
@@ -143,10 +142,10 @@ func ExploreRepos(ctx *context.Context) {
 	ctx.Data["PageIsExploreRepositories"] = true
 
 	RenderRepoSearch(ctx, &RepoSearchOptions{
-		Counter:  models.CountRepositories,
 		Ranger:   models.GetRecentUpdatedRepositories,
 		PageSize: setting.UI.ExplorePagingNum,
 		Searcher: ctx.User,
+		Private:  ctx.User != nil && ctx.User.IsAdmin,
 		TplName:  tplExploreRepos,
 	})
 }
@@ -175,7 +174,6 @@ func RenderUserSearch(ctx *context.Context, opts *UserSearchOptions) {
 	)
 
 	ctx.Data["SortType"] = ctx.Query("sort")
-	//OrderBy:  "id ASC",
 	switch ctx.Query("sort") {
 	case "oldest":
 		orderBy = "id ASC"
@@ -193,7 +191,8 @@ func RenderUserSearch(ctx *context.Context, opts *UserSearchOptions) {
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	if len(keyword) == 0 {
-		users, err = opts.Ranger(&models.SearchUserOptions{OrderBy: orderBy,
+		users, err = opts.Ranger(&models.SearchUserOptions{
+			OrderBy:  orderBy,
 			Page:     page,
 			PageSize: opts.PageSize,
 		})

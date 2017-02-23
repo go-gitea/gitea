@@ -116,7 +116,7 @@ func createIssueIndexer() error {
 // populateIssueIndexer populate the issue indexer with issue data
 func populateIssueIndexer() error {
 	for page := 1; ; page++ {
-		repos, err := Repositories(&SearchRepoOptions{
+		repos, _, err := Repositories(&SearchRepoOptions{
 			Page:     page,
 			PageSize: 10,
 		})
