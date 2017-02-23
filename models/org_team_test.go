@@ -298,7 +298,7 @@ func TestAddTeamMember(t *testing.T) {
 
 	test := func(teamID, userID int64) {
 		team := AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
-		assert.NoError(t, AddTeamMember(team.OrgID, team.ID, userID))
+		assert.NoError(t, AddTeamMember(team, userID))
 		AssertExistsAndLoadBean(t, &TeamUser{UID: userID, TeamID: teamID})
 		CheckConsistencyFor(t, &Team{ID: teamID}, &User{ID: team.OrgID})
 	}
@@ -312,7 +312,7 @@ func TestRemoveTeamMember(t *testing.T) {
 
 	testSuccess := func(teamID, userID int64) {
 		team := AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
-		assert.NoError(t, RemoveTeamMember(team.OrgID, team.ID, userID))
+		assert.NoError(t, RemoveTeamMember(team, userID))
 		AssertNotExistsBean(t, &TeamUser{UID: userID, TeamID: teamID})
 		CheckConsistencyFor(t, &Team{ID: teamID})
 	}
@@ -322,7 +322,7 @@ func TestRemoveTeamMember(t *testing.T) {
 	testSuccess(3, NonexistentID)
 
 	team := AssertExistsAndLoadBean(t, &Team{ID: 1}).(*Team)
-	err := RemoveTeamMember(team.OrgID, team.ID, 2)
+	err := RemoveTeamMember(team, 2)
 	assert.True(t, IsErrLastOrgOwner(err))
 }
 
