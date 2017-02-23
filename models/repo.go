@@ -1760,10 +1760,7 @@ func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 
 // GetRecentUpdatedRepositories returns the list of repositories that are recently updated.
 func GetRecentUpdatedRepositories(opts *SearchRepoOptions) (repos RepositoryList, _ int64, _ error) {
-	var (
-		sess *xorm.Session
-		cond = builder.NewCond()
-	)
+	var cond = builder.NewCond()
 
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "updated_unix DESC"
@@ -1792,16 +1789,12 @@ func GetRecentUpdatedRepositories(opts *SearchRepoOptions) (repos RepositoryList
 		cond = cond.Or(builder.In("owner_id", ownerIds))
 	}
 
-	sess = x.Where(cond)
-
-	var countSess xorm.Session
-	countSess = *sess
-	count, err := countSess.Count(new(Repository))
+	count, err := x.Where(cond).Count(new(Repository))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
-	if err = sess.
+	if err = x.Where(cond).
 		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
 		Limit(opts.PageSize).
 		OrderBy(opts.OrderBy).
