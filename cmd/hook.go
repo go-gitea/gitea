@@ -16,11 +16,11 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
-	"github.com/astaxie/bat/httplib"
 	"github.com/urfave/cli"
 )
 
