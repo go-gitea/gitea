@@ -27,7 +27,13 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 
 	switch form.Mode {
 	case "gfm":
-		ctx.Write(markdown.Render([]byte(form.Text), markdown.URLJoin(setting.AppURL, form.Context), nil))
+		md := []byte(form.Text)
+		context := markdown.URLJoin(setting.AppURL, form.Context)
+		if form.Wiki {
+			ctx.Write([]byte(markdown.RenderWiki(md, context, nil)))
+		} else {
+			ctx.Write(markdown.Render(md, context, nil))
+		}
 	default:
 		ctx.Write(markdown.RenderRaw([]byte(form.Text), "", false))
 	}

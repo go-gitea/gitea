@@ -55,7 +55,7 @@ func testRenderIssueIndexPattern(t *testing.T, input, expected string, metas map
 		string(RenderIssueIndexPattern([]byte(input), AppSubURL, metas)))
 }
 
-func TestRenderIssueIndexPattern(t *testing.T) {
+func TestRender_IssueIndexPattern(t *testing.T) {
 	// numeric: render inputs without valid mentions
 	test := func(s string) {
 		testRenderIssueIndexPattern(t, s, s, nil)
@@ -82,7 +82,7 @@ func TestRenderIssueIndexPattern(t *testing.T) {
 	test("test #54321issue")
 }
 
-func TestRenderIssueIndexPattern2(t *testing.T) {
+func TestRender_IssueIndexPattern2(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
 
@@ -119,7 +119,7 @@ func TestRenderIssueIndexPattern2(t *testing.T) {
 	test("#1 (#4321) test", "%s (%s) test", 1, 4321)
 }
 
-func TestRenderIssueIndexPattern3(t *testing.T) {
+func TestRender_IssueIndexPattern3(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
 
@@ -146,7 +146,7 @@ func TestRenderIssueIndexPattern3(t *testing.T) {
 	test("ABC-0123")         // no leading zero
 }
 
-func TestRenderIssueIndexPattern4(t *testing.T) {
+func TestRender_IssueIndexPattern4(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
 
@@ -164,15 +164,15 @@ func TestRenderIssueIndexPattern4(t *testing.T) {
 	test("test issue ABCDEFGHIJ-1234567890", "test issue %s", "ABCDEFGHIJ-1234567890")
 }
 
-func TestRenderer_AutoLink(t *testing.T) {
+func TestRender_AutoLink(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
 
-	SubURLNoProtocol := setting.AppSubURL[5:]
-
 	test := func(input, expected string) {
-		buffer := RenderSpecialLink([]byte(input), setting.AppSubURL, map[string]string{})
-		assert.Equal(t, expected, string(buffer))
+		buffer := RenderSpecialLink([]byte(input), setting.AppSubURL, nil, false)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		buffer = RenderSpecialLink([]byte(input), setting.AppSubURL, nil, true)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
 
 	// render valid issue URLs
@@ -180,54 +180,98 @@ func TestRenderer_AutoLink(t *testing.T) {
 		numericIssueLink(URLJoin(setting.AppSubURL, "issues"), 3333))
 
 	// render external issue URLs
-	tmp := "//1111/2222/ssss-issues/3333?param=blah&blahh=333"
-	test("http:"+tmp,
-		"<a href=\""+tmp+"\">#3333 <i class='comment icon'></i></a>")
-	test("http://test.com/issues/33333", numericIssueLink("//test.com/issues", 33333))
-	test("https://issues/333", numericIssueLink("//issues", 333))
+	tmp := "http://1111/2222/ssss-issues/3333?param=blah&blahh=333"
+	test(tmp, "<a href=\""+tmp+"\">#3333 <i class='comment icon'></i></a>")
+	test("http://test.com/issues/33333", numericIssueLink("http://test.com/issues", 33333))
+	test("https://issues/333", numericIssueLink("https://issues", 333))
 
 	// render valid commit URLs
-	tmp = URLJoin(SubURLNoProtocol, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
-	test("http://"+tmp, "<a href=\""+tmp+"\">d8a994ef24</a>")
+	tmp = URLJoin(AppSubURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
+	test(tmp, "<a href=\""+tmp+"\">d8a994ef24</a>")
 	tmp += "#diff-2"
-	test("http://"+tmp, "<a href=\""+tmp+"\">d8a994ef24 (diff-2)</a>")
+	test(tmp, "<a href=\""+tmp+"\">d8a994ef24 (diff-2)</a>")
 
 	// render other commit URLs
-	tmp = "//external-link.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2"
-	test("https:"+tmp, "<a href=\""+tmp+"\">d8a994ef24 (diff-2)</a>")
+	tmp = "https://external-link.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2"
+	test(tmp, "<a href=\""+tmp+"\">d8a994ef24 (diff-2)</a>")
+}
+
+func TestRender_StandardLinks(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	test := func(input, expected, expectedWiki string) {
+		buffer := RenderString(input, setting.AppSubURL, nil)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		bufferWiki := RenderWiki([]byte(input), setting.AppSubURL, nil)
+		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(bufferWiki))
+	}
+
+	googleRendered := `<p><a href="https://google.com/" rel="nofollow">https://google.com/</a></p>`
+	test("<https://google.com/>", googleRendered, googleRendered)
+
+	lnk := URLJoin(AppSubURL, "WikiPage")
+	lnkWiki := URLJoin(AppSubURL, "wiki", "WikiPage")
+	test("[WikiPage](WikiPage)",
+		`<p><a href="`+lnk+`" rel="nofollow">WikiPage</a></p>`,
+		`<p><a href="`+lnkWiki+`" rel="nofollow">WikiPage</a></p>`)
 }
 
 func TestRender_ShortLinks(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
+	tree := URLJoin(AppSubURL, "src", "master")
 
-	test := func(input, expected string) {
-		buffer := RenderString(input, setting.AppSubURL, nil)
-		assert.Equal(t, expected, string(buffer))
+	test := func(input, expected, expectedWiki string) {
+		buffer := RenderString(input, tree, nil)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		buffer = RenderWiki([]byte(input), setting.AppSubURL, nil)
+		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
 	}
 
-	var url = URLJoin(AppSubURL, "wiki", "Link")
-	var imgurl = URLJoin(AppSubURL, "wiki", "raw", "Link.jpg")
-	var favicon = "http://google.com/favicon.ico"
+	rawtree := URLJoin(AppSubURL, "raw", "master")
+	url := URLJoin(tree, "Link")
+	imgurl := URLJoin(rawtree, "Link.jpg")
+	urlWiki := URLJoin(AppSubURL, "wiki", "Link")
+	imgurlWiki := URLJoin(AppSubURL, "wiki", "raw", "Link.jpg")
+	favicon := "http://google.com/favicon.ico"
 
-	test("[[Link]]", `<p><a href="`+url+`" rel="nofollow">Link</a></p>
-`)
-	test("[[Link.jpg]]", `<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="Link.jpg" title="Link.jpg"/></a></p>
-`)
-	test("[["+favicon+"]]", `<p><a href="`+favicon+`" rel="nofollow"><img src="`+favicon+`" title="favicon.ico"/></a></p>
-`)
-	test("[[Name|Link]]", `<p><a href="`+url+`" rel="nofollow">Name</a></p>
-`)
-	test("[[Name|Link.jpg]]", `<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="Name" title="Name"/></a></p>
-`)
-	test("[[Name|Link.jpg|alt=AltName]]", `<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="AltName"/></a></p>
-`)
-	test("[[Name|Link.jpg|title=Title]]", `<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="Title" title="Title"/></a></p>
-`)
-	test("[[Name|Link.jpg|alt=AltName|title=Title]]", `<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="Title"/></a></p>
-`)
-	test("[[Name|Link.jpg|alt=\"AltName\"|title='Title']]", `<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="Title"/></a></p>
-`)
+	test(
+		"[[Link]]",
+		`<p><a href="`+url+`" rel="nofollow">Link</a></p>`,
+		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a></p>`)
+	test(
+		"[[Link.jpg]]",
+		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="Link.jpg" title="Link.jpg"/></a></p>`,
+		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="Link.jpg" title="Link.jpg"/></a></p>`)
+	test(
+		"[["+favicon+"]]",
+		`<p><a href="`+favicon+`" rel="nofollow"><img src="`+favicon+`" title="favicon.ico"/></a></p>`,
+		`<p><a href="`+favicon+`" rel="nofollow"><img src="`+favicon+`" title="favicon.ico"/></a></p>`)
+	test(
+		"[[Name|Link]]",
+		`<p><a href="`+url+`" rel="nofollow">Name</a></p>`,
+		`<p><a href="`+urlWiki+`" rel="nofollow">Name</a></p>`)
+	test(
+		"[[Name|Link.jpg]]",
+		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="Name" title="Name"/></a></p>`,
+		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="Name" title="Name"/></a></p>`)
+	test(
+		"[[Name|Link.jpg|alt=AltName]]",
+		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="AltName"/></a></p>`,
+		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="AltName" title="AltName"/></a></p>`)
+	test(
+		"[[Name|Link.jpg|title=Title]]",
+		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="Title" title="Title"/></a></p>`,
+		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="Title" title="Title"/></a></p>`)
+	test(
+		"[[Name|Link.jpg|alt=AltName|title=Title]]",
+		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="Title"/></a></p>`,
+		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="AltName" title="Title"/></a></p>`)
+	test(
+		"[[Name|Link.jpg|alt=\"AltName\"|title='Title']]",
+		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="Title"/></a></p>`,
+		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="AltName" title="Title"/></a></p>`)
 }
 
 func TestRender_Commits(t *testing.T) {
@@ -236,7 +280,7 @@ func TestRender_Commits(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer := RenderString(input, setting.AppSubURL, nil)
-		assert.Equal(t, expected, string(buffer))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
 
 	var sha = "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
@@ -245,12 +289,45 @@ func TestRender_Commits(t *testing.T) {
 	var tree = strings.Replace(subtree, "/commit/", "/tree/", -1)
 	var src = strings.Replace(subtree, "/commit/", "/src/", -1)
 
-	test(sha, `<p><a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>
-`)
-	test(commit, `<p><a href="`+commit[5:]+`" rel="nofollow">b6dd6210ea</a></p>
-`)
-	test(tree, `<p><a href="`+src[5:]+`" rel="nofollow">b6dd6210ea/src</a></p>
-`)
+	test(sha, `<p><a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
+	test(commit, `<p><a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
+	test(tree, `<p><a href="`+src+`" rel="nofollow">b6dd6210ea/src</a></p>`)
+}
+
+func TestRender_Images(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	test := func(input, expected string) {
+		buffer := RenderString(input, setting.AppSubURL, nil)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+	}
+
+	url := "../../.images/src/02/train.jpg"
+	title := "Train"
+	result := URLJoin(AppSubURL, url)
+
+	test(
+		"!["+title+"]("+url+")",
+		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"></a></p>`)
+
+	test(
+		"[["+title+"|"+url+"]]",
+		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" alt="`+title+`" title="`+title+`"/></a></p>`)
+}
+
+func TestRender_CrossReferences(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	test := func(input, expected string) {
+		buffer := RenderString(input, setting.AppSubURL, nil)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+	}
+
+	test(
+		"gogits/gogs#12345",
+		`<p><a href="`+URLJoin(AppURL, "gogits", "gogs", "issues", "12345")+`" rel="nofollow">gogits/gogs#12345</a></p>`)
 }
 
 func TestRegExp_MentionPattern(t *testing.T) {
@@ -387,6 +464,7 @@ func TestRegExp_ShortLinkPattern(t *testing.T) {
 func TestRegExp_AnySHA1Pattern(t *testing.T) {
 	testCases := map[string][]string{
 		"https://github.com/jquery/jquery/blob/a644101ed04d0beacea864ce805e0c4f86ba1cd1/test/unit/event.js#L2703": []string{
+			"https",
 			"github.com",
 			"jquery",
 			"jquery",
@@ -396,6 +474,7 @@ func TestRegExp_AnySHA1Pattern(t *testing.T) {
 			"L2703",
 		},
 		"https://github.com/jquery/jquery/blob/a644101ed04d0beacea864ce805e0c4f86ba1cd1/test/unit/event.js": []string{
+			"https",
 			"github.com",
 			"jquery",
 			"jquery",
@@ -405,6 +484,7 @@ func TestRegExp_AnySHA1Pattern(t *testing.T) {
 			"",
 		},
 		"https://github.com/jquery/jquery/commit/0705be475092aede1eddae01319ec931fb9c65fc": []string{
+			"https",
 			"github.com",
 			"jquery",
 			"jquery",
@@ -414,6 +494,7 @@ func TestRegExp_AnySHA1Pattern(t *testing.T) {
 			"",
 		},
 		"https://github.com/jquery/jquery/tree/0705be475092aede1eddae01319ec931fb9c65fc/src": []string{
+			"https",
 			"github.com",
 			"jquery",
 			"jquery",
@@ -423,6 +504,7 @@ func TestRegExp_AnySHA1Pattern(t *testing.T) {
 			"",
 		},
 		"https://try.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2": []string{
+			"https",
 			"try.gogs.io",
 			"gogs",
 			"gogs",
@@ -441,30 +523,35 @@ func TestRegExp_AnySHA1Pattern(t *testing.T) {
 func TestRegExp_IssueFullPattern(t *testing.T) {
 	testCases := map[string][]string{
 		"https://github.com/gogits/gogs/pull/3244": []string{
+			"https",
 			"github.com/gogits/gogs/pull/",
 			"3244",
 			"",
 			"",
 		},
 		"https://github.com/gogits/gogs/issues/3247#issuecomment-231517079": []string{
+			"https",
 			"github.com/gogits/gogs/issues/",
 			"3247",
 			"#issuecomment-231517079",
 			"",
 		},
 		"https://try.gogs.io/gogs/gogs/issues/4#issue-685": []string{
+			"https",
 			"try.gogs.io/gogs/gogs/issues/",
 			"4",
 			"#issue-685",
 			"",
 		},
 		"https://youtrack.jetbrains.com/issue/JT-36485": []string{
+			"https",
 			"youtrack.jetbrains.com/issue/",
 			"JT-36485",
 			"",
 			"",
 		},
 		"https://youtrack.jetbrains.com/issue/JT-36485#comment=27-1508676": []string{
+			"https",
 			"youtrack.jetbrains.com/issue/",
 			"JT-36485",
 			"#comment=27-1508676",
@@ -549,23 +636,6 @@ Ideas and codes
 - Node graph editors https://github.com/ocornut/imgui/issues/306
 - [[Memory Editor|memory_editor_example]]
 - [[Plot var helper|plot_var_example]]`,
-	// rendered
-	`<p>Wiki! Enjoy :)</p>
-
-<ul>
-<li><a href="` + AppSubURL + `wiki/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
-<li><a href="` + AppSubURL + `wiki/Tips" rel="nofollow">Tips</a></li>
-</ul>
-
-<p>Ideas and codes</p>
-
-<ul>
-<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>)<a href="` + AppSubURL + `issues/786" rel="nofollow">#786</a></li>
-<li>Node graph editors<a href="` + AppSubURL + `issues/306" rel="nofollow">#306</a></li>
-<li><a href="` + AppSubURL + `wiki/memory_editor_example" rel="nofollow">Memory Editor</a></li>
-<li><a href="` + AppSubURL + `wiki/plot_var_example" rel="nofollow">Plot var helper</a></li>
-</ul>
-`,
 	// wine-staging wiki home extract: tables, special wiki syntax, images
 	`## What is Wine Staging?
 **Wine Staging** on website [wine-staging.com](http://wine-staging.com).
@@ -576,11 +646,35 @@ Here are some links to the most important topics. You can find the full list of 
 | [[images/icon-install.png]]    | [[Installation]]                                         |
 |--------------------------------|----------------------------------------------------------|
 | [[images/icon-usage.png]]      | [[Usage]]                                                |
-| [[images/icon-config.png]]     | [[Configuration]]                                        |
-| [[images/icon-bug.png]]        | [Bugs](http://bugs.wine-staging.com)                     |
 `,
-	// rendered
-	`<h2>What is Wine Staging?</h2>
+	// libgdx wiki page: inline images with special syntax
+	`[Excelsior JET](http://www.excelsiorjet.com/) allows you to create native executables for Windows, Linux and Mac OS X.
+
+1. [Package your libGDX application](https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop)
+[[images/1.png]]
+2. Perform a test run by hitting the Run! button.
+[[images/2.png]]`,
+}
+
+func testAnswers(baseURLContent, baseURLImages string) []string {
+	return []string{
+		`<p>Wiki! Enjoy :)</p>
+
+<ul>
+<li><a href="` + baseURLContent + `Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
+<li><a href="` + baseURLContent + `Tips" rel="nofollow">Tips</a></li>
+</ul>
+
+<p>Ideas and codes</p>
+
+<ul>
+<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>)<a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">#786</a></li>
+<li>Node graph editors<a href="https://github.com/ocornut/imgui/issues/306" rel="nofollow">#306</a></li>
+<li><a href="` + baseURLContent + `memory_editor_example" rel="nofollow">Memory Editor</a></li>
+<li><a href="` + baseURLContent + `plot_var_example" rel="nofollow">Plot var helper</a></li>
+</ul>
+`,
+		`<h2>What is Wine Staging?</h2>
 
 <p><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
 
@@ -591,66 +685,53 @@ Here are some links to the most important topics. You can find the full list of 
 <table>
 <thead>
 <tr>
-<th><a href="` + AppSubURL + `wiki/raw/images%2Ficon-install.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images%2Ficon-install.png" alt="images/icon-install.png" title="icon-install.png"/></a></th>
-<th><a href="` + AppSubURL + `wiki/Installation" rel="nofollow">Installation</a></th>
+<th><a href="` + baseURLImages + `images/icon-install.png" rel="nofollow"><img src="` + baseURLImages + `images/icon-install.png" alt="images/icon-install.png" title="icon-install.png"/></a></th>
+<th><a href="` + baseURLContent + `Installation" rel="nofollow">Installation</a></th>
 </tr>
 </thead>
 
 <tbody>
 <tr>
-<td><a href="` + AppSubURL + `wiki/raw/images%2Ficon-usage.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images%2Ficon-usage.png" alt="images/icon-usage.png" title="icon-usage.png"/></a></td>
-<td><a href="` + AppSubURL + `wiki/Usage" rel="nofollow">Usage</a></td>
-</tr>
-
-<tr>
-<td><a href="` + AppSubURL + `wiki/raw/images%2Ficon-config.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images%2Ficon-config.png" alt="images/icon-config.png" title="icon-config.png"/></a></td>
-<td><a href="` + AppSubURL + `wiki/Configuration" rel="nofollow">Configuration</a></td>
-</tr>
-
-<tr>
-<td><a href="` + AppSubURL + `wiki/raw/images%2Ficon-bug.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images%2Ficon-bug.png" alt="images/icon-bug.png" title="icon-bug.png"/></a></td>
-<td><a href="http://bugs.wine-staging.com" rel="nofollow">Bugs</a></td>
+<td><a href="` + baseURLImages + `images/icon-usage.png" rel="nofollow"><img src="` + baseURLImages + `images/icon-usage.png" alt="images/icon-usage.png" title="icon-usage.png"/></a></td>
+<td><a href="` + baseURLContent + `Usage" rel="nofollow">Usage</a></td>
 </tr>
 </tbody>
 </table>
 `,
-	// libgdx wiki page: inline images with special syntax
-	`[Excelsior JET](http://www.excelsiorjet.com/) allows you to create native executables for Windows, Linux and Mac OS X.
-
-1. [Package your libGDX application](https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop)
-[[images/1.png]]
-2. Perform a test run by hitting the Run! button.
-[[images/2.png]]`,
-	// rendered
-	`<p><a href="http://www.excelsiorjet.com/" rel="nofollow">Excelsior JET</a> allows you to create native executables for Windows, Linux and Mac OS X.</p>
+		`<p><a href="http://www.excelsiorjet.com/" rel="nofollow">Excelsior JET</a> allows you to create native executables for Windows, Linux and Mac OS X.</p>
 
 <ol>
 <li><a href="https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop" rel="nofollow">Package your libGDX application</a>
-<a href="` + AppSubURL + `wiki/raw/images%2F1.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images%2F1.png" alt="images/1.png" title="1.png"/></a></li>
+<a href="` + baseURLImages + `images/1.png" rel="nofollow"><img src="` + baseURLImages + `images/1.png" alt="images/1.png" title="1.png"/></a></li>
 <li>Perform a test run by hitting the Run! button.
-<a href="` + AppSubURL + `wiki/raw/images%2F2.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images%2F2.png" alt="images/2.png" title="2.png"/></a></li>
+<a href="` + baseURLImages + `images/2.png" rel="nofollow"><img src="` + baseURLImages + `images/2.png" alt="images/2.png" title="2.png"/></a></li>
 </ol>
 `,
+	}
 }
 
 func TestTotal_RenderString(t *testing.T) {
-	for i := 0; i < len(sameCases); i += 2 {
-		line := RenderString(sameCases[i], AppSubURL, map[string]string{})
-		assert.Equal(t, sameCases[i+1], line)
+	answers := testAnswers(URLJoin(AppSubURL, "src", "master/"), URLJoin(AppSubURL, "raw", "master/"))
+
+	for i := 0; i < len(sameCases); i++ {
+		line := RenderString(sameCases[i], URLJoin(AppSubURL, "src", "master/"), nil)
+		assert.Equal(t, answers[i], line)
 	}
 
 	testCases := []string{}
 
 	for i := 0; i < len(testCases); i += 2 {
-		line := RenderString(testCases[i], AppSubURL, map[string]string{})
+		line := RenderString(testCases[i], AppSubURL, nil)
 		assert.Equal(t, testCases[i+1], line)
 	}
 }
 
 func TestTotal_RenderWiki(t *testing.T) {
-	for i := 0; i < len(sameCases); i += 2 {
-		line := RenderWiki([]byte(sameCases[i]), AppSubURL, map[string]string{})
-		assert.Equal(t, sameCases[i+1], line)
+	answers := testAnswers(URLJoin(AppSubURL, "wiki/"), URLJoin(AppSubURL, "wiki", "raw/"))
+
+	for i := 0; i < len(sameCases); i++ {
+		line := RenderWiki([]byte(sameCases[i]), AppSubURL, nil)
+		assert.Equal(t, answers[i], line)
 	}
 
 	testCases := []string{
@@ -667,7 +748,7 @@ func TestTotal_RenderWiki(t *testing.T) {
 	}
 
 	for i := 0; i < len(testCases); i += 2 {
-		line := RenderWiki([]byte(testCases[i]), AppSubURL, map[string]string{})
+		line := RenderWiki([]byte(testCases[i]), AppSubURL, nil)
 		assert.Equal(t, testCases[i+1], line)
 	}
 }
