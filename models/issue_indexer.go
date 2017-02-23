@@ -46,12 +46,12 @@ func numericQuery(value int64, field string) *query.NumericRangeQuery {
 // SearchIssuesByKeyword searches for issues by given conditions.
 // Returns the matching issue IDs
 func SearchIssuesByKeyword(repoID int64, keyword string) ([]int64, error) {
-	fields := strings.Fields(strings.ToLower(keyword))
+	terms := strings.Fields(strings.ToLower(keyword))
 	indexerQuery := bleve.NewConjunctionQuery(
 		numericQuery(repoID, "RepoID"),
 		bleve.NewDisjunctionQuery(
-			bleve.NewPhraseQuery(fields, "Title"),
-			bleve.NewPhraseQuery(fields, "Content"),
+			bleve.NewPhraseQuery(terms, "Title"),
+			bleve.NewPhraseQuery(terms, "Content"),
 		))
 	search := bleve.NewSearchRequestOptions(indexerQuery, 2147483647, 0, false)
 	search.Fields = []string{"ID"}
