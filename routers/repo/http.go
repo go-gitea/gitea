@@ -213,7 +213,7 @@ type serviceHandler struct {
 	r       *http.Request
 	dir     string
 	file    string
-	envrion []string
+	environ []string
 }
 
 func (h *serviceHandler) setHeaderNoCache() {
@@ -335,11 +335,14 @@ func serviceRPC(h serviceHandler, service string) {
 		}
 	}
 
+	// set this for allow pre-receive and post-receive execute
+	h.environ = append(h.environ, "SSH_ORIGINAL_COMMAND="+service)
+
 	var stderr bytes.Buffer
 	cmd := exec.Command("git", service, "--stateless-rpc", h.dir)
 	cmd.Dir = h.dir
 	if service == "receive-pack" {
-		cmd.Env = append(os.Environ(), h.envrion...)
+		cmd.Env = append(os.Environ(), h.environ...)
 	}
 	cmd.Stdout = h.w
 	cmd.Stdin = reqBody
