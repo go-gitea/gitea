@@ -28,6 +28,7 @@ type CreateRepoForm struct {
 	Private     bool
 	Description string `binding:"MaxSize(255)"`
 	AutoInit    bool
+	Bare        bool   `binding:"Default(true)"`
 	Gitignores  string
 	License     string
 	Readme      string

@@ -305,7 +305,14 @@ func RepoAssignment(args ...bool) macaron.Handler {
 		ctx.Data["TagName"] = ctx.Repo.TagName
 		brs, err := ctx.Repo.GitRepo.GetBranches()
 		if err != nil {
-			ctx.Handle(500, "GetBranches", err)
+			if ctx.Repo.Repository.IsBare {
+				ctx.Handle(500, "GetBranches", err)
+			} else {
+				// it is an empty, non-bare repository - display the help screen for initializing
+				ctx.Data["BranchName"] = ""
+				ctx.Data["IsBareRepo"] = true
+				ctx.HTML(200, "repo/bare")
+			}
 			return
 		}
 		ctx.Data["Branches"] = brs

@@ -50,6 +50,18 @@
 							{{end}}
 						</div>
 					</div>
+					<div class="inline field">
+						<label>{{.i18n.Tr "repo.storage"}}</label>
+						<div class="ui checkbox">
+							{{if .IsForcedBare}}
+								<input name="bare" type="checkbox" checked readonly>
+								<label>{{.i18n.Tr "repo.storage_helper_forced" | Safe}}</label>
+							{{else}}
+								<input name="bare" type="checkbox" {{if .bare}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.storage_helper" | Safe}}</label>
+							{{end}}
+						</div>
+					</div>
 					<div class="inline field {{if .Err_Description}}error{{end}}">
 						<label for="description">{{.i18n.Tr "repo.repo_desc"}}</label>
 						<textarea id="description" name="description">{{.description}}</textarea>

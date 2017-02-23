@@ -724,6 +724,7 @@ func MigrateRepository(u *User, opts MigrateRepoOptions) (*Repository, error) {
 		Description: opts.Description,
 		IsPrivate:   opts.IsPrivate,
 		IsMirror:    opts.IsMirror,
+		IsBare:      true,
 	})
 	if err != nil {
 		return nil, err
@@ -831,19 +832,23 @@ func cleanUpMigrateGitConfig(configPath string) error {
 	return nil
 }
 
-func createUpdateHook(repoPath string) error {
-	return git.SetUpdateHook(repoPath,
+func createUpdateHook(repoPath string, isBare bool) error {
+	var gitPath = repoPath
+	if !isBare {
+		gitPath = repoPath + "/.git"
+	}
+	return git.SetUpdateHook(gitPath,
 		fmt.Sprintf(tplUpdateHook, setting.ScriptType, "\""+setting.AppPath+"\"", setting.CustomConf))
 }
 
 // CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
 func CleanUpMigrateInfo(repo *Repository) (*Repository, error) {
 	repoPath := repo.RepoPath()
-	if err := createUpdateHook(repoPath); err != nil {
+	if err := createUpdateHook(repoPath, repo.IsBare); err != nil {
 		return repo, fmt.Errorf("createUpdateHook: %v", err)
 	}
 	if repo.HasWiki() {
-		if err := createUpdateHook(repo.WikiPath()); err != nil {
+		if err := createUpdateHook(repo.WikiPath(), true); err != nil {
 			return repo, fmt.Errorf("createUpdateHook (wiki): %v", err)
 		}
 	}
@@ -861,7 +866,7 @@ func CleanUpMigrateInfo(repo *Repository) (*Repository, error) {
 }
 
 // initRepoCommit temporarily changes with work directory.
-func initRepoCommit(tmpPath string, sig *git.Signature) (err error) {
+func initRepoCommit(tmpPath string, sig *git.Signature, isBare bool) (err error) {
 	var stderr string
 	if _, stderr, err = process.GetManager().ExecDir(-1,
 		tmpPath, fmt.Sprintf("initRepoCommit (git add): %s", tmpPath),
@@ -876,10 +881,12 @@ func initRepoCommit(tmpPath string, sig *git.Signature) (err error) {
 		return fmt.Errorf("git commit: %s", stderr)
 	}
 
-	if _, stderr, err = process.GetManager().ExecDir(-1,
-		tmpPath, fmt.Sprintf("initRepoCommit (git push): %s", tmpPath),
-		"git", "push", "origin", "master"); err != nil {
-		return fmt.Errorf("git push: %s", stderr)
+	if isBare {
+		if _, stderr, err = process.GetManager().ExecDir(-1,
+			tmpPath, fmt.Sprintf("initRepoCommit (git push): %s", tmpPath),
+			"git", "push", "origin", "master"); err != nil {
+			return fmt.Errorf("git push: %s", stderr)
+		}
 	}
 	return nil
 }
@@ -893,6 +900,7 @@ type CreateRepoOptions struct {
 	Readme      string
 	IsPrivate   bool
 	IsMirror    bool
+	IsBare      bool
 	AutoInit    bool
 }
 
@@ -929,7 +937,11 @@ func prepareRepoCommit(repo *Repository, tmpDir, repoPath string, opts CreateRep
 	if err != nil {
 		return fmt.Errorf("git clone: %v - %s", err, stderr)
 	}
+	return prepareRepositoryContent(repo, tmpDir, opts)
+}
 
+// Generate readme, licence and gitignore file
+func prepareRepositoryContent(repo *Repository, tmpDir string, opts CreateRepoOptions) error {
 	// README
 	data, err := getRepoInitFile("readme", opts.Readme)
 	if err != nil {
@@ -991,10 +1003,10 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 		return fmt.Errorf("initRepository: path already exists: %s", repoPath)
 	}
 
-	// Init bare new repository.
-	if err = git.InitRepository(repoPath, true); err != nil {
+	// Init new repository.
+	if err = git.InitRepository(repoPath, opts.IsBare); err != nil {
 		return fmt.Errorf("InitRepository: %v", err)
-	} else if err = createUpdateHook(repoPath); err != nil {
+	} else if err = createUpdateHook(repoPath, opts.IsBare); err != nil {
 		return fmt.Errorf("createUpdateHook: %v", err)
 	}
 
@@ -1003,18 +1015,25 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 	// Initialize repository according to user's choice.
 	if opts.AutoInit {
 
-		if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-			return fmt.Errorf("Failed to create dir %s: %v", tmpDir, err)
-		}
+		if opts.IsBare {
+			if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
+				return fmt.Errorf("Failed to create dir %s: %v", tmpDir, err)
+			}
+	
+			defer os.RemoveAll(tmpDir)
 
-		defer os.RemoveAll(tmpDir)
-
-		if err = prepareRepoCommit(repo, tmpDir, repoPath, opts); err != nil {
-			return fmt.Errorf("prepareRepoCommit: %v", err)
+			if err = prepareRepoCommit(repo, tmpDir, repoPath, opts); err != nil {
+				return fmt.Errorf("prepareRepoCommit: %v", err)
+			}
+		} else {
+			if err = prepareRepositoryContent(repo, repoPath, opts); err != nil {
+				return fmt.Errorf("prepareRepository: %v", err)
+			}
+			tmpDir = repoPath
 		}
 
 		// Apply changes and commit.
-		if err = initRepoCommit(tmpDir, u.NewGitSig()); err != nil {
+		if err = initRepoCommit(tmpDir, u.NewGitSig(), opts.IsBare); err != nil {
 			return fmt.Errorf("initRepoCommit: %v", err)
 		}
 	}
@@ -1025,9 +1044,7 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 		return fmt.Errorf("getRepositoryByID: %v", err)
 	}
 
-	if !opts.AutoInit {
-		repo.IsBare = true
-	}
+	repo.IsBare = opts.IsBare
 
 	repo.DefaultBranch = "master"
 	if err = updateRepository(e, repo, false); err != nil {
@@ -1124,6 +1141,7 @@ func CreateRepository(u *User, opts CreateRepoOptions) (_ *Repository, err error
 		LowerName:   strings.ToLower(opts.Name),
 		Description: opts.Description,
 		IsPrivate:   opts.IsPrivate,
+		IsBare:      opts.IsBare,
 	}
 
 	sess := x.NewSession()
@@ -2016,7 +2034,7 @@ func RewriteRepositoryUpdateHook() error {
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repo := bean.(*Repository)
-				return createUpdateHook(repo.RepoPath())
+				return createUpdateHook(repo.RepoPath(), repo.IsBare)
 			})
 }
 
@@ -2313,6 +2331,7 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 		DefaultBranch: oldRepo.DefaultBranch,
 		IsPrivate:     oldRepo.IsPrivate,
 		IsFork:        true,
+		IsBare:        true,
 		ForkID:        oldRepo.ID,
 	}
 
@@ -2345,7 +2364,7 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 		return nil, fmt.Errorf("git update-server-info: %v", stderr)
 	}
 
-	if err = createUpdateHook(repoPath); err != nil {
+	if err = createUpdateHook(repoPath, true); err != nil {
 		return nil, fmt.Errorf("createUpdateHook: %v", err)
 	}
 
