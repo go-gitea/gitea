@@ -120,5 +120,6 @@ func (t *T) RunTest(tests ...func(*T) error) (err error) {
 		}
 	}
 
+	// Note that the return value 'err' may be updated by the 'defer' statement before despite it's returning nil here.
 	return nil
 }
