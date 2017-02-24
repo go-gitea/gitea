@@ -104,7 +104,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateProfileForm) {
 	ctx.User.KeepEmailPrivate = form.KeepEmailPrivate
 	ctx.User.Website = form.Website
 	ctx.User.Location = form.Location
-	if err := models.UpdateUser(ctx.User); err != nil {
+	if err := models.UpdateUserSetting(ctx.User); err != nil {
 		if _, ok := err.(models.ErrEmailAlreadyUsed); ok {
 			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings")

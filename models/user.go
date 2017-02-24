@@ -821,21 +821,26 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	return os.Rename(UserPath(u.Name), UserPath(newUserName))
 }
 
+// checkDupEmail checks whether there are the same email with the user
+func checkDupEmail(e Engine, u *User) error {
+	u.Email = strings.ToLower(u.Email)
+	has, err := e.
+		Where("id!=?", u.ID).
+		And("type=?", u.Type).
+		And("email=?", u.Email).
+		Get(new(User))
+	if err != nil {
+		return err
+	} else if has {
+		return ErrEmailAlreadyUsed{u.Email}
+	}
+	return nil
+}
+
 func updateUser(e Engine, u *User) error {
 	// Organization does not need email
+	u.Email = strings.ToLower(u.Email)
 	if !u.IsOrganization() {
-		u.Email = strings.ToLower(u.Email)
-		has, err := e.
-			Where("id!=?", u.ID).
-			And("type=?", u.Type).
-			And("email=?", u.Email).
-			Get(new(User))
-		if err != nil {
-			return err
-		} else if has {
-			return ErrEmailAlreadyUsed{u.Email}
-		}
-
 		if len(u.AvatarEmail) == 0 {
 			u.AvatarEmail = u.Email
 		}
@@ -854,6 +859,16 @@ func updateUser(e Engine, u *User) error {
 
 // UpdateUser updates user's information.
 func UpdateUser(u *User) error {
+	return updateUser(x, u)
+}
+
+// UpdateUserSetting updates user's settings.
+func UpdateUserSetting(u *User) error {
+	if !u.IsOrganization() {
+		if err := checkDupEmail(x, u); err != nil {
+			return err
+		}
+	}
 	return updateUser(x, u)
 }
 
