@@ -7,20 +7,20 @@ package user
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
-
-	"github.com/go-macaron/captcha"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"net/http"
-	"code.gitea.io/gitea/modules/auth/oauth2"
+
+	"github.com/go-macaron/captcha"
 	"github.com/markbates/goth"
-	"strings"
 )
 
 const (
@@ -66,7 +66,7 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	}
 
 	if val, _ := ctx.GetSuperSecureCookie(
-		base.EncodeMD5(u.Rands + u.Passwd), setting.CookieRememberName); val != u.Name {
+		base.EncodeMD5(u.Rands+u.Passwd), setting.CookieRememberName); val != u.Name {
 		return false, nil
 	}
 
@@ -144,6 +144,8 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
+		} else if models.IsErrEmailAlreadyUsed(err) {
+			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSignIn, &form)
 		} else {
 			ctx.Handle(500, "UserSignIn", err)
 		}
@@ -296,7 +298,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	if remember {
 		days := 86400 * setting.LogInRememberDays
 		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL)
-		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands + u.Passwd),
+		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
 			setting.CookieRememberName, u.Name, days, setting.AppSubURL)
 	}
 
