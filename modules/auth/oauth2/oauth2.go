@@ -31,6 +31,14 @@ var (
 	providerHeaderKey    = "gitea-oauth2-provider"
 )
 
+// CustomURLMapping describes the urls values to use when customizing OAuth2 provider URLs
+type CustomURLMapping struct {
+	AuthURL    string
+	TokenURL   string
+	ProfileURL string
+	EmailURL   string
+}
+
 // Init initialize the setup of the OAuth2 library
 func Init() {
 	sessionDir := filepath.Join(setting.AppDataPath, "sessions", "oauth2")
@@ -89,8 +97,8 @@ func ProviderCallback(provider string, request *http.Request, response http.Resp
 }
 
 // RegisterProvider register a OAuth2 provider in goth lib
-func RegisterProvider(providerName, providerType, clientID, clientSecret, openIDConnectAutoDiscoveryURL string) error {
-	provider, err := createProvider(providerName, providerType, clientID, clientSecret, openIDConnectAutoDiscoveryURL)
+func RegisterProvider(providerName, providerType, clientID, clientSecret, openIDConnectAutoDiscoveryURL string, customURLMapping *CustomURLMapping) error {
+	provider, err := createProvider(providerName, providerType, clientID, clientSecret, openIDConnectAutoDiscoveryURL, customURLMapping)
 
 	if err == nil && provider != nil {
 		goth.UseProviders(provider)
@@ -105,7 +113,7 @@ func RemoveProvider(providerName string) {
 }
 
 // used to create different types of goth providers
-func createProvider(providerName, providerType, clientID, clientSecret, openIDConnectAutoDiscoveryURL string) (goth.Provider, error) {
+func createProvider(providerName, providerType, clientID, clientSecret, openIDConnectAutoDiscoveryURL string, customURLMapping *CustomURLMapping) (goth.Provider, error) {
 	callbackURL := setting.AppURL + "user/oauth2/" + providerName + "/callback"
 
 	var provider goth.Provider
@@ -119,9 +127,41 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 	case "facebook":
 		provider = facebook.New(clientID, clientSecret, callbackURL, "email")
 	case "github":
-		provider = github.New(clientID, clientSecret, callbackURL, "user:email")
+		authURL := github.AuthURL
+		tokenURL := github.TokenURL
+		profileURL := github.ProfileURL
+		emailURL := github.EmailURL
+		if customURLMapping != nil {
+			if len(customURLMapping.AuthURL) > 0 {
+				authURL = customURLMapping.AuthURL
+			}
+			if len(customURLMapping.TokenURL) > 0 {
+				tokenURL = customURLMapping.TokenURL
+			}
+			if len(customURLMapping.ProfileURL) > 0 {
+				profileURL = customURLMapping.ProfileURL
+			}
+			if len(customURLMapping.EmailURL) > 0 {
+				emailURL = customURLMapping.EmailURL
+			}
+		}
+		provider = github.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL, emailURL)
 	case "gitlab":
-		provider = gitlab.New(clientID, clientSecret, callbackURL)
+		authURL := gitlab.AuthURL
+		tokenURL := gitlab.TokenURL
+		profileURL := gitlab.ProfileURL
+		if customURLMapping != nil {
+			if len(customURLMapping.AuthURL) > 0 {
+				authURL = customURLMapping.AuthURL
+			}
+			if len(customURLMapping.TokenURL) > 0 {
+				tokenURL = customURLMapping.TokenURL
+			}
+			if len(customURLMapping.ProfileURL) > 0 {
+				profileURL = customURLMapping.ProfileURL
+			}
+		}
+		provider = gitlab.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL)
 	case "gplus":
 		provider = gplus.New(clientID, clientSecret, callbackURL, "email")
 	case "openidConnect":
@@ -138,4 +178,46 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 	}
 
 	return provider, err
+}
+
+// GetDefaultTokenURL return the default token url for the given provider
+func GetDefaultTokenURL(provider string) string {
+	switch provider {
+	case "github":
+		return github.TokenURL
+	case "gitlab":
+		return gitlab.TokenURL
+	}
+	return ""
+}
+
+// GetDefaultAuthURL return the default authorize url for the given provider
+func GetDefaultAuthURL(provider string) string {
+	switch provider {
+	case "github":
+		return github.AuthURL
+	case "gitlab":
+		return gitlab.AuthURL
+	}
+	return ""
+}
+
+// GetDefaultProfileURL return the default profile url for the given provider
+func GetDefaultProfileURL(provider string) string {
+	switch provider {
+	case "github":
+		return github.ProfileURL
+	case "gitlab":
+		return gitlab.ProfileURL
+	}
+	return ""
+}
+
+// GetDefaultEmailURL return the default email url for the given provider
+func GetDefaultEmailURL(provider string) string {
+	switch provider {
+	case "github":
+		return github.EmailURL
+	}
+	return ""
 }

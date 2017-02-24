@@ -1017,13 +1017,52 @@ function initAdmin() {
     }
 
     function onOAuth2Change() {
+        $('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url').hide();
+        $('.open_id_connect_auto_discovery_url input[required]').removeAttr('required');
+
         var provider = $('#oauth2_provider').val();
-        if (provider == 'openidConnect') {
-            $('#open_id_connect_auto_discovery_url input').attr('required', 'required');
-            $('.openid-connect-auto-discovery-url').show();
-        } else {
-            $('#open_id_connect_auto_discovery_url input[required]').removeAttr('required');
-            $('.openid-connect-auto-discovery-url').hide();
+        switch (provider) {
+            case 'github':
+            case 'gitlab':
+                $('.oauth2_use_custom_url').show();
+                break;
+            case 'openidConnect':
+                $('.open_id_connect_auto_discovery_url input').attr('required', 'required');
+                $('.open_id_connect_auto_discovery_url').show();
+                break;
+        }
+        onOAuth2UseCustomURLChange();
+    }
+
+    function onOAuth2UseCustomURLChange() {
+        var provider = $('#oauth2_provider').val();
+        $('.oauth2_use_custom_url_field').hide();
+        $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
+
+        if ($('#oauth2_use_custom_url').is(':checked')) {
+            if (!$('#oauth2_token_url').val()) {
+                $('#oauth2_token_url').val($('#' + provider + '_token_url').val());
+            }
+            if (!$('#oauth2_auth_url').val()) {
+                $('#oauth2_auth_url').val($('#' + provider + '_auth_url').val());
+            }
+            if (!$('#oauth2_profile_url').val()) {
+                $('#oauth2_profile_url').val($('#' + provider + '_profile_url').val());
+            }
+            if (!$('#oauth2_email_url').val()) {
+                $('#oauth2_email_url').val($('#' + provider + '_email_url').val());
+            }
+            switch (provider) {
+                case 'github':
+                    $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input, .oauth2_email_url input').attr('required', 'required');
+                    $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url, .oauth2_email_url').show();
+                    break;
+                case 'gitlab':
+                    $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
+                    $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url').show();
+                    $('#oauth2_email_url').val('');
+                    break;
+            }
         }
     }
 
@@ -1055,7 +1094,7 @@ function initAdmin() {
                     break;
                 case '6':     // OAuth2
                     $('.oauth2').show();
-                    $('.oauth2 input').attr('required', 'required');
+                    $('.oauth2 div.required:not(.oauth2_use_custom_url,.oauth2_use_custom_url_field,.open_id_connect_auto_discovery_url) input').attr('required', 'required');
                     onOAuth2Change();
                     break;
             }
@@ -1066,6 +1105,7 @@ function initAdmin() {
         $('#auth_type').change();
         $('#security_protocol').change(onSecurityProtocolChange);
         $('#oauth2_provider').change(onOAuth2Change);
+        $('#oauth2_use_custom_url').change(onOAuth2UseCustomURLChange);
     }
     // Edit authentication
     if ($('.admin.edit.authentication').length > 0) {
@@ -1074,6 +1114,8 @@ function initAdmin() {
             $('#security_protocol').change(onSecurityProtocolChange);
         } else if (authType == '6') {
             $('#oauth2_provider').change(onOAuth2Change);
+            $('#oauth2_use_custom_url').change(onOAuth2UseCustomURLChange);
+            onOAuth2Change();
         }
     }
 

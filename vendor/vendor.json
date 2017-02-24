@@ -553,62 +553,62 @@
 		{
 			"checksumSHA1": "O3KUfEXQPfdQ+tCMpP2RAIRJJqY=",
 			"path": "github.com/markbates/goth",
-			"revision": "450379d2950a65070b23cc93c53436553add4484",
-			"revisionTime": "2017-02-06T19:46:32Z"
+			"revision": "90362394a367f9d77730911973462a53d69662ba",
+			"revisionTime": "2017-02-23T14:12:10Z"
 		},
 		{
 			"checksumSHA1": "MkFKwLV3icyUo4oP0BgEs+7+R1Y=",
 			"path": "github.com/markbates/goth/gothic",
-			"revision": "450379d2950a65070b23cc93c53436553add4484",
-			"revisionTime": "2017-02-06T19:46:32Z"
+			"revision": "90362394a367f9d77730911973462a53d69662ba",
+			"revisionTime": "2017-02-23T14:12:10Z"
 		},
 		{
 			"checksumSHA1": "crNSlQADjX6hcxykON2tFCqY4iw=",
 			"path": "github.com/markbates/goth/providers/bitbucket",
-			"revision": "7276be0fdf719ddff753f3574ef0f967e4a5a5f7",
-			"revisionTime": "2017-02-20T14:02:47Z"
+			"revision": "90362394a367f9d77730911973462a53d69662ba",
+			"revisionTime": "2017-02-23T14:12:10Z"
 		},
 		{
 			"checksumSHA1": "1Kp4DKkJNVn135Xg8H4a6CFBNy8=",
 			"path": "github.com/markbates/goth/providers/dropbox",
-			"revision": "7276be0fdf719ddff753f3574ef0f967e4a5a5f7",
-			"revisionTime": "2017-02-20T14:02:47Z"
+			"revision": "90362394a367f9d77730911973462a53d69662ba",
+			"revisionTime": "2017-02-23T14:12:10Z"
 		},
 		{
 			"checksumSHA1": "cGs1da29iOBJh5EAH0icKDbN8CA=",
 			"path": "github.com/markbates/goth/providers/facebook",
-			"revision": "7276be0fdf719ddff753f3574ef0f967e4a5a5f7",
-			"revisionTime": "2017-02-20T14:02:47Z"
+			"revision": "90362394a367f9d77730911973462a53d69662ba",
+			"revisionTime": "2017-02-23T14:12:10Z"
 		},
 		{
-			"checksumSHA1": "ZFqznX3/ZW65I4QeepiHQdE69nA=",
+			"checksumSHA1": "P6nBZ850aaekpOcoXNdRhK86bH8=",
 			"path": "github.com/markbates/goth/providers/github",
-			"revision": "450379d2950a65070b23cc93c53436553add4484",
-			"revisionTime": "2017-02-06T19:46:32Z"
+			"revision": "90362394a367f9d77730911973462a53d69662ba",
+			"revisionTime": "2017-02-23T14:12:10Z"
 		},
 		{
-			"checksumSHA1": "QO8bvOenTBbLPzr3ZvB7LCHJ0PY=",
+			"checksumSHA1": "o/109paSRy9HqV87gR4zUZMMSzs=",
 			"path": "github.com/markbates/goth/providers/gitlab",
-			"revision": "a0a751ca505adde67bc2c92e2aae99531b1e3213",
-			"revisionTime": "2017-02-20T13:56:36Z"
+			"revision": "90362394a367f9d77730911973462a53d69662ba",
+			"revisionTime": "2017-02-23T14:12:10Z"
 		},
 		{
 			"checksumSHA1": "cX6kR9y94BWFZvI/7UFrsFsP3FQ=",
 			"path": "github.com/markbates/goth/providers/gplus",
-			"revision": "a0a751ca505adde67bc2c92e2aae99531b1e3213",
-			"revisionTime": "2017-02-20T13:56:36Z"
+			"revision": "90362394a367f9d77730911973462a53d69662ba",
+			"revisionTime": "2017-02-23T14:12:10Z"
 		},
 		{
 			"checksumSHA1": "sMYKhqAUZXM1+T/TjlMhWh8Vveo=",
 			"path": "github.com/markbates/goth/providers/openidConnect",
-			"revision": "7276be0fdf719ddff753f3574ef0f967e4a5a5f7",
-			"revisionTime": "2017-02-20T14:02:47Z"
+			"revision": "90362394a367f9d77730911973462a53d69662ba",
+			"revisionTime": "2017-02-23T14:12:10Z"
 		},
 		{
 			"checksumSHA1": "1w0V6jYXaGlEtZcMeYTOAAucvgw=",
 			"path": "github.com/markbates/goth/providers/twitter",
-			"revision": "7276be0fdf719ddff753f3574ef0f967e4a5a5f7",
-			"revisionTime": "2017-02-20T14:02:47Z"
+			"revision": "90362394a367f9d77730911973462a53d69662ba",
+			"revisionTime": "2017-02-23T14:12:10Z"
 		},
 		{
 			"checksumSHA1": "9FJUwn3EIgASVki+p8IHgWVC5vQ=",

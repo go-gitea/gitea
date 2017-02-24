@@ -40,6 +40,11 @@ type AuthenticationForm struct {
 	Oauth2Key                     string
 	Oauth2Secret                  string
 	OpenIDConnectAutoDiscoveryURL string
+	Oauth2UseCustomURL            bool
+	Oauth2TokenURL                string
+	Oauth2AuthURL                 string
+	Oauth2ProfileURL              string
+	Oauth2EmailURL                string
 }
 
 // Validate validates fields

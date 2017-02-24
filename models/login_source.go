@@ -125,6 +125,7 @@ type OAuth2Config struct {
 	ClientID                      string
 	ClientSecret                  string
 	OpenIDConnectAutoDiscoveryURL string
+	CustomURLMapping              *oauth2.CustomURLMapping
 }
 
 // FromDB fills up an OAuth2Config from serialized format.
@@ -297,7 +298,7 @@ func CreateLoginSource(source *LoginSource) error {
 	_, err = x.Insert(source)
 	if err == nil && source.IsOAuth2() && source.IsActived {
 		oAuth2Config := source.OAuth2()
-		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL)
+		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
 
 		if err != nil {
@@ -340,7 +341,7 @@ func UpdateSource(source *LoginSource) error {
 	_, err := x.Id(source.ID).AllCols().Update(source)
 	if err == nil && source.IsOAuth2() && source.IsActived {
 		oAuth2Config := source.OAuth2()
-		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL)
+		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
 
 		if err != nil {
@@ -610,23 +611,45 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 
 // OAuth2Provider describes the display values of a single OAuth2 provider
 type OAuth2Provider struct {
-	Name        string
-	DisplayName string
-	Image       string
+	Name              string
+	DisplayName       string
+	Image             string
+	CustomURLMapping  *oauth2.CustomURLMapping
 }
 
 // OAuth2Providers contains the map of registered OAuth2 providers in Gitea (based on goth)
 // key is used to map the OAuth2Provider with the goth provider type (also in LoginSource.OAuth2Config.Provider)
 // value is used to store display data
 var OAuth2Providers = map[string]OAuth2Provider{
-	"bitbucket":     {Name: "bitbucket", DisplayName: "Bitbucket", Image: "/img/auth/bitbucket.png"},
-	"dropbox":       {Name: "dropbox", DisplayName: "Dropbox", Image: "/img/auth/dropbox.png"},
-	"facebook":      {Name: "facebook", DisplayName: "Facebook", Image: "/img/auth/facebook.png"},
-	"github":        {Name: "github", DisplayName: "GitHub", Image: "/img/auth/github.png"},
-	"gitlab":        {Name: "gitlab", DisplayName: "GitLab", Image: "/img/auth/gitlab.png"},
+	"bitbucket": {Name: "bitbucket", DisplayName: "Bitbucket", Image: "/img/auth/bitbucket.png"},
+	"dropbox":   {Name: "dropbox", DisplayName: "Dropbox", Image: "/img/auth/dropbox.png"},
+	"facebook":  {Name: "facebook", DisplayName: "Facebook", Image: "/img/auth/facebook.png"},
+	"github": {Name: "github", DisplayName: "GitHub", Image: "/img/auth/github.png",
+		CustomURLMapping: &oauth2.CustomURLMapping{
+			TokenURL:   oauth2.GetDefaultTokenURL("github"),
+			AuthURL:    oauth2.GetDefaultAuthURL("github"),
+			ProfileURL: oauth2.GetDefaultProfileURL("github"),
+			EmailURL:   oauth2.GetDefaultEmailURL("github"),
+		},
+	},
+	"gitlab": {Name: "gitlab", DisplayName: "GitLab", Image: "/img/auth/gitlab.png",
+		CustomURLMapping: &oauth2.CustomURLMapping{
+			TokenURL:   oauth2.GetDefaultTokenURL("gitlab"),
+			AuthURL:    oauth2.GetDefaultAuthURL("gitlab"),
+			ProfileURL: oauth2.GetDefaultProfileURL("gitlab"),
+		},
+	},
 	"gplus":         {Name: "gplus", DisplayName: "Google+", Image: "/img/auth/google_plus.png"},
 	"openidConnect": {Name: "openidConnect", DisplayName: "OpenID Connect", Image: "/img/auth/openid_connect.png"},
 	"twitter":       {Name: "twitter", DisplayName: "Twitter", Image: "/img/auth/twitter.png"},
+}
+
+// OAuth2DefaultCustomURLMappings contains the map of default URL's for OAuth2 providers that are allowed to have custom urls
+// key is used to map the OAuth2Provider
+// value is the mapping as defined for the OAuth2Provider
+var OAuth2DefaultCustomURLMappings = map[string]*oauth2.CustomURLMapping {
+	"github": OAuth2Providers["github"].CustomURLMapping,
+	"gitlab": OAuth2Providers["gitlab"].CustomURLMapping,
 }
 
 // ExternalUserLogin attempts a login using external source types.
@@ -759,7 +782,7 @@ func InitOAuth2() {
 
 	for _, source := range loginSources {
 		oAuth2Config := source.OAuth2()
-		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL)
+		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 	}
 }
 
