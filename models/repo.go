@@ -1831,7 +1831,7 @@ type SearchRepoOptions struct {
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
-func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ int64, _ error) {
+func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, count int64, err error) {
 	var (
 		sess *xorm.Session
 		cond = builder.NewCond()
@@ -1867,7 +1867,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 		var ownerIds []int64
 
 		ownerIds = append(ownerIds, opts.Searcher.ID)
-		err := opts.Searcher.GetOrganizations(true)
+		err = opts.Searcher.GetOrganizations(true)
 
 		if err != nil {
 			return nil, 0, fmt.Errorf("Organization: %v", err)
@@ -1888,15 +1888,21 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 		sess = x.
 			Join("INNER", "star", "star.repo_id = repository.id").
 			Where(cond)
+		count, err = x.
+			Join("INNER", "star", "star.repo_id = repository.id").
+			Where(cond).
+			Count(new(Repository))
+		if err != nil {
+			return nil, 0, fmt.Errorf("Count: %v", err)
+		}
 	} else {
 		sess = x.Where(cond)
-	}
-
-	var countSess xorm.Session
-	countSess = *sess
-	count, err := countSess.Count(new(Repository))
-	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+		count, err = x.
+			Where(cond).
+			Count(new(Repository))
+		if err != nil {
+			return nil, 0, fmt.Errorf("Count: %v", err)
+		}
 	}
 
 	if err = sess.
@@ -1912,7 +1918,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 		}
 	}
 
-	return repos, count, nil
+	return
 }
 
 // DeleteRepositoryArchives deletes all repositories' archives.
