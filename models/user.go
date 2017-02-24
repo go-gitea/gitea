@@ -1239,11 +1239,13 @@ func SearchUserByName(opts *SearchUserOptions) (users []*User, _ int64, _ error)
 	users = make([]*User, 0, opts.PageSize)
 
 	// Append conditions
-	cond := builder.Eq{
-		"type": opts.Type,
-	}.
-		And(builder.Like{"lower_name", opts.Keyword}.
-			Or(builder.Like{"LOWER(full_name)", opts.Keyword}))
+	cond := builder.And(
+		builder.Eq{"type": opts.Type},
+		builder.Or(
+			builder.Like{"lower_name", opts.Keyword},
+			builder.Like{"LOWER(full_name)", opts.Keyword},
+		),
+	)
 
 	count, err := x.Where(cond).Count(new(User))
 	if err != nil {
