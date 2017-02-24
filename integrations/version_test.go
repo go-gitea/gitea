@@ -16,7 +16,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/tests/integration/internal/utils"
+	"code.gitea.io/gitea/integrations/internal/utils"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -65,7 +65,7 @@ func version(t *utils.T) error {
 
 func TestVersion(t *testing.T) {
 	conf := utils.Config{
-		Program: "../../gitea",
+		Program: "../gitea",
 		WorkDir: "",
 		Args:    []string{"web", "--port", ServerHTTPPort},
 		LogFile: os.Stderr,

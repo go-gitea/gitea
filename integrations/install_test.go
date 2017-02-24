@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/tests/integration/internal/utils"
+	"code.gitea.io/gitea/integrations/internal/utils"
 )
 
 // The HTTP port listened by the Gitea server.
@@ -82,7 +82,7 @@ func install(t *utils.T) error {
 
 func TestInstall(t *testing.T) {
 	conf := utils.Config{
-		Program: "../../gitea",
+		Program: "../gitea",
 		WorkDir: "",
 		Args:    []string{"web", "--port", ServerHTTPPort},
 		LogFile: os.Stderr,
