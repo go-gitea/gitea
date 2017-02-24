@@ -887,28 +887,3 @@ func IsErrExternalLoginUserNotExist(err error) bool {
 func (err ErrExternalLoginUserNotExist) Error() string {
 	return fmt.Sprintf("external login user link does not exists [userID: %d, loginSourceID: %d]", err.UserID, err.LoginSourceID)
 }
-
-//  ________      _____   ____ _________________ ___
-//  \_____  \    /  _  \ |    |   \__    ___/   |   \
-//   /   |   \  /  /_\  \|    |   / |    | /    ~    \
-//  /    |    \/    |    \    |  /  |    | \    Y    /
-//  \_______  /\____|__  /______/   |____|  \___|_  /
-//          \/         \/                         \/
-
-
-// ErrOpenIDConnectInitialize represents a "OpenIDConnectInitialize" kind of error.
-type ErrOpenIDConnectInitialize struct {
-	OpenIDConnectAutoDiscoveryURL string
-	ProviderName string
-	Cause error
-}
-
-// IsErrOpenIDConnectInitialize checks if an error is a ExternalLoginUserAlreadyExist.
-func IsErrOpenIDConnectInitialize(err error) bool {
-	_, ok := err.(ErrOpenIDConnectInitialize)
-	return ok
-}
-
-func (err ErrOpenIDConnectInitialize) Error() string {
-	return fmt.Sprintf("Failed to initialize OpenID Connect Provider with name '%s' with url '%s': %v", err.ProviderName, err.OpenIDConnectAutoDiscoveryURL, err.Cause)
-}
