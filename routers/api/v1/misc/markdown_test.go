@@ -53,6 +53,7 @@ func TestAPI_RenderGFM(t *testing.T) {
 		Mode:    "gfm",
 		Text:    "",
 		Context: Repo,
+		Wiki:    true,
 	}
 	requrl, _ := url.Parse(markdown.URLJoin(AppURL, "api", "v1", "markdown"))
 	req := &http.Request{
@@ -74,7 +75,7 @@ func TestAPI_RenderGFM(t *testing.T) {
 <ul>
 <li><a href="` + AppSubURL + `wiki/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
 <li><a href="` + AppSubURL + `wiki/Tips" rel="nofollow">Tips</a></li>
-<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>)<a href="` + AppSubURL + `issues/786" rel="nofollow">#786</a></li>
+<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>)<a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">#786</a></li>
 </ul>
 `,
 		// wine-staging wiki home extract: special wiki syntax, images
@@ -97,7 +98,7 @@ Here are some links to the most important topics. You can find the full list of 
 <p>Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
 
 <p><a href="` + AppSubURL + `wiki/Configuration" rel="nofollow">Configuration</a>
-<a href="` + AppSubURL + `wiki/raw/images%2Ficon-bug.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images%2Ficon-bug.png" alt="images/icon-bug.png" title="icon-bug.png"/></a></p>
+<a href="` + AppSubURL + `wiki/raw/images/icon-bug.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images/icon-bug.png" alt="images/icon-bug.png" title="icon-bug.png"/></a></p>
 `,
 		// Guard wiki sidebar: special syntax
 		`[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]`,

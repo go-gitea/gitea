@@ -9,4 +9,5 @@ type MarkdownOption struct {
 	Text    string
 	Mode    string
 	Context string
+	Wiki    bool
 }
