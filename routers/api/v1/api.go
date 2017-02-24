@@ -242,6 +242,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Group("/:username", func() {
 				m.Get("", user.GetInfo)
 
+				m.Get("/repos", user.ListUserRepos)
 				m.Group("/tokens", func() {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
@@ -284,6 +285,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Delete(user.DeletePublicKey)
 			})
 
+			m.Combo("/repos").Get(user.ListMyRepos).
+				Post(bind(api.CreateRepoOption{}), repo.Create)
+
 			m.Group("/starred", func() {
 				m.Get("", user.GetMyStarredRepos)
 				m.Group("/:username/:reponame", func() {
@@ -297,8 +301,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, reqToken())
 
 		// Repositories
-		m.Combo("/user/repos", reqToken()).Get(repo.ListMyRepos).
-			Post(bind(api.CreateRepoOption{}), repo.Create)
 		m.Post("/org/:org/repos", reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
 
 		m.Group("/repos", func() {
