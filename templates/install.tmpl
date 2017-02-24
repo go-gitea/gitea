@@ -140,9 +140,9 @@
 								<input id="smtp_from" name="smtp_from" value="{{.smtp_from}}">
 								<span class="help">{{.i18n.Tr "install.smtp_from_helper"}}</span>
 							</div>
-							<div class="inline field {{if .Err_SMTPEmail}}error{{end}}">
-								<label for="smtp_email">{{.i18n.Tr "install.mailer_user"}}</label>
-								<input id="smtp_email" name="smtp_email" value="{{.smtp_email}}">
+							<div class="inline field {{if .Err_SMTPUser}}error{{end}}">
+								<label for="smtp_user">{{.i18n.Tr "install.mailer_user"}}</label>
+								<input id="smtp_user" name="smtp_user" value="{{.smtp_user}}">
 							</div>
 							<div class="inline field">
 								<label for="smtp_passwd">{{.i18n.Tr "install.mailer_password"}}</label>

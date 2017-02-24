@@ -33,7 +33,7 @@ type InstallForm struct {
 
 	SMTPHost        string
 	SMTPFrom        string
-	SMTPEmail       string `binding:"OmitEmpty;Email;MaxSize(254)" locale:"install.mailer_user"`
+	SMTPUser        string `binding:"OmitEmpty;MaxSize(254)" locale:"install.mailer_user"`
 	SMTPPasswd      string
 	RegisterConfirm bool
 	MailNotify      bool
