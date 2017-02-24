@@ -93,7 +93,7 @@ $(EXECUTABLE): $(SOURCES)
 
 .PHONY: docker
 docker:
-	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="$(TAGS)" webhippie/golang:edge make clean generate build
+	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" webhippie/golang:edge make clean generate build
 	docker build -t gitea/gitea:latest .
 
 .PHONY: release
