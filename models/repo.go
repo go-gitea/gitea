@@ -412,13 +412,18 @@ func (repo *Repository) ComposeMetas() map[string]string {
 }
 
 // DeleteWiki removes the actual and local copy of repository wiki.
-func (repo *Repository) DeleteWiki() {
+func (repo *Repository) DeleteWiki() error {
+	return repo.deleteWiki(x)
+}
+
+func (repo *Repository) deleteWiki(e Engine) error {
 	wikiPaths := []string{repo.WikiPath(), repo.LocalWikiPath()}
 	for _, wikiPath := range wikiPaths {
-		RemoveAllWithNotice("Delete repository wiki", wikiPath)
+		removeAllWithNotice(e, "Delete repository wiki", wikiPath)
 	}
 
-	x.Where("repo_id = ?", repo.ID).And("type = ?", UnitTypeWiki).Delete(new(RepoUnit))
+	_, err := e.Where("repo_id = ?", repo.ID).And("type = ?", UnitTypeWiki).Delete(new(RepoUnit))
+	return err
 }
 
 func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
@@ -1620,27 +1625,25 @@ func DeleteRepository(uid, repoID int64) error {
 		return err
 	}
 
-	// Remove repository files.
+	// FIXME: Remove repository files should be executed after transaction succeed.
 	repoPath := repo.repoPath(sess)
-	RemoveAllWithNotice("Delete repository files", repoPath)
+	removeAllWithNotice(sess, "Delete repository files", repoPath)
 
-	repo.DeleteWiki()
+	repo.deleteWiki(sess)
 
 	// Remove attachment files.
 	for i := range attachmentPaths {
-		RemoveAllWithNotice("Delete attachment", attachmentPaths[i])
+		removeAllWithNotice(sess, "Delete attachment", attachmentPaths[i])
 	}
 
 	// Remove LFS objects
 	var lfsObjects []*LFSMetaObject
-
 	if err = sess.Where("repository_id=?", repoID).Find(&lfsObjects); err != nil {
 		return err
 	}
 
 	for _, v := range lfsObjects {
 		count, err := sess.Count(&LFSMetaObject{Oid: v.Oid})
-
 		if err != nil {
 			return err
 		}
