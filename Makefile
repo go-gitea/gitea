@@ -11,7 +11,7 @@ BINDATA := modules/{options,public,templates}/bindata.go
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
 
-LDFLAGS := -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')"
+LDFLAGS := -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')" -X "main.Tags=$(TAGS)"
 
 TARGETS ?= linux/*,darwin/*,windows/*
 PACKAGES ?= $(shell go list ./... | grep -v /vendor/)
