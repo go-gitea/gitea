@@ -28,9 +28,9 @@ func createContext(req *http.Request) (*macaron.Context, *httptest.ResponseRecor
 	resp := httptest.NewRecorder()
 	c := &macaron.Context{
 		Injector: inject.New(),
-		Req:      macaron.Request{req},
+		Req:      macaron.Request{Request: req},
 		Resp:     macaron.NewResponseWriter(resp),
-		Render:   &macaron.DummyRender{resp},
+		Render:   &macaron.DummyRender{ResponseWriter: resp},
 		Data:     make(map[string]interface{}),
 	}
 	c.Map(c)
