@@ -48,8 +48,9 @@ func main() {
 }
 
 func formatBuiltWith(Tags string) string {
-	if len(Tags) > 0 {
-		return " built with: " + strings.Join(strings.Split(Tags, " "), ", ")
-	}
-	return ""
+	if len(Tags) == 0 {
+  		return ""
+  	}
+
+  	return " built with: " + strings.Replace(Tags, " ", ", ", -1)
 }
