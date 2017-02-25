@@ -49,7 +49,7 @@
 						<tbody>
 							{{range .Processes}}
 								<tr>
-									<td>{{.Pid}}</td>
+									<td>{{.PID}}</td>
 									<td>{{.Description}}</td>
 									<td>{{DateFmtLong .Start}}</td>
 									<td>{{TimeSince .Start $.Lang}}</td>
