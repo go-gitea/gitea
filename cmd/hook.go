@@ -7,8 +7,13 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
 )
@@ -65,29 +70,52 @@ func runHookPreReceive(c *cli.Context) error {
 }
 
 func runHookUpdate(c *cli.Context) error {
-	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
-		return nil
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
 	}
 
 	if err := setup("hooks/update.log"); err != nil {
 		fail("Hook update init failed", fmt.Sprintf("setup: %v", err))
 	}
 
-	args := c.Args()
-	if len(args) != 3 {
-		fail("Arguments received are not equal to three", "Arguments received are not equal to three")
-	} else if len(args[0]) == 0 {
-		fail("First argument 'refName' is empty", "First argument 'refName' is empty")
+	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
+		log.GitLogger.Trace("SSH_ORIGINAL_COMMAND is empty")
+		return nil
 	}
 
-	uuid := os.Getenv(envUpdateTaskUUID)
-	if err := models.AddUpdateTask(&models.UpdateTask{
-		UUID:        uuid,
+	args := c.Args()
+	if len(args) != 3 {
+		log.GitLogger.Fatal(2, "Arguments received are not equal to three")
+	} else if len(args[0]) == 0 {
+		log.GitLogger.Fatal(2, "First argument 'refName' is empty, shouldn't use")
+	}
+
+	// protected branch check
+	branchName := strings.TrimPrefix(args[0], git.BranchPrefix)
+	repoID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchRepoID), 10, 64)
+	log.GitLogger.Trace("pushing to %d %v", repoID, branchName)
+	accessMode := models.ParseAccessMode(os.Getenv(models.ProtectedBranchAccessMode))
+	// skip admin or owner AccessMode
+	if accessMode == models.AccessModeWrite {
+		protectBranch, err := models.GetProtectedBranchBy(repoID, branchName)
+		if err != nil {
+			log.GitLogger.Fatal(2, "retrieve protected branches information failed")
+		}
+
+		if protectBranch != nil {
+			log.GitLogger.Fatal(2, "protected branches can not be pushed to")
+		}
+	}
+
+	task := models.UpdateTask{
+		UUID:        os.Getenv(envUpdateTaskUUID),
 		RefName:     args[0],
 		OldCommitID: args[1],
 		NewCommitID: args[2],
-	}); err != nil {
-		fail("Internal error", "Fail to add update task '%s': %v", uuid, err)
+	}
+
+	if err := models.AddUpdateTask(&task); err != nil {
+		log.GitLogger.Fatal(2, "AddUpdateTask: %v", err)
 	}
 
 	return nil
