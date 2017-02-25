@@ -7,6 +7,7 @@ package models
 import (
 	"bytes"
 	"container/list"
+	"crypto/md5"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
@@ -280,7 +281,7 @@ func (u *User) GenerateActivateCode() string {
 
 // CustomAvatarPath returns user custom avatar file path.
 func (u *User) CustomAvatarPath() string {
-	return filepath.Join(setting.AvatarUploadPath, com.ToStr(u.ID))
+	return filepath.Join(setting.AvatarUploadPath, u.Avatar)
 }
 
 // GenerateRandomAvatar generates a random avatar for user.
@@ -325,7 +326,7 @@ func (u *User) RelAvatarLink() string {
 		if !com.IsExist(u.CustomAvatarPath()) {
 			return defaultImgURL
 		}
-		return setting.AppSubURL + "/avatars/" + com.ToStr(u.ID)
+		return setting.AppSubURL + "/avatars/" + u.Avatar
 	case setting.DisableGravatar, setting.OfflineMode:
 		if !com.IsExist(u.CustomAvatarPath()) {
 			if err := u.GenerateRandomAvatar(); err != nil {
@@ -333,7 +334,7 @@ func (u *User) RelAvatarLink() string {
 			}
 		}
 
-		return setting.AppSubURL + "/avatars/" + com.ToStr(u.ID)
+		return setting.AppSubURL + "/avatars/" + u.Avatar
 	}
 	return base.AvatarLink(u.AvatarEmail)
 }
@@ -424,6 +425,7 @@ func (u *User) UploadAvatar(data []byte) error {
 	}
 
 	u.UseCustomAvatar = true
+	u.Avatar = fmt.Sprintf("%x", md5.Sum(data))
 	if err = updateUser(sess, u); err != nil {
 		return fmt.Errorf("updateUser: %v", err)
 	}

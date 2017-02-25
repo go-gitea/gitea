@@ -88,6 +88,8 @@ var migrations = []Migration{
 	NewMigration("add external login user", addExternalLoginUser),
 	// v19 -> v20
 	NewMigration("generate and migrate Git hooks", generateAndMigrateGitHooks),
+	// v20 -> v21
+	NewMigration("use new avtar path name for security reason", useNewNameAvatars),
 }
 
 // Migrate database to current version
