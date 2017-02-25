@@ -23,6 +23,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	"github.com/nfnt/resize"
 	"golang.org/x/crypto/pbkdf2"
@@ -1235,27 +1236,28 @@ func SearchUserByName(opts *SearchUserOptions) (users []*User, _ int64, _ error)
 		opts.Page = 1
 	}
 
-	searchQuery := "%" + opts.Keyword + "%"
 	users = make([]*User, 0, opts.PageSize)
-	// Append conditions
-	sess := x.
-		Where("LOWER(lower_name) LIKE ?", searchQuery).
-		Or("LOWER(full_name) LIKE ?", searchQuery).
-		And("type = ?", opts.Type)
 
-	var countSess xorm.Session
-	countSess = *sess
-	count, err := countSess.Count(new(User))
+	// Append conditions
+	cond := builder.And(
+		builder.Eq{"type": opts.Type},
+		builder.Or(
+			builder.Like{"lower_name", opts.Keyword},
+			builder.Like{"LOWER(full_name)", opts.Keyword},
+		),
+	)
+
+	count, err := x.Where(cond).Count(new(User))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
+	sess := x.Where(cond).
+		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	if len(opts.OrderBy) > 0 {
 		sess.OrderBy(opts.OrderBy)
 	}
-	return users, count, sess.
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		Find(&users)
+	return users, count, sess.Find(&users)
 }
 
 // ___________    .__  .__
