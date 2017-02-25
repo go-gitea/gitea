@@ -1,15 +1,14 @@
 package base
 
 import (
+	"os"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/i18n"
 	macaroni18n "github.com/go-macaron/i18n"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"strk.kbt.io/projects/go/libravatar"
-	"time"
 )
 
 var BaseDate time.Time
@@ -137,17 +136,6 @@ func TestAvatarLink(t *testing.T) {
 	setting.DisableGravatar = false
 	assert.Equal(t,
 		"353cbad9b58e69c96154ad99f92bedc7",
-		AvatarLink("gitea@example.com"),
-	)
-
-	setting.EnableFederatedAvatar = true
-	assert.Equal(t,
-		"353cbad9b58e69c96154ad99f92bedc7",
-		AvatarLink("gitea@example.com"),
-	)
-	setting.LibravatarService = libravatar.New()
-	assert.Equal(t,
-		"http://cdn.libravatar.org/avatar/353cbad9b58e69c96154ad99f92bedc7",
 		AvatarLink("gitea@example.com"),
 	)
 }
