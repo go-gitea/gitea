@@ -22,7 +22,10 @@ func ListAccessTokens(ctx *context.APIContext) {
 
 	apiTokens := make([]*api.AccessToken, len(tokens))
 	for i := range tokens {
-		apiTokens[i] = &api.AccessToken{tokens[i].Name, tokens[i].Sha1}
+		apiTokens[i] = &api.AccessToken{
+			Name: tokens[i].Name,
+			Sha1: tokens[i].Sha1,
+		}
 	}
 	ctx.JSON(200, &apiTokens)
 }
@@ -38,5 +41,8 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 		ctx.Error(500, "NewAccessToken", err)
 		return
 	}
-	ctx.JSON(201, &api.AccessToken{t.Name, t.Sha1})
+	ctx.JSON(201, &api.AccessToken{
+		Name: t.Name,
+		Sha1: t.Sha1,
+	})
 }
