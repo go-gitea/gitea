@@ -130,7 +130,7 @@ func runDump(ctx *cli.Context) error {
 	if err := z.AddDir("log", setting.LogRootPath); err != nil {
 		log.Fatalf("Failed to include log: %v", err)
 	}
-	// FIXME: SSH key file.
+
 	if err = z.Close(); err != nil {
 		_ = os.Remove(fileName)
 		log.Fatalf("Failed to save %s: %v", fileName, err)
