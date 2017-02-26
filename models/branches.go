@@ -12,12 +12,8 @@ import (
 
 // Protected metadata
 const (
-	// Protected User ID
-	ProtectedBranchUserID = "GITEA_USER_ID"
 	// Protected Repo ID
 	ProtectedBranchRepoID = "GITEA_REPO_ID"
-	// Protected access mode
-	ProtectedBranchAccessMode = "GITEA_ACCESS_MODE"
 )
 
 // ProtectedBranch struct
