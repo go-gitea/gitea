@@ -39,9 +39,9 @@ import (
 	"github.com/go-macaron/i18n"
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
+	context2 "github.com/gorilla/context"
 	"github.com/urfave/cli"
 	macaron "gopkg.in/macaron.v1"
-	context2 "github.com/gorilla/context"
 )
 
 // CmdWeb represents the available web sub-command.
@@ -68,13 +68,6 @@ and it takes care of all the other things for you`,
 			Usage: "Custom pid file path",
 		},
 	},
-}
-
-// VerChecker is a listing of required dependency versions.
-type VerChecker struct {
-	ImportPath string
-	Version    func() string
-	Expected   string
 }
 
 // newMacaron initializes Macaron instance.
