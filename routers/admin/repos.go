@@ -24,7 +24,6 @@ func Repos(ctx *context.Context) {
 	ctx.Data["PageIsAdminRepositories"] = true
 
 	routers.RenderRepoSearch(ctx, &routers.RepoSearchOptions{
-		Counter:  models.CountRepositories,
 		Ranger:   models.Repositories,
 		Private:  true,
 		PageSize: setting.UI.Admin.RepoPagingNum,

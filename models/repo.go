@@ -1231,7 +1231,7 @@ func CountUserRepositories(userID int64, private bool) int64 {
 }
 
 // Repositories returns all repositories
-func Repositories(opts *SearchRepoOptions) (_ RepositoryList, err error) {
+func Repositories(opts *SearchRepoOptions) (_ RepositoryList, count int64, err error) {
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "id ASC"
 	}
@@ -1242,14 +1242,16 @@ func Repositories(opts *SearchRepoOptions) (_ RepositoryList, err error) {
 		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
 		OrderBy(opts.OrderBy).
 		Find(&repos); err != nil {
-		return nil, fmt.Errorf("Repo: %v", err)
+		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
 
 	if err = repos.loadAttributes(x); err != nil {
-		return nil, fmt.Errorf("LoadAttributes: %v", err)
+		return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
 	}
 
-	return repos, nil
+	count = countRepositories(-1, opts.Private)
+
+	return repos, count, nil
 }
 
 // RepoPath returns repository path by given user and repository name.
@@ -1757,40 +1759,54 @@ func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 }
 
 // GetRecentUpdatedRepositories returns the list of repositories that are recently updated.
-func GetRecentUpdatedRepositories(opts *SearchRepoOptions) (repos RepositoryList, err error) {
+func GetRecentUpdatedRepositories(opts *SearchRepoOptions) (repos RepositoryList, _ int64, _ error) {
+	var cond = builder.NewCond()
+
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "updated_unix DESC"
 	}
 
-	sess := x.Where("is_private=?", false).
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		Limit(opts.PageSize)
+	if !opts.Private {
+		cond = builder.Eq{
+			"is_private": false,
+		}
+	}
 
-	if opts.Searcher != nil {
-		sess.Or("owner_id = ?", opts.Searcher.ID)
+	if opts.Searcher != nil && !opts.Searcher.IsAdmin {
+		var ownerIds []int64
 
+		ownerIds = append(ownerIds, opts.Searcher.ID)
 		err := opts.Searcher.GetOrganizations(true)
 
 		if err != nil {
-			return nil, fmt.Errorf("Organization: %v", err)
+			return nil, 0, fmt.Errorf("Organization: %v", err)
 		}
 
 		for _, org := range opts.Searcher.Orgs {
-			sess.Or("owner_id = ?", org.ID)
+			ownerIds = append(ownerIds, org.ID)
 		}
+
+		cond = cond.Or(builder.In("owner_id", ownerIds))
 	}
 
-	if err = sess.
+	count, err := x.Where(cond).Count(new(Repository))
+	if err != nil {
+		return nil, 0, fmt.Errorf("Count: %v", err)
+	}
+
+	if err = x.Where(cond).
+		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
+		Limit(opts.PageSize).
 		OrderBy(opts.OrderBy).
 		Find(&repos); err != nil {
-		return nil, fmt.Errorf("Repo: %v", err)
+		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
 
 	if err = repos.loadAttributes(x); err != nil {
-		return nil, fmt.Errorf("LoadAttributes: %v", err)
+		return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
 	}
 
-	return repos, nil
+	return repos, count, nil
 }
 
 func getRepositoryCount(e Engine, u *User) (int64, error) {
