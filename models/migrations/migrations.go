@@ -89,7 +89,7 @@ var migrations = []Migration{
 	// v19 -> v20
 	NewMigration("generate and migrate Git hooks", generateAndMigrateGitHooks),
 	// v20 -> v21
-	NewMigration("use new avtar path name for security reason", useNewNameAvatars),
+	NewMigration("use new avatar path name for security reason", useNewNameAvatars),
 }
 
 // Migrate database to current version

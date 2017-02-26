@@ -21,6 +21,10 @@ import (
 func useNewNameAvatars(x *xorm.Engine) error {
 	d, err := os.Open(setting.AvatarUploadPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			// Nothing to do if AvatarUploadPath does not exist
+			return nil
+		}
 		return err
 	}
 	names, err := d.Readdirnames(0)
