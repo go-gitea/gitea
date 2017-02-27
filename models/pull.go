@@ -115,11 +115,15 @@ func (pr *PullRequest) LoadAttributes() error {
 
 // LoadIssue loads issue information from database
 func (pr *PullRequest) LoadIssue() (err error) {
+	return pr.loadIssue(x)
+}
+
+func (pr *PullRequest) loadIssue(e Engine) (err error) {
 	if pr.Issue != nil {
 		return nil
 	}
 
-	pr.Issue, err = GetIssueByID(pr.IssueID)
+	pr.Issue, err = getIssueByID(e, pr.IssueID)
 	return err
 }
 
@@ -405,14 +409,15 @@ func (pr *PullRequest) setMerged() (err error) {
 		return err
 	}
 
-	if err = pr.LoadIssue(); err != nil {
+	if err = pr.loadIssue(sess); err != nil {
 		return err
 	}
 
-	if pr.Issue.Repo.Owner == nil {
-		if err = pr.Issue.Repo.GetOwner(); err != nil {
-			return err
-		}
+	if err = pr.Issue.loadRepo(sess); err != nil {
+		return err
+	}
+	if err = pr.Issue.Repo.getOwner(sess); err != nil {
+		return err
 	}
 
 	if err = pr.Issue.changeStatus(sess, pr.Merger, pr.Issue.Repo, true); err != nil {
