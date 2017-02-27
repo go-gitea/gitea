@@ -10,9 +10,8 @@ import (
 	"time"
 )
 
-// Protected metadata
 const (
-	// Protected Repo ID
+	// ProtectedBranchRepoID protected Repo ID
 	ProtectedBranchRepoID = "GITEA_REPO_ID"
 )
 
