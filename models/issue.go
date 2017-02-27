@@ -203,7 +203,7 @@ func (issue *Issue) GetIsRead(userID int64) error {
 
 // APIURL returns the absolute APIURL to this issue.
 func (issue *Issue) APIURL() string {
-	return path.Join(issue.Repo.APIURL(), "issues", string(issue.ID))
+	return strings.TrimRight(issue.Repo.APIURL(), "/") + "/" + path.Join("issues", fmt.Sprint(issue.ID))
 }
 
 // HTMLURL returns the absolute URL to this issue.
