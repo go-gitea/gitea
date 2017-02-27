@@ -6,6 +6,7 @@ package models
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,8 @@ func CheckConsistencyForAll(t *testing.T) {
 		&PullRequest{},
 		&Milestone{},
 		&Label{},
-		&Team{})
+		&Team{},
+		&Action{})
 }
 
 // CheckConsistencyFor test that all matching database entries are consistent
@@ -37,7 +39,7 @@ func CheckConsistencyFor(t *testing.T, beansToCheck ...interface{}) {
 		ptrToSliceValue := reflect.New(sliceType)
 		ptrToSliceValue.Elem().Set(sliceValue)
 
-		assert.NoError(t, x.Find(ptrToSliceValue.Interface()))
+		assert.NoError(t, x.Where(bean).Find(ptrToSliceValue.Interface()))
 		sliceValue = ptrToSliceValue.Elem()
 
 		for i := 0; i < sliceValue.Len(); i++ {
@@ -80,6 +82,7 @@ func (user *User) CheckForConsistency(t *testing.T) {
 }
 
 func (repo *Repository) CheckForConsistency(t *testing.T) {
+	assert.Equal(t, repo.LowerName, strings.ToLower(repo.Name), "repo: %+v", repo)
 	assertCount(t, &Star{RepoID: repo.ID}, repo.NumStars)
 	assertCount(t, &Watch{RepoID: repo.ID}, repo.NumWatches)
 	assertCount(t, &Milestone{RepoID: repo.ID}, repo.NumMilestones)
@@ -155,4 +158,15 @@ func (label *Label) CheckForConsistency(t *testing.T) {
 func (team *Team) CheckForConsistency(t *testing.T) {
 	assertCount(t, &TeamUser{TeamID: team.ID}, team.NumMembers)
 	assertCount(t, &TeamRepo{TeamID: team.ID}, team.NumRepos)
+}
+
+func (action *Action) CheckForConsistency(t *testing.T) {
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: action.RepoID}).(*Repository)
+	owner := AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
+	actor := AssertExistsAndLoadBean(t, &User{ID: action.ActUserID}).(*User)
+
+	assert.Equal(t, repo.Name, action.RepoName, "action: %+v", action)
+	assert.Equal(t, repo.IsPrivate, action.IsPrivate, "action: %+v", action)
+	assert.Equal(t, owner.Name, action.RepoUserName, "action: %+v", action)
+	assert.Equal(t, actor.Name, action.ActUserName, "action: %+v", action)
 }
