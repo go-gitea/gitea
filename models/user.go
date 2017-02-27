@@ -324,12 +324,12 @@ func (u *User) RelAvatarLink() string {
 
 	switch {
 	case u.UseCustomAvatar:
-		if !com.IsExist(u.CustomAvatarPath()) {
+		if !com.IsFile(u.CustomAvatarPath()) {
 			return defaultImgURL
 		}
 		return setting.AppSubURL + "/avatars/" + u.Avatar
 	case setting.DisableGravatar, setting.OfflineMode:
-		if !com.IsExist(u.CustomAvatarPath()) {
+		if !com.IsFile(u.CustomAvatarPath()) {
 			if err := u.GenerateRandomAvatar(); err != nil {
 				log.Error(3, "GenerateRandomAvatar: %v", err)
 			}
