@@ -47,21 +47,21 @@ vet:
 
 .PHONY: generate
 generate:
-	@which go-bindata > /dev/null; if [ $$? -ne 0 ]; then \
+	@hash go-bindata > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/jteeuwen/go-bindata/...; \
 	fi
 	go generate $(PACKAGES)
 
 .PHONY: errcheck
 errcheck:
-	@which errcheck > /dev/null; if [ $$? -ne 0 ]; then \
+	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/kisielk/errcheck; \
 	fi
 	errcheck $(PACKAGES)
 
 .PHONY: lint
 lint:
-	@which golint > /dev/null; if [ $$? -ne 0 ]; then \
+	@hash golint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/golang/lint/golint; \
 	fi
 	for PKG in $(PACKAGES); do golint -set_exit_status $$PKG || exit 1; done;
@@ -93,7 +93,7 @@ $(EXECUTABLE): $(SOURCES)
 
 .PHONY: docker
 docker:
-	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="$(TAGS)" webhippie/golang:edge make clean generate build
+	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" webhippie/golang:edge make clean generate build
 	docker build -t gitea/gitea:latest .
 
 .PHONY: release
@@ -105,7 +105,7 @@ release-dirs:
 
 .PHONY: release-build
 release-build:
-	@which xgo > /dev/null; if [ $$? -ne 0 ]; then \
+	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/karalabe/xgo; \
 	fi
 	xgo -dest $(DIST)/binaries -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets '$(TARGETS)' -out $(EXECUTABLE)-$(VERSION) .

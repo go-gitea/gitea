@@ -89,7 +89,7 @@ func NewAttachment(name string, buf []byte, file multipart.File) (_ *Attachment,
 
 func getAttachmentByUUID(e Engine, uuid string) (*Attachment, error) {
 	attach := &Attachment{UUID: uuid}
-	has, err := x.Get(attach)
+	has, err := e.Get(attach)
 	if err != nil {
 		return nil, err
 	} else if !has {

@@ -30,7 +30,6 @@ import (
 
 	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	version "github.com/mcuadros/go-version"
 	ini "gopkg.in/ini.v1"
@@ -281,6 +280,7 @@ func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
 		Description:   repo.Description,
 		Private:       repo.IsPrivate,
 		Fork:          repo.IsFork,
+		Mirror:        repo.IsMirror,
 		HTMLURL:       repo.HTMLURL(),
 		SSHURL:        cloneLink.SSH,
 		CloneURL:      cloneLink.HTTPS,
@@ -412,13 +412,18 @@ func (repo *Repository) ComposeMetas() map[string]string {
 }
 
 // DeleteWiki removes the actual and local copy of repository wiki.
-func (repo *Repository) DeleteWiki() {
+func (repo *Repository) DeleteWiki() error {
+	return repo.deleteWiki(x)
+}
+
+func (repo *Repository) deleteWiki(e Engine) error {
 	wikiPaths := []string{repo.WikiPath(), repo.LocalWikiPath()}
 	for _, wikiPath := range wikiPaths {
-		RemoveAllWithNotice("Delete repository wiki", wikiPath)
+		removeAllWithNotice(e, "Delete repository wiki", wikiPath)
 	}
 
-	x.Where("repo_id = ?", repo.ID).And("type = ?", UnitTypeWiki).Delete(new(RepoUnit))
+	_, err := e.Where("repo_id = ?", repo.ID).And("type = ?", UnitTypeWiki).Delete(new(RepoUnit))
+	return err
 }
 
 func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
@@ -1224,28 +1229,6 @@ func CountUserRepositories(userID int64, private bool) int64 {
 	return countRepositories(userID, private)
 }
 
-// Repositories returns all repositories
-func Repositories(opts *SearchRepoOptions) (_ RepositoryList, err error) {
-	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = "id ASC"
-	}
-
-	repos := make(RepositoryList, 0, opts.PageSize)
-
-	if err = x.
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		OrderBy(opts.OrderBy).
-		Find(&repos); err != nil {
-		return nil, fmt.Errorf("Repo: %v", err)
-	}
-
-	if err = repos.loadAttributes(x); err != nil {
-		return nil, fmt.Errorf("LoadAttributes: %v", err)
-	}
-
-	return repos, nil
-}
-
 // RepoPath returns repository path by given user and repository name.
 func RepoPath(userName, repoName string) string {
 	return filepath.Join(UserPath(userName), strings.ToLower(repoName)+".git")
@@ -1620,27 +1603,25 @@ func DeleteRepository(uid, repoID int64) error {
 		return err
 	}
 
-	// Remove repository files.
+	// FIXME: Remove repository files should be executed after transaction succeed.
 	repoPath := repo.repoPath(sess)
-	RemoveAllWithNotice("Delete repository files", repoPath)
+	removeAllWithNotice(sess, "Delete repository files", repoPath)
 
-	repo.DeleteWiki()
+	repo.deleteWiki(sess)
 
 	// Remove attachment files.
 	for i := range attachmentPaths {
-		RemoveAllWithNotice("Delete attachment", attachmentPaths[i])
+		removeAllWithNotice(sess, "Delete attachment", attachmentPaths[i])
 	}
 
 	// Remove LFS objects
 	var lfsObjects []*LFSMetaObject
-
 	if err = sess.Where("repository_id=?", repoID).Find(&lfsObjects); err != nil {
 		return err
 	}
 
 	for _, v := range lfsObjects {
 		count, err := sess.Count(&LFSMetaObject{Oid: v.Oid})
-
 		if err != nil {
 			return err
 		}
@@ -1752,53 +1733,16 @@ func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 		Find(&repos)
 }
 
-// GetRecentUpdatedRepositories returns the list of repositories that are recently updated.
-func GetRecentUpdatedRepositories(opts *SearchRepoOptions) (repos RepositoryList, err error) {
-	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = "updated_unix DESC"
-	}
-
-	sess := x.Where("is_private=?", false).
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		Limit(opts.PageSize)
-
-	if opts.Searcher != nil {
-		sess.Or("owner_id = ?", opts.Searcher.ID)
-
-		err := opts.Searcher.GetOrganizations(true)
-
-		if err != nil {
-			return nil, fmt.Errorf("Organization: %v", err)
-		}
-
-		for _, org := range opts.Searcher.Orgs {
-			sess.Or("owner_id = ?", org.ID)
-		}
-	}
-
-	if err = sess.
-		OrderBy(opts.OrderBy).
-		Find(&repos); err != nil {
-		return nil, fmt.Errorf("Repo: %v", err)
-	}
-
-	if err = repos.loadAttributes(x); err != nil {
-		return nil, fmt.Errorf("LoadAttributes: %v", err)
-	}
-
-	return repos, nil
-}
-
 func getRepositoryCount(e Engine, u *User) (int64, error) {
-	return x.Count(&Repository{OwnerID: u.ID})
+	return e.Count(&Repository{OwnerID: u.ID})
 }
 
 func getPublicRepositoryCount(e Engine, u *User) (int64, error) {
-	return x.Where("is_private = ?", false).Count(&Repository{OwnerID: u.ID})
+	return e.Where("is_private = ?", false).Count(&Repository{OwnerID: u.ID})
 }
 
 func getPrivateRepositoryCount(e Engine, u *User) (int64, error) {
-	return x.Where("is_private = ?", true).Count(&Repository{OwnerID: u.ID})
+	return e.Where("is_private = ?", true).Count(&Repository{OwnerID: u.ID})
 }
 
 // GetRepositoryCount returns the total number of repositories of user.
@@ -1814,105 +1758,6 @@ func GetPublicRepositoryCount(u *User) (int64, error) {
 // GetPrivateRepositoryCount returns the total number of private repositories of user.
 func GetPrivateRepositoryCount(u *User) (int64, error) {
 	return getPrivateRepositoryCount(x, u)
-}
-
-// SearchRepoOptions holds the search options
-type SearchRepoOptions struct {
-	Keyword   string
-	OwnerID   int64
-	Searcher  *User //ID of the person who's seeking
-	OrderBy   string
-	Private   bool // Include private repositories in results
-	Starred   bool
-	Page      int
-	IsProfile bool
-	PageSize  int // Can be smaller than or equal to setting.ExplorePagingNum
-}
-
-// SearchRepositoryByName takes keyword and part of repository name to search,
-// it returns results in given range and number of total results.
-func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ int64, _ error) {
-	var (
-		sess *xorm.Session
-		cond = builder.NewCond()
-	)
-
-	if len(opts.Keyword) == 0 {
-		return repos, 0, nil
-	}
-	opts.Keyword = strings.ToLower(opts.Keyword)
-
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
-
-	repos = make([]*Repository, 0, opts.PageSize)
-
-	if opts.Starred && opts.OwnerID > 0 {
-		cond = builder.Eq{
-			"star.uid": opts.OwnerID,
-		}
-	}
-	cond = cond.And(builder.Like{"lower_name", opts.Keyword})
-
-	// Append conditions
-	if !opts.Starred && opts.OwnerID > 0 {
-		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
-	}
-	if !opts.Private {
-		cond = cond.And(builder.Eq{"is_private": false})
-	}
-
-	if opts.Searcher != nil {
-		var ownerIds []int64
-
-		ownerIds = append(ownerIds, opts.Searcher.ID)
-		err := opts.Searcher.GetOrganizations(true)
-
-		if err != nil {
-			return nil, 0, fmt.Errorf("Organization: %v", err)
-		}
-
-		for _, org := range opts.Searcher.Orgs {
-			ownerIds = append(ownerIds, org.ID)
-		}
-
-		cond = cond.Or(builder.And(builder.Like{"lower_name", opts.Keyword}, builder.In("owner_id", ownerIds)))
-	}
-
-	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = "name ASC"
-	}
-
-	if opts.Starred && opts.OwnerID > 0 {
-		sess = x.
-			Join("INNER", "star", "star.repo_id = repository.id").
-			Where(cond)
-	} else {
-		sess = x.Where(cond)
-	}
-
-	var countSess xorm.Session
-	countSess = *sess
-	count, err := countSess.Count(new(Repository))
-	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
-	}
-
-	if err = sess.
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		OrderBy(opts.OrderBy).
-		Find(&repos); err != nil {
-		return nil, 0, fmt.Errorf("Repo: %v", err)
-	}
-
-	if !opts.IsProfile {
-		if err = repos.loadAttributes(x); err != nil {
-			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
-		}
-	}
-
-	return repos, count, nil
 }
 
 // DeleteRepositoryArchives deletes all repositories' archives.
@@ -2230,84 +2075,6 @@ func CheckRepoStats() {
 		}
 	}
 	// ***** END: Repository.NumForks *****
-}
-
-// RepositoryList contains a list of repositories
-type RepositoryList []*Repository
-
-func (repos RepositoryList) loadAttributes(e Engine) error {
-	if len(repos) == 0 {
-		return nil
-	}
-
-	// Load owners.
-	set := make(map[int64]*User)
-	for i := range repos {
-		set[repos[i].OwnerID] = nil
-	}
-	userIDs := make([]int64, 0, len(set))
-	for userID := range set {
-		userIDs = append(userIDs, userID)
-	}
-	users := make([]*User, 0, len(userIDs))
-	if err := e.
-		Where("id > 0").
-		In("id", userIDs).
-		Find(&users); err != nil {
-		return fmt.Errorf("find users: %v", err)
-	}
-	for i := range users {
-		set[users[i].ID] = users[i]
-	}
-	for i := range repos {
-		repos[i].Owner = set[repos[i].OwnerID]
-	}
-	return nil
-}
-
-// LoadAttributes loads the attributes for the given RepositoryList
-func (repos RepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(x)
-}
-
-// MirrorRepositoryList contains the mirror repositories
-type MirrorRepositoryList []*Repository
-
-func (repos MirrorRepositoryList) loadAttributes(e Engine) error {
-	if len(repos) == 0 {
-		return nil
-	}
-
-	// Load mirrors.
-	repoIDs := make([]int64, 0, len(repos))
-	for i := range repos {
-		if !repos[i].IsMirror {
-			continue
-		}
-
-		repoIDs = append(repoIDs, repos[i].ID)
-	}
-	mirrors := make([]*Mirror, 0, len(repoIDs))
-	if err := e.
-		Where("id > 0").
-		In("repo_id", repoIDs).
-		Find(&mirrors); err != nil {
-		return fmt.Errorf("find mirrors: %v", err)
-	}
-
-	set := make(map[int64]*Mirror)
-	for i := range mirrors {
-		set[mirrors[i].RepoID] = mirrors[i]
-	}
-	for i := range repos {
-		repos[i].Mirror = set[repos[i].ID]
-	}
-	return nil
-}
-
-// LoadAttributes loads the attributes for the given MirrorRepositoryList
-func (repos MirrorRepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(x)
 }
 
 // ___________           __

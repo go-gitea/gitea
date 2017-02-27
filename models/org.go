@@ -517,7 +517,7 @@ func RemoveOrgUser(orgID, userID int64) error {
 		return err
 	}
 	for _, t := range teams {
-		if err = removeTeamMember(sess, org.ID, t.ID, userID); err != nil {
+		if err = removeTeamMember(sess, t, userID); err != nil {
 			return err
 		}
 	}

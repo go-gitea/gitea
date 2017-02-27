@@ -81,36 +81,6 @@ func Search(ctx *context.APIContext) {
 	})
 }
 
-// ListMyRepos list all my repositories
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#list-your-repositories
-func ListMyRepos(ctx *context.APIContext) {
-	ownRepos, err := models.GetUserRepositories(ctx.User.ID, true, 1, ctx.User.NumRepos, "")
-	if err != nil {
-		ctx.Error(500, "GetRepositories", err)
-		return
-	}
-	numOwnRepos := len(ownRepos)
-
-	accessibleRepos, err := ctx.User.GetRepositoryAccesses()
-	if err != nil {
-		ctx.Error(500, "GetRepositoryAccesses", err)
-		return
-	}
-
-	repos := make([]*api.Repository, numOwnRepos+len(accessibleRepos))
-	for i := range ownRepos {
-		repos[i] = ownRepos[i].APIFormat(models.AccessModeOwner)
-	}
-	i := numOwnRepos
-
-	for repo, access := range accessibleRepos {
-		repos[i] = repo.APIFormat(access)
-		i++
-	}
-
-	ctx.JSON(200, &repos)
-}
-
 // CreateUserRepo create a repository for a user
 func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateRepoOption) {
 	repo, err := models.CreateRepository(owner, models.CreateRepoOptions{

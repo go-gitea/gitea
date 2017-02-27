@@ -15,40 +15,15 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// UpdateTask defines an UpdateTask
-type UpdateTask struct {
-	ID          int64  `xorm:"pk autoincr"`
-	UUID        string `xorm:"index"`
-	RefName     string
-	OldCommitID string
-	NewCommitID string
-}
-
-// AddUpdateTask adds an UpdateTask
-func AddUpdateTask(task *UpdateTask) error {
-	_, err := x.Insert(task)
-	return err
-}
-
-// GetUpdateTaskByUUID returns update task by given UUID.
-func GetUpdateTaskByUUID(uuid string) (*UpdateTask, error) {
-	task := &UpdateTask{
-		UUID: uuid,
-	}
-	has, err := x.Get(task)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrUpdateTaskNotExist{uuid}
-	}
-	return task, nil
-}
-
-// DeleteUpdateTaskByUUID deletes an UpdateTask from the database
-func DeleteUpdateTaskByUUID(uuid string) error {
-	_, err := x.Delete(&UpdateTask{UUID: uuid})
-	return err
-}
+// env keys for git hooks need
+const (
+	EnvRepoName     = "GITEA_REPO_NAME"
+	EnvRepoUsername = "GITEA_REPO_USER_NAME"
+	EnvRepoUserSalt = "GITEA_REPO_USER_SALT"
+	EnvRepoIsWiki   = "GITEA_REPO_IS_WIKI"
+	EnvPusherName   = "GITEA_PUSHER_NAME"
+	EnvPusherID     = "GITEA_PUSHER_ID"
+)
 
 // CommitToPushCommit transforms a git.Commit to PushCommit type.
 func CommitToPushCommit(commit *git.Commit) *PushCommit {

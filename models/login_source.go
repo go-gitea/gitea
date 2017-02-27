@@ -624,6 +624,16 @@ func UserSignIn(username, password string) (*User, error) {
 	var user *User
 	if strings.Contains(username, "@") {
 		user = &User{Email: strings.ToLower(strings.TrimSpace(username))}
+		// check same email
+		cnt, err := x.Count(user)
+		if err != nil {
+			return nil, err
+		}
+		if cnt > 1 {
+			return nil, ErrEmailAlreadyUsed{
+				Email: user.Email,
+			}
+		}
 	} else {
 		user = &User{LowerName: strings.ToLower(strings.TrimSpace(username))}
 	}

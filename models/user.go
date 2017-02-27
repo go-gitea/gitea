@@ -7,6 +7,7 @@ package models
 import (
 	"bytes"
 	"container/list"
+	"crypto/md5"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
@@ -23,6 +24,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	"github.com/nfnt/resize"
 	"golang.org/x/crypto/pbkdf2"
@@ -280,7 +282,7 @@ func (u *User) GenerateActivateCode() string {
 
 // CustomAvatarPath returns user custom avatar file path.
 func (u *User) CustomAvatarPath() string {
-	return filepath.Join(setting.AvatarUploadPath, com.ToStr(u.ID))
+	return filepath.Join(setting.AvatarUploadPath, u.Avatar)
 }
 
 // GenerateRandomAvatar generates a random avatar for user.
@@ -322,18 +324,18 @@ func (u *User) RelAvatarLink() string {
 
 	switch {
 	case u.UseCustomAvatar:
-		if !com.IsExist(u.CustomAvatarPath()) {
+		if !com.IsFile(u.CustomAvatarPath()) {
 			return defaultImgURL
 		}
-		return setting.AppSubURL + "/avatars/" + com.ToStr(u.ID)
+		return setting.AppSubURL + "/avatars/" + u.Avatar
 	case setting.DisableGravatar, setting.OfflineMode:
-		if !com.IsExist(u.CustomAvatarPath()) {
+		if !com.IsFile(u.CustomAvatarPath()) {
 			if err := u.GenerateRandomAvatar(); err != nil {
 				log.Error(3, "GenerateRandomAvatar: %v", err)
 			}
 		}
 
-		return setting.AppSubURL + "/avatars/" + com.ToStr(u.ID)
+		return setting.AppSubURL + "/avatars/" + u.Avatar
 	}
 	return base.AvatarLink(u.AvatarEmail)
 }
@@ -424,6 +426,7 @@ func (u *User) UploadAvatar(data []byte) error {
 	}
 
 	u.UseCustomAvatar = true
+	u.Avatar = fmt.Sprintf("%x", md5.Sum(data))
 	if err = updateUser(sess, u); err != nil {
 		return fmt.Errorf("updateUser: %v", err)
 	}
@@ -820,21 +823,26 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	return os.Rename(UserPath(u.Name), UserPath(newUserName))
 }
 
+// checkDupEmail checks whether there are the same email with the user
+func checkDupEmail(e Engine, u *User) error {
+	u.Email = strings.ToLower(u.Email)
+	has, err := e.
+		Where("id!=?", u.ID).
+		And("type=?", u.Type).
+		And("email=?", u.Email).
+		Get(new(User))
+	if err != nil {
+		return err
+	} else if has {
+		return ErrEmailAlreadyUsed{u.Email}
+	}
+	return nil
+}
+
 func updateUser(e Engine, u *User) error {
 	// Organization does not need email
+	u.Email = strings.ToLower(u.Email)
 	if !u.IsOrganization() {
-		u.Email = strings.ToLower(u.Email)
-		has, err := e.
-			Where("id!=?", u.ID).
-			And("type=?", u.Type).
-			And("email=?", u.Email).
-			Get(new(User))
-		if err != nil {
-			return err
-		} else if has {
-			return ErrEmailAlreadyUsed{u.Email}
-		}
-
 		if len(u.AvatarEmail) == 0 {
 			u.AvatarEmail = u.Email
 		}
@@ -853,6 +861,16 @@ func updateUser(e Engine, u *User) error {
 
 // UpdateUser updates user's information.
 func UpdateUser(u *User) error {
+	return updateUser(x, u)
+}
+
+// UpdateUserSetting updates user's settings.
+func UpdateUserSetting(u *User) error {
+	if !u.IsOrganization() {
+		if err := checkDupEmail(x, u); err != nil {
+			return err
+		}
+	}
 	return updateUser(x, u)
 }
 
@@ -1235,27 +1253,28 @@ func SearchUserByName(opts *SearchUserOptions) (users []*User, _ int64, _ error)
 		opts.Page = 1
 	}
 
-	searchQuery := "%" + opts.Keyword + "%"
 	users = make([]*User, 0, opts.PageSize)
-	// Append conditions
-	sess := x.
-		Where("LOWER(lower_name) LIKE ?", searchQuery).
-		Or("LOWER(full_name) LIKE ?", searchQuery).
-		And("type = ?", opts.Type)
 
-	var countSess xorm.Session
-	countSess = *sess
-	count, err := countSess.Count(new(User))
+	// Append conditions
+	cond := builder.And(
+		builder.Eq{"type": opts.Type},
+		builder.Or(
+			builder.Like{"lower_name", opts.Keyword},
+			builder.Like{"LOWER(full_name)", opts.Keyword},
+		),
+	)
+
+	count, err := x.Where(cond).Count(new(User))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
+	sess := x.Where(cond).
+		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	if len(opts.OrderBy) > 0 {
 		sess.OrderBy(opts.OrderBy)
 	}
-	return users, count, sess.
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		Find(&users)
+	return users, count, sess.Find(&users)
 }
 
 // ___________    .__  .__

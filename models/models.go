@@ -100,7 +100,6 @@ func init() {
 		new(Release),
 		new(LoginSource),
 		new(Webhook),
-		new(UpdateTask),
 		new(HookTask),
 		new(Team),
 		new(OrgUser),
@@ -316,7 +315,6 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Label, _ = x.Count(new(Label))
 	stats.Counter.HookTask, _ = x.Count(new(HookTask))
 	stats.Counter.Team, _ = x.Count(new(Team))
-	stats.Counter.UpdateTask, _ = x.Count(new(UpdateTask))
 	stats.Counter.Attachment, _ = x.Count(new(Attachment))
 	return
 }
