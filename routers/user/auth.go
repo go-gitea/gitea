@@ -221,6 +221,20 @@ func TwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 			return
 		}
 
+		if ctx.Session.Get("linkAccount") != nil {
+			gothUser := ctx.Session.Get("linkAccountGothUser")
+			if gothUser == nil {
+				ctx.Handle(500, "UserSignIn", errors.New("not in LinkAccount session"))
+				return
+			}
+
+			err = models.LinkAccountToUser(u, gothUser.(goth.User))
+			if err != nil {
+				ctx.Handle(500, "UserSignIn", err)
+				return
+			}
+		}
+
 		handleSignIn(ctx, u, remember)
 		return
 	}
@@ -532,8 +546,12 @@ func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
 	_, err = models.GetTwoFactorByUID(u.ID)
 	if err != nil {
 		if models.IsErrTwoFactorNotEnrolled(err) {
-			models.LinkAccountToUser(u, gothUser.(goth.User))
-			handleSignIn(ctx, u, signInForm.Remember)
+			err = models.LinkAccountToUser(u, gothUser.(goth.User))
+			if err != nil {
+				ctx.Handle(500, "UserLinkAccount", err)
+			} else {
+				handleSignIn(ctx, u, signInForm.Remember)
+			}
 		} else {
 			ctx.Handle(500, "UserLinkAccount", err)
 		}
