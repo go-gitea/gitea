@@ -50,8 +50,8 @@ func main() {
 
 func formatBuiltWith(Tags string) string {
 	if len(Tags) == 0 {
-  		return ""
-  	}
+		return ""
+	}
 
-  	return " built with: " + strings.Replace(Tags, " ", ", ", -1)
+	return " built with: " + strings.Replace(Tags, " ", ", ", -1)
 }
