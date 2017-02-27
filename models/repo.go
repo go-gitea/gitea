@@ -264,6 +264,11 @@ func (repo *Repository) HTMLURL() string {
 	return setting.AppURL + repo.FullName()
 }
 
+// APIURL returns the repository API URL
+func (repo *Repository) APIURL() string {
+	return setting.AppURL + path.Join("api/v1/repos", repo.FullName())
+}
+
 // APIFormat converts a Repository to api.Repository
 func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
 	cloneLink := repo.CloneLink()

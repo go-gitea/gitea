@@ -125,3 +125,14 @@ func TestForkRepository(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, IsErrRepoAlreadyExist(err))
 }
+
+func TestRepoAPIURL(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	repo := &Repository{
+		ID:      int64(10),
+		OwnerID: int64(12),
+		Name:    "repo10",
+	}
+	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user12/repo10", repo.APIURL())
+}
