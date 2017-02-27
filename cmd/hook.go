@@ -76,6 +76,9 @@ func runHookPreReceive(c *cli.Context) error {
 	// the environment setted on serv command
 	repoID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchRepoID), 10, 64)
 	isWiki := (os.Getenv(models.EnvRepoIsWiki) == "true")
+	username := os.Getenv(models.EnvRepoUsername)
+	reponame := os.Getenv(models.EnvRepoName)
+	repoPath := models.RepoPath(username, reponame)
 
 	buf := bytes.NewBuffer(nil)
 	scanner := bufio.NewScanner(os.Stdin)
@@ -113,7 +116,7 @@ func runHookPreReceive(c *cli.Context) error {
 		}
 
 		// Check force push
-		output, err := git.NewCommand("rev-list", oldCommitID, "^"+newCommitID).Run()
+		output, err := git.NewCommand("rev-list", oldCommitID, "^"+newCommitID).RunInDir(repoPath)
 		if err != nil {
 			fail("Internal error", "Fail to detect force push: %v", err)
 		} else if len(output) > 0 {
