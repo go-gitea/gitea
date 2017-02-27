@@ -1734,15 +1734,15 @@ func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 }
 
 func getRepositoryCount(e Engine, u *User) (int64, error) {
-	return x.Count(&Repository{OwnerID: u.ID})
+	return e.Count(&Repository{OwnerID: u.ID})
 }
 
 func getPublicRepositoryCount(e Engine, u *User) (int64, error) {
-	return x.Where("is_private = ?", false).Count(&Repository{OwnerID: u.ID})
+	return e.Where("is_private = ?", false).Count(&Repository{OwnerID: u.ID})
 }
 
 func getPrivateRepositoryCount(e Engine, u *User) (int64, error) {
-	return x.Where("is_private = ?", true).Count(&Repository{OwnerID: u.ID})
+	return e.Where("is_private = ?", true).Count(&Repository{OwnerID: u.ID})
 }
 
 // GetRepositoryCount returns the total number of repositories of user.
