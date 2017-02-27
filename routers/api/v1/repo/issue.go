@@ -40,13 +40,14 @@ func ListIssues(ctx *context.APIContext) {
 		issues = append(issues, tempIssues...)
 	}
 
-	// FIXME: use IssueList to improve performance.
+	err = models.IssueList(issues).LoadAttributes()
+	if err != nil {
+		ctx.Error(500, "LoadAttributes", err)
+		return
+	}
+
 	apiIssues := make([]*api.Issue, len(issues))
 	for i := range issues {
-		if err = issues[i].LoadAttributes(); err != nil {
-			ctx.Error(500, "LoadAttributes", err)
-			return
-		}
 		apiIssues[i] = issues[i].APIFormat()
 	}
 
