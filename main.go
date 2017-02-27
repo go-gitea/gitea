@@ -23,7 +23,8 @@ var Version = "1.1.0+dev"
 var Tags = ""
 
 func init() {
-	setting.AppVer = Version + formatBuiltWith(Tags)
+	setting.AppVer = Version
+	setting.AppBuiltWith = formatBuiltWith(Tags)
 }
 
 func main() {
