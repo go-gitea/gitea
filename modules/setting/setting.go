@@ -59,6 +59,7 @@ const (
 var (
 	// AppVer settings
 	AppVer         string
+	AppBuiltWith   string
 	AppName        string
 	AppURL         string
 	AppSubURL      string
@@ -939,7 +940,7 @@ var logLevels = map[string]string{
 }
 
 func newLogService() {
-	log.Info("Gitea v%s", AppVer)
+	log.Info("Gitea v%s%s", AppVer, AppBuiltWith)
 
 	LogModes = strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
 	LogConfigs = make([]string, len(LogModes))

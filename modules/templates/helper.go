@@ -48,6 +48,9 @@ func NewFuncMap() []template.FuncMap {
 		"AppVer": func() string {
 			return setting.AppVer
 		},
+		"AppBuiltWith": func() string {
+				return setting.AppBuiltWith
+		},
 		"AppDomain": func() string {
 			return setting.Domain
 		},
