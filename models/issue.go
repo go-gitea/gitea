@@ -779,7 +779,7 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 type NewIssueOptions struct {
 	Repo        *Repository
 	Issue       *Issue
-	LableIDs    []int64
+	LabelIDs    []int64
 	Attachments []string // In UUID format.
 	IsPull      bool
 }
@@ -851,12 +851,12 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		return err
 	}
 
-	if len(opts.LableIDs) > 0 {
+	if len(opts.LabelIDs) > 0 {
 		// During the session, SQLite3 driver cannot handle retrieve objects after update something.
 		// So we have to get all needed labels first.
-		labels := make([]*Label, 0, len(opts.LableIDs))
-		if err = e.In("id", opts.LableIDs).Find(&labels); err != nil {
-			return fmt.Errorf("find all labels [label_ids: %v]: %v", opts.LableIDs, err)
+		labels := make([]*Label, 0, len(opts.LabelIDs))
+		if err = e.In("id", opts.LabelIDs).Find(&labels); err != nil {
+			return fmt.Errorf("find all labels [label_ids: %v]: %v", opts.LabelIDs, err)
 		}
 
 		if err = opts.Issue.loadPoster(e); err != nil {
@@ -909,7 +909,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 	if err = newIssue(sess, issue.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       issue,
-		LableIDs:    labelIDs,
+		LabelIDs:    labelIDs,
 		Attachments: uuids,
 	}); err != nil {
 		return fmt.Errorf("newIssue: %v", err)
