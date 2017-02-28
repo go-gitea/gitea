@@ -244,7 +244,7 @@ func GetReleasesByRepoID(repoID int64, page, pageSize int) (rels []*Release, err
 	return rels, err
 }
 
-// GetReleasesByRepoIDAndNames returns a list of releases of repository accroding repoID and tagNames.
+// GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
 func GetReleasesByRepoIDAndNames(repoID int64, tagNames []string) (rels []*Release, err error) {
 	err = x.
 		Desc("created_unix").

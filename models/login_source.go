@@ -715,7 +715,7 @@ func GetActiveOAuth2LoginSourceByName(name string) (*LoginSource, error) {
 // key is used as technical name (like in the callbackURL)
 // values to display
 func GetActiveOAuth2Providers() (map[string]OAuth2Provider, error) {
-	// Maybe also seperate used and unused providers so we can force the registration of only 1 active provider for each type
+	// Maybe also separate used and unused providers so we can force the registration of only 1 active provider for each type
 
 	loginSources, err := GetActiveOAuth2ProviderLoginSources()
 	if err != nil {
