@@ -17,8 +17,8 @@
   act_user_name: user3
   repo_id: 3
   repo_user_name: user3
-  repo_name: repo3 # TODO old or new name?
-  is_private: false
+  repo_name: repo3
+  is_private: true
   content: oldRepoName
 
 -
