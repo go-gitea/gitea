@@ -476,31 +476,24 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 	sort.Sort(labelSorter(issue.Labels))
 
 	var toAdd, toRemove []*Label
-	for _, l := range labels {
-		var exist bool
-		for _, oriLabel := range issue.Labels {
-			if oriLabel.ID == l.ID {
-				exist = true
-				break
-			}
-		}
-		if !exist {
-			toAdd = append(toAdd, l)
-		}
-	}
 
-	for _, oriLabel := range issue.Labels {
-		var exist bool
-		for _, l := range labels {
-			if oriLabel.ID == l.ID {
-				exist = true
-				break
-			}
-		}
-		if !exist {
-			toRemove = append(toRemove, oriLabel)
+	addIndex, removeIndex := 0, 0
+	for addIndex < len(labels) && removeIndex < len(issue.Labels) {
+		addLabel := labels[addIndex]
+		removeLabel := issue.Labels[removeIndex]
+		if addLabel.ID == removeLabel.ID {
+			addIndex++
+			removeIndex++
+		} else if addLabel.ID < removeLabel.ID {
+			toAdd = append(toAdd, addLabel)
+			addIndex++
+		} else {
+			toRemove = append(toRemove, removeLabel)
+			removeIndex++
 		}
 	}
+	toAdd = append(toAdd, labels[addIndex:]...)
+	toRemove = append(toRemove, issue.Labels[removeIndex:]...)
 
 	if len(toAdd) > 0 {
 		if err = issue.addLabels(sess, toAdd, doer); err != nil {
@@ -508,11 +501,9 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 		}
 	}
 
-	if len(toRemove) > 0 {
-		for _, l := range toRemove {
-			if err = issue.removeLabel(sess, doer, l); err != nil {
-				return fmt.Errorf("removeLabel: %v", err)
-			}
+	for _, l := range toRemove {
+		if err = issue.removeLabel(sess, doer, l); err != nil {
+			return fmt.Errorf("removeLabel: %v", err)
 		}
 	}
 
