@@ -330,46 +330,40 @@ func DeleteTeam(t *Team) error {
 		return err
 	}
 
-	// Get organization.
-	org, err := GetUserByID(t.OrgID)
-	if err != nil {
-		return err
-	}
-
 	sess := x.NewSession()
 	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
 	// Delete all accesses.
 	for _, repo := range t.Repos {
-		if err = repo.recalculateTeamAccesses(sess, t.ID); err != nil {
+		if err := repo.recalculateTeamAccesses(sess, t.ID); err != nil {
 			return err
 		}
 	}
 
 	// Delete team-repo
-	if _, err = sess.
+	if _, err := sess.
 		Where("team_id=?", t.ID).
 		Delete(new(TeamRepo)); err != nil {
 		return err
 	}
 
 	// Delete team-user.
-	if _, err = sess.
-		Where("org_id=?", org.ID).
+	if _, err := sess.
+		Where("org_id=?", t.OrgID).
 		Where("team_id=?", t.ID).
 		Delete(new(TeamUser)); err != nil {
 		return err
 	}
 
 	// Delete team.
-	if _, err = sess.Id(t.ID).Delete(new(Team)); err != nil {
+	if _, err := sess.Id(t.ID).Delete(new(Team)); err != nil {
 		return err
 	}
 	// Update organization number of teams.
-	if _, err = sess.Exec("UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
+	if _, err := sess.Exec("UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
 		return err
 	}
 
@@ -517,12 +511,6 @@ func removeTeamMember(e Engine, team *Team, userID int64) error {
 		return err
 	}
 
-	// Get organization.
-	org, err := getUserByID(e, team.OrgID)
-	if err != nil {
-		return err
-	}
-
 	if _, err := e.Delete(&TeamUser{
 		UID:    userID,
 		OrgID:  team.OrgID,
@@ -538,16 +526,16 @@ func removeTeamMember(e Engine, team *Team, userID int64) error {
 
 	// Delete access to team repositories.
 	for _, repo := range team.Repos {
-		if err = repo.recalculateTeamAccesses(e, 0); err != nil {
+		if err := repo.recalculateTeamAccesses(e, 0); err != nil {
 			return err
 		}
 	}
 
 	// This must exist.
 	ou := new(OrgUser)
-	_, err = e.
+	_, err := e.
 		Where("uid = ?", userID).
-		And("org_id = ?", org.ID).
+		And("org_id = ?", team.OrgID).
 		Get(ou)
 	if err != nil {
 		return err
