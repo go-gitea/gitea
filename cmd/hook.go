@@ -71,6 +71,8 @@ func runHookPreReceive(c *cli.Context) error {
 
 	if c.IsSet("config") {
 		setting.CustomConf = c.String("config")
+	} else if c.GlobalIsSet("config") {
+		setting.CustomConf = c.GlobalString("config")
 	}
 
 	if err := setup("hooks/pre-receive.log"); err != nil {
@@ -143,6 +145,8 @@ func runHookUpdate(c *cli.Context) error {
 
 	if c.IsSet("config") {
 		setting.CustomConf = c.String("config")
+	} else if c.GlobalIsSet("config") {
+		setting.CustomConf = c.GlobalString("config")
 	}
 
 	if err := setup("hooks/update.log"); err != nil {
@@ -159,6 +163,8 @@ func runHookPostReceive(c *cli.Context) error {
 
 	if c.IsSet("config") {
 		setting.CustomConf = c.String("config")
+	} else if c.GlobalIsSet("config") {
+		setting.CustomConf = c.GlobalString("config")
 	}
 
 	if err := setup("hooks/post-receive.log"); err != nil {
