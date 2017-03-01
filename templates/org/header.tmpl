@@ -4,7 +4,7 @@
 			<div class="column">
 				<div class="ui header">
 					<img class="ui image" src="{{.RelAvatarLink}}?s=100">
-					<span class="text thin grey"><a href="{{.HomeLink}}">{{.DisplayName}}</a></span>
+					<span class="text thin grey"><a href="{{.HomeLink}}">{{.DisplayName | Str2html}}</a></span>
 
 					<div class="ui right">
 						<div class="ui menu">
