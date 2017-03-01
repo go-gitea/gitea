@@ -69,6 +69,12 @@ func runHookPreReceive(c *cli.Context) error {
 		return nil
 	}
 
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
+	} else if c.GlobalIsSet("config") {
+		setting.CustomConf = c.GlobalString("config")
+	}
+
 	if err := setup("hooks/pre-receive.log"); err != nil {
 		fail("Hook pre-receive init failed", fmt.Sprintf("setup: %v", err))
 	}
@@ -76,9 +82,9 @@ func runHookPreReceive(c *cli.Context) error {
 	// the environment setted on serv command
 	repoID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchRepoID), 10, 64)
 	isWiki := (os.Getenv(models.EnvRepoIsWiki) == "true")
-	username := os.Getenv(models.EnvRepoUsername)
-	reponame := os.Getenv(models.EnvRepoName)
-	repoPath := models.RepoPath(username, reponame)
+	//username := os.Getenv(models.EnvRepoUsername)
+	//reponame := os.Getenv(models.EnvRepoName)
+	//repoPath := models.RepoPath(username, reponame)
 
 	buf := bytes.NewBuffer(nil)
 	scanner := bufio.NewScanner(os.Stdin)
@@ -96,9 +102,21 @@ func runHookPreReceive(c *cli.Context) error {
 			continue
 		}
 
-		oldCommitID := string(fields[0])
+		//oldCommitID := string(fields[0])
 		newCommitID := string(fields[1])
 		refFullName := string(fields[2])
+
+		// FIXME: when we add feature to protected branch to deny force push, then uncomment below
+		/*var isForce bool
+		// detect force push
+		if git.EmptySHA != oldCommitID {
+			output, err := git.NewCommand("rev-list", oldCommitID, "^"+newCommitID).RunInDir(repoPath)
+			if err != nil {
+				fail("Internal error", "Fail to detect force push: %v", err)
+			} else if len(output) > 0 {
+				isForce = true
+			}
+		}*/
 
 		branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 		protectBranch, err := models.GetProtectedBranchBy(repoID, branchName)
@@ -107,20 +125,13 @@ func runHookPreReceive(c *cli.Context) error {
 		}
 
 		if protectBranch != nil {
-			fail(fmt.Sprintf("protected branch %s can not be pushed to", branchName), "")
-		}
-
-		// check and deletion
-		if newCommitID == git.EmptySHA {
-			fail(fmt.Sprintf("Branch '%s' is protected from deletion", branchName), "")
-		}
-
-		// Check force push
-		output, err := git.NewCommand("rev-list", oldCommitID, "^"+newCommitID).RunInDir(repoPath)
-		if err != nil {
-			fail("Internal error", "Fail to detect force push: %v", err)
-		} else if len(output) > 0 {
-			fail(fmt.Sprintf("Branch '%s' is protected from force push", branchName), "")
+			// check and deletion
+			if newCommitID == git.EmptySHA {
+				fail(fmt.Sprintf("branch %s is protected from deletion", branchName), "")
+			} else {
+				fail(fmt.Sprintf("protected branch %s can not be pushed to", branchName), "")
+				//fail(fmt.Sprintf("branch %s is protected from force push", branchName), "")
+			}
 		}
 	}
 
@@ -130,6 +141,12 @@ func runHookPreReceive(c *cli.Context) error {
 func runHookUpdate(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		return nil
+	}
+
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
+	} else if c.GlobalIsSet("config") {
+		setting.CustomConf = c.GlobalString("config")
 	}
 
 	if err := setup("hooks/update.log"); err != nil {
@@ -142,6 +159,12 @@ func runHookUpdate(c *cli.Context) error {
 func runHookPostReceive(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		return nil
+	}
+
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
+	} else if c.GlobalIsSet("config") {
+		setting.CustomConf = c.GlobalString("config")
 	}
 
 	if err := setup("hooks/post-receive.log"); err != nil {
