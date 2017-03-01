@@ -69,6 +69,10 @@ func runHookPreReceive(c *cli.Context) error {
 		return nil
 	}
 
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
+	}
+
 	if err := setup("hooks/pre-receive.log"); err != nil {
 		fail("Hook pre-receive init failed", fmt.Sprintf("setup: %v", err))
 	}
@@ -137,6 +141,10 @@ func runHookUpdate(c *cli.Context) error {
 		return nil
 	}
 
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
+	}
+
 	if err := setup("hooks/update.log"); err != nil {
 		fail("Hook update init failed", fmt.Sprintf("setup: %v", err))
 	}
@@ -147,6 +155,10 @@ func runHookUpdate(c *cli.Context) error {
 func runHookPostReceive(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		return nil
+	}
+
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
 	}
 
 	if err := setup("hooks/post-receive.log"); err != nil {
