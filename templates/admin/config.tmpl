@@ -270,7 +270,7 @@
 							<dt>{{$.i18n.Tr "admin.config.log_mode"}}</dt>
 							<dd>{{.Mode}}</dd>
 							<dt>{{$.i18n.Tr "admin.config.log_config"}}</dt>
-							<dd><code>{{.Config}}</code></dd>
+							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
 						{{end}}
 					</dl>
 				</div>
