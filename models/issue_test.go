@@ -1,8 +1,4 @@
-<<<<<<< c67fc79f985bd7a2c077ec18cc5538ede3242489
 // Copyright 2017 The Gitea Authors. All rights reserved.
-=======
-// Copyright 2017 The Gogs Authors. All rights reserved.
->>>>>>> fix: Add unit testing.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
