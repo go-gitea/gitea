@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/cae/zip"
+	"github.com/Unknwon/com"
 	"github.com/urfave/cli"
 )
 
@@ -114,17 +115,19 @@ func runDump(ctx *cli.Context) error {
 		log.Printf("Custom dir %s doesn't exist, skipped", setting.CustomPath)
 	}
 
-	log.Printf("Packing data directory...%s", setting.AppDataPath)
-	var sessionAbsPath string
-	if setting.SessionConfig.Provider == "file" {
-		if len(setting.SessionConfig.ProviderConfig) == 0 {
-			setting.SessionConfig.ProviderConfig = "data/sessions"
-		}
-		sessionAbsPath, _ = filepath.Abs(setting.SessionConfig.ProviderConfig)
-	}
+	if com.IsExist(setting.AppDataPath) {
+		log.Printf("Packing data directory...%s", setting.AppDataPath)
 
-	if err := zipAddDirectoryExclude(z, "data", setting.AppDataPath, sessionAbsPath); err != nil {
-		log.Fatalf("Failed to include data directory: %v", err)
+		var sessionAbsPath string
+		if setting.SessionConfig.Provider == "file" {
+			if len(setting.SessionConfig.ProviderConfig) == 0 {
+				setting.SessionConfig.ProviderConfig = "data/sessions"
+			}
+			sessionAbsPath, _ = filepath.Abs(setting.SessionConfig.ProviderConfig)
+		}
+		if err := zipAddDirectoryExclude(z, "data", setting.AppDataPath, sessionAbsPath); err != nil {
+			log.Fatalf("Failed to include data directory: %v", err)
+		}
 	}
 
 	if err := z.AddDir("log", setting.LogRootPath); err != nil {
