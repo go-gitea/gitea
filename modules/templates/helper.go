@@ -5,6 +5,7 @@
 package templates
 
 import (
+	"bytes"
 	"container/list"
 	"encoding/json"
 	"fmt"
@@ -132,6 +133,14 @@ func NewFuncMap() []template.FuncMap {
 				path = append(path, str)
 			}
 			return path
+		},
+		"JsonPrettyPrint": func(in string) string {
+			var out bytes.Buffer
+			err := json.Indent(&out, []byte(in), "", "  ")
+			if err != nil {
+				return ""
+			}
+			return out.String()
 		},
 	}}
 }
