@@ -5,6 +5,7 @@
 package models
 
 import (
+	"bufio"
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
@@ -28,7 +29,8 @@ import (
 )
 
 const (
-	tplPublicKey = `command="%s serv key-%d --config='%s'",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
+	tplCommentPrefix = `# gitea public key`
+	tplPublicKey     = tplCommentPrefix + "\n" + `command="%s serv key-%d --config='%s'",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
 )
 
 var sshOpLocker sync.Mutex
@@ -553,22 +555,46 @@ func RewriteAllPublicKeys() error {
 	if err != nil {
 		return err
 	}
-	defer os.Remove(tmpPath)
+	defer func() {
+		f.Close()
+		os.Remove(tmpPath)
+	}()
 
 	err = x.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
 		_, err = f.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
 	})
-	f.Close()
 	if err != nil {
 		return err
 	}
 
 	if com.IsExist(fpath) {
-		if err = os.Remove(fpath); err != nil {
+		bakPath := fpath + fmt.Sprintf("_%d.gitea_bak", time.Now().Unix())
+		if err = com.Copy(fpath, bakPath); err != nil {
 			return err
 		}
+
+		p, err := os.Open(bakPath)
+		if err != nil {
+			return err
+		}
+		defer p.Close()
+
+		scanner := bufio.NewScanner(p)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if strings.HasPrefix(line, tplCommentPrefix) {
+				scanner.Scan()
+				continue
+			}
+			_, err = f.WriteString(line + "\n")
+			if err != nil {
+				return err
+			}
+		}
 	}
+
+	f.Close()
 	if err = os.Rename(tmpPath, fpath); err != nil {
 		return err
 	}

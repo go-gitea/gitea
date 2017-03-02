@@ -90,6 +90,8 @@ var migrations = []Migration{
 	NewMigration("generate and migrate Git hooks", generateAndMigrateGitHooks),
 	// v20 -> v21
 	NewMigration("use new avatar path name for security reason", useNewNameAvatars),
+	// v21 -> v22
+	NewMigration("rewrite authorized_keys file via new format", useNewPublickeyFormat),
 }
 
 // Migrate database to current version
