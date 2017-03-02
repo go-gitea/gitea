@@ -303,9 +303,13 @@ func (r *Request) getResponse() (*http.Response, error) {
 
 	if trans == nil {
 		// create default transport
+		proxy := r.setting.Proxy
+		if proxy == nil {
+			proxy = http.ProxyFromEnvironment
+		}
 		trans = &http.Transport{
 			TLSClientConfig: r.setting.TLSClientConfig,
-			Proxy:           r.setting.Proxy,
+			Proxy:           proxy,
 			Dial:            TimeoutDialer(r.setting.ConnectTimeout, r.setting.ReadWriteTimeout),
 		}
 	} else {
