@@ -284,7 +284,9 @@ var (
 			RunAtStart bool
 			Schedule   string
 		}{
-			Schedule: "@every 10m",
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 10m",
 		},
 		RepoHealthCheck: struct {
 			Enabled    bool
@@ -293,15 +295,18 @@ var (
 			Timeout    time.Duration
 			Args       []string `delim:" "`
 		}{
-			Schedule: "@every 24h",
-			Timeout:  60 * time.Second,
-			Args:     []string{},
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 24h",
+			Timeout:    60 * time.Second,
+			Args:       []string{},
 		},
 		CheckRepoStats: struct {
 			Enabled    bool
 			RunAtStart bool
 			Schedule   string
 		}{
+			Enabled:    true,
 			RunAtStart: true,
 			Schedule:   "@every 24h",
 		},
@@ -767,11 +772,11 @@ func newLogService() {
 
 	useConsole := false
 	for _, mode := range LogModes {
-		if mode == "console"  {
+		if mode == "console" {
 			useConsole = true
 		}
 	}
-	if (!useConsole) {
+	if !useConsole {
 		log.DelLogger("console")
 	}
 
