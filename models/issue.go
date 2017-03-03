@@ -7,6 +7,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"path"
 	"sort"
 	"strings"
 	"time"
@@ -200,6 +201,11 @@ func (issue *Issue) GetIsRead(userID int64) error {
 	return nil
 }
 
+// APIURL returns the absolute APIURL to this issue.
+func (issue *Issue) APIURL() string {
+	return issue.Repo.APIURL() + "/" + path.Join("issues", fmt.Sprint(issue.ID))
+}
+
 // HTMLURL returns the absolute URL to this issue.
 func (issue *Issue) HTMLURL() string {
 	var path string
@@ -246,6 +252,7 @@ func (issue *Issue) APIFormat() *api.Issue {
 
 	apiIssue := &api.Issue{
 		ID:       issue.ID,
+		URL:      issue.APIURL(),
 		Index:    issue.Index,
 		Poster:   issue.Poster.APIFormat(),
 		Title:    issue.Title,

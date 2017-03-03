@@ -33,3 +33,12 @@ func TestIssue_ReplaceLabels(t *testing.T) {
 	testSuccess(1, []int64{1, 2})
 	testSuccess(1, []int64{})
 }
+
+func TestIssueAPIURL(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	issue := AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
+	err := issue.LoadAttributes()
+
+	assert.NoError(t, err)
+	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/issues/1", issue.APIURL())
+}
