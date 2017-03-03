@@ -5,16 +5,18 @@
 package oauth2
 
 import (
-	"code.gitea.io/gitea/modules/setting"
+	"net/http"
+	"os"
+	"path/filepath"
+
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/gorilla/sessions"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
-	"net/http"
-	"os"
-	"github.com/satori/go.uuid"
-	"path/filepath"
 	"github.com/markbates/goth/providers/github"
+	"github.com/satori/go.uuid"
 )
 
 var (

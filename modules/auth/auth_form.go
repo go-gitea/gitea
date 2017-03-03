@@ -37,7 +37,7 @@ type AuthenticationForm struct {
 	SkipVerify        bool
 	PAMServiceName    string
 	Oauth2Provider    string
-	Oauth2Key	  string
+	Oauth2Key         string
 	Oauth2Secret      string
 }
 
