@@ -25,8 +25,8 @@ func listUserRepos(ctx *context.APIContext, u *models.User) {
 		apiRepos[i] = ownRepos[i].APIFormat(models.AccessModeOwner)
 	}
 	// Set repositories user has access to.
-	for i := len(ownRepos); i < len(apiRepos); i++ {
-		apiRepos[i] = accessibleRepos[i]
+	for i := 0; i < len(accessibleRepos); i++ {
+		apiRepos[i+len(ownRepos)] = accessibleRepos[i]
 	}
 	ctx.JSON(200, &apiRepos)
 }
