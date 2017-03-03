@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIssueReplaceLabels(t *testing.T) {
+func TestIssue_ReplaceLabels(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	testSuccess := func(issueID int64, labelIDs []int64) {
