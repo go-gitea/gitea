@@ -266,7 +266,7 @@ func (repo *Repository) HTMLURL() string {
 
 // APIURL returns the repository API URL
 func (repo *Repository) APIURL() string {
-	return strings.TrimRight(setting.AppURL, "/") + "/" + path.Join("api/v1/repos", repo.FullName())
+	return setting.AppURL + path.Join("api/v1/repos", repo.FullName())
 }
 
 // APIFormat converts a Repository to api.Repository
