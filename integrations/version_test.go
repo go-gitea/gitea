@@ -49,6 +49,10 @@ func version(t *utils.T) error {
 	}
 	defer r.Body.Close()
 
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("'api/v1/version': %s\n", r.Status)
+	}
+
 	var v gitea.ServerVersion
 
 	dec := json.NewDecoder(r.Body)

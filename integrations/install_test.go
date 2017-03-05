@@ -77,6 +77,9 @@ func install(t *utils.T) error {
 	}
 	defer r.Body.Close()
 
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("'api/v1/version': %s\n", r.Status)
+	}
 	return nil
 }
 
