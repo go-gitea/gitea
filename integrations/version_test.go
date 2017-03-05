@@ -5,9 +5,8 @@
 package integration
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/integrations/internal/utils"
+	"code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,8 +36,8 @@ func version(t *utils.T) error {
 	}
 
 	fields := strings.Fields(string(out))
-	if len(fields) != 3 {
-		return fmt.Errorf("unexpected version string '%s'", out)
+	if !strings.HasPrefix(string(out), "Gitea version") {
+		return fmt.Errorf("unexpected version string '%s' of the gitea executable", out)
 	}
 
 	expected := fields[2]
@@ -47,15 +47,16 @@ func version(t *utils.T) error {
 	if err != nil {
 		return err
 	}
-
 	defer r.Body.Close()
 
-	buf, err := ioutil.ReadAll(r.Body)
-	if err != nil {
+	var v gitea.ServerVersion
+
+	dec := json.NewDecoder(r.Body)
+	if err := dec.Decode(&v); err != nil {
 		return err
 	}
 
-	actual := string(bytes.TrimSpace(buf))
+	actual := v.Version
 
 	log.Printf("Actual: \"%s\" Expected: \"%s\"\n", actual, expected)
 	assert.Equal(t, expected, actual)
