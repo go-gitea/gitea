@@ -44,7 +44,7 @@ func version(t *utils.T) error {
 
 	var r *http.Response
 	r, err = http.Get("http://:" + ServerHTTPPort + "/api/v1/version")
-	if err == nil {
+	if err != nil {
 		return err
 	}
 
