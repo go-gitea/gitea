@@ -32,7 +32,7 @@ type Config struct {
 	// The executable path of the tested program.
 	Program string
 	// Working directory prepared for the tested program.
-	// If empty, a directory named with random suffixes is picked, and created under the current directory.
+	// If empty, a directory named with random suffixes is picked, and created under the platform-dependent default temporary directory.
 	// The directory will be removed when the test finishes.
 	WorkDir string
 	// Command-line arguments passed to the tested program.
