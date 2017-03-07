@@ -5,7 +5,7 @@
 			{{.i18n.Tr "auth.login_userpass"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" action="{{if not .LinkAccountMode}}{{.Link}}{{else}}{{.SignInLink}}{{end}}" method="post">
+			<form class="ui form" action="{{.SignInLink}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="required inline field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 				<label for="user_name">{{.i18n.Tr "home.uname_holder"}}</label>
