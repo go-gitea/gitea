@@ -46,10 +46,6 @@ func signup(t *utils.T) error {
 	return nil
 }
 
-func signin(t *utils.T) error {
-	return nil
-}
-
 func TestSignup(t *testing.T) {
 	conf := utils.Config{
 		Program: "../gitea",
