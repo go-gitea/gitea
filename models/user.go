@@ -242,11 +242,6 @@ func (u *User) IsLocal() bool {
 	return u.LoginType <= LoginPlain
 }
 
-// IsOAuth2 returns true if user login type is LoginOAuth2.
-func (u *User) IsOAuth2() bool {
-	return u.LoginType == LoginOAuth2
-}
-
 // HasForkedRepo checks if user has already forked a repository with given ID.
 func (u *User) HasForkedRepo(repoID int64) bool {
 	_, has := HasForkedRepo(u.ID, repoID)

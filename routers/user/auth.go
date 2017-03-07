@@ -653,8 +653,8 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
 }
 
-// OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
-// login the user
+// OAuth2UserLoginCallback attempts to handle the callback from the
+// OAuth2 provider and if successful login the user
 func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Request, response http.ResponseWriter) (*models.User, goth.User, error) {
 	gothUser, err := oauth2.ProviderCallback(loginSource.Name, request, response)
 
@@ -662,32 +662,17 @@ func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Requ
 		return nil, goth.User{}, err
 	}
 
-	user := &models.User{
-		LoginName:   gothUser.UserID,
-		LoginType:   models.LoginOAuth2,
-		LoginSource: loginSource.ID,
-	}
-
-	hasUser, err := models.GetUser(user)
-	if err != nil {
-		return nil, goth.User{}, err
-	}
-
-	if hasUser {
-		return user, goth.User{}, nil
-	}
-
 	// search in external linked users
 	externalLoginUser := &models.ExternalLoginUser{
 		ExternalID:    gothUser.UserID,
 		LoginSourceID: loginSource.ID,
 	}
-	hasUser, err = models.GetExternalLogin(externalLoginUser)
+	hasUser, err := models.GetExternalLogin(externalLoginUser)
 	if err != nil {
 		return nil, goth.User{}, err
 	}
 	if hasUser {
-		user, err = models.GetUserByID(externalLoginUser.UserID)
+		user, err := models.GetUserByID(externalLoginUser.UserID)
 		return user, goth.User{}, err
 	}
 
@@ -899,19 +884,11 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		}
 	}
 
-	loginSource, err := models.GetActiveOAuth2LoginSourceByName(gothUser.(goth.User).Provider)
-	if err != nil {
-		ctx.ServerError("CreateUser", err)
-	}
-
 	u := &models.User{
-		Name:        form.UserName,
-		Email:       form.Email,
-		Passwd:      form.Password,
-		IsActive:    !setting.Service.RegisterEmailConfirm,
-		LoginType:   models.LoginOAuth2,
-		LoginSource: loginSource.ID,
-		LoginName:   gothUser.(goth.User).UserID,
+		Name:     form.UserName,
+		Email:    form.Email,
+		Passwd:   form.Password,
+		IsActive: !setting.Service.RegisterEmailConfirm,
 	}
 
 	if err := models.CreateUser(u); err != nil {
@@ -934,6 +911,13 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		return
 	}
 	log.Trace("Account created: %s", u.Name)
+
+	// Link the oAuth account to the user
+	err := models.LinkAccountToUser(u, gothUser.(goth.User))
+	if err != nil {
+		ctx.ServerError("UserLinkAccount", err)
+	}
+	log.Trace("Account %s linked to gothUser %s", u.Name, gothUser.(goth.User))
 
 	// Auto-set admin for the only user.
 	if models.CountUsers() == 1 {
@@ -1235,7 +1219,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	if !u.IsLocal() && !u.IsOAuth2() {
+	if !u.IsLocal() {
 		ctx.Data["Err_Email"] = true
 		ctx.RenderWithErr(ctx.Tr("auth.non_local_account"), tplForgotPassword, nil)
 		return
