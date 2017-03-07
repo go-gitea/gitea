@@ -11,8 +11,7 @@ pipeline:
     image: webhippie/golang:edge
     pull: true
     environment:
-      CGO_ENABLED: 1
-      TAGS: sqlite bindata
+      TAGS: bindata sqlite
       GOPATH: /srv/app
     commands:
       - apk -U add openssh-client
@@ -29,8 +28,7 @@ pipeline:
     image: webhippie/golang:edge
     pull: true
     environment:
-      CGO_ENABLED: 1
-      TAGS: sqlite bindata
+      TAGS: bindata
       GOPATH: /srv/app
     commands:
       - make test-mysql
@@ -41,20 +39,31 @@ pipeline:
     image: webhippie/golang:edge
     pull: true
     environment:
-      CGO_ENABLED: 1
-      TAGS: sqlite bindata
+      TAGS: bindata
       GOPATH: /srv/app
     commands:
       - make test-pgsql
     when:
       event: [ push, tag, pull_request ]
 
-  updater:
+  static:
     image: karalabe/xgo-latest:latest
     pull: true
     environment:
-      CGO_ENABLED: 1
-      TAGS: sqlite bindata
+      TAGS: bindata
+      FLAVOR: static
+      GOPATH: /srv/app
+    commands:
+      - make release
+    when:
+      event: [ push, tag, pull_request ]
+
+  sqlite:
+    image: karalabe/xgo-latest:latest
+    pull: true
+    environment:
+      TAGS: bindata sqlite
+      FLAVOR: sqlite
       GOPATH: /srv/app
     commands:
       - make release
