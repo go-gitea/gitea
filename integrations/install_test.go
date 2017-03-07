@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/user"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -21,19 +20,19 @@ const ServerHTTPPort = "3001"
 
 const _RetryLimit = 10
 
-func makeSimpleSettings(user, workdir, port string) map[string][]string {
+func makeSimpleSettings(user, port string) map[string][]string {
 	return map[string][]string{
 		"db_type":        {"SQLite3"},
 		"db_host":        {"localhost"},
-		"db_path":        {workdir + "data/gitea.db"},
+		"db_path":        {"data/gitea.db"},
 		"app_name":       {"Gitea: Git with a cup of tea"},
-		"repo_root_path": {workdir + "repositories"},
+		"repo_root_path": {"repositories"},
 		"run_user":       {user},
 		"domain":         {"localhost"},
 		"ssh_port":       {"22"},
 		"http_port":      {port},
 		"app_url":        {"http://localhost:" + port},
-		"log_root_path":  {workdir + "log"},
+		"log_root_path":  {"log"},
 	}
 }
 
@@ -65,12 +64,7 @@ func install(t *utils.T) error {
 		return err
 	}
 
-	path, err := filepath.Abs(t.Config.WorkDir)
-	if err != nil {
-		return err
-	}
-
-	settings := makeSimpleSettings(_user.Username, path, ServerHTTPPort)
+	settings := makeSimpleSettings(_user.Username, ServerHTTPPort)
 	r, err = http.PostForm("http://:"+ServerHTTPPort+"/install", settings)
 	if err != nil {
 		return err
