@@ -209,7 +209,7 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 						continue
 					}
 					pages = append(pages, PageMeta{
-						Name: strings.Replace(name, "-", " ", -1),
+						Name: models.ToWikiPageName(name),
 						URL:  models.ToWikiPageURL(name),
 					})
 				}
@@ -361,7 +361,7 @@ func WikiPages(ctx *context.Context) {
 					continue
 				}
 				pages = append(pages, PageMeta{
-					Name:    name,
+					Name:    models.ToWikiPageName(name),
 					URL:     models.ToWikiPageURL(name),
 					Updated: c.Author.When,
 				})
