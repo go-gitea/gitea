@@ -18,10 +18,11 @@ var (
 	onExit  func()
 	guard   sync.Mutex
 	skip, _ = strconv.ParseBool(os.Getenv("SKIP_MINWINSVC"))
+	isSSH   = os.Getenv("SSH_ORIGINAL_COMMAND") != ""
 )
 
 func init() {
-	if skip {
+	if skip || isSSH {
 		return
 	}
 	interactive, err := svc.IsAnInteractiveSession()
