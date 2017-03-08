@@ -287,6 +287,10 @@ func (u *User) CustomAvatarPath() string {
 
 // GenerateRandomAvatar generates a random avatar for user.
 func (u *User) GenerateRandomAvatar() error {
+	return u.generateRandomAvatar(x)
+}
+
+func (u *User) generateRandomAvatar(e Engine) error {
 	seed := u.Email
 	if len(seed) == 0 {
 		seed = u.Name
@@ -307,6 +311,10 @@ func (u *User) GenerateRandomAvatar() error {
 		return fmt.Errorf("Create: %v", err)
 	}
 	defer fw.Close()
+
+	if _, err := e.Id(u.ID).Cols("avatar").Update(u); err != nil {
+		return err
+	}
 
 	if err = png.Encode(fw, img); err != nil {
 		return fmt.Errorf("Encode: %v", err)
