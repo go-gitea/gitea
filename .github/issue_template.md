@@ -11,6 +11,7 @@
 - Database (use `[x]`):
   - [ ] PostgreSQL
   - [ ] MySQL
+  - [ ] MSSQL
   - [ ] SQLite
 - Can you reproduce the bug at https://try.gitea.io:
   - [ ] Yes (provide example URL)
