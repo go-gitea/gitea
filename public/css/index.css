@@ -1406,6 +1406,17 @@ footer .ui.language .menu {
 .repository.file.editor .commit-form-wrapper {
   padding-left: 64px;
 }
+.repository.file.editor .tab[data-tab="write"] {
+    padding: 0 !important;
+}
+.repository.file.editor .tab[data-tab="write"] .editor-toolbar {
+    border: none !important;
+}
+.repository.file.editor .tab[data-tab="write"] .CodeMirror {
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+}
 .repository.file.editor .commit-form-wrapper .commit-avatar {
   float: left;
   margin-left: -64px;
