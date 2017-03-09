@@ -5,7 +5,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -20,30 +19,7 @@ var signupFormSample map[string][]string = map[string][]string{
 }
 
 func signup(t *utils.T) error {
-	var err error
-	var r *http.Response
-
-	r, err = http.Get("http://:" + ServerHTTPPort + "/user/sign_up")
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-
-	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("GET '/user/signup': %s", r.Status)
-	}
-
-	r, err = http.PostForm("http://:"+ServerHTTPPort+"/user/sign_up", signupFormSample)
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-
-	if r.StatusCode != http.StatusOK {
-		return fmt.Errorf("POST '/user/signup': %s", r.Status)
-	}
-
-	return nil
+	return utils.GetAndPost("http://:"+ServerHTTPPort+"/user/sign_up", signupFormSample, http.StatusOK)
 }
 
 func TestSignup(t *testing.T) {
