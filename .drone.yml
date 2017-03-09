@@ -50,20 +50,7 @@ pipeline:
     image: karalabe/xgo-latest:latest
     pull: true
     environment:
-      TAGS: bindata
-      FLAVOR: static
-      GOPATH: /srv/app
-    commands:
-      - make release
-    when:
-      event: [ push, tag, pull_request ]
-
-  sqlite:
-    image: karalabe/xgo-latest:latest
-    pull: true
-    environment:
       TAGS: bindata sqlite
-      FLAVOR: sqlite
       GOPATH: /srv/app
     commands:
       - make release
