@@ -126,7 +126,9 @@ func (t *T) RunTest(tests ...func(*T) error) (err error) {
 	return nil
 }
 
-func GetAndPost(url string, form map[string][]string, expectedStatus int) error {
+// GetAndPost provides a convenient helper function for testing an HTTP endpoint with GET and POST method.
+// The function sends GET first and then POST with the given form.
+func GetAndPost(url string, form map[string][]string) error {
 	var err error
 	var r *http.Response
 
@@ -146,7 +148,7 @@ func GetAndPost(url string, form map[string][]string, expectedStatus int) error 
 	}
 	defer r.Body.Close()
 
-	if r.StatusCode != expectedStatus {
+	if r.StatusCode != http.StatusOK {
 		return fmt.Errorf("POST '%s': %s", url, r.Status)
 	}
 

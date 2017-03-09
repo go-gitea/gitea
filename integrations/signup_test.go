@@ -5,7 +5,6 @@
 package integration
 
 import (
-	"net/http"
 	"os"
 	"testing"
 
@@ -19,7 +18,7 @@ var signupFormSample map[string][]string = map[string][]string{
 }
 
 func signup(t *utils.T) error {
-	return utils.GetAndPost("http://:"+ServerHTTPPort+"/user/sign_up", signupFormSample, http.StatusOK)
+	return utils.GetAndPost("http://:"+ServerHTTPPort+"/user/sign_up", signupFormSample)
 }
 
 func TestSignup(t *testing.T) {
