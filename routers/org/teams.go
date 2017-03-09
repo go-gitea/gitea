@@ -108,6 +108,8 @@ func TeamsAction(ctx *context.Context) {
 	switch page {
 	case "team":
 		ctx.Redirect(ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName)
+	case "home":
+		ctx.Redirect(ctx.Org.Organization.HomeLink())
 	default:
 		ctx.Redirect(ctx.Org.OrgLink + "/teams")
 	}
