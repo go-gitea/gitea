@@ -14,9 +14,7 @@
 						{{.CsrfTokenHtml}}
 						<input type="hidden" name="action" value="default_branch">
 						<div class="item">
-							The default branch is considered the "base" branch in your repository,
-							against which all pull requests and code commits are automatically made,
-							unless you specify a different branch.
+							{{.i18n.Tr "settings.default_branch_desc"}}
 						</div>
 						{{if not .Repository.IsBare}}
 						<div class="ui grid padded">
@@ -53,11 +51,11 @@
 							<div class="ui fluid dropdown selection visible" tabindex="0">
 								<select id="protectedBranch" name="branch" data-url="{{.Repository.Link}}/settings/branches?action=protected_branch">
 									{{range .LeftBranches}}
-										<option value="">Choose a branch...</option>
+										<option value="">{{.i18n.Tr "settings.choose_branch"}}</option>
 										<option value="{{.}}">{{.}}</option>
 									{{end}}
 								</select><i class="dropdown icon"></i>
-								<div class="default text">Choose a branch...</div>
+								<div class="default text">{{.i18n.Tr "settings.choose_branch"}}</div>
 								<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
 									{{range .LeftBranches}}
 										<div class="item" data-value="{{.}}">{{.}}</div>
@@ -77,7 +75,7 @@
 											<td class="right aligned"><button class="rm ui red button" data-url="{{$.Repository.Link}}/settings/branches?action=protected_branch&id={{.ID}}" data-val="{{.BranchName}}">Delete</button></td>
 										</tr>
 									{{else}}
-										<tr class="center aligned"><td>There is no protected branch</td></tr>
+										<tr class="center aligned"><td>{{.i18n.Tr "settings.no_protected_branch"}}</td></tr>
 									{{end}}
 								</tbody>
 							</table>
