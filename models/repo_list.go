@@ -21,26 +21,19 @@ func (repos RepositoryList) loadAttributes(e Engine) error {
 	}
 
 	// Load owners.
-	set := make(map[int64]*User)
+	set := make(map[int64]struct{})
 	for i := range repos {
-		set[repos[i].OwnerID] = nil
+		set[repos[i].OwnerID] = struct{}{}
 	}
-	userIDs := make([]int64, 0, len(set))
-	for userID := range set {
-		userIDs = append(userIDs, userID)
-	}
-	users := make([]*User, 0, len(userIDs))
+	users := make(map[int64]*User, len(set))
 	if err := e.
 		Where("id > 0").
-		In("id", userIDs).
+		In("id", keysInt64(set)).
 		Find(&users); err != nil {
 		return fmt.Errorf("find users: %v", err)
 	}
-	for i := range users {
-		set[users[i].ID] = users[i]
-	}
 	for i := range repos {
-		repos[i].Owner = set[repos[i].OwnerID]
+		repos[i].Owner = users[repos[i].OwnerID]
 	}
 	return nil
 }
