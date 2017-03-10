@@ -41,7 +41,7 @@ func useNewNameAvatars(x *xorm.Engine) error {
 	for _, name := range names {
 		userID, err := strconv.ParseInt(name, 10, 64)
 		if err != nil {
-			log.Warnf("ignore avatar %s rename: %v", name, err)
+			log.Warn("ignore avatar %s rename: %v", name, err)
 			continue
 		}
 
