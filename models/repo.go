@@ -1585,7 +1585,7 @@ func DeleteRepository(uid, repoID int64) error {
 
 		attachments := make([]*Attachment, 0, 5)
 		if err = sess.
-			In("issue_id=?", issueIDs).
+			In("issue_id", issueIDs).
 			Find(&attachments); err != nil {
 			return err
 		}
