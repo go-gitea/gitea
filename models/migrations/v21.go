@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
+	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 )
 
@@ -21,6 +22,10 @@ const (
 
 func useNewPublickeyFormat(x *xorm.Engine) error {
 	fpath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
+	if !com.IsExist(fpath) {
+		return nil
+	}
+
 	tmpPath := fpath + ".tmp"
 	f, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
