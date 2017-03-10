@@ -1523,11 +1523,9 @@ $(function () {
 
     $("#search_repo").on('change paste keyup',function(){
         var value = $(this).val();
-        if(!value){
-            $('.list-search-style').html('');
-        } else{
-            $('.list-search-style').html('.search-list li:not([data-title*="' + value + '"]) {display: none;}');
-        }
+        $.map($('.search-list li'), function(i) {
+            $(i).css("display", (value.trim().length == 0 || $(i).attr("data-title").trim().toLowerCase().indexOf(value.trim().toLowerCase()) > -1) ? "" : "none");
+        });
     });
 
     // Parse SSH Key
