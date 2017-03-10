@@ -14,14 +14,15 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/auth/ldap"
-	"code.gitea.io/gitea/modules/auth/oauth2"
-	"code.gitea.io/gitea/modules/auth/pam"
-	"code.gitea.io/gitea/modules/log"
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+
+	"code.gitea.io/gitea/modules/auth/ldap"
+	"code.gitea.io/gitea/modules/auth/oauth2"
+	"code.gitea.io/gitea/modules/auth/pam"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // LoginType represents an login type.
@@ -30,12 +31,12 @@ type LoginType int
 // Note: new type must append to the end of list to maintain compatibility.
 const (
 	LoginNoType LoginType = iota
-	LoginPlain   // 1
-	LoginLDAP    // 2
-	LoginSMTP    // 3
-	LoginPAM     // 4
-	LoginDLDAP   // 5
-	LoginOAuth2  // 6
+	LoginPlain            // 1
+	LoginLDAP             // 2
+	LoginSMTP             // 3
+	LoginPAM              // 4
+	LoginDLDAP            // 5
+	LoginOAuth2           // 6
 )
 
 // LoginNames contains the name of LoginType values.

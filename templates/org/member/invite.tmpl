@@ -4,7 +4,7 @@
 	<div class="ui container">
 		<div id="invite-box">
 			{{template "base/alert" .}}
-			<h2>{{.i18n.Tr "org.members.invite_desc" .Org.DisplayName}}</h2>
+			<h2>{{.i18n.Tr "org.members.invite_desc" .Org.DisplayName | Str2html}}</h2>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="inline field ui left">

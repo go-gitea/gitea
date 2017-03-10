@@ -3,7 +3,7 @@
 		<strong>{{.Team.Name}}</strong>
 		<div class="ui right">
 			{{if .Team.IsMember $.SignedUser.ID}}
-				<a class="ui red tiny button" href="{{.OrgLink}}/teams/{{.Team.LowerName}}/action/leave?uid={{$.SignedUser.ID}}&page=team">{{$.i18n.Tr "org.teams.leave"}}</a>
+				<a class="ui red tiny button" href="{{.OrgLink}}/teams/{{.Team.LowerName}}/action/leave?uid={{$.SignedUser.ID}}&page=home">{{$.i18n.Tr "org.teams.leave"}}</a>
 			{{else if .IsOrganizationOwner}}
 				<a class="ui blue tiny button" href="{{.OrgLink}}/teams/{{.Team.LowerName}}/action/join?uid={{$.SignedUser.ID}}&page=team">{{$.i18n.Tr "org.teams.join"}}</a>
 			{{end}}

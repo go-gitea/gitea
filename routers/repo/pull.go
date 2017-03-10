@@ -466,7 +466,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 			return nil, nil, nil, nil, "", ""
 		}
 		headBranch = headInfos[1]
-
+		isSameRepo = headUser.ID == ctx.Repo.Owner.ID
 	} else {
 		ctx.Handle(404, "CompareAndPullRequest", nil)
 		return nil, nil, nil, nil, "", ""

@@ -287,6 +287,10 @@ func (u *User) CustomAvatarPath() string {
 
 // GenerateRandomAvatar generates a random avatar for user.
 func (u *User) GenerateRandomAvatar() error {
+	return u.generateRandomAvatar(x)
+}
+
+func (u *User) generateRandomAvatar(e Engine) error {
 	seed := u.Email
 	if len(seed) == 0 {
 		seed = u.Name
@@ -296,6 +300,9 @@ func (u *User) GenerateRandomAvatar() error {
 	if err != nil {
 		return fmt.Errorf("RandomImage: %v", err)
 	}
+	// NOTICE for random avatar, it still uses id as avatar name, but custom avatar use md5
+	// since random image is not a user's photo, there is no security for enumable
+	u.Avatar = fmt.Sprintf("%d", u.ID)
 	if err = os.MkdirAll(filepath.Dir(u.CustomAvatarPath()), os.ModePerm); err != nil {
 		return fmt.Errorf("MkdirAll: %v", err)
 	}
@@ -304,6 +311,10 @@ func (u *User) GenerateRandomAvatar() error {
 		return fmt.Errorf("Create: %v", err)
 	}
 	defer fw.Close()
+
+	if _, err := e.Id(u.ID).Cols("avatar").Update(u); err != nil {
+		return err
+	}
 
 	if err = png.Encode(fw, img); err != nil {
 		return fmt.Errorf("Encode: %v", err)
@@ -451,13 +462,15 @@ func (u *User) UploadAvatar(data []byte) error {
 // DeleteAvatar deletes the user's custom avatar.
 func (u *User) DeleteAvatar() error {
 	log.Trace("DeleteAvatar[%d]: %s", u.ID, u.CustomAvatarPath())
-
-	if err := os.Remove(u.CustomAvatarPath()); err != nil {
-		return fmt.Errorf("Failed to remove %s: %v", u.CustomAvatarPath(), err)
+	if len(u.Avatar) > 0 {
+		if err := os.Remove(u.CustomAvatarPath()); err != nil {
+			return fmt.Errorf("Failed to remove %s: %v", u.CustomAvatarPath(), err)
+		}
 	}
 
 	u.UseCustomAvatar = false
-	if err := UpdateUser(u); err != nil {
+	u.Avatar = ""
+	if _, err := x.Id(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 	return nil
@@ -994,10 +1007,12 @@ func deleteUser(e *xorm.Session, u *User) error {
 		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
 	}
 
-	avatarPath := u.CustomAvatarPath()
-	if com.IsExist(avatarPath) {
-		if err := os.Remove(avatarPath); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
+	if len(u.Avatar) > 0 {
+		avatarPath := u.CustomAvatarPath()
+		if com.IsExist(avatarPath) {
+			if err := os.Remove(avatarPath); err != nil {
+				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
+			}
 		}
 	}
 

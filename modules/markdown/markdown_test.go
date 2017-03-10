@@ -463,7 +463,7 @@ func TestRegExp_ShortLinkPattern(t *testing.T) {
 
 func TestRegExp_AnySHA1Pattern(t *testing.T) {
 	testCases := map[string][]string{
-		"https://github.com/jquery/jquery/blob/a644101ed04d0beacea864ce805e0c4f86ba1cd1/test/unit/event.js#L2703": []string{
+		"https://github.com/jquery/jquery/blob/a644101ed04d0beacea864ce805e0c4f86ba1cd1/test/unit/event.js#L2703": {
 			"https",
 			"github.com",
 			"jquery",
@@ -473,7 +473,7 @@ func TestRegExp_AnySHA1Pattern(t *testing.T) {
 			"test/unit/event.js",
 			"L2703",
 		},
-		"https://github.com/jquery/jquery/blob/a644101ed04d0beacea864ce805e0c4f86ba1cd1/test/unit/event.js": []string{
+		"https://github.com/jquery/jquery/blob/a644101ed04d0beacea864ce805e0c4f86ba1cd1/test/unit/event.js": {
 			"https",
 			"github.com",
 			"jquery",
@@ -483,7 +483,7 @@ func TestRegExp_AnySHA1Pattern(t *testing.T) {
 			"test/unit/event.js",
 			"",
 		},
-		"https://github.com/jquery/jquery/commit/0705be475092aede1eddae01319ec931fb9c65fc": []string{
+		"https://github.com/jquery/jquery/commit/0705be475092aede1eddae01319ec931fb9c65fc": {
 			"https",
 			"github.com",
 			"jquery",
@@ -493,7 +493,7 @@ func TestRegExp_AnySHA1Pattern(t *testing.T) {
 			"",
 			"",
 		},
-		"https://github.com/jquery/jquery/tree/0705be475092aede1eddae01319ec931fb9c65fc/src": []string{
+		"https://github.com/jquery/jquery/tree/0705be475092aede1eddae01319ec931fb9c65fc/src": {
 			"https",
 			"github.com",
 			"jquery",
@@ -503,7 +503,7 @@ func TestRegExp_AnySHA1Pattern(t *testing.T) {
 			"src",
 			"",
 		},
-		"https://try.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2": []string{
+		"https://try.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2": {
 			"https",
 			"try.gogs.io",
 			"gogs",
@@ -522,35 +522,35 @@ func TestRegExp_AnySHA1Pattern(t *testing.T) {
 
 func TestRegExp_IssueFullPattern(t *testing.T) {
 	testCases := map[string][]string{
-		"https://github.com/gogits/gogs/pull/3244": []string{
+		"https://github.com/gogits/gogs/pull/3244": {
 			"https",
 			"github.com/gogits/gogs/pull/",
 			"3244",
 			"",
 			"",
 		},
-		"https://github.com/gogits/gogs/issues/3247#issuecomment-231517079": []string{
+		"https://github.com/gogits/gogs/issues/3247#issuecomment-231517079": {
 			"https",
 			"github.com/gogits/gogs/issues/",
 			"3247",
 			"#issuecomment-231517079",
 			"",
 		},
-		"https://try.gogs.io/gogs/gogs/issues/4#issue-685": []string{
+		"https://try.gogs.io/gogs/gogs/issues/4#issue-685": {
 			"https",
 			"try.gogs.io/gogs/gogs/issues/",
 			"4",
 			"#issue-685",
 			"",
 		},
-		"https://youtrack.jetbrains.com/issue/JT-36485": []string{
+		"https://youtrack.jetbrains.com/issue/JT-36485": {
 			"https",
 			"youtrack.jetbrains.com/issue/",
 			"JT-36485",
 			"",
 			"",
 		},
-		"https://youtrack.jetbrains.com/issue/JT-36485#comment=27-1508676": []string{
+		"https://youtrack.jetbrains.com/issue/JT-36485#comment=27-1508676": {
 			"https",
 			"youtrack.jetbrains.com/issue/",
 			"JT-36485",

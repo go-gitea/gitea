@@ -600,7 +600,7 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	if err = newIssue(sess, pull.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       pull,
-		LableIDs:    labelIDs,
+		LabelIDs:    labelIDs,
 		Attachments: uuids,
 		IsPull:      true,
 	}); err != nil {

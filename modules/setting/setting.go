@@ -59,6 +59,7 @@ const (
 var (
 	// AppVer settings
 	AppVer         string
+	AppBuiltWith   string
 	AppName        string
 	AppURL         string
 	AppSubURL      string
@@ -325,7 +326,9 @@ var (
 			RunAtStart bool
 			Schedule   string
 		}{
-			Schedule: "@every 10m",
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 10m",
 		},
 		RepoHealthCheck: struct {
 			Enabled    bool
@@ -334,15 +337,18 @@ var (
 			Timeout    time.Duration
 			Args       []string `delim:" "`
 		}{
-			Schedule: "@every 24h",
-			Timeout:  60 * time.Second,
-			Args:     []string{},
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 24h",
+			Timeout:    60 * time.Second,
+			Args:       []string{},
 		},
 		CheckRepoStats: struct {
 			Enabled    bool
 			RunAtStart bool
 			Schedule   string
 		}{
+			Enabled:    true,
 			RunAtStart: true,
 			Schedule:   "@every 24h",
 		},
@@ -352,6 +358,7 @@ var (
 			Schedule   string
 			OlderThan  time.Duration
 		}{
+			Enabled:    true,
 			RunAtStart: true,
 			Schedule:   "@every 24h",
 			OlderThan:  24 * time.Hour,
@@ -576,9 +583,7 @@ please consider changing to GITEA_CUSTOM`)
 	sec := Cfg.Section("server")
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 	AppURL = sec.Key("ROOT_URL").MustString("http://localhost:3000/")
-	if AppURL[len(AppURL)-1] != '/' {
-		AppURL += "/"
-	}
+	AppURL = strings.TrimRight(AppURL, "/") + "/"
 
 	// Check if has app suburl.
 	url, err := url.Parse(AppURL)
@@ -939,7 +944,7 @@ var logLevels = map[string]string{
 }
 
 func newLogService() {
-	log.Info("Gitea v%s", AppVer)
+	log.Info("Gitea v%s%s", AppVer, AppBuiltWith)
 
 	LogModes = strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
 	LogConfigs = make([]string, len(LogModes))

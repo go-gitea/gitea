@@ -7,6 +7,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"path"
 	"sort"
 	"strings"
 	"time"
@@ -200,6 +201,11 @@ func (issue *Issue) GetIsRead(userID int64) error {
 	return nil
 }
 
+// APIURL returns the absolute APIURL to this issue.
+func (issue *Issue) APIURL() string {
+	return issue.Repo.APIURL() + "/" + path.Join("issues", fmt.Sprint(issue.ID))
+}
+
 // HTMLURL returns the absolute URL to this issue.
 func (issue *Issue) HTMLURL() string {
 	var path string
@@ -246,6 +252,7 @@ func (issue *Issue) APIFormat() *api.Issue {
 
 	apiIssue := &api.Issue{
 		ID:       issue.ID,
+		URL:      issue.APIURL(),
 		Index:    issue.Index,
 		Poster:   issue.Poster.APIFormat(),
 		Title:    issue.Title,
@@ -476,31 +483,24 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 	sort.Sort(labelSorter(issue.Labels))
 
 	var toAdd, toRemove []*Label
-	for _, l := range labels {
-		var exist bool
-		for _, oriLabel := range issue.Labels {
-			if oriLabel.ID == l.ID {
-				exist = true
-				break
-			}
-		}
-		if !exist {
-			toAdd = append(toAdd, l)
-		}
-	}
 
-	for _, oriLabel := range issue.Labels {
-		var exist bool
-		for _, l := range labels {
-			if oriLabel.ID == l.ID {
-				exist = true
-				break
-			}
-		}
-		if !exist {
-			toRemove = append(toRemove, oriLabel)
+	addIndex, removeIndex := 0, 0
+	for addIndex < len(labels) && removeIndex < len(issue.Labels) {
+		addLabel := labels[addIndex]
+		removeLabel := issue.Labels[removeIndex]
+		if addLabel.ID == removeLabel.ID {
+			addIndex++
+			removeIndex++
+		} else if addLabel.ID < removeLabel.ID {
+			toAdd = append(toAdd, addLabel)
+			addIndex++
+		} else {
+			toRemove = append(toRemove, removeLabel)
+			removeIndex++
 		}
 	}
+	toAdd = append(toAdd, labels[addIndex:]...)
+	toRemove = append(toRemove, issue.Labels[removeIndex:]...)
 
 	if len(toAdd) > 0 {
 		if err = issue.addLabels(sess, toAdd, doer); err != nil {
@@ -508,11 +508,9 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 		}
 	}
 
-	if len(toRemove) > 0 {
-		for _, l := range toRemove {
-			if err = issue.removeLabel(sess, doer, l); err != nil {
-				return fmt.Errorf("removeLabel: %v", err)
-			}
+	for _, l := range toRemove {
+		if err = issue.removeLabel(sess, doer, l); err != nil {
+			return fmt.Errorf("removeLabel: %v", err)
 		}
 	}
 
@@ -788,7 +786,7 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 type NewIssueOptions struct {
 	Repo        *Repository
 	Issue       *Issue
-	LableIDs    []int64
+	LabelIDs    []int64
 	Attachments []string // In UUID format.
 	IsPull      bool
 }
@@ -860,12 +858,12 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		return err
 	}
 
-	if len(opts.LableIDs) > 0 {
+	if len(opts.LabelIDs) > 0 {
 		// During the session, SQLite3 driver cannot handle retrieve objects after update something.
 		// So we have to get all needed labels first.
-		labels := make([]*Label, 0, len(opts.LableIDs))
-		if err = e.In("id", opts.LableIDs).Find(&labels); err != nil {
-			return fmt.Errorf("find all labels [label_ids: %v]: %v", opts.LableIDs, err)
+		labels := make([]*Label, 0, len(opts.LabelIDs))
+		if err = e.In("id", opts.LabelIDs).Find(&labels); err != nil {
+			return fmt.Errorf("find all labels [label_ids: %v]: %v", opts.LabelIDs, err)
 		}
 
 		if err = opts.Issue.loadPoster(e); err != nil {
@@ -918,7 +916,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 	if err = newIssue(sess, issue.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       issue,
-		LableIDs:    labelIDs,
+		LabelIDs:    labelIDs,
 		Attachments: uuids,
 	}); err != nil {
 		return fmt.Errorf("newIssue: %v", err)
