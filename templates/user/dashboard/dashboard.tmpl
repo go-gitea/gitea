@@ -15,9 +15,9 @@
 					{{end}}
 					<a class="item" data-tab="mirrors">{{.i18n.Tr "mirror"}}</a>
 				</div>
-				<div class="ui tab active list" data-tab="repos">
+				<div id="dashboard-repo-search" class="ui tab active list" data-tab="repos">
 					<div class="ui fluid input">
-						<input id="search_repo" name="q" value="" placeholder="{{.i18n.Tr "home.search_repos"}}" autofocus="">
+						<input @keyUp="searchKeyUp" v-model="searchQuery" id="search_repo" placeholder="{{.i18n.Tr "home.search_repos"}}" autofocus="">
 					</div>
 					<h4 class="ui top attached header">
 						{{.i18n.Tr "home.my_repos"}} <span class="ui grey label">{{.ContextUser.NumRepos}}</span>
@@ -29,18 +29,16 @@
 						</div>
 					</h4>
 					<div class="ui attached table segment">
-						<ul class="repo-owner-name-list search-list">
-							{{range .Repos}}
-								<li {{if .IsPrivate}}class="private"{{end}} data-title="{{.Name}}">
-									<a href="{{AppSubUrl}}/{{$.ContextUser.Name}}/{{.Name}}">
-										<i class="octicon octicon-{{if .IsFork}}repo-forked{{else if .IsPrivate}}lock{{else if .IsMirror}}repo-clone{{else}}repo{{end}}"></i>
-										<strong class="text truncate item-name">{{.Name}}</strong>
-										<span class="ui right text light grey">
-											{{.NumStars}} <i class="octicon octicon-star rear"></i>
-										</span>
-									</a>
-								</li>
-							{{end}}
+						<ul class="repo-owner-name-list">
+							<li v-for="repo in repos" :class="{'private': repo.private}">
+								<a :href="'{{AppSubUrl}}/' + repo.full_name">
+									<i :class="repoClass(repo)"></i>
+									<strong class="text truncate item-name"><% repo.full_name %></strong>
+									<span class="ui right text light grey">
+										<% repo.stars_count %> <i class="octicon octicon-star rear"></i>
+									</span>
+								</a>
+							</li>
 							{{if gt .ContextUser.NumRepos .MaxShowRepoNum}}
 							<li>
 								<a href="{{.ContextUser.HomeLink}}">{{.i18n.Tr "home.show_more_repos"}}</a>
@@ -54,9 +52,9 @@
 							{{.i18n.Tr "home.collaborative_repos"}}
 						</h4>
 						<div class="ui attached table segment">
-							<ul id="collaborative-repo-list" class="search-list">
+							<ul id="collaborative-repo-list">
 								{{range .CollaborativeRepos}}
-									<li {{if .IsPrivate}}class="private"{{end}} data-title="{{.Name}}">
+									<li {{if .IsPrivate}}class="private"{{end}}>
 										<a href="{{AppSubUrl}}/{{.Owner.Name}}/{{.Name}}">
 											<i class="octicon octicon-{{if .IsPrivate}}lock{{else if .IsFork}}repo-forked{{else if .IsMirror}}repo-clone{{else}}repo{{end}}"></i>
 											<span class="text truncate owner-and-repo">

@@ -1446,6 +1446,7 @@ $(document).ready(function () {
     initWebhook();
     initAdmin();
     initCodeView();
+    initDashboardSearch();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -1521,15 +1522,6 @@ $(function () {
     if ($('.user.signin').length > 0) return;
     $('form').areYouSure();
 
-    $("#search_repo").on('change paste keyup',function(){
-        var value = $(this).val();
-        if(!value){
-            $('.list-search-style').html('');
-        } else{
-            $('.list-search-style').html('.search-list li:not([data-title*="' + value + '"]) {display: none;}');
-        }
-    });
-
     // Parse SSH Key
     $("#ssh-key-content").on('change paste keyup',function(){
         var arrays = $(this).val().split(" ");
@@ -1539,3 +1531,46 @@ $(function () {
         }
     });
 });
+
+function initDashboardSearch() {
+    var el = document.getElementById('dashboard-repo-search');
+    if (!el) {
+        return;
+    }
+
+    new Vue({
+        delimiters: ['<%', '%>'],
+        el: el,
+        data: {
+            repos: [],
+            searchQuery: ''
+        },
+        mounted: function() {
+            this.searchRepos();
+        },
+        methods: {
+            searchKeyUp: function() {
+                this.searchRepos();
+            },
+
+            searchRepos: function() {
+                var self = this;
+                $.getJSON('/api/v1/repos/search?q=' + self.searchQuery, function(result) {
+                    self.repos = result.data;
+                });
+            },
+
+            repoClass: function(repo) {
+                if (repo.fork) {
+                    return 'octicon octicon-repo-forked';
+                } else if (repo.private) {
+                    return 'octicon octicon-repo-forked';
+                } else if (repo.mirror) {
+                    return 'octicon octicon-repo-clone';
+                } else {
+                    return 'octicon octicon-repo';
+                }
+            }
+        }
+    });
+}
