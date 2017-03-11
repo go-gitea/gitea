@@ -5,6 +5,7 @@
 package models
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -57,4 +58,28 @@ func TestGetIssuesByIDs(t *testing.T) {
 	}
 	testSuccess([]int64{1, 2, 3}, []int64{})
 	testSuccess([]int64{1, 2, 3}, []int64{NonexistentID})
+}
+
+func TestGetParticipantsByIssueID(t *testing.T) {
+
+	assert.NoError(t, PrepareTestDatabase())
+
+	checkPartecipants := func(issueID int64, userIDs []int64) {
+		people, err := GetParticipantsByIssueID(issueID)
+		if assert.NoError(t, err) {
+			peopleIDs := make([]int64,len(people))
+			for i,u := range people { peopleIDs[i] = u.ID }
+
+			for _, userID := range userIDs {
+				user := AssertExistsAndLoadBean(t, &User{ID: userID}).(*User)
+				assert.Contains(t, people, user, fmt.Sprintf("User %d is not found among participants for issue %d: %v", userID, issueID, peopleIDs))
+			}
+		}
+
+	}
+
+	// User 1 is issue1 poster (see fixtures/issue.yml)
+	// User 2 only labeled issue1 (see fixtures/comment.yml)
+	checkPartecipants(1, []int64{1,2})
+
 }
