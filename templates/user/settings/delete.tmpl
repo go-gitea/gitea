@@ -22,6 +22,9 @@
 						<div class="ui red button delete-button" data-type="form" data-form="#delete-form">
 							{{.i18n.Tr "settings.confirm_delete_account"}}
 						</div>
+						<div>
+							<a href="{{AppSubUrl}}/user/forget_password?email={{.Email}}">{{.i18n.Tr "auth.forget_password"}}</a>
+						</div>
 					</form>
 				</div>
 			</div>
