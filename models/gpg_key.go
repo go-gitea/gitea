@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-
 	"github.com/go-xorm/xorm"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/packet"
@@ -44,20 +42,6 @@ func (key *GPGKey) BeforeInsert() {
 	key.AddedUnix = time.Now().Unix()
 	key.ExpiredUnix = key.Expired.Unix()
 	key.CreatedUnix = key.Created.Unix()
-}
-
-// AfterInsert will be invoked by XORM after inserting a record
-func (key *GPGKey) AfterInsert() {
-	log.Debug("AfterInsert Subkeys: %v", key.SubsKey)
-	sess := x.NewSession()
-	defer sessionRelease(sess)
-	sess.Begin()
-	for _, subkey := range key.SubsKey {
-		if err := addGPGKey(sess, subkey); err != nil {
-			log.Warn("Failed to add subKey: [err:%v, subkey:%v]", err, subkey)
-		}
-	}
-	sess.Commit()
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.
@@ -102,10 +86,17 @@ func checkArmoredGPGKeyString(content string) (*openpgp.Entity, error) {
 	return list[0], nil
 }
 
+//addGPGKey add key and subkeys to database
 func addGPGKey(e Engine, key *GPGKey) (err error) {
-	// Save GPG key.
+	// Save GPG primary key.
 	if _, err = e.Insert(key); err != nil {
 		return err
+	}
+	// Save GPG subs key.
+	for _, subkey := range key.SubsKey {
+		if err := addGPGKey(e, subkey); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -139,11 +130,13 @@ func AddGPGKey(ownerID int64, content string) (*GPGKey, error) {
 	}
 
 	if err = addGPGKey(sess, key); err != nil {
-		return nil, fmt.Errorf("addKey: %v", err)
+		return nil, err
 	}
 
 	return key, sess.Commit()
 }
+
+//base64EncPubKey encode public kay content to base 64
 func base64EncPubKey(pubkey *packet.PublicKey) (string, error) {
 	var w bytes.Buffer
 	err := pubkey.Serialize(&w)
@@ -152,6 +145,8 @@ func base64EncPubKey(pubkey *packet.PublicKey) (string, error) {
 	}
 	return base64.StdEncoding.EncodeToString(w.Bytes()), nil
 }
+
+//parseSubGPGKey parse a sub Key
 func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, expiry time.Time) (*GPGKey, error) {
 	content, err := base64EncPubKey(pubkey)
 	if err != nil {
@@ -170,6 +165,8 @@ func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, e
 		CanCertify:        pubkey.PubKeyAlgo.CanSign(),
 	}, nil
 }
+
+//parseGPGKey parse a PrimaryKey entity (primary key + subs keys + self-signature)
 func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 	pubkey := e.PrimaryKey
 
@@ -239,13 +236,11 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 }
 
 // deleteGPGKey does the actual key deletion
-func deleteGPGKey(e *xorm.Session, keyIDs ...int64) error {
-	if len(keyIDs) == 0 {
-		return nil
+func deleteGPGKey(e *xorm.Session, keyID string) (int64, error) {
+	if keyID == "" {
+		return 0, fmt.Errorf("empty KeyId forbidden") //Should never happen but just to be sure
 	}
-
-	_, err := e.In("id", keyIDs).Delete(new(GPGKey))
-	return err
+	return e.Where("key_id=?", keyID).Or("primary_key_id=?", keyID).Delete(new(GPGKey))
 }
 
 // DeleteGPGKey deletes GPG key information in database.
@@ -269,18 +264,7 @@ func DeleteGPGKey(doer *User, id int64) (err error) {
 		return err
 	}
 
-	//Add subkeys to remove
-	subkeys := make([]*GPGKey, 0, 5)
-	x.Where("primary_key_id=?", key.KeyID).Find(&subkeys)
-	ids := make([]int64, len(subkeys)+1)
-	for i, sk := range subkeys {
-		ids[i] = sk.ID
-	}
-
-	//Add primary key to remove at last
-	ids[len(subkeys)] = id
-
-	if err = deleteGPGKey(sess, ids...); err != nil {
+	if _, err = deleteGPGKey(sess, key.KeyID); err != nil {
 		return err
 	}
 
