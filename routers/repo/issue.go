@@ -650,16 +650,19 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 	if len(commaSeparatedIssueIDs) == 0 {
 		return nil
 	}
-	stringIssueIDs := strings.Split(commaSeparatedIssueIDs, ",")
-	issues := make([]*models.Issue, len(stringIssueIDs))
-	for i, stringIssueID := range stringIssueIDs {
-		if issueID, err := strconv.ParseInt(stringIssueID, 10, 64); err != nil {
+	issueIDs := make([]int64, 0, 10)
+	for _, stringIssueID := range strings.Split(commaSeparatedIssueIDs, ",") {
+		issueID, err := strconv.ParseInt(stringIssueID, 10, 64)
+		if err != nil {
 			ctx.Handle(500, "ParseInt", err)
 			return nil
-		} else if issues[i], err = models.GetIssueByID(issueID); err != nil {
-			ctx.Handle(500, "GetIssueByID", err)
-			return nil
 		}
+		issueIDs = append(issueIDs, issueID)
+	}
+	issues, err := models.GetIssuesByIDs(issueIDs)
+	if err != nil {
+		ctx.Handle(500, "GetIssuesByIDs", err)
+		return nil
 	}
 	return issues
 }
@@ -779,11 +782,12 @@ func UpdateIssueStatus(ctx *context.Context) {
 		log.Warn("Unrecognized action: %s", action)
 	}
 
+	if _, err := models.IssueList(issues).LoadRepositories(); err != nil {
+		ctx.Handle(500, "LoadRepositories", err)
+		return
+	}
 	for _, issue := range issues {
-		if repo, err := models.GetRepositoryByID(issue.RepoID); err != nil {
-			ctx.Handle(500, "GetRepositoryByID", err)
-			return
-		} else if err := issue.ChangeStatus(ctx.User, repo, isClosed); err != nil {
+		if err := issue.ChangeStatus(ctx.User, issue.Repo, isClosed); err != nil {
 			ctx.Handle(500, "ChangeStatus", err)
 			return
 		}

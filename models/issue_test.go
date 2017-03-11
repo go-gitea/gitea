@@ -42,3 +42,19 @@ func TestIssueAPIURL(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/issues/1", issue.APIURL())
 }
+
+func TestGetIssuesByIDs(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	testSuccess := func(expectedIssueIDs []int64, nonExistentIssueIDs []int64) {
+		issues, err := GetIssuesByIDs(append(expectedIssueIDs, nonExistentIssueIDs...))
+		assert.NoError(t, err)
+		actualIssueIDs := make([]int64, len(issues))
+		for i, issue := range issues {
+			actualIssueIDs[i] = issue.ID
+		}
+		assert.Equal(t, expectedIssueIDs, actualIssueIDs)
+
+	}
+	testSuccess([]int64{1, 2, 3}, []int64{})
+	testSuccess([]int64{1, 2, 3}, []int64{NonexistentID})
+}
