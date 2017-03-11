@@ -144,26 +144,31 @@ func AddGPGKey(ownerID int64, content string) (*GPGKey, error) {
 
 	return key, sess.Commit()
 }
-func base64EncPubKey(pubkey *packet.PublicKey) string {
+func base64EncPubKey(pubkey *packet.PublicKey) (string, error) {
 	var w bytes.Buffer
-	if err := pubkey.Serialize(&w); err != nil {
-		log.Warn("Failed to serialize public key content: %v", pubkey.Fingerprint)
+	err := pubkey.Serialize(&w)
+	if err != nil {
+		return "", err
 	}
-	return base64.StdEncoding.EncodeToString(w.Bytes())
+	return base64.StdEncoding.EncodeToString(w.Bytes()), nil
 }
-func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, expiry time.Time) *GPGKey {
+func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, expiry time.Time) (*GPGKey, error) {
+	content, err := base64EncPubKey(pubkey)
+	if err != nil {
+		return nil, err
+	}
 	return &GPGKey{
 		OwnerID:           ownerID,
 		KeyID:             pubkey.KeyIdString(),
 		PrimaryKeyID:      primaryID,
-		Content:           base64EncPubKey(pubkey),
+		Content:           content,
 		Created:           pubkey.CreationTime,
 		Expired:           expiry,
 		CanSign:           pubkey.CanSign(),
 		CanEncryptComms:   pubkey.PubKeyAlgo.CanEncrypt(),
 		CanEncryptStorage: pubkey.PubKeyAlgo.CanEncrypt(),
 		CanCertify:        pubkey.PubKeyAlgo.CanSign(),
-	}
+	}, nil
 }
 func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 	pubkey := e.PrimaryKey
@@ -186,7 +191,11 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 	//Parse Subkeys
 	subkeys := make([]*GPGKey, len(e.Subkeys))
 	for i, k := range e.Subkeys {
-		subkeys[i] = parseSubGPGKey(ownerID, pubkey.KeyIdString(), k.PublicKey, expiry)
+		subs, err := parseSubGPGKey(ownerID, pubkey.KeyIdString(), k.PublicKey, expiry)
+		if err != nil {
+			return nil, err
+		}
+		subkeys[i] = subs
 	}
 
 	//Check emails
@@ -209,12 +218,15 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 		}
 		n++
 	}
-
+	content, err := base64EncPubKey(pubkey)
+	if err != nil {
+		return nil, err
+	}
 	return &GPGKey{
 		OwnerID:           ownerID,
 		KeyID:             pubkey.KeyIdString(),
 		PrimaryKeyID:      "",
-		Content:           base64EncPubKey(pubkey),
+		Content:           content,
 		Created:           pubkey.CreationTime,
 		Expired:           expiry,
 		Emails:            emails,
