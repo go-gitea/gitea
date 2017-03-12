@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"path/filepath"
+	"mime"
 
 	"code.gitea.io/git"
 
