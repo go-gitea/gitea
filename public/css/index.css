@@ -2270,6 +2270,9 @@ footer .ui.language .menu {
 #search-user-box .results .item img {
   margin-right: 8px;
 }
+.issue-actions {
+  display: none;
+}
 .issue.list {
   list-style: none;
   padding-top: 15px;
@@ -2306,9 +2309,6 @@ footer .ui.language .menu {
 .issue.list > .item .desc .assignee {
   margin-top: -5px;
   margin-right: 5px;
-}
-.issue-actions {
-    display: none;
 }
 .page.buttons {
   padding-top: 15px;
