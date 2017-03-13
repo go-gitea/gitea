@@ -78,14 +78,12 @@ func ToGPGKey(key *models.GPGKey) *api.GPGKey {
 	subkeys := make([]*api.GPGKey, len(key.SubsKey))
 	for id, k := range key.SubsKey {
 		subkeys[id] = &api.GPGKey{
-			ID:           k.ID,
-			PrimaryKeyID: k.PrimaryKeyID,
-			KeyID:        k.KeyID,
-			PublicKey:    k.Content,
-			Created:      k.Created,
-			Expires:      k.Expired,
-			//Emails:            emails,
-			//SubsKey:           subkeys,
+			ID:                k.ID,
+			PrimaryKeyID:      k.PrimaryKeyID,
+			KeyID:             k.KeyID,
+			PublicKey:         k.Content,
+			Created:           k.Created,
+			Expires:           k.Expired,
 			CanSign:           k.CanSign,
 			CanEncryptComms:   k.CanEncryptComms,
 			CanEncryptStorage: k.CanEncryptStorage,
