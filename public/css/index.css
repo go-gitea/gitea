@@ -2942,12 +2942,12 @@ footer .ui.language .menu {
   padding-bottom: 80px;
 }
 .explore .navbar {
-  justify-content: center;
-  padding-top: 15px;
-  margin-top: -15px;
-  margin-bottom: 15px;
-  background-color: #FAFAFA;
-  border-width: 1px;
+  justify-content: center !important;
+  padding-top: 15px !important;
+  margin-top: -15px !important;
+  margin-bottom: 15px !important;
+  background-color: #FAFAFA !important;
+  border-width: 1px !important;
 }
 .explore .navbar .octicon {
   width: 16px;
