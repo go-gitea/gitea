@@ -1,37 +1,33 @@
 {{template "base/head" .}}
 <div class="explore users">
+	{{template "explore/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "explore/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "explore/search" .}}
+		{{template "explore/search" .}}
 
-				<div class="ui user list">
-					{{range .Users}}
-						<div class="item">
-						  <img class="ui avatar image" src="{{.RelAvatarLink}}">
-						  <div class="content">
-						  	<span class="header"><a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}</span>
-						    <div class="description">
-									{{if .Location}}
-										<i class="octicon octicon-location"></i> {{.Location}}
-									{{end}}
-									{{if and .Website}}
-										<i class="octicon octicon-link"></i>
-										<a href="{{.Website}}" rel="nofollow">{{.Website}}</a>
-									{{end}}
-									<i class="octicon octicon-clock"></i> {{$.i18n.Tr "user.join_on"}} {{DateFmtShort .Created}}
-						    </div>
-						  </div>
-						</div>
-					{{else}}
-						<div>{{$.i18n.Tr "explore.org_no_results"}}</div>
-					{{end}}
+		<div class="ui user list">
+			{{range .Users}}
+				<div class="item">
+				  <img class="ui avatar image" src="{{.RelAvatarLink}}">
+				  <div class="content">
+					<span class="header"><a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}</span>
+					<div class="description">
+							{{if .Location}}
+								<i class="octicon octicon-location"></i> {{.Location}}
+							{{end}}
+							{{if and .Website}}
+								<i class="octicon octicon-link"></i>
+								<a href="{{.Website}}" rel="nofollow">{{.Website}}</a>
+							{{end}}
+							<i class="octicon octicon-clock"></i> {{$.i18n.Tr "user.join_on"}} {{DateFmtShort .Created}}
+					</div>
+				  </div>
 				</div>
-
-				{{template "base/paginate" .}}
-			</div>
+			{{else}}
+				<div>{{$.i18n.Tr "explore.org_no_results"}}</div>
+			{{end}}
 		</div>
+
+		{{template "base/paginate" .}}
 	</div>
 </div>
 {{template "base/footer" .}}
