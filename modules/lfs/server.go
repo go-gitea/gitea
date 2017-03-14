@@ -463,7 +463,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	}
 
 	if ctx.IsSigned {
-		accessCheck, _ := models.HasAccess(ctx.User, repository, accessMode)
+		accessCheck, _ := models.HasAccess(ctx.User.ID, repository, accessMode)
 		return accessCheck
 	}
 
@@ -499,7 +499,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		return false
 	}
 
-	accessCheck, _ := models.HasAccess(userModel, repository, accessMode)
+	accessCheck, _ := models.HasAccess(userModel.ID, repository, accessMode)
 	return accessCheck
 }
 

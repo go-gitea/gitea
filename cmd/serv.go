@@ -232,7 +232,7 @@ func runServ(c *cli.Context) error {
 				fail("internal error", "Failed to get user by key ID(%d): %v", keyID, err)
 			}
 
-			mode, err := models.AccessLevel(user, repo)
+			mode, err := models.AccessLevel(user.ID, repo)
 			if err != nil {
 				fail("Internal error", "Failed to check access: %v", err)
 			} else if mode < requestedMode {
