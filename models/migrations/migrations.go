@@ -92,6 +92,8 @@ var migrations = []Migration{
 	NewMigration("use new avatar path name for security reason", useNewNameAvatars),
 	// v21 -> v22
 	NewMigration("rewrite authorized_keys file via new format", useNewPublickeyFormat),
+	// v22 -> v23
+	NewMigration("generate and migrate wiki Git hooks", generateAndMigrateWikiGitHooks),
 }
 
 // Migrate database to current version

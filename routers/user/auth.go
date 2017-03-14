@@ -872,6 +872,9 @@ func ForgotPasswd(ctx *context.Context) {
 		return
 	}
 
+	email := ctx.Query("email")
+	ctx.Data["Email"] = email
+
 	ctx.Data["IsResetRequest"] = true
 	ctx.HTML(200, tplForgotPassword)
 }
