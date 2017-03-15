@@ -2270,6 +2270,9 @@ footer .ui.language .menu {
 #search-user-box .results .item img {
   margin-right: 8px;
 }
+.issue-actions {
+  display: none;
+}
 .issue.list {
   list-style: none;
   padding-top: 15px;

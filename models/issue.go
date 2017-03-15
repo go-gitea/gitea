@@ -1002,6 +1002,16 @@ func GetIssueByID(id int64) (*Issue, error) {
 	return getIssueByID(x, id)
 }
 
+func getIssuesByIDs(e Engine, issueIDs []int64) ([]*Issue, error) {
+	issues := make([]*Issue, 0, 10)
+	return issues, e.In("id", issueIDs).Find(&issues)
+}
+
+// GetIssuesByIDs return issues with the given IDs.
+func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
+	return getIssuesByIDs(x, issueIDs)
+}
+
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
 	RepoID      int64
