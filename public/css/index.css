@@ -2944,6 +2944,14 @@ footer .ui.language .menu {
   padding-top: 15px;
   padding-bottom: 80px;
 }
+.explore .navbar {
+  justify-content: center;
+  padding-top: 15px !important;
+  margin-top: -15px !important;
+  margin-bottom: 15px !important;
+  background-color: #FAFAFA !important;
+  border-width: 1px !important;
+}
 .explore .navbar .octicon {
   width: 16px;
   text-align: center;
