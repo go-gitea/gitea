@@ -1,204 +1,200 @@
 {{template "base/head" .}}
 <div class="admin new authentication">
+	{{template "admin/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "admin/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.auths.new"}}
-				</h4>
-				<div class="ui attached segment">
-					<form class="ui form" action="{{.Link}}" method="post">
-						{{.CsrfTokenHtml}}
-						<!-- Types and name -->
-						<div class="inline required field {{if .Err_Type}}error{{end}}">
-							<label>{{.i18n.Tr "admin.auths.auth_type"}}</label>
-							<div class="ui selection type dropdown">
-								<input type="hidden" id="auth_type" name="type" value="{{.type}}">
-								<div class="text">{{.CurrentTypeName}}</div>
-								<i class="dropdown icon"></i>
-								<div class="menu">
-									{{range .AuthSources}}
-										<div class="item" data-value="{{.Type}}">{{.Name}}</div>
-									{{end}}
-								</div>
-							</div>
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.auths.new"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<!-- Types and name -->
+				<div class="inline required field {{if .Err_Type}}error{{end}}">
+					<label>{{.i18n.Tr "admin.auths.auth_type"}}</label>
+					<div class="ui selection type dropdown">
+						<input type="hidden" id="auth_type" name="type" value="{{.type}}">
+						<div class="text">{{.CurrentTypeName}}</div>
+						<i class="dropdown icon"></i>
+						<div class="menu">
+							{{range .AuthSources}}
+								<div class="item" data-value="{{.Type}}">{{.Name}}</div>
+							{{end}}
 						</div>
-						<div class="required inline field {{if .Err_Name}}error{{end}}">
-							<label for="name">{{.i18n.Tr "admin.auths.auth_name"}}</label>
-							<input id="name" name="name" value="{{.name}}" autofocus required>
-						</div>
-
-						<!-- LDAP and DLDAP -->
-						<div class="ldap dldap field {{if not (or (eq .type 2) (eq .type 5))}}hide{{end}}">
-							<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
-								<label>{{.i18n.Tr "admin.auths.security_protocol"}}</label>
-								<div class="ui selection security-protocol dropdown">
-									<input type="hidden" id="security_protocol" name="security_protocol" value="{{.security_protocol}}">
-									<div class="text">{{.CurrentSecurityProtocol}}</div>
-									<i class="dropdown icon"></i>
-									<div class="menu">
-										{{range .SecurityProtocols}}
-											<div class="item" data-value="{{.Type}}">{{.Name}}</div>
-										{{end}}
-									</div>
-								</div>
-							</div>
-							<div class="required field">
-								<label for="host">{{.i18n.Tr "admin.auths.host"}}</label>
-								<input id="host" name="host" value="{{.host}}" placeholder="e.g. mydomain.com">
-							</div>
-							<div class="required field">
-								<label for="port">{{.i18n.Tr "admin.auths.port"}}</label>
-								<input id="port" name="port" value="{{.port}}"  placeholder="e.g. 636">
-							</div>
-							<div class="ldap field {{if not (eq .type 2)}}hide{{end}}">
-								<label for="bind_dn">{{.i18n.Tr "admin.auths.bind_dn"}}</label>
-								<input id="bind_dn" name="bind_dn" value="{{.bind_dn}}" placeholder="e.g. cn=Search,dc=mydomain,dc=com">
-							</div>
-							<input class="fake" type="password">
-							<div class="ldap field {{if not (eq .type 2)}}hide{{end}}">
-								<label for="bind_password">{{.i18n.Tr "admin.auths.bind_password"}}</label>
-								<input id="bind_password" name="bind_password" type="password" value="{{.bind_password}}">
-								<p class="help text red">{{.i18n.Tr "admin.auths.bind_password_helper"}}</p>
-							</div>
-							<div class="ldap required field {{if not (eq .type 2)}}hide{{end}}">
-								<label for="user_base">{{.i18n.Tr "admin.auths.user_base"}}</label>
-								<input id="user_base" name="user_base" value="{{.user_base}}" placeholder="e.g. ou=Users,dc=mydomain,dc=com">
-							</div>
-							<div class="dldap required field {{if not (eq .type 5)}}hide{{end}}">
-								<label for="user_dn">{{.i18n.Tr "admin.auths.user_dn"}}</label>
-								<input id="user_dn" name="user_dn" value="{{.user_dn}}" placeholder="e.g. uid=%s,ou=Users,dc=mydomain,dc=com">
-							</div>
-							<div class="required field">
-								<label for="filter">{{.i18n.Tr "admin.auths.filter"}}</label>
-								<input id="filter" name="filter" value="{{.filter}}" placeholder="e.g. (&(objectClass=posixAccount)(uid=%s))">
-							</div>
-							<div class="field">
-								<label for="admin_filter">{{.i18n.Tr "admin.auths.admin_filter"}}</label>
-								<input id="admin_filter" name="admin_filter" value="{{.admin_filter}}">
-							</div>
-							<div class="field">
-								<label for="attribute_username">{{.i18n.Tr "admin.auths.attribute_username"}}</label>
-								<input id="attribute_username" name="attribute_username" value="{{.attribute_username}}" placeholder="{{.i18n.Tr "admin.auths.attribute_username_placeholder"}}">
-							</div>
-							<div class="field">
-								<label for="attribute_name">{{.i18n.Tr "admin.auths.attribute_name"}}</label>
-								<input id="attribute_name" name="attribute_name" value="{{.attribute_name}}">
-							</div>
-							<div class="field">
-								<label for="attribute_surname">{{.i18n.Tr "admin.auths.attribute_surname"}}</label>
-								<input id="attribute_surname" name="attribute_surname" value="{{.attribute_surname}}">
-							</div>
-							<div class="required field">
-								<label for="attribute_mail">{{.i18n.Tr "admin.auths.attribute_mail"}}</label>
-								<input id="attribute_mail" name="attribute_mail" value="{{.attribute_mail}}" placeholder="e.g. mail">
-							</div>
-						</div>
-
-						<!-- SMTP -->
-						<div class="smtp field {{if not (eq .type 3)}}hide{{end}}">
-							<div class="inline required field">
-								<label>{{.i18n.Tr "admin.auths.smtp_auth"}}</label>
-								<div class="ui selection type dropdown">
-									<input type="hidden" id="smtp_auth" name="smtp_auth" value="{{.smtp_auth}}">
-									<div class="text">{{.smtp_auth}}</div>
-									<i class="dropdown icon"></i>
-									<div class="menu">
-										{{range .SMTPAuths}}
-											<div class="item" data-value="{{.}}">{{.}}</div>
-										{{end}}
-									</div>
-								</div>
-							</div>
-							<div class="required field">
-								<label for="smtp_host">{{.i18n.Tr "admin.auths.smtphost"}}</label>
-								<input id="smtp_host" name="smtp_host" value="{{.smtp_host}}">
-							</div>
-							<div class="required field">
-								<label for="smtp_port">{{.i18n.Tr "admin.auths.smtpport"}}</label>
-								<input id="smtp_port" name="smtp_port" value="{{.smtp_port}}">
-							</div>
-							<div class="field">
-								<label for="allowed_domains">{{.i18n.Tr "admin.auths.allowed_domains"}}</label>
-								<input id="allowed_domains" name="allowed_domains" value="{{.allowed_domains}}">
-								<p class="help">{{.i18n.Tr "admin.auths.allowed_domains_helper"}}</p>
-							</div>
-						</div>
-
-						<!-- PAM -->
-						<div class="pam required field {{if not (eq .type 4)}}hide{{end}}">
-							<label for="pam_service_name">{{.i18n.Tr "admin.auths.pam_service_name"}}</label>
-							<input id="pam_service_name" name="pam_service_name" value="{{.pam_service_name}}" />
-						</div>
-
-						<!-- OAuth2 -->
-						<div class="oauth2 field {{if not (eq .type 6)}}hide{{end}}">
-							<div class="inline required field">
-								<label>{{.i18n.Tr "admin.auths.oauth2_provider"}}</label>
-								<div class="ui selection type dropdown">
-									<input type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{.oauth2_provider}}">
-									<div class="text">{{.oauth2_provider}}</div>
-									<i class="dropdown icon"></i>
-									<div class="menu">
-										{{range $key, $value := .OAuth2Providers}}
-											<div class="item" data-value="{{$key}}">{{$value.DisplayName}}</div>
-										{{end}}
-									</div>
-								</div>
-							</div>
-							<div class="required field">
-								<label for="oauth2_key">{{.i18n.Tr "admin.auths.oauth2_clientID"}}</label>
-								<input id="oauth2_key" name="oauth2_key" value="{{.oauth2_key}}">
-							</div>
-							<div class="required field">
-								<label for="oauth2_secret">{{.i18n.Tr "admin.auths.oauth2_clientSecret"}}</label>
-								<input id="oauth2_secret" name="oauth2_secret" value="{{.oauth2_secret}}">
-							</div>
-						</div>
-
-						<div class="ldap field">
-							<div class="ui checkbox">
-								<label><strong>{{.i18n.Tr "admin.auths.attributes_in_bind"}}</strong></label>
-								<input name="attributes_in_bind" type="checkbox" {{if .attributes_in_bind}}checked{{end}}>
-							</div>
-						</div>
-						<div class="smtp inline field {{if not (eq .type 3)}}hide{{end}}">
-							<div class="ui checkbox">
-								<label><strong>{{.i18n.Tr "admin.auths.enable_tls"}}</strong></label>
-								<input name="tls" type="checkbox" {{if .tls}}checked{{end}}>
-							</div>
-						</div>
-						<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
-							<div class="ui checkbox">
-								<label><strong>{{.i18n.Tr "admin.auths.skip_tls_verify"}}</strong></label>
-								<input name="skip_verify" type="checkbox" {{if .skip_verify}}checked{{end}}>
-							</div>
-						</div>
-						<div class="inline field">
-							<div class="ui checkbox">
-								<label><strong>{{.i18n.Tr "admin.auths.activated"}}</strong></label>
-								<input name="is_active" type="checkbox" {{if .is_active}}checked{{end}}>
-							</div>
-						</div>
-
-						<div class="field">
-							<button class="ui green button">{{.i18n.Tr "admin.auths.new"}}</button>
-						</div>
-					</form>
+					</div>
+				</div>
+				<div class="required inline field {{if .Err_Name}}error{{end}}">
+					<label for="name">{{.i18n.Tr "admin.auths.auth_name"}}</label>
+					<input id="name" name="name" value="{{.name}}" autofocus required>
 				</div>
 
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.auths.tips"}}
-				</h4>
-				<div class="ui attached segment">
-					<h5>GMail Settings:</h5>
-					<p>Host: smtp.gmail.com, Port: 587, Enable TLS Encryption: true</p>
-					<h5>OAuth GitHub:</h5>
-					<p>{{.i18n.Tr "admin.auths.tip.github"}}</p>
+				<!-- LDAP and DLDAP -->
+				<div class="ldap dldap field {{if not (or (eq .type 2) (eq .type 5))}}hide{{end}}">
+					<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
+						<label>{{.i18n.Tr "admin.auths.security_protocol"}}</label>
+						<div class="ui selection security-protocol dropdown">
+							<input type="hidden" id="security_protocol" name="security_protocol" value="{{.security_protocol}}">
+							<div class="text">{{.CurrentSecurityProtocol}}</div>
+							<i class="dropdown icon"></i>
+							<div class="menu">
+								{{range .SecurityProtocols}}
+									<div class="item" data-value="{{.Type}}">{{.Name}}</div>
+								{{end}}
+							</div>
+						</div>
+					</div>
+					<div class="required field">
+						<label for="host">{{.i18n.Tr "admin.auths.host"}}</label>
+						<input id="host" name="host" value="{{.host}}" placeholder="e.g. mydomain.com">
+					</div>
+					<div class="required field">
+						<label for="port">{{.i18n.Tr "admin.auths.port"}}</label>
+						<input id="port" name="port" value="{{.port}}"  placeholder="e.g. 636">
+					</div>
+					<div class="ldap field {{if not (eq .type 2)}}hide{{end}}">
+						<label for="bind_dn">{{.i18n.Tr "admin.auths.bind_dn"}}</label>
+						<input id="bind_dn" name="bind_dn" value="{{.bind_dn}}" placeholder="e.g. cn=Search,dc=mydomain,dc=com">
+					</div>
+					<input class="fake" type="password">
+					<div class="ldap field {{if not (eq .type 2)}}hide{{end}}">
+						<label for="bind_password">{{.i18n.Tr "admin.auths.bind_password"}}</label>
+						<input id="bind_password" name="bind_password" type="password" value="{{.bind_password}}">
+						<p class="help text red">{{.i18n.Tr "admin.auths.bind_password_helper"}}</p>
+					</div>
+					<div class="ldap required field {{if not (eq .type 2)}}hide{{end}}">
+						<label for="user_base">{{.i18n.Tr "admin.auths.user_base"}}</label>
+						<input id="user_base" name="user_base" value="{{.user_base}}" placeholder="e.g. ou=Users,dc=mydomain,dc=com">
+					</div>
+					<div class="dldap required field {{if not (eq .type 5)}}hide{{end}}">
+						<label for="user_dn">{{.i18n.Tr "admin.auths.user_dn"}}</label>
+						<input id="user_dn" name="user_dn" value="{{.user_dn}}" placeholder="e.g. uid=%s,ou=Users,dc=mydomain,dc=com">
+					</div>
+					<div class="required field">
+						<label for="filter">{{.i18n.Tr "admin.auths.filter"}}</label>
+						<input id="filter" name="filter" value="{{.filter}}" placeholder="e.g. (&(objectClass=posixAccount)(uid=%s))">
+					</div>
+					<div class="field">
+						<label for="admin_filter">{{.i18n.Tr "admin.auths.admin_filter"}}</label>
+						<input id="admin_filter" name="admin_filter" value="{{.admin_filter}}">
+					</div>
+					<div class="field">
+						<label for="attribute_username">{{.i18n.Tr "admin.auths.attribute_username"}}</label>
+						<input id="attribute_username" name="attribute_username" value="{{.attribute_username}}" placeholder="{{.i18n.Tr "admin.auths.attribute_username_placeholder"}}">
+					</div>
+					<div class="field">
+						<label for="attribute_name">{{.i18n.Tr "admin.auths.attribute_name"}}</label>
+						<input id="attribute_name" name="attribute_name" value="{{.attribute_name}}">
+					</div>
+					<div class="field">
+						<label for="attribute_surname">{{.i18n.Tr "admin.auths.attribute_surname"}}</label>
+						<input id="attribute_surname" name="attribute_surname" value="{{.attribute_surname}}">
+					</div>
+					<div class="required field">
+						<label for="attribute_mail">{{.i18n.Tr "admin.auths.attribute_mail"}}</label>
+						<input id="attribute_mail" name="attribute_mail" value="{{.attribute_mail}}" placeholder="e.g. mail">
+					</div>
 				</div>
-			</div>
+
+				<!-- SMTP -->
+				<div class="smtp field {{if not (eq .type 3)}}hide{{end}}">
+					<div class="inline required field">
+						<label>{{.i18n.Tr "admin.auths.smtp_auth"}}</label>
+						<div class="ui selection type dropdown">
+							<input type="hidden" id="smtp_auth" name="smtp_auth" value="{{.smtp_auth}}">
+							<div class="text">{{.smtp_auth}}</div>
+							<i class="dropdown icon"></i>
+							<div class="menu">
+								{{range .SMTPAuths}}
+									<div class="item" data-value="{{.}}">{{.}}</div>
+								{{end}}
+							</div>
+						</div>
+					</div>
+					<div class="required field">
+						<label for="smtp_host">{{.i18n.Tr "admin.auths.smtphost"}}</label>
+						<input id="smtp_host" name="smtp_host" value="{{.smtp_host}}">
+					</div>
+					<div class="required field">
+						<label for="smtp_port">{{.i18n.Tr "admin.auths.smtpport"}}</label>
+						<input id="smtp_port" name="smtp_port" value="{{.smtp_port}}">
+					</div>
+					<div class="field">
+						<label for="allowed_domains">{{.i18n.Tr "admin.auths.allowed_domains"}}</label>
+						<input id="allowed_domains" name="allowed_domains" value="{{.allowed_domains}}">
+						<p class="help">{{.i18n.Tr "admin.auths.allowed_domains_helper"}}</p>
+					</div>
+				</div>
+
+				<!-- PAM -->
+				<div class="pam required field {{if not (eq .type 4)}}hide{{end}}">
+					<label for="pam_service_name">{{.i18n.Tr "admin.auths.pam_service_name"}}</label>
+					<input id="pam_service_name" name="pam_service_name" value="{{.pam_service_name}}" />
+				</div>
+
+				<!-- OAuth2 -->
+				<div class="oauth2 field {{if not (eq .type 6)}}hide{{end}}">
+					<div class="inline required field">
+						<label>{{.i18n.Tr "admin.auths.oauth2_provider"}}</label>
+						<div class="ui selection type dropdown">
+							<input type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{.oauth2_provider}}">
+							<div class="text">{{.oauth2_provider}}</div>
+							<i class="dropdown icon"></i>
+							<div class="menu">
+								{{range $key, $value := .OAuth2Providers}}
+									<div class="item" data-value="{{$key}}">{{$value.DisplayName}}</div>
+								{{end}}
+							</div>
+						</div>
+					</div>
+					<div class="required field">
+						<label for="oauth2_key">{{.i18n.Tr "admin.auths.oauth2_clientID"}}</label>
+						<input id="oauth2_key" name="oauth2_key" value="{{.oauth2_key}}">
+					</div>
+					<div class="required field">
+						<label for="oauth2_secret">{{.i18n.Tr "admin.auths.oauth2_clientSecret"}}</label>
+						<input id="oauth2_secret" name="oauth2_secret" value="{{.oauth2_secret}}">
+					</div>
+				</div>
+
+				<div class="ldap field">
+					<div class="ui checkbox">
+						<label><strong>{{.i18n.Tr "admin.auths.attributes_in_bind"}}</strong></label>
+						<input name="attributes_in_bind" type="checkbox" {{if .attributes_in_bind}}checked{{end}}>
+					</div>
+				</div>
+				<div class="smtp inline field {{if not (eq .type 3)}}hide{{end}}">
+					<div class="ui checkbox">
+						<label><strong>{{.i18n.Tr "admin.auths.enable_tls"}}</strong></label>
+						<input name="tls" type="checkbox" {{if .tls}}checked{{end}}>
+					</div>
+				</div>
+				<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
+					<div class="ui checkbox">
+						<label><strong>{{.i18n.Tr "admin.auths.skip_tls_verify"}}</strong></label>
+						<input name="skip_verify" type="checkbox" {{if .skip_verify}}checked{{end}}>
+					</div>
+				</div>
+				<div class="inline field">
+					<div class="ui checkbox">
+						<label><strong>{{.i18n.Tr "admin.auths.activated"}}</strong></label>
+						<input name="is_active" type="checkbox" {{if .is_active}}checked{{end}}>
+					</div>
+				</div>
+
+				<div class="field">
+					<button class="ui green button">{{.i18n.Tr "admin.auths.new"}}</button>
+				</div>
+			</form>
+		</div>
+
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.auths.tips"}}
+		</h4>
+		<div class="ui attached segment">
+			<h5>GMail Settings:</h5>
+			<p>Host: smtp.gmail.com, Port: 587, Enable TLS Encryption: true</p>
+			<h5>OAuth GitHub:</h5>
+			<p>{{.i18n.Tr "admin.auths.tip.github"}}</p>
 		</div>
 	</div>
 </div>

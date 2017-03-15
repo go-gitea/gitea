@@ -1,58 +1,54 @@
 {{template "base/head" .}}
 <div class="repository settings collaboration">
 	{{template "repo/header" .}}
+	{{template "repo/settings/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "repo/settings/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "repo.settings.collaboration"}}
-				</h4>
-				<div class="ui attached segment collaborator list">
-					{{range .Collaborators}}
-						<div class="item ui grid">
-							<div class="ui five wide column">
-								<a href="{{AppSubUrl}}/{{.Name}}">
-									<img class="ui avatar image" src="{{.RelAvatarLink}}">
-									{{.DisplayName}}
-								</a>
-							</div>
-							<div class="ui eight wide column">
-								<span class="octicon octicon-shield"></span>
-								<div class="ui inline dropdown">
-								  <div class="text">{{$.i18n.Tr .Collaboration.ModeI18nKey}}</div>
-								  <i class="dropdown icon"></i>
-								  <div class="access-mode menu" data-url="{{$.Link}}/access_mode" data-uid="{{.ID}}">
-								    <div class="item" data-text="{{$.i18n.Tr "repo.settings.collaboration.admin"}}" data-value="3">{{$.i18n.Tr "repo.settings.collaboration.admin"}}</div>
-								    <div class="item" data-text="{{$.i18n.Tr "repo.settings.collaboration.write"}}" data-value="2">{{$.i18n.Tr "repo.settings.collaboration.write"}}</div>
-								    <div class="item" data-text="{{$.i18n.Tr "repo.settings.collaboration.read"}}" data-value="1">{{$.i18n.Tr "repo.settings.collaboration.read"}}</div>
-								  </div>
-								</div>
-							</div>
-							<div class="ui two wide column">
-								<button class="ui red tiny button inline text-thin delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
-									{{$.i18n.Tr "repo.settings.delete_collaborator"}}
-								</button>
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "repo.settings.collaboration"}}
+		</h4>
+		<div class="ui attached segment collaborator list">
+			{{range .Collaborators}}
+				<div class="item ui grid">
+					<div class="ui five wide column">
+						<a href="{{AppSubUrl}}/{{.Name}}">
+							<img class="ui avatar image" src="{{.RelAvatarLink}}">
+							{{.DisplayName}}
+						</a>
+					</div>
+					<div class="ui eight wide column">
+						<span class="octicon octicon-shield"></span>
+						<div class="ui inline dropdown">
+							<div class="text">{{$.i18n.Tr .Collaboration.ModeI18nKey}}</div>
+							<i class="dropdown icon"></i>
+							<div class="access-mode menu" data-url="{{$.Link}}/access_mode" data-uid="{{.ID}}">
+							<div class="item" data-text="{{$.i18n.Tr "repo.settings.collaboration.admin"}}" data-value="3">{{$.i18n.Tr "repo.settings.collaboration.admin"}}</div>
+							<div class="item" data-text="{{$.i18n.Tr "repo.settings.collaboration.write"}}" data-value="2">{{$.i18n.Tr "repo.settings.collaboration.write"}}</div>
+							<div class="item" data-text="{{$.i18n.Tr "repo.settings.collaboration.read"}}" data-value="1">{{$.i18n.Tr "repo.settings.collaboration.read"}}</div>
 							</div>
 						</div>
-					{{end}}
+					</div>
+					<div class="ui two wide column">
+						<button class="ui red tiny button inline text-thin delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+							{{$.i18n.Tr "repo.settings.delete_collaborator"}}
+						</button>
+					</div>
 				</div>
-				<div class="ui bottom attached segment">
-					<form class="ui form" id="repo-collab-form" action="{{.Link}}" method="post">
-						{{.CsrfTokenHtml}}
-						<div class="inline field ui left">
-							<div id="search-user-box">
-								<div class="ui input">
-									<input class="prompt" name="collaborator" placeholder="{{.i18n.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" autofocus required>
-								</div>
-								<div class="ui segment results hide"></div>
-							</div>
+			{{end}}
+		</div>
+		<div class="ui bottom attached segment">
+			<form class="ui form" id="repo-collab-form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<div class="inline field ui left">
+					<div id="search-user-box">
+						<div class="ui input">
+							<input class="prompt" name="collaborator" placeholder="{{.i18n.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" autofocus required>
 						</div>
-						<button class="ui green button">{{.i18n.Tr "repo.settings.add_collaborator"}}</button>
-					</form>
+						<div class="ui segment results hide"></div>
+					</div>
 				</div>
-			</div>
+				<button class="ui green button">{{.i18n.Tr "repo.settings.add_collaborator"}}</button>
+			</form>
 		</div>
 	</div>
 </div>
