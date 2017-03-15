@@ -541,7 +541,7 @@ func (u *User) GetOrgRepositoryIDs() ([]int64, error) {
 		GroupBy("repository.id").Find(&ids)
 }
 
-// GetAccessRepoIDs returns all repsitories IDs where user's or user is a team member orgnizations
+// GetAccessRepoIDs returns all repositories IDs where user's or user is a team member organizations
 func (u *User) GetAccessRepoIDs() ([]int64, error) {
 	ids, err := u.GetRepositoryIDs()
 	if err != nil {
@@ -596,7 +596,7 @@ func (u *User) ShortName(length int) string {
 	return base.EllipsisString(u.Name, length)
 }
 
-// IsMailable checks if a user is elegible
+// IsMailable checks if a user is eligible
 // to receive emails.
 func (u *User) IsMailable() bool {
 	return u.IsActive
@@ -615,7 +615,7 @@ func IsUserExist(uid int64, name string) (bool, error) {
 		Get(&User{LowerName: strings.ToLower(name)})
 }
 
-// GetUserSalt returns a ramdom user salt token.
+// GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
 	return base.GetRandomString(10)
 }

@@ -53,7 +53,7 @@ type InstallForm struct {
 	AdminEmail         string `binding:"OmitEmpty;MinSize(3);MaxSize(254);Include(@)" locale:"install.admin_email"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *InstallForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -107,7 +107,7 @@ type UpdateProfileForm struct {
 	Location         string `binding:"MaxSize(50)"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *UpdateProfileForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -126,7 +126,7 @@ type AvatarForm struct {
 	Federavatar bool
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *AvatarForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -136,7 +136,7 @@ type AddEmailForm struct {
 	Email string `binding:"Required;Email;MaxSize(254)"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *AddEmailForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -148,7 +148,7 @@ type ChangePasswordForm struct {
 	Retype      string `form:"retype"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *ChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -159,7 +159,7 @@ type AddSSHKeyForm struct {
 	Content string `binding:"Required"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *AddSSHKeyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -179,7 +179,7 @@ type TwoFactorAuthForm struct {
 	Passcode string `binding:"Required"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *TwoFactorAuthForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }

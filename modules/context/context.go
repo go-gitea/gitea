@@ -164,7 +164,7 @@ func Contexter() macaron.Handler {
 
 		ctx.Data["PageStartTime"] = time.Now()
 
-		// Get user from session if logined.
+		// Get user from session if logged in.
 		ctx.User, ctx.IsBasicAuth = auth.SignedInUser(ctx.Context, ctx.Session)
 
 		if ctx.User != nil {
