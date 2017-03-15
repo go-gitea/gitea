@@ -2942,7 +2942,7 @@ footer .ui.language .menu {
   padding-bottom: 80px;
 }
 .explore .navbar {
-  justify-content: center !important;
+  justify-content: center;
   padding-top: 15px !important;
   margin-top: -15px !important;
   margin-bottom: 15px !important;
