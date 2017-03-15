@@ -1,4 +1,4 @@
-// +build !build
+// +build ignore
 
 package main
 
@@ -17,17 +17,14 @@ import (
 	"strings"
 )
 
-var (
-	prefix      = "gitea-gitignore"
-	url         = "https://api.github.com/repos/github/gitignore/tarball"
-	destination = ""
-)
-
-func init() {
-	flag.StringVar(&destination, "dest", "options/gitignore/", "destination for the gitignores")
-}
-
 func main() {
+	var (
+		prefix      = "gitea-gitignore"
+		url         = "https://api.github.com/repos/github/gitignore/tarball"
+		destination = ""
+	)
+
+	flag.StringVar(&destination, "dest", "options/gitignore/", "destination for the gitignores")
 	flag.Parse()
 
 	file, err := ioutil.TempFile(os.TempDir(), prefix)

@@ -1,4 +1,4 @@
-// +build !build
+// +build ignore
 
 package main
 
@@ -17,17 +17,14 @@ import (
 	"strings"
 )
 
-var (
-	prefix      = "gitea-licenses"
-	url         = "https://api.github.com/repos/spdx/license-list/tarball"
-	destination = ""
-)
-
-func init() {
-	flag.StringVar(&destination, "dest", "options/license/", "destination for the licenses")
-}
-
 func main() {
+	var (
+		prefix      = "gitea-licenses"
+		url         = "https://api.github.com/repos/spdx/license-list/tarball"
+		destination = ""
+	)
+
+	flag.StringVar(&destination, "dest", "options/license/", "destination for the licenses")
 	flag.Parse()
 
 	file, err := ioutil.TempFile(os.TempDir(), prefix)
@@ -73,9 +70,6 @@ func main() {
 			log.Fatalf("Failed to iterate archive. %s", err)
 		}
 
-		fmt.Println(hdr.Name)
-		fmt.Println(filepath.Ext(hdr.Name))
-
 		if filepath.Ext(hdr.Name) != ".txt" {
 			continue
 		}
@@ -87,8 +81,6 @@ func main() {
 		if strings.HasPrefix(filepath.Base(hdr.Name), "deprecated_") {
 			continue
 		}
-
-		fmt.Println(path.Join(destination, strings.TrimSuffix(filepath.Base(hdr.Name), ".txt")))
 
 		out, err := os.Create(path.Join(destination, strings.TrimSuffix(filepath.Base(hdr.Name), ".txt")))
 
