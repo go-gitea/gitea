@@ -1,58 +1,54 @@
 {{template "base/head" .}}
 <div class="user settings emails">
+	{{template "user/settings/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "user/settings/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "settings.manage_emails"}}
-				</h4>
-				<div class="ui attached segment">
-					<div class="ui email list">
-						<div class="item">
-							{{.i18n.Tr "settings.email_desc"}}
-						</div>
-						{{range .Emails}}
-							<div class="item ui grid">
-								<div class="column">
-									<strong>{{.Email}}</strong>
-									{{if .IsPrimary}}<span class="text red">{{$.i18n.Tr "settings.primary"}}</span>{{end}}
-									{{if not .IsPrimary}}
-										<div class="ui right">
-											<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
-												{{$.i18n.Tr "settings.delete_key"}}
-											</button>
-										</div>
-										{{if .IsActivated}}
-											<div class="ui right">
-												<form action="{{$.Link}}" method="post">
-													{{$.CsrfTokenHtml}}
-													<input name="_method" type="hidden" value="PRIMARY">
-													<input name="id" type="hidden" value="{{.ID}}">
-													<button class="ui green tiny button">{{$.i18n.Tr "settings.primary_email"}}</button>
-												</form>
-											</div>
-										{{end}}
-									{{end}}
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "settings.manage_emails"}}
+		</h4>
+		<div class="ui attached segment">
+			<div class="ui email list">
+				<div class="item">
+					{{.i18n.Tr "settings.email_desc"}}
+				</div>
+				{{range .Emails}}
+					<div class="item ui grid">
+						<div class="column">
+							<strong>{{.Email}}</strong>
+							{{if .IsPrimary}}<span class="text red">{{$.i18n.Tr "settings.primary"}}</span>{{end}}
+							{{if not .IsPrimary}}
+								<div class="ui right">
+									<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+										{{$.i18n.Tr "settings.delete_key"}}
+									</button>
 								</div>
-							</div>
-						{{end}}
-					</div>
-				</div>
-				<div class="ui attached bottom segment">
-					<form class="ui form" action="{{.Link}}" method="post">
-						{{.CsrfTokenHtml}}
-						<div class="required field {{if .Err_Email}}error{{end}}">
-							<label for="email">{{.i18n.Tr "settings.add_new_email"}}</label>
-							<input id="email" name="email" type="email" autofocus required>
+								{{if .IsActivated}}
+									<div class="ui right">
+										<form action="{{$.Link}}" method="post">
+											{{$.CsrfTokenHtml}}
+											<input name="_method" type="hidden" value="PRIMARY">
+											<input name="id" type="hidden" value="{{.ID}}">
+											<button class="ui green tiny button">{{$.i18n.Tr "settings.primary_email"}}</button>
+										</form>
+									</div>
+								{{end}}
+							{{end}}
 						</div>
-						<button class="ui green button">
-							{{.i18n.Tr "settings.add_email"}}
-						</button>
-					</form>
-				</div>
+					</div>
+				{{end}}
 			</div>
+		</div>
+		<div class="ui attached bottom segment">
+			<form class="ui form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<div class="required field {{if .Err_Email}}error{{end}}">
+					<label for="email">{{.i18n.Tr "settings.add_new_email"}}</label>
+					<input id="email" name="email" type="email" autofocus required>
+				</div>
+				<button class="ui green button">
+					{{.i18n.Tr "settings.add_email"}}
+				</button>
+			</form>
 		</div>
 	</div>
 </div>

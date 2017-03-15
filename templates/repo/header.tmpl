@@ -48,7 +48,7 @@
 {{end}}
 {{if not (or .IsBareRepo .IsDiffCompare)}}
 	<div class="ui tabs container">
-		<div class="ui tabular menu navbar">
+		<div class="ui tabular stackable menu navbar">
 			{{if .Repository.EnableUnit $.UnitTypeCode}}
 			<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}">
 				<i class="octicon octicon-code"></i> {{.i18n.Tr "repo.code"}}
