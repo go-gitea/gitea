@@ -374,7 +374,7 @@ func (issue *Issue) RemoveLabel(doer *User, label *Label) error {
 		return err
 	}
 
-	if has, err := HasAccess(doer, issue.Repo, AccessModeWrite); err != nil {
+	if has, err := HasAccess(doer.ID, issue.Repo, AccessModeWrite); err != nil {
 		return err
 	} else if !has {
 		return ErrLabelNotExist{}
@@ -415,7 +415,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		return err
 	}
 
-	if has, err := hasAccess(sess, doer, issue.Repo, AccessModeWrite); err != nil {
+	if has, err := hasAccess(sess, doer.ID, issue.Repo, AccessModeWrite); err != nil {
 		return err
 	} else if !has {
 		return ErrLabelNotExist{}
@@ -809,23 +809,14 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	if opts.Issue.AssigneeID > 0 {
-		assignee, err := getUserByID(e, opts.Issue.AssigneeID)
-		if err != nil && !IsErrUserNotExist(err) {
-			return fmt.Errorf("getUserByID: %v", err)
+	if assigneeID := opts.Issue.AssigneeID; assigneeID > 0 {
+		valid, err := hasAccess(e, assigneeID, opts.Repo, AccessModeWrite)
+		if err != nil {
+			return fmt.Errorf("hasAccess [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
 		}
-
-		// Assume assignee is invalid and drop silently.
-		opts.Issue.AssigneeID = 0
-		if assignee != nil {
-			valid, err := hasAccess(e, assignee, opts.Repo, AccessModeWrite)
-			if err != nil {
-				return fmt.Errorf("hasAccess [user_id: %d, repo_id: %d]: %v", assignee.ID, opts.Repo.ID, err)
-			}
-			if valid {
-				opts.Issue.AssigneeID = assignee.ID
-				opts.Issue.Assignee = assignee
-			}
+		if !valid {
+			opts.Issue.AssigneeID = 0
+			opts.Issue.Assignee = nil
 		}
 	}
 
