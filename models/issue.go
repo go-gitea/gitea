@@ -1139,6 +1139,7 @@ func GetParticipantsByIssueID(issueID int64) ([]*User, error) {
 	userIDs := make([]int64, 0, 5)
 	if err := x.Table("comment").Cols("poster_id").
 		Where("issue_id = ?", issueID).
+		And("type = ?", CommentTypeComment).
 		Distinct("poster_id").
 		Find(&userIDs); err != nil {
 		return nil, fmt.Errorf("get poster IDs: %v", err)
