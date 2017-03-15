@@ -20,7 +20,7 @@ type ContentStore struct {
 	BasePath string
 }
 
-// Get takes a Meta object and retreives the content from the store, returning
+// Get takes a Meta object and retrieves the content from the store, returning
 // it as an io.Reader. If fromByte > 0, the reader starts from that byte
 func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadCloser, error) {
 	path := filepath.Join(s.BasePath, transformKey(meta.Oid))

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+* BREAKING
+  * Password reset URL changed from `/user/forget_password` to `/user/forgot_password`
+
 ## [1.1.0](https://github.com/go-gitea/gitea/releases/tag/v1.1.0) - 2017-03-09
 
 * BREAKING
@@ -72,7 +77,7 @@
   * Added option to config to disable local path imports [#724](https://github.com/go-gitea/gitea/pull/724)
   * Allow custom public files [#782](https://github.com/go-gitea/gitea/pull/782)
   * Added pprof endpoint for debugging [#801](https://github.com/go-gitea/gitea/pull/801)
-  * Added X-GitHub-* headers [#809](https://github.com/go-gitea/gitea/pull/809)
+  * Added `X-GitHub-*` headers [#809](https://github.com/go-gitea/gitea/pull/809)
   * Fill SSH key title automatically [#863](https://github.com/go-gitea/gitea/pull/863)
   * Display Git version on admin panel [#921](https://github.com/go-gitea/gitea/pull/921)
   * Expose URL field on issue API [#982](https://github.com/go-gitea/gitea/pull/982)
@@ -104,7 +109,7 @@
 ## [1.0.1](https://github.com/go-gitea/gitea/releases/tag/v1.0.1) - 2017-01-05
 
 * BUGFIXES
-  * Fixed localized MIN_PASSWORD_LENGTH [#501](https://github.com/go-gitea/gitea/pull/501)
+  * Fixed localized `MIN_PASSWORD_LENGTH` [#501](https://github.com/go-gitea/gitea/pull/501)
   * Fixed 500 error on organization delete [#507](https://github.com/go-gitea/gitea/pull/507)
   * Ignore empty wiki repo on migrate [#544](https://github.com/go-gitea/gitea/pull/544)
   * Proper check access for forking [#563](https://github.com/go-gitea/gitea/pull/563)

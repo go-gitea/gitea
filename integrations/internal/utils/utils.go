@@ -6,9 +6,11 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -121,5 +123,34 @@ func (t *T) RunTest(tests ...func(*T) error) (err error) {
 	}
 
 	// Note that the return value 'err' may be updated by the 'defer' statement before despite it's returning nil here.
+	return nil
+}
+
+// GetAndPost provides a convenient helper function for testing an HTTP endpoint with GET and POST method.
+// The function sends GET first and then POST with the given form.
+func GetAndPost(url string, form map[string][]string) error {
+	var err error
+	var r *http.Response
+
+	r, err = http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("GET '%s': %s", url, r.Status)
+	}
+
+	r, err = http.PostForm(url, form)
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("POST '%s': %s", url, r.Status)
+	}
+
 	return nil
 }

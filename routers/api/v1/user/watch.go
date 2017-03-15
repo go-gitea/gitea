@@ -31,14 +31,10 @@ func getWatchedRepos(userID int64, private bool) ([]*api.Repository, error) {
 	if err != nil {
 		return nil, err
 	}
-	user, err := models.GetUserByID(userID)
-	if err != nil {
-		return nil, err
-	}
 
 	repos := make([]*api.Repository, len(watchedRepos))
 	for i, watched := range watchedRepos {
-		access, err := models.AccessLevel(user, watched)
+		access, err := models.AccessLevel(userID, watched)
 		if err != nil {
 			return nil, err
 		}

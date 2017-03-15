@@ -64,7 +64,7 @@ func Search(ctx *context.APIContext) {
 			})
 			return
 		}
-		accessMode, err := models.AccessLevel(ctx.User, repo)
+		accessMode, err := models.AccessLevel(ctx.User.ID, repo)
 		if err != nil {
 			ctx.JSON(500, map[string]interface{}{
 				"ok":    false,
@@ -218,7 +218,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 // see https://github.com/gogits/go-gogs-client/wiki/Repositories#get
 func Get(ctx *context.APIContext) {
 	repo := ctx.Repo.Repository
-	access, err := models.AccessLevel(ctx.User, repo)
+	access, err := models.AccessLevel(ctx.User.ID, repo)
 	if err != nil {
 		ctx.Error(500, "GetRepository", err)
 		return
@@ -238,7 +238,7 @@ func GetByID(ctx *context.APIContext) {
 		return
 	}
 
-	access, err := models.AccessLevel(ctx.User, repo)
+	access, err := models.AccessLevel(ctx.User.ID, repo)
 	if err != nil {
 		ctx.Error(500, "GetRepositoryByID", err)
 		return

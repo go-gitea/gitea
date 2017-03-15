@@ -478,7 +478,7 @@ func (u *User) DeleteAvatar() error {
 
 // IsAdminOfRepo returns true if user has admin or higher access of repository.
 func (u *User) IsAdminOfRepo(repo *Repository) bool {
-	has, err := HasAccess(u, repo, AccessModeAdmin)
+	has, err := HasAccess(u.ID, repo, AccessModeAdmin)
 	if err != nil {
 		log.Error(3, "HasAccess: %v", err)
 	}
@@ -487,7 +487,7 @@ func (u *User) IsAdminOfRepo(repo *Repository) bool {
 
 // IsWriterOfRepo returns true if user has write access to given repository.
 func (u *User) IsWriterOfRepo(repo *Repository) bool {
-	has, err := HasAccess(u, repo, AccessModeWrite)
+	has, err := HasAccess(u.ID, repo, AccessModeWrite)
 	if err != nil {
 		log.Error(3, "HasAccess: %v", err)
 	}
@@ -541,7 +541,7 @@ func (u *User) GetOrgRepositoryIDs() ([]int64, error) {
 		GroupBy("repository.id").Find(&ids)
 }
 
-// GetAccessRepoIDs returns all repsitories IDs where user's or user is a team member orgnizations
+// GetAccessRepoIDs returns all repositories IDs where user's or user is a team member organizations
 func (u *User) GetAccessRepoIDs() ([]int64, error) {
 	ids, err := u.GetRepositoryIDs()
 	if err != nil {
@@ -596,7 +596,7 @@ func (u *User) ShortName(length int) string {
 	return base.EllipsisString(u.Name, length)
 }
 
-// IsMailable checks if a user is elegible
+// IsMailable checks if a user is eligible
 // to receive emails.
 func (u *User) IsMailable() bool {
 	return u.IsActive
@@ -615,7 +615,7 @@ func IsUserExist(uid int64, name string) (bool, error) {
 		Get(&User{LowerName: strings.ToLower(name)})
 }
 
-// GetUserSalt returns a ramdom user salt token.
+// GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
 	return base.GetRandomString(10)
 }
@@ -630,7 +630,7 @@ func NewGhostUser() *User {
 }
 
 var (
-	reservedUsernames    = []string{"assets", "css", "img", "js", "less", "plugins", "debug", "raw", "install", "api", "avatar", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "new", ".", ".."}
+	reservedUsernames    = []string{"assets", "css", "explore", "img", "js", "less", "plugins", "debug", "raw", "install", "api", "avatar", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "new", ".", ".."}
 	reservedUserPatterns = []string{"*.keys"}
 )
 
@@ -1103,7 +1103,7 @@ func GetUserByID(id int64) (*User, error) {
 
 // GetAssigneeByID returns the user with write access of repository by given ID.
 func GetAssigneeByID(repo *Repository, userID int64) (*User, error) {
-	has, err := HasAccess(&User{ID: userID}, repo, AccessModeWrite)
+	has, err := HasAccess(userID, repo, AccessModeWrite)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -1290,78 +1290,6 @@ func SearchUserByName(opts *SearchUserOptions) (users []*User, _ int64, _ error)
 		sess.OrderBy(opts.OrderBy)
 	}
 	return users, count, sess.Find(&users)
-}
-
-// ___________    .__  .__
-// \_   _____/___ |  | |  |   ______  _  __
-//  |    __)/  _ \|  | |  |  /  _ \ \/ \/ /
-//  |     \(  <_> )  |_|  |_(  <_> )     /
-//  \___  / \____/|____/____/\____/ \/\_/
-//      \/
-
-// Follow represents relations of user and his/her followers.
-type Follow struct {
-	ID       int64 `xorm:"pk autoincr"`
-	UserID   int64 `xorm:"UNIQUE(follow)"`
-	FollowID int64 `xorm:"UNIQUE(follow)"`
-}
-
-// IsFollowing returns true if user is following followID.
-func IsFollowing(userID, followID int64) bool {
-	has, _ := x.Get(&Follow{UserID: userID, FollowID: followID})
-	return has
-}
-
-// FollowUser marks someone be another's follower.
-func FollowUser(userID, followID int64) (err error) {
-	if userID == followID || IsFollowing(userID, followID) {
-		return nil
-	}
-
-	sess := x.NewSession()
-	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if _, err = sess.Insert(&Follow{UserID: userID, FollowID: followID}); err != nil {
-		return err
-	}
-
-	if _, err = sess.Exec("UPDATE `user` SET num_followers = num_followers + 1 WHERE id = ?", followID); err != nil {
-		return err
-	}
-
-	if _, err = sess.Exec("UPDATE `user` SET num_following = num_following + 1 WHERE id = ?", userID); err != nil {
-		return err
-	}
-	return sess.Commit()
-}
-
-// UnfollowUser unmarks someone as another's follower.
-func UnfollowUser(userID, followID int64) (err error) {
-	if userID == followID || !IsFollowing(userID, followID) {
-		return nil
-	}
-
-	sess := x.NewSession()
-	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if _, err = sess.Delete(&Follow{UserID: userID, FollowID: followID}); err != nil {
-		return err
-	}
-
-	if _, err = sess.Exec("UPDATE `user` SET num_followers = num_followers - 1 WHERE id = ?", followID); err != nil {
-		return err
-	}
-
-	if _, err = sess.Exec("UPDATE `user` SET num_following = num_following - 1 WHERE id = ?", userID); err != nil {
-		return err
-	}
-	return sess.Commit()
 }
 
 // GetStarredRepos returns the repos starred by a particular user

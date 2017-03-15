@@ -193,6 +193,7 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 func SettingsPassword(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsPassword"] = true
+	ctx.Data["Email"] = ctx.User.Email
 	ctx.HTML(200, tplSettingsPassword)
 }
 
@@ -200,6 +201,7 @@ func SettingsPassword(ctx *context.Context) {
 func SettingsPasswordPost(ctx *context.Context, form auth.ChangePasswordForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsPassword"] = true
+	ctx.Data["PageIsSettingsDelete"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplSettingsPassword)
@@ -684,6 +686,7 @@ func SettingsDeleteAccountLink(ctx *context.Context) {
 func SettingsDelete(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsDelete"] = true
+	ctx.Data["Email"] = ctx.User.Email
 
 	if ctx.Req.Method == "POST" {
 		if _, err := models.UserSignIn(ctx.User.Name, ctx.Query("password")); err != nil {

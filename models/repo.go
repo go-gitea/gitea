@@ -531,7 +531,7 @@ func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) strin
 
 // HasAccess returns true when user has access to this repository
 func (repo *Repository) HasAccess(u *User) bool {
-	has, _ := HasAccess(u, repo, AccessModeRead)
+	has, _ := HasAccess(u.ID, repo, AccessModeRead)
 	return has
 }
 
@@ -1585,7 +1585,7 @@ func DeleteRepository(uid, repoID int64) error {
 
 		attachments := make([]*Attachment, 0, 5)
 		if err = sess.
-			In("issue_id=?", issueIDs).
+			In("issue_id", issueIDs).
 			Find(&attachments); err != nil {
 			return err
 		}

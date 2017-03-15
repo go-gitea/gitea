@@ -43,7 +43,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	})
 }
 
-// SetLinkHeader sets pagination link header by given totol number and page size.
+// SetLinkHeader sets pagination link header by given total number and page size.
 func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 	page := paginater.New(total, pageSize, ctx.QueryInt("page"), 0)
 	links := make([]string, 0, 4)

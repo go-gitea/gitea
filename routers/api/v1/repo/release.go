@@ -40,7 +40,7 @@ func ListReleases(ctx *context.APIContext) {
 		return
 	}
 	rels := make([]*api.Release, len(releases))
-	access, err := models.AccessLevel(ctx.User, ctx.Repo.Repository)
+	access, err := models.AccessLevel(ctx.User.ID, ctx.Repo.Repository)
 	if err != nil {
 		ctx.Error(500, "AccessLevel", err)
 		return
