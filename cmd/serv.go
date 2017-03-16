@@ -296,6 +296,13 @@ func runServ(c *cli.Context) error {
 		gitcmd = exec.Command(verb, repoPath)
 	}
 
+	if isWiki {
+		err = repo.InitWiki()
+		if err != nil {
+			fail("Internal error", "Failed to init wiki repo: %v", err)
+		}
+	}
+
 	os.Setenv(models.ProtectedBranchRepoID, fmt.Sprintf("%d", repo.ID))
 
 	gitcmd.Dir = setting.RepoRootPath
