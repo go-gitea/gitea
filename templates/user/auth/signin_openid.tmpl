@@ -11,9 +11,13 @@
 				<div class="ui attached segment">
 					<form class="ui form" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
+					<div class="inline field">
+						{{.i18n.Tr "auth.openid_signin_desc"}}
+					</div>
 					<div class="required inline field {{if .Err_OpenID}}error{{end}}">
 						<label for="openid">
 						<img alt="OpenID URI" height="16" src="http://wiki.openid.net/f/openid-16x16.gif"/>
+						OpenID URI
 						</label>
 						<input id="openid" name="openid" value="{{.openid}}" autofocus required>
 					</div>
