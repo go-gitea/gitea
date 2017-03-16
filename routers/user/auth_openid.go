@@ -89,6 +89,8 @@ func allowedOpenIDURI(uri string) (err error) {
 // SignInOpenIDPost response for openid sign in request
 func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
+	ctx.Data["PageIsSignIn"] = true
+	ctx.Data["PageIsLoginOpenID"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplSignInOpenID)
