@@ -109,8 +109,6 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
                 return;
 	}
 
-	// TODO: somehow forward the form.Remember option
-	// either append to destination url or set a cookie
 	redirectTo := setting.AppURL + "user/login/openid"
 	url, err := openid.RedirectURL(id, redirectTo, setting.AppURL)
         if err != nil {
