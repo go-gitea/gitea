@@ -219,7 +219,11 @@ func RepoAssignment(args ...bool) macaron.Handler {
 		if ctx.IsSigned && ctx.User.IsAdmin {
 			ctx.Repo.AccessMode = models.AccessModeOwner
 		} else {
-			mode, err := models.AccessLevel(ctx.User.ID, repo)
+			var userID int64
+			if ctx.User != nil {
+				userID = ctx.User.ID
+			}
+			mode, err := models.AccessLevel(userID, repo)
 			if err != nil {
 				ctx.Handle(500, "AccessLevel", err)
 				return
