@@ -59,6 +59,12 @@ func addUnitsToTables(x *xorm.Engine) error {
 	}
 
 	var repoUnit RepoUnit
+	if exist, err := sess.IsTableExist(&repoUnit); err != nil {
+		return fmt.Errorf("IsExist RepoUnit: %v", err)
+	} else if exist {
+		return nil
+	}
+
 	if err := sess.CreateTable(&repoUnit); err != nil {
 		return fmt.Errorf("CreateTable RepoUnit: %v", err)
 	}
