@@ -5,6 +5,7 @@
 package user
 
 import (
+	"fmt"
 	"net/url"
 
 	"code.gitea.io/gitea/models"
@@ -60,6 +61,31 @@ func SignInOpenID(ctx *context.Context) {
 	ctx.HTML(200, tplSignInOpenID)
 }
 
+// Check if the given OpenID URI is allowed by blacklist/whitelist
+func allowedOpenIDURI(uri string) (err error) {
+
+	// In case a Whitelist is present, URI must be in it
+	// in order to be accepted
+	if len(setting.OpenIDWhitelist) != 0 {
+		for _, pat := range setting.OpenIDWhitelist {
+			if pat.MatchString(uri) {
+				return nil // pass
+			}
+		}
+		// must match one of this or be refused
+		return fmt.Errorf("URI not allowed by whitelist")
+	}
+
+	// A blacklist match expliclty forbids
+	for _, pat := range setting.OpenIDBlacklist {
+		if pat.MatchString(uri) {
+			return fmt.Errorf("URI forbidden by blacklist")
+		}
+	}
+
+	return nil
+}
+
 // SignInOpenIDPost response for openid sign in request
 func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
@@ -77,6 +103,11 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	form.Openid = id
 
 	log.Trace("OpenID uri: " + id)
+
+	err = allowedOpenIDURI(id); if err != nil {
+		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &form)
+                return;
+	}
 
 	// TODO: somehow forward the form.Remember option
 	// either append to destination url or set a cookie
