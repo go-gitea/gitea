@@ -957,6 +957,23 @@ footer .ui.language .menu {
 #create-page-form form textarea {
   width: 50%!important;
 }
+.signin .oauth2 div {
+  display: inline-block;
+}
+.signin .oauth2 div p {
+  margin: 10px 5px 0 0;
+  float: left;
+}
+.signin .oauth2 a {
+  margin-right: 5px;
+}
+.signin .oauth2 a:last-child {
+  margin-right: 0px;
+}
+.signin .oauth2 img {
+  width: 32px;
+  height: 32px;
+}
 .user.activate form,
 .user.forgot.password form,
 .user.reset.password form,
@@ -1413,17 +1430,6 @@ footer .ui.language .menu {
 }
 .repository.file.editor .commit-form-wrapper {
   padding-left: 64px;
-}
-.repository.file.editor .tab[data-tab="write"] {
-    padding: 0 !important;
-}
-.repository.file.editor .tab[data-tab="write"] .editor-toolbar {
-    border: none !important;
-}
-.repository.file.editor .tab[data-tab="write"] .CodeMirror {
-    border-left: none;
-    border-right: none;
-    border-bottom: none;
 }
 .repository.file.editor .commit-form-wrapper .commit-avatar {
   float: left;
@@ -2557,6 +2563,17 @@ footer .ui.language .menu {
 .CodeMirror .cm-comment {
   background: inherit !important;
 }
+.repository.file.editor .tab[data-tab="write"] {
+  padding: 0 !important;
+}
+.repository.file.editor .tab[data-tab="write"] .editor-toolbar {
+  border: none !important;
+}
+.repository.file.editor .tab[data-tab="write"] .CodeMirror {
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+}
 .organization {
   padding-top: 15px;
   padding-bottom: 80px;
@@ -2763,6 +2780,10 @@ footer .ui.language .menu {
 }
 .user.notification .octicon.blue {
   color: #2185d0;
+}
+.user.link-account:not(.icon) {
+  padding-top: 15px;
+  padding-bottom: 5px;
 }
 .dashboard {
   padding-top: 15px;
@@ -3012,25 +3033,4 @@ footer .ui.language .menu {
 }
 .ui.user.list .item .description a:hover {
   text-decoration: underline;
-}
-.user.link-account:not(.icon) {
-  padding-top: 15px;
-  padding-bottom: 5px;
-}
-.signin .oauth2 div {
-  display: inline-block;
-}
-.signin .oauth2 div p {
-  margin: 10px 5px 0 0;
-  float: left;
-}
-.signin .oauth2 a {
-  margin-right: 5px;
-}
-.signin .oauth2 a:last-child {
-  margin-right: 0px;
-}
-.signin .oauth2 img {
-  width: 32px;
-  height: 32px;
 }
