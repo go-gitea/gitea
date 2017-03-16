@@ -73,6 +73,51 @@ func ToPublicKey(apiLink string, key *models.PublicKey) *api.PublicKey {
 	}
 }
 
+// ToGPGKey converts models.GPGKey to api.GPGKey
+func ToGPGKey(key *models.GPGKey) *api.GPGKey {
+	subkeys := make([]*api.GPGKey, len(key.SubsKey))
+	for id, k := range key.SubsKey {
+		subkeys[id] = &api.GPGKey{
+			ID:                k.ID,
+			PrimaryKeyID:      k.PrimaryKeyID,
+			KeyID:             k.KeyID,
+			PublicKey:         k.Content,
+			Created:           k.Created,
+			Expires:           k.Expired,
+			CanSign:           k.CanSign,
+			CanEncryptComms:   k.CanEncryptComms,
+			CanEncryptStorage: k.CanEncryptStorage,
+			CanCertify:        k.CanSign,
+		}
+	}
+	emails := make([]*api.GPGKeyEmail, len(key.Emails))
+	for i, e := range key.Emails {
+		emails[i] = ToGPGKeyEmail(e)
+	}
+	return &api.GPGKey{
+		ID:                key.ID,
+		PrimaryKeyID:      key.PrimaryKeyID,
+		KeyID:             key.KeyID,
+		PublicKey:         key.Content,
+		Created:           key.Created,
+		Expires:           key.Expired,
+		Emails:            emails,
+		SubsKey:           subkeys,
+		CanSign:           key.CanSign,
+		CanEncryptComms:   key.CanEncryptComms,
+		CanEncryptStorage: key.CanEncryptStorage,
+		CanCertify:        key.CanSign,
+	}
+}
+
+// ToGPGKeyEmail convert models.EmailAddress to api.GPGKeyEmail
+func ToGPGKeyEmail(email *models.EmailAddress) *api.GPGKeyEmail {
+	return &api.GPGKeyEmail{
+		Email:    email.Email,
+		Verified: email.IsActivated,
+	}
+}
+
 // ToHook convert models.Webhook to api.Hook
 func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 	config := map[string]string{
