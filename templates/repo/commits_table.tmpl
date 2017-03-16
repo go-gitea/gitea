@@ -46,7 +46,11 @@
 								{{ShortSha .ID.String}}
 								{{if .Signature}}
 									<div class="ui detail icon button">
-										<i title="{{.Verification.Reason}}" class="{{if .Verification.Verified }}lock green{{else}}unlock{{end}} icon"></i>
+										{{if .Verification.Verified}}
+											<i title="{{.Verification.Reason}}" class="lock green icon"></i>
+										{{else}}
+											<i title="{{$.i18n.Tr .Verification.Reason}}" class="unlock icon"></i>
+										{{end}}
 									</div>
 								{{end}}
 							</a>

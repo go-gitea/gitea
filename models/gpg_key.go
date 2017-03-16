@@ -313,15 +313,14 @@ func populateHash(hashFunc crypto.Hash, msg []byte) (hash.Hash, error) {
 	return h, nil
 }
 
-// readArmoredSign reads an armored signture block with the given type. https://sourcegraph.com/github.com/golang/crypto/-/blob/openpgp/read.go#L24:6-24:17
+// readArmoredSign read an armored signature block with the given type. https://sourcegraph.com/github.com/golang/crypto/-/blob/openpgp/read.go#L24:6-24:17
 func readArmoredSign(r io.Reader) (body io.Reader, err error) {
-	expectedType := "PGP SIGNATURE"
 	block, err := armor.Decode(r)
 	if err != nil {
 		return
 	}
-	if block.Type != expectedType {
-		return nil, fmt.Errorf("expected '" + expectedType + "', got: " + block.Type)
+	if block.Type != openpgp.SignatureType {
+		return nil, fmt.Errorf("expected '" + openpgp.SignatureType + "', got: " + block.Type)
 	}
 	return block.Body, nil
 }
@@ -378,7 +377,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			log.Error(3, "SignatureRead err: %v", err)
 			return &CommitVerification{
 				Verified: false,
-				Reason:   "Failed to extract signature",
+				Reason:   "gpg.error.extract_sign",
 			}
 		}
 		//Generating hash of commit
@@ -387,7 +386,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			log.Error(3, "PopulateHash: %v", err)
 			return &CommitVerification{
 				Verified: false,
-				Reason:   "Failed to generate hash of commit",
+				Reason:   "gpg.error.generate_hash",
 			}
 		}
 
@@ -397,7 +396,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			log.Error(3, "NoCommitterAccount: %v", err)
 			return &CommitVerification{
 				Verified: false,
-				Reason:   "No account linked to committer email",
+				Reason:   "gpg.error.no_committer_account",
 			}
 		}
 
@@ -406,7 +405,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			log.Error(3, "ListGPGKeys: %v", err)
 			return &CommitVerification{
 				Verified: false,
-				Reason:   "Failed to retrieve publics keys of committer",
+				Reason:   "gpg.error.failed_retrieval_gpg_keys",
 			}
 		}
 
@@ -434,13 +433,13 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		}
 		return &CommitVerification{ //Default at this stage
 			Verified: false,
-			Reason:   "No known key found for this signature in database",
+			Reason:   "gpg.error.no_gpg_keys_found",
 		}
 	}
 
 	return &CommitVerification{
-		Verified: false,                 //Default value
-		Reason:   "Not a signed commit", //Default value
+		Verified: false,                         //Default value
+		Reason:   "gpg.error.not_signed_commit", //Default value
 	}
 }
 

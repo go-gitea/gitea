@@ -45,16 +45,14 @@
 				{{if .Verification.Verified }}
 					<div class="ui bottom attached positive message" style="text-align: initial;color: black;">
 					  <i class="green lock icon"></i>
-						<span>
-							<span style="color: #2C662D;">Signed by :</span>
-			  			<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a> <{{.Commit.Committer.Email}}>
-						</span>
+						<span style="color: #2C662D;">Signed by :</span>
+						<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a> <{{.Commit.Committer.Email}}>
 						<span class="pull-right"><span style="color: #2C662D;">GPG key ID:</span> {{.Verification.SigningKey.KeyID}}</span>
 					</div>
 				{{else}}
 					<div class="ui bottom attached message" style="text-align: initial;color: black;">
 					  <i class="grey unlock icon"></i>
-					  {{.Verification.Reason}}
+					  {{.i18n.Tr .Verification.Reason}}
 					</div>
 				{{end}}
 			{{end}}
