@@ -101,7 +101,17 @@ docker:
 	docker build -t gitea/gitea:latest .
 
 .PHONY: release
-release: release-dirs release-windows release-linux release-darwin release-copy release-check
+release: release-changelog release-dirs release-windows release-linux release-darwin release-copy release-check
+
+.PHONY: release-changelog
+release-changelog: CHANGELOG.md
+
+.PHONY: CHANGELOG.md
+CHANGELOG.md: changelog/unreleased/*.md changelog/HISTORICAL.md
+	cat changelog/HISTORICAL.md >> CHANGELOG.md
+
+changelog/unreleased/*.md:
+	go run scripts/generate-changelog.go -version $(VERSION) -outputFile CHANGELOG.md
 
 .PHONY: release-dirs
 release-dirs:

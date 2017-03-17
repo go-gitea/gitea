@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+* BREAKING
+  * Password reset URL changed from `/user/forget_password` to `/user/forgot_password`
+
 ## [1.1.0](https://github.com/go-gitea/gitea/releases/tag/v1.1.0) - 2017-03-09
 
 * BREAKING
