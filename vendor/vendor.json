@@ -1162,6 +1162,12 @@
 			"path": "golang.org/x/crypto/cast5",
 			"revision": "b8a2a83acfe6e6770b75de42d5ff4c67596675c0",
 			"revisionTime": "2017-01-13T19:21:00Z"
+    },
+    {
+			"checksumSHA1": "pkrINpw0HkmO+18SdtSjje9MB9g=",
+			"path": "github.com/yohcop/openid-go",
+			"revision": "2c050d2dae5345c417db301f11fda6fbf5ad0f0a",
+			"revisionTime": "2016-09-14T08:04:27Z"
 		},
 		{
 			"checksumSHA1": "dwOedwBJ1EIK9+S3t108Bx054Y8=",

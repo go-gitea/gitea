@@ -11,6 +11,11 @@
 	<a class="{{if .PageIsSettingsEmails}}active{{end}} item" href="{{AppSubUrl}}/user/settings/email">
 		{{.i18n.Tr "settings.emails"}}
 	</a>
+	{{if .EnableOpenIDSignIn}}
+		<a class="{{if .PageIsSettingsOpenID}}active{{end}} item" href="{{AppSubUrl}}/user/settings/openid">
+			OpenID
+		</a>
+	{{end}}
 	<a class="{{if .PageIsSettingsSSHKeys}}active{{end}} item" href="{{AppSubUrl}}/user/settings/ssh">
 		{{.i18n.Tr "settings.ssh_keys"}}
 	</a>

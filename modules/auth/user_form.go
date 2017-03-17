@@ -78,7 +78,7 @@ func (f *RegisterForm) Validate(ctx *macaron.Context, errs binding.Errors) bindi
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// SignInForm form for signing in
+// SignInForm form for signing in with user/password
 type SignInForm struct {
 	UserName string `binding:"Required;MaxSize(254)"`
 	Password string `binding:"Required;MaxSize(255)"`
@@ -150,6 +150,16 @@ type ChangePasswordForm struct {
 
 // Validate validates the fields
 func (f *ChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// AddOpenIDForm is for changing openid uri
+type AddOpenIDForm struct {
+	Openid      string `binding:"Required;MaxSize(256)"`
+}
+
+// Validate validates the fields
+func (f *AddOpenIDForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
