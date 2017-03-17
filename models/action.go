@@ -100,37 +100,16 @@ func (a *Action) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
-// GetOpType gets the ActionType of this action.
-// TODO: change return type to ActionType ?
-func (a *Action) GetOpType() int {
-	return int(a.OpType)
-}
-
-// GetActUserName gets the action's user name.
-func (a *Action) GetActUserName() string {
-	return a.ActUserName
-}
-
 // ShortActUserName gets the action's user name trimmed to max 20
 // chars.
 func (a *Action) ShortActUserName() string {
 	return base.EllipsisString(a.ActUserName, 20)
 }
 
-// GetRepoUserName returns the name of the action repository owner.
-func (a *Action) GetRepoUserName() string {
-	return a.RepoUserName
-}
-
 // ShortRepoUserName returns the name of the action repository owner
 // trimmed to max 20 chars.
 func (a *Action) ShortRepoUserName() string {
 	return base.EllipsisString(a.RepoUserName, 20)
-}
-
-// GetRepoName returns the name of the action repository.
-func (a *Action) GetRepoName() string {
-	return a.RepoName
 }
 
 // ShortRepoName returns the name of the action repository
@@ -144,33 +123,12 @@ func (a *Action) GetRepoPath() string {
 	return path.Join(a.RepoUserName, a.RepoName)
 }
 
-// ShortRepoPath returns the virtual path to the action repository
-// trimmed to max 20 + 1 + 33 chars.
-func (a *Action) ShortRepoPath() string {
-	return path.Join(a.ShortRepoUserName(), a.ShortRepoName())
-}
-
 // GetRepoLink returns relative link to action repository.
 func (a *Action) GetRepoLink() string {
 	if len(setting.AppSubURL) > 0 {
 		return path.Join(setting.AppSubURL, a.GetRepoPath())
 	}
 	return "/" + a.GetRepoPath()
-}
-
-// GetBranch returns the action's repository branch.
-func (a *Action) GetBranch() string {
-	return a.RefName
-}
-
-// GetContent returns the action's content.
-func (a *Action) GetContent() string {
-	return a.Content
-}
-
-// GetCreate returns the action creation time.
-func (a *Action) GetCreate() time.Time {
-	return a.Created
 }
 
 // GetIssueInfos returns a list of issues associated with
