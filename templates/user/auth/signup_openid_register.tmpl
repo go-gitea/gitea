@@ -1,9 +1,7 @@
 {{template "base/head" .}}
 <div class="user signup">
+	{{template "user/auth/signup_openid_navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "user/auth/signup_openid_navbar" .}}
-			<div class="twelve wide column content">
 				{{template "base/alert" .}}
 				<h4 class="ui top attached header">
 					{{.i18n.Tr "auth.openid_register_title"}}
@@ -29,9 +27,8 @@
 						<label></label>
 						<button class="ui green button">{{.i18n.Tr "auth.create_new_account"}}</button>
 					</div>
+					</form>
 				</div>
-			</form>
-		</div>
 	</div>
 </div>
 {{template "base/footer" .}}
