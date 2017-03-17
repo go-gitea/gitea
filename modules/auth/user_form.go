@@ -163,14 +163,15 @@ func (f *AddOpenIDForm) Validate(ctx *macaron.Context, errs binding.Errors) bind
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// AddSSHKeyForm form for adding SSH key
-type AddSSHKeyForm struct {
+// AddKeyForm form for adding SSH/GPG key
+type AddKeyForm struct {
+	Type    string `binding:"OmitEmpty"`
 	Title   string `binding:"Required;MaxSize(50)"`
 	Content string `binding:"Required"`
 }
 
 // Validate validates the fields
-func (f *AddSSHKeyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+func (f *AddKeyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 

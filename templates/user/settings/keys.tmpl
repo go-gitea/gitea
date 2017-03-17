@@ -17,7 +17,7 @@
 				{{range .Keys}}
 					<div class="item">
 					    <div class="right floated content">
-								<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+								<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete?type=ssh" data-id="{{.ID}}">
 									{{$.i18n.Tr "settings.delete_key"}}
 								</button>
 					    </div>
@@ -52,6 +52,66 @@
 						<label for="content">{{.i18n.Tr "settings.key_content"}}</label>
 						<textarea id="ssh-key-content" name="content" required>{{.content}}</textarea>
 					</div>
+					<input name="type" type="hidden" value="ssh">
+					<button class="ui green button">
+						{{.i18n.Tr "settings.add_key"}}
+					</button>
+				</form>
+			</div>
+		</div>
+		<br>
+		<h4 class="ui top attached header">
+			Manage GPG Keys
+			<div class="ui right">
+				<div class="ui blue tiny show-panel button" data-panel="#add-gpg-key-panel">{{.i18n.Tr "settings.add_key"}}</div>
+			</div>
+		</h4>
+		<div class="ui attached segment">
+			<div class="ui key list">
+				<div class="item">
+					This is a list of GPG keys associated with your account. Because these keys allow anyone using them to gain access to your repositories, it is highly important that you make sure you recognize them.
+				</div>
+				{{range .GPGKeys}}
+					<div class="item ui grid">
+						<div class="one wide column">
+							<i class="gpg-key-state-indicator fa fa-circle-o"></i>
+						</div>
+						<div class="one wide column">
+							<i class="mega-octicon octicon-key left"></i>
+						</div>
+						<div class="eleven wide column">
+							{{range .Emails}}<strong>{{.Email}} </strong>{{end}}
+							<div class="print meta">
+								{{.KeyID}}
+							</div>
+							<div class="activity meta">
+								<i>{{$.i18n.Tr "settings.add_on"}} <span>{{DateFmtShort .Added}}</span></i>
+							</div>
+						</div>
+						<div class="two wide column">
+							<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete?type=gpg" data-id="{{.ID}}">
+								{{$.i18n.Tr "settings.delete_key"}}
+							</button>
+						</div>
+					</div>
+				{{end}}
+			</div>
+		</div>
+		<br>
+		<p>TODO</p>
+		<div {{if not .HasError}}class="hide"{{end}} id="add-gpg-key-panel">
+			<h4 class="ui top attached header">
+				 Add GPG Key
+			</h4>
+			<div class="ui attached segment">
+				<form class="ui form" action="{{.Link}}" method="post">
+					{{.CsrfTokenHtml}}
+					<input type="hidden" name="title" value="none">
+					<div class="field {{if .Err_Content}}error{{end}}">
+						<label for="content">{{.i18n.Tr "settings.key_content"}}</label>
+						<textarea id="gpg-key-content" name="content" required>{{.content}}</textarea>
+					</div>
+					<input name="type" type="hidden" value="gpg">
 					<button class="ui green button">
 						{{.i18n.Tr "settings.add_key"}}
 					</button>
