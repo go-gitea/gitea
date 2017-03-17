@@ -527,7 +527,8 @@ func authenticateToken(repository *models.Repository, authorization string, requ
 		return false
 	}
 
-	if requireWrite && opStr != "upload" {
+	if requireWrite && strings.Split(opStr," ")[0] != "upload" {
+
 		return false
 	}
 
