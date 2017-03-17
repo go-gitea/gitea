@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-xorm/xorm"
-	"github.com/ngaut/log"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/packet"
@@ -380,15 +380,6 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 				Reason:   "gpg.error.extract_sign",
 			}
 		}
-		//Generating hash of commit
-		hash, err := populateHash(sig.Hash, []byte(c.Signature.Payload))
-		if err != nil { //Skipping ailed to generate hash
-			log.Error(3, "PopulateHash: %v", err)
-			return &CommitVerification{
-				Verified: false,
-				Reason:   "gpg.error.generate_hash",
-			}
-		}
 
 		//Find Committer account
 		committer, err := GetUserByEmail(c.Committer.Email)
@@ -401,11 +392,21 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		}
 
 		keys, err := ListGPGKeys(committer.ID)
-		if err != nil { //Skipping failed to get gpg keys of user
+		if err != nil || len(keys) == 0 { //Skipping failed to get gpg keys of user
 			log.Error(3, "ListGPGKeys: %v", err)
 			return &CommitVerification{
 				Verified: false,
 				Reason:   "gpg.error.failed_retrieval_gpg_keys",
+			}
+		}
+
+		//Generating hash of commit
+		hash, err := populateHash(sig.Hash, []byte(c.Signature.Payload))
+		if err != nil { //Skipping ailed to generate hash
+			log.Error(3, "PopulateHash: %v", err)
+			return &CommitVerification{
+				Verified: false,
+				Reason:   "gpg.error.generate_hash",
 			}
 		}
 
