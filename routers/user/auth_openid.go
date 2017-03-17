@@ -15,6 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/go-macaron/captcha"
 )
 
 const (
@@ -310,6 +312,7 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.EnableOpenIDSignUp
+	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
 	if userName != "" {
@@ -323,7 +326,7 @@ func RegisterOpenID(ctx *context.Context) {
 }
 
 // RegisterOpenIDPost handles submission of a form to create a new user authenticated via an OpenID URI
-func RegisterOpenIDPost(ctx *context.Context, form auth.SignUpOpenIDForm) {
+func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.SignUpOpenIDForm) {
 	if ! setting.EnableOpenIDSignUp {
 		ctx.Error(403)
 		return
@@ -338,16 +341,14 @@ func RegisterOpenIDPost(ctx *context.Context, form auth.SignUpOpenIDForm) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.EnableOpenIDSignUp
+	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["OpenID"] = oid
 
-/*
-	// TODO: handle captcha ?
 	if setting.Service.EnableCaptcha && !cpt.VerifyReq(ctx.Req) {
 		ctx.Data["Err_Captcha"] = true
 		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUpOID, &form)
 		return
 	}
-*/
 
 	len := setting.MinPasswordLength
 	if len < 256 { len = 256 }
