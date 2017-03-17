@@ -20,8 +20,8 @@ import (
 type GPGKey struct {
 	ID                int64     `xorm:"pk autoincr"`
 	OwnerID           int64     `xorm:"INDEX NOT NULL"`
-	KeyID             string    `xorm:"INDEX TEXT NOT NULL"`
-	PrimaryKeyID      string    `xorm:"TEXT"`
+	KeyID             string    `xorm:"INDEX CHAR(16) NOT NULL"`
+	PrimaryKeyID      string    `xorm:"CHAR(16)"`
 	Content           string    `xorm:"TEXT NOT NULL"`
 	Created           time.Time `xorm:"-"`
 	CreatedUnix       int64
