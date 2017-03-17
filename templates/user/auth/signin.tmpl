@@ -1,12 +1,9 @@
 {{template "base/head" .}}
 <div class="user signin{{if .LinkAccountMode}} icon{{end}}">
+	{{template "user/auth/signin_navbar" .}}
+
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "user/auth/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "user/auth/signin_inner" .}}
-			</div>
-		</div>
+		{{template "user/auth/signin_inner" .}}
 	</div>
 </div>
 {{template "base/footer" .}}
