@@ -297,8 +297,7 @@ func runServ(c *cli.Context) error {
 	}
 
 	if isWiki {
-		err = repo.InitWiki()
-		if err != nil {
+		if err = repo.InitWiki(); err != nil {
 			fail("Internal error", "Failed to init wiki repo: %v", err)
 		}
 	}
