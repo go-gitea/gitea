@@ -5,9 +5,10 @@
 package openid
 
 import (
-	"github.com/yohcop/openid-go"
 	"sync"
 	"time"
+
+	"github.com/yohcop/openid-go"
 )
 
 type timedDiscoveredInfo struct {
@@ -32,20 +33,23 @@ func (s *timedDiscoveryCache) Put(id string, info openid.DiscoveredInfo) {
 	s.cache[id] = timedDiscoveredInfo{info: info, time: time.Now()}
 }
 
+// Delete timed-out cache entries
+func (s *timedDiscoveryCache) cleanTimedOut() {
+	now := time.Now()
+	for k, e := range s.cache {
+		diff := now.Sub(e.time)
+		if diff > s.ttl {
+			delete(s.cache, k)
+		}
+	}
+}
+
 func (s *timedDiscoveryCache) Get(id string) openid.DiscoveredInfo {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
 	// Delete old cached while we are at it.
-	newCache := map[string]timedDiscoveredInfo{}
-	now := time.Now()
-	for k, e := range s.cache {
-		diff := now.Sub(e.time)
-		if diff <= s.ttl {
-			newCache[k] = e
-		}
-	}
-	s.cache = newCache
+	s.cleanTimedOut()
 
 	if info, has := s.cache[id]; has {
 		return info.info
