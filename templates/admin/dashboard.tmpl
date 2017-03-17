@@ -1,124 +1,120 @@
 {{template "base/head" .}}
 <div class="admin dashboard">
+	{{template "admin/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "admin/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.dashboard.statistic"}}
-				</h4>
-				<div class="ui attached segment">
-					<p>
-						{{.i18n.Tr "admin.dashboard.statistic_info" .Stats.Counter.User .Stats.Counter.Org .Stats.Counter.PublicKey .Stats.Counter.Repo .Stats.Counter.Watch .Stats.Counter.Star .Stats.Counter.Action .Stats.Counter.Access .Stats.Counter.Issue .Stats.Counter.Comment .Stats.Counter.Oauth .Stats.Counter.Follow .Stats.Counter.Mirror .Stats.Counter.Release .Stats.Counter.LoginSource .Stats.Counter.Webhook .Stats.Counter.Milestone .Stats.Counter.Label .Stats.Counter.HookTask .Stats.Counter.Team .Stats.Counter.UpdateTask .Stats.Counter.Attachment | Str2html}}
-					</p>
-				</div>
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.dashboard.operations"}}
-				</h4>
-				<div class="ui attached table segment">
-					<table class="ui very basic table">
-						<tbody>
-							<tr>
-								<td>{{.i18n.Tr "admin.dashboard.delete_inactivate_accounts"}}</td>
-								<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=1">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
-							</tr>
-							<tr>
-								<td>{{.i18n.Tr "admin.dashboard.delete_repo_archives"}}</td>
-								<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=2">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
-							</tr>
-							<tr>
-								<td>{{.i18n.Tr "admin.dashboard.delete_missing_repos"}}</td>
-								<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=3">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
-							</tr>
-							<tr>
-								<td>{{.i18n.Tr "admin.dashboard.git_gc_repos"}}</td>
-								<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=4">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
-							</tr>
-							<tr>
-								<td>{{.i18n.Tr "admin.dashboard.resync_all_sshkeys"}}</td>
-								<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=5">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
-							</tr>
-							<tr>
-								<td>{{.i18n.Tr "admin.dashboard.resync_all_hooks"}}</td>
-								<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=6">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
-							</tr>
-							<tr>
-								<td>{{.i18n.Tr "admin.dashboard.reinit_missing_repos"}}</td>
-								<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=7">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.dashboard.statistic"}}
+		</h4>
+		<div class="ui attached segment">
+			<p>
+				{{.i18n.Tr "admin.dashboard.statistic_info" .Stats.Counter.User .Stats.Counter.Org .Stats.Counter.PublicKey .Stats.Counter.Repo .Stats.Counter.Watch .Stats.Counter.Star .Stats.Counter.Action .Stats.Counter.Access .Stats.Counter.Issue .Stats.Counter.Comment .Stats.Counter.Oauth .Stats.Counter.Follow .Stats.Counter.Mirror .Stats.Counter.Release .Stats.Counter.LoginSource .Stats.Counter.Webhook .Stats.Counter.Milestone .Stats.Counter.Label .Stats.Counter.HookTask .Stats.Counter.Team .Stats.Counter.UpdateTask .Stats.Counter.Attachment | Str2html}}
+			</p>
+		</div>
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.dashboard.operations"}}
+		</h4>
+		<div class="ui attached table segment">
+			<table class="ui very basic table">
+				<tbody>
+					<tr>
+						<td>{{.i18n.Tr "admin.dashboard.delete_inactivate_accounts"}}</td>
+						<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=1">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
+					</tr>
+					<tr>
+						<td>{{.i18n.Tr "admin.dashboard.delete_repo_archives"}}</td>
+						<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=2">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
+					</tr>
+					<tr>
+						<td>{{.i18n.Tr "admin.dashboard.delete_missing_repos"}}</td>
+						<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=3">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
+					</tr>
+					<tr>
+						<td>{{.i18n.Tr "admin.dashboard.git_gc_repos"}}</td>
+						<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=4">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
+					</tr>
+					<tr>
+						<td>{{.i18n.Tr "admin.dashboard.resync_all_sshkeys"}}</td>
+						<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=5">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
+					</tr>
+					<tr>
+						<td>{{.i18n.Tr "admin.dashboard.resync_all_hooks"}}</td>
+						<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=6">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
+					</tr>
+					<tr>
+						<td>{{.i18n.Tr "admin.dashboard.reinit_missing_repos"}}</td>
+						<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=7">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
 
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.dashboard.system_status"}}
-				</h4>
-				<div class="ui attached table segment">
-					<dl class="dl-horizontal admin-dl-horizontal">
-						<dt>{{.i18n.Tr "admin.dashboard.server_uptime"}}</dt>
-						<dd>{{.SysStatus.Uptime}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.current_goroutine"}}</dt>
-						<dd>{{.SysStatus.NumGoroutine}}</dd>
-						<div class="ui divider"></div>
-						<dt>{{.i18n.Tr "admin.dashboard.current_memory_usage"}}</dt>
-						<dd>{{.SysStatus.MemAllocated}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.total_memory_allocated"}}</dt>
-						<dd>{{.SysStatus.MemTotal}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.memory_obtained"}}</dt>
-						<dd>{{.SysStatus.MemSys}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.pointer_lookup_times"}}</dt>
-						<dd>{{.SysStatus.Lookups}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.memory_allocate_times"}}</dt>
-						<dd>{{.SysStatus.MemMallocs}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.memory_free_times"}}</dt>
-						<dd>{{.SysStatus.MemFrees}}</dd>
-						<div class="ui divider"></div>
-						<dt>{{.i18n.Tr "admin.dashboard.current_heap_usage"}}</dt>
-						<dd>{{.SysStatus.HeapAlloc}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.heap_memory_obtained"}}</dt>
-						<dd>{{.SysStatus.HeapSys}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.heap_memory_idle"}}</dt>
-						<dd>{{.SysStatus.HeapIdle}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.heap_memory_in_use"}}</dt>
-						<dd>{{.SysStatus.HeapInuse}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.heap_memory_released"}}</dt>
-						<dd>{{.SysStatus.HeapReleased}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.heap_objects"}}</dt>
-						<dd>{{.SysStatus.HeapObjects}}</dd>
-						<div class="ui divider"></div>
-						<dt>{{.i18n.Tr "admin.dashboard.bootstrap_stack_usage"}}</dt>
-						<dd>{{.SysStatus.StackInuse}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.stack_memory_obtained"}}</dt>
-						<dd>{{.SysStatus.StackSys}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.mspan_structures_usage"}}</dt>
-						<dd>{{.SysStatus.MSpanInuse}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.mspan_structures_obtained"}}</dt>
-						<dd>{{.SysStatus.HeapSys}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.mcache_structures_usage"}}</dt>
-						<dd>{{.SysStatus.MCacheInuse}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.mcache_structures_obtained"}}</dt>
-						<dd>{{.SysStatus.MCacheSys}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.profiling_bucket_hash_table_obtained"}}</dt>
-						<dd>{{.SysStatus.BuckHashSys}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.gc_metadata_obtained"}}</dt>
-						<dd>{{.SysStatus.GCSys}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.other_system_allocation_obtained"}}</dt>
-						<dd>{{.SysStatus.OtherSys}}</dd>
-						<div class="ui divider"></div>
-						<dt>{{.i18n.Tr "admin.dashboard.next_gc_recycle"}}</dt>
-						<dd>{{.SysStatus.NextGC}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.last_gc_time"}}</dt>
-						<dd>{{.SysStatus.LastGC}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.total_gc_pause"}}</dt>
-						<dd>{{.SysStatus.PauseTotalNs}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.last_gc_pause"}}</dt>
-						<dd>{{.SysStatus.PauseNs}}</dd>
-						<dt>{{.i18n.Tr "admin.dashboard.gc_times"}}</dt>
-						<dd>{{.SysStatus.NumGC}}</dd>
-					</dl>
-				</div>
-			</div>
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.dashboard.system_status"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				<dt>{{.i18n.Tr "admin.dashboard.server_uptime"}}</dt>
+				<dd>{{.SysStatus.Uptime}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.current_goroutine"}}</dt>
+				<dd>{{.SysStatus.NumGoroutine}}</dd>
+				<div class="ui divider"></div>
+				<dt>{{.i18n.Tr "admin.dashboard.current_memory_usage"}}</dt>
+				<dd>{{.SysStatus.MemAllocated}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.total_memory_allocated"}}</dt>
+				<dd>{{.SysStatus.MemTotal}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.memory_obtained"}}</dt>
+				<dd>{{.SysStatus.MemSys}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.pointer_lookup_times"}}</dt>
+				<dd>{{.SysStatus.Lookups}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.memory_allocate_times"}}</dt>
+				<dd>{{.SysStatus.MemMallocs}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.memory_free_times"}}</dt>
+				<dd>{{.SysStatus.MemFrees}}</dd>
+				<div class="ui divider"></div>
+				<dt>{{.i18n.Tr "admin.dashboard.current_heap_usage"}}</dt>
+				<dd>{{.SysStatus.HeapAlloc}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.heap_memory_obtained"}}</dt>
+				<dd>{{.SysStatus.HeapSys}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.heap_memory_idle"}}</dt>
+				<dd>{{.SysStatus.HeapIdle}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.heap_memory_in_use"}}</dt>
+				<dd>{{.SysStatus.HeapInuse}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.heap_memory_released"}}</dt>
+				<dd>{{.SysStatus.HeapReleased}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.heap_objects"}}</dt>
+				<dd>{{.SysStatus.HeapObjects}}</dd>
+				<div class="ui divider"></div>
+				<dt>{{.i18n.Tr "admin.dashboard.bootstrap_stack_usage"}}</dt>
+				<dd>{{.SysStatus.StackInuse}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.stack_memory_obtained"}}</dt>
+				<dd>{{.SysStatus.StackSys}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.mspan_structures_usage"}}</dt>
+				<dd>{{.SysStatus.MSpanInuse}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.mspan_structures_obtained"}}</dt>
+				<dd>{{.SysStatus.HeapSys}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.mcache_structures_usage"}}</dt>
+				<dd>{{.SysStatus.MCacheInuse}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.mcache_structures_obtained"}}</dt>
+				<dd>{{.SysStatus.MCacheSys}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.profiling_bucket_hash_table_obtained"}}</dt>
+				<dd>{{.SysStatus.BuckHashSys}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.gc_metadata_obtained"}}</dt>
+				<dd>{{.SysStatus.GCSys}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.other_system_allocation_obtained"}}</dt>
+				<dd>{{.SysStatus.OtherSys}}</dd>
+				<div class="ui divider"></div>
+				<dt>{{.i18n.Tr "admin.dashboard.next_gc_recycle"}}</dt>
+				<dd>{{.SysStatus.NextGC}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.last_gc_time"}}</dt>
+				<dd>{{.SysStatus.LastGC}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.total_gc_pause"}}</dt>
+				<dd>{{.SysStatus.PauseTotalNs}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.last_gc_pause"}}</dt>
+				<dd>{{.SysStatus.PauseNs}}</dd>
+				<dt>{{.i18n.Tr "admin.dashboard.gc_times"}}</dt>
+				<dd>{{.SysStatus.NumGC}}</dd>
+			</dl>
 		</div>
 	</div>
 </div>

@@ -1134,6 +1134,24 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	return issues, nil
 }
 
+// GetParticipantsByIssueID returns all users who are participated in comments of an issue.
+func GetParticipantsByIssueID(issueID int64) ([]*User, error) {
+	userIDs := make([]int64, 0, 5)
+	if err := x.Table("comment").Cols("poster_id").
+		Where("issue_id = ?", issueID).
+		And("type = ?", CommentTypeComment).
+		Distinct("poster_id").
+		Find(&userIDs); err != nil {
+		return nil, fmt.Errorf("get poster IDs: %v", err)
+	}
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+
+	users := make([]*User, 0, len(userIDs))
+	return users, x.In("id", userIDs).Find(&users)
+}
+
 // UpdateIssueMentions extracts mentioned people from content and
 // updates issue-user relations for them.
 func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {

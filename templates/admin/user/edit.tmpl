@@ -1,120 +1,116 @@
 {{template "base/head" .}}
 <div class="admin edit user">
+	{{template "admin/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "admin/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.users.edit_account"}}
-				</h4>
-				<div class="ui attached segment">
-					<form class="ui form" action="{{.Link}}" method="post">
-						{{.CsrfTokenHtml}}
-						<div class="inline field {{if .Err_UserName}}error{{end}}">
-							<label for="user_name">{{.i18n.Tr "username"}}</label>
-							<span>{{.User.Name}}</span>
-						</div>
-						<!-- Types and name -->
-						<div class="inline required field {{if .Err_LoginType}}error{{end}}">
-							<label>{{.i18n.Tr "admin.users.auth_source"}}</label>
-							<div class="ui selection type dropdown">
-								<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type}}-{{.LoginSource.ID}}" required>
-								<div class="text">{{.i18n.Tr "admin.users.local"}}</div>
-								<i class="dropdown icon"></i>
-								<div class="menu">
-									<div class="item" data-value="0-0">{{.i18n.Tr "admin.users.local"}}</div>
-									{{range .Sources}}
-										<div class="item" data-value="{{.Type}}-{{.ID}}">{{.Name}}</div>
-									{{end}}
-								</div>
-							</div>
-						</div>
-						<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}hide{{end}}">
-							<label for="login_name">{{.i18n.Tr "admin.users.auth_login_name"}}</label>
-							<input id="login_name" name="login_name" value="{{.User.LoginName}}" autofocus>
-						</div>
-						<div class="field {{if .Err_FullName}}error{{end}}">
-							<label for="full_name">{{.i18n.Tr "settings.full_name"}}</label>
-							<input id="full_name" name="full_name" value="{{.User.FullName}}">
-						</div>
-						<div class="required field {{if .Err_Email}}error{{end}}">
-							<label for="email">{{.i18n.Tr "email"}}</label>
-							<input id="email" name="email" type="email" value="{{.User.Email}}" autofocus required>
-						</div>
-						<input class="fake" type="password">
-						<div class="local field {{if .Err_Password}}error{{end}} {{if not (or (.User.IsLocal) (.User.IsOAuth2))}}hide{{end}}">
-							<label for="password">{{.i18n.Tr "password"}}</label>
-							<input id="password" name="password" type="password">
-							<p class="help">{{.i18n.Tr "admin.users.password_helper"}}</p>
-						</div>
-						<div class="field {{if .Err_Website}}error{{end}}">
-							<label for="website">{{.i18n.Tr "settings.website"}}</label>
-							<input id="website" name="website" type="url" value="{{.User.Website}}" placeholder="e.g. http://mydomain.com or https://mydomain.com">
-						</div>
-						<div class="field {{if .Err_Location}}error{{end}}">
-							<label for="location">{{.i18n.Tr "settings.location"}}</label>
-							<input id="location" name="location" value="{{.User.Location}}">
-						</div>
-
-						<div class="ui divider"></div>
-
-						<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
-							<label for="max_repo_creation">{{.i18n.Tr "admin.users.max_repo_creation"}}</label>
-							<input id="max_repo_creation" name="max_repo_creation" type="number" value="{{.User.MaxRepoCreation}}">
-							<p class="help">{{.i18n.Tr "admin.users.max_repo_creation_desc"}}</p>
-						</div>
-
-						<div class="ui divider"></div>
-
-						<div class="inline field">
-							<div class="ui checkbox">
-								<label><strong>{{.i18n.Tr "admin.users.is_activated"}}</strong></label>
-								<input name="active" type="checkbox" {{if .User.IsActive}}checked{{end}}>
-							</div>
-						</div>
-						<div class="inline field">
-							<div class="ui checkbox">
-								<label><strong>{{.i18n.Tr "admin.users.prohibit_login"}}</strong></label>
-								<input name="prohibit_login" type="checkbox" {{if .User.ProhibitLogin}}checked{{end}}>
-							</div>
-						</div>
-						<div class="inline field">
-							<div class="ui checkbox">
-								<label><strong>{{.i18n.Tr "admin.users.is_admin"}}</strong></label>
-								<input name="admin" type="checkbox" {{if .User.IsAdmin}}checked{{end}}>
-							</div>
-						</div>
-						<div class="inline field">
-							<div class="ui checkbox">
-								<label><strong>{{.i18n.Tr "admin.users.allow_git_hook"}}</strong></label>
-								<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}}>
-							</div>
-						</div>
-						<div class="inline field">
-							<div class="ui checkbox">
-								<label><strong>{{.i18n.Tr "admin.users.allow_import_local"}}</strong></label>
-								<input name="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}}>
-							</div>
-						</div>
-						{{if not .DisableRegularOrgCreation}}
-						<div class="inline field">
-							<div class="ui checkbox">
-								<label><strong>{{.i18n.Tr "admin.users.allow_create_organization"}}</strong></label>
-								<input name="allow_create_organization" type="checkbox" {{if .User.CanCreateOrganization}}checked{{end}}>
-							</div>
-						</div>
-						{{end}}
-
-						<div class="ui divider"></div>
-
-						<div class="field">
-							<button class="ui green button">{{.i18n.Tr "admin.users.update_profile"}}</button>
-							<div class="ui red button delete-button" data-url="{{$.Link}}/delete" data-id="{{.User.ID}}">{{.i18n.Tr "admin.users.delete_account"}}</div>
-						</div>
-					</form>
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.users.edit_account"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<div class="inline field {{if .Err_UserName}}error{{end}}">
+					<label for="user_name">{{.i18n.Tr "username"}}</label>
+					<span>{{.User.Name}}</span>
 				</div>
-			</div>
+				<!-- Types and name -->
+				<div class="inline required field {{if .Err_LoginType}}error{{end}}">
+					<label>{{.i18n.Tr "admin.users.auth_source"}}</label>
+					<div class="ui selection type dropdown">
+						<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type}}-{{.LoginSource.ID}}" required>
+						<div class="text">{{.i18n.Tr "admin.users.local"}}</div>
+						<i class="dropdown icon"></i>
+						<div class="menu">
+							<div class="item" data-value="0-0">{{.i18n.Tr "admin.users.local"}}</div>
+							{{range .Sources}}
+								<div class="item" data-value="{{.Type}}-{{.ID}}">{{.Name}}</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
+				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}hide{{end}}">
+					<label for="login_name">{{.i18n.Tr "admin.users.auth_login_name"}}</label>
+					<input id="login_name" name="login_name" value="{{.User.LoginName}}" autofocus>
+				</div>
+				<div class="field {{if .Err_FullName}}error{{end}}">
+					<label for="full_name">{{.i18n.Tr "settings.full_name"}}</label>
+					<input id="full_name" name="full_name" value="{{.User.FullName}}">
+				</div>
+				<div class="required field {{if .Err_Email}}error{{end}}">
+					<label for="email">{{.i18n.Tr "email"}}</label>
+					<input id="email" name="email" type="email" value="{{.User.Email}}" autofocus required>
+				</div>
+				<input class="fake" type="password">
+				<div class="local field {{if .Err_Password}}error{{end}} {{if not (or (.User.IsLocal) (.User.IsOAuth2))}}hide{{end}}">
+					<label for="password">{{.i18n.Tr "password"}}</label>
+					<input id="password" name="password" type="password">
+					<p class="help">{{.i18n.Tr "admin.users.password_helper"}}</p>
+				</div>
+				<div class="field {{if .Err_Website}}error{{end}}">
+					<label for="website">{{.i18n.Tr "settings.website"}}</label>
+					<input id="website" name="website" type="url" value="{{.User.Website}}" placeholder="e.g. http://mydomain.com or https://mydomain.com">
+				</div>
+				<div class="field {{if .Err_Location}}error{{end}}">
+					<label for="location">{{.i18n.Tr "settings.location"}}</label>
+					<input id="location" name="location" value="{{.User.Location}}">
+				</div>
+
+				<div class="ui divider"></div>
+
+				<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
+					<label for="max_repo_creation">{{.i18n.Tr "admin.users.max_repo_creation"}}</label>
+					<input id="max_repo_creation" name="max_repo_creation" type="number" value="{{.User.MaxRepoCreation}}">
+					<p class="help">{{.i18n.Tr "admin.users.max_repo_creation_desc"}}</p>
+				</div>
+
+				<div class="ui divider"></div>
+
+				<div class="inline field">
+					<div class="ui checkbox">
+						<label><strong>{{.i18n.Tr "admin.users.is_activated"}}</strong></label>
+						<input name="active" type="checkbox" {{if .User.IsActive}}checked{{end}}>
+					</div>
+				</div>
+				<div class="inline field">
+					<div class="ui checkbox">
+						<label><strong>{{.i18n.Tr "admin.users.prohibit_login"}}</strong></label>
+						<input name="prohibit_login" type="checkbox" {{if .User.ProhibitLogin}}checked{{end}}>
+					</div>
+				</div>
+				<div class="inline field">
+					<div class="ui checkbox">
+						<label><strong>{{.i18n.Tr "admin.users.is_admin"}}</strong></label>
+						<input name="admin" type="checkbox" {{if .User.IsAdmin}}checked{{end}}>
+					</div>
+				</div>
+				<div class="inline field">
+					<div class="ui checkbox">
+						<label><strong>{{.i18n.Tr "admin.users.allow_git_hook"}}</strong></label>
+						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}}>
+					</div>
+				</div>
+				<div class="inline field">
+					<div class="ui checkbox">
+						<label><strong>{{.i18n.Tr "admin.users.allow_import_local"}}</strong></label>
+						<input name="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}}>
+					</div>
+				</div>
+				{{if not .DisableRegularOrgCreation}}
+				<div class="inline field">
+					<div class="ui checkbox">
+						<label><strong>{{.i18n.Tr "admin.users.allow_create_organization"}}</strong></label>
+						<input name="allow_create_organization" type="checkbox" {{if .User.CanCreateOrganization}}checked{{end}}>
+					</div>
+				</div>
+				{{end}}
+
+				<div class="ui divider"></div>
+
+				<div class="field">
+					<button class="ui green button">{{.i18n.Tr "admin.users.update_profile"}}</button>
+					<div class="ui red button delete-button" data-url="{{$.Link}}/delete" data-id="{{.User.ID}}">{{.i18n.Tr "admin.users.delete_account"}}</div>
+				</div>
+			</form>
 		</div>
 	</div>
 </div>

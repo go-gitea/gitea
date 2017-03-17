@@ -111,6 +111,7 @@ func init() {
 		new(IssueUser),
 		new(LFSMetaObject),
 		new(TwoFactor),
+		new(GPGKey),
 		new(RepoUnit),
 		new(RepoRedirect),
 		new(ExternalLoginUser),

@@ -1,32 +1,29 @@
-<div class="four wide column">
-	<div class="ui vertical menu">
-		<div class="header item">{{.i18n.Tr "settings"}}</div>
-		<a class="{{if .PageIsSettingsProfile}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
-			{{.i18n.Tr "settings.profile"}}
-		</a>
-		<a class="{{if .PageIsSettingsAvatar}}active{{end}} item" href="{{AppSubUrl}}/user/settings/avatar">
-			{{.i18n.Tr "settings.avatar"}}
-		</a>
-		<a class="{{if .PageIsSettingsPassword}}active{{end}} item" href="{{AppSubUrl}}/user/settings/password">
-			{{.i18n.Tr "settings.password"}}
-		</a>
-		<a class="{{if .PageIsSettingsEmails}}active{{end}} item" href="{{AppSubUrl}}/user/settings/email">
-			{{.i18n.Tr "settings.emails"}}
-		</a>
-		<a class="{{if .PageIsSettingsSSHKeys}}active{{end}} item" href="{{AppSubUrl}}/user/settings/ssh">
-			{{.i18n.Tr "settings.ssh_keys"}}
-		</a>
-		<a class="{{if .PageIsSettingsApplications}}active{{end}} item" href="{{AppSubUrl}}/user/settings/applications">
-			{{.i18n.Tr "settings.applications"}}
-		</a>
-		<a class="{{if .PageIsSettingsTwofa}}active{{end}} item" href="{{AppSubUrl}}/user/settings/two_factor">
-			{{.i18n.Tr "settings.twofa"}}
-		</a>
-		<a class="{{if .PageIsSettingsAccountLink}}active{{end}} item" href="{{AppSubUrl}}/user/settings/account_link">
-			{{.i18n.Tr "settings.account_link"}}
-		</a>
-		<a class="{{if .PageIsSettingsDelete}}active{{end}} item" href="{{AppSubUrl}}/user/settings/delete">
-			{{.i18n.Tr "settings.delete"}}
-		</a>
-	</div>
+<div class="ui secondary pointing tabular top attached borderless menu stackable new-menu navbar">
+	<a class="{{if .PageIsSettingsProfile}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
+		{{.i18n.Tr "settings.profile"}}
+	</a>
+	<a class="{{if .PageIsSettingsAvatar}}active{{end}} item" href="{{AppSubUrl}}/user/settings/avatar">
+		{{.i18n.Tr "settings.avatar"}}
+	</a>
+	<a class="{{if .PageIsSettingsPassword}}active{{end}} item" href="{{AppSubUrl}}/user/settings/password">
+		{{.i18n.Tr "settings.password"}}
+	</a>
+	<a class="{{if .PageIsSettingsEmails}}active{{end}} item" href="{{AppSubUrl}}/user/settings/email">
+		{{.i18n.Tr "settings.emails"}}
+	</a>
+	<a class="{{if .PageIsSettingsSSHKeys}}active{{end}} item" href="{{AppSubUrl}}/user/settings/ssh">
+		{{.i18n.Tr "settings.ssh_keys"}}
+	</a>
+	<a class="{{if .PageIsSettingsApplications}}active{{end}} item" href="{{AppSubUrl}}/user/settings/applications">
+		{{.i18n.Tr "settings.applications"}}
+	</a>
+	<a class="{{if .PageIsSettingsTwofa}}active{{end}} item" href="{{AppSubUrl}}/user/settings/two_factor">
+		{{.i18n.Tr "settings.twofa"}}
+	</a>
+	<a class="{{if .PageIsSettingsAccountLink}}active{{end}} item" href="{{AppSubUrl}}/user/settings/account_link">
+		{{.i18n.Tr "settings.account_link"}}
+	</a>
+	<a class="{{if .PageIsSettingsDelete}}active{{end}} item" href="{{AppSubUrl}}/user/settings/delete">
+		{{.i18n.Tr "settings.delete"}}
+	</a>
 </div>

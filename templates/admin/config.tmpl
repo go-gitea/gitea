@@ -1,280 +1,276 @@
 {{template "base/head" .}}
 <div class="admin config">
+	{{template "admin/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "admin/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.config.server_config"}}
-				</h4>
-				<div class="ui attached table segment">
-					<dl class="dl-horizontal admin-dl-horizontal">
-						<dt>{{.i18n.Tr "admin.config.app_name"}}</dt>
-						<dd>{{AppName}}</dd>
-						<dt>{{.i18n.Tr "admin.config.app_ver"}}</dt>
-						<dd>{{AppVer}}{{AppBuiltWith}}</dd>
-						<dt>{{.i18n.Tr "admin.config.app_url"}}</dt>
-						<dd>{{.AppUrl}}</dd>
-						<dt>{{.i18n.Tr "admin.config.domain"}}</dt>
-						<dd>{{.Domain}}</dd>
-						<dt>{{.i18n.Tr "admin.config.offline_mode"}}</dt>
-						<dd><i class="fa fa{{if .OfflineMode}}-check{{end}}-square-o"></i></dd>
-						<dt>{{.i18n.Tr "admin.config.disable_router_log"}}</dt>
-						<dd><i class="fa fa{{if .DisableRouterLog}}-check{{end}}-square-o"></i></dd>
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.config.server_config"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				<dt>{{.i18n.Tr "admin.config.app_name"}}</dt>
+				<dd>{{AppName}}</dd>
+				<dt>{{.i18n.Tr "admin.config.app_ver"}}</dt>
+				<dd>{{AppVer}}{{AppBuiltWith}}</dd>
+				<dt>{{.i18n.Tr "admin.config.app_url"}}</dt>
+				<dd>{{.AppUrl}}</dd>
+				<dt>{{.i18n.Tr "admin.config.domain"}}</dt>
+				<dd>{{.Domain}}</dd>
+				<dt>{{.i18n.Tr "admin.config.offline_mode"}}</dt>
+				<dd><i class="fa fa{{if .OfflineMode}}-check{{end}}-square-o"></i></dd>
+				<dt>{{.i18n.Tr "admin.config.disable_router_log"}}</dt>
+				<dd><i class="fa fa{{if .DisableRouterLog}}-check{{end}}-square-o"></i></dd>
 
-						<div class="ui divider"></div>
+				<div class="ui divider"></div>
 
-						<dt>{{.i18n.Tr "admin.config.run_user"}}</dt>
-						<dd>{{.RunUser}}</dd>
-						<dt>{{.i18n.Tr "admin.config.run_mode"}}</dt>
-						<dd>{{.RunMode}}</dd>
+				<dt>{{.i18n.Tr "admin.config.run_user"}}</dt>
+				<dd>{{.RunUser}}</dd>
+				<dt>{{.i18n.Tr "admin.config.run_mode"}}</dt>
+				<dd>{{.RunMode}}</dd>
 
-						<div class="ui divider"></div>
+				<div class="ui divider"></div>
 
-						<dt>{{.i18n.Tr "admin.config.git_version"}}</dt>
-						<dd>{{.GitVersion}}</dd>
+				<dt>{{.i18n.Tr "admin.config.git_version"}}</dt>
+				<dd>{{.GitVersion}}</dd>
 
-						<div class="ui divider"></div>
+				<div class="ui divider"></div>
 
-						<dt>{{.i18n.Tr "admin.config.repo_root_path"}}</dt>
-						<dd>{{.RepoRootPath}}</dd>
-						<dt>{{.i18n.Tr "admin.config.static_file_root_path"}}</dt>
-						<dd>{{.StaticRootPath}}</dd>
-						<dt>{{.i18n.Tr "admin.config.log_file_root_path"}}</dt>
-						<dd>{{.LogRootPath}}</dd>
-						<dt>{{.i18n.Tr "admin.config.script_type"}}</dt>
-						<dd>{{.ScriptType}}</dd>
-						<dt>{{.i18n.Tr "admin.config.reverse_auth_user"}}</dt>
-						<dd>{{.ReverseProxyAuthUser}}</dd>
-					</dl>
-				</div>
+				<dt>{{.i18n.Tr "admin.config.repo_root_path"}}</dt>
+				<dd>{{.RepoRootPath}}</dd>
+				<dt>{{.i18n.Tr "admin.config.static_file_root_path"}}</dt>
+				<dd>{{.StaticRootPath}}</dd>
+				<dt>{{.i18n.Tr "admin.config.log_file_root_path"}}</dt>
+				<dd>{{.LogRootPath}}</dd>
+				<dt>{{.i18n.Tr "admin.config.script_type"}}</dt>
+				<dd>{{.ScriptType}}</dd>
+				<dt>{{.i18n.Tr "admin.config.reverse_auth_user"}}</dt>
+				<dd>{{.ReverseProxyAuthUser}}</dd>
+			</dl>
+		</div>
 
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.config.ssh_config"}}
-				</h4>
-				<div class="ui attached table segment">
-					<dl class="dl-horizontal admin-dl-horizontal">
-						<dt>{{.i18n.Tr "admin.config.ssh_enabled"}}</dt>
-						<dd><i class="fa fa{{if not .SSH.Disabled}}-check{{end}}-square-o"></i></dd>
-						{{if not .SSH.Disabled}}
-							<dt>{{.i18n.Tr "admin.config.ssh_start_builtin_server"}}</dt>
-							<dd><i class="fa fa{{if .SSH.StartBuiltinServer}}-check{{end}}-square-o"></i></dd>
-							<dt>{{.i18n.Tr "admin.config.ssh_domain"}}</dt>
-							<dd>{{.SSH.Domain}}</dd>
-							<dt>{{.i18n.Tr "admin.config.ssh_port"}}</dt>
-							<dd>{{.SSH.Port}}</dd>
-							<dt>{{.i18n.Tr "admin.config.ssh_listen_port"}}</dt>
-							<dd>{{.SSH.ListenPort}}</dd>
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.config.ssh_config"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				<dt>{{.i18n.Tr "admin.config.ssh_enabled"}}</dt>
+				<dd><i class="fa fa{{if not .SSH.Disabled}}-check{{end}}-square-o"></i></dd>
+				{{if not .SSH.Disabled}}
+					<dt>{{.i18n.Tr "admin.config.ssh_start_builtin_server"}}</dt>
+					<dd><i class="fa fa{{if .SSH.StartBuiltinServer}}-check{{end}}-square-o"></i></dd>
+					<dt>{{.i18n.Tr "admin.config.ssh_domain"}}</dt>
+					<dd>{{.SSH.Domain}}</dd>
+					<dt>{{.i18n.Tr "admin.config.ssh_port"}}</dt>
+					<dd>{{.SSH.Port}}</dd>
+					<dt>{{.i18n.Tr "admin.config.ssh_listen_port"}}</dt>
+					<dd>{{.SSH.ListenPort}}</dd>
 
-							{{if not .SSH.StartBuiltinServer}}
-								<dt>{{.i18n.Tr "admin.config.ssh_root_path"}}</dt>
-								<dd>{{.SSH.RootPath}}</dd>
-								<dt>{{.i18n.Tr "admin.config.ssh_key_test_path"}}</dt>
-								<dd>{{.SSH.KeyTestPath}}</dd>
-								<dt>{{.i18n.Tr "admin.config.ssh_keygen_path"}}</dt>
-								<dd>{{.SSH.KeygenPath}}</dd>
-								<dt>{{.i18n.Tr "admin.config.ssh_minimum_key_size_check"}}</dt>
-								<dd><i class="fa fa{{if .SSH.MinimumKeySizeCheck}}-check{{end}}-square-o"></i></dd>
-								{{if .SSH.MinimumKeySizeCheck}}
-								<dt>{{.i18n.Tr "admin.config.ssh_minimum_key_sizes"}}</dt>
-								<dd>{{.SSH.MinimumKeySizes}}</dd>
-								{{end}}
-							{{end}}
+					{{if not .SSH.StartBuiltinServer}}
+						<dt>{{.i18n.Tr "admin.config.ssh_root_path"}}</dt>
+						<dd>{{.SSH.RootPath}}</dd>
+						<dt>{{.i18n.Tr "admin.config.ssh_key_test_path"}}</dt>
+						<dd>{{.SSH.KeyTestPath}}</dd>
+						<dt>{{.i18n.Tr "admin.config.ssh_keygen_path"}}</dt>
+						<dd>{{.SSH.KeygenPath}}</dd>
+						<dt>{{.i18n.Tr "admin.config.ssh_minimum_key_size_check"}}</dt>
+						<dd><i class="fa fa{{if .SSH.MinimumKeySizeCheck}}-check{{end}}-square-o"></i></dd>
+						{{if .SSH.MinimumKeySizeCheck}}
+						<dt>{{.i18n.Tr "admin.config.ssh_minimum_key_sizes"}}</dt>
+						<dd>{{.SSH.MinimumKeySizes}}</dd>
 						{{end}}
-					</dl>
-				</div>
+					{{end}}
+				{{end}}
+			</dl>
+		</div>
 
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.config.db_config"}}
-				</h4>
-				<div class="ui attached table segment">
-					<dl class="dl-horizontal admin-dl-horizontal">
-						<dt>{{.i18n.Tr "admin.config.db_type"}}</dt>
-						<dd>{{.DbCfg.Type}}</dd>
-						<dt>{{.i18n.Tr "admin.config.db_host"}}</dt>
-						<dd>{{if .DbCfg.Host}}{{.DbCfg.Host}}{{else}}-{{end}}</dd>
-						<dt>{{.i18n.Tr "admin.config.db_name"}}</dt>
-						<dd>{{if .DbCfg.Name}}{{.DbCfg.Name}}{{else}}-{{end}}</dd>
-						<dt>{{.i18n.Tr "admin.config.db_user"}}</dt>
-						<dd>{{if .DbCfg.User}}{{.DbCfg.User}}{{else}}-{{end}}</dd>
-						<dt>{{.i18n.Tr "admin.config.db_ssl_mode"}}</dt>
-						<dd><i class="fa fa{{if .DbCfg.SSLMode}}-check{{end}}-square-o"></i> {{.i18n.Tr "admin.config.db_ssl_mode_helper"}}</dd>
-						<dt>{{.i18n.Tr "admin.config.db_path"}}</dt>
-						<dd>{{if .DbCfg.Path}}{{.DbCfg.Path}}{{else}}-{{end}} {{.i18n.Tr "admin.config.db_path_helper"}}</dd>
-					</dl>
-				</div>
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.config.db_config"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				<dt>{{.i18n.Tr "admin.config.db_type"}}</dt>
+				<dd>{{.DbCfg.Type}}</dd>
+				<dt>{{.i18n.Tr "admin.config.db_host"}}</dt>
+				<dd>{{if .DbCfg.Host}}{{.DbCfg.Host}}{{else}}-{{end}}</dd>
+				<dt>{{.i18n.Tr "admin.config.db_name"}}</dt>
+				<dd>{{if .DbCfg.Name}}{{.DbCfg.Name}}{{else}}-{{end}}</dd>
+				<dt>{{.i18n.Tr "admin.config.db_user"}}</dt>
+				<dd>{{if .DbCfg.User}}{{.DbCfg.User}}{{else}}-{{end}}</dd>
+				<dt>{{.i18n.Tr "admin.config.db_ssl_mode"}}</dt>
+				<dd><i class="fa fa{{if .DbCfg.SSLMode}}-check{{end}}-square-o"></i> {{.i18n.Tr "admin.config.db_ssl_mode_helper"}}</dd>
+				<dt>{{.i18n.Tr "admin.config.db_path"}}</dt>
+				<dd>{{if .DbCfg.Path}}{{.DbCfg.Path}}{{else}}-{{end}} {{.i18n.Tr "admin.config.db_path_helper"}}</dd>
+			</dl>
+		</div>
 
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.config.service_config"}}
-				</h4>
-				<div class="ui attached table segment">
-					<dl class="dl-horizontal admin-dl-horizontal">
-						<dt>{{.i18n.Tr "admin.config.register_email_confirm"}}</dt>
-						<dd><i class="fa fa{{if .Service.RegisterEmailConfirm}}-check{{end}}-square-o"></i></dd>
-						<dt>{{.i18n.Tr "admin.config.disable_register"}}</dt>
-						<dd><i class="fa fa{{if .Service.DisableRegistration}}-check{{end}}-square-o"></i></dd>
-						<dt>{{.i18n.Tr "admin.config.show_registration_button"}}</dt>
-						<dd><i class="fa fa{{if .Service.ShowRegistrationButton}}-check{{end}}-square-o"></i></dd>
-						<dt>{{.i18n.Tr "admin.config.require_sign_in_view"}}</dt>
-						<dd><i class="fa fa{{if .Service.RequireSignInView}}-check{{end}}-square-o"></i></dd>
-						<dt>{{.i18n.Tr "admin.config.mail_notify"}}</dt>
-						<dd><i class="fa fa{{if .Service.EnableNotifyMail}}-check{{end}}-square-o"></i></dd>
-						{{/*<dt>{{.i18n.Tr "admin.config.disable_key_size_check"}}</dt>
-						<dd><i class="fa fa{{if .Service.DisableMinimumKeySizeCheck}}-check{{end}}-square-o"></i></dd>*/}}
-						<dt>{{.i18n.Tr "admin.config.enable_captcha"}}</dt>
-						<dd><i class="fa fa{{if .Service.EnableCaptcha}}-check{{end}}-square-o"></i></dd>
-						<dt>{{.i18n.Tr "admin.config.default_keep_email_private"}}</dt>
-						<dd><i class="fa fa{{if .Service.DefaultKeepEmailPrivate}}-check{{end}}-square-o"></i></dd>
-						<dt>{{.i18n.Tr "admin.config.no_reply_address"}}</dt>
-						<dd>{{if .Service.NoReplyAddress}}{{.Service.NoReplyAddress}}{{else}}-{{end}}</dd>
-						<div class="ui divider"></div>
-						<dt>{{.i18n.Tr "admin.config.active_code_lives"}}</dt>
-						<dd>{{.Service.ActiveCodeLives}} {{.i18n.Tr "tool.raw_minutes"}}</dd>
-						<dt>{{.i18n.Tr "admin.config.reset_password_code_lives"}}</dt>
-						<dd>{{.Service.ResetPwdCodeLives}} {{.i18n.Tr "tool.raw_minutes"}}</dd>
-					</dl>
-				</div>
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.config.service_config"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				<dt>{{.i18n.Tr "admin.config.register_email_confirm"}}</dt>
+				<dd><i class="fa fa{{if .Service.RegisterEmailConfirm}}-check{{end}}-square-o"></i></dd>
+				<dt>{{.i18n.Tr "admin.config.disable_register"}}</dt>
+				<dd><i class="fa fa{{if .Service.DisableRegistration}}-check{{end}}-square-o"></i></dd>
+				<dt>{{.i18n.Tr "admin.config.show_registration_button"}}</dt>
+				<dd><i class="fa fa{{if .Service.ShowRegistrationButton}}-check{{end}}-square-o"></i></dd>
+				<dt>{{.i18n.Tr "admin.config.require_sign_in_view"}}</dt>
+				<dd><i class="fa fa{{if .Service.RequireSignInView}}-check{{end}}-square-o"></i></dd>
+				<dt>{{.i18n.Tr "admin.config.mail_notify"}}</dt>
+				<dd><i class="fa fa{{if .Service.EnableNotifyMail}}-check{{end}}-square-o"></i></dd>
+				{{/*<dt>{{.i18n.Tr "admin.config.disable_key_size_check"}}</dt>
+				<dd><i class="fa fa{{if .Service.DisableMinimumKeySizeCheck}}-check{{end}}-square-o"></i></dd>*/}}
+				<dt>{{.i18n.Tr "admin.config.enable_captcha"}}</dt>
+				<dd><i class="fa fa{{if .Service.EnableCaptcha}}-check{{end}}-square-o"></i></dd>
+				<dt>{{.i18n.Tr "admin.config.default_keep_email_private"}}</dt>
+				<dd><i class="fa fa{{if .Service.DefaultKeepEmailPrivate}}-check{{end}}-square-o"></i></dd>
+				<dt>{{.i18n.Tr "admin.config.no_reply_address"}}</dt>
+				<dd>{{if .Service.NoReplyAddress}}{{.Service.NoReplyAddress}}{{else}}-{{end}}</dd>
+				<div class="ui divider"></div>
+				<dt>{{.i18n.Tr "admin.config.active_code_lives"}}</dt>
+				<dd>{{.Service.ActiveCodeLives}} {{.i18n.Tr "tool.raw_minutes"}}</dd>
+				<dt>{{.i18n.Tr "admin.config.reset_password_code_lives"}}</dt>
+				<dd>{{.Service.ResetPwdCodeLives}} {{.i18n.Tr "tool.raw_minutes"}}</dd>
+			</dl>
+		</div>
 
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.config.webhook_config"}}
-				</h4>
-				<div class="ui attached table segment">
-					<dl class="dl-horizontal admin-dl-horizontal">
-						<dt>{{.i18n.Tr "admin.config.queue_length"}}</dt>
-						<dd>{{.Webhook.QueueLength}}</dd>
-						<dt>{{.i18n.Tr "admin.config.deliver_timeout"}}</dt>
-						<dd>{{.Webhook.DeliverTimeout}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-						<dt>{{.i18n.Tr "admin.config.skip_tls_verify"}}</dt>
-						<dd><i class="fa fa{{if .Webhook.SkipTLSVerify}}-check{{end}}-square-o"></i></dd>
-					</dl>
-				</div>
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.config.webhook_config"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				<dt>{{.i18n.Tr "admin.config.queue_length"}}</dt>
+				<dd>{{.Webhook.QueueLength}}</dd>
+				<dt>{{.i18n.Tr "admin.config.deliver_timeout"}}</dt>
+				<dd>{{.Webhook.DeliverTimeout}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+				<dt>{{.i18n.Tr "admin.config.skip_tls_verify"}}</dt>
+				<dd><i class="fa fa{{if .Webhook.SkipTLSVerify}}-check{{end}}-square-o"></i></dd>
+			</dl>
+		</div>
 
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.config.mailer_config"}}
-				</h4>
-				<div class="ui attached table segment">
-					<dl class="dl-horizontal admin-dl-horizontal">
-						<dt>{{.i18n.Tr "admin.config.mailer_enabled"}}</dt>
-						<dd><i class="fa fa{{if .MailerEnabled}}-check{{end}}-square-o"></i></dd>
-						{{if .MailerEnabled}}
-							<dt>{{.i18n.Tr "admin.config.mailer_name"}}</dt>
-							<dd>{{.Mailer.Name}}</dd>
-							<dt>{{.i18n.Tr "admin.config.mailer_disable_helo"}}</dt>
-							<dd><i class="fa fa{{if .Mailer.DisableHelo}}-check{{end}}-square-o"></i></dd>
-							<dt>{{.i18n.Tr "admin.config.mailer_host"}}</dt>
-							<dd>{{.Mailer.Host}}</dd>
-							<dt>{{.i18n.Tr "admin.config.mailer_user"}}</dt>
-							<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd><br>
-							<form class="ui form" action="{{AppSubUrl}}/admin/config/test_mail" method="post">
-								{{.CsrfTokenHtml}}
-								<div class="inline field ui left">
-									<div class="ui input">
-										<input type="email" name="email" required>
-									</div>
-								</div>
-								<button class="ui green button" id="test-mail-btn">{{.i18n.Tr "admin.config.send_test_mail"}}</button>
-							</form>
-						{{end}}
-					</dl>
-				</div>
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.config.mailer_config"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				<dt>{{.i18n.Tr "admin.config.mailer_enabled"}}</dt>
+				<dd><i class="fa fa{{if .MailerEnabled}}-check{{end}}-square-o"></i></dd>
+				{{if .MailerEnabled}}
+					<dt>{{.i18n.Tr "admin.config.mailer_name"}}</dt>
+					<dd>{{.Mailer.Name}}</dd>
+					<dt>{{.i18n.Tr "admin.config.mailer_disable_helo"}}</dt>
+					<dd><i class="fa fa{{if .Mailer.DisableHelo}}-check{{end}}-square-o"></i></dd>
+					<dt>{{.i18n.Tr "admin.config.mailer_host"}}</dt>
+					<dd>{{.Mailer.Host}}</dd>
+					<dt>{{.i18n.Tr "admin.config.mailer_user"}}</dt>
+					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd><br>
+					<form class="ui form" action="{{AppSubUrl}}/admin/config/test_mail" method="post">
+						{{.CsrfTokenHtml}}
+						<div class="inline field ui left">
+							<div class="ui input">
+								<input type="email" name="email" required>
+							</div>
+						</div>
+						<button class="ui green button" id="test-mail-btn">{{.i18n.Tr "admin.config.send_test_mail"}}</button>
+					</form>
+				{{end}}
+			</dl>
+		</div>
 
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.config.cache_config"}}
-				</h4>
-				<div class="ui attached table segment">
-					<dl class="dl-horizontal admin-dl-horizontal">
-						<dt>{{.i18n.Tr "admin.config.cache_adapter"}}</dt>
-						<dd>{{.CacheAdapter}}</dd>
-						<dt>{{.i18n.Tr "admin.config.cache_interval"}}</dt>
-						<dd>{{.CacheInterval}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-						{{if .CacheConn}}
-						<dt>{{.i18n.Tr "admin.config.cache_conn"}}</dt>
-						<dd><code>{{.CacheConn}}</code></dd>
-						{{end}}
-					</dl>
-				</div>
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.config.cache_config"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				<dt>{{.i18n.Tr "admin.config.cache_adapter"}}</dt>
+				<dd>{{.CacheAdapter}}</dd>
+				<dt>{{.i18n.Tr "admin.config.cache_interval"}}</dt>
+				<dd>{{.CacheInterval}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+				{{if .CacheConn}}
+				<dt>{{.i18n.Tr "admin.config.cache_conn"}}</dt>
+				<dd><code>{{.CacheConn}}</code></dd>
+				{{end}}
+			</dl>
+		</div>
 
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.config.session_config"}}
-				</h4>
-				<div class="ui attached table segment">
-					<dl class="dl-horizontal admin-dl-horizontal">
-						<dt>{{.i18n.Tr "admin.config.session_provider"}}</dt>
-						<dd>{{.SessionConfig.Provider}}</dd>
-						<dt>{{.i18n.Tr "admin.config.provider_config"}}</dt>
-						<dd><code>{{if .SessionConfig.ProviderConfig}}{{.SessionConfig.ProviderConfig}}{{else}}-{{end}}</code></dd>
-						<dt>{{.i18n.Tr "admin.config.cookie_name"}}</dt>
-						<dd>{{.SessionConfig.CookieName}}</dd>
-						<dt>{{.i18n.Tr "admin.config.gc_interval_time"}}</dt>
-						<dd>{{.SessionConfig.Gclifetime}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-						<dt>{{.i18n.Tr "admin.config.session_life_time"}}</dt>
-						<dd>{{.SessionConfig.Maxlifetime}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-						<dt>{{.i18n.Tr "admin.config.https_only"}}</dt>
-						<dd><i class="fa fa{{if .SessionConfig.Secure}}-check{{end}}-square-o"></i></dd>
-						<dt>{{.i18n.Tr "admin.config.cookie_life_time"}}</dt>
-						<dd>{{.SessionConfig.CookieLifeTime}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-					</dl>
-				</div>
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.config.session_config"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				<dt>{{.i18n.Tr "admin.config.session_provider"}}</dt>
+				<dd>{{.SessionConfig.Provider}}</dd>
+				<dt>{{.i18n.Tr "admin.config.provider_config"}}</dt>
+				<dd><code>{{if .SessionConfig.ProviderConfig}}{{.SessionConfig.ProviderConfig}}{{else}}-{{end}}</code></dd>
+				<dt>{{.i18n.Tr "admin.config.cookie_name"}}</dt>
+				<dd>{{.SessionConfig.CookieName}}</dd>
+				<dt>{{.i18n.Tr "admin.config.gc_interval_time"}}</dt>
+				<dd>{{.SessionConfig.Gclifetime}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+				<dt>{{.i18n.Tr "admin.config.session_life_time"}}</dt>
+				<dd>{{.SessionConfig.Maxlifetime}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+				<dt>{{.i18n.Tr "admin.config.https_only"}}</dt>
+				<dd><i class="fa fa{{if .SessionConfig.Secure}}-check{{end}}-square-o"></i></dd>
+				<dt>{{.i18n.Tr "admin.config.cookie_life_time"}}</dt>
+				<dd>{{.SessionConfig.CookieLifeTime}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+			</dl>
+		</div>
 
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.config.picture_config"}}
-				</h4>
-				<div class="ui attached table segment">
-					<dl class="dl-horizontal admin-dl-horizontal">
-						<dt>{{.i18n.Tr "admin.config.disable_gravatar"}}</dt>
-						<dd><i class="fa fa{{if .DisableGravatar}}-check{{end}}-square-o"></i></dd>
-						<div class="ui divider"></div>
-						<dt>{{.i18n.Tr "admin.config.enable_federated_avatar"}}</dt>
-						<dd><i class="fa fa{{if .EnableFederatedAvatar}}-check{{end}}-square-o"></i></dd>
-					</dl>
-				</div>
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.config.picture_config"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				<dt>{{.i18n.Tr "admin.config.disable_gravatar"}}</dt>
+				<dd><i class="fa fa{{if .DisableGravatar}}-check{{end}}-square-o"></i></dd>
+				<div class="ui divider"></div>
+				<dt>{{.i18n.Tr "admin.config.enable_federated_avatar"}}</dt>
+				<dd><i class="fa fa{{if .EnableFederatedAvatar}}-check{{end}}-square-o"></i></dd>
+			</dl>
+		</div>
 
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.config.git_config"}}
-				</h4>
-				<div class="ui attached table segment">
-					<dl class="dl-horizontal admin-dl-horizontal">
-						<dt>{{.i18n.Tr "admin.config.git_disable_diff_highlight"}}</dt>
-						<dd><i class="fa fa{{if .Git.DisableDiffHighlight}}-check{{end}}-square-o"></i></dd>
-						<dt>{{.i18n.Tr "admin.config.git_max_diff_lines"}}</dt>
-						<dd>{{.Git.MaxGitDiffLines}}</dd>
-						<dt>{{.i18n.Tr "admin.config.git_max_diff_line_characters"}}</dt>
-						<dd>{{.Git.MaxGitDiffLineCharacters}}</dd>
-						<dt>{{.i18n.Tr "admin.config.git_max_diff_files"}}</dt>
-						<dd>{{.Git.MaxGitDiffFiles}}</dd>
-						<dt>{{.i18n.Tr "admin.config.git_gc_args"}}</dt>
-						<dd><code>{{.Git.GCArgs}}</code></dd>
-						<dt>{{.i18n.Tr "admin.config.git_max_diff_lines"}}</dt>
-						<dd>{{.Git.MaxGitDiffLines}}</dd>
-						<div class="ui divider"></div>
-						<dt>{{.i18n.Tr "admin.config.git_migrate_timeout"}}</dt>
-						<dd>{{.Git.Timeout.Migrate}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-						<dt>{{.i18n.Tr "admin.config.git_mirror_timeout"}}</dt>
-						<dd>{{.Git.Timeout.Mirror}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-						<dt>{{.i18n.Tr "admin.config.git_clone_timeout"}}</dt>
-						<dd>{{.Git.Timeout.Clone}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-						<dt>{{.i18n.Tr "admin.config.git_pull_timeout"}}</dt>
-						<dd>{{.Git.Timeout.Pull}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-						<dt>{{.i18n.Tr "admin.config.git_gc_timeout"}}</dt>
-						<dd>{{.Git.Timeout.GC}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-					</dl>
-				</div>
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.config.git_config"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				<dt>{{.i18n.Tr "admin.config.git_disable_diff_highlight"}}</dt>
+				<dd><i class="fa fa{{if .Git.DisableDiffHighlight}}-check{{end}}-square-o"></i></dd>
+				<dt>{{.i18n.Tr "admin.config.git_max_diff_lines"}}</dt>
+				<dd>{{.Git.MaxGitDiffLines}}</dd>
+				<dt>{{.i18n.Tr "admin.config.git_max_diff_line_characters"}}</dt>
+				<dd>{{.Git.MaxGitDiffLineCharacters}}</dd>
+				<dt>{{.i18n.Tr "admin.config.git_max_diff_files"}}</dt>
+				<dd>{{.Git.MaxGitDiffFiles}}</dd>
+				<dt>{{.i18n.Tr "admin.config.git_gc_args"}}</dt>
+				<dd><code>{{.Git.GCArgs}}</code></dd>
+				<dt>{{.i18n.Tr "admin.config.git_max_diff_lines"}}</dt>
+				<dd>{{.Git.MaxGitDiffLines}}</dd>
+				<div class="ui divider"></div>
+				<dt>{{.i18n.Tr "admin.config.git_migrate_timeout"}}</dt>
+				<dd>{{.Git.Timeout.Migrate}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+				<dt>{{.i18n.Tr "admin.config.git_mirror_timeout"}}</dt>
+				<dd>{{.Git.Timeout.Mirror}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+				<dt>{{.i18n.Tr "admin.config.git_clone_timeout"}}</dt>
+				<dd>{{.Git.Timeout.Clone}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+				<dt>{{.i18n.Tr "admin.config.git_pull_timeout"}}</dt>
+				<dd>{{.Git.Timeout.Pull}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+				<dt>{{.i18n.Tr "admin.config.git_gc_timeout"}}</dt>
+				<dd>{{.Git.Timeout.GC}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+			</dl>
+		</div>
 
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.config.log_config"}}
-				</h4>
-				<div class="ui attached table segment">
-					<dl class="dl-horizontal admin-dl-horizontal">
-						{{range .Loggers}}
-							<dt>{{$.i18n.Tr "admin.config.log_mode"}}</dt>
-							<dd>{{.Mode}}</dd>
-							<dt>{{$.i18n.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
-						{{end}}
-					</dl>
-				</div>
-			</div>
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.config.log_config"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				{{range .Loggers}}
+					<dt>{{$.i18n.Tr "admin.config.log_mode"}}</dt>
+					<dd>{{.Mode}}</dd>
+					<dt>{{$.i18n.Tr "admin.config.log_config"}}</dt>
+					<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
+				{{end}}
+			</dl>
 		</div>
 	</div>
 </div>

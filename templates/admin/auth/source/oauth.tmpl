@@ -1,0 +1,58 @@
+<div class="oauth2 field {{if not (eq .type 6)}}hide{{end}}">
+	<div class="inline required field">
+		<label>{{.i18n.Tr "admin.auths.oauth2_provider"}}</label>
+		<div class="ui selection type dropdown">
+			<input type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{.oauth2_provider}}">
+			<div class="text">{{.oauth2_provider}}</div>
+			<i class="dropdown icon"></i>
+			<div class="menu">
+				{{range $key, $value := .OAuth2Providers}}
+					<div class="item" data-value="{{$key}}">{{$value.DisplayName}}</div>
+				{{end}}
+			</div>
+		</div>
+	</div>
+	<div class="required field">
+		<label for="oauth2_key">{{.i18n.Tr "admin.auths.oauth2_clientID"}}</label>
+		<input id="oauth2_key" name="oauth2_key" value="{{.oauth2_key}}">
+	</div>
+	<div class="required field">
+		<label for="oauth2_secret">{{.i18n.Tr "admin.auths.oauth2_clientSecret"}}</label>
+		<input id="oauth2_secret" name="oauth2_secret" value="{{.oauth2_secret}}">
+	</div>
+	<div class="open_id_connect_auto_discovery_url required field">
+		<label for="open_id_connect_auto_discovery_url">{{.i18n.Tr "admin.auths.openIdConnectAutoDiscoveryURL"}}</label>
+		<input id="open_id_connect_auto_discovery_url" name="open_id_connect_auto_discovery_url" value="{{.open_id_connect_auto_discovery_url}}">
+	</div>
+
+	<div class="oauth2_use_custom_url inline field">
+		<div class="ui checkbox">
+			<label><strong>{{.i18n.Tr "admin.auths.oauth2_use_custom_url"}}</strong></label>
+			<input id="oauth2_use_custom_url" name="oauth2_use_custom_url" type="checkbox">
+		</div>
+	</div>
+	<div class="oauth2_use_custom_url_field oauth2_auth_url required field">
+		<label for="oauth2_auth_url">{{.i18n.Tr "admin.auths.oauth2_authURL"}}</label>
+		<input id="oauth2_auth_url" name="oauth2_auth_url" value="{{.oauth2_auth_url}}">
+	</div>
+	<div class="oauth2_use_custom_url_field oauth2_token_url required field">
+		<label for="oauth2_token_url">{{.i18n.Tr "admin.auths.oauth2_tokenURL"}}</label>
+		<input id="oauth2_token_url" name="oauth2_token_url" value="{{.oauth2_token_url}}">
+	</div>
+	<div class="oauth2_use_custom_url_field oauth2_profile_url required field">
+		<label for="oauth2_profile_url">{{.i18n.Tr "admin.auths.oauth2_profileURL"}}</label>
+		<input id="oauth2_profile_url" name="oauth2_profile_url" value="{{.oauth2_profile_url}}">
+	</div>
+	<div class="oauth2_use_custom_url_field oauth2_email_url required field">
+		<label for="oauth2_email_url">{{.i18n.Tr "admin.auths.oauth2_emailURL"}}</label>
+		<input id="oauth2_email_url" name="oauth2_email_url" value="{{.oauth2_email_url}}">
+	</div>
+	{{if .OAuth2DefaultCustomURLMappings}}
+		{{range $key, $value := .OAuth2DefaultCustomURLMappings}}
+			<input id="{{$key}}_token_url" value="{{$value.TokenURL}}" type="hidden" />
+			<input id="{{$key}}_auth_url" value="{{$value.AuthURL}}" type="hidden" />
+			<input id="{{$key}}_profile_url" value="{{$value.ProfileURL}}" type="hidden" />
+			<input id="{{$key}}_email_url" value="{{$value.EmailURL}}" type="hidden" />
+		{{end}}
+	{{end}}
+</div>

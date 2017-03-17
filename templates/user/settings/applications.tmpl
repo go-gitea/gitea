@@ -1,63 +1,59 @@
 {{template "base/head" .}}
 <div class="user settings">
+	{{template "user/settings/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "user/settings/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "settings.manage_access_token"}}
-					<div class="ui right">
-						<div class="ui blue tiny show-panel button" data-panel="#add-access-token-panel">{{.i18n.Tr "settings.generate_new_token"}}</div>
-					</div>
-				</h4>
-				<div class="ui attached segment">
-					<div class="ui key list">
-						<div class="item">
-							{{.i18n.Tr "settings.tokens_desc"}}
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "settings.manage_access_token"}}
+			<div class="ui right">
+				<div class="ui blue tiny show-panel button" data-panel="#add-access-token-panel">{{.i18n.Tr "settings.generate_new_token"}}</div>
+			</div>
+		</h4>
+		<div class="ui attached segment">
+			<div class="ui key list">
+				<div class="item">
+					{{.i18n.Tr "settings.tokens_desc"}}
+				</div>
+				{{range .Tokens}}
+					<div class="item ui grid">
+						<div class="one wide column">
+							<i class="ssh-key-state-indicator fa fa-circle{{if .HasRecentActivity}} active invert poping up{{else}}-o{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.token_state_desc"}}" data-variation="inverted tiny"{{end}}></i>
 						</div>
-						{{range .Tokens}}
-							<div class="item ui grid">
-								<div class="one wide column">
-									<i class="ssh-key-state-indicator fa fa-circle{{if .HasRecentActivity}} active invert poping up{{else}}-o{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.token_state_desc"}}" data-variation="inverted tiny"{{end}}></i>
-								</div>
-								<div class="one wide column">
-									<i class="fa fa-send fa-2x left"></i>
-								</div>
-								<div class="eleven wide column">
-									<strong>{{.Name}}</strong>
-									<div class="activity meta">
-										<i>{{$.i18n.Tr "settings.add_on"}} <span>{{DateFmtShort .Created}}</span> —  <i class="octicon octicon-info"></i> {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span>{{DateFmtShort .Updated}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
-									</div>
-								</div>
-								<div class="two wide column">
-									<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
-										{{$.i18n.Tr "settings.delete_token"}}
-									</button>
-								</div>
+						<div class="one wide column">
+							<i class="fa fa-send fa-2x left"></i>
+						</div>
+						<div class="eleven wide column">
+							<strong>{{.Name}}</strong>
+							<div class="activity meta">
+								<i>{{$.i18n.Tr "settings.add_on"}} <span>{{DateFmtShort .Created}}</span> —  <i class="octicon octicon-info"></i> {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span>{{DateFmtShort .Updated}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
 							</div>
-						{{end}}
-					</div>
-				</div>
-				<br>
-				<div {{if not .HasError}}class="hide"{{end}} id="add-access-token-panel">
-					<h4 class="ui top attached header">
-						{{.i18n.Tr "settings.generate_new_token"}}
-					</h4>
-					<div class="ui attached segment">
-						<form class="ui form" action="{{.Link}}" method="post">
-							{{.CsrfTokenHtml}}
-							<p>{{.i18n.Tr "settings.new_token_desc"}}</p>
-							<div class="field {{if .Err_Name}}error{{end}}">
-								<label for="name">{{.i18n.Tr "settings.token_name"}}</label>
-								<input id="name" name="name" value="{{.name}}" autofocus required>
-							</div>
-							<button class="ui green button">
-								{{.i18n.Tr "settings.generate_token"}}
+						</div>
+						<div class="two wide column">
+							<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+								{{$.i18n.Tr "settings.delete_token"}}
 							</button>
-						</form>
+						</div>
 					</div>
-				</div>
+				{{end}}
+			</div>
+		</div>
+		<br>
+		<div {{if not .HasError}}class="hide"{{end}} id="add-access-token-panel">
+			<h4 class="ui top attached header">
+				{{.i18n.Tr "settings.generate_new_token"}}
+			</h4>
+			<div class="ui attached segment">
+				<form class="ui form" action="{{.Link}}" method="post">
+					{{.CsrfTokenHtml}}
+					<p>{{.i18n.Tr "settings.new_token_desc"}}</p>
+					<div class="field {{if .Err_Name}}error{{end}}">
+						<label for="name">{{.i18n.Tr "settings.token_name"}}</label>
+						<input id="name" name="name" value="{{.name}}" autofocus required>
+					</div>
+					<button class="ui green button">
+						{{.i18n.Tr "settings.generate_token"}}
+					</button>
+				</form>
 			</div>
 		</div>
 	</div>

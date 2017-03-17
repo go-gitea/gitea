@@ -254,6 +254,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/users", func() {
 			m.Group("/:username", func() {
 				m.Get("/keys", user.ListPublicKeys)
+				m.Get("/gpg_keys", user.ListGPGKeys)
 
 				m.Get("/followers", user.ListFollowers)
 				m.Group("/following", func() {
@@ -284,6 +285,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Post(bind(api.CreateKeyOption{}), user.CreatePublicKey)
 				m.Combo("/:id").Get(user.GetPublicKey).
 					Delete(user.DeletePublicKey)
+			})
+
+			m.Group("/gpg_keys", func() {
+				m.Combo("").Get(user.ListMyGPGKeys).
+					Post(bind(api.CreateGPGKeyOption{}), user.CreateGPGKey)
+				m.Combo("/:id").Get(user.GetGPGKey).
+					Delete(user.DeleteGPGKey)
 			})
 
 			m.Combo("/repos").Get(user.ListMyRepos).
