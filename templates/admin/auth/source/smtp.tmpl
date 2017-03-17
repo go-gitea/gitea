@@ -1,0 +1,28 @@
+<div class="smtp field {{if not (eq .type 3)}}hide{{end}}">
+	<div class="inline required field">
+		<label>{{.i18n.Tr "admin.auths.smtp_auth"}}</label>
+		<div class="ui selection type dropdown">
+			<input type="hidden" id="smtp_auth" name="smtp_auth" value="{{.smtp_auth}}">
+			<div class="text">{{.smtp_auth}}</div>
+			<i class="dropdown icon"></i>
+			<div class="menu">
+				{{range .SMTPAuths}}
+					<div class="item" data-value="{{.}}">{{.}}</div>
+				{{end}}
+			</div>
+		</div>
+	</div>
+	<div class="required field">
+		<label for="smtp_host">{{.i18n.Tr "admin.auths.smtphost"}}</label>
+		<input id="smtp_host" name="smtp_host" value="{{.smtp_host}}">
+	</div>
+	<div class="required field">
+		<label for="smtp_port">{{.i18n.Tr "admin.auths.smtpport"}}</label>
+		<input id="smtp_port" name="smtp_port" value="{{.smtp_port}}">
+	</div>
+	<div class="field">
+		<label for="allowed_domains">{{.i18n.Tr "admin.auths.allowed_domains"}}</label>
+		<input id="allowed_domains" name="allowed_domains" value="{{.allowed_domains}}">
+		<p class="help">{{.i18n.Tr "admin.auths.allowed_domains_helper"}}</p>
+	</div>
+</div>
