@@ -47,7 +47,7 @@
 					<a href="{{AppSubUrl}}/user/oauth2/{{$key}}" class="ui oauth2 gray button labeled icon">
 						<i class="icon">
 							<img alt="{{$value.DisplayName}}" title="{{$value.DisplayName}}" src="{{AppSubUrl}}{{$value.Image}}" class="ui image">
-						</i> {{.i18n.Tr "sign_in_with"}} {{$value.DisplayName}}
+						</i> {{$.i18n.Tr "sign_in_with"}} {{$value.DisplayName}}
 					</a>
 					{{end}}
 					{{end}}
