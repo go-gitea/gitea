@@ -1,45 +1,41 @@
 {{template "base/head" .}}
 <div class="user settings openid">
+	{{template "user/settings/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "user/settings/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "settings.manage_openid"}}
-				</h4>
-				<div class="ui attached segment">
-					<div class="ui openid list">
-						<div class="item">
-							{{.i18n.Tr "settings.openid_desc"}}
-						</div>
-						{{range .OpenIDs}}
-							<div class="item ui grid">
-								<div class="column">
-									<strong>{{.URI}}</strong>
-									<div class="ui right">
-										<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
-											{{$.i18n.Tr "settings.delete_key"}}
-										</button>
-									</div>
-								</div>
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "settings.manage_openid"}}
+		</h4>
+		<div class="ui attached segment">
+			<div class="ui openid list">
+				<div class="item">
+					{{.i18n.Tr "settings.openid_desc"}}
+				</div>
+				{{range .OpenIDs}}
+					<div class="item ui grid">
+						<div class="column">
+							<strong>{{.URI}}</strong>
+							<div class="ui right">
+								<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+									{{$.i18n.Tr "settings.delete_key"}}
+								</button>
 							</div>
-						{{end}}
-					</div>
-				</div>
-				<div class="ui attached bottom segment">
-					<form class="ui form" action="{{.Link}}" method="post">
-						{{.CsrfTokenHtml}}
-						<div class="required field {{if .Err_OpenID}}error{{end}}">
-							<label for="openid">{{.i18n.Tr "settings.add_new_openid"}}</label>
-							<input id="openid" name="openid" type="openid" autofocus required>
 						</div>
-						<button class="ui green button">
-							{{.i18n.Tr "settings.add_openid"}}
-						</button>
-					</form>
-				</div>
+					</div>
+				{{end}}
 			</div>
+		</div>
+		<div class="ui attached bottom segment">
+			<form class="ui form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<div class="required field {{if .Err_OpenID}}error{{end}}">
+					<label for="openid">{{.i18n.Tr "settings.add_new_openid"}}</label>
+					<input id="openid" name="openid" type="openid" autofocus required>
+				</div>
+				<button class="ui green button">
+					{{.i18n.Tr "settings.add_openid"}}
+				</button>
+			</form>
 		</div>
 	</div>
 </div>
