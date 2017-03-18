@@ -553,7 +553,7 @@ func (repo *Repository) CanBeForked() bool {
 
 // CanEnablePulls returns true if repository meets the requirements of accepting pulls.
 func (repo *Repository) CanEnablePulls() bool {
-	return !repo.IsMirror
+	return !repo.IsMirror && !repo.IsBare
 }
 
 // AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.

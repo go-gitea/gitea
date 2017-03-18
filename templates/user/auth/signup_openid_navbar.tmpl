@@ -1,0 +1,11 @@
+<div class="ui secondary pointing tabular top attached borderless menu stackable new-menu navbar">
+	<a class="{{if .PageIsOpenIDConnect}}active{{end}} item" href="{{AppSubUrl}}/user/openid/connect">
+		{{.i18n.Tr "auth.openid_connect_title"}}
+	</a>
+	{{if .EnableOpenIDSignUp}}
+		<a class="{{if .PageIsOpenIDRegister}}active{{end}} item" href="{{AppSubUrl}}/user/openid/register">
+			{{.i18n.Tr "auth.openid_register_title"}}
+		</a>
+	{{end}}
+</div>
+
