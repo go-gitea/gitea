@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
 	editorconfig "gopkg.in/editorconfig/editorconfig-core-go.v1"
@@ -154,15 +153,8 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 }
 
 // RepoAssignment returns a macaron to handle repository assignment
-func RepoAssignment(args ...bool) macaron.Handler {
+func RepoAssignment() macaron.Handler {
 	return func(ctx *Context) {
-		var (
-			displayBare bool // To display bare page if it is a bare repo.
-		)
-		if len(args) >= 1 {
-			displayBare = args[0]
-		}
-
 		var (
 			owner *models.User
 			err   error
@@ -294,15 +286,7 @@ func RepoAssignment(args ...bool) macaron.Handler {
 
 		// repo is bare and display enable
 		if ctx.Repo.Repository.IsBare {
-			log.Debug("Bare repository: %s", ctx.Repo.RepoLink)
-			// NOTE: to prevent templating error
-			ctx.Data["BranchName"] = ""
-			if displayBare {
-				if !ctx.Repo.IsAdmin() {
-					ctx.Flash.Info(ctx.Tr("repo.repo_is_empty"), true)
-				}
-				ctx.HTML(200, "repo/bare")
-			}
+			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
 			return
 		}
 
