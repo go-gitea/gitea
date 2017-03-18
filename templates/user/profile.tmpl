@@ -37,7 +37,7 @@
 							{{range .OpenIDs}}
 								<li>
 									<img width="16" height="16" src="{{AppSubUrl}}/img/openid-16x16.png"/>
-									<strong>{{.URI}}</strong>
+									{{.URI}}
 								</li>
 							{{end}}
 							<li><i class="octicon octicon-clock"></i> {{.i18n.Tr "user.join_on"}} {{DateFmtShort .Owner.Created}}</li>
