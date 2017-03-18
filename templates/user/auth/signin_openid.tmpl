@@ -4,6 +4,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
+			<i class="fa fa-openid"></i>
 			OpenID
 		</h4>
 		<div class="ui attached segment">
@@ -14,7 +15,7 @@
 			</div>
 			<div class="required inline field {{if .Err_OpenID}}error{{end}}">
 				<label for="openid">
-				<img alt="OpenID URI" height="16" src="{{AppSubUrl}}/img/openid-16x16.png"/>
+				<i class="fa fa-openid"></i>
 				OpenID URI
 				</label>
 				<input id="openid" name="openid" value="{{.openid}}" autofocus required>
