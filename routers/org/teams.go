@@ -171,6 +171,7 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		Name:        form.TeamName,
 		Description: form.Description,
 		Authorize:   models.ParseAccessMode(form.Permission),
+		UnitTypes:   form.Units,
 	}
 	ctx.Data["Team"] = t
 
@@ -260,6 +261,7 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		}
 	}
 	t.Description = form.Description
+	t.UnitTypes = form.Units
 	if err := models.UpdateTeam(t, isAuthChanged); err != nil {
 		ctx.Data["Err_TeamName"] = true
 		switch {

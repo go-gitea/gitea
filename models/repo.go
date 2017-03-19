@@ -339,41 +339,36 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64) (err error) {
 		return nil
 	}
 
-	if err = repo.getOwner(e); err != nil {
-		return
+	err = repo.getUnits(e)
+	if err != nil {
+		return err
 	}
-
 	if !repo.Owner.IsOrganization() {
-		return repo.getUnits(e)
+		return nil
 	}
 
-	teams, err := getUserTeams(e, repo.Owner.ID, userID)
+	teams, err := getUserTeams(e, repo.OwnerID, userID)
 	if err != nil {
 		return err
 	}
 
-	var allTypes = make([]UnitType, 0, len(teams)*len(allRepUnitTypes))
+	var allTypes = make(map[UnitType]struct{}, len(allRepUnitTypes))
 	for _, team := range teams {
-		allTypes = append(allTypes, team.UnitTypes...)
-	}
-
-	var types = make([]UnitType, 0, len(allTypes))
-	// unique
-	for _, oriType := range allTypes {
-		for _, tp := range types {
-			var has bool
-			if oriType == tp {
-				has = true
-				break
-			}
-			if !has {
-				types = append(types, oriType)
-			}
+		for _, unitType := range team.UnitTypes {
+			allTypes[unitType] = struct{}{}
 		}
 	}
 
-	repo.Units, err = getUnitsByRepoIDAndIDs(e, repo.ID, types)
-	return
+	// unique
+	var newRepoUnits = make([]*RepoUnit, 0, len(repo.Units))
+	for _, u := range repo.Units {
+		if _, ok := allTypes[u.Type]; ok {
+			newRepoUnits = append(newRepoUnits, u)
+		}
+	}
+
+	repo.Units = newRepoUnits
+	return nil
 }
 
 // EnableUnit if this repository enabled some unit

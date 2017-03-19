@@ -57,9 +57,10 @@
 							<br>
 							{{range $t, $unit := $.Units}}
 							<div class="field">
-								<div class="ui checkbox">
-									<input type="checkbox" name="permission" value="{{$.i18n.Tr $unit.NameKey}}"{{if $.Team.EnableUnit $unit.Type}} checked{{end}}>
-									<label>{{$.i18n.Tr $unit.NameKey}} <span class="help">{{$.i18n.Tr $unit.DescKey}}</span></label>
+								<div class="ui toggle checkbox">
+									<input type="checkbox" class="hidden" name="units" value="{{$unit.Type}}"{{if $.Team.EnableUnit $unit.Type}} checked{{end}}>
+									<label>{{$.i18n.Tr $unit.NameKey}}</label>
+									<span class="help">{{$.i18n.Tr $unit.DescKey}}</span>
 								</div>
 							</div>
 							{{end}}

@@ -261,7 +261,8 @@ func Home(ctx *context.Context) {
 
 		unit, ok := models.Units[tp]
 		if ok {
-			ctx.Redirect(unit.URI)
+			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/%s%s",
+				ctx.Repo.Repository.FullName(), unit.URI))
 			return
 		}
 	}
