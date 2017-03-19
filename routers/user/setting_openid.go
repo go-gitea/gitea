@@ -45,6 +45,12 @@ func SettingsOpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
 	ctx.Data["PageIsSettingsOpenID"] = true
 
 	if ctx.HasError() {
+		openid, err := models.GetUserOpenIDs(ctx.User.ID)
+		if err != nil {
+			ctx.Handle(500, "GetUserOpenIDs", err)
+			return
+		}
+		ctx.Data["OpenIDs"] = openid
 		ctx.HTML(200, tplSettingsOpenID)
 		return
 	}
@@ -138,5 +144,15 @@ func DeleteOpenID(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/openid",
 	})
+}
+
+// ToggleOpenIDVisibility response for toggle visibility of user's openid
+func ToggleOpenIDVisibility(ctx *context.Context) {
+	if err := models.ToggleUserOpenIDVisibility(ctx.QueryInt64("id")); err != nil {
+		ctx.Handle(500, "ToggleUserOpenIDVisibility", err)
+		return
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/user/settings/openid")
 }
 

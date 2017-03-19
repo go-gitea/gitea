@@ -21,6 +21,7 @@ type UserOpenID struct {
 	ID          int64  `xorm:"pk autoincr"`
 	UID         int64  `xorm:"INDEX NOT NULL"`
 	URI         string `xorm:"UNIQUE NOT NULL"`
+	Show        bool   `xorm:"DEFAULT false"`
 }
 
 // GetUserOpenIDs returns all openid addresses that belongs to given user.
@@ -28,6 +29,7 @@ func GetUserOpenIDs(uid int64) ([]*UserOpenID, error) {
 	openids := make([]*UserOpenID, 0, 5)
 	if err := x.
 		Where("uid=?", uid).
+		Asc("id").
 		Find(&openids); err != nil {
 		return nil, err
 	}
@@ -87,6 +89,12 @@ func DeleteUserOpenID(openid *UserOpenID) (err error) {
 		return ErrOpenIDNotExist
 	}
 	return nil
+}
+
+// ToggleUserOpenIDVisibility toggles visibility of an openid address of given user.
+func ToggleUserOpenIDVisibility(id int64) (err error) {
+	_, err = x.Exec("update user_open_id set show = not show where id = ?", id)
+	return err
 }
 
 // GetUserByOpenID returns the user object by given OpenID if exists.
