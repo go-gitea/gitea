@@ -990,7 +990,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 	}
 
 	// ***** START: ExternalLoginUser *****
-	if err = RemoveAllAccountLinks(u); err != nil {
+	if err = removeAllAccountLinks(e, u); err != nil {
 		return fmt.Errorf("ExternalLoginUser: %v", err)
 	}
 	// ***** END: ExternalLoginUser *****
