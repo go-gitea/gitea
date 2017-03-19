@@ -106,6 +106,8 @@ var migrations = []Migration{
 	NewMigration("change mirror interval from hours to time.Duration", convertIntervalToDuration),
 	// v28 -> v29
 	NewMigration("add field for repo size", addRepoSize),
+	// v29 -> v30
+	NewMigration("add commit status table", addCommitStatus),
 }
 
 // Migrate database to current version

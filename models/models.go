@@ -118,6 +118,7 @@ func init() {
 		new(ProtectedBranch),
 		new(UserOpenID),
 		new(IssueWatch),
+		new(CommitStatus),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
