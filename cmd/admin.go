@@ -65,12 +65,12 @@ to make automatic initialization process more smoothly`,
 		Action: runChangePassword,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "username",
+				Name:  "username,u",
 				Value: "",
 				Usage: "Username",
 			},
 			cli.StringFlag{
-				Name:  "password",
+				Name:  "password,p",
 				Value: "",
 				Usage: "Password",
 			},
