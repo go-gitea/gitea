@@ -544,10 +544,6 @@ func NewContext() {
 
 	Cfg = ini.Empty()
 
-	if err != nil {
-		log.Fatal(4, "Failed to parse 'app.ini': %v", err)
-	}
-
 	CustomPath = os.Getenv("GITEA_CUSTOM")
 	if len(CustomPath) == 0 {
 		// For backward compatibility
