@@ -67,12 +67,12 @@ to make automatic initialization process more smoothly`,
 			cli.StringFlag{
 				Name:  "username,u",
 				Value: "",
-				Usage: "Username",
+				Usage: "The user to change password on",
 			},
 			cli.StringFlag{
 				Name:  "password,p",
 				Value: "",
-				Usage: "Password",
+				Usage: "New password to set for user",
 			},
 		},
 	}
