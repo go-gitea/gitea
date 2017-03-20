@@ -108,6 +108,9 @@ release-changelog: CHANGELOG.md
 
 .PHONY: CHANGELOG.md
 CHANGELOG.md: changelog/unreleased/*.md changelog/HISTORICAL.md
+
+.PHONY: changelog/HISTORICAL.md
+changelog/HISTORICAL.md:
 	cat changelog/HISTORICAL.md >> CHANGELOG.md
 
 changelog/unreleased/*.md:

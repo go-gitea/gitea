@@ -23,28 +23,17 @@ const (
 
 	prUrlFormat  = "https://github.com/go-gitea/gitea/pull/%d"
 	tagUrlFormat = "https://github.com/go-gitea/gitea/releases/tags/v%s"
-
-	cleTmpl = `
-	## [{{ .Version }}](https://github.com/go-gitea/gitea/releases/tag/v{{.Version}}) - {{ .Date }}
-
-	{{ if .Breaking }}
-	* BREAKING
-	{{ range .Breaking }}
-	  * {{ }}
-	`
 )
-
-var (
-	version    = flag.String("version", "", "Version for changelog")
-	outputFile = flag.String("outputFile", "CHANGELOG2.md", "File to which the changelog is written")
-	force      = flag.Bool("force", false, "Force update of changelog even if version already exists. DON'T USE THIS!")
-)
-
-func init() {
-	flag.Parse()
-}
 
 func main() {
+	var (
+		version    = flag.String("version", "", "Version for changelog")
+		outputFile = flag.String("outputFile", "CHANGELOG2.md", "File to which the changelog is written")
+		force      = flag.Bool("force", false, "Force update of changelog even if version already exists. DON'T USE THIS!")
+	)
+
+	flag.Parse()
+
 	if version == nil || *version == "" {
 		fmt.Printf("Error: You did not give a version\n\nAvailable flags:\n")
 		flag.PrintDefaults()
@@ -81,6 +70,7 @@ func main() {
 	}
 	if err := cl.Write(*outputFile); err != nil {
 		fmt.Printf("Error: writing changelog: %v\n", err)
+		os.Exit(1)
 	}
 
 	log.Printf("Removing released changelogs\n")
