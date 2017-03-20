@@ -9,10 +9,9 @@ import (
 	"gopkg.in/macaron.v1"
 )
 
-
 // SignInOpenIDForm form for signing in with OpenID
 type SignInOpenIDForm struct {
-	Openid string `binding:"Required;MaxSize(256)"`
+	Openid   string `binding:"Required;MaxSize(256)"`
 	Remember bool
 }
 
@@ -42,4 +41,3 @@ type ConnectOpenIDForm struct {
 func (f *ConnectOpenIDForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
-

@@ -9,7 +9,8 @@ import (
 	"time"
 )
 
-type testDiscoveredInfo struct {}
+type testDiscoveredInfo struct{}
+
 func (s *testDiscoveredInfo) ClaimedID() string {
 	return "claimedID"
 }
@@ -21,7 +22,7 @@ func (s *testDiscoveredInfo) OpLocalID() string {
 }
 
 func TestTimedDiscoveryCache(t *testing.T) {
-	dc := newTimedDiscoveryCache(1*time.Second)
+	dc := newTimedDiscoveryCache(1 * time.Second)
 
 	// Put some initial values
 	dc.Put("foo", &testDiscoveredInfo{}) //openid.opEndpoint: "a", openid.opLocalID: "b", openid.claimedID: "c"})

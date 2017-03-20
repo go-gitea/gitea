@@ -68,4 +68,3 @@ func UnfollowUser(userID, followID int64) (err error) {
 	}
 	return sess.Commit()
 }
-

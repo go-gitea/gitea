@@ -17,8 +17,7 @@ import (
 // least
 // the nonceStore between them.
 var nonceStore = openid.NewSimpleNonceStore()
-var discoveryCache = newTimedDiscoveryCache(24*time.Hour)
-
+var discoveryCache = newTimedDiscoveryCache(24 * time.Hour)
 
 // Verify handles response from OpenID provider
 func Verify(fullURL string) (id string, err error) {
@@ -34,4 +33,3 @@ func Normalize(url string) (id string, err error) {
 func RedirectURL(id, callbackURL, realm string) (string, error) {
 	return openid.RedirectURL(id, callbackURL, realm)
 }
-

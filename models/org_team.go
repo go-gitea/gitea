@@ -143,7 +143,7 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 	if err != nil {
 		return fmt.Errorf("getTeamUsersByTeamID: %v", err)
 	}
-	for _, teamUser:= range teamUsers {
+	for _, teamUser := range teamUsers {
 		has, err := hasAccess(e, teamUser.UID, repo, AccessModeRead)
 		if err != nil {
 			return err
