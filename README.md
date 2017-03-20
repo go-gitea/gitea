@@ -10,12 +10,11 @@
 [![GoDoc](https://godoc.org/code.gitea.io/gitea?status.svg)](https://godoc.org/code.gitea.io/gitea)
 [![Release](https://github-release-version.herokuapp.com/github/go-gitea/gitea/release.svg?style=flat)](https://github.com/go-gitea/gitea/releases/latest)
 
-||||
-|:-------------:|:-------:|:-------:|
+| | | |
+|:---:|:---:|:---:|
 |![Dashboard](https://i.imgur.com/3iEQsux.jpg)|![Repository](https://i.imgur.com/glqFnj8.jpg)|![Commits History](https://i.imgur.com/ad1FEpi.jpg)|
 |![Profile](https://i.imgur.com/q81EcGa.jpg)|![Admin Dashboard](https://i.imgur.com/L2CQeN0.jpg)|![Diff](https://i.imgur.com/cNuvMum.jpg)|
 |![Issues](https://i.imgur.com/xCYRqaF.jpg)|![Releases](https://i.imgur.com/ILpRBCe.jpg)|![Organization](https://i.imgur.com/0BHnrcL.jpg)|
-||||
 
 ## Purpose
 
