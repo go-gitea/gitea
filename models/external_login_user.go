@@ -9,8 +9,8 @@ import "github.com/markbates/goth"
 // ExternalLoginUser makes the connecting between some existing user and additional external login sources
 type ExternalLoginUser struct {
 	ExternalID    string `xorm:"NOT NULL"`
-	UserID        int64 `xorm:"NOT NULL"`
-	LoginSourceID int64 `xorm:"NOT NULL"`
+	UserID        int64  `xorm:"NOT NULL"`
+	LoginSourceID int64  `xorm:"NOT NULL"`
 }
 
 // GetExternalLogin checks if a externalID in loginSourceID scope already exists
@@ -67,8 +67,8 @@ func RemoveAccountLink(user *User, loginSourceID int64) (int64, error) {
 	return deleted, err
 }
 
-// RemoveAllAccountLinks will remove all external login sources for the given user
-func RemoveAllAccountLinks(user *User) error {
-	_, err := x.Delete(&ExternalLoginUser{UserID: user.ID})
+// removeAllAccountLinks will remove all external login sources for the given user
+func removeAllAccountLinks(e Engine, user *User) error {
+	_, err := e.Delete(&ExternalLoginUser{UserID: user.ID})
 	return err
 }
