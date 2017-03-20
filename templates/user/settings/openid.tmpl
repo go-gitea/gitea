@@ -20,6 +20,24 @@
 									{{$.i18n.Tr "settings.delete_key"}}
 								</button>
 							</div>
+							<div class="ui right">
+								<form action="{{$.Link}}/toggle_visibility" method="post">
+								{{$.CsrfTokenHtml}}
+								<input name="id" type="hidden" value="{{.ID}}">
+								{{if .Show}}
+									<button class="ui tiny button">
+									<i class="icon fa-eye"></i>
+									{{$.i18n.Tr "settings.hide_openid"}}
+									</button>
+								{{else}}
+									<button class="ui tiny button">
+									<i class="icon fa-eye-slash"></i>
+									{{$.i18n.Tr "settings.show_openid"}}
+									</button>
+								{{end}}
+								</button>
+								</form>
+							</div>
 						</div>
 					</div>
 				{{end}}

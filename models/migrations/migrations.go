@@ -98,6 +98,8 @@ var migrations = []Migration{
 	NewMigration("add user openid table", addUserOpenID),
 	// v24 -> v25
 	NewMigration("change the key_id and primary_key_id type", changeGPGKeysColumns),
+	// v25 -> v26
+	NewMigration("add show field in user openid table", addUserOpenIDShow),
 }
 
 // Migrate database to current version

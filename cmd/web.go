@@ -248,6 +248,7 @@ func runWeb(ctx *cli.Context) error {
 				m.Combo("").Get(user.SettingsOpenID).
 					Post(bindIgnErr(auth.AddOpenIDForm{}), user.SettingsOpenIDPost)
 				m.Post("/delete", user.DeleteOpenID)
+				m.Post("/toggle_visibility", user.ToggleOpenIDVisibility)
 			})
 		}
 
