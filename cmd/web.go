@@ -639,6 +639,9 @@ func runWeb(ctx *cli.Context) error {
 				m.Get("/objects/:oid/:filename", lfs.ObjectOidHandler)
 				m.Any("/objects/:oid", lfs.ObjectOidHandler)
 				m.Post("/objects", lfs.PostHandler)
+				m.Any("/*", func(ctx *context.Context) {
+					ctx.Handle(404, "", nil)
+				})
 			}, ignSignInAndCsrf)
 			m.Any("/*", ignSignInAndCsrf, repo.HTTP)
 			m.Head("/tasks/trigger", repo.TriggerTask)
