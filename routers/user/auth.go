@@ -120,6 +120,7 @@ func SignIn(ctx *context.Context) {
 	}
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 	ctx.Data["Title"] = ctx.Tr("sign_in")
+	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
 
@@ -128,16 +129,16 @@ func SignIn(ctx *context.Context) {
 
 // SignInPost response for sign in request
 func SignInPost(ctx *context.Context, form auth.SignInForm) {
-	ctx.Data["Title"] = ctx.Tr("sign_in")
-	ctx.Data["PageIsSignIn"] = true
-	ctx.Data["PageIsLogin"] = true
-
 	oauth2Providers, err := models.GetActiveOAuth2Providers()
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)
 		return
 	}
 	ctx.Data["OAuth2Providers"] = oauth2Providers
+	ctx.Data["Title"] = ctx.Tr("sign_in")
+	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
+	ctx.Data["PageIsSignIn"] = true
+	ctx.Data["PageIsLogin"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplSignIn)
@@ -700,6 +701,8 @@ func SignOut(ctx *context.Context) {
 func SignUp(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_up")
 
+	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
+
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
@@ -710,6 +713,8 @@ func SignUp(ctx *context.Context) {
 // SignUpPost response for sign up information submission
 func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterForm) {
 	ctx.Data["Title"] = ctx.Tr("sign_up")
+
+	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 
