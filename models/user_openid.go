@@ -18,10 +18,10 @@ var (
 
 // UserOpenID is the list of all OpenID identities of a user.
 type UserOpenID struct {
-	ID          int64  `xorm:"pk autoincr"`
-	UID         int64  `xorm:"INDEX NOT NULL"`
-	URI         string `xorm:"UNIQUE NOT NULL"`
-	Show        bool   `xorm:"DEFAULT false"`
+	ID   int64  `xorm:"pk autoincr"`
+	UID  int64  `xorm:"INDEX NOT NULL"`
+	URI  string `xorm:"UNIQUE NOT NULL"`
+	Show bool   `xorm:"DEFAULT false"`
 }
 
 // GetUserOpenIDs returns all openid addresses that belongs to given user.
@@ -122,4 +122,3 @@ func GetUserByOpenID(uri string) (*User, error) {
 
 	return nil, ErrUserNotExist{0, uri, 0}
 }
-

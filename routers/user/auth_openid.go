@@ -102,23 +102,24 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	id, err := openid.Normalize(form.Openid)
 	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &form)
-                return;
+		return
 	}
 	form.Openid = id
 
 	log.Trace("OpenID uri: " + id)
 
-	err = allowedOpenIDURI(id); if err != nil {
+	err = allowedOpenIDURI(id)
+	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &form)
-                return;
+		return
 	}
 
 	redirectTo := setting.AppURL + "user/login/openid"
 	url, err := openid.RedirectURL(id, redirectTo, setting.AppURL)
-        if err != nil {
+	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &form)
-                return;
-        }
+		return
+	}
 
 	// Request optional nickname and email info
 	// NOTE: change to `openid.sreg.required` to require it
@@ -134,10 +135,10 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 // signInOpenIDVerify handles response from OpenID provider
 func signInOpenIDVerify(ctx *context.Context) {
 
-        log.Trace("Incoming call to: " + ctx.Req.Request.URL.String())
+	log.Trace("Incoming call to: " + ctx.Req.Request.URL.String())
 
-        fullURL := setting.AppURL + ctx.Req.Request.URL.String()[1:]
-        log.Trace("Full URL: " + fullURL)
+	fullURL := setting.AppURL + ctx.Req.Request.URL.String()[1:]
+	log.Trace("Full URL: " + fullURL)
 
 	var id, err = openid.Verify(fullURL)
 	if err != nil {
@@ -154,7 +155,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 
 	u, _ := models.GetUserByOpenID(id)
 	if err != nil {
-		if ! models.IsErrUserNotExist(err) {
+		if !models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(err.Error(), tplSignInOpenID, &auth.SignInOpenIDForm{
 				Openid: id,
 			})
@@ -188,12 +189,12 @@ func signInOpenIDVerify(ctx *context.Context) {
 	email := values.Get("openid.sreg.email")
 	nickname := values.Get("openid.sreg.nickname")
 
-	log.Trace("User has email=" + email +  " and nickname=" + nickname)
+	log.Trace("User has email=" + email + " and nickname=" + nickname)
 
 	if email != "" {
 		u, _ = models.GetUserByEmail(email)
 		if err != nil {
-			if ! models.IsErrUserNotExist(err) {
+			if !models.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &auth.SignInOpenIDForm{
 					Openid: id,
 				})
@@ -208,7 +209,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	if u == nil && nickname != "" {
 		u, _ = models.GetUserByName(nickname)
 		if err != nil {
-			if ! models.IsErrUserNotExist(err) {
+			if !models.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &auth.SignInOpenIDForm{
 					Openid: id,
 				})
@@ -230,7 +231,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 
 	ctx.Session.Set("openid_determined_username", nickname)
 
-	if u != nil || ! setting.EnableOpenIDSignUp {
+	if u != nil || !setting.EnableOpenIDSignUp {
 		ctx.Redirect(setting.AppSubURL + "/user/openid/connect")
 	} else {
 		ctx.Redirect(setting.AppSubURL + "/user/openid/register")
@@ -280,7 +281,7 @@ func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
 	}
 
 	// add OpenID for the user
-	userOID := &models.UserOpenID{UID:u.ID, URI:oid}
+	userOID := &models.UserOpenID{UID: u.ID, URI: oid}
 	if err = models.AddUserOpenID(userOID); err != nil {
 		if models.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplConnectOID, &form)
@@ -299,7 +300,7 @@ func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
 
 // RegisterOpenID shows a form to create a new user authenticated via an OpenID URI
 func RegisterOpenID(ctx *context.Context) {
-	if ! setting.EnableOpenIDSignUp {
+	if !setting.EnableOpenIDSignUp {
 		ctx.Error(403)
 		return
 	}
@@ -327,7 +328,7 @@ func RegisterOpenID(ctx *context.Context) {
 
 // RegisterOpenIDPost handles submission of a form to create a new user authenticated via an OpenID URI
 func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.SignUpOpenIDForm) {
-	if ! setting.EnableOpenIDSignUp {
+	if !setting.EnableOpenIDSignUp {
 		ctx.Error(403)
 		return
 	}
@@ -351,7 +352,9 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	}
 
 	len := setting.MinPasswordLength
-	if len < 256 { len = 256 }
+	if len < 256 {
+		len = 256
+	}
 	password, err := base.GetRandomString(len)
 	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSignUpOID, form)
@@ -387,7 +390,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	log.Trace("Account created: %s", u.Name)
 
 	// add OpenID for the user
-	userOID := &models.UserOpenID{UID:u.ID, URI:oid}
+	userOID := &models.UserOpenID{UID: u.ID, URI: oid}
 	if err = models.AddUserOpenID(userOID); err != nil {
 		if models.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplSignUpOID, &form)

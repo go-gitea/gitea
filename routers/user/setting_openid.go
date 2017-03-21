@@ -5,7 +5,6 @@
 package user
 
 import (
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/auth/openid"
@@ -16,7 +15,7 @@ import (
 )
 
 const (
-	tplSettingsOpenID       base.TplName = "user/settings/openid"
+	tplSettingsOpenID base.TplName = "user/settings/openid"
 )
 
 // SettingsOpenID renders change user's openid page
@@ -64,10 +63,10 @@ func SettingsOpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
 	id, err := openid.Normalize(form.Openid)
 	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSettingsOpenID, &form)
-		return;
+		return
 	}
 	form.Openid = id
-        log.Trace("Normalized id: " + id)
+	log.Trace("Normalized id: " + id)
 
 	oids, err := models.GetUserOpenIDs(ctx.User.ID)
 	if err != nil {
@@ -84,21 +83,20 @@ func SettingsOpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
 		}
 	}
 
-
 	redirectTo := setting.AppURL + "user/settings/openid"
 	url, err := openid.RedirectURL(id, redirectTo, setting.AppURL)
-        if err != nil {
+	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSettingsOpenID, &form)
-                return;
-        }
+		return
+	}
 	ctx.Redirect(url)
 }
 
 func settingsOpenIDVerify(ctx *context.Context) {
-        log.Trace("Incoming call to: " + ctx.Req.Request.URL.String())
+	log.Trace("Incoming call to: " + ctx.Req.Request.URL.String())
 
-        fullURL := setting.AppURL + ctx.Req.Request.URL.String()[1:]
-        log.Trace("Full URL: " + fullURL)
+	fullURL := setting.AppURL + ctx.Req.Request.URL.String()[1:]
+	log.Trace("Full URL: " + fullURL)
 
 	oids, err := models.GetUserOpenIDs(ctx.User.ID)
 	if err != nil {
@@ -117,10 +115,10 @@ func settingsOpenIDVerify(ctx *context.Context) {
 
 	log.Trace("Verified ID: " + id)
 
-	oid := &models.UserOpenID{UID:ctx.User.ID, URI:id}
+	oid := &models.UserOpenID{UID: ctx.User.ID, URI: id}
 	if err = models.AddUserOpenID(oid); err != nil {
 		if models.IsErrOpenIDAlreadyUsed(err) {
-			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsOpenID, &auth.AddOpenIDForm{ Openid: id })
+			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsOpenID, &auth.AddOpenIDForm{Openid: id})
 			return
 		}
 		ctx.Handle(500, "AddUserOpenID", err)
@@ -155,4 +153,3 @@ func ToggleOpenIDVisibility(ctx *context.Context) {
 
 	ctx.Redirect(setting.AppSubURL + "/user/settings/openid")
 }
-

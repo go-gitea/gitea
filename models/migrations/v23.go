@@ -12,11 +12,10 @@ import (
 
 // UserOpenID is the list of all OpenID identities of a user.
 type UserOpenID struct {
-	ID          int64  `xorm:"pk autoincr"`
-	UID         int64  `xorm:"INDEX NOT NULL"`
-	URI         string `xorm:"UNIQUE NOT NULL"`
+	ID  int64  `xorm:"pk autoincr"`
+	UID int64  `xorm:"INDEX NOT NULL"`
+	URI string `xorm:"UNIQUE NOT NULL"`
 }
-
 
 func addUserOpenID(x *xorm.Engine) error {
 	if err := x.Sync2(new(UserOpenID)); err != nil {

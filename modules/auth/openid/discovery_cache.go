@@ -18,7 +18,7 @@ type timedDiscoveredInfo struct {
 
 type timedDiscoveryCache struct {
 	cache map[string]timedDiscoveredInfo
-	ttl time.Duration
+	ttl   time.Duration
 	mutex *sync.Mutex
 }
 
@@ -56,4 +56,3 @@ func (s *timedDiscoveryCache) Get(id string) openid.DiscoveredInfo {
 	}
 	return nil
 }
-

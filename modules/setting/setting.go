@@ -762,14 +762,14 @@ please consider changing to GITEA_CUSTOM`)
 	EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(true)
 	EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(true)
 	pats := sec.Key("WHITELISTED_URIS").Strings(" ")
-	if ( len(pats) != 0 ) {
+	if len(pats) != 0 {
 		OpenIDWhitelist = make([]*regexp.Regexp, len(pats))
 		for i, p := range pats {
 			OpenIDWhitelist[i] = regexp.MustCompilePOSIX(p)
 		}
 	}
 	pats = sec.Key("BLACKLISTED_URIS").Strings(" ")
-	if ( len(pats) != 0 ) {
+	if len(pats) != 0 {
 		OpenIDBlacklist = make([]*regexp.Regexp, len(pats))
 		for i, p := range pats {
 			OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)

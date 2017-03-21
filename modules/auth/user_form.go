@@ -155,7 +155,7 @@ func (f *ChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Errors)
 
 // AddOpenIDForm is for changing openid uri
 type AddOpenIDForm struct {
-	Openid      string `binding:"Required;MaxSize(256)"`
+	Openid string `binding:"Required;MaxSize(256)"`
 }
 
 // Validate validates the fields

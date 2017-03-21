@@ -52,14 +52,14 @@ func TestGetUserByOpenID(t *testing.T) {
 func TestToggleUserOpenIDVisibility(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	oids, err := GetUserOpenIDs(int64(2))
-	if ! assert.NoError(t, err) {
+	if !assert.NoError(t, err) {
 		return
 	}
 	assert.Len(t, oids, 1)
 	assert.True(t, oids[0].Show)
 
 	err = ToggleUserOpenIDVisibility(oids[0].ID)
-	if ! assert.NoError(t, err) {
+	if !assert.NoError(t, err) {
 		return
 	}
 
@@ -69,12 +69,12 @@ func TestToggleUserOpenIDVisibility(t *testing.T) {
 		assert.False(t, oids[0].Show)
 	}
 	err = ToggleUserOpenIDVisibility(oids[0].ID)
-	if ! assert.NoError(t, err) {
+	if !assert.NoError(t, err) {
 		return
 	}
 
 	oids, err = GetUserOpenIDs(int64(2))
-	if ! assert.NoError(t, err) {
+	if !assert.NoError(t, err) {
 		return
 	}
 	assert.Len(t, oids, 1)
