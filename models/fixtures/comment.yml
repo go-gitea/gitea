@@ -2,6 +2,18 @@
   id: 1
   type: 7 # label
   poster_id: 2
-  issue_id: 1
+  issue_id: 1 # in repo_id 1
   label_id: 1
   content: "1"
+-
+  id: 2
+  type: 0 # comment
+  poster_id: 3 # user not watching (see watch.yml)
+  issue_id: 1 # in repo_id 1
+  content: "good work!"
+-
+  id: 3
+  type: 0 # comment
+  poster_id: 5 # user not watching (see watch.yml)
+  issue_id: 1 # in repo_id 1
+  content: "meh..."

@@ -1,45 +1,41 @@
 {{template "base/head" .}}
 <div class="admin authentication">
+	{{template "admin/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "admin/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.auths.auth_manage_panel"}} ({{.i18n.Tr "admin.total" .Total}})
-					<div class="ui right">
-						<a class="ui blue tiny button" href="{{AppSubUrl}}/admin/auths/new">{{.i18n.Tr "admin.auths.new"}}</a>
-					</div>
-				</h4>
-				<div class="ui attached table segment">
-					<table class="ui very basic striped table">
-						<thead>
-							<tr>
-								<th>ID</th>
-								<th>{{.i18n.Tr "admin.auths.name"}}</th>
-								<th>{{.i18n.Tr "admin.auths.type"}}</th>
-								<th>{{.i18n.Tr "admin.auths.enabled"}}</th>
-								<th>{{.i18n.Tr "admin.auths.updated"}}</th>
-								<th>{{.i18n.Tr "admin.users.created"}}</th>
-								<th>{{.i18n.Tr "admin.users.edit"}}</th>
-							</tr>
-						</thead>
-						<tbody>
-							{{range .Sources}}
-								<tr>
-									<td>{{.ID}}</td>
-									<td><a href="{{AppSubUrl}}/admin/auths/{{.ID}}">{{.Name}}</a></td>
-									<td>{{.TypeName}}</td>
-									<td><i class="fa fa{{if .IsActived}}-check{{end}}-square-o"></i></td>
-									<td><span class="poping up" data-content="{{DateFmtLong .Updated}}" data-variation="tiny">{{DateFmtShort .Updated}}</span></td>
-									<td><span class="poping up" data-content="{{DateFmtLong .Created}}" data-variation="tiny">{{DateFmtShort .Created}}</span></td>
-									<td><a href="{{AppSubUrl}}/admin/auths/{{.ID}}"><i class="fa fa-pencil-square-o"></i></a></td>
-								</tr>
-							{{end}}
-						</tbody>
-					</table>
-				</div>
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.auths.auth_manage_panel"}} ({{.i18n.Tr "admin.total" .Total}})
+			<div class="ui right">
+				<a class="ui blue tiny button" href="{{AppSubUrl}}/admin/auths/new">{{.i18n.Tr "admin.auths.new"}}</a>
 			</div>
+		</h4>
+		<div class="ui attached table segment">
+			<table class="ui very basic striped table">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>{{.i18n.Tr "admin.auths.name"}}</th>
+						<th>{{.i18n.Tr "admin.auths.type"}}</th>
+						<th>{{.i18n.Tr "admin.auths.enabled"}}</th>
+						<th>{{.i18n.Tr "admin.auths.updated"}}</th>
+						<th>{{.i18n.Tr "admin.users.created"}}</th>
+						<th>{{.i18n.Tr "admin.users.edit"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .Sources}}
+						<tr>
+							<td>{{.ID}}</td>
+							<td><a href="{{AppSubUrl}}/admin/auths/{{.ID}}">{{.Name}}</a></td>
+							<td>{{.TypeName}}</td>
+							<td><i class="fa fa{{if .IsActived}}-check{{end}}-square-o"></i></td>
+							<td><span class="poping up" data-content="{{DateFmtLong .Updated}}" data-variation="tiny">{{DateFmtShort .Updated}}</span></td>
+							<td><span class="poping up" data-content="{{DateFmtLong .Created}}" data-variation="tiny">{{DateFmtShort .Created}}</span></td>
+							<td><a href="{{AppSubUrl}}/admin/auths/{{.ID}}"><i class="fa fa-pencil-square-o"></i></a></td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
 		</div>
 	</div>
 </div>

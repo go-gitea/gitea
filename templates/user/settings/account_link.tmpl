@@ -1,35 +1,31 @@
 {{template "base/head" .}}
 <div class="user settings account_link">
+	{{template "user/settings/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "user/settings/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "settings.manage_account_links"}}
-				</h4>
-				<div class="ui attached segment">
-					<div class="ui key list">
-						<div class="item">
-							{{.i18n.Tr "settings.manage_account_links_desc"}}
-						</div>
-						{{if .AccountLinks}}
-						{{range $loginSource, $provider := .AccountLinks}}
-							<div class="item ui grid">
-								<div class="column">
-									<strong>{{$provider}}</strong>
-									{{if $loginSource.IsActived}}<span class="text red">{{$.i18n.Tr "settings.active"}}</span>{{end}}
-									<div class="ui right">
-										<button class="ui red tiny button delete-button" data-url="{{$.Link}}" data-id="{{$loginSource.ID}}">
-											{{$.i18n.Tr "settings.delete_key"}}
-										</button>
-									</div>
-								</div>
-							</div>
-						{{end}}
-						{{end}}
-					</div>
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "settings.manage_account_links"}}
+		</h4>
+		<div class="ui attached segment">
+			<div class="ui key list">
+				<div class="item">
+					{{.i18n.Tr "settings.manage_account_links_desc"}}
 				</div>
+				{{if .AccountLinks}}
+				{{range $loginSource, $provider := .AccountLinks}}
+					<div class="item ui grid">
+						<div class="column">
+							<strong>{{$provider}}</strong>
+							{{if $loginSource.IsActived}}<span class="text red">{{$.i18n.Tr "settings.active"}}</span>{{end}}
+							<div class="ui right">
+								<button class="ui red tiny button delete-button" data-url="{{$.Link}}" data-id="{{$loginSource.ID}}">
+									{{$.i18n.Tr "settings.delete_key"}}
+								</button>
+							</div>
+						</div>
+					</div>
+				{{end}}
+				{{end}}
 			</div>
 		</div>
 	</div>

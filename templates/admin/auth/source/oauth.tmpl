@@ -1,0 +1,23 @@
+<div class="oauth2 field {{if not (eq .type 6)}}hide{{end}}">
+	<div class="inline required field">
+		<label>{{.i18n.Tr "admin.auths.oauth2_provider"}}</label>
+		<div class="ui selection type dropdown">
+			<input type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{.oauth2_provider}}">
+			<div class="text">{{.oauth2_provider}}</div>
+			<i class="dropdown icon"></i>
+			<div class="menu">
+				{{range $key, $value := .OAuth2Providers}}
+					<div class="item" data-value="{{$key}}">{{$value.DisplayName}}</div>
+				{{end}}
+			</div>
+		</div>
+	</div>
+	<div class="required field">
+		<label for="oauth2_key">{{.i18n.Tr "admin.auths.oauth2_clientID"}}</label>
+		<input id="oauth2_key" name="oauth2_key" value="{{.oauth2_key}}">
+	</div>
+	<div class="required field">
+		<label for="oauth2_secret">{{.i18n.Tr "admin.auths.oauth2_clientSecret"}}</label>
+		<input id="oauth2_secret" name="oauth2_secret" value="{{.oauth2_secret}}">
+	</div>
+</div>

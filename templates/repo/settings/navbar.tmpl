@@ -1,27 +1,24 @@
-<div class="four wide column">
-	<div class="ui vertical menu">
-		<div class="header item">{{.i18n.Tr "repo.settings"}}</div>
-		<a class="{{if .PageIsSettingsOptions}}active{{end}} item" href="{{.RepoLink}}/settings">
-			{{.i18n.Tr "repo.settings.options"}}
+<div class="ui secondary pointing tabular top attached borderless menu stackable new-menu navbar">
+	<a class="{{if .PageIsSettingsOptions}}active{{end}} item" href="{{.RepoLink}}/settings">
+		{{.i18n.Tr "repo.settings.options"}}
+	</a>
+	<a class="{{if .PageIsSettingsCollaboration}}active{{end}} item" href="{{.RepoLink}}/settings/collaboration">
+		{{.i18n.Tr "repo.settings.collaboration"}}
+	</a>
+	{{if not .Repository.IsBare}}
+		<a class="{{if .PageIsSettingsBranches}}active{{end}} item" href="{{.RepoLink}}/settings/branches">
+			{{.i18n.Tr "repo.settings.branches"}}
 		</a>
-		<a class="{{if .PageIsSettingsCollaboration}}active{{end}} item" href="{{.RepoLink}}/settings/collaboration">
-			{{.i18n.Tr "repo.settings.collaboration"}}
+	{{end}}
+	<a class="{{if .PageIsSettingsHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks">
+		{{.i18n.Tr "repo.settings.hooks"}}
+	</a>
+	{{if .SignedUser.CanEditGitHook}}
+		<a class="{{if .PageIsSettingsGitHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks/git">
+			{{.i18n.Tr "repo.settings.githooks"}}
 		</a>
-		{{if not .Repository.IsBare}}
-			<a class="{{if .PageIsSettingsBranches}}active{{end}} item" href="{{.RepoLink}}/settings/branches">
-				{{.i18n.Tr "repo.settings.branches"}}
-			</a>
-		{{end}}
-		<a class="{{if .PageIsSettingsHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks">
-			{{.i18n.Tr "repo.settings.hooks"}}
-		</a>
-		{{if .SignedUser.CanEditGitHook}}
-			<a class="{{if .PageIsSettingsGitHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks/git">
-				{{.i18n.Tr "repo.settings.githooks"}}
-			</a>
-		{{end}}
-		<a class="{{if .PageIsSettingsKeys}}active{{end}} item" href="{{.RepoLink}}/settings/keys">
-			{{.i18n.Tr "repo.settings.deploy_keys"}}
-		</a>
-	</div>
+	{{end}}
+	<a class="{{if .PageIsSettingsKeys}}active{{end}} item" href="{{.RepoLink}}/settings/keys">
+		{{.i18n.Tr "repo.settings.deploy_keys"}}
+	</a>
 </div>

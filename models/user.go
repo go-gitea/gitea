@@ -478,7 +478,7 @@ func (u *User) DeleteAvatar() error {
 
 // IsAdminOfRepo returns true if user has admin or higher access of repository.
 func (u *User) IsAdminOfRepo(repo *Repository) bool {
-	has, err := HasAccess(u, repo, AccessModeAdmin)
+	has, err := HasAccess(u.ID, repo, AccessModeAdmin)
 	if err != nil {
 		log.Error(3, "HasAccess: %v", err)
 	}
@@ -487,7 +487,7 @@ func (u *User) IsAdminOfRepo(repo *Repository) bool {
 
 // IsWriterOfRepo returns true if user has write access to given repository.
 func (u *User) IsWriterOfRepo(repo *Repository) bool {
-	has, err := HasAccess(u, repo, AccessModeWrite)
+	has, err := HasAccess(u.ID, repo, AccessModeWrite)
 	if err != nil {
 		log.Error(3, "HasAccess: %v", err)
 	}
@@ -541,7 +541,7 @@ func (u *User) GetOrgRepositoryIDs() ([]int64, error) {
 		GroupBy("repository.id").Find(&ids)
 }
 
-// GetAccessRepoIDs returns all repsitories IDs where user's or user is a team member orgnizations
+// GetAccessRepoIDs returns all repositories IDs where user's or user is a team member organizations
 func (u *User) GetAccessRepoIDs() ([]int64, error) {
 	ids, err := u.GetRepositoryIDs()
 	if err != nil {
@@ -596,7 +596,7 @@ func (u *User) ShortName(length int) string {
 	return base.EllipsisString(u.Name, length)
 }
 
-// IsMailable checks if a user is elegible
+// IsMailable checks if a user is eligible
 // to receive emails.
 func (u *User) IsMailable() bool {
 	return u.IsActive
@@ -615,7 +615,7 @@ func IsUserExist(uid int64, name string) (bool, error) {
 		Get(&User{LowerName: strings.ToLower(name)})
 }
 
-// GetUserSalt returns a ramdom user salt token.
+// GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
 	return base.GetRandomString(10)
 }
@@ -964,6 +964,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 		&Action{UserID: u.ID},
 		&IssueUser{UID: u.ID},
 		&EmailAddress{UID: u.ID},
+		&UserOpenID{UID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -989,7 +990,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 	}
 
 	// ***** START: ExternalLoginUser *****
-	if err = RemoveAllAccountLinks(u); err != nil {
+	if err = removeAllAccountLinks(e, u); err != nil {
 		return fmt.Errorf("ExternalLoginUser: %v", err)
 	}
 	// ***** END: ExternalLoginUser *****
@@ -1103,7 +1104,7 @@ func GetUserByID(id int64) (*User, error) {
 
 // GetAssigneeByID returns the user with write access of repository by given ID.
 func GetAssigneeByID(repo *Repository, userID int64) (*User, error) {
-	has, err := HasAccess(&User{ID: userID}, repo, AccessModeWrite)
+	has, err := HasAccess(userID, repo, AccessModeWrite)
 	if err != nil {
 		return nil, err
 	} else if !has {

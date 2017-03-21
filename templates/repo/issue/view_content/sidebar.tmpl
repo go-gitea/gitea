@@ -1,0 +1,102 @@
+<div class="four wide column">
+	<div class="ui segment metas">
+		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-label dropdown">
+			<span class="text">
+				<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
+				<span class="octicon octicon-gear"></span>
+			</span>
+			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels">
+				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
+				{{range .Labels}}
+					<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon {{if .IsChecked}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+				{{end}}
+			</div>
+		</div>
+		<div class="ui labels list">
+			<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
+			{{range .Labels}}
+				<div class="item">
+					<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{.Name | Sanitize}}</a>
+				</div>
+
+			{{end}}
+		</div>
+
+		<div class="ui divider"></div>
+
+		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-milestone dropdown">
+			<span class="text">
+				<strong>{{.i18n.Tr "repo.issues.new.milestone"}}</strong>
+				<span class="octicon octicon-gear"></span>
+			</span>
+			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/milestone">
+				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_milestone"}}</div>
+				{{if .OpenMilestones}}
+					<div class="divider"></div>
+					<div class="header">
+						<i class="octicon octicon-milestone"></i>
+						{{.i18n.Tr "repo.issues.new.open_milestone"}}
+					</div>
+					{{range .OpenMilestones}}
+						<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name | Sanitize}}</div>
+					{{end}}
+				{{end}}
+				{{if .ClosedMilestones}}
+					<div class="divider"></div>
+					<div class="header">
+						<i class="octicon octicon-milestone"></i>
+						{{.i18n.Tr "repo.issues.new.closed_milestone"}}
+					</div>
+					{{range .ClosedMilestones}}
+						<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name | Sanitize}}</a>
+					{{end}}
+				{{end}}
+			</div>
+		</div>
+		<div class="ui select-milestone list">
+			<span class="no-select item {{if .Issue.Milestone}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_milestone"}}</span>
+			<div class="selected">
+				{{if .Issue.Milestone}}
+					<a class="item" href="{{.RepoLink}}/issues?milestone={{.Issue.Milestone.ID}}"> {{.Issue.Milestone.Name | Sanitize}}</a>
+				{{end}}
+			</div>
+		</div>
+
+		<div class="ui divider"></div>
+
+		<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
+		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-assignee dropdown">
+			<span class="text">
+				<strong>{{.i18n.Tr "repo.issues.new.assignee"}}</strong>
+				<span class="octicon octicon-gear"></span>
+			</span>
+			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
+				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignee"}}</div>
+				{{range .Assignees}}
+					<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?assignee={{.ID}}" data-avatar="{{.RelAvatarLink}}"><img src="{{.RelAvatarLink}}"> {{.Name}}</div>
+				{{end}}
+			</div>
+		</div>
+		<div class="ui select-assignee list">
+			<span class="no-select item {{if .Issue.Assignee}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_assignee"}}</span>
+			<div class="selected">
+				{{if .Issue.Assignee}}
+					<a class="item" href="{{$.RepoLink}}/issues?assignee={{.Issue.Assignee.ID}}"><img class="ui avatar image" src="{{.Issue.Assignee.RelAvatarLink}}"> {{.Issue.Assignee.Name}}</a>
+				{{end}}
+			</div>
+		</div>
+
+		<div class="ui divider"></div>
+
+		<div class="ui participants">
+			<span class="text"><strong>{{.i18n.Tr "repo.issues.num_participants" .NumParticipants}}</strong></span>
+			<div>
+				{{range .Participants}}
+					<a href="{{.HomeLink}}">
+						<img class="ui avatar image poping up" src="{{.RelAvatarLink}}" data-content="{{.DisplayName}}" data-position="top center" data-variation="small inverted">
+					</a>
+				{{end}}
+			</div>
+		</div>
+	</div>
+</div>

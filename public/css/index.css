@@ -420,6 +420,14 @@ footer .ui.language .menu {
   background: inherit !important;
   padding: 0 !important;
 }
+.ui.menu.new-menu {
+  justify-content: center !important;
+  padding-top: 15px !important;
+  margin-top: -15px !important;
+  margin-bottom: 15px !important;
+  background-color: #FAFAFA !important;
+  border-width: 1px !important;
+}
 .markdown:not(code) {
   overflow: hidden;
   font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif;
@@ -812,7 +820,7 @@ footer .ui.language .menu {
   border: solid 1px #ccc;
   border-bottom-color: #bbb;
   border-radius: 3px;
-  box-shadow: inset 0 -1px 0 #bbb;
+  box-shadow: inset 0 -1px 0 #bbbbbb;
 }
 .markdown:not(code) input[type="checkbox"] {
   vertical-align: middle !important;
@@ -888,7 +896,7 @@ footer .ui.language .menu {
 }
 .install form label {
   text-align: right;
-  width: 320px !important;
+  width: 320px;
 }
 .install form input {
   width: 35% !important;
@@ -897,7 +905,7 @@ footer .ui.language .menu {
   text-align: left;
 }
 .install form .field .help {
-  margin-left: 335px !important;
+  margin-left: 335px;
 }
 .install form .field.optional .title {
   margin-left: 38%;
@@ -932,22 +940,39 @@ footer .ui.language .menu {
   text-align: center;
 }
 #create-page-form form .header {
-  padding-left: 280px !important;
+  padding-left: 280px;
 }
 #create-page-form form .inline.field > label {
   text-align: right;
-  width: 250px !important;
+  width: 250px;
   word-wrap: break-word;
 }
 #create-page-form form .help {
-  margin-left: 265px !important;
+  margin-left: 265px;
 }
 #create-page-form form .optional .title {
-  margin-left: 250px !important;
+  margin-left: 250px;
 }
 #create-page-form form input,
 #create-page-form form textarea {
   width: 50%!important;
+}
+.signin .oauth2 div {
+  display: inline-block;
+}
+.signin .oauth2 div p {
+  margin: 10px 5px 0 0;
+  float: left;
+}
+.signin .oauth2 a {
+  margin-right: 5px;
+}
+.signin .oauth2 a:last-child {
+  margin-right: 0px;
+}
+.signin .oauth2 img {
+  width: 32px;
+  height: 32px;
 }
 .user.activate form,
 .user.forgot.password form,
@@ -969,7 +994,7 @@ footer .ui.language .menu {
 .user.reset.password form .header,
 .user.signin form .header,
 .user.signup form .header {
-  padding-left: 280px !important;
+  padding-left: 280px;
 }
 .user.activate form .inline.field > label,
 .user.forgot.password form .inline.field > label,
@@ -977,7 +1002,7 @@ footer .ui.language .menu {
 .user.signin form .inline.field > label,
 .user.signup form .inline.field > label {
   text-align: right;
-  width: 250px !important;
+  width: 250px;
   word-wrap: break-word;
 }
 .user.activate form .help,
@@ -985,14 +1010,14 @@ footer .ui.language .menu {
 .user.reset.password form .help,
 .user.signin form .help,
 .user.signup form .help {
-  margin-left: 265px !important;
+  margin-left: 265px;
 }
 .user.activate form .optional .title,
 .user.forgot.password form .optional .title,
 .user.reset.password form .optional .title,
 .user.signin form .optional .title,
 .user.signup form .optional .title {
-  margin-left: 250px !important;
+  margin-left: 250px;
 }
 .user.activate form input,
 .user.forgot.password form input,
@@ -1026,7 +1051,7 @@ footer .ui.language .menu {
 .user.reset.password form .inline.field > label,
 .user.signin form .inline.field > label,
 .user.signup form .inline.field > label {
-  width: 200px !important;
+  width: 200px;
 }
 .repository.new.repo form,
 .repository.new.migrate form,
@@ -1042,24 +1067,24 @@ footer .ui.language .menu {
 .repository.new.repo form .header,
 .repository.new.migrate form .header,
 .repository.new.fork form .header {
-  padding-left: 280px !important;
+  padding-left: 280px;
 }
 .repository.new.repo form .inline.field > label,
 .repository.new.migrate form .inline.field > label,
 .repository.new.fork form .inline.field > label {
   text-align: right;
-  width: 250px !important;
+  width: 250px;
   word-wrap: break-word;
 }
 .repository.new.repo form .help,
 .repository.new.migrate form .help,
 .repository.new.fork form .help {
-  margin-left: 265px !important;
+  margin-left: 265px;
 }
 .repository.new.repo form .optional .title,
 .repository.new.migrate form .optional .title,
 .repository.new.fork form .optional .title {
-  margin-left: 250px !important;
+  margin-left: 250px;
 }
 .repository.new.repo form input,
 .repository.new.migrate form input,
@@ -1094,7 +1119,7 @@ footer .ui.language .menu {
   width: 50%!important;
 }
 .repository.new.repo .ui.form #auto-init {
-  margin-left: 265px !important;
+  margin-left: 265px;
 }
 .new.webhook form .help {
   margin-left: 25px;
@@ -1405,17 +1430,6 @@ footer .ui.language .menu {
 }
 .repository.file.editor .commit-form-wrapper {
   padding-left: 64px;
-}
-.repository.file.editor .tab[data-tab="write"] {
-    padding: 0 !important;
-}
-.repository.file.editor .tab[data-tab="write"] .editor-toolbar {
-    border: none !important;
-}
-.repository.file.editor .tab[data-tab="write"] .CodeMirror {
-    border-left: none;
-    border-right: none;
-    border-bottom: none;
 }
 .repository.file.editor .commit-form-wrapper .commit-avatar {
   float: left;
@@ -2270,6 +2284,9 @@ footer .ui.language .menu {
 #search-user-box .results .item img {
   margin-right: 8px;
 }
+.issue-actions {
+  display: none;
+}
 .issue.list {
   list-style: none;
   padding-top: 15px;
@@ -2546,6 +2563,17 @@ footer .ui.language .menu {
 .CodeMirror .cm-comment {
   background: inherit !important;
 }
+.repository.file.editor .tab[data-tab="write"] {
+  padding: 0 !important;
+}
+.repository.file.editor .tab[data-tab="write"] .editor-toolbar {
+  border: none !important;
+}
+.repository.file.editor .tab[data-tab="write"] .CodeMirror {
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+}
 .organization {
   padding-top: 15px;
   padding-bottom: 80px;
@@ -2566,18 +2594,18 @@ footer .ui.language .menu {
   text-align: center;
 }
 .organization.new.org form .header {
-  padding-left: 280px !important;
+  padding-left: 280px;
 }
 .organization.new.org form .inline.field > label {
   text-align: right;
-  width: 250px !important;
+  width: 250px;
   word-wrap: break-word;
 }
 .organization.new.org form .help {
-  margin-left: 265px !important;
+  margin-left: 265px;
 }
 .organization.new.org form .optional .title {
-  margin-left: 250px !important;
+  margin-left: 250px;
 }
 .organization.new.org form input,
 .organization.new.org form textarea {
@@ -2682,11 +2710,13 @@ footer .ui.language .menu {
 .user.settings .list .item.ui.grid {
   margin-top: 15px;
 }
-.user.settings .email.list .item:not(:first-child) {
+.user.settings .email.list .item:not(:first-child),
+.user.settings .openid.list .item:not(:first-child) {
   border-top: 1px solid #eaeaea;
   height: 50px;
 }
-.user.settings .email.list .item:not(:first-child) .button {
+.user.settings .email.list .item:not(:first-child) .button,
+.user.settings .openid.list .item:not(:first-child) .button {
   margin-top: -10px;
 }
 .user.profile .ui.card .username {
@@ -2752,6 +2782,10 @@ footer .ui.language .menu {
 }
 .user.notification .octicon.blue {
   color: #2185d0;
+}
+.user.link-account:not(.icon) {
+  padding-top: 15px;
+  padding-bottom: 5px;
 }
 .dashboard {
   padding-top: 15px;
@@ -2941,6 +2975,14 @@ footer .ui.language .menu {
   padding-top: 15px;
   padding-bottom: 80px;
 }
+.explore .navbar {
+  justify-content: center;
+  padding-top: 15px !important;
+  margin-top: -15px !important;
+  margin-bottom: 15px !important;
+  background-color: #FAFAFA !important;
+  border-width: 1px !important;
+}
 .explore .navbar .octicon {
   width: 16px;
   text-align: center;
@@ -2993,25 +3035,4 @@ footer .ui.language .menu {
 }
 .ui.user.list .item .description a:hover {
   text-decoration: underline;
-}
-.user.link-account:not(.icon) {
-  padding-top: 15px;
-  padding-bottom: 5px;
-}
-.signin .oauth2 div {
-  display: inline-block;
-}
-.signin .oauth2 div p {
-  margin: 10px 5px 0 0;
-  float: left;
-}
-.signin .oauth2 a {
-  margin-right: 5px;
-}
-.signin .oauth2 a:last-child {
-  margin-right: 0px;
-}
-.signin .oauth2 img {
-  width: 32px;
-  height: 32px;
 }

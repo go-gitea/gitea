@@ -438,7 +438,7 @@ func (r *Request) ToXML(v interface{}) error {
 	return err
 }
 
-// Response executes request client gets response mannually.
+// Response executes request client gets response manually.
 func (r *Request) Response() (*http.Response, error) {
 	return r.getResponse()
 }

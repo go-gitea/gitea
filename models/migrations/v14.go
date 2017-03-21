@@ -28,7 +28,7 @@ type UserV14 struct {
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
 }
 
-// TableName will be invoked by XORM to customrize the table name
+// TableName will be invoked by XORM to customize the table name
 func (*UserV14) TableName() string {
 	return "user"
 }

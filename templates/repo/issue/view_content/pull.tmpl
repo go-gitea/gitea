@@ -1,0 +1,63 @@
+<div class="comment merge box">
+	<a class="avatar text
+	{{if .Issue.PullRequest.HasMerged}}purple
+	{{else if .Issue.IsClosed}}grey
+	{{else if .IsPullReuqestBroken}}red
+	{{else if .Issue.PullRequest.IsChecking}}yellow
+	{{else if .Issue.PullRequest.CanAutoMerge}}green
+	{{else}}red{{end}}"><span class="mega-octicon octicon-git-merge"></span></a>
+	<div class="content">
+		<div class="ui merge segment">
+			{{if .Issue.PullRequest.HasMerged}}
+				<div class="item text purple">
+					{{$.i18n.Tr "repo.pulls.has_merged"}}
+				</div>
+				{{if .IsPullBranchDeletable}}
+					<div class="ui divider"></div>
+					<div>
+						<a class="delete-button ui red button" href="" data-url="{{.DeleteBranchLink}}">{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</a>
+					</div>
+				{{end}}
+			{{else if .Issue.IsClosed}}
+				<div class="item text grey">
+					{{$.i18n.Tr "repo.pulls.reopen_to_merge"}}
+				</div>
+			{{else if .IsPullReuqestBroken}}
+				<div class="item text red">
+					<span class="octicon octicon-x"></span>
+					{{$.i18n.Tr "repo.pulls.data_broken"}}
+				</div>
+			{{else if .Issue.PullRequest.IsChecking}}
+				<div class="item text yellow">
+					<span class="octicon octicon-sync"></span>
+					{{$.i18n.Tr "repo.pulls.is_checking"}}
+				</div>
+			{{else if .Issue.PullRequest.CanAutoMerge}}
+				<div class="item text green">
+					<span class="octicon octicon-check"></span>
+					{{$.i18n.Tr "repo.pulls.can_auto_merge_desc"}}
+				</div>
+				{{if .IsRepositoryWriter}}
+					<div class="ui divider"></div>
+					<div>
+						<form class="ui form" action="{{.Link}}/merge" method="post">
+							{{.CsrfTokenHtml}}
+							<button class="ui green button">
+								<span class="octicon octicon-git-merge"></span> {{$.i18n.Tr "repo.pulls.merge_pull_request"}}
+							</button>
+						</form>
+					</div>
+				{{end}}
+			{{else}}
+				<div class="item text red">
+					<span class="octicon octicon-x"></span>
+					{{$.i18n.Tr "repo.pulls.cannot_auto_merge_desc"}}
+				</div>
+				<div class="item text grey">
+					<span class="octicon octicon-info"></span>
+					{{$.i18n.Tr "repo.pulls.cannot_auto_merge_helper"}}
+				</div>
+			{{end}}
+		</div>
+	</div>
+</div>

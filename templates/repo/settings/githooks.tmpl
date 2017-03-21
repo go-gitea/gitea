@@ -1,28 +1,24 @@
 {{template "base/head" .}}
 <div class="repository settings githooks">
 	{{template "repo/header" .}}
+	{{template "repo/settings/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "repo/settings/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "repo.settings.githooks"}}
-				</h4>
-				<div class="ui attached table segment">
-					<div class="ui hook list">
-						<div class="item">
-							{{.i18n.Tr "repo.settings.githooks_desc" | Str2html}}
-						</div>
-						{{range .Hooks}}
-							<div class="item">
-								<span class="text {{if .IsActive}}green{{else}}grey{{end}}"><i class="octicon octicon-primitive-dot"></i></span>
-								<span>{{.Name}}</span>
-								<a class="text blue ui right" href="{{$.RepoLink}}/settings/hooks/git/{{.Name}}"><i class="fa fa-pencil"></i></a>
-							</div>
-						{{end}}
-					</div>
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "repo.settings.githooks"}}
+		</h4>
+		<div class="ui attached table segment">
+			<div class="ui hook list">
+				<div class="item">
+					{{.i18n.Tr "repo.settings.githooks_desc" | Str2html}}
 				</div>
+				{{range .Hooks}}
+					<div class="item">
+						<span class="text {{if .IsActive}}green{{else}}grey{{end}}"><i class="octicon octicon-primitive-dot"></i></span>
+						<span>{{.Name}}</span>
+						<a class="text blue ui right" href="{{$.RepoLink}}/settings/hooks/git/{{.Name}}"><i class="fa fa-pencil"></i></a>
+					</div>
+				{{end}}
 			</div>
 		</div>
 	</div>
