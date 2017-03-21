@@ -229,7 +229,7 @@ func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
 
 // CommitsByFileAndRange return the commits accroding revison file and the page
 func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (*list.List, error) {
-	stdout, err := NewCommand("log", revision, "--skip="+strconv.Itoa((page-1)*50),
+	stdout, err := NewCommand("log", revision, "--follow", "--skip="+strconv.Itoa((page-1)*50),
 		"--max-count="+strconv.Itoa(CommitsRangeSize), prettyLogFormat, "--", file).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
