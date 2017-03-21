@@ -7,15 +7,12 @@ package models
 import (
 	"fmt"
 	"os"
-	"os/exec"
-	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
-
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 //NoticeType describes the notice type
