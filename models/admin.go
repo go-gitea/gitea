@@ -79,19 +79,7 @@ func RemoveAllWithNotice(title, path string) {
 }
 
 func removeAllWithNotice(e Engine, title, path string) {
-	var err error
-	// workaround for Go not being able to remove read-only files/folders: https://github.com/golang/go/issues/9606
-	// this bug should be fixed on Go 1.7, so the workaround should be removed when Gogs don't support Go 1.6 anymore:
-	// https://github.com/golang/go/commit/2ffb3e5d905b5622204d199128dec06cefd57790
-	if setting.IsWindows {
-		// converting "/" to "\" in path on Windows
-		path = strings.Replace(path, "/", "\\", -1)
-		err = exec.Command("cmd", "/C", "rmdir", "/S", "/Q", path).Run()
-	} else {
-		err = os.RemoveAll(path)
-	}
-
-	if err != nil {
+	if err := os.RemoveAll(path); err != nil {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
 		log.Warn(desc)
 		if err = createNotice(e, NoticeRepository, desc); err != nil {
