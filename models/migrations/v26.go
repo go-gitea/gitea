@@ -16,7 +16,7 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-func generateAndMigrateGitHooksV23(x *xorm.Engine) (err error) {
+func generateAndMigrateGitHookChains(x *xorm.Engine) (err error) {
 	type Repository struct {
 		ID      int64
 		OwnerID int64

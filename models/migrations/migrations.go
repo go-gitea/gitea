@@ -95,7 +95,7 @@ var migrations = []Migration{
 	// v22 -> v23
 	NewMigration("generate and migrate wiki Git hooks", generateAndMigrateWikiGitHooks),
 	// v23 -> v24
-	NewMigration("generate and migrate repo and wiki Git hooks", generateAndMigrateGitHooksV23),
+	NewMigration("generate and migrate repo and wiki Git hooks", generateAndMigrateGitHookChains),
 }
 
 // Migrate database to current version
