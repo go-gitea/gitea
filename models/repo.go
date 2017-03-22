@@ -1905,6 +1905,11 @@ func SyncRepositoryHooks() error {
 			if err := createDelegateHooks(bean.(*Repository).RepoPath()); err != nil {
 				return fmt.Errorf("SyncRepositoryHook: %v", err)
 			}
+			if bean.(*Repository).HasWiki() {
+				if err := createDelegateHooks(bean.(*Repository).WikiPath()); err != nil {
+					return fmt.Errorf("SyncRepositoryHook: %v", err)
+				}
+			}
 			return nil
 		})
 }
