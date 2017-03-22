@@ -1,14 +1,18 @@
+// Copyright 2017 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package migrations
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
-	"io"
-	"crypto/md5"
-	"encoding/hex"
 
 	"code.gitea.io/gitea/modules/setting"
 
@@ -29,7 +33,7 @@ func generateAndMigrateGitHookChains(x *xorm.Engine) (err error) {
 
 	var (
 		hookNames = []string{"pre-receive", "update", "post-receive"}
-		hookTpl = fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType)
+		hookTpl   = fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType)
 	)
 
 	return x.Where("id > 0").Iterate(new(Repository),
@@ -64,7 +68,7 @@ func generateAndMigrateGitHookChains(x *xorm.Engine) (err error) {
 							}
 							defer f.Close()
 							h := md5.New()
-							if _,err := io.Copy(h,f); err != nil {
+							if _, err := io.Copy(h, f); err != nil {
 								return fmt.Errorf("cannot read old hook file '%s': %v", oldHookPath, err)
 							}
 							if hex.EncodeToString(h.Sum(nil)) == "6718ef67d0834e0a7908259acd566e3f" {
