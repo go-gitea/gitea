@@ -701,7 +701,12 @@ func runWeb(ctx *cli.Context) error {
 	case setting.HTTPS:
 		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
 	case setting.FCGI:
-		err = fcgi.Serve(nil, context2.ClearHandler(m))
+		listener, err := net.Listen("tcp", listenAddr)
+		if err != nil {
+			log.Fatal(4, "Failed to bind %s", listenAddr, err)
+		}
+		defer listener.Close()
+		err = fcgi.Serve(listener, context2.ClearHandler(m))
 	case setting.UnixSocket:
 		if err := os.Remove(listenAddr); err != nil && !os.IsNotExist(err) {
 			log.Fatal(4, "Failed to remove unix socket directory %s: %v", listenAddr, err)
