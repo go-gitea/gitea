@@ -758,24 +758,6 @@ please consider changing to GITEA_CUSTOM`)
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 
-	sec = Cfg.Section("openid")
-	EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(true)
-	EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(true)
-	pats := sec.Key("WHITELISTED_URIS").Strings(" ")
-	if len(pats) != 0 {
-		OpenIDWhitelist = make([]*regexp.Regexp, len(pats))
-		for i, p := range pats {
-			OpenIDWhitelist[i] = regexp.MustCompilePOSIX(p)
-		}
-	}
-	pats = sec.Key("BLACKLISTED_URIS").Strings(" ")
-	if len(pats) != 0 {
-		OpenIDBlacklist = make([]*regexp.Regexp, len(pats))
-		for i, p := range pats {
-			OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
-		}
-	}
-
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
 	if !filepath.IsAbs(AttachmentPath) {
@@ -953,6 +935,25 @@ func newService() {
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool()
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
+
+	sec = Cfg.Section("openid")
+	EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(true)
+	EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration)
+	pats := sec.Key("WHITELISTED_URIS").Strings(" ")
+	if len(pats) != 0 {
+		OpenIDWhitelist = make([]*regexp.Regexp, len(pats))
+		for i, p := range pats {
+			OpenIDWhitelist[i] = regexp.MustCompilePOSIX(p)
+		}
+	}
+	pats = sec.Key("BLACKLISTED_URIS").Strings(" ")
+	if len(pats) != 0 {
+		OpenIDBlacklist = make([]*regexp.Regexp, len(pats))
+		for i, p := range pats {
+			OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
+		}
+	}
+
 }
 
 var logLevels = map[string]string{
