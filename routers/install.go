@@ -296,6 +296,8 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("service").Key("DEFAULT_KEEP_EMAIL_PRIVATE").SetValue(com.ToStr(form.DefaultKeepEmailPrivate))
 	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(com.ToStr(form.NoReplyAddress))
 
+	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(com.ToStr(!form.DisableOpenidRegistration))
+
 	cfg.Section("").Key("RUN_MODE").SetValue("prod")
 
 	cfg.Section("session").Key("PROVIDER").SetValue("file")
