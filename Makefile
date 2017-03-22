@@ -4,6 +4,8 @@ BINDATA := modules/{options,public,templates}/bindata.go
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
 DOCKER_TAG := gitea/gitea:latest
+GOFILES := $(shell find . -name "*.go" -type f -not -path "./vendor/*")
+GOFMT ?= gofmt -s
 
 GOFLAGS := -i -v
 EXTRA_GOFLAGS ?=
@@ -42,10 +44,12 @@ clean:
 	go clean -i ./...
 	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA)
 
+required-gofmt-version:
+	@go version  | grep -q '\(1.7\|1.8\)' || { echo "We require go version 1.7 or 1.8 to format code" >&2 && exit 1; }
+
 .PHONY: fmt
-fmt:
-	@go version  | grep -q '\(1.7\|1.8\)' || { echo "We require go version 1.7 to format code" >&2 && exit 1; }
-	find . -name "*.go" -type f -not -path "./vendor/*" | xargs gofmt -s -w
+fmt: required-gofmt-version
+	$(GOFMT) -w $(GOFILES)
 
 .PHONY: vet
 vet:
@@ -89,8 +93,18 @@ misspell:
 	fi
 	misspell -w -i unknwon $(GOFILES)
 
+.PHONY: fmt-check
+fmt-check: required-gofmt-version
+	# get all go files and run go fmt on them
+	@diff=$$($(GOFMT) -d $(GOFILES)); \
+	if [ -n "$$diff" ]; then \
+		echo "Please run 'make fmt' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi;
+
 .PHONY: test
-test:
+test: fmt-check
 	go test $(PACKAGES)
 
 .PHONY: test-coverage
