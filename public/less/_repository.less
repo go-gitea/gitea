@@ -800,8 +800,31 @@
 				padding-left: 15px;
 			}
 			.sha {
-				font-size: 13px;
-				padding: 6px 40px 4px 35px;
+				text-align: center;
+				width: 140px;
+			}
+		}
+		td.sha{
+			.sha.label{
+				margin: 0;
+				&.isSigned{
+					border: 1px solid #BBB;
+					.detail.icon{
+						background: #FAFAFA;
+						margin: -6px -10px -4px 0px;
+						padding: 5px 3px 5px 6px;
+						border-left: 1px solid #BBB;
+						border-top-left-radius: 0;
+						border-bottom-left-radius: 0;
+					}
+				}
+				&.isSigned.isVerified{
+					border: 1px solid #21BA45;
+					background: #21BA4518;
+					.detail.icon{
+						border-left: 1px solid #21BA4580;
+					}
+				}
 			}
 		}
 		&.ui.basic.striped.table tbody tr:nth-child(2n) {
@@ -1205,6 +1228,18 @@
 				}
 			}
 		}
+	}
+	.ui.attached.isSigned.isVerified{
+        &:not(.positive){
+		    border-left: 1px solid #A3C293;
+		    border-right: 1px solid #A3C293;
+	    }
+	    &.top:not(.positive){
+		    border-top: 1px solid #A3C293;
+	    }
+        &:not(.positive):last-child {
+            border-bottom: 1px solid #A3C293;
+        }
 	}
 }
 // End of .repository

@@ -6,13 +6,21 @@ package models
 
 import (
 	"bytes"
+	"container/list"
+	"crypto"
 	"encoding/base64"
 	"fmt"
+	"hash"
+	"io"
 	"strings"
 	"time"
 
+	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/log"
+
 	"github.com/go-xorm/xorm"
 	"golang.org/x/crypto/openpgp"
+	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/packet"
 )
 
@@ -273,4 +281,182 @@ func DeleteGPGKey(doer *User, id int64) (err error) {
 	}
 
 	return nil
+}
+
+// CommitVerification represents a commit validation of signature
+type CommitVerification struct {
+	Verified    bool
+	Reason      string
+	SigningUser *User
+	SigningKey  *GPGKey
+}
+
+// SignCommit represents a commit with validation of signature.
+type SignCommit struct {
+	Verification *CommitVerification
+	*UserCommit
+}
+
+func readerFromBase64(s string) (io.Reader, error) {
+	bs, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(bs), nil
+}
+
+func populateHash(hashFunc crypto.Hash, msg []byte) (hash.Hash, error) {
+	h := hashFunc.New()
+	if _, err := h.Write(msg); err != nil {
+		return nil, err
+	}
+	return h, nil
+}
+
+// readArmoredSign read an armored signature block with the given type. https://sourcegraph.com/github.com/golang/crypto/-/blob/openpgp/read.go#L24:6-24:17
+func readArmoredSign(r io.Reader) (body io.Reader, err error) {
+	block, err := armor.Decode(r)
+	if err != nil {
+		return
+	}
+	if block.Type != openpgp.SignatureType {
+		return nil, fmt.Errorf("expected '" + openpgp.SignatureType + "', got: " + block.Type)
+	}
+	return block.Body, nil
+}
+
+func extractSignature(s string) (*packet.Signature, error) {
+	r, err := readArmoredSign(strings.NewReader(s))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read signature armor")
+	}
+	p, err := packet.Read(r)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read signature packet")
+	}
+	sig, ok := p.(*packet.Signature)
+	if !ok {
+		return nil, fmt.Errorf("Packet is not a signature")
+	}
+	return sig, nil
+}
+
+func verifySign(s *packet.Signature, h hash.Hash, k *GPGKey) error {
+	//Check if key can sign
+	if !k.CanSign {
+		return fmt.Errorf("key can not sign")
+	}
+	//Decode key
+	b, err := readerFromBase64(k.Content)
+	if err != nil {
+		return err
+	}
+	//Read key
+	p, err := packet.Read(b)
+	if err != nil {
+		return err
+	}
+
+	//Check type
+	pkey, ok := p.(*packet.PublicKey)
+	if !ok {
+		return fmt.Errorf("key is not a public key")
+	}
+
+	return pkey.VerifySignature(h, s)
+}
+
+// ParseCommitWithSignature check if signature is good against keystore.
+func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
+
+	if c.Signature != nil {
+
+		//Parsing signature
+		sig, err := extractSignature(c.Signature.Signature)
+		if err != nil { //Skipping failed to extract sign
+			log.Error(3, "SignatureRead err: %v", err)
+			return &CommitVerification{
+				Verified: false,
+				Reason:   "gpg.error.extract_sign",
+			}
+		}
+
+		//Find Committer account
+		committer, err := GetUserByEmail(c.Committer.Email)
+		if err != nil { //Skipping not user for commiter
+			log.Error(3, "NoCommitterAccount: %v", err)
+			return &CommitVerification{
+				Verified: false,
+				Reason:   "gpg.error.no_committer_account",
+			}
+		}
+
+		keys, err := ListGPGKeys(committer.ID)
+		if err != nil || len(keys) == 0 { //Skipping failed to get gpg keys of user
+			log.Error(3, "ListGPGKeys: %v", err)
+			return &CommitVerification{
+				Verified: false,
+				Reason:   "gpg.error.failed_retrieval_gpg_keys",
+			}
+		}
+
+		//Generating hash of commit
+		hash, err := populateHash(sig.Hash, []byte(c.Signature.Payload))
+		if err != nil { //Skipping ailed to generate hash
+			log.Error(3, "PopulateHash: %v", err)
+			return &CommitVerification{
+				Verified: false,
+				Reason:   "gpg.error.generate_hash",
+			}
+		}
+
+		for _, k := range keys {
+			//We get PK
+			if err := verifySign(sig, hash, k); err == nil {
+				return &CommitVerification{ //Everything is ok
+					Verified:    true,
+					Reason:      fmt.Sprintf("%s <%s> / %s", c.Committer.Name, c.Committer.Email, k.KeyID),
+					SigningUser: committer,
+					SigningKey:  k,
+				}
+			}
+			//And test also SubsKey
+			for _, sk := range k.SubsKey {
+				if err := verifySign(sig, hash, sk); err == nil {
+					return &CommitVerification{ //Everything is ok
+						Verified:    true,
+						Reason:      fmt.Sprintf("%s <%s> / %s", c.Committer.Name, c.Committer.Email, sk.KeyID),
+						SigningUser: committer,
+						SigningKey:  sk,
+					}
+				}
+			}
+		}
+		return &CommitVerification{ //Default at this stage
+			Verified: false,
+			Reason:   "gpg.error.no_gpg_keys_found",
+		}
+	}
+
+	return &CommitVerification{
+		Verified: false,                         //Default value
+		Reason:   "gpg.error.not_signed_commit", //Default value
+	}
+}
+
+// ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
+func ParseCommitsWithSignature(oldCommits *list.List) *list.List {
+	var (
+		newCommits = list.New()
+		e          = oldCommits.Front()
+	)
+	for e != nil {
+		c := e.Value.(UserCommit)
+		newCommits.PushBack(SignCommit{
+			UserCommit:   &c,
+			Verification: ParseCommitWithSignature(c.Commit),
+		})
+		e = e.Next()
+	}
+	return newCommits
 }

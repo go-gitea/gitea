@@ -1924,8 +1924,29 @@ footer .ui.language .menu {
   padding-left: 15px;
 }
 .repository #commits-table thead .sha {
-  font-size: 13px;
-  padding: 6px 40px 4px 35px;
+  text-align: center;
+  width: 140px;
+}
+.repository #commits-table td.sha .sha.label {
+  margin: 0;
+}
+.repository #commits-table td.sha .sha.label.isSigned {
+  border: 1px solid #BBB;
+}
+.repository #commits-table td.sha .sha.label.isSigned .detail.icon {
+  background: #FAFAFA;
+  margin: -6px -10px -4px 0px;
+  padding: 5px 3px 5px 6px;
+  border-left: 1px solid #BBB;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.repository #commits-table td.sha .sha.label.isSigned.isVerified {
+  border: 1px solid #21BA45;
+  background: #21BA4518;
+}
+.repository #commits-table td.sha .sha.label.isSigned.isVerified .detail.icon {
+  border-left: 1px solid #21BA4580;
 }
 .repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n) {
   background-color: rgba(0, 0, 0, 0.02) !important;
@@ -2238,6 +2259,16 @@ footer .ui.language .menu {
   font-size: 13px;
   margin-left: 26px;
   padding-top: 0;
+}
+.repository .ui.attached.isSigned.isVerified:not(.positive) {
+  border-left: 1px solid #A3C293;
+  border-right: 1px solid #A3C293;
+}
+.repository .ui.attached.isSigned.isVerified.top:not(.positive) {
+  border-top: 1px solid #A3C293;
+}
+.repository .ui.attached.isSigned.isVerified:not(.positive):last-child {
+  border-bottom: 1px solid #A3C293;
 }
 .user-cards .list {
   padding: 0;
