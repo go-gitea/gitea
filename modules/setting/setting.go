@@ -121,12 +121,6 @@ var (
 	MinPasswordLength    int
 	ImportLocalPaths     bool
 
-	// OpenID settings
-	EnableOpenIDSignIn bool
-	EnableOpenIDSignUp bool
-	OpenIDWhitelist    []*regexp.Regexp
-	OpenIDBlacklist    []*regexp.Regexp
-
 	// Database settings
 	UseSQLite3    bool
 	UseMySQL      bool
@@ -921,6 +915,13 @@ var Service struct {
 	EnableCaptcha                  bool
 	DefaultKeepEmailPrivate        bool
 	NoReplyAddress                 string
+
+	// OpenID settings
+	EnableOpenIDSignIn bool
+	EnableOpenIDSignUp bool
+	OpenIDWhitelist    []*regexp.Regexp
+	OpenIDBlacklist    []*regexp.Regexp
+
 }
 
 func newService() {
@@ -937,20 +938,20 @@ func newService() {
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 
 	sec = Cfg.Section("openid")
-	EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(true)
-	EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration)
+	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(true)
+	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration)
 	pats := sec.Key("WHITELISTED_URIS").Strings(" ")
 	if len(pats) != 0 {
-		OpenIDWhitelist = make([]*regexp.Regexp, len(pats))
+		Service.OpenIDWhitelist = make([]*regexp.Regexp, len(pats))
 		for i, p := range pats {
-			OpenIDWhitelist[i] = regexp.MustCompilePOSIX(p)
+			Service.OpenIDWhitelist[i] = regexp.MustCompilePOSIX(p)
 		}
 	}
 	pats = sec.Key("BLACKLISTED_URIS").Strings(" ")
 	if len(pats) != 0 {
-		OpenIDBlacklist = make([]*regexp.Regexp, len(pats))
+		Service.OpenIDBlacklist = make([]*regexp.Regexp, len(pats))
 		for i, p := range pats {
-			OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
+			Service.OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
 		}
 	}
 
