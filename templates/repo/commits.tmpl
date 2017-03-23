@@ -5,12 +5,12 @@
 	  <div class="ui secondary menu">
 	    {{template "repo/branch_dropdown" .}}
 	    <div class="fitted item">
-	      <div class="ui breadcrumb">
+	      <div class="ui basic small button">
 		<a href="{{.RepoLink}}/graph">
 		  <span class="text">
 		    <i class="octicon octicon-git-branch"></i>
 		  </span>
-		  commit graph
+		  {{.i18n.Tr "repo.commit_graph"}}
 		</a>
 	      </div>
 	    </div>
