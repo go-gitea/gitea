@@ -21,6 +21,12 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// environmentVariable will be used to parse environment variables from the SSH wire format.
+type environmentVariable struct {
+	Name  string
+	Value string
+}
+
 func cleanCommand(cmd string) string {
 	i := strings.Index(cmd, "git")
 	if i == -1 {
@@ -48,16 +54,14 @@ func handleServerConn(keyID string, chans <-chan ssh.NewChannel) {
 				payload := cleanCommand(string(req.Payload))
 				switch req.Type {
 				case "env":
-					args := strings.Split(strings.Replace(payload, "\x00", "", -1), "\v")
-					if len(args) != 2 {
-						log.Warn("SSH: Invalid env arguments: '%#v'", args)
+					env := environmentVariable{}
+					if err := ssh.Unmarshal(req.Payload, &env); err != nil {
+						log.Warn("SSH: Unable to parse environment variable: %v", err)
 						continue
 					}
-					args[0] = strings.TrimLeft(args[0], "\x04")
-					_, _, err := com.ExecCmdBytes("env", args[0]+"="+args[1])
-					if err != nil {
-						log.Error(3, "env: %v", err)
-						return
+					if _, _, err = com.ExecCmdBytes("env", env.Name+"="+env.Value); err != nil {
+						log.Warn("SSH: Unable to set environment variable %v=%v: %v", env.Name, env.Value, err)
+						continue
 					}
 				case "exec":
 					cmdName := strings.TrimLeft(payload, "'()")
