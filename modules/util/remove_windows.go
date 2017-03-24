@@ -1,4 +1,4 @@
-// +build windows, !go1.7
+// +build windows,!go1.7
 
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
