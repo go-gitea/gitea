@@ -257,10 +257,10 @@
 			"revisionTime": "2016-12-08T13:07:38Z"
 		},
 		{
-			"checksumSHA1": "JQCb0Qb3kl18te1fq+2volRoqIs=",
+			"checksumSHA1": "J+kVue/HTH4sELlqMO4z0tx9DiA=",
 			"path": "github.com/boltdb/bolt",
-			"revision": "831b652a7f8dbefaf94da0eb66abd46c0c4bcf23",
-			"revisionTime": "2016-03-26T03:18:27Z"
+			"revision": "e9cf4fae01b5a8ff89d0ec6b32f0d9c9f79aefdd",
+			"revisionTime": "2017-01-31T19:20:18Z"
 		},
 		{
 			"checksumSHA1": "NClRfzxXDSt/g4lM5BIkKhYRVoQ=",
@@ -1158,16 +1158,16 @@
 			"revisionTime": "2016-11-02T13:18:01Z"
 		},
 		{
-			"checksumSHA1": "TT1rac6kpQp2vz24m5yDGUNQ/QQ=",
-			"path": "golang.org/x/crypto/cast5",
-			"revision": "b8a2a83acfe6e6770b75de42d5ff4c67596675c0",
-			"revisionTime": "2017-01-13T19:21:00Z"
-    },
-    {
 			"checksumSHA1": "pkrINpw0HkmO+18SdtSjje9MB9g=",
 			"path": "github.com/yohcop/openid-go",
 			"revision": "2c050d2dae5345c417db301f11fda6fbf5ad0f0a",
 			"revisionTime": "2016-09-14T08:04:27Z"
+		},
+		{
+			"checksumSHA1": "TT1rac6kpQp2vz24m5yDGUNQ/QQ=",
+			"path": "golang.org/x/crypto/cast5",
+			"revision": "b8a2a83acfe6e6770b75de42d5ff4c67596675c0",
+			"revisionTime": "2017-01-13T19:21:00Z"
 		},
 		{
 			"checksumSHA1": "dwOedwBJ1EIK9+S3t108Bx054Y8=",
