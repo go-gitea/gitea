@@ -9,7 +9,7 @@
 				<div class="item">
 				  <img class="ui avatar image" src="{{.RelAvatarLink}}">
 				  <div class="content">
-					<span class="header"><a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}</span>
+					<span class="header"><a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName | Str2html}}</span>
 					<div class="description">
 							{{if .Location}}
 								<i class="octicon octicon-location"></i> {{.Location}}
