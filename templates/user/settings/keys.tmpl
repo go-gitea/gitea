@@ -72,27 +72,25 @@
 					This is a list of GPG keys associated with your account. Because these keys allow anyone using them to gain access to your repositories, it is highly important that you make sure you recognize them.
 				</div>
 				{{range .GPGKeys}}
-					<div class="item ui grid">
-						<div class="one wide column">
-							<i class="gpg-key-state-indicator fa fa-circle-o"></i>
-						</div>
-						<div class="one wide column">
-							<i class="mega-octicon octicon-key left"></i>
-						</div>
-						<div class="eleven wide column">
-							{{range .Emails}}<strong>{{.Email}} </strong>{{end}}
-							<div class="print meta">
-								{{.KeyID}}
+					<div class="item">
+					    <div class="right floated content">
+								<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete?type=gpg" data-id="{{.ID}}">
+									{{$.i18n.Tr "settings.delete_key"}}
+								</button>
+					    </div>
+							<i class="mega-octicon octicon-key {{if .Expired.After $.PageStartTime}}green{{end}}"></i>
+							<div class="content">
+								{{range .Emails}}<strong>{{.Email}} </strong>{{end}}
+								<div class="print meta">
+									<b>{{$.i18n.Tr "settings.key_id"}}:</b> {{.KeyID}}
+									<b>{{$.i18n.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.KeyID}} {{end}}
+								</div>
+								<div class="activity meta">
+										<i>{{$.i18n.Tr "settings.add_on"}} <span>{{DateFmtShort .Added}}</span></i>
+										 -
+										<i>{{$.i18n.Tr "settings.end_on"}} <span>{{DateFmtShort .Expired}}</span></i>
+								</div>
 							</div>
-							<div class="activity meta">
-								<i>{{$.i18n.Tr "settings.add_on"}} <span>{{DateFmtShort .Added}}</span></i>
-							</div>
-						</div>
-						<div class="two wide column">
-							<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete?type=gpg" data-id="{{.ID}}">
-								{{$.i18n.Tr "settings.delete_key"}}
-							</button>
-						</div>
 					</div>
 				{{end}}
 			</div>
