@@ -107,7 +107,6 @@ func checkAutoLogin(ctx *context.Context) bool {
 
 // SignIn render sign in page
 func SignIn(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("sign_in")
 
 	// Check auto-login.
 	if checkAutoLogin(ctx) {
@@ -120,20 +119,26 @@ func SignIn(ctx *context.Context) {
 		return
 	}
 	ctx.Data["OAuth2Providers"] = oauth2Providers
+	ctx.Data["Title"] = ctx.Tr("sign_in")
+	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
+	ctx.Data["PageIsSignIn"] = true
+	ctx.Data["PageIsLogin"] = true
 
 	ctx.HTML(200, tplSignIn)
 }
 
 // SignInPost response for sign in request
 func SignInPost(ctx *context.Context, form auth.SignInForm) {
-	ctx.Data["Title"] = ctx.Tr("sign_in")
-
 	oauth2Providers, err := models.GetActiveOAuth2Providers()
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)
 		return
 	}
 	ctx.Data["OAuth2Providers"] = oauth2Providers
+	ctx.Data["Title"] = ctx.Tr("sign_in")
+	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
+	ctx.Data["PageIsSignIn"] = true
+	ctx.Data["PageIsLogin"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplSignIn)
@@ -316,6 +321,10 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 			setting.CookieRememberName, u.Name, days, setting.AppSubURL)
 	}
 
+	ctx.Session.Delete("openid_verified_uri")
+	ctx.Session.Delete("openid_signin_remember")
+	ctx.Session.Delete("openid_determined_email")
+	ctx.Session.Delete("openid_determined_username")
 	ctx.Session.Delete("twofaUid")
 	ctx.Session.Delete("twofaRemember")
 	ctx.Session.Set("uid", u.ID)
@@ -692,6 +701,8 @@ func SignOut(ctx *context.Context) {
 func SignUp(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_up")
 
+	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
+
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
@@ -702,6 +713,8 @@ func SignUp(ctx *context.Context) {
 // SignUpPost response for sign up information submission
 func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterForm) {
 	ctx.Data["Title"] = ctx.Tr("sign_up")
+
+	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 
@@ -864,7 +877,7 @@ func ActivateEmail(ctx *context.Context) {
 
 // ForgotPasswd render the forget pasword page
 func ForgotPasswd(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("auth.forgot_password")
+	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
 	if setting.MailService == nil {
 		ctx.Data["IsResetDisable"] = true
@@ -881,7 +894,7 @@ func ForgotPasswd(ctx *context.Context) {
 
 // ForgotPasswdPost response for forget password request
 func ForgotPasswdPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("auth.forgot_password")
+	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
 	if setting.MailService == nil {
 		ctx.Handle(403, "ForgotPasswdPost", nil)

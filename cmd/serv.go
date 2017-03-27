@@ -123,8 +123,8 @@ func runServ(c *cli.Context) error {
 			fail("Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
 		}
 
-		if strings.Contains(args, " ") {
-			argsSplit := strings.SplitN(args, " ", 2)
+		argsSplit := strings.Split(args, " ")
+		if len(argsSplit) >= 2 {
 			args = strings.TrimSpace(argsSplit[0])
 			lfsVerb = strings.TrimSpace(argsSplit[1])
 		}
@@ -179,8 +179,10 @@ func runServ(c *cli.Context) error {
 	if verb == lfsAuthenticateVerb {
 		if lfsVerb == "upload" {
 			requestedMode = models.AccessModeWrite
-		} else {
+		} else if lfsVerb == "download" {
 			requestedMode = models.AccessModeRead
+		} else {
+			fail("Unknown LFS verb", "Unkown lfs verb %s", lfsVerb)
 		}
 	}
 
@@ -232,7 +234,7 @@ func runServ(c *cli.Context) error {
 				fail("internal error", "Failed to get user by key ID(%d): %v", keyID, err)
 			}
 
-			mode, err := models.AccessLevel(user, repo)
+			mode, err := models.AccessLevel(user.ID, repo)
 			if err != nil {
 				fail("Internal error", "Failed to check access: %v", err)
 			} else if mode < requestedMode {
@@ -294,6 +296,12 @@ func runServ(c *cli.Context) error {
 		gitcmd = exec.Command(verbs[0], verbs[1], repoPath)
 	} else {
 		gitcmd = exec.Command(verb, repoPath)
+	}
+
+	if isWiki {
+		if err = repo.InitWiki(); err != nil {
+			fail("Internal error", "Failed to init wiki repo: %v", err)
+		}
 	}
 
 	os.Setenv(models.ProtectedBranchRepoID, fmt.Sprintf("%d", repo.ID))

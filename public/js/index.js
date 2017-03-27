@@ -87,6 +87,20 @@ function initEditForm() {
 }
 
 
+function updateIssuesMeta(url, action, issueIds, elementId, afterSuccess) {
+    $.ajax({
+        type: "POST",
+        url: url,
+        data: {
+            "_csrf": csrf,
+            "action": action,
+            "issue_ids": issueIds,
+            "id": elementId
+        },
+        success: afterSuccess
+    })
+}
+
 function initCommentForm() {
     if ($('.comment.form').length == 0) {
         return
@@ -100,14 +114,6 @@ function initCommentForm() {
     var $labelMenu = $('.select-label .menu');
     var hasLabelUpdateAction = $labelMenu.data('action') == 'update';
 
-    function updateIssueMeta(url, action, id) {
-        $.post(url, {
-            "_csrf": csrf,
-            "action": action,
-            "id": id
-        });
-    }
-
     $('.select-label').dropdown('setting', 'onHide', function(){
         if (hasLabelUpdateAction) {
             location.reload();
@@ -119,13 +125,23 @@ function initCommentForm() {
             $(this).removeClass('checked');
             $(this).find('.octicon').removeClass('octicon-check');
             if (hasLabelUpdateAction) {
-                updateIssueMeta($labelMenu.data('update-url'), "detach", $(this).data('id'));
+                updateIssuesMeta(
+                    $labelMenu.data('update-url'),
+                    "detach",
+                    $labelMenu.data('issue-id'),
+                    $(this).data('id')
+                );
             }
         } else {
             $(this).addClass('checked');
             $(this).find('.octicon').addClass('octicon-check');
             if (hasLabelUpdateAction) {
-                updateIssueMeta($labelMenu.data('update-url'), "attach", $(this).data('id'));
+                updateIssuesMeta(
+                    $labelMenu.data('update-url'),
+                    "attach",
+                    $labelMenu.data('issue-id'),
+                    $(this).data('id')
+                );
             }
         }
 
@@ -148,7 +164,12 @@ function initCommentForm() {
     });
     $labelMenu.find('.no-select.item').click(function () {
         if (hasLabelUpdateAction) {
-            updateIssueMeta($labelMenu.data('update-url'), "clear", '');
+            updateIssuesMeta(
+                $labelMenu.data('update-url'),
+                "clear",
+                $labelMenu.data('issue-id'),
+                ""
+            );
         }
 
         $(this).parent().find('.item').each(function () {
@@ -181,7 +202,12 @@ function initCommentForm() {
 
             $(this).addClass('selected active');
             if (hasUpdateAction) {
-                updateIssueMeta($menu.data('update-url'), '', $(this).data('id'));
+                updateIssuesMeta(
+                    $menu.data('update-url'),
+                    "",
+                    $menu.data('issue-id'),
+                    $(this).data('id')
+                );
             }
             switch (input_id) {
                 case '#milestone_id':
@@ -202,7 +228,12 @@ function initCommentForm() {
             });
 
             if (hasUpdateAction) {
-                updateIssueMeta($menu.data('update-url'), '', '');
+                updateIssuesMeta(
+                    $menu.data('update-url'),
+                    "",
+                    $menu.data('issue-id'),
+                    $(this).data('id')
+                );
             }
 
             $list.find('.selected').html('');
@@ -1430,6 +1461,29 @@ $(document).ready(function () {
         });
     });
     $('.markdown').autolink();
+
+    $('.issue-checkbox').click(function() {
+        var numChecked = $('.issue-checkbox').children('input:checked').length;
+        if (numChecked > 0) {
+            $('.issue-filters').hide();
+            $('.issue-actions').show();
+        } else {
+            $('.issue-filters').show();
+            $('.issue-actions').hide();
+        }
+    });
+
+    $('.issue-action').click(function () {
+        var action = this.dataset.action
+        var elementId = this.dataset.elementId
+        var issueIDs = $('.issue-checkbox').children('input:checked').map(function() {
+            return this.dataset.issueId;
+        }).get().join();
+        var url = this.dataset.url
+        updateIssuesMeta(url, action, issueIDs, elementId, function() {
+            location.reload();
+        });
+    });
 
     buttonsClickOnEnter();
     searchUsers();

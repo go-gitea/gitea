@@ -1,59 +1,55 @@
 {{template "base/head" .}}
 <div class="admin user">
+	{{template "admin/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "admin/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.users.user_manage_panel"}} ({{.i18n.Tr "admin.total" .Total}})
-					<div class="ui right">
-						<a class="ui black tiny button" href="{{AppSubUrl}}/admin/users/new">{{.i18n.Tr "admin.users.new_account"}}</a>
-					</div>
-				</h4>
-				<div class="ui attached segment">
-					{{template "admin/base/search" .}}
-				</div>
-				<div class="ui attached table segment">
-					<table class="ui very basic striped table">
-						<thead>
-							<tr>
-								<th>ID</th>
-								<th>{{.i18n.Tr "admin.users.name"}}</th>
-								<th>{{.i18n.Tr "email"}}</th>
-								<th>{{.i18n.Tr "admin.users.activated"}}</th>
-								<th>{{.i18n.Tr "admin.users.admin"}}</th>
-								<th>{{.i18n.Tr "admin.users.repos"}}</th>
-								<th>{{.i18n.Tr "admin.users.created"}}</th>
-								<th>{{.i18n.Tr "admin.users.last_login"}}</th>
-								<th>{{.i18n.Tr "admin.users.edit"}}</th>
-							</tr>
-						</thead>
-						<tbody>
-							{{range .Users}}
-								<tr>
-									<td>{{.ID}}</td>
-									<td><a href="{{AppSubUrl}}/{{.Name}}">{{.Name}}</a></td>
-									<td><span class="text truncate email">{{.Email}}</span></td>
-									<td><i class="fa fa{{if .IsActive}}-check{{end}}-square-o"></i></td>
-									<td><i class="fa fa{{if .IsAdmin}}-check{{end}}-square-o"></i></td>
-									<td>{{.NumRepos}}</td>
-									<td><span title="{{DateFmtLong .Created}}">{{DateFmtShort .Created }}</span></td>
-									{{if .LastLoginUnix}}
-										<td><span title="{{DateFmtLong .LastLogin}}">{{DateFmtShort .LastLogin }}</span></td>
-									{{else}}
-										<td><span>{{$.i18n.Tr "admin.users.never_login"}}</span></td>
-									{{end}}
-									<td><a href="{{$.Link}}/{{.ID}}"><i class="fa fa-pencil-square-o"></i></a></td>
-								</tr>
-							{{end}}
-						</tbody>
-					</table>
-				</div>
-
-				{{template "base/paginate" .}}
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.users.user_manage_panel"}} ({{.i18n.Tr "admin.total" .Total}})
+			<div class="ui right">
+				<a class="ui black tiny button" href="{{AppSubUrl}}/admin/users/new">{{.i18n.Tr "admin.users.new_account"}}</a>
 			</div>
+		</h4>
+		<div class="ui attached segment">
+			{{template "admin/base/search" .}}
 		</div>
+		<div class="ui attached table segment">
+			<table class="ui very basic striped table">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>{{.i18n.Tr "admin.users.name"}}</th>
+						<th>{{.i18n.Tr "email"}}</th>
+						<th>{{.i18n.Tr "admin.users.activated"}}</th>
+						<th>{{.i18n.Tr "admin.users.admin"}}</th>
+						<th>{{.i18n.Tr "admin.users.repos"}}</th>
+						<th>{{.i18n.Tr "admin.users.created"}}</th>
+						<th>{{.i18n.Tr "admin.users.last_login"}}</th>
+						<th>{{.i18n.Tr "admin.users.edit"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .Users}}
+						<tr>
+							<td>{{.ID}}</td>
+							<td><a href="{{AppSubUrl}}/{{.Name}}">{{.Name}}</a></td>
+							<td><span class="text truncate email">{{.Email}}</span></td>
+							<td><i class="fa fa{{if .IsActive}}-check{{end}}-square-o"></i></td>
+							<td><i class="fa fa{{if .IsAdmin}}-check{{end}}-square-o"></i></td>
+							<td>{{.NumRepos}}</td>
+							<td><span title="{{DateFmtLong .Created}}">{{DateFmtShort .Created }}</span></td>
+							{{if .LastLoginUnix}}
+								<td><span title="{{DateFmtLong .LastLogin}}">{{DateFmtShort .LastLogin }}</span></td>
+							{{else}}
+								<td><span>{{$.i18n.Tr "admin.users.never_login"}}</span></td>
+							{{end}}
+							<td><a href="{{$.Link}}/{{.ID}}"><i class="fa fa-pencil-square-o"></i></a></td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+
+		{{template "base/paginate" .}}
 	</div>
 </div>
 {{template "base/footer" .}}

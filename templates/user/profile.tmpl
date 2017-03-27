@@ -34,6 +34,14 @@
 									<a target="_blank" rel="noopener" href="{{.Owner.Website}}">{{.Owner.Website}}</a>
 								</li>
 							{{end}}
+							{{range .OpenIDs}}
+								{{if .Show}}
+									<li>
+										<i class="fa fa-openid"></i>
+										<a target="_blank" rel="noopener" href="{{.URI}}">{{.URI}}</a>
+									</li>
+								{{end}}
+							{{end}}
 							<li><i class="octicon octicon-clock"></i> {{.i18n.Tr "user.join_on"}} {{DateFmtShort .Owner.Created}}</li>
 							<li>
 								<i class="octicon octicon-person"></i>

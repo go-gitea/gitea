@@ -75,9 +75,17 @@ func Profile(ctx *context.Context) {
 		return
 	}
 
+	// Show OpenID URIs
+	openIDs, err := models.GetUserOpenIDs(ctxUser.ID)
+	if err != nil {
+		ctx.Handle(500, "GetUserOpenIDs", err)
+		return
+	}
+
 	ctx.Data["Title"] = ctxUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Owner"] = ctxUser
+	ctx.Data["OpenIDs"] = openIDs
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID)
 
 	orgs, err := models.GetOrgsByUserID(ctxUser.ID, showPrivate)

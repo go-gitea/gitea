@@ -152,13 +152,13 @@ func HTTP(ctx *context.Context) {
 			}
 
 			if !isPublicPull {
-				has, err := models.HasAccess(authUser, repo, accessMode)
+				has, err := models.HasAccess(authUser.ID, repo, accessMode)
 				if err != nil {
 					ctx.Handle(http.StatusInternalServerError, "HasAccess", err)
 					return
 				} else if !has {
 					if accessMode == models.AccessModeRead {
-						has, err = models.HasAccess(authUser, repo, models.AccessModeWrite)
+						has, err = models.HasAccess(authUser.ID, repo, models.AccessModeWrite)
 						if err != nil {
 							ctx.Handle(http.StatusInternalServerError, "HasAccess2", err)
 							return

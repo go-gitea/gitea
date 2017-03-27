@@ -39,7 +39,7 @@ func NewExclusivePool() *ExclusivePool {
 }
 
 // CheckIn checks in an instance to the pool and hangs while instance
-// with same indentity is using the lock.
+// with same identity is using the lock.
 func (p *ExclusivePool) CheckIn(identity string) {
 	p.lock.Lock()
 

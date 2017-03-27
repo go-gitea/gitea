@@ -137,12 +137,21 @@ type PayloadUser struct {
 
 // PayloadCommit FIXME: consider use same format as API when commits API are added.
 type PayloadCommit struct {
-	ID        string       `json:"id"`
-	Message   string       `json:"message"`
-	URL       string       `json:"url"`
-	Author    *PayloadUser `json:"author"`
-	Committer *PayloadUser `json:"committer"`
-	Timestamp time.Time    `json:"timestamp"`
+	ID           string                     `json:"id"`
+	Message      string                     `json:"message"`
+	URL          string                     `json:"url"`
+	Author       *PayloadUser               `json:"author"`
+	Committer    *PayloadUser               `json:"committer"`
+	Verification *PayloadCommitVerification `json:"verification"`
+	Timestamp    time.Time                  `json:"timestamp"`
+}
+
+// PayloadCommitVerification represent the GPG verification part of a commit. FIXME: like PayloadCommit consider use same format as API when commits API are added.
+type PayloadCommitVerification struct {
+	Verified  bool   `json:"verified"`
+	Reason    string `json:"reason"`
+	Signature string `json:"signature"`
+	Payload   string `json:"payload"`
 }
 
 var (
