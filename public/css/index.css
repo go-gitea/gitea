@@ -2374,16 +2374,14 @@ footer .ui.language .menu {
 .settings .content .segment {
   box-shadow: 0 1px 2px 0 rgba(34, 36, 38, 0.15);
 }
-.settings .key.list .item:not(:first-child) {
+.settings .list .item:not(:first-child) {
   border-top: 1px solid #eaeaea;
+  padding: 1rem;
+  margin: 15px -1rem -1rem -1rem;
+  min-height: 60px;
 }
-.settings .key.list .meta {
+.settings .list.key .meta {
   padding-top: 5px;
-}
-.settings .key.list .print {
-  color: #767676;
-}
-.settings .key.list .activity {
   color: #666;
 }
 .settings .hook.list > .item:not(:first-child) {
@@ -2728,18 +2726,6 @@ footer .ui.language .menu {
 .user:not(.icon) {
   padding-top: 15px;
   padding-bottom: 80px;
-}
-.user.settings .list .item.ui.grid {
-  margin-top: 15px;
-}
-.user.settings .email.list .item:not(:first-child),
-.user.settings .openid.list .item:not(:first-child) {
-  border-top: 1px solid #eaeaea;
-  height: 50px;
-}
-.user.settings .email.list .item:not(:first-child) .button,
-.user.settings .openid.list .item:not(:first-child) .button {
-  margin-top: -10px;
 }
 .user.profile .ui.card .username {
   display: block;

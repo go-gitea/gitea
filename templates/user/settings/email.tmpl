@@ -12,28 +12,28 @@
 					{{.i18n.Tr "settings.email_desc"}}
 				</div>
 				{{range .Emails}}
-					<div class="item ui grid">
-						<div class="column">
-							<strong>{{.Email}}</strong>
-							{{if .IsPrimary}}<span class="text red">{{$.i18n.Tr "settings.primary"}}</span>{{end}}
+					<div class="item">
 							{{if not .IsPrimary}}
-								<div class="ui right">
+						    <div class="right floated content">
 									<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
 										{{$.i18n.Tr "settings.delete_key"}}
 									</button>
-								</div>
-								{{if .IsActivated}}
-									<div class="ui right">
-										<form action="{{$.Link}}" method="post">
-											{{$.CsrfTokenHtml}}
-											<input name="_method" type="hidden" value="PRIMARY">
-											<input name="id" type="hidden" value="{{.ID}}">
-											<button class="ui green tiny button">{{$.i18n.Tr "settings.primary_email"}}</button>
-										</form>
-									</div>
-								{{end}}
+						    </div>
+									{{if .IsActivated}}
+								    <div class="right floated content">
+											<form action="{{$.Link}}" method="post">
+												{{$.CsrfTokenHtml}}
+												<input name="_method" type="hidden" value="PRIMARY">
+												<input name="id" type="hidden" value="{{.ID}}">
+												<button class="ui green tiny button">{{$.i18n.Tr "settings.primary_email"}}</button>
+											</form>
+										</div>
+									{{end}}
 							{{end}}
-						</div>
+							<div class="content">
+								<strong>{{.Email}}</strong>
+								{{if .IsPrimary}}<span class="text red">{{$.i18n.Tr "settings.primary"}}</span>{{end}}
+							</div>
 					</div>
 				{{end}}
 			</div>
