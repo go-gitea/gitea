@@ -820,7 +820,7 @@ footer .ui.language .menu {
   border: solid 1px #ccc;
   border-bottom-color: #bbb;
   border-radius: 3px;
-  box-shadow: inset 0 -1px 0 #bbb;
+  box-shadow: inset 0 -1px 0 #bbbbbb;
 }
 .markdown:not(code) input[type="checkbox"] {
   vertical-align: middle !important;
@@ -896,7 +896,7 @@ footer .ui.language .menu {
 }
 .install form label {
   text-align: right;
-  width: 320px !important;
+  width: 320px;
 }
 .install form input {
   width: 35% !important;
@@ -905,7 +905,7 @@ footer .ui.language .menu {
   text-align: left;
 }
 .install form .field .help {
-  margin-left: 335px !important;
+  margin-left: 335px;
 }
 .install form .field.optional .title {
   margin-left: 38%;
@@ -940,18 +940,18 @@ footer .ui.language .menu {
   text-align: center;
 }
 #create-page-form form .header {
-  padding-left: 280px !important;
+  padding-left: 280px;
 }
 #create-page-form form .inline.field > label {
   text-align: right;
-  width: 250px !important;
+  width: 250px;
   word-wrap: break-word;
 }
 #create-page-form form .help {
-  margin-left: 265px !important;
+  margin-left: 265px;
 }
 #create-page-form form .optional .title {
-  margin-left: 250px !important;
+  margin-left: 250px;
 }
 #create-page-form form input,
 #create-page-form form textarea {
@@ -997,7 +997,7 @@ footer .ui.language .menu {
 .user.reset.password form .header,
 .user.signin form .header,
 .user.signup form .header {
-  padding-left: 280px !important;
+  padding-left: 280px;
 }
 .user.activate form .inline.field > label,
 .user.forgot.password form .inline.field > label,
@@ -1005,7 +1005,7 @@ footer .ui.language .menu {
 .user.signin form .inline.field > label,
 .user.signup form .inline.field > label {
   text-align: right;
-  width: 250px !important;
+  width: 250px;
   word-wrap: break-word;
 }
 .user.activate form .help,
@@ -1013,14 +1013,14 @@ footer .ui.language .menu {
 .user.reset.password form .help,
 .user.signin form .help,
 .user.signup form .help {
-  margin-left: 265px !important;
+  margin-left: 265px;
 }
 .user.activate form .optional .title,
 .user.forgot.password form .optional .title,
 .user.reset.password form .optional .title,
 .user.signin form .optional .title,
 .user.signup form .optional .title {
-  margin-left: 250px !important;
+  margin-left: 250px;
 }
 .user.activate form input,
 .user.forgot.password form input,
@@ -1054,7 +1054,7 @@ footer .ui.language .menu {
 .user.reset.password form .inline.field > label,
 .user.signin form .inline.field > label,
 .user.signup form .inline.field > label {
-  width: 200px !important;
+  width: 200px;
 }
 .repository.new.repo form,
 .repository.new.migrate form,
@@ -1070,24 +1070,24 @@ footer .ui.language .menu {
 .repository.new.repo form .header,
 .repository.new.migrate form .header,
 .repository.new.fork form .header {
-  padding-left: 280px !important;
+  padding-left: 280px;
 }
 .repository.new.repo form .inline.field > label,
 .repository.new.migrate form .inline.field > label,
 .repository.new.fork form .inline.field > label {
   text-align: right;
-  width: 250px !important;
+  width: 250px;
   word-wrap: break-word;
 }
 .repository.new.repo form .help,
 .repository.new.migrate form .help,
 .repository.new.fork form .help {
-  margin-left: 265px !important;
+  margin-left: 265px;
 }
 .repository.new.repo form .optional .title,
 .repository.new.migrate form .optional .title,
 .repository.new.fork form .optional .title {
-  margin-left: 250px !important;
+  margin-left: 250px;
 }
 .repository.new.repo form input,
 .repository.new.migrate form input,
@@ -1122,7 +1122,7 @@ footer .ui.language .menu {
   width: 50%!important;
 }
 .repository.new.repo .ui.form #auto-init {
-  margin-left: 265px !important;
+  margin-left: 265px;
 }
 .new.webhook form .help {
   margin-left: 25px;
@@ -1927,8 +1927,29 @@ footer .ui.language .menu {
   padding-left: 15px;
 }
 .repository #commits-table thead .sha {
-  font-size: 13px;
-  padding: 6px 40px 4px 35px;
+  text-align: center;
+  width: 140px;
+}
+.repository #commits-table td.sha .sha.label {
+  margin: 0;
+}
+.repository #commits-table td.sha .sha.label.isSigned {
+  border: 1px solid #BBB;
+}
+.repository #commits-table td.sha .sha.label.isSigned .detail.icon {
+  background: #FAFAFA;
+  margin: -6px -10px -4px 0px;
+  padding: 5px 3px 5px 6px;
+  border-left: 1px solid #BBB;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.repository #commits-table td.sha .sha.label.isSigned.isVerified {
+  border: 1px solid #21BA45;
+  background: #21BA4518;
+}
+.repository #commits-table td.sha .sha.label.isSigned.isVerified .detail.icon {
+  border-left: 1px solid #21BA4580;
 }
 .repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n) {
   background-color: rgba(0, 0, 0, 0.02) !important;
@@ -2241,6 +2262,16 @@ footer .ui.language .menu {
   font-size: 13px;
   margin-left: 26px;
   padding-top: 0;
+}
+.repository .ui.attached.isSigned.isVerified:not(.positive) {
+  border-left: 1px solid #A3C293;
+  border-right: 1px solid #A3C293;
+}
+.repository .ui.attached.isSigned.isVerified.top:not(.positive) {
+  border-top: 1px solid #A3C293;
+}
+.repository .ui.attached.isSigned.isVerified:not(.positive):last-child {
+  border-bottom: 1px solid #A3C293;
 }
 .user-cards .list {
   padding: 0;
@@ -2597,18 +2628,18 @@ footer .ui.language .menu {
   text-align: center;
 }
 .organization.new.org form .header {
-  padding-left: 280px !important;
+  padding-left: 280px;
 }
 .organization.new.org form .inline.field > label {
   text-align: right;
-  width: 250px !important;
+  width: 250px;
   word-wrap: break-word;
 }
 .organization.new.org form .help {
-  margin-left: 265px !important;
+  margin-left: 265px;
 }
 .organization.new.org form .optional .title {
-  margin-left: 250px !important;
+  margin-left: 250px;
 }
 .organization.new.org form input,
 .organization.new.org form textarea {
@@ -2713,11 +2744,13 @@ footer .ui.language .menu {
 .user.settings .list .item.ui.grid {
   margin-top: 15px;
 }
-.user.settings .email.list .item:not(:first-child) {
+.user.settings .email.list .item:not(:first-child),
+.user.settings .openid.list .item:not(:first-child) {
   border-top: 1px solid #eaeaea;
   height: 50px;
 }
-.user.settings .email.list .item:not(:first-child) .button {
+.user.settings .email.list .item:not(:first-child) .button,
+.user.settings .openid.list .item:not(:first-child) .button {
   margin-top: -10px;
 }
 .user.profile .ui.card .username {

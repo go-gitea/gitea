@@ -28,6 +28,7 @@ import (
 )
 
 const (
+	tplRepoBARE base.TplName = "repo/bare"
 	tplRepoHome base.TplName = "repo/home"
 	tplWatchers base.TplName = "repo/watchers"
 	tplForks    base.TplName = "repo/forks"
@@ -243,12 +244,18 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 // Home render repository home page
 func Home(ctx *context.Context) {
+	ctx.Data["PageIsViewCode"] = true
+
+	if ctx.Repo.Repository.IsBare {
+		ctx.HTML(200, tplRepoBARE)
+		return
+	}
+
 	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
 	if len(ctx.Repo.Repository.Description) > 0 {
 		title += ": " + ctx.Repo.Repository.Description
 	}
 	ctx.Data["Title"] = title
-	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["RequireHighlightJS"] = true
 
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName

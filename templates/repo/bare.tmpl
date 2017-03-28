@@ -8,9 +8,6 @@
 				{{if .IsRepositoryAdmin}}
 					<h4 class="ui top attached header">
 						{{.i18n.Tr "repo.quick_guide"}}
-						<div class="ui right">
-							<a class="ui black tiny button" href="{{.RepoLink}}/settings">{{.i18n.Tr "repo.settings"}}</a>
-						</div>
 					</h4>
 					<div class="ui attached guide table segment">
 						<div class="item">
@@ -57,6 +54,10 @@ git push -u origin master</code></pre>
 								<pre><code>git remote add origin <span class="clone-url">{{if $.DisableSSH}}{{$.CloneLink.HTTPS}}{{else}}{{$.CloneLink.SSH}}{{end}}</span>
 git push -u origin master</code></pre>
 							</div>
+						</div>
+					{{else}}
+						<div class="ui segment center">
+							{{.i18n.Tr "repo.bare_message"}}
 						</div>
 					{{end}}
 				</div>

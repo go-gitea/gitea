@@ -12,9 +12,9 @@ import (
 )
 
 var signupFormSample map[string][]string = map[string][]string{
-	"Name":   []string{"tester"},
-	"Email":  []string{"user1@example.com"},
-	"Passwd": []string{"12345678"},
+	"Name":   {"tester"},
+	"Email":  {"user1@example.com"},
+	"Passwd": {"12345678"},
 }
 
 func signup(t *utils.T) error {
