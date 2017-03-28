@@ -84,16 +84,27 @@ func (repos MirrorRepositoryList) LoadAttributes() error {
 }
 
 // SearchRepoOptions holds the search options
+// swagger:parameters repoSearch
 type SearchRepoOptions struct {
-	Keyword   string
-	OwnerID   int64
-	Searcher  *User //ID of the person who's seeking
-	OrderBy   string
-	Private   bool // Include private repositories in results
-	Starred   bool
-	Page      int
-	IsProfile bool
-	PageSize  int // Can be smaller than or equal to setting.ExplorePagingNum
+	// Keyword to search
+	//
+	// in: query
+	Keyword string `json:"q"`
+	// Owner in we search search
+	//
+	// in: query
+	OwnerID   int64  `json:"uid"`
+	Searcher  *User  `json:"-"` //ID of the person who's seeking
+	OrderBy   string `json:"-"`
+	Private   bool   `json:"-"` // Include private repositories in results
+	Starred   bool   `json:"-"`
+	Page      int    `json:"-"`
+	IsProfile bool   `json:"-"`
+	// Limit of result
+	//
+	// maximum: setting.ExplorePagingNum
+	// in: query
+	PageSize int `json:"limit"` // Can be smaller than or equal to setting.ExplorePagingNum
 }
 
 // SearchRepositoryByName takes keyword and part of repository name to search,

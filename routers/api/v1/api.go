@@ -2,7 +2,8 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-//go:generate swagger generate spec
+//go:generate swagger generate spec -o ../../../public/swagger.v1.json
+//go:generate sed -i "s;\".ref\": \"#/definitions/GPGKey\";\"type\": \"object\";g" ../../../public/swagger.v1.json
 
 // Package v1 Gitea API.
 //
@@ -19,10 +20,11 @@
 //
 //     Consumes:
 //     - application/json
+//     - text/plain
 //
 //     Produces:
 //     - application/json
-//
+//     - text/html
 //
 // swagger:meta
 package v1

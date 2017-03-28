@@ -20,6 +20,8 @@ import (
 const (
 	// tplHome home page template
 	tplHome base.TplName = "home"
+	// tplSwagger swagger page template
+	tplSwagger base.TplName = "swagger"
 	// tplExploreRepos explore repositories page template
 	tplExploreRepos base.TplName = "explore/repos"
 	// tplExploreUsers explore users page template
@@ -49,6 +51,11 @@ func Home(ctx *context.Context) {
 
 	ctx.Data["PageIsHome"] = true
 	ctx.HTML(200, tplHome)
+}
+
+// Swagger render swagger-ui page
+func Swagger(ctx *context.Context) {
+	ctx.HTML(200, tplSwagger)
 }
 
 // RepoSearchOptions when calling search repositories

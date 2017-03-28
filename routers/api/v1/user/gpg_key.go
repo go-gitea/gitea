@@ -34,6 +34,15 @@ func listGPGKeys(ctx *context.APIContext, uid int64) {
 
 //ListGPGKeys get the GPG key list of a user
 func ListGPGKeys(ctx *context.APIContext) {
+	// swagger:route GET /users/{username}/gpg_keys userListGPGKeys
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: GPGKeyList
+	//       500: error
+
 	user := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -43,11 +52,30 @@ func ListGPGKeys(ctx *context.APIContext) {
 
 //ListMyGPGKeys get the GPG key list of the logged user
 func ListMyGPGKeys(ctx *context.APIContext) {
+	// swagger:route GET /user/gpg_keys userCurrentListGPGKeys
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: GPGKeyList
+	//       500: error
+
 	listGPGKeys(ctx, ctx.User.ID)
 }
 
 //GetGPGKey get the GPG key based on a id
 func GetGPGKey(ctx *context.APIContext) {
+	// swagger:route GET /user/gpg_keys/{id} userCurrentGetGPGKey
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: GPGKey
+	//       404: notFound
+	//       500: error
+
 	key, err := models.GetGPGKeyByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrGPGKeyNotExist(err) {
@@ -72,11 +100,34 @@ func CreateUserGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption, uid 
 
 //CreateGPGKey associate a GPG key to the current user
 func CreateGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption) {
+	// swagger:route POST /user/gpg_keys userCurrentPostGPGKey
+	//
+	//     Consumes:
+	//     - application/json
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       201: GPGKey
+	//       422: validationError
+	//       500: error
+
 	CreateUserGPGKey(ctx, form, ctx.User.ID)
 }
 
 //DeleteGPGKey remove a GPG key associated to the current user
 func DeleteGPGKey(ctx *context.APIContext) {
+	// swagger:route DELETE /user/gpg_keys/{id} userCurrentDeleteGPGKey
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       204: empty
+	//       403: forbidden
+	//       500: error
+
 	if err := models.DeleteGPGKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrGPGKeyAccessDenied(err) {
 			ctx.Error(403, "", "You do not have access to this key")

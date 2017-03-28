@@ -33,6 +33,15 @@ func getStarredRepos(userID int64, private bool) ([]*api.Repository, error) {
 // GetStarredRepos returns the repos that the user specified by the APIContext
 // has starred
 func GetStarredRepos(ctx *context.APIContext) {
+	// swagger:route GET /users/{username}/starred userListStarred
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: RepositoryList
+	//       500: error
+
 	user := GetUserByParams(ctx)
 	private := user.ID == ctx.User.ID
 	repos, err := getStarredRepos(user.ID, private)
@@ -44,6 +53,15 @@ func GetStarredRepos(ctx *context.APIContext) {
 
 // GetMyStarredRepos returns the repos that the authenticated user has starred
 func GetMyStarredRepos(ctx *context.APIContext) {
+	// swagger:route GET /user/starred userCurrentListStarred
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: RepositoryList
+	//       500: error
+
 	repos, err := getStarredRepos(ctx.User.ID, true)
 	if err != nil {
 		ctx.Error(500, "getStarredRepos", err)
@@ -53,6 +71,12 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 
 // IsStarring returns whether the authenticated is starring the repo
 func IsStarring(ctx *context.APIContext) {
+	// swagger:route GET /user/starred/{username}/{reponame} userCurrentCheckStarring
+	//
+	//     Responses:
+	//       204: empty
+	//       404: notFound
+
 	if models.IsStaring(ctx.User.ID, ctx.Repo.Repository.ID) {
 		ctx.Status(204)
 	} else {
@@ -62,6 +86,12 @@ func IsStarring(ctx *context.APIContext) {
 
 // Star the repo specified in the APIContext, as the authenticated user
 func Star(ctx *context.APIContext) {
+	// swagger:route PUT /user/starred/{username}/{reponame} userCurrentPutStar
+	//
+	//     Responses:
+	//       204: empty
+	//       500: error
+
 	err := models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(500, "StarRepo", err)
@@ -72,6 +102,12 @@ func Star(ctx *context.APIContext) {
 
 // Unstar the repo specified in the APIContext, as the authenticated user
 func Unstar(ctx *context.APIContext) {
+	// swagger:route DELETE /user/starred/{username}/{reponame} userCurrentDeleteStar
+	//
+	//     Responses:
+	//       204: empty
+	//       500: error
+
 	err := models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
 		ctx.Error(500, "StarRepo", err)
