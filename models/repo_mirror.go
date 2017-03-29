@@ -27,7 +27,7 @@ type Mirror struct {
 	ID          int64       `xorm:"pk autoincr"`
 	RepoID      int64       `xorm:"INDEX"`
 	Repo        *Repository `xorm:"-"`
-	Interval    int         // Hour.
+	Interval    string         // Duration string
 	EnablePrune bool        `xorm:"NOT NULL DEFAULT true"`
 
 	Updated        time.Time `xorm:"-"`
@@ -68,7 +68,8 @@ func (m *Mirror) AfterSet(colName string, _ xorm.Cell) {
 
 // ScheduleNextUpdate calculates and sets next update time.
 func (m *Mirror) ScheduleNextUpdate() {
-	m.NextUpdate = time.Now().Add(time.Duration(m.Interval) * time.Hour)
+	duration, _ := time.ParseDuration(m.Interval)
+	m.NextUpdate = time.Now().Add(duration)
 }
 
 func (m *Mirror) readAddress() {

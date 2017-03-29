@@ -410,9 +410,9 @@ var (
 
 	// Mirror settings
 	Mirror = struct {
-		DefaultInterval int
+		DefaultInterval string
 	}{
-		DefaultInterval: 8,
+		DefaultInterval: "8h",
 	}
 
 	// API settings
@@ -902,8 +902,8 @@ please consider changing to GITEA_CUSTOM`)
 		log.Fatal(4, "Failed to map API settings: %v", err)
 	}
 
-	if Mirror.DefaultInterval <= 0 {
-		Mirror.DefaultInterval = 24
+	if _, err := time.ParseDuration(Mirror.DefaultInterval); err != nil {
+		Mirror.DefaultInterval = "8h"
 	}
 
 	Langs = Cfg.Section("i18n").Key("LANGS").Strings(",")

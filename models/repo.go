@@ -811,11 +811,15 @@ func MigrateRepository(u *User, opts MigrateRepoOptions) (*Repository, error) {
 	}
 
 	if opts.IsMirror {
+		duration, err := time.ParseDuration(setting.Mirror.DefaultInterval)
+		if err != nil {
+			duration, _ = time.ParseDuration("8h")
+		}
 		if _, err = x.InsertOne(&Mirror{
 			RepoID:      repo.ID,
 			Interval:    setting.Mirror.DefaultInterval,
 			EnablePrune: true,
-			NextUpdate:  time.Now().Add(time.Duration(setting.Mirror.DefaultInterval) * time.Hour),
+			NextUpdate:  time.Now().Add(duration),
 		}); err != nil {
 			return repo, fmt.Errorf("InsertOne: %v", err)
 		}
