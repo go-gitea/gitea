@@ -491,6 +491,7 @@ func runWeb(ctx *cli.Context) error {
 			m.Group("/:index", func() {
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
+				m.Post("/watch", repo.IssueWatch)
 				m.Combo("/comments").Post(bindIgnErr(auth.CreateCommentForm{}), repo.NewComment)
 			})
 
