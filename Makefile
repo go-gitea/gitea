@@ -44,6 +44,7 @@ clean:
 
 .PHONY: fmt
 fmt:
+	@go version  | grep -q '\(1.7\|1.8\)' || { echo "We require go version 1.7 to format code" >&2 && exit 1; }
 	find . -name "*.go" -type f -not -path "./vendor/*" | xargs gofmt -s -w
 
 .PHONY: vet
