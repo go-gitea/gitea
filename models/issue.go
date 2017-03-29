@@ -7,6 +7,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"path"
 	"sort"
 	"strings"
 	"time"
@@ -200,6 +201,11 @@ func (issue *Issue) GetIsRead(userID int64) error {
 	return nil
 }
 
+// APIURL returns the absolute APIURL to this issue.
+func (issue *Issue) APIURL() string {
+	return issue.Repo.APIURL() + "/" + path.Join("issues", fmt.Sprint(issue.ID))
+}
+
 // HTMLURL returns the absolute URL to this issue.
 func (issue *Issue) HTMLURL() string {
 	var path string
@@ -246,6 +252,7 @@ func (issue *Issue) APIFormat() *api.Issue {
 
 	apiIssue := &api.Issue{
 		ID:       issue.ID,
+		URL:      issue.APIURL(),
 		Index:    issue.Index,
 		Poster:   issue.Poster.APIFormat(),
 		Title:    issue.Title,
@@ -367,7 +374,7 @@ func (issue *Issue) RemoveLabel(doer *User, label *Label) error {
 		return err
 	}
 
-	if has, err := HasAccess(doer, issue.Repo, AccessModeWrite); err != nil {
+	if has, err := HasAccess(doer.ID, issue.Repo, AccessModeWrite); err != nil {
 		return err
 	} else if !has {
 		return ErrLabelNotExist{}
@@ -408,7 +415,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		return err
 	}
 
-	if has, err := hasAccess(sess, doer, issue.Repo, AccessModeWrite); err != nil {
+	if has, err := hasAccess(sess, doer.ID, issue.Repo, AccessModeWrite); err != nil {
 		return err
 	} else if !has {
 		return ErrLabelNotExist{}
@@ -476,31 +483,24 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 	sort.Sort(labelSorter(issue.Labels))
 
 	var toAdd, toRemove []*Label
-	for _, l := range labels {
-		var exist bool
-		for _, oriLabel := range issue.Labels {
-			if oriLabel.ID == l.ID {
-				exist = true
-				break
-			}
-		}
-		if !exist {
-			toAdd = append(toAdd, l)
-		}
-	}
 
-	for _, oriLabel := range issue.Labels {
-		var exist bool
-		for _, l := range labels {
-			if oriLabel.ID == l.ID {
-				exist = true
-				break
-			}
-		}
-		if !exist {
-			toRemove = append(toRemove, oriLabel)
+	addIndex, removeIndex := 0, 0
+	for addIndex < len(labels) && removeIndex < len(issue.Labels) {
+		addLabel := labels[addIndex]
+		removeLabel := issue.Labels[removeIndex]
+		if addLabel.ID == removeLabel.ID {
+			addIndex++
+			removeIndex++
+		} else if addLabel.ID < removeLabel.ID {
+			toAdd = append(toAdd, addLabel)
+			addIndex++
+		} else {
+			toRemove = append(toRemove, removeLabel)
+			removeIndex++
 		}
 	}
+	toAdd = append(toAdd, labels[addIndex:]...)
+	toRemove = append(toRemove, issue.Labels[removeIndex:]...)
 
 	if len(toAdd) > 0 {
 		if err = issue.addLabels(sess, toAdd, doer); err != nil {
@@ -508,11 +508,9 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 		}
 	}
 
-	if len(toRemove) > 0 {
-		for _, l := range toRemove {
-			if err = issue.removeLabel(sess, doer, l); err != nil {
-				return fmt.Errorf("removeLabel: %v", err)
-			}
+	for _, l := range toRemove {
+		if err = issue.removeLabel(sess, doer, l); err != nil {
+			return fmt.Errorf("removeLabel: %v", err)
 		}
 	}
 
@@ -735,7 +733,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	return nil
 }
 
-// ChangeAssignee changes the Asssignee field of this issue.
+// ChangeAssignee changes the Assignee field of this issue.
 func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 	var oldAssigneeID = issue.AssigneeID
 	issue.AssigneeID = assigneeID
@@ -788,7 +786,7 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 type NewIssueOptions struct {
 	Repo        *Repository
 	Issue       *Issue
-	LableIDs    []int64
+	LabelIDs    []int64
 	Attachments []string // In UUID format.
 	IsPull      bool
 }
@@ -811,23 +809,14 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	if opts.Issue.AssigneeID > 0 {
-		assignee, err := getUserByID(e, opts.Issue.AssigneeID)
-		if err != nil && !IsErrUserNotExist(err) {
-			return fmt.Errorf("getUserByID: %v", err)
+	if assigneeID := opts.Issue.AssigneeID; assigneeID > 0 {
+		valid, err := hasAccess(e, assigneeID, opts.Repo, AccessModeWrite)
+		if err != nil {
+			return fmt.Errorf("hasAccess [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
 		}
-
-		// Assume assignee is invalid and drop silently.
-		opts.Issue.AssigneeID = 0
-		if assignee != nil {
-			valid, err := hasAccess(e, assignee, opts.Repo, AccessModeWrite)
-			if err != nil {
-				return fmt.Errorf("hasAccess [user_id: %d, repo_id: %d]: %v", assignee.ID, opts.Repo.ID, err)
-			}
-			if valid {
-				opts.Issue.AssigneeID = assignee.ID
-				opts.Issue.Assignee = assignee
-			}
+		if !valid {
+			opts.Issue.AssigneeID = 0
+			opts.Issue.Assignee = nil
 		}
 	}
 
@@ -860,12 +849,12 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		return err
 	}
 
-	if len(opts.LableIDs) > 0 {
+	if len(opts.LabelIDs) > 0 {
 		// During the session, SQLite3 driver cannot handle retrieve objects after update something.
 		// So we have to get all needed labels first.
-		labels := make([]*Label, 0, len(opts.LableIDs))
-		if err = e.In("id", opts.LableIDs).Find(&labels); err != nil {
-			return fmt.Errorf("find all labels [label_ids: %v]: %v", opts.LableIDs, err)
+		labels := make([]*Label, 0, len(opts.LabelIDs))
+		if err = e.In("id", opts.LabelIDs).Find(&labels); err != nil {
+			return fmt.Errorf("find all labels [label_ids: %v]: %v", opts.LabelIDs, err)
 		}
 
 		if err = opts.Issue.loadPoster(e); err != nil {
@@ -918,7 +907,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 	if err = newIssue(sess, issue.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       issue,
-		LableIDs:    labelIDs,
+		LabelIDs:    labelIDs,
 		Attachments: uuids,
 	}); err != nil {
 		return fmt.Errorf("newIssue: %v", err)
@@ -1011,6 +1000,16 @@ func getIssueByID(e Engine, id int64) (*Issue, error) {
 // GetIssueByID returns an issue by given ID.
 func GetIssueByID(id int64) (*Issue, error) {
 	return getIssueByID(x, id)
+}
+
+func getIssuesByIDs(e Engine, issueIDs []int64) ([]*Issue, error) {
+	issues := make([]*Issue, 0, 10)
+	return issues, e.In("id", issueIDs).Find(&issues)
+}
+
+// GetIssuesByIDs return issues with the given IDs.
+func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
+	return getIssuesByIDs(x, issueIDs)
 }
 
 // IssuesOptions represents options of an issue.
@@ -1128,14 +1127,29 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
-	// FIXME: use IssueList to improve performance.
-	for i := range issues {
-		if err := issues[i].LoadAttributes(); err != nil {
-			return nil, fmt.Errorf("LoadAttributes [%d]: %v", issues[i].ID, err)
-		}
+	if err := IssueList(issues).LoadAttributes(); err != nil {
+		return nil, fmt.Errorf("LoadAttributes: %v", err)
 	}
 
 	return issues, nil
+}
+
+// GetParticipantsByIssueID returns all users who are participated in comments of an issue.
+func GetParticipantsByIssueID(issueID int64) ([]*User, error) {
+	userIDs := make([]int64, 0, 5)
+	if err := x.Table("comment").Cols("poster_id").
+		Where("issue_id = ?", issueID).
+		And("type = ?", CommentTypeComment).
+		Distinct("poster_id").
+		Find(&userIDs); err != nil {
+		return nil, fmt.Errorf("get poster IDs: %v", err)
+	}
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+
+	users := make([]*User, 0, len(userIDs))
+	return users, x.In("id", userIDs).Find(&users)
 }
 
 // UpdateIssueMentions extracts mentioned people from content and
@@ -1398,63 +1412,4 @@ func updateIssue(e Engine, issue *Issue) error {
 // UpdateIssue updates all fields of given issue.
 func UpdateIssue(issue *Issue) error {
 	return updateIssue(x, issue)
-}
-
-// IssueList defines a list of issues
-type IssueList []*Issue
-
-func (issues IssueList) getRepoIDs() []int64 {
-	repoIDs := make([]int64, 0, len(issues))
-	for _, issue := range issues {
-		var has bool
-		for _, repoID := range repoIDs {
-			if repoID == issue.RepoID {
-				has = true
-				break
-			}
-		}
-		if !has {
-			repoIDs = append(repoIDs, issue.RepoID)
-		}
-	}
-	return repoIDs
-}
-
-func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
-	if len(issues) == 0 {
-		return nil, nil
-	}
-
-	repoIDs := issues.getRepoIDs()
-	rows, err := e.
-		Where("id > 0").
-		In("id", repoIDs).
-		Rows(new(Repository))
-	if err != nil {
-		return nil, fmt.Errorf("find repository: %v", err)
-	}
-	defer rows.Close()
-
-	repositories := make([]*Repository, 0, len(repoIDs))
-	repoMaps := make(map[int64]*Repository, len(repoIDs))
-	for rows.Next() {
-		var repo Repository
-		err = rows.Scan(&repo)
-		if err != nil {
-			return nil, fmt.Errorf("find repository: %v", err)
-		}
-
-		repositories = append(repositories, &repo)
-		repoMaps[repo.ID] = &repo
-	}
-
-	for _, issue := range issues {
-		issue.Repo = repoMaps[issue.RepoID]
-	}
-	return repositories, nil
-}
-
-// LoadRepositories loads issues' all repositories
-func (issues IssueList) LoadRepositories() ([]*Repository, error) {
-	return issues.loadRepositories(x)
 }

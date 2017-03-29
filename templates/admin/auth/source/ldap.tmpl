@@ -1,0 +1,65 @@
+<div class="ldap dldap field {{if not (or (eq .type 2) (eq .type 5))}}hide{{end}}">
+	<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
+		<label>{{.i18n.Tr "admin.auths.security_protocol"}}</label>
+		<div class="ui selection security-protocol dropdown">
+			<input type="hidden" id="security_protocol" name="security_protocol" value="{{.security_protocol}}">
+			<div class="text">{{.CurrentSecurityProtocol}}</div>
+			<i class="dropdown icon"></i>
+			<div class="menu">
+				{{range .SecurityProtocols}}
+					<div class="item" data-value="{{.Type}}">{{.Name}}</div>
+				{{end}}
+			</div>
+		</div>
+	</div>
+	<div class="required field">
+		<label for="host">{{.i18n.Tr "admin.auths.host"}}</label>
+		<input id="host" name="host" value="{{.host}}" placeholder="e.g. mydomain.com">
+	</div>
+	<div class="required field">
+		<label for="port">{{.i18n.Tr "admin.auths.port"}}</label>
+		<input id="port" name="port" value="{{.port}}"  placeholder="e.g. 636">
+	</div>
+	<div class="ldap field {{if not (eq .type 2)}}hide{{end}}">
+		<label for="bind_dn">{{.i18n.Tr "admin.auths.bind_dn"}}</label>
+		<input id="bind_dn" name="bind_dn" value="{{.bind_dn}}" placeholder="e.g. cn=Search,dc=mydomain,dc=com">
+	</div>
+	<input class="fake" type="password">
+	<div class="ldap field {{if not (eq .type 2)}}hide{{end}}">
+		<label for="bind_password">{{.i18n.Tr "admin.auths.bind_password"}}</label>
+		<input id="bind_password" name="bind_password" type="password" value="{{.bind_password}}">
+		<p class="help text red">{{.i18n.Tr "admin.auths.bind_password_helper"}}</p>
+	</div>
+	<div class="ldap required field {{if not (eq .type 2)}}hide{{end}}">
+		<label for="user_base">{{.i18n.Tr "admin.auths.user_base"}}</label>
+		<input id="user_base" name="user_base" value="{{.user_base}}" placeholder="e.g. ou=Users,dc=mydomain,dc=com">
+	</div>
+	<div class="dldap required field {{if not (eq .type 5)}}hide{{end}}">
+		<label for="user_dn">{{.i18n.Tr "admin.auths.user_dn"}}</label>
+		<input id="user_dn" name="user_dn" value="{{.user_dn}}" placeholder="e.g. uid=%s,ou=Users,dc=mydomain,dc=com">
+	</div>
+	<div class="required field">
+		<label for="filter">{{.i18n.Tr "admin.auths.filter"}}</label>
+		<input id="filter" name="filter" value="{{.filter}}" placeholder="e.g. (&(objectClass=posixAccount)(uid=%s))">
+	</div>
+	<div class="field">
+		<label for="admin_filter">{{.i18n.Tr "admin.auths.admin_filter"}}</label>
+		<input id="admin_filter" name="admin_filter" value="{{.admin_filter}}">
+	</div>
+	<div class="field">
+		<label for="attribute_username">{{.i18n.Tr "admin.auths.attribute_username"}}</label>
+		<input id="attribute_username" name="attribute_username" value="{{.attribute_username}}" placeholder="{{.i18n.Tr "admin.auths.attribute_username_placeholder"}}">
+	</div>
+	<div class="field">
+		<label for="attribute_name">{{.i18n.Tr "admin.auths.attribute_name"}}</label>
+		<input id="attribute_name" name="attribute_name" value="{{.attribute_name}}">
+	</div>
+	<div class="field">
+		<label for="attribute_surname">{{.i18n.Tr "admin.auths.attribute_surname"}}</label>
+		<input id="attribute_surname" name="attribute_surname" value="{{.attribute_surname}}">
+	</div>
+	<div class="required field">
+		<label for="attribute_mail">{{.i18n.Tr "admin.auths.attribute_mail"}}</label>
+		<input id="attribute_mail" name="attribute_mail" value="{{.attribute_mail}}" placeholder="e.g. mail">
+	</div>
+</div>

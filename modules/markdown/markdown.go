@@ -92,10 +92,10 @@ var (
 	ShortLinkPattern = regexp.MustCompile(`(\[\[.*\]\]\w*)`)
 
 	// AnySHA1Pattern allows to split url containing SHA into parts
-	AnySHA1Pattern = regexp.MustCompile(`http\S+//(\S+)/(\S+)/(\S+)/(\S+)/([0-9a-f]{40})(?:/?([^#\s]+)?(?:#(\S+))?)?`)
+	AnySHA1Pattern = regexp.MustCompile(`(http\S*)://(\S+)/(\S+)/(\S+)/(\S+)/([0-9a-f]{40})(?:/?([^#\s]+)?(?:#(\S+))?)?`)
 
 	// IssueFullPattern allows to split issue (and pull) URLs into parts
-	IssueFullPattern = regexp.MustCompile(`(?:^|\s|\()http\S+//((?:[^\s/]+/)+)((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
+	IssueFullPattern = regexp.MustCompile(`(?:^|\s|\()(http\S*)://((?:[^\s/]+/)+)((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
 
 	validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
 )
@@ -126,10 +126,11 @@ type Renderer struct {
 func (r *Renderer) Link(out *bytes.Buffer, link []byte, title []byte, content []byte) {
 	if len(link) > 0 && !isLink(link) {
 		if link[0] != '#' {
-			mLink := URLJoin(r.urlPrefix, string(link))
+			lnk := string(link)
 			if r.isWikiMarkdown {
-				mLink = URLJoin(r.urlPrefix, "wiki", string(link))
+				lnk = URLJoin("wiki", lnk)
 			}
+			mLink := URLJoin(r.urlPrefix, lnk)
 			link = []byte(mLink)
 		}
 	}
@@ -206,12 +207,10 @@ func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byt
 				return
 			}
 		} else {
-			if link[0] != '/' {
-				if !strings.HasSuffix(prefix, "/") {
-					prefix += "/"
-				}
-			}
-			link = []byte(url.QueryEscape(prefix + string(link)))
+			lnk := string(link)
+			lnk = URLJoin(prefix, lnk)
+			lnk = strings.Replace(lnk, " ", "+", -1)
+			link = []byte(lnk)
 		}
 	}
 
@@ -246,9 +245,29 @@ func URLJoin(elem ...string) string {
 	last := len(elem) - 1
 	for i, item := range elem {
 		res += item
-		if !strings.HasSuffix(res, "/") && i != last {
+		if i != last && !strings.HasSuffix(res, "/") {
 			res += "/"
 		}
+	}
+	cwdIndex := strings.Index(res, "/./")
+	for cwdIndex != -1 {
+		res = strings.Replace(res, "/./", "/", 1)
+		cwdIndex = strings.Index(res, "/./")
+	}
+	upIndex := strings.Index(res, "/..")
+	for upIndex != -1 {
+		res = strings.Replace(res, "/..", "", 1)
+		prevStart := -1
+		for i := upIndex - 1; i >= 0; i-- {
+			if res[i] == '/' {
+				prevStart = i
+				break
+			}
+		}
+		if prevStart != -1 {
+			res = res[:prevStart] + res[upIndex:]
+		}
+		upIndex = strings.Index(res, "/..")
 	}
 	return res
 }
@@ -286,6 +305,9 @@ func RenderIssueIndexPattern(rawBytes []byte, urlPrefix string, metas map[string
 
 // IsSameDomain checks if given url string has the same hostname as current Gitea instance
 func IsSameDomain(s string) bool {
+	if strings.HasPrefix(s, "/") {
+		return true
+	}
 	if uapp, err := url.Parse(setting.AppURL); err == nil {
 		if u, err := url.Parse(s); err == nil {
 			return u.Host == uapp.Host
@@ -300,26 +322,27 @@ func renderFullSha1Pattern(rawBytes []byte, urlPrefix string) []byte {
 	ms := AnySHA1Pattern.FindAllSubmatch(rawBytes, -1)
 	for _, m := range ms {
 		all := m[0]
-		paths := string(m[1])
-		var path = "//" + paths
-		author := string(m[2])
-		repoName := string(m[3])
+		protocol := string(m[1])
+		paths := string(m[2])
+		path := protocol + "://" + paths
+		author := string(m[3])
+		repoName := string(m[4])
 		path = URLJoin(path, author, repoName)
 		ltype := "src"
-		itemType := m[4]
+		itemType := m[5]
 		if IsSameDomain(paths) {
 			ltype = string(itemType)
 		} else if string(itemType) == "commit" {
 			ltype = "commit"
 		}
-		sha := m[5]
+		sha := m[6]
 		var subtree string
-		if len(m) > 6 && len(m[6]) > 0 {
-			subtree = string(m[6])
+		if len(m) > 7 && len(m[7]) > 0 {
+			subtree = string(m[7])
 		}
 		var line []byte
-		if len(m) > 7 && len(m[7]) > 0 {
-			line = m[7]
+		if len(m) > 8 && len(m[8]) > 0 {
+			line = m[8]
 		}
 		urlSuffix := ""
 		text := base.ShortSha(string(sha))
@@ -346,23 +369,18 @@ func renderFullIssuePattern(rawBytes []byte, urlPrefix string) []byte {
 	ms := IssueFullPattern.FindAllSubmatch(rawBytes, -1)
 	for _, m := range ms {
 		all := m[0]
-		paths := bytes.Split(m[1], []byte("/"))
+		protocol := string(m[1])
+		paths := bytes.Split(m[2], []byte("/"))
 		paths = paths[:len(paths)-1]
 		if bytes.HasPrefix(paths[0], []byte("gist.")) {
 			continue
 		}
-		var path string
-		if len(paths) > 3 {
-			// Internal one
-			path = URLJoin(urlPrefix, "issues")
-		} else {
-			path = "//" + string(m[1])
-		}
-		id := string(m[2])
+		path := protocol + "://" + string(m[2])
+		id := string(m[3])
 		path = URLJoin(path, id)
 		var comment []byte
 		if len(m) > 3 {
-			comment = m[3]
+			comment = m[4]
 		}
 		urlSuffix := ""
 		text := "#" + id
@@ -394,8 +412,13 @@ func lastIndexOfByte(sl []byte, target byte) int {
 	return -1
 }
 
-// renderShortLinks processes [[syntax]]
-func renderShortLinks(rawBytes []byte, urlPrefix string, noLink bool) []byte {
+// RenderShortLinks processes [[syntax]]
+//
+// noLink flag disables making link tags when set to true
+// so this function just replaces the whole [[...]] with the content text
+//
+// isWikiMarkdown is a flag to choose linking url prefix
+func RenderShortLinks(rawBytes []byte, urlPrefix string, noLink bool, isWikiMarkdown bool) []byte {
 	ms := ShortLinkPattern.FindAll(rawBytes, -1)
 	for _, m := range ms {
 		orig := bytes.TrimSpace(m)
@@ -482,11 +505,17 @@ func renderShortLinks(rawBytes []byte, urlPrefix string, noLink bool) []byte {
 		}
 		absoluteLink := isLink([]byte(link))
 		if !absoluteLink {
-			link = url.QueryEscape(link)
+			link = strings.Replace(link, " ", "+", -1)
 		}
 		if image {
 			if !absoluteLink {
-				link = URLJoin(urlPrefix, "wiki", "raw", link)
+				if IsSameDomain(urlPrefix) {
+					urlPrefix = strings.Replace(urlPrefix, "/src/", "/raw/", 1)
+				}
+				if isWikiMarkdown {
+					link = URLJoin("wiki", "raw", link)
+				}
+				link = URLJoin(urlPrefix, link)
 			}
 			title := props["title"]
 			if title == "" {
@@ -504,7 +533,10 @@ func renderShortLinks(rawBytes []byte, urlPrefix string, noLink bool) []byte {
 			}
 			name = fmt.Sprintf(`<img src="%s" %s title="%s" />`, link, alt, title)
 		} else if !absoluteLink {
-			link = URLJoin(urlPrefix, "wiki", link)
+			if isWikiMarkdown {
+				link = URLJoin("wiki", link)
+			}
+			link = URLJoin(urlPrefix, link)
 		}
 		if noLink {
 			rawBytes = bytes.Replace(rawBytes, orig, []byte(name), -1)
@@ -527,7 +559,7 @@ func RenderCrossReferenceIssueIndexPattern(rawBytes []byte, urlPrefix string, me
 		repo := string(bytes.Split(m, []byte("#"))[0])
 		issue := string(bytes.Split(m, []byte("#"))[1])
 
-		link := fmt.Sprintf(`<a href="%s">%s</a>`, URLJoin(urlPrefix, repo, "issues", issue), m)
+		link := fmt.Sprintf(`<a href="%s">%s</a>`, URLJoin(setting.AppURL, repo, "issues", issue), m)
 		rawBytes = bytes.Replace(rawBytes, m, []byte(link), 1)
 	}
 	return rawBytes
@@ -548,7 +580,7 @@ func renderSha1CurrentPattern(rawBytes []byte, urlPrefix string) []byte {
 }
 
 // RenderSpecialLink renders mentions, indexes and SHA1 strings to corresponding links.
-func RenderSpecialLink(rawBytes []byte, urlPrefix string, metas map[string]string) []byte {
+func RenderSpecialLink(rawBytes []byte, urlPrefix string, metas map[string]string, isWikiMarkdown bool) []byte {
 	ms := MentionPattern.FindAll(rawBytes, -1)
 	for _, m := range ms {
 		m = m[bytes.Index(m, []byte("@")):]
@@ -556,7 +588,7 @@ func RenderSpecialLink(rawBytes []byte, urlPrefix string, metas map[string]strin
 			[]byte(fmt.Sprintf(`<a href="%s">%s</a>`, URLJoin(setting.AppURL, string(m[1:])), m)), -1)
 	}
 
-	rawBytes = renderShortLinks(rawBytes, urlPrefix, false)
+	rawBytes = RenderShortLinks(rawBytes, urlPrefix, false, isWikiMarkdown)
 	rawBytes = RenderIssueIndexPattern(rawBytes, urlPrefix, metas)
 	rawBytes = RenderCrossReferenceIssueIndexPattern(rawBytes, urlPrefix, metas)
 	rawBytes = renderFullSha1Pattern(rawBytes, urlPrefix)
@@ -601,7 +633,7 @@ var noEndTags = []string{"img", "input", "br", "hr"}
 
 // PostProcess treats different types of HTML differently,
 // and only renders special links for plain text blocks.
-func PostProcess(rawHTML []byte, urlPrefix string, metas map[string]string) []byte {
+func PostProcess(rawHTML []byte, urlPrefix string, metas map[string]string, isWikiMarkdown bool) []byte {
 	startTags := make([]string, 0, 5)
 	var buf bytes.Buffer
 	tokenizer := html.NewTokenizer(bytes.NewReader(rawHTML))
@@ -611,7 +643,7 @@ OUTER_LOOP:
 		token := tokenizer.Token()
 		switch token.Type {
 		case html.TextToken:
-			buf.Write(RenderSpecialLink([]byte(token.String()), urlPrefix, metas))
+			buf.Write(RenderSpecialLink([]byte(token.String()), urlPrefix, metas, isWikiMarkdown))
 
 		case html.StartTagToken:
 			buf.WriteString(token.String())
@@ -623,7 +655,7 @@ OUTER_LOOP:
 					token = tokenizer.Token()
 
 					// Copy the token to the output verbatim
-					buf.Write(renderShortLinks([]byte(token.String()), urlPrefix, true))
+					buf.Write(RenderShortLinks([]byte(token.String()), urlPrefix, true, isWikiMarkdown))
 
 					if token.Type == html.StartTagToken {
 						if !com.IsSliceContainsStr(noEndTags, token.Data) {
@@ -673,9 +705,9 @@ OUTER_LOOP:
 
 // Render renders Markdown to HTML with all specific handling stuff.
 func render(rawBytes []byte, urlPrefix string, metas map[string]string, isWikiMarkdown bool) []byte {
-	urlPrefix = strings.Replace(urlPrefix, " ", "%20", -1)
+	urlPrefix = strings.Replace(urlPrefix, " ", "+", -1)
 	result := RenderRaw(rawBytes, urlPrefix, isWikiMarkdown)
-	result = PostProcess(result, urlPrefix, metas)
+	result = PostProcess(result, urlPrefix, metas, isWikiMarkdown)
 	result = Sanitizer.SanitizeBytes(result)
 	return result
 }

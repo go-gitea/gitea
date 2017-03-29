@@ -11,10 +11,9 @@ BINDATA := modules/{options,public,templates}/bindata.go
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
 
-LDFLAGS := -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')"
+LDFLAGS := -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')" -X "main.Tags=$(TAGS)"
 
-TARGETS ?= linux/*,darwin/*,windows/*
-PACKAGES ?= $(shell go list ./... | grep -v /vendor/)
+PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations,$(shell go list ./... | grep -v /vendor/))
 SOURCES ?= $(shell find . -name "*.go" -type f)
 
 TAGS ?=
@@ -47,24 +46,29 @@ vet:
 
 .PHONY: generate
 generate:
-	@which go-bindata > /dev/null; if [ $$? -ne 0 ]; then \
+	@hash go-bindata > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/jteeuwen/go-bindata/...; \
 	fi
 	go generate $(PACKAGES)
 
 .PHONY: errcheck
 errcheck:
-	@which errcheck > /dev/null; if [ $$? -ne 0 ]; then \
+	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/kisielk/errcheck; \
 	fi
 	errcheck $(PACKAGES)
 
 .PHONY: lint
 lint:
-	@which golint > /dev/null; if [ $$? -ne 0 ]; then \
+	@hash golint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/golang/lint/golint; \
 	fi
 	for PKG in $(PACKAGES); do golint -set_exit_status $$PKG || exit 1; done;
+
+.PHONY: integrations
+integrations: TAGS=bindata sqlite
+integrations: build
+	go test code.gitea.io/gitea/integrations
 
 .PHONY: test
 test:
@@ -93,22 +97,42 @@ $(EXECUTABLE): $(SOURCES)
 
 .PHONY: docker
 docker:
-	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="$(TAGS)" webhippie/golang:edge make clean generate build
+	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" webhippie/golang:edge make clean generate build
 	docker build -t gitea/gitea:latest .
 
 .PHONY: release
-release: release-dirs release-build release-copy release-check
+release: release-dirs release-windows release-linux release-darwin release-copy release-check
 
 .PHONY: release-dirs
 release-dirs:
 	mkdir -p $(DIST)/binaries $(DIST)/release
 
-.PHONY: release-build
-release-build:
-	@which xgo > /dev/null; if [ $$? -ne 0 ]; then \
+.PHONY: release-windows
+release-windows:
+	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/karalabe/xgo; \
 	fi
-	xgo -dest $(DIST)/binaries -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets '$(TARGETS)' -out $(EXECUTABLE)-$(VERSION) .
+	xgo -dest $(DIST)/binaries -tags '$(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+ifeq ($(CI),drone)
+	mv /build/* $(DIST)/binaries
+endif
+
+.PHONY: release-linux
+release-linux:
+	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/karalabe/xgo; \
+	fi
+	xgo -dest $(DIST)/binaries -tags '$(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/*' -out gitea-$(VERSION) .
+ifeq ($(CI),drone)
+	mv /build/* $(DIST)/binaries
+endif
+
+.PHONY: release-darwin
+release-darwin:
+	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/karalabe/xgo; \
+	fi
+	xgo -dest $(DIST)/binaries -tags '$(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	mv /build/* $(DIST)/binaries
 endif

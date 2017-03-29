@@ -1,29 +1,26 @@
-<div class="four wide column">
-	<div class="ui vertical menu">
-		<div class="header item">{{.i18n.Tr "admin_panel"}}</div>
-		<a class="{{if .PageIsAdminDashboard}}active{{end}} item" href="{{AppSubUrl}}/admin">
-			{{.i18n.Tr "admin.dashboard"}}
-		</a>
-		<a class="{{if .PageIsAdminUsers}}active{{end}} item" href="{{AppSubUrl}}/admin/users">
-			{{.i18n.Tr "admin.users"}}
-		</a>
-		<a class="{{if .PageIsAdminOrganizations}}active{{end}} item" href="{{AppSubUrl}}/admin/orgs">
-			{{.i18n.Tr "admin.organizations"}}
-		</a>
-		<a class="{{if .PageIsAdminRepositories}}active{{end}} item" href="{{AppSubUrl}}/admin/repos">
-			{{.i18n.Tr "admin.repositories"}}
-		</a>
-		<a class="{{if .PageIsAdminAuthentications}}active{{end}} item" href="{{AppSubUrl}}/admin/auths">
-			{{.i18n.Tr "admin.authentication"}}
-		</a>
-		<a class="{{if .PageIsAdminConfig}}active{{end}} item" href="{{AppSubUrl}}/admin/config">
-			{{.i18n.Tr "admin.config"}}
-		</a>
-		<a class="{{if .PageIsAdminNotices}}active{{end}} item" href="{{AppSubUrl}}/admin/notices">
-			{{.i18n.Tr "admin.notices"}}
-		</a>
-		<a class="{{if .PageIsAdminMonitor}}active{{end}} item" href="{{AppSubUrl}}/admin/monitor">
-			{{.i18n.Tr "admin.monitor"}}
-		</a>
-	</div>
+<div class="ui secondary pointing tabular top attached borderless menu stackable new-menu navbar">
+	<a class="{{if .PageIsAdminDashboard}}active{{end}} item" href="{{AppSubUrl}}/admin">
+		{{.i18n.Tr "admin.dashboard"}}
+	</a>
+	<a class="{{if .PageIsAdminUsers}}active{{end}} item" href="{{AppSubUrl}}/admin/users">
+		{{.i18n.Tr "admin.users"}}
+	</a>
+	<a class="{{if .PageIsAdminOrganizations}}active{{end}} item" href="{{AppSubUrl}}/admin/orgs">
+		{{.i18n.Tr "admin.organizations"}}
+	</a>
+	<a class="{{if .PageIsAdminRepositories}}active{{end}} item" href="{{AppSubUrl}}/admin/repos">
+		{{.i18n.Tr "admin.repositories"}}
+	</a>
+	<a class="{{if .PageIsAdminAuthentications}}active{{end}} item" href="{{AppSubUrl}}/admin/auths">
+		{{.i18n.Tr "admin.authentication"}}
+	</a>
+	<a class="{{if .PageIsAdminConfig}}active{{end}} item" href="{{AppSubUrl}}/admin/config">
+		{{.i18n.Tr "admin.config"}}
+	</a>
+	<a class="{{if .PageIsAdminNotices}}active{{end}} item" href="{{AppSubUrl}}/admin/notices">
+		{{.i18n.Tr "admin.notices"}}
+	</a>
+	<a class="{{if .PageIsAdminMonitor}}active{{end}} item" href="{{AppSubUrl}}/admin/monitor">
+		{{.i18n.Tr "admin.monitor"}}
+	</a>
 </div>

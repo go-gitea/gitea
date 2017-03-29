@@ -50,7 +50,7 @@ type BatchResponse struct {
 	Objects  []*Representation `json:"objects"`
 }
 
-// Representation is object medata as seen by clients of the lfs server.
+// Representation is object metadata as seen by clients of the lfs server.
 type Representation struct {
 	Oid     string           `json:"oid"`
 	Size    int64            `json:"size"`
@@ -463,7 +463,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	}
 
 	if ctx.IsSigned {
-		accessCheck, _ := models.HasAccess(ctx.User, repository, accessMode)
+		accessCheck, _ := models.HasAccess(ctx.User.ID, repository, accessMode)
 		return accessCheck
 	}
 
@@ -499,7 +499,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		return false
 	}
 
-	accessCheck, _ := models.HasAccess(userModel, repository, accessMode)
+	accessCheck, _ := models.HasAccess(userModel.ID, repository, accessMode)
 	return accessCheck
 }
 

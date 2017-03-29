@@ -131,7 +131,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 	}
 	repos := make([]*api.Repository, len(team.Repos))
 	for i, repo := range team.Repos {
-		access, err := models.AccessLevel(ctx.User, repo)
+		access, err := models.AccessLevel(ctx.User.ID, repo)
 		if err != nil {
 			ctx.Error(500, "GetTeamRepos", err)
 			return
@@ -161,7 +161,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if access, err := models.AccessLevel(ctx.User, repo); err != nil {
+	if access, err := models.AccessLevel(ctx.User.ID, repo); err != nil {
 		ctx.Error(500, "AccessLevel", err)
 		return
 	} else if access < models.AccessModeAdmin {
@@ -181,7 +181,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if access, err := models.AccessLevel(ctx.User, repo); err != nil {
+	if access, err := models.AccessLevel(ctx.User.ID, repo); err != nil {
 		ctx.Error(500, "AccessLevel", err)
 		return
 	} else if access < models.AccessModeAdmin {

@@ -1,96 +1,92 @@
 {{template "base/head" .}}
 <div class="admin notice">
+	{{template "admin/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "admin/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "admin.notices.system_notice_list"}} ({{.i18n.Tr "admin.total" .Total}})
-				</h4>
-				<div class="ui attached table segment">
-					<table class="ui very basic select selectable table">
-						<thead>
-							<tr>
-								<th></th>
-								<th>ID</th>
-								<th>{{.i18n.Tr "admin.notices.type"}}</th>
-								<th>{{.i18n.Tr "admin.notices.desc"}}</th>
-								<th width="100px">{{.i18n.Tr "admin.users.created"}}</th>
-								<th>{{.i18n.Tr "admin.notices.op"}}</th>
-							</tr>
-						</thead>
-						<tbody>
-							{{range .Notices}}
-								<tr>
-									<td class="collapsing">
-										<div class="ui fitted checkbox" data-id="{{.ID}}">
-											<input type="checkbox"> <label></label>
-										</div>
-									</td>
-									<td>{{.ID}}</td>
-									<td>{{$.i18n.Tr .TrStr}}</td>
-									<td>{{SubStr .Description 0 120}}...</td>
-									<td><span class="poping up" data-content="{{.Created}}" data-variation="inverted tiny">{{DateFmtShort .Created}}</span></td>
-									<td><a href="#"><i class="browser icon view-detail" data-content="{{.Description}}"></i></a></td>
-								</tr>
-							{{end}}
-						</tbody>
-						<tfoot class="full-width">
-							<tr>
-								<th></th>
-								<th colspan="5">
-									<div class="ui right">
-										<a class="ui red small button" href="{{AppSubUrl}}/admin/notices/empty">{{.i18n.Tr "admin.notices.delete_all"}}</a>
-									</div>
-									<div class="ui floating upward dropdown small button">
-										<span class="text">{{.i18n.Tr "admin.notices.actions"}}</span>
-										<div class="menu">
-											<div class="item select action" data-action="select-all">
-												{{.i18n.Tr "admin.notices.select_all"}}
-											</div>
-											<div class="item select action" data-action="deselect-all">
-												{{.i18n.Tr "admin.notices.deselect_all"}}
-											</div>
-											<div class="item select action" data-action="inverse">
-												{{.i18n.Tr "admin.notices.inverse_selection"}}
-											</div>
-										</div>
-									</div>
-									<div class="ui small teal button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="{{.Link}}?page={{.Page.Current}}">
-										{{.i18n.Tr "admin.notices.delete_selected"}}
-									</div>
-								</th>
-							</tr>
-						</tfoot>
-					</table>
-				</div>
-
-				{{with .Page}}
-					{{if gt .TotalPages 1}}
-						<div class="center page buttons">
-							<div class="ui borderless pagination menu">
-								<a class="{{if .IsFirst}}disabled{{end}} item" href="{{$.Link}}"><i class="angle double left icon"></i> {{$.i18n.Tr "admin.first_page"}}</a>
-								<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.Link}}?page={{.Previous}}"{{end}}>
-									<i class="left arrow icon"></i> {{$.i18n.Tr "repo.issues.previous"}}
-								</a>
-								{{range .Pages}}
-									{{if eq .Num -1}}
-										<a class="disabled item">...</a>
-									{{else}}
-										<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.Link}}?page={{.Num}}"{{end}}>{{.Num}}</a>
-									{{end}}
-								{{end}}
-								<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.Link}}?page={{.Next}}"{{end}}>
-									{{$.i18n.Tr "repo.issues.next"}}&nbsp;<i class="icon right arrow"></i>
-								</a>
-								<a class="{{if .IsLast}}disabled{{end}} item" href="{{$.Link}}?page={{.TotalPages}}">{{$.i18n.Tr "admin.last_page"}}&nbsp;<i class="angle double right icon"></i></a>
-							</div>
-						</div>
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.notices.system_notice_list"}} ({{.i18n.Tr "admin.total" .Total}})
+		</h4>
+		<div class="ui attached table segment">
+			<table class="ui very basic select selectable table">
+				<thead>
+					<tr>
+						<th></th>
+						<th>ID</th>
+						<th>{{.i18n.Tr "admin.notices.type"}}</th>
+						<th>{{.i18n.Tr "admin.notices.desc"}}</th>
+						<th width="100px">{{.i18n.Tr "admin.users.created"}}</th>
+						<th>{{.i18n.Tr "admin.notices.op"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .Notices}}
+						<tr>
+							<td class="collapsing">
+								<div class="ui fitted checkbox" data-id="{{.ID}}">
+									<input type="checkbox"> <label></label>
+								</div>
+							</td>
+							<td>{{.ID}}</td>
+							<td>{{$.i18n.Tr .TrStr}}</td>
+							<td>{{SubStr .Description 0 120}}...</td>
+							<td><span class="poping up" data-content="{{.Created}}" data-variation="inverted tiny">{{DateFmtShort .Created}}</span></td>
+							<td><a href="#"><i class="browser icon view-detail" data-content="{{.Description}}"></i></a></td>
+						</tr>
 					{{end}}
-				{{end}}
-			</div>
+				</tbody>
+				<tfoot class="full-width">
+					<tr>
+						<th></th>
+						<th colspan="5">
+							<div class="ui right">
+								<a class="ui red small button" href="{{AppSubUrl}}/admin/notices/empty">{{.i18n.Tr "admin.notices.delete_all"}}</a>
+							</div>
+							<div class="ui floating upward dropdown small button">
+								<span class="text">{{.i18n.Tr "admin.notices.actions"}}</span>
+								<div class="menu">
+									<div class="item select action" data-action="select-all">
+										{{.i18n.Tr "admin.notices.select_all"}}
+									</div>
+									<div class="item select action" data-action="deselect-all">
+										{{.i18n.Tr "admin.notices.deselect_all"}}
+									</div>
+									<div class="item select action" data-action="inverse">
+										{{.i18n.Tr "admin.notices.inverse_selection"}}
+									</div>
+								</div>
+							</div>
+							<div class="ui small teal button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="{{.Link}}?page={{.Page.Current}}">
+								{{.i18n.Tr "admin.notices.delete_selected"}}
+							</div>
+						</th>
+					</tr>
+				</tfoot>
+			</table>
 		</div>
+
+		{{with .Page}}
+			{{if gt .TotalPages 1}}
+				<div class="center page buttons">
+					<div class="ui borderless pagination menu">
+						<a class="{{if .IsFirst}}disabled{{end}} item" href="{{$.Link}}"><i class="angle double left icon"></i> {{$.i18n.Tr "admin.first_page"}}</a>
+						<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.Link}}?page={{.Previous}}"{{end}}>
+							<i class="left arrow icon"></i> {{$.i18n.Tr "repo.issues.previous"}}
+						</a>
+						{{range .Pages}}
+							{{if eq .Num -1}}
+								<a class="disabled item">...</a>
+							{{else}}
+								<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.Link}}?page={{.Num}}"{{end}}>{{.Num}}</a>
+							{{end}}
+						{{end}}
+						<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.Link}}?page={{.Next}}"{{end}}>
+							{{$.i18n.Tr "repo.issues.next"}}&nbsp;<i class="icon right arrow"></i>
+						</a>
+						<a class="{{if .IsLast}}disabled{{end}} item" href="{{$.Link}}?page={{.TotalPages}}">{{$.i18n.Tr "admin.last_page"}}&nbsp;<i class="angle double right icon"></i></a>
+					</div>
+				</div>
+			{{end}}
+		{{end}}
 	</div>
 </div>
 

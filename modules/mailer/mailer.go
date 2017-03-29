@@ -146,7 +146,7 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 		}
 	}
 
-	// If not using SMTPS, alway use STARTTLS if available
+	// If not using SMTPS, always use STARTTLS if available
 	hasStartTLS, _ := client.Extension("STARTTLS")
 	if !isSecureConn && hasStartTLS {
 		if err = client.StartTLS(tlsconfig); err != nil {

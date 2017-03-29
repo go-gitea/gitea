@@ -93,6 +93,21 @@ func (err ErrEmailAlreadyUsed) Error() string {
 	return fmt.Sprintf("e-mail has been used [email: %s]", err.Email)
 }
 
+// ErrOpenIDAlreadyUsed represents a "OpenIDAlreadyUsed" kind of error.
+type ErrOpenIDAlreadyUsed struct {
+	OpenID string
+}
+
+// IsErrOpenIDAlreadyUsed checks if an error is a ErrOpenIDAlreadyUsed.
+func IsErrOpenIDAlreadyUsed(err error) bool {
+	_, ok := err.(ErrOpenIDAlreadyUsed)
+	return ok
+}
+
+func (err ErrOpenIDAlreadyUsed) Error() string {
+	return fmt.Sprintf("OpenID has been used [oid: %s]", err.OpenID)
+}
+
 // ErrUserOwnRepos represents a "UserOwnRepos" kind of error.
 type ErrUserOwnRepos struct {
 	UID int64
@@ -243,6 +258,54 @@ func IsErrKeyNameAlreadyUsed(err error) bool {
 
 func (err ErrKeyNameAlreadyUsed) Error() string {
 	return fmt.Sprintf("public key already exists [owner_id: %d, name: %s]", err.OwnerID, err.Name)
+}
+
+// ErrGPGKeyNotExist represents a "GPGKeyNotExist" kind of error.
+type ErrGPGKeyNotExist struct {
+	ID int64
+}
+
+// IsErrGPGKeyNotExist checks if an error is a ErrGPGKeyNotExist.
+func IsErrGPGKeyNotExist(err error) bool {
+	_, ok := err.(ErrGPGKeyNotExist)
+	return ok
+}
+
+func (err ErrGPGKeyNotExist) Error() string {
+	return fmt.Sprintf("public gpg key does not exist [id: %d]", err.ID)
+}
+
+// ErrGPGKeyIDAlreadyUsed represents a "GPGKeyIDAlreadyUsed" kind of error.
+type ErrGPGKeyIDAlreadyUsed struct {
+	KeyID string
+}
+
+// IsErrGPGKeyIDAlreadyUsed checks if an error is a ErrKeyNameAlreadyUsed.
+func IsErrGPGKeyIDAlreadyUsed(err error) bool {
+	_, ok := err.(ErrGPGKeyIDAlreadyUsed)
+	return ok
+}
+
+func (err ErrGPGKeyIDAlreadyUsed) Error() string {
+	return fmt.Sprintf("public key already exists [key_id: %s]", err.KeyID)
+}
+
+// ErrGPGKeyAccessDenied represents a "GPGKeyAccessDenied" kind of Error.
+type ErrGPGKeyAccessDenied struct {
+	UserID int64
+	KeyID  int64
+}
+
+// IsErrGPGKeyAccessDenied checks if an error is a ErrGPGKeyAccessDenied.
+func IsErrGPGKeyAccessDenied(err error) bool {
+	_, ok := err.(ErrGPGKeyAccessDenied)
+	return ok
+}
+
+// Error pretty-prints an error of type ErrGPGKeyAccessDenied.
+func (err ErrGPGKeyAccessDenied) Error() string {
+	return fmt.Sprintf("user does not have access to the key [user_id: %d, key_id: %d]",
+		err.UserID, err.KeyID)
 }
 
 // ErrKeyAccessDenied represents a "KeyAccessDenied" kind of error.
@@ -846,4 +909,44 @@ func IsErrUploadNotExist(err error) bool {
 
 func (err ErrUploadNotExist) Error() string {
 	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
+}
+
+//  ___________         __                             .__    .____                 .__          ____ ___
+//  \_   _____/__  ____/  |_  ___________  ____ _____  |  |   |    |    ____   ____ |__| ____   |    |   \______ ___________
+//   |    __)_\  \/  /\   __\/ __ \_  __ \/    \\__  \ |  |   |    |   /  _ \ / ___\|  |/    \  |    |   /  ___// __ \_  __ \
+//   |        \>    <  |  | \  ___/|  | \/   |  \/ __ \|  |__ |    |__(  <_> ) /_/  >  |   |  \ |    |  /\___ \\  ___/|  | \/
+//  /_______  /__/\_ \ |__|  \___  >__|  |___|  (____  /____/ |_______ \____/\___  /|__|___|  / |______//____  >\___  >__|
+//          \/      \/           \/           \/     \/               \/    /_____/         \/               \/     \/
+
+// ErrExternalLoginUserAlreadyExist represents a "ExternalLoginUserAlreadyExist" kind of error.
+type ErrExternalLoginUserAlreadyExist struct {
+	ExternalID    string
+	UserID        int64
+	LoginSourceID int64
+}
+
+// IsErrExternalLoginUserAlreadyExist checks if an error is a ExternalLoginUserAlreadyExist.
+func IsErrExternalLoginUserAlreadyExist(err error) bool {
+	_, ok := err.(ErrExternalLoginUserAlreadyExist)
+	return ok
+}
+
+func (err ErrExternalLoginUserAlreadyExist) Error() string {
+	return fmt.Sprintf("external login user already exists [externalID: %s, userID: %d, loginSourceID: %d]", err.ExternalID, err.UserID, err.LoginSourceID)
+}
+
+// ErrExternalLoginUserNotExist represents a "ExternalLoginUserNotExist" kind of error.
+type ErrExternalLoginUserNotExist struct {
+	UserID        int64
+	LoginSourceID int64
+}
+
+// IsErrExternalLoginUserNotExist checks if an error is a ExternalLoginUserNotExist.
+func IsErrExternalLoginUserNotExist(err error) bool {
+	_, ok := err.(ErrExternalLoginUserNotExist)
+	return ok
+}
+
+func (err ErrExternalLoginUserNotExist) Error() string {
+	return fmt.Sprintf("external login user link does not exists [userID: %d, loginSourceID: %d]", err.UserID, err.LoginSourceID)
 }

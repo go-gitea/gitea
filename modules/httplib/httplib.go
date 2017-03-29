@@ -303,9 +303,13 @@ func (r *Request) getResponse() (*http.Response, error) {
 
 	if trans == nil {
 		// create default transport
+		proxy := r.setting.Proxy
+		if proxy == nil {
+			proxy = http.ProxyFromEnvironment
+		}
 		trans = &http.Transport{
 			TLSClientConfig: r.setting.TLSClientConfig,
-			Proxy:           r.setting.Proxy,
+			Proxy:           proxy,
 			Dial:            TimeoutDialer(r.setting.ConnectTimeout, r.setting.ReadWriteTimeout),
 		}
 	} else {
@@ -434,7 +438,7 @@ func (r *Request) ToXML(v interface{}) error {
 	return err
 }
 
-// Response executes request client gets response mannually.
+// Response executes request client gets response manually.
 func (r *Request) Response() (*http.Response, error) {
 	return r.getResponse()
 }

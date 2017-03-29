@@ -70,7 +70,7 @@ func repoAssignment() macaron.Handler {
 		if ctx.IsSigned && ctx.User.IsAdmin {
 			ctx.Repo.AccessMode = models.AccessModeOwner
 		} else {
-			mode, err := models.AccessLevel(ctx.User, repo)
+			mode, err := models.AccessLevel(ctx.User.ID, repo)
 			if err != nil {
 				ctx.Error(500, "AccessLevel", err)
 				return
@@ -232,6 +232,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 	m.Group("/v1", func() {
 		// Miscellaneous
+		m.Get("/version", misc.Version)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
 
@@ -242,6 +243,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Group("/:username", func() {
 				m.Get("", user.GetInfo)
 
+				m.Get("/repos", user.ListUserRepos)
 				m.Group("/tokens", func() {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
@@ -252,6 +254,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/users", func() {
 			m.Group("/:username", func() {
 				m.Get("/keys", user.ListPublicKeys)
+				m.Get("/gpg_keys", user.ListGPGKeys)
 
 				m.Get("/followers", user.ListFollowers)
 				m.Group("/following", func() {
@@ -284,6 +287,16 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Delete(user.DeletePublicKey)
 			})
 
+			m.Group("/gpg_keys", func() {
+				m.Combo("").Get(user.ListMyGPGKeys).
+					Post(bind(api.CreateGPGKeyOption{}), user.CreateGPGKey)
+				m.Combo("/:id").Get(user.GetGPGKey).
+					Delete(user.DeleteGPGKey)
+			})
+
+			m.Combo("/repos").Get(user.ListMyRepos).
+				Post(bind(api.CreateRepoOption{}), repo.Create)
+
 			m.Group("/starred", func() {
 				m.Get("", user.GetMyStarredRepos)
 				m.Group("/:username/:reponame", func() {
@@ -297,8 +310,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, reqToken())
 
 		// Repositories
-		m.Combo("/user/repos", reqToken()).Get(repo.ListMyRepos).
-			Post(bind(api.CreateRepoOption{}), repo.Create)
 		m.Post("/org/:org/repos", reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
 
 		m.Group("/repos", func() {

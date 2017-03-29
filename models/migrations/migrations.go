@@ -82,6 +82,26 @@ var migrations = []Migration{
 	NewMigration("create user column allow create organization", createAllowCreateOrganizationColumn),
 	// V16 -> v17
 	NewMigration("create repo unit table and add units for all repos", addUnitsToTables),
+	// v17 -> v18
+	NewMigration("set protect branches updated with created", setProtectedBranchUpdatedWithCreated),
+	// v18 -> v19
+	NewMigration("add external login user", addExternalLoginUser),
+	// v19 -> v20
+	NewMigration("generate and migrate Git hooks", generateAndMigrateGitHooks),
+	// v20 -> v21
+	NewMigration("use new avatar path name for security reason", useNewNameAvatars),
+	// v21 -> v22
+	NewMigration("rewrite authorized_keys file via new format", useNewPublickeyFormat),
+	// v22 -> v23
+	NewMigration("generate and migrate wiki Git hooks", generateAndMigrateWikiGitHooks),
+	// v23 -> v24
+	NewMigration("add user openid table", addUserOpenID),
+	// v24 -> v25
+	NewMigration("change the key_id and primary_key_id type", changeGPGKeysColumns),
+	// v25 -> v26
+	NewMigration("add show field in user openid table", addUserOpenIDShow),
+	// v26 -> v27
+	NewMigration("generate and migrate repo and wiki Git hooks", generateAndMigrateGitHookChains),
 }
 
 // Migrate database to current version

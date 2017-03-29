@@ -37,6 +37,7 @@ const (
 	tplSettingsApplications base.TplName = "user/settings/applications"
 	tplSettingsTwofa        base.TplName = "user/settings/twofa"
 	tplSettingsTwofaEnroll  base.TplName = "user/settings/twofa_enroll"
+	tplSettingsAccountLink  base.TplName = "user/settings/account_link"
 	tplSettingsDelete       base.TplName = "user/settings/delete"
 	tplSecurity             base.TplName = "user/security"
 )
@@ -103,7 +104,12 @@ func SettingsPost(ctx *context.Context, form auth.UpdateProfileForm) {
 	ctx.User.KeepEmailPrivate = form.KeepEmailPrivate
 	ctx.User.Website = form.Website
 	ctx.User.Location = form.Location
-	if err := models.UpdateUser(ctx.User); err != nil {
+	if err := models.UpdateUserSetting(ctx.User); err != nil {
+		if _, ok := err.(models.ErrEmailAlreadyUsed); ok {
+			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings")
+			return
+		}
 		ctx.Handle(500, "UpdateUser", err)
 		return
 	}
@@ -187,6 +193,7 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 func SettingsPassword(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsPassword"] = true
+	ctx.Data["Email"] = ctx.User.Email
 	ctx.HTML(200, tplSettingsPassword)
 }
 
@@ -194,13 +201,14 @@ func SettingsPassword(ctx *context.Context) {
 func SettingsPasswordPost(ctx *context.Context, form auth.ChangePasswordForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsPassword"] = true
+	ctx.Data["PageIsSettingsDelete"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplSettingsPassword)
 		return
 	}
 
-	if !ctx.User.ValidatePassword(form.OldPassword) {
+	if ctx.User.IsPasswordSet() && !ctx.User.ValidatePassword(form.OldPassword) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
@@ -631,10 +639,54 @@ func SettingsTwoFactorEnrollPost(ctx *context.Context, form auth.TwoFactorAuthFo
 	ctx.Redirect(setting.AppSubURL + "/user/settings/two_factor")
 }
 
+// SettingsAccountLinks render the account links settings page
+func SettingsAccountLinks(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsAccountLink"] = true
+
+	accountLinks, err := models.ListAccountLinks(ctx.User)
+	if err != nil {
+		ctx.Handle(500, "ListAccountLinks", err)
+		return
+	}
+
+	// map the provider display name with the LoginSource
+	sources := make(map[*models.LoginSource]string)
+	for _, externalAccount := range accountLinks {
+		if loginSource, err := models.GetLoginSourceByID(externalAccount.LoginSourceID); err == nil {
+			var providerDisplayName string
+			if loginSource.IsOAuth2() {
+				providerTechnicalName := loginSource.OAuth2().Provider
+				providerDisplayName = models.OAuth2Providers[providerTechnicalName].DisplayName
+			} else {
+				providerDisplayName = loginSource.Name
+			}
+			sources[loginSource] = providerDisplayName
+		}
+	}
+	ctx.Data["AccountLinks"] = sources
+
+	ctx.HTML(200, tplSettingsAccountLink)
+}
+
+// SettingsDeleteAccountLink delete a single account link
+func SettingsDeleteAccountLink(ctx *context.Context) {
+	if _, err := models.RemoveAccountLink(ctx.User, ctx.QueryInt64("loginSourceID")); err != nil {
+		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/user/settings/account_link",
+	})
+}
+
 // SettingsDelete render user suicide page and response for delete user himself
 func SettingsDelete(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsDelete"] = true
+	ctx.Data["Email"] = ctx.User.Email
 
 	if ctx.Req.Method == "POST" {
 		if _, err := models.UserSignIn(ctx.User.Name, ctx.Query("password")); err != nil {

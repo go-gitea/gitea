@@ -1,74 +1,70 @@
 {{template "base/head" .}}
 <div class="repository settings">
 	{{template "repo/header" .}}
+	{{template "repo/settings/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "repo/settings/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
-				<h4 class="ui top attached header">
-					{{.i18n.Tr "repo.settings.deploy_keys"}}
-					<div class="ui right">
-						<div class="ui blue tiny show-panel button" data-panel="#add-deploy-key-panel">{{.i18n.Tr "repo.settings.add_deploy_key"}}</div>
-					</div>
-				</h4>
-				<div class="ui attached segment">
-					{{if .Deploykeys}}
-						<div class="ui key list">
-							{{range .Deploykeys}}
-								<div class="item ui grid">
-									<div class="one wide column">
-										<i class="ssh-key-state-indicator fa fa-circle{{if .HasRecentActivity}} active invert poping up{{else}}-o{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.key_state_desc"}}" data-variation="inverted"{{end}}></i>
-									</div>
-									<div class="one wide column">
-										<i class="mega-octicon octicon-key left"></i>
-									</div>
-									<div class="eleven wide column">
-										<strong>{{.Name}}</strong>
-										<div class="print meta">
-											{{.Fingerprint}}
-										</div>
-										<div class="activity meta">
-											<i>{{$.i18n.Tr "settings.add_on"}} <span>{{DateFmtShort .Created}}</span> —  <i class="octicon octicon-info"></i> {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span>{{DateFmtShort .Updated}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
-										</div>
-									</div>
-									<div class="two wide column">
-										<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
-											{{$.i18n.Tr "settings.delete_key"}}
-										</button>
-									</div>
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "repo.settings.deploy_keys"}}
+			<div class="ui right">
+				<div class="ui blue tiny show-panel button" data-panel="#add-deploy-key-panel">{{.i18n.Tr "repo.settings.add_deploy_key"}}</div>
+			</div>
+		</h4>
+		<div class="ui attached segment">
+			{{if .Deploykeys}}
+				<div class="ui key list">
+					{{range .Deploykeys}}
+						<div class="item ui grid">
+							<div class="one wide column">
+								<i class="ssh-key-state-indicator fa fa-circle{{if .HasRecentActivity}} active invert poping up{{else}}-o{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.key_state_desc"}}" data-variation="inverted"{{end}}></i>
+							</div>
+							<div class="one wide column">
+								<i class="mega-octicon octicon-key left"></i>
+							</div>
+							<div class="eleven wide column">
+								<strong>{{.Name}}</strong>
+								<div class="print meta">
+									{{.Fingerprint}}
 								</div>
-							{{end}}
+								<div class="activity meta">
+									<i>{{$.i18n.Tr "settings.add_on"}} <span>{{DateFmtShort .Created}}</span> —  <i class="octicon octicon-info"></i> {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span>{{DateFmtShort .Updated}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
+								</div>
+							</div>
+							<div class="two wide column">
+								<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+									{{$.i18n.Tr "settings.delete_key"}}
+								</button>
+							</div>
 						</div>
-					{{else}}
-						{{.i18n.Tr "repo.settings.no_deploy_keys"}}
 					{{end}}
 				</div>
-				<br>
-				<div {{if not .HasError}}class="hide"{{end}} id="add-deploy-key-panel">
-					<h4 class="ui top attached header">
-						{{.i18n.Tr "repo.settings.add_deploy_key"}}
-					</h4>
-					<div class="ui attached segment">
-						<form class="ui form" action="{{.Link}}" method="post">
-							{{.CsrfTokenHtml}}
-							<div class="field">
-								{{.i18n.Tr "repo.settings.deploy_key_desc"}}
-							</div>
-							<div class="field {{if .Err_Title}}error{{end}}">
-								<label for="title">{{.i18n.Tr "repo.settings.title"}}</label>
-								<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
-							</div>
-							<div class="field {{if .Err_Content}}error{{end}}">
-								<label for="content">{{.i18n.Tr "repo.settings.deploy_key_content"}}</label>
-								<textarea id="ssh-key-content" name="content" required>{{.content}}</textarea>
-							</div>
-							<button class="ui green button">
-								{{.i18n.Tr "repo.settings.add_deploy_key"}}
-							</button>
-						</form>
+			{{else}}
+				{{.i18n.Tr "repo.settings.no_deploy_keys"}}
+			{{end}}
+		</div>
+		<br>
+		<div {{if not .HasError}}class="hide"{{end}} id="add-deploy-key-panel">
+			<h4 class="ui top attached header">
+				{{.i18n.Tr "repo.settings.add_deploy_key"}}
+			</h4>
+			<div class="ui attached segment">
+				<form class="ui form" action="{{.Link}}" method="post">
+					{{.CsrfTokenHtml}}
+					<div class="field">
+						{{.i18n.Tr "repo.settings.deploy_key_desc"}}
 					</div>
-				</div>
+					<div class="field {{if .Err_Title}}error{{end}}">
+						<label for="title">{{.i18n.Tr "repo.settings.title"}}</label>
+						<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
+					</div>
+					<div class="field {{if .Err_Content}}error{{end}}">
+						<label for="content">{{.i18n.Tr "repo.settings.deploy_key_content"}}</label>
+						<textarea id="ssh-key-content" name="content" required>{{.content}}</textarea>
+					</div>
+					<button class="ui green button">
+						{{.i18n.Tr "repo.settings.add_deploy_key"}}
+					</button>
+				</form>
 			</div>
 		</div>
 	</div>

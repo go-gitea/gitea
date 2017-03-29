@@ -14,40 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAddUpdateTask(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	task := &UpdateTask{
-		UUID:        "uuid4",
-		RefName:     "refName4",
-		OldCommitID: "oldCommitId4",
-		NewCommitID: "newCommitId4",
-	}
-	assert.NoError(t, AddUpdateTask(task))
-	AssertExistsAndLoadBean(t, task)
-}
-
-func TestGetUpdateTaskByUUID(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	task, err := GetUpdateTaskByUUID("uuid1")
-	assert.NoError(t, err)
-	assert.Equal(t, "uuid1", task.UUID)
-	assert.Equal(t, "refName1", task.RefName)
-	assert.Equal(t, "oldCommitId1", task.OldCommitID)
-	assert.Equal(t, "newCommitId1", task.NewCommitID)
-
-	_, err = GetUpdateTaskByUUID("invalid")
-	assert.Error(t, err)
-	assert.True(t, IsErrUpdateTaskNotExist(err))
-}
-
-func TestDeleteUpdateTaskByUUID(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	assert.NoError(t, DeleteUpdateTaskByUUID("uuid1"))
-	AssertNotExistsBean(t, &UpdateTask{UUID: "uuid1"})
-
-	assert.NoError(t, DeleteUpdateTaskByUUID("invalid"))
-}
-
 func TestCommitToPushCommit(t *testing.T) {
 	now := time.Now()
 	sig := &git.Signature{

@@ -1,3 +1,7 @@
+// Copyright 2017 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package migrations
 
 import (
@@ -55,6 +59,12 @@ func addUnitsToTables(x *xorm.Engine) error {
 	}
 
 	var repoUnit RepoUnit
+	if exist, err := sess.IsTableExist(&repoUnit); err != nil {
+		return fmt.Errorf("IsExist RepoUnit: %v", err)
+	} else if exist {
+		return nil
+	}
+
 	if err := sess.CreateTable(&repoUnit); err != nil {
 		return fmt.Errorf("CreateTable RepoUnit: %v", err)
 	}

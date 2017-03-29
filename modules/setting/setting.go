@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -30,6 +31,7 @@ import (
 	_ "github.com/go-macaron/cache/redis"
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
+	"github.com/go-xorm/core"
 	ini "gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
@@ -58,6 +60,7 @@ const (
 var (
 	// AppVer settings
 	AppVer         string
+	AppBuiltWith   string
 	AppName        string
 	AppURL         string
 	AppSubURL      string
@@ -117,6 +120,12 @@ var (
 	ReverseProxyAuthUser string
 	MinPasswordLength    int
 	ImportLocalPaths     bool
+
+	// OpenID settings
+	EnableOpenIDSignIn bool
+	EnableOpenIDSignUp bool
+	OpenIDWhitelist    []*regexp.Regexp
+	OpenIDBlacklist    []*regexp.Regexp
 
 	// Database settings
 	UseSQLite3    bool
@@ -247,7 +256,7 @@ var (
 		},
 	}
 
-	// Markdown sttings
+	// Markdown settings
 	Markdown = struct {
 		EnableHardLineBreak bool
 		CustomURLSchemes    []string `ini:"CUSTOM_URL_SCHEMES"`
@@ -324,7 +333,9 @@ var (
 			RunAtStart bool
 			Schedule   string
 		}{
-			Schedule: "@every 10m",
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 10m",
 		},
 		RepoHealthCheck: struct {
 			Enabled    bool
@@ -333,15 +344,18 @@ var (
 			Timeout    time.Duration
 			Args       []string `delim:" "`
 		}{
-			Schedule: "@every 24h",
-			Timeout:  60 * time.Second,
-			Args:     []string{},
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 24h",
+			Timeout:    60 * time.Second,
+			Args:       []string{},
 		},
 		CheckRepoStats: struct {
 			Enabled    bool
 			RunAtStart bool
 			Schedule   string
 		}{
+			Enabled:    true,
 			RunAtStart: true,
 			Schedule:   "@every 24h",
 		},
@@ -351,6 +365,7 @@ var (
 			Schedule   string
 			OlderThan  time.Duration
 		}{
+			Enabled:    true,
 			RunAtStart: true,
 			Schedule:   "@every 24h",
 			OlderThan:  24 * time.Hour,
@@ -412,7 +427,7 @@ var (
 	Names     []string
 	dateLangs map[string]string
 
-	// Highlight settings are loaded in modules/template/hightlight.go
+	// Highlight settings are loaded in modules/template/highlight.go
 
 	// Other settings
 	ShowFooterBranding         bool
@@ -529,10 +544,6 @@ func NewContext() {
 
 	Cfg = ini.Empty()
 
-	if err != nil {
-		log.Fatal(4, "Failed to parse 'app.ini': %v", err)
-	}
-
 	CustomPath = os.Getenv("GITEA_CUSTOM")
 	if len(CustomPath) == 0 {
 		// For backward compatibility
@@ -575,9 +586,7 @@ please consider changing to GITEA_CUSTOM`)
 	sec := Cfg.Section("server")
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 	AppURL = sec.Key("ROOT_URL").MustString("http://localhost:3000/")
-	if AppURL[len(AppURL)-1] != '/' {
-		AppURL += "/"
-	}
+	AppURL = strings.TrimRight(AppURL, "/") + "/"
 
 	// Check if has app suburl.
 	url, err := url.Parse(AppURL)
@@ -748,6 +757,24 @@ please consider changing to GITEA_CUSTOM`)
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
+
+	sec = Cfg.Section("openid")
+	EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(true)
+	EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(true)
+	pats := sec.Key("WHITELISTED_URIS").Strings(" ")
+	if len(pats) != 0 {
+		OpenIDWhitelist = make([]*regexp.Regexp, len(pats))
+		for i, p := range pats {
+			OpenIDWhitelist[i] = regexp.MustCompilePOSIX(p)
+		}
+	}
+	pats = sec.Key("BLACKLISTED_URIS").Strings(" ")
+	if len(pats) != 0 {
+		OpenIDBlacklist = make([]*regexp.Regexp, len(pats))
+		for i, p := range pats {
+			OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
+		}
+	}
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -938,26 +965,25 @@ var logLevels = map[string]string{
 }
 
 func newLogService() {
-	log.Info("Gitea v%s", AppVer)
+	log.Info("Gitea v%s%s", AppVer, AppBuiltWith)
 
 	LogModes = strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
 	LogConfigs = make([]string, len(LogModes))
 
 	useConsole := false
-	for _, mode := range LogModes {
-		if mode == "console" {
+	for i := 0; i < len(LogModes); i++ {
+		LogModes[i] = strings.TrimSpace(LogModes[i])
+		if LogModes[i] == "console" {
 			useConsole = true
 		}
 	}
+
 	if !useConsole {
 		log.DelLogger("console")
 	}
 
 	for i, mode := range LogModes {
-		mode = strings.TrimSpace(mode)
-
 		sec, err := Cfg.GetSection("log." + mode)
-
 		if err != nil {
 			sec, _ = Cfg.NewSection("log." + mode)
 		}
@@ -1011,6 +1037,94 @@ func newLogService() {
 
 		log.NewLogger(Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000), mode, LogConfigs[i])
 		log.Info("Log Mode: %s(%s)", strings.Title(mode), levelName)
+	}
+}
+
+// NewXORMLogService initializes xorm logger service
+func NewXORMLogService(disableConsole bool) {
+	logModes := strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
+	var logConfigs string
+	for _, mode := range logModes {
+		mode = strings.TrimSpace(mode)
+
+		if disableConsole && mode == "console" {
+			continue
+		}
+
+		sec, err := Cfg.GetSection("log." + mode)
+		if err != nil {
+			sec, _ = Cfg.NewSection("log." + mode)
+		}
+
+		validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
+		// Log level.
+		levelName := Cfg.Section("log."+mode).Key("LEVEL").In(
+			Cfg.Section("log").Key("LEVEL").In("Trace", validLevels),
+			validLevels)
+		level, ok := logLevels[levelName]
+		if !ok {
+			log.Fatal(4, "Unknown log level: %s", levelName)
+		}
+
+		// Generate log configuration.
+		switch mode {
+		case "console":
+			logConfigs = fmt.Sprintf(`{"level":%s}`, level)
+		case "file":
+			logPath := sec.Key("FILE_NAME").MustString(path.Join(LogRootPath, "xorm.log"))
+			if err = os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
+				panic(err.Error())
+			}
+			logPath = filepath.Join(filepath.Dir(logPath), "xorm.log")
+
+			logConfigs = fmt.Sprintf(
+				`{"level":%s,"filename":"%s","rotate":%v,"maxlines":%d,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
+				logPath,
+				sec.Key("LOG_ROTATE").MustBool(true),
+				sec.Key("MAX_LINES").MustInt(1000000),
+				1<<uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28)),
+				sec.Key("DAILY_ROTATE").MustBool(true),
+				sec.Key("MAX_DAYS").MustInt(7))
+		case "conn":
+			logConfigs = fmt.Sprintf(`{"level":%s,"reconnectOnMsg":%v,"reconnect":%v,"net":"%s","addr":"%s"}`, level,
+				sec.Key("RECONNECT_ON_MSG").MustBool(),
+				sec.Key("RECONNECT").MustBool(),
+				sec.Key("PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"}),
+				sec.Key("ADDR").MustString(":7020"))
+		case "smtp":
+			logConfigs = fmt.Sprintf(`{"level":%s,"username":"%s","password":"%s","host":"%s","sendTos":"%s","subject":"%s"}`, level,
+				sec.Key("USER").MustString("example@example.com"),
+				sec.Key("PASSWD").MustString("******"),
+				sec.Key("HOST").MustString("127.0.0.1:25"),
+				sec.Key("RECEIVERS").MustString("[]"),
+				sec.Key("SUBJECT").MustString("Diagnostic message from serve"))
+		case "database":
+			logConfigs = fmt.Sprintf(`{"level":%s,"driver":"%s","conn":"%s"}`, level,
+				sec.Key("DRIVER").String(),
+				sec.Key("CONN").String())
+		}
+
+		log.NewXORMLogger(Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000), mode, logConfigs)
+		if !disableConsole {
+			log.Info("XORM Log Mode: %s(%s)", strings.Title(mode), levelName)
+		}
+
+		var lvl core.LogLevel
+		switch levelName {
+		case "Trace", "Debug":
+			lvl = core.LOG_DEBUG
+		case "Info":
+			lvl = core.LOG_INFO
+		case "Warn":
+			lvl = core.LOG_WARNING
+		case "Error", "Critical":
+			lvl = core.LOG_ERR
+		}
+		log.XORMLogger.SetLevel(lvl)
+	}
+
+	if len(logConfigs) == 0 {
+		log.DiscardXORMLogger()
 	}
 }
 
@@ -1140,6 +1254,7 @@ func newWebhookService() {
 func NewServices() {
 	newService()
 	newLogService()
+	NewXORMLogService(false)
 	newCacheService()
 	newSessionService()
 	newMailService()

@@ -8,19 +8,14 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
 	"path"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
-
-	"code.gitea.io/git"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -42,8 +37,18 @@ func HTTP(ctx *context.Context) {
 	} else if service == "git-upload-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-pack") {
 		isPull = true
+	} else if service == "git-upload-archive" ||
+		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-archive") {
+		isPull = true
 	} else {
 		isPull = (ctx.Req.Method == "GET")
+	}
+
+	var accessMode models.AccessMode
+	if isPull {
+		accessMode = models.AccessModeRead
+	} else {
+		accessMode = models.AccessModeWrite
 	}
 
 	isWiki := false
@@ -79,6 +84,7 @@ func HTTP(ctx *context.Context) {
 		authUser     *models.User
 		authUsername string
 		authPasswd   string
+		environ      []string
 	)
 
 	// check access
@@ -146,18 +152,13 @@ func HTTP(ctx *context.Context) {
 			}
 
 			if !isPublicPull {
-				var tp = models.AccessModeWrite
-				if isPull {
-					tp = models.AccessModeRead
-				}
-
-				has, err := models.HasAccess(authUser, repo, tp)
+				has, err := models.HasAccess(authUser.ID, repo, accessMode)
 				if err != nil {
 					ctx.Handle(http.StatusInternalServerError, "HasAccess", err)
 					return
 				} else if !has {
-					if tp == models.AccessModeRead {
-						has, err = models.HasAccess(authUser, repo, models.AccessModeWrite)
+					if accessMode == models.AccessModeRead {
+						has, err = models.HasAccess(authUser.ID, repo, models.AccessModeWrite)
 						if err != nil {
 							ctx.Handle(http.StatusInternalServerError, "HasAccess2", err)
 							return
@@ -177,82 +178,42 @@ func HTTP(ctx *context.Context) {
 				}
 			}
 		}
-	}
 
-	callback := func(rpc string, input []byte) {
-		if rpc != "receive-pack" || isWiki {
-			return
+		environ = []string{
+			models.EnvRepoUsername + "=" + username,
+			models.EnvRepoName + "=" + reponame,
+			models.EnvRepoUserSalt + "=" + repoUser.Salt,
+			models.EnvPusherName + "=" + authUser.Name,
+			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
+			models.ProtectedBranchRepoID + fmt.Sprintf("=%d", repo.ID),
 		}
-
-		var lastLine int64
-		for {
-			head := input[lastLine : lastLine+2]
-			if head[0] == '0' && head[1] == '0' {
-				size, err := strconv.ParseInt(string(input[lastLine+2:lastLine+4]), 16, 32)
-				if err != nil {
-					log.Error(4, "%v", err)
-					return
-				}
-
-				if size == 0 {
-					//fmt.Println(string(input[lastLine:]))
-					break
-				}
-
-				line := input[lastLine : lastLine+size]
-				idx := bytes.IndexRune(line, '\000')
-				if idx > -1 {
-					line = line[:idx]
-				}
-
-				fields := strings.Fields(string(line))
-				if len(fields) >= 3 {
-					oldCommitID := fields[0][4:]
-					newCommitID := fields[1]
-					refFullName := fields[2]
-
-					// FIXME: handle error.
-					if err = models.PushUpdate(models.PushUpdateOptions{
-						RefFullName:  refFullName,
-						OldCommitID:  oldCommitID,
-						NewCommitID:  newCommitID,
-						PusherID:     authUser.ID,
-						PusherName:   authUser.Name,
-						RepoUserName: username,
-						RepoName:     reponame,
-					}); err == nil {
-						go models.AddTestPullRequestTask(authUser, repo.ID, strings.TrimPrefix(refFullName, git.BranchPrefix), true)
-					}
-
-				}
-				lastLine = lastLine + size
-			} else {
-				break
-			}
+		if isWiki {
+			environ = append(environ, models.EnvRepoIsWiki+"=true")
+		} else {
+			environ = append(environ, models.EnvRepoIsWiki+"=false")
 		}
 	}
 
 	HTTPBackend(ctx, &serviceConfig{
 		UploadPack:  true,
 		ReceivePack: true,
-		OnSucceed:   callback,
+		Env:         environ,
 	})(ctx.Resp, ctx.Req.Request)
-
-	runtime.GC()
 }
 
 type serviceConfig struct {
 	UploadPack  bool
 	ReceivePack bool
-	OnSucceed   func(rpc string, input []byte)
+	Env         []string
 }
 
 type serviceHandler struct {
-	cfg  *serviceConfig
-	w    http.ResponseWriter
-	r    *http.Request
-	dir  string
-	file string
+	cfg     *serviceConfig
+	w       http.ResponseWriter
+	r       *http.Request
+	dir     string
+	file    string
+	environ []string
 }
 
 func (h *serviceHandler) setHeaderNoCache() {
@@ -358,14 +319,11 @@ func serviceRPC(h serviceHandler, service string) {
 		h.w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+
 	h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-result", service))
 
-	var (
-		reqBody = h.r.Body
-		input   []byte
-		br      io.Reader
-		err     error
-	)
+	var err error
+	var reqBody = h.r.Body
 
 	// Handle GZIP.
 	if h.r.Header.Get("Content-Encoding") == "gzip" {
@@ -377,31 +335,22 @@ func serviceRPC(h serviceHandler, service string) {
 		}
 	}
 
-	if h.cfg.OnSucceed != nil {
-		input, err = ioutil.ReadAll(reqBody)
-		if err != nil {
-			log.GitLogger.Error(2, "fail to read request body: %v", err)
-			h.w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	// set this for allow pre-receive and post-receive execute
+	h.environ = append(h.environ, "SSH_ORIGINAL_COMMAND="+service)
 
-		br = bytes.NewReader(input)
-	} else {
-		br = reqBody
-	}
-
+	var stderr bytes.Buffer
 	cmd := exec.Command("git", service, "--stateless-rpc", h.dir)
 	cmd.Dir = h.dir
+	if service == "receive-pack" {
+		cmd.Env = append(os.Environ(), h.environ...)
+	}
 	cmd.Stdout = h.w
-	cmd.Stdin = br
+	cmd.Stdin = reqBody
+	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		log.GitLogger.Error(2, "fail to serve RPC(%s): %v", service, err)
+		log.GitLogger.Error(2, "fail to serve RPC(%s): %v - %v", service, err, stderr)
 		h.w.WriteHeader(http.StatusInternalServerError)
 		return
-	}
-
-	if h.cfg.OnSucceed != nil {
-		h.cfg.OnSucceed(service, input)
 	}
 }
 
@@ -518,7 +467,7 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 					return
 				}
 
-				route.handler(serviceHandler{cfg, w, r, dir, file})
+				route.handler(serviceHandler{cfg, w, r, dir, file, cfg.Env})
 				return
 			}
 		}

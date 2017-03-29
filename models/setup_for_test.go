@@ -107,8 +107,9 @@ func AssertSuccessfulInsert(t *testing.T, beans ...interface{}) {
 	assert.NoError(t, err)
 }
 
-// AssertSuccessfulUpdate assert that bean is successfully updated
-func AssertSuccessfulUpdate(t *testing.T, bean interface{}, conditions ...interface{}) {
-	_, err := x.Update(bean, conditions...)
+// AssertCount assert the count of a bean
+func AssertCount(t *testing.T, bean interface{}, expected interface{}) {
+	actual, err := x.Count(bean)
 	assert.NoError(t, err)
+	assert.EqualValues(t, expected, actual)
 }

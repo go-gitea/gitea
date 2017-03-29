@@ -73,7 +73,7 @@ func (r *Release) loadAttributes(e Engine) error {
 	return nil
 }
 
-// LoadAttributes load repo and publisher attributes for a realease
+// LoadAttributes load repo and publisher attributes for a release
 func (r *Release) LoadAttributes() error {
 	return r.loadAttributes(x)
 }
@@ -244,7 +244,7 @@ func GetReleasesByRepoID(repoID int64, page, pageSize int) (rels []*Release, err
 	return rels, err
 }
 
-// GetReleasesByRepoIDAndNames returns a list of releases of repository accroding repoID and tagNames.
+// GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
 func GetReleasesByRepoIDAndNames(repoID int64, tagNames []string) (rels []*Release, err error) {
 	err = x.
 		Desc("created_unix").
@@ -365,7 +365,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		return fmt.Errorf("GetRepositoryByID: %v", err)
 	}
 
-	has, err := HasAccess(u, repo, AccessModeWrite)
+	has, err := HasAccess(u.ID, repo, AccessModeWrite)
 	if err != nil {
 		return fmt.Errorf("HasAccess: %v", err)
 	} else if !has {

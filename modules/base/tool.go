@@ -529,17 +529,17 @@ func IsTextFile(data []byte) bool {
 	return strings.Index(http.DetectContentType(data), "text/") != -1
 }
 
-// IsImageFile detectes if data is an image format
+// IsImageFile detects if data is an image format
 func IsImageFile(data []byte) bool {
 	return strings.Index(http.DetectContentType(data), "image/") != -1
 }
 
-// IsPDFFile detectes if data is a pdf format
+// IsPDFFile detects if data is a pdf format
 func IsPDFFile(data []byte) bool {
 	return strings.Index(http.DetectContentType(data), "application/pdf") != -1
 }
 
-// IsVideoFile detectes if data is an video format
+// IsVideoFile detects if data is an video format
 func IsVideoFile(data []byte) bool {
 	return strings.Index(http.DetectContentType(data), "video/") != -1
 }

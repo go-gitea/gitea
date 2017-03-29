@@ -1,9 +1,11 @@
 package models
 
 import (
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,6 +48,7 @@ func TestNewRepoAction(t *testing.T) {
 	AssertNotExistsBean(t, actionBean)
 	assert.NoError(t, NewRepoAction(user, repo))
 	AssertExistsAndLoadBean(t, actionBean)
+	CheckConsistencyFor(t, &Action{})
 }
 
 func TestRenameRepoAction(t *testing.T) {
@@ -58,6 +61,7 @@ func TestRenameRepoAction(t *testing.T) {
 	oldRepoName := repo.Name
 	const newRepoName = "newRepoName"
 	repo.Name = newRepoName
+	repo.LowerName = strings.ToLower(newRepoName)
 
 	actionBean := &Action{
 		OpType:       ActionRenameRepo,
@@ -72,6 +76,10 @@ func TestRenameRepoAction(t *testing.T) {
 	AssertNotExistsBean(t, actionBean)
 	assert.NoError(t, RenameRepoAction(user, oldRepoName, repo))
 	AssertExistsAndLoadBean(t, actionBean)
+
+	_, err := x.Id(repo.ID).Cols("name", "lower_name").Update(repo)
+	assert.NoError(t, err)
+	CheckConsistencyFor(t, &Action{})
 }
 
 func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
@@ -192,6 +200,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits))
 	AssertExistsAndLoadBean(t, commentBean)
 	AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
+	CheckConsistencyFor(t, &Action{})
 }
 
 func TestCommitRepoAction(t *testing.T) {
@@ -242,6 +251,7 @@ func TestCommitRepoAction(t *testing.T) {
 		Commits:     pushCommits,
 	}))
 	AssertExistsAndLoadBean(t, actionBean)
+	CheckConsistencyFor(t, &Action{})
 }
 
 func TestTransferRepoAction(t *testing.T) {
@@ -266,6 +276,10 @@ func TestTransferRepoAction(t *testing.T) {
 	AssertNotExistsBean(t, actionBean)
 	assert.NoError(t, TransferRepoAction(user2, user2, repo))
 	AssertExistsAndLoadBean(t, actionBean)
+
+	_, err := x.Id(repo.ID).Cols("owner_id").Update(repo)
+	assert.NoError(t, err)
+	CheckConsistencyFor(t, &Action{})
 }
 
 func TestMergePullRequestAction(t *testing.T) {
@@ -287,6 +301,7 @@ func TestMergePullRequestAction(t *testing.T) {
 	AssertNotExistsBean(t, actionBean)
 	assert.NoError(t, MergePullRequestAction(user, repo, issue))
 	AssertExistsAndLoadBean(t, actionBean)
+	CheckConsistencyFor(t, &Action{})
 }
 
 func TestGetFeeds(t *testing.T) {
@@ -318,7 +333,5 @@ func TestGetFeeds2(t *testing.T) {
 
 	actions, err = GetFeeds(user, user.ID, 0, true)
 	assert.NoError(t, err)
-	assert.Len(t, actions, 1)
-	assert.Equal(t, int64(2), actions[0].ID)
-	assert.Equal(t, user.ID, actions[0].UserID)
+	assert.Len(t, actions, 0)
 }

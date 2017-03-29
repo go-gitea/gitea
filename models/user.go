@@ -7,6 +7,7 @@ package models
 import (
 	"bytes"
 	"container/list"
+	"crypto/md5"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
@@ -23,6 +24,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	"github.com/nfnt/resize"
 	"golang.org/x/crypto/pbkdf2"
@@ -196,6 +198,11 @@ func (u *User) IsLocal() bool {
 	return u.LoginType <= LoginPlain
 }
 
+// IsOAuth2 returns true if user login type is LoginOAuth2.
+func (u *User) IsOAuth2() bool {
+	return u.LoginType == LoginOAuth2
+}
+
 // HasForkedRepo checks if user has already forked a repository with given ID.
 func (u *User) HasForkedRepo(repoID int64) bool {
 	_, has := HasForkedRepo(u.ID, repoID)
@@ -275,11 +282,15 @@ func (u *User) GenerateActivateCode() string {
 
 // CustomAvatarPath returns user custom avatar file path.
 func (u *User) CustomAvatarPath() string {
-	return filepath.Join(setting.AvatarUploadPath, com.ToStr(u.ID))
+	return filepath.Join(setting.AvatarUploadPath, u.Avatar)
 }
 
 // GenerateRandomAvatar generates a random avatar for user.
 func (u *User) GenerateRandomAvatar() error {
+	return u.generateRandomAvatar(x)
+}
+
+func (u *User) generateRandomAvatar(e Engine) error {
 	seed := u.Email
 	if len(seed) == 0 {
 		seed = u.Name
@@ -289,6 +300,9 @@ func (u *User) GenerateRandomAvatar() error {
 	if err != nil {
 		return fmt.Errorf("RandomImage: %v", err)
 	}
+	// NOTICE for random avatar, it still uses id as avatar name, but custom avatar use md5
+	// since random image is not a user's photo, there is no security for enumable
+	u.Avatar = fmt.Sprintf("%d", u.ID)
 	if err = os.MkdirAll(filepath.Dir(u.CustomAvatarPath()), os.ModePerm); err != nil {
 		return fmt.Errorf("MkdirAll: %v", err)
 	}
@@ -297,6 +311,10 @@ func (u *User) GenerateRandomAvatar() error {
 		return fmt.Errorf("Create: %v", err)
 	}
 	defer fw.Close()
+
+	if _, err := e.Id(u.ID).Cols("avatar").Update(u); err != nil {
+		return err
+	}
 
 	if err = png.Encode(fw, img); err != nil {
 		return fmt.Errorf("Encode: %v", err)
@@ -317,18 +335,18 @@ func (u *User) RelAvatarLink() string {
 
 	switch {
 	case u.UseCustomAvatar:
-		if !com.IsExist(u.CustomAvatarPath()) {
+		if !com.IsFile(u.CustomAvatarPath()) {
 			return defaultImgURL
 		}
-		return setting.AppSubURL + "/avatars/" + com.ToStr(u.ID)
+		return setting.AppSubURL + "/avatars/" + u.Avatar
 	case setting.DisableGravatar, setting.OfflineMode:
-		if !com.IsExist(u.CustomAvatarPath()) {
+		if !com.IsFile(u.CustomAvatarPath()) {
 			if err := u.GenerateRandomAvatar(); err != nil {
 				log.Error(3, "GenerateRandomAvatar: %v", err)
 			}
 		}
 
-		return setting.AppSubURL + "/avatars/" + com.ToStr(u.ID)
+		return setting.AppSubURL + "/avatars/" + u.Avatar
 	}
 	return base.AvatarLink(u.AvatarEmail)
 }
@@ -397,6 +415,11 @@ func (u *User) ValidatePassword(passwd string) bool {
 	return subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(newUser.Passwd)) == 1
 }
 
+// IsPasswordSet checks if the password is set or left empty
+func (u *User) IsPasswordSet() bool {
+	return !u.ValidatePassword("")
+}
+
 // UploadAvatar saves custom avatar for user.
 // FIXME: split uploads to different subdirs in case we have massive users.
 func (u *User) UploadAvatar(data []byte) error {
@@ -414,6 +437,7 @@ func (u *User) UploadAvatar(data []byte) error {
 	}
 
 	u.UseCustomAvatar = true
+	u.Avatar = fmt.Sprintf("%x", md5.Sum(data))
 	if err = updateUser(sess, u); err != nil {
 		return fmt.Errorf("updateUser: %v", err)
 	}
@@ -438,13 +462,15 @@ func (u *User) UploadAvatar(data []byte) error {
 // DeleteAvatar deletes the user's custom avatar.
 func (u *User) DeleteAvatar() error {
 	log.Trace("DeleteAvatar[%d]: %s", u.ID, u.CustomAvatarPath())
-
-	if err := os.Remove(u.CustomAvatarPath()); err != nil {
-		return fmt.Errorf("Failed to remove %s: %v", u.CustomAvatarPath(), err)
+	if len(u.Avatar) > 0 {
+		if err := os.Remove(u.CustomAvatarPath()); err != nil {
+			return fmt.Errorf("Failed to remove %s: %v", u.CustomAvatarPath(), err)
+		}
 	}
 
 	u.UseCustomAvatar = false
-	if err := UpdateUser(u); err != nil {
+	u.Avatar = ""
+	if _, err := x.Id(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 	return nil
@@ -452,7 +478,7 @@ func (u *User) DeleteAvatar() error {
 
 // IsAdminOfRepo returns true if user has admin or higher access of repository.
 func (u *User) IsAdminOfRepo(repo *Repository) bool {
-	has, err := HasAccess(u, repo, AccessModeAdmin)
+	has, err := HasAccess(u.ID, repo, AccessModeAdmin)
 	if err != nil {
 		log.Error(3, "HasAccess: %v", err)
 	}
@@ -461,7 +487,7 @@ func (u *User) IsAdminOfRepo(repo *Repository) bool {
 
 // IsWriterOfRepo returns true if user has write access to given repository.
 func (u *User) IsWriterOfRepo(repo *Repository) bool {
-	has, err := HasAccess(u, repo, AccessModeWrite)
+	has, err := HasAccess(u.ID, repo, AccessModeWrite)
 	if err != nil {
 		log.Error(3, "HasAccess: %v", err)
 	}
@@ -515,7 +541,7 @@ func (u *User) GetOrgRepositoryIDs() ([]int64, error) {
 		GroupBy("repository.id").Find(&ids)
 }
 
-// GetAccessRepoIDs returns all repsitories IDs where user's or user is a team member orgnizations
+// GetAccessRepoIDs returns all repositories IDs where user's or user is a team member organizations
 func (u *User) GetAccessRepoIDs() ([]int64, error) {
 	ids, err := u.GetRepositoryIDs()
 	if err != nil {
@@ -570,7 +596,7 @@ func (u *User) ShortName(length int) string {
 	return base.EllipsisString(u.Name, length)
 }
 
-// IsMailable checks if a user is elegible
+// IsMailable checks if a user is eligible
 // to receive emails.
 func (u *User) IsMailable() bool {
 	return u.IsActive
@@ -589,7 +615,7 @@ func IsUserExist(uid int64, name string) (bool, error) {
 		Get(&User{LowerName: strings.ToLower(name)})
 }
 
-// GetUserSalt returns a ramdom user salt token.
+// GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
 	return base.GetRandomString(10)
 }
@@ -604,7 +630,7 @@ func NewGhostUser() *User {
 }
 
 var (
-	reservedUsernames    = []string{"assets", "css", "img", "js", "less", "plugins", "debug", "raw", "install", "api", "avatar", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "new", ".", ".."}
+	reservedUsernames    = []string{"assets", "css", "explore", "img", "js", "less", "plugins", "debug", "raw", "install", "api", "avatar", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "new", ".", ".."}
 	reservedUserPatterns = []string{"*.keys"}
 )
 
@@ -810,21 +836,26 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	return os.Rename(UserPath(u.Name), UserPath(newUserName))
 }
 
+// checkDupEmail checks whether there are the same email with the user
+func checkDupEmail(e Engine, u *User) error {
+	u.Email = strings.ToLower(u.Email)
+	has, err := e.
+		Where("id!=?", u.ID).
+		And("type=?", u.Type).
+		And("email=?", u.Email).
+		Get(new(User))
+	if err != nil {
+		return err
+	} else if has {
+		return ErrEmailAlreadyUsed{u.Email}
+	}
+	return nil
+}
+
 func updateUser(e Engine, u *User) error {
 	// Organization does not need email
+	u.Email = strings.ToLower(u.Email)
 	if !u.IsOrganization() {
-		u.Email = strings.ToLower(u.Email)
-		has, err := e.
-			Where("id!=?", u.ID).
-			And("type=?", u.Type).
-			And("email=?", u.Email).
-			Get(new(User))
-		if err != nil {
-			return err
-		} else if has {
-			return ErrEmailAlreadyUsed{u.Email}
-		}
-
 		if len(u.AvatarEmail) == 0 {
 			u.AvatarEmail = u.Email
 		}
@@ -843,6 +874,16 @@ func updateUser(e Engine, u *User) error {
 
 // UpdateUser updates user's information.
 func UpdateUser(u *User) error {
+	return updateUser(x, u)
+}
+
+// UpdateUserSetting updates user's settings.
+func UpdateUserSetting(u *User) error {
+	if !u.IsOrganization() {
+		if err := checkDupEmail(x, u); err != nil {
+			return err
+		}
+	}
 	return updateUser(x, u)
 }
 
@@ -923,6 +964,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 		&Action{UserID: u.ID},
 		&IssueUser{UID: u.ID},
 		&EmailAddress{UID: u.ID},
+		&UserOpenID{UID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -947,6 +989,12 @@ func deleteUser(e *xorm.Session, u *User) error {
 		return fmt.Errorf("clear assignee: %v", err)
 	}
 
+	// ***** START: ExternalLoginUser *****
+	if err = removeAllAccountLinks(e, u); err != nil {
+		return fmt.Errorf("ExternalLoginUser: %v", err)
+	}
+	// ***** END: ExternalLoginUser *****
+
 	if _, err = e.Id(u.ID).Delete(new(User)); err != nil {
 		return fmt.Errorf("Delete: %v", err)
 	}
@@ -960,10 +1008,12 @@ func deleteUser(e *xorm.Session, u *User) error {
 		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
 	}
 
-	avatarPath := u.CustomAvatarPath()
-	if com.IsExist(avatarPath) {
-		if err := os.Remove(avatarPath); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
+	if len(u.Avatar) > 0 {
+		avatarPath := u.CustomAvatarPath()
+		if com.IsExist(avatarPath) {
+			if err := os.Remove(avatarPath); err != nil {
+				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
+			}
 		}
 	}
 
@@ -1054,7 +1104,7 @@ func GetUserByID(id int64) (*User, error) {
 
 // GetAssigneeByID returns the user with write access of repository by given ID.
 func GetAssigneeByID(repo *Repository, userID int64) (*User, error) {
-	has, err := HasAccess(&User{ID: userID}, repo, AccessModeWrite)
+	has, err := HasAccess(userID, repo, AccessModeWrite)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -1190,6 +1240,11 @@ func GetUserByEmail(email string) (*User, error) {
 	return nil, ErrUserNotExist{0, email, 0}
 }
 
+// GetUser checks if a user already exists
+func GetUser(user *User) (bool, error) {
+	return x.Get(user)
+}
+
 // SearchUserOptions contains the options for searching
 type SearchUserOptions struct {
 	Keyword  string
@@ -1214,99 +1269,28 @@ func SearchUserByName(opts *SearchUserOptions) (users []*User, _ int64, _ error)
 		opts.Page = 1
 	}
 
-	searchQuery := "%" + opts.Keyword + "%"
 	users = make([]*User, 0, opts.PageSize)
-	// Append conditions
-	sess := x.
-		Where("LOWER(lower_name) LIKE ?", searchQuery).
-		Or("LOWER(full_name) LIKE ?", searchQuery).
-		And("type = ?", opts.Type)
 
-	var countSess xorm.Session
-	countSess = *sess
-	count, err := countSess.Count(new(User))
+	// Append conditions
+	cond := builder.And(
+		builder.Eq{"type": opts.Type},
+		builder.Or(
+			builder.Like{"lower_name", opts.Keyword},
+			builder.Like{"LOWER(full_name)", opts.Keyword},
+		),
+	)
+
+	count, err := x.Where(cond).Count(new(User))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
+	sess := x.Where(cond).
+		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	if len(opts.OrderBy) > 0 {
 		sess.OrderBy(opts.OrderBy)
 	}
-	return users, count, sess.
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		Find(&users)
-}
-
-// ___________    .__  .__
-// \_   _____/___ |  | |  |   ______  _  __
-//  |    __)/  _ \|  | |  |  /  _ \ \/ \/ /
-//  |     \(  <_> )  |_|  |_(  <_> )     /
-//  \___  / \____/|____/____/\____/ \/\_/
-//      \/
-
-// Follow represents relations of user and his/her followers.
-type Follow struct {
-	ID       int64 `xorm:"pk autoincr"`
-	UserID   int64 `xorm:"UNIQUE(follow)"`
-	FollowID int64 `xorm:"UNIQUE(follow)"`
-}
-
-// IsFollowing returns true if user is following followID.
-func IsFollowing(userID, followID int64) bool {
-	has, _ := x.Get(&Follow{UserID: userID, FollowID: followID})
-	return has
-}
-
-// FollowUser marks someone be another's follower.
-func FollowUser(userID, followID int64) (err error) {
-	if userID == followID || IsFollowing(userID, followID) {
-		return nil
-	}
-
-	sess := x.NewSession()
-	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if _, err = sess.Insert(&Follow{UserID: userID, FollowID: followID}); err != nil {
-		return err
-	}
-
-	if _, err = sess.Exec("UPDATE `user` SET num_followers = num_followers + 1 WHERE id = ?", followID); err != nil {
-		return err
-	}
-
-	if _, err = sess.Exec("UPDATE `user` SET num_following = num_following + 1 WHERE id = ?", userID); err != nil {
-		return err
-	}
-	return sess.Commit()
-}
-
-// UnfollowUser unmarks someone as another's follower.
-func UnfollowUser(userID, followID int64) (err error) {
-	if userID == followID || !IsFollowing(userID, followID) {
-		return nil
-	}
-
-	sess := x.NewSession()
-	defer sessionRelease(sess)
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if _, err = sess.Delete(&Follow{UserID: userID, FollowID: followID}); err != nil {
-		return err
-	}
-
-	if _, err = sess.Exec("UPDATE `user` SET num_followers = num_followers - 1 WHERE id = ?", followID); err != nil {
-		return err
-	}
-
-	if _, err = sess.Exec("UPDATE `user` SET num_following = num_following - 1 WHERE id = ?", userID); err != nil {
-		return err
-	}
-	return sess.Commit()
+	return users, count, sess.Find(&users)
 }
 
 // GetStarredRepos returns the repos starred by a particular user

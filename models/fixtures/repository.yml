@@ -57,6 +57,7 @@
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
+  num_watches: 0
   is_mirror: true
 
 -
@@ -126,6 +127,42 @@
   owner_id: 13
   lower_name: repo11
   name: repo11
+  is_private: false
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
+
+-
+  id: 12
+  owner_id: 14
+  lower_name: test_repo_12
+  name: test_repo_12
+  is_private: false
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
+
+-
+  id: 13
+  owner_id: 14
+  lower_name: test_repo_13
+  name: test_repo_13
+  is_private: true
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
+
+-
+  id: 14
+  owner_id: 14
+  lower_name: test_repo_14
+  name: test_repo_14
   is_private: false
   num_issues: 0
   num_closed_issues: 0

@@ -14,6 +14,7 @@ import (
 // PullRequest represents a pull request API object.
 type PullRequest struct {
 	ID        int64      `json:"id"`
+	URL       string     `json:"url"`
 	Index     int64      `json:"number"`
 	Poster    *User      `json:"user"`
 	Title     string     `json:"title"`

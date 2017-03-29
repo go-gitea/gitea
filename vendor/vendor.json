@@ -3,16 +3,16 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "km1AOUs34DCwgXT55fh6PrkPdiU=",
+			"checksumSHA1": "bKoCvndU5ZVC5vqtwYjuU3YPJ6k=",
 			"path": "code.gitea.io/git",
-			"revision": "dd951bf625ebf5c16ef403f681aaec6c34324bca",
-			"revisionTime": "2017-02-05T02:50:57Z"
+			"revision": "337468881d5961d36de8e950a607d6033e73dcf0",
+			"revisionTime": "2017-03-13T15:07:03Z"
 		},
 		{
-			"checksumSHA1": "BKj0haFTDebzdC2nACpoGzp3s8A=",
+			"checksumSHA1": "32qRX47gRmdBW4l4hCKGRZbuIJk=",
 			"path": "code.gitea.io/sdk/gitea",
-			"revision": "2064cc397bc48b0a46f8324a97421a824b11882e",
-			"revisionTime": "2016-12-31T14:43:27Z"
+			"revision": "9ceaabb8c70aba1ff73718332db2356356e26ffb",
+			"revisionTime": "2017-03-09T22:08:57Z"
 		},
 		{
 			"checksumSHA1": "IyfS7Rbl6OgR83QR7TOfKdDCq+M=",
@@ -455,10 +455,10 @@
 			"revisionTime": "2016-08-11T02:11:45Z"
 		},
 		{
-			"checksumSHA1": "BGWfs63vC5cJuxhVRrj+7YJKz7A=",
+			"checksumSHA1": "COlm4o3G1rUSqr33iumtjY1qKD8=",
 			"path": "github.com/go-xorm/xorm",
-			"revision": "19f6dfc2e8c069adc624ca56cf8127444159d5c1",
-			"revisionTime": "2017-02-10T01:55:37Z"
+			"revision": "1bc93ba022236fcc94092fa40105b96e1d1d2346",
+			"revisionTime": "2017-02-20T09:51:59Z"
 		},
 		{
 			"checksumSHA1": "1ft/4j5MFa7C9dPI9whL03HSUzk=",
@@ -551,6 +551,24 @@
 			"revisionTime": "2016-11-03T02:43:54Z"
 		},
 		{
+			"checksumSHA1": "O3KUfEXQPfdQ+tCMpP2RAIRJJqY=",
+			"path": "github.com/markbates/goth",
+			"revision": "450379d2950a65070b23cc93c53436553add4484",
+			"revisionTime": "2017-02-06T19:46:32Z"
+		},
+		{
+			"checksumSHA1": "MkFKwLV3icyUo4oP0BgEs+7+R1Y=",
+			"path": "github.com/markbates/goth/gothic",
+			"revision": "450379d2950a65070b23cc93c53436553add4484",
+			"revisionTime": "2017-02-06T19:46:32Z"
+		},
+		{
+			"checksumSHA1": "ZFqznX3/ZW65I4QeepiHQdE69nA=",
+			"path": "github.com/markbates/goth/providers/github",
+			"revision": "450379d2950a65070b23cc93c53436553add4484",
+			"revisionTime": "2017-02-06T19:46:32Z"
+		},
+		{
 			"checksumSHA1": "9FJUwn3EIgASVki+p8IHgWVC5vQ=",
 			"path": "github.com/mattn/go-sqlite3",
 			"revision": "86681de00adef4f8040947b7d35f97000fc5a230",
@@ -593,10 +611,10 @@
 			"revisionTime": "2015-08-13T08:49:40Z"
 		},
 		{
-			"checksumSHA1": "wLXFUHpjYiigLxib/vQZ6RcMM34=",
+			"checksumSHA1": "94Mvr/SU9I9Zl3pBtbHsBPN0LTg=",
 			"path": "github.com/ngaut/log",
-			"revision": "37d3e0f43b4fe05429e1adb75e835bf31fc1bba6",
-			"revisionTime": "2015-09-18T08:53:30Z"
+			"revision": "d2af3a61f64d093457fb23b25d20f4ce3cd551ce",
+			"revisionTime": "2017-03-07T01:10:05Z"
 		},
 		{
 			"checksumSHA1": "EcKjGj2rrdhMK90WMmP5gGwGQt8=",
@@ -1140,6 +1158,18 @@
 			"revisionTime": "2016-11-02T13:18:01Z"
 		},
 		{
+			"checksumSHA1": "TT1rac6kpQp2vz24m5yDGUNQ/QQ=",
+			"path": "golang.org/x/crypto/cast5",
+			"revision": "b8a2a83acfe6e6770b75de42d5ff4c67596675c0",
+			"revisionTime": "2017-01-13T19:21:00Z"
+    },
+    {
+			"checksumSHA1": "pkrINpw0HkmO+18SdtSjje9MB9g=",
+			"path": "github.com/yohcop/openid-go",
+			"revision": "2c050d2dae5345c417db301f11fda6fbf5ad0f0a",
+			"revisionTime": "2016-09-14T08:04:27Z"
+		},
+		{
 			"checksumSHA1": "dwOedwBJ1EIK9+S3t108Bx054Y8=",
 			"path": "golang.org/x/crypto/curve25519",
 			"revision": "9477e0b78b9ac3d0b03822fd95422e2fe07627cd",
@@ -1162,6 +1192,42 @@
 			"path": "golang.org/x/crypto/md4",
 			"revision": "ede567c8e044a5913dad1d1af3696d9da953104c",
 			"revisionTime": "2016-11-04T19:41:44Z"
+		},
+		{
+			"checksumSHA1": "IIhFTrLlmlc6lEFSitqi4aw2lw0=",
+			"path": "golang.org/x/crypto/openpgp",
+			"revision": "b8a2a83acfe6e6770b75de42d5ff4c67596675c0",
+			"revisionTime": "2017-01-13T19:21:00Z"
+		},
+		{
+			"checksumSHA1": "olOKkhrdkYQHZ0lf1orrFQPQrv4=",
+			"path": "golang.org/x/crypto/openpgp/armor",
+			"revision": "b8a2a83acfe6e6770b75de42d5ff4c67596675c0",
+			"revisionTime": "2017-01-13T19:21:00Z"
+		},
+		{
+			"checksumSHA1": "eo/KtdjieJQXH7Qy+faXFcF70ME=",
+			"path": "golang.org/x/crypto/openpgp/elgamal",
+			"revision": "b8a2a83acfe6e6770b75de42d5ff4c67596675c0",
+			"revisionTime": "2017-01-13T19:21:00Z"
+		},
+		{
+			"checksumSHA1": "rlxVSaGgqdAgwblsErxTxIfuGfg=",
+			"path": "golang.org/x/crypto/openpgp/errors",
+			"revision": "b8a2a83acfe6e6770b75de42d5ff4c67596675c0",
+			"revisionTime": "2017-01-13T19:21:00Z"
+		},
+		{
+			"checksumSHA1": "LWdaR8Q9yn6eBCcnGl0HvJRDUBE=",
+			"path": "golang.org/x/crypto/openpgp/packet",
+			"revision": "b8a2a83acfe6e6770b75de42d5ff4c67596675c0",
+			"revisionTime": "2017-01-13T19:21:00Z"
+		},
+		{
+			"checksumSHA1": "s2qT4UwvzBSkzXuiuMkowif1Olw=",
+			"path": "golang.org/x/crypto/openpgp/s2k",
+			"revision": "b8a2a83acfe6e6770b75de42d5ff4c67596675c0",
+			"revisionTime": "2017-01-13T19:21:00Z"
 		},
 		{
 			"checksumSHA1": "1MGpGDQqnUoRpv7VEcQrXOBydXE=",

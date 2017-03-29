@@ -1,4 +1,4 @@
-// +build freebsd openbsd netbsd dragonfly darwin linux
+// +build freebsd openbsd netbsd dragonfly linux
 
 package log
 
@@ -13,6 +13,6 @@ func CrashLog(file string) {
 	if err != nil {
 		log.Println(err.Error())
 	} else {
-		syscall.Dup2(int(f.Fd()), 2)
+		syscall.Dup3(int(f.Fd()), 2, 0)
 	}
 }
