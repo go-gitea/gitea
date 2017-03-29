@@ -58,3 +58,13 @@ func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool
 		Get(iw)
 	return
 }
+
+func GetIssueWatchers(issueID int64) ([]*IssueWatch, error) {
+	return getIssueWatchers(x, issueID)
+}
+func getIssueWatchers(e Engine, issueID int64) (watches []*IssueWatch, err error) {
+	err = e.
+		Where("issue_id = ?", issueID).
+		Find(&watches)
+	return
+}
