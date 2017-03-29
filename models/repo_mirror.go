@@ -27,7 +27,7 @@ type Mirror struct {
 	ID          int64       `xorm:"pk autoincr"`
 	RepoID      int64       `xorm:"INDEX"`
 	Repo        *Repository `xorm:"-"`
-	Interval    string         // Duration string
+	Interval    string      // Duration string
 	EnablePrune bool        `xorm:"NOT NULL DEFAULT true"`
 
 	Updated        time.Time `xorm:"-"`

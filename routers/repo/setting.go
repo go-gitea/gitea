@@ -112,7 +112,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		interval, err := time.ParseDuration(form.Interval)
-		if err != nil  {
+		if err != nil {
 			ctx.Handle(500, "UpdateMirror", err)
 		} else {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
