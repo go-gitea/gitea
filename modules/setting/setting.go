@@ -412,7 +412,7 @@ var (
 	Mirror = struct {
 		DefaultInterval time.Duration
 		MinInterval     time.Duration
-	} {
+	}{
 		DefaultInterval: time.Hour * 8,
 		MinInterval:     time.Minutes * 10,
 	}
@@ -909,7 +909,7 @@ please consider changing to GITEA_CUSTOM`)
 		log.Warn("Invalid Mirror.MinInterval")
 		Mirror.MinInterval = time.Second * 60
 	}
-	if  Mirror.DefaultInterval < Mirror.MinInterval {
+	if Mirror.DefaultInterval < Mirror.MinInterval {
 		log.Warn("Invalid Mirror.DefaultInterval")
 		Mirror.DefaultInterval = time.Hour * 8
 	}

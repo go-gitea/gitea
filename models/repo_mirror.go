@@ -1,4 +1,3 @@
-
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -29,7 +28,7 @@ type Mirror struct {
 	RepoID      int64       `xorm:"INDEX"`
 	Repo        *Repository `xorm:"-"`
 	Interval    time.Duration
-	EnablePrune bool        `xorm:"NOT NULL DEFAULT true"`
+	EnablePrune bool `xorm:"NOT NULL DEFAULT true"`
 
 	Updated        time.Time `xorm:"-"`
 	UpdatedUnix    int64     `xorm:"INDEX"`
