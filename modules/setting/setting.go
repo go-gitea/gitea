@@ -414,7 +414,7 @@ var (
 		MinInterval     time.Duration
 	}{
 		DefaultInterval: time.Hour * 8,
-		MinInterval:     time.Minutes * 10,
+		MinInterval:     time.Minute * 10,
 	}
 
 	// API settings
