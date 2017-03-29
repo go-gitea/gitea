@@ -12,12 +12,21 @@ type IssueWatch struct {
 	IsWatching  bool      `xorm:"NOT NULL"`
 	Created     time.Time `xorm:"-"`
 	CreatedUnix int64     `xorm:"NOT NULL"`
+	Updated     time.Time `xorm:"-"`
+	UpdatedUnix int64     `xorm:"NOT NULL"`
 }
 
 // BeforeInsert is invoked from XORM before inserting an object of this type.
 func (iw *IssueWatch) BeforeInsert() {
 	iw.Created = time.Now()
 	iw.CreatedUnix = time.Now().Unix()
+	iw.Updated = time.Now()
+	iw.UpdatedUnix = time.Now().Unix()
+}
+
+func (iw *IssueWatch) BeforeUpdate() {
+	iw.Updated = time.Now()
+	iw.UpdatedUnix = time.Now().Unix()
 }
 
 // CreateOrUpdateIssueWatch set watching for a user and issue
@@ -38,7 +47,9 @@ func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
 			return err
 		}
 	} else {
-		if _, err := x.Table(&IssueWatch{}).Id(iw.ID).Update(map[string]interface{}{"is_watching": isWatching}); err != nil {
+		iw.IsWatching = isWatching
+
+		if _, err := x.Id(iw.ID).Cols("is_watching", "updated_unix").Update(iw); err != nil {
 			return err
 		}
 	}
