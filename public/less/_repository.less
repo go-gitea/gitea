@@ -1363,11 +1363,24 @@
 		}
 	}
 	.list {
-		.item:not(:first-child) {
-			border-top: 1px solid #eaeaea;
-			padding:1rem;
-			margin: 15px -1rem -1rem -1rem;
-			min-height: 60px;
+		.item {
+			.green {
+				color: #21BA45 !important;
+			}
+			&:not(:first-child) {
+				border-top: 1px solid #eaeaea;
+				padding:1rem;
+				margin: 15px -1rem -1rem -1rem;
+				min-height: 60px;
+			}
+			> .mega-octicon {
+				display: table-cell;
+			}
+			> .mega-octicon + .content {
+				display: table-cell;
+				padding: 0 0 0 .5em;
+				vertical-align: top;
+			}
 		}
 		&.key{
 			.meta {
