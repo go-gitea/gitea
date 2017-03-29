@@ -411,8 +411,10 @@ var (
 	// Mirror settings
 	Mirror = struct {
 		DefaultInterval string
+		MinInterval     string
 	}{
 		DefaultInterval: "8h",
+		MinInterval:     "1m",
 	}
 
 	// API settings
@@ -902,7 +904,16 @@ please consider changing to GITEA_CUSTOM`)
 		log.Fatal(4, "Failed to map API settings: %v", err)
 	}
 
-	if _, err := time.ParseDuration(Mirror.DefaultInterval); err != nil {
+	minInterval, err := time.ParseDuration(Mirror.MinInterval);
+	if  err != nil || minInterval.Minutes() < 1 {
+		log.Warn("Invalid Mirror.MinInterval")
+		Mirror.MinInterval = "1m"
+	}
+
+	defaultInterval, err := time.ParseDuration(Mirror.DefaultInterval)
+	minInterval, _ = time.ParseDuration(Mirror.MinInterval)
+	if err != nil || defaultInterval < minInterval {
+		log.Warn("Invalid Mirror.DefaultInterval")
 		Mirror.DefaultInterval = "8h"
 	}
 
