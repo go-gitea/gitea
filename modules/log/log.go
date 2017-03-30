@@ -288,21 +288,21 @@ func (l *Logger) Flush() {
 
 // Close closes logger, flush all chan data and destroy all adapter instances.
 func (l *Logger) Close() {
-	l.lock.Lock()
 	l.quit <- true
 	for {
 		if len(l.msg) > 0 {
 			bm := <-l.msg
+			l.lock.Lock()
 			for _, l := range l.outputs {
 				if err := l.WriteMsg(bm.msg, bm.skip, bm.level); err != nil {
 					fmt.Println("ERROR, unable to WriteMsg:", err)
 				}
 			}
+			l.lock.Unlock()
 		} else {
 			break
 		}
 	}
-	l.lock.Unlock()
 	for _, l := range l.outputs {
 		l.Flush()
 		l.Destroy()
