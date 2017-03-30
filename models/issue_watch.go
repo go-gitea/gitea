@@ -24,6 +24,7 @@ func (iw *IssueWatch) BeforeInsert() {
 	iw.UpdatedUnix = time.Now().Unix()
 }
 
+// BeforeUpdate is invoked from XORM before updating an object of this type.
 func (iw *IssueWatch) BeforeUpdate() {
 	iw.Updated = time.Now()
 	iw.UpdatedUnix = time.Now().Unix()
@@ -70,6 +71,7 @@ func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool
 	return
 }
 
+// GetIssueWatchers returns watchers/unwatchers of a given issue
 func GetIssueWatchers(issueID int64) ([]*IssueWatch, error) {
 	return getIssueWatchers(x, issueID)
 }
