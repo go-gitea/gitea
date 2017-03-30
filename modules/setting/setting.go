@@ -409,12 +409,9 @@ var (
 	}
 
 	// Mirror settings
-	Mirror = struct {
+	Mirror struct {
 		DefaultInterval time.Duration
 		MinInterval     time.Duration
-	}{
-		DefaultInterval: time.Hour * 8,
-		MinInterval:     time.Minute * 10,
 	}
 
 	// API settings
@@ -903,14 +900,14 @@ please consider changing to GITEA_CUSTOM`)
 	}
 
 	sec = Cfg.Section("mirror")
-	Mirror.MinInterval = sec.Key("MIN_INTERVAL").MustDuration()
-	Mirror.DefaultInterval = sec.Key("DEFAULT_INTERVAL").MustDuration()
+	Mirror.MinInterval = sec.Key("MIN_INTERVAL").MustDuration(10 * time.Minute)
+	Mirror.DefaultInterval = sec.Key("DEFAULT_INTERVAL").MustDuration(8 * time.Hour)
 	if Mirror.MinInterval.Minutes() < 1 {
-		log.Warn("Invalid Mirror.MinInterval")
-		Mirror.MinInterval = time.Second * 60
+		log.Warn("Mirror.MinInterval is too low")
+		Mirror.MinInterval = 1 * time.Minute
 	}
 	if Mirror.DefaultInterval < Mirror.MinInterval {
-		log.Warn("Invalid Mirror.DefaultInterval")
+		log.Warn("Mirror.DefaultInterval is less than Mirror.MinInterval")
 		Mirror.DefaultInterval = time.Hour * 8
 	}
 
