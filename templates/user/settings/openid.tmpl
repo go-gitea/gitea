@@ -12,15 +12,13 @@
 					{{.i18n.Tr "settings.openid_desc"}}
 				</div>
 				{{range .OpenIDs}}
-					<div class="item ui grid">
-						<div class="column">
-							<strong>{{.URI}}</strong>
-							<div class="ui right">
+					<div class="item">
+					    <div class="right floated content">
 								<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
 									{{$.i18n.Tr "settings.delete_key"}}
 								</button>
-							</div>
-							<div class="ui right">
+					    </div>
+							<div class="right floated content">
 								<form action="{{$.Link}}/toggle_visibility" method="post">
 								{{$.CsrfTokenHtml}}
 								<input name="id" type="hidden" value="{{.ID}}">
@@ -38,7 +36,9 @@
 								</button>
 								</form>
 							</div>
-						</div>
+							<div class="content">
+								<strong>{{.URI}}</strong>
+							</div>
 					</div>
 				{{end}}
 			</div>

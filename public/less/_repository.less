@@ -1362,27 +1362,31 @@
 			box-shadow: 0 1px 2px 0 rgba(34,36,38,.15);
 		}
 	}
-	.key.list {
-		.item:not(:first-child) {
-			border-top: 1px solid #eaeaea;
-		}
-		.ssh-key-state-indicator {
-			float: left;
-			color: gray;
-			padding-left: 10px;
-			padding-top: 10px;
-			&.active {
-				color: #6cc644;
+	.list {
+		.item {
+			.green {
+				color: #21BA45 !important;
+			}
+			&:not(:first-child) {
+				border-top: 1px solid #eaeaea;
+				padding:1rem;
+				margin: 15px -1rem -1rem -1rem;
+				min-height: 60px;
+			}
+			> .mega-octicon {
+				display: table-cell;
+			}
+			> .mega-octicon + .content {
+				display: table-cell;
+				padding: 0 0 0 .5em;
+				vertical-align: top;
 			}
 		}
-		.meta {
-			padding-top: 5px;
-		}
-		.print {
-			color: #767676;
-		}
-		.activity {
-			color: #666;
+		&.key{
+			.meta {
+				padding-top: 5px;
+				color: #666;
+			}
 		}
 	}
 	.hook.list {

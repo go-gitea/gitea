@@ -820,7 +820,7 @@ footer .ui.language .menu {
   border: solid 1px #ccc;
   border-bottom-color: #bbb;
   border-radius: 3px;
-  box-shadow: inset 0 -1px 0 #bbbbbb;
+  box-shadow: inset 0 -1px 0 #bbb;
 }
 .markdown:not(code) input[type="checkbox"] {
   vertical-align: middle !important;
@@ -896,7 +896,7 @@ footer .ui.language .menu {
 }
 .install form label {
   text-align: right;
-  width: 320px;
+  width: 320px !important;
 }
 .install form input {
   width: 35% !important;
@@ -905,7 +905,7 @@ footer .ui.language .menu {
   text-align: left;
 }
 .install form .field .help {
-  margin-left: 335px;
+  margin-left: 335px !important;
 }
 .install form .field.optional .title {
   margin-left: 38%;
@@ -940,18 +940,18 @@ footer .ui.language .menu {
   text-align: center;
 }
 #create-page-form form .header {
-  padding-left: 280px;
+  padding-left: 280px !important;
 }
 #create-page-form form .inline.field > label {
   text-align: right;
-  width: 250px;
+  width: 250px !important;
   word-wrap: break-word;
 }
 #create-page-form form .help {
-  margin-left: 265px;
+  margin-left: 265px !important;
 }
 #create-page-form form .optional .title {
-  margin-left: 250px;
+  margin-left: 250px !important;
 }
 #create-page-form form input,
 #create-page-form form textarea {
@@ -994,7 +994,7 @@ footer .ui.language .menu {
 .user.reset.password form .header,
 .user.signin form .header,
 .user.signup form .header {
-  padding-left: 280px;
+  padding-left: 280px !important;
 }
 .user.activate form .inline.field > label,
 .user.forgot.password form .inline.field > label,
@@ -1002,7 +1002,7 @@ footer .ui.language .menu {
 .user.signin form .inline.field > label,
 .user.signup form .inline.field > label {
   text-align: right;
-  width: 250px;
+  width: 250px !important;
   word-wrap: break-word;
 }
 .user.activate form .help,
@@ -1010,14 +1010,14 @@ footer .ui.language .menu {
 .user.reset.password form .help,
 .user.signin form .help,
 .user.signup form .help {
-  margin-left: 265px;
+  margin-left: 265px !important;
 }
 .user.activate form .optional .title,
 .user.forgot.password form .optional .title,
 .user.reset.password form .optional .title,
 .user.signin form .optional .title,
 .user.signup form .optional .title {
-  margin-left: 250px;
+  margin-left: 250px !important;
 }
 .user.activate form input,
 .user.forgot.password form input,
@@ -1051,7 +1051,7 @@ footer .ui.language .menu {
 .user.reset.password form .inline.field > label,
 .user.signin form .inline.field > label,
 .user.signup form .inline.field > label {
-  width: 200px;
+  width: 200px !important;
 }
 .repository.new.repo form,
 .repository.new.migrate form,
@@ -1067,24 +1067,24 @@ footer .ui.language .menu {
 .repository.new.repo form .header,
 .repository.new.migrate form .header,
 .repository.new.fork form .header {
-  padding-left: 280px;
+  padding-left: 280px !important;
 }
 .repository.new.repo form .inline.field > label,
 .repository.new.migrate form .inline.field > label,
 .repository.new.fork form .inline.field > label {
   text-align: right;
-  width: 250px;
+  width: 250px !important;
   word-wrap: break-word;
 }
 .repository.new.repo form .help,
 .repository.new.migrate form .help,
 .repository.new.fork form .help {
-  margin-left: 265px;
+  margin-left: 265px !important;
 }
 .repository.new.repo form .optional .title,
 .repository.new.migrate form .optional .title,
 .repository.new.fork form .optional .title {
-  margin-left: 250px;
+  margin-left: 250px !important;
 }
 .repository.new.repo form input,
 .repository.new.migrate form input,
@@ -1119,7 +1119,7 @@ footer .ui.language .menu {
   width: 50%!important;
 }
 .repository.new.repo .ui.form #auto-init {
-  margin-left: 265px;
+  margin-left: 265px !important;
 }
 .new.webhook form .help {
   margin-left: 25px;
@@ -2374,25 +2374,25 @@ footer .ui.language .menu {
 .settings .content .segment {
   box-shadow: 0 1px 2px 0 rgba(34, 36, 38, 0.15);
 }
-.settings .key.list .item:not(:first-child) {
+.settings .list .item .green {
+  color: #21BA45 !important;
+}
+.settings .list .item:not(:first-child) {
   border-top: 1px solid #eaeaea;
+  padding: 1rem;
+  margin: 15px -1rem -1rem -1rem;
+  min-height: 60px;
 }
-.settings .key.list .ssh-key-state-indicator {
-  float: left;
-  color: gray;
-  padding-left: 10px;
-  padding-top: 10px;
+.settings .list .item > .mega-octicon {
+  display: table-cell;
 }
-.settings .key.list .ssh-key-state-indicator.active {
-  color: #6cc644;
+.settings .list .item > .mega-octicon + .content {
+  display: table-cell;
+  padding: 0 0 0 .5em;
+  vertical-align: top;
 }
-.settings .key.list .meta {
+.settings .list.key .meta {
   padding-top: 5px;
-}
-.settings .key.list .print {
-  color: #767676;
-}
-.settings .key.list .activity {
   color: #666;
 }
 .settings .hook.list > .item:not(:first-child) {
@@ -2625,18 +2625,18 @@ footer .ui.language .menu {
   text-align: center;
 }
 .organization.new.org form .header {
-  padding-left: 280px;
+  padding-left: 280px !important;
 }
 .organization.new.org form .inline.field > label {
   text-align: right;
-  width: 250px;
+  width: 250px !important;
   word-wrap: break-word;
 }
 .organization.new.org form .help {
-  margin-left: 265px;
+  margin-left: 265px !important;
 }
 .organization.new.org form .optional .title {
-  margin-left: 250px;
+  margin-left: 250px !important;
 }
 .organization.new.org form input,
 .organization.new.org form textarea {
@@ -2737,18 +2737,6 @@ footer .ui.language .menu {
 .user:not(.icon) {
   padding-top: 15px;
   padding-bottom: 80px;
-}
-.user.settings .list .item.ui.grid {
-  margin-top: 15px;
-}
-.user.settings .email.list .item:not(:first-child),
-.user.settings .openid.list .item:not(:first-child) {
-  border-top: 1px solid #eaeaea;
-  height: 50px;
-}
-.user.settings .email.list .item:not(:first-child) .button,
-.user.settings .openid.list .item:not(:first-child) .button {
-  margin-top: -10px;
 }
 .user.profile .ui.card .username {
   display: block;
