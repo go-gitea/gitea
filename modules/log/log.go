@@ -212,13 +212,13 @@ func (l *Logger) SetLogger(adapter string, config string) error {
 // DelLogger removes a logger adapter instance.
 func (l *Logger) DelLogger(adapter string) error {
 	l.lock.Lock()
-	defer l.lock.Unlock()
 	if lg, ok := l.outputs[adapter]; ok {
 		lg.Destroy()
 		delete(l.outputs, adapter)
 	} else {
 		panic("log: unknown adapter \"" + adapter + "\" (forgotten register?)")
 	}
+	l.lock.Unlock()
 	return nil
 }
 
@@ -264,11 +264,13 @@ func (l *Logger) StartLogger() {
 	for {
 		select {
 		case bm := <-l.msg:
+			l.lock.Lock()
 			for _, l := range l.outputs {
 				if err := l.WriteMsg(bm.msg, bm.skip, bm.level); err != nil {
 					fmt.Println("ERROR, unable to WriteMsg:", err)
 				}
 			}
+			l.lock.Unlock()
 		case <-l.quit:
 			return
 		}
@@ -277,13 +279,16 @@ func (l *Logger) StartLogger() {
 
 // Flush flushes all chan data.
 func (l *Logger) Flush() {
+	l.lock.Lock()
 	for _, l := range l.outputs {
 		l.Flush()
 	}
+	l.lock.Unlock()
 }
 
 // Close closes logger, flush all chan data and destroy all adapter instances.
 func (l *Logger) Close() {
+	l.lock.Lock()
 	l.quit <- true
 	for {
 		if len(l.msg) > 0 {
@@ -297,6 +302,7 @@ func (l *Logger) Close() {
 			break
 		}
 	}
+	l.lock.Unlock()
 	for _, l := range l.outputs {
 		l.Flush()
 		l.Destroy()
