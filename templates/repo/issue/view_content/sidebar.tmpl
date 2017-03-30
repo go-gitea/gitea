@@ -109,8 +109,10 @@
 					{{$.CsrfTokenHtml}}
 					<button class="fluid ui button">
 						{{if $.IssueWatch.IsWatching}}
+							<i class="octicon octicon-mute"></i>
 							{{.i18n.Tr "repo.issues.unwatch_issue"}}
 						{{else}}
+							<i class="octicon octicon-megaphone"></i>
 							{{.i18n.Tr "repo.issues.watch_issue"}}
 						{{end}}
 					</button>
