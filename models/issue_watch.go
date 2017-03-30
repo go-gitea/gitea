@@ -22,16 +22,24 @@ type IssueWatch struct {
 
 // BeforeInsert is invoked from XORM before inserting an object of this type.
 func (iw *IssueWatch) BeforeInsert() {
-	iw.Created = time.Now()
-	iw.CreatedUnix = time.Now().Unix()
-	iw.Updated = time.Now()
-	iw.UpdatedUnix = time.Now().Unix()
+	var (
+		t = time.Now()
+		u = t.Unix()
+	)
+	iw.Created = t
+	iw.CreatedUnix = u
+	iw.Updated = t
+	iw.UpdatedUnix = u
 }
 
 // BeforeUpdate is invoked from XORM before updating an object of this type.
 func (iw *IssueWatch) BeforeUpdate() {
-	iw.Updated = time.Now()
-	iw.UpdatedUnix = time.Now().Unix()
+	var (
+		t = time.Now()
+		u = t.Unix()
+	)
+	iw.Updated = t
+	iw.UpdatedUnix = u
 }
 
 // CreateOrUpdateIssueWatch set watching for a user and issue
