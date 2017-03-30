@@ -37,11 +37,8 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-var fixtures *testfixtures.Context
-
 // CreateTestEngine create an xorm engine for testing
 func CreateTestEngine() error {
-	testfixtures.SkipDatabaseNameCheck(true)
 	var err error
 	x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 	if err != nil {
@@ -52,8 +49,7 @@ func CreateTestEngine() error {
 		return err
 	}
 
-	fixtures, err = testfixtures.NewFolder(x.DB().DB, &testfixtures.SQLite{}, "fixtures/")
-	return err
+	return InitFixtures(&testfixtures.SQLite{}, "fixtures/")
 }
 
 func TestFixturesAreConsistent(t *testing.T) {
@@ -63,7 +59,7 @@ func TestFixturesAreConsistent(t *testing.T) {
 
 // PrepareTestDatabase load test fixtures into test database
 func PrepareTestDatabase() error {
-	return fixtures.Load()
+	return LoadFixtures()
 }
 
 func loadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error) {

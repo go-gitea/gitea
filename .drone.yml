@@ -25,6 +25,17 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
+  test-sqlite:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      TAGS: bindata
+      GOPATH: /srv/app
+    commands:
+      - make test-sqlite
+    when:
+      event: [ push, tag, pull_request ]
+
   test-mysql:
     image: webhippie/golang:edge
     pull: true
@@ -32,7 +43,7 @@ pipeline:
       TAGS: bindata
       GOPATH: /srv/app
     commands:
-      - make test-mysql
+      - echo make test-mysql # Not ready yet
     when:
       event: [ push, tag, pull_request ]
 
@@ -43,7 +54,7 @@ pipeline:
       TAGS: bindata
       GOPATH: /srv/app
     commands:
-      - make test-pgsql
+      - echo make test-pqsql # Not ready yet
     when:
       event: [ push, tag, pull_request ]
 
