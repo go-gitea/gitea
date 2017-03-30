@@ -280,10 +280,10 @@ func (l *Logger) StartLogger() {
 // Flush flushes all chan data.
 func (l *Logger) Flush() {
 	l.lock.Lock()
+	defer l.lock.Unlock()
 	for _, l := range l.outputs {
 		l.Flush()
 	}
-	l.lock.Unlock()
 }
 
 // Close closes logger, flush all chan data and destroy all adapter instances.
