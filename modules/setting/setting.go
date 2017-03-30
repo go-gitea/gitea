@@ -903,8 +903,8 @@ please consider changing to GITEA_CUSTOM`)
 	}
 
 	sec = Cfg.Section("mirror")
-	Mirror.MinInterval = sec.Key("MIN_INTERVAL").MustDuration(time.Second * 55)
-	Mirror.DefaultInterval = sec.Key("DEFAULT_INTERVAL").MustDuration(time.Hour * 55)
+	Mirror.MinInterval = sec.Key("MIN_INTERVAL").MustDuration()
+	Mirror.DefaultInterval = sec.Key("DEFAULT_INTERVAL").MustDuration()
 	if Mirror.MinInterval.Minutes() < 1 {
 		log.Warn("Invalid Mirror.MinInterval")
 		Mirror.MinInterval = time.Second * 60
