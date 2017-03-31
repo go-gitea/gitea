@@ -259,7 +259,7 @@ var (
 			Keywords    string
 		}{
 			Author:      "Gitea - Git with a cup of tea",
-			Description: "",
+			Description: "Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go",
 			Keywords:    "go,git,self-hosted,gitea",
 		},
 	}
@@ -911,7 +911,6 @@ please consider changing to GITEA_CUSTOM`)
 	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
 
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
-	UI.Meta.Description = Cfg.Section("ui.meta").Key("DESCRIPTION").MustString(AppName)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 }
