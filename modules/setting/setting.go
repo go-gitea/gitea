@@ -226,6 +226,11 @@ var (
 		User struct {
 			RepoPagingNum int
 		} `ini:"ui.user"`
+		Meta struct {
+			Author      string
+			Description string
+			Keywords    string
+		} `ini:"ui.meta"`
 	}{
 		ExplorePagingNum:   20,
 		IssuePagingNum:     10,
@@ -247,6 +252,15 @@ var (
 			RepoPagingNum int
 		}{
 			RepoPagingNum: 15,
+		},
+		Meta: struct {
+			Author      string
+			Description string
+			Keywords    string
+		}{
+			Author:      "Gitea - Git with a cup of tea",
+			Description: "",
+			Keywords:    "go,git,self-hosted,gitea",
 		},
 	}
 
@@ -897,6 +911,7 @@ please consider changing to GITEA_CUSTOM`)
 	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
 
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
+	UI.Meta.Description = Cfg.Section("ui.meta").Key("DESCRIPTION").MustString(AppName)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 }
