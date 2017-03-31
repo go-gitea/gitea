@@ -215,16 +215,12 @@ func (l *Logger) SetLogger(adapter string, config string) error {
 // DelLogger removes a logger adapter instance.
 func (l *Logger) DelLogger(adapter string) error {
 
-	l.lock.RLock()
-	lg, ok := l.outputs[adapter]
-	l.lock.RUnlock()
+	l.lock.Lock()
+	defer l.lock.Unlock()
 
-	if ok {
+	if lg, ok := l.outputs[adapter]; ok {
 		lg.Destroy()
-
-		l.lock.Lock()
 		delete(l.outputs, adapter)
-		l.lock.Unlock()
 	} else {
 		panic("log: unknown adapter \"" + adapter + "\" (forgotten register?)")
 	}
