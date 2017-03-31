@@ -508,7 +508,7 @@ func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
 		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
 		"git", "rev-list", "--ancestry-path", "--merges", "--reverse", cmd)
 
-	if err != nil {
+	if err != nil || len(mergeCommit) != 40 {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v %v", stderr, err)
 	}
 
