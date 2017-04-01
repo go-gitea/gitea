@@ -226,6 +226,11 @@ var (
 		User struct {
 			RepoPagingNum int
 		} `ini:"ui.user"`
+		Meta struct {
+			Author      string
+			Description string
+			Keywords    string
+		} `ini:"ui.meta"`
 	}{
 		ExplorePagingNum:   20,
 		IssuePagingNum:     10,
@@ -247,6 +252,15 @@ var (
 			RepoPagingNum int
 		}{
 			RepoPagingNum: 15,
+		},
+		Meta: struct {
+			Author      string
+			Description string
+			Keywords    string
+		}{
+			Author:      "Gitea - Git with a cup of tea",
+			Description: "Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go",
+			Keywords:    "go,git,self-hosted,gitea",
 		},
 	}
 

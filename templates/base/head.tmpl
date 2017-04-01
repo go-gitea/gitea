@@ -5,9 +5,9 @@
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<title>{{if .Title}}{{.Title}} - {{end}}{{AppName}}</title>
 	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
-	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}Gitea - Git with a cup of tea{{end}}" />
-	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go{{end}}" />
-	<meta name="keywords" content="go, git, self-hosted, gitea">
+	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}{{MetaAuthor}}{{end}}" />
+	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}{{MetaDescription}}{{end}}" />
+	<meta name="keywords" content="{{MetaKeywords}}">
 	<meta name="referrer" content="no-referrer" />
 	<meta name="_csrf" content="{{.CsrfToken}}" />
 	<meta name="_suburl" content="{{AppSubUrl}}" />
@@ -68,7 +68,7 @@
 	<meta property="og:type" content="website" />
 	<meta property="og:image" content="{{AppSubUrl}}/img/gitea-lg.png" />
 	<meta property="og:url" content="{{AppUrl}}" />
-	<meta property="og:description" content="Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go">
+	<meta property="og:description" content="{{MetaDescription}}">
 {{end}}
 </head>
 <body>
