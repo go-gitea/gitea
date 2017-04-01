@@ -98,5 +98,26 @@
 				{{end}}
 			</div>
 		</div>
+
+		<div class="ui divider"></div>
+
+		<div class="ui watching">
+			<span class="text"><strong>{{.i18n.Tr "notification.notifications"}}</strong></span>
+			<div>
+				<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/watch">
+					<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}" />
+					{{$.CsrfTokenHtml}}
+					<button class="fluid ui button">
+						{{if $.IssueWatch.IsWatching}}
+							<i class="octicon octicon-mute"></i>
+							{{.i18n.Tr "repo.issues.unsubscribe"}}
+						{{else}}
+							<i class="octicon octicon-unmute"></i>
+							{{.i18n.Tr "repo.issues.subscribe"}}
+						{{end}}
+					</button>
+				</form>
+			</div>
+		</div>
 	</div>
 </div>
