@@ -71,9 +71,9 @@ func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
 
 // GetIssueWatch returns an issue watch by user and issue
 func GetIssueWatch(userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
-	iw, exists, err = getIssueWatch(x, userID, issueID)
-	return
+	return getIssueWatch(x, userID, issueID)
 }
+
 func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
 	iw = new(IssueWatch)
 	exists, err = e.
@@ -87,6 +87,7 @@ func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool
 func GetIssueWatchers(issueID int64) ([]*IssueWatch, error) {
 	return getIssueWatchers(x, issueID)
 }
+
 func getIssueWatchers(e Engine, issueID int64) (watches []*IssueWatch, err error) {
 	err = e.
 		Where("issue_id = ?", issueID).
