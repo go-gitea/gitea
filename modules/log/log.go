@@ -42,7 +42,10 @@ func NewLogger(bufLen int64, mode, config string) {
 // DelLogger removes loggers that are for the given mode
 func DelLogger(mode string) error {
 	for _, l := range loggers {
-		if _, ok := l.outputs[mode]; ok {
+		l.lock.RLock()
+		_, ok := l.outputs[mode]
+		l.lock.RUnlock()
+		if ok {
 			return l.DelLogger(mode)
 		}
 	}
@@ -174,7 +177,7 @@ type logMsg struct {
 // it can contain several providers and log message into all providers.
 type Logger struct {
 	adapter string
-	lock    sync.Mutex
+	lock    sync.RWMutex
 	level   int
 	msg     chan *logMsg
 	outputs map[string]LoggerInterface
@@ -194,14 +197,14 @@ func newLogger(buffer int64) *Logger {
 
 // SetLogger sets new logger instance with given logger adapter and config.
 func (l *Logger) SetLogger(adapter string, config string) error {
-	l.lock.Lock()
-	defer l.lock.Unlock()
 	if log, ok := adapters[adapter]; ok {
 		lg := log()
 		if err := lg.Init(config); err != nil {
 			return err
 		}
+		l.lock.Lock()
 		l.outputs[adapter] = lg
+		l.lock.Unlock()
 		l.adapter = adapter
 	} else {
 		panic("log: unknown adapter \"" + adapter + "\" (forgotten register?)")
@@ -211,8 +214,10 @@ func (l *Logger) SetLogger(adapter string, config string) error {
 
 // DelLogger removes a logger adapter instance.
 func (l *Logger) DelLogger(adapter string) error {
+
 	l.lock.Lock()
 	defer l.lock.Unlock()
+
 	if lg, ok := l.outputs[adapter]; ok {
 		lg.Destroy()
 		delete(l.outputs, adapter)
@@ -264,11 +269,13 @@ func (l *Logger) StartLogger() {
 	for {
 		select {
 		case bm := <-l.msg:
+			l.lock.RLock()
 			for _, l := range l.outputs {
 				if err := l.WriteMsg(bm.msg, bm.skip, bm.level); err != nil {
 					fmt.Println("ERROR, unable to WriteMsg:", err)
 				}
 			}
+			l.lock.RUnlock()
 		case <-l.quit:
 			return
 		}
@@ -277,9 +284,11 @@ func (l *Logger) StartLogger() {
 
 // Flush flushes all chan data.
 func (l *Logger) Flush() {
+	l.lock.RLock()
 	for _, l := range l.outputs {
 		l.Flush()
 	}
+	l.lock.RUnlock()
 }
 
 // Close closes logger, flush all chan data and destroy all adapter instances.
@@ -288,19 +297,24 @@ func (l *Logger) Close() {
 	for {
 		if len(l.msg) > 0 {
 			bm := <-l.msg
+			l.lock.RLock()
 			for _, l := range l.outputs {
 				if err := l.WriteMsg(bm.msg, bm.skip, bm.level); err != nil {
 					fmt.Println("ERROR, unable to WriteMsg:", err)
 				}
 			}
+			l.lock.RUnlock()
 		} else {
 			break
 		}
 	}
+
+	l.lock.RLock()
 	for _, l := range l.outputs {
 		l.Flush()
 		l.Destroy()
 	}
+	l.lock.RUnlock()
 }
 
 // Trace records trace log
