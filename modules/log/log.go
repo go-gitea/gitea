@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 
 	"golang.org/x/sync/syncmap"
 )
@@ -177,7 +176,6 @@ type logMsg struct {
 // it can contain several providers and log message into all providers.
 type Logger struct {
 	adapter string
-	lock    sync.Mutex
 	level   int
 	msg     chan *logMsg
 	outputs syncmap.Map
