@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/racedetector"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
@@ -79,6 +80,9 @@ func initIntegrationTest() {
 	if giteaRoot == "" {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)
+	}
+	if racedetector.Enabled {
+		setting.AppBuiltWith = " (race detector enabled)"
 	}
 	setting.AppPath = path.Join(giteaRoot, "gitea")
 	if _, err := os.Stat(setting.AppPath); err != nil {

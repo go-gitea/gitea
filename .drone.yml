@@ -123,6 +123,7 @@ pipeline:
     group: test
     environment:
       TAGS: bindata
+      EXTRA_GOFLAGS: -race
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
@@ -153,6 +154,7 @@ pipeline:
     environment:
       TAGS: bindata
       TEST_LDAP: "1"
+      EXTRA_GOFLAGS: -race
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
@@ -168,6 +170,7 @@ pipeline:
     environment:
       TAGS: bindata
       TEST_LDAP: "1"
+      EXTRA_GOFLAGS: -race
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs

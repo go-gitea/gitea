@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/cmd"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/racedetector"
 	"code.gitea.io/gitea/modules/setting"
 	// register supported doc types
 	_ "code.gitea.io/gitea/modules/markup/csv"
@@ -61,5 +62,9 @@ func formatBuiltWith(Tags string) string {
 		return ""
 	}
 
-	return " built with: " + strings.Replace(Tags, " ", ", ", -1)
+	s := " built with: " + strings.Replace(Tags, " ", ", ", -1)
+	if racedetector.Enabled {
+		s += " (race detector enabled)"
+	}
+	return s
 }
