@@ -46,11 +46,14 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * MsSql: [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
-* MsSql: [github.com/lunny/godbc](https://github.com/lunny/godbc)
-
 * Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (experiment)
 
 # Changelog
+
+* **v0.6.2**
+    * refactor tag parse methods
+    * add Scan features to Get
+    * add QueryString method
 
 * **v0.6.0**
     * remove support for ql
@@ -78,12 +81,6 @@ methods can use `builder.Cond` as parameter
 [More changes ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-16)
 
 # Installation
-
-If you have [gopm](https://github.com/gpmgo/gopm) installed,
-
-	gopm get github.com/go-xorm/xorm
-
-Or
 
 	go get github.com/go-xorm/xorm
 
@@ -119,19 +116,21 @@ type User struct {
 err := engine.Sync2(new(User))
 ```
 
-* Query a SQL string, the returned results is []map[string][]byte
+* `Query` runs a SQL string, the returned results is `[]map[string][]byte`, `QueryString` returns `[]map[string]string`.
 
 ```Go
 results, err := engine.Query("select * from user")
+
+results, err := engine.QueryString("select * from user")
 ```
 
-* Execute a SQL string, the returned results
+* `Execute` runs a SQL string, it returns `affetcted` and `error`
 
 ```Go
 affected, err := engine.Exec("update user set age = ? where name = ?", age, name)
 ```
 
-* Insert one or multiple records to database
+* `Insert` one or multiple records to database
 
 ```Go
 affected, err := engine.Insert(&user)
@@ -153,6 +152,18 @@ has, err := engine.Get(&user)
 // SELECT * FROM user LIMIT 1
 has, err := engine.Where("name = ?", name).Desc("id").Get(&user)
 // SELECT * FROM user WHERE name = ? ORDER BY id DESC LIMIT 1
+var name string
+has, err := engine.Where("id = ?", id).Cols("name").Get(&name)
+// SELECT name FROM user WHERE id = ?
+var id int64
+has, err := engine.Where("name = ?", name).Cols("id").Get(&id)
+// SELECT id FROM user WHERE name = ?
+var valuesMap = make(map[string]string)
+has, err := engine.Where("id = ?", id).Get(&valuesMap)
+// SELECT * FROM user WHERE id = ?
+var valuesSlice = make([]interface{}, len(cols))
+has, err := engine.Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
+// SELECT col1, col2, col3 FROM user WHERE id = ?
 ```
 
 * Query multiple records from database, also you can use join and extends

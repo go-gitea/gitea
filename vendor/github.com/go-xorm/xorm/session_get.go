@@ -20,7 +20,14 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 		defer session.Close()
 	}
 
-	session.Statement.setRefValue(rValue(bean))
+	beanValue := reflect.ValueOf(bean)
+	if beanValue.Kind() != reflect.Ptr {
+		return false, errors.New("needs a pointer")
+	}
+
+	if beanValue.Elem().Kind() == reflect.Struct {
+		session.Statement.setRefValue(beanValue.Elem())
+	}
 
 	var sqlStr string
 	var args []interface{}
@@ -36,7 +43,7 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 		args = session.Statement.RawParams
 	}
 
-	if session.canCache() {
+	if session.canCache() && beanValue.Elem().Kind() == reflect.Struct {
 		if cacher := session.Engine.getCacher2(session.Statement.RefTable); cacher != nil &&
 			!session.Statement.unscoped {
 			has, err := session.cacheGet(bean, sqlStr, args...)
@@ -46,13 +53,14 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 		}
 	}
 
-	return session.nocacheGet(bean, sqlStr, args...)
+	return session.nocacheGet(beanValue.Elem().Kind(), bean, sqlStr, args...)
 }
 
-func (session *Session) nocacheGet(bean interface{}, sqlStr string, args ...interface{}) (bool, error) {
+func (session *Session) nocacheGet(beanKind reflect.Kind, bean interface{}, sqlStr string, args ...interface{}) (bool, error) {
+	session.queryPreprocess(&sqlStr, args...)
+
 	var rawRows *core.Rows
 	var err error
-	session.queryPreprocess(&sqlStr, args...)
 	if session.IsAutoCommit {
 		_, rawRows, err = session.innerQuery(sqlStr, args...)
 	} else {
@@ -65,10 +73,24 @@ func (session *Session) nocacheGet(bean interface{}, sqlStr string, args ...inte
 	defer rawRows.Close()
 
 	if rawRows.Next() {
-		fields, err := rawRows.Columns()
-		if err == nil {
-			_, err = session.row2Bean(rawRows, fields, len(fields), bean)
+		switch beanKind {
+		case reflect.Struct:
+			fields, err := rawRows.Columns()
+			if err != nil {
+				// WARN: Alougth rawRows return true, but get fields failed
+				return true, err
+			}
+			dataStruct := rValue(bean)
+			session.Statement.setRefValue(dataStruct)
+			_, err = session.row2Bean(rawRows, fields, len(fields), bean, &dataStruct, session.Statement.RefTable)
+		case reflect.Slice:
+			err = rawRows.ScanSlice(bean)
+		case reflect.Map:
+			err = rawRows.ScanMap(bean)
+		default:
+			err = rawRows.Scan(bean)
 		}
+
 		return true, err
 	}
 	return false, nil
@@ -145,20 +167,8 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 		}
 		cacheBean := cacher.GetBean(tableName, sid)
 		if cacheBean == nil {
-			/*newSession := session.Engine.NewSession()
-			defer newSession.Close()
-			cacheBean = reflect.New(structValue.Type()).Interface()
-			newSession.Id(id).NoCache()
-			if session.Statement.AltTableName != "" {
-				newSession.Table(session.Statement.AltTableName)
-			}
-			if !session.Statement.UseCascade {
-				newSession.NoCascade()
-			}
-			has, err = newSession.Get(cacheBean)
-			*/
 			cacheBean = bean
-			has, err = session.nocacheGet(cacheBean, sqlStr, args...)
+			has, err = session.nocacheGet(reflect.Struct, cacheBean, sqlStr, args...)
 			if err != nil || !has {
 				return has, err
 			}

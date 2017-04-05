@@ -123,7 +123,7 @@ func (session *Session) SumsInt(bean interface{}, columnNames ...string) ([]int6
 	session.queryPreprocess(&sqlStr, args...)
 
 	var err error
-	var res = make([]int64, 0, len(columnNames))
+	var res = make([]int64, len(columnNames), len(columnNames))
 	if session.IsAutoCommit {
 		err = session.DB().QueryRow(sqlStr, args...).ScanSlice(&res)
 	} else {

@@ -6,7 +6,9 @@ package xorm
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -485,4 +487,94 @@ func (db *mysql) GetIndexes(tableName string) (map[string]*core.Index, error) {
 
 func (db *mysql) Filters() []core.Filter {
 	return []core.Filter{&core.IdFilter{}}
+}
+
+type mymysqlDriver struct {
+}
+
+func (p *mymysqlDriver) Parse(driverName, dataSourceName string) (*core.Uri, error) {
+	db := &core.Uri{DbType: core.MYSQL}
+
+	pd := strings.SplitN(dataSourceName, "*", 2)
+	if len(pd) == 2 {
+		// Parse protocol part of URI
+		p := strings.SplitN(pd[0], ":", 2)
+		if len(p) != 2 {
+			return nil, errors.New("Wrong protocol part of URI")
+		}
+		db.Proto = p[0]
+		options := strings.Split(p[1], ",")
+		db.Raddr = options[0]
+		for _, o := range options[1:] {
+			kv := strings.SplitN(o, "=", 2)
+			var k, v string
+			if len(kv) == 2 {
+				k, v = kv[0], kv[1]
+			} else {
+				k, v = o, "true"
+			}
+			switch k {
+			case "laddr":
+				db.Laddr = v
+			case "timeout":
+				to, err := time.ParseDuration(v)
+				if err != nil {
+					return nil, err
+				}
+				db.Timeout = to
+			default:
+				return nil, errors.New("Unknown option: " + k)
+			}
+		}
+		// Remove protocol part
+		pd = pd[1:]
+	}
+	// Parse database part of URI
+	dup := strings.SplitN(pd[0], "/", 3)
+	if len(dup) != 3 {
+		return nil, errors.New("Wrong database part of URI")
+	}
+	db.DbName = dup[0]
+	db.User = dup[1]
+	db.Passwd = dup[2]
+
+	return db, nil
+}
+
+type mysqlDriver struct {
+}
+
+func (p *mysqlDriver) Parse(driverName, dataSourceName string) (*core.Uri, error) {
+	dsnPattern := regexp.MustCompile(
+		`^(?:(?P<user>.*?)(?::(?P<passwd>.*))?@)?` + // [user[:password]@]
+			`(?:(?P<net>[^\(]*)(?:\((?P<addr>[^\)]*)\))?)?` + // [net[(addr)]]
+			`\/(?P<dbname>.*?)` + // /dbname
+			`(?:\?(?P<params>[^\?]*))?$`) // [?param1=value1&paramN=valueN]
+	matches := dsnPattern.FindStringSubmatch(dataSourceName)
+	//tlsConfigRegister := make(map[string]*tls.Config)
+	names := dsnPattern.SubexpNames()
+
+	uri := &core.Uri{DbType: core.MYSQL}
+
+	for i, match := range matches {
+		switch names[i] {
+		case "dbname":
+			uri.DbName = match
+		case "params":
+			if len(match) > 0 {
+				kvs := strings.Split(match, "&")
+				for _, kv := range kvs {
+					splits := strings.Split(kv, "=")
+					if len(splits) == 2 {
+						switch splits[0] {
+						case "charset":
+							uri.Charset = splits[1]
+						}
+					}
+				}
+			}
+
+		}
+	}
+	return uri, nil
 }

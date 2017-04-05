@@ -5,7 +5,9 @@
 package xorm
 
 import (
+	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -822,6 +824,12 @@ func (db *oracle) GetIndexes(tableName string) (map[string]*core.Index, error) {
 
 		indexName = strings.Trim(indexName, `" `)
 
+		var isRegular bool
+		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
+			indexName = indexName[5+len(tableName):]
+			isRegular = true
+		}
+
 		if uniqueness == "UNIQUE" {
 			indexType = core.UniqueType
 		} else {
@@ -834,6 +842,7 @@ func (db *oracle) GetIndexes(tableName string) (map[string]*core.Index, error) {
 			index = new(core.Index)
 			index.Type = indexType
 			index.Name = indexName
+			index.IsRegular = isRegular
 			indexes[indexName] = index
 		}
 		index.AddColumn(colName)
@@ -843,4 +852,55 @@ func (db *oracle) GetIndexes(tableName string) (map[string]*core.Index, error) {
 
 func (db *oracle) Filters() []core.Filter {
 	return []core.Filter{&core.QuoteFilter{}, &core.SeqFilter{Prefix: ":", Start: 1}, &core.IdFilter{}}
+}
+
+type goracleDriver struct {
+}
+
+func (cfg *goracleDriver) Parse(driverName, dataSourceName string) (*core.Uri, error) {
+	db := &core.Uri{DbType: core.ORACLE}
+	dsnPattern := regexp.MustCompile(
+		`^(?:(?P<user>.*?)(?::(?P<passwd>.*))?@)?` + // [user[:password]@]
+			`(?:(?P<net>[^\(]*)(?:\((?P<addr>[^\)]*)\))?)?` + // [net[(addr)]]
+			`\/(?P<dbname>.*?)` + // /dbname
+			`(?:\?(?P<params>[^\?]*))?$`) // [?param1=value1&paramN=valueN]
+	matches := dsnPattern.FindStringSubmatch(dataSourceName)
+	//tlsConfigRegister := make(map[string]*tls.Config)
+	names := dsnPattern.SubexpNames()
+
+	for i, match := range matches {
+		switch names[i] {
+		case "dbname":
+			db.DbName = match
+		}
+	}
+	if db.DbName == "" {
+		return nil, errors.New("dbname is empty")
+	}
+	return db, nil
+}
+
+type oci8Driver struct {
+}
+
+//dataSourceName=user/password@ipv4:port/dbname
+//dataSourceName=user/password@[ipv6]:port/dbname
+func (p *oci8Driver) Parse(driverName, dataSourceName string) (*core.Uri, error) {
+	db := &core.Uri{DbType: core.ORACLE}
+	dsnPattern := regexp.MustCompile(
+		`^(?P<user>.*)\/(?P<password>.*)@` + // user:password@
+			`(?P<net>.*)` + // ip:port
+			`\/(?P<dbname>.*)`) // dbname
+	matches := dsnPattern.FindStringSubmatch(dataSourceName)
+	names := dsnPattern.SubexpNames()
+	for i, match := range matches {
+		switch names[i] {
+		case "dbname":
+			db.DbName = match
+		}
+	}
+	if db.DbName == "" {
+		return nil, errors.New("dbname is empty")
+	}
+	return db, nil
 }

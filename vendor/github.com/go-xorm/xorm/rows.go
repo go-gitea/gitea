@@ -16,13 +16,12 @@ import (
 type Rows struct {
 	NoTypeCheck bool
 
-	session     *Session
-	stmt        *core.Stmt
-	rows        *core.Rows
-	fields      []string
-	fieldsCount int
-	beanType    reflect.Type
-	lastError   error
+	session   *Session
+	stmt      *core.Stmt
+	rows      *core.Rows
+	fields    []string
+	beanType  reflect.Type
+	lastError error
 }
 
 func newRows(session *Session, bean interface{}) (*Rows, error) {
@@ -82,7 +81,6 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 		rows.Close()
 		return nil, err
 	}
-	rows.fieldsCount = len(rows.fields)
 
 	return rows, nil
 }
@@ -114,7 +112,10 @@ func (rows *Rows) Scan(bean interface{}) error {
 		return fmt.Errorf("scan arg is incompatible type to [%v]", rows.beanType)
 	}
 
-	_, err := rows.session.row2Bean(rows.rows, rows.fields, rows.fieldsCount, bean)
+	dataStruct := rValue(bean)
+	rows.session.Statement.setRefValue(dataStruct)
+	_, err := rows.session.row2Bean(rows.rows, rows.fields, len(rows.fields), bean, &dataStruct, rows.session.Statement.RefTable)
+
 	return err
 }
 
