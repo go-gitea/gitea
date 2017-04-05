@@ -14,7 +14,9 @@ JAVASCRIPTS :=
 GOFLAGS := -i -v
 EXTRA_GOFLAGS ?=
 
-LDFLAGS := -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')" -X "main.Tags=$(TAGS)"
+VERSION := $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
+
+LDFLAGS := -X "main.Version=$(VERSION)" -X "main.Tags=$(TAGS)"
 
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations,$(shell go list ./... | grep -v /vendor/))
 SOURCES ?= $(shell find . -name "*.go" -type f)
