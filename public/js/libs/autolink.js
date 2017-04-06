@@ -15,7 +15,7 @@
                 if(node.nodeType === 3) {
                     textNodes.push(node);
                 } else {
-                    all = all.concat(textNodesUnder(node));
+                    textNodes = textNodes.concat(textNodesUnder(node));
                 }
             }
         }
