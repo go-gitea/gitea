@@ -200,7 +200,7 @@ func runWeb(ctx *cli.Context) error {
 	m.Group("/user", func() {
 		m.Get("/login", user.SignIn)
 		m.Post("/login", bindIgnErr(auth.SignInForm{}), user.SignInPost)
-		if setting.EnableOpenIDSignIn {
+		if setting.Service.EnableOpenIDSignIn {
 			m.Combo("/login/openid").
 				Get(user.SignInOpenID).
 				Post(bindIgnErr(auth.SignInOpenIDForm{}), user.SignInOpenIDPost)
@@ -243,7 +243,7 @@ func runWeb(ctx *cli.Context) error {
 		m.Post("/email/delete", user.DeleteEmail)
 		m.Get("/password", user.SettingsPassword)
 		m.Post("/password", bindIgnErr(auth.ChangePasswordForm{}), user.SettingsPasswordPost)
-		if setting.EnableOpenIDSignIn {
+		if setting.Service.EnableOpenIDSignIn {
 			m.Group("/openid", func() {
 				m.Combo("").Get(user.SettingsOpenID).
 					Post(bindIgnErr(auth.AddOpenIDForm{}), user.SettingsOpenIDPost)
@@ -491,6 +491,7 @@ func runWeb(ctx *cli.Context) error {
 			m.Group("/:index", func() {
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
+				m.Post("/watch", repo.IssueWatch)
 				m.Combo("/comments").Post(bindIgnErr(auth.CreateCommentForm{}), repo.NewComment)
 			})
 

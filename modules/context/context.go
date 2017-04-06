@@ -197,7 +197,7 @@ func Contexter() macaron.Handler {
 		ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
 		ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
 		ctx.Data["ShowFooterVersion"] = setting.ShowFooterVersion
-		ctx.Data["EnableOpenIDSignIn"] = setting.EnableOpenIDSignIn
+		ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 
 		c.Map(ctx)
 	}

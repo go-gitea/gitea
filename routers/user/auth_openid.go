@@ -68,8 +68,8 @@ func allowedOpenIDURI(uri string) (err error) {
 
 	// In case a Whitelist is present, URI must be in it
 	// in order to be accepted
-	if len(setting.OpenIDWhitelist) != 0 {
-		for _, pat := range setting.OpenIDWhitelist {
+	if len(setting.Service.OpenIDWhitelist) != 0 {
+		for _, pat := range setting.Service.OpenIDWhitelist {
 			if pat.MatchString(uri) {
 				return nil // pass
 			}
@@ -79,7 +79,7 @@ func allowedOpenIDURI(uri string) (err error) {
 	}
 
 	// A blacklist match expliclty forbids
-	for _, pat := range setting.OpenIDBlacklist {
+	for _, pat := range setting.Service.OpenIDBlacklist {
 		if pat.MatchString(uri) {
 			return fmt.Errorf("URI forbidden by blacklist")
 		}
@@ -231,7 +231,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 
 	ctx.Session.Set("openid_determined_username", nickname)
 
-	if u != nil || !setting.EnableOpenIDSignUp {
+	if u != nil || !setting.Service.EnableOpenIDSignUp {
 		ctx.Redirect(setting.AppSubURL + "/user/openid/connect")
 	} else {
 		ctx.Redirect(setting.AppSubURL + "/user/openid/register")
@@ -248,7 +248,7 @@ func ConnectOpenID(ctx *context.Context) {
 	ctx.Data["Title"] = "OpenID connect"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDConnect"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.EnableOpenIDSignUp
+	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
 	if userName != "" {
@@ -267,7 +267,7 @@ func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
 	ctx.Data["Title"] = "OpenID connect"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDConnect"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.EnableOpenIDSignUp
+	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["OpenID"] = oid
 
 	u, err := models.UserSignIn(form.UserName, form.Password)
@@ -300,7 +300,7 @@ func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
 
 // RegisterOpenID shows a form to create a new user authenticated via an OpenID URI
 func RegisterOpenID(ctx *context.Context) {
-	if !setting.EnableOpenIDSignUp {
+	if !setting.Service.EnableOpenIDSignUp {
 		ctx.Error(403)
 		return
 	}
@@ -312,7 +312,7 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["Title"] = "OpenID signup"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.EnableOpenIDSignUp
+	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
@@ -328,7 +328,7 @@ func RegisterOpenID(ctx *context.Context) {
 
 // RegisterOpenIDPost handles submission of a form to create a new user authenticated via an OpenID URI
 func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.SignUpOpenIDForm) {
-	if !setting.EnableOpenIDSignUp {
+	if !setting.Service.EnableOpenIDSignUp {
 		ctx.Error(403)
 		return
 	}
@@ -341,7 +341,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	ctx.Data["Title"] = "OpenID signup"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.EnableOpenIDSignUp
+	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["OpenID"] = oid
 

@@ -13,16 +13,16 @@
 				</div>
 				{{if .AccountLinks}}
 				{{range $loginSource, $provider := .AccountLinks}}
-					<div class="item ui grid">
-						<div class="column">
-							<strong>{{$provider}}</strong>
-							{{if $loginSource.IsActived}}<span class="text red">{{$.i18n.Tr "settings.active"}}</span>{{end}}
-							<div class="ui right">
+					<div class="item">
+					    <div class="right floated content">
 								<button class="ui red tiny button delete-button" data-url="{{$.Link}}" data-id="{{$loginSource.ID}}">
 									{{$.i18n.Tr "settings.delete_key"}}
 								</button>
+					    </div>
+							<div class="content">
+								<strong>{{$provider}}</strong>
+								{{if $loginSource.IsActived}}<span class="text red">{{$.i18n.Tr "settings.active"}}</span>{{end}}
 							</div>
-						</div>
 					</div>
 				{{end}}
 				{{end}}

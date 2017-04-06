@@ -121,12 +121,6 @@ var (
 	MinPasswordLength    int
 	ImportLocalPaths     bool
 
-	// OpenID settings
-	EnableOpenIDSignIn bool
-	EnableOpenIDSignUp bool
-	OpenIDWhitelist    []*regexp.Regexp
-	OpenIDBlacklist    []*regexp.Regexp
-
 	// Database settings
 	UseSQLite3    bool
 	UseMySQL      bool
@@ -232,6 +226,11 @@ var (
 		User struct {
 			RepoPagingNum int
 		} `ini:"ui.user"`
+		Meta struct {
+			Author      string
+			Description string
+			Keywords    string
+		} `ini:"ui.meta"`
 	}{
 		ExplorePagingNum:   20,
 		IssuePagingNum:     10,
@@ -253,6 +252,15 @@ var (
 			RepoPagingNum int
 		}{
 			RepoPagingNum: 15,
+		},
+		Meta: struct {
+			Author      string
+			Description string
+			Keywords    string
+		}{
+			Author:      "Gitea - Git with a cup of tea",
+			Description: "Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go",
+			Keywords:    "go,git,self-hosted,gitea",
 		},
 	}
 
@@ -758,24 +766,6 @@ please consider changing to GITEA_CUSTOM`)
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 
-	sec = Cfg.Section("openid")
-	EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(true)
-	EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(true)
-	pats := sec.Key("WHITELISTED_URIS").Strings(" ")
-	if len(pats) != 0 {
-		OpenIDWhitelist = make([]*regexp.Regexp, len(pats))
-		for i, p := range pats {
-			OpenIDWhitelist[i] = regexp.MustCompilePOSIX(p)
-		}
-	}
-	pats = sec.Key("BLACKLISTED_URIS").Strings(" ")
-	if len(pats) != 0 {
-		OpenIDBlacklist = make([]*regexp.Regexp, len(pats))
-		for i, p := range pats {
-			OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
-		}
-	}
-
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
 	if !filepath.IsAbs(AttachmentPath) {
@@ -939,6 +929,13 @@ var Service struct {
 	EnableCaptcha                  bool
 	DefaultKeepEmailPrivate        bool
 	NoReplyAddress                 string
+
+	// OpenID settings
+	EnableOpenIDSignIn bool
+	EnableOpenIDSignUp bool
+	OpenIDWhitelist    []*regexp.Regexp
+	OpenIDBlacklist    []*regexp.Regexp
+
 }
 
 func newService() {
@@ -953,6 +950,25 @@ func newService() {
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool()
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
+
+	sec = Cfg.Section("openid")
+	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(true)
+	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration)
+	pats := sec.Key("WHITELISTED_URIS").Strings(" ")
+	if len(pats) != 0 {
+		Service.OpenIDWhitelist = make([]*regexp.Regexp, len(pats))
+		for i, p := range pats {
+			Service.OpenIDWhitelist[i] = regexp.MustCompilePOSIX(p)
+		}
+	}
+	pats = sec.Key("BLACKLISTED_URIS").Strings(" ")
+	if len(pats) != 0 {
+		Service.OpenIDBlacklist = make([]*regexp.Regexp, len(pats))
+		for i, p := range pats {
+			Service.OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
+		}
+	}
+
 }
 
 var logLevels = map[string]string{

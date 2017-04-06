@@ -6,7 +6,7 @@
 				<img class="ui left" id="org-avatar" src="{{.Org.RelAvatarLink}}?s=140"/>
 				<div id="org-info">
 					<div class="ui header">
-						{{.Org.DisplayName | Str2html}}
+						{{.Org.DisplayName}}
 						{{if .IsOrganizationOwner}}<a class="text grey" href="{{.OrgLink}}/settings"><span class="octicon octicon-gear"></span></a>{{end}}
 					</div>
 					{{if .Org.Description}}<p class="desc">{{.Org.Description}}</p>{{end}}

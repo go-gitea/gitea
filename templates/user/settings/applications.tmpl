@@ -15,24 +15,19 @@
 					{{.i18n.Tr "settings.tokens_desc"}}
 				</div>
 				{{range .Tokens}}
-					<div class="item ui grid">
-						<div class="one wide column">
-							<i class="ssh-key-state-indicator fa fa-circle{{if .HasRecentActivity}} active invert poping up{{else}}-o{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.token_state_desc"}}" data-variation="inverted tiny"{{end}}></i>
-						</div>
-						<div class="one wide column">
-							<i class="fa fa-send fa-2x left"></i>
-						</div>
-						<div class="eleven wide column">
-							<strong>{{.Name}}</strong>
-							<div class="activity meta">
-								<i>{{$.i18n.Tr "settings.add_on"}} <span>{{DateFmtShort .Created}}</span> —  <i class="octicon octicon-info"></i> {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span>{{DateFmtShort .Updated}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
+					<div class="item">
+					    <div class="right floated content">
+								<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+									{{$.i18n.Tr "settings.delete_token"}}
+								</button>
+					    </div>
+							<i class="big send icon {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.token_state_desc"}}" data-variation="inverted tiny"{{end}}></i>
+							<div class="content">
+								<strong>{{.Name}}</strong>
+								<div class="activity meta">
+									<i>{{$.i18n.Tr "settings.add_on"}} <span>{{DateFmtShort .Created}}</span> —  <i class="octicon octicon-info"></i> {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateFmtShort .Updated}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
+								</div>
 							</div>
-						</div>
-						<div class="two wide column">
-							<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
-								{{$.i18n.Tr "settings.delete_token"}}
-							</button>
-						</div>
 					</div>
 				{{end}}
 			</div>
