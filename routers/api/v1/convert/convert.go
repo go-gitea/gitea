@@ -46,7 +46,7 @@ func ToCommit(c *git.Commit) *api.PayloadCommit {
 	}
 	verif := models.ParseCommitWithSignature(c)
 	var signature, payload string
-	if verif.Verified {
+	if c.Signature != nil {
 		signature = c.Signature.Signature
 		payload = c.Signature.Payload
 	}
