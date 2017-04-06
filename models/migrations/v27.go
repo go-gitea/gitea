@@ -32,17 +32,29 @@ func convertIntervalToDuration(x *xorm.Engine) (err error) {
 		address string `xorm:"-"`
 	}
 
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
 	var mirrors []Mirror
-	err = x.Table("mirror").Select("*").Find(&mirrors)
+	err = sess.Table("mirror").Select("*").Find(&mirrors)
 	if err != nil {
 		return fmt.Errorf("Query repositories: %v", err)
 	}
 	for _, mirror := range mirrors {
 		mirror.Interval = mirror.Interval * time.Hour
-		_, err := x.Id(mirror.ID).Cols("interval").Update(mirror)
+		_, err := sess.Id(mirror.ID).Cols("interval").Update(mirror)
 		if err != nil {
 			return fmt.Errorf("update mirror interval failed: %v", err)
 		}
 	}
+
+	if err := sess.Commit(); err != nil {
+		return err
+	}
+
 	return nil
 }
