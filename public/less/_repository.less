@@ -1363,7 +1363,7 @@
 		}
 	}
 	.list {
-		.item {
+		> .item {
 			.green {
 				color: #21BA45 !important;
 			}
@@ -1371,7 +1371,6 @@
 				border-top: 1px solid #eaeaea;
 				padding:1rem;
 				margin: 15px -1rem -1rem -1rem;
-				min-height: 60px;
 			}
 			> .mega-octicon {
 				display: table-cell;
@@ -1381,6 +1380,13 @@
 				padding: 0 0 0 .5em;
 				vertical-align: top;
 			}
+			.info {
+				margin-top: 10px;
+				.tab.segment {
+					border: none;
+					padding: 10px 0 0;
+				}
+			}
 		}
 		&.key{
 			.meta {
@@ -1388,57 +1394,9 @@
 				color: #666;
 			}
 		}
-	}
-	.hook.list {
-		> .item:not(:first-child) {
-			border-top: 1px solid #eaeaea;
-		}
-		.item {
-			padding: 10px 20px;
-			.octicon,
-			.fa {
-				width: 20px;
-				text-align: center;
-			}
-			a {
-				.dont-break-out;
-			}
-		}
-	}
-	.hook.history.list {
-		.item {
-			padding-left: 13px;
-			.meta {
-				.ui.right {
-					margin-top: 5px;
-					.time {
-						font-size: 12px;
-					}
-				}
-			}
-			.info {
-				margin-top: 10px;
-				.tabular.menu {
-					.item {
-						font-weight: 500;
-					}
-				}
-				.tab.segment {
-					border: none;
-					padding: 0;
-					padding-top: 10px;
-					box-shadow: none;
-					> * {
-						color: #666;
-					}
-					pre {
-						word-wrap: break-word;
-						.hljs {
-							padding: 0;
-							background-color: inherit;
-						}
-					}
-				}
+		&.email {
+			> .item:not(:first-child) {
+				min-height: 60px;
 			}
 		}
 	}

@@ -2374,83 +2374,35 @@ footer .ui.language .menu {
 .settings .content .segment {
   box-shadow: 0 1px 2px 0 rgba(34, 36, 38, 0.15);
 }
-.settings .list .item .green {
+.settings .list > .item .green {
   color: #21BA45 !important;
 }
-.settings .list .item:not(:first-child) {
+.settings .list > .item:not(:first-child) {
   border-top: 1px solid #eaeaea;
   padding: 1rem;
   margin: 15px -1rem -1rem -1rem;
-  min-height: 60px;
 }
-.settings .list .item > .mega-octicon {
+.settings .list > .item > .mega-octicon {
   display: table-cell;
 }
-.settings .list .item > .mega-octicon + .content {
+.settings .list > .item > .mega-octicon + .content {
   display: table-cell;
   padding: 0 0 0 .5em;
   vertical-align: top;
+}
+.settings .list > .item .info {
+  margin-top: 10px;
+}
+.settings .list > .item .info .tab.segment {
+  border: none;
+  padding: 10px 0 0;
 }
 .settings .list.key .meta {
   padding-top: 5px;
   color: #666;
 }
-.settings .hook.list > .item:not(:first-child) {
-  border-top: 1px solid #eaeaea;
-}
-.settings .hook.list .item {
-  padding: 10px 20px;
-}
-.settings .hook.list .item .octicon,
-.settings .hook.list .item .fa {
-  width: 20px;
-  text-align: center;
-}
-.settings .hook.list .item a {
-  /* These are technically the same, but use both */
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  -ms-word-break: break-all;
-  /* This is the dangerous one in WebKit, as it breaks things wherever */
-  word-break: break-all;
-  /* Instead use this non-standard one: */
-  word-break: break-word;
-  /* Adds a hyphen where the word breaks, if supported (No Blink) */
-  -ms-hyphens: auto;
-  -moz-hyphens: auto;
-  -webkit-hyphens: auto;
-  hyphens: auto;
-}
-.settings .hook.history.list .item {
-  padding-left: 13px;
-}
-.settings .hook.history.list .item .meta .ui.right {
-  margin-top: 5px;
-}
-.settings .hook.history.list .item .meta .ui.right .time {
-  font-size: 12px;
-}
-.settings .hook.history.list .item .info {
-  margin-top: 10px;
-}
-.settings .hook.history.list .item .info .tabular.menu .item {
-  font-weight: 500;
-}
-.settings .hook.history.list .item .info .tab.segment {
-  border: none;
-  padding: 0;
-  padding-top: 10px;
-  box-shadow: none;
-}
-.settings .hook.history.list .item .info .tab.segment > * {
-  color: #666;
-}
-.settings .hook.history.list .item .info .tab.segment pre {
-  word-wrap: break-word;
-}
-.settings .hook.history.list .item .info .tab.segment pre .hljs {
-  padding: 0;
-  background-color: inherit;
+.settings .list.email > .item:not(:first-child) {
+  min-height: 60px;
 }
 .ui.vertical.menu .header.item {
   font-size: 1.1em;
