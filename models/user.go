@@ -163,7 +163,7 @@ func (u *User) UpdateDiffViewStyle(style string) error {
 func (u *User) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
 	case "full_name":
-		u.FullName = markdown.Sanitizer.Sanitize(u.FullName)
+		u.FullName = markdown.Sanitize(u.FullName)
 	case "created_unix":
 		u.Created = time.Unix(u.CreatedUnix, 0).Local()
 	case "updated_unix":
@@ -867,7 +867,7 @@ func updateUser(e Engine, u *User) error {
 	u.Website = base.TruncateString(u.Website, 255)
 	u.Description = base.TruncateString(u.Description, 255)
 
-	u.FullName = markdown.Sanitizer.Sanitize(u.FullName)
+	u.FullName = markdown.Sanitize(u.FullName)
 	_, err := e.Id(u.ID).AllCols().Update(u)
 	return err
 }

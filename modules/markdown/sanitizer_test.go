@@ -9,12 +9,10 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
-
-	. "github.com/gogits/gogs/modules/markup"
 )
 
 func Test_Sanitizer(t *testing.T) {
-	BuildSanitizer()
+	NewSanitizer()
 	Convey("Sanitize HTML string and bytes", t, func() {
 		testCases := []string{
 			// Regular
