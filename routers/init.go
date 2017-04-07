@@ -49,7 +49,7 @@ func GlobalInit() {
 
 	if setting.InstallLock {
 		highlight.NewContext()
-		markdown.BuildSanitizer()
+		markdown.NewSanitizer()
 		if err := models.NewEngine(); err != nil {
 			log.Fatal(4, "Failed to initialize ORM engine: %v", err)
 		}
