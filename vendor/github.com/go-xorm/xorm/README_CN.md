@@ -54,6 +54,11 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 ## 更新日志
 
+* **v0.6.2**
+    * 重构Tag解析方式
+    * Get方法新增类似Sacn的特性
+    * 新增 QueryString 方法
+
 * **v0.6.0**
     * 去除对 ql 的支持
     * 新增条件查询分析器 [github.com/go-xorm/builder](https://github.com/go-xorm/builder), 从因此 `Where, And, Or` 函数
@@ -80,12 +85,6 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 [更多更新日志...](https://github.com/go-xorm/manual-zh-CN/tree/master/chapter-16)
 
 ## 安装
-
-推荐使用 [gopm](https://github.com/gpmgo/gopm) 进行安装：
-
-	gopm get github.com/go-xorm/xorm
-
-或者您也可以使用go工具进行安装：
 
 	go get github.com/go-xorm/xorm
 
@@ -121,13 +120,15 @@ type User struct {
 err := engine.Sync2(new(User))
 ```
 
-* 最原始的也支持SQL语句查询，返回的结果类型为 []map[string][]byte
+* `Query` 最原始的也支持SQL语句查询，返回的结果类型为 []map[string][]byte。`QueryString` 返回 []map[string]string
 
 ```Go
 results, err := engine.Query("select * from user")
+
+results, err := engine.QueryString("select * from user")
 ```
 
-* 执行一个SQL语句
+* `Exec` 执行一个SQL语句
 
 ```Go
 affected, err := engine.Exec("update user set age = ? where name = ?", age, name)
@@ -155,6 +156,18 @@ has, err := engine.Get(&user)
 // SELECT * FROM user LIMIT 1
 has, err := engine.Where("name = ?", name).Desc("id").Get(&user)
 // SELECT * FROM user WHERE name = ? ORDER BY id DESC LIMIT 1
+var name string
+has, err := engine.Where("id = ?", id).Cols("name").Get(&name)
+// SELECT name FROM user WHERE id = ?
+var id int64
+has, err := engine.Where("name = ?", name).Cols("id").Get(&id)
+// SELECT id FROM user WHERE name = ?
+var valuesMap = make(map[string]string)
+has, err := engine.Where("id = ?", id).Get(&valuesMap)
+// SELECT * FROM user WHERE id = ?
+var valuesSlice = make([]interface{}, len(cols))
+has, err := engine.Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
+// SELECT col1, col2, col3 FROM user WHERE id = ?
 ```
 
 * 查询多条记录，当然可以使用Join和extends来组合使用

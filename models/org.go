@@ -670,13 +670,30 @@ func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*Repository, error) 
 		Find(&repos)
 }
 
-func (env *accessibleReposEnv) MirrorRepos() ([]*Repository, error) {
-	repos := make([]*Repository, 0, 10)
-	return repos, x.
-		Select("`repository`.*").
+func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
+	repoIDs := make([]int64, 0, 10)
+	return repoIDs, x.
+		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id AND `repository`.is_mirror=?", true).
 		Where(env.cond()).
 		GroupBy("`repository`.id").
 		OrderBy("updated_unix DESC").
+		Cols("`repository`.id").
+		Find(&repoIDs)
+}
+
+func (env *accessibleReposEnv) MirrorRepos() ([]*Repository, error) {
+	repoIDs, err := env.MirrorRepoIDs()
+	if err != nil {
+		return nil, fmt.Errorf("MirrorRepoIDs: %v", err)
+	}
+
+	repos := make([]*Repository, 0, len(repoIDs))
+	if len(repoIDs) <= 0 {
+		return repos, nil
+	}
+
+	return repos, x.
+		In("`repository`.id", repoIDs).
 		Find(&repos)
 }

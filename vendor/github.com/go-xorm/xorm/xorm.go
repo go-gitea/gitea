@@ -17,7 +17,7 @@ import (
 
 const (
 	// Version show the xorm's version
-	Version string = "0.6.0.1022"
+	Version string = "0.6.2.0401"
 )
 
 func regDrvsNDialects() bool {
@@ -86,6 +86,7 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		mutex:         &sync.RWMutex{},
 		TagIdentifier: "xorm",
 		TZLocation:    time.Local,
+		tagHandlers:   defaultTagHandlers,
 	}
 
 	logger := NewSimpleLogger(os.Stdout)
