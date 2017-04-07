@@ -18,7 +18,7 @@
 						</div>
 						<div class="field {{if .Err_FullName}}error{{end}}">
 							<label for="full_name">{{.i18n.Tr "org.org_full_name_holder"}}</label>
-							<input id="full_name" name="full_name" value="{{.Org.FullName | Str2html}}">
+							<input id="full_name" name="full_name" value="{{.Org.FullName}}">
 						</div>
 						<div class="field {{if .Err_Description}}error{{end}}">
 							<label for="description">{{$.i18n.Tr "org.org_desc"}}</label>

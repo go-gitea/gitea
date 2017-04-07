@@ -1,7 +1,7 @@
 <div class="user signup{{if .LinkAccountMode}} icon{{end}}">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
-			<form class="ui form" action="{{if not .LinkAccountMode}}{{.Link}}{{else}}{{.SignUpLink}}{{end}}" method="post">
+			<form class="ui form" action="{{.SignUpLink}}" method="post">
 				{{.CsrfTokenHtml}}
 				<h3 class="ui top attached header">
 					{{.i18n.Tr "sign_up"}}

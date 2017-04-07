@@ -78,6 +78,12 @@ l:
 					return nil, err
 				}
 				commit.Committer = sig
+			case "gpgsig":
+				sig, err := newGPGSignatureFromCommitline(data, nextline+spacepos+1)
+				if err != nil {
+					return nil, err
+				}
+				commit.Signature = sig
 			}
 			nextline += eol + 1
 		case eol == 0:

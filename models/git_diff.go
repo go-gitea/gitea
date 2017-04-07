@@ -287,7 +287,6 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 					curFile.IsBin = true
 					curFile.IsLFSFile = true
 					curSection.Lines = nil
-					break
 				}
 			}
 		}

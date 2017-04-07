@@ -23,6 +23,7 @@ var (
 to make automatic initialization process more smoothly`,
 		Subcommands: []cli.Command{
 			subcmdCreateUser,
+			subcmdChangePassword,
 		},
 	}
 
@@ -57,7 +58,58 @@ to make automatic initialization process more smoothly`,
 			},
 		},
 	}
+
+	subcmdChangePassword = cli.Command{
+		Name:   "change-password",
+		Usage:  "Change a user's password",
+		Action: runChangePassword,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "username,u",
+				Value: "",
+				Usage: "The user to change password for",
+			},
+			cli.StringFlag{
+				Name:  "password,p",
+				Value: "",
+				Usage: "New password to set for user",
+			},
+		},
+	}
 )
+
+func runChangePassword(c *cli.Context) error {
+	if !c.IsSet("password") {
+		return fmt.Errorf("Password is not specified")
+	} else if !c.IsSet("username") {
+		return fmt.Errorf("Username is not specified")
+	}
+
+	setting.NewContext()
+	models.LoadConfigs()
+
+	setting.NewXORMLogService(false)
+	if err := models.SetEngine(); err != nil {
+		return fmt.Errorf("models.SetEngine: %v", err)
+	}
+
+	uname := c.String("username")
+	user, err := models.GetUserByName(uname)
+	if err != nil {
+		return fmt.Errorf("%v", err)
+	}
+	user.Passwd = c.String("password")
+	if user.Salt, err = models.GetUserSalt(); err != nil {
+		return fmt.Errorf("%v", err)
+	}
+	user.EncodePasswd()
+	if err := models.UpdateUser(user); err != nil {
+		return fmt.Errorf("%v", err)
+	}
+
+	fmt.Printf("User '%s' password has been successfully updated!\n", uname)
+	return nil
+}
 
 func runCreateUser(c *cli.Context) error {
 	if !c.IsSet("name") {

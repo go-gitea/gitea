@@ -61,7 +61,7 @@ func (m *Mirror) AfterSet(colName string, _ xorm.Cell) {
 		}
 	case "updated_unix":
 		m.Updated = time.Unix(m.UpdatedUnix, 0).Local()
-	case "next_updated_unix":
+	case "next_update_unix":
 		m.NextUpdate = time.Unix(m.NextUpdateUnix, 0).Local()
 	}
 }

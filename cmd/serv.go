@@ -123,8 +123,8 @@ func runServ(c *cli.Context) error {
 			fail("Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
 		}
 
-		if strings.Contains(args, " ") {
-			argsSplit := strings.SplitN(args, " ", 2)
+		argsSplit := strings.Split(args, " ")
+		if len(argsSplit) >= 2 {
 			args = strings.TrimSpace(argsSplit[0])
 			lfsVerb = strings.TrimSpace(argsSplit[1])
 		}
@@ -179,8 +179,10 @@ func runServ(c *cli.Context) error {
 	if verb == lfsAuthenticateVerb {
 		if lfsVerb == "upload" {
 			requestedMode = models.AccessModeWrite
-		} else {
+		} else if lfsVerb == "download" {
 			requestedMode = models.AccessModeRead
+		} else {
+			fail("Unknown LFS verb", "Unkown lfs verb %s", lfsVerb)
 		}
 	}
 

@@ -70,7 +70,7 @@ func (session *Session) innerQuery2(sqlStr string, params ...interface{}) ([]map
 	return rows2maps(rows)
 }
 
-// Query a raw sql and return records as []map[string][]byte
+// Query runs a raw sql and return records as []map[string][]byte
 func (session *Session) Query(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
 	defer session.resetStatement()
 	if session.IsAutoClose {
@@ -78,6 +78,15 @@ func (session *Session) Query(sqlStr string, paramStr ...interface{}) (resultsSl
 	}
 
 	return session.query(sqlStr, paramStr...)
+}
+
+// QueryString runs a raw sql and return records as []map[string]string
+func (session *Session) QueryString(sqlStr string, args ...interface{}) ([]map[string]string, error) {
+	defer session.resetStatement()
+	if session.IsAutoClose {
+		defer session.Close()
+	}
+	return session.query2(sqlStr, args...)
 }
 
 // =============================

@@ -44,6 +44,12 @@ func ToCommit(c *git.Commit) *api.PayloadCommit {
 	if err == nil {
 		committerUsername = committer.Name
 	}
+	verif := models.ParseCommitWithSignature(c)
+	var signature, payload string
+	if c.Signature != nil {
+		signature = c.Signature.Signature
+		payload = c.Signature.Payload
+	}
 	return &api.PayloadCommit{
 		ID:      c.ID.String(),
 		Message: c.Message(),
@@ -59,6 +65,12 @@ func ToCommit(c *git.Commit) *api.PayloadCommit {
 			UserName: committerUsername,
 		},
 		Timestamp: c.Author.When,
+		Verification: &api.PayloadCommitVerification{
+			Verified:  verif.Verified,
+			Reason:    verif.Reason,
+			Signature: signature,
+			Payload:   payload,
+		},
 	}
 }
 

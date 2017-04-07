@@ -1,0 +1,36 @@
+{{template "base/head" .}}
+<div class="user signup">
+	{{template "user/auth/signup_openid_navbar" .}}
+	<div class="ui container">
+				{{template "base/alert" .}}
+				<h4 class="ui top attached header">
+					{{.i18n.Tr "auth.openid_connect_title"}}
+				</h4>
+				<div class="ui attached segment">
+					<p>
+						{{.i18n.Tr "auth.openid_connect_desc"}}
+					</p>
+					<form class="ui form" action="{{.Link}}" method="post">
+					{{.CsrfTokenHtml}}
+					<div class="required inline field {{if .Err_UserName}}error{{end}}">
+						<label for="user_name">{{.i18n.Tr "home.uname_holder"}}</label>
+						<input id="user_name" name="user_name" value="{{.user_name}}" autofocus required>
+					</div>
+					<div class="required inline field {{if .Err_Password}}error{{end}}">
+						<label for="password">{{.i18n.Tr "password"}}</label>
+						<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
+					</div>
+					<div class="inline field">
+						<label for="openid">OpenID URI</label>
+						<input id="openid" value="{{ .OpenID }}" readonly>
+					</div>
+					<div class="inline field">
+						<label></label>
+						<button class="ui green button">{{.i18n.Tr "auth.openid_connect_submit"}}</button>
+						<a href="{{AppSubUrl}}/user/forgot_password">{{.i18n.Tr "auth.forgot_password"}}</a>
+					</div>
+					</form>
+				</div>
+	</div>
+</div>
+{{template "base/footer" .}}

@@ -38,6 +38,12 @@ type CreateGPGKeyOption struct {
 	ArmoredKey string `json:"armored_public_key" binding:"Required"`
 }
 
+// ListGPGKeys list all the GPG keys of the user
+func (c *Client) ListGPGKeys(user string) ([]*GPGKey, error) {
+	keys := make([]*GPGKey, 0, 10)
+	return keys, c.getParsedResponse("GET", fmt.Sprintf("/users/%s/gpg_keys", user), nil, nil, &keys)
+}
+
 // ListMyGPGKeys list all the GPG keys of current user
 func (c *Client) ListMyGPGKeys() ([]*GPGKey, error) {
 	keys := make([]*GPGKey, 0, 10)
