@@ -316,13 +316,7 @@ func runServ(c *cli.Context) error {
 
 	// Update user key activity.
 	if keyID > 0 {
-		key, err := models.GetPublicKeyByID(keyID)
-		if err != nil {
-			fail("Internal error", "GetPublicKeyById: %v", err)
-		}
-
-		key.Updated = time.Now()
-		if err = models.UpdatePublicKey(key); err != nil {
+		if err = models.UpdatePublicKeyUpdated(keyID); err != nil {
 			fail("Internal error", "UpdatePublicKey: %v", err)
 		}
 	}

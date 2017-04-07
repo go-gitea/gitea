@@ -500,6 +500,20 @@ func UpdatePublicKey(key *PublicKey) error {
 	return err
 }
 
+// UpdatePublicKeyUpdated updates public key use time.
+func UpdatePublicKeyUpdated(id int64) error {
+	cnt, err := x.ID(id).Cols("updated").Update(&PublicKey{
+		Updated: time.Now(),
+	})
+	if err != nil {
+		return err
+	}
+	if cnt != 1 {
+		return ErrKeyNotExist{id}
+	}
+	return nil
+}
+
 // deletePublicKeys does the actual key deletion but does not update authorized_keys file.
 func deletePublicKeys(e *xorm.Session, keyIDs ...int64) error {
 	if len(keyIDs) == 0 {
