@@ -16,10 +16,9 @@ import (
 )
 
 const (
-	changelogDir = "changelog"
-	unrelDir     = changelogDir + "/unreleased"
-	relDir       = changelogDir + "/v"
-	relDirFmt    = relDir + "%s"
+	unrelDir  = changelogDir + "/unreleased"
+	relDir    = changelogDir + "/v"
+	relDirFmt = relDir + "%s"
 
 	prUrlFormat  = "https://github.com/go-gitea/gitea/pull/%d"
 	tagUrlFormat = "https://github.com/go-gitea/gitea/releases/tags/v%s"
@@ -27,9 +26,10 @@ const (
 
 func main() {
 	var (
-		version    = flag.String("version", "", "Version for changelog")
-		outputFile = flag.String("outputFile", "CHANGELOG2.md", "File to which the changelog is written")
-		force      = flag.Bool("force", false, "Force update of changelog even if version already exists. DON'T USE THIS!")
+		changelogDir = flag.String("changelogDir", "changelog", "Path to changelogs")
+		version      = flag.String("version", "", "Version for changelog")
+		outputFile   = flag.String("outputFile", "CHANGELOG2.md", "File to which the changelog is written")
+		force        = flag.Bool("force", false, "Force update of changelog even if version already exists. DON'T USE THIS!")
 	)
 
 	flag.Parse()
