@@ -15,11 +15,11 @@
 		</div>
 	</div>
 </h4>
-<div class="ui attached table segment">
-	<div class="ui hook list">
-		<div class="item">
-			{{.Description | Str2html}}
-		</div>
+<div class="ui attached segment">
+	<p>
+		{{.Description | Str2html}}
+	</p>
+	<div class="ui relaxed divided list">
 		{{range .Webhooks}}
 			<div class="item">
 				{{if eq .LastStatus 1}}

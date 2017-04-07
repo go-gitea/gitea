@@ -2377,12 +2377,6 @@ footer .ui.language .menu {
 .settings .list .item .green {
   color: #21BA45 !important;
 }
-.settings .list .item:not(:first-child) {
-  border-top: 1px solid #eaeaea;
-  padding: 1rem;
-  margin: 15px -1rem -1rem -1rem;
-  min-height: 60px;
-}
 .settings .list .item > .mega-octicon {
   display: table-cell;
 }
