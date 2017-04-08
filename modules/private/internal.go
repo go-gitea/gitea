@@ -16,6 +16,7 @@ func newRequest(url, method string) *httplib.Request {
 		fmt.Sprintf("Bearer %s", setting.InternalToken))
 }
 
+// Response internal request response
 type Response struct {
 	Err string `json:"err"`
 }
