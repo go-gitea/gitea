@@ -60,7 +60,7 @@ var ApplicationMap = map[uint8]string{
 	ApplicationExtendedResponse:      "Extended Response",
 }
 
-// LDAP Behera Password Policy Draft 10 (https://tools.ietf.org/html/draft-behera-ldap-password-policy-10)
+// Ldap Behera Password Policy Draft 10 (https://tools.ietf.org/html/draft-behera-ldap-password-policy-10)
 const (
 	BeheraPasswordExpired             = 0
 	BeheraAccountLocked               = 1
