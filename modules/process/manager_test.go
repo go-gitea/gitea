@@ -49,10 +49,10 @@ func TestExecTimeoutAlways(t *testing.T) {
 
 	maxLoops := 100
 	for i := 1; i < maxLoops; i++ {
-		_, stderr, err := GetManager().ExecTimeout(100*time.Microsecond, "ExecTimeout", "git", "hash-object", "--stdin")
+		_, stderr, err := GetManager().ExecTimeout(100*time.Microsecond, "ExecTimeout", "sleep", "5")
 		// TODO Simplify logging and errors to get precise error type. E.g. checking "if err != context.DeadlineExceeded".
 		if err == nil {
-			t.Fatalf("git hash-object --stdin: %v(%s)", err, stderr)
+			t.Fatalf("sleep 5 secs: %v(%s)", err, stderr)
 		}
 	}
 }
