@@ -77,7 +77,10 @@ integrations: build
 
 .PHONY: test
 test:
-	govendor status +outside +unused  || exit 1 
+	@hash govendor > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/kardianos/govendor; \
+	fi
+	govendor status +outside +unused  || exit 1
 	for PKG in $(PACKAGES); do go test -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
 
 .PHONY: test-mysql
