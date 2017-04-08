@@ -88,7 +88,7 @@ type RepoSettingForm struct {
 	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
 	Description   string `binding:"MaxSize(255)"`
 	Website       string `binding:"Url;MaxSize(255)"`
-	Interval      int
+	Interval      string
 	MirrorAddress string
 	Private       bool
 	EnablePrune   bool

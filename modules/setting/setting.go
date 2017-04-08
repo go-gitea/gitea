@@ -417,10 +417,9 @@ var (
 	}
 
 	// Mirror settings
-	Mirror = struct {
-		DefaultInterval int
-	}{
-		DefaultInterval: 8,
+	Mirror struct {
+		DefaultInterval time.Duration
+		MinInterval     time.Duration
 	}
 
 	// API settings
@@ -886,14 +885,20 @@ please consider changing to GITEA_CUSTOM`)
 		log.Fatal(4, "Failed to map Cron settings: %v", err)
 	} else if err = Cfg.Section("git").MapTo(&Git); err != nil {
 		log.Fatal(4, "Failed to map Git settings: %v", err)
-	} else if err = Cfg.Section("mirror").MapTo(&Mirror); err != nil {
-		log.Fatal(4, "Failed to map Mirror settings: %v", err)
 	} else if err = Cfg.Section("api").MapTo(&API); err != nil {
 		log.Fatal(4, "Failed to map API settings: %v", err)
 	}
 
-	if Mirror.DefaultInterval <= 0 {
-		Mirror.DefaultInterval = 24
+	sec = Cfg.Section("mirror")
+	Mirror.MinInterval = sec.Key("MIN_INTERVAL").MustDuration(10 * time.Minute)
+	Mirror.DefaultInterval = sec.Key("DEFAULT_INTERVAL").MustDuration(8 * time.Hour)
+	if Mirror.MinInterval.Minutes() < 1 {
+		log.Warn("Mirror.MinInterval is too low")
+		Mirror.MinInterval = 1 * time.Minute
+	}
+	if Mirror.DefaultInterval < Mirror.MinInterval {
+		log.Warn("Mirror.DefaultInterval is less than Mirror.MinInterval")
+		Mirror.DefaultInterval = time.Hour * 8
 	}
 
 	Langs = Cfg.Section("i18n").Key("LANGS").Strings(",")

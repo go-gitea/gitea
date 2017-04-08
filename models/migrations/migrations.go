@@ -102,6 +102,8 @@ var migrations = []Migration{
 	NewMigration("add show field in user openid table", addUserOpenIDShow),
 	// v26 -> v27
 	NewMigration("generate and migrate repo and wiki Git hooks", generateAndMigrateGitHookChains),
+	// v27 -> v28
+	NewMigration("change mirror interval from hours to time.Duration", convertIntervalToDuration),
 }
 
 // Migrate database to current version
