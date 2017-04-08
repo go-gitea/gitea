@@ -6,6 +6,7 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os/exec"
@@ -58,7 +59,10 @@ func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, std
 		log("%s: %v", dir, c)
 	}
 
-	cmd := exec.Command(c.name, c.args...)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, c.name, c.args...)
 	cmd.Dir = dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
@@ -66,26 +70,7 @@ func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, std
 		return err
 	}
 
-	done := make(chan error)
-	go func() {
-		done <- cmd.Wait()
-	}()
-
-	var err error
-	select {
-	case <-time.After(timeout):
-		if cmd.Process != nil && cmd.ProcessState != nil && !cmd.ProcessState.Exited() {
-			if err := cmd.Process.Kill(); err != nil {
-				return fmt.Errorf("fail to kill process: %v", err)
-			}
-		}
-
-		<-done
-		return ErrExecTimeout{timeout}
-	case err = <-done:
-	}
-
-	return err
+	return cmd.Wait()
 }
 
 // RunInDirTimeout executes the command in given directory with given timeout,
