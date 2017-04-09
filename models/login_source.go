@@ -405,8 +405,8 @@ func composeFullName(firstname, surname, username string) string {
 // LoginViaLDAP queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
 func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoRegister bool) (*User, error) {
-	username, fn, sn, mail, isAdmin, succeed := source.Cfg.(*LDAPConfig).SearchEntry(login, password, source.Type == LoginDLDAP)
-	if !succeed {
+	sr := source.Cfg.(*LDAPConfig).SearchEntry(login, password, source.Type == LoginDLDAP)
+	if sr == nil {
 		// User not in LDAP, do nothing
 		return nil, ErrUserNotExist{0, login, 0}
 	}
@@ -416,28 +416,28 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 	}
 
 	// Fallback.
-	if len(username) == 0 {
-		username = login
+	if len(sr.Username) == 0 {
+		sr.Username = login
 	}
 	// Validate username make sure it satisfies requirement.
-	if binding.AlphaDashDotPattern.MatchString(username) {
-		return nil, fmt.Errorf("Invalid pattern for attribute 'username' [%s]: must be valid alpha or numeric or dash(-_) or dot characters", username)
+	if binding.AlphaDashDotPattern.MatchString(sr.Username) {
+		return nil, fmt.Errorf("Invalid pattern for attribute 'username' [%s]: must be valid alpha or numeric or dash(-_) or dot characters", sr.Username)
 	}
 
-	if len(mail) == 0 {
-		mail = fmt.Sprintf("%s@localhost", username)
+	if len(sr.Mail) == 0 {
+		sr.Mail = fmt.Sprintf("%s@localhost", sr.Username)
 	}
 
 	user = &User{
-		LowerName:   strings.ToLower(username),
-		Name:        username,
-		FullName:    composeFullName(fn, sn, username),
-		Email:       mail,
+		LowerName:   strings.ToLower(sr.Username),
+		Name:        sr.Username,
+		FullName:    composeFullName(sr.Name, sr.Surname, sr.Username),
+		Email:       sr.Mail,
 		LoginType:   source.Type,
 		LoginSource: source.ID,
 		LoginName:   login,
 		IsActive:    true,
-		IsAdmin:     isAdmin,
+		IsAdmin:     sr.IsAdmin,
 	}
 	return user, CreateUser(user)
 }
