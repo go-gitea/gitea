@@ -264,3 +264,68 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		IsAdmin:  isAdmin,
 	}
 }
+
+// SearchEntries : search an LDAP source for all users matching userFilter
+func (ls *Source) SearchEntries() []*SearchResult {
+	l, err := dial(ls)
+	if err != nil {
+		log.Error(4, "LDAP Connect error, %s:%v", ls.Host, err)
+		ls.Enabled = false
+		return nil
+	}
+	defer l.Close()
+
+	if ls.BindDN != "" && ls.BindPassword != "" {
+		err := l.Bind(ls.BindDN, ls.BindPassword)
+		if err != nil {
+			log.Debug("Failed to bind as BindDN[%s]: %v", ls.BindDN, err)
+			return nil
+		}
+		log.Trace("Bound as BindDN %s", ls.BindDN)
+	} else {
+		log.Trace("Proceeding with anonymous LDAP search.")
+	}
+
+	userFilter := fmt.Sprintf(ls.Filter, "*")
+
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, userFilter, ls.UserBase)
+	search := ldap.NewSearchRequest(
+		ls.UserBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
+		[]string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail},
+		nil)
+
+	sr, err := l.Search(search)
+	if err != nil {
+		log.Error(4, "LDAP Search failed unexpectedly! (%v)", err)
+		return nil
+	}
+
+	result := make([]*SearchResult, len(sr.Entries))
+
+	for i, v := range sr.Entries {
+		result[i] = &SearchResult{
+			Username: v.GetAttributeValue(ls.AttributeUsername),
+			Name:     v.GetAttributeValue(ls.AttributeName),
+			Surname:  v.GetAttributeValue(ls.AttributeSurname),
+			Mail:     v.GetAttributeValue(ls.AttributeMail),
+			IsAdmin:  false,
+		}
+
+		if len(ls.AdminFilter) > 0 {
+			log.Trace("Checking admin with filter %s and base %s", ls.AdminFilter, v.DN)
+			adminSearch := ldap.NewSearchRequest(
+				v.DN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
+				[]string{ls.AttributeName},
+				nil)
+
+			asr, err := l.Search(adminSearch)
+			if err != nil {
+				log.Error(4, "LDAP Admin Search failed unexpectedly! (%v)", err)
+			} else if len(asr.Entries) == 1 {
+				result[i].IsAdmin = true
+			}
+		}
+	}
+
+	return result
+}
