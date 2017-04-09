@@ -158,6 +158,27 @@ func bindUser(l *ldap.Conn, userDN, passwd string) error {
 	return err
 }
 
+func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
+	if len(ls.AdminFilter) > 0 {
+		log.Trace("Checking admin with filter %s and base %s", ls.AdminFilter, userDN)
+		search := ldap.NewSearchRequest(
+			userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
+			[]string{ls.AttributeName},
+			nil)
+
+		sr, err := l.Search(search)
+
+		if err != nil {
+			log.Error(4, "LDAP Admin Search failed unexpectedly! (%v)", err)
+		} else if len(sr.Entries) < 1 {
+			log.Error(4, "LDAP Admin Search failed")
+		} else {
+			return true
+		}
+	}
+	return false
+}
+
 // SearchEntry : search an LDAP source if an entry (name, passwd) is valid and in the specific filter
 func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResult {
 	// See https://tools.ietf.org/search/rfc4513#section-5.1.2
@@ -229,24 +250,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	firstname := sr.Entries[0].GetAttributeValue(ls.AttributeName)
 	surname := sr.Entries[0].GetAttributeValue(ls.AttributeSurname)
 	mail := sr.Entries[0].GetAttributeValue(ls.AttributeMail)
-
-	isAdmin := false
-	if len(ls.AdminFilter) > 0 {
-		log.Trace("Checking admin with filter %s and base %s", ls.AdminFilter, userDN)
-		search = ldap.NewSearchRequest(
-			userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
-			[]string{ls.AttributeName},
-			nil)
-
-		sr, err = l.Search(search)
-		if err != nil {
-			log.Error(4, "LDAP Admin Search failed unexpectedly! (%v)", err)
-		} else if len(sr.Entries) < 1 {
-			log.Error(4, "LDAP Admin Search failed")
-		} else {
-			isAdmin = true
-		}
-	}
+	isAdmin := checkAdmin(l, ls, userDN)
 
 	if !directBind && ls.AttributesInBind {
 		// binds user (checking password) after looking-up attributes in BindDN context
@@ -308,22 +312,7 @@ func (ls *Source) SearchEntries() []*SearchResult {
 			Name:     v.GetAttributeValue(ls.AttributeName),
 			Surname:  v.GetAttributeValue(ls.AttributeSurname),
 			Mail:     v.GetAttributeValue(ls.AttributeMail),
-			IsAdmin:  false,
-		}
-
-		if len(ls.AdminFilter) > 0 {
-			log.Trace("Checking admin with filter %s and base %s", ls.AdminFilter, v.DN)
-			adminSearch := ldap.NewSearchRequest(
-				v.DN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
-				[]string{ls.AttributeName},
-				nil)
-
-			asr, err := l.Search(adminSearch)
-			if err != nil {
-				log.Error(4, "LDAP Admin Search failed unexpectedly! (%v)", err)
-			} else if len(asr.Entries) == 1 {
-				result[i].IsAdmin = true
-			}
+			IsAdmin:  checkAdmin(l, ls, v.DN),
 		}
 	}
 
