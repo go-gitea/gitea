@@ -48,7 +48,7 @@ func NewSanitizer() {
 
 // Sanitize takes a string that contains a HTML fragment or document and applies policy whitelist.
 func Sanitize(s string) string {
-	if sanitizer == nil {
+	if sanitizer.policy == nil {
 		NewSanitizer()
 	}
 	return sanitizer.policy.Sanitize(s)
@@ -57,9 +57,10 @@ func Sanitize(s string) string {
 // SanitizeBytes takes a []byte slice that contains a HTML fragment or document and applies policy whitelist.
 func SanitizeBytes(b []byte) []byte {
 	if len(b) == 0 {
-		return []byte{}
+		// nothing to sanitize
+		return b
 	}
-	if sanitizer == nil {
+	if sanitizer.policy == nil {
 		NewSanitizer()
 	}
 	return sanitizer.policy.SanitizeBytes(b)
