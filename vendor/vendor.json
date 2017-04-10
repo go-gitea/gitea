@@ -257,10 +257,11 @@
 			"revisionTime": "2016-12-08T13:07:38Z"
 		},
 		{
-			"checksumSHA1": "J+kVue/HTH4sELlqMO4z0tx9DiA=",
+			"checksumSHA1": "26XPwPnOEwZ1COWicbv5xCBY+rg=",
+			"origin": "github.com/sapk-fork/bolt",
 			"path": "github.com/boltdb/bolt",
-			"revision": "e9cf4fae01b5a8ff89d0ec6b32f0d9c9f79aefdd",
-			"revisionTime": "2017-01-31T19:20:18Z"
+			"revision": "606636ed5fa5f15645aeeffc800218cbb4ae818b",
+			"revisionTime": "2017-04-11T09:19:01Z"
 		},
 		{
 			"checksumSHA1": "NClRfzxXDSt/g4lM5BIkKhYRVoQ=",
