@@ -148,7 +148,7 @@ func (m *Mirror) runSync() bool {
 		return false
 	}
 
-	if err = m.Repo.UpdateSize(); err != nil {
+	if err := m.Repo.UpdateSize(); err != nil {
 		log.Error(4, "Failed to update size for mirror repository: %v", err)
 	}
 
