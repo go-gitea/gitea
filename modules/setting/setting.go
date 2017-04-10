@@ -336,6 +336,12 @@ var (
 			Schedule   string
 			OlderThan  time.Duration
 		} `ini:"cron.archive_cleanup"`
+		SyncExternalUsers struct {
+			Enabled        bool
+			RunAtStart     bool
+			Schedule       string
+			UpdateExisting bool
+		} `ini:"cron.sync_external_users"`
 	}{
 		UpdateMirror: struct {
 			Enabled    bool
@@ -378,6 +384,17 @@ var (
 			RunAtStart: true,
 			Schedule:   "@every 24h",
 			OlderThan:  24 * time.Hour,
+		},
+		SyncExternalUsers: struct {
+			Enabled        bool
+			RunAtStart     bool
+			Schedule       string
+			UpdateExisting bool
+		}{
+			Enabled:        true,
+			RunAtStart:     false,
+			Schedule:       "@every 24h",
+			UpdateExisting: true,
 		},
 	}
 
