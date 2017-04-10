@@ -107,14 +107,13 @@ release: release-changelog release-dirs release-windows release-linux release-da
 release-changelog: CHANGELOG.md
 
 .PHONY: CHANGELOG.md
-CHANGELOG.md: changelog/unreleased/*.md changelog/HISTORICAL.md
+CHANGELOG.md: changelog/unreleased/*.md
 
-.PHONY: changelog/HISTORICAL.md
-changelog/HISTORICAL.md:
-	cat changelog/HISTORICAL.md >> CHANGELOG.md
+changelog/unreleased/*.md: $(GOPATH)/bin/changelogger
+	changelogger -version $(VERSION) -outputFile CHANGELOG.md
 
-changelog/unreleased/*.md:
-	go run scripts/generate-changelog.go -version $(VERSION) -outputFile CHANGELOG.md
+$(GOPATH)/bin/changelogger:
+	go get -u gitlab.com/bkc/changelogger
 
 .PHONY: release-dirs
 release-dirs:
