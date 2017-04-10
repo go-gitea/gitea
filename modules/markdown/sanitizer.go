@@ -13,7 +13,7 @@ import (
 
 	"github.com/microcosm-cc/bluemonday"
 
-	"github.com/gogits/gogs/modules/setting"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // Sanitizer is a protection wrapper of *bluemonday.Policy which does not allow
@@ -48,10 +48,19 @@ func NewSanitizer() {
 
 // Sanitize takes a string that contains a HTML fragment or document and applies policy whitelist.
 func Sanitize(s string) string {
+	if sanitizer == nil {
+		NewSanitizer()
+	}
 	return sanitizer.policy.Sanitize(s)
 }
 
 // SanitizeBytes takes a []byte slice that contains a HTML fragment or document and applies policy whitelist.
 func SanitizeBytes(b []byte) []byte {
+	if len(b) == 0 {
+		return []byte{}
+	}
+	if sanitizer == nil {
+		NewSanitizer()
+	}
 	return sanitizer.policy.SanitizeBytes(b)
 }
