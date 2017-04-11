@@ -207,6 +207,7 @@ type Repository struct {
 	IsFork   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID   int64       `xorm:"INDEX"`
 	BaseRepo *Repository `xorm:"-"`
+	Size     int64       `xorm:"NOT NULL DEFAULT 0"`
 
 	Created     time.Time `xorm:"-"`
 	CreatedUnix int64     `xorm:"INDEX"`
@@ -546,6 +547,18 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID
 }
 
+// UpdateSize updates the repository size, calculating it using git.GetRepoSize
+func (repo *Repository) UpdateSize() error {
+	repoInfoSize, err := git.GetRepoSize(repo.RepoPath())
+	if err != nil {
+		return fmt.Errorf("UpdateSize: %v", err)
+	}
+
+	repo.Size = repoInfoSize.Size + repoInfoSize.SizePack
+	_, err = x.ID(repo.ID).Cols("size").Update(repo)
+	return err
+}
+
 // CanBeForked returns true if repository meets the requirements of being forked.
 func (repo *Repository) CanBeForked() bool {
 	return !repo.IsBare
@@ -808,6 +821,10 @@ func MigrateRepository(u *User, opts MigrateRepoOptions) (*Repository, error) {
 		if headBranch != nil {
 			repo.DefaultBranch = headBranch.Name
 		}
+	}
+
+	if err = repo.UpdateSize(); err != nil {
+		log.Error(4, "Failed to update size for repository: %v", err)
 	}
 
 	if opts.IsMirror {
@@ -1463,6 +1480,10 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 			if err = updateRepository(e, forkRepos[i], true); err != nil {
 				return fmt.Errorf("updateRepository[%d]: %v", forkRepos[i].ID, err)
 			}
+		}
+
+		if err = repo.UpdateSize(); err != nil {
+			log.Error(4, "Failed to update size for repository: %v", err)
 		}
 	}
 
@@ -2169,6 +2190,10 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 	err = sess.Commit()
 	if err != nil {
 		return nil, err
+	}
+
+	if err = repo.UpdateSize(); err != nil {
+		log.Error(4, "Failed to update size for repository: %v", err)
 	}
 
 	// Copy LFS meta objects in new session

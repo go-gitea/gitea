@@ -104,6 +104,8 @@ var migrations = []Migration{
 	NewMigration("generate and migrate repo and wiki Git hooks", generateAndMigrateGitHookChains),
 	// v27 -> v28
 	NewMigration("change mirror interval from hours to time.Duration", convertIntervalToDuration),
+	// v28 -> v29
+	NewMigration("add field for repo size", addRepoSize),
 }
 
 // Migrate database to current version

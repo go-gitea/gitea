@@ -147,6 +147,11 @@ func (m *Mirror) runSync() bool {
 		}
 		return false
 	}
+
+	if err := m.Repo.UpdateSize(); err != nil {
+		log.Error(4, "Failed to update size for mirror repository: %v", err)
+	}
+
 	if m.Repo.HasWiki() {
 		if _, stderr, err := process.GetManager().ExecDir(
 			timeout, wikiPath, fmt.Sprintf("Mirror.runSync: %s", wikiPath),
