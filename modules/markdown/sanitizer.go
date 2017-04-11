@@ -10,10 +10,9 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/microcosm-cc/bluemonday"
-
-	"code.gitea.io/gitea/modules/setting"
 )
 
 // Sanitizer is a protection wrapper of *bluemonday.Policy which does not allow
