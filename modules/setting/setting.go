@@ -779,7 +779,6 @@ please consider changing to GITEA_CUSTOM`)
 
 		now := time.Now()
 		InternalToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"exp": now.Add(5 * time.Minute).Unix(),
 			"nbf": now.Unix(),
 		}).SignedString([]byte(secretKey))
 
