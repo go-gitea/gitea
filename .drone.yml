@@ -17,6 +17,7 @@ pipeline:
     commands:
       - apk -U add openssh-client
       - make clean
+      - make notice-up-to-date
       - make generate
       - make vet
       - make lint
