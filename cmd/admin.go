@@ -8,10 +8,10 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/urfave/cli"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/urfave/cli"
 )
 
 var (

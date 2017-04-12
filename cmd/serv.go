@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/urfave/cli"
@@ -105,7 +106,8 @@ func runServ(c *cli.Context) error {
 	}
 
 	if len(c.Args()) < 1 {
-		fail("Not enough arguments", "Not enough arguments")
+		cli.ShowSubcommandHelp(c)
+		return nil
 	}
 
 	cmd := os.Getenv("SSH_ORIGINAL_COMMAND")
