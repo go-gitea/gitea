@@ -8,13 +8,13 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/cae/zip"
@@ -22,10 +22,10 @@ import (
 	"github.com/urfave/cli"
 )
 
-// CmdDump represents the available dump sub-command.
-var CmdDump = cli.Command{
+// Dump represents the available dump sub-command.
+var Dump = cli.Command{
 	Name:  "dump",
-	Usage: "Dump Gitea files and database",
+	Usage: "DEPRICATED! Dump Gitea files and database",
 	Description: `Dump compresses all related files and database into zip file.
 It can be used for backup and capture Gitea server image to send to maintainer`,
 	Action: runDump,
@@ -59,65 +59,66 @@ func runDump(ctx *cli.Context) error {
 	setting.NewServices() // cannot access session settings otherwise
 	models.LoadConfigs()
 
-	err := models.SetEngine()
-	if err != nil {
+	log.Info("")
+
+	if err := models.SetEngine(); err != nil {
 		return err
 	}
 
 	tmpDir := ctx.String("tempdir")
 	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
-		log.Fatalf("Path does not exist: %s", tmpDir)
+		log.Fatal(4, "Path does not exist: %s", tmpDir)
 	}
 	TmpWorkDir, err := ioutil.TempDir(tmpDir, "gitea-dump-")
 	if err != nil {
-		log.Fatalf("Failed to create tmp work directory: %v", err)
+		log.Fatal(4, "Failed to create tmp work directory: %v", err)
 	}
-	log.Printf("Creating tmp work dir: %s", TmpWorkDir)
+	log.Info("Creating tmp work dir: %s", TmpWorkDir)
 
 	reposDump := path.Join(TmpWorkDir, "gitea-repo.zip")
 	dbDump := path.Join(TmpWorkDir, "gitea-db.sql")
 
-	log.Printf("Dumping local repositories...%s", setting.RepoRootPath)
+	log.Info("Dumping local repositories...%s", setting.RepoRootPath)
 	zip.Verbose = ctx.Bool("verbose")
-	if err := zip.PackTo(setting.RepoRootPath, reposDump, true); err != nil {
-		log.Fatalf("Failed to dump local repositories: %v", err)
+	if err = zip.PackTo(setting.RepoRootPath, reposDump, true); err != nil {
+		log.Fatal(4, "Failed to dump local repositories: %v", err)
 	}
 
 	targetDBType := ctx.String("database")
 	if len(targetDBType) > 0 && targetDBType != models.DbCfg.Type {
-		log.Printf("Dumping database %s => %s...", models.DbCfg.Type, targetDBType)
+		log.Info("Dumping database %s => %s...", models.DbCfg.Type, targetDBType)
 	} else {
-		log.Printf("Dumping database...")
+		log.Info("Dumping database...")
 	}
 
-	if err := models.DumpDatabase(dbDump, targetDBType); err != nil {
-		log.Fatalf("Failed to dump database: %v", err)
+	if err = models.DumpDatabaseOld(dbDump, targetDBType); err != nil {
+		log.Fatal(4, "Failed to dump database: %v", err)
 	}
 
 	fileName := fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix())
-	log.Printf("Packing dump files...")
+	log.Info("Packing dump files...")
 	z, err := zip.Create(fileName)
 	if err != nil {
-		log.Fatalf("Failed to create %s: %v", fileName, err)
+		log.Fatal(4, "Failed to create %s: %v", fileName, err)
 	}
 
-	if err := z.AddFile("gitea-repo.zip", reposDump); err != nil {
-		log.Fatalf("Failed to include gitea-repo.zip: %v", err)
+	if err = z.AddFile("gitea-repo.zip", reposDump); err != nil {
+		log.Fatal(4, "Failed to include gitea-repo.zip: %v", err)
 	}
-	if err := z.AddFile("gitea-db.sql", dbDump); err != nil {
-		log.Fatalf("Failed to include gitea-db.sql: %v", err)
+	if err = z.AddFile("gitea-db.sql", dbDump); err != nil {
+		log.Fatal(4, "Failed to include gitea-db.sql: %v", err)
 	}
 	customDir, err := os.Stat(setting.CustomPath)
 	if err == nil && customDir.IsDir() {
-		if err := z.AddDir("custom", setting.CustomPath); err != nil {
-			log.Fatalf("Failed to include custom: %v", err)
+		if err = z.AddDir("custom", setting.CustomPath); err != nil {
+			log.Fatal(4, "Failed to include custom: %v", err)
 		}
 	} else {
-		log.Printf("Custom dir %s doesn't exist, skipped", setting.CustomPath)
+		log.Info("Custom dir %s doesn't exist, skipped", setting.CustomPath)
 	}
 
 	if com.IsExist(setting.AppDataPath) {
-		log.Printf("Packing data directory...%s", setting.AppDataPath)
+		log.Info("Packing data directory...%s", setting.AppDataPath)
 
 		var sessionAbsPath string
 		if setting.SessionConfig.Provider == "file" {
@@ -126,30 +127,30 @@ func runDump(ctx *cli.Context) error {
 			}
 			sessionAbsPath, _ = filepath.Abs(setting.SessionConfig.ProviderConfig)
 		}
-		if err := zipAddDirectoryExclude(z, "data", setting.AppDataPath, sessionAbsPath); err != nil {
-			log.Fatalf("Failed to include data directory: %v", err)
+		if err = zipAddDirectoryExclude(z, "data", setting.AppDataPath, sessionAbsPath); err != nil {
+			log.Fatal(4, "Failed to include data directory: %v", err)
 		}
 	}
 
-	if err := z.AddDir("log", setting.LogRootPath); err != nil {
-		log.Fatalf("Failed to include log: %v", err)
+	if err = z.AddDir("log", setting.LogRootPath); err != nil {
+		log.Fatal(4, "Failed to include log: %v", err)
 	}
 
 	if err = z.Close(); err != nil {
 		_ = os.Remove(fileName)
-		log.Fatalf("Failed to save %s: %v", fileName, err)
+		log.Fatal(4, "Failed to save %s: %v", fileName, err)
 	}
 
 	if err := os.Chmod(fileName, 0600); err != nil {
-		log.Printf("Can't change file access permissions mask to 0600: %v", err)
+		log.Info("Can't change file access permissions mask to 0600: %v", err)
 	}
 
-	log.Printf("Removing tmp work dir: %s", TmpWorkDir)
+	log.Info("Removing tmp work dir: %s", TmpWorkDir)
 
 	if err := os.RemoveAll(TmpWorkDir); err != nil {
-		log.Fatalf("Failed to remove %s: %v", TmpWorkDir, err)
+		log.Fatal(4, "Failed to remove %s: %v", TmpWorkDir, err)
 	}
-	log.Printf("Finish dumping in file %s", fileName)
+	log.Info("Finish dumping in file %s", fileName)
 
 	return nil
 }

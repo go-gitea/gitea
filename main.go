@@ -36,9 +36,11 @@ func main() {
 		cmd.CmdWeb,
 		cmd.CmdServ,
 		cmd.CmdHook,
-		cmd.CmdDump,
 		cmd.CmdCert,
 		cmd.CmdAdmin,
+		cmd.Backup,
+		cmd.Restore,
+		cmd.Dump,
 	}
 	app.Flags = append(app.Flags, []cli.Flag{}...)
 	err := app.Run(os.Args)
