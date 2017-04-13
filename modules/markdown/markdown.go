@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"github.com/Unknwon/com"
-	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday"
 	"golang.org/x/net/html"
 
@@ -28,24 +27,6 @@ const (
 	IssueNameStyleNumeric      = "numeric"
 	IssueNameStyleAlphanumeric = "alphanumeric"
 )
-
-// Sanitizer markdown sanitizer
-var Sanitizer = bluemonday.UGCPolicy()
-
-// BuildSanitizer initializes sanitizer with allowed attributes based on settings.
-// This function should only be called once during entire application lifecycle.
-func BuildSanitizer() {
-	// Normal markdown-stuff
-	Sanitizer.AllowAttrs("class").Matching(regexp.MustCompile(`[\p{L}\p{N}\s\-_',:\[\]!\./\\\(\)&]*`)).OnElements("code", "div", "ul", "ol", "dl")
-
-	// Checkboxes
-	Sanitizer.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
-	Sanitizer.AllowAttrs("checked", "disabled").OnElements("input")
-	Sanitizer.AllowNoAttrs().OnElements("label")
-
-	// Custom URL-Schemes
-	Sanitizer.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
-}
 
 // IsMarkdownFile reports whether name looks like a Markdown file
 // based on its extension.
@@ -708,7 +689,7 @@ func render(rawBytes []byte, urlPrefix string, metas map[string]string, isWikiMa
 	urlPrefix = strings.Replace(urlPrefix, " ", "+", -1)
 	result := RenderRaw(rawBytes, urlPrefix, isWikiMarkdown)
 	result = PostProcess(result, urlPrefix, metas, isWikiMarkdown)
-	result = Sanitizer.SanitizeBytes(result)
+	result = SanitizeBytes(result)
 	return result
 }
 

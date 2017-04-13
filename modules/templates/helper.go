@@ -164,7 +164,7 @@ func Safe(raw string) template.HTML {
 
 // Str2html render Markdown text to HTML
 func Str2html(raw string) template.HTML {
-	return template.HTML(markdown.Sanitizer.Sanitize(raw))
+	return template.HTML(markdown.Sanitize(raw))
 }
 
 // List traversings the list
