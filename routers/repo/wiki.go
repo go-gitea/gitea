@@ -323,7 +323,7 @@ func Wiki(ctx *context.Context) {
 	}
 
 	ename := entry.Name()
-	if markup.Type(ename) == markdown.MarkupName {
+	if markup.Type(ename) != markdown.MarkupName {
 		ext := strings.ToUpper(filepath.Ext(ename))
 		ctx.Data["FormatWarning"] = fmt.Sprintf("%s rendering is not supported at the moment. Rendered as Markdown.", ext)
 	}
