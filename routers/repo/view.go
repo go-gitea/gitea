@@ -188,7 +188,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 		readmeExist := isSupportedMarkup || markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
-		if readmeExist {
+		if readmeExist && isSupportedMarkup {
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
 		} else {
 			// Building code view blocks with line number on server side.
