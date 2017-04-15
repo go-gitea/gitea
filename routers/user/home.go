@@ -377,7 +377,7 @@ func showOrgProfile(ctx *context.Context) {
 	}
 
 	org := ctx.Org.Organization
-	ctx.Data["Title"] = org.FullName
+	ctx.Data["Title"] = org.DisplayName()
 
 	page := ctx.QueryInt("page")
 	if page <= 0 {
