@@ -75,6 +75,16 @@ func (r *Repository) CanEnableEditor() bool {
 	return r.Repository.CanEnableEditor() && r.IsViewBranch && r.IsWriter()
 }
 
+// CanCommitToBranch returns true if repository is editable and user has proper access level
+//   and branch is not protected
+func (r *Repository) CanCommitToBranch() (bool, error) {
+	protectedBranch, err := r.Repository.IsProtectedBranch(r.BranchName)
+	if err != nil {
+		return false, err
+	}
+	return r.CanEnableEditor() && !protectedBranch, nil
+}
+
 // GetEditorconfig returns the .editorconfig definition if found in the
 // HEAD of the default repo branch.
 func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
