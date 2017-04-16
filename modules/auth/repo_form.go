@@ -323,7 +323,7 @@ type EditRepoFileForm struct {
 	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
-	NewBranchName string `binding:"AlphaDashDot;MaxSize(100)"`
+	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	LastCommit    string
 }
 
@@ -356,7 +356,7 @@ type UploadRepoFileForm struct {
 	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
-	NewBranchName string `binding:"AlphaDashDot;MaxSize(100)"`
+	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	Files         []string
 }
 
@@ -387,7 +387,7 @@ type DeleteRepoFileForm struct {
 	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
-	NewBranchName string `binding:"AlphaDashDot;MaxSize(100)"`
+	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 }
 
 // Validate validates the fields
