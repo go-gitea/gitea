@@ -254,7 +254,7 @@ func validate(errs binding.Errors, data map[string]interface{}, f Form, l macaro
 				data["ErrorMsg"] = trName + l.Tr("form.alpha_dash_error")
 			case binding.ERR_ALPHA_DASH_DOT:
 				data["ErrorMsg"] = trName + l.Tr("form.alpha_dash_dot_error")
-			case validation.ERR_GIT_REF_NAME:
+			case validation.ErrGitRefName:
 				data["ErrorMsg"] = trName + l.Tr("form.git_ref_name_error")
 			case binding.ERR_SIZE:
 				data["ErrorMsg"] = trName + l.Tr("form.size_error", GetSize(field))

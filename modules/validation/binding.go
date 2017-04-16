@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	// ERR_GIT_REF_NAME is git reference name error
-	ERR_GIT_REF_NAME = "GitRefNameError"
+	// ErrGitRefName is git reference name error
+	ErrGitRefName = "GitRefNameError"
 )
 
 var (
@@ -37,7 +37,7 @@ func addGitRefNameBindingRule() {
 			str := fmt.Sprintf("%v", val)
 
 			if GitRefNamePattern.MatchString(str) {
-				errs.Add([]string{name}, ERR_GIT_REF_NAME, "GitRefName")
+				errs.Add([]string{name}, ErrGitRefName, "GitRefName")
 				return false, errs
 			}
 			// Additional rules as described at https://www.kernel.org/pub/software/scm/git/docs/git-check-ref-format.html
@@ -45,7 +45,7 @@ func addGitRefNameBindingRule() {
 				strings.HasPrefix(str, ".") || strings.HasSuffix(str, ".") ||
 				strings.HasSuffix(str, ".lock") ||
 				strings.Contains(str, "..") || strings.Contains(str, "//") {
-				errs.Add([]string{name}, ERR_GIT_REF_NAME, "GitRefName")
+				errs.Add([]string{name}, ErrGitRefName, "GitRefName")
 				return false, errs
 			}
 
