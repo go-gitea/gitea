@@ -682,7 +682,7 @@ func render(rawBytes []byte, urlPrefix string, metas map[string]string, isWikiMa
 	return result
 }
 
-// Render renders markup file to HTML with all specific handling stuff.
+// Render renders Markdown to HTML with all specific handling stuff.
 func Render(rawBytes []byte, urlPrefix string, metas map[string]string) []byte {
 	return render(rawBytes, urlPrefix, metas, false)
 }
