@@ -16,8 +16,7 @@ import (
 )
 
 const (
-	testRoute       = "/test"
-	formContentType = "application/x-www-form-urlencoded"
+	testRoute = "/test"
 )
 
 type (
