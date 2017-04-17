@@ -63,11 +63,14 @@ func addValidURLBindingRule() {
 			return strings.HasPrefix(rule, "ValidUrl")
 		},
 		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
-			if u, err := url.Parse(fmt.Sprintf("%v", val)); err != nil ||
-				(u.Scheme != "http" && u.Scheme != "https") ||
-				!validPort(portOnly(u.Host)) {
-				errs.Add([]string{name}, binding.ERR_URL, "Url")
-				return false, errs
+			str := fmt.Sprintf("%v", val)
+			if len(str) != 0 {
+				if u, err := url.ParseRequestURI(str); err != nil ||
+					(u.Scheme != "http" && u.Scheme != "https") ||
+					!validPort(portOnly(u.Host)) {
+					errs.Add([]string{name}, binding.ERR_URL, "Url")
+					return false, errs
+				}
 			}
 
 			return true, errs
