@@ -6,6 +6,7 @@ package validation
 
 import (
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -25,6 +26,7 @@ var (
 // AddBindingRules adds additional binding rules
 func AddBindingRules() {
 	addGitRefNameBindingRule()
+	addValidURLBindingRule()
 }
 
 func addGitRefNameBindingRule() {
@@ -52,4 +54,30 @@ func addGitRefNameBindingRule() {
 			return true, errs
 		},
 	})
+}
+
+func addValidURLBindingRule() {
+	// URL validation rule
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return strings.HasPrefix(rule, "ValidUrl")
+		},
+		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+			if u, err := url.Parse(fmt.Sprintf("%v", val)); err != nil || (u.Scheme != "http" && u.Scheme != "https") || !validPort(u.Port()) {
+				errs.Add([]string{name}, binding.ERR_URL, "Url")
+				return false, errs
+			}
+
+			return true, errs
+		},
+	})
+}
+
+func validPort(p string) bool {
+	for _, r := range []byte(p) {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }

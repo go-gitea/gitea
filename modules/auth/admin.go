@@ -32,7 +32,7 @@ type AdminEditUserForm struct {
 	FullName                string `binding:"MaxSize(100)"`
 	Email                   string `binding:"Required;Email;MaxSize(254)"`
 	Password                string `binding:"MaxSize(255)"`
-	Website                 string `binding:"Url;MaxSize(255)"`
+	Website                 string `binding:"ValidUrl;MaxSize(255)"`
 	Location                string `binding:"MaxSize(50)"`
 	MaxRepoCreation         int
 	Active                  bool
