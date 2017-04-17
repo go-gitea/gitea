@@ -31,7 +31,7 @@ type UpdateOrgSettingForm struct {
 	Name            string `binding:"Required;AlphaDashDot;MaxSize(35)" locale:"org.org_name_holder"`
 	FullName        string `binding:"MaxSize(100)"`
 	Description     string `binding:"MaxSize(255)"`
-	Website         string `binding:"Url;MaxSize(255)"`
+	Website         string `binding:"ValidUrl;MaxSize(255)"`
 	Location        string `binding:"MaxSize(50)"`
 	MaxRepoCreation int
 }

@@ -87,7 +87,7 @@ func (f MigrateRepoForm) ParseRemoteAddr(user *models.User) (string, error) {
 type RepoSettingForm struct {
 	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
 	Description   string `binding:"MaxSize(255)"`
-	Website       string `binding:"Url;MaxSize(255)"`
+	Website       string `binding:"ValidUrl;MaxSize(255)"`
 	Interval      string
 	MirrorAddress string
 	Private       bool
@@ -143,7 +143,7 @@ func (f WebhookForm) ChooseEvents() bool {
 
 // NewWebhookForm form for creating web hook
 type NewWebhookForm struct {
-	PayloadURL  string `binding:"Required;Url"`
+	PayloadURL  string `binding:"Required;ValidUrl"`
 	ContentType int    `binding:"Required"`
 	Secret      string
 	WebhookForm
@@ -156,7 +156,7 @@ func (f *NewWebhookForm) Validate(ctx *macaron.Context, errs binding.Errors) bin
 
 // NewSlackHookForm form for creating slack hook
 type NewSlackHookForm struct {
-	PayloadURL string `binding:"Required;Url"`
+	PayloadURL string `binding:"Required;ValidUrl"`
 	Channel    string `binding:"Required"`
 	Username   string
 	IconURL    string
