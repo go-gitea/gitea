@@ -19,7 +19,7 @@ import (
 func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	buf := make([]byte, 1024)
 	n, _ := reader.Read(buf)
-	if n > 0 {
+	if n >= 0 {
 		buf = buf[:n]
 	}
 
