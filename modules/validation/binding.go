@@ -63,7 +63,9 @@ func addValidURLBindingRule() {
 			return strings.HasPrefix(rule, "ValidUrl")
 		},
 		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
-			if u, err := url.Parse(fmt.Sprintf("%v", val)); err != nil || (u.Scheme != "http" && u.Scheme != "https") || !validPort(u.Port()) {
+			if u, err := url.Parse(fmt.Sprintf("%v", val)); err != nil ||
+				(u.Scheme != "http" && u.Scheme != "https") ||
+				!validPort(portOnly(u.Host)) {
 				errs.Add([]string{name}, binding.ERR_URL, "Url")
 				return false, errs
 			}
@@ -71,6 +73,20 @@ func addValidURLBindingRule() {
 			return true, errs
 		},
 	})
+}
+
+func portOnly(hostport string) string {
+	colon := strings.IndexByte(hostport, ':')
+	if colon == -1 {
+		return ""
+	}
+	if i := strings.Index(hostport, "]:"); i != -1 {
+		return hostport[i+len("]:"):]
+	}
+	if strings.Contains(hostport, "]") {
+		return ""
+	}
+	return hostport[colon+len(":"):]
 }
 
 func validPort(p string) bool {
