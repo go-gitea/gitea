@@ -72,6 +72,13 @@
 {{end}}
 </head>
 <body>
+	<script>
+		// Prevent FOUC by briefly hiding the body
+		document.body.style.display = 'none';
+		document.addEventListener('DOMContentLoaded', function() {
+			document.body.style.display = '';
+		});
+	</script>
 	<div class="full height">
 		<noscript>Please enable JavaScript in your browser!</noscript>
 
