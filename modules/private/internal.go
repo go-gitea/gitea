@@ -33,7 +33,7 @@ func decodeJSONError(resp *http.Response) *Response {
 // UpdatePublicKeyUpdated update publick key updates
 func UpdatePublicKeyUpdated(keyID int64) error {
 	// Ask for running deliver hook and test pull request tasks.
-	reqURL := setting.LocalURL + fmt.Sprintf("internal/ssh/%d/update", keyID)
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/ssh/%d/update", keyID)
 	log.GitLogger.Trace("UpdatePublicKeyUpdated: %s", reqURL)
 
 	resp, err := newRequest(reqURL, "POST").SetTLSClientConfig(&tls.Config{

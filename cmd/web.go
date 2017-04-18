@@ -660,7 +660,7 @@ func runWeb(ctx *cli.Context) error {
 		apiv1.RegisterRoutes(m)
 	}, ignSignIn)
 
-	m.Group("/internal", func() {
+	m.Group("/api/internal", func() {
 		// package name internal is ideal but Golang is not allowed, so we use private as package name.
 		private.RegisterRoutes(m)
 	})
