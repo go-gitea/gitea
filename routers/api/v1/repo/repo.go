@@ -275,7 +275,7 @@ func MirrorSync(ctx *context.APIContext) {
 	repo := ctx.Repo.Repository
 
 	if !ctx.Repo.IsWriter() {
-		ctx.Error(403, "MirrorSync", "Must be owner")
+		ctx.Error(403, "MirrorSync", "Must have write access")
 	}
 
 	go models.MirrorQueue.Add(repo.ID)
