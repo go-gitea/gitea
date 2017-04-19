@@ -23,10 +23,10 @@ type Attachment struct {
 	ID            int64  `xorm:"pk autoincr"`
 	UUID          string `xorm:"uuid UNIQUE"`
 	IssueID       int64  `xorm:"INDEX"`
+	ReleaseID     int64  `xorm:"INDEX"`
 	CommentID     int64
-	ReleaseID     int64 `xorm:"INDEX"`
 	Name          string
-	DownloadCount int64
+	DownloadCount int64     `xorm:"DEFAULT 0"`
 	Created       time.Time `xorm:"-"`
 	CreatedUnix   int64
 }
