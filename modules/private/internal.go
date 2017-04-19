@@ -43,7 +43,9 @@ func UpdatePublicKeyUpdated(keyID int64) error {
 		return err
 	}
 
-	resp.Body.Close()
+	defer resp.Body.Close()
+
+	// All 2XX status codes are accepted and others will return an error
 	if resp.StatusCode/100 != 2 {
 		return fmt.Errorf("Failed to update public key: %s", decodeJSONError(resp).Err)
 	}
