@@ -87,7 +87,7 @@ func (f MigrateRepoForm) ParseRemoteAddr(user *models.User) (string, error) {
 type RepoSettingForm struct {
 	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
 	Description   string `binding:"MaxSize(255)"`
-	Website       string `binding:"Url;MaxSize(255)"`
+	Website       string `binding:"ValidUrl;MaxSize(255)"`
 	Interval      string
 	MirrorAddress string
 	Private       bool
@@ -143,7 +143,7 @@ func (f WebhookForm) ChooseEvents() bool {
 
 // NewWebhookForm form for creating web hook
 type NewWebhookForm struct {
-	PayloadURL  string `binding:"Required;Url"`
+	PayloadURL  string `binding:"Required;ValidUrl"`
 	ContentType int    `binding:"Required"`
 	Secret      string
 	WebhookForm
@@ -156,7 +156,7 @@ func (f *NewWebhookForm) Validate(ctx *macaron.Context, errs binding.Errors) bin
 
 // NewSlackHookForm form for creating slack hook
 type NewSlackHookForm struct {
-	PayloadURL string `binding:"Required;Url"`
+	PayloadURL string `binding:"Required;ValidUrl"`
 	Channel    string `binding:"Required"`
 	Username   string
 	IconURL    string
@@ -323,7 +323,7 @@ type EditRepoFileForm struct {
 	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
-	NewBranchName string `binding:"AlphaDashDot;MaxSize(100)"`
+	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	LastCommit    string
 }
 
@@ -356,7 +356,7 @@ type UploadRepoFileForm struct {
 	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
-	NewBranchName string `binding:"AlphaDashDot;MaxSize(100)"`
+	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	Files         []string
 }
 
@@ -387,7 +387,7 @@ type DeleteRepoFileForm struct {
 	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
-	NewBranchName string `binding:"AlphaDashDot;MaxSize(100)"`
+	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 }
 
 // Validate validates the fields

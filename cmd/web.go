@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/admin"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
@@ -177,6 +178,7 @@ func runWeb(ctx *cli.Context) error {
 	reqSignOut := context.Toggle(&context.ToggleOptions{SignOutRequired: true})
 
 	bindIgnErr := binding.BindIgnErr
+	validation.AddBindingRules()
 
 	m.Use(user.GetNotificationCount)
 
