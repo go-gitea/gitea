@@ -367,8 +367,22 @@ func SettingsKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	}
 	switch form.Type {
 	case "gpg":
-		//TODO
-		ctx.Flash.Warning("Function not implemented")
+		key, err := models.AddGPGKey(ctx.User.ID, form.Content)
+		if err != nil {
+			ctx.Data["HasGPGError"] = true
+			switch {
+			case models.IsErrGPGKeyParsing(err):
+				ctx.Flash.Error(ctx.Tr("form.invalid_gpg_key", err.Error()))
+				ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+			case models.IsErrGPGKeyIDAlreadyUsed(err):
+				ctx.Data["Err_Content"] = true
+				ctx.RenderWithErr(ctx.Tr("settings.gpg_key_id_used"), tplSettingsKeys, &form)
+			default:
+				ctx.Handle(500, "AddPublicKey", err)
+			}
+			return
+		}
+		ctx.Flash.Success(ctx.Tr("settings.add_gpg_key_success", key.KeyID))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "ssh":
 		content, err := models.CheckPublicKeyString(form.Content)
@@ -383,7 +397,7 @@ func SettingsKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 		}
 
 		if _, err = models.AddPublicKey(ctx.User.ID, form.Title, content); err != nil {
-			ctx.Data["HasError"] = true
+			ctx.Data["HasSSHError"] = true
 			switch {
 			case models.IsErrKeyAlreadyExist(err):
 				ctx.Data["Err_Content"] = true
@@ -422,6 +436,9 @@ func DeleteKey(ctx *context.Context) {
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.ssh_key_deletion_success"))
 		}
+	default:
+		ctx.Flash.Warning("Function not implemented")
+		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	}
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/keys",

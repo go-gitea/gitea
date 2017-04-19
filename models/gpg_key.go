@@ -89,7 +89,7 @@ func GetGPGKeyByID(keyID int64) (*GPGKey, error) {
 func checkArmoredGPGKeyString(content string) (*openpgp.Entity, error) {
 	list, err := openpgp.ReadArmoredKeyRing(strings.NewReader(content))
 	if err != nil {
-		return nil, err
+		return nil, ErrGPGKeyParsing{err}
 	}
 	return list[0], nil
 }
