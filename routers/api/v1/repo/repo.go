@@ -279,5 +279,5 @@ func MirrorSync(ctx *context.APIContext) {
 	}
 
 	go models.MirrorQueue.Add(repo.ID)
-	ctx.Status(202)
+	ctx.Status(200)
 }
