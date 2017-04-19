@@ -65,11 +65,11 @@ type PushUpdateOptions struct {
 
 // PushUpdate must be called for any push actions in order to
 // generates necessary push action history feeds.
-func PushUpdate(opts PushUpdateOptions) (err error) {
+func PushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 	isNewRef := opts.OldCommitID == git.EmptySHA
 	isDelRef := opts.NewCommitID == git.EmptySHA
 	if isNewRef && isDelRef {
-		return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
+		return nil, fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 	}
 
 	repoPath := RepoPath(opts.RepoUserName, opts.RepoName)
@@ -77,28 +77,28 @@ func PushUpdate(opts PushUpdateOptions) (err error) {
 	gitUpdate := exec.Command("git", "update-server-info")
 	gitUpdate.Dir = repoPath
 	if err = gitUpdate.Run(); err != nil {
-		return fmt.Errorf("Failed to call 'git update-server-info': %v", err)
+		return nil, fmt.Errorf("Failed to call 'git update-server-info': %v", err)
+	}
+
+	owner, err := GetUserByName(opts.RepoUserName)
+	if err != nil {
+		return nil, fmt.Errorf("GetUserByName: %v", err)
+	}
+
+	repo, err = GetRepositoryByName(owner.ID, opts.RepoName)
+	if err != nil {
+		return nil, fmt.Errorf("GetRepositoryByName: %v", err)
 	}
 
 	if isDelRef {
 		log.GitLogger.Info("Reference '%s' has been deleted from '%s/%s' by %s",
 			opts.RefFullName, opts.RepoUserName, opts.RepoName, opts.PusherName)
-		return nil
+		return repo, nil
 	}
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
-	}
-
-	owner, err := GetUserByName(opts.RepoUserName)
-	if err != nil {
-		return fmt.Errorf("GetUserByName: %v", err)
-	}
-
-	repo, err := GetRepositoryByName(owner.ID, opts.RepoName)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryByName: %v", err)
+		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}
 
 	if err = repo.UpdateSize(); err != nil {
@@ -116,14 +116,14 @@ func PushUpdate(opts PushUpdateOptions) (err error) {
 			NewCommitID: opts.NewCommitID,
 			Commits:     &PushCommits{},
 		}); err != nil {
-			return fmt.Errorf("CommitRepoAction (tag): %v", err)
+			return nil, fmt.Errorf("CommitRepoAction (tag): %v", err)
 		}
-		return nil
+		return repo, nil
 	}
 
 	newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 	if err != nil {
-		return fmt.Errorf("gitRepo.GetCommit: %v", err)
+		return nil, fmt.Errorf("gitRepo.GetCommit: %v", err)
 	}
 
 	// Push new branch.
@@ -131,12 +131,12 @@ func PushUpdate(opts PushUpdateOptions) (err error) {
 	if isNewRef {
 		l, err = newCommit.CommitsBeforeLimit(10)
 		if err != nil {
-			return fmt.Errorf("newCommit.CommitsBeforeLimit: %v", err)
+			return nil, fmt.Errorf("newCommit.CommitsBeforeLimit: %v", err)
 		}
 	} else {
 		l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
 		if err != nil {
-			return fmt.Errorf("newCommit.CommitsBeforeUntil: %v", err)
+			return nil, fmt.Errorf("newCommit.CommitsBeforeUntil: %v", err)
 		}
 	}
 
@@ -149,7 +149,7 @@ func PushUpdate(opts PushUpdateOptions) (err error) {
 		NewCommitID: opts.NewCommitID,
 		Commits:     ListToPushCommits(l),
 	}); err != nil {
-		return fmt.Errorf("CommitRepoAction (branch): %v", err)
+		return nil, fmt.Errorf("CommitRepoAction (branch): %v", err)
 	}
-	return nil
+	return repo, nil
 }
