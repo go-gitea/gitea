@@ -62,6 +62,11 @@ func newRequest(url, method string) *Request {
 	return &Request{url, &req, map[string]string{}, map[string]string{}, defaultSetting, &resp, nil}
 }
 
+// NewRequest returns *Request with specific method
+func NewRequest(url, method string) *Request {
+	return newRequest(url, method)
+}
+
 // Get returns *Request with GET method.
 func Get(url string) *Request {
 	return newRequest(url, "GET")

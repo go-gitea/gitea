@@ -29,6 +29,7 @@ import (
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
 	"code.gitea.io/gitea/routers/dev"
 	"code.gitea.io/gitea/routers/org"
+	"code.gitea.io/gitea/routers/private"
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
 
@@ -660,6 +661,11 @@ func runWeb(ctx *cli.Context) error {
 	m.Group("/api", func() {
 		apiv1.RegisterRoutes(m)
 	}, ignSignIn)
+
+	m.Group("/api/internal", func() {
+		// package name internal is ideal but Golang is not allowed, so we use private as package name.
+		private.RegisterRoutes(m)
+	})
 
 	// robots.txt
 	m.Get("/robots.txt", func(ctx *context.Context) {

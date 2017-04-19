@@ -502,8 +502,10 @@ func UpdatePublicKey(key *PublicKey) error {
 
 // UpdatePublicKeyUpdated updates public key use time.
 func UpdatePublicKeyUpdated(id int64) error {
-	cnt, err := x.ID(id).Cols("updated").Update(&PublicKey{
-		Updated: time.Now(),
+	now := time.Now()
+	cnt, err := x.ID(id).Cols("updated_unix").Update(&PublicKey{
+		Updated:     now,
+		UpdatedUnix: now.Unix(),
 	})
 	if err != nil {
 		return err

@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
@@ -318,7 +319,7 @@ func runServ(c *cli.Context) error {
 
 	// Update user key activity.
 	if keyID > 0 {
-		if err = models.UpdatePublicKeyUpdated(keyID); err != nil {
+		if err = private.UpdatePublicKeyUpdated(keyID); err != nil {
 			fail("Internal error", "UpdatePublicKey: %v", err)
 		}
 	}
