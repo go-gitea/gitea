@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+
 	macaron "gopkg.in/macaron.v1"
 )
 

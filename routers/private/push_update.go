@@ -8,11 +8,11 @@ import (
 	"encoding/json"
 	"strings"
 
-	macaron "gopkg.in/macaron.v1"
-
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+
+	macaron "gopkg.in/macaron.v1"
 )
 
 // PushUpdate update public key updates

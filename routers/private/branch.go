@@ -6,6 +6,7 @@ package private
 
 import (
 	"code.gitea.io/gitea/models"
+
 	macaron "gopkg.in/macaron.v1"
 )
 
