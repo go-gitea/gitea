@@ -15,6 +15,7 @@ func TestIncreaseDownloadCount(t *testing.T) {
 
 	attachment, err := GetAttachmentByUUID("1234567890")
 	assert.NoError(t, err)
+	assert.Equal(t, int64(0), attachment.DownloadCount)
 
 	// increase download count
 	err = attachment.IncreaseDownloadCount()
