@@ -207,7 +207,6 @@ func HTTP(ctx *context.Context) {
 		environ = []string{
 			models.EnvRepoUsername + "=" + username,
 			models.EnvRepoName + "=" + reponame,
-			models.EnvRepoUserSalt + "=" + repoUser.Salt,
 			models.EnvPusherName + "=" + authUser.Name,
 			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
 			models.ProtectedBranchRepoID + fmt.Sprintf("=%d", repo.ID),
