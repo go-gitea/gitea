@@ -411,7 +411,11 @@ func DeleteKey(ctx *context.Context) {
 
 	switch ctx.Query("type") {
 	case "gpg":
-		//TODO
+		if err := models.DeleteGPGKey(ctx.User, ctx.QueryInt64("id")); err != nil {
+			ctx.Flash.Error("DeleteGPGKey: " + err.Error())
+		} else {
+			ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
+		}
 	case "ssh":
 		if err := models.DeletePublicKey(ctx.User, ctx.QueryInt64("id")); err != nil {
 			ctx.Flash.Error("DeletePublicKey: " + err.Error())

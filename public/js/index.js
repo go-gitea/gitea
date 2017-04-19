@@ -1408,7 +1408,11 @@ $(document).ready(function () {
     // Helpers.
     $('.delete-button').click(function () {
         var $this = $(this);
-        $('.delete.modal').modal({
+        var filter = "";
+        if ($this.attr("id")) {
+          filter += "#"+$this.attr("id")
+        }
+        $('.delete.modal'+filter).modal({
             closable: false,
             onApprove: function () {
                 if ($this.data('type') == "form") {
