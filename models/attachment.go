@@ -50,7 +50,7 @@ func (a *Attachment) IncreaseDownloadCount() error {
 	sess := x.NewSession()
 	defer sessionRelease(sess)
 
-	// Update repository count.
+	// Update download count.
 	if _, err := sess.Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
 		return fmt.Errorf("increase attachment count: %v", err)
 	}
