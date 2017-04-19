@@ -53,6 +53,7 @@ func TestDeleteAttachments(t *testing.T) {
 	assert.NoError(t, err)
 
 	attachment, err := GetAttachmentByUUID("test-12345")
-	assert.NoError(t, err)
+	assert.Error(t, err)
+	assert.True(t, IsErrAttachmentNotExist(err))
 	assert.Nil(t, attachment)
 }
