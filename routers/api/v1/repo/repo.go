@@ -269,3 +269,15 @@ func Delete(ctx *context.APIContext) {
 	log.Trace("Repository deleted: %s/%s", owner.Name, repo.Name)
 	ctx.Status(204)
 }
+
+// MirrorSync adds a mirrored repository to the sync queue
+func MirrorSync(ctx *context.APIContext) {
+	repo := ctx.Repo.Repository
+
+	if !ctx.Repo.IsWriter() {
+		ctx.Error(403, "MirrorSync", "Must have write access")
+	}
+
+	go models.MirrorQueue.Add(repo.ID)
+	ctx.Status(200)
+}
