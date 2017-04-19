@@ -131,12 +131,14 @@ func runHookPreReceive(c *cli.Context) error {
 		}
 
 		if protectBranch != nil {
-			// check and deletion
-			if newCommitID == git.EmptySHA {
-				fail(fmt.Sprintf("branch %s is protected from deletion", branchName), "")
-			} else {
-				fail(fmt.Sprintf("protected branch %s can not be pushed to", branchName), "")
-				//fail(fmt.Sprintf("branch %s is protected from force push", branchName), "")
+			if !protectBranch.CanPush {
+				// check and deletion
+				if newCommitID == git.EmptySHA {
+					fail(fmt.Sprintf("branch %s is protected from deletion", branchName), "")
+				} else {
+					fail(fmt.Sprintf("protected branch %s can not be pushed to", branchName), "")
+					//fail(fmt.Sprintf("branch %s is protected from force push", branchName), "")
+				}
 			}
 		}
 	}
