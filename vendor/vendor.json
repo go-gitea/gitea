@@ -260,8 +260,8 @@
 			"checksumSHA1": "26XPwPnOEwZ1COWicbv5xCBY+rg=",
 			"origin": "github.com/go-gitea/bolt",
 			"path": "github.com/boltdb/bolt",
-			"revision": "606636ed5fa5f15645aeeffc800218cbb4ae818b",
-			"revisionTime": "2017-04-11T09:19:01Z"
+			"revision": "ccd680d8c1a0179ac3d68f692b01e1a1589cbfc7",
+			"revisionTime": "2017-04-20T01:09:17Z"
 		},
 		{
 			"checksumSHA1": "NClRfzxXDSt/g4lM5BIkKhYRVoQ=",
