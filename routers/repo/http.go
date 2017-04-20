@@ -17,6 +17,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Unknwon/com"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -24,10 +26,32 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+func composeGoGetImport(owner, repo, sub string) string {
+	return path.Join(setting.Domain, setting.AppSubURL, owner, repo, sub)
+}
+
+// earlyResponseForGoGetMeta responses appropriate go-get meta with status 200
+// if user does not have actual access to the requested repository,
+// or the owner or repository does not exist at all.
+// This is particular a workaround for "go get" command which does not respect
+// .netrc file.
+func earlyResponseForGoGetMeta(ctx *context.Context) {
+	ctx.PlainText(200, []byte(com.Expand(`<meta name="go-import" content="{GoGetImport} git {CloneLink}">`,
+		map[string]string{
+			"GoGetImport": composeGoGetImport(ctx.Params(":username"), ctx.Params(":reponame"), ctx.Params("*")),
+			"CloneLink":   models.ComposeHTTPSCloneURL(ctx.Params(":username"), ctx.Params(":reponame")),
+		})))
+}
+
 // HTTP implmentation git smart HTTP protocol
 func HTTP(ctx *context.Context) {
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
+
+	if ctx.Query("go-get") == "1" {
+		earlyResponseForGoGetMeta(ctx)
+		return
+	}
 
 	var isPull bool
 	service := ctx.Query("service")
