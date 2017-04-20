@@ -219,7 +219,7 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 			}
 		}
 		if emails[n] == nil {
-			return nil, fmt.Errorf("Failed to found email or is not confirmed : %s", ident.UserId.Email)
+			return nil, ErrGPGEmailNotFound{ident.UserId.Email}
 		}
 		n++
 	}

@@ -377,6 +377,9 @@ func SettingsKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 			case models.IsErrGPGKeyIDAlreadyUsed(err):
 				ctx.Data["Err_Content"] = true
 				ctx.RenderWithErr(ctx.Tr("settings.gpg_key_id_used"), tplSettingsKeys, &form)
+			case models.IsErrGPGEmailNotFound(err):
+				ctx.Data["Err_Content"] = true
+				ctx.RenderWithErr(ctx.Tr("settings.gpg_key_email_not_found", err.(models.ErrGPGEmailNotFound).Email), tplSettingsKeys, &form)
 			default:
 				ctx.Handle(500, "AddPublicKey", err)
 			}
