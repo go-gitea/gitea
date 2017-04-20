@@ -62,12 +62,10 @@ var (
 	}
 )
 
-func hookSetup(logPath string) error {
+func hookSetup(logPath string) {
 	setting.NewContext()
 	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
 	models.LoadConfigs()
-
-	return nil
 }
 
 func runHookPreReceive(c *cli.Context) error {
@@ -81,9 +79,7 @@ func runHookPreReceive(c *cli.Context) error {
 		setting.CustomConf = c.GlobalString("config")
 	}
 
-	if err := hookSetup("hooks/pre-receive.log"); err != nil {
-		fail("Hook pre-receive init failed", fmt.Sprintf("setup: %v", err))
-	}
+	hookSetup("hooks/pre-receive.log")
 
 	// the environment setted on serv command
 	repoID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchRepoID), 10, 64)
@@ -157,9 +153,7 @@ func runHookUpdate(c *cli.Context) error {
 		setting.CustomConf = c.GlobalString("config")
 	}
 
-	if err := hookSetup("hooks/update.log"); err != nil {
-		fail("Hook update init failed", fmt.Sprintf("setup: %v", err))
-	}
+	hookSetup("hooks/update.log")
 
 	return nil
 }
@@ -175,9 +169,7 @@ func runHookPostReceive(c *cli.Context) error {
 		setting.CustomConf = c.GlobalString("config")
 	}
 
-	if err := hookSetup("hooks/post-receive.log"); err != nil {
-		fail("Hook post-receive init failed", fmt.Sprintf("setup: %v", err))
-	}
+	hookSetup("hooks/post-receive.log")
 
 	// the environment setted on serv command
 	repoUser := os.Getenv(models.EnvRepoUsername)
