@@ -839,7 +839,6 @@ please consider changing to GITEA_CUSTOM`)
 		if TestTimeFormat.Format(time.RFC3339) != "2006-01-02T15:04:05Z" {
 			log.Fatal(4, "Can't create time properly, please check your time format has 2006, 01, 02, 15, 04 and 05")
 		}
-		log.Trace("Custom TimeFormat: %s", TimeFormat)
 	}
 
 	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
