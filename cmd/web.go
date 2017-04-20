@@ -351,6 +351,11 @@ func runWeb(ctx *cli.Context) error {
 			}
 			defer fr.Close()
 
+			if err := attach.IncreaseDownloadCount(); err != nil {
+				ctx.Handle(500, "Update", err)
+				return
+			}
+
 			if err = repo.ServeData(ctx, attach.Name, fr); err != nil {
 				ctx.Handle(500, "ServeData", err)
 				return

@@ -20,15 +20,15 @@ import (
 
 // Attachment represent a attachment of issue/comment/release.
 type Attachment struct {
-	ID        int64  `xorm:"pk autoincr"`
-	UUID      string `xorm:"uuid UNIQUE"`
-	IssueID   int64  `xorm:"INDEX"`
-	CommentID int64
-	ReleaseID int64 `xorm:"INDEX"`
-	Name      string
-
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64
+	ID            int64  `xorm:"pk autoincr"`
+	UUID          string `xorm:"uuid UNIQUE"`
+	IssueID       int64  `xorm:"INDEX"`
+	ReleaseID     int64  `xorm:"INDEX"`
+	CommentID     int64
+	Name          string
+	DownloadCount int64     `xorm:"DEFAULT 0"`
+	Created       time.Time `xorm:"-"`
+	CreatedUnix   int64
 }
 
 // BeforeInsert is invoked from XORM before inserting an object of this type.
@@ -43,6 +43,19 @@ func (a *Attachment) AfterSet(colName string, _ xorm.Cell) {
 	case "created_unix":
 		a.Created = time.Unix(a.CreatedUnix, 0).Local()
 	}
+}
+
+// IncreaseDownloadCount is update download count + 1
+func (a *Attachment) IncreaseDownloadCount() error {
+	sess := x.NewSession()
+	defer sessionRelease(sess)
+
+	// Update download count.
+	if _, err := sess.Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
+		return fmt.Errorf("increase attachment count: %v", err)
+	}
+
+	return nil
 }
 
 // AttachmentLocalPath returns where attachment is stored in local file
