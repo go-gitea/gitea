@@ -186,6 +186,10 @@ func runWeb(ctx *cli.Context) error {
 	// FIXME: not all routes need go through same middlewares.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
+	// for health check
+	m.Head("/", func() string {
+		return ""
+	})
 	m.Get("/", ignSignIn, routers.Home)
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
