@@ -14,9 +14,10 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/router"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/routers/routes"
+
 	context2 "github.com/gorilla/context"
 	"github.com/urfave/cli"
 )
@@ -58,8 +59,8 @@ func runWeb(ctx *cli.Context) error {
 
 	routers.GlobalInit()
 
-	m := router.NewMacaron()
-	router.RegisterRoutes(m)
+	m := routes.NewMacaron()
+	routes.RegisterRoutes(m)
 
 	// Flag for port number in case first time run conflict.
 	if ctx.IsSet("port") {

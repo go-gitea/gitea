@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package router
+package routes
 
 import (
 	"os"
@@ -17,15 +17,15 @@ import (
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/admin"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
 	"code.gitea.io/gitea/routers/dev"
 	"code.gitea.io/gitea/routers/org"
+	"code.gitea.io/gitea/routers/private"
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
-	"code.gitea.io/gitea/routers/private"
-	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
@@ -126,7 +126,7 @@ func NewMacaron() *macaron.Macaron {
 	return m
 }
 
-// RegisterRoutes register routes to Macaron
+// RegisterRoutes routes routes to Macaron
 func RegisterRoutes(m *macaron.Macaron) {
 	reqSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: true})
 	ignSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView})
@@ -170,7 +170,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("/connect").
 					Get(user.ConnectOpenID).
 					Post(bindIgnErr(auth.ConnectOpenIDForm{}), user.ConnectOpenIDPost)
-				m.Combo("/register").
+				m.Combo("/routes").
 					Get(user.RegisterOpenID).
 					Post(bindIgnErr(auth.SignUpOpenIDForm{}), user.RegisterOpenIDPost)
 			})

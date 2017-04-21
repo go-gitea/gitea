@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,11 +13,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/router"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/routers/routes"
 
-	"bytes"
 	"gopkg.in/macaron.v1"
 	"gopkg.in/testfixtures.v2"
 )
@@ -31,8 +31,8 @@ func TestMain(m *testing.M) {
 	}
 	setting.CustomConf = appIniPath
 	routers.GlobalInit()
-	mac = router.NewMacaron()
-	router.RegisterRoutes(mac)
+	mac = routes.NewMacaron()
+	routes.RegisterRoutes(mac)
 
 	var helper testfixtures.Helper
 	if setting.UseMySQL {
