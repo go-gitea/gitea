@@ -35,11 +35,11 @@ func composeGoGetImport(owner, repo, sub string) string {
 // or the owner or repository does not exist at all.
 // This is particular a workaround for "go get" command which does not respect
 // .netrc file.
-func earlyResponseForGoGetMeta(ctx *context.Context) {
+func earlyResponseForGoGetMeta(ctx *context.Context, username, reponame, subpath string) {
 	ctx.PlainText(200, []byte(com.Expand(`<meta name="go-import" content="{GoGetImport} git {CloneLink}">`,
 		map[string]string{
-			"GoGetImport": composeGoGetImport(ctx.Params(":username"), ctx.Params(":reponame"), ctx.Params("*")),
-			"CloneLink":   models.ComposeHTTPSCloneURL(ctx.Params(":username"), ctx.Params(":reponame")),
+			"GoGetImport": composeGoGetImport(username, reponame, subpath),
+			"CloneLink":   models.ComposeHTTPSCloneURL(username, reponame),
 		})))
 }
 
@@ -47,9 +47,10 @@ func earlyResponseForGoGetMeta(ctx *context.Context) {
 func HTTP(ctx *context.Context) {
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
+	subpath := ctx.Params("*")
 
 	if ctx.Query("go-get") == "1" {
-		earlyResponseForGoGetMeta(ctx)
+		earlyResponseForGoGetMeta(ctx, username, reponame, subpath)
 		return
 	}
 
