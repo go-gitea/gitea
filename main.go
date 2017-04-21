@@ -12,7 +12,10 @@ import (
 
 	"code.gitea.io/gitea/cmd"
 	"code.gitea.io/gitea/modules/log"
+	_ "code.gitea.io/gitea/modules/markup/markdown"
+	_ "code.gitea.io/gitea/modules/markup/orgmode"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/urfave/cli"
 )
 

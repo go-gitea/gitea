@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+
 	"github.com/Unknwon/paginater"
 )
 

@@ -287,6 +287,12 @@
 			"revisionTime": "2016-01-17T19:21:50Z"
 		},
 		{
+			"checksumSHA1": "eASRPkVp4Nl0iUcM5nAIAZwBkO4=",
+			"path": "github.com/chaseadamsio/goorgeous",
+			"revision": "5d094ef478c140a32b46ddb7b8234c789629de26",
+			"revisionTime": "2017-04-12T02:39:21Z"
+		},
+		{
 			"checksumSHA1": "agNqSytP0indDCoGizlMyC1L/m4=",
 			"path": "github.com/coreos/etcd/error",
 			"revision": "01c303113d0a3d5a8075864321c3aedb72035bdd",

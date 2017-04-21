@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
 	"github.com/go-macaron/inject"
@@ -55,7 +55,7 @@ func TestAPI_RenderGFM(t *testing.T) {
 		Context: Repo,
 		Wiki:    true,
 	}
-	requrl, _ := url.Parse(markdown.URLJoin(AppURL, "api", "v1", "markdown"))
+	requrl, _ := url.Parse(markup.URLJoin(AppURL, "api", "v1", "markdown"))
 	req := &http.Request{
 		Method: "POST",
 		URL:    requrl,
@@ -149,7 +149,7 @@ func TestAPI_RenderSimple(t *testing.T) {
 		Text:    "",
 		Context: Repo,
 	}
-	requrl, _ := url.Parse(markdown.URLJoin(AppURL, "api", "v1", "markdown"))
+	requrl, _ := url.Parse(markup.URLJoin(AppURL, "api", "v1", "markdown"))
 	req := &http.Request{
 		Method: "POST",
 		URL:    requrl,
@@ -168,7 +168,7 @@ func TestAPI_RenderSimple(t *testing.T) {
 func TestAPI_RenderRaw(t *testing.T) {
 	setting.AppURL = AppURL
 
-	requrl, _ := url.Parse(markdown.URLJoin(AppURL, "api", "v1", "markdown"))
+	requrl, _ := url.Parse(markup.URLJoin(AppURL, "api", "v1", "markdown"))
 	req := &http.Request{
 		Method: "POST",
 		URL:    requrl,
