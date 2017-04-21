@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 )
 
 const (
@@ -322,7 +323,7 @@ func Wiki(ctx *context.Context) {
 	}
 
 	ename := entry.Name()
-	if !markdown.IsMarkdownFile(ename) {
+	if markup.Type(ename) != markdown.MarkupName {
 		ext := strings.ToUpper(filepath.Ext(ename))
 		ctx.Data["FormatWarning"] = fmt.Sprintf("%s rendering is not supported at the moment. Rendered as Markdown.", ext)
 	}

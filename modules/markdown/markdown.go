@@ -19,6 +19,7 @@ import (
 	"golang.org/x/net/html"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -38,18 +39,6 @@ func IsMarkdownFile(name string) bool {
 		}
 	}
 	return false
-}
-
-// IsReadmeFile reports whether name looks like a README file
-// based on its name.
-func IsReadmeFile(name string) bool {
-	name = strings.ToLower(name)
-	if len(name) < 6 {
-		return false
-	} else if len(name) == 6 {
-		return name == "readme"
-	}
-	return name[:7] == "readme."
 }
 
 var (
@@ -706,4 +695,32 @@ func RenderString(raw, urlPrefix string, metas map[string]string) string {
 // RenderWiki renders markdown wiki page to HTML and return HTML string
 func RenderWiki(rawBytes []byte, urlPrefix string, metas map[string]string) string {
 	return string(render(rawBytes, urlPrefix, metas, true))
+}
+
+var (
+	// MarkupName describes markup's name
+	MarkupName = "markdown"
+)
+
+func init() {
+	markup.RegisterParser(Parser{})
+}
+
+// Parser implements markup.Parser
+type Parser struct {
+}
+
+// Name implements markup.Parser
+func (Parser) Name() string {
+	return MarkupName
+}
+
+// Extensions implements markup.Parser
+func (Parser) Extensions() []string {
+	return setting.Markdown.FileExtensions
+}
+
+// Render implements markup.Parser
+func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
+	return render(rawBytes, urlPrefix, metas, isWiki)
 }
