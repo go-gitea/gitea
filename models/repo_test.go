@@ -7,7 +7,7 @@ package models
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,13 +36,13 @@ func TestRepo(t *testing.T) {
 		assert.Equal(t, "https://someurl.com/{user}/{repo}/{issue}", metas["format"])
 	}
 
-	testSuccess(markdown.IssueNameStyleNumeric)
+	testSuccess(markup.IssueNameStyleNumeric)
 
-	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markdown.IssueNameStyleAlphanumeric
-	testSuccess(markdown.IssueNameStyleAlphanumeric)
+	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleAlphanumeric
+	testSuccess(markup.IssueNameStyleAlphanumeric)
 
-	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markdown.IssueNameStyleNumeric
-	testSuccess(markdown.IssueNameStyleNumeric)
+	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleNumeric
+	testSuccess(markup.IssueNameStyleNumeric)
 }
 
 func TestGetRepositoryCount(t *testing.T) {

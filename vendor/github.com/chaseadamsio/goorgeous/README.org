@@ -1,0 +1,66 @@
+#+TITLE: chaseadamsio/goorgeous
+
+[[https://travis-ci.org/chaseadamsio/goorgeous.svg?branch=master]]
+[[https://coveralls.io/repos/github/chaseadamsio/goorgeous/badge.svg?branch=master]]
+
+/goorgeous is a Go Org to HTML Parser./
+
+[[file:gopher_small.gif]] 
+
+*Pronounced: Go? Org? Yes!*
+
+#+BEGIN_QUOTE
+"Org mode is for keeping notes, maintaining TODO lists, planning projects, and authoring documents with a fast and effective plain-text system."
+
+- [[orgmode.org]]
+#+END_QUOTE
+
+The purpose of this package is to come as close as possible as parsing an =*.org= document into HTML, the same way one might publish [[http://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html][with org-publish-html from Emacs]]. 
+
+* Installation
+
+#+BEGIN_SRC sh
+  go get -u github.com/chaseadamsio/goorgeous
+#+END_SRC
+
+* Usage
+
+** Org Headers
+
+To retreive the headers from a =[]byte=, call =OrgHeaders= and it will return a =map[string]interface{}=: 
+
+#+BEGIN_SRC go
+  input := "#+title: goorgeous\n* Some Headline\n"
+  out := goorgeous.OrgHeaders(input) 
+#+END_SRC
+
+#+BEGIN_SRC go
+  map[string]interface{}{ 
+          "title": "goorgeous"
+  }
+#+END_SRC
+
+** Org Content
+
+After importing =github.com/chaseadamsio/goorgeous=, you can call =Org= with a =[]byte= and it will return an =html= version of the content as a =[]byte=
+
+#+BEGIN_SRC go
+  input := "#+TITLE: goorgeous\n* Some Headline\n"
+  out := goorgeous.Org(input) 
+#+END_SRC
+
+=out= will be:
+
+#+BEGIN_SRC html
+  <h1>Some Headline</h1>/n
+#+END_SRC
+
+* Why? 
+
+First off, I've become an unapologetic user of Emacs & ever since finding =org-mode= I use it for anything having to do with writing content, organizing my life and keeping documentation of my days/weeks/months.
+
+Although I like Emacs & =emacs-lisp=, I publish all of my html sites with [[https://gohugo.io][Hugo Static Site Generator]] and wanted to be able to write my content in =org-mode= in Emacs rather than markdown.
+
+Hugo's implementation of templating and speed are unmatched, so the only way I knew for sure I could continue to use Hugo and write in =org-mode= seamlessly was to write a golang parser for org content and submit a PR for Hugo to use it.
+* Acknowledgements
+I leaned heavily on russross' [[https://github.com/russross/blackfriday][blackfriday markdown renderer]] as both an example of how to write a parser (with some updates to leverage the go we know today) and reusing the blackfriday HTML Renderer so I didn't have to write my own!

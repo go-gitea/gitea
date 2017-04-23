@@ -10,7 +10,7 @@ import (
 	"github.com/Unknwon/com"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -90,7 +90,7 @@ func mailIssueCommentToParticipants(issue *Issue, doer *User, mentions []string)
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
 func (issue *Issue) MailParticipants() (err error) {
-	mentions := markdown.FindAllMentions(issue.Content)
+	mentions := markup.FindAllMentions(issue.Content)
 	if err = UpdateIssueMentions(x, issue.ID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
 	}
