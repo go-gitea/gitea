@@ -139,18 +139,13 @@ func (status *CommitStatus) APIFormat() *api.Status {
 // GetCommitStatuses returns all statuses for a given commit.
 func GetCommitStatuses(repo *Repository, sha string, page int) ([]*CommitStatus, error) {
 	statuses := make([]*CommitStatus, 0, 10)
-	sess := x.NewSession()
-	defer sess.Close()
-	return statuses, sess.Limit(10, page*10).Where("repo_id = ?", repo.ID).And("sha = ?", sha).Find(&statuses)
+	return statuses, x.Limit(10, page*10).Where("repo_id = ?", repo.ID).And("sha = ?", sha).Find(&statuses)
 }
 
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
 func GetLatestCommitStatus(repo *Repository, sha string, page int) ([]*CommitStatus, error) {
 	statuses := make([]*CommitStatus, 0, 10)
-	sess := x.NewSession()
-	defer sess.Close()
-
-	return statuses, sess.Limit(10, page*10).
+	return statuses, x.Limit(10, page*10).
 		Where("repo_id = ?", repo.ID).And("sha = ?", sha).Select("*").
 		GroupBy("context").Desc("created_unix").Find(&statuses)
 }
@@ -184,7 +179,7 @@ type NewCommitStatusOptions struct {
 	CommitStatus *CommitStatus
 }
 
-func newCommitStatus(e Engine, opts NewCommitStatusOptions) error {
+func newCommitStatus(sess *xorm.Session, opts NewCommitStatusOptions) error {
 	opts.CommitStatus.Description = strings.TrimSpace(opts.CommitStatus.Description)
 	opts.CommitStatus.Context = strings.TrimSpace(opts.CommitStatus.Context)
 	opts.CommitStatus.TargetURL = strings.TrimSpace(opts.CommitStatus.TargetURL)
@@ -206,12 +201,6 @@ func newCommitStatus(e Engine, opts NewCommitStatusOptions) error {
 	}
 	if _, err := gitRepo.GetCommit(opts.SHA); err != nil {
 		return fmt.Errorf("GetCommit[%s]: %v", opts.SHA, err)
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return fmt.Errorf("newCommitStatus[%s, %s]: %v", opts.Repo.RepoPath(), opts.SHA, err)
 	}
 
 	// Get the next Status Index
@@ -238,7 +227,7 @@ func newCommitStatus(e Engine, opts NewCommitStatusOptions) error {
 		return fmt.Errorf("newCommitStatus[%s, %s]: %v", opts.Repo.RepoPath(), opts.SHA, err)
 	}
 
-	return sess.Commit()
+	return nil
 }
 
 // NewCommitStatus creates a new CommitStatus given a bunch of parameters
@@ -261,5 +250,5 @@ func NewCommitStatus(repo *Repository, creator *User, sha string, status *Commit
 		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %v", repo.ID, creator.ID, sha, err)
 	}
 
-	return nil
+	return sess.Commit()
 }
