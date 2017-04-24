@@ -257,10 +257,11 @@
 			"revisionTime": "2016-12-08T13:07:38Z"
 		},
 		{
-			"checksumSHA1": "J+kVue/HTH4sELlqMO4z0tx9DiA=",
+			"checksumSHA1": "26XPwPnOEwZ1COWicbv5xCBY+rg=",
+			"origin": "github.com/go-gitea/bolt",
 			"path": "github.com/boltdb/bolt",
-			"revision": "e9cf4fae01b5a8ff89d0ec6b32f0d9c9f79aefdd",
-			"revisionTime": "2017-01-31T19:20:18Z"
+			"revision": "ccd680d8c1a0179ac3d68f692b01e1a1589cbfc7",
+			"revisionTime": "2017-04-20T01:09:17Z"
 		},
 		{
 			"checksumSHA1": "NClRfzxXDSt/g4lM5BIkKhYRVoQ=",
@@ -443,10 +444,10 @@
 			"revisionTime": "2017-02-16T03:03:40Z"
 		},
 		{
-			"checksumSHA1": "OCcksAYN5m0kc5yJF/Ba4VVHqeA=",
+			"checksumSHA1": "vt2CGANHLNXPAZ01ve3UlsgQ0uU=",
 			"path": "github.com/go-xorm/core",
-			"revision": "e9e84b6f94ace6dec682a39034de56abffb964dd",
-			"revisionTime": "2017-02-06T14:57:10Z"
+			"revision": "e8409d73255791843585964791443dbad877058c",
+			"revisionTime": "2017-03-17T12:25:07Z"
 		},
 		{
 			"checksumSHA1": "k52lEKLp8j5M+jFpe+3u+bIFpxQ=",
@@ -455,10 +456,10 @@
 			"revisionTime": "2016-08-11T02:11:45Z"
 		},
 		{
-			"checksumSHA1": "3FEBM0FYERf8jpaResApwcQpr40=",
+			"checksumSHA1": "/vlyLLStrbfErk/rR3SPuBGQeqk=",
 			"path": "github.com/go-xorm/xorm",
-			"revision": "7e70eb82224bc950d4fb936036e925a51947c245",
-			"revisionTime": "2017-04-02T10:02:47Z"
+			"revision": "a5cb21c44305815170d0d72563e47d585e8dcabf",
+			"revisionTime": "2017-04-05T10:17:41Z"
 		},
 		{
 			"checksumSHA1": "1ft/4j5MFa7C9dPI9whL03HSUzk=",
@@ -1023,30 +1024,6 @@
 			"path": "github.com/shurcooL/sanitized_anchor_name",
 			"revision": "1dba4b3954bc059efc3991ec364f9f9a35f597d2",
 			"revisionTime": "2016-09-18T04:11:01Z"
-		},
-		{
-			"checksumSHA1": "Vzb+dEH/LTYbvr8RXHmt6xJHz04=",
-			"path": "github.com/smartystreets/assertions/internal/go-render/render",
-			"revision": "2063fd1cc7c975db70502811a34b06ad034ccdf2",
-			"revisionTime": "2016-07-07T19:03:55Z"
-		},
-		{
-			"checksumSHA1": "SLC6TfV4icQA9l8YJQu8acJYbuo=",
-			"path": "github.com/smartystreets/assertions/internal/oglematchers",
-			"revision": "2063fd1cc7c975db70502811a34b06ad034ccdf2",
-			"revisionTime": "2016-07-07T19:03:55Z"
-		},
-		{
-			"checksumSHA1": "9LakndErFi5uCXtY1KWl0iRnT4c=",
-			"path": "github.com/smartystreets/goconvey/convey/gotest",
-			"revision": "019319c870f8f1d61dc9c34291abff5cd128b6e8",
-			"revisionTime": "2016-11-03T17:15:00Z"
-		},
-		{
-			"checksumSHA1": "FWDhk37bhAwZ2363D/L2xePwR64=",
-			"path": "github.com/smartystreets/goconvey/convey/reporting",
-			"revision": "019319c870f8f1d61dc9c34291abff5cd128b6e8",
-			"revisionTime": "2016-11-03T17:15:00Z"
 		},
 		{
 			"checksumSHA1": "KE+vv2khbshw+PA9UyHHxd8WKKw=",

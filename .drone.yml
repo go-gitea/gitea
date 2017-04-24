@@ -19,6 +19,7 @@ pipeline:
       - make generate
       - make vet
       - make lint
+      - make test-vendor
       - make test
       - make build
     when:
