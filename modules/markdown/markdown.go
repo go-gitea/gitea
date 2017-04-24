@@ -145,11 +145,14 @@ func (r *Renderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
 	switch {
 	case bytes.HasPrefix(text, []byte(prefix+"[ ] ")):
 		text = append([]byte(`<div class="ui fitted disabled checkbox"><input type="checkbox" disabled="disabled" /><label /></div>`), text[3+len(prefix):]...)
+		if prefix != "" {
+			text = bytes.Replace(text, []byte(prefix), []byte{}, 1)
+		}
 	case bytes.HasPrefix(text, []byte(prefix+"[x] ")):
 		text = append([]byte(`<div class="ui checked fitted disabled checkbox"><input type="checkbox" checked="" disabled="disabled" /><label /></div>`), text[3+len(prefix):]...)
-	}
-	if prefix != "" {
-		text = bytes.Replace(text, []byte("</p>"), []byte{}, 1)
+		if prefix != "" {
+			text = bytes.Replace(text, []byte(prefix), []byte{}, 1)
+		}
 	}
 	r.Renderer.ListItem(out, text, flags)
 }
@@ -627,10 +630,8 @@ OUTER_LOOP:
 					// Copy the token to the output verbatim
 					buf.Write(RenderShortLinks([]byte(token.String()), urlPrefix, true, isWikiMarkdown))
 
-					if token.Type == html.StartTagToken {
-						if !com.IsSliceContainsStr(noEndTags, token.Data) {
-							stackNum++
-						}
+					if token.Type == html.StartTagToken && !com.IsSliceContainsStr(noEndTags, token.Data) {
+						stackNum++
 					}
 
 					// If this is the close tag to the outer-most, we are done
@@ -645,8 +646,8 @@ OUTER_LOOP:
 				continue OUTER_LOOP
 			}
 
-			if !com.IsSliceContainsStr(noEndTags, token.Data) {
-				startTags = append(startTags, token.Data)
+			if !com.IsSliceContainsStr(noEndTags, tagName) {
+				startTags = append(startTags, tagName)
 			}
 
 		case html.EndTagToken:
