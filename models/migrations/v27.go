@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/go-xorm/xorm"
 )
 
@@ -18,18 +21,10 @@ func convertIntervalToDuration(x *xorm.Engine) (err error) {
 		Name    string
 	}
 	type Mirror struct {
-		ID          int64       `xorm:"pk autoincr"`
-		RepoID      int64       `xorm:"INDEX"`
-		Repo        *Repository `xorm:"-"`
-		Interval    time.Duration
-		EnablePrune bool `xorm:"NOT NULL DEFAULT true"`
-
-		Updated        time.Time `xorm:"-"`
-		UpdatedUnix    int64     `xorm:"INDEX"`
-		NextUpdate     time.Time `xorm:"-"`
-		NextUpdateUnix int64     `xorm:"INDEX"`
-
-		address string `xorm:"-"`
+		ID       int64       `xorm:"pk autoincr"`
+		RepoID   int64       `xorm:"INDEX"`
+		Repo     *Repository `xorm:"-"`
+		Interval time.Duration
 	}
 
 	sess := x.NewSession()
@@ -39,6 +34,24 @@ func convertIntervalToDuration(x *xorm.Engine) (err error) {
 		return err
 	}
 
+	dialect := x.Dialect().DriverName()
+
+	switch dialect {
+	case "mysql":
+		_, err = sess.Exec("ALTER TABLE mirror MODIFY `interval` BIGINT")
+	case "postgres":
+		_, err = sess.Exec("ALTER TABLE mirror ALTER COLUMN \"interval\" SET DATA TYPE bigint")
+	case "tidb":
+		_, err = sess.Exec("ALTER TABLE mirror MODIFY `interval` BIGINT")
+	case "mssql":
+		_, err = sess.Exec("ALTER TABLE mirror ALTER COLUMN \"interval\" BIGINT")
+	case "sqlite3":
+	}
+
+	if err != nil {
+		return fmt.Errorf("Error changing mirror interval column type: %v", err)
+	}
+
 	var mirrors []Mirror
 	err = sess.Table("mirror").Select("*").Find(&mirrors)
 	if err != nil {
@@ -46,6 +59,11 @@ func convertIntervalToDuration(x *xorm.Engine) (err error) {
 	}
 	for _, mirror := range mirrors {
 		mirror.Interval = mirror.Interval * time.Hour
+		if mirror.Interval < setting.Mirror.MinInterval {
+			log.Info("Mirror interval less than Mirror.MinInterval, setting default interval: repo id %v", mirror.RepoID)
+			mirror.Interval = setting.Mirror.DefaultInterval
+		}
+		log.Debug("Mirror interval set to %v for repo id %v", mirror.Interval, mirror.RepoID)
 		_, err := sess.Id(mirror.ID).Cols("interval").Update(mirror)
 		if err != nil {
 			return fmt.Errorf("update mirror interval failed: %v", err)
