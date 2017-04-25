@@ -5,30 +5,28 @@
 package integrations
 
 import (
-	"bytes"
-	"encoding/json"
 	"net/http"
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestVersion(t *testing.T) {
+func TestViewRepo(t *testing.T) {
 	assert.NoError(t, models.LoadFixtures())
 
-	setting.AppVer = "1.1.0+dev"
-	req, err := http.NewRequest("GET", "/api/v1/version", nil)
+	req, err := http.NewRequest("GET", "/user1/repo1", nil)
 	assert.NoError(t, err)
 	resp := MakeRequest(req)
-
-	var version gitea.ServerVersion
-	decoder := json.NewDecoder(bytes.NewBuffer(resp.Body))
-	assert.NoError(t, decoder.Decode(&version))
-
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
-	assert.Equal(t, setting.AppVer, string(version.Version))
+}
+
+func TestViewUser(t *testing.T) {
+	assert.NoError(t, models.LoadFixtures())
+
+	req, err := http.NewRequest("GET", "/user1", nil)
+	assert.NoError(t, err)
+	resp := MakeRequest(req)
+	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }

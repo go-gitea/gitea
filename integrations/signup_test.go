@@ -2,34 +2,40 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package integration
+package integrations
 
 import (
-	"os"
+	"bytes"
+	"net/http"
+	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/integrations/internal/utils"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/stretchr/testify/assert"
 )
 
-var signupFormSample map[string][]string = map[string][]string{
-	"Name":   {"tester"},
-	"Email":  {"user1@example.com"},
-	"Passwd": {"12345678"},
-}
-
-func signup(t *utils.T) error {
-	return utils.GetAndPost("http://:"+ServerHTTPPort+"/user/sign_up", signupFormSample)
-}
-
 func TestSignup(t *testing.T) {
-	conf := utils.Config{
-		Program: "../gitea",
-		WorkDir: "",
-		Args:    []string{"web", "--port", ServerHTTPPort},
-		LogFile: os.Stderr,
-	}
+	assert.NoError(t, models.LoadFixtures())
+	setting.Service.EnableCaptcha = false
 
-	if err := utils.New(t, &conf).RunTest(install, signup); err != nil {
-		t.Fatal(err)
-	}
+	req, err := http.NewRequest("POST", "/user/sign_up",
+		bytes.NewBufferString(url.Values{
+			"user_name": []string{"exampleUser"},
+			"email":     []string{"exampleUser@example.com"},
+			"password":  []string{"examplePassword"},
+			"retype":    []string{"examplePassword"},
+		}.Encode()),
+	)
+	assert.NoError(t, err)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	resp := MakeRequest(req)
+	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
+
+	// should be able to view new user's page
+	req, err = http.NewRequest("GET", "/exampleUser", nil)
+	assert.NoError(t, err)
+	resp = MakeRequest(req)
+	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }

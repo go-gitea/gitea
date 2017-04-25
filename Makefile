@@ -86,13 +86,27 @@ test-vendor:
 	fi
 	govendor status +outside +unused  || exit 1
 
+.PHONY: test-sqlite
+test-sqlite: integrations.test integrations/gitea-integration
+	GITEA_CONF=integrations/sqlite.ini ./integrations.test
+
 .PHONY: test-mysql
-test-mysql:
-	@echo "Not integrated yet!"
+test-mysql: integrations.test integrations/gitea-integration
+	echo "CREATE DATABASE IF NOT EXISTS testgitea" | mysql -u root
+	GITEA_CONF=integrations/mysql.ini ./integrations.test
 
 .PHONY: test-pgsql
-test-pgsql:
-	@echo "Not integrated yet!"
+test-pgsql: integrations.test integrations/gitea-integration
+	GITEA_CONF=integrations/pgsql.ini ./integrations.test
+
+integrations.test: $(SOURCES)
+	go test -c code.gitea.io/gitea/integrations -tags 'sqlite'
+
+integrations/gitea-integration:
+	curl -L https://github.com/ethantkoenig/gitea-integration/archive/v2.tar.gz > integrations/gitea-integration.tar.gz
+	mkdir -p integrations/gitea-integration
+	tar -xf integrations/gitea-integration.tar.gz -C integrations/gitea-integration --strip-components 1
+
 
 .PHONY: check
 check: test
