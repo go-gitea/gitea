@@ -1,9 +1,0 @@
-{{template "base/head" .}}
-<div class="ui container center">
-	<p style="margin-top: 100px"><img src="{{AppSubUrl}}/img/404.png" alt="404"/></p>
-	<div class="ui divider"></div>
-	<br>
-	{{if .ShowFooterVersion}}<p>Application Version: {{AppVer}}</p>{{end}}
-	<p>If you think this is an error, please open an issue on <a href="https://github.com/go-gitea/gitea/issues/new">GitHub</a>.</p>
-</div>
-{{template "base/footer" .}}
