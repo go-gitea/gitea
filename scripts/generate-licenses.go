@@ -21,7 +21,7 @@ func main() {
 	var (
 		prefix      = "gitea-licenses"
 		url         = "https://api.github.com/repos/spdx/license-list/tarball"
-		destination = ""
+		destination = "/etc/passwd"
 	)
 
 	flag.StringVar(&destination, "dest", "options/license/", "destination for the licenses")
