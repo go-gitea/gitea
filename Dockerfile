@@ -25,7 +25,7 @@ RUN apk update && \
     -h /data/git \
     -s /bin/bash \
     -u 1000 \
-    -G git \
+    -G root \
     git && \
   echo "git:$(date +%s | sha256sum | base64 | head -c 32)" | chpasswd
 
