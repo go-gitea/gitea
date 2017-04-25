@@ -127,7 +127,19 @@ docker:
 	docker build -t gitea/gitea:latest .
 
 .PHONY: release
-release: release-dirs release-windows release-linux release-darwin release-copy release-check
+release: release-changelog release-dirs release-windows release-linux release-darwin release-copy release-check
+
+.PHONY: release-changelog
+release-changelog: CHANGELOG.md
+
+.PHONY: CHANGELOG.md
+CHANGELOG.md: changelog/unreleased/*.md
+
+changelog/unreleased/*.md: $(GOPATH)/bin/changelogger
+	changelogger -version $(VERSION) -outputFile CHANGELOG.md
+
+$(GOPATH)/bin/changelogger:
+	go get -u gitlab.com/bkc/changelogger
 
 .PHONY: release-dirs
 release-dirs:

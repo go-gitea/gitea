@@ -1,5 +1,3 @@
-# Changelog
-
 ## [1.1.0](https://github.com/go-gitea/gitea/releases/tag/v1.1.0) - 2017-03-09
 
 * BREAKING
