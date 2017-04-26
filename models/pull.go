@@ -197,6 +197,8 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		Base:      apiBaseBranchInfo,
 		Head:      apiHeadBranchInfo,
 		MergeBase: pr.MergeBase,
+		Created:   &pr.Issue.Created,
+		Updated:   &pr.Issue.Updated,
 	}
 
 	if pr.Status != PullRequestStatusChecking {
