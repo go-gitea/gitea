@@ -214,9 +214,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 			})
 		}
 
-		m.Combo("/ssh").Get(user.SettingsSSHKeys).
-			Post(bindIgnErr(auth.AddSSHKeyForm{}), user.SettingsSSHKeysPost)
-		m.Post("/ssh/delete", user.DeleteSSHKey)
+		m.Combo("/keys").Get(user.SettingsKeys).
+			Post(bindIgnErr(auth.AddKeyForm{}), user.SettingsKeysPost)
+		m.Post("/keys/delete", user.DeleteKey)
 		m.Combo("/applications").Get(user.SettingsApplications).
 			Post(bindIgnErr(auth.NewAccessTokenForm{}), user.SettingsApplicationsPost)
 		m.Post("/applications/delete", user.SettingsDeleteApplication)
@@ -438,7 +438,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 			m.Group("/keys", func() {
 				m.Combo("").Get(repo.DeployKeys).
-					Post(bindIgnErr(auth.AddSSHKeyForm{}), repo.DeployKeysPost)
+					Post(bindIgnErr(auth.AddKeyForm{}), repo.DeployKeysPost)
 				m.Post("/delete", repo.DeleteDeployKey)
 			})
 

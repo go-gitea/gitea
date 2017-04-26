@@ -664,7 +664,7 @@ func DeployKeys(ctx *context.Context) {
 }
 
 // DeployKeysPost response for adding a deploy key of a repository
-func DeployKeysPost(ctx *context.Context, form auth.AddSSHKeyForm) {
+func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 

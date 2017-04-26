@@ -89,7 +89,7 @@ func GetGPGKeyByID(keyID int64) (*GPGKey, error) {
 func checkArmoredGPGKeyString(content string) (*openpgp.Entity, error) {
 	list, err := openpgp.ReadArmoredKeyRing(strings.NewReader(content))
 	if err != nil {
-		return nil, err
+		return nil, ErrGPGKeyParsing{err}
 	}
 	return list[0], nil
 }
@@ -219,7 +219,7 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 			}
 		}
 		if emails[n] == nil {
-			return nil, fmt.Errorf("Failed to found email or is not confirmed : %s", ident.UserId.Email)
+			return nil, ErrGPGEmailNotFound{ident.UserId.Email}
 		}
 		n++
 	}
@@ -400,17 +400,16 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			}
 		}
 
-		//Generating hash of commit
-		hash, err := populateHash(sig.Hash, []byte(c.Signature.Payload))
-		if err != nil { //Skipping ailed to generate hash
-			log.Error(3, "PopulateHash: %v", err)
-			return &CommitVerification{
-				Verified: false,
-				Reason:   "gpg.error.generate_hash",
-			}
-		}
-
 		for _, k := range keys {
+			//Generating hash of commit
+			hash, err := populateHash(sig.Hash, []byte(c.Signature.Payload))
+			if err != nil { //Skipping ailed to generate hash
+				log.Error(3, "PopulateHash: %v", err)
+				return &CommitVerification{
+					Verified: false,
+					Reason:   "gpg.error.generate_hash",
+				}
+			}
 			//We get PK
 			if err := verifySign(sig, hash, k); err == nil {
 				return &CommitVerification{ //Everything is ok
@@ -422,6 +421,16 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			}
 			//And test also SubsKey
 			for _, sk := range k.SubsKey {
+
+				//Generating hash of commit
+				hash, err := populateHash(sig.Hash, []byte(c.Signature.Payload))
+				if err != nil { //Skipping ailed to generate hash
+					log.Error(3, "PopulateHash: %v", err)
+					return &CommitVerification{
+						Verified: false,
+						Reason:   "gpg.error.generate_hash",
+					}
+				}
 				if err := verifySign(sig, hash, sk); err == nil {
 					return &CommitVerification{ //Everything is ok
 						Verified:    true,
