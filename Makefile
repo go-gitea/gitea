@@ -123,6 +123,35 @@ build: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES)
 	go build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+	
+.PHONY: docker-build
+docker-build:
+	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" webhippie/golang:edge make clean generate build
+
+.PHONY: docker-multi-setenv
+docker-multi-setenv:
+	docker run --rm --privileged multiarch/qemu-user-static:register --reset # Permit to run via qemu binary for other platform
+
+.PHONY: docker-multi-build
+docker-multi-build: docker-multi-setenv
+	docker pull $(DOCKER_BASE)
+	docker tag $(DOCKER_BASE) gitea/base
+	docker build --no-cache --build-arg TAGS="$(TAGS)" -t gitea/gitea:$(DOCKER_TAG) -f Dockerfile.multi .
+
+.PHONY: docker-multi-amd64
+docker-multi-amd64: DOCKER_BASE=alpine:latest
+docker-multi-amd64: DOCKER_TAG=linux-amd64-latest
+docker-multi-amd64: docker-multi-build
+
+.PHONY: docker-multi-arm
+docker-multi-arm: DOCKER_BASE=multiarch/alpine:armhf-latest-stable
+docker-multi-arm: DOCKER_TAG=linux-arm-latest
+docker-multi-arm: docker-multi-build
+
+.PHONY: docker-multi-arm64
+docker-multi-arm64: DOCKER_BASE=multiarch/alpine:aarch64-latest-stable
+docker-multi-arm64: DOCKER_TAG=linux-arm64-latest
+docker-multi-arm64: docker-multi-build
 
 .PHONY: docker
 docker:
