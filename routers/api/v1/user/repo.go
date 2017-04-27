@@ -9,7 +9,7 @@ import (
 // listUserRepos - List the repositories owned by the given user.
 func listUserRepos(ctx *context.APIContext, u *models.User) {
 	userID := u.ID
-	showPrivateRepos := (ctx.User.ID == userID || ctx.User.IsAdmin) && ctx.IsSigned
+	showPrivateRepos := ctx.IsSigned && (ctx.User.ID == userID || ctx.User.IsAdmin)
 	ownRepos, err := models.GetUserRepositories(userID, showPrivateRepos, 1, u.NumRepos, "")
 	if err != nil {
 		ctx.Error(500, "GetUserRepositories", err)
