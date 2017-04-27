@@ -486,12 +486,6 @@
 			"revisionTime": "2016-03-04T05:48:22Z"
 		},
 		{
-			"checksumSHA1": "P3zGmsNjW8m15a+nks4FdVpFKwE=",
-			"path": "github.com/gopherjs/gopherjs/js",
-			"revision": "e34a5cd6a1bc7c4fde759f2d3039852fc68b5fcc",
-			"revisionTime": "2016-10-31T10:43:57Z"
-		},
-		{
 			"checksumSHA1": "MLO0PyrK2MUO6A7Z9PxWuu43C/A=",
 			"path": "github.com/issue9/identicon",
 			"revision": "d36b54562f4cf70c83653e13dc95c220c79ef521",
@@ -502,12 +496,6 @@
 			"path": "github.com/jaytaylor/html2text",
 			"revision": "8fb95d837f7d6db1913fecfd7bcc5333e6499596",
 			"revisionTime": "2016-09-23T19:14:38Z"
-		},
-		{
-			"checksumSHA1": "tewA7jXVGCw1zb5mA0BDecWi4iQ=",
-			"path": "github.com/jtolds/gls",
-			"revision": "8ddce2a84170772b95dd5d576c48d517b22cac63",
-			"revisionTime": "2016-01-05T22:08:40Z"
 		},
 		{
 			"checksumSHA1": "KIX/3RadQkfl4ZxCmOQ01vAGLEI=",
@@ -1037,12 +1025,6 @@
 			"path": "github.com/stretchr/testify/assert",
 			"revision": "976c720a22c8eb4eb6a0b4348ad85ad12491a506",
 			"revisionTime": "2016-09-25T22:06:09Z"
-		},
-		{
-			"checksumSHA1": "2PpOCNkWnshDrXeCVH2kp3VHhIM=",
-			"path": "github.com/stretchr/testify/require",
-			"revision": "2402e8e7a02fc811447d11f881aa9746cdc57983",
-			"revisionTime": "2016-12-17T20:04:45Z"
 		},
 		{
 			"checksumSHA1": "MAnxhGyQfhoyoATeT1zJDPyWq7A=",
