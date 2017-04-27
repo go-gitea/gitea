@@ -103,7 +103,7 @@ integrations.test: $(SOURCES)
 	go test -c code.gitea.io/gitea/integrations -tags 'sqlite'
 
 integrations/gitea-integration:
-	curl -L https://github.com/ethantkoenig/gitea-integration/archive/v2.tar.gz > integrations/gitea-integration.tar.gz
+	rm -rf integrations/gitea-integration
 	mkdir -p integrations/gitea-integration
 	tar -xf integrations/gitea-integration.tar.gz -C integrations/gitea-integration --strip-components 1
 

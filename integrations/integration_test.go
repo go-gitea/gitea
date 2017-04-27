@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 
 	err := models.InitFixtures(
 		helper,
-		"integrations/gitea-integration/fixtures/",
+		"models/fixtures/",
 	)
 	if err != nil {
 		fmt.Printf("Error initializing test database: %v\n", err)

@@ -16,7 +16,7 @@ import (
 func TestViewRepo(t *testing.T) {
 	assert.NoError(t, models.LoadFixtures())
 
-	req, err := http.NewRequest("GET", "/user1/repo1", nil)
+	req, err := http.NewRequest("GET", "/user2/repo1", nil)
 	assert.NoError(t, err)
 	resp := MakeRequest(req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
@@ -25,7 +25,7 @@ func TestViewRepo(t *testing.T) {
 func TestViewUser(t *testing.T) {
 	assert.NoError(t, models.LoadFixtures())
 
-	req, err := http.NewRequest("GET", "/user1", nil)
+	req, err := http.NewRequest("GET", "/user2", nil)
 	assert.NoError(t, err)
 	resp := MakeRequest(req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
