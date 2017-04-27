@@ -84,7 +84,12 @@ test-vendor:
 	@hash govendor > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/kardianos/govendor; \
 	fi
-	govendor list +outside +unused  || exit 1
+	govendor list +unused | tee /tmp/wc-gitea-unused
+	[ $(cat /tmp/wc-gitea-unused | wc -l) -eq 0 ] || echo "Warning: /!\ Some vendor are not used /!\"
+	
+	govendor list +outside | tee /tmp/wc-gitea-outside
+	[ $(cat /tmp/wc-gitea-outside | wc -l) -eq 0 ] || exit 1
+	
 	govendor status || exit 1
 
 .PHONY: test-sqlite
