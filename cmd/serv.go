@@ -143,8 +143,10 @@ func runServ(c *cli.Context) error {
 	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
 
 	isWiki := false
+	unitType := models.UnitTypeCode
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
+		unitType = models.UnitTypeWiki
 		reponame = reponame[:len(reponame)-5]
 	}
 
@@ -246,6 +248,12 @@ func runServ(c *cli.Context) error {
 				fail(clientMessage,
 					"User %s does not have level %v access to repository %s",
 					user.Name, requestedMode, repoPath)
+			}
+
+			if !repo.CheckUnitUser(user.ID, unitType) {
+				fail("You do not have allowed for this action",
+					"User %s does not have allowed access to repository %s 's code",
+					user.Name, repoPath)
 			}
 
 			os.Setenv(models.EnvPusherName, user.Name)

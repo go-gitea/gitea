@@ -77,8 +77,10 @@ func HTTP(ctx *context.Context) {
 	}
 
 	isWiki := false
+	var unitType = models.UnitTypeCode
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
+		unitType = models.UnitTypeWiki
 		reponame = reponame[:len(reponame)-5]
 	}
 
@@ -202,6 +204,12 @@ func HTTP(ctx *context.Context) {
 					return
 				}
 			}
+		}
+
+		if !repo.CheckUnitUser(authUser.ID, unitType) {
+			ctx.HandleText(http.StatusForbidden, fmt.Sprintf("User %s does not have allowed access to repository %s 's code",
+				authUser.Name, repo.RepoPath()))
+			return
 		}
 
 		environ = []string{

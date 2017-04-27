@@ -329,6 +329,20 @@ func (repo *Repository) getUnits(e Engine) (err error) {
 	return err
 }
 
+// CheckUnitUser check whether user could visit the unit of this repository
+func (repo *Repository) CheckUnitUser(userID int64, unitType UnitType) bool {
+	if err := repo.getUnitsByUserID(x, userID); err != nil {
+		return false
+	}
+
+	for _, unit := range repo.Units {
+		if unit.Type == unitType {
+			return true
+		}
+	}
+	return false
+}
+
 // LoadUnitsByUserID loads units according userID's permissions
 func (repo *Repository) LoadUnitsByUserID(userID int64) error {
 	return repo.getUnitsByUserID(x, userID)
@@ -343,7 +357,8 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64) (err error) {
 	if err != nil {
 		return err
 	}
-	if !repo.Owner.IsOrganization() {
+
+	if !repo.Owner.IsOrganization() || userID == 0 {
 		return nil
 	}
 
@@ -1633,6 +1648,7 @@ func DeleteRepository(uid, repoID int64) error {
 		&Release{RepoID: repoID},
 		&Collaboration{RepoID: repoID},
 		&PullRequest{BaseRepoID: repoID},
+		&RepoUnit{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}

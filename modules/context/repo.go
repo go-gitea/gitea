@@ -496,7 +496,11 @@ func RequireRepoWriter() macaron.Handler {
 // LoadRepoUnits loads repsitory's units, it should be called after repository and user loaded
 func LoadRepoUnits() macaron.Handler {
 	return func(ctx *Context) {
-		err := ctx.Repo.Repository.LoadUnitsByUserID(ctx.User.ID)
+		var userID int64
+		if ctx.User != nil {
+			userID = ctx.User.ID
+		}
+		err := ctx.Repo.Repository.LoadUnitsByUserID(userID)
 		if err != nil {
 			ctx.Handle(500, "LoadUnitsByUserID", err)
 			return
