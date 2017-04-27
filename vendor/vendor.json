@@ -1,6 +1,6 @@
 {
 	"comment": "",
-	"ignore": "test",
+	"ignore": "test appengine",
 	"package": [
 		{
 			"checksumSHA1": "vPnpECwoEpT/TTJn8CINm2cxV8s=",
