@@ -15,9 +15,12 @@ func listUserRepos(ctx *context.APIContext, u *models.User) {
 		ctx.Error(500, "GetUserRepositories", err)
 		return
 	}
-	accessibleRepos, err := getAccessibleRepos(ctx)
-	if err != nil {
-		ctx.Error(500, "GetAccessibleRepos", err)
+	var accessibleRepos []*api.Repository
+	if ctx.User != nil {
+		accessibleRepos, err = getAccessibleRepos(ctx)
+		if err != nil {
+			ctx.Error(500, "GetAccessibleRepos", err)
+		}
 	}
 	apiRepos := make([]*api.Repository, len(ownRepos)+len(accessibleRepos))
 	// Set owned repositories.
