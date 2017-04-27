@@ -6,6 +6,7 @@ package auth
 
 import (
 	"code.gitea.io/gitea/models"
+
 	"github.com/go-macaron/binding"
 	"gopkg.in/macaron.v1"
 )
