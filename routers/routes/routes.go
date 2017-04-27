@@ -445,10 +445,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
-		}, context.UnitTypes())
+		}, context.UnitTypes(), context.LoadRepoUnits(), context.CheckUnit(models.UnitTypeSettings))
 	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.RepoRef())
 
 	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), repo.Action)
+
 	m.Group("/:username/:reponame", func() {
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.
 		// So they can apply their own enable/disable logic on routers.
@@ -486,28 +487,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/:id/:action", repo.ChangeMilestonStatus)
 			m.Post("/delete", repo.DeleteMilestone)
 		}, reqRepoWriter, context.RepoRef())
-		m.Group("/releases", func() {
-			m.Get("/new", repo.NewRelease)
-			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
-			m.Post("/delete", repo.DeleteRelease)
-		}, repo.MustBeNotBare, reqRepoWriter, context.RepoRef())
-		m.Group("/releases", func() {
-			m.Get("/edit/*", repo.EditRelease)
-			m.Post("/edit/*", bindIgnErr(auth.EditReleaseForm{}), repo.EditReleasePost)
-		}, repo.MustBeNotBare, reqRepoWriter, func(ctx *context.Context) {
-			var err error
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-			if err != nil {
-				ctx.Handle(500, "GetBranchCommit", err)
-				return
-			}
-			ctx.Repo.CommitsCount, err = ctx.Repo.Commit.CommitsCount()
-			if err != nil {
-				ctx.Handle(500, "CommitsCount", err)
-				return
-			}
-			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
-		})
 
 		m.Combo("/compare/*", repo.MustAllowPulls, repo.SetEditorconfigIfExists).
 			Get(repo.CompareAndPullRequest).
@@ -539,16 +518,42 @@ func RegisterRoutes(m *macaron.Macaron) {
 				return
 			}
 		})
-	}, reqSignIn, context.RepoAssignment(), context.UnitTypes())
+	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits(), context.CheckUnit(models.UnitTypeIssues))
+
+	// Releases
+	m.Group("/:username/:reponame", func() {
+		m.Group("/releases", func() {
+			m.Get("/", repo.MustBeNotBare, repo.Releases)
+			m.Get("/new", repo.NewRelease)
+			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
+			m.Post("/delete", repo.DeleteRelease)
+		}, repo.MustBeNotBare, reqRepoWriter, context.RepoRef())
+		m.Group("/releases", func() {
+			m.Get("/edit/*", repo.EditRelease)
+			m.Post("/edit/*", bindIgnErr(auth.EditReleaseForm{}), repo.EditReleasePost)
+		}, repo.MustBeNotBare, reqRepoWriter, func(ctx *context.Context) {
+			var err error
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+			if err != nil {
+				ctx.Handle(500, "GetBranchCommit", err)
+				return
+			}
+			ctx.Repo.CommitsCount, err = ctx.Repo.Commit.CommitsCount()
+			if err != nil {
+				ctx.Handle(500, "CommitsCount", err)
+				return
+			}
+			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
+		})
+	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits(), context.CheckUnit(models.UnitTypeReleases))
 
 	m.Group("/:username/:reponame", func() {
 		m.Group("", func() {
-			m.Get("/releases", repo.MustBeNotBare, repo.Releases)
 			m.Get("/^:type(issues|pulls)$", repo.RetrieveLabels, repo.Issues)
 			m.Get("/^:type(issues|pulls)$/:index", repo.ViewIssue)
 			m.Get("/labels/", repo.RetrieveLabels, repo.Labels)
 			m.Get("/milestones", repo.Milestones)
-		}, context.RepoRef())
+		}, context.RepoRef(), context.CheckUnit(models.UnitTypeIssues))
 
 		// m.Get("/branches", repo.Branches)
 		m.Post("/branches/:name/delete", reqSignIn, reqRepoWriter, repo.MustBeNotBare, repo.DeleteBranchPost)
@@ -564,20 +569,20 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Post(bindIgnErr(auth.NewWikiForm{}), repo.EditWikiPost)
 				m.Post("/:page/delete", repo.DeleteWikiPagePost)
 			}, reqSignIn, reqRepoWriter)
-		}, repo.MustEnableWiki, context.RepoRef())
+		}, repo.MustEnableWiki, context.RepoRef(), context.CheckUnit(models.UnitTypeWiki))
 
 		m.Group("/wiki", func() {
 			m.Get("/raw/*", repo.WikiRaw)
 			m.Get("/*", repo.WikiRaw)
-		}, repo.MustEnableWiki)
+		}, repo.MustEnableWiki, context.CheckUnit(models.UnitTypeWiki), context.CheckUnit(models.UnitTypeWiki))
 
-		m.Get("/archive/*", repo.MustBeNotBare, repo.Download)
+		m.Get("/archive/*", repo.MustBeNotBare, repo.Download, context.CheckUnit(models.UnitTypeCode))
 
 		m.Group("/pulls/:index", func() {
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
 			m.Get("/files", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ViewPullFiles)
 			m.Post("/merge", reqRepoWriter, repo.MergePullRequest)
-		}, repo.MustAllowPulls)
+		}, repo.MustAllowPulls, context.CheckUnit(models.UnitTypePullRequests))
 
 		m.Group("", func() {
 			m.Get("/src/*", repo.SetEditorconfigIfExists, repo.Home)
@@ -586,21 +591,22 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
 			m.Get("/forks", repo.Forks)
-		}, context.RepoRef())
-		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)", repo.MustBeNotBare, repo.RawDiff)
+		}, context.RepoRef(), context.CheckUnit(models.UnitTypeCode))
+		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)", repo.MustBeNotBare, repo.RawDiff, context.CheckUnit(models.UnitTypeCode))
 
-		m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.MustBeNotBare, repo.CompareDiff)
-	}, ignSignIn, context.RepoAssignment(), context.UnitTypes())
+		m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.SetEditorconfigIfExists,
+			repo.SetDiffViewStyle, repo.MustBeNotBare, repo.CompareDiff, context.CheckUnit(models.UnitTypeCode))
+	}, ignSignIn, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits())
 	m.Group("/:username/:reponame", func() {
 		m.Get("/stars", repo.Stars)
 		m.Get("/watchers", repo.Watchers)
-	}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
+	}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes(), context.LoadRepoUnits())
 
 	m.Group("/:username", func() {
 		m.Group("/:reponame", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("\\.git$", repo.SetEditorconfigIfExists, repo.Home)
-		}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
+		}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes(), context.LoadRepoUnits())
 
 		m.Group("/:reponame", func() {
 			m.Group("/info/lfs", func() {

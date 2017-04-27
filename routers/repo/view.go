@@ -267,7 +267,7 @@ func Home(ctx *context.Context) {
 		}
 	}
 
-	ctx.Handle(404, "Home", fmt.Errorf("cannot find any unit on this repository"))
+	ctx.Handle(404, "Home", fmt.Errorf(ctx.Tr("units.error.no_unit_allowed_repo")))
 }
 
 func renderCode(ctx *context.Context) {

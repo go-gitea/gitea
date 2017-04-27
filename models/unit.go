@@ -74,7 +74,7 @@ var (
 		UnitTypeCode,
 		"repo.code",
 		"/",
-		"repo.code_desc",
+		"repo.code.desc",
 		0,
 	}
 
@@ -82,15 +82,15 @@ var (
 		UnitTypeIssues,
 		"repo.issues",
 		"/issues",
-		"repo.issues_desc",
+		"repo.issues.desc",
 		1,
 	}
 
 	UnitExternalTracker = Unit{
 		UnitTypeExternalTracker,
-		"repo.issues",
+		"repo.ext_issues",
 		"/issues",
-		"repo.issues_desc",
+		"repo.ext_issues.desc",
 		1,
 	}
 
@@ -98,7 +98,7 @@ var (
 		UnitTypePullRequests,
 		"repo.pulls",
 		"/pulls",
-		"repo.pulls_desc",
+		"repo.pulls.desc",
 		2,
 	}
 
@@ -106,7 +106,7 @@ var (
 		UnitTypeCommits,
 		"repo.commits",
 		"/commits/master",
-		"repo.commits_desc",
+		"repo.commits.desc",
 		3,
 	}
 
@@ -114,7 +114,7 @@ var (
 		UnitTypeReleases,
 		"repo.releases",
 		"/releases",
-		"repo.releases_desc",
+		"repo.releases.desc",
 		4,
 	}
 
@@ -122,15 +122,15 @@ var (
 		UnitTypeWiki,
 		"repo.wiki",
 		"/wiki",
-		"repo.wiki_desc",
+		"repo.wiki.desc",
 		5,
 	}
 
 	UnitExternalWiki = Unit{
 		UnitTypeExternalWiki,
-		"repo.wiki",
+		"repo.ext_wiki",
 		"/wiki",
-		"repo.wiki_desc",
+		"repo.ext_wiki.desc",
 		5,
 	}
 
@@ -138,7 +138,7 @@ var (
 		UnitTypeSettings,
 		"repo.settings",
 		"/settings",
-		"repo.settings_desc",
+		"repo.settings.desc",
 		6,
 	}
 

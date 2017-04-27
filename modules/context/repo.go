@@ -504,6 +504,22 @@ func LoadRepoUnits() macaron.Handler {
 	}
 }
 
+// CheckUnit will check whether
+func CheckUnit(unitType models.UnitType) macaron.Handler {
+	return func(ctx *Context) {
+		var find bool
+		for _, unit := range ctx.Repo.Repository.Units {
+			if unit.Type == unitType {
+				find = true
+				break
+			}
+		}
+		if !find {
+			ctx.Handle(404, "CheckUnit", fmt.Errorf(ctx.Tr("units.error.unit_not_allowed")))
+		}
+	}
+}
+
 // GitHookService checks if repository Git hooks service has been enabled.
 func GitHookService() macaron.Handler {
 	return func(ctx *Context) {
