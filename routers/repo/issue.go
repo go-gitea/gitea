@@ -480,12 +480,6 @@ func ViewIssue(ctx *context.Context) {
 				IsWatching: models.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID),
 			}
 		}
-	} else {
-		iw = &models.IssueWatch{
-			UserID:     0,
-			IssueID:    issue.ID,
-			IsWatching: false,
-		}
 	}
 	ctx.Data["IssueWatch"] = iw
 
