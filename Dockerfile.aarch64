@@ -1,4 +1,4 @@
-FROM aarch64/alpine:3.5
+FROM multiarch/alpine:aarch64-v3.5
 
 EXPOSE 22 3000
 
