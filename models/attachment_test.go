@@ -13,7 +13,7 @@ import (
 func TestIncreaseDownloadCount(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	attachment, err := GetAttachmentByUUID("1234567890")
+	attachment, err := GetAttachmentByUUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), attachment.DownloadCount)
 
@@ -21,7 +21,7 @@ func TestIncreaseDownloadCount(t *testing.T) {
 	err = attachment.IncreaseDownloadCount()
 	assert.NoError(t, err)
 
-	attachment, err = GetAttachmentByUUID("1234567890")
+	attachment, err = GetAttachmentByUUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), attachment.DownloadCount)
 }
@@ -53,7 +53,7 @@ func TestDeleteAttachments(t *testing.T) {
 	err = DeleteAttachment(&Attachment{ID: 8}, false)
 	assert.NoError(t, err)
 
-	attachment, err := GetAttachmentByUUID("test-12345")
+	attachment, err := GetAttachmentByUUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18")
 	assert.Error(t, err)
 	assert.True(t, IsErrAttachmentNotExist(err))
 	assert.Nil(t, attachment)

@@ -16,7 +16,7 @@
 -
   id: 2
   type: 0 # gitea pull request
-  status: 1 # checking
+  status: 2 # mergable
   issue_id: 3
   index: 3
   head_repo_id: 1
