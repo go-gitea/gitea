@@ -21,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"github.com/Unknwon/paginater"
@@ -56,7 +56,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	var readmeFile *git.Blob
 	for _, entry := range entries {
-		if entry.IsDir() || !markdown.IsReadmeFile(entry.Name()) {
+		if entry.IsDir() || !markup.IsReadmeFile(entry.Name()) {
 			continue
 		}
 
@@ -87,17 +87,16 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		if isTextFile {
 			d, _ := ioutil.ReadAll(dataRc)
 			buf = append(buf, d...)
-			switch {
-			case markdown.IsMarkdownFile(readmeFile.Name()):
+			newbuf := markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas())
+			if newbuf != nil {
 				ctx.Data["IsMarkdown"] = true
-				buf = markdown.Render(buf, treeLink, ctx.Repo.Repository.ComposeMetas())
-			default:
+			} else {
 				// FIXME This is the only way to show non-markdown files
 				// instead of a broken "View Raw" link
 				ctx.Data["IsMarkdown"] = true
-				buf = bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1)
+				newbuf = bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1)
 			}
-			ctx.Data["FileContent"] = string(buf)
+			ctx.Data["FileContent"] = string(newbuf)
 		}
 	}
 
@@ -182,13 +181,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		d, _ := ioutil.ReadAll(dataRc)
 		buf = append(buf, d...)
 
-		isMarkdown := markdown.IsMarkdownFile(blob.Name())
-		ctx.Data["IsMarkdown"] = isMarkdown
+		tp := markup.Type(blob.Name())
+		isSupportedMarkup := tp != ""
+		// FIXME: currently set IsMarkdown for compitable
+		ctx.Data["IsMarkdown"] = isSupportedMarkup
 
-		readmeExist := isMarkdown || markdown.IsReadmeFile(blob.Name())
+		readmeExist := isSupportedMarkup || markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
-		if readmeExist && isMarkdown {
-			ctx.Data["FileContent"] = string(markdown.Render(buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
+		if readmeExist && isSupportedMarkup {
+			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
 		} else {
 			// Building code view blocks with line number on server side.
 			var fileContent string

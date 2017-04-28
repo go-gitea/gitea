@@ -16,7 +16,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/urfave/cli"
@@ -105,7 +107,8 @@ func runServ(c *cli.Context) error {
 	}
 
 	if len(c.Args()) < 1 {
-		fail("Not enough arguments", "Not enough arguments")
+		cli.ShowSubcommandHelp(c)
+		return nil
 	}
 
 	cmd := os.Getenv("SSH_ORIGINAL_COMMAND")
@@ -316,13 +319,7 @@ func runServ(c *cli.Context) error {
 
 	// Update user key activity.
 	if keyID > 0 {
-		key, err := models.GetPublicKeyByID(keyID)
-		if err != nil {
-			fail("Internal error", "GetPublicKeyById: %v", err)
-		}
-
-		key.Updated = time.Now()
-		if err = models.UpdatePublicKey(key); err != nil {
+		if err = private.UpdatePublicKeyUpdated(keyID); err != nil {
 			fail("Internal error", "UpdatePublicKey: %v", err)
 		}
 	}

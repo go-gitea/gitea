@@ -15,7 +15,7 @@
 
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC="Go Git Service"
+DESC="Git with a cup of tea"
 NAME=gitea
 SERVICEVERBOSE=yes
 PIDFILE=/var/run/$NAME.pid

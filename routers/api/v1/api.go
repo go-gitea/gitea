@@ -402,6 +402,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Patch(bind(api.EditReleaseOption{}), repo.EditRelease).
 						Delete(repo.DeleteRelease)
 				})
+				m.Post("/mirror-sync", repo.MirrorSync)
 				m.Get("/editorconfig/:filename", context.RepoRef(), repo.GetEditorconfig)
 				m.Group("/pulls", func() {
 					m.Combo("").Get(bind(api.ListPullRequestsOptions{}), repo.ListPullRequests).Post(reqRepoWriter(), bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
@@ -411,6 +412,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 					})
 
 				}, mustAllowPulls, context.ReferencesGitRepo())
+				m.Group("/statuses", func() {
+					m.Combo("/:sha").Get(repo.GetCommitStatuses).Post(reqRepoWriter(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
+				})
+				m.Group("/commits/:ref", func() {
+					m.Get("/status", repo.GetCombinedCommitStatus)
+					m.Get("/statuses", repo.GetCommitStatuses)
+				})
 			}, repoAssignment())
 		}, reqToken())
 

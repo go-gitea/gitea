@@ -306,7 +306,10 @@ func (session *Session) Sync2(beans ...interface{}) error {
 
 	for _, bean := range beans {
 		v := rValue(bean)
-		table := engine.mapType(v)
+		table, err := engine.mapType(v)
+		if err != nil {
+			return err
+		}
 		structTables = append(structTables, table)
 		var tbName = session.tbNameNoSchema(table)
 

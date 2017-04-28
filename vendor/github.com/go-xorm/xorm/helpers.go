@@ -180,6 +180,20 @@ func isStructZero(v reflect.Value) bool {
 	return true
 }
 
+func isArrayValueZero(v reflect.Value) bool {
+	if !v.IsValid() || v.Len() == 0 {
+		return true
+	}
+
+	for i := 0; i < v.Len(); i++ {
+		if !isZero(v.Index(i).Interface()) {
+			return false
+		}
+	}
+
+	return true
+}
+
 func int64ToIntValue(id int64, tp reflect.Type) reflect.Value {
 	var v interface{}
 	switch tp.Kind() {

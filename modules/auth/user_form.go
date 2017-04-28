@@ -103,7 +103,7 @@ type UpdateProfileForm struct {
 	FullName         string `binding:"MaxSize(100)"`
 	Email            string `binding:"Required;Email;MaxSize(254)"`
 	KeepEmailPrivate bool
-	Website          string `binding:"Url;MaxSize(255)"`
+	Website          string `binding:"ValidUrl;MaxSize(255)"`
 	Location         string `binding:"MaxSize(50)"`
 }
 
@@ -163,14 +163,15 @@ func (f *AddOpenIDForm) Validate(ctx *macaron.Context, errs binding.Errors) bind
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// AddSSHKeyForm form for adding SSH key
-type AddSSHKeyForm struct {
+// AddKeyForm form for adding SSH/GPG key
+type AddKeyForm struct {
+	Type    string `binding:"OmitEmpty"`
 	Title   string `binding:"Required;MaxSize(50)"`
 	Content string `binding:"Required"`
 }
 
 // Validate validates the fields
-func (f *AddSSHKeyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+func (f *AddKeyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 

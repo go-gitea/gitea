@@ -7,6 +7,7 @@
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "repo.settings.collaboration"}}
 		</h4>
+		{{if .Collaborators}}
 		<div class="ui attached segment collaborator list">
 			{{range .Collaborators}}
 				<div class="item ui grid">
@@ -36,6 +37,7 @@
 				</div>
 			{{end}}
 		</div>
+		{{end}}
 		<div class="ui bottom attached segment">
 			<form class="ui form" id="repo-collab-form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}

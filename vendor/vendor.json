@@ -3,16 +3,16 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "bKoCvndU5ZVC5vqtwYjuU3YPJ6k=",
+			"checksumSHA1": "vPnpECwoEpT/TTJn8CINm2cxV8s=",
 			"path": "code.gitea.io/git",
-			"revision": "337468881d5961d36de8e950a607d6033e73dcf0",
-			"revisionTime": "2017-03-13T15:07:03Z"
+			"revision": "135704d70ee8dddec363e80f3235092493fea2c2",
+			"revisionTime": "2017-04-07T07:44:04Z"
 		},
 		{
-			"checksumSHA1": "32qRX47gRmdBW4l4hCKGRZbuIJk=",
+			"checksumSHA1": "xACJysFK1sK/D5655EpU48mw2vo=",
 			"path": "code.gitea.io/sdk/gitea",
-			"revision": "9ceaabb8c70aba1ff73718332db2356356e26ffb",
-			"revisionTime": "2017-03-09T22:08:57Z"
+			"revision": "0c3a0b0b5ea6edfb5bf3a4c81ebda6d207ecdfad",
+			"revisionTime": "2017-04-27T00:40:26Z"
 		},
 		{
 			"checksumSHA1": "IyfS7Rbl6OgR83QR7TOfKdDCq+M=",
@@ -257,10 +257,11 @@
 			"revisionTime": "2016-12-08T13:07:38Z"
 		},
 		{
-			"checksumSHA1": "J+kVue/HTH4sELlqMO4z0tx9DiA=",
+			"checksumSHA1": "26XPwPnOEwZ1COWicbv5xCBY+rg=",
+			"origin": "github.com/go-gitea/bolt",
 			"path": "github.com/boltdb/bolt",
-			"revision": "e9cf4fae01b5a8ff89d0ec6b32f0d9c9f79aefdd",
-			"revisionTime": "2017-01-31T19:20:18Z"
+			"revision": "ccd680d8c1a0179ac3d68f692b01e1a1589cbfc7",
+			"revisionTime": "2017-04-20T01:09:17Z"
 		},
 		{
 			"checksumSHA1": "NClRfzxXDSt/g4lM5BIkKhYRVoQ=",
@@ -443,10 +444,10 @@
 			"revisionTime": "2017-02-16T03:03:40Z"
 		},
 		{
-			"checksumSHA1": "OCcksAYN5m0kc5yJF/Ba4VVHqeA=",
+			"checksumSHA1": "vt2CGANHLNXPAZ01ve3UlsgQ0uU=",
 			"path": "github.com/go-xorm/core",
-			"revision": "e9e84b6f94ace6dec682a39034de56abffb964dd",
-			"revisionTime": "2017-02-06T14:57:10Z"
+			"revision": "e8409d73255791843585964791443dbad877058c",
+			"revisionTime": "2017-03-17T12:25:07Z"
 		},
 		{
 			"checksumSHA1": "k52lEKLp8j5M+jFpe+3u+bIFpxQ=",
@@ -455,10 +456,10 @@
 			"revisionTime": "2016-08-11T02:11:45Z"
 		},
 		{
-			"checksumSHA1": "COlm4o3G1rUSqr33iumtjY1qKD8=",
+			"checksumSHA1": "/vlyLLStrbfErk/rR3SPuBGQeqk=",
 			"path": "github.com/go-xorm/xorm",
-			"revision": "1bc93ba022236fcc94092fa40105b96e1d1d2346",
-			"revisionTime": "2017-02-20T09:51:59Z"
+			"revision": "a5cb21c44305815170d0d72563e47d585e8dcabf",
+			"revisionTime": "2017-04-05T10:17:41Z"
 		},
 		{
 			"checksumSHA1": "1ft/4j5MFa7C9dPI9whL03HSUzk=",
@@ -485,12 +486,6 @@
 			"revisionTime": "2016-03-04T05:48:22Z"
 		},
 		{
-			"checksumSHA1": "P3zGmsNjW8m15a+nks4FdVpFKwE=",
-			"path": "github.com/gopherjs/gopherjs/js",
-			"revision": "e34a5cd6a1bc7c4fde759f2d3039852fc68b5fcc",
-			"revisionTime": "2016-10-31T10:43:57Z"
-		},
-		{
 			"checksumSHA1": "MLO0PyrK2MUO6A7Z9PxWuu43C/A=",
 			"path": "github.com/issue9/identicon",
 			"revision": "d36b54562f4cf70c83653e13dc95c220c79ef521",
@@ -501,12 +496,6 @@
 			"path": "github.com/jaytaylor/html2text",
 			"revision": "8fb95d837f7d6db1913fecfd7bcc5333e6499596",
 			"revisionTime": "2016-09-23T19:14:38Z"
-		},
-		{
-			"checksumSHA1": "tewA7jXVGCw1zb5mA0BDecWi4iQ=",
-			"path": "github.com/jtolds/gls",
-			"revision": "8ddce2a84170772b95dd5d576c48d517b22cac63",
-			"revisionTime": "2016-01-05T22:08:40Z"
 		},
 		{
 			"checksumSHA1": "KIX/3RadQkfl4ZxCmOQ01vAGLEI=",
@@ -1073,30 +1062,6 @@
 			"revisionTime": "2016-09-18T04:11:01Z"
 		},
 		{
-			"checksumSHA1": "Vzb+dEH/LTYbvr8RXHmt6xJHz04=",
-			"path": "github.com/smartystreets/assertions/internal/go-render/render",
-			"revision": "2063fd1cc7c975db70502811a34b06ad034ccdf2",
-			"revisionTime": "2016-07-07T19:03:55Z"
-		},
-		{
-			"checksumSHA1": "SLC6TfV4icQA9l8YJQu8acJYbuo=",
-			"path": "github.com/smartystreets/assertions/internal/oglematchers",
-			"revision": "2063fd1cc7c975db70502811a34b06ad034ccdf2",
-			"revisionTime": "2016-07-07T19:03:55Z"
-		},
-		{
-			"checksumSHA1": "9LakndErFi5uCXtY1KWl0iRnT4c=",
-			"path": "github.com/smartystreets/goconvey/convey/gotest",
-			"revision": "019319c870f8f1d61dc9c34291abff5cd128b6e8",
-			"revisionTime": "2016-11-03T17:15:00Z"
-		},
-		{
-			"checksumSHA1": "FWDhk37bhAwZ2363D/L2xePwR64=",
-			"path": "github.com/smartystreets/goconvey/convey/reporting",
-			"revision": "019319c870f8f1d61dc9c34291abff5cd128b6e8",
-			"revisionTime": "2016-11-03T17:15:00Z"
-		},
-		{
 			"checksumSHA1": "KE+vv2khbshw+PA9UyHHxd8WKKw=",
 			"origin": "github.com/blevesearch/bleve/vendor/github.com/steveyen/gtreap",
 			"path": "github.com/steveyen/gtreap",
@@ -1108,12 +1073,6 @@
 			"path": "github.com/stretchr/testify/assert",
 			"revision": "976c720a22c8eb4eb6a0b4348ad85ad12491a506",
 			"revisionTime": "2016-09-25T22:06:09Z"
-		},
-		{
-			"checksumSHA1": "2PpOCNkWnshDrXeCVH2kp3VHhIM=",
-			"path": "github.com/stretchr/testify/require",
-			"revision": "2402e8e7a02fc811447d11f881aa9746cdc57983",
-			"revisionTime": "2016-12-17T20:04:45Z"
 		},
 		{
 			"checksumSHA1": "MAnxhGyQfhoyoATeT1zJDPyWq7A=",

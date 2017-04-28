@@ -14,7 +14,7 @@ import (
 // Release represents a repository release
 type Release struct {
 	ID           int64     `json:"id"`
-	TagName      string    `json:"name"`
+	TagName      string    `json:"tag_name"`
 	Target       string    `json:"target_commitish"`
 	Title        string    `json:"name"`
 	Note         string    `json:"body"`

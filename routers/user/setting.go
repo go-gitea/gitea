@@ -32,7 +32,7 @@ const (
 	tplSettingsAvatar       base.TplName = "user/settings/avatar"
 	tplSettingsPassword     base.TplName = "user/settings/password"
 	tplSettingsEmails       base.TplName = "user/settings/email"
-	tplSettingsSSHKeys      base.TplName = "user/settings/sshkeys"
+	tplSettingsKeys         base.TplName = "user/settings/keys"
 	tplSettingsSocial       base.TplName = "user/settings/social"
 	tplSettingsApplications base.TplName = "user/settings/applications"
 	tplSettingsTwofa        base.TplName = "user/settings/twofa"
@@ -320,10 +320,10 @@ func DeleteEmail(ctx *context.Context) {
 	})
 }
 
-// SettingsSSHKeys render user's SSH public keys page
-func SettingsSSHKeys(ctx *context.Context) {
+// SettingsKeys render user's SSH/GPG public keys page
+func SettingsKeys(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsSSHKeys"] = true
+	ctx.Data["PageIsSettingsKeys"] = true
 
 	keys, err := models.ListPublicKeys(ctx.User.ID)
 	if err != nil {
@@ -332,13 +332,20 @@ func SettingsSSHKeys(ctx *context.Context) {
 	}
 	ctx.Data["Keys"] = keys
 
-	ctx.HTML(200, tplSettingsSSHKeys)
+	gpgkeys, err := models.ListGPGKeys(ctx.User.ID)
+	if err != nil {
+		ctx.Handle(500, "ListGPGKeys", err)
+		return
+	}
+	ctx.Data["GPGKeys"] = gpgkeys
+
+	ctx.HTML(200, tplSettingsKeys)
 }
 
-// SettingsSSHKeysPost response for change user's SSH keys
-func SettingsSSHKeysPost(ctx *context.Context, form auth.AddSSHKeyForm) {
+// SettingsKeysPost response for change user's SSH/GPG keys
+func SettingsKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsSSHKeys"] = true
+	ctx.Data["PageIsSettingsKeys"] = true
 
 	keys, err := models.ListPublicKeys(ctx.User.ID)
 	if err != nil {
@@ -346,52 +353,98 @@ func SettingsSSHKeysPost(ctx *context.Context, form auth.AddSSHKeyForm) {
 		return
 	}
 	ctx.Data["Keys"] = keys
+
+	gpgkeys, err := models.ListGPGKeys(ctx.User.ID)
+	if err != nil {
+		ctx.Handle(500, "ListGPGKeys", err)
+		return
+	}
+	ctx.Data["GPGKeys"] = gpgkeys
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplSettingsSSHKeys)
+		ctx.HTML(200, tplSettingsKeys)
 		return
 	}
-
-	content, err := models.CheckPublicKeyString(form.Content)
-	if err != nil {
-		if models.IsErrKeyUnableVerify(err) {
-			ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
-		} else {
-			ctx.Flash.Error(ctx.Tr("form.invalid_ssh_key", err.Error()))
-			ctx.Redirect(setting.AppSubURL + "/user/settings/ssh")
+	switch form.Type {
+	case "gpg":
+		key, err := models.AddGPGKey(ctx.User.ID, form.Content)
+		if err != nil {
+			ctx.Data["HasGPGError"] = true
+			switch {
+			case models.IsErrGPGKeyParsing(err):
+				ctx.Flash.Error(ctx.Tr("form.invalid_gpg_key", err.Error()))
+				ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+			case models.IsErrGPGKeyIDAlreadyUsed(err):
+				ctx.Data["Err_Content"] = true
+				ctx.RenderWithErr(ctx.Tr("settings.gpg_key_id_used"), tplSettingsKeys, &form)
+			case models.IsErrGPGEmailNotFound(err):
+				ctx.Data["Err_Content"] = true
+				ctx.RenderWithErr(ctx.Tr("settings.gpg_key_email_not_found", err.(models.ErrGPGEmailNotFound).Email), tplSettingsKeys, &form)
+			default:
+				ctx.Handle(500, "AddPublicKey", err)
+			}
 			return
 		}
-	}
-
-	if _, err = models.AddPublicKey(ctx.User.ID, form.Title, content); err != nil {
-		ctx.Data["HasError"] = true
-		switch {
-		case models.IsErrKeyAlreadyExist(err):
-			ctx.Data["Err_Content"] = true
-			ctx.RenderWithErr(ctx.Tr("settings.ssh_key_been_used"), tplSettingsSSHKeys, &form)
-		case models.IsErrKeyNameAlreadyUsed(err):
-			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErr(ctx.Tr("settings.ssh_key_name_used"), tplSettingsSSHKeys, &form)
-		default:
-			ctx.Handle(500, "AddPublicKey", err)
+		ctx.Flash.Success(ctx.Tr("settings.add_gpg_key_success", key.KeyID))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+	case "ssh":
+		content, err := models.CheckPublicKeyString(form.Content)
+		if err != nil {
+			if models.IsErrKeyUnableVerify(err) {
+				ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
+			} else {
+				ctx.Flash.Error(ctx.Tr("form.invalid_ssh_key", err.Error()))
+				ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+				return
+			}
 		}
-		return
+
+		if _, err = models.AddPublicKey(ctx.User.ID, form.Title, content); err != nil {
+			ctx.Data["HasSSHError"] = true
+			switch {
+			case models.IsErrKeyAlreadyExist(err):
+				ctx.Data["Err_Content"] = true
+				ctx.RenderWithErr(ctx.Tr("settings.ssh_key_been_used"), tplSettingsKeys, &form)
+			case models.IsErrKeyNameAlreadyUsed(err):
+				ctx.Data["Err_Title"] = true
+				ctx.RenderWithErr(ctx.Tr("settings.ssh_key_name_used"), tplSettingsKeys, &form)
+			default:
+				ctx.Handle(500, "AddPublicKey", err)
+			}
+			return
+		}
+		ctx.Flash.Success(ctx.Tr("settings.add_key_success", form.Title))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+
+	default:
+		ctx.Flash.Warning("Function not implemented")
+		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	}
 
-	ctx.Flash.Success(ctx.Tr("settings.add_key_success", form.Title))
-	ctx.Redirect(setting.AppSubURL + "/user/settings/ssh")
 }
 
-// DeleteSSHKey response for delete user's SSH key
-func DeleteSSHKey(ctx *context.Context) {
-	if err := models.DeletePublicKey(ctx.User, ctx.QueryInt64("id")); err != nil {
-		ctx.Flash.Error("DeletePublicKey: " + err.Error())
-	} else {
-		ctx.Flash.Success(ctx.Tr("settings.ssh_key_deletion_success"))
-	}
+// DeleteKey response for delete user's SSH/GPG key
+func DeleteKey(ctx *context.Context) {
 
+	switch ctx.Query("type") {
+	case "gpg":
+		if err := models.DeleteGPGKey(ctx.User, ctx.QueryInt64("id")); err != nil {
+			ctx.Flash.Error("DeleteGPGKey: " + err.Error())
+		} else {
+			ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
+		}
+	case "ssh":
+		if err := models.DeletePublicKey(ctx.User, ctx.QueryInt64("id")); err != nil {
+			ctx.Flash.Error("DeletePublicKey: " + err.Error())
+		} else {
+			ctx.Flash.Success(ctx.Tr("settings.ssh_key_deletion_success"))
+		}
+	default:
+		ctx.Flash.Warning("Function not implemented")
+		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+	}
 	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/ssh",
+		"redirect": setting.AppSubURL + "/user/settings/keys",
 	})
 }
 

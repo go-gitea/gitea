@@ -82,6 +82,9 @@ func NewFuncMap() []template.FuncMap {
 		"DateFmtShort": func(t time.Time) string {
 			return t.Format("Jan 02, 2006")
 		},
+		"SizeFmt": func(s int64) string {
+			return base.FileSize(s)
+		},
 		"List": List,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
@@ -161,7 +164,7 @@ func Safe(raw string) template.HTML {
 
 // Str2html render Markdown text to HTML
 func Str2html(raw string) template.HTML {
-	return template.HTML(markdown.Sanitizer.Sanitize(raw))
+	return template.HTML(markdown.Sanitize(raw))
 }
 
 // List traversings the list

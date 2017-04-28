@@ -27,8 +27,8 @@ type Mirror struct {
 	ID          int64       `xorm:"pk autoincr"`
 	RepoID      int64       `xorm:"INDEX"`
 	Repo        *Repository `xorm:"-"`
-	Interval    int         // Hour.
-	EnablePrune bool        `xorm:"NOT NULL DEFAULT true"`
+	Interval    time.Duration
+	EnablePrune bool `xorm:"NOT NULL DEFAULT true"`
 
 	Updated        time.Time `xorm:"-"`
 	UpdatedUnix    int64     `xorm:"INDEX"`
@@ -68,7 +68,7 @@ func (m *Mirror) AfterSet(colName string, _ xorm.Cell) {
 
 // ScheduleNextUpdate calculates and sets next update time.
 func (m *Mirror) ScheduleNextUpdate() {
-	m.NextUpdate = time.Now().Add(time.Duration(m.Interval) * time.Hour)
+	m.NextUpdate = time.Now().Add(m.Interval)
 }
 
 func (m *Mirror) readAddress() {
@@ -147,6 +147,11 @@ func (m *Mirror) runSync() bool {
 		}
 		return false
 	}
+
+	if err := m.Repo.UpdateSize(); err != nil {
+		log.Error(4, "Failed to update size for mirror repository: %v", err)
+	}
+
 	if m.Repo.HasWiki() {
 		if _, stderr, err := process.GetManager().ExecDir(
 			timeout, wikiPath, fmt.Sprintf("Mirror.runSync: %s", wikiPath),

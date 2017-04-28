@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/user"
 
 	"github.com/Unknwon/com"
+	"github.com/dgrijalva/jwt-go"
 	_ "github.com/go-macaron/cache/memcache" // memcache plugin for cache
 	_ "github.com/go-macaron/cache/redis"
 	"github.com/go-macaron/session"
@@ -417,10 +418,9 @@ var (
 	}
 
 	// Mirror settings
-	Mirror = struct {
-		DefaultInterval int
-	}{
-		DefaultInterval: 8,
+	Mirror struct {
+		DefaultInterval time.Duration
+		MinInterval     time.Duration
 	}
 
 	// API settings
@@ -443,14 +443,15 @@ var (
 	ShowFooterTemplateLoadTime bool
 
 	// Global setting objects
-	Cfg          *ini.File
-	CustomPath   string // Custom directory path
-	CustomConf   string
-	CustomPID    string
-	ProdMode     bool
-	RunUser      string
-	IsWindows    bool
-	HasRobotsTxt bool
+	Cfg           *ini.File
+	CustomPath    string // Custom directory path
+	CustomConf    string
+	CustomPID     string
+	ProdMode      bool
+	RunUser       string
+	IsWindows     bool
+	HasRobotsTxt  bool
+	InternalToken string // internal access token
 )
 
 // DateLang transforms standard language locale name to corresponding value in datetime plugin.
@@ -765,6 +766,43 @@ please consider changing to GITEA_CUSTOM`)
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
+	InternalToken = sec.Key("INTERNAL_TOKEN").String()
+	if len(InternalToken) == 0 {
+		secretBytes := make([]byte, 32)
+		_, err := io.ReadFull(rand.Reader, secretBytes)
+		if err != nil {
+			log.Fatal(4, "Error reading random bytes: %v", err)
+		}
+
+		secretKey := base64.RawURLEncoding.EncodeToString(secretBytes)
+
+		now := time.Now()
+		InternalToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"nbf": now.Unix(),
+		}).SignedString([]byte(secretKey))
+
+		if err != nil {
+			log.Fatal(4, "Error generate internal token: %v", err)
+		}
+
+		// Save secret
+		cfgSave := ini.Empty()
+		if com.IsFile(CustomConf) {
+			// Keeps custom settings if there is already something.
+			if err := cfgSave.Append(CustomConf); err != nil {
+				log.Error(4, "Failed to load custom conf '%s': %v", CustomConf, err)
+			}
+		}
+
+		cfgSave.Section("security").Key("INTERNAL_TOKEN").SetValue(InternalToken)
+
+		if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
+			log.Fatal(4, "Failed to create '%s': %v", CustomConf, err)
+		}
+		if err := cfgSave.SaveTo(CustomConf); err != nil {
+			log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
+		}
+	}
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -886,14 +924,20 @@ please consider changing to GITEA_CUSTOM`)
 		log.Fatal(4, "Failed to map Cron settings: %v", err)
 	} else if err = Cfg.Section("git").MapTo(&Git); err != nil {
 		log.Fatal(4, "Failed to map Git settings: %v", err)
-	} else if err = Cfg.Section("mirror").MapTo(&Mirror); err != nil {
-		log.Fatal(4, "Failed to map Mirror settings: %v", err)
 	} else if err = Cfg.Section("api").MapTo(&API); err != nil {
 		log.Fatal(4, "Failed to map API settings: %v", err)
 	}
 
-	if Mirror.DefaultInterval <= 0 {
-		Mirror.DefaultInterval = 24
+	sec = Cfg.Section("mirror")
+	Mirror.MinInterval = sec.Key("MIN_INTERVAL").MustDuration(10 * time.Minute)
+	Mirror.DefaultInterval = sec.Key("DEFAULT_INTERVAL").MustDuration(8 * time.Hour)
+	if Mirror.MinInterval.Minutes() < 1 {
+		log.Warn("Mirror.MinInterval is too low")
+		Mirror.MinInterval = 1 * time.Minute
+	}
+	if Mirror.DefaultInterval < Mirror.MinInterval {
+		log.Warn("Mirror.DefaultInterval is less than Mirror.MinInterval")
+		Mirror.DefaultInterval = time.Hour * 8
 	}
 
 	Langs = Cfg.Section("i18n").Key("LANGS").Strings(",")
@@ -935,7 +979,6 @@ var Service struct {
 	EnableOpenIDSignUp bool
 	OpenIDWhitelist    []*regexp.Regexp
 	OpenIDBlacklist    []*regexp.Regexp
-
 }
 
 func newService() {

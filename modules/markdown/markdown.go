@@ -15,11 +15,11 @@ import (
 	"strings"
 
 	"github.com/Unknwon/com"
-	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday"
 	"golang.org/x/net/html"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -28,24 +28,6 @@ const (
 	IssueNameStyleNumeric      = "numeric"
 	IssueNameStyleAlphanumeric = "alphanumeric"
 )
-
-// Sanitizer markdown sanitizer
-var Sanitizer = bluemonday.UGCPolicy()
-
-// BuildSanitizer initializes sanitizer with allowed attributes based on settings.
-// This function should only be called once during entire application lifecycle.
-func BuildSanitizer() {
-	// Normal markdown-stuff
-	Sanitizer.AllowAttrs("class").Matching(regexp.MustCompile(`[\p{L}\p{N}\s\-_',:\[\]!\./\\\(\)&]*`)).OnElements("code", "div", "ul", "ol", "dl")
-
-	// Checkboxes
-	Sanitizer.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
-	Sanitizer.AllowAttrs("checked", "disabled").OnElements("input")
-	Sanitizer.AllowNoAttrs().OnElements("label")
-
-	// Custom URL-Schemes
-	Sanitizer.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
-}
 
 // IsMarkdownFile reports whether name looks like a Markdown file
 // based on its extension.
@@ -57,18 +39,6 @@ func IsMarkdownFile(name string) bool {
 		}
 	}
 	return false
-}
-
-// IsReadmeFile reports whether name looks like a README file
-// based on its name.
-func IsReadmeFile(name string) bool {
-	name = strings.ToLower(name)
-	if len(name) < 6 {
-		return false
-	} else if len(name) == 6 {
-		return name == "readme"
-	}
-	return name[:7] == "readme."
 }
 
 var (
@@ -175,11 +145,14 @@ func (r *Renderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
 	switch {
 	case bytes.HasPrefix(text, []byte(prefix+"[ ] ")):
 		text = append([]byte(`<div class="ui fitted disabled checkbox"><input type="checkbox" disabled="disabled" /><label /></div>`), text[3+len(prefix):]...)
+		if prefix != "" {
+			text = bytes.Replace(text, []byte(prefix), []byte{}, 1)
+		}
 	case bytes.HasPrefix(text, []byte(prefix+"[x] ")):
 		text = append([]byte(`<div class="ui checked fitted disabled checkbox"><input type="checkbox" checked="" disabled="disabled" /><label /></div>`), text[3+len(prefix):]...)
-	}
-	if prefix != "" {
-		text = bytes.Replace(text, []byte("</p>"), []byte{}, 1)
+		if prefix != "" {
+			text = bytes.Replace(text, []byte(prefix), []byte{}, 1)
+		}
 	}
 	r.Renderer.ListItem(out, text, flags)
 }
@@ -657,10 +630,8 @@ OUTER_LOOP:
 					// Copy the token to the output verbatim
 					buf.Write(RenderShortLinks([]byte(token.String()), urlPrefix, true, isWikiMarkdown))
 
-					if token.Type == html.StartTagToken {
-						if !com.IsSliceContainsStr(noEndTags, token.Data) {
-							stackNum++
-						}
+					if token.Type == html.StartTagToken && !com.IsSliceContainsStr(noEndTags, token.Data) {
+						stackNum++
 					}
 
 					// If this is the close tag to the outer-most, we are done
@@ -675,8 +646,8 @@ OUTER_LOOP:
 				continue OUTER_LOOP
 			}
 
-			if !com.IsSliceContainsStr(noEndTags, token.Data) {
-				startTags = append(startTags, token.Data)
+			if !com.IsSliceContainsStr(noEndTags, tagName) {
+				startTags = append(startTags, tagName)
 			}
 
 		case html.EndTagToken:
@@ -708,7 +679,7 @@ func render(rawBytes []byte, urlPrefix string, metas map[string]string, isWikiMa
 	urlPrefix = strings.Replace(urlPrefix, " ", "+", -1)
 	result := RenderRaw(rawBytes, urlPrefix, isWikiMarkdown)
 	result = PostProcess(result, urlPrefix, metas, isWikiMarkdown)
-	result = Sanitizer.SanitizeBytes(result)
+	result = SanitizeBytes(result)
 	return result
 }
 
@@ -725,4 +696,32 @@ func RenderString(raw, urlPrefix string, metas map[string]string) string {
 // RenderWiki renders markdown wiki page to HTML and return HTML string
 func RenderWiki(rawBytes []byte, urlPrefix string, metas map[string]string) string {
 	return string(render(rawBytes, urlPrefix, metas, true))
+}
+
+var (
+	// MarkupName describes markup's name
+	MarkupName = "markdown"
+)
+
+func init() {
+	markup.RegisterParser(Parser{})
+}
+
+// Parser implements markup.Parser
+type Parser struct {
+}
+
+// Name implements markup.Parser
+func (Parser) Name() string {
+	return MarkupName
+}
+
+// Extensions implements markup.Parser
+func (Parser) Extensions() []string {
+	return setting.Markdown.FileExtensions
+}
+
+// Render implements markup.Parser
+func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
+	return render(rawBytes, urlPrefix, metas, isWiki)
 }
