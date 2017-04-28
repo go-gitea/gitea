@@ -16,7 +16,7 @@ import (
 func TestNoLoginViewIssue(t *testing.T) {
 	assert.NoError(t, models.LoadFixtures())
 
-	req, err := http.NewRequest("GET", "/user1/repo1/issues/1", nil)
+	req, err := http.NewRequest("GET", "/user2/repo1/issues/1", nil)
 	assert.NoError(t, err)
 	resp := MakeRequest(req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
