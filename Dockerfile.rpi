@@ -1,7 +1,8 @@
-FROM hypriot/rpi-alpine-scratch:v3.4
-MAINTAINER Thomas Boerger <thomas@webhippie.de>
+FROM armhf/alpine:3.5
 
-EXPOSE 22 3000
+ENV USER git
+ENV GITEA_CUSTOM /data/gitea
+ENV GODEBUG=netdns=go
 
 RUN apk update && \
   apk add \
@@ -14,6 +15,7 @@ RUN apk update && \
     s6 \
     curl \
     openssh \
+    wget \
     tzdata && \
   rm -rf \
     /var/cache/apk/* && \
@@ -29,14 +31,14 @@ RUN apk update && \
     git && \
   echo "git:$(date +%s | sha256sum | base64 | head -c 32)" | chpasswd
 
-ENV USER git
-ENV GITEA_CUSTOM /data/gitea
-ENV GODEBUG=netdns=go
+COPY docker /
+RUN mkdir -p /app/gitea && \
+    wget -O /app/gitea/gitea https://dl.gitea.io/gitea/master/gitea-master-linux-arm-7 && \
+    chmod +x /app/gitea/gitea
+
+EXPOSE 22 3000
 
 VOLUME ["/data"]
 
 ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/bin/s6-svscan", "/etc/s6"]
-
-COPY docker /
-COPY gitea /app/gitea/gitea
