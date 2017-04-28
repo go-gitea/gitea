@@ -17,8 +17,8 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
+	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/com"
 	"gopkg.in/macaron.v1"
 	"gopkg.in/testfixtures.v2"
 )
