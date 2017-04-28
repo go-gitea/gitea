@@ -17,6 +17,8 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
+	"github.com/Unknwon/com"
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/macaron.v1"
 	"gopkg.in/testfixtures.v2"
 )
@@ -48,13 +50,19 @@ func TestMain(m *testing.M) {
 
 	err := models.InitFixtures(
 		helper,
-		"integrations/gitea-integration/fixtures/",
+		"models/fixtures/",
 	)
 	if err != nil {
 		fmt.Printf("Error initializing test database: %v\n", err)
 		os.Exit(1)
 	}
 	os.Exit(m.Run())
+}
+
+func prepareTestEnv(t *testing.T) {
+	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, os.RemoveAll("integrations/gitea-integration"))
+	assert.NoError(t, com.CopyDir("integrations/gitea-integration-meta", "integrations/gitea-integration"))
 }
 
 type TestResponseWriter struct {
