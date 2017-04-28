@@ -16,7 +16,7 @@
               {{$.i18n.Tr "settings.delete_key"}}
             </button>
           </div>
-          <i class="mega-octicon octicon-key {{if .Expired.After $.PageStartTime}}green{{end}}"></i>
+          <i class="mega-octicon octicon-key {{if or .Expired.IsZero (.Expired.After $.PageStartTime)}}green{{end}}"></i>
           <div class="content">
             {{range .Emails}}<strong>{{.Email}} </strong>{{end}}
             <div class="print meta">
@@ -26,7 +26,7 @@
             <div class="activity meta">
                 <i>{{$.i18n.Tr "settings.add_on"}} <span>{{DateFmtShort .Added}}</span></i>
                  -
-                <i>{{$.i18n.Tr "settings.valid_until"}} <span>{{DateFmtShort .Expired}}</span></i>
+                <i>{{$.i18n.Tr "settings.valid_until"}} <span>{{if not .Expired.IsZero }}{{DateFmtShort .Expired}}{{else}}{{$.i18n.Tr "settings.never"}}{{end}}</span></i>
             </div>
           </div>
       </div>
