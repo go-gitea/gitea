@@ -17,6 +17,8 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/com"
 	"gopkg.in/macaron.v1"
 	"gopkg.in/testfixtures.v2"
 )
@@ -55,6 +57,12 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 	os.Exit(m.Run())
+}
+
+func prepareTestEnv(t *testing.T) {
+	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, os.RemoveAll("integrations/gitea-integration"))
+	assert.NoError(t, com.CopyDir("integrations/gitea-integration-meta", "integrations/gitea-integration"))
 }
 
 type TestResponseWriter struct {

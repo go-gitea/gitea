@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/sdk/gitea"
 
@@ -18,7 +17,7 @@ import (
 )
 
 func TestVersion(t *testing.T) {
-	assert.NoError(t, models.LoadFixtures())
+	prepareTestEnv(t)
 
 	setting.AppVer = "1.1.0+dev"
 	req, err := http.NewRequest("GET", "/api/v1/version", nil)

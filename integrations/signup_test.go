@@ -10,14 +10,14 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSignup(t *testing.T) {
-	assert.NoError(t, models.LoadFixtures())
+	prepareTestEnv(t)
+
 	setting.Service.EnableCaptcha = false
 
 	req, err := http.NewRequest("POST", "/user/sign_up",

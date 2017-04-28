@@ -8,13 +8,11 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
-
 	"github.com/stretchr/testify/assert"
 )
 
 func TestViewRepo(t *testing.T) {
-	assert.NoError(t, models.LoadFixtures())
+	prepareTestEnv(t)
 
 	req, err := http.NewRequest("GET", "/user2/repo1", nil)
 	assert.NoError(t, err)
@@ -23,7 +21,7 @@ func TestViewRepo(t *testing.T) {
 }
 
 func TestViewUser(t *testing.T) {
-	assert.NoError(t, models.LoadFixtures())
+	prepareTestEnv(t)
 
 	req, err := http.NewRequest("GET", "/user2", nil)
 	assert.NoError(t, err)
