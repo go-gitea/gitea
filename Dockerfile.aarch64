@@ -2,8 +2,7 @@ FROM aarch64/alpine:3.5
 
 EXPOSE 22 3000
 
-RUN apk update && \
-  apk add \
+RUN apk -U --no-cache add \
     su-exec \
     ca-certificates \
     sqlite \
@@ -13,10 +12,8 @@ RUN apk update && \
     s6 \
     curl \
     openssh \
-    tzdata && \
-  rm -rf \
-    /var/cache/apk/* && \
-  addgroup \
+    tzdata
+RUN addgroup \
     -S -g 1000 \
     git && \
   adduser \
