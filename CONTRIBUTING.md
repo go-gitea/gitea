@@ -1,5 +1,22 @@
 # Contribution Guidelines
 
+## Table of Contents
+
+- [Contribution Guidelines](#contribution-guidelines)
+  - [Introduction](#introduction)
+  - [Bug reports](#bug-reports)
+  - [Discuss your design](#discuss-your-design)
+  - [Testing redux](#testing-redux)
+  - [Vendoring](#vendoring)
+  - [Code review](#code-review)
+  - [Styleguide](#styleguide)
+  - [Sign your work](#sign-your-work)
+  - [Release Cycle](#release-cycle)
+  - [Maintainers](#maintainers)
+  - [Owners](#owners)
+  - [Versions](#versions)
+  - [Copyright](#copyright)
+
 ## Introduction
 
 This document explains how to contribute changes to the Gitea project. It assumes you have followed the [installation instructions](https://docs.gitea.io/en-us/). Sensitive security-related issues should be reported to [security@gitea.io](mailto:security@gitea.io).
