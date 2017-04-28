@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// Restore a backup
 var Restore = cli.Command{
 	Name:  "restore",
 	Usage: "Restore files and database from backup",
@@ -49,17 +50,21 @@ be skipped and remian unchanged.`,
 			Name:  "verbose, v",
 			Usage: "Show process details",
 		},
-		cli.BoolFlag{
-			Name:  "no-repos",
-			Usage: "Don't restore repositiries",
+		cli.BoolTFlag{
+			Name:  "repos",
+			Usage: "Restore repositories (default: true)",
 		},
-		cli.BoolFlag{
-			Name:  "no-metadata",
-			Usage: "Don't restore metadata (such as attachments and avatars)",
+		cli.BoolTFlag{
+			Name:  "data",
+			Usage: "Restore attachments and avatars (default: true)",
 		},
-		cli.BoolFlag{
-			Name:  "no-custom",
-			Usage: "Don't restore custom files",
+		cli.BoolTFlag{
+			Name:  "custom",
+			Usage: "Restore custom files (default: true)",
+		},
+		cli.BoolTFlag{
+			Name:  "db",
+			Usage: "Restore database (default: true)",
 		},
 	},
 }
@@ -87,6 +92,10 @@ func runRestore(c *cli.Context) error {
 	if err != nil {
 		log.Fatal(0, "Fail to load metadata '%s': %v", metaFile, err)
 	}
+	ver := metadata.Section("").Key("VERSION").MustInt(10000000)
+	if ver != backupVersion {
+		log.Fatal(0, "Current Backup version does not match the version in the backup: %d != %d", ver, backupVersion)
+	}
 	backupVersion := metadata.Section("").Key("GITEA_VERSION").MustString("999.0")
 	if version.Compare(setting.AppVer, backupVersion, "<") {
 		log.Fatal(0, "Current Gitea version is lower than backup version: %s < %s", setting.AppVer, backupVersion)
@@ -107,13 +116,15 @@ func runRestore(c *cli.Context) error {
 	models.SetEngine()
 
 	// Database
-	dbDir := path.Join(archivePath, "db")
-	if err = models.ImportDatabase(dbDir); err != nil {
-		log.Fatal(0, "Fail to import database: %v", err)
+	if c.Bool("db") {
+		dbDir := path.Join(archivePath, "db")
+		if err = models.ImportDatabase(dbDir); err != nil {
+			log.Fatal(0, "Fail to import database: %v", err)
+		}
 	}
 
 	// Custom files
-	if !c.Bool("no-custom") {
+	if c.Bool("custom") {
 		if com.IsExist(setting.CustomPath) {
 			if err = os.Rename(setting.CustomPath, setting.CustomPath+".bak"); err != nil {
 				log.Fatal(0, "Fail to backup current 'custom': %v", err)
@@ -125,7 +136,7 @@ func runRestore(c *cli.Context) error {
 	}
 
 	// Data files
-	if !c.Bool("no-metadata") {
+	if c.Bool("data") {
 		for _, dir := range []string{"attachments", "avatars"} {
 			dirPath := path.Join(setting.AppDataPath, dir)
 			if com.IsExist(dirPath) {
@@ -140,7 +151,7 @@ func runRestore(c *cli.Context) error {
 	}
 
 	// Repositories
-	if !c.Bool("no-repos") {
+	if c.Bool("repos") {
 		reposPath := path.Join(archivePath, "repositories.zip")
 		if !c.Bool("exclude-repos") && !c.Bool("database-only") && com.IsExist(reposPath) {
 			if err := zip.ExtractTo(reposPath, path.Dir(setting.RepoRootPath)); err != nil {

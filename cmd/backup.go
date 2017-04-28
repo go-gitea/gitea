@@ -70,7 +70,10 @@ var Backup = cli.Command{
 	},
 }
 
-const archiveRootDir = "gitea-backup"
+const (
+	archiveRootDir = "gitea-backup"
+	backupVersion  = 1
+)
 
 func runBackup(c *cli.Context) error {
 	zip.Verbose = c.Bool("verbose")
@@ -100,7 +103,7 @@ func runBackup(c *cli.Context) error {
 	// Metadata
 	metaFile := path.Join(rootDir, "metadata.ini")
 	metadata := ini.Empty()
-	metadata.Section("").Key("VERSION").SetValue("1")
+	metadata.Section("").Key("VERSION").SetValue(fmt.Sprintf("%d", backupVersion))
 	metadata.Section("").Key("DATE_TIME").SetValue(time.Now().String())
 	metadata.Section("").Key("GITEA_VERSION").SetValue(setting.AppVer)
 	if err = metadata.SaveTo(metaFile); err != nil {
