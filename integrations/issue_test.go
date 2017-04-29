@@ -8,13 +8,11 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
-
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNoLoginViewIssue(t *testing.T) {
-	assert.NoError(t, models.LoadFixtures())
+	prepareTestEnv(t)
 
 	req, err := http.NewRequest("GET", "/user2/repo1/issues/1", nil)
 	assert.NoError(t, err)
