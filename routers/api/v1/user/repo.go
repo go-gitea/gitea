@@ -53,7 +53,6 @@ func ListUserRepos(ctx *context.APIContext) {
 }
 
 // ListMyRepos - list the repositories owned by you.
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#list-your-repositories
 func ListMyRepos(ctx *context.APIContext) {
 	// swagger:route GET /user/repos userCurrentListRepos
 	//

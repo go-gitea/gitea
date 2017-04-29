@@ -12,7 +12,6 @@ import (
 )
 
 // ListAccessTokens list all the access tokens
-// see https://github.com/gogits/go-gogs-client/wiki/Users#list-access-tokens-for-a-user
 func ListAccessTokens(ctx *context.APIContext) {
 	// swagger:route GET /users/{username}/tokens userGetTokens
 	//
@@ -40,7 +39,6 @@ func ListAccessTokens(ctx *context.APIContext) {
 }
 
 // CreateAccessToken create access tokens
-// see https://github.com/gogits/go-gogs-client/wiki/Users#create-a-access-token
 func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption) {
 	// swagger:route POST /users/{username} /tokens userCreateToken
 	//

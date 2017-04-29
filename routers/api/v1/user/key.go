@@ -54,7 +54,6 @@ func listPublicKeys(ctx *context.APIContext, uid int64) {
 }
 
 // ListMyPublicKeys list all my public keys
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Public-Keys#list-your-public-keys
 func ListMyPublicKeys(ctx *context.APIContext) {
 	// swagger:route GET /user/keys userCurrentListKeys
 	//
@@ -69,7 +68,6 @@ func ListMyPublicKeys(ctx *context.APIContext) {
 }
 
 // ListPublicKeys list all user's public keys
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Public-Keys#list-public-keys-for-a-user
 func ListPublicKeys(ctx *context.APIContext) {
 	// swagger:route GET /users/{username}/keys userListKeys
 	//
@@ -88,7 +86,6 @@ func ListPublicKeys(ctx *context.APIContext) {
 }
 
 // GetPublicKey get one public key
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Public-Keys#get-a-single-public-key
 func GetPublicKey(ctx *context.APIContext) {
 	// swagger:route GET /user/keys/{id} userCurrentGetKey
 	//
@@ -132,7 +129,6 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 }
 
 // CreatePublicKey create one public key for me
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Public-Keys#create-a-public-key
 func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	// swagger:route POST /user/keys userCurrentPostKey
 	//
@@ -151,7 +147,6 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 }
 
 // DeletePublicKey delete one public key of mine
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Public-Keys#delete-a-public-key
 func DeletePublicKey(ctx *context.APIContext) {
 	// swagger:route DELETE /user/keys/{id} userCurrentDeleteKey
 	//

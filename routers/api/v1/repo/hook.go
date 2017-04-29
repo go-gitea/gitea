@@ -14,7 +14,6 @@ import (
 )
 
 // ListHooks list all hooks of a repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#list-hooks
 func ListHooks(ctx *context.APIContext) {
 	// swagger:route GET /repos/{username}/{reponame}/hooks
 	//
@@ -50,7 +49,6 @@ func GetHook(ctx *context.APIContext) {
 }
 
 // CreateHook create a hook for a repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#create-a-hook
 func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 	// swagger:route POST /repos/{username}/{reponame}/hooks
 	//
@@ -72,7 +70,6 @@ func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 }
 
 // EditHook modify a hook of a repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#edit-a-hook
 func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 	// swagger:route PATCH /repos/{username}/{reponame}/hooks/{id}
 	//

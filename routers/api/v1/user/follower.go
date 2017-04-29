@@ -43,7 +43,6 @@ func ListMyFollowers(ctx *context.APIContext) {
 }
 
 // ListFollowers list user's followers
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Followers#list-followers-of-a-user
 func ListFollowers(ctx *context.APIContext) {
 	// swagger:route GET /users/:username/followers userListFollowers
 	//
@@ -85,7 +84,6 @@ func ListMyFollowing(ctx *context.APIContext) {
 }
 
 // ListFollowing list user's followings
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Followers#list-users-followed-by-another-user
 func ListFollowing(ctx *context.APIContext) {
 	// swagger:route GET /users/{username}/following userListFollowing
 	//
@@ -112,7 +110,6 @@ func checkUserFollowing(ctx *context.APIContext, u *models.User, followID int64)
 }
 
 // CheckMyFollowing check if the repo is followed by me
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Followers#check-if-you-are-following-a-user
 func CheckMyFollowing(ctx *context.APIContext) {
 	// swagger:route GET /user/following/{username} userCurrentCheckFollowing
 	//
@@ -128,7 +125,6 @@ func CheckMyFollowing(ctx *context.APIContext) {
 }
 
 // CheckFollowing check if the repo is followed by user
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Followers#check-if-one-user-follows-another
 func CheckFollowing(ctx *context.APIContext) {
 	// swagger:route GET /users/{username}/following/:target userCheckFollowing
 	//
@@ -148,7 +144,6 @@ func CheckFollowing(ctx *context.APIContext) {
 }
 
 // Follow follow one repository
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Followers#follow-a-user
 func Follow(ctx *context.APIContext) {
 	// swagger:route PUT /user/following/{username} userCurrentPutFollow
 	//
@@ -168,7 +163,6 @@ func Follow(ctx *context.APIContext) {
 }
 
 // Unfollow unfollow one repository
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Followers#unfollow-a-user
 func Unfollow(ctx *context.APIContext) {
 	// swagger:route DELETE /user/following/{username} userCurrentDeleteFollow
 	//

@@ -18,7 +18,6 @@ import (
 )
 
 // Search repositories via options
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#search-repositories
 func Search(ctx *context.APIContext) {
 	// swagger:route GET /repos/search repoSearch
 	//
@@ -165,7 +164,6 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 }
 
 // Migrate migrate remote git repository to gitea
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#migrate
 func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	// swagger:route POST /repos/migrate
 	//
@@ -251,7 +249,6 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 }
 
 // Get one repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#get
 func Get(ctx *context.APIContext) {
 	// swagger:route GET /repos/{username}/{reponame}
 	//
@@ -301,7 +298,6 @@ func GetByID(ctx *context.APIContext) {
 }
 
 // Delete one repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#delete
 func Delete(ctx *context.APIContext) {
 	// swagger:route DELETE /repos/{username}/{reponame}
 	//
