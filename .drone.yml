@@ -55,7 +55,7 @@ pipeline:
       TAGS: bindata
       GOPATH: /srv/app
     commands:
-      - make test-pqsql
+      - make test-pgsql
     when:
       event: [ push, tag, pull_request ]
 
