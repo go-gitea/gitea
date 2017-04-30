@@ -9,13 +9,10 @@
 			"revisionTime": "2017-04-26T13:12:33Z"
 		},
 		{
-			"checksumSHA1": "zo1h/LTKJ/iMq/Yt9xjzozcYXKo=",
-			"origin": "github.com/sapk-fork/gitea-go-sdk/gitea",
+			"checksumSHA1": "vdziKobpPIkU/dLvSI8n7eWrIIE=",
 			"path": "code.gitea.io/sdk/gitea",
-			"revision": "783a0ea8d51797e1832993d8ead4c6222d5f36e4",
-			"revisionTime": "2017-04-14T09:16:06Z",
-			"version": "add-swagger-response-and-params",
-			"versionExact": "add-swagger-response-and-params"
+			"revision": "d2f87fd3f9f2887b9f15112cec8d7f53b2825147",
+			"revisionTime": "2017-04-30T15:33:16Z"
 		},
 		{
 			"checksumSHA1": "IyfS7Rbl6OgR83QR7TOfKdDCq+M=",

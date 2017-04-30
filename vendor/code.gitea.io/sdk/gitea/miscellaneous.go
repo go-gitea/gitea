@@ -43,8 +43,6 @@ type MarkdownOption struct {
 // swagger:response MarkdownRender
 type MarkdownRender string
 
-//TODO implement /markdown & /markdown/raw
-
 // ServerVersion wraps the version of the server
 // swagger:response ServerVersion
 type ServerVersion struct {
