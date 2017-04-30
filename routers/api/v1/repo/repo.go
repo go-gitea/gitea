@@ -55,6 +55,11 @@ func Search(ctx *context.APIContext) {
 		return
 	}
 
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
 		if err = repo.GetOwner(); err != nil {
@@ -64,7 +69,7 @@ func Search(ctx *context.APIContext) {
 			})
 			return
 		}
-		accessMode, err := models.AccessLevel(ctx.User.ID, repo)
+		accessMode, err := models.AccessLevel(userID, repo)
 		if err != nil {
 			ctx.JSON(500, map[string]interface{}{
 				"ok":    false,

@@ -19,12 +19,3 @@ func TestViewRepo(t *testing.T) {
 	resp := MakeRequest(req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }
-
-func TestViewUser(t *testing.T) {
-	prepareTestEnv(t)
-
-	req, err := http.NewRequest("GET", "/user2", nil)
-	assert.NoError(t, err)
-	resp := MakeRequest(req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
-}
