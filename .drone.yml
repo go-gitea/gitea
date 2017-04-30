@@ -5,6 +5,7 @@ workspace:
 pipeline:
   clone:
     image: plugins/git
+    depth: 50
     tags: true
 
   test:
