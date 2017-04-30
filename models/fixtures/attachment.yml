@@ -1,6 +1,6 @@
 -
   id: 1
-  uuid: 1234567890
+  uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
   issue_id: 1
   comment_id: 0
   name: attach1
@@ -9,7 +9,7 @@
 
 -
   id: 2
-  uuid: 1122334455
+  uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
   issue_id: 1
   comment_id: 0
   name: attach2
@@ -18,7 +18,7 @@
 
 -
   id: 3
-  uuid: comment-id-1
+  uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13
   issue_id: 2
   comment_id: 1
   name: attach1
@@ -27,7 +27,7 @@
 
 -
   id: 4
-  uuid: comment-id-2
+  uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14
   issue_id: 3
   comment_id: 1
   name: attach2
@@ -36,7 +36,7 @@
 
 -
   id: 5
-  uuid: comment-id-3
+  uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15
   issue_id: 4
   comment_id: 0
   name: attach1
@@ -45,7 +45,7 @@
 
 -
   id: 6
-  uuid: comment-id-4
+  uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16
   issue_id: 5
   comment_id: 2
   name: attach1
@@ -54,7 +54,7 @@
 
 -
   id: 7
-  uuid: comment-id-5
+  uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17
   issue_id: 5
   comment_id: 2
   name: attach1
@@ -63,7 +63,7 @@
 
 -
   id: 8
-  uuid: test-12345
+  uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18
   issue_id: 6
   comment_id: 0
   name: attach1

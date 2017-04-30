@@ -90,7 +90,6 @@ test-sqlite: integrations.test
 
 .PHONY: test-mysql
 test-mysql: integrations.test
-	echo "CREATE DATABASE IF NOT EXISTS testgitea" | mysql -u root
 	GITEA_CONF=integrations/mysql.ini ./integrations.test
 
 .PHONY: test-pgsql

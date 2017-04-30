@@ -6,8 +6,10 @@ package integrations
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"testing"
@@ -26,13 +28,7 @@ import (
 var mac *macaron.Macaron
 
 func TestMain(m *testing.M) {
-	appIniPath := os.Getenv("GITEA_CONF")
-	if appIniPath == "" {
-		fmt.Println("Environment variable $GITEA_CONF not set")
-		os.Exit(1)
-	}
-	setting.CustomConf = appIniPath
-	routers.GlobalInit()
+	initIntegrationTest()
 	mac = routes.NewMacaron()
 	routes.RegisterRoutes(mac)
 
@@ -57,6 +53,48 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 	os.Exit(m.Run())
+}
+
+func initIntegrationTest() {
+	if setting.CustomConf = os.Getenv("GITEA_CONF"); setting.CustomConf == "" {
+		fmt.Println("Environment variable $GITEA_CONF not set")
+		os.Exit(1)
+	}
+
+	setting.NewContext()
+	models.LoadConfigs()
+
+	switch {
+	case setting.UseMySQL:
+		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/",
+			models.DbCfg.User, models.DbCfg.Passwd, models.DbCfg.Host))
+		defer db.Close()
+		if err != nil {
+			log.Fatalf("sql.Open: %v", err)
+		}
+		if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS testgitea"); err != nil {
+			log.Fatalf("db.Exec: %v", err)
+		}
+	case setting.UsePostgreSQL:
+		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
+			models.DbCfg.User, models.DbCfg.Passwd, models.DbCfg.Host, models.DbCfg.SSLMode))
+		defer db.Close()
+		if err != nil {
+			log.Fatalf("sql.Open: %v", err)
+		}
+		rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'",
+			models.DbCfg.Name))
+		if err != nil {
+			log.Fatalf("db.Query: %v", err)
+		}
+		if rows.Next() {
+			break // database already exists
+		}
+		if _, err = db.Exec("CREATE DATABASE testgitea"); err != nil {
+			log.Fatalf("db.Exec: %v", err)
+		}
+	}
+	routers.GlobalInit()
 }
 
 func prepareTestEnv(t *testing.T) {

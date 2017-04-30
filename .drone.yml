@@ -44,7 +44,7 @@ pipeline:
       TAGS: bindata
       GOPATH: /srv/app
     commands:
-      - echo make test-mysql # Not ready yet
+      - make test-mysql
     when:
       event: [ push, tag, pull_request ]
 
@@ -55,7 +55,7 @@ pipeline:
       TAGS: bindata
       GOPATH: /srv/app
     commands:
-      - echo make test-pqsql # Not ready yet
+      - make test-pgsql
     when:
       event: [ push, tag, pull_request ]
 
