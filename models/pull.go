@@ -1058,29 +1058,30 @@ func (pr *PullRequest) checkAndUpdateStatus() {
 // TODO: test more pull requests at same time.
 func TestPullRequests() {
 	prs := make([]*PullRequest, 0, 10)
-	x.Iterate(PullRequest{
-		Status: PullRequestStatusChecking,
-	},
-		func(idx int, bean interface{}) error {
-			pr := bean.(*PullRequest)
 
-			if err := pr.GetBaseRepo(); err != nil {
-				log.Error(3, "GetBaseRepo: %v", err)
-				return nil
-			}
-			if pr.manuallyMerged() {
-				return nil
-			}
-			if err := pr.testPatch(); err != nil {
-				log.Error(3, "testPatch: %v", err)
-				return nil
-			}
-			prs = append(prs, pr)
-			return nil
-		})
+	err := x.Where("status = ?", PullRequestStatusChecking).Find(&prs)
+	if err != nil {
+		log.Error(3, "Find Checking PRs", err)
+		return
+	}
+
+	var checkedPRs = make(map[int64]struct{})
 
 	// Update pull request status.
 	for _, pr := range prs {
+		checkedPRs[pr.ID] = struct{}{}
+		if err := pr.GetBaseRepo(); err != nil {
+			log.Error(3, "GetBaseRepo: %v", err)
+			continue
+		}
+		if pr.manuallyMerged() {
+			continue
+		}
+		if err := pr.testPatch(); err != nil {
+			log.Error(3, "testPatch: %v", err)
+			continue
+		}
+
 		pr.checkAndUpdateStatus()
 	}
 
@@ -1089,7 +1090,12 @@ func TestPullRequests() {
 		log.Trace("TestPullRequests[%v]: processing test task", prID)
 		pullRequestQueue.Remove(prID)
 
-		pr, err := GetPullRequestByID(com.StrTo(prID).MustInt64())
+		id := com.StrTo(prID).MustInt64()
+		if _, ok := checkedPRs[id]; ok {
+			continue
+		}
+
+		pr, err := GetPullRequestByID(id)
 		if err != nil {
 			log.Error(4, "GetPullRequestByID[%s]: %v", prID, err)
 			continue
