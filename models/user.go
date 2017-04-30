@@ -828,10 +828,10 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	if err = x.
 		Where("owner_id=?", u.ID).
 		Iterate(new(Repository), func(idx int, bean interface{}) error {
-		repo := bean.(*Repository)
-		RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
-		return nil
-	}); err != nil {
+			repo := bean.(*Repository)
+			RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
+			return nil
+		}); err != nil {
 		return fmt.Errorf("Delete repository wiki local copy: %v", err)
 	}
 
