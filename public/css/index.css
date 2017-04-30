@@ -428,6 +428,22 @@ footer .ui.language .menu {
   background-color: #FAFAFA !important;
   border-width: 1px !important;
 }
+@media only screen and (max-width: 1200px) {
+    .ui.menu.new-menu{
+        overflow-x: auto !important;
+        justify-content: left !important;
+        padding-bottom: 5px;
+    }
+}
+.oauth.ui.icon.button {
+    display: block;
+    max-width: 250px;
+    margin: auto;
+}
+.oauth.ui.icon.button .icon .ui.logo.image {
+    style="padding: 5px;
+    opacity: .8;
+}
 .markdown:not(code) {
   overflow: hidden;
   font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif;
