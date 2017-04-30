@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"sync"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/microcosm-cc/bluemonday"
@@ -28,7 +27,6 @@ var sanitizer = &Sanitizer{}
 // Multiple calls to this function will only create one instance of Sanitizer during
 // entire application lifecycle.
 func NewSanitizer() {
-	log.Trace("Markdown: sanitizer initialization requested")
 	sanitizer.init.Do(func() {
 		sanitizer.policy = bluemonday.UGCPolicy()
 		// We only want to allow HighlightJS specific classes for code blocks
@@ -41,7 +39,6 @@ func NewSanitizer() {
 		// Custom URL-Schemes
 		sanitizer.policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
 
-		log.Trace("Markdown: sanitizer initialized")
 	})
 }
 
