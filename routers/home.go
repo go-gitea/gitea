@@ -94,6 +94,10 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = "name DESC"
 	case "alphabetically":
 		orderBy = "name ASC"
+	case "reversesize":
+		orderBy = "size DESC"
+	case "size":
+		orderBy = "size ASC"
 	default:
 		orderBy = "created_unix DESC"
 	}
