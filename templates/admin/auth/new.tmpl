@@ -80,8 +80,29 @@
 		<div class="ui attached segment">
 			<h5>GMail Settings:</h5>
 			<p>Host: smtp.gmail.com, Port: 587, Enable TLS Encryption: true</p>
-			<h5>OAuth GitHub:</h5>
-			<p>{{.i18n.Tr "admin.auths.tip.github"}}</p>
+
+			<h5>{{.i18n.Tr "admin.auths.tips.oauth2.general"}}:</h5>
+			<p>{{.i18n.Tr "admin.auths.tips.oauth2.general.tip"}}</p>
+
+			<h5 class="ui top attached header">{{.i18n.Tr "admin.auths.tip.oauth2_provider"}}</h5>
+			<div class="ui attached segment">
+				<li>Bitbucket</li>
+				<span>{{.i18n.Tr "admin.auths.tip.bitbucket"}}</span>
+				<li>Dropbox</li>
+				<span>{{.i18n.Tr "admin.auths.tip.dropbox"}}</span>
+				<li>Facebook</li>
+				<span>{{.i18n.Tr "admin.auths.tip.facebook"}}</span>
+				<li>GitHub</li>
+				<span>{{.i18n.Tr "admin.auths.tip.github"}}</span>
+				<li>GitLab</li>
+				<span>{{.i18n.Tr "admin.auths.tip.gitlab"}}</span>
+				<li>Google+</li>
+				<span>{{.i18n.Tr "admin.auths.tip.google_plus"}}</span>
+				<li>OpenID Connect</li>
+				<span>{{.i18n.Tr "admin.auths.tip.openid_connect"}}</span>
+				<li>Twitter</li>
+				<span>{{.i18n.Tr "admin.auths.tip.twitter"}}</span>
+			</div>
 		</div>
 	</div>
 </div>

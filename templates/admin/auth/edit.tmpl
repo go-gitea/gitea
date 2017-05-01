@@ -164,6 +164,39 @@
 						<label for="oauth2_secret">{{.i18n.Tr "admin.auths.oauth2_clientSecret"}}</label>
 						<input id="oauth2_secret" name="oauth2_secret" value="{{$cfg.ClientSecret}}" required>
 					</div>
+					<div class="open_id_connect_auto_discovery_url required field">
+						<label for="open_id_connect_auto_discovery_url">{{.i18n.Tr "admin.auths.openIdConnectAutoDiscoveryURL"}}</label>
+						<input id="open_id_connect_auto_discovery_url" name="open_id_connect_auto_discovery_url" value="{{$cfg.OpenIDConnectAutoDiscoveryURL}}">
+					</div>
+
+					<div class="oauth2_use_custom_url inline field">
+						<div class="ui checkbox">
+							<label><strong>{{.i18n.Tr "admin.auths.oauth2_use_custom_url"}}</strong></label>
+							<input id="oauth2_use_custom_url" name="oauth2_use_custom_url" type="checkbox" {{if $cfg.CustomURLMapping}}checked{{end}}>
+						</div>
+					</div>
+					<div class="oauth2_use_custom_url_field oauth2_auth_url required field">
+						<label for="oauth2_auth_url">{{.i18n.Tr "admin.auths.oauth2_authURL"}}</label>
+						<input id="oauth2_auth_url" name="oauth2_auth_url" value="{{if $cfg.CustomURLMapping}}{{$cfg.CustomURLMapping.AuthURL}}v{{end}}">
+					</div>
+					<div class="oauth2_use_custom_url_field oauth2_token_url required field">
+						<label for="oauth2_token_url">{{.i18n.Tr "admin.auths.oauth2_tokenURL"}}</label>
+						<input id="oauth2_token_url" name="oauth2_token_url" value="{{if $cfg.CustomURLMapping}}{{$cfg.CustomURLMapping.TokenURL}}{{end}}">
+					</div>
+					<div class="oauth2_use_custom_url_field oauth2_profile_url required field">
+						<label for="oauth2_profile_url">{{.i18n.Tr "admin.auths.oauth2_profileURL"}}</label>
+						<input id="oauth2_profile_url" name="oauth2_profile_url" value="{{if $cfg.CustomURLMapping}}{{$cfg.CustomURLMapping.ProfileURL}}{{end}}">
+					</div>
+					<div class="oauth2_use_custom_url_field oauth2_email_url required field">
+						<label for="oauth2_email_url">{{.i18n.Tr "admin.auths.oauth2_emailURL"}}</label>
+						<input id="oauth2_email_url" name="oauth2_email_url" value="{{if $cfg.CustomURLMapping}}{{$cfg.CustomURLMapping.EmailURL}}{{end}}">
+					</div>
+					{{if .OAuth2DefaultCustomURLMappings}}{{range $key, $value := .OAuth2DefaultCustomURLMappings}}
+					<input id="{{$key}}_token_url" value="{{$value.TokenURL}}" type="hidden" />
+					<input id="{{$key}}_auth_url" value="{{$value.AuthURL}}" type="hidden" />
+					<input id="{{$key}}_profile_url" value="{{$value.ProfileURL}}" type="hidden" />
+					<input id="{{$key}}_email_url" value="{{$value.EmailURL}}" type="hidden" />
+					{{end}}{{end}}
 				{{end}}
 
 				<div class="inline field {{if not .Source.IsSMTP}}hide{{end}}">

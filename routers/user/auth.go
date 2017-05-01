@@ -107,17 +107,19 @@ func checkAutoLogin(ctx *context.Context) bool {
 
 // SignIn render sign in page
 func SignIn(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("sign_in")
 
 	// Check auto-login.
 	if checkAutoLogin(ctx) {
 		return
 	}
 
-	oauth2Providers, err := models.GetActiveOAuth2Providers()
+	orderedOAuth2Names, oauth2Providers, err := models.GetActiveOAuth2Providers()
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)
 		return
 	}
+	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
@@ -129,11 +131,14 @@ func SignIn(ctx *context.Context) {
 
 // SignInPost response for sign in request
 func SignInPost(ctx *context.Context, form auth.SignInForm) {
-	oauth2Providers, err := models.GetActiveOAuth2Providers()
+	ctx.Data["Title"] = ctx.Tr("sign_in")
+
+	orderedOAuth2Names, oauth2Providers, err := models.GetActiveOAuth2Providers()
 	if err != nil {
 		ctx.Handle(500, "UserSignIn", err)
 		return
 	}
+	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
 	ctx.Data["OAuth2Providers"] = oauth2Providers
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"

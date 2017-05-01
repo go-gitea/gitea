@@ -965,7 +965,7 @@ footer .ui.language .menu {
   float: left;
 }
 .signin .oauth2 a {
-  margin-right: 5px;
+  margin-right: 3px;
 }
 .signin .oauth2 a:last-child {
   margin-right: 0px;
@@ -973,6 +973,9 @@ footer .ui.language .menu {
 .signin .oauth2 img {
   width: 32px;
   height: 32px;
+}
+.signin .oauth2 img.openidConnect {
+  width: auto;
 }
 .user.activate form,
 .user.forgot.password form,

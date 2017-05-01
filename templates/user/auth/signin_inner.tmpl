@@ -38,11 +38,14 @@
 				</div>
 			{{end}}
 
-			{{if .OAuth2Providers}}
+			{{if and .OrderedOAuth2Names .OAuth2Providers}}
 			<div class="ui attached segment">
 				<div class="oauth2 center">
 					<div>
-						<p>{{.i18n.Tr "sign_in_with"}}</p>{{range $key, $value := .OAuth2Providers}}<a href="{{AppSubUrl}}/user/oauth2/{{$key}}"><img alt="{{$value.DisplayName}}" title="{{$value.DisplayName}}" src="{{AppSubUrl}}{{$value.Image}}"></a>{{end}}
+						<p>{{.i18n.Tr "sign_in_with"}}</p>{{range $key := .OrderedOAuth2Names}}
+						{{$provider := index $.OAuth2Providers $key}}
+						<a href="{{AppSubUrl}}/user/oauth2/{{$key}}"><img alt="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}" title="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}" class="{{$provider.Name}}" src="{{AppSubUrl}}{{$provider.Image}}"></a>
+						{{end}}
 					</div>
 				</div>
 			</div>
