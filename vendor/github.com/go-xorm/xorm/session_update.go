@@ -169,7 +169,9 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var isMap = t.Kind() == reflect.Map
 	var isStruct = t.Kind() == reflect.Struct
 	if isStruct {
-		session.Statement.setRefValue(v)
+		if err := session.Statement.setRefValue(v); err != nil {
+			return 0, err
+		}
 
 		if len(session.Statement.TableName()) <= 0 {
 			return 0, ErrTableNotFound

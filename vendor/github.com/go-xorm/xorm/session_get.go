@@ -26,7 +26,9 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	}
 
 	if beanValue.Elem().Kind() == reflect.Struct {
-		session.Statement.setRefValue(beanValue.Elem())
+		if err := session.Statement.setRefValue(beanValue.Elem()); err != nil {
+			return false, err
+		}
 	}
 
 	var sqlStr string
@@ -81,7 +83,9 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, bean interface{}, sqlS
 				return true, err
 			}
 			dataStruct := rValue(bean)
-			session.Statement.setRefValue(dataStruct)
+			if err := session.Statement.setRefValue(dataStruct); err != nil {
+				return false, err
+			}
 			_, err = session.row2Bean(rawRows, fields, len(fields), bean, &dataStruct, session.Statement.RefTable)
 		case reflect.Slice:
 			err = rawRows.ScanSlice(bean)

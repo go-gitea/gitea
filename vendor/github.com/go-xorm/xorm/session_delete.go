@@ -83,7 +83,9 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		defer session.Close()
 	}
 
-	session.Statement.setRefValue(rValue(bean))
+	if err := session.Statement.setRefValue(rValue(bean)); err != nil {
+		return 0, err
+	}
 	var table = session.Statement.RefTable
 
 	// handle before delete processors
