@@ -124,6 +124,13 @@ func (provider *Provider) IsAuthorized(request *http.Request) (*string, error) {
 		}
 	}
 
+	// Include the query string params in the base string
+	if consumer.serviceProvider.SignQueryParams {
+		for k, v := range request.URL.Query() {
+			userParams[k] = strings.Join(v, "")
+		}
+	}
+
 	// if our consumer supports bodyhash, check it
 	if consumer.serviceProvider.BodyHash {
 		bodyHash, err := calculateBodyHash(request, consumer.signer)

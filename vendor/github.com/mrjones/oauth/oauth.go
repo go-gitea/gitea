@@ -137,6 +137,12 @@ type ServiceProvider struct {
 	HttpMethod        string
 	BodyHash          bool
 	IgnoreTimestamp   bool
+
+	// Enables non spec-compliant behavior:
+	// Allow parameters to be passed in the query string rather
+	// than the body.
+	// See https://github.com/mrjones/oauth/pull/63
+	SignQueryParams   bool
 }
 
 func (sp *ServiceProvider) httpMethod() string {
