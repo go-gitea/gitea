@@ -1,14 +1,14 @@
-image: sapk/gitea:latest
+image: gitea/gitea:latest
 manifests:
-  - image: sapk/gitea:linux-amd64-latest
+  - image: gitea/gitea:linux-amd64-latest
     platform:
       architecture: amd64
       os: linux
-  - image: sapk/gitea:linux-arm-latest
+  - image: gitea/gitea:linux-arm-latest
     platform:
       architecture: arm
       os: linux
-  - image: sapk/gitea:linux-arm64-latest
+  - image: gitea/gitea:linux-arm64-latest
     platform:
       architecture: arm64
       os: linux

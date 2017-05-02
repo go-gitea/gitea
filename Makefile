@@ -123,7 +123,7 @@ build: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES)
 	go build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
-	
+
 .PHONY: docker-build
 docker-build:
 	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" webhippie/golang:edge make clean generate build
@@ -152,6 +152,20 @@ docker-multi-arm: docker-multi-build
 docker-multi-arm64: DOCKER_BASE=multiarch/alpine:aarch64-latest-stable
 docker-multi-arm64: DOCKER_TAG=linux-arm64-latest
 docker-multi-arm64: docker-multi-build
+
+.PHONY: docker-multi-push
+docker-multi-push: DOCKER_PUSHIMAGE ?= "gitea/gitea"
+docker-multi-push:
+	docker tag gitea/gitea:$(DOCKER_TAG) $(DOCKER_PUSHIMAGE):$(DOCKER_TAG)
+	docker push $(DOCKER_PUSHIMAGE):$(DOCKER_TAG)
+
+.PHONY: docker-multi-update-manifest
+docker-multi-update-manifest: DOCKER_MANIFEST ?= "docker/manifest/gitea.yml"
+docker-multi-update-manifest:
+	@hash manifest-tool > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/estesp/manifest-tool; \
+	fi
+	@manifest-tool --username $(DOCKER_USERNAME) --password $(DOCKER_PASSWORD) push from-spec $(DOCKER_MANIFEST)
 
 .PHONY: docker
 docker:
