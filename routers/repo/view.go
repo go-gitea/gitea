@@ -54,18 +54,38 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
-	var readmeFile *git.Blob
+	var readmes []struct {
+		*git.Blob
+		tp string
+	}
 	for _, entry := range entries {
-		if entry.IsDir() || !markup.IsReadmeFile(entry.Name()) {
+		if entry.IsDir() {
 			continue
 		}
 
-		// TODO: collect all possible README files and show with priority.
-		readmeFile = entry.Blob()
-		break
+		tp, ok := markup.ReadmeFileType(entry.Name())
+		if !ok {
+			continue
+		}
+
+		readmes = append(readmes, struct {
+			*git.Blob
+			tp string
+		}{
+			entry.Blob(),
+			tp,
+		})
 	}
 
-	if readmeFile != nil {
+	if len(readmes) > 0 {
+		var readmeFile *git.Blob
+		for _, readme := range readmes {
+			readmeFile = readme.Blob
+			if readme.tp != "" {
+				break
+			}
+		}
+
 		ctx.Data["RawFileLink"] = ""
 		ctx.Data["ReadmeInList"] = true
 		ctx.Data["ReadmeExist"] = true
