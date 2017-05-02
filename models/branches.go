@@ -63,6 +63,23 @@ func (repo *Repository) GetProtectedBranches() ([]*ProtectedBranch, error) {
 	return protectedBranches, x.Find(&protectedBranches, &ProtectedBranch{RepoID: repo.ID})
 }
 
+// IsProtectedBranch checks if branch is protected
+func (repo *Repository) IsProtectedBranch(branchName string) (bool, error) {
+	protectedBranch := &ProtectedBranch{
+		RepoID:     repo.ID,
+		BranchName: branchName,
+	}
+
+	has, err := x.Get(protectedBranch)
+	if err != nil {
+		return true, err
+	} else if has {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 // AddProtectedBranch add protection to branch
 func (repo *Repository) AddProtectedBranch(branchName string, canPush bool) error {
 	protectedBranch := &ProtectedBranch{

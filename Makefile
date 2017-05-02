@@ -86,15 +86,15 @@ test-vendor:
 
 .PHONY: test-sqlite
 test-sqlite: integrations.test
-	GITEA_CONF=integrations/sqlite.ini ./integrations.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.test
 
 .PHONY: test-mysql
 test-mysql: integrations.test
-	GITEA_CONF=integrations/mysql.ini ./integrations.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test
 
 .PHONY: test-pgsql
 test-pgsql: integrations.test
-	GITEA_CONF=integrations/pgsql.ini ./integrations.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
 
 integrations.test: $(SOURCES)
 	go test -c code.gitea.io/gitea/integrations -tags 'sqlite'

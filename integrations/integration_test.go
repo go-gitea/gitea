@@ -11,7 +11,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/cookiejar"
+	"net/url"
 	"os"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -60,6 +63,10 @@ func initIntegrationTest() {
 		fmt.Println("Environment variable $GITEA_CONF not set")
 		os.Exit(1)
 	}
+	if os.Getenv("GITEA_ROOT") == "" {
+		fmt.Println("Environment variable $GITEA_ROOT not set")
+		os.Exit(1)
+	}
 
 	setting.NewContext()
 	models.LoadConfigs()
@@ -103,13 +110,82 @@ func prepareTestEnv(t *testing.T) {
 	assert.NoError(t, com.CopyDir("integrations/gitea-integration-meta", "integrations/gitea-integration"))
 }
 
+type TestSession struct {
+	jar http.CookieJar
+}
+
+func (s *TestSession) GetCookie(name string) *http.Cookie {
+	baseURL, err := url.Parse(setting.AppURL)
+	if err != nil {
+		return nil
+	}
+
+	for _, c := range s.jar.Cookies(baseURL) {
+		if c.Name == name {
+			return c
+		}
+	}
+	return nil
+}
+
+func (s *TestSession) MakeRequest(t *testing.T, req *http.Request) *TestResponse {
+	baseURL, err := url.Parse(setting.AppURL)
+	assert.NoError(t, err)
+	for _, c := range s.jar.Cookies(baseURL) {
+		req.AddCookie(c)
+	}
+	resp := MakeRequest(req)
+
+	ch := http.Header{}
+	ch.Add("Cookie", strings.Join(resp.Headers["Set-Cookie"], ";"))
+	cr := http.Request{Header: ch}
+	s.jar.SetCookies(baseURL, cr.Cookies())
+
+	return resp
+}
+
+func loginUser(t *testing.T, userName, password string) *TestSession {
+	req, err := http.NewRequest("GET", "/user/login", nil)
+	assert.NoError(t, err)
+	resp := MakeRequest(req)
+	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+
+	doc, err := NewHtmlParser(resp.Body)
+	assert.NoError(t, err)
+
+	req, err = http.NewRequest("POST", "/user/login",
+		bytes.NewBufferString(url.Values{
+			"_csrf":     []string{doc.GetInputValueByName("_csrf")},
+			"user_name": []string{userName},
+			"password":  []string{password},
+		}.Encode()),
+	)
+	assert.NoError(t, err)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	resp = MakeRequest(req)
+	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
+
+	ch := http.Header{}
+	ch.Add("Cookie", strings.Join(resp.Headers["Set-Cookie"], ";"))
+	cr := http.Request{Header: ch}
+
+	jar, err := cookiejar.New(nil)
+	assert.NoError(t, err)
+	baseURL, err := url.Parse(setting.AppURL)
+	assert.NoError(t, err)
+	jar.SetCookies(baseURL, cr.Cookies())
+
+	return &TestSession{jar: jar}
+}
+
 type TestResponseWriter struct {
 	HeaderCode int
 	Writer     io.Writer
+	Headers    http.Header
 }
 
 func (w *TestResponseWriter) Header() http.Header {
-	return make(map[string][]string)
+	return w.Headers
 }
 
 func (w *TestResponseWriter) Write(b []byte) (int, error) {
@@ -123,16 +199,19 @@ func (w *TestResponseWriter) WriteHeader(n int) {
 type TestResponse struct {
 	HeaderCode int
 	Body       []byte
+	Headers    http.Header
 }
 
 func MakeRequest(req *http.Request) *TestResponse {
 	buffer := bytes.NewBuffer(nil)
 	respWriter := &TestResponseWriter{
-		Writer: buffer,
+		Writer:  buffer,
+		Headers: make(map[string][]string),
 	}
 	mac.ServeHTTP(respWriter, req)
 	return &TestResponse{
 		HeaderCode: respWriter.HeaderCode,
 		Body:       buffer.Bytes(),
+		Headers:    respWriter.Headers,
 	}
 }
