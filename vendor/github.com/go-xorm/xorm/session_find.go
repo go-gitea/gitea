@@ -41,13 +41,17 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 		if sliceElementType.Kind() == reflect.Ptr {
 			if sliceElementType.Elem().Kind() == reflect.Struct {
 				pv := reflect.New(sliceElementType.Elem())
-				session.Statement.setRefValue(pv.Elem())
+				if err := session.Statement.setRefValue(pv.Elem()); err != nil {
+					return err
+				}
 			} else {
 				tp = tpNonStruct
 			}
 		} else if sliceElementType.Kind() == reflect.Struct {
 			pv := reflect.New(sliceElementType)
-			session.Statement.setRefValue(pv.Elem())
+			if err := session.Statement.setRefValue(pv.Elem()); err != nil {
+				return err
+			}
 		} else {
 			tp = tpNonStruct
 		}

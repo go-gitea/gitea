@@ -438,10 +438,10 @@
 			"revisionTime": "2016-11-01T11:13:14Z"
 		},
 		{
-			"checksumSHA1": "Fh6Svimt+QyXHbaVxgSV7qwUHL8=",
+			"checksumSHA1": "HHB+Jna1wv0cXLxtCyOnQqFwvn4=",
 			"path": "github.com/go-xorm/builder",
-			"revision": "9c357861b643b7dd1023551fdf116b8d42030146",
-			"revisionTime": "2017-02-16T03:03:40Z"
+			"revision": "c6e604e9c7b7461715091e14ad0c242ec44c26e4",
+			"revisionTime": "2017-02-24T04:30:50Z"
 		},
 		{
 			"checksumSHA1": "vt2CGANHLNXPAZ01ve3UlsgQ0uU=",
@@ -456,10 +456,10 @@
 			"revisionTime": "2016-08-11T02:11:45Z"
 		},
 		{
-			"checksumSHA1": "/vlyLLStrbfErk/rR3SPuBGQeqk=",
+			"checksumSHA1": "Ka4hFMvc75Fb57ZNLALyYSM7CCE=",
 			"path": "github.com/go-xorm/xorm",
-			"revision": "a5cb21c44305815170d0d72563e47d585e8dcabf",
-			"revisionTime": "2017-04-05T10:17:41Z"
+			"revision": "d52a762fba17a2ed265463c1c7b608c14836eaaf",
+			"revisionTime": "2017-04-20T16:02:48Z"
 		},
 		{
 			"checksumSHA1": "1ft/4j5MFa7C9dPI9whL03HSUzk=",

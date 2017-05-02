@@ -10,7 +10,7 @@ import (
 	"github.com/go-xorm/core"
 )
 
-func (session *Session) query(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
+func (session *Session) query(sqlStr string, paramStr ...interface{}) ([]map[string][]byte, error) {
 	session.queryPreprocess(&sqlStr, paramStr...)
 
 	if session.IsAutoCommit {
@@ -19,7 +19,7 @@ func (session *Session) query(sqlStr string, paramStr ...interface{}) (resultsSl
 	return session.txQuery(session.Tx, sqlStr, paramStr...)
 }
 
-func (session *Session) txQuery(tx *core.Tx, sqlStr string, params ...interface{}) (resultsSlice []map[string][]byte, err error) {
+func (session *Session) txQuery(tx *core.Tx, sqlStr string, params ...interface{}) ([]map[string][]byte, error) {
 	rows, err := tx.Query(sqlStr, params...)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func (session *Session) innerQuery2(sqlStr string, params ...interface{}) ([]map
 }
 
 // Query runs a raw sql and return records as []map[string][]byte
-func (session *Session) Query(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string][]byte, err error) {
+func (session *Session) Query(sqlStr string, paramStr ...interface{}) ([]map[string][]byte, error) {
 	defer session.resetStatement()
 	if session.IsAutoClose {
 		defer session.Close()
@@ -86,19 +86,13 @@ func (session *Session) QueryString(sqlStr string, args ...interface{}) ([]map[s
 	if session.IsAutoClose {
 		defer session.Close()
 	}
-	return session.query2(sqlStr, args...)
-}
 
-// =============================
-// for string
-// =============================
-func (session *Session) query2(sqlStr string, paramStr ...interface{}) (resultsSlice []map[string]string, err error) {
-	session.queryPreprocess(&sqlStr, paramStr...)
+	session.queryPreprocess(&sqlStr, args...)
 
 	if session.IsAutoCommit {
-		return query2(session.DB(), sqlStr, paramStr...)
+		return query2(session.DB(), sqlStr, args...)
 	}
-	return txQuery2(session.Tx, sqlStr, paramStr...)
+	return txQuery2(session.Tx, sqlStr, args...)
 }
 
 // Execute sql

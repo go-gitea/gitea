@@ -27,7 +27,9 @@ func (session *Session) Ping() error {
 // CreateTable create a table according a bean
 func (session *Session) CreateTable(bean interface{}) error {
 	v := rValue(bean)
-	session.Statement.setRefValue(v)
+	if err := session.Statement.setRefValue(v); err != nil {
+		return err
+	}
 
 	defer session.resetStatement()
 	if session.IsAutoClose {
@@ -40,7 +42,9 @@ func (session *Session) CreateTable(bean interface{}) error {
 // CreateIndexes create indexes
 func (session *Session) CreateIndexes(bean interface{}) error {
 	v := rValue(bean)
-	session.Statement.setRefValue(v)
+	if err := session.Statement.setRefValue(v); err != nil {
+		return err
+	}
 
 	defer session.resetStatement()
 	if session.IsAutoClose {
@@ -60,7 +64,9 @@ func (session *Session) CreateIndexes(bean interface{}) error {
 // CreateUniques create uniques
 func (session *Session) CreateUniques(bean interface{}) error {
 	v := rValue(bean)
-	session.Statement.setRefValue(v)
+	if err := session.Statement.setRefValue(v); err != nil {
+		return err
+	}
 
 	defer session.resetStatement()
 	if session.IsAutoClose {
@@ -104,7 +110,9 @@ func (session *Session) createAll() error {
 // DropIndexes drop indexes
 func (session *Session) DropIndexes(bean interface{}) error {
 	v := rValue(bean)
-	session.Statement.setRefValue(v)
+	if err := session.Statement.setRefValue(v); err != nil {
+		return err
+	}
 
 	defer session.resetStatement()
 	if session.IsAutoClose {
