@@ -54,6 +54,9 @@ generate:
 	@hash go-bindata > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/jteeuwen/go-bindata/...; \
 	fi
+	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/go-swagger/go-swagger/cmd/swagger; \
+	fi
 	go generate $(PACKAGES)
 
 .PHONY: errcheck
@@ -183,6 +186,14 @@ stylesheets: public/css/index.css
 .IGNORE: public/css/index.css
 public/css/index.css: $(STYLESHEETS)
 	lessc $< $@
+
+.PHONY: swagger-ui
+swagger-ui:
+	rm -Rf public/assets/swagger-ui
+	git clone --depth=10 -b v3.0.7 --single-branch https://github.com/swagger-api/swagger-ui.git /tmp/swagger-ui
+	mv /tmp/swagger-ui/dist public/assets/swagger-ui
+	rm -Rf /tmp/swagger-ui
+	sed -i "s;http://petstore.swagger.io/v2/swagger.json;../../swagger.v1.json;g" public/assets/swagger-ui/index.html
 
 .PHONY: assets
 assets: javascripts stylesheets

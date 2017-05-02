@@ -18,8 +18,16 @@ import (
 )
 
 // Search repositories via options
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#search-repositories
 func Search(ctx *context.APIContext) {
+	// swagger:route GET /repos/search repoSearch
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: SearchResults
+	//       500: SearchError
+
 	opts := &models.SearchRepoOptions{
 		Keyword:  strings.Trim(ctx.Query("q"), " "),
 		OwnerID:  ctx.QueryInt64("uid"),
@@ -33,9 +41,9 @@ func Search(ctx *context.APIContext) {
 		} else {
 			u, err := models.GetUserByID(opts.OwnerID)
 			if err != nil {
-				ctx.JSON(500, map[string]interface{}{
-					"ok":    false,
-					"error": err.Error(),
+				ctx.JSON(500, api.SearchError{
+					OK:    false,
+					Error: err.Error(),
 				})
 				return
 			}
@@ -48,9 +56,9 @@ func Search(ctx *context.APIContext) {
 
 	repos, count, err := models.SearchRepositoryByName(opts)
 	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
-			"ok":    false,
-			"error": err.Error(),
+		ctx.JSON(500, api.SearchError{
+			OK:    false,
+			Error: err.Error(),
 		})
 		return
 	}
@@ -63,26 +71,26 @@ func Search(ctx *context.APIContext) {
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
 		if err = repo.GetOwner(); err != nil {
-			ctx.JSON(500, map[string]interface{}{
-				"ok":    false,
-				"error": err.Error(),
+			ctx.JSON(500, api.SearchError{
+				OK:    false,
+				Error: err.Error(),
 			})
 			return
 		}
 		accessMode, err := models.AccessLevel(userID, repo)
 		if err != nil {
-			ctx.JSON(500, map[string]interface{}{
-				"ok":    false,
-				"error": err.Error(),
+			ctx.JSON(500, api.SearchError{
+				OK:    false,
+				Error: err.Error(),
 			})
 		}
 		results[i] = repo.APIFormat(accessMode)
 	}
 
 	ctx.SetLinkHeader(int(count), setting.API.MaxResponseItems)
-	ctx.JSON(200, map[string]interface{}{
-		"ok":   true,
-		"data": results,
+	ctx.JSON(200, api.SearchResults{
+		OK:   true,
+		Data: results,
 	})
 }
 
@@ -129,6 +137,20 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 
 // CreateOrgRepo create one repository of the organization
 func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
+	// swagger:route POST /org/{org}/repos createOrgRepo
+	//
+	//     Consumes:
+	//     - application/json
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       201: Repository
+	//       422: validationError
+	//       403: forbidden
+	//       500: error
+
 	org, err := models.GetOrgByName(ctx.Params(":org"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
@@ -147,8 +169,20 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 }
 
 // Migrate migrate remote git repository to gitea
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#migrate
 func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
+	// swagger:route POST /repos/migrate
+	//
+	//     Consumes:
+	//     - application/json
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       201: Repository
+	//       422: validationError
+	//       500: error
+
 	ctxUser := ctx.User
 	// Not equal means context user is an organization,
 	// or is another user/organization if current user is admin.
@@ -220,8 +254,16 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 }
 
 // Get one repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#get
 func Get(ctx *context.APIContext) {
+	// swagger:route GET /repos/{username}/{reponame}
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: Repository
+	//       500: error
+
 	repo := ctx.Repo.Repository
 	access, err := models.AccessLevel(ctx.User.ID, repo)
 	if err != nil {
@@ -233,6 +275,15 @@ func Get(ctx *context.APIContext) {
 
 // GetByID returns a single Repository
 func GetByID(ctx *context.APIContext) {
+	// swagger:route GET /repositories/{id}
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: Repository
+	//       500: error
+
 	repo, err := models.GetRepositoryByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
@@ -252,8 +303,17 @@ func GetByID(ctx *context.APIContext) {
 }
 
 // Delete one repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#delete
 func Delete(ctx *context.APIContext) {
+	// swagger:route DELETE /repos/{username}/{reponame}
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       204: empty
+	//       403: forbidden
+	//       500: error
+
 	if !ctx.Repo.IsAdmin() {
 		ctx.Error(403, "", "Must have admin rights")
 		return

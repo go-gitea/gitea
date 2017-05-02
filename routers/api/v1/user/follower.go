@@ -30,12 +30,29 @@ func listUserFollowers(ctx *context.APIContext, u *models.User) {
 
 // ListMyFollowers list all my followers
 func ListMyFollowers(ctx *context.APIContext) {
+	// swagger:route GET /user/followers userCurrentListFollowers
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: UserList
+	//       500: error
+
 	listUserFollowers(ctx, ctx.User)
 }
 
 // ListFollowers list user's followers
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Followers#list-followers-of-a-user
 func ListFollowers(ctx *context.APIContext) {
+	// swagger:route GET /users/:username/followers userListFollowers
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: UserList
+	//       500: error
+
 	u := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -54,12 +71,29 @@ func listUserFollowing(ctx *context.APIContext, u *models.User) {
 
 // ListMyFollowing list all my followings
 func ListMyFollowing(ctx *context.APIContext) {
+	// swagger:route GET /user/following userCurrentListFollowing
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: UserList
+	//       500: error
+
 	listUserFollowing(ctx, ctx.User)
 }
 
 // ListFollowing list user's followings
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Followers#list-users-followed-by-another-user
 func ListFollowing(ctx *context.APIContext) {
+	// swagger:route GET /users/{username}/following userListFollowing
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: UserList
+	//       500: error
+
 	u := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -76,8 +110,13 @@ func checkUserFollowing(ctx *context.APIContext, u *models.User, followID int64)
 }
 
 // CheckMyFollowing check if the repo is followed by me
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Followers#check-if-you-are-following-a-user
 func CheckMyFollowing(ctx *context.APIContext) {
+	// swagger:route GET /user/following/{username} userCurrentCheckFollowing
+	//
+	//     Responses:
+	//       204: empty
+	//       404: notFound
+
 	target := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -86,8 +125,13 @@ func CheckMyFollowing(ctx *context.APIContext) {
 }
 
 // CheckFollowing check if the repo is followed by user
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Followers#check-if-one-user-follows-another
 func CheckFollowing(ctx *context.APIContext) {
+	// swagger:route GET /users/{username}/following/:target userCheckFollowing
+	//
+	//     Responses:
+	//       204: empty
+	//       404: notFound
+
 	u := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -100,8 +144,13 @@ func CheckFollowing(ctx *context.APIContext) {
 }
 
 // Follow follow one repository
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Followers#follow-a-user
 func Follow(ctx *context.APIContext) {
+	// swagger:route PUT /user/following/{username} userCurrentPutFollow
+	//
+	//     Responses:
+	//       204: empty
+	//       500: error
+
 	target := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -114,8 +163,13 @@ func Follow(ctx *context.APIContext) {
 }
 
 // Unfollow unfollow one repository
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Followers#unfollow-a-user
 func Unfollow(ctx *context.APIContext) {
+	// swagger:route DELETE /user/following/{username} userCurrentDeleteFollow
+	//
+	//     Responses:
+	//       204: empty
+	//       500: error
+
 	target := GetUserByParams(ctx)
 	if ctx.Written() {
 		return

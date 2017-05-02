@@ -36,6 +36,15 @@ func listUserRepos(ctx *context.APIContext, u *models.User) {
 
 // ListUserRepos - list the repos owned and accessible by the given user.
 func ListUserRepos(ctx *context.APIContext) {
+	// swagger:route GET /users/{username}/repos userListRepos
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: RepositoryList
+	//       500: error
+
 	user := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -44,8 +53,16 @@ func ListUserRepos(ctx *context.APIContext) {
 }
 
 // ListMyRepos - list the repositories owned by you.
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#list-your-repositories
 func ListMyRepos(ctx *context.APIContext) {
+	// swagger:route GET /user/repos userCurrentListRepos
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: RepositoryList
+	//       500: error
+
 	listUserRepos(ctx, ctx.User)
 }
 

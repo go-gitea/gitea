@@ -14,8 +14,16 @@ import (
 )
 
 // ListHooks list all hooks of a repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#list-hooks
 func ListHooks(ctx *context.APIContext) {
+	// swagger:route GET /repos/{username}/{reponame}/hooks
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: apiHooks
+	//       500: error
+
 	hooks, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.Error(500, "GetWebhooksByRepoID", err)
@@ -41,8 +49,20 @@ func GetHook(ctx *context.APIContext) {
 }
 
 // CreateHook create a hook for a repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#create-a-hook
 func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
+	// swagger:route POST /repos/{username}/{reponame}/hooks
+	//
+	//     Consumes:
+	//     - application/json
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: apiHook
+	//       422: validationError
+	//       500: error
+
 	if !utils.CheckCreateHookOption(ctx, &form) {
 		return
 	}
@@ -50,14 +70,33 @@ func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 }
 
 // EditHook modify a hook of a repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#edit-a-hook
 func EditHook(ctx *context.APIContext, form api.EditHookOption) {
+	// swagger:route PATCH /repos/{username}/{reponame}/hooks/{id}
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: apiHook //TODO
+	//       422: validationError
+	//       500: error
+
 	hookID := ctx.ParamsInt64(":id")
 	utils.EditRepoHook(ctx, &form, hookID)
 }
 
 // DeleteHook delete a hook of a repository
 func DeleteHook(ctx *context.APIContext) {
+	// swagger:route DELETE /repos/{username}/{reponame}/hooks/{id}
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       204: empty
+	//       404: notFound
+	//       500: error
+
 	if err := models.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrWebhookNotExist(err) {
 			ctx.Status(404)

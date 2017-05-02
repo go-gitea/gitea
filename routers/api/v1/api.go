@@ -2,6 +2,31 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:generate swagger generate spec -o ../../../public/swagger.v1.json
+//go:generate sed -i "s;\".ref\": \"#/definitions/GPGKey\";\"type\": \"object\";g" ../../../public/swagger.v1.json
+
+// Package v1 Gitea API.
+//
+// This provide API interface to communicate with this Gitea instance.
+//
+// Terms Of Service:
+//
+// there are no TOS at this moment, use at your own risk we take no responsibility
+//
+//     Schemes: http, https
+//     BasePath: /api/v1
+//     Version: 1.1.1
+//     License: MIT http://opensource.org/licenses/MIT
+//
+//     Consumes:
+//     - application/json
+//     - text/plain
+//
+//     Produces:
+//     - application/json
+//     - text/html
+//
+// swagger:meta
 package v1
 
 import (

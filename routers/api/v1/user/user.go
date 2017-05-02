@@ -17,6 +17,15 @@ import (
 
 // Search search users
 func Search(ctx *context.APIContext) {
+	// swagger:route GET /users/search userSearch
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: UserList
+	//       500: error
+
 	opts := &models.SearchUserOptions{
 		Keyword:  strings.Trim(ctx.Query("q"), " "),
 		Type:     models.UserTypeIndividual,
@@ -56,6 +65,16 @@ func Search(ctx *context.APIContext) {
 
 // GetInfo get user's information
 func GetInfo(ctx *context.APIContext) {
+	// swagger:route GET /users/{username} userGet
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: User
+	//       404: notFound
+	//       500: error
+
 	u, err := models.GetUserByName(ctx.Params(":username"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
@@ -75,5 +94,13 @@ func GetInfo(ctx *context.APIContext) {
 
 // GetAuthenticatedUser get curent user's information
 func GetAuthenticatedUser(ctx *context.APIContext) {
+	// swagger:route GET /user userGetCurrent
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: User
+
 	ctx.JSON(200, ctx.User.APIFormat())
 }

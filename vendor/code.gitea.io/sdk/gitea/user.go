@@ -10,6 +10,7 @@ import (
 )
 
 // User represents a API user.
+// swagger:response User
 type User struct {
 	ID        int64  `json:"id"`
 	UserName  string `json:"login"`
@@ -17,6 +18,10 @@ type User struct {
 	Email     string `json:"email"`
 	AvatarURL string `json:"avatar_url"`
 }
+
+// UserList represents a list of API user.
+// swagger:response UserList
+type UserList []*User
 
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility
 func (u User) MarshalJSON() ([]byte, error) {

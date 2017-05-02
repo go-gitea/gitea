@@ -19,6 +19,7 @@ type Permission struct {
 }
 
 // Repository represents a API repository.
+// swagger:response Repository
 type Repository struct {
 	ID            int64       `json:"id"`
 	Owner         *User       `json:"owner"`
@@ -42,6 +43,10 @@ type Repository struct {
 	Permissions   *Permission `json:"permissions,omitempty"`
 }
 
+// RepositoryList represents a list of API repository.
+// swagger:response RepositoryList
+type RepositoryList []*Repository
+
 // ListMyRepos lists all repositories for the authenticated user that has access to.
 func (c *Client) ListMyRepos() ([]*Repository, error) {
 	repos := make([]*Repository, 0, 10)
@@ -61,14 +66,37 @@ func (c *Client) ListOrgRepos(org string) ([]*Repository, error) {
 }
 
 // CreateRepoOption options when creating repository
+//swagger:parameters createOrgRepo
 type CreateRepoOption struct {
-	Name        string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	// Name of the repository to create
+	//
+	// in: body
+	// unique: true
+	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	// Description of the repository to create
+	//
+	// in: body
 	Description string `json:"description" binding:"MaxSize(255)"`
-	Private     bool   `json:"private"`
-	AutoInit    bool   `json:"auto_init"`
-	Gitignores  string `json:"gitignores"`
-	License     string `json:"license"`
-	Readme      string `json:"readme"`
+	// Is the repository to create private ?
+	//
+	// in: body
+	Private bool `json:"private"`
+	// Init the repository to create ?
+	//
+	// in: body
+	AutoInit bool `json:"auto_init"`
+	// Gitignores to use
+	//
+	// in: body
+	Gitignores string `json:"gitignores"`
+	// License to use
+	//
+	// in: body
+	License string `json:"license"`
+	// Readme of the repository to create
+	//
+	// in: body
+	Readme string `json:"readme"`
 }
 
 // CreateRepo creates a repository for authenticated user.

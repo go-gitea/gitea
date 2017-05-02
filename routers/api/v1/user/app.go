@@ -12,8 +12,16 @@ import (
 )
 
 // ListAccessTokens list all the access tokens
-// see https://github.com/gogits/go-gogs-client/wiki/Users#list-access-tokens-for-a-user
 func ListAccessTokens(ctx *context.APIContext) {
+	// swagger:route GET /users/{username}/tokens userGetTokens
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: AccessTokenList
+	//       500: error
+
 	tokens, err := models.ListAccessTokens(ctx.User.ID)
 	if err != nil {
 		ctx.Error(500, "ListAccessTokens", err)
@@ -31,8 +39,19 @@ func ListAccessTokens(ctx *context.APIContext) {
 }
 
 // CreateAccessToken create access tokens
-// see https://github.com/gogits/go-gogs-client/wiki/Users#create-a-access-token
 func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption) {
+	// swagger:route POST /users/{username} /tokens userCreateToken
+	//
+	//     Consumes:
+	//     - application/json
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: AccessToken
+	//       500: error
+
 	t := &models.AccessToken{
 		UID:  ctx.User.ID,
 		Name: form.Name,

@@ -13,8 +13,19 @@ import (
 )
 
 // Markdown render markdown document to HTML
-// see https://github.com/gogits/go-gogs-client/wiki/Miscellaneous#render-an-arbitrary-markdown-document
 func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
+	// swagger:route POST /markdown renderMarkdown
+	//
+	//     Consumes:
+	//     - application/json
+	//
+	//     Produces:
+	//     - text/html
+	//
+	//     Responses:
+	//       200: MarkdownRender
+	//       422: validationError
+
 	if ctx.HasAPIError() {
 		ctx.Error(422, "", ctx.GetErrMsg())
 		return
@@ -40,8 +51,18 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 }
 
 // MarkdownRaw render raw markdown HTML
-// see https://github.com/gogits/go-gogs-client/wiki/Miscellaneous#render-a-markdown-document-in-raw-mode
 func MarkdownRaw(ctx *context.APIContext) {
+	// swagger:route POST /markdown/raw renderMarkdownRaw
+	//
+	//     Consumes:
+	//     - text/plain
+	//
+	//     Produces:
+	//     - text/html
+	//
+	//     Responses:
+	//       200: MarkdownRender
+	//       422: validationError
 	body, err := ctx.Req.Body().Bytes()
 	if err != nil {
 		ctx.Error(422, "", err)

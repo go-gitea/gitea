@@ -54,14 +54,30 @@ func listPublicKeys(ctx *context.APIContext, uid int64) {
 }
 
 // ListMyPublicKeys list all my public keys
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Public-Keys#list-your-public-keys
 func ListMyPublicKeys(ctx *context.APIContext) {
+	// swagger:route GET /user/keys userCurrentListKeys
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: PublicKeyList
+	//       500: error
+
 	listPublicKeys(ctx, ctx.User.ID)
 }
 
 // ListPublicKeys list all user's public keys
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Public-Keys#list-public-keys-for-a-user
 func ListPublicKeys(ctx *context.APIContext) {
+	// swagger:route GET /users/{username}/keys userListKeys
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: PublicKeyList
+	//       500: error
+
 	user := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -70,8 +86,17 @@ func ListPublicKeys(ctx *context.APIContext) {
 }
 
 // GetPublicKey get one public key
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Public-Keys#get-a-single-public-key
 func GetPublicKey(ctx *context.APIContext) {
+	// swagger:route GET /user/keys/{id} userCurrentGetKey
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: PublicKey
+	//       404: notFound
+	//       500: error
+
 	key, err := models.GetPublicKeyByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrKeyNotExist(err) {
@@ -104,14 +129,35 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 }
 
 // CreatePublicKey create one public key for me
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Public-Keys#create-a-public-key
 func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
+	// swagger:route POST /user/keys userCurrentPostKey
+	//
+	//     Consumes:
+	//     - application/json
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       201: PublicKey
+	//       422: validationError
+	//       500: error
+
 	CreateUserPublicKey(ctx, form, ctx.User.ID)
 }
 
 // DeletePublicKey delete one public key of mine
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Public-Keys#delete-a-public-key
 func DeletePublicKey(ctx *context.APIContext) {
+	// swagger:route DELETE /user/keys/{id} userCurrentDeleteKey
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       204: empty
+	//       403: forbidden
+	//       500: error
+
 	if err := models.DeletePublicKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrKeyAccessDenied(err) {
 			ctx.Error(403, "", "You do not have access to this key")

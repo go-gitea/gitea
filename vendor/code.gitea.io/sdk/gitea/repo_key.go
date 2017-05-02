@@ -34,9 +34,20 @@ func (c *Client) GetDeployKey(user, repo string, keyID int64) (*DeployKey, error
 }
 
 // CreateKeyOption options when create deploy key
+// swagger:parameters userCurrentPostKey
 type CreateKeyOption struct {
+	// Title of the key to add
+	//
+	// in: body
+	// required: true
+	// unique: true
 	Title string `json:"title" binding:"Required"`
-	Key   string `json:"key" binding:"Required"`
+	// An armored SSH key to add
+	//
+	// in: body
+	// required: true
+	// unique: true
+	Key string `json:"key" binding:"Required"`
 }
 
 // CreateDeployKey options when create one deploy key
