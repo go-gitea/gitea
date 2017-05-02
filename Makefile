@@ -136,21 +136,24 @@ docker-multi-setenv:
 docker-multi-build: docker-multi-setenv
 	docker pull $(DOCKER_BASE)
 	docker tag $(DOCKER_BASE) gitea/base
-	docker build --no-cache --build-arg TAGS="$(TAGS)" -t gitea/gitea:$(DOCKER_TAG) -f Dockerfile.multi .
+	docker build --no-cache --build-arg TAGS="$(TAGS)" --build-arg GITEA_VERSION="$(GITEA_VERSION)" -t gitea/gitea:$(DOCKER_TAG) -f Dockerfile.multi .
 
 .PHONY: docker-multi-amd64
+docker-multi-amd64: GITEA_VERSION ?= "master"
 docker-multi-amd64: DOCKER_BASE=alpine:latest
-docker-multi-amd64: DOCKER_TAG=linux-amd64-latest
+docker-multi-amd64: DOCKER_TAG=linux-amd64-$(GITEA_VERSION)
 docker-multi-amd64: docker-multi-build
 
 .PHONY: docker-multi-arm
+docker-multi-arm: GITEA_VERSION ?= "master"
 docker-multi-arm: DOCKER_BASE=multiarch/alpine:armhf-latest-stable
-docker-multi-arm: DOCKER_TAG=linux-arm-latest
+docker-multi-arm: DOCKER_TAG=linux-arm-$(GITEA_VERSION)
 docker-multi-arm: docker-multi-build
 
 .PHONY: docker-multi-arm64
+docker-multi-arm64: GITEA_VERSION ?= "master"
 docker-multi-arm64: DOCKER_BASE=multiarch/alpine:aarch64-latest-stable
-docker-multi-arm64: DOCKER_TAG=linux-arm64-latest
+docker-multi-arm64: DOCKER_TAG=linux-arm64-$(GITEA_VERSION)
 docker-multi-arm64: docker-multi-build
 
 .PHONY: docker-multi-push
@@ -166,6 +169,12 @@ docker-multi-update-manifest:
 		go get -u github.com/estesp/manifest-tool; \
 	fi
 	@manifest-tool --username $(DOCKER_USERNAME) --password $(DOCKER_PASSWORD) push from-spec $(DOCKER_MANIFEST)
+
+.PHONY: docker-multi-update-all
+docker-multi-update-all: DOCKER_MANIFEST=docker/manifest/base.yml docker-multi-update-manifest
+docker-multi-update-all: docker-multi-amd64 docker-multi-arm docker-multi-arm64
+docker-multi-update-all:
+	for DOCKER_MANIFEST in $(shell docker/manifest/gitea* ); do docker-multi-update-manifest; done;
 
 .PHONY: docker
 docker:
