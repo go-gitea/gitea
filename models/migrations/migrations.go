@@ -108,6 +108,8 @@ var migrations = []Migration{
 	NewMigration("add field for repo size", addRepoSize),
 	// v29 -> v30
 	NewMigration("add commit status table", addCommitStatus),
+	// v30 -> 31
+	NewMigration("add primary key to external login user", addExternalLoginUserPK),
 }
 
 // Migrate database to current version

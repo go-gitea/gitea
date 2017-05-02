@@ -8,9 +8,9 @@ import "github.com/markbates/goth"
 
 // ExternalLoginUser makes the connecting between some existing user and additional external login sources
 type ExternalLoginUser struct {
-	ExternalID    string `xorm:"NOT NULL"`
-	UserID        int64  `xorm:"NOT NULL"`
-	LoginSourceID int64  `xorm:"NOT NULL"`
+	ExternalID    string `xorm:"pk NOT NULL"`
+	UserID        int64  `xorm:"INDEX NOT NULL"`
+	LoginSourceID int64  `xorm:"pk NOT NULL"`
 }
 
 // GetExternalLogin checks if a externalID in loginSourceID scope already exists
