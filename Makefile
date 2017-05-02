@@ -171,10 +171,8 @@ docker-multi-update-manifest:
 	@manifest-tool --username $(DOCKER_USERNAME) --password $(DOCKER_PASSWORD) push from-spec $(DOCKER_MANIFEST)
 
 .PHONY: docker-multi-update-all
-docker-multi-update-all: DOCKER_MANIFEST=docker/manifest/base.yml docker-multi-update-manifest
-docker-multi-update-all: docker-multi-amd64 docker-multi-arm docker-multi-arm64
-docker-multi-update-all:
-	for DOCKER_MANIFEST in $(shell docker/manifest/gitea* ); do docker-multi-update-manifest; done;
+docker-multi-update-all: docker-multi-amd64 docker-multi-arm docker-multi-arm64 docker-multi-push
+	for DOCKER_MANIFEST in $(shell docker/manifest/* ); do make docker-multi-update-manifest; done;
 
 .PHONY: docker
 docker:
