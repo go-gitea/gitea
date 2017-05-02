@@ -56,13 +56,19 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	var readmeFile *git.Blob
 	for _, entry := range entries {
-		if entry.IsDir() || !markup.IsReadmeFile(entry.Name()) {
+		if entry.IsDir() {
 			continue
 		}
 
-		// TODO: collect all possible README files and show with priority.
+		tp, ok := markup.ReadmeFileType(entry.Name())
+		if !ok {
+			continue
+		}
+
 		readmeFile = entry.Blob()
-		break
+		if tp != "" {
+			break
+		}
 	}
 
 	if readmeFile != nil {

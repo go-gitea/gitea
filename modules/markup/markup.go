@@ -59,6 +59,15 @@ func Type(filename string) string {
 	return ""
 }
 
+// ReadmeFileType reports whether name looks like a README file
+// based on its name and find the parser via its ext name
+func ReadmeFileType(name string) (string, bool) {
+	if IsReadmeFile(name) {
+		return Type(name), true
+	}
+	return "", false
+}
+
 // IsReadmeFile reports whether name looks like a README file
 // based on its name.
 func IsReadmeFile(name string) bool {
