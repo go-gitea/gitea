@@ -18,7 +18,7 @@ func (issue *Issue) mailSubject() string {
 	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.Name, issue.Title, issue.Index)
 }
 
-// mailIssueCommentToParticipants can be used only for comment.
+// mailIssueCommentToParticipants can be used for both new issue creation and comment.
 // This function sends two list of emails:
 // 1. Repository watchers and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
