@@ -88,14 +88,6 @@ func mailIssueCommentToParticipants(issue *Issue, doer *User, comment *Comment, 
 	return nil
 }
 
-// mailIssueActionToParticipants can be used for creation or pull requests.
-// This function sends two list of emails:
-// 1. Repository watchers and users who are participated in comments.
-// 2. Users who are not in 1. but get mentioned in current issue/comment.
-func mailIssueActionToParticipants(issue *Issue, doer *User, mentions []string) error {
-	return mailIssueCommentToParticipants(issue, doer, nil, mentions)
-}
-
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
 func (issue *Issue) MailParticipants() (err error) {
@@ -104,7 +96,7 @@ func (issue *Issue) MailParticipants() (err error) {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
 	}
 
-	if err = mailIssueActionToParticipants(issue, issue.Poster, mentions); err != nil {
+	if err = mailIssueCommentToParticipants(issue, issue.Poster, nil, mentions); err != nil {
 		log.Error(4, "mailIssueCommentToParticipants: %v", err)
 	}
 
