@@ -6,15 +6,16 @@ package models
 
 import (
 	"sort"
+
 	"code.gitea.io/gitea/modules/auth/oauth2"
 )
 
 // OAuth2Provider describes the display values of a single OAuth2 provider
 type OAuth2Provider struct {
-	Name              string
-	DisplayName       string
-	Image             string
-	CustomURLMapping  *oauth2.CustomURLMapping
+	Name             string
+	DisplayName      string
+	Image            string
+	CustomURLMapping *oauth2.CustomURLMapping
 }
 
 // OAuth2Providers contains the map of registered OAuth2 providers in Gitea (based on goth)
@@ -47,7 +48,7 @@ var OAuth2Providers = map[string]OAuth2Provider{
 // OAuth2DefaultCustomURLMappings contains the map of default URL's for OAuth2 providers that are allowed to have custom urls
 // key is used to map the OAuth2Provider
 // value is the mapping as defined for the OAuth2Provider
-var OAuth2DefaultCustomURLMappings = map[string]*oauth2.CustomURLMapping {
+var OAuth2DefaultCustomURLMappings = map[string]*oauth2.CustomURLMapping{
 	"github": OAuth2Providers["github"].CustomURLMapping,
 	"gitlab": OAuth2Providers["gitlab"].CustomURLMapping,
 }
@@ -119,4 +120,3 @@ func wrapOpenIDConnectInitializeError(err error, providerName string, oAuth2Conf
 	}
 	return err
 }
-

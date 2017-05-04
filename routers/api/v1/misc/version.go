@@ -23,6 +23,6 @@ func Version(ctx *context.APIContext) {
 	//
 	//     Responses:
 	//       200: ServerVersion
-	
+
 	ctx.JSON(200, &gitea.ServerVersion{Version: setting.AppVer})
 }
