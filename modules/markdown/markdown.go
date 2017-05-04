@@ -56,7 +56,7 @@ var (
 	// Sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
 	// FIXME: this pattern matches pure numbers as well, right now we do a hack to check in renderSha1CurrentPattern
 	// by converting string to a number.
-	Sha1CurrentPattern = regexp.MustCompile(`(?:^|\s|\()[0-9a-f]{40}\b`)
+	Sha1CurrentPattern = regexp.MustCompile(`(?:^|\s|\()([0-9a-f]{40})\b`)
 
 	// ShortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	ShortLinkPattern = regexp.MustCompile(`(\[\[.*\]\]\w*)`)
@@ -542,7 +542,7 @@ func RenderCrossReferenceIssueIndexPattern(rawBytes []byte, urlPrefix string, me
 func renderSha1CurrentPattern(rawBytes []byte, urlPrefix string) []byte {
 	ms := Sha1CurrentPattern.FindAllSubmatch(rawBytes, -1)
 	for _, m := range ms {
-		all := m[0]
+		all := m[1]
 		if com.StrTo(all).MustInt() > 0 {
 			continue
 		}
