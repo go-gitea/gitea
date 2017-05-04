@@ -519,7 +519,7 @@ func CheckUnit(unitType models.UnitType) macaron.Handler {
 			}
 		}
 		if !find {
-			ctx.Handle(404, "CheckUnit", fmt.Errorf(ctx.Tr("units.error.unit_not_allowed")))
+			ctx.Handle(404, "CheckUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitType))
 		}
 	}
 }
