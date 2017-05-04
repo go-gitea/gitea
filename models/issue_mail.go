@@ -73,7 +73,7 @@ func mailIssueActionToParticipants(issue *Issue, doer *User, mentions []string) 
 }
 
 // prepareMailToParticipants creates the tos and names list for an issue and the issue's creator.
-func prepareMailToParticipants(issue *Issue, doer *User) ([]string, []string, error)  {
+func prepareMailToParticipants(issue *Issue, doer *User) (tos []string, names []string, error error)  {
 	if !setting.Service.EnableNotifyMail {
 		return nil, nil, nil
 	}
