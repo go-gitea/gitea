@@ -18,22 +18,73 @@ func (issue *Issue) mailSubject() string {
 	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.Name, issue.Title, issue.Index)
 }
 
-// mailIssueCommentToParticipants can be used for both new issue creation and comment.
+
+// mailIssueCommentToParticipants can be used for only for comment.
 // This function sends two list of emails:
 // 1. Repository watchers and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
-func mailIssueCommentToParticipants(issue *Issue, doer *User, mentions []string) error {
+func mailIssueCommentToParticipants(issue *Issue, doer *User, comment *Comment, mentions []string) error {
+
+	names, tos, err := prepareMailToParticipants(issue, doer)
+
+	if(err != nil) {
+		return fmt.Errorf("PrepareMailToParticipants: %v", err)
+	}
+
+	SendIssueCommentMail(issue, doer, comment, tos)
+
+	// Mail mentioned people and exclude watchers.
+	names = append(names, doer.Name)
+	tos = make([]string, 0, len(mentions)) // list of user names.
+	for i := range mentions {
+		if com.IsSliceContainsStr(names, mentions[i]) {
+			continue
+		}
+
+		tos = append(tos, mentions[i])
+	}
+	SendIssueMentionMail(issue, doer, comment, GetUserEmailsByNames(tos))
+
+	return nil
+}
+
+func mailIssueActionToParticipants(issue *Issue, doer *User, mentions []string) error {
+	names, tos, err := prepareMailToParticipants(issue, doer)
+
+	if(err != nil) {
+		return fmt.Errorf("PrepareMailToParticipants: %v", err)
+	}
+
+	SendIssueActionMail(issue, doer, tos)
+
+	// Mail mentioned people and exclude watchers.
+	names = append(names, doer.Name)
+	tos = make([]string, 0, len(mentions)) // list of user names.
+	for i := range mentions {
+		if com.IsSliceContainsStr(names, mentions[i]) {
+			continue
+		}
+
+		tos = append(tos, mentions[i])
+	}
+	SendIssueMentionInActionMail(issue, doer, GetUserEmailsByNames(tos))
+
+	return nil
+}
+
+// prepareMailToParticipants creates the tos and names list for an issue and the issue's creator.
+func prepareMailToParticipants(issue *Issue, doer *User) ([]string, []string, error)  {
 	if !setting.Service.EnableNotifyMail {
-		return nil
+		return nil, nil, nil
 	}
 
 	watchers, err := GetWatchers(issue.RepoID)
 	if err != nil {
-		return fmt.Errorf("GetWatchers [repo_id: %d]: %v", issue.RepoID, err)
+		return nil, nil, err
 	}
 	participants, err := GetParticipantsByIssueID(issue.ID)
 	if err != nil {
-		return fmt.Errorf("GetParticipantsByIssueID [issue_id: %d]: %v", issue.ID, err)
+		return nil, nil, err
 	}
 
 	// In case the issue poster is not watching the repository,
@@ -51,7 +102,7 @@ func mailIssueCommentToParticipants(issue *Issue, doer *User, mentions []string)
 
 		to, err := GetUserByID(watchers[i].UserID)
 		if err != nil {
-			return fmt.Errorf("GetUserByID [%d]: %v", watchers[i].UserID, err)
+			return nil, nil, err
 		}
 		if to.IsOrganization() {
 			continue
@@ -70,22 +121,9 @@ func mailIssueCommentToParticipants(issue *Issue, doer *User, mentions []string)
 		tos = append(tos, participants[i].Email)
 		names = append(names, participants[i].Name)
 	}
-	SendIssueCommentMail(issue, doer, tos)
-
-	// Mail mentioned people and exclude watchers.
-	names = append(names, doer.Name)
-	tos = make([]string, 0, len(mentions)) // list of user names.
-	for i := range mentions {
-		if com.IsSliceContainsStr(names, mentions[i]) {
-			continue
-		}
-
-		tos = append(tos, mentions[i])
-	}
-	SendIssueMentionMail(issue, doer, GetUserEmailsByNames(tos))
-
-	return nil
+	return tos, names, nil
 }
+
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
@@ -95,9 +133,11 @@ func (issue *Issue) MailParticipants() (err error) {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
 	}
 
-	if err = mailIssueCommentToParticipants(issue, issue.Poster, mentions); err != nil {
+	if err = mailIssueActionToParticipants(issue, issue.Poster, mentions); err != nil {
 		log.Error(4, "mailIssueCommentToParticipants: %v", err)
 	}
 
 	return nil
 }
+
+

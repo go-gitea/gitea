@@ -148,6 +148,24 @@ func composeTplData(subject, body, link string) map[string]interface{} {
 	return data
 }
 
+func composeIssueCommentMessage(issue *Issue, doer *User, comment *Comment, tplName base.TplName, tos []string, info string) *mailer.Message {
+	subject := issue.mailSubject()
+	body := string(markdown.RenderString(issue.Content, issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
+	data := composeTplData(subject, body, issue.HTMLURL() + comment.HashTag())
+
+	data["Doer"] = doer
+
+	var content bytes.Buffer
+
+	if err := templates.ExecuteTemplate(&content, string(tplName), data); err != nil {
+		log.Error(3, "Template: %v", err)
+	}
+
+	msg := mailer.NewMessageFrom(tos, fmt.Sprintf(`"%s" <%s>`, doer.DisplayName(), setting.MailService.FromEmail), subject, content.String())
+	msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
+	return msg
+}
+
 func composeIssueMessage(issue *Issue, doer *User, tplName base.TplName, tos []string, info string) *mailer.Message {
 	subject := issue.mailSubject()
 	body := string(markdown.RenderString(issue.Content, issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
@@ -166,7 +184,23 @@ func composeIssueMessage(issue *Issue, doer *User, tplName base.TplName, tos []s
 }
 
 // SendIssueCommentMail composes and sends issue comment emails to target receivers.
-func SendIssueCommentMail(issue *Issue, doer *User, tos []string) {
+func SendIssueCommentMail(issue *Issue, doer *User, comment *Comment, tos []string) {
+	if len(tos) == 0 {
+		return
+	}
+
+	mailer.SendAsync(composeIssueCommentMessage(issue, doer, comment, mailIssueComment, tos, "issue comment"))
+}
+
+// SendIssueMentionMail composes and sends issue mention emails to target receivers.
+func SendIssueMentionMail(issue *Issue, doer *User, comment *Comment, tos []string) {
+	if len(tos) == 0 {
+		return
+	}
+	mailer.SendAsync(composeIssueCommentMessage(issue, doer, comment, mailIssueMention, tos, "issue mention"))
+}
+// SendIssueActionMail composes and sends issue action emails to target receivers.
+func SendIssueActionMail(issue *Issue, doer *User, tos []string) {
 	if len(tos) == 0 {
 		return
 	}
@@ -174,8 +208,8 @@ func SendIssueCommentMail(issue *Issue, doer *User, tos []string) {
 	mailer.SendAsync(composeIssueMessage(issue, doer, mailIssueComment, tos, "issue comment"))
 }
 
-// SendIssueMentionMail composes and sends issue mention emails to target receivers.
-func SendIssueMentionMail(issue *Issue, doer *User, tos []string) {
+// SendIssueMentionInActionMail composes and sends issue mention emails to target receivers. Only applies if no comment is given.
+func SendIssueMentionInActionMail(issue *Issue, doer *User, tos []string) {
 	if len(tos) == 0 {
 		return
 	}
