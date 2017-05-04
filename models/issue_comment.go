@@ -153,7 +153,7 @@ func (c *Comment) HTMLURL() string {
 		log.Error(4, "GetIssueByID(%d): %v", c.IssueID, err)
 		return ""
 	}
-	return fmt.Sprintf("%s#issuecomment-%d", issue.HTMLURL(), c.ID)
+	return fmt.Sprintf("%s#%s", issue.HTMLURL(), c.HashTag())
 }
 
 // IssueURL formats a URL-string to the issue

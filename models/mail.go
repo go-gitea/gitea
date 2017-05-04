@@ -151,25 +151,13 @@ func composeTplData(subject, body, link string) map[string]interface{} {
 func composeIssueCommentMessage(issue *Issue, doer *User, comment *Comment, tplName base.TplName, tos []string, info string) *mailer.Message {
 	subject := issue.mailSubject()
 	body := string(markdown.RenderString(issue.Content, issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
-	data := composeTplData(subject, body, comment.HTMLURL())
 
-	data["Doer"] = doer
-
-	var content bytes.Buffer
-
-	if err := templates.ExecuteTemplate(&content, string(tplName), data); err != nil {
-		log.Error(3, "Template: %v", err)
+	data := make(map[string]interface{}, 10)
+	if comment != nil {
+		data = composeTplData(subject, body, issue.HTMLURL()+"#"+comment.HashTag())
+	} else {
+		data = composeTplData(subject, body, issue.HTMLURL())
 	}
-
-	msg := mailer.NewMessageFrom(tos, fmt.Sprintf(`"%s" <%s>`, doer.DisplayName(), setting.MailService.FromEmail), subject, content.String())
-	msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
-	return msg
-}
-
-func composeIssueMessage(issue *Issue, doer *User, tplName base.TplName, tos []string, info string) *mailer.Message {
-	subject := issue.mailSubject()
-	body := string(markdown.RenderString(issue.Content, issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
-	data := composeTplData(subject, body, issue.HTMLURL())
 	data["Doer"] = doer
 
 	var content bytes.Buffer
@@ -198,21 +186,4 @@ func SendIssueMentionMail(issue *Issue, doer *User, comment *Comment, tos []stri
 		return
 	}
 	mailer.SendAsync(composeIssueCommentMessage(issue, doer, comment, mailIssueMention, tos, "issue mention"))
-}
-
-// SendIssueActionMail composes and sends issue action emails to target receivers.
-func SendIssueActionMail(issue *Issue, doer *User, tos []string) {
-	if len(tos) == 0 {
-		return
-	}
-
-	mailer.SendAsync(composeIssueMessage(issue, doer, mailIssueComment, tos, "issue comment"))
-}
-
-// SendIssueMentionInActionMail composes and sends issue mention emails to target receivers. Only applies if no comment is given.
-func SendIssueMentionInActionMail(issue *Issue, doer *User, tos []string) {
-	if len(tos) == 0 {
-		return
-	}
-	mailer.SendAsync(composeIssueMessage(issue, doer, mailIssueMention, tos, "issue mention"))
 }
