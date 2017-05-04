@@ -285,6 +285,7 @@ func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
 		FullName:      repo.FullName(),
 		Description:   repo.Description,
 		Private:       repo.IsPrivate,
+		Empty:         repo.IsBare,
 		Fork:          repo.IsFork,
 		Mirror:        repo.IsMirror,
 		HTMLURL:       repo.HTMLURL(),
