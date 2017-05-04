@@ -7,20 +7,18 @@ package cmd
 import (
 	"bufio"
 	"bytes"
-	"crypto/tls"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/com"
 	"github.com/urfave/cli"
 )
 
@@ -64,6 +62,12 @@ var (
 	}
 )
 
+func hookSetup(logPath string) {
+	setting.NewContext()
+	log.NewGitLogger(filepath.Join(setting.LogRootPath, logPath))
+	models.LoadConfigs()
+}
+
 func runHookPreReceive(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		return nil
@@ -75,9 +79,7 @@ func runHookPreReceive(c *cli.Context) error {
 		setting.CustomConf = c.GlobalString("config")
 	}
 
-	if err := setup("hooks/pre-receive.log"); err != nil {
-		fail("Hook pre-receive init failed", fmt.Sprintf("setup: %v", err))
-	}
+	hookSetup("hooks/pre-receive.log")
 
 	// the environment setted on serv command
 	repoID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchRepoID), 10, 64)
@@ -119,18 +121,20 @@ func runHookPreReceive(c *cli.Context) error {
 		}*/
 
 		branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
-		protectBranch, err := models.GetProtectedBranchBy(repoID, branchName)
+		protectBranch, err := private.GetProtectedBranchBy(repoID, branchName)
 		if err != nil {
 			log.GitLogger.Fatal(2, "retrieve protected branches information failed")
 		}
 
 		if protectBranch != nil {
-			// check and deletion
-			if newCommitID == git.EmptySHA {
-				fail(fmt.Sprintf("branch %s is protected from deletion", branchName), "")
-			} else {
-				fail(fmt.Sprintf("protected branch %s can not be pushed to", branchName), "")
-				//fail(fmt.Sprintf("branch %s is protected from force push", branchName), "")
+			if !protectBranch.CanPush {
+				// check and deletion
+				if newCommitID == git.EmptySHA {
+					fail(fmt.Sprintf("branch %s is protected from deletion", branchName), "")
+				} else {
+					fail(fmt.Sprintf("protected branch %s can not be pushed to", branchName), "")
+					//fail(fmt.Sprintf("branch %s is protected from force push", branchName), "")
+				}
 			}
 		}
 	}
@@ -149,9 +153,7 @@ func runHookUpdate(c *cli.Context) error {
 		setting.CustomConf = c.GlobalString("config")
 	}
 
-	if err := setup("hooks/update.log"); err != nil {
-		fail("Hook update init failed", fmt.Sprintf("setup: %v", err))
-	}
+	hookSetup("hooks/update.log")
 
 	return nil
 }
@@ -167,13 +169,10 @@ func runHookPostReceive(c *cli.Context) error {
 		setting.CustomConf = c.GlobalString("config")
 	}
 
-	if err := setup("hooks/post-receive.log"); err != nil {
-		fail("Hook post-receive init failed", fmt.Sprintf("setup: %v", err))
-	}
+	hookSetup("hooks/post-receive.log")
 
 	// the environment setted on serv command
 	repoUser := os.Getenv(models.EnvRepoUsername)
-	repoUserSalt := os.Getenv(models.EnvRepoUserSalt)
 	isWiki := (os.Getenv(models.EnvRepoIsWiki) == "true")
 	repoName := os.Getenv(models.EnvRepoName)
 	pusherID, _ := strconv.ParseInt(os.Getenv(models.EnvPusherID), 10, 64)
@@ -199,7 +198,7 @@ func runHookPostReceive(c *cli.Context) error {
 		newCommitID := string(fields[1])
 		refFullName := string(fields[2])
 
-		if err := models.PushUpdate(models.PushUpdateOptions{
+		if err := private.PushUpdate(models.PushUpdateOptions{
 			RefFullName:  refFullName,
 			OldCommitID:  oldCommitID,
 			NewCommitID:  newCommitID,
@@ -209,23 +208,6 @@ func runHookPostReceive(c *cli.Context) error {
 			RepoName:     repoName,
 		}); err != nil {
 			log.GitLogger.Error(2, "Update: %v", err)
-		}
-
-		// Ask for running deliver hook and test pull request tasks.
-		reqURL := setting.LocalURL + repoUser + "/" + repoName + "/tasks/trigger?branch=" +
-			strings.TrimPrefix(refFullName, git.BranchPrefix) + "&secret=" + base.EncodeMD5(repoUserSalt) + "&pusher=" + com.ToStr(pusherID)
-		log.GitLogger.Trace("Trigger task: %s", reqURL)
-
-		resp, err := httplib.Head(reqURL).SetTLSClientConfig(&tls.Config{
-			InsecureSkipVerify: true,
-		}).Response()
-		if err == nil {
-			resp.Body.Close()
-			if resp.StatusCode/100 != 2 {
-				log.GitLogger.Error(2, "Failed to trigger task: not 2xx response code")
-			}
-		} else {
-			log.GitLogger.Error(2, "Failed to trigger task: %v", err)
 		}
 	}
 

@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+
 	macaron "gopkg.in/macaron.v1"
 )
 
@@ -40,5 +41,7 @@ func UpdatePublicKey(ctx *macaron.Context) {
 func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/", func() {
 		m.Post("/ssh/:id/update", UpdatePublicKey)
+		m.Post("/push/update", PushUpdate)
+		m.Get("/branch/:id/:branch", GetProtectedBranchBy)
 	}, CheckInternalToken)
 }
