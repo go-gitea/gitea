@@ -19,7 +19,7 @@ func (issue *Issue) mailSubject() string {
 }
 
 
-// mailIssueCommentToParticipants can be used for only for comment.
+// mailIssueCommentToParticipants can be used only for comment.
 // This function sends two list of emails:
 // 1. Repository watchers and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
@@ -48,6 +48,10 @@ func mailIssueCommentToParticipants(issue *Issue, doer *User, comment *Comment, 
 	return nil
 }
 
+// mailIssueActionToParticipants can be used for creation or pull requests.
+// This function sends two list of emails:
+// 1. Repository watchers and users who are participated in comments.
+// 2. Users who are not in 1. but get mentioned in current issue/comment.
 func mailIssueActionToParticipants(issue *Issue, doer *User, mentions []string) error {
 	names, tos, err := prepareMailToParticipants(issue, doer)
 
@@ -93,8 +97,8 @@ func prepareMailToParticipants(issue *Issue, doer *User) (tos []string, names []
 		participants = append(participants, issue.Poster)
 	}
 
-	tos := make([]string, 0, len(watchers)) // List of email addresses.
-	names := make([]string, 0, len(watchers))
+	tos = make([]string, 0, len(watchers)) // List of email addresses.
+	names = make([]string, 0, len(watchers))
 	for i := range watchers {
 		if watchers[i].UserID == doer.ID {
 			continue
