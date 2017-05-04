@@ -353,3 +353,39 @@ func (p *PullRequestPayload) SetSecret(secret string) {
 func (p *PullRequestPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
+
+//__________                           .__  __
+//\______   \ ____ ______   ____  _____|__|/  |_  ___________ ___.__.
+// |       _// __ \\____ \ /  _ \/  ___/  \   __\/  _ \_  __ <   |  |
+// |    |   \  ___/|  |_> >  <_> )___ \|  ||  | (  <_> )  | \/\___  |
+// |____|_  /\___  >   __/ \____/____  >__||__|  \____/|__|   / ____|
+//        \/     \/|__|              \/                       \/
+
+// HookRepoAction an action that happens to a repo
+type HookRepoAction string
+
+const (
+	// HookRepoCreated created
+	HookRepoCreated HookRepoAction = "created"
+	// HookRepoDeleted deleted
+	HookRepoDeleted HookRepoAction = "deleted"
+)
+
+// RepositoryPayload payload for repository webhooks
+type RepositoryPayload struct {
+	Secret       string         `json:"secret"`
+	Action       HookRepoAction `json:"action"`
+	Repository   *Repository    `json:"repository"`
+	Organization *User          `json:"organization"`
+	Sender       *User          `json:"sender"`
+}
+
+// SetSecret set the payload's secret
+func (p *RepositoryPayload) SetSecret(secret string) {
+	p.Secret = secret
+}
+
+// JSONPayload JSON representation of the payload
+func (p *RepositoryPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", " ")
+}
