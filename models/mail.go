@@ -151,7 +151,7 @@ func composeTplData(subject, body, link string) map[string]interface{} {
 func composeIssueCommentMessage(issue *Issue, doer *User, comment *Comment, tplName base.TplName, tos []string, info string) *mailer.Message {
 	subject := issue.mailSubject()
 	body := string(markdown.RenderString(issue.Content, issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
-	data := composeTplData(subject, body, issue.HTMLURL() + comment.HashTag())
+	data := composeTplData(subject, body, issue.HTMLURL() + "#" +  comment.HashTag())
 
 	data["Doer"] = doer
 
