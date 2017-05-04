@@ -9,8 +9,8 @@ import "fmt"
 // ErrOpenIDConnectInitialize represents a "OpenIDConnectInitialize" kind of error.
 type ErrOpenIDConnectInitialize struct {
 	OpenIDConnectAutoDiscoveryURL string
-	ProviderName string
-	Cause error
+	ProviderName                  string
+	Cause                         error
 }
 
 // IsErrOpenIDConnectInitialize checks if an error is a ExternalLoginUserAlreadyExist.
