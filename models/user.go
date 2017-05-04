@@ -1402,7 +1402,7 @@ func SyncExternalUsers() {
 				} else if updateExisting {
 					existingUsers = append(existingUsers, usr.ID)
 					// Check if user data has changed
-					if usr.IsAdmin != su.IsAdmin ||
+					if (len(s.LDAP().AdminFilter) > 0 && usr.IsAdmin != su.IsAdmin) ||
 						strings.ToLower(usr.Email) != strings.ToLower(su.Mail) ||
 						usr.FullName != fullName ||
 						!usr.IsActive {
@@ -1411,7 +1411,10 @@ func SyncExternalUsers() {
 
 						usr.FullName = fullName
 						usr.Email = su.Mail
-						usr.IsAdmin = su.IsAdmin
+						// Change existing admin flag only if AdminFilter option is set
+						if len(s.LDAP().AdminFilter) > 0 {
+							usr.IsAdmin = su.IsAdmin
+						}
 						usr.IsActive = true
 
 						err = UpdateUser(usr)
