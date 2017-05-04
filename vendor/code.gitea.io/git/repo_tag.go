@@ -122,7 +122,7 @@ func parseTag(line string, opt TagOption) (*Tag, error) {
 	if start < 0 {
 		return nil, nil
 	}
-	end := strings.IndexByte(left[start+1:], ')')
+	end := strings.LastIndexByte(left[start+1:], ')')
 	if end < 0 {
 		return nil, nil
 	}
