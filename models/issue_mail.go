@@ -18,7 +18,6 @@ func (issue *Issue) mailSubject() string {
 	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.Name, issue.Title, issue.Index)
 }
 
-
 // mailIssueCommentToParticipants can be used only for comment.
 // This function sends two list of emails:
 // 1. Repository watchers and users who are participated in comments.
@@ -27,7 +26,7 @@ func mailIssueCommentToParticipants(issue *Issue, doer *User, comment *Comment, 
 
 	names, tos, err := prepareMailToParticipants(issue, doer)
 
-	if(err != nil) {
+	if err != nil {
 		return fmt.Errorf("PrepareMailToParticipants: %v", err)
 	}
 
@@ -55,7 +54,7 @@ func mailIssueCommentToParticipants(issue *Issue, doer *User, comment *Comment, 
 func mailIssueActionToParticipants(issue *Issue, doer *User, mentions []string) error {
 	names, tos, err := prepareMailToParticipants(issue, doer)
 
-	if(err != nil) {
+	if err != nil {
 		return fmt.Errorf("PrepareMailToParticipants: %v", err)
 	}
 
@@ -77,7 +76,7 @@ func mailIssueActionToParticipants(issue *Issue, doer *User, mentions []string) 
 }
 
 // prepareMailToParticipants creates the tos and names list for an issue and the issue's creator.
-func prepareMailToParticipants(issue *Issue, doer *User) (tos []string, names []string, error error)  {
+func prepareMailToParticipants(issue *Issue, doer *User) (tos []string, names []string, error error) {
 	if !setting.Service.EnableNotifyMail {
 		return nil, nil, nil
 	}
@@ -128,7 +127,6 @@ func prepareMailToParticipants(issue *Issue, doer *User) (tos []string, names []
 	return tos, names, nil
 }
 
-
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
 func (issue *Issue) MailParticipants() (err error) {
@@ -143,5 +141,3 @@ func (issue *Issue) MailParticipants() (err error) {
 
 	return nil
 }
-
-
