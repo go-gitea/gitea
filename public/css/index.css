@@ -1306,6 +1306,9 @@ footer .ui.language .menu {
   padding-top: 8px;
   padding-bottom: 8px;
 }
+.repository.file.list #repo-files-table td.message .isSigned {
+  cursor: default;
+}
 .repository.file.list #repo-files-table tr:hover {
   background-color: #ffffEE;
 }
@@ -1933,10 +1936,15 @@ footer .ui.language .menu {
 .repository #commits-table td.sha .sha.label {
   margin: 0;
 }
-.repository #commits-table td.sha .sha.label.isSigned {
+.repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n) {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+.repository #commits-table td.sha .sha.label.isSigned,
+.repository #repo-files-table .sha.label.isSigned {
   border: 1px solid #BBB;
 }
-.repository #commits-table td.sha .sha.label.isSigned .detail.icon {
+.repository #commits-table td.sha .sha.label.isSigned .detail.icon,
+.repository #repo-files-table .sha.label.isSigned .detail.icon {
   background: #FAFAFA;
   margin: -6px -10px -4px 0px;
   padding: 5px 3px 5px 6px;
@@ -1944,15 +1952,14 @@ footer .ui.language .menu {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
-.repository #commits-table td.sha .sha.label.isSigned.isVerified {
+.repository #commits-table td.sha .sha.label.isSigned.isVerified,
+.repository #repo-files-table .sha.label.isSigned.isVerified {
   border: 1px solid #21BA45;
   background: #21BA4518;
 }
-.repository #commits-table td.sha .sha.label.isSigned.isVerified .detail.icon {
+.repository #commits-table td.sha .sha.label.isSigned.isVerified .detail.icon,
+.repository #repo-files-table .sha.label.isSigned.isVerified .detail.icon {
   border-left: 1px solid #21BA4580;
-}
-.repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n) {
-  background-color: rgba(0, 0, 0, 0.02) !important;
 }
 .repository .diff-detail-box {
   margin: 15px 0;
