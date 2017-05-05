@@ -1,4 +1,4 @@
-FROM hypriot/rpi-alpine-scratch:v3.4
+FROM multiarch/alpine:armhf-v3.5
 MAINTAINER Thomas Boerger <thomas@webhippie.de>
 
 EXPOSE 22 3000
