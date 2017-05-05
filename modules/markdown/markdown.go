@@ -542,12 +542,12 @@ func RenderCrossReferenceIssueIndexPattern(rawBytes []byte, urlPrefix string, me
 func renderSha1CurrentPattern(rawBytes []byte, urlPrefix string) []byte {
 	ms := Sha1CurrentPattern.FindAllSubmatch(rawBytes, -1)
 	for _, m := range ms {
-		all := m[1]
-		if com.StrTo(all).MustInt() > 0 {
+		hash := m[1]
+		if com.StrTo(hash).MustInt() > 0 {
 			continue
 		}
-		rawBytes = bytes.Replace(rawBytes, all, []byte(fmt.Sprintf(
-			`<a href="%s">%s</a>`, URLJoin(urlPrefix, "commit", string(all)), base.ShortSha(string(all)))), -1)
+		rawBytes = bytes.Replace(rawBytes, hash, []byte(fmt.Sprintf(
+			`<a href="%s">%s</a>`, URLJoin(urlPrefix, "commit", string(hash)), base.ShortSha(string(hash)))), -1)
 	}
 	return rawBytes
 }
