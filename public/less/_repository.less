@@ -204,6 +204,9 @@
 				padding-top: 8px;
 				padding-bottom: 8px;
 			}
+            td.message .isSigned {
+                cursor: default;
+            }
 			tr:hover {
 				background-color: #ffffEE;
 			}
@@ -804,33 +807,34 @@
 				width: 140px;
 			}
 		}
-		td.sha{
-			.sha.label{
-				margin: 0;
-				&.isSigned{
-					border: 1px solid #BBB;
-					.detail.icon{
-						background: #FAFAFA;
-						margin: -6px -10px -4px 0px;
-						padding: 5px 3px 5px 6px;
-						border-left: 1px solid #BBB;
-						border-top-left-radius: 0;
-						border-bottom-left-radius: 0;
-					}
-				}
-				&.isSigned.isVerified{
-					border: 1px solid #21BA45;
-					background: #21BA4518;
-					.detail.icon{
-						border-left: 1px solid #21BA4580;
-					}
-				}
-			}
-		}
+        td.sha .sha.label {
+            margin: 0;
+        }
 		&.ui.basic.striped.table tbody tr:nth-child(2n) {
 			background-color: rgba(0, 0, 0, .02)!important;
 		}
 	}
+
+    #commits-table td.sha .sha.label, #repo-files-table .sha.label{
+        &.isSigned{
+            border: 1px solid #BBB;
+            .detail.icon{
+                background: #FAFAFA;
+                margin: -6px -10px -4px 0px;
+                padding: 5px 3px 5px 6px;
+                border-left: 1px solid #BBB;
+                border-top-left-radius: 0;
+                border-bottom-left-radius: 0;
+            }
+        }
+        &.isSigned.isVerified{
+            border: 1px solid #21BA45;
+            background: #21BA4518;
+            .detail.icon{
+                border-left: 1px solid #21BA4580;
+            }
+        }
+    }
 
 	.diff-detail-box {
 		margin: 15px 0;

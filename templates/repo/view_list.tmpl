@@ -13,7 +13,18 @@
 					<img class="ui avatar image img-12" src="{{AvatarLink .LatestCommit.Author.Email}}" />
 					<strong>{{.LatestCommit.Author.Name}}</strong>
 				{{end}}
-				<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.LatestCommit.ID}}" rel="nofollow">{{ShortSha .LatestCommit.ID.String}}</a>
+				<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified }} isVerified {{end}}{{end}}" href="{{.RepoLink}}/commit/{{.LatestCommit.ID}}">
+						{{ShortSha .LatestCommit.ID.String}}
+						{{if .LatestCommit.Signature}}
+							<div class="ui detail icon button">
+								{{if .LatestCommitVerification.Verified}}
+									<i title="{{.LatestCommitVerification.Reason}}" class="lock green icon"></i>
+								{{else}}
+									<i title="{{$.i18n.Tr .LatestCommitVerification.Reason}}" class="unlock icon"></i>
+								{{end}}
+							</div>
+						{{end}}
+				</a>
 				<span class="grey has-emoji">{{RenderCommitMessage false .LatestCommit.Summary .RepoLink $.Repository.ComposeMetas}}</span>
 			</th>
 			<th class="nine wide">
@@ -61,8 +72,9 @@
 					</td>
 				{{end}}
 				<td class="message collapsing has-emoji">
-					<a rel="nofollow" class="ui sha label" href="{{$.RepoLink}}/commit/{{$commit.ID}}">{{ShortSha $commit.ID.String}}</a>
-					{{RenderCommitMessage false $commit.Summary $.RepoLink $.Repository.ComposeMetas}}
+					<a rel="nofollow" href="{{$.RepoLink}}/commit/{{$commit.ID}}">
+						{{RenderCommitMessage false $commit.Summary $.RepoLink $.Repository.ComposeMetas}}
+					</a>
 				</td>
 				<td class="text grey right age">{{TimeSince $commit.Committer.When $.Lang}}</td>
 			</tr>

@@ -117,6 +117,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		}
 	}
 	ctx.Data["LatestCommit"] = latestCommit
+	ctx.Data["LatestCommitVerification"] = models.ParseCommitWithSignature(latestCommit)
 	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
 
 	// Check permission to add or upload new file.
