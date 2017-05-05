@@ -296,6 +296,7 @@ func TestRender_Commits(t *testing.T) {
 	test(sha, `<p><a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
 	test(commit, `<p><a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
 	test(tree, `<p><a href="`+src+`" rel="nofollow">b6dd6210ea/src</a></p>`)
+	test("commit "+sha, `<p>commit <a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
 }
 
 func TestRender_Images(t *testing.T) {
