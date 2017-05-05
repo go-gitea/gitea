@@ -45,6 +45,7 @@ type InstallForm struct {
 	EnableCaptcha           bool
 	RequireSignInView       bool
 	DefaultKeepEmailPrivate bool
+	DefaultAllowCreateOrganization bool
 	NoReplyAddress          string
 
 	AdminName          string `binding:"OmitEmpty;AlphaDashDot;MaxSize(30)" locale:"install.admin_name"`

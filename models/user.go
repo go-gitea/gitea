@@ -706,7 +706,7 @@ func CreateUser(u *User) (err error) {
 		return err
 	}
 	u.EncodePasswd()
-	u.AllowCreateOrganization = true
+	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	u.MaxRepoCreation = -1
 
 	sess := x.NewSession()
