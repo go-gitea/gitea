@@ -121,6 +121,7 @@ const (
 	syncSSHAuthorizedKey
 	syncRepositoryUpdateHook
 	reinitMissingRepository
+	syncExternalUsers
 )
 
 // Dashboard show admin panel dashboard
@@ -157,6 +158,9 @@ func Dashboard(ctx *context.Context) {
 		case reinitMissingRepository:
 			success = ctx.Tr("admin.dashboard.reinit_missing_repos_success")
 			err = models.ReinitMissingRepositories()
+		case syncExternalUsers:
+			success = ctx.Tr("admin.dashboard.sync_external_users_started")
+			go models.SyncExternalUsers()
 		}
 
 		if err != nil {

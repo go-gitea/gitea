@@ -1344,7 +1344,7 @@ func SyncExternalUsers() {
 	updateExisting := setting.Cron.SyncExternalUsers.UpdateExisting
 
 	for _, s := range ls {
-		if !s.IsActived {
+		if !s.IsActived || !s.IsSyncEnabled {
 			continue
 		}
 		if s.IsLDAP() {

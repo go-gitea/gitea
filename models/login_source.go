@@ -140,11 +140,12 @@ func (cfg *OAuth2Config) ToDB() ([]byte, error) {
 
 // LoginSource represents an external way for authorizing users.
 type LoginSource struct {
-	ID        int64 `xorm:"pk autoincr"`
-	Type      LoginType
-	Name      string          `xorm:"UNIQUE"`
-	IsActived bool            `xorm:"INDEX NOT NULL DEFAULT false"`
-	Cfg       core.Conversion `xorm:"TEXT"`
+	ID            int64 `xorm:"pk autoincr"`
+	Type          LoginType
+	Name          string          `xorm:"UNIQUE"`
+	IsActived     bool            `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsSyncEnabled bool            `xorm:"INDEX NOT NULL DEFAULT false"`
+	Cfg           core.Conversion `xorm:"TEXT"`
 
 	Created     time.Time `xorm:"-"`
 	CreatedUnix int64     `xorm:"INDEX"`
@@ -293,6 +294,10 @@ func CreateLoginSource(source *LoginSource) error {
 		return err
 	} else if has {
 		return ErrLoginSourceAlreadyExist{source.Name}
+	}
+	// Synchronization is only aviable with LDAP for now
+	if !source.IsLDAP() {
+		source.IsSyncEnabled = false
 	}
 
 	_, err = x.Insert(source)

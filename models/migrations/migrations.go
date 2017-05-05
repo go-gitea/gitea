@@ -110,6 +110,8 @@ var migrations = []Migration{
 	NewMigration("add commit status table", addCommitStatus),
 	// v30 -> 31
 	NewMigration("add primary key to external login user", addExternalLoginUserPK),
+	// 31 -> 32
+	NewMigration("add field for login source synchronization", addLoginSourceSyncEnabledColumn),
 }
 
 // Migrate database to current version

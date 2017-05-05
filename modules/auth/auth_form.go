@@ -28,6 +28,7 @@ type AuthenticationForm struct {
 	Filter                        string
 	AdminFilter                   string
 	IsActive                      bool
+	IsSyncEnabled                 bool
 	SMTPAuth                      string
 	SMTPHost                      string
 	SMTPPort                      int
