@@ -48,11 +48,12 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 	entries.Sort()
 
-	ctx.Data["Files"], err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath)
+	files, err := entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.Handle(500, "GetCommitsInfo", err)
 		return
 	}
+	ctx.Data["Files"] = models.ParseCommitsInfoWithSignature(files)
 
 	var readmeFile *git.Blob
 	for _, entry := range entries {
