@@ -7,6 +7,7 @@ package repo
 import (
 	"fmt"
 	"io"
+	"path"
 	"strings"
 
 	"code.gitea.io/git"
@@ -24,6 +25,7 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	}
 
 	ctx.Resp.Header().Set("Cache-Control", "public,max-age=86400")
+	name = path.Base(name)
 
 	// Google Chrome dislike commas in filenames, so let's change it to a space
 	name = strings.Replace(name, ",", " ", -1)
