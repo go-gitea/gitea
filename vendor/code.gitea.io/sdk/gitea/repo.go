@@ -29,6 +29,7 @@ type Repository struct {
 	Empty         bool        `json:"empty"`
 	Private       bool        `json:"private"`
 	Fork          bool        `json:"fork"`
+	Parent        *Repository `json:"parent"`
 	Mirror        bool        `json:"mirror"`
 	Size          int         `json:"size"`
 	HTMLURL       string      `json:"html_url"`

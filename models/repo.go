@@ -272,11 +272,26 @@ func (repo *Repository) APIURL() string {
 
 // APIFormat converts a Repository to api.Repository
 func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
+	return repo.innerAPIFormat(mode, false)
+}
+
+func (repo *Repository) innerAPIFormat(mode AccessMode, isParent bool) *api.Repository {
+	var parent *api.Repository
+
 	cloneLink := repo.CloneLink()
 	permission := &api.Permission{
 		Admin: mode >= AccessModeAdmin,
 		Push:  mode >= AccessModeWrite,
 		Pull:  mode >= AccessModeRead,
+	}
+	if !isParent {
+		err := repo.GetBaseRepo()
+		if err != nil {
+			log.Error(4, "APIFormat: %v", err)
+		}
+		if repo.BaseRepo != nil {
+			parent = repo.BaseRepo.innerAPIFormat(mode, true)
+		}
 	}
 	return &api.Repository{
 		ID:            repo.ID,
@@ -288,6 +303,7 @@ func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
 		Empty:         repo.IsBare,
 		Size:          int(repo.Size/1024),
 		Fork:          repo.IsFork,
+		Parent:        parent,
 		Mirror:        repo.IsMirror,
 		HTMLURL:       repo.HTMLURL(),
 		SSHURL:        cloneLink.SSH,
