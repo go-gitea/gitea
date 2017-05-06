@@ -1666,6 +1666,10 @@ function initDashboardSearch() {
 
         mounted: function() {
             this.searchRepos();
+
+            Vue.nextTick(function() {
+                document.querySelector('#search_repo').focus();
+            });
         },
 
         methods: {

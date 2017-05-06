@@ -17,7 +17,7 @@
 				</div>
 				<div v-if="tab === 'repos'" class="ui tab active list">
 					<div class="ui fluid input">
-						<input @keyUp="searchKeyUp" v-model="searchQuery" id="search_repo" placeholder="{{.i18n.Tr "home.search_repos"}}" autofocus="">
+						<input @keyUp="searchKeyUp" v-model="searchQuery" id="search_repo" placeholder="{{.i18n.Tr "home.search_repos"}}">
 					</div>
 					<h4 class="ui top attached header">
 						{{.i18n.Tr "home.my_repos"}} <span class="ui grey label">{{.ContextUser.NumRepos}}</span>
