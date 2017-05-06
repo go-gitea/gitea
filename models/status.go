@@ -5,6 +5,7 @@
 package models
 
 import (
+	"container/list"
 	"fmt"
 	"strings"
 	"time"
@@ -251,4 +252,41 @@ func NewCommitStatus(repo *Repository, creator *User, sha string, status *Commit
 	}
 
 	return sess.Commit()
+}
+
+type SignCommitWithStatuses struct {
+	Statuses []*CommitStatus
+	State    CommitStatusState
+	*SignCommit
+}
+
+func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List {
+	var (
+		newCommits = list.New()
+		e          = oldCommits.Front()
+		err        error
+	)
+
+	for e != nil {
+		c := e.Value.(SignCommit)
+		commit := SignCommitWithStatuses{
+			SignCommit: &c,
+			State:      "",
+			Statuses:   make([]*CommitStatus, 0),
+		}
+		commit.Statuses, err = GetLatestCommitStatus(repo, commit.ID.String(), 0)
+		if err != nil {
+			log.Error(3, "GetLatestCommitStatus: %v", err)
+		} else {
+			for _, status := range commit.Statuses {
+				if status.State.IsWorseThan(commit.State) {
+					commit.State = status.State
+				}
+			}
+		}
+
+		newCommits.PushBack(commit)
+		e = e.Next()
+	}
+	return newCommits
 }

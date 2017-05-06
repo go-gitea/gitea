@@ -69,6 +69,7 @@ func Commits(ctx *context.Context) {
 	commits = renderIssueLinks(commits, ctx.Repo.RepoLink)
 	commits = models.ValidateCommitsWithEmails(commits)
 	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
@@ -123,6 +124,7 @@ func SearchCommits(ctx *context.Context) {
 	commits = renderIssueLinks(commits, ctx.Repo.RepoLink)
 	commits = models.ValidateCommitsWithEmails(commits)
 	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
 	ctx.Data["Keyword"] = keyword
@@ -170,6 +172,7 @@ func FileHistory(ctx *context.Context) {
 	commits = renderIssueLinks(commits, ctx.Repo.RepoLink)
 	commits = models.ValidateCommitsWithEmails(commits)
 	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
