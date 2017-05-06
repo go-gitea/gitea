@@ -19,7 +19,6 @@ import (
 const (
 	EnvRepoName     = "GITEA_REPO_NAME"
 	EnvRepoUsername = "GITEA_REPO_USER_NAME"
-	EnvRepoUserSalt = "GITEA_REPO_USER_SALT"
 	EnvRepoIsWiki   = "GITEA_REPO_IS_WIKI"
 	EnvPusherName   = "GITEA_PUSHER_NAME"
 	EnvPusherID     = "GITEA_PUSHER_ID"
