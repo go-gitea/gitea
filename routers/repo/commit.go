@@ -284,6 +284,7 @@ func CompareDiff(ctx *context.Context) {
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
 	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 
 	ctx.Data["CommitRepoLink"] = ctx.Repo.RepoLink
 	ctx.Data["Commits"] = commits
