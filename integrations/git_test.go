@@ -37,5 +37,5 @@ func TestClonePush_ViaHTTP_NoLogin(t *testing.T) {
 
 	empty, err := r.IsEmpty()
 	assert.NoError(t, err)
-	assert.Equal(t, false, empty)
+	assert.False(t, empty)
 }
