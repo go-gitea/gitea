@@ -1657,6 +1657,7 @@ function initDashboardSearch() {
         el: el,
 
         data: {
+            tab: 'repos',
             repos: [],
             searchQuery: '',
             suburl: document.querySelector('meta[name=_suburl]').content,
@@ -1668,6 +1669,10 @@ function initDashboardSearch() {
         },
 
         methods: {
+            changeTab: function(t) {
+                this.tab = t;
+            },
+
             searchKeyUp: function() {
                 this.searchRepos();
             },

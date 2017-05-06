@@ -7,15 +7,15 @@
 			<div class="ten wide column">
 				{{template "user/dashboard/feeds" .}}
 			</div>
-			<div class="six wide column">
+			<div id="dashboard-repo-search" class="six wide column">
 				<div class="ui {{if not .ContextUser.IsOrganization}}three{{else}}two{{end}} item tabable menu">
-					<a class="item active" data-tab="repos">{{.i18n.Tr "repository"}}</a>
+					<a :class="{item: true, active: tab === 'repos'}" @click="changeTab('repos')">{{.i18n.Tr "repository"}}</a>
 					{{if not .ContextUser.IsOrganization}}
-						<a class="item" data-tab="orgs">{{.i18n.Tr "organization"}}</a>
+						<a :class="{item: true, active: tab === 'orgs'}" @click="changeTab('orgs')">{{.i18n.Tr "organization"}}</a>
 					{{end}}
-					<a class="item" data-tab="mirrors">{{.i18n.Tr "mirror"}}</a>
+					<a :class="{item: true, active: tab === 'mirrors'}" @click="changeTab('mirrors')">{{.i18n.Tr "mirror"}}</a>
 				</div>
-				<div id="dashboard-repo-search" class="ui tab active list" data-tab="repos">
+				<div v-if="tab === 'repos'" class="ui tab active list">
 					<div class="ui fluid input">
 						<input @keyUp="searchKeyUp" v-model="searchQuery" id="search_repo" placeholder="{{.i18n.Tr "home.search_repos"}}" autofocus="">
 					</div>
@@ -72,7 +72,7 @@
 				</div>
 
 				{{if not .ContextUser.IsOrganization}}
-					<div class="ui tab list" data-tab="orgs">
+					<div v-if="tab === 'orgs'" class="ui tab active list">
 						<h4 class="ui top attached header">
 							{{.i18n.Tr "home.my_orgs"}} <span class="ui grey label">{{.ContextUser.GetOrganizationCount}}</span>
 							<div class="ui right">
@@ -100,7 +100,7 @@
 					</div>
 				{{end}}
 
-				<div class="ui tab list" data-tab="mirrors">
+				<div v-if="tab === 'mirrors'" class="ui tab active list">
 					<h4 class="ui top attached header">
 						{{.i18n.Tr "home.my_mirrors"}} <span class="ui grey label">{{.MirrorCount}}</span>
 						<div class="ui right">
