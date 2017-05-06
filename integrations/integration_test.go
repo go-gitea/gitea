@@ -94,11 +94,12 @@ func initIntegrationTest() {
 		if err != nil {
 			log.Fatalf("db.Query: %v", err)
 		}
-		if rows.Next() {
-			break // database already exists
-		}
-		if _, err = db.Exec("CREATE DATABASE testgitea"); err != nil {
-			log.Fatalf("db.Exec: %v", err)
+		defer rows.Close()
+
+		if !rows.Next() {
+			if _, err = db.Exec("CREATE DATABASE testgitea"); err != nil {
+				log.Fatalf("db.Exec: %v", err)
+			}
 		}
 	}
 	routers.GlobalInit()
