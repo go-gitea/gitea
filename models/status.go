@@ -254,12 +254,14 @@ func NewCommitStatus(repo *Repository, creator *User, sha string, status *Commit
 	return sess.Commit()
 }
 
+// SignCommitWithStatuses represents a commit with validation of signature and status state.
 type SignCommitWithStatuses struct {
 	Statuses []*CommitStatus
 	State    CommitStatusState
 	*SignCommit
 }
 
+// ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
 func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List {
 	var (
 		newCommits = list.New()
