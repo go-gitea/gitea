@@ -164,8 +164,6 @@ func runServ(c *cli.Context) error {
 		fail("Internal error", "Failed to get repository owner (%s): %v", username, err)
 	}
 
-	os.Setenv(models.EnvRepoUserSalt, repoUser.Salt)
-
 	repo, err := models.GetRepositoryByName(repoUser.ID, reponame)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
