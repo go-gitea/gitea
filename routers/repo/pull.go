@@ -293,6 +293,8 @@ func ViewPullCommits(ctx *context.Context) {
 	}
 
 	commits = models.ValidateCommitsWithEmails(commits)
+	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = commits.Len()
 
@@ -576,6 +578,8 @@ func PrepareCompareDiff(
 	}
 
 	prInfo.Commits = models.ValidateCommitsWithEmails(prInfo.Commits)
+	prInfo.Commits = models.ParseCommitsWithSignature(prInfo.Commits)
+	prInfo.Commits = models.ParseCommitsWithStatus(prInfo.Commits, headRepo)
 	ctx.Data["Commits"] = prInfo.Commits
 	ctx.Data["CommitCount"] = prInfo.Commits.Len()
 	ctx.Data["Username"] = headUser.Name

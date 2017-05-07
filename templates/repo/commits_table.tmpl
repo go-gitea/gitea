@@ -61,6 +61,21 @@
 						</td>
 						<td class="message collapsing">
 							<span class="has-emoji{{if gt .ParentCount 1}} grey text{{end}}">{{RenderCommitMessage false .Summary $.RepoLink $.Repository.ComposeMetas}}</span>
+							{{if eq .State "pending"}}
+							<i class="commit-status circle icon yellow"></i>
+							{{end}}
+							{{if eq .State "success"}}
+							<i class="commit-status check icon green"></i>
+							{{end}}
+							{{if eq .State "error"}}
+							<i class="commit-status warning icon red"></i>
+							{{end}}
+							{{if eq .State "failure"}}
+							<i class="commit-status remove icon red"></i>
+							{{end}}
+							{{if eq .State "warning"}}
+							<i class="commit-status warning sign icon yellow"></i>
+							{{end}}
 						</td>
 						<td class="grey text right aligned">{{TimeSince .Author.When $.Lang}}</td>
 					</tr>

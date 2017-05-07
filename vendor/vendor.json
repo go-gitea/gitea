@@ -15,6 +15,12 @@
 			"revisionTime": "2017-05-04T17:35:58Z"
 		},
 		{
+			"checksumSHA1": "bOODD4Gbw3GfcuQPU2dI40crxxk=",
+			"path": "github.com/PuerkitoBio/goquery",
+			"revision": "ed7d758e9a34ba1f55e8084e0d731448b46921a8",
+			"revisionTime": "2017-03-24T13:54:48Z"
+		},
+		{
 			"checksumSHA1": "IyfS7Rbl6OgR83QR7TOfKdDCq+M=",
 			"path": "github.com/Unknwon/cae",
 			"revision": "c6aac99ea2cae2ebaf23f26f76b04fe3fcfc9f8c",
@@ -43,6 +49,12 @@
 			"path": "github.com/Unknwon/paginater",
 			"revision": "7748a72e01415173a27d79866b984328e7b0c12b",
 			"revisionTime": "2015-11-04T15:16:17Z"
+		},
+		{
+			"checksumSHA1": "2rWSos1D+xqNSGkvEMOG3pntod8=",
+			"path": "github.com/andybalholm/cascadia",
+			"revision": "349dd0209470eabd9514242c688c403c0926d266",
+			"revisionTime": "2016-12-24T14:14:13Z"
 		},
 		{
 			"checksumSHA1": "Ehq5j/CeBqurZOP1vXMDLEl+RZo=",

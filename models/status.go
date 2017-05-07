@@ -5,6 +5,7 @@
 package models
 
 import (
+	"container/list"
 	"fmt"
 	"strings"
 	"time"
@@ -144,10 +145,20 @@ func GetCommitStatuses(repo *Repository, sha string, page int) ([]*CommitStatus,
 
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
 func GetLatestCommitStatus(repo *Repository, sha string, page int) ([]*CommitStatus, error) {
-	statuses := make([]*CommitStatus, 0, 10)
-	return statuses, x.Limit(10, page*10).
-		Where("repo_id = ?", repo.ID).And("sha = ?", sha).Select("*").
-		GroupBy("context").Desc("created_unix").Find(&statuses)
+	ids := make([]int64, 0, 10)
+	err := x.Limit(10, page*10).
+		Table(&CommitStatus{}).
+		Where("repo_id = ?", repo.ID).And("sha = ?", sha).
+		Select("max( id ) as id").
+		GroupBy("context").OrderBy("max( id ) desc").Find(&ids)
+	if err != nil {
+		return nil, err
+	}
+	statuses := make([]*CommitStatus, 0, len(ids))
+	if len(ids) == 0 {
+		return statuses, nil
+	}
+	return statuses, x.In("id", ids).Find(&statuses)
 }
 
 // GetCommitStatus populates a given status for a given commit.
@@ -251,4 +262,43 @@ func NewCommitStatus(repo *Repository, creator *User, sha string, status *Commit
 	}
 
 	return sess.Commit()
+}
+
+// SignCommitWithStatuses represents a commit with validation of signature and status state.
+type SignCommitWithStatuses struct {
+	Statuses []*CommitStatus
+	State    CommitStatusState
+	*SignCommit
+}
+
+// ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
+func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List {
+	var (
+		newCommits = list.New()
+		e          = oldCommits.Front()
+		err        error
+	)
+
+	for e != nil {
+		c := e.Value.(SignCommit)
+		commit := SignCommitWithStatuses{
+			SignCommit: &c,
+			State:      "",
+			Statuses:   make([]*CommitStatus, 0),
+		}
+		commit.Statuses, err = GetLatestCommitStatus(repo, commit.ID.String(), 0)
+		if err != nil {
+			log.Error(3, "GetLatestCommitStatus: %v", err)
+		} else {
+			for _, status := range commit.Statuses {
+				if status.State.IsWorseThan(commit.State) {
+					commit.State = status.State
+				}
+			}
+		}
+
+		newCommits.PushBack(commit)
+		e = e.Next()
+	}
+	return newCommits
 }
