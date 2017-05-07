@@ -145,28 +145,20 @@ func GetCommitStatuses(repo *Repository, sha string, page int) ([]*CommitStatus,
 
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
 func GetLatestCommitStatus(repo *Repository, sha string, page int) ([]*CommitStatus, error) {
-	statuses := make([]*CommitStatus, 0, 10)
+	ids := make([]int64, 0, 10)
 	err := x.Limit(10, page*10).
+		Table(&CommitStatus{}).
 		Where("repo_id = ?", repo.ID).And("sha = ?", sha).
-		Select("context, max(created_unix) as created_unix").
-		GroupBy("context").OrderBy("max(created_unix) desc").Find(&statuses)
+		Select("max( id ) as id").
+		GroupBy("context").OrderBy("max( id ) desc").Find(&ids)
 	if err != nil {
 		return nil, err
 	}
-	fullStatuses := make([]*CommitStatus, 0, len(statuses))
-	for _, status := range statuses {
-		cs := make([]*CommitStatus, 0, 1)
-		err = x.Where("repo_id = ?", repo.ID).And("sha = ?", sha).
-			And("context = ?", status.Context).And("created_unix = ?", status.CreatedUnix).
-			Find(&cs)
-		if err != nil {
-			return nil, err
-		}
-		if len(cs) > 0 {
-			fullStatuses = append(fullStatuses, cs[0])
-		}
+	statuses := make([]*CommitStatus, 0, len(ids))
+	if len(ids) == 0 {
+		return statuses, nil
 	}
-	return fullStatuses, nil
+	return statuses, x.In("id", ids).Find(&statuses)
 }
 
 // GetCommitStatus populates a given status for a given commit.
