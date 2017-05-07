@@ -458,6 +458,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("/:username").Get(org.IsMember).
 					Delete(reqOrgOwnership(), org.DeleteMember)
 			})
+			m.Group("/repos", func() {
+				m.Get("", org.ListRepos)
+			})
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
 				m.Combo("/:username").Get(org.IsPublicMember).
