@@ -71,11 +71,14 @@ func ReadmeFileType(name string) (string, bool) {
 // IsReadmeFile reports whether name looks like a README file
 // based on its name.
 func IsReadmeFile(name string) bool {
-	name = strings.ToLower(name)
 	if len(name) < 6 {
 		return false
-	} else if len(name) == 6 {
+	}
+
+	name = strings.ToLower(name)
+	if len(name) == 6 {
 		return name == "readme"
 	}
 	return name[:7] == "readme."
 }
+
