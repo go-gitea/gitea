@@ -42,6 +42,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/", func() {
 		m.Post("/ssh/:id/update", UpdatePublicKey)
 		m.Post("/push/update", PushUpdate)
-		m.Get("/branch/:id/:branch", GetProtectedBranchBy)
+		m.Get("/branch/:id/*", GetProtectedBranchBy)
 	}, CheckInternalToken)
 }

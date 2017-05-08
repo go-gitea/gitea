@@ -13,7 +13,7 @@ import (
 // GetProtectedBranchBy get protected branch information
 func GetProtectedBranchBy(ctx *macaron.Context) {
 	repoID := ctx.ParamsInt64(":id")
-	branchName := ctx.Params(":branch")
+	branchName := ctx.Params("*")
 	protectBranch, err := models.GetProtectedBranchBy(repoID, branchName)
 	if err != nil {
 		ctx.JSON(500, map[string]interface{}{
