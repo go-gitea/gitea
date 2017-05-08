@@ -36,7 +36,7 @@ func Branches(ctx *context.Context) {
 
 // DeleteBranchPost responses for delete merged branch
 func DeleteBranchPost(ctx *context.Context) {
-	branchName := ctx.Params(":name")
+	branchName := ctx.Params("*")
 	commitID := ctx.Query("commit")
 
 	defer func() {
