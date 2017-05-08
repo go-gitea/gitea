@@ -3,7 +3,7 @@ MAINTAINER Thomas Boerger <thomas@webhippie.de>
 
 EXPOSE 22 3000
 
-RUN apk -U --no-cache add \
+RUN apk --no-cache add \
     su-exec \
     ca-certificates \
     sqlite \
