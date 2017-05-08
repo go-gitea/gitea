@@ -612,18 +612,16 @@ func (t *HookTask) deliver() {
 // TODO: shoot more hooks at same time.
 func DeliverHooks() {
 	tasks := make([]*HookTask, 0, 10)
-	x.
-		Where("is_delivered=?", false).
-		Iterate(new(HookTask),
-			func(idx int, bean interface{}) error {
-				t := bean.(*HookTask)
-				t.deliver()
-				tasks = append(tasks, t)
-				return nil
-			})
+	err := x.Where("is_delivered=?", false).Find(&tasks)
+	if err != nil {
+		log.Error(4, "DeliverHooks: %v", err)
+		return
+	}
 
 	// Update hook task status.
 	for _, t := range tasks {
+		t.deliver()
+
 		if err := UpdateHookTask(t); err != nil {
 			log.Error(4, "UpdateHookTask [%d]: %v", t.ID, err)
 		}
