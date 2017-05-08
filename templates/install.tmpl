@@ -195,6 +195,12 @@
 								</div>
 							</div>
 							<div class="inline field">
+								<div class="ui checkbox" id="disable-openid-registration">
+									<label class="poping up" data-content="{{.i18n.Tr "install.disable_registration_popup"}}"><strong>{{.i18n.Tr "install.disable_openid_registration"}}</strong></label>
+									<input name="disable_openid_registration" type="checkbox" {{if .disable_openid_registration}}checked{{end}}>
+								</div>
+							</div>
+							<div class="inline field">
 								<div class="ui checkbox" id="enable-captcha">
 									<label class="poping up" data-content="{{.i18n.Tr "install.enable_captcha_popup"}}"><strong>{{.i18n.Tr "install.enable_captcha"}}</strong></label>
 									<input name="enable_captcha" type="checkbox" {{if .enable_captcha}}checked{{end}}>
