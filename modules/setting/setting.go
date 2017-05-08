@@ -972,6 +972,7 @@ var Service struct {
 	EnableReverseProxyAutoRegister bool
 	EnableCaptcha                  bool
 	DefaultKeepEmailPrivate        bool
+	DefaultAllowCreateOrganization bool
 	NoReplyAddress                 string
 
 	// OpenID settings
@@ -992,6 +993,7 @@ func newService() {
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool()
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
+	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 
 	sec = Cfg.Section("openid")

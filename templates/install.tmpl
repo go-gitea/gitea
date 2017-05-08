@@ -213,6 +213,12 @@
 								</div>
 							</div>
 							<div class="inline field">
+								<div class="ui checkbox">
+									<label class="poping up" data-content="{{.i18n.Tr "install.default_allow_create_organization_popup"}}"><strong>{{.i18n.Tr "install.default_allow_create_organization"}}</strong></label>
+									<input name="default_allow_create_organization" type="checkbox" {{if .default_allow_create_organization}}checked{{end}}>
+								</div>
+							</div>
+							<div class="inline field">
 								<label for="no_reply_address">{{.i18n.Tr "install.no_reply_address"}}</label>
 								<input id="_no_reply_address" name="no_reply_address" value="{{.no_reply_address}}">
 								<span class="help">{{.i18n.Tr "install.no_reply_address_helper"}}</span>

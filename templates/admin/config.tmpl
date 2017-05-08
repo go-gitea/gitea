@@ -128,6 +128,8 @@
 				<dd><i class="fa fa{{if .Service.EnableCaptcha}}-check{{end}}-square-o"></i></dd>
 				<dt>{{.i18n.Tr "admin.config.default_keep_email_private"}}</dt>
 				<dd><i class="fa fa{{if .Service.DefaultKeepEmailPrivate}}-check{{end}}-square-o"></i></dd>
+				<dt>{{.i18n.Tr "admin.config.default_allow_create_organization"}}</dt>
+				<dd><i class="fa fa{{if .Service.DefaultAllowCreateOrganization}}-check{{end}}-square-o"></i></dd>
 				<dt>{{.i18n.Tr "admin.config.no_reply_address"}}</dt>
 				<dd>{{if .Service.NoReplyAddress}}{{.Service.NoReplyAddress}}{{else}}-{{end}}</dd>
 				<div class="ui divider"></div>

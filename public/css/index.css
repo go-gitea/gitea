@@ -2938,12 +2938,12 @@ footer .ui.language .menu {
   margin: 0;
 }
 .admin dl.admin-dl-horizontal dd {
-  margin-left: 240px;
+  margin-left: 275px;
 }
 .admin dl.admin-dl-horizontal dt {
   font-weight: bolder;
   float: left;
-  width: 250px;
+  width: 285px;
   clear: left;
   overflow: hidden;
   text-overflow: ellipsis;
