@@ -1304,6 +1304,10 @@ func newMailService() {
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
 
+	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") {
+		log.Warn("ENABLE_HTML_ALTERNATIVE is deprecated, use SEND_AS_PLAIN_TEXT")
+	}
+
 	parsed, err := mail.ParseAddress(MailService.From)
 	if err != nil {
 		log.Fatal(4, "Invalid mailer.FROM (%s): %v", MailService.From, err)
