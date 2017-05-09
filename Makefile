@@ -96,7 +96,8 @@ test-vendor:
 	govendor status || exit 1
 
 .PHONY: test-sqlite
-test-sqlite: integrations.test
+test-sqlite:
+	go test -c code.gitea.io/gitea/integrations -tags 'sqlite'
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.test
 
 .PHONY: test-mysql
@@ -108,7 +109,7 @@ test-pgsql: integrations.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
 
 integrations.test: $(SOURCES)
-	go test -c code.gitea.io/gitea/integrations -tags 'sqlite'
+	go test -c code.gitea.io/gitea/integrations
 
 .PHONY: check
 check: test

@@ -79,6 +79,9 @@ func initIntegrationTest() {
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
+		if _, err = db.Exec("DROP DATABASE IF EXISTS testgitea"); err != nil {
+			log.Fatalf("db.drop db: %v", err)
+		}
 		if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS testgitea"); err != nil {
 			log.Fatalf("db.Exec: %v", err)
 		}
@@ -96,10 +99,13 @@ func initIntegrationTest() {
 		}
 		defer rows.Close()
 
-		if !rows.Next() {
-			if _, err = db.Exec("CREATE DATABASE testgitea"); err != nil {
-				log.Fatalf("db.Exec: %v", err)
+		if rows.Next() {
+			if _, err = db.Exec("DROP DATABASE testgitea"); err != nil {
+				log.Fatalf("db.drop db: %v", err)
 			}
+		}
+		if _, err = db.Exec("CREATE DATABASE testgitea"); err != nil {
+			log.Fatalf("db.Exec: %v", err)
 		}
 	}
 	routers.GlobalInit()
