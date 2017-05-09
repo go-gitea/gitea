@@ -25,6 +25,7 @@ func TestMisc_IsReadmeFile(t *testing.T) {
 		"abcdefg",
 		"abcdefghijklmnopqrstuvwxyz",
 		"test.md.test",
+		"readmf",
 	}
 
 	for _, testCase := range trueTestCases {
