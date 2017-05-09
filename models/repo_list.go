@@ -115,9 +115,6 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, coun
 		cond = builder.NewCond()
 	)
 
-	if len(opts.Keyword) == 0 {
-		return repos, 0, nil
-	}
 	opts.Keyword = strings.ToLower(opts.Keyword)
 
 	if opts.Page <= 0 {

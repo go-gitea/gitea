@@ -11,6 +11,9 @@
 	<meta name="referrer" content="no-referrer" />
 	<meta name="_csrf" content="{{.CsrfToken}}" />
 	<meta name="_suburl" content="{{AppSubUrl}}" />
+	{{if .IsSigned}}
+		<meta name="_uid" content="{{.SignedUser.ID}}" />
+	{{end}}
 {{if .GoGetImport}}
 	<meta name="go-import" content="{{.GoGetImport}} git {{.CloneLink.HTTPS}}">
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">

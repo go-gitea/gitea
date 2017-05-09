@@ -1560,6 +1560,7 @@ $(document).ready(function () {
     initWebhook();
     initAdmin();
     initCodeView();
+    initDashboardSearch();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -1635,13 +1636,6 @@ $(function () {
     if ($('.user.signin').length > 0) return;
     $('form').areYouSure();
 
-    $("#search_repo").on('change paste keyup',function(){
-        var value = $(this).val();
-        $.map($('.search-list li'), function(i) {
-            $(i).css("display", (value.trim().length == 0 || $(i).attr("data-title").trim().toLowerCase().indexOf(value.trim().toLowerCase()) > -1) ? "" : "none");
-        });
-    });
-
     // Parse SSH Key
     $("#ssh-key-content").on('change paste keyup',function(){
         var arrays = $(this).val().split(" ");
@@ -1651,3 +1645,64 @@ $(function () {
         }
     });
 });
+
+function initDashboardSearch() {
+    var el = document.getElementById('dashboard-repo-search');
+    if (!el) {
+        return;
+    }
+
+    new Vue({
+        delimiters: ['<%', '%>'],
+        el: el,
+
+        data: {
+            tab: 'repos',
+            repos: [],
+            searchQuery: '',
+            suburl: document.querySelector('meta[name=_suburl]').content,
+            uid: document.querySelector('meta[name=_uid]').content
+        },
+
+        mounted: function() {
+            this.searchRepos();
+
+            Vue.nextTick(function() {
+                document.querySelector('#search_repo').focus();
+            });
+        },
+
+        methods: {
+            changeTab: function(t) {
+                this.tab = t;
+            },
+
+            searchKeyUp: function() {
+                this.searchRepos();
+            },
+
+            searchRepos: function() {
+                var self = this;
+                $.getJSON(this.searchURL(), function(result) {
+                    self.repos = result.data;
+                });
+            },
+
+            searchURL: function() {
+                return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery;
+            },
+
+            repoClass: function(repo) {
+                if (repo.fork) {
+                    return 'octicon octicon-repo-forked';
+                } else if (repo.mirror) {
+                    return 'octicon octicon-repo-clone';
+                } else if (repo.private) {
+                    return 'octicon octicon-repo-forked';
+                } else {
+                    return 'octicon octicon-repo';
+                }
+            }
+        }
+    });
+}
