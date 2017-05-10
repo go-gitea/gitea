@@ -114,7 +114,7 @@ func getAttachmentByUUID(e Engine, uuid string) (*Attachment, error) {
 	attach := &Attachment{UUID: uuid}
 	has, err := e.Get(attach)
 	if err != nil {
-		return nil, err
+		return nil, nil
 	} else if !has {
 		return nil, ErrAttachmentNotExist{0, uuid}
 	}
