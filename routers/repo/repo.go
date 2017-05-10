@@ -278,7 +278,7 @@ func RedirectDownload(ctx *context.Context) {
 	curRepo := ctx.Repo.Repository
 	releases, err := models.GetReleasesByRepoIDAndNames(curRepo.ID, tagNames)
 	if err != nil {
-		ctx.Handle(404, "RedirectDownload -> Release not found", err)
+		ctx.Handle(500, "RedirectDownload -> Release not found", err)
 		return
 	}
 
@@ -291,6 +291,8 @@ func RedirectDownload(ctx *context.Context) {
 		}
 		ctx.Redirect(setting.AppSubURL + "/attachments/" + att.UUID)
 	}
+
+	ctx.Handle(404, "RedirectDownload -> Attachment not found", err)
 }
 
 // Download download an archive of a repository
