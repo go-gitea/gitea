@@ -288,7 +288,9 @@ func RedirectDownload(ctx *context.Context) {
 			ctx.Handle(404, "RedirectDownload -> Attachment not found", err)
 			return
 		}
-		ctx.Redirect(setting.AppSubURL + "/attachments/" + att.UUID)
+		if att != nil {
+			ctx.Redirect(setting.AppSubURL + "/attachments/" + att.UUID)
+		}
 	}
 	ctx.Handle(404, "RedirectDownload -> Attachment not found", err)
 }
