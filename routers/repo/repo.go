@@ -274,13 +274,6 @@ func RedirectDownload(ctx *context.Context) {
 		vTag     = ctx.Params("vTag")
 		fileName = ctx.Params("fileName")
 	)
-	if len(vTag) > 0 {
-		fmt.Println("Value of vTag %v", vTag)
-	}
-	if len(fileName) > 0 {
-		fmt.Println("Value of fileName %v", fileName)
-	}
-
 	var tagNames []string
 	tagNames = append(tagNames, vTag)
 
