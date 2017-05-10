@@ -58,6 +58,16 @@ func (a *Attachment) IncreaseDownloadCount() error {
 	return nil
 }
 
+// FileSize is returning the file datasize
+func (a *Attachment) FileSize() (string, error) {
+	stats, err := os.Stat(AttachmentLocalPath(a.UUID))
+	if err != nil {
+		return "error", fmt.Errorf("AttachmentFileSize: %v", err)
+	}
+	result := float64(stats.Size()) / float64(1048576)
+	return fmt.Sprintf("%.1f", result) + " MB", nil
+}
+
 // AttachmentLocalPath returns where attachment is stored in local file
 // system based on given UUID.
 func AttachmentLocalPath(uuid string) string {
@@ -126,6 +136,11 @@ func GetAttachmentByUUID(uuid string) (*Attachment, error) {
 	return getAttachmentByUUID(x, uuid)
 }
 
+// GetAttachmentByReleaseIDFileName returns attachment by given releaseId and fileName.
+func GetAttachmentByReleaseIDFileName(releaseID int64, fileName string) (*Attachment, error) {
+	return getAttachmentByReleaseIDFileName(x, releaseID, fileName)
+}
+
 func getAttachmentsByIssueID(e Engine, issueID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, e.Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
@@ -140,6 +155,22 @@ func GetAttachmentsByIssueID(issueID int64) ([]*Attachment, error) {
 func GetAttachmentsByCommentID(commentID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, x.Where("comment_id=?", commentID).Find(&attachments)
+}
+
+/*	Author : github.com/gdeverlant
+	getAttachmentByReleaseIDFileName return a file based on the the following infos:
+	- releaseID
+	- fileName
+*/
+func getAttachmentByReleaseIDFileName(e Engine, releaseID int64, fileName string) (*Attachment, error) {
+	attach := &Attachment{ReleaseID: releaseID, Name: fileName}
+	has, err := e.Get(attach)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrAttachmentNotExist{0, attach.UUID}
+	}
+	return attach, nil
 }
 
 // DeleteAttachment deletes the given attachment and optionally the associated file.
