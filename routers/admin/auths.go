@@ -74,6 +74,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["CurrentSecurityProtocol"] = models.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted]
 	ctx.Data["smtp_auth"] = "PLAIN"
 	ctx.Data["is_active"] = true
+	ctx.Data["is_sync_enabled"] = true
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
@@ -186,10 +187,11 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	}
 
 	if err := models.CreateLoginSource(&models.LoginSource{
-		Type:      models.LoginType(form.Type),
-		Name:      form.Name,
-		IsActived: form.IsActive,
-		Cfg:       config,
+		Type:          models.LoginType(form.Type),
+		Name:          form.Name,
+		IsActived:     form.IsActive,
+		IsSyncEnabled: form.IsSyncEnabled,
+		Cfg:           config,
 	}); err != nil {
 		if models.IsErrLoginSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true
@@ -273,6 +275,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 
 	source.Name = form.Name
 	source.IsActived = form.IsActive
+	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
 	if err := models.UpdateSource(source); err != nil {
 		if models.IsErrOpenIDConnectInitialize(err) {

@@ -211,6 +211,14 @@
 						<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>
 					</div>
 				</div>
+				{{if .Source.IsLDAP}}
+				<div class="inline field">
+					<div class="ui checkbox">
+						<label><strong>{{.i18n.Tr "admin.auths.syncenabled"}}</strong></label>
+						<input name="is_sync_enabled" type="checkbox" {{if .Source.IsSyncEnabled}}checked{{end}}>
+					</div>
+				</div>
+				{{end}}
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.i18n.Tr "admin.auths.activated"}}</strong></label>

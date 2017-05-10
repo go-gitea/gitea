@@ -66,6 +66,17 @@ func NewContext() {
 			go models.DeleteOldRepositoryArchives()
 		}
 	}
+	if setting.Cron.SyncExternalUsers.Enabled {
+		entry, err = c.AddFunc("Synchronize external users", setting.Cron.SyncExternalUsers.Schedule, models.SyncExternalUsers)
+		if err != nil {
+			log.Fatal(4, "Cron[Synchronize external users]: %v", err)
+		}
+		if setting.Cron.SyncExternalUsers.RunAtStart {
+			entry.Prev = time.Now()
+			entry.ExecTimes++
+			go models.SyncExternalUsers()
+		}
+	}
 	c.Start()
 }
 
