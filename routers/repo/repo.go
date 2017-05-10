@@ -281,7 +281,6 @@ func RedirectDownload(ctx *context.Context) {
 		ctx.Handle(500, "RedirectDownload -> Release not found", err)
 		return
 	}
-
 	if len(releases) == 1 {
 		release := releases[0]
 		att, err := models.GetAttachmentByReleaseIDFileName(release.ID, fileName)
@@ -291,7 +290,6 @@ func RedirectDownload(ctx *context.Context) {
 		}
 		ctx.Redirect(setting.AppSubURL + "/attachments/" + att.UUID)
 	}
-
 	ctx.Handle(404, "RedirectDownload -> Attachment not found", err)
 }
 

@@ -488,8 +488,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, reqRepoWriter, context.RepoRef())
 		m.Group("/releases", func() {
 			m.Get("/download/:vTag/:fileName", repo.RedirectDownload)
-		}, repo.MustBeNotBare, reqRepoWriter, context.RepoRef())
-		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
 			m.Post("/delete", repo.DeleteRelease)
