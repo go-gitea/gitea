@@ -1306,6 +1306,7 @@ func newMailService() {
 
 	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") {
 		log.Warn("ENABLE_HTML_ALTERNATIVE is deprecated, use SEND_AS_PLAIN_TEXT")
+		MailService.SendAsPlainText = !sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false)
 	}
 
 	parsed, err := mail.ParseAddress(MailService.From)
