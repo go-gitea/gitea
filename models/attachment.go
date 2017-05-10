@@ -157,11 +157,7 @@ func GetAttachmentsByCommentID(commentID int64) ([]*Attachment, error) {
 	return attachments, x.Where("comment_id=?", commentID).Find(&attachments)
 }
 
-/*	Author : github.com/gdeverlant
-	getAttachmentByReleaseIDFileName return a file based on the the following infos:
-	- releaseID
-	- fileName
-*/
+// getAttachmentByReleaseIDFileName return a file based on the the following infos:
 func getAttachmentByReleaseIDFileName(e Engine, releaseID int64, fileName string) (*Attachment, error) {
 	attach := &Attachment{ReleaseID: releaseID, Name: fileName}
 	has, err := e.Get(attach)
