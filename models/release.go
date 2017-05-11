@@ -6,7 +6,6 @@ package models
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"sort"
 	"strings"
@@ -73,30 +72,6 @@ func (r *Release) loadAttributes(e Engine) error {
 		}
 	}
 	return nil
-}
-
-// formatFileSizeToMB formats the filesize
-func formatFileSizeToMB(bytes int64) string {
-	result := float64(bytes) / float64(1048576)
-	var format string
-	if result < 0.01 {
-		format = "%.2f"
-		result = 0.01
-	} else if result < 0.1 {
-		format = "%.2f"
-	} else {
-		format = "%.1f"
-	}
-	return fmt.Sprintf(format, result) + " MB"
-}
-
-// getFileSize returns file size
-func getFileSize(path string) int64 {
-	stats, err := os.Stat(path)
-	if err != nil {
-		return -1
-	}
-	return stats.Size()
 }
 
 // buildArchivePath construct the correct archive path for the release
