@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-// formatFileSizeToMB formats the filesize
+// FormatFileSizeToMB formats the filesize
 func FormatFileSizeToMB(bytes int64) string {
 	result := float64(bytes) / float64(1048576)
 	var format string
@@ -24,7 +24,7 @@ func FormatFileSizeToMB(bytes int64) string {
 	return fmt.Sprintf(format, result) + " MB"
 }
 
-// getFileSize returns file size
+// GetFileSize returns file size
 func GetFileSize(path string) int64 {
 	stats, err := os.Stat(path)
 	if err != nil {
