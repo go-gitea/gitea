@@ -2,10 +2,15 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package file
+package util
+
+import (
+	"fmt"
+	"os"
+)
 
 // formatFileSizeToMB formats the filesize
-func formatFileSizeToMB(bytes int64) string {
+func FormatFileSizeToMB(bytes int64) string {
 	result := float64(bytes) / float64(1048576)
 	var format string
 	if result < 0.01 {
@@ -20,7 +25,7 @@ func formatFileSizeToMB(bytes int64) string {
 }
 
 // getFileSize returns file size
-func getFileSize(path string) int64 {
+func GetFileSize(path string) int64 {
 	stats, err := os.Stat(path)
 	if err != nil {
 		return -1

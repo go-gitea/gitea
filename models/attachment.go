@@ -16,6 +16,7 @@ import (
 	gouuid "github.com/satori/go.uuid"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -64,7 +65,7 @@ func (a *Attachment) FileSize() (string, error) {
 	if err != nil {
 		return "error", fmt.Errorf("AttachmentFileSize: %v", err)
 	}
-	return formatFileSizeToMB(stats.Size()), nil
+	return util.FormatFileSizeToMB(stats.Size()), nil
 }
 
 // AttachmentLocalPath returns where attachment is stored in local file

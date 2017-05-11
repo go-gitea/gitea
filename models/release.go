@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 	"github.com/go-xorm/xorm"
 )
@@ -100,13 +101,13 @@ func buildArchivePath(r *Release, isZip bool) string {
 // GetReleaseZIPFileSize returns the ZIP file size
 func (r *Release) GetReleaseZIPFileSize() string {
 	archivePath := buildArchivePath(r, true)
-	return formatFileSizeToMB(getFileSize(archivePath))
+	return util.FormatFileSizeToMB(util.GetFileSize(archivePath))
 }
 
 // GetReleaseTARFileSize returns the TAR file size
 func (r *Release) GetReleaseTARFileSize() string {
 	archivePath := buildArchivePath(r, false)
-	return formatFileSizeToMB(getFileSize(archivePath))
+	return util.FormatFileSizeToMB(util.GetFileSize(archivePath))
 }
 
 // LoadAttributes load repo and publisher attributes for a release
