@@ -6,6 +6,8 @@ package models
 
 import (
 	"fmt"
+	"os"
+	"path"
 	"sort"
 	"strings"
 	"time"
@@ -71,6 +73,65 @@ func (r *Release) loadAttributes(e Engine) error {
 		}
 	}
 	return nil
+}
+
+// formatFileSizeToMB formats the filesize
+func formatFileSizeToMB(bytes int64) string {
+	result := float64(bytes) / float64(1048576)
+	var format string
+	if result < 0.01 {
+		format = "%.2f"
+		result = 0.01
+	} else if result < 0.1 {
+		format = "%.2f"
+	} else {
+		format = "%.1f"
+	}
+	return fmt.Sprintf(format, result) + " MB"
+}
+
+// getFileSize returns file size
+func getFileSize(path string) int64 {
+	stats, err := os.Stat(path)
+	if err != nil {
+		return -1
+	}
+	return stats.Size()
+}
+
+// buildArchivePath construct the correct archive path for the release
+func buildArchivePath(r *Release, isZip bool) string {
+	repoPath := setting.RepoRootPath
+	repo := &Repository{ID: r.RepoID}
+	_, err := x.Get(repo)
+	if err != nil {
+		return "buildArchivePath -> Unknow Repository"
+	}
+	user := r.Publisher
+	var subPath, typ, ext string
+	if isZip {
+		subPath = "archives"
+		typ = "zip"
+		ext = ".zip"
+	} else {
+		subPath = "archives"
+		typ = "targz"
+		ext = ".tar.gz"
+	}
+	result := path.Join(repoPath, user.LowerName, repo.Name+".git", subPath, typ, r.Sha1[0:10]) + ext
+	return result
+}
+
+// GetReleaseZIPFileSize returns the ZIP file size
+func (r *Release) GetReleaseZIPFileSize() string {
+	archivePath := buildArchivePath(r, true)
+	return formatFileSizeToMB(getFileSize(archivePath))
+}
+
+// GetReleaseTARFileSize returns the TAR file size
+func (r *Release) GetReleaseTARFileSize() string {
+	archivePath := buildArchivePath(r, false)
+	return formatFileSizeToMB(getFileSize(archivePath))
 }
 
 // LoadAttributes load repo and publisher attributes for a release

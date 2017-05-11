@@ -268,7 +268,7 @@ func Action(ctx *context.Context) {
 	ctx.Redirect(redirectTo)
 }
 
-// RedirectDownload return a file based on the the following infos:
+// RedirectDownload return a file based on the following infos:
 func RedirectDownload(ctx *context.Context) {
 	var (
 		vTag     = ctx.Params("vTag")
@@ -278,19 +278,25 @@ func RedirectDownload(ctx *context.Context) {
 	curRepo := ctx.Repo.Repository
 	releases, err := models.GetReleasesByRepoIDAndNames(curRepo.ID, tagNames)
 	if err != nil {
-		ctx.Handle(500, "RedirectDownload -> Release not found", err)
+		if models.IsErrAttachmentNotExist(err) {
+			ctx.Error(404)
+			return
+		}
+		ctx.Handle(500, "RedirectDownload: Failed to get attachment", err)
 		return
 	}
-
 	if len(releases) == 1 {
 		release := releases[0]
 		att, err := models.GetAttachmentByReleaseIDFileName(release.ID, fileName)
 		if err != nil {
-			ctx.Handle(500, "RedirectDownload -> Attachment not found", err)
+			ctx.Handle(404, "RedirectDownload -> Attachment not found", err)
 			return
 		}
-		ctx.Redirect(setting.AppSubURL + "/attachments/" + att.UUID)
+		if att != nil {
+			ctx.Redirect(setting.AppSubURL + "/attachments/" + att.UUID)
+		}
 	}
+	ctx.Handle(404, "RedirectDownload -> Attachment not found", err)
 }
 
 // Download download an archive of a repository
