@@ -301,7 +301,7 @@ func (repo *Repository) innerAPIFormat(mode AccessMode, isParent bool) *api.Repo
 		Description:   repo.Description,
 		Private:       repo.IsPrivate,
 		Empty:         repo.IsBare,
-		Size:          int(repo.Size/1024),
+		Size:          int(repo.Size / 1024),
 		Fork:          repo.IsFork,
 		Parent:        parent,
 		Mirror:        repo.IsMirror,

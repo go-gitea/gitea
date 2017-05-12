@@ -81,4 +81,3 @@ func IsReadmeFile(name string) bool {
 	}
 	return name[:7] == "readme."
 }
-
