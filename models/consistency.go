@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// ConsistencyCheckable a type that can be tested for database consistency
-type ConsistencyCheckable interface {
-	CheckForConsistency(t *testing.T)
+// consistencyCheckable a type that can be tested for database consistency
+type consistencyCheckable interface {
+	checkForConsistency(t *testing.T)
 }
 
 // CheckConsistencyForAll test that the entire database is consistent
@@ -44,12 +44,12 @@ func CheckConsistencyFor(t *testing.T, beansToCheck ...interface{}) {
 
 		for i := 0; i < sliceValue.Len(); i++ {
 			entity := sliceValue.Index(i).Interface()
-			checkable, ok := entity.(ConsistencyCheckable)
+			checkable, ok := entity.(consistencyCheckable)
 			if !ok {
 				t.Errorf("Expected %+v (of type %T) to be checkable for consistency",
 					entity, entity)
 			} else {
-				checkable.CheckForConsistency(t)
+				checkable.checkForConsistency(t)
 			}
 		}
 	}
@@ -68,7 +68,7 @@ func assertCount(t *testing.T, bean interface{}, expected int) {
 		"Failed consistency test, the counted bean (of type %T) was %+v", bean, bean)
 }
 
-func (user *User) CheckForConsistency(t *testing.T) {
+func (user *User) checkForConsistency(t *testing.T) {
 	assertCount(t, &Repository{OwnerID: user.ID}, user.NumRepos)
 	assertCount(t, &Star{UID: user.ID}, user.NumStars)
 	assertCount(t, &OrgUser{OrgID: user.ID}, user.NumMembers)
@@ -81,7 +81,7 @@ func (user *User) CheckForConsistency(t *testing.T) {
 	}
 }
 
-func (repo *Repository) CheckForConsistency(t *testing.T) {
+func (repo *Repository) checkForConsistency(t *testing.T) {
 	assert.Equal(t, repo.LowerName, strings.ToLower(repo.Name), "repo: %+v", repo)
 	assertCount(t, &Star{RepoID: repo.ID}, repo.NumStars)
 	assertCount(t, &Watch{RepoID: repo.ID}, repo.NumWatches)
@@ -112,7 +112,7 @@ func (repo *Repository) CheckForConsistency(t *testing.T) {
 		"Unexpected number of closed milestones for repo %+v", repo)
 }
 
-func (issue *Issue) CheckForConsistency(t *testing.T) {
+func (issue *Issue) checkForConsistency(t *testing.T) {
 	actual := getCount(t, x.Where("type=?", CommentTypeComment), &Comment{IssueID: issue.ID})
 	assert.EqualValues(t, issue.NumComments, actual,
 		"Unexpected number of comments for issue %+v", issue)
@@ -122,13 +122,13 @@ func (issue *Issue) CheckForConsistency(t *testing.T) {
 	}
 }
 
-func (pr *PullRequest) CheckForConsistency(t *testing.T) {
+func (pr *PullRequest) checkForConsistency(t *testing.T) {
 	issue := AssertExistsAndLoadBean(t, &Issue{ID: pr.IssueID}).(*Issue)
 	assert.True(t, issue.IsPull)
 	assert.EqualValues(t, issue.Index, pr.Index)
 }
 
-func (milestone *Milestone) CheckForConsistency(t *testing.T) {
+func (milestone *Milestone) checkForConsistency(t *testing.T) {
 	assertCount(t, &Issue{MilestoneID: milestone.ID}, milestone.NumIssues)
 
 	actual := getCount(t, x.Where("is_closed=?", true), &Issue{MilestoneID: milestone.ID})
@@ -136,7 +136,7 @@ func (milestone *Milestone) CheckForConsistency(t *testing.T) {
 		"Unexpected number of closed issues for milestone %+v", milestone)
 }
 
-func (label *Label) CheckForConsistency(t *testing.T) {
+func (label *Label) checkForConsistency(t *testing.T) {
 	issueLabels := make([]*IssueLabel, 0, 10)
 	assert.NoError(t, x.Find(&issueLabels, &IssueLabel{LabelID: label.ID}))
 	assert.EqualValues(t, label.NumIssues, len(issueLabels),
@@ -155,12 +155,12 @@ func (label *Label) CheckForConsistency(t *testing.T) {
 		"Unexpected number of closed issues for label %+v", label)
 }
 
-func (team *Team) CheckForConsistency(t *testing.T) {
+func (team *Team) checkForConsistency(t *testing.T) {
 	assertCount(t, &TeamUser{TeamID: team.ID}, team.NumMembers)
 	assertCount(t, &TeamRepo{TeamID: team.ID}, team.NumRepos)
 }
 
-func (action *Action) CheckForConsistency(t *testing.T) {
+func (action *Action) checkForConsistency(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: action.RepoID}).(*Repository)
 	owner := AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
 	actor := AssertExistsAndLoadBean(t, &User{ID: action.ActUserID}).(*User)
