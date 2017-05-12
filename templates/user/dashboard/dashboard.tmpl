@@ -76,10 +76,12 @@
 						<h4 class="ui top attached header">
 							{{.i18n.Tr "home.my_orgs"}} <span class="ui grey label">{{.ContextUser.GetOrganizationCount}}</span>
 							<div class="ui right">
+								{{if .SignedUser.CanCreateOrganization}}
 								<a class="poping up" href="{{AppSubUrl}}/org/create" data-content="{{.i18n.Tr "new_org"}}" data-variation="tiny inverted" data-position="left center">
 									<i class="plus icon"></i>
 									<span class="sr-only">{{.i18n.Tr "new_org"}}</span>
 								</a>
+								{{end}}
 							</div>
 						</h4>
 						<div class="ui attached table segment">
