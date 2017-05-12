@@ -38,15 +38,15 @@ type InstallForm struct {
 	RegisterConfirm bool
 	MailNotify      bool
 
-	OfflineMode             bool
-	DisableGravatar         bool
-	EnableFederatedAvatar   bool
-	DisableRegistration     bool
-	EnableCaptcha           bool
-	RequireSignInView       bool
-	DefaultKeepEmailPrivate bool
+	OfflineMode                    bool
+	DisableGravatar                bool
+	EnableFederatedAvatar          bool
+	DisableRegistration            bool
+	EnableCaptcha                  bool
+	RequireSignInView              bool
+	DefaultKeepEmailPrivate        bool
 	DefaultAllowCreateOrganization bool
-	NoReplyAddress          string
+	NoReplyAddress                 string
 
 	AdminName          string `binding:"OmitEmpty;AlphaDashDot;MaxSize(30)" locale:"install.admin_name"`
 	AdminPasswd        string `binding:"OmitEmpty;MaxSize(255)" locale:"install.admin_password"`
