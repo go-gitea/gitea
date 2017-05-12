@@ -144,12 +144,12 @@ func (r *Renderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
 	}
 	switch {
 	case bytes.HasPrefix(text, []byte(prefix+"[ ] ")):
-		text = append([]byte(`<div class="ui fitted disabled checkbox"><input type="checkbox" disabled="disabled" /><label /></div>`), text[3+len(prefix):]...)
+		text = append([]byte(`<span class="ui fitted disabled checkbox"><input type="checkbox" disabled="disabled" /><label /></span>`), text[3+len(prefix):]...)
 		if prefix != "" {
 			text = bytes.Replace(text, []byte(prefix), []byte{}, 1)
 		}
 	case bytes.HasPrefix(text, []byte(prefix+"[x] ")):
-		text = append([]byte(`<div class="ui checked fitted disabled checkbox"><input type="checkbox" checked="" disabled="disabled" /><label /></div>`), text[3+len(prefix):]...)
+		text = append([]byte(`<span class="ui checked fitted disabled checkbox"><input type="checkbox" checked="" disabled="disabled" /><label /></span>`), text[3+len(prefix):]...)
 		if prefix != "" {
 			text = bytes.Replace(text, []byte(prefix), []byte{}, 1)
 		}
