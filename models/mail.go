@@ -65,7 +65,7 @@ func SendUserMail(c *macaron.Context, u *User, tpl base.TplName, code, subject, 
 	mailer.SendAsync(msg)
 }
 
-// SendActivateAccountMail sends an activation mail to the user
+// SendActivateAccountMail sends an activation mail to the user (new user registration)
 func SendActivateAccountMail(c *macaron.Context, u *User) {
 	SendUserMail(c, u, mailAuthActivate, u.GenerateActivateCode(), c.Tr("mail.activate_account"), "activate account")
 }
@@ -75,7 +75,7 @@ func SendResetPasswordMail(c *macaron.Context, u *User) {
 	SendUserMail(c, u, mailAuthResetPassword, u.GenerateActivateCode(), c.Tr("mail.reset_password"), "reset password")
 }
 
-// SendActivateEmailMail sends confirmation email.
+// SendActivateEmailMail sends confirmation email to confirm new email address
 func SendActivateEmailMail(c *macaron.Context, u *User, email *EmailAddress) {
 	data := map[string]interface{}{
 		"Username":        u.DisplayName(),

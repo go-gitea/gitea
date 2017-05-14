@@ -913,7 +913,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	u, err := models.GetUserByEmail(email)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Data["Hours"] = setting.Service.ActiveCodeLives / 60
+			ctx.Data["Hours"] = setting.Service.ResetPwdCodeLives / 60
 			ctx.Data["IsResetSent"] = true
 			ctx.HTML(200, tplForgotPassword)
 			return
@@ -940,7 +940,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 		log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
 	}
 
-	ctx.Data["Hours"] = setting.Service.ActiveCodeLives / 60
+	ctx.Data["Hours"] = setting.Service.ResetPwdCodeLives / 60
 	ctx.Data["IsResetSent"] = true
 	ctx.HTML(200, tplForgotPassword)
 }
