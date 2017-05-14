@@ -913,6 +913,10 @@
           "type": "string",
           "x-go-name": "Description"
         },
+        "empty": {
+          "type": "boolean",
+          "x-go-name": "Empty"
+        },
         "fork": {
           "type": "boolean",
           "x-go-name": "Fork"
@@ -952,6 +956,10 @@
           "x-go-name": "Owner",
           "$ref": "#/definitions/User"
         },
+        "parent": {
+          "x-go-name": "Parent",
+          "$ref": "#/definitions/Repository"
+        },
         "permissions": {
           "x-go-name": "Permissions",
           "$ref": "#/definitions/Permission"
@@ -959,6 +967,11 @@
         "private": {
           "type": "boolean",
           "x-go-name": "Private"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Size"
         },
         "ssh_url": {
           "type": "string",
@@ -1116,6 +1129,9 @@
         "description": {
           "type": "string"
         },
+        "empty": {
+          "type": "boolean"
+        },
         "fork": {
           "type": "boolean"
         },
@@ -1144,9 +1160,14 @@
           "format": "int64"
         },
         "owner": {},
+        "parent": {},
         "permissions": {},
         "private": {
           "type": "boolean"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64"
         },
         "ssh_url": {
           "type": "string"
