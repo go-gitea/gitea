@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-// FormatFileSizeToMB formats the filesize
+// FormatFileSize formats the filesize
 func FormatFileSize(bytes int64) string {
 	var result float64
 	var format string
