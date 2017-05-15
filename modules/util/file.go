@@ -10,9 +10,27 @@ import (
 )
 
 // FormatFileSizeToMB formats the filesize
-func FormatFileSizeToMB(bytes int64) string {
-	result := float64(bytes) / float64(1048576)
+func FormatFileSize(bytes int64) string {
+	var result float64
 	var format string
+	var measure string
+	if bytes < 10240 { // bytes
+		result = float64(bytes) / float64(1048)
+		measure = "Bytes"
+	} else if bytes < 1048576 { // kbytes
+		result = float64(bytes) / float64(102400)
+		measure = "KB"
+	} else if bytes < 1048576000 { // mbytes
+		result = float64(bytes) / float64(1048576)
+		measure = "MB"
+	} else if bytes < 1048576000000 { // gbytes
+		result = float64(bytes) / float64(1048576000)
+		measure = "GB"
+	} else if bytes < 1048576000000000 { // tbytes
+		result = float64(bytes) / float64(1048576000000)
+		measure = "TB"
+	}
+
 	if result < 0.01 {
 		format = "%.2f"
 		result = 0.01
@@ -21,7 +39,7 @@ func FormatFileSizeToMB(bytes int64) string {
 	} else {
 		format = "%.1f"
 	}
-	return fmt.Sprintf(format, result) + " MB"
+	return fmt.Sprintf(format, result) + " " + measure
 }
 
 // GetFileSize returns file size

@@ -65,7 +65,7 @@ func (a *Attachment) FileSize() (string, error) {
 	if err != nil {
 		return "error", fmt.Errorf("AttachmentFileSize: %v", err)
 	}
-	return util.FormatFileSizeToMB(stats.Size()), nil
+	return util.FormatFileSize(stats.Size()), nil
 }
 
 // AttachmentLocalPath returns where attachment is stored in local file

@@ -102,13 +102,13 @@ func buildArchivePath(r *Release, isZip bool) string {
 // GetReleaseZIPFileSize returns the ZIP file size
 func (r *Release) GetReleaseZIPFileSize() string {
 	archivePath := buildArchivePath(r, true)
-	return util.FormatFileSizeToMB(util.GetFileSize(archivePath))
+	return util.FormatFileSize(util.GetFileSize(archivePath))
 }
 
 // GetReleaseTARFileSize returns the TAR file size
 func (r *Release) GetReleaseTARFileSize() string {
 	archivePath := buildArchivePath(r, false)
-	return util.FormatFileSizeToMB(util.GetFileSize(archivePath))
+	return util.FormatFileSize(util.GetFileSize(archivePath))
 }
 
 // LoadAttributes load repo and publisher attributes for a release
