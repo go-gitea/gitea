@@ -34,6 +34,7 @@ func useNewNameAvatars(x *xorm.Engine) error {
 	}
 
 	type User struct {
+		ID              int64 `xorm:"pk autoincr"`
 		Avatar          string
 		UseCustomAvatar bool
 	}
