@@ -167,12 +167,15 @@ docker-multi-push:
 	docker push $(DOCKER_PUSHIMAGE):$(DOCKER_TAG)
 
 .PHONY: docker-multi-update-manifest
+docker-multi-update-manifest: DOCKER_PUSHIMAGE ?= "gitea/gitea"
 docker-multi-update-manifest: DOCKER_MANIFEST ?= "docker/manifest/gitea.yml"
 docker-multi-update-manifest:
 	@hash manifest-tool > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/estesp/manifest-tool; \
 	fi
+	sed -i "s;gitea/gitea;$(DOCKER_PUSHIMAGE);g" $(DOCKER_MANIFEST)
 	@manifest-tool --username $(DOCKER_USERNAME) --password $(DOCKER_PASSWORD) push from-spec $(DOCKER_MANIFEST)
+	sed -i "s;$(DOCKER_PUSHIMAGE);gitea/gitea;g" $(DOCKER_MANIFEST)
 
 .PHONY: docker-multi-update-all
 docker-multi-update-all: docker-multi-amd64 docker-multi-arm docker-multi-arm64 docker-multi-push
