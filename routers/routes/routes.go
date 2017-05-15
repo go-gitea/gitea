@@ -404,15 +404,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			Post(bindIgnErr(auth.CreateRepoForm{}), repo.ForkPost)
 	}, reqSignIn)
 
-	// ***** Release Attachment Download without Sigin
+	// ***** Release Attachment Download without Signin
 	m.Get("/:username/:reponame/releases/download/:vTag/:fileName", ignSignIn, context.RepoAssignment(), repo.RedirectDownload)
-	/*
-		m.Group("/:username/:reponame", func() {
-			m.Group("/releases", func() {
-				m.Get("/download/:vTag/:fileName", repo.RedirectDownload)
-			}, repo.MustBeNotBare, reqRepoWriter, context.RepoRef())
-		}, ignSignIn)
-	*/
 
 	m.Group("/:username/:reponame", func() {
 		m.Group("/settings", func() {
