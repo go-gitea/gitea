@@ -124,6 +124,10 @@ build: $(EXECUTABLE)
 $(EXECUTABLE): $(SOURCES)
 	go build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
+.PHONY: docker
+docker: docker-build
+	docker build -t gitea/gitea:latest .
+
 .PHONY: docker-build
 docker-build:
 	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" webhippie/golang:edge make clean generate build
@@ -173,11 +177,6 @@ docker-multi-update-manifest:
 .PHONY: docker-multi-update-all
 docker-multi-update-all: docker-multi-amd64 docker-multi-arm docker-multi-arm64 docker-multi-push
 	for DOCKER_MANIFEST in $(shell docker/manifest/* ); do make docker-multi-update-manifest; done;
-
-.PHONY: docker
-docker:
-	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" webhippie/golang:edge make clean generate build
-	docker build -t gitea/gitea:latest .
 
 .PHONY: release
 release: release-dirs release-windows release-linux release-darwin release-copy release-check
