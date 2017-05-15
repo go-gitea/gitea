@@ -405,7 +405,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}, reqSignIn)
 
 	// ***** Release Attachment Download without Signin
-	m.Get("/:username/:reponame/releases/download/:vTag/:fileName", ignSignIn, context.RepoAssignment(), repo.RedirectDownload)
+	m.Get("/:username/:reponame/releases/download/:vTag/:fileName", ignSignIn, context.RepoAssignment(), repo.MustBeNotBare, repo.RedirectDownload)
 
 	m.Group("/:username/:reponame", func() {
 		m.Group("/settings", func() {
