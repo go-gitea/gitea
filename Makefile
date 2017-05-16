@@ -125,7 +125,7 @@ $(EXECUTABLE): $(SOURCES)
 	go build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: docker
-docker: docker-build
+docker:
 	docker build -t gitea/gitea:latest .
 
 .PHONY: docker-build
