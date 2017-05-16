@@ -139,7 +139,7 @@ docker-multi-setenv:
 .PHONY: docker-multi-build
 docker-multi-build: docker-multi-setenv
 	docker pull $(DOCKER_BASE)
-	docker tag $(DOCKER_BASE) gitea/base
+	docker tag $(DOCKER_BASE) gitea/gitea-base
 	docker build --no-cache --build-arg TAGS="$(TAGS)" --build-arg GITEA_VERSION="$(GITEA_VERSION)" -t gitea/gitea:$(DOCKER_TAG) -f Dockerfile.multi .
 
 .PHONY: docker-multi-amd64

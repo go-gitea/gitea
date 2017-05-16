@@ -1,6 +1,6 @@
 ###################################
 #Build stage
-FROM gitea/base AS build-env
+FROM gitea/gitea-base AS build-env
 
 ARG TAGS="sqlite"
 ENV TAGS "bindata $TAGS"
@@ -18,7 +18,7 @@ RUN if [ -n "${GITEA_VERSION}" ]; then git checkout ${GITEA_VERSION}; fi \
 
 ###################################
 #Run stage
-FROM gitea/base
+FROM gitea/gitea-base
 LABEL maintainer "Thomas Boerger <thomas@webhippie.de>"
 
 ARG UID=1000
