@@ -1,4 +1,4 @@
-image: gitea/base:latest
+image: gitea/gitea-base:latest
 manifests:
   - image: alpine:latest
     platform:
