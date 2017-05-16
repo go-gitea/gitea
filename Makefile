@@ -146,19 +146,19 @@ docker-multi-build: docker-multi-setenv
 docker-multi-amd64: GITEA_VERSION ?= master
 docker-multi-amd64: DOCKER_BASE ?= alpine:latest
 docker-multi-amd64: DOCKER_TAG ?= linux-amd64-$(GITEA_VERSION)
-docker-multi-amd64: docker-multi-build
+docker-multi-amd64: docker-multi-build docker-multi-push
 
 .PHONY: docker-multi-arm
 docker-multi-arm: GITEA_VERSION ?= master
 docker-multi-arm: DOCKER_BASE ?= multiarch/alpine:armhf-latest-stable
 docker-multi-arm: DOCKER_TAG ?= linux-arm-$(GITEA_VERSION)
-docker-multi-arm: docker-multi-build
+docker-multi-arm: docker-multi-build docker-multi-push
 
 .PHONY: docker-multi-arm64
 docker-multi-arm64: GITEA_VERSION ?= master
 docker-multi-arm64: DOCKER_BASE ?= multiarch/alpine:aarch64-latest-stable
 docker-multi-arm64: DOCKER_TAG ?= linux-arm64-$(GITEA_VERSION)
-docker-multi-arm64: docker-multi-build
+docker-multi-arm64: docker-multi-build docker-multi-push
 
 .PHONY: docker-multi-push
 docker-multi-push: DOCKER_PUSHIMAGE ?= "gitea/gitea"
@@ -178,7 +178,7 @@ docker-multi-update-manifest:
 	sed -i "s;$(DOCKER_PUSHIMAGE);gitea/gitea;g" $(DOCKER_MANIFEST)
 
 .PHONY: docker-multi-update-all
-docker-multi-update-all: docker-multi-amd64 docker-multi-arm docker-multi-arm64 docker-multi-push
+docker-multi-update-all: docker-multi-amd64 docker-multi-arm docker-multi-arm64
 	for DOCKER_MANIFEST in $(shell docker/manifest/* ); do make docker-multi-update-manifest; done;
 
 .PHONY: release
