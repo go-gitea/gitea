@@ -37,7 +37,7 @@ type APIValidationError struct {
 	URL     string `json:"url"`
 }
 
-//APIEmpty is a empty response
+//APIEmpty is an empty response
 // swagger:response empty
 type APIEmpty struct{}
 
