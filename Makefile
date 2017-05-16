@@ -161,14 +161,14 @@ docker-multi-arm64: DOCKER_TAG ?= linux-arm64-$(GITEA_VERSION)
 docker-multi-arm64: docker-multi-build docker-multi-push
 
 .PHONY: docker-multi-push
-docker-multi-push: DOCKER_PUSHIMAGE ?= "gitea/gitea"
+docker-multi-push: DOCKER_PUSHIMAGE ?= gitea/gitea
 docker-multi-push:
 	docker tag gitea/gitea:$(DOCKER_TAG) $(DOCKER_PUSHIMAGE):$(DOCKER_TAG)
 	docker push $(DOCKER_PUSHIMAGE):$(DOCKER_TAG)
 
 .PHONY: docker-multi-update-manifest
-docker-multi-update-manifest: DOCKER_PUSHIMAGE ?= "gitea/gitea"
-docker-multi-update-manifest: DOCKER_MANIFEST ?= "docker/manifest/gitea.yml"
+docker-multi-update-manifest: DOCKER_PUSHIMAGE ?= gitea/gitea
+docker-multi-update-manifest: DOCKER_MANIFEST ?= docker/manifest/gitea.yml
 docker-multi-update-manifest:
 	@hash manifest-tool > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/estesp/manifest-tool; \
@@ -179,7 +179,7 @@ docker-multi-update-manifest:
 
 .PHONY: docker-multi-update-all
 docker-multi-update-all: docker-multi-amd64 docker-multi-arm docker-multi-arm64
-	for DOCKER_MANIFEST in $(shell docker/manifest/* ); do make docker-multi-update-manifest; done;
+	for DOCKER_MANIFEST in $(wildcard docker/manifest/* ); do make docker-multi-update-manifest; done;
 
 .PHONY: release
 release: release-dirs release-windows release-linux release-darwin release-copy release-check
