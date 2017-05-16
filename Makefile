@@ -174,7 +174,7 @@ docker-multi-update-manifest:
 		go get -u github.com/estesp/manifest-tool; \
 	fi
 	sed -i "s;gitea/gitea;$(DOCKER_PUSHIMAGE);g" $(DOCKER_MANIFEST)
-	@manifest-tool --username $(DOCKER_USERNAME) --password $(DOCKER_PASSWORD) push from-spec $(DOCKER_MANIFEST)
+	@manifest-tool --docker-cfg $HOME/.docker/ push from-spec $(DOCKER_MANIFEST)
 	sed -i "s;$(DOCKER_PUSHIMAGE);gitea/gitea;g" $(DOCKER_MANIFEST)
 
 .PHONY: docker-multi-update-all
