@@ -143,19 +143,19 @@ docker-multi-build: docker-multi-setenv
 	docker build --no-cache --build-arg TAGS="$(TAGS)" --build-arg GITEA_VERSION="$(GITEA_VERSION)" -t gitea/gitea:$(DOCKER_TAG) -f Dockerfile.multi .
 
 .PHONY: docker-multi-amd64
-docker-multi-amd64: GITEA_VERSION ?= "master"
+docker-multi-amd64: GITEA_VERSION ?= master
 docker-multi-amd64: DOCKER_BASE ?= alpine:latest
 docker-multi-amd64: DOCKER_TAG ?= linux-amd64-$(GITEA_VERSION)
 docker-multi-amd64: docker-multi-build
 
 .PHONY: docker-multi-arm
-docker-multi-arm: GITEA_VERSION ?= "master"
+docker-multi-arm: GITEA_VERSION ?= master
 docker-multi-arm: DOCKER_BASE ?= multiarch/alpine:armhf-latest-stable
 docker-multi-arm: DOCKER_TAG ?= linux-arm-$(GITEA_VERSION)
 docker-multi-arm: docker-multi-build
 
 .PHONY: docker-multi-arm64
-docker-multi-arm64: GITEA_VERSION ?= "master"
+docker-multi-arm64: GITEA_VERSION ?= master
 docker-multi-arm64: DOCKER_BASE ?= multiarch/alpine:aarch64-latest-stable
 docker-multi-arm64: DOCKER_TAG ?= linux-arm64-$(GITEA_VERSION)
 docker-multi-arm64: docker-multi-build
