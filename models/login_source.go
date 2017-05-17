@@ -403,6 +403,18 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 
 	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(source.LDAP().AttributeSSHPublicKey)) > 0
 
+	// Update User if exist
+	isExist, err := IsUserExist(0, sr.Username)
+	if err != nil {
+		return nil, err
+	} else if isExist {
+		user.LowerName = strings.ToLower(sr.Username)
+		user.Name = sr.Username
+		user.FullName = composeFullName(sr.Name, sr.Surname, sr.Username)
+		user.Email = sr.Mail
+		user.IsAdmin = sr.IsAdmin
+	}
+
 	if !autoRegister {
 		if isAttributeSSHPublicKeySet && synchronizeLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
 			return user, RewriteAllPublicKeys()
