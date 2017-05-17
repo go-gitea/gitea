@@ -28,6 +28,9 @@
 	<a class="{{if .PageIsSettingsAccountLink}}active{{end}} item" href="{{AppSubUrl}}/user/settings/account_link">
 		{{.i18n.Tr "settings.account_link"}}
 	</a>
+	<a class="{{if .PageIsSettingsOrganization}}active{{end}} item" href="{{AppSubUrl}}/user/settings/organization">
+		{{.i18n.Tr "settings.organization"}}
+	</a>
 	<a class="{{if .PageIsSettingsDelete}}active{{end}} item" href="{{AppSubUrl}}/user/settings/delete">
 		{{.i18n.Tr "settings.delete"}}
 	</a>

@@ -223,6 +223,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/applications/delete", user.SettingsDeleteApplication)
 		m.Route("/delete", "GET,POST", user.SettingsDelete)
 		m.Combo("/account_link").Get(user.SettingsAccountLinks).Post(user.SettingsDeleteAccountLink)
+		m.Get("/organization", user.SettingsOrganization)
 		m.Group("/two_factor", func() {
 			m.Get("", user.SettingsTwoFactor)
 			m.Post("/regenerate_scratch", user.SettingsTwoFactorRegenerateScratch)
