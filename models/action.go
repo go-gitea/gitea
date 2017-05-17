@@ -674,3 +674,17 @@ func GetFeeds(ctxUser *User, actorID, offset int64, isProfile bool) ([]*Action, 
 	err := sess.Find(&actions)
 	return actions, err
 }
+
+// ChangeUsernameInAction changes the name of act_user_name & repo_user_name
+func ChangeUsernameInAction(id int64, newUserName string) error {
+	ac := Action{
+		RepoUserName: newUserName,
+		ActUserName:  newUserName,
+	}
+	_, err := x.
+		Cols("act_user_name", "repo_user_name").
+		Where("act_user_id = ?", id).
+		Update(ac)
+	log.Info("%v", err)
+	return err
+}

@@ -824,6 +824,10 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return fmt.Errorf("ChangeUsernameInPullRequests: %v", err)
 	}
 
+	if err = ChangeUsernameInAction(u.ID, newUserName); err != nil {
+		return fmt.Errorf("ChangeUsernameInAction: %v", err)
+	}
+
 	// Delete all local copies of repository wiki that user owns.
 	if err = x.
 		Where("owner_id=?", u.ID).
