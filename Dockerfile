@@ -3,7 +3,7 @@
 FROM gitea/gitea-base AS build-env
 
 ARG TAGS="sqlite"
-ENV TAGS "bindata $TAGS"
+ENV TAGS "bindata netgo $TAGS"
 ENV GOPATH /go/
 ENV PATH "${PATH}:${GOPATH}/bin"
 
@@ -34,7 +34,6 @@ RUN apk --no-cache add \
 
 ENV USER git
 ENV GITEA_CUSTOM /data/gitea
-ENV GODEBUG=netdns=go
 
 VOLUME ["/data"]
 
