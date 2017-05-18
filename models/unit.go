@@ -20,90 +20,21 @@ const (
 	UnitTypeExternalTracker                     // 9 ExternalTracker
 )
 
-// Unit is a tab page of one repository
-type Unit struct {
-	Type    UnitType
-	NameKey string
-	URI     string
-	DescKey string
-	Idx     int
-}
-
-// Enumerate all the units
 var (
-	UnitCode = Unit{
+	// allRepUnitTypes contains all the unit types
+	allRepUnitTypes = []UnitType{
 		UnitTypeCode,
-		"repo.code",
-		"/",
-		"repo.code_desc",
-		0,
-	}
-
-	UnitIssues = Unit{
 		UnitTypeIssues,
-		"repo.issues",
-		"/issues",
-		"repo.issues_desc",
-		1,
-	}
-
-	UnitExternalTracker = Unit{
-		UnitTypeExternalTracker,
-		"repo.issues",
-		"/issues",
-		"repo.issues_desc",
-		1,
-	}
-
-	UnitPullRequests = Unit{
 		UnitTypePullRequests,
-		"repo.pulls",
-		"/pulls",
-		"repo.pulls_desc",
-		2,
-	}
-
-	UnitCommits = Unit{
 		UnitTypeCommits,
-		"repo.commits",
-		"/commits/master",
-		"repo.commits_desc",
-		3,
-	}
-
-	UnitReleases = Unit{
 		UnitTypeReleases,
-		"repo.releases",
-		"/releases",
-		"repo.releases_desc",
-		4,
-	}
-
-	UnitWiki = Unit{
 		UnitTypeWiki,
-		"repo.wiki",
-		"/wiki",
-		"repo.wiki_desc",
-		5,
-	}
-
-	UnitExternalWiki = Unit{
-		UnitTypeExternalWiki,
-		"repo.wiki",
-		"/wiki",
-		"repo.wiki_desc",
-		5,
-	}
-
-	UnitSettings = Unit{
 		UnitTypeSettings,
-		"repo.settings",
-		"/settings",
-		"repo.settings_desc",
-		6,
+		UnitTypeExternalWiki,
+		UnitTypeExternalTracker,
 	}
 
-	// defaultRepoUnits contains all the default unit types
+	// defaultRepoUnits contains the default unit types
 	defaultRepoUnits = []UnitType{
 		UnitTypeCode,
 		UnitTypeIssues,
@@ -120,6 +51,95 @@ var (
 		UnitTypeCommits,
 		UnitTypeReleases,
 		UnitTypeSettings,
+	}
+)
+
+// Unit is a tab page of one repository
+type Unit struct {
+	Type    UnitType
+	NameKey string
+	URI     string
+	DescKey string
+	Idx     int
+}
+
+// CanDisable returns if this unit could be disabled.
+func (u *Unit) CanDisable() bool {
+	return u.Type != UnitTypeSettings
+}
+
+// Enumerate all the units
+var (
+	UnitCode = Unit{
+		UnitTypeCode,
+		"repo.code",
+		"/",
+		"repo.code.desc",
+		0,
+	}
+
+	UnitIssues = Unit{
+		UnitTypeIssues,
+		"repo.issues",
+		"/issues",
+		"repo.issues.desc",
+		1,
+	}
+
+	UnitExternalTracker = Unit{
+		UnitTypeExternalTracker,
+		"repo.ext_issues",
+		"/issues",
+		"repo.ext_issues.desc",
+		1,
+	}
+
+	UnitPullRequests = Unit{
+		UnitTypePullRequests,
+		"repo.pulls",
+		"/pulls",
+		"repo.pulls.desc",
+		2,
+	}
+
+	UnitCommits = Unit{
+		UnitTypeCommits,
+		"repo.commits",
+		"/commits/master",
+		"repo.commits.desc",
+		3,
+	}
+
+	UnitReleases = Unit{
+		UnitTypeReleases,
+		"repo.releases",
+		"/releases",
+		"repo.releases.desc",
+		4,
+	}
+
+	UnitWiki = Unit{
+		UnitTypeWiki,
+		"repo.wiki",
+		"/wiki",
+		"repo.wiki.desc",
+		5,
+	}
+
+	UnitExternalWiki = Unit{
+		UnitTypeExternalWiki,
+		"repo.ext_wiki",
+		"/wiki",
+		"repo.ext_wiki.desc",
+		5,
+	}
+
+	UnitSettings = Unit{
+		UnitTypeSettings,
+		"repo.settings",
+		"/settings",
+		"repo.settings.desc",
+		6,
 	}
 
 	// Units contains all the units

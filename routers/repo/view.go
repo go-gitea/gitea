@@ -252,6 +252,25 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 // Home render repository home page
 func Home(ctx *context.Context) {
+	if len(ctx.Repo.Repository.Units) > 0 {
+		tp := ctx.Repo.Repository.Units[0].Type
+		if tp == models.UnitTypeCode {
+			renderCode(ctx)
+			return
+		}
+
+		unit, ok := models.Units[tp]
+		if ok {
+			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/%s%s",
+				ctx.Repo.Repository.FullName(), unit.URI))
+			return
+		}
+	}
+
+	ctx.Handle(404, "Home", fmt.Errorf(ctx.Tr("units.error.no_unit_allowed_repo")))
+}
+
+func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
 	if ctx.Repo.Repository.IsBare {

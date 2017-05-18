@@ -493,6 +493,37 @@ func RequireRepoWriter() macaron.Handler {
 	}
 }
 
+// LoadRepoUnits loads repsitory's units, it should be called after repository and user loaded
+func LoadRepoUnits() macaron.Handler {
+	return func(ctx *Context) {
+		var userID int64
+		if ctx.User != nil {
+			userID = ctx.User.ID
+		}
+		err := ctx.Repo.Repository.LoadUnitsByUserID(userID)
+		if err != nil {
+			ctx.Handle(500, "LoadUnitsByUserID", err)
+			return
+		}
+	}
+}
+
+// CheckUnit will check whether
+func CheckUnit(unitType models.UnitType) macaron.Handler {
+	return func(ctx *Context) {
+		var find bool
+		for _, unit := range ctx.Repo.Repository.Units {
+			if unit.Type == unitType {
+				find = true
+				break
+			}
+		}
+		if !find {
+			ctx.Handle(404, "CheckUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitType))
+		}
+	}
+}
+
 // GitHookService checks if repository Git hooks service has been enabled.
 func GitHookService() macaron.Handler {
 	return func(ctx *Context) {
