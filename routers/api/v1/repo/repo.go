@@ -32,6 +32,7 @@ func Search(ctx *context.APIContext) {
 		Keyword:  strings.Trim(ctx.Query("q"), " "),
 		OwnerID:  ctx.QueryInt64("uid"),
 		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		Searcher: ctx.User,
 	}
 
 	// Check visibility.
