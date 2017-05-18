@@ -408,11 +408,12 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 	if err != nil {
 		return nil, err
 	} else if isExist {
-		user.LowerName = strings.ToLower(sr.Username)
-		user.Name = sr.Username
 		user.FullName = composeFullName(sr.Name, sr.Surname, sr.Username)
 		user.Email = sr.Mail
-		user.IsAdmin = sr.IsAdmin
+		// Change existing admin flag only if AdminFilter option is set
+		if len(source.LDAP().AdminFilter) > 0 {
+			user.IsAdmin = sr.IsAdmin
+		}
 	}
 
 	if !autoRegister {
