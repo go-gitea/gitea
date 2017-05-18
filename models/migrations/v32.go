@@ -16,7 +16,7 @@ func addUnitsToRepoTeam(x *xorm.Engine) error {
 		return err
 	}
 
-	_, err = x.Where("1=1").Update(&Team{
+	_, err = x.Update(&Team{
 		UnitTypes: []int{1, 2, 3, 4, 5, 6, 7, 8, 9},
 	})
 	return err
