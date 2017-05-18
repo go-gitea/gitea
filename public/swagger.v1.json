@@ -228,6 +228,22 @@
         }
       }
     },
+    "/repos/{username}/{reponame}/mirror-sync": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "repoMirrorSync",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/repos/{username}/{reponame}/subscription": {
       "get": {
         "operationId": "userCurrentCheckSubscription",
