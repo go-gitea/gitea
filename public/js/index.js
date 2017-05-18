@@ -1661,7 +1661,7 @@ function initDashboardSearch() {
             repos: [],
             searchQuery: '',
             suburl: document.querySelector('meta[name=_suburl]').content,
-            uid: document.querySelector('meta[name=_uid]').content
+            uid: document.querySelector('meta[name=_context_uid]').content
         },
 
         mounted: function() {
