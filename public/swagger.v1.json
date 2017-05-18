@@ -1269,7 +1269,7 @@
       }
     },
     "empty": {
-      "description": "APIEmpty is a empty response"
+      "description": "APIEmpty is an empty response"
     },
     "error": {
       "description": "APIError is error format response",
