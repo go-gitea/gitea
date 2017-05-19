@@ -36,5 +36,36 @@ func TestCanCreateOrganization(t *testing.T) {
 	user.AllowCreateOrganization = true
 	assert.True(t, admin.CanCreateOrganization())
 	assert.False(t, user.CanCreateOrganization())
+}
 
+func TestDeleteUser(t *testing.T) {
+	test := func(userID int64) {
+		assert.NoError(t, PrepareTestDatabase())
+		user := AssertExistsAndLoadBean(t, &User{ID: userID}).(*User)
+
+		ownedRepos := make([]*Repository, 0, 10)
+		assert.NoError(t, x.Find(&ownedRepos, &Repository{OwnerID: userID}))
+		if len(ownedRepos) > 0 {
+			err := DeleteUser(user)
+			assert.Error(t, err)
+			assert.True(t, IsErrUserOwnRepos(err))
+			return
+		}
+
+		orgUsers := make([]*OrgUser, 0, 10)
+		assert.NoError(t, x.Find(&orgUsers, &OrgUser{UID: userID}))
+		for _, orgUser := range orgUsers {
+			if err := RemoveOrgUser(orgUser.OrgID, orgUser.UID); err != nil {
+				assert.True(t, IsErrLastOrgOwner(err))
+				return
+			}
+		}
+		assert.NoError(t, DeleteUser(user))
+		AssertNotExistsBean(t, &User{ID: userID})
+		CheckConsistencyFor(t, &User{}, &Repository{})
+	}
+	test(2)
+	test(4)
+	test(8)
+	test(11)
 }
