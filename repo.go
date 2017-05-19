@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -260,4 +261,15 @@ func parseSize(objects string) *CountObject {
 		}
 	}
 	return repoSize
+}
+
+// GetLatestCommitTime returns time for latest commit in repository (across all branches)
+func GetLatestCommitTime(repoPath string) (time.Time, error) {
+	cmd := NewCommand("for-each-ref", "--sort=-committerdate", "refs/heads/", "--count", "1", "--format=%(committerdate)")
+	stdout, err := cmd.RunInDir(repoPath)
+	if err != nil {
+		return time.Time{}, err
+	}
+	commitTime := strings.TrimSpace(stdout)
+	return time.Parse("Mon Jan 02 15:04:05 2006 -0700", commitTime)
 }
