@@ -1,4 +1,4 @@
-// Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 Gitea. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -310,12 +310,12 @@ type HookTaskType int
 
 // Types of hook tasks
 const (
-	GOGS HookTaskType = iota + 1
+	GITEA HookTaskType = iota + 1
 	SLACK
 )
 
 var hookTaskTypes = map[string]HookTaskType{
-	"gogs":  GOGS,
+	"gitea":  GITEA,
 	"slack": SLACK,
 }
 
@@ -327,8 +327,8 @@ func ToHookTaskType(name string) HookTaskType {
 // Name returns the name of an hook task type
 func (t HookTaskType) Name() string {
 	switch t {
-	case GOGS:
-		return "gogs"
+	case GITEA:
+		return "gitea"
 	case SLACK:
 		return "slack"
 	}
@@ -503,7 +503,7 @@ func PrepareWebhooks(repo *Repository, event HookEventType, p api.Payloader) err
 			}
 		}
 
-		// Use separate objects so modifications won't be made on payload on non-Gogs type hooks.
+		// Use separate objects so modifications won't be made on payload on non-Gitea type hooks.
 		switch w.HookTaskType {
 		case SLACK:
 			payloader, err = GetSlackPayload(p, event, w.Meta)
@@ -536,8 +536,8 @@ func (t *HookTask) deliver() {
 
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
 	req := httplib.Post(t.URL).SetTimeout(timeout, timeout).
-		Header("X-Gogs-Delivery", t.UUID).
-		Header("X-Gogs-Event", string(t.EventType)).
+		Header("X-Gitea-Delivery", t.UUID).
+		Header("X-Gitea-Event", string(t.EventType)).
 		Header("X-GitHub-Delivery", t.UUID).
 		Header("X-GitHub-Event", string(t.EventType)).
 		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify})

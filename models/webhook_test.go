@@ -189,17 +189,17 @@ func TestDeleteWebhookByOrgID(t *testing.T) {
 }
 
 func TestToHookTaskType(t *testing.T) {
-	assert.Equal(t, GOGS, ToHookTaskType("gogs"))
+	assert.Equal(t, GITEA, ToHookTaskType("gitea"))
 	assert.Equal(t, SLACK, ToHookTaskType("slack"))
 }
 
 func TestHookTaskType_Name(t *testing.T) {
-	assert.Equal(t, "gogs", GOGS.Name())
+	assert.Equal(t, "gitea", GITEA.Name())
 	assert.Equal(t, "slack", SLACK.Name())
 }
 
 func TestIsValidHookTaskType(t *testing.T) {
-	assert.True(t, IsValidHookTaskType("gogs"))
+	assert.True(t, IsValidHookTaskType("gitea"))
 	assert.True(t, IsValidHookTaskType("slack"))
 	assert.False(t, IsValidHookTaskType("invalid"))
 }
@@ -221,7 +221,7 @@ func TestCreateHookTask(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:    3,
 		HookID:    3,
-		Type:      GOGS,
+		Type:      GITEA,
 		URL:       "http://www.example.com/unit_test",
 		Payloader: &api.PushPayload{},
 	}
