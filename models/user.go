@@ -921,48 +921,41 @@ func deleteUser(e *xorm.Session, u *User) error {
 	}
 
 	// ***** START: Watch *****
-	watches := make([]*Watch, 0, 10)
-	if err = e.Find(&watches, &Watch{UserID: u.ID}); err != nil {
+	watchedRepoIDs := make([]int64, 0, 10)
+	if err = e.Table("watch").Cols("watch.repo_id").
+		Where("watch.user_id = ?", u.ID).Find(&watchedRepoIDs); err != nil {
 		return fmt.Errorf("get all watches: %v", err)
 	}
-	for i := range watches {
-		if _, err = e.Exec("UPDATE `repository` SET num_watches=num_watches-1 WHERE id=?", watches[i].RepoID); err != nil {
-			return fmt.Errorf("decrease repository watch number[%d]: %v", watches[i].RepoID, err)
-		}
+	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).Update(new(Repository)); err != nil {
+		return fmt.Errorf("decrease repository num_watches: %v", err)
 	}
 	// ***** END: Watch *****
 
 	// ***** START: Star *****
-	stars := make([]*Star, 0, 10)
-	if err = e.Find(&stars, &Star{UID: u.ID}); err != nil {
+	starredRepoIDs := make([]int64, 0, 10)
+	if err = e.Table("star").Cols("star.repo_id").
+		Where("star.uid = ?", u.ID).Find(&starredRepoIDs); err != nil {
 		return fmt.Errorf("get all stars: %v", err)
-	}
-	for i := range stars {
-		if _, err = e.Exec("UPDATE `repository` SET num_stars=num_stars-1 WHERE id=?", stars[i].RepoID); err != nil {
-			return fmt.Errorf("decrease repository star number[%d]: %v", stars[i].RepoID, err)
-		}
+	} else if _, err = e.Decr("num_watches").In("id", starredRepoIDs).Update(new(Repository)); err != nil {
+		return fmt.Errorf("decrease repository num_stars: %v", err)
 	}
 	// ***** END: Star *****
 
 	// ***** START: Follow *****
-	followees := make([]*Follow, 0, 10)
-	if err = e.Find(&followees, &Follow{UserID: u.ID}); err != nil {
+	followeeIDs := make([]int64, 0, 10)
+	if err = e.Table("follow").Cols("follow.follow_id").
+		Where("follow.user_id = ?", u.ID).Find(&followeeIDs); err != nil {
 		return fmt.Errorf("get all followees: %v", err)
-	}
-	for i := range followees {
-		if _, err = e.Exec("UPDATE `user` SET num_followers=num_followers-1 WHERE id=?", followees[i].FollowID); err != nil {
-			return fmt.Errorf("decrease user follower number[%d]: %v", followees[i].FollowID, err)
-		}
+	} else if _, err = e.Decr("num_followers").In("id", followeeIDs).Update(new(User)); err != nil {
+		return fmt.Errorf("decrease user num_followers: %v", err)
 	}
 
-	followers := make([]*Follow, 0, 10)
-	if err = e.Find(&followers, &Follow{FollowID: u.ID}); err != nil {
+	followerIDs := make([]int64, 0, 10)
+	if err = e.Table("follow").Cols("follow.user_id").
+		Where("follow.follow_id = ?", u.ID).Find(&followerIDs); err != nil {
 		return fmt.Errorf("get all followers: %v", err)
-	}
-	for i := range followers {
-		if _, err = e.Exec("UPDATE `user` SET num_following=num_following-1 WHERE id=?", followers[i].UserID); err != nil {
-			return fmt.Errorf("decrease user following number[%d]: %v", followers[i].UserID, err)
-		}
+	} else if _, err = e.Decr("num_following").In("id", followerIDs).Update(new(User)); err != nil {
+		return fmt.Errorf("decrease user num_following: %v", err)
 	}
 	// ***** END: Follow *****
 
