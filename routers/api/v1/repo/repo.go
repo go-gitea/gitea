@@ -337,6 +337,15 @@ func Delete(ctx *context.APIContext) {
 
 // MirrorSync adds a mirrored repository to the sync queue
 func MirrorSync(ctx *context.APIContext) {
+	// swagger:route POST /repos/{username}/{reponame}/mirror-sync repoMirrorSync
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: empty
+	//       403: forbidden
+
 	repo := ctx.Repo.Repository
 
 	if !ctx.Repo.IsWriter() {
