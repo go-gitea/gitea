@@ -125,6 +125,7 @@ func CreateOrganization(org, owner *User) (err error) {
 	org.NumTeams = 1
 	org.NumMembers = 1
 	org.Type = UserTypeOrganization
+	org.Visibility = VisibleTypePublic
 
 	sess := x.NewSession()
 	defer sessionRelease(sess)
