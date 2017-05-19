@@ -206,7 +206,7 @@ func HTTP(ctx *context.Context) {
 			}
 		}
 
-		if !repo.CheckUnitUser(authUser.ID, unitType) {
+		if !repo.CheckUnitUser(authUser.ID, authUser.IsAdmin, unitType) {
 			ctx.HandleText(http.StatusForbidden, fmt.Sprintf("User %s does not have allowed access to repository %s 's code",
 				authUser.Name, repo.RepoPath()))
 			return
