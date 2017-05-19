@@ -211,8 +211,8 @@ func (u *User) HasForkedRepo(repoID int64) bool {
 	return has
 }
 
-// RepoCreationNum returns the number of repositories created by the user
-func (u *User) RepoCreationNum() int {
+// MaxCreationLimit returns the number of repositories a user is allowed to create
+func (u *User) MaxCreationLimit() int {
 	if u.MaxRepoCreation <= -1 {
 		return setting.Repository.MaxCreationLimit
 	}
