@@ -29,6 +29,7 @@ const (
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
+	ctx.Data["CurrentVisibility"] = models.VisibleType(ctx.Org.Organization.Visibility)
 	ctx.HTML(200, tplSettingsOptions)
 }
 
@@ -79,6 +80,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
+	org.Visibility = form.Visibility
 	if err := models.UpdateUser(org); err != nil {
 		ctx.Handle(500, "UpdateUser", err)
 		return

@@ -35,6 +35,7 @@ type UpdateOrgSettingForm struct {
 	Description     string `binding:"MaxSize(255)"`
 	Website         string `binding:"ValidUrl;MaxSize(255)"`
 	Location        string `binding:"MaxSize(50)"`
+	Visibility      models.VisibleType
 	MaxRepoCreation int
 }
 

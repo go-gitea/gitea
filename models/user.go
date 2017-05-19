@@ -72,6 +72,20 @@ var (
 	ErrUnsupportedLoginType = errors.New("Login source is unknown")
 )
 
+// VisibleType define the visibility (Organization only)
+type VisibleType int
+
+const (
+	// VisibleType Visible for everyone
+	VisibleTypePublic VisibleType = iota + 1
+
+	// VisibleTypeLimited Visible for every connected user
+	VisibleTypeLimited
+
+	// VisibleTypePrivate Visible only for organization's members
+	VisibleTypePrivate
+)
+
 // User represents the object of individual and member of organization.
 type User struct {
 	ID        int64  `xorm:"pk autoincr"`
@@ -129,8 +143,9 @@ type User struct {
 	Description string
 	NumTeams    int
 	NumMembers  int
-	Teams       []*Team `xorm:"-"`
-	Members     []*User `xorm:"-"`
+	Teams       []*Team     `xorm:"-"`
+	Members     []*User     `xorm:"-"`
+	Visibility  VisibleType `xorm:"DEFAULT 1"`
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
