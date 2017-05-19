@@ -330,8 +330,8 @@ func (repo *Repository) getUnits(e Engine) (err error) {
 }
 
 // CheckUnitUser check whether user could visit the unit of this repository
-func (repo *Repository) CheckUnitUser(userID int64, unitType UnitType) bool {
-	if err := repo.getUnitsByUserID(x, userID); err != nil {
+func (repo *Repository) CheckUnitUser(userID int64, isAdmin bool, unitType UnitType) bool {
+	if err := repo.getUnitsByUserID(x, userID, isAdmin); err != nil {
 		return false
 	}
 
@@ -344,11 +344,11 @@ func (repo *Repository) CheckUnitUser(userID int64, unitType UnitType) bool {
 }
 
 // LoadUnitsByUserID loads units according userID's permissions
-func (repo *Repository) LoadUnitsByUserID(userID int64) error {
-	return repo.getUnitsByUserID(x, userID)
+func (repo *Repository) LoadUnitsByUserID(userID int64, isAdmin bool) error {
+	return repo.getUnitsByUserID(x, userID, isAdmin)
 }
 
-func (repo *Repository) getUnitsByUserID(e Engine, userID int64) (err error) {
+func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (err error) {
 	if repo.Units != nil {
 		return nil
 	}
@@ -358,7 +358,7 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64) (err error) {
 		return err
 	}
 
-	if !repo.Owner.IsOrganization() || userID == 0 {
+	if !repo.Owner.IsOrganization() || userID == 0 || isAdmin {
 		return nil
 	}
 
