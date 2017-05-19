@@ -124,7 +124,7 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
-	ctx.Data["HookType"] = "gogs"
+	ctx.Data["HookType"] = "gitea"
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -150,7 +150,7 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 		Secret:       form.Secret,
 		HookEvent:    ParseHookEvent(form.WebhookForm),
 		IsActive:     form.Active,
-		HookTaskType: models.GOGS,
+		HookTaskType: models.GITEA,
 		OrgID:        orCtx.OrgID,
 	}
 	if err := w.UpdateEvent(); err != nil {
@@ -246,7 +246,7 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 		ctx.Data["SlackHook"] = w.GetSlackHook()
 		ctx.Data["HookType"] = "slack"
 	default:
-		ctx.Data["HookType"] = "gogs"
+		ctx.Data["HookType"] = "gitea"
 	}
 
 	ctx.Data["History"], err = w.History(1)
