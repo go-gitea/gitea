@@ -221,6 +221,9 @@ func (u *User) RepoCreationNum() int {
 
 // CanCreateRepo returns if user login can create a repository
 func (u *User) CanCreateRepo() bool {
+	if u.IsAdmin {
+		return true
+	}
 	if u.MaxRepoCreation <= -1 {
 		if setting.Repository.MaxCreationLimit <= -1 {
 			return true
