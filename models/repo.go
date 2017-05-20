@@ -353,8 +353,9 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 		return nil
 	}
 
-	err = repo.getUnits(e)
-	if err != nil {
+	if err = repo.getUnits(e); err != nil {
+		return err
+	} else if err = repo.getOwner(e); err != nil {
 		return err
 	}
 
