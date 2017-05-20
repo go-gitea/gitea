@@ -67,6 +67,10 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 
 // Create render creating repository page
 func Create(ctx *context.Context) {
+	if !ctx.User.CanCreateRepo() {
+		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.RepoCreationNum()), tplCreate, nil)
+	}
+
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	// Give default value for template to render.
