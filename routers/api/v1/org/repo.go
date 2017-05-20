@@ -8,29 +8,30 @@ import (
 
 // ListRepos list all of an organization's repositories.
 func ListRepos(ctx *context.APIContext) {
-	requester := ctx.User
-	org := ctx.Org.Organization
-
-	// Find all repos a user has access to within an org.
-	reposEnv, err := org.AccessibleReposEnv(requester.ID)
-	if err != nil {
-		ctx.Error(500, "AccessibleReposEnv", err)
-		return
-	}
-	repos, err := reposEnv.Repos(1, org.NumRepos)
-	if err != nil {
-		ctx.Error(500, "Repos", err)
-		return
-	}
-
-	apiRepos := make([]*api.Repository, len(repos))
-	for i, repo := range repos {
-		accessLevel, err := models.AccessLevel(requester.ID, repo)
+	var apiRepos []*api.Repository
+	if ctx.User != nil {
+		// Find all repos a user has access to within an org.
+		org := ctx.Org.Organization
+		reposEnv, err := org.AccessibleReposEnv(ctx.User.ID)
 		if err != nil {
-			ctx.Error(500, "AccessLevel", err)
+			ctx.Error(500, "AccessibleReposEnv", err)
 			return
 		}
-		apiRepos[i] = repo.APIFormat(accessLevel)
+		repos, err := reposEnv.Repos(1, org.NumRepos)
+		if err != nil {
+			ctx.Error(500, "Repos", err)
+			return
+		}
+		// Convert to API repos.
+		apiRepos = make([]*api.Repository, len(repos))
+		for i, repo := range repos {
+			accessLevel, err := models.AccessLevel(ctx.User.ID, repo)
+			if err != nil {
+				ctx.Error(500, "AccessLevel", err)
+				return
+			}
+			apiRepos[i] = repo.APIFormat(accessLevel)
+		}
 	}
 	ctx.JSON(200, &apiRepos)
 }
