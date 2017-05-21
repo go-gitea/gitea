@@ -76,7 +76,7 @@ var (
 type VisibleType int
 
 const (
-	// VisibleType Visible for everyone
+	// VisibleTypePublic Visible for everyone
 	VisibleTypePublic VisibleType = iota + 1
 
 	// VisibleTypeLimited Visible for every connected user
@@ -519,6 +519,11 @@ func (u *User) IsOrganization() bool {
 // IsUserOrgOwner returns true if user is in the owner team of given organization.
 func (u *User) IsUserOrgOwner(orgID int64) bool {
 	return IsOrganizationOwner(orgID, u.ID)
+}
+
+// IsUserOrgPartOf returns true if user is part of the organization
+func (u *User) IsUserOrgPartOf(userID int64) bool {
+	return IsOrganizationMember(u.ID, userID)
 }
 
 // IsPublicMember returns true if user public his/her membership in given organization.
