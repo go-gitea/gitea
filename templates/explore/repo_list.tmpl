@@ -1,5 +1,6 @@
 <div class="ui repository list">
 	{{range .Repos}}
+		{{if (or (eq .Owner.Visibility 1) (and ($.SignedUser) (or (eq .Owner.Visibility 2) (and (.Owner.IsUserOrgPartOf $.SignedUserID) (eq .Owner.Visibility 3)) ($.IsAdmin))))}}
 		<div class="item">
 			<div class="ui header">
 				<a class="name" href="{{AppSubUrl}}/{{if .Owner}}{{.Owner.Name}}{{else if $.Org}}{{$.Org.Name}}{{else}}{{$.Owner.Name}}{{end}}/{{.Name}}">{{if or $.PageIsExplore $.PageIsProfileStarList }}{{.Owner.Name}} / {{end}}{{.Name}}</a>
@@ -19,6 +20,7 @@
 			{{if .DescriptionHTML}}<p class="has-emoji">{{.DescriptionHTML}}</p>{{end}}
 			<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Updated $.i18n.Lang}}</p>
 		</div>
+		{{end}}
 	{{else}}
 	<div>
 		{{$.i18n.Tr "explore.repo_no_results"}}
