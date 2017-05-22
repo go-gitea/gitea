@@ -440,4 +440,20 @@ footer {
   .ui.menu.new-menu::-webkit-scrollbar-thumb {
       background:rgba(0,0,0,0.2);
   }
+  .ui.menu.new-menu:after {
+    position: absolute;
+    margin-top: -15px;
+    display: block;
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1) 100%);
+    content: ' ';
+    right: 0;
+    height: 53px;
+    z-index: 1000;
+    width: 60px;
+    clear: none;
+    visibility: visible;
+  }
+  .ui.menu.new-menu a.item:last-child {
+    padding-right: 30px !important;
+  }
 }
