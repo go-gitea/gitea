@@ -991,12 +991,20 @@ var Service struct {
 	DefaultKeepEmailPrivate        bool
 	DefaultAllowCreateOrganization bool
 	NoReplyAddress                 string
+	DefaultVisibility              string
+	DefaultVisibilityMode          int
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
 	EnableOpenIDSignUp bool
 	OpenIDWhitelist    []*regexp.Regexp
 	OpenIDBlacklist    []*regexp.Regexp
+}
+
+var visibilityModes = map[string]int{
+	"public":  1,
+	"limited": 2,
+	"private": 3,
 }
 
 func newService() {
@@ -1012,6 +1020,8 @@ func newService() {
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
+	Service.DefaultVisibility = sec.Key("DEFAULT_VISIBILITY").In("public", []string{"public", "limited", "private"})
+	Service.DefaultVisibilityMode = visibilityModes[Service.DefaultVisibility]
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(false)

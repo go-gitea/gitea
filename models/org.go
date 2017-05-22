@@ -10,6 +10,8 @@ import (
 	"os"
 	"strings"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
@@ -125,7 +127,7 @@ func CreateOrganization(org, owner *User) (err error) {
 	org.NumTeams = 1
 	org.NumMembers = 1
 	org.Type = UserTypeOrganization
-	org.Visibility = VisibleTypePublic
+	org.Visibility = VisibleType(setting.Service.DefaultVisibilityMode)
 
 	sess := x.NewSession()
 	defer sessionRelease(sess)
