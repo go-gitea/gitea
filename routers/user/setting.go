@@ -777,7 +777,7 @@ func SettingsDelete(ctx *context.Context) {
 func SettingsOrganization(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsOrganization"] = true
-	orgs, err := models.GetOrgsByUserID(ctx.User.ID, ctx.IsSigned && ctx.User.IsAdmin)
+	orgs, err := models.GetOrgsByUserID(ctx.User.ID, ctx.IsSigned)
 	if err != nil {
 		ctx.Handle(500, "GetOrgsByUserID", err)
 		return
