@@ -8,7 +8,7 @@
 				{{template "user/dashboard/feeds" .}}
 			</div>
 			<div id="dashboard-repo-search" class="six wide column">
-				<div class="ui {{if not .ContextUser.IsOrganization}}three{{else}}two{{end}} item tabable menu">
+				<div class="ui {{if not .ContextUser.IsOrganization}}three{{else}}two{{end}} item stackable tabable menu">
 					<a :class="{item: true, active: tab === 'repos'}" @click="changeTab('repos')">{{.i18n.Tr "repository"}}</a>
 					{{if not .ContextUser.IsOrganization}}
 						<a :class="{item: true, active: tab === 'orgs'}" @click="changeTab('orgs')">{{.i18n.Tr "organization"}}</a>
