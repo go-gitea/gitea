@@ -114,6 +114,8 @@ var migrations = []Migration{
 	NewMigration("add field for login source synchronization", addLoginSourceSyncEnabledColumn),
 	// v32 -> v33
 	NewMigration("add units for team", addUnitsToRepoTeam),
+	// v33 -> v34
+	NewMigration("remove columns from action", removeActionColumns),
 }
 
 // Migrate database to current version

@@ -74,11 +74,11 @@ type Action struct {
 	UserID       int64 `xorm:"INDEX"` // Receiver user id.
 	OpType       ActionType
 	ActUserID    int64  `xorm:"INDEX"` // Action user id.
-	ActUserName  string // Action user name.
+	ActUserName  string `xorm:"-"`
 	ActAvatar    string `xorm:"-"`
 	RepoID       int64  `xorm:"INDEX"`
-	RepoUserName string
-	RepoName     string
+	RepoUserName string `xorm:"-"`
+	RepoName     string `xorm:"-"`
 	RefName      string
 	IsPrivate    bool      `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content      string    `xorm:"TEXT"`
