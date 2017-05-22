@@ -13,27 +13,38 @@
 					<div class="item">
 						<div class="ui header">
 							{{if .IsPrivate}}
-								<span class="text gold"><i class="octicon octicon-lock"></i></span>
+								<span class="text gold iconFloat"><i class="octicon octicon-lock"></i></span>
 							{{else if .IsFork}}
-								<span><i class="octicon octicon-repo-forked"></i></span>
+								<span class="iconFloat"><i class="octicon octicon-repo-forked"></i></span>
 							{{else if .IsMirror}}
-								<span><i class="octicon octicon-repo-clone"></i></span>
+								<span class="iconFloat"><i class="octicon octicon-repo-clone"></i></span>
 							{{else}}
-								<span><i class="octicon octicon-repo"></i></span>
+								<span class="iconFloat"><i class="octicon octicon-repo"></i></span>
 							{{end}}
-							<a class="name" href="{{AppSubUrl}}/{{$.Owner.Name}}/{{.Name}}">{{$.Owner.Name}}/{{.Name}}</a>
-							<span>{{SizeFmt .Size}}</span>
-							{{if .IsFork}}
-								{{$.i18n.Tr "repo.forked_from"}}
-								<span><a href="{{AppSubUrl}}/{{.BaseRepo.Owner.Name}}/{{.BaseRepo.Name}}">{{.BaseRepo.Owner.Name}}/{{.BaseRepo.Name}}</a></span>
-							{{end}}
+							<div class="content">
+								<a class="name" href="{{AppSubUrl}}/{{$.Owner.Name}}/{{.Name}}">{{$.Owner.Name}}/{{.Name}}</a>
+								<span>{{SizeFmt .Size}}</span>
+								{{if .IsFork}}
+									{{$.i18n.Tr "repo.forked_from"}}
+									<span><a href="{{AppSubUrl}}/{{.BaseRepo.Owner.Name}}/{{.BaseRepo.Name}}">{{.BaseRepo.Owner.Name}}/{{.BaseRepo.Name}}</a></span>
+								{{end}}
+							</div>
 						</div>
+					{{end}}
+				{{else}}
+					<div class="item">
+						{{.i18n.Tr "settings.repos_none"}}
 					</div>
+<<<<<<< HEAD
 					{{end}}
 				</div>
 			{{else}}
 				{{.i18n.Tr "settings.repos_none"}}
 			{{end}}
+=======
+				{{end}}
+			</div>
+>>>>>>> Change UI to have a better look
 		</div>
 	</div>
 </div>

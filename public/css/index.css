@@ -2877,6 +2877,9 @@ footer .ui.language .menu {
   padding-top: 15px;
   padding-bottom: 5px;
 }
+.user.settings .iconFloat {
+  float: left;
+}
 .dashboard {
   padding-top: 15px;
   padding-bottom: 80px;
