@@ -73,8 +73,10 @@ pipeline:
   coverage:
     image: plugins/coverage
     server: https://coverage.gitea.io
+    commands:
+      - make test-coverage
     when:
-      event: [ push, tag, pull_request ]
+      event: [ push, tag ]
 
   docker:
     image: plugins/docker
