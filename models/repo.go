@@ -1650,6 +1650,7 @@ func DeleteRepository(uid, repoID int64) error {
 		&Collaboration{RepoID: repoID},
 		&PullRequest{BaseRepoID: repoID},
 		&RepoUnit{RepoID: repoID},
+		&RepoRedirect{RedirectRepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
