@@ -918,14 +918,13 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 	}
 
 	if err = NotifyWatchers(&Action{
-		ActUserID:    issue.Poster.ID,
-		ActUserName:  issue.Poster.Name,
-		OpType:       ActionCreateIssue,
-		Content:      fmt.Sprintf("%d|%s", issue.Index, issue.Title),
-		RepoID:       repo.ID,
-		RepoUserName: repo.Owner.Name,
-		RepoName:     repo.Name,
-		IsPrivate:    repo.IsPrivate,
+		ActUserID: issue.Poster.ID,
+		ActUser:   issue.Poster,
+		OpType:    ActionCreateIssue,
+		Content:   fmt.Sprintf("%d|%s", issue.Index, issue.Title),
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
 	}); err != nil {
 		log.Error(4, "NotifyWatchers: %v", err)
 	}

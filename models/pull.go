@@ -635,14 +635,13 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	}
 
 	if err = NotifyWatchers(&Action{
-		ActUserID:    pull.Poster.ID,
-		ActUserName:  pull.Poster.Name,
-		OpType:       ActionCreatePullRequest,
-		Content:      fmt.Sprintf("%d|%s", pull.Index, pull.Title),
-		RepoID:       repo.ID,
-		RepoUserName: repo.Owner.Name,
-		RepoName:     repo.Name,
-		IsPrivate:    repo.IsPrivate,
+		ActUserID: pull.Poster.ID,
+		ActUser:   pull.Poster,
+		OpType:    ActionCreatePullRequest,
+		Content:   fmt.Sprintf("%d|%s", pull.Index, pull.Title),
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
 	}); err != nil {
 		log.Error(4, "NotifyWatchers: %v", err)
 	} else if err = pull.MailParticipants(); err != nil {

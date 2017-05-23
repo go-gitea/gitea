@@ -81,8 +81,7 @@ func retrieveFeeds(ctx *context.Context, ctxUser *models.User, userID, offset in
 			}
 			userCache[act.ActUserID] = u
 		}
-		act.ActUserName = u.Name
-		act.ActAvatar = u.RelAvatarLink()
+		act.ActUser = u
 
 		repo, ok := repoCache[act.RepoID]
 		if !ok {
@@ -95,7 +94,7 @@ func retrieveFeeds(ctx *context.Context, ctxUser *models.User, userID, offset in
 				return
 			}
 		}
-		act.RepoName = repo.Name
+		act.Repo = repo
 
 		repoOwner, ok := userCache[repo.OwnerID]
 		if !ok {
@@ -108,7 +107,7 @@ func retrieveFeeds(ctx *context.Context, ctxUser *models.User, userID, offset in
 				return
 			}
 		}
-		act.RepoUserName = repoOwner.Name
+		repo.Owner = repoOwner
 
 		feeds = append(feeds, act)
 	}

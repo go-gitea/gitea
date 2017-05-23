@@ -329,13 +329,12 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	// Compose comment action, could be plain comment, close or reopen issue/pull request.
 	// This object will be used to notify watchers in the end of function.
 	act := &Action{
-		ActUserID:    opts.Doer.ID,
-		ActUserName:  opts.Doer.Name,
-		Content:      fmt.Sprintf("%d|%s", opts.Issue.Index, strings.Split(opts.Content, "\n")[0]),
-		RepoID:       opts.Repo.ID,
-		RepoUserName: opts.Repo.Owner.Name,
-		RepoName:     opts.Repo.Name,
-		IsPrivate:    opts.Repo.IsPrivate,
+		ActUserID: opts.Doer.ID,
+		ActUser:   opts.Doer,
+		Content:   fmt.Sprintf("%d|%s", opts.Issue.Index, strings.Split(opts.Content, "\n")[0]),
+		RepoID:    opts.Repo.ID,
+		Repo:      opts.Repo,
+		IsPrivate: opts.Repo.IsPrivate,
 	}
 
 	// Check comment type.
