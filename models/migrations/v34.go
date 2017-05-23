@@ -10,6 +10,7 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
+// ActionV34 describes the removed fields
 type ActionV34 struct {
 	ActUserName  string `xorm:"-"`
 	RepoUserName string `xorm:"-"`
