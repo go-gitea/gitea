@@ -26,6 +26,23 @@
 						{{end}}
 				</a>
 				<span class="grey has-emoji">{{RenderCommitMessage false .LatestCommit.Summary .RepoLink $.Repository.ComposeMetas}}</span>
+				{{if .LatestCommitStatus}}
+					{{if eq .LatestCommitStatus "pending"}}
+						<i class="commit-status circle icon yellow"></i>
+					{{end}}
+					{{if eq .LatestCommitStatus "success"}}
+						<i class="commit-status check icon green"></i>
+					{{end}}
+					{{if eq .LatestCommitStatus "error"}}
+						<i class="commit-status warning icon red"></i>
+					{{end}}
+					{{if eq .LatestCommitStatus "failure"}}
+						<i class="commit-status remove icon red"></i>
+					{{end}}
+					{{if eq .LatestCommitStatus "warning"}}
+						<i class="commit-status warning sign icon yellow"></i>
+					{{end}}
+				{{end}}
 			</th>
 			<th class="nine wide">
 			</th>
