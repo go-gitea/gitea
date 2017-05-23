@@ -73,11 +73,6 @@ lint:
 	fi
 	for PKG in $(PACKAGES); do golint -set_exit_status $$PKG || exit 1; done;
 
-.PHONY: integrations
-integrations: TAGS=bindata sqlite
-integrations: build
-	go test code.gitea.io/gitea/integrations
-
 .PHONY: test
 test:
 	go test $(PACKAGES)
