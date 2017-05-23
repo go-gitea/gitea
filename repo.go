@@ -153,9 +153,21 @@ func Pull(repoPath string, opts PullRemoteOptions) error {
 	return err
 }
 
+// PushOptions options when push to remote
+type PushOptions struct {
+	Remote string
+	Branch string
+	Force  bool
+}
+
 // Push pushs local commits to given remote branch.
-func Push(repoPath, remote, branch string) error {
-	_, err := NewCommand("push", remote, branch).RunInDir(repoPath)
+func Push(repoPath string, opts PushOptions) error {
+	cmd := NewCommand("push")
+	if opts.Force {
+		cmd.AddArguments("-f")
+	}
+	cmd.AddArguments(opts.Remote, opts.Branch)
+	_, err := cmd.RunInDir(repoPath)
 	return err
 }
 
