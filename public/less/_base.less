@@ -420,3 +420,40 @@ footer {
   background-color: #FAFAFA !important;
   border-width: 1px !important;
 }
+
+@media only screen and (max-width: 1200px) {
+  .ui.menu.new-menu {
+      overflow-x: auto !important;
+      justify-content: left !important;
+      padding-bottom: 5px;
+  }
+  .ui.menu.new-menu::-webkit-scrollbar {
+      height: 8px;
+      display: none;
+  }
+  .ui.menu.new-menu:hover::-webkit-scrollbar {
+    display: block;
+  }
+  .ui.menu.new-menu::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.01);
+  }
+  .ui.menu.new-menu::-webkit-scrollbar-thumb {
+      background:rgba(0,0,0,0.2);
+  }
+  .ui.menu.new-menu:after {
+    position: absolute;
+    margin-top: -15px;
+    display: block;
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1) 100%);
+    content: ' ';
+    right: 0;
+    height: 53px;
+    z-index: 1000;
+    width: 60px;
+    clear: none;
+    visibility: visible;
+  }
+  .ui.menu.new-menu a.item:last-child {
+    padding-right: 30px !important;
+  }
+}
