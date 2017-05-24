@@ -99,7 +99,7 @@
 
 * BUGFIXES
   * Fixed issue counter [#882](https://github.com/go-gitea/gitea/pull/882)
-  * Fixed XSS vulnerability on wiki page [#955](https://github.com/go-gitea/gitea/pull/955)
+  * Fixed XSS vulnerability on wiki page [#955](https://github.com/go-gitea/gitea/pull/955)d
   * Add data dir without session to dump [#587](https://github.com/go-gitea/gitea/pull/587)
   * Fixed wiki page renaming [#958](https://github.com/go-gitea/gitea/pull/958)
   * Drop default console logger if not required [#960](https://github.com/go-gitea/gitea/pull/960)
