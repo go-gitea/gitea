@@ -59,10 +59,15 @@ generate:
 	@hash go-bindata > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/jteeuwen/go-bindata/...; \
 	fi
+	go generate $(PACKAGES)
+
+.PHONY: generate-swagger
+generate-swagger:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/go-swagger/go-swagger/cmd/swagger; \
 	fi
-	go generate $(PACKAGES)
+	swagger generate spec -o ./public/swagger.v1.json
+	sed -i "s;\".ref\": \"#/definitions/GPGKey\";\"type\": \"object\";g" ./public/swagger.v1.json
 
 .PHONY: errcheck
 errcheck:
