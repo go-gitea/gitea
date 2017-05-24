@@ -641,7 +641,12 @@ func UserSignIn(username, password string) (*User, error) {
 			}
 		}
 	} else {
-		user = &User{LowerName: strings.ToLower(strings.TrimSpace(username))}
+		trimmedUsername := strings.TrimSpace(username)
+		if len(trimmedUsername) == 0 {
+			return nil, ErrUserNotExist{0, username, 0}
+		}
+
+		user = &User{LowerName: strings.ToLower(trimmedUsername)}
 	}
 
 	hasUser, err := x.Get(user)
