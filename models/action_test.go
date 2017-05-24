@@ -1,11 +1,32 @@
 package models
 
 import (
+	"path"
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
+
+func TestAction_GetRepoPath(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	repo := AssertExistsAndLoadBean(t, &Repository{}).(*Repository)
+	owner := AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
+	action := &Action{RepoID: repo.ID}
+	assert.Equal(t, path.Join(owner.Name, repo.Name), action.GetRepoPath())
+}
+
+func TestAction_GetRepoLink(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	repo := AssertExistsAndLoadBean(t, &Repository{}).(*Repository)
+	owner := AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
+	action := &Action{RepoID: repo.ID}
+	setting.AppSubURL = "/suburl/"
+	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
+	assert.Equal(t, expected, action.GetRepoLink())
+}
 
 func TestNewRepoAction(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
