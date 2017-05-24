@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -366,6 +367,42 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 		Join("INNER", "`org_user`", "`org_user`.org_id=`user`.id").
 		Asc("`user`.name").
 		Find(&orgs)
+}
+
+// HasOrgVisible tell if the given user can see one of the given orgs
+func HasOrgVisible(orgs []*User, user *User) bool {
+	if len(orgs) == 0 {
+		return false
+	}
+
+	// Not SignedUser
+	if user == nil {
+		for _, org := range orgs {
+			if org.Visibility == 1 {
+				return true
+			}
+		}
+		return false
+	}
+
+	if user.IsAdmin {
+		return true
+	}
+	for _, org := range orgs {
+		switch org.Visibility {
+		case VisibleTypePublic:
+			return true
+		case VisibleTypeLimited:
+			return true
+		case VisibleTypePrivate:
+			if org.IsUserOrgPartOf(user.ID) {
+				return true
+			}
+		default:
+		}
+	}
+
+	return false
 }
 
 // GetOwnedOrgsByUserID returns a list of organizations are owned by given user ID.

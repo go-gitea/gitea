@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -95,6 +96,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	ctx.Data["Orgs"] = orgs
+	ctx.Data["HasOrgsVisible"] = models.HasOrgVisible(orgs, ctx.User)
 
 	tab := ctx.Query("tab")
 	ctx.Data["TabName"] = tab
