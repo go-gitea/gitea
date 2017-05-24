@@ -189,18 +189,21 @@ func TestDeleteWebhookByOrgID(t *testing.T) {
 }
 
 func TestToHookTaskType(t *testing.T) {
-	assert.Equal(t, GITEA, ToHookTaskType("gitea"))
+	assert.Equal(t, GOGS, ToHookTaskType("gogs"))
 	assert.Equal(t, SLACK, ToHookTaskType("slack"))
+	assert.Equal(t, GITEA, ToHookTaskType("gitea"))
 }
 
 func TestHookTaskType_Name(t *testing.T) {
-	assert.Equal(t, "gitea", GITEA.Name())
+	assert.Equal(t, "gogs", GOGS.Name())
 	assert.Equal(t, "slack", SLACK.Name())
+	assert.Equal(t, "gitea", GITEA.Name())
 }
 
 func TestIsValidHookTaskType(t *testing.T) {
-	assert.True(t, IsValidHookTaskType("gitea"))
+	assert.True(t, IsValidHookTaskType("gogs"))
 	assert.True(t, IsValidHookTaskType("slack"))
+	assert.True(t, IsValidHookTaskType("gitea"))
 	assert.False(t, IsValidHookTaskType("invalid"))
 }
 

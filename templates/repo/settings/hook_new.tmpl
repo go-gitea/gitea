@@ -7,14 +7,17 @@
 		<h4 class="ui top attached header">
 			{{if .PageIsSettingsHooksNew}}{{.i18n.Tr "repo.settings.add_webhook"}}{{else}}{{.i18n.Tr "repo.settings.update_webhook"}}{{end}}
 			<div class="ui right">
-				{{if eq .HookType "gogs"}}
+				{{if eq .HookType "gitea"}}
 					<img class="img-13" src="{{AppSubUrl}}/img/favicon.png">
+				{{else if eq .HookType "gogs"}}
+					<img class="img-13" src="{{AppSubUrl}}/img/gogs.ico">
 				{{else if eq .HookType "slack"}}
 					<img class="img-13" src="{{AppSubUrl}}/img/slack.png">
 				{{end}}
 			</div>
 		</h4>
 		<div class="ui attached segment">
+			{{template "repo/settings/hook_gitea" .}}
 			{{template "repo/settings/hook_gogs" .}}
 			{{template "repo/settings/hook_slack" .}}
 		</div>

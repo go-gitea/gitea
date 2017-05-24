@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -151,6 +152,19 @@ type NewWebhookForm struct {
 
 // Validate validates the fields
 func (f *NewWebhookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// NewGogshookForm form for creating gogs hook
+type NewGogshookForm struct {
+	PayloadURL  string `binding:"Required;ValidUrl"`
+	ContentType int    `binding:"Required"`
+	Secret      string
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewGogshookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
