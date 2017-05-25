@@ -8,6 +8,15 @@ import (
 
 // ListRepos list all of an organization's repositories.
 func ListRepos(ctx *context.APIContext) {
+	// swagger:route GET /orgs/{org}/repos orgListRepos
+	//
+	//		Produces:
+	//		- application/json
+	//
+	//		Responses:
+	//			200: RepositoryList
+	//			500: error
+
 	var apiRepos []*api.Repository
 	if ctx.User != nil {
 		// Find all repos a user has access to within an org.
