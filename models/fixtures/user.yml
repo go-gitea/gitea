@@ -36,9 +36,9 @@
   name: user3
   full_name: User Three
   email: user3@example.com
-  passwd: password
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 1 # organization
-  salt: salt
+  salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar3
   avatar_email: user3@example.com
@@ -52,9 +52,9 @@
   name: user4
   full_name: User Four
   email: user4@example.com
-  passwd: password
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
-  salt: salt
+  salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar4
   avatar_email: user4@example.com
@@ -67,9 +67,9 @@
   name: user5
   full_name: User Five
   email: user5@example.com
-  passwd: password
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
-  salt: salt
+  salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar5
   avatar_email: user5@example.com
@@ -84,9 +84,9 @@
   name: user6
   full_name: User Six
   email: user6@example.com
-  passwd: password
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 1 # organization
-  salt: salt
+  salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar6
   avatar_email: user6@example.com
@@ -100,9 +100,9 @@
   name: user7
   full_name: User Seven
   email: user7@example.com
-  passwd: password
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 1 # organization
-  salt: salt
+  salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar7
   avatar_email: user7@example.com
@@ -116,9 +116,9 @@
   name: user8
   full_name: User Eight
   email: user8@example.com
-  passwd: password
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
-  salt: salt
+  salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar8
   avatar_email: user8@example.com
@@ -133,9 +133,9 @@
   name: user9
   full_name: User Nine
   email: user9@example.com
-  passwd: password
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
-  salt: salt
+  salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar9
   avatar_email: user9@example.com
@@ -148,9 +148,9 @@
   name: user10
   full_name: User Ten
   email: user10@example.com
-  passwd: password
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
-  salt: salt
+  salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar10
   avatar_email: user10@example.com
@@ -163,9 +163,9 @@
   name: user11
   full_name: User Eleven
   email: user11@example.com
-  passwd: password
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
-  salt: salt
+  salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar11
   avatar_email: user11@example.com
@@ -178,9 +178,9 @@
   name: user12
   full_name: User 12
   email: user12@example.com
-  passwd: password
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
-  salt: salt
+  salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar12
   avatar_email: user12@example.com
@@ -193,9 +193,9 @@
   name: user13
   full_name: User 13
   email: user13@example.com
-  passwd: password
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
-  salt: salt
+  salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar13
   avatar_email: user13@example.com
@@ -208,9 +208,9 @@
   name: user14
   full_name: User 14
   email: user14@example.com
-  passwd: password
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
-  salt: salt
+  salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar14
   avatar_email: user13@example.com
