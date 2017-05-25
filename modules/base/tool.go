@@ -277,6 +277,13 @@ func computeTimeDiff(diff int64) (int64, string) {
 	return diff, diffStr
 }
 
+// MinutesToFriendly returns a user friendly string with number of minutes
+// converted to hours and minutes.
+func MinutesToFriendly(minutes int) string {
+	duration := time.Duration(minutes) * time.Minute
+	return TimeSincePro(time.Now().Add(-duration))
+}
+
 // TimeSincePro calculates the time interval and generate full user-friendly string.
 func TimeSincePro(then time.Time) string {
 	return timeSincePro(then, time.Now())

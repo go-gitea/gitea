@@ -167,6 +167,20 @@ func TestComputeTimeDiff(t *testing.T) {
 	test(3*Year, "3 years", 0, Year-1)
 }
 
+func TestMinutesToFriendly(t *testing.T) {
+	// test that a number of minutes yields the expected string
+	test := func(expected string, minutes int) {
+		actual := MinutesToFriendly(minutes)
+		assert.Equal(t, expected, actual)
+	}
+	test("1 minute", 1)
+	test("2 minutes", 2)
+	test("1 hour", 60)
+	test("1 hour, 1 minute", 61)
+	test("1 hour, 2 minutes", 62)
+	test("2 hours", 120)
+}
+
 func TestTimeSince(t *testing.T) {
 	assert.Equal(t, "now", timeSince(BaseDate, BaseDate, "en"))
 
