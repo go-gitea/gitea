@@ -156,6 +156,7 @@ func CreateOrganization(org, owner *User) (err error) {
 		Name:       ownerTeamName,
 		Authorize:  AccessModeOwner,
 		NumMembers: 1,
+		UnitTypes:  allRepUnitTypes,
 	}
 	if _, err = sess.Insert(t); err != nil {
 		return fmt.Errorf("insert owner team: %v", err)
