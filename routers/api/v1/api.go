@@ -490,7 +490,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Put(org.AddTeamRepository).
 					Delete(org.RemoveTeamRepository)
 			})
-		}, reqOrgMembership(), orgAssignment(false, true))
+		}, orgAssignment(false, true), reqOrgMembership())
 
 		m.Any("/*", func(ctx *context.Context) {
 			ctx.Error(404)
