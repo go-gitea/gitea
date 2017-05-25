@@ -619,16 +619,20 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID
 }
 
-// UpdateSize updates the repository size, calculating it using git.GetRepoSize
-func (repo *Repository) UpdateSize() error {
+func (repo *Repository) updateSize(e Engine) error {
 	repoInfoSize, err := git.GetRepoSize(repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("UpdateSize: %v", err)
 	}
 
 	repo.Size = repoInfoSize.Size + repoInfoSize.SizePack
-	_, err = x.ID(repo.ID).Cols("size").Update(repo)
+	_, err = e.Id(repo.ID).Cols("size").Update(repo)
 	return err
+}
+
+// UpdateSize updates the repository size, calculating it using git.GetRepoSize
+func (repo *Repository) UpdateSize() error {
+	return repo.updateSize(x)
 }
 
 // CanBeForked returns true if repository meets the requirements of being forked.
@@ -1554,7 +1558,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 			}
 		}
 
-		if err = repo.UpdateSize(); err != nil {
+		if err = repo.updateSize(e); err != nil {
 			log.Error(4, "Failed to update size for repository: %v", err)
 		}
 	}
