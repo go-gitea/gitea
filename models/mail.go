@@ -148,10 +148,16 @@ func composeTplData(subject, body, link string) map[string]interface{} {
 	return data
 }
 
-func composeIssueMessage(issue *Issue, doer *User, tplName base.TplName, tos []string, info string) *mailer.Message {
+func composeIssueCommentMessage(issue *Issue, doer *User, comment *Comment, tplName base.TplName, tos []string, info string) *mailer.Message {
 	subject := issue.mailSubject()
 	body := string(markdown.RenderString(issue.Content, issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
-	data := composeTplData(subject, body, issue.HTMLURL())
+
+	data := make(map[string]interface{}, 10)
+	if comment != nil {
+		data = composeTplData(subject, body, issue.HTMLURL()+"#"+comment.HashTag())
+	} else {
+		data = composeTplData(subject, body, issue.HTMLURL())
+	}
 	data["Doer"] = doer
 
 	var content bytes.Buffer
@@ -166,18 +172,18 @@ func composeIssueMessage(issue *Issue, doer *User, tplName base.TplName, tos []s
 }
 
 // SendIssueCommentMail composes and sends issue comment emails to target receivers.
-func SendIssueCommentMail(issue *Issue, doer *User, tos []string) {
+func SendIssueCommentMail(issue *Issue, doer *User, comment *Comment, tos []string) {
 	if len(tos) == 0 {
 		return
 	}
 
-	mailer.SendAsync(composeIssueMessage(issue, doer, mailIssueComment, tos, "issue comment"))
+	mailer.SendAsync(composeIssueCommentMessage(issue, doer, comment, mailIssueComment, tos, "issue comment"))
 }
 
 // SendIssueMentionMail composes and sends issue mention emails to target receivers.
-func SendIssueMentionMail(issue *Issue, doer *User, tos []string) {
+func SendIssueMentionMail(issue *Issue, doer *User, comment *Comment, tos []string) {
 	if len(tos) == 0 {
 		return
 	}
-	mailer.SendAsync(composeIssueMessage(issue, doer, mailIssueMention, tos, "issue mention"))
+	mailer.SendAsync(composeIssueCommentMessage(issue, doer, comment, mailIssueMention, tos, "issue mention"))
 }
