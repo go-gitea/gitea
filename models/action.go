@@ -142,6 +142,7 @@ func (a *Action) ShortActUserName() string {
 	return base.EllipsisString(a.GetActUserName(), 20)
 }
 
+// GetActAvatar the action's user's avatar link
 func (a *Action) GetActAvatar() string {
 	a.loadActUser()
 	return a.ActUser.AvatarLink()
