@@ -114,6 +114,12 @@ func Invitation(ctx *context.Context) {
 			return
 		}
 
+		if u.IsOrganization() {
+			ctx.Flash.Error(ctx.Tr("form.cannot_invite_org_to_org"))
+			ctx.Redirect(ctx.Org.OrgLink + "/invitations/new")
+			return
+		}
+
 		if err = org.AddMember(u.ID); err != nil {
 			ctx.Handle(500, " AddMember", err)
 			return

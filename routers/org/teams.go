@@ -88,6 +88,12 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 
+		if u.IsOrganization() {
+			ctx.Flash.Error(ctx.Tr("form.cannot_add_org_to_team"))
+			ctx.Redirect(ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName)
+			return
+		}
+
 		err = ctx.Org.Team.AddMember(u.ID)
 		page = "team"
 	}
