@@ -5,20 +5,20 @@
 package integrations
 
 import (
-	"encoding/json"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
 
-	api "code.gitea.io/sdk/gitea"
 	"code.gitea.io/gitea/models"
+	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPITeam(t *testing.T) {
-	assert.NoError(t, models.LoadFixtures())
+	prepareTestEnv(t)
 	teamUser := models.AssertExistsAndLoadBean(t, &models.TeamUser{}).(*models.TeamUser)
 	team := models.AssertExistsAndLoadBean(t, &models.Team{ID: teamUser.TeamID}).(*models.Team)
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: teamUser.UID}).(*models.User)
