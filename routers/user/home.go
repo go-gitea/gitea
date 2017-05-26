@@ -65,25 +65,50 @@ func retrieveFeeds(ctx *context.Context, ctxUser *models.User, userID, offset in
 
 	// Check access of private repositories.
 	feeds := make([]*models.Action, 0, len(actions))
-	unameAvatars := map[string]string{
-		ctxUser.Name: ctxUser.RelAvatarLink(),
-	}
+	userCache := map[int64]*models.User{ctxUser.ID: ctxUser}
+	repoCache := map[int64]*models.Repository{}
 	for _, act := range actions {
 		// Cache results to reduce queries.
-		_, ok := unameAvatars[act.ActUserName]
+		u, ok := userCache[act.ActUserID]
 		if !ok {
-			u, err := models.GetUserByName(act.ActUserName)
+			u, err = models.GetUserByID(act.ActUserID)
 			if err != nil {
 				if models.IsErrUserNotExist(err) {
 					continue
 				}
-				ctx.Handle(500, "GetUserByName", err)
+				ctx.Handle(500, "GetUserByID", err)
 				return
 			}
-			unameAvatars[act.ActUserName] = u.RelAvatarLink()
+			userCache[act.ActUserID] = u
 		}
+		act.ActUser = u
 
-		act.ActAvatar = unameAvatars[act.ActUserName]
+		repo, ok := repoCache[act.RepoID]
+		if !ok {
+			repo, err = models.GetRepositoryByID(act.RepoID)
+			if err != nil {
+				if models.IsErrRepoNotExist(err) {
+					continue
+				}
+				ctx.Handle(500, "GetRepositoryByID", err)
+				return
+			}
+		}
+		act.Repo = repo
+
+		repoOwner, ok := userCache[repo.OwnerID]
+		if !ok {
+			repoOwner, err = models.GetUserByID(repo.OwnerID)
+			if err != nil {
+				if models.IsErrUserNotExist(err) {
+					continue
+				}
+				ctx.Handle(500, "GetUserByID", err)
+				return
+			}
+		}
+		repo.Owner = repoOwner
+
 		feeds = append(feeds, act)
 	}
 	ctx.Data["Feeds"] = feeds

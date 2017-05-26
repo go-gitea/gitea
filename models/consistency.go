@@ -162,11 +162,5 @@ func (team *Team) checkForConsistency(t *testing.T) {
 
 func (action *Action) checkForConsistency(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: action.RepoID}).(*Repository)
-	owner := AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
-	actor := AssertExistsAndLoadBean(t, &User{ID: action.ActUserID}).(*User)
-
-	assert.Equal(t, repo.Name, action.RepoName, "action: %+v", action)
 	assert.Equal(t, repo.IsPrivate, action.IsPrivate, "action: %+v", action)
-	assert.Equal(t, owner.Name, action.RepoUserName, "action: %+v", action)
-	assert.Equal(t, actor.Name, action.ActUserName, "action: %+v", action)
 }

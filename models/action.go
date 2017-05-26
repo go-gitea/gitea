@@ -70,20 +70,18 @@ func init() {
 // repository. It implemented interface base.Actioner so that can be
 // used in template render.
 type Action struct {
-	ID           int64 `xorm:"pk autoincr"`
-	UserID       int64 `xorm:"INDEX"` // Receiver user id.
-	OpType       ActionType
-	ActUserID    int64  `xorm:"INDEX"` // Action user id.
-	ActUserName  string // Action user name.
-	ActAvatar    string `xorm:"-"`
-	RepoID       int64  `xorm:"INDEX"`
-	RepoUserName string
-	RepoName     string
-	RefName      string
-	IsPrivate    bool      `xorm:"INDEX NOT NULL DEFAULT false"`
-	Content      string    `xorm:"TEXT"`
-	Created      time.Time `xorm:"-"`
-	CreatedUnix  int64     `xorm:"INDEX"`
+	ID          int64 `xorm:"pk autoincr"`
+	UserID      int64 `xorm:"INDEX"` // Receiver user id.
+	OpType      ActionType
+	ActUserID   int64       `xorm:"INDEX"` // Action user id.
+	ActUser     *User       `xorm:"-"`
+	RepoID      int64       `xorm:"INDEX"`
+	Repo        *Repository `xorm:"-"`
+	RefName     string
+	IsPrivate   bool      `xorm:"INDEX NOT NULL DEFAULT false"`
+	Content     string    `xorm:"TEXT"`
+	Created     time.Time `xorm:"-"`
+	CreatedUnix int64     `xorm:"INDEX"`
 }
 
 // BeforeInsert will be invoked by XORM before inserting a record
@@ -106,42 +104,71 @@ func (a *Action) GetOpType() int {
 	return int(a.OpType)
 }
 
+func (a *Action) loadActUser() {
+	if a.ActUser != nil {
+		return
+	}
+	var err error
+	a.ActUser, err = GetUserByID(a.ActUserID)
+	if err == nil {
+		return
+	} else if IsErrUserNotExist(err) {
+		a.ActUser = NewGhostUser()
+	} else {
+		log.Error(4, "GetUserByID(%d): %v", a.ActUserID, err)
+	}
+}
+
+func (a *Action) loadRepo() {
+	if a.ActUser != nil {
+		return
+	}
+	var err error
+	a.Repo, err = GetRepositoryByID(a.RepoID)
+	if err != nil {
+		log.Error(4, "GetRepositoryByID(%d): %v", a.RepoID, err)
+	}
+}
+
 // GetActUserName gets the action's user name.
 func (a *Action) GetActUserName() string {
-	return a.ActUserName
+	a.loadActUser()
+	return a.ActUser.Name
 }
 
 // ShortActUserName gets the action's user name trimmed to max 20
 // chars.
 func (a *Action) ShortActUserName() string {
-	return base.EllipsisString(a.ActUserName, 20)
+	return base.EllipsisString(a.GetActUserName(), 20)
 }
 
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName() string {
-	return a.RepoUserName
+	a.loadRepo()
+	return a.Repo.MustOwner().Name
 }
 
 // ShortRepoUserName returns the name of the action repository owner
 // trimmed to max 20 chars.
 func (a *Action) ShortRepoUserName() string {
-	return base.EllipsisString(a.RepoUserName, 20)
+	return base.EllipsisString(a.GetRepoUserName(), 20)
 }
 
 // GetRepoName returns the name of the action repository.
 func (a *Action) GetRepoName() string {
-	return a.RepoName
+	a.loadRepo()
+	return a.Repo.Name
 }
 
 // ShortRepoName returns the name of the action repository
 // trimmed to max 33 chars.
 func (a *Action) ShortRepoName() string {
-	return base.EllipsisString(a.RepoName, 33)
+	return base.EllipsisString(a.GetRepoName(), 33)
 }
 
 // GetRepoPath returns the virtual path to the action repository.
 func (a *Action) GetRepoPath() string {
-	return path.Join(a.RepoUserName, a.RepoName)
+	return path.Join(a.GetRepoUserName(), a.GetRepoName())
 }
 
 // ShortRepoPath returns the virtual path to the action repository
@@ -205,13 +232,12 @@ func (a *Action) GetIssueContent() string {
 
 func newRepoAction(e Engine, u *User, repo *Repository) (err error) {
 	if err = notifyWatchers(e, &Action{
-		ActUserID:    u.ID,
-		ActUserName:  u.Name,
-		OpType:       ActionCreateRepo,
-		RepoID:       repo.ID,
-		RepoUserName: repo.Owner.Name,
-		RepoName:     repo.Name,
-		IsPrivate:    repo.IsPrivate,
+		ActUserID: u.ID,
+		ActUser:   u,
+		OpType:    ActionCreateRepo,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
 	}); err != nil {
 		return fmt.Errorf("notify watchers '%d/%d': %v", u.ID, repo.ID, err)
 	}
@@ -227,14 +253,13 @@ func NewRepoAction(u *User, repo *Repository) (err error) {
 
 func renameRepoAction(e Engine, actUser *User, oldRepoName string, repo *Repository) (err error) {
 	if err = notifyWatchers(e, &Action{
-		ActUserID:    actUser.ID,
-		ActUserName:  actUser.Name,
-		OpType:       ActionRenameRepo,
-		RepoID:       repo.ID,
-		RepoUserName: repo.Owner.Name,
-		RepoName:     repo.Name,
-		IsPrivate:    repo.IsPrivate,
-		Content:      oldRepoName,
+		ActUserID: actUser.ID,
+		ActUser:   actUser,
+		OpType:    ActionRenameRepo,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		Content:   oldRepoName,
 	}); err != nil {
 		return fmt.Errorf("notify watchers: %v", err)
 	}
@@ -521,15 +546,14 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 
 	refName := git.RefEndName(opts.RefFullName)
 	if err = NotifyWatchers(&Action{
-		ActUserID:    pusher.ID,
-		ActUserName:  pusher.Name,
-		OpType:       opType,
-		Content:      string(data),
-		RepoID:       repo.ID,
-		RepoUserName: repo.MustOwner().Name,
-		RepoName:     repo.Name,
-		RefName:      refName,
-		IsPrivate:    repo.IsPrivate,
+		ActUserID: pusher.ID,
+		ActUser:   pusher,
+		OpType:    opType,
+		Content:   string(data),
+		RepoID:    repo.ID,
+		Repo:      repo,
+		RefName:   refName,
+		IsPrivate: repo.IsPrivate,
 	}); err != nil {
 		return fmt.Errorf("NotifyWatchers: %v", err)
 	}
@@ -598,14 +622,13 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 
 func transferRepoAction(e Engine, doer, oldOwner *User, repo *Repository) (err error) {
 	if err = notifyWatchers(e, &Action{
-		ActUserID:    doer.ID,
-		ActUserName:  doer.Name,
-		OpType:       ActionTransferRepo,
-		RepoID:       repo.ID,
-		RepoUserName: repo.Owner.Name,
-		RepoName:     repo.Name,
-		IsPrivate:    repo.IsPrivate,
-		Content:      path.Join(oldOwner.Name, repo.Name),
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    ActionTransferRepo,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		Content:   path.Join(oldOwner.Name, repo.Name),
 	}); err != nil {
 		return fmt.Errorf("notifyWatchers: %v", err)
 	}
@@ -628,14 +651,13 @@ func TransferRepoAction(doer, oldOwner *User, repo *Repository) error {
 
 func mergePullRequestAction(e Engine, doer *User, repo *Repository, issue *Issue) error {
 	return notifyWatchers(e, &Action{
-		ActUserID:    doer.ID,
-		ActUserName:  doer.Name,
-		OpType:       ActionMergePullRequest,
-		Content:      fmt.Sprintf("%d|%s", issue.Index, issue.Title),
-		RepoID:       repo.ID,
-		RepoUserName: repo.Owner.Name,
-		RepoName:     repo.Name,
-		IsPrivate:    repo.IsPrivate,
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    ActionMergePullRequest,
+		Content:   fmt.Sprintf("%d|%s", issue.Index, issue.Title),
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
 	})
 }
 

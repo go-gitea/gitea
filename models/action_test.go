@@ -1,6 +1,7 @@
 package models
 
 import (
+	"path"
 	"strings"
 	"testing"
 
@@ -10,22 +11,21 @@ import (
 )
 
 func TestAction_GetRepoPath(t *testing.T) {
-	action := &Action{
-		RepoUserName: "username",
-		RepoName:     "reponame",
-	}
-	assert.Equal(t, "username/reponame", action.GetRepoPath())
+	assert.NoError(t, PrepareTestDatabase())
+	repo := AssertExistsAndLoadBean(t, &Repository{}).(*Repository)
+	owner := AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
+	action := &Action{RepoID: repo.ID}
+	assert.Equal(t, path.Join(owner.Name, repo.Name), action.GetRepoPath())
 }
 
 func TestAction_GetRepoLink(t *testing.T) {
-	action := &Action{
-		RepoUserName: "username",
-		RepoName:     "reponame",
-	}
+	assert.NoError(t, PrepareTestDatabase())
+	repo := AssertExistsAndLoadBean(t, &Repository{}).(*Repository)
+	owner := AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
+	action := &Action{RepoID: repo.ID}
 	setting.AppSubURL = "/suburl/"
-	assert.Equal(t, "/suburl/username/reponame", action.GetRepoLink())
-	setting.AppSubURL = ""
-	assert.Equal(t, "/username/reponame", action.GetRepoLink())
+	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
+	assert.Equal(t, expected, action.GetRepoLink())
 }
 
 func TestNewRepoAction(t *testing.T) {
@@ -36,13 +36,12 @@ func TestNewRepoAction(t *testing.T) {
 	repo.Owner = user
 
 	actionBean := &Action{
-		OpType:       ActionCreateRepo,
-		ActUserID:    user.ID,
-		RepoID:       repo.ID,
-		ActUserName:  user.Name,
-		RepoName:     repo.Name,
-		RepoUserName: repo.Owner.Name,
-		IsPrivate:    repo.IsPrivate,
+		OpType:    ActionCreateRepo,
+		ActUserID: user.ID,
+		RepoID:    repo.ID,
+		ActUser:   user,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
 	}
 
 	AssertNotExistsBean(t, actionBean)
@@ -64,14 +63,13 @@ func TestRenameRepoAction(t *testing.T) {
 	repo.LowerName = strings.ToLower(newRepoName)
 
 	actionBean := &Action{
-		OpType:       ActionRenameRepo,
-		ActUserID:    user.ID,
-		ActUserName:  user.Name,
-		RepoID:       repo.ID,
-		RepoName:     repo.Name,
-		RepoUserName: repo.Owner.Name,
-		IsPrivate:    repo.IsPrivate,
-		Content:      oldRepoName,
+		OpType:    ActionRenameRepo,
+		ActUserID: user.ID,
+		ActUser:   user,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		Content:   oldRepoName,
 	}
 	AssertNotExistsBean(t, actionBean)
 	assert.NoError(t, RenameRepoAction(user, oldRepoName, repo))
@@ -232,13 +230,13 @@ func TestCommitRepoAction(t *testing.T) {
 	pushCommits.Len = len(pushCommits.Commits)
 
 	actionBean := &Action{
-		OpType:      ActionCommitRepo,
-		ActUserID:   user.ID,
-		ActUserName: user.Name,
-		RepoID:      repo.ID,
-		RepoName:    repo.Name,
-		RefName:     "refName",
-		IsPrivate:   repo.IsPrivate,
+		OpType:    ActionCommitRepo,
+		ActUserID: user.ID,
+		ActUser:   user,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		RefName:   "refName",
+		IsPrivate: repo.IsPrivate,
 	}
 	AssertNotExistsBean(t, actionBean)
 	assert.NoError(t, CommitRepoAction(CommitRepoActionOptions{
@@ -265,13 +263,12 @@ func TestTransferRepoAction(t *testing.T) {
 	repo.Owner = user4
 
 	actionBean := &Action{
-		OpType:       ActionTransferRepo,
-		ActUserID:    user2.ID,
-		ActUserName:  user2.Name,
-		RepoID:       repo.ID,
-		RepoName:     repo.Name,
-		RepoUserName: repo.Owner.Name,
-		IsPrivate:    repo.IsPrivate,
+		OpType:    ActionTransferRepo,
+		ActUserID: user2.ID,
+		ActUser:   user2,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
 	}
 	AssertNotExistsBean(t, actionBean)
 	assert.NoError(t, TransferRepoAction(user2, user2, repo))
@@ -290,13 +287,12 @@ func TestMergePullRequestAction(t *testing.T) {
 	issue := AssertExistsAndLoadBean(t, &Issue{ID: 3, RepoID: repo.ID}).(*Issue)
 
 	actionBean := &Action{
-		OpType:       ActionMergePullRequest,
-		ActUserID:    user.ID,
-		ActUserName:  user.Name,
-		RepoID:       repo.ID,
-		RepoName:     repo.Name,
-		RepoUserName: repo.Owner.Name,
-		IsPrivate:    repo.IsPrivate,
+		OpType:    ActionMergePullRequest,
+		ActUserID: user.ID,
+		ActUser:   user,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
 	}
 	AssertNotExistsBean(t, actionBean)
 	assert.NoError(t, MergePullRequestAction(user, repo, issue))
