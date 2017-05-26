@@ -7,6 +7,7 @@
 package git
 
 import (
+	"context"
 	"testing"
 	"time"
 )
@@ -32,10 +33,7 @@ func TestRunInDirTimeoutPipelineAlwaysTimeout(t *testing.T) {
 	cmd := NewCommand("hash-object --stdin")
 	for i := 0; i < maxLoops; i++ {
 		if err := cmd.RunInDirTimeoutPipeline(1*time.Microsecond, "", nil, nil); err != nil {
-			// 'context deadline exceeded' when the error is returned by exec.Start
-			// 'signal: killed' when the error is returned by exec.Wait
-			//  It depends on the point of the time (before or after exec.Start returns) at which the timeout is triggered.
-			if err.Error() != "context deadline exceeded" && err.Error() != "signal: killed" {
+			if err != context.DeadlineExceeded {
 				t.Fatalf("Testing %d/%d: %v", i, maxLoops, err)
 			}
 		}
