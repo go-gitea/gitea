@@ -1698,7 +1698,7 @@ function initDashboardSearch() {
                 } else if (repo.mirror) {
                     return 'octicon octicon-repo-clone';
                 } else if (repo.private) {
-                    return 'octicon octicon-repo-forked';
+                    return 'octicon octicon-lock';
                 } else {
                     return 'octicon octicon-repo';
                 }
