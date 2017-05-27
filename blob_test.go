@@ -51,7 +51,10 @@ THE SOFTWARE.`
 
 func Benchmark_Blob_Data(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		r, _ := testBlob.Data()
+		r, err := testBlob.Data()
+		if err != nil {
+			b.Fatal(err)
+		}
 		ioutil.ReadAll(r)
 	}
 }
@@ -60,6 +63,8 @@ func Benchmark_Blob_DataPipeline(b *testing.B) {
 	stdout := new(bytes.Buffer)
 	for i := 0; i < b.N; i++ {
 		stdout.Reset()
-		testBlob.DataPipeline(stdout, nil)
+		if err := testBlob.DataPipeline(stdout, nil); err != nil {
+			b.Fatal(err)
+		}
 	}
 }

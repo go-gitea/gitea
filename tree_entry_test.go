@@ -42,13 +42,13 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 		var commit *Commit
 		var entries Entries
 		if repoPath, err := setupGitRepo(benchmark.url, benchmark.name); err != nil {
-			panic(err)
+			b.Fatal(err)
 		} else if repo, err := OpenRepository(repoPath); err != nil {
-			panic(err)
+			b.Fatal(err)
 		} else if commit, err = repo.GetBranchCommit("master"); err != nil {
-			panic(err)
+			b.Fatal(err)
 		} else if entries, err = commit.Tree.ListEntries(); err != nil {
-			panic(err)
+			b.Fatal(err)
 		}
 		entries.Sort()
 		b.StartTimer()
@@ -56,7 +56,7 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				_, err := entries.GetCommitsInfo(commit, "")
 				if err != nil {
-					panic(err)
+					b.Fatal(err)
 				}
 			}
 		})
