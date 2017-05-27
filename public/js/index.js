@@ -1661,7 +1661,7 @@ function initDashboardSearch() {
             repos: [],
             searchQuery: '',
             suburl: document.querySelector('meta[name=_suburl]').content,
-            uid: document.querySelector('meta[name=_uid]').content
+            uid: document.querySelector('meta[name=_context_uid]').content
         },
 
         mounted: function() {
@@ -1698,7 +1698,7 @@ function initDashboardSearch() {
                 } else if (repo.mirror) {
                     return 'octicon octicon-repo-clone';
                 } else if (repo.private) {
-                    return 'octicon octicon-repo-forked';
+                    return 'octicon octicon-lock';
                 } else {
                     return 'octicon octicon-repo';
                 }

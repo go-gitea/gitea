@@ -14,6 +14,9 @@
 	{{if .IsSigned}}
 		<meta name="_uid" content="{{.SignedUser.ID}}" />
 	{{end}}
+	{{if .ContextUser}}
+		<meta name="_context_uid" content="{{.ContextUser.ID}}" />
+	{{end}}
 {{if .GoGetImport}}
 	<meta name="go-import" content="{{.GoGetImport}} git {{.CloneLink.HTTPS}}">
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
