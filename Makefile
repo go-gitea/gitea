@@ -10,6 +10,7 @@ endif
 BINDATA := modules/{options,public,templates}/bindata.go
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
+DOCKER_TAG := gitea/gitea:latest
 
 GOFLAGS := -i -v
 EXTRA_GOFLAGS ?=
@@ -126,7 +127,7 @@ $(EXECUTABLE): $(SOURCES)
 .PHONY: docker
 docker:
 	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" webhippie/golang:edge make clean generate build
-	docker build -t gitea/gitea:latest .
+	docker build -t $(DOCKER_TAG) .
 
 .PHONY: release
 release: release-dirs release-windows release-linux release-darwin release-copy release-check
