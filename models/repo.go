@@ -2342,7 +2342,10 @@ func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName st
 		return fmt.Errorf("CreateNewBranch: %v", err)
 	}
 
-	if err = git.Push(localPath, "origin", branchName); err != nil {
+	if err = git.Push(localPath, git.PushOptions{
+		Remote: "origin",
+		Branch: branchName,
+	}); err != nil {
 		return fmt.Errorf("Push: %v", err)
 	}
 
