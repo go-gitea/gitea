@@ -11,6 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNoLoginViewIssues(t *testing.T) {
+	prepareTestEnv(t)
+
+	req, err := http.NewRequest("GET", "/user2/repo1/issues", nil)
+	assert.NoError(t, err)
+	resp := MakeRequest(req)
+	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+}
+
 func TestNoLoginViewIssue(t *testing.T) {
 	prepareTestEnv(t)
 

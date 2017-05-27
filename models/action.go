@@ -142,6 +142,12 @@ func (a *Action) ShortActUserName() string {
 	return base.EllipsisString(a.GetActUserName(), 20)
 }
 
+// GetActAvatar the action's user's avatar link
+func (a *Action) GetActAvatar() string {
+	a.loadActUser()
+	return a.ActUser.AvatarLink()
+}
+
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName() string {
 	a.loadRepo()
