@@ -13,7 +13,6 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -373,15 +372,8 @@ func checkKeyFingerprint(e Engine, fingerprint string) error {
 
 func calcFingerprint(publicKeyContent string) (string, error) {
 	// Calculate fingerprint.
-	tmpPath := strings.Replace(path.Join(os.TempDir(), fmt.Sprintf("%d", time.Now().Nanosecond()),
-		"id_rsa.pub"), "\\", "/", -1)
-	dir := path.Dir(tmpPath)
-
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return "", fmt.Errorf("Failed to create dir %s: %v", dir, err)
-	}
-
-	if err := ioutil.WriteFile(tmpPath, []byte(publicKeyContent), 0644); err != nil {
+	tmpPath, err := writeTmpKeyFile(publicKeyContent)
+	if err != nil {
 		return "", err
 	}
 	stdout, stderr, err := process.GetManager().Exec("AddPublicKey", "ssh-keygen", "-lf", tmpPath)
