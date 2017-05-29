@@ -517,7 +517,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	}
 
 	// Change repository bare status and update last updated time.
-	repo.IsBare = false
+	repo.IsBare = repo.IsBare && opts.Commits.Len <= 0
 	if err = UpdateRepository(repo, false); err != nil {
 		return fmt.Errorf("UpdateRepository: %v", err)
 	}
