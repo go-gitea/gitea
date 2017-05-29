@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -124,6 +125,53 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+	ctx.Data["HookType"] = "gitea"
+
+	orCtx, err := getOrgRepoCtx(ctx)
+	if err != nil {
+		ctx.Handle(500, "getOrgRepoCtx", err)
+		return
+	}
+	ctx.Data["BaseLink"] = orCtx.Link
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	contentType := models.ContentTypeJSON
+	if models.HookContentType(form.ContentType) == models.ContentTypeForm {
+		contentType = models.ContentTypeForm
+	}
+
+	w := &models.Webhook{
+		RepoID:       orCtx.RepoID,
+		URL:          form.PayloadURL,
+		ContentType:  contentType,
+		Secret:       form.Secret,
+		HookEvent:    ParseHookEvent(form.WebhookForm),
+		IsActive:     form.Active,
+		HookTaskType: models.GITEA,
+		OrgID:        orCtx.OrgID,
+	}
+	if err := w.UpdateEvent(); err != nil {
+		ctx.Handle(500, "UpdateEvent", err)
+		return
+	} else if err := models.CreateWebhook(w); err != nil {
+		ctx.Handle(500, "CreateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
+	ctx.Redirect(orCtx.Link + "/settings/hooks")
+}
+
+// GogsHooksNewPost response for creating webhook
+func GogsHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksNew"] = true
+	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
 	ctx.Data["HookType"] = "gogs"
 
 	orCtx, err := getOrgRepoCtx(ctx)
@@ -150,7 +198,7 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 		Secret:       form.Secret,
 		HookEvent:    ParseHookEvent(form.WebhookForm),
 		IsActive:     form.Active,
-		HookTaskType: models.GOGS,
+		HookTaskType: models.GITEA,
 		OrgID:        orCtx.OrgID,
 	}
 	if err := w.UpdateEvent(); err != nil {
@@ -245,8 +293,10 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 	case models.SLACK:
 		ctx.Data["SlackHook"] = w.GetSlackHook()
 		ctx.Data["HookType"] = "slack"
-	default:
+	case models.GOGS:
 		ctx.Data["HookType"] = "gogs"
+	default:
+		ctx.Data["HookType"] = "gitea"
 	}
 
 	ctx.Data["History"], err = w.History(1)
@@ -303,6 +353,45 @@ func WebHooksEditPost(ctx *context.Context, form auth.NewWebhookForm) {
 		return
 	} else if err := models.UpdateWebhook(w); err != nil {
 		ctx.Handle(500, "WebHooksEditPost", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
+	ctx.Redirect(fmt.Sprintf("%s/settings/hooks/%d", orCtx.Link, w.ID))
+}
+
+// GogsHooksEditPost response for editing gogs hook
+func GogsHooksEditPost(ctx *context.Context, form auth.NewWebhookForm) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings.update_webhook")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksEdit"] = true
+
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() {
+		return
+	}
+	ctx.Data["Webhook"] = w
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	contentType := models.ContentTypeJSON
+	if models.HookContentType(form.ContentType) == models.ContentTypeForm {
+		contentType = models.ContentTypeForm
+	}
+
+	w.URL = form.PayloadURL
+	w.ContentType = contentType
+	w.Secret = form.Secret
+	w.HookEvent = ParseHookEvent(form.WebhookForm)
+	w.IsActive = form.Active
+	if err := w.UpdateEvent(); err != nil {
+		ctx.Handle(500, "UpdateEvent", err)
+		return
+	} else if err := models.UpdateWebhook(w); err != nil {
+		ctx.Handle(500, "GogsHooksEditPost", err)
 		return
 	}
 

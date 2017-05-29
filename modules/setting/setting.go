@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -1325,7 +1326,7 @@ func newWebhookService() {
 	Webhook.QueueLength = sec.Key("QUEUE_LENGTH").MustInt(1000)
 	Webhook.DeliverTimeout = sec.Key("DELIVER_TIMEOUT").MustInt(5)
 	Webhook.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool()
-	Webhook.Types = []string{"gogs", "slack"}
+	Webhook.Types = []string{"gitea", "gogs", "slack"}
 	Webhook.PagingNum = sec.Key("PAGING_NUM").MustInt(10)
 }
 

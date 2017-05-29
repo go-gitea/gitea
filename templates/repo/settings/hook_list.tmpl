@@ -5,8 +5,11 @@
 		<div class="ui floating1 jump dropdown">
 			<div class="ui blue tiny button">{{.i18n.Tr "repo.settings.add_webhook"}}</div>
 			<div class="menu">
-				<a class="item" href="{{.BaseLink}}/settings/hooks/gogs/new">
+				<a class="item" href="{{.BaseLink}}/settings/hooks/gitea/new">
 					<img class="img-10" src="{{AppSubUrl}}/img/favicon.png">Gitea
+				</a>
+				<a class="item" href="{{.BaseLink}}/settings/hooks/gogs/new">
+					<img class="img-10" src="{{AppSubUrl}}/img/gogs.ico">Gogs
 				</a>
 				<a class="item" href="{{.BaseLink}}/settings/hooks/slack/new">
 					<img class="img-10" src="{{AppSubUrl}}/img/slack.png">Slack
