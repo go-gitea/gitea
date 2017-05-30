@@ -332,13 +332,11 @@ func RepoAssignment() macaron.Handler {
 		if ctx.Repo.IsWriter() || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID)) {
 			// Pull request is allowed if this is a fork repository
 			// and base repository accepts pull requests.
-			if repo.BaseRepo != nil {
-				if repo.BaseRepo.AllowsPulls() {
-					ctx.Data["BaseRepo"] = repo.BaseRepo
-					ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
-					ctx.Repo.PullRequest.Allowed = true
-					ctx.Repo.PullRequest.HeadInfo = ctx.Repo.Owner.Name + ":" + ctx.Repo.BranchName
-				}
+			if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls() {
+				ctx.Data["BaseRepo"] = repo.BaseRepo
+				ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
+				ctx.Repo.PullRequest.Allowed = true
+				ctx.Repo.PullRequest.HeadInfo = ctx.Repo.Owner.Name + ":" + ctx.Repo.BranchName
 			} else {
 				// Or, this is repository accepts pull requests between branches.
 				if repo.AllowsPulls() {
