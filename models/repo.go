@@ -1881,10 +1881,9 @@ func DeleteRepositoryArchives() error {
 
 // DeleteOldRepositoryArchives deletes old repository archives.
 func DeleteOldRepositoryArchives() {
-	if taskStatusTable.IsRunning(archiveCleanup) {
+	if !taskStatusTable.StartIfNotRunning(archiveCleanup) {
 		return
 	}
-	taskStatusTable.Start(archiveCleanup)
 	defer taskStatusTable.Stop(archiveCleanup)
 
 	log.Trace("Doing: ArchiveCleanup")
@@ -2025,10 +2024,9 @@ const (
 
 // GitFsck calls 'git fsck' to check repository health.
 func GitFsck() {
-	if taskStatusTable.IsRunning(gitFsck) {
+	if !taskStatusTable.StartIfNotRunning(gitFsck) {
 		return
 	}
-	taskStatusTable.Start(gitFsck)
 	defer taskStatusTable.Stop(gitFsck)
 
 	log.Trace("Doing: GitFsck")
@@ -2097,10 +2095,9 @@ func repoStatsCheck(checker *repoChecker) {
 
 // CheckRepoStats checks the repository stats
 func CheckRepoStats() {
-	if taskStatusTable.IsRunning(checkRepos) {
+	if !taskStatusTable.StartIfNotRunning(checkRepos) {
 		return
 	}
-	taskStatusTable.Start(checkRepos)
 	defer taskStatusTable.Stop(checkRepos)
 
 	log.Trace("Doing: CheckRepoStats")

@@ -18,6 +18,15 @@ func Test_StatusTable(t *testing.T) {
 	table.Start("xyz")
 	assert.True(t, table.IsRunning("xyz"))
 
+	assert.False(t, table.StartIfNotRunning("xyz"))
+	assert.True(t, table.IsRunning("xyz"))
+
+	table.Stop("xyz")
+	assert.False(t, table.IsRunning("xyz"))
+
+	assert.True(t, table.StartIfNotRunning("xyz"))
+	assert.True(t, table.IsRunning("xyz"))
+
 	table.Stop("xyz")
 	assert.False(t, table.IsRunning("xyz"))
 }
