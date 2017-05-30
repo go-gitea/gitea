@@ -907,7 +907,10 @@ func (pr *PullRequest) PushToBaseRepo() (err error) {
 
 	_ = os.Remove(file)
 
-	if err = git.Push(headRepoPath, tmpRemoteName, fmt.Sprintf("%s:%s", pr.HeadBranch, headFile)); err != nil {
+	if err = git.Push(headRepoPath, git.PushOptions{
+		Remote: tmpRemoteName,
+		Branch: fmt.Sprintf("%s:%s", pr.HeadBranch, headFile),
+	}); err != nil {
 		return fmt.Errorf("Push: %v", err)
 	}
 
