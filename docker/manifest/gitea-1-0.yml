@@ -1,0 +1,14 @@
+image: gitea/gitea:v1.0
+manifests:
+  - image: gitea/gitea:linux-amd64-v1.0.2
+    platform:
+      architecture: amd64
+      os: linux
+  - image: gitea/gitea:linux-arm-v1.0.2
+    platform:
+      architecture: arm
+      os: linux
+  - image: gitea/gitea:linux-arm64-v1.0.2
+    platform:
+      architecture: arm64
+      os: linux

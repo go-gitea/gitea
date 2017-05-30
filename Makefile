@@ -125,8 +125,58 @@ $(EXECUTABLE): $(SOURCES)
 
 .PHONY: docker
 docker:
-	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" webhippie/golang:edge make clean generate build
 	docker build -t gitea/gitea:latest .
+
+.PHONY: docker-build
+docker-build:
+	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" webhippie/golang:edge make clean generate build
+
+GITEA_VERSION ?= master
+DOCKER_PUSHIMAGE ?= gitea/gitea
+
+.PHONY: docker-multi-setenv
+docker-multi-setenv:
+	docker run --rm --privileged multiarch/qemu-user-static:register --reset # Permit to run via qemu binary for other platform
+
+.PHONY: docker-multi-build
+docker-multi-build: docker-multi-setenv
+	docker pull $(DOCKER_BASE)
+	docker tag $(DOCKER_BASE) gitea/gitea-base
+	docker build --no-cache --build-arg TAGS="$(TAGS)" --build-arg GITEA_VERSION="$(GITEA_VERSION)" -t gitea/gitea:$(DOCKER_TAG) .
+
+.PHONY: docker-multi-amd64
+docker-multi-amd64: DOCKER_BASE ?= alpine:latest
+docker-multi-amd64: DOCKER_TAG ?= linux-amd64-$(GITEA_VERSION)
+docker-multi-amd64: docker-multi-build docker-multi-push
+
+.PHONY: docker-multi-arm
+docker-multi-arm: DOCKER_BASE ?= multiarch/alpine:armhf-latest-stable
+docker-multi-arm: DOCKER_TAG ?= linux-arm-$(GITEA_VERSION)
+docker-multi-arm: docker-multi-build docker-multi-push
+
+.PHONY: docker-multi-arm64
+docker-multi-arm64: DOCKER_BASE ?= multiarch/alpine:aarch64-latest-stable
+docker-multi-arm64: DOCKER_TAG ?= linux-arm64-$(GITEA_VERSION)
+docker-multi-arm64: docker-multi-build docker-multi-push
+
+.PHONY: docker-multi-push
+docker-multi-push:
+	docker tag gitea/gitea:$(DOCKER_TAG) $(DOCKER_PUSHIMAGE):$(DOCKER_TAG)
+	docker push $(DOCKER_PUSHIMAGE):$(DOCKER_TAG)
+
+.PHONY: docker-multi-update-manifest
+docker-multi-update-manifest: DOCKER_MANIFEST ?= docker/manifest/gitea.yml
+docker-multi-update-manifest:
+	@hash manifest-tool > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/estesp/manifest-tool; \
+	fi
+	sed -i "s;gitea/gitea;$(DOCKER_PUSHIMAGE);g" $(DOCKER_MANIFEST)
+	@manifest-tool --docker-cfg $HOME/.docker/ push from-spec $(DOCKER_MANIFEST)
+	sed -i "s;$(DOCKER_PUSHIMAGE);gitea/gitea;g" $(DOCKER_MANIFEST)
+
+.PHONY: docker-multi-update-all
+docker-multi-update-all: docker-multi-amd64 docker-multi-arm docker-multi-arm64
+	for DOCKER_MANIFEST in $(wildcard docker/manifest/* ); do make docker-multi-update-manifest; done;
 
 .PHONY: release
 release: release-dirs release-windows release-linux release-darwin release-copy release-check

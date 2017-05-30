@@ -1,0 +1,14 @@
+image: gitea/gitea:latest
+manifests:
+  - image: gitea/gitea:linux-amd64-master
+    platform:
+      architecture: amd64
+      os: linux
+  - image: gitea/gitea:linux-arm-master
+    platform:
+      architecture: arm
+      os: linux
+  - image: gitea/gitea:linux-arm64-master
+    platform:
+      architecture: arm64
+      os: linux
