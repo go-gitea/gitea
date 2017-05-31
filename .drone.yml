@@ -15,6 +15,7 @@ pipeline:
       TAGS: bindata sqlite
       GOPATH: /srv/app
     commands:
+      - echo ${DRONE_BRANCH}
       - apk -U add openssh-client
       - make clean
       - make generate
