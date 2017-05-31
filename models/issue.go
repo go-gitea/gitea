@@ -993,7 +993,7 @@ func getIssueByID(e Engine, id int64) (*Issue, error) {
 	} else if !has {
 		return nil, ErrIssueNotExist{id, 0, 0}
 	}
-	return issue, issue.LoadAttributes()
+	return issue, issue.loadAttributes(e)
 }
 
 // GetIssueByID returns an issue by given ID.
