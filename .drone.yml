@@ -17,6 +17,8 @@ pipeline:
     commands:
       - echo ${DRONE_BRANCH}
       - echo ${DRONE_COMMIT_BRANCH}
+      - echo ${DRONE_COMMIT_REF}
+      - echo ${DRONE_COMMIT_REFSPEC}
       - apk -U add openssh-client
       - make clean
       - make generate
