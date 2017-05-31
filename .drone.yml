@@ -8,7 +8,7 @@ pipeline:
     depth: 50
     tags: true
 
-  build:
+  test:
     image: webhippie/golang:edge
     pull: true
     environment:
@@ -25,33 +25,6 @@ pipeline:
       - make build
     when:
       event: [ push, tag, pull_request ]
-
-  test:
-    image: webhippie/golang:edge
-    pull: true
-    environment:
-      TAGS: bindata sqlite
-      GOPATH: /srv/app
-    commands:
-      - apk -U add openssh-client
-      - make test
-    when:
-      event: [ push, tag, pull_request ]
-      branch:
-        exclude: master
-
-  test-coverage:
-    image: webhippie/golang:edge
-    pull: true
-    environment:
-      TAGS: bindata sqlite
-      GOPATH: /srv/app
-    commands:
-      - apk -U add openssh-client
-      - make test-coverage
-    when:
-      event: [ push ]
-      branch: master
 
   test-sqlite:
     image: webhippie/golang:edge

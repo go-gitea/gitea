@@ -76,11 +76,11 @@ lint:
 
 .PHONY: test
 test:
-	go test $(PACKAGES)
-
-.PHONY: test-coverage
-test-coverage:
+ifeq ($(DRONE_BRANCH),master)
 	for PKG in $(PACKAGES); do go test -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
+else
+	go test $(PACKAGES)
+endif
 
 .PHONY: test-vendor
 test-vendor:
