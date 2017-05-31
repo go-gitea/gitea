@@ -1334,10 +1334,9 @@ func GetWatchedRepos(userID int64, private bool) ([]*Repository, error) {
 
 // SyncExternalUsers is used to synchronize users with external authorization source
 func SyncExternalUsers() {
-	if taskStatusTable.IsRunning(syncExternalUsers) {
+	if !taskStatusTable.StartIfNotRunning(syncExternalUsers) {
 		return
 	}
-	taskStatusTable.Start(syncExternalUsers)
 	defer taskStatusTable.Stop(syncExternalUsers)
 
 	log.Trace("Doing: SyncExternalUsers")
