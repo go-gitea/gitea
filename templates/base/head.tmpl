@@ -23,7 +23,8 @@
 {{end}}
 
 	<link rel="shortcut icon" href="{{AppSubUrl}}/img/favicon.png" />
-	<link rel="stylesheet" href="{{AppSubUrl}}/assets/font-awesome-4.6.3/css/font-awesome.min.css">
+	<link rel="preload" href="{{AppSubUrl}}/assets/font-awesome-4.6.3/css/font-awesome.min.css" as="style" onload="this.rel='stylesheet'">
+	<noscript><link rel="stylesheet" href="{{AppSubUrl}}/assets/font-awesome-4.6.3/css/font-awesome.min.css"></noscript>
 	<link rel="stylesheet" href="{{AppSubUrl}}/assets/octicons-4.3.0/octicons.min.css">
 
 {{if .RequireSimpleMDE}}
@@ -53,7 +54,8 @@
 {{end}}
 	<style class="list-search-style"></style>
 
-	<!-- Open Graph -->
+	<script src="{{AppSubUrl}}/js/libs/loadCSS.min.js"></script>
+	<script src="{{AppSubUrl}}/js/libs/cssrelpreload.min.js"></script>
 {{if .PageIsUserProfile}}
 	<meta property="og:title" content="{{.Owner.Name}}" />
 	<meta property="og:type" content="profile" />
