@@ -16,6 +16,7 @@ pipeline:
       GOPATH: /srv/app
     commands:
       - echo ${DRONE_BRANCH}
+      - echo ${DRONE_COMMIT_BRANCH}
       - apk -U add openssh-client
       - make clean
       - make generate
