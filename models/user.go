@@ -19,6 +19,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -1355,6 +1356,138 @@ func GetWatchedRepos(userID int64, private bool) ([]*Repository, error) {
 	return repos, nil
 }
 
+// existsInSlice returns true if string exists in slice
+func existsInSlice(target string, slice []string) bool {
+	i := sort.Search(len(slice),
+		func(i int) bool { return slice[i] == target })
+	return i < len(slice)
+}
+
+// IsEqualSlice returns true if slices are equal
+func IsEqualSlice(target []string, source []string) bool {
+	if len(target) != len(source) {
+		return false
+	}
+
+	if (target == nil) != (source == nil) {
+		return false
+	}
+
+	sort.Strings(target)
+	sort.Strings(source)
+
+	for i, v := range target {
+		if v != source[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+// deleteKeysMarkedForDeletion returns true if ssh keys needs update
+func deleteKeysMarkedForDeletion(keys []string) (sshKeysNeedUpdate bool, err error) {
+	// Start session
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return false, err
+	}
+
+	// Delete keys marked for deletion
+	for _, KeyToDelete := range keys {
+		key, err := SearchPublicKeyByContent(KeyToDelete)
+		err = deletePublicKeys(sess, key.ID)
+		if err != nil {
+			sshKeysNeedUpdate = false
+			log.Trace("deleteKeysMarkedForDeletion: Error: %v", key)
+		}
+		sshKeysNeedUpdate = true
+	}
+
+	return sshKeysNeedUpdate, sess.Commit()
+}
+
+func addLdapSSHPublicKeys(s *LoginSource, usr *User, SSHPublicKeys []string) (sshKeysNeedUpdate bool, err error) {
+	for _, LDAPPublicSSHKey := range SSHPublicKeys {
+		LDAPPublicSSHKeyName := strings.Join([]string{s.Name, LDAPPublicSSHKey[0:40]}, "-")
+		_, err := AddPublicKey(usr.ID, LDAPPublicSSHKeyName, LDAPPublicSSHKey, s.ID)
+		if err != nil {
+			log.Error(4, "addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)
+		} else {
+			log.Trace("addLdapSSHPublicKeys[%s]: Added LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, LDAPPublicSSHKey)
+			sshKeysNeedUpdate = true
+		}
+
+	}
+	return sshKeysNeedUpdate, err
+}
+
+func synchronizeLdapSSHPublicKeys(s *LoginSource, SSHPublicKeys []string, usr *User) (sshKeysNeedUpdate bool, err error) {
+	log.Trace("synchronizeLdapSSHPublicKeys[%s]: Handling LDAP Public SSH Key synchronization for user %s", s.Name, usr.Name)
+
+	// Get Public Keys from DB with LDAP source
+	var giteaKeys []string
+	keys, err := ListPublicKeys(usr.ID)
+	if err != nil {
+		log.Error(4, "synchronizeLdapSSHPublicKeys[%s]: Error listing LDAP Public SSH Keys for user %s: %v", s.Name, usr.Name, err)
+	}
+
+	// Get Public Keys from DB, which has been synchronized from LDAP
+	for _, v := range keys {
+		// If key was synced from LDAP, add it to list
+		if v.LoginSourceID > 0 {
+			giteaKeys = append(giteaKeys, v.OmitEmail())
+		}
+	}
+	sort.Strings(giteaKeys)
+
+	// Get Public Keys from LDAP and skip duplicate keys
+	var ldapKeys []string
+	for _, v := range SSHPublicKeys {
+		ldapKey := strings.Join(strings.Split(v, " ")[:2], " ")
+		if !existsInSlice(ldapKey, ldapKeys) {
+			ldapKeys = append(ldapKeys, ldapKey)
+		}
+	}
+	sort.Strings(ldapKeys)
+
+	// Check if Public Key sync is needed
+	var giteaKeysToDelete []string
+	if IsEqualSlice(giteaKeys, ldapKeys) {
+		log.Trace("synchronizeLdapSSHPublicKeys[%s]: LDAP Public Keys are already in sync for %s (LDAP:%v/DB:%v)", s.Name, usr.Name, len(ldapKeys), len(giteaKeys))
+	} else {
+		log.Trace("synchronizeLdapSSHPublicKeys[%s]: LDAP Public Key needs update for user %s (LDAP:%v/DB:%v)", s.Name, usr.Name, len(ldapKeys), len(giteaKeys))
+		// Delete giteaKeys that doesn't exist in ldapKeys and has been synced from LDAP earlier
+		for _, giteaKey := range giteaKeys {
+			if !existsInSlice(giteaKey, ldapKeys) {
+				log.Trace("synchronizeLdapSSHPublicKeys[%s]: Marking LDAP Public SSH Key for deletion for user %s: %v", s.Name, usr.Name, giteaKey)
+				giteaKeysToDelete = append(giteaKeysToDelete, giteaKey)
+			}
+		}
+	}
+
+	// Delete LDAP keys from DB that doesn't exist in LDAP
+	sshKeysNeedUpdate, err = deleteKeysMarkedForDeletion(giteaKeysToDelete)
+	if err != nil {
+		log.Error(4, "synchronizeLdapSSHPublicKeys[%s]: Error deleting LDAP Public SSH Keys marked for deletion for user %s: %v", s.Name, usr.Name, err)
+	}
+
+	// Add LDAP Public SSH Keys that doesn't already exist in DB
+	var newLdapSSHKeys []string
+	for _, LDAPPublicSSHKey := range ldapKeys {
+		if !existsInSlice(LDAPPublicSSHKey, giteaKeys) {
+			newLdapSSHKeys = append(newLdapSSHKeys, LDAPPublicSSHKey)
+		}
+	}
+	sshKeysNeedUpdate, err = addLdapSSHPublicKeys(s, usr, newLdapSSHKeys)
+	if err != nil {
+		log.Error(4, "synchronizeLdapSSHPublicKeys[%s]: Error updating LDAP Public SSH Keys for user %s: %v", s.Name, usr.Name, err)
+	}
+
+	return sshKeysNeedUpdate, err
+}
+
 // SyncExternalUsers is used to synchronize users with external authorization source
 func SyncExternalUsers() {
 	if !taskStatusTable.StartIfNotRunning(syncExternalUsers) {
@@ -1376,10 +1509,13 @@ func SyncExternalUsers() {
 		if !s.IsActived || !s.IsSyncEnabled {
 			continue
 		}
+
 		if s.IsLDAP() {
 			log.Trace("Doing: SyncExternalUsers[%s]", s.Name)
 
 			var existingUsers []int64
+			var isAttributeSSHPublicKeySet = len(strings.TrimSpace(s.LDAP().AttributeSSHPublicKey)) > 0
+			var sshKeysNeedUpdate bool
 
 			// Find all users with this login type
 			var users []User
@@ -1388,7 +1524,6 @@ func SyncExternalUsers() {
 				Find(&users)
 
 			sr := s.LDAP().SearchEntries()
-
 			for _, su := range sr {
 				if len(su.Username) == 0 {
 					continue
@@ -1425,33 +1560,55 @@ func SyncExternalUsers() {
 					}
 
 					err = CreateUser(usr)
+
 					if err != nil {
 						log.Error(4, "SyncExternalUsers[%s]: Error creating user %s: %v", s.Name, su.Username, err)
+					} else if isAttributeSSHPublicKeySet {
+						log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", s.Name, usr.Name)
+						sshKeysNeedUpdate, err = addLdapSSHPublicKeys(s, usr, su.SSHPublicKey)
+						if err != nil {
+							log.Error(4, "SyncExternalUsers[%s]: Error adding LDAP Public SSH Keys for user %s: %v", s.Name, su.Username, err)
+						}
 					}
 				} else if updateExisting {
 					existingUsers = append(existingUsers, usr.ID)
-					// Check if user data has changed
-					if (len(s.LDAP().AdminFilter) > 0 && usr.IsAdmin != su.IsAdmin) ||
-						strings.ToLower(usr.Email) != strings.ToLower(su.Mail) ||
-						usr.FullName != fullName ||
-						!usr.IsActive {
-
-						log.Trace("SyncExternalUsers[%s]: Updating user %s", s.Name, usr.Name)
-
-						usr.FullName = fullName
-						usr.Email = su.Mail
-						// Change existing admin flag only if AdminFilter option is set
-						if len(s.LDAP().AdminFilter) > 0 {
-							usr.IsAdmin = su.IsAdmin
-						}
-						usr.IsActive = true
 
 						err = UpdateUserCols(usr, "full_name", "email", "is_admin", "is_active")
 						if err != nil {
 							log.Error(4, "SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
 						}
+
+					if isAttributeSSHPublicKeySet {
+						synchronizeLdapSSHPublicKeys(s, su.SSHPublicKey, usr)
 					}
 				}
+
+				// Check if user data has changed
+				if (len(s.LDAP().AdminFilter) > 0 && usr.IsAdmin != su.IsAdmin) ||
+					strings.ToLower(usr.Email) != strings.ToLower(su.Mail) ||
+					usr.FullName != fullName ||
+					!usr.IsActive {
+
+					log.Trace("SyncExternalUsers[%s]: Updating user %s", s.Name, usr.Name)
+
+					usr.FullName = fullName
+					usr.Email = su.Mail
+					// Change existing admin flag only if AdminFilter option is set
+					if len(s.LDAP().AdminFilter) > 0 {
+						usr.IsAdmin = su.IsAdmin
+					}
+					usr.IsActive = true
+
+					err = UpdateUser(usr)
+					if err != nil {
+						log.Error(4, "SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
+					}
+				}
+			}
+
+			// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
+			if isAttributeSSHPublicKeySet && sshKeysNeedUpdate {
+				RewriteAllPublicKeys()
 			}
 
 			// Deactivate users not present in LDAP

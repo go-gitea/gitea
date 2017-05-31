@@ -140,6 +140,8 @@ var migrations = []Migration{
 	NewMigration("remove duplicate unit types", removeDuplicateUnitTypes),
 	// v45 -> v46
 	NewMigration("remove index column from repo_unit table", removeIndexColumnFromRepoUnitTable),
+	// v46 -> v47
+	NewMigration("add field for ldap public public ssh key synchronization", addLoginSourceLdapPublicSSHKeySyncEnabled),
 }
 
 // Migrate database to current version
