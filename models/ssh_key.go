@@ -373,6 +373,7 @@ func checkKeyFingerprint(e Engine, fingerprint string) error {
 func calcFingerprint(publicKeyContent string) (string, error) {
 	// Calculate fingerprint.
 	tmpPath, err := writeTmpKeyFile(publicKeyContent)
+	defer os.Remove(tmpPath)
 	if err != nil {
 		return "", err
 	}
