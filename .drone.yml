@@ -48,6 +48,7 @@ pipeline:
       - make test-coverage
     when:
       event: [ push ]
+      branch: master
 
   test-sqlite:
     image: webhippie/golang:edge
