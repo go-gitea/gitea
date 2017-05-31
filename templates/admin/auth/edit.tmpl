@@ -90,6 +90,10 @@
 						<label for="attribute_mail">{{.i18n.Tr "admin.auths.attribute_mail"}}</label>
 						<input id="attribute_mail" name="attribute_mail" value="{{$cfg.AttributeMail}}" placeholder="e.g. mail" required>
 					</div>
+					<div class="field">
+					    <label for="attribute_ssh_public_key">{{.i18n.Tr "admin.auths.attribute_ssh_public_key"}}</label>
+					    <input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{$cfg.AttributeSSHPublicKey}}" placeholder="e.g. SshPublicKey">
+					</div>
 					{{if .Source.IsLDAP}}
 						<div class="inline field">
 							<div class="ui checkbox">
