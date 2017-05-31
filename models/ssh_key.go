@@ -576,7 +576,7 @@ func RewriteAllPublicKeys() error {
 		return err
 	}
 
-	if com.IsExist(fpath) {
+	if com.IsExist(fpath) && !setting.SSH.DisableAuthorizedKeysBackup {
 		bakPath := fpath + fmt.Sprintf("_%d.gitea_bak", time.Now().Unix())
 		if err = com.Copy(fpath, bakPath); err != nil {
 			return err
