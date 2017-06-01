@@ -266,7 +266,7 @@ func getNextCommitInfos(state *getCommitInfoState) error {
 func logCommand(exclusiveStartHash string, state *getCommitInfoState) *Command {
 	var commitHash string
 	if len(exclusiveStartHash) == 0 {
-		commitHash = "HEAD"
+		commitHash = state.headCommit.ID.String()
 	} else {
 		commitHash = exclusiveStartHash + "^"
 	}
