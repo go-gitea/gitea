@@ -8,7 +8,7 @@ pipeline:
     depth: 50
     tags: true
 
-  test:
+  build:
     image: webhippie/golang:edge
     pull: true
     environment:
@@ -21,10 +21,34 @@ pipeline:
       - make vet
       - make lint
       - make test-vendor
-      - make test
       - make build
     when:
       event: [ push, tag, pull_request ]
+
+  test:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      TAGS: bindata sqlite
+      GOPATH: /srv/app
+    commands:
+      - apk -U add openssh-client
+      - make test
+    when:
+      event: [ tag, pull_request ]
+
+  test-coverage:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      TAGS: bindata sqlite
+      GOPATH: /srv/app
+    commands:
+      - apk -U add openssh-client
+      - make test-coverage
+    when:
+      event: [ push ]
+      branch: master
 
   test-sqlite:
     image: webhippie/golang:edge
@@ -73,10 +97,9 @@ pipeline:
   coverage:
     image: plugins/coverage
     server: https://coverage.gitea.io
-    commands:
-      - make test-coverage
     when:
-      event: [ push, tag ]
+      event: [ push ]
+      branch: master
 
   docker:
     image: plugins/docker
