@@ -965,6 +965,10 @@ func DeleteComment(ctx *context.Context) {
 
 // Milestones render milestones page
 func Milestones(ctx *context.Context) {
+	MustEnableIssues(ctx)
+	if ctx.Written() {
+		return
+	}
 	ctx.Data["Title"] = ctx.Tr("repo.milestones")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true

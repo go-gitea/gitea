@@ -557,7 +557,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/^:type(issues|pulls)$/:index", repo.ViewIssue)
 			m.Get("/labels/", repo.RetrieveLabels, repo.Labels)
 			m.Get("/milestones", repo.Milestones)
-		}, context.RepoRef(), context.CheckUnit(models.UnitTypeIssues))
+		}, context.RepoRef())
 
 		// m.Get("/branches", repo.Branches)
 		m.Post("/branches/:name/delete", reqSignIn, reqRepoWriter, repo.MustBeNotBare, repo.DeleteBranchPost)
