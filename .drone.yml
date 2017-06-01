@@ -2,12 +2,12 @@ workspace:
   base: /srv/app
   path: src/code.gitea.io/gitea
 
-pipeline:
-  clone:
-    image: plugins/git
-    depth: 50
-    tags: true
+clone:
+  image: plugins/git
+  depth: 50
+  tags: true
 
+pipeline:
   test:
     image: webhippie/golang:edge
     pull: true
@@ -27,6 +27,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test-sqlite:
+    group: integration-test
     image: webhippie/golang:edge
     pull: true
     environment:
@@ -38,6 +39,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test-mysql:
+    group: integration-test
     image: webhippie/golang:edge
     pull: true
     environment:
@@ -49,6 +51,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test-pgsql:
+    group: integration-test
     image: webhippie/golang:edge
     pull: true
     environment:
