@@ -552,7 +552,7 @@ func removeOrgRepo(e Engine, orgID, repoID int64) error {
 		teamIDs[i] = teamRepo.ID
 	}
 
-	_, err := x.Decr("num_repos").In("id", teamIDs).Update(new(Team))
+	_, err := e.Decr("num_repos").In("id", teamIDs).Update(new(Team))
 	return err
 }
 
