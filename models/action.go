@@ -681,28 +681,30 @@ type GetFeedsOptions struct {
 }
 
 // GetFeeds returns actions according to the provided options
-func GetFeeds(options GetFeedsOptions) ([]*Action, error) {
-	actions := make([]*Action, 0, 20)
-	sess := x.Limit(20).
-		Desc("id").
-		Where("user_id = ?", options.RequestedUser.ID)
-	if options.OnlyPerformedBy {
-		sess.And("act_user_id = ?", options.RequestedUser.ID)
-	}
-	if !options.IncludePrivate {
-		sess.And("is_private = ?", false)
-	}
-	if options.RequestedUser.IsOrganization() {
-		env, err := options.RequestedUser.AccessibleReposEnv(options.RequestingUserID)
+func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
+	var repoIDs []int64
+	if opts.RequestedUser.IsOrganization() {
+		env, err := opts.RequestedUser.AccessibleReposEnv(opts.RequestingUserID)
 		if err != nil {
 			return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 		}
-		repoIDs, err := env.RepoIDs(1, options.RequestedUser.NumRepos)
-		if err != nil {
+		if repoIDs, err = env.RepoIDs(1, opts.RequestedUser.NumRepos); err != nil {
 			return nil, fmt.Errorf("GetUserRepositories: %v", err)
 		}
-		sess.In("repo_id", repoIDs)
 	}
 
+	actions := make([]*Action, 0, 20)
+	sess := x.Limit(20).
+		Desc("id").
+		Where("user_id = ?", opts.RequestedUser.ID)
+	if opts.OnlyPerformedBy {
+		sess.And("act_user_id = ?", opts.RequestedUser.ID)
+	}
+	if !opts.IncludePrivate {
+		sess.And("is_private = ?", false)
+	}
+	if opts.RequestedUser.IsOrganization() {
+		sess.In("repo_id", repoIDs)
+	}
 	return actions, sess.Find(&actions)
 }
