@@ -501,9 +501,15 @@ func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
 		return nil, fmt.Errorf("git merge-base --is-ancestor: %v %v", stderr, err)
 	}
 
-	// We can ignore this error since we only get here when there's a valid commit in headFile
-	commitID, _ := ioutil.ReadFile(pr.BaseRepo.RepoPath() + "/" + headFile)
-	cmd := string(commitID)[:40] + ".." + pr.BaseBranch
+	commitIDBytes, err := ioutil.ReadFile(pr.BaseRepo.RepoPath() + "/" + headFile)
+	if err != nil {
+		return nil, fmt.Errorf("ReadFile(%s): %v", headFile, err)
+	}
+	commitID := string(commitIDBytes)
+	if len(commitID) < 40 {
+		return nil, fmt.Errorf(`ReadFile(%s): invalid commit-ID "%s"`, headFile, commitID)
+	}
+	cmd := commitID[:40] + ".." + pr.BaseBranch
 
 	// Get the commit from BaseBranch where the pull request got merged
 	mergeCommit, stderr, err := process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("isMerged (git rev-list --ancestry-path --merges --reverse): %d", pr.BaseRepo.ID),
