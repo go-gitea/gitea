@@ -472,17 +472,17 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/milestone", repo.UpdateIssueMilestone, reqRepoWriter)
 			m.Post("/assignee", repo.UpdateIssueAssignee, reqRepoWriter)
 			m.Post("/status", repo.UpdateIssueStatus, reqRepoWriter)
-		})
+		}, context.CheckUnit(models.UnitTypeIssues))
 		m.Group("/comments/:id", func() {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
-		})
+		}, context.CheckUnit(models.UnitTypeIssues))
 		m.Group("/labels", func() {
 			m.Post("/new", bindIgnErr(auth.CreateLabelForm{}), repo.NewLabel)
 			m.Post("/edit", bindIgnErr(auth.CreateLabelForm{}), repo.UpdateLabel)
 			m.Post("/delete", repo.DeleteLabel)
 			m.Post("/initialize", bindIgnErr(auth.InitializeLabelsForm{}), repo.InitializeLabels)
-		}, reqRepoWriter, context.RepoRef())
+		}, reqRepoWriter, context.RepoRef(), context.CheckUnit(models.UnitTypeIssues))
 		m.Group("/milestones", func() {
 			m.Combo("/new").Get(repo.NewMilestone).
 				Post(bindIgnErr(auth.CreateMilestoneForm{}), repo.NewMilestonePost)
@@ -490,7 +490,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/:id/edit", bindIgnErr(auth.CreateMilestoneForm{}), repo.EditMilestonePost)
 			m.Get("/:id/:action", repo.ChangeMilestonStatus)
 			m.Post("/delete", repo.DeleteMilestone)
-		}, reqRepoWriter, context.RepoRef())
+		}, reqRepoWriter, context.RepoRef(), context.CheckUnit(models.UnitTypeIssues))
+
 
 		m.Combo("/compare/*", repo.MustAllowPulls, repo.SetEditorconfigIfExists).
 			Get(repo.CompareAndPullRequest).
@@ -522,7 +523,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				return
 			}
 		})
-	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits(), context.CheckUnit(models.UnitTypeIssues))
+	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits())
 
 	// Releases
 	m.Group("/:username/:reponame", func() {
