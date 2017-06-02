@@ -969,15 +969,12 @@
           "x-go-name": "OpenIssues"
         },
         "owner": {
-          "x-go-name": "Owner",
           "$ref": "#/definitions/User"
         },
         "parent": {
-          "x-go-name": "Parent",
-          "$ref": "#/definitions/Repository"
+          "type": "object"
         },
         "permissions": {
-          "x-go-name": "Permissions",
           "$ref": "#/definitions/Permission"
         },
         "private": {
