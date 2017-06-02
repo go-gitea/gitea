@@ -79,7 +79,7 @@ func Releases(ctx *context.Context) {
 
 	// Temporary cache commits count of used branches to speed up.
 	countCache := make(map[string]int64)
-	var cacheUsers = make(map[int64]*models.User)
+	cacheUsers := map[int64]*models.User{ctx.User.ID: ctx.User}
 	var ok bool
 
 	releasesToDisplay := make([]*models.Release, 0, len(releases))
