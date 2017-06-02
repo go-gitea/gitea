@@ -549,7 +549,7 @@ func removeOrgRepo(e Engine, orgID, repoID int64) error {
 
 	teamIDs := make([]int64, len(teamRepos))
 	for i, teamRepo := range teamRepos {
-		teamIDs[i] = teamRepo.ID
+		teamIDs[i] = teamRepo.TeamID
 	}
 
 	_, err := e.Decr("num_repos").In("id", teamIDs).Update(new(Team))
