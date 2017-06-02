@@ -305,13 +305,23 @@ func TestGetFeeds(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
-	actions, err := GetFeeds(user, user.ID, 0, false)
+	actions, err := GetFeeds(GetFeedsOptions{
+		RequestedUser:    user,
+		RequestingUserID: user.ID,
+		IncludePrivate:   true,
+		OnlyPerformedBy:  false,
+	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 1)
-	assert.Equal(t, int64(1), actions[0].ID)
-	assert.Equal(t, user.ID, actions[0].UserID)
+	assert.EqualValues(t, 1, actions[0].ID)
+	assert.EqualValues(t, user.ID, actions[0].UserID)
 
-	actions, err = GetFeeds(user, user.ID, 0, true)
+	actions, err = GetFeeds(GetFeedsOptions{
+		RequestedUser:    user,
+		RequestingUserID: user.ID,
+		IncludePrivate:   false,
+		OnlyPerformedBy:  false,
+	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 0)
 }
@@ -319,15 +329,26 @@ func TestGetFeeds(t *testing.T) {
 func TestGetFeeds2(t *testing.T) {
 	// test with an organization user
 	assert.NoError(t, PrepareTestDatabase())
-	user := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	userID := AssertExistsAndLoadBean(t, &OrgUser{OrgID: org.ID, IsOwner: true}).(*OrgUser).UID
 
-	actions, err := GetFeeds(user, user.ID, 0, false)
+	actions, err := GetFeeds(GetFeedsOptions{
+		RequestedUser:    org,
+		RequestingUserID: userID,
+		IncludePrivate:   true,
+		OnlyPerformedBy:  false,
+	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 1)
-	assert.Equal(t, int64(2), actions[0].ID)
-	assert.Equal(t, user.ID, actions[0].UserID)
+	assert.EqualValues(t, 2, actions[0].ID)
+	assert.EqualValues(t, org.ID, actions[0].UserID)
 
-	actions, err = GetFeeds(user, user.ID, 0, true)
+	actions, err = GetFeeds(GetFeedsOptions{
+		RequestedUser:    org,
+		RequestingUserID: userID,
+		IncludePrivate:   false,
+		OnlyPerformedBy:  false,
+	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 0)
 }

@@ -672,33 +672,39 @@ func MergePullRequestAction(actUser *User, repo *Repository, pull *Issue) error 
 	return mergePullRequestAction(x, actUser, repo, pull)
 }
 
-// GetFeeds returns action list of given user in given context.
-// actorID is the user who's requesting, ctxUserID is the user/org that is requested.
-// actorID can be -1 when isProfile is true or to skip the permission check.
-func GetFeeds(ctxUser *User, actorID, offset int64, isProfile bool) ([]*Action, error) {
-	actions := make([]*Action, 0, 20)
-	sess := x.
-		Limit(20, int(offset)).
-		Desc("id").
-		Where("user_id = ?", ctxUser.ID)
-	if isProfile {
-		sess.
-			And("is_private = ?", false).
-			And("act_user_id = ?", ctxUser.ID)
-	} else if actorID != -1 && ctxUser.IsOrganization() {
-		env, err := ctxUser.AccessibleReposEnv(actorID)
+// GetFeedsOptions options for retrieving feeds
+type GetFeedsOptions struct {
+	RequestedUser    *User
+	RequestingUserID int64
+	IncludePrivate   bool // include private actions
+	OnlyPerformedBy  bool // only actions performed by requested user
+}
+
+// GetFeeds returns actions according to the provided options
+func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
+	var repoIDs []int64
+	if opts.RequestedUser.IsOrganization() {
+		env, err := opts.RequestedUser.AccessibleReposEnv(opts.RequestingUserID)
 		if err != nil {
 			return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 		}
-		repoIDs, err := env.RepoIDs(1, ctxUser.NumRepos)
-		if err != nil {
+		if repoIDs, err = env.RepoIDs(1, opts.RequestedUser.NumRepos); err != nil {
 			return nil, fmt.Errorf("GetUserRepositories: %v", err)
-		}
-		if len(repoIDs) > 0 {
-			sess.In("repo_id", repoIDs)
 		}
 	}
 
-	err := sess.Find(&actions)
-	return actions, err
+	actions := make([]*Action, 0, 20)
+	sess := x.Limit(20).
+		Desc("id").
+		Where("user_id = ?", opts.RequestedUser.ID)
+	if opts.OnlyPerformedBy {
+		sess.And("act_user_id = ?", opts.RequestedUser.ID)
+	}
+	if !opts.IncludePrivate {
+		sess.And("is_private = ?", false)
+	}
+	if opts.RequestedUser.IsOrganization() {
+		sess.In("repo_id", repoIDs)
+	}
+	return actions, sess.Find(&actions)
 }
