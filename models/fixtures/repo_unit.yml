@@ -25,6 +25,14 @@
 -
   id: 4
   repo_id: 1
+  type: 5
+  index: 0
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 5
+  repo_id: 1
   type: 7
   index: 0
   config: "{}"
