@@ -18,6 +18,10 @@ const (
 
 // Labels render issue's labels page
 func Labels(ctx *context.Context) {
+	MustEnableIssues(ctx)
+	if ctx.Written() {
+		return
+	}
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsLabels"] = true
