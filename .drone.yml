@@ -25,63 +25,63 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
-#   test:
-#     image: webhippie/golang:edge
-#     pull: true
-#     environment:
-#       TAGS: bindata sqlite
-#       GOPATH: /srv/app
-#     commands:
-#       - apk -U add openssh-client
-#       - make test
-#     when:
-#       event: [ tag, pull_request ]
+  test:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      TAGS: bindata sqlite
+      GOPATH: /srv/app
+    commands:
+      - apk -U add openssh-client
+      - make test
+    when:
+      event: [ tag, pull_request ]
 
-#   test-coverage:
-#     image: webhippie/golang:edge
-#     pull: true
-#     environment:
-#       TAGS: bindata sqlite
-#       GOPATH: /srv/app
-#     commands:
-#       - apk -U add openssh-client
-#       - make test-coverage
-#     when:
-#       event: [ push ]
-#       branch: master
+  test-coverage:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      TAGS: bindata sqlite
+      GOPATH: /srv/app
+    commands:
+      - apk -U add openssh-client
+      - make test-coverage
+    when:
+      event: [ push ]
+      branch: master
 
-#   test-sqlite:
-#     image: webhippie/golang:edge
-#     pull: true
-#     environment:
-#       TAGS: bindata
-#       GOPATH: /srv/app
-#     commands:
-#       - make test-sqlite
-#     when:
-#       event: [ push, tag, pull_request ]
+  test-sqlite:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      TAGS: bindata
+      GOPATH: /srv/app
+    commands:
+      - make test-sqlite
+    when:
+      event: [ push, tag, pull_request ]
 
-#   test-mysql:
-#     image: webhippie/golang:edge
-#     pull: true
-#     environment:
-#       TAGS: bindata
-#       GOPATH: /srv/app
-#     commands:
-#       - make test-mysql
-#     when:
-#       event: [ push, tag, pull_request ]
+  test-mysql:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      TAGS: bindata
+      GOPATH: /srv/app
+    commands:
+      - make test-mysql
+    when:
+      event: [ push, tag, pull_request ]
 
-#   test-pgsql:
-#     image: webhippie/golang:edge
-#     pull: true
-#     environment:
-#       TAGS: bindata
-#       GOPATH: /srv/app
-#     commands:
-#       - make test-pgsql
-#     when:
-#       event: [ push, tag, pull_request ]
+  test-pgsql:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      TAGS: bindata
+      GOPATH: /srv/app
+    commands:
+      - make test-pgsql
+    when:
+      event: [ push, tag, pull_request ]
 
   static:
     image: webhippie/golang:edge
