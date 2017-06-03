@@ -13,18 +13,6 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-// ActionV34 describes the removed fields
-type ActionV34 struct {
-	ActUserName  string `xorm:"-"`
-	RepoUserName string `xorm:"-"`
-	RepoName     string `xorm:"-"`
-}
-
-// TableName will be invoked by XORM to customize the table name
-func (*ActionV34) TableName() string {
-	return "action"
-}
-
 func removeActionColumns(x *xorm.Engine) error {
 	switch {
 	case setting.UseSQLite3:
