@@ -1307,7 +1307,6 @@ footer .ui.language .menu {
 }
 .repository.file.list #file-buttons {
   font-weight: normal;
-  margin-top: -3px;
 }
 .repository.file.list #file-buttons .ui.button {
   padding: 8px 10px;
