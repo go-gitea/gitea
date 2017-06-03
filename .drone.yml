@@ -8,22 +8,22 @@ pipeline:
     depth: 50
     tags: true
 
-#   build:
-#     image: webhippie/golang:edge
-#     pull: true
-#     environment:
-#       TAGS: bindata sqlite
-#       GOPATH: /srv/app
-#     commands:
-#       - apk -U add openssh-client
-#       - make clean
-#       - make generate
-#       - make vet
-#       - make lint
-#       - make test-vendor
-#       - make build
-#     when:
-#       event: [ push, tag, pull_request ]
+  build:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      TAGS: bindata sqlite
+      GOPATH: /srv/app
+    commands:
+      - apk -U add openssh-client
+      - make clean
+      - make generate
+      - make vet
+      - make lint
+      - make test-vendor
+      - make build
+    when:
+      event: [ push, tag, pull_request ]
 
 #   test:
 #     image: webhippie/golang:edge
