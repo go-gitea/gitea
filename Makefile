@@ -138,13 +138,13 @@ release-dirs:
 
 .PHONY: release-windows
 release-windows:
-	@hash gox > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		go get -u github.com/appleboy/gox; \
-	fi
-	gox -os="windows" -tags="netgo $(TAGS)" -ldflags='-linkmode external -extldflags "-static" $(LDFLAGS)' -output="$(DIST)/binaries/$(EXECUTABLE)-$(VERSION)-{{.OS}}-{{.Arch}}"
-ifeq ($(CI),drone)
-	mv /build/* $(DIST)/binaries
-endif
+# 	@hash gox > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+# 		go get -u github.com/appleboy/gox; \
+# 	fi
+# 	gox -os="windows" -tags="netgo $(TAGS)" -ldflags='-linkmode external -extldflags "-static" $(LDFLAGS)' -output="$(DIST)/binaries/$(EXECUTABLE)-$(VERSION)-{{.OS}}-{{.Arch}}"
+# ifeq ($(CI),drone)
+# 	mv /build/* $(DIST)/binaries
+# endif
 
 .PHONY: release-linux
 release-linux:
