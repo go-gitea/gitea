@@ -107,7 +107,7 @@ func Releases(ctx *context.Context) {
 		releasesToDisplay = append(releasesToDisplay, r)
 	}
 
-	pager := paginater.New(len(releases), limit, page, 5)
+	pager := paginater.New(len(releasesToDisplay), limit, page, 5)
 	ctx.Data["Page"] = pager
 	ctx.Data["Releases"] = releasesToDisplay
 	ctx.HTML(200, tplReleases)
