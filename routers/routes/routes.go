@@ -493,7 +493,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/delete", repo.DeleteMilestone)
 		}, reqRepoWriter, context.RepoRef(), context.CheckUnit(models.UnitTypeIssues))
 
-
 		m.Combo("/compare/*", repo.MustAllowPulls, repo.SetEditorconfigIfExists).
 			Get(repo.CompareAndPullRequest).
 			Post(bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
