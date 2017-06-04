@@ -32,12 +32,6 @@ func CreateTestEngine() error {
 	return InitFixtures(&testfixtures.SQLite{}, "fixtures/")
 }
 
-// TestFixturesAreConsistent assert that test fixtures are consistent
-func TestFixturesAreConsistent(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	CheckConsistencyForAll(t)
-}
-
 // PrepareTestDatabase load test fixtures into test database
 func PrepareTestDatabase() error {
 	return LoadFixtures()
