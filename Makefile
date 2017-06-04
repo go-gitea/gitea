@@ -15,7 +15,7 @@ SOURCES ?= $(shell find . -name "*.go" -type f)
 
 TAGS ?=
 
-TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'tempdir')
+TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
 
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE := gitea.exe
