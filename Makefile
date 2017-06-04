@@ -1,12 +1,5 @@
 DIST := dist
 IMPORT := code.gitea.io/gitea
-
-ifeq ($(OS), Windows_NT)
-	EXECUTABLE := gitea.exe
-else
-	EXECUTABLE := gitea
-endif
-
 BINDATA := modules/{options,public,templates}/bindata.go
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
@@ -22,7 +15,13 @@ SOURCES ?= $(shell find . -name "*.go" -type f)
 
 TAGS ?=
 
-TMPDIR := $(shell mktemp -d)
+TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
+
+ifeq ($(OS), Windows_NT)
+	EXECUTABLE := gitea.exe
+else
+	EXECUTABLE := gitea
+endif
 
 ifneq ($(DRONE_TAG),)
 	VERSION ?= $(subst v,,$(DRONE_TAG))
