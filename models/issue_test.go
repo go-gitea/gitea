@@ -61,26 +61,23 @@ func TestGetIssuesByIDs(t *testing.T) {
 }
 
 func TestGetParticipantsByIssueID(t *testing.T) {
-
 	assert.NoError(t, PrepareTestDatabase())
 
-	checkPartecipants := func(issueID int64, userIDs []int) {
-		partecipants, err := GetParticipantsByIssueID(issueID)
+	checkParticipants := func(issueID int64, userIDs []int) {
+		participants, err := GetParticipantsByIssueID(issueID)
 		if assert.NoError(t, err) {
-			partecipantsIDs := make([]int, len(partecipants))
-			for i, u := range partecipants {
-				partecipantsIDs[i] = int(u.ID)
+			participantsIDs := make([]int, len(participants))
+			for i, u := range participants {
+				participantsIDs[i] = int(u.ID)
 			}
-			sort.Ints(partecipantsIDs)
+			sort.Ints(participantsIDs)
 			sort.Ints(userIDs)
-			assert.Equal(t, userIDs, partecipantsIDs)
+			assert.Equal(t, userIDs, participantsIDs)
 		}
-
 	}
 
 	// User 1 is issue1 poster (see fixtures/issue.yml)
 	// User 2 only labeled issue1 (see fixtures/comment.yml)
 	// Users 3 and 5 made actual comments (see fixtures/comment.yml)
-	checkPartecipants(1, []int{3, 5})
-
+	checkParticipants(1, []int{3, 5})
 }
