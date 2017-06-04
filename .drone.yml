@@ -84,7 +84,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   static:
-    image: karalabe/xgo-latest:latest
+    image: webhippie/golang:edge
     pull: true
     environment:
       TAGS: bindata sqlite

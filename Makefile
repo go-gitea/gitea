@@ -137,30 +137,30 @@ release-dirs:
 
 .PHONY: release-windows
 release-windows:
-	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		go get -u github.com/karalabe/xgo; \
+	@hash gox > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/appleboy/gox; \
 	fi
-	xgo -dest $(DIST)/binaries -tags 'netgo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+	CGO_ENABLED=1 gox -os="windows" -tags="netgo $(TAGS)" -ldflags='-linkmode external -extldflags "-static" $(LDFLAGS)' -output="$(DIST)/binaries/$(EXECUTABLE)-$(VERSION)-{{.OS}}-{{.Arch}}"
 ifeq ($(CI),drone)
 	mv /build/* $(DIST)/binaries
 endif
 
 .PHONY: release-linux
 release-linux:
-	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		go get -u github.com/karalabe/xgo; \
+	@hash gox > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/appleboy/gox; \
 	fi
-	xgo -dest $(DIST)/binaries -tags 'netgo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/*' -out gitea-$(VERSION) .
+	CGO_ENABLED=1 gox -os="linux" -tags="netgo $(TAGS)" -ldflags='-linkmode external -extldflags "-static" $(LDFLAGS)' -output="$(DIST)/binaries/$(EXECUTABLE)-$(VERSION)-{{.OS}}-{{.Arch}}"
 ifeq ($(CI),drone)
 	mv /build/* $(DIST)/binaries
 endif
 
 .PHONY: release-darwin
 release-darwin:
-	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		go get -u github.com/karalabe/xgo; \
+	@hash gox > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/appleboy/gox; \
 	fi
-	xgo -dest $(DIST)/binaries -tags 'netgo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
+	CGO_ENABLED=1 gox -os="darwin" -tags="netgo $(TAGS)" -ldflags='$(LDFLAGS)' -output="$(DIST)/binaries/$(EXECUTABLE)-$(VERSION)-{{.OS}}-{{.Arch}}"
 ifeq ($(CI),drone)
 	mv /build/* $(DIST)/binaries
 endif
