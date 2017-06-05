@@ -469,3 +469,16 @@ func ParseCommitsWithSignature(oldCommits *list.List) *list.List {
 	}
 	return newCommits
 }
+
+// ParseCommitsInfoWithSignature checks if signaute of commits info are corresponding to users gpg keys.
+func ParseCommitsInfoWithSignature(oldCommitsInfo [][]interface{}) [][]interface{} {
+	newCommitsInfo := make([][]interface{}, len(oldCommitsInfo))
+	for i, ci := range oldCommitsInfo {
+		var verif *CommitVerification
+		if commit, ok := ci[1].(*git.Commit); ok {
+			verif = ParseCommitWithSignature(commit)
+		}
+		newCommitsInfo[i] = []interface{}{ci[0], ci[1], verif}
+	}
+	return newCommitsInfo
+}

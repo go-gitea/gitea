@@ -41,6 +41,7 @@
 		{{range $item := .Files}}
 			{{$entry := index $item 0}}
 			{{$commit := index $item 1}}
+			{{$verification := index $item 2}}
 			<tr>
 				{{if $entry.IsSubModule}}
 					<td>
@@ -72,6 +73,15 @@
 					</td>
 				{{end}}
 				<td class="message collapsing has-emoji">
+					{{if $commit.Signature}}
+						<span class="isSigned {{if $verification.Verified}} isVerified {{end}}">
+						{{if $verification.Verified}}
+							<i title="{{$verification.Reason}}" class="lock green icon"></i>
+						{{else}}
+							<i title="{{$.i18n.Tr $verification.Reason}}" class="unlock icon isSigned"></i>
+						{{end}}
+						</span>
+					{{end}}
 					<a rel="nofollow" href="{{$.RepoLink}}/commit/{{$commit.ID}}">
 						{{RenderCommitMessage false $commit.Summary $.RepoLink $.Repository.ComposeMetas}}
 					</a>
