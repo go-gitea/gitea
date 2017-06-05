@@ -185,7 +185,7 @@ func runServ(c *cli.Context) error {
 		} else if lfsVerb == "download" {
 			requestedMode = models.AccessModeRead
 		} else {
-			fail("Unknown LFS verb", "Unkown lfs verb %s", lfsVerb)
+			fail("Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
 		}
 	}
 

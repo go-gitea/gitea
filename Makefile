@@ -12,6 +12,7 @@ LDFLAGS := -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' 
 
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations,$(shell go list ./... | grep -v /vendor/))
 SOURCES ?= $(shell find . -name "*.go" -type f)
+GOFILES := $(shell find . -name "*.go" -type f -not -path "./vendor/*")
 
 TAGS ?=
 
@@ -72,6 +73,20 @@ lint:
 		go get -u github.com/golang/lint/golint; \
 	fi
 	for PKG in $(PACKAGES); do golint -set_exit_status $$PKG || exit 1; done;
+
+.PHONY: misspell-check
+misspell-check:
+	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/client9/misspell/cmd/misspell; \
+	fi
+	misspell -error -i unknwon $(GOFILES)
+
+.PHONY: misspell
+misspell:
+	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/client9/misspell/cmd/misspell; \
+	fi
+	misspell -w -i unknwon $(GOFILES)
 
 .PHONY: test
 test:

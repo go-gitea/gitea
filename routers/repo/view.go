@@ -190,7 +190,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 		tp := markup.Type(blob.Name())
 		isSupportedMarkup := tp != ""
-		// FIXME: currently set IsMarkdown for compitable
+		// FIXME: currently set IsMarkdown for compatible
 		ctx.Data["IsMarkdown"] = isSupportedMarkup
 
 		readmeExist := isSupportedMarkup || markup.IsReadmeFile(blob.Name())
