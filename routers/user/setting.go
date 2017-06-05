@@ -489,7 +489,7 @@ func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("settings.generate_token_succees"))
+	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
 	ctx.Flash.Info(t.Sha1)
 
 	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")

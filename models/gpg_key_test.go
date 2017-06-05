@@ -140,7 +140,7 @@ parent fd3577542f7ad1554c7c7c0eb86bb57a1324ad91
 author Antoine GIRARD <sapk@sapk.fr> 1489013107 +0100
 committer Antoine GIRARD <sapk@sapk.fr> 1489013107 +0100
 
-Unkonwn GPG key with good email
+Unknown GPG key with good email
 `
 	//Reading Sign
 	goodSig, err := extractSignature(testGoodSigArmor)

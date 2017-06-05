@@ -146,7 +146,7 @@ func HandleAddGPGKeyError(ctx *context.APIContext, err error) {
 	case models.IsErrGPGKeyAccessDenied(err):
 		ctx.Error(422, "", "You do not have access to this gpg key")
 	case models.IsErrGPGKeyIDAlreadyUsed(err):
-		ctx.Error(422, "", "A key with the same keyid is allready in database")
+		ctx.Error(422, "", "A key with the same keyid is already in database")
 	default:
 		ctx.Error(500, "AddGPGKey", err)
 	}
