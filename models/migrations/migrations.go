@@ -116,6 +116,8 @@ var migrations = []Migration{
 	NewMigration("add units for team", addUnitsToRepoTeam),
 	// v33 -> v34
 	NewMigration("remove columns from action", removeActionColumns),
+	// v34 -> v35
+	NewMigration("give all units to owner teams", giveAllUnitsToOwnerTeams),
 }
 
 // Migrate database to current version
