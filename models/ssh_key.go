@@ -382,7 +382,7 @@ func calcFingerprint(publicKeyContent string) (string, error) {
 	} else if len(stdout) < 2 {
 		return "", errors.New("not enough output for calculating fingerprint: " + stdout)
 	}
-	defer os.Remove(tmpPath)
+	os.Remove(tmpPath)
 	return strings.Split(stdout, " ")[1], nil
 }
 
