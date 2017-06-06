@@ -174,6 +174,11 @@ var (
 			FileMaxSize  int64
 			MaxFiles     int
 		} `ini:"-"`
+
+		// Repository local settings
+		Local struct {
+			LocalCopyPath       string
+		} `ini:"-"`
 	}{
 		AnsiCharset:            "",
 		ForcePrivate:           false,
@@ -205,6 +210,13 @@ var (
 			AllowedTypes: []string{},
 			FileMaxSize:  3,
 			MaxFiles:     5,
+		},
+
+		// Repository local settings
+		Local: struct {
+			LocalCopyPath  string
+		}{
+			LocalCopyPath: "tmp/local-repo",
 		},
 	}
 	RepoRootPath string
@@ -887,6 +899,8 @@ please consider changing to GITEA_CUSTOM`)
 		log.Fatal(4, "Failed to map Repository.Editor settings: %v", err)
 	} else if err = Cfg.Section("repository.upload").MapTo(&Repository.Upload); err != nil {
 		log.Fatal(4, "Failed to map Repository.Upload settings: %v", err)
+	} else if err = Cfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
+		log.Fatal(4, "Failed to map Repository.Local settings: %v", err)
 	}
 
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
