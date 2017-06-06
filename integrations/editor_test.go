@@ -101,7 +101,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 	assert.Contains(t, string(resp.Body), "Can not commit to protected branch &#39;master&#39;.")
 }
 
-func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePath string) {
+func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePath string) *TestResponse {
 
 	newContent := "Hello, World (Edited)\n"
 
@@ -134,6 +134,8 @@ func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePa
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 	assert.EqualValues(t, newContent, string(resp.Body))
+
+	return resp
 }
 
 func TestEditFile(t *testing.T) {
