@@ -177,7 +177,7 @@ var (
 
 		// Repository local settings
 		Local struct {
-			LocalCopyPath       string
+			LocalCopyPath string
 		} `ini:"-"`
 	}{
 		AnsiCharset:            "",
@@ -214,7 +214,7 @@ var (
 
 		// Repository local settings
 		Local: struct {
-			LocalCopyPath  string
+			LocalCopyPath string
 		}{
 			LocalCopyPath: "tmp/local-repo",
 		},

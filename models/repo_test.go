@@ -11,8 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/Unknwon/com"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRepo(t *testing.T) {
