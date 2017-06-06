@@ -5,6 +5,7 @@
 package git
 
 import (
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -215,7 +216,7 @@ func (state *getCommitInfoState) update(path string) error {
 		return nil
 	}
 	var entryPath string
-	if index := strings.IndexRune(relPath, '/'); index >= 0 {
+	if index := strings.IndexRune(relPath, os.PathSeparator); index >= 0 {
 		entryPath = filepath.Join(state.treePath, relPath[:index])
 	} else {
 		entryPath = path
