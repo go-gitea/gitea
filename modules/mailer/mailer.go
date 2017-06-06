@@ -39,8 +39,8 @@ func NewMessageFrom(to []string, from, subject, body string) *Message {
 	msg.SetHeader("Subject", subject)
 	msg.SetDateHeader("Date", time.Now())
 
-	plainBody, _ := html2text.FromString(body)
-	if setting.MailService.SendAsPlainText {
+	plainBody, err := html2text.FromString(body)
+	if err != nil || setting.MailService.SendAsPlainText {
 		if strings.Contains(body[:100], "<html>") {
 			log.Warn("Mail contains HTML but configured to send as plain text.")
 		}
