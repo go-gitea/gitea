@@ -4,7 +4,7 @@ BINDATA := modules/{options,public,templates}/bindata.go
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
 DOCKER_TAG := gitea/gitea:latest
-GOFILES := $(shell find . -name "*.go" -type f -not -path "./vendor/*")
+GOFILES := $(shell find . -name "*.go" -type f -not -path "./vendor/*" -not -path "*/bindata.go")
 GOFMT ?= gofmt -s
 
 GOFLAGS := -i -v
@@ -14,7 +14,6 @@ LDFLAGS := -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' 
 
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations,$(shell go list ./... | grep -v /vendor/))
 SOURCES ?= $(shell find . -name "*.go" -type f)
-GOFILES := $(shell find . -name "*.go" -type f -not -path "./vendor/*")
 
 TAGS ?=
 
