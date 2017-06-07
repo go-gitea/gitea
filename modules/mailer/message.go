@@ -6,6 +6,7 @@
 package mailer
 
 import (
+	"strings"
 	"time"
 
 	"github.com/jaytaylor/html2text"
@@ -23,8 +24,8 @@ type Message struct {
 }
 
 // NewMessageFrom creates new mail message object with custom From header.
-func NewMessageFrom(to []string, from, subject, htmlBody string) *Message {
-	log.Trace("NewMessageFrom (htmlBody):\n%s", htmlBody)
+func NewMessageFrom(to []string, from, subject, body string) *Message {
+	log.Trace("NewMessageFrom (body):\n%s", body)
 
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", from)
@@ -32,15 +33,15 @@ func NewMessageFrom(to []string, from, subject, htmlBody string) *Message {
 	msg.SetHeader("Subject", subject)
 	msg.SetDateHeader("Date", time.Now())
 
-	body, err := html2text.FromString(htmlBody)
-	if err != nil {
-		log.Error(4, "html2text.FromString: %v", err)
-		msg.SetBody("text/html", htmlBody)
-	} else {
-		msg.SetBody("text/plain", body)
-		if setting.MailService.EnableHTMLAlternative {
-			msg.AddAlternative("text/html", htmlBody)
+	plainBody, err := html2text.FromString(body)
+	if err != nil || setting.MailService.SendAsPlainText {
+		if strings.Contains(body[:100], "<html>") {
+			log.Warn("Mail contains HTML but configured to send as plain text.")
 		}
+		msg.SetBody("text/plain", plainBody)
+	} else {
+		msg.SetBody("text/plain", plainBody)
+		msg.AddAlternative("text/html", body)
 	}
 
 	return &Message{
