@@ -487,7 +487,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			})
 			m.Group("/repos", func() {
 				m.Get("", org.GetTeamRepos)
-				m.Combo(":orgname/:reponame").
+				m.Combo("/:orgname/:reponame").
 					Put(org.AddTeamRepository).
 					Delete(org.RemoveTeamRepository)
 			})
