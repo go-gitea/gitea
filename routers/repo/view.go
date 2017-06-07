@@ -11,6 +11,7 @@ import (
 	gotemplate "html/template"
 	"io/ioutil"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -210,10 +211,26 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 
 			var output bytes.Buffer
-			lines := strings.Split(fileContent, "\n")
-			for index, line := range lines {
-				output.WriteString(fmt.Sprintf(`<li class="L%d" rel="L%d">%s</li>`, index+1, index+1, gotemplate.HTMLEscapeString(line)) + "\n")
+			var terminator string
+
+			// test for bare linefeeds in case of mixed terminators
+			lf, _ := regexp.MatchString("[^\r]\n", str)
+
+			if strings.Index(fileContent, "\r\n") != -1 && !lf {
+				terminator = "\r\n"
+			} else {
+				terminator = "\n"
 			}
+			lines := strings.Split(fileContent, terminator)
+
+			for index, line := range lines {
+				line = gotemplate.HTMLEscapeString(line)
+				if index != len(lines) - 1 {
+					line += terminator
+				}
+				output.WriteString(fmt.Sprintf(`<li class="L%d" rel="L%d">%s</li>`, index+1, index+1, line))
+			}
+
 			ctx.Data["FileContent"] = gotemplate.HTML(output.String())
 
 			output.Reset()
