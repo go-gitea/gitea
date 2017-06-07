@@ -55,9 +55,13 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 
 // retrieveFeeds loads feeds for the specified user
 func retrieveFeeds(ctx *context.Context, user *models.User, includePrivate, isProfile bool) {
+	var requestingID int64
+	if ctx.User != nil {
+		requestingID = ctx.User.ID
+	}
 	actions, err := models.GetFeeds(models.GetFeedsOptions{
 		RequestedUser:    user,
-		RequestingUserID: ctx.User.ID,
+		RequestingUserID: requestingID,
 		IncludePrivate:   includePrivate,
 		OnlyPerformedBy:  isProfile,
 	})
