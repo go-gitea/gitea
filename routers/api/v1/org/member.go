@@ -53,7 +53,8 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 
 // ListMembers list an organization's members
 func ListMembers(ctx *context.APIContext) {
-	listMembers(ctx, !ctx.Org.Organization.IsOrgMember(ctx.User.ID))
+	publicOnly := ctx.User == nil || !ctx.Org.Organization.IsOrgMember(ctx.User.ID)
+	listMembers(ctx, publicOnly)
 }
 
 // ListPublicMembers list an organization's public members
@@ -63,20 +64,21 @@ func ListPublicMembers(ctx *context.APIContext) {
 
 // IsMember check if a user is a member of an organization
 func IsMember(ctx *context.APIContext) {
-	org := ctx.Org.Organization
-	requester := ctx.User
 	userToCheck := user.GetUserByParams(ctx)
-	if org.IsOrgMember(requester.ID) {
-		if org.IsOrgMember(userToCheck.ID) {
+	if ctx.Written() {
+		return
+	}
+	if ctx.User != nil && ctx.Org.Organization.IsOrgMember(ctx.User.ID) {
+		if ctx.Org.Organization.IsOrgMember(userToCheck.ID) {
 			ctx.Status(204)
 		} else {
 			ctx.Status(404)
 		}
-	} else if requester.ID == userToCheck.ID {
+	} else if ctx.User != nil && ctx.User.ID == userToCheck.ID {
 		ctx.Status(404)
 	} else {
 		redirectURL := fmt.Sprintf("%sapi/v1/orgs/%s/public_members/%s",
-			setting.AppURL, org.Name, userToCheck.Name)
+			setting.AppURL, ctx.Org.Organization.Name, userToCheck.Name)
 		ctx.Redirect(redirectURL, 302)
 	}
 }
@@ -84,6 +86,9 @@ func IsMember(ctx *context.APIContext) {
 // IsPublicMember check if a user is a public member of an organization
 func IsPublicMember(ctx *context.APIContext) {
 	userToCheck := user.GetUserByParams(ctx)
+	if ctx.Written() {
+		return
+	}
 	if userToCheck.IsPublicMember(ctx.Org.Organization.ID) {
 		ctx.Status(204)
 	} else {
@@ -94,6 +99,9 @@ func IsPublicMember(ctx *context.APIContext) {
 // PublicizeMember make a member's membership public
 func PublicizeMember(ctx *context.APIContext) {
 	userToPublicize := user.GetUserByParams(ctx)
+	if ctx.Written() {
+		return
+	}
 	if userToPublicize.ID != ctx.User.ID {
 		ctx.Error(403, "", "Cannot publicize another member")
 		return
@@ -109,6 +117,9 @@ func PublicizeMember(ctx *context.APIContext) {
 // ConcealMember make a member's membership not public
 func ConcealMember(ctx *context.APIContext) {
 	userToConceal := user.GetUserByParams(ctx)
+	if ctx.Written() {
+		return
+	}
 	if userToConceal.ID != ctx.User.ID {
 		ctx.Error(403, "", "Cannot conceal another member")
 		return
@@ -123,9 +134,11 @@ func ConcealMember(ctx *context.APIContext) {
 
 // DeleteMember remove a member from an organization
 func DeleteMember(ctx *context.APIContext) {
-	org := ctx.Org.Organization
-	memberID := user.GetUserByParams(ctx).ID
-	if err := org.RemoveMember(memberID); err != nil {
+	member := user.GetUserByParams(ctx)
+	if ctx.Written() {
+		return
+	}
+	if err := ctx.Org.Organization.RemoveMember(member.ID); err != nil {
 		ctx.Error(500, "RemoveMember", err)
 	}
 	ctx.Status(204)
