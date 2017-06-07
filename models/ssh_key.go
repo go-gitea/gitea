@@ -377,7 +377,6 @@ func calcFingerprint(publicKeyContent string) (string, error) {
 		return "", err
 	}
 	defer os.Remove(tmpPath)
-	
 	stdout, stderr, err := process.GetManager().Exec("AddPublicKey", "ssh-keygen", "-lf", tmpPath)
 	if err != nil {
 		return "", fmt.Errorf("'ssh-keygen -lf %s' failed with error '%s': %s", tmpPath, err, stderr)
