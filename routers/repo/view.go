@@ -213,11 +213,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			var output bytes.Buffer
 			var terminator string
 
-			// test for bare linefeeds in case of mixed terminators
-			lf, _ := regexp.MatchString("[^\r]\n", str)
-
-			if strings.Index(fileContent, "\r\n") != -1 && !lf {
-				terminator = "\r\n"
+			if strings.Index(fileContent, "\r\n") != -1 {
+				lf, _ := regexp.MatchString("[^\r]\n", fileContent)
+				if lf {
+					terminator = "\n"
+				} else {
+					terminator = "\r\n"
+				}
 			} else {
 				terminator = "\n"
 			}
@@ -230,7 +232,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				}
 				output.WriteString(fmt.Sprintf(`<li class="L%d" rel="L%d">%s</li>`, index+1, index+1, line))
 			}
-
 			ctx.Data["FileContent"] = gotemplate.HTML(output.String())
 
 			output.Reset()
