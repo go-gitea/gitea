@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// Daemon implements an asynchronous mail service daemon.
 type Daemon struct {
 	mailQueue chan *Message
 
@@ -21,6 +22,7 @@ type Daemon struct {
 	closeChan  chan struct{}
 }
 
+// NewDaemon create a new mail daemon.
 func NewDaemon() (*Daemon, error) {
 	queueLen := setting.MailService.QueueLength
 	workers := setting.MailService.Workers

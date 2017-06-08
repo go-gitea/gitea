@@ -31,8 +31,8 @@ func NewContext() {
 	}
 }
 
-// TODO: Call this on application exit.
 // CloseContext closes the mail queue service and releases all routines.
+// TODO: Call this on application exit.
 func CloseContext() {
 	daemon.Close()
 }

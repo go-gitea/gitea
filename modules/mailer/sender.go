@@ -7,6 +7,7 @@ package mailer
 
 import "code.gitea.io/gitea/modules/setting"
 
+// Sender defines an mail sender backend implementation interface.
 type Sender interface {
 	// Send the message synchronous. The connection must be opened if required.
 	Send(msg *Message) (err error)
