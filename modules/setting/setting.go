@@ -1253,6 +1253,7 @@ func newSessionService() {
 type Mailer struct {
 	// Mailer
 	QueueLength     int
+	Workers         int
 	Name            string
 	From            string
 	FromEmail       string
@@ -1286,6 +1287,7 @@ func newMailService() {
 
 	MailService = &Mailer{
 		QueueLength:     sec.Key("SEND_BUFFER_LEN").MustInt(100),
+		Workers:         sec.Key("SEND_WORKERS").MustInt(2),
 		Name:            sec.Key("NAME").MustString(AppName),
 		SendAsPlainText: sec.Key("SEND_AS_PLAIN_TEXT").MustBool(false),
 

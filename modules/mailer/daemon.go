@@ -23,13 +23,13 @@ type Daemon struct {
 
 func NewDaemon() (*Daemon, error) {
 	queueLen := setting.MailService.QueueLength
-	routines := 1 // TODO: Get this from the settings.
+	workers := setting.MailService.Workers
 
 	// Validate input.
 	if queueLen < 0 {
 		return nil, fmt.Errorf("mail daemon: invalid queue length: %v", queueLen)
-	} else if routines < 1 {
-		return nil, fmt.Errorf("mail daemon: invalid routines: %v", routines)
+	} else if workers < 1 {
+		return nil, fmt.Errorf("mail daemon: invalid workers routines: %v", workers)
 	}
 
 	d := &Daemon{
@@ -40,8 +40,8 @@ func NewDaemon() (*Daemon, error) {
 	// Our sender creation function.
 	createSender := createSenderFunc()
 
-	// Create a sender for each mail routine.
-	for i := 0; i < routines; i++ {
+	// Create a sender for each mail worker routine.
+	for i := 0; i < workers; i++ {
 		s, err := createSender()
 		if err != nil {
 			return nil, err
