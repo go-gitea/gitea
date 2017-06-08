@@ -37,7 +37,22 @@ func CloseContext() {
 	daemon.Close()
 }
 
-// SendAsync send mail asynchronous.
+// SendAsync sends the mail asynchronous.
 func SendAsync(msg *Message) {
 	daemon.SendAsync(msg)
+}
+
+// SendSync sends the mail synchronous.
+func SendSync(msg *Message) error {
+	// Our sender creation function.
+	createSender := createSenderFunc()
+
+	// Create a new sender.
+	sender, err := createSender()
+	if err != nil {
+		return err
+	}
+
+	// Send the mail.
+	return sender.Send(msg)
 }

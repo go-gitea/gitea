@@ -5,6 +5,8 @@
 
 package mailer
 
+import "code.gitea.io/gitea/modules/setting"
+
 type Sender interface {
 	// Send the message synchronous. The connection must be opened if required.
 	Send(msg *Message) (err error)
@@ -12,4 +14,14 @@ type Sender interface {
 	// Close the connection if open.
 	// This method can be called multiple times.
 	Close() error
+}
+
+// createSenderFunc returns the function to create the actual sender.
+func createSenderFunc() (f func() (Sender, error)) {
+	if setting.MailService.UseSendmail {
+		f = newSendmailSender
+	} else {
+		f = newSMTPSender
+	}
+	return
 }

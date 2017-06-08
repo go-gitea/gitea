@@ -38,12 +38,7 @@ func NewDaemon() (*Daemon, error) {
 	}
 
 	// Our sender creation function.
-	var createSender func() (Sender, error)
-	if setting.MailService.UseSendmail {
-		createSender = newSendmailSender
-	} else {
-		createSender = newSMTPSender
-	}
+	createSender := createSenderFunc()
 
 	// Create a sender for each mail routine.
 	for i := 0; i < routines; i++ {
