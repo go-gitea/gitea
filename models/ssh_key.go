@@ -557,53 +557,54 @@ func RewriteAllPublicKeys() error {
 	sshOpLocker.Lock()
 	defer sshOpLocker.Unlock()
 
-	fpath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
-	tmpPath := fpath + ".tmp"
-	f, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
+	tmpPath := fPath + ".tmp"
+	t, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		f.Close()
+		t.Close()
 		os.Remove(tmpPath)
 	}()
 
+	if com.IsExist(fPath) && !setting.SSH.DisableAuthorizedKeysBackup {
+		bakPath := fPath + fmt.Sprintf("_%d.gitea_bak", time.Now().Unix())
+		if err = com.Copy(fPath, bakPath); err != nil {
+			return err
+		}
+	}
+
 	err = x.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
-		_, err = f.WriteString((bean.(*PublicKey)).AuthorizedString())
+		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
 	})
 	if err != nil {
 		return err
 	}
 
-	if com.IsExist(fpath) && !setting.SSH.DisableAuthorizedKeysBackup {
-		bakPath := fpath + fmt.Sprintf("_%d.gitea_bak", time.Now().Unix())
-		if err = com.Copy(fpath, bakPath); err != nil {
-			return err
-		}
-
-		p, err := os.Open(bakPath)
+	if com.IsExist(fPath) {
+		f, err := os.Open(fPath)
 		if err != nil {
 			return err
 		}
-		defer p.Close()
-
-		scanner := bufio.NewScanner(p)
+		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
 			line := scanner.Text()
 			if strings.HasPrefix(line, tplCommentPrefix) {
 				scanner.Scan()
 				continue
 			}
-			_, err = f.WriteString(line + "\n")
+			_, err = t.WriteString(line + "\n")
 			if err != nil {
 				return err
 			}
 		}
+		defer f.Close()
 	}
 
-	f.Close()
-	if err = os.Rename(tmpPath, fpath); err != nil {
+	t.Close()
+	if err = os.Rename(tmpPath, fPath); err != nil {
 		return err
 	}
 
