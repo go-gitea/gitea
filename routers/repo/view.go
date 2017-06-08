@@ -227,7 +227,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 			for index, line := range lines {
 				line = gotemplate.HTMLEscapeString(line)
-				if index != len(lines) - 1 {
+				if index != len(lines)-1 {
 					line += terminator
 				}
 				output.WriteString(fmt.Sprintf(`<li class="L%d" rel="L%d">%s</li>`, index+1, index+1, line))
