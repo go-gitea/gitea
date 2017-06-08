@@ -120,6 +120,15 @@ func Issues(ctx *context.Context) {
 		forceEmpty  bool
 	)
 
+	if ctx.IsSigned {
+		switch viewType {
+		case "created_by":
+			posterID = ctx.User.ID
+		case "mentioned":
+			mentionedID = ctx.User.ID
+		}
+	}
+
 	repo := ctx.Repo.Repository
 	selectLabels := ctx.Query("labels")
 	milestoneID := ctx.QueryInt64("milestone")
@@ -150,11 +159,12 @@ func Issues(ctx *context.Context) {
 			MilestoneID: milestoneID,
 			AssigneeID:  assigneeID,
 			MentionedID: mentionedID,
+			PosterID:    posterID,
 			IsPull:      isPullList,
 			IssueIDs:    issueIDs,
 		})
 		if err != nil {
-			ctx.Error(500, "GetSearchIssueStats")
+			ctx.Handle(500, "GetIssueStats", err)
 			return
 		}
 	}

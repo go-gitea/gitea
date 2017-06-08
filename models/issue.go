@@ -1223,7 +1223,6 @@ func parseCountResult(results []map[string][]byte) int64 {
 
 // IssueStatsOptions contains parameters accepted by GetIssueStats.
 type IssueStatsOptions struct {
-	FilterMode  int
 	RepoID      int64
 	Labels      string
 	MilestoneID int64
@@ -1241,7 +1240,7 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 	countSession := func(opts *IssueStatsOptions) *xorm.Session {
 		sess := x.
 			Where("issue.repo_id = ?", opts.RepoID).
-			And("is_pull = ?", opts.IsPull)
+			And("issue.is_pull = ?", opts.IsPull)
 
 		if len(opts.IssueIDs) > 0 {
 			sess.In("issue.id", opts.IssueIDs)
@@ -1252,8 +1251,8 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 			if err != nil {
 				log.Warn("Malformed Labels argument: %s", opts.Labels)
 			} else if len(labelIDs) > 0 {
-				sess.Join("INNER", "issue_label", "issue.id = issue_id").
-					In("label_id", labelIDs)
+				sess.Join("INNER", "issue_label", "issue.id = issue_label.issue_id").
+					In("issue_label.label_id", labelIDs)
 			}
 		}
 
@@ -1262,11 +1261,11 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 		}
 
 		if opts.AssigneeID > 0 {
-			sess.And("assignee_id = ?", opts.AssigneeID)
+			sess.And("issue.assignee_id = ?", opts.AssigneeID)
 		}
 
 		if opts.PosterID > 0 {
-			sess.And("poster_id = ?", opts.PosterID)
+			sess.And("issue.poster_id = ?", opts.PosterID)
 		}
 
 		if opts.MentionedID > 0 {
@@ -1279,40 +1278,15 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 	}
 
 	var err error
-	switch opts.FilterMode {
-	case FilterModeAll, FilterModeAssign:
-		stats.OpenCount, err = countSession(opts).
-			And("is_closed = ?", false).
-			Count(new(Issue))
-
-		stats.ClosedCount, err = countSession(opts).
-			And("is_closed = ?", true).
-			Count(new(Issue))
-	case FilterModeCreate:
-		stats.OpenCount, err = countSession(opts).
-			And("poster_id = ?", opts.PosterID).
-			And("is_closed = ?", false).
-			Count(new(Issue))
-
-		stats.ClosedCount, err = countSession(opts).
-			And("poster_id = ?", opts.PosterID).
-			And("is_closed = ?", true).
-			Count(new(Issue))
-	case FilterModeMention:
-		stats.OpenCount, err = countSession(opts).
-			Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
-			And("issue_user.uid = ?", opts.PosterID).
-			And("issue_user.is_mentioned = ?", true).
-			And("issue.is_closed = ?", false).
-			Count(new(Issue))
-
-		stats.ClosedCount, err = countSession(opts).
-			Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
-			And("issue_user.uid = ?", opts.PosterID).
-			And("issue_user.is_mentioned = ?", true).
-			And("issue.is_closed = ?", true).
-			Count(new(Issue))
+	stats.OpenCount, err = countSession(opts).
+		And("issue.is_closed = ?", false).
+		Count(new(Issue))
+	if err != nil {
+		return stats, err
 	}
+	stats.ClosedCount, err = countSession(opts).
+		And("issue.is_closed = ?", true).
+		Count(new(Issue))
 	return stats, err
 }
 
