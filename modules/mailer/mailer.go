@@ -52,6 +52,7 @@ func SendSync(msg *Message) error {
 	if err != nil {
 		return err
 	}
+	defer sender.Close()
 
 	// Send the mail.
 	return sender.Send(msg)
