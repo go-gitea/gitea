@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"net/http"
 	"net/url"
+	"path"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -103,4 +104,48 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 	// Check body for error message
 	assert.Contains(t, string(resp.Body), "Can not commit to protected branch &#39;master&#39;.")
+}
+
+func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePath string) {
+
+	newContent := "Hello, World (Edited)\n"
+
+	// Get to the 'edit this file' page
+	req, err := http.NewRequest("GET", path.Join(user, repo, "_edit", branch, filePath), nil)
+	assert.NoError(t, err)
+	resp := session.MakeRequest(t, req)
+	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+
+	htmlDoc, err := NewHtmlParser(resp.Body)
+	assert.NoError(t, err)
+	lastCommit := htmlDoc.GetInputValueByName("last_commit")
+	assert.NotEmpty(t, lastCommit)
+
+	// Submit the edits
+	req, err = http.NewRequest("POST", path.Join(user, repo, "_edit", branch, filePath),
+		bytes.NewBufferString(url.Values{
+			"_csrf":         []string{htmlDoc.GetInputValueByName("_csrf")},
+			"last_commit":   []string{lastCommit},
+			"tree_path":     []string{filePath},
+			"content":       []string{newContent},
+			"commit_choice": []string{"direct"},
+		}.Encode()),
+	)
+	assert.NoError(t, err)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	resp = session.MakeRequest(t, req)
+	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
+
+	// Verify the change
+	req, err = http.NewRequest("GET", path.Join(user, repo, "raw", branch, filePath), nil)
+	assert.NoError(t, err)
+	resp = session.MakeRequest(t, req)
+	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	assert.EqualValues(t, newContent, string(resp.Body))
+}
+
+func TestEditFile(t *testing.T) {
+	prepareTestEnv(t)
+	session := loginUser(t, "user2", "password")
+	testEditFile(t, session, "user2", "repo1", "master", "README.md")
 }
