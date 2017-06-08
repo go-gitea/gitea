@@ -69,6 +69,9 @@ func (issues IssueList) loadPosters(e Engine) error {
 	}
 
 	for _, issue := range issues {
+		if issue.PosterID <= 0 {
+			continue
+		}
 		var ok bool
 		if issue.Poster, ok = posterMaps[issue.PosterID]; !ok {
 			issue.Poster = NewGhostUser()
@@ -176,6 +179,9 @@ func (issues IssueList) loadAssignees(e Engine) error {
 	}
 
 	for _, issue := range issues {
+		if issue.AssigneeID <= 0 {
+			continue
+		}
 		var ok bool
 		if issue.Assignee, ok = assigneeMaps[issue.AssigneeID]; !ok {
 			issue.Assignee = NewGhostUser()
