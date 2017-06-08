@@ -8,7 +8,9 @@ package mailer
 import (
 	"fmt"
 	"sync"
+	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -35,19 +37,22 @@ func NewDaemon() (*Daemon, error) {
 		closeChan: make(chan struct{}),
 	}
 
-	// Start the send mail routines.
+	// Our sender creation function.
+	var createSender func() (Sender, error)
+	if setting.MailService.UseSendmail {
+		createSender = newSendmailSender
+	} else {
+		createSender = newSMTPSender
+	}
+
+	// Create a sender for each mail routine.
 	for i := 0; i < routines; i++ {
-		if setting.MailService.UseSendmail {
-			_, err := newSendmailSender(d.mailQueue, d.closeChan)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			_, err := newSMTPSender(d.mailQueue, d.closeChan)
-			if err != nil {
-				return nil, err
-			}
+		s, err := createSender()
+		if err != nil {
+			return nil, err
 		}
+
+		go d.processMailQueue(s)
 	}
 
 	return d, nil
@@ -79,18 +84,45 @@ func (d *Daemon) Close() {
 	close(d.closeChan)
 }
 
-// SendSync send mail synchronous.
-func (d *Daemon) SendSync(msg *Message) {
-	// Don't block if closed.
-	select {
-	case <-d.closeChan:
-	case d.mailQueue <- msg:
-	}
-}
-
 // SendAsync send mail asynchronous.
 func (d *Daemon) SendAsync(msg *Message) {
 	// TODO: don't start new goroutines. Drop mails if the channel is flooded.
 	// TODO: Increase the channel size.
-	go d.SendSync(msg)
+	go func() {
+		// Don't block if closed.
+		select {
+		case <-d.closeChan:
+		case d.mailQueue <- msg:
+		}
+	}()
+}
+
+func (d *Daemon) processMailQueue(s Sender) {
+	var err error
+
+	for {
+		select {
+		case <-d.closeChan:
+			if err = s.Close(); err != nil {
+				log.Error(3, "Failed to close mail sender connection: %v", err)
+			}
+			return
+
+		case msg := <-d.mailQueue:
+			log.Trace("New e-mails sending request %s: %s", msg.GetHeader("To"), msg.Info)
+			if err = s.Send(msg); err != nil {
+				log.Error(3, "Failed to send emails %s: %s - %v", msg.GetHeader("To"), msg.Info, err)
+			} else {
+				log.Trace("E-mails sent %s: %s", msg.GetHeader("To"), msg.Info)
+			}
+
+		// TODO: Reuse the timer.
+		// Close the mail server connection if no email was sent in
+		// the last 30 seconds.
+		case <-time.After(30 * time.Second):
+			if err = s.Close(); err != nil {
+				log.Error(3, "Failed to close mail sender connection: %v", err)
+			}
+		}
+	}
 }

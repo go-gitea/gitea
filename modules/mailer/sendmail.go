@@ -9,48 +9,31 @@ import (
 	"io"
 	"os/exec"
 
-	gomail "gopkg.in/gomail.v2"
-
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
+	gomail "gopkg.in/gomail.v2"
 )
 
 // Sender sendmail mail sender
 type sendmailSender struct {
-	queue     chan *Message
-	closeChan chan struct{}
+	sender gomail.Sender
 }
 
-func newSendmailSender(queue chan *Message, closeChan chan struct{}) (s *sendmailSender, err error) {
-	s = &sendmailSender{
-		queue:     queue,
-		closeChan: closeChan,
-	}
+func newSendmailSender() (Sender, error) {
+	s := &sendmailSender{}
+	s.sender = gomail.SendFunc(s.send)
 
-	// Start the sender routine.
-	go s.processMailQueue()
-
-	return
+	return s, nil
 }
 
-func (s *sendmailSender) processMailQueue() {
-	var err error
-	sender := gomail.SendFunc(s.send)
+func (s *sendmailSender) Close() error {
+	return nil
+}
 
-	for {
-		select {
-		case <-s.closeChan:
-			return
-
-		case msg := <-s.queue:
-			log.Trace("New e-mails sending request %s: %s", msg.GetHeader("To"), msg.Info)
-			if err = gomail.Send(sender, msg.Message); err != nil {
-				log.Error(3, "Failed to send emails %s: %s - %v", msg.GetHeader("To"), msg.Info, err)
-			} else {
-				log.Trace("E-mails sent %s: %s", msg.GetHeader("To"), msg.Info)
-			}
-		}
-	}
+// Send the message synchronous.
+func (s *sendmailSender) Send(msg *Message) error {
+	return gomail.Send(s.sender, msg.Message)
 }
 
 // TODO: Cleanup the error handing and use defers.

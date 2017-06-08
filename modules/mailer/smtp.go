@@ -7,25 +7,26 @@ package mailer
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net"
 	"os"
 	"strconv"
-	"time"
+	"sync"
+
+	"code.gitea.io/gitea/modules/setting"
 
 	"gopkg.in/gomail.v2"
-
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 )
 
-// Sender SMTP mail sender
+// Sender implementation for SMTP mails.
 type smtpSender struct {
-	queue     chan *Message
-	closeChan chan struct{}
-	dailer    *gomail.Dialer
+	mutex  sync.Mutex
+	dailer *gomail.Dialer
+	sender gomail.SendCloser
+	isOpen bool
 }
 
-func newSMTPSender(queue chan *Message, closeChan chan struct{}) (*smtpSender, error) {
+func newSMTPSender() (Sender, error) {
 	opts := setting.MailService
 
 	// Prepare the host and port.
@@ -69,62 +70,50 @@ func newSMTPSender(queue chan *Message, closeChan chan struct{}) (*smtpSender, e
 	}
 
 	s := &smtpSender{
-		queue:     queue,
-		closeChan: closeChan,
-		dailer:    d,
+		dailer: d,
 	}
-
-	// Start the sender routine.
-	go s.processMailQueue()
 
 	return s, err
 }
 
-func (s *smtpSender) processMailQueue() {
-	var sender gomail.SendCloser
-	var err error
-	open := false
+// Send the message synchronous. The connection is opened if required.
+// This method is thread-safe.
+func (s *smtpSender) Send(msg *Message) (err error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
-Loop:
-	for {
-		select {
-		case <-s.closeChan:
-			if open {
-				if err = sender.Close(); err != nil {
-					log.Error(3, "Failed to close mail sender connection: %v", err)
-				}
-			}
-			return
+	// Open the smtp connection if required.
+	if !s.isOpen {
+		s.sender, err = s.dailer.Dial()
+		if err != nil {
+			return fmt.Errorf("failed to open smtp connection: %v", err)
+		}
+		s.isOpen = true
+	}
 
-		case msg := <-s.queue:
-			log.Trace("New e-mails sending request %s: %s", msg.GetHeader("To"), msg.Info)
+	// Send the mail.
+	err = gomail.Send(s.sender, msg.Message)
+	if err != nil {
+		return err
+	}
 
-			// Open the smtp connection if required.
-			if !open {
-				if sender, err = s.dailer.Dial(); err != nil {
-					log.Error(3, "Failed to send emails %s: %s - %v", msg.GetHeader("To"), msg.Info, err)
-					continue Loop
-				}
-				open = true
-			}
+	return nil
+}
 
-			if err = gomail.Send(sender, msg.Message); err != nil {
-				log.Error(3, "Failed to send emails %s: %s - %v", msg.GetHeader("To"), msg.Info, err)
-				continue Loop
-			}
+// Close the connection if open.
+// This method is thread-safe.
+func (s *smtpSender) Close() error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
-			log.Trace("E-mails sent %s: %s", msg.GetHeader("To"), msg.Info)
+	if s.isOpen {
+		// Always set the flag to false. Even if the sender fails to close.
+		s.isOpen = false
 
-		// TODO: Reuse the timer.
-		// Close the connection to the SMTP server if no email was sent in
-		// the last 30 seconds.
-		case <-time.After(30 * time.Second):
-			if open {
-				if err = sender.Close(); err != nil {
-					log.Error(3, "Failed to close mail sender connection: %v", err)
-				}
-				open = false
-			}
+		if err := s.sender.Close(); err != nil {
+			return err
 		}
 	}
+
+	return nil
 }
