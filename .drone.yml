@@ -93,7 +93,7 @@ pipeline:
     commands:
       - make release
     when:
-      event: [ push, tag, pull_request ]
+      event: [ push, tag ]
 
   coverage:
     image: plugins/coverage
