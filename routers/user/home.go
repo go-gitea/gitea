@@ -67,6 +67,9 @@ func retrieveFeeds(ctx *context.Context, user *models.User, includePrivate, isPr
 	}
 
 	userCache := map[int64]*models.User{user.ID: user}
+	if ctx.User != nil {
+		userCache[ctx.User.ID] = ctx.User
+	}
 	repoCache := map[int64]*models.Repository{}
 	for _, act := range actions {
 		// Cache results to reduce queries.
