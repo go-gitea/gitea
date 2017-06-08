@@ -214,7 +214,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			var terminator string
 
 			if strings.Index(fileContent, "\r\n") != -1 {
-				lf, _ := regexp.MatchString("[^\r]\n", fileContent)
+				lf, _ := regexp.MatchString(`[^\r]\n`, fileContent)
 				if lf {
 					terminator = "\n"
 				} else {
@@ -223,7 +223,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			} else {
 				terminator = "\n"
 			}
-			lines := strings.Split(fileContent, terminator)
+			lines := regexp.MustCompile(`\r?\n`).Split(fileContent, -1)
 
 			for index, line := range lines {
 				line = gotemplate.HTMLEscapeString(line)
