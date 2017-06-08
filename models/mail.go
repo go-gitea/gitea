@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"gopkg.in/gomail.v2"
 	"gopkg.in/macaron.v1"
 )
 
@@ -40,7 +39,13 @@ func InitMailRender(tmpls *template.Template) {
 
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {
-	return gomail.Send(mailer.Sender, mailer.NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").Message)
+	msg := mailer.NewMessage(
+		[]string{email},
+		"Gitea Test Email!",
+		"Gitea Test Email!",
+	)
+
+	return mailer.SendSync(msg)
 }
 
 // SendUserMail sends a mail to the user
