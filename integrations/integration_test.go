@@ -14,6 +14,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"testing"
 
@@ -63,9 +64,11 @@ func initIntegrationTest() {
 		fmt.Println("Environment variable $GITEA_CONF not set")
 		os.Exit(1)
 	}
-	if os.Getenv("GITEA_ROOT") == "" {
+	if giteaRoot := os.Getenv("GITEA_ROOT"); giteaRoot == "" {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)
+	} else {
+		setting.AppPath = path.Join(giteaRoot, "gitea")
 	}
 
 	setting.NewContext()
