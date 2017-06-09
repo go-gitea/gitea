@@ -47,6 +47,27 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 	//TODO verify value of key
 }
 
+func TestCheckArmoredbrainpoolP256r1GPGKeyString(t *testing.T) {
+	testGPGArmor := `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: GnuPG v2
+
+mFMEV6HwkhMJKyQDAwIIAQEHAgMEUsvJO/j5dFMRRj67qeZC9fSKBsGZdOHRj2+6
+8wssmbUuLTfT/ZjIbExETyY8hFnURRGpD2Ifyz0cKjXcbXfJtrQTRm9vYmFyIDxm
+b29AYmFyLmRlPoh/BBMTCAAnBQJZOsDIAhsDBQkJZgGABQsJCAcCBhUICQoLAgQW
+AgMBAh4BAheAAAoJEGuJTd/DBMzmNVQA/2beUrv1yU4gyvCiPDEm3pK42cSfaL5D
+muCtPCUg9hlWAP4yq6M78NW8STfsXgn6oeziMYiHSTmV14nOamLuwwDWM7hXBFeh
+8JISCSskAwMCCAEBBwIDBG3A+XfINAZp1CTse2mRNgeUE5DbUtEpO8ALXKA1UQsQ
+DLKq27b7zTgawgXIGUGP6mWsJ5oH7MNAJ/uKTsYmX40DAQgHiGcEGBMIAA8FAleh
+8JICGwwFCQlmAYAACgkQa4lN38MEzOZwKAD/QKyerAgcvzzLaqvtap3XvpYcw9tc
+OyjLLnFQiVmq7kEA/0z0CQe3ZQiQIq5zrs7Nh1XRkFAo8GlU/SGC9XFFi722
+=ZiSe
+-----END PGP PUBLIC KEY BLOCK-----`
+
+	key, err := checkArmoredGPGKeyString(testGPGArmor)
+	assert.Nil(t, err, "Could not parse a valid GPG armored key", key)
+	//TODO verify value of key
+}
+
 func TestExtractSignature(t *testing.T) {
 	testGPGArmor := `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
