@@ -20,8 +20,7 @@ func TestCreateFile(t *testing.T) {
 	session := loginUser(t, "user2", "password")
 
 	// Request editor page
-	req, err := http.NewRequest("GET", "/user2/repo1/_new/master/", nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", "/user2/repo1/_new/master/")
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
@@ -31,7 +30,7 @@ func TestCreateFile(t *testing.T) {
 	assert.NotEmpty(t, lastCommit)
 
 	// Save new file to master branch
-	req, err = http.NewRequest("POST", "/user2/repo1/_new/master/",
+	req = NewRequestBody(t, "POST", "/user2/repo1/_new/master/",
 		bytes.NewBufferString(url.Values{
 			"_csrf":         []string{doc.GetInputValueByName("_csrf")},
 			"last_commit":   []string{lastCommit},
@@ -40,7 +39,6 @@ func TestCreateFile(t *testing.T) {
 			"commit_choice": []string{"direct"},
 		}.Encode()),
 	)
-	assert.NoError(t, err)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
@@ -52,8 +50,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 	session := loginUser(t, "user2", "password")
 
 	// Open repository branch settings
-	req, err := http.NewRequest("GET", "/user2/repo1/settings/branches", nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", "/user2/repo1/settings/branches")
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
@@ -61,7 +58,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Change master branch to protected
-	req, err = http.NewRequest("POST", "/user2/repo1/settings/branches?action=protected_branch",
+	req = NewRequestBody(t, "POST", "/user2/repo1/settings/branches?action=protected_branch",
 		bytes.NewBufferString(url.Values{
 			"_csrf":      []string{doc.GetInputValueByName("_csrf")},
 			"branchName": []string{"master"},
@@ -78,8 +75,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 	assert.EqualValues(t, flashCookie.Value, "success%3Dmaster%2BLocked%2Bsuccessfully")
 
 	// Request editor page
-	req, err = http.NewRequest("GET", "/user2/repo1/_new/master/", nil)
-	assert.NoError(t, err)
+	req = NewRequest(t, "GET", "/user2/repo1/_new/master/")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
@@ -89,7 +85,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 	assert.NotEmpty(t, lastCommit)
 
 	// Save new file to master branch
-	req, err = http.NewRequest("POST", "/user2/repo1/_new/master/",
+	req = NewRequestBody(t, "POST", "/user2/repo1/_new/master/",
 		bytes.NewBufferString(url.Values{
 			"_csrf":         []string{doc.GetInputValueByName("_csrf")},
 			"last_commit":   []string{lastCommit},
@@ -98,7 +94,6 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 			"commit_choice": []string{"direct"},
 		}.Encode()),
 	)
-	assert.NoError(t, err)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
@@ -111,8 +106,7 @@ func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePa
 	newContent := "Hello, World (Edited)\n"
 
 	// Get to the 'edit this file' page
-	req, err := http.NewRequest("GET", path.Join(user, repo, "_edit", branch, filePath), nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", path.Join(user, repo, "_edit", branch, filePath))
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
@@ -122,7 +116,7 @@ func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePa
 	assert.NotEmpty(t, lastCommit)
 
 	// Submit the edits
-	req, err = http.NewRequest("POST", path.Join(user, repo, "_edit", branch, filePath),
+	req = NewRequestBody(t, "POST", path.Join(user, repo, "_edit", branch, filePath),
 		bytes.NewBufferString(url.Values{
 			"_csrf":         []string{htmlDoc.GetInputValueByName("_csrf")},
 			"last_commit":   []string{lastCommit},
@@ -131,14 +125,12 @@ func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePa
 			"commit_choice": []string{"direct"},
 		}.Encode()),
 	)
-	assert.NoError(t, err)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
 
 	// Verify the change
-	req, err = http.NewRequest("GET", path.Join(user, repo, "raw", branch, filePath), nil)
-	assert.NoError(t, err)
+	req = NewRequest(t, "GET", path.Join(user, repo, "raw", branch, filePath))
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 	assert.EqualValues(t, newContent, string(resp.Body))

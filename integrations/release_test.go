@@ -15,8 +15,7 @@ func TestViewReleases(t *testing.T) {
 	prepareTestEnv(t)
 
 	session := loginUser(t, "user2", "password")
-	req, err := http.NewRequest("GET", "/user2/repo1/releases", nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", "/user2/repo1/releases")
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }

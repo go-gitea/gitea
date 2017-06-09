@@ -20,7 +20,7 @@ func TestSignup(t *testing.T) {
 
 	setting.Service.EnableCaptcha = false
 
-	req, err := http.NewRequest("POST", "/user/sign_up",
+	req := NewRequestBody(t, "POST", "/user/sign_up",
 		bytes.NewBufferString(url.Values{
 			"user_name": []string{"exampleUser"},
 			"email":     []string{"exampleUser@example.com"},
@@ -28,14 +28,12 @@ func TestSignup(t *testing.T) {
 			"retype":    []string{"examplePassword"},
 		}.Encode()),
 	)
-	assert.NoError(t, err)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp := MakeRequest(req)
 	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
 
 	// should be able to view new user's page
-	req, err = http.NewRequest("GET", "/exampleUser", nil)
-	assert.NoError(t, err)
+	req = NewRequest(t, "GET", "/exampleUser")
 	resp = MakeRequest(req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }

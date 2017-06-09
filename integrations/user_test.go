@@ -14,8 +14,7 @@ import (
 func TestViewUser(t *testing.T) {
 	prepareTestEnv(t)
 
-	req, err := http.NewRequest("GET", "/user2", nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", "/user2")
 	resp := MakeRequest(req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }

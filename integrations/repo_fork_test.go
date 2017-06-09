@@ -15,14 +15,12 @@ import (
 
 func testRepoFork(t *testing.T, session *TestSession) {
 	// Step0: check the existence of the to-fork repo
-	req, err := http.NewRequest("GET", "/user1/repo1", nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", "/user1/repo1")
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusNotFound, resp.HeaderCode)
 
 	// Step1: go to the main page of repo
-	req, err = http.NewRequest("GET", "/user2/repo1", nil)
-	assert.NoError(t, err)
+	req = NewRequest(t, "GET", "/user2/repo1")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
@@ -31,8 +29,7 @@ func testRepoFork(t *testing.T, session *TestSession) {
 	assert.NoError(t, err)
 	link, exists := htmlDoc.doc.Find("a.ui.button[href^=\"/repo/fork/\"]").Attr("href")
 	assert.True(t, exists, "The template has changed")
-	req, err = http.NewRequest("GET", link, nil)
-	assert.NoError(t, err)
+	req = NewRequest(t, "GET", link)
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
@@ -41,21 +38,19 @@ func testRepoFork(t *testing.T, session *TestSession) {
 	assert.NoError(t, err)
 	link, exists = htmlDoc.doc.Find("form.ui.form[action^=\"/repo/fork/\"]").Attr("action")
 	assert.True(t, exists, "The template has changed")
-	req, err = http.NewRequest("POST", link,
+	req = NewRequestBody(t, "POST", link,
 		bytes.NewBufferString(url.Values{
 			"_csrf":     []string{htmlDoc.GetInputValueByName("_csrf")},
 			"uid":       []string{"1"},
 			"repo_name": []string{"repo1"},
 		}.Encode()),
 	)
-	assert.NoError(t, err)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
 
 	// Step4: check the existence of the forked repo
-	req, err = http.NewRequest("GET", "/user1/repo1", nil)
-	assert.NoError(t, err)
+	req = NewRequest(t, "GET", "/user1/repo1")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }
