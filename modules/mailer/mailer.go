@@ -43,9 +43,6 @@ func SendAsync(msg *Message) {
 
 // SendSync sends the mail synchronous.
 func SendSync(msg *Message) error {
-	// Our sender creation function.
-	createSender := createSenderFunc()
-
 	// Create a new sender.
 	sender, err := createSender()
 	if err != nil {

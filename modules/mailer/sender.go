@@ -16,12 +16,11 @@ type Sender interface {
 	Close() error
 }
 
-// createSenderFunc returns the function to create the actual sender.
-func createSenderFunc() (f func() (Sender, error)) {
+// createSender creates the actual sender value, depending on the choosen sender backend.
+func createSender() (Sender, error) {
 	if setting.MailService.UseSendmail {
-		f = newSendmailSender
+		return newSendmailSender()
 	} else {
-		f = newSMTPSender
+		return newSMTPSender()
 	}
-	return
 }

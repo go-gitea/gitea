@@ -38,9 +38,6 @@ func NewDaemon() (*Daemon, error) {
 		closeChan: make(chan struct{}),
 	}
 
-	// Our sender creation function.
-	createSender := createSenderFunc()
-
 	// Create a sender for each mail worker routine.
 	for i := 0; i < workers; i++ {
 		s, err := createSender()
