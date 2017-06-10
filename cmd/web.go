@@ -51,6 +51,26 @@ and it takes care of all the other things for you`,
 	},
 }
 
+func runHTTPRedirector() {
+	source := setting.HTTPAddr + ":80"
+	dest := strings.TrimSuffix(setting.AppURL, "/")
+	log.Info("Redirecting: %s to %s", source, dest)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		target := dest + r.URL.Path
+		if len(r.URL.RawQuery) > 0 {
+			target += "?" + r.URL.RawQuery
+		}
+		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
+	})
+
+	var err = runHTTP(source, context2.ClearHandler(handler))
+
+	if err != nil {
+		log.Fatal(4, "Failed to start port 80 redirector: %v", err)
+	}
+}
+
 func runWeb(ctx *cli.Context) error {
 	if ctx.IsSet("config") {
 		setting.CustomConf = ctx.String("config")
@@ -124,6 +144,9 @@ func runWeb(ctx *cli.Context) error {
 	case setting.HTTP:
 		err = runHTTP(listenAddr, context2.ClearHandler(m))
 	case setting.HTTPS:
+		if setting.RedirectPort80 {
+			go runHTTPRedirector()
+		}
 		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
 	case setting.FCGI:
 		listener, err := net.Listen("tcp", listenAddr)
