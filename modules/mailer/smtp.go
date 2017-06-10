@@ -91,12 +91,7 @@ func (s *smtpSender) Send(msg *Message) (err error) {
 	}
 
 	// Send the mail.
-	err = gomail.Send(s.sender, msg.Message)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return gomail.Send(s.sender, msg.Message)
 }
 
 // Close the connection if open.
