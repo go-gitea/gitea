@@ -63,7 +63,9 @@ var (
 	}
 
 	// Extensions that are not same as highlight classes.
-	highlightMapping = map[string]string{}
+	highlightMapping = map[string]string{
+		".txt": "nohighlight",
+	}
 )
 
 // NewContext loads highlight map
