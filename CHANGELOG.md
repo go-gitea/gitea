@@ -6,6 +6,19 @@
   * Password reset URL changed from `/user/forget_password` to `/user/forgot_password`
   * SSH keys management URL changed from `/user/settings/ssh` to `/user/settings/keys`
 
+## [1.1.1](https://github.com/go-gitea/gitea/releases/tag/v1.1.1) - 2017-05-04
+
+* BUGFIXES
+  * Markdown Sanitation Fix [#1646](https://github.com/go-gitea/gitea/pull/1646)
+  * Fix broken hooks [#1376](https://github.com/go-gitea/gitea/pull/1376)
+  * Fix migration issue [#1375](https://github.com/go-gitea/gitea/pull/1375)
+  * Fix Wiki Issues [#1338](https://github.com/go-gitea/gitea/pull/1338)
+  * Forgotten migration for wiki githooks [#1237](https://github.com/go-gitea/gitea/pull/1237)
+  * Commit messages can contain pipes [#1218](https://github.com/go-gitea/gitea/pull/1218)
+  * Verify external tracker URLs [#1236](https://github.com/go-gitea/gitea/pull/1236)
+  * Allow upgrade after downgrade [#1197](https://github.com/go-gitea/gitea/pull/1197)
+  * 500 on delete repo with issue [#1195](https://github.com/go-gitea/gitea/pull/1195)
+  * INI compat with CrowdIn [#1192](https://github.com/go-gitea/gitea/pull/1192)
 
 ## [1.1.0](https://github.com/go-gitea/gitea/releases/tag/v1.1.0) - 2017-03-09
 
