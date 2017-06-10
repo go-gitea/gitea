@@ -25,8 +25,7 @@ func TestAPITeam(t *testing.T) {
 
 	session := loginUser(t, user.Name, "password")
 	url := fmt.Sprintf("/api/v1/teams/%d", teamUser.TeamID)
-	req, err := http.NewRequest("GET", url, nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", url)
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 

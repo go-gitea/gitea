@@ -19,8 +19,7 @@ func TestRepoCommits(t *testing.T) {
 	session := loginUser(t, "user2", "password")
 
 	// Request repository commits page
-	req, err := http.NewRequest("GET", "/user2/repo1/commits/master", nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", "/user2/repo1/commits/master")
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
@@ -37,8 +36,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	session := loginUser(t, "user2", "password")
 
 	// Request repository commits page
-	req, err := http.NewRequest("GET", "/user2/repo1/commits/master", nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", "/user2/repo1/commits/master")
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
@@ -50,16 +48,14 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	assert.NotEmpty(t, commitURL)
 
 	// Call API to add status for commit
-	req, err = http.NewRequest("POST", "/api/v1/repos/user2/repo1/statuses/"+path.Base(commitURL),
+	req = NewRequestBody(t, "POST", "/api/v1/repos/user2/repo1/statuses/"+path.Base(commitURL),
 		bytes.NewBufferString("{\"state\":\""+state+"\", \"target_url\": \"http://test.ci/\", \"description\": \"\", \"context\": \"testci\"}"))
 
-	assert.NoError(t, err)
 	req.Header.Add("Content-Type", "application/json")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusCreated, resp.HeaderCode)
 
-	req, err = http.NewRequest("GET", "/user2/repo1/commits/master", nil)
-	assert.NoError(t, err)
+	req = NewRequest(t, "GET", "/user2/repo1/commits/master")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 

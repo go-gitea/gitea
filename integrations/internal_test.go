@@ -19,11 +19,10 @@ import (
 
 func assertProtectedBranch(t *testing.T, repoID int64, branchName string, isErr, canPush bool) {
 	reqURL := fmt.Sprintf("/api/internal/branch/%d/%s", repoID, url.QueryEscape(branchName))
-	req, err := http.NewRequest("GET", reqURL, nil)
+	req := NewRequest(t, "GET", reqURL)
 	t.Log(reqURL)
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", setting.InternalToken))
 
-	assert.NoError(t, err)
 	resp := MakeRequest(req)
 	if isErr {
 		assert.EqualValues(t, 500, resp.HeaderCode)

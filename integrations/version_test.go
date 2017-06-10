@@ -20,8 +20,7 @@ func TestVersion(t *testing.T) {
 	prepareTestEnv(t)
 
 	setting.AppVer = "1.1.0+dev"
-	req, err := http.NewRequest("GET", "/api/v1/version", nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", "/api/v1/version")
 	resp := MakeRequest(req)
 
 	var version gitea.ServerVersion

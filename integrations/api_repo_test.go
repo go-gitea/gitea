@@ -16,8 +16,7 @@ import (
 func TestAPIUserReposNotLogin(t *testing.T) {
 	assert.NoError(t, models.LoadFixtures())
 
-	req, err := http.NewRequest("GET", "/api/v1/users/user2/repos", nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", "/api/v1/users/user2/repos")
 	resp := MakeRequest(req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }
@@ -25,8 +24,7 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 func TestAPISearchRepoNotLogin(t *testing.T) {
 	assert.NoError(t, models.LoadFixtures())
 
-	req, err := http.NewRequest("GET", "/api/v1/repos/search?q=Test", nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", "/api/v1/repos/search?q=Test")
 	resp := MakeRequest(req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }

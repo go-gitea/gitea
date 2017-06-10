@@ -15,8 +15,7 @@ func TestPullCompare(t *testing.T) {
 	prepareTestEnv(t)
 
 	session := loginUser(t, "user2", "password")
-	req, err := http.NewRequest("GET", "/user2/repo1/pulls", nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", "/user2/repo1/pulls")
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 	htmlDoc, err := NewHtmlParser(resp.Body)
@@ -24,8 +23,7 @@ func TestPullCompare(t *testing.T) {
 	link, exists := htmlDoc.doc.Find(".navbar").Find(".ui.green.button").Attr("href")
 	assert.True(t, exists, "The template has changed")
 
-	req, err = http.NewRequest("GET", link, nil)
-	assert.NoError(t, err)
+	req = NewRequest(t, "GET", link)
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }

@@ -14,8 +14,7 @@ import (
 func TestNoLoginViewIssues(t *testing.T) {
 	prepareTestEnv(t)
 
-	req, err := http.NewRequest("GET", "/user2/repo1/issues", nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", "/user2/repo1/issues")
 	resp := MakeRequest(req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }
@@ -23,8 +22,7 @@ func TestNoLoginViewIssues(t *testing.T) {
 func TestNoLoginViewIssue(t *testing.T) {
 	prepareTestEnv(t)
 
-	req, err := http.NewRequest("GET", "/user2/repo1/issues/1", nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", "/user2/repo1/issues/1")
 	resp := MakeRequest(req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }
