@@ -15,7 +15,6 @@ var (
 
 // NewContext start mail queue service
 func NewContext() {
-	// TODO: Is this still present? Why is it anyway possible that this initializer is called multiple times?!
 	// Need to check if the daemon is nil because in during reinstall (user had installed
 	// before but swithed install lock off), this function will be called again
 	// while mail queue is already processing tasks, and produces a race condition.

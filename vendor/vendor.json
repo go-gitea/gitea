@@ -324,6 +324,12 @@
 			"revisionTime": "2016-11-28T23:08:40Z"
 		},
 		{
+			"checksumSHA1": "nz2/WyMK247bNOhgBY89UYrLKvg=",
+			"path": "github.com/desertbit/timer",
+			"revision": "7851fd7376ce7b7899a48d1635233e523e0d5524",
+			"revisionTime": "2017-01-31T20:08:53Z"
+		},
+		{
 			"checksumSHA1": "2Fy1Y6Z3lRRX1891WF/+HT4XS2I=",
 			"path": "github.com/dgrijalva/jwt-go",
 			"revision": "9ed569b5d1ac936e6494082958d63a6aa4fff99a",
@@ -1472,5 +1478,5 @@
 			"revisionTime": "2016-06-28T05:56:50Z"
 		}
 	],
-	"rootPath": "code.gitea.io/gitea"
+	"rootPath": "github.com/m4ng0squ4sh/gitea"
 }

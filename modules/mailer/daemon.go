@@ -11,6 +11,12 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/desertbit/timer"
+)
+
+const (
+	keepaliveTimeout = 30 * time.Second
 )
 
 // Daemon implements an asynchronous mail service daemon.
@@ -79,8 +85,8 @@ func (d *Daemon) Close() {
 
 // SendAsync send mail asynchronous.
 func (d *Daemon) SendAsync(msg *Message) {
-	// TODO: don't start new goroutines. Drop mails if the channel is flooded.
-	// TODO: Increase the channel size.
+	// TODO: think about removing the extra goroutine an
+	//       drop mails if the channel is full/flooded.
 	go func() {
 		// Don't block if closed.
 		select {
@@ -92,6 +98,10 @@ func (d *Daemon) SendAsync(msg *Message) {
 
 func (d *Daemon) processMailQueue(s Sender) {
 	var err error
+
+	// Our close connection timer.
+	t := timer.NewStoppedTimer()
+	defer t.Stop()
 
 	for {
 		select {
@@ -109,10 +119,11 @@ func (d *Daemon) processMailQueue(s Sender) {
 				log.Trace("E-mails sent %s: %s", msg.GetHeader("To"), msg.Info)
 			}
 
-		// TODO: Reuse the timer.
-		// Close the mail server connection if no email was sent in
-		// the last 30 seconds.
-		case <-time.After(30 * time.Second):
+			// Reset the keepalive timeout timer.
+			t.Reset(keepaliveTimeout)
+
+		// Close the mail server connection if no email was sent within the timeout.
+		case <-t.C:
 			if err = s.Close(); err != nil {
 				log.Error(3, "Failed to close mail sender connection: %v", err)
 			}
