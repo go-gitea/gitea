@@ -16,11 +16,10 @@ type Sender interface {
 	Close() error
 }
 
-// createSender creates the actual sender value, depending on the choosen sender backend.
+// createSender creates the actual sender, depending on the choosen sender backend.
 func createSender() (Sender, error) {
 	if setting.MailService.UseSendmail {
 		return newSendmailSender()
-	} else {
-		return newSMTPSender()
 	}
+	return newSMTPSender()
 }
