@@ -60,15 +60,21 @@ func TestMain(m *testing.M) {
 }
 
 func initIntegrationTest() {
-	if setting.CustomConf = os.Getenv("GITEA_CONF"); setting.CustomConf == "" {
-		fmt.Println("Environment variable $GITEA_CONF not set")
-		os.Exit(1)
-	}
-	if giteaRoot := os.Getenv("GITEA_ROOT"); giteaRoot == "" {
+	giteaRoot := os.Getenv("GITEA_ROOT")
+	if giteaRoot == "" {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)
+	}
+	setting.AppPath = path.Join(giteaRoot, "gitea")
+
+	giteaConf := os.Getenv("GITEA_CONF")
+	if giteaConf == "" {
+		fmt.Println("Environment variable $GITEA_CONF not set")
+		os.Exit(1)
+	} else if !path.IsAbs(giteaConf) {
+		setting.CustomConf = path.Join(giteaRoot, giteaConf)
 	} else {
-		setting.AppPath = path.Join(giteaRoot, "gitea")
+		setting.CustomConf = giteaConf
 	}
 
 	setting.NewContext()
