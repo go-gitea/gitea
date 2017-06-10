@@ -1435,7 +1435,7 @@ footer .ui.language .menu {
 .repository.file.list #file-content .code-view .lines-code ol li,
 .repository.file.list #file-content .code-view .lines-num .hljs li,
 .repository.file.list #file-content .code-view .lines-code .hljs li {
-  display: inline-block;
+  display: block;
   width: 100%;
 }
 .repository.file.list #file-content .code-view .lines-num pre li.active,
