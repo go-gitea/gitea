@@ -228,6 +228,42 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/forks": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "listForks",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepositoryList"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "createFork",
+        "responses": {
+          "202": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{username}/{reponame}/mirror-sync": {
       "post": {
         "produces": [
