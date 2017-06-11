@@ -700,12 +700,13 @@ func UpdateLocalCopyBranch(repoPath, localPath, branch string) error {
 		}); err != nil {
 			return fmt.Errorf("git checkout %s: %v", branch, err)
 		}
-		if err := git.Pull(localPath, git.PullRemoteOptions{
-			Timeout: time.Duration(setting.Git.Timeout.Pull) * time.Second,
-			Remote:  "origin",
-			Branch:  branch,
-		}); err != nil {
-			return fmt.Errorf("git pull origin %s: %v", branch, err)
+
+		_, err := git.NewCommand("fetch", "origin").RunInDir(localPath)
+		if err != nil {
+			return fmt.Errorf("git fetch origin: %v", err)
+		}
+		if err := git.ResetHEAD(localPath, true, "origin/"+branch); err != nil {
+			return fmt.Errorf("git reset --hard origin/%s: %v", branch, err)
 		}
 	}
 	return nil
