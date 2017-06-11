@@ -30,7 +30,7 @@ Gitea的首要目标是创建一个极易安装，运行非常快速，安装和
 
 ## 文档
 
-关于如何安装请访问我们的 [文档站](https://docs.gitea.io/zh-cn/)，如果没有找到对应的文档，你也可以通过 [Gitter - 英文](https://gitter.im/go-gitea/gitea) 和 QQ群 328432459 来和我们交流。
+关于如何安装请访问我们的 [文档站](https://docs.gitea.io/zh-cn/)，如果没有找到对应的文档，你也可以通过 [Discord - 英文](https://discord.gg/NsatcWJ) 和 QQ群 328432459 来和我们交流。
 
 ## 贡献流程
 
