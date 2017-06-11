@@ -7,6 +7,7 @@ package repo
 import (
 	api "code.gitea.io/sdk/gitea"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 )
@@ -16,7 +17,11 @@ import (
 func GetBranch(ctx *context.APIContext) {
 	branch, err := ctx.Repo.Repository.GetBranch(ctx.Params(":branchname"))
 	if err != nil {
-		ctx.Error(500, "GetBranch", err)
+		if models.IsErrBranchNotExist(err) {
+			ctx.Error(404, "GetBranch", err)
+		} else {
+			ctx.Error(500, "GetBranch", err)
+		}
 		return
 	}
 

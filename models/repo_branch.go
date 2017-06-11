@@ -39,7 +39,7 @@ func GetBranchesByPath(path string) ([]*Branch, error) {
 // GetBranch returns a branch by it's name
 func (repo *Repository) GetBranch(branch string) (*Branch, error) {
 	if !git.IsBranchExist(repo.RepoPath(), branch) {
-		return nil, &ErrBranchNotExist{branch}
+		return nil, ErrBranchNotExist{branch}
 	}
 	return &Branch{
 		Path: repo.RepoPath(),
