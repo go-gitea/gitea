@@ -28,7 +28,7 @@ The goal of this project is to make the easiest, fastest, and most painless way 
 
 ## Docs
 
-For more information and instructions about how to install Gitea please look at our [documentation](https://docs.gitea.io/en-us/). If you cannot find some specific information, then head over to our [Gitter](https://gitter.im/go-gitea/gitea) channel to chat with us.
+For more information and instructions about how to install Gitea please look at our [documentation](https://docs.gitea.io/en-us/). If you cannot find some specific information, then head over to our [Discord](https://discord.gg/NsatcWJ) server to chat with us.
 
 ## Contributing
 
