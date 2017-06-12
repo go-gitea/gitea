@@ -119,6 +119,14 @@ func NewMilestone(m *Milestone) (err error) {
 	return sess.Commit()
 }
 
+// NewGhostMilestone a fake milestone to hold the place of a deleted milestone
+func NewGhostMilestone() *Milestone {
+	return &Milestone{
+		ID:   -1,
+		Name: "Deleted",
+	}
+}
+
 func getMilestoneByRepoID(e Engine, repoID, id int64) (*Milestone, error) {
 	m := &Milestone{
 		ID:     id,

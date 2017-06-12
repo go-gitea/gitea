@@ -228,15 +228,14 @@ func (c *Comment) LoadLabel() error {
 func (c *Comment) LoadMilestone() error {
 	if c.OldMilestoneID > 0 {
 		var oldMilestone Milestone
-		has, err := x.ID(c.OldMilestoneID).Get(&oldMilestone)
+		has, err := x.ID(c.OldMilestoneID).Get(oldMilestone)
 		if err != nil {
 			return err
 		} else if !has {
-			return ErrMilestoneNotExist{
-				ID: c.OldMilestoneID,
-			}
+			c.OldMilestone = NewGhostMilestone()
+		} else {
+			c.OldMilestone = &oldMilestone
 		}
-		c.OldMilestone = &oldMilestone
 	}
 
 	if c.MilestoneID > 0 {
@@ -245,11 +244,10 @@ func (c *Comment) LoadMilestone() error {
 		if err != nil {
 			return err
 		} else if !has {
-			return ErrMilestoneNotExist{
-				ID: c.MilestoneID,
-			}
+			c.Milestone = NewGhostMilestone()
+		} else {
+			c.Milestone = &milestone
 		}
-		c.Milestone = &milestone
 	}
 	return nil
 }
