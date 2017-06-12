@@ -13,6 +13,15 @@ import (
 
 // ListForks list a repository's forks
 func ListForks(ctx *context.APIContext) {
+	// swagger:route GET /repos/{owner}/{repo}/forks listForks
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: RepositoryList
+	//       500: error
+
 	forks, err := ctx.Repo.Repository.GetForks()
 	if err != nil {
 		ctx.Error(500, "GetForks", err)
@@ -32,6 +41,17 @@ func ListForks(ctx *context.APIContext) {
 
 // CreateFork create a fork of a repo
 func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
+	// swagger:route POST /repos/{owner}/{repo}/forks createFork
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       202: Repository
+	//       403: forbidden
+	//       422: validationError
+	//       500: error
+
 	repo := ctx.Repo.Repository
 	var forker *models.User // user/org that will own the fork
 	if form.Organization == nil {
