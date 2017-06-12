@@ -14,7 +14,7 @@ RUN apk --no-cache add \
     curl \
     openssh \
     tzdata
-RUN addgroup
+RUN addgroup \
     -S -g 1000 \
     git && \
   adduser \
