@@ -6,6 +6,15 @@
   * Password reset URL changed from `/user/forget_password` to `/user/forgot_password`
   * SSH keys management URL changed from `/user/settings/ssh` to `/user/settings/keys`
 
+## [1.1.2](https://github.com/go-gitea/gitea/releases/tag/v1.1.2) - 2017-06-13
+
+* BUGFIXES
+  * Enforce netgo build tag while cross-compilation (Backport of #1690) (#1731)
+  * fix update avatar
+  * fix delete user failed on sqlite (#1321)
+  * fix bug not to trim space of login username (#1806)
+  * Backport bugfixes #1220 and #1393 to v1.1 (#1758)
+
 ## [1.1.1](https://github.com/go-gitea/gitea/releases/tag/v1.1.1) - 2017-05-04
 
 * BUGFIXES
