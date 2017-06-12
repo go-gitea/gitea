@@ -120,7 +120,7 @@ func (a *Action) loadActUser() {
 }
 
 func (a *Action) loadRepo() {
-	if a.ActUser != nil {
+	if a.Repo != nil {
 		return
 	}
 	var err error
