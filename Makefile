@@ -107,7 +107,17 @@ test: fmt-check
 	go test $(PACKAGES)
 
 .PHONY: test-coverage
-test-coverage:
+test-coverage: unit-test-coverage integration-test-coverage
+	for PKG in $(PACKAGES); do\
+	  touch $$GOPATH/src/$$PKG/coverage.out;\
+	  egrep "$$PKG[^/]*\.go" integration.coverage.out > int.coverage.out;\
+	  gocovmerge $$GOPATH/src/$$PKG/coverage.out int.coverage.out > pkg.coverage.out;\
+	  mv pkg.coverage.out $$GOPATH/src/$$PKG/coverage.out;\
+	  rm int.coverage.out;\
+	done;
+
+.PHONY: unit-test-coverage
+unit-test-coverage:
 	for PKG in $(PACKAGES); do go test -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
 
 .PHONY: test-vendor
@@ -124,9 +134,8 @@ test-vendor:
 	govendor status || exit 1
 
 .PHONY: test-sqlite
-test-sqlite:
-	go test -c code.gitea.io/gitea/integrations -tags 'sqlite'
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.test
+test-sqlite: integrations.sqlite.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
 
 .PHONY: test-mysql
 test-mysql: integrations.test
@@ -136,8 +145,18 @@ test-mysql: integrations.test
 test-pgsql: integrations.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
 
+.PHONY: integration-test-coverage
+integration-test-coverage: integrations.cover.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
+
 integrations.test: $(SOURCES)
 	go test -c code.gitea.io/gitea/integrations
+
+integrations.sqlite.test: $(SOURCES)
+	go test -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite'
+
+integrations.cover.test: $(SOURCES)
+	go test -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
 
 .PHONY: check
 check: test
