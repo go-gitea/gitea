@@ -6,21 +6,20 @@ package integrations
 
 import (
 	"bytes"
+	"testing"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/stretchr/testify/assert"
 )
 
 type HtmlDoc struct {
 	doc *goquery.Document
 }
 
-func NewHtmlParser(content []byte) (*HtmlDoc, error) {
+func NewHtmlParser(t *testing.T, content []byte) *HtmlDoc {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(content))
-	if err != nil {
-		return nil, err
-	}
-
-	return &HtmlDoc{doc: doc}, nil
+	assert.NoError(t, err)
+	return &HtmlDoc{doc: doc}
 }
 
 func (doc *HtmlDoc) GetInputValueById(id string) string {
@@ -31,4 +30,8 @@ func (doc *HtmlDoc) GetInputValueById(id string) string {
 func (doc *HtmlDoc) GetInputValueByName(name string) string {
 	text, _ := doc.doc.Find("input[name=\"" + name + "\"]").Attr("value")
 	return text
+}
+
+func (doc *HtmlDoc) GetCSRF() string {
+	return doc.GetInputValueByName("_csrf")
 }

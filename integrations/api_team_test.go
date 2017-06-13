@@ -23,7 +23,7 @@ func TestAPITeam(t *testing.T) {
 	team := models.AssertExistsAndLoadBean(t, &models.Team{ID: teamUser.TeamID}).(*models.Team)
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: teamUser.UID}).(*models.User)
 
-	session := loginUser(t, user.Name, "password")
+	session := loginUser(t, user.Name)
 	url := fmt.Sprintf("/api/v1/teams/%d", teamUser.TeamID)
 	req := NewRequest(t, "GET", url)
 	resp := session.MakeRequest(t, req)
