@@ -100,11 +100,11 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 =i9b7
 -----END PGP PUBLIC KEY BLOCK-----`
 	ekey, err := checkArmoredGPGKeyString(testGPGArmor)
-	assert.Nil(t, err, "Could not parse a valid GPG armored key", ekey)
+	assert.NoError(t, err, "Could not parse a valid GPG armored key", ekey)
 
 	pubkey := ekey.PrimaryKey
 	content, err := base64EncPubKey(pubkey)
-	assert.Nil(t, err, "Could not base64 encode a valid PublicKey content", ekey)
+	assert.NoError(t, err, "Could not base64 encode a valid PublicKey content", ekey)
 
 	key := &GPGKey{
 		KeyID:             pubkey.KeyIdString(),
@@ -165,21 +165,21 @@ Unknown GPG key with good email
 `
 	//Reading Sign
 	goodSig, err := extractSignature(testGoodSigArmor)
-	assert.Nil(t, err, "Could not parse a valid GPG armored signature", testGoodSigArmor)
+	assert.NoError(t, err, "Could not parse a valid GPG armored signature", testGoodSigArmor)
 	badSig, err := extractSignature(testBadSigArmor)
-	assert.Nil(t, err, "Could not parse a valid GPG armored signature", testBadSigArmor)
+	assert.NoError(t, err, "Could not parse a valid GPG armored signature", testBadSigArmor)
 
 	//Generating hash of commit
 	goodHash, err := populateHash(goodSig.Hash, []byte(testGoodPayload))
-	assert.Nil(t, err, "Could not generate a valid hash of payload", testGoodPayload)
+	assert.NoError(t, err, "Could not generate a valid hash of payload", testGoodPayload)
 	badHash, err := populateHash(badSig.Hash, []byte(testBadPayload))
-	assert.Nil(t, err, "Could not generate a valid hash of payload", testBadPayload)
+	assert.NoError(t, err, "Could not generate a valid hash of payload", testBadPayload)
 
 	//Verify
 	err = verifySign(goodSig, goodHash, key)
-	assert.Nil(t, err, "Could not validate a good signature")
+	assert.NoError(t, err, "Could not validate a good signature")
 	err = verifySign(badSig, badHash, key)
-	assert.NotNil(t, err, "Validate a bad signature")
+	assert.Error(t, err, "Validate a bad signature")
 	err = verifySign(goodSig, goodHash, cannotsignkey)
-	assert.NotNil(t, err, "Validate a bad signature with a kay that can not sign")
+	assert.Error(t, err, "Validate a bad signature with a kay that can not sign")
 }
