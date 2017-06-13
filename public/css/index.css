@@ -1166,6 +1166,9 @@ footer .ui.language .menu {
 .new.webhook .events.fields .column {
   padding-left: 40px;
 }
+.githook textarea {
+  font-family: monospace;
+}
 .repository {
   padding-top: 15px;
   padding-bottom: 80px;
