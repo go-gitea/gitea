@@ -43,7 +43,7 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 -----END PGP PUBLIC KEY BLOCK-----`
 
 	key, err := checkArmoredGPGKeyString(testGPGArmor)
-	assert.Nil(t, err, "Could not parse a valid GPG armored key", key)
+	assert.NoError(t, err, "Could not parse a valid GPG public armored rsa key", key)
 	//TODO verify value of key
 }
 
@@ -64,7 +64,7 @@ OyjLLnFQiVmq7kEA/0z0CQe3ZQiQIq5zrs7Nh1XRkFAo8GlU/SGC9XFFi722
 -----END PGP PUBLIC KEY BLOCK-----`
 
 	key, err := checkArmoredGPGKeyString(testGPGArmor)
-	assert.Nil(t, err, "Could not parse a valid GPG armored key", key)
+	assert.NoError(t, err, "Could not parse a valid GPG public armored brainpoolP256r1 key", key)
 	//TODO verify value of key
 }
 
