@@ -480,9 +480,11 @@ func ProtectedBranchPost(ctx *context.Context) {
 			return
 		}
 
-		branch := strings.ToLower(ctx.Query("branch"))
-		if ctx.Repo.GitRepo.IsBranchExist(branch) &&
-			repo.DefaultBranch != branch {
+		branch := ctx.Query("branch")
+		if !ctx.Repo.GitRepo.IsBranchExist(branch) {
+			ctx.Status(404)
+			return
+		} else if repo.DefaultBranch != branch {
 			repo.DefaultBranch = branch
 			if err := ctx.Repo.GitRepo.SetDefaultBranch(branch); err != nil {
 				if !git.IsErrUnsupportedVersion(err) {
