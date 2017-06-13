@@ -372,13 +372,13 @@ func checkKeyFingerprint(e Engine, fingerprint string) error {
 
 func calcFingerprint(publicKeyContent string) (string, error) {
 	// Calculate fingerprint.
-	tmpPath, err := writeTmpKeyFile(publicKeyContent)
+	tmppath, err := writeTmpKeyFile(publicKeyContent)
 	if err != nil {
 		return "", err
 	}
-	stdout, stderr, err := process.GetManager().Exec("AddPublicKey", "ssh-keygen", "-lf", tmpPath)
+	stdout, stderr, err := process.GetManager().Exec("AddPublicKey", "ssh-keygen", "-lf", tmppath)
 	if err != nil {
-		return "", fmt.Errorf("'ssh-keygen -lf %s' failed with error '%s': %s", tmpPath, err, stderr)
+		return "", fmt.Errorf("'ssh-keygen -lf %s' failed with error '%s': %s", tmppath, err, stderr)
 	} else if len(stdout) < 2 {
 		return "", errors.New("not enough output for calculating fingerprint: " + stdout)
 	}
@@ -557,20 +557,20 @@ func RewriteAllPublicKeys() error {
 	sshOpLocker.Lock()
 	defer sshOpLocker.Unlock()
 
-	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
-	tmpPath := fPath + ".tmp"
-	t, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	fpath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
+	tmppath := fpath + ".tmp"
+	t, err := os.OpenFile(tmppath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		t.Close()
-		os.Remove(tmpPath)
+		os.Remove(tmppath)
 	}()
 
-	if com.IsExist(fPath) && !setting.SSH.DisableAuthorizedKeysBackup {
-		bakPath := fPath + fmt.Sprintf("_%d.gitea_bak", time.Now().Unix())
-		if err = com.Copy(fPath, bakPath); err != nil {
+	if com.IsExist(fpath) && !setting.SSH.DisableAuthorizedKeysBackup {
+		bakPath := fmt.Sprintf("%s_%d.gitea_bak", fpath, time.Now().Unix())
+		if err = com.Copy(fpath, bakPath); err != nil {
 			return err
 		}
 	}
@@ -583,8 +583,8 @@ func RewriteAllPublicKeys() error {
 		return err
 	}
 
-	if com.IsExist(fPath) {
-		f, err := os.Open(fPath)
+	if com.IsExist(fpath) {
+		f, err := os.Open(fpath)
 		if err != nil {
 			return err
 		}
@@ -604,7 +604,7 @@ func RewriteAllPublicKeys() error {
 	}
 
 	t.Close()
-	if err = os.Rename(tmpPath, fPath); err != nil {
+	if err = os.Rename(tmppath, fpath); err != nil {
 		return err
 	}
 
