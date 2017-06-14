@@ -37,13 +37,31 @@ func PrepareTestDatabase() error {
 	return LoadFixtures()
 }
 
+type testCond struct {
+	query interface{}
+	args  []interface{}
+}
+
+// Cond create a condition with arguments for a test
+func Cond(query interface{}, args ...interface{}) interface{} {
+	return &testCond{query: query, args: args}
+}
+
+func whereConditions(sess *xorm.Session, conditions []interface{}) {
+	for _, condition := range conditions {
+		switch cond := condition.(type) {
+		case *testCond:
+			sess.Where(cond.query, cond.args...)
+		default:
+			sess.Where(cond)
+		}
+	}
+}
+
 func loadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error) {
 	sess := x.NewSession()
 	defer sess.Close()
-
-	for _, cond := range conditions {
-		sess = sess.Where(cond)
-	}
+	whereConditions(sess, conditions)
 	return sess.Get(bean)
 }
 
@@ -65,6 +83,16 @@ func AssertExistsAndLoadBean(t *testing.T, bean interface{}, conditions ...inter
 	return bean
 }
 
+// GetCount get the count of a bean
+func GetCount(t *testing.T, bean interface{}, conditions ...interface{}) int {
+	sess := x.NewSession()
+	defer sess.Close()
+	whereConditions(sess, conditions)
+	count, err := sess.Count(bean)
+	assert.NoError(t, err)
+	return int(count)
+}
+
 // AssertNotExistsBean assert that a bean does not exist in the test database
 func AssertNotExistsBean(t *testing.T, bean interface{}, conditions ...interface{}) {
 	exists, err := loadBeanIfExists(bean, conditions...)
@@ -80,7 +108,5 @@ func AssertSuccessfulInsert(t *testing.T, beans ...interface{}) {
 
 // AssertCount assert the count of a bean
 func AssertCount(t *testing.T, bean interface{}, expected interface{}) {
-	actual, err := x.Count(bean)
-	assert.NoError(t, err)
-	assert.EqualValues(t, expected, actual)
+	assert.EqualValues(t, expected, GetCount(t, bean))
 }
