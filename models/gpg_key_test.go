@@ -43,7 +43,28 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 -----END PGP PUBLIC KEY BLOCK-----`
 
 	key, err := checkArmoredGPGKeyString(testGPGArmor)
-	assert.Nil(t, err, "Could not parse a valid GPG armored key", key)
+	assert.NoError(t, err, "Could not parse a valid GPG public armored rsa key", key)
+	//TODO verify value of key
+}
+
+func TestCheckArmoredbrainpoolP256r1GPGKeyString(t *testing.T) {
+	testGPGArmor := `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: GnuPG v2
+
+mFMEV6HwkhMJKyQDAwIIAQEHAgMEUsvJO/j5dFMRRj67qeZC9fSKBsGZdOHRj2+6
+8wssmbUuLTfT/ZjIbExETyY8hFnURRGpD2Ifyz0cKjXcbXfJtrQTRm9vYmFyIDxm
+b29AYmFyLmRlPoh/BBMTCAAnBQJZOsDIAhsDBQkJZgGABQsJCAcCBhUICQoLAgQW
+AgMBAh4BAheAAAoJEGuJTd/DBMzmNVQA/2beUrv1yU4gyvCiPDEm3pK42cSfaL5D
+muCtPCUg9hlWAP4yq6M78NW8STfsXgn6oeziMYiHSTmV14nOamLuwwDWM7hXBFeh
+8JISCSskAwMCCAEBBwIDBG3A+XfINAZp1CTse2mRNgeUE5DbUtEpO8ALXKA1UQsQ
+DLKq27b7zTgawgXIGUGP6mWsJ5oH7MNAJ/uKTsYmX40DAQgHiGcEGBMIAA8FAleh
+8JICGwwFCQlmAYAACgkQa4lN38MEzOZwKAD/QKyerAgcvzzLaqvtap3XvpYcw9tc
+OyjLLnFQiVmq7kEA/0z0CQe3ZQiQIq5zrs7Nh1XRkFAo8GlU/SGC9XFFi722
+=ZiSe
+-----END PGP PUBLIC KEY BLOCK-----`
+
+	key, err := checkArmoredGPGKeyString(testGPGArmor)
+	assert.NoError(t, err, "Could not parse a valid GPG public armored brainpoolP256r1 key", key)
 	//TODO verify value of key
 }
 
@@ -79,11 +100,11 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 =i9b7
 -----END PGP PUBLIC KEY BLOCK-----`
 	ekey, err := checkArmoredGPGKeyString(testGPGArmor)
-	assert.Nil(t, err, "Could not parse a valid GPG armored key", ekey)
+	assert.NoError(t, err, "Could not parse a valid GPG armored key", ekey)
 
 	pubkey := ekey.PrimaryKey
 	content, err := base64EncPubKey(pubkey)
-	assert.Nil(t, err, "Could not base64 encode a valid PublicKey content", ekey)
+	assert.NoError(t, err, "Could not base64 encode a valid PublicKey content", ekey)
 
 	key := &GPGKey{
 		KeyID:             pubkey.KeyIdString(),
@@ -144,21 +165,21 @@ Unknown GPG key with good email
 `
 	//Reading Sign
 	goodSig, err := extractSignature(testGoodSigArmor)
-	assert.Nil(t, err, "Could not parse a valid GPG armored signature", testGoodSigArmor)
+	assert.NoError(t, err, "Could not parse a valid GPG armored signature", testGoodSigArmor)
 	badSig, err := extractSignature(testBadSigArmor)
-	assert.Nil(t, err, "Could not parse a valid GPG armored signature", testBadSigArmor)
+	assert.NoError(t, err, "Could not parse a valid GPG armored signature", testBadSigArmor)
 
 	//Generating hash of commit
 	goodHash, err := populateHash(goodSig.Hash, []byte(testGoodPayload))
-	assert.Nil(t, err, "Could not generate a valid hash of payload", testGoodPayload)
+	assert.NoError(t, err, "Could not generate a valid hash of payload", testGoodPayload)
 	badHash, err := populateHash(badSig.Hash, []byte(testBadPayload))
-	assert.Nil(t, err, "Could not generate a valid hash of payload", testBadPayload)
+	assert.NoError(t, err, "Could not generate a valid hash of payload", testBadPayload)
 
 	//Verify
 	err = verifySign(goodSig, goodHash, key)
-	assert.Nil(t, err, "Could not validate a good signature")
+	assert.NoError(t, err, "Could not validate a good signature")
 	err = verifySign(badSig, badHash, key)
-	assert.NotNil(t, err, "Validate a bad signature")
+	assert.Error(t, err, "Validate a bad signature")
 	err = verifySign(goodSig, goodHash, cannotsignkey)
-	assert.NotNil(t, err, "Validate a bad signature with a kay that can not sign")
+	assert.Error(t, err, "Validate a bad signature with a kay that can not sign")
 }
