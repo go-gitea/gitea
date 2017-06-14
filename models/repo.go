@@ -363,6 +363,13 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 		return nil
 	}
 
+	// Collaborators will not be limited
+	if isCollaborator, err := repo.isCollaborator(e, userID); err != nil {
+		return err
+	} else if isCollaborator {
+		return nil
+	}
+
 	teams, err := getUserTeams(e, repo.OwnerID, userID)
 	if err != nil {
 		return err
