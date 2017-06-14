@@ -78,7 +78,7 @@
 					{{end}}
 				</h4>
 				<div class="ui attached table segment">
-					{{if not $file.IsRenamed}}
+					{{if ne $file.Type 4}}
 						{{$isImage := (call $.IsImageFile $file.Name)}}
 						{{if and $isImage}}
 							<div class="center">
