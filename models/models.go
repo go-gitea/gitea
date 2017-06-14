@@ -66,7 +66,7 @@ var (
 	// DbCfg holds the database settings
 	DbCfg struct {
 		Type, Host, Name, User, Passwd, Path, SSLMode string
-		Timeout int
+		Timeout                                       int
 	}
 
 	// EnableSQLite3 use SQLite3
