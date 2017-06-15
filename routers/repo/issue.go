@@ -625,6 +625,16 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Handle(500, "LoadMilestone", err)
 				return
 			}
+			ghostMilestone := &models.Milestone{
+				ID:   -1,
+				Name: ctx.Tr("repo.issues.deleted_milestone"),
+			}
+			if comment.OldMilestoneID > 0 && comment.OldMilestone == nil {
+				comment.OldMilestone = ghostMilestone
+			}
+			if comment.MilestoneID > 0 && comment.Milestone == nil {
+				comment.Milestone = ghostMilestone
+			}
 		} else if comment.Type == models.CommentTypeAssignees {
 			if err = comment.LoadAssignees(); err != nil {
 				ctx.Handle(500, "LoadAssignees", err)

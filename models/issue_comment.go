@@ -231,9 +231,7 @@ func (c *Comment) LoadMilestone() error {
 		has, err := x.ID(c.OldMilestoneID).Get(oldMilestone)
 		if err != nil {
 			return err
-		} else if !has {
-			c.OldMilestone = NewGhostMilestone()
-		} else {
+		} else if has {
 			c.OldMilestone = &oldMilestone
 		}
 	}
@@ -243,9 +241,7 @@ func (c *Comment) LoadMilestone() error {
 		has, err := x.ID(c.MilestoneID).Get(&milestone)
 		if err != nil {
 			return err
-		} else if !has {
-			c.Milestone = NewGhostMilestone()
-		} else {
+		} else if has {
 			c.Milestone = &milestone
 		}
 	}
