@@ -169,6 +169,7 @@ pipeline:
     webhook_id: ${WEBHOOK_ID}
     webhook_token: ${WEBHOOK_TOKEN}
     when:
+      event: [ push, tag, pull_request ]
       status: [ success, failure ]
 
 services:
