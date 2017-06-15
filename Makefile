@@ -71,6 +71,7 @@ errcheck:
 	fi
 	errcheck $(PACKAGES)
 
+.PHONY: NOTICE
 NOTICE: vendor/
 	rm -f NOTICE # `govendor license` appends...
 	govendor license -o NOTICE +v
