@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testRepoFork(t *testing.T, session *TestSession) {
+func testRepoFork(t *testing.T, session *TestSession) *TestResponse {
 	// Step0: check the existence of the to-fork repo
 	req := NewRequest(t, "GET", "/user1/repo1")
 	resp := session.MakeRequest(t, req)
@@ -53,6 +53,8 @@ func testRepoFork(t *testing.T, session *TestSession) {
 	req = NewRequest(t, "GET", "/user1/repo1")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+
+	return resp
 }
 
 func TestRepoFork(t *testing.T) {
