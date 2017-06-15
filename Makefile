@@ -1,5 +1,18 @@
 DIST := dist
 IMPORT := code.gitea.io/gitea
+
+SED_INPLACE := sed -i
+
+ifeq ($(OS), Windows_NT)
+	EXECUTABLE := gitea.exe
+else
+	EXECUTABLE := gitea
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Darwin)
+		SED_INPLACE := sed -i ''
+	endif
+endif
+
 BINDATA := modules/{options,public,templates}/bindata.go
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
@@ -59,11 +72,17 @@ generate:
 	@hash go-bindata > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/jteeuwen/go-bindata/...; \
 	fi
+	go generate $(PACKAGES)
+
+.PHONY: generate-swagger
+generate-swagger:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/go-swagger/go-swagger/cmd/swagger; \
 	fi
-	go generate $(PACKAGES)
-
+	swagger generate spec -o ./public/swagger.v1.json
+	$(SED_INPLACE) "s;\".ref\": \"#/definitions/GPGKey\";\"type\": \"object\";g" ./public/swagger.v1.json
+	$(SED_INPLACE) "s;^          \".ref\": \"#/definitions/Repository\";          \"type\": \"object\";g" ./public/swagger.v1.json
+	
 .PHONY: errcheck
 errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
@@ -241,7 +260,7 @@ swagger-ui:
 	git clone --depth=10 -b v3.0.7 --single-branch https://github.com/swagger-api/swagger-ui.git /tmp/swagger-ui
 	mv /tmp/swagger-ui/dist public/assets/swagger-ui
 	rm -Rf /tmp/swagger-ui
-	sed -i "s;http://petstore.swagger.io/v2/swagger.json;../../swagger.v1.json;g" public/assets/swagger-ui/index.html
+	$(SED_INPLACE) "s;http://petstore.swagger.io/v2/swagger.json;../../swagger.v1.json;g" public/assets/swagger-ui/index.html
 
 .PHONY: assets
 assets: javascripts stylesheets
