@@ -37,3 +37,43 @@
   index: 0
   config: "{}"
   created_unix: 946684810
+
+-
+  id: 6
+  repo_id: 3
+  type: 1
+  index: 0
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 7
+  repo_id: 3
+  type: 2
+  index: 0
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 8
+  repo_id: 3
+  type: 3
+  index: 0
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 9
+  repo_id: 3
+  type: 5
+  index: 0
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 10
+  repo_id: 3
+  type: 7
+  index: 0
+  config: "{}"
+  created_unix: 946684810
