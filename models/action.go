@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"strconv"
 )
 
 // ActionType represents the type of an action.
@@ -77,6 +78,8 @@ type Action struct {
 	ActUser     *User       `xorm:"-"`
 	RepoID      int64       `xorm:"INDEX"`
 	Repo        *Repository `xorm:"-"`
+	CommentID   int64	`xorm:"INDEX"`
+	Comment     *Comment	`xorm:"-"`
 	RefName     string
 	IsPrivate   bool      `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content     string    `xorm:"TEXT"`
@@ -189,6 +192,27 @@ func (a *Action) GetRepoLink() string {
 		return path.Join(setting.AppSubURL, a.GetRepoPath())
 	}
 	return "/" + a.GetRepoPath()
+}
+
+// GetCommentLink returns link to action comment.
+func (a *Action) GetCommentLink() string {
+	if a.Comment == nil {
+		//Return link to issue if comment is not set.
+		if len(a.GetIssueInfos()) > 1 {
+			issueIdString := a.GetIssueInfos()[0]
+			if issueId, err := strconv.ParseInt(issueIdString, 10, 64); err != nil {
+				issue, err := GetIssueByID(issueId)
+				if err != nil {
+					return "#"
+				}
+				return issue.HTMLURL()
+			}else {
+				return "#"
+			}
+		}
+		return "#"
+	}
+	return a.Comment.HTMLURL()
 }
 
 // GetBranch returns the action's repository branch.

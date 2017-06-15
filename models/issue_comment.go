@@ -318,7 +318,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		OldTitle:       opts.OldTitle,
 		NewTitle:       opts.NewTitle,
 	}
-	if _, err = e.Insert(comment); err != nil {
+	var commentId int64
+	if commentId, err = e.Insert(comment); err != nil {
 		return nil, err
 	}
 
@@ -334,6 +335,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:   fmt.Sprintf("%d|%s", opts.Issue.Index, strings.Split(opts.Content, "\n")[0]),
 		RepoID:    opts.Repo.ID,
 		Repo:      opts.Repo,
+		Comment:   comment,
+		CommentID: commentId,
 		IsPrivate: opts.Repo.IsPrivate,
 	}
 
@@ -639,6 +642,13 @@ func DeleteComment(comment *Comment) error {
 		if _, err := sess.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
 			return err
 		}
+	}
+
+	//Delete associated Action
+	if _, err := sess.Delete(&Action{
+		CommentID: comment.ID,
+	}); err != nil {
+		return err
 	}
 
 	return sess.Commit()
