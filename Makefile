@@ -241,7 +241,7 @@ swagger-ui:
 	git clone --depth=10 -b v3.0.7 --single-branch https://github.com/swagger-api/swagger-ui.git /tmp/swagger-ui
 	mv /tmp/swagger-ui/dist public/assets/swagger-ui
 	rm -Rf /tmp/swagger-ui
-	sed -i "s;http://petstore.swagger.io/v2/swagger.json;../../swagger.v1.json;g" public/assets/swagger-ui/index.html
+	$(SED_INPLACE) "s;http://petstore.swagger.io/v2/swagger.json;../../swagger.v1.json;g" public/assets/swagger-ui/index.html
 
 .PHONY: assets
 assets: javascripts stylesheets
