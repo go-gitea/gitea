@@ -324,8 +324,8 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	sshOpLocker.Lock()
 	defer sshOpLocker.Unlock()
 
-	fpath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
-	f, err := os.OpenFile(fpath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
+	f, err := os.OpenFile(fPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
 		return err
 	}
@@ -557,20 +557,20 @@ func RewriteAllPublicKeys() error {
 	sshOpLocker.Lock()
 	defer sshOpLocker.Unlock()
 
-	fpath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
-	tmppath := fpath + ".tmp"
-	t, err := os.OpenFile(tmppath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
+	tmpPath := fPath + ".tmp"
+	t, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		t.Close()
-		os.Remove(tmppath)
+		os.Remove(tmpPath)
 	}()
 
-	if com.IsExist(fpath) && !setting.SSH.DisableAuthorizedKeysBackup {
-		bakpath := fmt.Sprintf("%s_%d.gitea_bak", fpath, time.Now().Unix())
-		if err = com.Copy(fpath, bakpath); err != nil {
+	if com.IsExist(fPath) && !setting.SSH.DisableAuthorizedKeysBackup {
+		bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
+		if err = com.Copy(fPath, bakPath); err != nil {
 			return err
 		}
 	}
@@ -583,8 +583,8 @@ func RewriteAllPublicKeys() error {
 		return err
 	}
 
-	if com.IsExist(fpath) {
-		f, err := os.Open(fpath)
+	if com.IsExist(fPath) {
+		f, err := os.Open(fPath)
 		if err != nil {
 			return err
 		}
@@ -603,7 +603,7 @@ func RewriteAllPublicKeys() error {
 		defer f.Close()
 	}
 
-	if err = os.Rename(tmppath, fpath); err != nil {
+	if err = os.Rename(tmpPath, fPath); err != nil {
 		return err
 	}
 
