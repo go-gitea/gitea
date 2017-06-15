@@ -19,7 +19,7 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch strin
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	// Click the little green button to craete a pull
+	// Click the little green button to create a pull
 	htmlDoc, err := NewHtmlParser(resp.Body)
 	assert.NoError(t, err)
 	link, exists := htmlDoc.doc.Find("button.ui.green.small.button").Parent().Attr("href")
