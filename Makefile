@@ -66,8 +66,10 @@ generate-swagger:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/go-swagger/go-swagger/cmd/swagger; \
 	fi
-	swagger generate spec -o ./public/swagger.v1.json
-	sed -i "s;\".ref\": \"#/definitions/GPGKey\";\"type\": \"object\";g" ./public/swagger.v1.json
+	swagger generate spec -o ./public/swagger.v1.tmp
+	sed "s;\".ref\": \"#/definitions/GPGKey\";\"type\": \"object\";g" ./public/swagger.v1.tmp > ./public/swagger.v1.tmp2
+	sed "s;^          \".ref\": \"#/definitions/Repository\";          \"type\": \"object\";g" ./public/swagger.v1.tmp2 > ./public/swagger.v1.json
+	rm ./public/swagger.v1.tmp ./public/swagger.v1.tmp2
 
 .PHONY: errcheck
 errcheck:
