@@ -46,6 +46,7 @@ pipeline:
       GOPATH: /srv/app
     commands:
       - apk -U add openssh-client
+      - go get github.com/wadey/gocovmerge
       - make test-coverage
     when:
       event: [ push ]
