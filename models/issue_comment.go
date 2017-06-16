@@ -228,7 +228,7 @@ func (c *Comment) LoadLabel() error {
 func (c *Comment) LoadMilestone() error {
 	if c.OldMilestoneID > 0 {
 		var oldMilestone Milestone
-		has, err := x.ID(c.OldMilestoneID).Get(oldMilestone)
+		has, err := x.ID(c.OldMilestoneID).Get(&oldMilestone)
 		if err != nil {
 			return err
 		} else if has {
