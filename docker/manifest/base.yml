@@ -4,7 +4,7 @@ manifests:
     platform:
       architecture: amd64
       os: linux
-  - image:multiarch/alpine:x86-latest-stable
+  - image: multiarch/alpine:x86-latest-stable
     platform:
       architecture: 386
       os: linux
