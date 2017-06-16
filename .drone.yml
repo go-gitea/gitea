@@ -17,5 +17,10 @@ pipeline:
     image: plugins/coverage
     server: https://coverage.gitea.io
 
-  gitter:
-    image: plugins/gitter
+  discord:
+    image: appleboy/drone-discord
+    webhook_id: ${WEBHOOK_ID}
+    webhook_token: ${WEBHOOK_TOKEN}
+    when:
+      event: [ push, tag, pull_request ]
+      status: [ changed, failure ]
