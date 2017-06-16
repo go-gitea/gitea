@@ -15,8 +15,11 @@ else
 endif
 
 BINDATA := modules/{options,public,templates}/bindata.go
-DOCKER_TAG := gitea/gitea:latest
-GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
+
+DOCKER_IMAGE ?= gitea/gitea
+DOCKER_TAG ?= latest
+DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
+GOFILES := $(shell find . -name "*.go" -type f -not -path "./vendor/*" -not -path "*/bindata.go")
 GOFMT ?= gofmt -s
 
 GOFLAGS := -i -v
@@ -232,7 +235,17 @@ $(EXECUTABLE): $(SOURCES)
 .PHONY: docker
 docker:
 	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" webhippie/golang:edge make clean generate build
-	docker build -t $(DOCKER_TAG) .
+	docker build -t $(DOCKER_REF) .
+
+.PHONY: docker-multi-arch-push-manifest
+docker-multi-arch-push-manifest: DOCKER_MANIFEST ?= docker/manifest/base.yml #Manifest to update
+docker-multi-arch-push-manifest:
+	@hash manifest-tool > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/estesp/manifest-tool; \
+	fi
+	sed -i "s;gitea/gitea;$(DOCKER_IMAGE);g" $(DOCKER_MANIFEST) #Replace if using custom image name
+	@manifest-tool --docker-cfg $HOME/.docker/ push from-spec $(DOCKER_MANIFEST) #Up new references
+	sed -i "s;$(DOCKER_IMAGE);gitea/gitea;g" $(DOCKER_MANIFEST) #Revert back config
 
 .PHONY: release
 release: release-dirs release-windows release-linux release-darwin release-copy release-check
