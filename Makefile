@@ -164,6 +164,20 @@ test-mysql: integrations.test
 test-pgsql: integrations.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
 
+
+.PHONY: bench-sqlite
+bench-sqlite: integrations.sqlite.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.bench .
+
+.PHONY: bench-mysql
+bench-mysql: integrations.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test -test.bench .
+
+.PHONY: bench-pgsql
+bench-pgsql: integrations.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test -test.bench .
+
+
 .PHONY: integration-test-coverage
 integration-test-coverage: integrations.cover.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
