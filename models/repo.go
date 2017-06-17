@@ -359,7 +359,7 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 		return err
 	}
 
-	if !repo.Owner.IsOrganization() || userID == 0 || isAdmin {
+	if !repo.Owner.IsOrganization() || userID == 0 || isAdmin || !repo.IsPrivate {
 		return nil
 	}
 
