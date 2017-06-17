@@ -231,12 +231,9 @@ func (c *Comment) LoadMilestone() error {
 		has, err := x.ID(c.OldMilestoneID).Get(&oldMilestone)
 		if err != nil {
 			return err
-		} else if !has {
-			return ErrMilestoneNotExist{
-				ID: c.OldMilestoneID,
-			}
+		} else if has {
+			c.OldMilestone = &oldMilestone
 		}
-		c.OldMilestone = &oldMilestone
 	}
 
 	if c.MilestoneID > 0 {
@@ -244,12 +241,9 @@ func (c *Comment) LoadMilestone() error {
 		has, err := x.ID(c.MilestoneID).Get(&milestone)
 		if err != nil {
 			return err
-		} else if !has {
-			return ErrMilestoneNotExist{
-				ID: c.MilestoneID,
-			}
+		} else if has {
+			c.Milestone = &milestone
 		}
-		c.Milestone = &milestone
 	}
 	return nil
 }
