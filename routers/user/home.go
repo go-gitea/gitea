@@ -105,7 +105,6 @@ func retrieveFeeds(ctx *context.Context, user *models.User, includePrivate, isPr
 		}
 		act.Repo = repo
 
-
 		comment, ok := commentCache[act.CommentID]
 		if !ok {
 			comment, err = models.GetCommentByID(act.CommentID)
