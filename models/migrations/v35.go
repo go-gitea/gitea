@@ -10,7 +10,7 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-func addCommentIdToAction(x *xorm.Engine) error {
+func addCommentIDToAction(x *xorm.Engine) error {
 	// Action see models/action.go
 	type Action struct {
 		CommentID int64 `xorm:"INDEX"`
