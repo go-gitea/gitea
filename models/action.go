@@ -209,14 +209,14 @@ func (a *Action) GetCommentLink() string {
 		return "#"
 	}
 	//Return link to issue
-	issueIdString := a.GetIssueInfos()[0]
-	issueId, err := strconv.ParseInt(issueIdString, 10, 64)
+	issueIDString := a.GetIssueInfos()[0]
+	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
 
 	if err != nil {
 		return "#"
 	}
 
-	issue, err := GetIssueByID(issueId)
+	issue, err := GetIssueByID(issueID)
 
 	if err != nil {
 		return "#"
