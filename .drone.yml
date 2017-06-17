@@ -166,7 +166,7 @@ pipeline:
       branch: [ refs/tags/* ]
 
   discord:
-    image: appleboy/drone-discord
+    image: appleboy/drone-discord:0.0.4
     webhook_id: ${WEBHOOK_ID}
     webhook_token: ${WEBHOOK_TOKEN}
     when:
