@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 	"testing"
@@ -74,4 +75,34 @@ func TestNoLoginViewIssue(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2/repo1/issues/1")
 	resp := MakeRequest(req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+}
+
+func testNewIssue(t *testing.T, session *TestSession, user, repo, title string) {
+
+	req := NewRequest(t, "GET", path.Join(user, repo, "issues", "new"))
+	resp := session.MakeRequest(t, req)
+	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+	assert.True(t, exists, "The template has changed")
+	req = NewRequestWithValues(t, "POST", link, map[string]string{
+		"_csrf": htmlDoc.GetCSRF(),
+		"title": title,
+	})
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	resp = session.MakeRequest(t, req)
+	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
+	redirectedURL := resp.Headers["Location"]
+	assert.NotEmpty(t, redirectedURL, "Redirected URL is not found")
+
+	req = NewRequest(t, "GET", redirectedURL[0])
+	resp = session.MakeRequest(t, req)
+	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+}
+
+func TestNewIssue(t *testing.T) {
+	prepareTestEnv(t)
+	session := loginUser(t, "user2")
+	testNewIssue(t, session, "user2", "repo1", "Title")
 }
