@@ -19,7 +19,7 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum strin
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
 	// Click the little green button to craete a pull
-	htmlDoc := NewHtmlParser(t, resp.Body)
+	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find("form.ui.form>button.ui.green.button").Parent().Attr("action")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{

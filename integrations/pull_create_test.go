@@ -18,7 +18,7 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch strin
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
 	// Click the little green button to create a pull
-	htmlDoc := NewHtmlParser(t, resp.Body)
+	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find("button.ui.green.small.button").Parent().Attr("href")
 	assert.True(t, exists, "The template has changed")
 
@@ -27,7 +27,7 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch strin
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
 	// Submit the form for creating the pull
-	htmlDoc = NewHtmlParser(t, resp.Body)
+	htmlDoc = NewHTMLParser(t, resp.Body)
 	link, exists = htmlDoc.doc.Find("form.ui.form").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{

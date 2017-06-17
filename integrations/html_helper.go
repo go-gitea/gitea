@@ -12,26 +12,31 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type HtmlDoc struct {
+// HTMLDoc struct
+type HTMLDoc struct {
 	doc *goquery.Document
 }
 
-func NewHtmlParser(t testing.TB, content []byte) *HtmlDoc {
+// NewHTMLParser parse html file
+func NewHTMLParser(t testing.TB, content []byte) *HTMLDoc {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(content))
 	assert.NoError(t, err)
-	return &HtmlDoc{doc: doc}
+	return &HTMLDoc{doc: doc}
 }
 
-func (doc *HtmlDoc) GetInputValueById(id string) string {
+// GetInputValueByID for get input value by id
+func (doc *HTMLDoc) GetInputValueByID(id string) string {
 	text, _ := doc.doc.Find("#" + id).Attr("value")
 	return text
 }
 
-func (doc *HtmlDoc) GetInputValueByName(name string) string {
+// GetInputValueByName for get input value by name
+func (doc *HTMLDoc) GetInputValueByName(name string) string {
 	text, _ := doc.doc.Find("input[name=\"" + name + "\"]").Attr("value")
 	return text
 }
 
-func (doc *HtmlDoc) GetCSRF() string {
+// GetCSRF for get CSRC token value from input
+func (doc *HTMLDoc) GetCSRF() string {
 	return doc.GetInputValueByName("_csrf")
 }

@@ -22,7 +22,7 @@ func TestDeleteUser(t *testing.T) {
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	doc := NewHtmlParser(t, resp.Body)
+	doc := NewHTMLParser(t, resp.Body)
 	req = NewRequestWithValues(t, "POST", "/admin/users/8/delete", map[string]string{
 		"_csrf": doc.GetCSRF(),
 	})

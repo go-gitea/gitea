@@ -22,7 +22,7 @@ func TestCreateFile(t *testing.T) {
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	doc := NewHtmlParser(t, resp.Body)
+	doc := NewHTMLParser(t, resp.Body)
 	lastCommit := doc.GetInputValueByName("last_commit")
 	assert.NotEmpty(t, lastCommit)
 
@@ -49,7 +49,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	doc := NewHtmlParser(t, resp.Body)
+	doc := NewHTMLParser(t, resp.Body)
 
 	// Change master branch to protected
 	req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches?action=protected_branch", map[string]string{
@@ -70,7 +70,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	doc = NewHtmlParser(t, resp.Body)
+	doc = NewHTMLParser(t, resp.Body)
 	lastCommit := doc.GetInputValueByName("last_commit")
 	assert.NotEmpty(t, lastCommit)
 
@@ -99,7 +99,7 @@ func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePa
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	htmlDoc := NewHtmlParser(t, resp.Body)
+	htmlDoc := NewHTMLParser(t, resp.Body)
 	lastCommit := htmlDoc.GetInputValueByName("last_commit")
 	assert.NotEmpty(t, lastCommit)
 
