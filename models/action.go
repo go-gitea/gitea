@@ -196,23 +196,34 @@ func (a *Action) GetRepoLink() string {
 
 // GetCommentLink returns link to action comment.
 func (a *Action) GetCommentLink() string {
-	if a.Comment == nil {
-		//Return link to issue if comment is not set.
-		if len(a.GetIssueInfos()) > 1 {
-			issueIdString := a.GetIssueInfos()[0]
-			if issueId, err := strconv.ParseInt(issueIdString, 10, 64); err != nil {
-				issue, err := GetIssueByID(issueId)
-				if err != nil {
-					return "#"
-				}
-				return issue.HTMLURL()
-			}else {
-				return "#"
-			}
-		}
+	if a == nil {
 		return "#"
 	}
-	return a.Comment.HTMLURL()
+	if a.Comment == nil && a.CommentID != 0 {
+		a.Comment, _ = GetCommentByID(a.CommentID)
+	}
+	if a.Comment != nil {
+		return a.Comment.HTMLURL()
+	}
+	if len(a.GetIssueInfos()) == 0 {
+		return "#"
+	}
+	//Return link to issue
+	issueIdString := a.GetIssueInfos()[0]
+	issueId, err := strconv.ParseInt(issueIdString, 10, 64)
+
+	if err != nil {
+		return "#"
+	}
+
+	issue, err := GetIssueByID(issueId)
+
+	if err != nil {
+		return "#"
+	}
+
+	return issue.HTMLURL()
+
 }
 
 // GetBranch returns the action's repository branch.

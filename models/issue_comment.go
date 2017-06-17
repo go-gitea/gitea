@@ -318,8 +318,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		OldTitle:       opts.OldTitle,
 		NewTitle:       opts.NewTitle,
 	}
-	var commentId int64
-	if commentId, err = e.Insert(comment); err != nil {
+	if _, err = e.Insert(comment); err != nil {
 		return nil, err
 	}
 
@@ -336,7 +335,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		RepoID:    opts.Repo.ID,
 		Repo:      opts.Repo,
 		Comment:   comment,
-		CommentID: commentId,
+		CommentID: comment.ID,
 		IsPrivate: opts.Repo.IsPrivate,
 	}
 
