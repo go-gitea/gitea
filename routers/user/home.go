@@ -74,7 +74,6 @@ func retrieveFeeds(ctx *context.Context, user *models.User, includePrivate, isPr
 	if ctx.User != nil {
 		userCache[ctx.User.ID] = ctx.User
 	}
-	commentCache := map[int64]*models.Comment{}
 	repoCache := map[int64]*models.Repository{}
 	for _, act := range actions {
 		// Cache results to reduce queries.
@@ -104,19 +103,6 @@ func retrieveFeeds(ctx *context.Context, user *models.User, includePrivate, isPr
 			}
 		}
 		act.Repo = repo
-
-		comment, ok := commentCache[act.CommentID]
-		if !ok {
-			comment, err = models.GetCommentByID(act.CommentID)
-			if err != nil {
-				if models.IsErrCommentNotExist(err) {
-					continue
-				}
-				ctx.Handle(500, "GetCommentByID", err)
-				return
-			}
-		}
-		act.Comment = comment
 
 		repoOwner, ok := userCache[repo.OwnerID]
 		if !ok {
