@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getIssuesSelection(htmlDoc *HtmlDoc) *goquery.Selection {
+func getIssuesSelection(htmlDoc *HTMLDoc) *goquery.Selection {
 	return htmlDoc.doc.Find(".issue.list").Find("li").Find(".title")
 }
 
@@ -50,7 +50,7 @@ func TestNoLoginViewIssuesSortByType(t *testing.T) {
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	htmlDoc := NewHtmlParser(t, resp.Body)
+	htmlDoc := NewHTMLParser(t, resp.Body)
 	issuesSelection := getIssuesSelection(htmlDoc)
 	expectedNumIssues := models.GetCount(t,
 		&models.Issue{RepoID: repo.ID, PosterID: user.ID},

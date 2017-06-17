@@ -24,7 +24,7 @@ func TestRepoCommits(t *testing.T) {
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	doc := NewHtmlParser(t, resp.Body)
+	doc := NewHTMLParser(t, resp.Body)
 	commitURL, exists := doc.doc.Find("#commits-table tbody tr td.sha a").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
@@ -40,7 +40,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	doc := NewHtmlParser(t, resp.Body)
+	doc := NewHTMLParser(t, resp.Body)
 	// Get first commit URL
 	commitURL, exists := doc.doc.Find("#commits-table tbody tr td.sha a").Attr("href")
 	assert.True(t, exists)
@@ -64,7 +64,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	doc = NewHtmlParser(t, resp.Body)
+	doc = NewHTMLParser(t, resp.Body)
 	// Check if commit status is displayed in message column
 	sel := doc.doc.Find("#commits-table tbody tr td.message i.commit-status")
 	assert.Equal(t, sel.Length(), 1)

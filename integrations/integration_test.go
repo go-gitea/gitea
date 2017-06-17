@@ -167,7 +167,7 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	resp := MakeRequest(req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	doc := NewHtmlParser(t, resp.Body)
+	doc := NewHTMLParser(t, resp.Body)
 	req = NewRequestWithValues(t, "POST", "/user/login", map[string]string{
 		"_csrf":     doc.GetCSRF(),
 		"user_name": userName,

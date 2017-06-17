@@ -25,7 +25,7 @@ func TestChangeDefaultBranch(t *testing.T) {
 	req := NewRequest(t, "GET", branchesURL)
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
-	doc := NewHtmlParser(t, resp.Body)
+	doc := NewHTMLParser(t, resp.Body)
 
 	req = NewRequestWithValues(t, "POST", branchesURL, map[string]string{
 		"_csrf":  doc.GetCSRF(),
@@ -39,7 +39,7 @@ func TestChangeDefaultBranch(t *testing.T) {
 	req = NewRequest(t, "GET", branchesURL)
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
-	doc = NewHtmlParser(t, resp.Body)
+	doc = NewHTMLParser(t, resp.Body)
 
 	req = NewRequestWithValues(t, "POST", branchesURL, map[string]string{
 		"_csrf":  doc.GetInputValueByName("_csrf"),
