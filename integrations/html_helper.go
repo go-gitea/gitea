@@ -16,7 +16,7 @@ type HtmlDoc struct {
 	doc *goquery.Document
 }
 
-func NewHtmlParser(t *testing.T, content []byte) *HtmlDoc {
+func NewHtmlParser(t testing.TB, content []byte) *HtmlDoc {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(content))
 	assert.NoError(t, err)
 	return &HtmlDoc{doc: doc}

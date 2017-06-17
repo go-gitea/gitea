@@ -116,7 +116,7 @@ func initIntegrationTest() {
 	routers.GlobalInit()
 }
 
-func prepareTestEnv(t *testing.T) {
+func prepareTestEnv(t testing.TB) {
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll("integrations/gitea-integration"))
 	assert.NoError(t, com.CopyDir("integrations/gitea-integration-meta", "integrations/gitea-integration"))
@@ -140,7 +140,7 @@ func (s *TestSession) GetCookie(name string) *http.Cookie {
 	return nil
 }
 
-func (s *TestSession) MakeRequest(t *testing.T, req *http.Request) *TestResponse {
+func (s *TestSession) MakeRequest(t testing.TB, req *http.Request) *TestResponse {
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
@@ -158,11 +158,11 @@ func (s *TestSession) MakeRequest(t *testing.T, req *http.Request) *TestResponse
 
 const userPassword = "password"
 
-func loginUser(t *testing.T, userName string) *TestSession {
+func loginUser(t testing.TB, userName string) *TestSession {
 	return loginUserWithPassword(t, userName, userPassword)
 }
 
-func loginUserWithPassword(t *testing.T, userName, password string) *TestSession {
+func loginUserWithPassword(t testing.TB, userName, password string) *TestSession {
 	req := NewRequest(t, "GET", "/user/login")
 	resp := MakeRequest(req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
@@ -214,11 +214,11 @@ type TestResponse struct {
 	Headers    http.Header
 }
 
-func NewRequest(t *testing.T, method, urlStr string) *http.Request {
+func NewRequest(t testing.TB, method, urlStr string) *http.Request {
 	return NewRequestWithBody(t, method, urlStr, nil)
 }
 
-func NewRequestWithValues(t *testing.T, method, urlStr string, values map[string]string) *http.Request {
+func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string]string) *http.Request {
 	urlValues := url.Values{}
 	for key, value := range values {
 		urlValues[key] = []string{value}
@@ -226,13 +226,13 @@ func NewRequestWithValues(t *testing.T, method, urlStr string, values map[string
 	return NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode()))
 }
 
-func NewRequestWithJSON(t *testing.T, method, urlStr string, v interface{}) *http.Request {
+func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
 	jsonBytes, err := json.Marshal(v)
 	assert.NoError(t, err)
 	return NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
 }
 
-func NewRequestWithBody(t *testing.T, method, urlStr string, body io.Reader) *http.Request {
+func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *http.Request {
 	request, err := http.NewRequest(method, urlStr, body)
 	assert.NoError(t, err)
 	request.RequestURI = urlStr
