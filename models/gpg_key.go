@@ -211,9 +211,9 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 	emails := make([]*EmailAddress, len(e.Identities))
 	n := 0
 	for _, ident := range e.Identities {
-
+		email := strings.ToLower(strings.TrimSpace(ident.UserId.Email))
 		for _, e := range userEmails {
-			if e.Email == ident.UserId.Email && e.IsActivated {
+			if e.Email == email && e.IsActivated {
 				emails[n] = e
 				break
 			}
