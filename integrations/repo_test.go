@@ -22,7 +22,7 @@ func TestViewRepo(t *testing.T) {
 	resp = MakeRequest(req)
 	assert.EqualValues(t, http.StatusNotFound, resp.HeaderCode)
 
-	session := loginUser(t, "user1", "password")
+	session := loginUser(t, "user1")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusNotFound, resp.HeaderCode)
 }
@@ -31,7 +31,7 @@ func TestViewRepo2(t *testing.T) {
 	prepareTestEnv(t)
 
 	req := NewRequest(t, "GET", "/user3/repo3")
-	session := loginUser(t, "user2", "password")
+	session := loginUser(t, "user2")
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }
@@ -40,7 +40,7 @@ func TestViewRepo3(t *testing.T) {
 	prepareTestEnv(t)
 
 	req := NewRequest(t, "GET", "/user3/repo3")
-	session := loginUser(t, "user3", "password")
+	session := loginUser(t, "user3")
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }

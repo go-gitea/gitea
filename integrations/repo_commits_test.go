@@ -5,10 +5,11 @@
 package integrations
 
 import (
-	"bytes"
 	"net/http"
 	"path"
 	"testing"
+
+	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -16,15 +17,14 @@ import (
 func TestRepoCommits(t *testing.T) {
 	prepareTestEnv(t)
 
-	session := loginUser(t, "user2", "password")
+	session := loginUser(t, "user2")
 
 	// Request repository commits page
 	req := NewRequest(t, "GET", "/user2/repo1/commits/master")
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	doc, err := NewHtmlParser(resp.Body)
-	assert.NoError(t, err)
+	doc := NewHtmlParser(t, resp.Body)
 	commitURL, exists := doc.doc.Find("#commits-table tbody tr td.sha a").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
@@ -33,23 +33,28 @@ func TestRepoCommits(t *testing.T) {
 func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	prepareTestEnv(t)
 
-	session := loginUser(t, "user2", "password")
+	session := loginUser(t, "user2")
 
 	// Request repository commits page
 	req := NewRequest(t, "GET", "/user2/repo1/commits/master")
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	doc, err := NewHtmlParser(resp.Body)
-	assert.NoError(t, err)
+	doc := NewHtmlParser(t, resp.Body)
 	// Get first commit URL
 	commitURL, exists := doc.doc.Find("#commits-table tbody tr td.sha a").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
 
 	// Call API to add status for commit
-	req = NewRequestBody(t, "POST", "/api/v1/repos/user2/repo1/statuses/"+path.Base(commitURL),
-		bytes.NewBufferString("{\"state\":\""+state+"\", \"target_url\": \"http://test.ci/\", \"description\": \"\", \"context\": \"testci\"}"))
+	req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/statuses/"+path.Base(commitURL),
+		api.CreateStatusOption{
+			State:       api.StatusState(state),
+			TargetURL:   "http://test.ci/",
+			Description: "",
+			Context:     "testci",
+		},
+	)
 
 	req.Header.Add("Content-Type", "application/json")
 	resp = session.MakeRequest(t, req)
@@ -59,8 +64,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	doc, err = NewHtmlParser(resp.Body)
-	assert.NoError(t, err)
+	doc = NewHtmlParser(t, resp.Body)
 	// Check if commit status is displayed in message column
 	sel := doc.doc.Find("#commits-table tbody tr td.message i.commit-status")
 	assert.Equal(t, sel.Length(), 1)

@@ -45,13 +45,12 @@ func TestNoLoginViewIssuesSortByType(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	repo.Owner = models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
-	session := loginUser(t, user.Name, "password")
+	session := loginUser(t, user.Name)
 	req := NewRequest(t, "GET", repo.RelLink()+"/issues?type=created_by")
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	htmlDoc, err := NewHtmlParser(resp.Body)
-	assert.NoError(t, err)
+	htmlDoc := NewHtmlParser(t, resp.Body)
 	issuesSelection := getIssuesSelection(htmlDoc)
 	expectedNumIssues := models.GetCount(t,
 		&models.Issue{RepoID: repo.ID, PosterID: user.ID},
