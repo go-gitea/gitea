@@ -13,9 +13,8 @@ import (
 func addCommentIdToAction(x *xorm.Engine) error {
 	// Action see models/action.go
 	type Action struct {
-		CommentID   int64 `xorm:"INDEX"`
+		CommentID int64 `xorm:"INDEX"`
 	}
-
 
 	if err := x.Sync2(new(Action)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)

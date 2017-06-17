@@ -78,8 +78,8 @@ type Action struct {
 	ActUser     *User       `xorm:"-"`
 	RepoID      int64       `xorm:"INDEX"`
 	Repo        *Repository `xorm:"-"`
-	CommentID   int64	`xorm:"INDEX"`
-	Comment     *Comment	`xorm:"-"`
+	CommentID   int64       `xorm:"INDEX"`
+	Comment     *Comment    `xorm:"-"`
 	RefName     string
 	IsPrivate   bool      `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content     string    `xorm:"TEXT"`
