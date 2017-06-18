@@ -115,7 +115,6 @@ func retrieveFeeds(ctx *context.Context, user *models.User, includePrivate, isPr
 				return
 			}
 		}
-
 		repo.Owner = repoOwner
 	}
 	ctx.Data["Feeds"] = actions
