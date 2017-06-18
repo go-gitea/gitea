@@ -252,3 +252,8 @@ func MakeRequest(req *http.Request) *TestResponse {
 		Headers:    respWriter.Headers,
 	}
 }
+
+func DecodeJSON(t testing.TB, resp *TestResponse, v interface{}) {
+	decoder := json.NewDecoder(bytes.NewBuffer(resp.Body))
+	assert.NoError(t, decoder.Decode(v))
+}
