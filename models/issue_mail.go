@@ -71,6 +71,15 @@ func mailIssueCommentToParticipants(issue *Issue, doer *User, comment *Comment, 
 		names = append(names, participants[i].Name)
 	}
 
+	// Assignee must receive any communications
+	to, err := GetUserByID(issue.AssigneeID)
+	if err != nil {
+		return fmt.Errorf("GetUserByID [%d]: %v", issue.AssigneeID, err)
+	}
+
+	tos = append(tos, to.Email)
+	names = append(names, to.Name)
+
 	SendIssueCommentMail(issue, doer, comment, tos)
 
 	// Mail mentioned people and exclude watchers.
