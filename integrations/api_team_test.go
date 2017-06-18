@@ -5,8 +5,6 @@
 package integrations
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -30,8 +28,7 @@ func TestAPITeam(t *testing.T) {
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
 	var apiTeam api.Team
-	decoder := json.NewDecoder(bytes.NewBuffer(resp.Body))
-	assert.NoError(t, decoder.Decode(&apiTeam))
+	DecodeJSON(t, resp, &apiTeam)
 	assert.EqualValues(t, team.ID, apiTeam.ID)
 	assert.Equal(t, team.Name, apiTeam.Name)
 }
