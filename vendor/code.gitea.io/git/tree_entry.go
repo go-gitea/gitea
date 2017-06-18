@@ -5,6 +5,7 @@
 package git
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -253,6 +254,12 @@ func getNextCommitInfos(state *getCommitInfoState) error {
 			path := lines[i]
 			if path == "" {
 				break
+			}
+			if path[0] == '"' {
+				path, err = strconv.Unquote(path)
+				if err != nil {
+					return fmt.Errorf("Unquote: %v", err)
+				}
 			}
 			state.update(path)
 		}
