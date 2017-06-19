@@ -328,7 +328,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 		return fmt.Errorf("git push: %s", stderr)
 	}
 
-	pr.MergedCommitID, err = headGitRepo.GetBranchCommitID(pr.BaseBranch)
+	pr.MergedCommitID, err = baseGitRepo.GetBranchCommitID(pr.BaseBranch)
 	if err != nil {
 		return fmt.Errorf("GetBranchCommit: %v", err)
 	}
