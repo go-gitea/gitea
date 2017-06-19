@@ -284,8 +284,8 @@ func logCommand(exclusiveStartHash string, state *getCommitInfoState) *Command {
 		searchSize := (numRemainingEntries + 1) / 2
 		command = NewCommand("log", prettyLogFormat, "--name-only",
 			"-"+strconv.Itoa(searchSize), commitHash, "--")
-		for path, entry := range state.entries {
-			if _, ok := state.commits[entry.Name()]; !ok {
+		for path := range state.entries {
+			if _, ok := state.commits[path]; !ok {
 				command.AddArguments(path)
 			}
 		}
