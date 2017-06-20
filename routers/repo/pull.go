@@ -256,8 +256,6 @@ func ViewPullCommits(ctx *context.Context) {
 		return
 	}
 	pull := issue.PullRequest
-	ctx.Data["Username"] = pull.HeadUserName
-	ctx.Data["Reponame"] = pull.HeadRepo.Name
 
 	var commits *list.List
 	if pull.HasMerged {
@@ -265,6 +263,9 @@ func ViewPullCommits(ctx *context.Context) {
 		if ctx.Written() {
 			return
 		}
+		ctx.Data["Username"] = ctx.Repo.Owner.Name
+		ctx.Data["Reponame"] = ctx.Repo.Repository.Name
+
 		startCommit, err := ctx.Repo.GitRepo.GetCommit(pull.MergeBase)
 		if err != nil {
 			ctx.Handle(500, "Repo.GitRepo.GetCommit", err)
@@ -280,7 +281,6 @@ func ViewPullCommits(ctx *context.Context) {
 			ctx.Handle(500, "Repo.GitRepo.CommitsBetween", err)
 			return
 		}
-
 	} else {
 		prInfo := PrepareViewPullInfo(ctx, issue)
 		if ctx.Written() {
@@ -289,6 +289,8 @@ func ViewPullCommits(ctx *context.Context) {
 			ctx.Handle(404, "ViewPullCommits", nil)
 			return
 		}
+		ctx.Data["Username"] = pull.HeadUserName
+		ctx.Data["Reponame"] = pull.HeadRepo.Name
 		commits = prInfo.Commits
 	}
 
@@ -319,6 +321,7 @@ func ViewPullFiles(ctx *context.Context) {
 		gitRepo       *git.Repository
 	)
 
+	var headTarget string
 	if pull.HasMerged {
 		PrepareMergedViewPullInfo(ctx, issue)
 		if ctx.Written() {
@@ -329,6 +332,10 @@ func ViewPullFiles(ctx *context.Context) {
 		startCommitID = pull.MergeBase
 		endCommitID = pull.MergedCommitID
 		gitRepo = ctx.Repo.GitRepo
+
+		headTarget = path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+		ctx.Data["Username"] = ctx.Repo.Owner.Name
+		ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	} else {
 		prInfo := PrepareViewPullInfo(ctx, issue)
 		if ctx.Written() {
@@ -356,6 +363,10 @@ func ViewPullFiles(ctx *context.Context) {
 		startCommitID = prInfo.MergeBase
 		endCommitID = headCommitID
 		gitRepo = headGitRepo
+
+		headTarget = path.Join(pull.HeadUserName, pull.HeadRepo.Name)
+		ctx.Data["Username"] = pull.HeadUserName
+		ctx.Data["Reponame"] = pull.HeadRepo.Name
 	}
 
 	diff, err := models.GetDiffRange(diffRepoPath,
@@ -374,9 +385,6 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	headTarget := path.Join(pull.HeadUserName, pull.HeadRepo.Name)
-	ctx.Data["Username"] = pull.HeadUserName
-	ctx.Data["Reponame"] = pull.HeadRepo.Name
 	ctx.Data["IsImageFile"] = commit.IsImageFile
 	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", endCommitID)
 	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", startCommitID)
