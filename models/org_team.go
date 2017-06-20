@@ -119,7 +119,7 @@ func (t *Team) AddRepository(repo *Repository) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func (t *Team) RemoveRepository(repoID int64) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -309,7 +309,7 @@ func UpdateTeam(t *Team, authChanged bool) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -354,7 +354,7 @@ func DeleteTeam(t *Team) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -482,7 +482,7 @@ func AddTeamMember(team *Team, userID int64) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -584,7 +584,7 @@ func removeTeamMember(e Engine, team *Team, userID int64) error {
 // RemoveTeamMember removes member from given team of given organization.
 func RemoveTeamMember(team *Team, userID int64) error {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}

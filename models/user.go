@@ -436,7 +436,7 @@ func (u *User) UploadAvatar(data []byte) error {
 	m := resize.Resize(avatar.AvatarSize, avatar.AvatarSize, img, resize.NearestNeighbor)
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -715,7 +715,7 @@ func CreateUser(u *User) (err error) {
 	u.MaxRepoCreation = -1
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -1033,7 +1033,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 // but issues/comments/pulls will be kept and shown as someone has been deleted.
 func DeleteUser(u *User) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}

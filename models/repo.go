@@ -1271,7 +1271,7 @@ func CreateRepository(u *User, opts CreateRepoOptions) (_ *Repository, err error
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -1355,7 +1355,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return fmt.Errorf("sess.Begin: %v", err)
 	}
@@ -1580,7 +1580,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 // UpdateRepository updates a repository
 func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -1625,7 +1625,7 @@ func DeleteRepository(uid, repoID int64) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -2240,7 +2240,7 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -2284,7 +2284,7 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 
 	// Copy LFS meta objects in new session
 	sess2 := x.NewSession()
-	defer sessionRelease(sess2)
+	defer sess2.Close()
 	if err = sess2.Begin(); err != nil {
 		return nil, err
 	}

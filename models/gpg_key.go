@@ -127,7 +127,7 @@ func AddGPGKey(ownerID int64, content string) (*GPGKey, error) {
 
 	//Get DB session
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -267,7 +267,7 @@ func DeleteGPGKey(doer *User, id int64) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}

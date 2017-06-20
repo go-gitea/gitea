@@ -502,7 +502,7 @@ type CreateCommentOptions struct {
 // CreateComment creates comment of issue or commit.
 func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -620,7 +620,7 @@ func UpdateComment(c *Comment) error {
 // DeleteComment deletes the comment
 func DeleteComment(comment *Comment) error {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
