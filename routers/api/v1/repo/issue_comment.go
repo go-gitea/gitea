@@ -27,7 +27,11 @@ func ListIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	comments, err := models.GetCommentsByIssueIDSince(issue.ID, since.Unix())
+	comments, err := models.FindComments(models.FindCommentsOptions{
+		IssueID: issue.ID,
+		Since:   since.Unix(),
+		Type:    models.CommentTypeComment,
+	})
 	if err != nil {
 		ctx.Error(500, "GetCommentsByIssueIDSince", err)
 		return
@@ -47,7 +51,11 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		since, _ = time.Parse(time.RFC3339, ctx.Query("since"))
 	}
 
-	comments, err := models.GetCommentsByRepoIDSince(ctx.Repo.Repository.ID, since.Unix())
+	comments, err := models.FindComments(models.FindCommentsOptions{
+		RepoID: ctx.Repo.Repository.ID,
+		Since:  since.Unix(),
+		Type:   models.CommentTypeComment,
+	})
 	if err != nil {
 		ctx.Error(500, "GetCommentsByRepoIDSince", err)
 		return
