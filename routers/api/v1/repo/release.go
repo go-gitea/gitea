@@ -34,7 +34,7 @@ func GetRelease(ctx *context.APIContext) {
 
 // ListReleases list a repository's releases
 func ListReleases(ctx *context.APIContext) {
-	releases, _, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, 1, 2147483647)
+	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, 1, 2147483647)
 	if err != nil {
 		ctx.Error(500, "GetReleasesByRepoID", err)
 		return

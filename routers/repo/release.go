@@ -65,9 +65,15 @@ func Releases(ctx *context.Context) {
 		limit = 10
 	}
 
-	releases, count, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, page, limit)
+	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, page, limit)
 	if err != nil {
 		ctx.Handle(500, "GetReleasesByRepoIDAndNames", err)
+		return
+	}
+
+	count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.Handle(500, "GetReleaseCountByRepoIDAndNames", err)
 		return
 	}
 

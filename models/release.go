@@ -233,7 +233,7 @@ func GetReleaseByID(id int64) (*Release, error) {
 }
 
 // GetReleasesByRepoID returns a list of releases of repository.
-func GetReleasesByRepoID(repoID int64, page, pageSize int) (rels []*Release, count int64, err error) {
+func GetReleasesByRepoID(repoID int64, page, pageSize int) (rels []*Release, err error) {
 	if page <= 0 {
 		page = 1
 	}
@@ -241,12 +241,14 @@ func GetReleasesByRepoID(repoID int64, page, pageSize int) (rels []*Release, cou
 		Desc("created_unix").
 		Limit(pageSize, (page-1)*pageSize).
 		Find(&rels, Release{RepoID: repoID})
-	if err != nil {
-		return rels, 0, err
-	}
-	count, err = x.Where("repo_id = ?", repoID).Count(new(Release))
 
-	return rels, count, err
+	return rels, err
+}
+
+func GetReleaseCountByRepoID(repoID int64) (total int64, err error) {
+	count, err := x.Where("repo_id = ?", repoID).Count(&Release{})
+
+	return count, err
 }
 
 // GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
