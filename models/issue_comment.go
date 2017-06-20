@@ -588,7 +588,7 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
 	}
 	if opts.IssueID > 0 {
-		cond = cond.And(builder.Eq{"issue.id": opts.IssueID})
+		cond = cond.And(builder.Eq{"comment.issue_id": opts.IssueID})
 	}
 	if opts.Since > 0 {
 		cond = cond.And(builder.Gte{"comment.updated_unix": opts.Since})
@@ -601,8 +601,11 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 
 func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 	comments := make([]*Comment, 0, 10)
-	return comments, e.Join("INNER", "issue", "issue.id = comment.issue_id").
-		Where(opts.toConds()).
+	sess := e.Where(opts.toConds())
+	if opts.RepoID > 0 {
+		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
+	}
+	return comments, sess.
 		Asc("comment.created_unix").
 		Find(&comments)
 }
