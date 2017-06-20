@@ -593,7 +593,7 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	if opts.Since > 0 {
 		cond = cond.And(builder.Gte{"comment.updated_unix": opts.Since})
 	}
-	if opts.Type > -1 {
+	if opts.Type != CommentTypeUnknown {
 		cond = cond.And(builder.Eq{"comment.type": opts.Type})
 	}
 	return cond
