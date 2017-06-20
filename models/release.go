@@ -241,7 +241,6 @@ func GetReleasesByRepoID(repoID int64, page, pageSize int) (rels []*Release, err
 		Desc("created_unix").
 		Limit(pageSize, (page-1)*pageSize).
 		Find(&rels, Release{RepoID: repoID})
-
 	return rels, err
 }
 
