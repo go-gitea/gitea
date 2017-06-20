@@ -784,6 +784,10 @@ func CleanUpPullRequest(ctx *context.Context) {
 	if err = pr.GetHeadRepo(); err != nil {
 		ctx.Handle(500, "GetHeadRepo", err)
 		return
+	} else if pr.HeadRepo == nil {
+		// Forked repository has already been deleted
+		ctx.Handle(404, "CleanUpPullRequest", nil)
+		return
 	} else if pr.GetBaseRepo(); err != nil {
 		ctx.Handle(500, "GetBaseRepo", err)
 		return

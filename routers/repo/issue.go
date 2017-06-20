@@ -650,7 +650,7 @@ func ViewIssue(ctx *context.Context) {
 		if ctx.IsSigned {
 			if err := pull.GetHeadRepo(); err != nil {
 				log.Error(4, "GetHeadRepo: %v", err)
-			} else if pull.HeadBranch != pull.HeadRepo.DefaultBranch && ctx.User.IsWriterOfRepo(pull.HeadRepo) {
+			} else if pull.HeadRepo != nil && pull.HeadBranch != pull.HeadRepo.DefaultBranch && ctx.User.IsWriterOfRepo(pull.HeadRepo) {
 				// Check if branch is not protected
 				if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch); err != nil {
 					log.Error(4, "IsProtectedBranch: %v", err)
@@ -661,7 +661,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 		}
 
-		ctx.Data["IsPullBranchDeletable"] = canDelete && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
+		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 	}
 
 	ctx.Data["Participants"] = participants
