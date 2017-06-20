@@ -788,7 +788,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		ctx.Handle(500, "GetBaseRepo", err)
 		return
 	} else if pr.HeadRepo.GetOwner(); err != nil {
-		ctx.Handle(500, "GetOwner", err)
+		ctx.Handle(500, "HeadRepo.GetOwner", err)
 		return
 	}
 
@@ -818,6 +818,15 @@ func CleanUpPullRequest(ctx *context.Context) {
 	}()
 
 	if pr.HeadBranch == pr.HeadRepo.DefaultBranch || !gitRepo.IsBranchExist(pr.HeadBranch) {
+		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+		return
+	}
+
+	// Check if branch is not protected
+	if protected, err := pr.HeadRepo.IsProtectedBranch(pr.HeadBranch); err != nil || protected {
+		if err != nil {
+			log.Error(4, "HeadRepo.IsProtectedBranch: %v", err)
+		}
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
 	}

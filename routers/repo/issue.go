@@ -651,8 +651,13 @@ func ViewIssue(ctx *context.Context) {
 			if err := pull.GetHeadRepo(); err != nil {
 				log.Error(4, "GetHeadRepo: %v", err)
 			} else if pull.HeadBranch != pull.HeadRepo.DefaultBranch && ctx.User.IsWriterOfRepo(pull.HeadRepo) {
-				canDelete = true
-				ctx.Data["DeleteBranchLink"] = ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index) + "/cleanup"
+				// Check if branch is not protected
+				if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch); err != nil {
+					log.Error(4, "IsProtectedBranch: %v", err)
+				} else if !protected {
+					canDelete = true
+					ctx.Data["DeleteBranchLink"] = ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index) + "/cleanup"
+				}
 			}
 		}
 
