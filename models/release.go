@@ -244,6 +244,7 @@ func GetReleasesByRepoID(repoID int64, page, pageSize int) (rels []*Release, err
 	return rels, err
 }
 
+// GetReleaseCountByRepoID returns the count of releases of repository
 func GetReleaseCountByRepoID(repoID int64) (total int64, err error) {
 	count, err := x.Where("repo_id = ?", repoID).Count(&Release{})
 
