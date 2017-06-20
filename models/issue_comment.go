@@ -10,13 +10,13 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 
 	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markdown"
-	"github.com/go-xorm/builder"
 )
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
