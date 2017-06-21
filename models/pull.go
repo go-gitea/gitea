@@ -406,7 +406,7 @@ func (pr *PullRequest) setMerged() (err error) {
 	pr.HasMerged = true
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -602,7 +602,7 @@ func (pr *PullRequest) testPatch() (err error) {
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}

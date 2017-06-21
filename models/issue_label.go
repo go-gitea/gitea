@@ -223,7 +223,7 @@ func DeleteLabel(repoID, labelID int64) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -298,7 +298,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -327,7 +327,7 @@ func newIssueLabels(e *xorm.Session, issue *Issue, labels []*Label, doer *User) 
 // NewIssueLabels creates a list of issue-label relations.
 func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -375,7 +375,7 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 // DeleteIssueLabel deletes issue-label relation.
 func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}

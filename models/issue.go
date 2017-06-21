@@ -406,7 +406,7 @@ func (issue *Issue) clearLabels(e *xorm.Session, doer *User) (err error) {
 // Triggers appropriate WebHooks, if any.
 func (issue *Issue) ClearLabels(doer *User) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -470,7 +470,7 @@ func (ts labelSorter) Swap(i, j int) {
 // Triggers appropriate WebHooks, if any.
 func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -598,7 +598,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 // ChangeStatus changes issue status to open or closed.
 func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -899,7 +899,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 // NewIssue creates new issue with labels for repository.
 func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}

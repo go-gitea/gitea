@@ -104,7 +104,7 @@ func (m *Milestone) APIFormat() *api.Milestone {
 // NewMilestone creates new milestone of repository.
 func NewMilestone(m *Milestone) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -215,7 +215,7 @@ func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -330,7 +330,7 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
