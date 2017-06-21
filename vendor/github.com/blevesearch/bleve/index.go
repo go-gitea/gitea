@@ -49,6 +49,17 @@ func (b *Batch) Index(id string, data interface{}) error {
 	return nil
 }
 
+// IndexAdvanced adds the specified index operation to the
+// batch which skips the mapping.  NOTE: the bleve Index is not updated
+// until the batch is executed.
+func (b *Batch) IndexAdvanced(doc *document.Document) (err error) {
+	if doc.ID == "" {
+		return ErrorEmptyID
+	}
+	b.internal.Update(doc)
+	return nil
+}
+
 // Delete adds the specified delete operation to the
 // batch.  NOTE: the bleve Index is not updated until
 // the batch is executed.
@@ -99,12 +110,15 @@ func (b *Batch) Reset() {
 // them.
 //
 // The DocumentMapping used to index a value is deduced by the following rules:
-// 1) If value implements Classifier interface, resolve the mapping from Type().
-// 2) If value has a string field or value at IndexMapping.TypeField.
+// 1) If value implements mapping.bleveClassifier interface, resolve the mapping
+//    from BleveType().
+// 2) If value implements mapping.Classifier interface, resolve the mapping
+//    from Type().
+// 3) If value has a string field or value at IndexMapping.TypeField.
 // (defaulting to "_type"), use it to resolve the mapping. Fields addressing
 // is described below.
-// 3) If IndexMapping.DefaultType is registered, return it.
-// 4) Return IndexMapping.DefaultMapping.
+// 4) If IndexMapping.DefaultType is registered, return it.
+// 5) Return IndexMapping.DefaultMapping.
 //
 // Each field or nested field of the value is identified by a string path, then
 // mapped to one or several FieldMappings which extract the result for analysis.

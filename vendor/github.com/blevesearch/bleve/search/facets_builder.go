@@ -21,7 +21,10 @@ import (
 )
 
 type FacetBuilder interface {
-	Update(index.FieldTerms)
+	StartDoc()
+	UpdateVisitor(field string, term []byte)
+	EndDoc()
+
 	Result() *FacetResult
 	Field() string
 }
@@ -41,33 +44,29 @@ func NewFacetsBuilder(indexReader index.IndexReader) *FacetsBuilder {
 
 func (fb *FacetsBuilder) Add(name string, facetBuilder FacetBuilder) {
 	fb.facets[name] = facetBuilder
+	fb.fields = append(fb.fields, facetBuilder.Field())
 }
 
-func (fb *FacetsBuilder) Update(docMatch *DocumentMatch) error {
-	if fb.fields == nil {
-		for _, facetBuilder := range fb.facets {
-			fb.fields = append(fb.fields, facetBuilder.Field())
-		}
-	}
+func (fb *FacetsBuilder) RequiredFields() []string {
+	return fb.fields
+}
 
-	if len(fb.fields) > 0 {
-		// find out which fields haven't been loaded yet
-		fieldsToLoad := docMatch.CachedFieldTerms.FieldsNotYetCached(fb.fields)
-		// look them up
-		fieldTerms, err := fb.indexReader.DocumentFieldTerms(docMatch.IndexInternalID, fieldsToLoad)
-		if err != nil {
-			return err
-		}
-		// cache these as well
-		if docMatch.CachedFieldTerms == nil {
-			docMatch.CachedFieldTerms = make(map[string][]string)
-		}
-		docMatch.CachedFieldTerms.Merge(fieldTerms)
-	}
+func (fb *FacetsBuilder) StartDoc() {
 	for _, facetBuilder := range fb.facets {
-		facetBuilder.Update(docMatch.CachedFieldTerms)
+		facetBuilder.StartDoc()
 	}
-	return nil
+}
+
+func (fb *FacetsBuilder) EndDoc() {
+	for _, facetBuilder := range fb.facets {
+		facetBuilder.EndDoc()
+	}
+}
+
+func (fb *FacetsBuilder) UpdateVisitor(field string, term []byte) {
+	for _, facetBuilder := range fb.facets {
+		facetBuilder.UpdateVisitor(field, term)
+	}
 }
 
 type TermFacet struct {

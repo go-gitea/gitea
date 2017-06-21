@@ -520,7 +520,14 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 		return nil, err
 	}
 
-	return comment, sess.Commit()
+	if err = sess.Commit(); err != nil {
+		return nil, err
+	}
+
+	if opts.Type == CommentTypeComment {
+		UpdateIssueIndexer(opts.Issue.ID)
+	}
+	return comment, nil
 }
 
 // CreateIssueComment creates a plain issue comment.
@@ -645,8 +652,12 @@ func GetCommentsByRepoIDSince(repoID, since int64) ([]*Comment, error) {
 
 // UpdateComment updates information of comment.
 func UpdateComment(c *Comment) error {
-	_, err := x.Id(c.ID).AllCols().Update(c)
-	return err
+	if _, err := x.Id(c.ID).AllCols().Update(c); err != nil {
+		return err
+	} else if c.Type == CommentTypeComment {
+		UpdateIssueIndexer(c.IssueID)
+	}
+	return nil
 }
 
 // DeleteComment deletes the comment
@@ -672,5 +683,10 @@ func DeleteComment(comment *Comment) error {
 		return err
 	}
 
-	return sess.Commit()
+	if err := sess.Commit(); err != nil {
+		return err
+	} else if comment.Type == CommentTypeComment {
+		UpdateIssueIndexer(comment.IssueID)
+	}
+	return nil
 }

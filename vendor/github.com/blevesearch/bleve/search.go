@@ -20,9 +20,15 @@ import (
 	"time"
 
 	"github.com/blevesearch/bleve/analysis"
+	"github.com/blevesearch/bleve/analysis/datetime/optional"
+	"github.com/blevesearch/bleve/registry"
 	"github.com/blevesearch/bleve/search"
 	"github.com/blevesearch/bleve/search/query"
 )
+
+var cache = registry.NewCache()
+
+const defaultDateTimeParser = optional.Name
 
 type numericRange struct {
 	Name string   `json:"name,omitempty"`
@@ -105,26 +111,41 @@ type FacetRequest struct {
 }
 
 func (fr *FacetRequest) Validate() error {
-	if len(fr.NumericRanges) > 0 && len(fr.DateTimeRanges) > 0 {
+	nrCount := len(fr.NumericRanges)
+	drCount := len(fr.DateTimeRanges)
+	if nrCount > 0 && drCount > 0 {
 		return fmt.Errorf("facet can only conain numeric ranges or date ranges, not both")
 	}
 
-	nrNames := map[string]interface{}{}
-	for _, nr := range fr.NumericRanges {
-		if _, ok := nrNames[nr.Name]; ok {
-			return fmt.Errorf("numeric ranges contains duplicate name '%s'", nr.Name)
+	if nrCount > 0 {
+		nrNames := map[string]interface{}{}
+		for _, nr := range fr.NumericRanges {
+			if _, ok := nrNames[nr.Name]; ok {
+				return fmt.Errorf("numeric ranges contains duplicate name '%s'", nr.Name)
+			}
+			nrNames[nr.Name] = struct{}{}
+			if nr.Min == nil && nr.Max == nil {
+				return fmt.Errorf("numeric range query must specify either min, max or both for range name '%s'", nr.Name)
+			}
 		}
-		nrNames[nr.Name] = struct{}{}
-	}
 
-	drNames := map[string]interface{}{}
-	for _, dr := range fr.DateTimeRanges {
-		if _, ok := drNames[dr.Name]; ok {
-			return fmt.Errorf("date ranges contains duplicate name '%s'", dr.Name)
+	} else {
+		dateTimeParser, err := cache.DateTimeParserNamed(defaultDateTimeParser)
+		if err != nil {
+			return err
 		}
-		drNames[dr.Name] = struct{}{}
+		drNames := map[string]interface{}{}
+		for _, dr := range fr.DateTimeRanges {
+			if _, ok := drNames[dr.Name]; ok {
+				return fmt.Errorf("date ranges contains duplicate name '%s'", dr.Name)
+			}
+			drNames[dr.Name] = struct{}{}
+			start, end := dr.ParseDates(dateTimeParser)
+			if start.IsZero() && end.IsZero() {
+				return fmt.Errorf("date range query must specify either start, end or both for range name '%s'", dr.Name)
+			}
+		}
 	}
-
 	return nil
 }
 
@@ -147,6 +168,16 @@ func (fr *FacetRequest) AddDateTimeRange(name string, start, end time.Time) {
 		fr.DateTimeRanges = make([]*dateTimeRange, 0, 1)
 	}
 	fr.DateTimeRanges = append(fr.DateTimeRanges, &dateTimeRange{Name: name, Start: start, End: end})
+}
+
+// AddDateTimeRangeString adds a bucket to a field
+// containing date values.
+func (fr *FacetRequest) AddDateTimeRangeString(name string, start, end *string) {
+	if fr.DateTimeRanges == nil {
+		fr.DateTimeRanges = make([]*dateTimeRange, 0, 1)
+	}
+	fr.DateTimeRanges = append(fr.DateTimeRanges,
+		&dateTimeRange{Name: name, startString: start, endString: end})
 }
 
 // AddNumericRange adds a bucket to a field
@@ -219,14 +250,15 @@ func (h *HighlightRequest) AddField(field string) {
 //
 // A special field named "*" can be used to return all fields.
 type SearchRequest struct {
-	Query     query.Query       `json:"query"`
-	Size      int               `json:"size"`
-	From      int               `json:"from"`
-	Highlight *HighlightRequest `json:"highlight"`
-	Fields    []string          `json:"fields"`
-	Facets    FacetsRequest     `json:"facets"`
-	Explain   bool              `json:"explain"`
-	Sort      search.SortOrder  `json:"sort"`
+	Query            query.Query       `json:"query"`
+	Size             int               `json:"size"`
+	From             int               `json:"from"`
+	Highlight        *HighlightRequest `json:"highlight"`
+	Fields           []string          `json:"fields"`
+	Facets           FacetsRequest     `json:"facets"`
+	Explain          bool              `json:"explain"`
+	Sort             search.SortOrder  `json:"sort"`
+	IncludeLocations bool              `json:"includeLocations"`
 }
 
 func (r *SearchRequest) Validate() error {
@@ -267,14 +299,15 @@ func (r *SearchRequest) SortByCustom(order search.SortOrder) {
 // a SearchRequest
 func (r *SearchRequest) UnmarshalJSON(input []byte) error {
 	var temp struct {
-		Q         json.RawMessage   `json:"query"`
-		Size      *int              `json:"size"`
-		From      int               `json:"from"`
-		Highlight *HighlightRequest `json:"highlight"`
-		Fields    []string          `json:"fields"`
-		Facets    FacetsRequest     `json:"facets"`
-		Explain   bool              `json:"explain"`
-		Sort      []json.RawMessage `json:"sort"`
+		Q                json.RawMessage   `json:"query"`
+		Size             *int              `json:"size"`
+		From             int               `json:"from"`
+		Highlight        *HighlightRequest `json:"highlight"`
+		Fields           []string          `json:"fields"`
+		Facets           FacetsRequest     `json:"facets"`
+		Explain          bool              `json:"explain"`
+		Sort             []json.RawMessage `json:"sort"`
+		IncludeLocations bool              `json:"includeLocations"`
 	}
 
 	err := json.Unmarshal(input, &temp)
@@ -300,6 +333,7 @@ func (r *SearchRequest) UnmarshalJSON(input []byte) error {
 	r.Highlight = temp.Highlight
 	r.Fields = temp.Fields
 	r.Facets = temp.Facets
+	r.IncludeLocations = temp.IncludeLocations
 	r.Query, err = query.ParseQuery(temp.Q)
 	if err != nil {
 		return err

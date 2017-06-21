@@ -57,7 +57,14 @@ func TestMain(m *testing.M) {
 		fmt.Printf("Error initializing test database: %v\n", err)
 		os.Exit(1)
 	}
-	os.Exit(m.Run())
+	exitCode := m.Run()
+
+	if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
+		fmt.Printf("os.RemoveAll: %v\n", err)
+		os.Exit(1)
+	}
+
+	os.Exit(exitCode)
 }
 
 func initIntegrationTest() {

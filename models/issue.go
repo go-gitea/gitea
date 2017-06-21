@@ -155,6 +155,17 @@ func (issue *Issue) loadPullRequest(e Engine) (err error) {
 	return nil
 }
 
+func (issue *Issue) loadComments(e Engine) (err error) {
+	if issue.Comments != nil {
+		return nil
+	}
+	issue.Comments, err = findComments(e, FindCommentsOptions{
+		IssueID: issue.ID,
+		Type:    CommentTypeUnknown,
+	})
+	return err
+}
+
 func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadRepo(e); err != nil {
 		return
@@ -191,14 +202,8 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 		}
 	}
 
-	if issue.Comments == nil {
-		issue.Comments, err = findComments(e, FindCommentsOptions{
-			IssueID: issue.ID,
-			Type:    CommentTypeUnknown,
-		})
-		if err != nil {
-			return fmt.Errorf("getCommentsByIssueID [%d]: %v", issue.ID, err)
-		}
+	if err = issue.loadComments(e); err != nil {
+		return
 	}
 
 	return nil
@@ -577,7 +582,7 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 	if _, err := e.Id(issue.ID).Cols(cols...).Update(issue); err != nil {
 		return err
 	}
-	UpdateIssueIndexer(issue)
+	UpdateIssueIndexer(issue.ID)
 	return nil
 }
 
@@ -907,7 +912,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		return err
 	}
 
-	UpdateIssueIndexer(opts.Issue)
+	UpdateIssueIndexer(opts.Issue.ID)
 
 	if len(opts.Attachments) > 0 {
 		attachments, err := getAttachmentsByUUIDs(e, opts.Attachments)
@@ -1448,7 +1453,7 @@ func updateIssue(e Engine, issue *Issue) error {
 	if err != nil {
 		return err
 	}
-	UpdateIssueIndexer(issue)
+	UpdateIssueIndexer(issue.ID)
 	return nil
 }
 
