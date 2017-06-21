@@ -562,9 +562,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/milestones", repo.Milestones)
 		}, context.RepoRef())
 
-		// m.Get("/branches", repo.Branches)
-		m.Post("/branches/:name/delete", reqSignIn, reqRepoWriter, repo.MustBeNotBare, repo.DeleteBranchPost)
-
 		m.Group("/wiki", func() {
 			m.Get("/?:page", repo.Wiki)
 			m.Get("/_pages", repo.WikiPages)
@@ -589,6 +586,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
 			m.Get("/files", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ViewPullFiles)
 			m.Post("/merge", reqRepoWriter, repo.MergePullRequest)
+			m.Post("/cleanup", context.RepoRef(), repo.CleanUpPullRequest)
 		}, repo.MustAllowPulls, context.CheckUnit(models.UnitTypePullRequests))
 
 		m.Group("", func() {

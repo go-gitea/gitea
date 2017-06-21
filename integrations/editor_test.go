@@ -126,8 +126,51 @@ func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePa
 	return resp
 }
 
+func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, branch, targetBranch, filePath string) *TestResponse {
+
+	newContent := "Hello, World (Edited)\n"
+
+	// Get to the 'edit this file' page
+	req := NewRequest(t, "GET", path.Join(user, repo, "_edit", branch, filePath))
+	resp := session.MakeRequest(t, req)
+	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	lastCommit := htmlDoc.GetInputValueByName("last_commit")
+	assert.NotEmpty(t, lastCommit)
+
+	// Submit the edits
+	req = NewRequestWithValues(t, "POST", path.Join(user, repo, "_edit", branch, filePath),
+		map[string]string{
+			"_csrf":           htmlDoc.GetCSRF(),
+			"last_commit":     lastCommit,
+			"tree_path":       filePath,
+			"content":         newContent,
+			"commit_choice":   "commit-to-new-branch",
+			"new_branch_name": targetBranch,
+		},
+	)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	resp = session.MakeRequest(t, req)
+	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
+
+	// Verify the change
+	req = NewRequest(t, "GET", path.Join(user, repo, "raw", targetBranch, filePath))
+	resp = session.MakeRequest(t, req)
+	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	assert.EqualValues(t, newContent, string(resp.Body))
+
+	return resp
+}
+
 func TestEditFile(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user2")
 	testEditFile(t, session, "user2", "repo1", "master", "README.md")
+}
+
+func TestEditFileToNewBranch(t *testing.T) {
+	prepareTestEnv(t)
+	session := loginUser(t, "user2")
+	testEditFileToNewBranch(t, session, "user2", "repo1", "master", "feature/test", "README.md")
 }

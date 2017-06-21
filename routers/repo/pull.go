@@ -757,3 +757,130 @@ func TriggerTask(ctx *context.Context) {
 	go models.AddTestPullRequestTask(pusher, repo.ID, branch, true)
 	ctx.Status(202)
 }
+
+// CleanUpPullRequest responses for delete merged branch when PR has been merged
+func CleanUpPullRequest(ctx *context.Context) {
+	issue := checkPullInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	pr, err := models.GetPullRequestByIssueID(issue.ID)
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.Handle(404, "GetPullRequestByIssueID", nil)
+		} else {
+			ctx.Handle(500, "GetPullRequestByIssueID", err)
+		}
+		return
+	}
+
+	// Allow cleanup only for merged PR
+	if !pr.HasMerged {
+		ctx.Handle(404, "CleanUpPullRequest", nil)
+		return
+	}
+
+	if err = pr.GetHeadRepo(); err != nil {
+		ctx.Handle(500, "GetHeadRepo", err)
+		return
+	} else if pr.HeadRepo == nil {
+		// Forked repository has already been deleted
+		ctx.Handle(404, "CleanUpPullRequest", nil)
+		return
+	} else if pr.GetBaseRepo(); err != nil {
+		ctx.Handle(500, "GetBaseRepo", err)
+		return
+	} else if pr.HeadRepo.GetOwner(); err != nil {
+		ctx.Handle(500, "HeadRepo.GetOwner", err)
+		return
+	}
+
+	if !ctx.User.IsWriterOfRepo(pr.HeadRepo) {
+		ctx.Handle(403, "CleanUpPullRequest", nil)
+		return
+	}
+
+	fullBranchName := pr.HeadRepo.Owner.Name + "/" + pr.HeadBranch
+
+	gitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		ctx.Handle(500, fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
+		return
+	}
+
+	gitBaseRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	if err != nil {
+		ctx.Handle(500, fmt.Sprintf("OpenRepository[%s]", pr.BaseRepo.RepoPath()), err)
+		return
+	}
+
+	defer func() {
+		ctx.JSON(200, map[string]interface{}{
+			"redirect": pr.BaseRepo.Link() + "/pulls/" + com.ToStr(issue.Index),
+		})
+	}()
+
+	if pr.HeadBranch == pr.HeadRepo.DefaultBranch || !gitRepo.IsBranchExist(pr.HeadBranch) {
+		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+		return
+	}
+
+	// Check if branch is not protected
+	if protected, err := pr.HeadRepo.IsProtectedBranch(pr.HeadBranch); err != nil || protected {
+		if err != nil {
+			log.Error(4, "HeadRepo.IsProtectedBranch: %v", err)
+		}
+		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+		return
+	}
+
+	// Check if branch has no new commits
+	if len(pr.MergedCommitID) > 0 {
+		branchCommitID, err := gitRepo.GetBranchCommitID(pr.HeadBranch)
+		if err != nil {
+			log.Error(4, "GetBranchCommitID: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+			return
+		}
+
+		commit, err := gitBaseRepo.GetCommit(pr.MergedCommitID)
+		if err != nil {
+			log.Error(4, "GetCommit: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+			return
+		}
+
+		isParent := false
+		for i := 0; i < commit.ParentCount(); i++ {
+			if parent, err := commit.Parent(i); err != nil {
+				log.Error(4, "Parent: %v", err)
+				ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+				return
+			} else if parent.ID.String() == branchCommitID {
+				isParent = true
+				break
+			}
+		}
+
+		if !isParent {
+			ctx.Flash.Error(ctx.Tr("repo.branch.delete_branch_has_new_commits", fullBranchName))
+			return
+		}
+	}
+
+	if err := gitRepo.DeleteBranch(pr.HeadBranch, git.DeleteBranchOptions{
+		Force: true,
+	}); err != nil {
+		log.Error(4, "DeleteBranch: %v", err)
+		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+		return
+	}
+
+	if err := models.AddDeletePRBranchComment(ctx.User, pr.BaseRepo, issue.ID, pr.HeadBranch); err != nil {
+		// Do not fail here as branch has already been deleted
+		log.Error(4, "DeleteBranch: %v", err)
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", fullBranchName))
+}
