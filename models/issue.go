@@ -174,7 +174,10 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 	}
 
 	if issue.Comments == nil {
-		issue.Comments, err = getCommentsByIssueID(e, issue.ID)
+		issue.Comments, err = findComments(e, FindCommentsOptions{
+			IssueID: issue.ID,
+			Type:    CommentTypeUnknown,
+		})
 		if err != nil {
 			return fmt.Errorf("getCommentsByIssueID [%d]: %v", issue.ID, err)
 		}

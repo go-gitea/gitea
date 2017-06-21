@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 
 	api "code.gitea.io/sdk/gitea"
@@ -20,6 +21,11 @@ import (
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
 type CommentType int
+
+// define unknown comment type
+const (
+	CommentTypeUnknown CommentType = -1
+)
 
 // Enumerate all the comment types
 const (
@@ -568,47 +574,71 @@ func GetCommentByID(id int64) (*Comment, error) {
 	return c, nil
 }
 
-func getCommentsByIssueIDSince(e Engine, issueID, since int64) ([]*Comment, error) {
-	comments := make([]*Comment, 0, 10)
-	sess := e.
-		Where("issue_id = ?", issueID).
-		Where("type = ?", CommentTypeComment).
-		Asc("created_unix")
-	if since > 0 {
-		sess.And("updated_unix >= ?", since)
-	}
-	return comments, sess.Find(&comments)
+// FindCommentsOptions describes the conditions to Find comments
+type FindCommentsOptions struct {
+	RepoID  int64
+	IssueID int64
+	Since   int64
+	Type    CommentType
 }
 
-func getCommentsByRepoIDSince(e Engine, repoID, since int64) ([]*Comment, error) {
-	comments := make([]*Comment, 0, 10)
-	sess := e.Where("issue.repo_id = ?", repoID).
-		Where("comment.type = ?", CommentTypeComment).
-		Join("INNER", "issue", "issue.id = comment.issue_id").
-		Asc("comment.created_unix")
-	if since > 0 {
-		sess.And("comment.updated_unix >= ?", since)
+func (opts *FindCommentsOptions) toConds() builder.Cond {
+	var cond = builder.NewCond()
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
 	}
-	return comments, sess.Find(&comments)
+	if opts.IssueID > 0 {
+		cond = cond.And(builder.Eq{"comment.issue_id": opts.IssueID})
+	}
+	if opts.Since > 0 {
+		cond = cond.And(builder.Gte{"comment.updated_unix": opts.Since})
+	}
+	if opts.Type != CommentTypeUnknown {
+		cond = cond.And(builder.Eq{"comment.type": opts.Type})
+	}
+	return cond
 }
 
-func getCommentsByIssueID(e Engine, issueID int64) ([]*Comment, error) {
-	return getCommentsByIssueIDSince(e, issueID, -1)
+func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
+	comments := make([]*Comment, 0, 10)
+	sess := e.Where(opts.toConds())
+	if opts.RepoID > 0 {
+		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
+	}
+	return comments, sess.
+		Asc("comment.created_unix").
+		Find(&comments)
+}
+
+// FindComments returns all comments according options
+func FindComments(opts FindCommentsOptions) ([]*Comment, error) {
+	return findComments(x, opts)
 }
 
 // GetCommentsByIssueID returns all comments of an issue.
 func GetCommentsByIssueID(issueID int64) ([]*Comment, error) {
-	return getCommentsByIssueID(x, issueID)
+	return findComments(x, FindCommentsOptions{
+		IssueID: issueID,
+		Type:    CommentTypeUnknown,
+	})
 }
 
 // GetCommentsByIssueIDSince returns a list of comments of an issue since a given time point.
 func GetCommentsByIssueIDSince(issueID, since int64) ([]*Comment, error) {
-	return getCommentsByIssueIDSince(x, issueID, since)
+	return findComments(x, FindCommentsOptions{
+		IssueID: issueID,
+		Type:    CommentTypeUnknown,
+		Since:   since,
+	})
 }
 
 // GetCommentsByRepoIDSince returns a list of comments for all issues in a repo since a given time point.
 func GetCommentsByRepoIDSince(repoID, since int64) ([]*Comment, error) {
-	return getCommentsByRepoIDSince(x, repoID, since)
+	return findComments(x, FindCommentsOptions{
+		RepoID: repoID,
+		Type:   CommentTypeUnknown,
+		Since:  since,
+	})
 }
 
 // UpdateComment updates information of comment.
