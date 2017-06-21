@@ -574,7 +574,7 @@ func GetCommentByID(id int64) (*Comment, error) {
 	return c, nil
 }
 
-// FindCommentsOptions describes the condtions to Find comments
+// FindCommentsOptions describes the conditions to Find comments
 type FindCommentsOptions struct {
 	RepoID  int64
 	IssueID int64
