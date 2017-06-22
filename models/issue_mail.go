@@ -43,7 +43,7 @@ func mailIssueCommentToParticipants(issue *Issue, doer *User, comment *Comment, 
 	}
 
 	// Assignee must receive any communications
-	if issue.AssigneeID > 0 && issue.AssigneeID != doer.ID {
+	if issue.Assignee != nil && issue.AssigneeID > 0 && issue.AssigneeID != doer.ID {
 		participants = append(participants, issue.Assignee)
 	}
 
