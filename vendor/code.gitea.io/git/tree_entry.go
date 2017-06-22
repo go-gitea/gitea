@@ -264,7 +264,9 @@ func getNextCommitInfos(state *getCommitInfoState) error {
 					return fmt.Errorf("Unquote: %v", err)
 				}
 			}
-			state.update(entryPath)
+			if err = state.update(entryPath); err != nil {
+				return err
+			}
 		}
 		i++ // skip blank line
 		if len(state.entries) == len(state.commits) {
