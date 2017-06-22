@@ -249,7 +249,7 @@ func GetReleaseCountByRepoID(repoID int64, isOwner bool) (total int64, err error
 	if isOwner {
 		return x.Where("repo_id = ?", repoID).Count(&Release{})
 	} else {
-		return x.Where("repo_id = ? AND is_prerelease = 0", repoID).Count(&Release{})
+		return x.Where("repo_id = ? AND is_prerelease = 0 AND is_draft = 0", repoID).Count(&Release{})
 	}
 }
 
