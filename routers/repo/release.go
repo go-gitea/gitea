@@ -71,7 +71,7 @@ func Releases(ctx *context.Context) {
 		return
 	}
 
-	count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID)
+	count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, ctx.Repo.IsOwner())
 	if err != nil {
 		ctx.Handle(500, "GetReleaseCountByRepoID", err)
 		return
@@ -91,7 +91,7 @@ func Releases(ctx *context.Context) {
 	}
 	var ok bool
 
-	releasesToDisplay := make([]*models.Release, 0, len(releases))
+	releasesToDisplay := make([]*models.Release, 0, count)
 	for _, r := range releases {
 		if r.IsDraft && !ctx.Repo.IsOwner() {
 			continue
