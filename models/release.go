@@ -246,15 +246,15 @@ func GetReleasesByRepoID(repoID int64, page, pageSize int) (rels []*Release, err
 }
 
 // GetReleaseCountByRepoID returns the count of releases of repository
-func GetReleaseCountByRepoID(repoID int64, isOwner bool) (total int64, err error) {
+func GetReleaseCountByRepoID(repoID int64, includeDrafts bool) (int64, error) {
 	var cond = builder.NewCond()
 	cond = cond.And(builder.Eq{"repo_id": repoID})
 
-	if isOwner {
+	if includeDrafts {
 		return x.Where(cond).Count(&Release{})
 	}
 
-	cond = cond.And(builder.Eq{"is_draft": 0})
+	cond = cond.And(builder.Eq{"is_draft": false})
 	return x.Where(cond).Count(&Release{})
 }
 
