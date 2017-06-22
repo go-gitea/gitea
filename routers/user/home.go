@@ -54,16 +54,17 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 }
 
 // retrieveFeeds loads feeds for the specified user
-func retrieveFeeds(ctx *context.Context, user *models.User, includePrivate, isProfile bool) {
+func retrieveFeeds(ctx *context.Context, user *models.User, includePrivate, isProfile bool, includeDeletedComments bool) {
 	var requestingID int64
 	if ctx.User != nil {
 		requestingID = ctx.User.ID
 	}
 	actions, err := models.GetFeeds(models.GetFeedsOptions{
-		RequestedUser:    user,
-		RequestingUserID: requestingID,
-		IncludePrivate:   includePrivate,
-		OnlyPerformedBy:  isProfile,
+		RequestedUser:          user,
+		RequestingUserID:       requestingID,
+		IncludePrivate:         includePrivate,
+		OnlyPerformedBy:        isProfile,
+		IncludeDeletedComments: includeDeletedComments,
 	})
 	if err != nil {
 		ctx.Handle(500, "GetFeeds", err)
@@ -186,7 +187,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["MirrorCount"] = len(mirrors)
 	ctx.Data["Mirrors"] = mirrors
 
-	retrieveFeeds(ctx, ctxUser, true, false)
+	retrieveFeeds(ctx, ctxUser, true, false, false)
 	if ctx.Written() {
 		return
 	}

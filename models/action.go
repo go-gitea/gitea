@@ -223,7 +223,6 @@ func (a *Action) GetCommentLink() string {
 	}
 
 	return issue.HTMLURL()
-
 }
 
 // GetBranch returns the action's repository branch.
@@ -709,10 +708,11 @@ func MergePullRequestAction(actUser *User, repo *Repository, pull *Issue) error 
 
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser    *User
-	RequestingUserID int64
-	IncludePrivate   bool // include private actions
-	OnlyPerformedBy  bool // only actions performed by requested user
+	RequestedUser          *User
+	RequestingUserID       int64
+	IncludePrivate         bool // include private actions
+	OnlyPerformedBy        bool // only actions performed by requested user
+	IncludeDeletedComments bool // include comments that reference a deleted comment
 }
 
 // GetFeeds returns actions according to the provided options
@@ -741,5 +741,12 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	if opts.RequestedUser.IsOrganization() {
 		sess.In("repo_id", repoIDs)
 	}
+
+	if !opts.IncludeDeletedComments {
+		// commentID != 0 AND comment exist
+		sess.And("(comment_id ISNULL OR comment_id = 0 OR EXISTS(SELECT NULL FROM comment c WHERE comment_id = c.id))")
+
+	}
+
 	return actions, sess.Find(&actions)
 }

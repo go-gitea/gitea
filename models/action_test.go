@@ -306,10 +306,11 @@ func TestGetFeeds(t *testing.T) {
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
 	actions, err := GetFeeds(GetFeedsOptions{
-		RequestedUser:    user,
-		RequestingUserID: user.ID,
-		IncludePrivate:   true,
-		OnlyPerformedBy:  false,
+		RequestedUser:          user,
+		RequestingUserID:       user.ID,
+		IncludePrivate:         true,
+		OnlyPerformedBy:        false,
+		IncludeDeletedComments: true,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 1)
@@ -333,10 +334,11 @@ func TestGetFeeds2(t *testing.T) {
 	userID := AssertExistsAndLoadBean(t, &OrgUser{OrgID: org.ID, IsOwner: true}).(*OrgUser).UID
 
 	actions, err := GetFeeds(GetFeedsOptions{
-		RequestedUser:    org,
-		RequestingUserID: userID,
-		IncludePrivate:   true,
-		OnlyPerformedBy:  false,
+		RequestedUser:          org,
+		RequestingUserID:       userID,
+		IncludePrivate:         true,
+		OnlyPerformedBy:        false,
+		IncludeDeletedComments: true,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 1)
@@ -344,10 +346,11 @@ func TestGetFeeds2(t *testing.T) {
 	assert.EqualValues(t, org.ID, actions[0].UserID)
 
 	actions, err = GetFeeds(GetFeedsOptions{
-		RequestedUser:    org,
-		RequestingUserID: userID,
-		IncludePrivate:   false,
-		OnlyPerformedBy:  false,
+		RequestedUser:          org,
+		RequestingUserID:       userID,
+		IncludePrivate:         false,
+		OnlyPerformedBy:        false,
+		IncludeDeletedComments: true,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 0)

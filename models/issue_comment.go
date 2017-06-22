@@ -643,12 +643,5 @@ func DeleteComment(comment *Comment) error {
 		}
 	}
 
-	//Delete associated Action
-	if _, err := sess.Delete(&Action{
-		CommentID: comment.ID,
-	}); err != nil {
-		return err
-	}
-
 	return sess.Commit()
 }
