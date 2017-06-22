@@ -91,7 +91,7 @@ func Releases(ctx *context.Context) {
 	}
 	var ok bool
 
-	releasesToDisplay := make([]*models.Release, 0, count)
+	releasesToDisplay := make([]*models.Release, 0, len(releases))
 	for _, r := range releases {
 		if r.IsDraft && !ctx.Repo.IsOwner() {
 			continue
