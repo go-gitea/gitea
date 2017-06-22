@@ -515,11 +515,11 @@ func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
 	mergeCommit, stderr, err := process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("isMerged (git rev-list --ancestry-path --merges --reverse): %d", pr.BaseRepo.ID),
 		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
 		"git", "rev-list", "--ancestry-path", "--merges", "--reverse", cmd)
-	if err == nil && len(mergeCommit) != 40 {
-		err = fmt.Errorf("unexpected length of output (got:%d bytes) '%s'", len(mergeCommit), mergeCommit)
-	}
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v %v", stderr, err)
+	} else if len(mergeCommit) < 40 {
+		// PR was fast-forwarded, so just use last commit of PR
+		mergeCommit = commitID[:40]
 	}
 
 	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
