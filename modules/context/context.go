@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -101,6 +102,7 @@ func (ctx *Context) Handle(status int, title string, err error) {
 	case 404:
 		ctx.Data["Title"] = "Page Not Found"
 	case 500:
+		debug.PrintStack()
 		ctx.Data["Title"] = "Internal Server Error"
 	}
 	ctx.HTML(status, base.TplName(fmt.Sprintf("status/%d", status)))
