@@ -381,7 +381,6 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
 		log.GitLogger.Error(2, "fail to serve RPC(%s): %v - %v", service, err, stderr)
-		h.w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 }
