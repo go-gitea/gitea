@@ -585,15 +585,7 @@ func NewContext() {
 
 	CustomPath = os.Getenv("GITEA_CUSTOM")
 	if len(CustomPath) == 0 {
-		// For backward compatibility
-		// TODO: drop in 1.1.0 ?
-		CustomPath = os.Getenv("GOGS_CUSTOM")
-		if len(CustomPath) == 0 {
-			CustomPath = workDir + "/custom"
-		} else {
-			log.Warn(`Usage of GOGS_CUSTOM is deprecated and will be *removed* in a future release,
-please consider changing to GITEA_CUSTOM`)
-		}
+		CustomPath = workDir + "/custom"
 	}
 
 	if len(CustomPID) > 0 {
