@@ -71,20 +71,21 @@ func init() {
 // repository. It implemented interface base.Actioner so that can be
 // used in template render.
 type Action struct {
-	ID          int64 `xorm:"pk autoincr"`
-	UserID      int64 `xorm:"INDEX"` // Receiver user id.
-	OpType      ActionType
-	ActUserID   int64       `xorm:"INDEX"` // Action user id.
-	ActUser     *User       `xorm:"-"`
-	RepoID      int64       `xorm:"INDEX"`
-	Repo        *Repository `xorm:"-"`
-	CommentID   int64       `xorm:"INDEX"`
-	Comment     *Comment    `xorm:"-"`
-	RefName     string
-	IsPrivate   bool      `xorm:"INDEX NOT NULL DEFAULT false"`
-	Content     string    `xorm:"TEXT"`
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
+	ID             int64 `xorm:"pk autoincr"`
+	UserID         int64 `xorm:"INDEX"` // Receiver user id.
+	OpType         ActionType
+	ActUserID      int64       `xorm:"INDEX"` // Action user id.
+	ActUser        *User       `xorm:"-"`
+	RepoID         int64       `xorm:"INDEX"`
+	Repo           *Repository `xorm:"-"`
+	CommentID      int64       `xorm:"INDEX"`
+	Comment        *Comment    `xorm:"-"`
+	CommentDeleted bool        `xorm:"default 0 not null"`
+	RefName        string
+	IsPrivate      bool      `xorm:"INDEX NOT NULL DEFAULT false"`
+	Content        string    `xorm:"TEXT"`
+	Created        time.Time `xorm:"-"`
+	CreatedUnix    int64     `xorm:"INDEX"`
 }
 
 // BeforeInsert will be invoked by XORM before inserting a record
@@ -211,13 +212,11 @@ func (a *Action) GetCommentLink() string {
 	//Return link to issue
 	issueIDString := a.GetIssueInfos()[0]
 	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
-
 	if err != nil {
 		return "#"
 	}
 
 	issue, err := GetIssueByID(issueID)
-
 	if err != nil {
 		return "#"
 	}
@@ -743,8 +742,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	}
 
 	if !opts.IncludeDeletedComments {
-		// commentID != 0 AND comment exist
-		sess.And("(comment_id ISNULL OR comment_id = 0 OR EXISTS(SELECT NULL FROM comment c WHERE comment_id = c.id))")
+		sess.And("comment_deleted = ?", false)
 
 	}
 

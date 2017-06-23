@@ -643,5 +643,7 @@ func DeleteComment(comment *Comment) error {
 		}
 	}
 
+	sess.Exec("UPDATE `action` SET comment_deleted = 1 WHERE comment_id = ?", comment.ID)
+
 	return sess.Commit()
 }
