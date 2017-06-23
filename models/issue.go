@@ -131,6 +131,22 @@ func (issue *Issue) loadPoster(e Engine) (err error) {
 	return
 }
 
+func (issue *Issue) loadAssignee(e Engine) (err error) {
+	if issue.Assignee == nil {
+		issue.Assignee, err = getUserByID(e, issue.AssigneeID)
+		if err != nil {
+			issue.AssigneeID = -1
+			issue.Assignee = NewGhostUser()
+			if !IsErrUserNotExist(err) {
+				return fmt.Errorf("getUserByID.(assignee) [%d]: %v", issue.AssigneeID, err)
+			}
+			err = nil
+			return
+		}
+	}
+	return
+}
+
 func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadRepo(e); err != nil {
 		return
@@ -151,11 +167,8 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 		}
 	}
 
-	if issue.Assignee == nil && issue.AssigneeID > 0 {
-		issue.Assignee, err = getUserByID(e, issue.AssigneeID)
-		if err != nil {
-			return fmt.Errorf("getUserByID.(assignee) [%d]: %v", issue.AssigneeID, err)
-		}
+	if err = issue.loadAssignee(e); err != nil {
+		return
 	}
 
 	if issue.IsPull && issue.PullRequest == nil {
