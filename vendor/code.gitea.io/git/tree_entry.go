@@ -278,13 +278,19 @@ func getNextCommitInfos(state *getCommitInfoState) error {
 
 func logCommand(exclusiveStartHash string, state *getCommitInfoState) *Command {
 	var commitHash string
+
+	numRemainingEntries := len(state.entries) - len(state.commits)
+
 	if len(exclusiveStartHash) == 0 {
 		commitHash = state.headCommit.ID.String()
 	} else {
-		commitHash = exclusiveStartHash + "^"
+		commitHash = exclusiveStartHash
+		if numRemainingEntries > 1 {
+			commitHash += "^"
+		}
 	}
+
 	var command *Command
-	numRemainingEntries := len(state.entries) - len(state.commits)
 	if numRemainingEntries < 32 {
 		searchSize := (numRemainingEntries + 1) / 2
 		command = NewCommand("log", prettyLogFormat, "--name-only",
