@@ -25,7 +25,6 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum strin
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 	})
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
 
@@ -44,7 +43,6 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 	})
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 

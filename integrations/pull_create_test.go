@@ -38,7 +38,6 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch strin
 		"_csrf": htmlDoc.GetCSRF(),
 		"title": "This is a pull title",
 	})
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
 

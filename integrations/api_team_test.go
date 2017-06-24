@@ -5,7 +5,6 @@
 package integrations
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -22,8 +21,7 @@ func TestAPITeam(t *testing.T) {
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: teamUser.UID}).(*models.User)
 
 	session := loginUser(t, user.Name)
-	url := fmt.Sprintf("/api/v1/teams/%d", teamUser.TeamID)
-	req := NewRequest(t, "GET", url)
+	req := NewRequestf(t, "GET", "/api/v1/teams/%d", teamUser.TeamID)
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 

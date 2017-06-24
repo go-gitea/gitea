@@ -32,7 +32,6 @@ func TestChangeDefaultBranch(t *testing.T) {
 		"action": "default_branch",
 		"branch": "DefaultBranch",
 	})
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
 
@@ -46,7 +45,6 @@ func TestChangeDefaultBranch(t *testing.T) {
 		"action": "default_branch",
 		"branch": "does_not_exist",
 	})
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusNotFound, resp.HeaderCode)
 }

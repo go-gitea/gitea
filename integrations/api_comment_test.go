@@ -5,7 +5,6 @@
 package integrations
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -25,9 +24,8 @@ func TestAPIListComments(t *testing.T) {
 	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
-	requestUrl := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/comments",
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/comments",
 		repoOwner.Name, repo.Name, issue.Index)
-	req := NewRequest(t, "GET", requestUrl)
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
