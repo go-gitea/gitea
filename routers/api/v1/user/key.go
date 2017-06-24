@@ -33,6 +33,11 @@ func GetUserByParams(ctx *context.APIContext) *models.User {
 	return GetUserByParamsName(ctx, ":username")
 }
 
+// GetOrgByParams returns org whose name is presented in URL parameter.
+func GetOrgByParams(ctx *context.APIContext) *models.User {
+	return GetUserByParamsName(ctx, ":org")
+}
+
 func composePublicKeysAPILink() string {
 	return setting.AppURL + "api/v1/user/keys/"
 }

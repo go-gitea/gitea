@@ -63,3 +63,11 @@ func TestAPIViewRepo(t *testing.T) {
 	assert.EqualValues(t, 1, repo.ID)
 	assert.EqualValues(t, "repo1", repo.Name)
 }
+
+func TestAPIOrgReposNotLogin(t *testing.T) {
+	assert.NoError(t, models.LoadFixtures())
+
+	req := NewRequest(t, "GET", "/api/v1/orgs/org1/repos")
+	resp := MakeRequest(req)
+	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+}
