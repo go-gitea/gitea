@@ -96,9 +96,5 @@ func ListOrgRepos(ctx *context.APIContext) {
 	//       200: RepositoryList
 	//       500: error
 
-	org := GetOrgByParams(ctx)
-	if ctx.Written() {
-		return
-	}
-	listUserRepos(ctx, org)
+	listUserRepos(ctx, ctx.Org)
 }
