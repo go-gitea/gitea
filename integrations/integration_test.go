@@ -229,7 +229,9 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
 	jsonBytes, err := json.Marshal(v)
 	assert.NoError(t, err)
-	return NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
+	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
+	req.Header.Add("Content-Type", "application/json")
+	return req
 }
 
 func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *http.Request {
