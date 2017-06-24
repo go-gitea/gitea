@@ -8,13 +8,11 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
-
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIUserReposNotLogin(t *testing.T) {
-	assert.NoError(t, models.LoadFixtures())
+	prepareTestEnv(t)
 
 	req := NewRequest(t, "GET", "/api/v1/users/user2/repos")
 	resp := MakeRequest(req)
@@ -22,7 +20,7 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 }
 
 func TestAPISearchRepoNotLogin(t *testing.T) {
-	assert.NoError(t, models.LoadFixtures())
+	prepareTestEnv(t)
 
 	req := NewRequest(t, "GET", "/api/v1/repos/search?q=Test")
 	resp := MakeRequest(req)
