@@ -298,7 +298,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
 			log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
 		}
-		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, base.MinutesToFriendly(setting.Service.ActiveCodeLives)))
+		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, base.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 	}
