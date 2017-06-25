@@ -310,6 +310,7 @@ func TestGetFeeds(t *testing.T) {
 		RequestingUserID: user.ID,
 		IncludePrivate:   true,
 		OnlyPerformedBy:  false,
+		IncludeDeleted:   true,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 1)
@@ -337,6 +338,7 @@ func TestGetFeeds2(t *testing.T) {
 		RequestingUserID: userID,
 		IncludePrivate:   true,
 		OnlyPerformedBy:  false,
+		IncludeDeleted:   true,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 1)
@@ -348,6 +350,7 @@ func TestGetFeeds2(t *testing.T) {
 		RequestingUserID: userID,
 		IncludePrivate:   false,
 		OnlyPerformedBy:  false,
+		IncludeDeleted:   true,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 0)

@@ -334,6 +334,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:   fmt.Sprintf("%d|%s", opts.Issue.Index, strings.Split(opts.Content, "\n")[0]),
 		RepoID:    opts.Repo.ID,
 		Repo:      opts.Repo,
+		Comment:   comment,
+		CommentID: comment.ID,
 		IsPrivate: opts.Repo.IsPrivate,
 	}
 
@@ -666,6 +668,7 @@ func DeleteComment(comment *Comment) error {
 			return err
 		}
 	}
+	sess.Where("comment_id = ?", comment.ID).Cols("is_deleted").Update(&Action{IsDeleted: true})
 
 	return sess.Commit()
 }

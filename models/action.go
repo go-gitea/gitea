@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -77,6 +78,9 @@ type Action struct {
 	ActUser     *User       `xorm:"-"`
 	RepoID      int64       `xorm:"INDEX"`
 	Repo        *Repository `xorm:"-"`
+	CommentID   int64       `xorm:"INDEX"`
+	Comment     *Comment    `xorm:"-"`
+	IsDeleted   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
 	RefName     string
 	IsPrivate   bool      `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content     string    `xorm:"TEXT"`
@@ -189,6 +193,35 @@ func (a *Action) GetRepoLink() string {
 		return path.Join(setting.AppSubURL, a.GetRepoPath())
 	}
 	return "/" + a.GetRepoPath()
+}
+
+// GetCommentLink returns link to action comment.
+func (a *Action) GetCommentLink() string {
+	if a == nil {
+		return "#"
+	}
+	if a.Comment == nil && a.CommentID != 0 {
+		a.Comment, _ = GetCommentByID(a.CommentID)
+	}
+	if a.Comment != nil {
+		return a.Comment.HTMLURL()
+	}
+	if len(a.GetIssueInfos()) == 0 {
+		return "#"
+	}
+	//Return link to issue
+	issueIDString := a.GetIssueInfos()[0]
+	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
+	if err != nil {
+		return "#"
+	}
+
+	issue, err := GetIssueByID(issueID)
+	if err != nil {
+		return "#"
+	}
+
+	return issue.HTMLURL()
 }
 
 // GetBranch returns the action's repository branch.
@@ -678,6 +711,7 @@ type GetFeedsOptions struct {
 	RequestingUserID int64
 	IncludePrivate   bool // include private actions
 	OnlyPerformedBy  bool // only actions performed by requested user
+	IncludeDeleted   bool // include deleted actions
 }
 
 // GetFeeds returns actions according to the provided options
@@ -706,5 +740,11 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	if opts.RequestedUser.IsOrganization() {
 		sess.In("repo_id", repoIDs)
 	}
+
+	if !opts.IncludeDeleted {
+		sess.And("is_deleted = ?", false)
+
+	}
+
 	return actions, sess.Find(&actions)
 }
