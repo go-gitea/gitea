@@ -1581,27 +1581,27 @@ func SyncExternalUsers() {
 					if isAttributeSSHPublicKeySet {
 						synchronizeLdapSSHPublicKeys(s, su.SSHPublicKey, usr)
 					}
-				}
 
-				// Check if user data has changed
-				if (len(s.LDAP().AdminFilter) > 0 && usr.IsAdmin != su.IsAdmin) ||
-					strings.ToLower(usr.Email) != strings.ToLower(su.Mail) ||
-					usr.FullName != fullName ||
-					!usr.IsActive {
+					// Check if user data has changed
+					if (len(s.LDAP().AdminFilter) > 0 && usr.IsAdmin != su.IsAdmin) ||
+						strings.ToLower(usr.Email) != strings.ToLower(su.Mail) ||
+						usr.FullName != fullName ||
+						!usr.IsActive {
 
-					log.Trace("SyncExternalUsers[%s]: Updating user %s", s.Name, usr.Name)
+						log.Trace("SyncExternalUsers[%s]: Updating user %s", s.Name, usr.Name)
 
-					usr.FullName = fullName
-					usr.Email = su.Mail
-					// Change existing admin flag only if AdminFilter option is set
-					if len(s.LDAP().AdminFilter) > 0 {
-						usr.IsAdmin = su.IsAdmin
-					}
-					usr.IsActive = true
+						usr.FullName = fullName
+						usr.Email = su.Mail
+						// Change existing admin flag only if AdminFilter option is set
+						if len(s.LDAP().AdminFilter) > 0 {
+							usr.IsAdmin = su.IsAdmin
+						}
+						usr.IsActive = true
 
-					err = UpdateUser(usr)
-					if err != nil {
-						log.Error(4, "SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
+						err = UpdateUser(usr)
+						if err != nil {
+							log.Error(4, "SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
+						}
 					}
 				}
 			}
