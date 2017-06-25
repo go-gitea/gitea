@@ -60,11 +60,11 @@ func retrieveFeeds(ctx *context.Context, user *models.User, includePrivate, isPr
 		requestingID = ctx.User.ID
 	}
 	actions, err := models.GetFeeds(models.GetFeedsOptions{
-		RequestedUser:          user,
-		RequestingUserID:       requestingID,
-		IncludePrivate:         includePrivate,
-		OnlyPerformedBy:        isProfile,
-		IncludeDeletedComments: includeDeletedComments,
+		RequestedUser:    user,
+		RequestingUserID: requestingID,
+		IncludePrivate:   includePrivate,
+		OnlyPerformedBy:  isProfile,
+		IncludeDeleted:   includeDeletedComments,
 	})
 	if err != nil {
 		ctx.Handle(500, "GetFeeds", err)

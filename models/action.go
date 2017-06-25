@@ -71,21 +71,21 @@ func init() {
 // repository. It implemented interface base.Actioner so that can be
 // used in template render.
 type Action struct {
-	ID             int64 `xorm:"pk autoincr"`
-	UserID         int64 `xorm:"INDEX"` // Receiver user id.
-	OpType         ActionType
-	ActUserID      int64       `xorm:"INDEX"` // Action user id.
-	ActUser        *User       `xorm:"-"`
-	RepoID         int64       `xorm:"INDEX"`
-	Repo           *Repository `xorm:"-"`
-	CommentID      int64       `xorm:"INDEX"`
-	Comment        *Comment    `xorm:"-"`
-	CommentDeleted bool        `xorm:"default 0 not null"`
-	RefName        string
-	IsPrivate      bool      `xorm:"INDEX NOT NULL DEFAULT false"`
-	Content        string    `xorm:"TEXT"`
-	Created        time.Time `xorm:"-"`
-	CreatedUnix    int64     `xorm:"INDEX"`
+	ID          int64 `xorm:"pk autoincr"`
+	UserID      int64 `xorm:"INDEX"` // Receiver user id.
+	OpType      ActionType
+	ActUserID   int64       `xorm:"INDEX"` // Action user id.
+	ActUser     *User       `xorm:"-"`
+	RepoID      int64       `xorm:"INDEX"`
+	Repo        *Repository `xorm:"-"`
+	CommentID   int64       `xorm:"INDEX"`
+	Comment     *Comment    `xorm:"-"`
+	IsDeleted   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
+	RefName     string
+	IsPrivate   bool      `xorm:"INDEX NOT NULL DEFAULT false"`
+	Content     string    `xorm:"TEXT"`
+	Created     time.Time `xorm:"-"`
+	CreatedUnix int64     `xorm:"INDEX"`
 }
 
 // BeforeInsert will be invoked by XORM before inserting a record
@@ -707,11 +707,11 @@ func MergePullRequestAction(actUser *User, repo *Repository, pull *Issue) error 
 
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser          *User
-	RequestingUserID       int64
-	IncludePrivate         bool // include private actions
-	OnlyPerformedBy        bool // only actions performed by requested user
-	IncludeDeletedComments bool // include comments that reference a deleted comment
+	RequestedUser    *User
+	RequestingUserID int64
+	IncludePrivate   bool // include private actions
+	OnlyPerformedBy  bool // only actions performed by requested user
+	IncludeDeleted   bool // include deleted actions
 }
 
 // GetFeeds returns actions according to the provided options
@@ -741,8 +741,8 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		sess.In("repo_id", repoIDs)
 	}
 
-	if !opts.IncludeDeletedComments {
-		sess.And("comment_deleted = ?", false)
+	if !opts.IncludeDeleted {
+		sess.And("is_deleted = ?", false)
 
 	}
 
