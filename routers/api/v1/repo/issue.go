@@ -18,26 +18,24 @@ import (
 
 // ListIssues list the issues of a repository
 func ListIssues(ctx *context.APIContext) {
-	isClosed := ctx.Query("state") == "closed"
-	issueOpts := models.IssuesOptions{
-		RepoID:   ctx.Repo.Repository.ID,
-		Page:     ctx.QueryInt("page"),
-		IsClosed: util.OptionalBoolOf(isClosed),
+	var isClosed util.OptionalBool
+	switch ctx.Query("state") {
+	case "closed":
+		isClosed = util.OptionalBoolTrue
+	case "all":
+		isClosed = util.OptionalBoolNone
+	default:
+		isClosed = util.OptionalBoolFalse
 	}
 
-	issues, err := models.Issues(&issueOpts)
+	issues, err := models.Issues(&models.IssuesOptions{
+		RepoID:   ctx.Repo.Repository.ID,
+		Page:     ctx.QueryInt("page"),
+		IsClosed: isClosed,
+	})
 	if err != nil {
 		ctx.Error(500, "Issues", err)
 		return
-	}
-	if ctx.Query("state") == "all" {
-		issueOpts.IsClosed = util.OptionalBoolOf(!isClosed)
-		tempIssues, err := models.Issues(&issueOpts)
-		if err != nil {
-			ctx.Error(500, "Issues", err)
-			return
-		}
-		issues = append(issues, tempIssues...)
 	}
 
 	err = models.IssueList(issues).LoadAttributes()
