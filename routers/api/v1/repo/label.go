@@ -64,7 +64,7 @@ func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
 		Color:  form.Color,
 		RepoID: ctx.Repo.Repository.ID,
 	}
-	if err := models.NewLabels(label); err != nil {
+	if err := models.NewLabel(label); err != nil {
 		ctx.Error(500, "NewLabel", err)
 		return
 	}

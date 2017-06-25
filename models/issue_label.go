@@ -96,10 +96,29 @@ func (label *Label) ForegroundColor() template.CSS {
 	return template.CSS("#000")
 }
 
-// NewLabels creates new label(s) for a repository.
-func NewLabels(labels ...*Label) error {
-	_, err := x.Insert(labels)
+func newLabel(e Engine, label *Label) error {
+	_, err := e.Insert(label)
 	return err
+}
+
+// NewLabel creates a new label for a repository
+func NewLabel(label *Label) error {
+	return newLabel(x, label)
+}
+
+// NewLabels creates new labels for a repository.
+func NewLabels(labels ...*Label) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	for _, label := range labels {
+		if err := newLabel(sess, label); err != nil {
+			return err
+		}
+	}
+	return sess.Commit()
 }
 
 // getLabelInRepoByName returns a label by Name in given repository.

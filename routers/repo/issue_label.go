@@ -89,7 +89,7 @@ func NewLabel(ctx *context.Context, form auth.CreateLabelForm) {
 		Name:   form.Title,
 		Color:  form.Color,
 	}
-	if err := models.NewLabels(l); err != nil {
+	if err := models.NewLabel(l); err != nil {
 		ctx.Handle(500, "NewLabel", err)
 		return
 	}
