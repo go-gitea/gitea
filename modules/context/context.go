@@ -176,13 +176,11 @@ func Contexter() macaron.Handler {
 			branchName := "master"
 
 			owner, err := models.GetUserByName(ownerName)
-			if err != nil {
-				ctx.Handle(500, "GetUserByName", err)
-				return
-			}
-			repo, err := models.GetRepositoryByName(owner.ID, repoName)
-			if err == nil && len(repo.DefaultBranch) > 0 {
-				branchName = repo.DefaultBranch
+			if err == nil {
+				repo, err := models.GetRepositoryByName(owner.ID, repoName)
+				if err == nil && len(repo.DefaultBranch) > 0 {
+					branchName = repo.DefaultBranch
+				}
 			}
 			prefix := setting.AppURL + path.Join(ownerName, repoName, "src", branchName)
 			c.PlainText(http.StatusOK, []byte(com.Expand(`
