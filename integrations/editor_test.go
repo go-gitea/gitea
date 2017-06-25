@@ -34,7 +34,6 @@ func TestCreateFile(t *testing.T) {
 		"content":       "Content",
 		"commit_choice": "direct",
 	})
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
 }
@@ -57,7 +56,6 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 		"branchName": "master",
 		"canPush":    "true",
 	})
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 	// Check if master branch has been locked successfully
@@ -83,7 +81,6 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 		"commit_choice": "direct",
 	})
 
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 	// Check body for error message
@@ -113,7 +110,6 @@ func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePa
 			"commit_choice": "direct",
 		},
 	)
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
 
@@ -150,7 +146,6 @@ func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, bra
 			"new_branch_name": targetBranch,
 		},
 	)
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
 

@@ -39,7 +39,6 @@ func testRepoFork(t *testing.T, session *TestSession) *TestResponse {
 		"uid":       "1",
 		"repo_name": "repo1",
 	})
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
 

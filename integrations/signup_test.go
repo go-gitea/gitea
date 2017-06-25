@@ -24,7 +24,6 @@ func TestSignup(t *testing.T) {
 		"password":  "examplePassword",
 		"retype":    "examplePassword",
 	})
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp := MakeRequest(req)
 	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
 

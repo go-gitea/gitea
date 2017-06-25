@@ -173,7 +173,6 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 		"user_name": userName,
 		"password":  password,
 	})
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = MakeRequest(req)
 	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
 
@@ -218,12 +217,18 @@ func NewRequest(t testing.TB, method, urlStr string) *http.Request {
 	return NewRequestWithBody(t, method, urlStr, nil)
 }
 
+func NewRequestf(t testing.TB, method, urlFormat string, args ...interface{}) *http.Request {
+	return NewRequest(t, method, fmt.Sprintf(urlFormat, args...))
+}
+
 func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string]string) *http.Request {
 	urlValues := url.Values{}
 	for key, value := range values {
 		urlValues[key] = []string{value}
 	}
-	return NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode()))
+	req := NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	return req
 }
 
 func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {

@@ -56,7 +56,6 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 		},
 	)
 
-	req.Header.Add("Content-Type", "application/json")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusCreated, resp.HeaderCode)
 

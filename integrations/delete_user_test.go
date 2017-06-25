@@ -26,7 +26,6 @@ func TestDeleteUser(t *testing.T) {
 	req = NewRequestWithValues(t, "POST", "/admin/users/8/delete", map[string]string{
 		"_csrf": doc.GetCSRF(),
 	})
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
