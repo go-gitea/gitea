@@ -96,5 +96,5 @@ func ListOrgRepos(ctx *context.APIContext) {
 	//       200: RepositoryList
 	//       500: error
 
-	listUserRepos(ctx, ctx.Org)
+	listUserRepos(ctx, ctx.Org.Organization)
 }
