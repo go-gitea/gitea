@@ -190,7 +190,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 		tp := markup.Type(blob.Name())
 		isSupportedMarkup := tp != ""
-		// FIXME: currently set IsMarkdown for compitable
+		// FIXME: currently set IsMarkdown for compatible
 		ctx.Data["IsMarkdown"] = isSupportedMarkup
 
 		readmeExist := isSupportedMarkup || markup.IsReadmeFile(blob.Name())
@@ -212,7 +212,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			var output bytes.Buffer
 			lines := strings.Split(fileContent, "\n")
 			for index, line := range lines {
-				output.WriteString(fmt.Sprintf(`<li class="L%d" rel="L%d">%s</li>`, index+1, index+1, gotemplate.HTMLEscapeString(line)) + "\n")
+				line = gotemplate.HTMLEscapeString(line)
+				if index != len(lines)-1 {
+					line += "\n"
+				}
+				output.WriteString(fmt.Sprintf(`<li class="L%d" rel="L%d">%s</li>`, index+1, index+1, line))
 			}
 			ctx.Data["FileContent"] = gotemplate.HTML(output.String())
 

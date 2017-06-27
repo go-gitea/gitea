@@ -1166,6 +1166,9 @@ footer .ui.language .menu {
 .new.webhook .events.fields .column {
   padding-left: 40px;
 }
+.githook textarea {
+  font-family: monospace;
+}
 .repository {
   padding-top: 15px;
   padding-bottom: 80px;
@@ -1307,7 +1310,6 @@ footer .ui.language .menu {
 }
 .repository.file.list #file-buttons {
   font-weight: normal;
-  margin-top: -3px;
 }
 .repository.file.list #file-buttons .ui.button {
   padding: 8px 10px;
@@ -1405,6 +1407,10 @@ footer .ui.language .menu {
   color: #999;
   background: #f5f5f5;
   width: 1%;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .repository.file.list #file-content .code-view .lines-num span {
   line-height: 20px;
@@ -1432,7 +1438,7 @@ footer .ui.language .menu {
 .repository.file.list #file-content .code-view .lines-code ol li,
 .repository.file.list #file-content .code-view .lines-num .hljs li,
 .repository.file.list #file-content .code-view .lines-code .hljs li {
-  display: inline-block;
+  display: block;
   width: 100%;
 }
 .repository.file.list #file-content .code-view .lines-num pre li.active,

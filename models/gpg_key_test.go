@@ -43,7 +43,28 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 -----END PGP PUBLIC KEY BLOCK-----`
 
 	key, err := checkArmoredGPGKeyString(testGPGArmor)
-	assert.Nil(t, err, "Could not parse a valid GPG armored key", key)
+	assert.NoError(t, err, "Could not parse a valid GPG public armored rsa key", key)
+	//TODO verify value of key
+}
+
+func TestCheckArmoredbrainpoolP256r1GPGKeyString(t *testing.T) {
+	testGPGArmor := `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: GnuPG v2
+
+mFMEV6HwkhMJKyQDAwIIAQEHAgMEUsvJO/j5dFMRRj67qeZC9fSKBsGZdOHRj2+6
+8wssmbUuLTfT/ZjIbExETyY8hFnURRGpD2Ifyz0cKjXcbXfJtrQTRm9vYmFyIDxm
+b29AYmFyLmRlPoh/BBMTCAAnBQJZOsDIAhsDBQkJZgGABQsJCAcCBhUICQoLAgQW
+AgMBAh4BAheAAAoJEGuJTd/DBMzmNVQA/2beUrv1yU4gyvCiPDEm3pK42cSfaL5D
+muCtPCUg9hlWAP4yq6M78NW8STfsXgn6oeziMYiHSTmV14nOamLuwwDWM7hXBFeh
+8JISCSskAwMCCAEBBwIDBG3A+XfINAZp1CTse2mRNgeUE5DbUtEpO8ALXKA1UQsQ
+DLKq27b7zTgawgXIGUGP6mWsJ5oH7MNAJ/uKTsYmX40DAQgHiGcEGBMIAA8FAleh
+8JICGwwFCQlmAYAACgkQa4lN38MEzOZwKAD/QKyerAgcvzzLaqvtap3XvpYcw9tc
+OyjLLnFQiVmq7kEA/0z0CQe3ZQiQIq5zrs7Nh1XRkFAo8GlU/SGC9XFFi722
+=ZiSe
+-----END PGP PUBLIC KEY BLOCK-----`
+
+	key, err := checkArmoredGPGKeyString(testGPGArmor)
+	assert.NoError(t, err, "Could not parse a valid GPG public armored brainpoolP256r1 key", key)
 	//TODO verify value of key
 }
 
@@ -79,11 +100,11 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 =i9b7
 -----END PGP PUBLIC KEY BLOCK-----`
 	ekey, err := checkArmoredGPGKeyString(testGPGArmor)
-	assert.Nil(t, err, "Could not parse a valid GPG armored key", ekey)
+	assert.NoError(t, err, "Could not parse a valid GPG armored key", ekey)
 
 	pubkey := ekey.PrimaryKey
 	content, err := base64EncPubKey(pubkey)
-	assert.Nil(t, err, "Could not base64 encode a valid PublicKey content", ekey)
+	assert.NoError(t, err, "Could not base64 encode a valid PublicKey content", ekey)
 
 	key := &GPGKey{
 		KeyID:             pubkey.KeyIdString(),
@@ -140,25 +161,64 @@ parent fd3577542f7ad1554c7c7c0eb86bb57a1324ad91
 author Antoine GIRARD <sapk@sapk.fr> 1489013107 +0100
 committer Antoine GIRARD <sapk@sapk.fr> 1489013107 +0100
 
-Unkonwn GPG key with good email
+Unknown GPG key with good email
 `
 	//Reading Sign
 	goodSig, err := extractSignature(testGoodSigArmor)
-	assert.Nil(t, err, "Could not parse a valid GPG armored signature", testGoodSigArmor)
+	assert.NoError(t, err, "Could not parse a valid GPG armored signature", testGoodSigArmor)
 	badSig, err := extractSignature(testBadSigArmor)
-	assert.Nil(t, err, "Could not parse a valid GPG armored signature", testBadSigArmor)
+	assert.NoError(t, err, "Could not parse a valid GPG armored signature", testBadSigArmor)
 
 	//Generating hash of commit
 	goodHash, err := populateHash(goodSig.Hash, []byte(testGoodPayload))
-	assert.Nil(t, err, "Could not generate a valid hash of payload", testGoodPayload)
+	assert.NoError(t, err, "Could not generate a valid hash of payload", testGoodPayload)
 	badHash, err := populateHash(badSig.Hash, []byte(testBadPayload))
-	assert.Nil(t, err, "Could not generate a valid hash of payload", testBadPayload)
+	assert.NoError(t, err, "Could not generate a valid hash of payload", testBadPayload)
 
 	//Verify
 	err = verifySign(goodSig, goodHash, key)
-	assert.Nil(t, err, "Could not validate a good signature")
+	assert.NoError(t, err, "Could not validate a good signature")
 	err = verifySign(badSig, badHash, key)
-	assert.NotNil(t, err, "Validate a bad signature")
+	assert.Error(t, err, "Validate a bad signature")
 	err = verifySign(goodSig, goodHash, cannotsignkey)
-	assert.NotNil(t, err, "Validate a bad signature with a kay that can not sign")
+	assert.Error(t, err, "Validate a bad signature with a kay that can not sign")
+}
+
+func TestCheckGPGUserEmail(t *testing.T) {
+	testEmailWithUpperCaseLetters := `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: GnuPG v1
+
+mQENBFlEBvMBCADe+EQcfv/aKbMFy7YB8e/DE+hY39sfjvdvSgeXtNhfmYvIOUjT
+ORMCvce2Oxzb3HTI0rjYsJpzo9jEQ53dB3vdr0ne5Juby6N7QPjof3NR+ko50Ki2
+0ilOjYuA0v6VHLIn70UBa9NEf+XDuE7P+Lbtl2L9B9OMXtcTAZoA3cJySgtNFNIG
+AVefPi8LeOcekL39wxJEA8OzdCyO5oENEwAG1tzjy9DDNJf74/dBBh2NiXeSeMxZ
+RYeYzqEa2UTDP1fkUl7d2/hV36cKZWZr+l4SQ5bM7HeLj2SsfabLfqKoVWgkfAzQ
+VwtkbRpzMiDLMte2ZAyTJUc+77YbFoyAmOcjABEBAAG0HFVzZXIgT25lIDxVc2Vy
+MUBFeGFtcGxlLmNvbT6JATgEEwECACIFAllEBvMCGwMGCwkIBwMCBhUIAgkKCwQW
+AgMBAh4BAheAAAoJEFMOzOY274DFw5EIAKc4jiYaMb1HDKrSv0tphgNxPFEY83/J
+9CZggO7BINxlb7z/lH1i0U2h2Ha9E3VJTJQF80zBCaIvtU2UNrgVmSKoc0BdE/2S
+rS9MAl29sXxf1BfvXHu12Suvo8O/ZFP45Vm/3kkHuasHyOV1GwUWnynt1qo0zUEn
+WMIcB8USlmMT1TnSb10YKBd/BpGF3crFDJLfAHRumZUk4knDDWUOWy5RCOG8cedc
+VTAhfdoKRRO3PchOfz6Rls/hew12mRNayqxuLQl2+BX+BWu+25dR3qyiS+twLbk6
+Rjpb0S+RQTkYIUoI0SEZpxcTZso11xF5KNpKZ9aAoiLJqkNF5h4oPSe5AQ0EWUQG
+8wEIALiMMqh3NF3ON/z7hQfeU24bCl/WdfJwCR9CWU/jx4X4gZq2C2aGtytGN5g/
+qoYQ3poTOPzh/4Dvs+r6CtHqi0CvPiEOfSxzmaK+F+vA0GMn2i3Sx5gq/VB0mr+j
+RIYMCjf68Tifo2RAT0VDzn6t304l5+VPr4OgbobMRH+wDe7Hhd2pZXl7ty8DooBn
+vqaqoKgdiccUXGBKe4Oihl/oZ4qrYH6K4ACP1Sco1rs4mNeKDAW8k/Y7zLjg6d59
+g0YQ1YI+CX/bKB7/cpMHLupyMLqvCcqIpjBXRJNMdjuMHgKckjr89DwnqXqgXz7W
+u0B39MZQn9nn6vq8BdkoDFgrTQ8AEQEAAYkBHwQYAQIACQUCWUQG8wIbDAAKCRBT
+DszmNu+Axf4IB/0S9NTc6kpwW+ZPZQNTWR5oKDEaXVCRLccOlkt33txMvk/z2jNM
+trEke99ss5L1bRyWB5fRA+XVsPmW9kIk8pmGFmxqp2nSxr9m9rlL5oTYH8u6dfSm
+zwGhqkfITjPI7hyNN52PLANwoS0o4dLzIE65ewigx6cnRlrT2IENObxG/tlxaYg1
+NHahJX0uFlVk0W0bLBrs3fTDw1lS/N8HpyQb+5ryQmiIb2a48aygCS/h2qeRlX1d
+Q0KHb+QcycSgbDx0ZAvdIacuKvBBcbxrsmFUI4LR+oIup0G9gUc0roPvr014jYQL
+7f8r/8fpcN8t+I/41QHCs6L/BEIdTHW3rTQ6
+=zHo9
+-----END PGP PUBLIC KEY BLOCK-----`
+
+	key, err := AddGPGKey(1, testEmailWithUpperCaseLetters)
+	assert.NoError(t, err)
+
+	assert.Len(t, key.Emails, 1)
+	assert.Equal(t, "user1@example.com", key.Emails[0].Email)
 }

@@ -235,6 +235,9 @@ func (c *Commit) GetSubModules() (*ObjectCache, error) {
 
 	entry, err := c.GetTreeEntryByPath(".gitmodules")
 	if err != nil {
+		if _, ok := err.(ErrNotExist); ok {
+			return nil, nil
+		}
 		return nil, err
 	}
 	rd, err := entry.Blob().Data()
@@ -273,9 +276,11 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 		return nil, err
 	}
 
-	module, has := modules.Get(entryname)
-	if has {
-		return module.(*SubModule), nil
+	if modules != nil {
+		module, has := modules.Get(entryname)
+		if has {
+			return module.(*SubModule), nil
+		}
 	}
 	return nil, nil
 }

@@ -116,6 +116,10 @@ var migrations = []Migration{
 	NewMigration("add units for team", addUnitsToRepoTeam),
 	// v33 -> v34
 	NewMigration("remove columns from action", removeActionColumns),
+	// v34 -> v35
+	NewMigration("give all units to owner teams", giveAllUnitsToOwnerTeams),
+	// v35 -> v36
+	NewMigration("adds comment to an action", addCommentIDToAction),
 }
 
 // Migrate database to current version
@@ -165,13 +169,6 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 	return nil
 }
 
-func sessionRelease(sess *xorm.Session) {
-	if !sess.IsCommitedOrRollbacked {
-		sess.Rollback()
-	}
-	sess.Close()
-}
-
 func fixLocaleFileLoadPanic(_ *xorm.Engine) error {
 	cfg, err := ini.Load(setting.CustomConf)
 	if err != nil {
@@ -212,7 +209,7 @@ func trimCommitActionAppURLPrefix(x *xorm.Engine) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -285,7 +282,7 @@ func issueToIssueLabel(x *xorm.Engine) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -328,7 +325,7 @@ func attachmentRefactor(x *xorm.Engine) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -406,7 +403,7 @@ func renamePullRequestFields(x *xorm.Engine) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -490,7 +487,7 @@ func generateOrgRandsAndSalt(x *xorm.Engine) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}

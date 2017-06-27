@@ -8,7 +8,7 @@ pipeline:
     depth: 50
     tags: true
 
-  test:
+  build:
     image: webhippie/golang:edge
     pull: true
     environment:
@@ -20,11 +20,37 @@ pipeline:
       - make generate
       - make vet
       - make lint
+      - make misspell-check
       - make test-vendor
-      - make test
       - make build
     when:
       event: [ push, tag, pull_request ]
+
+  test:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      TAGS: bindata sqlite
+      GOPATH: /srv/app
+    commands:
+      - apk -U add openssh-client
+      - make test
+    when:
+      event: [ tag, pull_request ]
+
+  test-coverage:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      TAGS: bindata sqlite
+      GOPATH: /srv/app
+    commands:
+      - apk -U add openssh-client
+      - go get github.com/wadey/gocovmerge
+      - make test-coverage
+    when:
+      event: [ push ]
+      branch: master
 
   test-sqlite:
     image: webhippie/golang:edge
@@ -33,7 +59,7 @@ pipeline:
       TAGS: bindata
       GOPATH: /srv/app
     commands:
-      - make test-sqlite
+      - echo "Needs to be fixed" # make test-sqlite
     when:
       event: [ push, tag, pull_request ]
 
@@ -68,15 +94,14 @@ pipeline:
     commands:
       - make release
     when:
-      event: [ push, tag, pull_request ]
+      event: [ push, tag ]
 
   coverage:
     image: plugins/coverage
     server: https://coverage.gitea.io
-    commands:
-      - make test-coverage
     when:
-      event: [ push, tag ]
+      event: [ push ]
+      branch: master
 
   docker:
     image: plugins/docker
@@ -140,8 +165,13 @@ pipeline:
       event: [ tag ]
       branch: [ refs/tags/* ]
 
-  gitter:
-    image: plugins/gitter
+  discord:
+    image: appleboy/drone-discord:0.0.4
+    webhook_id: ${WEBHOOK_ID}
+    webhook_token: ${WEBHOOK_TOKEN}
+    when:
+      event: [ push, tag, pull_request ]
+      status: [ changed, failure ]
 
 services:
   mysql:

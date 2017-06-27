@@ -53,19 +53,28 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 	return ctxUser
 }
 
-// retrieveFeeds loads feeds from database by given context user.
-// The user could be organization so it is not always the logged in user,
-// which is why we have to explicitly pass the context user ID.
-func retrieveFeeds(ctx *context.Context, ctxUser *models.User, userID, offset int64, isProfile bool) {
-	actions, err := models.GetFeeds(ctxUser, userID, offset, isProfile)
+// retrieveFeeds loads feeds for the specified user
+func retrieveFeeds(ctx *context.Context, user *models.User, includePrivate, isProfile bool, includeDeletedComments bool) {
+	var requestingID int64
+	if ctx.User != nil {
+		requestingID = ctx.User.ID
+	}
+	actions, err := models.GetFeeds(models.GetFeedsOptions{
+		RequestedUser:    user,
+		RequestingUserID: requestingID,
+		IncludePrivate:   includePrivate,
+		OnlyPerformedBy:  isProfile,
+		IncludeDeleted:   includeDeletedComments,
+	})
 	if err != nil {
 		ctx.Handle(500, "GetFeeds", err)
 		return
 	}
 
-	// Check access of private repositories.
-	feeds := make([]*models.Action, 0, len(actions))
-	userCache := map[int64]*models.User{ctxUser.ID: ctxUser}
+	userCache := map[int64]*models.User{user.ID: user}
+	if ctx.User != nil {
+		userCache[ctx.User.ID] = ctx.User
+	}
 	repoCache := map[int64]*models.Repository{}
 	for _, act := range actions {
 		// Cache results to reduce queries.
@@ -108,10 +117,8 @@ func retrieveFeeds(ctx *context.Context, ctxUser *models.User, userID, offset in
 			}
 		}
 		repo.Owner = repoOwner
-
-		feeds = append(feeds, act)
 	}
-	ctx.Data["Feeds"] = feeds
+	ctx.Data["Feeds"] = actions
 }
 
 // Dashboard render the dashborad page
@@ -180,7 +187,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["MirrorCount"] = len(mirrors)
 	ctx.Data["Mirrors"] = mirrors
 
-	retrieveFeeds(ctx, ctxUser, ctx.User.ID, 0, false)
+	retrieveFeeds(ctx, ctxUser, true, false, false)
 	if ctx.Written() {
 		return
 	}

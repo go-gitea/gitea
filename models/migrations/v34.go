@@ -5,40 +5,21 @@
 package migrations
 
 import (
-	"fmt"
-
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-
 	"github.com/go-xorm/xorm"
 )
 
-// ActionV34 describes the removed fields
-type ActionV34 struct {
-	ActUserName  string `xorm:"-"`
-	RepoUserName string `xorm:"-"`
-	RepoName     string `xorm:"-"`
+// Team see models/team.go
+type Team struct {
+	UnitTypes []int `xorm:"json"`
 }
 
-// TableName will be invoked by XORM to customize the table name
-func (*ActionV34) TableName() string {
-	return "action"
-}
+const ownerAccessMode = 4
 
-func removeActionColumns(x *xorm.Engine) error {
-	switch {
-	case setting.UseSQLite3:
-		log.Warn("Unable to drop columns in SQLite")
-	case setting.UseMySQL, setting.UsePostgreSQL, setting.UseMSSQL, setting.UseTiDB:
-		if _, err := x.Exec("ALTER TABLE action DROP COLUMN act_user_name"); err != nil {
-			return fmt.Errorf("DROP COLUMN act_user_name: %v", err)
-		} else if _, err = x.Exec("ALTER TABLE action DROP COLUMN repo_user_name"); err != nil {
-			return fmt.Errorf("DROP COLUMN repo_user_name: %v", err)
-		} else if _, err = x.Exec("ALTER TABLE action DROP COLUMN repo_name"); err != nil {
-			return fmt.Errorf("DROP COLUMN repo_name: %v", err)
-		}
-	default:
-		log.Fatal(4, "Unrecognized DB")
-	}
-	return nil
+var allUnitTypes = []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
+
+func giveAllUnitsToOwnerTeams(x *xorm.Engine) error {
+	_, err := x.Cols("unit_types").
+		Where("authorize = ?", ownerAccessMode).
+		Update(&Team{UnitTypes: allUnitTypes})
+	return err
 }

@@ -38,6 +38,7 @@ const (
 	tplSettingsTwofa        base.TplName = "user/settings/twofa"
 	tplSettingsTwofaEnroll  base.TplName = "user/settings/twofa_enroll"
 	tplSettingsAccountLink  base.TplName = "user/settings/account_link"
+	tplSettingsOrganization base.TplName = "user/settings/organization"
 	tplSettingsDelete       base.TplName = "user/settings/delete"
 	tplSecurity             base.TplName = "user/security"
 )
@@ -488,7 +489,7 @@ func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("settings.generate_token_succees"))
+	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
 	ctx.Flash.Info(t.Sha1)
 
 	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
@@ -770,4 +771,17 @@ func SettingsDelete(ctx *context.Context) {
 	}
 
 	ctx.HTML(200, tplSettingsDelete)
+}
+
+// SettingsOrganization render all the organization of the user
+func SettingsOrganization(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsOrganization"] = true
+	orgs, err := models.GetOrgsByUserID(ctx.User.ID, ctx.IsSigned)
+	if err != nil {
+		ctx.Handle(500, "GetOrgsByUserID", err)
+		return
+	}
+	ctx.Data["Orgs"] = orgs
+	ctx.HTML(200, tplSettingsOrganization)
 }

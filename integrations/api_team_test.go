@@ -5,9 +5,6 @@
 package integrations
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -23,16 +20,13 @@ func TestAPITeam(t *testing.T) {
 	team := models.AssertExistsAndLoadBean(t, &models.Team{ID: teamUser.TeamID}).(*models.Team)
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: teamUser.UID}).(*models.User)
 
-	session := loginUser(t, user.Name, "password")
-	url := fmt.Sprintf("/api/v1/teams/%d", teamUser.TeamID)
-	req, err := http.NewRequest("GET", url, nil)
-	assert.NoError(t, err)
+	session := loginUser(t, user.Name)
+	req := NewRequestf(t, "GET", "/api/v1/teams/%d", teamUser.TeamID)
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
 	var apiTeam api.Team
-	decoder := json.NewDecoder(bytes.NewBuffer(resp.Body))
-	assert.NoError(t, decoder.Decode(&apiTeam))
+	DecodeJSON(t, resp, &apiTeam)
 	assert.EqualValues(t, team.ID, apiTeam.ID)
 	assert.Equal(t, team.Name, apiTeam.Name)
 }

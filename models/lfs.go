@@ -56,7 +56,7 @@ func NewLFSMetaObject(m *LFSMetaObject) (*LFSMetaObject, error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func RemoveLFSMetaObjectByOid(oid string) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}

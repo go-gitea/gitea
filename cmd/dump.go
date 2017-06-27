@@ -74,6 +74,11 @@ func runDump(ctx *cli.Context) error {
 	}
 	log.Printf("Creating tmp work dir: %s", TmpWorkDir)
 
+	// work-around #1103
+	if os.Getenv("TMPDIR") == "" {
+		os.Setenv("TMPDIR", TmpWorkDir)
+	}
+
 	reposDump := path.Join(TmpWorkDir, "gitea-repo.zip")
 	dbDump := path.Join(TmpWorkDir, "gitea-db.sql")
 

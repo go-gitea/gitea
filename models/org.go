@@ -127,7 +127,7 @@ func CreateOrganization(org, owner *User) (err error) {
 	org.Type = UserTypeOrganization
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -481,7 +481,7 @@ func RemoveOrgUser(orgID, userID int64) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -549,10 +549,10 @@ func removeOrgRepo(e Engine, orgID, repoID int64) error {
 
 	teamIDs := make([]int64, len(teamRepos))
 	for i, teamRepo := range teamRepos {
-		teamIDs[i] = teamRepo.ID
+		teamIDs[i] = teamRepo.TeamID
 	}
 
-	_, err := x.Decr("num_repos").In("id", teamIDs).Update(new(Team))
+	_, err := e.Decr("num_repos").In("id", teamIDs).Update(new(Team))
 	return err
 }
 

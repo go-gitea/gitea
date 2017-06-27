@@ -163,7 +163,6 @@
 		}
 		#file-buttons {
 			font-weight: normal;
-			margin-top: -3px;
 			.ui.button {
 				padding: 8px 10px;
 				font-weight: normal;
@@ -275,6 +274,10 @@
 					color: #999;
 					background: #f5f5f5;
 					width: 1%;
+					-moz-user-select: none;
+					-ms-user-select: none;
+					-webkit-user-select: none;
+					user-select: none;
 
 					span {
 						line-height: 20px;
@@ -293,7 +296,7 @@
 						margin: 0;
 						padding: 0 !important;
 						li {
-							display: inline-block;
+							display: block;
 							width: 100%;
 							&.active {
 								background: #ffffdd;

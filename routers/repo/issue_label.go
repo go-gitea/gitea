@@ -18,6 +18,10 @@ const (
 
 // Labels render issue's labels page
 func Labels(ctx *context.Context) {
+	MustEnableIssues(ctx)
+	if ctx.Written() {
+		return
+	}
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsLabels"] = true
@@ -85,7 +89,7 @@ func NewLabel(ctx *context.Context, form auth.CreateLabelForm) {
 		Name:   form.Title,
 		Color:  form.Color,
 	}
-	if err := models.NewLabels(l); err != nil {
+	if err := models.NewLabel(l); err != nil {
 		ctx.Handle(500, "NewLabel", err)
 		return
 	}

@@ -1,3 +1,5 @@
+# NOTE: all users should have a password of "password"
+
 - # NOTE: this user (id=1) is the admin
   id: 1
   lower_name: user1

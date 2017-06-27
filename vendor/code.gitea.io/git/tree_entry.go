@@ -5,7 +5,8 @@
 package git
 
 import (
-	"path/filepath"
+	"fmt"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -147,7 +148,7 @@ func (tes Entries) Sort() {
 // getCommitInfoState transient state for getting commit info for entries
 type getCommitInfoState struct {
 	entries        map[string]*TreeEntry // map from filepath to entry
-	commits        map[string]*Commit    // map from entry name to commit
+	commits        map[string]*Commit    // map from filepath to commit
 	lastCommitHash string
 	lastCommit     *Commit
 	treePath       string
@@ -158,7 +159,10 @@ type getCommitInfoState struct {
 func initGetCommitInfoState(entries Entries, headCommit *Commit, treePath string) *getCommitInfoState {
 	entriesByPath := make(map[string]*TreeEntry, len(entries))
 	for _, entry := range entries {
-		entriesByPath[filepath.Join(treePath, entry.Name())] = entry
+		entriesByPath[path.Join(treePath, entry.Name())] = entry
+	}
+	if treePath = path.Clean(treePath); treePath == "." {
+		treePath = ""
 	}
 	return &getCommitInfoState{
 		entries:        entriesByPath,
@@ -178,7 +182,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interfac
 
 	commitsInfo := make([][]interface{}, len(tes))
 	for i, entry := range tes {
-		commit = state.commits[filepath.Join(treePath, entry.Name())]
+		commit = state.commits[path.Join(treePath, entry.Name())]
 		switch entry.Type {
 		case ObjectCommit:
 			subModuleURL := ""
@@ -209,22 +213,23 @@ func (state *getCommitInfoState) commit() (*Commit, error) {
 	return state.lastCommit, err
 }
 
-func (state *getCommitInfoState) update(path string) error {
-	relPath, err := filepath.Rel(state.treePath, path)
-	if err != nil {
-		return nil
+func (state *getCommitInfoState) update(entryPath string) error {
+	var entryNameStartIndex int
+	if len(state.treePath) > 0 {
+		entryNameStartIndex = len(state.treePath) + 1
 	}
-	var entryPath string
-	if index := strings.IndexRune(relPath, '/'); index >= 0 {
-		entryPath = filepath.Join(state.treePath, relPath[:index])
-	} else {
-		entryPath = path
+
+	if index := strings.IndexByte(entryPath[entryNameStartIndex:], '/'); index >= 0 {
+		entryPath = entryPath[:entryNameStartIndex+index]
 	}
+
 	if _, ok := state.entries[entryPath]; !ok {
 		return nil
 	} else if _, ok := state.commits[entryPath]; ok {
 		return nil
 	}
+
+	var err error
 	state.commits[entryPath], err = state.commit()
 	return err
 }
@@ -249,11 +254,19 @@ func getNextCommitInfos(state *getCommitInfoState) error {
 		state.nextCommit(lines[i])
 		i++
 		for ; i < len(lines); i++ {
-			path := lines[i]
-			if path == "" {
+			entryPath := lines[i]
+			if entryPath == "" {
 				break
 			}
-			state.update(path)
+			if entryPath[0] == '"' {
+				entryPath, err = strconv.Unquote(entryPath)
+				if err != nil {
+					return fmt.Errorf("Unquote: %v", err)
+				}
+			}
+			if err = state.update(entryPath); err != nil {
+				return err
+			}
 		}
 		i++ // skip blank line
 		if len(state.entries) == len(state.commits) {
@@ -266,7 +279,7 @@ func getNextCommitInfos(state *getCommitInfoState) error {
 func logCommand(exclusiveStartHash string, state *getCommitInfoState) *Command {
 	var commitHash string
 	if len(exclusiveStartHash) == 0 {
-		commitHash = "HEAD"
+		commitHash = state.headCommit.ID.String()
 	} else {
 		commitHash = exclusiveStartHash + "^"
 	}
@@ -276,9 +289,9 @@ func logCommand(exclusiveStartHash string, state *getCommitInfoState) *Command {
 		searchSize := (numRemainingEntries + 1) / 2
 		command = NewCommand("log", prettyLogFormat, "--name-only",
 			"-"+strconv.Itoa(searchSize), commitHash, "--")
-		for path, entry := range state.entries {
-			if _, ok := state.commits[entry.Name()]; !ok {
-				command.AddArguments(path)
+		for entryPath := range state.entries {
+			if _, ok := state.commits[entryPath]; !ok {
+				command.AddArguments(entryPath)
 			}
 		}
 	} else {

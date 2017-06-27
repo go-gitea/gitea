@@ -10,7 +10,7 @@
   id: 2
   user_id: 3
   op_type: 2 # rename repo
-  act_user_id: 3
+  act_user_id: 2
   repo_id: 3
   is_private: true
   content: oldRepoName

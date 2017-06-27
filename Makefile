@@ -1,16 +1,24 @@
 DIST := dist
 IMPORT := code.gitea.io/gitea
 
+SED_INPLACE := sed -i
+
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE := gitea.exe
 else
 	EXECUTABLE := gitea
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Darwin)
+		SED_INPLACE := sed -i ''
+	endif
 endif
 
 BINDATA := modules/{options,public,templates}/bindata.go
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
 DOCKER_TAG := gitea/gitea:latest
+GOFILES := $(shell find . -name "*.go" -type f -not -path "./vendor/*" -not -path "*/bindata.go")
+GOFMT ?= gofmt -s
 
 GOFLAGS := -i -v
 EXTRA_GOFLAGS ?=
@@ -22,7 +30,13 @@ SOURCES ?= $(shell find . -name "*.go" -type f)
 
 TAGS ?=
 
-TMPDIR := $(shell mktemp -d)
+TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
+
+ifeq ($(OS), Windows_NT)
+	EXECUTABLE := gitea.exe
+else
+	EXECUTABLE := gitea
+endif
 
 ifneq ($(DRONE_TAG),)
 	VERSION ?= $(subst v,,$(DRONE_TAG))
@@ -42,9 +56,12 @@ clean:
 	go clean -i ./...
 	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA)
 
+required-gofmt-version:
+	@go version  | grep -q '\(1.7\|1.8\)' || { echo "We require go version 1.7 or 1.8 to format code" >&2 && exit 1; }
+
 .PHONY: fmt
-fmt:
-	find . -name "*.go" -type f -not -path "./vendor/*" | xargs gofmt -s -w
+fmt: required-gofmt-version
+	$(GOFMT) -w $(GOFILES)
 
 .PHONY: vet
 vet:
@@ -55,11 +72,17 @@ generate:
 	@hash go-bindata > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/jteeuwen/go-bindata/...; \
 	fi
+	go generate $(PACKAGES)
+
+.PHONY: generate-swagger
+generate-swagger:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/go-swagger/go-swagger/cmd/swagger; \
 	fi
-	go generate $(PACKAGES)
-
+	swagger generate spec -o ./public/swagger.v1.json
+	$(SED_INPLACE) "s;\".ref\": \"#/definitions/GPGKey\";\"type\": \"object\";g" ./public/swagger.v1.json
+	$(SED_INPLACE) "s;^          \".ref\": \"#/definitions/Repository\";          \"type\": \"object\";g" ./public/swagger.v1.json
+	
 .PHONY: errcheck
 errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
@@ -74,12 +97,46 @@ lint:
 	fi
 	for PKG in $(PACKAGES); do golint -set_exit_status $$PKG || exit 1; done;
 
+.PHONY: misspell-check
+misspell-check:
+	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/client9/misspell/cmd/misspell; \
+	fi
+	misspell -error -i unknwon $(GOFILES)
+
+.PHONY: misspell
+misspell:
+	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/client9/misspell/cmd/misspell; \
+	fi
+	misspell -w -i unknwon $(GOFILES)
+
+.PHONY: fmt-check
+fmt-check: required-gofmt-version
+	# get all go files and run go fmt on them
+	@diff=$$($(GOFMT) -d $(GOFILES)); \
+	if [ -n "$$diff" ]; then \
+		echo "Please run 'make fmt' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi;
+
 .PHONY: test
-test:
+test: fmt-check
 	go test $(PACKAGES)
 
 .PHONY: test-coverage
-test-coverage:
+test-coverage: unit-test-coverage integration-test-coverage
+	for PKG in $(PACKAGES); do\
+	  touch $$GOPATH/src/$$PKG/coverage.out;\
+	  egrep "$$PKG[^/]*\.go" integration.coverage.out > int.coverage.out;\
+	  gocovmerge $$GOPATH/src/$$PKG/coverage.out int.coverage.out > pkg.coverage.out;\
+	  mv pkg.coverage.out $$GOPATH/src/$$PKG/coverage.out;\
+	  rm int.coverage.out;\
+	done;
+
+.PHONY: unit-test-coverage
+unit-test-coverage:
 	for PKG in $(PACKAGES); do go test -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
 
 .PHONY: test-vendor
@@ -96,9 +153,8 @@ test-vendor:
 	govendor status || exit 1
 
 .PHONY: test-sqlite
-test-sqlite:
-	go test -c code.gitea.io/gitea/integrations -tags 'sqlite'
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.test
+test-sqlite: integrations.sqlite.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
 
 .PHONY: test-mysql
 test-mysql: integrations.test
@@ -108,8 +164,32 @@ test-mysql: integrations.test
 test-pgsql: integrations.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
 
+
+.PHONY: bench-sqlite
+bench-sqlite: integrations.sqlite.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.bench .
+
+.PHONY: bench-mysql
+bench-mysql: integrations.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test -test.bench .
+
+.PHONY: bench-pgsql
+bench-pgsql: integrations.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test -test.bench .
+
+
+.PHONY: integration-test-coverage
+integration-test-coverage: integrations.cover.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
+
 integrations.test: $(SOURCES)
 	go test -c code.gitea.io/gitea/integrations
+
+integrations.sqlite.test: $(SOURCES)
+	go test -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite'
+
+integrations.cover.test: $(SOURCES)
+	go test -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
 
 .PHONY: check
 check: test
@@ -194,7 +274,7 @@ swagger-ui:
 	git clone --depth=10 -b v3.0.7 --single-branch https://github.com/swagger-api/swagger-ui.git /tmp/swagger-ui
 	mv /tmp/swagger-ui/dist public/assets/swagger-ui
 	rm -Rf /tmp/swagger-ui
-	sed -i "s;http://petstore.swagger.io/v2/swagger.json;../../swagger.v1.json;g" public/assets/swagger-ui/index.html
+	$(SED_INPLACE) "s;http://petstore.swagger.io/v2/swagger.json;../../swagger.v1.json;g" public/assets/swagger-ui/index.html
 
 .PHONY: assets
 assets: javascripts stylesheets

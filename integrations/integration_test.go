@@ -7,6 +7,7 @@ package integrations
 import (
 	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -14,6 +15,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"testing"
 
@@ -59,13 +61,21 @@ func TestMain(m *testing.M) {
 }
 
 func initIntegrationTest() {
-	if setting.CustomConf = os.Getenv("GITEA_CONF"); setting.CustomConf == "" {
-		fmt.Println("Environment variable $GITEA_CONF not set")
-		os.Exit(1)
-	}
-	if os.Getenv("GITEA_ROOT") == "" {
+	giteaRoot := os.Getenv("GITEA_ROOT")
+	if giteaRoot == "" {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)
+	}
+	setting.AppPath = path.Join(giteaRoot, "gitea")
+
+	giteaConf := os.Getenv("GITEA_CONF")
+	if giteaConf == "" {
+		fmt.Println("Environment variable $GITEA_CONF not set")
+		os.Exit(1)
+	} else if !path.IsAbs(giteaConf) {
+		setting.CustomConf = path.Join(giteaRoot, giteaConf)
+	} else {
+		setting.CustomConf = giteaConf
 	}
 
 	setting.NewContext()
@@ -106,7 +116,7 @@ func initIntegrationTest() {
 	routers.GlobalInit()
 }
 
-func prepareTestEnv(t *testing.T) {
+func prepareTestEnv(t testing.TB) {
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll("integrations/gitea-integration"))
 	assert.NoError(t, com.CopyDir("integrations/gitea-integration-meta", "integrations/gitea-integration"))
@@ -130,7 +140,7 @@ func (s *TestSession) GetCookie(name string) *http.Cookie {
 	return nil
 }
 
-func (s *TestSession) MakeRequest(t *testing.T, req *http.Request) *TestResponse {
+func (s *TestSession) MakeRequest(t testing.TB, req *http.Request) *TestResponse {
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
@@ -146,24 +156,23 @@ func (s *TestSession) MakeRequest(t *testing.T, req *http.Request) *TestResponse
 	return resp
 }
 
-func loginUser(t *testing.T, userName, password string) *TestSession {
-	req, err := http.NewRequest("GET", "/user/login", nil)
-	assert.NoError(t, err)
+const userPassword = "password"
+
+func loginUser(t testing.TB, userName string) *TestSession {
+	return loginUserWithPassword(t, userName, userPassword)
+}
+
+func loginUserWithPassword(t testing.TB, userName, password string) *TestSession {
+	req := NewRequest(t, "GET", "/user/login")
 	resp := MakeRequest(req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	doc, err := NewHtmlParser(resp.Body)
-	assert.NoError(t, err)
-
-	req, err = http.NewRequest("POST", "/user/login",
-		bytes.NewBufferString(url.Values{
-			"_csrf":     []string{doc.GetInputValueByName("_csrf")},
-			"user_name": []string{userName},
-			"password":  []string{password},
-		}.Encode()),
-	)
-	assert.NoError(t, err)
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	doc := NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/user/login", map[string]string{
+		"_csrf":     doc.GetCSRF(),
+		"user_name": userName,
+		"password":  password,
+	})
 	resp = MakeRequest(req)
 	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
 
@@ -204,6 +213,39 @@ type TestResponse struct {
 	Headers    http.Header
 }
 
+func NewRequest(t testing.TB, method, urlStr string) *http.Request {
+	return NewRequestWithBody(t, method, urlStr, nil)
+}
+
+func NewRequestf(t testing.TB, method, urlFormat string, args ...interface{}) *http.Request {
+	return NewRequest(t, method, fmt.Sprintf(urlFormat, args...))
+}
+
+func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string]string) *http.Request {
+	urlValues := url.Values{}
+	for key, value := range values {
+		urlValues[key] = []string{value}
+	}
+	req := NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	return req
+}
+
+func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
+	jsonBytes, err := json.Marshal(v)
+	assert.NoError(t, err)
+	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
+	req.Header.Add("Content-Type", "application/json")
+	return req
+}
+
+func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *http.Request {
+	request, err := http.NewRequest(method, urlStr, body)
+	assert.NoError(t, err)
+	request.RequestURI = urlStr
+	return request
+}
+
 func MakeRequest(req *http.Request) *TestResponse {
 	buffer := bytes.NewBuffer(nil)
 	respWriter := &TestResponseWriter{
@@ -216,4 +258,9 @@ func MakeRequest(req *http.Request) *TestResponse {
 		Body:       buffer.Bytes(),
 		Headers:    respWriter.Headers,
 	}
+}
+
+func DecodeJSON(t testing.TB, resp *TestResponse, v interface{}) {
+	decoder := json.NewDecoder(bytes.NewBuffer(resp.Body))
+	assert.NoError(t, decoder.Decode(v))
 }

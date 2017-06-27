@@ -5,9 +5,7 @@
 package integrations
 
 import (
-	"bytes"
 	"net/http"
-	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -18,21 +16,16 @@ import (
 func TestDeleteUser(t *testing.T) {
 	prepareTestEnv(t)
 
-	session := loginUser(t, "user1", "password")
+	session := loginUser(t, "user1")
 
-	req, err := http.NewRequest("GET", "/admin/users/8", nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", "/admin/users/8")
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 
-	doc, err := NewHtmlParser(resp.Body)
-	assert.NoError(t, err)
-	req, err = http.NewRequest("POST", "/admin/users/8/delete",
-		bytes.NewBufferString(url.Values{
-			"_csrf": []string{doc.GetInputValueByName("_csrf")},
-		}.Encode()))
-	assert.NoError(t, err)
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	doc := NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/admin/users/8/delete", map[string]string{
+		"_csrf": doc.GetCSRF(),
+	})
 	resp = session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 

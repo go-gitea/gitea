@@ -14,8 +14,33 @@ import (
 func TestViewRepo(t *testing.T) {
 	prepareTestEnv(t)
 
-	req, err := http.NewRequest("GET", "/user2/repo1", nil)
-	assert.NoError(t, err)
+	req := NewRequest(t, "GET", "/user2/repo1")
 	resp := MakeRequest(req)
+	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+
+	req = NewRequest(t, "GET", "/user3/repo3")
+	resp = MakeRequest(req)
+	assert.EqualValues(t, http.StatusNotFound, resp.HeaderCode)
+
+	session := loginUser(t, "user1")
+	resp = session.MakeRequest(t, req)
+	assert.EqualValues(t, http.StatusNotFound, resp.HeaderCode)
+}
+
+func TestViewRepo2(t *testing.T) {
+	prepareTestEnv(t)
+
+	req := NewRequest(t, "GET", "/user3/repo3")
+	session := loginUser(t, "user2")
+	resp := session.MakeRequest(t, req)
+	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+}
+
+func TestViewRepo3(t *testing.T) {
+	prepareTestEnv(t)
+
+	req := NewRequest(t, "GET", "/user3/repo3")
+	session := loginUser(t, "user3")
+	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }

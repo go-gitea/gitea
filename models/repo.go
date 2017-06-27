@@ -359,7 +359,14 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 		return err
 	}
 
-	if !repo.Owner.IsOrganization() || userID == 0 || isAdmin {
+	if !repo.Owner.IsOrganization() || userID == 0 || isAdmin || !repo.IsPrivate {
+		return nil
+	}
+
+	// Collaborators will not be limited
+	if isCollaborator, err := repo.isCollaborator(e, userID); err != nil {
+		return err
+	} else if isCollaborator {
 		return nil
 	}
 
@@ -676,7 +683,10 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 
 // LocalCopyPath returns the local repository copy path
 func (repo *Repository) LocalCopyPath() string {
-	return path.Join(setting.AppDataPath, "tmp/local-repo", com.ToStr(repo.ID))
+	if filepath.IsAbs(setting.Repository.Local.LocalCopyPath) {
+		return path.Join(setting.Repository.Local.LocalCopyPath, com.ToStr(repo.ID))
+	}
+	return path.Join(setting.AppDataPath, setting.Repository.Local.LocalCopyPath, com.ToStr(repo.ID))
 }
 
 // UpdateLocalCopyBranch pulls latest changes of given branch from repoPath to localPath.
@@ -697,12 +707,13 @@ func UpdateLocalCopyBranch(repoPath, localPath, branch string) error {
 		}); err != nil {
 			return fmt.Errorf("git checkout %s: %v", branch, err)
 		}
-		if err := git.Pull(localPath, git.PullRemoteOptions{
-			Timeout: time.Duration(setting.Git.Timeout.Pull) * time.Second,
-			Remote:  "origin",
-			Branch:  branch,
-		}); err != nil {
-			return fmt.Errorf("git pull origin %s: %v", branch, err)
+
+		_, err := git.NewCommand("fetch", "origin").RunInDir(localPath)
+		if err != nil {
+			return fmt.Errorf("git fetch origin: %v", err)
+		}
+		if err := git.ResetHEAD(localPath, true, "origin/"+branch); err != nil {
+			return fmt.Errorf("git reset --hard origin/%s: %v", branch, err)
 		}
 	}
 	return nil
@@ -1260,7 +1271,7 @@ func CreateRepository(u *User, opts CreateRepoOptions) (_ *Repository, err error
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -1344,7 +1355,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return fmt.Errorf("sess.Begin: %v", err)
 	}
@@ -1569,7 +1580,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 // UpdateRepository updates a repository
 func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -1614,7 +1625,7 @@ func DeleteRepository(uid, repoID int64) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -1881,10 +1892,9 @@ func DeleteRepositoryArchives() error {
 
 // DeleteOldRepositoryArchives deletes old repository archives.
 func DeleteOldRepositoryArchives() {
-	if taskStatusTable.IsRunning(archiveCleanup) {
+	if !taskStatusTable.StartIfNotRunning(archiveCleanup) {
 		return
 	}
-	taskStatusTable.Start(archiveCleanup)
 	defer taskStatusTable.Stop(archiveCleanup)
 
 	log.Trace("Doing: ArchiveCleanup")
@@ -2025,10 +2035,9 @@ const (
 
 // GitFsck calls 'git fsck' to check repository health.
 func GitFsck() {
-	if taskStatusTable.IsRunning(gitFsck) {
+	if !taskStatusTable.StartIfNotRunning(gitFsck) {
 		return
 	}
-	taskStatusTable.Start(gitFsck)
 	defer taskStatusTable.Stop(gitFsck)
 
 	log.Trace("Doing: GitFsck")
@@ -2097,10 +2106,9 @@ func repoStatsCheck(checker *repoChecker) {
 
 // CheckRepoStats checks the repository stats
 func CheckRepoStats() {
-	if taskStatusTable.IsRunning(checkRepos) {
+	if !taskStatusTable.StartIfNotRunning(checkRepos) {
 		return
 	}
-	taskStatusTable.Start(checkRepos)
 	defer taskStatusTable.Stop(checkRepos)
 
 	log.Trace("Doing: CheckRepoStats")
@@ -2232,7 +2240,7 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -2276,7 +2284,7 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 
 	// Copy LFS meta objects in new session
 	sess2 := x.NewSession()
-	defer sessionRelease(sess2)
+	defer sess2.Close()
 	if err = sess2.Begin(); err != nil {
 		return nil, err
 	}

@@ -19,9 +19,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-xorm/xorm"
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
-	"golang.org/x/crypto/openpgp/packet"
+	"github.com/keybase/go-crypto/openpgp"
+	"github.com/keybase/go-crypto/openpgp/armor"
+	"github.com/keybase/go-crypto/openpgp/packet"
 )
 
 // GPGKey represents a GPG key.
@@ -127,7 +127,7 @@ func AddGPGKey(ownerID int64, content string) (*GPGKey, error) {
 
 	//Get DB session
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -211,9 +211,9 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 	emails := make([]*EmailAddress, len(e.Identities))
 	n := 0
 	for _, ident := range e.Identities {
-
+		email := strings.ToLower(strings.TrimSpace(ident.UserId.Email))
 		for _, e := range userEmails {
-			if e.Email == ident.UserId.Email && e.IsActivated {
+			if e.Email == email && e.IsActivated {
 				emails[n] = e
 				break
 			}
@@ -267,7 +267,7 @@ func DeleteGPGKey(doer *User, id int64) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}

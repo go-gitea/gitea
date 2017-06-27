@@ -2,9 +2,6 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-//go:generate swagger generate spec -o ../../../public/swagger.v1.json
-//go:generate sed -i "s;\".ref\": \"#/definitions/GPGKey\";\"type\": \"object\";g" ../../../public/swagger.v1.json
-
 // Package v1 Gitea API.
 //
 // This provide API interface to communicate with this Gitea instance.
@@ -452,19 +449,19 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/users/:username/orgs", org.ListUserOrgs)
 		m.Group("/orgs/:orgname", func() {
 			m.Combo("").Get(org.Get).
-				Patch(reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit)
+				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit)
 			m.Group("/members", func() {
 				m.Get("", org.ListMembers)
 				m.Combo("/:username").Get(org.IsMember).
-					Delete(reqOrgOwnership(), org.DeleteMember)
+					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
 			})
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
 				m.Combo("/:username").Get(org.IsPublicMember).
-					Put(reqOrgMembership(), org.PublicizeMember).
-					Delete(reqOrgMembership(), org.ConcealMember)
+					Put(reqToken(), reqOrgMembership(), org.PublicizeMember).
+					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
 			})
-			m.Combo("/teams", reqOrgMembership()).Get(org.ListTeams).
+			m.Combo("/teams", reqToken(), reqOrgMembership()).Get(org.ListTeams).
 				Post(bind(api.CreateTeamOption{}), org.CreateTeam)
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
@@ -472,7 +469,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("/:id").Get(org.GetHook).
 					Patch(reqOrgOwnership(), bind(api.EditHookOption{}), org.EditHook).
 					Delete(reqOrgOwnership(), org.DeleteHook)
-			}, reqOrgMembership())
+			}, reqToken(), reqOrgMembership())
 		}, orgAssignment(true))
 		m.Group("/teams/:teamid", func() {
 			m.Combo("").Get(org.GetTeam).
@@ -486,11 +483,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 			})
 			m.Group("/repos", func() {
 				m.Get("", org.GetTeamRepos)
-				m.Combo(":orgname/:reponame").
+				m.Combo("/:orgname/:reponame").
 					Put(org.AddTeamRepository).
 					Delete(org.RemoveTeamRepository)
 			})
-		}, orgAssignment(false, true), reqOrgMembership())
+		}, orgAssignment(false, true), reqToken(), reqOrgMembership())
 
 		m.Any("/*", func(ctx *context.Context) {
 			ctx.Error(404)

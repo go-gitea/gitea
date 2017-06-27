@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -77,6 +78,9 @@ type Action struct {
 	ActUser     *User       `xorm:"-"`
 	RepoID      int64       `xorm:"INDEX"`
 	Repo        *Repository `xorm:"-"`
+	CommentID   int64       `xorm:"INDEX"`
+	Comment     *Comment    `xorm:"-"`
+	IsDeleted   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
 	RefName     string
 	IsPrivate   bool      `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content     string    `xorm:"TEXT"`
@@ -120,7 +124,7 @@ func (a *Action) loadActUser() {
 }
 
 func (a *Action) loadRepo() {
-	if a.ActUser != nil {
+	if a.Repo != nil {
 		return
 	}
 	var err error
@@ -189,6 +193,35 @@ func (a *Action) GetRepoLink() string {
 		return path.Join(setting.AppSubURL, a.GetRepoPath())
 	}
 	return "/" + a.GetRepoPath()
+}
+
+// GetCommentLink returns link to action comment.
+func (a *Action) GetCommentLink() string {
+	if a == nil {
+		return "#"
+	}
+	if a.Comment == nil && a.CommentID != 0 {
+		a.Comment, _ = GetCommentByID(a.CommentID)
+	}
+	if a.Comment != nil {
+		return a.Comment.HTMLURL()
+	}
+	if len(a.GetIssueInfos()) == 0 {
+		return "#"
+	}
+	//Return link to issue
+	issueIDString := a.GetIssueInfos()[0]
+	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
+	if err != nil {
+		return "#"
+	}
+
+	issue, err := GetIssueByID(issueID)
+	if err != nil {
+		return "#"
+	}
+
+	return issue.HTMLURL()
 }
 
 // GetBranch returns the action's repository branch.
@@ -517,7 +550,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	}
 
 	// Change repository bare status and update last updated time.
-	repo.IsBare = false
+	repo.IsBare = repo.IsBare && opts.Commits.Len <= 0
 	if err = UpdateRepository(repo, false); err != nil {
 		return fmt.Errorf("UpdateRepository: %v", err)
 	}
@@ -672,33 +705,46 @@ func MergePullRequestAction(actUser *User, repo *Repository, pull *Issue) error 
 	return mergePullRequestAction(x, actUser, repo, pull)
 }
 
-// GetFeeds returns action list of given user in given context.
-// actorID is the user who's requesting, ctxUserID is the user/org that is requested.
-// actorID can be -1 when isProfile is true or to skip the permission check.
-func GetFeeds(ctxUser *User, actorID, offset int64, isProfile bool) ([]*Action, error) {
-	actions := make([]*Action, 0, 20)
-	sess := x.
-		Limit(20, int(offset)).
-		Desc("id").
-		Where("user_id = ?", ctxUser.ID)
-	if isProfile {
-		sess.
-			And("is_private = ?", false).
-			And("act_user_id = ?", ctxUser.ID)
-	} else if actorID != -1 && ctxUser.IsOrganization() {
-		env, err := ctxUser.AccessibleReposEnv(actorID)
+// GetFeedsOptions options for retrieving feeds
+type GetFeedsOptions struct {
+	RequestedUser    *User
+	RequestingUserID int64
+	IncludePrivate   bool // include private actions
+	OnlyPerformedBy  bool // only actions performed by requested user
+	IncludeDeleted   bool // include deleted actions
+}
+
+// GetFeeds returns actions according to the provided options
+func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
+	var repoIDs []int64
+	if opts.RequestedUser.IsOrganization() {
+		env, err := opts.RequestedUser.AccessibleReposEnv(opts.RequestingUserID)
 		if err != nil {
 			return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 		}
-		repoIDs, err := env.RepoIDs(1, ctxUser.NumRepos)
-		if err != nil {
+		if repoIDs, err = env.RepoIDs(1, opts.RequestedUser.NumRepos); err != nil {
 			return nil, fmt.Errorf("GetUserRepositories: %v", err)
-		}
-		if len(repoIDs) > 0 {
-			sess.In("repo_id", repoIDs)
 		}
 	}
 
-	err := sess.Find(&actions)
-	return actions, err
+	actions := make([]*Action, 0, 20)
+	sess := x.Limit(20).
+		Desc("id").
+		Where("user_id = ?", opts.RequestedUser.ID)
+	if opts.OnlyPerformedBy {
+		sess.And("act_user_id = ?", opts.RequestedUser.ID)
+	}
+	if !opts.IncludePrivate {
+		sess.And("is_private = ?", false)
+	}
+	if opts.RequestedUser.IsOrganization() {
+		sess.In("repo_id", repoIDs)
+	}
+
+	if !opts.IncludeDeleted {
+		sess.And("is_deleted = ?", false)
+
+	}
+
+	return actions, sess.Find(&actions)
 }
