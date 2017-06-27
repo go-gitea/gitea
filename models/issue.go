@@ -132,7 +132,7 @@ func (issue *Issue) loadPoster(e Engine) (err error) {
 }
 
 func (issue *Issue) loadAssignee(e Engine) (err error) {
-	if issue.Assignee == nil {
+	if issue.Assignee == nil && issue.AssigneeID > 0 {
 		issue.Assignee, err = getUserByID(e, issue.AssigneeID)
 		if err != nil {
 			issue.AssigneeID = -1
