@@ -189,12 +189,6 @@ function initCommentForm() {
         var $list = $('.ui' + select_id + '.list');
         var hasUpdateAction = $menu.data('action') == 'update';
 
-        $(select_id).dropdown('setting', 'onHide', function(){
-            if (hasUpdateAction) {
-                location.reload();
-            }
-        });
-
         $menu.find('.item:not(.no-select)').click(function () {
             $(this).parent().find('.item').each(function () {
                 $(this).removeClass('selected active')
@@ -206,7 +200,8 @@ function initCommentForm() {
                     $menu.data('update-url'),
                     "",
                     $menu.data('issue-id'),
-                    $(this).data('id')
+                    $(this).data('id'),
+                    function() { location.reload(); }
                 );
             }
             switch (input_id) {
@@ -232,7 +227,8 @@ function initCommentForm() {
                     $menu.data('update-url'),
                     "",
                     $menu.data('issue-id'),
-                    $(this).data('id')
+                    $(this).data('id'),
+                    function() { location.reload(); }
                 );
             }
 
