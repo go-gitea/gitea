@@ -67,7 +67,13 @@ func Releases(ctx *context.Context) {
 
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, page, limit)
 	if err != nil {
-		ctx.Handle(500, "GetReleasesByRepoIDAndNames", err)
+		ctx.Handle(500, "GetReleasesByRepoID", err)
+		return
+	}
+
+	count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, ctx.Repo.IsOwner())
+	if err != nil {
+		ctx.Handle(500, "GetReleaseCountByRepoID", err)
 		return
 	}
 
@@ -110,7 +116,7 @@ func Releases(ctx *context.Context) {
 		releasesToDisplay = append(releasesToDisplay, r)
 	}
 
-	pager := paginater.New(len(releasesToDisplay), limit, page, 5)
+	pager := paginater.New(int(count), limit, page, 5)
 	ctx.Data["Page"] = pager
 	ctx.Data["Releases"] = releasesToDisplay
 	ctx.HTML(200, tplReleases)

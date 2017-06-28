@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 )
 
@@ -242,6 +243,19 @@ func GetReleasesByRepoID(repoID int64, page, pageSize int) (rels []*Release, err
 		Limit(pageSize, (page-1)*pageSize).
 		Find(&rels, Release{RepoID: repoID})
 	return rels, err
+}
+
+// GetReleaseCountByRepoID returns the count of releases of repository
+func GetReleaseCountByRepoID(repoID int64, includeDrafts bool) (int64, error) {
+	var cond = builder.NewCond()
+	cond = cond.And(builder.Eq{"repo_id": repoID})
+
+	if includeDrafts {
+		return x.Where(cond).Count(&Release{})
+	}
+
+	cond = cond.And(builder.Eq{"is_draft": false})
+	return x.Where(cond).Count(&Release{})
 }
 
 // GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
