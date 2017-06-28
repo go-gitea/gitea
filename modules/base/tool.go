@@ -219,59 +219,59 @@ const (
 	Year   = 12 * Month
 )
 
-func computeTimeDiff(diff int64) (int64, string) {
+func computeTimeDiff(diff int64, lang string) (int64, string) {
 	diffStr := ""
 	switch {
 	case diff <= 0:
 		diff = 0
-		diffStr = "now"
+		diffStr = i18n.Tr(lang, "tool.now")
 	case diff < 2:
 		diff = 0
-		diffStr = "1 second"
+		diffStr = i18n.Tr(lang, "tool.1s")
 	case diff < 1*Minute:
-		diffStr = fmt.Sprintf("%d seconds", diff)
+		diffStr = i18n.Tr(lang, "tool.seconds", diff)
 		diff = 0
 
 	case diff < 2*Minute:
 		diff -= 1 * Minute
-		diffStr = "1 minute"
+		diffStr = i18n.Tr(lang, "tool.1m")
 	case diff < 1*Hour:
-		diffStr = fmt.Sprintf("%d minutes", diff/Minute)
+		diffStr = i18n.Tr(lang, "tool.minutes", diff/Minute)
 		diff -= diff / Minute * Minute
 
 	case diff < 2*Hour:
 		diff -= 1 * Hour
-		diffStr = "1 hour"
+		diffStr = i18n.Tr(lang, "tool.1h")
 	case diff < 1*Day:
-		diffStr = fmt.Sprintf("%d hours", diff/Hour)
+		diffStr = i18n.Tr(lang, "tool.hours", diff/Hour)
 		diff -= diff / Hour * Hour
 
 	case diff < 2*Day:
 		diff -= 1 * Day
-		diffStr = "1 day"
+		diffStr = i18n.Tr(lang, "tool.1d")
 	case diff < 1*Week:
-		diffStr = fmt.Sprintf("%d days", diff/Day)
+		diffStr = i18n.Tr(lang, "tool.days", diff/Day)
 		diff -= diff / Day * Day
 
 	case diff < 2*Week:
 		diff -= 1 * Week
-		diffStr = "1 week"
+		diffStr = i18n.Tr(lang, "tool.1w")
 	case diff < 1*Month:
-		diffStr = fmt.Sprintf("%d weeks", diff/Week)
+		diffStr = i18n.Tr(lang, "tool.weeks", diff/Week)
 		diff -= diff / Week * Week
 
 	case diff < 2*Month:
 		diff -= 1 * Month
-		diffStr = "1 month"
+		diffStr = i18n.Tr(lang, "tool.1mon")
 	case diff < 1*Year:
-		diffStr = fmt.Sprintf("%d months", diff/Month)
+		diffStr = i18n.Tr(lang, "tool.months", diff/Month)
 		diff -= diff / Month * Month
 
 	case diff < 2*Year:
 		diff -= 1 * Year
-		diffStr = "1 year"
+		diffStr = i18n.Tr(lang, "tool.1y")
 	default:
-		diffStr = fmt.Sprintf("%d years", diff/Year)
+		diffStr = i18n.Tr(lang, "tool.years", diff/Year)
 		diff -= (diff / Year) * Year
 	}
 	return diff, diffStr
@@ -279,24 +279,24 @@ func computeTimeDiff(diff int64) (int64, string) {
 
 // MinutesToFriendly returns a user friendly string with number of minutes
 // converted to hours and minutes.
-func MinutesToFriendly(minutes int) string {
+func MinutesToFriendly(minutes int, lang string) string {
 	duration := time.Duration(minutes) * time.Minute
-	return TimeSincePro(time.Now().Add(-duration))
+	return TimeSincePro(time.Now().Add(-duration), lang)
 }
 
 // TimeSincePro calculates the time interval and generate full user-friendly string.
-func TimeSincePro(then time.Time) string {
-	return timeSincePro(then, time.Now())
+func TimeSincePro(then time.Time, lang string) string {
+	return timeSincePro(then, time.Now(), lang)
 }
 
-func timeSincePro(then, now time.Time) string {
+func timeSincePro(then, now time.Time, lang string) string {
 	diff := now.Unix() - then.Unix()
 
 	if then.After(now) {
-		return "future"
+		return i18n.Tr(lang, "tool.future")
 	}
 	if diff == 0 {
-		return "now"
+		return i18n.Tr(lang, "tool.now")
 	}
 
 	var timeStr, diffStr string
@@ -305,58 +305,25 @@ func timeSincePro(then, now time.Time) string {
 			break
 		}
 
-		diff, diffStr = computeTimeDiff(diff)
+		diff, diffStr = computeTimeDiff(diff, lang)
 		timeStr += ", " + diffStr
 	}
 	return strings.TrimPrefix(timeStr, ", ")
 }
 
 func timeSince(then, now time.Time, lang string) string {
-	lbl := i18n.Tr(lang, "tool.ago")
+	lbl := "tool.ago"
 	diff := now.Unix() - then.Unix()
 	if then.After(now) {
-		lbl = i18n.Tr(lang, "tool.from_now")
+		lbl = "tool.from_now"
 		diff = then.Unix() - now.Unix()
 	}
-
-	switch {
-	case diff <= 0:
+	if diff <= 0 {
 		return i18n.Tr(lang, "tool.now")
-	case diff <= 1:
-		return i18n.Tr(lang, "tool.1s", lbl)
-	case diff < 1*Minute:
-		return i18n.Tr(lang, "tool.seconds", diff, lbl)
-
-	case diff < 2*Minute:
-		return i18n.Tr(lang, "tool.1m", lbl)
-	case diff < 1*Hour:
-		return i18n.Tr(lang, "tool.minutes", diff/Minute, lbl)
-
-	case diff < 2*Hour:
-		return i18n.Tr(lang, "tool.1h", lbl)
-	case diff < 1*Day:
-		return i18n.Tr(lang, "tool.hours", diff/Hour, lbl)
-
-	case diff < 2*Day:
-		return i18n.Tr(lang, "tool.1d", lbl)
-	case diff < 1*Week:
-		return i18n.Tr(lang, "tool.days", diff/Day, lbl)
-
-	case diff < 2*Week:
-		return i18n.Tr(lang, "tool.1w", lbl)
-	case diff < 1*Month:
-		return i18n.Tr(lang, "tool.weeks", diff/Week, lbl)
-
-	case diff < 2*Month:
-		return i18n.Tr(lang, "tool.1mon", lbl)
-	case diff < 1*Year:
-		return i18n.Tr(lang, "tool.months", diff/Month, lbl)
-
-	case diff < 2*Year:
-		return i18n.Tr(lang, "tool.1y", lbl)
-	default:
-		return i18n.Tr(lang, "tool.years", diff/Year, lbl)
 	}
+
+	_, diffStr := computeTimeDiff(diff, lang)
+	return i18n.Tr(lang, lbl, diffStr)
 }
 
 // RawTimeSince retrieves i18n key of time since t
