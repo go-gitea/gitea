@@ -233,38 +233,42 @@ func GetReleaseByID(id int64) (*Release, error) {
 	return rel, nil
 }
 
+// FindReleasesOptions describes the conditions to Find releases
+type FindReleasesOptions struct {
+	IncludeDrafts bool
+	TagNames      []string
+}
+
+func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
+	var cond = builder.NewCond()
+	cond = cond.And(builder.Eq{"repo_id": repoID})
+
+	if !opts.IncludeDrafts {
+		cond = cond.And(builder.Eq{"is_draft": false})
+	}
+	if len(opts.TagNames) > 0 {
+		cond = cond.And(builder.In("tag_name", opts.TagNames))
+	}
+	return cond
+}
+
 // GetReleasesByRepoID returns a list of releases of repository.
-func GetReleasesByRepoID(repoID int64, page, pageSize int) (rels []*Release, err error) {
+func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions, page, pageSize int) (rels []*Release, err error) {
 	if page <= 0 {
 		page = 1
 	}
+
 	err = x.
-		Desc("created_unix").
+		Desc("created_unix", "id").
 		Limit(pageSize, (page-1)*pageSize).
-		Find(&rels, Release{RepoID: repoID})
+		Where(opts.toConds(repoID)).
+		Find(&rels)
 	return rels, err
 }
 
 // GetReleaseCountByRepoID returns the count of releases of repository
-func GetReleaseCountByRepoID(repoID int64, includeDrafts bool) (int64, error) {
-	var cond = builder.NewCond()
-	cond = cond.And(builder.Eq{"repo_id": repoID})
-
-	if includeDrafts {
-		return x.Where(cond).Count(&Release{})
-	}
-
-	cond = cond.And(builder.Eq{"is_draft": false})
-	return x.Where(cond).Count(&Release{})
-}
-
-// GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
-func GetReleasesByRepoIDAndNames(repoID int64, tagNames []string) (rels []*Release, err error) {
-	err = x.
-		Desc("created_unix").
-		In("tag_name", tagNames).
-		Find(&rels, Release{RepoID: repoID})
-	return rels, err
+func GetReleaseCountByRepoID(repoID int64, opts FindReleasesOptions) (int64, error) {
+	return x.Where(opts.toConds(repoID)).Count(&Release{})
 }
 
 type releaseMetaSearch struct {

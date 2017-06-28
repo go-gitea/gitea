@@ -65,13 +65,17 @@ func Releases(ctx *context.Context) {
 		limit = 10
 	}
 
-	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, page, limit)
+	opts := models.FindReleasesOptions{
+		IncludeDrafts: ctx.Repo.IsWriter(),
+	}
+
+	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts, page, limit)
 	if err != nil {
 		ctx.Handle(500, "GetReleasesByRepoID", err)
 		return
 	}
 
-	count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, ctx.Repo.IsOwner())
+	count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.Handle(500, "GetReleaseCountByRepoID", err)
 		return
@@ -91,11 +95,7 @@ func Releases(ctx *context.Context) {
 	}
 	var ok bool
 
-	releasesToDisplay := make([]*models.Release, 0, len(releases))
 	for _, r := range releases {
-		if r.IsDraft && !ctx.Repo.IsOwner() {
-			continue
-		}
 		if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
 			r.Publisher, err = models.GetUserByID(r.PublisherID)
 			if err != nil {
@@ -113,12 +113,11 @@ func Releases(ctx *context.Context) {
 			return
 		}
 		r.Note = markdown.RenderString(r.Note, ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas())
-		releasesToDisplay = append(releasesToDisplay, r)
 	}
 
 	pager := paginater.New(int(count), limit, page, 5)
 	ctx.Data["Page"] = pager
-	ctx.Data["Releases"] = releasesToDisplay
+	ctx.Data["Releases"] = releases
 	ctx.HTML(200, tplReleases)
 }
 
