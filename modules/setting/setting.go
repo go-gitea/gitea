@@ -87,17 +87,18 @@ var (
 	EnablePprof          bool
 
 	SSH = struct {
-		Disabled            bool           `ini:"DISABLE_SSH"`
-		StartBuiltinServer  bool           `ini:"START_SSH_SERVER"`
-		Domain              string         `ini:"SSH_DOMAIN"`
-		Port                int            `ini:"SSH_PORT"`
-		ListenHost          string         `ini:"SSH_LISTEN_HOST"`
-		ListenPort          int            `ini:"SSH_LISTEN_PORT"`
-		RootPath            string         `ini:"SSH_ROOT_PATH"`
-		KeyTestPath         string         `ini:"SSH_KEY_TEST_PATH"`
-		KeygenPath          string         `ini:"SSH_KEYGEN_PATH"`
-		MinimumKeySizeCheck bool           `ini:"-"`
-		MinimumKeySizes     map[string]int `ini:"-"`
+		Disabled             bool           `ini:"DISABLE_SSH"`
+		StartBuiltinServer   bool           `ini:"START_SSH_SERVER"`
+		Domain               string         `ini:"SSH_DOMAIN"`
+		Port                 int            `ini:"SSH_PORT"`
+		ListenHost           string         `ini:"SSH_LISTEN_HOST"`
+		ListenPort           int            `ini:"SSH_LISTEN_PORT"`
+		RootPath             string         `ini:"SSH_ROOT_PATH"`
+		KeyTestPath          string         `ini:"SSH_KEY_TEST_PATH"`
+		KeygenPath           string         `ini:"SSH_KEYGEN_PATH"`
+		AuthorizedKeysBackup bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
+		MinimumKeySizeCheck  bool           `ini:"-"`
+		MinimumKeySizes      map[string]int `ini:"-"`
 	}{
 		Disabled:           false,
 		StartBuiltinServer: false,
@@ -703,6 +704,7 @@ func NewContext() {
 			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
 		}
 	}
+	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
 
 	if err = Cfg.Section("server").MapTo(&LFS); err != nil {
 		log.Fatal(4, "Failed to map LFS settings: %v", err)
