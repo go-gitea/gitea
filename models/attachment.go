@@ -12,6 +12,7 @@ import (
 	"path"
 	"time"
 
+	api "code.gitea.io/sdk/gitea"
 	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
 
@@ -67,6 +68,18 @@ func AttachmentLocalPath(uuid string) string {
 // LocalPath returns where attachment is stored in local file system.
 func (a *Attachment) LocalPath() string {
 	return AttachmentLocalPath(a.UUID)
+}
+
+// APIFormat converts a Attachment to an api.Attachment
+func (a *Attachment) APIFormat() *api.Attachment {
+	return &api.Attachment{
+		ID:            a.ID,
+		Created:       a.Created,
+		Name:          a.Name,
+		UUID:          a.UUID,
+		DownloadURL:   setting.AppURL + "/attachments/" + a.UUID,
+		DownloadCount: a.DownloadCount,
+	}
 }
 
 // NewAttachment creates a new attachment object.

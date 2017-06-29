@@ -71,6 +71,10 @@ func (r *Release) loadAttributes(e Engine) error {
 			return err
 		}
 	}
+	// load the attachments of this release
+	if r.Attachments == nil {
+		GetReleaseAttachments(r)
+	}
 	return nil
 }
 
@@ -97,6 +101,10 @@ func (r *Release) TarURL() string {
 
 // APIFormat convert a Release to api.Release
 func (r *Release) APIFormat() *api.Release {
+	apiAttachments := make([]*api.Attachment, len(r.Attachments))
+	for i := range r.Attachments {
+		apiAttachments[i] = r.Attachments[i].APIFormat()
+	}
 	return &api.Release{
 		ID:           r.ID,
 		TagName:      r.TagName,
@@ -110,6 +118,7 @@ func (r *Release) APIFormat() *api.Release {
 		CreatedAt:    r.Created,
 		PublishedAt:  r.Created,
 		Publisher:    r.Publisher.APIFormat(),
+		Attachments:  apiAttachments,
 	}
 }
 
