@@ -10,8 +10,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestChangeDefaultBranch(t *testing.T) {
@@ -22,29 +20,19 @@ func TestChangeDefaultBranch(t *testing.T) {
 	session := loginUser(t, owner.Name)
 	branchesURL := fmt.Sprintf("/%s/%s/settings/branches", owner.Name, repo.Name)
 
-	req := NewRequest(t, "GET", branchesURL)
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
-	doc := NewHTMLParser(t, resp.Body)
-
-	req = NewRequestWithValues(t, "POST", branchesURL, map[string]string{
-		"_csrf":  doc.GetCSRF(),
+	csrf := GetCSRF(t, session, branchesURL)
+	req := NewRequestWithValues(t, "POST", branchesURL, map[string]string{
+		"_csrf":  csrf,
 		"action": "default_branch",
 		"branch": "DefaultBranch",
 	})
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
+	session.MakeRequest(t, req, http.StatusFound)
 
-	req = NewRequest(t, "GET", branchesURL)
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
-	doc = NewHTMLParser(t, resp.Body)
-
+	csrf = GetCSRF(t, session, branchesURL)
 	req = NewRequestWithValues(t, "POST", branchesURL, map[string]string{
-		"_csrf":  doc.GetInputValueByName("_csrf"),
+		"_csrf":  csrf,
 		"action": "default_branch",
 		"branch": "does_not_exist",
 	})
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusNotFound, resp.HeaderCode)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }

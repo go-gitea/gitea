@@ -21,8 +21,7 @@ func TestRepoCommits(t *testing.T) {
 
 	// Request repository commits page
 	req := NewRequest(t, "GET", "/user2/repo1/commits/master")
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
 	commitURL, exists := doc.doc.Find("#commits-table tbody tr td.sha a").Attr("href")
@@ -37,8 +36,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 
 	// Request repository commits page
 	req := NewRequest(t, "GET", "/user2/repo1/commits/master")
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
 	// Get first commit URL
@@ -56,12 +54,10 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 		},
 	)
 
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusCreated, resp.HeaderCode)
+	resp = session.MakeRequest(t, req, http.StatusCreated)
 
 	req = NewRequest(t, "GET", "/user2/repo1/commits/master")
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	doc = NewHTMLParser(t, resp.Body)
 	// Check if commit status is displayed in message column

@@ -7,24 +7,19 @@ package integrations
 import (
 	"net/http"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestViewRepo(t *testing.T) {
 	prepareTestEnv(t)
 
 	req := NewRequest(t, "GET", "/user2/repo1")
-	resp := MakeRequest(req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	MakeRequest(t, req, http.StatusOK)
 
 	req = NewRequest(t, "GET", "/user3/repo3")
-	resp = MakeRequest(req)
-	assert.EqualValues(t, http.StatusNotFound, resp.HeaderCode)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	session := loginUser(t, "user1")
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusNotFound, resp.HeaderCode)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestViewRepo2(t *testing.T) {
@@ -32,8 +27,7 @@ func TestViewRepo2(t *testing.T) {
 
 	req := NewRequest(t, "GET", "/user3/repo3")
 	session := loginUser(t, "user2")
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	session.MakeRequest(t, req, http.StatusOK)
 }
 
 func TestViewRepo3(t *testing.T) {
@@ -41,6 +35,5 @@ func TestViewRepo3(t *testing.T) {
 
 	req := NewRequest(t, "GET", "/user3/repo3")
 	session := loginUser(t, "user3")
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	session.MakeRequest(t, req, http.StatusOK)
 }

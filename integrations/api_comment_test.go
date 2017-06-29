@@ -26,8 +26,7 @@ func TestAPIListComments(t *testing.T) {
 	session := loginUser(t, repoOwner.Name)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/comments",
 		repoOwner.Name, repo.Name, issue.Index)
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var comments []*api.Comment
 	DecodeJSON(t, resp, &comments)

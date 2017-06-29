@@ -15,8 +15,7 @@ import (
 
 func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string) *TestResponse {
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Click the little green button to craete a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -25,16 +24,14 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum strin
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 	})
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
+	resp = session.MakeRequest(t, req, http.StatusFound)
 
 	return resp
 }
 
 func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum string) *TestResponse {
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Click the little green button to craete a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -43,8 +40,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 	})
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	return resp
 }
@@ -92,8 +88,7 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 
 	// Check branch deletion result
 	req := NewRequest(t, "GET", respJSON.Redirect)
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	resultMsg := htmlDoc.doc.Find(".ui.message>p").Text()

@@ -7,22 +7,18 @@ package integrations
 import (
 	"net/http"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIUserReposNotLogin(t *testing.T) {
 	prepareTestEnv(t)
 
 	req := NewRequest(t, "GET", "/api/v1/users/user2/repos")
-	resp := MakeRequest(req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestAPISearchRepoNotLogin(t *testing.T) {
 	prepareTestEnv(t)
 
 	req := NewRequest(t, "GET", "/api/v1/repos/search?q=Test")
-	resp := MakeRequest(req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	MakeRequest(t, req, http.StatusOK)
 }

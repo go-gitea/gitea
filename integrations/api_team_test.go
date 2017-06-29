@@ -22,8 +22,7 @@ func TestAPITeam(t *testing.T) {
 
 	session := loginUser(t, user.Name)
 	req := NewRequestf(t, "GET", "/api/v1/teams/%d", teamUser.TeamID)
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var apiTeam api.Team
 	DecodeJSON(t, resp, &apiTeam)

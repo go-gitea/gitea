@@ -29,8 +29,7 @@ func TestAPIAddIssueLabels(t *testing.T) {
 		Labels: []int64{label.ID},
 	})
 	session := loginUser(t, owner.Name)
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
 	DecodeJSON(t, resp, &apiLabels)
 	assert.Len(t, apiLabels, models.GetCount(t, &models.IssueLabel{IssueID: issue.ID}))
@@ -52,8 +51,7 @@ func TestAPIReplaceIssueLabels(t *testing.T) {
 		Labels: []int64{label.ID},
 	})
 	session := loginUser(t, owner.Name)
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
 	DecodeJSON(t, resp, &apiLabels)
 	assert.Len(t, apiLabels, 1)
