@@ -52,6 +52,7 @@ func TestRenameInvalidUsername(t *testing.T) {
 		"%2f.",
 		"%2f..",
 		"%00",
+		"thisHas ASpace",
 	}
 
 	session := loginUser(t, "user2")
