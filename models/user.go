@@ -333,15 +333,14 @@ func (u *User) generateRandomAvatar(e Engine) error {
 // which includes app sub-url as prefix. However, it is possible
 // to return full URL if user enables Gravatar-like service.
 func (u *User) RelAvatarLink() string {
-	defaultImgURL := setting.AppSubURL + "/img/avatar_default.png"
 	if u.ID == -1 {
-		return defaultImgURL
+		return base.DefaultAvatarLink()
 	}
 
 	switch {
 	case u.UseCustomAvatar:
 		if !com.IsFile(u.CustomAvatarPath()) {
-			return defaultImgURL
+			return base.DefaultAvatarLink()
 		}
 		return setting.AppSubURL + "/avatars/" + u.Avatar
 	case setting.DisableGravatar, setting.OfflineMode:

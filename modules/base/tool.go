@@ -192,6 +192,10 @@ func HashEmail(email string) string {
 	return EncodeMD5(strings.ToLower(strings.TrimSpace(email)))
 }
 
+func DefaultAvatarLink() string {
+	return setting.AppSubURL + "/img/avatar_default.png"
+}
+
 // AvatarLink returns relative avatar link to the site domain by given email,
 // which includes app sub-url as prefix. However, it is possible
 // to return full URL if user enables Gravatar-like service.
@@ -200,6 +204,7 @@ func AvatarLink(email string) string {
 		url, err := setting.LibravatarService.FromEmail(email)
 		if err != nil {
 			log.Error(4, "LibravatarService.FromEmail(email=%s): error %v", email, err)
+			return DefaultAvatarLink()
 		}
 		return url
 	}
@@ -208,7 +213,7 @@ func AvatarLink(email string) string {
 		return setting.GravatarSource + HashEmail(email)
 	}
 
-	return setting.AppSubURL + "/img/avatar_default.png"
+	return DefaultAvatarLink()
 }
 
 // Seconds-based time units
