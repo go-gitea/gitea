@@ -192,6 +192,7 @@ func HashEmail(email string) string {
 	return EncodeMD5(strings.ToLower(strings.TrimSpace(email)))
 }
 
+// DefaultAvatarLink the default avatar link
 func DefaultAvatarLink() string {
 	return setting.AppSubURL + "/img/avatar_default.png"
 }
