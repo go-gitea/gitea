@@ -16,6 +16,7 @@ import (
 	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -61,12 +62,7 @@ func (a *Attachment) IncreaseDownloadCount() error {
 
 // GetSize gets the size of the attachment in bytes
 func (a *Attachment) GetSize() (int64, error) {
-	f, err := os.Open(a.LocalPath())
-	defer f.Close()
-	if err != nil {
-		return 0, err
-	}
-	info, err := f.Stat()
+	info, err := os.Stat(a.LocalPath())
 	if err != nil {
 		return 0, err
 	}
@@ -95,6 +91,7 @@ func (a *Attachment) APIFormat() *api.Attachment {
 		DownloadCount: a.DownloadCount,
 	}
 	fileSize, err := a.GetSize()
+	log.Warn("Error getting the file size for attachment %s. ", a.UUID, err)
 	if err == nil {
 		apiAttachment.Size = fileSize
 	}
