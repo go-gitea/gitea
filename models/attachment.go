@@ -158,7 +158,7 @@ func GetAttachmentByUUID(uuid string) (*Attachment, error) {
 	return getAttachmentByUUID(x, uuid)
 }
 
-// GetAttachmentByD returns attachment by given ID.
+// GetAttachmentByID returns attachment by given ID.
 func GetAttachmentByID(id int64) (*Attachment, error) {
 	attach := &Attachment{ID: id}
 	has, err := x.Get(attach)
@@ -187,9 +187,9 @@ func GetAttachmentsByCommentID(commentID int64) ([]*Attachment, error) {
 }
 
 // GetAttachmentsByReleaseID returns all attachments of a release
-func GetAttachmentsByReleaseID(releaseId int64) ([]*Attachment, error) {
+func GetAttachmentsByReleaseID(releaseID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
-	return attachments, x.Where("release_id=?", releaseId).Find(&attachments)
+	return attachments, x.Where("release_id=?", releaseID).Find(&attachments)
 }
 
 // DeleteAttachment deletes the given attachment and optionally the associated file.
