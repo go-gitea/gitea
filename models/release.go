@@ -246,15 +246,23 @@ func GetReleaseByID(id int64) (*Release, error) {
 	return rel, nil
 }
 
-// GetReleasesByRepoID returns a list of releases of repository.
-func GetReleasesByRepoID(repoID int64, page, pageSize int) (rels []*Release, err error) {
+// GetReleasesByRepoID returns a list of releases of repository. The releases are sorted descending by created date
+func GetReleasesByRepoID(repoID int64, page, pageSize int, includeDrafts bool, includePreReleases bool) (rels []*Release, err error) {
+	var cond = builder.NewCond()
 	if page <= 0 {
 		page = 1
+	}
+	cond = cond.And(builder.Eq{"repo_id": repoID})
+	if !includeDrafts {
+		cond = cond.And(builder.Eq{"is_draft": false})
+	}
+	if !includePreReleases {
+		cond = cond.And(builder.Eq{"is_prerelease": false})
 	}
 	err = x.
 		Desc("created_unix").
 		Limit(pageSize, (page-1)*pageSize).
-		Find(&rels, Release{RepoID: repoID})
+		Where(cond).Find(&rels)
 	return rels, err
 }
 

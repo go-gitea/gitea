@@ -65,7 +65,7 @@ func Releases(ctx *context.Context) {
 		limit = 10
 	}
 
-	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, page, limit)
+	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, page, limit, true, true)
 	if err != nil {
 		ctx.Handle(500, "GetReleasesByRepoID", err)
 		return

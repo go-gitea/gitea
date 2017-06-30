@@ -84,7 +84,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 
 // ListReleases list a repository's releases
 func ListReleases(ctx *context.APIContext) {
-	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, 1, 2147483647)
+	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, 1, 2147483647, true, true)
 	if err != nil {
 		ctx.Error(500, "GetReleasesByRepoID", err)
 		return
@@ -107,6 +107,26 @@ func ListReleases(ctx *context.APIContext) {
 		rels[i] = release.APIFormat()
 	}
 	ctx.JSON(200, rels)
+}
+
+// GetLatestRelease Gets the latest release in a repository. Draft releases and prereleases are not returned
+func GetLatestRelease(ctx *context.APIContext) {
+	// we set the pageSize to 1 to get back only one release
+	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, 1, 1, false, false)
+	if err != nil {
+		ctx.Error(500, "GetReleasesByRepoID", err)
+		return
+	}
+	if len(releases) <= 0 {
+		// no releases found, just return 404
+		ctx.Status(404)
+		return
+	}
+	if err := releases[0].LoadAttributes(); err != nil {
+		ctx.Error(500, "LoadAttributes", err)
+		return
+	}
+	ctx.JSON(200, releases[0].APIFormat())
 }
 
 // CreateRelease create a release
