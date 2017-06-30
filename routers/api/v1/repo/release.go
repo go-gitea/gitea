@@ -111,7 +111,10 @@ func ListReleases(ctx *context.APIContext) {
 // GetLatestRelease Gets the latest release in a repository. Draft releases and prereleases are not returned
 func GetLatestRelease(ctx *context.APIContext) {
 	// we set the pageSize to 1 to get back only one release
-	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, 1, 1, false, false)
+	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+		IncludeDrafts:      false,
+		IncludePrereleases: false,
+	}, 1, 1)
 	if err != nil {
 		ctx.Error(500, "GetReleasesByRepoID", err)
 		return
