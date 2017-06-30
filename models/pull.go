@@ -495,7 +495,7 @@ func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
 
 	if err != nil {
 		// Errors are signaled by a non-zero status that is not 1
-		if err.Error() == "exit status 1" {
+		if strings.Contains(err.Error(), "exit status 1") {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("git merge-base --is-ancestor: %v %v", stderr, err)
