@@ -420,9 +420,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
 						Post(bind(api.CreateReleaseOption{}), repo.CreateRelease)
-					m.Combo("/:id").Get(repo.GetRelease).
-						Patch(bind(api.EditReleaseOption{}), repo.EditRelease).
-						Delete(repo.DeleteRelease)
+					m.Group("/:id", func() {
+						m.Combo("").Get(repo.GetRelease).
+							Patch(bind(api.EditReleaseOption{}), repo.EditRelease).
+							Delete(repo.DeleteRelease)
+						m.Group("/assets", func() {
+							m.Combo("").Get(repo.ListReleaseAttachments)
+							m.Combo("/:assetId").Get(repo.GetReleaseAttachment)
+						})
+					})
 				})
 				m.Post("/mirror-sync", repo.MirrorSync)
 				m.Get("/editorconfig/:filename", context.RepoRef(), repo.GetEditorconfig)
