@@ -12,6 +12,7 @@ import (
 	"path"
 	"time"
 
+	api "code.gitea.io/sdk/gitea"
 	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
 
@@ -58,6 +59,20 @@ func (a *Attachment) IncreaseDownloadCount() error {
 	return nil
 }
 
+// GetSize gets the size of the attachment in bytes
+func (a *Attachment) GetSize() (int64, error) {
+	f, err := os.Open(a.LocalPath())
+	defer f.Close()
+	if err != nil {
+		return 0, err
+	}
+	info, err := f.Stat()
+	if err != nil {
+		return 0, err
+	}
+	return info.Size(), nil
+}
+
 // AttachmentLocalPath returns where attachment is stored in local file
 // system based on given UUID.
 func AttachmentLocalPath(uuid string) string {
@@ -67,6 +82,23 @@ func AttachmentLocalPath(uuid string) string {
 // LocalPath returns where attachment is stored in local file system.
 func (a *Attachment) LocalPath() string {
 	return AttachmentLocalPath(a.UUID)
+}
+
+// APIFormat converts a Attachment to an api.Attachment
+func (a *Attachment) APIFormat() *api.Attachment {
+	apiAttachment := &api.Attachment{
+		ID:            a.ID,
+		Created:       a.Created,
+		Name:          a.Name,
+		UUID:          a.UUID,
+		DownloadURL:   setting.AppURL + "/attachments/" + a.UUID,
+		DownloadCount: a.DownloadCount,
+	}
+	fileSize, err := a.GetSize()
+	if err == nil {
+		apiAttachment.Size = fileSize
+	}
+	return apiAttachment
 }
 
 // NewAttachment creates a new attachment object.
