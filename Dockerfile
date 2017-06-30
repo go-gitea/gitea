@@ -13,8 +13,8 @@ RUN apk --no-cache add \
     s6 \
     curl \
     openssh \
-    tzdata \
-  && addgroup \
+    tzdata
+RUN addgroup \
     -S -g 1000 \
     git && \
   adduser \
@@ -26,9 +26,9 @@ RUN apk --no-cache add \
     git && \
   echo "git:$(date +%s | sha256sum | base64 | head -c 32)" | chpasswd
 
-ENV USER git \
-    GITEA_CUSTOM /data/gitea \
-    GODEBUG=netdns=go
+ENV USER git
+ENV GITEA_CUSTOM /data/gitea
+ENV GODEBUG=netdns=go
 
 VOLUME ["/data"]
 
