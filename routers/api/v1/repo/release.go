@@ -61,7 +61,7 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 // GetReleaseAttachment get a single attachment of a release
 func GetReleaseAttachment(ctx *context.APIContext) {
 	id := ctx.ParamsInt64(":id")
-	attachmentId := ctx.ParamsInt64(":assetId")
+	attachmentID := ctx.ParamsInt64(":assetId")
 	release, err := models.GetReleaseByID(id)
 	if err != nil {
 		ctx.Error(500, "GetReleaseByID", err)
@@ -72,7 +72,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	// load the attachments of this release
-	attachment, err := models.GetAttachmentByID(attachmentId)
+	attachment, err := models.GetAttachmentByID(attachmentID)
 	// if the attachment was not found, or it was found but is not associated with this release, then throw 404
 	if err != nil || id != attachment.ReleaseID {
 		ctx.Status(404)
