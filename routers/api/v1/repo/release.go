@@ -32,6 +32,56 @@ func GetRelease(ctx *context.APIContext) {
 	ctx.JSON(200, release.APIFormat())
 }
 
+// ListReleaseAttachments get all the attachments of a release
+func ListReleaseAttachments(ctx *context.APIContext) {
+	id := ctx.ParamsInt64(":id")
+	release, err := models.GetReleaseByID(id)
+	if err != nil {
+		ctx.Error(500, "GetReleaseByID", err)
+		return
+	}
+	if release.RepoID != ctx.Repo.Repository.ID {
+		ctx.Status(404)
+		return
+	}
+	// load the attachments of this release
+	attachments, err := models.GetAttachmentsByReleaseID(id)
+	if err != nil {
+		ctx.Error(500, "GetAttachmentsByReleaseID", err)
+		return
+	}
+	// build the attachment list
+	apiAttachments := make([]*api.Attachment, len(attachments))
+	for i := range attachments {
+		apiAttachments[i] = attachments[i].APIFormat()
+	}
+	ctx.JSON(200, apiAttachments)
+}
+
+// GetReleaseAttachment get a single attachment of a release
+func GetReleaseAttachment(ctx *context.APIContext) {
+	id := ctx.ParamsInt64(":id")
+	attachmentId := ctx.ParamsInt64(":assetId")
+	release, err := models.GetReleaseByID(id)
+	if err != nil {
+		ctx.Error(500, "GetReleaseByID", err)
+		return
+	}
+	if release.RepoID != ctx.Repo.Repository.ID {
+		ctx.Status(404)
+		return
+	}
+	// load the attachments of this release
+	attachment, err := models.GetAttachmentByID(attachmentId)
+	// if the attachment was not found, or it was found but is not associated with this release, then throw 404
+	if err != nil || id != attachment.ReleaseID {
+		ctx.Status(404)
+		return
+	}
+
+	ctx.JSON(200, attachment.APIFormat())
+}
+
 // ListReleases list a repository's releases
 func ListReleases(ctx *context.APIContext) {
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, 1, 2147483647)
