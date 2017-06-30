@@ -73,7 +73,11 @@ func (r *Release) loadAttributes(e Engine) error {
 	}
 	// load the attachments of this release
 	if r.Attachments == nil {
-		GetReleaseAttachments(r)
+		attachments, err := GetAttachmentsByReleaseID(r.ID)
+		if err != nil {
+			return err
+		}
+		r.Attachments = attachments
 	}
 	return nil
 }
