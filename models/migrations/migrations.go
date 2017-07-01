@@ -120,6 +120,8 @@ var migrations = []Migration{
 	NewMigration("give all units to owner teams", giveAllUnitsToOwnerTeams),
 	// v35 -> v36
 	NewMigration("adds comment to an action", addCommentIDToAction),
+	// v36 -> v37
+	NewMigration("regenerate git hooks", regenerateGitHooks36),
 }
 
 // Migrate database to current version
