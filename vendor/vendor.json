@@ -3,10 +3,10 @@
 	"ignore": "test appengine",
 	"package": [
 		{
-			"checksumSHA1": "bjwnhCgzLl8EtrjX+vsz7POSaWw=",
+			"checksumSHA1": "SOUGuO+W7WWYbek3gLKyp8ZG+L4=",
 			"path": "code.gitea.io/git",
-			"revision": "7c4fc4e5ca3aab313bbe68b4b19ca253830bc60f",
-			"revisionTime": "2017-06-28T06:06:37Z"
+			"revision": "ef3ac5f3ff401e694c7371e393075a7d490e78d2",
+			"revisionTime": "2017-07-01T13:51:17Z"
 		},
 		{
 			"checksumSHA1": "nLhT+bLMj8uLICP+EZbrdoQe6mM=",
