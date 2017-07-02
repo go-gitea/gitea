@@ -1,0 +1,3 @@
+title: Implement proper `gitea restore` & `gitea backup`. Deprecating `gitea dump`
+kind: feature
+pull_request: 1637

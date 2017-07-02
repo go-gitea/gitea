@@ -5,7 +5,9 @@
 package models
 
 import (
+	"bufio"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -13,20 +15,21 @@ import (
 	"path"
 	"strings"
 
-	// Needed for the MySQL driver
-	_ "github.com/go-sql-driver/mysql"
+	"code.gitea.io/gitea/models/migrations"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/Unknwon/com"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	// Needed for the MySQL driver
+	_ "github.com/go-sql-driver/mysql"
 
 	// Needed for the Postgresql driver
 	_ "github.com/lib/pq"
 
 	// Needed for the MSSSQL driver
 	_ "github.com/denisenkom/go-mssqldb"
-
-	"code.gitea.io/gitea/models/migrations"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 // Engine represents a xorm engine or session.
@@ -322,14 +325,104 @@ func Ping() error {
 	return x.Ping()
 }
 
-// DumpDatabase dumps all data from database according the special database SQL syntax to file system.
-func DumpDatabase(filePath string, dbType string) error {
+// Version describes the version table. Should have only one row with id==1
+type Version struct {
+	ID      int64 `xorm:"pk autoincr"`
+	Version int64
+}
+
+// DumpDatabaseOld dumps all data from database according the special database SQL syntax to file system.
+// NOTE: DEPRICATED in favour of DumpDatabase
+func DumpDatabaseOld(filePath string, dbType string) error {
 	var tbs []*core.Table
 	for _, t := range tables {
 		tbs = append(tbs, x.TableInfo(t).Table)
+		if len(dbType) > 0 {
+			return x.DumpTablesToFile(tbs, filePath, core.DbType(dbType))
+		}
 	}
-	if len(dbType) > 0 {
-		return x.DumpTablesToFile(tbs, filePath, core.DbType(dbType))
+	return nil
+}
+
+// DumpDatabase dumps all data from database to file system in JSON format.
+func DumpDatabase(dirPath string) (err error) {
+	os.MkdirAll(dirPath, os.ModePerm)
+	// Purposely create a local variable to not modify global variable
+	internalTables := append(tables, new(Version))
+	for _, table := range internalTables {
+		tableName := strings.TrimPrefix(fmt.Sprintf("%T", table), "*models.")
+		tableFile := path.Join(dirPath, tableName+".json")
+		f, err := os.Create(tableFile)
+		if err != nil {
+			return fmt.Errorf("fail to create JSON file: %v", err)
+		}
+
+		if err = x.Asc("id").Iterate(table, func(idx int, bean interface{}) (err error) {
+			enc := json.NewEncoder(f)
+			return enc.Encode(bean)
+		}); err != nil {
+			f.Close()
+			return fmt.Errorf("fail to dump table '%s': %v", tableName, err)
+		}
+		f.Close()
 	}
-	return x.DumpTablesToFile(tbs, filePath)
+	return nil
+}
+
+// ImportDatabase imports data from backup archive.
+func ImportDatabase(dirPath string) (err error) {
+	// Purposely create a local variable to not modify global variable
+	internalTables := append(tables, new(Version))
+	for _, table := range internalTables {
+		tableName := strings.TrimPrefix(fmt.Sprintf("%T", table), "*models.")
+		tableFile := path.Join(dirPath, tableName+".json")
+		if !com.IsExist(tableFile) {
+			continue
+		}
+
+		if err = x.DropTables(table); err != nil {
+			return fmt.Errorf("fail to drop table '%s': %v", tableName, err)
+		} else if err = x.Sync2(table); err != nil {
+			return fmt.Errorf("fail to sync table '%s': %v", tableName, err)
+		}
+
+		f, err := os.Open(tableFile)
+		if err != nil {
+			return fmt.Errorf("fail to open JSON file: %v", err)
+		}
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			switch bean := table.(type) {
+			case *LoginSource:
+				meta := make(map[string]interface{})
+				if err = json.Unmarshal(scanner.Bytes(), &meta); err != nil {
+					return fmt.Errorf("fail to unmarshal to map: %v", err)
+				}
+
+				tp := LoginType(com.StrTo(com.ToStr(meta["Type"])).MustInt64())
+				switch tp {
+				case LoginLDAP, LoginDLDAP:
+					bean.Cfg = new(LDAPConfig)
+				case LoginSMTP:
+					bean.Cfg = new(SMTPConfig)
+				case LoginPAM:
+					bean.Cfg = new(PAMConfig)
+				case LoginOAuth2:
+					bean.Cfg = new(OAuth2Config)
+				default:
+					return fmt.Errorf("unrecognized login source type:: %v", tp)
+				}
+				table = bean
+			}
+
+			if err = json.Unmarshal(scanner.Bytes(), table); err != nil {
+				return fmt.Errorf("fail to unmarshal to struct: %v", err)
+			}
+
+			if _, err = x.Insert(table); err != nil {
+				return fmt.Errorf("fail to insert strcut: %v", err)
+			}
+		}
+	}
+	return nil
 }
