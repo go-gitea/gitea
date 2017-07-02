@@ -278,3 +278,13 @@ swagger-ui:
 
 .PHONY: assets
 assets: javascripts stylesheets
+
+.PHONY: update-translations
+update-translations:
+	mkdir -p ./translations
+	cd ./translations && wget https://crowdin.com/download/project/gitea.zip &&	tar zxvf gitea.zip
+	rm ./translations/gitea.zip
+	$(SED_INPLACE) 's/"`/`/g' ./translations/*.ini
+	$(SED_INPLACE) 's/`"/`/g' ./translations/*.ini
+	mv ./translations/*.ini ./options/locale/
+	rmdir ./translations
