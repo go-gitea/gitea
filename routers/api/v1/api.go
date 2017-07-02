@@ -364,7 +364,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Post(bind(api.CreateForkOption{}), repo.CreateFork)
 				m.Group("/branches", func() {
 					m.Get("", repo.ListBranches)
-					m.Get("/:branchname", repo.GetBranch)
+					m.Get("/*", context.RepoRef(), repo.GetBranch)
 				})
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
