@@ -668,7 +668,10 @@ func DeleteComment(comment *Comment) error {
 			return err
 		}
 	}
-	sess.Where("comment_id = ?", comment.ID).Cols("is_deleted").Update(&Action{IsDeleted: true})
+
+	if _, err := sess.Where("comment_id = ?", comment.ID).Cols("is_deleted").Update(&Action{IsDeleted: true}); err != nil {
+		return err
+	}
 
 	return sess.Commit()
 }
