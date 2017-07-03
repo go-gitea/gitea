@@ -394,6 +394,7 @@ func RepoRef() macaron.Handler {
 					err = fmt.Errorf("No branches in non-bare repository %s",
 						ctx.Repo.GitRepo.Path)
 					ctx.Handle(500, "GetBranches", err)
+					return
 				}
 				refName = brs[0]
 			}
