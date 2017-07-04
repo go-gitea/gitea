@@ -67,8 +67,8 @@ func TestAPIViewRepo(t *testing.T) {
 func TestAPIOrgRepos(t *testing.T) {
 	prepareTestEnv(t)
 
-	req := NewRequest(t, "GET", "/api/v1/orgs/org1/repos")
-	session := loginUser(t, "user1")
+	req := NewRequest(t, "GET", "/api/v1/orgs/user3/repos")
+	session := loginUser(t, "user2")
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 }
