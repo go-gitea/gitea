@@ -22,6 +22,12 @@ Gitea的首要目标是创建一个极易安装，运行非常快速，安装和
 
 如果您想试用一下，请访问 [在线Demo](https://try.gitea.io/)！
 
+## 安装
+
+``
+go get code.gitea.io/gitea
+``
+
 ## 提示
 
 1. **开始贡献代码之前请确保你已经看过了 [贡献者向导（英文）](CONTRIBUTING.md)**.
