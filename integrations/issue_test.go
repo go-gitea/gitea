@@ -87,10 +87,8 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title string) 
 		"title": title,
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
-	redirectedURL := resp.Headers["Location"]
-	assert.NotEmpty(t, redirectedURL, "Redirected URL is not found")
 
-	req = NewRequest(t, "GET", redirectedURL[0])
+	req = NewRequest(t, "GET", RedirectURL(t, resp))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 }
 

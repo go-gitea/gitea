@@ -274,3 +274,9 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 	doc := NewHTMLParser(t, resp.Body)
 	return doc.GetCSRF()
 }
+
+func RedirectURL(t testing.TB, resp *TestResponse) string {
+	urlSlice := resp.Headers["Location"]
+	assert.NotEmpty(t, urlSlice, "No redirect URL founds")
+	return urlSlice[0]
+}

@@ -38,8 +38,7 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 
 	resp = session.MakeRequest(t, req, http.StatusFound)
 
-	redirectedURL := resp.Headers["Location"]
-	assert.NotEmpty(t, redirectedURL, "Redirected URL is not found")
+	RedirectURL(t, resp) // check that redirect URL exists
 }
 
 func checkLatestReleaseAndCount(t *testing.T, session *TestSession, repoURL, version, label string, count int) {

@@ -52,10 +52,8 @@ func TestPullMerge(t *testing.T) {
 	testEditFile(t, session, "user1", "repo1", "master", "README.md")
 
 	resp := testPullCreate(t, session, "user1", "repo1", "master")
-	redirectedURL := resp.Headers["Location"]
-	assert.NotEmpty(t, redirectedURL, "Redirected URL is not found")
 
-	elem := strings.Split(redirectedURL[0], "/")
+	elem := strings.Split(RedirectURL(t, resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
 	testPullMerge(t, session, elem[1], elem[2], elem[4])
 }
@@ -67,10 +65,8 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 	testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md")
 
 	resp := testPullCreate(t, session, "user1", "repo1", "feature/test")
-	redirectedURL := resp.Headers["Location"]
-	assert.NotEmpty(t, redirectedURL, "Redirected URL is not found")
 
-	elem := strings.Split(redirectedURL[0], "/")
+	elem := strings.Split(RedirectURL(t, resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
 	testPullMerge(t, session, elem[1], elem[2], elem[4])
 
