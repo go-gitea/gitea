@@ -260,7 +260,7 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 	if !opts.IncludeDrafts {
 		cond = cond.And(builder.Eq{"is_draft": false})
 	}
-	if !opts.IncludeDrafts {
+	if !opts.IncludePrereleases {
 		cond = cond.And(builder.Eq{"is_prerelease": false})
 	}
 	if len(opts.TagNames) > 0 {
