@@ -75,6 +75,10 @@ func TestURLJoin(t *testing.T) {
 			"https://try.gitea.io/", "/a/b/", "/c/"),
 		newTest("https://try.gitea.io/a/c",
 			"https://try.gitea.io/", "/a/./b/", "../c/"),
+		newTest("a/b/c",
+			"a", "b/c/"),
+		newTest("a/b/d",
+			"a/", "b/c/", "/../d/"),
 	} {
 		assert.Equal(t, test.Expected, URLJoin(test.Base, test.Elements...))
 	}
