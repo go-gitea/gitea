@@ -1126,7 +1126,10 @@ func GetUserByName(name string) (*User, error) {
 	if len(name) == 0 {
 		return nil, ErrUserNotExist{0, name, 0}
 	}
-	u := &User{LowerName: strings.ToLower(name)}
+	u := &User{
+		LowerName: strings.ToLower(name),
+		Type:      UserTypeIndividual,
+	}
 	has, err := x.Get(u)
 	if err != nil {
 		return nil, err

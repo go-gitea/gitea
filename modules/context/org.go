@@ -48,12 +48,12 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	orgName := ctx.Params(":org")
 
 	var err error
-	ctx.Org.Organization, err = models.GetUserByName(orgName)
+	ctx.Org.Organization, err = models.GetOrgByName(orgName)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.Handle(404, "GetUserByName", err)
+		if models.IsErrOrgNotExist(err) {
+			ctx.Handle(404, "GetOrgByName", err)
 		} else {
-			ctx.Handle(500, "GetUserByName", err)
+			ctx.Handle(500, "GetOrgByName", err)
 		}
 		return
 	}
