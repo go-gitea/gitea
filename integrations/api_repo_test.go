@@ -51,3 +51,15 @@ func TestAPISearchRepoNotLogin(t *testing.T) {
 		assert.True(t, strings.Contains(repo.Name, keyword))
 	}
 }
+
+func TestAPIViewRepo(t *testing.T) {
+	prepareTestEnv(t)
+
+	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var repo api.Repository
+	DecodeJSON(t, resp, &repo)
+	assert.EqualValues(t, 1, repo.ID)
+	assert.EqualValues(t, "repo1", repo.Name)
+}

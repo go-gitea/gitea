@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // ListForks list a repository's forks
@@ -29,7 +30,7 @@ func ListForks(ctx *context.APIContext) {
 	}
 	apiForks := make([]*api.Repository, len(forks))
 	for i, fork := range forks {
-		access, err := models.AccessLevel(ctx.User.ID, fork)
+		access, err := models.AccessLevel(utils.UserID(ctx), fork)
 		if err != nil {
 			ctx.Error(500, "AccessLevel", err)
 			return
