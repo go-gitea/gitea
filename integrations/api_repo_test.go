@@ -71,4 +71,8 @@ func TestAPIOrgRepos(t *testing.T) {
 	session := loginUser(t, "user2")
 	resp := session.MakeRequest(t, req)
 	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+
+	var repos []*api.Repository
+	DecodeJSON(t, resp, &repos)
+	assert.Len(t, repos, 1) // User3 has 1 public repo.
 }
