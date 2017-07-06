@@ -222,10 +222,10 @@ func TestGetOrgByName(t *testing.T) {
 	assert.Equal(t, "user3", org.Name)
 
 	org, err = GetOrgByName("user2") // user2 is an individual
-	assert.Equal(t, ErrOrgNotExist, err)
+	assert.True(t, IsErrOrgNotExist(err))
 
 	org, err = GetOrgByName("") // corner case
-	assert.Equal(t, ErrOrgNotExist, err)
+	assert.True(t, IsErrOrgNotExist(err))
 }
 
 func TestCountOrganizations(t *testing.T) {

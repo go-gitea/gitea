@@ -208,12 +208,12 @@ func orgAssignment(args ...bool) macaron.Handler {
 
 		var err error
 		if assignOrg {
-			ctx.Org.Organization, err = models.GetUserByName(ctx.Params(":orgname"))
+			ctx.Org.Organization, err = models.GetOrgByName(ctx.Params(":orgname"))
 			if err != nil {
-				if models.IsErrUserNotExist(err) {
+				if models.IsErrOrgNotExist(err) {
 					ctx.Status(404)
 				} else {
-					ctx.Error(500, "GetUserByName", err)
+					ctx.Error(500, "GetOrgByName", err)
 				}
 				return
 			}

@@ -230,7 +230,7 @@ func NewTeam(t *Team) (err error) {
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrOrgNotExist
+		return ErrOrgNotExist{t.OrgID, ""}
 	}
 
 	t.LowerName = strings.ToLower(t.Name)
