@@ -59,7 +59,7 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 	} else {
 		org, err := models.GetOrgByName(*form.Organization)
 		if err != nil {
-			if err == models.ErrOrgNotExist {
+			if models.IsErrOrgNotExist(err) {
 				ctx.Error(422, "", err)
 			} else {
 				ctx.Error(500, "GetOrgByName", err)

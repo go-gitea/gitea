@@ -156,7 +156,7 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 
 	org, err := models.GetOrgByName(ctx.Params(":org"))
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if models.IsErrOrgNotExist(err) {
 			ctx.Error(422, "", err)
 		} else {
 			ctx.Error(500, "GetOrgByName", err)

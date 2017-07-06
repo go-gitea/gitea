@@ -448,6 +448,22 @@ func (err ErrAccessTokenEmpty) Error() string {
 // \_______  /__|  \___  (____  /___|  /__/_____ \(____  /__| |__|\____/|___|  /
 //         \/     /_____/     \/     \/         \/     \/                    \/
 
+// ErrOrgNotExist represents a "OrgNotExist" kind of error.
+type ErrOrgNotExist struct {
+	ID   int64
+	Name string
+}
+
+// IsErrOrgNotExist checks if an error is a ErrOrgNotExist.
+func IsErrOrgNotExist(err error) bool {
+	_, ok := err.(ErrOrgNotExist)
+	return ok
+}
+
+func (err ErrOrgNotExist) Error() string {
+	return fmt.Sprintf("org does not exist [id: %d, name: %s]", err.ID, err.Name)
+}
+
 // ErrLastOrgOwner represents a "LastOrgOwner" kind of error.
 type ErrLastOrgOwner struct {
 	UID int64
