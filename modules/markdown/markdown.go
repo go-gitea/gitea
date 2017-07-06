@@ -14,14 +14,14 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Unknwon/com"
-	"github.com/russross/blackfriday"
-	"golang.org/x/net/html"
-
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/Unknwon/com"
+	"github.com/russross/blackfriday"
+	"golang.org/x/net/html"
 )
 
 // Issue name styles
