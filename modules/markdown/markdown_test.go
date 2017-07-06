@@ -59,6 +59,27 @@ func testRenderIssueIndexPattern(t *testing.T, input, expected string, metas map
 		string(RenderIssueIndexPattern([]byte(input), AppSubURL, metas)))
 }
 
+func TestURLJoin(t *testing.T) {
+	type test struct {
+		Expected string
+		Base     string
+		Elements []string
+	}
+	newTest := func(expected, base string, elements ...string) test {
+		return test{Expected: expected, Base: base, Elements: elements}
+	}
+	for _, test := range []test{
+		newTest("https://try.gitea.io/a/b/c",
+			"https://try.gitea.io", "a/b", "c"),
+		newTest("https://try.gitea.io/a/b/c",
+			"https://try.gitea.io/", "/a/b/", "/c/"),
+		newTest("https://try.gitea.io/a/c",
+			"https://try.gitea.io/", "/a/./b/", "../c/"),
+	} {
+		assert.Equal(t, test.Expected, URLJoin(test.Base, test.Elements...))
+	}
+}
+
 func TestRender_IssueIndexPattern(t *testing.T) {
 	// numeric: render inputs without valid mentions
 	test := func(s string) {
@@ -641,8 +662,8 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 		`<p>Wiki! Enjoy :)</p>
 
 <ul>
-<li><a href="` + baseURLContent + `Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
-<li><a href="` + baseURLContent + `Tips" rel="nofollow">Tips</a></li>
+<li><a href="` + baseURLContent + `/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
+<li><a href="` + baseURLContent + `/Tips" rel="nofollow">Tips</a></li>
 </ul>
 
 <p>Ideas and codes</p>
@@ -650,8 +671,8 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <ul>
 <li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>)<a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">#786</a></li>
 <li>Node graph editors<a href="https://github.com/ocornut/imgui/issues/306" rel="nofollow">#306</a></li>
-<li><a href="` + baseURLContent + `memory_editor_example" rel="nofollow">Memory Editor</a></li>
-<li><a href="` + baseURLContent + `plot_var_example" rel="nofollow">Plot var helper</a></li>
+<li><a href="` + baseURLContent + `/memory_editor_example" rel="nofollow">Memory Editor</a></li>
+<li><a href="` + baseURLContent + `/plot_var_example" rel="nofollow">Plot var helper</a></li>
 </ul>
 `,
 		`<h2>What is Wine Staging?</h2>
@@ -665,15 +686,15 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <table>
 <thead>
 <tr>
-<th><a href="` + baseURLImages + `images/icon-install.png" rel="nofollow"><img src="` + baseURLImages + `images/icon-install.png" alt="images/icon-install.png" title="icon-install.png"/></a></th>
-<th><a href="` + baseURLContent + `Installation" rel="nofollow">Installation</a></th>
+<th><a href="` + baseURLImages + `/images/icon-install.png" rel="nofollow"><img src="` + baseURLImages + `/images/icon-install.png" alt="images/icon-install.png" title="icon-install.png"/></a></th>
+<th><a href="` + baseURLContent + `/Installation" rel="nofollow">Installation</a></th>
 </tr>
 </thead>
 
 <tbody>
 <tr>
-<td><a href="` + baseURLImages + `images/icon-usage.png" rel="nofollow"><img src="` + baseURLImages + `images/icon-usage.png" alt="images/icon-usage.png" title="icon-usage.png"/></a></td>
-<td><a href="` + baseURLContent + `Usage" rel="nofollow">Usage</a></td>
+<td><a href="` + baseURLImages + `/images/icon-usage.png" rel="nofollow"><img src="` + baseURLImages + `/images/icon-usage.png" alt="images/icon-usage.png" title="icon-usage.png"/></a></td>
+<td><a href="` + baseURLContent + `/Usage" rel="nofollow">Usage</a></td>
 </tr>
 </tbody>
 </table>
@@ -682,9 +703,9 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 
 <ol>
 <li><a href="https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop" rel="nofollow">Package your libGDX application</a>
-<a href="` + baseURLImages + `images/1.png" rel="nofollow"><img src="` + baseURLImages + `images/1.png" alt="images/1.png" title="1.png"/></a></li>
+<a href="` + baseURLImages + `/images/1.png" rel="nofollow"><img src="` + baseURLImages + `/images/1.png" alt="images/1.png" title="1.png"/></a></li>
 <li>Perform a test run by hitting the Run! button.
-<a href="` + baseURLImages + `images/2.png" rel="nofollow"><img src="` + baseURLImages + `images/2.png" alt="images/2.png" title="2.png"/></a></li>
+<a href="` + baseURLImages + `/images/2.png" rel="nofollow"><img src="` + baseURLImages + `/images/2.png" alt="images/2.png" title="2.png"/></a></li>
 </ol>
 `,
 	}
