@@ -20,6 +20,8 @@ package sqlite3
 
 void _sqlite3_result_text(sqlite3_context* ctx, const char* s);
 void _sqlite3_result_blob(sqlite3_context* ctx, const void* b, int l);
+
+void _unlock_notify_callback(void *arg, int argc);
 */
 import "C"
 
@@ -27,6 +29,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os"
 	"reflect"
 	"sync"
 	"unsafe"
@@ -337,4 +340,22 @@ func callbackSyntheticForTests(v reflect.Value, err error) callbackArgConverter 
 	return func(*C.sqlite3_value) (reflect.Value, error) {
 		return v, err
 	}
+}
+
+//export unlock_notify_callback
+func unlock_notify_callback(arg unsafe.Pointer, argc C.int) {
+	notify := lookupHandle(uintptr(arg)).(chan struct{})
+	fmt.Fprintf(os.Stderr, "callback runs...\n")
+	notify <- struct{}{}
+}
+
+//export unlock_notify_wait
+func unlock_notify_wait(db *C.sqlite3) {
+	notify := make(chan struct{})
+	defer close(notify)
+
+	C.sqlite3_unlock_notify(db, (*[0]byte)(C._unlock_notify_callback), unsafe.Pointer(newHandle(nil, notify)))
+	fmt.Fprintf(os.Stderr, "unlock notify waits...\n")
+	<-notify
+	fmt.Fprintf(os.Stderr, "unlock notify waked...\n")
 }

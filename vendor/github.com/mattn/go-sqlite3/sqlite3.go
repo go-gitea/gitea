@@ -11,6 +11,7 @@ package sqlite3
 #cgo CFLAGS: -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_FTS3_PARENTHESIS -DSQLITE_ENABLE_FTS4_UNICODE61
 #cgo CFLAGS: -DSQLITE_TRACE_SIZE_LIMIT=15
 #cgo CFLAGS: -DSQLITE_DISABLE_INTRINSIC
+#cgo CFLAGS: -DSQLITE_ENABLE_UNLOCK_NOTIFY
 #cgo CFLAGS: -Wno-deprecated-declarations
 #ifndef USE_LIBSQLITE3
 #include <sqlite3-binding.h>
@@ -70,8 +71,18 @@ _sqlite3_exec(sqlite3* db, const char* pcmd, long long* rowid, long long* change
 static int
 _sqlite3_step(sqlite3_stmt* stmt, long long* rowid, long long* changes)
 {
-  int rv = sqlite3_step(stmt);
+  extern void unlock_notify_wait(sqlite3 *db);
+  int rv;
   sqlite3* db = sqlite3_db_handle(stmt);
+
+  for (;;) {
+    rv = sqlite3_step(stmt);
+    if (rv != SQLITE_LOCKED) {
+      break;
+    }
+    unlock_notify_wait(db);
+  }
+
   *rowid = (long long) sqlite3_last_insert_rowid(db);
   *changes = (long long) sqlite3_changes(db);
   return rv;
@@ -109,6 +120,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"os"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -709,6 +721,7 @@ func (c *SQLiteConn) prepare(ctx context.Context, query string) (driver.Stmt, er
 	var tail *C.char
 	rv := C.sqlite3_prepare_v2(c.db, pquery, -1, &s, &tail)
 	if rv != C.SQLITE_OK {
+		fmt.Fprintf(os.Stderr, "prepare:%v\n", c.lastError())
 		return nil, c.lastError()
 	}
 	var t string
@@ -883,8 +896,10 @@ func (s *SQLiteStmt) exec(ctx context.Context, args []namedValue) (driver.Result
 	}(s.c.db)
 
 	var rowid, changes C.longlong
+
 	rv := C._sqlite3_step(s.s, &rowid, &changes)
 	if rv != C.SQLITE_ROW && rv != C.SQLITE_OK && rv != C.SQLITE_DONE {
+		fmt.Fprintf(os.Stderr, "exec:%v\n", s.c.lastError())
 		err := s.c.lastError()
 		C.sqlite3_reset(s.s)
 		C.sqlite3_clear_bindings(s.s)
