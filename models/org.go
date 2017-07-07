@@ -177,20 +177,7 @@ func CreateOrganization(org, owner *User) (err error) {
 
 // GetOrgByName returns organization by given name.
 func GetOrgByName(name string) (*User, error) {
-	if len(name) == 0 {
-		return nil, ErrOrgNotExist{0, name}
-	}
-	u := &User{
-		LowerName: strings.ToLower(name),
-		Type:      UserTypeOrganization,
-	}
-	has, err := x.Get(u)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrOrgNotExist{0, name}
-	}
-	return u, nil
+	return GetUserByNameAndType(name, models.UserTypeOrganization)
 }
 
 // CountOrganizations returns number of organizations.
