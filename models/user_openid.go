@@ -100,7 +100,7 @@ func ToggleUserOpenIDVisibility(id int64) (err error) {
 // GetUserByOpenID returns the user object by given OpenID if exists.
 func GetUserByOpenID(uri string) (*User, error) {
 	if len(uri) == 0 {
-		return nil, ErrUserNotExist{0, uri, 0}
+		return nil, ErrUserNotExist{0, uri, 0, -1}
 	}
 
 	uri, err := openid.Normalize(uri)
@@ -120,5 +120,5 @@ func GetUserByOpenID(uri string) (*User, error) {
 		return GetUserByID(oid.UID)
 	}
 
-	return nil, ErrUserNotExist{0, uri, 0}
+	return nil, ErrUserNotExist{0, uri, 0, -1}
 }

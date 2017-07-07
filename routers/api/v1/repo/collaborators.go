@@ -35,7 +35,7 @@ func IsCollaborator(ctx *context.APIContext) {
 		ctx.Error(403, "", "User does not have push access")
 		return
 	}
-	user, err := models.GetUserByName(ctx.Params(":collaborator"))
+	user, err := models.GetIndividualUserByName(ctx.Params(":collaborator"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.Error(422, "", err)
@@ -62,7 +62,7 @@ func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
 		ctx.Error(403, "", "User does not have push access")
 		return
 	}
-	collaborator, err := models.GetUserByName(ctx.Params(":collaborator"))
+	collaborator, err := models.GetIndividualUserByName(ctx.Params(":collaborator"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.Error(422, "", err)
@@ -94,7 +94,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	collaborator, err := models.GetUserByName(ctx.Params(":collaborator"))
+	collaborator, err := models.GetIndividualUserByName(ctx.Params(":collaborator"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.Error(422, "", err)

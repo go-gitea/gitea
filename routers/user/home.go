@@ -33,7 +33,7 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 		// Organization.
 		org, err := models.GetOrgByName(orgName)
 		if err != nil {
-			if models.IsErrOrgNotExist(err) {
+			if models.IsErrUserNotExist(err) {
 				ctx.Handle(404, "GetOrgByName", err)
 			} else {
 				ctx.Handle(500, "GetOrgByName", err)

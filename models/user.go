@@ -1089,7 +1089,7 @@ func GetUserByKeyID(keyID int64) (*User, error) {
 		return nil, err
 	}
 	if !has {
-		return nil, ErrUserNotExist{0, "", keyID}
+		return nil, ErrUserNotExist{0, "", keyID, -1}
 	}
 	return &user, nil
 }
@@ -1100,7 +1100,7 @@ func getUserByID(e Engine, id int64) (*User, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{id, "", 0}
+		return nil, ErrUserNotExist{id, "", 0, -1}
 	}
 	return u, nil
 }
@@ -1116,7 +1116,7 @@ func GetAssigneeByID(repo *Repository, userID int64) (*User, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{userID, "", 0}
+		return nil, ErrUserNotExist{userID, "", 0, -1}
 	}
 	return GetUserByID(userID)
 }
@@ -1124,35 +1124,33 @@ func GetAssigneeByID(repo *Repository, userID int64) (*User, error) {
 // GetUserByName returns user by given name.
 func GetUserByName(name string) (*User, error) {
 	if len(name) == 0 {
-		return nil, ErrUserNotExist{0, name, 0}
+		return nil, ErrUserNotExist{0, name, 0, -1}
 	}
-	u := &User{
-		LowerName: strings.ToLower(name),
-	}
+	u := &User{LowerName: strings.ToLower(name)}
 	has, err := x.Get(u)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{0, name, 0}
+		return nil, ErrUserNotExist{0, name, 0, -1}
 	}
 	return u, nil
 }
 
 // GetUserByNameAndType returns user by given name and type. //TODO add test
-func GetUserByNameAndType(name string, utype models.UserType) (*User, error) {
-	u, err:= GetUserByName(name)
+func GetUserByNameAndType(name string, utype UserType) (*User, error) {
+	u, err := GetUserByName(name)
 	if err != nil {
 		return nil, err
-	} 
-	if(u.Type != utype){
+	}
+	if u.Type != utype {
 		return nil, ErrUserNotExist{0, name, 0, utype}
 	}
 	return u, nil
 }
 
-// GetIndividualUserByName returns user if is TypeIndividua by given name. //TODO add test
+// GetIndividualUserByName returns user of TypeIndividual by given name. //TODO add test
 func GetIndividualUserByName(name string) (*User, error) {
-	return GetUserByNameAndType(name, models.UserTypeIndividual)
+	return GetUserByNameAndType(name, UserTypeIndividual)
 }
 
 // GetUserEmailsByNames returns a list of e-mails corresponds to names.
@@ -1240,7 +1238,7 @@ func ValidateCommitsWithEmails(oldCommits *list.List) *list.List {
 // GetUserByEmail returns the user object by given e-mail if exists.
 func GetUserByEmail(email string) (*User, error) {
 	if len(email) == 0 {
-		return nil, ErrUserNotExist{0, email, 0}
+		return nil, ErrUserNotExist{0, email, 0, -1}
 	}
 
 	email = strings.ToLower(email)
@@ -1264,7 +1262,7 @@ func GetUserByEmail(email string) (*User, error) {
 		return GetUserByID(emailAddress.UID)
 	}
 
-	return nil, ErrUserNotExist{0, email, 0}
+	return nil, ErrUserNotExist{0, email, 0, -1}
 }
 
 // GetUser checks if a user already exists

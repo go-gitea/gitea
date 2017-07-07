@@ -50,7 +50,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	var err error
 	ctx.Org.Organization, err = models.GetOrgByName(orgName)
 	if err != nil {
-		if models.IsErrOrgNotExist(err) {
+		if models.IsErrUserNotExist(err) {
 			ctx.Handle(404, "GetOrgByName", err)
 		} else {
 			ctx.Handle(500, "GetOrgByName", err)

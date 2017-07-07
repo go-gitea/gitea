@@ -66,7 +66,7 @@ type ErrUserNotExist struct {
 	UID   int64
 	Name  string
 	KeyID int64
-	Type  int
+	Type  UserType
 }
 
 // IsErrUserNotExist checks if an error is a ErrUserNotExist.

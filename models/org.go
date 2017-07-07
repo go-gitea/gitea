@@ -177,7 +177,7 @@ func CreateOrganization(org, owner *User) (err error) {
 
 // GetOrgByName returns organization by given name.
 func GetOrgByName(name string) (*User, error) {
-	return GetUserByNameAndType(name, models.UserTypeOrganization)
+	return GetUserByNameAndType(name, UserTypeOrganization)
 }
 
 // CountOrganizations returns number of organizations.

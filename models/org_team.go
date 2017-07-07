@@ -226,11 +226,14 @@ func NewTeam(t *Team) (err error) {
 		return err
 	}
 
-	has, err := x.Id(t.OrgID).Get(new(User))
+	has, err := x.Id(t.OrgID).Get(&User{
+		Type: UserTypeOrganization,
+	})
+
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrOrgNotExist{t.OrgID, ""}
+		return ErrUserNotExist{t.OrgID, "", 0, UserTypeOrganization}
 	}
 
 	t.LowerName = strings.ToLower(t.Name)
