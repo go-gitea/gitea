@@ -1128,7 +1128,6 @@ func GetUserByName(name string) (*User, error) {
 	}
 	u := &User{
 		LowerName: strings.ToLower(name),
-		Type:      UserTypeIndividual,
 	}
 	has, err := x.Get(u)
 	if err != nil {
@@ -1137,6 +1136,23 @@ func GetUserByName(name string) (*User, error) {
 		return nil, ErrUserNotExist{0, name, 0}
 	}
 	return u, nil
+}
+
+// GetUserByNameAndType returns user by given name and type. //TODO add test
+func GetUserByNameAndType(name string, utype models.UserType) (*User, error) {
+	u, err:= GetUserByName(name)
+	if err != nil {
+		return nil, err
+	} 
+	if(u.Type != utype){
+		return nil, ErrUserNotExist{0, name, 0, utype}
+	}
+	return u, nil
+}
+
+// GetIndividualUserByName returns user if is TypeIndividua by given name. //TODO add test
+func GetIndividualUserByName(name string) (*User, error) {
+	return GetUserByNameAndType(name, models.UserTypeIndividual)
 }
 
 // GetUserEmailsByNames returns a list of e-mails corresponds to names.
