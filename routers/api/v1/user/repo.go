@@ -8,33 +8,29 @@ import (
 
 // listUserRepos - List the repositories owned by the given user.
 func listUserRepos(ctx *context.APIContext, u *models.User) {
-	userID := u.ID
-	showPrivateRepos := ctx.IsSigned && (ctx.User.ID == userID || ctx.User.IsAdmin)
-	ownRepos, err := models.GetUserRepositories(userID, showPrivateRepos, 1, u.NumRepos, "")
+	showPrivateRepos := ctx.IsSigned && (ctx.User.ID == u.ID || ctx.User.IsAdmin)
+	repos, err := models.GetUserRepositories(u.ID, showPrivateRepos, 1, u.NumRepos, "")
 	if err != nil {
 		ctx.Error(500, "GetUserRepositories", err)
 		return
 	}
-	var accessibleRepos []*api.Repository
+	apiRepos := make([]*api.Repository, len(repos))
+	var ctxUserID int64
 	if ctx.User != nil {
-		accessibleRepos, err = getAccessibleRepos(ctx)
+		ctxUserID = ctx.User.ID
+	}
+	for i := range repos {
+		access, err := models.AccessLevel(ctxUserID, repos[i])
 		if err != nil {
-			ctx.Error(500, "GetAccessibleRepos", err)
+			ctx.Error(500, "AccessLevel", err)
+			return
 		}
-	}
-	apiRepos := make([]*api.Repository, len(ownRepos)+len(accessibleRepos))
-	// Set owned repositories.
-	for i := range ownRepos {
-		apiRepos[i] = ownRepos[i].APIFormat(models.AccessModeOwner)
-	}
-	// Set repositories user has access to.
-	for i := 0; i < len(accessibleRepos); i++ {
-		apiRepos[i+len(ownRepos)] = accessibleRepos[i]
+		apiRepos[i] = repos[i].APIFormat(access)
 	}
 	ctx.JSON(200, &apiRepos)
 }
 
-// ListUserRepos - list the repos owned and accessible by the given user.
+// ListUserRepos - list the repos owned by the given user.
 func ListUserRepos(ctx *context.APIContext) {
 	// swagger:route GET /users/{username}/repos userListRepos
 	//
@@ -52,7 +48,7 @@ func ListUserRepos(ctx *context.APIContext) {
 	listUserRepos(ctx, user)
 }
 
-// ListMyRepos - list the repositories owned by you.
+// ListMyRepos - list the repositories you own or have access to.
 func ListMyRepos(ctx *context.APIContext) {
 	// swagger:route GET /user/repos userCurrentListRepos
 	//
@@ -62,21 +58,25 @@ func ListMyRepos(ctx *context.APIContext) {
 	//     Responses:
 	//       200: RepositoryList
 	//       500: error
-
-	listUserRepos(ctx, ctx.User)
-}
-
-// getAccessibleRepos - Get the repositories a user has access to.
-func getAccessibleRepos(ctx *context.APIContext) ([]*api.Repository, error) {
-	accessibleRepos, err := ctx.User.GetRepositoryAccesses()
+	ownRepos, err := models.GetUserRepositories(ctx.User.ID, true, 1, ctx.User.NumRepos, "")
 	if err != nil {
-		return nil, err
+		ctx.Error(500, "GetUserRepositories", err)
+		return
 	}
-	i := 0
-	repos := make([]*api.Repository, len(accessibleRepos))
-	for repo, access := range accessibleRepos {
-		repos[i] = repo.APIFormat(access)
+	accessibleReposMap, err := ctx.User.GetRepositoryAccesses()
+	if err != nil {
+		ctx.Error(500, "GetRepositoryAccesses", err)
+		return
+	}
+
+	apiRepos := make([]*api.Repository, len(ownRepos)+len(accessibleReposMap))
+	for i := range ownRepos {
+		apiRepos[i] = ownRepos[i].APIFormat(models.AccessModeOwner)
+	}
+	i := len(ownRepos)
+	for repo, access := range accessibleReposMap {
+		apiRepos[i] = repo.APIFormat(access)
 		i++
 	}
-	return repos, nil
+	ctx.JSON(200, &apiRepos)
 }

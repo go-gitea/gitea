@@ -6,19 +6,48 @@ package integrations
 
 import (
 	"net/http"
+	"strings"
 	"testing"
+
+	"code.gitea.io/gitea/models"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIUserReposNotLogin(t *testing.T) {
 	prepareTestEnv(t)
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
-	req := NewRequest(t, "GET", "/api/v1/users/user2/repos")
-	MakeRequest(t, req, http.StatusOK)
+	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var apiRepos []api.Repository
+	DecodeJSON(t, resp, &apiRepos)
+	expectedLen := models.GetCount(t, models.Repository{OwnerID: user.ID},
+		models.Cond("is_private = ?", false))
+	assert.Len(t, apiRepos, expectedLen)
+	for _, repo := range apiRepos {
+		assert.EqualValues(t, user.ID, repo.Owner.ID)
+		assert.False(t, repo.Private)
+	}
+}
+
+type searchResponseBody struct {
+	ok   bool
+	data []api.Repository
 }
 
 func TestAPISearchRepoNotLogin(t *testing.T) {
 	prepareTestEnv(t)
+	const keyword = "test"
 
-	req := NewRequest(t, "GET", "/api/v1/repos/search?q=Test")
-	MakeRequest(t, req, http.StatusOK)
+	req := NewRequestf(t, "GET", "/api/v1/repos/search?q=%s", keyword)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var body searchResponseBody
+	DecodeJSON(t, resp, &body)
+	for _, repo := range body.data {
+		assert.True(t, strings.Contains(repo.Name, keyword))
+	}
 }
