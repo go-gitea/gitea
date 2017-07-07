@@ -15,8 +15,7 @@ import (
 
 func testPullCreate(t *testing.T, session *TestSession, user, repo, branch string) *TestResponse {
 	req := NewRequest(t, "GET", path.Join(user, repo))
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Click the little green button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -27,8 +26,7 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch strin
 	}
 
 	req = NewRequest(t, "GET", link)
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	// Submit the form for creating the pull
 	htmlDoc = NewHTMLParser(t, resp.Body)
@@ -38,8 +36,7 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch strin
 		"_csrf": htmlDoc.GetCSRF(),
 		"title": "This is a pull title",
 	})
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
+	resp = session.MakeRequest(t, req, http.StatusFound)
 
 	//TODO check the redirected URL
 

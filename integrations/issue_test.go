@@ -35,8 +35,7 @@ func TestNoLoginViewIssues(t *testing.T) {
 	prepareTestEnv(t)
 
 	req := NewRequest(t, "GET", "/user2/repo1/issues")
-	resp := MakeRequest(req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestNoLoginViewIssuesSortByType(t *testing.T) {
@@ -48,8 +47,7 @@ func TestNoLoginViewIssuesSortByType(t *testing.T) {
 
 	session := loginUser(t, user.Name)
 	req := NewRequest(t, "GET", repo.RelLink()+"/issues?type=created_by")
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	issuesSelection := getIssuesSelection(htmlDoc)
@@ -73,15 +71,13 @@ func TestNoLoginViewIssue(t *testing.T) {
 	prepareTestEnv(t)
 
 	req := NewRequest(t, "GET", "/user2/repo1/issues/1")
-	resp := MakeRequest(req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	MakeRequest(t, req, http.StatusOK)
 }
 
 func testNewIssue(t *testing.T, session *TestSession, user, repo, title string) {
 
 	req := NewRequest(t, "GET", path.Join(user, repo, "issues", "new"))
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
@@ -90,14 +86,10 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title string) 
 		"_csrf": htmlDoc.GetCSRF(),
 		"title": title,
 	})
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
-	redirectedURL := resp.Headers["Location"]
-	assert.NotEmpty(t, redirectedURL, "Redirected URL is not found")
+	resp = session.MakeRequest(t, req, http.StatusFound)
 
-	req = NewRequest(t, "GET", redirectedURL[0])
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	req = NewRequest(t, "GET", RedirectURL(t, resp))
+	resp = session.MakeRequest(t, req, http.StatusOK)
 }
 
 func TestNewIssue(t *testing.T) {

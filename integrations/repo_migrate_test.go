@@ -13,8 +13,7 @@ import (
 
 func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName string) *TestResponse {
 	req := NewRequest(t, "GET", "/repo/migrate")
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
 	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
@@ -30,8 +29,7 @@ func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName str
 		"repo_name":  repoName,
 	},
 	)
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
+	resp = session.MakeRequest(t, req, http.StatusFound)
 
 	return resp
 }

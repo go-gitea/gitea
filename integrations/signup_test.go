@@ -9,8 +9,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSignup(t *testing.T) {
@@ -24,11 +22,9 @@ func TestSignup(t *testing.T) {
 		"password":  "examplePassword",
 		"retype":    "examplePassword",
 	})
-	resp := MakeRequest(req)
-	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
+	MakeRequest(t, req, http.StatusFound)
 
 	// should be able to view new user's page
 	req = NewRequest(t, "GET", "/exampleUser")
-	resp = MakeRequest(req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	MakeRequest(t, req, http.StatusOK)
 }

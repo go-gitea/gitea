@@ -23,9 +23,9 @@ func assertProtectedBranch(t *testing.T, repoID int64, branchName string, isErr,
 	t.Log(reqURL)
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", setting.InternalToken))
 
-	resp := MakeRequest(req)
+	resp := MakeRequest(t, req, NoExpectedStatus)
 	if isErr {
-		assert.EqualValues(t, 500, resp.HeaderCode)
+		assert.EqualValues(t, http.StatusInternalServerError, resp.HeaderCode)
 	} else {
 		assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
 		var branch models.ProtectedBranch

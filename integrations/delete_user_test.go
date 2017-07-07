@@ -9,8 +9,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestDeleteUser(t *testing.T) {
@@ -18,16 +16,11 @@ func TestDeleteUser(t *testing.T) {
 
 	session := loginUser(t, "user1")
 
-	req := NewRequest(t, "GET", "/admin/users/8")
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
-
-	doc := NewHTMLParser(t, resp.Body)
-	req = NewRequestWithValues(t, "POST", "/admin/users/8/delete", map[string]string{
-		"_csrf": doc.GetCSRF(),
+	csrf := GetCSRF(t, session, "/admin/users/8")
+	req := NewRequestWithValues(t, "POST", "/admin/users/8/delete", map[string]string{
+		"_csrf": csrf,
 	})
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	models.AssertNotExistsBean(t, &models.User{ID: 8})
 	models.CheckConsistencyFor(t, &models.User{})

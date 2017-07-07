@@ -24,8 +24,7 @@ func TestAPIListIssues(t *testing.T) {
 	session := loginUser(t, owner.Name)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues?state=all",
 		owner.Name, repo.Name)
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiIssues []*api.Issue
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, models.GetCount(t, &models.Issue{RepoID: repo.ID}))
@@ -49,8 +48,7 @@ func TestAPICreateIssue(t *testing.T) {
 		Title:    title,
 		Assignee: owner.Name,
 	})
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusCreated, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusCreated)
 	var apiIssue api.Issue
 	DecodeJSON(t, resp, &apiIssue)
 	assert.Equal(t, apiIssue.Body, body)

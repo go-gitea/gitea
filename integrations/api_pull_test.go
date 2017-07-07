@@ -21,8 +21,7 @@ func TestAPIViewPulls(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?state=all", owner.Name, repo.Name)
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var pulls []*api.PullRequest
 	DecodeJSON(t, resp, &pulls)

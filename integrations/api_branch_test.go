@@ -18,7 +18,7 @@ func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
 
 	session := loginUser(t, "user2")
 	req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/branches/%s", branchName)
-	resp := session.MakeRequest(t, req)
+	resp := session.MakeRequest(t, req, NoExpectedStatus)
 	if !exists {
 		assert.EqualValues(t, http.StatusNotFound, resp.HeaderCode)
 		return

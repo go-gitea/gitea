@@ -15,8 +15,7 @@ import (
 
 func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title string, preRelease, draft bool) {
 	req := NewRequest(t, "GET", repoURL+"/releases/new")
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
 	link, exists := htmlDoc.doc.Find("form").Attr("action")
@@ -37,17 +36,14 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 	}
 	req = NewRequestWithValues(t, "POST", link, postData)
 
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
+	resp = session.MakeRequest(t, req, http.StatusFound)
 
-	redirectedURL := resp.Headers["Location"]
-	assert.NotEmpty(t, redirectedURL, "Redirected URL is not found")
+	RedirectURL(t, resp) // check that redirect URL exists
 }
 
 func checkLatestReleaseAndCount(t *testing.T, session *TestSession, repoURL, version, label string, count int) {
 	req := NewRequest(t, "GET", repoURL+"/releases")
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	labelText := htmlDoc.doc.Find("#release-list > li .meta .label").First().Text()
@@ -64,16 +60,14 @@ func TestViewReleases(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/releases")
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	session.MakeRequest(t, req, http.StatusOK)
 }
 
 func TestViewReleasesNoLogin(t *testing.T) {
 	prepareTestEnv(t)
 
 	req := NewRequest(t, "GET", "/user2/repo1/releases")
-	resp := MakeRequest(req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestCreateRelease(t *testing.T) {
