@@ -84,6 +84,7 @@ func lookupHandle(handle uintptr) interface{} {
 		if handle >= 100 && handle < handleIndex {
 			panic("deleted handle")
 		} else {
+			fmt.Fprintf(os.Stderr, "handle:%d handleIndx:%d\n", handle, handleIndex)
 			panic("invalid handle")
 		}
 	}
@@ -343,8 +344,10 @@ func callbackSyntheticForTests(v reflect.Value, err error) callbackArgConverter 
 }
 
 //export unlock_notify_callback
-func unlock_notify_callback(arg unsafe.Pointer, argc C.int) {
-	notify := lookupHandle(uintptr(arg)).(chan struct{})
+func unlock_notify_callback(argv unsafe.Pointer, argc C.int) {
+	v := **(**[1]uintptr)(argv)
+	fmt.Fprintf(os.Stderr, "v:%#v\n", v)
+	notify := lookupHandle(v[0]).(chan struct{})
 	fmt.Fprintf(os.Stderr, "callback runs...\n")
 	notify <- struct{}{}
 }
@@ -354,7 +357,9 @@ func unlock_notify_wait(db *C.sqlite3) {
 	notify := make(chan struct{})
 	defer close(notify)
 
-	C.sqlite3_unlock_notify(db, (*[0]byte)(C._unlock_notify_callback), unsafe.Pointer(newHandle(nil, notify)))
+	argv := [2]uintptr{newHandle(nil, notify), 0}
+	fmt.Fprintf(os.Stderr, "argv:%#v\n", argv)
+	C.sqlite3_unlock_notify(db, (*[0]byte)(C._unlock_notify_callback), unsafe.Pointer(&argv))
 	fmt.Fprintf(os.Stderr, "unlock notify waits...\n")
 	<-notify
 	fmt.Fprintf(os.Stderr, "unlock notify waked...\n")
