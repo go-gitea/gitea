@@ -66,6 +66,7 @@ type ErrUserNotExist struct {
 	UID   int64
 	Name  string
 	KeyID int64
+	Type  int
 }
 
 // IsErrUserNotExist checks if an error is a ErrUserNotExist.
@@ -75,7 +76,7 @@ func IsErrUserNotExist(err error) bool {
 }
 
 func (err ErrUserNotExist) Error() string {
-	return fmt.Sprintf("user does not exist [uid: %d, name: %s, keyid: %d]", err.UID, err.Name, err.KeyID)
+	return fmt.Sprintf("user does not exist [uid: %d, name: %s, keyid: %d, type: %d]", err.UID, err.Name, err.KeyID, err.Type)
 }
 
 // ErrEmailAlreadyUsed represents a "EmailAlreadyUsed" kind of error.
@@ -447,22 +448,6 @@ func (err ErrAccessTokenEmpty) Error() string {
 // /    |    \  | \/ /_/  > __ \|   |  \  |/    /  / __ \|  | |  (  <_> )   |  \
 // \_______  /__|  \___  (____  /___|  /__/_____ \(____  /__| |__|\____/|___|  /
 //         \/     /_____/     \/     \/         \/     \/                    \/
-
-// ErrOrgNotExist represents a "OrgNotExist" kind of error.
-type ErrOrgNotExist struct {
-	ID   int64
-	Name string
-}
-
-// IsErrOrgNotExist checks if an error is a ErrOrgNotExist.
-func IsErrOrgNotExist(err error) bool {
-	_, ok := err.(ErrOrgNotExist)
-	return ok
-}
-
-func (err ErrOrgNotExist) Error() string {
-	return fmt.Sprintf("org does not exist [id: %d, name: %s]", err.ID, err.Name)
-}
 
 // ErrLastOrgOwner represents a "LastOrgOwner" kind of error.
 type ErrLastOrgOwner struct {
