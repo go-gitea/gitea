@@ -14,13 +14,14 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/com"
 	"github.com/russross/blackfriday"
 	"golang.org/x/net/html"
-
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 // Issue name styles
@@ -213,36 +214,17 @@ func cutoutVerbosePrefix(prefix string) string {
 }
 
 // URLJoin joins url components, like path.Join, but preserving contents
-func URLJoin(elem ...string) string {
-	res := ""
-	last := len(elem) - 1
-	for i, item := range elem {
-		res += item
-		if i != last && !strings.HasSuffix(res, "/") {
-			res += "/"
-		}
+func URLJoin(base string, elems ...string) string {
+	u, err := url.Parse(base)
+	if err != nil {
+		log.Error(4, "URLJoin: Invalid base URL %s", base)
+		return ""
 	}
-	cwdIndex := strings.Index(res, "/./")
-	for cwdIndex != -1 {
-		res = strings.Replace(res, "/./", "/", 1)
-		cwdIndex = strings.Index(res, "/./")
-	}
-	upIndex := strings.Index(res, "/..")
-	for upIndex != -1 {
-		res = strings.Replace(res, "/..", "", 1)
-		prevStart := -1
-		for i := upIndex - 1; i >= 0; i-- {
-			if res[i] == '/' {
-				prevStart = i
-				break
-			}
-		}
-		if prevStart != -1 {
-			res = res[:prevStart] + res[upIndex:]
-		}
-		upIndex = strings.Index(res, "/..")
-	}
-	return res
+	joinArgs := make([]string, 0, len(elems)+1)
+	joinArgs = append(joinArgs, u.Path)
+	joinArgs = append(joinArgs, elems...)
+	u.Path = path.Join(joinArgs...)
+	return u.String()
 }
 
 // RenderIssueIndexPattern renders issue indexes to corresponding links.
