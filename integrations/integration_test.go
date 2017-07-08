@@ -158,8 +158,15 @@ func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatu
 
 const userPassword = "password"
 
+var loginSessionCache = make(map[string]*TestSession, 10)
+
 func loginUser(t testing.TB, userName string) *TestSession {
-	return loginUserWithPassword(t, userName, userPassword)
+	if session, ok := loginSessionCache[userName]; ok {
+		return session
+	}
+	session := loginUserWithPassword(t, userName, userPassword)
+	loginSessionCache[userName] = session
+	return session
 }
 
 func loginUserWithPassword(t testing.TB, userName, password string) *TestSession {
