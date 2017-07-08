@@ -127,7 +127,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"os"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -740,10 +739,8 @@ func (c *SQLiteConn) prepare(ctx context.Context, query string) (driver.Stmt, er
 		}
 	}
 	if rv != C.SQLITE_OK {
-		fmt.Fprintf(os.Stderr, "prepare:%v\n", c.lastError())
 		return nil, c.lastError()
 	}
-
 	var t string
 	if tail != nil && *tail != '\000' {
 		t = strings.TrimSpace(C.GoString(tail))
@@ -916,10 +913,8 @@ func (s *SQLiteStmt) exec(ctx context.Context, args []namedValue) (driver.Result
 	}(s.c.db)
 
 	var rowid, changes C.longlong
-
 	rv := C._sqlite3_step(s.s, &rowid, &changes)
 	if rv != C.SQLITE_ROW && rv != C.SQLITE_OK && rv != C.SQLITE_DONE {
-		fmt.Fprintf(os.Stderr, "exec:%v\n", s.c.lastError())
 		err := s.c.lastError()
 		C.sqlite3_reset(s.s)
 		C.sqlite3_clear_bindings(s.s)
