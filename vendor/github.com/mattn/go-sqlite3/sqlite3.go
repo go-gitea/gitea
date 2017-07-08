@@ -71,16 +71,23 @@ _sqlite3_exec(sqlite3* db, const char* pcmd, long long* rowid, long long* change
 static int
 _sqlite3_step(sqlite3_stmt* stmt, long long* rowid, long long* changes)
 {
-  extern void unlock_notify_wait(sqlite3 *db);
+  extern int unlock_notify_wait(sqlite3 *db);
   int rv;
   sqlite3* db = sqlite3_db_handle(stmt);
 
   for (;;) {
     rv = sqlite3_step(stmt);
-    if (rv != SQLITE_LOCKED) {
+    if (rv!=SQLITE_LOCKED) {
       break;
     }
-    unlock_notify_wait(db);
+    if (sqlite3_extended_errcode(db)!=SQLITE_LOCKED_SHAREDCACHE) {
+      break;
+    }
+    rv = unlock_notify_wait(db);
+    if (rv != SQLITE_OK) {
+      break;
+    }
+    sqlite3_reset(stmt);
   }
 
   *rowid = (long long) sqlite3_last_insert_rowid(db);
@@ -719,11 +726,24 @@ func (c *SQLiteConn) prepare(ctx context.Context, query string) (driver.Stmt, er
 	defer C.free(unsafe.Pointer(pquery))
 	var s *C.sqlite3_stmt
 	var tail *C.char
-	rv := C.sqlite3_prepare_v2(c.db, pquery, -1, &s, &tail)
+	var rv C.int
+	for {
+		rv = C.sqlite3_prepare_v2(c.db, pquery, -1, &s, &tail)
+		if rv == C.SQLITE_OK {
+			break
+		}
+		if rv == C.SQLITE_LOCKED {
+			rv = unlock_notify_wait(c.db)
+			if rv != C.SQLITE_OK {
+				break
+			}
+		}
+	}
 	if rv != C.SQLITE_OK {
 		fmt.Fprintf(os.Stderr, "prepare:%v\n", c.lastError())
 		return nil, c.lastError()
 	}
+
 	var t string
 	if tail != nil && *tail != '\000' {
 		t = strings.TrimSpace(C.GoString(tail))
