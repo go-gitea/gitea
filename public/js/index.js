@@ -1015,6 +1015,7 @@ function initAdmin() {
         $('.admin.edit.user').length > 0) {
         $('#login_type').change(function () {
             if ($(this).val().substring(0, 1) == '0') {
+                $('#user_name').removeAttr('disabled');
                 $('#login_name').removeAttr('required');
                 $('.non-local').hide();
                 $('.local').show();
@@ -1025,6 +1026,7 @@ function initAdmin() {
                 }
 
             } else {
+                $('#user_name').attr('disabled', 'disabled');
                 $('#login_name').attr('required', 'required');
                 $('.non-local').show();
                 $('.local').hide();

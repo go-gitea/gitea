@@ -205,6 +205,14 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 		u.EncodePasswd()
 	}
 
+	if u.IsLocal() && len(form.UserName) > 0 && u.Name != form.UserName {
+		if err := models.ChangeUserName(u, form.UserName); err != nil {
+			ctx.Handle(500, "ChangeUserName", err)
+			return
+		}
+		u.Name = form.UserName
+	}
+
 	u.LoginName = form.LoginName
 	u.FullName = form.FullName
 	u.Email = form.Email
