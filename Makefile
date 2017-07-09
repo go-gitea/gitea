@@ -17,7 +17,7 @@ BINDATA := modules/{options,public,templates}/bindata.go
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 JAVASCRIPTS :=
 DOCKER_TAG := gitea/gitea:latest
-GOFILES := $(shell find . -name "*.go" -type f -not -path "./vendor/*" -not -path "*/bindata.go")
+GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
 GOFMT ?= gofmt -s
 
 GOFLAGS := -i -v
