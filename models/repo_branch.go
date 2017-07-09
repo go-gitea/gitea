@@ -5,7 +5,13 @@
 package models
 
 import (
+	"fmt"
+	"time"
+
 	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/Unknwon/com"
 )
 
 // Branch holds the branch information
@@ -36,6 +42,11 @@ func GetBranchesByPath(path string) ([]*Branch, error) {
 	return branches, nil
 }
 
+// CanCreateBranch returns true if repository meets the requirements for creating new branches.
+func (repo *Repository) CanCreateBranch() bool {
+	return !repo.IsMirror
+}
+
 // GetBranch returns a branch by it's name
 func (repo *Repository) GetBranch(branch string) (*Branch, error) {
 	if !git.IsBranchExist(repo.RepoPath(), branch) {
@@ -50,6 +61,91 @@ func (repo *Repository) GetBranch(branch string) (*Branch, error) {
 // GetBranches returns all the branches of a repository
 func (repo *Repository) GetBranches() ([]*Branch, error) {
 	return GetBranchesByPath(repo.RepoPath())
+}
+
+// CreateNewBranch creates a new repository branch
+func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName string) (err error) {
+	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
+	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
+
+	localPath := repo.LocalCopyPath()
+
+	if err = discardLocalRepoBranchChanges(localPath, oldBranchName); err != nil {
+		return fmt.Errorf("discardLocalRepoChanges: %v", err)
+	} else if err = repo.UpdateLocalCopyBranch(oldBranchName); err != nil {
+		return fmt.Errorf("UpdateLocalCopyBranch: %v", err)
+	}
+
+	if err = repo.CheckoutNewBranch(oldBranchName, branchName); err != nil {
+		return fmt.Errorf("CreateNewBranch: %v", err)
+	}
+
+	if err = git.Push(localPath, git.PushOptions{
+		Remote: "origin",
+		Branch: branchName,
+	}); err != nil {
+		return fmt.Errorf("Push: %v", err)
+	}
+
+	return nil
+}
+
+// UpdateLocalCopyToCommit pulls latest changes of given commit from repoPath to localPath.
+// It creates a new clone if local copy does not exist.
+// This function checks out target commit by default, it is safe to assume subsequent
+// operations are operating against target commit when caller has confidence for no race condition.
+func UpdateLocalCopyToCommit(repoPath, localPath, commit string) error {
+	if !com.IsExist(localPath) {
+		if err := git.Clone(repoPath, localPath, git.CloneRepoOptions{
+			Timeout: time.Duration(setting.Git.Timeout.Clone) * time.Second,
+		}); err != nil {
+			return fmt.Errorf("git clone: %v", err)
+		}
+	} else {
+		_, err := git.NewCommand("fetch", "origin").RunInDir(localPath)
+		if err != nil {
+			return fmt.Errorf("git fetch origin: %v", err)
+		}
+		if err := git.ResetHEAD(localPath, true, "HEAD"); err != nil {
+			return fmt.Errorf("git reset --hard HEAD: %v", err)
+		}
+	}
+	if err := git.Checkout(localPath, git.CheckoutOptions{
+		Branch: commit,
+	}); err != nil {
+		return fmt.Errorf("git checkout %s: %v", commit, err)
+	}
+	return nil
+}
+
+// UpdateLocalCopyToCommit makes sure local copy of repository is at given commit.
+func (repo *Repository) UpdateLocalCopyToCommit(commit string) error {
+	return UpdateLocalCopyToCommit(repo.RepoPath(), repo.LocalCopyPath(), commit)
+}
+
+// CreateNewBranchFromCommit creates a new repository branch
+func (repo *Repository) CreateNewBranchFromCommit(doer *User, commit, branchName string) (err error) {
+	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
+	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
+
+	localPath := repo.LocalCopyPath()
+
+	if err = repo.UpdateLocalCopyToCommit(commit); err != nil {
+		return fmt.Errorf("UpdateLocalCopyBranch: %v", err)
+	}
+
+	if err = repo.CheckoutNewBranch(commit, branchName); err != nil {
+		return fmt.Errorf("CheckoutNewBranch: %v", err)
+	}
+
+	if err = git.Push(localPath, git.PushOptions{
+		Remote: "origin",
+		Branch: branchName,
+	}); err != nil {
+		return fmt.Errorf("Push: %v", err)
+	}
+
+	return nil
 }
 
 // GetCommit returns all the commits of a branch

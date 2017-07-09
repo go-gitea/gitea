@@ -362,9 +362,11 @@ function initRepository() {
         var $dropdown = $(selector);
         $dropdown.dropdown({
             fullTextSearch: true,
+            selectOnKeydown: false,
             onChange: function (text, value, $choice) {
-                window.location.href = $choice.data('url');
-                console.log($choice.data('url'))
+                if ($choice.data('url')) {
+                    window.location.href = $choice.data('url');
+                }
             },
             message: {noResults: $dropdown.data('no-results')}
         });
@@ -373,15 +375,7 @@ function initRepository() {
     // File list and commits
     if ($('.repository.file.list').length > 0 ||
         ('.repository.commits').length > 0) {
-        initFilterSearchDropdown('.choose.reference .dropdown');
-
-        $('.reference.column').click(function () {
-            $('.choose.reference .scrolling.menu').css('display', 'none');
-            $('.choose.reference .text').removeClass('black');
-            $($(this).data('target')).css('display', 'block');
-            $(this).find('.text').addClass('black');
-            return false;
-        });
+        initFilterBranchTagDropdown('.choose.reference .dropdown');
     }
 
     // Wiki
@@ -1318,7 +1312,7 @@ $(document).ready(function () {
     });
 
     // Semantic UI modules.
-    $('.dropdown').dropdown();
+    $('.dropdown:not(.custom)').dropdown();
     $('.jump.dropdown').dropdown({
         action: 'hide',
         onShow: function () {
@@ -1779,4 +1773,191 @@ function toggleStopwatch() {
 }
 function cancelStopwatch() {
     $("#cancel_stopwatch_form").submit();
+}
+
+function initFilterBranchTagDropdown(selector) {
+    $(selector).each(function() {
+        var $dropdown = $(this);
+        var $data = $dropdown.find('.data');
+        var data = {
+            items: [],
+            mode: $data.data('mode'),
+            searchTerm: '',
+            noResults: '',
+            canCreateBranch: false,
+            menuVisible: false,
+            active: 0
+        };
+        $data.find('.item').each(function() {
+            data.items.push({
+                name: $(this).text(),
+                url: $(this).data('url'),
+                branch: $(this).hasClass('branch'),
+                tag: $(this).hasClass('tag'),
+                selected: $(this).hasClass('selected')
+            });
+        });
+        $data.remove();
+        new Vue({
+            delimiters: ['${', '}'],
+            el: this,
+            data: data,
+
+            beforeMount: function () {
+                var vm = this;
+
+                this.noResults = vm.$el.getAttribute('data-no-results');
+                this.canCreateBranch = vm.$el.getAttribute('data-can-create-branch') === 'true';
+
+                document.body.addEventListener('click', function(event) {
+                    if (vm.$el.contains(event.target)) {
+                        return;
+                    }
+                    if (vm.menuVisible) {
+                        Vue.set(vm, 'menuVisible', false);
+                    }
+                });
+            },
+
+            watch: {
+                menuVisible: function(visible) {
+                    if (visible) {
+                        this.focusSearchField();
+                    }
+                }
+            },
+
+            computed: {
+                filteredItems: function() {
+                    var vm = this;
+
+                    var items = vm.items.filter(function (item) {
+                        return ((vm.mode === 'branches' && item.branch)
+                                || (vm.mode === 'tags' && item.tag))
+                            && (!vm.searchTerm
+                                || item.name.toLowerCase().indexOf(vm.searchTerm.toLowerCase()) >= 0);
+                    });
+
+                    vm.active = (items.length === 0 && vm.showCreateNewBranch ? 0 : -1);
+
+                    return items;
+                },
+                showNoResults: function() {
+                    return this.filteredItems.length === 0
+                            && !this.showCreateNewBranch;
+                },
+                showCreateNewBranch: function() {
+                    var vm = this;
+                    if (!this.canCreateBranch || !vm.searchTerm || vm.mode === 'tags') {
+                        return false;
+                    }
+
+                    return vm.items.filter(function (item) {
+                        return item.name.toLowerCase() === vm.searchTerm.toLowerCase()
+                    }).length === 0;
+                }
+            },
+
+            methods: {
+                selectItem: function(item) {
+                    var prev = this.getSelected();
+                    if (prev !== null) {
+                        prev.selected = false;
+                    }
+                    item.selected = true;
+                    window.location.href = item.url;
+                },
+                createNewBranch: function() {
+                    if (!this.showCreateNewBranch) {
+                        return;
+                    }
+                    this.$refs.newBranchForm.submit();
+                },
+                focusSearchField: function() {
+                    var vm = this;
+                    Vue.nextTick(function() {
+                        vm.$refs.searchField.focus();
+                    });
+                },
+                getSelected: function() {
+                    for (var i = 0, j = this.items.length; i < j; ++i) {
+                        if (this.items[i].selected)
+                            return this.items[i];
+                    }
+                    return null;
+                },
+                getSelectedIndexInFiltered() {
+                    for (var i = 0, j = this.filteredItems.length; i < j; ++i) {
+                        if (this.filteredItems[i].selected)
+                            return i;
+                    }
+                    return -1;
+                },
+                scrollToActive() {
+                    var el = this.$refs['listItem' + this.active];
+                    if (!el || el.length === 0) {
+                        return;
+                    }
+                    if (Array.isArray(el)) {
+                        el = el[0];
+                    }
+
+                    var cont = this.$refs.scrollContainer;
+
+                     if (el.offsetTop < cont.scrollTop) {
+                         cont.scrollTop = el.offsetTop;
+                     }
+                     else if (el.offsetTop + el.clientHeight > cont.scrollTop + cont.clientHeight) {
+                        cont.scrollTop = el.offsetTop + el.clientHeight - cont.clientHeight;
+                    }
+                },
+                keydown: function(event) {
+                    var vm = this;
+                    if (event.keyCode === 40) {
+                        // arrow down
+                        event.preventDefault();
+
+                        if (vm.active === -1) {
+                            vm.active = vm.getSelectedIndexInFiltered();
+                        }
+
+                        if (vm.active + (vm.showCreateNewBranch ? 0 : 1) >= vm.filteredItems.length) {
+                            return;
+                        }
+                        vm.active++;
+                        vm.scrollToActive();
+                    }
+                    if (event.keyCode === 38) {
+                        // arrow up
+                        event.preventDefault();
+
+                         if (vm.active === -1) {
+                            vm.active = vm.getSelectedIndexInFiltered();
+                        }
+
+                         if (vm.active <= 0) {
+                            return;
+                        }
+                        vm.active--;
+                        vm.scrollToActive();
+                    }
+                    if (event.keyCode == 13) {
+                        // enter
+                        event.preventDefault();
+
+                         if (vm.active >= vm.filteredItems.length) {
+                            vm.createNewBranch();
+                        } else if (vm.active >= 0) {
+                            vm.selectItem(vm.filteredItems[vm.active]);
+                        }
+                    }
+                    if (event.keyCode == 27) {
+                        // escape
+                        event.preventDefault();
+                        vm.menuVisible = false;
+                    }
+                }
+            }
+        });
+    });
 }
