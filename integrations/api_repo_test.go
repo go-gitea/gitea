@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -66,13 +67,24 @@ func TestAPIViewRepo(t *testing.T) {
 
 func TestAPIOrgRepos(t *testing.T) {
 	prepareTestEnv(t)
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	// User3 is an Org. Check their repos.
+	sourceOrg := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)
+	// Login as User2.
+	session := loginUser(t, user.Name)
 
-	req := NewRequest(t, "GET", "/api/v1/orgs/user3/repos")
-	session := loginUser(t, "user2")
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	req := NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", sourceOrg.Name)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	var repos []*api.Repository
-	DecodeJSON(t, resp, &repos)
-	assert.Len(t, repos, 1) // User3 has 1 public repo.
+	var apiRepos []*api.Repository
+	DecodeJSON(t, resp, &apiRepos)
+	expectedLen := models.GetCount(t, models.Repository{OwnerID: sourceOrg.ID},
+		models.Cond("is_private = ?", false))
+	fmt.Println(expectedLen)   // 0
+	fmt.Println(len(apiRepos)) // 1
+	assert.Len(t, apiRepos, expectedLen)
+	for _, repo := range apiRepos {
+		fmt.Printf("%+v\n", repo)
+		assert.False(t, repo.Private)
+	}
 }
