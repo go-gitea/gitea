@@ -319,6 +319,8 @@ func TestRender_Commits(t *testing.T) {
 	var src = strings.Replace(subtree, "/commit/", "/src/", -1)
 
 	test(sha, `<p><a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
+	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow">b6dd621</a></p>`)
+	test(sha[:39], `<p><a href="`+commit[:len(commit)-(40-39)]+`" rel="nofollow">b6dd6210ea</a></p>`)
 	test(commit, `<p><a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
 	test(tree, `<p><a href="`+src+`" rel="nofollow">b6dd6210ea/src</a></p>`)
 	test("commit "+sha, `<p>commit <a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
