@@ -105,6 +105,7 @@ pipeline:
 
   docker:
     image: plugins/docker
+    pull: true
     repo: gitea/gitea
     tags: [ '${DRONE_TAG##v}' ]
     when:
@@ -113,6 +114,7 @@ pipeline:
 
   docker:
     image: plugins/docker
+    pull: true
     repo: gitea/gitea
     tags: [ '${DRONE_BRANCH##release/v}' ]
     when:
@@ -121,6 +123,7 @@ pipeline:
 
   docker:
     image: plugins/docker
+    pull: true
     repo: gitea/gitea
     tags: [ 'latest' ]
     when:
