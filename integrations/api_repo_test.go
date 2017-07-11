@@ -5,7 +5,6 @@
 package integrations
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -80,11 +79,8 @@ func TestAPIOrgRepos(t *testing.T) {
 	DecodeJSON(t, resp, &apiRepos)
 	expectedLen := models.GetCount(t, models.Repository{OwnerID: sourceOrg.ID},
 		models.Cond("is_private = ?", false))
-	fmt.Println(expectedLen)   // 0
-	fmt.Println(len(apiRepos)) // 1
 	assert.Len(t, apiRepos, expectedLen)
 	for _, repo := range apiRepos {
-		fmt.Printf("%+v\n", repo)
 		assert.False(t, repo.Private)
 	}
 }
