@@ -12,9 +12,11 @@ import (
 	"path"
 	"time"
 
+	api "code.gitea.io/sdk/gitea"
 	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -58,6 +60,15 @@ func (a *Attachment) IncreaseDownloadCount() error {
 	return nil
 }
 
+// GetSize gets the size of the attachment in bytes
+func (a *Attachment) GetSize() (int64, error) {
+	info, err := os.Stat(a.LocalPath())
+	if err != nil {
+		return 0, err
+	}
+	return info.Size(), nil
+}
+
 // AttachmentLocalPath returns where attachment is stored in local file
 // system based on given UUID.
 func AttachmentLocalPath(uuid string) string {
@@ -67,6 +78,24 @@ func AttachmentLocalPath(uuid string) string {
 // LocalPath returns where attachment is stored in local file system.
 func (a *Attachment) LocalPath() string {
 	return AttachmentLocalPath(a.UUID)
+}
+
+// APIFormat converts a Attachment to an api.Attachment
+func (a *Attachment) APIFormat() *api.Attachment {
+	apiAttachment := &api.Attachment{
+		ID:            a.ID,
+		Created:       a.Created,
+		Name:          a.Name,
+		UUID:          a.UUID,
+		DownloadURL:   setting.AppURL + "attachments/" + a.UUID,
+		DownloadCount: a.DownloadCount,
+	}
+	fileSize, err := a.GetSize()
+	log.Warn("Error getting the file size for attachment %s. ", a.UUID, err)
+	if err == nil {
+		apiAttachment.Size = fileSize
+	}
+	return apiAttachment
 }
 
 // NewAttachment creates a new attachment object.
@@ -126,6 +155,18 @@ func GetAttachmentByUUID(uuid string) (*Attachment, error) {
 	return getAttachmentByUUID(x, uuid)
 }
 
+// GetAttachmentByID returns attachment by given ID.
+func GetAttachmentByID(id int64) (*Attachment, error) {
+	attach := &Attachment{ID: id}
+	has, err := x.Get(attach)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrAttachmentNotExist{id, ""}
+	}
+	return attach, nil
+}
+
 func getAttachmentsByIssueID(e Engine, issueID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, e.Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
@@ -140,6 +181,12 @@ func GetAttachmentsByIssueID(issueID int64) ([]*Attachment, error) {
 func GetAttachmentsByCommentID(commentID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, x.Where("comment_id=?", commentID).Find(&attachments)
+}
+
+// GetAttachmentsByReleaseID returns all attachments of a release
+func GetAttachmentsByReleaseID(releaseID int64) ([]*Attachment, error) {
+	attachments := make([]*Attachment, 0, 10)
+	return attachments, x.Where("release_id=?", releaseID).Find(&attachments)
 }
 
 // DeleteAttachment deletes the given attachment and optionally the associated file.

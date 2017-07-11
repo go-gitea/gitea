@@ -71,6 +71,14 @@ func (r *Release) loadAttributes(e Engine) error {
 			return err
 		}
 	}
+	// load the attachments of this release
+	if r.Attachments == nil {
+		attachments, err := GetAttachmentsByReleaseID(r.ID)
+		if err != nil {
+			return err
+		}
+		r.Attachments = attachments
+	}
 	return nil
 }
 
@@ -97,6 +105,10 @@ func (r *Release) TarURL() string {
 
 // APIFormat convert a Release to api.Release
 func (r *Release) APIFormat() *api.Release {
+	apiAttachments := make([]*api.Attachment, len(r.Attachments))
+	for i := range r.Attachments {
+		apiAttachments[i] = r.Attachments[i].APIFormat()
+	}
 	return &api.Release{
 		ID:           r.ID,
 		TagName:      r.TagName,
@@ -110,6 +122,7 @@ func (r *Release) APIFormat() *api.Release {
 		CreatedAt:    r.Created,
 		PublishedAt:  r.Created,
 		Publisher:    r.Publisher.APIFormat(),
+		Attachments:  apiAttachments,
 	}
 }
 
@@ -235,8 +248,9 @@ func GetReleaseByID(id int64) (*Release, error) {
 
 // FindReleasesOptions describes the conditions to Find releases
 type FindReleasesOptions struct {
-	IncludeDrafts bool
-	TagNames      []string
+	IncludeDrafts      bool
+	IncludePrereleases bool
+	TagNames           []string
 }
 
 func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
@@ -246,13 +260,16 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 	if !opts.IncludeDrafts {
 		cond = cond.And(builder.Eq{"is_draft": false})
 	}
+	if !opts.IncludePrereleases {
+		cond = cond.And(builder.Eq{"is_prerelease": false})
+	}
 	if len(opts.TagNames) > 0 {
 		cond = cond.And(builder.In("tag_name", opts.TagNames))
 	}
 	return cond
 }
 
-// GetReleasesByRepoID returns a list of releases of repository.
+// GetReleasesByRepoID returns a list of releases of repository. The results are sorted by created date and id descending
 func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions, page, pageSize int) (rels []*Release, err error) {
 	if page <= 0 {
 		page = 1
