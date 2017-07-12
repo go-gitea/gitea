@@ -53,6 +53,10 @@ func IsReadmeFile(name string) bool {
 }
 
 var (
+	// NOTE: All below regex matching do not perform any extra validation.
+	// Thus a link is produced even if the user does not exist, the issue does not exist, the commit does not exist, etc.
+	// While fast, this is also incorrect and lead to false positives.
+
 	// MentionPattern matches string that mentions someone, e.g. @Unknwon
 	MentionPattern = regexp.MustCompile(`(\s|^|\W)@[0-9a-zA-Z-_\.]+`)
 
@@ -65,9 +69,9 @@ var (
 	CrossReferenceIssueNumericPattern = regexp.MustCompile(`( |^)[0-9a-zA-Z]+/[0-9a-zA-Z]+#[0-9]+\b`)
 
 	// Sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
-	// FIXME: this pattern matches pure numbers as well, right now we do a hack to check in renderSha1CurrentPattern
-	// by converting string to a number.
-	Sha1CurrentPattern = regexp.MustCompile(`(?:^|\s|\()[0-9a-f]{40}\b`)
+	// Although SHA1 hashes are 40 chars long, the regex matches the hash from 7 to 40 chars in length
+	// so that abbreviated hash links can be used as well. This matches git and github useability.
+	Sha1CurrentPattern = regexp.MustCompile(`(?:^|\s|\()([0-9a-f]{7,40})\b`)
 
 	// ShortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	ShortLinkPattern = regexp.MustCompile(`(\[\[.*\]\]\w*)`)
@@ -553,12 +557,15 @@ func RenderCrossReferenceIssueIndexPattern(rawBytes []byte, urlPrefix string, me
 func renderSha1CurrentPattern(rawBytes []byte, urlPrefix string) []byte {
 	ms := Sha1CurrentPattern.FindAllSubmatch(rawBytes, -1)
 	for _, m := range ms {
-		all := m[0]
-		if com.StrTo(all).MustInt() > 0 {
-			continue
-		}
-		rawBytes = bytes.Replace(rawBytes, all, []byte(fmt.Sprintf(
-			`<a href="%s">%s</a>`, URLJoin(urlPrefix, "commit", string(all)), base.ShortSha(string(all)))), -1)
+		hash := m[1]
+		// The regex does not lie, it matches the hash pattern.
+		// However, a regex cannot know if a hash actually exists or not.
+		// We could assume that a SHA1 hash should probably contain alphas AND numerics
+		// but that is not always the case.
+		// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
+		// as used by git and github for linking and thus we have to do similar.
+		rawBytes = bytes.Replace(rawBytes, hash, []byte(fmt.Sprintf(
+			`<a href="%s">%s</a>`, URLJoin(urlPrefix, "commit", string(hash)), base.ShortSha(string(hash)))), -1)
 	}
 	return rawBytes
 }
