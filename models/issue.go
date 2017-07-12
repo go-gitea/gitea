@@ -24,6 +24,7 @@ import (
 
 var (
 	errMissingIssueNumber = errors.New("No issue number specified")
+	errInvalidIssueNumber = errors.New("Invalid issue number")
 )
 
 // Issue represents an issue or pull request of repository.
@@ -961,7 +962,7 @@ func GetIssueByRef(ref string) (*Issue, error) {
 
 	index, err := com.StrTo(ref[n+1:]).Int64()
 	if err != nil {
-		return nil, err
+		return nil, errInvalidIssueNumber
 	}
 
 	repo, err := GetRepositoryByRef(ref[:n])
