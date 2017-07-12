@@ -122,6 +122,8 @@ var migrations = []Migration{
 	NewMigration("adds comment to an action", addCommentIDToAction),
 	// v36 -> v37
 	NewMigration("regenerate git hooks", regenerateGitHooks36),
+	// v37 -> v38
+	NewMigration("unescape user full names", unescapeUserFullNames),
 }
 
 // Migrate database to current version
