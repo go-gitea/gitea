@@ -20,6 +20,7 @@ pipeline:
       - make generate
       - make vet
       - make lint
+      - make stylesheets-check
       - make misspell-check
       - make test-vendor
       - make build
