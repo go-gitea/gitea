@@ -103,15 +103,10 @@ func GetCombinedCommitStatus(ctx *context.APIContext) {
 		return
 	}
 
-	acl, err := models.AccessLevel(ctx.User.ID, repo)
-	if err != nil {
-		ctx.Error(500, "AccessLevel", fmt.Errorf("AccessLevel[%d, %s]: %v", ctx.User.ID, repo.FullName(), err))
-		return
-	}
 	retStatus := &combinedCommitStatus{
 		SHA:        sha,
 		TotalCount: len(statuses),
-		Repo:       repo.APIFormat(acl),
+		Repo:       repo.APIFormat(ctx.Repo.AccessMode),
 		URL:        "",
 	}
 

@@ -267,13 +267,7 @@ func Get(ctx *context.APIContext) {
 	//       200: Repository
 	//       500: error
 
-	repo := ctx.Repo.Repository
-	access, err := models.AccessLevel(ctx.User.ID, repo)
-	if err != nil {
-		ctx.Error(500, "GetRepository", err)
-		return
-	}
-	ctx.JSON(200, repo.APIFormat(access))
+	ctx.JSON(200, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
 }
 
 // GetByID returns a single Repository
