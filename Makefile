@@ -264,7 +264,7 @@ public/js/index.js: $(JAVASCRIPTS)
 stylesheets-check: stylesheets
 	@diff=$$(git diff public/css/index.css); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make less' and commit the result:"; \
+		echo "Please run 'make stylesheets' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi;
