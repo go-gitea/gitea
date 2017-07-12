@@ -171,6 +171,7 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
+	ctx.Data["Units"] = models.Units
 
 	t := &models.Team{
 		OrgID:       ctx.Org.Organization.ID,
@@ -183,6 +184,11 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplTeamNew)
+		return
+	}
+
+	if len(form.Units) == 0 {
+		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
 
@@ -238,27 +244,12 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["Team"] = t
-
-	if ctx.HasError() {
-		ctx.HTML(200, tplTeamNew)
-		return
-	}
+	ctx.Data["Units"] = models.Units
 
 	isAuthChanged := false
 	if !t.IsOwnerTeam() {
 		// Validate permission level.
-		var auth models.AccessMode
-		switch form.Permission {
-		case "read":
-			auth = models.AccessModeRead
-		case "write":
-			auth = models.AccessModeWrite
-		case "admin":
-			auth = models.AccessModeAdmin
-		default:
-			ctx.Error(401)
-			return
-		}
+		auth := models.ParseAccessMode(form.Permission)
 
 		t.Name = form.TeamName
 		if t.Authorize != auth {
@@ -268,6 +259,17 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 	}
 	t.Description = form.Description
 	t.UnitTypes = form.Units
+
+	if ctx.HasError() {
+		ctx.HTML(200, tplTeamNew)
+		return
+	}
+
+	if len(form.Units) == 0 {
+		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
+		return
+	}
+
 	if err := models.UpdateTeam(t, isAuthChanged); err != nil {
 		ctx.Data["Err_TeamName"] = true
 		switch {

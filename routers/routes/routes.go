@@ -450,8 +450,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
-		}, context.UnitTypes(), context.LoadRepoUnits(), context.CheckUnit(models.UnitTypeSettings))
-	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.RepoRef())
+		})
+	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.UnitTypes(), context.LoadRepoUnits(), context.RepoRef())
 
 	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), repo.Action)
 

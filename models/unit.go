@@ -12,12 +12,10 @@ const (
 	UnitTypeCode            UnitType = iota + 1 // 1 code
 	UnitTypeIssues                              // 2 issues
 	UnitTypePullRequests                        // 3 PRs
-	UnitTypeCommits                             // 4 Commits
-	UnitTypeReleases                            // 5 Releases
-	UnitTypeWiki                                // 6 Wiki
-	UnitTypeSettings                            // 7 Settings
-	UnitTypeExternalWiki                        // 8 ExternalWiki
-	UnitTypeExternalTracker                     // 9 ExternalTracker
+	UnitTypeReleases                            // 4 Releases
+	UnitTypeWiki                                // 5 Wiki
+	UnitTypeExternalWiki                        // 6 ExternalWiki
+	UnitTypeExternalTracker                     // 7 ExternalTracker
 )
 
 var (
@@ -26,10 +24,8 @@ var (
 		UnitTypeCode,
 		UnitTypeIssues,
 		UnitTypePullRequests,
-		UnitTypeCommits,
 		UnitTypeReleases,
 		UnitTypeWiki,
-		UnitTypeSettings,
 		UnitTypeExternalWiki,
 		UnitTypeExternalTracker,
 	}
@@ -39,22 +35,18 @@ var (
 		UnitTypeCode,
 		UnitTypeIssues,
 		UnitTypePullRequests,
-		UnitTypeCommits,
 		UnitTypeReleases,
 		UnitTypeWiki,
-		UnitTypeSettings,
 	}
 
-	// MustRepoUnits contains the units could be disabled currently
+	// MustRepoUnits contains the units could not be disabled currently
 	MustRepoUnits = []UnitType{
 		UnitTypeCode,
-		UnitTypeCommits,
 		UnitTypeReleases,
-		UnitTypeSettings,
 	}
 )
 
-// Unit is a tab page of one repository
+// Unit is a section of one repository
 type Unit struct {
 	Type    UnitType
 	NameKey string
@@ -65,7 +57,7 @@ type Unit struct {
 
 // CanDisable returns if this unit could be disabled.
 func (u *Unit) CanDisable() bool {
-	return u.Type != UnitTypeSettings
+	return true
 }
 
 // Enumerate all the units
@@ -102,20 +94,12 @@ var (
 		2,
 	}
 
-	UnitCommits = Unit{
-		UnitTypeCommits,
-		"repo.commits",
-		"/commits/master",
-		"repo.commits.desc",
-		3,
-	}
-
 	UnitReleases = Unit{
 		UnitTypeReleases,
 		"repo.releases",
 		"/releases",
 		"repo.releases.desc",
-		4,
+		3,
 	}
 
 	UnitWiki = Unit{
@@ -123,7 +107,7 @@ var (
 		"repo.wiki",
 		"/wiki",
 		"repo.wiki.desc",
-		5,
+		4,
 	}
 
 	UnitExternalWiki = Unit{
@@ -131,15 +115,7 @@ var (
 		"repo.ext_wiki",
 		"/wiki",
 		"repo.ext_wiki.desc",
-		5,
-	}
-
-	UnitSettings = Unit{
-		UnitTypeSettings,
-		"repo.settings",
-		"/settings",
-		"repo.settings.desc",
-		6,
+		4,
 	}
 
 	// Units contains all the units
@@ -148,10 +124,8 @@ var (
 		UnitTypeIssues:          UnitIssues,
 		UnitTypeExternalTracker: UnitExternalTracker,
 		UnitTypePullRequests:    UnitPullRequests,
-		UnitTypeCommits:         UnitCommits,
 		UnitTypeReleases:        UnitReleases,
 		UnitTypeWiki:            UnitWiki,
 		UnitTypeExternalWiki:    UnitExternalWiki,
-		UnitTypeSettings:        UnitSettings,
 	}
 )

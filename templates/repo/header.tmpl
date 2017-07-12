@@ -73,7 +73,7 @@
 				</a>
 			{{end}}
 
-			{{if and (.Repository.EnableUnit $.UnitTypeCommits) (not .IsBareRepo)}}
+			{{if and (.Repository.EnableUnit $.UnitTypeCode) (not .IsBareRepo)}}
 			<a class="{{if (or (.PageIsCommits) (.PageIsDiff))}}active{{end}} item" href="{{.RepoLink}}/commits/{{EscapePound .BranchName}}">
 				<i class="octicon octicon-history"></i> {{.i18n.Tr "repo.commits"}} <span class="ui {{if not .CommitsCount}}gray{{else}}blue{{end}} small label">{{.CommitsCount}}</span>
 			</a>

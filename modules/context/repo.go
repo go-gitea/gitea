@@ -347,6 +347,9 @@ func RepoAssignment() macaron.Handler {
 					ctx.Repo.PullRequest.HeadInfo = ctx.Repo.BranchName
 				}
 			}
+
+			// Reset repo units as otherwise user specific units wont be loaded later
+			ctx.Repo.Repository.Units = nil
 		}
 		ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
@@ -548,10 +551,8 @@ func UnitTypes() macaron.Handler {
 		ctx.Data["UnitTypeCode"] = models.UnitTypeCode
 		ctx.Data["UnitTypeIssues"] = models.UnitTypeIssues
 		ctx.Data["UnitTypePullRequests"] = models.UnitTypePullRequests
-		ctx.Data["UnitTypeCommits"] = models.UnitTypeCommits
 		ctx.Data["UnitTypeReleases"] = models.UnitTypeReleases
 		ctx.Data["UnitTypeWiki"] = models.UnitTypeWiki
-		ctx.Data["UnitTypeSettings"] = models.UnitTypeSettings
 		ctx.Data["UnitTypeExternalWiki"] = models.UnitTypeExternalWiki
 		ctx.Data["UnitTypeExternalTracker"] = models.UnitTypeExternalTracker
 	}
