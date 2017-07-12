@@ -15,7 +15,6 @@ endif
 
 BINDATA := modules/{options,public,templates}/bindata.go
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
-JAVASCRIPTS :=
 DOCKER_TAG := gitea/gitea:latest
 GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
 GOFMT ?= gofmt -s
@@ -82,7 +81,7 @@ generate-swagger:
 	swagger generate spec -o ./public/swagger.v1.json
 	$(SED_INPLACE) "s;\".ref\": \"#/definitions/GPGKey\";\"type\": \"object\";g" ./public/swagger.v1.json
 	$(SED_INPLACE) "s;^          \".ref\": \"#/definitions/Repository\";          \"type\": \"object\";g" ./public/swagger.v1.json
-	
+
 .PHONY: errcheck
 errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
@@ -261,12 +260,24 @@ javascripts: public/js/index.js
 public/js/index.js: $(JAVASCRIPTS)
 	cat $< >| $@
 
+.PHONY: stylesheets-check
+stylesheets-check: stylesheets
+	@diff=$$(git diff public/css/index.css); \
+	if [ -n "$$diff" ]; then \
+		echo "Please run 'make less' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi;
+
 .PHONY: stylesheets
 stylesheets: public/css/index.css
 
 .IGNORE: public/css/index.css
 public/css/index.css: $(STYLESHEETS)
-	lessc $< $@
+	@which lessc > /dev/null; if [ $$? -ne 0 ]; then \
+		go get -u github.com/kib357/less-go/lessc; \
+	fi
+	lessc -i $< -o $@
 
 .PHONY: swagger-ui
 swagger-ui:
@@ -275,9 +286,6 @@ swagger-ui:
 	mv /tmp/swagger-ui/dist public/assets/swagger-ui
 	rm -Rf /tmp/swagger-ui
 	$(SED_INPLACE) "s;http://petstore.swagger.io/v2/swagger.json;../../swagger.v1.json;g" public/assets/swagger-ui/index.html
-
-.PHONY: assets
-assets: javascripts stylesheets
 
 .PHONY: update-translations
 update-translations:
