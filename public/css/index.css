@@ -5,7 +5,7 @@
   background-size: contain;
 }
 body {
-  font-family: "Helvetica Neue", "Microsoft YaHei", Arial, Helvetica, sans-serif !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif !important;
   background-color: #fff;
   overflow-y: scroll;
   -webkit-font-smoothing: antialiased;
@@ -466,7 +466,6 @@ footer .ui.language .menu {
 }
 .markdown:not(code) {
   overflow: hidden;
-  font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif;
   font-size: 16px;
   line-height: 1.6 !important;
   word-wrap: break-word;
@@ -506,17 +505,17 @@ footer .ui.language .menu {
 .markdown:not(code) h5,
 .markdown:not(code) h6 {
   position: relative;
-  margin-top: 1em;
+  margin-top: 1.4em;
   margin-bottom: 16px;
   font-weight: bold;
   line-height: 1.4;
 }
-.markdown:not(code) h1:first-of-type,
-.markdown:not(code) h2:first-of-type,
-.markdown:not(code) h3:first-of-type,
-.markdown:not(code) h4:first-of-type,
-.markdown:not(code) h5:first-of-type,
-.markdown:not(code) h6:first-of-type {
+.markdown:not(code) div.anchor-wrap:first-of-type h1,
+.markdown:not(code) div.anchor-wrap:first-of-type h2,
+.markdown:not(code) div.anchor-wrap:first-of-type h3,
+.markdown:not(code) div.anchor-wrap:first-of-type h4,
+.markdown:not(code) div.anchor-wrap:first-of-type h5,
+.markdown:not(code) div.anchor-wrap:first-of-type h6 {
   margin-top: 0 !important;
 }
 .markdown:not(code) h1 .octicon-link,
