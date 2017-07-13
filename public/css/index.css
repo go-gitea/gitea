@@ -2456,6 +2456,9 @@ footer .ui.language .menu {
 .settings .list.email > .item:not(:first-child) {
   min-height: 60px;
 }
+.settings .list.collaborator > .item {
+  padding: 0;
+}
 .ui.vertical.menu .header.item {
   font-size: 1.1em;
   background: #f0f0f0;
