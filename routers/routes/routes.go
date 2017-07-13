@@ -171,7 +171,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("/connect").
 					Get(user.ConnectOpenID).
 					Post(bindIgnErr(auth.ConnectOpenIDForm{}), user.ConnectOpenIDPost)
-				m.Combo("/routes").
+				m.Combo("/register").
 					Get(user.RegisterOpenID).
 					Post(bindIgnErr(auth.SignUpOpenIDForm{}), user.RegisterOpenIDPost)
 			})
