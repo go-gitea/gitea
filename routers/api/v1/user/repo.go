@@ -1,3 +1,7 @@
+// Copyright 2017 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package user
 
 import (
@@ -79,4 +83,18 @@ func ListMyRepos(ctx *context.APIContext) {
 		i++
 	}
 	ctx.JSON(200, &apiRepos)
+}
+
+// ListOrgRepos - list the repositories of an organization.
+func ListOrgRepos(ctx *context.APIContext) {
+	// swagger:route GET /orgs/{org}/repos orgListRepos
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: RepositoryList
+	//       500: error
+
+	listUserRepos(ctx, ctx.Org.Organization)
 }
