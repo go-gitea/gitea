@@ -161,7 +161,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 			CommitterName:  "User Two",
 			AuthorEmail:    "user4@example.com",
 			AuthorName:     "User Four",
-			Message:        "start working on #1",
+			Message:        "start working on #FST-1, #1",
 		},
 		{
 			Sha1:           "abcdef2",
