@@ -178,8 +178,13 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		Name:        form.TeamName,
 		Description: form.Description,
 		Authorize:   models.ParseAccessMode(form.Permission),
-		UnitTypes:   form.Units,
 	}
+	if t.Authorize >= models.AccessModeAdmin {
+		t.UnitTypes = nil
+	} else {
+		t.UnitTypes = form.Units
+	}
+
 	ctx.Data["Team"] = t
 
 	if ctx.HasError() {
@@ -187,7 +192,7 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		return
 	}
 
-	if len(form.Units) == 0 {
+	if t.Authorize < models.AccessModeAdmin && len(form.Units) == 0 {
 		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
@@ -258,14 +263,18 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		}
 	}
 	t.Description = form.Description
-	t.UnitTypes = form.Units
+	if t.Authorize >= models.AccessModeAdmin {
+		t.UnitTypes = nil
+	} else {
+		t.UnitTypes = form.Units
+	}
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplTeamNew)
 		return
 	}
 
-	if len(form.Units) == 0 {
+	if t.Authorize < models.AccessModeAdmin && len(form.Units) == 0 {
 		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
