@@ -10,11 +10,7 @@
 		<div class="ui secondary menu">
 			{{if .PullRequestCtx.Allowed}}
 				<div class="fitted item">
-					{{if .Repository.IsFork}}
-						<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch}}...{{.SignedUser.Name}}:{{.BranchName}}">
-					{{else}}
-						<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch}}...{{.BranchName}}">
-					{{end}}
+					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch}}...{{if .Repository.IsFork}}{{.SignedUser.Name}}:{{end}}{{.BranchName}}">
 						<button class="ui green small button"><i class="octicon octicon-git-compare"></i></button>
 					</a>
 				</div>
