@@ -39,7 +39,7 @@ func removeCommitsUnitType(x *xorm.Engine) (err error) {
 		}
 	}
 
-	// Delete commits unit types
+	// Delete commits and settings unit types
 	if _, err = x.In("`type`", []models.UnitType{V16UnitTypeCommits, V16UnitTypeSettings}).Delete(new(RepoUnit)); err != nil {
 		return err
 	}

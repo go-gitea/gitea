@@ -179,9 +179,7 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		Description: form.Description,
 		Authorize:   models.ParseAccessMode(form.Permission),
 	}
-	if t.Authorize >= models.AccessModeAdmin {
-		t.UnitTypes = nil
-	} else {
+	if t.Authorize < models.AccessModeAdmin {
 		t.UnitTypes = form.Units
 	}
 
@@ -263,10 +261,10 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		}
 	}
 	t.Description = form.Description
-	if t.Authorize >= models.AccessModeAdmin {
-		t.UnitTypes = nil
-	} else {
+	if t.Authorize < models.AccessModeAdmin {
 		t.UnitTypes = form.Units
+	} else {
+		t.UnitTypes = nil
 	}
 
 	if ctx.HasError() {
