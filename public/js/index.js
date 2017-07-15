@@ -1649,7 +1649,7 @@ function initDashboardSearch() {
     }
 
     new Vue({
-        delimiters: ['<%', '%>'],
+        delimiters: ['${', '}'],
         el: el,
 
         data: {

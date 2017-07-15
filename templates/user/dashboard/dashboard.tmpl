@@ -33,9 +33,9 @@
 							<li v-for="repo in repos" :class="{'private': repo.private}">
 								<a :href="'{{AppSubUrl}}/' + repo.full_name">
 									<i :class="repoClass(repo)"></i>
-									<strong class="text truncate item-name"><% repo.full_name %></strong>
+									<strong class="text truncate item-name">${ repo.full_name }</strong>
 									<span class="ui right text light grey">
-										<% repo.stars_count %> <i class="octicon octicon-star rear"></i>
+										${ repo.stars_count } <i class="octicon octicon-star rear"></i>
 									</span>
 								</a>
 							</li>
