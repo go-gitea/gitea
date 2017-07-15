@@ -99,6 +99,7 @@ var (
 		AuthorizedKeysBackup bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
 		MinimumKeySizeCheck  bool           `ini:"-"`
 		MinimumKeySizes      map[string]int `ini:"-"`
+		ExposeAnonymous      bool           `ini:"SSH_EXPOSE_ANONYMOUS"`
 	}{
 		Disabled:           false,
 		StartBuiltinServer: false,
@@ -707,6 +708,7 @@ func NewContext() {
 		}
 	}
 	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
+	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
 	if err = Cfg.Section("server").MapTo(&LFS); err != nil {
 		log.Fatal(4, "Failed to map LFS settings: %v", err)
