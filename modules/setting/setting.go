@@ -99,12 +99,14 @@ var (
 		AuthorizedKeysBackup bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
 		MinimumKeySizeCheck  bool           `ini:"-"`
 		MinimumKeySizes      map[string]int `ini:"-"`
+		ExposeAnonymous      bool           `ini:"SSH_EXPOSE_ANONYMOUS"`
 	}{
 		Disabled:           false,
 		StartBuiltinServer: false,
 		Domain:             "",
 		Port:               22,
 		KeygenPath:         "ssh-keygen",
+		ExposeAnonymous:    true,
 	}
 
 	LFS struct {
