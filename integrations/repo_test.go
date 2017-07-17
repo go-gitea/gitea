@@ -39,7 +39,7 @@ func TestViewRepo3(t *testing.T) {
 	prepareTestEnv(t)
 
 	req := NewRequest(t, "GET", "/user3/repo3")
-	session := loginUser(t, "user3")
+	session := loginUser(t, "user4")
 	session.MakeRequest(t, req, http.StatusOK)
 }
 

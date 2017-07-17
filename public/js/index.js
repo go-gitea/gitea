@@ -657,6 +657,18 @@ function initRepositoryCollaboration() {
     });
 }
 
+function initTeamSettings() {
+    // Change team access mode
+    $('.organization.new.team input[name=permission]').change(function () {
+        var val = $('input[name=permission]:checked', '.organization.new.team').val()
+        if (val === 'admin') {
+            $('.organization.new.team .team-units').hide();
+        } else {
+            $('.organization.new.team .team-units').show();
+        }
+    });
+}
+
 function initWikiForm() {
     var $editArea = $('.repository.wiki textarea#edit_area');
     if ($editArea.length > 0) {
@@ -1557,6 +1569,7 @@ $(document).ready(function () {
     initAdmin();
     initCodeView();
     initDashboardSearch();
+    initTeamSettings();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {

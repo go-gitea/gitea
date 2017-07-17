@@ -50,9 +50,8 @@
 							</div>
 						</div>
 						<div class="ui divider"></div>
-					{{end}}
 
-					<div class="required grouped field">
+						<div class="team-units required grouped field"{{if eq .Team.Authorize 3}} style="display: none"{{end}}>
 							<label>{{.i18n.Tr "org.team_unit_desc"}}</label>
 							<br>
 							{{range $t, $unit := $.Units}}
@@ -66,6 +65,7 @@
 							{{end}}
 						</div>
 						<div class="ui divider"></div>
+					{{end}}
 
 					<div class="field">
 						{{if .PageIsOrgTeamsNew}}

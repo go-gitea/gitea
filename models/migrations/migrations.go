@@ -124,6 +124,8 @@ var migrations = []Migration{
 	NewMigration("regenerate git hooks", regenerateGitHooks36),
 	// v37 -> v38
 	NewMigration("unescape user full names", unescapeUserFullNames),
+	// v38 -> v39
+	NewMigration("remove commits and settings unit types", removeCommitsUnitType),
 }
 
 // Migrate database to current version

@@ -377,6 +377,10 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 
 	var allTypes = make(map[UnitType]struct{}, len(allRepUnitTypes))
 	for _, team := range teams {
+		// Administrators can not be limited
+		if team.Authorize >= AccessModeAdmin {
+			return nil
+		}
 		for _, unitType := range team.UnitTypes {
 			allTypes[unitType] = struct{}{}
 		}

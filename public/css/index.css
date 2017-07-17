@@ -1202,6 +1202,9 @@ footer .ui.language .menu {
   margin-top: -1px;
   font-size: 15px;
 }
+.repository .tabs .navbar {
+  justify-content: initial;
+}
 .repository .navbar {
   display: flex;
   justify-content: space-between;
