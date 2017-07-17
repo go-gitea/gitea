@@ -89,6 +89,15 @@ errcheck:
 	fi
 	errcheck $(PACKAGES)
 
+.PHONY: NOTICE
+NOTICE: vendor/
+	rm -f NOTICE # `govendor license` appends...
+	govendor license -o NOTICE +v
+
+notice-up-to-date: NOTICE
+	git ls-files --error-unmatch NOTICE
+	git diff --exit-code
+
 .PHONY: lint
 lint:
 	@hash golint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
