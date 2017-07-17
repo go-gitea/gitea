@@ -7,30 +7,12 @@ package models
 import (
 	"testing"
 
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
-	_ "github.com/mattn/go-sqlite3" // for the test engine
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/testfixtures.v2"
 )
 
 // NonexistentID an ID that will never exist
 const NonexistentID = 9223372036854775807
-
-// CreateTestEngine create an xorm engine for testing
-func CreateTestEngine() error {
-	var err error
-	x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
-	if err != nil {
-		return err
-	}
-	x.SetMapper(core.GonicMapper{})
-	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
-		return err
-	}
-
-	return InitFixtures(&testfixtures.SQLite{}, "fixtures/")
-}
 
 // PrepareTestDatabase load test fixtures into test database
 func PrepareTestDatabase() error {
