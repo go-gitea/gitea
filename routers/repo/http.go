@@ -156,9 +156,12 @@ func HTTP(ctx *context.Context) {
 					ctx.Handle(http.StatusInternalServerError, "UserSignIn error: %v", err)
 					return
 				}
+			}
 
-				// Assume username now is a token.
-				token, err := models.GetAccessTokenBySHA(authUsername)
+			if authUser == nil {
+				log.GitLogger.Info("Inside if")
+				// Assume password is a token.
+				token, err := models.GetAccessTokenBySHA(authPasswd)
 				if err != nil {
 					if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
 						ctx.HandleText(http.StatusUnauthorized, "invalid token")
@@ -174,6 +177,13 @@ func HTTP(ctx *context.Context) {
 				authUser, err = models.GetUserByID(token.UID)
 				if err != nil {
 					ctx.Handle(http.StatusInternalServerError, "GetUserByID", err)
+					return
+				}
+			} else {
+				_, err = models.GetTwoFactorByUID(authUser.ID)
+
+				if err == nil {
+					ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
 					return
 				}
 			}
