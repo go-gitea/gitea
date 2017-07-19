@@ -15,5 +15,5 @@ if [ ! -f /data/gitea/conf/app.ini ]; then
     cp /etc/templates/app.ini /data/gitea/conf/app.ini
 fi
 
-chown -R git:git /data/gitea /app/gitea /data/git
-chmod 0755 /data/gitea /app/gitea /data/git
+chown -R git:git /data/gitea /data/git
+chmod 0755 /data/gitea /data/git

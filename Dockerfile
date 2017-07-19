@@ -13,7 +13,8 @@ RUN apk --no-cache add \
     s6 \
     curl \
     openssh \
-    tzdata
+    tzdata \
+    libcap
 RUN addgroup \
     -S -g 1000 \
     git && \
@@ -37,3 +38,5 @@ CMD ["/bin/s6-svscan", "/etc/s6"]
 
 COPY docker /
 COPY gitea /app/gitea/gitea
+RUN chmod a+x /app/gitea/gitea \
+  && setcap cap_net_bind_service=+ep /app/gitea/gitea
