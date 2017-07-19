@@ -159,7 +159,6 @@ func HTTP(ctx *context.Context) {
 			}
 
 			if authUser == nil {
-				log.GitLogger.Info("Inside if")
 				// Assume password is a token.
 				token, err := models.GetAccessTokenBySHA(authPasswd)
 				if err != nil {
