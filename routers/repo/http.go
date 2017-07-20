@@ -159,6 +159,17 @@ func HTTP(ctx *context.Context) {
 			}
 
 			if authUser == nil {
+				authUser, err = models.GetUserByName(authUsername)
+
+				if err != nil {
+					if models.IsErrUserNotExist(err) {
+						ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
+					} else {
+						ctx.Handle(http.StatusInternalServerError, "GetUserByName", err)
+					}
+					return
+				}
+
 				// Assume password is a token.
 				token, err := models.GetAccessTokenBySHA(authPasswd)
 				if err != nil {
@@ -169,19 +180,32 @@ func HTTP(ctx *context.Context) {
 					}
 					return
 				}
-				token.Updated = time.Now()
-				if err = models.UpdateAccessToken(token); err != nil {
-					ctx.Handle(http.StatusInternalServerError, "UpdateAccessToken", err)
-				}
-				authUser, err = models.GetUserByID(token.UID)
+
+				tokenUser, err := models.GetUserByID(token.UID)
 				if err != nil {
 					ctx.Handle(http.StatusInternalServerError, "GetUserByID", err)
 					return
 				}
+
+				if authUser.ID != tokenUser.ID {
+					ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
+					return
+				}
+
+				token.Updated = time.Now()
+				if err = models.UpdateAccessToken(token); err != nil {
+					ctx.Handle(http.StatusInternalServerError, "UpdateAccessToken", err)
+				}
+
 			} else {
 				_, err = models.GetTwoFactorByUID(authUser.ID)
 
-				if err == nil {
+				if err != nil {
+					if !models.IsErrTwoFactorNotEnrolled(err) {
+						ctx.Handle(http.StatusInternalServerError, "IsErrTwoFactorNotEnrolled", err)
+						return
+					}
+				} else {
 					ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
 					return
 				}
