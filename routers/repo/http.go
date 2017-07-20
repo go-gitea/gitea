@@ -174,7 +174,7 @@ func HTTP(ctx *context.Context) {
 				token, err := models.GetAccessTokenBySHA(authPasswd)
 				if err != nil {
 					if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
-						ctx.HandleText(http.StatusUnauthorized, "invalid token")
+						ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
 					} else {
 						ctx.Handle(http.StatusInternalServerError, "GetAccessTokenBySha", err)
 					}
