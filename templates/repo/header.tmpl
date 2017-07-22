@@ -32,7 +32,7 @@
 						</div>
 						{{if .CanBeForked}}
 							<div class="ui compact labeled button" tabindex="0">
-								<a class="ui compact button" href="{{AppSubUrl}}/repo/fork/{{.ID}}">
+								<a class="ui compact button {{if eq .OwnerID $.SignedUserID}}poping up{{end}}" {{if not (eq .OwnerID $.SignedUserID)}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" data-position="top center" data-variation="tiny"{{end}}>
 									<i class="octicon octicon-repo-forked"></i>{{$.i18n.Tr "repo.fork"}}
 								</a>
 								<a class="ui basic label" href="{{.Link}}/forks">
