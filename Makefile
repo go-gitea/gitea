@@ -296,3 +296,28 @@ update-translations:
 	$(SED_INPLACE) -e 's/\\"/"/g' ./translations/*.ini
 	mv ./translations/*.ini ./options/locale/
 	rmdir ./translations
+
+.PHONY: generate-images
+generate-images:
+	mkdir -p $(TMPDIR)/images
+	inkscape -f assets/logo.svg -w 400 -h 400 -e public/img/gitea-lg.png
+	inkscape -f assets/logo.svg -w 30 -h 30 -jC -i layer1 -e $(TMPDIR)/images/30-1.png
+	inkscape -f assets/logo.svg -w 30 -h 30 -jC -i layer2 -e $(TMPDIR)/images/30-2.png
+	composite -compose atop $(TMPDIR)/images/30-2.png $(TMPDIR)/images/30-1.png public/img/gitea-sm.png
+	inkscape -f assets/logo.svg -w 200 -h 200 -e public/img/avatar_default.png
+	inkscape -f assets/logo.svg -w 180 -h 180 -e public/img/favicon.png
+	inkscape -f assets/logo.svg -w 128 -h 128 -e $(TMPDIR)/images/128-raw.png
+	inkscape -f assets/logo.svg -w 64 -h 64 -e $(TMPDIR)/images/64-raw.png
+	inkscape -f assets/logo.svg -w 32 -h 32 -jC -i layer1 -e $(TMPDIR)/images/32-1.png
+	inkscape -f assets/logo.svg -w 32 -h 32 -jC -i layer2 -e $(TMPDIR)/images/32-2.png
+	composite -compose atop $(TMPDIR)/images/32-2.png $(TMPDIR)/images/32-1.png $(TMPDIR)/images/32-raw.png
+	inkscape -f assets/logo.svg -w 16 -h 16 -jC -i layer1 -e $(TMPDIR)/images/16-raw.png
+	zopflipng $(TMPDIR)/images/128-raw.png $(TMPDIR)/images/128.png
+	zopflipng $(TMPDIR)/images/64-raw.png $(TMPDIR)/images/64.png
+	zopflipng $(TMPDIR)/images/32-raw.png $(TMPDIR)/images/32.png
+	zopflipng $(TMPDIR)/images/16-raw.png $(TMPDIR)/images/16.png
+	rm -f $(TMPDIR)/images/*-*.png
+	convert $(TMPDIR)/images/16.png $(TMPDIR)/images/32.png \
+					$(TMPDIR)/images/64.png $(TMPDIR)/images/128.png \
+					public/img/favicon.ico
+	rm -rf $(TMPDIR)/images
