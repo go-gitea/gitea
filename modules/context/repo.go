@@ -184,7 +184,7 @@ func RepoAssignment() macaron.Handler {
 						earlyResponseForGoGetMeta(ctx)
 						return
 					}
-					ctx.Handle(404, "GetUserByName", err)
+					ctx.Handle(404, "GetUserByName", nil)
 				} else {
 					ctx.Handle(500, "GetUserByName", err)
 				}
@@ -206,7 +206,7 @@ func RepoAssignment() macaron.Handler {
 						earlyResponseForGoGetMeta(ctx)
 						return
 					}
-					ctx.Handle(404, "GetRepositoryByName", err)
+					ctx.Handle(404, "GetRepositoryByName", nil)
 				} else {
 					ctx.Handle(500, "LookupRepoRedirect", err)
 				}
