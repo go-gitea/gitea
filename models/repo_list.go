@@ -98,13 +98,14 @@ type SearchRepoOptions struct {
 	// Owner in we search search
 	//
 	// in: query
-	OwnerID   int64  `json:"uid"`
-	Searcher  *User  `json:"-"` //ID of the person who's seeking
-	OrderBy   string `json:"-"`
-	Private   bool   `json:"-"` // Include private repositories in results
-	Starred   bool   `json:"-"`
-	Page      int    `json:"-"`
-	IsProfile bool   `json:"-"`
+	OwnerID     int64  `json:"uid"`
+	Searcher    *User  `json:"-"` //ID of the person who's seeking
+	OrderBy     string `json:"-"`
+	Private     bool   `json:"-"` // Include private repositories in results
+	Collaborate bool   `json:"-"` // Include collaborative repositories
+	Starred     bool   `json:"-"`
+	Page        int    `json:"-"`
+	IsProfile   bool   `json:"-"`
 	// Limit of result
 	//
 	// maximum: setting.ExplorePagingNum
@@ -158,6 +159,11 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, coun
 		}
 
 		cond = cond.Or(builder.And(builder.Like{"lower_name", opts.Keyword}, builder.In("owner_id", ownerIds)))
+
+		if opts.Collaborate {
+			cond = cond.Or(builder.Expr(`id IN (SELECT repo_id FROM "access" WHERE access.user_id = ? AND owner_id != ?)`, opts.Searcher.ID, opts.Searcher.ID),
+				builder.And(builder.Like{"lower_name", opts.Keyword}, builder.Eq{"is_private": opts.Private}))
+		}
 	}
 
 	if len(opts.OrderBy) == 0 {

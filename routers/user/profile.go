@@ -138,7 +138,12 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 	switch tab {
 	case "activity":
-		retrieveFeeds(ctx, ctxUser, showPrivate, true, false)
+		retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+			IncludePrivate:  showPrivate,
+			OnlyPerformedBy: true,
+			Collaborate:     true,
+			IncludeDeleted:  false,
+		})
 		if ctx.Written() {
 			return
 		}
