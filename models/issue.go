@@ -155,7 +155,7 @@ func (issue *Issue) loadPullRequest(e Engine) (err error) {
 			if IsErrPullRequestNotExist(err) {
 				return err
 			}
-			return fmt.Errorf("getPullRequestByIssueID: %v", err)
+			return fmt.Errorf("getPullRequestByIssueID [%d]: %v", issue.ID, err)
 		}
 	}
 	return nil
