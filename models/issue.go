@@ -580,6 +580,7 @@ func (issue *Issue) ReadBy(userID int64) error {
 }
 
 func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
+	cols = append(cols, "updated_unix")
 	if _, err := e.Id(issue.ID).Cols(cols...).Update(issue); err != nil {
 		return err
 	}
