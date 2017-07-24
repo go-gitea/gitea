@@ -123,23 +123,23 @@
 		<div class="ui divider"></div>
 		<div class="ui timetrack">
 			<!--TODO-->
-			<span class="text"><strong>Time tracker</strong></span>
+			<span class="text"><strong>{{.i18n.Tr "repo.issues.tracker"}}</strong></span>
 			<div>
-				<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/tracktime">
-					<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}" />
+				<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/stopwatch">
+					<input type="hidden" name="stopwatch" value="{{if $.Stopwatch.IsRunning}}0{{else}}1{{end}}" />
 					{{$.CsrfTokenHtml}}
 
-						{{if  $.IssueWatch.IsWatching}}
-						<div class="ui buttons fluid">
-							<button class="ui button">Finish</button>
-							<div class="or"></div>
-							<button class="ui negative button">Cancel</button>
-						</div>
+						{{if  $.Stopwatch.IsRunning}}
+							<div class="ui buttons fluid">
+								<button class="ui button">{{.i18n.Tr "repo.issues.stop_tracking"}}</button>
+								<div class="or"></div>
+								<button class="ui negative button">{{.i18n.Tr "repo.issues.cancel_tracking"}}</button>
+							</div>
 						{{else}}
-					<div class="ui buttons two fluid">
-						<button class="ui button poping up" data-content="Start time tracking" data-position="top center" data-variation="small inverted">Start</button>
-						<button class="ui icon button green poping up" data-content="Add time manually" data-position="top center" data-variation="small inverted"><i class="octicon octicon-plus"></i> </button>
-					</div>
+							<div class="ui buttons two fluid">
+								<button class="ui button poping up" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
+								<button class="ui icon button green poping up" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted"><i class="octicon octicon-plus"></i> </button>
+							</div>
 						{{end}}
 				</form>
 			</div>
@@ -148,17 +148,17 @@
 		<div class="ui divider"></div>
 
 		<div class="ui participants comments">
-			<span class="text"><strong>Time spent total</strong></span>
+			<span class="text"><strong>{{.i18n.Tr "repo.issues.time_spent_total"}}</strong></span>
 			<div>
-				{{range .Participants}}
+				{{range $user, $trackedtime := .WorkingUsers}}
 				<div class="comment">
 					<a class="avatar">
 						<img src="{{.RelAvatarLink}}">
 					</a>
 					<div class="content">
-						<a class="author">{{.DisplayName}}</a>
+						<a class="author">{{$user.DisplayName}}</a>
 						<div class="text">
-							1h 30min
+							{{$trackedtime}}
 						</div>
 					</div>
 				</div>
