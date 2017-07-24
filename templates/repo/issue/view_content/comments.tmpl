@@ -3,6 +3,25 @@
 
 	<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF, 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL -->
 	{{if eq .Type 0}}
+<div class="event">
+	<span class="octicon octicon-primitive-dot"></span>
+	<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+		<img src="{{.Poster.RelAvatarLink}}">
+	</a>
+	<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> started working 35min ago</span>
+</div>
+<div class="event">
+	<span class="octicon octicon-primitive-dot"></span>
+	<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+		<img src="{{.Poster.RelAvatarLink}}">
+	</a>
+	<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> finished working 1min ago</span>
+
+	<div class="detail">
+		<span class="octicon octicon-clock"></span>
+		<span class="text grey">34min</span>
+	</div>
+</div>
 		<div class="comment" id="{{.HashTag}}">
 			<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
 				<img src="{{.Poster.RelAvatarLink}}">
@@ -58,6 +77,7 @@
 				{{end}}
 			</div>
 		</div>
+
 	{{else if eq .Type 1}}
 		<div class="event">
 			<span class="octicon octicon-primitive-dot"></span>

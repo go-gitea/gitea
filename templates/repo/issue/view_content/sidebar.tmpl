@@ -120,6 +120,52 @@
 				</form>
 			</div>
 		</div>
+		<div class="ui divider"></div>
+		<div class="ui timetrack">
+			<!--TODO-->
+			<span class="text"><strong>Time tracker</strong></span>
+			<div>
+				<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/tracktime">
+					<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}" />
+					{{$.CsrfTokenHtml}}
+
+						{{if  $.IssueWatch.IsWatching}}
+						<div class="ui buttons fluid">
+							<button class="ui button">Finish</button>
+							<div class="or"></div>
+							<button class="ui negative button">Cancel</button>
+						</div>
+						{{else}}
+					<div class="ui buttons two fluid">
+						<button class="ui button poping up" data-content="Start time tracking" data-position="top center" data-variation="small inverted">Start</button>
+						<button class="ui icon button green poping up" data-content="Add time manually" data-position="top center" data-variation="small inverted"><i class="octicon octicon-plus"></i> </button>
+					</div>
+						{{end}}
+				</form>
+			</div>
+		</div>
+
+		<div class="ui divider"></div>
+
+		<div class="ui participants comments">
+			<span class="text"><strong>Time spent total</strong></span>
+			<div>
+				{{range .Participants}}
+				<div class="comment">
+					<a class="avatar">
+						<img src="{{.RelAvatarLink}}">
+					</a>
+					<div class="content">
+						<a class="author">{{.DisplayName}}</a>
+						<div class="text">
+							1h 30min
+						</div>
+					</div>
+				</div>
+				{{end}}
+
+			</div>
+		</div>
 		{{end}}
 	</div>
 </div>
