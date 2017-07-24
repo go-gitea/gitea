@@ -171,7 +171,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("/connect").
 					Get(user.ConnectOpenID).
 					Post(bindIgnErr(auth.ConnectOpenIDForm{}), user.ConnectOpenIDPost)
-				m.Combo("/routes").
+				m.Combo("/register").
 					Get(user.RegisterOpenID).
 					Post(bindIgnErr(auth.SignUpOpenIDForm{}), user.RegisterOpenIDPost)
 			})
@@ -450,8 +450,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
-		}, context.UnitTypes(), context.LoadRepoUnits(), context.CheckUnit(models.UnitTypeSettings))
-	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.RepoRef())
+		})
+	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.UnitTypes(), context.LoadRepoUnits(), context.RepoRef())
 
 	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), repo.Action)
 
@@ -529,14 +529,16 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/:username/:reponame", func() {
 		m.Group("/releases", func() {
 			m.Get("/", repo.MustBeNotBare, repo.Releases)
+		}, repo.MustBeNotBare, context.RepoRef())
+		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
 			m.Post("/delete", repo.DeleteRelease)
-		}, repo.MustBeNotBare, reqRepoWriter, context.RepoRef())
+		}, reqSignIn, repo.MustBeNotBare, reqRepoWriter, context.RepoRef())
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)
 			m.Post("/edit/*", bindIgnErr(auth.EditReleaseForm{}), repo.EditReleasePost)
-		}, repo.MustBeNotBare, reqRepoWriter, func(ctx *context.Context) {
+		}, reqSignIn, repo.MustBeNotBare, reqRepoWriter, func(ctx *context.Context) {
 			var err error
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 			if err != nil {
@@ -550,7 +552,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			}
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
 		})
-	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits(), context.CheckUnit(models.UnitTypeReleases))
+	}, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits(), context.CheckUnit(models.UnitTypeReleases))
 
 	m.Group("/:username/:reponame", func() {
 		m.Group("", func() {
@@ -559,9 +561,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/labels/", repo.RetrieveLabels, repo.Labels)
 			m.Get("/milestones", repo.Milestones)
 		}, context.RepoRef())
-
-		// m.Get("/branches", repo.Branches)
-		m.Post("/branches/:name/delete", reqSignIn, reqRepoWriter, repo.MustBeNotBare, repo.DeleteBranchPost)
 
 		m.Group("/wiki", func() {
 			m.Get("/?:page", repo.Wiki)
@@ -587,6 +586,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
 			m.Get("/files", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ViewPullFiles)
 			m.Post("/merge", reqRepoWriter, repo.MergePullRequest)
+			m.Post("/cleanup", context.RepoRef(), repo.CleanUpPullRequest)
 		}, repo.MustAllowPulls, context.CheckUnit(models.UnitTypePullRequests))
 
 		m.Group("", func() {

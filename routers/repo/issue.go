@@ -625,6 +625,16 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Handle(500, "LoadMilestone", err)
 				return
 			}
+			ghostMilestone := &models.Milestone{
+				ID:   -1,
+				Name: ctx.Tr("repo.issues.deleted_milestone"),
+			}
+			if comment.OldMilestoneID > 0 && comment.OldMilestone == nil {
+				comment.OldMilestone = ghostMilestone
+			}
+			if comment.MilestoneID > 0 && comment.Milestone == nil {
+				comment.Milestone = ghostMilestone
+			}
 		} else if comment.Type == models.CommentTypeAssignees {
 			if err = comment.LoadAssignees(); err != nil {
 				ctx.Handle(500, "LoadAssignees", err)
@@ -637,19 +647,21 @@ func ViewIssue(ctx *context.Context) {
 		pull := issue.PullRequest
 		canDelete := false
 
-		if ctx.IsSigned && pull.HeadBranch != "master" {
+		if ctx.IsSigned {
 			if err := pull.GetHeadRepo(); err != nil {
 				log.Error(4, "GetHeadRepo: %v", err)
-			} else if ctx.User.IsWriterOfRepo(pull.HeadRepo) {
-				canDelete = true
-				deleteBranchURL := pull.HeadRepo.Link() + "/branches/" + pull.HeadBranch + "/delete"
-				ctx.Data["DeleteBranchLink"] = fmt.Sprintf("%s?commit=%s&redirect_to=%s&issue_id=%d",
-					deleteBranchURL, pull.MergedCommitID, ctx.Data["Link"], issue.ID)
-
+			} else if pull.HeadRepo != nil && pull.HeadBranch != pull.HeadRepo.DefaultBranch && ctx.User.IsWriterOfRepo(pull.HeadRepo) {
+				// Check if branch is not protected
+				if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch); err != nil {
+					log.Error(4, "IsProtectedBranch: %v", err)
+				} else if !protected {
+					canDelete = true
+					ctx.Data["DeleteBranchLink"] = ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index) + "/cleanup"
+				}
 			}
 		}
 
-		ctx.Data["IsPullBranchDeletable"] = canDelete && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
+		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 	}
 
 	ctx.Data["Participants"] = participants

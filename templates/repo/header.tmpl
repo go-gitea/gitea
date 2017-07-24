@@ -14,16 +14,16 @@
 					</div>
 
 					<div class="ui right">
-						<div class="ui labeled button" tabindex="0">
-							<a class="ui button" href="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
+						<div class="ui compact labeled button" tabindex="0">
+							<a class="ui compact button" href="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
 								<i class="icon fa-eye{{if not $.IsWatchingRepo}}-slash{{end}}"></i>{{if $.IsWatchingRepo}}{{$.i18n.Tr "repo.unwatch"}}{{else}}{{$.i18n.Tr "repo.watch"}}{{end}}
 							</a>
 							<a class="ui basic label" href="{{.Link}}/watchers">
 								{{.NumWatches}}
 							</a>
 						</div>
-						<div class="ui labeled button" tabindex="0">
-							<a class="ui button" href="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
+						<div class="ui compact labeled button" tabindex="0">
+							<a class="ui compact button" href="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
 								<i class="icon fa-star{{if not $.IsStaringRepo}}-o{{end}}"></i>{{if $.IsStaringRepo}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{$.i18n.Tr "repo.star"}}{{end}}
 							</a>
 							<a class="ui basic label" href="{{.Link}}/stars">
@@ -31,8 +31,8 @@
 							</a>
 						</div>
 						{{if .CanBeForked}}
-							<div class="ui labeled button" tabindex="0">
-								<a class="ui button" href="{{AppSubUrl}}/repo/fork/{{.ID}}">
+							<div class="ui compact labeled button" tabindex="0">
+								<a class="ui compact button" href="{{AppSubUrl}}/repo/fork/{{.ID}}">
 									<i class="octicon octicon-repo-forked"></i>{{$.i18n.Tr "repo.fork"}}
 								</a>
 								<a class="ui basic label" href="{{.Link}}/forks">
@@ -73,7 +73,7 @@
 				</a>
 			{{end}}
 
-			{{if and (.Repository.EnableUnit $.UnitTypeCommits) (not .IsBareRepo)}}
+			{{if and (.Repository.EnableUnit $.UnitTypeCode) (not .IsBareRepo)}}
 			<a class="{{if (or (.PageIsCommits) (.PageIsDiff))}}active{{end}} item" href="{{.RepoLink}}/commits/{{EscapePound .BranchName}}">
 				<i class="octicon octicon-history"></i> {{.i18n.Tr "repo.commits"}} <span class="ui {{if not .CommitsCount}}gray{{else}}blue{{end}} small label">{{.CommitsCount}}</span>
 			</a>

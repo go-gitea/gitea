@@ -7,6 +7,7 @@ package integrations
 import (
 	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -115,7 +116,7 @@ func initIntegrationTest() {
 	routers.GlobalInit()
 }
 
-func prepareTestEnv(t *testing.T) {
+func prepareTestEnv(t testing.TB) {
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll("integrations/gitea-integration"))
 	assert.NoError(t, com.CopyDir("integrations/gitea-integration-meta", "integrations/gitea-integration"))
@@ -139,13 +140,13 @@ func (s *TestSession) GetCookie(name string) *http.Cookie {
 	return nil
 }
 
-func (s *TestSession) MakeRequest(t *testing.T, req *http.Request) *TestResponse {
+func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *TestResponse {
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
 		req.AddCookie(c)
 	}
-	resp := MakeRequest(req)
+	resp := MakeRequest(t, req, expectedStatus)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Headers["Set-Cookie"], ";"))
@@ -155,24 +156,30 @@ func (s *TestSession) MakeRequest(t *testing.T, req *http.Request) *TestResponse
 	return resp
 }
 
-func loginUser(t *testing.T, userName, password string) *TestSession {
+const userPassword = "password"
+
+var loginSessionCache = make(map[string]*TestSession, 10)
+
+func loginUser(t testing.TB, userName string) *TestSession {
+	if session, ok := loginSessionCache[userName]; ok {
+		return session
+	}
+	session := loginUserWithPassword(t, userName, userPassword)
+	loginSessionCache[userName] = session
+	return session
+}
+
+func loginUserWithPassword(t testing.TB, userName, password string) *TestSession {
 	req := NewRequest(t, "GET", "/user/login")
-	resp := MakeRequest(req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := MakeRequest(t, req, http.StatusOK)
 
-	doc, err := NewHtmlParser(resp.Body)
-	assert.NoError(t, err)
-
-	req = NewRequestBody(t, "POST", "/user/login",
-		bytes.NewBufferString(url.Values{
-			"_csrf":     []string{doc.GetInputValueByName("_csrf")},
-			"user_name": []string{userName},
-			"password":  []string{password},
-		}.Encode()),
-	)
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	resp = MakeRequest(req)
-	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
+	doc := NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/user/login", map[string]string{
+		"_csrf":     doc.GetCSRF(),
+		"user_name": userName,
+		"password":  password,
+	})
+	resp = MakeRequest(t, req, http.StatusFound)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Headers["Set-Cookie"], ";"))
@@ -211,27 +218,72 @@ type TestResponse struct {
 	Headers    http.Header
 }
 
-func NewRequest(t *testing.T, method, url string) *http.Request {
-	return NewRequestBody(t, method, url, nil)
+func NewRequest(t testing.TB, method, urlStr string) *http.Request {
+	return NewRequestWithBody(t, method, urlStr, nil)
 }
 
-func NewRequestBody(t *testing.T, method, url string, body io.Reader) *http.Request {
-	request, err := http.NewRequest(method, url, body)
+func NewRequestf(t testing.TB, method, urlFormat string, args ...interface{}) *http.Request {
+	return NewRequest(t, method, fmt.Sprintf(urlFormat, args...))
+}
+
+func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string]string) *http.Request {
+	urlValues := url.Values{}
+	for key, value := range values {
+		urlValues[key] = []string{value}
+	}
+	req := NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	return req
+}
+
+func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
+	jsonBytes, err := json.Marshal(v)
 	assert.NoError(t, err)
-	request.RequestURI = url
+	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
+	req.Header.Add("Content-Type", "application/json")
+	return req
+}
+
+func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *http.Request {
+	request, err := http.NewRequest(method, urlStr, body)
+	assert.NoError(t, err)
+	request.RequestURI = urlStr
 	return request
 }
 
-func MakeRequest(req *http.Request) *TestResponse {
+const NoExpectedStatus = -1
+
+func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *TestResponse {
 	buffer := bytes.NewBuffer(nil)
 	respWriter := &TestResponseWriter{
 		Writer:  buffer,
 		Headers: make(map[string][]string),
 	}
 	mac.ServeHTTP(respWriter, req)
+	if expectedStatus != NoExpectedStatus {
+		assert.EqualValues(t, expectedStatus, respWriter.HeaderCode)
+	}
 	return &TestResponse{
 		HeaderCode: respWriter.HeaderCode,
 		Body:       buffer.Bytes(),
 		Headers:    respWriter.Headers,
 	}
+}
+
+func DecodeJSON(t testing.TB, resp *TestResponse, v interface{}) {
+	decoder := json.NewDecoder(bytes.NewBuffer(resp.Body))
+	assert.NoError(t, decoder.Decode(v))
+}
+
+func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
+	req := NewRequest(t, "GET", urlStr)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+	return doc.GetCSRF()
+}
+
+func RedirectURL(t testing.TB, resp *TestResponse) string {
+	urlSlice := resp.Headers["Location"]
+	assert.NotEmpty(t, urlSlice, "No redirect URL founds")
+	return urlSlice[0]
 }

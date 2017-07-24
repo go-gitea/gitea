@@ -189,12 +189,6 @@ function initCommentForm() {
         var $list = $('.ui' + select_id + '.list');
         var hasUpdateAction = $menu.data('action') == 'update';
 
-        $(select_id).dropdown('setting', 'onHide', function(){
-            if (hasUpdateAction) {
-                location.reload();
-            }
-        });
-
         $menu.find('.item:not(.no-select)').click(function () {
             $(this).parent().find('.item').each(function () {
                 $(this).removeClass('selected active')
@@ -206,7 +200,8 @@ function initCommentForm() {
                     $menu.data('update-url'),
                     "",
                     $menu.data('issue-id'),
-                    $(this).data('id')
+                    $(this).data('id'),
+                    function() { location.reload(); }
                 );
             }
             switch (input_id) {
@@ -232,7 +227,8 @@ function initCommentForm() {
                     $menu.data('update-url'),
                     "",
                     $menu.data('issue-id'),
-                    $(this).data('id')
+                    $(this).data('id'),
+                    function() { location.reload(); }
                 );
             }
 
@@ -658,6 +654,18 @@ function initRepositoryCollaboration() {
             "uid": $menu.data('uid'),
             "mode": $(this).data('value')
         })
+    });
+}
+
+function initTeamSettings() {
+    // Change team access mode
+    $('.organization.new.team input[name=permission]').change(function () {
+        var val = $('input[name=permission]:checked', '.organization.new.team').val()
+        if (val === 'admin') {
+            $('.organization.new.team .team-units').hide();
+        } else {
+            $('.organization.new.team .team-units').show();
+        }
     });
 }
 
@@ -1561,6 +1569,7 @@ $(document).ready(function () {
     initAdmin();
     initCodeView();
     initDashboardSearch();
+    initTeamSettings();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -1653,7 +1662,7 @@ function initDashboardSearch() {
     }
 
     new Vue({
-        delimiters: ['<%', '%>'],
+        delimiters: ['${', '}'],
         el: el,
 
         data: {

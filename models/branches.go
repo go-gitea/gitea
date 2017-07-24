@@ -95,7 +95,7 @@ func (repo *Repository) AddProtectedBranch(branchName string, canPush bool) erro
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func (repo *Repository) ChangeProtectedBranch(id int64, canPush bool) error {
 	ProtectedBranch.CanPush = canPush
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func (repo *Repository) DeleteProtectedBranch(id int64) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}

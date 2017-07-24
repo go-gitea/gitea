@@ -66,7 +66,7 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 
 	apiLabels := make([]*api.Label, len(labels))
 	for i := range labels {
-		apiLabels[i] = issue.Labels[i].APIFormat()
+		apiLabels[i] = labels[i].APIFormat()
 	}
 	ctx.JSON(200, &apiLabels)
 }
@@ -142,7 +142,7 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 
 	apiLabels := make([]*api.Label, len(labels))
 	for i := range labels {
-		apiLabels[i] = issue.Labels[i].APIFormat()
+		apiLabels[i] = labels[i].APIFormat()
 	}
 	ctx.JSON(200, &apiLabels)
 }

@@ -35,7 +35,6 @@ import (
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -164,8 +163,6 @@ func (u *User) UpdateDiffViewStyle(style string) error {
 // AfterSet is invoked from XORM after setting the value of a field of this object.
 func (u *User) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
-	case "full_name":
-		u.FullName = markdown.Sanitize(u.FullName)
 	case "created_unix":
 		u.Created = time.Unix(u.CreatedUnix, 0).Local()
 	case "updated_unix":
@@ -333,15 +330,14 @@ func (u *User) generateRandomAvatar(e Engine) error {
 // which includes app sub-url as prefix. However, it is possible
 // to return full URL if user enables Gravatar-like service.
 func (u *User) RelAvatarLink() string {
-	defaultImgURL := setting.AppSubURL + "/img/avatar_default.png"
 	if u.ID == -1 {
-		return defaultImgURL
+		return base.DefaultAvatarLink()
 	}
 
 	switch {
 	case u.UseCustomAvatar:
 		if !com.IsFile(u.CustomAvatarPath()) {
-			return defaultImgURL
+			return base.DefaultAvatarLink()
 		}
 		return setting.AppSubURL + "/avatars/" + u.Avatar
 	case setting.DisableGravatar, setting.OfflineMode:
@@ -436,7 +432,7 @@ func (u *User) UploadAvatar(data []byte) error {
 	m := resize.Resize(avatar.AvatarSize, avatar.AvatarSize, img, resize.NearestNeighbor)
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -715,7 +711,7 @@ func CreateUser(u *User) (err error) {
 	u.MaxRepoCreation = -1
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -872,7 +868,6 @@ func updateUser(e Engine, u *User) error {
 	u.Website = base.TruncateString(u.Website, 255)
 	u.Description = base.TruncateString(u.Description, 255)
 
-	u.FullName = markdown.Sanitize(u.FullName)
 	_, err := e.Id(u.ID).AllCols().Update(u)
 	return err
 }
@@ -1033,7 +1028,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 // but issues/comments/pulls will be kept and shown as someone has been deleted.
 func DeleteUser(u *User) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}

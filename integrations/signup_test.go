@@ -5,14 +5,10 @@
 package integrations
 
 import (
-	"bytes"
 	"net/http"
-	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSignup(t *testing.T) {
@@ -20,20 +16,15 @@ func TestSignup(t *testing.T) {
 
 	setting.Service.EnableCaptcha = false
 
-	req := NewRequestBody(t, "POST", "/user/sign_up",
-		bytes.NewBufferString(url.Values{
-			"user_name": []string{"exampleUser"},
-			"email":     []string{"exampleUser@example.com"},
-			"password":  []string{"examplePassword"},
-			"retype":    []string{"examplePassword"},
-		}.Encode()),
-	)
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	resp := MakeRequest(req)
-	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
+	req := NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
+		"user_name": "exampleUser",
+		"email":     "exampleUser@example.com",
+		"password":  "examplePassword",
+		"retype":    "examplePassword",
+	})
+	MakeRequest(t, req, http.StatusFound)
 
 	// should be able to view new user's page
 	req = NewRequest(t, "GET", "/exampleUser")
-	resp = MakeRequest(req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	MakeRequest(t, req, http.StatusOK)
 }

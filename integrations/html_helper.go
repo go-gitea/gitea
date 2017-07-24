@@ -6,29 +6,37 @@ package integrations
 
 import (
 	"bytes"
+	"testing"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/stretchr/testify/assert"
 )
 
-type HtmlDoc struct {
+// HTMLDoc struct
+type HTMLDoc struct {
 	doc *goquery.Document
 }
 
-func NewHtmlParser(content []byte) (*HtmlDoc, error) {
+// NewHTMLParser parse html file
+func NewHTMLParser(t testing.TB, content []byte) *HTMLDoc {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(content))
-	if err != nil {
-		return nil, err
-	}
-
-	return &HtmlDoc{doc: doc}, nil
+	assert.NoError(t, err)
+	return &HTMLDoc{doc: doc}
 }
 
-func (doc *HtmlDoc) GetInputValueById(id string) string {
+// GetInputValueByID for get input value by id
+func (doc *HTMLDoc) GetInputValueByID(id string) string {
 	text, _ := doc.doc.Find("#" + id).Attr("value")
 	return text
 }
 
-func (doc *HtmlDoc) GetInputValueByName(name string) string {
+// GetInputValueByName for get input value by name
+func (doc *HTMLDoc) GetInputValueByName(name string) string {
 	text, _ := doc.doc.Find("input[name=\"" + name + "\"]").Attr("value")
 	return text
+}
+
+// GetCSRF for get CSRC token value from input
+func (doc *HTMLDoc) GetCSRF() string {
+	return doc.GetInputValueByName("_csrf")
 }

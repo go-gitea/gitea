@@ -187,6 +187,22 @@
         }
       }
     },
+    "/orgs/{org}/repos": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "orgListRepos",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepositoryList"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/search": {
       "get": {
         "produces": [

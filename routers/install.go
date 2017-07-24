@@ -81,7 +81,7 @@ func Install(ctx *context.Context) {
 	form.RepoRootPath = setting.RepoRootPath
 	form.LFSRootPath = setting.LFS.ContentPath
 
-	// Note(unknwon): it's hard for Windows users change a running user,
+	// Note(unknown): it's hard for Windows users change a running user,
 	// 	so just use current one if config says default.
 	if setting.IsWindows && setting.RunUser == "git" {
 		form.RunUser = user.CurrentUsername()

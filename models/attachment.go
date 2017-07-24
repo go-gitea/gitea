@@ -48,7 +48,7 @@ func (a *Attachment) AfterSet(colName string, _ xorm.Cell) {
 // IncreaseDownloadCount is update download count + 1
 func (a *Attachment) IncreaseDownloadCount() error {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 
 	// Update download count.
 	if _, err := sess.Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {

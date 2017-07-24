@@ -415,7 +415,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 		models.SendActivateAccountMail(ctx.Context, u)
 		ctx.Data["IsSendRegisterMail"] = true
 		ctx.Data["Email"] = u.Email
-		ctx.Data["ActiveCodeLives"] = base.MinutesToFriendly(setting.Service.ActiveCodeLives)
+		ctx.Data["ActiveCodeLives"] = base.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
 		ctx.HTML(200, TplActivate)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {

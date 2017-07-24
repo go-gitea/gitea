@@ -1,10 +1,22 @@
 DIST := dist
 IMPORT := code.gitea.io/gitea
+
+SED_INPLACE := sed -i
+
+ifeq ($(OS), Windows_NT)
+	EXECUTABLE := gitea.exe
+else
+	EXECUTABLE := gitea
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Darwin)
+		SED_INPLACE := sed -i ''
+	endif
+endif
+
 BINDATA := modules/{options,public,templates}/bindata.go
 STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
-JAVASCRIPTS :=
 DOCKER_TAG := gitea/gitea:latest
-GOFILES := $(shell find . -name "*.go" -type f -not -path "./vendor/*" -not -path "*/bindata.go")
+GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
 GOFMT ?= gofmt -s
 
 GOFLAGS := -i -v
@@ -59,10 +71,16 @@ generate:
 	@hash go-bindata > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/jteeuwen/go-bindata/...; \
 	fi
+	go generate $(PACKAGES)
+
+.PHONY: generate-swagger
+generate-swagger:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		go get -u github.com/go-swagger/go-swagger/cmd/swagger; \
 	fi
-	go generate $(PACKAGES)
+	swagger generate spec -o ./public/swagger.v1.json
+	$(SED_INPLACE) "s;\".ref\": \"#/definitions/GPGKey\";\"type\": \"object\";g" ./public/swagger.v1.json
+	$(SED_INPLACE) "s;^          \".ref\": \"#/definitions/Repository\";          \"type\": \"object\";g" ./public/swagger.v1.json
 
 .PHONY: errcheck
 errcheck:
@@ -144,6 +162,20 @@ test-mysql: integrations.test
 .PHONY: test-pgsql
 test-pgsql: integrations.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
+
+
+.PHONY: bench-sqlite
+bench-sqlite: integrations.sqlite.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.bench .
+
+.PHONY: bench-mysql
+bench-mysql: integrations.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test -test.bench .
+
+.PHONY: bench-pgsql
+bench-pgsql: integrations.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test -test.bench .
+
 
 .PHONY: integration-test-coverage
 integration-test-coverage: integrations.cover.test
@@ -228,20 +260,39 @@ javascripts: public/js/index.js
 public/js/index.js: $(JAVASCRIPTS)
 	cat $< >| $@
 
+.PHONY: stylesheets-check
+stylesheets-check: stylesheets
+	@diff=$$(git diff public/css/index.css); \
+	if [ -n "$$diff" ]; then \
+		echo "Please run 'make stylesheets' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi;
+
 .PHONY: stylesheets
 stylesheets: public/css/index.css
 
 .IGNORE: public/css/index.css
 public/css/index.css: $(STYLESHEETS)
-	lessc $< $@
+	@which lessc > /dev/null; if [ $$? -ne 0 ]; then \
+		go get -u github.com/kib357/less-go/lessc; \
+	fi
+	lessc -i $< -o $@
 
 .PHONY: swagger-ui
 swagger-ui:
 	rm -Rf public/assets/swagger-ui
-	git clone --depth=10 -b v3.0.7 --single-branch https://github.com/swagger-api/swagger-ui.git /tmp/swagger-ui
-	mv /tmp/swagger-ui/dist public/assets/swagger-ui
-	rm -Rf /tmp/swagger-ui
-	sed -i "s;http://petstore.swagger.io/v2/swagger.json;../../swagger.v1.json;g" public/assets/swagger-ui/index.html
+	git clone --depth=10 -b v3.0.7 --single-branch https://github.com/swagger-api/swagger-ui.git $(TMPDIR)/swagger-ui
+	mv $(TMPDIR)/swagger-ui/dist public/assets/swagger-ui
+	rm -Rf $(TMPDIR)/swagger-ui
+	$(SED_INPLACE) "s;http://petstore.swagger.io/v2/swagger.json;../../swagger.v1.json;g" public/assets/swagger-ui/index.html
 
-.PHONY: assets
-assets: javascripts stylesheets
+.PHONY: update-translations
+update-translations:
+	mkdir -p ./translations
+	cd ./translations && curl -L https://crowdin.com/download/project/gitea.zip > gitea.zip && unzip gitea.zip
+	rm ./translations/gitea.zip
+	$(SED_INPLACE) -e 's/="/=/g' -e 's/"$$//g' ./translations/*.ini
+	$(SED_INPLACE) -e 's/\\"/"/g' ./translations/*.ini
+	mv ./translations/*.ini ./options/locale/
+	rmdir ./translations

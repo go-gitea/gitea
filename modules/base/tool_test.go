@@ -145,7 +145,7 @@ func TestComputeTimeDiff(t *testing.T) {
 	// computeTimeDiff(base + offset) == (offset, str)
 	test := func(base int64, str string, offsets ...int64) {
 		for _, offset := range offsets {
-			diff, diffStr := computeTimeDiff(base + offset)
+			diff, diffStr := computeTimeDiff(base+offset, "en")
 			assert.Equal(t, offset, diff)
 			assert.Equal(t, str, diffStr)
 		}
@@ -170,7 +170,7 @@ func TestComputeTimeDiff(t *testing.T) {
 func TestMinutesToFriendly(t *testing.T) {
 	// test that a number of minutes yields the expected string
 	test := func(expected string, minutes int) {
-		actual := MinutesToFriendly(minutes)
+		actual := MinutesToFriendly(minutes, "en")
 		assert.Equal(t, expected, actual)
 	}
 	test("1 minute", 1)
@@ -186,13 +186,11 @@ func TestTimeSince(t *testing.T) {
 
 	// test that each diff in `diffs` yields the expected string
 	test := func(expected string, diffs ...time.Duration) {
-		ago := i18n.Tr("en", "tool.ago")
-		fromNow := i18n.Tr("en", "tool.from_now")
 		for _, diff := range diffs {
 			actual := timeSince(BaseDate, BaseDate.Add(diff), "en")
-			assert.Equal(t, expected+" "+ago, actual)
+			assert.Equal(t, i18n.Tr("en", "tool.ago", expected), actual)
 			actual = timeSince(BaseDate.Add(diff), BaseDate, "en")
-			assert.Equal(t, expected+" "+fromNow, actual)
+			assert.Equal(t, i18n.Tr("en", "tool.from_now", expected), actual)
 		}
 	}
 	test("1 second", time.Second, time.Second+50*time.Millisecond)
@@ -212,13 +210,13 @@ func TestTimeSince(t *testing.T) {
 }
 
 func TestTimeSincePro(t *testing.T) {
-	assert.Equal(t, "now", timeSincePro(BaseDate, BaseDate))
+	assert.Equal(t, "now", timeSincePro(BaseDate, BaseDate, "en"))
 
 	// test that a difference of `diff` yields the expected string
 	test := func(expected string, diff time.Duration) {
-		actual := timeSincePro(BaseDate, BaseDate.Add(diff))
+		actual := timeSincePro(BaseDate, BaseDate.Add(diff), "en")
 		assert.Equal(t, expected, actual)
-		assert.Equal(t, "future", timeSincePro(BaseDate.Add(diff), BaseDate))
+		assert.Equal(t, "future", timeSincePro(BaseDate.Add(diff), BaseDate, "en"))
 	}
 	test("1 second", time.Second)
 	test("2 seconds", 2*time.Second)

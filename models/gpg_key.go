@@ -127,7 +127,7 @@ func AddGPGKey(ownerID int64, content string) (*GPGKey, error) {
 
 	//Get DB session
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -211,9 +211,9 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 	emails := make([]*EmailAddress, len(e.Identities))
 	n := 0
 	for _, ident := range e.Identities {
-
+		email := strings.ToLower(strings.TrimSpace(ident.UserId.Email))
 		for _, e := range userEmails {
-			if e.Email == ident.UserId.Email && e.IsActivated {
+			if e.Email == email && e.IsActivated {
 				emails[n] = e
 				break
 			}
@@ -267,7 +267,7 @@ func DeleteGPGKey(doer *User, id int64) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -368,9 +368,7 @@ func verifySign(s *packet.Signature, h hash.Hash, k *GPGKey) error {
 
 // ParseCommitWithSignature check if signature is good against keystore.
 func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
-
 	if c.Signature != nil {
-
 		//Parsing signature
 		sig, err := extractSignature(c.Signature.Signature)
 		if err != nil { //Skipping failed to extract sign
@@ -392,7 +390,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		}
 
 		keys, err := ListGPGKeys(committer.ID)
-		if err != nil || len(keys) == 0 { //Skipping failed to get gpg keys of user
+		if err != nil { //Skipping failed to get gpg keys of user
 			log.Error(3, "ListGPGKeys: %v", err)
 			return &CommitVerification{
 				Verified: false,

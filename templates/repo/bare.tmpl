@@ -28,9 +28,11 @@
 								{{else}}
 									<input id="repo-clone-url" value="{{$.CloneLink.SSH}}" readonly>
 								{{end}}
-								<button class="ui basic button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
-									<i class="octicon octicon-clippy"></i>
-								</button>
+								{{if not (and $.DisableHTTP $.DisableSSH)}}
+									<button class="ui basic button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
+										<i class="octicon octicon-clippy"></i>
+									</button>
+								{{end}}
 							</div>
 						</div>
 						<div class="ui divider"></div>

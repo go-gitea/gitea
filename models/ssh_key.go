@@ -324,8 +324,8 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	sshOpLocker.Lock()
 	defer sshOpLocker.Unlock()
 
-	fpath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
-	f, err := os.OpenFile(fpath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
+	f, err := os.OpenFile(fPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
 		return err
 	}
@@ -430,7 +430,7 @@ func AddPublicKey(ownerID int64, name, content string) (*PublicKey, error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -496,15 +496,20 @@ func UpdatePublicKey(key *PublicKey) error {
 // UpdatePublicKeyUpdated updates public key use time.
 func UpdatePublicKeyUpdated(id int64) error {
 	now := time.Now()
-	cnt, err := x.ID(id).Cols("updated_unix").Update(&PublicKey{
+	// Check if key exists before update as affected rows count is unreliable
+	//    and will return 0 affected rows if two updates are made at the same time
+	if cnt, err := x.ID(id).Count(&PublicKey{}); err != nil {
+		return err
+	} else if cnt != 1 {
+		return ErrKeyNotExist{id}
+	}
+
+	_, err := x.ID(id).Cols("updated_unix").Update(&PublicKey{
 		Updated:     now,
 		UpdatedUnix: now.Unix(),
 	})
 	if err != nil {
 		return err
-	}
-	if cnt != 1 {
-		return ErrKeyNotExist{id}
 	}
 	return nil
 }
@@ -535,7 +540,7 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -558,53 +563,53 @@ func RewriteAllPublicKeys() error {
 	sshOpLocker.Lock()
 	defer sshOpLocker.Unlock()
 
-	fpath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
-	tmpPath := fpath + ".tmp"
-	f, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
+	tmpPath := fPath + ".tmp"
+	t, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		f.Close()
+		t.Close()
 		os.Remove(tmpPath)
 	}()
 
+	if setting.SSH.AuthorizedKeysBackup && com.IsExist(fPath) {
+		bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
+		if err = com.Copy(fPath, bakPath); err != nil {
+			return err
+		}
+	}
+
 	err = x.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
-		_, err = f.WriteString((bean.(*PublicKey)).AuthorizedString())
+		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
 	})
 	if err != nil {
 		return err
 	}
 
-	if com.IsExist(fpath) {
-		bakPath := fpath + fmt.Sprintf("_%d.gitea_bak", time.Now().Unix())
-		if err = com.Copy(fpath, bakPath); err != nil {
-			return err
-		}
-
-		p, err := os.Open(bakPath)
+	if com.IsExist(fPath) {
+		f, err := os.Open(fPath)
 		if err != nil {
 			return err
 		}
-		defer p.Close()
-
-		scanner := bufio.NewScanner(p)
+		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
 			line := scanner.Text()
 			if strings.HasPrefix(line, tplCommentPrefix) {
 				scanner.Scan()
 				continue
 			}
-			_, err = f.WriteString(line + "\n")
+			_, err = t.WriteString(line + "\n")
 			if err != nil {
 				return err
 			}
 		}
+		defer f.Close()
 	}
 
-	f.Close()
-	if err = os.Rename(tmpPath, fpath); err != nil {
+	if err = os.Rename(tmpPath, fPath); err != nil {
 		return err
 	}
 
@@ -732,7 +737,7 @@ func AddDeployKey(repoID int64, name, content string) (*DeployKey, error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -812,7 +817,7 @@ func DeleteDeployKey(doer *User, id int64) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}

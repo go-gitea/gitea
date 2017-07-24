@@ -359,7 +359,7 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 		return err
 	}
 
-	if !repo.Owner.IsOrganization() || userID == 0 || isAdmin {
+	if !repo.Owner.IsOrganization() || userID == 0 || isAdmin || !repo.IsPrivate {
 		return nil
 	}
 
@@ -377,6 +377,10 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 
 	var allTypes = make(map[UnitType]struct{}, len(allRepUnitTypes))
 	for _, team := range teams {
+		// Administrators can not be limited
+		if team.Authorize >= AccessModeAdmin {
+			return nil
+		}
 		for _, unitType := range team.UnitTypes {
 			allTypes[unitType] = struct{}{}
 		}
@@ -948,8 +952,12 @@ func cleanUpMigrateGitConfig(configPath string) error {
 // createDelegateHooks creates all the hooks scripts for the repo
 func createDelegateHooks(repoPath string) (err error) {
 	var (
-		hookNames     = []string{"pre-receive", "update", "post-receive"}
-		hookTpl       = fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType)
+		hookNames = []string{"pre-receive", "update", "post-receive"}
+		hookTpls  = []string{
+			fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
+			fmt.Sprintf("#!/usr/bin/env %s\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" || continue\n\"${hook}\" $1 $2 $3\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
+			fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
+		}
 		giteaHookTpls = []string{
 			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' pre-receive\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
 			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' update $1 $2 $3\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
@@ -968,7 +976,7 @@ func createDelegateHooks(repoPath string) (err error) {
 		}
 
 		// WARNING: This will override all old server-side hooks
-		if err = ioutil.WriteFile(oldHookPath, []byte(hookTpl), 0777); err != nil {
+		if err = ioutil.WriteFile(oldHookPath, []byte(hookTpls[i]), 0777); err != nil {
 			return fmt.Errorf("write old hook file '%s': %v", oldHookPath, err)
 		}
 
@@ -1271,7 +1279,7 @@ func CreateRepository(u *User, opts CreateRepoOptions) (_ *Repository, err error
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -1355,7 +1363,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return fmt.Errorf("sess.Begin: %v", err)
 	}
@@ -1580,7 +1588,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 // UpdateRepository updates a repository
 func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -1625,7 +1633,7 @@ func DeleteRepository(uid, repoID int64) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -2240,7 +2248,7 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -2284,7 +2292,7 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 
 	// Copy LFS meta objects in new session
 	sess2 := x.NewSession()
-	defer sessionRelease(sess2)
+	defer sess2.Close()
 	if err = sess2.Begin(); err != nil {
 		return nil, err
 	}

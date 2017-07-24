@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 	"testing"
@@ -17,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getIssuesSelection(htmlDoc *HtmlDoc) *goquery.Selection {
+func getIssuesSelection(htmlDoc *HTMLDoc) *goquery.Selection {
 	return htmlDoc.doc.Find(".issue.list").Find("li").Find(".title")
 }
 
@@ -34,8 +35,7 @@ func TestNoLoginViewIssues(t *testing.T) {
 	prepareTestEnv(t)
 
 	req := NewRequest(t, "GET", "/user2/repo1/issues")
-	resp := MakeRequest(req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestNoLoginViewIssuesSortByType(t *testing.T) {
@@ -45,13 +45,11 @@ func TestNoLoginViewIssuesSortByType(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	repo.Owner = models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
-	session := loginUser(t, user.Name, "password")
+	session := loginUser(t, user.Name)
 	req := NewRequest(t, "GET", repo.RelLink()+"/issues?type=created_by")
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	htmlDoc, err := NewHtmlParser(resp.Body)
-	assert.NoError(t, err)
+	htmlDoc := NewHTMLParser(t, resp.Body)
 	issuesSelection := getIssuesSelection(htmlDoc)
 	expectedNumIssues := models.GetCount(t,
 		&models.Issue{RepoID: repo.ID, PosterID: user.ID},
@@ -73,6 +71,29 @@ func TestNoLoginViewIssue(t *testing.T) {
 	prepareTestEnv(t)
 
 	req := NewRequest(t, "GET", "/user2/repo1/issues/1")
-	resp := MakeRequest(req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	MakeRequest(t, req, http.StatusOK)
+}
+
+func testNewIssue(t *testing.T, session *TestSession, user, repo, title string) {
+
+	req := NewRequest(t, "GET", path.Join(user, repo, "issues", "new"))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+	assert.True(t, exists, "The template has changed")
+	req = NewRequestWithValues(t, "POST", link, map[string]string{
+		"_csrf": htmlDoc.GetCSRF(),
+		"title": title,
+	})
+	resp = session.MakeRequest(t, req, http.StatusFound)
+
+	req = NewRequest(t, "GET", RedirectURL(t, resp))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+}
+
+func TestNewIssue(t *testing.T) {
+	prepareTestEnv(t)
+	session := loginUser(t, "user2")
+	testNewIssue(t, session, "user2", "repo1", "Title")
 }

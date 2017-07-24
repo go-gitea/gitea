@@ -35,19 +35,21 @@
 							{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
 						</button>
 					{{end}}
-					{{if not $.DisableSSH}}
+					{{if and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
 						<button class="ui basic clone button" id="repo-clone-ssh" data-link="{{.WikiCloneLink.SSH}}">
 							SSH
 						</button>
 					{{end}}
 					{{if not $.DisableHTTP}}
 						<input id="repo-clone-url" value="{{$.WikiCloneLink.HTTPS}}" readonly>
-					{{else}}
+					{{else if and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
 						<input id="repo-clone-url" value="{{$.WikiCloneLink.SSH}}" readonly>
 					{{end}}
-					<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
-						<i class="octicon octicon-clippy"></i>
-					</button>
+					{{if or ((not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)))}}
+						<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
+							<i class="octicon octicon-clippy"></i>
+						</button>
+					{{end}}
 				</div>
 			</div>
 		</div>

@@ -16,8 +16,6 @@ import (
 )
 
 var (
-	// ErrOrgNotExist organization does not exist
-	ErrOrgNotExist = errors.New("Organization does not exist")
 	// ErrTeamNotExist team does not exist
 	ErrTeamNotExist = errors.New("Team does not exist")
 )
@@ -127,7 +125,7 @@ func CreateOrganization(org, owner *User) (err error) {
 	org.Type = UserTypeOrganization
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -180,7 +178,7 @@ func CreateOrganization(org, owner *User) (err error) {
 // GetOrgByName returns organization by given name.
 func GetOrgByName(name string) (*User, error) {
 	if len(name) == 0 {
-		return nil, ErrOrgNotExist
+		return nil, ErrOrgNotExist{0, name}
 	}
 	u := &User{
 		LowerName: strings.ToLower(name),
@@ -190,7 +188,7 @@ func GetOrgByName(name string) (*User, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrOrgNotExist
+		return nil, ErrOrgNotExist{0, name}
 	}
 	return u, nil
 }
@@ -481,7 +479,7 @@ func RemoveOrgUser(orgID, userID int64) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}

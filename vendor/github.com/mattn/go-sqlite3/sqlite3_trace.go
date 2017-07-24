@@ -1,5 +1,4 @@
 // Copyright (C) 2016 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
-// TODO: add "Gimpl do foo" team?
 //
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
@@ -17,7 +16,7 @@ package sqlite3
 
 void stepTrampoline(sqlite3_context*, int, sqlite3_value**);
 void doneTrampoline(sqlite3_context*);
-void traceCallbackTrampoline(unsigned traceEventCode, void *ctx, void *p, void *x);
+int traceCallbackTrampoline(unsigned int traceEventCode, void *ctx, void *p, void *x);
 */
 import "C"
 
@@ -76,7 +75,7 @@ type TraceUserCallback func(TraceInfo) int
 
 type TraceConfig struct {
 	Callback        TraceUserCallback
-	EventMask       uint
+	EventMask       C.uint
 	WantExpandedSQL bool
 }
 
@@ -102,13 +101,13 @@ func fillExpandedSQL(info *TraceInfo, db *C.sqlite3, pStmt unsafe.Pointer) {
 
 //export traceCallbackTrampoline
 func traceCallbackTrampoline(
-	traceEventCode uint,
+	traceEventCode C.uint,
 	// Parameter named 'C' in SQLite docs = Context given at registration:
 	ctx unsafe.Pointer,
 	// Parameter named 'P' in SQLite docs (Primary event data?):
 	p unsafe.Pointer,
 	// Parameter named 'X' in SQLite docs (eXtra event data?):
-	xValue unsafe.Pointer) int {
+	xValue unsafe.Pointer) C.int {
 
 	if ctx == nil {
 		panic(fmt.Sprintf("No context (ev 0x%x)", traceEventCode))
@@ -196,7 +195,7 @@ func traceCallbackTrampoline(
 	if traceConf.Callback != nil {
 		r = traceConf.Callback(info)
 	}
-	return r
+	return C.int(r)
 }
 
 type traceMapEntry struct {
@@ -358,7 +357,7 @@ func (c *SQLiteConn) RegisterAggregator(name string, impl interface{}, pure bool
 	if pure {
 		opts |= C.SQLITE_DETERMINISTIC
 	}
-	rv := C._sqlite3_create_function(c.db, cname, C.int(stepNArgs), C.int(opts), C.uintptr_t(newHandle(c, &ai)), nil, (*[0]byte)(unsafe.Pointer(C.stepTrampoline)), (*[0]byte)(unsafe.Pointer(C.doneTrampoline)))
+	rv := sqlite3CreateFunction(c.db, cname, C.int(stepNArgs), C.int(opts), newHandle(c, &ai), nil, C.stepTrampoline, C.doneTrampoline)
 	if rv != C.SQLITE_OK {
 		return c.lastError()
 	}
@@ -396,7 +395,7 @@ func (c *SQLiteConn) SetTrace(requested *TraceConfig) error {
 	// The callback trampoline function does cleanup on Close event,
 	// regardless of the presence or absence of the user callback.
 	// Therefore it needs the Close event to be selected:
-	actualEventMask := reqCopy.EventMask | TraceClose
+	actualEventMask := uint(reqCopy.EventMask | TraceClose)
 	err := c.setSQLiteTrace(actualEventMask)
 	return err
 }

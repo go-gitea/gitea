@@ -328,7 +328,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 		return fmt.Errorf("git push: %s", stderr)
 	}
 
-	pr.MergedCommitID, err = headGitRepo.GetBranchCommitID(pr.BaseBranch)
+	pr.MergedCommitID, err = baseGitRepo.GetBranchCommitID(pr.BaseBranch)
 	if err != nil {
 		return fmt.Errorf("GetBranchCommit: %v", err)
 	}
@@ -406,7 +406,7 @@ func (pr *PullRequest) setMerged() (err error) {
 	pr.HasMerged = true
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -495,7 +495,7 @@ func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
 
 	if err != nil {
 		// Errors are signaled by a non-zero status that is not 1
-		if err.Error() == "exit status 1" {
+		if strings.Contains(err.Error(), "exit status 1") {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("git merge-base --is-ancestor: %v %v", stderr, err)
@@ -515,11 +515,11 @@ func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
 	mergeCommit, stderr, err := process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("isMerged (git rev-list --ancestry-path --merges --reverse): %d", pr.BaseRepo.ID),
 		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
 		"git", "rev-list", "--ancestry-path", "--merges", "--reverse", cmd)
-	if err == nil && len(mergeCommit) != 40 {
-		err = fmt.Errorf("unexpected length of output (got:%d bytes) '%s'", len(mergeCommit), mergeCommit)
-	}
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v %v", stderr, err)
+	} else if len(mergeCommit) < 40 {
+		// PR was fast-forwarded, so just use last commit of PR
+		mergeCommit = commitID[:40]
 	}
 
 	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
@@ -602,7 +602,7 @@ func (pr *PullRequest) testPatch() (err error) {
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -688,8 +688,6 @@ func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xor
 		sess.And("issue.is_closed=?", opts.State == "closed")
 	}
 
-	sortIssuesSession(sess, opts.SortType)
-
 	if labelIDs, err := base.StringsToInt64s(opts.Labels); err != nil {
 		return nil, err
 	} else if len(labelIDs) > 0 {
@@ -723,6 +721,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 
 	prs := make([]*PullRequest, 0, ItemsPerPage)
 	findSession, err := listPullRequestStatement(baseRepoID, opts)
+	sortIssuesSession(findSession, opts.SortType)
 	if err != nil {
 		log.Error(4, "listPullRequestStatement", err)
 		return nil, maxResults, err

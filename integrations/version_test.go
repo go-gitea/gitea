@@ -5,8 +5,6 @@
 package integrations
 
 import (
-	"bytes"
-	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -21,12 +19,9 @@ func TestVersion(t *testing.T) {
 
 	setting.AppVer = "1.1.0+dev"
 	req := NewRequest(t, "GET", "/api/v1/version")
-	resp := MakeRequest(req)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	var version gitea.ServerVersion
-	decoder := json.NewDecoder(bytes.NewBuffer(resp.Body))
-	assert.NoError(t, decoder.Decode(&version))
-
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	DecodeJSON(t, resp, &version)
 	assert.Equal(t, setting.AppVer, string(version.Version))
 }

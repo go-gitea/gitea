@@ -87,17 +87,19 @@ var (
 	EnablePprof          bool
 
 	SSH = struct {
-		Disabled            bool           `ini:"DISABLE_SSH"`
-		StartBuiltinServer  bool           `ini:"START_SSH_SERVER"`
-		Domain              string         `ini:"SSH_DOMAIN"`
-		Port                int            `ini:"SSH_PORT"`
-		ListenHost          string         `ini:"SSH_LISTEN_HOST"`
-		ListenPort          int            `ini:"SSH_LISTEN_PORT"`
-		RootPath            string         `ini:"SSH_ROOT_PATH"`
-		KeyTestPath         string         `ini:"SSH_KEY_TEST_PATH"`
-		KeygenPath          string         `ini:"SSH_KEYGEN_PATH"`
-		MinimumKeySizeCheck bool           `ini:"-"`
-		MinimumKeySizes     map[string]int `ini:"-"`
+		Disabled             bool           `ini:"DISABLE_SSH"`
+		StartBuiltinServer   bool           `ini:"START_SSH_SERVER"`
+		Domain               string         `ini:"SSH_DOMAIN"`
+		Port                 int            `ini:"SSH_PORT"`
+		ListenHost           string         `ini:"SSH_LISTEN_HOST"`
+		ListenPort           int            `ini:"SSH_LISTEN_PORT"`
+		RootPath             string         `ini:"SSH_ROOT_PATH"`
+		KeyTestPath          string         `ini:"SSH_KEY_TEST_PATH"`
+		KeygenPath           string         `ini:"SSH_KEYGEN_PATH"`
+		AuthorizedKeysBackup bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
+		MinimumKeySizeCheck  bool           `ini:"-"`
+		MinimumKeySizes      map[string]int `ini:"-"`
+		ExposeAnonymous      bool           `ini:"SSH_EXPOSE_ANONYMOUS"`
 	}{
 		Disabled:           false,
 		StartBuiltinServer: false,
@@ -585,15 +587,7 @@ func NewContext() {
 
 	CustomPath = os.Getenv("GITEA_CUSTOM")
 	if len(CustomPath) == 0 {
-		// For backward compatibility
-		// TODO: drop in 1.1.0 ?
-		CustomPath = os.Getenv("GOGS_CUSTOM")
-		if len(CustomPath) == 0 {
-			CustomPath = workDir + "/custom"
-		} else {
-			log.Warn(`Usage of GOGS_CUSTOM is deprecated and will be *removed* in a future release,
-please consider changing to GITEA_CUSTOM`)
-		}
+		CustomPath = workDir + "/custom"
 	}
 
 	if len(CustomPID) > 0 {
@@ -602,6 +596,8 @@ please consider changing to GITEA_CUSTOM`)
 
 	if len(CustomConf) == 0 {
 		CustomConf = CustomPath + "/conf/app.ini"
+	} else if !filepath.IsAbs(CustomConf) {
+		CustomConf = filepath.Join(workDir, CustomConf)
 	}
 
 	if com.IsFile(CustomConf) {
@@ -624,18 +620,6 @@ please consider changing to GITEA_CUSTOM`)
 
 	sec := Cfg.Section("server")
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
-	AppURL = sec.Key("ROOT_URL").MustString("http://localhost:3000/")
-	AppURL = strings.TrimRight(AppURL, "/") + "/"
-
-	// Check if has app suburl.
-	url, err := url.Parse(AppURL)
-	if err != nil {
-		log.Fatal(4, "Invalid ROOT_URL '%s': %s", AppURL, err)
-	}
-	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
-	// This value is empty if site does not have sub-url.
-	AppSubURL = strings.TrimSuffix(url.Path, "/")
-	AppSubURLDepth = strings.Count(AppSubURL, "/")
 
 	Protocol = HTTP
 	if sec.Key("PROTOCOL").String() == "https" {
@@ -656,6 +640,24 @@ please consider changing to GITEA_CUSTOM`)
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
+
+	defaultAppURL := string(Protocol) + "://" + Domain
+	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
+		defaultAppURL += ":" + HTTPPort
+	}
+	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
+	AppURL = strings.TrimRight(AppURL, "/") + "/"
+
+	// Check if has app suburl.
+	url, err := url.Parse(AppURL)
+	if err != nil {
+		log.Fatal(4, "Invalid ROOT_URL '%s': %s", AppURL, err)
+	}
+	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
+	// This value is empty if site does not have sub-url.
+	AppSubURL = strings.TrimSuffix(url.Path, "/")
+	AppSubURLDepth = strings.Count(AppSubURL, "/")
+
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(string(Protocol) + "://localhost:" + HTTPPort + "/")
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
@@ -705,6 +707,8 @@ please consider changing to GITEA_CUSTOM`)
 			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
 		}
 	}
+	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
+	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
 	if err = Cfg.Section("server").MapTo(&LFS); err != nil {
 		log.Fatal(4, "Failed to map LFS settings: %v", err)

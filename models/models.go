@@ -24,7 +24,6 @@ import (
 	// Needed for the MSSSQL driver
 	_ "github.com/denisenkom/go-mssqldb"
 
-	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -47,13 +46,6 @@ type Engine interface {
 	Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *xorm.Session
 	SQL(interface{}, ...interface{}) *xorm.Session
 	Where(interface{}, ...interface{}) *xorm.Session
-}
-
-func sessionRelease(sess *xorm.Session) {
-	if !sess.IsCommitedOrRollbacked {
-		sess.Rollback()
-	}
-	sess.Close()
 }
 
 var (
@@ -266,7 +258,7 @@ func SetEngine() (err error) {
 }
 
 // NewEngine initializes a new xorm.Engine
-func NewEngine() (err error) {
+func NewEngine(migrateFunc func(*xorm.Engine) error) (err error) {
 	if err = SetEngine(); err != nil {
 		return err
 	}
@@ -275,7 +267,7 @@ func NewEngine() (err error) {
 		return err
 	}
 
-	if err = migrations.Migrate(x); err != nil {
+	if err = migrateFunc(x); err != nil {
 		return fmt.Errorf("migrate: %v", err)
 	}
 

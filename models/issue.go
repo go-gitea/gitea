@@ -24,6 +24,7 @@ import (
 
 var (
 	errMissingIssueNumber = errors.New("No issue number specified")
+	errInvalidIssueNumber = errors.New("Invalid issue number")
 )
 
 // Issue represents an issue or pull request of repository.
@@ -131,6 +132,22 @@ func (issue *Issue) loadPoster(e Engine) (err error) {
 	return
 }
 
+func (issue *Issue) loadAssignee(e Engine) (err error) {
+	if issue.Assignee == nil && issue.AssigneeID > 0 {
+		issue.Assignee, err = getUserByID(e, issue.AssigneeID)
+		if err != nil {
+			issue.AssigneeID = -1
+			issue.Assignee = NewGhostUser()
+			if !IsErrUserNotExist(err) {
+				return fmt.Errorf("getUserByID.(assignee) [%d]: %v", issue.AssigneeID, err)
+			}
+			err = nil
+			return
+		}
+	}
+	return
+}
+
 func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadRepo(e); err != nil {
 		return
@@ -151,11 +168,8 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 		}
 	}
 
-	if issue.Assignee == nil && issue.AssigneeID > 0 {
-		issue.Assignee, err = getUserByID(e, issue.AssigneeID)
-		if err != nil {
-			return fmt.Errorf("getUserByID.(assignee) [%d]: %v", issue.AssigneeID, err)
-		}
+	if err = issue.loadAssignee(e); err != nil {
+		return
 	}
 
 	if issue.IsPull && issue.PullRequest == nil {
@@ -174,7 +188,10 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 	}
 
 	if issue.Comments == nil {
-		issue.Comments, err = getCommentsByIssueID(e, issue.ID)
+		issue.Comments, err = findComments(e, FindCommentsOptions{
+			IssueID: issue.ID,
+			Type:    CommentTypeUnknown,
+		})
 		if err != nil {
 			return fmt.Errorf("getCommentsByIssueID [%d]: %v", issue.ID, err)
 		}
@@ -406,7 +423,7 @@ func (issue *Issue) clearLabels(e *xorm.Session, doer *User) (err error) {
 // Triggers appropriate WebHooks, if any.
 func (issue *Issue) ClearLabels(doer *User) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -470,7 +487,7 @@ func (ts labelSorter) Swap(i, j int) {
 // Triggers appropriate WebHooks, if any.
 func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -598,7 +615,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 // ChangeStatus changes issue status to open or closed.
 func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -899,7 +916,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 // NewIssue creates new issue with labels for repository.
 func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -945,7 +962,7 @@ func GetIssueByRef(ref string) (*Issue, error) {
 
 	index, err := com.StrTo(ref[n+1:]).Int64()
 	if err != nil {
-		return nil, err
+		return nil, errInvalidIssueNumber
 	}
 
 	repo, err := GetRepositoryByRef(ref[:n])

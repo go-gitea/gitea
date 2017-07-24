@@ -52,7 +52,7 @@ func TestNewLabels(t *testing.T) {
 	}
 	assert.NoError(t, NewLabels(labels...))
 	for _, label := range labels {
-		AssertExistsAndLoadBean(t, label)
+		AssertExistsAndLoadBean(t, label, Cond("id = ?", label.ID))
 	}
 	CheckConsistencyFor(t, &Label{}, &Repository{})
 }

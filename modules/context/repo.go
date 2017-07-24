@@ -285,6 +285,7 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["IsRepositoryWriter"] = ctx.Repo.IsWriter()
 
 		ctx.Data["DisableSSH"] = setting.SSH.Disabled
+		ctx.Data["ExposeAnonSSH"] = setting.SSH.ExposeAnonymous
 		ctx.Data["DisableHTTP"] = setting.Repository.DisableHTTPGit
 		ctx.Data["CloneLink"] = repo.CloneLink()
 		ctx.Data["WikiCloneLink"] = repo.WikiCloneLink()
@@ -347,6 +348,9 @@ func RepoAssignment() macaron.Handler {
 					ctx.Repo.PullRequest.HeadInfo = ctx.Repo.BranchName
 				}
 			}
+
+			// Reset repo units as otherwise user specific units wont be loaded later
+			ctx.Repo.Repository.Units = nil
 		}
 		ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
@@ -394,6 +398,7 @@ func RepoRef() macaron.Handler {
 					err = fmt.Errorf("No branches in non-bare repository %s",
 						ctx.Repo.GitRepo.Path)
 					ctx.Handle(500, "GetBranches", err)
+					return
 				}
 				refName = brs[0]
 			}
@@ -547,10 +552,8 @@ func UnitTypes() macaron.Handler {
 		ctx.Data["UnitTypeCode"] = models.UnitTypeCode
 		ctx.Data["UnitTypeIssues"] = models.UnitTypeIssues
 		ctx.Data["UnitTypePullRequests"] = models.UnitTypePullRequests
-		ctx.Data["UnitTypeCommits"] = models.UnitTypeCommits
 		ctx.Data["UnitTypeReleases"] = models.UnitTypeReleases
 		ctx.Data["UnitTypeWiki"] = models.UnitTypeWiki
-		ctx.Data["UnitTypeSettings"] = models.UnitTypeSettings
 		ctx.Data["UnitTypeExternalWiki"] = models.UnitTypeExternalWiki
 		ctx.Data["UnitTypeExternalTracker"] = models.UnitTypeExternalTracker
 	}
