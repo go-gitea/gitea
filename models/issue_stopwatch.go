@@ -1,20 +1,20 @@
 package models
 
 import (
-	"time"
-	"github.com/go-xorm/xorm"
 	"code.gitea.io/gitea/modules/log"
+	"github.com/go-xorm/xorm"
+	"time"
 )
 
 // Stopwatch represents a stopwatch for time tracking.
 type Stopwatch struct {
-	ID              int64 `xorm:"pk autoincr"`
-	IssueID         int64 `xorm:"INDEX"`
-	Issue		*Issue `xorm:"-"`
-	UserID          int64 `xorm:"INDEX"`
-	User		*User `xorm:"-"`
-	Created       	time.Time `xorm:"-"`
-	CreatedUnix   	int64
+	ID          int64     `xorm:"pk autoincr"`
+	IssueID     int64     `xorm:"INDEX"`
+	Issue       *Issue    `xorm:"-"`
+	UserID      int64     `xorm:"INDEX"`
+	User        *User     `xorm:"-"`
+	Created     time.Time `xorm:"-"`
+	CreatedUnix int64
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.

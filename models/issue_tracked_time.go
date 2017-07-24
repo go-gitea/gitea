@@ -1,21 +1,21 @@
 package models
 
 import (
-	"time"
-	"github.com/go-xorm/xorm"
 	"code.gitea.io/gitea/modules/log"
+	"github.com/go-xorm/xorm"
+	"time"
 )
 
 // TrackedTime represents a time that was spent for a specific issue.
 type TrackedTime struct {
-	ID              int64 `xorm:"pk autoincr"`
-	IssueID         int64 `xorm:"INDEX"`
-	Issue		*Issue `xorm:"-"`
-	UserID          int64 `xorm:"INDEX"`
-	User		*User `xorm:"-"`
-	Created       	time.Time `xorm:"-"`
-	CreatedUnix   	int64
-	Time     	int64
+	ID          int64     `xorm:"pk autoincr"`
+	IssueID     int64     `xorm:"INDEX"`
+	Issue       *Issue    `xorm:"-"`
+	UserID      int64     `xorm:"INDEX"`
+	User        *User     `xorm:"-"`
+	Created     time.Time `xorm:"-"`
+	CreatedUnix int64
+	Time        int64
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.

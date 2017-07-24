@@ -779,7 +779,7 @@ func (err ErrCommentNotExist) Error() string {
 
 // ErrStopwatchNotExist represents a "Stopwatch Not Exist" kind of error.
 type ErrStopwatchNotExist struct {
-	ID      int64
+	ID int64
 }
 
 // IsErrStopwatchNotExist checks if an error is a ErrStopwatchNotExist.
@@ -801,7 +801,7 @@ func (err ErrStopwatchNotExist) Error() string {
 
 // ErrStopwatchNotExist represents a "Stopwatch Not Exist" kind of error.
 type ErrTrackedTimeNotExist struct {
-	ID      int64
+	ID int64
 }
 
 // IsErrStopwatchNotExist checks if an error is a ErrStopwatchNotExist.
@@ -813,6 +813,7 @@ func IsErrTrackedTimeNotExist(err error) bool {
 func (err ErrTrackedTimeNotExist) Error() string {
 	return fmt.Sprintf("tracked time does not exist [id: %d]", err.ID)
 }
+
 // .____          ___.          .__
 // |    |   _____ \_ |__   ____ |  |
 // |    |   \__  \ | __ \_/ __ \|  |
