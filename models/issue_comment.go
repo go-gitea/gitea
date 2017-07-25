@@ -52,6 +52,14 @@ const (
 	CommentTypeChangeTitle
 	// Delete Branch
 	CommentTypeDeleteBranch
+	// Start a stopwatch for time tracking
+	CommentTypeStartTracking
+	// Stop a stopwatch for time tracking
+	CommentTypeStopTracking
+	// Add time manual for time tracking
+	CommentTypeAddTimeManual
+	// Cancel a stopwatch for time tracking
+	CommentTypeCancelTracking
 )
 
 // CommentTag defines comment tag type
