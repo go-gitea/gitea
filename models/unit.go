@@ -16,7 +16,7 @@ const (
 	UnitTypeWiki                                // 5 Wiki
 	UnitTypeExternalWiki                        // 6 ExternalWiki
 	UnitTypeExternalTracker                     // 7 ExternalTracker
-	UnitTypeTimeTracker			    // 8 Time tracker
+	UnitTypeTimeTracker                         // 8 Time tracker
 )
 
 var (

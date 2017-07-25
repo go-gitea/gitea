@@ -218,8 +218,8 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		if form.EnableTimetracker {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type: models.UnitTypeTimeTracker,
-				Index: int(models.UnitTypeTimeTracker),
+				Type:   models.UnitTypeTimeTracker,
+				Index:  int(models.UnitTypeTimeTracker),
 				Config: new(models.UnitConfig),
 			})
 		}

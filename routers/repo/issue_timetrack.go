@@ -7,7 +7,6 @@ package repo
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"fmt"
 	"net/http"
 	"time"
 )
@@ -17,28 +16,25 @@ func AddTimeManual(c *context.Context) {
 
 	h, err := parseTimeTrackingWithDuration(c.Req.PostForm.Get("hours"), "h")
 	if err != nil {
-		fmt.Println("hours is not numeric", err)
 		c.Handle(http.StatusBadRequest, "hours is not numeric", err)
 		return
 	}
 
 	m, err := parseTimeTrackingWithDuration(c.Req.PostForm.Get("minutes"), "m")
 	if err != nil {
-		fmt.Println("minutes is not numeric", err)
 		c.Handle(http.StatusBadRequest, "minutes is not numeric", err)
 		return
 	}
 
 	s, err := parseTimeTrackingWithDuration(c.Req.PostForm.Get("seconds"), "s")
 	if err != nil {
-		fmt.Println("seconds is not numeric", err)
 		c.Handle(http.StatusBadRequest, "seconds is not numeric", err)
 		return
 	}
 
-	totalInSeconds := h.Seconds() + m.Seconds() + s.Seconds()
+	total := h + m + s
 
-	if totalInSeconds <= 0 {
+	if total <= 0 {
 		c.Handle(http.StatusBadRequest, "sum of seconds <= 0", nil)
 		return
 	}
@@ -50,7 +46,7 @@ func AddTimeManual(c *context.Context) {
 		return
 	}
 
-	if err := models.AddTime(c.User.ID, issue.ID, int64(totalInSeconds)); err != nil {
+	if err := models.AddTime(c.User.ID, issue.ID, int64(total.Seconds())); err != nil {
 		c.Handle(http.StatusInternalServerError, "AddTime", err)
 		return
 	}
