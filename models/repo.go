@@ -31,8 +31,8 @@ import (
 	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
-	version "github.com/mcuadros/go-version"
-	ini "gopkg.in/ini.v1"
+	"github.com/mcuadros/go-version"
+	"gopkg.in/ini.v1"
 )
 
 const (
@@ -1221,11 +1221,21 @@ func createRepository(e *xorm.Session, u *User, repo *Repository) (err error) {
 	// insert units for repo
 	var units = make([]RepoUnit, 0, len(defaultRepoUnits))
 	for i, tp := range defaultRepoUnits {
-		units = append(units, RepoUnit{
-			RepoID: repo.ID,
-			Type:   tp,
-			Index:  i,
-		})
+		if tp == UnitTypeIssues {
+			units = append(units, RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Index:  i,
+				Config: &IssuesConfig{EnableTimetracker: setting.Service.DefaultEnableTimetracking},
+			})
+		} else {
+			units = append(units, RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Index:  i,
+			})
+		}
+
 	}
 
 	if _, err = e.Insert(&units); err != nil {

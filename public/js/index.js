@@ -374,15 +374,19 @@ function initRepository() {
         $('.enable-system').change(function () {
             if (this.checked) {
                 $($(this).data('target')).removeClass('disabled');
+                if ($(this).data('context') != undefined) $($(this).data('context')).addClass('disabled');
             } else {
                 $($(this).data('target')).addClass('disabled');
+                if ($(this).data('context') != undefined) $($(this).data('context')).removeClass('disabled');
             }
         });
         $('.enable-system-radio').change(function () {
             if (this.value == 'false') {
                 $($(this).data('target')).addClass('disabled');
+                if ($(this).data('context') != undefined) $($(this).data('context')).removeClass('disabled');
             } else if (this.value == 'true') {
                 $($(this).data('target')).removeClass('disabled');
+                if ($(this).data('context') != undefined)  $($(this).data('context')).addClass('disabled');
             }
         });
     }
@@ -1714,4 +1718,14 @@ function initDashboardSearch() {
             }
         }
     });
+}
+function timeAddManual() {
+    $('.mini.modal')
+        .modal({
+            duration: 200,
+            onApprove: function() {
+                $('#add_time_manual_form').submit();
+            }
+        }).modal('show')
+    ;
 }

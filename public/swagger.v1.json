@@ -280,6 +280,42 @@
         }
       }
     },
+    "/repos/{username}/{reponame}/issues/{issue}/times": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "issueTrackedTimes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimes"
+          },
+          "404": {
+            "$ref": "#/responses/error"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "addTime",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/AddTimeOption"
+          },
+          "404": {
+            "$ref": "#/responses/error"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{username}/{reponame}/mirror-sync": {
       "post": {
         "produces": [
@@ -668,6 +704,41 @@
         "responses": {
           "200": {
             "$ref": "#/responses/RepositoryList"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/user/times": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "userTrackedTimes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimes"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/user/{username}/times": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "userTrackedTimes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimes"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           },
           "500": {
             "$ref": "#/responses/error"
@@ -1106,6 +1177,15 @@
     "AccessTokenList": {
       "description": "AccessTokenList represents a list of API access token."
     },
+    "AddTimeOption": {
+      "description": "AddTimeOption adds time manually to an issue",
+      "headers": {
+        "time": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
     "GPGKey": {
       "description": "GPGKey a user GPG key to sign commit and tag in repository",
       "headers": {
@@ -1286,6 +1366,32 @@
           "type": "string"
         }
       }
+    },
+    "TrackedTime": {
+      "description": "TrackedTime worked time for an issue / pr",
+      "headers": {
+        "created": {},
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "issue_id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "time": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Time in seconds"
+        },
+        "user_id": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "TrackedTimes": {
+      "description": "TrackedTimes represent a list of tracked times"
     },
     "User": {
       "description": "User represents a API user.",
