@@ -11,12 +11,12 @@ import (
 
 // TrackedTime represents a time that was spent for a specific issue.
 type TrackedTime struct {
-	ID          int64     `xorm:"pk autoincr"`
-	IssueID     int64     `xorm:"INDEX"`
-	UserID      int64     `xorm:"INDEX"`
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64
-	Time        int64
+	ID          int64     `xorm:"pk autoincr" json:"id"`
+	IssueID     int64     `xorm:"INDEX" json:"issue_id"`
+	UserID      int64     `xorm:"INDEX" json:"user_id"`
+	Created     time.Time `xorm:"-" json:"created"`
+	CreatedUnix int64     `json:"-"`
+	Time        int64     `json:"time"`
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.
@@ -37,6 +37,16 @@ func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
 		return nil, ErrTrackedTimeNotExist{id}
 	}
 	return c, nil
+}
+
+func GetTrackedTimesByIssue(issueID int64) (trackedTimes []*TrackedTime, err error) {
+	err = x.Where("issue_id = ?", issueID).Find(&trackedTimes)
+	return
+}
+
+func GetTrackedTimesByUser(userID int64) (trackedTimes []*TrackedTime, err error) {
+	err = x.Where("user_id = ?", userID).Find(&trackedTimes)
+	return
 }
 
 // BeforeInsert will be invoked by XORM before inserting a record

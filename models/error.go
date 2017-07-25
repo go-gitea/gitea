@@ -806,7 +806,7 @@ type ErrTrackedTimeNotExist struct {
 
 // IsErrTrackedTimeNotExist checks if an error is a ErrTrackedTimeNotExist.
 func IsErrTrackedTimeNotExist(err error) bool {
-	_, ok := err.(ErrStopwatchNotExist)
+	_, ok := err.(ErrTrackedTimeNotExist)
 	return ok
 }
 

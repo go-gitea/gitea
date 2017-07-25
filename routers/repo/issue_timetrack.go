@@ -7,9 +7,9 @@ package repo
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"fmt"
 	"net/http"
 	"time"
-	"fmt"
 )
 
 // AddTimeManual tracks time manually
@@ -59,11 +59,9 @@ func AddTimeManual(c *context.Context) {
 	c.Redirect(url, http.StatusSeeOther)
 }
 
-
 func parseTimeTrackingWithDuration(value, space string) (time.Duration, error) {
 	if value == "" {
 		return 0, nil
 	}
 	return time.ParseDuration(value + space)
 }
-
