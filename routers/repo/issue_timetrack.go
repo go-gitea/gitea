@@ -17,18 +17,21 @@ func AddTimeManual(c *context.Context) {
 	if err != nil {
 		if c.Req.PostForm.Get("hours") != "" {
 			c.Handle(http.StatusInternalServerError, "hours is not numeric", err)
+			return
 		}
 	}
 	minutes, err := strconv.ParseInt(c.Req.PostForm.Get("minutes"), 10, 64)
 	if err != nil {
 		if c.Req.PostForm.Get("minutes") != "" {
 			c.Handle(http.StatusInternalServerError, "minutes is not numeric", err)
+			return
 		}
 	}
 	seconds, err := strconv.ParseInt(c.Req.PostForm.Get("seconds"), 10, 64)
 	if err != nil {
 		if c.Req.PostForm.Get("seconds") != "" {
 			c.Handle(http.StatusInternalServerError, "seconds is not numeric", err)
+			return 
 		}
 	}
 
