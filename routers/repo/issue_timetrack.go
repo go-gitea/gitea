@@ -15,15 +15,21 @@ import (
 func AddTimeManual(c *context.Context) {
 	hours, err := strconv.ParseInt(c.Req.PostForm.Get("hours"), 10, 64)
 	if err != nil {
-		hours = 0
+		if c.Req.PostForm.Get("hours") != "" {
+			c.Handle(http.StatusInternalServerError, "hours is not numeric", err)
+		}
 	}
 	minutes, err := strconv.ParseInt(c.Req.PostForm.Get("minutes"), 10, 64)
 	if err != nil {
-		minutes = 0
+		if c.Req.PostForm.Get("minutes") != "" {
+			c.Handle(http.StatusInternalServerError, "minutes is not numeric", err)
+		}
 	}
 	seconds, err := strconv.ParseInt(c.Req.PostForm.Get("seconds"), 10, 64)
 	if err != nil {
-		seconds = 0
+		if c.Req.PostForm.Get("seconds") != "" {
+			c.Handle(http.StatusInternalServerError, "seconds is not numeric", err)
+		}
 	}
 
 	totalInSeconds := seconds + minutes*60 + hours*60*60
