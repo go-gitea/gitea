@@ -201,7 +201,9 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 					RepoID: repo.ID,
 					Type:   models.UnitTypeIssues,
 					Index:  int(models.UnitTypeIssues),
-					Config: new(models.UnitConfig),
+					Config: &models.IssuesConfig{
+						EnableTimetracker: form.EnableTimetracker,
+					},
 				})
 			}
 		}
@@ -211,15 +213,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				RepoID: repo.ID,
 				Type:   models.UnitTypePullRequests,
 				Index:  int(models.UnitTypePullRequests),
-				Config: new(models.UnitConfig),
-			})
-		}
-
-		if form.EnableTimetracker {
-			units = append(units, models.RepoUnit{
-				RepoID: repo.ID,
-				Type:   models.UnitTypeTimeTracker,
-				Index:  int(models.UnitTypeTimeTracker),
 				Config: new(models.UnitConfig),
 			})
 		}

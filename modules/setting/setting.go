@@ -34,7 +34,7 @@ import (
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
 	"github.com/go-xorm/core"
-	ini "gopkg.in/ini.v1"
+	"gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
 
@@ -1010,6 +1010,7 @@ var Service struct {
 	EnableCaptcha                  bool
 	DefaultKeepEmailPrivate        bool
 	DefaultAllowCreateOrganization bool
+	DefaultEnableTimetracking      bool
 	NoReplyAddress                 string
 
 	// OpenID settings
@@ -1031,6 +1032,7 @@ func newService() {
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool()
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
+	Service.DefaultEnableTimetracking = sec.Key("DEFAULT_ENABLE_TIMETRACKING").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 
 	sec = Cfg.Section("openid")

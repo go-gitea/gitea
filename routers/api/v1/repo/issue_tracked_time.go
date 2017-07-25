@@ -85,7 +85,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	}
 }
 
-// ListTrackedTimesByUser  lists all tracked times of the current user
+// ListMyTrackedTimes lists all tracked times of the current user
 func ListMyTrackedTimes(ctx *context.APIContext) {
 	// swagger:route GET /user/times userTrackedTimes
 	//

@@ -120,7 +120,7 @@
 				</form>
 			</div>
 		</div>
-		{{if .Repository.EnableUnit $.UnitTypeTimeTracker}}
+		{{if (.Repository.MustGetUnit $.UnitTypeIssues).IssuesConfig.EnableTimetracker}}
 		<div class="ui divider"></div>
 		<div class="ui timetrack">
 			<span class="text"><strong>{{.i18n.Tr "repo.issues.tracker"}}</strong></span>
@@ -141,9 +141,9 @@
 									<div class="content">
 										<form method="POST" id="add_time_manual_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/add_time" class="ui action input fluid">
 											{{$.CsrfTokenHtml}}
-											<input placeholder="Hours" type="number" name="hours">
-											<input placeholder="Minutes" type="number" name="minutes" class="ui compact">
-											<input placeholder="Seconds" type="number" name="seconds" class="ui compact">
+											<input placeholder='{{.i18n.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
+											<input placeholder='{{.i18n.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
+											<input placeholder='{{.i18n.Tr "repo.issues.add_time_seconds"}}' type="number" name="seconds" class="ui compact">
 
 										</form>
 									</div>

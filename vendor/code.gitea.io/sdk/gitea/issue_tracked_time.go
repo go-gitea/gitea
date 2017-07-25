@@ -32,7 +32,7 @@ func (c *Client) GetUserTrackedTimes(user string) ([]*TrackedTime, error) {
 	return times, c.getParsedResponse("GET", fmt.Sprintf("/users/%s/times", user), nil, nil, &times)
 }
 
-// GetMyTrackedTimes list tracked times of the current user user
+// GetMyTrackedTimes list tracked times of the current user
 func (c *Client) GetMyTrackedTimes() ([]*TrackedTime, error) {
 	times := make([]*TrackedTime, 0, 10)
 	return times, c.getParsedResponse("GET", "/user/times", nil, nil, &times)
