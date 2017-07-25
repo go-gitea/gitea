@@ -159,27 +159,28 @@
 			</div>
 		</div>
 
-		<div class="ui divider"></div>
-
-		<div class="ui participants comments">
-			<span class="text"><strong>{{.i18n.Tr "repo.issues.time_spent_total"}}</strong></span>
-			<div>
-				{{range $user, $trackedtime := .WorkingUsers}}
-				<div class="comment">
-					<a class="avatar">
-						<img src="{{$user.RelAvatarLink}}">
-					</a>
-					<div class="content">
-						<a class="author">{{$user.DisplayName}}</a>
-						<div class="text">
-							{{$trackedtime}}
+		{{if gt (len .WorkingUsers) 0}}
+			<div class="ui divider"></div>
+			<div class="ui participants comments">
+				<span class="text"><strong>{{.i18n.Tr "repo.issues.time_spent_total"}}</strong></span>
+				<div>
+					{{range $user, $trackedtime := .WorkingUsers}}
+					<div class="comment">
+						<a class="avatar">
+							<img src="{{$user.RelAvatarLink}}">
+						</a>
+						<div class="content">
+							<a class="author">{{$user.DisplayName}}</a>
+							<div class="text">
+								{{$trackedtime}}
+							</div>
 						</div>
 					</div>
-				</div>
-				{{end}}
+					{{end}}
 
+				</div>
 			</div>
-		</div>
+		{{end}}
 		{{end}}
 	</div>
 </div>
