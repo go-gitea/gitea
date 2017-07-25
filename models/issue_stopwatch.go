@@ -1,9 +1,9 @@
 package models
 
 import (
+	"fmt"
 	"github.com/go-xorm/xorm"
 	"time"
-	"fmt"
 )
 
 // Stopwatch represents a stopwatch for time tracking.
@@ -40,17 +40,19 @@ func GetStopwatchByID(id int64) (*Stopwatch, error) {
 func getStopwatch(e Engine, userID, issueID int64) (sw *Stopwatch, exists bool, err error) {
 	sw = new(Stopwatch)
 	exists, err = e.
-	Where("user_id = ?", userID).
+		Where("user_id = ?", userID).
 		And("issue_id = ?", issueID).
 		Get(sw)
 	return
 }
 
+// StopwatchExists returns true if the stopwatch exists
 func StopwatchExists(userID int64, issueID int64) bool {
 	_, exists, _ := getStopwatch(x, userID, issueID)
 	return exists
 }
 
+// CreateOrStopIssueStopwatch will create or remove a stopwatch and will log it into issue's timeline.
 func CreateOrStopIssueStopwatch(userID int64, issueID int64) error {
 	sw, exists, err := getStopwatch(x, userID, issueID)
 	if err != nil {
@@ -65,8 +67,8 @@ func CreateOrStopIssueStopwatch(userID int64, issueID int64) error {
 		tt := &TrackedTime{
 			Created: time.Now(),
 			IssueID: issueID,
-			UserID: userID,
-			Time: timediff,
+			UserID:  userID,
+			Time:    timediff,
 		}
 
 		if _, err := x.Insert(tt); err != nil {
@@ -74,10 +76,10 @@ func CreateOrStopIssueStopwatch(userID int64, issueID int64) error {
 		}
 		// Add comment referencing to the tracked time
 		comment := &Comment{
-			IssueID: issueID,
+			IssueID:  issueID,
 			PosterID: userID,
-			Type: CommentTypeStopTracking,
-			Content: secToTime(timediff),
+			Type:     CommentTypeStopTracking,
+			Content:  secToTime(timediff),
 		}
 
 		if _, err := x.Insert(comment); err != nil {
@@ -87,10 +89,10 @@ func CreateOrStopIssueStopwatch(userID int64, issueID int64) error {
 		if _, err := x.Delete(sw); err != nil {
 			return err
 		}
-	}else {
+	} else {
 		// Create stopwatch
 		sw = &Stopwatch{
-			UserID: userID,
+			UserID:  userID,
 			IssueID: issueID,
 			Created: time.Now(),
 		}
@@ -101,9 +103,9 @@ func CreateOrStopIssueStopwatch(userID int64, issueID int64) error {
 
 		// Add comment referencing to the stopwatch
 		comment := &Comment{
-			IssueID: issueID,
+			IssueID:  issueID,
 			PosterID: userID,
-			Type: CommentTypeStartTracking,
+			Type:     CommentTypeStartTracking,
 		}
 
 		if _, err := x.Insert(comment); err != nil {
@@ -113,6 +115,7 @@ func CreateOrStopIssueStopwatch(userID int64, issueID int64) error {
 	return nil
 }
 
+// CancelStopwatch removes the given stopwatch and logs it into issue's timeline.
 func CancelStopwatch(userID int64, issueID int64) error {
 	sw, exists, err := getStopwatch(x, userID, issueID)
 	if err != nil {
@@ -124,9 +127,9 @@ func CancelStopwatch(userID int64, issueID int64) error {
 			return err
 		}
 		comment := &Comment{
-			PosterID:userID,
-			IssueID: issueID,
-			Type: CommentTypeCancelTracking,
+			PosterID: userID,
+			IssueID:  issueID,
+			Type:     CommentTypeCancelTracking,
 		}
 
 		if _, err := x.Insert(comment); err != nil {
@@ -136,10 +139,10 @@ func CancelStopwatch(userID int64, issueID int64) error {
 	return nil
 }
 
-func secToTime(duration int64) string{
-	seconds := duration%60
-	minutes := (duration/(60))%60
-	hours := duration/(60*60)
+func secToTime(duration int64) string {
+	seconds := duration % 60
+	minutes := (duration / (60)) % 60
+	hours := duration / (60 * 60)
 
 	var hrs string
 

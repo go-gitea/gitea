@@ -799,12 +799,12 @@ func (err ErrStopwatchNotExist) Error() string {
 // |____|   |__|  (____  /\___  >__|_ \\___  >____ |   |____|   |__|__|_|  /\___  >
 // \/     \/     \/    \/     \/                     \/     \/
 
-// ErrStopwatchNotExist represents a "Stopwatch Not Exist" kind of error.
+// ErrTrackedTimeNotExist represents a "TrackedTime Not Exist" kind of error.
 type ErrTrackedTimeNotExist struct {
 	ID int64
 }
 
-// IsErrStopwatchNotExist checks if an error is a ErrStopwatchNotExist.
+// IsErrTrackedTimeNotExist checks if an error is a ErrTrackedTimeNotExist.
 func IsErrTrackedTimeNotExist(err error) bool {
 	_, ok := err.(ErrStopwatchNotExist)
 	return ok

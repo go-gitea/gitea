@@ -1715,3 +1715,13 @@ function initDashboardSearch() {
         }
     });
 }
+function timeAddManual() {
+    $('.mini.modal')
+        .modal({
+            duration: 200,
+            onApprove: function() {
+                $('#add_time_manual_form').submit();
+            }
+        }).modal('show')
+    ;
+}

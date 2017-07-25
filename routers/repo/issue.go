@@ -582,6 +582,10 @@ func ViewIssue(ctx *context.Context) {
 
 	// Deal with the stopwatch
 	ctx.Data["IsStopwatchRunning"] = models.StopwatchExists(ctx.User.ID, issue.ID)
+	if ctx.Data["WorkingUsers"], err = models.TotalTimes(issue.ID); err != nil {
+		ctx.Handle(500, "TotalTimes", err)
+		return
+	}
 
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
