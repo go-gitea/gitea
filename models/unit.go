@@ -16,6 +16,7 @@ const (
 	UnitTypeWiki                                // 5 Wiki
 	UnitTypeExternalWiki                        // 6 ExternalWiki
 	UnitTypeExternalTracker                     // 7 ExternalTracker
+	UnitTypeTimeTracker			    // 8 Time tracker
 )
 
 var (
@@ -28,6 +29,7 @@ var (
 		UnitTypeWiki,
 		UnitTypeExternalWiki,
 		UnitTypeExternalTracker,
+		UnitTypeTimeTracker,
 	}
 
 	// defaultRepoUnits contains the default unit types
@@ -37,6 +39,7 @@ var (
 		UnitTypePullRequests,
 		UnitTypeReleases,
 		UnitTypeWiki,
+		UnitTypeTimeTracker,
 	}
 
 	// MustRepoUnits contains the units could not be disabled currently

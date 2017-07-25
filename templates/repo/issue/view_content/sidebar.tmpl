@@ -120,9 +120,9 @@
 				</form>
 			</div>
 		</div>
+		{{if .Repository.EnableUnit $.UnitTypeTimeTracker}}
 		<div class="ui divider"></div>
 		<div class="ui timetrack">
-			<!--TODO-->
 			<span class="text"><strong>{{.i18n.Tr "repo.issues.tracker"}}</strong></span>
 			<div>
 
@@ -130,7 +130,6 @@
 						{{if  $.IsStopwatchRunning}}
 							<div class="ui buttons fluid">
 								<a href="{{$.RepoLink}}/issues/{{.Issue.Index}}/stopwatch" class="ui button">{{.i18n.Tr "repo.issues.stop_tracking"}}</a>
-								<div class="or"></div>
 								<a href="{{$.RepoLink}}/issues/{{.Issue.Index}}/cancel" class="ui negative button">{{.i18n.Tr "repo.issues.cancel_tracking"}}</a>
 							</div>
 						{{else}}
@@ -180,6 +179,7 @@
 
 				</div>
 			</div>
+		{{end}}
 		{{end}}
 		{{end}}
 	</div>

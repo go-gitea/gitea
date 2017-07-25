@@ -156,14 +156,14 @@ func secToTime(duration int64) string {
 	if minutes > 0 {
 		if hours == 0 {
 			hrs = fmt.Sprintf("%dmin", minutes)
-		}else {
+		} else {
 			hrs = fmt.Sprintf("%s %dmin", hrs, minutes)
 		}
 	}
 	if seconds > 0 {
 		if hours == 0 && minutes == 0 {
 			hrs = fmt.Sprintf("%ds", seconds)
-		}else {
+		} else {
 			hrs = fmt.Sprintf("%s %ds", hrs, seconds)
 		}
 	}

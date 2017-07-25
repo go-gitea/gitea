@@ -14,8 +14,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
-	editorconfig "gopkg.in/editorconfig/editorconfig-core-go.v1"
-	macaron "gopkg.in/macaron.v1"
+	"gopkg.in/editorconfig/editorconfig-core-go.v1"
+	"gopkg.in/macaron.v1"
 )
 
 // PullRequest contains informations to make a pull request
@@ -556,5 +556,6 @@ func UnitTypes() macaron.Handler {
 		ctx.Data["UnitTypeWiki"] = models.UnitTypeWiki
 		ctx.Data["UnitTypeExternalWiki"] = models.UnitTypeExternalWiki
 		ctx.Data["UnitTypeExternalTracker"] = models.UnitTypeExternalTracker
+		ctx.Data["UnitTypeTimeTracker"] = models.UnitTypeTimeTracker
 	}
 }

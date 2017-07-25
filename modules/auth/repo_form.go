@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
-	macaron "gopkg.in/macaron.v1"
+	"gopkg.in/macaron.v1"
 )
 
 // _______________________________________    _________.______________________ _______________.___.
@@ -104,6 +104,7 @@ type RepoSettingForm struct {
 	TrackerURLFormat      string
 	TrackerIssueStyle     string
 	EnablePulls           bool
+	EnableTimetracker     bool
 }
 
 // Validate validates the fields
