@@ -141,8 +141,15 @@
 					<div class="field {{if (.Repository.EnableUnit $.UnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
 						<div class="field">
 							<div class="ui checkbox">
-								<input name="enable_timetracker" type="checkbox" {{if (.Repository.MustGetUnit $.UnitTypeIssues).IssuesConfig.EnableTimetracker}}checked{{end}}>
+								<input name="enable_timetracker" class="enable-system" data-target="#only_contributors" type="checkbox" {{if (.Repository.MustGetUnit $.UnitTypeIssues).IssuesConfig.EnableTimetracker}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.settings.enable_timetracker"}}</label>
+							</div>
+						</div>
+						<div class="field {{if not (.Repository.MustGetUnit $.UnitTypeIssues).IssuesConfig.EnableTimetracker}}disabled{{end}}" id="only_contributors">
+							<div class="ui checkbox">
+
+								<input name="allow_only_contributors_to_track_time" type="checkbox" {{if (.Repository.MustGetUnit $.UnitTypeIssues).IssuesConfig.AllowOnlyContributorsToTrackTime}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.settings.allow_only_contributors_to_track_time"}}</label>
 							</div>
 						</div>
 					</div>

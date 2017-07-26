@@ -586,6 +586,7 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Handle(500, "TotalTimes", err)
 		return
 	}
+	ctx.Data["CanUseTimetracking"] = !repo.MustGetUnit(models.UnitTypeIssues).IssuesConfig().AllowOnlyContributorsToTrackTime || ctx.Repo.IsWriter()
 
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster

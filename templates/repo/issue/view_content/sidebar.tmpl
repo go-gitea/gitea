@@ -120,7 +120,8 @@
 				</form>
 			</div>
 		</div>
-		{{if (.Repository.MustGetUnit $.UnitTypeIssues).IssuesConfig.EnableTimetracker}}
+		{{if (.Repository.MustGetUnit $.UnitTypeIssues).IssuesConfig.EnableTimetracker }}
+		{{if .CanUseTimetracking }}
 		<div class="ui divider"></div>
 		<div class="ui timetrack">
 			<span class="text"><strong>{{.i18n.Tr "repo.issues.tracker"}}</strong></span>
@@ -157,6 +158,7 @@
 
 			</div>
 		</div>
+		{{end}}
 
 		{{if gt (len .WorkingUsers) 0}}
 			<div class="ui divider"></div>
