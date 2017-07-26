@@ -504,8 +504,8 @@ func RequireRepoWriter() macaron.Handler {
 func RequireTimetrackingWriter() macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.IsSigned ||
-			((!ctx.Repo.IsWriter() && !ctx.User.IsAdmin) ||
-				!ctx.Repo.Repository.MustGetUnit(models.UnitTypeIssues).IssuesConfig().AllowOnlyContributorsToTrackTime) ||
+			(!ctx.Repo.IsWriter() && !ctx.User.IsAdmin &&
+				ctx.Repo.Repository.MustGetUnit(models.UnitTypeIssues).IssuesConfig().AllowOnlyContributorsToTrackTime) ||
 			!ctx.Repo.Repository.MustGetUnit(models.UnitTypeIssues).IssuesConfig().EnableTimetracker {
 			ctx.Handle(404, ctx.Req.RequestURI, nil)
 			return
