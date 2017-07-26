@@ -372,7 +372,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
 					m.Combo("/:id").Get(repo.GetDeployKey).
 						Delete(repo.DeleteDeploykey)
-				}, reqToken())
+				}, reqToken(), reqRepoWriter())
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
 						Post(reqToken(), bind(api.CreateIssueOption{}), repo.CreateIssue)
@@ -425,12 +425,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 				})
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
-						Post(reqToken(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
+						Post(reqToken(), reqRepoWriter(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
 					m.Combo("/:id").Get(repo.GetRelease).
-						Patch(reqToken(), bind(api.EditReleaseOption{}), repo.EditRelease).
-						Delete(reqToken(), repo.DeleteRelease)
+						Patch(reqToken(), reqRepoWriter(), bind(api.EditReleaseOption{}), repo.EditRelease).
+						Delete(reqToken(), reqRepoWriter(), repo.DeleteRelease)
 				})
-				m.Post("/mirror-sync", reqToken(), repo.MirrorSync)
+				m.Post("/mirror-sync", reqToken(), reqRepoWriter(), repo.MirrorSync)
 				m.Get("/editorconfig/:filename", context.RepoRef(), repo.GetEditorconfig)
 				m.Group("/pulls", func() {
 					m.Combo("").Get(bind(api.ListPullRequestsOptions{}), repo.ListPullRequests).
