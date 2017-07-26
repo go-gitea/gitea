@@ -129,17 +129,17 @@
 
 						{{if  $.IsStopwatchRunning}}
 							<div class="ui buttons fluid">
-								<a href="{{$.RepoLink}}/issues/{{.Issue.Index}}/stopwatch" class="ui button">{{.i18n.Tr "repo.issues.stop_tracking"}}</a>
-								<a href="{{$.RepoLink}}/issues/{{.Issue.Index}}/cancel" class="ui negative button">{{.i18n.Tr "repo.issues.cancel_tracking"}}</a>
+								<a href="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/toggle" class="ui button">{{.i18n.Tr "repo.issues.stop_tracking"}}</a>
+								<a href="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/cancel" class="ui negative button">{{.i18n.Tr "repo.issues.cancel_tracking"}}</a>
 							</div>
 						{{else}}
 							<div class="ui buttons two fluid">
-								<a href="{{$.RepoLink}}/issues/{{.Issue.Index}}/stopwatch" class="ui button poping up" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</a>
+								<a href="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/toggle" class="ui button poping up" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</a>
 								<button onclick="timeAddManual()" class="ui icon button green poping up" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted"><i class="octicon octicon-plus"></i> </button>
 								<div class="ui mini modal">
 									<div class="header">{{.i18n.Tr "repo.issues.add_time"}}</div>
 									<div class="content">
-										<form method="POST" id="add_time_manual_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/add_time" class="ui action input fluid">
+										<form method="POST" id="add_time_manual_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/add" class="ui action input fluid">
 											{{$.CsrfTokenHtml}}
 											<input placeholder='{{.i18n.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
 											<input placeholder='{{.i18n.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
