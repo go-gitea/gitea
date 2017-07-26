@@ -1097,8 +1097,8 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 		sess = x.Limit(setting.UI.IssuePagingNum, start)
 	} else {
 		sess = x.NewSession()
-		defer sess.Close()
 	}
+	defer sess.Close()
 
 	if len(opts.IssueIDs) > 0 {
 		sess.In("issue.id", opts.IssueIDs)
