@@ -586,7 +586,8 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Handle(500, "TotalTimes", err)
 		return
 	}
-	ctx.Data["CanUseTimetracking"] = !repo.MustGetUnit(models.UnitTypeIssues).IssuesConfig().AllowOnlyContributorsToTrackTime || ctx.Repo.IsWriter()
+	ctx.Data["IsTimetrackerEnabled"] = ctx.Repo.IsTimetrackerEnabled()
+	ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker()
 
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
@@ -680,7 +681,8 @@ func ViewIssue(ctx *context.Context) {
 	ctx.HTML(200, tplIssueView)
 }
 
-func getActionIssue(ctx *context.Context) *models.Issue {
+// GetActionIssue will return the issue which is used in the context.
+func GetActionIssue(ctx *context.Context) *models.Issue {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {

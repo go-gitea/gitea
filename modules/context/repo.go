@@ -85,6 +85,24 @@ func (r *Repository) CanCommitToBranch() (bool, error) {
 	return r.CanEnableEditor() && !protectedBranch, nil
 }
 
+// IsTimetrackerEnabled returns whether or not the timetracker is enabled. It also returns false if an error occurs.
+func (r *Repository) IsTimetrackerEnabled() bool{
+	if unit, err := r.Repository.GetUnit(models.UnitTypeIssues); err != nil {
+		return false
+	}else {
+		return unit.IssuesConfig().EnableTimetracker
+	}
+}
+
+// CanUseTimetracker returns whether or not a user can use the timetracker.
+func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) bool {
+	// Checking for following:
+	// 1. Is timetracker enabled
+	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
+	return r.IsTimetrackerEnabled() && ((!r.IsWriter() && !r.IsAdmin() && !issue.IsPoster(user.ID) && issue.AssigneeID != user.ID &&
+			r.Repository.MustGetUnit(models.UnitTypeIssues).IssuesConfig().AllowOnlyContributorsToTrackTime))
+}
+
 // GetEditorconfig returns the .editorconfig definition if found in the
 // HEAD of the default repo branch.
 func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
@@ -494,19 +512,6 @@ func RequireRepoAdmin() macaron.Handler {
 func RequireRepoWriter() macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.IsSigned || (!ctx.Repo.IsWriter() && !ctx.User.IsAdmin) {
-			ctx.Handle(404, ctx.Req.RequestURI, nil)
-			return
-		}
-	}
-}
-
-// RequireTimetrackingWriter returns a macaron middleware for requiring timetracking write permission
-func RequireTimetrackingWriter() macaron.Handler {
-	return func(ctx *Context) {
-		if !ctx.IsSigned ||
-			(!ctx.Repo.IsWriter() && !ctx.User.IsAdmin &&
-				ctx.Repo.Repository.MustGetUnit(models.UnitTypeIssues).IssuesConfig().AllowOnlyContributorsToTrackTime) ||
-			!ctx.Repo.Repository.MustGetUnit(models.UnitTypeIssues).IssuesConfig().EnableTimetracker {
 			ctx.Handle(404, ctx.Req.RequestURI, nil)
 			return
 		}

@@ -17,6 +17,10 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	//       200: TrackedTimes
 	//	 404: error
 	//       500: error
+	if !ctx.Repo.IsTimetrackerEnabled() {
+		ctx.Error(404, "IsTimetrackerEnabled", "Timetracker is diabled")
+		return
+	}
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -46,10 +50,6 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	//       403: error
 	//	 404: error
 	//       500: error
-	if !ctx.Repo.IsWriter() && ctx.Repo.Repository.MustGetUnit(models.UnitTypeIssues).IssuesConfig().AllowOnlyContributorsToTrackTime {
-		ctx.Status(403)
-		return
-	}
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -59,6 +59,12 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 		}
 		return
 	}
+	
+	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
+		ctx.Status(403)
+		return
+	}
+
 
 	if err := models.AddTime(ctx.User.ID, issue.ID, form.Time); err != nil {
 		ctx.Error(500, "AddTime", err)

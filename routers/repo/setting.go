@@ -31,6 +31,7 @@ const (
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
+	ctx.Data["IsTimetrackerEnabled"] = ctx.Repo.IsTimetrackerEnabled()
 	ctx.HTML(200, tplSettingsOptions)
 }
 

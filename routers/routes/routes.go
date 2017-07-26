@@ -335,7 +335,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 	reqRepoAdmin := context.RequireRepoAdmin()
 	reqRepoWriter := context.RequireRepoWriter()
-	reqTimetrackingWriter := context.RequireTimetrackingWriter()
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
@@ -473,7 +472,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Group("/stopwatch", func() {
 						m.Get("/toggle", repo.IssueStopwatch)
 						m.Get("/cancel", repo.CancelStopwatch)
-					}, reqTimetrackingWriter)
+					}, func(ctx *context.Context) {
+						if !ctx.Repo.CanUseTimetracker(repo.GetActionIssue(ctx), ctx.User) {
+							ctx.Handle(404, ctx.Req.RequestURI, nil)
+							return
+						}
+					})
 
 				})
 			})
