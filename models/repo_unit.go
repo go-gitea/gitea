@@ -72,7 +72,7 @@ func (cfg *ExternalTrackerConfig) ToDB() ([]byte, error) {
 
 // IssuesConfig describes issues config
 type IssuesConfig struct {
-	EnableTimetracker bool
+	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 }
 

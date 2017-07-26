@@ -46,7 +46,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	//       403: error
 	//	 404: error
 	//       500: error
-	if !ctx.Repo.IsWriter() && ctx.Repo.Repository.MustGetUnit(models.UnitTypeIssues).IssuesConfig().AllowOnlyContributorsToTrackTime{
+	if !ctx.Repo.IsWriter() && ctx.Repo.Repository.MustGetUnit(models.UnitTypeIssues).IssuesConfig().AllowOnlyContributorsToTrackTime {
 		ctx.Status(403)
 		return
 	}

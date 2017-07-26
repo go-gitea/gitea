@@ -14,7 +14,6 @@ import (
 // IssueStopwatch manges the stopwatch
 func IssueStopwatch(c *context.Context) {
 
-
 	issueIndex := c.ParamsInt64("index")
 	issue, err := models.GetIssueByIndex(c.Repo.Repository.ID, issueIndex)
 

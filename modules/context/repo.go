@@ -500,7 +500,7 @@ func RequireRepoWriter() macaron.Handler {
 	}
 }
 
-// RequireRepoWriter returns a macaron middleware for requiring repository write permission
+// RequireTimetrackingWriter returns a macaron middleware for requiring timetracking write permission
 func RequireTimetrackingWriter() macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.IsSigned ||

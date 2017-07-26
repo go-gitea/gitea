@@ -95,16 +95,16 @@ type RepoSettingForm struct {
 	EnablePrune   bool
 
 	// Advanced settings
-	EnableWiki            bool
-	EnableExternalWiki    bool
-	ExternalWikiURL       string
-	EnableIssues          bool
-	EnableExternalTracker bool
-	ExternalTrackerURL    string
-	TrackerURLFormat      string
-	TrackerIssueStyle     string
-	EnablePulls           bool
-	EnableTimetracker     bool
+	EnableWiki                       bool
+	EnableExternalWiki               bool
+	ExternalWikiURL                  string
+	EnableIssues                     bool
+	EnableExternalTracker            bool
+	ExternalTrackerURL               string
+	TrackerURLFormat                 string
+	TrackerIssueStyle                string
+	EnablePulls                      bool
+	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 }
 
