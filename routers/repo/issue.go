@@ -587,7 +587,7 @@ func ViewIssue(ctx *context.Context) {
 		return
 	}
 	ctx.Data["IsTimetrackerEnabled"] = ctx.Repo.IsTimetrackerEnabled()
-	ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker()
+	ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(issue, ctx.User)
 
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
@@ -719,7 +719,7 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 
 // UpdateIssueTitle change issue's title
 func UpdateIssueTitle(ctx *context.Context) {
-	issue := getActionIssue(ctx)
+	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -747,7 +747,7 @@ func UpdateIssueTitle(ctx *context.Context) {
 
 // UpdateIssueContent change issue's content
 func UpdateIssueContent(ctx *context.Context) {
-	issue := getActionIssue(ctx)
+	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
 	}

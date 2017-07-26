@@ -59,12 +59,11 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 		}
 		return
 	}
-	
+
 	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
 		ctx.Status(403)
 		return
 	}
-
 
 	if err := models.AddTime(ctx.User.ID, issue.ID, form.Time); err != nil {
 		ctx.Error(500, "AddTime", err)
