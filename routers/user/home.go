@@ -270,61 +270,46 @@ func Issues(ctx *context.Context) {
 		userRepoIDs = []int64{-1}
 	}
 
-	var issues []*models.Issue
-	switch filterMode {
-	case models.FilterModeAll:
-		// Get all issues from repositories from this user.
-		issues, err = models.Issues(&models.IssuesOptions{
-			RepoIDs:  userRepoIDs,
-			RepoID:   repoID,
-			Page:     page,
-			IsClosed: util.OptionalBoolOf(isShowClosed),
-			IsPull:   util.OptionalBoolOf(isPullList),
-			SortType: sortType,
-		})
-
-	case models.FilterModeAssign:
-		// Get all issues assigned to this user.
-		issues, err = models.Issues(&models.IssuesOptions{
-			RepoID:     repoID,
-			AssigneeID: ctxUser.ID,
-			Page:       page,
-			IsClosed:   util.OptionalBoolOf(isShowClosed),
-			IsPull:     util.OptionalBoolOf(isPullList),
-			SortType:   sortType,
-		})
-
-	case models.FilterModeCreate:
-		// Get all issues created by this user.
-		issues, err = models.Issues(&models.IssuesOptions{
-			RepoID:   repoID,
-			PosterID: ctxUser.ID,
-			Page:     page,
-			IsClosed: util.OptionalBoolOf(isShowClosed),
-			IsPull:   util.OptionalBoolOf(isPullList),
-			SortType: sortType,
-		})
-	case models.FilterModeMention:
-		// Get all issues created by this user.
-		issues, err = models.Issues(&models.IssuesOptions{
-			RepoID:      repoID,
-			MentionedID: ctxUser.ID,
-			Page:        page,
-			IsClosed:    util.OptionalBoolOf(isShowClosed),
-			IsPull:      util.OptionalBoolOf(isPullList),
-			SortType:    sortType,
-		})
+	opts := &models.IssuesOptions{
+		RepoID:   repoID,
+		IsClosed: util.OptionalBoolOf(isShowClosed),
+		IsPull:   util.OptionalBoolOf(isPullList),
+		SortType: sortType,
 	}
 
+	switch filterMode {
+	case models.FilterModeAll:
+		opts.RepoIDs = userRepoIDs
+	case models.FilterModeAssign:
+		opts.AssigneeID = ctxUser.ID
+	case models.FilterModeCreate:
+		opts.PosterID = ctxUser.ID
+	case models.FilterModeMention:
+		opts.MentionedID = ctxUser.ID
+	}
+
+	counts, err := models.CountIssuesByRepo(opts)
+	if err != nil {
+		ctx.Handle(500, "CountIssuesByRepo", err)
+		return
+	}
+
+	opts.Page = page
+	opts.PageSize = setting.UI.IssuePagingNum
+	issues, err := models.Issues(opts)
 	if err != nil {
 		ctx.Handle(500, "Issues", err)
 		return
 	}
 
-	showRepos, err := models.IssueList(issues).LoadRepositories()
-	if err != nil {
-		ctx.Handle(500, "LoadRepositories", fmt.Errorf("%v", err))
-		return
+	showRepos := make([]*models.Repository, 0, len(counts))
+	for repoID := range counts {
+		repo, err := models.GetRepositoryByID(repoID)
+		if err != nil {
+			ctx.Handle(500, "GetRepositoryByID", err)
+			return
+		}
+		showRepos = append(showRepos, repo)
 	}
 
 	if repoID > 0 {
@@ -369,6 +354,7 @@ func Issues(ctx *context.Context) {
 
 	ctx.Data["Issues"] = issues
 	ctx.Data["Repos"] = showRepos
+	ctx.Data["Counts"] = counts
 	ctx.Data["Page"] = paginater.New(total, setting.UI.IssuePagingNum, page, 5)
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["ViewType"] = viewType

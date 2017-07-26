@@ -23,7 +23,7 @@
 					{{range .Repos}}
 						<a class="{{if eq $.RepoID .ID}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}{{if not (eq $.RepoID .ID)}}&repo={{.ID}}{{end}}&sort={{$.SortType}}&state={{$.State}}">
 							<span class="text truncate">{{.FullName}}</span>
-							<div class="floating ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{if $.IsShowClosed}}{{if $.PageIsPulls}}{{.NumClosedPulls}}{{else}}{{.NumClosedIssues}}{{end}}{{else}}{{if $.PageIsPulls}}{{.NumOpenPulls}}{{else}}{{.NumOpenIssues}}{{end}}{{end}}</div>
+							<div class="floating ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts .ID}}</div>
 						</a>
 					{{end}}
 				</div>
