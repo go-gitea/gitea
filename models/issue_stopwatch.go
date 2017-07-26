@@ -29,18 +29,6 @@ func (s *Stopwatch) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
-// GetStopwatchByID returns the stopwatch by given ID.
-func GetStopwatchByID(id int64) (*Stopwatch, error) {
-	c := new(Stopwatch)
-	has, err := x.Id(id).Get(c)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrStopwatchNotExist{id}
-	}
-	return c, nil
-}
-
 func getStopwatch(e Engine, userID, issueID int64) (sw *Stopwatch, exists bool, err error) {
 	sw = new(Stopwatch)
 	exists, err = e.

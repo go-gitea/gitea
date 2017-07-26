@@ -42,18 +42,6 @@ func TestGetTrackedTimesByUser(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestGetTrackedTimeByID(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	times, err := GetTrackedTimeByID(1)
-	assert.Equal(t, times.Time, int64(400))
-	assert.NoError(t, err)
-
-	times, err = GetTrackedTimeByID(-1)
-	assert.Error(t, err)
-	assert.Equal(t, true, IsErrTrackedTimeNotExist(err))
-}
-
 func TestTotalTimes(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 

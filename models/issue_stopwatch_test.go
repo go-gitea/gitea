@@ -6,21 +6,6 @@ import (
 	"time"
 )
 
-func TestGetStopwatchByID(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	sw, err := GetStopwatchByID(1)
-	assert.Equal(t, sw.CreatedUnix, int64(1500988502))
-	assert.Equal(t, sw.UserID, int64(1))
-	// Tue Jul 25 13:15:02 2017 UTC
-	assert.Equal(t, sw.Created, time.Unix(1500988502, 0))
-	assert.NoError(t, err)
-
-	sw, err = GetStopwatchByID(3)
-	assert.Error(t, err)
-	assert.Equal(t, true, IsErrStopwatchNotExist(err))
-}
-
 func TestCancelStopwatch(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 

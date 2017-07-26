@@ -27,18 +27,6 @@ func (t *TrackedTime) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
-// GetTrackedTimeByID returns the tracked time by given ID.
-func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
-	c := new(TrackedTime)
-	has, err := x.Id(id).Get(c)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrTrackedTimeNotExist{id}
-	}
-	return c, nil
-}
-
 // GetTrackedTimesByIssue will return all tracked times that are part of the issue
 func GetTrackedTimesByIssue(issueID int64) (trackedTimes []*TrackedTime, err error) {
 	err = x.Where("issue_id = ?", issueID).Find(&trackedTimes)
