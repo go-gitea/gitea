@@ -8,13 +8,32 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
+	"github.com/go-xorm/core"
+	"github.com/go-xorm/xorm"
+	_ "github.com/mattn/go-sqlite3" // for the test engine
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/testfixtures.v2"
 )
 
 // TestFixturesAreConsistent assert that test fixtures are consistent
 func TestFixturesAreConsistent(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	CheckConsistencyForAll(t)
+}
+
+// CreateTestEngine create an xorm engine for testing
+func CreateTestEngine() error {
+	var err error
+	x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
+	if err != nil {
+		return err
+	}
+	x.SetMapper(core.GonicMapper{})
+	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
+		return err
+	}
+
+	return InitFixtures(&testfixtures.SQLite{}, "fixtures/")
 }
 
 func TestMain(m *testing.M) {
