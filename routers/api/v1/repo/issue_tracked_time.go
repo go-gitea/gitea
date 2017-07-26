@@ -87,7 +87,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	//       200: TrackedTimes
 	//	 404: error
 	//       500: error
-	user := GetUserByParamsName(ctx, ctx.Params(":username"))
+	user := GetUserByParamsName(ctx, ":username")
 	if user == nil {
 		return
 	}
