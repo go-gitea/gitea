@@ -85,23 +85,12 @@ func (r *Repository) CanCommitToBranch() (bool, error) {
 	return r.CanEnableEditor() && !protectedBranch, nil
 }
 
-// IsTimetrackerEnabled returns whether or not the timetracker is enabled. It also returns false if an error occurs.
-func (r *Repository) IsTimetrackerEnabled() bool {
-	var u *models.RepoUnit
-	var err error
-	if u, err = r.Repository.GetUnit(models.UnitTypeIssues); err != nil {
-		return false
-	}
-	return u.IssuesConfig().EnableTimetracker
-
-}
-
 // CanUseTimetracker returns whether or not a user can use the timetracker.
 func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) bool {
 	// Checking for following:
 	// 1. Is timetracker enabled
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
-	return r.IsTimetrackerEnabled() && (!r.Repository.MustGetUnit(models.UnitTypeIssues).IssuesConfig().AllowOnlyContributorsToTrackTime ||
+	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.MustGetUnit(models.UnitTypeIssues).IssuesConfig().AllowOnlyContributorsToTrackTime ||
 		r.IsWriter() || issue.IsPoster(user.ID) || issue.AssigneeID == user.ID)
 }
 

@@ -586,7 +586,6 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Handle(500, "TotalTimes", err)
 		return
 	}
-	ctx.Data["IsTimetrackerEnabled"] = ctx.Repo.IsTimetrackerEnabled()
 	ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(issue, ctx.User)
 
 	// Render comments and and fetch participants.

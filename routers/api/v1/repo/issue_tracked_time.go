@@ -17,7 +17,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	//       200: TrackedTimes
 	//	 404: error
 	//       500: error
-	if !ctx.Repo.IsTimetrackerEnabled() {
+	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.Error(404, "IsTimetrackerEnabled", "Timetracker is diabled")
 		return
 	}
