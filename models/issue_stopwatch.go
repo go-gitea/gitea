@@ -44,13 +44,21 @@ func StopwatchExists(userID int64, issueID int64) bool {
 	return exists
 }
 
+// HasUserAStopwatch returns true if the user has a stopwatch
+func HasUserAStopwatch(userID int64) (exists bool, sw *Stopwatch, err error) {
+	sw = new(Stopwatch)
+	exists, err = x.
+		Where("user_id = ?", userID).
+		Get(sw)
+	return
+}
+
 // CreateOrStopIssueStopwatch will create or remove a stopwatch and will log it into issue's timeline.
 func CreateOrStopIssueStopwatch(userID int64, issueID int64) error {
 	sw, exists, err := getStopwatch(x, userID, issueID)
 	if err != nil {
 		return err
 	}
-
 	if exists {
 		// Create tracked time out of the time difference between start date and actual date
 		timediff := time.Now().Unix() - sw.CreatedUnix

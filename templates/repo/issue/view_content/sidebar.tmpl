@@ -134,6 +134,11 @@
 								<a href="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/cancel" class="ui negative button">{{.i18n.Tr "repo.issues.cancel_tracking"}}</a>
 							</div>
 						{{else}}
+							{{if .HasUserAStopwatch}}
+								<div class="ui warning message">
+									{{.i18n.Tr "repo.issues.tracking_already_started" .OtherStopwatchURL | Safe}}
+								</div>
+							{{end}}
 							<div class="ui buttons two fluid">
 								<a href="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/toggle" class="ui button poping up" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</a>
 								<button onclick="timeAddManual()" class="ui icon button green poping up" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted"><i class="octicon octicon-plus"></i> </button>

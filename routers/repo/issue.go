@@ -579,14 +579,34 @@ func ViewIssue(ctx *context.Context) {
 		comment      *models.Comment
 		participants = make([]*models.User, 1, 10)
 	)
-
-	// Deal with the stopwatch
-	ctx.Data["IsStopwatchRunning"] = models.StopwatchExists(ctx.User.ID, issue.ID)
-	if ctx.Data["WorkingUsers"], err = models.TotalTimes(issue.ID); err != nil {
-		ctx.Handle(500, "TotalTimes", err)
-		return
+	if ctx.Repo.Repository.IsTimetrackerEnabled() {
+		// Deal with the stopwatch
+		ctx.Data["IsStopwatchRunning"] = models.StopwatchExists(ctx.User.ID, issue.ID)
+		if !ctx.Data["IsStopwatchRunning"].(bool) {
+			var exists bool
+			var sw *models.Stopwatch
+			if exists, sw, err = models.HasUserAStopwatch(ctx.User.ID); err != nil {
+				ctx.Handle(500, "HasUserAStopwatch", err)
+				return
+			}
+			ctx.Data["HasUserAStopwatch"] = exists
+			if exists {
+				// Add warning if the user has already a stopwatch
+				var otherIssue *models.Issue
+				if otherIssue, err = models.GetIssueByID(sw.IssueID); err != nil {
+					ctx.Handle(500, "HasUserAStopwatch", err)
+					return
+				}
+				// Add link to the issue of the already running stopwatch
+				ctx.Data["OtherStopwatchURL"] = otherIssue.HTMLURL()
+			}
+		}
+		if ctx.Data["WorkingUsers"], err = models.TotalTimes(issue.ID); err != nil {
+			ctx.Handle(500, "TotalTimes", err)
+			return
+		}
+		ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(issue, ctx.User)
 	}
-	ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(issue, ctx.User)
 
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster

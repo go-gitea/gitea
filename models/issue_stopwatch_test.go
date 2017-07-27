@@ -25,6 +25,19 @@ func TestStopwatchExists(t *testing.T) {
 	assert.False(t, StopwatchExists(1, 2))
 }
 
+func TestHasUserAStopwatch(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	exists, sw, err := HasUserAStopwatch(1)
+	assert.True(t, exists)
+	assert.Equal(t, sw.ID, int64(1))
+	assert.NoError(t, err)
+
+	exists, _, err = HasUserAStopwatch(3)
+	assert.False(t, exists)
+	assert.NoError(t, err)
+}
+
 func TestCreateOrStopIssueStopwatch(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
