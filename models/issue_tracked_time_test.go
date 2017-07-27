@@ -42,6 +42,26 @@ func TestGetTrackedTimesByUser(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestGetTrackedTimesByRepo(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	times, err := GetTrackedTimesByRepo(int64(2))
+	assert.Len(t, times, 1)
+	assert.Equal(t, times[0].Time, int64(1))
+	assert.NoError(t, err)
+	issue, err := GetIssueByID(times[0].IssueID)
+	assert.NoError(t, err)
+	assert.Equal(t, issue.RepoID, int64(2))
+
+	times, err = GetTrackedTimesByRepo(int64(1))
+	assert.Len(t, times, 4)
+	assert.NoError(t, err)
+
+	times, err = GetTrackedTimesByRepo(int64(10))
+	assert.Len(t, times, 0)
+	assert.NoError(t, err)
+}
+
 func TestTotalTimes(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 

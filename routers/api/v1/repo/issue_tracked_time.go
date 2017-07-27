@@ -78,7 +78,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 
 // ListTrackedTimesByUser  lists all tracked times of the user
 func ListTrackedTimesByUser(ctx *context.APIContext) {
-	// swagger:route GET /user/{username}/times userTrackedTimes
+	// swagger:route GET /repos/{username}/{reponame}/times/{timetrackingusername} userTrackedTimes
 	//
 	//     Produces:
 	//     - application/json
@@ -87,12 +87,30 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	//       200: TrackedTimes
 	//	 404: error
 	//       500: error
-	user := GetUserByParamsName(ctx, ":username")
+	user := GetUserByParamsName(ctx, ":timetrackingusername")
 	if user == nil {
 		return
 	}
 
 	if trackedTimes, err := models.GetTrackedTimesByUser(user.ID); err != nil {
+		ctx.Error(500, "GetTrackedTimesByUser", err)
+	} else {
+		ctx.JSON(200, &trackedTimes)
+	}
+}
+
+// ListTrackedTimesByRepository lists all tracked times of the user
+func ListTrackedTimesByRepository(ctx *context.APIContext) {
+	// swagger:route GET /repos/{username}/{reponame}/times repoTrackedTimes
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: TrackedTimes
+	//	 404: error
+	//       500: error
+	if trackedTimes, err := models.GetTrackedTimesByRepo(ctx.Repo.Repository.ID); err != nil {
 		ctx.Error(500, "GetTrackedTimesByUser", err)
 	} else {
 		ctx.JSON(200, &trackedTimes)

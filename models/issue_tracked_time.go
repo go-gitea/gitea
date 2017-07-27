@@ -33,9 +33,15 @@ func GetTrackedTimesByIssue(issueID int64) (trackedTimes []*TrackedTime, err err
 	return
 }
 
-// GetTrackedTimesByUser will return all tracked times which are created by the user
+// GetTrackedTimesByUser will return all tracked times which are created by the user.
 func GetTrackedTimesByUser(userID int64) (trackedTimes []*TrackedTime, err error) {
 	err = x.Where("user_id = ?", userID).Find(&trackedTimes)
+	return
+}
+
+// GetTrackedTimesByRepo will return all tracked times of a repository.
+func GetTrackedTimesByRepo(repositoryID int64) (trackedTimes []*TrackedTime, err error) {
+	err = x.Join("INNER", "issue", "issue.id = tracked_time.issue_id").Where("issue.repo_id = ?", repositoryID).Find(&trackedTimes)
 	return
 }
 

@@ -288,7 +288,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Get("/starred", user.GetStarredRepos)
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
-				m.Get("/times", repo.ListTrackedTimesByUser)
 			})
 		}, reqToken())
 
@@ -375,6 +374,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Combo("/:id").Get(repo.GetDeployKey).
 						Delete(repo.DeleteDeploykey)
 				}, reqToken())
+				m.Group("/times", func() {
+					m.Combo("").Get(repo.ListTrackedTimesByRepository)
+					m.Combo("/:timetrackingusername").Get(repo.ListTrackedTimesByUser)
+
+				}, mustEnableIssues)
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
 						Post(reqToken(), bind(api.CreateIssueOption{}), repo.CreateIssue)
