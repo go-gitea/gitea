@@ -92,3 +92,9 @@ func AssertSuccessfulInsert(t *testing.T, beans ...interface{}) {
 func AssertCount(t *testing.T, bean interface{}, expected interface{}) {
 	assert.EqualValues(t, expected, GetCount(t, bean))
 }
+
+// AssertInt64InRange assert value is in range [low, high]
+func AssertInt64InRange(t *testing.T, low, high, value int64) {
+	assert.True(t, value >= low && value <= high,
+		"Expected value in range [%d, %d], found %d", low, high, value)
+}

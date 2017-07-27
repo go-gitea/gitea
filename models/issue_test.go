@@ -7,6 +7,7 @@ package models
 import (
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -145,4 +146,24 @@ func TestIssue_ClearLabels(t *testing.T) {
 		assert.NoError(t, issue.ClearLabels(doer))
 		AssertNotExistsBean(t, &IssueLabel{IssueID: test.issueID})
 	}
+}
+
+func TestUpdateIssueCols(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	issue := AssertExistsAndLoadBean(t, &Issue{}).(*Issue)
+
+	const newTitle = "New Title for unit test"
+	issue.Title = newTitle
+
+	prevContent := issue.Content
+	issue.Content = "This should have no effect"
+
+	now := time.Now().Unix()
+	assert.NoError(t, UpdateIssueCols(issue, "name"))
+	then := time.Now().Unix()
+
+	updatedIssue := AssertExistsAndLoadBean(t, &Issue{ID: issue.ID}).(*Issue)
+	assert.EqualValues(t, newTitle, updatedIssue.Title)
+	assert.EqualValues(t, prevContent, updatedIssue.Content)
+	AssertInt64InRange(t, now, then, updatedIssue.UpdatedUnix)
 }
