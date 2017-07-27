@@ -307,6 +307,9 @@
           "200": {
             "$ref": "#/responses/AddTimeOption"
           },
+          "403": {
+            "$ref": "#/responses/error"
+          },
           "404": {
             "$ref": "#/responses/error"
           },
@@ -360,6 +363,44 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{username}/{reponame}/times": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "repoTrackedTimes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimes"
+          },
+          "404": {
+            "$ref": "#/responses/error"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{username}/{reponame}/times/{timetrackingusername}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "userTrackedTimes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimes"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           },
           "500": {
             "$ref": "#/responses/error"
@@ -727,25 +768,6 @@
         }
       }
     },
-    "/user/{username}/times": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "operationId": "userTrackedTimes",
-        "responses": {
-          "200": {
-            "$ref": "#/responses/TrackedTimes"
-          },
-          "404": {
-            "$ref": "#/responses/error"
-          },
-          "500": {
-            "$ref": "#/responses/error"
-          }
-        }
-      }
-    },
     "/users/:username/followers": {
       "get": {
         "produces": [
@@ -1000,7 +1022,7 @@
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
     "GPGKeyEmail": {
-      "description": "GPGKeyEmail a email attache to a GPGKey",
+      "description": "GPGKeyEmail an email attached to a GPGKey",
       "type": "object",
       "properties": {
         "email": {
