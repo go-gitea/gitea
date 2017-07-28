@@ -148,6 +148,19 @@ func (issue *Issue) loadAssignee(e Engine) (err error) {
 	return
 }
 
+func (issue *Issue) loadPullRequest(e Engine) (err error) {
+	if issue.IsPull && issue.PullRequest == nil {
+		issue.PullRequest, err = getPullRequestByIssueID(e, issue.ID)
+		if err != nil {
+			if IsErrPullRequestNotExist(err) {
+				return err
+			}
+			return fmt.Errorf("getPullRequestByIssueID [%d]: %v", issue.ID, err)
+		}
+	}
+	return nil
+}
+
 func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadRepo(e); err != nil {
 		return
@@ -172,12 +185,9 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 		return
 	}
 
-	if issue.IsPull && issue.PullRequest == nil {
+	if err = issue.loadPullRequest(e); err != nil && !IsErrPullRequestNotExist(err) {
 		// It is possible pull request is not yet created.
-		issue.PullRequest, err = getPullRequestByIssueID(e, issue.ID)
-		if err != nil && !IsErrPullRequestNotExist(err) {
-			return fmt.Errorf("getPullRequestByIssueID [%d]: %v", issue.ID, err)
-		}
+		return err
 	}
 
 	if issue.Attachments == nil {
@@ -321,8 +331,15 @@ func (issue *Issue) HasLabel(labelID int64) bool {
 func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 	var err error
 	if issue.IsPull {
-		err = issue.PullRequest.LoadIssue()
-		if err != nil {
+		if err = issue.loadRepo(x); err != nil {
+			log.Error(4, "loadRepo: %v", err)
+			return
+		}
+		if err = issue.loadPullRequest(x); err != nil {
+			log.Error(4, "loadPullRequest: %v", err)
+			return
+		}
+		if err = issue.PullRequest.LoadIssue(); err != nil {
 			log.Error(4, "LoadIssue: %v", err)
 			return
 		}
@@ -429,6 +446,8 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 	}
 
 	if err := issue.loadRepo(sess); err != nil {
+		return err
+	} else if err = issue.loadPullRequest(sess); err != nil {
 		return err
 	}
 
@@ -561,6 +580,7 @@ func (issue *Issue) ReadBy(userID int64) error {
 }
 
 func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
+	cols = append(cols, "updated_unix")
 	if _, err := e.Id(issue.ID).Cols(cols...).Update(issue); err != nil {
 		return err
 	}
@@ -1078,8 +1098,8 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 		sess = x.Limit(setting.UI.IssuePagingNum, start)
 	} else {
 		sess = x.NewSession()
-		defer sess.Close()
 	}
+	defer sess.Close()
 
 	if len(opts.IssueIDs) > 0 {
 		sess.In("issue.id", opts.IssueIDs)

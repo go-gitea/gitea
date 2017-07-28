@@ -7,6 +7,7 @@ package models
 import (
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -80,4 +81,89 @@ func TestGetParticipantsByIssueID(t *testing.T) {
 	// User 2 only labeled issue1 (see fixtures/comment.yml)
 	// Users 3 and 5 made actual comments (see fixtures/comment.yml)
 	checkParticipants(1, []int{3, 5})
+}
+
+func TestIssue_AddLabel(t *testing.T) {
+	var tests = []struct {
+		issueID int64
+		labelID int64
+		doerID  int64
+	}{
+		{1, 2, 2}, // non-pull-request, not-already-added label
+		{1, 1, 2}, // non-pull-request, already-added label
+		{2, 2, 2}, // pull-request, not-already-added label
+		{2, 1, 2}, // pull-request, already-added label
+	}
+	for _, test := range tests {
+		assert.NoError(t, PrepareTestDatabase())
+		issue := AssertExistsAndLoadBean(t, &Issue{ID: test.issueID}).(*Issue)
+		label := AssertExistsAndLoadBean(t, &Label{ID: test.labelID}).(*Label)
+		doer := AssertExistsAndLoadBean(t, &User{ID: test.doerID}).(*User)
+		assert.NoError(t, issue.AddLabel(doer, label))
+		AssertExistsAndLoadBean(t, &IssueLabel{IssueID: test.issueID, LabelID: test.labelID})
+	}
+}
+
+func TestIssue_AddLabels(t *testing.T) {
+	var tests = []struct {
+		issueID  int64
+		labelIDs []int64
+		doerID   int64
+	}{
+		{1, []int64{1, 2}, 2}, // non-pull-request
+		{1, []int64{}, 2},     // non-pull-request, empty
+		{2, []int64{1, 2}, 2}, // pull-request
+		{2, []int64{}, 1},     // pull-request, empty
+	}
+	for _, test := range tests {
+		assert.NoError(t, PrepareTestDatabase())
+		issue := AssertExistsAndLoadBean(t, &Issue{ID: test.issueID}).(*Issue)
+		labels := make([]*Label, len(test.labelIDs))
+		for i, labelID := range test.labelIDs {
+			labels[i] = AssertExistsAndLoadBean(t, &Label{ID: labelID}).(*Label)
+		}
+		doer := AssertExistsAndLoadBean(t, &User{ID: test.doerID}).(*User)
+		assert.NoError(t, issue.AddLabels(doer, labels))
+		for _, labelID := range test.labelIDs {
+			AssertExistsAndLoadBean(t, &IssueLabel{IssueID: test.issueID, LabelID: labelID})
+		}
+	}
+}
+
+func TestIssue_ClearLabels(t *testing.T) {
+	var tests = []struct {
+		issueID int64
+		doerID  int64
+	}{
+		{1, 2}, // non-pull-request, has labels
+		{2, 2}, // pull-request, has labels
+		{3, 2}, // pull-request, has no labels
+	}
+	for _, test := range tests {
+		assert.NoError(t, PrepareTestDatabase())
+		issue := AssertExistsAndLoadBean(t, &Issue{ID: test.issueID}).(*Issue)
+		doer := AssertExistsAndLoadBean(t, &User{ID: test.doerID}).(*User)
+		assert.NoError(t, issue.ClearLabels(doer))
+		AssertNotExistsBean(t, &IssueLabel{IssueID: test.issueID})
+	}
+}
+
+func TestUpdateIssueCols(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	issue := AssertExistsAndLoadBean(t, &Issue{}).(*Issue)
+
+	const newTitle = "New Title for unit test"
+	issue.Title = newTitle
+
+	prevContent := issue.Content
+	issue.Content = "This should have no effect"
+
+	now := time.Now().Unix()
+	assert.NoError(t, UpdateIssueCols(issue, "name"))
+	then := time.Now().Unix()
+
+	updatedIssue := AssertExistsAndLoadBean(t, &Issue{ID: issue.ID}).(*Issue)
+	assert.EqualValues(t, newTitle, updatedIssue.Title)
+	assert.EqualValues(t, prevContent, updatedIssue.Content)
+	AssertInt64InRange(t, now, then, updatedIssue.UpdatedUnix)
 }
