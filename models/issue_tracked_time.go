@@ -50,7 +50,7 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 	return cond
 }
 
-// GetTrackedTimes retuns all tracked times that fit to the given options.
+// GetTrackedTimes returns all tracked times that fit to the given options.
 func GetTrackedTimes(options FindTrackedTimesOptions) (trackedTimes []*TrackedTime, err error) {
 	if options.RepositoryID > 0 {
 		err = x.Join("INNER", "issue", "issue.id = tracked_time.issue_id").Where(options.ToCond()).Find(&trackedTimes)
