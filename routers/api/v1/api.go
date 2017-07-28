@@ -341,7 +341,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
 					m.Combo("/:id").Get(repo.GetDeployKey).
 						Delete(repo.DeleteDeploykey)
-				})
+				}, reqRepoWriter())
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).Post(bind(api.CreateIssueOption{}), repo.CreateIssue)
 					m.Group("/comments", func() {
