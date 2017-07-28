@@ -35,7 +35,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	if trackedTimes, err := models.GetTrackedTimesByIssue(issue.ID); err != nil {
+	if trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{IssueID: issue.ID}); err != nil {
 		ctx.Error(500, "GetTrackedTimesByIssue", err)
 	} else {
 		ctx.JSON(200, &trackedTimes)
@@ -92,7 +92,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		return
 	}
 
-	if trackedTimes, err := models.GetTrackedTimesByUser(user.ID); err != nil {
+	if trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{UserID: user.ID, RepositoryID: ctx.Repo.Repository.ID}); err != nil {
 		ctx.Error(500, "GetTrackedTimesByUser", err)
 	} else {
 		ctx.JSON(200, &trackedTimes)
@@ -110,7 +110,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	//       200: TrackedTimes
 	//	 404: error
 	//       500: error
-	if trackedTimes, err := models.GetTrackedTimesByRepo(ctx.Repo.Repository.ID); err != nil {
+	if trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{RepositoryID: ctx.Repo.Repository.ID}); err != nil {
 		ctx.Error(500, "GetTrackedTimesByUser", err)
 	} else {
 		ctx.JSON(200, &trackedTimes)
@@ -127,7 +127,7 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	//     Responses:
 	//       200: TrackedTimes
 	//       500: error
-	if trackedTimes, err := models.GetTrackedTimesByUser(ctx.User.ID); err != nil {
+	if trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{UserID: ctx.User.ID}); err != nil {
 		ctx.Error(500, "GetTrackedTimesByUser", err)
 	} else {
 		ctx.JSON(200, &trackedTimes)

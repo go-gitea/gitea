@@ -601,7 +601,7 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Data["OtherStopwatchURL"] = otherIssue.HTMLURL()
 			}
 		}
-		if ctx.Data["WorkingUsers"], err = models.TotalTimes(issue.ID); err != nil {
+		if ctx.Data["WorkingUsers"], err = models.TotalTimes(models.FindTrackedTimesOptions{IssueID: issue.ID}); err != nil {
 			ctx.Handle(500, "TotalTimes", err)
 			return
 		}

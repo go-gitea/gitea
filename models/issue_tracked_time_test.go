@@ -16,36 +16,31 @@ func TestAddTime(t *testing.T) {
 	assert.Equal(t, comment.Content, "1h 1min 1s")
 }
 
-func TestGetTrackedTimesByIssue(t *testing.T) {
+func TestGetTrackedTimes(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	times, err := GetTrackedTimesByIssue(1)
+	// by Issue
+	times, err := GetTrackedTimes(FindTrackedTimesOptions{IssueID: 1})
 	assert.Len(t, times, 1)
 	assert.Equal(t, times[0].Time, int64(400))
 	assert.NoError(t, err)
 
-	times, err = GetTrackedTimesByIssue(3)
+	times, err = GetTrackedTimes(FindTrackedTimesOptions{IssueID: -1})
 	assert.Len(t, times, 0)
 	assert.NoError(t, err)
-}
 
-func TestGetTrackedTimesByUser(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	times, err := GetTrackedTimesByUser(1)
+	// by User
+	times, err = GetTrackedTimes(FindTrackedTimesOptions{UserID: 1})
 	assert.Len(t, times, 1)
 	assert.Equal(t, times[0].Time, int64(400))
 	assert.NoError(t, err)
 
-	times, err = GetTrackedTimesByUser(3)
+	times, err = GetTrackedTimes(FindTrackedTimesOptions{UserID: 3})
 	assert.Len(t, times, 0)
 	assert.NoError(t, err)
-}
 
-func TestGetTrackedTimesByRepo(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	times, err := GetTrackedTimesByRepo(int64(2))
+	// by Repo
+	times, err = GetTrackedTimes(FindTrackedTimesOptions{RepositoryID: 2})
 	assert.Len(t, times, 1)
 	assert.Equal(t, times[0].Time, int64(1))
 	assert.NoError(t, err)
@@ -53,11 +48,11 @@ func TestGetTrackedTimesByRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, issue.RepoID, int64(2))
 
-	times, err = GetTrackedTimesByRepo(int64(1))
+	times, err = GetTrackedTimes(FindTrackedTimesOptions{RepositoryID: 1})
 	assert.Len(t, times, 4)
 	assert.NoError(t, err)
 
-	times, err = GetTrackedTimesByRepo(int64(10))
+	times, err = GetTrackedTimes(FindTrackedTimesOptions{RepositoryID: 10})
 	assert.Len(t, times, 0)
 	assert.NoError(t, err)
 }
@@ -65,7 +60,7 @@ func TestGetTrackedTimesByRepo(t *testing.T) {
 func TestTotalTimes(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	total, err := TotalTimes(1)
+	total, err := TotalTimes(FindTrackedTimesOptions{IssueID: 1})
 	assert.Len(t, total, 1)
 	for user, time := range total {
 		assert.Equal(t, int64(1), user.ID)
@@ -73,7 +68,7 @@ func TestTotalTimes(t *testing.T) {
 	}
 	assert.NoError(t, err)
 
-	total, err = TotalTimes(2)
+	total, err = TotalTimes(FindTrackedTimesOptions{IssueID: 2})
 	assert.Len(t, total, 1)
 	for user, time := range total {
 		assert.Equal(t, int64(2), user.ID)
@@ -81,7 +76,7 @@ func TestTotalTimes(t *testing.T) {
 	}
 	assert.NoError(t, err)
 
-	total, err = TotalTimes(5)
+	total, err = TotalTimes(FindTrackedTimesOptions{IssueID: 5})
 	assert.Len(t, total, 1)
 	for user, time := range total {
 		assert.Equal(t, int64(2), user.ID)
@@ -89,7 +84,7 @@ func TestTotalTimes(t *testing.T) {
 	}
 	assert.NoError(t, err)
 
-	total, err = TotalTimes(4)
+	total, err = TotalTimes(FindTrackedTimesOptions{IssueID: 4})
 	assert.Len(t, total, 0)
 	assert.NoError(t, err)
 }

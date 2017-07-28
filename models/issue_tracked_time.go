@@ -5,6 +5,7 @@
 package models
 
 import (
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	"time"
 )
@@ -27,21 +28,35 @@ func (t *TrackedTime) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
-// GetTrackedTimesByIssue will return all tracked times that are part of the issue
-func GetTrackedTimesByIssue(issueID int64) (trackedTimes []*TrackedTime, err error) {
-	err = x.Where("issue_id = ?", issueID).Find(&trackedTimes)
-	return
+// FindTrackedTimesOptions represent the filters for tracked times. If an ID is 0 it will be ignored.
+type FindTrackedTimesOptions struct {
+	IssueID      int64
+	UserID       int64
+	RepositoryID int64
 }
 
-// GetTrackedTimesByUser will return all tracked times which are created by the user.
-func GetTrackedTimesByUser(userID int64) (trackedTimes []*TrackedTime, err error) {
-	err = x.Where("user_id = ?", userID).Find(&trackedTimes)
-	return
+// ToCond will convert each condition into a xorm-Cond
+func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
+	cond := builder.NewCond()
+	if opts.IssueID != 0 {
+		cond = cond.And(builder.Eq{"issue_id": opts.IssueID})
+	}
+	if opts.UserID != 0 {
+		cond = cond.And(builder.Eq{"user_id": opts.UserID})
+	}
+	if opts.RepositoryID != 0 {
+		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepositoryID})
+	}
+	return cond
 }
 
-// GetTrackedTimesByRepo will return all tracked times of a repository.
-func GetTrackedTimesByRepo(repositoryID int64) (trackedTimes []*TrackedTime, err error) {
-	err = x.Join("INNER", "issue", "issue.id = tracked_time.issue_id").Where("issue.repo_id = ?", repositoryID).Find(&trackedTimes)
+// GetTrackedTimes retuns all tracked times that fit to the given options.
+func GetTrackedTimes(options FindTrackedTimesOptions) (trackedTimes []*TrackedTime, err error) {
+	if options.RepositoryID > 0 {
+		err = x.Join("INNER", "issue", "issue.id = tracked_time.issue_id").Where(options.ToCond()).Find(&trackedTimes)
+		return
+	}
+	err = x.Where(options.ToCond()).Find(&trackedTimes)
 	return
 }
 
@@ -74,11 +89,9 @@ func AddTime(userID int64, issueID int64, time int64) error {
 }
 
 // TotalTimes returns the spent time for each user by an issue
-func TotalTimes(issueID int64) (map[*User]string, error) {
-	var trackedTimes []TrackedTime
-	if err := x.
-		Where("issue_id = ?", issueID).
-		Find(&trackedTimes); err != nil {
+func TotalTimes(options FindTrackedTimesOptions) (map[*User]string, error) {
+	trackedTimes, err := GetTrackedTimes(options)
+	if err != nil {
 		return nil, err
 	}
 	//Adding total time per user ID
