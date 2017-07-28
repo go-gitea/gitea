@@ -10,10 +10,9 @@
 		},
 		{
 			"checksumSHA1": "h9l4H9NAK15odGqlHN9p9lo1EBk=",
-			"origin": "github.com/JonasFranzDEV/go-sdk",
 			"path": "code.gitea.io/sdk",
-			"revision": "b1438f6e34d19a033ed50438886a614b2fcbc344",
-			"revisionTime": "2017-07-26T08:54:01Z"
+			"revision": "05511a469e69904b04678edfb7d68a549894007f",
+			"revisionTime": "2017-07-27T13:09:01Z"
 		},
 		{
 			"checksumSHA1": "3uBJnZGSBlYT8RtN3lfiuqz0Bps=",
