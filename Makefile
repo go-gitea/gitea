@@ -21,7 +21,6 @@ GOFMT ?= gofmt -s
 
 GOFLAGS := -i -v
 EXTRA_GOFLAGS ?=
-PWD := $(shell pwd)
 
 LDFLAGS := -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')" -X "main.Tags=$(TAGS)"
 
