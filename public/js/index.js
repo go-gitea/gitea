@@ -1729,3 +1729,7 @@ function timeAddManual() {
         }).modal('show')
     ;
 }
+
+function toggleStopwatch() {
+    $("#toggle_stopwatch_form").submit();
+}

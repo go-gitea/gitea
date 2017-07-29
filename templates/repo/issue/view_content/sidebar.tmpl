@@ -126,11 +126,12 @@
 		<div class="ui timetrack">
 			<span class="text"><strong>{{.i18n.Tr "repo.issues.tracker"}}</strong></span>
 			<div>
-
-
+						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/toggle" id="toggle_stopwatch_form">
+							{{$.CsrfTokenHtml}}
+						</form>
 						{{if  $.IsStopwatchRunning}}
 							<div class="ui buttons fluid">
-								<a href="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/toggle" class="ui button">{{.i18n.Tr "repo.issues.stop_tracking"}}</a>
+								<button onclick="toggleStopwatch()" class="ui button">{{.i18n.Tr "repo.issues.stop_tracking"}}</button>
 								<a href="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/cancel" class="ui negative button">{{.i18n.Tr "repo.issues.cancel_tracking"}}</a>
 							</div>
 						{{else}}
@@ -140,7 +141,7 @@
 								</div>
 							{{end}}
 							<div class="ui buttons two fluid">
-								<a href="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/toggle" class="ui button poping up" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</a>
+								<button onclick="toggleStopwatch()" class="ui button poping up" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
 								<button onclick="timeAddManual()" class="ui icon button green poping up" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted"><i class="octicon octicon-plus"></i> </button>
 								<div class="ui mini modal">
 									<div class="header">{{.i18n.Tr "repo.issues.add_time"}}</div>
