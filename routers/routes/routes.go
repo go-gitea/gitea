@@ -471,7 +471,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/add", repo.AddTimeManual)
 					m.Group("/stopwatch", func() {
 						m.Post("/toggle", repo.IssueStopwatch)
-						m.Get("/cancel", repo.CancelStopwatch)
+						m.Post("/cancel", repo.CancelStopwatch)
 					}, func(ctx *context.Context) {
 						if !ctx.Repo.CanUseTimetracker(repo.GetActionIssue(ctx), ctx.User) {
 							ctx.Handle(404, ctx.Req.RequestURI, nil)

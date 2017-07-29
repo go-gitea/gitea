@@ -1733,3 +1733,6 @@ function timeAddManual() {
 function toggleStopwatch() {
     $("#toggle_stopwatch_form").submit();
 }
+function cancelStopwatch() {
+    $("#cancel_stopwatch_form").submit();
+}

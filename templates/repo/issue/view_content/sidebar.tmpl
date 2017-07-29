@@ -129,10 +129,13 @@
 						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/toggle" id="toggle_stopwatch_form">
 							{{$.CsrfTokenHtml}}
 						</form>
+						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/cancel" id="cancel_stopwatch_form">
+							{{$.CsrfTokenHtml}}
+						</form>
 						{{if  $.IsStopwatchRunning}}
 							<div class="ui buttons fluid">
 								<button onclick="toggleStopwatch()" class="ui button">{{.i18n.Tr "repo.issues.stop_tracking"}}</button>
-								<a href="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/cancel" class="ui negative button">{{.i18n.Tr "repo.issues.cancel_tracking"}}</a>
+								<button onclick="cancelStopwatch()" class="ui negative button">{{.i18n.Tr "repo.issues.cancel_tracking"}}</button>
 							</div>
 						{{else}}
 							{{if .HasUserAStopwatch}}
