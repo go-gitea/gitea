@@ -84,3 +84,11 @@ func TestAPIOrgRepos(t *testing.T) {
 		assert.False(t, repo.Private)
 	}
 }
+
+func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
+	prepareTestEnv(t)
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)
+	sess := loginUser(t, user.Name)
+	req := NewRequestf(t, "GET", "/api/v1/repositories/2")
+	sess.MakeRequest(t, req, http.StatusNotFound)
+}
