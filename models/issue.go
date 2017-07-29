@@ -1085,7 +1085,7 @@ func sortIssuesSession(sess *xorm.Session, sortType string) {
 	}
 }
 
-func (opts *IssuesOptions) setupSess(sess *xorm.Session) error {
+func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
 	if opts.Page >= 0 && opts.PageSize > 0 {
 		var start int
 		if opts.Page == 0 {
@@ -1158,7 +1158,7 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if err := opts.setupSess(sess); err != nil {
+	if err := opts.setupSession(sess); err != nil {
 		return nil, err
 	}
 
@@ -1185,7 +1185,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if err := opts.setupSess(sess); err != nil {
+	if err := opts.setupSession(sess); err != nil {
 		return nil, err
 	}
 	sortIssuesSession(sess, opts.SortType)
