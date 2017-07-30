@@ -300,10 +300,10 @@ update-translations:
 .PHONY: generate-images
 generate-images:
 	mkdir -p $(TMPDIR)/images
-	inkscape -f $(PWD)/assets/logo.svg -w 400 -h 400 -e $(PWD)/public/img/gitea-lg.png
-	inkscape -f $(PWD)/assets/logo.svg -w 30 -h 30 -jC -i layer1 -e $(TMPDIR)/images/30-1.png
-	inkscape -f $(PWD)/assets/logo.svg -w 30 -h 30 -jC -i layer2 -e $(TMPDIR)/images/30-2.png
-	composite -compose atop $(TMPDIR)/images/30-2.png $(TMPDIR)/images/30-1.png $(PWD)/public/img/gitea-sm.png
+	inkscape -f $(PWD)/assets/logo.svg -w 880 -h 880 -e $(PWD)/public/img/gitea-lg.png
+	inkscape -f $(PWD)/assets/logo.svg -w 120 -h 120 -jC -i layer1 -e $(TMPDIR)/images/sm-1.png
+	inkscape -f $(PWD)/assets/logo.svg -w 120 -h 120 -jC -i layer2 -e $(TMPDIR)/images/sm-2.png
+	composite -compose atop $(TMPDIR)/images/sm-2.png $(TMPDIR)/images/sm-1.png $(PWD)/public/img/gitea-sm.png
 	inkscape -f $(PWD)/assets/logo.svg -w 200 -h 200 -e $(PWD)/public/img/avatar_default.png
 	inkscape -f $(PWD)/assets/logo.svg -w 180 -h 180 -e $(PWD)/public/img/favicon.png
 	inkscape -f $(PWD)/assets/logo.svg -w 128 -h 128 -e $(TMPDIR)/images/128-raw.png
