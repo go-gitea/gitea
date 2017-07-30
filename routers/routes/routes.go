@@ -651,7 +651,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		if setting.HasRobotsTxt {
 			ctx.ServeFileContent(path.Join(setting.CustomPath, "robots.txt"))
 		} else {
-			ctx.Error(404)
+			ctx.Handle(404, "", nil)
 		}
 	})
 
