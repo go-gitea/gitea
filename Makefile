@@ -126,6 +126,9 @@ test: fmt-check
 
 .PHONY: test-coverage
 test-coverage: unit-test-coverage integration-test-coverage
+	@hash gocovmerge > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		go get -u github.com/wadey/gocovmerge; \
+	fi
 	for PKG in $(PACKAGES); do\
 	  touch $$GOPATH/src/$$PKG/coverage.out;\
 	  egrep "$$PKG[^/]*\.go" integration.coverage.out > int.coverage.out;\
