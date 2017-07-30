@@ -134,8 +134,8 @@
 						</form>
 						{{if  $.IsStopwatchRunning}}
 							<div class="ui buttons fluid">
-								<button onclick="toggleStopwatch()" class="ui button">{{.i18n.Tr "repo.issues.stop_tracking"}}</button>
-								<button onclick="cancelStopwatch()" class="ui negative button">{{.i18n.Tr "repo.issues.cancel_tracking"}}</button>
+								<button onclick="this.disabled=true;toggleStopwatch()" class="ui button">{{.i18n.Tr "repo.issues.stop_tracking"}}</button>
+								<button onclick="this.disabled=true;cancelStopwatch()" class="ui negative button">{{.i18n.Tr "repo.issues.cancel_tracking"}}</button>
 							</div>
 						{{else}}
 							{{if .HasUserAStopwatch}}
@@ -144,8 +144,8 @@
 								</div>
 							{{end}}
 							<div class="ui buttons two fluid">
-								<button onclick="toggleStopwatch()" class="ui button poping up" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
-								<button onclick="timeAddManual()" class="ui icon button green poping up" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted"><i class="octicon octicon-plus"></i> </button>
+								<button onclick="this.disabled=true;toggleStopwatch()" class="ui button poping up" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
+								<button onclick="timeAddManual()" class="ui button green poping up" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.add_time_short"}}</button>
 								<div class="ui mini modal">
 									<div class="header">{{.i18n.Tr "repo.issues.add_time"}}</div>
 									<div class="content">
@@ -168,29 +168,28 @@
 			</div>
 		</div>
 		{{end}}
-
+		{{end}}
 		{{if gt (len .WorkingUsers) 0}}
-			<div class="ui divider"></div>
-			<div class="ui participants comments">
-				<span class="text"><strong>{{.i18n.Tr "repo.issues.time_spent_total"}}</strong></span>
-				<div>
-					{{range $user, $trackedtime := .WorkingUsers}}
-					<div class="comment">
-						<a class="avatar">
-							<img src="{{$user.RelAvatarLink}}">
-						</a>
-						<div class="content">
-							<a class="author">{{$user.DisplayName}}</a>
-							<div class="text">
-								{{$trackedtime}}
-							</div>
+		<div class="ui divider"></div>
+		<div class="ui participants comments">
+			<span class="text"><strong>{{.i18n.Tr "repo.issues.time_spent_total"}}</strong></span>
+			<div>
+				{{range $user, $trackedtime := .WorkingUsers}}
+				<div class="comment">
+					<a class="avatar">
+						<img src="{{$user.RelAvatarLink}}">
+					</a>
+					<div class="content">
+						<a class="author">{{$user.DisplayName}}</a>
+						<div class="text">
+							{{$trackedtime}}
 						</div>
 					</div>
-					{{end}}
-
 				</div>
+				{{end}}
+
 			</div>
-		{{end}}
+		</div>
 		{{end}}
 		{{end}}
 	</div>

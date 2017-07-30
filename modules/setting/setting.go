@@ -998,20 +998,21 @@ func NewContext() {
 
 // Service settings
 var Service struct {
-	ActiveCodeLives                int
-	ResetPwdCodeLives              int
-	RegisterEmailConfirm           bool
-	DisableRegistration            bool
-	ShowRegistrationButton         bool
-	RequireSignInView              bool
-	EnableNotifyMail               bool
-	EnableReverseProxyAuth         bool
-	EnableReverseProxyAutoRegister bool
-	EnableCaptcha                  bool
-	DefaultKeepEmailPrivate        bool
-	DefaultAllowCreateOrganization bool
-	DefaultEnableTimetracking      bool
-	NoReplyAddress                 string
+	ActiveCodeLives                         int
+	ResetPwdCodeLives                       int
+	RegisterEmailConfirm                    bool
+	DisableRegistration                     bool
+	ShowRegistrationButton                  bool
+	RequireSignInView                       bool
+	EnableNotifyMail                        bool
+	EnableReverseProxyAuth                  bool
+	EnableReverseProxyAutoRegister          bool
+	EnableCaptcha                           bool
+	DefaultKeepEmailPrivate                 bool
+	DefaultAllowCreateOrganization          bool
+	DefaultEnableTimetracking               bool
+	DefaultAllowOnlyContributorsToTrackTime bool
+	NoReplyAddress                          string
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
@@ -1033,6 +1034,7 @@ func newService() {
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
 	Service.DefaultEnableTimetracking = sec.Key("DEFAULT_ENABLE_TIMETRACKING").MustBool(true)
+	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 
 	sec = Cfg.Section("openid")

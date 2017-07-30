@@ -44,8 +44,8 @@ func StopwatchExists(userID int64, issueID int64) bool {
 	return exists
 }
 
-// HasUserAStopwatch returns true if the user has a stopwatch
-func HasUserAStopwatch(userID int64) (exists bool, sw *Stopwatch, err error) {
+// HasUserStopwatch returns true if the user has a stopwatch
+func HasUserStopwatch(userID int64) (exists bool, sw *Stopwatch, err error) {
 	sw = new(Stopwatch)
 	exists, err = x.
 		Where("user_id = ?", userID).
