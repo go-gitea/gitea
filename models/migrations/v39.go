@@ -5,11 +5,10 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/setting"
 	"fmt"
-	"github.com/go-xorm/xorm"
-	"strconv"
 	"time"
+	"github.com/go-xorm/xorm"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // Stopwatch see models/issue_stopwatch.go
@@ -38,22 +37,27 @@ func addTimeTracking(x *xorm.Engine) error {
 	if err := x.Sync2(new(TrackedTime)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
-	x.Where("type = ?", V16UnitTypeIssues).Iterate(new(RepoUnit), func(id int, bean interface{}) error {
-		unit := bean.(*RepoUnit)
+	//Updating existing issue units
+	var units []*RepoUnit
+	x.Where("type = ?", V16UnitTypeIssues).Find(&units)
+	for _, unit := range units {
+		if unit.Config == nil {
+			unit.Config = make(map[string]interface{})
+		}
 		changes := false
 		if _, ok := unit.Config["EnableTimetracker"]; !ok {
-			unit.Config["EnableTimetracker"] = strconv.FormatBool(setting.Service.DefaultEnableTimetracking)
+			unit.Config["EnableTimetracker"] = setting.Service.DefaultEnableTimetracking
 			changes = true
 		}
 		if _, ok := unit.Config["AllowOnlyContributorsToTrackTime"]; !ok {
-			unit.Config["AllowOnlyContributorsToTrackTime"] = strconv.FormatBool(setting.Service.DefaultAllowOnlyContributorsToTrackTime)
+			unit.Config["AllowOnlyContributorsToTrackTime"] = setting.Service.DefaultAllowOnlyContributorsToTrackTime
 			changes = true
 		}
 		if changes {
-			_, err := x.Id(id).Cols("config").Update(unit)
-			return err
+			if _, err := x.Id(unit.ID).Cols("config").Update(unit); err != nil {
+				return err
+			}
 		}
-		return nil
-	})
+	}
 	return nil
 }
