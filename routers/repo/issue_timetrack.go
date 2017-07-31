@@ -5,44 +5,50 @@
 package repo
 
 import (
+	"time"
+	"strconv"
+	"net/http"
+
+	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"net/http"
-	"time"
 )
 
-// AddTimeManual tracks time manually
-func AddTimeManual(c *context.Context) {
-
-	h, err := parseTimeTrackingWithDuration(c.Req.PostForm.Get("hours"), "h")
-	if err != nil {
-		c.Handle(http.StatusBadRequest, "hours is not numeric", err)
-		return
-	}
-
-	m, err := parseTimeTrackingWithDuration(c.Req.PostForm.Get("minutes"), "m")
-	if err != nil {
-		c.Handle(http.StatusBadRequest, "minutes is not numeric", err)
-		return
-	}
-
-	s, err := parseTimeTrackingWithDuration(c.Req.PostForm.Get("seconds"), "s")
-	if err != nil {
-		c.Handle(http.StatusBadRequest, "seconds is not numeric", err)
-		return
-	}
-
-	total := h + m + s
-
-	if total <= 0 {
-		c.Handle(http.StatusBadRequest, "sum of seconds <= 0", nil)
-		return
-	}
-
+// AddTimeManually tracks time manually
+func AddTimeManually(c *context.Context, form auth.AddTimeManuallyForm) {
 	issueIndex := c.ParamsInt64("index")
 	issue, err := models.GetIssueByIndex(c.Repo.Repository.ID, issueIndex)
 	if err != nil {
 		c.Handle(http.StatusInternalServerError, "GetIssueByIndex", err)
+		return
+	}
+	url := issue.HTMLURL()
+
+	if c.HasError() {
+		c.Flash.Error(c.GetErrMsg())
+		c.Redirect(url)
+		return
+	}
+
+	h, err := parseTimeTrackingWithDuration(form.Hours, "h")
+	if err != nil {
+		c.Handle(http.StatusInternalServerError, "parseTimeTrackingWithDuration", err)
+		return
+	}
+
+	m, err := parseTimeTrackingWithDuration(form.Minutes, "m")
+	if err != nil {
+		c.Handle(http.StatusInternalServerError, "parseTimeTrackingWithDuration", err)
+		return
+	}
+
+
+
+	total := h + m
+
+	if total <= 0 {
+		c.Flash.Error(c.Tr("repo.issues.add_time_sum_to_small"))
+		c.Redirect(url, http.StatusSeeOther)
 		return
 	}
 
@@ -51,13 +57,9 @@ func AddTimeManual(c *context.Context) {
 		return
 	}
 
-	url := issue.HTMLURL()
 	c.Redirect(url, http.StatusSeeOther)
 }
 
-func parseTimeTrackingWithDuration(value, space string) (time.Duration, error) {
-	if value == "" {
-		return 0, nil
-	}
-	return time.ParseDuration(value + space)
+func parseTimeTrackingWithDuration(value int, space string) (time.Duration, error) {
+	return time.ParseDuration(strconv.Itoa(value) + space)
 }

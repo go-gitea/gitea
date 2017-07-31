@@ -138,7 +138,7 @@
 								<button onclick="this.disabled=true;cancelStopwatch()" class="ui negative button">{{.i18n.Tr "repo.issues.cancel_tracking"}}</button>
 							</div>
 						{{else}}
-							{{if .HasUserAStopwatch}}
+							{{if .HasUserStopwatch}}
 								<div class="ui warning message">
 									{{.i18n.Tr "repo.issues.tracking_already_started" .OtherStopwatchURL | Safe}}
 								</div>
@@ -153,7 +153,6 @@
 											{{$.CsrfTokenHtml}}
 											<input placeholder='{{.i18n.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
 											<input placeholder='{{.i18n.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
-											<input placeholder='{{.i18n.Tr "repo.issues.add_time_seconds"}}' type="number" name="seconds" class="ui compact">
 
 										</form>
 									</div>

@@ -468,17 +468,17 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/watch", repo.IssueWatch)
 				m.Combo("/comments").Post(bindIgnErr(auth.CreateCommentForm{}), repo.NewComment)
 				m.Group("/times", func() {
-					m.Post("/add", repo.AddTimeManual)
+					m.Post("/add", bindIgnErr(auth.AddTimeManuallyForm{}), repo.AddTimeManually)
 					m.Group("/stopwatch", func() {
 						m.Post("/toggle", repo.IssueStopwatch)
 						m.Post("/cancel", repo.CancelStopwatch)
-					}, func(ctx *context.Context) {
-						if !ctx.Repo.CanUseTimetracker(repo.GetActionIssue(ctx), ctx.User) {
-							ctx.Handle(404, ctx.Req.RequestURI, nil)
-							return
-						}
 					})
 
+				}, func(ctx *context.Context) {
+					if !ctx.Repo.CanUseTimetracker(repo.GetActionIssue(ctx), ctx.User) {
+						ctx.Handle(404, ctx.Req.RequestURI, nil)
+						return
+					}
 				})
 			})
 

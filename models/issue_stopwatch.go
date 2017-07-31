@@ -6,8 +6,9 @@ package models
 
 import (
 	"fmt"
-	"github.com/go-xorm/xorm"
 	"time"
+
+	"github.com/go-xorm/xorm"
 )
 
 // Stopwatch represents a stopwatch for time tracking.
@@ -21,7 +22,6 @@ type Stopwatch struct {
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.
 func (s *Stopwatch) AfterSet(colName string, _ xorm.Cell) {
-
 	switch colName {
 
 	case "created_unix":

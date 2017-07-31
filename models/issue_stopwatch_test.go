@@ -1,9 +1,10 @@
 package models
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCancelStopwatch(t *testing.T) {
@@ -25,7 +26,7 @@ func TestStopwatchExists(t *testing.T) {
 	assert.False(t, StopwatchExists(1, 2))
 }
 
-func TestHasUserAStopwatch(t *testing.T) {
+func TestHasUserStopwatch(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	exists, sw, err := HasUserStopwatch(1)

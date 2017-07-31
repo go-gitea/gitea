@@ -5,9 +5,10 @@
 package models
 
 import (
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/xorm"
 	"time"
+
+	"github.com/go-xorm/xorm"
+	"github.com/go-xorm/builder"
 )
 
 // TrackedTime represents a time that was spent for a specific issue.

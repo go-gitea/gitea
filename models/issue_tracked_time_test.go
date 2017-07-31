@@ -1,8 +1,9 @@
 package models
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAddTime(t *testing.T) {

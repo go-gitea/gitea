@@ -410,3 +410,21 @@ type DeleteRepoFileForm struct {
 func (f *DeleteRepoFileForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
+
+// ___________.__                 ___________                     __
+// \__    ___/|__| _____   ____   \__    ___/___________    ____ |  | __ ___________
+// |    |   |  |/     \_/ __ \    |    |  \_  __ \__  \ _/ ___\|  |/ // __ \_  __ \
+// |    |   |  |  Y Y  \  ___/    |    |   |  | \// __ \\  \___|    <\  ___/|  | \/
+// |____|   |__|__|_|  /\___  >   |____|   |__|  (____  /\___  >__|_ \\___  >__|
+// \/     \/                        \/     \/     \/    \/
+
+// AddTimeManually form that adds spent time manually.
+type AddTimeManuallyForm struct {
+	Hours int `binding:"Range(0,1000)"`
+	Minutes int `binding:"Range(0,1000)"`
+}
+
+// Validate validates the fields
+func (f *AddTimeManuallyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}

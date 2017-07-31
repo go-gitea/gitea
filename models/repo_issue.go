@@ -4,6 +4,8 @@
 
 package models
 
+import "code.gitea.io/gitea/modules/setting"
+
 // ___________.__             ___________                     __
 // \__    ___/|__| _____   ___\__    ___/___________    ____ |  | __ ___________
 // |    |   |  |/     \_/ __ \|    |  \_  __ \__  \ _/ ___\|  |/ // __ \_  __ \
@@ -16,7 +18,17 @@ func (repo *Repository) IsTimetrackerEnabled() bool {
 	var u *RepoUnit
 	var err error
 	if u, err = repo.GetUnit(UnitTypeIssues); err != nil {
-		return false
+		return setting.Service.DefaultEnableTimetracking
 	}
 	return u.IssuesConfig().EnableTimetracker
+}
+
+// AllowOnlyContributorsToTrackTime returns value of IssuesConfig or the default value
+func (repo *Repository) AllowOnlyContributorsToTrackTime() bool {
+	var u *RepoUnit
+	var err error
+	if u, err = repo.GetUnit(UnitTypeIssues); err != nil {
+		return setting.Service.DefaultAllowOnlyContributorsToTrackTime
+	}
+	return u.IssuesConfig().AllowOnlyContributorsToTrackTime
 }
