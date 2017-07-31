@@ -23,39 +23,39 @@
 {{end}}
 
 	<link rel="shortcut icon" href="{{AppSubUrl}}/img/favicon.png" />
-	<link rel="preload" href="{{AppSubUrl}}/assets/font-awesome-4.6.3/css/font-awesome.min.css" as="style" onload="this.rel='stylesheet'">
-	<noscript><link rel="stylesheet" href="{{AppSubUrl}}/assets/font-awesome-4.6.3/css/font-awesome.min.css"></noscript>
-	<link rel="stylesheet" href="{{AppSubUrl}}/assets/octicons-4.3.0/octicons.min.css">
+	<link rel="preload" href="{{AppSubUrl}}/vendor/assets/font-awesome/css/font-awesome.min.css" as="style" onload="this.rel='stylesheet'">
+	<noscript><link rel="stylesheet" href="{{AppSubUrl}}/vendor/assets/font-awesome/css/font-awesome.min.css"></noscript>
+	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/assets/octicons/octicons.min.css">
 
 {{if .RequireSimpleMDE}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/plugins/simplemde-1.10.1/simplemde.min.css">
+	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/simplemde/simplemde.min.css">
 {{end}}
 
 {{if .RequireGitGraph}}
 	<!-- graph -->
-	<link rel="stylesheet" href="{{AppSubUrl}}/css/gitgraph.css">
+	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/gitgraph/gitgraph.css">
 {{end}}
 
 	<!-- Stylesheet -->
-	<link rel="stylesheet" href="{{AppSubUrl}}/css/semantic-2.2.1.min.css">
+	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/semantic/semantic.min.css">
 	<link rel="stylesheet" href="{{AppSubUrl}}/css/index.css?v={{MD5 AppVer}}">
 
 {{if .RequireHighlightJS}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/plugins/highlight-9.11.0/github.css">
+	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/highlight/github.css">
 {{end}}
 {{if .RequireMinicolors}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/plugins/jquery.minicolors-2.2.3/jquery.minicolors.css">
+	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/jquery.minicolors/jquery.minicolors.css">
 {{end}}
 {{if .RequireDatetimepicker}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/plugins/jquery.datetimepicker-2.4.5/jquery.datetimepicker.css">
+	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.css">
 {{end}}
 {{if .RequireDropzone}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/plugins/dropzone-4.2.0/dropzone.css">
+	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/dropzone/dropzone.css">
 {{end}}
 	<style class="list-search-style"></style>
 
-	<script src="{{AppSubUrl}}/js/libs/loadCSS.min.js"></script>
-	<script src="{{AppSubUrl}}/js/libs/cssrelpreload.min.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/cssrelpreload/loadCSS.min.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/cssrelpreload/cssrelpreload.min.js"></script>
 {{if .PageIsUserProfile}}
 	<meta property="og:title" content="{{.Owner.Name}}" />
 	<meta property="og:type" content="profile" />
