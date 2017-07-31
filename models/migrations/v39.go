@@ -5,10 +5,10 @@
 package migrations
 
 import (
-	"fmt"
-	"time"
-	"github.com/go-xorm/xorm"
 	"code.gitea.io/gitea/modules/setting"
+	"fmt"
+	"github.com/go-xorm/xorm"
+	"time"
 )
 
 // Stopwatch see models/issue_stopwatch.go
