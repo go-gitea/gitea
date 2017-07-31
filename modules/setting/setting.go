@@ -663,9 +663,7 @@ func NewContext() {
 	case UnixSocket:
 		defaultLocalURL = "http://unix/"
 	case FCGI:
-		if !SSH.Disabled && !SSH.StartBuiltinServer {
-			log.Fatal(4, "External SSH server can not be used with Gitea configured to listen using FastCGI protocol")
-		}
+		defaultLocalURL = AppURL
 	default:
 		defaultLocalURL = string(Protocol) + "://"
 		if HTTPAddr == "0.0.0.0" {
