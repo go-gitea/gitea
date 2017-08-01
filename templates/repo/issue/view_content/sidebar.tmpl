@@ -133,7 +133,7 @@
 							{{$.CsrfTokenHtml}}
 						</form>
 						{{if  $.IsStopwatchRunning}}
-							<div class="ui buttons fluid stop-cancel-timetracking">
+							<div class="ui buttons fluid stop-cancel">
 								<button onclick="this.disabled=true;toggleStopwatch()" class="ui button stop">{{.i18n.Tr "repo.issues.stop_tracking"}}</button>
 								<button onclick="this.disabled=true;cancelStopwatch()" class="ui negative button cancel">{{.i18n.Tr "repo.issues.cancel_tracking"}}</button>
 							</div>
@@ -143,8 +143,8 @@
 									{{.i18n.Tr "repo.issues.tracking_already_started" .OtherStopwatchURL | Safe}}
 								</div>
 							{{end}}
-							<div class="ui buttons two fluid start-add-tracking">
-								<button onclick="this.disabled=true;toggleStopwatch()" class="ui button poping up start-tracking" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
+							<div class="ui buttons two fluid start-add">
+								<button onclick="this.disabled=true;toggleStopwatch()" class="ui button poping up start" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
 								<button onclick="timeAddManual()" class="ui button green poping up add-time" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.add_time_short"}}</button>
 								<div class="ui mini modal">
 									<div class="header">{{.i18n.Tr "repo.issues.add_time"}}</div>

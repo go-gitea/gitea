@@ -21,74 +21,59 @@ func TestViewTimetrackingControls(t *testing.T) {
 
 func TestNotViewTimetrackingControls(t *testing.T) {
 	prepareTestEnv(t)
-	session := loginUser(t, "user3")
+	session := loginUser(t, "user5")
 	testViewTimetrackingControls(t, session, "user2", "repo1", "1", false)
 	//user2/repo1
 }
 
-func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo, issue string, canView bool) {
+func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo, issue string, canTrackTime bool) {
 	req := NewRequest(t, "GET", path.Join(user, repo, "issues", issue))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	if start, exists := htmlDoc.doc.Find(".timetrack.start-add-tracking.start-tracking").Attr("onclick"); exists {
-		assert.Equal(t, "this.disabled=true;toggleStopwatch()", start)
-	} else {
-		assert.True(t, (canView && exists) || (!canView || !exists))
-	}
-	if addTime, exists := htmlDoc.doc.Find(".timetrack.start-add-tracking.add-time").Attr("onclick"); exists {
-		assert.Equal(t, "timeAddManual()", addTime)
-	} else {
-		assert.True(t, (canView && exists) || (!canView || !exists))
-	}
+	htmlDoc.AssertElement(t, ".timetrack .start-add .start", canTrackTime)
+	htmlDoc.AssertElement(t, ".timetrack .start-add .add-time", canTrackTime)
 
 	req = NewRequestWithValues(t, "POST", path.Join(user, repo, "issues", issue, "times", "stopwatch", "toggle"), map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 	})
-	if canView {
-		session.MakeRequest(t, req, http.StatusSeeOther)
+	if canTrackTime {
+		resp = session.MakeRequest(t, req, http.StatusSeeOther)
+
+		req = NewRequest(t, "GET", RedirectURL(t, resp))
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+
+		events := htmlDoc.doc.Find(".event span.text")
+		assert.Contains(t, events.Eq(1).Text(), "started working")
+
+		htmlDoc.AssertElement(t, ".timetrack .stop-cancel .stop", true)
+		htmlDoc.AssertElement(t, ".timetrack .stop-cancel .cancel", true)
+
+		req = NewRequestWithValues(t, "POST", path.Join(user, repo, "issues", issue, "times", "stopwatch", "toggle"), map[string]string{
+			"_csrf": htmlDoc.GetCSRF(),
+		})
+		resp = session.MakeRequest(t, req, http.StatusSeeOther)
+
+		req = NewRequest(t, "GET", RedirectURL(t, resp))
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+
+		events = htmlDoc.doc.Find(".event span.text")
+		assert.Contains(t, events.Eq(2).Text(), "finished working")
+		htmlDoc.AssertElement(t, ".event .detail .octicon-clock", true)
 	} else {
 		session.MakeRequest(t, req, http.StatusNotFound)
 	}
+}
 
-	req = NewRequest(t, "GET", path.Join(user, repo, "issues", issue))
-	resp = session.MakeRequest(t, req, http.StatusOK)
-
-	htmlDoc = NewHTMLParser(t, resp.Body)
-	if stop, exists := htmlDoc.doc.Find(".timetrack.stop-cancel-tracking.stop").Attr("onclick"); exists {
-		assert.Equal(t, "this.disabled=true;toggleStopwatch()", stop)
+// AssertElement check if element by selector exists or does not exist depending on checkExists
+func (doc *HTMLDoc) AssertElement(t testing.TB, selector string, checkExists bool) {
+	sel := doc.doc.Find(selector)
+	if checkExists {
+		assert.Equal(t, 1, sel.Length())
 	} else {
-		assert.True(t, (canView && exists) || (!canView || !exists))
-	}
-	if cancel, exists := htmlDoc.doc.Find(".timetrack.stop-cancel-tracking.cancel").Attr("onclick"); exists {
-		assert.Equal(t, "this.disabled=true;cancelStopwatch()", cancel)
-	} else {
-		assert.True(t, (canView && exists) || (!canView || !exists))
-	}
-
-	req = NewRequestWithValues(t, "POST", path.Join(user, repo, "issues", issue, "times", "stopwatch", "cancel"), map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
-	})
-	if canView {
-		session.MakeRequest(t, req, http.StatusSeeOther)
-	} else {
-		session.MakeRequest(t, req, http.StatusNotFound)
-	}
-
-	req = NewRequest(t, "GET", path.Join(user, repo, "issues", issue))
-	resp = session.MakeRequest(t, req, http.StatusOK)
-
-	htmlDoc = NewHTMLParser(t, resp.Body)
-
-	if start, exists := htmlDoc.doc.Find(".timetrack.start-add-tracking.start-tracking").Attr("onclick"); exists {
-		assert.Equal(t, "this.disabled=true;toggleStopwatch()", start)
-	} else {
-		assert.True(t, (canView && exists) || (!canView || !exists))
-	}
-	if addTime, exists := htmlDoc.doc.Find(".timetrack.start-add-tracking.add-time").Attr("onclick"); exists {
-		assert.Equal(t, "timeAddManual()", addTime)
-	} else {
-		assert.True(t, (canView && exists) || (!canView || !exists))
+		assert.Equal(t, 0, sel.Length())
 	}
 }
