@@ -5,12 +5,12 @@
 package repo
 
 import (
-	"time"
-	"strconv"
 	"net/http"
+	"strconv"
+	"time"
 
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 )
 
@@ -41,8 +41,6 @@ func AddTimeManually(c *context.Context, form auth.AddTimeManuallyForm) {
 		c.Handle(http.StatusInternalServerError, "parseTimeTrackingWithDuration", err)
 		return
 	}
-
-
 
 	total := h + m
 

@@ -418,9 +418,9 @@ func (f *DeleteRepoFileForm) Validate(ctx *macaron.Context, errs binding.Errors)
 // |____|   |__|__|_|  /\___  >   |____|   |__|  (____  /\___  >__|_ \\___  >__|
 // \/     \/                        \/     \/     \/    \/
 
-// AddTimeManually form that adds spent time manually.
+// AddTimeManuallyForm form that adds spent time manually.
 type AddTimeManuallyForm struct {
-	Hours int `binding:"Range(0,1000)"`
+	Hours   int `binding:"Range(0,1000)"`
 	Minutes int `binding:"Range(0,1000)"`
 }
 
