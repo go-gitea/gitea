@@ -5,10 +5,11 @@
 package integrations
 
 import (
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"path"
 	"testing"
+	
+	"github.com/stretchr/testify/assert"
 )
 
 func TestViewTimetrackingControls(t *testing.T) {
