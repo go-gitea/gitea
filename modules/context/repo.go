@@ -523,14 +523,7 @@ func LoadRepoUnits() macaron.Handler {
 // CheckUnit will check whether
 func CheckUnit(unitType models.UnitType) macaron.Handler {
 	return func(ctx *Context) {
-		var find bool
-		for _, unit := range ctx.Repo.Repository.Units {
-			if unit.Type == unitType {
-				find = true
-				break
-			}
-		}
-		if !find {
+		if !ctx.Repo.Repository.UnitEnabled(unitType) {
 			ctx.Handle(404, "CheckUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitType))
 		}
 	}
