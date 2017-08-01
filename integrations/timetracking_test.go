@@ -25,6 +25,11 @@ func TestNotViewTimetrackingControls(t *testing.T) {
 	testViewTimetrackingControls(t, session, "user2", "repo1", "1", false)
 	//user2/repo1
 }
+func TestViewTimetrackingControlsDisabled(t *testing.T) {
+	prepareTestEnv(t)
+	session := loginUser(t, "user2")
+	testViewTimetrackingControls(t, session, "user3", "repo3", "1", false)
+}
 
 func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo, issue string, canTrackTime bool) {
 	req := NewRequest(t, "GET", path.Join(user, repo, "issues", issue))
