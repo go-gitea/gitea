@@ -762,7 +762,7 @@ func NewContext() {
 			log.Fatal(4, "Error retrieving git version: %v", err)
 		}
 
-		splitVersion := strings.SplitN(binVersion, ".", 3)
+		splitVersion := strings.SplitN(binVersion, ".", 4)
 
 		majorVersion, err := strconv.ParseUint(splitVersion[0], 10, 64)
 		if err != nil {
