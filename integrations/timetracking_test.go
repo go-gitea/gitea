@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"path"
 	"testing"
-	
+
 	"github.com/stretchr/testify/assert"
 )
 
