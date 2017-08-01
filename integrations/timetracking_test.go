@@ -45,8 +45,8 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
 
-		events := htmlDoc.doc.Find(".event span.text")
-		assert.Contains(t, events.Eq(1).Text(), "started working")
+		events := htmlDoc.doc.Find(".event > span.text")
+		assert.Contains(t, events.Last().Text(), "started working")
 
 		htmlDoc.AssertElement(t, ".timetrack .stop-cancel .stop", true)
 		htmlDoc.AssertElement(t, ".timetrack .stop-cancel .cancel", true)
@@ -60,8 +60,8 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
 
-		events = htmlDoc.doc.Find(".event span.text")
-		assert.Contains(t, events.Eq(2).Text(), "finished working")
+		events = htmlDoc.doc.Find(".event > span.text")
+		assert.Contains(t, events.Last().Text(), "finished working")
 		htmlDoc.AssertElement(t, ".event .detail .octicon-clock", true)
 	} else {
 		session.MakeRequest(t, req, http.StatusNotFound)
