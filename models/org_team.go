@@ -192,8 +192,8 @@ func (t *Team) RemoveRepository(repoID int64) error {
 	return sess.Commit()
 }
 
-// EnableUnit returns if the team enables unit type t
-func (t *Team) EnableUnit(tp UnitType) bool {
+// UnitEnabled returns if the team has the given unit type enabled
+func (t *Team) UnitEnabled(tp UnitType) bool {
 	if len(t.UnitTypes) == 0 {
 		return true
 	}

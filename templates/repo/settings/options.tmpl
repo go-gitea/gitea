@@ -93,7 +93,7 @@
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="advanced">
 
-				{{$isWikiEnabled := or (.Repository.EnableUnit $.UnitTypeWiki) (.Repository.EnableUnit $.UnitTypeExternalWiki)}}
+				{{$isWikiEnabled := or (.Repository.UnitEnabled $.UnitTypeWiki) (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}
 				<div class="inline field">
 					<label>{{.i18n.Tr "repo.wiki"}}</label>
 					<div class="ui checkbox">
@@ -104,17 +104,17 @@
 				<div class="field {{if not $isWikiEnabled}}disabled{{end}}" id="wiki_box">
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="false" data-target="#external_wiki_box" {{if not (.Repository.EnableUnit $.UnitTypeExternalWiki)}}checked{{end}}/>
+							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="false" data-target="#external_wiki_box" {{if not (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}checked{{end}}/>
 							<label>{{.i18n.Tr "repo.settings.use_internal_wiki"}}</label>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.EnableUnit $.UnitTypeExternalWiki}}checked{{end}}/>
+							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.UnitTypeExternalWiki}}checked{{end}}/>
 							<label>{{.i18n.Tr "repo.settings.use_external_wiki"}}</label>
 						</div>
 					</div>
-					<div class="field {{if not (.Repository.EnableUnit $.UnitTypeExternalWiki)}}disabled{{end}}" id="external_wiki_box">
+					<div class="field {{if not (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}disabled{{end}}" id="external_wiki_box">
 						<label for="external_wiki_url">{{.i18n.Tr "repo.settings.external_wiki_url"}}</label>
 						<input id="external_wiki_url" name="external_wiki_url" type="url" value="{{(.Repository.MustGetUnit $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}">
 						<p class="help">{{.i18n.Tr "repo.settings.external_wiki_url_desc"}}</p>
@@ -123,7 +123,7 @@
 
 				<div class="ui divider"></div>
 
-				{{$isIssuesEnabled := or (.Repository.EnableUnit $.UnitTypeIssues) (.Repository.EnableUnit $.UnitTypeExternalTracker)}}
+				{{$isIssuesEnabled := or (.Repository.UnitEnabled $.UnitTypeIssues) (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}
 				<div class="inline field">
 					<label>{{.i18n.Tr "repo.issues"}}</label>
 					<div class="ui checkbox">
@@ -134,17 +134,17 @@
 				<div class="field {{if not $isIssuesEnabled}}disabled{{end}}" id="issue_box">
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="false" data-target="#external_issue_box" {{if not (.Repository.EnableUnit $.UnitTypeExternalTracker)}}checked{{end}}/>
+							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="false" data-target="#external_issue_box" {{if not (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}checked{{end}}/>
 							<label>{{.i18n.Tr "repo.settings.use_internal_issue_tracker"}}</label>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="true" data-target="#external_issue_box" {{if .Repository.EnableUnit $.UnitTypeExternalTracker}}checked{{end}}/>
+							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="true" data-target="#external_issue_box" {{if .Repository.UnitEnabled $.UnitTypeExternalTracker}}checked{{end}}/>
 							<label>{{.i18n.Tr "repo.settings.use_external_issue_tracker"}}</label>
 						</div>
 					</div>
-					<div class="field {{if not (.Repository.EnableUnit $.UnitTypeExternalTracker)}}disabled{{end}}" id="external_issue_box">
+					<div class="field {{if not (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}disabled{{end}}" id="external_issue_box">
 						<div class="field">
 							<label for="external_tracker_url">{{.i18n.Tr "repo.settings.external_tracker_url"}}</label>
 							<input id="external_tracker_url" name="external_tracker_url" type="url" value="{{(.Repository.MustGetUnit $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerURL}}">
@@ -181,7 +181,7 @@
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.pulls"}}</label>
 						<div class="ui checkbox">
-							<input name="enable_pulls" type="checkbox" {{if .Repository.EnableUnit $.UnitTypePullRequests}}checked{{end}}>
+							<input name="enable_pulls" type="checkbox" {{if .Repository.UnitEnabled $.UnitTypePullRequests}}checked{{end}}>
 							<label>{{.i18n.Tr "repo.settings.pulls_desc"}}</label>
 						</div>
 					</div>
@@ -222,7 +222,7 @@
 				</div>
 			</div>
 
-			{{if .Repository.EnableUnit $.UnitTypeWiki}}
+			{{if .Repository.UnitEnabled $.UnitTypeWiki}}
 				<div class="ui divider"></div>
 
 				<div class="item">
@@ -354,7 +354,7 @@
 		</div>
 	</div>
 
-	{{if .Repository.EnableUnit $.UnitTypeWiki}}
+	{{if .Repository.UnitEnabled $.UnitTypeWiki}}
 	<div class="ui small modal" id="delete-wiki-modal">
 		<div class="header">
 			{{.i18n.Tr "repo.settings.wiki-delete"}}
