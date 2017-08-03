@@ -302,45 +302,43 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
-	showRepos := make([]*models.Repository, 0, len(counts))
+	showReposMap := make(map[int64]*models.Repository, len(counts))
 	for repoID := range counts {
 		repo, err := models.GetRepositoryByID(repoID)
 		if err != nil {
 			ctx.Handle(500, "GetRepositoryByID", err)
 			return
 		}
-		showRepos = append(showRepos, repo)
+		showReposMap[repoID] = repo
 	}
 
 	if repoID > 0 {
-		var theRepo *models.Repository
-		for _, repo := range showRepos {
-			if repo.ID == repoID {
-				theRepo = repo
-				break
-			}
-		}
-
-		if theRepo == nil {
-			theRepo, err = models.GetRepositoryByID(repoID)
+		if _, ok := showReposMap[repoID]; !ok {
+			repo, err := models.GetRepositoryByID(repoID)
 			if err != nil {
-				ctx.Handle(500, "GetRepositoryByID", fmt.Errorf("[#%d]%v", repoID, err))
+				ctx.Handle(500, "GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
 				return
 			}
-			showRepos = append(showRepos, theRepo)
+			showReposMap[repoID] = repo
 		}
 
+		repo := showReposMap[repoID]
+
 		// Check if user has access to given repository.
-		if !theRepo.IsOwnedBy(ctxUser.ID) && !theRepo.HasAccess(ctxUser) {
-			ctx.Handle(404, "Issues", fmt.Errorf("#%d", repoID))
+		if !repo.IsOwnedBy(ctxUser.ID) && !repo.HasAccess(ctxUser) {
+			ctx.Status(404)
 			return
 		}
 	}
 
-	err = models.RepositoryList(showRepos).LoadAttributes()
-	if err != nil {
+	showRepos := models.RepositoryListOfMap(showReposMap)
+	if err = showRepos.LoadAttributes(); err != nil {
 		ctx.Handle(500, "LoadAttributes", fmt.Errorf("%v", err))
 		return
+	}
+
+	for _, issue := range issues {
+		issue.Repo = showReposMap[issue.RepoID]
 	}
 
 	issueStats := models.GetUserIssueStats(repoID, ctxUser.ID, userRepoIDs, filterMode, isPullList)

@@ -15,6 +15,11 @@ import (
 // RepositoryList contains a list of repositories
 type RepositoryList []*Repository
 
+// RepositoryListOfMap make list from values of map
+func RepositoryListOfMap(repoMap map[int64]*Repository) RepositoryList {
+	return RepositoryList(valuesRepository(repoMap))
+}
+
 func (repos RepositoryList) loadAttributes(e Engine) error {
 	if len(repos) == 0 {
 		return nil
