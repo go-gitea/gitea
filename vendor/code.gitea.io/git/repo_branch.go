@@ -86,10 +86,12 @@ type DeleteBranchOptions struct {
 
 // DeleteBranch delete a branch by name on repository.
 func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) error {
-	cmd := NewCommand("branch", "-d")
+	cmd := NewCommand("branch")
 
 	if opts.Force {
-		cmd.AddArguments("-f")
+		cmd.AddArguments("-D")
+	} else {
+		cmd.AddArguments("-d")
 	}
 
 	cmd.AddArguments(name)
