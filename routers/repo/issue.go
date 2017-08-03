@@ -193,6 +193,7 @@ func Issues(ctx *context.Context) {
 			MentionedID: mentionedID,
 			MilestoneID: milestoneID,
 			Page:        pager.Current(),
+			PageSize:    setting.UI.IssuePagingNum,
 			IsClosed:    util.OptionalBoolOf(isShowClosed),
 			IsPull:      util.OptionalBoolOf(isPullList),
 			Labels:      selectLabels,

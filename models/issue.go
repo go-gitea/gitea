@@ -1057,6 +1057,7 @@ type IssuesOptions struct {
 	MilestoneID int64
 	RepoIDs     []int64
 	Page        int
+	PageSize    int
 	IsClosed    util.OptionalBool
 	IsPull      util.OptionalBool
 	Labels      string
@@ -1085,21 +1086,16 @@ func sortIssuesSession(sess *xorm.Session, sortType string) {
 	}
 }
 
-// Issues returns a list of issues by given conditions.
-func Issues(opts *IssuesOptions) ([]*Issue, error) {
-	var sess *xorm.Session
-	if opts.Page >= 0 {
+func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
+	if opts.Page >= 0 && opts.PageSize > 0 {
 		var start int
 		if opts.Page == 0 {
 			start = 0
 		} else {
-			start = (opts.Page - 1) * setting.UI.IssuePagingNum
+			start = (opts.Page - 1) * opts.PageSize
 		}
-		sess = x.Limit(setting.UI.IssuePagingNum, start)
-	} else {
-		sess = x.NewSession()
+		sess.Limit(opts.PageSize, start)
 	}
-	defer sess.Close()
 
 	if len(opts.IssueIDs) > 0 {
 		sess.In("issue.id", opts.IssueIDs)
@@ -1144,12 +1140,10 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 		sess.And("issue.is_pull=?", false)
 	}
 
-	sortIssuesSession(sess, opts.SortType)
-
 	if len(opts.Labels) > 0 && opts.Labels != "0" {
 		labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if len(labelIDs) > 0 {
 			sess.
@@ -1157,6 +1151,45 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 				In("issue_label.label_id", labelIDs)
 		}
 	}
+	return nil
+}
+
+// CountIssuesByRepo map from repoID to number of issues matching the options
+func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := opts.setupSession(sess); err != nil {
+		return nil, err
+	}
+
+	countsSlice := make([]*struct {
+		RepoID int64
+		Count  int64
+	}, 0, 10)
+	if err := sess.GroupBy("issue.repo_id").
+		Select("issue.repo_id AS repo_id, COUNT(*) AS count").
+		Table("issue").
+		Find(&countsSlice); err != nil {
+		return nil, err
+	}
+
+	countMap := make(map[int64]int64, len(countsSlice))
+	for _, c := range countsSlice {
+		countMap[c.RepoID] = c.Count
+	}
+	return countMap, nil
+}
+
+// Issues returns a list of issues by given conditions.
+func Issues(opts *IssuesOptions) ([]*Issue, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := opts.setupSession(sess); err != nil {
+		return nil, err
+	}
+	sortIssuesSession(sess, opts.SortType)
 
 	issues := make([]*Issue, 0, setting.UI.IssuePagingNum)
 	if err := sess.Find(&issues); err != nil {

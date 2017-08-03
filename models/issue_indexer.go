@@ -133,7 +133,6 @@ func populateIssueIndexer() error {
 				RepoID:   repo.ID,
 				IsClosed: util.OptionalBoolNone,
 				IsPull:   util.OptionalBoolNone,
-				Page:     -1, // do not page
 			})
 			if err != nil {
 				return fmt.Errorf("Issues: %v", err)
