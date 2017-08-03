@@ -5,7 +5,6 @@
 package private
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 
@@ -20,9 +19,7 @@ func GetProtectedBranchBy(repoID int64, branchName string) (*models.ProtectedBra
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/branch/%d/%s", repoID, branchName)
 	log.GitLogger.Trace("GetProtectedBranchBy: %s", reqURL)
 
-	resp, err := newRequest(reqURL, "GET").SetTLSClientConfig(&tls.Config{
-		InsecureSkipVerify: true,
-	}).Response()
+	resp, err := newInternalRequest(reqURL, "GET").Response()
 	if err != nil {
 		return nil, err
 	}

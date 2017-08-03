@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/httplib"
@@ -34,15 +35,27 @@ func decodeJSONError(resp *http.Response) *Response {
 	return &res
 }
 
+func newInternalRequest(url, method string) *httplib.Request {
+	req := newRequest(url, method).SetTLSClientConfig(&tls.Config{
+		InsecureSkipVerify: true,
+	})
+	if setting.Protocol == setting.UnixSocket {
+		req.SetTransport(&http.Transport{
+			Dial: func(_, _ string) (net.Conn, error) {
+				return net.Dial("unix", setting.HTTPAddr)
+			},
+		})
+	}
+	return req
+}
+
 // UpdatePublicKeyUpdated update publick key updates
 func UpdatePublicKeyUpdated(keyID int64) error {
 	// Ask for running deliver hook and test pull request tasks.
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/ssh/%d/update", keyID)
 	log.GitLogger.Trace("UpdatePublicKeyUpdated: %s", reqURL)
 
-	resp, err := newRequest(reqURL, "POST").SetTLSClientConfig(&tls.Config{
-		InsecureSkipVerify: true,
-	}).Response()
+	resp, err := newInternalRequest(reqURL, "POST").Response()
 	if err != nil {
 		return err
 	}
