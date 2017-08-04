@@ -712,8 +712,7 @@ func convertDateToUnix(x *xorm.Engine) (err error) {
 		offset := 0
 		for {
 			beans := make([]*Bean, 0, 100)
-			if err = x.SQL(fmt.Sprintf("SELECT * FROM `%s` ORDER BY id ASC LIMIT 100 OFFSET %d",
-				table.name, offset)).Find(&beans); err != nil {
+			if err = x.Table(table.name).Asc("id").Limit(100, offset).Find(&beans); err != nil {
 				return fmt.Errorf("select beans [table: %s, offset: %d]: %v", table.name, offset, err)
 			}
 			log.Trace("Table [%s]: offset: %d, beans: %d", table.name, offset, len(beans))
