@@ -590,7 +590,7 @@ func ViewIssue(ctx *context.Context) {
 					ctx.Handle(500, "HasUserAStopwatch", err)
 					return
 				}
-				ctx.Data["HasUserAStopwatch"] = exists
+				ctx.Data["HasUserStopwatch"] = exists
 				if exists {
 					// Add warning if the user has already a stopwatch
 					var otherIssue *models.Issue
