@@ -260,8 +260,10 @@ func TestRender_ShortLinks(t *testing.T) {
 
 	rawtree := URLJoin(AppSubURL, "raw", "master")
 	url := URLJoin(tree, "Link")
+	otherUrl := URLJoin(tree, "OtherLink")
 	imgurl := URLJoin(rawtree, "Link.jpg")
 	urlWiki := URLJoin(AppSubURL, "wiki", "Link")
+	otherUrlWiki := URLJoin(AppSubURL, "wiki", "OtherLink")
 	imgurlWiki := URLJoin(AppSubURL, "wiki", "raw", "Link.jpg")
 	favicon := "http://google.com/favicon.ico"
 
@@ -301,6 +303,10 @@ func TestRender_ShortLinks(t *testing.T) {
 		"[[Name|Link.jpg|alt=\"AltName\"|title='Title']]",
 		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="Title"/></a></p>`,
 		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="AltName" title="Title"/></a></p>`)
+	test(
+		"[[Link]] [[OtherLink]]",
+		`<p><a href="`+url+`" rel="nofollow">Link</a> <a href="`+otherUrl+`" rel="nofollow">OtherLink</a></p>`,
+		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a> <a href="`+otherUrlWiki+`" rel="nofollow">OtherLink</a></p>`)
 }
 
 func TestRender_Commits(t *testing.T) {

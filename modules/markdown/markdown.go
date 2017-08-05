@@ -64,7 +64,7 @@ var (
 	Sha1CurrentPattern = regexp.MustCompile(`(?:^|\s|\()([0-9a-f]{7,40})\b`)
 
 	// ShortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
-	ShortLinkPattern = regexp.MustCompile(`(\[\[.*\]\]\w*)`)
+	ShortLinkPattern = regexp.MustCompile(`(\[\[.*?\]\]\w*)`)
 
 	// AnySHA1Pattern allows to split url containing SHA into parts
 	AnySHA1Pattern = regexp.MustCompile(`(http\S*)://(\S+)/(\S+)/(\S+)/(\S+)/([0-9a-f]{40})(?:/?([^#\s]+)?(?:#(\S+))?)?`)
