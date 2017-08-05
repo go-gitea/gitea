@@ -208,20 +208,20 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	emails := make([]*EmailAddress, len(e.Identities))
+
+	emails := make([]*EmailAddress, 0, len(e.Identities))
 	n := 0
 	for _, ident := range e.Identities {
 		email := strings.ToLower(strings.TrimSpace(ident.UserId.Email))
 		for _, e := range userEmails {
-			if e.Email == email && e.IsActivated {
-				emails[n] = e
+			if e.Email == email {
+				append(emails, e)
 				break
 			}
 		}
-		if emails[n] == nil {
-			return nil, ErrGPGEmailNotFound{ident.UserId.Email}
-		}
-		n++
+	}
+	if len(emails) == 0 {
+		return nil, ErrGPGNoEmailFound{e.Identities}
 	}
 	content, err := base64EncPubKey(pubkey)
 	if err != nil {
