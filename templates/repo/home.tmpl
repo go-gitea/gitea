@@ -17,20 +17,20 @@
 			{{end}}
 			{{template "repo/branch_dropdown" .}}
 			<div class="fitted item">
-				<div class="ui breadcrumb">
-					<a class="section" href="{{.RepoLink}}/src/{{EscapePound .BranchName}}">{{EllipsisString .Repository.Name 25}}</a>
+				<span class="ui breadcrumb">
+					<a class="section" href="{{.RepoLink}}/src/{{EscapePound .BranchName}}">{{EllipsisString .Repository.Name 30}}</a>
 					{{ $n := len .TreeNames}}
 					{{ $l := Subtract $n 1}}
 					{{range $i, $v := .TreeNames}}
-						<div class="divider"> / </div>
+						<span class="divider"> / </span>
 						{{if eq $i $l}}
-							<span class="active section">{{EllipsisString $v 15}}</span>
+							<span class="active section">{{EllipsisString $v 30}}</span>
 						{{else}}
 							{{ $p := index $.Paths $i}}
-							<span class="section"><a href="{{EscapePound $.BranchLink}}/{{EscapePound $p}}">{{EllipsisString $v 15}}</a></span>
+							<span class="section"><a href="{{EscapePound $.BranchLink}}/{{EscapePound $p}}">{{EllipsisString $v 30}}</a></span>
 						{{end}}
 					{{end}}
-				</div>
+				</span>
 			</div>
 			<div class="right fitted item">
 				{{if .Repository.CanEnableEditor}}

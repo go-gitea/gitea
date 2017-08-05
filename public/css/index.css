@@ -120,6 +120,13 @@ code.wrap {
 .ui.right {
   float: right;
 }
+.ui.button,
+.ui.menu .item {
+  -moz-user-select: auto;
+  -ms-user-select: auto;
+  -webkit-user-select: auto;
+  user-select: auto;
+}
 .ui.container.fluid.padded {
   padding: 0 10px 0 10px;
 }
