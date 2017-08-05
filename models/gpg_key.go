@@ -210,19 +210,25 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 	}
 
 	emails := make([]*EmailAddress, 0, len(e.Identities))
-	n := 0
 	for _, ident := range e.Identities {
 		email := strings.ToLower(strings.TrimSpace(ident.UserId.Email))
 		for _, e := range userEmails {
 			if e.Email == email {
-				append(emails, e)
+				emails = append(emails, e)
 				break
 			}
 		}
 	}
+
+	//In the case not email as been found
 	if len(emails) == 0 {
-		return nil, ErrGPGNoEmailFound{e.Identities}
+		failedEmails := make([]string, 0, len(e.Identities))
+		for _, ident := range e.Identities {
+			failedEmails = append(failedEmails, ident.UserId.Email)
+		}
+		return nil, ErrGPGNoEmailFound{failedEmails}
 	}
+
 	content, err := base64EncPubKey(pubkey)
 	if err != nil {
 		return nil, err
@@ -380,8 +386,8 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		}
 
 		//Find Committer account
-		committer, err := GetUserByEmail(c.Committer.Email)
-		if err != nil { //Skipping not user for commiter
+		committer, err := GetUserByEmail(c.Committer.Email) //This find the user by primary mail or activated email do commit will not be valid if email is not
+		if err != nil {                                     //Skipping not user for commiter
 			log.Error(3, "NoCommitterAccount: %v", err)
 			return &CommitVerification{
 				Verified: false,
