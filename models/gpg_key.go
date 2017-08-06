@@ -405,6 +405,18 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		}
 
 		for _, k := range keys {
+			//Pre-check (& optimization) that emails attached to key can be attached to the commiter email and can validate
+			canValidate := true
+			for _, e := range k.Emails {
+				if e.IsActivated && e.Email == c.Committer.Email {
+					canValidate = true
+					break
+				}
+			}
+			if !canValidate {
+				continue //Skip this key
+			}
+
 			//Generating hash of commit
 			hash, err := populateHash(sig.Hash, []byte(c.Signature.Payload))
 			if err != nil { //Skipping ailed to generate hash
