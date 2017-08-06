@@ -1290,7 +1290,6 @@ footer .ui.language .menu {
   margin-bottom: 20px;
 }
 .repository #clone-panel {
-  margin-top: -8px;
   margin-left: 5px;
   width: 350px;
 }
@@ -1317,6 +1316,10 @@ footer .ui.language .menu {
 }
 .repository.file.list .choose.reference .header .icon {
   font-size: 1.4em;
+}
+.repository.file.list .repo-path .section,
+.repository.file.list .repo-path .divider {
+  display: inline;
 }
 .repository.file.list #file-buttons {
   font-weight: normal;
