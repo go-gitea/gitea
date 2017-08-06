@@ -9,13 +9,11 @@
 		</p>
 		<div class="ui secondary menu">
 			{{if .PullRequestCtx.Allowed}}
-			{{if ne .BranchName .BaseRepo.DefaultBranch}}
 				<div class="fitted item">
 					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch}}...{{if .SignedUser.HasForkedRepo .BaseRepo.ID }}{{.SignedUser.Name}}:{{end}}{{.BranchName}}">
 						<button class="ui green tiny compact button"><i class="octicon octicon-git-compare"></i></button>
 					</a>
 				</div>
-			{{end}}
 			{{end}}
 			{{template "repo/branch_dropdown" .}}
 			{{ $n := len .TreeNames}}
