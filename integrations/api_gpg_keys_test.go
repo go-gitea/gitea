@@ -5,8 +5,11 @@
 package integrations
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	api "code.gitea.io/sdk/gitea"
 )
@@ -29,6 +32,7 @@ func TestGPGKeys(t *testing.T) {
 
 	for _, tc := range tt {
 
+		//Basic test on result code
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("ViewOwnGPGKeys", func(t *testing.T) {
 				testViewOwnGPGKeys(t, tc.reqBuilder, tc.results[0])
@@ -55,10 +59,54 @@ func TestGPGKeys(t *testing.T) {
 			t.Run("CreateValidSecondaryEmailGPGKey", func(t *testing.T) {
 				testCreateValidSecondaryEmailGPGKey(t, tc.reqBuilder, tc.results[7])
 			})
-
 		})
 	}
 
+	//Check state after basic add
+	t.Run("CheckState", func(t *testing.T) {
+
+		var key api.GPGKey
+
+		req := NewRequest(t, "GET", "/api/v1/user/gpg_keys/1") //Primary key
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &key)
+		assert.EqualValues(t, "38EA3BCED732982C", key.KeyID)
+		assert.EqualValues(t, 1, len(key.Emails))
+		assert.EqualValues(t, "user2@example.com", key.Emails[0].Email)
+		assert.EqualValues(t, true, key.Emails[0].Verified)
+
+		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/2") //Subkey of 38EA3BCED732982C
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &key)
+		assert.EqualValues(t, "70D7C694D17D03AD", key.KeyID)
+		assert.EqualValues(t, 0, len(key.Emails))
+
+		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/3") //Primary key
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &key)
+		assert.EqualValues(t, "FABF39739FE1E927", key.KeyID)
+		assert.EqualValues(t, 1, len(key.Emails))
+		assert.EqualValues(t, "user21@example.com", key.Emails[0].Email)
+		assert.EqualValues(t, false, key.Emails[0].Verified)
+	})
+
+	//Check state after basic add
+	t.Run("CheckCommits", func(t *testing.T) {
+		//		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/git/commits/5099b81332712fe655e34e8dd63574f503f61811")
+		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/master")
+
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		/*
+			var commit api.PayloadCommit
+			DecodeJSON(t, resp, &commit)
+			fmt.Println("DEBUG Commit", commit)
+			fmt.Println("DEBUG Commit Verification", commit.Verification)
+		*/
+		var branch api.Branch
+		DecodeJSON(t, resp, &branch)
+		fmt.Println("DEBUG Commit", branch.Commit)
+		fmt.Println("DEBUG Commit Verification", branch.Commit.Verification)
+	})
 }
 
 func testViewOwnGPGKeys(t *testing.T, reqBuilder func(testing.TB, *http.Request, int) *TestResponse, expected int) {
