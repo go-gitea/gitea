@@ -5,7 +5,6 @@
 package integrations
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -92,20 +91,29 @@ func TestGPGKeys(t *testing.T) {
 
 	//Check state after basic add
 	t.Run("CheckCommits", func(t *testing.T) {
-		//		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/git/commits/5099b81332712fe655e34e8dd63574f503f61811")
-		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/master")
+		t.Run("NotSigned", func(t *testing.T) {
+			var branch api.Branch
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/not-signed")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			DecodeJSON(t, resp, &branch)
+			assert.EqualValues(t, false, branch.Commit.Verification.Verified)
+		})
 
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		/*
-			var commit api.PayloadCommit
-			DecodeJSON(t, resp, &commit)
-			fmt.Println("DEBUG Commit", commit)
-			fmt.Println("DEBUG Commit Verification", commit.Verification)
-		*/
-		var branch api.Branch
-		DecodeJSON(t, resp, &branch)
-		fmt.Println("DEBUG Commit", branch.Commit)
-		fmt.Println("DEBUG Commit Verification", branch.Commit.Verification)
+		t.Run("SignedWithNotValidatedEmail", func(t *testing.T) {
+			var branch api.Branch
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign-not-yet-validated")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			DecodeJSON(t, resp, &branch)
+			assert.EqualValues(t, false, branch.Commit.Verification.Verified)
+		})
+
+		t.Run("SignedWithValidEmail", func(t *testing.T) {
+			var branch api.Branch
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			DecodeJSON(t, resp, &branch)
+			assert.EqualValues(t, true, branch.Commit.Verification.Verified)
+		})
 	})
 }
 
