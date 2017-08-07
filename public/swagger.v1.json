@@ -24,6 +24,151 @@
   },
   "basePath": "/api/v1",
   "paths": {
+    "/admin/users": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "adminCreateUser",
+        "responses": {
+          "201": {
+            "$ref": "#/responses/User"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/admin/users/{username}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "adminDeleteUser",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "adminEditUser",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/User"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/admin/users/{username}/keys": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "adminCreatePublicKey",
+        "responses": {
+          "201": {
+            "$ref": "#/responses/PublicKey"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/admin/users/{username}/orgs": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "adminCreateOrg",
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Organization"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/admin/users/{username}/repos": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "adminCreateRepo",
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/markdown": {
       "post": {
         "consumes": [
@@ -180,6 +325,218 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{orgname}/hooks": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "listOrgHooks",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/HookList"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{orgname}/hooks/": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "createOrgHook",
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Hook"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{orgname}/hooks/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "getOrgHook",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Hook"
+          },
+          "404": {
+            "$ref": "#/responses/notfound"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "editOrgHook",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notfound"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "editOrgHook",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Hook"
+          },
+          "404": {
+            "$ref": "#/responses/notfound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{orgname}/members": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "orgListMembers",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserList"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{orgname}/members/{username}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "orgIsMember",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "302": {
+            "$ref": "#/responses/redirect"
+          },
+          "404": {
+            "$ref": "#/responses/notfound"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "orgDeleteMember",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{orgname}/public_members": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "orgListPublicMembers",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserList"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{orgname}/public_members/{username}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "orgIsPublicMember",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notfound"
+          }
+        }
+      },
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "orgPublicizeMember",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "orgConcealMember",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "500": {
             "$ref": "#/responses/error"
@@ -601,6 +958,29 @@
         "responses": {
           "200": {
             "$ref": "#/responses/RepositoryList"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "createCurrentUserRepo",
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           },
           "500": {
             "$ref": "#/responses/error"

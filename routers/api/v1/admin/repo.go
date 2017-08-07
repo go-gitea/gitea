@@ -18,16 +18,16 @@ func CreateRepo(ctx *context.APIContext, form api.CreateRepoOption) {
 	//
 	//     Consumes:
 	//     - application/json
- 	//
- 	//     Produces:
- 	//     - application/json
- 	//
- 	//     Responses:
- 	//       201: Repository
- 	//       403: forbidden
- 	//       422: validationError
- 	//       500: error
-	
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       201: Repository
+	//       403: forbidden
+	//       422: validationError
+	//       500: error
+
 	owner := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return

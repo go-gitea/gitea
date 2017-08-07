@@ -16,19 +16,19 @@ import (
 // CreateOrg api for create organization
 func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 	// swagger:route POST /admin/users/{username}/orgs adminCreateOrg
- 	//
+	//
 	//     Consumes:
 	//     - application/json
 	//
- 	//     Produces:
- 	//     - application/json
- 	//
- 	//     Responses:
- 	//       201: Organization
- 	//       403: forbidden
- 	//       422: validationError
- 	//       500: error
-	
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       201: Organization
+	//       403: forbidden
+	//       422: validationError
+	//       500: error
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return

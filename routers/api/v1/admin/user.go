@@ -40,16 +40,16 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	//
 	//     Consumes:
 	//     - application/json
- 	//
- 	//     Produces:
- 	//     - application/json
- 	//
- 	//     Responses:
- 	//       201: User
- 	//       403: forbidden
- 	//       422: validationError
- 	//       500: error
-	
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       201: User
+	//       403: forbidden
+	//       422: validationError
+	//       500: error
+
 	u := &models.User{
 		Name:      form.Username,
 		FullName:  form.FullName,
@@ -91,16 +91,16 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	//
 	//     Consumes:
 	//     - application/json
- 	//
- 	//     Produces:
- 	//     - application/json
- 	//
- 	//     Responses:
- 	//       200: User
- 	//       403: forbidden
- 	//       422: validationError
- 	//       500: error
-	
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: User
+	//       403: forbidden
+	//       422: validationError
+	//       500: error
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -158,16 +158,16 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 // DeleteUser api for deleting a user
 func DeleteUser(ctx *context.APIContext) {
 	// swagger:route DELETE /admin/users/{username} adminDeleteUser
- 	//
- 	//     Produces:
- 	//     - application/json
- 	//
- 	//     Responses:
- 	//       204: empty
- 	//       403: forbidden
- 	//       422: validationError
- 	//       500: error
-	
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       204: empty
+	//       403: forbidden
+	//       422: validationError
+	//       500: error
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -193,16 +193,16 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	//
 	//     Consumes:
 	//     - application/json
- 	//
- 	//     Produces:
- 	//     - application/json
- 	//
- 	//     Responses:
- 	//       201: PublicKey
- 	//       403: forbidden
- 	//       422: validationError
- 	//       500: error
-	
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       201: PublicKey
+	//       403: forbidden
+	//       422: validationError
+	//       500: error
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
