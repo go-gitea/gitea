@@ -32,6 +32,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "admin"
+        ],
         "operationId": "adminCreateUser",
         "responses": {
           "201": {
@@ -53,6 +56,9 @@
       "delete": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "admin"
         ],
         "operationId": "adminDeleteUser",
         "responses": {
@@ -76,6 +82,9 @@
         ],
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "admin"
         ],
         "operationId": "adminEditUser",
         "responses": {
@@ -102,6 +111,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "admin"
+        ],
         "operationId": "adminCreatePublicKey",
         "responses": {
           "201": {
@@ -126,6 +138,9 @@
         ],
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "admin"
         ],
         "operationId": "adminCreateOrg",
         "responses": {
@@ -152,6 +167,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "admin"
+        ],
         "operationId": "adminCreateRepo",
         "responses": {
           "201": {
@@ -176,6 +194,9 @@
         ],
         "produces": [
           "text/html"
+        ],
+        "tags": [
+          "miscellaneous"
         ],
         "operationId": "renderMarkdown",
         "parameters": [
@@ -230,6 +251,9 @@
         "produces": [
           "text/html"
         ],
+        "tags": [
+          "miscellaneous"
+        ],
         "operationId": "renderMarkdownRaw",
         "responses": {
           "200": {
@@ -248,6 +272,9 @@
         ],
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "organization"
         ],
         "operationId": "createOrgRepo",
         "parameters": [
@@ -337,6 +364,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "organization"
+        ],
         "operationId": "listOrgHooks",
         "responses": {
           "200": {
@@ -355,6 +385,9 @@
         ],
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "organization"
         ],
         "operationId": "createOrgHook",
         "responses": {
@@ -375,6 +408,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "organization"
+        ],
         "operationId": "getOrgHook",
         "responses": {
           "200": {
@@ -391,6 +427,9 @@
       "delete": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "organization"
         ],
         "operationId": "editOrgHook",
         "responses": {
@@ -411,6 +450,9 @@
         ],
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "organization"
         ],
         "operationId": "editOrgHook",
         "responses": {
@@ -434,6 +476,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "organization"
+        ],
         "operationId": "orgListMembers",
         "responses": {
           "200": {
@@ -449,6 +494,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "organization"
         ],
         "operationId": "orgIsMember",
         "responses": {
@@ -467,6 +515,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "organization"
+        ],
         "operationId": "orgDeleteMember",
         "responses": {
           "204": {
@@ -482,6 +533,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "organization"
         ],
         "operationId": "orgListPublicMembers",
         "responses": {
@@ -499,6 +553,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "organization"
+        ],
         "operationId": "orgIsPublicMember",
         "responses": {
           "204": {
@@ -512,6 +569,9 @@
       "put": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "organization"
         ],
         "operationId": "orgPublicizeMember",
         "responses": {
@@ -530,6 +590,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "organization"
+        ],
         "operationId": "orgConcealMember",
         "responses": {
           "204": {
@@ -544,10 +607,13 @@
         }
       }
     },
-    "/orgs/{org}/repos": {
+    "/orgs/{orgname}/repos": {
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "organization"
         ],
         "operationId": "orgListRepos",
         "responses": {
@@ -560,10 +626,38 @@
         }
       }
     },
+    "/repos/migrate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoMigrate",
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Repository"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/search": {
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "repository"
         ],
         "operationId": "repoSearch",
         "parameters": [
@@ -606,6 +700,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "repository"
+        ],
         "operationId": "listForks",
         "responses": {
           "200": {
@@ -619,6 +716,9 @@
       "post": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "repository"
         ],
         "operationId": "createFork",
         "responses": {
@@ -637,10 +737,136 @@
         }
       }
     },
+    "/repos/{username}/{reponame}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoGet",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Repository"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoDelete",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{username}/{reponame}/hooks": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoListHooks",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/apiHooks"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoCreateHook",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/apiHook"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{username}/{reponame}/hooks/{id}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoDeleteHook",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "patch": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoEditHook",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/apiHook"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{username}/{reponame}/mirror-sync": {
       "post": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "repository"
         ],
         "operationId": "repoMirrorSync",
         "responses": {
@@ -655,6 +881,9 @@
     },
     "/repos/{username}/{reponame}/subscription": {
       "get": {
+        "tags": [
+          "repository"
+        ],
         "operationId": "userCurrentCheckSubscription",
         "responses": {
           "200": {
@@ -666,6 +895,9 @@
         }
       },
       "put": {
+        "tags": [
+          "repository"
+        ],
         "operationId": "userCurrentPutSubscription",
         "responses": {
           "200": {
@@ -677,6 +909,9 @@
         }
       },
       "delete": {
+        "tags": [
+          "repository"
+        ],
         "operationId": "userCurrentDeleteSubscription",
         "responses": {
           "204": {
@@ -688,10 +923,32 @@
         }
       }
     },
+    "/repositories/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoGetByID",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Repository"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/user": {
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userGetCurrent",
         "responses": {
@@ -705,6 +962,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userCurrentListFollowers",
         "responses": {
@@ -722,6 +982,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentListFollowing",
         "responses": {
           "200": {
@@ -735,6 +998,9 @@
     },
     "/user/following/{username}": {
       "get": {
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentCheckFollowing",
         "responses": {
           "204": {
@@ -746,6 +1012,9 @@
         }
       },
       "put": {
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentPutFollow",
         "responses": {
           "204": {
@@ -757,6 +1026,9 @@
         }
       },
       "delete": {
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentDeleteFollow",
         "responses": {
           "204": {
@@ -772,6 +1044,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userCurrentListGPGKeys",
         "responses": {
@@ -789,6 +1064,9 @@
         ],
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userCurrentPostGPGKey",
         "parameters": [
@@ -822,6 +1100,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentGetGPGKey",
         "responses": {
           "200": {
@@ -838,6 +1119,9 @@
       "delete": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userCurrentDeleteGPGKey",
         "responses": {
@@ -858,6 +1142,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentListKeys",
         "responses": {
           "200": {
@@ -874,6 +1161,9 @@
         ],
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userCurrentPostKey",
         "parameters": [
@@ -918,6 +1208,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentGetKey",
         "responses": {
           "200": {
@@ -934,6 +1227,9 @@
       "delete": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userCurrentDeleteKey",
         "responses": {
@@ -954,6 +1250,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentListRepos",
         "responses": {
           "200": {
@@ -970,6 +1269,10 @@
         ],
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "repository",
+          "user"
         ],
         "operationId": "createCurrentUserRepo",
         "responses": {
@@ -993,6 +1296,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentListStarred",
         "responses": {
           "200": {
@@ -1006,6 +1312,9 @@
     },
     "/user/starred/{username}/{reponame}": {
       "get": {
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentCheckStarring",
         "responses": {
           "204": {
@@ -1017,6 +1326,9 @@
         }
       },
       "put": {
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentPutStar",
         "responses": {
           "204": {
@@ -1028,6 +1340,9 @@
         }
       },
       "delete": {
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentDeleteStar",
         "responses": {
           "204": {
@@ -1043,6 +1358,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userCurrentListSubscriptions",
         "responses": {
@@ -1060,6 +1378,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userListFollowers",
         "responses": {
           "200": {
@@ -1076,6 +1397,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userSearch",
         "responses": {
           "200": {
@@ -1091,6 +1415,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userGet",
         "responses": {
@@ -1111,6 +1438,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userListFollowing",
         "responses": {
           "200": {
@@ -1124,6 +1454,9 @@
     },
     "/users/{username}/following/:target": {
       "get": {
+        "tags": [
+          "user"
+        ],
         "operationId": "userCheckFollowing",
         "responses": {
           "204": {
@@ -1139,6 +1472,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userListGPGKeys",
         "responses": {
@@ -1156,6 +1492,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userListKeys",
         "responses": {
           "200": {
@@ -1171,6 +1510,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userListRepos",
         "responses": {
@@ -1188,6 +1530,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userListStarred",
         "responses": {
           "200": {
@@ -1203,6 +1548,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userListSubscriptions",
         "responses": {
@@ -1220,6 +1568,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userGetTokens",
         "responses": {
           "200": {
@@ -1236,6 +1587,9 @@
         "description": "This show current running Gitea application version.",
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
         ],
         "summary": "Return Gitea running version.",
         "operationId": "getVersion",

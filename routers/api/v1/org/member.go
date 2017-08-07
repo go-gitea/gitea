@@ -53,7 +53,7 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 
 // ListMembers list an organization's members
 func ListMembers(ctx *context.APIContext) {
-	// swagger:route GET /orgs/{orgname}/members orgListMembers
+	// swagger:route GET /orgs/{orgname}/members organization orgListMembers
 	//
 	//     Produces:
 	//     - application/json
@@ -68,7 +68,7 @@ func ListMembers(ctx *context.APIContext) {
 
 // ListPublicMembers list an organization's public members
 func ListPublicMembers(ctx *context.APIContext) {
-	// swagger:route GET /orgs/{orgname}/public_members orgListPublicMembers
+	// swagger:route GET /orgs/{orgname}/public_members organization orgListPublicMembers
 	//
 	//     Produces:
 	//     - application/json
@@ -82,7 +82,7 @@ func ListPublicMembers(ctx *context.APIContext) {
 
 // IsMember check if a user is a member of an organization
 func IsMember(ctx *context.APIContext) {
-	// swagger:route GET /orgs/{orgname}/members/{username} orgIsMember
+	// swagger:route GET /orgs/{orgname}/members/{username} organization orgIsMember
 	//
 	//     Produces:
 	//     - application/json
@@ -113,7 +113,7 @@ func IsMember(ctx *context.APIContext) {
 
 // IsPublicMember check if a user is a public member of an organization
 func IsPublicMember(ctx *context.APIContext) {
-	// swagger:route GET /orgs/{orgname}/public_members/{username} orgIsPublicMember
+	// swagger:route GET /orgs/{orgname}/public_members/{username} organization orgIsPublicMember
 	//
 	//     Produces:
 	//     - application/json
@@ -135,7 +135,7 @@ func IsPublicMember(ctx *context.APIContext) {
 
 // PublicizeMember make a member's membership public
 func PublicizeMember(ctx *context.APIContext) {
-	// swagger:route PUT /orgs/{orgname}/public_members/{username} orgPublicizeMember
+	// swagger:route PUT /orgs/{orgname}/public_members/{username} organization orgPublicizeMember
 	//
 	//     Produces:
 	//     - application/json
@@ -163,7 +163,7 @@ func PublicizeMember(ctx *context.APIContext) {
 
 // ConcealMember make a member's membership not public
 func ConcealMember(ctx *context.APIContext) {
-	// swagger:route DELETE /orgs/{orgname}/public_members/{username} orgConcealMember
+	// swagger:route DELETE /orgs/{orgname}/public_members/{username} organization orgConcealMember
 	//
 	//     Produces:
 	//     - application/json
@@ -191,7 +191,7 @@ func ConcealMember(ctx *context.APIContext) {
 
 // DeleteMember remove a member from an organization
 func DeleteMember(ctx *context.APIContext) {
-	// swagger:route DELETE /orgs/{orgname}/members/{username} orgDeleteMember
+	// swagger:route DELETE /orgs/{orgname}/members/{username} organization orgDeleteMember
 	//
 	//     Produces:
 	//     - application/json

@@ -15,7 +15,7 @@ import (
 
 // ListHooks list all hooks of a repository
 func ListHooks(ctx *context.APIContext) {
-	// swagger:route GET /repos/{username}/{reponame}/hooks
+	// swagger:route GET /repos/{username}/{reponame}/hooks repository repoListHooks
 	//
 	//     Produces:
 	//     - application/json
@@ -50,7 +50,7 @@ func GetHook(ctx *context.APIContext) {
 
 // CreateHook create a hook for a repository
 func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
-	// swagger:route POST /repos/{username}/{reponame}/hooks
+	// swagger:route POST /repos/{username}/{reponame}/hooks repository repoCreateHook
 	//
 	//     Consumes:
 	//     - application/json
@@ -71,7 +71,7 @@ func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 
 // EditHook modify a hook of a repository
 func EditHook(ctx *context.APIContext, form api.EditHookOption) {
-	// swagger:route PATCH /repos/{username}/{reponame}/hooks/{id}
+	// swagger:route PATCH /repos/{username}/{reponame}/hooks/{id} repository repoEditHook
 	//
 	//     Produces:
 	//     - application/json
@@ -87,7 +87,7 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 
 // DeleteHook delete a hook of a repository
 func DeleteHook(ctx *context.APIContext) {
-	// swagger:route DELETE /repos/{username}/{reponame}/hooks/{id}
+	// swagger:route DELETE /repos/{username}/{reponame}/hooks/{id} repository repoDeleteHook
 	//
 	//     Produces:
 	//     - application/json

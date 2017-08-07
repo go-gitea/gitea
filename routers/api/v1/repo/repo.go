@@ -20,7 +20,7 @@ import (
 
 // Search repositories via options
 func Search(ctx *context.APIContext) {
-	// swagger:route GET /repos/search repoSearch
+	// swagger:route GET /repos/search repository repoSearch
 	//
 	//     Produces:
 	//     - application/json
@@ -131,7 +131,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 
 // Create one repository of mine
 func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
-	// swagger:route POST /user/repos createCurrentUserRepo
+	// swagger:route POST /user/repos repository user createCurrentUserRepo
 	//
 	//     Consumes:
 	//     - application/json
@@ -155,7 +155,7 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 
 // CreateOrgRepo create one repository of the organization
 func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
-	// swagger:route POST /org/{org}/repos createOrgRepo
+	// swagger:route POST /org/{org}/repos organization createOrgRepo
 	//
 	//     Consumes:
 	//     - application/json
@@ -188,7 +188,7 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 
 // Migrate migrate remote git repository to gitea
 func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
-	// swagger:route POST /repos/migrate
+	// swagger:route POST /repos/migrate repository repoMigrate
 	//
 	//     Consumes:
 	//     - application/json
@@ -273,7 +273,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 
 // Get one repository
 func Get(ctx *context.APIContext) {
-	// swagger:route GET /repos/{username}/{reponame}
+	// swagger:route GET /repos/{username}/{reponame} repository repoGet
 	//
 	//     Produces:
 	//     - application/json
@@ -287,7 +287,7 @@ func Get(ctx *context.APIContext) {
 
 // GetByID returns a single Repository
 func GetByID(ctx *context.APIContext) {
-	// swagger:route GET /repositories/{id}
+	// swagger:route GET /repositories/{id} repository repoGetByID
 	//
 	//     Produces:
 	//     - application/json
@@ -319,7 +319,7 @@ func GetByID(ctx *context.APIContext) {
 
 // Delete one repository
 func Delete(ctx *context.APIContext) {
-	// swagger:route DELETE /repos/{username}/{reponame}
+	// swagger:route DELETE /repos/{username}/{reponame} repository repoDelete
 	//
 	//     Produces:
 	//     - application/json
@@ -352,7 +352,7 @@ func Delete(ctx *context.APIContext) {
 
 // MirrorSync adds a mirrored repository to the sync queue
 func MirrorSync(ctx *context.APIContext) {
-	// swagger:route POST /repos/{username}/{reponame}/mirror-sync repoMirrorSync
+	// swagger:route POST /repos/{username}/{reponame}/mirror-sync repository repoMirrorSync
 	//
 	//     Produces:
 	//     - application/json

@@ -30,7 +30,7 @@ func listUserFollowers(ctx *context.APIContext, u *models.User) {
 
 // ListMyFollowers list all my followers
 func ListMyFollowers(ctx *context.APIContext) {
-	// swagger:route GET /user/followers userCurrentListFollowers
+	// swagger:route GET /user/followers user userCurrentListFollowers
 	//
 	//     Produces:
 	//     - application/json
@@ -44,7 +44,7 @@ func ListMyFollowers(ctx *context.APIContext) {
 
 // ListFollowers list user's followers
 func ListFollowers(ctx *context.APIContext) {
-	// swagger:route GET /users/:username/followers userListFollowers
+	// swagger:route GET /users/:username/followers user userListFollowers
 	//
 	//     Produces:
 	//     - application/json
@@ -71,7 +71,7 @@ func listUserFollowing(ctx *context.APIContext, u *models.User) {
 
 // ListMyFollowing list all my followings
 func ListMyFollowing(ctx *context.APIContext) {
-	// swagger:route GET /user/following userCurrentListFollowing
+	// swagger:route GET /user/following user userCurrentListFollowing
 	//
 	//     Produces:
 	//     - application/json
@@ -85,7 +85,7 @@ func ListMyFollowing(ctx *context.APIContext) {
 
 // ListFollowing list user's followings
 func ListFollowing(ctx *context.APIContext) {
-	// swagger:route GET /users/{username}/following userListFollowing
+	// swagger:route GET /users/{username}/following user userListFollowing
 	//
 	//     Produces:
 	//     - application/json
@@ -111,7 +111,7 @@ func checkUserFollowing(ctx *context.APIContext, u *models.User, followID int64)
 
 // CheckMyFollowing check if the repo is followed by me
 func CheckMyFollowing(ctx *context.APIContext) {
-	// swagger:route GET /user/following/{username} userCurrentCheckFollowing
+	// swagger:route GET /user/following/{username} user userCurrentCheckFollowing
 	//
 	//     Responses:
 	//       204: empty
@@ -126,7 +126,7 @@ func CheckMyFollowing(ctx *context.APIContext) {
 
 // CheckFollowing check if the repo is followed by user
 func CheckFollowing(ctx *context.APIContext) {
-	// swagger:route GET /users/{username}/following/:target userCheckFollowing
+	// swagger:route GET /users/{username}/following/:target user userCheckFollowing
 	//
 	//     Responses:
 	//       204: empty
@@ -145,7 +145,7 @@ func CheckFollowing(ctx *context.APIContext) {
 
 // Follow follow one repository
 func Follow(ctx *context.APIContext) {
-	// swagger:route PUT /user/following/{username} userCurrentPutFollow
+	// swagger:route PUT /user/following/{username} user userCurrentPutFollow
 	//
 	//     Responses:
 	//       204: empty
@@ -164,7 +164,7 @@ func Follow(ctx *context.APIContext) {
 
 // Unfollow unfollow one repository
 func Unfollow(ctx *context.APIContext) {
-	// swagger:route DELETE /user/following/{username} userCurrentDeleteFollow
+	// swagger:route DELETE /user/following/{username} user userCurrentDeleteFollow
 	//
 	//     Responses:
 	//       204: empty

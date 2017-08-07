@@ -14,7 +14,7 @@ import (
 
 // CreateRepo api for creating a repository
 func CreateRepo(ctx *context.APIContext, form api.CreateRepoOption) {
-	// swagger:route POST /admin/users/{username}/repos adminCreateRepo
+	// swagger:route POST /admin/users/{username}/repos admin adminCreateRepo
 	//
 	//     Consumes:
 	//     - application/json

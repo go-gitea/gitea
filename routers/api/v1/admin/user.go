@@ -36,7 +36,7 @@ func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, l
 
 // CreateUser api for creating a user
 func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
-	// swagger:route POST /admin/users adminCreateUser
+	// swagger:route POST /admin/users admin adminCreateUser
 	//
 	//     Consumes:
 	//     - application/json
@@ -87,7 +87,7 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 
 // EditUser api for modifying a user's information
 func EditUser(ctx *context.APIContext, form api.EditUserOption) {
-	// swagger:route PATCH /admin/users/{username} adminEditUser
+	// swagger:route PATCH /admin/users/{username} admin adminEditUser
 	//
 	//     Consumes:
 	//     - application/json
@@ -157,7 +157,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 
 // DeleteUser api for deleting a user
 func DeleteUser(ctx *context.APIContext) {
-	// swagger:route DELETE /admin/users/{username} adminDeleteUser
+	// swagger:route DELETE /admin/users/{username} admin adminDeleteUser
 	//
 	//     Produces:
 	//     - application/json
@@ -189,7 +189,7 @@ func DeleteUser(ctx *context.APIContext) {
 
 // CreatePublicKey api for creating a public key to a user
 func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
-	// swagger:route POST /admin/users/{username}/keys adminCreatePublicKey
+	// swagger:route POST /admin/users/{username}/keys admin adminCreatePublicKey
 	//
 	//     Consumes:
 	//     - application/json

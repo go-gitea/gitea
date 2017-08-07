@@ -15,7 +15,7 @@ import (
 
 // ListHooks list an organziation's webhooks
 func ListHooks(ctx *context.APIContext) {
-	// swagger:route GET /orgs/{orgname}/hooks listOrgHooks
+	// swagger:route GET /orgs/{orgname}/hooks organization listOrgHooks
 	//
 	//     Produces:
 	//     - application/json
@@ -39,7 +39,7 @@ func ListHooks(ctx *context.APIContext) {
 
 // GetHook get an organization's hook by id
 func GetHook(ctx *context.APIContext) {
-	// swagger:route GET /orgs/{orgname}/hooks/{id} getOrgHook
+	// swagger:route GET /orgs/{orgname}/hooks/{id} organization getOrgHook
 	//
 	//     Produces:
 	//     - application/json
@@ -60,7 +60,7 @@ func GetHook(ctx *context.APIContext) {
 
 // CreateHook create a hook for an organization
 func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
-	// swagger:route POST /orgs/{orgname}/hooks/ createOrgHook
+	// swagger:route POST /orgs/{orgname}/hooks/ organization createOrgHook
 	//
 	//     Consumes:
 	//     - application/json
@@ -81,7 +81,7 @@ func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 
 // EditHook modify a hook of a repository
 func EditHook(ctx *context.APIContext, form api.EditHookOption) {
-	// swagger:route PATCH /orgs/{orgname}/hooks/{id} editOrgHook
+	// swagger:route PATCH /orgs/{orgname}/hooks/{id} organization editOrgHook
 	//
 	//     Consumes:
 	//     - application/json
@@ -101,7 +101,7 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 
 // DeleteHook delete a hook of an organization
 func DeleteHook(ctx *context.APIContext) {
-	// swagger:route DELETE /orgs/{orgname}/hooks/{id} editOrgHook
+	// swagger:route DELETE /orgs/{orgname}/hooks/{id} organization editOrgHook
 	//
 	//     Produces:
 	//     - application/json
