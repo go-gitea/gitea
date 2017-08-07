@@ -130,8 +130,21 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 }
 
 // Create one repository of mine
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#create
 func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
+	// swagger:route POST /user/repos createCurrentUserRepo
+ 	//
+	//     Consumes:
+	//     - application/json
+	//
+ 	//     Produces:
+ 	//     - application/json
+ 	//
+ 	//     Responses:
+ 	//       201: Repository
+ 	//       403: forbidden
+ 	//       422: validationError
+ 	//       500: error
+	
 	// Shouldn't reach this condition, but just in case.
 	if ctx.User.IsOrganization() {
 		ctx.Error(422, "", "not allowed creating repository for organization")

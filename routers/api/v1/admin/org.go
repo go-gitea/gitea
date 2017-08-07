@@ -17,6 +17,9 @@ import (
 func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 	// swagger:route POST /admin/users/{username}/orgs adminCreateOrg
  	//
+	//     Consumes:
+	//     - application/json
+	//
  	//     Produces:
  	//     - application/json
  	//
