@@ -163,19 +163,17 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/user", func() {
 		m.Get("/login", user.SignIn)
 		m.Post("/login", bindIgnErr(auth.SignInForm{}), user.SignInPost)
-		if setting.Service.EnableOpenIDSignIn {
-			m.Combo("/login/openid").
-				Get(user.SignInOpenID).
-				Post(bindIgnErr(auth.SignInOpenIDForm{}), user.SignInOpenIDPost)
-			m.Group("/openid", func() {
-				m.Combo("/connect").
-					Get(user.ConnectOpenID).
-					Post(bindIgnErr(auth.ConnectOpenIDForm{}), user.ConnectOpenIDPost)
-				m.Combo("/register").
-					Get(user.RegisterOpenID).
-					Post(bindIgnErr(auth.SignUpOpenIDForm{}), user.RegisterOpenIDPost)
-			})
-		}
+		m.Combo("/login/openid").
+			Get(user.SignInOpenID).
+			Post(bindIgnErr(auth.SignInOpenIDForm{}), user.SignInOpenIDPost)
+		m.Group("/openid", func() {
+			m.Combo("/connect").
+				Get(user.ConnectOpenID).
+				Post(bindIgnErr(auth.ConnectOpenIDForm{}), user.ConnectOpenIDPost)
+			m.Combo("/register").
+				Get(user.RegisterOpenID).
+				Post(bindIgnErr(auth.SignUpOpenIDForm{}), user.RegisterOpenIDPost)
+		})
 		m.Get("/sign_up", user.SignUp)
 		m.Post("/sign_up", bindIgnErr(auth.RegisterForm{}), user.SignUpPost)
 		m.Get("/reset_password", user.ResetPasswd)
@@ -206,15 +204,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/email/delete", user.DeleteEmail)
 		m.Get("/password", user.SettingsPassword)
 		m.Post("/password", bindIgnErr(auth.ChangePasswordForm{}), user.SettingsPasswordPost)
-		if setting.Service.EnableOpenIDSignIn {
-			m.Group("/openid", func() {
-				m.Combo("").Get(user.SettingsOpenID).
-					Post(bindIgnErr(auth.AddOpenIDForm{}), user.SettingsOpenIDPost)
-				m.Post("/delete", user.DeleteOpenID)
-				m.Post("/toggle_visibility", user.ToggleOpenIDVisibility)
-			})
-		}
-
+		m.Group("/openid", func() {
+			m.Combo("").Get(user.SettingsOpenID).
+				Post(bindIgnErr(auth.AddOpenIDForm{}), user.SettingsOpenIDPost)
+			m.Post("/delete", user.DeleteOpenID)
+			m.Post("/toggle_visibility", user.ToggleOpenIDVisibility)
+		})
 		m.Combo("/keys").Get(user.SettingsKeys).
 			Post(bindIgnErr(auth.AddKeyForm{}), user.SettingsKeysPost)
 		m.Post("/keys/delete", user.DeleteKey)

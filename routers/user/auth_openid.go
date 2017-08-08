@@ -29,6 +29,11 @@ const (
 func SignInOpenID(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
+	if ! setting.Service.EnableOpenIDSignIn {
+		ctx.Error(403)
+		return
+	}
+
 	if ctx.Query("openid.return_to") != "" {
 		signInOpenIDVerify(ctx)
 		return
@@ -93,6 +98,11 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLoginOpenID"] = true
+
+	if ! setting.Service.EnableOpenIDSignIn {
+		ctx.Error(403)
+		return
+	}
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplSignInOpenID)
