@@ -314,6 +314,9 @@ function initInstall() {
     $('#disable-registration input').change(function () {
         if ($(this).is(':checked')) {
             $('#enable-captcha').checkbox('uncheck');
+            $('#disable-openid-registration').checkbox('check');
+        } else {
+            $('#disable-openid-registration').checkbox('uncheck');
         }
     });
     $('#enable-captcha input').change(function () {
