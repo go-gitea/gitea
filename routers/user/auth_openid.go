@@ -29,7 +29,7 @@ const (
 func SignInOpenID(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
-	if ! setting.Service.EnableOpenIDSignIn {
+	if !setting.Service.EnableOpenIDSignIn {
 		ctx.Error(403)
 		return
 	}
@@ -99,7 +99,7 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLoginOpenID"] = true
 
-	if ! setting.Service.EnableOpenIDSignIn {
+	if !setting.Service.EnableOpenIDSignIn {
 		ctx.Error(403)
 		return
 	}
@@ -270,7 +270,7 @@ func ConnectOpenID(ctx *context.Context) {
 // ConnectOpenIDPost handles submission of a form to connect an OpenID URI to an existing account
 func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
 
-	if ! setting.Service.EnableOpenIDSignIn {
+	if !setting.Service.EnableOpenIDSignIn {
 		ctx.Error(403)
 		return
 	}
