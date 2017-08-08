@@ -417,7 +417,7 @@
             "$ref": "#/responses/Hook"
           },
           "404": {
-            "$ref": "#/responses/notfound"
+            "$ref": "#/responses/notFound"
           },
           "500": {
             "$ref": "#/responses/error"
@@ -437,7 +437,7 @@
             "$ref": "#/responses/empty"
           },
           "404": {
-            "$ref": "#/responses/notfound"
+            "$ref": "#/responses/notFound"
           },
           "500": {
             "$ref": "#/responses/error"
@@ -460,7 +460,7 @@
             "$ref": "#/responses/Hook"
           },
           "404": {
-            "$ref": "#/responses/notfound"
+            "$ref": "#/responses/notFound"
           },
           "422": {
             "$ref": "#/responses/validationError"
@@ -507,7 +507,7 @@
             "$ref": "#/responses/redirect"
           },
           "404": {
-            "$ref": "#/responses/notfound"
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -562,7 +562,7 @@
             "$ref": "#/responses/empty"
           },
           "404": {
-            "$ref": "#/responses/notfound"
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -787,7 +787,7 @@
         "operationId": "repoListHooks",
         "responses": {
           "200": {
-            "$ref": "#/responses/apiHooks"
+            "$ref": "#/responses/HookList"
           },
           "500": {
             "$ref": "#/responses/error"
@@ -807,7 +807,7 @@
         "operationId": "repoCreateHook",
         "responses": {
           "200": {
-            "$ref": "#/responses/apiHook"
+            "$ref": "#/responses/Hook"
           },
           "422": {
             "$ref": "#/responses/validationError"
@@ -849,7 +849,7 @@
         "operationId": "repoEditHook",
         "responses": {
           "200": {
-            "$ref": "#/responses/apiHook"
+            "$ref": "#/responses/Hook"
           },
           "422": {
             "$ref": "#/responses/validationError"
@@ -2094,6 +2094,9 @@
     },
     "notFound": {
       "description": "APINotFound is a not found empty response"
+    },
+    "redirect": {
+      "description": "APIRedirect is a redirect response"
     },
     "validationError": {
       "description": "APIValidationError is error format response related to input validation",

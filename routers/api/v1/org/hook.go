@@ -46,7 +46,7 @@ func GetHook(ctx *context.APIContext) {
 	//
 	//     Responses:
 	//       200: Hook
-	//       404: notfound
+	//       404: notFound
 	//       500: error
 
 	org := ctx.Org.Organization
@@ -92,7 +92,7 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 	//     Responses:
 	//       200: Hook
 	//       422: validationError
-	//       404: notfound
+	//       404: notFound
 	//       500: error
 
 	hookID := ctx.ParamsInt64(":id")
@@ -108,7 +108,7 @@ func DeleteHook(ctx *context.APIContext) {
 	//
 	//     Responses:
 	//       204: empty
-	//       404: notfound
+	//       404: notFound
 	//       500: error
 
 	org := ctx.Org.Organization

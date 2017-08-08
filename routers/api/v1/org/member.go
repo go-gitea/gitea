@@ -90,7 +90,7 @@ func IsMember(ctx *context.APIContext) {
 	//     Responses:
 	//       204: empty
 	//       302: redirect
-	//       404: notfound
+	//       404: notFound
 
 	userToCheck := user.GetUserByParams(ctx)
 	if ctx.Written() {
@@ -120,7 +120,7 @@ func IsPublicMember(ctx *context.APIContext) {
 	//
 	//     Responses:
 	//       204: empty
-	//       404: notfound
+	//       404: notFound
 
 	userToCheck := user.GetUserByParams(ctx)
 	if ctx.Written() {
