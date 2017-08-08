@@ -2106,5 +2106,47 @@
         }
       }
     }
-  }
+  },
+  "securityDefinitions": {
+    "AccessToken": {
+      "type": "apiKey",
+      "name": "access_token",
+      "in": "query"
+    },
+    "AuthorizationHeaderToken": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    },
+    "BasicAuth": {
+      "type": "basic"
+    },
+    "Token": {
+      "type": "apiKey",
+      "name": "token",
+      "in": "query"
+    }
+  },
+  "security": [
+    {
+      "BasicAuth": [
+        "[]"
+      ]
+    },
+    {
+      "Token": [
+        "[]"
+      ]
+    },
+    {
+      "AccessToken": [
+        "[]"
+      ]
+    },
+    {
+      "AuthorizationHeaderToken": [
+        "[]"
+      ]
+    }
+  ]
 }
