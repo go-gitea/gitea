@@ -1668,13 +1668,20 @@ function initDashboardSearch() {
         data: {
             tab: 'repos',
             repos: [],
+            reposTotal: 0,
+            reposFilter: 'all',
             searchQuery: '',
+            searchLimit: document.querySelector('meta[name=_search_limit]').content,
             suburl: document.querySelector('meta[name=_suburl]').content,
-            uid: document.querySelector('meta[name=_context_uid]').content
+            uid: document.querySelector('meta[name=_context_uid]').content,
+            isMounted: false,
+            isLoading: false
         },
 
         mounted: function() {
             this.searchRepos();
+
+            this.isMounted = true;
 
             Vue.nextTick(function() {
                 document.querySelector('#search_repo').focus();
@@ -1686,19 +1693,47 @@ function initDashboardSearch() {
                 this.tab = t;
             },
 
+            changeReposFilter: function(filter) {
+                this.reposFilter = filter;
+            },
+
+            showRepo: function(repo, filter) {
+                switch (filter) {
+                    case 'sources':
+                        return repo.owner.id == this.uid && !repo.mirror && !repo.fork;
+                    case 'forks':
+                        return repo.owner.id == this.uid && !repo.mirror && repo.fork;
+                    case 'collaborative':
+                        return repo.owner.id != this.uid;
+                    default:
+                        return true;
+                }
+            },
+
             searchKeyUp: function() {
                 this.searchRepos();
             },
 
             searchRepos: function() {
                 var self = this;
-                $.getJSON(this.searchURL(), function(result) {
-                    self.repos = result.data;
+                this.isLoading = true;
+                let searchedQuery = this.searchQuery;
+                $.getJSON(this.searchURL(), function(result, textStatus, request) {
+                    if (searchedQuery == self.searchQuery) {
+                        self.repos = result.data;
+                        if (searchedQuery == "") {
+                            self.reposTotal = request.getResponseHeader('X-Total-Count');
+                        }
+                    }
+                }).always(function() {
+                    if (searchedQuery == self.searchQuery) {
+                        self.isLoading = false;
+                    }
                 });
             },
 
             searchURL: function() {
-                return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery;
+                return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery + '&limit=' + this.searchLimit;
             },
 
             repoClass: function(repo) {

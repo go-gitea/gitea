@@ -471,6 +471,17 @@ footer .ui.language .menu {
     padding-right: 30px !important;
   }
 }
+[v-cloak] {
+  display: none !important;
+}
+.repos-search {
+  padding-bottom: 0 !important;
+}
+.repos-filter {
+  margin-top: 0 !important;
+  border-bottom-width: 0 !important;
+  margin-bottom: 2px !important;
+}
 .markdown:not(code) {
   overflow: hidden;
   font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif;

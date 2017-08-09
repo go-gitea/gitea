@@ -17,6 +17,9 @@
 	{{if .ContextUser}}
 		<meta name="_context_uid" content="{{.ContextUser.ID}}" />
 	{{end}}
+	{{if .SearchLimit}}
+		<meta name="_search_limit" content="{{.SearchLimit}}" />
+	{{end}}
 {{if .GoGetImport}}
 	<meta name="go-import" content="{{.GoGetImport}} git {{.CloneLink.HTTPS}}">
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">

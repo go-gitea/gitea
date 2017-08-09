@@ -131,6 +131,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Tr("dashboard")
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
+	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
 
 	// Only user can have collaborative repositories.
 	if !ctxUser.IsOrganization() {
