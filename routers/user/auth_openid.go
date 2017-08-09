@@ -250,6 +250,10 @@ func signInOpenIDVerify(ctx *context.Context) {
 
 // ConnectOpenID shows a form to connect an OpenID URI to an existing account
 func ConnectOpenID(ctx *context.Context) {
+	if !setting.Service.EnableOpenIDSignIn {
+		ctx.Error(403)
+		return
+	}
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")

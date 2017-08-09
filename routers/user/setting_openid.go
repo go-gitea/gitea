@@ -20,6 +20,12 @@ const (
 
 // SettingsOpenID renders change user's openid page
 func SettingsOpenID(ctx *context.Context) {
+
+	if !setting.Service.EnableOpenIDSignIn {
+		ctx.Error(403)
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsOpenID"] = true
 
@@ -41,7 +47,7 @@ func SettingsOpenID(ctx *context.Context) {
 // SettingsOpenIDPost response for change user's openid
 func SettingsOpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
 
-	if !setting.Service.EnableOpenIDSignUp {
+	if !setting.Service.EnableOpenIDSignIn {
 		ctx.Error(403)
 		return
 	}
@@ -138,7 +144,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 
 // DeleteOpenID response for delete user's openid
 func DeleteOpenID(ctx *context.Context) {
-	if !setting.Service.EnableOpenIDSignUp {
+	if !setting.Service.EnableOpenIDSignIn {
 		ctx.Error(403)
 		return
 	}
@@ -156,7 +162,7 @@ func DeleteOpenID(ctx *context.Context) {
 
 // ToggleOpenIDVisibility response for toggle visibility of user's openid
 func ToggleOpenIDVisibility(ctx *context.Context) {
-	if !setting.Service.EnableOpenIDSignUp {
+	if !setting.Service.EnableOpenIDSignIn {
 		ctx.Error(403)
 		return
 	}
