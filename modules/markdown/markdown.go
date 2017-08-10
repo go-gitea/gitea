@@ -69,11 +69,28 @@ var (
 	// AnySHA1Pattern allows to split url containing SHA into parts
 	AnySHA1Pattern = regexp.MustCompile(`(http\S*)://(\S+)/(\S+)/(\S+)/(\S+)/([0-9a-f]{40})(?:/?([^#\s]+)?(?:#(\S+))?)?`)
 
-	// IssueFullPattern allows to split issue (and pull) URLs into parts
-	IssueFullPattern = regexp.MustCompile(`(?:^|\s|\()(http\S*)://((?:[^\s/]+/)+)((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
-
 	validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
 )
+
+// regexp for full links to issues/pulls
+var issueFullPattern *regexp.Regexp
+
+// InitMarkdown initialize regexps for markdown parsing
+func InitMarkdown() {
+	getIssueFullPattern()
+}
+
+func getIssueFullPattern() *regexp.Regexp {
+	if issueFullPattern == nil {
+		appURL := setting.AppURL
+		if len(appURL) > 0 && appURL[len(appURL)-1] != '/' {
+			appURL += "/"
+		}
+		issueFullPattern = regexp.MustCompile(appURL +
+			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
+	}
+	return issueFullPattern
+}
 
 // isLink reports whether link fits valid format.
 func isLink(link []byte) bool {
@@ -323,32 +340,17 @@ func renderFullSha1Pattern(rawBytes []byte, urlPrefix string) []byte {
 	return rawBytes
 }
 
-// renderFullIssuePattern renders issues-like URLs
-func renderFullIssuePattern(rawBytes []byte, urlPrefix string) []byte {
-	ms := IssueFullPattern.FindAllSubmatch(rawBytes, -1)
+// RenderFullIssuePattern renders issues-like URLs
+func RenderFullIssuePattern(rawBytes []byte) []byte {
+	ms := getIssueFullPattern().FindAllSubmatch(rawBytes, -1)
 	for _, m := range ms {
 		all := m[0]
-		protocol := string(m[1])
-		paths := bytes.Split(m[2], []byte("/"))
-		paths = paths[:len(paths)-1]
-		if bytes.HasPrefix(paths[0], []byte("gist.")) {
-			continue
-		}
-		path := protocol + "://" + string(m[2])
-		id := string(m[3])
-		path = URLJoin(path, id)
-		var comment []byte
-		if len(m) > 3 {
-			comment = m[4]
-		}
-		urlSuffix := ""
+		id := string(m[1])
 		text := "#" + id
-		if comment != nil {
-			urlSuffix += string(comment)
-			text += " <i class='comment icon'></i>"
-		}
+		// TODO if m[2] is not nil, then link is to a comment,
+		// and we should indicate that in the text somehow
 		rawBytes = bytes.Replace(rawBytes, all, []byte(fmt.Sprintf(
-			`<a href="%s%s">%s</a>`, path, urlSuffix, text)), -1)
+			`<a href="%s">%s</a>`, string(all), text)), -1)
 	}
 	return rawBytes
 }
@@ -550,12 +552,12 @@ func RenderSpecialLink(rawBytes []byte, urlPrefix string, metas map[string]strin
 			[]byte(fmt.Sprintf(`<a href="%s">%s</a>`, URLJoin(setting.AppURL, string(m[1:])), m)), -1)
 	}
 
+	rawBytes = RenderFullIssuePattern(rawBytes)
 	rawBytes = RenderShortLinks(rawBytes, urlPrefix, false, isWikiMarkdown)
 	rawBytes = RenderIssueIndexPattern(rawBytes, urlPrefix, metas)
 	rawBytes = RenderCrossReferenceIssueIndexPattern(rawBytes, urlPrefix, metas)
 	rawBytes = renderFullSha1Pattern(rawBytes, urlPrefix)
 	rawBytes = renderSha1CurrentPattern(rawBytes, urlPrefix)
-	rawBytes = renderFullIssuePattern(rawBytes, urlPrefix)
 	return rawBytes
 }
 
