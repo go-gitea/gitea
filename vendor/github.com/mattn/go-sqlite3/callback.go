@@ -20,6 +20,8 @@ package sqlite3
 
 void _sqlite3_result_text(sqlite3_context* ctx, const char* s);
 void _sqlite3_result_blob(sqlite3_context* ctx, const void* b, int l);
+
+void _unlock_notify_callback(void *arg, int argc);
 */
 import "C"
 
@@ -337,4 +339,36 @@ func callbackSyntheticForTests(v reflect.Value, err error) callbackArgConverter 
 	return func(*C.sqlite3_value) (reflect.Value, error) {
 		return v, err
 	}
+}
+
+type unlockNotification struct {
+	notify chan struct{}
+	lock   sync.Mutex
+}
+
+//export unlock_notify_callback
+func unlock_notify_callback(pargv unsafe.Pointer, argc C.int) {
+	argv := *(*uintptr)(pargv)
+	v := (*[1 << 30]uintptr)(unsafe.Pointer(argv))
+	for i := 0; i < int(argc); i++ {
+		un := lookupHandle(v[i]).(unlockNotification)
+		un.notify <- struct{}{}
+	}
+}
+
+var notifyMutex sync.Mutex
+
+//export unlock_notify_wait
+func unlock_notify_wait(db *C.sqlite3) C.int {
+	var un unlockNotification
+
+	un.notify = make(chan struct{})
+	defer close(un.notify)
+
+	argv := [1]uintptr{newHandle(nil, un)}
+	if rv := C.sqlite3_unlock_notify(db, (*[0]byte)(C._unlock_notify_callback), unsafe.Pointer(&argv)); rv != C.SQLITE_OK {
+		return rv
+	}
+	<-un.notify
+	return C.SQLITE_OK
 }

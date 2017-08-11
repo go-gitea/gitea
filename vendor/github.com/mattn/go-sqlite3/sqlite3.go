@@ -11,6 +11,7 @@ package sqlite3
 #cgo CFLAGS: -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_FTS3_PARENTHESIS -DSQLITE_ENABLE_FTS4_UNICODE61
 #cgo CFLAGS: -DSQLITE_TRACE_SIZE_LIMIT=15
 #cgo CFLAGS: -DSQLITE_DISABLE_INTRINSIC
+#cgo CFLAGS: -DSQLITE_ENABLE_UNLOCK_NOTIFY
 #cgo CFLAGS: -Wno-deprecated-declarations
 #ifndef USE_LIBSQLITE3
 #include <sqlite3-binding.h>
@@ -70,8 +71,25 @@ _sqlite3_exec(sqlite3* db, const char* pcmd, long long* rowid, long long* change
 static int
 _sqlite3_step(sqlite3_stmt* stmt, long long* rowid, long long* changes)
 {
-  int rv = sqlite3_step(stmt);
+  extern int unlock_notify_wait(sqlite3 *db);
+  int rv;
   sqlite3* db = sqlite3_db_handle(stmt);
+
+  for (;;) {
+    rv = sqlite3_step(stmt);
+    if (rv!=SQLITE_LOCKED) {
+      break;
+    }
+    if (sqlite3_extended_errcode(db)!=SQLITE_LOCKED_SHAREDCACHE) {
+      break;
+    }
+    rv = unlock_notify_wait(db);
+    if (rv != SQLITE_OK) {
+      break;
+    }
+    sqlite3_reset(stmt);
+  }
+
   *rowid = (long long) sqlite3_last_insert_rowid(db);
   *changes = (long long) sqlite3_changes(db);
   return rv;
@@ -707,7 +725,19 @@ func (c *SQLiteConn) prepare(ctx context.Context, query string) (driver.Stmt, er
 	defer C.free(unsafe.Pointer(pquery))
 	var s *C.sqlite3_stmt
 	var tail *C.char
-	rv := C.sqlite3_prepare_v2(c.db, pquery, -1, &s, &tail)
+	var rv C.int
+	for {
+		rv = C.sqlite3_prepare_v2(c.db, pquery, -1, &s, &tail)
+		if rv == C.SQLITE_OK {
+			break
+		}
+		if rv == C.SQLITE_LOCKED {
+			rv = unlock_notify_wait(c.db)
+			if rv != C.SQLITE_OK {
+				break
+			}
+		}
+	}
 	if rv != C.SQLITE_OK {
 		return nil, c.lastError()
 	}
