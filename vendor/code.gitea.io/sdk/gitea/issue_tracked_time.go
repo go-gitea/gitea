@@ -45,7 +45,8 @@ func (c *Client) GetMyTrackedTimes() (TrackedTimes, error) {
 }
 
 // AddTimeOption adds time manually to an issue
-// swagger:response AddTimeOption
+// swagger:parameters addTime
+// in: body
 type AddTimeOption struct {
 	Time int64 `json:"time" binding:"Required"`
 }
