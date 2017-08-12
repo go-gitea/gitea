@@ -156,7 +156,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 		}
 	}
 
-	if err := models.UpdateUser(ctxUser); err != nil {
+	if err := models.UpdateUserCols(ctxUser, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 
@@ -221,7 +221,7 @@ func SettingsPasswordPost(ctx *context.Context, form auth.ChangePasswordForm) {
 			return
 		}
 		ctx.User.EncodePasswd()
-		if err := models.UpdateUser(ctx.User); err != nil {
+		if err := models.UpdateUserCols(ctx.User, "salt", "passwd"); err != nil {
 			ctx.Handle(500, "UpdateUser", err)
 			return
 		}
