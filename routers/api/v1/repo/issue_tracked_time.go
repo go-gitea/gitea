@@ -50,7 +50,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	//     - application/json
 	//
 	//     Responses:
-	//       200: AddTimeOption
+	//       200: TrackedTime
 	//       403: error
 	//	 404: error
 	//       500: error
@@ -68,12 +68,13 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 		ctx.Status(403)
 		return
 	}
-
-	if err := models.AddTime(ctx.User.ID, issue.ID, form.Time); err != nil {
+	var tt *models.TrackedTime
+	if tt, err = models.AddTime(ctx.User.ID, issue.ID, form.Time); err != nil {
 		ctx.Error(500, "AddTime", err)
 		return
 	}
-	ctx.JSON(200, form)
+	ctx.JSON(200, tt)
+
 }
 
 // ListTrackedTimesByUser  lists all tracked times of the user

@@ -68,14 +68,14 @@ func (t *TrackedTime) BeforeInsert() {
 }
 
 // AddTime will add the given time (in seconds) to the issue
-func AddTime(userID int64, issueID int64, time int64) error {
+func AddTime(userID int64, issueID int64, time int64) (*TrackedTime, error) {
 	tt := &TrackedTime{
 		IssueID: issueID,
 		UserID:  userID,
 		Time:    time,
 	}
 	if _, err := x.Insert(tt); err != nil {
-		return err
+		return nil, err
 	}
 	comment := &Comment{
 		IssueID:  issueID,
@@ -84,9 +84,9 @@ func AddTime(userID int64, issueID int64, time int64) error {
 		Content:  secToTime(time),
 	}
 	if _, err := x.Insert(comment); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return tt, nil
 }
 
 // TotalTimes returns the spent time for each user by an issue

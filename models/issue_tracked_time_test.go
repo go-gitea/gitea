@@ -9,7 +9,12 @@ import (
 func TestAddTime(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	//3661 = 1h 1min 1s
-	assert.NoError(t, AddTime(3, 1, 3661))
+	trackedTime, err := AddTime(3, 1, 3661)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(3), trackedTime.UserID)
+	assert.Equal(t, int64(1), trackedTime.IssueID)
+	assert.Equal(t, int64(3661), trackedTime.Time)
+
 	tt := AssertExistsAndLoadBean(t, &TrackedTime{UserID: 3, IssueID: 1}).(*TrackedTime)
 	assert.Equal(t, tt.Time, int64(3661))
 
