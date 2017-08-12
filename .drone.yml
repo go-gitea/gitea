@@ -97,12 +97,12 @@ pipeline:
     when:
       event: [ push, tag ]
 
-  coverage:
-    image: plugins/coverage
-    server: https://coverage.gitea.io
-    when:
-      event: [ push ]
-      branch: master
+  # coverage:
+  #   image: plugins/coverage
+  #   server: https://coverage.gitea.io
+  #   when:
+  #     event: [ push ]
+  #     branch: master
 
   docker:
     image: plugins/docker

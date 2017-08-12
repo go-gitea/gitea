@@ -120,6 +120,13 @@ code.wrap {
 .ui.right {
   float: right;
 }
+.ui.button,
+.ui.menu .item {
+  -moz-user-select: auto;
+  -ms-user-select: auto;
+  -webkit-user-select: auto;
+  user-select: auto;
+}
 .ui.container.fluid.padded {
   padding: 0 10px 0 10px;
 }
@@ -2069,6 +2076,10 @@ footer .ui.language .menu {
   color: #A7A7A7;
   background: #fafafa;
   width: 1%;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .repository .diff-file-box .file-body.file-code .lines-num span.fold {
   display: block;

@@ -398,8 +398,8 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 	return nil
 }
 
-// EnableUnit if this repository enabled some unit
-func (repo *Repository) EnableUnit(tp UnitType) bool {
+// UnitEnabled if this repository has the given unit enabled
+func (repo *Repository) UnitEnabled(tp UnitType) bool {
 	repo.getUnits(x)
 	for _, unit := range repo.Units {
 		if unit.Type == tp {
@@ -658,7 +658,7 @@ func (repo *Repository) CanEnablePulls() bool {
 
 // AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
 func (repo *Repository) AllowsPulls() bool {
-	return repo.CanEnablePulls() && repo.EnableUnit(UnitTypePullRequests)
+	return repo.CanEnablePulls() && repo.UnitEnabled(UnitTypePullRequests)
 }
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.

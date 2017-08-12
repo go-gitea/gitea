@@ -49,19 +49,19 @@
 {{if not .IsDiffCompare}}
 	<div class="ui tabs container">
 		<div class="ui tabular stackable menu navbar">
-			{{if .Repository.EnableUnit $.UnitTypeCode}}
+			{{if .Repository.UnitEnabled $.UnitTypeCode}}
 			<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}">
 				<i class="octicon octicon-code"></i> {{.i18n.Tr "repo.code"}}
 			</a>
 			{{end}}
 
-			{{if .Repository.EnableUnit $.UnitTypeIssues}}
+			{{if .Repository.UnitEnabled $.UnitTypeIssues}}
 				<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
 					<i class="octicon octicon-issue-opened"></i> {{.i18n.Tr "repo.issues"}} <span class="ui {{if not .Repository.NumOpenIssues}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenIssues}}</span>
 				</a>
 			{{end}}
 
-			{{if .Repository.EnableUnit $.UnitTypeExternalTracker}}
+			{{if .Repository.UnitEnabled $.UnitTypeExternalTracker}}
 				<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
 					<i class="octicon octicon-issue-opened"></i> {{.i18n.Tr "repo.issues"}} </span>
 				</a>
@@ -73,19 +73,19 @@
 				</a>
 			{{end}}
 
-			{{if and (.Repository.EnableUnit $.UnitTypeCode) (not .IsBareRepo)}}
+			{{if and (.Repository.UnitEnabled $.UnitTypeCode) (not .IsBareRepo)}}
 			<a class="{{if (or (.PageIsCommits) (.PageIsDiff))}}active{{end}} item" href="{{.RepoLink}}/commits/{{EscapePound .BranchName}}">
 				<i class="octicon octicon-history"></i> {{.i18n.Tr "repo.commits"}} <span class="ui {{if not .CommitsCount}}gray{{else}}blue{{end}} small label">{{.CommitsCount}}</span>
 			</a>
 			{{end}}
 
-			{{if and (.Repository.EnableUnit $.UnitTypeReleases) (not .IsBareRepo) }}
+			{{if and (.Repository.UnitEnabled $.UnitTypeReleases) (not .IsBareRepo) }}
 			<a class="{{if .PageIsReleaseList}}active{{end}} item" href="{{.RepoLink}}/releases">
 				<i class="octicon octicon-tag"></i> {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .Repository.NumTags}}gray{{else}}blue{{end}} small label">{{.Repository.NumTags}}</span>
 			</a>
 			{{end}}
 
-			{{if or (.Repository.EnableUnit $.UnitTypeWiki) (.Repository.EnableUnit $.UnitTypeExternalWiki)}}
+			{{if or (.Repository.UnitEnabled $.UnitTypeWiki) (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}
 				<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki">
 					<i class="octicon octicon-book"></i> {{.i18n.Tr "repo.wiki"}}
 				</a>

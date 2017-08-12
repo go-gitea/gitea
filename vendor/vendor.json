@@ -3,10 +3,10 @@
 	"ignore": "test appengine",
 	"package": [
 		{
-			"checksumSHA1": "oWPkH7I+FSu9dYZCz8rtuS/R8fo=",
+			"checksumSHA1": "fR5YDSoG7xYv2aLO23rne95gWps=",
 			"path": "code.gitea.io/git",
-			"revision": "fc639668937225e1b9cda203b3491869b439a951",
-			"revisionTime": "2017-07-10T08:37:35Z"
+			"revision": "479f87e5d189e7b8f1fd51dbcd25faa32b632cd2",
+			"revisionTime": "2017-08-03T00:53:29Z"
 		},
 		{
 			"checksumSHA1": "FiMsrhCfJcv5BwcKP7v0HU9l1kQ=",
@@ -1467,10 +1467,11 @@
 			"revisionTime": "2016-04-11T21:29:32Z"
 		},
 		{
-			"checksumSHA1": "YRD335tkMvgHzkfbfveMUpsE3Bw=",
+			"checksumSHA1": "MMb7aeIRnJq17iQvuGvevymOIYQ=",
+			"origin": "github.com/go-gitea/ini",
 			"path": "gopkg.in/ini.v1",
-			"revision": "6e4869b434bd001f6983749881c7ead3545887d8",
-			"revisionTime": "2016-08-27T06:11:18Z"
+			"revision": "88679ba677ac064c7880c9bde81ef5b9fd132e82",
+			"revisionTime": "2017-08-04T04:10:12Z"
 		},
 		{
 			"checksumSHA1": "7jPSjzw3mckHVQ2SjY4NvtIJR4g=",

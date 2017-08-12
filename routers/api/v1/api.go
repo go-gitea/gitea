@@ -235,7 +235,7 @@ func orgAssignment(args ...bool) macaron.Handler {
 }
 
 func mustEnableIssues(ctx *context.APIContext) {
-	if !ctx.Repo.Repository.EnableUnit(models.UnitTypeIssues) {
+	if !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) {
 		ctx.Status(404)
 		return
 	}

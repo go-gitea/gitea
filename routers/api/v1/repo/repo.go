@@ -293,7 +293,10 @@ func GetByID(ctx *context.APIContext) {
 
 	access, err := models.AccessLevel(ctx.User.ID, repo)
 	if err != nil {
-		ctx.Error(500, "GetRepositoryByID", err)
+		ctx.Error(500, "AccessLevel", err)
+		return
+	} else if access < models.AccessModeRead {
+		ctx.Status(404)
 		return
 	}
 	ctx.JSON(200, repo.APIFormat(access))

@@ -47,6 +47,10 @@ func renderIssueLinks(oldCommits *list.List, repoLink string) *list.List {
 // Commits render branch's commits
 func Commits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
+	if ctx.Repo.Commit == nil {
+		ctx.Handle(404, "Commit not found", nil)
+		return
+	}
 
 	commitsCount, err := ctx.Repo.Commit.CommitsCount()
 	if err != nil {

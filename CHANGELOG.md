@@ -6,6 +6,17 @@
   * Password reset URL changed from `/user/forget_password` to `/user/forgot_password`
   * SSH keys management URL changed from `/user/settings/ssh` to `/user/settings/keys`
 
+## [1.1.3](https://github.com/go-gitea/gitea/releases/tag/v1.1.3) - 2017-08-03
+
+* BUGFIXES
+  * Fix PR template error (#2008)
+  * Fix markdown rendering (fix #1530) (#2043)
+  * Fix missing less sources for oauth (backport #1288) (#2135)
+  * Don't ignore gravatar error (#2138)
+  * Fix diff of renamed and modified file (#2136)
+  * Fix fast-forward PR bug (#2137)
+  * Fix some security bugs
+
 ## [1.1.2](https://github.com/go-gitea/gitea/releases/tag/v1.1.2) - 2017-06-13
 
 * BUGFIXES
