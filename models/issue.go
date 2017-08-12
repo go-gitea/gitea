@@ -176,7 +176,7 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 
 	if issue.Milestone == nil && issue.MilestoneID > 0 {
 		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
-		if err != nil {
+		if err != nil && !IsErrMilestoneNotExist(err) {
 			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
 		}
 	}
