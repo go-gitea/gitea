@@ -50,6 +50,7 @@ func GlobalInit() {
 
 	if setting.InstallLock {
 		highlight.NewContext()
+		markdown.InitMarkdown()
 		markdown.NewSanitizer()
 		if err := models.NewEngine(migrations.Migrate); err != nil {
 			log.Fatal(4, "Failed to initialize ORM engine: %v", err)
