@@ -64,7 +64,24 @@ type PushUpdateOptions struct {
 
 // PushUpdate must be called for any push actions in order to
 // generates necessary push action history feeds.
-func PushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
+func PushUpdate(branch string, opt PushUpdateOptions) error {
+	repo, err := pushUpdate(opt)
+	if err != nil {
+		return err
+	}
+
+	pusher, err := GetUserByID(opt.PusherID)
+	if err != nil {
+		return err
+	}
+
+	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
+
+	go AddTestPullRequestTask(pusher, repo.ID, branch, true)
+	return nil
+}
+
+func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 	isNewRef := opts.OldCommitID == git.EmptySHA
 	isDelRef := opts.NewCommitID == git.EmptySHA
 	if isNewRef && isDelRef {
