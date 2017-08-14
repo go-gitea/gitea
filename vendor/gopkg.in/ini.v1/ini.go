@@ -35,7 +35,7 @@ const (
 
 	// Maximum allowed depth when recursively substituing variable names.
 	_DEPTH_VALUES = 99
-	_VERSION      = "1.28.1"
+	_VERSION      = "1.28.2"
 )
 
 // Version returns current package version literal.
@@ -542,7 +542,7 @@ func (f *File) WriteTo(w io.Writer) (int64, error) {
 func (f *File) SaveToIndent(filename, indent string) error {
 	// Note: Because we are truncating with os.Create,
 	// 	so it's safer to save to a temporary file location and rename afte done.
-	buf, err := f.writeToBuffer(indent);
+	buf, err := f.writeToBuffer(indent)
 	if err != nil {
 		return err
 	}
