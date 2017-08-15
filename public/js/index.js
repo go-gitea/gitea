@@ -1568,7 +1568,7 @@ $(document).ready(function () {
     initWebhook();
     initAdmin();
     initCodeView();
-    initDashboardSearch();
+    initVueApp();
     initTeamSettings();
 
     // Repo clone url.
@@ -1758,8 +1758,8 @@ function initVueComponents(){
     })
 }
 
-function initDashboardSearch() {
-    var el = document.getElementById('dashboard-repo-search');
+function initVueApp() {
+    var el = document.getElementById('app');
     if (!el) {
         return;
     }
