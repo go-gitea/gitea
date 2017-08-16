@@ -42,7 +42,7 @@ type InstallForm struct {
 	DisableGravatar                bool
 	EnableFederatedAvatar          bool
 	EnableOpenIDSignIn             bool
-	DisableOpenIDRegistration      bool
+	EnableOpenIDSignUp             bool
 	DisableRegistration            bool
 	EnableCaptcha                  bool
 	RequireSignInView              bool
