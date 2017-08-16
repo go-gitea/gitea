@@ -1,11 +1,11 @@
 <script type="text/x-template" id="repo-search-template">
     <div>
-        <div class="ui {{if not .ContextUser.IsOrganization}}two{{end}} item stackable tabable menu">
+        {{if not .ContextUser.IsOrganization}}
+        <div class="ui two item stackable tabable menu">
             <a :class="{item: true, active: tab === 'repos'}" @click="changeTab('repos')">{{.i18n.Tr "repository"}}</a>
-            {{if not .ContextUser.IsOrganization}}
-                <a :class="{item: true, active: tab === 'orgs'}" @click="changeTab('orgs')">{{.i18n.Tr "organization"}}</a>
-            {{end}}
+            <a :class="{item: true, active: tab === 'orgs'}" @click="changeTab('orgs')">{{.i18n.Tr "organization"}}</a>
         </div>
+        {{end}}
         <div v-if="tab === 'repos'" class="ui tab active list">
             <h4 class="ui top attached header">
                 {{.i18n.Tr "home.my_repos"}} <span class="ui grey label">${ reposTotal }</span>
