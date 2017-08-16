@@ -1712,6 +1712,8 @@ function initVueComponents(){
                         return repo.owner.id == this.uid && !repo.mirror && !repo.fork;
                     case 'forks':
                         return repo.owner.id == this.uid && !repo.mirror && repo.fork;
+                    case 'mirrors':
+                        return repo.mirror;
                     case 'collaborative':
                         return repo.owner.id != this.uid;
                     default:
