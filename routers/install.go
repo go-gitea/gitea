@@ -108,7 +108,7 @@ func Install(ctx *context.Context) {
 	form.OfflineMode = setting.OfflineMode
 	form.DisableGravatar = setting.DisableGravatar
 	form.EnableFederatedAvatar = setting.EnableFederatedAvatar
-	form.EnableOpenIDSignIn = setting.Service.EnableOpenIDSignIn
+	form.EnableOpenIDSignIn = true // setting.Service.EnableOpenIDSignIn
 	form.DisableOpenIDRegistration = !setting.Service.EnableOpenIDSignUp
 	form.DisableRegistration = setting.Service.DisableRegistration
 	form.EnableCaptcha = setting.Service.EnableCaptcha
