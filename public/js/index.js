@@ -1655,36 +1655,45 @@ $(function () {
     });
 });
 
-function initDashboardSearch() {
-    var el = document.getElementById('dashboard-repo-search');
-    if (!el) {
-        return;
-    }
+function initVueComponents(){
+    var vueDelimeters = ['${', '}'];
 
-    new Vue({
-        delimiters: ['${', '}'],
-        el: el,
+    Vue.component('repo-search', {
+        delimiters: vueDelimeters,
+        template: '#repo-search-template',
 
-        data: {
-            tab: 'repos',
-            repos: [],
-            reposTotal: 0,
-            reposFilter: 'all',
-            searchQuery: '',
-            searchLimit: document.querySelector('meta[name=_search_limit]').content,
-            suburl: document.querySelector('meta[name=_suburl]').content,
-            uid: document.querySelector('meta[name=_context_uid]').content,
-            isMounted: false,
-            isLoading: false
+        props: {
+            searchLimit: {
+                type: Number,
+                default: 10
+            },
+            suburl: {
+                type: String,
+                required: true
+            },
+            uid: {
+                type: Number,
+                required: true
+            },
+        },
+
+        data: function() {
+            return {
+                tab: 'repos',
+                repos: [],
+                reposTotal: 0,
+                reposFilter: 'all',
+                searchQuery: '',
+                isLoading: false
+            }
         },
 
         mounted: function() {
             this.searchRepos();
 
-            this.isMounted = true;
-
+            var self = this;
             Vue.nextTick(function() {
-                document.querySelector('#search_repo').focus();
+                self.$refs.search.focus();
             });
         },
 
@@ -1710,14 +1719,10 @@ function initDashboardSearch() {
                 }
             },
 
-            searchKeyUp: function() {
-                this.searchRepos();
-            },
-
             searchRepos: function() {
                 var self = this;
                 this.isLoading = true;
-                let searchedQuery = this.searchQuery;
+                var searchedQuery = this.searchQuery;
                 $.getJSON(this.searchURL(), function(result, textStatus, request) {
                     if (searchedQuery == self.searchQuery) {
                         self.repos = result.data;
@@ -1748,5 +1753,25 @@ function initDashboardSearch() {
                 }
             }
         }
+    })
+}
+
+function initDashboardSearch() {
+    var el = document.getElementById('dashboard-repo-search');
+    if (!el) {
+        return;
+    }
+
+    initVueComponents();
+
+    new Vue({
+        delimiters: ['${', '}'],
+        el: el,
+
+        data: {
+            searchLimit: document.querySelector('meta[name=_search_limit]').content,
+            suburl: document.querySelector('meta[name=_suburl]').content,
+            uid: document.querySelector('meta[name=_context_uid]').content,
+        },
     });
 }
