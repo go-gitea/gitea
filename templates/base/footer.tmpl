@@ -45,10 +45,6 @@
 	<script src="{{AppSubUrl}}/js/draw.js"></script>
 {{end}}
 
-<!-- JavaScript -->
-<script src="{{AppSubUrl}}/js/semantic-2.2.1.min.js"></script>
-<script src="{{AppSubUrl}}/js/index.js?v={{MD5 AppVer}}"></script>
-
 <!-- Third-party libraries -->
 {{if .RequireHighlightJS}}
 	<script src="{{AppSubUrl}}/plugins/highlight-9.11.0/highlight.pack.js"></script>
@@ -66,5 +62,9 @@
 	<script src="{{AppSubUrl}}/js/libs/emojify-1.1.0.min.js"></script>
 	<script src="{{AppSubUrl}}/js/libs/clipboard-1.5.9.min.js"></script>
 	<script src="{{AppSubUrl}}/js/libs/vue.min.js"></script>
+
+	<!-- JavaScript -->
+	<script src="{{AppSubUrl}}/js/semantic-2.2.1.min.js"></script>
+	<script src="{{AppSubUrl}}/js/index.js?v={{MD5 AppVer}}"></script>
 </body>
 </html>

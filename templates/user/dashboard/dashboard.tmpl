@@ -8,105 +8,10 @@
 				{{template "user/dashboard/feeds" .}}
 			</div>
 			<div id="dashboard-repo-search" class="six wide column">
-				<div class="ui {{if not .ContextUser.IsOrganization}}three{{else}}two{{end}} item stackable tabable menu">
-					<a :class="{item: true, active: tab === 'repos'}" @click="changeTab('repos')">{{.i18n.Tr "repository"}}</a>
-					{{if not .ContextUser.IsOrganization}}
-						<a :class="{item: true, active: tab === 'orgs'}" @click="changeTab('orgs')">{{.i18n.Tr "organization"}}</a>
-					{{end}}
-					<a :class="{item: true, active: tab === 'mirrors'}" @click="changeTab('mirrors')">{{.i18n.Tr "mirror"}}</a>
-				</div>
-				<div v-if="tab === 'repos'" class="ui tab active list">
-					<div class="ui fluid input">
-						<input @keyUp="searchKeyUp" v-model="searchQuery" id="search_repo" placeholder="{{.i18n.Tr "home.search_repos"}}">
-					</div>
-					<h4 class="ui top attached header">
-						{{.i18n.Tr "home.my_repos"}} <span class="ui grey label">{{.ContextUser.NumRepos}}</span>
-						<div class="ui right">
-							<a class="poping up" href="{{AppSubUrl}}/repo/create" data-content="{{.i18n.Tr "new_repo"}}" data-variation="tiny inverted" data-position="left center">
-								<i class="plus icon"></i>
-								<span class="sr-only">{{.i18n.Tr "new_repo"}}</span>
-							</a>
-						</div>
-					</h4>
-					<div class="ui attached table segment">
-						<ul class="repo-owner-name-list">
-							<li v-for="repo in repos" :class="{'private': repo.private}">
-								<a :href="'{{AppSubUrl}}/' + repo.full_name">
-									<i :class="repoClass(repo)"></i>
-									<strong class="text truncate item-name">${ repo.full_name }</strong>
-									<span class="ui right text light grey">
-										${ repo.stars_count } <i class="octicon octicon-star rear"></i>
-									</span>
-								</a>
-							</li>
-							{{if gt .ContextUser.NumRepos .MaxShowRepoNum}}
-							<li>
-								<a href="{{.ContextUser.HomeLink}}">{{.i18n.Tr "home.show_more_repos"}}</a>
-							</li>
-							{{end}}
-						</ul>
-					</div>
-				</div>
-
-				{{if not .ContextUser.IsOrganization}}
-					<div v-if="tab === 'orgs'" class="ui tab active list">
-						<h4 class="ui top attached header">
-							{{.i18n.Tr "home.my_orgs"}} <span class="ui grey label">{{.ContextUser.GetOrganizationCount}}</span>
-							<div class="ui right">
-								{{if .SignedUser.CanCreateOrganization}}
-								<a class="poping up" href="{{AppSubUrl}}/org/create" data-content="{{.i18n.Tr "new_org"}}" data-variation="tiny inverted" data-position="left center">
-									<i class="plus icon"></i>
-									<span class="sr-only">{{.i18n.Tr "new_org"}}</span>
-								</a>
-								{{end}}
-							</div>
-						</h4>
-						<div class="ui attached table segment">
-							<ul class="repo-owner-name-list">
-								{{range .ContextUser.Orgs}}
-									<li>
-										<a href="{{AppSubUrl}}/{{.Name}}">
-											<i class="octicon octicon-organization"></i>
-											<strong class="text truncate item-name">{{.Name}}</strong>
-											<span class="ui right text light grey">
-												{{.NumRepos}} <i class="octicon octicon-repo rear"></i>
-											</span>
-										</a>
-									</li>
-								{{end}}
-							</ul>
-						</div>
-					</div>
-				{{end}}
-
-				<div v-if="tab === 'mirrors'" class="ui tab active list">
-					<h4 class="ui top attached header">
-						{{.i18n.Tr "home.my_mirrors"}} <span class="ui grey label">{{.MirrorCount}}</span>
-						<div class="ui right">
-							<a class="poping up" href="{{AppSubUrl}}/repo/migrate?mirror=1" data-content="{{.i18n.Tr "new_mirror"}}" data-variation="tiny inverted" data-position="left center">
-								<i class="plus icon"></i>
-								<span class="sr-only">{{.i18n.Tr "new_mirror"}}</span>
-							</a>
-						</div>
-					</h4>
-					<div class="ui attached table segment">
-						<ul class="repo-owner-name-list">
-							{{range .Mirrors}}
-								<li {{if .IsPrivate}}class="private"{{end}}>
-									<a href="{{AppSubUrl}}/{{$.ContextUser.Name}}/{{.Name}}">
-										<i class="octicon octicon-repo-clone"></i>
-										<strong class="text truncate item-name">{{.Name}}</strong>
-										<span class="ui right text light grey">
-											{{.Interval}}H <i class="octicon octicon-sync rear"></i>
-										</span>
-									</a>
-								</li>
-							{{end}}
-						</ul>
-					</div>
-				</div>
+				<repo-search :search-limit="searchLimit" :suburl="suburl" :uid="uid"><i class="fa fa-spinner fa-spin"></i></repo-search>
 			</div>
 		</div>
 	</div>
 </div>
+{{template "user/dashboard/repo-search" .}}
 {{template "base/footer" .}}

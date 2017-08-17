@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"fmt"
 	"strings"
 
 	api "code.gitea.io/sdk/gitea"
@@ -91,6 +92,7 @@ func Search(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(count), setting.API.MaxResponseItems)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(200, api.SearchResults{
 		OK:   true,
 		Data: results,

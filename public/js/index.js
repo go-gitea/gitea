@@ -1655,29 +1655,45 @@ $(function () {
     });
 });
 
-function initDashboardSearch() {
-    var el = document.getElementById('dashboard-repo-search');
-    if (!el) {
-        return;
-    }
+function initVueComponents(){
+    var vueDelimeters = ['${', '}'];
 
-    new Vue({
-        delimiters: ['${', '}'],
-        el: el,
+    Vue.component('repo-search', {
+        delimiters: vueDelimeters,
+        template: '#repo-search-template',
 
-        data: {
-            tab: 'repos',
-            repos: [],
-            searchQuery: '',
-            suburl: document.querySelector('meta[name=_suburl]').content,
-            uid: document.querySelector('meta[name=_context_uid]').content
+        props: {
+            searchLimit: {
+                type: Number,
+                default: 10
+            },
+            suburl: {
+                type: String,
+                required: true
+            },
+            uid: {
+                type: Number,
+                required: true
+            },
+        },
+
+        data: function() {
+            return {
+                tab: 'repos',
+                repos: [],
+                reposTotal: 0,
+                reposFilter: 'all',
+                searchQuery: '',
+                isLoading: false
+            }
         },
 
         mounted: function() {
             this.searchRepos();
 
+            var self = this;
             Vue.nextTick(function() {
-                document.querySelector('#search_repo').focus();
+                self.$refs.search.focus();
             });
         },
 
@@ -1686,19 +1702,45 @@ function initDashboardSearch() {
                 this.tab = t;
             },
 
-            searchKeyUp: function() {
-                this.searchRepos();
+            changeReposFilter: function(filter) {
+                this.reposFilter = filter;
+            },
+
+            showRepo: function(repo, filter) {
+                switch (filter) {
+                    case 'sources':
+                        return repo.owner.id == this.uid && !repo.mirror && !repo.fork;
+                    case 'forks':
+                        return repo.owner.id == this.uid && !repo.mirror && repo.fork;
+                    case 'mirrors':
+                        return repo.mirror;
+                    case 'collaborative':
+                        return repo.owner.id != this.uid;
+                    default:
+                        return true;
+                }
             },
 
             searchRepos: function() {
                 var self = this;
-                $.getJSON(this.searchURL(), function(result) {
-                    self.repos = result.data;
+                this.isLoading = true;
+                var searchedQuery = this.searchQuery;
+                $.getJSON(this.searchURL(), function(result, textStatus, request) {
+                    if (searchedQuery == self.searchQuery) {
+                        self.repos = result.data;
+                        if (searchedQuery == "") {
+                            self.reposTotal = request.getResponseHeader('X-Total-Count');
+                        }
+                    }
+                }).always(function() {
+                    if (searchedQuery == self.searchQuery) {
+                        self.isLoading = false;
+                    }
                 });
             },
 
             searchURL: function() {
-                return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery;
+                return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery + '&limit=' + this.searchLimit;
             },
 
             repoClass: function(repo) {
@@ -1713,5 +1755,25 @@ function initDashboardSearch() {
                 }
             }
         }
+    })
+}
+
+function initDashboardSearch() {
+    var el = document.getElementById('dashboard-repo-search');
+    if (!el) {
+        return;
+    }
+
+    initVueComponents();
+
+    new Vue({
+        delimiters: ['${', '}'],
+        el: el,
+
+        data: {
+            searchLimit: document.querySelector('meta[name=_search_limit]').content,
+            suburl: document.querySelector('meta[name=_suburl]').content,
+            uid: document.querySelector('meta[name=_context_uid]').content,
+        },
     });
 }
