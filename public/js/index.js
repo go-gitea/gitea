@@ -1687,19 +1687,19 @@ function initVueComponents(){
                 type: Number,
                 required: true
             },
-            orgs: {
+            organizations: {
                 type: Array,
                 default: []
             },
-            isOrg: {
+            isOrganization: {
                 type: Boolean,
                 default: true
             },
-            canCreateOrg: {
+            canCreateOrganization: {
                 type: Boolean,
                 default: false
             },
-            orgsTotal: {
+            organizationsTotalCount: {
                 type: Number,
                 default: 0
             },
@@ -1713,7 +1713,7 @@ function initVueComponents(){
             return {
                 tab: 'repos',
                 repos: [],
-                reposTotal: 0,
+                reposTotalCount: 0,
                 reposFilter: 'all',
                 searchQuery: '',
                 isLoading: false
@@ -1761,7 +1761,7 @@ function initVueComponents(){
                     if (searchedQuery == self.searchQuery) {
                         self.repos = result.data;
                         if (searchedQuery == "") {
-                            self.reposTotal = request.getResponseHeader('X-Total-Count');
+                            self.reposTotalCount = request.getResponseHeader('X-Total-Count');
                         }
                     }
                 }).always(function() {

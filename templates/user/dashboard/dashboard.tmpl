@@ -14,26 +14,26 @@
 					:uid="uid"
 					:more-repos-link="'{{.ContextUser.HomeLink}}'"
 					{{if not .ContextUser.IsOrganization}}
-					:orgs="[
+					:organizations="[
 						{{range .ContextUser.Orgs}}
 						{name: '{{.Name}}', num_repos: '{{.NumRepos}}'},
 						{{end}}
 					]"
-					:is-org="false"
-					:orgs-total="{{.ContextUser.GetOrganizationCount}}"
-					:can-create-org="{{.SignedUser.CanCreateOrganization}}"
+					:is-organization="false"
+					:organizations-total-count="{{.ContextUser.GetOrganizationCount}}"
+					:can-create-organization="{{.SignedUser.CanCreateOrganization}}"
 					{{end}}
 					inline-template
 					v-cloak
 				>
 					<div>
-						<div v-if="!isOrg" class="ui two item stackable tabable menu">
+						<div v-if="!isOrganization" class="ui two item stackable tabable menu">
 							<a :class="{item: true, active: tab === 'repos'}" @click="changeTab('repos')">{{.i18n.Tr "repository"}}</a>
-							<a :class="{item: true, active: tab === 'orgs'}" @click="changeTab('orgs')">{{.i18n.Tr "organization"}}</a>
+							<a :class="{item: true, active: tab === 'organizations'}" @click="changeTab('organizations')">{{.i18n.Tr "organization"}}</a>
 						</div>
 						<div v-show="tab === 'repos'" class="ui tab active list">
 							<h4 class="ui top attached header">
-								{{.i18n.Tr "home.my_repos"}} <span class="ui grey label">${reposTotal}</span>
+								{{.i18n.Tr "home.my_repos"}} <span class="ui grey label">${reposTotalCount}</span>
 								<div class="ui right">
 									<a class="poping up" :href="suburl + '/repo/create>'" data-content="{{.i18n.Tr "new_repo"}}" data-variation="tiny inverted" data-position="left center">
 										<i class="plus icon"></i>
@@ -65,16 +65,16 @@
 											</span>
 										</a>
 									</li>
-									<li v-if="repos.length < reposTotal">
+									<li v-if="repos.length < reposTotalCount">
 										<a :href="moreReposLink">{{.i18n.Tr "home.show_more_repos"}}</a>
 									</li>
 								</ul>
 							</div>
 						</div>
-						<div v-if="!isOrg" v-show="tab === 'orgs'" class="ui tab active list">
+						<div v-if="!isOrganization" v-show="tab === 'organizations'" class="ui tab active list">
 							<h4 class="ui top attached header">
-								{{.i18n.Tr "home.my_orgs"}} <span class="ui grey label">${orgsTotal}</span>
-								<div v-if="canCreateOrg" class="ui right">
+								{{.i18n.Tr "home.my_orgs"}} <span class="ui grey label">${organizationsTotalCount}</span>
+								<div v-if="canCreateOrganization" class="ui right">
 									<a class="poping up" :href="suburl + '/org/create'" data-content="{{.i18n.Tr "new_org"}}" data-variation="tiny inverted" data-position="left center">
 										<i class="plus icon"></i>
 										<span class="sr-only">{{.i18n.Tr "new_org"}}</span>
@@ -83,7 +83,7 @@
 							</h4>
 							<div class="ui attached table segment">
 								<ul class="repo-owner-name-list">
-									<li v-for="org in orgs">
+									<li v-for="org in organizations">
 										<a :href="suburl + '/' + org.name">
 											<i class="octicon octicon-organization"></i>
 											<strong class="text truncate item-name">${org.name}</strong>
