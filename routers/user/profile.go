@@ -219,6 +219,8 @@ func Profile(ctx *context.Context) {
 		}
 	}
 
+	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
+
 	ctx.HTML(200, tplProfile)
 }
 
