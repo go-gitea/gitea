@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	tplDashborad base.TplName = "user/dashboard/dashboard"
+	tplDashboard base.TplName = "user/dashboard/dashboard"
 	tplIssues    base.TplName = "user/dashboard/issues"
 	tplProfile   base.TplName = "user/profile"
 	tplOrgHome   base.TplName = "org/home"
@@ -192,7 +192,7 @@ func Dashboard(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	ctx.HTML(200, tplDashborad)
+	ctx.HTML(200, tplDashboard)
 }
 
 // Issues render the user issues page
