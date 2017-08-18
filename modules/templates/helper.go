@@ -163,7 +163,7 @@ func Safe(raw string) template.HTML {
 	return template.HTML(raw)
 }
 
-// Safe render raw as JS
+// SafeJS renders raw as JS
 func SafeJS(raw string) template.JS {
 	return template.JS(raw)
 }
