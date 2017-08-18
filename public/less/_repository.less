@@ -133,7 +133,6 @@
 	}
 
 	#clone-panel {
-		margin-top: -8px;
 		margin-left: 5px;
 		width: 350px;
 
@@ -167,6 +166,13 @@
 				font-size: 1.4em;
 			}
 		}
+
+		.repo-path {
+			.section, .divider {
+				display: inline;
+			}
+		}
+
 		#file-buttons {
 			font-weight: normal;
 			.ui.button {
@@ -913,6 +919,10 @@
 				color: #A7A7A7;
 				background: #fafafa;
 				width: 1%;
+				-moz-user-select: none;
+				-ms-user-select: none;
+				-webkit-user-select: none;
+				user-select: none;
 
 				span.fold {
 					display: block;

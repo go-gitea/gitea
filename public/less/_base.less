@@ -122,6 +122,13 @@ pre, code {
 		float: right;
 	}
 
+	&.button, &.menu .item {
+		-moz-user-select: auto;
+		-ms-user-select: auto;
+		-webkit-user-select: auto;
+		user-select: auto;
+	}
+
 	&.container {
 		&.fluid {
 			&.padded {
@@ -456,4 +463,18 @@ footer {
   .ui.menu.new-menu a.item:last-child {
     padding-right: 30px !important;
   }
+}
+
+[v-cloak] {
+	display: none !important;
+}
+
+.repos-search {
+    padding-bottom: 0 !important;
+}
+
+.repos-filter {
+    margin-top: 0 !important;
+    border-bottom-width: 0 !important;
+    margin-bottom: 2px !important;
 }

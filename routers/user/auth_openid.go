@@ -404,7 +404,8 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	if models.CountUsers() == 1 {
 		u.IsAdmin = true
 		u.IsActive = true
-		if err := models.UpdateUser(u); err != nil {
+		u.SetLastLogin()
+		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
 			ctx.Handle(500, "UpdateUser", err)
 			return
 		}
