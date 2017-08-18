@@ -20,12 +20,6 @@ const (
 
 // SettingsOpenID renders change user's openid page
 func SettingsOpenID(ctx *context.Context) {
-
-	if !setting.Service.EnableOpenIDSignIn {
-		ctx.Error(403)
-		return
-	}
-
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsOpenID"] = true
 
@@ -46,12 +40,6 @@ func SettingsOpenID(ctx *context.Context) {
 
 // SettingsOpenIDPost response for change user's openid
 func SettingsOpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
-
-	if !setting.Service.EnableOpenIDSignIn {
-		ctx.Error(403)
-		return
-	}
-
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsOpenID"] = true
 
@@ -144,10 +132,6 @@ func settingsOpenIDVerify(ctx *context.Context) {
 
 // DeleteOpenID response for delete user's openid
 func DeleteOpenID(ctx *context.Context) {
-	if !setting.Service.EnableOpenIDSignIn {
-		ctx.Error(403)
-		return
-	}
 	if err := models.DeleteUserOpenID(&models.UserOpenID{ID: ctx.QueryInt64("id"), UID: ctx.User.ID}); err != nil {
 		ctx.Handle(500, "DeleteUserOpenID", err)
 		return
@@ -162,10 +146,6 @@ func DeleteOpenID(ctx *context.Context) {
 
 // ToggleOpenIDVisibility response for toggle visibility of user's openid
 func ToggleOpenIDVisibility(ctx *context.Context) {
-	if !setting.Service.EnableOpenIDSignIn {
-		ctx.Error(403)
-		return
-	}
 	if err := models.ToggleUserOpenIDVisibility(ctx.QueryInt64("id")); err != nil {
 		ctx.Handle(500, "ToggleUserOpenIDVisibility", err)
 		return

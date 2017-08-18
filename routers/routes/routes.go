@@ -136,6 +136,20 @@ func RegisterRoutes(m *macaron.Macaron) {
 	bindIgnErr := binding.BindIgnErr
 	validation.AddBindingRules()
 
+	openIDSignInEnabled := func(ctx *context.Context) {
+		if !setting.Service.EnableOpenIDSignIn {
+			ctx.Error(403)
+			return
+		}
+	}
+
+	openIDSignUpEnabled := func(ctx *context.Context) {
+		if !setting.Service.EnableOpenIDSignUp {
+			ctx.Error(403)
+			return
+		}
+	}
+
 	m.Use(user.GetNotificationCount)
 
 	// FIXME: not all routes need go through same middlewares.
@@ -163,17 +177,20 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/user", func() {
 		m.Get("/login", user.SignIn)
 		m.Post("/login", bindIgnErr(auth.SignInForm{}), user.SignInPost)
-		m.Combo("/login/openid").
-			Get(user.SignInOpenID).
-			Post(bindIgnErr(auth.SignInOpenIDForm{}), user.SignInOpenIDPost)
+		m.Group("", func() {
+			m.Combo("/login/openid").
+				Get(user.SignInOpenID).
+				Post(bindIgnErr(auth.SignInOpenIDForm{}), user.SignInOpenIDPost)
+		}, openIDSignInEnabled)
 		m.Group("/openid", func() {
 			m.Combo("/connect").
 				Get(user.ConnectOpenID).
 				Post(bindIgnErr(auth.ConnectOpenIDForm{}), user.ConnectOpenIDPost)
-			m.Combo("/register").
-				Get(user.RegisterOpenID).
+			m.Group("/register", func() { m.Combo("").
+				Get(user.RegisterOpenID, openIDSignUpEnabled).
 				Post(bindIgnErr(auth.SignUpOpenIDForm{}), user.RegisterOpenIDPost)
-		})
+			}, openIDSignUpEnabled)
+		}, openIDSignInEnabled)
 		m.Get("/sign_up", user.SignUp)
 		m.Post("/sign_up", bindIgnErr(auth.RegisterForm{}), user.SignUpPost)
 		m.Get("/reset_password", user.ResetPasswd)
@@ -209,7 +226,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				Post(bindIgnErr(auth.AddOpenIDForm{}), user.SettingsOpenIDPost)
 			m.Post("/delete", user.DeleteOpenID)
 			m.Post("/toggle_visibility", user.ToggleOpenIDVisibility)
-		})
+		}, openIDSignInEnabled)
 		m.Combo("/keys").Get(user.SettingsKeys).
 			Post(bindIgnErr(auth.AddKeyForm{}), user.SettingsKeysPost)
 		m.Post("/keys/delete", user.DeleteKey)

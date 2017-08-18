@@ -29,11 +29,6 @@ const (
 func SignInOpenID(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
-	if !setting.Service.EnableOpenIDSignIn {
-		ctx.Error(403)
-		return
-	}
-
 	if ctx.Query("openid.return_to") != "" {
 		signInOpenIDVerify(ctx)
 		return
@@ -98,11 +93,6 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLoginOpenID"] = true
-
-	if !setting.Service.EnableOpenIDSignIn {
-		ctx.Error(403)
-		return
-	}
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplSignInOpenID)
@@ -250,10 +240,6 @@ func signInOpenIDVerify(ctx *context.Context) {
 
 // ConnectOpenID shows a form to connect an OpenID URI to an existing account
 func ConnectOpenID(ctx *context.Context) {
-	if !setting.Service.EnableOpenIDSignIn {
-		ctx.Error(403)
-		return
-	}
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -273,11 +259,6 @@ func ConnectOpenID(ctx *context.Context) {
 
 // ConnectOpenIDPost handles submission of a form to connect an OpenID URI to an existing account
 func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
-
-	if !setting.Service.EnableOpenIDSignIn {
-		ctx.Error(403)
-		return
-	}
 
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
@@ -320,10 +301,6 @@ func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
 
 // RegisterOpenID shows a form to create a new user authenticated via an OpenID URI
 func RegisterOpenID(ctx *context.Context) {
-	if !setting.Service.EnableOpenIDSignUp {
-		ctx.Error(403)
-		return
-	}
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -348,10 +325,6 @@ func RegisterOpenID(ctx *context.Context) {
 
 // RegisterOpenIDPost handles submission of a form to create a new user authenticated via an OpenID URI
 func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.SignUpOpenIDForm) {
-	if !setting.Service.EnableOpenIDSignUp {
-		ctx.Error(403)
-		return
-	}
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
