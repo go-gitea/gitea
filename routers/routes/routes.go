@@ -186,9 +186,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Combo("/connect").
 				Get(user.ConnectOpenID).
 				Post(bindIgnErr(auth.ConnectOpenIDForm{}), user.ConnectOpenIDPost)
-			m.Group("/register", func() { m.Combo("").
-				Get(user.RegisterOpenID, openIDSignUpEnabled).
-				Post(bindIgnErr(auth.SignUpOpenIDForm{}), user.RegisterOpenIDPost)
+			m.Group("/register", func() {
+				m.Combo("").
+					Get(user.RegisterOpenID, openIDSignUpEnabled).
+					Post(bindIgnErr(auth.SignUpOpenIDForm{}), user.RegisterOpenIDPost)
 			}, openIDSignUpEnabled)
 		}, openIDSignInEnabled)
 		m.Get("/sign_up", user.SignUp)
