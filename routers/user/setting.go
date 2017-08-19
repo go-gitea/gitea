@@ -583,7 +583,7 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 	if otpKey == nil {
 		err = nil // clear the error, in case the URL was invalid
 		otpKey, err = totp.Generate(totp.GenerateOpts{
-			Issuer:      setting.AppName,
+			Issuer:      setting.AppName + " (" + strings.TrimRight(setting.AppURL, "/") + ")",
 			AccountName: ctx.User.Name,
 		})
 		if err != nil {
