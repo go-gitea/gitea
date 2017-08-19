@@ -311,9 +311,22 @@ function initInstall() {
             $('#offline-mode').checkbox('uncheck');
         }
     });
+    $('#enable-openid-signin input').change(function () {
+        if ($(this).is(':checked')) {
+            if ( $('#disable-registration input').is(':checked') ) {
+            } else {
+                $('#enable-openid-signup').checkbox('check');
+            }
+        } else {
+            $('#enable-openid-signup').checkbox('uncheck');
+        }
+    });
     $('#disable-registration input').change(function () {
         if ($(this).is(':checked')) {
             $('#enable-captcha').checkbox('uncheck');
+            $('#enable-openid-signup').checkbox('uncheck');
+        } else {
+            $('#enable-openid-signup').checkbox('check');
         }
     });
     $('#enable-captcha input').change(function () {

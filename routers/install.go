@@ -108,6 +108,8 @@ func Install(ctx *context.Context) {
 	form.OfflineMode = setting.OfflineMode
 	form.DisableGravatar = setting.DisableGravatar
 	form.EnableFederatedAvatar = setting.EnableFederatedAvatar
+	form.EnableOpenIDSignIn = true
+	form.EnableOpenIDSignUp = true
 	form.DisableRegistration = setting.Service.DisableRegistration
 	form.EnableCaptcha = setting.Service.EnableCaptcha
 	form.RequireSignInView = setting.Service.RequireSignInView
@@ -292,6 +294,8 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(com.ToStr(form.OfflineMode))
 	cfg.Section("picture").Key("DISABLE_GRAVATAR").SetValue(com.ToStr(form.DisableGravatar))
 	cfg.Section("picture").Key("ENABLE_FEDERATED_AVATAR").SetValue(com.ToStr(form.EnableFederatedAvatar))
+	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(com.ToStr(form.EnableOpenIDSignIn))
+	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(com.ToStr(form.EnableOpenIDSignUp))
 	cfg.Section("service").Key("DISABLE_REGISTRATION").SetValue(com.ToStr(form.DisableRegistration))
 	cfg.Section("service").Key("ENABLE_CAPTCHA").SetValue(com.ToStr(form.EnableCaptcha))
 	cfg.Section("service").Key("REQUIRE_SIGNIN_VIEW").SetValue(com.ToStr(form.RequireSignInView))

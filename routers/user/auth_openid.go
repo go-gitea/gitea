@@ -259,6 +259,7 @@ func ConnectOpenID(ctx *context.Context) {
 
 // ConnectOpenIDPost handles submission of a form to connect an OpenID URI to an existing account
 func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
+
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -300,10 +301,6 @@ func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
 
 // RegisterOpenID shows a form to create a new user authenticated via an OpenID URI
 func RegisterOpenID(ctx *context.Context) {
-	if !setting.Service.EnableOpenIDSignUp {
-		ctx.Error(403)
-		return
-	}
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -328,10 +325,6 @@ func RegisterOpenID(ctx *context.Context) {
 
 // RegisterOpenIDPost handles submission of a form to create a new user authenticated via an OpenID URI
 func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.SignUpOpenIDForm) {
-	if !setting.Service.EnableOpenIDSignUp {
-		ctx.Error(403)
-		return
-	}
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
