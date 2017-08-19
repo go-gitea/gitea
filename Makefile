@@ -54,7 +54,7 @@ all: build
 .PHONY: clean
 clean:
 	$(GO) clean -i ./...
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA)
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) integrations*.test
 
 required-gofmt-version:
 	@$(GO) version  | grep -q '\(1.7\|1.8\)' || { echo "We require go version 1.7 or 1.8 to format code" >&2 && exit 1; }
