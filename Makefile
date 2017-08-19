@@ -297,6 +297,7 @@ stylesheets-check: stylesheets
 		exit 1; \
 	fi;
 
+.PHONY: stylesheets
 stylesheets:
 	node_modules/.bin/lessc --no-ie-compat public/less/index.less public/css/index.css
 	node_modules/.bin/cleancss -o public/css/index.css public/css/index.css
