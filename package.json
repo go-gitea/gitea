@@ -1,0 +1,7 @@
+{
+  "license": "MIT",
+  "dependencies": {
+    "clean-css-cli": "^4.1.6",
+    "less": "^2.7.2"
+  }
+}
