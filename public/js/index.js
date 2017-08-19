@@ -1660,7 +1660,6 @@ function initVueComponents(){
 
     Vue.component('repo-search', {
         delimiters: vueDelimeters,
-        template: '#repo-search-template',
 
         props: {
             searchLimit: {
