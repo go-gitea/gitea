@@ -164,6 +164,10 @@ pipeline:
     pull: true
     group: test
     environment:
+      PGHOST: pgsql
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
       TAGS: bindata
       GOPATH: /srv/app
     commands:

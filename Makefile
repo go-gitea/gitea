@@ -34,10 +34,6 @@ TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
 TEST_MYSQL_USERNAME ?= root
 TEST_MYSQL_PASSWORD ?=
-TEST_PGSQL_HOST ?= pgsql:5432
-TEST_PGSQL_DBNAME ?= testgitea
-TEST_PGSQL_USERNAME ?= postgres
-TEST_PGSQL_PASSWORD ?= postgres
 
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE := gitea.exe
@@ -67,7 +63,7 @@ clean:
 		integrations*.test \
 		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/ \
 		integrations/indexers-mysql/ integrations/indexers-pgsql integrations/indexers-sqlite \
-		integrations/mysql.ini integrations/pgsql.ini
+		integrations/mysql.ini
 
 .PHONY: fmt
 fmt:
@@ -167,11 +163,6 @@ generate-ini:
 		-e 's|{{TEST_MYSQL_USERNAME}}|${TEST_MYSQL_USERNAME}|g' \
 		-e 's|{{TEST_MYSQL_PASSWORD}}|${TEST_MYSQL_PASSWORD}|g' \
 			integrations/mysql.ini.tmpl > integrations/mysql.ini
-	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
-		-e 's|{{TEST_PGSQL_DBNAME}}|${TEST_PGSQL_DBNAME}|g' \
-		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
-		-e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
-			integrations/pgsql.ini.tmpl > integrations/pgsql.ini
 
 .PHONY: test-mysql
 test-mysql: integrations.test generate-ini
