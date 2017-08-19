@@ -1687,6 +1687,26 @@ function initVueComponents(){
                 type: Number,
                 required: true
             },
+            orgs: {
+                type: Array,
+                default: []
+            },
+            isOrg: {
+                type: Boolean,
+                default: true
+            },
+            canCreateOrg: {
+                type: Boolean,
+                default: false
+            },
+            orgsTotal: {
+                type: Number,
+                default: 0
+            },
+            moreReposLink: {
+                type: String,
+                default: ''
+            }
         },
 
         data: function() {
