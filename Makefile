@@ -299,8 +299,11 @@ stylesheets-check: stylesheets
 
 .PHONY: stylesheets
 stylesheets:
+	@hash minify > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) get -u github.com/tdewolff/minify/cmd/minify; \
+	fi
 	node_modules/.bin/lessc --no-ie-compat public/less/index.less public/css/index.css
-	node_modules/.bin/cleancss -o public/css/index.css public/css/index.css
+	minify -o public/css/index.css public/css/index.css
 
 .PHONY: swagger-ui
 swagger-ui:
