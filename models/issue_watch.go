@@ -91,6 +91,9 @@ func GetIssueWatchers(issueID int64) ([]*IssueWatch, error) {
 func getIssueWatchers(e Engine, issueID int64) (watches []*IssueWatch, err error) {
 	err = e.
 		Where("issue_id = ?", issueID).
+		And("`user`.is_active = ?", true).
+		And("`user`.prohibit_login = ?", false).
+		Join("LEFT", "user", "`user`.id = `issue_watch`.user_id").
 		Find(&watches)
 	return
 }

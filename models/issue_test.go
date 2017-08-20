@@ -80,7 +80,8 @@ func TestGetParticipantsByIssueID(t *testing.T) {
 	// User 1 is issue1 poster (see fixtures/issue.yml)
 	// User 2 only labeled issue1 (see fixtures/comment.yml)
 	// Users 3 and 5 made actual comments (see fixtures/comment.yml)
-	checkParticipants(1, []int{3, 5})
+	// User 3 is inactive, thus not active participant
+	checkParticipants(1, []int{5})
 }
 
 func TestIssue_AddLabel(t *testing.T) {

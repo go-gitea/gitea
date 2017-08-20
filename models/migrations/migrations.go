@@ -130,6 +130,8 @@ var migrations = []Migration{
 	NewMigration("adds time tracking and stopwatches", addTimetracking),
 	// v40 -> v41
 	NewMigration("migrate protected branch struct", migrateProtectedBranchStruct),
+	// v41 -> v42
+	NewMigration("add default value to user prohibit_login", addDefaultValueToUserProhibitLogin),
 }
 
 // Migrate database to current version
