@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"net/http"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -64,29 +65,51 @@ func TestGPGKeys(t *testing.T) {
 	//Check state after basic add
 	t.Run("CheckState", func(t *testing.T) {
 
-		var key api.GPGKey
+		var keys []*api.GPGKey
 
-		req := NewRequest(t, "GET", "/api/v1/user/gpg_keys/1") //Primary key
+		req := NewRequest(t, "GET", "/api/v1/user/gpg_keys") //GET all keys
 		resp := session.MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &keys)
+
+		primaryKey1 := keys[0] //Primary key 1
+		assert.EqualValues(t, "38EA3BCED732982C", primaryKey1.KeyID)
+		assert.EqualValues(t, 1, len(primaryKey1.Emails))
+		assert.EqualValues(t, "user2@example.com", primaryKey1.Emails[0].Email)
+		assert.EqualValues(t, true, primaryKey1.Emails[0].Verified)
+
+		subKey := primaryKey1.SubsKey[0] //Subkey of 38EA3BCED732982C
+		assert.EqualValues(t, "70D7C694D17D03AD", subKey.KeyID)
+		assert.EqualValues(t, 0, len(subKey.Emails))
+
+		primaryKey2 := keys[1] //Primary key 2
+		assert.EqualValues(t, "FABF39739FE1E927", primaryKey2.KeyID)
+		assert.EqualValues(t, 1, len(primaryKey2.Emails))
+		assert.EqualValues(t, "user21@example.com", primaryKey2.Emails[0].Email)
+		assert.EqualValues(t, false, primaryKey2.Emails[0].Verified)
+
+		var key api.GPGKey
+		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(primaryKey1.ID, 10)) //Primary key 1
+		resp = session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "38EA3BCED732982C", key.KeyID)
 		assert.EqualValues(t, 1, len(key.Emails))
 		assert.EqualValues(t, "user2@example.com", key.Emails[0].Email)
 		assert.EqualValues(t, true, key.Emails[0].Verified)
 
-		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/2") //Subkey of 38EA3BCED732982C
+		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(subKey.ID, 10)) //Subkey of 38EA3BCED732982C
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "70D7C694D17D03AD", key.KeyID)
 		assert.EqualValues(t, 0, len(key.Emails))
 
-		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/3") //Primary key
+		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(primaryKey2.ID, 10)) //Primary key 2
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "FABF39739FE1E927", key.KeyID)
 		assert.EqualValues(t, 1, len(key.Emails))
 		assert.EqualValues(t, "user21@example.com", key.Emails[0].Email)
 		assert.EqualValues(t, false, key.Emails[0].Verified)
+
 	})
 
 	//Check state after basic add
