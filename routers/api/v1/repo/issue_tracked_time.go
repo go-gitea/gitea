@@ -12,7 +12,7 @@ import (
 
 // ListTrackedTimes list all the tracked times of an issue
 func ListTrackedTimes(ctx *context.APIContext) {
-	// swagger:route GET /repos/{username}/{reponame}/issues/{issue}/times issueTrackedTimes
+	// swagger:route GET /repos/{username}/{reponame}/issues/{issue}/times repository issueTrackedTimes
 	//
 	//     Produces:
 	//     - application/json
@@ -44,7 +44,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 
 // AddTime adds time manual to the given issue
 func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
-	// swagger:route Post /repos/{username}/{reponame}/issues/{issue}/times addTime
+	// swagger:route Post /repos/{username}/{reponame}/issues/{issue}/times repository addTime
 	//
 	//     Produces:
 	//     - application/json
@@ -79,7 +79,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 
 // ListTrackedTimesByUser  lists all tracked times of the user
 func ListTrackedTimesByUser(ctx *context.APIContext) {
-	// swagger:route GET /repos/{username}/{reponame}/times/{timetrackingusername} userTrackedTimes
+	// swagger:route GET /repos/{username}/{reponame}/times/{timetrackingusername} user userTrackedTimes
 	//
 	//     Produces:
 	//     - application/json
@@ -102,7 +102,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 
 // ListTrackedTimesByRepository lists all tracked times of the user
 func ListTrackedTimesByRepository(ctx *context.APIContext) {
-	// swagger:route GET /repos/{username}/{reponame}/times repoTrackedTimes
+	// swagger:route GET /repos/{username}/{reponame}/times repository repoTrackedTimes
 	//
 	//     Produces:
 	//     - application/json
@@ -120,7 +120,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 
 // ListMyTrackedTimes lists all tracked times of the current user
 func ListMyTrackedTimes(ctx *context.APIContext) {
-	// swagger:route GET /user/times userTrackedTimes
+	// swagger:route GET /user/times user userTrackedTimes
 	//
 	//     Produces:
 	//     - application/json
