@@ -36,7 +36,7 @@ func listUserRepos(ctx *context.APIContext, u *models.User) {
 
 // ListUserRepos - list the repos owned by the given user.
 func ListUserRepos(ctx *context.APIContext) {
-	// swagger:route GET /users/{username}/repos userListRepos
+	// swagger:route GET /users/{username}/repos user userListRepos
 	//
 	//     Produces:
 	//     - application/json
@@ -54,7 +54,7 @@ func ListUserRepos(ctx *context.APIContext) {
 
 // ListMyRepos - list the repositories you own or have access to.
 func ListMyRepos(ctx *context.APIContext) {
-	// swagger:route GET /user/repos userCurrentListRepos
+	// swagger:route GET /user/repos user userCurrentListRepos
 	//
 	//     Produces:
 	//     - application/json
@@ -87,7 +87,7 @@ func ListMyRepos(ctx *context.APIContext) {
 
 // ListOrgRepos - list the repositories of an organization.
 func ListOrgRepos(ctx *context.APIContext) {
-	// swagger:route GET /orgs/{org}/repos orgListRepos
+	// swagger:route GET /orgs/{orgname}/repos organization orgListRepos
 	//
 	//     Produces:
 	//     - application/json

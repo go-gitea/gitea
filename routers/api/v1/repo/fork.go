@@ -14,7 +14,7 @@ import (
 
 // ListForks list a repository's forks
 func ListForks(ctx *context.APIContext) {
-	// swagger:route GET /repos/{owner}/{repo}/forks listForks
+	// swagger:route GET /repos/{owner}/{repo}/forks repository listForks
 	//
 	//     Produces:
 	//     - application/json
@@ -42,7 +42,7 @@ func ListForks(ctx *context.APIContext) {
 
 // CreateFork create a fork of a repo
 func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
-	// swagger:route POST /repos/{owner}/{repo}/forks createFork
+	// swagger:route POST /repos/{owner}/{repo}/forks repository createFork
 	//
 	//     Produces:
 	//     - application/json

@@ -32,7 +32,7 @@ type GPGKey struct {
 	Expires           time.Time      `json:"expires_at,omitempty"`
 }
 
-// GPGKeyEmail a email attache to a GPGKey
+// GPGKeyEmail an email attached to a GPGKey
 // swagger:model GPGKeyEmail
 type GPGKeyEmail struct {
 	Email    string `json:"email"`
