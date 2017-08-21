@@ -103,7 +103,7 @@ func runChangePassword(c *cli.Context) error {
 		return fmt.Errorf("%v", err)
 	}
 	user.EncodePasswd()
-	if err := models.UpdateUser(user); err != nil {
+	if err := models.UpdateUserCols(user, "passwd", "salt"); err != nil {
 		return fmt.Errorf("%v", err)
 	}
 

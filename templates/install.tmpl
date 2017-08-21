@@ -189,9 +189,21 @@
 								</div>
 							</div>
 							<div class="inline field">
+								<div class="ui checkbox" id="enable-openid-signin">
+									<label class="poping up" data-content="{{.i18n.Tr "install.openid_signin_popup"}}"><strong>{{.i18n.Tr "install.openid_signin"}}</strong></label>
+									<input name="enable_open_id_sign_in" type="checkbox" {{if .enable_open_id_sign_in}}checked{{end}}>
+								</div>
+							</div>
+							<div class="inline field">
 								<div class="ui checkbox" id="disable-registration">
 									<label class="poping up" data-content="{{.i18n.Tr "install.disable_registration_popup"}}"><strong>{{.i18n.Tr "install.disable_registration"}}</strong></label>
 									<input name="disable_registration" type="checkbox" {{if .disable_registration}}checked{{end}}>
+								</div>
+							</div>
+							<div class="inline field">
+								<div class="ui checkbox" id="enable-openid-signup">
+									<label class="poping up" data-content="{{.i18n.Tr "install.openid_signup_popup"}}"><strong>{{.i18n.Tr "install.openid_signup"}}</strong></label>
+									<input name="enable_open_id_sign_up" type="checkbox" {{if .enable_open_id_sign_up}}checked{{end}}>
 								</div>
 							</div>
 							<div class="inline field">

@@ -471,6 +471,17 @@ footer .ui.language .menu {
     padding-right: 30px !important;
   }
 }
+[v-cloak] {
+  display: none !important;
+}
+.repos-search {
+  padding-bottom: 0 !important;
+}
+.repos-filter {
+  margin-top: 0 !important;
+  border-bottom-width: 0 !important;
+  margin-bottom: 2px !important;
+}
 .markdown:not(code) {
   overflow: hidden;
   font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif;
@@ -1290,7 +1301,6 @@ footer .ui.language .menu {
   margin-bottom: 20px;
 }
 .repository #clone-panel {
-  margin-top: -8px;
   margin-left: 5px;
   width: 350px;
 }
@@ -1317,6 +1327,10 @@ footer .ui.language .menu {
 }
 .repository.file.list .choose.reference .header .icon {
   font-size: 1.4em;
+}
+.repository.file.list .repo-path .section,
+.repository.file.list .repo-path .divider {
+  display: inline;
 }
 .repository.file.list #file-buttons {
   font-weight: normal;

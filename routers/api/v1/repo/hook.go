@@ -15,13 +15,13 @@ import (
 
 // ListHooks list all hooks of a repository
 func ListHooks(ctx *context.APIContext) {
-	// swagger:route GET /repos/{username}/{reponame}/hooks
+	// swagger:route GET /repos/{username}/{reponame}/hooks repository repoListHooks
 	//
 	//     Produces:
 	//     - application/json
 	//
 	//     Responses:
-	//       200: apiHooks
+	//       200: HookList
 	//       500: error
 
 	hooks, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID)
@@ -50,7 +50,7 @@ func GetHook(ctx *context.APIContext) {
 
 // CreateHook create a hook for a repository
 func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
-	// swagger:route POST /repos/{username}/{reponame}/hooks
+	// swagger:route POST /repos/{username}/{reponame}/hooks repository repoCreateHook
 	//
 	//     Consumes:
 	//     - application/json
@@ -59,7 +59,7 @@ func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 	//     - application/json
 	//
 	//     Responses:
-	//       200: apiHook
+	//       200: Hook
 	//       422: validationError
 	//       500: error
 
@@ -71,13 +71,13 @@ func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 
 // EditHook modify a hook of a repository
 func EditHook(ctx *context.APIContext, form api.EditHookOption) {
-	// swagger:route PATCH /repos/{username}/{reponame}/hooks/{id}
+	// swagger:route PATCH /repos/{username}/{reponame}/hooks/{id} repository repoEditHook
 	//
 	//     Produces:
 	//     - application/json
 	//
 	//     Responses:
-	//       200: apiHook //TODO
+	//       200: Hook
 	//       422: validationError
 	//       500: error
 
@@ -87,7 +87,7 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 
 // DeleteHook delete a hook of a repository
 func DeleteHook(ctx *context.APIContext) {
-	// swagger:route DELETE /repos/{username}/{reponame}/hooks/{id}
+	// swagger:route DELETE /repos/{username}/{reponame}/hooks/{id} repository repoDeleteHook
 	//
 	//     Produces:
 	//     - application/json

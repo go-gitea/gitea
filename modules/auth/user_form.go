@@ -41,6 +41,8 @@ type InstallForm struct {
 	OfflineMode                    bool
 	DisableGravatar                bool
 	EnableFederatedAvatar          bool
+	EnableOpenIDSignIn             bool
+	EnableOpenIDSignUp             bool
 	DisableRegistration            bool
 	EnableCaptcha                  bool
 	RequireSignInView              bool

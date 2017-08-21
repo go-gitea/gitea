@@ -23,6 +23,28 @@
 //     - application/json
 //     - text/html
 //
+//     Security:
+//     - BasicAuth: []
+//     - Token: []
+//     - AccessToken: []
+//     - AuthorizationHeaderToken: []
+//
+//     SecurityDefinitions:
+//     BasicAuth:
+//          type: basic
+//     Token:
+//          type: apiKey
+//          name: token
+//          in: query
+//     AccessToken:
+//          type: apiKey
+//          name: access_token
+//          in: query
+//     AuthorizationHeaderToken:
+//          type: apiKey
+//          name: Authorization
+//          in: header
+//
 // swagger:meta
 package v1
 

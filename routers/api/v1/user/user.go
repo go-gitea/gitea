@@ -17,7 +17,7 @@ import (
 
 // Search search users
 func Search(ctx *context.APIContext) {
-	// swagger:route GET /users/search userSearch
+	// swagger:route GET /users/search user userSearch
 	//
 	//     Produces:
 	//     - application/json
@@ -65,7 +65,7 @@ func Search(ctx *context.APIContext) {
 
 // GetInfo get user's information
 func GetInfo(ctx *context.APIContext) {
-	// swagger:route GET /users/{username} userGet
+	// swagger:route GET /users/{username} user userGet
 	//
 	//     Produces:
 	//     - application/json
@@ -94,7 +94,7 @@ func GetInfo(ctx *context.APIContext) {
 
 // GetAuthenticatedUser get curent user's information
 func GetAuthenticatedUser(ctx *context.APIContext) {
-	// swagger:route GET /user userGetCurrent
+	// swagger:route GET /user user userGetCurrent
 	//
 	//     Produces:
 	//     - application/json

@@ -33,7 +33,7 @@ func getWatchedRepos(userID int64, private bool) ([]*api.Repository, error) {
 
 // GetWatchedRepos returns the repos that the user specified in ctx is watching
 func GetWatchedRepos(ctx *context.APIContext) {
-	// swagger:route GET /users/{username}/subscriptions userListSubscriptions
+	// swagger:route GET /users/{username}/subscriptions user userListSubscriptions
 	//
 	//     Produces:
 	//     - application/json
@@ -53,7 +53,7 @@ func GetWatchedRepos(ctx *context.APIContext) {
 
 // GetMyWatchedRepos returns the repos that the authenticated user is watching
 func GetMyWatchedRepos(ctx *context.APIContext) {
-	// swagger:route GET /user/subscriptions userCurrentListSubscriptions
+	// swagger:route GET /user/subscriptions user userCurrentListSubscriptions
 	//
 	//     Produces:
 	//     - application/json
@@ -72,7 +72,7 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 // IsWatching returns whether the authenticated user is watching the repo
 // specified in ctx
 func IsWatching(ctx *context.APIContext) {
-	// swagger:route GET /repos/{username}/{reponame}/subscription userCurrentCheckSubscription
+	// swagger:route GET /repos/{username}/{reponame}/subscription repository userCurrentCheckSubscription
 	//
 	//     Responses:
 	//       200: WatchInfo
@@ -94,7 +94,7 @@ func IsWatching(ctx *context.APIContext) {
 
 // Watch the repo specified in ctx, as the authenticated user
 func Watch(ctx *context.APIContext) {
-	// swagger:route PUT /repos/{username}/{reponame}/subscription userCurrentPutSubscription
+	// swagger:route PUT /repos/{username}/{reponame}/subscription repository userCurrentPutSubscription
 	//
 	//     Responses:
 	//       200: WatchInfo
@@ -118,7 +118,7 @@ func Watch(ctx *context.APIContext) {
 
 // Unwatch the repo specified in ctx, as the authenticated user
 func Unwatch(ctx *context.APIContext) {
-	// swagger:route DELETE /repos/{username}/{reponame}/subscription userCurrentDeleteSubscription
+	// swagger:route DELETE /repos/{username}/{reponame}/subscription repository userCurrentDeleteSubscription
 	//
 	//     Responses:
 	//       204: empty

@@ -209,13 +209,15 @@ func TestRender_AutoLink(t *testing.T) {
 		numericIssueLink(URLJoin(setting.AppSubURL, "issues"), 3333))
 
 	// render external issue URLs
-	tmp := "http://1111/2222/ssss-issues/3333?param=blah&blahh=333"
-	test(tmp, "<a href=\""+tmp+"\">#3333 <i class='comment icon'></i></a>")
-	test("http://test.com/issues/33333", numericIssueLink("http://test.com/issues", 33333))
-	test("https://issues/333", numericIssueLink("https://issues", 333))
+	for _, externalURL := range []string{
+		"http://1111/2222/ssss-issues/3333?param=blah&blahh=333",
+		"http://test.com/issues/33333",
+		"https://issues/333"} {
+		test(externalURL, externalURL)
+	}
 
 	// render valid commit URLs
-	tmp = URLJoin(AppSubURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
+	tmp := URLJoin(AppSubURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
 	test(tmp, "<a href=\""+tmp+"\">d8a994ef24</a>")
 	tmp += "#diff-2"
 	test(tmp, "<a href=\""+tmp+"\">d8a994ef24 (diff-2)</a>")
@@ -366,6 +368,22 @@ func TestRender_CrossReferences(t *testing.T) {
 	test(
 		"gogits/gogs#12345",
 		`<p><a href="`+URLJoin(AppURL, "gogits", "gogs", "issues", "12345")+`" rel="nofollow">gogits/gogs#12345</a></p>`)
+}
+
+func TestRender_FullIssueURLs(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	test := func(input, expected string) {
+		result := RenderFullIssuePattern([]byte(input))
+		assert.Equal(t, expected, string(result))
+	}
+	test("Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6",
+		"Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6")
+	test("Look here http://localhost:3000/person/repo/issues/4",
+		`Look here <a href="http://localhost:3000/person/repo/issues/4">#4</a>`)
+	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
+		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234">#4</a>`)
 }
 
 func TestRegExp_MentionPattern(t *testing.T) {
@@ -558,50 +576,6 @@ func TestRegExp_AnySHA1Pattern(t *testing.T) {
 	}
 }
 
-func TestRegExp_IssueFullPattern(t *testing.T) {
-	testCases := map[string][]string{
-		"https://github.com/gogits/gogs/pull/3244": {
-			"https",
-			"github.com/gogits/gogs/pull/",
-			"3244",
-			"",
-			"",
-		},
-		"https://github.com/gogits/gogs/issues/3247#issuecomment-231517079": {
-			"https",
-			"github.com/gogits/gogs/issues/",
-			"3247",
-			"#issuecomment-231517079",
-			"",
-		},
-		"https://try.gogs.io/gogs/gogs/issues/4#issue-685": {
-			"https",
-			"try.gogs.io/gogs/gogs/issues/",
-			"4",
-			"#issue-685",
-			"",
-		},
-		"https://youtrack.jetbrains.com/issue/JT-36485": {
-			"https",
-			"youtrack.jetbrains.com/issue/",
-			"JT-36485",
-			"",
-			"",
-		},
-		"https://youtrack.jetbrains.com/issue/JT-36485#comment=27-1508676": {
-			"https",
-			"youtrack.jetbrains.com/issue/",
-			"JT-36485",
-			"#comment=27-1508676",
-			"",
-		},
-	}
-
-	for k, v := range testCases {
-		assert.Equal(t, IssueFullPattern.FindStringSubmatch(k)[1:], v)
-	}
-}
-
 func TestMisc_IsMarkdownFile(t *testing.T) {
 	setting.Markdown.FileExtensions = []string{".md", ".markdown", ".mdown", ".mkd"}
 	trueTestCases := []string{
@@ -645,7 +619,7 @@ var sameCases = []string{
 
 Ideas and codes
 
-- Bezier widget (by @r-lyeh) https://github.com/ocornut/imgui/issues/786
+- Bezier widget (by @r-lyeh) ` + AppURL + `ocornut/imgui/issues/786
 - Node graph editors https://github.com/ocornut/imgui/issues/306
 - [[Memory Editor|memory_editor_example]]
 - [[Plot var helper|plot_var_example]]`,
@@ -681,8 +655,8 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <p>Ideas and codes</p>
 
 <ul>
-<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>)<a href="https://github.com/ocornut/imgui/issues/786" rel="nofollow">#786</a></li>
-<li>Node graph editors<a href="https://github.com/ocornut/imgui/issues/306" rel="nofollow">#306</a></li>
+<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/ocornut/imgui/issues/786" rel="nofollow">#786</a></li>
+<li>Node graph editors https://github.com/ocornut/imgui/issues/306</li>
 <li><a href="` + baseURLContent + `/memory_editor_example" rel="nofollow">Memory Editor</a></li>
 <li><a href="` + baseURLContent + `/plot_var_example" rel="nofollow">Plot var helper</a></li>
 </ul>
