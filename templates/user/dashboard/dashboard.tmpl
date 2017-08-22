@@ -8,19 +8,34 @@
 				{{template "user/dashboard/feeds" .}}
 			</div>
 			<div id="app" class="six wide column">
-				<repo-search :search-limit="searchLimit" :suburl="suburl" :uid="uid" inline-template v-cloak>
-					<div>
-						{{if not .ContextUser.IsOrganization}}
-						<div class="ui two item stackable tabable menu">
-							<a :class="{item: true, active: tab === 'repos'}" @click="changeTab('repos')">{{.i18n.Tr "repository"}}</a>
-							<a :class="{item: true, active: tab === 'orgs'}" @click="changeTab('orgs')">{{.i18n.Tr "organization"}}</a>
-						</div>
+				<repo-search
+					:search-limit="searchLimit"
+					:suburl="suburl"
+					:uid="uid"
+					:more-repos-link="'{{.ContextUser.HomeLink}}'"
+					{{if not .ContextUser.IsOrganization}}
+					:organizations="[
+						{{range .ContextUser.Orgs}}
+						{name: '{{.Name}}', num_repos: '{{.NumRepos}}'},
 						{{end}}
-						<div v-if="tab === 'repos'" class="ui tab active list">
+					]"
+					:is-organization="false"
+					:organizations-total-count="{{.ContextUser.GetOrganizationCount}}"
+					:can-create-organization="{{.SignedUser.CanCreateOrganization}}"
+					{{end}}
+					inline-template
+					v-cloak
+				>
+					<div>
+						<div v-if="!isOrganization" class="ui two item stackable tabable menu">
+							<a :class="{item: true, active: tab === 'repos'}" @click="changeTab('repos')">{{.i18n.Tr "repository"}}</a>
+							<a :class="{item: true, active: tab === 'organizations'}" @click="changeTab('organizations')">{{.i18n.Tr "organization"}}</a>
+						</div>
+						<div v-show="tab === 'repos'" class="ui tab active list">
 							<h4 class="ui top attached header">
-								{{.i18n.Tr "home.my_repos"}} <span class="ui grey label">${ reposTotal }</span>
+								{{.i18n.Tr "home.my_repos"}} <span class="ui grey label">${reposTotalCount}</span>
 								<div class="ui right">
-									<a class="poping up" href="{{AppSubUrl}}/repo/create" data-content="{{.i18n.Tr "new_repo"}}" data-variation="tiny inverted" data-position="left center">
+									<a class="poping up" :href="suburl + '/repo/create>'" data-content="{{.i18n.Tr "new_repo"}}" data-variation="tiny inverted" data-position="left center">
 										<i class="plus icon"></i>
 										<span class="sr-only">{{.i18n.Tr "new_repo"}}</span>
 									</a>
@@ -42,51 +57,44 @@
 							<div class="ui attached table segment">
 								<ul class="repo-owner-name-list">
 									<li v-for="repo in repos" :class="{'private': repo.private}" v-show="showRepo(repo, reposFilter)">
-										<a :href="'{{AppSubUrl}}/' + repo.full_name">
+										<a :href="suburl + '/' + repo.full_name">
 											<i :class="repoClass(repo)"></i>
-											<strong class="text truncate item-name">${ repo.full_name }</strong>
+											<strong class="text truncate item-name">${repo.full_name}</strong>
 											<span class="ui right text light grey">
-												${ repo.stars_count } <i class="octicon octicon-star rear"></i>
+												${repo.stars_count} <i class="octicon octicon-star rear"></i>
 											</span>
 										</a>
 									</li>
-									<li v-if="repos.length < reposTotal">
-										<a href="{{.ContextUser.HomeLink}}">{{.i18n.Tr "home.show_more_repos"}}</a>
+									<li v-if="repos.length < reposTotalCount">
+										<a :href="moreReposLink">{{.i18n.Tr "home.show_more_repos"}}</a>
 									</li>
 								</ul>
 							</div>
 						</div>
-
-						{{if not .ContextUser.IsOrganization}}
-							<div v-if="tab === 'orgs'" class="ui tab active list">
-								<h4 class="ui top attached header">
-									{{.i18n.Tr "home.my_orgs"}} <span class="ui grey label">{{.ContextUser.GetOrganizationCount}}</span>
-									<div class="ui right">
-										{{if .SignedUser.CanCreateOrganization}}
-										<a class="poping up" href="{{AppSubUrl}}/org/create" data-content="{{.i18n.Tr "new_org"}}" data-variation="tiny inverted" data-position="left center">
-											<i class="plus icon"></i>
-											<span class="sr-only">{{.i18n.Tr "new_org"}}</span>
-										</a>
-										{{end}}
-									</div>
-								</h4>
-								<div class="ui attached table segment">
-									<ul class="repo-owner-name-list">
-										{{range .ContextUser.Orgs}}
-											<li>
-												<a href="{{AppSubUrl}}/{{.Name}}">
-													<i class="octicon octicon-organization"></i>
-													<strong class="text truncate item-name">{{.Name}}</strong>
-													<span class="ui right text light grey">
-														{{.NumRepos}} <i class="octicon octicon-repo rear"></i>
-													</span>
-												</a>
-											</li>
-										{{end}}
-									</ul>
+						<div v-if="!isOrganization" v-show="tab === 'organizations'" class="ui tab active list">
+							<h4 class="ui top attached header">
+								{{.i18n.Tr "home.my_orgs"}} <span class="ui grey label">${organizationsTotalCount}</span>
+								<div v-if="canCreateOrganization" class="ui right">
+									<a class="poping up" :href="suburl + '/org/create'" data-content="{{.i18n.Tr "new_org"}}" data-variation="tiny inverted" data-position="left center">
+										<i class="plus icon"></i>
+										<span class="sr-only">{{.i18n.Tr "new_org"}}</span>
+									</a>
 								</div>
+							</h4>
+							<div class="ui attached table segment">
+								<ul class="repo-owner-name-list">
+									<li v-for="org in organizations">
+										<a :href="suburl + '/' + org.name">
+											<i class="octicon octicon-organization"></i>
+											<strong class="text truncate item-name">${org.name}</strong>
+											<span class="ui right text light grey">
+												${org.num_repos} <i class="octicon octicon-repo rear"></i>
+											</span>
+										</a>
+									</li>
+								</ul>
 							</div>
-						{{end}}
+						</div>
 					</div>
 				</repo-search>
 			</div>

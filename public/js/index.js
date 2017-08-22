@@ -1687,13 +1687,33 @@ function initVueComponents(){
                 type: Number,
                 required: true
             },
+            organizations: {
+                type: Array,
+                default: []
+            },
+            isOrganization: {
+                type: Boolean,
+                default: true
+            },
+            canCreateOrganization: {
+                type: Boolean,
+                default: false
+            },
+            organizationsTotalCount: {
+                type: Number,
+                default: 0
+            },
+            moreReposLink: {
+                type: String,
+                default: ''
+            }
         },
 
         data: function() {
             return {
                 tab: 'repos',
                 repos: [],
-                reposTotal: 0,
+                reposTotalCount: 0,
                 reposFilter: 'all',
                 searchQuery: '',
                 isLoading: false
@@ -1741,7 +1761,7 @@ function initVueComponents(){
                     if (searchedQuery == self.searchQuery) {
                         self.repos = result.data;
                         if (searchedQuery == "") {
-                            self.reposTotal = request.getResponseHeader('X-Total-Count');
+                            self.reposTotalCount = request.getResponseHeader('X-Total-Count');
                         }
                     }
                 }).always(function() {
