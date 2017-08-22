@@ -718,6 +718,8 @@ type GetFeedsOptions struct {
 
 // GetFeeds returns actions according to the provided options
 func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
+	cond := builder.NewCond()
+
 	var repoIDs []int64
 	if opts.RequestedUser.IsOrganization() {
 		env, err := opts.RequestedUser.AccessibleReposEnv(opts.RequestingUserID)
@@ -727,12 +729,9 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		if repoIDs, err = env.RepoIDs(1, opts.RequestedUser.NumRepos); err != nil {
 			return nil, fmt.Errorf("GetUserRepositories: %v", err)
 		}
-	}
 
-	actions := make([]*Action, 0, 20)
-	cond := builder.NewCond()
-	sess := x.Limit(20).
-		Desc("id")
+		cond = cond.And(builder.In("repo_id", repoIDs))
+	}
 
 	if opts.Collaborate {
 		cond = builder.Eq{"user_id": opts.RequestedUser.ID}.Or(
@@ -747,14 +746,11 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	if !opts.IncludePrivate {
 		cond = cond.And(builder.Eq{"is_private": false})
 	}
-	if opts.RequestedUser.IsOrganization() {
-		cond = cond.And(builder.In("repo_id", repoIDs))
-	}
 
 	if !opts.IncludeDeleted {
 		cond = cond.And(builder.Eq{"is_deleted": false})
-
 	}
 
-	return actions, sess.Where(cond).Find(&actions)
+	actions := make([]*Action, 0, 20)
+	return actions, x.Limit(20).Desc("id").Where(cond).Find(&actions)
 }
