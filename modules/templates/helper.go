@@ -66,6 +66,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"AvatarLink":   base.AvatarLink,
 		"Safe":         Safe,
+		"SafeJS":       SafeJS,
 		"Sanitize":     bluemonday.UGCPolicy().Sanitize,
 		"Str2html":     Str2html,
 		"TimeSince":    base.TimeSince,
@@ -160,6 +161,11 @@ func NewFuncMap() []template.FuncMap {
 // Safe render raw as HTML
 func Safe(raw string) template.HTML {
 	return template.HTML(raw)
+}
+
+// SafeJS renders raw as JS
+func SafeJS(raw string) template.JS {
+	return template.JS(raw)
 }
 
 // Str2html render Markdown text to HTML
