@@ -160,6 +160,13 @@ const userPassword = "password"
 
 var loginSessionCache = make(map[string]*TestSession, 10)
 
+func emptyTestSession(t testing.TB) *TestSession {
+	jar, err := cookiejar.New(nil)
+	assert.NoError(t, err)
+
+	return &TestSession{jar: jar}
+}
+
 func loginUser(t testing.TB, userName string) *TestSession {
 	if session, ok := loginSessionCache[userName]; ok {
 		return session
@@ -185,13 +192,13 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	ch.Add("Cookie", strings.Join(resp.Headers["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 
-	jar, err := cookiejar.New(nil)
-	assert.NoError(t, err)
+	session := emptyTestSession(t)
+
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
-	jar.SetCookies(baseURL, cr.Cookies())
+	session.jar.SetCookies(baseURL, cr.Cookies())
 
-	return &TestSession{jar: jar}
+	return session
 }
 
 type TestResponseWriter struct {
