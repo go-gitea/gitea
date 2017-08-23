@@ -736,7 +736,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	var userIDCond builder.Cond = builder.Eq{"user_id": opts.RequestedUser.ID}
 	if opts.Collaborate {
 		userIDCond = userIDCond.Or(builder.Expr(
-			`repo_id IN (SELECT repo_id FROM "access" WHERE access.user_id = ?)`,
+			"repo_id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)",
 			opts.RequestedUser.ID))
 	}
 	cond = cond.And(userIDCond)
