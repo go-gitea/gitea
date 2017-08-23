@@ -2,13 +2,12 @@ workspace:
   base: /srv/app
   path: src/code.gitea.io/gitea
 
-clone:
-  git:
-    image: plugins/git:latest
+pipeline:
+  clone:
+    image: plugins/git
     depth: 50
     tags: true
 
-pipeline:
   build:
     image: webhippie/golang:edge
     pull: true
@@ -16,6 +15,7 @@ pipeline:
       TAGS: bindata sqlite
       GOPATH: /srv/app
     commands:
+      - apk -U add openssh-client
       - make clean
       - make generate
       - make vet
@@ -30,32 +30,32 @@ pipeline:
   test:
     image: webhippie/golang:edge
     pull: true
-    group: test
     environment:
       TAGS: bindata sqlite
       GOPATH: /srv/app
     commands:
+      - apk -U add openssh-client
       - make test
     when:
-      event: [ pull_request ]
+      event: [ tag, pull_request ]
 
-  coverage:
+  test-coverage:
     image: webhippie/golang:edge
     pull: true
-    group: test
     environment:
       TAGS: bindata sqlite
       GOPATH: /srv/app
     commands:
-      - make coverage
+      - apk -U add openssh-client
+      - go get github.com/wadey/gocovmerge
+      - make test-coverage
     when:
-      event: [ push, tag ]
+      event: [ push ]
       branch: master
 
   test-sqlite:
     image: webhippie/golang:edge
     pull: true
-    group: test
     environment:
       TAGS: bindata
       GOPATH: /srv/app
@@ -67,7 +67,6 @@ pipeline:
   test-mysql:
     image: webhippie/golang:edge
     pull: true
-    group: test
     environment:
       TAGS: bindata
       GOPATH: /srv/app
@@ -79,7 +78,6 @@ pipeline:
   test-pgsql:
     image: webhippie/golang:edge
     pull: true
-    group: test
     environment:
       TAGS: bindata
       GOPATH: /srv/app
@@ -100,15 +98,15 @@ pipeline:
       event: [ push, tag ]
 
   # coverage:
-  #   image: plugins/coverage:latest
-  #   pull: true
-  #   secrets: [ github_token ]
+  #   image: plugins/coverage
   #   server: https://coverage.gitea.io
+  #   when:
+  #     event: [ push ]
+  #     branch: master
 
   docker:
-    image: plugins/docker:latest
+    image: plugins/docker
     pull: true
-    secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
     tags: [ '${DRONE_TAG##v}' ]
     when:
@@ -116,9 +114,8 @@ pipeline:
       branch: [ refs/tags/* ]
 
   docker:
-    image: plugins/docker:latest
+    image: plugins/docker
     pull: true
-    secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
     tags: [ '${DRONE_BRANCH##release/v}' ]
     when:
@@ -126,9 +123,8 @@ pipeline:
       branch: [ release/* ]
 
   docker:
-    image: plugins/docker:latest
+    image: plugins/docker
     pull: true
-    secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
     tags: [ 'latest' ]
     when:
@@ -136,10 +132,7 @@ pipeline:
       branch: [ master ]
 
   release:
-    image: plugins/s3:latest
-    pull: true
-    secrets: [ s3_access_key, s3_secret_key ]
-    endpoint: https://storage.gitea.io
+    image: plugins/s3
     path_style: true
     strip_prefix: dist/release/
     source: dist/release/*
@@ -149,10 +142,7 @@ pipeline:
       branch: [ refs/tags/* ]
 
   release:
-    image: plugins/s3:latest
-    pull: true
-    secrets: [ s3_access_key, s3_secret_key ]
-    endpoint: https://storage.gitea.io
+    image: plugins/s3
     path_style: true
     strip_prefix: dist/release/
     source: dist/release/*
@@ -162,10 +152,7 @@ pipeline:
       branch: [ release/* ]
 
   release:
-    image: plugins/s3:latest
-    pull: true
-    secrets: [ s3_access_key, s3_secret_key ]
-    endpoint: https://storage.gitea.io
+    image: plugins/s3
     path_style: true
     strip_prefix: dist/release/
     source: dist/release/*
@@ -175,8 +162,7 @@ pipeline:
       branch: [ master ]
 
   github:
-    image: plugins/github-release:latest
-    pull: true
+    image: plugins/github-release
     files:
       - dist/release/*
     when:
@@ -184,9 +170,9 @@ pipeline:
       branch: [ refs/tags/* ]
 
   discord:
-    image: appleboy/drone-discord:latest
-    pull: true
-    secrets: [ discord_webhook_id, discord_webhook_token ]
+    image: appleboy/drone-discord:0.0.4
+    webhook_id: ${WEBHOOK_ID}
+    webhook_token: ${WEBHOOK_TOKEN}
     when:
       event: [ push, tag, pull_request ]
       status: [ changed, failure ]
