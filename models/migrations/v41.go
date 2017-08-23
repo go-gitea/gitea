@@ -5,10 +5,11 @@
 package migrations
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 
 	"github.com/go-xorm/xorm"
-	"fmt"
 )
 
 func addDefaultValueToUserProhibitLogin(x *xorm.Engine) (err error) {
