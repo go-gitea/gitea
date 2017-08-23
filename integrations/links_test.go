@@ -28,7 +28,7 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user/forgot_password",
 		"/swagger",
 		// TODO: follow this page and test every link
-		"/assets/librejs/librejs.html",
+		"/vendor/librejs.html",
 	}
 
 	for _, link := range links {
