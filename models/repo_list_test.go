@@ -42,6 +42,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Keyword:  "repo_13",
 		Page:     1,
 		PageSize: 10,
+		Private:  true,
 		Searcher: &User{ID: 14},
 	})
 
@@ -54,6 +55,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Keyword:  "test_repo",
 		Page:     1,
 		PageSize: 10,
+		Private:  true,
 		Searcher: &User{ID: 14},
 	})
 

@@ -54,24 +54,14 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 }
 
 // retrieveFeeds loads feeds for the specified user
-func retrieveFeeds(ctx *context.Context, user *models.User, includePrivate, isProfile bool, includeDeletedComments bool) {
-	var requestingID int64
-	if ctx.User != nil {
-		requestingID = ctx.User.ID
-	}
-	actions, err := models.GetFeeds(models.GetFeedsOptions{
-		RequestedUser:    user,
-		RequestingUserID: requestingID,
-		IncludePrivate:   includePrivate,
-		OnlyPerformedBy:  isProfile,
-		IncludeDeleted:   includeDeletedComments,
-	})
+func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) {
+	actions, err := models.GetFeeds(options)
 	if err != nil {
 		ctx.Handle(500, "GetFeeds", err)
 		return
 	}
 
-	userCache := map[int64]*models.User{user.ID: user}
+	userCache := map[int64]*models.User{options.RequestedUser.ID: options.RequestedUser}
 	if ctx.User != nil {
 		userCache[ctx.User.ID] = ctx.User
 	}
@@ -133,30 +123,12 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsNews"] = true
 	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
 
-	// Only user can have collaborative repositories.
-	if !ctxUser.IsOrganization() {
-		collaborateRepos, err := ctx.User.GetAccessibleRepositories(setting.UI.User.RepoPagingNum)
-		if err != nil {
-			ctx.Handle(500, "GetAccessibleRepositories", err)
-			return
-		} else if err = models.RepositoryList(collaborateRepos).LoadAttributes(); err != nil {
-			ctx.Handle(500, "RepositoryList.LoadAttributes", err)
-			return
-		}
-		ctx.Data["CollaborativeRepos"] = collaborateRepos
-	}
-
 	var err error
-	var repos, mirrors []*models.Repository
+	var mirrors []*models.Repository
 	if ctxUser.IsOrganization() {
 		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
 		if err != nil {
 			ctx.Handle(500, "AccessibleReposEnv", err)
-			return
-		}
-		repos, err = env.Repos(1, setting.UI.User.RepoPagingNum)
-		if err != nil {
-			ctx.Handle(500, "env.Repos", err)
 			return
 		}
 
@@ -166,19 +138,12 @@ func Dashboard(ctx *context.Context) {
 			return
 		}
 	} else {
-		if err = ctxUser.GetRepositories(1, setting.UI.User.RepoPagingNum); err != nil {
-			ctx.Handle(500, "GetRepositories", err)
-			return
-		}
-		repos = ctxUser.Repos
-
 		mirrors, err = ctxUser.GetMirrorRepositories()
 		if err != nil {
 			ctx.Handle(500, "GetMirrorRepositories", err)
 			return
 		}
 	}
-	ctx.Data["Repos"] = repos
 	ctx.Data["MaxShowRepoNum"] = setting.UI.User.RepoPagingNum
 
 	if err := models.MirrorRepositoryList(mirrors).LoadAttributes(); err != nil {
@@ -188,7 +153,12 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["MirrorCount"] = len(mirrors)
 	ctx.Data["Mirrors"] = mirrors
 
-	retrieveFeeds(ctx, ctxUser, true, false, false)
+	retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+		IncludePrivate:  true,
+		OnlyPerformedBy: false,
+		Collaborate:     true,
+		IncludeDeleted:  false,
+	})
 	if ctx.Written() {
 		return
 	}

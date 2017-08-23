@@ -42,6 +42,7 @@ func Search(ctx *context.APIContext) {
 	if ctx.IsSigned && opts.OwnerID > 0 {
 		if ctx.User.ID == opts.OwnerID {
 			opts.Private = true
+			opts.Collaborate = true
 		} else {
 			u, err := models.GetUserByID(opts.OwnerID)
 			if err != nil {
@@ -54,7 +55,10 @@ func Search(ctx *context.APIContext) {
 			if u.IsOrganization() && u.IsOwnedBy(ctx.User.ID) {
 				opts.Private = true
 			}
-			// FIXME: how about collaborators?
+
+			if !u.IsOrganization() {
+				opts.Collaborate = true
+			}
 		}
 	}
 
