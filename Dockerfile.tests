@@ -1,0 +1,37 @@
+FROM golang:1.8
+
+ENV BRANCH master
+ENV REPOSITORY https://github.com/go-gitea/gitea.git
+
+WORKDIR /go/src/code.gitea.io/gitea
+
+RUN apt-get install -y make \
+    && echo \
+'#!/bin/bash\n \
+set -e\n \
+echo\n \
+echo\n \
+echo "----------------------------------------------------------------------------------------------------"\n \
+date\n \
+echo "----------------------------------------------------------------------------------------------------"\n \
+echo\n \
+if [ ! "$(ls -A .)" ]\n \
+then\n \
+    echo "### Folder is empty, starting cloning repository..."\n \
+    git clone -b ${BRANCH} --single-branch ${REPOSITORY} .\n \
+else\n \
+    echo "### Folder is not empty, trying to pull newest version of repository..."\n \
+    git pull --rebase\n \
+fi\n \
+echo\n \
+echo "### Checking current branch..."\n \
+git branch -vv\n \
+echo\n \
+echo "### Running user command: $@"\n \
+exec $@' \
+    > /entrypoint.sh \
+    && chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+CMD ["make test"]
