@@ -141,7 +141,9 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 	var cond = builder.NewCond()
 
 	// Include starred repositories by Owner
+	includeStarred := false
 	if opts.Starred && searchOwnerID > 0 {
+		includeStarred = true
 		cond = builder.Eq{
 			"star.uid": searchOwnerID,
 		}
@@ -198,7 +200,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if opts.Starred {
+	if includeStarred {
 		sess = sess.Join("INNER", "star", "star.repo_id = repository.id")
 	}
 
@@ -207,6 +209,11 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 		Count(new(Repository))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
+	}
+
+	// Set again after reset by Count()
+	if includeStarred {
+		sess = sess.Join("INNER", "star", "star.repo_id = repository.id")
 	}
 
 	repos = make([]*Repository, 0, opts.PageSize)
