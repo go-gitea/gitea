@@ -13,22 +13,12 @@ import (
 )
 
 func addDefaultValueToUserProhibitLogin(x *xorm.Engine) (err error) {
-	// Update user
-	const batchSize = 100
-	for start := 0; ; start += batchSize {
-		users := make([]*models.User, 0, batchSize)
-		if err := x.Limit(batchSize, start).Where("`prohibit_login` IS NULL").Find(&users); err != nil {
-			return err
-		}
-		if len(users) == 0 {
-			break
-		}
-		for _, user := range users {
-			user.ProhibitLogin = false
-			if _, err := x.ID(user.ID).Cols("prohibit_login").Update(user); err != nil {
-				return err
-			}
-		}
+	user := &models.User{
+		ProhibitLogin: false,
+	}
+
+	if _, err := x.Where("`prohibit_login` IS NULL").Cols("prohibit_login").Update(user); err != nil {
+		return err
 	}
 
 	dialect := x.Dialect().DriverName()

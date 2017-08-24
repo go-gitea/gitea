@@ -42,7 +42,7 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, comment 
 	if err != nil {
 		return fmt.Errorf("GetUserByID [%d]: %v", issue.PosterID, err)
 	}
-	if issue.PosterID != doer.ID && poster.IsActive == true {
+	if issue.PosterID != doer.ID && poster.IsActive && !poster.ProhibitLogin {
 		participants = append(participants, issue.Poster)
 	}
 
