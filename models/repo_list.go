@@ -152,7 +152,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, coun
 
 			searcherReposCond = searcherReposCond.Or(builder.In("owner_id", ownerIds))
 			if opts.Collaborate {
-				searcherReposCond = searcherReposCond.Or(builder.Expr(`id IN (SELECT repo_id FROM "access" WHERE access.user_id = ? AND owner_id != ?)`,
+				searcherReposCond = searcherReposCond.Or(builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ? AND owner_id != ?)",
 					opts.Searcher.ID, opts.Searcher.ID))
 			}
 		}
