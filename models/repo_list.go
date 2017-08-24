@@ -128,17 +128,9 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 		if err != nil {
 			return nil, 0, err
 		}
-		if userExists == false {
+		if !userExists {
 			return nil, 0, ErrUserNotExist{UID: searchOwnerID}
 		}
-	}
-
-	// Set public search by default
-	isPublicSearch := true
-
-	// Allow to search for owners private data
-	if opts.Searcher != nil && (opts.Searcher.ID == searchOwnerID || opts.Searcher.IsAdmin) {
-		isPublicSearch = false
 	}
 
 	// Check and set page to correct number
@@ -162,9 +154,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 	}
 
 	// Exclude private repositories
-	// if it is set in options
-	// or is public search
-	if !opts.Private || isPublicSearch {
+	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
@@ -178,7 +168,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 		// Include collaborative repositories
 		if opts.Collaborate {
 			// Get owner organizations
-			orgs, err := GetOrgUsersByUserID(searchOwnerID, !isPublicSearch)
+			orgs, err := GetOrgUsersByUserID(searchOwnerID, true)
 
 			if err != nil {
 				return nil, 0, fmt.Errorf("Organization: %v", err)
