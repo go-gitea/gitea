@@ -15,18 +15,20 @@ func TestGetUserOpenIDs(t *testing.T) {
 
 	oids, err := GetUserOpenIDs(int64(1))
 	if assert.NoError(t, err) {
-		assert.Len(t, oids, 2)
-		assert.Equal(t, oids[0].URI, "https://user1.domain1.tld/")
-		assert.False(t, oids[0].Show)
-		assert.Equal(t, oids[1].URI, "http://user1.domain2.tld/")
-		assert.True(t, oids[1].Show)
+		if assert.Len(t, oids, 2) {
+			assert.Equal(t, oids[0].URI, "https://user1.domain1.tld/")
+			assert.False(t, oids[0].Show)
+			assert.Equal(t, oids[1].URI, "http://user1.domain2.tld/")
+			assert.True(t, oids[1].Show)
+		}
 	}
 
 	oids, err = GetUserOpenIDs(int64(2))
 	if assert.NoError(t, err) {
-		assert.Len(t, oids, 1)
-		assert.Equal(t, oids[0].URI, "https://domain1.tld/user2/")
-		assert.True(t, oids[0].Show)
+		if assert.Len(t, oids, 1) {
+			assert.Equal(t, oids[0].URI, "https://domain1.tld/user2/")
+			assert.True(t, oids[0].Show)
+		}
 	}
 }
 
@@ -52,10 +54,9 @@ func TestGetUserByOpenID(t *testing.T) {
 func TestToggleUserOpenIDVisibility(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	oids, err := GetUserOpenIDs(int64(2))
-	if !assert.NoError(t, err) {
+	if !assert.NoError(t, err) || !assert.Len(t, oids, 1) {
 		return
 	}
-	assert.Len(t, oids, 1)
 	assert.True(t, oids[0].Show)
 
 	err = ToggleUserOpenIDVisibility(oids[0].ID)
@@ -64,10 +65,10 @@ func TestToggleUserOpenIDVisibility(t *testing.T) {
 	}
 
 	oids, err = GetUserOpenIDs(int64(2))
-	if assert.NoError(t, err) {
-		assert.Len(t, oids, 1)
-		assert.False(t, oids[0].Show)
+	if !assert.NoError(t, err) || !assert.Len(t, oids, 1) {
+		return
 	}
+	assert.False(t, oids[0].Show)
 	err = ToggleUserOpenIDVisibility(oids[0].ID)
 	if !assert.NoError(t, err) {
 		return
@@ -77,6 +78,7 @@ func TestToggleUserOpenIDVisibility(t *testing.T) {
 	if !assert.NoError(t, err) {
 		return
 	}
-	assert.Len(t, oids, 1)
-	assert.True(t, oids[0].Show)
+	if assert.Len(t, oids, 1) {
+		assert.True(t, oids[0].Show)
+	}
 }

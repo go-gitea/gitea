@@ -29,9 +29,10 @@ func TestNotificationsForUser(t *testing.T) {
 	statuses := []NotificationStatus{NotificationStatusRead, NotificationStatusUnread}
 	notfs, err := NotificationsForUser(user, statuses, 1, 10)
 	assert.NoError(t, err)
-	assert.Len(t, notfs, 1)
-	assert.EqualValues(t, 2, notfs[0].ID)
-	assert.EqualValues(t, user.ID, notfs[0].UserID)
+	if assert.Len(t, notfs, 1) {
+		assert.EqualValues(t, 2, notfs[0].ID)
+		assert.EqualValues(t, user.ID, notfs[0].UserID)
+	}
 }
 
 func TestNotification_GetRepo(t *testing.T) {
