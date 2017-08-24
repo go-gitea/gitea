@@ -154,8 +154,10 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
+			log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
 		} else if models.IsErrEmailAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSignIn, &form)
+			log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
 		} else {
 			ctx.Handle(500, "UserSignIn", err)
 		}
