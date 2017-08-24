@@ -162,10 +162,8 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 
 	if searchOwnerID > 0 {
 		// Set user access conditions
-		var accessCond = builder.NewCond()
-
 		// Add Owner ID to access conditions
-		accessCond = builder.Eq{"owner_id": searchOwnerID}
+		var accessCond builder.Cond = builder.Eq{"owner_id": searchOwnerID}
 
 		// Include collaborative repositories
 		if opts.Collaborate {
@@ -201,7 +199,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 	defer sess.Close()
 
 	if includeStarred {
-		sess = sess.Join("INNER", "star", "star.repo_id = repository.id")
+		sess.Join("INNER", "star", "star.repo_id = repository.id")
 	}
 
 	count, err := sess.
@@ -213,7 +211,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 
 	// Set again after reset by Count()
 	if includeStarred {
-		sess = sess.Join("INNER", "star", "star.repo_id = repository.id")
+		sess.Join("INNER", "star", "star.repo_id = repository.id")
 	}
 
 	repos = make([]*Repository, 0, opts.PageSize)
