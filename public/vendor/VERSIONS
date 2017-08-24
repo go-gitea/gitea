@@ -1,0 +1,60 @@
+# About: This file was added per request of BKC. It duplicates content present in librejs.html.
+# To do: Choose a dependency management solution and use it to replace both files.
+# Notes:  Download and license information is available in librejs.html.
+
+File(s): /vendor/plugins/jquery.areyousure/jquery.are-you-sure.js
+Version: 1.9.0
+
+File(s): /vendor/plugins/jquery/jquery.min.js
+Version: 1.11.3
+
+File(s): /vendor/plugins/semantic/semantic.min.js
+Version: 2.2.1
+
+File(s): /vendor/plugins/clipboard/clipboard.min.js
+Version: 1.5.9
+
+File(s): /vendor/plugins/gitgraph/gitgraph.js
+Version: 5fcc26b
+
+File(s): /vendor/plugins/autolink/autolink.js
+Version: 741f66f
+
+File(s): /vendor/plugins/vue/vue.min.js
+Version: 2.1.10
+
+File(s): /vendor/plugins/emojify/emojify.min.js
+Version: 1.1.0
+
+File(s): /vendor/plugins/cssrelpreload/
+Version: 1.3.1
+
+File(s): /vendor/plugins/dropzone/dropzone.js
+Version: 4.2.0
+
+File(s): /vendor/plugins/highlight/highlight.pack.js
+Version: 9.6.0
+
+File(s): /vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.js
+Version: 2.4.5
+
+File(s): /vendor/plugins/jquery.minicolors/jquery.minicolors.min.js
+Version: 2.2.3
+
+File(s): /vendor/plugins/codemirror/
+Version: 5.17.0
+
+File(s): /vendor/plugins/simplemde/simplemde.min.js
+Version: 1.10.1
+
+File(s): /vendor/plugins/pdfjs/
+Version: 1.4.20
+
+File(s): /vendor/assets/font-awesome/fonts/
+Version: 4.6.0
+
+File(s): /vendor/assets/octicons/
+Version: 4.3.0
+
+File(s): /vendor/assets/swagger-ui/
+Version: 3.0.4

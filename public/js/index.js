@@ -1456,7 +1456,7 @@ $(document).ready(function () {
 
     // Emojify
     emojify.setConfig({
-        img_dir: suburl + '/img/emoji',
+        img_dir: suburl + '/plugins/emojify/images',
         ignore_emoticons: true
     });
     var hasEmoji = document.getElementsByClassName('has-emoji');
