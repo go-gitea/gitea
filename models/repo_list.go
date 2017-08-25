@@ -98,7 +98,6 @@ type SearchRepoOptions struct {
 	//
 	// in: query
 	OwnerID     int64  `json:"uid"`
-	Searcher    *User  `json:"-"` //ID of the person who's seeking
 	OrderBy     string `json:"-"`
 	Private     bool   `json:"-"` // Include private repositories in results
 	Collaborate bool   `json:"-"` // Include collaborative repositories
@@ -115,21 +114,14 @@ type SearchRepoOptions struct {
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
 func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ int64, _ error) {
-	// Set owner of searched repositories if present in options
-	searchOwnerID := opts.OwnerID
-
-	// Set owner ID to Searcher ID if Owner is not filled
-	if opts.OwnerID <= 0 && opts.Searcher != nil {
-		searchOwnerID = opts.Searcher.ID
-	}
 	// Check if user with Owner ID exists
-	if searchOwnerID > 0 {
-		userExists, err := GetUser(&User{ID: searchOwnerID})
+	if opts.OwnerID > 0 {
+		userExists, err := GetUser(&User{ID: opts.OwnerID})
 		if err != nil {
 			return nil, 0, err
 		}
 		if !userExists {
-			return nil, 0, ErrUserNotExist{UID: searchOwnerID}
+			return nil, 0, ErrUserNotExist{UID: opts.OwnerID}
 		}
 	}
 
@@ -139,15 +131,6 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 	}
 
 	var cond = builder.NewCond()
-
-	// Include starred repositories by Owner
-	includeStarred := false
-	if opts.Starred && searchOwnerID > 0 {
-		includeStarred = true
-		cond = builder.Eq{
-			"star.uid": searchOwnerID,
-		}
-	}
 
 	// Add repository name keyword to search for
 	if opts.Keyword != "" {
@@ -160,35 +143,44 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
-	if searchOwnerID > 0 {
-		// Set user access conditions
-		// Add Owner ID to access conditions
-		var accessCond builder.Cond = builder.Eq{"owner_id": searchOwnerID}
+	includeStarred := false
+	if opts.OwnerID > 0 {
+		if opts.Starred {
+			// Return only starred repositories by Owner
+			includeStarred = true
+			cond = builder.Eq{
+				"star.uid": opts.OwnerID,
+			}
+		} else {
+			// Set user access conditions
+			// Add Owner ID to access conditions
+			var accessCond builder.Cond = builder.Eq{"owner_id": opts.OwnerID}
 
-		// Include collaborative repositories
-		if opts.Collaborate {
-			// Get owner organizations
-			orgs, err := GetOrgUsersByUserID(searchOwnerID, true)
+			// Include collaborative repositories
+			if opts.Collaborate {
+				// Get owner organizations
+				orgs, err := GetOrgUsersByUserID(opts.OwnerID, opts.Private)
 
-			if err != nil {
-				return nil, 0, fmt.Errorf("Organization: %v", err)
+				if err != nil {
+					return nil, 0, fmt.Errorf("Organization: %v", err)
+				}
+
+				var ownerIds []int64
+				for _, org := range orgs {
+					ownerIds = append(ownerIds, org.OrgID)
+				}
+
+				// Add repositories from related organizations
+				accessCond = accessCond.Or(builder.In("owner_id", ownerIds))
+
+				// Add repositories where user is set as collaborator directly
+				accessCond = accessCond.Or(builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ? AND owner_id != ?)",
+					opts.OwnerID, opts.OwnerID))
 			}
 
-			var ownerIds []int64
-			for _, org := range orgs {
-				ownerIds = append(ownerIds, org.OrgID)
-			}
-
-			// Add repositories from related organizations
-			accessCond = accessCond.Or(builder.In("owner_id", ownerIds))
-
-			// Add repositories where user is set as collaborator directly
-			accessCond = accessCond.Or(builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ? AND owner_id != ?)",
-				searchOwnerID, searchOwnerID))
+			// Add user access conditions to search
+			cond = cond.And(accessCond)
 		}
-
-		// Add user access conditions to search
-		cond = cond.And(accessCond)
 	}
 
 	if len(opts.OrderBy) == 0 {
@@ -270,17 +262,17 @@ func GetRecentUpdatedRepositories(opts *SearchRepoOptions) (repos RepositoryList
 		}
 	}
 
-	if opts.Searcher != nil && !opts.Searcher.IsAdmin {
+	if opts.OwnerID > 0 && opts.Collaborate {
 		var ownerIds []int64
 
-		ownerIds = append(ownerIds, opts.Searcher.ID)
-		err := opts.Searcher.GetOrganizations(true)
+		ownerIds = append(ownerIds, opts.OwnerID)
+		orgs, err := GetOrgUsersByUserID(opts.OwnerID, opts.Private)
 
 		if err != nil {
 			return nil, 0, fmt.Errorf("Organization: %v", err)
 		}
 
-		for _, org := range opts.Searcher.Orgs {
+		for _, org := range orgs {
 			ownerIds = append(ownerIds, org.ID)
 		}
 
