@@ -17,7 +17,7 @@ import (
 func TestVersion(t *testing.T) {
 	prepareTestEnv(t)
 
-	setting.AppVer = "1.1.0+dev"
+	setting.AppVer = "1.3.0+dev"
 	req := NewRequest(t, "GET", "/api/v1/version")
 	resp := MakeRequest(t, req, http.StatusOK)
 
