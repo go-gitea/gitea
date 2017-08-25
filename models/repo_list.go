@@ -171,7 +171,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 				}
 
 				// Add repositories from related organizations
-				accessCond = accessCond.Or(builder.In("owner_id", ownerIds))
+				accessCond = accessCond.Or(builder.And(builder.In("owner_id", ownerIds), builder.Eq{"is_private": false}))
 
 				// Add repositories where user is set as collaborator directly
 				accessCond = accessCond.Or(builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ? AND owner_id != ?)",
