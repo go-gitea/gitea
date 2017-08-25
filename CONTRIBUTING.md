@@ -97,7 +97,7 @@ Please use your real name, we really dislike pseudonyms or anonymous contributio
 
 ## Release Cycle
 
-We adopted a release schedule to streamline the process of working on, finishing, and issuing releases. The overall goal is to make a major release every two months, which breaks down into one month of general development followed by one month of testing and polishing known as the release freeze. A release is maintained by issuing minor releases to only correct critical problems such as crashes or security issues. All the feature pull requests should be merged in the first month of one release period. 
+We adopted a release schedule to streamline the process of working on, finishing, and issuing releases. The overall goal is to make a minor release every two months, which breaks down into one month of general development followed by one month of testing and polishing known as the release freeze. All the feature pull requests should be merged in the first month of one release period and during the frozen period a corresponding release branch is open for fix backported from master. Release candidate are made along this period for user testing to obtain a final version that is maintained in this branch. A release is maintained by issuing patch releases to only correct critical problems such as crashes or security issues. 
 
 The current release cycle is aligned to start on December 25 to February 24, next is February 25 to April 24, and etc. On this cycle, we also maybe publish the previous release minor version. For example, the current release version is v1.1, but we maybe also publish v1.0.2. When we publish v1.2, then we will stop publish v1.0.3.
 
