@@ -34,9 +34,6 @@ func Search(ctx *context.APIContext) {
 		OwnerID:  ctx.QueryInt64("uid"),
 		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 	}
-	if ctx.User != nil && ctx.User.ID == opts.OwnerID {
-		opts.Searcher = ctx.User
-	}
 
 	// Check visibility.
 	if ctx.IsSigned && opts.OwnerID > 0 {

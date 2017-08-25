@@ -61,7 +61,6 @@ func Swagger(ctx *context.Context) {
 // RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
 	Ranger   func(*models.SearchRepoOptions) (models.RepositoryList, int64, error)
-	Searcher *models.User
 	Private  bool
 	PageSize int
 	TplName  base.TplName
@@ -109,31 +108,24 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = "created_unix DESC"
 	}
 
+	searchOpts := &models.SearchRepoOptions{
+		Page:     page,
+		PageSize: opts.PageSize,
+		OrderBy:  orderBy,
+		Private:  opts.Private,
+	}
+
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	if len(keyword) == 0 {
-		repos, count, err = opts.Ranger(&models.SearchRepoOptions{
-			Page:        page,
-			PageSize:    opts.PageSize,
-			Searcher:    ctx.User,
-			OrderBy:     orderBy,
-			Private:     opts.Private,
-			Collaborate: true,
-		})
+		repos, count, err = opts.Ranger(searchOpts)
 		if err != nil {
 			ctx.Handle(500, "opts.Ranger", err)
 			return
 		}
 	} else {
 		if isKeywordValid(keyword) {
-			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-				Keyword:     keyword,
-				OrderBy:     orderBy,
-				Private:     opts.Private,
-				Page:        page,
-				PageSize:    opts.PageSize,
-				Searcher:    ctx.User,
-				Collaborate: true,
-			})
+			searchOpts.Keyword = keyword
+			repos, count, err = models.SearchRepositoryByName(searchOpts)
 			if err != nil {
 				ctx.Handle(500, "SearchRepositoryByName", err)
 				return
@@ -157,7 +149,6 @@ func ExploreRepos(ctx *context.Context) {
 	RenderRepoSearch(ctx, &RepoSearchOptions{
 		Ranger:   models.GetRecentUpdatedRepositories,
 		PageSize: setting.UI.ExplorePagingNum,
-		Searcher: ctx.User,
 		Private:  ctx.User != nil && ctx.User.IsAdmin,
 		TplName:  tplExploreRepos,
 	})

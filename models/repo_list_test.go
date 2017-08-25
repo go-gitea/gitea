@@ -113,7 +113,6 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Page:     1,
 		PageSize: 10,
 		OwnerID:  15,
-		Searcher: &User{ID: 15},
 	})
 
 	assert.NoError(t, err)
@@ -126,7 +125,6 @@ func TestSearchRepositoryByName(t *testing.T) {
 		PageSize: 10,
 		OwnerID:  15,
 		Private:  true,
-		Searcher: &User{ID: 15},
 	})
 
 	assert.NoError(t, err)
@@ -139,7 +137,6 @@ func TestSearchRepositoryByName(t *testing.T) {
 		PageSize:    10,
 		OwnerID:     15,
 		Collaborate: true,
-		Searcher:    &User{ID: 15},
 	})
 
 	assert.NoError(t, err)
@@ -153,7 +150,6 @@ func TestSearchRepositoryByName(t *testing.T) {
 		OwnerID:     15,
 		Private:     true,
 		Collaborate: true,
-		Searcher:    &User{ID: 15},
 	})
 
 	assert.NoError(t, err)
@@ -165,7 +161,6 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Page:     1,
 		PageSize: 10,
 		OwnerID:  17,
-		Searcher: &User{ID: 17},
 	})
 
 	assert.NoError(t, err)
@@ -178,7 +173,6 @@ func TestSearchRepositoryByName(t *testing.T) {
 		PageSize: 10,
 		OwnerID:  17,
 		Private:  true,
-		Searcher: &User{ID: 17},
 	})
 
 	assert.NoError(t, err)
