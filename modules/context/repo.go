@@ -275,7 +275,15 @@ func RepoAssignment() macaron.Handler {
 			return
 		}
 		ctx.Data["Tags"] = tags
-		ctx.Repo.Repository.NumTags = len(tags)
+
+		count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+			IncludeDrafts: false,
+		})
+		if err != nil {
+			ctx.Handle(500, "GetReleaseCountByRepoID", err)
+			return
+		}
+		ctx.Repo.Repository.NumReleases = int(count)
 
 		ctx.Data["Title"] = owner.Name + "/" + repo.Name
 		ctx.Data["Repository"] = repo
