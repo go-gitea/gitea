@@ -1,6 +1,6 @@
 # Changelog
 
-## [go-gitea/gitea](https://github.com/1.2.0/releases/tag/v1.2.0-rc1) - 2017-08-25
+## [1.2.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.2.0-rc1) - 2017-08-25
 * BREAKING
   * Rename /forget_password url to /forgot_password (#1219)
   * SSH keys management URL changed from `/user/settings/ssh` to `/user/settings/keys` (#1293)
