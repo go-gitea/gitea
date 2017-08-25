@@ -114,53 +114,91 @@ type SearchRepoOptions struct {
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
-func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, count int64, err error) {
-	var cond = builder.NewCond()
+func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ int64, _ error) {
+	// Set owner of searched repositories if present in options
+	searchOwnerID := opts.OwnerID
+
+	// Set owner ID to Searcher ID if Owner is not filled
+	if opts.OwnerID <= 0 && opts.Searcher != nil {
+		searchOwnerID = opts.Searcher.ID
+	}
+	// Check if user with Owner ID exists
+	if searchOwnerID > 0 {
+		userExists, err := GetUser(&User{ID: searchOwnerID})
+		if err != nil {
+			return nil, 0, err
+		}
+		if userExists == false {
+			return nil, 0, ErrUserNotExist{UID: searchOwnerID}
+		}
+	}
+
+	// Set public search by default
+	isPublicSearch := true
+
+	// Allow to search for owners private data
+	if opts.Searcher != nil && (opts.Searcher.ID == searchOwnerID || opts.Searcher.IsAdmin) {
+		isPublicSearch = false
+	}
+
+	// Check and set page to correct number
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
 
-	var starJoin bool
-	if opts.Starred && opts.OwnerID > 0 {
+	var cond = builder.NewCond()
+
+	// Include starred repositories by Owner
+	if opts.Starred && searchOwnerID > 0 {
 		cond = builder.Eq{
-			"star.uid": opts.OwnerID,
+			"star.uid": searchOwnerID,
 		}
-		starJoin = true
 	}
 
-	opts.Keyword = strings.ToLower(opts.Keyword)
+	// Add repository name keyword to search for
 	if opts.Keyword != "" {
+		opts.Keyword = strings.ToLower(opts.Keyword)
 		cond = cond.And(builder.Like{"lower_name", opts.Keyword})
 	}
 
-	// Append conditions
-	if !opts.Starred && opts.OwnerID > 0 {
-		var searcherReposCond builder.Cond = builder.Eq{"owner_id": opts.OwnerID}
-		if opts.Searcher != nil {
-			var ownerIds []int64
+	// Exclude private repositories
+	// if it is set in options
+	// or is public search
+	if !opts.Private || isPublicSearch {
+		cond = cond.And(builder.Eq{"is_private": false})
+	}
 
-			ownerIds = append(ownerIds, opts.Searcher.ID)
-			err = opts.Searcher.GetOrganizations(true)
+	if searchOwnerID > 0 {
+		// Set user access conditions
+		var accessCond = builder.NewCond()
+
+		// Add Owner ID to access conditions
+		accessCond = builder.Eq{"owner_id": searchOwnerID}
+
+		// Include collaborative repositories
+		if opts.Collaborate {
+			// Get owner organizations
+			orgs, err := GetOrgUsersByUserID(searchOwnerID, !isPublicSearch)
 
 			if err != nil {
 				return nil, 0, fmt.Errorf("Organization: %v", err)
 			}
 
-			for _, org := range opts.Searcher.Orgs {
-				ownerIds = append(ownerIds, org.ID)
+			var ownerIds []int64
+			for _, org := range orgs {
+				ownerIds = append(ownerIds, org.OrgID)
 			}
 
-			searcherReposCond = searcherReposCond.Or(builder.In("owner_id", ownerIds))
-			if opts.Collaborate {
-				searcherReposCond = searcherReposCond.Or(builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ? AND owner_id != ?)",
-					opts.Searcher.ID, opts.Searcher.ID))
-			}
+			// Add repositories from related organizations
+			accessCond = accessCond.Or(builder.In("owner_id", ownerIds))
+
+			// Add repositories where user is set as collaborator directly
+			accessCond = accessCond.Or(builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ? AND owner_id != ?)",
+				searchOwnerID, searchOwnerID))
 		}
-		cond = cond.And(searcherReposCond)
-	}
 
-	if !opts.Private {
-		cond = cond.And(builder.Eq{"is_private": false})
+		// Add user access conditions to search
+		cond = cond.And(accessCond)
 	}
 
 	if len(opts.OrderBy) == 0 {
@@ -170,23 +208,15 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, coun
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if starJoin {
-		count, err = sess.
-			Join("INNER", "star", "star.repo_id = repository.id").
-			Where(cond).
-			Count(new(Repository))
-		if err != nil {
-			return nil, 0, fmt.Errorf("Count: %v", err)
-		}
+	if opts.Starred {
+		sess = sess.Join("INNER", "star", "star.repo_id = repository.id")
+	}
 
-		sess.Join("INNER", "star", "star.repo_id = repository.id")
-	} else {
-		count, err = sess.
-			Where(cond).
-			Count(new(Repository))
-		if err != nil {
-			return nil, 0, fmt.Errorf("Count: %v", err)
-		}
+	count, err := sess.
+		Where(cond).
+		Count(new(Repository))
+	if err != nil {
+		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
 	repos = make([]*Repository, 0, opts.PageSize)
@@ -204,7 +234,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, coun
 		}
 	}
 
-	return
+	return repos, count, nil
 }
 
 // Repositories returns all repositories
