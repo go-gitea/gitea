@@ -285,9 +285,9 @@ public/css/index.css: $(STYLESHEETS)
 
 .PHONY: swagger-ui
 swagger-ui:
-	rm -Rf public/assets/swagger-ui
+	rm -Rf public/vendor/assets/swagger-ui
 	git clone --depth=10 -b v3.0.7 --single-branch https://github.com/swagger-api/swagger-ui.git $(TMPDIR)/swagger-ui
-	mv $(TMPDIR)/swagger-ui/dist public/assets/swagger-ui
+	mv $(TMPDIR)/swagger-ui/dist public/vendor/assets/swagger-ui
 	rm -Rf $(TMPDIR)/swagger-ui
 	$(SED_INPLACE) "s;http://petstore.swagger.io/v2/swagger.json;../../swagger.v1.json;g" public/assets/swagger-ui/index.html
 
