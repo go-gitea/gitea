@@ -13,14 +13,11 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
-// Adds new dependencies
+// IssueWatch sets issue watching
 func AddDependency(c *context.Context) {
-
-	// TODO: should should an issue only have dependencies in it's own repo?
-
-	depID, err := strconv.ParseInt(c.Req.PostForm.Get("newDependency"), 10, 64)
+	dep, err := strconv.ParseInt(c.Req.PostForm.Get("newDependency"), 10, 64)
 	if err != nil {
-		c.Handle(http.StatusBadRequest, "issue ID is not int", err)
+		c.Handle(http.StatusInternalServerError, "issue ID is not int", err)
 		return
 	}
 
@@ -31,37 +28,9 @@ func AddDependency(c *context.Context) {
 		return
 	}
 
-	// Check if the Repo is allowed to have dependencies
-	if !c.Repo.Repository.UnitEnabled(models.UnitTypeIssueDependencies) {
-		c.Handle(404, "MustEnableIssueDependencies", nil)
+	if err := models.CreateOrUpdateIssueDependency(c.User.ID, issue.ID, dep); err != nil {
+		c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueWatch", err)
 		return
-	}
-
-	// Dependency
-	dep, err := models.GetIssueByID(depID)
-	if err != nil {
-		c.Handle(http.StatusInternalServerError, "GetIssueByID", err)
-		return
-	}
-
-	// Check if issue and dependency is the same
-	if dep.Index == issueIndex{
-		c.Flash.Error(c.Tr("issues.dependency.add_error_same_issue"))
-	} else {
-
-		err, exists, depExists := models.CreateIssueDependency(c.User, issue, dep)
-		if err != nil {
-			c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
-			return
-		}
-
-		if !depExists {
-			c.Flash.Error(c.Tr("add_error_dep_not_exist"))
-		}
-
-		if exists {
-			c.Flash.Error(c.Tr("add_error_dep_exists"))
-		}
 	}
 
 	url := fmt.Sprintf("%s/issues/%d", c.Repo.RepoLink, issueIndex)

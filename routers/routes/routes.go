@@ -487,6 +487,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/addDependency", repo.AddDependency)
 				m.Post("/removeDependency", repo.RemoveDependency)
 				m.Combo("/comments").Post(bindIgnErr(auth.CreateCommentForm{}), repo.NewComment)
+				m.Post("/addDependency", repo.AddDependency)
 				m.Group("/times", func() {
 					m.Post("/add", bindIgnErr(auth.AddTimeManuallyForm{}), repo.AddTimeManually)
 					m.Group("/stopwatch", func() {
@@ -613,7 +614,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/*", repo.WikiRaw)
 		}, repo.MustEnableWiki, context.CheckUnit(models.UnitTypeWiki), context.CheckUnit(models.UnitTypeWiki))
 
-		m.Get("/archive/*", repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.Download)
+		m.Get("/archive/*", repo.MustBeNotBare, repo.Download, context.CheckUnit(models.UnitTypeCode))
 
 		m.Group("/pulls/:index", func() {
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
@@ -633,11 +634,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/src/*", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("/forks", repo.Forks)
 		}, context.RepoRef(), context.CheckUnit(models.UnitTypeCode))
-		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)",
-			repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.RawDiff)
+		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)", repo.MustBeNotBare, repo.RawDiff, context.CheckUnit(models.UnitTypeCode))
 
 		m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.SetEditorconfigIfExists,
-			repo.SetDiffViewStyle, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.CompareDiff)
+			repo.SetDiffViewStyle, repo.MustBeNotBare, repo.CompareDiff, context.CheckUnit(models.UnitTypeCode))
 	}, ignSignIn, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits())
 	m.Group("/:username/:reponame", func() {
 		m.Get("/stars", repo.Stars)
