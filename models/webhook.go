@@ -150,6 +150,15 @@ func (w *Webhook) GetSlackHook() *SlackMeta {
 	return s
 }
 
+// GetDiscordHook returns discord metadata
+func (w *Webhook) GetDiscordHook() *DiscordMeta {
+	s := &DiscordMeta{}
+	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
+		log.Error(4, "webhook.GetDiscordHook(%d): %v", w.ID, err)
+	}
+	return s
+}
+
 // History returns history of webhook by given conditions.
 func (w *Webhook) History(page int) ([]*HookTask, error) {
 	return HookTasks(w.ID, page)

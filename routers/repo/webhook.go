@@ -96,9 +96,17 @@ func WebhooksNew(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["HookType"] = checkHookType(ctx)
+	hookType := checkHookType(ctx)
+	ctx.Data["HookType"] = hookType
 	if ctx.Written() {
 		return
+	}
+	if hookType == "discord" {
+		ctx.Data["DiscordHook"] = map[string]interface{}{
+			"Username": "Gitea",
+			"IconURL":  setting.AppURL + "img/favicon.png",
+			"Color":    16724530,
+		}
 	}
 	ctx.Data["BaseLink"] = orCtx.Link
 
@@ -234,7 +242,6 @@ func DiscordHooksNewPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 	meta, err := json.Marshal(&models.DiscordMeta{
 		Username: form.Username,
 		IconURL:  form.IconURL,
-		Color:    form.Color,
 	})
 	if err != nil {
 		ctx.Handle(500, "Marshal", err)
@@ -346,6 +353,7 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 	case models.GOGS:
 		ctx.Data["HookType"] = "gogs"
 	case models.DISCORD:
+		ctx.Data["DiscordHook"] = w.GetDiscordHook()
 		ctx.Data["HookType"] = "discord"
 	default:
 		ctx.Data["HookType"] = "gitea"
@@ -515,7 +523,6 @@ func DiscordHooksEditPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 	meta, err := json.Marshal(&models.DiscordMeta{
 		Username: form.Username,
 		IconURL:  form.IconURL,
-		Color:    form.Color,
 	})
 	if err != nil {
 		ctx.Handle(500, "Marshal", err)

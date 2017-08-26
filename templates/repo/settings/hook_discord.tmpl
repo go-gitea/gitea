@@ -8,15 +8,11 @@
 		</div>
 		<div class="field">
 			<label for="username">{{.i18n.Tr "repo.settings.slack_username"}}</label>
-			<input id="username" name="username" value="{{.SlackHook.Username}}" placeholder="e.g. Gitea">
+			<input id="username" name="username" value="{{.DiscordHook.Username}}" placeholder="e.g. Gitea">
 		</div>
 		<div class="field">
 			<label for="icon_url">{{.i18n.Tr "repo.settings.slack_icon_url"}}</label>
-			<input id="icon_url" name="icon_url" value="{{.SlackHook.IconURL}}" placeholder="e.g. https://example.com/img/favicon.png">
-		</div>
-		<div class="field">
-			<label for="color">{{.i18n.Tr "repo.settings.slack_color"}}</label>
-			<input id="color" name="color" value="{{.SlackHook.Color}}" placeholder="e.g. dd4b39">
+			<input id="icon_url" name="icon_url" value="{{.DiscordHook.IconURL}}" placeholder="e.g. https://example.com/img/favicon.png">
 		</div>
 		{{template "repo/settings/hook_settings" .}}
 	</form>

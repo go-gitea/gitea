@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/git"
@@ -56,8 +57,24 @@ type (
 	DiscordMeta struct {
 		Username string `json:"username"`
 		IconURL  string `json:"icon_url"`
-		Color    int    `json:"color"`
 	}
+)
+
+func color(clr string) int {
+	if clr != "" {
+		clr = strings.TrimLeft(clr, "#")
+		if s, err := strconv.ParseInt(clr, 16, 32); err == nil {
+			return int(s)
+		}
+	}
+
+	return 0
+}
+
+var (
+	successColor = color("#1ac600")
+	warnColor    = color("#ffd930")
+	failedColor  = color("#ff3232")
 )
 
 // SetSecret sets the slack secret
@@ -72,84 +89,71 @@ func (p *DiscordPayload) JSONPayload() ([]byte, error) {
 	return data, nil
 }
 
-func replaceBadCharsForDiscord(in string) string {
-	return strings.NewReplacer("[", "", "]", ":", ":", "/").Replace(in)
-}
-
 func getDiscordCreatePayload(p *api.CreatePayload, meta *DiscordMeta) (*DiscordPayload, error) {
 	// created tag/branch
 	refName := git.RefEndName(p.Ref)
-
-	repoLink := SlackLinkFormatter(p.Repo.HTMLURL, p.Repo.Name)
-	refLink := SlackLinkFormatter(p.Repo.HTMLURL+"/src/"+refName, refName)
-
-	format := "[%s:%s] %s created by %s"
-	format = replaceBadCharsForDiscord(format)
-	text := fmt.Sprintf(format, repoLink, refLink, p.RefType, p.Sender.UserName)
-
-	var username = meta.Username
-	if username == "" {
-		username = "Gitea"
-	}
+	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
 
 	return &DiscordPayload{
-		Content:   text,
-		Username:  username,
+		Username:  meta.Username,
 		AvatarURL: meta.IconURL,
+		Embeds: []DiscordEmbed{
+			{
+				Title: title,
+				URL:   p.Repo.HTMLURL + "/src/" + refName,
+				Color: successColor,
+				Author: DiscordEmbedAuthor{
+					Name:    p.Sender.UserName,
+					URL:     setting.AppURL + p.Sender.UserName,
+					IconURL: p.Sender.AvatarURL,
+				},
+			},
+		},
 	}, nil
 }
 
 func getDiscordPushPayload(p *api.PushPayload, meta *DiscordMeta) (*DiscordPayload, error) {
-	// n new commits
 	var (
-		branchName   = git.RefEndName(p.Ref)
-		commitDesc   string
-		commitString string
+		branchName = git.RefEndName(p.Ref)
+		commitDesc string
 	)
 
+	var titleLink string
 	if len(p.Commits) == 1 {
 		commitDesc = "1 new commit"
+		titleLink = p.Commits[0].URL
 	} else {
 		commitDesc = fmt.Sprintf("%d new commits", len(p.Commits))
+		titleLink = p.CompareURL
 	}
-	if len(p.CompareURL) > 0 {
-		commitString = SlackLinkFormatter(p.CompareURL, commitDesc)
-	} else {
-		commitString = commitDesc
+	if titleLink == "" {
+		titleLink = p.Repo.HTMLURL + "/src/" + branchName
 	}
 
-	repoLink := SlackLinkFormatter(p.Repo.HTMLURL, p.Repo.Name)
-	branchLink := SlackLinkFormatter(p.Repo.HTMLURL+"/src/"+branchName, branchName)
+	title := fmt.Sprintf("[%s:%s] %s", p.Repo.FullName, branchName, commitDesc)
 
-	format := "[%s:%s] %s pushed by %s"
-	format = replaceBadCharsForDiscord(format)
-	text := fmt.Sprintf(format, repoLink, branchLink, commitString, p.Pusher.UserName)
-
-	var attachmentText string
+	var text string
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
-		attachmentText += fmt.Sprintf("%s: %s - %s", SlackLinkFormatter(commit.URL, commit.ID[:7]), SlackShortTextFormatter(commit.Message), SlackTextFormatter(commit.Author.Name))
+		text += fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL,
+			strings.TrimRight(commit.Message, "\r\n"), commit.Author.Name)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			attachmentText += "\n"
+			text += "\n"
 		}
 	}
 
-	var username = meta.Username
-	if username == "" {
-		username = "Gitea"
-	}
+	fmt.Println(text)
 
 	return &DiscordPayload{
-		//Content:   text,
-		Username:  username,
+		Username:  meta.Username,
 		AvatarURL: meta.IconURL,
 		Embeds: []DiscordEmbed{
 			{
-				Title:       text,
-				Description: attachmentText,
-				//URL:         branchLink, // FIXME
-				Color: meta.Color,
+				Title:       title,
+				Description: text,
+				URL:         titleLink,
+				Color:       successColor,
 				Author: DiscordEmbedAuthor{
 					Name:    p.Sender.UserName,
 					URL:     setting.AppURL + p.Sender.UserName,
@@ -161,55 +165,62 @@ func getDiscordPushPayload(p *api.PushPayload, meta *DiscordMeta) (*DiscordPaylo
 }
 
 func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) (*DiscordPayload, error) {
-	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
-	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index),
-		fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
 	var text, title string
+	var color int
 	switch p.Action {
 	case api.HookIssueOpened:
-		text = fmt.Sprintf("[%s] Pull request submitted by %s", p.Repository.FullName, senderLink)
-		title = titleLink
-		//attachmentText = SlackTextFormatter(p.PullRequest.Body)
+		title = fmt.Sprintf("[%s] Pull request opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+		color = warnColor
 	case api.HookIssueClosed:
 		if p.PullRequest.HasMerged {
-			text = fmt.Sprintf("[%s] Pull request merged: %s by %s", p.Repository.FullName, titleLink, senderLink)
+			title = fmt.Sprintf("[%s] Pull request merged: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+			color = successColor
 		} else {
-			text = fmt.Sprintf("[%s] Pull request closed: %s by %s", p.Repository.FullName, titleLink, senderLink)
+			title = fmt.Sprintf("[%s] Pull request closed: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+			color = failedColor
 		}
+		text = p.PullRequest.Body
 	case api.HookIssueReOpened:
-		text = fmt.Sprintf("[%s] Pull request re-opened: %s by %s", p.Repository.FullName, titleLink, senderLink)
+		title = fmt.Sprintf("[%s] Pull request re-opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+		color = warnColor
 	case api.HookIssueEdited:
-		text = fmt.Sprintf("[%s] Pull request edited: %s by %s", p.Repository.FullName, titleLink, senderLink)
-		//attachmentText = SlackTextFormatter(p.PullRequest.Body)
+		title = fmt.Sprintf("[%s] Pull request edited: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+		color = warnColor
 	case api.HookIssueAssigned:
-		text = fmt.Sprintf("[%s] Pull request assigned to %s: %s by %s", p.Repository.FullName,
-			SlackLinkFormatter(setting.AppURL+p.PullRequest.Assignee.UserName, p.PullRequest.Assignee.UserName),
-			titleLink, senderLink)
+		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d %s", p.Repository.FullName,
+			p.PullRequest.Assignee.UserName, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+		color = successColor
 	case api.HookIssueUnassigned:
-		text = fmt.Sprintf("[%s] Pull request unassigned: %s by %s", p.Repository.FullName, titleLink, senderLink)
+		title = fmt.Sprintf("[%s] Pull request unassigned: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+		color = warnColor
 	case api.HookIssueLabelUpdated:
-		text = fmt.Sprintf("[%s] Pull request labels updated: %s by %s", p.Repository.FullName, titleLink, senderLink)
+		title = fmt.Sprintf("[%s] Pull request labels updated: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+		color = warnColor
 	case api.HookIssueLabelCleared:
-		text = fmt.Sprintf("[%s] Pull request labels cleared: %s by %s", p.Repository.FullName, titleLink, senderLink)
+		title = fmt.Sprintf("[%s] Pull request labels cleared: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+		color = warnColor
 	case api.HookIssueSynchronized:
-		text = fmt.Sprintf("[%s] Pull request synchronized: %s by %s", p.Repository.FullName, titleLink, senderLink)
-	}
-
-	var username = meta.Username
-	if username == "" {
-		username = "Gitea"
+		title = fmt.Sprintf("[%s] Pull request synchronized: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+		color = warnColor
 	}
 
 	return &DiscordPayload{
-		//Content:   text,
-		Username:  username,
+		Username:  meta.Username,
 		AvatarURL: meta.IconURL,
 		Embeds: []DiscordEmbed{
 			{
 				Title:       title,
 				Description: text,
 				URL:         p.PullRequest.HTMLURL,
-				Color:       meta.Color,
+				Color:       color,
 				Author: DiscordEmbedAuthor{
 					Name:    p.Sender.UserName,
 					URL:     setting.AppURL + p.Sender.UserName,
