@@ -86,7 +86,9 @@ func getSlackCreatePayload(p *api.CreatePayload, slack *SlackMeta) (*SlackPayloa
 
 	repoLink := SlackLinkFormatter(p.Repo.HTMLURL, p.Repo.Name)
 	refLink := SlackLinkFormatter(p.Repo.HTMLURL+"/src/"+refName, refName)
-	text := fmt.Sprintf("[%s:%s] %s created by %s", repoLink, refLink, p.RefType, p.Sender.UserName)
+
+	format := "[%s:%s] %s created by %s"
+	text := fmt.Sprintf(format, repoLink, refLink, p.RefType, p.Sender.UserName)
 
 	return &SlackPayload{
 		Channel:  slack.Channel,
@@ -117,7 +119,9 @@ func getSlackPushPayload(p *api.PushPayload, slack *SlackMeta) (*SlackPayload, e
 
 	repoLink := SlackLinkFormatter(p.Repo.HTMLURL, p.Repo.Name)
 	branchLink := SlackLinkFormatter(p.Repo.HTMLURL+"/src/"+branchName, branchName)
-	text := fmt.Sprintf("[%s:%s] %s pushed by %s", repoLink, branchLink, commitString, p.Pusher.UserName)
+
+	format := "[%s:%s] %s pushed by %s"
+	text := fmt.Sprintf(format, repoLink, branchLink, commitString, p.Pusher.UserName)
 
 	var attachmentText string
 	// for each commit, generate attachment text

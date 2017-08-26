@@ -314,12 +314,14 @@ const (
 	GOGS HookTaskType = iota + 1
 	SLACK
 	GITEA
+	DISCORD
 )
 
 var hookTaskTypes = map[string]HookTaskType{
-	"gitea": GITEA,
-	"gogs":  GOGS,
-	"slack": SLACK,
+	"gitea":   GITEA,
+	"gogs":    GOGS,
+	"slack":   SLACK,
+	"discord": DISCORD,
 }
 
 // ToHookTaskType returns HookTaskType by given name.
@@ -336,6 +338,8 @@ func (t HookTaskType) Name() string {
 		return "gogs"
 	case SLACK:
 		return "slack"
+	case DISCORD:
+		return "discord"
 	}
 	return ""
 }
@@ -512,6 +516,11 @@ func PrepareWebhooks(repo *Repository, event HookEventType, p api.Payloader) err
 		switch w.HookTaskType {
 		case SLACK:
 			payloader, err = GetSlackPayload(p, event, w.Meta)
+			if err != nil {
+				return fmt.Errorf("GetSlackPayload: %v", err)
+			}
+		case DISCORD:
+			payloader, err = GetDiscordPayload(p, event, w.Meta)
 			if err != nil {
 				return fmt.Errorf("GetSlackPayload: %v", err)
 			}
