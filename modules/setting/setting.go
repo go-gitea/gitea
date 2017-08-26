@@ -161,6 +161,7 @@ var (
 		PullRequestQueueLength int
 		PreferredLicenses      []string
 		DisableHTTPGit         bool
+		UseCompatSSHURI        bool
 
 		// Repository editor settings
 		Editor struct {
@@ -189,6 +190,7 @@ var (
 		PullRequestQueueLength: 1000,
 		PreferredLicenses:      []string{"Apache License 2.0,MIT License"},
 		DisableHTTPGit:         false,
+		UseCompatSSHURI:        false,
 
 		// Repository editor settings
 		Editor: struct {
@@ -903,6 +905,7 @@ func NewContext() {
 	// Determine and create root git repository path.
 	sec = Cfg.Section("repository")
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
+	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
 	RepoRootPath = sec.Key("ROOT").MustString(path.Join(homeDir, "gitea-repositories"))
 	forcePathSeparator(RepoRootPath)
