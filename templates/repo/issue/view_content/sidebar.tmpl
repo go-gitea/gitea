@@ -121,5 +121,42 @@
 			</div>
 		</div>
 		{{end}}
+
+		<div class="ui divider"></div>
+
+		<div class="ui depending">
+			<span class="text"><strong>Dependencies</strong></span>
+			<div>
+				This issue currently doesn't have any dependencies.
+			</div>
+			<div>
+				<button class="fluid green ui button" onclick="showAddDependencyModal();">
+					Add
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<div class="ui tiny modal">
+	<div class="header">
+		Add new Dependency
+	</div>
+	<div class="content">
+		<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/addDependency" id="addDependencyForm">
+			<div class="ui input">
+				<input type="text" name="newDependency" id="newDependency" placeholder="Issuenumber...">
+			</div>
+		</form>
+	</div>
+	<div class="actions">
+		<div class="ui negative button">
+			Cancel
+		</div>
+		<div class="ui positive right labeled icon button">
+			Add
+			<i class="add icon"></i>
+		</div>
 	</div>
 </div>
