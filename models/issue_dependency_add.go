@@ -6,6 +6,7 @@ package models
 
 import (
 	"time"
+	"fmt"
 )
 
 // IssueDependency is connection request for receiving issue notification.
@@ -13,7 +14,7 @@ type IssueDependency struct {
 	ID          int64     `xorm:"pk autoincr"`
 	UserID      int64     `xorm:"UNIQUE(watch) NOT NULL"`
 	IssueID     int64     `xorm:"UNIQUE(watch) NOT NULL"`
-	DependencyID int64	`xorm:"UNIQUE(watch) NOT NULL"`
+	DependencyID int64    `xorm:"UNIQUE(watch) NOT NULL"`
 	Created     time.Time `xorm:"-"`
 	CreatedUnix int64     `xorm:"NOT NULL"`
 	Updated     time.Time `xorm:"-"`
@@ -43,37 +44,38 @@ func (iw *IssueDependency) BeforeUpdate() {
 }
 
 // CreateOrUpdateIssueDependency sets or updates a dependency for an issue
-func CreateOrUpdateIssueDependency(userID, issueID int64, dep int64) error {
-	id, exists, err := getIssueWatch(x, userID, issueID)
+func CreateOrUpdateIssueDependency(userID, issueID int64, depID int64) error {
+	err := x.Sync(new(IssueDependency))
+	if err != nil {
+		return err
+	}
+
+	exists, err := issueDepExists(x, issueID, depID)
 	if err != nil {
 		return err
 	}
 
 	if !exists {
-		id = &IssueWatch{
-			UserID:     userID,
-			IssueID:    issueID,
-			IsWatching: isWatching,
-		}
+		newId := new(IssueDependency)
+		newId.UserID = userID
+		newId.IssueID = issueID
+		newId.DependencyID = depID
 
-		if _, err := x.Insert(iw); err != nil {
+		if _, err := x.Insert(newId); err != nil {
 			return err
 		}
 	} else {
-		iw.IsWatching = isWatching
-
-		if _, err := x.Id(iw.ID).Cols("is_watching", "updated_unix").Update(iw); err != nil {
-			return err
-		}
+		fmt.Println("Dependency exists")
+		// TODO: Should display a message on issue page
 	}
 	return nil
 }
 
 //
-func getIssueDep(e Engine, issueID int64) (Dependencies []*IssueDependency, err error) {
-	id = new(IssueDependency)
-	err = e.
-	Where("issue_id = ?", issueID).
-		Find(&Dependencies)
+func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err error) {
+	var Dependencies = IssueDependency{IssueID: issueID, DependencyID: depID}
+
+	//err = e.Where("issue_id = ?", issueID).Where("dependency_id = ?", depID).Find(&Dependencies)
+	exists, err = e.Get(&Dependencies)
 	return
 }

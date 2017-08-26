@@ -1822,3 +1822,14 @@ function toggleStopwatch() {
 function cancelStopwatch() {
     $("#cancel_stopwatch_form").submit();
 }
+
+function showAddDependencyModal() {
+    $('.tiny.modal')
+        .modal({
+            duration: 200,
+            onApprove: function() {
+                $('#addDependencyForm').submit();
+            }
+        }).modal('show')
+    ;
+}
