@@ -97,19 +97,38 @@ type SearchRepoOptions struct {
 	// Owner in we search search
 	//
 	// in: query
-	OwnerID     int64  `json:"uid"`
-	OrderBy     string `json:"-"`
-	Private     bool   `json:"-"` // Include private repositories in results
-	Collaborate bool   `json:"-"` // Include collaborative repositories
-	Starred     bool   `json:"-"`
-	Page        int    `json:"-"`
-	IsProfile   bool   `json:"-"`
+	OwnerID     int64         `json:"uid"`
+	OrderBy     SearchOrderBy `json:"-"`
+	Private     bool          `json:"-"` // Include private repositories in results
+	Collaborate bool          `json:"-"` // Include collaborative repositories
+	Starred     bool          `json:"-"`
+	Page        int           `json:"-"`
+	IsProfile   bool          `json:"-"`
 	// Limit of result
 	//
 	// maximum: setting.ExplorePagingNum
 	// in: query
 	PageSize int `json:"limit"` // Can be smaller than or equal to setting.ExplorePagingNum
 }
+
+//SearchOrderBy is used to sort the result
+type SearchOrderBy string
+
+func (s SearchOrderBy) String() string {
+	return string(s)
+}
+
+// Strings for sorting result
+const (
+	SearchOrderByAlphabetically        SearchOrderBy = "name ASC"
+	SearchOrderByAlphabeticallyReverse               = "name DESC"
+	SearchOrderByLeastUpdated                        = "updated_unix ASC"
+	SearchOrderByRecentUpdated                       = "updated_unix DESC"
+	SearchOrderByOldest                              = "created_unix ASC"
+	SearchOrderByNewest                              = "created_unix DESC"
+	SearchOrderBySize                                = "size ASC"
+	SearchOrderBySizeReverse                         = "size DESC"
+)
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
@@ -184,7 +203,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 	}
 
 	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = "name ASC"
+		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
 	sess := x.NewSession()
@@ -210,7 +229,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 	if err = sess.
 		Where(cond).
 		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		OrderBy(opts.OrderBy).
+		OrderBy(opts.OrderBy.String()).
 		Find(&repos); err != nil {
 		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
@@ -234,7 +253,7 @@ func Repositories(opts *SearchRepoOptions) (_ RepositoryList, count int64, err e
 
 	if err = x.
 		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		OrderBy(opts.OrderBy).
+		OrderBy(opts.OrderBy.String()).
 		Find(&repos); err != nil {
 		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
@@ -244,57 +263,6 @@ func Repositories(opts *SearchRepoOptions) (_ RepositoryList, count int64, err e
 	}
 
 	count = countRepositories(-1, opts.Private)
-
-	return repos, count, nil
-}
-
-// GetRecentUpdatedRepositories returns the list of repositories that are recently updated.
-func GetRecentUpdatedRepositories(opts *SearchRepoOptions) (repos RepositoryList, _ int64, _ error) {
-	var cond = builder.NewCond()
-
-	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = "updated_unix DESC"
-	}
-
-	if !opts.Private {
-		cond = builder.Eq{
-			"is_private": false,
-		}
-	}
-
-	if opts.OwnerID > 0 && opts.Collaborate {
-		var ownerIds []int64
-
-		ownerIds = append(ownerIds, opts.OwnerID)
-		orgs, err := GetOrgUsersByUserID(opts.OwnerID, opts.Private)
-
-		if err != nil {
-			return nil, 0, fmt.Errorf("Organization: %v", err)
-		}
-
-		for _, org := range orgs {
-			ownerIds = append(ownerIds, org.ID)
-		}
-
-		cond = cond.Or(builder.In("owner_id", ownerIds))
-	}
-
-	count, err := x.Where(cond).Count(new(Repository))
-	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
-	}
-
-	if err = x.Where(cond).
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		Limit(opts.PageSize).
-		OrderBy(opts.OrderBy).
-		Find(&repos); err != nil {
-		return nil, 0, fmt.Errorf("Repo: %v", err)
-	}
-
-	if err = repos.loadAttributes(x); err != nil {
-		return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
-	}
 
 	return repos, count, nil
 }
