@@ -639,7 +639,6 @@ function initRepository() {
     if ($('.repository.compare.pull').length > 0) {
         initFilterSearchDropdown('.choose.branch .dropdown');
     }
-}
 
     // Branches
     if ($('.repository.settings.branches').length > 0) {
@@ -1454,7 +1453,7 @@ $(document).ready(function () {
 
     // Emojify
     emojify.setConfig({
-        img_dir: suburl + '/img/emoji',
+        img_dir: suburl + '/plugins/emojify/images',
         ignore_emoticons: true
     });
     var hasEmoji = document.getElementsByClassName('has-emoji');
@@ -1824,45 +1823,12 @@ function cancelStopwatch() {
     $("#cancel_stopwatch_form").submit();
 }
 
-function timeAddManual() {
-    $('.time-add-manual')
-        .modal({
-            duration: 200,
-            onApprove: function() {
-                $('#add_time_manual_form').submit();
-            }
-        }).modal('show')
-    ;
-}
-
-function toggleStopwatch() {
-    $("#toggle_stopwatch_form").submit();
-}
-function cancelStopwatch() {
-    $("#cancel_stopwatch_form").submit();
-}
-
-function deleteDependencyModal(id, type) {
-    $('.remove-dependency')
-        .modal({
-            closable: false,
-            duration: 200,
-            onApprove: function () {
-                $('#removeDependencyID').val(id);
-                $('#dependencyType').val(type);
-                $('#removeDependencyForm').submit();
-            }
-        }).modal('show')
-    ;
-}
-
 function showAddDependencyModal() {
-    $('.add-dependency')
+    $('.tiny.modal')
         .modal({
             duration: 200,
             onApprove: function() {
                 $('#addDependencyForm').submit();
-
             }
         }).modal('show')
     ;

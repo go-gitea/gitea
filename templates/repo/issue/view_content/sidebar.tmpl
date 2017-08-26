@@ -214,6 +214,7 @@
 	</div>
 	<div class="content">
 		<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/addDependency" id="addDependencyForm">
+			{{$.CsrfTokenHtml}}
 			<div class="ui input">
 				<input type="text" name="newDependency" id="newDependency" placeholder="Issuenumber...">
 			</div>

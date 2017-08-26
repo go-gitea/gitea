@@ -485,9 +485,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/content", repo.UpdateIssueContent)
 				m.Post("/watch", repo.IssueWatch)
 				m.Post("/addDependency", repo.AddDependency)
-				m.Post("/removeDependency", repo.RemoveDependency)
-				m.Combo("/comments").Post(bindIgnErr(auth.CreateCommentForm{}), repo.NewComment)
-				m.Post("/addDependency", repo.AddDependency)
 				m.Group("/times", func() {
 					m.Post("/add", bindIgnErr(auth.AddTimeManuallyForm{}), repo.AddTimeManually)
 					m.Group("/stopwatch", func() {
@@ -501,6 +498,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						return
 					}
 				})
+				m.Combo("/comments").Post(bindIgnErr(auth.CreateCommentForm{}), repo.NewComment)
 			})
 
 			m.Post("/labels", repo.UpdateIssueLabel, reqRepoWriter)
