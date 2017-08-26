@@ -1474,7 +1474,7 @@ $(document).ready(function () {
         var $this = $(this);
         var filter = "";
         if ($this.attr("id")) {
-          filter += "#"+$this.attr("id")
+            filter += "#"+$this.attr("id")
         }
         $('.delete.modal'+filter).modal({
             closable: false,
@@ -1714,4 +1714,15 @@ function initDashboardSearch() {
             }
         }
     });
+}
+
+function showAddDependencyModal() {
+    $('.tiny.modal')
+        .modal({
+            duration: 200,
+            onApprove: function() {
+                $('#addDependencyForm').submit();
+            }
+        }).modal('show')
+    ;
 }
