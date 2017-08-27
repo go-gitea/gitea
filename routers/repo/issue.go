@@ -665,6 +665,10 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 	}
 
+	// Get Dependencies
+	ctx.Data["BlockedByDependencies"], err = repo.BlockedByDependencies(issue.ID)
+	ctx.Data["BlockingDependencies"], err = repo.BlockingDependencies(issue.ID)
+
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
 	ctx.Data["Issue"] = issue

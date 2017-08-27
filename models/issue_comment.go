@@ -52,6 +52,8 @@ const (
 	CommentTypeChangeTitle
 	// Delete Branch
 	CommentTypeDeleteBranch
+	// Dependency added
+	CommentTypeAddedDependency
 )
 
 // CommentTag defines comment tag type
