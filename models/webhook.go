@@ -531,7 +531,7 @@ func PrepareWebhooks(repo *Repository, event HookEventType, p api.Payloader) err
 		case DISCORD:
 			payloader, err = GetDiscordPayload(p, event, w.Meta)
 			if err != nil {
-				return fmt.Errorf("GetSlackPayload: %v", err)
+				return fmt.Errorf("GetDiscordPayload: %v", err)
 			}
 		default:
 			p.SetSecret(w.Secret)

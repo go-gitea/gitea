@@ -183,7 +183,7 @@ func (f *NewSlackHookForm) Validate(ctx *macaron.Context, errs binding.Errors) b
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// NewDiscordHookForm form for creating slack hook
+// NewDiscordHookForm form for creating discord hook
 type NewDiscordHookForm struct {
 	PayloadURL string `binding:"Required;ValidUrl"`
 	Username   string

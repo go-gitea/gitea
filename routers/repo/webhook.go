@@ -503,7 +503,7 @@ func SlackHooksEditPost(ctx *context.Context, form auth.NewSlackHookForm) {
 	ctx.Redirect(fmt.Sprintf("%s/settings/hooks/%d", orCtx.Link, w.ID))
 }
 
-// DiscordHooksEditPost response for editing slack hook
+// DiscordHooksEditPost response for editing discord hook
 func DiscordHooksEditPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
