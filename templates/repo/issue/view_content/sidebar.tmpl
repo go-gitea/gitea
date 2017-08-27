@@ -196,6 +196,7 @@
 		<div class="ui depending">
 			<span class="text"><strong>{{.i18n.Tr "repo.issues.dependency.title"}}</strong></span>
 			<br>
+			{{if .BlockedByDependencies}}
 			<span class="text">This issue is blocked by:</span>
 			<div class="ui relaxed divided list">
 				{{range .BlockedByDependencies}}
@@ -216,7 +217,9 @@
 				</div>
 				{{end}}
 			</div>
+			{{end}}
 
+			{{if .BlockingDependencies}}
 			<div class="ui relaxed divided list">
 				<span class="text">This issue blocks the following issues:</span>
 				{{range .BlockingDependencies}}
@@ -236,8 +239,12 @@
 					<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
 				</div>
 				{{end}}
-				<p>{{.i18n.Tr "repo.issues.dependency.no_dependencies"}}</p>
 			</div>
+			{{end}}
+
+			{{if (and (not .BlockedByDependencies) (not .BlockingDependencies))}}
+			<p>{{.i18n.Tr "repo.issues.dependency.no_dependencies"}}</p>
+			{{end}}
 			<div>
 				<button class="fluid green ui button" onclick="showAddDependencyModal();">
 					{{.i18n.Tr "repo.issues.dependency.add"}}
@@ -248,7 +255,7 @@
 </div>
 
 
-<div class="ui tiny modal">
+<div class="ui mini modal">
 	<div class="header">
 		{{.i18n.Tr "repo.issues.dependency.add_header"}}
 	</div>
