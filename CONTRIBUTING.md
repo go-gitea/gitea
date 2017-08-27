@@ -54,7 +54,7 @@ The `vendor/` update needs to be justified as part of the PR description, and mu
 
 ## Translation
 
-We do all translation work inside [CrowdIn](https://crowdin.com/project/gitea). The only translation that is maintained in this git repository is [`en_US.ini`](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini) and is synced regularily to CrowdIn. Once a translation has reached A SATISFACTORY PERCENTAGE it will be synced back into this repo and included in the next released version.
+We do all translation work inside [Crowdin](https://crowdin.com/project/gitea). The only translation that is maintained in this git repository is [`en_US.ini`](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini) and is synced regularily to Crowdin. Once a translation has reached A SATISFACTORY PERCENTAGE it will be synced back into this repo and included in the next released version.
 
 ## Code review
 
