@@ -42,42 +42,48 @@ func (iw *IssueDependency) BeforeUpdate() {
 	iw.UpdatedUnix = u
 }
 
-// CreateOrUpdateIssueDependency creates a new dependency for an issue
-func CreateOrUpdateIssueDependency(userID, issueID int64, depID int64) (err error, exists bool) {
+// CreateIssueDependency creates a new dependency for an issue
+func CreateIssueDependency(userID, issueID int64, depID int64) (err error, exists bool, depExists bool) {
 	err = x.Sync(new(IssueDependency))
 	if err != nil {
-		return err, exists
+		return err, exists, false
 	}
 
 	// Check if it aleready exists
 	exists, err = issueDepExists(x, issueID, depID)
 	if err != nil {
-		return err, exists
+		return err, exists, false
 	}
 
 	// If it not exists, create it, otherwise show an error message
 	if !exists {
-		newId := new(IssueDependency)
-		newId.UserID = userID
-		newId.IssueID = issueID
-		newId.DependencyID = depID
+		// Check if the other issue exists
+		var issue = Issue{}
+		issueExists, err := x.Id(depID).Get(&issue)
+		if issueExists {
+			newId := new(IssueDependency)
+			newId.UserID = userID
+			newId.IssueID = issueID
+			newId.DependencyID = depID
 
-		if _, err := x.Insert(newId); err != nil {
-			return err, exists
-		}
+			if _, err := x.Insert(newId); err != nil {
+				return err, exists, false
+			}
 
-		// Add comment referencing to the stopwatch
-		comment := &Comment{
-			IssueID:  issueID,
-			PosterID: userID,
-			Type:     CommentTypeAddedDependency,
-		}
+			// Add comment referencing the new dependency
+			comment := &Comment{
+				IssueID:  issueID,
+				PosterID: userID,
+				Type:     CommentTypeAddedDependency,
+			}
 
-		if _, err := x.Insert(comment); err != nil {
-			return err, exists
+			if _, err := x.Insert(comment); err != nil {
+				return err, exists, false
+			}
 		}
+		return err, exists, true
 	}
-	return nil, exists
+	return nil, exists, false
 }
 
 // Check if the dependency already exists
