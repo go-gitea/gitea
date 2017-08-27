@@ -1717,7 +1717,7 @@ function initDashboardSearch() {
 }
 
 function showAddDependencyModal() {
-    $('.tiny.modal')
+    $('.mini.modal')
         .modal({
             duration: 200,
             onApprove: function() {
