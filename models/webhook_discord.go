@@ -72,15 +72,15 @@ func color(clr string) int {
 }
 
 var (
-	successColor = color("#1ac600")
-	warnColor    = color("#ffd930")
-	failedColor  = color("#ff3232")
+	successColor = color("1ac600")
+	warnColor    = color("ffd930")
+	failedColor  = color("ff3232")
 )
 
-// SetSecret sets the slack secret
+// SetSecret sets the discord secret
 func (p *DiscordPayload) SetSecret(_ string) {}
 
-// JSONPayload Marshals the SlackPayload to json
+// JSONPayload Marshals the DiscordPayload to json
 func (p *DiscordPayload) JSONPayload() ([]byte, error) {
 	data, err := json.MarshalIndent(p, "", "  ")
 	if err != nil {
@@ -231,13 +231,13 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 	}, nil
 }
 
-// GetDiscordPayload converts a slack webhook into a SlackPayload
+// GetDiscordPayload converts a discord webhook into a DiscordPayload
 func GetDiscordPayload(p api.Payloader, event HookEventType, meta string) (*DiscordPayload, error) {
 	s := new(DiscordPayload)
 
 	discord := &DiscordMeta{}
 	if err := json.Unmarshal([]byte(meta), &discord); err != nil {
-		return s, errors.New("GetSlackPayload meta json:" + err.Error())
+		return s, errors.New("GetDiscordPayload meta json:" + err.Error())
 	}
 
 	switch event {
