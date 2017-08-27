@@ -692,6 +692,39 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 	return users, nil
 }
 
+func (repo *Repository) BlockedByDependencies(issueID int64)  (_ []*Issue, err error) {
+
+	issueDeps, err := repo.getBlockedByDependencies(x, issueID)
+	var issueDepsFull = make([]*Issue, 0)
+
+	for _, issueDep := range issueDeps{
+		issueDetails, _ := getIssueByID(x, issueDep.DependencyID)
+		issueDepsFull = append(issueDepsFull, issueDetails)
+	}
+
+	if err != nil {
+		return
+	}
+
+	return issueDepsFull, nil
+}
+
+func (repo *Repository) BlockingDependencies(issueID int64)  (_ []*Issue, err error) {
+
+	issueDeps, err := repo.getBlockingDependencies(x, issueID)
+	var issueDepsFull = make([]*Issue, 0)
+
+	for _, issueDep := range issueDeps{
+		issueDetails, _ := getIssueByID(x, issueDep.IssueID)
+		issueDepsFull = append(issueDepsFull, issueDetails)
+	}
+
+	if err != nil {
+		return
+	}
+
+	return issueDepsFull, nil
+}
 // NextIssueIndex returns the next issue index
 // FIXME: should have a mutex to prevent producing same index for two issues that are created
 // closely enough.
@@ -2424,4 +2457,20 @@ func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName st
 	}
 
 	return nil
+}
+
+// Get Blocked By Dependencies, aka all issues this issue is blocked by.
+func (repo *Repository) getBlockedByDependencies(e Engine, issueID int64) (_ []IssueDependency, err error) {
+	var dependencies []IssueDependency
+	err = e.Where("issue_id = ?", issueID).Find(&dependencies) //
+
+	return dependencies, err
+}
+
+// Get Blocking Dependencies, aka all issues this issue blocks.
+func (repo *Repository) getBlockingDependencies(e Engine, issueID int64) (_ []IssueDependency, err error) {
+	var dependencies []IssueDependency
+	err = e.Where("dependency_id = ?", issueID).Find(&dependencies)
+
+	return dependencies, err
 }

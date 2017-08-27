@@ -60,6 +60,8 @@ const (
 	CommentTypeAddTimeManual
 	// Cancel a stopwatch for time tracking
 	CommentTypeCancelTracking
+	// Dependency added
+	CommentTypeAddedDependency
 )
 
 // CommentTag defines comment tag type

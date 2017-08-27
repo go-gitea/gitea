@@ -28,10 +28,14 @@ func AddDependency(c *context.Context) {
 		return
 	}
 
-	if err := models.CreateOrUpdateIssueDependency(c.User.ID, issue.ID, dep); err != nil {
+	err, exists := models.CreateOrUpdateIssueDependency(c.User.ID, issue.ID, dep);
+	if err != nil {
 		c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
-		fmt.Println("updateerr")
 		return
+	}
+
+	if exists {
+		c.Flash.Error("Dependency already exists!")
 	}
 
 	url := fmt.Sprintf("%s/issues/%d", c.Repo.RepoLink, issueIndex)

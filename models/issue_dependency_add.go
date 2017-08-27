@@ -6,7 +6,6 @@ package models
 
 import (
 	"time"
-	"fmt"
 )
 
 // IssueDependency is connection request for receiving issue notification.
@@ -43,18 +42,20 @@ func (iw *IssueDependency) BeforeUpdate() {
 	iw.UpdatedUnix = u
 }
 
-// CreateOrUpdateIssueDependency sets or updates a dependency for an issue
-func CreateOrUpdateIssueDependency(userID, issueID int64, depID int64) error {
-	err := x.Sync(new(IssueDependency))
+// CreateOrUpdateIssueDependency creates a new dependency for an issue
+func CreateOrUpdateIssueDependency(userID, issueID int64, depID int64) (err error, exists bool) {
+	err = x.Sync(new(IssueDependency))
 	if err != nil {
-		return err
+		return err, exists
 	}
 
-	exists, err := issueDepExists(x, issueID, depID)
+	// Check if it aleready exists
+	exists, err = issueDepExists(x, issueID, depID)
 	if err != nil {
-		return err
+		return err, exists
 	}
 
+	// If it not exists, create it, otherwise show an error message
 	if !exists {
 		newId := new(IssueDependency)
 		newId.UserID = userID
@@ -62,20 +63,36 @@ func CreateOrUpdateIssueDependency(userID, issueID int64, depID int64) error {
 		newId.DependencyID = depID
 
 		if _, err := x.Insert(newId); err != nil {
-			return err
+			return err, exists
 		}
-	} else {
-		fmt.Println("Dependency exists")
-		// TODO: Should display a message on issue page
+
+		// Add comment referencing to the stopwatch
+		comment := &Comment{
+			IssueID:  issueID,
+			PosterID: userID,
+			Type:     CommentTypeAddedDependency,
+		}
+
+		if _, err := x.Insert(comment); err != nil {
+			return err, exists
+		}
 	}
-	return nil
+	return nil, exists
 }
 
-//
+// Check if the dependency already exists
 func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err error) {
 	var Dependencies = IssueDependency{IssueID: issueID, DependencyID: depID}
 
-	//err = e.Where("issue_id = ?", issueID).Where("dependency_id = ?", depID).Find(&Dependencies)
 	exists, err = e.Get(&Dependencies)
+
+	// Check for dependencies the other way around
+	// Otherwise two issues could block each other which would result in none of them could be closed.
+	if !exists {
+		Dependencies.IssueID = depID
+		Dependencies.DependencyID = issueID
+		exists, err = e.Get(&Dependencies)
+	}
+
 	return
 }
