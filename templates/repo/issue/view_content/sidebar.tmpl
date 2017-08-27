@@ -194,13 +194,53 @@
 		<div class="ui divider"></div>
 
 		<div class="ui depending">
-			<span class="text"><strong>Dependencies</strong></span>
-			<div>
-				This issue currently doesn't have any dependencies.
+			<span class="text"><strong>{{.i18n.Tr "repo.issues.dependency.title"}}</strong></span>
+			<br>
+			<span class="text">This issue is blocked by:</span>
+			<div class="ui relaxed divided list">
+				{{range .BlockedByDependencies}}
+				<div class="item">
+					<div class="right floated content">
+						{{if .IsClosed}}
+						<div class="ui red mini label">
+							<i class="octicon octicon-issue-closed"></i>
+						</div>
+						{{else}}
+						<div class="ui green mini label">
+							<i class="octicon octicon-issue-opened"></i>
+						</div>
+						{{end}}
+					</div>
+					<div class="ui black label">#{{.Index}}</div>
+					<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+				</div>
+				{{end}}
+			</div>
+
+			<div class="ui relaxed divided list">
+				<span class="text">This issue blocks the following issues:</span>
+				{{range .BlockingDependencies}}
+				<div class="item">
+					<div class="right floated content">
+						{{if .IsClosed}}
+						<div class="ui red mini label">
+							<i class="octicon octicon-issue-closed"></i>
+						</div>
+						{{else}}
+						<div class="ui green mini label">
+							<i class="octicon octicon-issue-opened"></i>
+						</div>
+						{{end}}
+					</div>
+					<div class="ui black label">#{{.Index}}</div>
+					<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+				</div>
+				{{end}}
+				<p>{{.i18n.Tr "repo.issues.dependency.no_dependencies"}}</p>
 			</div>
 			<div>
 				<button class="fluid green ui button" onclick="showAddDependencyModal();">
-					Add
+					{{.i18n.Tr "repo.issues.dependency.add"}}
 				</button>
 			</div>
 		</div>
@@ -210,22 +250,22 @@
 
 <div class="ui tiny modal">
 	<div class="header">
-		Add new Dependency
+		{{.i18n.Tr "repo.issues.dependency.add_header"}}
 	</div>
 	<div class="content">
 		<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/addDependency" id="addDependencyForm">
 			{{$.CsrfTokenHtml}}
 			<div class="ui input">
-				<input type="text" name="newDependency" id="newDependency" placeholder="Issuenumber...">
+				<input type="text" name="newDependency" id="newDependency" placeholder='{{.i18n.Tr "repo.issues.dependency.issue_number"}}'>
 			</div>
 		</form>
 	</div>
 	<div class="actions">
 		<div class="ui negative button">
-			Cancel
+			{{.i18n.Tr "repo.issues.dependency.cancel"}}
 		</div>
 		<div class="ui positive right labeled icon button">
-			Add
+			{{.i18n.Tr "repo.issues.dependency.add"}}
 			<i class="add icon"></i>
 		</div>
 	</div>
