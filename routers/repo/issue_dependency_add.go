@@ -28,10 +28,14 @@ func AddDependency(c *context.Context) {
 		return
 	}
 
-	err, exists := models.CreateOrUpdateIssueDependency(c.User.ID, issue.ID, dep);
+	err, exists, depExists := models.CreateIssueDependency(c.User.ID, issue.ID, dep);
 	if err != nil {
 		c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
 		return
+	}
+
+	if depExists {
+		c.Flash.Error("Dependend issue does not exist!")
 	}
 
 	if exists {
