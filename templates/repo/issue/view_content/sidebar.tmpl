@@ -133,6 +133,9 @@
 				{{range .BlockedByDependencies}}
 				<div class="item">
 					<div class="right floated content">
+						<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blockedBy');">
+							<i class="delete icon text red"></i>
+						</a>
 						{{if .IsClosed}}
 						<div class="ui red mini label">
 							<i class="octicon octicon-issue-closed"></i>
@@ -156,8 +159,11 @@
 				{{range .BlockingDependencies}}
 				<div class="item">
 					<div class="right floated content">
+						<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blocking');">
+							<i class="delete icon text red"></i>
+						</a>
 						{{if .IsClosed}}
-						<div class="ui red mini label">
+						<div class="ui red tiny label">
 							<i class="octicon octicon-issue-closed"></i>
 						</div>
 						{{else}}
@@ -186,7 +192,7 @@
 </div>
 
 
-<div class="ui mini modal">
+<div class="ui mini modal add-dependency">
 	<div class="header">
 		{{.i18n.Tr "repo.issues.dependency.add_header"}}
 	</div>
@@ -205,6 +211,32 @@
 		<div class="ui positive right labeled icon button">
 			{{.i18n.Tr "repo.issues.dependency.add"}}
 			<i class="add icon"></i>
+		</div>
+	</div>
+</div>
+
+
+<div class="ui basic modal remove-dependency">
+	<div class="ui icon header">
+		<i class="trash icon"></i>
+		Remove Dependency
+	</div>
+	<div class="content">
+		<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/removeDependency" id="removeDependencyForm">
+			{{$.CsrfTokenHtml}}
+			<input type="hidden" value="" name="removeDependencyID" id="removeDependencyID"/>
+			<input type="hidden" value="" name="dependencyType" id="dependencyType"/>
+		</form>
+		<p>This will remove the dependency to this issue. Are you sure? You cannot undo this!</p>
+	</div>
+	<div class="actions">
+		<div class="ui basic red cancel inverted button">
+			<i class="remove icon"></i>
+			Cancel
+		</div>
+		<div class="ui basic green ok inverted button">
+			<i class="checkmark icon"></i>
+			Delete
 		</div>
 	</div>
 </div>

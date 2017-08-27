@@ -1717,11 +1717,25 @@ function initDashboardSearch() {
 }
 
 function showAddDependencyModal() {
-    $('.mini.modal')
+    $('.add-dependency')
         .modal({
             duration: 200,
             onApprove: function() {
                 $('#addDependencyForm').submit();
+            }
+        }).modal('show')
+    ;
+}
+
+function deleteDependencyModal(id, type) {
+    $('.remove-dependency')
+        .modal({
+            closable: false,
+            duration: 200,
+            onApprove: function() {
+                $('#removeDependencyID').val(id);
+                $('#dependencyType').val(type);
+                $('#removeDependencyForm').submit();
             }
         }).modal('show')
     ;
