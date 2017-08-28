@@ -141,7 +141,6 @@ func Profile(ctx *context.Context) {
 		retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
-			Collaborate:     true,
 			IncludeDeleted:  false,
 		})
 		if ctx.Written() {

@@ -713,7 +713,6 @@ type GetFeedsOptions struct {
 	IncludePrivate   bool // include private actions
 	OnlyPerformedBy  bool // only actions performed by requested user
 	IncludeDeleted   bool // include deleted actions
-	Collaborate      bool // Include collaborative repositories
 }
 
 // GetFeeds returns actions according to the provided options
@@ -733,13 +732,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		cond = cond.And(builder.In("repo_id", repoIDs))
 	}
 
-	var userIDCond builder.Cond = builder.Eq{"user_id": opts.RequestedUser.ID}
-	if opts.Collaborate {
-		userIDCond = userIDCond.Or(builder.Expr(
-			"repo_id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)",
-			opts.RequestedUser.ID))
-	}
-	cond = cond.And(userIDCond)
+	cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})
 
 	if opts.OnlyPerformedBy {
 		cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
