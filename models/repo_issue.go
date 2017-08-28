@@ -13,7 +13,7 @@ import "code.gitea.io/gitea/modules/setting"
 // |____|   |__|__|_|  /\___  >____|   |__|  (____  /\___  >__|_ \\___  >__|
 // \/     \/                    \/     \/     \/    \/
 
-// IsTimetrackerEnabled returns whether or not the timetracker is enabled. It also returns false if an error occurs.
+// IsTimetrackerEnabled returns whether or not the timetracker is enabled. It returns the default value from config if an error occurs.
 func (repo *Repository) IsTimetrackerEnabled() bool {
 	var u *RepoUnit
 	var err error

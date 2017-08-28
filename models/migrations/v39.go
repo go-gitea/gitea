@@ -32,7 +32,7 @@ type TrackedTime struct {
 	Time        int64     `json:"time"`
 }
 
-func addTimeTracking(x *xorm.Engine) error {
+func addTimetracking(x *xorm.Engine) error {
 	if err := x.Sync2(new(Stopwatch)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}

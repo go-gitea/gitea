@@ -51,6 +51,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	//
 	//     Responses:
 	//       200: TrackedTime
+	//       400: error
 	//       403: error
 	//	 404: error
 	//       500: error
@@ -65,6 +66,10 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	}
 
 	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
+		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
+			ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
+			return
+		}
 		ctx.Status(403)
 		return
 	}
@@ -86,13 +91,26 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	//
 	//     Responses:
 	//       200: TrackedTimes
+	//       400: error
 	//	 404: error
 	//       500: error
-	user := GetUserByParamsName(ctx, ":timetrackingusername")
-	if user == nil {
+	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
+		ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
 		return
 	}
-
+	user, err := models.GetUserByName(ctx.Params(":timetrackingusername"))
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(404, "GetUserByName", err)
+		} else {
+			ctx.Error(500, "GetUserByName", err)
+		}
+		return
+	}
+	if user == nil {
+		ctx.Status(404)
+		return
+	}
 	if trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{UserID: user.ID, RepositoryID: ctx.Repo.Repository.ID}); err != nil {
 		ctx.Error(500, "GetTrackedTimesByUser", err)
 	} else {
@@ -109,8 +127,12 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	//
 	//     Responses:
 	//       200: TrackedTimes
-	//	 404: error
+	//       400: error
 	//       500: error
+	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
+		ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
+		return
+	}
 	if trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{RepositoryID: ctx.Repo.Repository.ID}); err != nil {
 		ctx.Error(500, "GetTrackedTimesByUser", err)
 	} else {
@@ -133,18 +155,4 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	} else {
 		ctx.JSON(200, &trackedTimes)
 	}
-}
-
-// GetUserByParamsName get user by name
-func GetUserByParamsName(ctx *context.APIContext, name string) *models.User {
-	user, err := models.GetUserByName(ctx.Params(name))
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.Error(404, "GetUserByName", err)
-		} else {
-			ctx.Error(500, "GetUserByName", err)
-		}
-		return nil
-	}
-	return user
 }

@@ -127,7 +127,7 @@ var migrations = []Migration{
 	// v38 -> v39
 	NewMigration("remove commits and settings unit types", removeCommitsUnitType),
 	// v39 -> v40
-	NewMigration("adds time tracking and stopwatches", addTimeTracking),
+	NewMigration("adds time tracking and stopwatches", addTimetracking),
 }
 
 // Migrate database to current version

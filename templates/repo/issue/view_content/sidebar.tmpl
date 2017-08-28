@@ -100,32 +100,33 @@
 		</div>
 
 		{{if $.IssueWatch}}
-		<div class="ui divider"></div>
+			<div class="ui divider"></div>
 
-		<div class="ui watching">
-			<span class="text"><strong>{{.i18n.Tr "notification.notifications"}}</strong></span>
-			<div>
-				<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/watch">
-					<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}" />
-					{{$.CsrfTokenHtml}}
-					<button class="fluid ui button">
-						{{if $.IssueWatch.IsWatching}}
-							<i class="octicon octicon-mute"></i>
-							{{.i18n.Tr "repo.issues.unsubscribe"}}
-						{{else}}
-							<i class="octicon octicon-unmute"></i>
-							{{.i18n.Tr "repo.issues.subscribe"}}
-						{{end}}
-					</button>
-				</form>
+			<div class="ui watching">
+				<span class="text"><strong>{{.i18n.Tr "notification.notifications"}}</strong></span>
+				<div>
+					<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/watch">
+						<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}" />
+						{{$.CsrfTokenHtml}}
+						<button class="fluid ui button">
+							{{if $.IssueWatch.IsWatching}}
+								<i class="octicon octicon-mute"></i>
+								{{.i18n.Tr "repo.issues.unsubscribe"}}
+							{{else}}
+								<i class="octicon octicon-unmute"></i>
+								{{.i18n.Tr "repo.issues.subscribe"}}
+							{{end}}
+						</button>
+					</form>
+				</div>
 			</div>
-		</div>
+		{{end}}
 		{{if .Repository.IsTimetrackerEnabled }}
-		{{if .CanUseTimetracker }}
-		<div class="ui divider"></div>
-		<div class="ui timetrack">
-			<span class="text"><strong>{{.i18n.Tr "repo.issues.tracker"}}</strong></span>
-			<div>
+			{{if .CanUseTimetracker }}
+				<div class="ui divider"></div>
+				<div class="ui timetrack">
+					<span class="text"><strong>{{.i18n.Tr "repo.issues.tracker"}}</strong></span>
+					<div>
 						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/toggle" id="toggle_stopwatch_form">
 							{{$.CsrfTokenHtml}}
 						</form>
@@ -153,7 +154,6 @@
 											{{$.CsrfTokenHtml}}
 											<input placeholder='{{.i18n.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
 											<input placeholder='{{.i18n.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
-
 										</form>
 									</div>
 									<div class="actions">
@@ -163,33 +163,30 @@
 								</div>
 							</div>
 						{{end}}
-
-			</div>
-		</div>
-		{{end}}
-		{{if gt (len .WorkingUsers) 0}}
-		<div class="ui divider"></div>
-		<div class="ui participants comments">
-			<span class="text"><strong>{{.i18n.Tr "repo.issues.time_spent_total"}}</strong></span>
-			<div>
-				{{range $user, $trackedtime := .WorkingUsers}}
-				<div class="comment">
-					<a class="avatar">
-						<img src="{{$user.RelAvatarLink}}">
-					</a>
-					<div class="content">
-						<a class="author">{{$user.DisplayName}}</a>
-						<div class="text">
-							{{$trackedtime}}
-						</div>
 					</div>
 				</div>
-				{{end}}
-
-			</div>
-		</div>
-		{{end}}
-		{{end}}
+			{{end}}
+			{{if gt (len .WorkingUsers) 0}}
+				<div class="ui divider"></div>
+				<div class="ui participants comments">
+					<span class="text"><strong>{{.i18n.Tr "repo.issues.time_spent_total"}}</strong></span>
+					<div>
+						{{range $user, $trackedtime := .WorkingUsers}}
+							<div class="comment">
+								<a class="avatar">
+									<img src="{{$user.RelAvatarLink}}">
+								</a>
+								<div class="content">
+									<a class="author">{{$user.DisplayName}}</a>
+									<div class="text">
+										{{$trackedtime}}
+									</div>
+								</div>
+							</div>
+						{{end}}
+					</div>
+				</div>
+			{{end}}
 		{{end}}
 	</div>
 </div>
