@@ -23,7 +23,9 @@ func TestSearchRepositoryByName(t *testing.T) {
 
 	assert.NotNil(t, repos)
 	assert.NoError(t, err)
-	assert.Equal(t, "test_repo_12", repos[0].Name)
+	if assert.Len(t, repos, 1) {
+		assert.Equal(t, "test_repo_12", repos[0].Name)
+	}
 	assert.Equal(t, int64(1), count)
 
 	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
@@ -48,7 +50,9 @@ func TestSearchRepositoryByName(t *testing.T) {
 
 	assert.NotNil(t, repos)
 	assert.NoError(t, err)
-	assert.Equal(t, "test_repo_13", repos[0].Name)
+	if assert.Len(t, repos, 1) {
+		assert.Equal(t, "test_repo_13", repos[0].Name)
+	}
 	assert.Equal(t, int64(1), count)
 
 	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
