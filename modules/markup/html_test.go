@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package markup
+package markup_test
 
 import (
 	"fmt"
@@ -10,13 +10,15 @@ import (
 	"strings"
 	"testing"
 
+	_ "code.gitea.io/gitea/modules/markdown"
+	. "code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
 
 const AppURL = "http://localhost:3000/"
-const Repo = "go-gitea/gitea"
+const Repo = "gogits/gogs"
 const AppSubURL = AppURL + Repo + "/"
 
 var numericMetas = map[string]string{
@@ -56,6 +58,31 @@ func link(href, contents string) string {
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, metas map[string]string) {
 	assert.Equal(t, expected,
 		string(RenderIssueIndexPattern([]byte(input), AppSubURL, metas)))
+}
+
+func TestURLJoin(t *testing.T) {
+	type test struct {
+		Expected string
+		Base     string
+		Elements []string
+	}
+	newTest := func(expected, base string, elements ...string) test {
+		return test{Expected: expected, Base: base, Elements: elements}
+	}
+	for _, test := range []test{
+		newTest("https://try.gitea.io/a/b/c",
+			"https://try.gitea.io", "a/b", "c"),
+		newTest("https://try.gitea.io/a/b/c",
+			"https://try.gitea.io/", "/a/b/", "/c/"),
+		newTest("https://try.gitea.io/a/c",
+			"https://try.gitea.io/", "/a/./b/", "../c/"),
+		newTest("a/b/c",
+			"a", "b/c/"),
+		newTest("a/b/d",
+			"a/", "b/c/", "/../d/"),
+	} {
+		assert.Equal(t, test.Expected, URLJoin(test.Base, test.Elements...))
+	}
 }
 
 func TestRender_IssueIndexPattern(t *testing.T) {
@@ -167,18 +194,6 @@ func TestRender_IssueIndexPattern4(t *testing.T) {
 	test("test issue ABCDEFGHIJ-1234567890", "test issue %s", "ABCDEFGHIJ-1234567890")
 }
 
-func TestMisc_IsSameDomain(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
-
-	var sha = "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
-	var commit = URLJoin(AppSubURL, "commit", sha)
-
-	assert.True(t, IsSameDomain(commit))
-	assert.False(t, IsSameDomain("http://google.com/ncr"))
-	assert.False(t, IsSameDomain("favicon.ico"))
-}
-
 func TestRender_AutoLink(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
@@ -195,13 +210,15 @@ func TestRender_AutoLink(t *testing.T) {
 		numericIssueLink(URLJoin(setting.AppSubURL, "issues"), 3333))
 
 	// render external issue URLs
-	tmp := "http://1111/2222/ssss-issues/3333?param=blah&blahh=333"
-	test(tmp, "<a href=\""+tmp+"\">#3333 <i class='comment icon'></i></a>")
-	test("http://test.com/issues/33333", numericIssueLink("http://test.com/issues", 33333))
-	test("https://issues/333", numericIssueLink("https://issues", 333))
+	for _, externalURL := range []string{
+		"http://1111/2222/ssss-issues/3333?param=blah&blahh=333",
+		"http://test.com/issues/33333",
+		"https://issues/333"} {
+		test(externalURL, externalURL)
+	}
 
 	// render valid commit URLs
-	tmp = URLJoin(AppSubURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
+	tmp := URLJoin(AppSubURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
 	test(tmp, "<a href=\""+tmp+"\">d8a994ef24</a>")
 	tmp += "#diff-2"
 	test(tmp, "<a href=\""+tmp+"\">d8a994ef24 (diff-2)</a>")
@@ -209,6 +226,59 @@ func TestRender_AutoLink(t *testing.T) {
 	// render other commit URLs
 	tmp = "https://external-link.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2"
 	test(tmp, "<a href=\""+tmp+"\">d8a994ef24 (diff-2)</a>")
+}
+
+func TestRender_Commits(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	test := func(input, expected string) {
+		buffer := RenderString(".md", input, setting.AppSubURL, nil)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+	}
+
+	var sha = "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
+	var commit = URLJoin(AppSubURL, "commit", sha)
+	var subtree = URLJoin(commit, "src")
+	var tree = strings.Replace(subtree, "/commit/", "/tree/", -1)
+	var src = strings.Replace(subtree, "/commit/", "/src/", -1)
+
+	test(sha, `<p><a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
+	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow">b6dd621</a></p>`)
+	test(sha[:39], `<p><a href="`+commit[:len(commit)-(40-39)]+`" rel="nofollow">b6dd6210ea</a></p>`)
+	test(commit, `<p><a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
+	test(tree, `<p><a href="`+src+`" rel="nofollow">b6dd6210ea/src</a></p>`)
+	test("commit "+sha, `<p>commit <a href="`+commit+`" rel="nofollow">b6dd6210ea</a></p>`)
+}
+
+func TestRender_CrossReferences(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	test := func(input, expected string) {
+		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+	}
+
+	test(
+		"gogits/gogs#12345",
+		`<p><a href="`+URLJoin(AppURL, "gogits", "gogs", "issues", "12345")+`" rel="nofollow">gogits/gogs#12345</a></p>`)
+}
+
+func TestRender_FullIssueURLs(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	test := func(input, expected string) {
+		result := RenderFullIssuePattern([]byte(input))
+		assert.Equal(t, expected, string(result))
+	}
+	test("Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6",
+		"Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6")
+	test("Look here http://localhost:3000/person/repo/issues/4",
+		`Look here <a href="http://localhost:3000/person/repo/issues/4">#4</a>`)
+	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
+		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234">#4</a>`)
 }
 
 func TestRegExp_MentionPattern(t *testing.T) {
@@ -318,30 +388,6 @@ func TestRegExp_Sha1CurrentPattern(t *testing.T) {
 	}
 }
 
-func TestRegExp_ShortLinkPattern(t *testing.T) {
-	trueTestCases := []string{
-		"[[stuff]]",
-		"[[]]",
-		"[[stuff|title=Difficult name with spaces*!]]",
-	}
-	falseTestCases := []string{
-		"test",
-		"abcdefg",
-		"[[]",
-		"[[",
-		"[]",
-		"]]",
-		"abcdefghijklmnopqrstuvwxyz",
-	}
-
-	for _, testCase := range trueTestCases {
-		assert.True(t, ShortLinkPattern.MatchString(testCase))
-	}
-	for _, testCase := range falseTestCases {
-		assert.False(t, ShortLinkPattern.MatchString(testCase))
-	}
-}
-
 func TestRegExp_AnySHA1Pattern(t *testing.T) {
 	testCases := map[string][]string{
 		"https://github.com/jquery/jquery/blob/a644101ed04d0beacea864ce805e0c4f86ba1cd1/test/unit/event.js#L2703": {
@@ -401,46 +447,117 @@ func TestRegExp_AnySHA1Pattern(t *testing.T) {
 	}
 }
 
-func TestRegExp_IssueFullPattern(t *testing.T) {
-	testCases := map[string][]string{
-		"https://github.com/gogits/gogs/pull/3244": {
-			"https",
-			"github.com/gogits/gogs/pull/",
-			"3244",
-			"",
-			"",
-		},
-		"https://github.com/gogits/gogs/issues/3247#issuecomment-231517079": {
-			"https",
-			"github.com/gogits/gogs/issues/",
-			"3247",
-			"#issuecomment-231517079",
-			"",
-		},
-		"https://try.gogs.io/gogs/gogs/issues/4#issue-685": {
-			"https",
-			"try.gogs.io/gogs/gogs/issues/",
-			"4",
-			"#issue-685",
-			"",
-		},
-		"https://youtrack.jetbrains.com/issue/JT-36485": {
-			"https",
-			"youtrack.jetbrains.com/issue/",
-			"JT-36485",
-			"",
-			"",
-		},
-		"https://youtrack.jetbrains.com/issue/JT-36485#comment=27-1508676": {
-			"https",
-			"youtrack.jetbrains.com/issue/",
-			"JT-36485",
-			"#comment=27-1508676",
-			"",
-		},
+func TestMisc_IsSameDomain(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	var sha = "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
+	var commit = URLJoin(AppSubURL, "commit", sha)
+
+	assert.True(t, IsSameDomain(commit))
+	assert.False(t, IsSameDomain("http://google.com/ncr"))
+	assert.False(t, IsSameDomain("favicon.ico"))
+}
+
+// Test cases without ambiguous links
+var sameCases = []string{
+	// dear imgui wiki markdown extract: special wiki syntax
+	`Wiki! Enjoy :)
+- [[Links, Language bindings, Engine bindings|Links]]
+- [[Tips]]
+
+Ideas and codes
+
+- Bezier widget (by @r-lyeh) ` + AppURL + `ocornut/imgui/issues/786
+- Node graph editors https://github.com/ocornut/imgui/issues/306
+- [[Memory Editor|memory_editor_example]]
+- [[Plot var helper|plot_var_example]]`,
+	// wine-staging wiki home extract: tables, special wiki syntax, images
+	`## What is Wine Staging?
+**Wine Staging** on website [wine-staging.com](http://wine-staging.com).
+
+## Quick Links
+Here are some links to the most important topics. You can find the full list of pages at the sidebar.
+
+| [[images/icon-install.png]]    | [[Installation]]                                         |
+|--------------------------------|----------------------------------------------------------|
+| [[images/icon-usage.png]]      | [[Usage]]                                                |
+`,
+	// libgdx wiki page: inline images with special syntax
+	`[Excelsior JET](http://www.excelsiorjet.com/) allows you to create native executables for Windows, Linux and Mac OS X.
+
+1. [Package your libGDX application](https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop)
+[[images/1.png]]
+2. Perform a test run by hitting the Run! button.
+[[images/2.png]]`,
+}
+
+func testAnswers(baseURLContent, baseURLImages string) []string {
+	return []string{
+		`<p>Wiki! Enjoy :)</p>
+
+<ul>
+<li><a href="` + baseURLContent + `/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
+<li><a href="` + baseURLContent + `/Tips" rel="nofollow">Tips</a></li>
+</ul>
+
+<p>Ideas and codes</p>
+
+<ul>
+<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/ocornut/imgui/issues/786" rel="nofollow">#786</a></li>
+<li>Node graph editors https://github.com/ocornut/imgui/issues/306</li>
+<li><a href="` + baseURLContent + `/memory_editor_example" rel="nofollow">Memory Editor</a></li>
+<li><a href="` + baseURLContent + `/plot_var_example" rel="nofollow">Plot var helper</a></li>
+</ul>
+`,
+		`<h2>What is Wine Staging?</h2>
+
+<p><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
+
+<h2>Quick Links</h2>
+
+<p>Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
+
+<table>
+<thead>
+<tr>
+<th><a href="` + baseURLImages + `/images/icon-install.png" rel="nofollow"><img src="` + baseURLImages + `/images/icon-install.png" alt="images/icon-install.png" title="icon-install.png"/></a></th>
+<th><a href="` + baseURLContent + `/Installation" rel="nofollow">Installation</a></th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><a href="` + baseURLImages + `/images/icon-usage.png" rel="nofollow"><img src="` + baseURLImages + `/images/icon-usage.png" alt="images/icon-usage.png" title="icon-usage.png"/></a></td>
+<td><a href="` + baseURLContent + `/Usage" rel="nofollow">Usage</a></td>
+</tr>
+</tbody>
+</table>
+`,
+		`<p><a href="http://www.excelsiorjet.com/" rel="nofollow">Excelsior JET</a> allows you to create native executables for Windows, Linux and Mac OS X.</p>
+
+<ol>
+<li><a href="https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop" rel="nofollow">Package your libGDX application</a>
+<a href="` + baseURLImages + `/images/1.png" rel="nofollow"><img src="` + baseURLImages + `/images/1.png" alt="images/1.png" title="1.png"/></a></li>
+<li>Perform a test run by hitting the Run! button.
+<a href="` + baseURLImages + `/images/2.png" rel="nofollow"><img src="` + baseURLImages + `/images/2.png" alt="images/2.png" title="2.png"/></a></li>
+</ol>
+`,
+	}
+}
+
+func TestTotal_RenderString(t *testing.T) {
+	answers := testAnswers(URLJoin(AppSubURL, "src", "master/"), URLJoin(AppSubURL, "raw", "master/"))
+
+	for i := 0; i < len(sameCases); i++ {
+		line := RenderString("a.md", sameCases[i], URLJoin(AppSubURL, "src", "master/"), nil)
+		assert.Equal(t, answers[i], line)
 	}
 
-	for k, v := range testCases {
-		assert.Equal(t, IssueFullPattern.FindStringSubmatch(k)[1:], v)
+	testCases := []string{}
+
+	for i := 0; i < len(testCases); i += 2 {
+		line := RenderString("a.md", testCases[i], AppSubURL, nil)
+		assert.Equal(t, testCases[i+1], line)
 	}
 }

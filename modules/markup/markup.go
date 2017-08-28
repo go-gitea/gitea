@@ -9,6 +9,12 @@ import (
 	"strings"
 )
 
+// Init initialize regexps for markdown parsing
+func Init() {
+	getIssueFullPattern()
+	NewSanitizer()
+}
+
 // Parser defines an interface for parsering markup file to HTML
 type Parser interface {
 	Name() string // markup format name

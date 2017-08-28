@@ -71,12 +71,6 @@ func isLink(link []byte) bool {
 	return validLinksPattern.Match(link)
 }
 
-// Init initialize regexps for markdown parsing
-func Init() {
-	getIssueFullPattern()
-	NewSanitizer()
-}
-
 func getIssueFullPattern() *regexp.Regexp {
 	if issueFullPattern == nil {
 		appURL := setting.AppURL
