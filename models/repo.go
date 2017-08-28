@@ -194,7 +194,7 @@ type Repository struct {
 	NumMilestones       int `xorm:"NOT NULL DEFAULT 0"`
 	NumClosedMilestones int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenMilestones   int `xorm:"-"`
-	NumTags             int `xorm:"-"`
+	NumReleases         int `xorm:"-"`
 
 	IsPrivate bool `xorm:"INDEX"`
 	IsBare    bool `xorm:"INDEX"`
