@@ -13,15 +13,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-xorm/xorm"
-	gouuid "github.com/satori/go.uuid"
-
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/go-xorm/xorm"
+	gouuid "github.com/satori/go.uuid"
 )
 
 // HookQueue is a global queue of web hooks
