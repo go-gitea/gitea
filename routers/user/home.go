@@ -156,7 +156,6 @@ func Dashboard(ctx *context.Context) {
 	retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
 		IncludePrivate:  true,
 		OnlyPerformedBy: false,
-		Collaborate:     true,
 		IncludeDeleted:  false,
 	})
 	if ctx.Written() {
