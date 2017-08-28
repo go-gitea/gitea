@@ -8,6 +8,7 @@
   - [Discuss your design](#discuss-your-design)
   - [Testing redux](#testing-redux)
   - [Vendoring](#vendoring)
+  - [Translation](#translation)
   - [Code review](#code-review)
   - [Styleguide](#styleguide)
   - [Sign your work](#sign-your-work)
@@ -50,6 +51,10 @@ We keep a cached copy of dependencies within the `vendor/` directory, managing u
 Pull requests should only include `vendor/` updates if they are part of the same change, be it a bugfix or a feature addition.
 
 The `vendor/` update needs to be justified as part of the PR description, and must be verified by the reviewers and/or merger to always reference an existing upstream commit.
+
+## Translation
+
+We do all translation work inside [Crowdin](https://crowdin.com/project/gitea). The only translation that is maintained in this git repository is [`en_US.ini`](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini) and is synced regularily to Crowdin. Once a translation has reached A SATISFACTORY PERCENTAGE it will be synced back into this repo and included in the next released version.
 
 ## Code review
 
@@ -119,7 +124,7 @@ To honor the past owners, here's the history of the owners and the time they ser
 
 ## Versions
 
-Gitea has the `master` branch as a tip branch and has version branches such as `v0.9`. `v0.9` is a release branch and we will tag `v0.9.0` for binary download. If `v0.9.0` has bugs, we will accept pull requests on the `v0.9` branch and publish a `v0.9.1` tag, after bringing the bug fix also to the master branch.
+Gitea has the `master` branch as a tip branch and has version branches such as `release/v0.9`. `release/v0.9` is a release branch and we will tag `v0.9.0` for binary download. If `v0.9.0` has bugs, we will accept pull requests on the `release/v0.9` branch and publish a `v0.9.1` tag, after bringing the bug fix also to the master branch.
 
 Since the `master` branch is a tip version, if you wish to use Gitea in production, please download the latest release tag version. All the branches will be protected via GitHub, all the PRs to every branch must be reviewed by two maintainers and must pass the automatic tests.
 
