@@ -103,22 +103,23 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	pushCommits.Len = len(pushCommits.Commits)
 
 	payloadCommits := pushCommits.ToAPIPayloadCommits("/username/reponame")
-	assert.Len(t, payloadCommits, 2)
-	assert.Equal(t, "abcdef1", payloadCommits[0].ID)
-	assert.Equal(t, "message1", payloadCommits[0].Message)
-	assert.Equal(t, "/username/reponame/commit/abcdef1", payloadCommits[0].URL)
-	assert.Equal(t, "User Two", payloadCommits[0].Committer.Name)
-	assert.Equal(t, "user2", payloadCommits[0].Committer.UserName)
-	assert.Equal(t, "User Four", payloadCommits[0].Author.Name)
-	assert.Equal(t, "user4", payloadCommits[0].Author.UserName)
+	if assert.Len(t, payloadCommits, 2) {
+		assert.Equal(t, "abcdef1", payloadCommits[0].ID)
+		assert.Equal(t, "message1", payloadCommits[0].Message)
+		assert.Equal(t, "/username/reponame/commit/abcdef1", payloadCommits[0].URL)
+		assert.Equal(t, "User Two", payloadCommits[0].Committer.Name)
+		assert.Equal(t, "user2", payloadCommits[0].Committer.UserName)
+		assert.Equal(t, "User Four", payloadCommits[0].Author.Name)
+		assert.Equal(t, "user4", payloadCommits[0].Author.UserName)
 
-	assert.Equal(t, "abcdef2", payloadCommits[1].ID)
-	assert.Equal(t, "message2", payloadCommits[1].Message)
-	assert.Equal(t, "/username/reponame/commit/abcdef2", payloadCommits[1].URL)
-	assert.Equal(t, "User Two", payloadCommits[1].Committer.Name)
-	assert.Equal(t, "user2", payloadCommits[1].Committer.UserName)
-	assert.Equal(t, "User Two", payloadCommits[1].Author.Name)
-	assert.Equal(t, "user2", payloadCommits[1].Author.UserName)
+		assert.Equal(t, "abcdef2", payloadCommits[1].ID)
+		assert.Equal(t, "message2", payloadCommits[1].Message)
+		assert.Equal(t, "/username/reponame/commit/abcdef2", payloadCommits[1].URL)
+		assert.Equal(t, "User Two", payloadCommits[1].Committer.Name)
+		assert.Equal(t, "user2", payloadCommits[1].Committer.UserName)
+		assert.Equal(t, "User Two", payloadCommits[1].Author.Name)
+		assert.Equal(t, "user2", payloadCommits[1].Author.UserName)
+	}
 }
 
 func TestPushCommits_AvatarLink(t *testing.T) {
@@ -313,9 +314,10 @@ func TestGetFeeds(t *testing.T) {
 		IncludeDeleted:   true,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, actions, 1)
-	assert.EqualValues(t, 1, actions[0].ID)
-	assert.EqualValues(t, user.ID, actions[0].UserID)
+	if assert.Len(t, actions, 1) {
+		assert.EqualValues(t, 1, actions[0].ID)
+		assert.EqualValues(t, user.ID, actions[0].UserID)
+	}
 
 	actions, err = GetFeeds(GetFeedsOptions{
 		RequestedUser:    user,
@@ -342,8 +344,10 @@ func TestGetFeeds2(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 1)
-	assert.EqualValues(t, 2, actions[0].ID)
-	assert.EqualValues(t, org.ID, actions[0].UserID)
+	if assert.Len(t, actions, 1) {
+		assert.EqualValues(t, 2, actions[0].ID)
+		assert.EqualValues(t, org.ID, actions[0].UserID)
+	}
 
 	actions, err = GetFeeds(GetFeedsOptions{
 		RequestedUser:    org,
