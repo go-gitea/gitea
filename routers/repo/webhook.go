@@ -545,6 +545,14 @@ func DiscordHooksEditPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 
 // TestWebhook test if web hook is work fine
 func TestWebhook(ctx *context.Context) {
+	hookID := ctx.ParamsInt64(":id")
+	w, err := models.GetWebhookByRepoID(ctx.Repo.Repository.ID, hookID)
+	if err != nil {
+		ctx.Flash.Error("GetWebhookByID: " + err.Error())
+		ctx.Status(500)
+		return
+	}
+
 	// Grab latest commit or fake one if it's empty repository.
 	commit := ctx.Repo.Commit
 	if commit == nil {
@@ -581,7 +589,7 @@ func TestWebhook(ctx *context.Context) {
 		Pusher: apiUser,
 		Sender: apiUser,
 	}
-	if err := models.PrepareWebhooks(ctx.Repo.Repository, models.HookEventPush, p); err != nil {
+	if err := models.PrepareWebHook(w, ctx.Repo.Repository, models.HookEventPush, p); err != nil {
 		ctx.Flash.Error("PrepareWebhooks: " + err.Error())
 		ctx.Status(500)
 	} else {
