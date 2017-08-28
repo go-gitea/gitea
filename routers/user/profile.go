@@ -138,7 +138,11 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 	switch tab {
 	case "activity":
-		retrieveFeeds(ctx, ctxUser, showPrivate, true, false)
+		retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+			IncludePrivate:  showPrivate,
+			OnlyPerformedBy: true,
+			IncludeDeleted:  false,
+		})
 		if ctx.Written() {
 			return
 		}
@@ -200,13 +204,14 @@ func Profile(ctx *context.Context) {
 			ctx.Data["Total"] = total
 		} else {
 			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-				Keyword:   keyword,
-				OwnerID:   ctxUser.ID,
-				OrderBy:   orderBy,
-				Private:   showPrivate,
-				Page:      page,
-				IsProfile: true,
-				PageSize:  setting.UI.User.RepoPagingNum,
+				Keyword:     keyword,
+				OwnerID:     ctxUser.ID,
+				OrderBy:     orderBy,
+				Private:     showPrivate,
+				Page:        page,
+				IsProfile:   true,
+				PageSize:    setting.UI.User.RepoPagingNum,
+				Collaborate: true,
 			})
 			if err != nil {
 				ctx.Handle(500, "SearchRepositoryByName", err)

@@ -13,6 +13,8 @@
 					<img class="img-13" src="{{AppSubUrl}}/img/gogs.ico">
 				{{else if eq .HookType "slack"}}
 					<img class="img-13" src="{{AppSubUrl}}/img/slack.png">
+				{{else if eq .HookType "discord"}}
+					<img class="img-13" src="{{AppSubUrl}}/img/discord.png">
 				{{end}}
 			</div>
 		</h4>
@@ -20,6 +22,7 @@
 			{{template "repo/settings/hook_gitea" .}}
 			{{template "repo/settings/hook_gogs" .}}
 			{{template "repo/settings/hook_slack" .}}
+			{{template "repo/settings/hook_discord" .}}
 		</div>
 
 		{{template "repo/settings/hook_history" .}}

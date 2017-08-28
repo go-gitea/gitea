@@ -49,6 +49,7 @@ type Issue struct {
 	IsPull          bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
 	PullRequest     *PullRequest `xorm:"-"`
 	NumComments     int
+	Ref             string
 
 	Deadline     time.Time `xorm:"-"`
 	DeadlineUnix int64     `xorm:"INDEX"`

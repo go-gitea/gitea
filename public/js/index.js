@@ -86,6 +86,22 @@ function initEditForm() {
     initEditDiffTab($('.edit.form'));
 }
 
+function initBranchSelector() {
+    var $selectBranch = $('.ui.select-branch')
+    var $branchMenu = $selectBranch.find('.reference-list-menu');
+    $branchMenu.find('.item:not(.no-select)').click(function () {
+        var selectedValue = $(this).data('id');
+        $($(this).data('id-selector')).val(selectedValue);
+        $selectBranch.find('.ui .branch-name').text(selectedValue);
+    });
+    $selectBranch.find('.reference.column').click(function () {
+        $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
+        $selectBranch.find('.reference .text').removeClass('black');
+        $($(this).data('target')).css('display', 'block');
+        $(this).find('.text').addClass('black');
+        return false;
+    });
+}
 
 function updateIssuesMeta(url, action, issueIds, elementId, afterSuccess) {
     $.ajax({
@@ -106,6 +122,7 @@ function initCommentForm() {
         return
     }
 
+    initBranchSelector();
     initCommentPreviewTab($('.comment.form'));
 
     // Labels
@@ -1460,7 +1477,7 @@ $(document).ready(function () {
 
     // Emojify
     emojify.setConfig({
-        img_dir: suburl + '/img/emoji',
+        img_dir: suburl + '/plugins/emojify/images',
         ignore_emoticons: true
     });
     var hasEmoji = document.getElementsByClassName('has-emoji');
@@ -1691,13 +1708,33 @@ function initVueComponents(){
                 type: Number,
                 required: true
             },
+            organizations: {
+                type: Array,
+                default: []
+            },
+            isOrganization: {
+                type: Boolean,
+                default: true
+            },
+            canCreateOrganization: {
+                type: Boolean,
+                default: false
+            },
+            organizationsTotalCount: {
+                type: Number,
+                default: 0
+            },
+            moreReposLink: {
+                type: String,
+                default: ''
+            }
         },
 
         data: function() {
             return {
                 tab: 'repos',
                 repos: [],
-                reposTotal: 0,
+                reposTotalCount: 0,
                 reposFilter: 'all',
                 searchQuery: '',
                 isLoading: false
@@ -1745,7 +1782,7 @@ function initVueComponents(){
                     if (searchedQuery == self.searchQuery) {
                         self.repos = result.data;
                         if (searchedQuery == "") {
-                            self.reposTotal = request.getResponseHeader('X-Total-Count');
+                            self.reposTotalCount = request.getResponseHeader('X-Total-Count');
                         }
                     }
                 }).always(function() {

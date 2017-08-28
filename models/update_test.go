@@ -70,17 +70,17 @@ func TestListToPushCommits(t *testing.T) {
 
 	pushCommits := ListToPushCommits(l)
 	assert.Equal(t, 2, pushCommits.Len)
-	assert.Equal(t, 2, len(pushCommits.Commits))
+	if assert.Len(t, pushCommits.Commits, 2) {
+		assert.Equal(t, "Message1", pushCommits.Commits[0].Message)
+		assert.Equal(t, hexString1, pushCommits.Commits[0].Sha1)
+		assert.Equal(t, "example@example.com", pushCommits.Commits[0].AuthorEmail)
+		assert.Equal(t, now, pushCommits.Commits[0].Timestamp)
 
-	assert.Equal(t, "Message1", pushCommits.Commits[0].Message)
-	assert.Equal(t, hexString1, pushCommits.Commits[0].Sha1)
-	assert.Equal(t, "example@example.com", pushCommits.Commits[0].AuthorEmail)
-	assert.Equal(t, now, pushCommits.Commits[0].Timestamp)
-
-	assert.Equal(t, "Message2", pushCommits.Commits[1].Message)
-	assert.Equal(t, hexString2, pushCommits.Commits[1].Sha1)
-	assert.Equal(t, "example@example.com", pushCommits.Commits[1].AuthorEmail)
-	assert.Equal(t, now, pushCommits.Commits[1].Timestamp)
+		assert.Equal(t, "Message2", pushCommits.Commits[1].Message)
+		assert.Equal(t, hexString2, pushCommits.Commits[1].Sha1)
+		assert.Equal(t, "example@example.com", pushCommits.Commits[1].AuthorEmail)
+		assert.Equal(t, now, pushCommits.Commits[1].Timestamp)
+	}
 }
 
 // TODO TestPushUpdate

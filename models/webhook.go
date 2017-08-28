@@ -13,15 +13,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-xorm/xorm"
-	gouuid "github.com/satori/go.uuid"
-
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/go-xorm/xorm"
+	gouuid "github.com/satori/go.uuid"
 )
 
 // HookQueue is a global queue of web hooks
@@ -146,6 +145,15 @@ func (w *Webhook) GetSlackHook() *SlackMeta {
 	s := &SlackMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
 		log.Error(4, "webhook.GetSlackHook(%d): %v", w.ID, err)
+	}
+	return s
+}
+
+// GetDiscordHook returns discord metadata
+func (w *Webhook) GetDiscordHook() *DiscordMeta {
+	s := &DiscordMeta{}
+	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
+		log.Error(4, "webhook.GetDiscordHook(%d): %v", w.ID, err)
 	}
 	return s
 }
@@ -314,12 +322,14 @@ const (
 	GOGS HookTaskType = iota + 1
 	SLACK
 	GITEA
+	DISCORD
 )
 
 var hookTaskTypes = map[string]HookTaskType{
-	"gitea": GITEA,
-	"gogs":  GOGS,
-	"slack": SLACK,
+	"gitea":   GITEA,
+	"gogs":    GOGS,
+	"slack":   SLACK,
+	"discord": DISCORD,
 }
 
 // ToHookTaskType returns HookTaskType by given name.
@@ -336,6 +346,8 @@ func (t HookTaskType) Name() string {
 		return "gogs"
 	case SLACK:
 		return "slack"
+	case DISCORD:
+		return "discord"
 	}
 	return ""
 }
@@ -514,6 +526,11 @@ func PrepareWebhooks(repo *Repository, event HookEventType, p api.Payloader) err
 			payloader, err = GetSlackPayload(p, event, w.Meta)
 			if err != nil {
 				return fmt.Errorf("GetSlackPayload: %v", err)
+			}
+		case DISCORD:
+			payloader, err = GetDiscordPayload(p, event, w.Meta)
+			if err != nil {
+				return fmt.Errorf("GetDiscordPayload: %v", err)
 			}
 		default:
 			p.SetSecret(w.Secret)

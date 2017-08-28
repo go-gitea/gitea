@@ -33,28 +33,31 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 
 	var sqlStr string
 	var args []interface{}
+	var err error
 
-	if err := rows.session.Statement.setRefValue(rValue(bean)); err != nil {
+	if err = rows.session.statement.setRefValue(rValue(bean)); err != nil {
 		return nil, err
 	}
 
-	if len(session.Statement.TableName()) <= 0 {
+	if len(session.statement.TableName()) <= 0 {
 		return nil, ErrTableNotFound
 	}
 
-	if rows.session.Statement.RawSQL == "" {
-		sqlStr, args = rows.session.Statement.genGetSQL(bean)
+	if rows.session.statement.RawSQL == "" {
+		sqlStr, args, err = rows.session.statement.genGetSQL(bean)
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		sqlStr = rows.session.Statement.RawSQL
-		args = rows.session.Statement.RawParams
+		sqlStr = rows.session.statement.RawSQL
+		args = rows.session.statement.RawParams
 	}
 
-	for _, filter := range rows.session.Engine.dialect.Filters() {
-		sqlStr = filter.Do(sqlStr, session.Engine.dialect, rows.session.Statement.RefTable)
+	for _, filter := range rows.session.engine.dialect.Filters() {
+		sqlStr = filter.Do(sqlStr, session.engine.dialect, rows.session.statement.RefTable)
 	}
 
 	rows.session.saveLastSQL(sqlStr, args...)
-	var err error
 	if rows.session.prepareStmt {
 		rows.stmt, err = rows.session.DB().Prepare(sqlStr)
 		if err != nil {
@@ -116,17 +119,22 @@ func (rows *Rows) Scan(bean interface{}) error {
 	}
 
 	dataStruct := rValue(bean)
-	if err := rows.session.Statement.setRefValue(dataStruct); err != nil {
+	if err := rows.session.statement.setRefValue(dataStruct); err != nil {
 		return err
 	}
-	_, err := rows.session.row2Bean(rows.rows, rows.fields, len(rows.fields), bean, &dataStruct, rows.session.Statement.RefTable)
 
+	scanResults, err := rows.session.row2Slice(rows.rows, rows.fields, len(rows.fields), bean)
+	if err != nil {
+		return err
+	}
+
+	_, err = rows.session.slice2Bean(scanResults, rows.fields, len(rows.fields), bean, &dataStruct, rows.session.statement.RefTable)
 	return err
 }
 
 // Close session if session.IsAutoClose is true, and claimed any opened resources
 func (rows *Rows) Close() error {
-	if rows.session.IsAutoClose {
+	if rows.session.isAutoClose {
 		defer rows.session.Close()
 	}
 

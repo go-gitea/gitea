@@ -11,16 +11,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Unknwon/com"
-
 	"code.gitea.io/git"
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/Unknwon/com"
 )
 
 const (
@@ -96,9 +95,17 @@ func WebhooksNew(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["HookType"] = checkHookType(ctx)
+	hookType := checkHookType(ctx)
+	ctx.Data["HookType"] = hookType
 	if ctx.Written() {
 		return
+	}
+	if hookType == "discord" {
+		ctx.Data["DiscordHook"] = map[string]interface{}{
+			"Username": "Gitea",
+			"IconURL":  setting.AppURL + "img/favicon.png",
+			"Color":    16724530,
+		}
 	}
 	ctx.Data["BaseLink"] = orCtx.Link
 
@@ -213,6 +220,55 @@ func GogsHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 	ctx.Redirect(orCtx.Link + "/settings/hooks")
 }
 
+// DiscordHooksNewPost response for creating discord hook
+func DiscordHooksNewPost(ctx *context.Context, form auth.NewDiscordHookForm) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksNew"] = true
+	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+
+	orCtx, err := getOrgRepoCtx(ctx)
+	if err != nil {
+		ctx.Handle(500, "getOrgRepoCtx", err)
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	meta, err := json.Marshal(&models.DiscordMeta{
+		Username: form.Username,
+		IconURL:  form.IconURL,
+	})
+	if err != nil {
+		ctx.Handle(500, "Marshal", err)
+		return
+	}
+
+	w := &models.Webhook{
+		RepoID:       orCtx.RepoID,
+		URL:          form.PayloadURL,
+		ContentType:  models.ContentTypeJSON,
+		HookEvent:    ParseHookEvent(form.WebhookForm),
+		IsActive:     form.Active,
+		HookTaskType: models.DISCORD,
+		Meta:         string(meta),
+		OrgID:        orCtx.OrgID,
+	}
+	if err := w.UpdateEvent(); err != nil {
+		ctx.Handle(500, "UpdateEvent", err)
+		return
+	} else if err := models.CreateWebhook(w); err != nil {
+		ctx.Handle(500, "CreateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
+	ctx.Redirect(orCtx.Link + "/settings/hooks")
+}
+
 // SlackHooksNewPost response for creating slack hook
 func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
@@ -295,6 +351,9 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 		ctx.Data["HookType"] = "slack"
 	case models.GOGS:
 		ctx.Data["HookType"] = "gogs"
+	case models.DISCORD:
+		ctx.Data["DiscordHook"] = w.GetDiscordHook()
+		ctx.Data["HookType"] = "discord"
 	default:
 		ctx.Data["HookType"] = "gitea"
 	}
@@ -421,6 +480,48 @@ func SlackHooksEditPost(ctx *context.Context, form auth.NewSlackHookForm) {
 		Username: form.Username,
 		IconURL:  form.IconURL,
 		Color:    form.Color,
+	})
+	if err != nil {
+		ctx.Handle(500, "Marshal", err)
+		return
+	}
+
+	w.URL = form.PayloadURL
+	w.Meta = string(meta)
+	w.HookEvent = ParseHookEvent(form.WebhookForm)
+	w.IsActive = form.Active
+	if err := w.UpdateEvent(); err != nil {
+		ctx.Handle(500, "UpdateEvent", err)
+		return
+	} else if err := models.UpdateWebhook(w); err != nil {
+		ctx.Handle(500, "UpdateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
+	ctx.Redirect(fmt.Sprintf("%s/settings/hooks/%d", orCtx.Link, w.ID))
+}
+
+// DiscordHooksEditPost response for editing discord hook
+func DiscordHooksEditPost(ctx *context.Context, form auth.NewDiscordHookForm) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksEdit"] = true
+
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() {
+		return
+	}
+	ctx.Data["Webhook"] = w
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	meta, err := json.Marshal(&models.DiscordMeta{
+		Username: form.Username,
+		IconURL:  form.IconURL,
 	})
 	if err != nil {
 		ctx.Handle(500, "Marshal", err)

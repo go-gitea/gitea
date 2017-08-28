@@ -8,6 +8,7 @@
   - [Discuss your design](#discuss-your-design)
   - [Testing redux](#testing-redux)
   - [Vendoring](#vendoring)
+  - [Translation](#translation)
   - [Code review](#code-review)
   - [Styleguide](#styleguide)
   - [Sign your work](#sign-your-work)
@@ -51,6 +52,10 @@ Pull requests should only include `vendor/` updates if they are part of the same
 
 The `vendor/` update needs to be justified as part of the PR description, and must be verified by the reviewers and/or merger to always reference an existing upstream commit.
 
+## Translation
+
+We do all translation work inside [Crowdin](https://crowdin.com/project/gitea). The only translation that is maintained in this git repository is [`en_US.ini`](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini) and is synced regularily to Crowdin. Once a translation has reached A SATISFACTORY PERCENTAGE it will be synced back into this repo and included in the next released version.
+
 ## Code review
 
 Changes to Gitea must be reviewed before they are accepted, no matter who makes the change even if it is an owner or a maintainer. We use GitHub's pull request workflow to do that and we also use [LGTM](http://lgtm.co) to ensure every PR is reviewed by at least 2 maintainers.
@@ -92,7 +97,7 @@ Please use your real name, we really dislike pseudonyms or anonymous contributio
 
 ## Release Cycle
 
-We adopted a release schedule to streamline the process of working on, finishing, and issuing releases. The overall goal is to make a major release every two months, which breaks down into one month of general development followed by one month of testing and polishing known as the release freeze. A release is maintained by issuing minor releases to only correct critical problems such as crashes or security issues. All the feature pull requests should be merged in the first month of one release period. 
+We adopted a release schedule to streamline the process of working on, finishing, and issuing releases. The overall goal is to make a minor release every two months, which breaks down into one month of general development followed by one month of testing and polishing known as the release freeze. All the feature pull requests should be merged in the first month of one release period and during the frozen period a corresponding release branch is open for fix backported from master. Release candidate are made along this period for user testing to obtain a final version that is maintained in this branch. A release is maintained by issuing patch releases to only correct critical problems such as crashes or security issues. 
 
 The current release cycle is aligned to start on December 25 to February 24, next is February 25 to April 24, and etc. On this cycle, we also maybe publish the previous release minor version. For example, the current release version is v1.1, but we maybe also publish v1.0.2. When we publish v1.2, then we will stop publish v1.0.3.
 
@@ -119,7 +124,7 @@ To honor the past owners, here's the history of the owners and the time they ser
 
 ## Versions
 
-Gitea has the `master` branch as a tip branch and has version branches such as `v0.9`. `v0.9` is a release branch and we will tag `v0.9.0` for binary download. If `v0.9.0` has bugs, we will accept pull requests on the `v0.9` branch and publish a `v0.9.1` tag, after bringing the bug fix also to the master branch.
+Gitea has the `master` branch as a tip branch and has version branches such as `release/v0.9`. `release/v0.9` is a release branch and we will tag `v0.9.0` for binary download. If `v0.9.0` has bugs, we will accept pull requests on the `release/v0.9` branch and publish a `v0.9.1` tag, after bringing the bug fix also to the master branch.
 
 Since the `master` branch is a tip version, if you wish to use Gitea in production, please download the latest release tag version. All the branches will be protected via GitHub, all the PRs to every branch must be reviewed by two maintainers and must pass the automatic tests.
 
