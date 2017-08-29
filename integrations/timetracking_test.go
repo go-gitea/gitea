@@ -66,7 +66,7 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 		htmlDoc = NewHTMLParser(t, resp.Body)
 
 		events = htmlDoc.doc.Find(".event > span.text")
-		assert.Contains(t, events.Last().Text(), "finished working")
+		assert.Contains(t, events.Last().Text(), "stopped working")
 		htmlDoc.AssertElement(t, ".event .detail .octicon-clock", true)
 	} else {
 		session.MakeRequest(t, req, http.StatusNotFound)
