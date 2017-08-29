@@ -482,6 +482,57 @@ func UpdateHookTask(t *HookTask) error {
 	return err
 }
 
+// PrepareWebhook adds special webhook to task queue for given payload.
+func PrepareWebhook(w *Webhook, repo *Repository, event HookEventType, p api.Payloader) error {
+	switch event {
+	case HookEventCreate:
+		if !w.HasCreateEvent() {
+			return nil
+		}
+	case HookEventPush:
+		if !w.HasPushEvent() {
+			return nil
+		}
+	case HookEventPullRequest:
+		if !w.HasPullRequestEvent() {
+			return nil
+		}
+	}
+
+	var payloader api.Payloader
+	var err error
+	// Use separate objects so modifications won't be made on payload on non-Gogs/Gitea type hooks.
+	switch w.HookTaskType {
+	case SLACK:
+		payloader, err = GetSlackPayload(p, event, w.Meta)
+		if err != nil {
+			return fmt.Errorf("GetSlackPayload: %v", err)
+		}
+	case DISCORD:
+		payloader, err = GetDiscordPayload(p, event, w.Meta)
+		if err != nil {
+			return fmt.Errorf("GetDiscordPayload: %v", err)
+		}
+	default:
+		p.SetSecret(w.Secret)
+		payloader = p
+	}
+
+	if err = CreateHookTask(&HookTask{
+		RepoID:      repo.ID,
+		HookID:      w.ID,
+		Type:        w.HookTaskType,
+		URL:         w.URL,
+		Payloader:   payloader,
+		ContentType: w.ContentType,
+		EventType:   event,
+		IsSSL:       w.IsSSL,
+	}); err != nil {
+		return fmt.Errorf("CreateHookTask: %v", err)
+	}
+	return nil
+}
+
 // PrepareWebhooks adds new webhooks to task queue for given payload.
 func PrepareWebhooks(repo *Repository, event HookEventType, p api.Payloader) error {
 	ws, err := GetActiveWebhooksByRepoID(repo.ID)
@@ -503,51 +554,9 @@ func PrepareWebhooks(repo *Repository, event HookEventType, p api.Payloader) err
 		return nil
 	}
 
-	var payloader api.Payloader
 	for _, w := range ws {
-		switch event {
-		case HookEventCreate:
-			if !w.HasCreateEvent() {
-				continue
-			}
-		case HookEventPush:
-			if !w.HasPushEvent() {
-				continue
-			}
-		case HookEventPullRequest:
-			if !w.HasPullRequestEvent() {
-				continue
-			}
-		}
-
-		// Use separate objects so modifications won't be made on payload on non-Gogs/Gitea type hooks.
-		switch w.HookTaskType {
-		case SLACK:
-			payloader, err = GetSlackPayload(p, event, w.Meta)
-			if err != nil {
-				return fmt.Errorf("GetSlackPayload: %v", err)
-			}
-		case DISCORD:
-			payloader, err = GetDiscordPayload(p, event, w.Meta)
-			if err != nil {
-				return fmt.Errorf("GetDiscordPayload: %v", err)
-			}
-		default:
-			p.SetSecret(w.Secret)
-			payloader = p
-		}
-
-		if err = CreateHookTask(&HookTask{
-			RepoID:      repo.ID,
-			HookID:      w.ID,
-			Type:        w.HookTaskType,
-			URL:         w.URL,
-			Payloader:   payloader,
-			ContentType: w.ContentType,
-			EventType:   event,
-			IsSSL:       w.IsSSL,
-		}); err != nil {
-			return fmt.Errorf("CreateHookTask: %v", err)
+		if err = PrepareWebhook(w, repo, event, p); err != nil {
+			return err
 		}
 	}
 	return nil
