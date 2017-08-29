@@ -197,7 +197,13 @@
 			<span class="text"><strong>{{.i18n.Tr "repo.issues.dependency.title"}}</strong></span>
 			<br>
 			{{if .BlockedByDependencies}}
-			<span class="text">Closing this issue is blocked by:</span>
+			<span class="text">
+				{{if .Issue.IsPull}}
+					Closing this pull request is blocked by:
+				{{else}}
+					Closing this issue is blocked by:
+				{{end}}
+			</span>
 			<div class="ui relaxed divided list">
 				{{range .BlockedByDependencies}}
 				<div class="item">
@@ -224,7 +230,13 @@
 
 			{{if .BlockingDependencies}}
 			<div class="ui relaxed divided list">
-				<span class="text">This issue blocks closing of the following issues:</span>
+				<span class="text">
+					{{if .Issue.IsPull}}
+						This pull request blocks closing of the following issues:
+					{{else}}
+						This issue blocks closing of the following issues:
+					{{end}}
+				</span>
 				{{range .BlockingDependencies}}
 				<div class="item">
 					<div class="right floated content">

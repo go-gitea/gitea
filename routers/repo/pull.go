@@ -428,6 +428,14 @@ func MergePullRequest(ctx *context.Context) {
 
 	pr.Issue = issue
 	pr.Issue.Repo = ctx.Repo.Repository
+	canbeClosed := models.IssueNoDependenciesLeft(issue.ID)
+
+	if !canbeClosed {
+		ctx.Flash.Error("You need to close all issues blocking this pull request before you can merge it!")
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+		return
+	}
+
 	if err = pr.Merge(ctx.User, ctx.Repo.GitRepo); err != nil {
 		ctx.Handle(500, "Merge", err)
 		return

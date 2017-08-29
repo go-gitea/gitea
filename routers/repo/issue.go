@@ -918,8 +918,13 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 				canbeClosed := models.IssueNoDependenciesLeft(issue.ID)
 
 				if !canbeClosed {
-					ctx.Flash.Error("You need to close all issues blocking this issue!")
-					ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+					if issue.IsPull{
+						ctx.Flash.Error("You need to close all issues blocking this pull request before you can merge it!")
+						ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
+					} else {
+						ctx.Flash.Error("You need to close all issues blocking this issue before you can close it!")
+						ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+					}
 					return
 				}
 			}
