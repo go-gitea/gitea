@@ -104,7 +104,6 @@ func WebhooksNew(ctx *context.Context) {
 		ctx.Data["DiscordHook"] = map[string]interface{}{
 			"Username": "Gitea",
 			"IconURL":  setting.AppURL + "img/favicon.png",
-			"Color":    16724530,
 		}
 	}
 	ctx.Data["BaseLink"] = orCtx.Link
