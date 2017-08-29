@@ -482,8 +482,8 @@ func UpdateHookTask(t *HookTask) error {
 	return err
 }
 
-// PrepareWebHook adds special webhook to task queue for given payload.
-func PrepareWebHook(w *Webhook, repo *Repository, event HookEventType, p api.Payloader) error {
+// PrepareWebhook adds special webhook to task queue for given payload.
+func PrepareWebhook(w *Webhook, repo *Repository, event HookEventType, p api.Payloader) error {
 	switch event {
 	case HookEventCreate:
 		if !w.HasCreateEvent() {
@@ -555,7 +555,7 @@ func PrepareWebhooks(repo *Repository, event HookEventType, p api.Payloader) err
 	}
 
 	for _, w := range ws {
-		if err = PrepareWebHook(w, repo, event, p); err != nil {
+		if err = PrepareWebhook(w, repo, event, p); err != nil {
 			return err
 		}
 	}
