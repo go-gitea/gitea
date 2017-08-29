@@ -180,3 +180,23 @@ func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err erro
 
 	return
 }
+
+// check if issue can be closed
+func IssueNoDependenciesLeft(issueID int64) bool{
+
+	var issueDeps []IssueDependency
+	err := x.Where("issue_id = ?", issueID).Find(&issueDeps)
+
+	for _, issueDep := range issueDeps{
+		issueDetails, _ := getIssueByID(x, issueDep.DependencyID)
+		if !issueDetails.IsClosed {
+			return false
+		}
+	}
+
+	if err != nil {
+		return false
+	}
+
+	return true
+}
