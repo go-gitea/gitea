@@ -6,7 +6,6 @@ package models
 
 import (
 	"time"
-	"strconv"
 )
 
 // IssueDependency is connection request for receiving issue notification.
@@ -77,17 +76,22 @@ func CreateIssueDependency(userID, issueID int64, depID int64) (err error, exist
 				IssueID:  issueID,
 				PosterID: userID,
 				Type:     CommentTypeAddedDependency,
-				Content: strconv.FormatInt(depID, 10),
+				Content: issue.Title,
+				DependentIssue: depID,
 			}
 
 			if _, err := x.Insert(comment); err != nil {
 				return err, exists, false
 			}
+
+			var depIssue = Issue{}
+			_, err = x.Id(issueID).Get(&depIssue)
 			comment = &Comment{
 				IssueID:  depID,
 				PosterID: userID,
 				Type:     CommentTypeAddedDependency,
-				Content: strconv.FormatInt(issueID, 10),
+				Content: depIssue.Title,
+				DependentIssue: issueID,
 			}
 
 			if _, err := x.Insert(comment); err != nil {
@@ -130,22 +134,28 @@ func RemoveIssueDependency(userID, issueID int64, depID int64, depType int64) (e
 		}
 
 		// Add comment referencing the removed dependency
+		var issue = Issue{}
+		_, err = x.Id(depID).Get(&issue)
 		comment := &Comment{
 			IssueID:  issueID,
 			PosterID: userID,
 			Type:     CommentTypeRemovedDependency,
-			Content: strconv.FormatInt(depID, 10),
+			Content: issue.Title,
+			DependentIssue: depID,
 		}
 
 		if _, err := x.Insert(comment); err != nil {
 			return err
 		}
 
+		var depIssue = Issue{}
+		_, err = x.Id(issueID).Get(&depIssue)
 		comment = &Comment{
 			IssueID:  depID,
 			PosterID: userID,
 			Type:     CommentTypeRemovedDependency,
-			Content: strconv.FormatInt(issueID, 10),
+			Content: depIssue.Title,
+			DependentIssue: issueID,
 		}
 
 		if _, err := x.Insert(comment); err != nil {
