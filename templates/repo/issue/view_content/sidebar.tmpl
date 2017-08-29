@@ -128,7 +128,7 @@
 			<span class="text"><strong>{{.i18n.Tr "repo.issues.dependency.title"}}</strong></span>
 			<br>
 			{{if .BlockedByDependencies}}
-			<span class="text">This issue is blocked by:</span>
+			<span class="text">Closing this issue is blocked by:</span>
 			<div class="ui relaxed divided list">
 				{{range .BlockedByDependencies}}
 				<div class="item">
@@ -155,7 +155,7 @@
 
 			{{if .BlockingDependencies}}
 			<div class="ui relaxed divided list">
-				<span class="text">This issue blocks the following issues:</span>
+				<span class="text">This issue blocks closing of the following issues:</span>
 				{{range .BlockingDependencies}}
 				<div class="item">
 					<div class="right floated content">

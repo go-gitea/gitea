@@ -88,6 +88,7 @@ type Comment struct {
 	OldAssignee    *User `xorm:"-"`
 	OldTitle       string
 	NewTitle       string
+	DependentIssue int64
 
 	CommitID        int64
 	Line            int64
