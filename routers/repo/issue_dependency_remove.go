@@ -14,8 +14,8 @@ import (
 )
 
 // IssueWatch sets issue watching
-func AddDependency(c *context.Context) {
-	dep, err := strconv.ParseInt(c.Req.PostForm.Get("newDependency"), 10, 64)
+func RemoveDependency(c *context.Context) {
+	dep, err := strconv.ParseInt(c.Req.PostForm.Get("removeDependencyID"), 10, 64)
 	if err != nil {
 		c.Handle(http.StatusBadRequest, "issue ID is not int", err)
 		return
@@ -28,18 +28,23 @@ func AddDependency(c *context.Context) {
 		return
 	}
 
-	err, exists, depExists := models.CreateIssueDependency(c.User.ID, issue.ID, dep);
+	// Dependency Type
+	// Types: 1 = blockedBy, 2 = blocking
+	depType, err := strconv.ParseInt(c.Req.PostForm.Get("dependencyType"), 10, 64)
 	if err != nil {
-		c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
+		c.Handle(http.StatusInternalServerError, "GetDependecyType", err)
 		return
 	}
 
-	if !depExists {
-		c.Flash.Error("Dependend issue does not exist!")
+	if depType != 1 && depType != 2{
+		c.Handle(http.StatusBadRequest, "GetDependecyType", nil)
+		return
 	}
 
-	if exists {
-		c.Flash.Error("Dependency already exists!")
+	err = models.RemoveIssueDependency(c.User.ID, issue.ID, dep, depType)
+	if err != nil {
+		c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
+		return
 	}
 
 	url := fmt.Sprintf("%s/issues/%d", c.Repo.RepoLink, issueIndex)

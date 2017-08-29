@@ -467,6 +467,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/content", repo.UpdateIssueContent)
 				m.Post("/watch", repo.IssueWatch)
 				m.Post("/addDependency", repo.AddDependency)
+				m.Post("/removeDependency", repo.RemoveDependency)
 				m.Combo("/comments").Post(bindIgnErr(auth.CreateCommentForm{}), repo.NewComment)
 			})
 

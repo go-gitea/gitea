@@ -6,6 +6,7 @@ package models
 
 import (
 	"time"
+	"strconv"
 )
 
 // IssueDependency is connection request for receiving issue notification.
@@ -43,6 +44,7 @@ func (iw *IssueDependency) BeforeUpdate() {
 }
 
 // CreateIssueDependency creates a new dependency for an issue
+// TODO: prevent issues having itself as dependency
 func CreateIssueDependency(userID, issueID int64, depID int64) (err error, exists bool, depExists bool) {
 	err = x.Sync(new(IssueDependency))
 	if err != nil {
@@ -75,6 +77,17 @@ func CreateIssueDependency(userID, issueID int64, depID int64) (err error, exist
 				IssueID:  issueID,
 				PosterID: userID,
 				Type:     CommentTypeAddedDependency,
+				Content: strconv.FormatInt(depID, 10),
+			}
+
+			if _, err := x.Insert(comment); err != nil {
+				return err, exists, false
+			}
+			comment = &Comment{
+				IssueID:  depID,
+				PosterID: userID,
+				Type:     CommentTypeAddedDependency,
+				Content: strconv.FormatInt(issueID, 10),
 			}
 
 			if _, err := x.Insert(comment); err != nil {
@@ -84,6 +97,62 @@ func CreateIssueDependency(userID, issueID int64, depID int64) (err error, exist
 		return err, exists, true
 	}
 	return nil, exists, false
+}
+
+// Removes a dependency from an issue
+func RemoveIssueDependency(userID, issueID int64, depID int64, depType int64) (err error) {
+	err = x.Sync(new(IssueDependency))
+	if err != nil {
+		return err
+	}
+
+	// Check if it exists
+	exists, err := issueDepExists(x, issueID, depID)
+	if err != nil {
+		return err
+	}
+
+	// If it exists, remove it, otherwise show an error message
+	if exists {
+
+		if depType == 1{
+			_, err := x.Delete(&IssueDependency{IssueID: issueID, DependencyID: depID})
+			if err != nil {
+				return err
+			}
+		}
+
+		if depType == 2{
+			_, err := x.Delete(&IssueDependency{IssueID: depID, DependencyID: issueID})
+			if err != nil {
+				return err
+			}
+		}
+
+		// Add comment referencing the removed dependency
+		comment := &Comment{
+			IssueID:  issueID,
+			PosterID: userID,
+			Type:     CommentTypeRemovedDependency,
+			Content: strconv.FormatInt(depID, 10),
+		}
+
+		if _, err := x.Insert(comment); err != nil {
+			return err
+		}
+
+		comment = &Comment{
+			IssueID:  depID,
+			PosterID: userID,
+			Type:     CommentTypeRemovedDependency,
+			Content: strconv.FormatInt(issueID, 10),
+		}
+
+		if _, err := x.Insert(comment); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Check if the dependency already exists
