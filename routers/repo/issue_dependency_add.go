@@ -28,18 +28,24 @@ func AddDependency(c *context.Context) {
 		return
 	}
 
-	err, exists, depExists := models.CreateIssueDependency(c.User.ID, issue.ID, dep);
-	if err != nil {
-		c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
-		return
-	}
+	// Check if issue and dependency is the same
+	if dep == issueIndex{
+		c.Flash.Error("You cannot make an issue depend on itself!")
+	} else {
 
-	if !depExists {
-		c.Flash.Error("Dependend issue does not exist!")
-	}
+		err, exists, depExists := models.CreateIssueDependency(c.User.ID, issue.ID, dep);
+		if err != nil {
+			c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
+			return
+		}
 
-	if exists {
-		c.Flash.Error("Dependency already exists!")
+		if !depExists {
+			c.Flash.Error("Dependend issue does not exist!")
+		}
+
+		if exists {
+			c.Flash.Error("Dependency already exists!")
+		}
 	}
 
 	url := fmt.Sprintf("%s/issues/%d", c.Repo.RepoLink, issueIndex)

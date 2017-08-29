@@ -44,7 +44,6 @@ func (iw *IssueDependency) BeforeUpdate() {
 }
 
 // CreateIssueDependency creates a new dependency for an issue
-// TODO: prevent issues having itself as dependency
 func CreateIssueDependency(userID, issueID int64, depID int64) (err error, exists bool, depExists bool) {
 	err = x.Sync(new(IssueDependency))
 	if err != nil {
