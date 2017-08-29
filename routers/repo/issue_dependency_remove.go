@@ -15,7 +15,7 @@ import (
 
 // IssueWatch sets issue watching
 func RemoveDependency(c *context.Context) {
-	depID, err := strconv.ParseInt(c.Req.PostForm.Get("removeDependencyID"), 10, 64)
+	dep, err := strconv.ParseInt(c.Req.PostForm.Get("removeDependencyID"), 10, 64)
 	if err != nil {
 		c.Handle(http.StatusBadRequest, "issue ID is not int", err)
 		return
@@ -41,14 +41,7 @@ func RemoveDependency(c *context.Context) {
 		return
 	}
 
-	// Dependency
-	dep, err := models.GetIssueByID(depID)
-	if err != nil {
-		c.Handle(http.StatusInternalServerError, "GetIssueByID", err)
-		return
-	}
-
-	err = models.RemoveIssueDependency(c.User, issue, dep, depType)
+	err = models.RemoveIssueDependency(c.User.ID, issue.ID, dep, depType)
 	if err != nil {
 		c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
 		return

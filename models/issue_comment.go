@@ -62,6 +62,8 @@ const (
 	CommentTypeCancelTracking
 	// Dependency added
 	CommentTypeAddedDependency
+	//Dependency removed
+	CommentTypeRemovedDependency
 )
 
 // CommentTag defines comment tag type
