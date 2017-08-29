@@ -221,6 +221,13 @@ func getWebhook(bean *Webhook) (*Webhook, error) {
 	return bean, nil
 }
 
+// GetWebhookByID returns webhook of repository by given ID.
+func GetWebhookByID(id int64) (*Webhook, error) {
+	return getWebhook(&Webhook{
+		ID: id,
+	})
+}
+
 // GetWebhookByRepoID returns webhook of repository by given ID.
 func GetWebhookByRepoID(repoID, id int64) (*Webhook, error) {
 	return getWebhook(&Webhook{
@@ -268,6 +275,12 @@ func GetWebhooksByOrgID(orgID int64) (ws []*Webhook, err error) {
 // UpdateWebhook updates information of webhook.
 func UpdateWebhook(w *Webhook) error {
 	_, err := x.Id(w.ID).AllCols().Update(w)
+	return err
+}
+
+// UpdateWebhookLastStatus updates last status of webhook.
+func UpdateWebhookLastStatus(w *Webhook) error {
+	_, err := x.ID(w.ID).Cols("last_status").Update(w)
 	return err
 }
 
@@ -603,7 +616,7 @@ func (t *HookTask) deliver() {
 		}
 
 		// Update webhook last delivery status.
-		w, err := GetWebhookByRepoID(t.RepoID, t.HookID)
+		w, err := GetWebhookByID(t.HookID)
 		if err != nil {
 			log.Error(5, "GetWebhookByID: %v", err)
 			return
@@ -613,8 +626,8 @@ func (t *HookTask) deliver() {
 		} else {
 			w.LastStatus = HookStatusFail
 		}
-		if err = UpdateWebhook(w); err != nil {
-			log.Error(5, "UpdateWebhook: %v", err)
+		if err = UpdateWebhookLastStatus(w); err != nil {
+			log.Error(5, "UpdateWebhookLastStatus: %v", err)
 			return
 		}
 	}()
