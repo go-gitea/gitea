@@ -521,6 +521,10 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		if !w.HasPullRequestEvent() {
 			return nil
 		}
+	case HookEventRepository:
+		if !w.HasRepositoryEvent() {
+			return nil
+		}
 	}
 
 	var payloader api.Payloader
@@ -542,7 +546,7 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		payloader = p
 	}
 
-	if err = CreateHookTask(&HookTask{
+	if err = createHookTask(e, &HookTask{
 		RepoID:      repo.ID,
 		HookID:      w.ID,
 		Type:        w.HookTaskType,
