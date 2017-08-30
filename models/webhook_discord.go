@@ -142,8 +142,6 @@ func getDiscordPushPayload(p *api.PushPayload, meta *DiscordMeta) (*DiscordPaylo
 		}
 	}
 
-	fmt.Println(text)
-
 	return &DiscordPayload{
 		Username:  meta.Username,
 		AvatarURL: meta.IconURL,
