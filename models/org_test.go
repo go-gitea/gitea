@@ -322,13 +322,13 @@ func TestGetOrgsByUserID(t *testing.T) {
 func TestGetOwnedOrgsByUserID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	orgs, err := GetOwnedOrgsByUserID(2)
+	orgs, err := GetOwnedOrgsByUserID(2, true)
 	assert.NoError(t, err)
 	if assert.Len(t, orgs, 1) {
 		assert.EqualValues(t, 3, orgs[0].ID)
 	}
 
-	orgs, err = GetOwnedOrgsByUserID(4)
+	orgs, err = GetOwnedOrgsByUserID(4, true)
 	assert.NoError(t, err)
 	assert.Len(t, orgs, 0)
 }
@@ -336,14 +336,14 @@ func TestGetOwnedOrgsByUserID(t *testing.T) {
 func TestGetOwnedOrgsByUserIDDesc(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	orgs, err := GetOwnedOrgsByUserIDDesc(5, "id")
+	orgs, err := GetOwnedOrgsByUserIDDesc(5, "id", true)
 	assert.NoError(t, err)
 	if assert.Len(t, orgs, 2) {
 		assert.EqualValues(t, 7, orgs[0].ID)
 		assert.EqualValues(t, 6, orgs[1].ID)
 	}
 
-	orgs, err = GetOwnedOrgsByUserIDDesc(4, "id")
+	orgs, err = GetOwnedOrgsByUserIDDesc(4, "id", true)
 	assert.NoError(t, err)
 	assert.Len(t, orgs, 0)
 }
