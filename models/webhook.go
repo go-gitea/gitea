@@ -482,13 +482,17 @@ func HookTasks(hookID int64, page int) ([]*HookTask, error) {
 // CreateHookTask creates a new hook task,
 // it handles conversion from Payload to PayloadContent.
 func CreateHookTask(t *HookTask) error {
+	return createHookTask(x, t)
+}
+
+func createHookTask(e Engine, t *HookTask) error {
 	data, err := t.Payloader.JSONPayload()
 	if err != nil {
 		return err
 	}
 	t.UUID = gouuid.NewV4().String()
 	t.PayloadContent = string(data)
-	_, err = x.Insert(t)
+	_, err = e.Insert(t)
 	return err
 }
 
