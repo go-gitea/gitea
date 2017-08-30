@@ -289,7 +289,7 @@ func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (e
 	case ActionReopenIssue:
 		issue.Content = fmt.Sprintf("Reopened #%d", issue.Index)
 	}
-	if err = mailIssueCommentToParticipants(issue, c.Poster, c, mentions); err != nil {
+	if err = mailIssueCommentToParticipants(e, issue, c.Poster, c, mentions); err != nil {
 		log.Error(4, "mailIssueCommentToParticipants: %v", err)
 	}
 

@@ -1144,11 +1144,15 @@ func GetAssigneeByID(repo *Repository, userID int64) (*User, error) {
 
 // GetUserByName returns user by given name.
 func GetUserByName(name string) (*User, error) {
+	return getUserByName(x, name)
+}
+
+func getUserByName(e Engine, name string) (*User, error) {
 	if len(name) == 0 {
 		return nil, ErrUserNotExist{0, name, 0}
 	}
 	u := &User{LowerName: strings.ToLower(name)}
-	has, err := x.Get(u)
+	has, err := e.Get(u)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -1159,9 +1163,13 @@ func GetUserByName(name string) (*User, error) {
 
 // GetUserEmailsByNames returns a list of e-mails corresponds to names.
 func GetUserEmailsByNames(names []string) []string {
+	return getUserEmailsByNames(x, names)
+}
+
+func getUserEmailsByNames(e Engine, names []string) []string {
 	mails := make([]string, 0, len(names))
 	for _, name := range names {
-		u, err := GetUserByName(name)
+		u, err := getUserByName(e, name)
 		if err != nil {
 			continue
 		}
