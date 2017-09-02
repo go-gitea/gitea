@@ -120,6 +120,7 @@ func (f *RepoSettingForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 //  |______  / |__|  (____  /___|  /\___  >___|  /
 //         \/             \/     \/     \/     \/
 
+// ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
 	Protected       bool
 	EnableWhitelist bool
@@ -127,6 +128,7 @@ type ProtectBranchForm struct {
 	WhitelistTeams  string
 }
 
+// Validate validates the fields
 func (f *ProtectBranchForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
