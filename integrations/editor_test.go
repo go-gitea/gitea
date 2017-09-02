@@ -43,16 +43,15 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 
 	csrf := GetCSRF(t, session, "/user2/repo1/settings/branches")
 	// Change master branch to protected
-	req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches?action=protected_branch", map[string]string{
-		"_csrf":      csrf,
-		"branchName": "master",
-		"canPush":    "true",
+	req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/master", map[string]string{
+		"_csrf":     csrf,
+		"protected": "on",
 	})
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusFound)
 	// Check if master branch has been locked successfully
 	flashCookie := session.GetCookie("macaron_flash")
 	assert.NotNil(t, flashCookie)
-	assert.EqualValues(t, flashCookie.Value, "success%3Dmaster%2BLocked%2Bsuccessfully")
+	assert.EqualValues(t, "success%3DChange%2Bbranch%2Bprotect%2Boptions%2Bsuccessfully.", flashCookie.Value)
 
 	// Request editor page
 	req = NewRequest(t, "GET", "/user2/repo1/_new/master/")

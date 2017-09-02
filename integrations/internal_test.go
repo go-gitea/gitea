@@ -31,7 +31,7 @@ func assertProtectedBranch(t *testing.T, repoID int64, branchName string, isErr,
 		var branch models.ProtectedBranch
 		t.Log(string(resp.Body))
 		assert.NoError(t, json.Unmarshal(resp.Body, &branch))
-		assert.Equal(t, canPush, branch.CanPush)
+		assert.Equal(t, canPush, !branch.IsProtected())
 	}
 }
 
