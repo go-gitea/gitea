@@ -146,9 +146,9 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		if errDelete := models.DeleteRepository(ctxUser.ID, repo.ID); errDelete != nil {
 			log.Error(4, "DeleteRepository: %v", errDelete)
 		}
-	}
-	if unit := repo.Units[models.UnitTypeIssues]; unit != nil {
-		unit.IssuesConfig().EnableTimetracker = setting.Service.DefaultEnableTimetracking
+		if unit := repo.Units[models.UnitTypeIssues]; unit != nil {
+			unit.IssuesConfig().EnableTimetracker = setting.Service.DefaultEnableTimetracking
+		}
 	}
 
 	handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
