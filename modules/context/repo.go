@@ -78,8 +78,8 @@ func (r *Repository) CanEnableEditor() bool {
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected
-func (r *Repository) CanCommitToBranch() (bool, error) {
-	protectedBranch, err := r.Repository.IsProtectedBranch(r.BranchName)
+func (r *Repository) CanCommitToBranch(doer *models.User) (bool, error) {
+	protectedBranch, err := r.Repository.IsProtectedBranch(r.BranchName, doer)
 	if err != nil {
 		return false, err
 	}
