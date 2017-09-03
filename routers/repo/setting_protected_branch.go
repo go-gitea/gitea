@@ -176,7 +176,7 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 	} else {
 		if protectBranch != nil {
 			if err := ctx.Repo.Repository.DeleteProtectedBranch(protectBranch.ID); err != nil {
-				ctx.Handle(500, "UpdateProtectBranch", err)
+				ctx.Handle(500, "DeleteProtectedBranch", err)
 				return
 			}
 		}
