@@ -72,13 +72,3 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 		session.MakeRequest(t, req, http.StatusNotFound)
 	}
 }
-
-// AssertElement check if element by selector exists or does not exist depending on checkExists
-func (doc *HTMLDoc) AssertElement(t testing.TB, selector string, checkExists bool) {
-	sel := doc.doc.Find(selector)
-	if checkExists {
-		assert.Equal(t, 1, sel.Length())
-	} else {
-		assert.Equal(t, 0, sel.Length())
-	}
-}

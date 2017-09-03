@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
-// IssueStopwatch manges the stopwatch
+// IssueStopwatch creates or stops a stopwatch for the given issue.
 func IssueStopwatch(c *context.Context) {
 	issueIndex := c.ParamsInt64("index")
 	issue, err := models.GetIssueByIndex(c.Repo.Repository.ID, issueIndex)
@@ -21,7 +21,7 @@ func IssueStopwatch(c *context.Context) {
 		return
 	}
 
-	if err := models.CreateOrStopIssueStopwatch(c.User.ID, issue.ID); err != nil {
+	if err := models.CreateOrStopIssueStopwatch(c.User, issue); err != nil {
 		c.Handle(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
 		return
 	}
@@ -40,7 +40,7 @@ func CancelStopwatch(c *context.Context) {
 		return
 	}
 
-	if err := models.CancelStopwatch(c.User.ID, issue.ID); err != nil {
+	if err := models.CancelStopwatch(c.User, issue); err != nil {
 		c.Handle(http.StatusInternalServerError, "CancelStopwatch", err)
 		return
 	}

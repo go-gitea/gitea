@@ -10,13 +10,21 @@ import (
 func TestCancelStopwatch(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	err := CancelStopwatch(1, 1)
+	user1, err := GetUserByID(1)
 	assert.NoError(t, err)
-	AssertNotExistsBean(t, &Stopwatch{UserID: 1, IssueID: 1})
 
-	_ = AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeCancelTracking, PosterID: 1, IssueID: 1})
+	issue1, err := GetIssueByID(1)
+	assert.NoError(t, err)
+	issue2, err := GetIssueByID(2)
+	assert.NoError(t, err)
 
-	assert.Nil(t, CancelStopwatch(1, 2))
+	err = CancelStopwatch(user1, issue1)
+	assert.NoError(t, err)
+	AssertNotExistsBean(t, &Stopwatch{UserID: user1.ID, IssueID: issue1.ID})
+
+	_ = AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeCancelTracking, PosterID: user1.ID, IssueID: issue1.ID})
+
+	assert.Nil(t, CancelStopwatch(user1, issue2))
 }
 
 func TestStopwatchExists(t *testing.T) {
@@ -30,23 +38,33 @@ func TestHasUserStopwatch(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	exists, sw, err := HasUserStopwatch(1)
-	assert.True(t, exists)
-	assert.Equal(t, sw.ID, int64(1))
 	assert.NoError(t, err)
+	assert.True(t, exists)
+	assert.Equal(t, int64(1), sw.ID)
 
 	exists, _, err = HasUserStopwatch(3)
-	assert.False(t, exists)
 	assert.NoError(t, err)
+	assert.False(t, exists)
 }
 
 func TestCreateOrStopIssueStopwatch(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	assert.NoError(t, CreateOrStopIssueStopwatch(3, 1))
+	user2, err := GetUserByID(2)
+	assert.NoError(t, err)
+	user3, err := GetUserByID(3)
+	assert.NoError(t, err)
+
+	issue1, err := GetIssueByID(1)
+	assert.NoError(t, err)
+	issue2, err := GetIssueByID(2)
+	assert.NoError(t, err)
+
+	assert.NoError(t, CreateOrStopIssueStopwatch(user3, issue1))
 	sw := AssertExistsAndLoadBean(t, &Stopwatch{UserID: 3, IssueID: 1}).(*Stopwatch)
 	assert.Equal(t, true, sw.Created.Before(time.Now()))
 
-	assert.NoError(t, CreateOrStopIssueStopwatch(2, 2))
+	assert.NoError(t, CreateOrStopIssueStopwatch(user2, issue2))
 	AssertNotExistsBean(t, &Stopwatch{UserID: 2, IssueID: 2})
 	AssertExistsAndLoadBean(t, &TrackedTime{UserID: 2, IssueID: 2})
 }

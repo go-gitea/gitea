@@ -20,6 +20,12 @@ type Stopwatch struct {
 	CreatedUnix int64
 }
 
+// BeforeInsert will be invoked by XORM before inserting a record
+// representing this object.
+func (s *Stopwatch) BeforeInsert() {
+	s.CreatedUnix = time.Now().Unix()
+}
+
 // AfterSet is invoked from XORM after setting the value of a field of this object.
 func (s *Stopwatch) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
@@ -54,8 +60,8 @@ func HasUserStopwatch(userID int64) (exists bool, sw *Stopwatch, err error) {
 }
 
 // CreateOrStopIssueStopwatch will create or remove a stopwatch and will log it into issue's timeline.
-func CreateOrStopIssueStopwatch(userID int64, issueID int64) error {
-	sw, exists, err := getStopwatch(x, userID, issueID)
+func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
+	sw, exists, err := getStopwatch(x, user.ID, issue.ID)
 	if err != nil {
 		return err
 	}
@@ -66,34 +72,32 @@ func CreateOrStopIssueStopwatch(userID int64, issueID int64) error {
 		// Create TrackedTime
 		tt := &TrackedTime{
 			Created: time.Now(),
-			IssueID: issueID,
-			UserID:  userID,
+			IssueID: issue.ID,
+			UserID:  user.ID,
 			Time:    timediff,
 		}
 
 		if _, err := x.Insert(tt); err != nil {
 			return err
 		}
-		// Add comment referencing to the tracked time
-		comment := &Comment{
-			IssueID:  issueID,
-			PosterID: userID,
-			Type:     CommentTypeStopTracking,
-			Content:  secToTime(timediff),
-		}
 
-		if _, err := x.Insert(comment); err != nil {
+		if _, err := CreateComment(&CreateCommentOptions{
+			Doer:    user,
+			Issue:   issue,
+			Repo:    issue.Repo,
+			Content: secToTime(timediff),
+			Type:    CommentTypeStopTracking,
+		}); err != nil {
 			return err
 		}
-
 		if _, err := x.Delete(sw); err != nil {
 			return err
 		}
 	} else {
 		// Create stopwatch
 		sw = &Stopwatch{
-			UserID:  userID,
-			IssueID: issueID,
+			UserID:  user.ID,
+			IssueID: issue.ID,
 			Created: time.Now(),
 		}
 
@@ -101,14 +105,12 @@ func CreateOrStopIssueStopwatch(userID int64, issueID int64) error {
 			return err
 		}
 
-		// Add comment referencing to the stopwatch
-		comment := &Comment{
-			IssueID:  issueID,
-			PosterID: userID,
-			Type:     CommentTypeStartTracking,
-		}
-
-		if _, err := x.Insert(comment); err != nil {
+		if _, err := CreateComment(&CreateCommentOptions{
+			Doer:  user,
+			Issue: issue,
+			Repo:  issue.Repo,
+			Type:  CommentTypeStartTracking,
+		}); err != nil {
 			return err
 		}
 	}
@@ -116,8 +118,8 @@ func CreateOrStopIssueStopwatch(userID int64, issueID int64) error {
 }
 
 // CancelStopwatch removes the given stopwatch and logs it into issue's timeline.
-func CancelStopwatch(userID int64, issueID int64) error {
-	sw, exists, err := getStopwatch(x, userID, issueID)
+func CancelStopwatch(user *User, issue *Issue) error {
+	sw, exists, err := getStopwatch(x, user.ID, issue.ID)
 	if err != nil {
 		return err
 	}
@@ -126,13 +128,13 @@ func CancelStopwatch(userID int64, issueID int64) error {
 		if _, err := x.Delete(sw); err != nil {
 			return err
 		}
-		comment := &Comment{
-			PosterID: userID,
-			IssueID:  issueID,
-			Type:     CommentTypeCancelTracking,
-		}
 
-		if _, err := x.Insert(comment); err != nil {
+		if _, err := CreateComment(&CreateCommentOptions{
+			Doer:  user,
+			Issue: issue,
+			Repo:  issue.Repo,
+			Type:  CommentTypeCancelTracking,
+		}); err != nil {
 			return err
 		}
 	}
@@ -165,10 +167,4 @@ func secToTime(duration int64) string {
 	}
 
 	return hrs
-}
-
-// BeforeInsert will be invoked by XORM before inserting a record
-// representing this object.
-func (s *Stopwatch) BeforeInsert() {
-	s.CreatedUnix = time.Now().Unix()
 }

@@ -74,7 +74,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 		return
 	}
 	var tt *models.TrackedTime
-	if tt, err = models.AddTime(ctx.User.ID, issue.ID, form.Time); err != nil {
+	if tt, err = models.AddTime(ctx.User, issue, form.Time); err != nil {
 		ctx.Error(500, "AddTime", err)
 		return
 	}

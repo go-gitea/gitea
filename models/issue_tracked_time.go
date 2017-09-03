@@ -21,6 +21,12 @@ type TrackedTime struct {
 	Time        int64     `json:"time"`
 }
 
+// BeforeInsert will be invoked by XORM before inserting a record
+// representing this object.
+func (t *TrackedTime) BeforeInsert() {
+	t.CreatedUnix = time.Now().Unix()
+}
+
 // AfterSet is invoked from XORM after setting the value of a field of this object.
 func (t *TrackedTime) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
@@ -61,29 +67,23 @@ func GetTrackedTimes(options FindTrackedTimesOptions) (trackedTimes []*TrackedTi
 	return
 }
 
-// BeforeInsert will be invoked by XORM before inserting a record
-// representing this object.
-func (t *TrackedTime) BeforeInsert() {
-	t.CreatedUnix = time.Now().Unix()
-}
-
 // AddTime will add the given time (in seconds) to the issue
-func AddTime(userID int64, issueID int64, time int64) (*TrackedTime, error) {
+func AddTime(user *User, issue *Issue, time int64) (*TrackedTime, error) {
 	tt := &TrackedTime{
-		IssueID: issueID,
-		UserID:  userID,
+		IssueID: issue.ID,
+		UserID:  user.ID,
 		Time:    time,
 	}
 	if _, err := x.Insert(tt); err != nil {
 		return nil, err
 	}
-	comment := &Comment{
-		IssueID:  issueID,
-		PosterID: userID,
-		Type:     CommentTypeAddTimeManual,
-		Content:  secToTime(time),
-	}
-	if _, err := x.Insert(comment); err != nil {
+	if _, err := CreateComment(&CreateCommentOptions{
+		Issue:   issue,
+		Repo:    issue.Repo,
+		Doer:    user,
+		Content: secToTime(time),
+		Type:    CommentTypeAddTimeManual,
+	}); err != nil {
 		return nil, err
 	}
 	return tt, nil
@@ -98,19 +98,18 @@ func TotalTimes(options FindTrackedTimesOptions) (map[*User]string, error) {
 	//Adding total time per user ID
 	totalTimesByUser := make(map[int64]int64)
 	for _, t := range trackedTimes {
-		if total, ok := totalTimesByUser[t.UserID]; !ok {
-			totalTimesByUser[t.UserID] = t.Time
-		} else {
-			totalTimesByUser[t.UserID] = total + t.Time
-		}
+		totalTimesByUser[t.UserID] += t.Time
 	}
 
 	totalTimes := make(map[*User]string)
 	//Fetching User and making time human readable
 	for userID, total := range totalTimesByUser {
 		user, err := GetUserByID(userID)
-		if err != nil || user == nil {
-			continue
+		if err != nil {
+			if IsErrUserNotExist(err) {
+				continue
+			}
+			return nil, err
 		}
 		totalTimes[user] = secToTime(total)
 	}

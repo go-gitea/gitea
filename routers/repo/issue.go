@@ -597,7 +597,7 @@ func ViewIssue(ctx *context.Context) {
 				var exists bool
 				var sw *models.Stopwatch
 				if exists, sw, err = models.HasUserStopwatch(ctx.User.ID); err != nil {
-					ctx.Handle(500, "HasUserAStopwatch", err)
+					ctx.Handle(500, "HasUserStopwatch", err)
 					return
 				}
 				ctx.Data["HasUserStopwatch"] = exists
@@ -605,7 +605,7 @@ func ViewIssue(ctx *context.Context) {
 					// Add warning if the user has already a stopwatch
 					var otherIssue *models.Issue
 					if otherIssue, err = models.GetIssueByID(sw.IssueID); err != nil {
-						ctx.Handle(500, "HasUserAStopwatch", err)
+						ctx.Handle(500, "GetIssueByID", err)
 						return
 					}
 					// Add link to the issue of the already running stopwatch
