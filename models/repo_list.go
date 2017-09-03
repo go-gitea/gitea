@@ -177,21 +177,6 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 
 			// Include collaborative repositories
 			if opts.Collaborate {
-				// Get owner organizations
-				orgs, err := GetOrgUsersByUserID(opts.OwnerID, opts.Private)
-
-				if err != nil {
-					return nil, 0, fmt.Errorf("Organization: %v", err)
-				}
-
-				var ownerIds []int64
-				for _, org := range orgs {
-					ownerIds = append(ownerIds, org.OrgID)
-				}
-
-				// Add repositories from related organizations
-				accessCond = accessCond.Or(builder.And(builder.In("owner_id", ownerIds), builder.Eq{"is_private": false}))
-
 				// Add repositories where user is set as collaborator directly
 				accessCond = accessCond.Or(builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ? AND owner_id != ?)",
 					opts.OwnerID, opts.OwnerID))
