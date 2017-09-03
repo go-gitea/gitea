@@ -940,6 +940,10 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		if headBranch != nil {
 			repo.DefaultBranch = headBranch.Name
 		}
+
+		if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
+			log.Error(4, "Failed to synchronize tags to releases for repository: %v", err)
+		}
 	}
 
 	if err = repo.UpdateSize(); err != nil {

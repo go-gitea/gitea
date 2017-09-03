@@ -34,7 +34,8 @@ type Release struct {
 	NumCommitsBehind int64  `xorm:"-"`
 	Note             string `xorm:"TEXT"`
 	IsDraft          bool   `xorm:"NOT NULL DEFAULT false"`
-	IsPrerelease     bool
+	IsPrerelease     bool   `xorm:"NOT NULL DEFAULT false"`
+	IsTag            bool   `xorm:"NOT NULL DEFAULT false"`
 
 	Attachments []*Attachment `xorm:"-"`
 
@@ -236,6 +237,7 @@ func GetReleaseByID(id int64) (*Release, error) {
 // FindReleasesOptions describes the conditions to Find releases
 type FindReleasesOptions struct {
 	IncludeDrafts bool
+	IncludeTags   bool
 	TagNames      []string
 }
 
@@ -245,6 +247,9 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 
 	if !opts.IncludeDrafts {
 		cond = cond.And(builder.Eq{"is_draft": false})
+	}
+	if !opts.IncludeTags {
+		cond = cond.And(builder.Eq{"is_release": false})
 	}
 	if len(opts.TagNames) > 0 {
 		cond = cond.And(builder.In("tag_name", opts.TagNames))
@@ -361,6 +366,8 @@ func UpdateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 	if err = createTag(gitRepo, rel); err != nil {
 		return err
 	}
+	rel.LowerTagName = strings.ToLower(rel.TagName)
+
 	_, err = x.Id(rel.ID).AllCols().Update(rel)
 	if err != nil {
 		return err
@@ -397,11 +404,67 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		if err != nil && !strings.Contains(stderr, "not found") {
 			return fmt.Errorf("git tag -d: %v - %s", err, stderr)
 		}
+
+		if _, err = x.Id(rel.ID).Delete(new(Release)); err != nil {
+			return fmt.Errorf("Delete: %v", err)
+		}
+	} else {
+		rel.IsTag = true
+		rel.IsDraft = false
+		rel.IsPrerelease = false
+		rel.Title = ""
+		rel.Note = ""
+
+		if _, err = x.Id(rel.ID).AllCols().Update(rel); err != nil {
+			return fmt.Errorf("Update: %v", err)
+		}
 	}
 
-	if _, err = x.Id(rel.ID).Delete(new(Release)); err != nil {
-		return fmt.Errorf("Delete: %v", err)
-	}
+	return nil
+}
 
+// SyncReleasesWithTags synchronizes release table with repository tags
+func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
+	checked := make([]string, 100)
+	opts := FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
+	page := 0
+	for {
+		page++
+		rels, err := GetReleasesByRepoID(repo.ID, opts, page, 100)
+		if err != nil {
+			return fmt.Errorf("GetReleasesByRepoID: %v", err)
+		}
+		if len(rels) == 0 {
+			break
+		}
+		for _, rel := range rels {
+			if rel.IsDraft {
+				continue
+			}
+			if !gitRepo.IsTagExist(rel.TagName) {
+				if err := pushUpdateDeleteTag(repo, gitRepo, rel.TagName); err != nil {
+					return fmt.Errorf("pushUpdateDeleteTag: %v", err)
+				}
+			} else {
+				checked = append(checked, rel.TagName)
+			}
+		}
+	}
+	tags, err := gitRepo.GetTags()
+	if err != nil {
+		return fmt.Errorf("GetTags: %v", err)
+	}
+	for _, tagName := range tags {
+		exists := false
+		for _, relTagName := range checked {
+			if tagName == relTagName {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			pushUpdateAddTag(repo, gitRepo, tagName)
+		}
+	}
 	return nil
 }
