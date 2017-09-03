@@ -1,22 +1,21 @@
 package misc
 
 import (
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
-	macaron "gopkg.in/macaron.v1"
-
-	"net/url"
-
-	"io/ioutil"
-	"strings"
-
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
+
 	"github.com/go-macaron/inject"
 	"github.com/stretchr/testify/assert"
+	macaron "gopkg.in/macaron.v1"
 )
 
 const AppURL = "http://localhost:3000/"

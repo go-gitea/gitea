@@ -82,7 +82,7 @@ func renderByType(tp string, rawBytes []byte, urlPrefix string, metas map[string
 
 func renderFile(filename string, rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
 	extension := strings.ToLower(filepath.Ext(filename))
-	if parser, ok := parsers[extension]; ok {
+	if parser, ok := extParsers[extension]; ok {
 		return render(parser, rawBytes, urlPrefix, metas, isWiki)
 	}
 	return nil

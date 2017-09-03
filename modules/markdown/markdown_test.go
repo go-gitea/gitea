@@ -13,6 +13,7 @@ import (
 	. "code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -204,11 +205,98 @@ func TestRegExp_ShortLinkPattern(t *testing.T) {
 	}
 
 	for _, testCase := range trueTestCases {
-		assert.True(t, ShortLinkPattern.MatchString(testCase))
+		assert.True(t, markup.ShortLinkPattern.MatchString(testCase))
 	}
 	for _, testCase := range falseTestCases {
-		assert.False(t, ShortLinkPattern.MatchString(testCase))
+		assert.False(t, markup.ShortLinkPattern.MatchString(testCase))
 	}
+}
+
+func testAnswers(baseURLContent, baseURLImages string) []string {
+	return []string{
+		`<p>Wiki! Enjoy :)</p>
+
+<ul>
+<li><a href="` + baseURLContent + `/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
+<li><a href="` + baseURLContent + `/Tips" rel="nofollow">Tips</a></li>
+</ul>
+
+<p>Ideas and codes</p>
+
+<ul>
+<li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/ocornut/imgui/issues/786" rel="nofollow">#786</a></li>
+<li>Node graph editors https://github.com/ocornut/imgui/issues/306</li>
+<li><a href="` + baseURLContent + `/memory_editor_example" rel="nofollow">Memory Editor</a></li>
+<li><a href="` + baseURLContent + `/plot_var_example" rel="nofollow">Plot var helper</a></li>
+</ul>
+`,
+		`<h2>What is Wine Staging?</h2>
+
+<p><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
+
+<h2>Quick Links</h2>
+
+<p>Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
+
+<table>
+<thead>
+<tr>
+<th><a href="` + baseURLImages + `/images/icon-install.png" rel="nofollow"><img src="` + baseURLImages + `/images/icon-install.png" alt="images/icon-install.png" title="icon-install.png"/></a></th>
+<th><a href="` + baseURLContent + `/Installation" rel="nofollow">Installation</a></th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><a href="` + baseURLImages + `/images/icon-usage.png" rel="nofollow"><img src="` + baseURLImages + `/images/icon-usage.png" alt="images/icon-usage.png" title="icon-usage.png"/></a></td>
+<td><a href="` + baseURLContent + `/Usage" rel="nofollow">Usage</a></td>
+</tr>
+</tbody>
+</table>
+`,
+		`<p><a href="http://www.excelsiorjet.com/" rel="nofollow">Excelsior JET</a> allows you to create native executables for Windows, Linux and Mac OS X.</p>
+
+<ol>
+<li><a href="https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop" rel="nofollow">Package your libGDX application</a>
+<a href="` + baseURLImages + `/images/1.png" rel="nofollow"><img src="` + baseURLImages + `/images/1.png" alt="images/1.png" title="1.png"/></a></li>
+<li>Perform a test run by hitting the Run! button.
+<a href="` + baseURLImages + `/images/2.png" rel="nofollow"><img src="` + baseURLImages + `/images/2.png" alt="images/2.png" title="2.png"/></a></li>
+</ol>
+`,
+	}
+}
+
+// Test cases without ambiguous links
+var sameCases = []string{
+	// dear imgui wiki markdown extract: special wiki syntax
+	`Wiki! Enjoy :)
+- [[Links, Language bindings, Engine bindings|Links]]
+- [[Tips]]
+
+Ideas and codes
+
+- Bezier widget (by @r-lyeh) ` + AppURL + `ocornut/imgui/issues/786
+- Node graph editors https://github.com/ocornut/imgui/issues/306
+- [[Memory Editor|memory_editor_example]]
+- [[Plot var helper|plot_var_example]]`,
+	// wine-staging wiki home extract: tables, special wiki syntax, images
+	`## What is Wine Staging?
+**Wine Staging** on website [wine-staging.com](http://wine-staging.com).
+
+## Quick Links
+Here are some links to the most important topics. You can find the full list of pages at the sidebar.
+
+| [[images/icon-install.png]]    | [[Installation]]                                         |
+|--------------------------------|----------------------------------------------------------|
+| [[images/icon-usage.png]]      | [[Usage]]                                                |
+`,
+	// libgdx wiki page: inline images with special syntax
+	`[Excelsior JET](http://www.excelsiorjet.com/) allows you to create native executables for Windows, Linux and Mac OS X.
+
+1. [Package your libGDX application](https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop)
+[[images/1.png]]
+2. Perform a test run by hitting the Run! button.
+[[images/2.png]]`,
 }
 
 func TestTotal_RenderWiki(t *testing.T) {
@@ -234,6 +322,22 @@ func TestTotal_RenderWiki(t *testing.T) {
 
 	for i := 0; i < len(testCases); i += 2 {
 		line := RenderWiki([]byte(testCases[i]), AppSubURL, nil)
+		assert.Equal(t, testCases[i+1], line)
+	}
+}
+
+func TestTotal_RenderString(t *testing.T) {
+	answers := testAnswers(markup.URLJoin(AppSubURL, "src", "master/"), markup.URLJoin(AppSubURL, "raw", "master/"))
+
+	for i := 0; i < len(sameCases); i++ {
+		line := RenderString(sameCases[i], markup.URLJoin(AppSubURL, "src", "master/"), nil)
+		assert.Equal(t, answers[i], line)
+	}
+
+	testCases := []string{}
+
+	for i := 0; i < len(testCases); i += 2 {
+		line := RenderString(testCases[i], AppSubURL, nil)
 		assert.Equal(t, testCases[i+1], line)
 	}
 }
