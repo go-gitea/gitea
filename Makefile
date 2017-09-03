@@ -15,11 +15,7 @@ else
 endif
 
 BINDATA := modules/{options,public,templates}/bindata.go
-
-DOCKER_IMAGE ?= gitea/gitea
-DOCKER_TAG ?= latest
-DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
-GOFILES := $(shell find . -name "*.go" -type f -not -path "./vendor/*" -not -path "*/bindata.go")
+GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
 GOFMT ?= gofmt -s
 
 GOFLAGS := -i -v
@@ -31,6 +27,10 @@ PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list ./.
 SOURCES ?= $(shell find . -name "*.go" -type f)
 
 TAGS ?=
+
+DOCKER_IMAGE ?= gitea/gitea
+DOCKER_TAG ?= latest
+DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 
 TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
 
@@ -246,7 +246,7 @@ docker-multi-arch-push-manifest:
 	$(SED_INPLACE) "s;gitea/gitea;$(DOCKER_IMAGE);g" $(DOCKER_MANIFEST)
 	@manifest-tool push from-spec $(DOCKER_MANIFEST)
 	$(SED_INPLACE) "s;$(DOCKER_IMAGE);gitea/gitea;g" $(DOCKER_MANIFEST)
-	
+
 .PHONY: release
 release: release-dirs release-windows release-linux release-darwin release-copy release-check
 
