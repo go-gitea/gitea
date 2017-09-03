@@ -1,4 +1,4 @@
-FROM gitea/gitea-base
+FROM sapk/gitea-base
 LABEL maintainer="The Gitea Authors"
 
 EXPOSE 22 3000
