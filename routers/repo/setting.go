@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"fmt"
 )
 
 const (
@@ -211,6 +212,15 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				RepoID: repo.ID,
 				Type:   models.UnitTypePullRequests,
 				Index:  int(models.UnitTypePullRequests),
+				Config: new(models.UnitConfig),
+			})
+		}
+
+		if form.EnableIssueDependencies{
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeIssueDependencies,
+				Index:  int(models.UnitTypeIssueDependencies),
 				Config: new(models.UnitConfig),
 			})
 		}
