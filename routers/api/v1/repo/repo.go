@@ -105,7 +105,7 @@ func Search(ctx *context.APIContext) {
 
 // CreateUserRepo create a repository for a user
 func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateRepoOption) {
-	repo, err := models.CreateRepository(owner, models.CreateRepoOptions{
+	repo, err := models.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
 		Name:        opt.Name,
 		Description: opt.Description,
 		Gitignores:  opt.Gitignores,
@@ -121,7 +121,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 			ctx.Error(422, "", err)
 		} else {
 			if repo != nil {
-				if err = models.DeleteRepository(ctx.User.ID, repo.ID); err != nil {
+				if err = models.DeleteRepository(ctx.User, ctx.User.ID, repo.ID); err != nil {
 					log.Error(4, "DeleteRepository: %v", err)
 				}
 			}
@@ -254,7 +254,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		return
 	}
 
-	repo, err := models.MigrateRepository(ctxUser, models.MigrateRepoOptions{
+	repo, err := models.MigrateRepository(ctx.User, ctxUser, models.MigrateRepoOptions{
 		Name:        form.RepoName,
 		Description: form.Description,
 		IsPrivate:   form.Private || setting.Repository.ForcePrivate,
@@ -263,7 +263,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	})
 	if err != nil {
 		if repo != nil {
-			if errDelete := models.DeleteRepository(ctxUser.ID, repo.ID); errDelete != nil {
+			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 				log.Error(4, "DeleteRepository: %v", errDelete)
 			}
 		}
@@ -345,7 +345,7 @@ func Delete(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.DeleteRepository(owner.ID, repo.ID); err != nil {
+	if err := models.DeleteRepository(ctx.User, owner.ID, repo.ID); err != nil {
 		ctx.Error(500, "DeleteRepository", err)
 		return
 	}

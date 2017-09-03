@@ -228,6 +228,37 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 	}, nil
 }
 
+func getDiscordRepositoryPayload(p *api.RepositoryPayload, meta *DiscordMeta) (*DiscordPayload, error) {
+	var title, url string
+	var color int
+	switch p.Action {
+	case api.HookRepoCreated:
+		title = fmt.Sprintf("[%s] Repository created", p.Repository.FullName)
+		url = p.Repository.HTMLURL
+		color = successColor
+	case api.HookRepoDeleted:
+		title = fmt.Sprintf("[%s] Repository deleted", p.Repository.FullName)
+		color = warnColor
+	}
+
+	return &DiscordPayload{
+		Username:  meta.Username,
+		AvatarURL: meta.IconURL,
+		Embeds: []DiscordEmbed{
+			{
+				Title: title,
+				URL:   url,
+				Color: color,
+				Author: DiscordEmbedAuthor{
+					Name:    p.Sender.UserName,
+					URL:     setting.AppURL + p.Sender.UserName,
+					IconURL: p.Sender.AvatarURL,
+				},
+			},
+		},
+	}, nil
+}
+
 // GetDiscordPayload converts a discord webhook into a DiscordPayload
 func GetDiscordPayload(p api.Payloader, event HookEventType, meta string) (*DiscordPayload, error) {
 	s := new(DiscordPayload)
@@ -244,6 +275,8 @@ func GetDiscordPayload(p api.Payloader, event HookEventType, meta string) (*Disc
 		return getDiscordPushPayload(p.(*api.PushPayload), discord)
 	case HookEventPullRequest:
 		return getDiscordPullRequestPayload(p.(*api.PullRequestPayload), discord)
+	case HookEventRepository:
+		return getDiscordRepositoryPayload(p.(*api.RepositoryPayload), discord)
 	}
 
 	return s, nil

@@ -314,7 +314,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 		}
 
-		if err := models.DeleteRepository(ctx.Repo.Owner.ID, repo.ID); err != nil {
+		if err := models.DeleteRepository(ctx.User, ctx.Repo.Owner.ID, repo.ID); err != nil {
 			ctx.Handle(500, "DeleteRepository", err)
 			return
 		}

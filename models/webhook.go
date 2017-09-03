@@ -68,6 +68,7 @@ type HookEvents struct {
 	Create      bool `json:"create"`
 	Push        bool `json:"push"`
 	PullRequest bool `json:"pull_request"`
+	Repository  bool `json:"repository"`
 }
 
 // HookEvent represents events that will delivery hook.
@@ -188,6 +189,12 @@ func (w *Webhook) HasPullRequestEvent() bool {
 		(w.ChooseEvents && w.HookEvents.PullRequest)
 }
 
+// HasRepositoryEvent returns if hook enabled repository event.
+func (w *Webhook) HasRepositoryEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.Repository)
+}
+
 // EventsArray returns an array of hook events
 func (w *Webhook) EventsArray() []string {
 	events := make([]string, 0, 3)
@@ -246,8 +253,12 @@ func GetWebhookByOrgID(orgID, id int64) (*Webhook, error) {
 
 // GetActiveWebhooksByRepoID returns all active webhooks of repository.
 func GetActiveWebhooksByRepoID(repoID int64) ([]*Webhook, error) {
+	return getActiveWebhooksByRepoID(x, repoID)
+}
+
+func getActiveWebhooksByRepoID(e Engine, repoID int64) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, 5)
-	return webhooks, x.Where("is_active=?", true).
+	return webhooks, e.Where("is_active=?", true).
 		Find(&webhooks, &Webhook{RepoID: repoID})
 }
 
@@ -259,7 +270,11 @@ func GetWebhooksByRepoID(repoID int64) ([]*Webhook, error) {
 
 // GetActiveWebhooksByOrgID returns all active webhooks for an organization.
 func GetActiveWebhooksByOrgID(orgID int64) (ws []*Webhook, err error) {
-	err = x.
+	return getActiveWebhooksByOrgID(x, orgID)
+}
+
+func getActiveWebhooksByOrgID(e Engine, orgID int64) (ws []*Webhook, err error) {
+	err = e.
 		Where("org_id=?", orgID).
 		And("is_active=?", true).
 		Find(&ws)
@@ -379,6 +394,7 @@ const (
 	HookEventCreate      HookEventType = "create"
 	HookEventPush        HookEventType = "push"
 	HookEventPullRequest HookEventType = "pull_request"
+	HookEventRepository  HookEventType = "repository"
 )
 
 // HookRequest represents hook task request information.
@@ -479,13 +495,17 @@ func HookTasks(hookID int64, page int) ([]*HookTask, error) {
 // CreateHookTask creates a new hook task,
 // it handles conversion from Payload to PayloadContent.
 func CreateHookTask(t *HookTask) error {
+	return createHookTask(x, t)
+}
+
+func createHookTask(e Engine, t *HookTask) error {
 	data, err := t.Payloader.JSONPayload()
 	if err != nil {
 		return err
 	}
 	t.UUID = gouuid.NewV4().String()
 	t.PayloadContent = string(data)
-	_, err = x.Insert(t)
+	_, err = e.Insert(t)
 	return err
 }
 
@@ -497,6 +517,10 @@ func UpdateHookTask(t *HookTask) error {
 
 // PrepareWebhook adds special webhook to task queue for given payload.
 func PrepareWebhook(w *Webhook, repo *Repository, event HookEventType, p api.Payloader) error {
+	return prepareWebhook(x, w, repo, event, p)
+}
+
+func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType, p api.Payloader) error {
 	switch event {
 	case HookEventCreate:
 		if !w.HasCreateEvent() {
@@ -508,6 +532,10 @@ func PrepareWebhook(w *Webhook, repo *Repository, event HookEventType, p api.Pay
 		}
 	case HookEventPullRequest:
 		if !w.HasPullRequestEvent() {
+			return nil
+		}
+	case HookEventRepository:
+		if !w.HasRepositoryEvent() {
 			return nil
 		}
 	}
@@ -531,7 +559,7 @@ func PrepareWebhook(w *Webhook, repo *Repository, event HookEventType, p api.Pay
 		payloader = p
 	}
 
-	if err = CreateHookTask(&HookTask{
+	if err = createHookTask(e, &HookTask{
 		RepoID:      repo.ID,
 		HookID:      w.ID,
 		Type:        w.HookTaskType,
@@ -548,15 +576,19 @@ func PrepareWebhook(w *Webhook, repo *Repository, event HookEventType, p api.Pay
 
 // PrepareWebhooks adds new webhooks to task queue for given payload.
 func PrepareWebhooks(repo *Repository, event HookEventType, p api.Payloader) error {
-	ws, err := GetActiveWebhooksByRepoID(repo.ID)
+	return prepareWebhooks(x, repo, event, p)
+}
+
+func prepareWebhooks(e Engine, repo *Repository, event HookEventType, p api.Payloader) error {
+	ws, err := getActiveWebhooksByRepoID(e, repo.ID)
 	if err != nil {
 		return fmt.Errorf("GetActiveWebhooksByRepoID: %v", err)
 	}
 
 	// check if repo belongs to org and append additional webhooks
-	if repo.MustOwner().IsOrganization() {
+	if repo.mustOwner(e).IsOrganization() {
 		// get hooks for org
-		orgHooks, err := GetActiveWebhooksByOrgID(repo.OwnerID)
+		orgHooks, err := getActiveWebhooksByOrgID(e, repo.OwnerID)
 		if err != nil {
 			return fmt.Errorf("GetActiveWebhooksByOrgID: %v", err)
 		}
@@ -568,7 +600,7 @@ func PrepareWebhooks(repo *Repository, event HookEventType, p api.Payloader) err
 	}
 
 	for _, w := range ws {
-		if err = PrepareWebhook(w, repo, event, p); err != nil {
+		if err = prepareWebhook(e, w, repo, event, p); err != nil {
 			return err
 		}
 	}

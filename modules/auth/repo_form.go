@@ -124,6 +124,7 @@ type WebhookForm struct {
 	Create      bool
 	Push        bool
 	PullRequest bool
+	Repository  bool
 	Active      bool
 }
 
