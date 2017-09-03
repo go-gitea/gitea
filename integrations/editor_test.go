@@ -51,7 +51,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 	// Check if master branch has been locked successfully
 	flashCookie := session.GetCookie("macaron_flash")
 	assert.NotNil(t, flashCookie)
-	assert.EqualValues(t, "success%3DChange%2Bbranch%2Bprotect%2Boptions%2Bsuccessfully.", flashCookie.Value)
+	assert.EqualValues(t, "success%3DBranch%2Bprotect%2Boptions%2Bchanged%2Bsuccessfully.", flashCookie.Value)
 
 	// Request editor page
 	req = NewRequest(t, "GET", "/user2/repo1/_new/master/")
