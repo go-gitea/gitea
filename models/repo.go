@@ -406,6 +406,7 @@ func (repo *Repository) UnitEnabled(tp UnitType) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -666,6 +667,7 @@ func (repo *Repository) CanEnableEditor() bool {
 	return !repo.IsMirror
 }
 
+// Find all Dependencies an issue is blocked by
 func (repo *Repository) BlockedByDependencies(issueID int64)  (_ []*Issue, err error) {
 
 	issueDeps, err := repo.getBlockedByDependencies(x, issueID)
