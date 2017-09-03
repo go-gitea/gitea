@@ -35,27 +35,24 @@ func Search(ctx *context.APIContext) {
 		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 	}
 
-	// Check visibility.
-	if ctx.IsSigned && opts.OwnerID > 0 {
-		if ctx.User.ID == opts.OwnerID {
-			opts.Private = true
-			opts.Collaborate = true
-		} else {
-			u, err := models.GetUserByID(opts.OwnerID)
-			if err != nil {
-				ctx.JSON(500, api.SearchError{
-					OK:    false,
-					Error: err.Error(),
-				})
-				return
-			}
-			if u.IsOrganization() && u.IsOwnedBy(ctx.User.ID) {
-				opts.Private = true
-			}
+	// Include collaborative and private repositories
+	if opts.OwnerID > 0 {
+		owner, err := models.GetUserByID(opts.OwnerID)
+		if err != nil {
+			ctx.JSON(500, api.SearchError{
+				OK:    false,
+				Error: err.Error(),
+			})
+			return
+		}
 
-			if !u.IsOrganization() {
-				opts.Collaborate = true
-			}
+		if !owner.IsOrganization() {
+			opts.Collaborate = true
+		}
+
+		// Check visibility.
+		if ctx.IsSigned && (ctx.User.ID == owner.ID || (owner.IsOrganization() && owner.IsOwnedBy(ctx.User.ID))) {
+			opts.Private = true
 		}
 	}
 
