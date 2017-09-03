@@ -154,6 +154,12 @@
 						</div>
 					</div>
 					<div class="field">
+						<div class="ui checkbox">
+							<input name="enable_issue_dependencies" type="checkbox">
+							<label>Issues can have dependencies</label>
+						</div>
+					</div>
+					<div class="field">
 						<div class="ui radio checkbox">
 							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="true" data-context="#internal_issue_box" data-target="#external_issue_box" {{if .Repository.UnitEnabled $.UnitTypeExternalTracker}}checked{{end}}/>
 							<label>{{.i18n.Tr "repo.settings.use_external_issue_tracker"}}</label>

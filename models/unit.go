@@ -16,6 +16,7 @@ const (
 	UnitTypeWiki                                // 5 Wiki
 	UnitTypeExternalWiki                        // 6 ExternalWiki
 	UnitTypeExternalTracker                     // 7 ExternalTracker
+	UnitTypeIssueDependencies		    // 8 Issue Dependencies
 )
 
 var (
@@ -28,6 +29,7 @@ var (
 		UnitTypeWiki,
 		UnitTypeExternalWiki,
 		UnitTypeExternalTracker,
+		UnitTypeIssueDependencies,
 	}
 
 	// defaultRepoUnits contains the default unit types
