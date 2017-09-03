@@ -8,6 +8,7 @@ import (
 	"path"
 	"testing"
 
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"

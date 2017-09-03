@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	. "code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/stretchr/testify/assert"
 )
@@ -23,24 +24,24 @@ var numericMetas = map[string]string{
 	"format": "https://someurl.com/{user}/{repo}/{index}",
 	"user":   "someUser",
 	"repo":   "someRepo",
-	"style":  IssueNameStyleNumeric,
+	"style":  markup.IssueNameStyleNumeric,
 }
 
 var alphanumericMetas = map[string]string{
 	"format": "https://someurl.com/{user}/{repo}/{index}",
 	"user":   "someUser",
 	"repo":   "someRepo",
-	"style":  IssueNameStyleAlphanumeric,
+	"style":  markup.IssueNameStyleAlphanumeric,
 }
 
 // numericLink an HTML to a numeric-style issue
 func numericIssueLink(baseURL string, index int) string {
-	return link(URLJoin(baseURL, strconv.Itoa(index)), fmt.Sprintf("#%d", index))
+	return link(markup.URLJoin(baseURL, strconv.Itoa(index)), fmt.Sprintf("#%d", index))
 }
 
 // alphanumLink an HTML link to an alphanumeric-style issue
 func alphanumIssueLink(baseURL string, name string) string {
-	return link(URLJoin(baseURL, name), name)
+	return link(markup.URLJoin(baseURL, name), name)
 }
 
 // urlContentsLink an HTML link whose contents is the target URL
@@ -55,7 +56,7 @@ func link(href, contents string) string {
 
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, metas map[string]string) {
 	assert.Equal(t, expected,
-		string(RenderIssueIndexPattern([]byte(input), AppSubURL, metas)))
+		string(markup.RenderIssueIndexPattern([]byte(input), AppSubURL, metas)))
 }
 
 func TestRender_StandardLinks(t *testing.T) {
@@ -72,8 +73,8 @@ func TestRender_StandardLinks(t *testing.T) {
 	googleRendered := `<p><a href="https://google.com/" rel="nofollow">https://google.com/</a></p>`
 	test("<https://google.com/>", googleRendered, googleRendered)
 
-	lnk := URLJoin(AppSubURL, "WikiPage")
-	lnkWiki := URLJoin(AppSubURL, "wiki", "WikiPage")
+	lnk := markup.URLJoin(AppSubURL, "WikiPage")
+	lnkWiki := markup.URLJoin(AppSubURL, "wiki", "WikiPage")
 	test("[WikiPage](WikiPage)",
 		`<p><a href="`+lnk+`" rel="nofollow">WikiPage</a></p>`,
 		`<p><a href="`+lnkWiki+`" rel="nofollow">WikiPage</a></p>`)
@@ -82,7 +83,7 @@ func TestRender_StandardLinks(t *testing.T) {
 func TestRender_ShortLinks(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
-	tree := URLJoin(AppSubURL, "src", "master")
+	tree := markup.URLJoin(AppSubURL, "src", "master")
 
 	test := func(input, expected, expectedWiki string) {
 		buffer := RenderString(input, tree, nil)
@@ -91,13 +92,13 @@ func TestRender_ShortLinks(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
 	}
 
-	rawtree := URLJoin(AppSubURL, "raw", "master")
-	url := URLJoin(tree, "Link")
-	otherUrl := URLJoin(tree, "OtherLink")
-	imgurl := URLJoin(rawtree, "Link.jpg")
-	urlWiki := URLJoin(AppSubURL, "wiki", "Link")
-	otherUrlWiki := URLJoin(AppSubURL, "wiki", "OtherLink")
-	imgurlWiki := URLJoin(AppSubURL, "wiki", "raw", "Link.jpg")
+	rawtree := markup.URLJoin(AppSubURL, "raw", "master")
+	url := markup.URLJoin(tree, "Link")
+	otherUrl := markup.URLJoin(tree, "OtherLink")
+	imgurl := markup.URLJoin(rawtree, "Link.jpg")
+	urlWiki := markup.URLJoin(AppSubURL, "wiki", "Link")
+	otherUrlWiki := markup.URLJoin(AppSubURL, "wiki", "OtherLink")
+	imgurlWiki := markup.URLJoin(AppSubURL, "wiki", "raw", "Link.jpg")
 	favicon := "http://google.com/favicon.ico"
 
 	test(
@@ -164,69 +165,6 @@ func TestMisc_IsMarkdownFile(t *testing.T) {
 	}
 }
 
-func TestRender_ShortLinks(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
-	tree := URLJoin(AppSubURL, "src", "master")
-
-	test := func(input, expected, expectedWiki string) {
-		buffer := RenderString(input, tree, nil)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
-		buffer = RenderWiki([]byte(input), setting.AppSubURL, nil)
-		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
-	}
-
-	rawtree := URLJoin(AppSubURL, "raw", "master")
-	url := URLJoin(tree, "Link")
-	otherUrl := URLJoin(tree, "OtherLink")
-	imgurl := URLJoin(rawtree, "Link.jpg")
-	urlWiki := URLJoin(AppSubURL, "wiki", "Link")
-	otherUrlWiki := URLJoin(AppSubURL, "wiki", "OtherLink")
-	imgurlWiki := URLJoin(AppSubURL, "wiki", "raw", "Link.jpg")
-	favicon := "http://google.com/favicon.ico"
-
-	test(
-		"[[Link]]",
-		`<p><a href="`+url+`" rel="nofollow">Link</a></p>`,
-		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a></p>`)
-	test(
-		"[[Link.jpg]]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="Link.jpg" title="Link.jpg"/></a></p>`,
-		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="Link.jpg" title="Link.jpg"/></a></p>`)
-	test(
-		"[["+favicon+"]]",
-		`<p><a href="`+favicon+`" rel="nofollow"><img src="`+favicon+`" title="favicon.ico"/></a></p>`,
-		`<p><a href="`+favicon+`" rel="nofollow"><img src="`+favicon+`" title="favicon.ico"/></a></p>`)
-	test(
-		"[[Name|Link]]",
-		`<p><a href="`+url+`" rel="nofollow">Name</a></p>`,
-		`<p><a href="`+urlWiki+`" rel="nofollow">Name</a></p>`)
-	test(
-		"[[Name|Link.jpg]]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="Name" title="Name"/></a></p>`,
-		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="Name" title="Name"/></a></p>`)
-	test(
-		"[[Name|Link.jpg|alt=AltName]]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="AltName"/></a></p>`,
-		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="AltName" title="AltName"/></a></p>`)
-	test(
-		"[[Name|Link.jpg|title=Title]]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="Title" title="Title"/></a></p>`,
-		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="Title" title="Title"/></a></p>`)
-	test(
-		"[[Name|Link.jpg|alt=AltName|title=Title]]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="Title"/></a></p>`,
-		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="AltName" title="Title"/></a></p>`)
-	test(
-		"[[Name|Link.jpg|alt=\"AltName\"|title='Title']]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="Title"/></a></p>`,
-		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="AltName" title="Title"/></a></p>`)
-	test(
-		"[[Link]] [[OtherLink]]",
-		`<p><a href="`+url+`" rel="nofollow">Link</a> <a href="`+otherUrl+`" rel="nofollow">OtherLink</a></p>`,
-		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a> <a href="`+otherUrlWiki+`" rel="nofollow">OtherLink</a></p>`)
-}
-
 func TestRender_Images(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
@@ -238,7 +176,7 @@ func TestRender_Images(t *testing.T) {
 
 	url := "../../.images/src/02/train.jpg"
 	title := "Train"
-	result := URLJoin(AppSubURL, url)
+	result := markup.URLJoin(AppSubURL, url)
 
 	test(
 		"!["+title+"]("+url+")",
@@ -274,7 +212,7 @@ func TestRegExp_ShortLinkPattern(t *testing.T) {
 }
 
 func TestTotal_RenderWiki(t *testing.T) {
-	answers := testAnswers(URLJoin(AppSubURL, "wiki/"), URLJoin(AppSubURL, "wiki", "raw/"))
+	answers := testAnswers(markup.URLJoin(AppSubURL, "wiki/"), markup.URLJoin(AppSubURL, "wiki", "raw/"))
 
 	for i := 0; i < len(sameCases); i++ {
 		line := RenderWiki([]byte(sameCases[i]), AppSubURL, nil)
