@@ -34,19 +34,7 @@ func AddTimeManually(c *context.Context, form auth.AddTimeManuallyForm) {
 		return
 	}
 
-	h, err := parseTimeTrackingWithDuration(form.Hours, "h")
-	if err != nil {
-		c.Handle(http.StatusInternalServerError, "parseTimeTrackingWithDuration", err)
-		return
-	}
-
-	m, err := parseTimeTrackingWithDuration(form.Minutes, "m")
-	if err != nil {
-		c.Handle(http.StatusInternalServerError, "parseTimeTrackingWithDuration", err)
-		return
-	}
-
-	total := h + m
+	total := time.Duration(form.Hours) * time.Hour + time.Duration(form.Minutes) + time.Minute
 
 	if total <= 0 {
 		c.Flash.Error(c.Tr("repo.issues.add_time_sum_to_small"))
@@ -54,14 +42,10 @@ func AddTimeManually(c *context.Context, form auth.AddTimeManuallyForm) {
 		return
 	}
 
-	if _, err := models.AddTime(c.User, issue, int64(total.Seconds())); err != nil {
+	if _, err := models.AddTime(c.User, issue, int64(total)); err != nil {
 		c.Handle(http.StatusInternalServerError, "AddTime", err)
 		return
 	}
 
 	c.Redirect(url, http.StatusSeeOther)
-}
-
-func parseTimeTrackingWithDuration(value int, space string) (time.Duration, error) {
-	return time.ParseDuration(strconv.Itoa(value) + space)
 }
