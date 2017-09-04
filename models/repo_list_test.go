@@ -84,6 +84,30 @@ func TestSearchRepositoryByName(t *testing.T) {
 	assert.Equal(t, int64(8), count)
 	assert.Len(t, repos, 8)
 
+	// Get all public + private repositories by name with pagesize limit (first page)
+	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
+		Keyword:  "big_test_",
+		Page:     1,
+		PageSize: 5,
+		Private:  true,
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, int64(8), count)
+	assert.Len(t, repos, 5)
+
+	// Get all public + private repositories by name with pagesize limit (second page)
+	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
+		Keyword:  "big_test_",
+		Page:     2,
+		PageSize: 5,
+		Private:  true,
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, int64(8), count)
+	assert.Len(t, repos, 3)
+
 	// Get all public repositories of user
 	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
 		Page:     1,
