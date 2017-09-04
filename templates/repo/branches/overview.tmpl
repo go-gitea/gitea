@@ -1,0 +1,71 @@
+{{template "base/head" .}}
+<div class="repository branches overview">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div class="navbar">
+			{{template "repo/branches/navbar" .}}
+		</div>
+		<div class="ui top attached header">
+			{{.i18n.Tr "repo.settings.default_branch"}}
+		</div>
+		<div class="ui attached segment list">
+			<div class="item ui grid">
+				<div class="ui eleven wide column">
+					{{if .DefaultBranch.IsProtected}}<i class="octicon octicon-shield"></i> {{end}}<a class="markdown" href="{{$.RepoLink}}/src/{{.DefaultBranch.Name}}"><code>{{.DefaultBranch.Name}}</code></a>
+					{{$timeSince := TimeSince .DefaultBranch.Commit.Committer.When $.Lang}}
+					<span class="ui text light grey">{{$.i18n.Tr "repo.branches.updated_by" $timeSince .DefaultBranch.Commit.Committer.Name | Safe}}</span>
+				</div>
+				{{if and $.IsRepositoryAdmin (not $.Repository.IsMirror)}}
+					<div class="ui four wide column">
+						<a class="ui basic blue button" href="{{$.RepoLink}}/settings/branches">{{.i18n.Tr "repo.branches.change_default_branch"}}</a>
+					</div>
+				{{end}}
+			</div>
+		</div>
+
+		{{if .ActiveBranches}}
+			<div class="ui top attached header">
+				{{.i18n.Tr "repo.branches.active_branches"}}
+			</div>
+			<div class="ui attached segment list">
+				{{range .ActiveBranches}}
+					<div class="item ui grid">
+						<div class="ui eleven wide column">
+							{{if .IsProtected}}<i class="octicon octicon-shield"></i> {{end}}<a class="markdown" href="{{$.RepoLink}}/src/{{.Name}}"><code>{{.Name}}</code></a>
+							{{$timeSince := TimeSince .Commit.Committer.When $.Lang}}
+							<span class="ui text light grey">{{$.i18n.Tr "repo.branches.updated_by" $timeSince .Commit.Committer.Name | Safe}}</span>
+						</div>
+						{{if and $.IsRepositoryWriter $.AllowPullRequest}}
+							<div class="ui four wide column">
+								<a class="ui basic button" href="{{$.RepoLink}}/compare/{{$.BranchName}}...{{.Name}}"><i class="octicon octicon-git-pull-request"></i> {{$.i18n.Tr "repo.pulls.new"}}</a>
+							</div>
+						{{end}}
+					</div>
+				{{end}}
+			</div>
+		{{end}}
+
+		{{if .StaleBranches}}
+			<div class="ui top attached header">
+				{{.i18n.Tr "repo.branches.stale_branches"}}
+			</div>
+			<div class="ui attached segment list">
+				{{range .StaleBranches}}
+					<div class="item ui grid">
+						<div class="ui eleven wide column">
+							{{if .IsProtected}}<i class="octicon octicon-shield"></i> {{end}}<a class="markdown" href="{{$.RepoLink}}/src/{{.Name}}"><code>{{.Name}}</code></a>
+							{{$timeSince := TimeSince .Commit.Committer.When $.Lang}}
+							<span class="ui text light grey">{{$.i18n.Tr "repo.branches.updated_by" $timeSince .Commit.Committer.Name | Safe}}</span>
+						</div>
+						{{if and $.IsRepositoryWriter $.AllowPullRequest}}
+							<div class="ui four wide column">
+								<a class="ui basic button" href="{{$.RepoLink}}/compare/{{$.BranchName}}...{{.Name}}"><i class="octicon octicon-git-pull-request"></i> {{$.i18n.Tr "repo.pulls.new"}}</a>
+							</div>
+						{{end}}
+					</div>
+				{{end}}
+			</div>
+		{{end}}
+	</div>
+</div>
+{{template "base/footer" .}}

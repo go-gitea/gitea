@@ -579,6 +579,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/milestones", repo.Milestones)
 		}, context.RepoRef())
 
+		m.Group("/branches", func() {
+			m.Get("", repo.Branches)
+			m.Get("/all", repo.AllBranches)
+			m.Post("/delete/*", reqSignIn, reqRepoWriter, repo.DeleteBranchPost)
+		}, repo.MustBeNotBare, func(c *context.Context) {
+			c.Data["PageIsViewFiles"] = true
+		})
+
 		m.Group("/wiki", func() {
 			m.Get("/?:page", repo.Wiki)
 			m.Get("/_pages", repo.WikiPages)
