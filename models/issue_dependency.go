@@ -44,6 +44,13 @@ func (iw *IssueDependency) BeforeUpdate() {
 
 // CreateIssueDependency creates a new dependency for an issue
 func CreateIssueDependency(userID, issueID int64, depID int64) (err error, exists bool, depExists bool) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err, false, false
+	}
+
+	// TODO: Move this to the appropriate place
 	err = x.Sync(new(IssueDependency))
 	if err != nil {
 		return err, exists, false
@@ -60,6 +67,7 @@ func CreateIssueDependency(userID, issueID int64, depID int64) (err error, exist
 		// Check if the other issue exists
 		var issue = Issue{}
 		issueExists, err := x.Id(depID).Get(&issue)
+
 		if issueExists {
 			newId := new(IssueDependency)
 			newId.UserID = userID
@@ -70,30 +78,40 @@ func CreateIssueDependency(userID, issueID int64, depID int64) (err error, exist
 				return err, exists, false
 			}
 
-			// Add comment referencing the new dependency
-			comment := &Comment{
-				IssueID:  issueID,
-				PosterID: userID,
-				Type:     CommentTypeAddedDependency,
-				Content: issue.Title,
-				DependentIssue: depID,
-			}
-
-			if _, err := x.Insert(comment); err != nil {
+			user, err := getUserByID(x, userID)
+			if err != nil {
 				return err, exists, false
 			}
 
-			var depIssue = Issue{}
-			_, err = x.Id(issueID).Get(&depIssue)
-			comment = &Comment{
-				IssueID:  depID,
-				PosterID: userID,
-				Type:     CommentTypeAddedDependency,
-				Content: depIssue.Title,
-				DependentIssue: issueID,
+			// Add comment referencing the new dependency
+
+			repo, err := getRepositoryByID(x, issue.RepoID)
+
+			if err != nil {
+				return err, exists, false
 			}
 
-			if _, err := x.Insert(comment); err != nil {
+
+			_, err = createIssueDependencyComment(sess, user, repo, &issue, depID, true)
+
+			if err != nil {
+				return err, exists, false
+			}
+
+			// Create a new comment for the dependent issue
+			depIssue, err := getIssueByID(x, issueID)
+			if err != nil {
+				return err, exists, false
+			}
+
+			repo, err = getRepositoryByID(x, depIssue.RepoID)
+			if err != nil {
+				return err, exists, false
+			}
+
+			_, err = createIssueDependencyComment(sess, user, repo, depIssue, issueID, true)
+
+			if err != nil {
 				return err, exists, false
 			}
 		}
@@ -104,6 +122,13 @@ func CreateIssueDependency(userID, issueID int64, depID int64) (err error, exist
 
 // Removes a dependency from an issue
 func RemoveIssueDependency(userID, issueID int64, depID int64, depType int64) (err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	// TODO: Same as above
 	err = x.Sync(new(IssueDependency))
 	if err != nil {
 		return err
@@ -133,31 +158,34 @@ func RemoveIssueDependency(userID, issueID int64, depID int64, depType int64) (e
 		}
 
 		// Add comment referencing the removed dependency
-		var issue = Issue{}
-		_, err = x.Id(depID).Get(&issue)
-		comment := &Comment{
-			IssueID:  issueID,
-			PosterID: userID,
-			Type:     CommentTypeRemovedDependency,
-			Content: issue.Title,
-			DependentIssue: depID,
-		}
+		issue, err := getIssueByID(x, depID)
 
-		if _, err := x.Insert(comment); err != nil {
+		if err != nil {
 			return err
 		}
 
-		var depIssue = Issue{}
-		_, err = x.Id(issueID).Get(&depIssue)
-		comment = &Comment{
-			IssueID:  depID,
-			PosterID: userID,
-			Type:     CommentTypeRemovedDependency,
-			Content: depIssue.Title,
-			DependentIssue: issueID,
+		user, _ := getUserByID(x, userID)
+
+		repo, _ := getRepositoryByID(x, issue.RepoID)
+
+		_, err = createIssueDependencyComment(sess, user, repo, issue, depID, false)
+
+		if err != nil {
+			return err
 		}
 
-		if _, err := x.Insert(comment); err != nil {
+		// Create a new comment for the dependent issue
+		depIssue, err := getIssueByID(x, issueID)
+
+		if err != nil {
+			return err
+		}
+
+		repo, _ = getRepositoryByID(x, depIssue.RepoID)
+
+		_, err = createIssueDependencyComment(sess, user, repo, depIssue, issueID, false)
+
+		if err != nil {
 			return err
 		}
 	}

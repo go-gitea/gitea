@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
-// IssueWatch sets issue watching
+// Adds new dependencies
 func AddDependency(c *context.Context) {
 	dep, err := strconv.ParseInt(c.Req.PostForm.Get("newDependency"), 10, 64)
 	if err != nil {
@@ -33,7 +33,7 @@ func AddDependency(c *context.Context) {
 		c.Flash.Error("You cannot make an issue depend on itself!")
 	} else {
 
-		err, exists, depExists := models.CreateIssueDependency(c.User.ID, issue.ID, dep);
+		err, exists, depExists := models.CreateIssueDependency(c.User.ID, issue.ID, dep)
 		if err != nil {
 			c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
 			return

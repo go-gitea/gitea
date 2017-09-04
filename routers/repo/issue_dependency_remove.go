@@ -43,6 +43,7 @@ func RemoveDependency(c *context.Context) {
 
 	err = models.RemoveIssueDependency(c.User.ID, issue.ID, dep, depType)
 	if err != nil {
+		panic(err)
 		c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
 		return
 	}

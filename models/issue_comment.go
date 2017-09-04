@@ -322,8 +322,18 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:        opts.Content,
 		OldTitle:       opts.OldTitle,
 		NewTitle:       opts.NewTitle,
+		DependentIssue: opts.DependentIssue,
 	}
-	if _, err = e.Insert(comment); err != nil {
+
+	//fmt.Println(comment)
+
+	// TODO: WHY ISNT THIS INSERTED??????
+	// It seems to be inserted, but isnt. (Doesn't return an error, raw pasting
+	// the sql query in a database console does work). But after the function
+	// is called, there is no entry in the database. At least for type 12 and 13.
+
+	_, err = e.Insert(comment)
+	if err != nil {
 		return nil, err
 	}
 
@@ -495,6 +505,23 @@ func createDeleteBranchComment(e *xorm.Session, doer *User, repo *Repository, is
 	})
 }
 
+// Creates issue dependency comment
+func createIssueDependencyComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, dependantIssue int64, added bool) (*Comment, error) {
+	cType := CommentTypeAddedDependency
+	if !added {
+		cType = CommentTypeRemovedDependency
+	}
+
+	return createComment(e, &CreateCommentOptions{
+		Type: cType,
+		Doer: doer,
+		Repo: repo,
+		Issue: issue,
+		DependentIssue: dependantIssue,
+		Content: issue.Title,
+	})
+}
+
 // CreateCommentOptions defines options for creating comment
 type CreateCommentOptions struct {
 	Type  CommentType
@@ -514,6 +541,7 @@ type CreateCommentOptions struct {
 	LineNum        int64
 	Content        string
 	Attachments    []string // UUIDs of attachments
+	DependentIssue int64
 }
 
 // CreateComment creates comment of issue or commit.
