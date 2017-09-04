@@ -45,10 +45,6 @@ func (iw *IssueDependency) BeforeUpdate() {
 // CreateIssueDependency creates a new dependency for an issue
 func CreateIssueDependency(userID, issueID int64, depID int64) (err error, exists bool, depExists bool) {
 	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err, false, false
-	}
 
 	// TODO: Move this to the appropriate place
 	err = x.Sync(new(IssueDependency))
@@ -123,10 +119,6 @@ func CreateIssueDependency(userID, issueID int64, depID int64) (err error, exist
 // Removes a dependency from an issue
 func RemoveIssueDependency(userID, issueID int64, depID int64, depType int64) (err error) {
 	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
 
 	// TODO: Same as above
 	err = x.Sync(new(IssueDependency))
