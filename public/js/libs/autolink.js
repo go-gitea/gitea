@@ -5,11 +5,13 @@ jQuery.fn.autolink = function() {
 		.each(function() {
 			$(this).each(function() {
 				if (re.test($(this).text()))
-					$(this).replaceWith(
-						$("<span />").html(
-							this.nodeValue.replace(re, "<a href='$1'>$1</a>")
-						)
-					);
+					if($(this).parents().filter('code').length === 0) {
+						$(this).replaceWith(
+							$("<span />").html(
+								this.nodeValue.replace(re, "<a href='$1'>$1</a>")
+							)
+						);
+					};
 			});
 		});
 };
