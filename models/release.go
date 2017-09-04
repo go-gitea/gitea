@@ -425,7 +425,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 
 // SyncReleasesWithTags synchronizes release table with repository tags
 func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
-	checked := make([]string, 100)
+	existingRelTags := make(map[string]struct{})
 	opts := FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
 	page := 0
 	for {
@@ -446,7 +446,7 @@ func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 					return fmt.Errorf("pushUpdateDeleteTag: %v", err)
 				}
 			} else {
-				checked = append(checked, rel.TagName)
+				existingRelTags[strings.ToLower(rel.TagName)] = struct{}{}
 			}
 		}
 	}
@@ -455,15 +455,10 @@ func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 		return fmt.Errorf("GetTags: %v", err)
 	}
 	for _, tagName := range tags {
-		exists := false
-		for _, relTagName := range checked {
-			if tagName == relTagName {
-				exists = true
-				break
+		if _, ok := existingRelTags[strings.ToLower(tagName)]; !ok {
+			if err := pushUpdateAddTag(repo, gitRepo, tagName); err != nil {
+				return fmt.Errorf("pushUpdateAddTag: %v", err)
 			}
-		}
-		if !exists {
-			pushUpdateAddTag(repo, gitRepo, tagName)
 		}
 	}
 	return nil
