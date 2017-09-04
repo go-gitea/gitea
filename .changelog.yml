@@ -38,7 +38,7 @@ groups:
   - 
     name: DOCS
     labels:
-    - kind/docs
+      - kind/docs
   - 
     name: MISC
     default: true
