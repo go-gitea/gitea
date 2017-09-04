@@ -15,7 +15,7 @@ import (
 
 // Adds new dependencies
 func AddDependency(c *context.Context) {
-	dep, err := strconv.ParseInt(c.Req.PostForm.Get("newDependency"), 10, 64)
+	depID, err := strconv.ParseInt(c.Req.PostForm.Get("newDependency"), 10, 64)
 	if err != nil {
 		c.Handle(http.StatusBadRequest, "issue ID is not int", err)
 		return
@@ -28,12 +28,19 @@ func AddDependency(c *context.Context) {
 		return
 	}
 
+	// Dependency
+	dep, err := models.GetIssueByID(depID)
+	if err != nil {
+		c.Handle(http.StatusInternalServerError, "GetIssueByID", err)
+		return
+	}
+
 	// Check if issue and dependency is the same
-	if dep == issueIndex{
+	if dep.Index == issueIndex{
 		c.Flash.Error("You cannot make an issue depend on itself!")
 	} else {
 
-		err, exists, depExists := models.CreateIssueDependency(c.User.ID, issue.ID, dep)
+		err, exists, depExists := models.CreateIssueDependency(c.User, issue, dep)
 		if err != nil {
 			c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
 			return

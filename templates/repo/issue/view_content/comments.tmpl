@@ -152,7 +152,10 @@
 			<div class="detail">
 				<span class="text grey">
 				<i class="octicon octicon-plus"></i>
-					<a href="{{$.RepoLink}}/issues/{{.DependentIssue}}">#{{.DependentIssue}} {{.Content}}</a>
+
+					<!-- TODO: Use issue index instead of id -->
+
+					<a href="{{$.RepoLink}}/issues/{{.DependentIssueID}}">#{{.DependentIssueID}} {{.Content}}</a>
 				</span>
 			</div>
 		</div>
@@ -168,7 +171,7 @@
 			<div class="detail">
 				<span class="text grey">
 				<i class="octicon octicon-trashcan"></i>
-					<a href="{{$.RepoLink}}/issues/{{.DependentIssue}}">#{{.DependentIssue}} {{.Content}}</a>
+					<a href="{{$.RepoLink}}/issues/{{.DependentIssueID}}">#{{.DependentIssueID}} {{.Content}}</a>
 				</span>
 			</div>
 		</div>

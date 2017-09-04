@@ -88,7 +88,8 @@ type Comment struct {
 	OldAssignee    *User `xorm:"-"`
 	OldTitle       string
 	NewTitle       string
-	DependentIssue int64
+	DependentIssueID int64
+	DependentIssue *Issue `xorm:"-"`
 
 	CommitID        int64
 	Line            int64
@@ -323,6 +324,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		OldTitle:       opts.OldTitle,
 		NewTitle:       opts.NewTitle,
 		DependentIssue: opts.DependentIssue,
+		DependentIssueID: opts.DependentIssue.ID,
 	}
 
 	//fmt.Println(comment)
@@ -506,7 +508,7 @@ func createDeleteBranchComment(e *xorm.Session, doer *User, repo *Repository, is
 }
 
 // Creates issue dependency comment
-func createIssueDependencyComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, dependantIssue int64, added bool) (*Comment, error) {
+func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dependantIssue *Issue, added bool) (*Comment, error) {
 	cType := CommentTypeAddedDependency
 	if !added {
 		cType = CommentTypeRemovedDependency
@@ -515,7 +517,7 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, repo *Repository,
 	return createComment(e, &CreateCommentOptions{
 		Type: cType,
 		Doer: doer,
-		Repo: repo,
+		Repo: issue.Repo,
 		Issue: issue,
 		DependentIssue: dependantIssue,
 		Content: issue.Title,
@@ -529,6 +531,7 @@ type CreateCommentOptions struct {
 	Repo  *Repository
 	Issue *Issue
 	Label *Label
+	DependentIssue *Issue
 
 	OldMilestoneID int64
 	MilestoneID    int64
@@ -541,7 +544,6 @@ type CreateCommentOptions struct {
 	LineNum        int64
 	Content        string
 	Attachments    []string // UUIDs of attachments
-	DependentIssue int64
 }
 
 // CreateComment creates comment of issue or commit.
