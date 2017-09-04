@@ -26,7 +26,7 @@
         re.lastIndex = 0;
         var results = re.exec(node.textContent);
         if(results !== null) {
-            if($(node).parents().filter('pre>code').length === 0) {
+            if($(node).parents().filter('code').length === 0) {
                 $(node).replaceWith(
                     $('<span />').html(
                         node.nodeValue.replace(re, '<a href="$1">$1</a>')
