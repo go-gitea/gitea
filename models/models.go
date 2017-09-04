@@ -146,10 +146,14 @@ func LoadConfigs() {
 		DbCfg.Passwd = sec.Key("PASSWD").String()
 	}
 	DbCfg.SSLMode = sec.Key("SSL_MODE").String()
-	DbCfg.Path = sec.Key("PATH").MustString("data/gitea.db")
+	workDir, err := setting.WorkDir()
+	if err != nil {
+		log.Fatal(4, "Failed to get work directory: %v", err)
+	}
+	DbCfg.Path = sec.Key("PATH").MustString(path.Join(workDir, "data", "gitea.db"))
 
 	sec = setting.Cfg.Section("indexer")
-	setting.Indexer.IssuePath = sec.Key("ISSUE_INDEXER_PATH").MustString("indexers/issues.bleve")
+	setting.Indexer.IssuePath = sec.Key("ISSUE_INDEXER_PATH").MustString(path.Join(workDir, "indexers", "issues.bleve"))
 	setting.Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
 }
 

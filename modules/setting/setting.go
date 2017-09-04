@@ -618,7 +618,8 @@ please consider changing to GITEA_CUSTOM`)
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(workDir)
-	AppDataPath = sec.Key("APP_DATA_PATH").MustString("data")
+	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(workDir, "data"))
+
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
 
@@ -1125,6 +1126,16 @@ func newSessionService() {
 	SessionConfig.Provider = Cfg.Section("session").Key("PROVIDER").In("memory",
 		[]string{"memory", "file", "redis", "mysql"})
 	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").String(), "\" ")
+	if SessionConfig.Provider == "file" && SessionConfig.ProviderConfig == "" {
+		// Macaron uses its default dir (data/sessions) under AppPath
+		// we uses one under GITEA_WORK_DIR
+		workDir, err := WorkDir()
+		if err != nil {
+			log.Fatal(4, "Failed to get work directory: %v", err)
+		}
+
+		SessionConfig.ProviderConfig = path.Join(workDir, "data", "sessions")
+	}
 	SessionConfig.CookieName = Cfg.Section("session").Key("COOKIE_NAME").MustString("i_like_gitea")
 	SessionConfig.CookiePath = AppSubURL
 	SessionConfig.Secure = Cfg.Section("session").Key("COOKIE_SECURE").MustBool(false)
