@@ -96,7 +96,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 
 	assert.NotNil(t, repos)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(3), count)
+	assert.Equal(t, int64(2), count)
 
 	// Get all public + private repositories of user
 	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
@@ -109,7 +109,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 
 	assert.NotNil(t, repos)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(6), count)
+	assert.Equal(t, int64(4), count)
 
 	// Get all public (including collaborative) repositories of user
 	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
