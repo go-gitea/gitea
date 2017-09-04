@@ -6,7 +6,6 @@ package repo
 
 import (
 	"net/http"
-	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -34,7 +33,7 @@ func AddTimeManually(c *context.Context, form auth.AddTimeManuallyForm) {
 		return
 	}
 
-	total := time.Duration(form.Hours) * time.Hour + time.Duration(form.Minutes) + time.Minute
+	total := time.Duration(form.Hours)*time.Hour + time.Duration(form.Minutes)*time.Minute
 
 	if total <= 0 {
 		c.Flash.Error(c.Tr("repo.issues.add_time_sum_to_small"))
