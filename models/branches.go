@@ -159,6 +159,7 @@ func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, white
 		if _, err = x.Insert(protectBranch); err != nil {
 			return fmt.Errorf("Insert: %v", err)
 		}
+		return nil
 	}
 
 	if _, err = x.Id(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
