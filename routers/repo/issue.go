@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"net/http"
 )
 
 const (
@@ -681,6 +682,11 @@ func ViewIssue(ctx *context.Context) {
 		} else if comment.Type == models.CommentTypeAssignees {
 			if err = comment.LoadAssignees(); err != nil {
 				ctx.Handle(500, "LoadAssignees", err)
+				return
+			}
+		} else if comment.Type == models.CommentTypeRemovedDependency || comment.Type == models.CommentTypeAddedDependency{
+			if err = comment.LoadDepIssueDetails(); err != nil{
+				ctx.Handle(http.StatusInternalServerError, "LoadDepIssueDetails", err)
 				return
 			}
 		}
