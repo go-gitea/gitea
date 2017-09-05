@@ -4,9 +4,7 @@
 
 package models
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // ErrNameReserved represents a "reserved name" error.
 type ErrNameReserved struct {
@@ -260,19 +258,19 @@ func (err ErrKeyNameAlreadyUsed) Error() string {
 	return fmt.Sprintf("public key already exists [owner_id: %d, name: %s]", err.OwnerID, err.Name)
 }
 
-// ErrGPGEmailNotFound represents a "ErrGPGEmailNotFound" kind of error.
-type ErrGPGEmailNotFound struct {
-	Email string
+// ErrGPGNoEmailFound represents a "ErrGPGNoEmailFound" kind of error.
+type ErrGPGNoEmailFound struct {
+	FailedEmails []string
 }
 
-// IsErrGPGEmailNotFound checks if an error is a ErrGPGEmailNotFound.
-func IsErrGPGEmailNotFound(err error) bool {
-	_, ok := err.(ErrGPGEmailNotFound)
+// IsErrGPGNoEmailFound checks if an error is a ErrGPGNoEmailFound.
+func IsErrGPGNoEmailFound(err error) bool {
+	_, ok := err.(ErrGPGNoEmailFound)
 	return ok
 }
 
-func (err ErrGPGEmailNotFound) Error() string {
-	return fmt.Sprintf("failed to found email or is not confirmed : %s", err.Email)
+func (err ErrGPGNoEmailFound) Error() string {
+	return fmt.Sprintf("none of the emails attached to the GPG key could be found: %v", err.FailedEmails)
 }
 
 // ErrGPGKeyParsing represents a "ErrGPGKeyParsing" kind of error.

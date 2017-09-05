@@ -208,21 +208,27 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	emails := make([]*EmailAddress, len(e.Identities))
-	n := 0
+
+	emails := make([]*EmailAddress, 0, len(e.Identities))
 	for _, ident := range e.Identities {
 		email := strings.ToLower(strings.TrimSpace(ident.UserId.Email))
 		for _, e := range userEmails {
-			if e.Email == email && e.IsActivated {
-				emails[n] = e
+			if e.Email == email {
+				emails = append(emails, e)
 				break
 			}
 		}
-		if emails[n] == nil {
-			return nil, ErrGPGEmailNotFound{ident.UserId.Email}
-		}
-		n++
 	}
+
+	//In the case no email as been found
+	if len(emails) == 0 {
+		failedEmails := make([]string, 0, len(e.Identities))
+		for _, ident := range e.Identities {
+			failedEmails = append(failedEmails, ident.UserId.Email)
+		}
+		return nil, ErrGPGNoEmailFound{failedEmails}
+	}
+
 	content, err := base64EncPubKey(pubkey)
 	if err != nil {
 		return nil, err
@@ -380,8 +386,8 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		}
 
 		//Find Committer account
-		committer, err := GetUserByEmail(c.Committer.Email)
-		if err != nil { //Skipping not user for commiter
+		committer, err := GetUserByEmail(c.Committer.Email) //This find the user by primary email or activated email so commit will not be valid if email is not
+		if err != nil {                                     //Skipping not user for commiter
 			log.Error(3, "NoCommitterAccount: %v", err)
 			return &CommitVerification{
 				Verified: false,
@@ -399,6 +405,18 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		}
 
 		for _, k := range keys {
+			//Pre-check (& optimization) that emails attached to key can be attached to the commiter email and can validate
+			canValidate := false
+			for _, e := range k.Emails {
+				if e.IsActivated && e.Email == c.Committer.Email {
+					canValidate = true
+					break
+				}
+			}
+			if !canValidate {
+				continue //Skip this key
+			}
+
 			//Generating hash of commit
 			hash, err := populateHash(sig.Hash, []byte(c.Signature.Payload))
 			if err != nil { //Skipping ailed to generate hash
