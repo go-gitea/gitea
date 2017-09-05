@@ -585,7 +585,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/delete/*", reqSignIn, reqRepoWriter, repo.DeleteBranchPost)
 		}, repo.MustBeNotBare, func(c *context.Context) {
 			c.Data["PageIsViewFiles"] = true
-		})
+		}, context.CheckUnit(models.UnitTypeCode))
 
 		m.Group("/wiki", func() {
 			m.Get("/?:page", repo.Wiki)
