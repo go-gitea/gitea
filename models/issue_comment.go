@@ -275,6 +275,18 @@ func (c *Comment) LoadAssignees() error {
 	return nil
 }
 
+// Load Dependent Issue Details
+func (c *Comment) LoadDepIssueDetails() error {
+	var err error
+	if c.DependentIssueID > 0 {
+		c.DependentIssue, err = getIssueByID(x, c.DependentIssueID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
 func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
