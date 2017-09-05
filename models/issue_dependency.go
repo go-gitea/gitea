@@ -83,7 +83,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (err error, exists boo
 			return err, exists, false
 		}
 	}
-	return nil, exists, false
+	return nil, exists, true
 }
 
 // Removes a dependency from an issue
