@@ -18,6 +18,7 @@ const (
 	tplBranchAll      = "repo/branches/all"
 )
 
+// Branch branch information on UI
 type Branch struct {
 	Name        string
 	Commit      *git.Commit
