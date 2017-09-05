@@ -178,8 +178,9 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 			// Include collaborative repositories
 			if opts.Collaborate {
 				// Add repositories where user is set as collaborator directly
-				accessCond = accessCond.Or(builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ? AND owner_id != ?)",
-					opts.OwnerID, opts.OwnerID))
+				accessCond = accessCond.Or(builder.And(
+					builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", opts.OwnerID),
+					builder.Neq{"owner_id": opts.OwnerID}))
 			}
 
 			// Add user access conditions to search
