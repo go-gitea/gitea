@@ -182,7 +182,7 @@
   owner_id: 2
   lower_name: repo16
   name: repo16
-  is_private: false
+  is_private: true
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
