@@ -18,7 +18,6 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Keyword:  "repo_12",
 		Page:     1,
 		PageSize: 10,
-		Searcher: nil,
 	})
 
 	assert.NotNil(t, repos)
@@ -32,7 +31,6 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Keyword:  "test_repo",
 		Page:     1,
 		PageSize: 10,
-		Searcher: nil,
 	})
 
 	assert.NotNil(t, repos)
@@ -45,7 +43,6 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Page:     1,
 		PageSize: 10,
 		Private:  true,
-		Searcher: &User{ID: 14},
 	})
 
 	assert.NotNil(t, repos)
@@ -60,7 +57,6 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Page:     1,
 		PageSize: 10,
 		Private:  true,
-		Searcher: &User{ID: 14},
 	})
 
 	assert.NotNil(t, repos)
@@ -126,7 +122,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 
 	assert.NotNil(t, repos)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(3), count)
+	assert.Equal(t, int64(4), count)
 
 	// Get all public + private (including collaborative) repositories of user
 	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
@@ -140,7 +136,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 
 	assert.NotNil(t, repos)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(7), count)
+	assert.Equal(t, int64(8), count)
 
 	// Get all public repositories of organization
 	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
