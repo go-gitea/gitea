@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.2.0-rc2) - 2017-09-06
+* BUGFIXES
+  * Fix migration from pre-v15 to 1.2.0 (#2460)
+  * Fix autolink javascript bug
+  * Fix releases to be counted from database not tags (#2389)
+  * fix duplicated feed (#2370)
+  * Set version to 1.2.0-dev
+
 ## [1.2.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.2.0-rc1) - 2017-08-25
 * BREAKING
   * Rename /forget_password url to /forgot_password (#1219)
