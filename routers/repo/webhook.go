@@ -104,7 +104,6 @@ func WebhooksNew(ctx *context.Context) {
 		ctx.Data["DiscordHook"] = map[string]interface{}{
 			"Username": "Gitea",
 			"IconURL":  setting.AppURL + "img/favicon.png",
-			"Color":    16724530,
 		}
 	}
 	ctx.Data["BaseLink"] = orCtx.Link
@@ -122,6 +121,7 @@ func ParseHookEvent(form auth.WebhookForm) *models.HookEvent {
 			Create:      form.Create,
 			Push:        form.Push,
 			PullRequest: form.PullRequest,
+			Repository:  form.Repository,
 		},
 	}
 }
@@ -546,6 +546,14 @@ func DiscordHooksEditPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 
 // TestWebhook test if web hook is work fine
 func TestWebhook(ctx *context.Context) {
+	hookID := ctx.ParamsInt64(":id")
+	w, err := models.GetWebhookByRepoID(ctx.Repo.Repository.ID, hookID)
+	if err != nil {
+		ctx.Flash.Error("GetWebhookByID: " + err.Error())
+		ctx.Status(500)
+		return
+	}
+
 	// Grab latest commit or fake one if it's empty repository.
 	commit := ctx.Repo.Commit
 	if commit == nil {
@@ -582,8 +590,8 @@ func TestWebhook(ctx *context.Context) {
 		Pusher: apiUser,
 		Sender: apiUser,
 	}
-	if err := models.PrepareWebhooks(ctx.Repo.Repository, models.HookEventPush, p); err != nil {
-		ctx.Flash.Error("PrepareWebhooks: " + err.Error())
+	if err := models.PrepareWebhook(w, ctx.Repo.Repository, models.HookEventPush, p); err != nil {
+		ctx.Flash.Error("PrepareWebhook: " + err.Error())
 		ctx.Status(500)
 	} else {
 		go models.HookQueue.Add(ctx.Repo.Repository.ID)

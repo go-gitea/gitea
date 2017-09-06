@@ -1,3 +1,4 @@
+{{if and (not .Issue.IsPull) (not .PageIsComparePull)}}
 <input id="ref_selector" name="ref" type="hidden" value="{{.Issue.Ref}}">
 <div class="ui {{if .ReadOnly}}disabled{{end}} floating filter select-branch dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
 	<div class="ui basic small button">
@@ -39,3 +40,4 @@
 </div>
 
 <div class="ui divider"></div>
+{{end}}

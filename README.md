@@ -19,7 +19,16 @@
 
 ## Purpose
 
-The goal of this project is to make the easiest, fastest, and most painless way of setting up a self-hosted Git service. Using Go, this can be done with an independent binary distribution across **all platforms** which Go supports, including Linux, macOS, and Windows on x86, amd64, ARM and PowerPC architectures. Want to try it before doing anything else? Do it [with the online demo](https://try.gitea.io/)! This project has been [forked](https://blog.gitea.io/2016/12/welcome-to-gitea/) from [Gogs](https://gogs.io).
+The goal of this project is to make the easiest, fastest, and most
+painless way of setting up a self-hosted Git service.
+Using Go, this can be done with an independent binary distribution across
+**all platforms** which Go supports, including Linux, macOS, and Windows
+on x86, amd64, ARM and PowerPC architectures.
+Want to try it before doing anything else?
+Do it [with the online demo](https://try.gitea.io/)!
+This project has been
+[forked](https://blog.gitea.io/2016/12/welcome-to-gitea/) from
+[Gogs](https://gogs.io).
 
 ## Notes
 
@@ -29,7 +38,12 @@ The goal of this project is to make the easiest, fastest, and most painless way 
 
 ## Docs
 
-For more information and instructions about how to install Gitea please look at our [documentation](https://docs.gitea.io/en-us/). If you cannot find some specific information, then head over to our [Discord server](https://discord.gg/NsatcWJ) or [Matrix room](https://matrix.to/#/#gitea:matrix.org) to chat with us or use the [forum](https://discourse.gitea.io/).
+For more information and instructions about how to install Gitea
+please look at our [documentation](https://docs.gitea.io/en-us/).
+If you cannot find some specific information, then head over to
+our [Discord server](https://discord.gg/NsatcWJ)
+or [Matrix room](https://matrix.to/#/#gitea:matrix.org) to chat with us
+or use the [forum](https://discourse.gitea.io/).
 
 ## Contributing
 
@@ -43,4 +57,6 @@ Fork -> Patch -> Push -> Pull Request
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](https://github.com/go-gitea/gitea/blob/master/LICENSE) file for the full license text.
+This project is licensed under the MIT License.
+See the [LICENSE](https://github.com/go-gitea/gitea/blob/master/LICENSE) file
+for the full license text.

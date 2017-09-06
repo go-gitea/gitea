@@ -73,7 +73,7 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 		}
 		forker = org
 	}
-	fork, err := models.ForkRepository(forker, repo, repo.Name, repo.Description)
+	fork, err := models.ForkRepository(ctx.User, forker, repo, repo.Name, repo.Description)
 	if err != nil {
 		ctx.Error(500, "ForkRepository", err)
 		return

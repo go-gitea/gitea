@@ -118,13 +118,12 @@ func TestGetUserFork(t *testing.T) {
 func TestForkRepository(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	// User13 has repo 11 forked from repo10
-	repo, err := GetRepositoryByID(10)
-	assert.NoError(t, err)
-	assert.NotNil(t, repo)
+	// user 13 has already forked repo10
+	user := AssertExistsAndLoadBean(t, &User{ID: 13}).(*User)
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
-	repo, err = ForkRepository(&User{ID: 13}, repo, "test", "test")
-	assert.Nil(t, repo)
+	fork, err := ForkRepository(user, user, repo, "test", "test")
+	assert.Nil(t, fork)
 	assert.Error(t, err)
 	assert.True(t, IsErrRepoAlreadyExist(err))
 }

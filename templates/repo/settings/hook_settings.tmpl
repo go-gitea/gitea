@@ -52,6 +52,16 @@
 				</div>
 			</div>
 		</div>
+		<!-- Repository -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="repository" type="checkbox" tabindex="0" {{if .Webhook.Repository}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_repository"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_repository_desc"}}</span>
+				</div>
+			</div>
+		</div>
 	</div>
 </div>
 

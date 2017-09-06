@@ -396,10 +396,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksNewPost)
 					m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
 					m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
+					m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
 					m.Get("/:id", repo.WebHooksEdit)
 					m.Post("/gitea/:id", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksEditPost)
 					m.Post("/gogs/:id", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksEditPost)
 					m.Post("/slack/:id", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksEditPost)
+					m.Post("/discord/:id", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
 				})
 
 				m.Route("/delete", "GET,POST", org.SettingsDelete)
@@ -608,7 +610,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/*", repo.WikiRaw)
 		}, repo.MustEnableWiki, context.CheckUnit(models.UnitTypeWiki), context.CheckUnit(models.UnitTypeWiki))
 
-		m.Get("/archive/*", repo.MustBeNotBare, repo.Download, context.CheckUnit(models.UnitTypeCode))
+		m.Get("/archive/*", repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.Download)
 
 		m.Group("/pulls/:index", func() {
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
@@ -628,10 +630,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/src/*", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("/forks", repo.Forks)
 		}, context.RepoRef(), context.CheckUnit(models.UnitTypeCode))
-		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)", repo.MustBeNotBare, repo.RawDiff, context.CheckUnit(models.UnitTypeCode))
+		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)",
+			repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.RawDiff)
 
 		m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.SetEditorconfigIfExists,
-			repo.SetDiffViewStyle, repo.MustBeNotBare, repo.CompareDiff, context.CheckUnit(models.UnitTypeCode))
+			repo.SetDiffViewStyle, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.CompareDiff)
 	}, ignSignIn, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits())
 	m.Group("/:username/:reponame", func() {
 		m.Get("/stars", repo.Stars)
