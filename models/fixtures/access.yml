@@ -22,3 +22,8 @@
   repo_id: 22
   mode: 2 # write
 
+-
+  id: 5
+  user_id: 15
+  repo_id: 21
+  mode: 2 # write
