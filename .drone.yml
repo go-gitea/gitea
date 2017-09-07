@@ -2,9 +2,15 @@ workspace:
   base: /srv/app
   path: src/code.gitea.io/git
 
+clone:
+  git:
+    image: plugins/git:1
+    depth: 50
+    tags: true
+
 pipeline:
   testing:
-    image: webhippie/golang:latest
+    image: webhippie/golang:edge
     pull: true
     commands:
       - make clean
@@ -13,14 +19,16 @@ pipeline:
       - make test
       - make build
 
-  coverage:
-    image: plugins/coverage
-    server: https://coverage.gitea.io
+  # coverage:
+  #   image: plugins/coverage:1
+  #   pull: true
+  #   secrets: [ github_token ]
+  #   server: https://coverage.gitea.io
 
   discord:
-    image: appleboy/drone-discord
-    webhook_id: ${WEBHOOK_ID}
-    webhook_token: ${WEBHOOK_TOKEN}
+    image: appleboy/drone-discord:1.0.0
+    pull: true
+    secrets: [ discord_webhook_id, discord_webhook_token ]
     when:
       event: [ push, tag, pull_request ]
       status: [ changed, failure ]
