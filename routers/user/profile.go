@@ -107,26 +107,26 @@ func Profile(ctx *context.Context) {
 	var (
 		repos   []*models.Repository
 		count   int64
-		orderBy string
+		orderBy models.SearchOrderBy
 	)
 
 	ctx.Data["SortType"] = ctx.Query("sort")
 	switch ctx.Query("sort") {
 	case "newest":
-		orderBy = "created_unix DESC"
+		orderBy = models.SearchOrderByNewest
 	case "oldest":
-		orderBy = "created_unix ASC"
+		orderBy = models.SearchOrderByOldest
 	case "recentupdate":
-		orderBy = "updated_unix DESC"
+		orderBy = models.SearchOrderByRecentUpdated
 	case "leastupdate":
-		orderBy = "updated_unix ASC"
+		orderBy = models.SearchOrderByLeastUpdated
 	case "reversealphabetically":
-		orderBy = "name DESC"
+		orderBy = models.SearchOrderByAlphabeticallyReverse
 	case "alphabetically":
-		orderBy = "name ASC"
+		orderBy = models.SearchOrderByAlphabetically
 	default:
 		ctx.Data["SortType"] = "recentupdate"
-		orderBy = "updated_unix DESC"
+		orderBy = models.SearchOrderByNewest
 	}
 
 	// set default sort value if sort is empty.
@@ -149,7 +149,7 @@ func Profile(ctx *context.Context) {
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
 		if len(keyword) == 0 {
-			repos, err = ctxUser.GetStarredRepos(showPrivate, page, setting.UI.User.RepoPagingNum, orderBy)
+			repos, err = ctxUser.GetStarredRepos(showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
 			if err != nil {
 				ctx.Handle(500, "GetStarredRepos", err)
 				return
@@ -182,7 +182,7 @@ func Profile(ctx *context.Context) {
 	default:
 		if len(keyword) == 0 {
 			var total int
-			repos, err = models.GetUserRepositories(ctxUser.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy)
+			repos, err = models.GetUserRepositories(ctxUser.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
 			if err != nil {
 				ctx.Handle(500, "GetRepositories", err)
 				return

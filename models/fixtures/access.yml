@@ -15,3 +15,27 @@
   user_id: 4
   repo_id: 3
   mode: 2 # write
+
+-
+  id: 4
+  user_id: 15
+  repo_id: 22
+  mode: 2 # write
+
+-
+  id: 5
+  user_id: 15
+  repo_id: 21
+  mode: 2 # write
+
+-
+  id: 6
+  user_id: 15
+  repo_id: 23
+  mode: 4 # owner
+
+-
+  id: 7
+  user_id: 15
+  repo_id: 24
+  mode: 4 # owner

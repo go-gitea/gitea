@@ -252,7 +252,7 @@ func TestOrganizations(t *testing.T) {
 		[]int64{3, 6})
 
 	testSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 2, PageSize: 2},
-		[]int64{7})
+		[]int64{7, 17})
 
 	testSuccess(&SearchUserOptions{Page: 3, PageSize: 2},
 		[]int64{})
