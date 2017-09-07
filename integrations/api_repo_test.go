@@ -6,7 +6,6 @@ package integrations
 
 import (
 	"net/http"
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -33,11 +32,6 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 	}
 }
 
-type searchResponseBody struct {
-	ok   bool
-	data []api.Repository
-}
-
 func TestAPISearchRepoNotLogin(t *testing.T) {
 	prepareTestEnv(t)
 	const keyword = "test"
@@ -45,10 +39,226 @@ func TestAPISearchRepoNotLogin(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/repos/search?q=%s", keyword)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var body searchResponseBody
+	var body api.SearchResults
 	DecodeJSON(t, resp, &body)
-	for _, repo := range body.data {
-		assert.True(t, strings.Contains(repo.Name, keyword))
+	assert.NotEmpty(t, body.Data)
+	for _, repo := range body.Data {
+		assert.Contains(t, repo.Name, keyword)
+		assert.False(t, repo.Private)
+	}
+
+	// Should return all (max 50) public repositories
+	req = NewRequest(t, "GET", "/api/v1/repos/search?limit=50")
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 12)
+	for _, repo := range body.Data {
+		assert.NotEmpty(t, repo.Name)
+		assert.False(t, repo.Private)
+	}
+
+	// Should return (max 10) public repositories
+	req = NewRequest(t, "GET", "/api/v1/repos/search?limit=10")
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 10)
+	for _, repo := range body.Data {
+		assert.NotEmpty(t, repo.Name)
+		assert.False(t, repo.Private)
+	}
+
+	const keyword2 = "big_test_"
+	// Should return all public repositories which (partial) match keyword
+	req = NewRequestf(t, "GET", "/api/v1/repos/search?q=%s", keyword2)
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 4)
+	for _, repo := range body.Data {
+		assert.Contains(t, repo.Name, keyword2)
+		assert.False(t, repo.Private)
+	}
+
+	// Should return all public repositories accessible and related to user
+	const userID = int64(15)
+	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", userID)
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 4)
+	for _, repo := range body.Data {
+		assert.NotEmpty(t, repo.Name)
+		assert.False(t, repo.Private)
+	}
+
+	// Should return all public repositories accessible and related to user
+	const user2ID = int64(16)
+	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", user2ID)
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 1)
+	for _, repo := range body.Data {
+		assert.NotEmpty(t, repo.Name)
+		assert.False(t, repo.Private)
+	}
+
+	// Should return all public repositories owned by organization
+	const orgID = int64(17)
+	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", orgID)
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 1)
+	for _, repo := range body.Data {
+		assert.NotEmpty(t, repo.Name)
+		assert.Equal(t, repo.Owner.ID, orgID)
+		assert.False(t, repo.Private)
+	}
+}
+
+func TestAPISearchRepoLoggedUser(t *testing.T) {
+	prepareTestEnv(t)
+
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 15}).(*models.User)
+	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 16}).(*models.User)
+	session := loginUser(t, user.Name)
+	session2 := loginUser(t, user2.Name)
+
+	var body api.SearchResults
+
+	// Get public repositories accessible and not related to logged in user that match the keyword
+	// Should return all public repositories which (partial) match keyword
+	const keyword = "big_test_"
+	req := NewRequestf(t, "GET", "/api/v1/repos/search?q=%s", keyword)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 4)
+	for _, repo := range body.Data {
+		assert.Contains(t, repo.Name, keyword)
+		assert.False(t, repo.Private)
+	}
+	// Test when user2 is logged in
+	resp = session2.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 4)
+	for _, repo := range body.Data {
+		assert.Contains(t, repo.Name, keyword)
+		assert.False(t, repo.Private)
+	}
+
+	// Get all public repositories accessible and not related to logged in user
+	// Should return all (max 50) public repositories
+	req = NewRequest(t, "GET", "/api/v1/repos/search?limit=50")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 12)
+	for _, repo := range body.Data {
+		assert.NotEmpty(t, repo.Name)
+		assert.False(t, repo.Private)
+	}
+	// Test when user2 is logged in
+	resp = session2.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 12)
+	for _, repo := range body.Data {
+		assert.NotEmpty(t, repo.Name)
+		assert.False(t, repo.Private)
+	}
+
+	// Get all public repositories accessible and not related to logged in user
+	// Should return all (max 10) public repositories
+	req = NewRequest(t, "GET", "/api/v1/repos/search?limit=10")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 10)
+	for _, repo := range body.Data {
+		assert.NotEmpty(t, repo.Name)
+		assert.False(t, repo.Private)
+	}
+	// Test when user2 is logged in
+	resp = session2.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 10)
+	for _, repo := range body.Data {
+		assert.NotEmpty(t, repo.Name)
+		assert.False(t, repo.Private)
+	}
+
+	// Get repositories of logged in user
+	// Should return all public and private repositories accessible and related to user
+	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", user.ID)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 8)
+	for _, repo := range body.Data {
+		assert.NotEmpty(t, repo.Name)
+	}
+	// Test when user2 is logged in
+	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", user2.ID)
+	resp = session2.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 2)
+	for _, repo := range body.Data {
+		assert.NotEmpty(t, repo.Name)
+	}
+
+	// Get repositories of another user
+	// Should return all public repositories accessible and related to user
+	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", user2.ID)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 1)
+	for _, repo := range body.Data {
+		assert.NotEmpty(t, repo.Name)
+		assert.False(t, repo.Private)
+	}
+	// Test when user2 is logged in
+	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", user.ID)
+	resp = session2.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 4)
+	for _, repo := range body.Data {
+		assert.NotEmpty(t, repo.Name)
+		assert.False(t, repo.Private)
+	}
+
+	// Get repositories of organization owned by logged in user
+	// Should return all public and private repositories owned by organization
+	const orgID = int64(17)
+	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", orgID)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 2)
+	for _, repo := range body.Data {
+		assert.NotEmpty(t, repo.Name)
+		assert.Equal(t, repo.Owner.ID, orgID)
+	}
+
+	// Get repositories of organization owned by another user
+	// Should return all public repositories owned by organization
+	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", orgID)
+	resp = session2.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &body)
+	assert.Len(t, body.Data, 1)
+	for _, repo := range body.Data {
+		assert.NotEmpty(t, repo.Name)
+		assert.Equal(t, repo.Owner.ID, orgID)
+		assert.False(t, repo.Private)
 	}
 }
 
