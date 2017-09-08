@@ -146,64 +146,28 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 		return
 	}
 
-	var tagCreatedUnix int64
-	tag, err := ctx.Repo.GitRepo.GetTag(form.TagName)
-	if err == nil {
-		commit, err := tag.Commit()
-		if err == nil {
-			tagCreatedUnix = commit.Author.When.Unix()
-		}
-	}
-
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(form.Target)
-	if err != nil {
-		ctx.Handle(500, "GetBranchCommit", err)
-		return
-	}
-
-	commitsCount, err := commit.CommitsCount()
-	if err != nil {
-		ctx.Handle(500, "CommitsCount", err)
-		return
-	}
-
-	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
-	if err != nil && !models.IsErrReleaseNotExist(err) {
-		ctx.Handle(500, "GetRelease", err)
-		return
-	}
-
 	var attachmentUUIDs []string
 	if setting.AttachmentEnabled {
 		attachmentUUIDs = form.Files
 	}
 
-	if rel != nil && rel.IsTag {
-		rel.Title = form.Title
-		rel.Note = form.Content
-		rel.IsDraft = len(form.Draft) > 0
-		rel.IsPrerelease = form.Prerelease
-		rel.PublisherID = ctx.User.ID
-		rel.IsTag = false
-
-		if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
-			ctx.Data["Err_TagName"] = true
-			ctx.Handle(500, "UpdateRelease", err)
+	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
+	if err != nil {
+		if !models.IsErrReleaseNotExist(err) {
+			ctx.Handle(500, "GetRelease", err)
 			return
 		}
-	} else {
+
 		rel := &models.Release{
 			RepoID:       ctx.Repo.Repository.ID,
 			PublisherID:  ctx.User.ID,
 			Title:        form.Title,
 			TagName:      form.TagName,
 			Target:       form.Target,
-			Sha1:         commit.ID.String(),
-			NumCommits:   commitsCount,
 			Note:         form.Content,
 			IsDraft:      len(form.Draft) > 0,
 			IsPrerelease: form.Prerelease,
-			CreatedUnix:  tagCreatedUnix,
+			IsTag:        false,
 		}
 
 		if err = models.CreateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
@@ -216,6 +180,25 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 			default:
 				ctx.Handle(500, "CreateRelease", err)
 			}
+			return
+		}
+	} else {
+		if !rel.IsTag {
+			ctx.Data["Err_TagName"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_already_exist"), tplReleaseNew, &form)
+			return
+		}
+
+		rel.Title = form.Title
+		rel.Note = form.Content
+		rel.IsDraft = len(form.Draft) > 0
+		rel.IsPrerelease = form.Prerelease
+		rel.PublisherID = ctx.User.ID
+		rel.IsTag = false
+
+		if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+			ctx.Data["Err_TagName"] = true
+			ctx.Handle(500, "UpdateRelease", err)
 			return
 		}
 	}
@@ -266,6 +249,10 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 		} else {
 			ctx.Handle(500, "GetRelease", err)
 		}
+		return
+	}
+	if rel.IsTag {
+		ctx.Handle(404, "GetRelease", err)
 		return
 	}
 	ctx.Data["tag_name"] = rel.TagName

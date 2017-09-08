@@ -63,29 +63,47 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 	}
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
-		if models.IsErrReleaseNotExist(err) {
-			ctx.Status(404)
+		if !models.IsErrReleaseNotExist(err) {
+			ctx.Handle(500, "GetRelease", err)
 			return
 		}
-		ctx.Handle(500, "GetRelease", err)
-		return
-	}
+		rel = &models.Release{
+			RepoID:       ctx.Repo.Repository.ID,
+			PublisherID:  ctx.User.ID,
+			Publisher:    ctx.User,
+			TagName:      form.TagName,
+			Target:       form.Target,
+			Title:        form.Title,
+			Note:         form.Note,
+			IsDraft:      form.IsDraft,
+			IsPrerelease: form.IsPrerelease,
+			IsTag:        false,
+		}
+		if err := models.CreateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
+			if models.IsErrReleaseAlreadyExist(err) {
+				ctx.Status(409)
+			} else {
+				ctx.Error(500, "CreateRelease", err)
+			}
+			return
+		}
+	} else {
+		if !rel.IsTag {
+			ctx.Status(409)
+			return
+		}
 
-	if !rel.IsTag {
-		ctx.Status(409)
-		return
-	}
+		rel.Title = form.Title
+		rel.Note = form.Note
+		rel.IsDraft = form.IsDraft
+		rel.IsPrerelease = form.IsPrerelease
+		rel.PublisherID = ctx.User.ID
+		rel.IsTag = false
 
-	rel.Title = form.Title
-	rel.Note = form.Note
-	rel.IsDraft = form.IsDraft
-	rel.IsPrerelease = form.IsPrerelease
-	rel.PublisherID = ctx.User.ID
-	rel.IsTag = false
-
-	if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
-		ctx.Handle(500, "UpdateRelease", err)
-		return
+		if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
+			ctx.Handle(500, "UpdateRelease", err)
+			return
+		}
 	}
 	ctx.JSON(201, rel.APIFormat())
 }

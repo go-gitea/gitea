@@ -140,17 +140,17 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 				}
 				return err
 			}
-		} else {
-			commit, err := gitRepo.GetTagCommit(rel.TagName)
-			if err != nil {
-				return fmt.Errorf("GetTagCommit: %v", err)
-			}
+		}
+		commit, err := gitRepo.GetTagCommit(rel.TagName)
+		if err != nil {
+			return fmt.Errorf("GetTagCommit: %v", err)
+		}
 
-			rel.Sha1 = commit.ID.String()
-			rel.NumCommits, err = commit.CommitsCount()
-			if err != nil {
-				return fmt.Errorf("CommitsCount: %v", err)
-			}
+		rel.Sha1 = commit.ID.String()
+		rel.CreatedUnix = commit.Author.When.Unix()
+		rel.NumCommits, err = commit.CommitsCount()
+		if err != nil {
+			return fmt.Errorf("CommitsCount: %v", err)
 		}
 	}
 	return nil
