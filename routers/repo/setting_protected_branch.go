@@ -171,7 +171,7 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 			ctx.Handle(500, "UpdateProtectBranch", err)
 			return
 		}
-		ctx.Flash.Success(ctx.Tr("repo.settings.update_protect_branch_success"))
+		ctx.Flash.Success(ctx.Tr("repo.settings.update_protect_branch_success", branch))
 		ctx.Redirect(fmt.Sprintf("%s/settings/branches/%s", ctx.Repo.RepoLink, branch))
 	} else {
 		if protectBranch != nil {
@@ -180,7 +180,7 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 				return
 			}
 		}
-		ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success"))
+		ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success", branch))
 		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
 	}
 }
