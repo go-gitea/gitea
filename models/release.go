@@ -249,7 +249,7 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 		cond = cond.And(builder.Eq{"is_draft": false})
 	}
 	if !opts.IncludeTags {
-		cond = cond.And(builder.Eq{"is_release": false})
+		cond = cond.And(builder.Eq{"is_tag": false})
 	}
 	if len(opts.TagNames) > 0 {
 		cond = cond.And(builder.In("tag_name", opts.TagNames))
