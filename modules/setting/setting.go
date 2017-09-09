@@ -176,6 +176,7 @@ var (
 			AllowedTypes []string `delim:"|"`
 			FileMaxSize  int64
 			MaxFiles     int
+			AutoCreate   bool
 		} `ini:"-"`
 
 		// Repository local settings
@@ -208,12 +209,14 @@ var (
 			AllowedTypes []string `delim:"|"`
 			FileMaxSize  int64
 			MaxFiles     int
+			AutoCreate   bool
 		}{
 			Enabled:      true,
 			TempPath:     "data/tmp/uploads",
 			AllowedTypes: []string{},
 			FileMaxSize:  3,
 			MaxFiles:     5,
+			AutoCreate:   false,
 		},
 
 		// Repository local settings

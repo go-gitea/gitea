@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -73,4 +74,46 @@ func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
 	assert.True(t, exists, "The template has changed")
 	sshURL := fmt.Sprintf("%s@%s:user2/repo1.git", setting.RunUser, setting.SSH.Domain)
 	assert.Equal(t, sshURL, link)
+}
+
+func TestAutoCreateRepo(t *testing.T) {
+	prepareTestEnv(t)
+
+	session := loginUser(t, "user2")
+
+	// repo should not exist
+	req := NewRequest(t, "GET", "/api/v1/repos/user2/autocreated")
+	MakeRequest(t, req, http.StatusNotFound)
+
+	//
+	// if 'AUTO_CREATE = false', the repo should not be created if it doesn't exist
+	//
+	setting.Repository.Upload.AutoCreate = false
+	req = NewRequest(t, "GET", "/user2/autocreated.git/info/refs?service=git-receive-pack")
+	session.MakeRequest(t, req, http.StatusNotFound)
+
+	req = NewRequest(t, "GET", "/api/v1/repos/user2/autocreated")
+	MakeRequest(t, req, http.StatusNotFound)
+
+	//
+	// if 'AUTO_CREATE = true', the repos should be created
+	//
+	setting.Repository.Upload.AutoCreate = true
+	req = NewRequest(t, "GET", "/user2/autocreated.git/info/refs?service=git-receive-pack")
+	// we don't get a successful response code here, because we don't execute a real 'git push ...'
+	session.MakeRequest(t, req, NoExpectedStatus)
+
+	// repo should exist
+	req = NewRequest(t, "GET", "/api/v1/repos/user2/autocreated")
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var repo api.Repository
+	DecodeJSON(t, resp, &repo)
+	assert.Equal(t, repo.Name, "autocreated")
+
+	//
+	// cleanup
+	//
+	req = NewRequest(t, "DELETE", "/api/v1/repos/user2/autocreated")
+	session.MakeRequest(t, req, http.StatusNoContent)
 }

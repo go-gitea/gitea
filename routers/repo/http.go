@@ -95,6 +95,13 @@ func HTTP(ctx *context.Context) {
 	}
 
 	repo, err := models.GetRepositoryByName(repoUser.ID, reponame)
+	if models.IsErrRepoNotExist(err) && setting.Repository.Upload.AutoCreate {
+
+		// if 'CreateRepository' fails, the error are handled in the next 'if err != nil' block
+		repo, err = models.CreateRepository(repoUser, repoUser, models.CreateRepoOptions{
+			Name: reponame,
+		})
+	}
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			ctx.Handle(http.StatusNotFound, "GetRepositoryByName", nil)
