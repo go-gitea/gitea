@@ -478,7 +478,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) err
 			}
 
 			// Check for dependencies, if there aren't any, close it
-			canbeClosed := IssueNoDependenciesLeft(issue.ID)
+			canbeClosed := IssueNoDependenciesLeft(issue)
 
 			if canbeClosed {
 				if err = issue.ChangeStatus(doer, repo, true); err != nil {
