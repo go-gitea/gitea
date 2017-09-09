@@ -149,6 +149,11 @@ func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return r.Config.(*ExternalTrackerConfig)
 }
 
+// IssueDependenciesConfig returns config for UnitTypeIssueDependencies
+func (r *RepoUnit) IssueDependenciesConfig() *UnitConfig{
+	return r.Config.(*UnitConfig)
+}
+
 func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
 	return units, e.Where("repo_id = ?", repoID).Find(&units)
 }

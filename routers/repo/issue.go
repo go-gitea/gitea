@@ -714,6 +714,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	// Get Dependencies
+	ctx.Data["IssueDependenciesEnabled"] = repo.UnitEnabled(models.UnitTypeIssueDependencies)
 	ctx.Data["BlockedByDependencies"], err = repo.BlockedByDependencies(issue.ID)
 	ctx.Data["BlockingDependencies"], err = repo.BlockingDependencies(issue.ID)
 
