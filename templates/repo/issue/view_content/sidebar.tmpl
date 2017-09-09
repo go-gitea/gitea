@@ -200,9 +200,9 @@
 			{{if .BlockedByDependencies}}
 			<span class="text">
 				{{if .Issue.IsPull}}
-					Closing this pull request is blocked by:
+					{{.i18n.Tr "repo.issues.dependency.issue_closing_blockedby"}}:
 				{{else}}
-					Closing this issue is blocked by:
+					{{.i18n.Tr "repo.issues.dependency.pr_closing_blockedby"}}:
 				{{end}}
 			</span>
 			<div class="ui relaxed divided list">
@@ -233,9 +233,9 @@
 			<div class="ui relaxed divided list">
 				<span class="text">
 					{{if .Issue.IsPull}}
-						This pull request blocks closing of the following issues:
+						{{.i18n.Tr "repo.issues.dependency.pr_close_blocks"}}:
 					{{else}}
-						This issue blocks closing of the following issues:
+						{{.i18n.Tr "repo.issues.dependency.issue_close_blocks"}}:
 					{{end}}
 				</span>
 				{{range .BlockingDependencies}}
@@ -301,7 +301,7 @@
 <div class="ui basic modal remove-dependency">
 	<div class="ui icon header">
 		<i class="trash icon"></i>
-		Remove Dependency
+		{{.i18n.Tr "repo.issues.dependency.remove_header"}}
 	</div>
 	<div class="content">
 		<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/removeDependency" id="removeDependencyForm">
@@ -309,16 +309,16 @@
 			<input type="hidden" value="" name="removeDependencyID" id="removeDependencyID"/>
 			<input type="hidden" value="" name="dependencyType" id="dependencyType"/>
 		</form>
-		<p>This will remove the dependency to this issue. Are you sure? You cannot undo this!</p>
+		<p>{{.i18n.Tr "repo.issues.dependency.remove_text"}}</p>
 	</div>
 	<div class="actions">
 		<div class="ui basic red cancel inverted button">
 			<i class="remove icon"></i>
-			Cancel
+			{{.i18n.Tr "repo.issues.dependency.cancel"}}
 		</div>
 		<div class="ui basic green ok inverted button">
 			<i class="checkmark icon"></i>
-			Delete
+			{{.i18n.Tr "repo.issues.dependency.remove"}}
 		</div>
 	</div>
 </div>
