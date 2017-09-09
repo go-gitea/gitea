@@ -315,6 +315,12 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	if opts.Label != nil {
 		LabelID = opts.Label.ID
 	}
+
+	var depId int64 = 0
+	if opts.DependentIssue != nil {
+		depId = opts.DependentIssue.ID
+	}
+
 	comment := &Comment{
 		Type:           opts.Type,
 		PosterID:       opts.Doer.ID,
@@ -332,15 +338,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		OldTitle:       opts.OldTitle,
 		NewTitle:       opts.NewTitle,
 		DependentIssue: opts.DependentIssue,
-		DependentIssueID: opts.DependentIssue.ID,
+		DependentIssueID: depId,
 	}
-
-	//fmt.Println(comment)
-
-	// TODO: WHY ISNT THIS INSERTED??????
-	// It seems to be inserted, but isnt. (Doesn't return an error, raw pasting
-	// the sql query in a database console does work). But after the function
-	// is called, there is no entry in the database. At least for type 12 and 13.
 
 	_, err = e.Insert(comment)
 	if err != nil {

@@ -922,7 +922,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 			// Check for open dependencies
 			if form.Status == "close"{
 
-				canbeClosed := models.IssueNoDependenciesLeft(issue.ID)
+				canbeClosed := models.IssueNoDependenciesLeft(issue)
 
 				if !canbeClosed {
 					if issue.IsPull{
