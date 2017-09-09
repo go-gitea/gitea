@@ -15,6 +15,9 @@ import (
 
 // Adds new dependencies
 func AddDependency(c *context.Context) {
+
+	// TODO: should should an issue only have dependencies in it's own repo?
+
 	depID, err := strconv.ParseInt(c.Req.PostForm.Get("newDependency"), 10, 64)
 	if err != nil {
 		c.Handle(http.StatusBadRequest, "issue ID is not int", err)
@@ -25,6 +28,12 @@ func AddDependency(c *context.Context) {
 	issue, err := models.GetIssueByIndex(c.Repo.Repository.ID, issueIndex)
 	if err != nil {
 		c.Handle(http.StatusInternalServerError, "GetIssueByIndex", err)
+		return
+	}
+
+	// Check if the Repo is allowed to have dependencies
+	if !c.Repo.Repository.UnitEnabled(models.UnitTypeIssueDependencies) {
+		c.Handle(404, "MustEnableIssueDependencies", nil)
 		return
 	}
 
