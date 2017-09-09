@@ -46,7 +46,7 @@ func AddDependency(c *context.Context) {
 
 	// Check if issue and dependency is the same
 	if dep.Index == issueIndex{
-		c.Flash.Error("You cannot make an issue depend on itself!")
+		c.Flash.Error(c.Tr("issues.dependency.add_error_same_issue"))
 	} else {
 
 		err, exists, depExists := models.CreateIssueDependency(c.User, issue, dep)
@@ -56,11 +56,11 @@ func AddDependency(c *context.Context) {
 		}
 
 		if !depExists {
-			c.Flash.Error("Dependend issue does not exist!")
+			c.Flash.Error(c.Tr("add_error_dep_not_exist"))
 		}
 
 		if exists {
-			c.Flash.Error("Dependency already exists!")
+			c.Flash.Error(c.Tr("add_error_dep_exists"))
 		}
 	}
 
