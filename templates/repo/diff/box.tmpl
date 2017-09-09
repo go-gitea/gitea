@@ -54,7 +54,7 @@
 		{{else}}
 			<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}" id="diff-{{.Index}}">
 				<h4 class="ui top attached normal header">
-					<div class="diff-counter count ui left">
+					<div class="diff-counter count">
 						{{if $file.IsBin}}
 							{{$.i18n.Tr "repo.diff.bin"}}
 						{{else if not $file.IsRenamed}}
@@ -68,13 +68,11 @@
 					</div>
 					<span class="file">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
 					{{if not $file.IsSubmodule}}
-						<div class="ui right">
-							{{if $file.IsDeleted}}
-								<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
-							{{else}}
-								<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
-							{{end}}
-						</div>
+						{{if $file.IsDeleted}}
+							<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+						{{else}}
+							<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+						{{end}}
 					{{end}}
 				</h4>
 				<div class="ui attached table segment">
