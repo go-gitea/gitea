@@ -912,8 +912,6 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		return err
 	}
 
-	UpdateIssueIndexer(opts.Issue.ID)
-
 	if len(opts.Attachments) > 0 {
 		attachments, err := getAttachmentsByUUIDs(e, opts.Attachments)
 		if err != nil {
@@ -951,6 +949,8 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
+
+	UpdateIssueIndexer(issue.ID)
 
 	if err = NotifyWatchers(&Action{
 		ActUserID: issue.Poster.ID,
