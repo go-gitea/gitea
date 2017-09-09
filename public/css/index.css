@@ -2063,9 +2063,14 @@ footer .ui.language .menu {
 .repository .diff-detail-box span.status.rename {
   background-color: #dad8ff;
 }
+.repository .diff-box {
+  display: flex;
+  align-items: center;
+}
 .repository .diff-box .count {
   margin-right: 12px;
   font-size: 13px;
+  flex: 0 0 auto;
 }
 .repository .diff-box .count .bar {
   background-color: #bd2c00;
@@ -2080,7 +2085,14 @@ footer .ui.language .menu {
   height: 12px;
 }
 .repository .diff-box .file {
+  flex: 0 1 100%;
   color: #888;
+  word-break: break-all;
+}
+.repository .diff-box .button {
+  margin: -5px 0 -5px 12px;
+  padding: 8px 10px;
+  flex: 0 0 auto;
 }
 .repository .diff-file-box .header {
   background-color: #f7f7f7;
