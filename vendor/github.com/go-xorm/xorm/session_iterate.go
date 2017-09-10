@@ -19,6 +19,10 @@ func (session *Session) Rows(bean interface{}) (*Rows, error) {
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct
 func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
+	if session.isAutoClose {
+		defer session.Close()
+	}
+
 	rows, err := session.Rows(bean)
 	if err != nil {
 		return err

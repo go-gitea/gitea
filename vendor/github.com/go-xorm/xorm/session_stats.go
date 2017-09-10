@@ -13,7 +13,6 @@ import (
 // Count counts the records. bean's non-empty fields
 // are conditions.
 func (session *Session) Count(bean ...interface{}) (int64, error) {
-	defer session.resetStatement()
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -31,15 +30,8 @@ func (session *Session) Count(bean ...interface{}) (int64, error) {
 		args = session.statement.RawParams
 	}
 
-	session.queryPreprocess(&sqlStr, args...)
-
 	var total int64
-	if session.isAutoCommit {
-		err = session.DB().QueryRow(sqlStr, args...).Scan(&total)
-	} else {
-		err = session.tx.QueryRow(sqlStr, args...).Scan(&total)
-	}
-
+	err = session.queryRow(sqlStr, args...).Scan(&total)
 	if err == sql.ErrNoRows || err == nil {
 		return total, nil
 	}
@@ -49,7 +41,6 @@ func (session *Session) Count(bean ...interface{}) (int64, error) {
 
 // sum call sum some column. bean's non-empty fields are conditions.
 func (session *Session) sum(res interface{}, bean interface{}, columnNames ...string) error {
-	defer session.resetStatement()
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -73,22 +64,11 @@ func (session *Session) sum(res interface{}, bean interface{}, columnNames ...st
 		args = session.statement.RawParams
 	}
 
-	session.queryPreprocess(&sqlStr, args...)
-
 	if isSlice {
-		if session.isAutoCommit {
-			err = session.DB().QueryRow(sqlStr, args...).ScanSlice(res)
-		} else {
-			err = session.tx.QueryRow(sqlStr, args...).ScanSlice(res)
-		}
+		err = session.queryRow(sqlStr, args...).ScanSlice(res)
 	} else {
-		if session.isAutoCommit {
-			err = session.DB().QueryRow(sqlStr, args...).Scan(res)
-		} else {
-			err = session.tx.QueryRow(sqlStr, args...).Scan(res)
-		}
+		err = session.queryRow(sqlStr, args...).Scan(res)
 	}
-
 	if err == sql.ErrNoRows || err == nil {
 		return nil
 	}
