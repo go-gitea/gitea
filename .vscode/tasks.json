@@ -1,0 +1,39 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "taskName": "Build",
+      "type": "shell",
+      "command": "go",
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "args": ["build", "-o", "gitea", "${workspaceRoot}/main.go"],
+      "windows": {
+        "args": ["build", "-o", "gitea.exe", "${workspaceRoot}/main.go"]
+      },
+      "problemMatcher": ["$go"]
+    },
+    {
+      "taskName": "Build (with SQLite3)",
+      "type": "shell",
+      "command": "go",
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "args": ["build", "-tags=\"sqlite\"", "-o", "gitea", "${workspaceRoot}/main.go"],
+      "windows": {
+        "args": ["build", "-tags=\"sqlite\"", "-o", "gitea.exe", "${workspaceRoot}/main.go"]
+      },
+      "problemMatcher": ["$go"]
+    }
+  ]
+}

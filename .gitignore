@@ -36,6 +36,7 @@ _testmain.go
 *.log
 
 /gitea
+/debug
 /integrations.test
 
 /bin
