@@ -86,7 +86,7 @@
 			{{end}}
 
 			{{if or (.Repository.UnitEnabled $.UnitTypeWiki) (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}
-				<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki">
+				<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" {{if (.Repository.UnitEnabled $.UnitTypeExternalWiki)}} target="_blank" {{end}}>
 					<i class="octicon octicon-book"></i> {{.i18n.Tr "repo.wiki"}}
 				</a>
 			{{end}}
