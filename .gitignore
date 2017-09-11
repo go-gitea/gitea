@@ -45,4 +45,6 @@ _testmain.go
 /indexers
 /log
 /public/img/avatar
-/integrations/gitea-integration
+/integrations/gitea-integration-mysql
+/integrations/gitea-integration-pgsql
+/integrations/gitea-integration-sqlite
