@@ -12,9 +12,15 @@
         "focus": false,
         "panel": "shared"
       },
-      "args": ["build", "-o", "gitea", "${workspaceRoot}/main.go"],
+      "args": ["build"],
+      "linux": {
+        "args": [ "-o", "gitea", "${workspaceRoot}/main.go" ]
+      },
+      "osx": {
+        "args": [ "-o", "gitea", "${workspaceRoot}/main.go" ]
+      },
       "windows": {
-        "args": ["build", "-o", "gitea.exe", "${workspaceRoot}/main.go"]
+        "args": [ "-o", "gitea.exe", "\"${workspaceRoot}\\main.go\""]
       },
       "problemMatcher": ["$go"]
     },
@@ -29,9 +35,15 @@
         "focus": false,
         "panel": "shared"
       },
-      "args": ["build", "-tags=\"sqlite\"", "-o", "gitea", "${workspaceRoot}/main.go"],
+      "args": ["build", "-tags=\"sqlite\""],
+      "linux": {
+        "args": ["-o", "gitea", "${workspaceRoot}/main.go"]
+      },
+      "osx": {
+        "args": ["-o", "gitea", "${workspaceRoot}/main.go"]
+      },
       "windows": {
-        "args": ["build", "-tags=\"sqlite\"", "-o", "gitea.exe", "${workspaceRoot}/main.go"]
+        "args": ["-o", "gitea.exe", "\"${workspaceRoot}\\main.go\""]
       },
       "problemMatcher": ["$go"]
     }
