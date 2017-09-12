@@ -30,7 +30,7 @@ func addDefaultValueToUserProhibitLogin(x *xorm.Engine) (err error) {
 		_, err = x.Exec("ALTER TABLE \"user\" ALTER COLUMN `prohibit_login` SET NOT NULL, ALTER COLUMN `prohibit_login` SET DEFAULT false")
 	case "mssql":
 		// xorm already set DEFAULT 0 for data type BIT in mssql
-		_, err = x.Exec("ALTER TABLE [user] ALTER COLUMN \"prohibit_login\" BIT NOT NULL")
+		_, err = x.Exec(`ALTER TABLE [user] ALTER COLUMN "prohibit_login" BIT NOT NULL`)
 	case "sqlite3":
 	}
 
