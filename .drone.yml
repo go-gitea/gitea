@@ -27,7 +27,7 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
-  test-pr:
+  test:
     image: webhippie/golang:edge
     pull: true
     group: test
@@ -37,22 +37,10 @@ pipeline:
     commands:
       - make unit-test-coverage
     when:
-      event: [ pull_request ]
-
-  test-master:
-    image: webhippie/golang:edge
-    pull: true
-    group: test
-    environment:
-      TAGS: bindata sqlite
-      GOPATH: /srv/app
-    commands:
-      - make unit-test-coverage
-    when:
-      event: [ push ]
+      event: [ push, pull_request ]
       branch: [ master ]
 
-  test-tag:
+  test:
     image: webhippie/golang:edge
     pull: true
     group: test
@@ -77,7 +65,7 @@ pipeline:
   #   when:
   #     event: [ push, tag, pull_request ]
 
-  test-mysql-pr:
+  test-mysql:
     image: webhippie/golang:edge
     pull: true
     group: test
@@ -87,22 +75,10 @@ pipeline:
     commands:
       - make integration-test-coverage
     when:
-      event: [ pull_request ]
-
-  test-mysql-master:
-    image: webhippie/golang:edge
-    pull: true
-    group: test
-    environment:
-      TAGS: bindata
-      GOPATH: /srv/app
-    commands:
-      - make integration-test-coverage
-    when:
-      event: [ push ]
+      event: [ push, pull_request ]
       branch: [ master ]
 
-  test-mysql-tag:
+  test-mysql:
     image: webhippie/golang:edge
     pull: true
     group: test
@@ -126,7 +102,7 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
-  generate-coverage-pr:
+  generate-coverage:
     image: webhippie/golang:edge
     pull: true
     environment:
@@ -135,35 +111,16 @@ pipeline:
     commands:
       - make coverage
     when:
-      event: [ pull_request ]
-
-  generate-coverage-master:
-    image: webhippie/golang:edge
-    pull: true
-    environment:
-      TAGS: bindata
-      GOPATH: /srv/app
-    commands:
-      - make coverage
-    when:
-      event: [ push ]
+      event: [ push, pull_request ]
       branch: [ master ]
 
-  coverage-pr:
+  coverage:
     image: robertstettner/drone-codecov
     secrets: [ codecov_token ]
     files:
       - coverage.all
     when:
-      event: [ pull_request ]
-
-  coverage-master:
-    image: robertstettner/drone-codecov
-    secrets: [ codecov_token ]
-    files:
-      - coverage.all
-    when:
-      event: [ push ]
+      event: [ push, pull_request ]
       branch: [ master ]
 
   static:
