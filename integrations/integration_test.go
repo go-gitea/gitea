@@ -118,8 +118,8 @@ func initIntegrationTest() {
 
 func prepareTestEnv(t testing.TB) {
 	assert.NoError(t, models.LoadFixtures())
-	assert.NoError(t, os.RemoveAll("integrations/gitea-integration"))
-	assert.NoError(t, com.CopyDir("integrations/gitea-integration-meta", "integrations/gitea-integration"))
+	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, com.CopyDir("integrations/gitea-repositories-meta", setting.RepoRootPath))
 }
 
 type TestSession struct {
