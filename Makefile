@@ -135,7 +135,7 @@ test: fmt-check
 	$(GO) test $(PACKAGES)
 
 .PHONY: coverage
-coverage: unit-test-coverage integration-test-coverage
+coverage:
 	@hash gocovmerge > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/wadey/gocovmerge; \
 	fi
