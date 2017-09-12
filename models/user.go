@@ -890,7 +890,6 @@ func UpdateUserCols(u *User, cols ...string) error {
 	u.Website = base.TruncateString(u.Website, 255)
 	u.Description = base.TruncateString(u.Description, 255)
 
-	cols = append(cols, "updated_unix")
 	_, err := x.Id(u.ID).Cols(cols...).Update(u)
 	return err
 }
