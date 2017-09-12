@@ -1,18 +1,18 @@
 image: gitea/gitea-base:latest
 manifests:
-  - image: alpine:latest
+  - image: alpine:3.6
     platform:
       architecture: amd64
       os: linux
-  - image: multiarch/alpine:x86-latest-stable
+  - image: multiarch/alpine:x86-v3.6
     platform:
       architecture: 386
       os: linux
-  - image: multiarch/alpine:armhf-latest-stable
+  - image: multiarch/alpine:armhf-v3.6
     platform:
       architecture: arm
       os: linux
-  - image: multiarch/alpine:aarch64-latest-stable
+  - image: multiarch/alpine:aarch64-v3.6
     platform:
       architecture: arm64
       os: linux
