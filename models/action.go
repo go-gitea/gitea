@@ -15,6 +15,7 @@ import (
 	"unicode"
 
 	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 
 	"code.gitea.io/git"
@@ -721,6 +722,8 @@ type GetFeedsOptions struct {
 
 // GetFeeds returns actions according to the provided options
 func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
+	cond := builder.NewCond()
+
 	var repoIDs []int64
 	if opts.RequestedUser.IsOrganization() {
 		env, err := opts.RequestedUser.AccessibleReposEnv(opts.RequestingUserID)
@@ -730,26 +733,23 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		if repoIDs, err = env.RepoIDs(1, opts.RequestedUser.NumRepos); err != nil {
 			return nil, fmt.Errorf("GetUserRepositories: %v", err)
 		}
+
+		cond = cond.And(builder.In("repo_id", repoIDs))
 	}
 
-	actions := make([]*Action, 0, 20)
-	sess := x.Limit(20).
-		Desc("id").
-		Where("user_id = ?", opts.RequestedUser.ID)
+	cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})
+
 	if opts.OnlyPerformedBy {
-		sess.And("act_user_id = ?", opts.RequestedUser.ID)
+		cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
 	}
 	if !opts.IncludePrivate {
-		sess.And("is_private = ?", false)
-	}
-	if opts.RequestedUser.IsOrganization() {
-		sess.In("repo_id", repoIDs)
+		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
 	if !opts.IncludeDeleted {
-		sess.And("is_deleted = ?", false)
-
+		cond = cond.And(builder.Eq{"is_deleted": false})
 	}
 
-	return actions, sess.Find(&actions)
+	actions := make([]*Action, 0, 20)
+	return actions, x.Limit(20).Desc("id").Where(cond).Find(&actions)
 }

@@ -51,6 +51,10 @@ type APIForbiddenError struct {
 // swagger:response notFound
 type APINotFound struct{}
 
+//APIRedirect is a redirect response
+// swagger:response redirect
+type APIRedirect struct{}
+
 // Error responses error message to client with given message.
 // If status is 500, also it prints error to log.
 func (ctx *APIContext) Error(status int, title string, obj interface{}) {

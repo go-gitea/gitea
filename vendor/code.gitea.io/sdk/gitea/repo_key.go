@@ -34,7 +34,7 @@ func (c *Client) GetDeployKey(user, repo string, keyID int64) (*DeployKey, error
 }
 
 // CreateKeyOption options when create deploy key
-// swagger:parameters userCurrentPostKey
+// swagger:parameters userCurrentPostKey adminCreatePublicKey
 type CreateKeyOption struct {
 	// Title of the key to add
 	//

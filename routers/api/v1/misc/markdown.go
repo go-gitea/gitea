@@ -14,7 +14,7 @@ import (
 
 // Markdown render markdown document to HTML
 func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
-	// swagger:route POST /markdown renderMarkdown
+	// swagger:route POST /markdown miscellaneous renderMarkdown
 	//
 	//     Consumes:
 	//     - application/json
@@ -52,7 +52,7 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 
 // MarkdownRaw render raw markdown HTML
 func MarkdownRaw(ctx *context.APIContext) {
-	// swagger:route POST /markdown/raw renderMarkdownRaw
+	// swagger:route POST /markdown/raw miscellaneous renderMarkdownRaw
 	//
 	//     Consumes:
 	//     - text/plain

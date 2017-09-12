@@ -14,10 +14,6 @@ import (
 	"github.com/go-xorm/core"
 )
 
-// func init() {
-// 	RegisterDialect("sqlite3", &sqlite3{})
-// }
-
 var (
 	sqlite3ReservedWords = map[string]bool{
 		"ABORT":             true,
@@ -310,11 +306,25 @@ func (db *sqlite3) GetColumns(tableName string) ([]string, map[string]*core.Colu
 	for _, colStr := range colCreates {
 		reg = regexp.MustCompile(`,\s`)
 		colStr = reg.ReplaceAllString(colStr, ",")
+		if strings.HasPrefix(strings.TrimSpace(colStr), "PRIMARY KEY") {
+			parts := strings.Split(strings.TrimSpace(colStr), "(")
+			if len(parts) == 2 {
+				pkCols := strings.Split(strings.TrimRight(strings.TrimSpace(parts[1]), ")"), ",")
+				for _, pk := range pkCols {
+					if col, ok := cols[strings.Trim(strings.TrimSpace(pk), "`")]; ok {
+						col.IsPrimaryKey = true
+					}
+				}
+			}
+			continue
+		}
+
 		fields := strings.Fields(strings.TrimSpace(colStr))
 		col := new(core.Column)
 		col.Indexes = make(map[string]int)
 		col.Nullable = true
 		col.DefaultIsEmpty = true
+
 		for idx, field := range fields {
 			if idx == 0 {
 				col.Name = strings.Trim(strings.Trim(field, "`[] "), `"`)

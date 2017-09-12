@@ -49,6 +49,7 @@ type Issue struct {
 	IsPull          bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
 	PullRequest     *PullRequest `xorm:"-"`
 	NumComments     int
+	Ref             string
 
 	Deadline     time.Time `xorm:"-"`
 	DeadlineUnix int64     `xorm:"INDEX"`
@@ -176,7 +177,7 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 
 	if issue.Milestone == nil && issue.MilestoneID > 0 {
 		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
-		if err != nil {
+		if err != nil && !IsErrMilestoneNotExist(err) {
 			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
 		}
 	}
@@ -1205,8 +1206,12 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 
 // GetParticipantsByIssueID returns all users who are participated in comments of an issue.
 func GetParticipantsByIssueID(issueID int64) ([]*User, error) {
+	return getParticipantsByIssueID(x, issueID)
+}
+
+func getParticipantsByIssueID(e Engine, issueID int64) ([]*User, error) {
 	userIDs := make([]int64, 0, 5)
-	if err := x.Table("comment").Cols("poster_id").
+	if err := e.Table("comment").Cols("poster_id").
 		Where("issue_id = ?", issueID).
 		And("type = ?", CommentTypeComment).
 		Distinct("poster_id").
@@ -1218,7 +1223,7 @@ func GetParticipantsByIssueID(issueID int64) ([]*User, error) {
 	}
 
 	users := make([]*User, 0, len(userIDs))
-	return users, x.In("id", userIDs).Find(&users)
+	return users, e.In("id", userIDs).Find(&users)
 }
 
 // UpdateIssueMentions extracts mentioned people from content and

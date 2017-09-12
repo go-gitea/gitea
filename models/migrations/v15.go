@@ -12,6 +12,7 @@ import (
 
 // UserV15 describes the added field for User
 type UserV15 struct {
+	KeepEmailPrivate        bool
 	AllowCreateOrganization bool
 }
 

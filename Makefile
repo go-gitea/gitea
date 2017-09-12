@@ -1,6 +1,7 @@
 DIST := dist
 IMPORT := code.gitea.io/gitea
 
+GO ?= go
 SED_INPLACE := sed -i
 
 ifeq ($(OS), Windows_NT)
@@ -24,7 +25,7 @@ EXTRA_GOFLAGS ?=
 
 LDFLAGS := -X "main.Version=$(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')" -X "main.Tags=$(TAGS)"
 
-PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations,$(shell go list ./... | grep -v /vendor/))
+PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list ./... | grep -v /vendor/))
 SOURCES ?= $(shell find . -name "*.go" -type f)
 
 TAGS ?=
@@ -52,11 +53,11 @@ all: build
 
 .PHONY: clean
 clean:
-	go clean -i ./...
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA)
+	$(GO) clean -i ./...
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) integrations*.test integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/
 
 required-gofmt-version:
-	@go version  | grep -q '\(1.7\|1.8\)' || { echo "We require go version 1.7 or 1.8 to format code" >&2 && exit 1; }
+	@$(GO) version  | grep -q '\(1.7\|1.8\)' || { echo "We require go version 1.7 or 1.8 to format code" >&2 && exit 1; }
 
 .PHONY: fmt
 fmt: required-gofmt-version
@@ -64,19 +65,19 @@ fmt: required-gofmt-version
 
 .PHONY: vet
 vet:
-	go vet $(PACKAGES)
+	$(GO) vet $(PACKAGES)
 
 .PHONY: generate
 generate:
 	@hash go-bindata > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		go get -u github.com/jteeuwen/go-bindata/...; \
+		$(GO) get -u github.com/jteeuwen/go-bindata/...; \
 	fi
-	go generate $(PACKAGES)
+	$(GO) generate $(PACKAGES)
 
 .PHONY: generate-swagger
 generate-swagger:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		go get -u github.com/go-swagger/go-swagger/cmd/swagger; \
+		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
 	fi
 	swagger generate spec -o ./public/swagger.v1.json
 	$(SED_INPLACE) "s;\".ref\": \"#/definitions/GPGKey\";\"type\": \"object\";g" ./public/swagger.v1.json
@@ -85,28 +86,28 @@ generate-swagger:
 .PHONY: errcheck
 errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		go get -u github.com/kisielk/errcheck; \
+		$(GO) get -u github.com/kisielk/errcheck; \
 	fi
 	errcheck $(PACKAGES)
 
 .PHONY: lint
 lint:
 	@hash golint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		go get -u github.com/golang/lint/golint; \
+		$(GO) get -u github.com/golang/lint/golint; \
 	fi
 	for PKG in $(PACKAGES); do golint -set_exit_status $$PKG || exit 1; done;
 
 .PHONY: misspell-check
 misspell-check:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		go get -u github.com/client9/misspell/cmd/misspell; \
+		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
 	misspell -error -i unknwon $(GOFILES)
 
 .PHONY: misspell
 misspell:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		go get -u github.com/client9/misspell/cmd/misspell; \
+		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
 	misspell -w -i unknwon $(GOFILES)
 
@@ -122,12 +123,12 @@ fmt-check: required-gofmt-version
 
 .PHONY: test
 test: fmt-check
-	go test $(PACKAGES)
+	$(GO) test $(PACKAGES)
 
-.PHONY: test-coverage
-test-coverage: unit-test-coverage integration-test-coverage
+.PHONY: coverage
+coverage: unit-test-coverage integration-test-coverage
 	@hash gocovmerge > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		go get -u github.com/wadey/gocovmerge; \
+		$(GO) get -u github.com/wadey/gocovmerge; \
 	fi
 	for PKG in $(PACKAGES); do\
 	  touch $$GOPATH/src/$$PKG/coverage.out;\
@@ -139,12 +140,12 @@ test-coverage: unit-test-coverage integration-test-coverage
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	for PKG in $(PACKAGES); do go test -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
+	for PKG in $(PACKAGES); do $(GO) test -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
 
 .PHONY: test-vendor
 test-vendor:
 	@hash govendor > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		go get -u github.com/kardianos/govendor; \
+		$(GO) get -u github.com/kardianos/govendor; \
 	fi
 	govendor list +unused | tee "$(TMPDIR)/wc-gitea-unused"
 	[ $$(cat "$(TMPDIR)/wc-gitea-unused" | wc -l) -eq 0 ] || echo "Warning: /!\\ Some vendor are not used /!\\"
@@ -159,12 +160,12 @@ test-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
 
 .PHONY: test-mysql
-test-mysql: integrations.test
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test
+test-mysql: integrations.mysql.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test
 
 .PHONY: test-pgsql
-test-pgsql: integrations.test
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
+test-pgsql: integrations.pgsql.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test
 
 
 .PHONY: bench-sqlite
@@ -172,39 +173,42 @@ bench-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.bench .
 
 .PHONY: bench-mysql
-bench-mysql: integrations.test
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test -test.bench .
+bench-mysql: integrations.mysql.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test -test.bench .
 
 .PHONY: bench-pgsql
-bench-pgsql: integrations.test
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test -test.bench .
+bench-pgsql: integrations.pgsql.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.bench .
 
 
 .PHONY: integration-test-coverage
 integration-test-coverage: integrations.cover.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
-integrations.test: $(SOURCES)
-	go test -c code.gitea.io/gitea/integrations
+integrations.mysql.test: $(SOURCES)
+	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.mysql.test
+
+integrations.pgsql.test: $(SOURCES)
+	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.pgsql.test
 
 integrations.sqlite.test: $(SOURCES)
-	go test -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite'
+	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite'
 
 integrations.cover.test: $(SOURCES)
-	go test -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
+	$(GO) test -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
 
 .PHONY: check
 check: test
 
 .PHONY: install
 install: $(wildcard *.go)
-	go install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
+	$(GO) install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
 .PHONY: build
 build: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES)
-	go build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+	$(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: docker
 docker:
@@ -221,7 +225,7 @@ release-dirs:
 .PHONY: release-windows
 release-windows:
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		go get -u github.com/karalabe/xgo; \
+		$(GO) get -u github.com/karalabe/xgo; \
 	fi
 	xgo -dest $(DIST)/binaries -tags 'netgo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
@@ -231,7 +235,7 @@ endif
 .PHONY: release-linux
 release-linux:
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		go get -u github.com/karalabe/xgo; \
+		$(GO) get -u github.com/karalabe/xgo; \
 	fi
 	xgo -dest $(DIST)/binaries -tags 'netgo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
@@ -241,7 +245,7 @@ endif
 .PHONY: release-darwin
 release-darwin:
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		go get -u github.com/karalabe/xgo; \
+		$(GO) get -u github.com/karalabe/xgo; \
 	fi
 	xgo -dest $(DIST)/binaries -tags 'netgo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
@@ -278,15 +282,15 @@ stylesheets: public/css/index.css
 .IGNORE: public/css/index.css
 public/css/index.css: $(STYLESHEETS)
 	@which lessc > /dev/null; if [ $$? -ne 0 ]; then \
-		go get -u github.com/kib357/less-go/lessc; \
+		$(GO) get -u github.com/kib357/less-go/lessc; \
 	fi
 	lessc -i $< -o $@
 
 .PHONY: swagger-ui
 swagger-ui:
-	rm -Rf public/assets/swagger-ui
+	rm -Rf public/vendor/assets/swagger-ui
 	git clone --depth=10 -b v3.0.7 --single-branch https://github.com/swagger-api/swagger-ui.git $(TMPDIR)/swagger-ui
-	mv $(TMPDIR)/swagger-ui/dist public/assets/swagger-ui
+	mv $(TMPDIR)/swagger-ui/dist public/vendor/assets/swagger-ui
 	rm -Rf $(TMPDIR)/swagger-ui
 	$(SED_INPLACE) "s;http://petstore.swagger.io/v2/swagger.json;../../swagger.v1.json;g" public/assets/swagger-ui/index.html
 

@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -31,8 +32,8 @@ import (
 	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
-	version "github.com/mcuadros/go-version"
-	ini "gopkg.in/ini.v1"
+	"github.com/mcuadros/go-version"
+	"gopkg.in/ini.v1"
 )
 
 const (
@@ -193,7 +194,7 @@ type Repository struct {
 	NumMilestones       int `xorm:"NOT NULL DEFAULT 0"`
 	NumClosedMilestones int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenMilestones   int `xorm:"-"`
-	NumTags             int `xorm:"-"`
+	NumReleases         int `xorm:"-"`
 
 	IsPrivate bool `xorm:"INDEX"`
 	IsBare    bool `xorm:"INDEX"`
@@ -827,6 +828,8 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 	cl := new(CloneLink)
 	if setting.SSH.Port != 22 {
 		cl.SSH = fmt.Sprintf("ssh://%s@%s:%d/%s/%s.git", setting.RunUser, setting.SSH.Domain, setting.SSH.Port, repo.Owner.Name, repoName)
+	} else if setting.Repository.UseCompatSSHURI {
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", setting.RunUser, setting.SSH.Domain, repo.Owner.Name, repoName)
 	} else {
 		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", setting.RunUser, setting.SSH.Domain, repo.Owner.Name, repoName)
 	}
@@ -868,8 +871,8 @@ func wikiRemoteURL(remote string) string {
 }
 
 // MigrateRepository migrates a existing repository from other project hosting.
-func MigrateRepository(u *User, opts MigrateRepoOptions) (*Repository, error) {
-	repo, err := CreateRepository(u, CreateRepoOptions{
+func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, error) {
+	repo, err := CreateRepository(doer, u, CreateRepoOptions{
 		Name:        opts.Name,
 		Description: opts.Description,
 		IsPrivate:   opts.IsPrivate,
@@ -1235,7 +1238,7 @@ func IsUsableRepoName(name string) error {
 	return isUsableName(reservedRepoNames, reservedRepoPatterns, name)
 }
 
-func createRepository(e *xorm.Session, u *User, repo *Repository) (err error) {
+func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err error) {
 	if err = IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
@@ -1257,11 +1260,21 @@ func createRepository(e *xorm.Session, u *User, repo *Repository) (err error) {
 	// insert units for repo
 	var units = make([]RepoUnit, 0, len(defaultRepoUnits))
 	for i, tp := range defaultRepoUnits {
-		units = append(units, RepoUnit{
-			RepoID: repo.ID,
-			Type:   tp,
-			Index:  i,
-		})
+		if tp == UnitTypeIssues {
+			units = append(units, RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Index:  i,
+				Config: &IssuesConfig{EnableTimetracker: setting.Service.DefaultEnableTimetracking, AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime},
+			})
+		} else {
+			units = append(units, RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Index:  i,
+			})
+		}
+
 	}
 
 	if _, err = e.Insert(&units); err != nil {
@@ -1282,7 +1295,15 @@ func createRepository(e *xorm.Session, u *User, repo *Repository) (err error) {
 			return fmt.Errorf("getOwnerTeam: %v", err)
 		} else if err = t.addRepository(e, repo); err != nil {
 			return fmt.Errorf("addRepository: %v", err)
+		} else if err = prepareWebhooks(e, repo, HookEventRepository, &api.RepositoryPayload{
+			Action:       api.HookRepoCreated,
+			Repository:   repo.APIFormat(AccessModeOwner),
+			Organization: u.APIFormat(),
+			Sender:       doer.APIFormat(),
+		}); err != nil {
+			return fmt.Errorf("prepareWebhooks: %v", err)
 		}
+		go HookQueue.Add(repo.ID)
 	} else {
 		// Organization automatically called this in addRepository method.
 		if err = repo.recalculateAccesses(e); err != nil {
@@ -1299,8 +1320,8 @@ func createRepository(e *xorm.Session, u *User, repo *Repository) (err error) {
 	return nil
 }
 
-// CreateRepository creates a repository for given user or organization.
-func CreateRepository(u *User, opts CreateRepoOptions) (_ *Repository, err error) {
+// CreateRepository creates a repository for the user/organization u.
+func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err error) {
 	if !u.CanCreateRepo() {
 		return nil, ErrReachLimitOfRepo{u.MaxRepoCreation}
 	}
@@ -1320,7 +1341,7 @@ func CreateRepository(u *User, opts CreateRepoOptions) (_ *Repository, err error
 		return nil, err
 	}
 
-	if err = createRepository(sess, u, repo); err != nil {
+	if err = createRepository(sess, doer, u, repo); err != nil {
 		return nil, err
 	}
 
@@ -1656,7 +1677,7 @@ func UpdateRepositoryUnits(repo *Repository, units []RepoUnit) (err error) {
 }
 
 // DeleteRepository deletes a repository for a user or organization.
-func DeleteRepository(uid, repoID int64) error {
+func DeleteRepository(doer *User, uid, repoID int64) error {
 	// In case is a organization.
 	org, err := GetUserByID(uid)
 	if err != nil {
@@ -1812,6 +1833,18 @@ func DeleteRepository(uid, repoID int64) error {
 
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
+	}
+
+	if org.IsOrganization() {
+		if err = PrepareWebhooks(repo, HookEventRepository, &api.RepositoryPayload{
+			Action:       api.HookRepoDeleted,
+			Repository:   repo.APIFormat(AccessModeOwner),
+			Organization: org.APIFormat(),
+			Sender:       doer.APIFormat(),
+		}); err != nil {
+			return err
+		}
+		go HookQueue.Add(repo.ID)
 	}
 
 	return nil
@@ -2007,7 +2040,7 @@ func gatherMissingRepoRecords() ([]*Repository, error) {
 }
 
 // DeleteMissingRepositories deletes all repository records that lost Git files.
-func DeleteMissingRepositories() error {
+func DeleteMissingRepositories(doer *User) error {
 	repos, err := gatherMissingRepoRecords()
 	if err != nil {
 		return fmt.Errorf("gatherMissingRepoRecords: %v", err)
@@ -2019,7 +2052,7 @@ func DeleteMissingRepositories() error {
 
 	for _, repo := range repos {
 		log.Trace("Deleting %d/%d...", repo.OwnerID, repo.ID)
-		if err := DeleteRepository(repo.OwnerID, repo.ID); err != nil {
+		if err := DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
 			if err2 := CreateRepositoryNotice(fmt.Sprintf("DeleteRepository [%d]: %v", repo.ID, err)); err2 != nil {
 				return fmt.Errorf("CreateRepositoryNotice: %v", err)
 			}
@@ -2259,7 +2292,7 @@ func HasForkedRepo(ownerID, repoID int64) (*Repository, bool) {
 }
 
 // ForkRepository forks a repository
-func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Repository, err error) {
+func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *Repository, err error) {
 	forkedRepo, err := oldRepo.GetUserFork(u.ID)
 	if err != nil {
 		return nil, err
@@ -2289,7 +2322,7 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 		return nil, err
 	}
 
-	if err = createRepository(sess, u, repo); err != nil {
+	if err = createRepository(sess, doer, u, repo); err != nil {
 		return nil, err
 	}
 

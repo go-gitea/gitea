@@ -65,9 +65,10 @@ func TestPullRequestsNewest(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
-	assert.Len(t, prs, 2)
-	assert.Equal(t, int64(2), prs[0].ID)
-	assert.Equal(t, int64(1), prs[1].ID)
+	if assert.Len(t, prs, 2) {
+		assert.Equal(t, int64(2), prs[0].ID)
+		assert.Equal(t, int64(1), prs[1].ID)
+	}
 }
 
 func TestPullRequestsOldest(t *testing.T) {
@@ -80,9 +81,10 @@ func TestPullRequestsOldest(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
-	assert.Len(t, prs, 2)
-	assert.Equal(t, int64(1), prs[0].ID)
-	assert.Equal(t, int64(2), prs[1].ID)
+	if assert.Len(t, prs, 2) {
+		assert.Equal(t, int64(1), prs[0].ID)
+		assert.Equal(t, int64(2), prs[1].ID)
+	}
 }
 
 func TestGetUnmergedPullRequest(t *testing.T) {

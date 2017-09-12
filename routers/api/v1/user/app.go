@@ -13,7 +13,7 @@ import (
 
 // ListAccessTokens list all the access tokens
 func ListAccessTokens(ctx *context.APIContext) {
-	// swagger:route GET /users/{username}/tokens userGetTokens
+	// swagger:route GET /users/{username}/tokens user userGetTokens
 	//
 	//     Produces:
 	//     - application/json
@@ -40,7 +40,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 
 // CreateAccessToken create access tokens
 func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption) {
-	// swagger:route POST /users/{username} /tokens userCreateToken
+	// swagger:route POST /users/{username} /tokens user userCreateToken
 	//
 	//     Consumes:
 	//     - application/json

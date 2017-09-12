@@ -118,8 +118,8 @@ func initIntegrationTest() {
 
 func prepareTestEnv(t testing.TB) {
 	assert.NoError(t, models.LoadFixtures())
-	assert.NoError(t, os.RemoveAll("integrations/gitea-integration"))
-	assert.NoError(t, com.CopyDir("integrations/gitea-integration-meta", "integrations/gitea-integration"))
+	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, com.CopyDir("integrations/gitea-repositories-meta", setting.RepoRootPath))
 }
 
 type TestSession struct {
@@ -160,6 +160,13 @@ const userPassword = "password"
 
 var loginSessionCache = make(map[string]*TestSession, 10)
 
+func emptyTestSession(t testing.TB) *TestSession {
+	jar, err := cookiejar.New(nil)
+	assert.NoError(t, err)
+
+	return &TestSession{jar: jar}
+}
+
 func loginUser(t testing.TB, userName string) *TestSession {
 	if session, ok := loginSessionCache[userName]; ok {
 		return session
@@ -185,13 +192,13 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	ch.Add("Cookie", strings.Join(resp.Headers["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 
-	jar, err := cookiejar.New(nil)
-	assert.NoError(t, err)
+	session := emptyTestSession(t)
+
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
-	jar.SetCookies(baseURL, cr.Cookies())
+	session.jar.SetCookies(baseURL, cr.Cookies())
 
-	return &TestSession{jar: jar}
+	return session
 }
 
 type TestResponseWriter struct {
@@ -261,7 +268,8 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *TestRespo
 	}
 	mac.ServeHTTP(respWriter, req)
 	if expectedStatus != NoExpectedStatus {
-		assert.EqualValues(t, expectedStatus, respWriter.HeaderCode)
+		assert.EqualValues(t, expectedStatus, respWriter.HeaderCode,
+			"Request URL: %s", req.URL.String())
 	}
 	return &TestResponse{
 		HeaderCode: respWriter.HeaderCode,

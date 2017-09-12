@@ -154,8 +154,10 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
+			log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
 		} else if models.IsErrEmailAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSignIn, &form)
+			log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
 		} else {
 			ctx.Handle(500, "UserSignIn", err)
 		}
@@ -340,8 +342,8 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 
 	// Register last login
 	u.SetLastLogin()
-	if err := models.UpdateUser(u); err != nil {
-		ctx.Handle(500, "UpdateUser", err)
+	if err := models.UpdateUserCols(u, "last_login_unix"); err != nil {
+		ctx.Handle(500, "UpdateUserCols", err)
 		return
 	}
 
@@ -430,8 +432,8 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 
 			// Register last login
 			u.SetLastLogin()
-			if err := models.UpdateUser(u); err != nil {
-				ctx.Handle(500, "UpdateUser", err)
+			if err := models.UpdateUserCols(u, "last_login_unix"); err != nil {
+				ctx.Handle(500, "UpdateUserCols", err)
 				return
 			}
 
@@ -666,7 +668,8 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 	if models.CountUsers() == 1 {
 		u.IsAdmin = true
 		u.IsActive = true
-		if err := models.UpdateUser(u); err != nil {
+		u.SetLastLogin()
+		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
 			ctx.Handle(500, "UpdateUser", err)
 			return
 		}
@@ -781,7 +784,8 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 	if models.CountUsers() == 1 {
 		u.IsAdmin = true
 		u.IsActive = true
-		if err := models.UpdateUser(u); err != nil {
+		u.SetLastLogin()
+		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
 			ctx.Handle(500, "UpdateUser", err)
 			return
 		}
@@ -840,7 +844,7 @@ func Activate(ctx *context.Context) {
 			ctx.Handle(500, "UpdateUser", err)
 			return
 		}
-		if err := models.UpdateUser(user); err != nil {
+		if err := models.UpdateUserCols(user, "is_active", "rands"); err != nil {
 			if models.IsErrUserNotExist(err) {
 				ctx.Error(404)
 			} else {
@@ -991,7 +995,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			return
 		}
 		u.EncodePasswd()
-		if err := models.UpdateUser(u); err != nil {
+		if err := models.UpdateUserCols(u, "passwd", "rands", "salt"); err != nil {
 			ctx.Handle(500, "UpdateUser", err)
 			return
 		}

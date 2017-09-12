@@ -55,7 +55,7 @@ func listPublicKeys(ctx *context.APIContext, uid int64) {
 
 // ListMyPublicKeys list all my public keys
 func ListMyPublicKeys(ctx *context.APIContext) {
-	// swagger:route GET /user/keys userCurrentListKeys
+	// swagger:route GET /user/keys user userCurrentListKeys
 	//
 	//     Produces:
 	//     - application/json
@@ -69,7 +69,7 @@ func ListMyPublicKeys(ctx *context.APIContext) {
 
 // ListPublicKeys list all user's public keys
 func ListPublicKeys(ctx *context.APIContext) {
-	// swagger:route GET /users/{username}/keys userListKeys
+	// swagger:route GET /users/{username}/keys user userListKeys
 	//
 	//     Produces:
 	//     - application/json
@@ -87,7 +87,7 @@ func ListPublicKeys(ctx *context.APIContext) {
 
 // GetPublicKey get one public key
 func GetPublicKey(ctx *context.APIContext) {
-	// swagger:route GET /user/keys/{id} userCurrentGetKey
+	// swagger:route GET /user/keys/{id} user userCurrentGetKey
 	//
 	//     Produces:
 	//     - application/json
@@ -130,7 +130,7 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 
 // CreatePublicKey create one public key for me
 func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
-	// swagger:route POST /user/keys userCurrentPostKey
+	// swagger:route POST /user/keys user userCurrentPostKey
 	//
 	//     Consumes:
 	//     - application/json
@@ -148,7 +148,7 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 
 // DeletePublicKey delete one public key of mine
 func DeletePublicKey(ctx *context.APIContext) {
-	// swagger:route DELETE /user/keys/{id} userCurrentDeleteKey
+	// swagger:route DELETE /user/keys/{id} user userCurrentDeleteKey
 	//
 	//     Produces:
 	//     - application/json

@@ -98,9 +98,10 @@ func TestGetLabelsInRepoByIDs(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	labels, err := GetLabelsInRepoByIDs(1, []int64{1, 2, NonexistentID})
 	assert.NoError(t, err)
-	assert.Len(t, labels, 2)
-	assert.EqualValues(t, 1, labels[0].ID)
-	assert.EqualValues(t, 2, labels[1].ID)
+	if assert.Len(t, labels, 2) {
+		assert.EqualValues(t, 1, labels[0].ID)
+		assert.EqualValues(t, 2, labels[1].ID)
+	}
 }
 
 func TestGetLabelsByRepoID(t *testing.T) {
@@ -123,8 +124,9 @@ func TestGetLabelsByIssueID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	labels, err := GetLabelsByIssueID(1)
 	assert.NoError(t, err)
-	assert.Len(t, labels, 1)
-	assert.EqualValues(t, 1, labels[0].ID)
+	if assert.Len(t, labels, 1) {
+		assert.EqualValues(t, 1, labels[0].ID)
+	}
 
 	labels, err = GetLabelsByIssueID(NonexistentID)
 	assert.NoError(t, err)

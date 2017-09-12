@@ -54,8 +54,9 @@ func TestAPIReplaceIssueLabels(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
 	DecodeJSON(t, resp, &apiLabels)
-	assert.Len(t, apiLabels, 1)
-	assert.EqualValues(t, label.ID, apiLabels[0].ID)
+	if assert.Len(t, apiLabels, 1) {
+		assert.EqualValues(t, label.ID, apiLabels[0].ID)
+	}
 
 	models.AssertCount(t, &models.IssueLabel{IssueID: issue.ID}, 1)
 	models.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: issue.ID, LabelID: label.ID})

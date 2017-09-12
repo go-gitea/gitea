@@ -53,17 +53,45 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 
 // ListMembers list an organization's members
 func ListMembers(ctx *context.APIContext) {
+	// swagger:route GET /orgs/{orgname}/members organization orgListMembers
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: UserList
+	//       500: error
+
 	publicOnly := ctx.User == nil || !ctx.Org.Organization.IsOrgMember(ctx.User.ID)
 	listMembers(ctx, publicOnly)
 }
 
 // ListPublicMembers list an organization's public members
 func ListPublicMembers(ctx *context.APIContext) {
+	// swagger:route GET /orgs/{orgname}/public_members organization orgListPublicMembers
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: UserList
+	//       500: error
+
 	listMembers(ctx, true)
 }
 
 // IsMember check if a user is a member of an organization
 func IsMember(ctx *context.APIContext) {
+	// swagger:route GET /orgs/{orgname}/members/{username} organization orgIsMember
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       204: empty
+	//       302: redirect
+	//       404: notFound
+
 	userToCheck := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -85,6 +113,15 @@ func IsMember(ctx *context.APIContext) {
 
 // IsPublicMember check if a user is a public member of an organization
 func IsPublicMember(ctx *context.APIContext) {
+	// swagger:route GET /orgs/{orgname}/public_members/{username} organization orgIsPublicMember
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       204: empty
+	//       404: notFound
+
 	userToCheck := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -98,6 +135,16 @@ func IsPublicMember(ctx *context.APIContext) {
 
 // PublicizeMember make a member's membership public
 func PublicizeMember(ctx *context.APIContext) {
+	// swagger:route PUT /orgs/{orgname}/public_members/{username} organization orgPublicizeMember
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       204: empty
+	//       403: forbidden
+	//       500: error
+
 	userToPublicize := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -116,6 +163,16 @@ func PublicizeMember(ctx *context.APIContext) {
 
 // ConcealMember make a member's membership not public
 func ConcealMember(ctx *context.APIContext) {
+	// swagger:route DELETE /orgs/{orgname}/public_members/{username} organization orgConcealMember
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       204: empty
+	//       403: forbidden
+	//       500: error
+
 	userToConceal := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -134,6 +191,15 @@ func ConcealMember(ctx *context.APIContext) {
 
 // DeleteMember remove a member from an organization
 func DeleteMember(ctx *context.APIContext) {
+	// swagger:route DELETE /orgs/{orgname}/members/{username} organization orgDeleteMember
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       204: empty
+	//       500: error
+
 	member := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return

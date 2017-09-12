@@ -19,9 +19,9 @@ type RepoUnit struct {
 	RepoID      int64 `xorm:"INDEX(s)"`
 	Type        int   `xorm:"INDEX(s)"`
 	Index       int
-	Config      map[string]string `xorm:"JSON"`
-	CreatedUnix int64             `xorm:"INDEX CREATED"`
-	Created     time.Time         `xorm:"-"`
+	Config      map[string]interface{} `xorm:"JSON"`
+	CreatedUnix int64                  `xorm:"INDEX CREATED"`
+	Created     time.Time              `xorm:"-"`
 }
 
 // Enumerate all the unit types
@@ -95,7 +95,7 @@ func addUnitsToTables(x *xorm.Engine) error {
 				continue
 			}
 
-			var config = make(map[string]string)
+			var config = make(map[string]interface{})
 			switch i {
 			case V16UnitTypeExternalTracker:
 				config["ExternalTrackerURL"] = repo.ExternalTrackerURL

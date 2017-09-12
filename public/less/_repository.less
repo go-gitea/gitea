@@ -133,7 +133,6 @@
 	}
 
 	#clone-panel {
-		margin-top: -8px;
 		margin-left: 5px;
 		width: 350px;
 
@@ -167,6 +166,13 @@
 				font-size: 1.4em;
 			}
 		}
+
+		.repo-path {
+			.section, .divider {
+				display: inline;
+			}
+		}
+
 		#file-buttons {
 			font-weight: normal;
 			.ui.button {
@@ -882,9 +888,13 @@
 		}
 	}
 	.diff-box {
+		display: flex;
+		align-items: center;
+
 		.count {
 			margin-right: 12px;
 			font-size: 13px;
+			flex: 0 0 auto;
 
 			.bar {
 				background-color: #bd2c00;
@@ -900,7 +910,15 @@
 			}
 		}
 		.file {
+			flex: 0 1 100%;
 			color: #888;
+			word-break: break-all;
+		}
+
+		.button {
+			margin: -5px 0 -5px 12px;
+			padding: 8px 10px;
+			flex: 0 0 auto;
 		}
 	}
 	.diff-file-box {

@@ -32,6 +32,8 @@
 
 	<div class="four wide column">
 		<div class="ui segment metas">
+			{{template "repo/issue/branch_selector_field" .}}
+
 			<input id="label_ids" name="label_ids" type="hidden" value="{{.label_ids}}">
 			<div class="ui {{if not .Labels}}disabled{{end}} floating jump select-label dropdown">
 				<span class="text">
