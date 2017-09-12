@@ -35,7 +35,7 @@ pipeline:
       TAGS: bindata sqlite
       GOPATH: /srv/app
     commands:
-      - make coverage
+      - make test
     when:
       event: [ push, tag, pull_request ]
 
