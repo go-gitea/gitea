@@ -102,26 +102,93 @@
 		</div>
 
 		{{if $.IssueWatch}}
-		<div class="ui divider"></div>
+			<div class="ui divider"></div>
 
-		<div class="ui watching">
-			<span class="text"><strong>{{.i18n.Tr "notification.notifications"}}</strong></span>
-			<div>
-				<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/watch">
-					<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}" />
-					{{$.CsrfTokenHtml}}
-					<button class="fluid ui button">
-						{{if $.IssueWatch.IsWatching}}
-							<i class="octicon octicon-mute"></i>
-							{{.i18n.Tr "repo.issues.unsubscribe"}}
-						{{else}}
-							<i class="octicon octicon-unmute"></i>
-							{{.i18n.Tr "repo.issues.subscribe"}}
-						{{end}}
-					</button>
-				</form>
+			<div class="ui watching">
+				<span class="text"><strong>{{.i18n.Tr "notification.notifications"}}</strong></span>
+				<div>
+					<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/watch">
+						<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}" />
+						{{$.CsrfTokenHtml}}
+						<button class="fluid ui button">
+							{{if $.IssueWatch.IsWatching}}
+								<i class="octicon octicon-mute"></i>
+								{{.i18n.Tr "repo.issues.unsubscribe"}}
+							{{else}}
+								<i class="octicon octicon-unmute"></i>
+								{{.i18n.Tr "repo.issues.subscribe"}}
+							{{end}}
+						</button>
+					</form>
+				</div>
 			</div>
-		</div>
+		{{end}}
+		{{if .Repository.IsTimetrackerEnabled }}
+			{{if .CanUseTimetracker }}
+				<div class="ui divider"></div>
+				<div class="ui timetrack">
+					<span class="text"><strong>{{.i18n.Tr "repo.issues.tracker"}}</strong></span>
+					<div>
+						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/toggle" id="toggle_stopwatch_form">
+							{{$.CsrfTokenHtml}}
+						</form>
+						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/stopwatch/cancel" id="cancel_stopwatch_form">
+							{{$.CsrfTokenHtml}}
+						</form>
+						{{if  $.IsStopwatchRunning}}
+							<div class="ui buttons fluid stop-cancel">
+								<button onclick="this.disabled=true;toggleStopwatch()" class="ui button stop">{{.i18n.Tr "repo.issues.stop_tracking"}}</button>
+								<button onclick="this.disabled=true;cancelStopwatch()" class="ui negative button cancel">{{.i18n.Tr "repo.issues.cancel_tracking"}}</button>
+							</div>
+						{{else}}
+							{{if .HasUserStopwatch}}
+								<div class="ui warning message">
+									{{.i18n.Tr "repo.issues.tracking_already_started" .OtherStopwatchURL | Safe}}
+								</div>
+							{{end}}
+							<div class="ui buttons two fluid start-add">
+								<button onclick="this.disabled=true;toggleStopwatch()" class="ui button poping up start" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
+								<button onclick="timeAddManual()" class="ui button green poping up add-time" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.add_time_short"}}</button>
+								<div class="ui mini modal">
+									<div class="header">{{.i18n.Tr "repo.issues.add_time"}}</div>
+									<div class="content">
+										<form method="POST" id="add_time_manual_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/add" class="ui action input fluid">
+											{{$.CsrfTokenHtml}}
+											<input placeholder='{{.i18n.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
+											<input placeholder='{{.i18n.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
+										</form>
+									</div>
+									<div class="actions">
+										<div class="ui green approve button">{{.i18n.Tr "repo.issues.add_time_short"}}</div>
+										<div class="ui red cancel button">{{.i18n.Tr "repo.issues.add_time_cancel"}}</div>
+									</div>
+								</div>
+							</div>
+						{{end}}
+					</div>
+				</div>
+			{{end}}
+			{{if gt (len .WorkingUsers) 0}}
+				<div class="ui divider"></div>
+				<div class="ui participants comments">
+					<span class="text"><strong>{{.i18n.Tr "repo.issues.time_spent_total"}}</strong></span>
+					<div>
+						{{range $user, $trackedtime := .WorkingUsers}}
+							<div class="comment">
+								<a class="avatar">
+									<img src="{{$user.RelAvatarLink}}">
+								</a>
+								<div class="content">
+									<a class="author">{{$user.DisplayName}}</a>
+									<div class="text">
+										{{$trackedtime}}
+									</div>
+								</div>
+							</div>
+						{{end}}
+					</div>
+				</div>
+			{{end}}
 		{{end}}
 	</div>
 </div>

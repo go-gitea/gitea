@@ -126,6 +126,8 @@ var migrations = []Migration{
 	NewMigration("unescape user full names", unescapeUserFullNames),
 	// v38 -> v39
 	NewMigration("remove commits and settings unit types", removeCommitsUnitType),
+	// v39 -> v40
+	NewMigration("adds time tracking and stopwatches", addTimetracking),
 }
 
 // Migrate database to current version

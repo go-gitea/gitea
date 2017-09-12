@@ -201,7 +201,10 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 					RepoID: repo.ID,
 					Type:   models.UnitTypeIssues,
 					Index:  int(models.UnitTypeIssues),
-					Config: new(models.UnitConfig),
+					Config: &models.IssuesConfig{
+						EnableTimetracker:                form.EnableTimetracker,
+						AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
+					},
 				})
 			}
 		}

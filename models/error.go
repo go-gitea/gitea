@@ -768,6 +768,50 @@ func (err ErrCommentNotExist) Error() string {
 	return fmt.Sprintf("comment does not exist [id: %d, issue_id: %d]", err.ID, err.IssueID)
 }
 
+//  _________ __                                __         .__
+//  /   _____//  |_  ____ ________  _  _______ _/  |_  ____ |  |__
+//  \_____  \\   __\/  _ \\____ \ \/ \/ /\__  \\   __\/ ___\|  |  \
+//  /        \|  | (  <_> )  |_> >     /  / __ \|  | \  \___|   Y  \
+//  /_______  /|__|  \____/|   __/ \/\_/  (____  /__|  \___  >___|  /
+// \/             |__|                \/          \/     \/
+
+// ErrStopwatchNotExist represents a "Stopwatch Not Exist" kind of error.
+type ErrStopwatchNotExist struct {
+	ID int64
+}
+
+// IsErrStopwatchNotExist checks if an error is a ErrStopwatchNotExist.
+func IsErrStopwatchNotExist(err error) bool {
+	_, ok := err.(ErrStopwatchNotExist)
+	return ok
+}
+
+func (err ErrStopwatchNotExist) Error() string {
+	return fmt.Sprintf("stopwatch does not exist [id: %d]", err.ID)
+}
+
+// ___________                     __              .______________.__
+// \__    ___/___________    ____ |  | __ ____   __| _/\__    ___/|__| _____   ____
+// |    |  \_  __ \__  \ _/ ___\|  |/ // __ \ / __ |   |    |   |  |/     \_/ __ \
+// |    |   |  | \// __ \\  \___|    <\  ___// /_/ |   |    |   |  |  Y Y  \  ___/
+// |____|   |__|  (____  /\___  >__|_ \\___  >____ |   |____|   |__|__|_|  /\___  >
+// \/     \/     \/    \/     \/                     \/     \/
+
+// ErrTrackedTimeNotExist represents a "TrackedTime Not Exist" kind of error.
+type ErrTrackedTimeNotExist struct {
+	ID int64
+}
+
+// IsErrTrackedTimeNotExist checks if an error is a ErrTrackedTimeNotExist.
+func IsErrTrackedTimeNotExist(err error) bool {
+	_, ok := err.(ErrTrackedTimeNotExist)
+	return ok
+}
+
+func (err ErrTrackedTimeNotExist) Error() string {
+	return fmt.Sprintf("tracked time does not exist [id: %d]", err.ID)
+}
+
 // .____          ___.          .__
 // |    |   _____ \_ |__   ____ |  |
 // |    |   \__  \ | __ \_/ __ \|  |

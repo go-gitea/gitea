@@ -70,18 +70,36 @@ func (cfg *ExternalTrackerConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
+// IssuesConfig describes issues config
+type IssuesConfig struct {
+	EnableTimetracker                bool
+	AllowOnlyContributorsToTrackTime bool
+}
+
+// FromDB fills up a IssuesConfig from serialized format.
+func (cfg *IssuesConfig) FromDB(bs []byte) error {
+	return json.Unmarshal(bs, &cfg)
+}
+
+// ToDB exports a IssuesConfig to a serialized format.
+func (cfg *IssuesConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
 		switch UnitType(Cell2Int64(val)) {
-		case UnitTypeCode, UnitTypeIssues, UnitTypePullRequests, UnitTypeReleases,
+		case UnitTypeCode, UnitTypePullRequests, UnitTypeReleases,
 			UnitTypeWiki:
 			r.Config = new(UnitConfig)
 		case UnitTypeExternalWiki:
 			r.Config = new(ExternalWikiConfig)
 		case UnitTypeExternalTracker:
 			r.Config = new(ExternalTrackerConfig)
+		case UnitTypeIssues:
+			r.Config = new(IssuesConfig)
 		default:
 			panic("unrecognized repo unit type: " + com.ToStr(*val))
 		}
@@ -106,11 +124,6 @@ func (r *RepoUnit) CodeConfig() *UnitConfig {
 	return r.Config.(*UnitConfig)
 }
 
-// IssuesConfig returns config for UnitTypeIssues
-func (r *RepoUnit) IssuesConfig() *UnitConfig {
-	return r.Config.(*UnitConfig)
-}
-
 // PullRequestsConfig returns config for UnitTypePullRequests
 func (r *RepoUnit) PullRequestsConfig() *UnitConfig {
 	return r.Config.(*UnitConfig)
@@ -124,6 +137,11 @@ func (r *RepoUnit) ReleasesConfig() *UnitConfig {
 // ExternalWikiConfig returns config for UnitTypeExternalWiki
 func (r *RepoUnit) ExternalWikiConfig() *ExternalWikiConfig {
 	return r.Config.(*ExternalWikiConfig)
+}
+
+// IssuesConfig returns config for UnitTypeIssues
+func (r *RepoUnit) IssuesConfig() *IssuesConfig {
+	return r.Config.(*IssuesConfig)
 }
 
 // ExternalTrackerConfig returns config for UnitTypeExternalTracker

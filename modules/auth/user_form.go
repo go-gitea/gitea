@@ -48,6 +48,7 @@ type InstallForm struct {
 	RequireSignInView              bool
 	DefaultKeepEmailPrivate        bool
 	DefaultAllowCreateOrganization bool
+	DefaultEnableTimetracking      bool
 	NoReplyAddress                 string
 
 	AdminName          string `binding:"OmitEmpty;AlphaDashDot;MaxSize(30)" locale:"install.admin_name"`

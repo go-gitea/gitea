@@ -132,6 +132,10 @@
 				<dd><i class="fa fa{{if .Service.DefaultKeepEmailPrivate}}-check{{end}}-square-o"></i></dd>
 				<dt>{{.i18n.Tr "admin.config.default_allow_create_organization"}}</dt>
 				<dd><i class="fa fa{{if .Service.DefaultAllowCreateOrganization}}-check{{end}}-square-o"></i></dd>
+				<dt>{{.i18n.Tr "admin.config.default_enable_timetracking"}}</dt>
+				<dd><i class="fa fa{{if .Service.DefaultEnableTimetracking}}-check{{end}}-square-o"></i></dd>
+				<dt>{{.i18n.Tr "admin.config.default_allow_only_contributors_to_track_time"}}</dt>
+				<dd><i class="fa fa{{if .Service.DefaultAllowOnlyContributorsToTrackTime}}-check{{end}}-square-o"></i></dd>
 				<dt>{{.i18n.Tr "admin.config.no_reply_address"}}</dt>
 				<dd>{{if .Service.NoReplyAddress}}{{.Service.NoReplyAddress}}{{else}}-{{end}}</dd>
 				<div class="ui divider"></div>

@@ -29,7 +29,7 @@
   lower_name: repo3
   name: repo3
   is_private: true
-  num_issues: 0
+  num_issues: 1
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
