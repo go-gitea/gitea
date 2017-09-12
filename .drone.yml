@@ -76,11 +76,13 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
-  # coverage:
-  #   image: plugins/coverage:latest
-  #   pull: true
-  #   secrets: [ github_token ]
-  #   server: https://coverage.gitea.io
+  coverage:
+    image: robertstettner/drone-codecov
+    secrets: [ codecov_token ]
+    files:
+      - coverage.all
+    when:
+      event: [ push, pull_request ]
 
   static:
     image: karalabe/xgo-latest:latest

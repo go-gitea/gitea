@@ -139,12 +139,13 @@ coverage: unit-test-coverage integration-test-coverage
 	@hash gocovmerge > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/wadey/gocovmerge; \
 	fi
+	echo "mode: set" > coverage.all
 	for PKG in $(PACKAGES); do\
-	  touch $$GOPATH/src/$$PKG/coverage.out;\
-	  egrep "$$PKG[^/]*\.go" integration.coverage.out > int.coverage.out;\
-	  gocovmerge $$GOPATH/src/$$PKG/coverage.out int.coverage.out > pkg.coverage.out;\
-	  mv pkg.coverage.out $$GOPATH/src/$$PKG/coverage.out;\
-	  rm int.coverage.out;\
+		egrep "$$PKG[^/]*\.go" integration.coverage.out > int.coverage.out;\
+		gocovmerge $$GOPATH/src/$$PKG/coverage.out int.coverage.out > pkg.coverage.out;\
+		grep -h -v "^mode:" pkg.coverage.out >>  coverage.all;\
+		mv pkg.coverage.out $$GOPATH/src/$$PKG/coverage.out;\
+		rm int.coverage.out;\
 	done;
 
 .PHONY: unit-test-coverage
