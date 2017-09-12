@@ -1824,7 +1824,7 @@ function cancelStopwatch() {
 }
 
 function timeAddManual() {
-    $('.mini.modal')
+    $('.time-add-manual')
         .modal({
             duration: 200,
             onApprove: function() {
