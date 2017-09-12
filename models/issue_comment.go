@@ -52,6 +52,14 @@ const (
 	CommentTypeChangeTitle
 	// Delete Branch
 	CommentTypeDeleteBranch
+	// Start a stopwatch for time tracking
+	CommentTypeStartTracking
+	// Stop a stopwatch for time tracking
+	CommentTypeStopTracking
+	// Add time manual for time tracking
+	CommentTypeAddTimeManual
+	// Cancel a stopwatch for time tracking
+	CommentTypeCancelTracking
 )
 
 // CommentTag defines comment tag type
@@ -672,7 +680,6 @@ func DeleteComment(comment *Comment) error {
 			return err
 		}
 	}
-
 	if _, err := sess.Where("comment_id = ?", comment.ID).Cols("is_deleted").Update(&Action{IsDeleted: true}); err != nil {
 		return err
 	}

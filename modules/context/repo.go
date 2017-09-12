@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -14,8 +15,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
-	editorconfig "gopkg.in/editorconfig/editorconfig-core-go.v1"
-	macaron "gopkg.in/macaron.v1"
+	"gopkg.in/editorconfig/editorconfig-core-go.v1"
+	"gopkg.in/macaron.v1"
 )
 
 // PullRequest contains informations to make a pull request
@@ -83,6 +84,15 @@ func (r *Repository) CanCommitToBranch() (bool, error) {
 		return false, err
 	}
 	return r.CanEnableEditor() && !protectedBranch, nil
+}
+
+// CanUseTimetracker returns whether or not a user can use the timetracker.
+func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) bool {
+	// Checking for following:
+	// 1. Is timetracker enabled
+	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
+	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
+		r.IsWriter() || issue.IsPoster(user.ID) || issue.AssigneeID == user.ID)
 }
 
 // GetEditorconfig returns the .editorconfig definition if found in the

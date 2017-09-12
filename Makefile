@@ -54,7 +54,7 @@ all: build
 .PHONY: clean
 clean:
 	$(GO) clean -i ./...
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) integrations*.test
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) integrations*.test integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/
 
 required-gofmt-version:
 	@$(GO) version  | grep -q '\(1.7\|1.8\)' || { echo "We require go version 1.7 or 1.8 to format code" >&2 && exit 1; }
@@ -160,12 +160,12 @@ test-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
 
 .PHONY: test-mysql
-test-mysql: integrations.test
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test
+test-mysql: integrations.mysql.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test
 
 .PHONY: test-pgsql
-test-pgsql: integrations.test
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
+test-pgsql: integrations.pgsql.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test
 
 
 .PHONY: bench-sqlite
@@ -173,20 +173,23 @@ bench-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.bench .
 
 .PHONY: bench-mysql
-bench-mysql: integrations.test
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test -test.bench .
+bench-mysql: integrations.mysql.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test -test.bench .
 
 .PHONY: bench-pgsql
-bench-pgsql: integrations.test
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test -test.bench .
+bench-pgsql: integrations.pgsql.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.bench .
 
 
 .PHONY: integration-test-coverage
 integration-test-coverage: integrations.cover.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
-integrations.test: $(SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations
+integrations.mysql.test: $(SOURCES)
+	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.mysql.test
+
+integrations.pgsql.test: $(SOURCES)
+	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.pgsql.test
 
 integrations.sqlite.test: $(SOURCES)
 	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite'

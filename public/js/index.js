@@ -404,15 +404,19 @@ function initRepository() {
         $('.enable-system').change(function () {
             if (this.checked) {
                 $($(this).data('target')).removeClass('disabled');
+                if (!$(this).data('context')) $($(this).data('context')).addClass('disabled');
             } else {
                 $($(this).data('target')).addClass('disabled');
+                if (!$(this).data('context')) $($(this).data('context')).removeClass('disabled');
             }
         });
         $('.enable-system-radio').change(function () {
             if (this.value == 'false') {
                 $($(this).data('target')).addClass('disabled');
+                if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).removeClass('disabled');
             } else if (this.value == 'true') {
                 $($(this).data('target')).removeClass('disabled');
+                if (typeof $(this).data('context') !== 'undefined')  $($(this).data('context')).addClass('disabled');
             }
         });
     }
@@ -1825,4 +1829,21 @@ function initVueApp() {
             uid: document.querySelector('meta[name=_context_uid]').content,
         },
     });
+}
+function timeAddManual() {
+    $('.mini.modal')
+        .modal({
+            duration: 200,
+            onApprove: function() {
+                $('#add_time_manual_form').submit();
+            }
+        }).modal('show')
+    ;
+}
+
+function toggleStopwatch() {
+    $("#toggle_stopwatch_form").submit();
+}
+function cancelStopwatch() {
+    $("#cancel_stopwatch_form").submit();
 }

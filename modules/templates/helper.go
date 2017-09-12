@@ -155,6 +155,9 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return out.String()
 		},
+		"DisableGitHooks": func() bool {
+			return setting.DisableGitHooks
+		},
 	}}
 }
 

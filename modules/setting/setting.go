@@ -34,7 +34,7 @@ import (
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
 	"github.com/go-xorm/core"
-	ini "gopkg.in/ini.v1"
+	"gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
 
@@ -124,6 +124,7 @@ var (
 	ReverseProxyAuthUser string
 	MinPasswordLength    int
 	ImportLocalPaths     bool
+	DisableGitHooks      bool
 
 	// Database settings
 	UseSQLite3    bool
@@ -499,7 +500,11 @@ func DateLang(lang string) string {
 
 // execPath returns the executable path.
 func execPath() (string, error) {
-	file, err := exec.LookPath(os.Args[0])
+	execFile := os.Args[0]
+	if IsWindows && filepath.IsAbs(execFile) {
+		return filepath.Clean(execFile), nil
+	}
+	file, err := exec.LookPath(execFile)
 	if err != nil {
 		return "", err
 	}
@@ -817,6 +822,7 @@ func NewContext() {
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
+	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
 	InternalToken = sec.Key("INTERNAL_TOKEN").String()
 	if len(InternalToken) == 0 {
 		secretBytes := make([]byte, 32)
@@ -1016,19 +1022,21 @@ func NewContext() {
 
 // Service settings
 var Service struct {
-	ActiveCodeLives                int
-	ResetPwdCodeLives              int
-	RegisterEmailConfirm           bool
-	DisableRegistration            bool
-	ShowRegistrationButton         bool
-	RequireSignInView              bool
-	EnableNotifyMail               bool
-	EnableReverseProxyAuth         bool
-	EnableReverseProxyAutoRegister bool
-	EnableCaptcha                  bool
-	DefaultKeepEmailPrivate        bool
-	DefaultAllowCreateOrganization bool
-	NoReplyAddress                 string
+	ActiveCodeLives                         int
+	ResetPwdCodeLives                       int
+	RegisterEmailConfirm                    bool
+	DisableRegistration                     bool
+	ShowRegistrationButton                  bool
+	RequireSignInView                       bool
+	EnableNotifyMail                        bool
+	EnableReverseProxyAuth                  bool
+	EnableReverseProxyAutoRegister          bool
+	EnableCaptcha                           bool
+	DefaultKeepEmailPrivate                 bool
+	DefaultAllowCreateOrganization          bool
+	DefaultEnableTimetracking               bool
+	DefaultAllowOnlyContributorsToTrackTime bool
+	NoReplyAddress                          string
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
@@ -1049,6 +1057,8 @@ func newService() {
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool()
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
+	Service.DefaultEnableTimetracking = sec.Key("DEFAULT_ENABLE_TIMETRACKING").MustBool(true)
+	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 
 	sec = Cfg.Section("openid")

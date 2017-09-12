@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
-	macaron "gopkg.in/macaron.v1"
+	"gopkg.in/macaron.v1"
 )
 
 // _______________________________________    _________.______________________ _______________.___.
@@ -95,15 +95,17 @@ type RepoSettingForm struct {
 	EnablePrune   bool
 
 	// Advanced settings
-	EnableWiki            bool
-	EnableExternalWiki    bool
-	ExternalWikiURL       string
-	EnableIssues          bool
-	EnableExternalTracker bool
-	ExternalTrackerURL    string
-	TrackerURLFormat      string
-	TrackerIssueStyle     string
-	EnablePulls           bool
+	EnableWiki                       bool
+	EnableExternalWiki               bool
+	ExternalWikiURL                  string
+	EnableIssues                     bool
+	EnableExternalTracker            bool
+	ExternalTrackerURL               string
+	TrackerURLFormat                 string
+	TrackerIssueStyle                string
+	EnablePulls                      bool
+	EnableTimetracker                bool
+	AllowOnlyContributorsToTrackTime bool
 }
 
 // Validate validates the fields
@@ -421,5 +423,23 @@ type DeleteRepoFileForm struct {
 
 // Validate validates the fields
 func (f *DeleteRepoFileForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// ___________.__                 ___________                     __
+// \__    ___/|__| _____   ____   \__    ___/___________    ____ |  | __ ___________
+// |    |   |  |/     \_/ __ \    |    |  \_  __ \__  \ _/ ___\|  |/ // __ \_  __ \
+// |    |   |  |  Y Y  \  ___/    |    |   |  | \// __ \\  \___|    <\  ___/|  | \/
+// |____|   |__|__|_|  /\___  >   |____|   |__|  (____  /\___  >__|_ \\___  >__|
+// \/     \/                        \/     \/     \/    \/
+
+// AddTimeManuallyForm form that adds spent time manually.
+type AddTimeManuallyForm struct {
+	Hours   int `binding:"Range(0,1000)"`
+	Minutes int `binding:"Range(0,1000)"`
+}
+
+// Validate validates the fields
+func (f *AddTimeManuallyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }

@@ -134,13 +134,28 @@
 				<div class="field {{if not $isIssuesEnabled}}disabled{{end}}" id="issue_box">
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="false" data-target="#external_issue_box" {{if not (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}checked{{end}}/>
+							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="false" data-context="#internal_issue_box" data-target="#external_issue_box" {{if not (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}checked{{end}}/>
 							<label>{{.i18n.Tr "repo.settings.use_internal_issue_tracker"}}</label>
+						</div>
+					</div>
+					<div class="field {{if (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="enable_timetracker" class="enable-system" data-target="#only_contributors" type="checkbox" {{if .Repository.IsTimetrackerEnabled}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.settings.enable_timetracker"}}</label>
+							</div>
+						</div>
+						<div class="field {{if not .Repository.IsTimetrackerEnabled}}disabled{{end}}" id="only_contributors">
+							<div class="ui checkbox">
+
+								<input name="allow_only_contributors_to_track_time" type="checkbox" {{if .Repository.AllowOnlyContributorsToTrackTime}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.settings.allow_only_contributors_to_track_time"}}</label>
+							</div>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="true" data-target="#external_issue_box" {{if .Repository.UnitEnabled $.UnitTypeExternalTracker}}checked{{end}}/>
+							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="true" data-context="#internal_issue_box" data-target="#external_issue_box" {{if .Repository.UnitEnabled $.UnitTypeExternalTracker}}checked{{end}}/>
 							<label>{{.i18n.Tr "repo.settings.use_external_issue_tracker"}}</label>
 						</div>
 					</div>

@@ -1372,6 +1372,65 @@
         }
       }
     },
+    "/repos/{username}/{reponame}/issues/{issue}/times": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "issueTrackedTimes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimes"
+          },
+          "404": {
+            "$ref": "#/responses/error"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "addTime",
+        "parameters": [
+          {
+            "x-go-name": "Time",
+            "name": "time",
+            "in": "body",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTime"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/error"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{username}/{reponame}/mirror-sync": {
       "post": {
         "produces": [
@@ -1428,6 +1487,53 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{username}/{reponame}/times": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoTrackedTimes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimes"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{username}/{reponame}/times/{timetrackingusername}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "operationId": "userTrackedTimes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimes"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           },
           "500": {
             "$ref": "#/responses/error"
@@ -1944,6 +2050,25 @@
         "responses": {
           "200": {
             "$ref": "#/responses/RepositoryList"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/user/times": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "operationId": "userTrackedTimes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimes"
           },
           "500": {
             "$ref": "#/responses/error"

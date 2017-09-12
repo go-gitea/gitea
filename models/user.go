@@ -237,7 +237,7 @@ func (u *User) CanCreateOrganization() bool {
 
 // CanEditGitHook returns true if user can edit Git hooks.
 func (u *User) CanEditGitHook() bool {
-	return u.IsAdmin || u.AllowGitHook
+	return !setting.DisableGitHooks && (u.IsAdmin || u.AllowGitHook)
 }
 
 // CanImportLocal returns true if user can migrate repository by local path.
