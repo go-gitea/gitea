@@ -1823,12 +1823,45 @@ function cancelStopwatch() {
     $("#cancel_stopwatch_form").submit();
 }
 
+function timeAddManual() {
+    $('.mini.modal')
+        .modal({
+            duration: 200,
+            onApprove: function() {
+                $('#add_time_manual_form').submit();
+            }
+        }).modal('show')
+    ;
+}
+
+function toggleStopwatch() {
+    $("#toggle_stopwatch_form").submit();
+}
+function cancelStopwatch() {
+    $("#cancel_stopwatch_form").submit();
+}
+
+function deleteDependencyModal(id, type) {
+    $('.remove-dependency')
+        .modal({
+            closable: false,
+            duration: 200,
+            onApprove: function () {
+                $('#removeDependencyID').val(id);
+                $('#dependencyType').val(type);
+                $('#removeDependencyForm').submit();
+            }
+        }).modal('show')
+    ;
+}
+
 function showAddDependencyModal() {
-    $('.tiny.modal')
+    $('.add-dependency')
         .modal({
             duration: 200,
             onApprove: function() {
                 $('#addDependencyForm').submit();
+
             }
         }).modal('show')
     ;
