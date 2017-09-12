@@ -149,7 +149,7 @@
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.start_tracking_history"  $createdStr | Safe}}</span>
 		</div>
-{{else if eq .Type 13}}
+	{{else if eq .Type 13}}
 		<div class="event">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
@@ -174,7 +174,7 @@
 				<span class="text grey">{{.Content}}</span>
 			</div>
 		</div>
-		{{else if eq .Type 15}}
+	{{else if eq .Type 15}}
 		<div class="event">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
@@ -182,40 +182,37 @@
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.cancel_tracking_history"  $createdStr | Safe}}</span>
 		</div>
-
-		{{else if eq .Type 16}}
+	{{else if eq .Type 16}}
 		<div class="event">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.cancel_tracking_history"  $createdStr | Safe}}</span>
-		</div>
-
-		<span class="text grey">
-					{{$.i18n.Tr "repo.issues.dependency.removed_dependency" .Poster.HomeLink .Poster.Name $createdStr | Safe}}
-					</span>
-		<div class="detail">
 			<span class="text grey">
-				<i class="octicon octicon-trashcan"></i>
-				<a href="{{$.RepoLink}}/issues/{{.DependentIssue.Index}}">#{{.DependentIssue.Index}} {{.Content}}</a>
+				{{$.i18n.Tr "repo.issues.dependency.added_dependency" .Poster.HomeLink .Poster.Name $createdStr | Safe}}
 			</span>
+			<div class="detail">
+				<span class="text grey">
+					<i class="octicon octicon-plus"></i>
+					<a href="{{$.RepoLink}}/issues/{{.DependentIssue.Index}}">#{{.DependentIssue.Index}} {{.Content}}</a>
+				</span>
+			</div>
 		</div>
-
-		{{else if eq .Type 17}}
+	{{else if eq .Type 17}}
 		<div class="event">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
+
 			<span class="text grey">
-					{{$.i18n.Tr "repo.issues.dependency.added_dependency" .Poster.HomeLink .Poster.Name $createdStr | Safe}}
-					</span>
+				{{$.i18n.Tr "repo.issues.dependency.removed_dependency" .Poster.HomeLink .Poster.Name $createdStr | Safe}}
+			</span>
 			<div class="detail">
-						<span class="text grey">
-						<i class="octicon octicon-plus"></i>
-							<a href="{{$.RepoLink}}/issues/{{.DependentIssue.Index}}">#{{.DependentIssue.Index}} {{.Content}}</a>
-						</span>
+				<span class="text grey">
+					<i class="octicon octicon-trashcan"></i>
+					<a href="{{$.RepoLink}}/issues/{{.DependentIssue.Index}}">#{{.DependentIssue.Index}} {{.Content}}</a>
+				</span>
 			</div>
 		</div>
 	{{end}}
