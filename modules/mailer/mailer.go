@@ -42,7 +42,7 @@ func NewMessageFrom(to []string, from, subject, body string) *Message {
 
 	plainBody, err := html2text.FromString(body)
 	if err != nil || setting.MailService.SendAsPlainText {
-		if strings.Contains(base.TruncateString(body, 100), "<html>"){
+		if strings.Contains(base.TruncateString(body, 100), "<html>") {
 			log.Warn("Mail contains HTML but configured to send as plain text.")
 		}
 		msg.SetBody("text/plain", plainBody)
