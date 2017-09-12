@@ -1823,15 +1823,22 @@ function cancelStopwatch() {
     $("#cancel_stopwatch_form").submit();
 }
 
-function showAddDependencyModal() {
-    $('.add-dependency')
+function timeAddManual() {
+    $('.mini.modal')
         .modal({
             duration: 200,
             onApprove: function() {
-                $('#addDependencyForm').submit();
+                $('#add_time_manual_form').submit();
             }
         }).modal('show')
     ;
+}
+
+function toggleStopwatch() {
+    $("#toggle_stopwatch_form").submit();
+}
+function cancelStopwatch() {
+    $("#cancel_stopwatch_form").submit();
 }
 
 function deleteDependencyModal(id, type) {
@@ -1839,10 +1846,22 @@ function deleteDependencyModal(id, type) {
         .modal({
             closable: false,
             duration: 200,
-            onApprove: function() {
+            onApprove: function () {
                 $('#removeDependencyID').val(id);
                 $('#dependencyType').val(type);
                 $('#removeDependencyForm').submit();
+            }
+        }).modal('show')
+    ;
+}
+
+function showAddDependencyModal() {
+    $('.add-dependency')
+        .modal({
+            duration: 200,
+            onApprove: function() {
+                $('#addDependencyForm').submit();
+
             }
         }).modal('show')
     ;
