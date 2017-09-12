@@ -658,11 +658,11 @@ func (repo *Repository) CanEnableEditor() bool {
 
 // GetWriters returns all users that have write access to the repository.
 func (repo *Repository) GetWriters() (_ []*User, err error) {
-	return repo.getUsersWithAccesMode(x, AccessModeWrite)
+	return repo.getUsersWithAccessMode(x, AccessModeWrite)
 }
 
-// getUsersWithAccesMode returns users that have at least given access mode to the repository.
-func (repo *Repository) getUsersWithAccesMode(e Engine, mode AccessMode) (_ []*User, err error) {
+// getUsersWithAccessMode returns users that have at least given access mode to the repository.
+func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*User, err error) {
 	if err = repo.getOwner(e); err != nil {
 		return nil, err
 	}

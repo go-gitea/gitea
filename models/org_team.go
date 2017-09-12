@@ -650,8 +650,8 @@ func removeTeamRepo(e Engine, teamID, repoID int64) error {
 	return err
 }
 
-// GetTeamsHaveAccessToRepo returns all teams in an organization that have given access level to the repository.
-func GetTeamsHaveAccessToRepo(orgID, repoID int64, mode AccessMode) ([]*Team, error) {
+// GetTeamsWithAccessToRepo returns all teams in an organization that have given access level to the repository.
+func GetTeamsWithAccessToRepo(orgID, repoID int64, mode AccessMode) ([]*Team, error) {
 	teams := make([]*Team, 0, 5)
 	return teams, x.Where("team.authorize >= ?", mode).
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").

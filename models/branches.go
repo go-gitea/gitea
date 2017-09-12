@@ -6,12 +6,12 @@ package models
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 )
@@ -94,27 +94,6 @@ func GetProtectedBranchByID(id int64) (*ProtectedBranch, error) {
 	return rel, nil
 }
 
-// Int64Slice attaches the methods of Interface to []int64, sorting in increasing order.
-type Int64Slice []int64
-
-func (p Int64Slice) Len() int           { return len(p) }
-func (p Int64Slice) Less(i, j int) bool { return p[i] < p[j] }
-func (p Int64Slice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-
-func isSliceInt64Eq(a, b []int64) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	sort.Sort(Int64Slice(a))
-	sort.Sort(Int64Slice(b))
-	for i := 0; i < len(a); i++ {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
 // UpdateProtectBranch saves branch protection options of repository.
 // If ID is 0, it creates a new record. Otherwise, updates existing record.
 // This function also performs check if whitelist user and team's IDs have been changed
@@ -124,7 +103,7 @@ func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, white
 		return fmt.Errorf("GetOwner: %v", err)
 	}
 
-	hasUsersChanged := !isSliceInt64Eq(protectBranch.WhitelistUserIDs, whitelistUserIDs)
+	hasUsersChanged := !util.IsSliceInt64Eq(protectBranch.WhitelistUserIDs, whitelistUserIDs)
 	if hasUsersChanged {
 		protectBranch.WhitelistUserIDs = make([]int64, 0, len(whitelistUserIDs))
 		for _, userID := range whitelistUserIDs {
@@ -140,11 +119,11 @@ func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, white
 	}
 
 	// if the repo is in an orgniziation
-	hasTeamsChanged := !isSliceInt64Eq(protectBranch.WhitelistTeamIDs, whitelistTeamIDs)
+	hasTeamsChanged := !util.IsSliceInt64Eq(protectBranch.WhitelistTeamIDs, whitelistTeamIDs)
 	if hasTeamsChanged {
-		teams, err := GetTeamsHaveAccessToRepo(repo.OwnerID, repo.ID, AccessModeWrite)
+		teams, err := GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, AccessModeWrite)
 		if err != nil {
-			return fmt.Errorf("GetTeamsHaveAccessToRepo [org_id: %d, repo_id: %d]: %v", repo.OwnerID, repo.ID, err)
+			return fmt.Errorf("GetTeamsWithAccessToRepo [org_id: %d, repo_id: %d]: %v", repo.OwnerID, repo.ID, err)
 		}
 		protectBranch.WhitelistTeamIDs = make([]int64, 0, len(teams))
 		for i := range teams {
