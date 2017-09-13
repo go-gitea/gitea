@@ -22,20 +22,9 @@ type ProtectedBranch struct {
 	BranchName  string `xorm:"UNIQUE(s)"`
 	CanPush     bool
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64
+	CreatedUnix int64     `xorm:"created"`
 	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64
-}
-
-// BeforeInsert before protected branch insert create and update time
-func (protectBranch *ProtectedBranch) BeforeInsert() {
-	protectBranch.CreatedUnix = time.Now().Unix()
-	protectBranch.UpdatedUnix = protectBranch.CreatedUnix
-}
-
-// BeforeUpdate before protected branch update time
-func (protectBranch *ProtectedBranch) BeforeUpdate() {
-	protectBranch.UpdatedUnix = time.Now().Unix()
+	UpdatedUnix int64     `xorm:"updated"`
 }
 
 // GetProtectedBranchByRepoID getting protected branch by repo ID

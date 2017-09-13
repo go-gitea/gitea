@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -55,6 +56,9 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 
 		htmlDoc.AssertElement(t, ".timetrack .stop-cancel .stop", true)
 		htmlDoc.AssertElement(t, ".timetrack .stop-cancel .cancel", true)
+
+		// Sleep for 1 second to not get wrong order for stopping timer
+		time.Sleep(time.Second)
 
 		req = NewRequestWithValues(t, "POST", path.Join(user, repo, "issues", issue, "times", "stopwatch", "toggle"), map[string]string{
 			"_csrf": htmlDoc.GetCSRF(),

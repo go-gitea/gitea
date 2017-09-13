@@ -124,6 +124,7 @@ var (
 	ReverseProxyAuthUser string
 	MinPasswordLength    int
 	ImportLocalPaths     bool
+	DisableGitHooks      bool
 
 	// Database settings
 	UseSQLite3    bool
@@ -499,7 +500,11 @@ func DateLang(lang string) string {
 
 // execPath returns the executable path.
 func execPath() (string, error) {
-	file, err := exec.LookPath(os.Args[0])
+	execFile := os.Args[0]
+	if IsWindows && filepath.IsAbs(execFile) {
+		return filepath.Clean(execFile), nil
+	}
+	file, err := exec.LookPath(execFile)
 	if err != nil {
 		return "", err
 	}
@@ -817,6 +822,7 @@ func NewContext() {
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
+	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
 	InternalToken = sec.Key("INTERNAL_TOKEN").String()
 	if len(InternalToken) == 0 {
 		secretBytes := make([]byte, 32)

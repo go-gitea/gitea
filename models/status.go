@@ -66,20 +66,9 @@ type CommitStatus struct {
 	CreatorID   int64
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
+	CreatedUnix int64     `xorm:"INDEX created"`
 	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX"`
-}
-
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (status *CommitStatus) BeforeInsert() {
-	status.CreatedUnix = time.Now().Unix()
-	status.UpdatedUnix = status.CreatedUnix
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (status *CommitStatus) BeforeUpdate() {
-	status.UpdatedUnix = time.Now().Unix()
+	UpdatedUnix int64     `xorm:"INDEX updated"`
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of
