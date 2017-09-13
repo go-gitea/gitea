@@ -1768,7 +1768,7 @@ function initVueComponents(){
                     case 'mirrors':
                         return repo.mirror;
                     case 'collaborative':
-                        return repo.owner.id != this.uid;
+                        return repo.owner.id != this.uid && !repo.mirror;
                     default:
                         return true;
                 }
