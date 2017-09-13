@@ -32,6 +32,15 @@ TAGS ?=
 
 TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
 
+TEST_MYSQL_HOST ?= mysql:3306
+TEST_MYSQL_DBNAME ?= testgitea
+TEST_MYSQL_USERNAME ?= root
+TEST_MYSQL_PASSWORD ?=
+TEST_PGSQL_HOST ?= pgsql:5432
+TEST_PGSQL_DBNAME ?= testgitea
+TEST_PGSQL_USERNAME ?= postgres
+TEST_PGSQL_PASSWORD ?= postgres
+
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE := gitea.exe
 else
@@ -54,7 +63,7 @@ all: build
 .PHONY: clean
 clean:
 	$(GO) clean -i ./...
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) integrations*.test integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) integrations*.test integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/ integrations/mysql.ini integrations/pgsql.ini
 
 required-gofmt-version:
 	@$(GO) version  | grep -q '\(1.7\|1.8\)' || { echo "We require go version 1.7 or 1.8 to format code" >&2 && exit 1; }
@@ -161,12 +170,21 @@ test-sqlite: integrations.sqlite.test
 
 .PHONY: test-mysql
 test-mysql: integrations.mysql.test
+	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
+	    -e 's|{{TEST_MYSQL_DBNAME}}|${TEST_MYSQL_DBNAME}|g' \
+	    -e 's|{{TEST_MYSQL_USERNAME}}|${TEST_MYSQL_USERNAME}|g' \
+	    -e 's|{{TEST_MYSQL_PASSWORD}}|${TEST_MYSQL_PASSWORD}|g' \
+		  integrations/mysql.ini.tmpl > integrations/mysql.ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test
 
 .PHONY: test-pgsql
 test-pgsql: integrations.pgsql.test
+	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
+	    -e 's|{{TEST_PGSQL_DBNAME}}|${TEST_PGSQL_DBNAME}|g' \
+	    -e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
+	    -e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
+		  integrations/pgsql.ini.tmpl > integrations/pgsql.ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test
-
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test
