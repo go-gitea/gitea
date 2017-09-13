@@ -126,7 +126,7 @@ pipeline:
   release:
     image: plugins/s3:1
     pull: true
-    secrets: [ s3_access_key, s3_secret_key ]
+    secrets: [ aws_access_key_id, aws_secret_access_key ]
     endpoint: https://storage.gitea.io
     path_style: true
     strip_prefix: dist/release/
@@ -139,7 +139,7 @@ pipeline:
   release:
     image: plugins/s3:1
     pull: true
-    secrets: [ s3_access_key, s3_secret_key ]
+    secrets: [ aws_access_key_id, aws_secret_access_key ]
     endpoint: https://storage.gitea.io
     path_style: true
     strip_prefix: dist/release/
@@ -152,7 +152,7 @@ pipeline:
   release:
     image: plugins/s3:1
     pull: true
-    secrets: [ s3_access_key, s3_secret_key ]
+    secrets: [ aws_access_key_id, aws_secret_access_key ]
     endpoint: https://storage.gitea.io
     path_style: true
     strip_prefix: dist/release/
