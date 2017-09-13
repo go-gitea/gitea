@@ -241,6 +241,7 @@ func NewTestEngine(x *xorm.Engine) (err error) {
 
 	x.SetMapper(core.GonicMapper{})
 	x.SetLogger(log.XORMLogger)
+	x.ShowSQL(!setting.ProdMode)
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 

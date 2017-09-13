@@ -34,7 +34,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * Mysql: [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
 
-* MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
+* MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/tree/master/godrv)
 
 * Postgres: [github.com/lib/pq](https://github.com/lib/pq)
 

@@ -26,19 +26,9 @@ type TwoFactor struct {
 	ScratchToken string
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
+	CreatedUnix int64     `xorm:"INDEX created"`
 	Updated     time.Time `xorm:"-"` // Note: Updated must below Created for AfterSet.
-	UpdatedUnix int64     `xorm:"INDEX"`
-}
-
-// BeforeInsert will be invoked by XORM before inserting a record representing this object.
-func (t *TwoFactor) BeforeInsert() {
-	t.CreatedUnix = time.Now().Unix()
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (t *TwoFactor) BeforeUpdate() {
-	t.UpdatedUnix = time.Now().Unix()
+	UpdatedUnix int64     `xorm:"INDEX updated"`
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.

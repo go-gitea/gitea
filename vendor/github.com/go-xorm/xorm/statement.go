@@ -1205,7 +1205,8 @@ func (statement *Statement) convertIDSQL(sqlStr string) string {
 			top = fmt.Sprintf("TOP %d ", statement.LimitN)
 		}
 
-		return fmt.Sprintf("SELECT %s%s FROM %v", top, colstrs, sqls[1])
+		newsql := fmt.Sprintf("SELECT %s%s FROM %v", top, colstrs, sqls[1])
+		return newsql
 	}
 	return ""
 }

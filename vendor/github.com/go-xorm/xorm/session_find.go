@@ -23,11 +23,13 @@ const (
 // are conditions. beans could be []Struct, []*Struct, map[int64]Struct
 // map[int64]*Struct
 func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{}) error {
-	defer session.resetStatement()
 	if session.isAutoClose {
 		defer session.Close()
 	}
+	return session.find(rowsSlicePtr, condiBean...)
+}
 
+func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{}) error {
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
 	if sliceValue.Kind() != reflect.Slice && sliceValue.Kind() != reflect.Map {
 		return errors.New("needs a pointer to a slice or a map")
@@ -157,21 +159,13 @@ func (session *Session) Find(rowsSlicePtr interface{}, condiBean ...interface{})
 }
 
 func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Value, sqlStr string, args ...interface{}) error {
-	var rawRows *core.Rows
-	var err error
-
-	session.queryPreprocess(&sqlStr, args...)
-	if session.isAutoCommit {
-		_, rawRows, err = session.innerQuery(sqlStr, args...)
-	} else {
-		rawRows, err = session.tx.Query(sqlStr, args...)
-	}
+	rows, err := session.queryRows(sqlStr, args...)
 	if err != nil {
 		return err
 	}
-	defer rawRows.Close()
+	defer rows.Close()
 
-	fields, err := rawRows.Columns()
+	fields, err := rows.Columns()
 	if err != nil {
 		return err
 	}
@@ -245,20 +239,20 @@ func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Va
 		if err != nil {
 			return err
 		}
-		return session.rows2Beans(rawRows, fields, len(fields), tb, newElemFunc, containerValueSetFunc)
+		return session.rows2Beans(rows, fields, len(fields), tb, newElemFunc, containerValueSetFunc)
 	}
 
-	for rawRows.Next() {
+	for rows.Next() {
 		var newValue = newElemFunc(fields)
 		bean := newValue.Interface()
 
 		switch elemType.Kind() {
 		case reflect.Slice:
-			err = rawRows.ScanSlice(bean)
+			err = rows.ScanSlice(bean)
 		case reflect.Map:
-			err = rawRows.ScanMap(bean)
+			err = rows.ScanMap(bean)
 		default:
-			err = rawRows.Scan(bean)
+			err = rows.Scan(bean)
 		}
 
 		if err != nil {
@@ -299,12 +293,11 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 	}
 
 	tableName := session.statement.TableName()
-
 	table := session.statement.RefTable
 	cacher := session.engine.getCacher2(table)
 	ids, err := core.GetCacheSql(cacher, tableName, newsql, args)
 	if err != nil {
-		rows, err := session.DB().Query(newsql, args...)
+		rows, err := session.queryRows(newsql, args...)
 		if err != nil {
 			return err
 		}
@@ -334,13 +327,13 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			ids = append(ids, pk)
 		}
 
-		session.engine.logger.Debug("[cacheFind] cache sql:", ids, tableName, newsql, args)
+		session.engine.logger.Debug("[cacheFind] cache sql:", ids, tableName, sqlStr, newsql, args)
 		err = core.PutCacheSql(cacher, ids, tableName, newsql, args)
 		if err != nil {
 			return err
 		}
 	} else {
-		session.engine.logger.Debug("[cacheFind] cache hit sql:", newsql, args)
+		session.engine.logger.Debug("[cacheFind] cache hit sql:", tableName, sqlStr, newsql, args)
 	}
 
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
@@ -355,7 +348,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			return err
 		}
 		bean := cacher.GetBean(tableName, sid)
-		if bean == nil {
+		if bean == nil || reflect.ValueOf(bean).Elem().Type() != t {
 			ides = append(ides, id)
 			ididxes[sid] = idx
 		} else {
@@ -376,9 +369,6 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 	}
 
 	if len(ides) > 0 {
-		newSession := session.engine.NewSession()
-		defer newSession.Close()
-
 		slices := reflect.New(reflect.SliceOf(t))
 		beans := slices.Interface()
 
@@ -388,18 +378,18 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 				ff = append(ff, ie[0])
 			}
 
-			newSession.In("`"+table.PrimaryKeys[0]+"`", ff...)
+			session.In("`"+table.PrimaryKeys[0]+"`", ff...)
 		} else {
 			for _, ie := range ides {
 				cond := builder.NewCond()
 				for i, name := range table.PrimaryKeys {
 					cond = cond.And(builder.Eq{"`" + name + "`": ie[i]})
 				}
-				newSession.Or(cond)
+				session.Or(cond)
 			}
 		}
 
-		err = newSession.NoCache().Find(beans)
+		err = session.NoCache().Table(tableName).find(beans)
 		if err != nil {
 			return err
 		}

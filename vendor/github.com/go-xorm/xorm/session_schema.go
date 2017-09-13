@@ -16,7 +16,6 @@ import (
 
 // Ping test if database is ok
 func (session *Session) Ping() error {
-	defer session.resetStatement()
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -35,7 +34,6 @@ func (session *Session) CreateTable(bean interface{}) error {
 }
 
 func (session *Session) createTable(bean interface{}) error {
-	defer session.resetStatement()
 	v := rValue(bean)
 	if err := session.statement.setRefValue(v); err != nil {
 		return err
@@ -56,7 +54,6 @@ func (session *Session) CreateIndexes(bean interface{}) error {
 }
 
 func (session *Session) createIndexes(bean interface{}) error {
-	defer session.resetStatement()
 	v := rValue(bean)
 	if err := session.statement.setRefValue(v); err != nil {
 		return err
@@ -81,7 +78,6 @@ func (session *Session) CreateUniques(bean interface{}) error {
 }
 
 func (session *Session) createUniques(bean interface{}) error {
-	defer session.resetStatement()
 	v := rValue(bean)
 	if err := session.statement.setRefValue(v); err != nil {
 		return err
@@ -107,7 +103,6 @@ func (session *Session) DropIndexes(bean interface{}) error {
 }
 
 func (session *Session) dropIndexes(bean interface{}) error {
-	defer session.resetStatement()
 	v := rValue(bean)
 	if err := session.statement.setRefValue(v); err != nil {
 		return err
@@ -133,7 +128,6 @@ func (session *Session) DropTable(beanOrTableName interface{}) error {
 }
 
 func (session *Session) dropTable(beanOrTableName interface{}) error {
-	defer session.resetStatement()
 	tableName, err := session.engine.tableName(beanOrTableName)
 	if err != nil {
 		return err
@@ -142,7 +136,7 @@ func (session *Session) dropTable(beanOrTableName interface{}) error {
 	var needDrop = true
 	if !session.engine.dialect.SupportDropIfExists() {
 		sqlStr, args := session.engine.dialect.TableCheckSql(tableName)
-		results, err := session.query(sqlStr, args...)
+		results, err := session.queryBytes(sqlStr, args...)
 		if err != nil {
 			return err
 		}
@@ -172,9 +166,8 @@ func (session *Session) IsTableExist(beanOrTableName interface{}) (bool, error) 
 }
 
 func (session *Session) isTableExist(tableName string) (bool, error) {
-	defer session.resetStatement()
 	sqlStr, args := session.engine.dialect.TableCheckSql(tableName)
-	results, err := session.query(sqlStr, args...)
+	results, err := session.queryBytes(sqlStr, args...)
 	return len(results) > 0, err
 }
 
@@ -196,12 +189,9 @@ func (session *Session) IsTableEmpty(bean interface{}) (bool, error) {
 }
 
 func (session *Session) isTableEmpty(tableName string) (bool, error) {
-	defer session.resetStatement()
-
 	var total int64
 	sqlStr := fmt.Sprintf("select count(*) from %s", session.engine.Quote(tableName))
-	err := session.DB().QueryRow(sqlStr).Scan(&total)
-	session.saveLastSQL(sqlStr)
+	err := session.queryRow(sqlStr).Scan(&total)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			err = nil
@@ -214,8 +204,6 @@ func (session *Session) isTableEmpty(tableName string) (bool, error) {
 
 // find if index is exist according cols
 func (session *Session) isIndexExist2(tableName string, cols []string, unique bool) (bool, error) {
-	defer session.resetStatement()
-
 	indexes, err := session.engine.dialect.GetIndexes(tableName)
 	if err != nil {
 		return false, err
@@ -233,8 +221,6 @@ func (session *Session) isIndexExist2(tableName string, cols []string, unique bo
 }
 
 func (session *Session) addColumn(colName string) error {
-	defer session.resetStatement()
-
 	col := session.statement.RefTable.GetColumn(colName)
 	sql, args := session.statement.genAddColumnStr(col)
 	_, err := session.exec(sql, args...)
@@ -242,18 +228,13 @@ func (session *Session) addColumn(colName string) error {
 }
 
 func (session *Session) addIndex(tableName, idxName string) error {
-	defer session.resetStatement()
-
 	index := session.statement.RefTable.Indexes[idxName]
 	sqlStr := session.engine.dialect.CreateIndexSql(tableName, index)
-
 	_, err := session.exec(sqlStr)
 	return err
 }
 
 func (session *Session) addUnique(tableName, uqeName string) error {
-	defer session.resetStatement()
-
 	index := session.statement.RefTable.Indexes[uqeName]
 	sqlStr := session.engine.dialect.CreateIndexSql(tableName, index)
 	_, err := session.exec(sqlStr)
