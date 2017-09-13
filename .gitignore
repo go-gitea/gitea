@@ -52,3 +52,5 @@ _testmain.go
 /integrations/gitea-integration-mysql
 /integrations/gitea-integration-pgsql
 /integrations/gitea-integration-sqlite
+/integrations/mysql.ini
+/integrations/pgsql.ini
