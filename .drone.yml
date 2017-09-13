@@ -35,9 +35,22 @@ pipeline:
       TAGS: bindata sqlite
       GOPATH: /srv/app
     commands:
+      - make unit-test-coverage
+    when:
+      event: [ push, pull_request ]
+      branch: [ master ]
+
+  test:
+    image: webhippie/golang:edge
+    pull: true
+    group: test
+    environment:
+      TAGS: bindata
+      GOPATH: /srv/app
+    commands:
       - make test
     when:
-      event: [ push, tag, pull_request ]
+      event: [ tag ]
 
   # Commented until db locking have been resolved!
   # test-sqlite:
@@ -60,9 +73,22 @@ pipeline:
       TAGS: bindata
       GOPATH: /srv/app
     commands:
+      - make integration-test-coverage
+    when:
+      event: [ push, pull_request ]
+      branch: [ master ]
+
+  test-mysql:
+    image: webhippie/golang:edge
+    pull: true
+    group: test
+    environment:
+      TAGS: bindata
+      GOPATH: /srv/app
+    commands:
       - make test-mysql
     when:
-      event: [ push, tag, pull_request ]
+      event: [ tag ]
 
   test-pgsql:
     image: webhippie/golang:edge
@@ -76,11 +102,26 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
-  # coverage:
-  #   image: plugins/coverage:latest
-  #   pull: true
-  #   secrets: [ github_token ]
-  #   server: https://coverage.gitea.io
+  generate-coverage:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      TAGS: bindata
+      GOPATH: /srv/app
+    commands:
+      - make coverage
+    when:
+      event: [ push, pull_request ]
+      branch: [ master ]
+
+  coverage:
+    image: robertstettner/drone-codecov
+    secrets: [ codecov_token ]
+    files:
+      - coverage.all
+    when:
+      event: [ push, pull_request ]
+      branch: [ master ]
 
   static:
     image: karalabe/xgo-latest:latest
