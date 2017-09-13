@@ -273,36 +273,6 @@ func (engine *Engine) logSQL(sqlStr string, sqlArgs ...interface{}) {
 	}
 }
 
-func (engine *Engine) logSQLQueryTime(sqlStr string, args []interface{}, executionBlock func() (*core.Stmt, *core.Rows, error)) (*core.Stmt, *core.Rows, error) {
-	if engine.showSQL && engine.showExecTime {
-		b4ExecTime := time.Now()
-		stmt, res, err := executionBlock()
-		execDuration := time.Since(b4ExecTime)
-		if len(args) > 0 {
-			engine.logger.Infof("[SQL] %s %v - took: %v", sqlStr, args, execDuration)
-		} else {
-			engine.logger.Infof("[SQL] %s - took: %v", sqlStr, execDuration)
-		}
-		return stmt, res, err
-	}
-	return executionBlock()
-}
-
-func (engine *Engine) logSQLExecutionTime(sqlStr string, args []interface{}, executionBlock func() (sql.Result, error)) (sql.Result, error) {
-	if engine.showSQL && engine.showExecTime {
-		b4ExecTime := time.Now()
-		res, err := executionBlock()
-		execDuration := time.Since(b4ExecTime)
-		if len(args) > 0 {
-			engine.logger.Infof("[sql] %s [args] %v - took: %v", sqlStr, args, execDuration)
-		} else {
-			engine.logger.Infof("[sql] %s - took: %v", sqlStr, execDuration)
-		}
-		return res, err
-	}
-	return executionBlock()
-}
-
 // Sql provides raw sql input parameter. When you have a complex SQL statement
 // and cannot use Where, Id, In and etc. Methods to describe, you can use SQL.
 //
@@ -1382,6 +1352,13 @@ func (engine *Engine) QueryString(sqlStr string, args ...interface{}) ([]map[str
 	session := engine.NewSession()
 	defer session.Close()
 	return session.QueryString(sqlStr, args...)
+}
+
+// QueryInterface runs a raw sql and return records as []map[string]interface{}
+func (engine *Engine) QueryInterface(sqlStr string, args ...interface{}) ([]map[string]interface{}, error) {
+	session := engine.NewSession()
+	defer session.Close()
+	return session.QueryInterface(sqlStr, args...)
 }
 
 // Insert one or more records

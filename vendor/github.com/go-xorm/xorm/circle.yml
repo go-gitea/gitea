@@ -21,7 +21,16 @@ database:
 test:
   override:
     # './...' is a relative pattern which means all subdirectories
-    - go test -v -race -db="sqlite3::mysql::mymysql::postgres" -conn_str="./test.db::root:@/xorm_test::xorm_test/root/::dbname=xorm_test sslmode=disable" -coverprofile=coverage.txt -covermode=atomic
+    - go get -u github.com/wadey/gocovmerge;
+    - go test -v -race -db="sqlite3" -conn_str="./test.db" -coverprofile=coverage1-1.txt -covermode=atomic
+    - go test -v -race -db="sqlite3" -conn_str="./test.db" -cache=true -coverprofile=coverage1-2.txt -covermode=atomic
+    - go test -v -race -db="mysql" -conn_str="root:@/xorm_test" -coverprofile=coverage2-1.txt -covermode=atomic
+    - go test -v -race -db="mysql" -conn_str="root:@/xorm_test" -cache=true -coverprofile=coverage2-2.txt -covermode=atomic
+    - go test -v -race -db="mymysql" -conn_str="xorm_test/root/" -coverprofile=coverage3-1.txt -covermode=atomic
+    - go test -v -race -db="mymysql" -conn_str="xorm_test/root/" -cache=true -coverprofile=coverage3-2.txt -covermode=atomic
+    - go test -v -race -db="postgres" -conn_str="dbname=xorm_test sslmode=disable" -coverprofile=coverage4-1.txt -covermode=atomic
+    - go test -v -race -db="postgres" -conn_str="dbname=xorm_test sslmode=disable" -cache=true -coverprofile=coverage4-2.txt -covermode=atomic
+    - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt > coverage.txt
     - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./sqlite3.sh
     - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./mysql.sh
     - cd /home/ubuntu/.go_workspace/src/github.com/go-xorm/tests && ./postgres.sh

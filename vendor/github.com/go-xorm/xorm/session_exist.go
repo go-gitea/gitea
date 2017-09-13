@@ -10,12 +10,10 @@ import (
 	"reflect"
 
 	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
 )
 
 // Exist returns true if the record exist otherwise return false
 func (session *Session) Exist(bean ...interface{}) (bool, error) {
-	defer session.resetStatement()
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -69,19 +67,11 @@ func (session *Session) Exist(bean ...interface{}) (bool, error) {
 		args = session.statement.RawParams
 	}
 
-	session.queryPreprocess(&sqlStr, args...)
-
-	var rawRows *core.Rows
-	if session.isAutoCommit {
-		_, rawRows, err = session.innerQuery(sqlStr, args...)
-	} else {
-		rawRows, err = session.tx.Query(sqlStr, args...)
-	}
+	rows, err := session.queryRows(sqlStr, args...)
 	if err != nil {
 		return false, err
 	}
+	defer rows.Close()
 
-	defer rawRows.Close()
-
-	return rawRows.Next(), nil
+	return rows.Next(), nil
 }

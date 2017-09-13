@@ -94,9 +94,9 @@ type User struct {
 	Salt             string `xorm:"VARCHAR(10)"`
 
 	Created       time.Time `xorm:"-"`
-	CreatedUnix   int64     `xorm:"INDEX"`
+	CreatedUnix   int64     `xorm:"INDEX created"`
 	Updated       time.Time `xorm:"-"`
-	UpdatedUnix   int64     `xorm:"INDEX"`
+	UpdatedUnix   int64     `xorm:"INDEX updated"`
 	LastLogin     time.Time `xorm:"-"`
 	LastLoginUnix int64     `xorm:"INDEX"`
 
@@ -135,18 +135,11 @@ type User struct {
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
 }
 
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (u *User) BeforeInsert() {
-	u.CreatedUnix = time.Now().Unix()
-	u.UpdatedUnix = u.CreatedUnix
-}
-
 // BeforeUpdate is invoked from XORM before updating this object.
 func (u *User) BeforeUpdate() {
 	if u.MaxRepoCreation < -1 {
 		u.MaxRepoCreation = -1
 	}
-	u.UpdatedUnix = time.Now().Unix()
 }
 
 // SetLastLogin set time to last login
@@ -897,7 +890,6 @@ func UpdateUserCols(u *User, cols ...string) error {
 	u.Website = base.TruncateString(u.Website, 255)
 	u.Description = base.TruncateString(u.Description, 255)
 
-	cols = append(cols, "updated_unix")
 	_, err := x.Id(u.ID).Cols(cols...).Update(u)
 	return err
 }

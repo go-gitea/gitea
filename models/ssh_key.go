@@ -55,21 +55,11 @@ type PublicKey struct {
 	Type        KeyType    `xorm:"NOT NULL DEFAULT 1"`
 
 	Created           time.Time `xorm:"-"`
-	CreatedUnix       int64
+	CreatedUnix       int64     `xorm:"created"`
 	Updated           time.Time `xorm:"-"` // Note: Updated must below Created for AfterSet.
-	UpdatedUnix       int64
-	HasRecentActivity bool `xorm:"-"`
-	HasUsed           bool `xorm:"-"`
-}
-
-// BeforeInsert will be invoked by XORM before inserting a record
-func (key *PublicKey) BeforeInsert() {
-	key.CreatedUnix = time.Now().Unix()
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (key *PublicKey) BeforeUpdate() {
-	key.UpdatedUnix = time.Now().Unix()
+	UpdatedUnix       int64     `xorm:"updated"`
+	HasRecentActivity bool      `xorm:"-"`
+	HasUsed           bool      `xorm:"-"`
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.
@@ -633,21 +623,11 @@ type DeployKey struct {
 	Content     string `xorm:"-"`
 
 	Created           time.Time `xorm:"-"`
-	CreatedUnix       int64
+	CreatedUnix       int64     `xorm:"created"`
 	Updated           time.Time `xorm:"-"` // Note: Updated must below Created for AfterSet.
-	UpdatedUnix       int64
-	HasRecentActivity bool `xorm:"-"`
-	HasUsed           bool `xorm:"-"`
-}
-
-// BeforeInsert will be invoked by XORM before inserting a record
-func (key *DeployKey) BeforeInsert() {
-	key.CreatedUnix = time.Now().Unix()
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (key *DeployKey) BeforeUpdate() {
-	key.UpdatedUnix = time.Now().Unix()
+	UpdatedUnix       int64     `xorm:"updated"`
+	HasRecentActivity bool      `xorm:"-"`
+	HasUsed           bool      `xorm:"-"`
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.

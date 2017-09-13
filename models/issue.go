@@ -54,23 +54,16 @@ type Issue struct {
 	Deadline     time.Time `xorm:"-"`
 	DeadlineUnix int64     `xorm:"INDEX"`
 	Created      time.Time `xorm:"-"`
-	CreatedUnix  int64     `xorm:"INDEX"`
+	CreatedUnix  int64     `xorm:"INDEX created"`
 	Updated      time.Time `xorm:"-"`
-	UpdatedUnix  int64     `xorm:"INDEX"`
+	UpdatedUnix  int64     `xorm:"INDEX updated"`
 
 	Attachments []*Attachment `xorm:"-"`
 	Comments    []*Comment    `xorm:"-"`
 }
 
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (issue *Issue) BeforeInsert() {
-	issue.CreatedUnix = time.Now().Unix()
-	issue.UpdatedUnix = issue.CreatedUnix
-}
-
 // BeforeUpdate is invoked from XORM before updating this object.
 func (issue *Issue) BeforeUpdate() {
-	issue.UpdatedUnix = time.Now().Unix()
 	issue.DeadlineUnix = issue.Deadline.Unix()
 }
 
@@ -581,7 +574,6 @@ func (issue *Issue) ReadBy(userID int64) error {
 }
 
 func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
-	cols = append(cols, "updated_unix")
 	if _, err := e.Id(issue.ID).Cols(cols...).Update(issue); err != nil {
 		return err
 	}
