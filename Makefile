@@ -169,22 +169,24 @@ test-vendor:
 test-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
 
-.PHONY: test-mysql
-test-mysql: integrations.mysql.test
+generate-ini:
 	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
-	    -e 's|{{TEST_MYSQL_DBNAME}}|${TEST_MYSQL_DBNAME}|g' \
-	    -e 's|{{TEST_MYSQL_USERNAME}}|${TEST_MYSQL_USERNAME}|g' \
-	    -e 's|{{TEST_MYSQL_PASSWORD}}|${TEST_MYSQL_PASSWORD}|g' \
-		  integrations/mysql.ini.tmpl > integrations/mysql.ini
+		-e 's|{{TEST_MYSQL_DBNAME}}|${TEST_MYSQL_DBNAME}|g' \
+		-e 's|{{TEST_MYSQL_USERNAME}}|${TEST_MYSQL_USERNAME}|g' \
+		-e 's|{{TEST_MYSQL_PASSWORD}}|${TEST_MYSQL_PASSWORD}|g' \
+			integrations/mysql.ini.tmpl > integrations/mysql.ini
+	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
+		-e 's|{{TEST_PGSQL_DBNAME}}|${TEST_PGSQL_DBNAME}|g' \
+		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
+		-e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
+			integrations/pgsql.ini.tmpl > integrations/pgsql.ini
+
+.PHONY: test-mysql
+test-mysql: integrations.mysql.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test
 
 .PHONY: test-pgsql
-test-pgsql: integrations.pgsql.test
-	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
-	    -e 's|{{TEST_PGSQL_DBNAME}}|${TEST_PGSQL_DBNAME}|g' \
-	    -e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
-	    -e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
-		  integrations/pgsql.ini.tmpl > integrations/pgsql.ini
+test-pgsql: integrations.pgsql.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test
 
 .PHONY: bench-sqlite
@@ -192,16 +194,16 @@ bench-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.bench .
 
 .PHONY: bench-mysql
-bench-mysql: integrations.mysql.test
+bench-mysql: integrations.mysql.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test -test.bench .
 
 .PHONY: bench-pgsql
-bench-pgsql: integrations.pgsql.test
+bench-pgsql: integrations.pgsql.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.bench .
 
 
 .PHONY: integration-test-coverage
-integration-test-coverage: integrations.cover.test
+integration-test-coverage: integrations.cover.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
 integrations.mysql.test: $(SOURCES)
