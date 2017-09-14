@@ -25,7 +25,8 @@
 							</div>
 						{{end}}
 				</a>
-				<span class="grey has-emoji">{{RenderCommitMessage false .LatestCommit.Summary .RepoLink $.Repository.ComposeMetas}}</span>
+				<span class="grey has-emoji">{{RenderCommitMessage false .LatestCommit.Summary .RepoLink $.Repository.ComposeMetas}}
+				{{template "repo/commit_status" .LatestCommitStatus}}</span>
 			</th>
 			<th class="nine wide">
 			</th>
