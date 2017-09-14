@@ -19,6 +19,6 @@ func TestNaturalSortLess(t *testing.T) {
 	test("v1.20.0", "v1.20.0", false)
 	test("abc", "bcd", "abc" < "bcd")
 	test("a-1-a", "a-1-b", true)
-	test("2", "20", true)
+	test("2", "12", true)
 	test("a", "ab", "a" < "ab")
 }
