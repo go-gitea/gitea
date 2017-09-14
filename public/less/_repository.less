@@ -1251,6 +1251,39 @@
 			}
 		}
 
+		&.branches {
+			.protected-branches {
+				.selection.dropdown {
+					width: 300px;
+				}
+				.item {
+			    border: 1px solid #eaeaea;
+			    padding: 10px 15px;
+
+			    &:not(:last-child) {
+				    border-bottom: 0;
+			    }
+				}
+			}
+			.branch-protection {
+				.help {
+					margin-left: 26px;
+					padding-top: 0;
+				}
+				.fields {
+					margin-left: 20px;
+					display: block;
+				}
+				.whitelist {
+					margin-left: 26px;
+
+					.dropdown img {
+						display: inline-block;
+					}
+				}
+			}
+		}
+
 		&.webhook {
 			.events {
 				.column {

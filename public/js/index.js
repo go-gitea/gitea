@@ -639,42 +639,18 @@ function initRepository() {
     if ($('.repository.compare.pull').length > 0) {
         initFilterSearchDropdown('.choose.branch .dropdown');
     }
-}
 
-function initProtectedBranch() {
-    $('#protectedBranch').change(function () {
-        var $this = $(this);
-        $.post($this.data('url'), {
-                "_csrf": csrf,
-                "canPush": true,
-                "branchName": $this.val(),
-            },
-            function (data) {
-                if (data.redirect) {
-                    window.location.href = data.redirect;
-                } else {
-                    location.reload();
-                }
+    // Branches
+    if ($('.repository.settings.branches').length > 0) {
+        initFilterSearchDropdown('.protected-branches .dropdown');
+        $('.enable-protection, .enable-whitelist').change(function () {
+            if (this.checked) {
+                $($(this).data('target')).removeClass('disabled');
+            } else {
+                $($(this).data('target')).addClass('disabled');
             }
-        );
-    });
-
-    $('.rm').click(function () {
-        var $this = $(this);
-        $.post($this.data('url'), {
-                "_csrf": csrf,
-                "canPush": false,
-                "branchName": $this.data('val'),
-            },
-            function (data) {
-                if (data.redirect) {
-                    window.location.href = data.redirect;
-                } else {
-                    location.reload();
-                }
-            }
-        );
-    });
+        });
+    }
 }
 
 function initRepositoryCollaboration() {
@@ -1598,7 +1574,6 @@ $(document).ready(function () {
     initEditForm();
     initEditor();
     initOrganization();
-    initProtectedBranch();
     initWebhook();
     initAdmin();
     initCodeView();

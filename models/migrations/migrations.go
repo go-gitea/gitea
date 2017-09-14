@@ -128,6 +128,8 @@ var migrations = []Migration{
 	NewMigration("remove commits and settings unit types", removeCommitsUnitType),
 	// v39 -> v40
 	NewMigration("adds time tracking and stopwatches", addTimetracking),
+	// v40 -> v41
+	NewMigration("migrate protected branch struct", migrateProtectedBranchStruct),
 }
 
 // Migrate database to current version

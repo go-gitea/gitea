@@ -2344,6 +2344,30 @@ footer .ui.language .menu {
   margin-left: 5px;
   margin-top: -3px;
 }
+.repository.settings.branches .protected-branches .selection.dropdown {
+  width: 300px;
+}
+.repository.settings.branches .protected-branches .item {
+  border: 1px solid #eaeaea;
+  padding: 10px 15px;
+}
+.repository.settings.branches .protected-branches .item:not(:last-child) {
+  border-bottom: 0;
+}
+.repository.settings.branches .branch-protection .help {
+  margin-left: 26px;
+  padding-top: 0;
+}
+.repository.settings.branches .branch-protection .fields {
+  margin-left: 20px;
+  display: block;
+}
+.repository.settings.branches .branch-protection .whitelist {
+  margin-left: 26px;
+}
+.repository.settings.branches .branch-protection .whitelist .dropdown img {
+  display: inline-block;
+}
 .repository.settings.webhook .events .column {
   padding-bottom: 0;
 }
