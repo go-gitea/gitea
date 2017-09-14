@@ -16,7 +16,7 @@ func NaturalSortLess(s1, s2 string) bool {
 		rune1, j1, end1 := getNextRune(s1, i1)
 		rune2, j2, end2 := getNextRune(s2, i2)
 		if end1 || end2 {
-			return end1 != end2 && end2
+			return end1 != end2 && end1
 		}
 		dec1 := isDecimal(rune1)
 		dec2 := isDecimal(rune2)
