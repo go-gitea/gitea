@@ -61,121 +61,57 @@ func TestSearchRepositoryByName(t *testing.T) {
 	assert.Equal(t, int64(3), count)
 	assert.Len(t, repos, 3)
 
-	// Get all public repositories by name
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Keyword:  "big_test_",
-		Page:     1,
-		PageSize: 10,
-	})
+	testCases := []struct {
+		name  string
+		opts  *SearchRepoOptions
+		count int
+	}{
+		{name: "PublicRepositoriesByName",
+			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 1, PageSize: 10},
+			count: 4},
+		{name: "PublicAndPrivateRepositoriesByName",
+			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 1, PageSize: 10, Private: true},
+			count: 8},
+		{name: "PublicAndPrivateRepositoriesByNameWithPagesizeLimitFirstPage",
+			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 1, PageSize: 5, Private: true},
+			count: 8},
+		{name: "PublicAndPrivateRepositoriesByNameWithPagesizeLimitSecondPage",
+			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 2, PageSize: 5, Private: true},
+			count: 8},
+		{name: "PublicRepositoriesOfUser",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15},
+			count: 2},
+		{name: "PublicAndPrivateRepositoriesOfUser",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true},
+			count: 4},
+		{name: "PublicRepositoriesOfUserIncludingCollaborative",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Collaborate: true},
+			count: 4},
+		{name: "PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, Collaborate: true},
+			count: 8},
+		{name: "PublicRepositoriesOfOrganization",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17},
+			count: 1},
+		{name: "PublicAndPrivateRepositoriesOfOrganization",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17, Private: true},
+			count: 2},
+	}
 
-	assert.NoError(t, err)
-	assert.Equal(t, int64(4), count)
-	assert.Len(t, repos, 4)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			repos, count, err := SearchRepositoryByName(testCase.opts)
 
-	// Get all public + private repositories by name
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Keyword:  "big_test_",
-		Page:     1,
-		PageSize: 10,
-		Private:  true,
-	})
+			assert.NoError(t, err)
+			assert.Equal(t, int64(testCase.count), count)
 
-	assert.NoError(t, err)
-	assert.Equal(t, int64(8), count)
-	assert.Len(t, repos, 8)
-
-	// Get all public + private repositories by name with pagesize limit (first page)
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Keyword:  "big_test_",
-		Page:     1,
-		PageSize: 5,
-		Private:  true,
-	})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(8), count)
-	assert.Len(t, repos, 5)
-
-	// Get all public + private repositories by name with pagesize limit (second page)
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Keyword:  "big_test_",
-		Page:     2,
-		PageSize: 5,
-		Private:  true,
-	})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(8), count)
-	assert.Len(t, repos, 3)
-
-	// Get all public repositories of user
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Page:     1,
-		PageSize: 10,
-		OwnerID:  15,
-	})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(2), count)
-	assert.Len(t, repos, 2)
-
-	// Get all public + private repositories of user
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Page:     1,
-		PageSize: 10,
-		OwnerID:  15,
-		Private:  true,
-	})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(4), count)
-	assert.Len(t, repos, 4)
-
-	// Get all public (including collaborative) repositories of user
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Page:        1,
-		PageSize:    10,
-		OwnerID:     15,
-		Collaborate: true,
-	})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(4), count)
-	assert.Len(t, repos, 4)
-
-	// Get all public + private (including collaborative) repositories of user
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Page:        1,
-		PageSize:    10,
-		OwnerID:     15,
-		Private:     true,
-		Collaborate: true,
-	})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(8), count)
-	assert.Len(t, repos, 8)
-
-	// Get all public repositories of organization
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Page:     1,
-		PageSize: 10,
-		OwnerID:  17,
-	})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1), count)
-	assert.Len(t, repos, 1)
-
-	// Get all public + private repositories of organization
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Page:     1,
-		PageSize: 10,
-		OwnerID:  17,
-		Private:  true,
-	})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(2), count)
-	assert.Len(t, repos, 2)
+			var expectedLen int
+			if testCase.opts.PageSize*testCase.opts.Page > testCase.count {
+				expectedLen = testCase.count % testCase.opts.PageSize
+			} else {
+				expectedLen = testCase.opts.PageSize
+			}
+			assert.Len(t, repos, expectedLen)
+		})
+	}
 }
