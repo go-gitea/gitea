@@ -46,6 +46,8 @@ const (
 	ActionReopenIssue                             // 13
 	ActionClosePullRequest                        // 14
 	ActionReopenPullRequest                       // 15
+	ActionDeleteTag                               // 16
+	ActionDeleteBranch                            // 17
 )
 
 var (
@@ -554,6 +556,12 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	// Check it's tag push or branch.
 	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 		opType = ActionPushTag
+		if opts.NewCommitID == git.EmptySHA {
+			opType = ActionDeleteTag
+		}
+		opts.Commits = &PushCommits{}
+	} else if opts.NewCommitID == git.EmptySHA {
+		opType = ActionDeleteBranch
 		opts.Commits = &PushCommits{}
 	} else {
 		// if not the first commit, set the compare URL.
@@ -599,26 +607,17 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	apiRepo := repo.APIFormat(AccessModeNone)
 
 	var shaSum string
+	var isHookEventPush = false
 	switch opType {
 	case ActionCommitRepo: // Push
-		if err = PrepareWebhooks(repo, HookEventPush, &api.PushPayload{
-			Ref:        opts.RefFullName,
-			Before:     opts.OldCommitID,
-			After:      opts.NewCommitID,
-			CompareURL: setting.AppURL + opts.Commits.CompareURL,
-			Commits:    opts.Commits.ToAPIPayloadCommits(repo.HTMLURL()),
-			Repo:       apiRepo,
-			Pusher:     apiPusher,
-			Sender:     apiPusher,
-		}); err != nil {
-			return fmt.Errorf("PrepareWebhooks: %v", err)
-		}
+		isHookEventPush = true
 
 		if isNewBranch {
 			gitRepo, err := git.OpenRepository(repo.RepoPath())
 			if err != nil {
 				log.Error(4, "OpenRepository[%s]: %v", repo.RepoPath(), err)
 			}
+
 			shaSum, err = gitRepo.GetBranchCommitID(refName)
 			if err != nil {
 				log.Error(4, "GetBranchCommitID[%s]: %v", opts.RefFullName, err)
@@ -632,7 +631,12 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			})
 		}
 
+	case ActionDeleteBranch: // Delete Branch
+		isHookEventPush = true
+
 	case ActionPushTag: // Create
+		isHookEventPush = true
+
 		gitRepo, err := git.OpenRepository(repo.RepoPath())
 		if err != nil {
 			log.Error(4, "OpenRepository[%s]: %v", repo.RepoPath(), err)
@@ -648,6 +652,24 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			Repo:    apiRepo,
 			Sender:  apiPusher,
 		})
+
+	case ActionDeleteTag: // Delete Tag
+		isHookEventPush = true
+	}
+
+	if isHookEventPush {
+		if err = PrepareWebhooks(repo, HookEventPush, &api.PushPayload{
+			Ref:        opts.RefFullName,
+			Before:     opts.OldCommitID,
+			After:      opts.NewCommitID,
+			CompareURL: setting.AppURL + opts.Commits.CompareURL,
+			Commits:    opts.Commits.ToAPIPayloadCommits(repo.HTMLURL()),
+			Repo:       apiRepo,
+			Pusher:     apiPusher,
+			Sender:     apiPusher,
+		}); err != nil {
+			return fmt.Errorf("PrepareWebhooks: %v", err)
+		}
 	}
 
 	return nil
