@@ -120,21 +120,13 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	ctx.Data["LatestCommit"] = latestCommit
 	ctx.Data["LatestCommitVerification"] = models.ParseCommitWithSignature(latestCommit)
 	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
-	commit := models.SignCommitWithStatuses{
-		State:    "",
-		Statuses: make([]*models.CommitStatus, 0),
-	}
-	commit.Statuses, err = models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
+
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
 	if err != nil {
 		log.Error(3, "GetLatestCommitStatus: %v", err)
-	} else {
-		for _, status := range commit.Statuses {
-			if status.State.IsWorseThan(commit.State) {
-				commit.State = status.State
-			}
-		}
 	}
-	ctx.Data["LatestCommitStatus"] = commit.State
+
+	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
 
 	// Check permission to add or upload new file.
 	if ctx.Repo.IsWriter() && ctx.Repo.IsViewBranch {
