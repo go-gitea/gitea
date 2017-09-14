@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -32,7 +33,7 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 	}
 }
 
-func TestAPISearchRepoNotLogin(t *testing.T) {
+func TestAPISearchRepo(t *testing.T) {
 	prepareTestEnv(t)
 	const keyword = "test"
 
@@ -47,218 +48,109 @@ func TestAPISearchRepoNotLogin(t *testing.T) {
 		assert.False(t, repo.Private)
 	}
 
-	// Should return all (max 50) public repositories
-	req = NewRequest(t, "GET", "/api/v1/repos/search?limit=50")
-	resp = MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 12)
-	for _, repo := range body.Data {
-		assert.NotEmpty(t, repo.Name)
-		assert.False(t, repo.Private)
-	}
-
-	// Should return (max 10) public repositories
-	req = NewRequest(t, "GET", "/api/v1/repos/search?limit=10")
-	resp = MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 10)
-	for _, repo := range body.Data {
-		assert.NotEmpty(t, repo.Name)
-		assert.False(t, repo.Private)
-	}
-
-	const keyword2 = "big_test_"
-	// Should return all public repositories which (partial) match keyword
-	req = NewRequestf(t, "GET", "/api/v1/repos/search?q=%s", keyword2)
-	resp = MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 4)
-	for _, repo := range body.Data {
-		assert.Contains(t, repo.Name, keyword2)
-		assert.False(t, repo.Private)
-	}
-
-	// Should return all public repositories accessible and related to user
-	const userID = int64(15)
-	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", userID)
-	resp = MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 4)
-	for _, repo := range body.Data {
-		assert.NotEmpty(t, repo.Name)
-		assert.False(t, repo.Private)
-	}
-
-	// Should return all public repositories accessible and related to user
-	const user2ID = int64(16)
-	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", user2ID)
-	resp = MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 1)
-	for _, repo := range body.Data {
-		assert.NotEmpty(t, repo.Name)
-		assert.False(t, repo.Private)
-	}
-
-	// Should return all public repositories owned by organization
-	const orgID = int64(17)
-	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", orgID)
-	resp = MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 1)
-	for _, repo := range body.Data {
-		assert.NotEmpty(t, repo.Name)
-		assert.Equal(t, repo.Owner.ID, orgID)
-		assert.False(t, repo.Private)
-	}
-}
-
-func TestAPISearchRepoLoggedUser(t *testing.T) {
-	prepareTestEnv(t)
-
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 15}).(*models.User)
 	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 16}).(*models.User)
-	session := loginUser(t, user.Name)
-	session2 := loginUser(t, user2.Name)
+	orgUser := models.AssertExistsAndLoadBean(t, &models.User{ID: 17}).(*models.User)
 
-	var body api.SearchResults
+	type privacyType int
 
-	// Get public repositories accessible and not related to logged in user that match the keyword
-	// Should return all public repositories which (partial) match keyword
-	const keyword = "big_test_"
-	req := NewRequestf(t, "GET", "/api/v1/repos/search?q=%s", keyword)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	const (
+		_ privacyType = iota
+		privacyTypePrivate
+		privacyTypePublic
+	)
 
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 4)
-	for _, repo := range body.Data {
-		assert.Contains(t, repo.Name, keyword)
-		assert.False(t, repo.Private)
-	}
-	// Test when user2 is logged in
-	resp = session2.MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 4)
-	for _, repo := range body.Data {
-		assert.Contains(t, repo.Name, keyword)
-		assert.False(t, repo.Private)
+	// Map of expected results, where key is user for login
+	type expectedResults map[*models.User]struct {
+		count       int
+		repoOwnerID int64
+		repoName    string
+		privacy     privacyType
 	}
 
-	// Get all public repositories accessible and not related to logged in user
-	// Should return all (max 50) public repositories
-	req = NewRequest(t, "GET", "/api/v1/repos/search?limit=50")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 12)
-	for _, repo := range body.Data {
-		assert.NotEmpty(t, repo.Name)
-		assert.False(t, repo.Private)
-	}
-	// Test when user2 is logged in
-	resp = session2.MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 12)
-	for _, repo := range body.Data {
-		assert.NotEmpty(t, repo.Name)
-		assert.False(t, repo.Private)
-	}
-
-	// Get all public repositories accessible and not related to logged in user
-	// Should return all (max 10) public repositories
-	req = NewRequest(t, "GET", "/api/v1/repos/search?limit=10")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 10)
-	for _, repo := range body.Data {
-		assert.NotEmpty(t, repo.Name)
-		assert.False(t, repo.Private)
-	}
-	// Test when user2 is logged in
-	resp = session2.MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 10)
-	for _, repo := range body.Data {
-		assert.NotEmpty(t, repo.Name)
-		assert.False(t, repo.Private)
-	}
-
-	// Get repositories of logged in user
-	// Should return all public and private repositories accessible and related to user
-	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", user.ID)
-	resp = session.MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 8)
-	for _, repo := range body.Data {
-		assert.NotEmpty(t, repo.Name)
-	}
-	// Test when user2 is logged in
-	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", user2.ID)
-	resp = session2.MakeRequest(t, req, http.StatusOK)
-
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 2)
-	for _, repo := range body.Data {
-		assert.NotEmpty(t, repo.Name)
+	testCases := []struct {
+		name, requestURL string
+		expectedResults
+	}{
+		{name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50", expectedResults: expectedResults{
+			nil:   {count: 12, privacy: privacyTypePublic},
+			user:  {count: 12, privacy: privacyTypePublic},
+			user2: {count: 12, privacy: privacyTypePublic}},
+		},
+		{name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10", expectedResults: expectedResults{
+			nil:   {count: 10, privacy: privacyTypePublic},
+			user:  {count: 10, privacy: privacyTypePublic},
+			user2: {count: 10, privacy: privacyTypePublic}},
+		},
+		{name: "RepositoriesDefaultMax10", requestURL: "/api/v1/repos/search", expectedResults: expectedResults{
+			nil:   {count: 10, privacy: privacyTypePublic},
+			user:  {count: 10, privacy: privacyTypePublic},
+			user2: {count: 10, privacy: privacyTypePublic}},
+		},
+		{name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s", "big_test_"), expectedResults: expectedResults{
+			nil:   {count: 4, repoName: "big_test_", privacy: privacyTypePublic},
+			user:  {count: 4, repoName: "big_test_", privacy: privacyTypePublic},
+			user2: {count: 4, repoName: "big_test_", privacy: privacyTypePublic}},
+		},
+		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
+			nil:   {count: 4, privacy: privacyTypePublic},
+			user:  {count: 8},
+			user2: {count: 4, privacy: privacyTypePublic}},
+		},
+		{name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
+			nil:   {count: 1, privacy: privacyTypePublic},
+			user:  {count: 1, privacy: privacyTypePublic},
+			user2: {count: 2}},
+		},
+		{name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
+			nil:   {count: 1, repoOwnerID: orgUser.ID, privacy: privacyTypePublic},
+			user:  {count: 2, repoOwnerID: orgUser.ID},
+			user2: {count: 1, repoOwnerID: orgUser.ID, privacy: privacyTypePublic}},
+		},
 	}
 
-	// Get repositories of another user
-	// Should return all public repositories accessible and related to user
-	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", user2.ID)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			for userToLogin, expected := range testCase.expectedResults {
+				var session *TestSession
+				var testName string
+				if userToLogin != nil && userToLogin.ID > 0 {
+					testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
+					session = loginUser(t, userToLogin.Name)
+				} else {
+					testName = "AnonymousUser"
+					session = emptyTestSession(t)
+				}
 
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 1)
-	for _, repo := range body.Data {
-		assert.NotEmpty(t, repo.Name)
-		assert.False(t, repo.Private)
-	}
-	// Test when user2 is logged in
-	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", user.ID)
-	resp = session2.MakeRequest(t, req, http.StatusOK)
+				t.Run(testName, func(t *testing.T) {
+					request := NewRequest(t, "GET", testCase.requestURL)
+					response := session.MakeRequest(t, request, http.StatusOK)
 
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 4)
-	for _, repo := range body.Data {
-		assert.NotEmpty(t, repo.Name)
-		assert.False(t, repo.Private)
-	}
+					var body api.SearchResults
+					DecodeJSON(t, response, &body)
 
-	// Get repositories of organization owned by logged in user
-	// Should return all public and private repositories owned by organization
-	const orgID = int64(17)
-	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", orgID)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+					assert.Len(t, body.Data, expected.count)
+					for _, repo := range body.Data {
+						assert.NotEmpty(t, repo.Name)
 
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 2)
-	for _, repo := range body.Data {
-		assert.NotEmpty(t, repo.Name)
-		assert.Equal(t, repo.Owner.ID, orgID)
-	}
+						if len(expected.repoName) > 0 {
+							assert.Contains(t, repo.Name, expected.repoName)
+						}
 
-	// Get repositories of organization owned by another user
-	// Should return all public repositories owned by organization
-	req = NewRequestf(t, "GET", "/api/v1/repos/search?uid=%d", orgID)
-	resp = session2.MakeRequest(t, req, http.StatusOK)
+						if expected.repoOwnerID > 0 {
+							assert.Equal(t, expected.repoOwnerID, repo.Owner.ID)
+						}
 
-	DecodeJSON(t, resp, &body)
-	assert.Len(t, body.Data, 1)
-	for _, repo := range body.Data {
-		assert.NotEmpty(t, repo.Name)
-		assert.Equal(t, repo.Owner.ID, orgID)
-		assert.False(t, repo.Private)
+						switch expected.privacy {
+						case privacyTypePrivate:
+							assert.True(t, repo.Private)
+						case privacyTypePublic:
+							assert.False(t, repo.Private)
+						}
+					}
+				})
+			}
+		})
 	}
 }
 
