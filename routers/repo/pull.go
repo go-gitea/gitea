@@ -841,7 +841,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	}
 
 	// Check if branch is not protected
-	if protected, err := pr.HeadRepo.IsProtectedBranch(pr.HeadBranch); err != nil || protected {
+	if protected, err := pr.HeadRepo.IsProtectedBranch(pr.HeadBranch, ctx.User); err != nil || protected {
 		if err != nil {
 			log.Error(4, "HeadRepo.IsProtectedBranch: %v", err)
 		}
