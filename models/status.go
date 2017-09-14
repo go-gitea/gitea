@@ -126,7 +126,7 @@ func (status *CommitStatus) APIFormat() *api.Status {
 	return apiStatus
 }
 
-// CalcCommitStatus returns commit status state via some status
+// CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
 func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 	var lastStatus *CommitStatus
 	var state CommitStatusState
@@ -138,7 +138,7 @@ func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 	}
 	if lastStatus == nil {
 		if len(statuses) > 0 {
-			lastStatus = statuses[len(statuses)-1]
+			lastStatus = statuses[0]
 		} else {
 			lastStatus = &CommitStatus{}
 		}
