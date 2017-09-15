@@ -1,3 +1,4 @@
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -119,6 +120,13 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	ctx.Data["LatestCommit"] = latestCommit
 	ctx.Data["LatestCommitVerification"] = models.ParseCommitWithSignature(latestCommit)
 	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
+
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
+	if err != nil {
+		log.Error(3, "GetLatestCommitStatus: %v", err)
+	}
+
+	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
 
 	// Check permission to add or upload new file.
 	if ctx.Repo.IsWriter() && ctx.Repo.IsViewBranch {

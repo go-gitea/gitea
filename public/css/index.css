@@ -2063,16 +2063,16 @@ footer .ui.language .menu {
 .repository .diff-detail-box span.status.rename {
   background-color: #dad8ff;
 }
-.repository .diff-box {
+.repository .diff-box .header {
   display: flex;
   align-items: center;
 }
-.repository .diff-box .count {
+.repository .diff-box .header .count {
   margin-right: 12px;
   font-size: 13px;
   flex: 0 0 auto;
 }
-.repository .diff-box .count .bar {
+.repository .diff-box .header .count .bar {
   background-color: #bd2c00;
   height: 12px;
   width: 40px;
@@ -2080,16 +2080,16 @@ footer .ui.language .menu {
   margin: 2px 4px 0 4px;
   vertical-align: text-top;
 }
-.repository .diff-box .count .bar .add {
+.repository .diff-box .header .count .bar .add {
   background-color: #55a532;
   height: 12px;
 }
-.repository .diff-box .file {
+.repository .diff-box .header .file {
   flex: 0 1 100%;
   color: #888;
   word-break: break-all;
 }
-.repository .diff-box .button {
+.repository .diff-box .header .button {
   margin: -5px 0 -5px 12px;
   padding: 8px 10px;
   flex: 0 0 auto;
@@ -2343,6 +2343,30 @@ footer .ui.language .menu {
 .repository.settings.collaboration #repo-collab-form .ui.button {
   margin-left: 5px;
   margin-top: -3px;
+}
+.repository.settings.branches .protected-branches .selection.dropdown {
+  width: 300px;
+}
+.repository.settings.branches .protected-branches .item {
+  border: 1px solid #eaeaea;
+  padding: 10px 15px;
+}
+.repository.settings.branches .protected-branches .item:not(:last-child) {
+  border-bottom: 0;
+}
+.repository.settings.branches .branch-protection .help {
+  margin-left: 26px;
+  padding-top: 0;
+}
+.repository.settings.branches .branch-protection .fields {
+  margin-left: 20px;
+  display: block;
+}
+.repository.settings.branches .branch-protection .whitelist {
+  margin-left: 26px;
+}
+.repository.settings.branches .branch-protection .whitelist .dropdown img {
+  display: inline-block;
 }
 .repository.settings.webhook .events .column {
   padding-bottom: 0;
@@ -2852,6 +2876,9 @@ footer .ui.language .menu {
 .user.link-account:not(.icon) {
   padding-top: 15px;
   padding-bottom: 5px;
+}
+.user.settings .iconFloat {
+  float: left;
 }
 .dashboard {
   padding-top: 15px;

@@ -9,7 +9,7 @@
 				<a class="ui floated right blue tiny button" href="{{EscapePound .SourcePath}}">
 					{{.i18n.Tr "repo.diff.browse_source"}}
 				</a>
-				{{RenderCommitMessage true .Commit.Message $.RepoLink $.Repository.ComposeMetas}}
+				<h3>{{RenderCommitMessage false .Commit.Message $.RepoLink $.Repository.ComposeMetas}}{{template "repo/commit_status" .CommitStatus}}</h3>
 			</div>
 			<div class="ui attached info segment {{if .Commit.Signature}} isSigned {{if .Verification.Verified }} isVerified {{end}}{{end}}">
 				{{if .Author}}
