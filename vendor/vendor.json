@@ -468,10 +468,10 @@
 			"revisionTime": "2016-08-11T02:11:45Z"
 		},
 		{
-			"checksumSHA1": "SoZDnkd5NdwE0g4MY1nTAl8ZtPo=",
+			"checksumSHA1": "lAzHeuH461JyawhsGLi27JpWsgs=",
 			"path": "github.com/go-xorm/xorm",
-			"revision": "c29485f954ed6495861c0098f9a1642a467299c8",
-			"revisionTime": "2017-09-10T12:58:18Z"
+			"revision": "3101e3bc440f16f151687d97bce94da063c486f5",
+			"revisionTime": "2017-09-15T01:51:15Z"
 		},
 		{
 			"checksumSHA1": "1ft/4j5MFa7C9dPI9whL03HSUzk=",
