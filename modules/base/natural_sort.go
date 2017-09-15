@@ -77,17 +77,13 @@ func compareByNumbers(str1 string, pos1 int, str2 string, pos2 int) (i1, i2 int,
 			}
 		}
 	}
-	i1 = pos1
-	i2 = pos2
 	less, equal = compareBigNumbers(dec1, dec2)
-	return
+	return pos1, pos2, less, equal
 }
 
 func compareBigNumbers(dec1, dec2 string) (less, equal bool) {
 	d1, _ := big.NewInt(0).SetString(dec1, 10)
 	d2, _ := big.NewInt(0).SetString(dec2, 10)
 	cmp := d1.Cmp(d2)
-	equal = cmp == 0
-	less = cmp < 0
-	return
+	return cmp < 0, cmp == 0
 }
