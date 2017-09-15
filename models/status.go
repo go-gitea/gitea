@@ -126,6 +126,26 @@ func (status *CommitStatus) APIFormat() *api.Status {
 	return apiStatus
 }
 
+// CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
+func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
+	var lastStatus *CommitStatus
+	var state CommitStatusState
+	for _, status := range statuses {
+		if status.State.IsWorseThan(state) {
+			state = status.State
+			lastStatus = status
+		}
+	}
+	if lastStatus == nil {
+		if len(statuses) > 0 {
+			lastStatus = statuses[0]
+		} else {
+			lastStatus = &CommitStatus{}
+		}
+	}
+	return lastStatus
+}
+
 // GetCommitStatuses returns all statuses for a given commit.
 func GetCommitStatuses(repo *Repository, sha string, page int) ([]*CommitStatus, error) {
 	statuses := make([]*CommitStatus, 0, 10)
@@ -255,8 +275,7 @@ func NewCommitStatus(repo *Repository, creator *User, sha string, status *Commit
 
 // SignCommitWithStatuses represents a commit with validation of signature and status state.
 type SignCommitWithStatuses struct {
-	Statuses []*CommitStatus
-	State    CommitStatusState
+	Status *CommitStatus
 	*SignCommit
 }
 
@@ -265,25 +284,18 @@ func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List 
 	var (
 		newCommits = list.New()
 		e          = oldCommits.Front()
-		err        error
 	)
 
 	for e != nil {
 		c := e.Value.(SignCommit)
 		commit := SignCommitWithStatuses{
 			SignCommit: &c,
-			State:      "",
-			Statuses:   make([]*CommitStatus, 0),
 		}
-		commit.Statuses, err = GetLatestCommitStatus(repo, commit.ID.String(), 0)
+		statuses, err := GetLatestCommitStatus(repo, commit.ID.String(), 0)
 		if err != nil {
 			log.Error(3, "GetLatestCommitStatus: %v", err)
 		} else {
-			for _, status := range commit.Statuses {
-				if status.State.IsWorseThan(commit.State) {
-					commit.State = status.State
-				}
-			}
+			commit.Status = CalcCommitStatus(statuses)
 		}
 
 		newCommits.PushBack(commit)

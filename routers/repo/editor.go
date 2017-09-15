@@ -32,7 +32,7 @@ const (
 )
 
 func renderCommitRights(ctx *context.Context) bool {
-	canCommit, err := ctx.Repo.CanCommitToBranch()
+	canCommit, err := ctx.Repo.CanCommitToBranch(ctx.User)
 	if err != nil {
 		log.Error(4, "CanCommitToBranch: %v", err)
 	}

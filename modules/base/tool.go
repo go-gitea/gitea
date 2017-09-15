@@ -497,6 +497,16 @@ func Int64sToMap(ints []int64) map[int64]bool {
 	return m
 }
 
+// Int64sContains returns if a int64 in a slice of int64
+func Int64sContains(intsSlice []int64, a int64) bool {
+	for _, c := range intsSlice {
+		if c == a {
+			return true
+		}
+	}
+	return false
+}
+
 // IsLetter reports whether the rune is a letter (category L).
 // https://github.com/golang/go/blob/master/src/go/scanner/scanner.go#L257
 func IsLetter(ch rune) bool {
