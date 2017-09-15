@@ -468,7 +468,7 @@
 			"revisionTime": "2016-08-11T02:11:45Z"
 		},
 		{
-			"checksumSHA1": "VYxFmZVhe57ztzBt9L/ggnAvH0o=",
+			"checksumSHA1": "lAzHeuH461JyawhsGLi27JpWsgs=",
 			"path": "github.com/go-xorm/xorm",
 			"revision": "3101e3bc440f16f151687d97bce94da063c486f5",
 			"revisionTime": "2017-09-15T01:51:15Z"
@@ -1508,5 +1508,5 @@
 			"revisionTime": "2016-06-28T05:56:50Z"
 		}
 	],
-	"rootPath": "code.gitea.io/gitea"
+	"rootPath": "github.com/go-gitea/gitea"
 }
