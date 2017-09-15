@@ -58,13 +58,13 @@
 				</div>
 
 				<div class="issue list">
-					{{range .Issues}}
-						{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}
+					{{range $index, $issue := .Issues}}
+						{{ $timeStr:= TimeSinceUnix $issue.CreatedUnix $.Lang }}
 						<li class="item">
-							<div class="ui label">{{if not $.RepoID}}{{.Repo.FullName}}{{end}}#{{.Index}}</div>
-							<a class="title has-emoji" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/issues/{{.Index}}">{{.Title}}</a>
+							<div class="ui label">{{if not $.RepoID}}{{$issue.Repo.FullName}}{{end}}#{{$issue.Index}}</div>
+							<a class="title has-emoji" href="{{AppSubUrl}}/{{$issue.Repo.Owner.Name}}/{{$issue.Repo.Name}}/issues/{{$issue.Index}}">{{$issue.Title}}</a>
 
-							{{with .Labels}}
+							{{with $issue.Labels}}
 								{{/* If we have any labels, we should show them
 								with a 2.5 line height, this way they don't look
 								awful and they don't stack on top of each other,
@@ -76,18 +76,18 @@
 								</span>
 							{{end}}
 
-							{{if .NumComments}}
-								<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
+							{{if $issue.NumComments}}
+								<span class="comment ui right"><i class="octicon octicon-comment"></i> {{$issue.NumComments}}</span>
 							{{end}}
 							{{if .TotalTrackedTime}}
 								<span class="comment ui right"><i class="octicon octicon-clock"></i> {{.TotalTrackedTime | Sec2Time}}</span>
 							{{end}}
 
 							<p class="desc">
-								{{$.i18n.Tr "repo.issues.opened_by" $timeStr .Poster.HomeLink .Poster.Name | Safe}}
-								{{if .Assignee}}
-									<a class="ui right assignee poping up" href="{{.Assignee.HomeLink}}" data-content="{{.Assignee.Name}}" data-variation="inverted" data-position="left center">
-										<img class="ui avatar image" src="{{.Assignee.RelAvatarLink}}">
+								{{$.i18n.Tr "repo.issues.opened_by" $timeStr $issue.Poster.HomeLink $issue.Poster.Name | Safe}}
+								{{if $issue.Assignee}}
+									<a class="ui right assignee poping up" href="{{$issue.Assignee.HomeLink}}" data-content="{{$issue.Assignee.Name}}" data-variation="inverted" data-position="left center">
+										<img class="ui avatar image" src="{{$issue.Assignee.RelAvatarLink}}">
 									</a>
 								{{end}}
 								{{$tasks := .GetTasks}}

@@ -178,24 +178,26 @@
 		</div>
 
 		<div class="issue list">
-			{{range .Issues}}
-				{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}
+			{{range $index, $issue := .Issues}}
+				{{ $timeStr:= TimeSinceUnix $issue.CreatedUnix $.Lang }}
 				<li class="item">
 					<div class="ui checkbox issue-checkbox">
-						<input type="checkbox" data-issue-id={{.ID}}></input>
+						<input type="checkbox" data-issue-id={{$issue.ID}}></input>
 					</div>
-					<div class="ui {{if .IsRead}}black{{else}}green{{end}} label">#{{.Index}}</div>
-					<a class="title has-emoji" href="{{$.Link}}/{{.Index}}">{{.Title}}</a>
-
-					{{if .Ref}}
-						<a class="ui label" href="{{$.RepoLink}}/src/branch/{{.Ref}}">{{.Ref}}</a>
+					<div class="ui {{if $issue.IsRead}}black{{else}}green{{end}} label">#{{$issue.Index}}</div>
+					<a class="title has-emoji" href="{{$.Link}}/{{$issue.Index}}">{{$issue.Title}}</a>
+					{{if $issue.IsPull}}
+					{{template "repo/commit_status" (index $.IssuesStates $index)}}
 					{{end}}
-					{{range .Labels}}
+					{{if $issue.Ref}}
+						<a class="ui label" href="{{$.RepoLink}}/src/branch/{{$issue.Ref}}">{{$issue.Ref}}</a>
+					{{end}}
+					{{range $issue.Labels}}
 						<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
 					{{end}}
 
-					{{if .NumComments}}
-						<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
+					{{if $issue.NumComments}}
+						<span class="comment ui right"><i class="octicon octicon-comment"></i> {{$issue.NumComments}}</span>
 					{{end}}
 
 					{{if .TotalTrackedTime}}
@@ -203,7 +205,7 @@
 					{{end}}
 
 					<p class="desc">
-						{{$.i18n.Tr "repo.issues.opened_by" $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+						{{$.i18n.Tr "repo.issues.opened_by" $timeStr $issue.Poster.HomeLink $issue.Poster.Name | Safe}}
 						{{$tasks := .GetTasks}}
 						{{if gt $tasks 0}}
 							{{$tasksDone := .GetTasksDone}}
@@ -211,16 +213,16 @@
 								<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
 							</span>
 						{{end}}
-						{{if .Milestone}}
-							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
-								<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
+						{{if $issue.Milestone}}
+							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$issue.Milestone.ID}}&assignee={{$.AssigneeID}}">
+								<span class="octicon octicon-milestone"></span> {{$issue.Milestone.Name}}
 							</a>
 						{{end}}
-						{{if ne .DeadlineUnix 0}}
+						{{if ne $issue.DeadlineUnix 0}}
 							<span class="octicon octicon-calendar"></span>
-							<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
+							<span{{if $issue.IsOverdue}} class="overdue"{{end}}>{{$issue.DeadlineUnix.FormatShort}}</span>
 						{{end}}
-						{{range .Assignees}}
+						{{range $issue.Assignees}}
 							<a class="ui right assignee poping up" href="{{.HomeLink}}" data-content="{{.Name}}" data-variation="inverted" data-position="left center">
 								<img class="ui avatar image" src="{{.RelAvatarLink}}">
 							</a>

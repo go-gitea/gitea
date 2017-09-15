@@ -186,8 +186,9 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		}
 	}
 
+	var issuesStates = make([]*models.CommitStatus, 0, len(issues))
 	// Get posters.
-	for i := range issues {
+	for i, issue := range issues {
 		// Check read status
 		if !ctx.IsSigned {
 			issues[i].IsRead = true
@@ -195,8 +196,19 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			ctx.ServerError("GetIsRead", err)
 			return
 		}
+
+		if issue.IsPull {
+			issue.LoadAttributes()
+			statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, issue.PullRequest.MergeBase, 0)
+			if err != nil {
+				log.Error(3, "GetLatestCommitStatus: %v", err)
+			}
+
+			issuesStates = append(issuesStates, models.CalcCommitStatus(statuses))
+		}
 	}
 	ctx.Data["Issues"] = issues
+	ctx.Data["IssuesStates"] = issuesStates
 
 	// Get assignees.
 	ctx.Data["Assignees"], err = repo.GetAssignees()
