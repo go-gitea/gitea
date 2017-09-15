@@ -30,8 +30,9 @@ const (
 
 var (
 	// NOTE: All below regex matching do not perform any extra validation.
-	// Thus a link is produced even if the user does not exist, the issue does not exist, the commit does not exist, etc.
+	// Thus a link is produced even if the linked entity does not exist.
 	// While fast, this is also incorrect and lead to false positives.
+	// TODO: fix invalid linking issue
 
 	// MentionPattern matches string that mentions someone, e.g. @Unknwon
 	MentionPattern = regexp.MustCompile(`(\s|^|\W)@[0-9a-zA-Z-_\.]+`)
