@@ -680,7 +680,7 @@ func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id AND `repository`.is_mirror=?", true).
 		Where(env.cond()).
-		GroupBy("`repository`.id").
+		GroupBy("`repository`.id, `repository`.updated_unix").
 		OrderBy("updated_unix DESC").
 		Cols("`repository`.id").
 		Find(&repoIDs)

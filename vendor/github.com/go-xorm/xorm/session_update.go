@@ -202,17 +202,19 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	table := session.statement.RefTable
 
 	if session.statement.UseAutoTime && table != nil && table.Updated != "" {
-		colNames = append(colNames, session.engine.Quote(table.Updated)+" = ?")
-		col := table.UpdatedColumn()
-		val, t := session.engine.NowTime2(col.SQLType.Name)
-		args = append(args, val)
+		if _, ok := session.statement.columnMap[strings.ToLower(table.Updated)]; !ok {
+			colNames = append(colNames, session.engine.Quote(table.Updated)+" = ?")
+			col := table.UpdatedColumn()
+			val, t := session.engine.NowTime2(col.SQLType.Name)
+			args = append(args, val)
 
-		var colName = col.Name
-		if isStruct {
-			session.afterClosures = append(session.afterClosures, func(bean interface{}) {
-				col := table.GetColumn(colName)
-				setColumnTime(bean, col, t)
-			})
+			var colName = col.Name
+			if isStruct {
+				session.afterClosures = append(session.afterClosures, func(bean interface{}) {
+					col := table.GetColumn(colName)
+					setColumnTime(bean, col, t)
+				})
+			}
 		}
 	}
 
