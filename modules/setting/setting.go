@@ -65,6 +65,7 @@ var (
 	AppBuiltWith   string
 	AppName        string
 	AppURL         string
+	HTTPSCloneURL  string
 	AppSubURL      string
 	AppSubURLDepth int // Number of slashes
 	AppPath        string
@@ -655,6 +656,8 @@ func NewContext() {
 	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
 	AppURL = strings.TrimRight(AppURL, "/") + "/"
 
+	HTTPSCloneURL = sec.Key("HTTPS_CLONE_URL").MustString(AppURL)
+	HTTPSCloneURL = strings.TrimRight(HTTPSCloneURL, "/") + "/"
 	// Check if has app suburl.
 	url, err := url.Parse(AppURL)
 	if err != nil {
