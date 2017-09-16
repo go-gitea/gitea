@@ -5,7 +5,8 @@ workspace:
 clone:
   git:
     image: plugins/git:1
-    depth: 50
+    # Tests require the entire history (for some reason)
+    #depth: 50
     tags: true
 
 pipeline:

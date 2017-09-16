@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testBlob = &Blob{
@@ -42,7 +43,7 @@ THE SOFTWARE.`
 
 	r, err := testBlob.Data()
 	assert.NoError(t, err)
-	assert.NotNil(t, r)
+	require.NotNil(t, r)
 
 	data, err := ioutil.ReadAll(r)
 	assert.NoError(t, err)
