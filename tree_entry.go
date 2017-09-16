@@ -116,35 +116,51 @@ func (te *TreeEntry) GetSubJumpablePathName() string {
 // Entries a list of entry
 type Entries []*TreeEntry
 
-var sorter = []func(t1, t2 *TreeEntry) bool{
-	func(t1, t2 *TreeEntry) bool {
+type customSortableEntries struct {
+	Comparer func(s1, s2 string) bool
+	Entries
+}
+
+var sorter = []func(t1, t2 *TreeEntry, cmp func(s1, s2 string) bool) bool{
+	func(t1, t2 *TreeEntry, cmp func(s1, s2 string) bool) bool {
 		return (t1.IsDir() || t1.IsSubModule()) && !t2.IsDir() && !t2.IsSubModule()
 	},
-	func(t1, t2 *TreeEntry) bool {
-		return t1.name < t2.name
+	func(t1, t2 *TreeEntry, cmp func(s1, s2 string) bool) bool {
+		return cmp(t1.name, t2.name)
 	},
 }
 
-func (tes Entries) Len() int      { return len(tes) }
-func (tes Entries) Swap(i, j int) { tes[i], tes[j] = tes[j], tes[i] }
-func (tes Entries) Less(i, j int) bool {
-	t1, t2 := tes[i], tes[j]
+func (ctes customSortableEntries) Len() int { return len(ctes.Entries) }
+
+func (ctes customSortableEntries) Swap(i, j int) {
+	ctes.Entries[i], ctes.Entries[j] = ctes.Entries[j], ctes.Entries[i]
+}
+
+func (ctes customSortableEntries) Less(i, j int) bool {
+	t1, t2 := ctes.Entries[i], ctes.Entries[j]
 	var k int
 	for k = 0; k < len(sorter)-1; k++ {
 		s := sorter[k]
 		switch {
-		case s(t1, t2):
+		case s(t1, t2, ctes.Comparer):
 			return true
-		case s(t2, t1):
+		case s(t2, t1, ctes.Comparer):
 			return false
 		}
 	}
-	return sorter[k](t1, t2)
+	return sorter[k](t1, t2, ctes.Comparer)
 }
 
 // Sort sort the list of entry
 func (tes Entries) Sort() {
-	sort.Sort(tes)
+	sort.Sort(customSortableEntries{func(s1, s2 string) bool {
+		return s1 < s2
+	}, tes})
+}
+
+// CustomSort customizable string comparing sort entry list
+func (tes Entries) CustomSort(cmp func(s1, s2 string) bool) {
+	sort.Sort(customSortableEntries{cmp, tes})
 }
 
 type commitInfo struct {
