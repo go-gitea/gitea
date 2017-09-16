@@ -118,6 +118,20 @@ var migrations = []Migration{
 	NewMigration("remove columns from action", removeActionColumns),
 	// v34 -> v35
 	NewMigration("give all units to owner teams", giveAllUnitsToOwnerTeams),
+	// v35 -> v36
+	NewMigration("adds comment to an action", addCommentIDToAction),
+	// v36 -> v37
+	NewMigration("regenerate git hooks", regenerateGitHooks36),
+	// v37 -> v38
+	NewMigration("unescape user full names", unescapeUserFullNames),
+	// v38 -> v39
+	NewMigration("remove commits and settings unit types", removeCommitsUnitType),
+	// v39 -> v40
+	NewMigration("adds time tracking and stopwatches", addTimetracking),
+	// v40 -> v41
+	NewMigration("migrate protected branch struct", migrateProtectedBranchStruct),
+	// v41 -> v42
+	NewMigration("add default value to user prohibit_login", addDefaultValueToUserProhibitLogin),
 }
 
 // Migrate database to current version
@@ -704,8 +718,7 @@ func convertDateToUnix(x *xorm.Engine) (err error) {
 		offset := 0
 		for {
 			beans := make([]*Bean, 0, 100)
-			if err = x.SQL(fmt.Sprintf("SELECT * FROM `%s` ORDER BY id ASC LIMIT 100 OFFSET %d",
-				table.name, offset)).Find(&beans); err != nil {
+			if err = x.Table(table.name).Asc("id").Limit(100, offset).Find(&beans); err != nil {
 				return fmt.Errorf("select beans [table: %s, offset: %d]: %v", table.name, offset, err)
 			}
 			log.Trace("Table [%s]: offset: %d, beans: %d", table.name, offset, len(beans))

@@ -29,12 +29,7 @@ type Notice struct {
 	Type        NoticeType
 	Description string    `xorm:"TEXT"`
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
-}
-
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (n *Notice) BeforeInsert() {
-	n.CreatedUnix = time.Now().Unix()
+	CreatedUnix int64     `xorm:"INDEX created"`
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.

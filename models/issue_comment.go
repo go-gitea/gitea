@@ -16,7 +16,7 @@ import (
 	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 )
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
@@ -52,6 +52,14 @@ const (
 	CommentTypeChangeTitle
 	// Delete Branch
 	CommentTypeDeleteBranch
+	// Start a stopwatch for time tracking
+	CommentTypeStartTracking
+	// Stop a stopwatch for time tracking
+	CommentTypeStopTracking
+	// Add time manual for time tracking
+	CommentTypeAddTimeManual
+	// Cancel a stopwatch for time tracking
+	CommentTypeCancelTracking
 )
 
 // CommentTag defines comment tag type
@@ -91,9 +99,9 @@ type Comment struct {
 	RenderedContent string `xorm:"-"`
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
+	CreatedUnix int64     `xorm:"INDEX created"`
 	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX"`
+	UpdatedUnix int64     `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
 	CommitSHA string `xorm:"VARCHAR(40)"`
@@ -102,18 +110,6 @@ type Comment struct {
 
 	// For view issue page.
 	ShowTag CommentTag `xorm:"-"`
-}
-
-// BeforeInsert will be invoked by XORM before inserting a record
-// representing this object.
-func (c *Comment) BeforeInsert() {
-	c.CreatedUnix = time.Now().Unix()
-	c.UpdatedUnix = c.CreatedUnix
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (c *Comment) BeforeUpdate() {
-	c.UpdatedUnix = time.Now().Unix()
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.
@@ -276,7 +272,7 @@ func (c *Comment) LoadAssignees() error {
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
 func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
-	mentions := markdown.FindAllMentions(c.Content)
+	mentions := markup.FindAllMentions(c.Content)
 	if err = UpdateIssueMentions(e, c.IssueID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}
@@ -289,7 +285,7 @@ func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (e
 	case ActionReopenIssue:
 		issue.Content = fmt.Sprintf("Reopened #%d", issue.Index)
 	}
-	if err = mailIssueCommentToParticipants(issue, c.Poster, c, mentions); err != nil {
+	if err = mailIssueCommentToParticipants(e, issue, c.Poster, c, mentions); err != nil {
 		log.Error(4, "mailIssueCommentToParticipants: %v", err)
 	}
 
@@ -334,6 +330,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:   fmt.Sprintf("%d|%s", opts.Issue.Index, strings.Split(opts.Content, "\n")[0]),
 		RepoID:    opts.Repo.ID,
 		Repo:      opts.Repo,
+		Comment:   comment,
+		CommentID: comment.ID,
 		IsPrivate: opts.Repo.IsPrivate,
 	}
 
@@ -397,7 +395,11 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		if err != nil {
 			return nil, err
 		}
+	}
 
+	// update the issue's updated_unix column
+	if err = updateIssueCols(e, opts.Issue); err != nil {
+		return nil, err
 	}
 
 	// Notify watchers for whatever action comes in, ignore if no action type.
@@ -665,6 +667,9 @@ func DeleteComment(comment *Comment) error {
 		if _, err := sess.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
 			return err
 		}
+	}
+	if _, err := sess.Where("comment_id = ?", comment.ID).Cols("is_deleted").Update(&Action{IsDeleted: true}); err != nil {
+		return err
 	}
 
 	return sess.Commit()

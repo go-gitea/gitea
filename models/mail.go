@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"gopkg.in/gomail.v2"
 	"gopkg.in/macaron.v1"
@@ -47,8 +48,8 @@ func SendTestMail(email string) error {
 func SendUserMail(c *macaron.Context, u *User, tpl base.TplName, code, subject, info string) {
 	data := map[string]interface{}{
 		"Username":          u.DisplayName(),
-		"ActiveCodeLives":   base.MinutesToFriendly(setting.Service.ActiveCodeLives),
-		"ResetPwdCodeLives": base.MinutesToFriendly(setting.Service.ResetPwdCodeLives),
+		"ActiveCodeLives":   base.MinutesToFriendly(setting.Service.ActiveCodeLives, c.Locale.Language()),
+		"ResetPwdCodeLives": base.MinutesToFriendly(setting.Service.ResetPwdCodeLives, c.Locale.Language()),
 		"Code":              code,
 	}
 
@@ -79,7 +80,7 @@ func SendResetPasswordMail(c *macaron.Context, u *User) {
 func SendActivateEmailMail(c *macaron.Context, u *User, email *EmailAddress) {
 	data := map[string]interface{}{
 		"Username":        u.DisplayName(),
-		"ActiveCodeLives": base.MinutesToFriendly(setting.Service.ActiveCodeLives),
+		"ActiveCodeLives": base.MinutesToFriendly(setting.Service.ActiveCodeLives, c.Locale.Language()),
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
 	}
@@ -150,7 +151,7 @@ func composeTplData(subject, body, link string) map[string]interface{} {
 
 func composeIssueCommentMessage(issue *Issue, doer *User, comment *Comment, tplName base.TplName, tos []string, info string) *mailer.Message {
 	subject := issue.mailSubject()
-	body := string(markdown.RenderString(issue.Content, issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
+	body := string(markup.RenderByType(markdown.MarkupName, []byte(issue.Content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
 
 	data := make(map[string]interface{}, 10)
 	if comment != nil {

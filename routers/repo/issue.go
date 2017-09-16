@@ -59,8 +59,8 @@ var (
 
 // MustEnableIssues check if repository enable internal issues
 func MustEnableIssues(ctx *context.Context) {
-	if !ctx.Repo.Repository.EnableUnit(models.UnitTypeIssues) &&
-		!ctx.Repo.Repository.EnableUnit(models.UnitTypeExternalTracker) {
+	if !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) &&
+		!ctx.Repo.Repository.UnitEnabled(models.UnitTypeExternalTracker) {
 		ctx.Handle(404, "MustEnableIssues", nil)
 		return
 	}
@@ -193,6 +193,7 @@ func Issues(ctx *context.Context) {
 			MentionedID: mentionedID,
 			MilestoneID: milestoneID,
 			Page:        pager.Current(),
+			PageSize:    setting.UI.IssuePagingNum,
 			IsClosed:    util.OptionalBoolOf(isShowClosed),
 			IsPull:      util.OptionalBoolOf(isPullList),
 			Labels:      selectLabels,
@@ -290,6 +291,13 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.
 	if ctx.Written() {
 		return nil
 	}
+
+	brs, err := ctx.Repo.GitRepo.GetBranches()
+	if err != nil {
+		ctx.Handle(500, "GetBranches", err)
+		return nil
+	}
+	ctx.Data["Branches"] = brs
 
 	return labels
 }
@@ -417,6 +425,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["ReadOnly"] = false
 	renderAttachmentSettings(ctx)
 
 	var (
@@ -446,6 +455,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		MilestoneID: milestoneID,
 		AssigneeID:  assigneeID,
 		Content:     form.Content,
+		Ref:         form.Ref,
 	}
 	if err := models.NewIssue(repo, issue, labelIDs, attachments); err != nil {
 		ctx.Handle(500, "NewIssue", err)
@@ -579,6 +589,38 @@ func ViewIssue(ctx *context.Context) {
 		comment      *models.Comment
 		participants = make([]*models.User, 1, 10)
 	)
+	if ctx.Repo.Repository.IsTimetrackerEnabled() {
+		if ctx.IsSigned {
+			// Deal with the stopwatch
+			ctx.Data["IsStopwatchRunning"] = models.StopwatchExists(ctx.User.ID, issue.ID)
+			if !ctx.Data["IsStopwatchRunning"].(bool) {
+				var exists bool
+				var sw *models.Stopwatch
+				if exists, sw, err = models.HasUserStopwatch(ctx.User.ID); err != nil {
+					ctx.Handle(500, "HasUserStopwatch", err)
+					return
+				}
+				ctx.Data["HasUserStopwatch"] = exists
+				if exists {
+					// Add warning if the user has already a stopwatch
+					var otherIssue *models.Issue
+					if otherIssue, err = models.GetIssueByID(sw.IssueID); err != nil {
+						ctx.Handle(500, "GetIssueByID", err)
+						return
+					}
+					// Add link to the issue of the already running stopwatch
+					ctx.Data["OtherStopwatchURL"] = otherIssue.HTMLURL()
+				}
+			}
+			ctx.Data["CanUseTimetracker"] = ctx.Repo.CanUseTimetracker(issue, ctx.User)
+		} else {
+			ctx.Data["CanUseTimetracker"] = false
+		}
+		if ctx.Data["WorkingUsers"], err = models.TotalTimes(models.FindTrackedTimesOptions{IssueID: issue.ID}); err != nil {
+			ctx.Handle(500, "TotalTimes", err)
+			return
+		}
+	}
 
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
@@ -652,7 +694,7 @@ func ViewIssue(ctx *context.Context) {
 				log.Error(4, "GetHeadRepo: %v", err)
 			} else if pull.HeadRepo != nil && pull.HeadBranch != pull.HeadRepo.DefaultBranch && ctx.User.IsWriterOfRepo(pull.HeadRepo) {
 				// Check if branch is not protected
-				if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch); err != nil {
+				if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch, ctx.User); err != nil {
 					log.Error(4, "IsProtectedBranch: %v", err)
 				} else if !protected {
 					canDelete = true
@@ -667,12 +709,14 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
 	ctx.Data["Issue"] = issue
+	ctx.Data["ReadOnly"] = true
 	ctx.Data["IsIssueOwner"] = ctx.Repo.IsWriter() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
 	ctx.HTML(200, tplIssueView)
 }
 
-func getActionIssue(ctx *context.Context) *models.Issue {
+// GetActionIssue will return the issue which is used in the context.
+func GetActionIssue(ctx *context.Context) *models.Issue {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -709,7 +753,7 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 
 // UpdateIssueTitle change issue's title
 func UpdateIssueTitle(ctx *context.Context) {
-	issue := getActionIssue(ctx)
+	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -737,7 +781,7 @@ func UpdateIssueTitle(ctx *context.Context) {
 
 // UpdateIssueContent change issue's content
 func UpdateIssueContent(ctx *context.Context) {
-	issue := getActionIssue(ctx)
+	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
 	}

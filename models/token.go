@@ -21,21 +21,11 @@ type AccessToken struct {
 	Sha1 string `xorm:"UNIQUE VARCHAR(40)"`
 
 	Created           time.Time `xorm:"-"`
-	CreatedUnix       int64     `xorm:"INDEX"`
+	CreatedUnix       int64     `xorm:"INDEX created"`
 	Updated           time.Time `xorm:"-"` // Note: Updated must below Created for AfterSet.
-	UpdatedUnix       int64     `xorm:"INDEX"`
+	UpdatedUnix       int64     `xorm:"INDEX updated"`
 	HasRecentActivity bool      `xorm:"-"`
 	HasUsed           bool      `xorm:"-"`
-}
-
-// BeforeInsert will be invoked by XORM before inserting a record representing this object.
-func (t *AccessToken) BeforeInsert() {
-	t.CreatedUnix = time.Now().Unix()
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (t *AccessToken) BeforeUpdate() {
-	t.UpdatedUnix = time.Now().Unix()
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.

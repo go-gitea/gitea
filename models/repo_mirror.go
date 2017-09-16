@@ -40,18 +40,26 @@ type Mirror struct {
 
 // BeforeInsert will be invoked by XORM before inserting a record
 func (m *Mirror) BeforeInsert() {
-	m.UpdatedUnix = time.Now().Unix()
-	m.NextUpdateUnix = m.NextUpdate.Unix()
+	if m != nil {
+		m.UpdatedUnix = time.Now().Unix()
+		m.NextUpdateUnix = m.NextUpdate.Unix()
+	}
 }
 
 // BeforeUpdate is invoked from XORM before updating this object.
 func (m *Mirror) BeforeUpdate() {
-	m.UpdatedUnix = time.Now().Unix()
-	m.NextUpdateUnix = m.NextUpdate.Unix()
+	if m != nil {
+		m.UpdatedUnix = time.Now().Unix()
+		m.NextUpdateUnix = m.NextUpdate.Unix()
+	}
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.
 func (m *Mirror) AfterSet(colName string, _ xorm.Cell) {
+	if m == nil {
+		return
+	}
+
 	var err error
 	switch colName {
 	case "repo_id":

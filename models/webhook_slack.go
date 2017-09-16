@@ -189,6 +189,30 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 	}, nil
 }
 
+func getSlackRepositoryPayload(p *api.RepositoryPayload, slack *SlackMeta) (*SlackPayload, error) {
+	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
+	var text, title, attachmentText string
+	switch p.Action {
+	case api.HookRepoCreated:
+		text = fmt.Sprintf("[%s] Repository created by %s", p.Repository.FullName, senderLink)
+		title = p.Repository.HTMLURL
+	case api.HookRepoDeleted:
+		text = fmt.Sprintf("[%s] Repository deleted by %s", p.Repository.FullName, senderLink)
+	}
+
+	return &SlackPayload{
+		Channel:  slack.Channel,
+		Text:     text,
+		Username: slack.Username,
+		IconURL:  slack.IconURL,
+		Attachments: []SlackAttachment{{
+			Color: slack.Color,
+			Title: title,
+			Text:  attachmentText,
+		}},
+	}, nil
+}
+
 // GetSlackPayload converts a slack webhook into a SlackPayload
 func GetSlackPayload(p api.Payloader, event HookEventType, meta string) (*SlackPayload, error) {
 	s := new(SlackPayload)
@@ -205,6 +229,8 @@ func GetSlackPayload(p api.Payloader, event HookEventType, meta string) (*SlackP
 		return getSlackPushPayload(p.(*api.PushPayload), slack)
 	case HookEventPullRequest:
 		return getSlackPullRequestPayload(p.(*api.PullRequestPayload), slack)
+	case HookEventRepository:
+		return getSlackRepositoryPayload(p.(*api.RepositoryPayload), slack)
 	}
 
 	return s, nil

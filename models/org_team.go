@@ -35,6 +35,11 @@ func (t *Team) GetUnitTypes() []UnitType {
 	return t.UnitTypes
 }
 
+// HasWriteAccess returns true if team has at least write level access mode.
+func (t *Team) HasWriteAccess() bool {
+	return t.Authorize >= AccessModeWrite
+}
+
 // IsOwnerTeam returns true if team is owner team.
 func (t *Team) IsOwnerTeam() bool {
 	return t.Name == ownerTeamName
@@ -192,8 +197,8 @@ func (t *Team) RemoveRepository(repoID int64) error {
 	return sess.Commit()
 }
 
-// EnableUnit returns if the team enables unit type t
-func (t *Team) EnableUnit(tp UnitType) bool {
+// UnitEnabled returns if the team has the given unit type enabled
+func (t *Team) UnitEnabled(tp UnitType) bool {
 	if len(t.UnitTypes) == 0 {
 		return true
 	}
@@ -230,7 +235,7 @@ func NewTeam(t *Team) (err error) {
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrOrgNotExist
+		return ErrOrgNotExist{t.OrgID, ""}
 	}
 
 	t.LowerName = strings.ToLower(t.Name)
@@ -594,6 +599,11 @@ func RemoveTeamMember(team *Team, userID int64) error {
 	return sess.Commit()
 }
 
+// IsUserInTeams returns if a user in some teams
+func IsUserInTeams(userID int64, teamIDs []int64) (bool, error) {
+	return x.Where("uid=?", userID).In("team_id", teamIDs).Exist(new(TeamUser))
+}
+
 // ___________                  __________
 // \__    ___/___ _____    _____\______   \ ____ ______   ____
 //   |    |_/ __ \\__  \  /     \|       _// __ \\____ \ /  _ \
@@ -638,4 +648,14 @@ func removeTeamRepo(e Engine, teamID, repoID int64) error {
 		RepoID: repoID,
 	})
 	return err
+}
+
+// GetTeamsWithAccessToRepo returns all teams in an organization that have given access level to the repository.
+func GetTeamsWithAccessToRepo(orgID, repoID int64, mode AccessMode) ([]*Team, error) {
+	teams := make([]*Team, 0, 5)
+	return teams, x.Where("team.authorize >= ?", mode).
+		Join("INNER", "team_repo", "team_repo.team_id = team.id").
+		And("team_repo.org_id = ?", orgID).
+		And("team_repo.repo_id = ?", repoID).
+		Find(&teams)
 }

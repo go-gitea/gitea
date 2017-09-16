@@ -2,8 +2,9 @@ package models
 
 import (
 	"errors"
-	"github.com/go-xorm/xorm"
 	"time"
+
+	"github.com/go-xorm/xorm"
 )
 
 // LFSMetaObject stores metadata for LFS tracked files.
@@ -14,7 +15,7 @@ type LFSMetaObject struct {
 	RepositoryID int64     `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Existing     bool      `xorm:"-"`
 	Created      time.Time `xorm:"-"`
-	CreatedUnix  int64
+	CreatedUnix  int64     `xorm:"created"`
 }
 
 // LFSTokenResponse defines the JSON structure in which the JWT token is stored.
@@ -106,11 +107,6 @@ func RemoveLFSMetaObjectByOid(oid string) error {
 	}
 
 	return sess.Commit()
-}
-
-// BeforeInsert sets the time at which the LFSMetaObject was created.
-func (m *LFSMetaObject) BeforeInsert() {
-	m.CreatedUnix = time.Now().Unix()
 }
 
 // AfterSet stores the LFSMetaObject creation time in the database as local time.

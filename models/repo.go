@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -21,7 +22,7 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -31,8 +32,8 @@ import (
 	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
-	version "github.com/mcuadros/go-version"
-	ini "gopkg.in/ini.v1"
+	"github.com/mcuadros/go-version"
+	"gopkg.in/ini.v1"
 )
 
 const (
@@ -193,7 +194,7 @@ type Repository struct {
 	NumMilestones       int `xorm:"NOT NULL DEFAULT 0"`
 	NumClosedMilestones int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenMilestones   int `xorm:"-"`
-	NumTags             int `xorm:"-"`
+	NumReleases         int `xorm:"-"`
 
 	IsPrivate bool `xorm:"INDEX"`
 	IsBare    bool `xorm:"INDEX"`
@@ -210,20 +211,9 @@ type Repository struct {
 	Size     int64       `xorm:"NOT NULL DEFAULT 0"`
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
+	CreatedUnix int64     `xorm:"INDEX created"`
 	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX"`
-}
-
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (repo *Repository) BeforeInsert() {
-	repo.CreatedUnix = time.Now().Unix()
-	repo.UpdatedUnix = repo.CreatedUnix
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (repo *Repository) BeforeUpdate() {
-	repo.UpdatedUnix = time.Now().Unix()
+	UpdatedUnix int64     `xorm:"INDEX updated"`
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.
@@ -377,6 +367,10 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 
 	var allTypes = make(map[UnitType]struct{}, len(allRepUnitTypes))
 	for _, team := range teams {
+		// Administrators can not be limited
+		if team.Authorize >= AccessModeAdmin {
+			return nil
+		}
 		for _, unitType := range team.UnitTypes {
 			allTypes[unitType] = struct{}{}
 		}
@@ -394,8 +388,8 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 	return nil
 }
 
-// EnableUnit if this repository enabled some unit
-func (repo *Repository) EnableUnit(tp UnitType) bool {
+// UnitEnabled if this repository has the given unit enabled
+func (repo *Repository) UnitEnabled(tp UnitType) bool {
 	repo.getUnits(x)
 	for _, unit := range repo.Units {
 		if unit.Type == tp {
@@ -486,10 +480,10 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			"repo":   repo.Name,
 		}
 		switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
-		case markdown.IssueNameStyleAlphanumeric:
-			repo.ExternalMetas["style"] = markdown.IssueNameStyleAlphanumeric
+		case markup.IssueNameStyleAlphanumeric:
+			repo.ExternalMetas["style"] = markup.IssueNameStyleAlphanumeric
 		default:
-			repo.ExternalMetas["style"] = markdown.IssueNameStyleNumeric
+			repo.ExternalMetas["style"] = markup.IssueNameStyleNumeric
 		}
 
 	}
@@ -654,12 +648,48 @@ func (repo *Repository) CanEnablePulls() bool {
 
 // AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
 func (repo *Repository) AllowsPulls() bool {
-	return repo.CanEnablePulls() && repo.EnableUnit(UnitTypePullRequests)
+	return repo.CanEnablePulls() && repo.UnitEnabled(UnitTypePullRequests)
 }
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.
 func (repo *Repository) CanEnableEditor() bool {
 	return !repo.IsMirror
+}
+
+// GetWriters returns all users that have write access to the repository.
+func (repo *Repository) GetWriters() (_ []*User, err error) {
+	return repo.getUsersWithAccessMode(x, AccessModeWrite)
+}
+
+// getUsersWithAccessMode returns users that have at least given access mode to the repository.
+func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*User, err error) {
+	if err = repo.getOwner(e); err != nil {
+		return nil, err
+	}
+
+	accesses := make([]*Access, 0, 10)
+	if err = e.Where("repo_id = ? AND mode >= ?", repo.ID, mode).Find(&accesses); err != nil {
+		return nil, err
+	}
+
+	// Leave a seat for owner itself to append later, but if owner is an organization
+	// and just waste 1 unit is cheaper than re-allocate memory once.
+	users := make([]*User, 0, len(accesses)+1)
+	if len(accesses) > 0 {
+		userIDs := make([]int64, len(accesses))
+		for i := 0; i < len(accesses); i++ {
+			userIDs[i] = accesses[i].UserID
+		}
+
+		if err = e.In("id", userIDs).Find(&users); err != nil {
+			return nil, err
+		}
+	}
+	if !repo.Owner.IsOrganization() {
+		users = append(users, repo.Owner)
+	}
+
+	return users, nil
 }
 
 // NextIssueIndex returns the next issue index
@@ -678,7 +708,7 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 	sanitize := func(s string) string {
 		return fmt.Sprintf(`<a href="%[1]s" target="_blank" rel="noopener">%[1]s</a>`, s)
 	}
-	return template.HTML(descPattern.ReplaceAllStringFunc(markdown.Sanitize(repo.Description), sanitize))
+	return template.HTML(descPattern.ReplaceAllStringFunc(markup.Sanitize(repo.Description), sanitize))
 }
 
 // LocalCopyPath returns the local repository copy path
@@ -787,6 +817,8 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 	cl := new(CloneLink)
 	if setting.SSH.Port != 22 {
 		cl.SSH = fmt.Sprintf("ssh://%s@%s:%d/%s/%s.git", setting.RunUser, setting.SSH.Domain, setting.SSH.Port, repo.Owner.Name, repoName)
+	} else if setting.Repository.UseCompatSSHURI {
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", setting.RunUser, setting.SSH.Domain, repo.Owner.Name, repoName)
 	} else {
 		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", setting.RunUser, setting.SSH.Domain, repo.Owner.Name, repoName)
 	}
@@ -828,8 +860,8 @@ func wikiRemoteURL(remote string) string {
 }
 
 // MigrateRepository migrates a existing repository from other project hosting.
-func MigrateRepository(u *User, opts MigrateRepoOptions) (*Repository, error) {
-	repo, err := CreateRepository(u, CreateRepoOptions{
+func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, error) {
+	repo, err := CreateRepository(doer, u, CreateRepoOptions{
 		Name:        opts.Name,
 		Description: opts.Description,
 		IsPrivate:   opts.IsPrivate,
@@ -948,8 +980,12 @@ func cleanUpMigrateGitConfig(configPath string) error {
 // createDelegateHooks creates all the hooks scripts for the repo
 func createDelegateHooks(repoPath string) (err error) {
 	var (
-		hookNames     = []string{"pre-receive", "update", "post-receive"}
-		hookTpl       = fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType)
+		hookNames = []string{"pre-receive", "update", "post-receive"}
+		hookTpls  = []string{
+			fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
+			fmt.Sprintf("#!/usr/bin/env %s\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" || continue\n\"${hook}\" $1 $2 $3\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
+			fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
+		}
 		giteaHookTpls = []string{
 			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' pre-receive\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
 			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' update $1 $2 $3\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
@@ -968,7 +1004,7 @@ func createDelegateHooks(repoPath string) (err error) {
 		}
 
 		// WARNING: This will override all old server-side hooks
-		if err = ioutil.WriteFile(oldHookPath, []byte(hookTpl), 0777); err != nil {
+		if err = ioutil.WriteFile(oldHookPath, []byte(hookTpls[i]), 0777); err != nil {
 			return fmt.Errorf("write old hook file '%s': %v", oldHookPath, err)
 		}
 
@@ -1191,7 +1227,7 @@ func IsUsableRepoName(name string) error {
 	return isUsableName(reservedRepoNames, reservedRepoPatterns, name)
 }
 
-func createRepository(e *xorm.Session, u *User, repo *Repository) (err error) {
+func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err error) {
 	if err = IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
@@ -1213,11 +1249,21 @@ func createRepository(e *xorm.Session, u *User, repo *Repository) (err error) {
 	// insert units for repo
 	var units = make([]RepoUnit, 0, len(defaultRepoUnits))
 	for i, tp := range defaultRepoUnits {
-		units = append(units, RepoUnit{
-			RepoID: repo.ID,
-			Type:   tp,
-			Index:  i,
-		})
+		if tp == UnitTypeIssues {
+			units = append(units, RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Index:  i,
+				Config: &IssuesConfig{EnableTimetracker: setting.Service.DefaultEnableTimetracking, AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime},
+			})
+		} else {
+			units = append(units, RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Index:  i,
+			})
+		}
+
 	}
 
 	if _, err = e.Insert(&units); err != nil {
@@ -1238,7 +1284,15 @@ func createRepository(e *xorm.Session, u *User, repo *Repository) (err error) {
 			return fmt.Errorf("getOwnerTeam: %v", err)
 		} else if err = t.addRepository(e, repo); err != nil {
 			return fmt.Errorf("addRepository: %v", err)
+		} else if err = prepareWebhooks(e, repo, HookEventRepository, &api.RepositoryPayload{
+			Action:       api.HookRepoCreated,
+			Repository:   repo.APIFormat(AccessModeOwner),
+			Organization: u.APIFormat(),
+			Sender:       doer.APIFormat(),
+		}); err != nil {
+			return fmt.Errorf("prepareWebhooks: %v", err)
 		}
+		go HookQueue.Add(repo.ID)
 	} else {
 		// Organization automatically called this in addRepository method.
 		if err = repo.recalculateAccesses(e); err != nil {
@@ -1255,8 +1309,8 @@ func createRepository(e *xorm.Session, u *User, repo *Repository) (err error) {
 	return nil
 }
 
-// CreateRepository creates a repository for given user or organization.
-func CreateRepository(u *User, opts CreateRepoOptions) (_ *Repository, err error) {
+// CreateRepository creates a repository for the user/organization u.
+func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err error) {
 	if !u.CanCreateRepo() {
 		return nil, ErrReachLimitOfRepo{u.MaxRepoCreation}
 	}
@@ -1276,7 +1330,7 @@ func CreateRepository(u *User, opts CreateRepoOptions) (_ *Repository, err error
 		return nil, err
 	}
 
-	if err = createRepository(sess, u, repo); err != nil {
+	if err = createRepository(sess, doer, u, repo); err != nil {
 		return nil, err
 	}
 
@@ -1612,7 +1666,7 @@ func UpdateRepositoryUnits(repo *Repository, units []RepoUnit) (err error) {
 }
 
 // DeleteRepository deletes a repository for a user or organization.
-func DeleteRepository(uid, repoID int64) error {
+func DeleteRepository(doer *User, uid, repoID int64) error {
 	// In case is a organization.
 	org, err := GetUserByID(uid)
 	if err != nil {
@@ -1768,6 +1822,18 @@ func DeleteRepository(uid, repoID int64) error {
 
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
+	}
+
+	if org.IsOrganization() {
+		if err = PrepareWebhooks(repo, HookEventRepository, &api.RepositoryPayload{
+			Action:       api.HookRepoDeleted,
+			Repository:   repo.APIFormat(AccessModeOwner),
+			Organization: org.APIFormat(),
+			Sender:       doer.APIFormat(),
+		}); err != nil {
+			return err
+		}
+		go HookQueue.Add(repo.ID)
 	}
 
 	return nil
@@ -1963,7 +2029,7 @@ func gatherMissingRepoRecords() ([]*Repository, error) {
 }
 
 // DeleteMissingRepositories deletes all repository records that lost Git files.
-func DeleteMissingRepositories() error {
+func DeleteMissingRepositories(doer *User) error {
 	repos, err := gatherMissingRepoRecords()
 	if err != nil {
 		return fmt.Errorf("gatherMissingRepoRecords: %v", err)
@@ -1975,7 +2041,7 @@ func DeleteMissingRepositories() error {
 
 	for _, repo := range repos {
 		log.Trace("Deleting %d/%d...", repo.OwnerID, repo.ID)
-		if err := DeleteRepository(repo.OwnerID, repo.ID); err != nil {
+		if err := DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
 			if err2 := CreateRepositoryNotice(fmt.Sprintf("DeleteRepository [%d]: %v", repo.ID, err)); err2 != nil {
 				return fmt.Errorf("CreateRepositoryNotice: %v", err)
 			}
@@ -2215,7 +2281,7 @@ func HasForkedRepo(ownerID, repoID int64) (*Repository, bool) {
 }
 
 // ForkRepository forks a repository
-func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Repository, err error) {
+func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *Repository, err error) {
 	forkedRepo, err := oldRepo.GetUserFork(u.ID)
 	if err != nil {
 		return nil, err
@@ -2245,7 +2311,7 @@ func ForkRepository(u *User, oldRepo *Repository, name, desc string) (_ *Reposit
 		return nil, err
 	}
 
-	if err = createRepository(sess, u, repo); err != nil {
+	if err = createRepository(sess, doer, u, repo); err != nil {
 		return nil, err
 	}
 

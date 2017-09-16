@@ -34,22 +34,15 @@ func GetRelease(ctx *context.APIContext) {
 
 // ListReleases list a repository's releases
 func ListReleases(ctx *context.APIContext) {
-	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, 1, 2147483647)
+	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite,
+	}, 1, 2147483647)
 	if err != nil {
 		ctx.Error(500, "GetReleasesByRepoID", err)
 		return
 	}
 	rels := make([]*api.Release, len(releases))
-	access, err := models.AccessLevel(ctx.User.ID, ctx.Repo.Repository)
-	if err != nil {
-		ctx.Error(500, "AccessLevel", err)
-		return
-	}
 	for i, release := range releases {
-		if release.IsDraft && access < models.AccessModeWrite {
-			// hide drafts from users without push access
-			continue
-		}
 		if err := release.LoadAttributes(); err != nil {
 			ctx.Error(500, "LoadAttributes", err)
 			return

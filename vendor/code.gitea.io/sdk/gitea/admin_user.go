@@ -11,14 +11,22 @@ import (
 )
 
 // CreateUserOption create user options
+// swagger:parameters adminCreateUser
 type CreateUserOption struct {
-	SourceID   int64  `json:"source_id"`
-	LoginName  string `json:"login_name"`
-	Username   string `json:"username" binding:"Required;AlphaDashDot;MaxSize(35)"`
-	FullName   string `json:"full_name" binding:"MaxSize(100)"`
-	Email      string `json:"email" binding:"Required;Email;MaxSize(254)"`
-	Password   string `json:"password" binding:"MaxSize(255)"`
-	SendNotify bool   `json:"send_notify"`
+	// in: body
+	SourceID int64 `json:"source_id"`
+	// in: body
+	LoginName string `json:"login_name"`
+	// in: body
+	Username string `json:"username" binding:"Required;AlphaDashDot;MaxSize(35)"`
+	// in: body
+	FullName string `json:"full_name" binding:"MaxSize(100)"`
+	// in: body
+	Email string `json:"email" binding:"Required;Email;MaxSize(254)"`
+	// in: body
+	Password string `json:"password" binding:"MaxSize(255)"`
+	// in: body
+	SendNotify bool `json:"send_notify"`
 }
 
 // AdminCreateUser create a user
@@ -32,19 +40,32 @@ func (c *Client) AdminCreateUser(opt CreateUserOption) (*User, error) {
 }
 
 // EditUserOption edit user options
+// swagger:parameters adminEditUser
 type EditUserOption struct {
-	SourceID         int64  `json:"source_id"`
-	LoginName        string `json:"login_name"`
-	FullName         string `json:"full_name" binding:"MaxSize(100)"`
-	Email            string `json:"email" binding:"Required;Email;MaxSize(254)"`
-	Password         string `json:"password" binding:"MaxSize(255)"`
-	Website          string `json:"website" binding:"MaxSize(50)"`
-	Location         string `json:"location" binding:"MaxSize(50)"`
-	Active           *bool  `json:"active"`
-	Admin            *bool  `json:"admin"`
-	AllowGitHook     *bool  `json:"allow_git_hook"`
-	AllowImportLocal *bool  `json:"allow_import_local"`
-	MaxRepoCreation  *int   `json:"max_repo_creation"`
+	// in: body
+	SourceID int64 `json:"source_id"`
+	// in: body
+	LoginName string `json:"login_name"`
+	// in: body
+	FullName string `json:"full_name" binding:"MaxSize(100)"`
+	// in: body
+	Email string `json:"email" binding:"Required;Email;MaxSize(254)"`
+	// in: body
+	Password string `json:"password" binding:"MaxSize(255)"`
+	// in: body
+	Website string `json:"website" binding:"MaxSize(50)"`
+	// in: body
+	Location string `json:"location" binding:"MaxSize(50)"`
+	// in: body
+	Active *bool `json:"active"`
+	// in: body
+	Admin *bool `json:"admin"`
+	// in: body
+	AllowGitHook *bool `json:"allow_git_hook"`
+	// in: body
+	AllowImportLocal *bool `json:"allow_import_local"`
+	// in: body
+	MaxRepoCreation *int `json:"max_repo_creation"`
 }
 
 // AdminEditUser modify user informations

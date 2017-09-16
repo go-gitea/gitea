@@ -39,6 +39,7 @@ const (
 	tplSettingsTwofaEnroll  base.TplName = "user/settings/twofa_enroll"
 	tplSettingsAccountLink  base.TplName = "user/settings/account_link"
 	tplSettingsOrganization base.TplName = "user/settings/organization"
+	tplSettingsRepositories base.TplName = "user/settings/repos"
 	tplSettingsDelete       base.TplName = "user/settings/delete"
 	tplSecurity             base.TplName = "user/security"
 )
@@ -156,7 +157,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 		}
 	}
 
-	if err := models.UpdateUser(ctxUser); err != nil {
+	if err := models.UpdateUserCols(ctxUser, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 
@@ -221,7 +222,7 @@ func SettingsPasswordPost(ctx *context.Context, form auth.ChangePasswordForm) {
 			return
 		}
 		ctx.User.EncodePasswd()
-		if err := models.UpdateUser(ctx.User); err != nil {
+		if err := models.UpdateUserCols(ctx.User, "salt", "passwd"); err != nil {
 			ctx.Handle(500, "UpdateUser", err)
 			return
 		}
@@ -298,7 +299,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
 			log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
 		}
-		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, base.MinutesToFriendly(setting.Service.ActiveCodeLives)))
+		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, base.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 	}
@@ -378,9 +379,9 @@ func SettingsKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 			case models.IsErrGPGKeyIDAlreadyUsed(err):
 				ctx.Data["Err_Content"] = true
 				ctx.RenderWithErr(ctx.Tr("settings.gpg_key_id_used"), tplSettingsKeys, &form)
-			case models.IsErrGPGEmailNotFound(err):
+			case models.IsErrGPGNoEmailFound(err):
 				ctx.Data["Err_Content"] = true
-				ctx.RenderWithErr(ctx.Tr("settings.gpg_key_email_not_found", err.(models.ErrGPGEmailNotFound).Email), tplSettingsKeys, &form)
+				ctx.RenderWithErr(ctx.Tr("settings.gpg_no_key_email_found"), tplSettingsKeys, &form)
 			default:
 				ctx.Handle(500, "AddPublicKey", err)
 			}
@@ -583,7 +584,7 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 	if otpKey == nil {
 		err = nil // clear the error, in case the URL was invalid
 		otpKey, err = totp.Generate(totp.GenerateOpts{
-			Issuer:      setting.AppName,
+			Issuer:      setting.AppName + " (" + strings.TrimRight(setting.AppURL, "/") + ")",
 			AccountName: ctx.User.Name,
 		})
 		if err != nil {
@@ -784,4 +785,38 @@ func SettingsOrganization(ctx *context.Context) {
 	}
 	ctx.Data["Orgs"] = orgs
 	ctx.HTML(200, tplSettingsOrganization)
+}
+
+// SettingsRepos display a list of all repositories of the user
+func SettingsRepos(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsRepos"] = true
+	ctxUser := ctx.User
+
+	var err error
+	if err = ctxUser.GetRepositories(1, setting.UI.User.RepoPagingNum); err != nil {
+		ctx.Handle(500, "GetRepositories", err)
+		return
+	}
+	repos := ctxUser.Repos
+
+	for i := range repos {
+		if repos[i].IsFork {
+			err := repos[i].GetBaseRepo()
+			if err != nil {
+				ctx.Handle(500, "GetBaseRepo", err)
+				return
+			}
+			err = repos[i].BaseRepo.GetOwner()
+			if err != nil {
+				ctx.Handle(500, "GetOwner", err)
+				return
+			}
+		}
+	}
+
+	ctx.Data["Owner"] = ctxUser
+	ctx.Data["Repos"] = repos
+
+	ctx.HTML(200, tplSettingsRepositories)
 }

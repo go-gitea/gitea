@@ -35,7 +35,6 @@ import (
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -95,9 +94,9 @@ type User struct {
 	Salt             string `xorm:"VARCHAR(10)"`
 
 	Created       time.Time `xorm:"-"`
-	CreatedUnix   int64     `xorm:"INDEX"`
+	CreatedUnix   int64     `xorm:"INDEX created"`
 	Updated       time.Time `xorm:"-"`
-	UpdatedUnix   int64     `xorm:"INDEX"`
+	UpdatedUnix   int64     `xorm:"INDEX updated"`
 	LastLogin     time.Time `xorm:"-"`
 	LastLoginUnix int64     `xorm:"INDEX"`
 
@@ -112,7 +111,7 @@ type User struct {
 	AllowGitHook            bool
 	AllowImportLocal        bool // Allow migrate repository by local path
 	AllowCreateOrganization bool `xorm:"DEFAULT true"`
-	ProhibitLogin           bool
+	ProhibitLogin           bool `xorm:"NOT NULL DEFAULT false"`
 
 	// Avatar
 	Avatar          string `xorm:"VARCHAR(2048) NOT NULL"`
@@ -136,18 +135,11 @@ type User struct {
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
 }
 
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (u *User) BeforeInsert() {
-	u.CreatedUnix = time.Now().Unix()
-	u.UpdatedUnix = u.CreatedUnix
-}
-
 // BeforeUpdate is invoked from XORM before updating this object.
 func (u *User) BeforeUpdate() {
 	if u.MaxRepoCreation < -1 {
 		u.MaxRepoCreation = -1
 	}
-	u.UpdatedUnix = time.Now().Unix()
 }
 
 // SetLastLogin set time to last login
@@ -158,14 +150,12 @@ func (u *User) SetLastLogin() {
 // UpdateDiffViewStyle updates the users diff view style
 func (u *User) UpdateDiffViewStyle(style string) error {
 	u.DiffViewStyle = style
-	return UpdateUser(u)
+	return UpdateUserCols(u, "diff_view_style")
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.
 func (u *User) AfterSet(colName string, _ xorm.Cell) {
 	switch colName {
-	case "full_name":
-		u.FullName = markdown.Sanitize(u.FullName)
 	case "created_unix":
 		u.Created = time.Unix(u.CreatedUnix, 0).Local()
 	case "updated_unix":
@@ -240,7 +230,7 @@ func (u *User) CanCreateOrganization() bool {
 
 // CanEditGitHook returns true if user can edit Git hooks.
 func (u *User) CanEditGitHook() bool {
-	return u.IsAdmin || u.AllowGitHook
+	return !setting.DisableGitHooks && (u.IsAdmin || u.AllowGitHook)
 }
 
 // CanImportLocal returns true if user can migrate repository by local path.
@@ -333,15 +323,14 @@ func (u *User) generateRandomAvatar(e Engine) error {
 // which includes app sub-url as prefix. However, it is possible
 // to return full URL if user enables Gravatar-like service.
 func (u *User) RelAvatarLink() string {
-	defaultImgURL := setting.AppSubURL + "/img/avatar_default.png"
 	if u.ID == -1 {
-		return defaultImgURL
+		return base.DefaultAvatarLink()
 	}
 
 	switch {
 	case u.UseCustomAvatar:
 		if !com.IsFile(u.CustomAvatarPath()) {
-			return defaultImgURL
+			return base.DefaultAvatarLink()
 		}
 		return setting.AppSubURL + "/avatars/" + u.Avatar
 	case setting.DisableGravatar, setting.OfflineMode:
@@ -864,7 +853,9 @@ func updateUser(e Engine, u *User) error {
 		if len(u.AvatarEmail) == 0 {
 			u.AvatarEmail = u.Email
 		}
-		u.Avatar = base.HashEmail(u.AvatarEmail)
+		if len(u.AvatarEmail) > 0 {
+			u.Avatar = base.HashEmail(u.AvatarEmail)
+		}
 	}
 
 	u.LowerName = strings.ToLower(u.Name)
@@ -872,7 +863,6 @@ func updateUser(e Engine, u *User) error {
 	u.Website = base.TruncateString(u.Website, 255)
 	u.Description = base.TruncateString(u.Description, 255)
 
-	u.FullName = markdown.Sanitize(u.FullName)
 	_, err := e.Id(u.ID).AllCols().Update(u)
 	return err
 }
@@ -880,6 +870,28 @@ func updateUser(e Engine, u *User) error {
 // UpdateUser updates user's information.
 func UpdateUser(u *User) error {
 	return updateUser(x, u)
+}
+
+// UpdateUserCols update user according special columns
+func UpdateUserCols(u *User, cols ...string) error {
+	// Organization does not need email
+	u.Email = strings.ToLower(u.Email)
+	if !u.IsOrganization() {
+		if len(u.AvatarEmail) == 0 {
+			u.AvatarEmail = u.Email
+		}
+		if len(u.AvatarEmail) > 0 {
+			u.Avatar = base.HashEmail(u.AvatarEmail)
+		}
+	}
+
+	u.LowerName = strings.ToLower(u.Name)
+	u.Location = base.TruncateString(u.Location, 255)
+	u.Website = base.TruncateString(u.Website, 255)
+	u.Description = base.TruncateString(u.Description, 255)
+
+	_, err := x.Id(u.ID).Cols(cols...).Update(u)
+	return err
 }
 
 // UpdateUserSetting updates user's settings.
@@ -1124,11 +1136,15 @@ func GetAssigneeByID(repo *Repository, userID int64) (*User, error) {
 
 // GetUserByName returns user by given name.
 func GetUserByName(name string) (*User, error) {
+	return getUserByName(x, name)
+}
+
+func getUserByName(e Engine, name string) (*User, error) {
 	if len(name) == 0 {
 		return nil, ErrUserNotExist{0, name, 0}
 	}
 	u := &User{LowerName: strings.ToLower(name)}
-	has, err := x.Get(u)
+	has, err := e.Get(u)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -1139,9 +1155,13 @@ func GetUserByName(name string) (*User, error) {
 
 // GetUserEmailsByNames returns a list of e-mails corresponds to names.
 func GetUserEmailsByNames(names []string) []string {
+	return getUserEmailsByNames(x, names)
+}
+
+func getUserEmailsByNames(e Engine, names []string) []string {
 	mails := make([]string, 0, len(names))
 	for _, name := range names {
-		u, err := GetUserByName(name)
+		u, err := getUserByName(e, name)
 		if err != nil {
 			continue
 		}
@@ -1423,7 +1443,7 @@ func SyncExternalUsers() {
 						}
 						usr.IsActive = true
 
-						err = UpdateUser(usr)
+						err = UpdateUserCols(usr, "full_name", "email", "is_admin", "is_active")
 						if err != nil {
 							log.Error(4, "SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
 						}
@@ -1445,7 +1465,7 @@ func SyncExternalUsers() {
 						log.Trace("SyncExternalUsers[%s]: Deactivating user %s", s.Name, usr.Name)
 
 						usr.IsActive = false
-						err = UpdateUser(&usr)
+						err = UpdateUserCols(&usr, "is_active")
 						if err != nil {
 							log.Error(4, "SyncExternalUsers[%s]: Error deactivating user %s: %v", s.Name, usr.Name, err)
 						}

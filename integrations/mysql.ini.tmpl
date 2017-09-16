@@ -1,0 +1,62 @@
+APP_NAME = Gitea: Git with a cup of tea
+RUN_MODE = prod
+
+[database]
+DB_TYPE  = mysql
+HOST     = {{TEST_MYSQL_HOST}}
+NAME     = {{TEST_MYSQL_DBNAME}}
+USER     = {{TEST_MYSQL_USERNAME}}
+PASSWD   = {{TEST_MYSQL_PASSWORD}}
+SSL_MODE = disable
+PATH     = data/gitea.db
+
+[repository]
+ROOT = integrations/gitea-integration-mysql/gitea-repositories
+
+[repository.local]
+LOCAL_COPY_PATH = tmp/local-repo-mysql
+
+[server]
+SSH_DOMAIN       = localhost
+HTTP_PORT        = 3001
+ROOT_URL         = http://localhost:3001/
+DISABLE_SSH      = false
+SSH_PORT         = 22
+LFS_START_SERVER = false
+OFFLINE_MODE     = false
+
+[mailer]
+ENABLED = false
+
+[service]
+REGISTER_EMAIL_CONFIRM            = false
+ENABLE_NOTIFY_MAIL                = false
+DISABLE_REGISTRATION              = false
+ENABLE_CAPTCHA                    = false
+REQUIRE_SIGNIN_VIEW               = false
+DEFAULT_KEEP_EMAIL_PRIVATE        = false
+DEFAULT_ALLOW_CREATE_ORGANIZATION = true
+NO_REPLY_ADDRESS                  = noreply.example.org
+
+[picture]
+DISABLE_GRAVATAR        = false
+ENABLE_FEDERATED_AVATAR = false
+
+[session]
+PROVIDER = file
+
+[log]
+MODE      = console,file
+ROOT_PATH = mysql-log
+
+[log.console]
+LEVEL = Warn
+
+[log.file]
+LEVEL = Debug
+
+[security]
+INSTALL_LOCK   = true
+SECRET_KEY     = 9pCviYTWSb
+INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.hhSVGOANkaKk3vfCd2jDOIww4pUk0xtg9JRde5UogyQ
+

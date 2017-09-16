@@ -9,7 +9,7 @@
 				<a class="ui floated right blue tiny button" href="{{EscapePound .SourcePath}}">
 					{{.i18n.Tr "repo.diff.browse_source"}}
 				</a>
-				{{RenderCommitMessage true .Commit.Message $.RepoLink $.Repository.ComposeMetas}}
+				<h3>{{RenderCommitMessage false .Commit.Message $.RepoLink $.Repository.ComposeMetas}}{{template "repo/commit_status" .CommitStatus}}</h3>
 			</div>
 			<div class="ui attached info segment {{if .Commit.Signature}} isSigned {{if .Verification.Verified }} isVerified {{end}}{{end}}">
 				{{if .Author}}
@@ -45,9 +45,9 @@
 				{{if .Verification.Verified }}
 					<div class="ui bottom attached positive message" style="text-align: initial;color: black;">
 					  <i class="green lock icon"></i>
-						<span style="color: #2C662D;">Signed by :</span>
+						<span style="color: #2C662D;">{{.i18n.Tr "repo.commits.signed_by"}}:</span>
 						<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a> <{{.Commit.Committer.Email}}>
-						<span class="pull-right"><span style="color: #2C662D;">GPG key ID:</span> {{.Verification.SigningKey.KeyID}}</span>
+						<span class="pull-right"><span style="color: #2C662D;">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> {{.Verification.SigningKey.KeyID}}</span>
 					</div>
 				{{else}}
 					<div class="ui bottom attached message" style="text-align: initial;color: black;">

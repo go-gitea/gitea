@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/Unknwon/com"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/csrf"
 	"github.com/go-macaron/i18n"
@@ -33,6 +35,7 @@ type Context struct {
 	Flash   *session.Flash
 	Session session.Store
 
+	Link        string // current request URL
 	User        *models.User
 	IsSigned    bool
 	IsBasicAuth bool
@@ -154,15 +157,50 @@ func Contexter() macaron.Handler {
 			csrf:    x,
 			Flash:   f,
 			Session: sess,
+			Link:    setting.AppSubURL + strings.TrimSuffix(c.Req.URL.Path, "/"),
 			Repo: &Repository{
 				PullRequest: &PullRequest{},
 			},
 			Org: &Organization{},
 		}
-		// Compute current URL for real-time change language.
-		ctx.Data["Link"] = setting.AppSubURL + strings.TrimSuffix(ctx.Req.URL.Path, "/")
-
+		c.Data["Link"] = ctx.Link
 		ctx.Data["PageStartTime"] = time.Now()
+		// Quick responses appropriate go-get meta with status 200
+		// regardless of if user have access to the repository,
+		// or the repository does not exist at all.
+		// This is particular a workaround for "go get" command which does not respect
+		// .netrc file.
+		if ctx.Query("go-get") == "1" {
+			ownerName := c.Params(":username")
+			repoName := c.Params(":reponame")
+			branchName := "master"
+
+			owner, err := models.GetUserByName(ownerName)
+			if err == nil {
+				repo, err := models.GetRepositoryByName(owner.ID, repoName)
+				if err == nil && len(repo.DefaultBranch) > 0 {
+					branchName = repo.DefaultBranch
+				}
+			}
+			prefix := setting.AppURL + path.Join(ownerName, repoName, "src", branchName)
+			c.PlainText(http.StatusOK, []byte(com.Expand(`
+<html>
+	<head>
+		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
+		<meta name="go-source" content="{GoGetImport} _ {GoDocDirectory} {GoDocFile}">
+	</head>
+	<body>
+		go get {GoGetImport}
+	</body>
+</html>
+`, map[string]string{
+				"GoGetImport":    path.Join(setting.Domain, setting.AppSubURL, ctx.Link),
+				"CloneLink":      models.ComposeHTTPSCloneURL(ownerName, repoName),
+				"GoDocDirectory": prefix + "{/dir}",
+				"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
+			})))
+			return
+		}
 
 		// Get user from session if logged in.
 		ctx.User, ctx.IsBasicAuth = auth.SignedInUser(ctx.Context, ctx.Session)

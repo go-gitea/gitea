@@ -9,11 +9,13 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
 
 	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 
 	"code.gitea.io/git"
@@ -77,17 +79,14 @@ type Action struct {
 	ActUser     *User       `xorm:"-"`
 	RepoID      int64       `xorm:"INDEX"`
 	Repo        *Repository `xorm:"-"`
+	CommentID   int64       `xorm:"INDEX"`
+	Comment     *Comment    `xorm:"-"`
+	IsDeleted   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
 	RefName     string
 	IsPrivate   bool      `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content     string    `xorm:"TEXT"`
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
-}
-
-// BeforeInsert will be invoked by XORM before inserting a record
-// representing this object.
-func (a *Action) BeforeInsert() {
-	a.CreatedUnix = time.Now().Unix()
+	CreatedUnix int64     `xorm:"INDEX created"`
 }
 
 // AfterSet updates the webhook object upon setting a column.
@@ -189,6 +188,35 @@ func (a *Action) GetRepoLink() string {
 		return path.Join(setting.AppSubURL, a.GetRepoPath())
 	}
 	return "/" + a.GetRepoPath()
+}
+
+// GetCommentLink returns link to action comment.
+func (a *Action) GetCommentLink() string {
+	if a == nil {
+		return "#"
+	}
+	if a.Comment == nil && a.CommentID != 0 {
+		a.Comment, _ = GetCommentByID(a.CommentID)
+	}
+	if a.Comment != nil {
+		return a.Comment.HTMLURL()
+	}
+	if len(a.GetIssueInfos()) == 0 {
+		return "#"
+	}
+	//Return link to issue
+	issueIDString := a.GetIssueInfos()[0]
+	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
+	if err != nil {
+		return "#"
+	}
+
+	issue, err := GetIssueByID(issueID)
+	if err != nil {
+		return "#"
+	}
+
+	return issue.HTMLURL()
 }
 
 // GetBranch returns the action's repository branch.
@@ -391,7 +419,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) err
 
 			issue, err := GetIssueByRef(ref)
 			if err != nil {
-				if IsErrIssueNotExist(err) || err == errMissingIssueNumber {
+				if IsErrIssueNotExist(err) || err == errMissingIssueNumber || err == errInvalidIssueNumber {
 					continue
 				}
 				return err
@@ -429,7 +457,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) err
 
 			issue, err := GetIssueByRef(ref)
 			if err != nil {
-				if IsErrIssueNotExist(err) || err == errMissingIssueNumber {
+				if IsErrIssueNotExist(err) || err == errMissingIssueNumber || err == errInvalidIssueNumber {
 					continue
 				}
 				return err
@@ -469,7 +497,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) err
 
 			issue, err := GetIssueByRef(ref)
 			if err != nil {
-				if IsErrIssueNotExist(err) || err == errMissingIssueNumber {
+				if IsErrIssueNotExist(err) || err == errMissingIssueNumber || err == errInvalidIssueNumber {
 					continue
 				}
 				return err
@@ -678,10 +706,13 @@ type GetFeedsOptions struct {
 	RequestingUserID int64
 	IncludePrivate   bool // include private actions
 	OnlyPerformedBy  bool // only actions performed by requested user
+	IncludeDeleted   bool // include deleted actions
 }
 
 // GetFeeds returns actions according to the provided options
 func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
+	cond := builder.NewCond()
+
 	var repoIDs []int64
 	if opts.RequestedUser.IsOrganization() {
 		env, err := opts.RequestedUser.AccessibleReposEnv(opts.RequestingUserID)
@@ -691,20 +722,23 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		if repoIDs, err = env.RepoIDs(1, opts.RequestedUser.NumRepos); err != nil {
 			return nil, fmt.Errorf("GetUserRepositories: %v", err)
 		}
+
+		cond = cond.And(builder.In("repo_id", repoIDs))
+	}
+
+	cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})
+
+	if opts.OnlyPerformedBy {
+		cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
+	}
+	if !opts.IncludePrivate {
+		cond = cond.And(builder.Eq{"is_private": false})
+	}
+
+	if !opts.IncludeDeleted {
+		cond = cond.And(builder.Eq{"is_deleted": false})
 	}
 
 	actions := make([]*Action, 0, 20)
-	sess := x.Limit(20).
-		Desc("id").
-		Where("user_id = ?", opts.RequestedUser.ID)
-	if opts.OnlyPerformedBy {
-		sess.And("act_user_id = ?", opts.RequestedUser.ID)
-	}
-	if !opts.IncludePrivate {
-		sess.And("is_private = ?", false)
-	}
-	if opts.RequestedUser.IsOrganization() {
-		sess.In("repo_id", repoIDs)
-	}
-	return actions, sess.Find(&actions)
+	return actions, x.Limit(20).Desc("id").Where(cond).Find(&actions)
 }

@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -14,8 +15,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
-	editorconfig "gopkg.in/editorconfig/editorconfig-core-go.v1"
-	macaron "gopkg.in/macaron.v1"
+	"gopkg.in/editorconfig/editorconfig-core-go.v1"
+	"gopkg.in/macaron.v1"
 )
 
 // PullRequest contains informations to make a pull request
@@ -77,12 +78,21 @@ func (r *Repository) CanEnableEditor() bool {
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected
-func (r *Repository) CanCommitToBranch() (bool, error) {
-	protectedBranch, err := r.Repository.IsProtectedBranch(r.BranchName)
+func (r *Repository) CanCommitToBranch(doer *models.User) (bool, error) {
+	protectedBranch, err := r.Repository.IsProtectedBranch(r.BranchName, doer)
 	if err != nil {
 		return false, err
 	}
 	return r.CanEnableEditor() && !protectedBranch, nil
+}
+
+// CanUseTimetracker returns whether or not a user can use the timetracker.
+func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) bool {
+	// Checking for following:
+	// 1. Is timetracker enabled
+	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
+	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
+		r.IsWriter() || issue.IsPoster(user.ID) || issue.AssigneeID == user.ID)
 }
 
 // GetEditorconfig returns the .editorconfig definition if found in the
@@ -184,7 +194,7 @@ func RepoAssignment() macaron.Handler {
 						earlyResponseForGoGetMeta(ctx)
 						return
 					}
-					ctx.Handle(404, "GetUserByName", err)
+					ctx.Handle(404, "GetUserByName", nil)
 				} else {
 					ctx.Handle(500, "GetUserByName", err)
 				}
@@ -206,7 +216,7 @@ func RepoAssignment() macaron.Handler {
 						earlyResponseForGoGetMeta(ctx)
 						return
 					}
-					ctx.Handle(404, "GetRepositoryByName", err)
+					ctx.Handle(404, "GetRepositoryByName", nil)
 				} else {
 					ctx.Handle(500, "LookupRepoRedirect", err)
 				}
@@ -275,7 +285,15 @@ func RepoAssignment() macaron.Handler {
 			return
 		}
 		ctx.Data["Tags"] = tags
-		ctx.Repo.Repository.NumTags = len(tags)
+
+		count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+			IncludeDrafts: false,
+		})
+		if err != nil {
+			ctx.Handle(500, "GetReleaseCountByRepoID", err)
+			return
+		}
+		ctx.Repo.Repository.NumReleases = int(count)
 
 		ctx.Data["Title"] = owner.Name + "/" + repo.Name
 		ctx.Data["Repository"] = repo
@@ -285,6 +303,7 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["IsRepositoryWriter"] = ctx.Repo.IsWriter()
 
 		ctx.Data["DisableSSH"] = setting.SSH.Disabled
+		ctx.Data["ExposeAnonSSH"] = setting.SSH.ExposeAnonymous
 		ctx.Data["DisableHTTP"] = setting.Repository.DisableHTTPGit
 		ctx.Data["CloneLink"] = repo.CloneLink()
 		ctx.Data["WikiCloneLink"] = repo.WikiCloneLink()
@@ -347,6 +366,9 @@ func RepoAssignment() macaron.Handler {
 					ctx.Repo.PullRequest.HeadInfo = ctx.Repo.BranchName
 				}
 			}
+
+			// Reset repo units as otherwise user specific units wont be loaded later
+			ctx.Repo.Repository.Units = nil
 		}
 		ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
@@ -394,6 +416,7 @@ func RepoRef() macaron.Handler {
 					err = fmt.Errorf("No branches in non-bare repository %s",
 						ctx.Repo.GitRepo.Path)
 					ctx.Handle(500, "GetBranches", err)
+					return
 				}
 				refName = brs[0]
 			}
@@ -518,14 +541,7 @@ func LoadRepoUnits() macaron.Handler {
 // CheckUnit will check whether
 func CheckUnit(unitType models.UnitType) macaron.Handler {
 	return func(ctx *Context) {
-		var find bool
-		for _, unit := range ctx.Repo.Repository.Units {
-			if unit.Type == unitType {
-				find = true
-				break
-			}
-		}
-		if !find {
+		if !ctx.Repo.Repository.UnitEnabled(unitType) {
 			ctx.Handle(404, "CheckUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitType))
 		}
 	}
@@ -547,10 +563,8 @@ func UnitTypes() macaron.Handler {
 		ctx.Data["UnitTypeCode"] = models.UnitTypeCode
 		ctx.Data["UnitTypeIssues"] = models.UnitTypeIssues
 		ctx.Data["UnitTypePullRequests"] = models.UnitTypePullRequests
-		ctx.Data["UnitTypeCommits"] = models.UnitTypeCommits
 		ctx.Data["UnitTypeReleases"] = models.UnitTypeReleases
 		ctx.Data["UnitTypeWiki"] = models.UnitTypeWiki
-		ctx.Data["UnitTypeSettings"] = models.UnitTypeSettings
 		ctx.Data["UnitTypeExternalWiki"] = models.UnitTypeExternalWiki
 		ctx.Data["UnitTypeExternalTracker"] = models.UnitTypeExternalTracker
 	}

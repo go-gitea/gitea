@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
+	_ "github.com/mattn/go-sqlite3" // for the test engine
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +19,7 @@ func TestFixturesAreConsistent(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	if err := CreateTestEngine(); err != nil {
+	if err := CreateTestEngine("fixtures/"); err != nil {
 		fmt.Printf("Error creating test engine: %v\n", err)
 		os.Exit(1)
 	}

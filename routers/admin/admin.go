@@ -73,7 +73,7 @@ var sysStatus struct {
 }
 
 func updateSystemStatus() {
-	sysStatus.Uptime = base.TimeSincePro(startTime)
+	sysStatus.Uptime = base.TimeSincePro(startTime, "en")
 
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)
@@ -145,7 +145,7 @@ func Dashboard(ctx *context.Context) {
 			err = models.DeleteRepositoryArchives()
 		case cleanMissingRepos:
 			success = ctx.Tr("admin.dashboard.delete_missing_repos_success")
-			err = models.DeleteMissingRepositories()
+			err = models.DeleteMissingRepositories(ctx.User)
 		case gitGCRepos:
 			success = ctx.Tr("admin.dashboard.git_gc_repos_success")
 			err = models.GitGcRepos()

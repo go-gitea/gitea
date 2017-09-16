@@ -32,15 +32,7 @@ func PushUpdate(ctx *macaron.Context) {
 		return
 	}
 
-	repo, err := models.PushUpdate(opt)
-	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
-			"err": err.Error(),
-		})
-		return
-	}
-
-	pusher, err := models.GetUserByID(opt.PusherID)
+	err := models.PushUpdate(branch, opt)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.Error(404)
@@ -51,10 +43,5 @@ func PushUpdate(ctx *macaron.Context) {
 		}
 		return
 	}
-
-	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
-
-	go models.HookQueue.Add(repo.ID)
-	go models.AddTestPullRequestTask(pusher, repo.ID, branch, true)
 	ctx.Status(202)
 }

@@ -36,6 +36,12 @@
 		}
 	}
 
+	.tabs {
+		.navbar {
+			justify-content: initial;
+		}
+	}
+
 	.navbar {
 		display: flex;
 		justify-content: space-between;
@@ -127,7 +133,6 @@
 	}
 
 	#clone-panel {
-		margin-top: -8px;
 		margin-left: 5px;
 		width: 350px;
 
@@ -161,6 +166,13 @@
 				font-size: 1.4em;
 			}
 		}
+
+		.repo-path {
+			.section, .divider {
+				display: inline;
+			}
+		}
+
 		#file-buttons {
 			font-weight: normal;
 			.ui.button {
@@ -875,10 +887,14 @@
 			}
 		}
 	}
-	.diff-box {
+	.diff-box .header {
+		display: flex;
+		align-items: center;
+
 		.count {
 			margin-right: 12px;
 			font-size: 13px;
+			flex: 0 0 auto;
 
 			.bar {
 				background-color: #bd2c00;
@@ -894,7 +910,15 @@
 			}
 		}
 		.file {
+			flex: 0 1 100%;
 			color: #888;
+			word-break: break-all;
+		}
+
+		.button {
+			margin: -5px 0 -5px 12px;
+			padding: 8px 10px;
+			flex: 0 0 auto;
 		}
 	}
 	.diff-file-box {
@@ -907,6 +931,10 @@
 				color: #A7A7A7;
 				background: #fafafa;
 				width: 1%;
+				-moz-user-select: none;
+				-ms-user-select: none;
+				-webkit-user-select: none;
+				user-select: none;
 
 				span.fold {
 					display: block;
@@ -1223,6 +1251,39 @@
 			}
 		}
 
+		&.branches {
+			.protected-branches {
+				.selection.dropdown {
+					width: 300px;
+				}
+				.item {
+			    border: 1px solid #eaeaea;
+			    padding: 10px 15px;
+
+			    &:not(:last-child) {
+				    border-bottom: 0;
+			    }
+				}
+			}
+			.branch-protection {
+				.help {
+					margin-left: 26px;
+					padding-top: 0;
+				}
+				.fields {
+					margin-left: 20px;
+					display: block;
+				}
+				.whitelist {
+					margin-left: 26px;
+
+					.dropdown img {
+						display: inline-block;
+					}
+				}
+			}
+		}
+
 		&.webhook {
 			.events {
 				.column {
@@ -1404,6 +1465,11 @@
 		&.email {
 			> .item:not(:first-child) {
 				min-height: 60px;
+			}
+		}
+		&.collaborator {
+			> .item {
+				padding: 0;
 			}
 		}
 	}

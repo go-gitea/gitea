@@ -3,16 +3,16 @@
 	"ignore": "test appengine",
 	"package": [
 		{
-			"checksumSHA1": "Ju4zZF8u/DPrZYEEY40rogh3hyQ=",
+			"checksumSHA1": "fR5YDSoG7xYv2aLO23rne95gWps=",
 			"path": "code.gitea.io/git",
-			"revision": "51eca9e92242b93a0510edd19f1db6fc11ca1028",
-			"revisionTime": "2017-06-21T01:06:07Z"
+			"revision": "479f87e5d189e7b8f1fd51dbcd25faa32b632cd2",
+			"revisionTime": "2017-08-03T00:53:29Z"
 		},
 		{
-			"checksumSHA1": "nLhT+bLMj8uLICP+EZbrdoQe6mM=",
+			"checksumSHA1": "Zgp5RqU+20L2p9TNl1rSsUIWEEE=",
 			"path": "code.gitea.io/sdk/gitea",
-			"revision": "8cff72208aa458f4efa8fdfbad29b03aee485b8c",
-			"revisionTime": "2017-05-06T01:37:21Z"
+			"revision": "bc243ad6c268d60658c71185452334b300c268cf",
+			"revisionTime": "2017-08-21T08:23:17Z"
 		},
 		{
 			"checksumSHA1": "bOODD4Gbw3GfcuQPU2dI40crxxk=",
@@ -452,14 +452,14 @@
 		{
 			"checksumSHA1": "9SXbj96wb1PgppBZzxMIN0axbFQ=",
 			"path": "github.com/go-xorm/builder",
-			"revision": "043186300e9b2c22abdfc83567a979e3af04d9ae",
-			"revisionTime": "2017-05-18T21:58:56Z"
+			"revision": "c8871c857d2555fbfbd8524f895be5386d3d8836",
+			"revisionTime": "2017-05-19T03:21:30Z"
 		},
 		{
-			"checksumSHA1": "vt2CGANHLNXPAZ01ve3UlsgQ0uU=",
+			"checksumSHA1": "HMavuxvDhKOwmbbFnYt9hfT6jE0=",
 			"path": "github.com/go-xorm/core",
-			"revision": "e8409d73255791843585964791443dbad877058c",
-			"revisionTime": "2017-03-17T12:25:07Z"
+			"revision": "da1adaf7a28ca792961721a34e6e04945200c890",
+			"revisionTime": "2017-09-09T08:56:53Z"
 		},
 		{
 			"checksumSHA1": "k52lEKLp8j5M+jFpe+3u+bIFpxQ=",
@@ -468,10 +468,10 @@
 			"revisionTime": "2016-08-11T02:11:45Z"
 		},
 		{
-			"checksumSHA1": "Ka4hFMvc75Fb57ZNLALyYSM7CCE=",
+			"checksumSHA1": "lAzHeuH461JyawhsGLi27JpWsgs=",
 			"path": "github.com/go-xorm/xorm",
-			"revision": "d52a762fba17a2ed265463c1c7b608c14836eaaf",
-			"revisionTime": "2017-04-20T16:02:48Z"
+			"revision": "3101e3bc440f16f151687d97bce94da063c486f5",
+			"revisionTime": "2017-09-15T01:51:15Z"
 		},
 		{
 			"checksumSHA1": "1ft/4j5MFa7C9dPI9whL03HSUzk=",
@@ -690,10 +690,10 @@
 			"revisionTime": "2017-02-23T14:12:10Z"
 		},
 		{
-			"checksumSHA1": "9FJUwn3EIgASVki+p8IHgWVC5vQ=",
+			"checksumSHA1": "61HNjGetaBoMp8HBOpuEZRSim8g=",
 			"path": "github.com/mattn/go-sqlite3",
-			"revision": "86681de00adef4f8040947b7d35f97000fc5a230",
-			"revisionTime": "2016-10-28T14:22:18Z"
+			"revision": "acfa60124032040b9f5a9406f5a772ee16fe845e",
+			"revisionTime": "2017-07-05T08:25:03Z"
 		},
 		{
 			"checksumSHA1": "9mjAkIoPrJdiGcR0pBa81NoFY4U=",
@@ -1466,10 +1466,10 @@
 			"revisionTime": "2016-04-11T21:29:32Z"
 		},
 		{
-			"checksumSHA1": "YRD335tkMvgHzkfbfveMUpsE3Bw=",
+			"checksumSHA1": "RVc+qy5SP9wOZye+2/5LPJg/SHE=",
 			"path": "gopkg.in/ini.v1",
-			"revision": "6e4869b434bd001f6983749881c7ead3545887d8",
-			"revisionTime": "2016-08-27T06:11:18Z"
+			"revision": "20b96f641a5ea98f2f8619ff4f3e061cff4833bd",
+			"revisionTime": "2017-08-13T05:15:16Z"
 		},
 		{
 			"checksumSHA1": "7jPSjzw3mckHVQ2SjY4NvtIJR4g=",

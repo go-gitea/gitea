@@ -118,8 +118,8 @@ func initIntegrationTest() {
 
 func prepareTestEnv(t testing.TB) {
 	assert.NoError(t, models.LoadFixtures())
-	assert.NoError(t, os.RemoveAll("integrations/gitea-integration"))
-	assert.NoError(t, com.CopyDir("integrations/gitea-integration-meta", "integrations/gitea-integration"))
+	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, com.CopyDir("integrations/gitea-repositories-meta", setting.RepoRootPath))
 }
 
 type TestSession struct {
@@ -140,13 +140,13 @@ func (s *TestSession) GetCookie(name string) *http.Cookie {
 	return nil
 }
 
-func (s *TestSession) MakeRequest(t testing.TB, req *http.Request) *TestResponse {
+func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *TestResponse {
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
 		req.AddCookie(c)
 	}
-	resp := MakeRequest(req)
+	resp := MakeRequest(t, req, expectedStatus)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Headers["Set-Cookie"], ";"))
@@ -158,14 +158,27 @@ func (s *TestSession) MakeRequest(t testing.TB, req *http.Request) *TestResponse
 
 const userPassword = "password"
 
+var loginSessionCache = make(map[string]*TestSession, 10)
+
+func emptyTestSession(t testing.TB) *TestSession {
+	jar, err := cookiejar.New(nil)
+	assert.NoError(t, err)
+
+	return &TestSession{jar: jar}
+}
+
 func loginUser(t testing.TB, userName string) *TestSession {
-	return loginUserWithPassword(t, userName, userPassword)
+	if session, ok := loginSessionCache[userName]; ok {
+		return session
+	}
+	session := loginUserWithPassword(t, userName, userPassword)
+	loginSessionCache[userName] = session
+	return session
 }
 
 func loginUserWithPassword(t testing.TB, userName, password string) *TestSession {
 	req := NewRequest(t, "GET", "/user/login")
-	resp := MakeRequest(req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
 	req = NewRequestWithValues(t, "POST", "/user/login", map[string]string{
@@ -173,21 +186,19 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 		"user_name": userName,
 		"password":  password,
 	})
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	resp = MakeRequest(req)
-	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
+	resp = MakeRequest(t, req, http.StatusFound)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Headers["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 
-	jar, err := cookiejar.New(nil)
-	assert.NoError(t, err)
+	session := emptyTestSession(t)
+
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
-	jar.SetCookies(baseURL, cr.Cookies())
+	session.jar.SetCookies(baseURL, cr.Cookies())
 
-	return &TestSession{jar: jar}
+	return session
 }
 
 type TestResponseWriter struct {
@@ -218,18 +229,26 @@ func NewRequest(t testing.TB, method, urlStr string) *http.Request {
 	return NewRequestWithBody(t, method, urlStr, nil)
 }
 
+func NewRequestf(t testing.TB, method, urlFormat string, args ...interface{}) *http.Request {
+	return NewRequest(t, method, fmt.Sprintf(urlFormat, args...))
+}
+
 func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string]string) *http.Request {
 	urlValues := url.Values{}
 	for key, value := range values {
 		urlValues[key] = []string{value}
 	}
-	return NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode()))
+	req := NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	return req
 }
 
 func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
 	jsonBytes, err := json.Marshal(v)
 	assert.NoError(t, err)
-	return NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
+	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
+	req.Header.Add("Content-Type", "application/json")
+	return req
 }
 
 func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *http.Request {
@@ -239,13 +258,19 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *ht
 	return request
 }
 
-func MakeRequest(req *http.Request) *TestResponse {
+const NoExpectedStatus = -1
+
+func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *TestResponse {
 	buffer := bytes.NewBuffer(nil)
 	respWriter := &TestResponseWriter{
 		Writer:  buffer,
 		Headers: make(map[string][]string),
 	}
 	mac.ServeHTTP(respWriter, req)
+	if expectedStatus != NoExpectedStatus {
+		assert.EqualValues(t, expectedStatus, respWriter.HeaderCode,
+			"Request URL: %s %s", req.URL.String(), buffer.String())
+	}
 	return &TestResponse{
 		HeaderCode: respWriter.HeaderCode,
 		Body:       buffer.Bytes(),
@@ -256,4 +281,17 @@ func MakeRequest(req *http.Request) *TestResponse {
 func DecodeJSON(t testing.TB, resp *TestResponse, v interface{}) {
 	decoder := json.NewDecoder(bytes.NewBuffer(resp.Body))
 	assert.NoError(t, decoder.Decode(v))
+}
+
+func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
+	req := NewRequest(t, "GET", urlStr)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+	return doc.GetCSRF()
+}
+
+func RedirectURL(t testing.TB, resp *TestResponse) string {
+	urlSlice := resp.Headers["Location"]
+	assert.NotEmpty(t, urlSlice, "No redirect URL founds")
+	return urlSlice[0]
 }

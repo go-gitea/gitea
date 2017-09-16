@@ -15,20 +15,18 @@ import (
 
 func testPullCreate(t *testing.T, session *TestSession, user, repo, branch string) *TestResponse {
 	req := NewRequest(t, "GET", path.Join(user, repo))
-	resp := session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Click the little green button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("button.ui.green.small.button").Parent().Attr("href")
+	link, exists := htmlDoc.doc.Find("button.ui.green.tiny.compact.button").Parent().Attr("href")
 	assert.True(t, exists, "The template has changed")
 	if branch != "master" {
 		link = strings.Replace(link, ":master", ":"+branch, 1)
 	}
 
 	req = NewRequest(t, "GET", link)
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	// Submit the form for creating the pull
 	htmlDoc = NewHTMLParser(t, resp.Body)
@@ -38,9 +36,7 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch strin
 		"_csrf": htmlDoc.GetCSRF(),
 		"title": "This is a pull title",
 	})
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	resp = session.MakeRequest(t, req)
-	assert.EqualValues(t, http.StatusFound, resp.HeaderCode)
+	resp = session.MakeRequest(t, req, http.StatusFound)
 
 	//TODO check the redirected URL
 

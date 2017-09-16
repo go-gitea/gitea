@@ -16,8 +16,6 @@ import (
 )
 
 var (
-	// ErrOrgNotExist organization does not exist
-	ErrOrgNotExist = errors.New("Organization does not exist")
 	// ErrTeamNotExist team does not exist
 	ErrTeamNotExist = errors.New("Team does not exist")
 )
@@ -180,7 +178,7 @@ func CreateOrganization(org, owner *User) (err error) {
 // GetOrgByName returns organization by given name.
 func GetOrgByName(name string) (*User, error) {
 	if len(name) == 0 {
-		return nil, ErrOrgNotExist
+		return nil, ErrOrgNotExist{0, name}
 	}
 	u := &User{
 		LowerName: strings.ToLower(name),
@@ -190,7 +188,7 @@ func GetOrgByName(name string) (*User, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrOrgNotExist
+		return nil, ErrOrgNotExist{0, name}
 	}
 	return u, nil
 }
@@ -579,6 +577,11 @@ func (org *User) getUserTeamIDs(e Engine, userID int64) ([]int64, error) {
 		Find(&teamIDs)
 }
 
+// TeamsWithAccessToRepo returns all teamsthat have given access level to the repository.
+func (org *User) TeamsWithAccessToRepo(repoID int64, mode AccessMode) ([]*Team, error) {
+	return GetTeamsWithAccessToRepo(org.ID, repoID, mode)
+}
+
 // GetUserTeamIDs returns of all team IDs of the organization that user is member of.
 func (org *User) GetUserTeamIDs(userID int64) ([]int64, error) {
 	return org.getUserTeamIDs(x, userID)
@@ -677,7 +680,7 @@ func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id AND `repository`.is_mirror=?", true).
 		Where(env.cond()).
-		GroupBy("`repository`.id").
+		GroupBy("`repository`.id, `repository`.updated_unix").
 		OrderBy("updated_unix DESC").
 		Cols("`repository`.id").
 		Find(&repoIDs)

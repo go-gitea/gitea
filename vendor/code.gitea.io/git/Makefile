@@ -18,7 +18,7 @@ generate:
 
 .PHONY: fmt
 fmt:
-	find . -name "*.go" -type f -not -path "./vendor/*" -not -path "./benchmark/*" | xargs gofmt -s -w
+	find . -name "*.go" -type f ! -path "./vendor/*" ! -path "./benchmark/*" | xargs gofmt -s -w
 
 .PHONY: vet
 vet:

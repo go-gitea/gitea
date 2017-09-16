@@ -111,6 +111,12 @@ func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 		return
 	}
 
+	repo, has := models.HasForkedRepo(ctxUser.ID, forkRepo.ID)
+	if has {
+		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
+		return
+	}
+
 	// Check ownership of organization.
 	if ctxUser.IsOrganization() {
 		if !ctxUser.IsOwnedBy(ctx.User.ID) {
@@ -119,7 +125,7 @@ func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 		}
 	}
 
-	repo, err := models.ForkRepository(ctxUser, forkRepo, form.RepoName, form.Description)
+	repo, err := models.ForkRepository(ctx.User, ctxUser, forkRepo, form.RepoName, form.Description)
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true
 		switch {
@@ -835,7 +841,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	}
 
 	// Check if branch is not protected
-	if protected, err := pr.HeadRepo.IsProtectedBranch(pr.HeadBranch); err != nil || protected {
+	if protected, err := pr.HeadRepo.IsProtectedBranch(pr.HeadBranch, ctx.User); err != nil || protected {
 		if err != nil {
 			log.Error(4, "HeadRepo.IsProtectedBranch: %v", err)
 		}

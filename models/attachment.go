@@ -28,12 +28,7 @@ type Attachment struct {
 	Name          string
 	DownloadCount int64     `xorm:"DEFAULT 0"`
 	Created       time.Time `xorm:"-"`
-	CreatedUnix   int64
-}
-
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (a *Attachment) BeforeInsert() {
-	a.CreatedUnix = time.Now().Unix()
+	CreatedUnix   int64     `xorm:"created"`
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of

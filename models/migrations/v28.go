@@ -37,8 +37,7 @@ func addRepoSize(x *xorm.Engine) (err error) {
 	offset := 0
 	for {
 		repos := make([]*Repository, 0, 10)
-		if err = x.Sql(fmt.Sprintf("SELECT * FROM `repository` ORDER BY id ASC LIMIT 10 OFFSET %d", offset)).
-			Find(&repos); err != nil {
+		if err = x.Table("repository").Asc("id").Limit(10, offset).Find(&repos); err != nil {
 			return fmt.Errorf("select repos [offset: %d]: %v", offset, err)
 		}
 		log.Trace("Select [offset: %d, repos: %d]", offset, len(repos))

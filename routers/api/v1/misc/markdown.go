@@ -9,12 +9,13 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 // Markdown render markdown document to HTML
 func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
-	// swagger:route POST /markdown renderMarkdown
+	// swagger:route POST /markdown miscellaneous renderMarkdown
 	//
 	//     Consumes:
 	//     - application/json
@@ -39,7 +40,7 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	switch form.Mode {
 	case "gfm":
 		md := []byte(form.Text)
-		context := markdown.URLJoin(setting.AppURL, form.Context)
+		context := markup.URLJoin(setting.AppURL, form.Context)
 		if form.Wiki {
 			ctx.Write([]byte(markdown.RenderWiki(md, context, nil)))
 		} else {
@@ -52,7 +53,7 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 
 // MarkdownRaw render raw markdown HTML
 func MarkdownRaw(ctx *context.APIContext) {
-	// swagger:route POST /markdown/raw renderMarkdownRaw
+	// swagger:route POST /markdown/raw miscellaneous renderMarkdownRaw
 	//
 	//     Consumes:
 	//     - text/plain

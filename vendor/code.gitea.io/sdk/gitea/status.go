@@ -21,7 +21,7 @@ const (
 	// StatusSuccess is for when the Status is Success
 	StatusSuccess StatusState = "success"
 	// StatusError is for when the Status is Error
-	StatusError   StatusState = "error"
+	StatusError StatusState = "error"
 	// StatusFailure is for when the Status is Failure
 	StatusFailure StatusState = "failure"
 	// StatusWarning is for when the Status is Warning

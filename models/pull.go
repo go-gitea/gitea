@@ -495,7 +495,7 @@ func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
 
 	if err != nil {
 		// Errors are signaled by a non-zero status that is not 1
-		if err.Error() == "exit status 1" {
+		if strings.Contains(err.Error(), "exit status 1") {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("git merge-base --is-ancestor: %v %v", stderr, err)
@@ -688,8 +688,6 @@ func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xor
 		sess.And("issue.is_closed=?", opts.State == "closed")
 	}
 
-	sortIssuesSession(sess, opts.SortType)
-
 	if labelIDs, err := base.StringsToInt64s(opts.Labels); err != nil {
 		return nil, err
 	} else if len(labelIDs) > 0 {
@@ -723,6 +721,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 
 	prs := make([]*PullRequest, 0, ItemsPerPage)
 	findSession, err := listPullRequestStatement(baseRepoID, opts)
+	sortIssuesSession(findSession, opts.SortType)
 	if err != nil {
 		log.Error(4, "listPullRequestStatement", err)
 		return nil, maxResults, err

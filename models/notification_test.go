@@ -16,9 +16,8 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 
 	assert.NoError(t, CreateOrUpdateIssueNotifications(issue, 2))
 
-	notf := AssertExistsAndLoadBean(t, &Notification{UserID: 1, IssueID: issue.ID}).(*Notification)
-	assert.Equal(t, NotificationStatusUnread, notf.Status)
-	notf = AssertExistsAndLoadBean(t, &Notification{UserID: 4, IssueID: issue.ID}).(*Notification)
+	// Two watchers are inactive, thus only notification for user 10 is created
+	notf := AssertExistsAndLoadBean(t, &Notification{UserID: 10, IssueID: issue.ID}).(*Notification)
 	assert.Equal(t, NotificationStatusUnread, notf.Status)
 	CheckConsistencyFor(t, &Issue{ID: issue.ID})
 }
@@ -29,9 +28,10 @@ func TestNotificationsForUser(t *testing.T) {
 	statuses := []NotificationStatus{NotificationStatusRead, NotificationStatusUnread}
 	notfs, err := NotificationsForUser(user, statuses, 1, 10)
 	assert.NoError(t, err)
-	assert.Len(t, notfs, 1)
-	assert.EqualValues(t, 2, notfs[0].ID)
-	assert.EqualValues(t, user.ID, notfs[0].UserID)
+	if assert.Len(t, notfs, 1) {
+		assert.EqualValues(t, 2, notfs[0].ID)
+		assert.EqualValues(t, user.ID, notfs[0].UserID)
+	}
 }
 
 func TestNotification_GetRepo(t *testing.T) {

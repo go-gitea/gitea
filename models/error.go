@@ -4,9 +4,7 @@
 
 package models
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // ErrNameReserved represents a "reserved name" error.
 type ErrNameReserved struct {
@@ -260,19 +258,19 @@ func (err ErrKeyNameAlreadyUsed) Error() string {
 	return fmt.Sprintf("public key already exists [owner_id: %d, name: %s]", err.OwnerID, err.Name)
 }
 
-// ErrGPGEmailNotFound represents a "ErrGPGEmailNotFound" kind of error.
-type ErrGPGEmailNotFound struct {
-	Email string
+// ErrGPGNoEmailFound represents a "ErrGPGNoEmailFound" kind of error.
+type ErrGPGNoEmailFound struct {
+	FailedEmails []string
 }
 
-// IsErrGPGEmailNotFound checks if an error is a ErrGPGEmailNotFound.
-func IsErrGPGEmailNotFound(err error) bool {
-	_, ok := err.(ErrGPGEmailNotFound)
+// IsErrGPGNoEmailFound checks if an error is a ErrGPGNoEmailFound.
+func IsErrGPGNoEmailFound(err error) bool {
+	_, ok := err.(ErrGPGNoEmailFound)
 	return ok
 }
 
-func (err ErrGPGEmailNotFound) Error() string {
-	return fmt.Sprintf("failed to found email or is not confirmed : %s", err.Email)
+func (err ErrGPGNoEmailFound) Error() string {
+	return fmt.Sprintf("none of the emails attached to the GPG key could be found: %v", err.FailedEmails)
 }
 
 // ErrGPGKeyParsing represents a "ErrGPGKeyParsing" kind of error.
@@ -447,6 +445,22 @@ func (err ErrAccessTokenEmpty) Error() string {
 // /    |    \  | \/ /_/  > __ \|   |  \  |/    /  / __ \|  | |  (  <_> )   |  \
 // \_______  /__|  \___  (____  /___|  /__/_____ \(____  /__| |__|\____/|___|  /
 //         \/     /_____/     \/     \/         \/     \/                    \/
+
+// ErrOrgNotExist represents a "OrgNotExist" kind of error.
+type ErrOrgNotExist struct {
+	ID   int64
+	Name string
+}
+
+// IsErrOrgNotExist checks if an error is a ErrOrgNotExist.
+func IsErrOrgNotExist(err error) bool {
+	_, ok := err.(ErrOrgNotExist)
+	return ok
+}
+
+func (err ErrOrgNotExist) Error() string {
+	return fmt.Sprintf("org does not exist [id: %d, name: %s]", err.ID, err.Name)
+}
 
 // ErrLastOrgOwner represents a "LastOrgOwner" kind of error.
 type ErrLastOrgOwner struct {
@@ -752,6 +766,50 @@ func IsErrCommentNotExist(err error) bool {
 
 func (err ErrCommentNotExist) Error() string {
 	return fmt.Sprintf("comment does not exist [id: %d, issue_id: %d]", err.ID, err.IssueID)
+}
+
+//  _________ __                                __         .__
+//  /   _____//  |_  ____ ________  _  _______ _/  |_  ____ |  |__
+//  \_____  \\   __\/  _ \\____ \ \/ \/ /\__  \\   __\/ ___\|  |  \
+//  /        \|  | (  <_> )  |_> >     /  / __ \|  | \  \___|   Y  \
+//  /_______  /|__|  \____/|   __/ \/\_/  (____  /__|  \___  >___|  /
+// \/             |__|                \/          \/     \/
+
+// ErrStopwatchNotExist represents a "Stopwatch Not Exist" kind of error.
+type ErrStopwatchNotExist struct {
+	ID int64
+}
+
+// IsErrStopwatchNotExist checks if an error is a ErrStopwatchNotExist.
+func IsErrStopwatchNotExist(err error) bool {
+	_, ok := err.(ErrStopwatchNotExist)
+	return ok
+}
+
+func (err ErrStopwatchNotExist) Error() string {
+	return fmt.Sprintf("stopwatch does not exist [id: %d]", err.ID)
+}
+
+// ___________                     __              .______________.__
+// \__    ___/___________    ____ |  | __ ____   __| _/\__    ___/|__| _____   ____
+// |    |  \_  __ \__  \ _/ ___\|  |/ // __ \ / __ |   |    |   |  |/     \_/ __ \
+// |    |   |  | \// __ \\  \___|    <\  ___// /_/ |   |    |   |  |  Y Y  \  ___/
+// |____|   |__|  (____  /\___  >__|_ \\___  >____ |   |____|   |__|__|_|  /\___  >
+// \/     \/     \/    \/     \/                     \/     \/
+
+// ErrTrackedTimeNotExist represents a "TrackedTime Not Exist" kind of error.
+type ErrTrackedTimeNotExist struct {
+	ID int64
+}
+
+// IsErrTrackedTimeNotExist checks if an error is a ErrTrackedTimeNotExist.
+func IsErrTrackedTimeNotExist(err error) bool {
+	_, ok := err.(ErrTrackedTimeNotExist)
+	return ok
+}
+
+func (err ErrTrackedTimeNotExist) Error() string {
+	return fmt.Sprintf("tracked time does not exist [id: %d]", err.ID)
 }
 
 // .____          ___.          .__

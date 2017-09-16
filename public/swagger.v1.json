@@ -24,6 +24,460 @@
   },
   "basePath": "/api/v1",
   "paths": {
+    "/admin/users": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "adminCreateUser",
+        "parameters": [
+          {
+            "x-go-name": "SourceID",
+            "name": "source_id",
+            "in": "body",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "x-go-name": "LoginName",
+            "name": "login_name",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Username",
+            "name": "username",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "FullName",
+            "name": "full_name",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Email",
+            "name": "email",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Password",
+            "name": "password",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "SendNotify",
+            "name": "send_notify",
+            "in": "body",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/User"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/admin/users/{username}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "adminDeleteUser",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "adminEditUser",
+        "parameters": [
+          {
+            "x-go-name": "SourceID",
+            "name": "source_id",
+            "in": "body",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "x-go-name": "LoginName",
+            "name": "login_name",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "FullName",
+            "name": "full_name",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Email",
+            "name": "email",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Password",
+            "name": "password",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Website",
+            "name": "website",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Location",
+            "name": "location",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Active",
+            "name": "active",
+            "in": "body",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "x-go-name": "Admin",
+            "name": "admin",
+            "in": "body",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "x-go-name": "AllowGitHook",
+            "name": "allow_git_hook",
+            "in": "body",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "x-go-name": "AllowImportLocal",
+            "name": "allow_import_local",
+            "in": "body",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "x-go-name": "MaxRepoCreation",
+            "name": "max_repo_creation",
+            "in": "body",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/User"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/admin/users/{username}/keys": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "adminCreatePublicKey",
+        "parameters": [
+          {
+            "uniqueItems": true,
+            "x-go-name": "Title",
+            "description": "Title of the key to add",
+            "name": "title",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "uniqueItems": true,
+            "x-go-name": "Key",
+            "description": "An armored SSH key to add",
+            "name": "key",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/PublicKey"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/admin/users/{username}/orgs": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "adminCreateOrg",
+        "parameters": [
+          {
+            "x-go-name": "UserName",
+            "name": "username",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "FullName",
+            "name": "full_name",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Description",
+            "name": "description",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Website",
+            "name": "website",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Location",
+            "name": "location",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Organization"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/admin/users/{username}/repos": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "operationId": "adminCreateRepo",
+        "parameters": [
+          {
+            "uniqueItems": true,
+            "x-go-name": "Name",
+            "description": "Name of the repository to create",
+            "name": "name",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Description",
+            "description": "Description of the repository to create",
+            "name": "description",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Private",
+            "description": "Is the repository to create private ?",
+            "name": "private",
+            "in": "body",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "x-go-name": "AutoInit",
+            "description": "Init the repository to create ?",
+            "name": "auto_init",
+            "in": "body",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "x-go-name": "Gitignores",
+            "description": "Gitignores to use",
+            "name": "gitignores",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "License",
+            "description": "License to use",
+            "name": "license",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Readme",
+            "description": "Readme of the repository to create",
+            "name": "readme",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/markdown": {
       "post": {
         "consumes": [
@@ -31,6 +485,9 @@
         ],
         "produces": [
           "text/html"
+        ],
+        "tags": [
+          "miscellaneous"
         ],
         "operationId": "renderMarkdown",
         "parameters": [
@@ -85,6 +542,9 @@
         "produces": [
           "text/html"
         ],
+        "tags": [
+          "miscellaneous"
+        ],
         "operationId": "renderMarkdownRaw",
         "responses": {
           "200": {
@@ -103,6 +563,9 @@
         ],
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "organization"
         ],
         "operationId": "createOrgRepo",
         "parameters": [
@@ -187,10 +650,444 @@
         }
       }
     },
+    "/orgs/{orgname}/hooks": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "operationId": "orgListHooks",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/HookList"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{orgname}/hooks/": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "operationId": "orgCreateHook",
+        "parameters": [
+          {
+            "x-go-name": "Type",
+            "name": "type",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Config",
+            "name": "config",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "x-go-name": "Events",
+            "name": "events",
+            "in": "body",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "x-go-name": "Active",
+            "name": "active",
+            "in": "body",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Hook"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{orgname}/hooks/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "operationId": "orgGetHook",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Hook"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "operationId": "orgDeleteHook",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "operationId": "orgEditHook",
+        "parameters": [
+          {
+            "x-go-name": "Config",
+            "name": "config",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "x-go-name": "Events",
+            "name": "events",
+            "in": "body",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "x-go-name": "Active",
+            "name": "active",
+            "in": "body",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Hook"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{orgname}/members": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "operationId": "orgListMembers",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserList"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{orgname}/members/{username}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "operationId": "orgIsMember",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "302": {
+            "$ref": "#/responses/redirect"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "operationId": "orgDeleteMember",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{orgname}/public_members": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "operationId": "orgListPublicMembers",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserList"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{orgname}/public_members/{username}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "operationId": "orgIsPublicMember",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "operationId": "orgPublicizeMember",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "operationId": "orgConcealMember",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/orgs/{orgname}/repos": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "operationId": "orgListRepos",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepositoryList"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/migrate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoMigrate",
+        "parameters": [
+          {
+            "x-go-name": "CloneAddr",
+            "name": "clone_addr",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "AuthUsername",
+            "name": "auth_username",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "AuthPassword",
+            "name": "auth_password",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "UID",
+            "name": "uid",
+            "in": "body",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "x-go-name": "RepoName",
+            "name": "repo_name",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Mirror",
+            "name": "mirror",
+            "in": "body",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "x-go-name": "Private",
+            "name": "private",
+            "in": "body",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "x-go-name": "Description",
+            "name": "description",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Repository"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/search": {
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "repository"
         ],
         "operationId": "repoSearch",
         "parameters": [
@@ -233,6 +1130,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "repository"
+        ],
         "operationId": "listForks",
         "responses": {
           "200": {
@@ -247,7 +1147,20 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "repository"
+        ],
         "operationId": "createFork",
+        "parameters": [
+          {
+            "x-go-name": "Organization",
+            "name": "organization",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "202": {
             "$ref": "#/responses/Repository"
@@ -264,10 +1177,267 @@
         }
       }
     },
+    "/repos/{username}/{reponame}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoGet",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Repository"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoDelete",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{username}/{reponame}/hooks": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoListHooks",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/HookList"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoCreateHook",
+        "parameters": [
+          {
+            "x-go-name": "Type",
+            "name": "type",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Config",
+            "name": "config",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "x-go-name": "Events",
+            "name": "events",
+            "in": "body",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "x-go-name": "Active",
+            "name": "active",
+            "in": "body",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Hook"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{username}/{reponame}/hooks/{id}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoDeleteHook",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "patch": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoEditHook",
+        "parameters": [
+          {
+            "x-go-name": "Config",
+            "name": "config",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "x-go-name": "Events",
+            "name": "events",
+            "in": "body",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "x-go-name": "Active",
+            "name": "active",
+            "in": "body",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Hook"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{username}/{reponame}/issues/{issue}/times": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "issueTrackedTimes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimes"
+          },
+          "404": {
+            "$ref": "#/responses/error"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "addTime",
+        "parameters": [
+          {
+            "x-go-name": "Time",
+            "name": "time",
+            "in": "body",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTime"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/error"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{username}/{reponame}/mirror-sync": {
       "post": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "repository"
         ],
         "operationId": "repoMirrorSync",
         "responses": {
@@ -282,6 +1452,9 @@
     },
     "/repos/{username}/{reponame}/subscription": {
       "get": {
+        "tags": [
+          "repository"
+        ],
         "operationId": "userCurrentCheckSubscription",
         "responses": {
           "200": {
@@ -293,6 +1466,9 @@
         }
       },
       "put": {
+        "tags": [
+          "repository"
+        ],
         "operationId": "userCurrentPutSubscription",
         "responses": {
           "200": {
@@ -304,6 +1480,9 @@
         }
       },
       "delete": {
+        "tags": [
+          "repository"
+        ],
         "operationId": "userCurrentDeleteSubscription",
         "responses": {
           "204": {
@@ -315,10 +1494,79 @@
         }
       }
     },
+    "/repos/{username}/{reponame}/times": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoTrackedTimes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimes"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{username}/{reponame}/times/{timetrackingusername}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "operationId": "userTrackedTimes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimes"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/error"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repositories/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "operationId": "repoGetByID",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Repository"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/user": {
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userGetCurrent",
         "responses": {
@@ -332,6 +1580,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userCurrentListFollowers",
         "responses": {
@@ -349,6 +1600,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentListFollowing",
         "responses": {
           "200": {
@@ -362,6 +1616,9 @@
     },
     "/user/following/{username}": {
       "get": {
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentCheckFollowing",
         "responses": {
           "204": {
@@ -373,6 +1630,9 @@
         }
       },
       "put": {
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentPutFollow",
         "responses": {
           "204": {
@@ -384,6 +1644,9 @@
         }
       },
       "delete": {
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentDeleteFollow",
         "responses": {
           "204": {
@@ -399,6 +1662,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userCurrentListGPGKeys",
         "responses": {
@@ -416,6 +1682,9 @@
         ],
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userCurrentPostGPGKey",
         "parameters": [
@@ -449,6 +1718,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentGetGPGKey",
         "responses": {
           "200": {
@@ -465,6 +1737,9 @@
       "delete": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userCurrentDeleteGPGKey",
         "responses": {
@@ -485,6 +1760,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentListKeys",
         "responses": {
           "200": {
@@ -501,6 +1779,9 @@
         ],
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userCurrentPostKey",
         "parameters": [
@@ -545,6 +1826,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentGetKey",
         "responses": {
           "200": {
@@ -561,6 +1845,9 @@
       "delete": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userCurrentDeleteKey",
         "responses": {
@@ -581,10 +1868,106 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentListRepos",
         "responses": {
           "200": {
             "$ref": "#/responses/RepositoryList"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository",
+          "user"
+        ],
+        "operationId": "createCurrentUserRepo",
+        "parameters": [
+          {
+            "uniqueItems": true,
+            "x-go-name": "Name",
+            "description": "Name of the repository to create",
+            "name": "name",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Description",
+            "description": "Description of the repository to create",
+            "name": "description",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Private",
+            "description": "Is the repository to create private ?",
+            "name": "private",
+            "in": "body",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "x-go-name": "AutoInit",
+            "description": "Init the repository to create ?",
+            "name": "auto_init",
+            "in": "body",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "x-go-name": "Gitignores",
+            "description": "Gitignores to use",
+            "name": "gitignores",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "License",
+            "description": "License to use",
+            "name": "license",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "x-go-name": "Readme",
+            "description": "Readme of the repository to create",
+            "name": "readme",
+            "in": "body",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           },
           "500": {
             "$ref": "#/responses/error"
@@ -596,6 +1979,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userCurrentListStarred",
         "responses": {
@@ -610,6 +1996,9 @@
     },
     "/user/starred/{username}/{reponame}": {
       "get": {
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentCheckStarring",
         "responses": {
           "204": {
@@ -621,6 +2010,9 @@
         }
       },
       "put": {
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentPutStar",
         "responses": {
           "204": {
@@ -632,6 +2024,9 @@
         }
       },
       "delete": {
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentDeleteStar",
         "responses": {
           "204": {
@@ -648,6 +2043,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userCurrentListSubscriptions",
         "responses": {
           "200": {
@@ -659,10 +2057,32 @@
         }
       }
     },
+    "/user/times": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "operationId": "userTrackedTimes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimes"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/users/:username/followers": {
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userListFollowers",
         "responses": {
@@ -680,6 +2100,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userSearch",
         "responses": {
           "200": {
@@ -695,6 +2118,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userGet",
         "responses": {
@@ -715,6 +2141,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userListFollowing",
         "responses": {
           "200": {
@@ -728,6 +2157,9 @@
     },
     "/users/{username}/following/:target": {
       "get": {
+        "tags": [
+          "user"
+        ],
         "operationId": "userCheckFollowing",
         "responses": {
           "204": {
@@ -743,6 +2175,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userListGPGKeys",
         "responses": {
@@ -760,6 +2195,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userListKeys",
         "responses": {
           "200": {
@@ -775,6 +2213,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userListRepos",
         "responses": {
@@ -792,6 +2233,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userListStarred",
         "responses": {
           "200": {
@@ -807,6 +2251,9 @@
       "get": {
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "user"
         ],
         "operationId": "userListSubscriptions",
         "responses": {
@@ -824,6 +2271,9 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "operationId": "userGetTokens",
         "responses": {
           "200": {
@@ -840,6 +2290,9 @@
         "description": "This show current running Gitea application version.",
         "produces": [
           "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
         ],
         "summary": "Return Gitea running version.",
         "operationId": "getVersion",
@@ -913,7 +2366,7 @@
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
     "GPGKeyEmail": {
-      "description": "GPGKeyEmail a email attache to a GPGKey",
+      "description": "GPGKeyEmail an email attached to a GPGKey",
       "type": "object",
       "properties": {
         "email": {
@@ -1137,8 +2590,68 @@
     "GPGKeyList": {
       "description": "GPGKeyList represents a list of GPGKey"
     },
+    "Hook": {
+      "description": "Hook a hook is a web hook when one repository changed",
+      "schema": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "headers": {
+        "active": {
+          "type": "boolean"
+        },
+        "config": {},
+        "created_at": {},
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "type": {
+          "type": "string"
+        },
+        "updated_at": {}
+      }
+    },
+    "HookList": {
+      "description": "HookList represents a list of API hook."
+    },
     "MarkdownRender": {
       "description": "MarkdownRender is a rendered markdown document"
+    },
+    "Organization": {
+      "description": "Organization a group of some repositories, users and teams",
+      "headers": {
+        "avatar_url": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "full_name": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "location": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "website": {
+          "type": "string"
+        }
+      }
     },
     "PublicKey": {
       "description": "PublicKey publickey is a user key to push code to repository",
@@ -1271,6 +2784,32 @@
         }
       }
     },
+    "TrackedTime": {
+      "description": "TrackedTime worked time for an issue / pr",
+      "headers": {
+        "created": {},
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "issue_id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "time": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Time in seconds"
+        },
+        "user_id": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "TrackedTimes": {
+      "description": "TrackedTimes represent a list of tracked times"
+    },
     "User": {
       "description": "User represents a API user.",
       "headers": {
@@ -1345,6 +2884,9 @@
     "notFound": {
       "description": "APINotFound is a not found empty response"
     },
+    "redirect": {
+      "description": "APIRedirect is a redirect response"
+    },
     "validationError": {
       "description": "APIValidationError is error format response related to input validation",
       "headers": {
@@ -1356,5 +2898,47 @@
         }
       }
     }
-  }
+  },
+  "securityDefinitions": {
+    "AccessToken": {
+      "type": "apiKey",
+      "name": "access_token",
+      "in": "query"
+    },
+    "AuthorizationHeaderToken": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    },
+    "BasicAuth": {
+      "type": "basic"
+    },
+    "Token": {
+      "type": "apiKey",
+      "name": "token",
+      "in": "query"
+    }
+  },
+  "security": [
+    {
+      "BasicAuth": [
+        "[]"
+      ]
+    },
+    {
+      "Token": [
+        "[]"
+      ]
+    },
+    {
+      "AccessToken": [
+        "[]"
+      ]
+    },
+    {
+      "AuthorizationHeaderToken": [
+        "[]"
+      ]
+    }
+  ]
 }

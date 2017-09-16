@@ -10,12 +10,13 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/mailer"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	macaron "gopkg.in/macaron.v1"
@@ -49,8 +50,9 @@ func GlobalInit() {
 
 	if setting.InstallLock {
 		highlight.NewContext()
-		markdown.NewSanitizer()
-		if err := models.NewEngine(); err != nil {
+		markup.Init()
+
+		if err := models.NewEngine(migrations.Migrate); err != nil {
 			log.Fatal(4, "Failed to initialize ORM engine: %v", err)
 		}
 		models.HasEngine = true

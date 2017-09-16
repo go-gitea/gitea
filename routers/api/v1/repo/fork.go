@@ -9,11 +9,12 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // ListForks list a repository's forks
 func ListForks(ctx *context.APIContext) {
-	// swagger:route GET /repos/{owner}/{repo}/forks listForks
+	// swagger:route GET /repos/{owner}/{repo}/forks repository listForks
 	//
 	//     Produces:
 	//     - application/json
@@ -29,7 +30,7 @@ func ListForks(ctx *context.APIContext) {
 	}
 	apiForks := make([]*api.Repository, len(forks))
 	for i, fork := range forks {
-		access, err := models.AccessLevel(ctx.User.ID, fork)
+		access, err := models.AccessLevel(utils.UserID(ctx), fork)
 		if err != nil {
 			ctx.Error(500, "AccessLevel", err)
 			return
@@ -41,7 +42,7 @@ func ListForks(ctx *context.APIContext) {
 
 // CreateFork create a fork of a repo
 func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
-	// swagger:route POST /repos/{owner}/{repo}/forks createFork
+	// swagger:route POST /repos/{owner}/{repo}/forks repository createFork
 	//
 	//     Produces:
 	//     - application/json
@@ -59,7 +60,7 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 	} else {
 		org, err := models.GetOrgByName(*form.Organization)
 		if err != nil {
-			if err == models.ErrOrgNotExist {
+			if models.IsErrOrgNotExist(err) {
 				ctx.Error(422, "", err)
 			} else {
 				ctx.Error(500, "GetOrgByName", err)
@@ -72,7 +73,7 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 		}
 		forker = org
 	}
-	fork, err := models.ForkRepository(forker, repo, repo.Name, repo.Description)
+	fork, err := models.ForkRepository(ctx.User, forker, repo, repo.Name, repo.Description)
 	if err != nil {
 		ctx.Error(500, "ForkRepository", err)
 		return

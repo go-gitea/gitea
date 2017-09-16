@@ -120,6 +120,13 @@ code.wrap {
 .ui.right {
   float: right;
 }
+.ui.button,
+.ui.menu .item {
+  -moz-user-select: auto;
+  -ms-user-select: auto;
+  -webkit-user-select: auto;
+  user-select: auto;
+}
 .ui.container.fluid.padded {
   padding: 0 10px 0 10px;
 }
@@ -430,28 +437,28 @@ footer .ui.language .menu {
 }
 @media only screen and (max-width: 1200px) {
   .ui.menu.new-menu {
-      overflow-x: auto !important;
-      justify-content: left !important;
-      padding-bottom: 5px;
+    overflow-x: auto !important;
+    justify-content: left !important;
+    padding-bottom: 5px;
   }
   .ui.menu.new-menu::-webkit-scrollbar {
-      height: 8px;
-      display: none;
+    height: 8px;
+    display: none;
   }
   .ui.menu.new-menu:hover::-webkit-scrollbar {
     display: block;
   }
   .ui.menu.new-menu::-webkit-scrollbar-track {
-    background: rgba(0,0,0,0.01);
+    background: rgba(0, 0, 0, 0.01);
   }
   .ui.menu.new-menu::-webkit-scrollbar-thumb {
-      background:rgba(0,0,0,0.2);
+    background: rgba(0, 0, 0, 0.2);
   }
   .ui.menu.new-menu:after {
     position: absolute;
     margin-top: -15px;
     display: block;
-    background-image: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1) 100%);
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0), #ffffff 100%);
     content: ' ';
     right: 0;
     height: 53px;
@@ -463,6 +470,17 @@ footer .ui.language .menu {
   .ui.menu.new-menu a.item:last-child {
     padding-right: 30px !important;
   }
+}
+[v-cloak] {
+  display: none !important;
+}
+.repos-search {
+  padding-bottom: 0 !important;
+}
+.repos-filter {
+  margin-top: 0 !important;
+  border-bottom-width: 0 !important;
+  margin-bottom: 2px !important;
 }
 .markdown:not(code) {
   overflow: hidden;
@@ -1202,6 +1220,9 @@ footer .ui.language .menu {
   margin-top: -1px;
   font-size: 15px;
 }
+.repository .tabs .navbar {
+  justify-content: initial;
+}
 .repository .navbar {
   display: flex;
   justify-content: space-between;
@@ -1280,7 +1301,6 @@ footer .ui.language .menu {
   margin-bottom: 20px;
 }
 .repository #clone-panel {
-  margin-top: -8px;
   margin-left: 5px;
   width: 350px;
 }
@@ -1307,6 +1327,10 @@ footer .ui.language .menu {
 }
 .repository.file.list .choose.reference .header .icon {
   font-size: 1.4em;
+}
+.repository.file.list .repo-path .section,
+.repository.file.list .repo-path .divider {
+  display: inline;
 }
 .repository.file.list #file-buttons {
   font-weight: normal;
@@ -2039,11 +2063,16 @@ footer .ui.language .menu {
 .repository .diff-detail-box span.status.rename {
   background-color: #dad8ff;
 }
-.repository .diff-box .count {
+.repository .diff-box .header {
+  display: flex;
+  align-items: center;
+}
+.repository .diff-box .header .count {
   margin-right: 12px;
   font-size: 13px;
+  flex: 0 0 auto;
 }
-.repository .diff-box .count .bar {
+.repository .diff-box .header .count .bar {
   background-color: #bd2c00;
   height: 12px;
   width: 40px;
@@ -2051,12 +2080,19 @@ footer .ui.language .menu {
   margin: 2px 4px 0 4px;
   vertical-align: text-top;
 }
-.repository .diff-box .count .bar .add {
+.repository .diff-box .header .count .bar .add {
   background-color: #55a532;
   height: 12px;
 }
-.repository .diff-box .file {
+.repository .diff-box .header .file {
+  flex: 0 1 100%;
   color: #888;
+  word-break: break-all;
+}
+.repository .diff-box .header .button {
+  margin: -5px 0 -5px 12px;
+  padding: 8px 10px;
+  flex: 0 0 auto;
 }
 .repository .diff-file-box .header {
   background-color: #f7f7f7;
@@ -2066,6 +2102,10 @@ footer .ui.language .menu {
   color: #A7A7A7;
   background: #fafafa;
   width: 1%;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .repository .diff-file-box .file-body.file-code .lines-num span.fold {
   display: block;
@@ -2304,6 +2344,30 @@ footer .ui.language .menu {
   margin-left: 5px;
   margin-top: -3px;
 }
+.repository.settings.branches .protected-branches .selection.dropdown {
+  width: 300px;
+}
+.repository.settings.branches .protected-branches .item {
+  border: 1px solid #eaeaea;
+  padding: 10px 15px;
+}
+.repository.settings.branches .protected-branches .item:not(:last-child) {
+  border-bottom: 0;
+}
+.repository.settings.branches .branch-protection .help {
+  margin-left: 26px;
+  padding-top: 0;
+}
+.repository.settings.branches .branch-protection .fields {
+  margin-left: 20px;
+  display: block;
+}
+.repository.settings.branches .branch-protection .whitelist {
+  margin-left: 26px;
+}
+.repository.settings.branches .branch-protection .whitelist .dropdown img {
+  display: inline-block;
+}
 .repository.settings.webhook .events .column {
   padding-bottom: 0;
 }
@@ -2455,6 +2519,9 @@ footer .ui.language .menu {
 }
 .settings .list.email > .item:not(:first-child) {
   min-height: 60px;
+}
+.settings .list.collaborator > .item {
+  padding: 0;
 }
 .ui.vertical.menu .header.item {
   font-size: 1.1em;
@@ -2809,6 +2876,9 @@ footer .ui.language .menu {
 .user.link-account:not(.icon) {
   padding-top: 15px;
   padding-bottom: 5px;
+}
+.user.settings .iconFloat {
+  float: left;
 }
 .dashboard {
   padding-top: 15px;

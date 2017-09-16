@@ -2,12 +2,13 @@ workspace:
   base: /srv/app
   path: src/code.gitea.io/gitea
 
-pipeline:
-  clone:
-    image: plugins/git
+clone:
+  git:
+    image: plugins/git:1
     depth: 50
     tags: true
 
+pipeline:
   build:
     image: webhippie/golang:edge
     pull: true
@@ -15,11 +16,11 @@ pipeline:
       TAGS: bindata sqlite
       GOPATH: /srv/app
     commands:
-      - apk -U add openssh-client
       - make clean
       - make generate
       - make vet
       - make lint
+      - make stylesheets-check
       - make misspell-check
       - make test-vendor
       - make build
@@ -29,54 +30,70 @@ pipeline:
   test:
     image: webhippie/golang:edge
     pull: true
+    group: test
     environment:
       TAGS: bindata sqlite
       GOPATH: /srv/app
     commands:
-      - apk -U add openssh-client
-      - make test
+      - make unit-test-coverage
     when:
-      event: [ tag, pull_request ]
+      event: [ push, pull_request ]
+      branch: [ master ]
 
-  test-coverage:
+  test:
     image: webhippie/golang:edge
     pull: true
-    environment:
-      TAGS: bindata sqlite
-      GOPATH: /srv/app
-    commands:
-      - apk -U add openssh-client
-      - go get github.com/wadey/gocovmerge
-      - make test-coverage
-    when:
-      event: [ push ]
-      branch: master
-
-  test-sqlite:
-    image: webhippie/golang:edge
-    pull: true
+    group: test
     environment:
       TAGS: bindata
       GOPATH: /srv/app
     commands:
-      - make test-sqlite
+      - make test
     when:
-      event: [ push, tag, pull_request ]
+      event: [ tag ]
+
+  # Commented until db locking have been resolved!
+  # test-sqlite:
+  #   image: webhippie/golang:edge
+  #   pull: true
+  #   group: test
+  #   environment:
+  #     TAGS: bindata
+  #     GOPATH: /srv/app
+  #   commands:
+  #     - make test-sqlite
+  #   when:
+  #     event: [ push, tag, pull_request ]
 
   test-mysql:
     image: webhippie/golang:edge
     pull: true
+    group: test
+    environment:
+      TAGS: bindata
+      GOPATH: /srv/app
+    commands:
+      - make integration-test-coverage
+    when:
+      event: [ push, pull_request ]
+      branch: [ master ]
+
+  test-mysql:
+    image: webhippie/golang:edge
+    pull: true
+    group: test
     environment:
       TAGS: bindata
       GOPATH: /srv/app
     commands:
       - make test-mysql
     when:
-      event: [ push, tag, pull_request ]
+      event: [ tag ]
 
   test-pgsql:
     image: webhippie/golang:edge
     pull: true
+    group: test
     environment:
       TAGS: bindata
       GOPATH: /srv/app
@@ -84,6 +101,27 @@ pipeline:
       - make test-pgsql
     when:
       event: [ push, tag, pull_request ]
+
+  generate-coverage:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      TAGS: bindata
+      GOPATH: /srv/app
+    commands:
+      - make coverage
+    when:
+      event: [ push, pull_request ]
+      branch: [ master ]
+
+  coverage:
+    image: robertstettner/drone-codecov
+    secrets: [ codecov_token ]
+    files:
+      - coverage.all
+    when:
+      event: [ push, pull_request ]
+      branch: [ master ]
 
   static:
     image: karalabe/xgo-latest:latest
@@ -96,15 +134,10 @@ pipeline:
     when:
       event: [ push, tag ]
 
-  coverage:
-    image: plugins/coverage
-    server: https://coverage.gitea.io
-    when:
-      event: [ push ]
-      branch: master
-
   docker:
-    image: plugins/docker
+    image: plugins/docker:17.05
+    pull: true
+    secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
     tags: [ '${DRONE_TAG##v}' ]
     when:
@@ -112,7 +145,9 @@ pipeline:
       branch: [ refs/tags/* ]
 
   docker:
-    image: plugins/docker
+    image: plugins/docker:17.05
+    pull: true
+    secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
     tags: [ '${DRONE_BRANCH##release/v}' ]
     when:
@@ -120,7 +155,9 @@ pipeline:
       branch: [ release/* ]
 
   docker:
-    image: plugins/docker
+    image: plugins/docker:17.05
+    pull: true
+    secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
     tags: [ 'latest' ]
     when:
@@ -128,7 +165,11 @@ pipeline:
       branch: [ master ]
 
   release:
-    image: plugins/s3
+    image: plugins/s3:1
+    pull: true
+    secrets: [ aws_access_key_id, aws_secret_access_key ]
+    bucket: releases
+    endpoint: https://storage.gitea.io
     path_style: true
     strip_prefix: dist/release/
     source: dist/release/*
@@ -138,7 +179,11 @@ pipeline:
       branch: [ refs/tags/* ]
 
   release:
-    image: plugins/s3
+    image: plugins/s3:1
+    pull: true
+    secrets: [ aws_access_key_id, aws_secret_access_key ]
+    bucket: releases
+    endpoint: https://storage.gitea.io
     path_style: true
     strip_prefix: dist/release/
     source: dist/release/*
@@ -148,7 +193,11 @@ pipeline:
       branch: [ release/* ]
 
   release:
-    image: plugins/s3
+    image: plugins/s3:1
+    pull: true
+    secrets: [ aws_access_key_id, aws_secret_access_key ]
+    bucket: releases
+    endpoint: https://storage.gitea.io
     path_style: true
     strip_prefix: dist/release/
     source: dist/release/*
@@ -158,7 +207,8 @@ pipeline:
       branch: [ master ]
 
   github:
-    image: plugins/github-release
+    image: plugins/github-release:1
+    pull: true
     files:
       - dist/release/*
     when:
@@ -166,9 +216,9 @@ pipeline:
       branch: [ refs/tags/* ]
 
   discord:
-    image: appleboy/drone-discord:0.0.4
-    webhook_id: ${WEBHOOK_ID}
-    webhook_token: ${WEBHOOK_TOKEN}
+    image: appleboy/drone-discord:1.0.0
+    pull: true
+    secrets: [ discord_webhook_id, discord_webhook_token ]
     when:
       event: [ push, tag, pull_request ]
       status: [ changed, failure ]

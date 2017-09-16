@@ -24,7 +24,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -66,6 +66,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"AvatarLink":   base.AvatarLink,
 		"Safe":         Safe,
+		"SafeJS":       SafeJS,
 		"Sanitize":     bluemonday.UGCPolicy().Sanitize,
 		"Str2html":     Str2html,
 		"TimeSince":    base.TimeSince,
@@ -154,6 +155,9 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return out.String()
 		},
+		"DisableGitHooks": func() bool {
+			return setting.DisableGitHooks
+		},
 	}}
 }
 
@@ -162,9 +166,14 @@ func Safe(raw string) template.HTML {
 	return template.HTML(raw)
 }
 
+// SafeJS renders raw as JS
+func SafeJS(raw string) template.JS {
+	return template.JS(raw)
+}
+
 // Str2html render Markdown text to HTML
 func Str2html(raw string) template.HTML {
-	return template.HTML(markdown.Sanitize(raw))
+	return template.HTML(markup.Sanitize(raw))
 }
 
 // List traversings the list
@@ -244,7 +253,7 @@ func ReplaceLeft(s, old, new string) string {
 // RenderCommitMessage renders commit message with XSS-safe and special links.
 func RenderCommitMessage(full bool, msg, urlPrefix string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
-	fullMessage := string(markdown.RenderIssueIndexPattern([]byte(cleanMsg), urlPrefix, metas))
+	fullMessage := string(markup.RenderIssueIndexPattern([]byte(cleanMsg), urlPrefix, metas))
 	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
 	numLines := len(msgLines)
 	if numLines == 0 {

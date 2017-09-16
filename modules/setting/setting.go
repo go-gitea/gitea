@@ -34,7 +34,7 @@ import (
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
 	"github.com/go-xorm/core"
-	ini "gopkg.in/ini.v1"
+	"gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
 
@@ -87,17 +87,19 @@ var (
 	EnablePprof          bool
 
 	SSH = struct {
-		Disabled            bool           `ini:"DISABLE_SSH"`
-		StartBuiltinServer  bool           `ini:"START_SSH_SERVER"`
-		Domain              string         `ini:"SSH_DOMAIN"`
-		Port                int            `ini:"SSH_PORT"`
-		ListenHost          string         `ini:"SSH_LISTEN_HOST"`
-		ListenPort          int            `ini:"SSH_LISTEN_PORT"`
-		RootPath            string         `ini:"SSH_ROOT_PATH"`
-		KeyTestPath         string         `ini:"SSH_KEY_TEST_PATH"`
-		KeygenPath          string         `ini:"SSH_KEYGEN_PATH"`
-		MinimumKeySizeCheck bool           `ini:"-"`
-		MinimumKeySizes     map[string]int `ini:"-"`
+		Disabled             bool           `ini:"DISABLE_SSH"`
+		StartBuiltinServer   bool           `ini:"START_SSH_SERVER"`
+		Domain               string         `ini:"SSH_DOMAIN"`
+		Port                 int            `ini:"SSH_PORT"`
+		ListenHost           string         `ini:"SSH_LISTEN_HOST"`
+		ListenPort           int            `ini:"SSH_LISTEN_PORT"`
+		RootPath             string         `ini:"SSH_ROOT_PATH"`
+		KeyTestPath          string         `ini:"SSH_KEY_TEST_PATH"`
+		KeygenPath           string         `ini:"SSH_KEYGEN_PATH"`
+		AuthorizedKeysBackup bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
+		MinimumKeySizeCheck  bool           `ini:"-"`
+		MinimumKeySizes      map[string]int `ini:"-"`
+		ExposeAnonymous      bool           `ini:"SSH_EXPOSE_ANONYMOUS"`
 	}{
 		Disabled:           false,
 		StartBuiltinServer: false,
@@ -122,6 +124,7 @@ var (
 	ReverseProxyAuthUser string
 	MinPasswordLength    int
 	ImportLocalPaths     bool
+	DisableGitHooks      bool
 
 	// Database settings
 	UseSQLite3    bool
@@ -159,6 +162,7 @@ var (
 		PullRequestQueueLength int
 		PreferredLicenses      []string
 		DisableHTTPGit         bool
+		UseCompatSSHURI        bool
 
 		// Repository editor settings
 		Editor struct {
@@ -187,6 +191,7 @@ var (
 		PullRequestQueueLength: 1000,
 		PreferredLicenses:      []string{"Apache License 2.0,MIT License"},
 		DisableHTTPGit:         false,
+		UseCompatSSHURI:        false,
 
 		// Repository editor settings
 		Editor: struct {
@@ -495,7 +500,11 @@ func DateLang(lang string) string {
 
 // execPath returns the executable path.
 func execPath() (string, error) {
-	file, err := exec.LookPath(os.Args[0])
+	execFile := os.Args[0]
+	if IsWindows && filepath.IsAbs(execFile) {
+		return filepath.Clean(execFile), nil
+	}
+	file, err := exec.LookPath(execFile)
 	if err != nil {
 		return "", err
 	}
@@ -594,6 +603,8 @@ func NewContext() {
 
 	if len(CustomConf) == 0 {
 		CustomConf = CustomPath + "/conf/app.ini"
+	} else if !filepath.IsAbs(CustomConf) {
+		CustomConf = filepath.Join(workDir, CustomConf)
 	}
 
 	if com.IsFile(CustomConf) {
@@ -654,7 +665,22 @@ func NewContext() {
 	AppSubURL = strings.TrimSuffix(url.Path, "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
 
-	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(string(Protocol) + "://localhost:" + HTTPPort + "/")
+	var defaultLocalURL string
+	switch Protocol {
+	case UnixSocket:
+		defaultLocalURL = "http://unix/"
+	case FCGI:
+		defaultLocalURL = AppURL
+	default:
+		defaultLocalURL = string(Protocol) + "://"
+		if HTTPAddr == "0.0.0.0" {
+			defaultLocalURL += "localhost"
+		} else {
+			defaultLocalURL += HTTPAddr
+		}
+		defaultLocalURL += ":" + HTTPPort + "/"
+	}
+	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(workDir)
@@ -703,6 +729,8 @@ func NewContext() {
 			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
 		}
 	}
+	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
+	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
 	if err = Cfg.Section("server").MapTo(&LFS); err != nil {
 		log.Fatal(4, "Failed to map LFS settings: %v", err)
@@ -756,7 +784,7 @@ func NewContext() {
 			log.Fatal(4, "Error retrieving git version: %v", err)
 		}
 
-		splitVersion := strings.SplitN(binVersion, ".", 3)
+		splitVersion := strings.SplitN(binVersion, ".", 4)
 
 		majorVersion, err := strconv.ParseUint(splitVersion[0], 10, 64)
 		if err != nil {
@@ -794,6 +822,7 @@ func NewContext() {
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
+	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
 	InternalToken = sec.Key("INTERNAL_TOKEN").String()
 	if len(InternalToken) == 0 {
 		secretBytes := make([]byte, 32)
@@ -882,6 +911,7 @@ func NewContext() {
 	// Determine and create root git repository path.
 	sec = Cfg.Section("repository")
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
+	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
 	RepoRootPath = sec.Key("ROOT").MustString(path.Join(homeDir, "gitea-repositories"))
 	forcePathSeparator(RepoRootPath)
@@ -992,19 +1022,21 @@ func NewContext() {
 
 // Service settings
 var Service struct {
-	ActiveCodeLives                int
-	ResetPwdCodeLives              int
-	RegisterEmailConfirm           bool
-	DisableRegistration            bool
-	ShowRegistrationButton         bool
-	RequireSignInView              bool
-	EnableNotifyMail               bool
-	EnableReverseProxyAuth         bool
-	EnableReverseProxyAutoRegister bool
-	EnableCaptcha                  bool
-	DefaultKeepEmailPrivate        bool
-	DefaultAllowCreateOrganization bool
-	NoReplyAddress                 string
+	ActiveCodeLives                         int
+	ResetPwdCodeLives                       int
+	RegisterEmailConfirm                    bool
+	DisableRegistration                     bool
+	ShowRegistrationButton                  bool
+	RequireSignInView                       bool
+	EnableNotifyMail                        bool
+	EnableReverseProxyAuth                  bool
+	EnableReverseProxyAutoRegister          bool
+	EnableCaptcha                           bool
+	DefaultKeepEmailPrivate                 bool
+	DefaultAllowCreateOrganization          bool
+	DefaultEnableTimetracking               bool
+	DefaultAllowOnlyContributorsToTrackTime bool
+	NoReplyAddress                          string
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
@@ -1025,6 +1057,8 @@ func newService() {
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool()
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
+	Service.DefaultEnableTimetracking = sec.Key("DEFAULT_ENABLE_TIMETRACKING").MustBool(true)
+	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 
 	sec = Cfg.Section("openid")
@@ -1343,7 +1377,7 @@ func newWebhookService() {
 	Webhook.QueueLength = sec.Key("QUEUE_LENGTH").MustInt(1000)
 	Webhook.DeliverTimeout = sec.Key("DELIVER_TIMEOUT").MustInt(5)
 	Webhook.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool()
-	Webhook.Types = []string{"gitea", "gogs", "slack"}
+	Webhook.Types = []string{"gitea", "gogs", "slack", "discord"}
 	Webhook.PagingNum = sec.Key("PAGING_NUM").MustInt(10)
 }
 
