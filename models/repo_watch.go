@@ -51,7 +51,11 @@ func WatchRepo(userID, repoID int64, watch bool) (err error) {
 
 func getWatchers(e Engine, repoID int64) ([]*Watch, error) {
 	watches := make([]*Watch, 0, 10)
-	return watches, e.Find(&watches, &Watch{RepoID: repoID})
+	return watches, e.Where("`watch`.repo_id=?", repoID).
+		And("`user`.is_active=?", true).
+		And("`user`.prohibit_login=?", false).
+		Join("INNER", "user", "`user`.id = `watch`.user_id").
+		Find(&watches)
 }
 
 // GetWatchers returns all watchers of given repository.
