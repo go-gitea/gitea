@@ -53,5 +53,8 @@ coverage.all
 /integrations/gitea-integration-mysql
 /integrations/gitea-integration-pgsql
 /integrations/gitea-integration-sqlite
+/integrations/indexers-mysql
+/integrations/indexers-pgsql
+/integrations/indexers-sqlite
 /integrations/mysql.ini
 /integrations/pgsql.ini
