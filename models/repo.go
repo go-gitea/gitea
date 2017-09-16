@@ -22,7 +22,7 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -480,10 +480,10 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			"repo":   repo.Name,
 		}
 		switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
-		case markdown.IssueNameStyleAlphanumeric:
-			repo.ExternalMetas["style"] = markdown.IssueNameStyleAlphanumeric
+		case markup.IssueNameStyleAlphanumeric:
+			repo.ExternalMetas["style"] = markup.IssueNameStyleAlphanumeric
 		default:
-			repo.ExternalMetas["style"] = markdown.IssueNameStyleNumeric
+			repo.ExternalMetas["style"] = markup.IssueNameStyleNumeric
 		}
 
 	}
@@ -708,7 +708,7 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 	sanitize := func(s string) string {
 		return fmt.Sprintf(`<a href="%[1]s" target="_blank" rel="noopener">%[1]s</a>`, s)
 	}
-	return template.HTML(descPattern.ReplaceAllStringFunc(markdown.Sanitize(repo.Description), sanitize))
+	return template.HTML(descPattern.ReplaceAllStringFunc(markup.Sanitize(repo.Description), sanitize))
 }
 
 // LocalCopyPath returns the local repository copy path

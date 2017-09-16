@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 
 	"github.com/go-xorm/xorm"
 )
@@ -101,7 +101,7 @@ func addUnitsToTables(x *xorm.Engine) error {
 				config["ExternalTrackerURL"] = repo.ExternalTrackerURL
 				config["ExternalTrackerFormat"] = repo.ExternalTrackerFormat
 				if len(repo.ExternalTrackerStyle) == 0 {
-					repo.ExternalTrackerStyle = markdown.IssueNameStyleNumeric
+					repo.ExternalTrackerStyle = markup.IssueNameStyleNumeric
 				}
 				config["ExternalTrackerStyle"] = repo.ExternalTrackerStyle
 			case V16UnitTypeExternalWiki:
