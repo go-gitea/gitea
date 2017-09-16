@@ -38,14 +38,14 @@ type BooleanSearcher struct {
 	initialized     bool
 }
 
-func NewBooleanSearcher(indexReader index.IndexReader, mustSearcher search.Searcher, shouldSearcher search.Searcher, mustNotSearcher search.Searcher, explain bool) (*BooleanSearcher, error) {
+func NewBooleanSearcher(indexReader index.IndexReader, mustSearcher search.Searcher, shouldSearcher search.Searcher, mustNotSearcher search.Searcher, options search.SearcherOptions) (*BooleanSearcher, error) {
 	// build our searcher
 	rv := BooleanSearcher{
 		indexReader:     indexReader,
 		mustSearcher:    mustSearcher,
 		shouldSearcher:  shouldSearcher,
 		mustNotSearcher: mustNotSearcher,
-		scorer:          scorer.NewConjunctionQueryScorer(explain),
+		scorer:          scorer.NewConjunctionQueryScorer(options),
 		matches:         make([]*search.DocumentMatch, 2),
 	}
 	rv.computeQueryNorm()

@@ -41,7 +41,7 @@ func (q *PrefixQuery) SetBoost(b float64) {
 	q.BoostVal = &boost
 }
 
-func (q *PrefixQuery) Boost() float64{
+func (q *PrefixQuery) Boost() float64 {
 	return q.BoostVal.Value()
 }
 
@@ -49,14 +49,14 @@ func (q *PrefixQuery) SetField(f string) {
 	q.FieldVal = f
 }
 
-func (q *PrefixQuery) Field() string{
+func (q *PrefixQuery) Field() string {
 	return q.FieldVal
 }
 
-func (q *PrefixQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error) {
+func (q *PrefixQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
 	field := q.FieldVal
 	if q.FieldVal == "" {
 		field = m.DefaultSearchField()
 	}
-	return searcher.NewTermPrefixSearcher(i, q.Prefix, field, q.BoostVal.Value(), explain)
+	return searcher.NewTermPrefixSearcher(i, q.Prefix, field, q.BoostVal.Value(), options)
 }

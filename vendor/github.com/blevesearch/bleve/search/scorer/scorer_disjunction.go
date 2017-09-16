@@ -21,26 +21,26 @@ import (
 )
 
 type DisjunctionQueryScorer struct {
-	explain bool
+	options search.SearcherOptions
 }
 
-func NewDisjunctionQueryScorer(explain bool) *DisjunctionQueryScorer {
+func NewDisjunctionQueryScorer(options search.SearcherOptions) *DisjunctionQueryScorer {
 	return &DisjunctionQueryScorer{
-		explain: explain,
+		options: options,
 	}
 }
 
 func (s *DisjunctionQueryScorer) Score(ctx *search.SearchContext, constituents []*search.DocumentMatch, countMatch, countTotal int) *search.DocumentMatch {
 	var sum float64
 	var childrenExplanations []*search.Explanation
-	if s.explain {
+	if s.options.Explain {
 		childrenExplanations = make([]*search.Explanation, len(constituents))
 	}
 
 	var locations []search.FieldTermLocationMap
 	for i, docMatch := range constituents {
 		sum += docMatch.Score
-		if s.explain {
+		if s.options.Explain {
 			childrenExplanations[i] = docMatch.Expl
 		}
 		if docMatch.Locations != nil {
@@ -49,14 +49,14 @@ func (s *DisjunctionQueryScorer) Score(ctx *search.SearchContext, constituents [
 	}
 
 	var rawExpl *search.Explanation
-	if s.explain {
+	if s.options.Explain {
 		rawExpl = &search.Explanation{Value: sum, Message: "sum of:", Children: childrenExplanations}
 	}
 
 	coord := float64(countMatch) / float64(countTotal)
 	newScore := sum * coord
 	var newExpl *search.Explanation
-	if s.explain {
+	if s.options.Explain {
 		ce := make([]*search.Explanation, 2)
 		ce[0] = rawExpl
 		ce[1] = &search.Explanation{Value: coord, Message: fmt.Sprintf("coord(%d/%d)", countMatch, countTotal)}

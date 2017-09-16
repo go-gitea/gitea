@@ -63,7 +63,11 @@ all: build
 .PHONY: clean
 clean:
 	$(GO) clean -i ./...
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) integrations*.test integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/ integrations/mysql.ini integrations/pgsql.ini
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) \
+		integrations*.test \
+		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/ \
+		integrations/indexers-mysql/ integrations/indexers-pgsql integrations/indexers-sqlite \
+		integrations/mysql.ini integrations/pgsql.ini
 
 required-gofmt-version:
 	@$(GO) version  | grep -q '\(1.7\|1.8\)' || { echo "We require go version 1.7 or 1.8 to format code" >&2 && exit 1; }
