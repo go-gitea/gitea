@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"gopkg.in/gomail.v2"
 	"gopkg.in/macaron.v1"
@@ -150,7 +151,7 @@ func composeTplData(subject, body, link string) map[string]interface{} {
 
 func composeIssueCommentMessage(issue *Issue, doer *User, comment *Comment, tplName base.TplName, tos []string, info string) *mailer.Message {
 	subject := issue.mailSubject()
-	body := string(markdown.RenderString(issue.Content, issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
+	body := string(markup.RenderByType(markdown.MarkupName, []byte(issue.Content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
 
 	data := make(map[string]interface{}, 10)
 	if comment != nil {

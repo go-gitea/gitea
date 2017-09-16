@@ -61,13 +61,12 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 			continue
 		}
 
-		tp, ok := markup.ReadmeFileType(entry.Name())
-		if !ok {
+		if !markup.IsReadmeFile(entry.Name()) {
 			continue
 		}
 
 		readmeFile = entry.Blob()
-		if tp != "" {
+		if markup.Type(entry.Name()) != "" {
 			break
 		}
 	}

@@ -2,10 +2,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package markup
+package markup_test
 
 import (
 	"testing"
+
+	_ "code.gitea.io/gitea/modules/markdown"
+	. "code.gitea.io/gitea/modules/markup"
 
 	"github.com/stretchr/testify/assert"
 )

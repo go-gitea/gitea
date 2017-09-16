@@ -10,7 +10,7 @@ import (
 	"github.com/Unknwon/com"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -104,7 +104,7 @@ func (issue *Issue) MailParticipants() (err error) {
 }
 
 func (issue *Issue) mailParticipants(e Engine) (err error) {
-	mentions := markdown.FindAllMentions(issue.Content)
+	mentions := markup.FindAllMentions(issue.Content)
 	if err = UpdateIssueMentions(e, issue.ID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
 	}
