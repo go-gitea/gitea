@@ -109,7 +109,27 @@ type SearchRepoOptions struct {
 	// maximum: setting.ExplorePagingNum
 	// in: query
 	PageSize int `json:"limit"` // Can be smaller than or equal to setting.ExplorePagingNum
+	// Type of repository to search (related to owner if present)
+	//
+	// in: query
+	RepoType RepoType `json:"type"`
 }
+
+// RepoType is repository filtering type identifier
+type RepoType string
+
+const (
+	// RepoTypeAny any type (default)
+	RepoTypeAny RepoType = ""
+	// RepoTypeFork fork type
+	RepoTypeFork = "FORK"
+	// RepoTypeMirror mirror type
+	RepoTypeMirror = "MIRROR"
+	// RepoTypeSource source type
+	RepoTypeSource = "SOURCE"
+	// RepoTypeCollaborative collaborative type
+	RepoTypeCollaborative = "COLLABORATIVE"
+)
 
 //SearchOrderBy is used to sort the result
 type SearchOrderBy string
@@ -172,11 +192,15 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 			}
 		} else {
 			// Set user access conditions
+			var accessCond builder.Cond = builder.NewCond()
+
 			// Add Owner ID to access conditions
-			var accessCond builder.Cond = builder.Eq{"owner_id": opts.OwnerID}
+			if opts.RepoType != RepoTypeCollaborative {
+				accessCond = accessCond.Or(builder.Eq{"owner_id": opts.OwnerID})
+			}
 
 			// Include collaborative repositories
-			if opts.Collaborate {
+			if opts.Collaborate && (opts.RepoType == RepoTypeAny || opts.RepoType == RepoTypeMirror || opts.RepoType == RepoTypeCollaborative) {
 				// Add repositories where user is set as collaborator directly
 				accessCond = accessCond.Or(builder.And(
 					builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", opts.OwnerID),
@@ -190,6 +214,18 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = SearchOrderByAlphabetically
+	}
+
+	// Add general filters for repository
+	if opts.RepoType != RepoTypeAny {
+		cond = cond.And(builder.Eq{"is_mirror": opts.RepoType == RepoTypeMirror})
+
+		switch opts.RepoType {
+		case RepoTypeFork:
+			cond = cond.And(builder.Eq{"is_fork": true})
+		case RepoTypeSource:
+			cond = cond.And(builder.Eq{"is_fork": false})
+		}
 	}
 
 	sess := x.NewSession()

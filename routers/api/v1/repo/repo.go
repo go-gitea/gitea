@@ -28,11 +28,18 @@ func Search(ctx *context.APIContext) {
 	//     Responses:
 	//       200: SearchResults
 	//       500: SearchError
+	repoTypes := map[string]models.RepoType{
+		"fork":          models.RepoTypeFork,
+		"mirror":        models.RepoTypeMirror,
+		"source":        models.RepoTypeSource,
+		"collaborative": models.RepoTypeCollaborative,
+	}
 
 	opts := &models.SearchRepoOptions{
 		Keyword:  strings.Trim(ctx.Query("q"), " "),
 		OwnerID:  ctx.QueryInt64("uid"),
 		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		RepoType: repoTypes[ctx.Query("type")],
 	}
 
 	// Include collaborative and private repositories
