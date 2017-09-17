@@ -91,7 +91,7 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
 		switch UnitType(Cell2Int64(val)) {
-		case UnitTypeCode, UnitTypePullRequests, UnitTypeReleases,
+		case UnitTypeCode, UnitTypePullRequests, UnitTypeReleases, UnitTypeIssueDependencies,
 			UnitTypeWiki:
 			r.Config = new(UnitConfig)
 		case UnitTypeExternalWiki:
@@ -147,6 +147,11 @@ func (r *RepoUnit) IssuesConfig() *IssuesConfig {
 // ExternalTrackerConfig returns config for UnitTypeExternalTracker
 func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return r.Config.(*ExternalTrackerConfig)
+}
+
+// IssueDependenciesConfig returns config for UnitTypeIssueDependencies
+func (r *RepoUnit) IssueDependenciesConfig() *UnitConfig{
+	return r.Config.(*UnitConfig)
 }
 
 func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {

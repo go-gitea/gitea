@@ -106,6 +106,7 @@ type RepoSettingForm struct {
 	EnablePulls                      bool
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
+	EnableIssueDependencies 		 bool
 }
 
 // Validate validates the fields

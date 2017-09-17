@@ -60,6 +60,10 @@ const (
 	CommentTypeAddTimeManual
 	// Cancel a stopwatch for time tracking
 	CommentTypeCancelTracking
+	// Dependency added
+	CommentTypeAddedDependency
+	//Dependency removed
+	CommentTypeRemovedDependency
 )
 
 // CommentTag defines comment tag type
@@ -92,6 +96,8 @@ type Comment struct {
 	OldAssignee    *User `xorm:"-"`
 	OldTitle       string
 	NewTitle       string
+	DependentIssueID int64
+	DependentIssue *Issue `xorm:"-"`
 
 	CommitID        int64
 	Line            int64
@@ -269,6 +275,18 @@ func (c *Comment) LoadAssignees() error {
 	return nil
 }
 
+// Load Dependent Issue Details
+func (c *Comment) LoadDepIssueDetails() error {
+	var err error
+	if c.DependentIssueID > 0 {
+		c.DependentIssue, err = getIssueByID(x, c.DependentIssueID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
 func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
@@ -297,6 +315,12 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	if opts.Label != nil {
 		LabelID = opts.Label.ID
 	}
+
+	var depId int64 = 0
+	if opts.DependentIssue != nil {
+		depId = opts.DependentIssue.ID
+	}
+
 	comment := &Comment{
 		Type:           opts.Type,
 		PosterID:       opts.Doer.ID,
@@ -313,8 +337,12 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:        opts.Content,
 		OldTitle:       opts.OldTitle,
 		NewTitle:       opts.NewTitle,
+		DependentIssue: opts.DependentIssue,
+		DependentIssueID: depId,
 	}
-	if _, err = e.Insert(comment); err != nil {
+
+	_, err = e.Insert(comment)
+	if err != nil {
 		return nil, err
 	}
 
@@ -486,6 +514,23 @@ func createDeleteBranchComment(e *xorm.Session, doer *User, repo *Repository, is
 	})
 }
 
+// Creates issue dependency comment
+func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dependantIssue *Issue, added bool) (*Comment, error) {
+	cType := CommentTypeAddedDependency
+	if !added {
+		cType = CommentTypeRemovedDependency
+	}
+
+	return createComment(e, &CreateCommentOptions{
+		Type: cType,
+		Doer: doer,
+		Repo: issue.Repo,
+		Issue: issue,
+		DependentIssue: dependantIssue,
+		Content: dependantIssue.Title,
+	})
+}
+
 // CreateCommentOptions defines options for creating comment
 type CreateCommentOptions struct {
 	Type  CommentType
@@ -493,6 +538,7 @@ type CreateCommentOptions struct {
 	Repo  *Repository
 	Issue *Issue
 	Label *Label
+	DependentIssue *Issue
 
 	OldMilestoneID int64
 	MilestoneID    int64

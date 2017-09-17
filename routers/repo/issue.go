@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"net/http"
 )
 
 const (
@@ -683,6 +684,11 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Handle(500, "LoadAssignees", err)
 				return
 			}
+		} else if comment.Type == models.CommentTypeRemovedDependency || comment.Type == models.CommentTypeAddedDependency{
+			if err = comment.LoadDepIssueDetails(); err != nil{
+				ctx.Handle(http.StatusInternalServerError, "LoadDepIssueDetails", err)
+				return
+			}
 		}
 	}
 
@@ -706,6 +712,11 @@ func ViewIssue(ctx *context.Context) {
 
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 	}
+
+	// Get Dependencies
+	ctx.Data["IssueDependenciesEnabled"] = repo.UnitEnabled(models.UnitTypeIssueDependencies)
+	ctx.Data["BlockedByDependencies"], err = repo.BlockedByDependencies(issue.ID)
+	ctx.Data["BlockingDependencies"], err = repo.BlockingDependencies(issue.ID)
 
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
@@ -907,6 +918,23 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		if (ctx.Repo.IsWriter() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) &&
 			(form.Status == "reopen" || form.Status == "close") &&
 			!(issue.IsPull && issue.PullRequest.HasMerged) {
+
+			// Check for open dependencies
+			if form.Status == "close"{
+
+				canbeClosed := models.IssueNoDependenciesLeft(issue)
+
+				if !canbeClosed {
+					if issue.IsPull{
+						ctx.Flash.Error("You need to close all issues blocking this pull request before you can merge it!")
+						ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
+					} else {
+						ctx.Flash.Error("You need to close all issues blocking this issue before you can close it!")
+						ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+					}
+					return
+				}
+			}
 
 			// Duplication and conflict check should apply to reopen pull request.
 			var pr *models.PullRequest
