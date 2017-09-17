@@ -83,7 +83,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (err error, exists boo
 			return err, exists, false
 		}
 	}
-	return nil, exists, true
+	return nil, exists, false
 }
 
 // Removes a dependency from an issue
@@ -154,21 +154,10 @@ func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err erro
 }
 
 // check if issue can be closed
-func IssueNoDependenciesLeft(issue *Issue) bool {
-
-	// Check if the Repo is allowed to have dependencies, if not return true (= issue can be closed)
-	// Otherwise check for all open dependencies
-	r, err := getRepositoryByID(x, issue.RepoID)
-	if err != nil {
-		return false
-	}
-
-	if !r.UnitEnabled(UnitTypeIssueDependencies) {
-		return true
-	}
+func IssueNoDependenciesLeft(issueID int64) bool {
 
 	var issueDeps []IssueDependency
-	err = x.Where("issue_id = ?", issue.ID).Find(&issueDeps)
+	err := x.Where("issue_id = ?", issueID).Find(&issueDeps)
 
 	for _, issueDep := range issueDeps {
 		issueDetails, _ := getIssueByID(x, issueDep.DependencyID)

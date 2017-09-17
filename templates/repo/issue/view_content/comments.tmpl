@@ -1,7 +1,7 @@
 {{range .Issue.Comments}}
 	{{ $createdStr:= TimeSince .Created $.Lang }}
 
-	<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF, 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING, 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL -->
+	<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF, 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING, 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 15 = CANCEL_TIME_TRACKING, 16 = ADDED_DEPENDENCY, 17 = REMOVED_DEPENDENCY -->
 	{{if eq .Type 0}}
 		<div class="comment" id="{{.HashTag}}">
 			<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
@@ -58,7 +58,6 @@
 				{{end}}
 			</div>
 		</div>
-
 	{{else if eq .Type 1}}
 		<div class="event">
 			<span class="octicon octicon-primitive-dot"></span>
