@@ -43,47 +43,47 @@ func (iw *IssueDependency) BeforeUpdate() {
 }
 
 // CreateIssueDependency creates a new dependency for an issue
-func CreateIssueDependency(user *User, issue, dep *Issue) (err error, exists bool) {
+func CreateIssueDependency(user *User, issue, dep *Issue) (exists bool, err error) {
 	sess := x.NewSession()
 
 	// TODO: Move this to the appropriate place
 	err = x.Sync(new(IssueDependency))
 	if err != nil {
-		return err, exists
+		return exists, err
 	}
 
 	// Check if it aleready exists
 	exists, err = issueDepExists(x, issue.ID, dep.ID)
 	if err != nil {
-		return err, exists
+		return exists, err
 	}
 
 	// If it not exists, create it, otherwise show an error message
 	if !exists {
-		newId := new(IssueDependency)
-		newId.UserID = user.ID
-		newId.IssueID = issue.ID
-		newId.DependencyID = dep.ID
+		newID := new(IssueDependency)
+		newID.UserID = user.ID
+		newID.IssueID = issue.ID
+		newID.DependencyID = dep.ID
 
-		if _, err := x.Insert(newId); err != nil {
-			return err, exists
+		if _, err := x.Insert(newID); err != nil {
+			return exists, err
 		}
 
 		// Add comment referencing the new dependency
 		_, err = createIssueDependencyComment(sess, user, issue, dep, true)
 
 		if err != nil {
-			return err, exists
+			return exists, err
 		}
 
 		// Create a new comment for the dependent issue
 		_, err = createIssueDependencyComment(sess, user, dep, issue, true)
 
 		if err != nil {
-			return err, exists
+			return exists, err
 		}
 	}
-	return nil, exists
+	return exists, nil
 }
 
 // RemoveIssueDependency removes a dependency from an issue
