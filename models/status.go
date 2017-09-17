@@ -181,7 +181,7 @@ func GetLatestCommitStatuses(repoIDs []int64, shas []string) ([][]*CommitStatus,
 	err := x.Table(&CommitStatus{}).
 		Where(cond).
 		Select("max( id ) as id, repo_id").
-		GroupBy("context").OrderBy("max( id ) desc").Find(&results)
+		GroupBy("repo_id, sha, context").OrderBy("max( id ) desc").Find(&results)
 	if err != nil {
 		return nil, err
 	}
