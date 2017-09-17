@@ -186,7 +186,9 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		}
 	}
 
-	var issuesStates = make([]*models.CommitStatus, 0, len(issues))
+	var repoIDs = make([]int64, 0, len(issues))
+	var shas = make([]string, 0, len(issues))
+	var pullIDs = make([]int64, 0, len(issues))
 	// Get posters.
 	for i, issue := range issues {
 		// Check read status
@@ -198,15 +200,28 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		}
 
 		if issue.IsPull {
-			issue.LoadAttributes()
-			statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, issue.PullRequest.MergeBase, 0)
-			if err != nil {
-				log.Error(3, "GetLatestCommitStatus: %v", err)
+			if err := issue.LoadAttributes(); err != nil {
+				ctx.ServerError("LoadAttributes", err)
+				return
 			}
 
-			issuesStates = append(issuesStates, models.CalcCommitStatus(statuses))
+			repoIDs = append(repoIDs, ctx.Repo.Repository.ID)
+			shas = append(shas, issue.PullRequest.MergeBase)
+			pullIDs = append(pullIDs, issue.ID)
 		}
 	}
+
+	commitStatuses, err := models.GetLatestCommitStatuses(repoIDs, shas)
+	if err != nil {
+		ctx.ServerError("GetLatestCommitStatuses", err)
+		return
+	}
+
+	var issuesStates = make(map[int64]*models.CommitStatus, len(issues))
+	for i, statuses := range commitStatuses {
+		issuesStates[pullIDs[i]] = models.CalcCommitStatus(statuses)
+	}
+
 	ctx.Data["Issues"] = issues
 	ctx.Data["IssuesStates"] = issuesStates
 

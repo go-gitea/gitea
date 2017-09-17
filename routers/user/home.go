@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -306,20 +305,36 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
-	var issuesStates = make([]*models.CommitStatus, 0, len(issues))
+	var repoIDs = make([]int64, 0, len(issues))
+	var shas = make([]string, 0, len(issues))
+	var pullIDs = make([]int64, 0, len(issues))
 	for _, issue := range issues {
 		issue.Repo = showReposMap[issue.RepoID]
 
 		if issue.IsPull {
-			issue.LoadAttributes()
-			statuses, err := models.GetLatestCommitStatus(issue.Repo, issue.PullRequest.MergeBase, 0)
-			if err != nil {
-				log.Error(3, "GetLatestCommitStatus: %v", err)
+			if err := issue.LoadAttributes(); err != nil {
+				ctx.ServerError("LoadAttributes", fmt.Errorf("%v", err))
+				return
 			}
 
-			issuesStates = append(issuesStates, models.CalcCommitStatus(statuses))
+			repoIDs = append(repoIDs, issue.Repo.ID)
+			shas = append(shas, issue.PullRequest.MergeBase)
+			pullIDs = append(pullIDs, issue.ID)
 		}
 	}
+
+	commitStatuses, err := models.GetLatestCommitStatuses(repoIDs, shas)
+	if err != nil {
+		ctx.ServerError("GetLatestCommitStatuses", err)
+		return
+	}
+
+	var issuesStates = make(map[int64]*models.CommitStatus, len(issues))
+	for i, statuses := range commitStatuses {
+		issuesStates[pullIDs[i]] = models.CalcCommitStatus(statuses)
+	}
+
+	ctx.Data["IssuesStates"] = issuesStates
 
 	issueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
 		UserID:      ctxUser.ID,

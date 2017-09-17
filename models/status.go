@@ -6,6 +6,7 @@ package models
 
 import (
 	"container/list"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -15,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 )
 
@@ -155,6 +157,59 @@ func GetLatestCommitStatus(repo *Repository, sha string, page int) ([]*CommitSta
 		return statuses, nil
 	}
 	return statuses, x.In("id", ids).Find(&statuses)
+}
+
+// GetLatestCommitStatuses returns all statuses with given repoIDs and shas
+func GetLatestCommitStatuses(repoIDs []int64, shas []string) ([][]*CommitStatus, error) {
+	if len(repoIDs) != len(shas) {
+		return nil, errors.New("parameter repoIDs should have the same size of shas")
+	}
+
+	var results = make([]struct {
+		ID     int64
+		RepoID int64
+	}, 0, 10*len(repoIDs))
+
+	var cond = builder.NewCond()
+	for i := 0; i < len(repoIDs); i++ {
+		cond = cond.Or(builder.Eq{
+			"repo_id": repoIDs[i],
+			"sha":     shas[i],
+		})
+	}
+
+	err := x.Table(&CommitStatus{}).
+		Where(cond).
+		Select("max( id ) as id, repo_id").
+		GroupBy("context").OrderBy("max( id ) desc").Find(&results)
+	if err != nil {
+		return nil, err
+	}
+
+	var returns = make([][]*CommitStatus, len(repoIDs))
+	if len(results) == 0 {
+		return returns, nil
+	}
+
+	var ids = make([]int64, 0, len(results))
+	var repoIDsMap = make(map[int64][]int64, len(repoIDs))
+	for _, res := range results {
+		ids = append(ids, res.ID)
+		repoIDsMap[res.RepoID] = append(repoIDsMap[res.RepoID], res.ID)
+	}
+
+	statuses := make(map[int64]*CommitStatus, len(ids))
+	err = x.In("id", ids).Find(&statuses)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < len(repoIDs); i++ {
+		for _, id := range repoIDsMap[repoIDs[i]] {
+			returns[i] = append(returns[i], statuses[id])
+		}
+	}
+	return returns, nil
 }
 
 // GetCommitStatus populates a given status for a given commit.
