@@ -39,6 +39,7 @@ const (
 	tplSettingsTwofaEnroll  base.TplName = "user/settings/twofa_enroll"
 	tplSettingsAccountLink  base.TplName = "user/settings/account_link"
 	tplSettingsOrganization base.TplName = "user/settings/organization"
+	tplSettingsRepositories base.TplName = "user/settings/repos"
 	tplSettingsDelete       base.TplName = "user/settings/delete"
 	tplSecurity             base.TplName = "user/security"
 )
@@ -784,4 +785,38 @@ func SettingsOrganization(ctx *context.Context) {
 	}
 	ctx.Data["Orgs"] = orgs
 	ctx.HTML(200, tplSettingsOrganization)
+}
+
+// SettingsRepos display a list of all repositories of the user
+func SettingsRepos(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsRepos"] = true
+	ctxUser := ctx.User
+
+	var err error
+	if err = ctxUser.GetRepositories(1, setting.UI.User.RepoPagingNum); err != nil {
+		ctx.Handle(500, "GetRepositories", err)
+		return
+	}
+	repos := ctxUser.Repos
+
+	for i := range repos {
+		if repos[i].IsFork {
+			err := repos[i].GetBaseRepo()
+			if err != nil {
+				ctx.Handle(500, "GetBaseRepo", err)
+				return
+			}
+			err = repos[i].BaseRepo.GetOwner()
+			if err != nil {
+				ctx.Handle(500, "GetOwner", err)
+				return
+			}
+		}
+	}
+
+	ctx.Data["Owner"] = ctxUser
+	ctx.Data["Repos"] = repos
+
+	ctx.HTML(200, tplSettingsRepositories)
 }

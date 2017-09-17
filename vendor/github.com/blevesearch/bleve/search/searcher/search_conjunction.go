@@ -31,10 +31,10 @@ type ConjunctionSearcher struct {
 	maxIDIdx    int
 	scorer      *scorer.ConjunctionQueryScorer
 	initialized bool
-	explain     bool
+	options     search.SearcherOptions
 }
 
-func NewConjunctionSearcher(indexReader index.IndexReader, qsearchers []search.Searcher, explain bool) (*ConjunctionSearcher, error) {
+func NewConjunctionSearcher(indexReader index.IndexReader, qsearchers []search.Searcher, options search.SearcherOptions) (*ConjunctionSearcher, error) {
 	// build the downstream searchers
 	searchers := make(OrderedSearcherList, len(qsearchers))
 	for i, searcher := range qsearchers {
@@ -45,10 +45,10 @@ func NewConjunctionSearcher(indexReader index.IndexReader, qsearchers []search.S
 	// build our searcher
 	rv := ConjunctionSearcher{
 		indexReader: indexReader,
-		explain:     explain,
+		options:     options,
 		searchers:   searchers,
 		currs:       make([]*search.DocumentMatch, len(searchers)),
-		scorer:      scorer.NewConjunctionQueryScorer(explain),
+		scorer:      scorer.NewConjunctionQueryScorer(options),
 	}
 	rv.computeQueryNorm()
 	return &rv, nil

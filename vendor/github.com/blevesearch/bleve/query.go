@@ -139,6 +139,23 @@ func NewNumericRangeInclusiveQuery(min, max *float64, minInclusive, maxInclusive
 	return query.NewNumericRangeInclusiveQuery(min, max, minInclusive, maxInclusive)
 }
 
+// NewTermRangeQuery creates a new Query for ranges
+// of text terms.
+// Either, but not both endpoints can be "".
+// The minimum value is inclusive.
+// The maximum value is exclusive.
+func NewTermRangeQuery(min, max string) *query.TermRangeQuery {
+	return query.NewTermRangeQuery(min, max)
+}
+
+// NewTermRangeInclusiveQuery creates a new Query for ranges
+// of text terms.
+// Either, but not both endpoints can be "".
+// Control endpoint inclusion with inclusiveMin, inclusiveMax.
+func NewTermRangeInclusiveQuery(min, max string, minInclusive, maxInclusive *bool) *query.TermRangeQuery {
+	return query.NewTermRangeInclusiveQuery(min, max, minInclusive, maxInclusive)
+}
+
 // NewPhraseQuery creates a new Query for finding
 // exact term phrases in the index.
 // The provided terms must exist in the correct
@@ -183,4 +200,19 @@ func NewTermQuery(term string) *query.TermQuery {
 // and '?' will match any single character.
 func NewWildcardQuery(wildcard string) *query.WildcardQuery {
 	return query.NewWildcardQuery(wildcard)
+}
+
+// NewGeoBoundingBoxQuery creates a new Query for performing geo bounding
+// box searches. The arguments describe the position of the box and documents
+// which have an indexed geo point inside the box will be returned.
+func NewGeoBoundingBoxQuery(topLeftLon, topLeftLat, bottomRightLon, bottomRightLat float64) *query.GeoBoundingBoxQuery {
+	return query.NewGeoBoundingBoxQuery(topLeftLon, topLeftLat, bottomRightLon, bottomRightLat)
+}
+
+// NewGeoDistanceQuery creates a new Query for performing geo bounding
+// box searches. The arguments describe a position and a distance. Documents
+// which have an indexed geo point which is less than or equal to the provided
+// distance from the given position will be returned.
+func NewGeoDistanceQuery(lon, lat float64, distance string) *query.GeoDistanceQuery {
+	return query.NewGeoDistanceQuery(lon, lat, distance)
 }

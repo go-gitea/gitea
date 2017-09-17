@@ -5,6 +5,7 @@
 package models
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -193,8 +194,12 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	pr.AddToTaskQueue()
 
-	// briefly sleep so that background threads have time to run
-	time.Sleep(time.Millisecond)
+	select {
+	case id := <-pullRequestQueue.Queue():
+		assert.EqualValues(t, strconv.FormatInt(pr.ID, 10), id)
+	case <-time.After(time.Second):
+		assert.Fail(t, "Timeout: nothing was added to pullRequestQueue")
+	}
 
 	assert.True(t, pullRequestQueue.Exist(pr.ID))
 	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)

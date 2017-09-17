@@ -22,6 +22,15 @@ import (
 	"golang.org/x/net/context"
 )
 
+type collectorStore interface {
+	// Add the document, and if the new store size exceeds the provided size
+	// the last element is removed and returned.  If the size has not been
+	// exceeded, nil is returned.
+	AddNotExceedingSize(doc *search.DocumentMatch, size int) *search.DocumentMatch
+
+	Final(skip int, fixup collectorFixup) (search.DocumentMatchCollection, error)
+}
+
 // PreAllocSizeSkipCap will cap preallocation to this amount when
 // size+skip exceeds this value
 var PreAllocSizeSkipCap = 1000
@@ -41,7 +50,7 @@ type TopNCollector struct {
 	results       search.DocumentMatchCollection
 	facetsBuilder *search.FacetsBuilder
 
-	store *collectStoreSlice
+	store collectorStore
 
 	needDocIds    bool
 	neededFields  []string
@@ -68,9 +77,15 @@ func NewTopNCollector(size int, skip int, sort search.SortOrder) *TopNCollector 
 		backingSize = PreAllocSizeSkipCap + 1
 	}
 
-	hc.store = newStoreSlice(backingSize, func(i, j *search.DocumentMatch) int {
-		return hc.sort.Compare(hc.cachedScoring, hc.cachedDesc, i, j)
-	})
+	if size+skip > 10 {
+		hc.store = newStoreHeap(backingSize, func(i, j *search.DocumentMatch) int {
+			return hc.sort.Compare(hc.cachedScoring, hc.cachedDesc, i, j)
+		})
+	} else {
+		hc.store = newStoreSlice(backingSize, func(i, j *search.DocumentMatch) int {
+			return hc.sort.Compare(hc.cachedScoring, hc.cachedDesc, i, j)
+		})
+	}
 
 	// these lookups traverse an interface, so do once up-front
 	if sort.RequiresDocID() {
@@ -114,12 +129,6 @@ func (hc *TopNCollector) Collect(ctx context.Context, searcher search.Searcher, 
 			default:
 			}
 		}
-		if hc.facetsBuilder != nil {
-			err = hc.facetsBuilder.Update(next)
-			if err != nil {
-				break
-			}
-		}
 
 		err = hc.collectSingle(searchContext, reader, next)
 		if err != nil {
@@ -144,6 +153,16 @@ func (hc *TopNCollector) Collect(ctx context.Context, searcher search.Searcher, 
 var sortByScoreOpt = []string{"_score"}
 
 func (hc *TopNCollector) collectSingle(ctx *search.SearchContext, reader index.IndexReader, d *search.DocumentMatch) error {
+	var err error
+
+	// visit field terms for features that require it (sort, facets)
+	if len(hc.neededFields) > 0 {
+		err = hc.visitFieldTerms(reader, d)
+		if err != nil {
+			return err
+		}
+	}
+
 	// increment total hits
 	hc.total++
 	d.HitNumber = hc.total
@@ -153,29 +172,12 @@ func (hc *TopNCollector) collectSingle(ctx *search.SearchContext, reader index.I
 		hc.maxScore = d.Score
 	}
 
-	var err error
 	// see if we need to load ID (at this early stage, for example to sort on it)
 	if hc.needDocIds {
 		d.ID, err = reader.ExternalID(d.IndexInternalID)
 		if err != nil {
 			return err
 		}
-	}
-
-	// see if we need to load the stored fields
-	if len(hc.neededFields) > 0 {
-		// find out which fields haven't been loaded yet
-		fieldsToLoad := d.CachedFieldTerms.FieldsNotYetCached(hc.neededFields)
-		// look them up
-		fieldTerms, err := reader.DocumentFieldTerms(d.IndexInternalID, fieldsToLoad)
-		if err != nil {
-			return err
-		}
-		// cache these as well
-		if d.CachedFieldTerms == nil {
-			d.CachedFieldTerms = make(map[string][]string)
-		}
-		d.CachedFieldTerms.Merge(fieldTerms)
 	}
 
 	// compute this hits sort value
@@ -197,9 +199,8 @@ func (hc *TopNCollector) collectSingle(ctx *search.SearchContext, reader index.I
 		}
 	}
 
-	hc.store.Add(d)
-	if hc.store.Len() > hc.size+hc.skip {
-		removed := hc.store.RemoveLast()
+	removed := hc.store.AddNotExceedingSize(d, hc.size+hc.skip)
+	if removed != nil {
 		if hc.lowestMatchOutsideResults == nil {
 			hc.lowestMatchOutsideResults = removed
 		} else {
@@ -215,9 +216,31 @@ func (hc *TopNCollector) collectSingle(ctx *search.SearchContext, reader index.I
 	return nil
 }
 
+// visitFieldTerms is responsible for visiting the field terms of the
+// search hit, and passing visited terms to the sort and facet builder
+func (hc *TopNCollector) visitFieldTerms(reader index.IndexReader, d *search.DocumentMatch) error {
+	if hc.facetsBuilder != nil {
+		hc.facetsBuilder.StartDoc()
+	}
+
+	err := reader.DocumentVisitFieldTerms(d.IndexInternalID, hc.neededFields, func(field string, term []byte) {
+		if hc.facetsBuilder != nil {
+			hc.facetsBuilder.UpdateVisitor(field, term)
+		}
+		hc.sort.UpdateVisitor(field, term)
+	})
+
+	if hc.facetsBuilder != nil {
+		hc.facetsBuilder.EndDoc()
+	}
+
+	return err
+}
+
 // SetFacetsBuilder registers a facet builder for this collector
 func (hc *TopNCollector) SetFacetsBuilder(facetsBuilder *search.FacetsBuilder) {
 	hc.facetsBuilder = facetsBuilder
+	hc.neededFields = append(hc.neededFields, hc.facetsBuilder.RequiredFields()...)
 }
 
 // finalizeResults starts with the heap containing the final top size+skip
