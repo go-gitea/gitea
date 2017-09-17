@@ -136,6 +136,7 @@ func pushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string)
 			RepoID:       repo.ID,
 			Title:        "",
 			TagName:      tagName,
+			LowerTagName: strings.ToLower(tagName),
 			Target:       "",
 			Sha1:         commit.ID.String(),
 			NumCommits:   commitsCount,
@@ -156,6 +157,7 @@ func pushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string)
 		rel.Sha1 = commit.ID.String()
 		rel.CreatedUnix = tagCreatedUnix
 		rel.NumCommits = commitsCount
+		rel.IsDraft = false
 		if rel.IsTag && author != nil {
 			rel.PublisherID = author.ID
 		}

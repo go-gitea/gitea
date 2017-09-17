@@ -140,6 +140,7 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 				}
 				return err
 			}
+			rel.LowerTagName = strings.ToLower(rel.TagName)
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
 		if err != nil {
@@ -427,9 +428,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 	existingRelTags := make(map[string]struct{})
 	opts := FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
-	page := 0
-	for {
-		page++
+	for page := 1; ; page++ {
 		rels, err := GetReleasesByRepoID(repo.ID, opts, page, 100)
 		if err != nil {
 			return fmt.Errorf("GetReleasesByRepoID: %v", err)
