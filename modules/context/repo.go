@@ -177,54 +177,72 @@ func RepoAssignment() macaron.Handler {
 	return func(ctx *Context) {
 		var (
 			owner *models.User
+			repo  *models.Repository
 			err   error
 		)
+		if repoid := ctx.ParamsInt64(":repoid"); repoid == 0 {
+			userName := ctx.Params(":username")
+			repoName := ctx.Params(":reponame")
 
-		userName := ctx.Params(":username")
-		repoName := ctx.Params(":reponame")
-
-		// Check if the user is the same as the repository owner
-		if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(userName) {
-			owner = ctx.User
-		} else {
-			owner, err = models.GetUserByName(userName)
-			if err != nil {
-				if models.IsErrUserNotExist(err) {
-					if ctx.Query("go-get") == "1" {
-						earlyResponseForGoGetMeta(ctx)
-						return
+			// Check if the user is the same as the repository owner
+			if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(userName) {
+				owner = ctx.User
+			} else {
+				owner, err = models.GetUserByName(userName)
+				if err != nil {
+					if models.IsErrUserNotExist(err) {
+						if ctx.Query("go-get") == "1" {
+							earlyResponseForGoGetMeta(ctx)
+							return
+						}
+						ctx.Handle(404, "GetUserByName", nil)
+					} else {
+						ctx.Handle(500, "GetUserByName", err)
 					}
-					ctx.Handle(404, "GetUserByName", nil)
+					return
+				}
+			}
+			// Get repository.
+			repo, err = models.GetRepositoryByName(owner.ID, repoName)
+			if err != nil {
+				if models.IsErrRepoNotExist(err) {
+					redirectRepoID, err := models.LookupRepoRedirect(owner.ID, repoName)
+					if err == nil {
+						RedirectToRepo(ctx, redirectRepoID)
+					} else if models.IsErrRepoRedirectNotExist(err) {
+						if ctx.Query("go-get") == "1" {
+							earlyResponseForGoGetMeta(ctx)
+							return
+						}
+						ctx.Handle(404, "GetRepositoryByName", nil)
+					} else {
+						ctx.Handle(500, "LookupRepoRedirect", err)
+					}
 				} else {
-					ctx.Handle(500, "GetUserByName", err)
+					ctx.Handle(500, "GetRepositoryByName", err)
 				}
 				return
 			}
+		} else {
+			repo, err = models.GetRepositoryByID(repoid)
+			if err != nil {
+				if models.IsErrRepoNotExist(err) {
+					ctx.Handle(404, "GetRepositoryByID", nil)
+				} else {
+					ctx.Handle(500, "GetRepositoryByID", err)
+				}
+				return
+			}
+			if err = repo.GetOwner(); err != nil {
+				ctx.Handle(500, "GetOwner", err)
+				return
+			}
+			owner = repo.Owner
 		}
+
 		ctx.Repo.Owner = owner
 		ctx.Data["Username"] = ctx.Repo.Owner.Name
 
-		// Get repository.
-		repo, err := models.GetRepositoryByName(owner.ID, repoName)
-		if err != nil {
-			if models.IsErrRepoNotExist(err) {
-				redirectRepoID, err := models.LookupRepoRedirect(owner.ID, repoName)
-				if err == nil {
-					RedirectToRepo(ctx, redirectRepoID)
-				} else if models.IsErrRepoRedirectNotExist(err) {
-					if ctx.Query("go-get") == "1" {
-						earlyResponseForGoGetMeta(ctx)
-						return
-					}
-					ctx.Handle(404, "GetRepositoryByName", nil)
-				} else {
-					ctx.Handle(500, "LookupRepoRedirect", err)
-				}
-			} else {
-				ctx.Handle(500, "GetRepositoryByName", err)
-			}
-			return
-		}
 		repo.Owner = owner
 
 		// Admin has super access.
@@ -269,9 +287,9 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["RepoName"] = ctx.Repo.Repository.Name
 		ctx.Data["IsBareRepo"] = ctx.Repo.Repository.IsBare
 
-		gitRepo, err := git.OpenRepository(models.RepoPath(userName, repoName))
+		gitRepo, err := git.OpenRepository(repo.RepoPath())
 		if err != nil {
-			ctx.Handle(500, "RepoAssignment Invalid repo "+models.RepoPath(userName, repoName), err)
+			ctx.Handle(500, "RepoAssignment Invalid repo", err)
 			return
 		}
 		ctx.Repo.GitRepo = gitRepo
