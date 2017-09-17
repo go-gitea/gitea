@@ -43,19 +43,19 @@ func (iw *IssueDependency) BeforeUpdate() {
 }
 
 // CreateIssueDependency creates a new dependency for an issue
-func CreateIssueDependency(user *User, issue, dep *Issue) (err error, exists bool, depExists bool) {
+func CreateIssueDependency(user *User, issue, dep *Issue) (err error, exists bool) {
 	sess := x.NewSession()
 
 	// TODO: Move this to the appropriate place
 	err = x.Sync(new(IssueDependency))
 	if err != nil {
-		return err, exists, false
+		return err, exists
 	}
 
 	// Check if it aleready exists
 	exists, err = issueDepExists(x, issue.ID, dep.ID)
 	if err != nil {
-		return err, exists, false
+		return err, exists
 	}
 
 	// If it not exists, create it, otherwise show an error message
@@ -66,24 +66,24 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (err error, exists boo
 		newId.DependencyID = dep.ID
 
 		if _, err := x.Insert(newId); err != nil {
-			return err, exists, false
+			return err, exists
 		}
 
 		// Add comment referencing the new dependency
 		_, err = createIssueDependencyComment(sess, user, issue, dep, true)
 
 		if err != nil {
-			return err, exists, false
+			return err, exists
 		}
 
 		// Create a new comment for the dependent issue
 		_, err = createIssueDependencyComment(sess, user, dep, issue, true)
 
 		if err != nil {
-			return err, exists, false
+			return err, exists
 		}
 	}
-	return nil, exists, false
+	return nil, exists
 }
 
 // Removes a dependency from an issue
@@ -154,10 +154,10 @@ func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err erro
 }
 
 // check if issue can be closed
-func IssueNoDependenciesLeft(issueID int64) bool {
+func IssueNoDependenciesLeft(issue *Issue) bool {
 
 	var issueDeps []IssueDependency
-	err := x.Where("issue_id = ?", issueID).Find(&issueDeps)
+	err := x.Where("issue_id = ?", issue.ID).Find(&issueDeps)
 
 	for _, issueDep := range issueDeps {
 		issueDetails, _ := getIssueByID(x, issueDep.DependencyID)
