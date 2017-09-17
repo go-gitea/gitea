@@ -51,7 +51,7 @@ func AddDependency(c *context.Context) {
 		c.Flash.Error(c.Tr("issues.dependency.add_error_same_issue"))
 	} else {
 
-		err, exists := models.CreateIssueDependency(c.User, issue, dep)
+		exists, err := models.CreateIssueDependency(c.User, issue, dep)
 		if err != nil {
 			c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
 			return
