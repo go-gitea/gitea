@@ -231,7 +231,7 @@
   is_admin: false
   avatar: avatar15
   avatar_email: user15@example.com
-  num_repos: 4
+  num_repos: 8
   is_active: true
 
 -
@@ -261,7 +261,7 @@
   is_admin: false
   avatar: avatar17
   avatar_email: user17@example.com
-  num_repos: 2
+  num_repos: 4
   is_active: true
   num_members: 1
   num_teams: 1

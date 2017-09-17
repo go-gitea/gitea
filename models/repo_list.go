@@ -164,6 +164,10 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, _ in
 		}
 	}
 
+	if opts.RepoType == RepoTypeCollaborative && (!opts.Collaborate || opts.OwnerID <= 0) {
+		return repos, 0, nil
+	}
+
 	// Check and set page to correct number
 	if opts.Page <= 0 {
 		opts.Page = 1

@@ -73,9 +73,9 @@ func TestAPISearchRepo(t *testing.T) {
 		expectedResults
 	}{
 		{name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50", expectedResults: expectedResults{
-			nil:   {count: 12, privacy: privacyTypePublic},
-			user:  {count: 12, privacy: privacyTypePublic},
-			user2: {count: 12, privacy: privacyTypePublic}},
+			nil:   {count: 15, privacy: privacyTypePublic},
+			user:  {count: 15, privacy: privacyTypePublic},
+			user2: {count: 15, privacy: privacyTypePublic}},
 		},
 		{name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10", expectedResults: expectedResults{
 			nil:   {count: 10, privacy: privacyTypePublic},
@@ -88,14 +88,14 @@ func TestAPISearchRepo(t *testing.T) {
 			user2: {count: 10, privacy: privacyTypePublic}},
 		},
 		{name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s", "big_test_"), expectedResults: expectedResults{
-			nil:   {count: 4, repoName: "big_test_", privacy: privacyTypePublic},
-			user:  {count: 4, repoName: "big_test_", privacy: privacyTypePublic},
-			user2: {count: 4, repoName: "big_test_", privacy: privacyTypePublic}},
+			nil:   {count: 7, repoName: "big_test_", privacy: privacyTypePublic},
+			user:  {count: 7, repoName: "big_test_", privacy: privacyTypePublic},
+			user2: {count: 7, repoName: "big_test_", privacy: privacyTypePublic}},
 		},
-		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
-			nil:   {count: 4, privacy: privacyTypePublic},
-			user:  {count: 8},
-			user2: {count: 4, privacy: privacyTypePublic}},
+		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&limit=50", user.ID), expectedResults: expectedResults{
+			nil:   {count: 7, privacy: privacyTypePublic},
+			user:  {count: 14},
+			user2: {count: 7, privacy: privacyTypePublic}},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
 			nil:   {count: 1, privacy: privacyTypePublic},
@@ -103,9 +103,9 @@ func TestAPISearchRepo(t *testing.T) {
 			user2: {count: 2}},
 		},
 		{name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
-			nil:   {count: 1, repoOwnerID: orgUser.ID, privacy: privacyTypePublic},
-			user:  {count: 2, repoOwnerID: orgUser.ID},
-			user2: {count: 1, repoOwnerID: orgUser.ID, privacy: privacyTypePublic}},
+			nil:   {count: 2, repoOwnerID: orgUser.ID, privacy: privacyTypePublic},
+			user:  {count: 4, repoOwnerID: orgUser.ID},
+			user2: {count: 2, repoOwnerID: orgUser.ID, privacy: privacyTypePublic}},
 		},
 	}
 
