@@ -275,7 +275,7 @@ func (c *Comment) LoadAssignees() error {
 	return nil
 }
 
-// Load Dependent Issue Details
+// LoadDepIssueDetails loads Dependent Issue Details
 func (c *Comment) LoadDepIssueDetails() error {
 	var err error
 	if c.DependentIssueID > 0 {
@@ -316,9 +316,9 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		LabelID = opts.Label.ID
 	}
 
-	var depId int64 = 0
+	var depID int64
 	if opts.DependentIssue != nil {
-		depId = opts.DependentIssue.ID
+		depID = opts.DependentIssue.ID
 	}
 
 	comment := &Comment{
@@ -338,7 +338,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		OldTitle:         opts.OldTitle,
 		NewTitle:         opts.NewTitle,
 		DependentIssue:   opts.DependentIssue,
-		DependentIssueID: depId,
+		DependentIssueID: depID,
 	}
 
 	//fmt.Println(comment)

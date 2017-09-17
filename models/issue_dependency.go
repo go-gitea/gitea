@@ -86,7 +86,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (err error, exists boo
 	return nil, exists
 }
 
-// Removes a dependency from an issue
+// RemoveIssueDependency removes a dependency from an issue
 func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType int64) (err error) {
 	sess := x.NewSession()
 
@@ -153,7 +153,7 @@ func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err erro
 	return
 }
 
-// check if issue can be closed
+// IssueNoDependenciesLeft checks if issue can be closed
 func IssueNoDependenciesLeft(issue *Issue) bool {
 
 	var issueDeps []IssueDependency

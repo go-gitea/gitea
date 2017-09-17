@@ -693,7 +693,7 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 	return users, nil
 }
 
-// Find all Dependencies an issue is blocked by
+// BlockedByDependencies finds all Dependencies an issue is blocked by
 func (repo *Repository) BlockedByDependencies(issueID int64) (_ []*Issue, err error) {
 
 	issueDeps, err := repo.getBlockedByDependencies(x, issueID)
@@ -711,6 +711,7 @@ func (repo *Repository) BlockedByDependencies(issueID int64) (_ []*Issue, err er
 	return issueDepsFull, nil
 }
 
+// BlockingDependencies returns all blocking dependencies
 func (repo *Repository) BlockingDependencies(issueID int64) (_ []*Issue, err error) {
 
 	issueDeps, err := repo.getBlockingDependencies(x, issueID)
