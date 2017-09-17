@@ -9,7 +9,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/markup"
-	"github.com/gogits/gogs/pkg/setting"
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/issue9/assert"
 )
 
