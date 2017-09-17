@@ -181,7 +181,6 @@
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.cancel_tracking_history"  $createdStr | Safe}}</span>
 		</div>
-	{{end}}
     {{else if eq .Type 16}}
         <div class="event">
         	<span class="octicon octicon-primitive-dot"></span>
@@ -192,7 +191,6 @@
         <span class="text grey">
 			{{$.i18n.Tr "repo.issues.dependency.added_dependency" .Poster.HomeLink .Poster.Name $createdStr | Safe}}
 		</span>
-     {{end}}
      {{else if eq .Type 17}}
      <div class="event">
 	     <span class="octicon octicon-primitive-dot"></span>

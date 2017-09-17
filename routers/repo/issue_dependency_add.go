@@ -40,7 +40,9 @@ func AddDependency(c *context.Context) {
 	// Dependency
 	dep, err := models.GetIssueByID(depID)
 	if err != nil {
-		c.Handle(http.StatusInternalServerError, "GetIssueByID", err)
+		c.Flash.Error(c.Tr("add_error_dep_not_exist"))
+		url := fmt.Sprintf("%s/issues/%d", c.Repo.RepoLink, issueIndex)
+		c.Redirect(url, http.StatusSeeOther)
 		return
 	}
 
@@ -49,14 +51,10 @@ func AddDependency(c *context.Context) {
 		c.Flash.Error(c.Tr("issues.dependency.add_error_same_issue"))
 	} else {
 
-		exists, depExists, err := models.CreateIssueDependency(c.User, issue, dep)
+		err, exists := models.CreateIssueDependency(c.User, issue, dep)
 		if err != nil {
 			c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
 			return
-		}
-
-		if !depExists {
-			c.Flash.Error(c.Tr("add_error_dep_not_exist"))
 		}
 
 		if exists {
