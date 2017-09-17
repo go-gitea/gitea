@@ -3,12 +3,15 @@ RUN_MODE = prod
 
 [database]
 DB_TYPE  = mysql
-HOST     = mysql:3306
-NAME     = testgitea
-USER     = root
-PASSWD   =
+HOST     = {{TEST_MYSQL_HOST}}
+NAME     = {{TEST_MYSQL_DBNAME}}
+USER     = {{TEST_MYSQL_USERNAME}}
+PASSWD   = {{TEST_MYSQL_PASSWORD}}
 SSL_MODE = disable
 PATH     = data/gitea.db
+
+[indexer]
+ISSUE_INDEXER_PATH = integrations/indexers-mysql/issues.bleve
 
 [repository]
 ROOT = integrations/gitea-integration-mysql/gitea-repositories

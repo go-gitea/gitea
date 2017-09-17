@@ -107,22 +107,9 @@ type Webhook struct {
 	LastStatus   HookStatus // Last delivery status
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
+	CreatedUnix int64     `xorm:"INDEX created"`
 	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX"`
-}
-
-// BeforeInsert will be invoked by XORM before inserting a record
-// representing this object
-func (w *Webhook) BeforeInsert() {
-	w.CreatedUnix = time.Now().Unix()
-	w.UpdatedUnix = w.CreatedUnix
-}
-
-// BeforeUpdate will be invoked by XORM before updating a record
-// representing this object
-func (w *Webhook) BeforeUpdate() {
-	w.UpdatedUnix = time.Now().Unix()
+	UpdatedUnix int64     `xorm:"INDEX updated"`
 }
 
 // AfterSet updates the webhook object upon setting a column

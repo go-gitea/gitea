@@ -641,40 +641,17 @@ function initRepository() {
     }
 }
 
-function initProtectedBranch() {
-    $('#protectedBranch').change(function () {
-        var $this = $(this);
-        $.post($this.data('url'), {
-                "_csrf": csrf,
-                "canPush": true,
-                "branchName": $this.val(),
-            },
-            function (data) {
-                if (data.redirect) {
-                    window.location.href = data.redirect;
-                } else {
-                    location.reload();
-                }
+    // Branches
+    if ($('.repository.settings.branches').length > 0) {
+        initFilterSearchDropdown('.protected-branches .dropdown');
+        $('.enable-protection, .enable-whitelist').change(function () {
+            if (this.checked) {
+                $($(this).data('target')).removeClass('disabled');
+            } else {
+                $($(this).data('target')).addClass('disabled');
             }
-        );
-    });
-
-    $('.rm').click(function () {
-        var $this = $(this);
-        $.post($this.data('url'), {
-                "_csrf": csrf,
-                "canPush": false,
-                "branchName": $this.data('val'),
-            },
-            function (data) {
-                if (data.redirect) {
-                    window.location.href = data.redirect;
-                } else {
-                    location.reload();
-                }
-            }
-        );
-    });
+        });
+    }
 }
 
 function initRepositoryCollaboration() {
@@ -1477,7 +1454,7 @@ $(document).ready(function () {
 
     // Emojify
     emojify.setConfig({
-        img_dir: suburl + '/plugins/emojify/images',
+        img_dir: suburl + '/img/emoji',
         ignore_emoticons: true
     });
     var hasEmoji = document.getElementsByClassName('has-emoji');
@@ -1508,7 +1485,7 @@ $(document).ready(function () {
         var $this = $(this);
         var filter = "";
         if ($this.attr("id")) {
-            filter += "#"+$this.attr("id")
+          filter += "#"+$this.attr("id")
         }
         $('.delete.modal'+filter).modal({
             closable: false,
@@ -1598,7 +1575,6 @@ $(document).ready(function () {
     initEditForm();
     initEditor();
     initOrganization();
-    initProtectedBranch();
     initWebhook();
     initAdmin();
     initCodeView();
@@ -1768,7 +1744,7 @@ function initVueComponents(){
                     case 'mirrors':
                         return repo.mirror;
                     case 'collaborative':
-                        return repo.owner.id != this.uid;
+                        return repo.owner.id != this.uid && !repo.mirror;
                     default:
                         return true;
                 }
@@ -1829,6 +1805,23 @@ function initVueApp() {
             uid: document.querySelector('meta[name=_context_uid]').content,
         },
     });
+}
+function timeAddManual() {
+    $('.mini.modal')
+        .modal({
+            duration: 200,
+            onApprove: function() {
+                $('#add_time_manual_form').submit();
+            }
+        }).modal('show')
+    ;
+}
+
+function toggleStopwatch() {
+    $("#toggle_stopwatch_form").submit();
+}
+function cancelStopwatch() {
+    $("#cancel_stopwatch_form").submit();
 }
 
 function timeAddManual() {

@@ -16,7 +16,7 @@ import (
 	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 )
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
@@ -105,9 +105,9 @@ type Comment struct {
 	RenderedContent string `xorm:"-"`
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
+	CreatedUnix int64     `xorm:"INDEX created"`
 	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX"`
+	UpdatedUnix int64     `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
 	CommitSHA string `xorm:"VARCHAR(40)"`
@@ -116,18 +116,6 @@ type Comment struct {
 
 	// For view issue page.
 	ShowTag CommentTag `xorm:"-"`
-}
-
-// BeforeInsert will be invoked by XORM before inserting a record
-// representing this object.
-func (c *Comment) BeforeInsert() {
-	c.CreatedUnix = time.Now().Unix()
-	c.UpdatedUnix = c.CreatedUnix
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (c *Comment) BeforeUpdate() {
-	c.UpdatedUnix = time.Now().Unix()
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.
@@ -302,7 +290,7 @@ func (c *Comment) LoadDepIssueDetails() error {
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
 func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
-	mentions := markdown.FindAllMentions(c.Content)
+	mentions := markup.FindAllMentions(c.Content)
 	if err = UpdateIssueMentions(e, c.IssueID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}
@@ -578,7 +566,14 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 		return nil, err
 	}
 
-	return comment, sess.Commit()
+	if err = sess.Commit(); err != nil {
+		return nil, err
+	}
+
+	if opts.Type == CommentTypeComment {
+		UpdateIssueIndexer(opts.Issue.ID)
+	}
+	return comment, nil
 }
 
 // CreateIssueComment creates a plain issue comment.
@@ -703,8 +698,12 @@ func GetCommentsByRepoIDSince(repoID, since int64) ([]*Comment, error) {
 
 // UpdateComment updates information of comment.
 func UpdateComment(c *Comment) error {
-	_, err := x.Id(c.ID).AllCols().Update(c)
-	return err
+	if _, err := x.Id(c.ID).AllCols().Update(c); err != nil {
+		return err
+	} else if c.Type == CommentTypeComment {
+		UpdateIssueIndexer(c.IssueID)
+	}
+	return nil
 }
 
 // DeleteComment deletes the comment
@@ -730,5 +729,10 @@ func DeleteComment(comment *Comment) error {
 		return err
 	}
 
-	return sess.Commit()
+	if err := sess.Commit(); err != nil {
+		return err
+	} else if comment.Type == CommentTypeComment {
+		UpdateIssueIndexer(comment.IssueID)
+	}
+	return nil
 }

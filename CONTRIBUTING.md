@@ -26,6 +26,8 @@ It assumes you have followed the
 Sensitive security-related issues should be reported to
 [security@gitea.io](mailto:security@gitea.io).
 
+For configuring IDE or code editor to develop Gitea see [IDE and code editor configuration](contrib/ide/)
+
 ## Bug reports
 
 Please search the issues on the issue tracker with a variety of keywords

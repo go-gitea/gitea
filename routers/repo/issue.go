@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/notification"
@@ -143,7 +144,7 @@ func Issues(ctx *context.Context) {
 	var issueIDs []int64
 	var err error
 	if len(keyword) > 0 {
-		issueIDs, err = models.SearchIssuesByKeyword(repo.ID, keyword)
+		issueIDs, err = indexer.SearchIssuesByKeyword(repo.ID, keyword)
 		if len(issueIDs) == 0 {
 			forceEmpty = true
 		}
@@ -700,7 +701,7 @@ func ViewIssue(ctx *context.Context) {
 				log.Error(4, "GetHeadRepo: %v", err)
 			} else if pull.HeadRepo != nil && pull.HeadBranch != pull.HeadRepo.DefaultBranch && ctx.User.IsWriterOfRepo(pull.HeadRepo) {
 				// Check if branch is not protected
-				if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch); err != nil {
+				if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch, ctx.User); err != nil {
 					log.Error(4, "IsProtectedBranch: %v", err)
 				} else if !protected {
 					canDelete = true

@@ -33,7 +33,9 @@ type RegexpQuery struct {
 
 // NewRegexpQuery creates a new Query which finds
 // documents containing terms that match the
-// specified regular expression.
+// specified regular expression.  The regexp pattern
+// SHOULD NOT include ^ or $ modifiers, the search
+// will only match entire terms even without them.
 func NewRegexpQuery(regexp string) *RegexpQuery {
 	return &RegexpQuery{
 		Regexp: regexp,
@@ -45,7 +47,7 @@ func (q *RegexpQuery) SetBoost(b float64) {
 	q.BoostVal = &boost
 }
 
-func (q *RegexpQuery) Boost() float64{
+func (q *RegexpQuery) Boost() float64 {
 	return q.BoostVal.Value()
 }
 
@@ -53,11 +55,11 @@ func (q *RegexpQuery) SetField(f string) {
 	q.FieldVal = f
 }
 
-func (q *RegexpQuery) Field() string{
+func (q *RegexpQuery) Field() string {
 	return q.FieldVal
 }
 
-func (q *RegexpQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error) {
+func (q *RegexpQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
 	field := q.FieldVal
 	if q.FieldVal == "" {
 		field = m.DefaultSearchField()
@@ -67,7 +69,7 @@ func (q *RegexpQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, expl
 		return nil, err
 	}
 
-	return searcher.NewRegexpSearcher(i, q.compiled, field, q.BoostVal.Value(), explain)
+	return searcher.NewRegexpSearcher(i, q.compiled, field, q.BoostVal.Value(), options)
 }
 
 func (q *RegexpQuery) Validate() error {
@@ -76,14 +78,14 @@ func (q *RegexpQuery) Validate() error {
 
 func (q *RegexpQuery) compile() error {
 	if q.compiled == nil {
-		// require that pattern be anchored to start and end of term
+		// require that pattern NOT be anchored to start and end of term
 		actualRegexp := q.Regexp
-		if !strings.HasPrefix(actualRegexp, "^") {
-			actualRegexp = "^" + actualRegexp
+		if strings.HasPrefix(actualRegexp, "^") {
+			actualRegexp = actualRegexp[1:] // remove leading ^
 		}
-		if !strings.HasSuffix(actualRegexp, "$") {
-			actualRegexp = actualRegexp + "$"
-		}
+		// do not attempt to remove trailing $, it's presence is not
+		// known to interfere with LiteralPrefix() the way ^ does
+		// and removing $ introduces possible ambiguities with escaped \$, \\$, etc
 		var err error
 		q.compiled, err = regexp.Compile(actualRegexp)
 		if err != nil {

@@ -86,13 +86,7 @@ type Action struct {
 	IsPrivate   bool      `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content     string    `xorm:"TEXT"`
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
-}
-
-// BeforeInsert will be invoked by XORM before inserting a record
-// representing this object.
-func (a *Action) BeforeInsert() {
-	a.CreatedUnix = time.Now().Unix()
+	CreatedUnix int64     `xorm:"INDEX created"`
 }
 
 // AfterSet updates the webhook object upon setting a column.

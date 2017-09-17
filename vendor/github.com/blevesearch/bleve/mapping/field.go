@@ -21,6 +21,7 @@ import (
 
 	"github.com/blevesearch/bleve/analysis"
 	"github.com/blevesearch/bleve/document"
+	"github.com/blevesearch/bleve/geo"
 )
 
 // control the default behavior for dynamic fields (those not explicitly mapped)
@@ -124,6 +125,16 @@ func newBooleanFieldMappingDynamic(im *IndexMappingImpl) *FieldMapping {
 	return rv
 }
 
+// NewGeoPointFieldMapping returns a default field mapping for geo points
+func NewGeoPointFieldMapping() *FieldMapping {
+	return &FieldMapping{
+		Type:         "geopoint",
+		Store:        true,
+		Index:        true,
+		IncludeInAll: true,
+	}
+}
+
 // Options returns the indexing options for this field.
 func (fm *FieldMapping) Options() document.IndexingOptions {
 	var rv document.IndexingOptions
@@ -200,6 +211,20 @@ func (fm *FieldMapping) processBoolean(propertyValueBool bool, pathString string
 	if fm.Type == "boolean" {
 		options := fm.Options()
 		field := document.NewBooleanFieldWithIndexingOptions(fieldName, indexes, propertyValueBool, options)
+		context.doc.AddField(field)
+
+		if !fm.IncludeInAll {
+			context.excludedFromAll = append(context.excludedFromAll, fieldName)
+		}
+	}
+}
+
+func (fm *FieldMapping) processGeoPoint(propertyMightBeGeoPoint interface{}, pathString string, path []string, indexes []uint64, context *walkContext) {
+	lon, lat, found := geo.ExtractGeoPoint(propertyMightBeGeoPoint)
+	if found {
+		fieldName := getFieldName(pathString, path, fm)
+		options := fm.Options()
+		field := document.NewGeoPointFieldWithIndexingOptions(fieldName, indexes, lon, lat, options)
 		context.doc.AddField(field)
 
 		if !fm.IncludeInAll {

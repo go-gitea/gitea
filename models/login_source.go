@@ -148,20 +148,9 @@ type LoginSource struct {
 	Cfg           core.Conversion `xorm:"TEXT"`
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
+	CreatedUnix int64     `xorm:"INDEX created"`
 	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX"`
-}
-
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (source *LoginSource) BeforeInsert() {
-	source.CreatedUnix = time.Now().Unix()
-	source.UpdatedUnix = source.CreatedUnix
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (source *LoginSource) BeforeUpdate() {
-	source.UpdatedUnix = time.Now().Unix()
+	UpdatedUnix int64     `xorm:"INDEX updated"`
 }
 
 // Cell2Int64 converts a xorm.Cell type to int64,

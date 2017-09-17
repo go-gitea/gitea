@@ -22,7 +22,7 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -211,20 +211,9 @@ type Repository struct {
 	Size     int64       `xorm:"NOT NULL DEFAULT 0"`
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
+	CreatedUnix int64     `xorm:"INDEX created"`
 	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX"`
-}
-
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (repo *Repository) BeforeInsert() {
-	repo.CreatedUnix = time.Now().Unix()
-	repo.UpdatedUnix = repo.CreatedUnix
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (repo *Repository) BeforeUpdate() {
-	repo.UpdatedUnix = time.Now().Unix()
+	UpdatedUnix int64     `xorm:"INDEX updated"`
 }
 
 // AfterSet is invoked from XORM after setting the value of a field of this object.
@@ -492,10 +481,10 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			"repo":   repo.Name,
 		}
 		switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
-		case markdown.IssueNameStyleAlphanumeric:
-			repo.ExternalMetas["style"] = markdown.IssueNameStyleAlphanumeric
+		case markup.IssueNameStyleAlphanumeric:
+			repo.ExternalMetas["style"] = markup.IssueNameStyleAlphanumeric
 		default:
-			repo.ExternalMetas["style"] = markdown.IssueNameStyleNumeric
+			repo.ExternalMetas["style"] = markup.IssueNameStyleNumeric
 		}
 
 	}
@@ -668,39 +657,40 @@ func (repo *Repository) CanEnableEditor() bool {
 	return !repo.IsMirror
 }
 
-// Find all Dependencies an issue is blocked by
-func (repo *Repository) BlockedByDependencies(issueID int64)  (_ []*Issue, err error) {
-
-	issueDeps, err := repo.getBlockedByDependencies(x, issueID)
-	var issueDepsFull = make([]*Issue, 0)
-
-	for _, issueDep := range issueDeps{
-		issueDetails, _ := getIssueByID(x, issueDep.DependencyID)
-		issueDepsFull = append(issueDepsFull, issueDetails)
-	}
-
-	if err != nil {
-		return
-	}
-
-	return issueDepsFull, nil
+// GetWriters returns all users that have write access to the repository.
+func (repo *Repository) GetWriters() (_ []*User, err error) {
+	return repo.getUsersWithAccessMode(x, AccessModeWrite)
 }
 
-func (repo *Repository) BlockingDependencies(issueID int64)  (_ []*Issue, err error) {
-
-	issueDeps, err := repo.getBlockingDependencies(x, issueID)
-	var issueDepsFull = make([]*Issue, 0)
-
-	for _, issueDep := range issueDeps{
-		issueDetails, _ := getIssueByID(x, issueDep.IssueID)
-		issueDepsFull = append(issueDepsFull, issueDetails)
+// getUsersWithAccessMode returns users that have at least given access mode to the repository.
+func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*User, err error) {
+	if err = repo.getOwner(e); err != nil {
+		return nil, err
 	}
 
-	if err != nil {
-		return
+	accesses := make([]*Access, 0, 10)
+	if err = e.Where("repo_id = ? AND mode >= ?", repo.ID, mode).Find(&accesses); err != nil {
+		return nil, err
 	}
 
-	return issueDepsFull, nil
+	// Leave a seat for owner itself to append later, but if owner is an organization
+	// and just waste 1 unit is cheaper than re-allocate memory once.
+	users := make([]*User, 0, len(accesses)+1)
+	if len(accesses) > 0 {
+		userIDs := make([]int64, len(accesses))
+		for i := 0; i < len(accesses); i++ {
+			userIDs[i] = accesses[i].UserID
+		}
+
+		if err = e.In("id", userIDs).Find(&users); err != nil {
+			return nil, err
+		}
+	}
+	if !repo.Owner.IsOrganization() {
+		users = append(users, repo.Owner)
+	}
+
+	return users, nil
 }
 
 // NextIssueIndex returns the next issue index
@@ -719,7 +709,7 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 	sanitize := func(s string) string {
 		return fmt.Sprintf(`<a href="%[1]s" target="_blank" rel="noopener">%[1]s</a>`, s)
 	}
-	return template.HTML(descPattern.ReplaceAllStringFunc(markdown.Sanitize(repo.Description), sanitize))
+	return template.HTML(descPattern.ReplaceAllStringFunc(markup.Sanitize(repo.Description), sanitize))
 }
 
 // LocalCopyPath returns the local repository copy path

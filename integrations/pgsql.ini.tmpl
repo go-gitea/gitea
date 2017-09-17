@@ -3,12 +3,15 @@ RUN_MODE = prod
 
 [database]
 DB_TYPE  = postgres
-HOST     = pgsql:5432
-NAME     = testgitea
-USER     = postgres
-PASSWD   = postgres
+HOST     = {{TEST_PGSQL_HOST}}
+NAME     = {{TEST_PGSQL_DBNAME}}
+USER     = {{TEST_PGSQL_USERNAME}}
+PASSWD   = {{TEST_PGSQL_PASSWORD}}
 SSL_MODE = disable
 PATH     = data/gitea.db
+
+[indexer]
+ISSUE_INDEXER_PATH = integrations/indexers-pgsql/issues.bleve
 
 [repository]
 ROOT = integrations/gitea-integration-pgsql/gitea-repositories

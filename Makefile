@@ -32,6 +32,15 @@ TAGS ?=
 
 TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
 
+TEST_MYSQL_HOST ?= mysql:3306
+TEST_MYSQL_DBNAME ?= testgitea
+TEST_MYSQL_USERNAME ?= root
+TEST_MYSQL_PASSWORD ?=
+TEST_PGSQL_HOST ?= pgsql:5432
+TEST_PGSQL_DBNAME ?= testgitea
+TEST_PGSQL_USERNAME ?= postgres
+TEST_PGSQL_PASSWORD ?= postgres
+
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE := gitea.exe
 else
@@ -54,7 +63,11 @@ all: build
 .PHONY: clean
 clean:
 	$(GO) clean -i ./...
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) integrations*.test integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) \
+		integrations*.test \
+		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/ \
+		integrations/indexers-mysql/ integrations/indexers-pgsql integrations/indexers-sqlite \
+		integrations/mysql.ini integrations/pgsql.ini
 
 required-gofmt-version:
 	@$(GO) version  | grep -q '\(1.7\|1.8\)' || { echo "We require go version 1.7 or 1.8 to format code" >&2 && exit 1; }
@@ -126,16 +139,17 @@ test: fmt-check
 	$(GO) test $(PACKAGES)
 
 .PHONY: coverage
-coverage: unit-test-coverage integration-test-coverage
+coverage:
 	@hash gocovmerge > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/wadey/gocovmerge; \
 	fi
+	echo "mode: set" > coverage.all
 	for PKG in $(PACKAGES); do\
-	  touch $$GOPATH/src/$$PKG/coverage.out;\
-	  egrep "$$PKG[^/]*\.go" integration.coverage.out > int.coverage.out;\
-	  gocovmerge $$GOPATH/src/$$PKG/coverage.out int.coverage.out > pkg.coverage.out;\
-	  mv pkg.coverage.out $$GOPATH/src/$$PKG/coverage.out;\
-	  rm int.coverage.out;\
+		egrep "$$PKG[^/]*\.go" integration.coverage.out > int.coverage.out;\
+		gocovmerge $$GOPATH/src/$$PKG/coverage.out int.coverage.out > pkg.coverage.out;\
+		grep -h -v "^mode:" pkg.coverage.out >>  coverage.all;\
+		mv pkg.coverage.out $$GOPATH/src/$$PKG/coverage.out;\
+		rm int.coverage.out;\
 	done;
 
 .PHONY: unit-test-coverage
@@ -159,30 +173,41 @@ test-vendor:
 test-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
 
+generate-ini:
+	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
+		-e 's|{{TEST_MYSQL_DBNAME}}|${TEST_MYSQL_DBNAME}|g' \
+		-e 's|{{TEST_MYSQL_USERNAME}}|${TEST_MYSQL_USERNAME}|g' \
+		-e 's|{{TEST_MYSQL_PASSWORD}}|${TEST_MYSQL_PASSWORD}|g' \
+			integrations/mysql.ini.tmpl > integrations/mysql.ini
+	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
+		-e 's|{{TEST_PGSQL_DBNAME}}|${TEST_PGSQL_DBNAME}|g' \
+		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
+		-e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
+			integrations/pgsql.ini.tmpl > integrations/pgsql.ini
+
 .PHONY: test-mysql
-test-mysql: integrations.mysql.test
+test-mysql: integrations.mysql.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test
 
 .PHONY: test-pgsql
-test-pgsql: integrations.pgsql.test
+test-pgsql: integrations.pgsql.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test
-
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.bench .
 
 .PHONY: bench-mysql
-bench-mysql: integrations.mysql.test
+bench-mysql: integrations.mysql.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test -test.bench .
 
 .PHONY: bench-pgsql
-bench-pgsql: integrations.pgsql.test
+bench-pgsql: integrations.pgsql.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.bench .
 
 
 .PHONY: integration-test-coverage
-integration-test-coverage: integrations.cover.test
+integration-test-coverage: integrations.cover.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
 integrations.mysql.test: $(SOURCES)

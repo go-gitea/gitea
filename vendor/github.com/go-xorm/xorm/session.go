@@ -303,6 +303,7 @@ func (session *Session) rows2Beans(rows *core.Rows, fields []string, fieldsCount
 		var newValue = newElemFunc(fields)
 		bean := newValue.Interface()
 		dataStruct := rValue(bean)
+
 		// handle beforeClosures
 		scanResults, err := session.row2Slice(rows, fields, fieldsCount, bean)
 		if err != nil {
@@ -312,7 +313,6 @@ func (session *Session) rows2Beans(rows *core.Rows, fields []string, fieldsCount
 		if err != nil {
 			return err
 		}
-
 		err = sliceValueSetFunc(&newValue, pk)
 		if err != nil {
 			return err
@@ -631,9 +631,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, f
 						// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
 						// property to be fetched lazily
 						structInter := reflect.New(fieldValue.Type())
-						newsession := session.engine.NewSession()
-						defer newsession.Close()
-						has, err := newsession.ID(pk).NoCascade().Get(structInter.Interface())
+						has, err := session.ID(pk).NoCascade().get(structInter.Interface())
 						if err != nil {
 							return nil, err
 						}
@@ -775,14 +773,6 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, f
 		}
 	}
 	return pk, nil
-}
-
-func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{}) {
-	for _, filter := range session.engine.dialect.Filters() {
-		*sqlStr = filter.Do(*sqlStr, session.engine.dialect, session.statement.RefTable)
-	}
-
-	session.saveLastSQL(*sqlStr, paramStr...)
 }
 
 // saveLastSQL stores executed query information

@@ -27,7 +27,7 @@ type MatchAllSearcher struct {
 	count       uint64
 }
 
-func NewMatchAllSearcher(indexReader index.IndexReader, boost float64, explain bool) (*MatchAllSearcher, error) {
+func NewMatchAllSearcher(indexReader index.IndexReader, boost float64, options search.SearcherOptions) (*MatchAllSearcher, error) {
 	reader, err := indexReader.DocIDReaderAll()
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func NewMatchAllSearcher(indexReader index.IndexReader, boost float64, explain b
 		_ = reader.Close()
 		return nil, err
 	}
-	scorer := scorer.NewConstantScorer(1.0, boost, explain)
+	scorer := scorer.NewConstantScorer(1.0, boost, options)
 	return &MatchAllSearcher{
 		indexReader: indexReader,
 		reader:      reader,

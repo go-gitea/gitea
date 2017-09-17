@@ -54,23 +54,16 @@ type Issue struct {
 	Deadline     time.Time `xorm:"-"`
 	DeadlineUnix int64     `xorm:"INDEX"`
 	Created      time.Time `xorm:"-"`
-	CreatedUnix  int64     `xorm:"INDEX"`
+	CreatedUnix  int64     `xorm:"INDEX created"`
 	Updated      time.Time `xorm:"-"`
-	UpdatedUnix  int64     `xorm:"INDEX"`
+	UpdatedUnix  int64     `xorm:"INDEX updated"`
 
 	Attachments []*Attachment `xorm:"-"`
 	Comments    []*Comment    `xorm:"-"`
 }
 
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (issue *Issue) BeforeInsert() {
-	issue.CreatedUnix = time.Now().Unix()
-	issue.UpdatedUnix = issue.CreatedUnix
-}
-
 // BeforeUpdate is invoked from XORM before updating this object.
 func (issue *Issue) BeforeUpdate() {
-	issue.UpdatedUnix = time.Now().Unix()
 	issue.DeadlineUnix = issue.Deadline.Unix()
 }
 
@@ -162,6 +155,17 @@ func (issue *Issue) loadPullRequest(e Engine) (err error) {
 	return nil
 }
 
+func (issue *Issue) loadComments(e Engine) (err error) {
+	if issue.Comments != nil {
+		return nil
+	}
+	issue.Comments, err = findComments(e, FindCommentsOptions{
+		IssueID: issue.ID,
+		Type:    CommentTypeUnknown,
+	})
+	return err
+}
+
 func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadRepo(e); err != nil {
 		return
@@ -198,14 +202,8 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 		}
 	}
 
-	if issue.Comments == nil {
-		issue.Comments, err = findComments(e, FindCommentsOptions{
-			IssueID: issue.ID,
-			Type:    CommentTypeUnknown,
-		})
-		if err != nil {
-			return fmt.Errorf("getCommentsByIssueID [%d]: %v", issue.ID, err)
-		}
+	if err = issue.loadComments(e); err != nil {
+		return
 	}
 
 	return nil
@@ -581,11 +579,10 @@ func (issue *Issue) ReadBy(userID int64) error {
 }
 
 func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
-	cols = append(cols, "updated_unix")
 	if _, err := e.Id(issue.ID).Cols(cols...).Update(issue); err != nil {
 		return err
 	}
-	UpdateIssueIndexer(issue)
+	UpdateIssueIndexer(issue.ID)
 	return nil
 }
 
@@ -915,8 +912,6 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		return err
 	}
 
-	UpdateIssueIndexer(opts.Issue)
-
 	if len(opts.Attachments) > 0 {
 		attachments, err := getAttachmentsByUUIDs(e, opts.Attachments)
 		if err != nil {
@@ -954,6 +949,8 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
+
+	UpdateIssueIndexer(issue.ID)
 
 	if err = NotifyWatchers(&Action{
 		ActUserID: issue.Poster.ID,
@@ -1212,8 +1209,11 @@ func GetParticipantsByIssueID(issueID int64) ([]*User, error) {
 func getParticipantsByIssueID(e Engine, issueID int64) ([]*User, error) {
 	userIDs := make([]int64, 0, 5)
 	if err := e.Table("comment").Cols("poster_id").
-		Where("issue_id = ?", issueID).
-		And("type = ?", CommentTypeComment).
+		Where("`comment`.issue_id = ?", issueID).
+		And("`comment`.type = ?", CommentTypeComment).
+		And("`user`.is_active = ?", true).
+		And("`user`.prohibit_login = ?", false).
+		Join("INNER", "user", "`user`.id = `comment`.poster_id").
 		Distinct("poster_id").
 		Find(&userIDs); err != nil {
 		return nil, fmt.Errorf("get poster IDs: %v", err)
@@ -1453,7 +1453,7 @@ func updateIssue(e Engine, issue *Issue) error {
 	if err != nil {
 		return err
 	}
-	UpdateIssueIndexer(issue)
+	UpdateIssueIndexer(issue.ID)
 	return nil
 }
 

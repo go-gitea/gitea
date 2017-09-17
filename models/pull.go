@@ -640,6 +640,8 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		return fmt.Errorf("Commit: %v", err)
 	}
 
+	UpdateIssueIndexer(pull.ID)
+
 	if err = NotifyWatchers(&Action{
 		ActUserID: pull.Poster.ID,
 		ActUser:   pull.Poster,
