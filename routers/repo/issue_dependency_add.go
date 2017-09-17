@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
-// Adds new dependencies
+// AddDependency adds new dependencies
 func AddDependency(c *context.Context) {
 
 	// TODO: should should an issue only have dependencies in it's own repo?
@@ -49,7 +49,7 @@ func AddDependency(c *context.Context) {
 		c.Flash.Error(c.Tr("issues.dependency.add_error_same_issue"))
 	} else {
 
-		err, exists, depExists := models.CreateIssueDependency(c.User, issue, dep)
+		exists, depExists, err := models.CreateIssueDependency(c.User, issue, dep)
 		if err != nil {
 			c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
 			return

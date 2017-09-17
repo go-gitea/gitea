@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
-// IssueWatch sets issue watching
+// RemoveDependency removes the dependency
 func RemoveDependency(c *context.Context) {
 	depID, err := strconv.ParseInt(c.Req.PostForm.Get("removeDependencyID"), 10, 64)
 	if err != nil {

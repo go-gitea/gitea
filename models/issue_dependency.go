@@ -43,50 +43,50 @@ func (iw *IssueDependency) BeforeUpdate() {
 }
 
 // CreateIssueDependency creates a new dependency for an issue
-func CreateIssueDependency(user *User, issue, dep *Issue) (err error, exists bool, depExists bool) {
+func CreateIssueDependency(user *User, issue, dep *Issue) (exists bool, depExists bool, err error) {
 	sess := x.NewSession()
 
 	// TODO: Move this to the appropriate place
 	err = x.Sync(new(IssueDependency))
 	if err != nil {
-		return err, exists, false
+		return exists, false, err
 	}
 
 	// Check if it aleready exists
 	exists, err = issueDepExists(x, issue.ID, dep.ID)
 	if err != nil {
-		return err, exists, false
+		return exists, false, err
 	}
 
 	// If it not exists, create it, otherwise show an error message
 	if !exists {
-		newId := new(IssueDependency)
-		newId.UserID = user.ID
-		newId.IssueID = issue.ID
-		newId.DependencyID = dep.ID
+		newID := new(IssueDependency)
+		newID.UserID = user.ID
+		newID.IssueID = issue.ID
+		newID.DependencyID = dep.ID
 
-		if _, err := x.Insert(newId); err != nil {
-			return err, exists, false
+		if _, err := x.Insert(newID); err != nil {
+			return exists, false, err
 		}
 
 		// Add comment referencing the new dependency
 		_, err = createIssueDependencyComment(sess, user, issue, dep, true)
 
 		if err != nil {
-			return err, exists, false
+			return exists, false, err
 		}
 
 		// Create a new comment for the dependent issue
 		_, err = createIssueDependencyComment(sess, user, dep, issue, true)
 
 		if err != nil {
-			return err, exists, false
+			return exists, false, err
 		}
 	}
-	return nil, exists, false
+	return exists, false, err
 }
 
-// Removes a dependency from an issue
+// RemoveIssueDependency removes a dependency from an issue
 func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType int64) (err error) {
 	sess := x.NewSession()
 
@@ -153,7 +153,7 @@ func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err erro
 	return
 }
 
-// check if issue can be closed
+// IssueNoDependenciesLeft checks if issue can be closed
 func IssueNoDependenciesLeft(issueID int64) bool {
 
 	var issueDeps []IssueDependency
