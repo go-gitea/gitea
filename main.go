@@ -14,6 +14,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/urfave/cli"
+
+	// register supported doc types
+	_ "code.gitea.io/gitea/modules/markup/markdown"
+	_ "code.gitea.io/gitea/modules/markup/orgmode"
 )
 
 // Version holds the current Gitea version
