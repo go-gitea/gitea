@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/issue9/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 const AppURL = "http://localhost:3000/"

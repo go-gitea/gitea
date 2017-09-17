@@ -198,8 +198,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		tp := markup.Type(blob.Name())
 		isSupportedMarkup := tp != ""
 		ctx.Data["IsMarkup"] = isSupportedMarkup
-
-		readmeExist := isSupportedMarkup || markup.IsReadmeFile(blob.Name())
+		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
 		if readmeExist && isSupportedMarkup {
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
