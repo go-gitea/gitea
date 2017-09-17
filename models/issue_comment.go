@@ -79,25 +79,25 @@ const (
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID             int64 `xorm:"pk autoincr"`
-	Type           CommentType
-	PosterID       int64 `xorm:"INDEX"`
-	Poster         *User `xorm:"-"`
-	IssueID        int64 `xorm:"INDEX"`
-	LabelID        int64
-	Label          *Label `xorm:"-"`
-	OldMilestoneID int64
-	MilestoneID    int64
-	OldMilestone   *Milestone `xorm:"-"`
-	Milestone      *Milestone `xorm:"-"`
-	OldAssigneeID  int64
-	AssigneeID     int64
-	Assignee       *User `xorm:"-"`
-	OldAssignee    *User `xorm:"-"`
-	OldTitle       string
-	NewTitle       string
+	ID               int64 `xorm:"pk autoincr"`
+	Type             CommentType
+	PosterID         int64 `xorm:"INDEX"`
+	Poster           *User `xorm:"-"`
+	IssueID          int64 `xorm:"INDEX"`
+	LabelID          int64
+	Label            *Label `xorm:"-"`
+	OldMilestoneID   int64
+	MilestoneID      int64
+	OldMilestone     *Milestone `xorm:"-"`
+	Milestone        *Milestone `xorm:"-"`
+	OldAssigneeID    int64
+	AssigneeID       int64
+	Assignee         *User `xorm:"-"`
+	OldAssignee      *User `xorm:"-"`
+	OldTitle         string
+	NewTitle         string
 	DependentIssueID int64
-	DependentIssue *Issue `xorm:"-"`
+	DependentIssue   *Issue `xorm:"-"`
 
 	CommitID        int64
 	Line            int64
@@ -322,23 +322,23 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	}
 
 	comment := &Comment{
-		Type:           opts.Type,
-		PosterID:       opts.Doer.ID,
-		Poster:         opts.Doer,
-		IssueID:        opts.Issue.ID,
-		LabelID:        LabelID,
-		OldMilestoneID: opts.OldMilestoneID,
-		MilestoneID:    opts.MilestoneID,
-		OldAssigneeID:  opts.OldAssigneeID,
-		AssigneeID:     opts.AssigneeID,
-		CommitID:       opts.CommitID,
-		CommitSHA:      opts.CommitSHA,
-		Line:           opts.LineNum,
-		Content:        opts.Content,
-		OldTitle:       opts.OldTitle,
-		NewTitle:       opts.NewTitle,
-		DependentIssue: opts.DependentIssue,
-		DependentIssueID: opts.DependentIssue.ID,
+		Type:             opts.Type,
+		PosterID:         opts.Doer.ID,
+		Poster:           opts.Doer,
+		IssueID:          opts.Issue.ID,
+		LabelID:          LabelID,
+		OldMilestoneID:   opts.OldMilestoneID,
+		MilestoneID:      opts.MilestoneID,
+		OldAssigneeID:    opts.OldAssigneeID,
+		AssigneeID:       opts.AssigneeID,
+		CommitID:         opts.CommitID,
+		CommitSHA:        opts.CommitSHA,
+		Line:             opts.LineNum,
+		Content:          opts.Content,
+		OldTitle:         opts.OldTitle,
+		NewTitle:         opts.NewTitle,
+		DependentIssue:   opts.DependentIssue,
+		DependentIssueID: depId,
 	}
 
 	//fmt.Println(comment)
@@ -528,22 +528,22 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 	}
 
 	return createComment(e, &CreateCommentOptions{
-		Type: cType,
-		Doer: doer,
-		Repo: issue.Repo,
-		Issue: issue,
+		Type:           cType,
+		Doer:           doer,
+		Repo:           issue.Repo,
+		Issue:          issue,
 		DependentIssue: dependantIssue,
-		Content: issue.Title,
+		Content:        issue.Title,
 	})
 }
 
 // CreateCommentOptions defines options for creating comment
 type CreateCommentOptions struct {
-	Type  CommentType
-	Doer  *User
-	Repo  *Repository
-	Issue *Issue
-	Label *Label
+	Type           CommentType
+	Doer           *User
+	Repo           *Repository
+	Issue          *Issue
+	Label          *Label
 	DependentIssue *Issue
 
 	OldMilestoneID int64

@@ -45,7 +45,7 @@ func AddDependency(c *context.Context) {
 	}
 
 	// Check if issue and dependency is the same
-	if dep.Index == issueIndex{
+	if dep.Index == issueIndex {
 		c.Flash.Error(c.Tr("issues.dependency.add_error_same_issue"))
 	} else {
 

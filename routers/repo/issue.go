@@ -684,8 +684,8 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Handle(500, "LoadAssignees", err)
 				return
 			}
-		} else if comment.Type == models.CommentTypeRemovedDependency || comment.Type == models.CommentTypeAddedDependency{
-			if err = comment.LoadDepIssueDetails(); err != nil{
+		} else if comment.Type == models.CommentTypeRemovedDependency || comment.Type == models.CommentTypeAddedDependency {
+			if err = comment.LoadDepIssueDetails(); err != nil {
 				ctx.Handle(http.StatusInternalServerError, "LoadDepIssueDetails", err)
 				return
 			}
@@ -920,12 +920,12 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 			!(issue.IsPull && issue.PullRequest.HasMerged) {
 
 			// Check for open dependencies
-			if form.Status == "close"{
+			if form.Status == "close" {
 
-				canbeClosed := models.IssueNoDependenciesLeft(issue)
+				canbeClosed := models.IssueNoDependenciesLeft(issue.ID)
 
 				if !canbeClosed {
-					if issue.IsPull{
+					if issue.IsPull {
 						ctx.Flash.Error("You need to close all issues blocking this pull request before you can merge it!")
 						ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
 					} else {

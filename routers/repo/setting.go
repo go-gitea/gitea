@@ -219,7 +219,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			})
 		}
 
-		if form.EnableIssueDependencies{
+		if form.EnableIssueDependencies {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   models.UnitTypeIssueDependencies,

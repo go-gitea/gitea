@@ -36,7 +36,7 @@ func RemoveDependency(c *context.Context) {
 		return
 	}
 
-	if depType != 1 && depType != 2{
+	if depType != 1 && depType != 2 {
 		c.Handle(http.StatusBadRequest, "GetDependecyType", nil)
 		return
 	}

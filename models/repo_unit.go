@@ -150,7 +150,7 @@ func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 }
 
 // IssueDependenciesConfig returns config for UnitTypeIssueDependencies
-func (r *RepoUnit) IssueDependenciesConfig() *UnitConfig{
+func (r *RepoUnit) IssueDependenciesConfig() *UnitConfig {
 	return r.Config.(*UnitConfig)
 }
 

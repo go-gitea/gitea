@@ -694,12 +694,12 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 }
 
 // Find all Dependencies an issue is blocked by
-func (repo *Repository) BlockedByDependencies(issueID int64)  (_ []*Issue, err error) {
+func (repo *Repository) BlockedByDependencies(issueID int64) (_ []*Issue, err error) {
 
 	issueDeps, err := repo.getBlockedByDependencies(x, issueID)
 	var issueDepsFull = make([]*Issue, 0)
 
-	for _, issueDep := range issueDeps{
+	for _, issueDep := range issueDeps {
 		issueDetails, _ := getIssueByID(x, issueDep.DependencyID)
 		issueDepsFull = append(issueDepsFull, issueDetails)
 	}
@@ -711,12 +711,12 @@ func (repo *Repository) BlockedByDependencies(issueID int64)  (_ []*Issue, err e
 	return issueDepsFull, nil
 }
 
-func (repo *Repository) BlockingDependencies(issueID int64)  (_ []*Issue, err error) {
+func (repo *Repository) BlockingDependencies(issueID int64) (_ []*Issue, err error) {
 
 	issueDeps, err := repo.getBlockingDependencies(x, issueID)
 	var issueDepsFull = make([]*Issue, 0)
 
-	for _, issueDep := range issueDeps{
+	for _, issueDep := range issueDeps {
 		issueDetails, _ := getIssueByID(x, issueDep.IssueID)
 		issueDepsFull = append(issueDepsFull, issueDetails)
 	}
@@ -727,6 +727,7 @@ func (repo *Repository) BlockingDependencies(issueID int64)  (_ []*Issue, err er
 
 	return issueDepsFull, nil
 }
+
 // NextIssueIndex returns the next issue index
 // FIXME: should have a mutex to prevent producing same index for two issues that are created
 // closely enough.

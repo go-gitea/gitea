@@ -13,7 +13,7 @@ type IssueDependency struct {
 	ID           int64     `xorm:"pk autoincr"`
 	UserID       int64     `xorm:"UNIQUE(watch) NOT NULL"`
 	IssueID      int64     `xorm:"UNIQUE(watch) NOT NULL"`
-	DependencyID int64    `xorm:"UNIQUE(watch) NOT NULL"`
+	DependencyID int64     `xorm:"UNIQUE(watch) NOT NULL"`
 	Created      time.Time `xorm:"-"`
 	CreatedUnix  int64     `xorm:"NOT NULL"`
 	Updated      time.Time `xorm:"-"`
