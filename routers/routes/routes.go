@@ -422,7 +422,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/fork", func() {
 			m.Combo("/:repoid").Get(repo.Fork).
 				Post(bindIgnErr(auth.CreateRepoForm{}), repo.ForkPost)
-		}, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits(), context.CheckUnit(models.UnitTypeCode))
+		}, context.RepoIDAssignment(), context.UnitTypes(), context.LoadRepoUnits(), context.CheckUnit(models.UnitTypeCode))
 	}, reqSignIn)
 
 	m.Group("/:username/:reponame", func() {
