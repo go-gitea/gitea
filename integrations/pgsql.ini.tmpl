@@ -10,6 +10,9 @@ PASSWD   = {{TEST_PGSQL_PASSWORD}}
 SSL_MODE = disable
 PATH     = data/gitea.db
 
+[indexer]
+ISSUE_INDEXER_PATH = integrations/indexers-pgsql/issues.bleve
+
 [repository]
 ROOT = integrations/gitea-integration-pgsql/gitea-repositories
 

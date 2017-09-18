@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate go tool yacc -o query_string.y.go query_string.y
+// as of Go 1.8 this requires the goyacc external tool
+// available from golang.org/x/tools/cmd/goyacc
+
+//go:generate goyacc -o query_string.y.go query_string.y
 //go:generate sed -i.tmp -e 1d query_string.y.go
 //go:generate rm query_string.y.go.tmp
 
@@ -31,6 +34,9 @@ var debugParser bool
 var debugLexer bool
 
 func parseQuerySyntax(query string) (rq Query, err error) {
+	if query == "" {
+		return NewMatchNoneQuery(), nil
+	}
 	lex := newLexerWrapper(newQueryStringLex(strings.NewReader(query)))
 	doParse(lex)
 
@@ -66,7 +72,7 @@ type lexerWrapper struct {
 func newLexerWrapper(lex yyLexer) *lexerWrapper {
 	return &lexerWrapper{
 		lex:   lex,
-		query: NewBooleanQuery(nil, nil, nil),
+		query: NewBooleanQueryForQueryString(nil, nil, nil),
 	}
 }
 

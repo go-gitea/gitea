@@ -419,8 +419,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/create", bindIgnErr(auth.CreateRepoForm{}), repo.CreatePost)
 		m.Get("/migrate", repo.Migrate)
 		m.Post("/migrate", bindIgnErr(auth.MigrateRepoForm{}), repo.MigratePost)
-		m.Combo("/fork/:repoid").Get(repo.Fork).
-			Post(bindIgnErr(auth.CreateRepoForm{}), repo.ForkPost)
+		m.Group("/fork", func() {
+			m.Combo("/:repoid").Get(repo.Fork).
+				Post(bindIgnErr(auth.CreateRepoForm{}), repo.ForkPost)
+		}, context.RepoIDAssignment(), context.UnitTypes(), context.LoadRepoUnits(), context.CheckUnit(models.UnitTypeCode))
 	}, reqSignIn)
 
 	m.Group("/:username/:reponame", func() {
