@@ -171,6 +171,74 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	)
 	ctx.Redirect(redirectPath)
 }
+// RepoIDAssignment returns an macaron handler which assigns the repo to the context.
+func RepoIDAssignment() macaron.Handler {
+	return func(ctx *Context) {
+		var (
+			err   error
+		)
+
+		repoID := ctx.ParamsInt64(":repoid")
+
+		// Get repository.
+		repo, err := models.GetRepositoryByID(repoID)
+		if err != nil {
+			if models.IsErrRepoNotExist(err) {
+				ctx.Handle(404, "GetRepositoryByID", nil)
+			} else {
+				ctx.Handle(500, "GetRepositoryByID", err)
+			}
+			return
+		}
+
+		if err = repo.GetOwner(); err != nil {
+			ctx.Handle(500, "GetOwner", err)
+			return
+		}
+
+		// Admin has super access.
+		if ctx.IsSigned && ctx.User.IsAdmin {
+			ctx.Repo.AccessMode = models.AccessModeOwner
+		} else {
+			var userID int64
+			if ctx.User != nil {
+				userID = ctx.User.ID
+			}
+			mode, err := models.AccessLevel(userID, repo)
+			if err != nil {
+				ctx.Handle(500, "AccessLevel", err)
+				return
+			}
+			ctx.Repo.AccessMode = mode
+		}
+
+		// Check access.
+		if ctx.Repo.AccessMode == models.AccessModeNone {
+			if ctx.Query("go-get") == "1" {
+				earlyResponseForGoGetMeta(ctx)
+				return
+			}
+			ctx.Handle(404, "no access right", err)
+			return
+		}
+		ctx.Data["HasAccess"] = true
+
+		if repo.IsMirror {
+			ctx.Repo.Mirror, err = models.GetMirrorByRepoID(repo.ID)
+			if err != nil {
+				ctx.Handle(500, "GetMirror", err)
+				return
+			}
+			ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
+			ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
+			ctx.Data["Mirror"] = ctx.Repo.Mirror
+		}
+
+		ctx.Repo.Repository = repo
+		ctx.Data["RepoName"] = ctx.Repo.Repository.Name
+		ctx.Data["IsBareRepo"] = ctx.Repo.Repository.IsBare
+	}
+}
 
 // RepoAssignment returns a macaron to handle repository assignment
 func RepoAssignment() macaron.Handler {

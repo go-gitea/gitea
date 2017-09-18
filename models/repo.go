@@ -638,7 +638,7 @@ func (repo *Repository) UpdateSize() error {
 
 // CanBeForked returns true if repository meets the requirements of being forked.
 func (repo *Repository) CanBeForked() bool {
-	return !repo.IsBare
+	return !repo.IsBare && repo.UnitEnabled(UnitTypeCode)
 }
 
 // CanEnablePulls returns true if repository meets the requirements of accepting pulls.
