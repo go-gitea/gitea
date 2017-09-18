@@ -622,13 +622,15 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			if err != nil {
 				log.Error(4, "GetBranchCommitID[%s]: %v", opts.RefFullName, err)
 			}
-			return PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
+			if err = PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
 				Ref:     refName,
 				Sha:     shaSum,
 				RefType: "branch",
 				Repo:    apiRepo,
 				Sender:  apiPusher,
-			})
+			}); err != nil {
+				return fmt.Errorf("PrepareWebhooks: %v", err)
+			}
 		}
 
 	case ActionDeleteBranch: // Delete Branch
@@ -645,14 +647,15 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		if err != nil {
 			log.Error(4, "GetTagCommitID[%s]: %v", opts.RefFullName, err)
 		}
-		return PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
+		if err = PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
 			Ref:     refName,
 			Sha:     shaSum,
 			RefType: "tag",
 			Repo:    apiRepo,
 			Sender:  apiPusher,
-		})
-
+		}); err != nil {
+			return fmt.Errorf("PrepareWebhooks: %v", err)
+		}
 	case ActionDeleteTag: // Delete Tag
 		isHookEventPush = true
 	}
