@@ -76,6 +76,12 @@
 	<!-- Stylesheet -->
 	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/semantic/semantic.min.css">
 	<link rel="stylesheet" href="{{AppSubUrl}}/css/index.css?v={{MD5 AppVer}}">
+	<noscript>
+		<style>
+			.dropdown:hover > .menu { display: block; }
+			.ui.secondary.menu .dropdown.item > .menu { margin-top: 0; }
+		</style>
+	</noscript>
 
 {{if .RequireHighlightJS}}
 	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/highlight/github.css">
@@ -118,7 +124,7 @@
 </head>
 <body>
 	<div class="full height">
-		<noscript>Please enable JavaScript in your browser!</noscript>
+		<noscript>{{.i18n.Tr "enable_javascript"}}</noscript>
 
 		{{if not .PageIsInstall}}
 			<div class="following bar light">
