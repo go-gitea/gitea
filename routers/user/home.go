@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"sort"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -305,36 +307,64 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
-	var repoIDs = make([]int64, 0, len(issues))
-	var shas = make([]string, 0, len(issues))
-	var pullIDs = make([]int64, 0, len(issues))
-	for _, issue := range issues {
-		issue.Repo = showReposMap[issue.RepoID]
+	if !isPullList {
+		for _, issue := range issues {
+			issue.Repo = showReposMap[issue.RepoID]
+		}
+	} else {
+		var repoIDs = make([]int64, 0, len(issues))
+		var shas = make([]string, 0, len(issues))
+		var pullIDs = make([]int64, 0, len(issues))
+		var repoCache = make(map[int64]*git.Repository)
 
-		if issue.IsPull {
+		for _, issue := range issues {
+			issue.Repo = showReposMap[issue.RepoID]
+
 			if err := issue.LoadAttributes(); err != nil {
 				ctx.ServerError("LoadAttributes", fmt.Errorf("%v", err))
 				return
 			}
 
-			repoIDs = append(repoIDs, issue.Repo.ID)
-			shas = append(shas, issue.PullRequest.MergeBase)
-			pullIDs = append(pullIDs, issue.ID)
+			var rep *git.Repository
+			var ok bool
+			if rep, ok = repoCache[issue.PullRequest.HeadRepoID]; !ok {
+				if err := issue.PullRequest.GetHeadRepo(); err != nil {
+					ctx.ServerError("GetHeadRepo", err)
+					return
+				}
+
+				rep, err = git.OpenRepository(issue.PullRequest.HeadRepo.RepoPath())
+				if err != nil {
+					ctx.ServerError("OpenRepository", err)
+					return
+				}
+				repoCache[issue.PullRequest.HeadRepoID] = rep
+			}
+
+			sha, err := rep.GetBranchCommitID(issue.PullRequest.HeadBranch)
+			if err != nil {
+				log.Error(4, "GetBranchCommitID: %v", err)
+			} else {
+				repoIDs = append(repoIDs, issue.RepoID)
+				shas = append(shas, sha)
+				pullIDs = append(pullIDs, issue.ID)
+			}
 		}
-	}
 
-	commitStatuses, err := models.GetLatestCommitStatuses(repoIDs, shas)
-	if err != nil {
-		ctx.ServerError("GetLatestCommitStatuses", err)
-		return
-	}
+		var issuesStates = make(map[int64]*models.CommitStatus, len(issues))
+		if len(repoIDs) > 0 {
+			commitStatuses, err := models.GetLatestCommitStatuses(repoIDs, shas)
+			if err != nil {
+				ctx.ServerError("GetLatestCommitStatuses", err)
+				return
+			}
 
-	var issuesStates = make(map[int64]*models.CommitStatus, len(issues))
-	for i, statuses := range commitStatuses {
-		issuesStates[pullIDs[i]] = models.CalcCommitStatus(statuses)
+			for i, statuses := range commitStatuses {
+				issuesStates[pullIDs[i]] = models.CalcCommitStatus(statuses)
+			}
+		}
+		ctx.Data["IssuesStates"] = issuesStates
 	}
-
-	ctx.Data["IssuesStates"] = issuesStates
 
 	issueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
 		UserID:      ctxUser.ID,

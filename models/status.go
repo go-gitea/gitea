@@ -168,6 +168,7 @@ func GetLatestCommitStatuses(repoIDs []int64, shas []string) ([][]*CommitStatus,
 	var results = make([]struct {
 		ID     int64
 		RepoID int64
+		SHA    string
 	}, 0, 10*len(repoIDs))
 
 	var cond = builder.NewCond()
@@ -180,7 +181,7 @@ func GetLatestCommitStatuses(repoIDs []int64, shas []string) ([][]*CommitStatus,
 
 	err := x.Table(&CommitStatus{}).
 		Where(cond).
-		Select("max( id ) as id, repo_id").
+		Select("max( id ) as id, repo_id, sha").
 		GroupBy("repo_id, sha, context").OrderBy("max( id ) desc").Find(&results)
 	if err != nil {
 		return nil, err
@@ -192,10 +193,10 @@ func GetLatestCommitStatuses(repoIDs []int64, shas []string) ([][]*CommitStatus,
 	}
 
 	var ids = make([]int64, 0, len(results))
-	var repoIDsMap = make(map[int64][]int64, len(repoIDs))
+	var repoIDsMap = make(map[string][]int64, len(repoIDs))
 	for _, res := range results {
 		ids = append(ids, res.ID)
-		repoIDsMap[res.RepoID] = append(repoIDsMap[res.RepoID], res.ID)
+		repoIDsMap[fmt.Sprintf("%d-%s", res.RepoID, res.SHA)] = append(repoIDsMap[fmt.Sprintf("%d-%s", res.RepoID, res.SHA)], res.ID)
 	}
 
 	statuses := make(map[int64]*CommitStatus, len(ids))
@@ -205,7 +206,7 @@ func GetLatestCommitStatuses(repoIDs []int64, shas []string) ([][]*CommitStatus,
 	}
 
 	for i := 0; i < len(repoIDs); i++ {
-		for _, id := range repoIDsMap[repoIDs[i]] {
+		for _, id := range repoIDsMap[fmt.Sprintf("%d-%s", repoIDs[i], shas[i])] {
 			returns[i] = append(returns[i], statuses[id])
 		}
 	}

@@ -186,44 +186,80 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		}
 	}
 
-	var repoIDs = make([]int64, 0, len(issues))
-	var shas = make([]string, 0, len(issues))
-	var pullIDs = make([]int64, 0, len(issues))
-	// Get posters.
-	for i, issue := range issues {
-		// Check read status
-		if !ctx.IsSigned {
-			issues[i].IsRead = true
-		} else if err = issues[i].GetIsRead(ctx.User.ID); err != nil {
-			ctx.ServerError("GetIsRead", err)
-			return
+	if !isPullList {
+		// Get posters.
+		for i := 0; i < len(issues); i++ {
+			// Check read status
+			if !ctx.IsSigned {
+				issues[i].IsRead = true
+			} else if err = issues[i].GetIsRead(ctx.User.ID); err != nil {
+				ctx.ServerError("GetIsRead", err)
+				return
+			}
 		}
+	} else {
+		var repoIDs = make([]int64, 0, len(issues))
+		var shas = make([]string, 0, len(issues))
+		var pullIDs = make([]int64, 0, len(issues))
+		var repoCache = make(map[int64]*git.Repository)
 
-		if issue.IsPull {
+		// Get posters.
+		for i, issue := range issues {
+			// Check read status
+			if !ctx.IsSigned {
+				issues[i].IsRead = true
+			} else if err = issues[i].GetIsRead(ctx.User.ID); err != nil {
+				ctx.ServerError("GetIsRead", err)
+				return
+			}
+
 			if err := issue.LoadAttributes(); err != nil {
 				ctx.ServerError("LoadAttributes", err)
 				return
 			}
 
-			repoIDs = append(repoIDs, ctx.Repo.Repository.ID)
-			shas = append(shas, issue.PullRequest.MergeBase)
-			pullIDs = append(pullIDs, issue.ID)
+			var rep *git.Repository
+			var ok bool
+			if rep, ok = repoCache[issue.PullRequest.HeadRepoID]; !ok {
+				if err := issue.PullRequest.GetHeadRepo(); err != nil {
+					ctx.ServerError("GetHeadRepo", err)
+					return
+				}
+
+				rep, err = git.OpenRepository(issue.PullRequest.HeadRepo.RepoPath())
+				if err != nil {
+					ctx.ServerError("OpenRepository", err)
+					return
+				}
+				repoCache[issue.PullRequest.HeadRepoID] = rep
+			}
+
+			sha, err := rep.GetBranchCommitID(issue.PullRequest.HeadBranch)
+			if err != nil {
+				log.Error(4, "GetBranchCommitID: %v", err)
+			} else {
+				repoIDs = append(repoIDs, issue.RepoID)
+				shas = append(shas, sha)
+				pullIDs = append(pullIDs, issue.ID)
+			}
 		}
-	}
 
-	commitStatuses, err := models.GetLatestCommitStatuses(repoIDs, shas)
-	if err != nil {
-		ctx.ServerError("GetLatestCommitStatuses", err)
-		return
-	}
+		var issuesStates = make(map[int64]*models.CommitStatus, len(issues))
+		if len(repoIDs) > 0 {
+			commitStatuses, err := models.GetLatestCommitStatuses(repoIDs, shas)
+			if err != nil {
+				ctx.ServerError("GetLatestCommitStatuses", err)
+				return
+			}
 
-	var issuesStates = make(map[int64]*models.CommitStatus, len(issues))
-	for i, statuses := range commitStatuses {
-		issuesStates[pullIDs[i]] = models.CalcCommitStatus(statuses)
+			for i, statuses := range commitStatuses {
+				issuesStates[pullIDs[i]] = models.CalcCommitStatus(statuses)
+			}
+		}
+		ctx.Data["IssuesStates"] = issuesStates
 	}
 
 	ctx.Data["Issues"] = issues
-	ctx.Data["IssuesStates"] = issuesStates
 
 	// Get assignees.
 	ctx.Data["Assignees"], err = repo.GetAssignees()
