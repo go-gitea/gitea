@@ -74,6 +74,10 @@ func initIntegrationTest() {
 		os.Exit(1)
 	}
 	setting.AppPath = path.Join(giteaRoot, "gitea")
+	if _, err := os.Stat(setting.AppPath); err != nil {
+		fmt.Printf("Could not find gitea binary at %s\n", setting.AppPath)
+		os.Exit(1)
+	}
 
 	giteaConf := os.Getenv("GITEA_CONF")
 	if giteaConf == "" {
@@ -276,7 +280,7 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *TestRespo
 	mac.ServeHTTP(respWriter, req)
 	if expectedStatus != NoExpectedStatus {
 		assert.EqualValues(t, expectedStatus, respWriter.HeaderCode,
-			"Request URL: %s %s", req.URL.String(), buffer.String())
+			"Request URL: %s", req.URL.String())
 	}
 	return &TestResponse{
 		HeaderCode: respWriter.HeaderCode,
