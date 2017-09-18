@@ -1788,8 +1788,8 @@ function initVueComponents(){
 }
 
 function initCtrlEnterSubmit() {
-    $("textarea").keydown(function(e) {
-        if ((e.ctrlKey || e.metaKey) && (e.keyCode == 13 || e.keyCode == 10)) {
+    $(".ctrlenter").keydown(function(e) {
+        if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.keyCode == 13 || e.keyCode == 10)) {
             $(this).closest("form").submit();
         }
     });
