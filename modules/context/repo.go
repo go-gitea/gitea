@@ -171,7 +171,7 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	)
 	ctx.Redirect(redirectPath)
 }
-
+// RepoIDAssignment returns an macaron handler which assigns the repo to the context.
 func RepoIDAssignment() macaron.Handler {
 	return func(ctx *Context) {
 		var (
