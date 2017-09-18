@@ -1,7 +1,6 @@
 package models
 
 import (
-	"os"
 	"path"
 	"strings"
 	"testing"
@@ -9,7 +8,6 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -299,9 +297,7 @@ func TestCommitRepoAction(t *testing.T) {
 	}
 
 	for _, s := range samples {
-		assert.NoError(t, PrepareTestDatabase())
-		assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
-		assert.NoError(t, com.CopyDir("../integrations/gitea-repositories-meta", setting.RepoRootPath))
+		prepareTestEnv(t)
 
 		user := AssertExistsAndLoadBean(t, &User{ID: s.userID}).(*User)
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: s.repositoryID, OwnerID: user.ID}).(*Repository)
