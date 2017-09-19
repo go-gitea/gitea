@@ -132,7 +132,7 @@ fmt-check:
 	fi;
 
 .PHONY: test
-test: fmt-check
+test:
 	$(GO) test $(PACKAGES)
 
 .PHONY: coverage
