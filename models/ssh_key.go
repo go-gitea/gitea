@@ -599,11 +599,7 @@ func RewriteAllPublicKeys() error {
 		defer f.Close()
 	}
 
-	if err = os.Rename(tmpPath, fPath); err != nil {
-		return err
-	}
-
-	return nil
+	return os.Rename(tmpPath, fPath)
 }
 
 // ________                .__                 ____  __.
