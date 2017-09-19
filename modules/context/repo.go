@@ -166,7 +166,7 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 func RepoIDAssignment() macaron.Handler {
 	return func(ctx *Context) {
 		var (
-			err   error
+			err error
 		)
 
 		repoID := ctx.ParamsInt64(":repoid")
