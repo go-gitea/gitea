@@ -66,6 +66,7 @@ type PullRequest struct {
 	HeadBranch   string
 	BaseBranch   string
 	MergeBase    string `xorm:"VARCHAR(40)"`
+	LastCommitID string `xorm:"VARCHAR(40)"`
 
 	HasMerged      bool      `xorm:"INDEX"`
 	MergedCommitID string    `xorm:"VARCHAR(40)"`

@@ -1,7 +1,7 @@
 {{range .Issue.Comments}}
 	{{ $createdStr:= TimeSince .Created $.Lang }}
 
-	<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF, 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING, 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL -->
+	<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF, 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING, 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 15 = CancelTracking, 16 = PullPushCommit -->
 	{{if eq .Type 0}}
 		<div class="comment" id="{{.HashTag}}">
 			<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
@@ -181,6 +181,18 @@
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.cancel_tracking_history"  $createdStr | Safe}}</span>
+		</div>
+	{{else if eq .Type 16}}
+		<div class="event">
+			<span class="octicon octicon-primitive-dot"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Link}}">{{.Content | Str2html}}</a></span>
+			<div class="ui right actions">
+				{{template "repo/commit_status" .CommitStatus}}</span>
+				<a href="{{.Link}}">{{ShortSha .CommitSHA}}</a>
+			</div>
 		</div>
 	{{end}}
 {{end}}

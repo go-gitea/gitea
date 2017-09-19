@@ -92,7 +92,7 @@ func GetCombinedCommitStatus(ctx *context.APIContext) {
 
 	page := ctx.ParamsInt("page")
 
-	statuses, err := models.GetLatestCommitStatus(repo, sha, page)
+	statuses, err := models.GetLatestCommitStatus(repo.ID, sha, page)
 	if err != nil {
 		ctx.Error(500, "GetLatestCommitStatus", fmt.Errorf("GetLatestCommitStatus[%s, %s, %d]: %v", repo.FullName(), sha, page, err))
 		return

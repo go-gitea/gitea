@@ -149,11 +149,11 @@ func GetCommitStatuses(repo *Repository, sha string, page int) ([]*CommitStatus,
 }
 
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
-func GetLatestCommitStatus(repo *Repository, sha string, page int) ([]*CommitStatus, error) {
+func GetLatestCommitStatus(repoID int64, sha string, page int) ([]*CommitStatus, error) {
 	ids := make([]int64, 0, 10)
 	err := x.Limit(10, page*10).
 		Table(&CommitStatus{}).
-		Where("repo_id = ?", repo.ID).And("sha = ?", sha).
+		Where("repo_id = ?", repoID).And("sha = ?", sha).
 		Select("max( id ) as id").
 		GroupBy("context").OrderBy("max( id ) desc").Find(&ids)
 	if err != nil {
@@ -287,7 +287,7 @@ func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List 
 		commit := SignCommitWithStatuses{
 			SignCommit: &c,
 		}
-		statuses, err := GetLatestCommitStatus(repo, commit.ID.String(), 0)
+		statuses, err := GetLatestCommitStatus(repo.ID, commit.ID.String(), 0)
 		if err != nil {
 			log.Error(3, "GetLatestCommitStatus: %v", err)
 		} else {

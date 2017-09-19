@@ -683,6 +683,11 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Handle(500, "LoadAssignees", err)
 				return
 			}
+		} else if comment.Type == models.CommentTypePullPushCommit {
+			if err = comment.LoadCommitStatus(); err != nil {
+				ctx.Handle(500, "LoadCommitStatus", err)
+				return
+			}
 		}
 	}
 

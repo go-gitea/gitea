@@ -549,6 +549,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 
 	isNewBranch := false
 	opType := ActionCommitRepo
+
 	// Check it's tag push or branch.
 	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 		opType = ActionPushTag
@@ -626,6 +627,42 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 				Sender:  apiPusher,
 			}); err != nil {
 				return fmt.Errorf("PrepareWebhooks: %v", err)
+			}
+		}
+
+		// if there is a pull request fro this branch, then update pull request
+		prs, err := GetUnmergedPullRequestsByHeadInfo(repo.ID, refName)
+		if err != nil {
+			return fmt.Errorf("GetUnmergedPullRequestsByHeadInfo: %v", err)
+		}
+
+		if err := PullRequestList(prs).LoadAttributes(); err != nil {
+			return fmt.Errorf("PullRequestList.LoadAttributes: %v", err)
+		}
+
+		var issues = make([]*Issue, 0, len(prs))
+		var lastCommitID = opts.Commits.Commits[len(opts.Commits.Commits)-1].Sha1
+		for _, pr := range prs {
+			pr.LastCommitID = lastCommitID
+			if err := pr.UpdateCols("last_commit_id"); err != nil {
+				return fmt.Errorf("UpdateCols: %v", err)
+			}
+
+			pr.Issue.PullRequest = pr
+			issues = append(issues, pr.Issue)
+		}
+
+		if _, err := IssueList(issues).LoadRepositories(); err != nil {
+			return fmt.Errorf("IssueList.LoadRepositories: %v", err)
+		}
+
+		for _, issue := range issues {
+			for i := 0; i < len(opts.Commits.Commits); i++ {
+				c := opts.Commits.Commits[i]
+				link := fmt.Sprintf("%s/commit/%s", issue.Repo.Link(), c.Sha1)
+				if err := CreatePullPushComment(pusher, issue.Repo, issue, c.Message, c.Sha1, link); err != nil {
+					return fmt.Errorf("CreatePullPushComment: %v", err)
+				}
 			}
 		}
 

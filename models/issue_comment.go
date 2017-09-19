@@ -30,36 +30,38 @@ const (
 // Enumerate all the comment types
 const (
 	// Plain comment, can be associated with a commit (CommitID > 0) and a line (LineNum > 0)
-	CommentTypeComment CommentType = iota
-	CommentTypeReopen
-	CommentTypeClose
+	CommentTypeComment CommentType = iota // 0
+	CommentTypeReopen                     // 1
+	CommentTypeClose                      // 2
 
 	// References.
-	CommentTypeIssueRef
+	CommentTypeIssueRef // 3
 	// Reference from a commit (not part of a pull request)
-	CommentTypeCommitRef
+	CommentTypeCommitRef // 4
 	// Reference from a comment
-	CommentTypeCommentRef
+	CommentTypeCommentRef // 5
 	// Reference from a pull request
-	CommentTypePullRef
+	CommentTypePullRef // 6
 	// Labels changed
-	CommentTypeLabel
+	CommentTypeLabel // 7
 	// Milestone changed
-	CommentTypeMilestone
+	CommentTypeMilestone // 8
 	// Assignees changed
-	CommentTypeAssignees
+	CommentTypeAssignees // 9
 	// Change Title
-	CommentTypeChangeTitle
+	CommentTypeChangeTitle // 10
 	// Delete Branch
-	CommentTypeDeleteBranch
+	CommentTypeDeleteBranch // 11
 	// Start a stopwatch for time tracking
-	CommentTypeStartTracking
+	CommentTypeStartTracking // 12
 	// Stop a stopwatch for time tracking
-	CommentTypeStopTracking
+	CommentTypeStopTracking // 13
 	// Add time manual for time tracking
-	CommentTypeAddTimeManual
+	CommentTypeAddTimeManual // 14
 	// Cancel a stopwatch for time tracking
-	CommentTypeCancelTracking
+	CommentTypeCancelTracking // 15
+	// Push commit to a pull request
+	CommentTypePullPushCommit // 16
 )
 
 // CommentTag defines comment tag type
@@ -104,7 +106,9 @@ type Comment struct {
 	UpdatedUnix int64     `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
-	CommitSHA string `xorm:"VARCHAR(40)"`
+	CommitSHA    string        `xorm:"VARCHAR(40)"`
+	Link         string        `xorm:"VARCHAR(2048)"`
+	CommitStatus *CommitStatus `xorm:"-"`
 
 	Attachments []*Attachment `xorm:"-"`
 
@@ -264,6 +268,23 @@ func (c *Comment) LoadAssignees() error {
 	return nil
 }
 
+// LoadCommitStatus if comment.Type is CommentTypePullPushCommit, then load commit status
+func (c *Comment) LoadCommitStatus() error {
+	if c.CommitStatus == nil {
+		issue, err := getIssueByID(x, c.IssueID)
+		if err != nil {
+			return err
+		}
+		commitStatuses, err := GetLatestCommitStatus(issue.RepoID, c.CommitSHA, 0)
+		if err != nil {
+			return err
+		}
+
+		c.CommitStatus = CalcCommitStatus(commitStatuses)
+	}
+	return nil
+}
+
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
 func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
@@ -308,6 +329,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:        opts.Content,
 		OldTitle:       opts.OldTitle,
 		NewTitle:       opts.NewTitle,
+		Link:           opts.Link,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -499,6 +521,7 @@ type CreateCommentOptions struct {
 	CommitSHA      string
 	LineNum        int64
 	Content        string
+	Link           string
 	Attachments    []string // UUIDs of attachments
 }
 
@@ -562,6 +585,36 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 		Issue:     issue,
 		CommitSHA: commitSHA,
 		Content:   content,
+	})
+	return err
+}
+
+// CreatePullPushComment creates a commit when push commit to a pull request.
+func CreatePullPushComment(doer *User, repo *Repository, issue *Issue, content, commitSHA, link string) error {
+	if len(commitSHA) == 0 {
+		return fmt.Errorf("cannot create reference with empty commit SHA")
+	}
+
+	// Check if same reference from same commit has already existed.
+	has, err := x.Get(&Comment{
+		Type:      CommentTypePullPushCommit,
+		IssueID:   issue.ID,
+		CommitSHA: commitSHA,
+	})
+	if err != nil {
+		return fmt.Errorf("check pull push comment: %v", err)
+	} else if has {
+		return nil
+	}
+
+	_, err = CreateComment(&CreateCommentOptions{
+		Type:      CommentTypePullPushCommit,
+		Doer:      doer,
+		Repo:      repo,
+		Issue:     issue,
+		CommitSHA: commitSHA,
+		Content:   content,
+		Link:      link,
 	})
 	return err
 }
