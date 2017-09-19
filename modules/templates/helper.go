@@ -277,7 +277,7 @@ func RenderCommitMessage(full bool, msg, urlPrefix string, metas map[string]stri
 
 // Actioner describes an action
 type Actioner interface {
-	GetOpType() int
+	GetOpType() models.ActionType
 	GetActUserName() string
 	GetRepoUserName() string
 	GetRepoName() string
@@ -289,25 +289,24 @@ type Actioner interface {
 	GetIssueInfos() []string
 }
 
-// ActionIcon accepts a int that represents action operation type
-// and returns a icon class name.
-func ActionIcon(opType int) string {
+// ActionIcon accepts an action operation type and returns an icon class name.
+func ActionIcon(opType models.ActionType) string {
 	switch opType {
-	case 1, 8: // Create and transfer repository
+	case models.ActionCreateRepo, models.ActionTransferRepo:
 		return "repo"
-	case 5, 9: // Commit repository
+	case models.ActionCommitRepo, models.ActionPushTag:
 		return "git-commit"
-	case 6: // Create issue
+	case models.ActionCreateIssue:
 		return "issue-opened"
-	case 7: // New pull request
+	case models.ActionCreatePullRequest:
 		return "git-pull-request"
-	case 10: // Comment issue
+	case models.ActionCommentIssue:
 		return "comment-discussion"
-	case 11: // Merge pull request
+	case models.ActionMergePullRequest:
 		return "git-merge"
-	case 12, 14: // Close issue or pull request
+	case models.ActionCloseIssue, models.ActionClosePullRequest:
 		return "issue-closed"
-	case 13, 15: // Reopen issue or pull request
+	case models.ActionReopenIssue, models.ActionReopenPullRequest:
 		return "issue-reopened"
 	default:
 		return "invalid type"
