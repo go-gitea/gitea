@@ -119,9 +119,5 @@ func addUnitsToTables(x *xorm.Engine) error {
 		}
 	}
 
-	if err := sess.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return sess.Commit()
 }

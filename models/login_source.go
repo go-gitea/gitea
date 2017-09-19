@@ -498,10 +498,7 @@ func SMTPAuth(a smtp.Auth, cfg *SMTPConfig) error {
 	}
 
 	if ok, _ := c.Extension("AUTH"); ok {
-		if err = c.Auth(a); err != nil {
-			return err
-		}
-		return nil
+		return c.Auth(a)
 	}
 	return ErrUnsupportedLoginType
 }

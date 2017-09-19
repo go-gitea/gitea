@@ -571,11 +571,7 @@ func (issue *Issue) ReadBy(userID int64) error {
 		return err
 	}
 
-	if err := setNotificationStatusReadIfUnread(x, userID, issue.ID); err != nil {
-		return err
-	}
-
-	return nil
+	return setNotificationStatusReadIfUnread(x, userID, issue.ID)
 }
 
 func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
