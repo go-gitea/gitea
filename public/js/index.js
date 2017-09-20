@@ -625,7 +625,7 @@ function initProtectedBranch() {
         var $this = $(this);
         $.post($this.data('url'), {
                 "_csrf": csrf,
-                "canPush": true,
+                "canPush": false,
                 "branchName": $this.val(),
             },
             function (data) {
@@ -642,7 +642,7 @@ function initProtectedBranch() {
         var $this = $(this);
         $.post($this.data('url'), {
                 "_csrf": csrf,
-                "canPush": false,
+                "canPush": true,
                 "branchName": $this.data('val'),
             },
             function (data) {

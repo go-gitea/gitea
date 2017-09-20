@@ -520,7 +520,7 @@ func ProtectedBranchPost(ctx *context.Context) {
 
 		canPush := ctx.QueryBool("canPush")
 
-		if canPush {
+		if !canPush {
 			if err := ctx.Repo.Repository.AddProtectedBranch(branchName, canPush); err != nil {
 				ctx.Flash.Error(ctx.Tr("repo.settings.add_protected_branch_failed", branchName))
 				ctx.JSON(200, map[string]string{
