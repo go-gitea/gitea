@@ -46,7 +46,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 	req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches?action=protected_branch", map[string]string{
 		"_csrf":      csrf,
 		"branchName": "master",
-		"canPush":    "true",
+		"canPush":    "false",
 	})
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	// Check if master branch has been locked successfully
