@@ -235,11 +235,7 @@ func DeleteOrganization(org *User) (err error) {
 		}
 	}
 
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 func deleteOrg(e *xorm.Session, u *User) error {
