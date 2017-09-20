@@ -13,6 +13,7 @@ import (
 	"github.com/go-xorm/xorm"
 	"gopkg.in/ini.v1"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -146,6 +147,15 @@ func (m *Mirror) runSync() bool {
 			log.Error(4, "CreateRepositoryNotice: %v", err)
 		}
 		return false
+	}
+
+	gitRepo, err := git.OpenRepository(repoPath)
+	if err != nil {
+		log.Error(4, "OpenRepository: %v", err)
+		return false
+	}
+	if err = SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
+		log.Error(4, "Failed to synchronize tags to releases for repository: %v", err)
 	}
 
 	if err := m.Repo.UpdateSize(); err != nil {
