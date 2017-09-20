@@ -17,10 +17,10 @@ const (
 
 // ProtectedBranch struct
 type ProtectedBranch struct {
-	ID          int64  `xorm:"pk autoincr"`
-	RepoID      int64  `xorm:"UNIQUE(s)"`
-	BranchName  string `xorm:"UNIQUE(s)"`
-	CanPush     bool
+	ID          int64     `xorm:"pk autoincr"`
+	RepoID      int64     `xorm:"UNIQUE(s)"`
+	BranchName  string    `xorm:"UNIQUE(s)"`
+	CanPush     bool      `xorm:"NOT NULL DEFAULT false"`
 	Created     time.Time `xorm:"-"`
 	CreatedUnix int64
 	Updated     time.Time `xorm:"-"`

@@ -126,6 +126,8 @@ var migrations = []Migration{
 	NewMigration("unescape user full names", unescapeUserFullNames),
 	// v38 -> v39
 	NewMigration("remove commits and settings unit types", removeCommitsUnitType),
+	// v43 -> v44
+	NewMigration("fix protected branch can push value to false", fixProtectedBranchCanPushValue),
 }
 
 // Migrate database to current version
