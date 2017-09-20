@@ -69,11 +69,8 @@ clean:
 		integrations/indexers-mysql/ integrations/indexers-pgsql integrations/indexers-sqlite \
 		integrations/mysql.ini integrations/pgsql.ini
 
-required-gofmt-version:
-	@$(GO) version  | grep -q '\(1.7\|1.8\)' || { echo "We require go version 1.7 or 1.8 to format code" >&2 && exit 1; }
-
 .PHONY: fmt
-fmt: required-gofmt-version
+fmt:
 	$(GOFMT) -w $(GOFILES)
 
 .PHONY: vet
@@ -125,7 +122,7 @@ misspell:
 	misspell -w -i unknwon $(GOFILES)
 
 .PHONY: fmt-check
-fmt-check: required-gofmt-version
+fmt-check:
 	# get all go files and run go fmt on them
 	@diff=$$($(GOFMT) -d $(GOFILES)); \
 	if [ -n "$$diff" ]; then \
