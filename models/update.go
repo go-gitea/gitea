@@ -216,7 +216,7 @@ func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 				return nil, fmt.Errorf("pushUpdateAddTag: %v", err)
 			}
 		}
-	} else {
+	} else if !isDelRef {
 		// If is branch reference
 		newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 		if err != nil {
