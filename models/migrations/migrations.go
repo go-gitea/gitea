@@ -128,6 +128,8 @@ var migrations = []Migration{
 	NewMigration("remove commits and settings unit types", removeCommitsUnitType),
 	// v43 -> v44
 	NewMigration("fix protected branch can push value to false", fixProtectedBranchCanPushValue),
+	// v42 -> v43
+	NewMigration("add tags to releases and sync existing repositories", releaseAddColumnIsTagAndSyncTags),
 }
 
 // Migrate database to current version
