@@ -6,7 +6,6 @@ package integrations
 
 import (
 	"net/http"
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -33,11 +32,6 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 	}
 }
 
-type searchResponseBody struct {
-	ok   bool
-	data []api.Repository
-}
-
 func TestAPISearchRepoNotLogin(t *testing.T) {
 	prepareTestEnv(t)
 	const keyword = "test"
@@ -45,10 +39,12 @@ func TestAPISearchRepoNotLogin(t *testing.T) {
 	req := NewRequestf(t, "GET", "/api/v1/repos/search?q=%s", keyword)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var body searchResponseBody
+	var body api.SearchResults
 	DecodeJSON(t, resp, &body)
-	for _, repo := range body.data {
-		assert.True(t, strings.Contains(repo.Name, keyword))
+	assert.NotEmpty(t, body.Data)
+	for _, repo := range body.Data {
+		assert.Contains(t, repo.Name, keyword)
+		assert.False(t, repo.Private)
 	}
 }
 
