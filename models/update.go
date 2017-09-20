@@ -81,6 +81,93 @@ func PushUpdate(branch string, opt PushUpdateOptions) error {
 	return nil
 }
 
+func pushUpdateDeleteTag(repo *Repository, gitRepo *git.Repository, tagName string) error {
+	rel, err := GetRelease(repo.ID, tagName)
+	if err != nil {
+		if IsErrReleaseNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("GetRelease: %v", err)
+	}
+	if rel.IsTag {
+		if _, err = x.Id(rel.ID).Delete(new(Release)); err != nil {
+			return fmt.Errorf("Delete: %v", err)
+		}
+	} else {
+		rel.IsDraft = true
+		rel.NumCommits = 0
+		rel.Sha1 = ""
+		if _, err = x.Id(rel.ID).AllCols().Update(rel); err != nil {
+			return fmt.Errorf("Update: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func pushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string) error {
+	rel, err := GetRelease(repo.ID, tagName)
+	if err != nil && !IsErrReleaseNotExist(err) {
+		return fmt.Errorf("GetRelease: %v", err)
+	}
+
+	tag, err := gitRepo.GetTag(tagName)
+	if err != nil {
+		return fmt.Errorf("GetTag: %v", err)
+	}
+	commit, err := tag.Commit()
+	if err != nil {
+		return fmt.Errorf("Commit: %v", err)
+	}
+	tagCreatedUnix := commit.Author.When.Unix()
+
+	author, err := GetUserByEmail(commit.Author.Email)
+	if err != nil && !IsErrUserNotExist(err) {
+		return fmt.Errorf("GetUserByEmail: %v", err)
+	}
+
+	commitsCount, err := commit.CommitsCount()
+	if err != nil {
+		return fmt.Errorf("CommitsCount: %v", err)
+	}
+
+	if rel == nil {
+		rel = &Release{
+			RepoID:       repo.ID,
+			Title:        "",
+			TagName:      tagName,
+			LowerTagName: strings.ToLower(tagName),
+			Target:       "",
+			Sha1:         commit.ID.String(),
+			NumCommits:   commitsCount,
+			Note:         "",
+			IsDraft:      false,
+			IsPrerelease: false,
+			IsTag:        true,
+			CreatedUnix:  tagCreatedUnix,
+		}
+		if author != nil {
+			rel.PublisherID = author.ID
+		}
+
+		if _, err = x.InsertOne(rel); err != nil {
+			return fmt.Errorf("InsertOne: %v", err)
+		}
+	} else {
+		rel.Sha1 = commit.ID.String()
+		rel.CreatedUnix = tagCreatedUnix
+		rel.NumCommits = commitsCount
+		rel.IsDraft = false
+		if rel.IsTag && author != nil {
+			rel.PublisherID = author.ID
+		}
+		if _, err = x.Id(rel.ID).AllCols().Update(rel); err != nil {
+			return fmt.Errorf("Update: %v", err)
+		}
+	}
+	return nil
+}
+
 func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 	isNewRef := opts.OldCommitID == git.EmptySHA
 	isDelRef := opts.NewCommitID == git.EmptySHA
@@ -106,15 +193,22 @@ func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 		return nil, fmt.Errorf("GetRepositoryByName: %v", err)
 	}
 
-	if isDelRef {
-		log.GitLogger.Info("Reference '%s' has been deleted from '%s/%s' by %s",
-			opts.RefFullName, opts.RepoUserName, opts.RepoName, opts.PusherName)
-		return repo, nil
-	}
-
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
+	}
+
+	if isDelRef {
+		// Tag has been deleted
+		if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
+			err = pushUpdateDeleteTag(repo, gitRepo, opts.RefFullName[len(git.TagPrefix):])
+			if err != nil {
+				return nil, fmt.Errorf("pushUpdateDeleteTag: %v", err)
+			}
+		}
+		log.GitLogger.Info("Reference '%s' has been deleted from '%s/%s' by %s",
+			opts.RefFullName, opts.RepoUserName, opts.RepoName, opts.PusherName)
+		return repo, nil
 	}
 
 	if err = repo.UpdateSize(); err != nil {
@@ -123,6 +217,7 @@ func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 
 	// Push tags.
 	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
+		pushUpdateAddTag(repo, gitRepo, opts.RefFullName[len(git.TagPrefix):])
 		if err := CommitRepoAction(CommitRepoActionOptions{
 			PusherName:  opts.PusherName,
 			RepoOwnerID: owner.ID,

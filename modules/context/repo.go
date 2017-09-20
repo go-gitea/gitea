@@ -357,6 +357,7 @@ func RepoAssignment() macaron.Handler {
 
 		count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
 			IncludeDrafts: false,
+			IncludeTags:   true,
 		})
 		if err != nil {
 			ctx.Handle(500, "GetReleaseCountByRepoID", err)
