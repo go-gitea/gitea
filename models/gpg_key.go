@@ -282,11 +282,7 @@ func DeleteGPGKey(doer *User, id int64) (err error) {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 // CommitVerification represents a commit validation of signature

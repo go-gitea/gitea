@@ -98,9 +98,8 @@ func (a *Action) AfterSet(colName string, _ xorm.Cell) {
 }
 
 // GetOpType gets the ActionType of this action.
-// TODO: change return type to ActionType ?
-func (a *Action) GetOpType() int {
-	return int(a.OpType)
+func (a *Action) GetOpType() ActionType {
+	return a.OpType
 }
 
 func (a *Action) loadActUser() {
