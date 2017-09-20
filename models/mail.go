@@ -167,7 +167,7 @@ func composeIssueCommentMessage(issue *Issue, doer *User, comment *Comment, tplN
 		log.Error(3, "Template: %v", err)
 	}
 
-	msg := mailer.NewMessageFrom(tos, fmt.Sprintf(`"%s" <%s>`, doer.DisplayName(), setting.MailService.FromEmail), subject, content.String())
+	msg := mailer.NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, content.String())
 	msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 	return msg
 }
