@@ -46,6 +46,7 @@ const (
 	ActionReopenIssue                             // 13
 	ActionClosePullRequest                        // 14
 	ActionReopenPullRequest                       // 15
+	ActionCreateRelease                           // 16
 )
 
 var (
