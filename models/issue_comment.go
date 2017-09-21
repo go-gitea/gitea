@@ -107,7 +107,7 @@ type Comment struct {
 
 	// Reference issue in commit message
 	CommitSHA    string        `xorm:"VARCHAR(40)"`
-	Link         string        `xorm:"VARCHAR(2048)"`
+	RepoFullName string        `xorm:"VARCHAR(200)"`
 	CommitStatus *CommitStatus `xorm:"-"`
 
 	Attachments []*Attachment `xorm:"-"`
@@ -329,7 +329,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:        opts.Content,
 		OldTitle:       opts.OldTitle,
 		NewTitle:       opts.NewTitle,
-		Link:           opts.Link,
+		RepoFullName:   opts.RepoFullName,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -521,7 +521,7 @@ type CreateCommentOptions struct {
 	CommitSHA      string
 	LineNum        int64
 	Content        string
-	Link           string
+	RepoFullName   string
 	Attachments    []string // UUIDs of attachments
 }
 
@@ -589,8 +589,17 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 	return err
 }
 
+// ClearPullPushComent clear all the push commit on issue since fore push
+func ClearPullPushComent(issue *Issue) error {
+	_, err := x.Delete(&Comment{
+		Type:    CommentTypePullPushCommit,
+		IssueID: issue.ID,
+	})
+	return err
+}
+
 // CreatePullPushComment creates a commit when push commit to a pull request.
-func CreatePullPushComment(doer *User, repo *Repository, issue *Issue, content, commitSHA, link string) error {
+func CreatePullPushComment(doer *User, repo *Repository, issue *Issue, content, commitSHA, repoFullName string) error {
 	if len(commitSHA) == 0 {
 		return fmt.Errorf("cannot create reference with empty commit SHA")
 	}
@@ -608,13 +617,13 @@ func CreatePullPushComment(doer *User, repo *Repository, issue *Issue, content, 
 	}
 
 	_, err = CreateComment(&CreateCommentOptions{
-		Type:      CommentTypePullPushCommit,
-		Doer:      doer,
-		Repo:      repo,
-		Issue:     issue,
-		CommitSHA: commitSHA,
-		Content:   content,
-		Link:      link,
+		Type:         CommentTypePullPushCommit,
+		Doer:         doer,
+		Repo:         repo,
+		Issue:        issue,
+		CommitSHA:    commitSHA,
+		Content:      content,
+		RepoFullName: repoFullName,
 	})
 	return err
 }

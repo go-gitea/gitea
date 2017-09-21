@@ -188,10 +188,10 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Link}}">{{.Content | Str2html}}</a></span>
+			<span class="text grey"><a href="{{AppSubUrl}}/{{.RepoFullName}}/commit/{{.CommitSHA}}">{{.Content | Str2html}}</a></span>
 			<div class="ui right actions">
 				{{template "repo/commit_status" .CommitStatus}}</span>
-				<a href="{{.Link}}">{{ShortSha .CommitSHA}}</a>
+				<a href="{{AppSubUrl}}/{{.RepoFullName}}/commit/{{.CommitSHA}}">{{ShortSha .CommitSHA}}</a>
 			</div>
 		</div>
 	{{end}}

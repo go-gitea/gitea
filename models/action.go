@@ -608,7 +608,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	switch opType {
 	case ActionCommitRepo: // Push
 		isHookEventPush = true
-
+		var isForcePush = false
 		if isNewBranch {
 			gitRepo, err := git.OpenRepository(repo.RepoPath())
 			if err != nil {
@@ -627,6 +627,16 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 				Sender:  apiPusher,
 			}); err != nil {
 				return fmt.Errorf("PrepareWebhooks: %v", err)
+			}
+		} else {
+			// detect force push
+			if git.EmptySHA != opts.Commits.Commits[0].Sha1 {
+				output, err := git.NewCommand("rev-list", opts.Commits.Commits[0].Sha1, "^"+opts.Commits.Commits[len(opts.Commits.Commits)-1].Sha1).RunInDir(repo.RepoPath())
+				if err != nil {
+					return fmt.Errorf("rev-list: %v", err)
+				} else if len(output) > 0 {
+					isForcePush = true
+				}
 			}
 		}
 
@@ -657,10 +667,15 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		}
 
 		for _, issue := range issues {
+			if isForcePush {
+				if err := ClearPullPushComent(issue); err != nil {
+					return fmt.Errorf("ClearPullPushComent: %v", err)
+				}
+			}
+
 			for i := 0; i < len(opts.Commits.Commits); i++ {
 				c := opts.Commits.Commits[i]
-				link := fmt.Sprintf("%s/commit/%s", issue.Repo.Link(), c.Sha1)
-				if err := CreatePullPushComment(pusher, issue.Repo, issue, c.Message, c.Sha1, link); err != nil {
+				if err := CreatePullPushComment(pusher, issue.Repo, issue, c.Message, c.Sha1, issue.Repo.FullName()); err != nil {
 					return fmt.Errorf("CreatePullPushComment: %v", err)
 				}
 			}
