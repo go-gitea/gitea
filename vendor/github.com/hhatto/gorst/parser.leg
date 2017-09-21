@@ -1,0 +1,1256 @@
+%{
+/*  Original C version https://github.com/jgm/peg-markdown/
+ *	Copyright 2008 John MacFarlane (jgm at berkeley dot edu).
+ *
+ *  Modifications and translation from C into Go
+ *  based on markdown_parser.leg and utility_functions.c
+ *	Copyright 2010 Michael Teichgräber (mt at wmipf dot de)
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License or the MIT
+ *  license.  See LICENSE for details.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ */
+
+package rst
+
+// PEG grammar and parser actions for restructuredtext syntax.
+
+import (
+	"fmt"
+	"io"
+	"log"
+	"strings"
+)
+
+const (
+	parserIfaceVersion_18 = iota
+)
+
+// Semantic value of a parsing action.
+type element struct {
+	key int
+	contents
+	children *element
+	next     *element
+}
+
+// Information (label, URL and title) for a link.
+type link struct {
+	label *element
+	url   string
+	title string
+}
+
+// code contents
+type code struct {
+	lang string
+}
+
+// Union for contents of an Element (string, list, code, or link).
+type contents struct {
+	str string
+	*link
+    *code
+}
+
+// Types of semantic values returned by parsers.
+const (
+	LIST = iota /* A generic list of values. For ordered and bullet lists, see below. */
+	RAW         /* Raw markdown to be processed further */
+	SPACE
+	LINEBREAK
+	ELLIPSIS
+	EMDASH
+	ENDASH
+	APOSTROPHE
+	SINGLEQUOTED
+	DOUBLEQUOTED
+	STR
+	LINK
+	IMAGE
+	CODE
+	HTML
+	EMPH
+	STRONG
+	STRIKE
+	PLAIN
+	PARA
+	LISTITEM
+	BULLETLIST
+	ORDEREDLIST
+	H1TITLE
+	H1 /* Code assumes that H1..6 are in order. */
+	H2
+	H3
+	H4
+	H5
+	H6
+	TABLE
+	TABLESEPARATOR
+	TABLECELL
+	CELLSPAN
+	TABLEROW
+	TABLEBODY
+	TABLEHEAD
+	CODEBLOCK
+	BLOCKQUOTE
+	VERBATIM
+	HTMLBLOCK
+	HRULE
+	REFERENCE
+	NOTE
+	DEFINITIONLIST
+	DEFTITLE
+	DEFDATA
+	numVAL
+)
+
+type state struct {
+	extension  Extensions
+	heap       elemHeap
+	tree       *element /* Results of parse. */
+	references *element /* List of link references found. */
+	notes      *element /* List of footnotes found. */
+}
+
+%}
+
+%userstate state
+
+%noexport
+
+%YYSTYPE *element
+
+Doc =       a:StartList ( Block { a = cons($$, a) } )*
+            { p.tree = reverse(a) }
+            commit
+
+Docblock = Block { p.tree = $$ } commit
+
+Block =     BlankLine*
+            ( BlockQuote
+            | Verbatim
+            | Image
+            | CodeBlock
+            | DoctestBlock
+            | Note
+            | Reference
+            | HorizontalRule
+            | HeadingTitle
+            | Heading
+            | Table
+            | DefinitionList
+            | OrderedList
+            | BulletList
+            | HtmlBlock
+            | StyleBlock
+            | Para
+            | Plain )
+
+Para =      NonindentSpace a:Inlines BlankLine+
+            { $$ = a; $$.key = PARA }
+
+Plain =     a:Inlines
+            { $$ = a; $$.key = PLAIN }
+
+SetextBottom = ( '=' | '-' | '*' | '^' | '~' )+ Newline
+
+HeadingTitle =  &(SetextBottom RawLine SetextBottom)
+                SetextBottom
+                a:StartList ( !Endline Inline { a = cons($$, a) } )+ Sp Newline
+                SetextBottom { $$ = p.mkList(H1TITLE, a) }
+
+Heading =  &(RawLine SetextBottom)
+           a:StartList ( !Endline Inline { a = cons($$, a) } )+ Sp Newline
+           SetextBottom { $$ = p.mkList(getHeadingElm(string(yytext[0])), a) }
+
+Image = NonindentSpace
+        ".. image:: " l:Source BlankLine
+        ( ( Sp ":alt:" Sp a:RefSource BlankLine )
+        | ( Sp ":target:" Sp t:Source BlankLine )
+        | ( Sp ":align:" Sp g:Source BlankLine ) )*
+        {
+            tt := p.mkElem(LIST)
+            title := ""
+            if (a != nil && a.contents.str != "") {
+                title = a.contents.str
+            }
+            tt = p.mkLink(p.mkString(l.contents.str), l.contents.str, title)
+            tt.key = IMAGE
+
+            if (t != nil) {
+                gg := p.mkLink(p.mkString(t.contents.str), t.contents.str, "")
+                gg.children = tt
+                $$ = gg
+            } else {
+                $$ = tt
+                $$.children = nil
+            }
+            a = nil
+            t = nil
+            g = nil
+            l = nil
+        }
+
+CodeBlock = NonindentSpace
+            ".. code" "-block"? ":: " l:Source BlankLine
+            Newline
+            a:StartList
+            ( VerbatimChunk { a = cons($$, a) } )+
+            {
+                $$ = p.mkCodeBlock(a, l.contents.str)
+                l = nil
+            }
+
+DoctestBlock = a:StartList
+               (( DoctestLine { a = cons($$, a) } )+
+                ( !'>' !BlankLine Line { a = cons($$, a) } )*
+               )+
+               { 
+                  $$ = p.mkCodeBlock(a, "python")
+               }
+
+
+BlockQuoteRaw = ":" BlankLine
+                Newline
+                a:StartList
+                ( NonblankIndentedLine { a = cons($$, a) } )+
+                {
+					$$ = p.mkStringFromList(a, true)
+                    $$.key = RAW
+                }
+
+BlockQuoteChunk = !"::" ":" BlankLine
+                  Newline
+                  a:StartList
+                ( BlankLine { a = cons(p.mkString("\n"), a) } )*
+                ( NonblankIndentedLine { a = cons($$, a) } )+
+                { $$ = p.mkStringFromList(a, false) }
+
+BlockQuote =     a:StartList ( BlockQuoteChunk { a = cons($$, a) } )+
+               { $$ = p.mkElem(BLOCKQUOTE)
+                 $$.children = a }
+
+NonblankIndentedLine = !BlankLine IndentedLine
+
+VerbatimChunk = a:StartList
+                ( BlankLine { a = cons(p.mkString("\n"), a) } )*
+                ( NonblankIndentedLine { a = cons($$, a) } )+
+                { $$ = p.mkStringFromList(a, false) }
+
+Verbatim =     a:StartList ( VerbatimChunk { a = cons($$, a) } )+
+               { $$ = p.mkStringFromList(a, false)
+                 $$.key = VERBATIM }
+
+HorizontalRule = NonindentSpace
+                 ( '=' Sp '=' Sp '=' (Sp '=')*
+                 | '-' Sp '-' Sp '-' (Sp '-')*
+                 | '*' Sp '*' Sp '*' (Sp '*')*
+                 | '^' Sp '^' Sp '^' (Sp '^')*
+                 | '~' Sp '~' Sp '~' (Sp '~')*
+                 | '_' Sp '_' Sp '_' (Sp '_')*)
+                 Sp Newline BlankLine+
+                 { $$ = p.mkElem(HRULE) }
+
+Table = GridTable | HeaderLessGridTable | SimpleTable
+
+SimpleTable = "NotImplemented" "simpleTable"
+
+GridTable = a:StartList
+            ( GridTableHeader { $$.key = TABLEHEAD; a = cons($$, a) } )
+            ( GridTableHeaderSep { a = $$ } )
+            ( GridTableBody { a = cons($$, a) } )+
+            {
+                $$ = p.mkList(TABLE, a)
+            }
+
+HeaderLessGridTable = a:StartList
+            ( GridTableSep (GridTableBody { a = cons($$, a) } )+ )
+            {
+                $$ = p.mkList(TABLE, a)
+            }
+
+GridTableHeader = Sp '+' ( '-'+ '+' )+ BlankLine
+		a:StartList 
+		< ( GridTableRow { a = cons($$, a) } )+ >
+		{
+			$$ = p.mkList(TABLEBODY, a)
+		}
+
+GridTableBody = a:StartList ( GridTableRow { a = cons($$, a) } GridTableSep )+
+		{ $$ = p.mkList(TABLEBODY, a);}
+
+GridTableRow = Sp '|' Sp
+		a:StartList
+		( < TableCell > Sp '|'
+		{
+			// TODO: support inline text
+			raw := p.mkString(yytext)
+			raw.key = RAW
+			$$ = p.mkElem(TABLECELL)
+			$$.children = raw
+			a = cons($$, a)
+		} )+
+		BlankLine
+		{
+			$$ = p.mkList(TABLEROW, a)
+		}
+
+TableCell = a:StartList
+            ( ':' | '>' | '<' | '/' | '-' | Spacechar | EscapedChar | Alphanumeric | Sp )+
+		    {
+			}
+
+GridTableHeaderSep = Sp '+' ( '='+ '+' )+ BlankLine
+
+GridTableSep = Sp '+' ( '-'+ '+' )+ BlankLine
+
+Bullet = !HorizontalRule NonindentSpace ('+' | '*' | '-') Spacechar+
+
+BulletList = &Bullet (ListTight | ListLoose)
+             { $$.key = BULLETLIST }
+
+ListTight = a:StartList
+            ( ListItemTight { a = cons($$, a) } )+
+            BlankLine* !(Bullet | Enumerator | DefMarker)
+            { $$ = p.mkList(LIST, a) }
+
+ListLoose = a:StartList
+            ( b:ListItem BlankLine*
+              {
+                  li := b.children
+                  li.contents.str += "\n\n"
+                  a = cons(b, a)
+              } )+
+            { $$ = p.mkList(LIST, a) }
+
+ListItem =  ( Bullet | Enumerator | DefMarker )
+            a:StartList
+            ListBlock { a = cons($$, a) }
+            ( ListContinuationBlock { a = cons($$, a) } )*
+            {
+               raw := p.mkStringFromList(a, false)
+               raw.key = RAW
+               $$ = p.mkElem(LISTITEM)
+               $$.children = raw
+            }
+
+ListItemTight =
+            ( Bullet | Enumerator | DefMarker )
+            a:StartList
+            ListBlock { a = cons($$, a) }
+            ( !BlankLine
+              ListContinuationBlock { a = cons($$, a) } )*
+            !ListContinuationBlock
+            {
+               raw := p.mkStringFromList(a, false)
+               raw.key = RAW
+               $$ = p.mkElem(LISTITEM)
+               $$.children = raw
+            }
+
+ListBlock = a:StartList
+            !BlankLine Line { a = cons($$, a) }
+            ( ListBlockLine { a = cons($$, a) } )*
+            { $$ = p.mkStringFromList(a, false) }
+
+ListContinuationBlock = a:StartList
+                        ( < BlankLine* >
+                          {   if len(yytext) == 0 {
+                                   a = cons(p.mkString("\001"), a) // block separator
+                              } else {
+                                   a = cons(p.mkString(yytext), a)
+                              }
+                          } )
+                        ( Indent ListBlock { a = cons($$, a) } )+
+                        {  $$ = p.mkStringFromList(a, false) }
+
+Enumerator = NonindentSpace ([0-9]+ | '#'+) '.' Spacechar+
+
+OrderedList = &Enumerator (ListTight | ListLoose)
+              { $$.key = ORDEREDLIST }
+
+ListBlockLine = !BlankLine
+                !( (Indent? (Bullet | Enumerator)) | DefMarker )
+                !HorizontalRule
+                OptionallyIndentedLine
+
+# Parsers for different kinds of block-level HTML content.
+# This is repetitive due to constraints of PEG grammar.
+
+HtmlBlockOpenAddress = '<' Spnl ("address" | "ADDRESS") Spnl HtmlAttribute* '>'
+HtmlBlockCloseAddress = '<' Spnl '/' ("address" | "ADDRESS") Spnl '>'
+HtmlBlockAddress = HtmlBlockOpenAddress (HtmlBlockAddress | !HtmlBlockCloseAddress .)* HtmlBlockCloseAddress
+
+HtmlBlockOpenBlockquote = '<' Spnl ("blockquote" | "BLOCKQUOTE") Spnl HtmlAttribute* '>'
+HtmlBlockCloseBlockquote = '<' Spnl '/' ("blockquote" | "BLOCKQUOTE") Spnl '>'
+HtmlBlockBlockquote = HtmlBlockOpenBlockquote (HtmlBlockBlockquote | !HtmlBlockCloseBlockquote .)* HtmlBlockCloseBlockquote
+
+HtmlBlockOpenCenter = '<' Spnl ("center" | "CENTER") Spnl HtmlAttribute* '>'
+HtmlBlockCloseCenter = '<' Spnl '/' ("center" | "CENTER") Spnl '>'
+HtmlBlockCenter = HtmlBlockOpenCenter (HtmlBlockCenter | !HtmlBlockCloseCenter .)* HtmlBlockCloseCenter
+
+HtmlBlockOpenDir = '<' Spnl ("dir" | "DIR") Spnl HtmlAttribute* '>'
+HtmlBlockCloseDir = '<' Spnl '/' ("dir" | "DIR") Spnl '>'
+HtmlBlockDir = HtmlBlockOpenDir (HtmlBlockDir | !HtmlBlockCloseDir .)* HtmlBlockCloseDir
+
+HtmlBlockOpenDiv = '<' Spnl ("div" | "DIV") Spnl HtmlAttribute* '>'
+HtmlBlockCloseDiv = '<' Spnl '/' ("div" | "DIV") Spnl '>'
+HtmlBlockDiv = HtmlBlockOpenDiv (HtmlBlockDiv | !HtmlBlockCloseDiv .)* HtmlBlockCloseDiv
+
+HtmlBlockOpenDl = '<' Spnl ("dl" | "DL") Spnl HtmlAttribute* '>'
+HtmlBlockCloseDl = '<' Spnl '/' ("dl" | "DL") Spnl '>'
+HtmlBlockDl = HtmlBlockOpenDl (HtmlBlockDl | !HtmlBlockCloseDl .)* HtmlBlockCloseDl
+
+HtmlBlockOpenFieldset = '<' Spnl ("fieldset" | "FIELDSET") Spnl HtmlAttribute* '>'
+HtmlBlockCloseFieldset = '<' Spnl '/' ("fieldset" | "FIELDSET") Spnl '>'
+HtmlBlockFieldset = HtmlBlockOpenFieldset (HtmlBlockFieldset | !HtmlBlockCloseFieldset .)* HtmlBlockCloseFieldset
+
+HtmlBlockOpenForm = '<' Spnl ("form" | "FORM") Spnl HtmlAttribute* '>'
+HtmlBlockCloseForm = '<' Spnl '/' ("form" | "FORM") Spnl '>'
+HtmlBlockForm = HtmlBlockOpenForm (HtmlBlockForm | !HtmlBlockCloseForm .)* HtmlBlockCloseForm
+
+HtmlBlockOpenH1 = '<' Spnl ("h1" | "H1") Spnl HtmlAttribute* '>'
+HtmlBlockCloseH1 = '<' Spnl '/' ("h1" | "H1") Spnl '>'
+HtmlBlockH1 = HtmlBlockOpenH1 (HtmlBlockH1 | !HtmlBlockCloseH1 .)* HtmlBlockCloseH1
+
+HtmlBlockOpenH2 = '<' Spnl ("h2" | "H2") Spnl HtmlAttribute* '>'
+HtmlBlockCloseH2 = '<' Spnl '/' ("h2" | "H2") Spnl '>'
+HtmlBlockH2 = HtmlBlockOpenH2 (HtmlBlockH2 | !HtmlBlockCloseH2 .)* HtmlBlockCloseH2
+
+HtmlBlockOpenH3 = '<' Spnl ("h3" | "H3") Spnl HtmlAttribute* '>'
+HtmlBlockCloseH3 = '<' Spnl '/' ("h3" | "H3") Spnl '>'
+HtmlBlockH3 = HtmlBlockOpenH3 (HtmlBlockH3 | !HtmlBlockCloseH3 .)* HtmlBlockCloseH3
+
+HtmlBlockOpenH4 = '<' Spnl ("h4" | "H4") Spnl HtmlAttribute* '>'
+HtmlBlockCloseH4 = '<' Spnl '/' ("h4" | "H4") Spnl '>'
+HtmlBlockH4 = HtmlBlockOpenH4 (HtmlBlockH4 | !HtmlBlockCloseH4 .)* HtmlBlockCloseH4
+
+HtmlBlockOpenH5 = '<' Spnl ("h5" | "H5") Spnl HtmlAttribute* '>'
+HtmlBlockCloseH5 = '<' Spnl '/' ("h5" | "H5") Spnl '>'
+HtmlBlockH5 = HtmlBlockOpenH5 (HtmlBlockH5 | !HtmlBlockCloseH5 .)* HtmlBlockCloseH5
+
+HtmlBlockOpenH6 = '<' Spnl ("h6" | "H6") Spnl HtmlAttribute* '>'
+HtmlBlockCloseH6 = '<' Spnl '/' ("h6" | "H6") Spnl '>'
+HtmlBlockH6 = HtmlBlockOpenH6 (HtmlBlockH6 | !HtmlBlockCloseH6 .)* HtmlBlockCloseH6
+
+HtmlBlockOpenMenu = '<' Spnl ("menu" | "MENU") Spnl HtmlAttribute* '>'
+HtmlBlockCloseMenu = '<' Spnl '/' ("menu" | "MENU") Spnl '>'
+HtmlBlockMenu = HtmlBlockOpenMenu (HtmlBlockMenu | !HtmlBlockCloseMenu .)* HtmlBlockCloseMenu
+
+HtmlBlockOpenNoframes = '<' Spnl ("noframes" | "NOFRAMES") Spnl HtmlAttribute* '>'
+HtmlBlockCloseNoframes = '<' Spnl '/' ("noframes" | "NOFRAMES") Spnl '>'
+HtmlBlockNoframes = HtmlBlockOpenNoframes (HtmlBlockNoframes | !HtmlBlockCloseNoframes .)* HtmlBlockCloseNoframes
+
+HtmlBlockOpenNoscript = '<' Spnl ("noscript" | "NOSCRIPT") Spnl HtmlAttribute* '>'
+HtmlBlockCloseNoscript = '<' Spnl '/' ("noscript" | "NOSCRIPT") Spnl '>'
+HtmlBlockNoscript = HtmlBlockOpenNoscript (HtmlBlockNoscript | !HtmlBlockCloseNoscript .)* HtmlBlockCloseNoscript
+
+HtmlBlockOpenOl = '<' Spnl ("ol" | "OL") Spnl HtmlAttribute* '>'
+HtmlBlockCloseOl = '<' Spnl '/' ("ol" | "OL") Spnl '>'
+HtmlBlockOl = HtmlBlockOpenOl (HtmlBlockOl | !HtmlBlockCloseOl .)* HtmlBlockCloseOl
+
+HtmlBlockOpenP = '<' Spnl ("p" | "P") Spnl HtmlAttribute* '>'
+HtmlBlockCloseP = '<' Spnl '/' ("p" | "P") Spnl '>'
+HtmlBlockP = HtmlBlockOpenP (HtmlBlockP | !HtmlBlockCloseP .)* HtmlBlockCloseP
+
+HtmlBlockOpenPre = '<' Spnl ("pre" | "PRE") Spnl HtmlAttribute* '>'
+HtmlBlockClosePre = '<' Spnl '/' ("pre" | "PRE") Spnl '>'
+HtmlBlockPre = HtmlBlockOpenPre (HtmlBlockPre | !HtmlBlockClosePre .)* HtmlBlockClosePre
+
+HtmlBlockOpenTable = '<' Spnl ("table" | "TABLE") Spnl HtmlAttribute* '>'
+HtmlBlockCloseTable = '<' Spnl '/' ("table" | "TABLE") Spnl '>'
+HtmlBlockTable = HtmlBlockOpenTable (HtmlBlockTable | !HtmlBlockCloseTable .)* HtmlBlockCloseTable
+
+HtmlBlockOpenUl = '<' Spnl ("ul" | "UL") Spnl HtmlAttribute* '>'
+HtmlBlockCloseUl = '<' Spnl '/' ("ul" | "UL") Spnl '>'
+HtmlBlockUl = HtmlBlockOpenUl (HtmlBlockUl | !HtmlBlockCloseUl .)* HtmlBlockCloseUl
+
+HtmlBlockOpenDd = '<' Spnl ("dd" | "DD") Spnl HtmlAttribute* '>'
+HtmlBlockCloseDd = '<' Spnl '/' ("dd" | "DD") Spnl '>'
+HtmlBlockDd = HtmlBlockOpenDd (HtmlBlockDd | !HtmlBlockCloseDd .)* HtmlBlockCloseDd
+
+HtmlBlockOpenDt = '<' Spnl ("dt" | "DT") Spnl HtmlAttribute* '>'
+HtmlBlockCloseDt = '<' Spnl '/' ("dt" | "DT") Spnl '>'
+HtmlBlockDt = HtmlBlockOpenDt (HtmlBlockDt | !HtmlBlockCloseDt .)* HtmlBlockCloseDt
+
+HtmlBlockOpenFrameset = '<' Spnl ("frameset" | "FRAMESET") Spnl HtmlAttribute* '>'
+HtmlBlockCloseFrameset = '<' Spnl '/' ("frameset" | "FRAMESET") Spnl '>'
+HtmlBlockFrameset = HtmlBlockOpenFrameset (HtmlBlockFrameset | !HtmlBlockCloseFrameset .)* HtmlBlockCloseFrameset
+
+HtmlBlockOpenLi = '<' Spnl ("li" | "LI") Spnl HtmlAttribute* '>'
+HtmlBlockCloseLi = '<' Spnl '/' ("li" | "LI") Spnl '>'
+HtmlBlockLi = HtmlBlockOpenLi (HtmlBlockLi | !HtmlBlockCloseLi .)* HtmlBlockCloseLi
+
+HtmlBlockOpenTbody = '<' Spnl ("tbody" | "TBODY") Spnl HtmlAttribute* '>'
+HtmlBlockCloseTbody = '<' Spnl '/' ("tbody" | "TBODY") Spnl '>'
+HtmlBlockTbody = HtmlBlockOpenTbody (HtmlBlockTbody | !HtmlBlockCloseTbody .)* HtmlBlockCloseTbody
+
+HtmlBlockOpenTd = '<' Spnl ("td" | "TD") Spnl HtmlAttribute* '>'
+HtmlBlockCloseTd = '<' Spnl '/' ("td" | "TD") Spnl '>'
+HtmlBlockTd = HtmlBlockOpenTd (HtmlBlockTd | !HtmlBlockCloseTd .)* HtmlBlockCloseTd
+
+HtmlBlockOpenTfoot = '<' Spnl ("tfoot" | "TFOOT") Spnl HtmlAttribute* '>'
+HtmlBlockCloseTfoot = '<' Spnl '/' ("tfoot" | "TFOOT") Spnl '>'
+HtmlBlockTfoot = HtmlBlockOpenTfoot (HtmlBlockTfoot | !HtmlBlockCloseTfoot .)* HtmlBlockCloseTfoot
+
+HtmlBlockOpenTh = '<' Spnl ("th" | "TH") Spnl HtmlAttribute* '>'
+HtmlBlockCloseTh = '<' Spnl '/' ("th" | "TH") Spnl '>'
+HtmlBlockTh = HtmlBlockOpenTh (HtmlBlockTh | !HtmlBlockCloseTh .)* HtmlBlockCloseTh
+
+HtmlBlockOpenThead = '<' Spnl ("thead" | "THEAD") Spnl HtmlAttribute* '>'
+HtmlBlockCloseThead = '<' Spnl '/' ("thead" | "THEAD") Spnl '>'
+HtmlBlockThead = HtmlBlockOpenThead (HtmlBlockThead | !HtmlBlockCloseThead .)* HtmlBlockCloseThead
+
+HtmlBlockOpenTr = '<' Spnl ("tr" | "TR") Spnl HtmlAttribute* '>'
+HtmlBlockCloseTr = '<' Spnl '/' ("tr" | "TR") Spnl '>'
+HtmlBlockTr = HtmlBlockOpenTr (HtmlBlockTr | !HtmlBlockCloseTr .)* HtmlBlockCloseTr
+
+HtmlBlockOpenScript = '<' Spnl ("script" | "SCRIPT") Spnl HtmlAttribute* '>'
+HtmlBlockCloseScript = '<' Spnl '/' ("script" | "SCRIPT") Spnl '>'
+HtmlBlockScript = HtmlBlockOpenScript (!HtmlBlockCloseScript .)* HtmlBlockCloseScript
+
+HtmlBlockOpenHead = '<' Spnl ("head" | "HEAD") Spnl HtmlAttribute* '>'
+HtmlBlockCloseHead = '<' Spnl '/' ("head" | "HEAD") Spnl '>'
+HtmlBlockHead = HtmlBlockOpenHead (!HtmlBlockCloseHead .)* HtmlBlockCloseHead
+
+HtmlBlockInTags = HtmlBlockAddress
+                | HtmlBlockBlockquote
+                | HtmlBlockCenter
+                | HtmlBlockDir
+                | HtmlBlockDiv
+                | HtmlBlockDl
+                | HtmlBlockFieldset
+                | HtmlBlockForm
+                | HtmlBlockH1
+                | HtmlBlockH2
+                | HtmlBlockH3
+                | HtmlBlockH4
+                | HtmlBlockH5
+                | HtmlBlockH6
+                | HtmlBlockMenu
+                | HtmlBlockNoframes
+                | HtmlBlockNoscript
+                | HtmlBlockOl
+                | HtmlBlockP
+                | HtmlBlockPre
+                | HtmlBlockTable
+                | HtmlBlockUl
+                | HtmlBlockDd
+                | HtmlBlockDt
+                | HtmlBlockFrameset
+                | HtmlBlockLi
+                | HtmlBlockTbody
+                | HtmlBlockTd
+                | HtmlBlockTfoot
+                | HtmlBlockTh
+                | HtmlBlockThead
+                | HtmlBlockTr
+                | HtmlBlockScript
+                | HtmlBlockHead
+
+HtmlBlock = &'<' < ( HtmlBlockInTags | HtmlComment | HtmlBlockSelfClosing ) >
+            BlankLine+
+            {   if p.extension.FilterHTML {
+                    $$ = p.mkList(LIST, nil)
+                } else {
+                    $$ = p.mkString(yytext)
+                    $$.key = HTMLBLOCK
+                }
+            }
+
+HtmlBlockSelfClosing = '<' Spnl HtmlBlockType Spnl HtmlAttribute* '/' Spnl '>'
+
+HtmlBlockType = "address" | "blockquote" | "center" | "dir" | "div" | "dl" | "fieldset" | "form" | "h1" | "h2" | "h3" |
+                "h4" | "h5" | "h6" | "hr" | "isindex" | "menu" | "noframes" | "noscript" | "ol" | "p" | "pre" | "table" |
+                "ul" | "dd" | "dt" | "frameset" | "li" | "tbody" | "td" | "tfoot" | "th" | "thead" | "tr" | "script" |
+                "ADDRESS" | "BLOCKQUOTE" | "CENTER" | "DIR" | "DIV" | "DL" | "FIELDSET" | "FORM" | "H1" | "H2" | "H3" |
+                "H4" | "H5" | "H6" | "HR" | "ISINDEX" | "MENU" | "NOFRAMES" | "NOSCRIPT" | "OL" | "P" | "PRE" | "TABLE" |
+                "UL" | "DD" | "DT" | "FRAMESET" | "LI" | "TBODY" | "TD" | "TFOOT" | "TH" | "THEAD" | "TR" | "SCRIPT"
+
+StyleOpen =     '<' Spnl ("style" | "STYLE") Spnl HtmlAttribute* '>'
+StyleClose =    '<' Spnl '/' ("style" | "STYLE") Spnl '>'
+InStyleTags =   StyleOpen (!StyleClose .)* StyleClose
+StyleBlock =    < InStyleTags >
+                BlankLine*
+                {   if p.extension.FilterStyles {
+                        $$ = p.mkList(LIST, nil)
+                    } else {
+                        $$ = p.mkString(yytext)
+                        $$.key = HTMLBLOCK
+                    }
+                }
+
+Inlines  =  a:StartList ( !Endline Inline { a = cons($$, a) }
+                        | c:Endline &Inline { a = cons(c, a) } )+ Endline?
+			{
+				$$ = p.mkList(LIST, a)
+			}
+
+Inline  = Link
+        | Str
+        | Endline
+        | UlOrStarLine
+        | Space
+        | Strong
+        | Emph
+        | Strike
+        | NoteReference
+        | Footnote
+        #| Citation
+        | Code
+        | ApplicationDepent
+        | RawHtml
+        | Entity
+        | EscapedChar
+        | Smart
+        | Symbol
+
+Space = Spacechar+
+        { $$ = p.mkString(" ")
+          $$.key = SPACE }
+
+Str = a:StartList < NormalChar+ > { a = cons(p.mkString(yytext), a) }
+      ( StrChunk { a = cons($$, a) } )*
+      { if a.next == nil { $$ = a; } else { $$ = p.mkList(LIST, a) } }
+
+StrChunk = < (NormalChar | '_'+ &Alphanumeric)+ > { $$ = p.mkString(yytext) } |
+           AposChunk
+
+AposChunk = &{ p.extension.Smart } '\'' &Alphanumeric
+      { $$ = p.mkElem(APOSTROPHE) }
+
+EscapedChar =   '\\' !Newline < [-\\`|*_{}[\]()#+.!><] >
+                { $$ = p.mkString(yytext) }
+
+Entity =    ( HexEntity | DecEntity | CharEntity )
+            { $$ = p.mkString(yytext); $$.key = HTML }
+
+Endline =   LineBreak | TerminalEndline | NormalEndline
+
+NormalEndline =   Sp Newline !BlankLine !'>'
+                  !(Line ('='+ | '-'+) Newline)
+                  { $$ = p.mkString("\n")
+                    $$.key = SPACE }
+
+TerminalEndline = Sp Newline Eof
+                  { $$ = nil }
+
+LineBreak = "  " NormalEndline
+            { $$ = p.mkElem(LINEBREAK) }
+
+Symbol =    < SpecialChar >
+            { $$ = p.mkString(yytext) }
+
+ApplicationDepent = !"`_" !"``_" '`' !"``" a:QuotedRefSource '`' !"``" !"_"
+                    { $$ = p.mkString(yytext); a = nil }
+
+# This keeps the parser from getting bogged down on long strings of '*' or '_',
+# or strings of '*' or '_' with space on each side:
+UlOrStarLine =  (UlLine | StarLine) { $$ = p.mkString(yytext) }
+StarLine =      < "****" '*'* > | < Spacechar '*'+ &Spacechar >
+UlLine   =      < "____" '_'* > | < Spacechar '_'+ &Spacechar >
+
+Whitespace = Spacechar | Newline
+
+Emph =  '*' !Whitespace
+        a:StartList
+        ( !'*' b:Inline { a = cons(b, a) } )+
+        '*'
+        { $$ = p.mkList(EMPH, a) }
+
+Strong =    "**" !Whitespace
+            a:StartList
+            ( !"**" b:Inline { a = cons(b, a) })+
+            "**"
+            { $$ = p.mkList(STRONG, a) }
+
+Strike = &{ p.extension.Strike }
+         "~~" !Whitespace
+         a:StartList
+         ( !"~~" b:Inline { a = cons(b, a) } )+
+         "~~"
+         { $$ = p.mkList(STRIKE, a) }
+
+Link =  ReferenceLink | ExplicitLink | AutoLink
+
+ReferenceLink = UnquotedRefLinkUnderbar | QuotedRefLinkUnderbar
+
+UnquotedRefLinkUnderbar = < a:UnquotedLinkSource > '_'
+                       {
+                           if match, found := p.findReference(p.mkString(a.contents.str)); found {
+                               $$ = p.mkLink(p.mkString(a.contents.str), match.url, match.title)
+                               a = nil
+                           } else {
+                               result := p.mkElem(LIST)
+                               result.children = cons(p.mkString(a.contents.str), cons(a, p.mkString(yytext)));
+                               $$ = result
+                           }
+                       }
+
+QuotedRefLinkUnderbar = ( !"`_" !"``_" '`' !"``" ) a:QuotedRefSource ( '`' !"``" ) '_'
+                       {
+                           if match, found := p.findReference(p.mkString(a.contents.str)); found {
+                               $$ = p.mkLink(p.mkString(yytext), match.url, match.title)
+                               a = nil
+                           } else {
+                               result := p.mkElem(LIST)
+                               result.children = cons(p.mkString(a.contents.str), cons(a, p.mkString(yytext)));
+                               $$ = result
+                           }
+                       }
+
+ExplicitLink =  l:Label '(' Sp s:Source Spnl t:Title Sp ')'
+                { 
+                  $$ = p.mkLink(l.children, s.contents.str, t.contents.str)
+                  s = nil
+                  t = nil
+                  l = nil
+                }
+
+Source  = ( < SourceContents > )
+          { $$ = p.mkString(yytext) }
+
+SourceContents = ( ( !'(' !')' !'>' Nonspacechar )+ | '(' SourceContents ')')*
+
+Title = ( TitleSingle | TitleDouble | < "" > )
+        { $$ = p.mkString(yytext) }
+
+TitleSingle = '\'' < ( !( '\'' Sp ( ')' | Newline ) ) . )* > '\''
+
+TitleDouble = '"' < ( !( '"' Sp ( ')' | Newline ) ) . )* > '"'
+
+AutoLink = EmbeddedLink | AutoLinkUrl | AutoLinkEmail
+
+EmbeddedLink = a:StartList '`' l:EmbeddedRefSource "<" < [A-Za-z]+ "://" ( !Newline !'>' . )+ > ">`_" '_'?
+               {
+					$$ = p.mkLink(p.mkString(l.contents.str), yytext, "")
+			   }
+
+AutoLinkUrl =   < [A-Za-z]+ "://" ( !Newline !'>' . )+ >
+                { $$ = p.mkLink(p.mkString(yytext), yytext, "") }
+
+AutoLinkEmail = '<' ( "mailto:" )? < [-A-Za-z0-9+_./!%~$]+ '@' ( !Newline !'>' . )+ > '>'
+                {
+                    $$ = p.mkLink(p.mkString(yytext), "mailto:"+yytext, "")
+                }
+
+Reference = QuotedReference | UnquotedReference
+
+QuotedReference = NonindentSpace
+                  ".. _`" !"``" c:QuotedRefSource !"``:" "`: " s:RefSrc BlankLine
+            {
+                $$ = p.mkLink(p.mkString(c.contents.str), s.contents.str, "")
+                s = nil
+                c = nil
+                $$.key = REFERENCE
+            }
+
+UnquotedReference = NonindentSpace
+                    ".. _" c:RefSource ": " s:RefSrc BlankLine
+            {
+                $$ = p.mkLink(p.mkString(c.contents.str), s.contents.str, "")
+                s = nil
+                c = nil
+                $$.key = REFERENCE
+            }
+
+UrlReference = ( NonindentSpace | Sp )
+               ":target:" Sp s:RefSrc BlankLine
+                {
+                    $$ = p.mkLink(p.mkString(yytext), yytext, "")
+                    s = nil
+                    $$.key = REFERENCE
+                }
+
+UnquotedLinkSource  = < ( ( !'_' !':' !'`' ( Nonspacechar ) )+ )* >
+              { $$ = p.mkString(yytext) }
+
+RefSource  = < ( ( !'_' !':' !'`' ( ' ' | Nonspacechar ) )+ )* >
+          { $$ = p.mkString(yytext) }
+
+QuotedRefSource  = < ( ( !':' !'`' ( ' ' | Nonspacechar ) )+ )* >
+          { $$ = p.mkString(yytext) }
+
+EmbeddedRefSource  = < ( ( !'<' !':' !'`' ( ' ' | Nonspacechar | BlankLine ) )+ )* >
+          { $$ = p.mkString(yytext) }
+
+Label = '[' ( !'^' &{ p.extension.Notes } | &. &{ !p.extension.Notes } )
+        a:StartList
+        ( !']' Inline { a = cons($$, a) } )*
+        ']'
+        {
+			$$ = p.mkList(LIST, a)
+		}
+
+RefSrc = < Nonspacechar+ > 
+         { $$ = p.mkString(yytext)
+           $$.key = HTML }
+
+References = a:StartList
+             ( b:Reference { a = cons(b, a) } | SkipBlock )*
+             { p.references = reverse(a)
+               p.state.heap.hasGlobals = true
+             }
+             commit
+
+Ticks2 = "``" !'`'
+
+Code = Ticks2 < 
+       ( ( !'`' Nonspacechar )+ | '_' | !Ticks2 '`' | !( Sp Ticks2 ) ( Spacechar | Newline !BlankLine ) )+
+       > Ticks2
+       { $$ = p.mkString(yytext); $$.key = CODE }
+
+RawHtml =   < (HtmlComment | HtmlBlockScript | HtmlTag) >
+            {   if p.extension.FilterHTML {
+                    $$ = p.mkList(LIST, nil)
+                } else {
+                    $$ = p.mkString(yytext)
+                    $$.key = HTML
+                }
+            }
+
+BlankLine =     Sp Newline
+
+Quoted =        '"' (!'"' .)* '"' | '\'' (!'\'' .)* '\''
+HtmlAttribute = (AlphanumericAscii | '-')+ Spnl ('=' Spnl (Quoted | (!'>' Nonspacechar)+))? Spnl
+HtmlComment =   "<!--" (!"-->" .)* "-->"
+HtmlTag =       '<' Spnl '/'? AlphanumericAscii+ Spnl HtmlAttribute* '/'? Spnl '>'
+Eof =           !.
+Spacechar =     ' ' | '\t'
+Nonspacechar =  !Spacechar !Newline .
+Newline =       '\n' | '\r' '\n'?
+Sp =            Spacechar*
+Spnl =          Sp (Newline Sp)?
+SpecialChar =   '~' | '*' | '_' | '`' | '&' | '[' | ']' | '(' | ')' | '<' | '!' | '#' | '\\' | '\'' | '"' | ExtendedSpecialChar
+NormalChar =    !( SpecialChar | Spacechar | Newline ) .
+Alphanumeric = [0-9A-Za-z] | '\200' | '\201' | '\202' | '\203' | '\204' | '\205' | '\206' | '\207' | '\210' | '\211' | '\212' | '\213' | '\214' | '\215' | '\216' | '\217' | '\220' | '\221' | '\222' | '\223' | '\224' | '\225' | '\226' | '\227' | '\230' | '\231' | '\232' | '\233' | '\234' | '\235' | '\236' | '\237' | '\240' | '\241' | '\242' | '\243' | '\244' | '\245' | '\246' | '\247' | '\250' | '\251' | '\252' | '\253' | '\254' | '\255' | '\256' | '\257' | '\260' | '\261' | '\262' | '\263' | '\264' | '\265' | '\266' | '\267' | '\270' | '\271' | '\272' | '\273' | '\274' | '\275' | '\276' | '\277' | '\300' | '\301' | '\302' | '\303' | '\304' | '\305' | '\306' | '\307' | '\310' | '\311' | '\312' | '\313' | '\314' | '\315' | '\316' | '\317' | '\320' | '\321' | '\322' | '\323' | '\324' | '\325' | '\326' | '\327' | '\330' | '\331' | '\332' | '\333' | '\334' | '\335' | '\336' | '\337' | '\340' | '\341' | '\342' | '\343' | '\344' | '\345' | '\346' | '\347' | '\350' | '\351' | '\352' | '\353' | '\354' | '\355' | '\356' | '\357' | '\360' | '\361' | '\362' | '\363' | '\364' | '\365' | '\366' | '\367' | '\370' | '\371' | '\372' | '\373' | '\374' | '\375' | '\376' | '\377'
+AlphanumericAscii = [A-Za-z0-9]
+Digit = [0-9]
+
+HexEntity =     < '&' '#' [Xx] [0-9a-fA-F]+ ';' >
+DecEntity =     < '&' '#' [0-9]+ > ';' >
+CharEntity =    < '&' [A-Za-z0-9]+ ';' >
+
+NonindentSpace =    "   " | "  " | " " | ""
+Indent =            "\t" | "    "
+IndentedLine =      Indent Line
+OptionallyIndentedLine = Indent? Line
+
+# StartList starts a list data structure that can be added to with cons:
+StartList = &.
+            { $$ = nil }
+
+DoctestLine = ">>> " RawLine
+              { $$ = p.mkString(">>> " + yytext) }
+
+Line = RawLine
+       { $$ = p.mkString(yytext) }
+
+RawLine = ( < (!'\r' !'\n' .)* Newline > | < .+ > Eof )
+
+SkipBlock = HtmlBlock
+          | ( !'#' !SetextBottom !BlankLine RawLine )+ BlankLine*
+          | BlankLine+
+          | RawLine
+
+# Syntax extensions
+
+ExtendedSpecialChar = &{ p.extension.Smart } ('.' | '-' | '\'' | '"')
+                    | &{ p.extension.Notes } ( '^' )
+
+Smart = &{ p.extension.Smart }
+        ( Ellipsis | Dash | SingleQuoted | DoubleQuoted | Apostrophe )
+
+Apostrophe = '\''
+             { $$ = p.mkElem(APOSTROPHE) }
+
+Ellipsis = ("..." | ". . .")
+           { $$ = p.mkElem(ELLIPSIS) }
+
+Dash = EmDash | EnDash
+
+EnDash = '-' &Digit
+         { $$ = p.mkElem(ENDASH) }
+
+EmDash = ("---" | "--")
+         { $$ = p.mkElem(EMDASH) }
+
+SingleQuoteStart = '\'' !(Spacechar | Newline)
+
+SingleQuoteEnd = '\'' !Alphanumeric
+
+SingleQuoted = SingleQuoteStart
+               a:StartList
+               ( !SingleQuoteEnd b:Inline { a = cons(b, a) } )+
+               SingleQuoteEnd
+               { $$ = p.mkList(SINGLEQUOTED, a) }
+
+DoubleQuoteStart = '"'
+
+DoubleQuoteEnd = '"'
+
+DoubleQuoted =  DoubleQuoteStart
+                a:StartList
+                ( !DoubleQuoteEnd b:Inline { a = cons(b, a) } )+
+                DoubleQuoteEnd
+                { $$ = p.mkList(DOUBLEQUOTED, a) }
+
+NoteReference = &{ p.extension.Notes }
+                ref:RawNoteReference
+                {
+                    p.state.heap.hasGlobals = true
+                    if match, ok := p.find_note(ref.contents.str); ok {
+                        $$ = p.mkElem(NOTE)
+                        $$.children = match.children
+                        $$.contents.str = ""
+                    } else {
+                        $$ = p.mkString("[^"+ref.contents.str+"]")
+                    }
+                }
+
+RawNoteReference = "[^" < ( !Newline !']' . )+ > ']'
+                   { $$ = p.mkString(yytext) }
+
+Note =          &{ p.extension.Notes }
+                NonindentSpace ref:RawNoteReference ':' Sp
+                a:StartList
+                ( RawNoteBlock { a = cons($$, a) } )
+                ( &Indent RawNoteBlock { a = cons($$, a) } )*
+                {   $$ = p.mkList(NOTE, a)
+                    $$.contents.str = ref.contents.str
+                }
+
+#Citation = !"``" '`'
+#           a:StartList
+#           ( !']' Inline { a = cons($$, a) } )+
+#           !"``" '`'
+#           { $$ = p.mkList(NOTE, a)
+#             //p.state.heap.hasGlobals = true
+#             $$.contents.str = ""
+#           }
+
+Footnote = "[#"
+		a:StartList
+		( !']' Inline { a = cons($$, a) } )+
+		"]_"
+        {
+			$$ = p.mkList(NOTE, a)
+			//p.state.heap.hasGlobals = true
+			$$.contents.str = ""
+		}
+
+Notes =         a:StartList
+                ( b:Note { a = cons(b, a) } | SkipBlock )*
+                { p.notes = reverse(a) }
+		commit
+
+RawNoteBlock =  a:StartList
+                    ( !BlankLine OptionallyIndentedLine { a = cons($$, a) } )+
+                ( < BlankLine* > { a = cons(p.mkString(yytext), a) } )
+                {   $$ = p.mkStringFromList(a, true)
+                      p.state.heap.hasGlobals = true
+                  $$.key = RAW
+                }
+
+
+DefinitionList = &{ p.extension.Dlists }
+			a:StartList
+			( Definition { a = cons($$, a) } )+ 
+			{ $$ = p.mkList(DEFINITIONLIST, a) }
+
+Definition =	&( (NonindentSpace !Defmark Nonspacechar RawLine) BlankLine? Defmark)
+			a:StartList
+			( DListTitle { a = cons($$, a) } )+
+			( DefTight | DefLoose ) {
+				for e := $$.children; e != nil; e = e.next {
+					e.key = DEFDATA
+				}
+				a = cons($$, a)
+			}
+			{ $$ = p.mkList(LIST, a) }
+
+DListTitle =	NonindentSpace !Defmark &Nonspacechar
+			a:StartList
+			(!Endline Inline { a = cons($$, a) } )+
+			Sp Newline
+			{	$$ = p.mkList(LIST, a)
+				$$.key = DEFTITLE
+			}
+
+DefTight	= &Defmark ListTight
+DefLoose	= BlankLine &Defmark ListLoose
+
+Defmark	= NonindentSpace (':' | '~') Spacechar+
+DefMarker	= &{ p.extension.Dlists } Defmark
+
+
+%%
+
+/*
+ * List manipulation functions
+ */
+
+/* cons - cons an element onto a list, returning pointer to new head
+ */
+func cons(new, list *element) *element {
+	new.next = list
+	return new
+}
+
+/* reverse - reverse a list, returning pointer to new list
+ */
+func reverse(list *element) (new *element) {
+	for list != nil {
+		next := list.next
+		new = cons(list, new)
+		list = next
+	}
+	return
+}
+
+/*
+ *  Auxiliary functions for parsing actions.
+ *  These make it easier to build up data structures (including lists)
+ *  in the parsing actions.
+ */
+
+/* p.mkElem - generic constructor for element
+ */
+func (p *yyParser) mkElem(key int) *element {
+	r := p.state.heap.row
+	if len(r) == 0 {
+		r = p.state.heap.nextRow()
+	}
+	e := &r[0]
+	*e = element{}
+	p.state.heap.row = r[1:]
+	e.key = key
+	return e
+}
+
+/* p.mkString - constructor for STR element
+ */
+func (p *yyParser) mkString(s string) (result *element) {
+	result = p.mkElem(STR)
+	result.contents.str = s
+	return
+}
+
+/* p.mkStringFromList - makes STR element by concatenating a
+ * reversed list of strings, adding optional extra newline
+ */
+func (p *yyParser) mkStringFromList(list *element, extra_newline bool) (result *element) {
+	s := ""
+	for list = reverse(list); list != nil; list = list.next {
+		s += list.contents.str
+	}
+
+	if extra_newline {
+		s += "\n"
+	}
+	result = p.mkElem(STR)
+	result.contents.str = s
+	return
+}
+
+/* p.mkList - makes new list with key 'key' and children the reverse of 'lst'.
+ * This is designed to be used with cons to build lists in a parser action.
+ * The reversing is necessary because cons adds to the head of a list.
+ */
+func (p *yyParser) mkList(key int, lst *element) (el *element) {
+	el = p.mkElem(key)
+	el.children = reverse(lst)
+	return
+}
+
+/* p.mkLink - constructor for LINK element
+ */
+func (p *yyParser) mkLink(label *element, url, title string) (el *element) {
+	el = p.mkElem(LINK)
+	el.contents.link = &link{label: label, url: url, title: title}
+	return
+}
+
+func (p *yyParser) mkCodeBlock(list *element, lang string) (result *element) {
+	s := ""
+	for list = reverse(list); list != nil; list = list.next {
+		s += list.contents.str
+	}
+
+	result = p.mkElem(CODEBLOCK)
+	result.contents.str = s
+    result.contents.code = &code{lang: lang}
+    return
+}
+
+/* match_inlines - returns true if inline lists match (case-insensitive...)
+ */
+func match_inlines(l1, l2 *element) bool {
+	for l1 != nil && l2 != nil {
+		if l1.key != l2.key {
+			return false
+		}
+		switch l1.key {
+		case SPACE, LINEBREAK, ELLIPSIS, EMDASH, ENDASH, APOSTROPHE:
+			break
+		case CODE, STR, HTML:
+			if strings.ToUpper(l1.contents.str) != strings.ToUpper(l2.contents.str) {
+				return false
+			}
+		case EMPH, STRONG, LIST, SINGLEQUOTED, DOUBLEQUOTED:
+			if !match_inlines(l1.children, l2.children) {
+				return false
+			}
+		case LINK, IMAGE:
+			return false /* No links or images within links */
+		default:
+			log.Fatalf("match_inlines encountered unknown key = %d\n", l1.key)
+		}
+		l1 = l1.next
+		l2 = l2.next
+	}
+	return l1 == nil && l2 == nil /* return true if both lists exhausted */
+}
+
+/* find_reference - return true if link found in references matching label.
+ * 'link' is modified with the matching url and title.
+ */
+func (p *yyParser) findReference(label *element) (*link, bool) {
+	for cur := p.references; cur != nil; cur = cur.next {
+		l := cur.contents.link
+		if match_inlines(label, l.label) {
+			return l, true
+		}
+	}
+	return nil, false
+}
+
+/* find_note - return true if note found in notes matching label.
+ * if found, 'result' is set to point to matched note.
+ */
+func (p *yyParser) find_note(label string) (*element, bool) {
+	for el := p.notes; el != nil; el = el.next {
+		if label == el.contents.str {
+			return el, true
+		}
+	}
+	return nil, false
+}
+
+/* print tree of elements, for debugging only.
+ */
+func print_tree(w io.Writer, elt *element, indent int) {
+	var key string
+
+	for elt != nil {
+		for i := 0; i < indent; i++ {
+			fmt.Fprint(w, "\t")
+		}
+		key = keynames[elt.key]
+		if key == "" {
+			key = "?"
+		}
+		if elt.key == STR {
+			fmt.Fprintf(w, "%p:\t%s\t'%s'\n", elt, key, elt.contents.str)
+		} else {
+			fmt.Fprintf(w, "%p:\t%s %p\n", elt, key, elt.next)
+		}
+		if elt.children != nil {
+			print_tree(w, elt.children, indent+1)
+		}
+		elt = elt.next
+	}
+}
+
+var HeadingLevel int = 0
+var HeadingKeys [6]string   /* 0: H1, 5: H6 */
+func getHeadingElm(label string) int {
+    retLevel := -1
+    for level, val := range HeadingKeys {
+        if label == val {
+            retLevel = level
+            break
+        }
+    }
+    if retLevel == -1 {
+        HeadingKeys[HeadingLevel] = label
+        retLevel = HeadingLevel
+        HeadingLevel += 1
+    }
+    switch retLevel {
+    case 0:
+        return H1
+    case 1:
+        return H2
+    case 2:
+        return H3
+    case 3:
+        return H4
+    case 4:
+        return H5
+    case 5:
+        return H6
+    }
+    panic("not support heading level")
+}
+
+func initParser() {
+    HeadingLevel = 0
+    HeadingKeys = [6]string{}
+}
+
+var keynames = [numVAL]string{
+	LIST:           "LIST",
+	RAW:            "RAW",
+	SPACE:          "SPACE",
+	LINEBREAK:      "LINEBREAK",
+	ELLIPSIS:       "ELLIPSIS",
+	EMDASH:         "EMDASH",
+	ENDASH:         "ENDASH",
+	APOSTROPHE:     "APOSTROPHE",
+	SINGLEQUOTED:   "SINGLEQUOTED",
+	DOUBLEQUOTED:   "DOUBLEQUOTED",
+	STR:            "STR",
+	LINK:           "LINK",
+	IMAGE:          "IMAGE",
+	CODE:           "CODE",
+	HTML:           "HTML",
+	EMPH:           "EMPH",
+	STRONG:         "STRONG",
+	STRIKE:         "STRIKE",
+	PLAIN:          "PLAIN",
+	PARA:           "PARA",
+	LISTITEM:       "LISTITEM",
+	BULLETLIST:     "BULLETLIST",
+	ORDEREDLIST:    "ORDEREDLIST",
+	H1TITLE:        "H1TITLE",
+	H1:             "H1",
+	H2:             "H2",
+	H3:             "H3",
+	H4:             "H4",
+	H5:             "H5",
+	H6:             "H6",
+	TABLE:          "TABLE",
+	TABLESEPARATOR: "TABLESEPARATOR",
+	TABLECELL:      "TABLECELL",
+	CELLSPAN:       "CELLSPAN",
+	TABLEROW:       "TABLEROW",
+	TABLEBODY:      "TABLEBODY",
+	TABLEHEAD:      "TABLEHEAD",
+	CODEBLOCK:      "CODEBLOCK",
+	BLOCKQUOTE:     "BLOCKQUOTE",
+	VERBATIM:       "VERBATIM",
+	HTMLBLOCK:      "HTMLBLOCK",
+	HRULE:          "HRULE",
+	REFERENCE:      "REFERENCE",
+	NOTE:           "NOTE",
+	DEFINITIONLIST: "DEFINITIONLIST",
+	DEFTITLE:       "DEFTITLE",
+	DEFDATA:        "DEFDATA",
+}

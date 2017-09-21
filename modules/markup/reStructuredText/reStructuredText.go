@@ -2,50 +2,47 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package orgmode
+package rst
 
 import (
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
+	"bufio"
+	"bytes"
 
-	"github.com/chaseadamsio/goorgeous"
-	"github.com/russross/blackfriday"
+	"code.gitea.io/gitea/modules/markup"
+
+	gorst "github.com/hhatto/gorst"
 )
 
 func init() {
 	markup.RegisterParser(Parser{})
 }
 
-// Parser implements markup.Parser for orgmode
+// Parser implements markup.Parser for reStructuredText
 type Parser struct {
 }
 
 // Name implements markup.Parser
 func (Parser) Name() string {
-	return "orgmode"
+	return "reStructuredText"
 }
 
 // Extensions implements markup.Parser
 func (Parser) Extensions() []string {
-	return []string{".org"}
+	return []string{".rst"}
 }
 
-// Render renders orgmode rawbytes to HTML
+// Render renders reStructuredText rawbytes to HTML
 func Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
-	htmlFlags := blackfriday.HTML_USE_XHTML
-	htmlFlags |= blackfriday.HTML_SKIP_STYLE
-	htmlFlags |= blackfriday.HTML_OMIT_CONTENTS
-	renderer := &markdown.Renderer{
-		Renderer:  blackfriday.HtmlRenderer(htmlFlags, "", ""),
-		URLPrefix: urlPrefix,
-		IsWiki:    isWiki,
-	}
+	p := gorst.NewParser(nil)
+	var b bytes.Buffer
+	w := bufio.NewWriter(&b)
+	p.ReStructuredText(bytes.NewReader(rawBytes), gorst.ToHTML(w))
+	w.Flush()
 
-	result := goorgeous.Org(rawBytes, renderer)
-	return result
+	return b.Bytes()
 }
 
-// RenderString reners orgmode string to HTML string
+// RenderString reners reStructuredText string to HTML string
 func RenderString(rawContent string, urlPrefix string, metas map[string]string, isWiki bool) string {
 	return string(Render([]byte(rawContent), urlPrefix, metas, isWiki))
 }
