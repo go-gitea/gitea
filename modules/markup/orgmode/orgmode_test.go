@@ -24,7 +24,7 @@ func TestRender_StandardLinks(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer := RenderString(input, setting.AppSubURL, nil, false)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	googleRendered := `<p><a href="https://google.com/" title="https://google.com/">https://google.com/</a></p>`
@@ -41,7 +41,7 @@ func TestRender_Images(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer := RenderString(input, setting.AppSubURL, nil, false)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	url := "../../.images/src/02/train.jpg"
