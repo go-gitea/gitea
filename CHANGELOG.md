@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.0-rc3](https://github.com/go-gitea/gitea/releases/tag/v1.2.0-rc3) - 2017-09-21
+* BUGFIXES
+  * Sync releases table with tags on push and for mirrors (#2459)
+  * Fix adding branch as protected to not allow pushing to it (#2556)
+  * Fix lint, fmt and integration testing errors (#2553)
+  * Remove go version check for make fmt (#2558)
+* SECURITY
+  * Restricting access to fork functionality to users with Code access (#2542)
+
 ## [1.2.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.2.0-rc2) - 2017-09-06
 * BUGFIXES
   * Fix migration from pre-v15 to 1.2.0 (#2460)
