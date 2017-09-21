@@ -1788,7 +1788,7 @@ function initVueComponents(){
 }
 
 function initCtrlEnterSubmit() {
-    $(".ctrlenter").keydown(function(e) {
+    $(".js-quick-submit").keydown(function(e) {
         if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.keyCode == 13 || e.keyCode == 10)) {
             $(this).closest("form").submit();
         }
