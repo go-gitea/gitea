@@ -95,11 +95,11 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 			buf = append(buf, d...)
 			newbuf := markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas())
 			if newbuf != nil {
-				ctx.Data["IsMarkdown"] = true
+				ctx.Data["IsMarkup"] = true
 			} else {
 				// FIXME This is the only way to show non-markdown files
 				// instead of a broken "View Raw" link
-				ctx.Data["IsMarkdown"] = true
+				ctx.Data["IsMarkup"] = false
 				newbuf = bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1)
 			}
 			ctx.Data["FileContent"] = string(newbuf)
@@ -197,10 +197,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 		tp := markup.Type(blob.Name())
 		isSupportedMarkup := tp != ""
-		// FIXME: currently set IsMarkdown for compatible
-		ctx.Data["IsMarkdown"] = isSupportedMarkup
-
-		readmeExist := isSupportedMarkup || markup.IsReadmeFile(blob.Name())
+		ctx.Data["IsMarkup"] = isSupportedMarkup
+		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
 		if readmeExist && isSupportedMarkup {
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
