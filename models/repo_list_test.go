@@ -61,13 +61,25 @@ func TestSearchRepositoryByName(t *testing.T) {
 	assert.Equal(t, int64(3), count)
 	assert.Len(t, repos, 3)
 
+	// Test non existing owner
+	nonExistingUserID := int64(99999)
+	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
+		OwnerID: nonExistingUserID,
+	})
+
+	if assert.Error(t, err) {
+		assert.Equal(t, ErrUserNotExist{UID: nonExistingUserID}, err)
+	}
+	assert.Empty(t, repos)
+	assert.Equal(t, int64(0), count)
+
 	testCases := []struct {
 		name  string
 		opts  *SearchRepoOptions
 		count int
 	}{
 		{name: "PublicRepositoriesByName",
-			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 1, PageSize: 10},
+			opts:  &SearchRepoOptions{Keyword: "big_test_", PageSize: 10},
 			count: 4},
 		{name: "PublicAndPrivateRepositoriesByName",
 			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 1, PageSize: 10, Private: true},
