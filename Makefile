@@ -15,7 +15,6 @@ else
 endif
 
 BINDATA := modules/{options,public,templates}/bindata.go
-STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 DOCKER_TAG := gitea/gitea:latest
 GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
 GOFMT ?= gofmt -s
@@ -299,14 +298,12 @@ stylesheets-check: stylesheets
 	fi;
 
 .PHONY: stylesheets
-stylesheets: public/css/index.css
-
-.IGNORE: public/css/index.css
-public/css/index.css: $(STYLESHEETS)
-	@which lessc > /dev/null; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/kib357/less-go/lessc; \
+stylesheets:
+	@hash minify > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) get -u github.com/tdewolff/minify/cmd/minify; \
 	fi
-	lessc -i $< -o $@
+	node_modules/.bin/lessc --no-ie-compat public/less/index.less public/css/index.css
+	minify -o public/css/index.css public/css/index.css
 
 .PHONY: swagger-ui
 swagger-ui:

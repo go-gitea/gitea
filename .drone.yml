@@ -16,6 +16,8 @@ pipeline:
       TAGS: bindata sqlite
       GOPATH: /srv/app
     commands:
+      - apk -U add nodejs nodejs-npm
+      - npm install
       - make clean
       - make generate
       - make vet
