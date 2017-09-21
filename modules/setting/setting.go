@@ -1281,6 +1281,7 @@ type Mailer struct {
 	QueueLength     int
 	Name            string
 	From            string
+	FromName        string
 	FromEmail       string
 	SendAsPlainText bool
 
@@ -1339,6 +1340,7 @@ func newMailService() {
 	if err != nil {
 		log.Fatal(4, "Invalid mailer.FROM (%s): %v", MailService.From, err)
 	}
+	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
 
 	log.Info("Mail Service Enabled")
