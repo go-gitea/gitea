@@ -97,6 +97,16 @@ and is synced regularily to Crowdin. Once a translation has reached
 A SATISFACTORY PERCENTAGE it will be synced back into this repo and
 included in the next released version.
 
+## Building Gitea
+
+Generally, the go build tools are installed as-needed in the `Makefile`.
+An exception are the tools to build the CSS and images.
+
+- To build CSS: Install [Node.js](https://nodejs.org/en/download/package-manager)
+  with `npm` and then run `npm install` and `make stylesheets`.
+- To build Images: ImageMagick, inkscape and zopflipng binaries must be
+  available in your `PATH` to run `make generate-images`.
+
 ## Code review
 
 Changes to Gitea must be reviewed before they are accepted, no matter who
