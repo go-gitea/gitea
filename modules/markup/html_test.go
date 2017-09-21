@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	_ "code.gitea.io/gitea/modules/markdown"
 	. "code.gitea.io/gitea/modules/markup"
+	_ "code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
