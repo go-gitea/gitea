@@ -58,3 +58,4 @@ coverage.all
 /integrations/indexers-sqlite
 /integrations/mysql.ini
 /integrations/pgsql.ini
+/node_modules
