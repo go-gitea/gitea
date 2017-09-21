@@ -46,6 +46,8 @@ const (
 	ActionReopenIssue                             // 13
 	ActionClosePullRequest                        // 14
 	ActionReopenPullRequest                       // 15
+	ActionDeleteTag                               // 16
+	ActionDeleteBranch                            // 17
 )
 
 var (
@@ -554,6 +556,12 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	// Check it's tag push or branch.
 	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 		opType = ActionPushTag
+		if opts.NewCommitID == git.EmptySHA {
+			opType = ActionDeleteTag
+		}
+		opts.Commits = &PushCommits{}
+	} else if opts.NewCommitID == git.EmptySHA {
+		opType = ActionDeleteBranch
 		opts.Commits = &PushCommits{}
 	} else {
 		// if not the first commit, set the compare URL.
@@ -599,8 +607,60 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	apiRepo := repo.APIFormat(AccessModeNone)
 
 	var shaSum string
+	var isHookEventPush = false
 	switch opType {
 	case ActionCommitRepo: // Push
+		isHookEventPush = true
+
+		if isNewBranch {
+			gitRepo, err := git.OpenRepository(repo.RepoPath())
+			if err != nil {
+				log.Error(4, "OpenRepository[%s]: %v", repo.RepoPath(), err)
+			}
+
+			shaSum, err = gitRepo.GetBranchCommitID(refName)
+			if err != nil {
+				log.Error(4, "GetBranchCommitID[%s]: %v", opts.RefFullName, err)
+			}
+			if err = PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
+				Ref:     refName,
+				Sha:     shaSum,
+				RefType: "branch",
+				Repo:    apiRepo,
+				Sender:  apiPusher,
+			}); err != nil {
+				return fmt.Errorf("PrepareWebhooks: %v", err)
+			}
+		}
+
+	case ActionDeleteBranch: // Delete Branch
+		isHookEventPush = true
+
+	case ActionPushTag: // Create
+		isHookEventPush = true
+
+		gitRepo, err := git.OpenRepository(repo.RepoPath())
+		if err != nil {
+			log.Error(4, "OpenRepository[%s]: %v", repo.RepoPath(), err)
+		}
+		shaSum, err = gitRepo.GetTagCommitID(refName)
+		if err != nil {
+			log.Error(4, "GetTagCommitID[%s]: %v", opts.RefFullName, err)
+		}
+		if err = PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
+			Ref:     refName,
+			Sha:     shaSum,
+			RefType: "tag",
+			Repo:    apiRepo,
+			Sender:  apiPusher,
+		}); err != nil {
+			return fmt.Errorf("PrepareWebhooks: %v", err)
+		}
+	case ActionDeleteTag: // Delete Tag
+		isHookEventPush = true
+	}
+
+	if isHookEventPush {
 		if err = PrepareWebhooks(repo, HookEventPush, &api.PushPayload{
 			Ref:        opts.RefFullName,
 			Before:     opts.OldCommitID,
@@ -613,41 +673,6 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		}); err != nil {
 			return fmt.Errorf("PrepareWebhooks: %v", err)
 		}
-
-		if isNewBranch {
-			gitRepo, err := git.OpenRepository(repo.RepoPath())
-			if err != nil {
-				log.Error(4, "OpenRepository[%s]: %v", repo.RepoPath(), err)
-			}
-			shaSum, err = gitRepo.GetBranchCommitID(refName)
-			if err != nil {
-				log.Error(4, "GetBranchCommitID[%s]: %v", opts.RefFullName, err)
-			}
-			return PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
-				Ref:     refName,
-				Sha:     shaSum,
-				RefType: "branch",
-				Repo:    apiRepo,
-				Sender:  apiPusher,
-			})
-		}
-
-	case ActionPushTag: // Create
-		gitRepo, err := git.OpenRepository(repo.RepoPath())
-		if err != nil {
-			log.Error(4, "OpenRepository[%s]: %v", repo.RepoPath(), err)
-		}
-		shaSum, err = gitRepo.GetTagCommitID(refName)
-		if err != nil {
-			log.Error(4, "GetTagCommitID[%s]: %v", opts.RefFullName, err)
-		}
-		return PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
-			Ref:     refName,
-			Sha:     shaSum,
-			RefType: "tag",
-			Repo:    apiRepo,
-			Sender:  apiPusher,
-		})
 	}
 
 	return nil
