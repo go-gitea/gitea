@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"fmt"
 	"net/http"
 	"path"
 	"strings"
@@ -13,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string) *TestResponse {
+func testPullMerge(t testing.TB, session *TestSession, user, repo, pullnum string) *TestResponse {
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -49,7 +50,7 @@ func TestPullMerge(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user1")
 	testRepoFork(t, session)
-	testEditFile(t, session, "user1", "repo1", "master", "README.md")
+	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
 	resp := testPullCreate(t, session, "user1", "repo1", "master")
 
@@ -62,7 +63,7 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user1")
 	testRepoFork(t, session)
-	testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md")
+	testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited)\n")
 
 	resp := testPullCreate(t, session, "user1", "repo1", "feature/test")
 
@@ -90,4 +91,21 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 	resultMsg := htmlDoc.doc.Find(".ui.message>p").Text()
 
 	assert.EqualValues(t, "user1/feature/test has been deleted.", resultMsg)
+}
+
+func BenchmarkPullMerge(b *testing.B) {
+	prepareTestEnv(b)
+	session := loginUser(b, "user1")
+	testRepoFork(b, session)
+
+	for i := 0; i < b.N; i++ {
+		content := fmt.Sprintf("Hello, World (Edited) #%d\n", i)
+		testEditFile(b, session, "user1", "repo1", "master", "README.md", content)
+
+		resp := testPullCreate(b, session, "user1", "repo1", "master")
+
+		elem := strings.Split(RedirectURL(b, resp), "/")
+		assert.EqualValues(b, "pulls", elem[3])
+		testPullMerge(b, session, elem[1], elem[2], elem[4])
+	}
 }
