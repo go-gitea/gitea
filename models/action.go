@@ -608,7 +608,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	switch opType {
 	case ActionCommitRepo: // Push
 		isHookEventPush = true
-		var isForcePush = false
+
 		if isNewBranch {
 			gitRepo, err := git.OpenRepository(repo.RepoPath())
 			if err != nil {
@@ -628,16 +628,6 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			}); err != nil {
 				return fmt.Errorf("PrepareWebhooks: %v", err)
 			}
-		} else {
-			// detect force push
-			if git.EmptySHA != opts.Commits.Commits[0].Sha1 {
-				output, err := git.NewCommand("rev-list", opts.Commits.Commits[0].Sha1, "^"+opts.Commits.Commits[len(opts.Commits.Commits)-1].Sha1).RunInDir(repo.RepoPath())
-				if err != nil {
-					return fmt.Errorf("rev-list: %v", err)
-				} else if len(output) > 0 {
-					isForcePush = true
-				}
-			}
 		}
 
 		// if there is a pull request fro this branch, then update pull request
@@ -646,37 +636,52 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			return fmt.Errorf("GetUnmergedPullRequestsByHeadInfo: %v", err)
 		}
 
-		if err := PullRequestList(prs).LoadAttributes(); err != nil {
-			return fmt.Errorf("PullRequestList.LoadAttributes: %v", err)
-		}
-
-		var issues = make([]*Issue, 0, len(prs))
-		var lastCommitID = opts.Commits.Commits[len(opts.Commits.Commits)-1].Sha1
-		for _, pr := range prs {
-			pr.LastCommitID = lastCommitID
-			if err := pr.UpdateCols("last_commit_id"); err != nil {
-				return fmt.Errorf("UpdateCols: %v", err)
-			}
-
-			pr.Issue.PullRequest = pr
-			issues = append(issues, pr.Issue)
-		}
-
-		if _, err := IssueList(issues).LoadRepositories(); err != nil {
-			return fmt.Errorf("IssueList.LoadRepositories: %v", err)
-		}
-
-		for _, issue := range issues {
-			if isForcePush {
-				if err := ClearPullPushComent(issue); err != nil {
-					return fmt.Errorf("ClearPullPushComent: %v", err)
+		if len(prs) > 0 {
+			var isForcePush = false
+			if !isNewBranch {
+				// detect force push
+				if git.EmptySHA != opts.Commits.Commits[0].Sha1 {
+					output, err := git.NewCommand("rev-list", opts.Commits.Commits[0].Sha1, "^"+opts.Commits.Commits[len(opts.Commits.Commits)-1].Sha1).RunInDir(repo.RepoPath())
+					if err != nil {
+						return fmt.Errorf("rev-list: %v", err)
+					} else if len(output) > 0 {
+						isForcePush = true
+					}
 				}
 			}
 
-			for i := 0; i < len(opts.Commits.Commits); i++ {
-				c := opts.Commits.Commits[i]
-				if err := CreatePullPushComment(pusher, issue.Repo, issue, c.Message, c.Sha1, issue.Repo.FullName()); err != nil {
-					return fmt.Errorf("CreatePullPushComment: %v", err)
+			if err := PullRequestList(prs).LoadAttributes(); err != nil {
+				return fmt.Errorf("PullRequestList.LoadAttributes: %v", err)
+			}
+
+			var issues = make([]*Issue, 0, len(prs))
+			var lastCommitID = opts.Commits.Commits[len(opts.Commits.Commits)-1].Sha1
+			for _, pr := range prs {
+				pr.LastCommitID = lastCommitID
+				if err := pr.UpdateCols("last_commit_id"); err != nil {
+					return fmt.Errorf("UpdateCols: %v", err)
+				}
+
+				pr.Issue.PullRequest = pr
+				issues = append(issues, pr.Issue)
+			}
+
+			if _, err := IssueList(issues).LoadRepositories(); err != nil {
+				return fmt.Errorf("IssueList.LoadRepositories: %v", err)
+			}
+
+			for _, issue := range issues {
+				if isForcePush {
+					if err := ClearPullPushComent(issue); err != nil {
+						return fmt.Errorf("ClearPullPushComent: %v", err)
+					}
+				}
+
+				for i := 0; i < len(opts.Commits.Commits); i++ {
+					c := opts.Commits.Commits[i]
+					if err := CreatePullPushComment(pusher, issue.Repo, issue, c.Message, c.Sha1, issue.Repo.FullName()); err != nil {
+						return fmt.Errorf("CreatePullPushComment: %v", err)
+					}
 				}
 			}
 		}
