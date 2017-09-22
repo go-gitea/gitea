@@ -294,7 +294,7 @@ func ActionIcon(opType models.ActionType) string {
 	switch opType {
 	case models.ActionCreateRepo, models.ActionTransferRepo:
 		return "repo"
-	case models.ActionCommitRepo, models.ActionPushTag:
+	case models.ActionCommitRepo, models.ActionPushTag, models.ActionDeleteTag, models.ActionDeleteBranch:
 		return "git-commit"
 	case models.ActionCreateIssue:
 		return "issue-opened"

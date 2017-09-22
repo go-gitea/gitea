@@ -43,6 +43,12 @@
 						{{else if eq .GetOpType 15}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.reopen_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}
+						{{else if eq .GetOpType 16}}
+							{{ $index := index .GetIssueInfos 0}}
+							{{$.i18n.Tr "action.delete_tag" .GetRepoLink .GetBranch .ShortRepoPath | Str2html}}
+						{{else if eq .GetOpType 17}}
+							{{ $index := index .GetIssueInfos 0}}
+							{{$.i18n.Tr "action.delete_branch" .GetRepoLink .GetBranch .ShortRepoPath | Str2html}}
 						{{end}}
 					</p>
 					{{if eq .GetOpType 5}}
