@@ -1,0 +1,55 @@
+FROM golang:1.8
+
+ENV BRANCH master
+ENV LOCAL_REPOSITORY /gitea-src
+ENV REMOTE_REPOSITORY https://github.com/go-gitea/gitea.git
+
+ARG SOURCE_DIR=/go/src/code.gitea.io/gitea
+
+WORKDIR ${SOURCE_DIR}
+
+RUN apt-get install -y make
+RUN echo \
+'#!/bin/bash\n\
+set -e\n\
+echo\n\
+echo\n\
+echo "----------------------------------------------------------------------------------------------------"\n\
+date\n\
+echo "----------------------------------------------------------------------------------------------------"\n\
+echo\n\
+echo "### Ensure we are in source directory: '$SOURCE_DIR'"\n\
+cd '$SOURCE_DIR'\n\
+if [ "$(ls -A $LOCAL_REPOSITORY)" ]\n\
+then\n\
+    echo "### Local repository found (mounted directory), starting cloning local repository..."\n\
+    if [ "$(ls -A .)" ]\n\
+    then\n\
+        echo "Source folder is not empty, clearing all files first..."\n\
+        rm -rf '$SOURCE_DIR'\n\
+        mkdir -p '$SOURCE_DIR'\n\
+        cd '$SOURCE_DIR'\n\
+    fi\n\
+    git clone -b ${BRANCH} --single-branch ${LOCAL_REPOSITORY} .\n\
+else\n\
+    if [ ! "$(ls -A .)" ]\n\
+    then\n\
+        echo "### Folder is empty, starting cloning remote repository..."\n\
+        git clone -b ${BRANCH} --single-branch ${REMOTE_REPOSITORY} .\n\
+    else\n\
+        echo "### Folder is not empty, trying to pull newest version of repository..."\n\
+        git pull --rebase\n\
+    fi\n\
+fi\n\
+echo\n\
+echo "### Checking current branch..."\n\
+git branch -vv\n\
+echo\n\
+echo "### Running user command: $@"\n\
+exec $@' \
+    > /entrypoint.sh \
+    && chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+CMD ["make", "test"]
