@@ -60,6 +60,15 @@ const (
 	LandingPageExplore LandingPage = "/explore"
 )
 
+// MarkupRender defines the external render configed on ini
+type MarkupRender struct {
+	Enabled        bool
+	MarkupName     string
+	Command        string
+	FileExtensions []string
+	IsInputFile    bool
+}
+
 // settings
 var (
 	// AppVer settings
@@ -515,6 +524,8 @@ var (
 	HasRobotsTxt      bool
 	InternalToken     string // internal access token
 	IterateBufferSize int
+
+	ExternalMarkupRenders []MarkupRender
 )
 
 // DateLang transforms standard language locale name to corresponding value in datetime plugin.
@@ -1073,6 +1084,16 @@ func NewContext() {
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
+
+	for _, sec := range Cfg.Section("markup").ChildSections() {
+		ExternalMarkupRenders = append(ExternalMarkupRenders, MarkupRender{
+			Enabled:        sec.Key("ENABLED").MustBool(false),
+			MarkupName:     strings.TrimLeft(sec.Name(), "markup."),
+			FileExtensions: sec.Key("FILE_EXTENSIONS").Strings(","),
+			Command:        sec.Key("RENDER_COMMAND").MustString(""),
+			IsInputFile:    sec.Key("IS_INPUT_FILE").MustBool(false),
+		})
+	}
 }
 
 // Service settings
@@ -1133,7 +1154,6 @@ func newService() {
 			Service.OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
 		}
 	}
-
 }
 
 var logLevels = map[string]string{
