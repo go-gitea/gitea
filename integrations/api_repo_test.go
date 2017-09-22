@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -32,7 +33,7 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 	}
 }
 
-func TestAPISearchRepoNotLogin(t *testing.T) {
+func TestAPISearchRepo(t *testing.T) {
 	prepareTestEnv(t)
 	const keyword = "test"
 
@@ -45,6 +46,111 @@ func TestAPISearchRepoNotLogin(t *testing.T) {
 	for _, repo := range body.Data {
 		assert.Contains(t, repo.Name, keyword)
 		assert.False(t, repo.Private)
+	}
+
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 15}).(*models.User)
+	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 16}).(*models.User)
+	orgUser := models.AssertExistsAndLoadBean(t, &models.User{ID: 17}).(*models.User)
+
+	type privacyType int
+
+	const (
+		_ privacyType = iota
+		privacyTypePrivate
+		privacyTypePublic
+	)
+
+	// Map of expected results, where key is user for login
+	type expectedResults map[*models.User]struct {
+		count       int
+		repoOwnerID int64
+		repoName    string
+		privacy     privacyType
+	}
+
+	testCases := []struct {
+		name, requestURL string
+		expectedResults
+	}{
+		{name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50", expectedResults: expectedResults{
+			nil:   {count: 12, privacy: privacyTypePublic},
+			user:  {count: 12, privacy: privacyTypePublic},
+			user2: {count: 12, privacy: privacyTypePublic}},
+		},
+		{name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10", expectedResults: expectedResults{
+			nil:   {count: 10, privacy: privacyTypePublic},
+			user:  {count: 10, privacy: privacyTypePublic},
+			user2: {count: 10, privacy: privacyTypePublic}},
+		},
+		{name: "RepositoriesDefaultMax10", requestURL: "/api/v1/repos/search", expectedResults: expectedResults{
+			nil:   {count: 10, privacy: privacyTypePublic},
+			user:  {count: 10, privacy: privacyTypePublic},
+			user2: {count: 10, privacy: privacyTypePublic}},
+		},
+		{name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s", "big_test_"), expectedResults: expectedResults{
+			nil:   {count: 4, repoName: "big_test_", privacy: privacyTypePublic},
+			user:  {count: 4, repoName: "big_test_", privacy: privacyTypePublic},
+			user2: {count: 4, repoName: "big_test_", privacy: privacyTypePublic}},
+		},
+		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
+			nil:   {count: 4, privacy: privacyTypePublic},
+			user:  {count: 8},
+			user2: {count: 4, privacy: privacyTypePublic}},
+		},
+		{name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
+			nil:   {count: 1, privacy: privacyTypePublic},
+			user:  {count: 1, privacy: privacyTypePublic},
+			user2: {count: 2}},
+		},
+		{name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
+			nil:   {count: 1, repoOwnerID: orgUser.ID, privacy: privacyTypePublic},
+			user:  {count: 2, repoOwnerID: orgUser.ID},
+			user2: {count: 1, repoOwnerID: orgUser.ID, privacy: privacyTypePublic}},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			for userToLogin, expected := range testCase.expectedResults {
+				var session *TestSession
+				var testName string
+				if userToLogin != nil && userToLogin.ID > 0 {
+					testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
+					session = loginUser(t, userToLogin.Name)
+				} else {
+					testName = "AnonymousUser"
+					session = emptyTestSession(t)
+				}
+
+				t.Run(testName, func(t *testing.T) {
+					request := NewRequest(t, "GET", testCase.requestURL)
+					response := session.MakeRequest(t, request, http.StatusOK)
+
+					var body api.SearchResults
+					DecodeJSON(t, response, &body)
+
+					assert.Len(t, body.Data, expected.count)
+					for _, repo := range body.Data {
+						assert.NotEmpty(t, repo.Name)
+
+						if len(expected.repoName) > 0 {
+							assert.Contains(t, repo.Name, expected.repoName)
+						}
+
+						if expected.repoOwnerID > 0 {
+							assert.Equal(t, expected.repoOwnerID, repo.Owner.ID)
+						}
+
+						switch expected.privacy {
+						case privacyTypePrivate:
+							assert.True(t, repo.Private)
+						case privacyTypePublic:
+							assert.False(t, repo.Private)
+						}
+					}
+				})
+			}
+		})
 	}
 }
 
