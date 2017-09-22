@@ -67,7 +67,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 		count int
 	}{
 		{name: "PublicRepositoriesByName",
-			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 1, PageSize: 10},
+			opts:  &SearchRepoOptions{Keyword: "big_test_", PageSize: 10},
 			count: 4},
 		{name: "PublicAndPrivateRepositoriesByName",
 			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 1, PageSize: 10, Private: true},
