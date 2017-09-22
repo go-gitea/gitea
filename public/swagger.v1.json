@@ -1113,6 +1113,13 @@
             "description": "Limit of result\n\nmaximum: setting.ExplorePagingNum",
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "x-go-name": "RepoType",
+            "description": "Type of repository to search (related to owner if present)",
+            "name": "type",
+            "in": "query"
           }
         ],
         "responses": {

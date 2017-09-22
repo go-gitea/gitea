@@ -61,7 +61,6 @@ func Swagger(ctx *context.Context) {
 // RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
 	Ranger   func(*models.SearchRepoOptions) (models.RepositoryList, int64, error)
-	Searcher *models.User
 	Private  bool
 	PageSize int
 	TplName  base.TplName
@@ -86,61 +85,45 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		repos   []*models.Repository
 		count   int64
 		err     error
-		orderBy string
+		orderBy models.SearchOrderBy
 	)
 	ctx.Data["SortType"] = ctx.Query("sort")
 
 	switch ctx.Query("sort") {
 	case "oldest":
-		orderBy = "created_unix ASC"
+		orderBy = models.SearchOrderByOldest
 	case "recentupdate":
-		orderBy = "updated_unix DESC"
+		orderBy = models.SearchOrderByRecentUpdated
 	case "leastupdate":
-		orderBy = "updated_unix ASC"
+		orderBy = models.SearchOrderByLeastUpdated
 	case "reversealphabetically":
-		orderBy = "name DESC"
+		orderBy = models.SearchOrderByAlphabeticallyReverse
 	case "alphabetically":
-		orderBy = "name ASC"
+		orderBy = models.SearchOrderByAlphabetically
 	case "reversesize":
-		orderBy = "size DESC"
+		orderBy = models.SearchOrderBySizeReverse
 	case "size":
-		orderBy = "size ASC"
+		orderBy = models.SearchOrderBySize
 	default:
-		orderBy = "created_unix DESC"
+		orderBy = models.SearchOrderByNewest
 	}
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
-	if len(keyword) == 0 {
-		repos, count, err = opts.Ranger(&models.SearchRepoOptions{
-			Page:        page,
-			PageSize:    opts.PageSize,
-			Searcher:    ctx.User,
-			OrderBy:     orderBy,
-			Private:     opts.Private,
-			Collaborate: true,
-		})
+	searchOpts := &models.SearchRepoOptions{
+		Page:     page,
+		PageSize: opts.PageSize,
+		OrderBy:  orderBy,
+		Private:  opts.Private,
+		Keyword:  strings.Trim(ctx.Query("q"), " "),
+	}
+
+	if len(searchOpts.Keyword) == 0 || isKeywordValid(searchOpts.Keyword) {
+		repos, count, err = models.SearchRepositoryByName(searchOpts)
 		if err != nil {
-			ctx.Handle(500, "opts.Ranger", err)
+			ctx.Handle(500, "SearchRepositoryByName", err)
 			return
 		}
-	} else {
-		if isKeywordValid(keyword) {
-			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-				Keyword:     keyword,
-				OrderBy:     orderBy,
-				Private:     opts.Private,
-				Page:        page,
-				PageSize:    opts.PageSize,
-				Searcher:    ctx.User,
-				Collaborate: true,
-			})
-			if err != nil {
-				ctx.Handle(500, "SearchRepositoryByName", err)
-				return
-			}
-		}
 	}
-	ctx.Data["Keyword"] = keyword
+	ctx.Data["Keyword"] = searchOpts.Keyword
 	ctx.Data["Total"] = count
 	ctx.Data["Page"] = paginater.New(int(count), opts.PageSize, page, 5)
 	ctx.Data["Repos"] = repos
@@ -155,9 +138,7 @@ func ExploreRepos(ctx *context.Context) {
 	ctx.Data["PageIsExploreRepositories"] = true
 
 	RenderRepoSearch(ctx, &RepoSearchOptions{
-		Ranger:   models.GetRecentUpdatedRepositories,
 		PageSize: setting.UI.ExplorePagingNum,
-		Searcher: ctx.User,
 		Private:  ctx.User != nil && ctx.User.IsAdmin,
 		TplName:  tplExploreRepos,
 	})

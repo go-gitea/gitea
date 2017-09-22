@@ -28,37 +28,38 @@ func Search(ctx *context.APIContext) {
 	//     Responses:
 	//       200: SearchResults
 	//       500: SearchError
+	repoTypes := map[string]models.RepoType{
+		"fork":          models.RepoTypeFork,
+		"mirror":        models.RepoTypeMirror,
+		"source":        models.RepoTypeSource,
+		"collaborative": models.RepoTypeCollaborative,
+	}
 
 	opts := &models.SearchRepoOptions{
 		Keyword:  strings.Trim(ctx.Query("q"), " "),
 		OwnerID:  ctx.QueryInt64("uid"),
 		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-	}
-	if ctx.User != nil && ctx.User.ID == opts.OwnerID {
-		opts.Searcher = ctx.User
+		RepoType: repoTypes[ctx.Query("type")],
 	}
 
-	// Check visibility.
-	if ctx.IsSigned && opts.OwnerID > 0 {
-		if ctx.User.ID == opts.OwnerID {
-			opts.Private = true
+	// Include collaborative and private repositories
+	if opts.OwnerID > 0 {
+		owner, err := models.GetUserByID(opts.OwnerID)
+		if err != nil {
+			ctx.JSON(500, api.SearchError{
+				OK:    false,
+				Error: err.Error(),
+			})
+			return
+		}
+
+		if !owner.IsOrganization() {
 			opts.Collaborate = true
-		} else {
-			u, err := models.GetUserByID(opts.OwnerID)
-			if err != nil {
-				ctx.JSON(500, api.SearchError{
-					OK:    false,
-					Error: err.Error(),
-				})
-				return
-			}
-			if u.IsOrganization() && u.IsOwnedBy(ctx.User.ID) {
-				opts.Private = true
-			}
+		}
 
-			if !u.IsOrganization() {
-				opts.Collaborate = true
-			}
+		// Check visibility.
+		if ctx.IsSigned && (ctx.User.ID == owner.ID || (owner.IsOrganization() && owner.IsOwnedBy(ctx.User.ID))) {
+			opts.Private = true
 		}
 	}
 
