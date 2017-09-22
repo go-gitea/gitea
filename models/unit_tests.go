@@ -5,8 +5,12 @@
 package models
 
 import (
+	"os"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/Unknwon/com"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 	"github.com/stretchr/testify/assert"
@@ -36,6 +40,12 @@ func CreateTestEngine(fixturesDir string) error {
 // PrepareTestDatabase load test fixtures into test database
 func PrepareTestDatabase() error {
 	return LoadFixtures()
+}
+
+func prepareTestEnv(t testing.TB) {
+	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, com.CopyDir("../integrations/gitea-repositories-meta", setting.RepoRootPath))
 }
 
 type testCond struct {

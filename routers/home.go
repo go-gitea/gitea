@@ -86,27 +86,27 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		repos   []*models.Repository
 		count   int64
 		err     error
-		orderBy string
+		orderBy models.SearchOrderBy
 	)
 	ctx.Data["SortType"] = ctx.Query("sort")
 
 	switch ctx.Query("sort") {
 	case "oldest":
-		orderBy = "created_unix ASC"
+		orderBy = models.SearchOrderByOldest
 	case "recentupdate":
-		orderBy = "updated_unix DESC"
+		orderBy = models.SearchOrderByRecentUpdated
 	case "leastupdate":
-		orderBy = "updated_unix ASC"
+		orderBy = models.SearchOrderByLeastUpdated
 	case "reversealphabetically":
-		orderBy = "name DESC"
+		orderBy = models.SearchOrderByAlphabeticallyReverse
 	case "alphabetically":
-		orderBy = "name ASC"
+		orderBy = models.SearchOrderByAlphabetically
 	case "reversesize":
-		orderBy = "size DESC"
+		orderBy = models.SearchOrderBySizeReverse
 	case "size":
-		orderBy = "size ASC"
+		orderBy = models.SearchOrderBySize
 	default:
-		orderBy = "created_unix DESC"
+		orderBy = models.SearchOrderByNewest
 	}
 
 	keyword := strings.Trim(ctx.Query("q"), " ")

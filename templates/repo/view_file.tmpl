@@ -36,8 +36,8 @@
 		{{end}}
 	</h4>
 	<div class="ui attached table segment">
-		<div class="file-view {{if .IsMarkdown}}markdown{{else if .IsTextFile}}code-view{{end}} has-emoji">
-			{{if .IsMarkdown}}
+		<div class="file-view {{if .IsMarkup}}markdown{{else if .IsTextFile}}code-view{{end}} has-emoji">
+			{{if .IsMarkup}}
 				{{if .FileContent}}{{.FileContent | Str2html}}{{end}}
 			{{else if not .IsTextFile}}
 				<div class="view-raw ui center">
