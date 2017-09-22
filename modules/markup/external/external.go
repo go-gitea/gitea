@@ -45,15 +45,12 @@ func (p *Parser) Extensions() []string {
 
 // Render implements markup.Parser
 func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
-	var (
-		bs       []byte
-		buf      = bytes.NewBuffer(bs)
-		rd       = bytes.NewReader(rawBytes)
-		commands = strings.Fields(p.Command)
-		command  = commands[0]
-		args     []string
-	)
-
+	var bs []byte
+	var buf = bytes.NewBuffer(bs)
+	var rd = bytes.NewReader(rawBytes)
+	commands := strings.Fields(p.Command)
+	var command = commands[0]
+	var args []string
 	if len(commands) > 1 {
 		args = commands[1:]
 	}
