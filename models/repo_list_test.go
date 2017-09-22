@@ -18,6 +18,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Keyword:  "repo_12",
 		Page:     1,
 		PageSize: 10,
+		Searcher: nil,
 	})
 
 	assert.NotNil(t, repos)
@@ -31,6 +32,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Keyword:  "test_repo",
 		Page:     1,
 		PageSize: 10,
+		Searcher: nil,
 	})
 
 	assert.NotNil(t, repos)
@@ -43,6 +45,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Page:     1,
 		PageSize: 10,
 		Private:  true,
+		Searcher: &User{ID: 14},
 	})
 
 	assert.NotNil(t, repos)
@@ -57,109 +60,10 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Page:     1,
 		PageSize: 10,
 		Private:  true,
+		Searcher: &User{ID: 14},
 	})
 
 	assert.NotNil(t, repos)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), count)
-
-	// Get all public repositories by name
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Keyword:  "big_test_",
-		Page:     1,
-		PageSize: 10,
-	})
-
-	assert.NotNil(t, repos)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(4), count)
-
-	// Get all public + private repositories by name
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Keyword:  "big_test_",
-		Page:     1,
-		PageSize: 10,
-		Private:  true,
-	})
-
-	assert.NotNil(t, repos)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(8), count)
-
-	// Get all public repositories of user
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Page:     1,
-		PageSize: 10,
-		OwnerID:  15,
-		Searcher: &User{ID: 15},
-	})
-
-	assert.NotNil(t, repos)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(3), count)
-
-	// Get all public + private repositories of user
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Page:     1,
-		PageSize: 10,
-		OwnerID:  15,
-		Private:  true,
-		Searcher: &User{ID: 15},
-	})
-
-	assert.NotNil(t, repos)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(6), count)
-
-	// Get all public (including collaborative) repositories of user
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Page:        1,
-		PageSize:    10,
-		OwnerID:     15,
-		Collaborate: true,
-		Searcher:    &User{ID: 15},
-	})
-
-	assert.NotNil(t, repos)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(4), count)
-
-	// Get all public + private (including collaborative) repositories of user
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Page:        1,
-		PageSize:    10,
-		OwnerID:     15,
-		Private:     true,
-		Collaborate: true,
-		Searcher:    &User{ID: 15},
-	})
-
-	assert.NotNil(t, repos)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(8), count)
-
-	// Get all public repositories of organization
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Page:     1,
-		PageSize: 10,
-		OwnerID:  17,
-		Searcher: &User{ID: 17},
-	})
-
-	assert.NotNil(t, repos)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1), count)
-
-	// Get all public + private repositories of organization
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
-		Page:     1,
-		PageSize: 10,
-		OwnerID:  17,
-		Private:  true,
-		Searcher: &User{ID: 17},
-	})
-
-	assert.NotNil(t, repos)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(2), count)
 }
