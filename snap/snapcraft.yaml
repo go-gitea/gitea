@@ -111,9 +111,7 @@ parts:
     source: snap/helpers
     organize:
       simple_launcher.sh: bin/gitea
-      directorySetup.sh: bin/directorySetup.sh
       app.ini: gitea/snapApp.ini
     prime:
       - bin/gitea
-      - bin/directorySetup.sh
       - gitea/snapApp.ini
