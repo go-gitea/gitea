@@ -350,8 +350,11 @@ func GetOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
 	return getOrgsByUserID(sess, userID, showAll)
 }
 
-func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
+func getOwnedOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
+	if !showAll {
+		sess.And("`org_user`.is_public=?", true)
+	}
 	return orgs, sess.
 		Where("`org_user`.uid=?", userID).
 		And("`org_user`.is_owner=?", true).
@@ -361,16 +364,16 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 }
 
 // GetOwnedOrgsByUserID returns a list of organizations are owned by given user ID.
-func GetOwnedOrgsByUserID(userID int64) ([]*User, error) {
+func GetOwnedOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
 	sess := x.NewSession()
 	defer sess.Close()
-	return getOwnedOrgsByUserID(sess, userID)
+	return getOwnedOrgsByUserID(sess, userID, showAll)
 }
 
 // GetOwnedOrgsByUserIDDesc returns a list of organizations are owned by
 // given user ID, ordered descending by the given condition.
-func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
-	return getOwnedOrgsByUserID(x.Desc(desc), userID)
+func GetOwnedOrgsByUserIDDesc(userID int64, desc string, showAll bool) ([]*User, error) {
+	return getOwnedOrgsByUserID(x.Desc(desc), userID, showAll)
 }
 
 // GetOrgUsersByUserID returns all organization-user relations by user ID.
