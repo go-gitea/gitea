@@ -111,7 +111,6 @@ pipeline:
     tags: [ '${DRONE_TAG##v}' ]
     when:
       event: [ tag ]
-      branch: [ refs/tags/* ]
 
   docker:
     image: plugins/docker
@@ -139,7 +138,6 @@ pipeline:
     target: /gitea/${DRONE_TAG##v}
     when:
       event: [ tag ]
-      branch: [ refs/tags/* ]
 
   release:
     image: plugins/s3
@@ -167,7 +165,6 @@ pipeline:
       - dist/release/*
     when:
       event: [ tag ]
-      branch: [ refs/tags/* ]
 
   discord:
     image: appleboy/drone-discord:0.0.4
