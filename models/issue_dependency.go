@@ -20,6 +20,12 @@ type IssueDependency struct {
 	UpdatedUnix  int64     `xorm:"updated"`
 }
 
+// Define Dependency Type Constants
+const(
+	DependencyTypeBlockedBy int64 = 1
+	DependencyTypeBlocking int64 = 2
+)
+
 // CreateIssueDependency creates a new dependency for an issue
 func CreateIssueDependency(user *User, issue, dep *Issue) (exists bool, err error) {
 	sess := x.NewSession()
@@ -84,14 +90,14 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType int64) 
 	// If it exists, remove it, otherwise show an error message
 	if exists {
 
-		if depType == 1 {
+		if depType == DependencyTypeBlockedBy {
 			_, err := x.Delete(&IssueDependency{IssueID: issue.ID, DependencyID: dep.ID})
 			if err != nil {
 				return err
 			}
 		}
 
-		if depType == 2 {
+		if depType == DependencyTypeBlocking {
 			_, err := x.Delete(&IssueDependency{IssueID: dep.ID, DependencyID: issue.ID})
 			if err != nil {
 				return err
