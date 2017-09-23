@@ -127,12 +127,20 @@ func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err erro
 
 	exists, err = e.Get(&Dependencies)
 
+	if err != nil {
+		return exists, err
+	}
+
 	// Check for dependencies the other way around
 	// Otherwise two issues could block each other which would result in none of them could be closed.
 	if !exists {
 		Dependencies.IssueID = depID
 		Dependencies.DependencyID = issueID
 		exists, err = e.Get(&Dependencies)
+
+		if err != nil {
+			return exists, err
+		}
 	}
 
 	return
