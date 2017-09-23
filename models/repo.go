@@ -694,39 +694,13 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 }
 
 // BlockedByDependencies finds all Dependencies an issue is blocked by
-func (repo *Repository) BlockedByDependencies(issueID int64) (_ []*Issue, err error) {
-
-	issueDeps, err := repo.getBlockedByDependencies(x, issueID)
-	var issueDepsFull = make([]*Issue, 0)
-
-	for _, issueDep := range issueDeps {
-		issueDetails, _ := getIssueByID(x, issueDep.DependencyID)
-		issueDepsFull = append(issueDepsFull, issueDetails)
-	}
-
-	if err != nil {
-		return
-	}
-
-	return issueDepsFull, nil
+func (repo *Repository) BlockedByDependencies(issueID int64) (_ []*IssueDependencyIssue, err error) {
+	return repo.getBlockedByDependencies(x, issueID)
 }
 
 // BlockingDependencies returns all blocking dependencies
-func (repo *Repository) BlockingDependencies(issueID int64) (_ []*Issue, err error) {
-
-	issueDeps, err := repo.getBlockingDependencies(x, issueID)
-	var issueDepsFull = make([]*Issue, 0)
-
-	for _, issueDep := range issueDeps {
-		issueDetails, _ := getIssueByID(x, issueDep.IssueID)
-		issueDepsFull = append(issueDepsFull, issueDetails)
-	}
-
-	if err != nil {
-		return
-	}
-
-	return issueDepsFull, nil
+func (repo *Repository) BlockingDependencies(issueID int64) (_ []*IssueDependencyIssue, err error) {
+	return repo.getBlockingDependencies(x, issueID)
 }
 
 // NextIssueIndex returns the next issue index
@@ -2464,17 +2438,25 @@ func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName st
 }
 
 // Get Blocked By Dependencies, aka all issues this issue is blocked by.
-func (repo *Repository) getBlockedByDependencies(e Engine, issueID int64) (_ []IssueDependency, err error) {
-	var dependencies []IssueDependency
-	err = e.Where("issue_id = ?", issueID).Find(&dependencies) //
+func (repo *Repository) getBlockedByDependencies(e Engine, issueID int64) (_ []*IssueDependencyIssue, err error) {
+	var issueDeps []*IssueDependencyIssue
 
-	return dependencies, err
+	err = x.Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").Where("issue_id = ?", issueID).Find(&issueDeps)
+	if err != nil {
+		return issueDeps, err
+	}
+
+	return issueDeps, nil
 }
 
 // Get Blocking Dependencies, aka all issues this issue blocks.
-func (repo *Repository) getBlockingDependencies(e Engine, issueID int64) (_ []IssueDependency, err error) {
-	var dependencies []IssueDependency
-	err = e.Where("dependency_id = ?", issueID).Find(&dependencies)
+func (repo *Repository) getBlockingDependencies(e Engine, issueID int64) (_ []*IssueDependencyIssue, err error) {
+	var issueDeps []*IssueDependencyIssue
 
-	return dependencies, err
+	err = x.Join("INNER", "issue", "issue.id = issue_dependency.issue_id").Where("dependency_id = ?", issueID).Find(&issueDeps)
+	if err != nil {
+		return issueDeps, err
+	}
+
+	return issueDeps, nil
 }
