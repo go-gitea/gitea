@@ -208,11 +208,11 @@ pipeline:
       branch: [ master ]
 
   translations:
-    image: webhippie/golang:edge
-    secrets: [ crowdin_key]
-    commands:
-      - apk add --update curl
-      - make upload-translations
+    image: jonasfranz/crowdin
+    secrets: [ CROWDIN_KEY ]
+    project_identifier: gitea
+    files:
+      locale_en-US.ini: options/locale/locale_en-US.ini
     when:
       event: [ push ]
       branch: [ master ]
