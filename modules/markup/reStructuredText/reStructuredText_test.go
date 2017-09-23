@@ -14,17 +14,23 @@ import (
 )
 
 const AppURL = "http://localhost:3000/"
-const Repo = "gogits/gogs"
+const Repo = "go-gitea/gitea"
 const AppSubURL = AppURL + Repo + "/"
 
+func test(input, expected string) {
+	buffer := RenderString(input, setting.AppSubURL, nil, false)
+	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+}
+
 func TestRender_StandardLinks(t *testing.T) {
+	var appURL = setting.AppURL
+	var appSubURL = setting.AppSubURL
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
-
-	test := func(input, expected string) {
-		buffer := RenderString(input, setting.AppSubURL, nil, false)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
-	}
+	defer func() {
+		setting.AppURL = appURL
+		setting.AppSubURL = appSubURL
+	}()
 
 	googleRendered := `<p><a href="https://google.com/">reStructuredText</a></p>`
 	test("reStructuredText_\n\n.. _reStructuredText: https://google.com/\n", googleRendered)
@@ -36,13 +42,14 @@ func TestRender_StandardLinks(t *testing.T) {
 }
 
 func TestRender_Images(t *testing.T) {
+	var appURL = setting.AppURL
+	var appSubURL = setting.AppSubURL
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
-
-	test := func(input, expected string) {
-		buffer := RenderString(input, setting.AppSubURL, nil, false)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
-	}
+	defer func() {
+		setting.AppURL = appURL
+		setting.AppSubURL = appSubURL
+	}()
 
 	// TODO: relative image link is not supported by gorst
 	//url := "../../.images/src/02/train.jpg"

@@ -21,17 +21,17 @@ func init() {
 type Parser struct {
 }
 
-// Name implements markup.Parser
+// Name return the parser's name
 func (Parser) Name() string {
 	return "reStructuredText"
 }
 
-// Extensions implements markup.Parser
+// Extensions return the parser supported extensions
 func (Parser) Extensions() []string {
 	return []string{".rst"}
 }
 
-// Render renders reStructuredText rawbytes to HTML
+// Render renders reStructuredText bytes to HTML
 func Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
 	p := gorst.NewParser(nil)
 	var b bytes.Buffer
@@ -42,12 +42,12 @@ func Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki b
 	return b.Bytes()
 }
 
-// RenderString reners reStructuredText string to HTML string
+// RenderString renders reStructuredText string to HTML
 func RenderString(rawContent string, urlPrefix string, metas map[string]string, isWiki bool) string {
 	return string(Render([]byte(rawContent), urlPrefix, metas, isWiki))
 }
 
-// Render implements markup.Parser
+// Render renders reStructuredText bytes to HTML, for implementations of markup.Parser
 func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
 	return Render(rawBytes, urlPrefix, metas, isWiki)
 }
