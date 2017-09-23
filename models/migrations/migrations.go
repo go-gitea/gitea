@@ -132,6 +132,8 @@ var migrations = []Migration{
 	NewMigration("migrate protected branch struct", migrateProtectedBranchStruct),
 	// v41 -> v42
 	NewMigration("add default value to user prohibit_login", addDefaultValueToUserProhibitLogin),
+	// v42 -> v43
+	NewMigration("add issue_dependency table", addIssueDependencyTables),
 }
 
 // Migrate database to current version

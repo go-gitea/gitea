@@ -30,12 +30,6 @@ const(
 func CreateIssueDependency(user *User, issue, dep *Issue) (exists bool, err error) {
 	sess := x.NewSession()
 
-	// TODO: Move this to the appropriate place
-	err = x.Sync(new(IssueDependency))
-	if err != nil {
-		return exists, err
-	}
-
 	// Check if it aleready exists
 	exists, err = issueDepExists(x, issue.ID, dep.ID)
 	if err != nil {
@@ -74,12 +68,6 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (exists bool, err erro
 // RemoveIssueDependency removes a dependency from an issue
 func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType int64) (err error) {
 	sess := x.NewSession()
-
-	// TODO: Same as above
-	err = x.Sync(new(IssueDependency))
-	if err != nil {
-		return err
-	}
 
 	// Check if it exists
 	exists, err := issueDepExists(x, issue.ID, dep.ID)
