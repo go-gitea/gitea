@@ -209,6 +209,7 @@ pipeline:
 
   translations:
     image: jonasfranz/crowdin
+    pull: true
     secrets: [ crowdin_key ]
     project_identifier: gitea
     files:
