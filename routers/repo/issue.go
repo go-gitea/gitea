@@ -922,9 +922,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 			// Check for open dependencies
 			if form.Status == "close" {
 
-				canbeClosed := models.IssueNoDependenciesLeft(issue)
-
-				if !canbeClosed {
+				if models.IssueNoDependenciesLeft(issue) {
 					if issue.IsPull {
 						ctx.Flash.Error("You need to close all issues blocking this pull request before you can merge it!")
 						ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
