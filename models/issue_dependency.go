@@ -123,27 +123,15 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType int64) 
 
 // Check if the dependency already exists
 func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err error) {
-	var Dependencies = IssueDependency{IssueID: issueID, DependencyID: depID}
 
-	exists, err = e.Get(&Dependencies)
+	deps := new(IssueDependency)
+	exists, err = e.Where("(issue_id = ? AND dependency_id = ?) OR (issue_id = ? AND dependency_id = ?)", issueID, depID, depID, issueID).Get(deps)
 
 	if err != nil {
 		return exists, err
 	}
 
-	// Check for dependencies the other way around
-	// Otherwise two issues could block each other which would result in none of them could be closed.
-	if !exists {
-		Dependencies.IssueID = depID
-		Dependencies.DependencyID = issueID
-		exists, err = e.Get(&Dependencies)
-
-		if err != nil {
-			return exists, err
-		}
-	}
-
-	return
+	return exists, nil
 }
 
 // IssueNoDependenciesLeft checks if issue can be closed
