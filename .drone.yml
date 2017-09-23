@@ -9,6 +9,17 @@ clone:
     tags: true
 
 pipeline:
+  download_translations:
+    image: jonasfranz/crowdin
+    pull: true
+    secrets: [ crowdin_key ]
+    project_identifier: gitea
+    ignore_branch: true
+    download: true
+    export_dir: options/locale/
+    when:
+      event: [ push ]
+      branch: [ master ]
   build:
     image: webhippie/golang:edge
     pull: true
@@ -206,18 +217,7 @@ pipeline:
     when:
       event: [ push ]
       branch: [ master ]
-
-  translations:
-    image: jonasfranz/crowdin
-    pull: true
-    secrets: [ crowdin_key ]
-    project_identifier: gitea
-    files:
-      locale_en-US.ini: options/locale/locale_en-US.ini
-    when:
-      event: [ push ]
-      branch: [ master ]
-
+      
   github:
     image: plugins/github-release:1
     pull: true
@@ -225,7 +225,20 @@ pipeline:
       - dist/release/*
     when:
       event: [ tag ]
-
+     
+  upload_translations:
+    image: jonasfranz/crowdin
+    pull: true
+    secrets: [ crowdin_key ]
+    project_identifier: gitea
+    ignore_branch: true
+    download: false
+    files:
+      locale_en-US.ini: options/locale/locale_en-US.ini
+    when:
+      event: [ push ]
+      branch: [ master ]
+      
   discord:
     image: appleboy/drone-discord:1.0.0
     pull: true
