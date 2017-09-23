@@ -27,7 +27,7 @@ import (
 )
 
 func composeGoGetImport(owner, repo, sub string) string {
-	return path.Join(setting.Domain, setting.AppSubURL, owner, repo, sub)
+	return path.Join(setting.Domain, setting.AppSubURL, owner, repo)
 }
 
 // earlyResponseForGoGetMeta responses appropriate go-get meta with status 200
