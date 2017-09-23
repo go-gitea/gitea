@@ -5,13 +5,21 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/models"
+	"fmt"
 
 	"github.com/go-xorm/xorm"
 )
 
 func fixProtectedBranchCanPushValue(x *xorm.Engine) error {
-	_, err := x.Cols("can_push").Update(&models.ProtectedBranch{
+	type ProtectedBranch struct {
+		CanPush bool `xorm:"NOT NULL DEFAULT false"`
+	}
+
+	if err := x.Sync2(new(ProtectedBranch)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
+	}
+
+	_, err := x.Cols("can_push").Update(&ProtectedBranch{
 		CanPush: false,
 	})
 	return err
