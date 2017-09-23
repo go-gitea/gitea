@@ -12,6 +12,7 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
+	"github.com/grafana/grafana/pkg/setting"
 
 	api "code.gitea.io/sdk/gitea"
 
@@ -183,6 +184,14 @@ func (c *Comment) PRURL() string {
 		return ""
 	}
 	return issue.HTMLURL()
+}
+
+// TargetURL returns the main link on this comment
+func (c *Comment) TargetURL() string {
+	if c.Type == CommentTypePullPushCommit {
+		return fmt.Sprintf("%s/%s/commit/%s", setting.AppSubUrl, c.RepoFullName, c.CommitSHA)
+	}
+	return ""
 }
 
 // APIFormat converts a Comment to the api.Comment format

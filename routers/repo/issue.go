@@ -626,7 +626,8 @@ func ViewIssue(ctx *context.Context) {
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 	for _, comment = range issue.Comments {
-		if comment.Type == models.CommentTypeComment {
+		switch comment.Type {
+		case models.CommentTypeComment:
 			comment.RenderedContent = string(markdown.Render([]byte(comment.Content), ctx.Repo.RepoLink,
 				ctx.Repo.Repository.ComposeMetas()))
 
@@ -658,12 +659,12 @@ func ViewIssue(ctx *context.Context) {
 			if !isAdded && !issue.IsPoster(comment.Poster.ID) {
 				participants = append(participants, comment.Poster)
 			}
-		} else if comment.Type == models.CommentTypeLabel {
+		case models.CommentTypeLabel:
 			if err = comment.LoadLabel(); err != nil {
 				ctx.Handle(500, "LoadLabel", err)
 				return
 			}
-		} else if comment.Type == models.CommentTypeMilestone {
+		case models.CommentTypeMilestone:
 			if err = comment.LoadMilestone(); err != nil {
 				ctx.Handle(500, "LoadMilestone", err)
 				return
@@ -678,12 +679,12 @@ func ViewIssue(ctx *context.Context) {
 			if comment.MilestoneID > 0 && comment.Milestone == nil {
 				comment.Milestone = ghostMilestone
 			}
-		} else if comment.Type == models.CommentTypeAssignees {
+		case models.CommentTypeAssignees:
 			if err = comment.LoadAssignees(); err != nil {
 				ctx.Handle(500, "LoadAssignees", err)
 				return
 			}
-		} else if comment.Type == models.CommentTypePullPushCommit {
+		case models.CommentTypePullPushCommit:
 			if err = comment.LoadCommitStatus(); err != nil {
 				ctx.Handle(500, "LoadCommitStatus", err)
 				return

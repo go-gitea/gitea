@@ -638,15 +638,14 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 
 		if len(prs) > 0 {
 			var isForcePush = false
-			if !isNewBranch {
-				// detect force push
-				if git.EmptySHA != opts.Commits.Commits[0].Sha1 {
-					output, err := git.NewCommand("rev-list", opts.Commits.Commits[0].Sha1, "^"+opts.Commits.Commits[len(opts.Commits.Commits)-1].Sha1).RunInDir(repo.RepoPath())
-					if err != nil {
-						return fmt.Errorf("rev-list: %v", err)
-					} else if len(output) > 0 {
-						isForcePush = true
-					}
+
+			// detect force push
+			if !isNewBranch && git.EmptySHA != opts.Commits.Commits[0].Sha1 {
+				output, err := git.NewCommand("rev-list", opts.Commits.Commits[0].Sha1, "^"+opts.Commits.Commits[len(opts.Commits.Commits)-1].Sha1).RunInDir(repo.RepoPath())
+				if err != nil {
+					return fmt.Errorf("rev-list: %v", err)
+				} else if len(output) > 0 {
+					isForcePush = true
 				}
 			}
 
