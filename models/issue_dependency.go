@@ -38,12 +38,13 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (exists bool, err erro
 
 	// If it not exists, create it, otherwise show an error message
 	if !exists {
-		newID := new(IssueDependency)
-		newID.UserID = user.ID
-		newID.IssueID = issue.ID
-		newID.DependencyID = dep.ID
+		newIssueDependency:= &IssueDependency{
+			UserID: user.ID,
+			IssueID: issue.ID,
+			DependencyID: dep.ID,
+		}
 
-		if _, err := x.Insert(newID); err != nil {
+		if _, err := x.Insert(newIssueDependency); err != nil {
 			return exists, err
 		}
 
