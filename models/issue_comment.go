@@ -521,9 +521,9 @@ func createDeleteBranchComment(e *xorm.Session, doer *User, repo *Repository, is
 }
 
 // Creates issue dependency comment
-func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dependentIssue *Issue, added bool) (*Comment, error) {
+func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dependentIssue *Issue, add bool) (*Comment, error) {
 	cType := CommentTypeAddDependency
-	if !added {
+	if !add {
 		cType = CommentTypeRemoveDependency
 	}
 
