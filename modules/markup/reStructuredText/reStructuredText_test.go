@@ -17,7 +17,7 @@ const AppURL = "http://localhost:3000/"
 const Repo = "go-gitea/gitea"
 const AppSubURL = AppURL + Repo + "/"
 
-func test(input, expected string) {
+func test(t *testing.T, input, expected string) {
 	buffer := RenderString(input, setting.AppSubURL, nil, false)
 	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 }
@@ -33,7 +33,7 @@ func TestRender_StandardLinks(t *testing.T) {
 	}()
 
 	googleRendered := `<p><a href="https://google.com/">reStructuredText</a></p>`
-	test("reStructuredText_\n\n.. _reStructuredText: https://google.com/\n", googleRendered)
+	test(t, "reStructuredText_\n\n.. _reStructuredText: https://google.com/\n", googleRendered)
 
 	// TODO: gorst didn't support relative link.
 	/*lnk := markup.URLJoin(AppSubURL, "WikiPage")
@@ -57,7 +57,7 @@ func TestRender_Images(t *testing.T) {
 	url := "https://help.github.com/assets/images/site/favicon.png"
 	result := url
 
-	test(
+	test(t,
 		".. image:: "+url,
 		`<img src="`+result+`" alt="`+result+`" />`)
 }
