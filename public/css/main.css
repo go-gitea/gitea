@@ -1,0 +1,88 @@
+.ui.blue.button.code-comment {
+    font-size: 14px;
+    height: 100%;
+    left: 0;
+    padding: 0;
+    padding-top: 2px;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    display: none;
+  }
+  
+  .code-comment-section .single-comment .content {
+    padding: 10px 5px;
+  }
+  
+  .repository .diff-file-box .code-diff .code-comment-section td {
+    padding: 15px 12px;
+    padding-top: 5px;
+    border: 1px solid #dddddd;
+  }
+  
+  .repository .diff-file-box .file-body.file-code .lines-num-old {
+    position: relative;
+  }
+  
+  .repository .diff-file-box .code-diff td .comment-code-cloud:before {
+    content: " ";
+    width: 0;
+    height: 0;
+    border-left: 13px solid transparent;
+    border-right: 13px solid transparent;
+    border-bottom: 13px solid #f1f1f1;
+    left: 49px;
+    position: absolute;
+    top: -13px;
+  }
+  
+  .repository .diff-file-box .code-diff td .comment-code-cloud {
+    width: 75%;
+    padding: 14px 20px;
+    margin: 0 auto;
+    position: relative;
+    border: 1px solid #f1f1f1;
+    margin-top: 13px;
+  }
+  
+  .repository .diff-file-box .code-diff td .comment-code-cloud .attached.tab {
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .repository .diff-file-box .code-diff td .comment-code-cloud .right.menu .item {
+    padding: 0.85714286em 0.442857em;
+  }
+  
+  .repository .diff-file-box .code-diff .comment-code-cloud textarea {
+    border: 0px;
+  }
+  
+  .comment-code-cloud .ui.attached.tabular.menu {
+    background: #f7f7f7;
+    border: 1px solid #d4d4d5;
+    padding-top: 5px;
+    padding-left: 5px;
+  }
+  
+  .comment-code-cloud .ui.top.attached .item {
+    cursor: pointer;
+  }
+  
+  .comment-code-cloud .markdown-info {
+    display: inline-block;
+    margin: 5px 0;
+    font-size: 12px;
+  }
+  
+  .comment-code-cloud .preview-msg {
+    min-height: 168px;
+  }
+  
+  .comment-code-cloud .footer {
+    padding-top: 12px;
+    border-top: 1px solid #f1f1f1;
+    margin-top: 10px;
+  }
+  

@@ -60,6 +60,8 @@ const (
 	CommentTypeAddTimeManual
 	// Cancel a stopwatch for time tracking
 	CommentTypeCancelTracking
+	// Comment on pull files
+	CommentTypePullFiles
 )
 
 // CommentTag defines comment tag type
@@ -94,7 +96,8 @@ type Comment struct {
 	NewTitle       string
 
 	CommitID        int64
-	Line            int64
+	TreePath        string
+	Line            int64  // + is left; - is right
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
 
@@ -208,6 +211,16 @@ func (c *Comment) HashTag() string {
 // EventTag returns unique event hash tag for comment.
 func (c *Comment) EventTag() string {
 	return "event-" + com.ToStr(c.ID)
+}
+
+// LoadPoster loads poster from database
+func (c *Comment) LoadPoster() (err error) {
+	if c.Poster != nil {
+		return nil
+	}
+
+	c.Poster, err = getUserByID(x, c.PosterID)
+	return
 }
 
 // LoadLabel if comment.Type is CommentTypeLabel, then load Label
@@ -415,6 +428,32 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	return comment, nil
 }
 
+// CreatePullFilesComment creates comment on pull files
+func CreatePullFilesComment(doer *User, repo *Repository, issue *Issue, lineNum int64, treePath, content string) (*Comment, error) {
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		return nil, err
+	}
+	comment, err := createPullFilesComment(sess, doer, repo, issue, lineNum, treePath, content)
+	if err != nil {
+		return nil, err
+	}
+
+	return comment, sess.Commit()
+}
+
+func createPullFilesComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, lineNum int64, treePath, content string) (*Comment, error) {
+	return createComment(e, &CreateCommentOptions{
+		Type:     CommentTypePullFiles,
+		Doer:     doer,
+		Repo:     repo,
+		Issue:    issue,
+		Content:  content,
+		TreePath: treePath,
+		LineNum:  lineNum,
+	})
+}
+
 func createStatusComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue) (*Comment, error) {
 	cmtType := CommentTypeClose
 	if !issue.IsClosed {
@@ -502,6 +541,7 @@ type CreateCommentOptions struct {
 	NewTitle       string
 	CommitID       int64
 	CommitSHA      string
+	TreePath       string
 	LineNum        int64
 	Content        string
 	Attachments    []string // UUIDs of attachments

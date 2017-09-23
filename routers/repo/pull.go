@@ -319,6 +319,12 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 	pull := issue.PullRequest
+	err := pull.LoadCodeComments()
+	if err != nil {
+		ctx.Handle(500, "Pull.LoadCodeComments", err)
+		return
+	}
+	ctx.Data["CodeComments"] = pull.CodeComments
 
 	var (
 		diffRepoPath  string
@@ -398,6 +404,108 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 
 	ctx.HTML(200, tplPullFiles)
+}
+
+// AddCommentOnPullFilesPost add comment on Pull files view
+func AddCommentOnPullFilesPost(ctx *context.Context) {
+	issue := checkPullInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	treePath := ctx.Query("treepath")
+	line := ctx.QueryInt64("line")
+	content := ctx.Query("content")
+
+	comment, err := models.CreatePullFilesComment(ctx.User, ctx.Repo.Repository, issue, line, treePath, content)
+	if err != nil {
+		ctx.Flash.Error(fmt.Sprintf("CreatePullFilesComment: %v", err))
+		ctx.JSON(200, map[string]interface{}{
+			"redirect": setting.AppSubURL + fmt.Sprintf("/pulls/%d/files", ctx.ParamsInt64(":index")),
+		})
+		return
+	}
+	ctx.JSON(200, map[string]interface{}{
+		"ID": comment.ID,
+	})
+}
+
+// EditCommentOnPullFilesPost edit comment on Pull files view
+func EditCommentOnPullFilesPost(ctx *context.Context) {
+	commentID := ctx.ParamsInt64(":id")
+	content := ctx.Query("content")
+	if content == "" {
+		ctx.Flash.Error("Comment could not be blank")
+		ctx.JSON(200, map[string]interface{}{
+			"redirect": setting.AppSubURL + fmt.Sprintf("/pulls/%d/files", ctx.ParamsInt64(":index")),
+		})
+		return
+	}
+
+	comment, err := models.GetCommentByID(commentID)
+	if err != nil {
+		ctx.Flash.Error(fmt.Sprintf("GetCommentByID: %v", err))
+		ctx.JSON(200, map[string]interface{}{
+			"redirect": setting.AppSubURL + fmt.Sprintf("/pulls/%d/files", ctx.ParamsInt64(":index")),
+		})
+		return
+	}
+
+	if comment.PosterID != ctx.User.ID {
+		ctx.Flash.Error("You have no permission to change the comment")
+		ctx.JSON(200, map[string]interface{}{
+			"redirect": setting.AppSubURL + fmt.Sprintf("/pulls/%d/files", ctx.ParamsInt64(":index")),
+		})
+		return
+	}
+
+	comment.Content = content
+	err = models.UpdateComment(comment)
+	if err != nil {
+		ctx.Flash.Error(fmt.Sprintf("UpdateComment: %v", err))
+		ctx.JSON(200, map[string]interface{}{
+			"redirect": setting.AppSubURL + fmt.Sprintf("/pulls/%d/files", ctx.ParamsInt64(":index")),
+		})
+		return
+	}
+	ctx.JSON(200, map[string]interface{}{
+		"ID": comment.ID,
+	})
+}
+
+// DeleteCommentOnPullFilesPost deletes comment on Pull files view
+func DeleteCommentOnPullFilesPost(ctx *context.Context) {
+	commentID := ctx.ParamsInt64(":id")
+
+	comment, err := models.GetCommentByID(commentID)
+	if err != nil {
+		ctx.Flash.Error(fmt.Sprintf("GetCommentByID: %v", err))
+		ctx.JSON(200, map[string]interface{}{
+			"redirect": setting.AppSubURL + fmt.Sprintf("/pulls/%d/files", ctx.ParamsInt64(":index")),
+		})
+		return
+	}
+
+	if comment.PosterID != ctx.User.ID {
+		ctx.Flash.Error("You have no permission to change the comment")
+		ctx.JSON(200, map[string]interface{}{
+			"redirect": setting.AppSubURL + fmt.Sprintf("/pulls/%d/files", ctx.ParamsInt64(":index")),
+		})
+		return
+	}
+
+	err = models.DeleteComment(comment)
+	if err != nil {
+		ctx.Flash.Error(fmt.Sprintf("DeletePullFilesComment: %v", err))
+		ctx.JSON(200, map[string]interface{}{
+			"redirect": setting.AppSubURL + fmt.Sprintf("/pulls/%d/files", ctx.ParamsInt64(":index")),
+		})
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ID": comment.ID,
+	})
 }
 
 // MergePullRequest response for merging pull request

@@ -165,6 +165,12 @@ func (u *User) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
+// GetEmail returns an noreply email, if the user has set to keep his
+// email address private, otherwise the primary email address.
+func (u *User) GetEmail() string {
+	return u.getEmail()
+}
+
 // getEmail returns an noreply email, if the user has set to keep his
 // email address private, otherwise the primary email address.
 func (u *User) getEmail() string {
