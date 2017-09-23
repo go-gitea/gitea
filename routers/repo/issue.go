@@ -684,7 +684,7 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Handle(500, "LoadAssignees", err)
 				return
 			}
-		} else if comment.Type == models.CommentTypeRemovedDependency || comment.Type == models.CommentTypeAddedDependency {
+		} else if comment.Type == models.CommentTypeRemoveDependency || comment.Type == models.CommentTypeAddDependency {
 			if err = comment.LoadDepIssueDetails(); err != nil {
 				ctx.Handle(http.StatusInternalServerError, "LoadDepIssueDetails", err)
 				return

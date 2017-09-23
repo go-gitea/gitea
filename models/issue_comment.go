@@ -61,9 +61,9 @@ const (
 	// Cancel a stopwatch for time tracking
 	CommentTypeCancelTracking
 	// Dependency added
-	CommentTypeAddedDependency
+	CommentTypeAddDependency
 	//Dependency removed
-	CommentTypeRemovedDependency
+	CommentTypeRemoveDependency
 )
 
 // CommentTag defines comment tag type
@@ -521,10 +521,10 @@ func createDeleteBranchComment(e *xorm.Session, doer *User, repo *Repository, is
 }
 
 // Creates issue dependency comment
-func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dependantIssue *Issue, added bool) (*Comment, error) {
-	cType := CommentTypeAddedDependency
+func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dependentIssue *Issue, added bool) (*Comment, error) {
+	cType := CommentTypeAddDependency
 	if !added {
-		cType = CommentTypeRemovedDependency
+		cType = CommentTypeRemoveDependency
 	}
 
 	return createComment(e, &CreateCommentOptions{
@@ -532,7 +532,7 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 		Doer:           doer,
 		Repo:           issue.Repo,
 		Issue:          issue,
-		DependentIssue: dependantIssue,
+		DependentIssue: dependentIssue,
 		Content:        issue.Title,
 	})
 }
