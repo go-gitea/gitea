@@ -325,7 +325,7 @@ update-translations:
 
 .PHONY: upload-translations
 upload-translations:
-	@result=$$(curl -F "files[locale_en-US.ini]=@options/locale/locale_en-US.ini" https://api.crowdin.com/api/project/gitea-demo/update-file?key=${crowdin_key});\
+	@result=$$(curl -F "files[locale_en-US.ini]=@options/locale/locale_en-US.ini" https://api.crowdin.com/api/project/gitea/update-file?key=${crowdin_key});\
 	echo "$${result}"; \
 	case $${result} in \
         *error* ) exit 1;; \
