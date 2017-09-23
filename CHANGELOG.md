@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.0-rc4](https://github.com/go-gitea/gitea/releases/tag/v1.2.0-rc4) - 2017-09-23
+* BUILD
+  * Fix release building in Drone CI (#2586, #2579, #2573)
+
 ## [1.2.0-rc3](https://github.com/go-gitea/gitea/releases/tag/v1.2.0-rc3) - 2017-09-21
 * BUGFIXES
   * Sync releases table with tags on push and for mirrors (#2459)
