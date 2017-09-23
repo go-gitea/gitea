@@ -135,14 +135,23 @@ func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err erro
 }
 
 // IssueNoDependenciesLeft checks if issue can be closed
+type IssueDependencyIssue struct {
+	IssueDependency `xorm:"extends"`
+	Issue `xorm:"extends"`
+}
+
+func (IssueDependencyIssue) TableName() string {
+	return "issue_dependency"
+}
+
 func IssueNoDependenciesLeft(issue *Issue) bool {
 
-	var issueDeps []IssueDependency
-	err := x.Where("issue_id = ?", issue.ID).Find(&issueDeps)
+	var issueDeps []IssueDependencyIssue
+
+	err := x.Join("INNER", "issue", "issue.id = issue_dependency.issue_id").Find(&issueDeps)
 
 	for _, issueDep := range issueDeps {
-		issueDetails, _ := getIssueByID(x, issueDep.DependencyID)
-		if !issueDetails.IsClosed {
+		if !issueDep.IsClosed {
 			return false
 		}
 	}
