@@ -9,6 +9,17 @@ clone:
     tags: true
 
 pipeline:
+  download_translations:
+    image: jonasfranz/crowdin
+    pull: true
+    secrets: [ crowdin_key ]
+    project_identifier: gitea
+    ignore_branch: true
+    download: true
+    export_dir: options/locale/
+    when:
+      event: [ push ]
+      branch: [ master ]
   pre-build:
     image: webhippie/nodejs:latest
     pull: true
@@ -212,12 +223,21 @@ pipeline:
       event: [ push ]
       branch: [ master ]
 
-  translations:
+  github:
+    image: plugins/github-release:1
+    pull: true
+    files:
+      - dist/release/*
+    when:
+      event: [ tag ]
+
+  upload_translations:
     image: jonasfranz/crowdin
     pull: true
     secrets: [ crowdin_key ]
     project_identifier: gitea
     ignore_branch: true
+    download: false
     files:
       locale_en-US.ini: options/locale/locale_en-US.ini
     when:
