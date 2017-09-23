@@ -15,31 +15,9 @@ type IssueDependency struct {
 	IssueID      int64     `xorm:"UNIQUE(watch) NOT NULL"`
 	DependencyID int64     `xorm:"UNIQUE(watch) NOT NULL"`
 	Created      time.Time `xorm:"-"`
-	CreatedUnix  int64     `xorm:"NOT NULL"`
+	CreatedUnix  int64     `xorm:"INDEX created"`
 	Updated      time.Time `xorm:"-"`
-	UpdatedUnix  int64     `xorm:"NOT NULL"`
-}
-
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (iw *IssueDependency) BeforeInsert() {
-	var (
-		t = time.Now()
-		u = t.Unix()
-	)
-	iw.Created = t
-	iw.CreatedUnix = u
-	iw.Updated = t
-	iw.UpdatedUnix = u
-}
-
-// BeforeUpdate is invoked from XORM before updating an object of this type.
-func (iw *IssueDependency) BeforeUpdate() {
-	var (
-		t = time.Now()
-		u = t.Unix()
-	)
-	iw.Updated = t
-	iw.UpdatedUnix = u
+	UpdatedUnix  int64     `xorm:"updated"`
 }
 
 // CreateIssueDependency creates a new dependency for an issue
