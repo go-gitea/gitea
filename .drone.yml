@@ -207,6 +207,17 @@ pipeline:
       event: [ push ]
       branch: [ master ]
 
+  translations:
+    image: jonasfranz/crowdin
+    pull: true
+    secrets: [ crowdin_key ]
+    project_identifier: gitea
+    files:
+      locale_en-US.ini: options/locale/locale_en-US.ini
+    when:
+      event: [ push ]
+      branch: [ master ]
+
   github:
     image: plugins/github-release:1
     pull: true
