@@ -134,21 +134,23 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 	}
 }
 
-// composeGoGetImport returns go-get-import meta content.
-func composeGoGetImport(owner, repo string) string {
+// ComposeGoGetImport returns go-get-import meta content.
+func ComposeGoGetImport(owner, repo string) string {
 	return path.Join(setting.Domain, setting.AppSubURL, owner, repo)
 }
 
-// earlyResponseForGoGetMeta responses appropriate go-get meta with status 200
+// EarlyResponseForGoGetMeta responses appropriate go-get meta with status 200
 // if user does not have actual access to the requested repository,
 // or the owner or repository does not exist at all.
 // This is particular a workaround for "go get" command which does not respect
 // .netrc file.
-func earlyResponseForGoGetMeta(ctx *Context) {
+func EarlyResponseForGoGetMeta(ctx *Context) {
+	username := ctx.Params(":username")
+	reponame := ctx.Params(":reponame")
 	ctx.PlainText(200, []byte(com.Expand(`<meta name="go-import" content="{GoGetImport} git {CloneLink}">`,
 		map[string]string{
-			"GoGetImport": composeGoGetImport(ctx.Params(":username"), strings.TrimSuffix(ctx.Params(":reponame"), ".git")),
-			"CloneLink":   models.ComposeHTTPSCloneURL(ctx.Params(":username"), ctx.Params(":reponame")),
+			"GoGetImport": ComposeGoGetImport(username, strings.TrimSuffix(reponame, ".git")),
+			"CloneLink":   models.ComposeHTTPSCloneURL(username, reponame),
 		})))
 }
 
@@ -216,7 +218,7 @@ func RepoIDAssignment() macaron.Handler {
 		// Check access.
 		if ctx.Repo.AccessMode == models.AccessModeNone {
 			if ctx.Query("go-get") == "1" {
-				earlyResponseForGoGetMeta(ctx)
+				EarlyResponseForGoGetMeta(ctx)
 				return
 			}
 			ctx.Handle(404, "no access right", err)
@@ -260,7 +262,7 @@ func RepoAssignment() macaron.Handler {
 			if err != nil {
 				if models.IsErrUserNotExist(err) {
 					if ctx.Query("go-get") == "1" {
-						earlyResponseForGoGetMeta(ctx)
+						EarlyResponseForGoGetMeta(ctx)
 						return
 					}
 					ctx.Handle(404, "GetUserByName", nil)
@@ -282,7 +284,7 @@ func RepoAssignment() macaron.Handler {
 					RedirectToRepo(ctx, redirectRepoID)
 				} else if models.IsErrRepoRedirectNotExist(err) {
 					if ctx.Query("go-get") == "1" {
-						earlyResponseForGoGetMeta(ctx)
+						EarlyResponseForGoGetMeta(ctx)
 						return
 					}
 					ctx.Handle(404, "GetRepositoryByName", nil)
@@ -315,7 +317,7 @@ func RepoAssignment() macaron.Handler {
 		// Check access.
 		if ctx.Repo.AccessMode == models.AccessModeNone {
 			if ctx.Query("go-get") == "1" {
-				earlyResponseForGoGetMeta(ctx)
+				EarlyResponseForGoGetMeta(ctx)
 				return
 			}
 			ctx.Handle(404, "no access right", err)
@@ -443,7 +445,7 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
 		if ctx.Query("go-get") == "1" {
-			ctx.Data["GoGetImport"] = composeGoGetImport(owner.Name, repo.Name)
+			ctx.Data["GoGetImport"] = ComposeGoGetImport(owner.Name, repo.Name)
 			prefix := setting.AppURL + path.Join(owner.Name, repo.Name, "src", ctx.Repo.BranchName)
 			ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
 			ctx.Data["GoDocFile"] = prefix + "{/dir}/{file}#L{line}"
