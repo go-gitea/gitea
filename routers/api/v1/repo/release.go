@@ -5,8 +5,6 @@
 package repo
 
 import (
-	"strings"
-
 	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/models"
@@ -36,6 +34,7 @@ func GetRelease(ctx *context.APIContext) {
 func ListReleases(ctx *context.APIContext) {
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
 		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite,
+		IncludeTags:   false,
 	}, 1, 2147483647)
 	if err != nil {
 		ctx.Error(500, "GetReleasesByRepoID", err)
@@ -62,43 +61,49 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		ctx.Status(404)
 		return
 	}
-	tag, err := ctx.Repo.GitRepo.GetTag(form.TagName)
+	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
-		ctx.Error(500, "GetTag", err)
-		return
-	}
-	commit, err := tag.Commit()
-	if err != nil {
-		ctx.Error(500, "Commit", err)
-		return
-	}
-	commitsCount, err := commit.CommitsCount()
-	if err != nil {
-		ctx.Error(500, "CommitsCount", err)
-		return
-	}
-	rel := &models.Release{
-		RepoID:       ctx.Repo.Repository.ID,
-		PublisherID:  ctx.User.ID,
-		Publisher:    ctx.User,
-		TagName:      form.TagName,
-		LowerTagName: strings.ToLower(form.TagName),
-		Target:       form.Target,
-		Title:        form.Title,
-		Sha1:         commit.ID.String(),
-		NumCommits:   commitsCount,
-		Note:         form.Note,
-		IsDraft:      form.IsDraft,
-		IsPrerelease: form.IsPrerelease,
-		CreatedUnix:  commit.Author.When.Unix(),
-	}
-	if err := models.CreateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
-		if models.IsErrReleaseAlreadyExist(err) {
-			ctx.Status(409)
-		} else {
-			ctx.Error(500, "CreateRelease", err)
+		if !models.IsErrReleaseNotExist(err) {
+			ctx.Handle(500, "GetRelease", err)
+			return
 		}
-		return
+		rel = &models.Release{
+			RepoID:       ctx.Repo.Repository.ID,
+			PublisherID:  ctx.User.ID,
+			Publisher:    ctx.User,
+			TagName:      form.TagName,
+			Target:       form.Target,
+			Title:        form.Title,
+			Note:         form.Note,
+			IsDraft:      form.IsDraft,
+			IsPrerelease: form.IsPrerelease,
+			IsTag:        false,
+		}
+		if err := models.CreateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
+			if models.IsErrReleaseAlreadyExist(err) {
+				ctx.Status(409)
+			} else {
+				ctx.Error(500, "CreateRelease", err)
+			}
+			return
+		}
+	} else {
+		if !rel.IsTag {
+			ctx.Status(409)
+			return
+		}
+
+		rel.Title = form.Title
+		rel.Note = form.Note
+		rel.IsDraft = form.IsDraft
+		rel.IsPrerelease = form.IsPrerelease
+		rel.PublisherID = ctx.User.ID
+		rel.IsTag = false
+
+		if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
+			ctx.Handle(500, "UpdateRelease", err)
+			return
+		}
 	}
 	ctx.JSON(201, rel.APIFormat())
 }
@@ -111,11 +116,12 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	}
 	id := ctx.ParamsInt64(":id")
 	rel, err := models.GetReleaseByID(id)
-	if err != nil {
+	if err != nil && !models.IsErrReleaseNotExist(err) {
 		ctx.Error(500, "GetReleaseByID", err)
 		return
 	}
-	if rel.RepoID != ctx.Repo.Repository.ID {
+	if err != nil && models.IsErrReleaseNotExist(err) ||
+		rel.IsTag || rel.RepoID != ctx.Repo.Repository.ID {
 		ctx.Status(404)
 		return
 	}
@@ -162,12 +168,13 @@ func DeleteRelease(ctx *context.APIContext) {
 		return
 	}
 	id := ctx.ParamsInt64(":id")
-	release, err := models.GetReleaseByID(id)
-	if err != nil {
+	rel, err := models.GetReleaseByID(id)
+	if err != nil && !models.IsErrReleaseNotExist(err) {
 		ctx.Error(500, "GetReleaseByID", err)
 		return
 	}
-	if release.RepoID != ctx.Repo.Repository.ID {
+	if err != nil && models.IsErrReleaseNotExist(err) ||
+		rel.IsTag || rel.RepoID != ctx.Repo.Repository.ID {
 		ctx.Status(404)
 		return
 	}

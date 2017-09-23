@@ -132,6 +132,10 @@ var migrations = []Migration{
 	NewMigration("migrate protected branch struct", migrateProtectedBranchStruct),
 	// v41 -> v42
 	NewMigration("add default value to user prohibit_login", addDefaultValueToUserProhibitLogin),
+	// v42 -> v43
+	NewMigration("add tags to releases and sync existing repositories", releaseAddColumnIsTagAndSyncTags),
+	// v43 -> v44
+	NewMigration("fix protected branch can push value to false", fixProtectedBranchCanPushValue),
 }
 
 // Migrate database to current version

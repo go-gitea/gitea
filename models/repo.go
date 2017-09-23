@@ -638,7 +638,7 @@ func (repo *Repository) UpdateSize() error {
 
 // CanBeForked returns true if repository meets the requirements of being forked.
 func (repo *Repository) CanBeForked() bool {
-	return !repo.IsBare
+	return !repo.IsBare && repo.UnitEnabled(UnitTypeCode)
 }
 
 // CanEnablePulls returns true if repository meets the requirements of accepting pulls.
@@ -939,6 +939,10 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		}
 		if headBranch != nil {
 			repo.DefaultBranch = headBranch.Name
+		}
+
+		if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
+			log.Error(4, "Failed to synchronize tags to releases for repository: %v", err)
 		}
 	}
 
