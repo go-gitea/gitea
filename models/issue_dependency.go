@@ -21,9 +21,9 @@ type IssueDependency struct {
 }
 
 // Define Dependency Type Constants
-const(
+const (
 	DependencyTypeBlockedBy int64 = 1
-	DependencyTypeBlocking int64 = 2
+	DependencyTypeBlocking  int64 = 2
 )
 
 // CreateIssueDependency creates a new dependency for an issue
@@ -38,9 +38,9 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (exists bool, err erro
 
 	// If it not exists, create it, otherwise show an error message
 	if !exists {
-		newIssueDependency:= &IssueDependency{
-			UserID: user.ID,
-			IssueID: issue.ID,
+		newIssueDependency := &IssueDependency{
+			UserID:       user.ID,
+			IssueID:      issue.ID,
 			DependencyID: dep.ID,
 		}
 
@@ -125,7 +125,7 @@ func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err erro
 // IssueDependencyIssue custom type for mysql join
 type IssueDependencyIssue struct {
 	IssueDependency `xorm:"extends"`
-	Issue `xorm:"extends"`
+	Issue           `xorm:"extends"`
 }
 
 // TableName returns table name for mysql join
