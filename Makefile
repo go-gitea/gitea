@@ -289,21 +289,17 @@ public/js/index.js: $(JAVASCRIPTS)
 	cat $< >| $@
 
 .PHONY: stylesheets-check
-stylesheets-check: stylesheets
+stylesheets-check: generate-stylesheets
 	@diff=$$(git diff public/css/index.css); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make stylesheets' and commit the result:"; \
+		echo "Please run 'make generate-stylesheets' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi;
 
-.PHONY: stylesheets
-stylesheets:
-	@hash minify > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/tdewolff/minify/cmd/minify; \
-	fi
-	node_modules/.bin/lessc --no-ie-compat public/less/index.less public/css/index.css
-	minify -o public/css/index.css public/css/index.css
+.PHONY: generate-stylesheets
+generate-stylesheets:
+	node_modules/.bin/lessc --no-ie-compat --clean-css public/less/index.less public/css/index.css
 
 .PHONY: swagger-ui
 swagger-ui:
