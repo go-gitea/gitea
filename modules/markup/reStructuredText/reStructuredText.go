@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 
 	gorst "github.com/hhatto/gorst"
@@ -37,7 +38,10 @@ func Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki b
 	var b bytes.Buffer
 	w := bufio.NewWriter(&b)
 	p.ReStructuredText(bytes.NewReader(rawBytes), gorst.ToHTML(w))
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		log.Error(4, "Render ReStructuredText failed: %v", err)
+		return []byte("")
+	}
 
 	return b.Bytes()
 }
