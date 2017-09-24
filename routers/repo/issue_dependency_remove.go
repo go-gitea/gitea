@@ -29,16 +29,18 @@ func RemoveDependency(c *context.Context) {
 	}
 
 	// Dependency Type
-	// Types: 1 = blockedBy, 2 = blocking
-	depType, err := strconv.ParseInt(c.Req.PostForm.Get("dependencyType"), 10, 64)
-	if err != nil {
-		c.Handle(http.StatusInternalServerError, "GetDependecyType", err)
-		return
-	}
+	depTypeStr := c.Req.PostForm.Get("dependencyType")
 
-	if depType != models.DependencyTypeBlockedBy && depType != models.DependencyTypeBlocking {
-		c.Handle(http.StatusBadRequest, "GetDependecyType", nil)
-		return
+	var depType models.DependencyType
+
+	switch depTypeStr {
+		case "blockedBy":
+			depType = models.DependencyTypeBlockedBy
+		case "blocking":
+			depType = models.DependencyTypeBlocking
+		default:
+			c.Handle(http.StatusBadRequest, "GetDependecyType", nil)
+			return
 	}
 
 	// Dependency

@@ -21,9 +21,11 @@ type IssueDependency struct {
 }
 
 // Define Dependency Type Constants
+type DependencyType int
+
 const (
-	DependencyTypeBlockedBy int64 = 1
-	DependencyTypeBlocking  int64 = 2
+	DependencyTypeBlockedBy DependencyType = iota
+	DependencyTypeBlocking
 )
 
 // CreateIssueDependency creates a new dependency for an issue
@@ -66,7 +68,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (exists bool, err erro
 }
 
 // RemoveIssueDependency removes a dependency from an issue
-func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType int64) (err error) {
+func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType DependencyType) (err error) {
 	sess := x.NewSession()
 
 	// Check if it exists
@@ -78,18 +80,20 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType int64) 
 	// If it exists, remove it, otherwise show an error message
 	if exists {
 
-		if depType == DependencyTypeBlockedBy {
-			_, err := x.Delete(&IssueDependency{IssueID: issue.ID, DependencyID: dep.ID})
-			if err != nil {
-				return err
-			}
+		var issueDepToDelete IssueDependency
+
+		switch depType {
+			case DependencyTypeBlockedBy:
+				issueDepToDelete = IssueDependency{IssueID: issue.ID, DependencyID: dep.ID}
+			case DependencyTypeBlocking:
+				issueDepToDelete = IssueDependency{IssueID: dep.ID, DependencyID: issue.ID}
+			default:
+				return
 		}
 
-		if depType == DependencyTypeBlocking {
-			_, err := x.Delete(&IssueDependency{IssueID: dep.ID, DependencyID: issue.ID})
-			if err != nil {
-				return err
-			}
+		_, err := x.Delete(&issueDepToDelete)
+		if err != nil {
+			return err
 		}
 
 		// Add comment referencing the removed dependency
