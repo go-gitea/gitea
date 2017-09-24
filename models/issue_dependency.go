@@ -20,9 +20,10 @@ type IssueDependency struct {
 	UpdatedUnix  int64     `xorm:"updated"`
 }
 
-// Define Dependency Type Constants
+// DependencyType Defines Dependency Type Constants
 type DependencyType int
 
+// Define Dependency Types
 const (
 	DependencyTypeBlockedBy DependencyType = iota
 	DependencyTypeBlocking
@@ -83,12 +84,12 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 		var issueDepToDelete IssueDependency
 
 		switch depType {
-			case DependencyTypeBlockedBy:
-				issueDepToDelete = IssueDependency{IssueID: issue.ID, DependencyID: dep.ID}
-			case DependencyTypeBlocking:
-				issueDepToDelete = IssueDependency{IssueID: dep.ID, DependencyID: issue.ID}
-			default:
-				return
+		case DependencyTypeBlockedBy:
+			issueDepToDelete = IssueDependency{IssueID: issue.ID, DependencyID: dep.ID}
+		case DependencyTypeBlocking:
+			issueDepToDelete = IssueDependency{IssueID: dep.ID, DependencyID: issue.ID}
+		default:
+			return
 		}
 
 		_, err := x.Delete(&issueDepToDelete)

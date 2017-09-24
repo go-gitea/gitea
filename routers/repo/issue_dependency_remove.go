@@ -34,13 +34,13 @@ func RemoveDependency(c *context.Context) {
 	var depType models.DependencyType
 
 	switch depTypeStr {
-		case "blockedBy":
-			depType = models.DependencyTypeBlockedBy
-		case "blocking":
-			depType = models.DependencyTypeBlocking
-		default:
-			c.Handle(http.StatusBadRequest, "GetDependecyType", nil)
-			return
+	case "blockedBy":
+		depType = models.DependencyTypeBlockedBy
+	case "blocking":
+		depType = models.DependencyTypeBlocking
+	default:
+		c.Handle(http.StatusBadRequest, "GetDependecyType", nil)
+		return
 	}
 
 	// Dependency
