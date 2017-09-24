@@ -874,6 +874,10 @@ func UpdateUser(u *User) error {
 
 // UpdateUserCols update user according special columns
 func UpdateUserCols(u *User, cols ...string) error {
+	return updateUserCols(x, u, cols...)
+}
+
+func updateUserCols(e Engine, u *User, cols ...string) error {
 	// Organization does not need email
 	u.Email = strings.ToLower(u.Email)
 	if !u.IsOrganization() {

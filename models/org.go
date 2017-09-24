@@ -412,7 +412,7 @@ func ChangeOrgUserStatus(orgID, uid int64, public bool) error {
 	}
 
 	ou.IsPublic = public
-	_, err = x.Id(ou.ID).AllCols().Update(ou)
+	_, err = x.Id(ou.ID).Cols("is_public").Update(ou)
 	return err
 }
 
