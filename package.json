@@ -1,0 +1,6 @@
+{
+  "license": "MIT",
+  "dependencies": {
+    "less": "^2.7.2"
+  }
+}

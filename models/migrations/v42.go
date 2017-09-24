@@ -7,18 +7,51 @@ package migrations
 import (
 	"fmt"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-xorm/xorm"
 )
 
-func addIssueDependencyTables(x *xorm.Engine) (err error) {
+// ReleaseV39 describes the added field for Release
+type ReleaseV39 struct {
+	IsTag bool `xorm:"NOT NULL DEFAULT false"`
+}
 
-	err = x.Sync(new(models.IssueDependency))
+// TableName will be invoked by XORM to customrize the table name
+func (*ReleaseV39) TableName() string {
+	return "release"
+}
 
-	if err != nil {
-		return fmt.Errorf("Error creating issue_dependency_table column definition: %v", err)
+func releaseAddColumnIsTagAndSyncTags(x *xorm.Engine) error {
+	if err := x.Sync2(new(ReleaseV39)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
 	}
 
-	return err
+	// For the sake of SQLite3, we can't use x.Iterate here.
+	offset := 0
+	pageSize := 20
+	for {
+		repos := make([]*models.Repository, 0, pageSize)
+		if err := x.Table("repository").Asc("id").Limit(pageSize, offset).Find(&repos); err != nil {
+			return fmt.Errorf("select repos [offset: %d]: %v", offset, err)
+		}
+		for _, repo := range repos {
+			gitRepo, err := git.OpenRepository(repo.RepoPath())
+			if err != nil {
+				log.Warn("OpenRepository: %v", err)
+				continue
+			}
+
+			if err = models.SyncReleasesWithTags(repo, gitRepo); err != nil {
+				log.Warn("SyncReleasesWithTags: %v", err)
+			}
+		}
+		if len(repos) < pageSize {
+			break
+		}
+		offset += pageSize
+	}
+	return nil
 }

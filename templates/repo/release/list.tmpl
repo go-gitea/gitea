@@ -17,7 +17,9 @@
 			{{range .Releases}}
 				<li class="ui grid">
 					<div class="ui four wide column meta">
-						{{if .PublisherID}}
+						{{if .IsTag}}
+							{{if .Created}}<span class="time">{{TimeSince .Created $.Lang}}</span>{{end}}
+						{{else}}
 							{{if .IsDraft}}
 								<span class="ui yellow label">{{$.i18n.Tr "repo.release.draft"}}</span>
 							{{else if .IsPrerelease}}
@@ -28,13 +30,22 @@
 							<span class="tag text blue">
 								<a href="{{$.RepoLink}}/src/{{.TagName}}" rel="nofollow"><i class="tag icon"></i> {{.TagName}}</a>
 							</span>
+							<span class="commit">
+								<a href="{{$.RepoLink}}/src/{{.Sha1}}" rel="nofollow"><i class="code icon"></i> {{ShortSha .Sha1}}</a>
+							</span>
 						{{end}}
-						<span class="commit">
-							<a href="{{$.RepoLink}}/src/{{.Sha1}}" rel="nofollow"><i class="code icon"></i> {{ShortSha .Sha1}}</a>
-						</span>
 					</div>
 					<div class="ui twelve wide column detail">
-						{{if .PublisherID}}
+						{{if .IsTag}}
+							<h4>
+								<a href="{{$.RepoLink}}/src/{{.TagName}}" rel="nofollow"><i class="tag icon"></i> {{.TagName}}</a>
+							</h4>
+							<div class="download">
+								<a href="{{$.RepoLink}}/src/{{.Sha1}}" rel="nofollow"><i class="code icon"></i> {{ShortSha .Sha1}}</a>
+								<a href="{{$.RepoLink}}/archive/{{.TagName}}.zip" rel="nofollow"><i class="octicon octicon-file-zip"></i> ZIP</a>
+								<a href="{{$.RepoLink}}/archive/{{.TagName}}.tar.gz"><i class="octicon octicon-file-zip"></i> TAR.GZ</a>
+							</div>
+						{{else}}
 							<h3>
 								<a href="{{$.RepoLink}}/src/{{.TagName}}">{{.Title}}</a>
 								{{if $.IsRepositoryWriter}}<small>(<a href="{{$.RepoLink}}/releases/edit/{{.TagName}}" rel="nofollow">{{$.i18n.Tr "repo.release.edit"}}</a>)</small>{{end}}
@@ -69,14 +80,6 @@
 									{{end}}
 									{{end}}
 								</ul>
-							</div>
-						{{else}}
-							<h4>
-								<a href="{{$.RepoLink}}/src/{{.TagName}}" rel="nofollow"><i class="tag icon"></i> {{.TagName}}</a>
-							</h4>
-							<div class="download">
-								<a href="{{$.RepoLink}}/archive/{{.TagName}}.zip" rel="nofollow"><i class="octicon octicon-file-zip"></i> ZIP</a>
-								<a href="{{$.RepoLink}}/archive/{{.TagName}}.tar.gz"><i class="octicon octicon-file-zip"></i> TAR.GZ</a>
 							</div>
 						{{end}}
 						<span class="dot">&nbsp;</span>

@@ -17,8 +17,8 @@ import (
 // Renderer is a extended version of underlying render object.
 type Renderer struct {
 	blackfriday.Renderer
-	urlPrefix      string
-	isWikiMarkdown bool
+	URLPrefix string
+	IsWiki    bool
 }
 
 // Link defines how formal links should be processed to produce corresponding HTML elements.
@@ -26,10 +26,10 @@ func (r *Renderer) Link(out *bytes.Buffer, link []byte, title []byte, content []
 	if len(link) > 0 && !markup.IsLink(link) {
 		if link[0] != '#' {
 			lnk := string(link)
-			if r.isWikiMarkdown {
+			if r.IsWiki {
 				lnk = markup.URLJoin("wiki", lnk)
 			}
-			mLink := markup.URLJoin(r.urlPrefix, lnk)
+			mLink := markup.URLJoin(r.URLPrefix, lnk)
 			link = []byte(mLink)
 		}
 	}
@@ -95,8 +95,8 @@ var (
 
 // Image defines how images should be processed to produce corresponding HTML elements.
 func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byte) {
-	prefix := r.urlPrefix
-	if r.isWikiMarkdown {
+	prefix := r.URLPrefix
+	if r.IsWiki {
 		prefix = markup.URLJoin(prefix, "wiki", "src")
 	}
 	prefix = strings.Replace(prefix, "/src/", "/raw/", 1)
@@ -129,9 +129,9 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 	htmlFlags |= blackfriday.HTML_SKIP_STYLE
 	htmlFlags |= blackfriday.HTML_OMIT_CONTENTS
 	renderer := &Renderer{
-		Renderer:       blackfriday.HtmlRenderer(htmlFlags, "", ""),
-		urlPrefix:      urlPrefix,
-		isWikiMarkdown: wikiMarkdown,
+		Renderer:  blackfriday.HtmlRenderer(htmlFlags, "", ""),
+		URLPrefix: urlPrefix,
+		IsWiki:    wikiMarkdown,
 	}
 
 	// set up the parser

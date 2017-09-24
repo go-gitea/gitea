@@ -133,6 +133,10 @@ var migrations = []Migration{
 	// v41 -> v42
 	NewMigration("add default value to user prohibit_login", addDefaultValueToUserProhibitLogin),
 	// v42 -> v43
+	NewMigration("add tags to releases and sync existing repositories", releaseAddColumnIsTagAndSyncTags),
+	// v43 -> v44
+	NewMigration("fix protected branch can push value to false", fixProtectedBranchCanPushValue),
+	// v44 -> v45
 	NewMigration("add issue_dependency table", addIssueDependencyTables),
 }
 

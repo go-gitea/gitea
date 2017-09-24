@@ -5,13 +5,11 @@
 package markdown_test
 
 import (
-	"fmt"
-	"strconv"
 	"strings"
 	"testing"
 
-	. "code.gitea.io/gitea/modules/markdown"
 	"code.gitea.io/gitea/modules/markup"
+	. "code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -20,45 +18,6 @@ import (
 const AppURL = "http://localhost:3000/"
 const Repo = "gogits/gogs"
 const AppSubURL = AppURL + Repo + "/"
-
-var numericMetas = map[string]string{
-	"format": "https://someurl.com/{user}/{repo}/{index}",
-	"user":   "someUser",
-	"repo":   "someRepo",
-	"style":  markup.IssueNameStyleNumeric,
-}
-
-var alphanumericMetas = map[string]string{
-	"format": "https://someurl.com/{user}/{repo}/{index}",
-	"user":   "someUser",
-	"repo":   "someRepo",
-	"style":  markup.IssueNameStyleAlphanumeric,
-}
-
-// numericLink an HTML to a numeric-style issue
-func numericIssueLink(baseURL string, index int) string {
-	return link(markup.URLJoin(baseURL, strconv.Itoa(index)), fmt.Sprintf("#%d", index))
-}
-
-// alphanumLink an HTML link to an alphanumeric-style issue
-func alphanumIssueLink(baseURL string, name string) string {
-	return link(markup.URLJoin(baseURL, name), name)
-}
-
-// urlContentsLink an HTML link whose contents is the target URL
-func urlContentsLink(href string) string {
-	return link(href, href)
-}
-
-// link an HTML link
-func link(href, contents string) string {
-	return fmt.Sprintf("<a href=\"%s\">%s</a>", href, contents)
-}
-
-func testRenderIssueIndexPattern(t *testing.T, input, expected string, metas map[string]string) {
-	assert.Equal(t, expected,
-		string(markup.RenderIssueIndexPattern([]byte(input), AppSubURL, metas)))
-}
 
 func TestRender_StandardLinks(t *testing.T) {
 	setting.AppURL = AppURL

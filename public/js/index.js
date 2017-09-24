@@ -1579,6 +1579,7 @@ $(document).ready(function () {
     initCodeView();
     initVueApp();
     initTeamSettings();
+    initCtrlEnterSubmit();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -1784,6 +1785,14 @@ function initVueComponents(){
             }
         }
     })
+}
+
+function initCtrlEnterSubmit() {
+    $(".js-quick-submit").keydown(function(e) {
+        if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.keyCode == 13 || e.keyCode == 10)) {
+            $(this).closest("form").submit();
+        }
+    });
 }
 
 function initVueApp() {

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -202,55 +203,116 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	CheckConsistencyFor(t, &Action{})
 }
 
-func TestCommitRepoAction(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 2, OwnerID: user.ID}).(*Repository)
-	repo.Owner = user
-
-	pushCommits := NewPushCommits()
-	pushCommits.Commits = []*PushCommit{
-		{
-			Sha1:           "abcdef1",
-			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user4@example.com",
-			AuthorName:     "User Four",
-			Message:        "message1",
-		},
-		{
-			Sha1:           "abcdef2",
-			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user2@example.com",
-			AuthorName:     "User Two",
-			Message:        "message2",
-		},
-	}
-	pushCommits.Len = len(pushCommits.Commits)
-
-	actionBean := &Action{
-		OpType:    ActionCommitRepo,
-		ActUserID: user.ID,
-		ActUser:   user,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		RefName:   "refName",
-		IsPrivate: repo.IsPrivate,
-	}
+func testCorrectRepoAction(t *testing.T, opts CommitRepoActionOptions, actionBean *Action) {
 	AssertNotExistsBean(t, actionBean)
-	assert.NoError(t, CommitRepoAction(CommitRepoActionOptions{
-		PusherName:  user.Name,
-		RepoOwnerID: user.ID,
-		RepoName:    repo.Name,
-		RefFullName: "refName",
-		OldCommitID: "oldCommitID",
-		NewCommitID: "newCommitID",
-		Commits:     pushCommits,
-	}))
+	assert.NoError(t, CommitRepoAction(opts))
 	AssertExistsAndLoadBean(t, actionBean)
 	CheckConsistencyFor(t, &Action{})
+}
+
+func TestCommitRepoAction(t *testing.T) {
+	samples := []struct {
+		userID                  int64
+		repositoryID            int64
+		commitRepoActionOptions CommitRepoActionOptions
+		action                  Action
+	}{
+		{
+			userID:       2,
+			repositoryID: 2,
+			commitRepoActionOptions: CommitRepoActionOptions{
+				RefFullName: "refName",
+				OldCommitID: "oldCommitID",
+				NewCommitID: "newCommitID",
+				Commits: &PushCommits{
+					avatars: make(map[string]string),
+					Commits: []*PushCommit{
+						{
+							Sha1:           "abcdef1",
+							CommitterEmail: "user2@example.com",
+							CommitterName:  "User Two",
+							AuthorEmail:    "user4@example.com",
+							AuthorName:     "User Four",
+							Message:        "message1",
+						},
+						{
+							Sha1:           "abcdef2",
+							CommitterEmail: "user2@example.com",
+							CommitterName:  "User Two",
+							AuthorEmail:    "user2@example.com",
+							AuthorName:     "User Two",
+							Message:        "message2",
+						},
+					},
+					Len: 2,
+				},
+			},
+			action: Action{
+				OpType:  ActionCommitRepo,
+				RefName: "refName",
+			},
+		},
+		{
+			userID:       2,
+			repositoryID: 1,
+			commitRepoActionOptions: CommitRepoActionOptions{
+				RefFullName: git.TagPrefix + "v1.1",
+				OldCommitID: git.EmptySHA,
+				NewCommitID: "newCommitID",
+				Commits:     &PushCommits{},
+			},
+			action: Action{
+				OpType:  ActionPushTag,
+				RefName: "v1.1",
+			},
+		},
+		{
+			userID:       2,
+			repositoryID: 1,
+			commitRepoActionOptions: CommitRepoActionOptions{
+				RefFullName: git.TagPrefix + "v1.1",
+				OldCommitID: "oldCommitID",
+				NewCommitID: git.EmptySHA,
+				Commits:     &PushCommits{},
+			},
+			action: Action{
+				OpType:  ActionDeleteTag,
+				RefName: "v1.1",
+			},
+		},
+		{
+			userID:       2,
+			repositoryID: 1,
+			commitRepoActionOptions: CommitRepoActionOptions{
+				RefFullName: git.BranchPrefix + "feature/1",
+				OldCommitID: "oldCommitID",
+				NewCommitID: git.EmptySHA,
+				Commits:     &PushCommits{},
+			},
+			action: Action{
+				OpType:  ActionDeleteBranch,
+				RefName: "feature/1",
+			},
+		},
+	}
+
+	for _, s := range samples {
+		prepareTestEnv(t)
+
+		user := AssertExistsAndLoadBean(t, &User{ID: s.userID}).(*User)
+		repo := AssertExistsAndLoadBean(t, &Repository{ID: s.repositoryID, OwnerID: user.ID}).(*Repository)
+		repo.Owner = user
+
+		s.commitRepoActionOptions.PusherName = user.Name
+		s.commitRepoActionOptions.RepoOwnerID = user.ID
+		s.commitRepoActionOptions.RepoName = repo.Name
+
+		s.action.ActUserID = user.ID
+		s.action.RepoID = repo.ID
+		s.action.IsPrivate = repo.IsPrivate
+
+		testCorrectRepoAction(t, s.commitRepoActionOptions, &s.action)
+	}
 }
 
 func TestTransferRepoAction(t *testing.T) {

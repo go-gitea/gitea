@@ -3,10 +3,10 @@
 	"ignore": "test appengine",
 	"package": [
 		{
-			"checksumSHA1": "fR5YDSoG7xYv2aLO23rne95gWps=",
+			"checksumSHA1": "9dxw/SGpdhNNm704gt6F02ItYtQ=",
 			"path": "code.gitea.io/git",
-			"revision": "479f87e5d189e7b8f1fd51dbcd25faa32b632cd2",
-			"revisionTime": "2017-08-03T00:53:29Z"
+			"revision": "d7487da878e40ee6c4fac7280b518c0ed0be702c",
+			"revisionTime": "2017-09-16T17:49:37Z"
 		},
 		{
 			"checksumSHA1": "Zgp5RqU+20L2p9TNl1rSsUIWEEE=",
@@ -298,6 +298,12 @@
 			"path": "github.com/bradfitz/gomemcache/memcache",
 			"revision": "fb1f79c6b65acda83063cbc69f6bba1522558bfc",
 			"revisionTime": "2016-01-17T19:21:50Z"
+		},
+		{
+			"checksumSHA1": "x1svIugw39oEZGU5/HMUHzgRUZM=",
+			"path": "github.com/chaseadamsio/goorgeous",
+			"revision": "098da33fde5f9220736531b3cb26a2dec86a8367",
+			"revisionTime": "2017-09-01T13:22:37Z"
 		},
 		{
 			"checksumSHA1": "agNqSytP0indDCoGizlMyC1L/m4=",
