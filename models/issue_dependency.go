@@ -139,15 +139,15 @@ func IssueNoDependenciesLeft(issue *Issue) bool {
 	var issueDeps []IssueDependencyIssue
 
 	err := x.Join("INNER", "issue", "issue.id = issue_dependency.issue_id").Find(&issueDeps)
+	
+	if err != nil {
+		return false
+	}
 
 	for _, issueDep := range issueDeps {
 		if !issueDep.IsClosed {
 			return false
 		}
-	}
-
-	if err != nil {
-		return false
 	}
 
 	return true
