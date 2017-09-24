@@ -920,18 +920,15 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 			!(issue.IsPull && issue.PullRequest.HasMerged) {
 
 			// Check for open dependencies
-			if form.Status == "close" {
-
-				if models.IssueNoDependenciesLeft(issue) {
-					if issue.IsPull {
-						ctx.Flash.Error("You need to close all issues blocking this pull request before you can merge it!")
-						ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
-					} else {
-						ctx.Flash.Error("You need to close all issues blocking this issue before you can close it!")
-						ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
-					}
-					return
+			if form.Status == "close" && models.IssueNoDependenciesLeft(issue) {
+				if issue.IsPull {
+					ctx.Flash.Error("You need to close all issues blocking this pull request before you can merge it!")
+					ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
+				} else {
+					ctx.Flash.Error("You need to close all issues blocking this issue before you can close it!")
+					ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
 				}
+				return
 			}
 
 			// Duplication and conflict check should apply to reopen pull request.
