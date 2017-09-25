@@ -45,34 +45,33 @@ func (p *Parser) Extensions() []string {
 
 // Render implements markup.Parser
 func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
-	var bs []byte
-	var buf = bytes.NewBuffer(bs)
-	var rd = bytes.NewReader(rawBytes)
-	commands := strings.Fields(p.Command)
-	var command = commands[0]
-	var args []string
-	if len(commands) > 1 {
-		args = commands[1:]
-	}
+	var (
+		bs       []byte
+		buf      = bytes.NewBuffer(bs)
+		rd       = bytes.NewReader(rawBytes)
+		commands = strings.Fields(p.Command)
+		args     = commands[1:]
+	)
+
 	if p.IsInputFile {
 		// write to templ file
 		fPath := filepath.Join(os.TempDir(), gouuid.NewV4().String())
 		f, err := os.Create(fPath)
 		if err != nil {
-			log.Error(4, "%s render run command %s failed: %v", p.Name(), p.Command, err)
+			log.Error(4, "%s create temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 			return []byte("")
 		}
 
 		_, err = io.Copy(f, rd)
 		f.Close()
 		if err != nil {
-			log.Error(4, "%s render run command %s failed: %v", p.Name(), p.Command, err)
+			log.Error(4, "%s write data to temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 			return []byte("")
 		}
 		args = append(args, fPath)
 	}
 
-	cmd := exec.Command(command, args...)
+	cmd := exec.Command(commands[0], args...)
 	if !p.IsInputFile {
 		cmd.Stdin = rd
 	}
