@@ -13,22 +13,6 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-// V16RepoUnit describes all units of a repository
-type V16RepoUnit struct {
-	ID          int64
-	RepoID      int64 `xorm:"INDEX(s)"`
-	Type        int   `xorm:"INDEX(s)"`
-	Index       int
-	Config      map[string]string `xorm:"JSON"`
-	CreatedUnix int64             `xorm:"INDEX CREATED"`
-	Created     time.Time         `xorm:"-"`
-}
-
-// TableName will be invoked by XORM to customrize the table name
-func (*V16RepoUnit) TableName() string {
-	return "repo_unit"
-}
-
 // Enumerate all the unit types
 const (
 	V16UnitTypeCode            = iota + 1 // 1 code
@@ -42,14 +26,25 @@ const (
 	V16UnitTypeExternalTracker            // 9 ExternalTracker
 )
 
-// Repo describes a repository
-type Repo struct {
-	ID                                                                               int64
-	EnableWiki, EnableExternalWiki, EnableIssues, EnableExternalTracker, EnablePulls bool
-	ExternalWikiURL, ExternalTrackerURL, ExternalTrackerFormat, ExternalTrackerStyle string
-}
-
 func addUnitsToTables(x *xorm.Engine) error {
+	// RepoUnit describes all units of a repository
+	type RepoUnit struct {
+		ID          int64
+		RepoID      int64 `xorm:"INDEX(s)"`
+		Type        int   `xorm:"INDEX(s)"`
+		Index       int
+		Config      map[string]string `xorm:"JSON"`
+		CreatedUnix int64             `xorm:"INDEX CREATED"`
+		Created     time.Time         `xorm:"-"`
+	}
+
+	// Repo describes a repository
+	type Repo struct {
+		ID                                                                               int64
+		EnableWiki, EnableExternalWiki, EnableIssues, EnableExternalTracker, EnablePulls bool
+		ExternalWikiURL, ExternalTrackerURL, ExternalTrackerFormat, ExternalTrackerStyle string
+	}
+
 	var repos []Repo
 	err := x.Table("repository").Select("*").Find(&repos)
 	if err != nil {
@@ -63,7 +58,7 @@ func addUnitsToTables(x *xorm.Engine) error {
 		return err
 	}
 
-	var repoUnit V16RepoUnit
+	var repoUnit RepoUnit
 	if exist, err := sess.IsTableExist(&repoUnit); err != nil {
 		return fmt.Errorf("IsExist RepoUnit: %v", err)
 	} else if exist {
@@ -113,7 +108,7 @@ func addUnitsToTables(x *xorm.Engine) error {
 				config["ExternalWikiURL"] = repo.ExternalWikiURL
 			}
 
-			if _, err = sess.Insert(&V16RepoUnit{
+			if _, err = sess.Insert(&RepoUnit{
 				RepoID: repo.ID,
 				Type:   i,
 				Index:  i,
