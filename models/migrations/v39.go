@@ -72,14 +72,15 @@ func addTimetracking(x *xorm.Engine) error {
 	var units []*RepoUnit
 	x.Where("type = ?", V16UnitTypeIssues).Find(&units)
 	for _, unit := range units {
-		if unit.Config == nil {
-			unit.Config = &IssuesConfigV39{
-				EnableTimetracker:                setting.Service.DefaultEnableTimetracking,
-				AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime,
-			}
-			if _, err := x.Id(unit.ID).Cols("config").Update(unit); err != nil {
-				return err
-			}
+		if unit.Config != nil {
+			continue
+		}
+		unit.Config = &IssuesConfigV39{
+			EnableTimetracker:                setting.Service.DefaultEnableTimetracking,
+			AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime,
+		}
+		if _, err := x.Id(unit.ID).Cols("config").Update(unit); err != nil {
+			return err
 		}
 	}
 	return nil
