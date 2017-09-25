@@ -107,6 +107,23 @@ func IssueIndexerBatch() *Batch {
 	}
 }
 
+func searchIssues(req *bleve.SearchRequest) ([]int64, error) {
+	result, err := issueIndexer.Search(req)
+	if err != nil {
+		return nil, err
+	}
+
+	issueIDs := make([]int64, len(result.Hits))
+	for i, hit := range result.Hits {
+		issueIDs[i], err = idOfIndexerID(hit.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return issueIDs, nil
+}
+
 // SearchIssuesByKeyword searches for issues by given conditions.
 // Returns the matching issue IDs
 func SearchIssuesByKeyword(repoID int64, keyword string) ([]int64, error) {
@@ -119,19 +136,7 @@ func SearchIssuesByKeyword(repoID int64, keyword string) ([]int64, error) {
 		))
 	search := bleve.NewSearchRequestOptions(indexerQuery, 2147483647, 0, false)
 
-	result, err := issueIndexer.Search(search)
-	if err != nil {
-		return nil, err
-	}
-
-	issueIDs := make([]int64, len(result.Hits))
-	for i, hit := range result.Hits {
-		issueIDs[i], err = idOfIndexerID(hit.ID)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return issueIDs, nil
+	return searchIssues(search)
 }
 
 // SearchIssuesByIndex searches for issues by given conditions.
@@ -142,17 +147,5 @@ func SearchIssuesByIndex(repoID, issueIndex int64) ([]int64, error) {
 		newPrefixQuery(strconv.FormatInt(issueIndex, 10), "IssueIndex"))
 	search := bleve.NewSearchRequestOptions(indexerQuery, 2147483647, 0, false)
 
-	result, err := issueIndexer.Search(search)
-	if err != nil {
-		return nil, err
-	}
-
-	issueIDs := make([]int64, len(result.Hits))
-	for i, hit := range result.Hits {
-		issueIDs[i], err = idOfIndexerID(hit.ID)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return issueIDs, nil
+	return searchIssues(search)
 }
