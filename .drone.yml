@@ -226,6 +226,7 @@ pipeline:
   github:
     image: plugins/github-release:1
     pull: true
+    secrets: [ github_token ]
     files:
       - dist/release/*
     when:
