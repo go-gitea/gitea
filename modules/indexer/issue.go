@@ -6,6 +6,7 @@ package indexer
 
 import (
 	"os"
+	"strconv"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -22,10 +23,11 @@ var issueIndexer bleve.Index
 
 // IssueIndexerData data stored in the issue indexer
 type IssueIndexerData struct {
-	RepoID   int64
-	Title    string
-	Content  string
-	Comments []string
+	RepoID     int64
+	Title      string
+	Content    string
+	Comments   []string
+	IssueIndex string
 }
 
 // IssueIndexerUpdate an update to the issue indexer
@@ -76,6 +78,7 @@ func createIssueIndexer() error {
 	docMapping.AddFieldMappingsAt("Title", textFieldMapping)
 	docMapping.AddFieldMappingsAt("Content", textFieldMapping)
 	docMapping.AddFieldMappingsAt("Comments", textFieldMapping)
+	docMapping.AddFieldMappingsAt("IssueIndex", textFieldMapping)
 
 	if err := addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return err
@@ -114,6 +117,29 @@ func SearchIssuesByKeyword(repoID int64, keyword string) ([]int64, error) {
 			newMatchPhraseQuery(keyword, "Content", issueIndexerAnalyzer),
 			newMatchPhraseQuery(keyword, "Comments", issueIndexerAnalyzer),
 		))
+	search := bleve.NewSearchRequestOptions(indexerQuery, 2147483647, 0, false)
+
+	result, err := issueIndexer.Search(search)
+	if err != nil {
+		return nil, err
+	}
+
+	issueIDs := make([]int64, len(result.Hits))
+	for i, hit := range result.Hits {
+		issueIDs[i], err = idOfIndexerID(hit.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return issueIDs, nil
+}
+
+// SearchIssuesByIndex searches for issues by given conditions.
+// Returns the matching issue IDs
+func SearchIssuesByIndex(repoID, issueIndex int64) ([]int64, error) {
+	indexerQuery := bleve.NewConjunctionQuery(
+		numericEqualityQuery(repoID, "RepoID"),
+		newPrefixQuery(strconv.FormatInt(issueIndex, 10), "IssueIndex"))
 	search := bleve.NewSearchRequestOptions(indexerQuery, 2147483647, 0, false)
 
 	result, err := issueIndexer.Search(search)

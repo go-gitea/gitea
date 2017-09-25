@@ -44,6 +44,12 @@ func newMatchPhraseQuery(matchPhrase, field, analyzer string) *query.MatchPhrase
 	return q
 }
 
+func newPrefixQuery(matchPhrase, field string) *query.PrefixQuery {
+	q := bleve.NewPrefixQuery(matchPhrase)
+	q.FieldVal = field
+	return q
+}
+
 const unicodeNormalizeName = "unicodeNormalize"
 
 func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {

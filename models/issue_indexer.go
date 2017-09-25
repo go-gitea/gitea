@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"strconv"
 
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/log"
@@ -88,10 +89,11 @@ func (issue *Issue) update() indexer.IssueIndexerUpdate {
 	return indexer.IssueIndexerUpdate{
 		IssueID: issue.ID,
 		Data: &indexer.IssueIndexerData{
-			RepoID:   issue.RepoID,
-			Title:    issue.Title,
-			Content:  issue.Content,
-			Comments: comments,
+			RepoID:     issue.RepoID,
+			Title:      issue.Title,
+			Content:    issue.Content,
+			Comments:   comments,
+			IssueIndex: strconv.FormatInt(issue.Index, 10),
 		},
 	}
 }
