@@ -13,7 +13,7 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-// RepoUnit describes all units of a repository
+// V16RepoUnit describes all units of a repository
 type V16RepoUnit struct {
 	ID          int64
 	RepoID      int64 `xorm:"INDEX(s)"`
