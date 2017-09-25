@@ -24,6 +24,11 @@ type V16RepoUnit struct {
 	Created     time.Time         `xorm:"-"`
 }
 
+// TableName will be invoked by XORM to customrize the table name
+func (*V16RepoUnit) TableName() string {
+	return "repo_unit"
+}
+
 // Enumerate all the unit types
 const (
 	V16UnitTypeCode            = iota + 1 // 1 code
