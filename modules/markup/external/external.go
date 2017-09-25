@@ -28,22 +28,22 @@ func RegisterParsers() {
 	}
 }
 
-// Parser implements markup.Parser for orgmode
+// Parser implements markup.Parser for external tools
 type Parser struct {
 	setting.MarkupRender
 }
 
-// Name implements markup.Parser
+// Name returns the external tool name
 func (p *Parser) Name() string {
 	return p.MarkupName
 }
 
-// Extensions implements markup.Parser
+// Extensions returns the supported extensions of the tool
 func (p *Parser) Extensions() []string {
 	return p.FileExtensions
 }
 
-// Render implements markup.Parser
+// Render renders the data of the document to HTML via the external tool.
 func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
 	var (
 		bs       []byte
@@ -64,6 +64,7 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 
 		_, err = io.Copy(f, rd)
 		f.Close()
+		os.Remove(fPath)
 		if err != nil {
 			log.Error(4, "%s write data to temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 			return []byte("")
