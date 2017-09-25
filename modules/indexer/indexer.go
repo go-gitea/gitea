@@ -9,6 +9,8 @@ import (
 	"strconv"
 
 	"github.com/blevesearch/bleve"
+	"github.com/blevesearch/bleve/analysis/token/unicodenorm"
+	"github.com/blevesearch/bleve/mapping"
 	"github.com/blevesearch/bleve/search/query"
 )
 
@@ -40,4 +42,51 @@ func newMatchPhraseQuery(matchPhrase, field, analyzer string) *query.MatchPhrase
 	q.FieldVal = field
 	q.Analyzer = analyzer
 	return q
+}
+
+const unicodeNormalizeName = "unicodeNormalize"
+
+func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
+	return m.AddCustomTokenFilter(unicodeNormalizeName, map[string]interface{}{
+		"type": unicodenorm.Name,
+		"form": unicodenorm.NFC,
+	})
+}
+
+// Update represents an update to an indexer
+type Update interface {
+	addToBatch(batch *bleve.Batch) error
+}
+
+const maxBatchSize = 16
+
+// Batch batch of indexer updates that automatically flushes once it
+// reaches a certain size
+type Batch struct {
+	batch *bleve.Batch
+	index bleve.Index
+}
+
+// Add add update to batch, possibly flushing
+func (batch *Batch) Add(update Update) error {
+	if err := update.addToBatch(batch.batch); err != nil {
+		return err
+	}
+	return batch.flushIfFull()
+}
+
+func (batch *Batch) flushIfFull() error {
+	if batch.batch.Size() >= maxBatchSize {
+		return batch.Flush()
+	}
+	return nil
+}
+
+// Flush manually flush the batch, regardless of its size
+func (batch *Batch) Flush() error {
+	if err := batch.index.Batch(batch.batch); err != nil {
+		return err
+	}
+	batch.batch.Reset()
+	return nil
 }
