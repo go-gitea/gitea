@@ -554,8 +554,8 @@ func (u *User) GetMirrorRepositories() ([]*Repository, error) {
 }
 
 // GetOwnedOrganizations returns all organizations that user owns.
-func (u *User) GetOwnedOrganizations() (err error) {
-	u.OwnedOrgs, err = GetOwnedOrgsByUserID(u.ID)
+func (u *User) GetOwnedOrganizations(showAll bool) (err error) {
+	u.OwnedOrgs, err = GetOwnedOrgsByUserID(u.ID, showAll)
 	return err
 }
 

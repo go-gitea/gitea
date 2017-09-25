@@ -155,26 +155,44 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, coun
 	// Append conditions
 	if !opts.Starred && opts.OwnerID > 0 {
 		var searcherReposCond builder.Cond = builder.Eq{"owner_id": opts.OwnerID}
+		var ownerIds []int64
+		// Searcher == Owner
 		if opts.Searcher != nil {
-			var ownerIds []int64
-
 			ownerIds = append(ownerIds, opts.Searcher.ID)
-			err = opts.Searcher.GetOrganizations(true)
+			err = opts.Searcher.GetOwnedOrganizations(true)
 
 			if err != nil {
 				return nil, 0, fmt.Errorf("Organization: %v", err)
 			}
 
-			for _, org := range opts.Searcher.Orgs {
+			for _, org := range opts.Searcher.OwnedOrgs {
 				ownerIds = append(ownerIds, org.ID)
 			}
 
-			searcherReposCond = searcherReposCond.Or(builder.In("owner_id", ownerIds))
 			if opts.Collaborate {
-				searcherReposCond = searcherReposCond.Or(builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ? AND owner_id != ?)",
+				searcherReposCond = searcherReposCond.Or(builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?) AND owner_id != ?",
 					opts.Searcher.ID, opts.Searcher.ID))
 			}
+		} else if opts.OwnerID > 0 {
+			ownerIds = append(ownerIds, opts.OwnerID)
+
+			owner, err := GetUserByID(opts.OwnerID)
+			if err != nil {
+				return nil, 0, fmt.Errorf("User: %v", err)
+			}
+
+			err = owner.GetOwnedOrganizations(false)
+
+			for _, org := range owner.OwnedOrgs {
+				ownerIds = append(ownerIds, org.ID)
+			}
+
+			if err != nil {
+				return nil, 0, fmt.Errorf("Organization: %v", err)
+			}
+
 		}
+		searcherReposCond = searcherReposCond.Or(builder.In("owner_id", ownerIds))
 		cond = cond.And(searcherReposCond)
 	}
 
@@ -268,17 +286,21 @@ func GetRecentUpdatedRepositories(opts *SearchRepoOptions) (repos RepositoryList
 		var ownerIds []int64
 
 		ownerIds = append(ownerIds, opts.Searcher.ID)
-		err := opts.Searcher.GetOrganizations(true)
+		err := opts.Searcher.GetOwnedOrganizations(true)
 
 		if err != nil {
 			return nil, 0, fmt.Errorf("Organization: %v", err)
 		}
 
-		for _, org := range opts.Searcher.Orgs {
+		for _, org := range opts.Searcher.OwnedOrgs {
 			ownerIds = append(ownerIds, org.ID)
 		}
 
 		cond = cond.Or(builder.In("owner_id", ownerIds))
+		if opts.Collaborate {
+			cond = cond.Or(builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?) AND owner_id != ?",
+				opts.Searcher.ID, opts.Searcher.ID))
+		}
 	}
 
 	count, err := x.Where(cond).Count(new(Repository))
