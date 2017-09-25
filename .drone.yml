@@ -217,6 +217,7 @@ pipeline:
     pull: true
     secrets: [ crowdin_key ]
     project_identifier: gitea
+    ignore_branch: true
     files:
       locale_en-US.ini: options/locale/locale_en-US.ini
     when:
