@@ -477,15 +477,8 @@ func ListPublicKeys(uid int64) ([]*PublicKey, error) {
 		Find(&keys)
 }
 
-// UpdatePublicKey updates given public key.
-func UpdatePublicKey(key *PublicKey) error {
-	_, err := x.Id(key.ID).AllCols().Update(key)
-	return err
-}
-
 // UpdatePublicKeyUpdated updates public key use time.
 func UpdatePublicKeyUpdated(id int64) error {
-	now := time.Now()
 	// Check if key exists before update as affected rows count is unreliable
 	//    and will return 0 affected rows if two updates are made at the same time
 	if cnt, err := x.ID(id).Count(&PublicKey{}); err != nil {
@@ -495,8 +488,7 @@ func UpdatePublicKeyUpdated(id int64) error {
 	}
 
 	_, err := x.ID(id).Cols("updated_unix").Update(&PublicKey{
-		Updated:     now,
-		UpdatedUnix: now.Unix(),
+		UpdatedUnix: time.Now().Unix(),
 	})
 	if err != nil {
 		return err
