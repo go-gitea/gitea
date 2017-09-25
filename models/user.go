@@ -894,7 +894,7 @@ func updateUserCols(e Engine, u *User, cols ...string) error {
 	u.Website = base.TruncateString(u.Website, 255)
 	u.Description = base.TruncateString(u.Description, 255)
 
-	_, err := x.Id(u.ID).Cols(cols...).Update(u)
+	_, err := e.Id(u.ID).Cols(cols...).Update(u)
 	return err
 }
 
