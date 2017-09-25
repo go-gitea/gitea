@@ -14,7 +14,7 @@ import (
 )
 
 // RepoUnit describes all units of a repository
-type RepoUnit struct {
+type V16RepoUnit struct {
 	ID          int64
 	RepoID      int64 `xorm:"INDEX(s)"`
 	Type        int   `xorm:"INDEX(s)"`
@@ -58,7 +58,7 @@ func addUnitsToTables(x *xorm.Engine) error {
 		return err
 	}
 
-	var repoUnit RepoUnit
+	var repoUnit V16RepoUnit
 	if exist, err := sess.IsTableExist(&repoUnit); err != nil {
 		return fmt.Errorf("IsExist RepoUnit: %v", err)
 	} else if exist {
@@ -108,7 +108,7 @@ func addUnitsToTables(x *xorm.Engine) error {
 				config["ExternalWikiURL"] = repo.ExternalWikiURL
 			}
 
-			if _, err = sess.Insert(&RepoUnit{
+			if _, err = sess.Insert(&V16RepoUnit{
 				RepoID: repo.ID,
 				Type:   i,
 				Index:  i,
