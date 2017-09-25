@@ -13,6 +13,7 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
+// Enumerate all the unit types
 const (
 	V16UnitTypeCode            = iota + 1 // 1 code
 	V16UnitTypeIssues                     // 2 issues
