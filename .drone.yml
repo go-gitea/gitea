@@ -20,6 +20,18 @@ pipeline:
     when:
       event: [ push ]
       branch: [ master ]
+  git_push:
+    image: appleboy/drone-git-push
+    pull: true
+    secrets: [ git_push_ssh_key ]
+    remote: "git@github.com:go-gitea/gitea.git"
+    branch: master
+    force: false
+    commit: true
+    commit_message: "[skip ci] Updated translations via Crowdin"
+    when:
+      event: [ push ]
+      branch: [ master ]
   pre-build:
     image: webhippie/nodejs:latest
     pull: true
@@ -226,6 +238,7 @@ pipeline:
   github:
     image: plugins/github-release:1
     pull: true
+    secrets: [ github_token ]
     files:
       - dist/release/*
     when:
@@ -243,15 +256,6 @@ pipeline:
     when:
       event: [ push ]
       branch: [ master ]
-
-  github:
-    image: plugins/github-release:1
-    pull: true
-    secrets: [ github_token ]
-    files:
-      - dist/release/*
-    when:
-      event: [ tag ]
 
   discord:
     image: appleboy/drone-discord:1.0.0
