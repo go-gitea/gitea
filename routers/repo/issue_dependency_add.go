@@ -46,6 +46,14 @@ func AddDependency(c *context.Context) {
 		return
 	}
 
+	// Check if both issues are in the same repo
+	if issue.RepoID != dep.RepoID {
+		c.Flash.Error(c.Tr("add_error_dep_not_same_repo"))
+		url := fmt.Sprintf("%s/issues/%d", c.Repo.RepoLink, issueIndex)
+		c.Redirect(url, http.StatusSeeOther)
+		return
+	}
+
 	// Check if issue and dependency is the same
 	if dep.Index == issueIndex {
 		c.Flash.Error(c.Tr("issues.dependency.add_error_same_issue"))
