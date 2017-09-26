@@ -1,6 +1,7 @@
 {
-  "license": "MIT",
-  "dependencies": {
-    "less": "^2.7.2"
-  }
+    "license": "MIT",
+    "devDependencies": {
+        "less": "^2.7.2",
+        "less-plugin-clean-css": "^1.5.1"
+    }
 }
