@@ -137,7 +137,7 @@ var migrations = []Migration{
 	// v43 -> v44
 	NewMigration("fix protected branch can push value to false", fixProtectedBranchCanPushValue),
 	// v44 -> v45
-	NewMigration("remove UnitTypeIssue if UnitTypeExternalTracker exists", removeDuplicateIssueUnitType),
+	NewMigration("remove duplicate unit types", removeDuplicateUnitTypes),
 }
 
 // Migrate database to current version
