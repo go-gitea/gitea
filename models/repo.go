@@ -1458,7 +1458,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 			}
 
 			t.NumRepos--
-			if _, err := sess.Id(t.ID).AllCols().Update(t); err != nil {
+			if _, err := sess.Id(t.ID).Cols("num_repos").Update(t); err != nil {
 				return fmt.Errorf("decrease team repository count '%d': %v", t.ID, err)
 			}
 		}

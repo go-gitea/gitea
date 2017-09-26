@@ -96,7 +96,7 @@ func (t *Team) addRepository(e Engine, repo *Repository) (err error) {
 	}
 
 	t.NumRepos++
-	if _, err = e.Id(t.ID).AllCols().Update(t); err != nil {
+	if _, err = e.Id(t.ID).Cols("num_repos").Update(t); err != nil {
 		return fmt.Errorf("update team: %v", err)
 	}
 
@@ -142,7 +142,7 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 	}
 
 	t.NumRepos--
-	if _, err = e.Id(t.ID).AllCols().Update(t); err != nil {
+	if _, err = e.Id(t.ID).Cols("num_repos").Update(t); err != nil {
 		return err
 	}
 
@@ -521,7 +521,7 @@ func AddTeamMember(team *Team, userID int64) error {
 	if team.IsOwnerTeam() {
 		ou.IsOwner = true
 	}
-	if _, err := sess.Id(ou.ID).AllCols().Update(ou); err != nil {
+	if _, err := sess.Id(ou.ID).Cols("num_teams, is_owner").Update(ou); err != nil {
 		return err
 	}
 
@@ -552,7 +552,7 @@ func removeTeamMember(e Engine, team *Team, userID int64) error {
 		return err
 	} else if _, err = e.
 		Id(team.ID).
-		AllCols().
+		Cols("num_members").
 		Update(team); err != nil {
 		return err
 	}
@@ -579,7 +579,7 @@ func removeTeamMember(e Engine, team *Team, userID int64) error {
 	}
 	if _, err = e.
 		Id(ou.ID).
-		AllCols().
+		Cols("num_teams").
 		Update(ou); err != nil {
 		return err
 	}

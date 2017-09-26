@@ -13,7 +13,6 @@ import (
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/analysis/analyzer/custom"
 	"github.com/blevesearch/bleve/analysis/token/lowercase"
-	"github.com/blevesearch/bleve/analysis/token/unicodenorm"
 	"github.com/blevesearch/bleve/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/index/upsidedown"
 )
@@ -33,6 +32,10 @@ type IssueIndexerData struct {
 type IssueIndexerUpdate struct {
 	IssueID int64
 	Data    *IssueIndexerData
+}
+
+func (update IssueIndexerUpdate) addToBatch(batch *bleve.Batch) error {
+	return batch.Index(indexerID(update.IssueID), update.Data)
 }
 
 const issueIndexerAnalyzer = "issueIndexer"
@@ -74,17 +77,13 @@ func createIssueIndexer() error {
 	docMapping.AddFieldMappingsAt("Content", textFieldMapping)
 	docMapping.AddFieldMappingsAt("Comments", textFieldMapping)
 
-	const unicodeNormNFC = "unicodeNormNFC"
-	if err := mapping.AddCustomTokenFilter(unicodeNormNFC, map[string]interface{}{
-		"type": unicodenorm.Name,
-		"form": unicodenorm.NFC,
-	}); err != nil {
+	if err := addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return err
 	} else if err = mapping.AddCustomAnalyzer(issueIndexerAnalyzer, map[string]interface{}{
 		"type":          custom.Name,
 		"char_filters":  []string{},
 		"tokenizer":     unicode.Name,
-		"token_filters": []string{unicodeNormNFC, lowercase.Name},
+		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
 	}); err != nil {
 		return err
 	}
@@ -97,21 +96,12 @@ func createIssueIndexer() error {
 	return err
 }
 
-// UpdateIssue update the issue indexer
-func UpdateIssue(update IssueIndexerUpdate) error {
-	return issueIndexer.Index(indexerID(update.IssueID), update.Data)
-}
-
-// BatchUpdateIssues perform a batch update of the issue indexer
-func BatchUpdateIssues(updates ...IssueIndexerUpdate) error {
-	batch := issueIndexer.NewBatch()
-	for _, update := range updates {
-		err := batch.Index(indexerID(update.IssueID), update.Data)
-		if err != nil {
-			return err
-		}
+// IssueIndexerBatch batch to add updates to
+func IssueIndexerBatch() *Batch {
+	return &Batch{
+		batch: issueIndexer.NewBatch(),
+		index: issueIndexer,
 	}
-	return issueIndexer.Batch(batch)
 }
 
 // SearchIssuesByKeyword searches for issues by given conditions.
