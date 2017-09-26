@@ -24,13 +24,13 @@ func removeDuplicateUnitTypes(x *xorm.Engine) error {
 
 	// Enumerate all the unit types
 	const (
-		UnitTypeCode             = iota + 1 // 1 code
-		UnitTypeIssues                      // 2 issues
-		UnitTypePullRequests                // 3 PRs
-		UnitTypeReleases                    // 4 Releases
-		UnitTypeWiki                        // 5 Wiki
-		UnitTypeExternalWiki                // 6 ExternalWiki
-		UnitTypeExternalTracker             // 7 ExternalTracker
+		UnitTypeCode            = iota + 1 // 1 code
+		UnitTypeIssues                     // 2 issues
+		UnitTypePullRequests               // 3 PRs
+		UnitTypeReleases                   // 4 Releases
+		UnitTypeWiki                       // 5 Wiki
+		UnitTypeExternalWiki               // 6 ExternalWiki
+		UnitTypeExternalTracker            // 7 ExternalTracker
 	)
 
 	var externalIssueRepos []Repo
