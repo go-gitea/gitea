@@ -131,7 +131,7 @@ var migrations = []Migration{
 	// v42 -> v43
 	NewMigration("add tags to releases and sync existing repositories", releaseAddColumnIsTagAndSyncTags),
 	// v44 -> v45
-	NewMigration("remove UnitTypeIssue if UnitTypeExternalTracker exists", removeDuplicateIssueUnitType),
+	NewMigration("remove duplicate unit types", removeDuplicateUnitTypes),
 }
 
 // Migrate database to current version

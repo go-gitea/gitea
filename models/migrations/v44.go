@@ -10,7 +10,7 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-func removeDuplicateIssueUnitType(x *xorm.Engine) error {
+func removeDuplicateUnitTypes(x *xorm.Engine) error {
 	// RepoUnit describes all units of a repository
 	type RepoUnit struct {
 		RepoID int64
@@ -33,11 +33,20 @@ func removeDuplicateIssueUnitType(x *xorm.Engine) error {
 		UnitTypeExternalTracker             // 7 ExternalTracker
 	)
 
-	var repos []Repo
+	var externalIssueRepos []Repo
 	err := x.Table("repository").Select("`repository`.id").
 		Join("INNER", "repo_unit", "`repo_unit`.repo_id = `repository`.id").
 		Where("`repo_unit`.type = ?", UnitTypeExternalTracker).
-		Find(&repos)
+		Find(&externalIssueRepos)
+	if err != nil {
+		return fmt.Errorf("Query repositories: %v", err)
+	}
+
+	var externalWikiRepos []Repo
+	err = x.Table("repository").Select("`repository`.id").
+		Join("INNER", "repo_unit", "`repo_unit`.repo_id = `repository`.id").
+		Where("`repo_unit`.type = ?", UnitTypeExternalWiki).
+		Find(&externalWikiRepos)
 	if err != nil {
 		return fmt.Errorf("Query repositories: %v", err)
 	}
@@ -49,12 +58,21 @@ func removeDuplicateIssueUnitType(x *xorm.Engine) error {
 		return err
 	}
 
-	for _, repo := range repos {
+	for _, repo := range externalIssueRepos {
 		if _, err = sess.Delete(&RepoUnit{
 			RepoID: repo.ID,
 			Type:   UnitTypeIssues,
 		}); err != nil {
-			return fmt.Errorf("Insert repo unit: %v", err)
+			return fmt.Errorf("Delete repo unit: %v", err)
+		}
+	}
+
+	for _, repo := range externalWikiRepos {
+		if _, err = sess.Delete(&RepoUnit{
+			RepoID: repo.ID,
+			Type:   UnitTypeWiki,
+		}); err != nil {
+			return fmt.Errorf("Delete repo unit: %v", err)
 		}
 	}
 
