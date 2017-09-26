@@ -130,6 +130,8 @@ var migrations = []Migration{
 	NewMigration("fix protected branch can push value to false", fixProtectedBranchCanPushValue),
 	// v42 -> v43
 	NewMigration("add tags to releases and sync existing repositories", releaseAddColumnIsTagAndSyncTags),
+	// v44 -> v45
+	NewMigration("remove UnitTypeIssue if UnitTypeExternalTracker exists", removeDuplicateIssueUnitType),
 }
 
 // Migrate database to current version
