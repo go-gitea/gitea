@@ -20,6 +20,18 @@ pipeline:
     when:
       event: [ push ]
       branch: [ master ]
+  git_push:
+    image: appleboy/drone-git-push
+    pull: true
+    secrets: [ git_push_ssh_key ]
+    remote: "git@github.com:go-gitea/gitea.git"
+    branch: master
+    force: false
+    commit: true
+    commit_message: "[skip ci] Updated translations via Crowdin"
+    when:
+      event: [ push ]
+      branch: [ master ]
   build:
     image: webhippie/golang:edge
     pull: true
