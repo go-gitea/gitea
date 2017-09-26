@@ -150,9 +150,9 @@ func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 }
 
 func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
-	return units, e.Where("repo_id = ?", repoID).Asc("type").Find(&units)
+	return units, e.Where("repo_id = ?", repoID).Asc("index").Find(&units)
 }
 
 func getUnitsByRepoIDAndIDs(e Engine, repoID int64, types []UnitType) (units []*RepoUnit, err error) {
-	return units, e.Where("repo_id = ?", repoID).In("`type`", types).Asc("type").Find(&units)
+	return units, e.Where("repo_id = ?", repoID).In("`type`", types).Asc("index").Find(&units)
 }
