@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -28,21 +29,42 @@ func ListIssues(ctx *context.APIContext) {
 		isClosed = util.OptionalBoolFalse
 	}
 
-	issues, err := models.Issues(&models.IssuesOptions{
-		RepoID:   ctx.Repo.Repository.ID,
-		Page:     ctx.QueryInt("page"),
-		PageSize: setting.UI.IssuePagingNum,
-		IsClosed: isClosed,
-	})
-	if err != nil {
-		ctx.Error(500, "Issues", err)
-		return
+	issueIndex := ctx.QueryInt64("index")
+	var forceEmpty bool
+	var issueIDs []int64
+	var err error
+	if issueIndex > 0 {
+		issueIDs, err = indexer.SearchIssuesByIndex(ctx.Repo.Repository.ID, issueIndex)
+		if err != nil {
+			ctx.Error(500, "SearchIssuesByIDPartialy", err)
+			return
+		}
+		if len(issueIDs) == 0 {
+			forceEmpty = true
+		}
 	}
 
-	err = models.IssueList(issues).LoadAttributes()
-	if err != nil {
-		ctx.Error(500, "LoadAttributes", err)
-		return
+	var issues []*models.Issue
+	if forceEmpty {
+		issues = []*models.Issue{}
+	} else {
+		issues, err = models.Issues(&models.IssuesOptions{
+			RepoID:   ctx.Repo.Repository.ID,
+			Page:     ctx.QueryInt("page"),
+			PageSize: setting.UI.IssuePagingNum,
+			IsClosed: isClosed,
+			IssueIDs: issueIDs,
+		})
+		if err != nil {
+			ctx.Error(500, "Issues", err)
+			return
+		}
+
+		err = models.IssueList(issues).LoadAttributes()
+		if err != nil {
+			ctx.Error(500, "LoadAttributes", err)
+			return
+		}
 	}
 
 	apiIssues := make([]*api.Issue, len(issues))
