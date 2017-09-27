@@ -533,7 +533,7 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 		Repo:           issue.Repo,
 		Issue:          issue,
 		DependentIssue: dependentIssue,
-		Content:        issue.Title,
+		Content:        dependentIssue.Title,
 	})
 }
 
