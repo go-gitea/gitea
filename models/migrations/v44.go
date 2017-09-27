@@ -17,11 +17,6 @@ func removeDuplicateUnitTypes(x *xorm.Engine) error {
 		Type   int
 	}
 
-	// Repo describes a repository
-	type Repo struct {
-		ID int64
-	}
-
 	// Enumerate all the unit types
 	const (
 		UnitTypeCode            = iota + 1 // 1 code
@@ -33,20 +28,14 @@ func removeDuplicateUnitTypes(x *xorm.Engine) error {
 		UnitTypeExternalTracker            // 7 ExternalTracker
 	)
 
-	var externalIssueRepos []Repo
-	err := x.Table("repository").Select("`repository`.id").
-		Join("INNER", "repo_unit", "`repo_unit`.repo_id = `repository`.id").
-		Where("`repo_unit`.type = ?", UnitTypeExternalTracker).
-		Find(&externalIssueRepos)
+	var externalIssueRepoUnits []RepoUnit
+	err := x.Where("type = ?", UnitTypeExternalTracker).Find(&externalIssueRepoUnits)
 	if err != nil {
 		return fmt.Errorf("Query repositories: %v", err)
 	}
 
-	var externalWikiRepos []Repo
-	err = x.Table("repository").Select("`repository`.id").
-		Join("INNER", "repo_unit", "`repo_unit`.repo_id = `repository`.id").
-		Where("`repo_unit`.type = ?", UnitTypeExternalWiki).
-		Find(&externalWikiRepos)
+	var externalWikiRepoUnits []RepoUnit
+	err = x.Where("type = ?", UnitTypeExternalWiki).Find(&externalWikiRepoUnits)
 	if err != nil {
 		return fmt.Errorf("Query repositories: %v", err)
 	}
@@ -58,18 +47,18 @@ func removeDuplicateUnitTypes(x *xorm.Engine) error {
 		return err
 	}
 
-	for _, repo := range externalIssueRepos {
+	for _, repoUnit := range externalIssueRepoUnits {
 		if _, err = sess.Delete(&RepoUnit{
-			RepoID: repo.ID,
+			RepoID: repoUnit.RepoID,
 			Type:   UnitTypeIssues,
 		}); err != nil {
 			return fmt.Errorf("Delete repo unit: %v", err)
 		}
 	}
 
-	for _, repo := range externalWikiRepos {
+	for _, repoUnit := range externalWikiRepoUnits {
 		if _, err = sess.Delete(&RepoUnit{
-			RepoID: repo.ID,
+			RepoID: repoUnit.RepoID,
 			Type:   UnitTypeWiki,
 		}); err != nil {
 			return fmt.Errorf("Delete repo unit: %v", err)
