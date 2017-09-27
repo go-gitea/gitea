@@ -1865,6 +1865,7 @@ function deleteDependencyModal(id, type) {
 }
 
 function showAddDependencyModal() {
+    // Show the modal
     $('.add-dependency')
         .modal({
             duration: 200,
@@ -1874,4 +1875,36 @@ function showAddDependencyModal() {
             }
         }).modal('show')
     ;
+
+    // Get a list of issues
+    var repolink = $('#repolink').val();
+    $.getJSON( '/api/v1/repos' + repolink + '/issues', function( data ) {
+
+        $.each(data, function (i, issue) {
+            //$('#newDependency').append('<option value="' + issue.id + '"><b>#' + issue.number + '</b> ' + issue.title + '</option>');
+            $('.new-dependency-dropdown').append('<div class="item" data-value="' + issue.id + '"><b>#' + issue.number + '</b> ' + issue.title + '</div>');
+        });
+        /*$('.issue-search')
+            .search({
+                source: data,
+                searchFields: [
+                    'number',
+                    'title',
+                    'body'
+                ],
+                fields: {
+                    title: 'title',
+                    description: 'body'
+                },
+                searchFullText: false,
+                onSelect: function (result) {
+                    $('#newDependency').val(result.id);
+                    return false;
+                }
+            });*/
+    });
+
+    $('.new-dependency-drop-list').dropdown({
+        fullTextSearch: true
+    })
 }

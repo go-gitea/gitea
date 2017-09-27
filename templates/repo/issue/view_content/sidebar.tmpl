@@ -273,7 +273,7 @@
 	</div>
 </div>
 
-
+<input type="hidden" id="repolink" value="{{$.RepoLink}}">
 <div class="ui mini modal add-dependency">
 	<div class="header">
 		{{.i18n.Tr "repo.issues.dependency.add_header"}}
@@ -281,8 +281,22 @@
 	<div class="content">
 		<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/addDependency" id="addDependencyForm">
 			{{$.CsrfTokenHtml}}
-			<div class="ui input">
-				<input type="text" name="newDependency" id="newDependency" placeholder='{{.i18n.Tr "repo.issues.dependency.issue_number"}}'>
+			<!--<div class="ui search issue-search">
+				<div class="ui input">
+					<input type="text" class="prompt" name="newDependency" id="newDependency" placeholder='{{.i18n.Tr "repo.issues.dependency.issue_number"}}'>
+				</div>
+				<div class="results"></div>
+			</div>
+			<select class="ui search dropdown" name="newDependency" id="newDependency">
+				<option value="">{{.i18n.Tr "repo.issues.dependency.issue_number"}}</option>
+			</select>-->
+			<div class="ui search selection dropdown new-dependency-drop-list">
+				<input name="newDependency" type="hidden">
+				<i class="dropdown icon"></i>
+				<div class="default text">{{.i18n.Tr "repo.issues.dependency.issue_search"}}</div>
+				<div class="menu new-dependency-dropdown">
+
+				</div>
 			</div>
 		</form>
 	</div>
