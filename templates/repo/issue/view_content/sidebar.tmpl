@@ -265,52 +265,28 @@
 			<p>{{.i18n.Tr "repo.issues.dependency.no_dependencies"}}</p>
 			{{end}}
 			<div>
-				<button class="fluid green ui button" onclick="showAddDependencyModal();">
-					{{.i18n.Tr "repo.issues.dependency.add"}}
-				</button>
+				<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/addDependency" id="addDependencyForm">
+					{{$.CsrfTokenHtml}}
+					<div class="ui fluid action input">
+						<div class="ui search selection dropdown new-dependency-drop-list" style="min-width: 13.9rem;border-radius: 4px 0 0 4px;border-right: 0;white-space: nowrap;">
+							<input name="newDependency" type="hidden">
+							<i class="dropdown icon"></i>
+							<div class="default text">{{.i18n.Tr "repo.issues.dependency.add"}}</div>
+							<div class="menu new-dependency-dropdown">
+
+							</div>
+						</div>
+						<button class="ui green icon button">
+							<i class="plus icon"></i>
+						</button><!-- {{.i18n.Tr "repo.issues.dependency.add"}} -->
+					</div>
+				</form>
 			</div>
 		</div>
 	</div>
 </div>
 
 <input type="hidden" id="repolink" value="{{$.RepoLink}}">
-<div class="ui mini modal add-dependency">
-	<div class="header">
-		{{.i18n.Tr "repo.issues.dependency.add_header"}}
-	</div>
-	<div class="content">
-		<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/addDependency" id="addDependencyForm">
-			{{$.CsrfTokenHtml}}
-			<!--<div class="ui search issue-search">
-				<div class="ui input">
-					<input type="text" class="prompt" name="newDependency" id="newDependency" placeholder='{{.i18n.Tr "repo.issues.dependency.issue_number"}}'>
-				</div>
-				<div class="results"></div>
-			</div>
-			<select class="ui search dropdown" name="newDependency" id="newDependency">
-				<option value="">{{.i18n.Tr "repo.issues.dependency.issue_number"}}</option>
-			</select>-->
-			<div class="ui search selection dropdown new-dependency-drop-list">
-				<input name="newDependency" type="hidden">
-				<i class="dropdown icon"></i>
-				<div class="default text">{{.i18n.Tr "repo.issues.dependency.issue_search"}}</div>
-				<div class="menu new-dependency-dropdown">
-
-				</div>
-			</div>
-		</form>
-	</div>
-	<div class="actions">
-		<div class="ui negative button">
-			{{.i18n.Tr "repo.issues.dependency.cancel"}}
-		</div>
-		<div class="ui positive right labeled icon button">
-			{{.i18n.Tr "repo.issues.dependency.add"}}
-			<i class="add icon"></i>
-		</div>
-	</div>
-</div>
-
 
 <div class="ui basic modal remove-dependency">
 	<div class="ui icon header">

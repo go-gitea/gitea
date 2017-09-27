@@ -1876,6 +1876,10 @@ function showAddDependencyModal() {
         }).modal('show')
     ;
 
+    buildIssuesList();
+}
+
+function buildIssuesList() {
     // Get a list of issues
     var repolink = $('#repolink').val();
     $.getJSON( '/api/v1/repos' + repolink + '/issues', function( data ) {
@@ -1884,6 +1888,11 @@ function showAddDependencyModal() {
             //$('#newDependency').append('<option value="' + issue.id + '"><b>#' + issue.number + '</b> ' + issue.title + '</option>');
             $('.new-dependency-dropdown').append('<div class="item" data-value="' + issue.id + '"><b>#' + issue.number + '</b> ' + issue.title + '</div>');
         });
+
+        $('.new-dependency-drop-list').dropdown({
+            fullTextSearch: true
+        });
+
         /*$('.issue-search')
             .search({
                 source: data,
@@ -1903,8 +1912,6 @@ function showAddDependencyModal() {
                 }
             });*/
     });
-
-    $('.new-dependency-drop-list').dropdown({
-        fullTextSearch: true
-    })
 }
+
+buildIssuesList();
