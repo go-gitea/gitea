@@ -40,7 +40,7 @@ func AddDependency(c *context.Context) {
 	// Dependency
 	dep, err := models.GetIssueByID(depID)
 	if err != nil {
-		c.Flash.Error(c.Tr("add_error_dep_not_exist"))
+		c.Flash.Error(c.Tr("repo.issues.dependency.add_error_dep_not_exist"))
 		url := fmt.Sprintf("%s/issues/%d", c.Repo.RepoLink, issueIndex)
 		c.Redirect(url, http.StatusSeeOther)
 		return
@@ -48,7 +48,7 @@ func AddDependency(c *context.Context) {
 
 	// Check if both issues are in the same repo
 	if issue.RepoID != dep.RepoID {
-		c.Flash.Error(c.Tr("add_error_dep_not_same_repo"))
+		c.Flash.Error(c.Tr("repo.issues.dependency.add_error_dep_not_same_repo"))
 		url := fmt.Sprintf("%s/issues/%d", c.Repo.RepoLink, issueIndex)
 		c.Redirect(url, http.StatusSeeOther)
 		return
@@ -56,7 +56,7 @@ func AddDependency(c *context.Context) {
 
 	// Check if issue and dependency is the same
 	if dep.Index == issueIndex {
-		c.Flash.Error(c.Tr("issues.dependency.add_error_same_issue"))
+		c.Flash.Error(c.Tr("repo.issues.dependency.add_error_same_issue"))
 	} else {
 
 		exists, err := models.CreateIssueDependency(c.User, issue, dep)
@@ -66,7 +66,7 @@ func AddDependency(c *context.Context) {
 		}
 
 		if exists {
-			c.Flash.Error(c.Tr("add_error_dep_exists"))
+			c.Flash.Error(c.Tr("repo.issues.dependency.add_error_dep_exists"))
 		}
 	}
 
