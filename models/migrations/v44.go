@@ -16,9 +16,8 @@ func regenerateIssueIndexer(x *xorm.Engine) error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
-		} else {
-			return err
 		}
+		return err
 	}
 
 	return os.RemoveAll(setting.Indexer.IssuePath)
