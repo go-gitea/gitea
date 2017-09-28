@@ -70,7 +70,10 @@ func addTimetracking(x *xorm.Engine) error {
 	}
 	//Updating existing issue units
 	units := make([]*RepoUnit, 0, 100)
-	x.Where("`type` = ?", V16UnitTypeIssues).Find(units)
+	err := x.Where("`type` = ?", V16UnitTypeIssues).Find(units)
+	if err != nil {
+		return fmt.Errorf("Query repo units: %v", err)
+	}
 	for _, unit := range units {
 		if unit.Config != nil {
 			continue
