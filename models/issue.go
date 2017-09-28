@@ -984,12 +984,7 @@ func GetIssueByRef(ref string) (*Issue, error) {
 		return nil, err
 	}
 
-	issue, err := GetIssueByIndex(repo.ID, index)
-	if err != nil {
-		return nil, err
-	}
-
-	return issue, issue.LoadAttributes()
+	return GetIssueByIndex(repo.ID, index)
 }
 
 // GetRawIssueByIndex returns raw issue without loading attributes by index in a repository.
