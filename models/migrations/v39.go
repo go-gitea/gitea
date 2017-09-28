@@ -69,8 +69,8 @@ func addTimetracking(x *xorm.Engine) error {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 	//Updating existing issue units
-	var units []*RepoUnit
-	x.Where("type = ?", V16UnitTypeIssues).Find(&units)
+	units := make([]*RepoUnit, 0, 100)
+	x.Where("`type` = ?", V16UnitTypeIssues).Find(units)
 	for _, unit := range units {
 		if unit.Config != nil {
 			continue
