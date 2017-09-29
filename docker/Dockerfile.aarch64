@@ -28,7 +28,7 @@ RUN addgroup \
 ENV USER git
 ENV GITEA_CUSTOM /data/gitea
 
-COPY docker /
+COPY root /
 COPY gitea /app/gitea/gitea
 
 ENV GODEBUG=netdns=go

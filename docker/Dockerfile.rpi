@@ -35,5 +35,5 @@ VOLUME ["/data"]
 ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/bin/s6-svscan", "/etc/s6"]
 
-COPY docker /
+COPY root /
 COPY gitea /app/gitea/gitea

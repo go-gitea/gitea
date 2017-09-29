@@ -234,7 +234,8 @@ $(EXECUTABLE): $(SOURCES)
 .PHONY: docker
 docker:
 	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" webhippie/golang:edge make clean generate build
-	docker build -t $(DOCKER_TAG) .
+	mv gitea docker/
+	docker build -t $(DOCKER_TAG) docker/
 
 .PHONY: release
 release: release-dirs release-windows release-linux release-darwin release-copy release-check
