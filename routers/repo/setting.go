@@ -149,7 +149,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Index:  int(tp),
 				Config: new(models.UnitConfig),
 			})
 		}
@@ -165,7 +164,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				units = append(units, models.RepoUnit{
 					RepoID: repo.ID,
 					Type:   models.UnitTypeExternalWiki,
-					Index:  int(models.UnitTypeExternalWiki),
 					Config: &models.ExternalWikiConfig{
 						ExternalWikiURL: form.ExternalWikiURL,
 					},
@@ -174,7 +172,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				units = append(units, models.RepoUnit{
 					RepoID: repo.ID,
 					Type:   models.UnitTypeWiki,
-					Index:  int(models.UnitTypeWiki),
 					Config: new(models.UnitConfig),
 				})
 			}
@@ -190,7 +187,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				units = append(units, models.RepoUnit{
 					RepoID: repo.ID,
 					Type:   models.UnitTypeExternalTracker,
-					Index:  int(models.UnitTypeExternalTracker),
 					Config: &models.ExternalTrackerConfig{
 						ExternalTrackerURL:    form.ExternalTrackerURL,
 						ExternalTrackerFormat: form.TrackerURLFormat,
@@ -201,7 +197,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				units = append(units, models.RepoUnit{
 					RepoID: repo.ID,
 					Type:   models.UnitTypeIssues,
-					Index:  int(models.UnitTypeIssues),
 					Config: &models.IssuesConfig{
 						EnableTimetracker:                form.EnableTimetracker,
 						AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
@@ -214,7 +209,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   models.UnitTypePullRequests,
-				Index:  int(models.UnitTypePullRequests),
 				Config: new(models.UnitConfig),
 			})
 		}

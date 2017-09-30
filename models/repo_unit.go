@@ -16,9 +16,8 @@ import (
 // RepoUnit describes all units of a repository
 type RepoUnit struct {
 	ID          int64
-	RepoID      int64    `xorm:"INDEX(s)"`
-	Type        UnitType `xorm:"INDEX(s)"`
-	Index       int
+	RepoID      int64           `xorm:"INDEX(s)"`
+	Type        UnitType        `xorm:"INDEX(s)"`
 	Config      core.Conversion `xorm:"TEXT"`
 	CreatedUnix int64           `xorm:"INDEX CREATED"`
 	Created     time.Time       `xorm:"-"`
