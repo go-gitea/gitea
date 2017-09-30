@@ -19,7 +19,7 @@ func unescapeUserFullNames(x *xorm.Engine) (err error) {
 	const batchSize = 100
 	for start := 0; ; start += batchSize {
 		users := make([]*User, 0, batchSize)
-		if err := x.Limit(start, batchSize).Find(users); err != nil {
+		if err := x.Limit(batchSize, start).Find(&users); err != nil {
 			return err
 		}
 		if len(users) == 0 {
@@ -27,7 +27,7 @@ func unescapeUserFullNames(x *xorm.Engine) (err error) {
 		}
 		for _, user := range users {
 			user.FullName = html.UnescapeString(user.FullName)
-			if _, err := x.Where("`id` = ?", user.ID).Cols("full_name").Update(user); err != nil {
+			if _, err := x.ID(user.ID).Cols("full_name").Update(user); err != nil {
 				return err
 			}
 		}
