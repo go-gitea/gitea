@@ -99,13 +99,17 @@ func (rows *Rows) Scan(bean interface{}) error {
 		return err
 	}
 
-	scanResults, err := rows.session.row2Slice(rows.rows, rows.fields, len(rows.fields), bean)
+	scanResults, err := rows.session.row2Slice(rows.rows, rows.fields, bean)
 	if err != nil {
 		return err
 	}
 
-	_, err = rows.session.slice2Bean(scanResults, rows.fields, len(rows.fields), bean, &dataStruct, rows.session.statement.RefTable)
-	return err
+	_, err = rows.session.slice2Bean(scanResults, rows.fields, bean, &dataStruct, rows.session.statement.RefTable)
+	if err != nil {
+		return err
+	}
+
+	return rows.session.executeProcessors()
 }
 
 // Close session if session.IsAutoClose is true, and claimed any opened resources
