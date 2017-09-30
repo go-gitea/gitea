@@ -31,7 +31,7 @@ type Notice struct {
 	CreatedUnix int64     `xorm:"INDEX created"`
 }
 
-// AfterLoad is invoked from XORM after setting the value of a field of this object.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (n *Notice) AfterLoad() {
 	n.Created = time.Unix(n.CreatedUnix, 0).Local()
 }

@@ -49,7 +49,7 @@ func (r *Release) BeforeInsert() {
 	}
 }
 
-// AfterLoad is invoked from XORM after setting the value of a field of this object.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (r *Release) AfterLoad() {
 	r.Created = time.Unix(r.CreatedUnix, 0).Local()
 }

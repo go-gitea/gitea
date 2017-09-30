@@ -153,7 +153,7 @@ func (u *User) UpdateDiffViewStyle(style string) error {
 	return UpdateUserCols(u, "diff_view_style")
 }
 
-// AfterLoad is invoked from XORM after setting the value of a field of this object.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (u *User) AfterLoad() {
 	u.Created = time.Unix(u.CreatedUnix, 0).Local()
 	u.Updated = time.Unix(u.UpdatedUnix, 0).Local()

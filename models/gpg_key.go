@@ -52,7 +52,7 @@ func (key *GPGKey) BeforeInsert() {
 	key.CreatedUnix = key.Created.Unix()
 }
 
-// AfterLoad is invoked from XORM after setting the value of a field of this object.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (key *GPGKey) AfterLoad(session *xorm.Session) {
 	key.Added = time.Unix(key.AddedUnix, 0).Local()
 	key.Expired = time.Unix(key.ExpiredUnix, 0).Local()

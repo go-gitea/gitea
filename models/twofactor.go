@@ -30,7 +30,7 @@ type TwoFactor struct {
 	UpdatedUnix int64     `xorm:"INDEX updated"`
 }
 
-// AfterLoad is invoked from XORM after setting the value of a field of this object.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (t *TwoFactor) AfterLoad() {
 	t.Created = time.Unix(t.CreatedUnix, 0).Local()
 	t.Updated = time.Unix(t.UpdatedUnix, 0).Local()

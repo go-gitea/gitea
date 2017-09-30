@@ -20,7 +20,7 @@ type TrackedTime struct {
 	Time        int64     `json:"time"`
 }
 
-// AfterLoad is invoked from XORM after setting the value of a field of this object.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (t *TrackedTime) AfterLoad() {
 	t.Created = time.Unix(t.CreatedUnix, 0).Local()
 }

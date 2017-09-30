@@ -80,7 +80,7 @@ func (pr *PullRequest) BeforeUpdate() {
 	pr.MergedUnix = pr.Merged.Unix()
 }
 
-// AfterLoad is invoked from XORM after setting the value of a field of this object.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 // Note: don't try to get Issue because will end up recursive querying.
 func (pr *PullRequest) AfterLoad() {
 	if !pr.HasMerged {

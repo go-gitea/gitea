@@ -112,7 +112,7 @@ type Comment struct {
 	ShowTag CommentTag `xorm:"-"`
 }
 
-// AfterLoad is invoked from XORM after setting the value of a field of this object.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (c *Comment) AfterLoad(session *xorm.Session) {
 	c.Created = time.Unix(c.CreatedUnix, 0).Local()
 	c.Updated = time.Unix(c.UpdatedUnix, 0).Local()

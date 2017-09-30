@@ -62,7 +62,7 @@ type PublicKey struct {
 	HasUsed           bool      `xorm:"-"`
 }
 
-// AfterLoad is invoked from XORM after setting the value of a field of this object.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (key *PublicKey) AfterLoad() {
 	key.Created = time.Unix(key.CreatedUnix, 0).Local()
 	key.Updated = time.Unix(key.UpdatedUnix, 0).Local()
@@ -614,7 +614,7 @@ type DeployKey struct {
 	HasUsed           bool      `xorm:"-"`
 }
 
-// AfterLoad is invoked from XORM after setting the value of a field of this object.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (key *DeployKey) AfterLoad() {
 	key.Created = time.Unix(key.CreatedUnix, 0).Local()
 	key.Updated = time.Unix(key.UpdatedUnix, 0).Local()

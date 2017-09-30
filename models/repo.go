@@ -216,7 +216,7 @@ type Repository struct {
 	UpdatedUnix int64     `xorm:"INDEX updated"`
 }
 
-// AfterLoad is invoked from XORM after setting the value of a field of this object.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (repo *Repository) AfterLoad() {
 	// FIXME: use models migration to solve all at once.
 	if len(repo.DefaultBranch) == 0 {

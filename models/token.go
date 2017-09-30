@@ -27,7 +27,7 @@ type AccessToken struct {
 	HasUsed           bool      `xorm:"-"`
 }
 
-// AfterLoad is invoked from XORM after setting the value of a field of this object.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (t *AccessToken) AfterLoad() {
 	t.Created = time.Unix(t.CreatedUnix, 0).Local()
 	t.Updated = time.Unix(t.UpdatedUnix, 0).Local()

@@ -24,7 +24,7 @@ func (s *Stopwatch) BeforeInsert() {
 	s.CreatedUnix = time.Now().Unix()
 }
 
-// AfterLoad is invoked from XORM after setting the value of a field of this object.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (s *Stopwatch) AfterLoad() {
 	s.Created = time.Unix(s.CreatedUnix, 0).Local()
 }
