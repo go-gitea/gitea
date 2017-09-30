@@ -5,31 +5,13 @@
 package migrations
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 )
-
-// IssuesConfigV39 describes issues config
-type IssuesConfigV39 struct {
-	EnableTimetracker                bool
-	AllowOnlyContributorsToTrackTime bool
-}
-
-// FromDB fills up a IssuesConfigV39 from serialized format.
-func (cfg *IssuesConfigV39) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, &cfg)
-}
-
-// ToDB exports a IssuesConfigV39 to a serialized format.
-func (cfg *IssuesConfigV39) ToDB() ([]byte, error) {
-	return json.Marshal(cfg)
-}
 
 func addTimetracking(x *xorm.Engine) error {
 	// RepoUnit describes all units of a repository
@@ -38,9 +20,9 @@ func addTimetracking(x *xorm.Engine) error {
 		RepoID      int64 `xorm:"INDEX(s)"`
 		Type        int   `xorm:"INDEX(s)"`
 		Index       int
-		Config      core.Conversion `xorm:"TEXT"`
-		CreatedUnix int64           `xorm:"INDEX CREATED"`
-		Created     time.Time       `xorm:"-"`
+		Config      map[string]interface{} `xorm:"JSON"`
+		CreatedUnix int64                  `xorm:"INDEX CREATED"`
+		Created     time.Time              `xorm:"-"`
 	}
 
 	// Stopwatch see models/issue_stopwatch.go
@@ -70,19 +52,18 @@ func addTimetracking(x *xorm.Engine) error {
 	}
 	//Updating existing issue units
 	units := make([]*RepoUnit, 0, 100)
-	err := x.Where("`type` = ?", V16UnitTypeIssues).Find(units)
+	err := x.Where("`type` = ?", V16UnitTypeIssues).Find(&units)
 	if err != nil {
 		return fmt.Errorf("Query repo units: %v", err)
 	}
 	for _, unit := range units {
-		if unit.Config != nil {
-			continue
+		if _, ok := unit.Config["EnableTimetracker"]; !ok {
+			unit.Config["EnableTimetracker"] = setting.Service.DefaultEnableTimetracking
 		}
-		unit.Config = &IssuesConfigV39{
-			EnableTimetracker:                setting.Service.DefaultEnableTimetracking,
-			AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime,
+		if _, ok := unit.Config["AllowOnlyContributorsToTrackTime"]; !ok {
+			unit.Config["AllowOnlyContributorsToTrackTime"] = setting.Service.DefaultAllowOnlyContributorsToTrackTime
 		}
-		if _, err := x.Id(unit.ID).Cols("config").Update(unit); err != nil {
+		if _, err := x.ID(unit.ID).Cols("config").Update(unit); err != nil {
 			return err
 		}
 	}
