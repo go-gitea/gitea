@@ -57,6 +57,9 @@ func addTimetracking(x *xorm.Engine) error {
 		return fmt.Errorf("Query repo units: %v", err)
 	}
 	for _, unit := range units {
+		if unit.Config == nil {
+			unit.Config = make(map[string]interface{})
+		}
 		if _, ok := unit.Config["EnableTimetracker"]; !ok {
 			unit.Config["EnableTimetracker"] = setting.Service.DefaultEnableTimetracking
 		}
