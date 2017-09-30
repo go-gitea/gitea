@@ -7,12 +7,22 @@ package migrations
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/go-xorm/xorm"
 )
 
 func removeIndexColumnFromRepoUnitTable(x *xorm.Engine) (err error) {
-	if _, err := x.Exec("ALTER TABLE repo_unit DROP COLUMN index"); err != nil {
-		return fmt.Errorf("DROP COLUMN index: %v", err)
+	switch {
+	case setting.UseSQLite3:
+		log.Warn("Unable to drop columns in SQLite")
+	case setting.UseMySQL, setting.UsePostgreSQL, setting.UseMSSQL, setting.UseTiDB:
+		if _, err := x.Exec("ALTER TABLE repo_unit DROP COLUMN index"); err != nil {
+			return fmt.Errorf("DROP COLUMN index: %v", err)
+		}
+	default:
+		log.Fatal(4, "Unrecognized DB")
 	}
+
 	return nil
 }
