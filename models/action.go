@@ -90,7 +90,7 @@ type Action struct {
 	CreatedUnix int64     `xorm:"INDEX created"`
 }
 
-// AfterLoad updates the webhook object upon setting a column.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (a *Action) AfterLoad() {
 	a.Created = time.Unix(a.CreatedUnix, 0).Local()
 }
