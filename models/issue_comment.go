@@ -341,12 +341,6 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		DependentIssueID: depID,
 	}
 
-	//fmt.Println(comment)
-
-	// TODO: WHY ISNT THIS INSERTED??????
-	// It seems to be inserted, but isnt. (Doesn't return an error, raw pasting
-	// the sql query in a database console does work). But after the function
-	// is called, there is no entry in the database. At least for type 12 and 13.
 	_, err = e.Insert(comment)
 	if err != nil {
 		return nil, err
