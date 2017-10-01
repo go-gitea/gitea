@@ -1240,57 +1240,32 @@ function searchUsers() {
             title: 'login',
             image: 'avatar_url'
         },
-        searchFields: ['login', 'full_name']
+        searchFields: ['login', 'full_name'],
+        showNoResults: false
     });
 }
 
 // FIXME: merge common parts in two functions
 function searchRepositories() {
-    if (!$('#search-repo-box .results').length) {
-        return;
-    }
-
     var $searchRepoBox = $('#search-repo-box');
-    var $results = $searchRepoBox.find('.results');
-    $searchRepoBox.keyup(function () {
-        var $this = $(this);
-        var keyword = $this.find('input').val();
-        if (keyword.length < 2) {
-            $results.hide();
-            return;
-        }
+    $searchRepoBox.search({
+        apiSettings: {
+            url: suburl + '/api/v1/repos/search?q={query}',
+            onResponse: function(response) {
+                var items = [];
+                $.each(response.data, function (i, item) {
+                    items.push({
+                        title: item.full_name.split("/")[1],
+                        description: item.full_name
+                    })
+                });
 
-        $.ajax({
-            url: suburl + '/api/v1/repos/search?q=' + keyword + "&uid=" + $searchRepoBox.data('uid'),
-            dataType: "json",
-            success: function (response) {
-                var notEmpty = function (str) {
-                    return str && str.length > 0;
-                };
-
-                $results.html('');
-
-                if (response.ok && response.data.length) {
-                    var html = '';
-                    $.each(response.data, function (i, item) {
-                        html += '<div class="item"><i class="icon octicon octicon-repo"></i> <span class="fullname">' + item.full_name + '</span></div>';
-                    });
-                    $results.html(html);
-                    $this.find('.results .item').click(function () {
-                        $this.find('input').val($(this).find('.fullname').text().split("/")[1]);
-                        $results.hide();
-                    });
-                    $results.show();
-                } else {
-                    $results.hide();
-                }
+                return { results: items }
             }
-        });
+        },
+        searchFields: ['full_name'],
+        showNoResults: false
     });
-    $searchRepoBox.find('input').focus(function () {
-        $searchRepoBox.keyup();
-    });
-    hideWhenLostFocus('#search-repo-box .results', '#search-repo-box');
 }
 
 function initCodeView() {
