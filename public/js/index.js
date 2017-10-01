@@ -1230,55 +1230,18 @@ function hideWhenLostFocus(body, parent) {
 }
 
 function searchUsers() {
-    if (!$('#search-user-box .results').length) {
-        return;
-    }
-
     var $searchUserBox = $('#search-user-box');
-    var $results = $searchUserBox.find('.results');
-    $searchUserBox.keyup(function () {
-        var $this = $(this);
-        var keyword = $this.find('input').val();
-        if (keyword.length < 2) {
-            $results.hide();
-            return;
-        }
-
-        $.ajax({
-            url: suburl + '/api/v1/users/search?q=' + keyword,
-            dataType: "json",
-            success: function (response) {
-                var notEmpty = function (str) {
-                    return str && str.length > 0;
-                };
-
-                $results.html('');
-
-                if (response.ok && response.data.length) {
-                    var html = '';
-                    $.each(response.data, function (i, item) {
-                        html += '<div class="item"><img class="ui avatar image" src="' + item.avatar_url + '"><span class="username">' + item.login + '</span>';
-                        if (notEmpty(item.full_name)) {
-                            html += ' (' + item.full_name + ')';
-                        }
-                        html += '</div>';
-                    });
-                    $results.html(html);
-                    $this.find('.results .item').click(function () {
-                        $this.find('input').val($(this).find('.username').text());
-                        $results.hide();
-                    });
-                    $results.show();
-                } else {
-                    $results.hide();
-                }
-            }
-        });
+    $searchUserBox.search({
+        apiSettings: {
+            url: suburl + '/api/v1/users/search?q={query}',
+        },
+        fields: {
+            results: 'data',
+            title: 'login',
+            image: 'avatar_url'
+        },
+        searchFields: ['login', 'full_name']
     });
-    $searchUserBox.find('input').focus(function () {
-        $searchUserBox.keyup();
-    });
-    hideWhenLostFocus('#search-user-box .results', '#search-user-box');
 }
 
 // FIXME: merge common parts in two functions
