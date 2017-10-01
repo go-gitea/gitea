@@ -1232,6 +1232,7 @@ function hideWhenLostFocus(body, parent) {
 function searchUsers() {
     var $searchUserBox = $('#search-user-box');
     $searchUserBox.search({
+        minCharacters: 2,
         apiSettings: {
             url: suburl + '/api/v1/users/search?q={query}',
         },
@@ -1249,6 +1250,7 @@ function searchUsers() {
 function searchRepositories() {
     var $searchRepoBox = $('#search-repo-box');
     $searchRepoBox.search({
+        minCharacters: 2,
         apiSettings: {
             url: suburl + '/api/v1/repos/search?q={query}',
             onResponse: function(response) {
