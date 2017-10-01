@@ -87,7 +87,7 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bea
 			return true, err
 		}
 
-		scanResults, err := session.row2Slice(rows, fields, len(fields), bean)
+		scanResults, err := session.row2Slice(rows, fields, bean)
 		if err != nil {
 			return false, err
 		}
@@ -95,7 +95,12 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bea
 		rows.Close()
 
 		dataStruct := rValue(bean)
-		_, err = session.slice2Bean(scanResults, fields, len(fields), bean, &dataStruct, table)
+		_, err = session.slice2Bean(scanResults, fields, bean, &dataStruct, table)
+		if err != nil {
+			return true, err
+		}
+
+		return true, session.executeProcessors()
 	case reflect.Slice:
 		err = rows.ScanSlice(bean)
 	case reflect.Map:

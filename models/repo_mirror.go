@@ -55,24 +55,20 @@ func (m *Mirror) BeforeUpdate() {
 	}
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (m *Mirror) AfterSet(colName string, _ xorm.Cell) {
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (m *Mirror) AfterLoad(session *xorm.Session) {
 	if m == nil {
 		return
 	}
 
 	var err error
-	switch colName {
-	case "repo_id":
-		m.Repo, err = GetRepositoryByID(m.RepoID)
-		if err != nil {
-			log.Error(3, "GetRepositoryByID[%d]: %v", m.ID, err)
-		}
-	case "updated_unix":
-		m.Updated = time.Unix(m.UpdatedUnix, 0).Local()
-	case "next_update_unix":
-		m.NextUpdate = time.Unix(m.NextUpdateUnix, 0).Local()
+	m.Repo, err = getRepositoryByID(session, m.RepoID)
+	if err != nil {
+		log.Error(3, "getRepositoryByID[%d]: %v", m.ID, err)
 	}
+
+	m.Updated = time.Unix(m.UpdatedUnix, 0).Local()
+	m.NextUpdate = time.Unix(m.NextUpdateUnix, 0).Local()
 }
 
 // ScheduleNextUpdate calculates and sets next update time.

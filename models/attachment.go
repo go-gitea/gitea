@@ -12,7 +12,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -31,13 +30,10 @@ type Attachment struct {
 	CreatedUnix   int64     `xorm:"created"`
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of
+// AfterLoad is invoked from XORM after setting the value of a field of
 // this object.
-func (a *Attachment) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		a.Created = time.Unix(a.CreatedUnix, 0).Local()
-	}
+func (a *Attachment) AfterLoad() {
+	a.Created = time.Unix(a.CreatedUnix, 0).Local()
 }
 
 // IncreaseDownloadCount is update download count + 1
@@ -133,6 +129,10 @@ func GetAttachmentsByIssueID(issueID int64) ([]*Attachment, error) {
 
 // GetAttachmentsByCommentID returns all attachments if comment by given ID.
 func GetAttachmentsByCommentID(commentID int64) ([]*Attachment, error) {
+	return getAttachmentsByCommentID(x, commentID)
+}
+
+func getAttachmentsByCommentID(e Engine, commentID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, x.Where("comment_id=?", commentID).Find(&attachments)
 }
