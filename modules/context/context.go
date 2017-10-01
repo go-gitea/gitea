@@ -194,7 +194,7 @@ func Contexter() macaron.Handler {
 	</body>
 </html>
 `, map[string]string{
-				"GoGetImport":    path.Join(setting.Domain, setting.AppSubURL, ctx.Link),
+				"GoGetImport":    ComposeGoGetImport(ownerName, strings.TrimSuffix(repoName, ".git")),
 				"CloneLink":      models.ComposeHTTPSCloneURL(ownerName, repoName),
 				"GoDocDirectory": prefix + "{/dir}",
 				"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
