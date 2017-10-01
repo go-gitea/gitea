@@ -479,7 +479,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/issues", func() {
-			m.Combo("/new", repo.MustEnableIssues).Get(context.RepoRef(), repo.NewIssue).
+			m.Combo("/new").Get(context.RepoRef(), repo.NewIssue).
 				Post(bindIgnErr(auth.CreateIssueForm{}), repo.NewIssuePost)
 
 			m.Group("/:index", func() {
@@ -606,12 +606,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Post(bindIgnErr(auth.NewWikiForm{}), repo.EditWikiPost)
 				m.Post("/:page/delete", repo.DeleteWikiPagePost)
 			}, reqSignIn, reqRepoWriter)
-		}, repo.MustEnableWiki, context.RepoRef(), context.CheckUnit(models.UnitTypeWiki))
+		}, repo.MustEnableWiki, context.RepoRef())
 
 		m.Group("/wiki", func() {
 			m.Get("/raw/*", repo.WikiRaw)
 			m.Get("/*", repo.WikiRaw)
-		}, repo.MustEnableWiki, context.CheckUnit(models.UnitTypeWiki), context.CheckUnit(models.UnitTypeWiki))
+		}, repo.MustEnableWiki)
 
 		m.Get("/archive/*", repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.Download)
 
@@ -620,7 +620,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/files", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ViewPullFiles)
 			m.Post("/merge", reqRepoWriter, repo.MergePullRequest)
 			m.Post("/cleanup", context.RepoRef(), repo.CleanUpPullRequest)
-		}, repo.MustAllowPulls, context.CheckUnit(models.UnitTypePullRequests))
+		}, repo.MustAllowPulls)
 
 		m.Group("", func() {
 			m.Get("/raw/*", repo.SingleDownload)
