@@ -67,17 +67,12 @@ func (issue *Issue) BeforeUpdate() {
 	issue.DeadlineUnix = issue.Deadline.Unix()
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of
+// AfterLoad is invoked from XORM after setting the value of a field of
 // this object.
-func (issue *Issue) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "deadline_unix":
-		issue.Deadline = time.Unix(issue.DeadlineUnix, 0).Local()
-	case "created_unix":
-		issue.Created = time.Unix(issue.CreatedUnix, 0).Local()
-	case "updated_unix":
-		issue.Updated = time.Unix(issue.UpdatedUnix, 0).Local()
-	}
+func (issue *Issue) AfterLoad() {
+	issue.Deadline = time.Unix(issue.DeadlineUnix, 0).Local()
+	issue.Created = time.Unix(issue.CreatedUnix, 0).Local()
+	issue.Updated = time.Unix(issue.UpdatedUnix, 0).Local()
 }
 
 func (issue *Issue) loadRepo(e Engine) (err error) {

@@ -3,8 +3,6 @@ package models
 import (
 	"errors"
 	"time"
-
-	"github.com/go-xorm/xorm"
 )
 
 // LFSMetaObject stores metadata for LFS tracked files.
@@ -109,10 +107,7 @@ func RemoveLFSMetaObjectByOid(oid string) error {
 	return sess.Commit()
 }
 
-// AfterSet stores the LFSMetaObject creation time in the database as local time.
-func (m *LFSMetaObject) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		m.Created = time.Unix(m.CreatedUnix, 0).Local()
-	}
+// AfterLoad stores the LFSMetaObject creation time in the database as local time.
+func (m *LFSMetaObject) AfterLoad() {
+	m.Created = time.Unix(m.CreatedUnix, 0).Local()
 }

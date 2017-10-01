@@ -216,25 +216,18 @@ type Repository struct {
 	UpdatedUnix int64     `xorm:"INDEX updated"`
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (repo *Repository) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "default_branch":
-		// FIXME: use models migration to solve all at once.
-		if len(repo.DefaultBranch) == 0 {
-			repo.DefaultBranch = "master"
-		}
-	case "num_closed_issues":
-		repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
-	case "num_closed_pulls":
-		repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
-	case "num_closed_milestones":
-		repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
-	case "created_unix":
-		repo.Created = time.Unix(repo.CreatedUnix, 0).Local()
-	case "updated_unix":
-		repo.Updated = time.Unix(repo.UpdatedUnix, 0)
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (repo *Repository) AfterLoad() {
+	// FIXME: use models migration to solve all at once.
+	if len(repo.DefaultBranch) == 0 {
+		repo.DefaultBranch = "master"
 	}
+
+	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
+	repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
+	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
+	repo.Created = time.Unix(repo.CreatedUnix, 0).Local()
+	repo.Updated = time.Unix(repo.UpdatedUnix, 0)
 }
 
 // MustOwner always returns a valid *User object to avoid

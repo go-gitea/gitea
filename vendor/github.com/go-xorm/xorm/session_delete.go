@@ -184,12 +184,12 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 			}
 		}
 
-		// !oinume! Insert NowTime to the head of session.statement.Params
+		// !oinume! Insert nowTime to the head of session.statement.Params
 		condArgs = append(condArgs, "")
 		paramsLen := len(condArgs)
 		copy(condArgs[1:paramsLen], condArgs[0:paramsLen-1])
 
-		val, t := session.engine.NowTime2(deletedColumn.SQLType.Name)
+		val, t := session.engine.nowTime(deletedColumn)
 		condArgs[0] = val
 
 		var colName = deletedColumn.Name

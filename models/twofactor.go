@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
 	"github.com/pquerna/otp/totp"
 
 	"code.gitea.io/gitea/modules/base"
@@ -27,18 +26,14 @@ type TwoFactor struct {
 
 	Created     time.Time `xorm:"-"`
 	CreatedUnix int64     `xorm:"INDEX created"`
-	Updated     time.Time `xorm:"-"` // Note: Updated must below Created for AfterSet.
+	Updated     time.Time `xorm:"-"`
 	UpdatedUnix int64     `xorm:"INDEX updated"`
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (t *TwoFactor) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		t.Created = time.Unix(t.CreatedUnix, 0).Local()
-	case "updated_unix":
-		t.Updated = time.Unix(t.UpdatedUnix, 0).Local()
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (t *TwoFactor) AfterLoad() {
+	t.Created = time.Unix(t.CreatedUnix, 0).Local()
+	t.Updated = time.Unix(t.UpdatedUnix, 0).Local()
 }
 
 // GenerateScratchToken recreates the scratch token the user is using.
