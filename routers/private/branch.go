@@ -20,11 +20,7 @@ func GetProtectedBranchBy(ctx *macaron.Context) {
 			"err": err.Error(),
 		})
 		return
-	} else if protectBranch != nil {
-		ctx.JSON(200, protectBranch)
 	} else {
-		ctx.JSON(200, &models.ProtectedBranch{
-			CanPush: true,
-		})
+		ctx.JSON(200, protectBranch)
 	}
 }

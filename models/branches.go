@@ -38,6 +38,11 @@ func (protectBranch *ProtectedBranch) BeforeUpdate() {
 	protectBranch.UpdatedUnix = time.Now().Unix()
 }
 
+// IsProtected returns if the branch is protected
+func (protectBranch *ProtectedBranch) IsProtected() bool {
+	return protectBranch.ID > 0
+}
+
 // GetProtectedBranchByRepoID getting protected branch by repo ID
 func GetProtectedBranchByRepoID(RepoID int64) ([]*ProtectedBranch, error) {
 	protectedBranches := make([]*ProtectedBranch, 0)
