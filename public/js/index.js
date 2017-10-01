@@ -1240,7 +1240,7 @@ function searchUsers() {
                 $.each(response.data, function (i, item) {
                     var title = item.login;
                     if (item.full_name && item.full_name.length > 0) {
-                        title +=  ' (' + item.full_name + ')';
+                        title += ' (' + item.full_name + ')';
                     }
                     items.push({
                         title: title,
@@ -1262,7 +1262,7 @@ function searchRepositories() {
     $searchRepoBox.search({
         minCharacters: 2,
         apiSettings: {
-            url: suburl + '/api/v1/repos/search?q={query}',
+            url: suburl + '/api/v1/repos/search?q={query}&uid=' + $searchRepoBox.data('uid'),
             onResponse: function(response) {
                 var items = [];
                 $.each(response.data, function (i, item) {
