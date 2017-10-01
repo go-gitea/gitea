@@ -1235,11 +1235,21 @@ function searchUsers() {
         minCharacters: 2,
         apiSettings: {
             url: suburl + '/api/v1/users/search?q={query}',
-        },
-        fields: {
-            results: 'data',
-            title: 'login',
-            image: 'avatar_url'
+            onResponse: function(response) {
+                var items = [];
+                $.each(response.data, function (i, item) {
+                    var title = item.login;
+                    if (item.full_name && item.full_name.length > 0) {
+                        title +=  ' (' + item.full_name + ')';
+                    }
+                    items.push({
+                        title: title,
+                        image: item.avatar_url
+                    })
+                });
+
+                return { results: items }
+            }
         },
         searchFields: ['login', 'full_name'],
         showNoResults: false
