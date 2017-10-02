@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/go-xorm/builder"
-	"github.com/go-xorm/xorm"
 )
 
 // TrackedTime represents a time that was spent for a specific issue.
@@ -17,22 +16,13 @@ type TrackedTime struct {
 	IssueID     int64     `xorm:"INDEX" json:"issue_id"`
 	UserID      int64     `xorm:"INDEX" json:"user_id"`
 	Created     time.Time `xorm:"-" json:"created"`
-	CreatedUnix int64     `json:"-"`
+	CreatedUnix int64     `xorm:"created" json:"-"`
 	Time        int64     `json:"time"`
 }
 
-// BeforeInsert will be invoked by XORM before inserting a record
-// representing this object.
-func (t *TrackedTime) BeforeInsert() {
-	t.CreatedUnix = time.Now().Unix()
-}
-
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (t *TrackedTime) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		t.Created = time.Unix(t.CreatedUnix, 0).Local()
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (t *TrackedTime) AfterLoad() {
+	t.Created = time.Unix(t.CreatedUnix, 0).Local()
 }
 
 // FindTrackedTimesOptions represent the filters for tracked times. If an ID is 0 it will be ignored.

@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
 	"github.com/go-xorm/builder"
-	"github.com/go-xorm/xorm"
 )
 
 // Release represents a release of repository.
@@ -50,12 +49,9 @@ func (r *Release) BeforeInsert() {
 	}
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (r *Release) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		r.Created = time.Unix(r.CreatedUnix, 0).Local()
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (r *Release) AfterLoad() {
+	r.Created = time.Unix(r.CreatedUnix, 0).Local()
 }
 
 func (r *Release) loadAttributes(e Engine) error {
