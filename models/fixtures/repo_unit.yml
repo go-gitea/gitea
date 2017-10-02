@@ -2,7 +2,6 @@
   id: 1
   repo_id: 1
   type: 4
-  index: 3
   config: "{}"
   created_unix: 946684810
 
@@ -10,7 +9,6 @@
   id: 2
   repo_id: 1
   type: 5
-  index: 4
   config: "{}"
   created_unix: 946684810
 
@@ -18,7 +16,6 @@
   id: 3
   repo_id: 1
   type: 1
-  index: 0
   config: "{}"
   created_unix: 946684810
 
@@ -26,7 +23,6 @@
   id: 4
   repo_id: 1
   type: 2
-  index: 1
   config: "{\"EnableTimetracker\":true,\"AllowOnlyContributorsToTrackTime\":true}"
   created_unix: 946684810
 
@@ -34,7 +30,6 @@
   id: 5
   repo_id: 1
   type: 3
-  index: 2
   config: "{}"
   created_unix: 946684810
 
@@ -42,7 +37,6 @@
   id: 6
   repo_id: 3
   type: 1
-  index: 0
   config: "{}"
   created_unix: 946684810
 
@@ -50,7 +44,6 @@
   id: 7
   repo_id: 3
   type: 2
-  index: 1
   config: "{\"EnableTimetracker\":false,\"AllowOnlyContributorsToTrackTime\":false}"
   created_unix: 946684810
 
@@ -58,7 +51,6 @@
   id: 8
   repo_id: 3
   type: 3
-  index: 2
   config: "{}"
   created_unix: 946684810
 
@@ -66,7 +58,6 @@
   id: 9
   repo_id: 3
   type: 4
-  index: 3
   config: "{}"
   created_unix: 946684810
 
@@ -74,6 +65,5 @@
   id: 10
   repo_id: 3
   type: 5
-  index: 4
   config: "{}"
   created_unix: 946684810
