@@ -356,7 +356,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, reqToken())
 
 		// Repositories
-		m.Post("/orgs/:org/repos", reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
+		m.Post("/orgs/:orgname/repos", reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
 
 		m.Group("/repos", func() {
 			m.Get("/search", repo.Search)

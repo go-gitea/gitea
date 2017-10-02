@@ -173,7 +173,7 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//       403: forbidden
 	//       500: error
 
-	org, err := models.GetOrgByName(ctx.Params(":org"))
+	org, err := models.GetOrgByName(ctx.Params(":orgname"))
 	if err != nil {
 		if models.IsErrOrgNotExist(err) {
 			ctx.Error(422, "", err)
