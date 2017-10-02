@@ -1256,7 +1256,6 @@ function searchUsers() {
     });
 }
 
-// FIXME: merge common parts in two functions
 function searchRepositories() {
     var $searchRepoBox = $('#search-repo-box');
     $searchRepoBox.search({
