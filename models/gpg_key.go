@@ -52,17 +52,15 @@ func (key *GPGKey) BeforeInsert() {
 	key.CreatedUnix = key.Created.Unix()
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (key *GPGKey) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "key_id":
-		x.Where("primary_key_id=?", key.KeyID).Find(&key.SubsKey)
-	case "added_unix":
-		key.Added = time.Unix(key.AddedUnix, 0).Local()
-	case "expired_unix":
-		key.Expired = time.Unix(key.ExpiredUnix, 0).Local()
-	case "created_unix":
-		key.Created = time.Unix(key.CreatedUnix, 0).Local()
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (key *GPGKey) AfterLoad(session *xorm.Session) {
+	key.Added = time.Unix(key.AddedUnix, 0).Local()
+	key.Expired = time.Unix(key.ExpiredUnix, 0).Local()
+	key.Created = time.Unix(key.CreatedUnix, 0).Local()
+
+	err := session.Where("primary_key_id=?", key.KeyID).Find(&key.SubsKey)
+	if err != nil {
+		log.Error(3, "Find Sub GPGkeys[%d]: %v", key.KeyID, err)
 	}
 }
 

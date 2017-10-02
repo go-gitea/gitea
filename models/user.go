@@ -153,16 +153,11 @@ func (u *User) UpdateDiffViewStyle(style string) error {
 	return UpdateUserCols(u, "diff_view_style")
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (u *User) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		u.Created = time.Unix(u.CreatedUnix, 0).Local()
-	case "updated_unix":
-		u.Updated = time.Unix(u.UpdatedUnix, 0).Local()
-	case "last_login_unix":
-		u.LastLogin = time.Unix(u.LastLoginUnix, 0).Local()
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (u *User) AfterLoad() {
+	u.Created = time.Unix(u.CreatedUnix, 0).Local()
+	u.Updated = time.Unix(u.UpdatedUnix, 0).Local()
+	u.LastLogin = time.Unix(u.LastLoginUnix, 0).Local()
 }
 
 // getEmail returns an noreply email, if the user has set to keep his

@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
 )
 
 //NoticeType describes the notice type
@@ -32,12 +31,9 @@ type Notice struct {
 	CreatedUnix int64     `xorm:"INDEX created"`
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (n *Notice) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		n.Created = time.Unix(n.CreatedUnix, 0).Local()
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (n *Notice) AfterLoad() {
+	n.Created = time.Unix(n.CreatedUnix, 0).Local()
 }
 
 // TrStr returns a translation format string.

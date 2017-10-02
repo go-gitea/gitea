@@ -73,6 +73,7 @@ type Statement struct {
 	decrColumns     map[string]decrParam
 	exprColumns     map[string]exprParam
 	cond            builder.Cond
+	bufferSize      int
 }
 
 // Init reset all the statement's fields
@@ -111,6 +112,7 @@ func (statement *Statement) Init() {
 	statement.decrColumns = make(map[string]decrParam)
 	statement.exprColumns = make(map[string]exprParam)
 	statement.cond = builder.NewCond()
+	statement.bufferSize = 0
 }
 
 // NoAutoCondition if you do not want convert bean's field as query condition, then use this function
