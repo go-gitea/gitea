@@ -14,15 +14,25 @@ import (
 
 // ListForks list a repository's forks
 func ListForks(ctx *context.APIContext) {
-	// swagger:route GET /repos/{owner}/{repo}/forks repository listForks
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: RepositoryList
-	//       500: error
-
+	// swagger:operation GET /repos/{owner}/{repo}/forks repository listForks
+	// ---
+	// summary: List a repository's forks
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RepositoryList"
 	forks, err := ctx.Repo.Repository.GetForks()
 	if err != nil {
 		ctx.Error(500, "GetForks", err)
@@ -42,17 +52,29 @@ func ListForks(ctx *context.APIContext) {
 
 // CreateFork create a fork of a repo
 func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
-	// swagger:route POST /repos/{owner}/{repo}/forks repository createFork
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       202: Repository
-	//       403: forbidden
-	//       422: validationError
-	//       500: error
-
+	// swagger:operation POST /repos/{owner}/{repo}/forks repository createFork
+	// ---
+	// summary: Fork a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo to fork
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo to fork
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateForkOption"
+	// responses:
+	//   "202":
+	//     "$ref": "#/responses/Repository"
 	repo := ctx.Repo.Repository
 	var forker *models.User // user/org that will own the fork
 	if form.Organization == nil {
