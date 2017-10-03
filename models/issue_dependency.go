@@ -141,17 +141,17 @@ func (IssueDependencyIssue) TableName() string {
 // IssueNoDependenciesLeft checks if issue can be closed
 func IssueNoDependenciesLeft(issue *Issue) bool {
 
-	total, err := x.
+	exists, err := x.
 		Join("INNER", "issue", "issue.id = issue_dependency.issue_id").
 		Where("issue_dependency.issue_id = ?", issue.ID).
 		And("issue.is_closed = ?", "0").
-		Count(&IssueDependencyIssue{})
+		Exist(&IssueDependencyIssue{})
 
 	if err != nil {
 		return false
 	}
 
-	if total > 0 {
+	if exists{
 		return false
 	}
 
