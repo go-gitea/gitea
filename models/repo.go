@@ -1245,19 +1245,17 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 
 	// insert units for repo
 	var units = make([]RepoUnit, 0, len(defaultRepoUnits))
-	for i, tp := range defaultRepoUnits {
+	for _, tp := range defaultRepoUnits {
 		if tp == UnitTypeIssues {
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Index:  i,
 				Config: &IssuesConfig{EnableTimetracker: setting.Service.DefaultEnableTimetracking, AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime},
 			})
 		} else {
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Index:  i,
 			})
 		}
 
