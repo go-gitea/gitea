@@ -117,8 +117,7 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 // Check if the dependency already exists
 func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err error) {
 
-	deps := new(IssueDependency)
-	exists, err = e.Where("(issue_id = ? AND dependency_id = ?) OR (issue_id = ? AND dependency_id = ?)", issueID, depID, depID, issueID).Get(deps)
+	exists, err = e.Where("(issue_id = ? AND dependency_id = ?) OR (issue_id = ? AND dependency_id = ?)", issueID, depID, depID, issueID).Exist(&IssueDependency{})
 
 	if err != nil {
 		return exists, err
