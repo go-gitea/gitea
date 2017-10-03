@@ -199,7 +199,7 @@ func RenderUserSearch(ctx *context.Context, opts *UserSearchOptions) {
 	case "alphabetically":
 		orderBy = "name ASC"
 	default:
-		orderBy = "id DESC"
+		orderBy = "updated_unix DESC"
 	}
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
