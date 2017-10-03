@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func assertProtectedBranch(t *testing.T, repoID int64, branchName string, isErr, canPush bool) {
+func assertProtectedBranch(t *testing.T, repoID int64, branchName string, isErr, isProtected bool) {
 	reqURL := fmt.Sprintf("/api/internal/branch/%d/%s", repoID, url.QueryEscape(branchName))
 	req := NewRequest(t, "GET", reqURL)
 	t.Log(reqURL)
@@ -31,14 +31,14 @@ func assertProtectedBranch(t *testing.T, repoID int64, branchName string, isErr,
 		var branch models.ProtectedBranch
 		t.Log(string(resp.Body))
 		assert.NoError(t, json.Unmarshal(resp.Body, &branch))
-		assert.Equal(t, canPush, branch.CanPush)
+		assert.Equal(t, isProtected, branch.IsProtected())
 	}
 }
 
 func TestInternal_GetProtectedBranch(t *testing.T) {
 	prepareTestEnv(t)
 
-	assertProtectedBranch(t, 1, "master", false, true)
-	assertProtectedBranch(t, 1, "dev", false, true)
-	assertProtectedBranch(t, 1, "lunny/dev", false, true)
+	assertProtectedBranch(t, 1, "master", false, false)
+	assertProtectedBranch(t, 1, "dev", false, false)
+	assertProtectedBranch(t, 1, "lunny/dev", false, false)
 }
