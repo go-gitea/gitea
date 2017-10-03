@@ -141,18 +141,20 @@ func (IssueDependencyIssue) TableName() string {
 // IssueNoDependenciesLeft checks if issue can be closed
 func IssueNoDependenciesLeft(issue *Issue) bool {
 
-	var issueDeps []IssueDependencyIssue
+	issueDeps := new(IssueDependencyIssue)
 
-	err := x.Join("INNER", "issue", "issue.id = issue_dependency.issue_id").Where("issue_id = ?", issue.ID).Find(&issueDeps)
+	total, err := x.
+		Join("INNER", "issue", "issue.id = issue_dependency.issue_id").
+		Where("issue_dependency.issue_id = ?", issue.ID).
+		And("issue.is_closed = ?", "0").
+		Count(issueDeps)
 
 	if err != nil {
 		return false
 	}
 
-	for _, issueDep := range issueDeps {
-		if !issueDep.IsClosed {
-			return false
-		}
+	if total > 0 {
+		return false
 	}
 
 	return true
