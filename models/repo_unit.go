@@ -16,9 +16,8 @@ import (
 // RepoUnit describes all units of a repository
 type RepoUnit struct {
 	ID          int64
-	RepoID      int64    `xorm:"INDEX(s)"`
-	Type        UnitType `xorm:"INDEX(s)"`
-	Index       int
+	RepoID      int64           `xorm:"INDEX(s)"`
+	Type        UnitType        `xorm:"INDEX(s)"`
 	Config      core.Conversion `xorm:"TEXT"`
 	CreatedUnix int64           `xorm:"INDEX CREATED"`
 	Created     time.Time       `xorm:"-"`
@@ -106,12 +105,9 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	}
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (r *RepoUnit) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		r.Created = time.Unix(r.CreatedUnix, 0).Local()
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (r *RepoUnit) AfterLoad() {
+	r.Created = time.Unix(r.CreatedUnix, 0).Local()
 }
 
 // Unit returns Unit

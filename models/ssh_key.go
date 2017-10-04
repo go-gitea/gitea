@@ -56,22 +56,18 @@ type PublicKey struct {
 
 	Created           time.Time `xorm:"-"`
 	CreatedUnix       int64     `xorm:"created"`
-	Updated           time.Time `xorm:"-"` // Note: Updated must below Created for AfterSet.
+	Updated           time.Time `xorm:"-"`
 	UpdatedUnix       int64     `xorm:"updated"`
 	HasRecentActivity bool      `xorm:"-"`
 	HasUsed           bool      `xorm:"-"`
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (key *PublicKey) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		key.Created = time.Unix(key.CreatedUnix, 0).Local()
-	case "updated_unix":
-		key.Updated = time.Unix(key.UpdatedUnix, 0).Local()
-		key.HasUsed = key.Updated.After(key.Created)
-		key.HasRecentActivity = key.Updated.Add(7 * 24 * time.Hour).After(time.Now())
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (key *PublicKey) AfterLoad() {
+	key.Created = time.Unix(key.CreatedUnix, 0).Local()
+	key.Updated = time.Unix(key.UpdatedUnix, 0).Local()
+	key.HasUsed = key.Updated.After(key.Created)
+	key.HasRecentActivity = key.Updated.Add(7 * 24 * time.Hour).After(time.Now())
 }
 
 // OmitEmail returns content of public key without email address.
@@ -612,22 +608,18 @@ type DeployKey struct {
 
 	Created           time.Time `xorm:"-"`
 	CreatedUnix       int64     `xorm:"created"`
-	Updated           time.Time `xorm:"-"` // Note: Updated must below Created for AfterSet.
+	Updated           time.Time `xorm:"-"`
 	UpdatedUnix       int64     `xorm:"updated"`
 	HasRecentActivity bool      `xorm:"-"`
 	HasUsed           bool      `xorm:"-"`
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (key *DeployKey) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		key.Created = time.Unix(key.CreatedUnix, 0).Local()
-	case "updated_unix":
-		key.Updated = time.Unix(key.UpdatedUnix, 0).Local()
-		key.HasUsed = key.Updated.After(key.Created)
-		key.HasRecentActivity = key.Updated.Add(7 * 24 * time.Hour).After(time.Now())
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (key *DeployKey) AfterLoad() {
+	key.Created = time.Unix(key.CreatedUnix, 0).Local()
+	key.Updated = time.Unix(key.UpdatedUnix, 0).Local()
+	key.HasUsed = key.Updated.After(key.Created)
+	key.HasRecentActivity = key.Updated.Add(7 * 24 * time.Hour).After(time.Now())
 }
 
 // GetContent gets associated public key content.

@@ -16,7 +16,6 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
-	"github.com/go-xorm/xorm"
 
 	"code.gitea.io/git"
 	api "code.gitea.io/sdk/gitea"
@@ -91,12 +90,9 @@ type Action struct {
 	CreatedUnix int64     `xorm:"INDEX created"`
 }
 
-// AfterSet updates the webhook object upon setting a column.
-func (a *Action) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		a.Created = time.Unix(a.CreatedUnix, 0).Local()
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (a *Action) AfterLoad() {
+	a.Created = time.Unix(a.CreatedUnix, 0).Local()
 }
 
 // GetOpType gets the ActionType of this action.

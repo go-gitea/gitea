@@ -153,16 +153,11 @@ func (u *User) UpdateDiffViewStyle(style string) error {
 	return UpdateUserCols(u, "diff_view_style")
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (u *User) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		u.Created = time.Unix(u.CreatedUnix, 0).Local()
-	case "updated_unix":
-		u.Updated = time.Unix(u.UpdatedUnix, 0).Local()
-	case "last_login_unix":
-		u.LastLogin = time.Unix(u.LastLoginUnix, 0).Local()
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (u *User) AfterLoad() {
+	u.Created = time.Unix(u.CreatedUnix, 0).Local()
+	u.Updated = time.Unix(u.UpdatedUnix, 0).Local()
+	u.LastLogin = time.Unix(u.LastLoginUnix, 0).Local()
 }
 
 // getEmail returns an noreply email, if the user has set to keep his
@@ -596,17 +591,21 @@ func (u *User) IsMailable() bool {
 	return u.IsActive
 }
 
+func isUserExist(e Engine, uid int64, name string) (bool, error) {
+	if len(name) == 0 {
+		return false, nil
+	}
+	return e.
+		Where("id!=?", uid).
+		Get(&User{LowerName: strings.ToLower(name)})
+}
+
 // IsUserExist checks if given user name exist,
 // the user name should be noncased unique.
 // If uid is presented, then check will rule out that one,
 // it is used when update a user name in settings page.
 func IsUserExist(uid int64, name string) (bool, error) {
-	if len(name) == 0 {
-		return false, nil
-	}
-	return x.
-		Where("id!=?", uid).
-		Get(&User{LowerName: strings.ToLower(name)})
+	return isUserExist(x, uid, name)
 }
 
 // GetUserSalt returns a random user salt token.
@@ -664,7 +663,13 @@ func CreateUser(u *User) (err error) {
 		return err
 	}
 
-	isExist, err := IsUserExist(0, u.Name)
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	isExist, err := isUserExist(sess, 0, u.Name)
 	if err != nil {
 		return err
 	} else if isExist {
@@ -672,16 +677,16 @@ func CreateUser(u *User) (err error) {
 	}
 
 	u.Email = strings.ToLower(u.Email)
-	has, err := x.
+	isExist, err = sess.
 		Where("email=?", u.Email).
 		Get(new(User))
 	if err != nil {
 		return err
-	} else if has {
+	} else if isExist {
 		return ErrEmailAlreadyUsed{u.Email}
 	}
 
-	isExist, err = IsEmailUsed(u.Email)
+	isExist, err = isEmailUsed(sess, u.Email)
 	if err != nil {
 		return err
 	} else if isExist {
@@ -702,12 +707,6 @@ func CreateUser(u *User) (err error) {
 	u.EncodePasswd()
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	u.MaxRepoCreation = -1
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
 
 	if _, err = sess.Insert(u); err != nil {
 		return err

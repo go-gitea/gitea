@@ -183,14 +183,10 @@ func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 	}
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (source *LoginSource) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		source.Created = time.Unix(source.CreatedUnix, 0).Local()
-	case "updated_unix":
-		source.Updated = time.Unix(source.UpdatedUnix, 0).Local()
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (source *LoginSource) AfterLoad() {
+	source.Created = time.Unix(source.CreatedUnix, 0).Local()
+	source.Updated = time.Unix(source.UpdatedUnix, 0).Local()
 }
 
 // TypeName return name of this login source type.

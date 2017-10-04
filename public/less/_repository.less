@@ -1345,20 +1345,15 @@
 #search-repo-box,
 #search-user-box {
 	.results {
-		padding: 0;
-		position: absolute;
-
-		.item {
-			padding: 10px 15px;
-			border-bottom: 1px solid #DDD;
-			cursor: pointer;
-
-			&:hover {
-				background: rgba(0,0,0,.05)!important;
-				color: rgba(0,0,0,.95)!important;
-			}
-			img {
+		.result {
+			.image {
+				float: left;
 				margin-right: 8px;
+				width: 2em;
+				height: 2em;
+			}
+			.content {
+				margin: 6px 0;
 			}
 		}
 	}

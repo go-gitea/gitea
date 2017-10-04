@@ -137,6 +137,10 @@ var migrations = []Migration{
 	// v43 -> v44
 	NewMigration("fix protected branch can push value to false", fixProtectedBranchCanPushValue),
 	// v44 -> v45
+	NewMigration("remove duplicate unit types", removeDuplicateUnitTypes),
+	// v45 -> v46
+	NewMigration("remove index column from repo_unit table", removeIndexColumnFromRepoUnitTable),
+	// v46 -> v47
 	NewMigration("add issue_dependency table", addIssueDependencyTables),
 }
 
