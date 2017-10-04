@@ -91,6 +91,8 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["SortType"] = ctx.Query("sort")
 
 	switch ctx.Query("sort") {
+	case "newest":
+		orderBy = models.SearchOrderByNewest
 	case "oldest":
 		orderBy = models.SearchOrderByOldest
 	case "recentupdate":
