@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testPullCreate(t *testing.T, session *TestSession, user, repo, branch string) *TestResponse {
+func testPullCreate(t testing.TB, session *TestSession, user, repo, branch string) *TestResponse {
 	req := NewRequest(t, "GET", path.Join(user, repo))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -47,6 +47,6 @@ func TestPullCreate(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user1")
 	testRepoFork(t, session)
-	testEditFile(t, session, "user1", "repo1", "master", "README.md")
+	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 	testPullCreate(t, session, "user1", "repo1", "master")
 }

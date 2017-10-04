@@ -267,63 +267,98 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
 
-	// Clone base repo.
-	tmpBasePath := path.Join(setting.AppDataPath, "tmp/repos", com.ToStr(time.Now().Nanosecond())+".git")
+	baseRepoPath := pr.BaseRepo.RepoPath()
 
-	if err := os.MkdirAll(path.Dir(tmpBasePath), os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", tmpBasePath, err)
+	pullHead := fmt.Sprintf("refs/pull/%d/head", pr.Index)
+
+	// A temporary Git index file we are going to build. The merge commit will be based on it.
+	indexTmpPath := filepath.Join(os.TempDir(), "gitea-"+pr.BaseRepo.Name+"-"+strconv.Itoa(time.Now().Nanosecond()))
+	defer os.Remove(indexTmpPath)
+
+	// A temporary Git working tree for git-merge-index and git-merge-one-file.
+	workTreeTmpPath, err := ioutil.TempDir("", "gitea-merge-")
+	if err != nil {
+		return fmt.Errorf("Cannot create temporary directory for git-merge-index")
+	}
+	defer os.RemoveAll(workTreeTmpPath)
+
+	log.Trace("BaseRepo:%s Index:%s Ancestor:%s BaseBranch:%s HeadBranch:%s PullHead:%s",
+		baseRepoPath, indexTmpPath, pr.MergeBase, pr.BaseBranch, pr.HeadBranch, pullHead)
+
+	var stdout, stderr string
+
+	// Build the index from the common ancestor, the base-branch head, and the pull head, for 3-way merge.
+	if _, stderr, err = process.GetManager().ExecDirEnv(-1, "",
+		fmt.Sprintf("PullRequest.Merge (git read-tree): %s", baseRepoPath),
+		[]string{"GIT_DIR=" + baseRepoPath, "GIT_INDEX_FILE=" + indexTmpPath},
+		"git", "read-tree", "-im", pr.MergeBase, pr.BaseBranch, pullHead); err != nil {
+		return fmt.Errorf("git read-tree -im %s %s %s: %s (%v)", pr.MergeBase, pr.BaseBranch, pullHead, stderr, err)
 	}
 
-	defer os.RemoveAll(path.Dir(tmpBasePath))
-
-	var stderr string
-	if _, stderr, err = process.GetManager().ExecTimeout(5*time.Minute,
-		fmt.Sprintf("PullRequest.Merge (git clone): %s", tmpBasePath),
-		"git", "clone", baseGitRepo.Path, tmpBasePath); err != nil {
-		return fmt.Errorf("git clone: %s", stderr)
+	// Run the merge algorithm throughout the prepared index.
+	if stdout, stderr, err = process.GetManager().ExecDirEnv(-1, "",
+		fmt.Sprintf("PullRequest.Merge (git merge-index)"),
+		[]string{
+			"GIT_DIR=" + baseRepoPath,
+			"GIT_INDEX_FILE=" + indexTmpPath,
+			"GIT_WORK_TREE=" + workTreeTmpPath,
+		},
+		"git", "merge-index", "git-merge-one-file", "-a"); err != nil {
+		return fmt.Errorf("git merge-index git merge-one-file -a: %s (%v)", stderr, err)
 	}
 
-	// Check out base branch.
-	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-		fmt.Sprintf("PullRequest.Merge (git checkout): %s", tmpBasePath),
-		"git", "checkout", pr.BaseBranch); err != nil {
-		return fmt.Errorf("git checkout: %s", stderr)
+	// Write the tree object back to the Git object store from the index.
+	if stdout, stderr, err = process.GetManager().ExecDirEnv(-1, "",
+		fmt.Sprintf("PullRequest.Merge (git write-tree): %s", baseRepoPath),
+		[]string{"GIT_DIR=" + baseRepoPath, "GIT_INDEX_FILE=" + indexTmpPath},
+		"git", "write-tree"); err != nil {
+		return fmt.Errorf("git write-tree: %s (%v)", stderr, err)
+	}
+	treeID := strings.TrimSpace(stdout)
+
+	log.Trace("BaseRepo:%s TreeId:%s", baseRepoPath, treeID)
+
+	// Create the commit object based on the tree object we just built.
+	var headBranch *Branch
+	if headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch); err != nil {
+		return fmt.Errorf("Getting head branch: %s: %s (%v)", pr.HeadBranch, stderr, err)
 	}
 
-	// Add head repo remote.
-	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-		fmt.Sprintf("PullRequest.Merge (git remote add): %s", tmpBasePath),
-		"git", "remote", "add", "head_repo", headRepoPath); err != nil {
-		return fmt.Errorf("git remote add [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
+	var headCommit *git.Commit
+	if headCommit, err = headBranch.GetCommit(); err != nil {
+		return fmt.Errorf("Getting head commit: %s: %s (%v)", pr.HeadBranch, stderr, err)
 	}
-
-	// Merge commits.
-	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-		fmt.Sprintf("PullRequest.Merge (git fetch): %s", tmpBasePath),
-		"git", "fetch", "head_repo"); err != nil {
-		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
-	}
-
-	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-		fmt.Sprintf("PullRequest.Merge (git merge --no-ff --no-commit): %s", tmpBasePath),
-		"git", "merge", "--no-ff", "--no-commit", "head_repo/"+pr.HeadBranch); err != nil {
-		return fmt.Errorf("git merge --no-ff --no-commit [%s]: %v - %s", tmpBasePath, err, stderr)
-	}
+	commitMessage := fmt.Sprintf("Merge branch '%s' of %s/%s into %s", pr.HeadBranch, pr.HeadUserName, pr.HeadRepo.Name, pr.BaseBranch)
 
 	sig := doer.NewGitSig()
-	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-		fmt.Sprintf("PullRequest.Merge (git merge): %s", tmpBasePath),
-		"git", "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
-		"-m", fmt.Sprintf("Merge branch '%s' of %s/%s into %s", pr.HeadBranch, pr.HeadUserName, pr.HeadRepo.Name, pr.BaseBranch)); err != nil {
-		return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, stderr)
+	if stdout, stderr, err = process.GetManager().ExecDirEnv(-1, "",
+		fmt.Sprintf("PullRequest.Merge (git commit-tree): %s", baseRepoPath),
+		[]string{
+			"GIT_DIR=" + baseRepoPath,
+			"GIT_AUTHOR_NAME=" + headCommit.Author.Name,
+			"GIT_AUTHOR_EMAIL=" + headCommit.Author.Email,
+			"GIT_AUTHOR_DATE=" + headCommit.Author.When.Format("Mon, 02 Jan 2006 15:04:05 -0700"),
+			"GIT_COMMITTER_NAME=" + sig.Name,
+			"GIT_COMMITTER_EMAIL=" + sig.Email,
+			"GIT_COMMITTER_DATE=" + sig.When.Format("Mon, 02 Jan 2006 15:04:05 -0700"),
+		},
+		"git", "commit-tree", treeID, "-p", pr.BaseBranch, "-p", pullHead, "-m", commitMessage); err != nil {
+		return fmt.Errorf("git commit-tree %s -p %s -p %s: %s (%v)", strings.TrimSpace(treeID), pr.BaseBranch, pullHead, stderr, err)
+	}
+	commitID := strings.TrimSpace(stdout)
+
+	log.Trace("BaseRepo:%s CommitId:%s", baseRepoPath, commitID)
+
+	// Update the ref of the base-branch to point to the new commit object.
+	refPath := fmt.Sprintf("refs/heads/%s", pr.BaseBranch)
+	if _, stderr, err = process.GetManager().ExecDirEnv(-1, "",
+		fmt.Sprintf("PullRequest.Merge (git update-ref): %s", baseRepoPath),
+		[]string{"GIT_DIR=" + baseRepoPath},
+		"git", "update-ref", refPath, commitID); err != nil {
+		return fmt.Errorf("git update-ref -m %s %s: %s (%v)", commitMessage, refPath, stderr, err)
 	}
 
-	// Push back to upstream.
-	if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-		fmt.Sprintf("PullRequest.Merge (git push): %s", tmpBasePath),
-		"git", "push", baseGitRepo.Path, pr.BaseBranch); err != nil {
-		return fmt.Errorf("git push: %s", stderr)
-	}
+	log.Trace("BaseRepo:%s Update-ref: %s->%s. Done.", baseRepoPath, refPath, commitID)
 
 	pr.MergedCommitID, err = baseGitRepo.GetBranchCommitID(pr.BaseBranch)
 	if err != nil {

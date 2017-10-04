@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testRepoFork(t *testing.T, session *TestSession) *TestResponse {
+func testRepoFork(t testing.TB, session *TestSession) *TestResponse {
 	// Step0: check the existence of the to-fork repo
 	req := NewRequest(t, "GET", "/user1/repo1")
 	resp := session.MakeRequest(t, req, http.StatusNotFound)
