@@ -153,7 +153,7 @@ func DeleteEmailAddress(email *EmailAddress) (err error) {
 		UID: email.UID,
 	}
 	if email.ID > 0 {
-		deleted, err = x.Id(email.ID).Delete(&address)
+		deleted, err = x.ID(email.ID).Delete(&address)
 	} else {
 		deleted, err = x.
 			Where("email=?", email.Email).
@@ -222,7 +222,7 @@ func MakeEmailPrimary(email *EmailAddress) error {
 	}
 
 	user.Email = email.Email
-	if _, err = sess.Id(user.ID).Cols("email").Update(user); err != nil {
+	if _, err = sess.ID(user.ID).Cols("email").Update(user); err != nil {
 		return err
 	}
 

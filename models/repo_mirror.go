@@ -199,7 +199,7 @@ func GetMirrorByRepoID(repoID int64) (*Mirror, error) {
 }
 
 func updateMirror(e Engine, m *Mirror) error {
-	_, err := e.Id(m.ID).AllCols().Update(m)
+	_, err := e.ID(m.ID).AllCols().Update(m)
 	return err
 }
 

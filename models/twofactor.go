@@ -95,7 +95,7 @@ func NewTwoFactor(t *TwoFactor) error {
 
 // UpdateTwoFactor updates a two-factor authentication token.
 func UpdateTwoFactor(t *TwoFactor) error {
-	_, err := x.Id(t.ID).AllCols().Update(t)
+	_, err := x.ID(t.ID).AllCols().Update(t)
 	return err
 }
 
@@ -114,7 +114,7 @@ func GetTwoFactorByUID(uid int64) (*TwoFactor, error) {
 
 // DeleteTwoFactorByID deletes two-factor authentication token by given ID.
 func DeleteTwoFactorByID(id, userID int64) error {
-	cnt, err := x.Id(id).Delete(&TwoFactor{
+	cnt, err := x.ID(id).Delete(&TwoFactor{
 		UID: userID,
 	})
 	if err != nil {

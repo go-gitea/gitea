@@ -302,7 +302,7 @@ func (u *User) generateRandomAvatar(e Engine) error {
 	}
 	defer fw.Close()
 
-	if _, err := e.Id(u.ID).Cols("avatar").Update(u); err != nil {
+	if _, err := e.ID(u.ID).Cols("avatar").Update(u); err != nil {
 		return err
 	}
 
@@ -459,7 +459,7 @@ func (u *User) DeleteAvatar() error {
 
 	u.UseCustomAvatar = false
 	u.Avatar = ""
-	if _, err := x.Id(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
+	if _, err := x.ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 	return nil
@@ -862,7 +862,7 @@ func updateUser(e Engine, u *User) error {
 	u.Website = base.TruncateString(u.Website, 255)
 	u.Description = base.TruncateString(u.Description, 255)
 
-	_, err := e.Id(u.ID).AllCols().Update(u)
+	_, err := e.ID(u.ID).AllCols().Update(u)
 	return err
 }
 
@@ -893,7 +893,7 @@ func updateUserCols(e Engine, u *User, cols ...string) error {
 	u.Website = base.TruncateString(u.Website, 255)
 	u.Description = base.TruncateString(u.Description, 255)
 
-	_, err := e.Id(u.ID).Cols(cols...).Update(u)
+	_, err := e.ID(u.ID).Cols(cols...).Update(u)
 	return err
 }
 
@@ -1019,7 +1019,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 	}
 	// ***** END: ExternalLoginUser *****
 
-	if _, err = e.Id(u.ID).Delete(new(User)); err != nil {
+	if _, err = e.ID(u.ID).Delete(new(User)); err != nil {
 		return fmt.Errorf("Delete: %v", err)
 	}
 
@@ -1112,7 +1112,7 @@ func GetUserByKeyID(keyID int64) (*User, error) {
 
 func getUserByID(e Engine, id int64) (*User, error) {
 	u := new(User)
-	has, err := e.Id(id).Get(u)
+	has, err := e.ID(id).Get(u)
 	if err != nil {
 		return nil, err
 	} else if !has {
