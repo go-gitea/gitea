@@ -60,7 +60,6 @@ func Swagger(ctx *context.Context) {
 
 // RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
-	Searcher *models.User
 	Private  bool
 	PageSize int
 	TplName  base.TplName
