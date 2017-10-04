@@ -129,8 +129,8 @@ const (
 	SearchOrderByNewest                              = "created_unix DESC"
 	SearchOrderBySize                                = "size ASC"
 	SearchOrderBySizeReverse                         = "size DESC"
-	SearchOrderByID                                  = "ID ASC"
-	SearchOrderByIDReverse                           = "ID DESC"
+	SearchOrderByID                                  = "id ASC"
+	SearchOrderByIDReverse                           = "id DESC"
 )
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
