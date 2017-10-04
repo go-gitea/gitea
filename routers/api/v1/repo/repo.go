@@ -159,7 +159,7 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 
 // CreateOrgRepo create one repository of the organization
 func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
-	// swagger:route POST /org/{orgname}/repos organization createOrgRepo
+	// swagger:route POST /orgs/{orgname}/repos organization createOrgRepo
 	//
 	//     Consumes:
 	//     - application/json
