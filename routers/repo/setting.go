@@ -217,7 +217,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   models.UnitTypeIssueDependencies,
-				Index:  int(models.UnitTypeIssueDependencies),
 				Config: new(models.UnitConfig),
 			})
 		}
