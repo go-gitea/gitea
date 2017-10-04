@@ -179,14 +179,30 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 	return issue
 }
 
+func setMergeTarget(ctx *context.Context, pull *models.PullRequest) {
+	if ctx.Repo.Owner.Name == pull.HeadUserName {
+		ctx.Data["HeadTarget"] = pull.HeadBranch
+	} else if pull.HeadRepo == nil {
+		ctx.Data["HeadTarget"] = pull.HeadUserName + ":" + pull.HeadBranch
+	} else {
+		ctx.Data["HeadTarget"] = pull.HeadUserName + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
+	}
+	ctx.Data["BaseTarget"] = pull.BaseBranch
+}
+
 // PrepareMergedViewPullInfo show meta information for a merged pull request view page
 func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) {
 	pull := issue.PullRequest
-	ctx.Data["HasMerged"] = true
-	ctx.Data["HeadTarget"] = issue.PullRequest.HeadUserName + "/" + pull.HeadBranch
-	ctx.Data["BaseTarget"] = ctx.Repo.Owner.Name + "/" + pull.BaseBranch
 
 	var err error
+	if err = pull.GetHeadRepo(); err != nil {
+		ctx.Handle(500, "GetHeadRepo", err)
+		return
+	}
+
+	setMergeTarget(ctx, pull)
+	ctx.Data["HasMerged"] = true
+
 	ctx.Data["NumCommits"], err = ctx.Repo.GitRepo.CommitsCountBetween(pull.MergeBase, pull.MergedCommitID)
 	if err != nil {
 		ctx.Handle(500, "Repo.GitRepo.CommitsCountBetween", err)
@@ -204,19 +220,15 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 	repo := ctx.Repo.Repository
 	pull := issue.PullRequest
 
-	ctx.Data["HeadTarget"] = pull.HeadUserName + "/" + pull.HeadBranch
-	ctx.Data["BaseTarget"] = ctx.Repo.Owner.Name + "/" + pull.BaseBranch
-
-	var (
-		headGitRepo *git.Repository
-		err         error
-	)
-
+	var err error
 	if err = pull.GetHeadRepo(); err != nil {
 		ctx.Handle(500, "GetHeadRepo", err)
 		return nil
 	}
 
+	setMergeTarget(ctx, pull)
+
+	var headGitRepo *git.Repository
 	if pull.HeadRepo != nil {
 		headGitRepo, err = git.OpenRepository(pull.HeadRepo.RepoPath())
 		if err != nil {
