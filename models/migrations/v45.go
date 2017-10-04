@@ -17,7 +17,7 @@ func removeIndexColumnFromRepoUnitTable(x *xorm.Engine) (err error) {
 	case setting.UseSQLite3:
 		log.Warn("Unable to drop columns in SQLite")
 	case setting.UseMySQL, setting.UsePostgreSQL, setting.UseMSSQL, setting.UseTiDB:
-		if _, err := x.Exec("ALTER TABLE repo_unit DROP COLUMN index"); err != nil {
+		if _, err := x.Exec("ALTER TABLE repo_unit DROP COLUMN `index`"); err != nil {
 			return fmt.Errorf("DROP COLUMN index: %v", err)
 		}
 	default:
