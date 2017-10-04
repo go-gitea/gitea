@@ -88,7 +88,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		err     error
 		orderBy models.SearchOrderBy
 	)
-	
+
 	ctx.Data["SortType"] = ctx.Query("sort")
 	switch ctx.Query("sort") {
 	case "newest":
