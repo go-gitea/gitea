@@ -198,12 +198,12 @@
 			<span class="text"><strong>{{.i18n.Tr "repo.issues.dependency.title"}}</strong></span>
 			<br>
 			{{if .BlockedByDependencies}}
-			<span class="text">
-				{{if .Issue.IsPull}}
-					{{.i18n.Tr "repo.issues.dependency.issue_closing_blockedby"}}:
+			<span class="text" data-tooltip="{{if .Issue.IsPull}}
+					{{.i18n.Tr "repo.issues.dependency.issue_closing_blockedby"}}
 				{{else}}
-					{{.i18n.Tr "repo.issues.dependency.pr_closing_blockedby"}}:
-				{{end}}
+					{{.i18n.Tr "repo.issues.dependency.pr_closing_blockedby"}}
+				{{end}}" data-inverted="">
+			{{.i18n.Tr "repo.issues.dependency.blocked_by_short"}}:
 			</span>
 			<div class="ui relaxed divided list">
 				{{range .BlockedByDependencies}}
@@ -231,12 +231,12 @@
 
 			{{if .BlockingDependencies}}
 			<div class="ui relaxed divided list">
-				<span class="text">
-					{{if .Issue.IsPull}}
-						{{.i18n.Tr "repo.issues.dependency.pr_close_blocks"}}:
-					{{else}}
-						{{.i18n.Tr "repo.issues.dependency.issue_close_blocks"}}:
-					{{end}}
+				<span class="text" data-tooltip="{{if .Issue.IsPull}}
+						{{.i18n.Tr "repo.issues.dependency.pr_close_blocks"}}
+				{{else}}
+				{{.i18n.Tr "repo.issues.dependency.issue_close_blocks"}}
+				{{end}}" data-inverted="">
+					{{.i18n.Tr "repo.issues.dependency.blocks_short"}}:
 				</span>
 				{{range .BlockingDependencies}}
 				<div class="item">
