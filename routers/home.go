@@ -106,7 +106,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	case "size":
 		orderBy = models.SearchOrderBySize
 	default:
-		orderBy = models.SearchOrderByNewest
+		orderBy = models.SearchOrderByRecentUpdated
 	}
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
