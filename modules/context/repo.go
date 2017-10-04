@@ -197,7 +197,7 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 			EarlyResponseForGoGetMeta(ctx)
 			return
 		}
-		ctx.Error(404, "no access right")
+		ctx.Handle(404, "no access right", nil)
 		return
 	}
 	ctx.Data["HasAccess"] = true
