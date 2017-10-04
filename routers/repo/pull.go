@@ -189,9 +189,15 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) {
 		return
 	}
 
-	ctx.Data["HasMerged"] = true
-	ctx.Data["HeadTarget"] = pull.HeadUserName + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
+	if ctx.Repo.Owner.Name == pull.HeadUserName {
+		ctx.Data["HeadTarget"] = pull.HeadBranch
+	} else if pull.HeadRepo == nil {
+		ctx.Data["HeadTarget"] = pull.HeadUserName + ":" + pull.HeadBranch
+	} else {
+		ctx.Data["HeadTarget"] = pull.HeadUserName + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
+	}
 	ctx.Data["BaseTarget"] = pull.BaseBranch
+	ctx.Data["HasMerged"] = true
 
 	ctx.Data["NumCommits"], err = ctx.Repo.GitRepo.CommitsCountBetween(pull.MergeBase, pull.MergedCommitID)
 	if err != nil {
@@ -216,7 +222,13 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 		return nil
 	}
 
-	ctx.Data["HeadTarget"] = pull.HeadUserName + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
+	if ctx.Repo.Owner.Name == pull.HeadUserName {
+		ctx.Data["HeadTarget"] = pull.HeadBranch
+	} else if pull.HeadRepo == nil {
+		ctx.Data["HeadTarget"] = pull.HeadUserName + ":" + pull.HeadBranch
+	} else {
+		ctx.Data["HeadTarget"] = pull.HeadUserName + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
+	}
 	ctx.Data["BaseTarget"] = pull.BaseBranch
 
 	var headGitRepo *git.Repository
