@@ -97,6 +97,7 @@ type Comment struct {
 	OldTitle         string
 	NewTitle         string
 	DependentIssueID int64
+	DependentIssue   *Issue `xorm:"-"`
 
 	CommitID        int64
 	Line            int64
@@ -117,25 +118,30 @@ type Comment struct {
 	ShowTag CommentTag `xorm:"-"`
 }
 
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (c *Comment) AfterLoad(session *xorm.Session) {
-	c.Created = time.Unix(c.CreatedUnix, 0).Local()
-	c.Updated = time.Unix(c.UpdatedUnix, 0).Local()
-
+// AfterSet is invoked from XORM after setting the value of a field of this object.
+func (c *Comment) AfterSet(colName string, _ xorm.Cell) {
 	var err error
-	c.Attachments, err = getAttachmentsByCommentID(session, c.ID)
-	if err != nil {
-		log.Error(3, "getAttachmentsByCommentID[%d]: %v", c.ID, err)
-	}
-
-	c.Poster, err = getUserByID(session, c.PosterID)
-	if err != nil {
-		if IsErrUserNotExist(err) {
-			c.PosterID = -1
-			c.Poster = NewGhostUser()
-		} else {
-			log.Error(3, "getUserByID[%d]: %v", c.ID, err)
+	switch colName {
+	case "id":
+		c.Attachments, err = GetAttachmentsByCommentID(c.ID)
+		if err != nil {
+			log.Error(3, "GetAttachmentsByCommentID[%d]: %v", c.ID, err)
 		}
+
+	case "poster_id":
+		c.Poster, err = GetUserByID(c.PosterID)
+		if err != nil {
+			if IsErrUserNotExist(err) {
+				c.PosterID = -1
+				c.Poster = NewGhostUser()
+			} else {
+				log.Error(3, "GetUserByID[%d]: %v", c.ID, err)
+			}
+		}
+	case "created_unix":
+		c.Created = time.Unix(c.CreatedUnix, 0).Local()
+	case "updated_unix":
+		c.Updated = time.Unix(c.UpdatedUnix, 0).Local()
 	}
 }
 
@@ -269,6 +275,18 @@ func (c *Comment) LoadAssignees() error {
 	return nil
 }
 
+// LoadDepIssueDetails loads Dependent Issue Details
+func (c *Comment) LoadDepIssueDetails() error {
+	var err error
+	if c.DependentIssueID > 0 {
+		c.DependentIssue, err = getIssueByID(x, c.DependentIssueID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
 func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
@@ -319,6 +337,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:          opts.Content,
 		OldTitle:         opts.OldTitle,
 		NewTitle:         opts.NewTitle,
+		DependentIssue:   opts.DependentIssue,
 		DependentIssueID: depID,
 	}
 
@@ -508,7 +527,6 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 		Repo:           issue.Repo,
 		Issue:          issue,
 		DependentIssue: dependentIssue,
-		Content:        dependentIssue.Title,
 	})
 }
 
