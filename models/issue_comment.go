@@ -97,7 +97,6 @@ type Comment struct {
 	OldTitle         string
 	NewTitle         string
 	DependentIssueID int64
-	DependentIssue   *Issue `xorm:"-"`
 
 	CommitID        int64
 	Line            int64
@@ -275,18 +274,6 @@ func (c *Comment) LoadAssignees() error {
 	return nil
 }
 
-// LoadDepIssueDetails loads Dependent Issue Details
-func (c *Comment) LoadDepIssueDetails() error {
-	var err error
-	if c.DependentIssueID > 0 {
-		c.DependentIssue, err = getIssueByID(x, c.DependentIssueID)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
 func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
@@ -337,7 +324,6 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:          opts.Content,
 		OldTitle:         opts.OldTitle,
 		NewTitle:         opts.NewTitle,
-		DependentIssue:   opts.DependentIssue,
 		DependentIssueID: depID,
 	}
 
