@@ -76,7 +76,7 @@ func TestRenameRepoAction(t *testing.T) {
 	assert.NoError(t, RenameRepoAction(user, oldRepoName, repo))
 	AssertExistsAndLoadBean(t, actionBean)
 
-	_, err := x.Id(repo.ID).Cols("name", "lower_name").Update(repo)
+	_, err := x.ID(repo.ID).Cols("name", "lower_name").Update(repo)
 	assert.NoError(t, err)
 	CheckConsistencyFor(t, &Action{})
 }
@@ -337,7 +337,7 @@ func TestTransferRepoAction(t *testing.T) {
 	assert.NoError(t, TransferRepoAction(user2, user2, repo))
 	AssertExistsAndLoadBean(t, actionBean)
 
-	_, err := x.Id(repo.ID).Cols("owner_id").Update(repo)
+	_, err := x.ID(repo.ID).Cols("owner_id").Update(repo)
 	assert.NoError(t, err)
 	CheckConsistencyFor(t, &Action{})
 }

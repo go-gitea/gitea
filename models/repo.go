@@ -620,7 +620,7 @@ func (repo *Repository) updateSize(e Engine) error {
 	}
 
 	repo.Size = repoInfoSize.Size + repoInfoSize.SizePack
-	_, err = e.Id(repo.ID).Cols("size").Update(repo)
+	_, err = e.ID(repo.ID).Cols("size").Update(repo)
 	return err
 }
 
@@ -1417,7 +1417,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	repo.Owner = newOwner
 
 	// Update repository.
-	if _, err := sess.Id(repo.ID).Update(repo); err != nil {
+	if _, err := sess.ID(repo.ID).Update(repo); err != nil {
 		return fmt.Errorf("update owner: %v", err)
 	}
 
@@ -1449,7 +1449,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 			}
 
 			t.NumRepos--
-			if _, err := sess.Id(t.ID).Cols("num_repos").Update(t); err != nil {
+			if _, err := sess.ID(t.ID).Cols("num_repos").Update(t); err != nil {
 				return fmt.Errorf("decrease team repository count '%d': %v", t.ID, err)
 			}
 		}
@@ -1568,7 +1568,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 		repo.Website = repo.Website[:255]
 	}
 
-	if _, err = e.Id(repo.ID).AllCols().Update(repo); err != nil {
+	if _, err = e.ID(repo.ID).AllCols().Update(repo); err != nil {
 		return fmt.Errorf("update: %v", err)
 	}
 
@@ -1687,7 +1687,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return ErrRepoNotExist{repoID, uid, ""}
 	}
 
-	if cnt, err := sess.Id(repoID).Delete(&Repository{}); err != nil {
+	if cnt, err := sess.ID(repoID).Delete(&Repository{}); err != nil {
 		return err
 	} else if cnt != 1 {
 		return ErrRepoNotExist{repoID, uid, ""}
@@ -1868,7 +1868,7 @@ func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
 
 func getRepositoryByID(e Engine, id int64) (*Repository, error) {
 	repo := new(Repository)
-	has, err := e.Id(id).Get(repo)
+	has, err := e.ID(id).Get(repo)
 	if err != nil {
 		return nil, err
 	} else if !has {

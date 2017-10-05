@@ -308,7 +308,7 @@ func LoginSources() ([]*LoginSource, error) {
 // GetLoginSourceByID returns login source by given ID.
 func GetLoginSourceByID(id int64) (*LoginSource, error) {
 	source := new(LoginSource)
-	has, err := x.Id(id).Get(source)
+	has, err := x.ID(id).Get(source)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -328,7 +328,7 @@ func UpdateSource(source *LoginSource) error {
 		}
 	}
 
-	_, err := x.Id(source.ID).AllCols().Update(source)
+	_, err := x.ID(source.ID).AllCols().Update(source)
 	if err == nil && source.IsOAuth2() && source.IsActived {
 		oAuth2Config := source.OAuth2()
 		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
@@ -336,7 +336,7 @@ func UpdateSource(source *LoginSource) error {
 
 		if err != nil {
 			// restore original values since we cannot update the provider it self
-			x.Id(source.ID).AllCols().Update(originalLoginSource)
+			x.ID(source.ID).AllCols().Update(originalLoginSource)
 		}
 	}
 	return err
@@ -362,7 +362,7 @@ func DeleteSource(source *LoginSource) error {
 		oauth2.RemoveProvider(source.Name)
 	}
 
-	_, err = x.Id(source.ID).Delete(new(LoginSource))
+	_, err = x.ID(source.ID).Delete(new(LoginSource))
 	return err
 }
 
@@ -647,7 +647,7 @@ func UserSignIn(username, password string) (*User, error) {
 
 		default:
 			var source LoginSource
-			hasSource, err := x.Id(user.LoginSource).Get(&source)
+			hasSource, err := x.ID(user.LoginSource).Get(&source)
 			if err != nil {
 				return nil, err
 			} else if !hasSource {
