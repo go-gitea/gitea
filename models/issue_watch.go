@@ -62,7 +62,7 @@ func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
 	} else {
 		iw.IsWatching = isWatching
 
-		if _, err := x.Id(iw.ID).Cols("is_watching", "updated_unix").Update(iw); err != nil {
+		if _, err := x.ID(iw.ID).Cols("is_watching", "updated_unix").Update(iw); err != nil {
 			return err
 		}
 	}

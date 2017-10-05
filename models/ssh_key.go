@@ -722,7 +722,7 @@ func AddDeployKey(repoID int64, name, content string) (*DeployKey, error) {
 // GetDeployKeyByID returns deploy key by given ID.
 func GetDeployKeyByID(id int64) (*DeployKey, error) {
 	key := new(DeployKey)
-	has, err := x.Id(id).Get(key)
+	has, err := x.ID(id).Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -748,7 +748,7 @@ func GetDeployKeyByRepo(keyID, repoID int64) (*DeployKey, error) {
 
 // UpdateDeployKey updates deploy key information.
 func UpdateDeployKey(key *DeployKey) error {
-	_, err := x.Id(key.ID).AllCols().Update(key)
+	_, err := x.ID(key.ID).AllCols().Update(key)
 	return err
 }
 
@@ -782,7 +782,7 @@ func DeleteDeployKey(doer *User, id int64) error {
 		return err
 	}
 
-	if _, err = sess.Id(key.ID).Delete(new(DeployKey)); err != nil {
+	if _, err = sess.ID(key.ID).Delete(new(DeployKey)); err != nil {
 		return fmt.Errorf("delete deploy key [%d]: %v", key.ID, err)
 	}
 

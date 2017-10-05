@@ -56,7 +56,7 @@ func addTimetracking(x *xorm.Engine) error {
 			changes = true
 		}
 		if changes {
-			if _, err := x.Id(unit.ID).Cols("config").Update(unit); err != nil {
+			if _, err := x.ID(unit.ID).Cols("config").Update(unit); err != nil {
 				return err
 			}
 		}

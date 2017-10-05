@@ -570,7 +570,7 @@ func (issue *Issue) ReadBy(userID int64) error {
 }
 
 func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
-	if _, err := e.Id(issue.ID).Cols(cols...).Update(issue); err != nil {
+	if _, err := e.ID(issue.ID).Cols(cols...).Update(issue); err != nil {
 		return err
 	}
 	UpdateIssueIndexer(issue.ID)
@@ -911,7 +911,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 		for i := 0; i < len(attachments); i++ {
 			attachments[i].IssueID = opts.Issue.ID
-			if _, err = e.Id(attachments[i].ID).Update(attachments[i]); err != nil {
+			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
 				return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
 			}
 		}
@@ -1008,7 +1008,7 @@ func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 
 func getIssueByID(e Engine, id int64) (*Issue, error) {
 	issue := new(Issue)
-	has, err := e.Id(id).Get(issue)
+	has, err := e.ID(id).Get(issue)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -1435,7 +1435,7 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 }
 
 func updateIssue(e Engine, issue *Issue) error {
-	_, err := e.Id(issue.ID).AllCols().Update(issue)
+	_, err := e.ID(issue.ID).AllCols().Update(issue)
 	if err != nil {
 		return err
 	}

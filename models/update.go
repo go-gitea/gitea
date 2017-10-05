@@ -90,14 +90,14 @@ func pushUpdateDeleteTag(repo *Repository, gitRepo *git.Repository, tagName stri
 		return fmt.Errorf("GetRelease: %v", err)
 	}
 	if rel.IsTag {
-		if _, err = x.Id(rel.ID).Delete(new(Release)); err != nil {
+		if _, err = x.ID(rel.ID).Delete(new(Release)); err != nil {
 			return fmt.Errorf("Delete: %v", err)
 		}
 	} else {
 		rel.IsDraft = true
 		rel.NumCommits = 0
 		rel.Sha1 = ""
-		if _, err = x.Id(rel.ID).AllCols().Update(rel); err != nil {
+		if _, err = x.ID(rel.ID).AllCols().Update(rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
 		}
 	}
@@ -161,7 +161,7 @@ func pushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string)
 		if rel.IsTag && author != nil {
 			rel.PublisherID = author.ID
 		}
-		if _, err = x.Id(rel.ID).AllCols().Update(rel); err != nil {
+		if _, err = x.ID(rel.ID).AllCols().Update(rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
 		}
 	}

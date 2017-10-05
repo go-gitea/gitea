@@ -33,7 +33,7 @@ func removeCommitsUnitType(x *xorm.Engine) (err error) {
 				}
 			}
 			team.UnitTypes = ut
-			if _, err := x.Id(team.ID).Cols("unit_types").Update(team); err != nil {
+			if _, err := x.ID(team.ID).Cols("unit_types").Update(team); err != nil {
 				return err
 			}
 		}

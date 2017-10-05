@@ -422,7 +422,7 @@ func (pr *PullRequest) setMerged() (err error) {
 	if err = pr.Issue.changeStatus(sess, pr.Merger, pr.Issue.Repo, true); err != nil {
 		return fmt.Errorf("Issue.changeStatus: %v", err)
 	}
-	if _, err = sess.Id(pr.ID).Cols("has_merged").Update(pr); err != nil {
+	if _, err = sess.ID(pr.ID).Cols("has_merged").Update(pr); err != nil {
 		return fmt.Errorf("update pull request: %v", err)
 	}
 
@@ -795,7 +795,7 @@ func GetPullRequestByIndex(repoID int64, index int64) (*PullRequest, error) {
 
 func getPullRequestByID(e Engine, id int64) (*PullRequest, error) {
 	pr := new(PullRequest)
-	has, err := e.Id(id).Get(pr)
+	has, err := e.ID(id).Get(pr)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -829,13 +829,13 @@ func GetPullRequestByIssueID(issueID int64) (*PullRequest, error) {
 
 // Update updates all fields of pull request.
 func (pr *PullRequest) Update() error {
-	_, err := x.Id(pr.ID).AllCols().Update(pr)
+	_, err := x.ID(pr.ID).AllCols().Update(pr)
 	return err
 }
 
 // UpdateCols updates specific fields of pull request.
 func (pr *PullRequest) UpdateCols(cols ...string) error {
-	_, err := x.Id(pr.ID).Cols(cols...).Update(pr)
+	_, err := x.ID(pr.ID).Cols(cols...).Update(pr)
 	return err
 }
 
