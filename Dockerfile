@@ -1,5 +1,6 @@
 FROM alpine:3.6
-MAINTAINER Thomas Boerger <thomas@webhippie.de>
+
+LABEL maintainer="Gitea Community"
 
 EXPOSE 22 3000
 
