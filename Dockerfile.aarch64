@@ -1,5 +1,7 @@
 FROM multiarch/alpine:aarch64-v3.6
 
+LABEL maintainer="The Gitea Authors"
+
 EXPOSE 22 3000
 
 RUN apk --no-cache add \
