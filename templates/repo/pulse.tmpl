@@ -1,0 +1,31 @@
+{{template "base/head" .}}
+<div class="repository commits">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<h2 class="ui header">{{.DateFrom}} - {{.DateTill}}
+			<div class="ui right">
+				<!-- Period -->
+				<div class="ui floating dropdown jump filter">
+					<div class="ui basic compact button">
+						<span class="text">
+							{{.i18n.Tr "repo.pulse.period.filter_label"}} <strong>{{.PeriodText}}</strong>
+							<i class="dropdown icon"></i>
+						</span>
+					</div>
+					<div class="menu">
+						<a class="{{if eq .Period "daily"}}active {{end}}item" href="{{$.RepoLink}}/pulse/daily">{{.i18n.Tr "repo.pulse.period.daily"}}</a>
+						<a class="{{if eq .Period "halfweekly"}}active {{end}}item" href="{{$.RepoLink}}/pulse/halfweekly">{{.i18n.Tr "repo.pulse.period.halfweekly"}}</a>
+						<a class="{{if eq .Period "weekly"}}active {{end}}item" href="{{$.RepoLink}}/pulse/weekly">{{.i18n.Tr "repo.pulse.period.weekly"}}</a>
+						<a class="{{if eq .Period "monthly"}}active {{end}}item" href="{{$.RepoLink}}/pulse/monthly">{{.i18n.Tr "repo.pulse.period.monthly"}}</a>
+					</div>
+				</div>
+			</div>
+		</h2>
+		<div class="ui divider"></div>
+
+		<h4 class="ui top attached header">{{.i18n.Tr "repo.pulse.overview"}}</h4>
+		<div class="ui attached segment">
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}
