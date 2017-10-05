@@ -96,7 +96,7 @@ func (t *Team) addRepository(e Engine, repo *Repository) (err error) {
 	}
 
 	t.NumRepos++
-	if _, err = e.Id(t.ID).Cols("num_repos").Update(t); err != nil {
+	if _, err = e.ID(t.ID).Cols("num_repos").Update(t); err != nil {
 		return fmt.Errorf("update team: %v", err)
 	}
 
@@ -142,7 +142,7 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 	}
 
 	t.NumRepos--
-	if _, err = e.Id(t.ID).Cols("num_repos").Update(t); err != nil {
+	if _, err = e.ID(t.ID).Cols("num_repos").Update(t); err != nil {
 		return err
 	}
 
@@ -231,7 +231,7 @@ func NewTeam(t *Team) (err error) {
 		return err
 	}
 
-	has, err := x.Id(t.OrgID).Get(new(User))
+	has, err := x.ID(t.OrgID).Get(new(User))
 	if err != nil {
 		return err
 	} else if !has {
@@ -289,7 +289,7 @@ func GetTeam(orgID int64, name string) (*Team, error) {
 
 func getTeamByID(e Engine, teamID int64) (*Team, error) {
 	t := new(Team)
-	has, err := e.Id(teamID).Get(t)
+	has, err := e.ID(teamID).Get(t)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -331,7 +331,7 @@ func UpdateTeam(t *Team, authChanged bool) (err error) {
 		return ErrTeamAlreadyExist{t.OrgID, t.LowerName}
 	}
 
-	if _, err = sess.Id(t.ID).AllCols().Update(t); err != nil {
+	if _, err = sess.ID(t.ID).AllCols().Update(t); err != nil {
 		return fmt.Errorf("update: %v", err)
 	}
 
@@ -387,7 +387,7 @@ func DeleteTeam(t *Team) error {
 	}
 
 	// Delete team.
-	if _, err := sess.Id(t.ID).Delete(new(Team)); err != nil {
+	if _, err := sess.ID(t.ID).Delete(new(Team)); err != nil {
 		return err
 	}
 	// Update organization number of teams.
@@ -498,7 +498,7 @@ func AddTeamMember(team *Team, userID int64) error {
 		TeamID: team.ID,
 	}); err != nil {
 		return err
-	} else if _, err := sess.Id(team.ID).Update(team); err != nil {
+	} else if _, err := sess.ID(team.ID).Update(team); err != nil {
 		return err
 	}
 
@@ -521,7 +521,7 @@ func AddTeamMember(team *Team, userID int64) error {
 	if team.IsOwnerTeam() {
 		ou.IsOwner = true
 	}
-	if _, err := sess.Id(ou.ID).Cols("num_teams, is_owner").Update(ou); err != nil {
+	if _, err := sess.ID(ou.ID).Cols("num_teams, is_owner").Update(ou); err != nil {
 		return err
 	}
 
@@ -551,7 +551,7 @@ func removeTeamMember(e Engine, team *Team, userID int64) error {
 	}); err != nil {
 		return err
 	} else if _, err = e.
-		Id(team.ID).
+		ID(team.ID).
 		Cols("num_members").
 		Update(team); err != nil {
 		return err
@@ -578,7 +578,7 @@ func removeTeamMember(e Engine, team *Team, userID int64) error {
 		ou.IsOwner = false
 	}
 	if _, err = e.
-		Id(ou.ID).
+		ID(ou.ID).
 		Cols("num_teams").
 		Update(ou); err != nil {
 		return err

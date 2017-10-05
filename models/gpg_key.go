@@ -73,7 +73,7 @@ func ListGPGKeys(uid int64) ([]*GPGKey, error) {
 // GetGPGKeyByID returns public key by given ID.
 func GetGPGKeyByID(keyID int64) (*GPGKey, error) {
 	key := new(GPGKey)
-	has, err := x.Id(keyID).Get(key)
+	has, err := x.ID(keyID).Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
