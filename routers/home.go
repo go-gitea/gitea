@@ -88,9 +88,11 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		err     error
 		orderBy models.SearchOrderBy
 	)
-	ctx.Data["SortType"] = ctx.Query("sort")
 
+	ctx.Data["SortType"] = ctx.Query("sort")
 	switch ctx.Query("sort") {
+	case "newest":
+		orderBy = models.SearchOrderByNewest
 	case "oldest":
 		orderBy = models.SearchOrderByOldest
 	case "recentupdate":
@@ -106,7 +108,8 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	case "size":
 		orderBy = models.SearchOrderBySize
 	default:
-		orderBy = models.SearchOrderByNewest
+		ctx.Data["SortType"] = "recentupdate"
+		orderBy = models.SearchOrderByRecentUpdated
 	}
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
@@ -188,6 +191,8 @@ func RenderUserSearch(ctx *context.Context, opts *UserSearchOptions) {
 
 	ctx.Data["SortType"] = ctx.Query("sort")
 	switch ctx.Query("sort") {
+	case "newest":
+		orderBy = "id DESC"
 	case "oldest":
 		orderBy = "id ASC"
 	case "recentupdate":
@@ -199,7 +204,8 @@ func RenderUserSearch(ctx *context.Context, opts *UserSearchOptions) {
 	case "alphabetically":
 		orderBy = "name ASC"
 	default:
-		orderBy = "id DESC"
+		ctx.Data["SortType"] = "alphabetically"
+		orderBy = "name ASC"
 	}
 
 	keyword := strings.Trim(ctx.Query("q"), " ")

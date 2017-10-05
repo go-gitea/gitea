@@ -7,7 +7,6 @@ package models
 import (
 	"time"
 
-	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
 
 	"code.gitea.io/gitea/modules/base"
@@ -22,22 +21,18 @@ type AccessToken struct {
 
 	Created           time.Time `xorm:"-"`
 	CreatedUnix       int64     `xorm:"INDEX created"`
-	Updated           time.Time `xorm:"-"` // Note: Updated must below Created for AfterSet.
+	Updated           time.Time `xorm:"-"`
 	UpdatedUnix       int64     `xorm:"INDEX updated"`
 	HasRecentActivity bool      `xorm:"-"`
 	HasUsed           bool      `xorm:"-"`
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (t *AccessToken) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		t.Created = time.Unix(t.CreatedUnix, 0).Local()
-	case "updated_unix":
-		t.Updated = time.Unix(t.UpdatedUnix, 0).Local()
-		t.HasUsed = t.Updated.After(t.Created)
-		t.HasRecentActivity = t.Updated.Add(7 * 24 * time.Hour).After(time.Now())
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (t *AccessToken) AfterLoad() {
+	t.Created = time.Unix(t.CreatedUnix, 0).Local()
+	t.Updated = time.Unix(t.UpdatedUnix, 0).Local()
+	t.HasUsed = t.Updated.After(t.Created)
+	t.HasRecentActivity = t.Updated.Add(7 * 24 * time.Hour).After(time.Now())
 }
 
 // NewAccessToken creates new access token.
@@ -73,13 +68,13 @@ func ListAccessTokens(uid int64) ([]*AccessToken, error) {
 
 // UpdateAccessToken updates information of access token.
 func UpdateAccessToken(t *AccessToken) error {
-	_, err := x.Id(t.ID).AllCols().Update(t)
+	_, err := x.ID(t.ID).AllCols().Update(t)
 	return err
 }
 
 // DeleteAccessTokenByID deletes access token by given ID.
 func DeleteAccessTokenByID(id, userID int64) error {
-	cnt, err := x.Id(id).Delete(&AccessToken{
+	cnt, err := x.ID(id).Delete(&AccessToken{
 		UID: userID,
 	})
 	if err != nil {

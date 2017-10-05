@@ -195,7 +195,7 @@ func updateIssueNotification(e Engine, userID, issueID, updatedByID int64) error
 	notification.Status = NotificationStatusUnread
 	notification.UpdatedBy = updatedByID
 
-	_, err = e.Id(notification.ID).Update(notification)
+	_, err = e.ID(notification.ID).Update(notification)
 	return err
 }
 
@@ -274,7 +274,7 @@ func setNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {
 
 	notification.Status = NotificationStatusRead
 
-	_, err = e.Id(notification.ID).Update(notification)
+	_, err = e.ID(notification.ID).Update(notification)
 	return err
 }
 
@@ -291,7 +291,7 @@ func SetNotificationStatus(notificationID int64, user *User, status Notification
 
 	notification.Status = status
 
-	_, err = x.Id(notificationID).Update(notification)
+	_, err = x.ID(notificationID).Update(notification)
 	return err
 }
 

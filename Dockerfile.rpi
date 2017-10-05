@@ -1,5 +1,6 @@
 FROM multiarch/alpine:armhf-v3.6
-MAINTAINER Thomas Boerger <thomas@webhippie.de>
+
+LABEL maintainer="The Gitea Authors"
 
 EXPOSE 22 3000
 

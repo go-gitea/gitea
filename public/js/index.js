@@ -1230,104 +1230,53 @@ function hideWhenLostFocus(body, parent) {
 }
 
 function searchUsers() {
-    if (!$('#search-user-box .results').length) {
-        return;
-    }
-
     var $searchUserBox = $('#search-user-box');
-    var $results = $searchUserBox.find('.results');
-    $searchUserBox.keyup(function () {
-        var $this = $(this);
-        var keyword = $this.find('input').val();
-        if (keyword.length < 2) {
-            $results.hide();
-            return;
-        }
+    $searchUserBox.search({
+        minCharacters: 2,
+        apiSettings: {
+            url: suburl + '/api/v1/users/search?q={query}',
+            onResponse: function(response) {
+                var items = [];
+                $.each(response.data, function (i, item) {
+                    var title = item.login;
+                    if (item.full_name && item.full_name.length > 0) {
+                        title += ' (' + item.full_name + ')';
+                    }
+                    items.push({
+                        title: title,
+                        image: item.avatar_url
+                    })
+                });
 
-        $.ajax({
-            url: suburl + '/api/v1/users/search?q=' + keyword,
-            dataType: "json",
-            success: function (response) {
-                var notEmpty = function (str) {
-                    return str && str.length > 0;
-                };
-
-                $results.html('');
-
-                if (response.ok && response.data.length) {
-                    var html = '';
-                    $.each(response.data, function (i, item) {
-                        html += '<div class="item"><img class="ui avatar image" src="' + item.avatar_url + '"><span class="username">' + item.login + '</span>';
-                        if (notEmpty(item.full_name)) {
-                            html += ' (' + item.full_name + ')';
-                        }
-                        html += '</div>';
-                    });
-                    $results.html(html);
-                    $this.find('.results .item').click(function () {
-                        $this.find('input').val($(this).find('.username').text());
-                        $results.hide();
-                    });
-                    $results.show();
-                } else {
-                    $results.hide();
-                }
+                return { results: items }
             }
-        });
+        },
+        searchFields: ['login', 'full_name'],
+        showNoResults: false
     });
-    $searchUserBox.find('input').focus(function () {
-        $searchUserBox.keyup();
-    });
-    hideWhenLostFocus('#search-user-box .results', '#search-user-box');
 }
 
-// FIXME: merge common parts in two functions
 function searchRepositories() {
-    if (!$('#search-repo-box .results').length) {
-        return;
-    }
-
     var $searchRepoBox = $('#search-repo-box');
-    var $results = $searchRepoBox.find('.results');
-    $searchRepoBox.keyup(function () {
-        var $this = $(this);
-        var keyword = $this.find('input').val();
-        if (keyword.length < 2) {
-            $results.hide();
-            return;
-        }
+    $searchRepoBox.search({
+        minCharacters: 2,
+        apiSettings: {
+            url: suburl + '/api/v1/repos/search?q={query}&uid=' + $searchRepoBox.data('uid'),
+            onResponse: function(response) {
+                var items = [];
+                $.each(response.data, function (i, item) {
+                    items.push({
+                        title: item.full_name.split("/")[1],
+                        description: item.full_name
+                    })
+                });
 
-        $.ajax({
-            url: suburl + '/api/v1/repos/search?q=' + keyword + "&uid=" + $searchRepoBox.data('uid'),
-            dataType: "json",
-            success: function (response) {
-                var notEmpty = function (str) {
-                    return str && str.length > 0;
-                };
-
-                $results.html('');
-
-                if (response.ok && response.data.length) {
-                    var html = '';
-                    $.each(response.data, function (i, item) {
-                        html += '<div class="item"><i class="icon octicon octicon-repo"></i> <span class="fullname">' + item.full_name + '</span></div>';
-                    });
-                    $results.html(html);
-                    $this.find('.results .item').click(function () {
-                        $this.find('input').val($(this).find('.fullname').text().split("/")[1]);
-                        $results.hide();
-                    });
-                    $results.show();
-                } else {
-                    $results.hide();
-                }
+                return { results: items }
             }
-        });
+        },
+        searchFields: ['full_name'],
+        showNoResults: false
     });
-    $searchRepoBox.find('input').focus(function () {
-        $searchRepoBox.keyup();
-    });
-    hideWhenLostFocus('#search-repo-box .results', '#search-repo-box');
 }
 
 function initCodeView() {
