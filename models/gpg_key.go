@@ -402,7 +402,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			//Pre-check (& optimization) that emails attached to key can be attached to the commiter email and can validate
 			canValidate := false
 			for _, e := range k.Emails {
-				if e.IsActivated && e.Email == c.Committer.Email {
+				if e.IsActivated && strings.ToLower(e.Email) == strings.ToLower(c.Committer.Email) {
 					canValidate = true
 					break
 				}
