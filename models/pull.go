@@ -23,7 +23,6 @@ import (
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 )
 
@@ -700,71 +699,6 @@ func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xor
 	}
 
 	return sess, nil
-}
-
-// FillPullRequestsForPulse returns pull request information for pulse page
-func FillPullRequestsForPulse(stats *PulseStats, baseRepoID int64, fromTime time.Time) error {
-	var err error
-	row := &struct {
-		Count int64
-	}{}
-
-	// Merged pull requests
-	sess := pullRequestsForPulseStatement(baseRepoID, fromTime, true, false)
-	sess.OrderBy("pull_request.merged_unix DESC")
-	stats.MergedPRs = make([]*PullRequest, 0)
-	if err = sess.Find(&stats.MergedPRs); err != nil {
-		return err
-	}
-
-	// Merged pull request authors
-	sess = pullRequestsForPulseStatement(baseRepoID, fromTime, true, false)
-	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("pull_request").Get(row); err != nil {
-		return err
-	}
-	stats.MergedPRAuthorCount = row.Count
-
-	// Opened pull requests
-	sess = pullRequestsForPulseStatement(baseRepoID, fromTime, false, true)
-	sess.OrderBy("issue.created_unix DESC")
-	stats.OpenedPRs = make([]*PullRequest, 0)
-	if err := sess.Find(&stats.OpenedPRs); err != nil {
-		return err
-	}
-
-	// Opened pull request authors
-	sess = pullRequestsForPulseStatement(baseRepoID, fromTime, false, true)
-	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("pull_request").Get(row); err != nil {
-		return err
-	}
-	stats.OpenedPRAuthorCount = row.Count
-
-	return nil
-}
-
-func pullRequestsForPulseStatement(baseRepoID int64, fromTime time.Time, merged, created bool) *xorm.Session {
-	sess := x.Where("pull_request.base_repo_id=?", baseRepoID).
-		Join("INNER", "issue", "pull_request.issue_id = issue.id")
-
-	var mergedCond, createdCond builder.Cond
-
-	if merged {
-		mergedCond = builder.Eq{"pull_request.has_merged": true}.
-			And(builder.Gte{"pull_request.merged_unix": fromTime.Unix()})
-	}
-	if created {
-		createdCond = builder.Eq{"issue.is_closed": false}.
-			And(builder.Gte{"issue.created_unix": fromTime.Unix()})
-	}
-	if merged && created {
-		sess.And(builder.Or(mergedCond, createdCond))
-	} else if merged {
-		sess.And(mergedCond)
-	} else if created {
-		sess.And(createdCond)
-	}
-
-	return sess
 }
 
 // PullRequests returns all pull requests for a base Repo by the given conditions

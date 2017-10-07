@@ -55,6 +55,10 @@ func Pulse(ctx *context.Context) {
 		ctx.Error(500, "FillPullRequestsForPulse: "+err.Error())
 		return
 	}
+	if err := models.FillIssuesForPulse(stats, ctx.Repo.Repository.ID, timeFrom); err != nil {
+		ctx.Error(500, "FillIssuesForPulse: "+err.Error())
+		return
+	}
 
 	ctx.Data["Pulse"] = stats
 
