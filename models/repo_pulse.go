@@ -189,15 +189,22 @@ func FillIssuesForPulse(stats *PulseStats, baseRepoID int64, fromTime time.Time)
 	}
 	stats.OpenedIssueAuthorCount = row.Count
 
-	// Unresolved issues
-	sess = issuesForPulseStatement(baseRepoID, fromTime, false, true)
+	return nil
+}
+
+// FillUnresolvedIssuesForPulse returns unresolved issue and pull request information for pulse page
+func FillUnresolvedIssuesForPulse(stats *PulseStats, baseRepoID int64, fromTime time.Time, issues, prs bool) error {
+	// Check if we need to select anything
+	if !issues && !prs {
+		return nil
+	}
+	sess := issuesForPulseStatement(baseRepoID, fromTime, false, true)
+	if !issues || !prs {
+		sess.And("issue.is_pull=?", prs)
+	}
 	sess.OrderBy("issue.updated_unix DESC")
 	stats.UnresolvedIssues = make(IssueList, 0)
-	if err := sess.Find(&stats.UnresolvedIssues); err != nil {
-		return err
-	}
-
-	return nil
+	return sess.Find(&stats.UnresolvedIssues)
 }
 
 func issuesForPulseStatement(baseRepoID int64, fromTime time.Time, closed, unresolved bool) *xorm.Session {

@@ -51,11 +51,21 @@ func Pulse(ctx *context.Context) {
 
 	stats := &models.PulseStats{}
 
-	if err := models.FillPullRequestsForPulse(stats, ctx.Repo.Repository.ID, timeFrom); err != nil {
-		ctx.Error(500, "FillPullRequestsForPulse: "+err.Error())
-		return
+	if ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) {
+		if err := models.FillPullRequestsForPulse(stats, ctx.Repo.Repository.ID, timeFrom); err != nil {
+			ctx.Error(500, "FillPullRequestsForPulse: "+err.Error())
+			return
+		}
 	}
-	if err := models.FillIssuesForPulse(stats, ctx.Repo.Repository.ID, timeFrom); err != nil {
+	if ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) {
+		if err := models.FillIssuesForPulse(stats, ctx.Repo.Repository.ID, timeFrom); err != nil {
+			ctx.Error(500, "FillIssuesForPulse: "+err.Error())
+			return
+		}
+	}
+	if err := models.FillUnresolvedIssuesForPulse(stats, ctx.Repo.Repository.ID, timeFrom,
+		ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues),
+		ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests)); err != nil {
 		ctx.Error(500, "FillIssuesForPulse: "+err.Error())
 		return
 	}
