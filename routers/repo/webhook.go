@@ -174,7 +174,7 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 }
 
 // GogsHooksNewPost response for creating webhook
-func GogsHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
+func GogsHooksNewPost(ctx *context.Context, form auth.NewGogshookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
