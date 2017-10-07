@@ -1264,6 +1264,19 @@ type IssueStats struct {
 	MentionCount           int64
 }
 
+// PulseStats represets issue and pull request information.
+type PulseStats struct {
+	OpenedPRs              []*PullRequest
+	OpenedPRAuthorCount    int64
+	MergedPRs              []*PullRequest
+	MergedPRAuthorCount    int64
+	OpenedIssues           []*Issue
+	OpenedIssueAuthorCount int64
+	ClosedIssues           []*Issue
+	ClosedIssueAuthorCount int64
+	UnresolvedIssues       []*Issue
+}
+
 // Filter modes.
 const (
 	FilterModeAll = iota

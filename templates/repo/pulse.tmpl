@@ -25,6 +25,7 @@
 
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.pulse.overview"}}</h4>
 		<div class="ui attached segment">
+			{{len .Pulse.MergedPRs}} ({{.Pulse.MergedPRAuthorCount}}) {{len .Pulse.OpenedPRs}} ({{.Pulse.OpenedPRAuthorCount}})  Active Pull Requests
 		</div>
 	</div>
 </div>

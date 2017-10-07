@@ -10,7 +10,7 @@ import (
 	//"strings"
 
 	//"code.gitea.io/git"
-	//"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models"
 	//"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -48,6 +48,15 @@ func Pulse(ctx *context.Context) {
 	ctx.Data["DateFrom"] = timeFrom.Format("January 2, 2006")
 	ctx.Data["DateTill"] = timeTill.Format("January 2, 2006")
 	ctx.Data["PeriodText"] = ctx.Tr("repo.pulse.period." + ctx.Data["Period"].(string))
+
+	stats := &models.PulseStats{}
+
+	if err := models.FillPullRequestsForPulse(stats, ctx.Repo.Repository.ID, timeFrom); err != nil {
+		ctx.Error(500, "FillPullRequestsForPulse: "+err.Error())
+		return
+	}
+
+	ctx.Data["Pulse"] = stats
 
 	ctx.HTML(200, tplPulse)
 }
