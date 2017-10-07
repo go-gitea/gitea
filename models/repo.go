@@ -1295,7 +1295,7 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 		}
 	}
 
-	if err = watchRepo(e, u.ID, repo.ID, true); err != nil {
+	if err = watchRepo(e, doer.ID, repo.ID, true); err != nil {
 		return fmt.Errorf("watchRepo: %v", err)
 	} else if err = newRepoAction(e, u, repo); err != nil {
 		return fmt.Errorf("newRepoAction: %v", err)
