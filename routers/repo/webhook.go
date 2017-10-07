@@ -420,7 +420,7 @@ func WebHooksEditPost(ctx *context.Context, form auth.NewWebhookForm) {
 }
 
 // GogsHooksEditPost response for editing gogs hook
-func GogsHooksEditPost(ctx *context.Context, form auth.NewWebhookForm) {
+func GogsHooksEditPost(ctx *context.Context, form auth.NewGogshookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.update_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true
