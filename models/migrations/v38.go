@@ -5,12 +5,26 @@
 package migrations
 
 import (
+	"time"
+
 	"code.gitea.io/gitea/models"
 
+	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 )
 
 func removeCommitsUnitType(x *xorm.Engine) (err error) {
+	// RepoUnit describes all units of a repository
+	type RepoUnit struct {
+		ID          int64
+		RepoID      int64 `xorm:"INDEX(s)"`
+		Type        int   `xorm:"INDEX(s)"`
+		Index       int
+		Config      core.Conversion `xorm:"TEXT"`
+		CreatedUnix int64           `xorm:"INDEX CREATED"`
+		Created     time.Time       `xorm:"-"`
+	}
+
 	// Update team unit types
 	const batchSize = 100
 	for start := 0; ; start += batchSize {
