@@ -52,20 +52,12 @@ func TestAPISearchRepo(t *testing.T) {
 	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 16}).(*models.User)
 	orgUser := models.AssertExistsAndLoadBean(t, &models.User{ID: 17}).(*models.User)
 
-	type privacyType int
-
-	const (
-		_ privacyType = iota
-		privacyTypePrivate
-		privacyTypePublic
-	)
-
 	// Map of expected results, where key is user for login
 	type expectedResults map[*models.User]struct {
-		count       int
-		repoOwnerID int64
-		repoName    string
-		privacy     privacyType
+		count           int
+		repoOwnerID     int64
+		repoName        string
+		includesPrivate bool
 	}
 
 	testCases := []struct {
@@ -73,41 +65,41 @@ func TestAPISearchRepo(t *testing.T) {
 		expectedResults
 	}{
 		{name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50", expectedResults: expectedResults{
-			nil:   {count: 12, privacy: privacyTypePublic},
-			user:  {count: 12, privacy: privacyTypePublic},
-			user2: {count: 12, privacy: privacyTypePublic}},
+			nil:   {count: 12},
+			user:  {count: 12},
+			user2: {count: 12}},
 		},
 		{name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10", expectedResults: expectedResults{
-			nil:   {count: 10, privacy: privacyTypePublic},
-			user:  {count: 10, privacy: privacyTypePublic},
-			user2: {count: 10, privacy: privacyTypePublic}},
+			nil:   {count: 10},
+			user:  {count: 10},
+			user2: {count: 10}},
 		},
 		{name: "RepositoriesDefaultMax10", requestURL: "/api/v1/repos/search", expectedResults: expectedResults{
-			nil:   {count: 10, privacy: privacyTypePublic},
-			user:  {count: 10, privacy: privacyTypePublic},
-			user2: {count: 10, privacy: privacyTypePublic}},
+			nil:   {count: 10},
+			user:  {count: 10},
+			user2: {count: 10}},
 		},
 		{name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s", "big_test_"), expectedResults: expectedResults{
-			nil:   {count: 4, repoName: "big_test_", privacy: privacyTypePublic},
-			user:  {count: 4, repoName: "big_test_", privacy: privacyTypePublic},
-			user2: {count: 4, repoName: "big_test_", privacy: privacyTypePublic}},
+			nil:   {count: 4, repoName: "big_test_"},
+			user:  {count: 4, repoName: "big_test_"},
+			user2: {count: 4, repoName: "big_test_"}},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
 			// FIXME: Should return 4 (all public repositories related to "another" user = owned + collaborative), now returns only public repositories directly owned by user
-			nil:  {count: 2, privacy: privacyTypePublic},
-			user: {count: 8},
+			nil:  {count: 2},
+			user: {count: 8, includesPrivate: true},
 			// FIXME: Should return 4 (all public repositories related to "another" user = owned + collaborative), now returns only public repositories directly owned by user
-			user2: {count: 2, privacy: privacyTypePublic}},
-		},
-		{name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
-			nil:   {count: 1, privacy: privacyTypePublic},
-			user:  {count: 1, privacy: privacyTypePublic},
 			user2: {count: 2}},
 		},
+		{name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
+			nil:   {count: 1},
+			user:  {count: 1},
+			user2: {count: 2, includesPrivate: true}},
+		},
 		{name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
-			nil:   {count: 1, repoOwnerID: orgUser.ID, privacy: privacyTypePublic},
-			user:  {count: 2, repoOwnerID: orgUser.ID},
-			user2: {count: 1, repoOwnerID: orgUser.ID, privacy: privacyTypePublic}},
+			nil:   {count: 1, repoOwnerID: orgUser.ID},
+			user:  {count: 2, repoOwnerID: orgUser.ID, includesPrivate: true},
+			user2: {count: 1, repoOwnerID: orgUser.ID}},
 		},
 	}
 
@@ -143,10 +135,7 @@ func TestAPISearchRepo(t *testing.T) {
 							assert.Equal(t, expected.repoOwnerID, repo.Owner.ID)
 						}
 
-						switch expected.privacy {
-						case privacyTypePrivate:
-							assert.True(t, repo.Private)
-						case privacyTypePublic:
+						if !expected.includesPrivate {
 							assert.False(t, repo.Private)
 						}
 					}
