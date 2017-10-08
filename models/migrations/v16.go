@@ -95,7 +95,7 @@ func addUnitsToTables(x *xorm.Engine) error {
 				continue
 			}
 
-			var config = make(map[string]string)
+			var config = make(map[string]interface{})
 			switch i {
 			case V16UnitTypeExternalTracker:
 				config["ExternalTrackerURL"] = repo.ExternalTrackerURL
