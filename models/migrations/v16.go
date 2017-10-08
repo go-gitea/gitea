@@ -33,9 +33,9 @@ func addUnitsToTables(x *xorm.Engine) error {
 		RepoID      int64 `xorm:"INDEX(s)"`
 		Type        int   `xorm:"INDEX(s)"`
 		Index       int
-		Config      map[string]string `xorm:"JSON"`
-		CreatedUnix int64             `xorm:"INDEX CREATED"`
-		Created     time.Time         `xorm:"-"`
+		Config      map[string]interface{} `xorm:"JSON"`
+		CreatedUnix int64                  `xorm:"INDEX CREATED"`
+		Created     time.Time              `xorm:"-"`
 	}
 
 	// Repo describes a repository
