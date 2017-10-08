@@ -117,6 +117,22 @@ func TestSearchRepositoryByName(t *testing.T) {
 				expectedLen = testCase.opts.PageSize
 			}
 			assert.Len(t, repos, expectedLen)
+
+			for _, repo := range repos {
+				assert.NotEmpty(t, repo.Name)
+
+				if len(testCase.opts.Keyword) > 0 {
+					assert.Contains(t, repo.Name, testCase.opts.Keyword)
+				}
+
+				if testCase.opts.OwnerID > 0 && !testCase.opts.Collaborate {
+					assert.Equal(t, testCase.opts.OwnerID, repo.Owner.ID)
+				}
+
+				if !testCase.opts.Private {
+					assert.False(t, repo.IsPrivate)
+				}
+			}
 		})
 	}
 }
