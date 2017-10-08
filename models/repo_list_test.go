@@ -42,6 +42,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Page:     1,
 		PageSize: 10,
 		Private:  true,
+		Searcher: &User{ID: 14},
 	})
 
 	assert.NoError(t, err)
@@ -55,6 +56,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Page:     1,
 		PageSize: 10,
 		Private:  true,
+		Searcher: &User{ID: 14},
 	})
 
 	assert.NoError(t, err)
