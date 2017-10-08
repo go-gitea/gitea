@@ -721,6 +721,8 @@ func NewContext() {
 	if SSH.Disabled {
 		SSH.StartBuiltinServer = false
 	}
+	
+	SSH.BuiltinServerUser = sec.Key("BUILTIN_SSH_USER").MustString("")
 
 	if !SSH.Disabled && !SSH.StartBuiltinServer {
 		if err := os.MkdirAll(SSH.RootPath, 0700); err != nil {
@@ -917,7 +919,9 @@ func NewContext() {
 		}
 	}
 
-	SSH.BuiltinServerUser = sec.Key("BUILTIN_SSH_USER").MustString(RunUser)
+	if SSH.BuiltinServerUser == "" {
+		SSH.BuiltinServerUser = RunUser
+	}
 
 	// Determine and create root git repository path.
 	sec = Cfg.Section("repository")
