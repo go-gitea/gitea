@@ -13,17 +13,6 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-// RepoUnit describes all units of a repository
-type RepoUnit struct {
-	ID          int64
-	RepoID      int64 `xorm:"INDEX(s)"`
-	Type        int   `xorm:"INDEX(s)"`
-	Index       int
-	Config      map[string]interface{} `xorm:"JSON"`
-	CreatedUnix int64                  `xorm:"INDEX CREATED"`
-	Created     time.Time              `xorm:"-"`
-}
-
 // Enumerate all the unit types
 const (
 	V16UnitTypeCode            = iota + 1 // 1 code
@@ -37,14 +26,25 @@ const (
 	V16UnitTypeExternalTracker            // 9 ExternalTracker
 )
 
-// Repo describes a repository
-type Repo struct {
-	ID                                                                               int64
-	EnableWiki, EnableExternalWiki, EnableIssues, EnableExternalTracker, EnablePulls bool
-	ExternalWikiURL, ExternalTrackerURL, ExternalTrackerFormat, ExternalTrackerStyle string
-}
-
 func addUnitsToTables(x *xorm.Engine) error {
+	// RepoUnit describes all units of a repository
+	type RepoUnit struct {
+		ID          int64
+		RepoID      int64 `xorm:"INDEX(s)"`
+		Type        int   `xorm:"INDEX(s)"`
+		Index       int
+		Config      map[string]interface{} `xorm:"JSON"`
+		CreatedUnix int64                  `xorm:"INDEX CREATED"`
+		Created     time.Time              `xorm:"-"`
+	}
+
+	// Repo describes a repository
+	type Repo struct {
+		ID                                                                               int64
+		EnableWiki, EnableExternalWiki, EnableIssues, EnableExternalTracker, EnablePulls bool
+		ExternalWikiURL, ExternalTrackerURL, ExternalTrackerFormat, ExternalTrackerStyle string
+	}
+
 	var repos []Repo
 	err := x.Table("repository").Select("*").Find(&repos)
 	if err != nil {
