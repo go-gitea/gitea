@@ -8,7 +8,7 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-func removeOrgnizationWatchRepo(x *xorm.Engine) error {
+func removeOrganizationWatchRepo(x *xorm.Engine) error {
 	// Watch is connection request for receiving repository notification.
 	type Watch struct {
 		ID     int64 `xorm:"pk autoincr"`

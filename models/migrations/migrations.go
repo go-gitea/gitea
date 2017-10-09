@@ -141,7 +141,7 @@ var migrations = []Migration{
 	// v45 -> v46
 	NewMigration("remove index column from repo_unit table", removeIndexColumnFromRepoUnitTable),
 	// v46 -> v47
-	NewMigration("remove orgnization watch repositories", removeOrgnizationWatchRepo),
+	NewMigration("remove organization watch repositories", removeOrganizationWatchRepo),
 }
 
 // Migrate database to current version
