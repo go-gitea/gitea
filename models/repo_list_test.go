@@ -82,10 +82,10 @@ func TestSearchRepositoryByName(t *testing.T) {
 			count: 8},
 		{name: "PublicRepositoriesOfUser",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15},
-			count: 3}, // FIXME: Should return 2 (only directly owned repositories), now includes 1 public repository from owned organization
+			count: 2},
 		{name: "PublicAndPrivateRepositoriesOfUser",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true},
-			count: 6}, // FIXME: Should return 4 (only directly owned repositories), now includes 2 repositories from owned organization
+			count: 4},
 		{name: "PublicRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Collaborate: true},
 			count: 4},
@@ -143,10 +143,9 @@ func TestSearchRepositoryByName(t *testing.T) {
 					assert.Contains(t, repo.Name, testCase.opts.Keyword)
 				}
 
-				// FIXME: Can't check, need to fix current behaviour (see previous FIXME comments in test cases)
-				/*if testCase.opts.OwnerID > 0 && !testCase.opts.Collaborate && !AllPublic {
+				if testCase.opts.OwnerID > 0 && !testCase.opts.Collaborate && !testCase.opts.AllPublic {
 					assert.Equal(t, testCase.opts.OwnerID, repo.Owner.ID)
-				}*/
+				}
 
 				if !testCase.opts.Private {
 					assert.False(t, repo.IsPrivate)
