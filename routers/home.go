@@ -60,6 +60,7 @@ func Swagger(ctx *context.Context) {
 
 // RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
+	OwnerID  int64
 	Private  bool
 	PageSize int
 	TplName  base.TplName
@@ -113,11 +114,15 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	keyword := strings.Trim(ctx.Query("q"), " ")
 
 	repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-		Page:     page,
-		PageSize: opts.PageSize,
-		OrderBy:  orderBy,
-		Private:  opts.Private,
-		Keyword:  keyword,
+		Page:        page,
+		PageSize:    opts.PageSize,
+		OrderBy:     orderBy,
+		Private:     opts.Private,
+		Keyword:     keyword,
+		OwnerID:     opts.OwnerID,
+		Searcher:    ctx.User,
+		Collaborate: true,
+		AllPublic:   true,
 	})
 	if err != nil {
 		ctx.Handle(500, "SearchRepositoryByName", err)
@@ -137,9 +142,15 @@ func ExploreRepos(ctx *context.Context) {
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreRepositories"] = true
 
+	var ownerID int64
+	if ctx.User != nil && !ctx.User.IsAdmin {
+		ownerID = ctx.User.ID
+	}
+
 	RenderRepoSearch(ctx, &RepoSearchOptions{
 		PageSize: setting.UI.ExplorePagingNum,
-		Private:  ctx.User != nil && ctx.User.IsAdmin,
+		OwnerID:  ownerID,
+		Private:  ctx.User != nil,
 		TplName:  tplExploreRepos,
 	})
 }

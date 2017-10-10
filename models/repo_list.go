@@ -105,6 +105,7 @@ type SearchRepoOptions struct {
 	Starred     bool          `json:"-"`
 	Page        int           `json:"-"`
 	IsProfile   bool          `json:"-"`
+	AllPublic   bool          `json:"-"` // Include also all public repositories
 	// Limit of result
 	//
 	// maximum: setting.ExplorePagingNum
@@ -149,11 +150,6 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, coun
 		starJoin = true
 	}
 
-	opts.Keyword = strings.ToLower(opts.Keyword)
-	if opts.Keyword != "" {
-		cond = cond.And(builder.Like{"lower_name", opts.Keyword})
-	}
-
 	// Append conditions
 	if !opts.Starred && opts.OwnerID > 0 {
 		var searcherReposCond builder.Cond = builder.Eq{"owner_id": opts.OwnerID}
@@ -182,6 +178,15 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, coun
 
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
+	}
+
+	if opts.OwnerID > 0 && opts.AllPublic {
+		cond = builder.Or(cond, builder.Eq{"is_private": false})
+	}
+
+	opts.Keyword = strings.ToLower(opts.Keyword)
+	if opts.Keyword != "" {
+		cond = cond.And(builder.Like{"lower_name", opts.Keyword})
 	}
 
 	if len(opts.OrderBy) == 0 {
