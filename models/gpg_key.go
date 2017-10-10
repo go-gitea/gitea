@@ -73,7 +73,7 @@ func ListGPGKeys(uid int64) ([]*GPGKey, error) {
 // GetGPGKeyByID returns public key by given ID.
 func GetGPGKeyByID(keyID int64) (*GPGKey, error) {
 	key := new(GPGKey)
-	has, err := x.Id(keyID).Get(key)
+	has, err := x.ID(keyID).Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -401,8 +401,9 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		for _, k := range keys {
 			//Pre-check (& optimization) that emails attached to key can be attached to the commiter email and can validate
 			canValidate := false
+			lowerCommiterEmail := strings.ToLower(c.Committer.Email)
 			for _, e := range k.Emails {
-				if e.IsActivated && e.Email == c.Committer.Email {
+				if e.IsActivated && strings.ToLower(e.Email) == lowerCommiterEmail {
 					canValidate = true
 					break
 				}

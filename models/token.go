@@ -68,13 +68,13 @@ func ListAccessTokens(uid int64) ([]*AccessToken, error) {
 
 // UpdateAccessToken updates information of access token.
 func UpdateAccessToken(t *AccessToken) error {
-	_, err := x.Id(t.ID).AllCols().Update(t)
+	_, err := x.ID(t.ID).AllCols().Update(t)
 	return err
 }
 
 // DeleteAccessTokenByID deletes access token by given ID.
 func DeleteAccessTokenByID(id, userID int64) error {
-	cnt, err := x.Id(id).Delete(&AccessToken{
+	cnt, err := x.ID(id).Delete(&AccessToken{
 		UID: userID,
 	})
 	if err != nil {

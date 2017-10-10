@@ -270,7 +270,7 @@ func GetWebhooksByOrgID(orgID int64) (ws []*Webhook, err error) {
 
 // UpdateWebhook updates information of webhook.
 func UpdateWebhook(w *Webhook) error {
-	_, err := x.Id(w.ID).AllCols().Update(w)
+	_, err := x.ID(w.ID).AllCols().Update(w)
 	return err
 }
 
@@ -477,7 +477,7 @@ func createHookTask(e Engine, t *HookTask) error {
 
 // UpdateHookTask updates information of hook task.
 func UpdateHookTask(t *HookTask) error {
-	_, err := x.Id(t.ID).AllCols().Update(t)
+	_, err := x.ID(t.ID).AllCols().Update(t)
 	return err
 }
 
