@@ -98,6 +98,24 @@ func TestSearchRepositoryByName(t *testing.T) {
 		{name: "PublicAndPrivateRepositoriesOfOrganization",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17, Private: true},
 			count: 2},
+		{name: "AllPublic/PublicRepositoriesByName",
+			opts:  &SearchRepoOptions{Keyword: "big_test_", PageSize: 10, AllPublic: true},
+			count: 4},
+		{name: "AllPublic/PublicAndPrivateRepositoriesByName",
+			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 1, PageSize: 10, Private: true, AllPublic: true},
+			count: 8},
+		{name: "AllPublic/PublicRepositoriesOfUserIncludingCollaborative",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Collaborate: true, AllPublic: true},
+			count: 12},
+		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, Collaborate: true, AllPublic: true},
+			count: 16},
+		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborativeByName",
+			opts:  &SearchRepoOptions{Keyword: "test", Page: 1, PageSize: 10, OwnerID: 15, Private: true, Collaborate: true, AllPublic: true},
+			count: 10},
+		{name: "AllPublic/PublicRepositoriesOfOrganization",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17, AllPublic: true},
+			count: 12},
 	}
 
 	for _, testCase := range testCases {
@@ -126,7 +144,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 				}
 
 				// FIXME: Can't check, need to fix current behaviour (see previous FIXME comments in test cases)
-				/*if testCase.opts.OwnerID > 0 && !testCase.opts.Collaborate {
+				/*if testCase.opts.OwnerID > 0 && !testCase.opts.Collaborate && !AllPublic {
 					assert.Equal(t, testCase.opts.OwnerID, repo.Owner.ID)
 				}*/
 

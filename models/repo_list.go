@@ -181,7 +181,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, coun
 	}
 
 	if opts.OwnerID > 0 && opts.AllPublic {
-		cond = builder.Or(cond, builder.Eq{"is_private": false})
+		cond = cond.Or(builder.Eq{"is_private": false})
 	}
 
 	opts.Keyword = strings.ToLower(opts.Keyword)
