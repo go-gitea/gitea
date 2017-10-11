@@ -1085,12 +1085,40 @@ func NewContext() {
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 
+	extensionReg := regexp.MustCompile(`\.\w`)
 	for _, sec := range Cfg.Section("markup").ChildSections() {
+		name := strings.TrimLeft(sec.Name(), "markup.")
+		if name == "" {
+			log.Warn(sec.Name() + " name is empty, ignored")
+			continue
+		}
+
+		extensions := sec.Key("FILE_EXTENSIONS").Strings(",")
+		var exts = make([]string, 0, len(extensions))
+		for _, extension := range extensions {
+			if !extensionReg.MatchString(extension) {
+				log.Warn(sec.Name() + " FILE_EXTENSIONS " + extension + " is invalid, ignored")
+			} else {
+				exts = append(exts, extension)
+			}
+		}
+
+		if len(exts) == 0 {
+			log.Warn(sec.Name() + " FILE_EXTENSIONS is empty, ignored")
+			continue
+		}
+
+		command := sec.Key("RENDER_COMMAND").MustString("")
+		if command == "" {
+			log.Warn(sec.Name() + " RENDER_COMMAND is empty, ignored")
+			continue
+		}
+
 		ExternalMarkupRenders = append(ExternalMarkupRenders, MarkupRender{
 			Enabled:        sec.Key("ENABLED").MustBool(false),
-			MarkupName:     strings.TrimLeft(sec.Name(), "markup."),
-			FileExtensions: sec.Key("FILE_EXTENSIONS").Strings(","),
-			Command:        sec.Key("RENDER_COMMAND").MustString(""),
+			MarkupName:     name,
+			FileExtensions: exts,
+			Command:        command,
 			IsInputFile:    sec.Key("IS_INPUT_FILE").MustBool(false),
 		})
 	}

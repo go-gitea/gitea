@@ -78,7 +78,7 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 	}
 	cmd.Stdout = buf
 	if err := cmd.Run(); err != nil {
-		log.Error(4, "%s render run command %s failed: %v", p.Name(), p.Command, err)
+		log.Error(4, "%s render run command %s %v failed: %v", p.Name(), commands[0], args, err)
 		return []byte("")
 	}
 	return buf.Bytes()
