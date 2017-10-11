@@ -6,9 +6,9 @@ Release procedure is as follows:
 - Make sure Version variable is set correctly in main.go ($ver)
 - Compile CHANGELOG.md section for $ver
   (please only include user-relevant changes, and be concise)
-- git tag -a v$ver
+- `git tag -a v$ver`
 - If this is a .0 release:
-  - git branch release/v$vmaj.$vmin
+  - `git branch release/v$vmaj.$vmin`
   - Update Version in new branch ( vpat++ )
 - Update Version in master branch ( vmin++; vpat=0-dev )
 - Send PR to https://github.com/go-gitea/blog announcing the release
