@@ -158,9 +158,14 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 			var accessCond builder.Cond = builder.Eq{"owner_id": opts.OwnerID}
 
 			if opts.Collaborate {
-				accessCond = accessCond.Or(builder.And(
+				collaborateCond := builder.And(
 					builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", opts.OwnerID),
-					builder.Neq{"owner_id": opts.OwnerID}))
+					builder.Neq{"owner_id": opts.OwnerID})
+				if !opts.Private {
+					collaborateCond = collaborateCond.And(builder.Expr("owner_id NOT IN (SELECT org_id FROM org_user WHERE org_user.uid = ? AND org_user.is_public = ?)", opts.OwnerID, false))
+				}
+
+				accessCond = accessCond.Or(collaborateCond)
 			}
 
 			cond = cond.And(accessCond)
