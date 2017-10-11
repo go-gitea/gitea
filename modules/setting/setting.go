@@ -721,7 +721,7 @@ func NewContext() {
 	if SSH.Disabled {
 		SSH.StartBuiltinServer = false
 	}
-	
+
 	SSH.BuiltinServerUser = sec.Key("BUILTIN_SSH_USER").MustString("")
 
 	if !SSH.Disabled && !SSH.StartBuiltinServer {
