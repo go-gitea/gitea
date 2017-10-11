@@ -90,7 +90,7 @@ var (
 	SSH = struct {
 		Disabled             bool           `ini:"DISABLE_SSH"`
 		StartBuiltinServer   bool           `ini:"START_SSH_SERVER"`
-		BuiltinServerUser    string         `ini:"BUILTIN_SSH_USER"`
+		BuiltinSSHServerUser string         `ini:"BUILTIN_SSH_SERVER_USER"`
 		Domain               string         `ini:"SSH_DOMAIN"`
 		Port                 int            `ini:"SSH_PORT"`
 		ListenHost           string         `ini:"SSH_LISTEN_HOST"`
@@ -105,7 +105,6 @@ var (
 	}{
 		Disabled:           false,
 		StartBuiltinServer: false,
-		BuiltinServerUser:  "",
 		Domain:             "",
 		Port:               22,
 		KeygenPath:         "ssh-keygen",
@@ -722,7 +721,7 @@ func NewContext() {
 		SSH.StartBuiltinServer = false
 	}
 
-	SSH.BuiltinServerUser = sec.Key("BUILTIN_SSH_USER").MustString("")
+	SSH.BuiltinSSHServerUser = sec.Key("BUILTIN_SSH_USER").MustString("")
 
 	if !SSH.Disabled && !SSH.StartBuiltinServer {
 		if err := os.MkdirAll(SSH.RootPath, 0700); err != nil {
@@ -919,8 +918,8 @@ func NewContext() {
 		}
 	}
 
-	if SSH.BuiltinServerUser == "" {
-		SSH.BuiltinServerUser = RunUser
+	if SSH.BuiltinSSHServerUser == "" {
+		SSH.BuiltinSSHServerUser = RunUser
 	}
 
 	// Determine and create root git repository path.
