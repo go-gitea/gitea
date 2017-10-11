@@ -50,6 +50,7 @@ func TestAPISearchRepo(t *testing.T) {
 
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 15}).(*models.User)
 	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 16}).(*models.User)
+	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 18}).(*models.User)
 	orgUser := models.AssertExistsAndLoadBean(t, &models.User{ID: 17}).(*models.User)
 
 	// Map of expected results, where key is user for login
@@ -93,6 +94,12 @@ func TestAPISearchRepo(t *testing.T) {
 			nil:   {count: 1},
 			user:  {count: 1},
 			user2: {count: 2, includesPrivate: true}},
+		},
+		{name: "RepositoriesAccessibleAndRelatedToUser3", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user3.ID), expectedResults: expectedResults{
+			nil:   {count: 1},
+			user:  {count: 1},
+			user2: {count: 1},
+			user3: {count: 4, includesPrivate: true}},
 		},
 		{name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
 			nil:   {count: 1, repoOwnerID: orgUser.ID},
