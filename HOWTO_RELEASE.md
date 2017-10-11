@@ -3,7 +3,7 @@ Release procedure is as follows:
 - Let $vmaj, $vmin and $vpat be Major, Minor and Patch version numbers
 - Drop "dev" suffix from $vpat
 - Let $ver be "$vmaj.$vmin.$vpat"
-- Make sure Version`variable is set correctly in main.go ($ver)
+- Make sure Version variable is set correctly in main.go ($ver)
 - Compile CHANGELOG.md section for $ver
   (please only include user-relevant changes, and be concise)
 - git tag -a v$ver
