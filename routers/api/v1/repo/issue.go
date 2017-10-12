@@ -39,12 +39,6 @@ func ListIssues(ctx *context.APIContext) {
 		return
 	}
 
-	err = models.IssueList(issues).LoadAttributes()
-	if err != nil {
-		ctx.Error(500, "LoadAttributes", err)
-		return
-	}
-
 	apiIssues := make([]*api.Issue, len(issues))
 	for i := range issues {
 		apiIssues[i] = issues[i].APIFormat()

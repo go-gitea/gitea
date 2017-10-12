@@ -136,6 +136,10 @@ var migrations = []Migration{
 	NewMigration("add tags to releases and sync existing repositories", releaseAddColumnIsTagAndSyncTags),
 	// v43 -> v44
 	NewMigration("fix protected branch can push value to false", fixProtectedBranchCanPushValue),
+	// v44 -> v45
+	NewMigration("remove duplicate unit types", removeDuplicateUnitTypes),
+	// v45 -> v46
+	NewMigration("remove index column from repo_unit table", removeIndexColumnFromRepoUnitTable),
 }
 
 // Migrate database to current version
@@ -169,7 +173,7 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 	if int(v-minDBVersion) > len(migrations) {
 		// User downgraded Gitea.
 		currentVersion.Version = int64(len(migrations) + minDBVersion)
-		_, err = x.Id(1).Update(currentVersion)
+		_, err = x.ID(1).Update(currentVersion)
 		return err
 	}
 	for i, m := range migrations[v-minDBVersion:] {
@@ -178,7 +182,7 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 			return fmt.Errorf("do migrate: %v", err)
 		}
 		currentVersion.Version = v + int64(i) + 1
-		if _, err = x.Id(1).Update(currentVersion); err != nil {
+		if _, err = x.ID(1).Update(currentVersion); err != nil {
 			return err
 		}
 	}

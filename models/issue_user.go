@@ -101,7 +101,7 @@ func UpdateIssueUsersByMentions(e Engine, issueID int64, uids []int64) error {
 
 		iu.IsMentioned = true
 		if has {
-			_, err = e.Id(iu.ID).Cols("is_mentioned").Update(iu)
+			_, err = e.ID(iu.ID).Cols("is_mentioned").Update(iu)
 		} else {
 			_, err = e.Insert(iu)
 		}

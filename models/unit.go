@@ -60,6 +60,14 @@ func (u *Unit) CanDisable() bool {
 	return true
 }
 
+// IsLessThan compares order of two units
+func (u Unit) IsLessThan(unit Unit) bool {
+	if (u.Type == UnitTypeExternalTracker || u.Type == UnitTypeExternalWiki) && unit.Type != UnitTypeExternalTracker && unit.Type != UnitTypeExternalWiki {
+		return false
+	}
+	return u.Idx < unit.Idx
+}
+
 // Enumerate all the units
 var (
 	UnitCode = Unit{

@@ -7,8 +7,6 @@ package models
 import (
 	"fmt"
 	"time"
-
-	"github.com/go-xorm/xorm"
 )
 
 // Stopwatch represents a stopwatch for time tracking.
@@ -26,13 +24,9 @@ func (s *Stopwatch) BeforeInsert() {
 	s.CreatedUnix = time.Now().Unix()
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (s *Stopwatch) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-
-	case "created_unix":
-		s.Created = time.Unix(s.CreatedUnix, 0).Local()
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (s *Stopwatch) AfterLoad() {
+	s.Created = time.Unix(s.CreatedUnix, 0).Local()
 }
 
 func getStopwatch(e Engine, userID, issueID int64) (sw *Stopwatch, exists bool, err error) {

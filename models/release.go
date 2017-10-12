@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
 	"github.com/go-xorm/builder"
-	"github.com/go-xorm/xorm"
 )
 
 // Release represents a release of repository.
@@ -50,12 +49,9 @@ func (r *Release) BeforeInsert() {
 	}
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (r *Release) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		r.Created = time.Unix(r.CreatedUnix, 0).Local()
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (r *Release) AfterLoad() {
+	r.Created = time.Unix(r.CreatedUnix, 0).Local()
 }
 
 func (r *Release) loadAttributes(e Engine) error {
@@ -174,7 +170,7 @@ func addReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error
 	for i := range attachments {
 		attachments[i].ReleaseID = releaseID
 		// No assign value could be 0, so ignore AllCols().
-		if _, err = x.Id(attachments[i].ID).Update(attachments[i]); err != nil {
+		if _, err = x.ID(attachments[i].ID).Update(attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
 		}
 	}
@@ -224,7 +220,7 @@ func GetRelease(repoID int64, tagName string) (*Release, error) {
 func GetReleaseByID(id int64) (*Release, error) {
 	rel := new(Release)
 	has, err := x.
-		Id(id).
+		ID(id).
 		Get(rel)
 	if err != nil {
 		return nil, err
@@ -369,7 +365,7 @@ func UpdateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	_, err = x.Id(rel.ID).AllCols().Update(rel)
+	_, err = x.ID(rel.ID).AllCols().Update(rel)
 	if err != nil {
 		return err
 	}
@@ -406,7 +402,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 			return fmt.Errorf("git tag -d: %v - %s", err, stderr)
 		}
 
-		if _, err = x.Id(rel.ID).Delete(new(Release)); err != nil {
+		if _, err = x.ID(rel.ID).Delete(new(Release)); err != nil {
 			return fmt.Errorf("Delete: %v", err)
 		}
 	} else {
@@ -416,7 +412,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		rel.Title = ""
 		rel.Note = ""
 
-		if _, err = x.Id(rel.ID).AllCols().Update(rel); err != nil {
+		if _, err = x.ID(rel.ID).AllCols().Update(rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
 		}
 	}

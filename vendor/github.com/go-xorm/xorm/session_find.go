@@ -239,7 +239,12 @@ func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Va
 		if err != nil {
 			return err
 		}
-		return session.rows2Beans(rows, fields, len(fields), tb, newElemFunc, containerValueSetFunc)
+		err = session.rows2Beans(rows, fields, tb, newElemFunc, containerValueSetFunc)
+		rows.Close()
+		if err != nil {
+			return err
+		}
+		return session.executeProcessors()
 	}
 
 	for rows.Next() {

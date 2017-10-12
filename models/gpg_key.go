@@ -52,17 +52,15 @@ func (key *GPGKey) BeforeInsert() {
 	key.CreatedUnix = key.Created.Unix()
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (key *GPGKey) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "key_id":
-		x.Where("primary_key_id=?", key.KeyID).Find(&key.SubsKey)
-	case "added_unix":
-		key.Added = time.Unix(key.AddedUnix, 0).Local()
-	case "expired_unix":
-		key.Expired = time.Unix(key.ExpiredUnix, 0).Local()
-	case "created_unix":
-		key.Created = time.Unix(key.CreatedUnix, 0).Local()
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (key *GPGKey) AfterLoad(session *xorm.Session) {
+	key.Added = time.Unix(key.AddedUnix, 0).Local()
+	key.Expired = time.Unix(key.ExpiredUnix, 0).Local()
+	key.Created = time.Unix(key.CreatedUnix, 0).Local()
+
+	err := session.Where("primary_key_id=?", key.KeyID).Find(&key.SubsKey)
+	if err != nil {
+		log.Error(3, "Find Sub GPGkeys[%d]: %v", key.KeyID, err)
 	}
 }
 
@@ -75,7 +73,7 @@ func ListGPGKeys(uid int64) ([]*GPGKey, error) {
 // GetGPGKeyByID returns public key by given ID.
 func GetGPGKeyByID(keyID int64) (*GPGKey, error) {
 	key := new(GPGKey)
-	has, err := x.Id(keyID).Get(key)
+	has, err := x.ID(keyID).Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -403,8 +401,9 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		for _, k := range keys {
 			//Pre-check (& optimization) that emails attached to key can be attached to the commiter email and can validate
 			canValidate := false
+			lowerCommiterEmail := strings.ToLower(c.Committer.Email)
 			for _, e := range k.Emails {
-				if e.IsActivated && e.Email == c.Committer.Email {
+				if e.IsActivated && strings.ToLower(e.Email) == lowerCommiterEmail {
 					canValidate = true
 					break
 				}
