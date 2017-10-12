@@ -92,8 +92,8 @@
 			{{end}}
 
 			{{if and (.Repository.UnitEnabled $.UnitTypeCode) (not .IsBareRepo)}}
-				<a class="{{if .PageIsPulse}}active{{end}} item" href="{{.RepoLink}}/pulse">
-					<i class="octicon octicon-pulse"></i> {{.i18n.Tr "repo.pulse"}}
+				<a class="{{if .PageIsActivity}}active{{end}} item" href="{{.RepoLink}}/activity">
+					<i class="octicon octicon-pulse"></i> {{.i18n.Tr "repo.activity"}}
 				</a>
 			{{end}}
 

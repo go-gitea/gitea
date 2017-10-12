@@ -613,9 +613,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/*", repo.WikiRaw)
 		}, repo.MustEnableWiki)
 
-		m.Group("/pulse", func() {
-			m.Get("", repo.Pulse)
-			m.Get("/:period", repo.Pulse)
+		m.Group("/activity", func() {
+			m.Get("", repo.Activity)
+			m.Get("/:period", repo.Activity)
 		}, context.RepoRef(), repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
 
 		m.Get("/archive/*", repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.Download)
@@ -644,7 +644,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.SetEditorconfigIfExists,
 			repo.SetDiffViewStyle, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.CompareDiff)
 	}, ignSignIn, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits())
-
 	m.Group("/:username/:reponame", func() {
 		m.Get("/stars", repo.Stars)
 		m.Get("/watchers", repo.Watchers)
