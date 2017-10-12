@@ -98,7 +98,6 @@ type SearchRepoOptions struct {
 	//
 	// in: query
 	OwnerID     int64         `json:"uid"`
-	Searcher    *User         `json:"-"` //ID of the person who's seeking
 	OrderBy     SearchOrderBy `json:"-"`
 	Private     bool          `json:"-"` // Include private repositories in results
 	Collaborate bool          `json:"-"` // Include collaborative repositories

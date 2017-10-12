@@ -120,7 +120,6 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		Private:     opts.Private,
 		Keyword:     keyword,
 		OwnerID:     opts.OwnerID,
-		Searcher:    ctx.User,
 		Collaborate: true,
 		AllPublic:   true,
 	})

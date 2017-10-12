@@ -42,7 +42,6 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Page:     1,
 		PageSize: 10,
 		Private:  true,
-		Searcher: &User{ID: 14},
 	})
 
 	assert.NoError(t, err)
@@ -56,7 +55,6 @@ func TestSearchRepositoryByName(t *testing.T) {
 		Page:     1,
 		PageSize: 10,
 		Private:  true,
-		Searcher: &User{ID: 14},
 	})
 
 	assert.NoError(t, err)
@@ -135,9 +133,6 @@ func TestSearchRepositoryByName(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			if testCase.opts.OwnerID > 0 {
-				testCase.opts.Searcher = &User{ID: testCase.opts.OwnerID}
-			}
 			repos, count, err := SearchRepositoryByName(testCase.opts)
 
 			assert.NoError(t, err)
