@@ -90,7 +90,7 @@ var (
 	SSH = struct {
 		Disabled             bool           `ini:"DISABLE_SSH"`
 		StartBuiltinServer   bool           `ini:"START_SSH_SERVER"`
-		BuiltinSSHServerUser string         `ini:"BUILTIN_SSH_SERVER_USER"`
+		BuiltinServerUser    string         `ini:"BUILTIN_SSH_SERVER_USER"`
 		Domain               string         `ini:"SSH_DOMAIN"`
 		Port                 int            `ini:"SSH_PORT"`
 		ListenHost           string         `ini:"SSH_LISTEN_HOST"`
@@ -916,7 +916,7 @@ func NewContext() {
 		}
 	}
 
-	SSH.BuiltinSSHServerUser = Cfg.Section("server").Key("BUILTIN_SSH_USER").MustString(RunUser)
+	SSH.BuiltinServerUser = Cfg.Section("server").Key("BUILTIN_SSH_SERVER_USER").MustString(RunUser)
 
 	// Determine and create root git repository path.
 	sec = Cfg.Section("repository")

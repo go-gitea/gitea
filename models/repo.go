@@ -808,7 +808,7 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 
 	sshUser := setting.RunUser
 	if setting.SSH.StartBuiltinServer {
-		sshUser = setting.SSH.BuiltinSSHServerUser
+		sshUser = setting.SSH.BuiltinServerUser
 	}
 
 	repo.Owner = repo.MustOwner()
