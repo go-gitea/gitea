@@ -392,6 +392,19 @@ func (repo *Repository) UnitEnabled(tp UnitType) bool {
 	return false
 }
 
+// AnyUnitEnabled if this repository has the any of the given units enabled
+func (repo *Repository) AnyUnitEnabled(tps ...UnitType) bool {
+	repo.getUnits(x)
+	for _, unit := range repo.Units {
+		for _, tp := range tps {
+			if unit.Type == tp {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 var (
 	// ErrUnitNotExist organization does not exist
 	ErrUnitNotExist = errors.New("Unit does not exist")

@@ -616,7 +616,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/activity", func() {
 			m.Get("", repo.Activity)
 			m.Get("/:period", repo.Activity)
-		}, context.RepoRef(), repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
+		}, context.RepoRef(), repo.MustBeNotBare, context.CheckAnyUnit(models.UnitTypePullRequests, models.UnitTypeIssues, models.UnitTypeReleases))
 
 		m.Get("/archive/*", repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.Download)
 

@@ -573,11 +573,20 @@ func LoadRepoUnits() macaron.Handler {
 	}
 }
 
-// CheckUnit will check whether
+// CheckUnit will check whether unit type is enabled
 func CheckUnit(unitType models.UnitType) macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.Repo.Repository.UnitEnabled(unitType) {
 			ctx.Handle(404, "CheckUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitType))
+		}
+	}
+}
+
+// CheckAnyUnit will check whether any of the unit types are enabled
+func CheckAnyUnit(unitTypes ...models.UnitType) macaron.Handler {
+	return func(ctx *Context) {
+		if !ctx.Repo.Repository.AnyUnitEnabled(unitTypes...) {
+			ctx.Handle(404, "CheckAnyUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitTypes))
 		}
 	}
 }
