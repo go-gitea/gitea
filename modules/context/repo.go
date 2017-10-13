@@ -337,6 +337,11 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["IsRepositoryAdmin"] = ctx.Repo.IsAdmin()
 		ctx.Data["IsRepositoryWriter"] = ctx.Repo.IsWriter()
 
+		if ctx.Data["CanSignedUserFork"], err = ctx.Repo.Repository.CanUserFork(ctx.User); err != nil {
+			ctx.Handle(500, "CanUserFork", err)
+			return
+		}
+
 		ctx.Data["DisableSSH"] = setting.SSH.Disabled
 		ctx.Data["ExposeAnonSSH"] = setting.SSH.ExposeAnonymous
 		ctx.Data["DisableHTTP"] = setting.Repository.DisableHTTPGit
