@@ -5,8 +5,8 @@
 	<a class="{{if .PageIsSettingsAvatar}}active{{end}} item" href="{{AppSubUrl}}/user/settings/avatar">
 		{{.i18n.Tr "settings.avatar"}}
 	</a>
-	<a class="{{if .PageIsSettingsPassword}}active{{end}} item" href="{{AppSubUrl}}/user/settings/password">
-		{{.i18n.Tr "settings.password"}}
+	<a class="{{if .PageIsSettingsSecurity}}active{{end}} item" href="{{AppSubUrl}}/user/settings/security">
+		{{.i18n.Tr "settings.security"}}
 	</a>
 	<a class="{{if .PageIsSettingsEmails}}active{{end}} item" href="{{AppSubUrl}}/user/settings/email">
 		{{.i18n.Tr "settings.emails"}}
@@ -21,9 +21,6 @@
 	</a>
 	<a class="{{if .PageIsSettingsApplications}}active{{end}} item" href="{{AppSubUrl}}/user/settings/applications">
 		{{.i18n.Tr "settings.applications"}}
-	</a>
-	<a class="{{if .PageIsSettingsTwofa}}active{{end}} item" href="{{AppSubUrl}}/user/settings/two_factor">
-		{{.i18n.Tr "settings.twofa"}}
 	</a>
 	<a class="{{if .PageIsSettingsAccountLink}}active{{end}} item" href="{{AppSubUrl}}/user/settings/account_link">
 		{{.i18n.Tr "settings.account_link"}}
