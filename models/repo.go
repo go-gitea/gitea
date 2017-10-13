@@ -636,6 +636,9 @@ func (repo *Repository) CanBeForked() bool {
 
 // CanUserFork returns true if specified user can fork repository.
 func (repo *Repository) CanUserFork(user *User) (bool, error) {
+	if user == nil {
+		return false, nil
+	}
 	if repo.OwnerID != user.ID && !user.HasForkedRepo(repo.ID) {
 		return true, nil
 	}
