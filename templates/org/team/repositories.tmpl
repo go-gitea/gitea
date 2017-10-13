@@ -28,11 +28,10 @@
 						<form class="ui form" id="add-repo-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/add" method="post">
 							{{.CsrfTokenHtml}}
 							<div class="inline field ui left">
-								<div id="search-repo-box" data-uid="{{.Org.ID}}">
+								<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
 									<div class="ui input">
 										<input class="prompt" name="repo_name" placeholder="{{.i18n.Tr "org.teams.search_repo_placeholder"}}" autocomplete="off" required>
 									</div>
-									<div class="ui segment results hide"></div>
 								</div>
 							</div>
 							<button class="ui green button">{{.i18n.Tr "org.teams.add_team_repository"}}</button>

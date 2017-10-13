@@ -112,30 +112,25 @@ type Comment struct {
 	ShowTag CommentTag `xorm:"-"`
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (c *Comment) AfterSet(colName string, _ xorm.Cell) {
-	var err error
-	switch colName {
-	case "id":
-		c.Attachments, err = GetAttachmentsByCommentID(c.ID)
-		if err != nil {
-			log.Error(3, "GetAttachmentsByCommentID[%d]: %v", c.ID, err)
-		}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (c *Comment) AfterLoad(session *xorm.Session) {
+	c.Created = time.Unix(c.CreatedUnix, 0).Local()
+	c.Updated = time.Unix(c.UpdatedUnix, 0).Local()
 
-	case "poster_id":
-		c.Poster, err = GetUserByID(c.PosterID)
-		if err != nil {
-			if IsErrUserNotExist(err) {
-				c.PosterID = -1
-				c.Poster = NewGhostUser()
-			} else {
-				log.Error(3, "GetUserByID[%d]: %v", c.ID, err)
-			}
+	var err error
+	c.Attachments, err = getAttachmentsByCommentID(session, c.ID)
+	if err != nil {
+		log.Error(3, "getAttachmentsByCommentID[%d]: %v", c.ID, err)
+	}
+
+	c.Poster, err = getUserByID(session, c.PosterID)
+	if err != nil {
+		if IsErrUserNotExist(err) {
+			c.PosterID = -1
+			c.Poster = NewGhostUser()
+		} else {
+			log.Error(3, "getUserByID[%d]: %v", c.ID, err)
 		}
-	case "created_unix":
-		c.Created = time.Unix(c.CreatedUnix, 0).Local()
-	case "updated_unix":
-		c.Updated = time.Unix(c.UpdatedUnix, 0).Local()
 	}
 }
 
@@ -361,7 +356,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 			attachments[i].IssueID = opts.Issue.ID
 			attachments[i].CommentID = comment.ID
 			// No assign value could be 0, so ignore AllCols().
-			if _, err = e.Id(attachments[i].ID).Update(attachments[i]); err != nil {
+			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
 				return nil, fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
 			}
 		}
@@ -574,7 +569,7 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 // GetCommentByID returns the comment by given ID.
 func GetCommentByID(id int64) (*Comment, error) {
 	c := new(Comment)
-	has, err := x.Id(id).Get(c)
+	has, err := x.ID(id).Get(c)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -652,7 +647,7 @@ func GetCommentsByRepoIDSince(repoID, since int64) ([]*Comment, error) {
 
 // UpdateComment updates information of comment.
 func UpdateComment(c *Comment) error {
-	if _, err := x.Id(c.ID).AllCols().Update(c); err != nil {
+	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
 	} else if c.Type == CommentTypeComment {
 		UpdateIssueIndexer(c.IssueID)

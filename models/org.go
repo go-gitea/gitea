@@ -259,7 +259,7 @@ func deleteOrg(e *xorm.Session, u *User) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	if _, err = e.Id(u.ID).Delete(new(User)); err != nil {
+	if _, err = e.ID(u.ID).Delete(new(User)); err != nil {
 		return fmt.Errorf("Delete: %v", err)
 	}
 
@@ -412,7 +412,7 @@ func ChangeOrgUserStatus(orgID, uid int64, public bool) error {
 	}
 
 	ou.IsPublic = public
-	_, err = x.Id(ou.ID).Cols("is_public").Update(ou)
+	_, err = x.ID(ou.ID).Cols("is_public").Update(ou)
 	return err
 }
 
@@ -480,7 +480,7 @@ func RemoveOrgUser(orgID, userID int64) error {
 		return err
 	}
 
-	if _, err := sess.Id(ou.ID).Delete(ou); err != nil {
+	if _, err := sess.ID(ou.ID).Delete(ou); err != nil {
 		return err
 	} else if _, err = sess.Exec("UPDATE `user` SET num_members=num_members-1 WHERE id=?", orgID); err != nil {
 		return err

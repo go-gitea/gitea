@@ -126,12 +126,7 @@ func Profile(ctx *context.Context) {
 		orderBy = models.SearchOrderByAlphabetically
 	default:
 		ctx.Data["SortType"] = "recentupdate"
-		orderBy = models.SearchOrderByNewest
-	}
-
-	// set default sort value if sort is empty.
-	if ctx.Query("sort") == "" {
-		ctx.Data["SortType"] = "recentupdate"
+		orderBy = models.SearchOrderByRecentUpdated
 	}
 
 	keyword := strings.Trim(ctx.Query("q"), " ")

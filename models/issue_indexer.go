@@ -27,9 +27,11 @@ func InitIssueIndexer() {
 func populateIssueIndexer() error {
 	batch := indexer.IssueIndexerBatch()
 	for page := 1; ; page++ {
-		repos, _, err := Repositories(&SearchRepoOptions{
+		repos, _, err := SearchRepositoryByName(&SearchRepoOptions{
 			Page:     page,
 			PageSize: 10,
+			OrderBy:  SearchOrderByID,
+			Private:  true,
 		})
 		if err != nil {
 			return fmt.Errorf("Repositories: %v", err)

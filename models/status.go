@@ -71,15 +71,11 @@ type CommitStatus struct {
 	UpdatedUnix int64     `xorm:"INDEX updated"`
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of
+// AfterLoad is invoked from XORM after setting the value of a field of
 // this object.
-func (status *CommitStatus) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		status.Created = time.Unix(status.CreatedUnix, 0).Local()
-	case "updated_unix":
-		status.Updated = time.Unix(status.UpdatedUnix, 0).Local()
-	}
+func (status *CommitStatus) AfterLoad() {
+	status.Created = time.Unix(status.CreatedUnix, 0).Local()
+	status.Updated = time.Unix(status.UpdatedUnix, 0).Local()
 }
 
 func (status *CommitStatus) loadRepo(e Engine) (err error) {
