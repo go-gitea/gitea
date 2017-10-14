@@ -9,13 +9,6 @@ import (
 )
 
 func removeOrganizationWatchRepo(x *xorm.Engine) error {
-	// Watch is connection request for receiving repository notification.
-	type Watch struct {
-		ID     int64 `xorm:"pk autoincr"`
-		UserID int64 `xorm:"UNIQUE(watch)"`
-		RepoID int64 `xorm:"UNIQUE(watch)"`
-	}
-
 	// UserType defines the user type
 	type UserType int
 
