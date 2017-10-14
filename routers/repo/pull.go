@@ -61,7 +61,7 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	ctx.Data["repo_name"] = forkRepo.Name
 	ctx.Data["description"] = forkRepo.Description
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate
-	canForkToUser := !ctx.User.HasForkedRepo(forkRepo.ID)
+	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !ctx.User.HasForkedRepo(forkRepo.ID)
 	ctx.Data["CanForkToUser"] = canForkToUser
 
 	if err = forkRepo.GetOwner(); err != nil {
@@ -71,12 +71,12 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	ctx.Data["ForkFrom"] = forkRepo.Owner.Name + "/" + forkRepo.Name
 	ctx.Data["ForkFromOwnerID"] = forkRepo.Owner.ID
 
-	if err := ctx.User.GetOrganizations(true); err != nil {
-		ctx.Handle(500, "GetOrganizations", err)
+	if err := ctx.User.GetOwnedOrganizations(); err != nil {
+		ctx.Handle(500, "GetOwnedOrganizations", err)
 		return nil
 	}
 	var orgs []*models.User
-	for _, org := range ctx.User.Orgs {
+	for _, org := range ctx.User.OwnedOrgs {
 		if !org.HasForkedRepo(forkRepo.ID) {
 			orgs = append(orgs, org)
 		}
