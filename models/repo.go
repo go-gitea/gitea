@@ -646,7 +646,7 @@ func (repo *Repository) CanUserFork(user *User) (bool, error) {
 		return false, err
 	}
 	for _, org := range user.OwnedOrgs {
-		if !org.HasForkedRepo(repo.ID) {
+		if repo.OwnerID != org.ID && !org.HasForkedRepo(repo.ID) {
 			return true, nil
 		}
 	}

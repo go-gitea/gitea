@@ -26,12 +26,10 @@
 									</div>
 								{{end}}
 								{{range .Orgs}}
-									{{if and (.IsOwnedBy $.SignedUser.ID) (ne .ID $.ForkFromOwnerID)}}
-										<div class="item" data-value="{{.ID}}">
-											<img class="ui mini image" src="{{.RelAvatarLink}}">
-											{{.ShortName 20}}
-										</div>
-									{{end}}
+									<div class="item" data-value="{{.ID}}">
+										<img class="ui mini image" src="{{.RelAvatarLink}}">
+										{{.ShortName 20}}
+									</div>
 								{{end}}
 							</div>
 						</div>

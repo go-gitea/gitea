@@ -77,7 +77,7 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	}
 	var orgs []*models.User
 	for _, org := range ctx.User.OwnedOrgs {
-		if !org.HasForkedRepo(forkRepo.ID) {
+		if forkRepo.OwnerID != org.ID && !org.HasForkedRepo(forkRepo.ID) {
 			orgs = append(orgs, org)
 		}
 	}
