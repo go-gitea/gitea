@@ -88,9 +88,7 @@ func (stats *ActivityStats) PublishedReleaseCount() int {
 // FillPullRequestsForActivity returns pull request information for activity page
 func FillPullRequestsForActivity(stats *ActivityStats, baseRepoID int64, fromTime time.Time) error {
 	var err error
-	row := &struct {
-		Count int64
-	}{}
+	var count int64
 
 	// Merged pull requests
 	sess := pullRequestsForActivityStatement(baseRepoID, fromTime, true)
@@ -105,10 +103,10 @@ func FillPullRequestsForActivity(stats *ActivityStats, baseRepoID int64, fromTim
 
 	// Merged pull request authors
 	sess = pullRequestsForActivityStatement(baseRepoID, fromTime, true)
-	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("pull_request").Get(row); err != nil {
+	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("pull_request").Get(&count); err != nil {
 		return err
 	}
-	stats.MergedPRAuthorCount = row.Count
+	stats.MergedPRAuthorCount = count
 
 	// Opened pull requests
 	sess = pullRequestsForActivityStatement(baseRepoID, fromTime, false)
@@ -122,12 +120,11 @@ func FillPullRequestsForActivity(stats *ActivityStats, baseRepoID int64, fromTim
 	}
 
 	// Opened pull request authors
-	row.Count = 0
 	sess = pullRequestsForActivityStatement(baseRepoID, fromTime, false)
-	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("pull_request").Get(row); err != nil {
+	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("pull_request").Get(&count); err != nil {
 		return err
 	}
-	stats.OpenedPRAuthorCount = row.Count
+	stats.OpenedPRAuthorCount = count
 
 	return nil
 }
@@ -150,9 +147,7 @@ func pullRequestsForActivityStatement(baseRepoID int64, fromTime time.Time, merg
 // FillIssuesForActivity returns issue information for activity page
 func FillIssuesForActivity(stats *ActivityStats, baseRepoID int64, fromTime time.Time) error {
 	var err error
-	row := &struct {
-		Count int64
-	}{}
+	var count int64
 
 	// Closed issues
 	sess := issuesForActivityStatement(baseRepoID, fromTime, true, false)
@@ -164,10 +159,10 @@ func FillIssuesForActivity(stats *ActivityStats, baseRepoID int64, fromTime time
 
 	// Closed issue authors
 	sess = issuesForActivityStatement(baseRepoID, fromTime, true, false)
-	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("issue").Get(row); err != nil {
+	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("issue").Get(&count); err != nil {
 		return err
 	}
-	stats.ClosedIssueAuthorCount = row.Count
+	stats.ClosedIssueAuthorCount = count
 
 	// New issues
 	sess = issuesForActivityStatement(baseRepoID, fromTime, false, false)
@@ -178,12 +173,11 @@ func FillIssuesForActivity(stats *ActivityStats, baseRepoID int64, fromTime time
 	}
 
 	// Opened issue authors
-	row.Count = 0
 	sess = issuesForActivityStatement(baseRepoID, fromTime, false, false)
-	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("issue").Get(row); err != nil {
+	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("issue").Get(&count); err != nil {
 		return err
 	}
-	stats.OpenedIssueAuthorCount = row.Count
+	stats.OpenedIssueAuthorCount = count
 
 	return nil
 }
@@ -221,9 +215,7 @@ func issuesForActivityStatement(baseRepoID int64, fromTime time.Time, closed, un
 // FillReleasesForActivity returns release information for activity page
 func FillReleasesForActivity(stats *ActivityStats, baseRepoID int64, fromTime time.Time) error {
 	var err error
-	row := &struct {
-		Count int64
-	}{}
+	var count int64
 
 	// Published releases list
 	sess := releasesForActivityStatement(baseRepoID, fromTime)
@@ -235,10 +227,10 @@ func FillReleasesForActivity(stats *ActivityStats, baseRepoID int64, fromTime ti
 
 	// Published releases authors
 	sess = releasesForActivityStatement(baseRepoID, fromTime)
-	if _, err = sess.Select("count(distinct release.publisher_id) as `count`").Table("release").Get(row); err != nil {
+	if _, err = sess.Select("count(distinct release.publisher_id) as `count`").Table("release").Get(&count); err != nil {
 		return err
 	}
-	stats.PublishedReleaseAuthorCount = row.Count
+	stats.PublishedReleaseAuthorCount = count
 
 	return nil
 }

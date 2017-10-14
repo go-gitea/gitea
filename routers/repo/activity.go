@@ -66,7 +66,7 @@ func Activity(ctx *context.Context) {
 	if err := models.FillUnresolvedIssuesForActivity(stats, ctx.Repo.Repository.ID, timeFrom,
 		ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues),
 		ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests)); err != nil {
-		ctx.Handle(500, "FillIssuesForActivity", err)
+		ctx.Handle(500, "FillUnresolvedIssuesForActivity", err)
 		return
 	}
 
