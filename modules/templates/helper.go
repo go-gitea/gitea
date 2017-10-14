@@ -345,7 +345,7 @@ func DiffLineTypeToStr(diffType int) string {
 }
 
 // Language specific rules for translating plural texts
-var trNLangRules map[string]func(int64) int = map[string]func(int64) int{
+var trNLangRules = map[string]func(int64) int{
 	"en-US": func(cnt int64) int {
 		if cnt == 1 {
 			return 0
