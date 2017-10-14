@@ -344,6 +344,37 @@ func DiffLineTypeToStr(diffType int) string {
 	return "same"
 }
 
+// Language specific rules for translating plural texts
+var trNLangRules map[string]func(int64) int = map[string]func(int64) int{
+	"en-US": func(cnt int64) int {
+		if cnt == 1 {
+			return 0
+		}
+		return 1
+	},
+	"lv-LV": func(cnt int64) int {
+		if cnt%10 == 1 && cnt%100 != 11 {
+			return 0
+		}
+		return 1
+	},
+	"ru-RU": func(cnt int64) int {
+		if cnt%10 == 1 && cnt%100 != 11 {
+			return 0
+		}
+		return 1
+	},
+	"zh-CN": func(cnt int64) int {
+		return 0
+	},
+	"zh-HK": func(cnt int64) int {
+		return 0
+	},
+	"zh-TW": func(cnt int64) int {
+		return 0
+	},
+}
+
 // TrN returns key to be used for translation depending on count
 func TrN(lang string, cnt interface{}, key1, keyN string) string {
 	var c int64
@@ -359,16 +390,12 @@ func TrN(lang string, cnt interface{}, key1, keyN string) string {
 		return keyN
 	}
 
-	// Special rules for Latvian language
-	if lang == "lv-LV" {
-		if c == 1 || (c%10 == 1 && c%100 != 11) {
-			return key1
-		}
-		return keyN
+	ruleFunc, ok := trNLangRules[lang]
+	if !ok {
+		ruleFunc = trNLangRules["en-US"]
 	}
 
-	// Default rule
-	if c == 1 {
+	if ruleFunc(c) == 0 {
 		return key1
 	}
 	return keyN
