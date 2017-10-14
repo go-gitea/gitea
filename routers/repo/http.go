@@ -142,7 +142,6 @@ func HTTP(ctx *context.Context) {
 				var authToken string
 				isUsernameToken := len(authPasswd) == 0 || authPasswd == "x-oauth-basic"
 
-
 				if isUsernameToken {
 					// Assume username is token
 					authToken = authUsername
