@@ -91,6 +91,12 @@
 				</a>
 			{{end}}
 
+			{{if and (.Repository.AnyUnitEnabled $.UnitTypePullRequests $.UnitTypeIssues $.UnitTypeReleases) (not .IsBareRepo)}}
+				<a class="{{if .PageIsActivity}}active{{end}} item" href="{{.RepoLink}}/activity">
+					<i class="octicon octicon-pulse"></i> {{.i18n.Tr "repo.activity"}}
+				</a>
+			{{end}}
+
 			{{if .IsRepositoryAdmin}}
 				<div class="right menu">
 					<a class="{{if .PageIsSettings}}active{{end}} item" href="{{.RepoLink}}/settings">
