@@ -375,7 +375,7 @@ var trNLangRules = map[string]func(int64) int{
 	},
 }
 
-// TrN returns key to be used for translation depending on count
+// TrN returns key to be used for plural text translation
 func TrN(lang string, cnt interface{}, key1, keyN string) string {
 	var c int64
 	if t, ok := cnt.(int); ok {

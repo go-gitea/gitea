@@ -383,7 +383,9 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 
 // UnitEnabled if this repository has the given unit enabled
 func (repo *Repository) UnitEnabled(tp UnitType) bool {
-	repo.getUnits(x)
+	if err := repo.getUnits(x); err != nil {
+		log.Warn("Error loading repository (ID: %d) units: %s", repo.ID, err.Error())
+	}
 	for _, unit := range repo.Units {
 		if unit.Type == tp {
 			return true
@@ -394,7 +396,9 @@ func (repo *Repository) UnitEnabled(tp UnitType) bool {
 
 // AnyUnitEnabled if this repository has the any of the given units enabled
 func (repo *Repository) AnyUnitEnabled(tps ...UnitType) bool {
-	repo.getUnits(x)
+	if err := repo.getUnits(x); err != nil {
+		log.Warn("Error loading repository (ID: %d) units: %s", repo.ID, err.Error())
+	}
 	for _, unit := range repo.Units {
 		for _, tp := range tps {
 			if unit.Type == tp {
