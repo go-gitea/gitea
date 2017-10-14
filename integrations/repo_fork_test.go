@@ -9,10 +9,14 @@ import (
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/models"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkOwnerName, forkOwnerID, forkRepoName string) *TestResponse {
+func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkOwnerName, forkRepoName string) *TestResponse {
+	forkOwner := models.AssertExistsAndLoadBean(t, &models.User{Name: forkOwnerName}).(*models.User)
+
 	// Step0: check the existence of the to-fork repo
 	req := NewRequestf(t, "GET", "/%s/%s", forkOwnerName, forkRepoName)
 	resp := session.MakeRequest(t, req, http.StatusNotFound)
@@ -32,11 +36,11 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	link, exists = htmlDoc.doc.Find("form.ui.form[action^=\"/repo/fork/\"]").Attr("action")
 	assert.True(t, exists, "The template has changed")
-	_, exists = htmlDoc.doc.Find(fmt.Sprintf(".owner.dropdown .item[data-value=\"%s\"]", forkOwnerID)).Attr("data-value")
+	_, exists = htmlDoc.doc.Find(fmt.Sprintf(".owner.dropdown .item[data-value=\"%d\"]", forkOwner.ID)).Attr("data-value")
 	assert.True(t, exists, fmt.Sprintf("Fork owner '%s' is not present in select box", forkOwnerName))
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf":     htmlDoc.GetCSRF(),
-		"uid":       forkOwnerID,
+		"uid":       fmt.Sprintf("%d", forkOwner.ID),
 		"repo_name": forkRepoName,
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
@@ -51,13 +55,13 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 func TestRepoFork(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user1")
-	testRepoFork(t, session, "user2", "repo1", "user1", "1", "repo1")
+	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 }
 
 func TestRepoForkToOrg(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user2")
-	testRepoFork(t, session, "user2", "repo1", "user3", "3", "repo1")
+	testRepoFork(t, session, "user2", "repo1", "user3", "repo1")
 
 	// Check that no more forking is allowed as user2 owns repository
 	//  and user3 organization that owner user2 is also now has forked this repository
