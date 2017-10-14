@@ -25,7 +25,7 @@ func removeOrganizationWatchRepo(x *xorm.Engine) error {
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if _, err := sess.Exec("DELETE FROM watch WHERE id IN (SELECT watch.id FROM watch INNER JOIN user ON watch.user_id = user.id WHERE `user`.`type` = ?)", UserTypeOrganization); err != nil {
+	if _, err := sess.Exec("DELETE FROM `watch` WHERE `user_id` IN (SELECT `id` FROM `user` WHERE `type` = ?)", UserTypeOrganization); err != nil {
 		return err
 	}
 	if _, err := sess.Exec("UPDATE `repository` SET num_watches = (SELECT count(*) FROM watch WHERE `repository`.`id` = watch.repo_id)"); err != nil {
