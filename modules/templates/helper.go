@@ -158,6 +158,7 @@ func NewFuncMap() []template.FuncMap {
 		"DisableGitHooks": func() bool {
 			return setting.DisableGitHooks
 		},
+		"TrN": TrN,
 	}}
 }
 
@@ -341,4 +342,61 @@ func DiffLineTypeToStr(diffType int) string {
 		return "tag"
 	}
 	return "same"
+}
+
+// Language specific rules for translating plural texts
+var trNLangRules = map[string]func(int64) int{
+	"en-US": func(cnt int64) int {
+		if cnt == 1 {
+			return 0
+		}
+		return 1
+	},
+	"lv-LV": func(cnt int64) int {
+		if cnt%10 == 1 && cnt%100 != 11 {
+			return 0
+		}
+		return 1
+	},
+	"ru-RU": func(cnt int64) int {
+		if cnt%10 == 1 && cnt%100 != 11 {
+			return 0
+		}
+		return 1
+	},
+	"zh-CN": func(cnt int64) int {
+		return 0
+	},
+	"zh-HK": func(cnt int64) int {
+		return 0
+	},
+	"zh-TW": func(cnt int64) int {
+		return 0
+	},
+}
+
+// TrN returns key to be used for plural text translation
+func TrN(lang string, cnt interface{}, key1, keyN string) string {
+	var c int64
+	if t, ok := cnt.(int); ok {
+		c = int64(t)
+	} else if t, ok := cnt.(int16); ok {
+		c = int64(t)
+	} else if t, ok := cnt.(int32); ok {
+		c = int64(t)
+	} else if t, ok := cnt.(int64); ok {
+		c = t
+	} else {
+		return keyN
+	}
+
+	ruleFunc, ok := trNLangRules[lang]
+	if !ok {
+		ruleFunc = trNLangRules["en-US"]
+	}
+
+	if ruleFunc(c) == 0 {
+		return key1
+	}
+	return keyN
 }

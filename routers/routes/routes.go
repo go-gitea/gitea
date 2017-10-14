@@ -613,6 +613,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/*", repo.WikiRaw)
 		}, repo.MustEnableWiki)
 
+		m.Group("/activity", func() {
+			m.Get("", repo.Activity)
+			m.Get("/:period", repo.Activity)
+		}, context.RepoRef(), repo.MustBeNotBare, context.CheckAnyUnit(models.UnitTypePullRequests, models.UnitTypeIssues, models.UnitTypeReleases))
+
 		m.Get("/archive/*", repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.Download)
 
 		m.Group("/pulls/:index", func() {
