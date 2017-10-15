@@ -90,11 +90,11 @@ func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName st
 	return nil
 }
 
-// UpdateLocalCopyToCommit pulls latest changes of given commit from repoPath to localPath.
+// updateLocalCopyToCommit pulls latest changes of given commit from repoPath to localPath.
 // It creates a new clone if local copy does not exist.
 // This function checks out target commit by default, it is safe to assume subsequent
 // operations are operating against target commit when caller has confidence for no race condition.
-func UpdateLocalCopyToCommit(repoPath, localPath, commit string) error {
+func updateLocalCopyToCommit(repoPath, localPath, commit string) error {
 	if !com.IsExist(localPath) {
 		if err := git.Clone(repoPath, localPath, git.CloneRepoOptions{
 			Timeout: time.Duration(setting.Git.Timeout.Clone) * time.Second,
@@ -118,9 +118,9 @@ func UpdateLocalCopyToCommit(repoPath, localPath, commit string) error {
 	return nil
 }
 
-// UpdateLocalCopyToCommit makes sure local copy of repository is at given commit.
-func (repo *Repository) UpdateLocalCopyToCommit(commit string) error {
-	return UpdateLocalCopyToCommit(repo.RepoPath(), repo.LocalCopyPath(), commit)
+// updateLocalCopyToCommit makes sure local copy of repository is at given commit.
+func (repo *Repository) updateLocalCopyToCommit(commit string) error {
+	return updateLocalCopyToCommit(repo.RepoPath(), repo.LocalCopyPath(), commit)
 }
 
 // CreateNewBranchFromCommit creates a new repository branch
@@ -130,7 +130,7 @@ func (repo *Repository) CreateNewBranchFromCommit(doer *User, commit, branchName
 
 	localPath := repo.LocalCopyPath()
 
-	if err = repo.UpdateLocalCopyToCommit(commit); err != nil {
+	if err = repo.updateLocalCopyToCommit(commit); err != nil {
 		return fmt.Errorf("UpdateLocalCopyBranch: %v", err)
 	}
 
