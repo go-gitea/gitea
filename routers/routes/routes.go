@@ -407,8 +407,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 				m.Route("/delete", "GET,POST", org.SettingsDelete)
 			})
-
-			m.Route("/invitations/new", "GET,POST", org.Invitation)
 		}, context.OrgAssignment(true, true))
 	}, reqSignIn)
 	// ***** END: Organization *****
