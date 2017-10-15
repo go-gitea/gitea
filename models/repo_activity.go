@@ -85,8 +85,8 @@ func (stats *ActivityStats) PublishedReleaseCount() int {
 	return len(stats.PublishedReleases)
 }
 
-// FillPullRequestsForActivity returns pull request information for activity page
-func FillPullRequestsForActivity(stats *ActivityStats, baseRepoID int64, fromTime time.Time) error {
+// FillPullRequests returns pull request information for activity page
+func (stats *ActivityStats) FillPullRequests(baseRepoID int64, fromTime time.Time) error {
 	var err error
 	var count int64
 
@@ -144,8 +144,8 @@ func pullRequestsForActivityStatement(baseRepoID int64, fromTime time.Time, merg
 	return sess
 }
 
-// FillIssuesForActivity returns issue information for activity page
-func FillIssuesForActivity(stats *ActivityStats, baseRepoID int64, fromTime time.Time) error {
+// FillIssues returns issue information for activity page
+func (stats *ActivityStats) FillIssues(baseRepoID int64, fromTime time.Time) error {
 	var err error
 	var count int64
 
@@ -182,8 +182,8 @@ func FillIssuesForActivity(stats *ActivityStats, baseRepoID int64, fromTime time
 	return nil
 }
 
-// FillUnresolvedIssuesForActivity returns unresolved issue and pull request information for activity page
-func FillUnresolvedIssuesForActivity(stats *ActivityStats, baseRepoID int64, fromTime time.Time, issues, prs bool) error {
+// FillUnresolvedIssues returns unresolved issue and pull request information for activity page
+func (stats *ActivityStats) FillUnresolvedIssues(baseRepoID int64, fromTime time.Time, issues, prs bool) error {
 	// Check if we need to select anything
 	if !issues && !prs {
 		return nil
@@ -212,8 +212,8 @@ func issuesForActivityStatement(baseRepoID int64, fromTime time.Time, closed, un
 	return sess
 }
 
-// FillReleasesForActivity returns release information for activity page
-func FillReleasesForActivity(stats *ActivityStats, baseRepoID int64, fromTime time.Time) error {
+// FillReleases returns release information for activity page
+func (stats *ActivityStats) FillReleases(baseRepoID int64, fromTime time.Time) error {
 	var err error
 	var count int64
 

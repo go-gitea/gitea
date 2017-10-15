@@ -45,28 +45,30 @@ func Activity(ctx *context.Context) {
 
 	stats := &models.ActivityStats{}
 
+	pullRequestsEnabled := ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests)
+	issuesEnabled := ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues)
+
 	if ctx.Repo.Repository.UnitEnabled(models.UnitTypeReleases) {
-		if err := models.FillReleasesForActivity(stats, ctx.Repo.Repository.ID, timeFrom); err != nil {
-			ctx.Handle(500, "FillReleasesForActivity", err)
+		if err := stats.FillReleases(ctx.Repo.Repository.ID, timeFrom); err != nil {
+			ctx.Handle(500, "FillReleases", err)
 			return
 		}
 	}
-	if ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) {
-		if err := models.FillPullRequestsForActivity(stats, ctx.Repo.Repository.ID, timeFrom); err != nil {
-			ctx.Handle(500, "FillPullRequestsForActivity", err)
+	if pullRequestsEnabled {
+		if err := stats.FillPullRequests(ctx.Repo.Repository.ID, timeFrom); err != nil {
+			ctx.Handle(500, "FillPullRequests", err)
 			return
 		}
 	}
-	if ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) {
-		if err := models.FillIssuesForActivity(stats, ctx.Repo.Repository.ID, timeFrom); err != nil {
-			ctx.Handle(500, "FillIssuesForActivity", err)
+	if issuesEnabled {
+		if err := stats.FillIssues(ctx.Repo.Repository.ID, timeFrom); err != nil {
+			ctx.Handle(500, "FillIssues", err)
 			return
 		}
 	}
-	if err := models.FillUnresolvedIssuesForActivity(stats, ctx.Repo.Repository.ID, timeFrom,
-		ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues),
-		ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests)); err != nil {
-		ctx.Handle(500, "FillUnresolvedIssuesForActivity", err)
+	if err := stats.FillUnresolvedIssues(ctx.Repo.Repository.ID, timeFrom,
+		issuesEnabled, pullRequestsEnabled); err != nil {
+		ctx.Handle(500, "FillUnresolvedIssues", err)
 		return
 	}
 
