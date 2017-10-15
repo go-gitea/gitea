@@ -728,6 +728,10 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 		ctx.Handle(404, "UnitEnabled", nil)
 		return nil
 	}
+	if err = issue.LoadAttributes(); err != nil {
+		ctx.Handle(500, "LoadAttributes", nil)
+		return nil
+	}
 	return issue
 }
 
@@ -756,6 +760,10 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 	for _, issue := range issues {
 		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
 			ctx.Handle(404, "UnitEnabled", nil)
+			return nil
+		}
+		if err = issue.LoadAttributes(); err != nil {
+			ctx.Handle(500, "LoadAttributes", nil)
 			return nil
 		}
 	}
