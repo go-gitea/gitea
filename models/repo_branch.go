@@ -63,8 +63,40 @@ func (repo *Repository) GetBranches() ([]*Branch, error) {
 	return GetBranchesByPath(repo.RepoPath())
 }
 
+// CheckBranchName validates branch name with existing repository branches
+func (repo *Repository) CheckBranchName(name string) error {
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return err
+	}
+
+	if _, err := gitRepo.GetTag(name); err == nil {
+		return ErrTagAlreadyExists{name}
+	}
+
+	branches, err := repo.GetBranches()
+	if err != nil {
+		return err
+	}
+
+	for _, branch := range branches {
+		if branch.Name == name {
+			return ErrBranchAlreadyExists{branch.Name}
+		} else if (len(branch.Name) < len(name) && branch.Name+"/" == name[0:len(branch.Name)+1]) ||
+			(len(branch.Name) > len(name) && name+"/" == branch.Name[0:len(name)+1]) {
+			return ErrBranchNameConflict{branch.Name}
+		}
+	}
+	return nil
+}
+
 // CreateNewBranch creates a new repository branch
 func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName string) (err error) {
+	// Check if branch name can be used
+	if err := repo.CheckBranchName(branchName); err != nil {
+		return err
+	}
+
 	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
 	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
 
@@ -125,6 +157,11 @@ func (repo *Repository) updateLocalCopyToCommit(commit string) error {
 
 // CreateNewBranchFromCommit creates a new repository branch
 func (repo *Repository) CreateNewBranchFromCommit(doer *User, commit, branchName string) (err error) {
+	// Check if branch name can be used
+	if err := repo.CheckBranchName(branchName); err != nil {
+		return err
+	}
+
 	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
 	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
 

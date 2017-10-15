@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -45,37 +46,32 @@ func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
 		return
 	}
 
-	branches, err := ctx.Repo.Repository.GetBranches()
-	if err != nil {
-		ctx.Handle(500, "GetBranches", err)
-		return
-	}
-
-	for _, branch := range branches {
-		if branch.Name == form.NewBranchName {
-			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", branch.Name))
-			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName)
-			return
-		} else if (len(branch.Name) < len(form.NewBranchName) && branch.Name+"/" == form.NewBranchName[0:len(branch.Name)+1]) ||
-			(len(branch.Name) > len(form.NewBranchName) && form.NewBranchName+"/" == branch.Name[0:len(form.NewBranchName)+1]) {
-			ctx.Flash.Error(ctx.Tr("repo.branch.branch_name_conflict", form.NewBranchName, branch.Name))
-			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName)
-			return
-		}
-	}
-
-	if _, err := ctx.Repo.GitRepo.GetTag(form.NewBranchName); err == nil {
-		ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", form.NewBranchName))
-		ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName)
-		return
-	}
-
+	var err error
 	if ctx.Repo.IsViewBranch {
 		err = ctx.Repo.Repository.CreateNewBranch(ctx.User, ctx.Repo.BranchName, form.NewBranchName)
 	} else {
 		err = ctx.Repo.Repository.CreateNewBranchFromCommit(ctx.User, ctx.Repo.BranchName, form.NewBranchName)
 	}
 	if err != nil {
+		if models.IsErrTagAlreadyExists(err) {
+			e := err.(models.ErrTagAlreadyExists)
+			ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName)
+			return
+		}
+		if models.IsErrBranchAlreadyExists(err) {
+			e := err.(models.ErrBranchAlreadyExists)
+			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", e.BranchName))
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName)
+			return
+		}
+		if models.IsErrBranchNameConflict(err) {
+			e := err.(models.ErrBranchNameConflict)
+			ctx.Flash.Error(ctx.Tr("repo.branch.branch_name_conflict", form.NewBranchName, e.BranchName))
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName)
+			return
+		}
+
 		ctx.Handle(500, "CreateNewBranch", err)
 		return
 	}
