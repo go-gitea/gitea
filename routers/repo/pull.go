@@ -61,6 +61,8 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	ctx.Data["repo_name"] = forkRepo.Name
 	ctx.Data["description"] = forkRepo.Description
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate
+	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !ctx.User.HasForkedRepo(forkRepo.ID)
+	ctx.Data["CanForkToUser"] = canForkToUser
 
 	if err = forkRepo.GetOwner(); err != nil {
 		ctx.Handle(500, "GetOwner", err)
@@ -69,11 +71,23 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	ctx.Data["ForkFrom"] = forkRepo.Owner.Name + "/" + forkRepo.Name
 	ctx.Data["ForkFromOwnerID"] = forkRepo.Owner.ID
 
-	if err := ctx.User.GetOrganizations(true); err != nil {
-		ctx.Handle(500, "GetOrganizations", err)
+	if err := ctx.User.GetOwnedOrganizations(); err != nil {
+		ctx.Handle(500, "GetOwnedOrganizations", err)
 		return nil
 	}
-	ctx.Data["Orgs"] = ctx.User.Orgs
+	var orgs []*models.User
+	for _, org := range ctx.User.OwnedOrgs {
+		if forkRepo.OwnerID != org.ID && !org.HasForkedRepo(forkRepo.ID) {
+			orgs = append(orgs, org)
+		}
+	}
+	ctx.Data["Orgs"] = orgs
+
+	if canForkToUser {
+		ctx.Data["ContextUser"] = ctx.User
+	} else if len(orgs) > 0 {
+		ctx.Data["ContextUser"] = orgs[0]
+	}
 
 	return forkRepo
 }
@@ -87,7 +101,6 @@ func Fork(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["ContextUser"] = ctx.User
 	ctx.HTML(200, tplFork)
 }
 
@@ -95,15 +108,16 @@ func Fork(ctx *context.Context) {
 func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 	ctx.Data["Title"] = ctx.Tr("new_fork")
 
+	ctxUser := checkContextUser(ctx, form.UID)
+	if ctx.Written() {
+		return
+	}
+
 	forkRepo := getForkRepository(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	ctxUser := checkContextUser(ctx, form.UID)
-	if ctx.Written() {
-		return
-	}
 	ctx.Data["ContextUser"] = ctxUser
 
 	if ctx.HasError() {

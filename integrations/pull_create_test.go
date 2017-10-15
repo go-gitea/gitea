@@ -46,7 +46,7 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch strin
 func TestPullCreate(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user1")
-	testRepoFork(t, session)
+	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 	testEditFile(t, session, "user1", "repo1", "master", "README.md")
 	testPullCreate(t, session, "user1", "repo1", "master")
 }
