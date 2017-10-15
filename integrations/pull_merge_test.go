@@ -48,7 +48,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 func TestPullMerge(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user1")
-	testRepoFork(t, session)
+	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 	testEditFile(t, session, "user1", "repo1", "master", "README.md")
 
 	resp := testPullCreate(t, session, "user1", "repo1", "master")
@@ -61,7 +61,7 @@ func TestPullMerge(t *testing.T) {
 func TestPullCleanUpAfterMerge(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user1")
-	testRepoFork(t, session)
+	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 	testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md")
 
 	resp := testPullCreate(t, session, "user1", "repo1", "feature/test")
