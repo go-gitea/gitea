@@ -141,11 +141,8 @@ var migrations = []Migration{
 	// v45 -> v46
 	NewMigration("remove index column from repo_unit table", removeIndexColumnFromRepoUnitTable),
 	// v46 -> v47
-<<<<<<< HEAD
 	NewMigration("remove organization watch repositories", removeOrganizationWatchRepo),
 	// v47 -> v48
-=======
->>>>>>> d17981b75e2190d05033aa4816648c330c6d1d3a
 	NewMigration("add field for ldap public public ssh key synchronization", addLoginSourceLdapPublicSSHKeySyncEnabled),
 }
 
