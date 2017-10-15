@@ -92,13 +92,13 @@ func (repo *Repository) CheckBranchName(name string) error {
 
 // CreateNewBranch creates a new repository branch
 func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName string) (err error) {
+	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
+	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
+
 	// Check if branch name can be used
 	if err := repo.CheckBranchName(branchName); err != nil {
 		return err
 	}
-
-	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
 
 	localPath := repo.LocalCopyPath()
 
@@ -157,13 +157,13 @@ func (repo *Repository) updateLocalCopyToCommit(commit string) error {
 
 // CreateNewBranchFromCommit creates a new repository branch
 func (repo *Repository) CreateNewBranchFromCommit(doer *User, commit, branchName string) (err error) {
+	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
+	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
+
 	// Check if branch name can be used
 	if err := repo.CheckBranchName(branchName); err != nil {
 		return err
 	}
-
-	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
 
 	localPath := repo.LocalCopyPath()
 
