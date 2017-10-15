@@ -175,12 +175,11 @@ func HTTP(ctx *context.Context) {
 					authUser, err = models.GetUserByID(token.UID)
 					if err != nil {
 						ctx.Handle(http.StatusInternalServerError, "GetUserByID", err)
-					}
-				} else {
-					if authUser.ID != token.UID {
-						ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
 						return
 					}
+				} else if authUser.ID != token.UID {
+					ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
+					return
 				}
 
 				token.Updated = time.Now()
