@@ -649,6 +649,51 @@ func (err ErrBranchNotExist) Error() string {
 	return fmt.Sprintf("branch does not exist [name: %s]", err.Name)
 }
 
+// ErrBranchAlreadyExists represents an error that branch with such name already exists
+type ErrBranchAlreadyExists struct {
+	BranchName string
+}
+
+// IsErrBranchAlreadyExists checks if an error is an ErrBranchAlreadyExists.
+func IsErrBranchAlreadyExists(err error) bool {
+	_, ok := err.(ErrBranchAlreadyExists)
+	return ok
+}
+
+func (err ErrBranchAlreadyExists) Error() string {
+	return fmt.Sprintf("branch already exists [name: %s]", err.BranchName)
+}
+
+// ErrBranchNameConflict represents an error that branch name conflicts with other branch
+type ErrBranchNameConflict struct {
+	BranchName string
+}
+
+// IsErrBranchNameConflict checks if an error is an ErrBranchNameConflict.
+func IsErrBranchNameConflict(err error) bool {
+	_, ok := err.(ErrBranchNameConflict)
+	return ok
+}
+
+func (err ErrBranchNameConflict) Error() string {
+	return fmt.Sprintf("branch conflicts with existing branch [name: %s]", err.BranchName)
+}
+
+// ErrTagAlreadyExists represents an error that tag with such name already exists
+type ErrTagAlreadyExists struct {
+	TagName string
+}
+
+// IsErrTagAlreadyExists checks if an error is an ErrTagAlreadyExists.
+func IsErrTagAlreadyExists(err error) bool {
+	_, ok := err.(ErrTagAlreadyExists)
+	return ok
+}
+
+func (err ErrTagAlreadyExists) Error() string {
+	return fmt.Sprintf("tag already exists [name: %s]", err.TagName)
+}
+
 //  __      __      ___.   .__                   __
 // /  \    /  \ ____\_ |__ |  |__   ____   ____ |  | __
 // \   \/\/   // __ \| __ \|  |  \ /  _ \ /  _ \|  |/ /
