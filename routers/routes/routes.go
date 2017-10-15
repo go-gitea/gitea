@@ -621,6 +621,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/pulls/:index", func() {
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
 			m.Get("/files", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ViewPullFiles)
+			m.Post("/files/comments", context.RepoRef(), repo.SetEditorconfigIfExists, repo.AddCommentOnPullFilesPost)
+			m.Post("/files/comments/:id/edit", context.RepoRef(), repo.SetEditorconfigIfExists, repo.EditCommentOnPullFilesPost)
+			m.Post("/files/comments/:id/delete", context.RepoRef(), repo.SetEditorconfigIfExists, repo.DeleteCommentOnPullFilesPost)
 			m.Post("/merge", reqRepoWriter, repo.MergePullRequest)
 			m.Post("/cleanup", context.RepoRef(), repo.CleanUpPullRequest)
 		}, repo.MustAllowPulls)

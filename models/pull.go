@@ -73,6 +73,8 @@ type PullRequest struct {
 	Merger         *User     `xorm:"-"`
 	Merged         time.Time `xorm:"-"`
 	MergedUnix     int64     `xorm:"INDEX"`
+
+	CodeComments map[string]map[int64][]*Comment `xorm:"-"`
 }
 
 // BeforeUpdate is invoked from XORM before updating an object of this type.
@@ -122,6 +124,41 @@ func (pr *PullRequest) loadIssue(e Engine) (err error) {
 
 	pr.Issue, err = getIssueByID(e, pr.IssueID)
 	return err
+}
+
+// LoadCodeComments loads pull request code comments from database
+func (pr *PullRequest) LoadCodeComments() error {
+	return pr.loadCodeComments(x)
+}
+
+func (pr *PullRequest) loadCodeComments(e Engine) error {
+	if err := pr.loadIssue(e); err != nil {
+		return err
+	}
+
+	if pr.CodeComments != nil {
+		return nil
+	}
+
+	pr.CodeComments = make(map[string]map[int64][]*Comment)
+
+	return e.Where("issue_id = ?", pr.Issue.ID).
+		And("type = ?", CommentTypePullFiles).
+		Iterate(new(Comment), func(i int, bean interface{}) error {
+			comment := bean.(*Comment)
+			if err := comment.LoadPoster(); err != nil {
+				return err
+			}
+
+			if _, ok := pr.CodeComments[comment.TreePath]; !ok {
+				pr.CodeComments[comment.TreePath] = make(map[int64][]*Comment)
+			}
+			if _, ok := pr.CodeComments[comment.TreePath][comment.Line]; !ok {
+				pr.CodeComments[comment.TreePath][comment.Line] = make([]*Comment, 0)
+			}
+			pr.CodeComments[comment.TreePath][comment.Line] = append(pr.CodeComments[comment.TreePath][comment.Line], comment)
+			return nil
+		})
 }
 
 // APIFormat assumes following fields have been assigned with valid values:

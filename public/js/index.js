@@ -1556,6 +1556,8 @@ $(document).ready(function () {
             break;
         }
     }
+
+    fileComments();
 });
 
 function changeHash(hash) {
@@ -1780,3 +1782,290 @@ function toggleStopwatch() {
 function cancelStopwatch() {
     $("#cancel_stopwatch_form").submit();
 }
+
+/* global showdown */
+function createCodeComment() {
+    const texts = {
+      btn: "Comment Code",
+      write: "Write",
+      preview: "Preview",
+      placeholder: "Leave a comment",
+      mdDescr: "Styling with markdown is supported.",
+      cancelBtn: "Cancel"
+    };
+  
+    let icons = `
+    <div class="item">
+      <div class="ui icon">
+        <i class="bold icon"></i>
+      </div>
+    </div>
+    <div class="item">
+      <div class="ui icon">
+        <i class="italic icon"></i>
+      </div>
+    </div>
+    <div class="item">
+      <div class="ui icon">
+        <i class="list icon"></i>
+      </div>
+    </div>
+    <div class="item">
+      <div class="ui icon">
+        <i class="ordered list icon"></i>
+      </div>
+    </div>
+    <div class="item">
+      <div class="ui icon">
+        <i class="code icon"></i>
+      </div>
+    </div>
+    <div class="item">
+      <div class="ui icon">
+        <i class="quote right icon"></i>
+      </div>
+    </div>
+    <div class="item">
+      <div class="ui icon">
+        <i class="checkmark box icon"></i>
+      </div>
+    </div>
+    `;
+  
+    let $comment = $(`
+        <tr class="code-comment-section">
+          <td colspan="4">
+            <div class="comment-code-cloud">
+              <div class="ui pointing secondary menu">
+                <a class="active item" data-tab="first">${texts.write}</a>
+                <a class="item" data-tab="second">${texts.preview}</a>
+                <div class="right menu options">
+                  ${icons}
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      `);
+  
+    let $writeTab = $(`
+        <div class="ui active bottom attached tab segment" data-tab="first">
+          <div class="ui form">
+            <div class="field">
+              <textarea placeholder="${texts.placeholder}"></textarea>
+            </div>
+          </div>
+          <div class="footer">
+            <span class="markdown-info">${texts.mdDescr}</span>
+            <div class="ui submit green tiny button right floated">${texts.btn}</div>
+            <div class="ui submit tiny button right floated">${texts.cancelBtn}</div>
+          </div>
+        </div>
+      `);
+  
+    let $previewTab = $(`
+        <div class="ui bottom attached tab segment" data-tab="second">
+          <div class="preview-msg"></div>
+          <div class="footer">
+            <span class="markdown-info">${texts.mdDescr}</span>
+            <div class="ui submit tiny button right floated">${texts.btn}</div>
+          </div>
+        </div>
+      `);
+  
+    let converter = new showdown.Converter();
+  
+    let comment = {
+      $cloud: $comment.find(".comment-code-cloud"),
+      $items: $comment.find(".menu .item"),
+      $options: $comment.find(".options")
+    };
+  
+    comment.$cloud.append($writeTab);
+    comment.$cloud.append($previewTab);
+  
+    $.extend(comment, {
+      $textarea: comment.$cloud.find("textarea"),
+      $preview: comment.$cloud.find(".preview-msg")
+    });
+  
+    comment.$items.on("click", function() {
+      if ($(this).data("tab") === "first") {
+        comment.$options.show();
+        return;
+      }
+  
+      let content = converter.makeHtml(comment.$textarea.val());
+      comment.$preview.html(content);
+      comment.$options.hide();
+    });
+  
+    return {
+      getElem() {
+        return $comment;
+      },
+  
+      makeTabsWorking() {
+        comment.$items.tab();
+        return this;
+      }
+    };
+  }
+
+  /* global createCodeComment */
+function fileComments() {
+    const $fileLine = $(".file-body table tbody tr");
+    const $codeCommentBtns = $fileLine.find(".code-comment");
+  
+    $fileLine
+      .on("mouseenter", function() {
+        $(this)
+          .find(".code-comment")
+          .show();
+      })
+      .on("mouseleave", function() {
+        $(this)
+          .find(".code-comment")
+          .hide();
+      });
+  
+    $codeCommentBtns.on("click", function() {
+      let comment = createCodeComment();
+      $(this)
+        .parent()
+        .parent()
+        .after(comment.getElem());
+  
+      comment.makeTabsWorking();
+    });
+  }
+
+  /* global showdown */
+function createCodeComment() {
+    const texts = {
+      btn: "Comment Code",
+      write: "Write",
+      preview: "Preview",
+      placeholder: "Leave a comment",
+      mdDescr: "Styling with markdown is supported.",
+      cancelBtn: "Cancel"
+    };
+  
+    let icons = `
+    <div class="item">
+      <div class="ui icon">
+        <i class="bold icon"></i>
+      </div>
+    </div>
+    <div class="item">
+      <div class="ui icon">
+        <i class="italic icon"></i>
+      </div>
+    </div>
+    <div class="item">
+      <div class="ui icon">
+        <i class="list icon"></i>
+      </div>
+    </div>
+    <div class="item">
+      <div class="ui icon">
+        <i class="ordered list icon"></i>
+      </div>
+    </div>
+    <div class="item">
+      <div class="ui icon">
+        <i class="code icon"></i>
+      </div>
+    </div>
+    <div class="item">
+      <div class="ui icon">
+        <i class="quote right icon"></i>
+      </div>
+    </div>
+    <div class="item">
+      <div class="ui icon">
+        <i class="checkmark box icon"></i>
+      </div>
+    </div>
+    `;
+  
+    let $comment = $(`
+        <tr class="code-comment-section">
+          <td colspan="4">
+            <div class="comment-code-cloud">
+              <div class="ui pointing secondary menu">
+                <a class="active item" data-tab="first">${texts.write}</a>
+                <a class="item" data-tab="second">${texts.preview}</a>
+                <div class="right menu options">
+                  ${icons}
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      `);
+  
+    let $writeTab = $(`
+        <div class="ui active bottom attached tab segment" data-tab="first">
+          <div class="ui form">
+            <div class="field">
+              <textarea placeholder="${texts.placeholder}"></textarea>
+            </div>
+          </div>
+          <div class="footer">
+            <span class="markdown-info">${texts.mdDescr}</span>
+            <div class="ui submit green tiny button right floated">${texts.btn}</div>
+            <div class="ui submit tiny button right floated">${texts.cancelBtn}</div>
+          </div>
+        </div>
+      `);
+  
+    let $previewTab = $(`
+        <div class="ui bottom attached tab segment" data-tab="second">
+          <div class="preview-msg"></div>
+          <div class="footer">
+            <span class="markdown-info">${texts.mdDescr}</span>
+            <div class="ui submit tiny button right floated">${texts.btn}</div>
+          </div>
+        </div>
+      `);
+  
+    let converter = new showdown.Converter();
+  
+    let comment = {
+      $cloud: $comment.find(".comment-code-cloud"),
+      $items: $comment.find(".menu .item"),
+      $options: $comment.find(".options")
+    };
+  
+    comment.$cloud.append($writeTab);
+    comment.$cloud.append($previewTab);
+  
+    $.extend(comment, {
+      $textarea: comment.$cloud.find("textarea"),
+      $preview: comment.$cloud.find(".preview-msg")
+    });
+  
+    comment.$items.on("click", function() {
+      if ($(this).data("tab") === "first") {
+        comment.$options.show();
+        return;
+      }
+  
+      let content = converter.makeHtml(comment.$textarea.val());
+      comment.$preview.html(content);
+      comment.$options.hide();
+    });
+  
+    return {
+      getElem() {
+        return $comment;
+      },
+  
+      makeTabsWorking() {
+        comment.$items.tab();
+        return this;
+      }
+    };
+  }
+  
