@@ -1554,3 +1554,14 @@
 	}
 	.generate-tab-size(@n, (@i + 1));
 }
+
+.table {
+	display: table;
+	width: 100%;
+	.table-cell {
+		display: table-cell;
+		&.tiny {
+			height: .5em;
+		}
+	}
+}
