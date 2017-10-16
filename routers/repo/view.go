@@ -93,16 +93,12 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		if isTextFile {
 			d, _ := ioutil.ReadAll(dataRc)
 			buf = append(buf, d...)
-			newbuf := markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas())
-			if newbuf != nil {
-				ctx.Data["IsMarkdown"] = true
+			ctx.Data["IsRenderedHTML"] = true
+			if markup.Type(readmeFile.Name()) != "" {
+				ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
 			} else {
-				// FIXME This is the only way to show non-markdown files
-				// instead of a broken "View Raw" link
-				ctx.Data["IsMarkdown"] = true
-				newbuf = bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1)
+				ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
 			}
-			ctx.Data["FileContent"] = string(newbuf)
 		}
 	}
 
@@ -188,15 +184,14 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		d, _ := ioutil.ReadAll(dataRc)
 		buf = append(buf, d...)
 
-		tp := markup.Type(blob.Name())
-		isSupportedMarkup := tp != ""
-		// FIXME: currently set IsMarkdown for compatible
-		ctx.Data["IsMarkdown"] = isSupportedMarkup
-
-		readmeExist := isSupportedMarkup || markup.IsReadmeFile(blob.Name())
+		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
-		if readmeExist && isSupportedMarkup {
+		if markup.Type(blob.Name()) != "" {
+			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
+		} else if readmeExist {
+			ctx.Data["IsRenderedHTML"] = true
+			ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
 		} else {
 			// Building code view blocks with line number on server side.
 			var fileContent string
