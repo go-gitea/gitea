@@ -195,9 +195,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["ReadmeExist"] = readmeExist
 		if markup.Type(blob.Name()) != "" {
 			ctx.Data["IsRenderedHTML"] = true
+			ctx.Data["IsMarkup"] = true
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
 		} else if readmeExist {
 			ctx.Data["IsRenderedHTML"] = true
+			ctx.Data["IsMarkup"] = false
 			ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
 		} else {
 			// Building code view blocks with line number on server side.
