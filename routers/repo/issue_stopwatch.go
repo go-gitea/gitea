@@ -13,11 +13,12 @@ import (
 
 // IssueStopwatch creates or stops a stopwatch for the given issue.
 func IssueStopwatch(c *context.Context) {
-	issueIndex := c.ParamsInt64("index")
-	issue, err := models.GetIssueByIndex(c.Repo.Repository.ID, issueIndex)
-
-	if err != nil {
-		c.Handle(http.StatusInternalServerError, "GetIssueByIndex", err)
+	issue := GetActionIssue(c)
+	if c.Written() {
+		return
+	}
+	if !c.Repo.CanUseTimetracker(issue, c.User) {
+		c.Handle(http.StatusNotFound, "CanUseTimetracker", nil)
 		return
 	}
 
@@ -32,11 +33,12 @@ func IssueStopwatch(c *context.Context) {
 
 // CancelStopwatch cancel the stopwatch
 func CancelStopwatch(c *context.Context) {
-	issueIndex := c.ParamsInt64("index")
-	issue, err := models.GetIssueByIndex(c.Repo.Repository.ID, issueIndex)
-
-	if err != nil {
-		c.Handle(http.StatusInternalServerError, "GetIssueByIndex", err)
+	issue := GetActionIssue(c)
+	if c.Written() {
+		return
+	}
+	if !c.Repo.CanUseTimetracker(issue, c.User) {
+		c.Handle(http.StatusNotFound, "CanUseTimetracker", nil)
 		return
 	}
 
