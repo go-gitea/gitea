@@ -676,11 +676,16 @@ func ViewIssue(ctx *context.Context) {
 func getActionIssue(ctx *context.Context) *models.Issue {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
-			ctx.Error(404, "GetIssueByIndex")
-		} else {
-			ctx.Handle(500, "GetIssueByIndex", err)
-		}
+		ctx.NotFoundOrServerError("GetIssueByIndex", models.IsErrIssueNotExist, err)
+		return nil
+	}
+	if issue.IsPull && !ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) ||
+		!issue.IsPull && !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) {
+		ctx.Handle(404, "IssueOrPullRequestUnitNotAllowed", nil)
+		return nil
+	}
+	if err = issue.LoadAttributes(); err != nil {
+		ctx.Handle(500, "LoadAttributes", nil)
 		return nil
 	}
 	return issue
@@ -704,6 +709,19 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 	if err != nil {
 		ctx.Handle(500, "GetIssuesByIDs", err)
 		return nil
+	}
+	// Check access rights for all issues
+	issueUnitEnabled := ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues)
+	prUnitEnabled := ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests)
+	for _, issue := range issues {
+		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
+			ctx.Handle(404, "IssueOrPullRequestUnitNotAllowed", nil)
+			return nil
+		}
+		if err = issue.LoadAttributes(); err != nil {
+			ctx.Handle(500, "LoadAttributes", nil)
+			return nil
+		}
 	}
 	return issues
 }
@@ -840,9 +858,8 @@ func UpdateIssueStatus(ctx *context.Context) {
 
 // NewComment create a comment for issue
 func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
-	if err != nil {
-		ctx.NotFoundOrServerError("GetIssueByIndex", models.IsErrIssueNotExist, err)
+	issue := getActionIssue(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -869,7 +886,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 			if form.Status == "reopen" && issue.IsPull {
 				pull := issue.PullRequest
-				pr, err = models.GetUnmergedPullRequest(pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch)
+				pr, err := models.GetUnmergedPullRequest(pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch)
 				if err != nil {
 					if !models.IsErrPullRequestNotExist(err) {
 						ctx.Handle(500, "GetUnmergedPullRequest", err)
@@ -891,7 +908,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 			if pr != nil {
 				ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 			} else {
-				if err = issue.ChangeStatus(ctx.User, ctx.Repo.Repository, form.Status == "close"); err != nil {
+				if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, form.Status == "close"); err != nil {
 					log.Error(4, "ChangeStatus: %v", err)
 				} else {
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
@@ -918,7 +935,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
-	comment, err = models.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Content, attachments)
+	comment, err := models.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Content, attachments)
 	if err != nil {
 		ctx.Handle(500, "CreateIssueComment", err)
 		return
@@ -988,10 +1005,6 @@ func DeleteComment(ctx *context.Context) {
 
 // Milestones render milestones page
 func Milestones(ctx *context.Context) {
-	MustEnableIssues(ctx)
-	if ctx.Written() {
-		return
-	}
 	ctx.Data["Title"] = ctx.Tr("repo.milestones")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
