@@ -220,8 +220,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Combo("/email").Get(user.SettingsEmails).
 			Post(bindIgnErr(auth.AddEmailForm{}), user.SettingsEmailPost)
 		m.Post("/email/delete", user.DeleteEmail)
-		m.Get("/password", user.SettingsPassword)
-		m.Post("/password", bindIgnErr(auth.ChangePasswordForm{}), user.SettingsPasswordPost)
+		m.Get("/security", user.SettingsSecurity)
+		m.Post("/security", bindIgnErr(auth.ChangePasswordForm{}), user.SettingsSecurityPost)
 		m.Group("/openid", func() {
 			m.Combo("").Get(user.SettingsOpenID).
 				Post(bindIgnErr(auth.AddOpenIDForm{}), user.SettingsOpenIDPost)
@@ -238,8 +238,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Combo("/account_link").Get(user.SettingsAccountLinks).Post(user.SettingsDeleteAccountLink)
 		m.Get("/organization", user.SettingsOrganization)
 		m.Get("/repos", user.SettingsRepos)
-		m.Group("/two_factor", func() {
-			m.Get("", user.SettingsTwoFactor)
+		m.Group("/security/two_factor", func() {
 			m.Post("/regenerate_scratch", user.SettingsTwoFactorRegenerateScratch)
 			m.Post("/disable", user.SettingsTwoFactorDisable)
 			m.Get("/enroll", user.SettingsTwoFactorEnroll)
