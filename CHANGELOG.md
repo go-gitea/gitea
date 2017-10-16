@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/go-gitea/gitea/releases/tag/v1.2.1) - 2017-10-16
+* BUGFIXES
+  * Fix PR, milestone and label functionality if issue unit is disabled (#2710) (#2714)
+  * Fix plain readme didn't render correctly on repo home page (#2705) (#2712)
+  * Fix so that user can still fork his own repository to his organizations (#2699) (#2707)
+  * Fix .netrc authentication (#2700) (#2708)
+  * Fix slice out of bounds error in mailer (#2479) (#2696)
+
 ## [1.2.0](https://github.com/go-gitea/gitea/releases/tag/v1.2.0) - 2017-10-10
 * SECURITY
   * Sanitation fix from Gogs (#1461)
