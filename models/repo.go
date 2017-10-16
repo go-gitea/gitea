@@ -651,6 +651,25 @@ func (repo *Repository) CanBeForked() bool {
 	return !repo.IsBare && repo.UnitEnabled(UnitTypeCode)
 }
 
+// CanUserFork returns true if specified user can fork repository.
+func (repo *Repository) CanUserFork(user *User) (bool, error) {
+	if user == nil {
+		return false, nil
+	}
+	if repo.OwnerID != user.ID && !user.HasForkedRepo(repo.ID) {
+		return true, nil
+	}
+	if err := user.GetOwnedOrganizations(); err != nil {
+		return false, err
+	}
+	for _, org := range user.OwnedOrgs {
+		if repo.OwnerID != org.ID && !org.HasForkedRepo(repo.ID) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // CanEnablePulls returns true if repository meets the requirements of accepting pulls.
 func (repo *Repository) CanEnablePulls() bool {
 	return !repo.IsMirror && !repo.IsBare
@@ -2406,39 +2425,4 @@ func (repo *Repository) GetUserFork(userID int64) (*Repository, error) {
 		return nil, nil
 	}
 	return &forkedRepo, nil
-}
-
-// __________                             .__
-// \______   \____________    ____   ____ |  |__
-//  |    |  _/\_  __ \__  \  /    \_/ ___\|  |  \
-//  |    |   \ |  | \// __ \|   |  \  \___|   Y  \
-//  |______  / |__|  (____  /___|  /\___  >___|  /
-//         \/             \/     \/     \/     \/
-//
-
-// CreateNewBranch creates a new repository branch
-func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName string) (err error) {
-	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
-
-	localPath := repo.LocalCopyPath()
-
-	if err = discardLocalRepoBranchChanges(localPath, oldBranchName); err != nil {
-		return fmt.Errorf("discardLocalRepoChanges: %v", err)
-	} else if err = repo.UpdateLocalCopyBranch(oldBranchName); err != nil {
-		return fmt.Errorf("UpdateLocalCopyBranch: %v", err)
-	}
-
-	if err = repo.CheckoutNewBranch(oldBranchName, branchName); err != nil {
-		return fmt.Errorf("CreateNewBranch: %v", err)
-	}
-
-	if err = git.Push(localPath, git.PushOptions{
-		Remote: "origin",
-		Branch: branchName,
-	}); err != nil {
-		return fmt.Errorf("Push: %v", err)
-	}
-
-	return nil
 }

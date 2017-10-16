@@ -76,6 +76,11 @@ func (r *Repository) CanEnableEditor() bool {
 	return r.Repository.CanEnableEditor() && r.IsViewBranch && r.IsWriter()
 }
 
+// CanCreateBranch returns true if repository is editable and user has proper access level.
+func (r *Repository) CanCreateBranch() bool {
+	return r.Repository.CanCreateBranch() && r.IsWriter()
+}
+
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected
 func (r *Repository) CanCommitToBranch(doer *models.User) (bool, error) {
@@ -337,6 +342,11 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["IsRepositoryAdmin"] = ctx.Repo.IsAdmin()
 		ctx.Data["IsRepositoryWriter"] = ctx.Repo.IsWriter()
 
+		if ctx.Data["CanSignedUserFork"], err = ctx.Repo.Repository.CanUserFork(ctx.User); err != nil {
+			ctx.Handle(500, "CanUserFork", err)
+			return
+		}
+
 		ctx.Data["DisableSSH"] = setting.SSH.Disabled
 		ctx.Data["ExposeAnonSSH"] = setting.SSH.ExposeAnonymous
 		ctx.Data["DisableHTTP"] = setting.Repository.DisableHTTPGit
@@ -523,6 +533,7 @@ func RepoRef() macaron.Handler {
 		ctx.Data["IsViewBranch"] = ctx.Repo.IsViewBranch
 		ctx.Data["IsViewTag"] = ctx.Repo.IsViewTag
 		ctx.Data["IsViewCommit"] = ctx.Repo.IsViewCommit
+		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch()
 
 		ctx.Repo.CommitsCount, err = ctx.Repo.Commit.CommitsCount()
 		if err != nil {
