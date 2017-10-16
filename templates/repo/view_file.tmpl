@@ -38,10 +38,10 @@
 	<div class="ui attached table segment">
 		<div class="file-view {{if .IsRenderedHTML}}markdown{{else if .IsTextFile}}code-view{{end}} has-emoji">
 			{{if .IsRenderedHTML}}
-				{{if not .IsMarkup}}
-					<pre>{{if .FileContent}}{{.FileContent | Str2html}}{{end}}</pre>
-				{{else}}
+				{{if .IsMarkup}}
 					{{if .FileContent}}{{.FileContent | Str2html}}{{end}}
+				{{else}}
+					<pre>{{if .FileContent}}{{.FileContent | Str2html}}{{end}}</pre>
 				{{end}}
 			{{else if not .IsTextFile}}
 				<div class="view-raw ui center">
