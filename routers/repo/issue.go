@@ -725,7 +725,7 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 	}
 	if issue.IsPull && !ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) ||
 		!issue.IsPull && !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) {
-		ctx.Handle(404, "UnitEnabled", nil)
+		ctx.Handle(404, "IssueOrPullRequestUnitNotAllowed", nil)
 		return nil
 	}
 	if err = issue.LoadAttributes(); err != nil {
@@ -759,7 +759,7 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 	prUnitEnabled := ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests)
 	for _, issue := range issues {
 		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
-			ctx.Handle(404, "UnitEnabled", nil)
+			ctx.Handle(404, "IssueOrPullRequestUnitNotAllowed", nil)
 			return nil
 		}
 		if err = issue.LoadAttributes(); err != nil {
