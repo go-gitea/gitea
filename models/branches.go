@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
 )
 
 const (
@@ -196,18 +195,6 @@ func (repo *Repository) DeleteProtectedBranch(id int64) (err error) {
 	return sess.Commit()
 }
 
-// newProtectedBranch insert one queue
-func newProtectedBranch(protectedBranch *ProtectedBranch) error {
-	_, err := x.InsertOne(protectedBranch)
-	return err
-}
-
-// UpdateProtectedBranch update queue
-func UpdateProtectedBranch(protectedBranch *ProtectedBranch) error {
-	_, err := x.Update(protectedBranch)
-	return err
-}
-
 // DeletedBranch struct
 type DeletedBranch struct {
 	ID          int64     `xorm:"pk autoincr"`
@@ -217,19 +204,12 @@ type DeletedBranch struct {
 	DeletedByID int64     `xorm:"INDEX"`
 	DeletedBy   *User     `xorm:"-"`
 	Deleted     time.Time `xorm:"-"`
-	DeletedUnix int64     `xorm:"INDEX"`
+	DeletedUnix int64     `xorm:"INDEX created"`
 }
 
-// BeforeInsert before protected branch insert create and update time
-func (deletedBranch *DeletedBranch) BeforeInsert() {
-	deletedBranch.DeletedUnix = time.Now().Unix()
-}
-
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (deletedBranch *DeletedBranch) AfterSet(colName string, _ xorm.Cell) {
-	if colName == "deleted_unix" {
-		deletedBranch.Deleted = time.Unix(deletedBranch.DeletedUnix, 0).Local()
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (deletedBranch *DeletedBranch) AfterLoad() {
+	deletedBranch.Deleted = time.Unix(deletedBranch.DeletedUnix, 0).Local()
 }
 
 // AddDeletedBranch adds a deleted branch to the database
