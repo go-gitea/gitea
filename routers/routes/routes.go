@@ -503,7 +503,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/comments/:id", func() {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
-		}, context.CheckUnit(models.UnitTypeIssues))
+		}, context.CheckAnyUnit(models.UnitTypeIssues, models.UnitTypePullRequests))
 		m.Group("/labels", func() {
 			m.Post("/new", bindIgnErr(auth.CreateLabelForm{}), repo.NewLabel)
 			m.Post("/edit", bindIgnErr(auth.CreateLabelForm{}), repo.UpdateLabel)
