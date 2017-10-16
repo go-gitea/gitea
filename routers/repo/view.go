@@ -93,11 +93,11 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		if isTextFile {
 			d, _ := ioutil.ReadAll(dataRc)
 			buf = append(buf, d...)
-			ctx.Data["IsRenderedHTML"] = true
 			if markup.Type(readmeFile.Name()) != "" {
 				ctx.Data["IsMarkup"] = true
 				ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
 			} else {
+				ctx.Data["IsRenderedHTML"] = true
 				ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
 			}
 		}
