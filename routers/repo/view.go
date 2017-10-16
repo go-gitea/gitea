@@ -94,16 +94,11 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 			d, _ := ioutil.ReadAll(dataRc)
 			buf = append(buf, d...)
 			ctx.Data["IsRenderedHTML"] = true
-			newbuf := markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas())
-			if newbuf != nil {
-				ctx.Data["IsMarkup"] = true
+			if markup.Type(readmeFile.Name()) != "" {
+				ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
 			} else {
-				// FIXME This is the only way to show non-markdown files
-				// instead of a broken "View Raw" link
-				ctx.Data["IsMarkup"] = false
-				newbuf = bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1)
+				ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
 			}
-			ctx.Data["FileContent"] = string(newbuf)
 		}
 	}
 
@@ -196,15 +191,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		d, _ := ioutil.ReadAll(dataRc)
 		buf = append(buf, d...)
 
-		tp := markup.Type(blob.Name())
-		isSupportedMarkup := tp != ""
-		ctx.Data["IsMarkup"] = isSupportedMarkup
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
-		ctx.Data["IsRenderedHTML"] = true
-		if isSupportedMarkup {
+		if markup.Type(blob.Name()) != "" {
+			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
 		} else if readmeExist {
+			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
 		} else {
 			// Building code view blocks with line number on server side.
