@@ -39,3 +39,27 @@
   user_id: 15
   repo_id: 24
   mode: 4 # owner
+
+-
+  id: 8
+  user_id: 18
+  repo_id: 23
+  mode: 4 # owner
+
+-
+  id: 9
+  user_id: 18
+  repo_id: 24
+  mode: 4 # owner
+
+-
+  id: 10
+  user_id: 18
+  repo_id: 22
+  mode: 2 # write
+
+-
+  id: 11
+  user_id: 18
+  repo_id: 21
+  mode: 2 # write

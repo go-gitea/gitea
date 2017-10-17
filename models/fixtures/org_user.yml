@@ -37,3 +37,11 @@
   is_public: true
   is_owner: true
   num_teams: 1
+
+-
+  id: 6
+  uid: 18
+  org_id: 17
+  is_public: false
+  is_owner: true
+  num_teams: 1

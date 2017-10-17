@@ -50,6 +50,7 @@ func TestAPISearchRepo(t *testing.T) {
 
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 15}).(*models.User)
 	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 16}).(*models.User)
+	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 18}).(*models.User)
 	orgUser := models.AssertExistsAndLoadBean(t, &models.User{ID: 17}).(*models.User)
 
 	// Map of expected results, where key is user for login
@@ -85,16 +86,20 @@ func TestAPISearchRepo(t *testing.T) {
 			user2: {count: 4, repoName: "big_test_"}},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
-			// FIXME: Should return 4 (all public repositories related to "another" user = owned + collaborative), now returns only public repositories directly owned by user
-			nil:  {count: 2},
-			user: {count: 8, includesPrivate: true},
-			// FIXME: Should return 4 (all public repositories related to "another" user = owned + collaborative), now returns only public repositories directly owned by user
-			user2: {count: 2}},
+			nil:   {count: 4},
+			user:  {count: 8, includesPrivate: true},
+			user2: {count: 4}},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
 			nil:   {count: 1},
 			user:  {count: 1},
 			user2: {count: 2, includesPrivate: true}},
+		},
+		{name: "RepositoriesAccessibleAndRelatedToUser3", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user3.ID), expectedResults: expectedResults{
+			nil:   {count: 1},
+			user:  {count: 1},
+			user2: {count: 1},
+			user3: {count: 4, includesPrivate: true}},
 		},
 		{name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
 			nil:   {count: 1, repoOwnerID: orgUser.ID},
