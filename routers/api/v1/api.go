@@ -444,6 +444,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 			m.Group("/:username/:reponame", func() {
 				m.Combo("").Get(repo.Get).Delete(reqToken(), repo.Delete)
+				// TODO: Expand this to make the files available as an endpoint; note that
+				// GitHub uses `/repos/:owner/:repo/git/trees/:sha` as documented at
+				// https://developer.github.com/v3/git/trees/
 				m.Group("/hooks", func() {
 					m.Combo("").Get(repo.ListHooks).
 						Post(bind(api.CreateHookOption{}), repo.CreateHook)
