@@ -63,6 +63,10 @@ func TestMain(m *testing.M) {
 		fmt.Printf("os.RemoveAll: %v\n", err)
 		os.Exit(1)
 	}
+	if err = os.RemoveAll(setting.Indexer.RepoPath); err != nil {
+		fmt.Printf("Unable to remove repo indexer: %v\n", err)
+		os.Exit(1)
+	}
 
 	os.Exit(exitCode)
 }

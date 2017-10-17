@@ -38,3 +38,19 @@ func OptionalBoolOf(b bool) OptionalBool {
 	}
 	return OptionalBoolFalse
 }
+
+// Max max of two ints
+func Max(a, b int) int {
+	if a < b {
+		return b
+	}
+	return a
+}
+
+// Min min of two ints
+func Min(a, b int) int {
+	if a > b {
+		return b
+	}
+	return a
+}

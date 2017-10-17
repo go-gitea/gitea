@@ -158,6 +158,11 @@
     }
 
     &.file.list {
+        .repo-description {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
         #repo-desc {
             font-size: 1.2em;
         }
@@ -226,7 +231,7 @@
                         }
         }
 
-        #file-content {
+        .non-diff-file-content {
             .header {
                 .icon {
                     font-size: 1em;
@@ -244,7 +249,7 @@
                         background: transparent;
                         border: 0;
                         outline: none;
-                     }
+                    }
                     .btn-octicon:hover {
                         color: #4078c0;
                     }
@@ -322,6 +327,9 @@
                             }
                         }
                     }
+                }
+                .active {
+                    background: #ffffdd;
                 }
             }
         }
@@ -1037,6 +1045,13 @@
         overflow: auto;
         overflow-x: auto;
         overflow-y: hidden;
+    }
+    .repo-search-result {
+        padding-top: 10px;
+        padding-bottom: 10px;
+        .lines-num a {
+            color: inherit;
+        }
     }
 
     &.quickstart {

@@ -99,6 +99,12 @@
 			"revisionTime": "2017-06-14T16:31:07Z"
 		},
 		{
+			"checksumSHA1": "xj8o/nQj59yt+o+RZSa0n9V3vKY=",
+			"path": "github.com/blevesearch/bleve/analysis/token/camelcase",
+			"revision": "174f8ed44a0bf65e7c8fb228b60b58de62654cd2",
+			"revisionTime": "2017-06-28T17:18:15Z"
+		},
+		{
 			"checksumSHA1": "3VIPkl12t1ko4y6DkbPcz+MtQjY=",
 			"path": "github.com/blevesearch/bleve/analysis/token/lowercase",
 			"revision": "011b168f7b84ffef05aed6716d73d21b1a33e971",

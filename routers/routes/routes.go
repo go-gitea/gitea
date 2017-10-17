@@ -649,6 +649,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/:username/:reponame", func() {
 		m.Get("/stars", repo.Stars)
 		m.Get("/watchers", repo.Watchers)
+		m.Get("/search", context.CheckUnit(models.UnitTypeCode), repo.Search)
 	}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes(), context.LoadRepoUnits())
 
 	m.Group("/:username", func() {

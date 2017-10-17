@@ -3,10 +3,26 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<p id="repo-desc">
-			{{if .Repository.DescriptionHTML}}<span class="description has-emoji">{{.Repository.DescriptionHTML}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
-			<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
-		</p>
+		<div class="ui repo-description">
+			<div id="repo-desc">
+				{{if .Repository.DescriptionHTML}}<span class="description has-emoji">{{.Repository.DescriptionHTML}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
+				<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
+			</div>
+			{{if .RepoSearchEnabled}}
+				<div class="ui repo-search">
+					<form class="ui form" action="{{.RepoLink}}/search" method="get">
+						<div class="field">
+							<div class="ui action input">
+								<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
+								<button class="ui icon button" type="submit">
+									<i class="search icon"></i>
+								</button>
+							</div>
+						</div>
+					</form>
+				</div>
+			{{end}}
+		</div>
 		{{template "repo/sub_menu" .}}
 		<div class="ui secondary menu">
 			{{if .PullRequestCtx.Allowed}}

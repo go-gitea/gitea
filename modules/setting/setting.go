@@ -140,8 +140,11 @@ var (
 
 	// Indexer settings
 	Indexer struct {
-		IssuePath         string
-		UpdateQueueLength int
+		IssuePath          string
+		RepoIndexerEnabled bool
+		RepoPath           string
+		UpdateQueueLength  int
+		MaxIndexerFileSize int64
 	}
 
 	// Webhook settings
@@ -234,12 +237,13 @@ var (
 
 	// UI settings
 	UI = struct {
-		ExplorePagingNum   int
-		IssuePagingNum     int
-		FeedMaxCommitNum   int
-		ThemeColorMetaTag  string
-		MaxDisplayFileSize int64
-		ShowUserEmail      bool
+		ExplorePagingNum    int
+		IssuePagingNum      int
+		RepoSearchPagingNum int
+		FeedMaxCommitNum    int
+		ThemeColorMetaTag   string
+		MaxDisplayFileSize  int64
+		ShowUserEmail       bool
 
 		Admin struct {
 			UserPagingNum   int
@@ -256,11 +260,12 @@ var (
 			Keywords    string
 		} `ini:"ui.meta"`
 	}{
-		ExplorePagingNum:   20,
-		IssuePagingNum:     10,
-		FeedMaxCommitNum:   5,
-		ThemeColorMetaTag:  `#6cc644`,
-		MaxDisplayFileSize: 8388608,
+		ExplorePagingNum:    20,
+		IssuePagingNum:      10,
+		RepoSearchPagingNum: 10,
+		FeedMaxCommitNum:    5,
+		ThemeColorMetaTag:   `#6cc644`,
+		MaxDisplayFileSize:  8388608,
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
