@@ -1326,7 +1326,7 @@ type Mailer struct {
 	// Sendmail sender
 	UseSendmail  bool
 	SendmailPath string
-	SendmailArgs string
+	SendmailArgs []string
 }
 
 var (
@@ -1358,7 +1358,7 @@ func newMailService() {
 
 		UseSendmail:  sec.Key("USE_SENDMAIL").MustBool(),
 		SendmailPath: sec.Key("SENDMAIL_PATH").MustString("sendmail"),
-		SendmailArgs: sec.Key("SENDMAIL_ARGS").MustString(""),
+		SendmailArgs: sec.Key("SENDMAIL_ARGS").Strings(" "),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
 
