@@ -10,16 +10,22 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 
 	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 )
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
 type CommentType int
+
+// define unknown comment type
+const (
+	CommentTypeUnknown CommentType = -1
+)
 
 // Enumerate all the comment types
 const (
@@ -46,6 +52,14 @@ const (
 	CommentTypeChangeTitle
 	// Delete Branch
 	CommentTypeDeleteBranch
+	// Start a stopwatch for time tracking
+	CommentTypeStartTracking
+	// Stop a stopwatch for time tracking
+	CommentTypeStopTracking
+	// Add time manual for time tracking
+	CommentTypeAddTimeManual
+	// Cancel a stopwatch for time tracking
+	CommentTypeCancelTracking
 )
 
 // CommentTag defines comment tag type
@@ -85,9 +99,9 @@ type Comment struct {
 	RenderedContent string `xorm:"-"`
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
+	CreatedUnix int64     `xorm:"INDEX created"`
 	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX"`
+	UpdatedUnix int64     `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
 	CommitSHA string `xorm:"VARCHAR(40)"`
@@ -98,42 +112,25 @@ type Comment struct {
 	ShowTag CommentTag `xorm:"-"`
 }
 
-// BeforeInsert will be invoked by XORM before inserting a record
-// representing this object.
-func (c *Comment) BeforeInsert() {
-	c.CreatedUnix = time.Now().Unix()
-	c.UpdatedUnix = c.CreatedUnix
-}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (c *Comment) AfterLoad(session *xorm.Session) {
+	c.Created = time.Unix(c.CreatedUnix, 0).Local()
+	c.Updated = time.Unix(c.UpdatedUnix, 0).Local()
 
-// BeforeUpdate is invoked from XORM before updating this object.
-func (c *Comment) BeforeUpdate() {
-	c.UpdatedUnix = time.Now().Unix()
-}
-
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (c *Comment) AfterSet(colName string, _ xorm.Cell) {
 	var err error
-	switch colName {
-	case "id":
-		c.Attachments, err = GetAttachmentsByCommentID(c.ID)
-		if err != nil {
-			log.Error(3, "GetAttachmentsByCommentID[%d]: %v", c.ID, err)
-		}
+	c.Attachments, err = getAttachmentsByCommentID(session, c.ID)
+	if err != nil {
+		log.Error(3, "getAttachmentsByCommentID[%d]: %v", c.ID, err)
+	}
 
-	case "poster_id":
-		c.Poster, err = GetUserByID(c.PosterID)
-		if err != nil {
-			if IsErrUserNotExist(err) {
-				c.PosterID = -1
-				c.Poster = NewGhostUser()
-			} else {
-				log.Error(3, "GetUserByID[%d]: %v", c.ID, err)
-			}
+	c.Poster, err = getUserByID(session, c.PosterID)
+	if err != nil {
+		if IsErrUserNotExist(err) {
+			c.PosterID = -1
+			c.Poster = NewGhostUser()
+		} else {
+			log.Error(3, "getUserByID[%d]: %v", c.ID, err)
 		}
-	case "created_unix":
-		c.Created = time.Unix(c.CreatedUnix, 0).Local()
-	case "updated_unix":
-		c.Updated = time.Unix(c.UpdatedUnix, 0).Local()
 	}
 }
 
@@ -153,7 +150,7 @@ func (c *Comment) HTMLURL() string {
 		log.Error(4, "GetIssueByID(%d): %v", c.IssueID, err)
 		return ""
 	}
-	return fmt.Sprintf("%s#issuecomment-%d", issue.HTMLURL(), c.ID)
+	return fmt.Sprintf("%s#%s", issue.HTMLURL(), c.HashTag())
 }
 
 // IssueURL formats a URL-string to the issue
@@ -231,12 +228,9 @@ func (c *Comment) LoadMilestone() error {
 		has, err := x.ID(c.OldMilestoneID).Get(&oldMilestone)
 		if err != nil {
 			return err
-		} else if !has {
-			return ErrMilestoneNotExist{
-				ID: c.OldMilestoneID,
-			}
+		} else if has {
+			c.OldMilestone = &oldMilestone
 		}
-		c.OldMilestone = &oldMilestone
 	}
 
 	if c.MilestoneID > 0 {
@@ -244,12 +238,9 @@ func (c *Comment) LoadMilestone() error {
 		has, err := x.ID(c.MilestoneID).Get(&milestone)
 		if err != nil {
 			return err
-		} else if !has {
-			return ErrMilestoneNotExist{
-				ID: c.MilestoneID,
-			}
+		} else if has {
+			c.Milestone = &milestone
 		}
-		c.Milestone = &milestone
 	}
 	return nil
 }
@@ -276,7 +267,7 @@ func (c *Comment) LoadAssignees() error {
 // MailParticipants sends new comment emails to repository watchers
 // and mentioned people.
 func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
-	mentions := markdown.FindAllMentions(c.Content)
+	mentions := markup.FindAllMentions(c.Content)
 	if err = UpdateIssueMentions(e, c.IssueID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}
@@ -289,7 +280,7 @@ func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (e
 	case ActionReopenIssue:
 		issue.Content = fmt.Sprintf("Reopened #%d", issue.Index)
 	}
-	if err = mailIssueCommentToParticipants(issue, c.Poster, mentions); err != nil {
+	if err = mailIssueCommentToParticipants(e, issue, c.Poster, c, mentions); err != nil {
 		log.Error(4, "mailIssueCommentToParticipants: %v", err)
 	}
 
@@ -329,13 +320,14 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	// Compose comment action, could be plain comment, close or reopen issue/pull request.
 	// This object will be used to notify watchers in the end of function.
 	act := &Action{
-		ActUserID:    opts.Doer.ID,
-		ActUserName:  opts.Doer.Name,
-		Content:      fmt.Sprintf("%d|%s", opts.Issue.Index, strings.Split(opts.Content, "\n")[0]),
-		RepoID:       opts.Repo.ID,
-		RepoUserName: opts.Repo.Owner.Name,
-		RepoName:     opts.Repo.Name,
-		IsPrivate:    opts.Repo.IsPrivate,
+		ActUserID: opts.Doer.ID,
+		ActUser:   opts.Doer,
+		Content:   fmt.Sprintf("%d|%s", opts.Issue.Index, strings.Split(opts.Content, "\n")[0]),
+		RepoID:    opts.Repo.ID,
+		Repo:      opts.Repo,
+		Comment:   comment,
+		CommentID: comment.ID,
+		IsPrivate: opts.Repo.IsPrivate,
 	}
 
 	// Check comment type.
@@ -364,7 +356,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 			attachments[i].IssueID = opts.Issue.ID
 			attachments[i].CommentID = comment.ID
 			// No assign value could be 0, so ignore AllCols().
-			if _, err = e.Id(attachments[i].ID).Update(attachments[i]); err != nil {
+			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
 				return nil, fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
 			}
 		}
@@ -398,7 +390,11 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		if err != nil {
 			return nil, err
 		}
+	}
 
+	// update the issue's updated_unix column
+	if err = updateIssueCols(e, opts.Issue); err != nil {
+		return nil, err
 	}
 
 	// Notify watchers for whatever action comes in, ignore if no action type.
@@ -509,7 +505,7 @@ type CreateCommentOptions struct {
 // CreateComment creates comment of issue or commit.
 func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -519,7 +515,14 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 		return nil, err
 	}
 
-	return comment, sess.Commit()
+	if err = sess.Commit(); err != nil {
+		return nil, err
+	}
+
+	if opts.Type == CommentTypeComment {
+		UpdateIssueIndexer(opts.Issue.ID)
+	}
+	return comment, nil
 }
 
 // CreateIssueComment creates a plain issue comment.
@@ -566,7 +569,7 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 // GetCommentByID returns the comment by given ID.
 func GetCommentByID(id int64) (*Comment, error) {
 	c := new(Comment)
-	has, err := x.Id(id).Get(c)
+	has, err := x.ID(id).Get(c)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -575,57 +578,87 @@ func GetCommentByID(id int64) (*Comment, error) {
 	return c, nil
 }
 
-func getCommentsByIssueIDSince(e Engine, issueID, since int64) ([]*Comment, error) {
-	comments := make([]*Comment, 0, 10)
-	sess := e.
-		Where("issue_id = ?", issueID).
-		Asc("created_unix")
-	if since > 0 {
-		sess.And("updated_unix >= ?", since)
-	}
-	return comments, sess.Find(&comments)
+// FindCommentsOptions describes the conditions to Find comments
+type FindCommentsOptions struct {
+	RepoID  int64
+	IssueID int64
+	Since   int64
+	Type    CommentType
 }
 
-func getCommentsByRepoIDSince(e Engine, repoID, since int64) ([]*Comment, error) {
-	comments := make([]*Comment, 0, 10)
-	sess := e.Where("issue.repo_id = ?", repoID).
-		Join("INNER", "issue", "issue.id = comment.issue_id").
-		Asc("comment.created_unix")
-	if since > 0 {
-		sess.And("comment.updated_unix >= ?", since)
+func (opts *FindCommentsOptions) toConds() builder.Cond {
+	var cond = builder.NewCond()
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
 	}
-	return comments, sess.Find(&comments)
+	if opts.IssueID > 0 {
+		cond = cond.And(builder.Eq{"comment.issue_id": opts.IssueID})
+	}
+	if opts.Since > 0 {
+		cond = cond.And(builder.Gte{"comment.updated_unix": opts.Since})
+	}
+	if opts.Type != CommentTypeUnknown {
+		cond = cond.And(builder.Eq{"comment.type": opts.Type})
+	}
+	return cond
 }
 
-func getCommentsByIssueID(e Engine, issueID int64) ([]*Comment, error) {
-	return getCommentsByIssueIDSince(e, issueID, -1)
+func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
+	comments := make([]*Comment, 0, 10)
+	sess := e.Where(opts.toConds())
+	if opts.RepoID > 0 {
+		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
+	}
+	return comments, sess.
+		Asc("comment.created_unix").
+		Find(&comments)
+}
+
+// FindComments returns all comments according options
+func FindComments(opts FindCommentsOptions) ([]*Comment, error) {
+	return findComments(x, opts)
 }
 
 // GetCommentsByIssueID returns all comments of an issue.
 func GetCommentsByIssueID(issueID int64) ([]*Comment, error) {
-	return getCommentsByIssueID(x, issueID)
+	return findComments(x, FindCommentsOptions{
+		IssueID: issueID,
+		Type:    CommentTypeUnknown,
+	})
 }
 
 // GetCommentsByIssueIDSince returns a list of comments of an issue since a given time point.
 func GetCommentsByIssueIDSince(issueID, since int64) ([]*Comment, error) {
-	return getCommentsByIssueIDSince(x, issueID, since)
+	return findComments(x, FindCommentsOptions{
+		IssueID: issueID,
+		Type:    CommentTypeUnknown,
+		Since:   since,
+	})
 }
 
 // GetCommentsByRepoIDSince returns a list of comments for all issues in a repo since a given time point.
 func GetCommentsByRepoIDSince(repoID, since int64) ([]*Comment, error) {
-	return getCommentsByRepoIDSince(x, repoID, since)
+	return findComments(x, FindCommentsOptions{
+		RepoID: repoID,
+		Type:   CommentTypeUnknown,
+		Since:  since,
+	})
 }
 
 // UpdateComment updates information of comment.
 func UpdateComment(c *Comment) error {
-	_, err := x.Id(c.ID).AllCols().Update(c)
-	return err
+	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
+		return err
+	} else if c.Type == CommentTypeComment {
+		UpdateIssueIndexer(c.IssueID)
+	}
+	return nil
 }
 
 // DeleteComment deletes the comment
 func DeleteComment(comment *Comment) error {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -641,6 +674,14 @@ func DeleteComment(comment *Comment) error {
 			return err
 		}
 	}
+	if _, err := sess.Where("comment_id = ?", comment.ID).Cols("is_deleted").Update(&Action{IsDeleted: true}); err != nil {
+		return err
+	}
 
-	return sess.Commit()
+	if err := sess.Commit(); err != nil {
+		return err
+	} else if comment.Type == CommentTypeComment {
+		UpdateIssueIndexer(comment.IssueID)
+	}
+	return nil
 }

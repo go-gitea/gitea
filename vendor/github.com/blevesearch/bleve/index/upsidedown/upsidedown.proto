@@ -1,6 +1,6 @@
-message BackIndexTermEntry {
-	required string term = 1;
-	required uint32 field = 2;
+message BackIndexTermsEntry {
+  required uint32 field = 1;
+	repeated string terms = 2;
 }
 
 message BackIndexStoreEntry {
@@ -9,6 +9,6 @@ message BackIndexStoreEntry {
 }
 
 message BackIndexRowValue {
-	repeated BackIndexTermEntry termEntries = 1;
+	repeated BackIndexTermsEntry termsEntries = 1;
 	repeated BackIndexStoreEntry storedEntries = 2;
 }

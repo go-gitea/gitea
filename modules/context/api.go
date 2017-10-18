@@ -23,6 +23,38 @@ type APIContext struct {
 	Org *APIOrganization
 }
 
+// APIError is error format response
+// swagger:response error
+type APIError struct {
+	Message string `json:"message"`
+	URL     string `json:"url"`
+}
+
+// APIValidationError is error format response related to input validation
+// swagger:response validationError
+type APIValidationError struct {
+	Message string `json:"message"`
+	URL     string `json:"url"`
+}
+
+//APIEmpty is an empty response
+// swagger:response empty
+type APIEmpty struct{}
+
+//APIForbiddenError is a forbidden error response
+// swagger:response forbidden
+type APIForbiddenError struct {
+	APIError
+}
+
+//APINotFound is a not found empty response
+// swagger:response notFound
+type APINotFound struct{}
+
+//APIRedirect is a redirect response
+// swagger:response redirect
+type APIRedirect struct{}
+
 // Error responses error message to client with given message.
 // If status is 500, also it prints error to log.
 func (ctx *APIContext) Error(status int, title string, obj interface{}) {
@@ -37,13 +69,13 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 		log.Error(4, "%s: %s", title, message)
 	}
 
-	ctx.JSON(status, map[string]string{
-		"message": message,
-		"url":     base.DocURL,
+	ctx.JSON(status, APIError{
+		Message: message,
+		URL:     base.DocURL,
 	})
 }
 
-// SetLinkHeader sets pagination link header by given totol number and page size.
+// SetLinkHeader sets pagination link header by given total number and page size.
 func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 	page := paginater.New(total, pageSize, ctx.QueryInt("page"), 0)
 	links := make([]string, 0, 4)

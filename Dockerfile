@@ -1,10 +1,10 @@
-FROM alpine:3.4
-MAINTAINER Thomas Boerger <thomas@webhippie.de>
+FROM alpine:3.6
+
+LABEL maintainer="The Gitea Authors"
 
 EXPOSE 22 3000
 
-RUN apk update && \
-  apk add \
+RUN apk --no-cache add \
     su-exec \
     ca-certificates \
     sqlite \
@@ -14,10 +14,8 @@ RUN apk update && \
     s6 \
     curl \
     openssh \
-    tzdata && \
-  rm -rf \
-    /var/cache/apk/* && \
-  addgroup \
+    tzdata
+RUN addgroup \
     -S -g 1000 \
     git && \
   adduser \
@@ -27,7 +25,7 @@ RUN apk update && \
     -u 1000 \
     -G git \
     git && \
-  echo "git:$(date +%s | sha256sum | base64 | head -c 32)" | chpasswd
+  echo "git:$(dd if=/dev/urandom bs=24 count=1 status=none | base64)" | chpasswd
 
 ENV USER git
 ENV GITEA_CUSTOM /data/gitea

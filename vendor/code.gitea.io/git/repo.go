@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -11,7 +12,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/Unknwon/com"
 )
 
 // Repository represents a Git repository.
@@ -149,9 +153,21 @@ func Pull(repoPath string, opts PullRemoteOptions) error {
 	return err
 }
 
+// PushOptions options when push to remote
+type PushOptions struct {
+	Remote string
+	Branch string
+	Force  bool
+}
+
 // Push pushs local commits to given remote branch.
-func Push(repoPath, remote, branch string) error {
-	_, err := NewCommand("push", remote, branch).RunInDir(repoPath)
+func Push(repoPath string, opts PushOptions) error {
+	cmd := NewCommand("push")
+	if opts.Force {
+		cmd.AddArguments("-f")
+	}
+	cmd.AddArguments(opts.Remote, opts.Branch)
+	_, err := cmd.RunInDir(repoPath)
 	return err
 }
 
@@ -197,4 +213,75 @@ func ResetHEAD(repoPath string, hard bool, revision string) error {
 func MoveFile(repoPath, oldTreeName, newTreeName string) error {
 	_, err := NewCommand("mv").AddArguments(oldTreeName, newTreeName).RunInDir(repoPath)
 	return err
+}
+
+// CountObject represents repository count objects report
+type CountObject struct {
+	Count       int64
+	Size        int64
+	InPack      int64
+	Packs       int64
+	SizePack    int64
+	PrunePack   int64
+	Garbage     int64
+	SizeGarbage int64
+}
+
+const (
+	statCount        = "count: "
+	statSize         = "size: "
+	statInpack       = "in-pack: "
+	statPacks        = "packs: "
+	statSizePack     = "size-pack: "
+	statPrunePackage = "prune-package: "
+	statGarbage      = "garbage: "
+	statSizeGarbage  = "size-garbage: "
+)
+
+// GetRepoSize returns disk consumption for repo in path
+func GetRepoSize(repoPath string) (*CountObject, error) {
+	cmd := NewCommand("count-objects", "-v")
+	stdout, err := cmd.RunInDir(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseSize(stdout), nil
+}
+
+// parseSize parses the output from count-objects and return a CountObject
+func parseSize(objects string) *CountObject {
+	repoSize := new(CountObject)
+	for _, line := range strings.Split(objects, "\n") {
+		switch {
+		case strings.HasPrefix(line, statCount):
+			repoSize.Count = com.StrTo(line[7:]).MustInt64()
+		case strings.HasPrefix(line, statSize):
+			repoSize.Size = com.StrTo(line[6:]).MustInt64() * 1024
+		case strings.HasPrefix(line, statInpack):
+			repoSize.InPack = com.StrTo(line[9:]).MustInt64()
+		case strings.HasPrefix(line, statPacks):
+			repoSize.Packs = com.StrTo(line[7:]).MustInt64()
+		case strings.HasPrefix(line, statSizePack):
+			repoSize.SizePack = com.StrTo(line[11:]).MustInt64() * 1024
+		case strings.HasPrefix(line, statPrunePackage):
+			repoSize.PrunePack = com.StrTo(line[16:]).MustInt64()
+		case strings.HasPrefix(line, statGarbage):
+			repoSize.Garbage = com.StrTo(line[9:]).MustInt64()
+		case strings.HasPrefix(line, statSizeGarbage):
+			repoSize.SizeGarbage = com.StrTo(line[14:]).MustInt64() * 1024
+		}
+	}
+	return repoSize
+}
+
+// GetLatestCommitTime returns time for latest commit in repository (across all branches)
+func GetLatestCommitTime(repoPath string) (time.Time, error) {
+	cmd := NewCommand("for-each-ref", "--sort=-committerdate", "refs/heads/", "--count", "1", "--format=%(committerdate)")
+	stdout, err := cmd.RunInDir(repoPath)
+	if err != nil {
+		return time.Time{}, err
+	}
+	commitTime := strings.TrimSpace(stdout)
+	return time.Parse("Mon Jan 02 15:04:05 2006 -0700", commitTime)
 }

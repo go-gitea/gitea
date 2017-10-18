@@ -1,0 +1,86 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          gitea
+# Required-Start:    $syslog $network
+# Required-Stop:     $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: A self-hosted Git service written in Go.
+# Description:       A self-hosted Git service written in Go.
+### END INIT INFO
+
+# Author: Danny Boisvert
+
+# Do NOT "set -e"
+
+# PATH should only include /usr/* if it runs after the mountnfs.sh script
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="Git with a cup of tea"
+NAME=gitea
+SERVICEVERBOSE=yes
+PIDFILE=/var/run/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
+WORKINGDIR=/home/git/gitea
+DAEMON=$WORKINGDIR/$NAME
+DAEMON_ARGS="web"
+USER=git
+USERBIND="setcap cap_net_bind_service=+ep"
+STOP_SCHEDULE="${STOP_SCHEDULE:-QUIT/5/TERM/1/KILL/5}"
+
+# Read configuration variable file if it is present
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+# Exit if the package is not installed
+[ -x "$DAEMON" ] || exit 0
+
+do_start()
+{
+    $USERBIND $DAEMON
+    sh -c "USER=$USER start-stop-daemon --start --quiet --pidfile $PIDFILE --make-pidfile \\
+        --background --chdir $WORKINGDIR --chuid $USER \\
+        --exec $DAEMON -- $DAEMON_ARGS"
+}
+
+do_stop()
+{
+    start-stop-daemon --stop --quiet --retry=$STOP_SCHEDULE --pidfile $PIDFILE --name $NAME --oknodo
+    rm -f $PIDFILE
+}
+
+do_status()
+{
+    if [ -f $PIDFILE ]; then
+        if kill -0 $(cat "$PIDFILE"); then
+            echo "$NAME is running, PID is $(cat $PIDFILE)"
+        else
+            echo "$NAME process is dead, but pidfile exists"
+        fi
+    else
+        echo "$NAME is not running"
+    fi
+}
+
+case "$1" in
+    start)
+        echo "Starting $DESC" "$NAME"
+        do_start
+        ;;
+    stop)
+        echo "Stopping $DESC" "$NAME"
+        do_stop
+        ;;
+    status)
+        do_status
+        ;;
+    restart)
+        echo "Restarting $DESC" "$NAME"
+        do_stop
+        do_start
+        ;;
+    *)
+        echo "Usage: $SCRIPTNAME {start|stop|status|restart}" >&2
+        exit 2
+        ;;
+esac
+
+exit 0

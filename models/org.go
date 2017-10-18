@@ -16,8 +16,6 @@ import (
 )
 
 var (
-	// ErrOrgNotExist organization does not exist
-	ErrOrgNotExist = errors.New("Organization does not exist")
 	// ErrTeamNotExist team does not exist
 	ErrTeamNotExist = errors.New("Team does not exist")
 )
@@ -127,7 +125,7 @@ func CreateOrganization(org, owner *User) (err error) {
 	org.Type = UserTypeOrganization
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -135,7 +133,9 @@ func CreateOrganization(org, owner *User) (err error) {
 	if _, err = sess.Insert(org); err != nil {
 		return fmt.Errorf("insert organization: %v", err)
 	}
-	org.GenerateRandomAvatar()
+	if err = org.generateRandomAvatar(sess); err != nil {
+		return fmt.Errorf("generate random avatar: %v", err)
+	}
 
 	// Add initial creator to organization and owner team.
 	if _, err = sess.Insert(&OrgUser{
@@ -154,6 +154,7 @@ func CreateOrganization(org, owner *User) (err error) {
 		Name:       ownerTeamName,
 		Authorize:  AccessModeOwner,
 		NumMembers: 1,
+		UnitTypes:  allRepUnitTypes,
 	}
 	if _, err = sess.Insert(t); err != nil {
 		return fmt.Errorf("insert owner team: %v", err)
@@ -177,7 +178,7 @@ func CreateOrganization(org, owner *User) (err error) {
 // GetOrgByName returns organization by given name.
 func GetOrgByName(name string) (*User, error) {
 	if len(name) == 0 {
-		return nil, ErrOrgNotExist
+		return nil, ErrOrgNotExist{0, name}
 	}
 	u := &User{
 		LowerName: strings.ToLower(name),
@@ -187,7 +188,7 @@ func GetOrgByName(name string) (*User, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrOrgNotExist
+		return nil, ErrOrgNotExist{0, name}
 	}
 	return u, nil
 }
@@ -234,11 +235,7 @@ func DeleteOrganization(org *User) (err error) {
 		}
 	}
 
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 func deleteOrg(e *xorm.Session, u *User) error {
@@ -262,7 +259,7 @@ func deleteOrg(e *xorm.Session, u *User) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	if _, err = e.Id(u.ID).Delete(new(User)); err != nil {
+	if _, err = e.ID(u.ID).Delete(new(User)); err != nil {
 		return fmt.Errorf("Delete: %v", err)
 	}
 
@@ -275,10 +272,12 @@ func deleteOrg(e *xorm.Session, u *User) error {
 		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
 	}
 
-	avatarPath := u.CustomAvatarPath()
-	if com.IsExist(avatarPath) {
-		if err := os.Remove(avatarPath); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
+	if len(u.Avatar) > 0 {
+		avatarPath := u.CustomAvatarPath()
+		if com.IsExist(avatarPath) {
+			if err := os.Remove(avatarPath); err != nil {
+				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
+			}
 		}
 	}
 
@@ -413,7 +412,7 @@ func ChangeOrgUserStatus(orgID, uid int64, public bool) error {
 	}
 
 	ou.IsPublic = public
-	_, err = x.Id(ou.ID).AllCols().Update(ou)
+	_, err = x.ID(ou.ID).Cols("is_public").Update(ou)
 	return err
 }
 
@@ -476,12 +475,12 @@ func RemoveOrgUser(orgID, userID int64) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if _, err := sess.Id(ou.ID).Delete(ou); err != nil {
+	if _, err := sess.ID(ou.ID).Delete(ou); err != nil {
 		return err
 	} else if _, err = sess.Exec("UPDATE `user` SET num_members=num_members-1 WHERE id=?", orgID); err != nil {
 		return err
@@ -517,7 +516,7 @@ func RemoveOrgUser(orgID, userID int64) error {
 		return err
 	}
 	for _, t := range teams {
-		if err = removeTeamMember(sess, org.ID, t.ID, userID); err != nil {
+		if err = removeTeamMember(sess, t, userID); err != nil {
 			return err
 		}
 	}
@@ -544,10 +543,10 @@ func removeOrgRepo(e Engine, orgID, repoID int64) error {
 
 	teamIDs := make([]int64, len(teamRepos))
 	for i, teamRepo := range teamRepos {
-		teamIDs[i] = teamRepo.ID
+		teamIDs[i] = teamRepo.TeamID
 	}
 
-	_, err := x.Decr("num_repos").In("id", teamIDs).Update(new(Team))
+	_, err := e.Decr("num_repos").In("id", teamIDs).Update(new(Team))
 	return err
 }
 
@@ -563,18 +562,25 @@ func (org *User) getUserTeams(e Engine, userID int64, cols ...string) ([]*Team, 
 		Find(&teams)
 }
 
+func (org *User) getUserTeamIDs(e Engine, userID int64) ([]int64, error) {
+	teamIDs := make([]int64, 0, org.NumTeams)
+	return teamIDs, e.
+		Table("team").
+		Cols("team.id").
+		Where("`team_user`.org_id = ?", org.ID).
+		Join("INNER", "team_user", "`team_user`.team_id = team.id").
+		And("`team_user`.uid = ?", userID).
+		Find(&teamIDs)
+}
+
+// TeamsWithAccessToRepo returns all teamsthat have given access level to the repository.
+func (org *User) TeamsWithAccessToRepo(repoID int64, mode AccessMode) ([]*Team, error) {
+	return GetTeamsWithAccessToRepo(org.ID, repoID, mode)
+}
+
 // GetUserTeamIDs returns of all team IDs of the organization that user is member of.
 func (org *User) GetUserTeamIDs(userID int64) ([]int64, error) {
-	teams, err := org.getUserTeams(x, userID, "team.id")
-	if err != nil {
-		return nil, fmt.Errorf("getUserTeams [%d]: %v", userID, err)
-	}
-
-	teamIDs := make([]int64, len(teams))
-	for i := range teams {
-		teamIDs[i] = teams[i].ID
-	}
-	return teamIDs, nil
+	return org.getUserTeamIDs(x, userID)
 }
 
 // GetUserTeams returns all teams that belong to user,
@@ -655,19 +661,39 @@ func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*Repository, error) 
 	}
 
 	repos := make([]*Repository, 0, len(repoIDs))
+	if len(repoIDs) <= 0 {
+		return repos, nil
+	}
+
 	return repos, x.
-		Select("`repository`.*").
-		Where(builder.In("`repository`.id", repoIDs)).
+		In("`repository`.id", repoIDs).
 		Find(&repos)
 }
 
-func (env *accessibleReposEnv) MirrorRepos() ([]*Repository, error) {
-	repos := make([]*Repository, 0, 10)
-	return repos, x.
-		Select("`repository`.*").
+func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
+	repoIDs := make([]int64, 0, 10)
+	return repoIDs, x.
+		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id AND `repository`.is_mirror=?", true).
 		Where(env.cond()).
-		GroupBy("`repository`.id").
+		GroupBy("`repository`.id, `repository`.updated_unix").
 		OrderBy("updated_unix DESC").
+		Cols("`repository`.id").
+		Find(&repoIDs)
+}
+
+func (env *accessibleReposEnv) MirrorRepos() ([]*Repository, error) {
+	repoIDs, err := env.MirrorRepoIDs()
+	if err != nil {
+		return nil, fmt.Errorf("MirrorRepoIDs: %v", err)
+	}
+
+	repos := make([]*Repository, 0, len(repoIDs))
+	if len(repoIDs) <= 0 {
+		return repos, nil
+	}
+
+	return repos, x.
+		In("`repository`.id", repoIDs).
 		Find(&repos)
 }

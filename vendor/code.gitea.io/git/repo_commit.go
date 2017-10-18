@@ -78,6 +78,12 @@ l:
 					return nil, err
 				}
 				commit.Committer = sig
+			case "gpgsig":
+				sig, err := newGPGSignatureFromCommitline(data, nextline+spacepos+1)
+				if err != nil {
+					return nil, err
+				}
+				commit.Signature = sig
 			}
 			nextline += eol + 1
 		case eol == 0:
@@ -223,7 +229,7 @@ func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
 
 // CommitsByFileAndRange return the commits accroding revison file and the page
 func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (*list.List, error) {
-	stdout, err := NewCommand("log", revision, "--skip="+strconv.Itoa((page-1)*50),
+	stdout, err := NewCommand("log", revision, "--follow", "--skip="+strconv.Itoa((page-1)*50),
 		"--max-count="+strconv.Itoa(CommitsRangeSize), prettyLogFormat, "--", file).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err

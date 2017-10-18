@@ -1,7 +1,7 @@
 {{range .Feeds}}
 	<div class="news">
 		<div class="ui left">
-			<img class="ui avatar image" src="{{.ActAvatar}}" alt="">
+			<img class="ui avatar image" src="{{.GetActAvatar}}" alt="">
 		</div>
 		<div class="ui grid">
 			<div class="ui fifteen wide column">
@@ -43,6 +43,12 @@
 						{{else if eq .GetOpType 15}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.reopen_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}
+						{{else if eq .GetOpType 16}}
+							{{ $index := index .GetIssueInfos 0}}
+							{{$.i18n.Tr "action.delete_tag" .GetRepoLink .GetBranch .ShortRepoPath | Str2html}}
+						{{else if eq .GetOpType 17}}
+							{{ $index := index .GetIssueInfos 0}}
+							{{$.i18n.Tr "action.delete_branch" .GetRepoLink .GetBranch .ShortRepoPath | Str2html}}
 						{{end}}
 					</p>
 					{{if eq .GetOpType 5}}
@@ -63,7 +69,7 @@
 					{{else if eq .GetOpType 7}}
 						<span class="text truncate issue title has-emoji">{{index .GetIssueInfos 1}}</span>
 					{{else if eq .GetOpType 10}}
-						<span class="text truncate issue title has-emoji">{{.GetIssueTitle}}</span>
+						<a href="{{.GetCommentLink}}" class="text truncate issue title has-emoji">{{.GetIssueTitle}}</a>
 						<p class="text light grey has-emoji">{{index .GetIssueInfos 1}}</p>
 					{{else if eq .GetOpType 11}}
 						<p class="text light grey has-emoji">{{index .GetIssueInfos 1}}</p>

@@ -30,6 +30,7 @@ type PullRequestMeta struct {
 // Issue an issue to a repository
 type Issue struct {
 	ID        int64      `json:"id"`
+	URL       string     `json:"url"`
 	Index     int64      `json:"number"`
 	Poster    *User      `json:"user"`
 	Title     string     `json:"title"`

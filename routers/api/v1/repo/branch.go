@@ -7,6 +7,7 @@ package repo
 import (
 	api "code.gitea.io/sdk/gitea"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 )
@@ -14,9 +15,20 @@ import (
 // GetBranch get a branch of a repository
 // see https://github.com/gogits/go-gogs-client/wiki/Repositories#get-branch
 func GetBranch(ctx *context.APIContext) {
-	branch, err := ctx.Repo.Repository.GetBranch(ctx.Params(":branchname"))
+	if ctx.Repo.TreePath != "" {
+		// if TreePath != "", then URL contained extra slashes
+		// (i.e. "master/subbranch" instead of "master"), so branch does
+		// not exist
+		ctx.Status(404)
+		return
+	}
+	branch, err := ctx.Repo.Repository.GetBranch(ctx.Repo.BranchName)
 	if err != nil {
-		ctx.Error(500, "GetBranch", err)
+		if models.IsErrBranchNotExist(err) {
+			ctx.Error(404, "GetBranch", err)
+		} else {
+			ctx.Error(500, "GetBranch", err)
+		}
 		return
 	}
 

@@ -1,6 +1,6 @@
 IMPORT := code.gitea.io/git
 
-PACKAGES ?= $(shell go list ./... | grep -v /vendor/)
+PACKAGES ?= $(shell go list -e ./... | grep -v /vendor/ | grep -v /benchmark/)
 GENERATE ?= code.gitea.io/git
 
 .PHONY: all
@@ -18,7 +18,7 @@ generate:
 
 .PHONY: fmt
 fmt:
-	find . -name "*.go" -type f -not -path "./vendor/*" | xargs gofmt -s -w
+	find . -name "*.go" -type f ! -path "./vendor/*" ! -path "./benchmark/*" | xargs gofmt -s -w
 
 .PHONY: vet
 vet:
@@ -34,6 +34,10 @@ lint:
 .PHONY: test
 test:
 	for PKG in $(PACKAGES); do go test -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
+
+.PHONY: bench
+bench:
+	go test -run=XXXXXX -benchtime=10s -bench=. || exit 1
 
 .PHONY: build
 build:

@@ -1,0 +1,38 @@
+{{template "base/head" .}}
+<div class="user signin openid">
+	{{template "user/auth/signin_navbar" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header center">
+			<i class="fa fa-openid"></i>
+			OpenID
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" action="{{.Link}}" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="inline field">
+				{{.i18n.Tr "auth.openid_signin_desc"}}
+			</div>
+			<div class="required inline field {{if .Err_OpenID}}error{{end}}">
+				<label for="openid">
+				<i class="fa fa-openid"></i>
+				OpenID URI
+				</label>
+				<input id="openid" name="openid" value="{{.openid}}" autofocus required>
+			</div>
+			<div class="inline field">
+				<label></label>
+				<div class="ui checkbox">
+					<label>{{.i18n.Tr "auth.remember_me"}}</label>
+					<input name="remember" type="checkbox">
+				</div>
+			</div>
+			<div class="inline field">
+				<label></label>
+				<button class="ui green button">{{.i18n.Tr "sign_in"}}</button>
+			</div>
+			</form>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

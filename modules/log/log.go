@@ -11,7 +11,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
+
+	"golang.org/x/sync/syncmap"
 )
 
 var (
@@ -42,10 +43,11 @@ func NewLogger(bufLen int64, mode, config string) {
 // DelLogger removes loggers that are for the given mode
 func DelLogger(mode string) error {
 	for _, l := range loggers {
-		if _, ok := l.outputs[mode]; ok {
+		if _, ok := l.outputs.Load(mode); ok {
 			return l.DelLogger(mode)
 		}
 	}
+
 	Trace("Log adapter %s not found, no need to delete", mode)
 	return nil
 }
@@ -84,7 +86,7 @@ func Info(format string, v ...interface{}) {
 	}
 }
 
-// Warn records warnning log
+// Warn records warning log
 func Warn(format string, v ...interface{}) {
 	for _, logger := range loggers {
 		logger.Warn(format, v...)
@@ -174,19 +176,17 @@ type logMsg struct {
 // it can contain several providers and log message into all providers.
 type Logger struct {
 	adapter string
-	lock    sync.Mutex
 	level   int
 	msg     chan *logMsg
-	outputs map[string]LoggerInterface
+	outputs syncmap.Map
 	quit    chan bool
 }
 
 // newLogger initializes and returns a new logger.
 func newLogger(buffer int64) *Logger {
 	l := &Logger{
-		msg:     make(chan *logMsg, buffer),
-		outputs: make(map[string]LoggerInterface),
-		quit:    make(chan bool),
+		msg:  make(chan *logMsg, buffer),
+		quit: make(chan bool),
 	}
 	go l.StartLogger()
 	return l
@@ -194,14 +194,12 @@ func newLogger(buffer int64) *Logger {
 
 // SetLogger sets new logger instance with given logger adapter and config.
 func (l *Logger) SetLogger(adapter string, config string) error {
-	l.lock.Lock()
-	defer l.lock.Unlock()
 	if log, ok := adapters[adapter]; ok {
 		lg := log()
 		if err := lg.Init(config); err != nil {
 			return err
 		}
-		l.outputs[adapter] = lg
+		l.outputs.Store(adapter, lg)
 		l.adapter = adapter
 	} else {
 		panic("log: unknown adapter \"" + adapter + "\" (forgotten register?)")
@@ -211,11 +209,9 @@ func (l *Logger) SetLogger(adapter string, config string) error {
 
 // DelLogger removes a logger adapter instance.
 func (l *Logger) DelLogger(adapter string) error {
-	l.lock.Lock()
-	defer l.lock.Unlock()
-	if lg, ok := l.outputs[adapter]; ok {
-		lg.Destroy()
-		delete(l.outputs, adapter)
+	if lg, ok := l.outputs.Load(adapter); ok {
+		lg.(LoggerInterface).Destroy()
+		l.outputs.Delete(adapter)
 	} else {
 		panic("log: unknown adapter \"" + adapter + "\" (forgotten register?)")
 	}
@@ -264,22 +260,24 @@ func (l *Logger) StartLogger() {
 	for {
 		select {
 		case bm := <-l.msg:
-			for _, l := range l.outputs {
-				if err := l.WriteMsg(bm.msg, bm.skip, bm.level); err != nil {
+			l.outputs.Range(func(k, v interface{}) bool {
+				if err := v.(LoggerInterface).WriteMsg(bm.msg, bm.skip, bm.level); err != nil {
 					fmt.Println("ERROR, unable to WriteMsg:", err)
 				}
-			}
+				return true
+			})
 		case <-l.quit:
 			return
 		}
 	}
 }
 
-// Flush flushs all chan data.
+// Flush flushes all chan data.
 func (l *Logger) Flush() {
-	for _, l := range l.outputs {
-		l.Flush()
-	}
+	l.outputs.Range(func(k, v interface{}) bool {
+		v.(LoggerInterface).Flush()
+		return true
+	})
 }
 
 // Close closes logger, flush all chan data and destroy all adapter instances.
@@ -288,19 +286,21 @@ func (l *Logger) Close() {
 	for {
 		if len(l.msg) > 0 {
 			bm := <-l.msg
-			for _, l := range l.outputs {
-				if err := l.WriteMsg(bm.msg, bm.skip, bm.level); err != nil {
+			l.outputs.Range(func(k, v interface{}) bool {
+				if err := v.(LoggerInterface).WriteMsg(bm.msg, bm.skip, bm.level); err != nil {
 					fmt.Println("ERROR, unable to WriteMsg:", err)
 				}
-			}
+				return true
+			})
 		} else {
 			break
 		}
 	}
-	for _, l := range l.outputs {
-		l.Flush()
-		l.Destroy()
-	}
+	l.outputs.Range(func(k, v interface{}) bool {
+		v.(LoggerInterface).Flush()
+		v.(LoggerInterface).Destroy()
+		return true
+	})
 }
 
 // Trace records trace log
@@ -321,7 +321,7 @@ func (l *Logger) Info(format string, v ...interface{}) {
 	l.writerMsg(0, INFO, msg)
 }
 
-// Warn records warnning log
+// Warn records warning log
 func (l *Logger) Warn(format string, v ...interface{}) {
 	msg := fmt.Sprintf("[W] "+format, v...)
 	l.writerMsg(0, WARN, msg)

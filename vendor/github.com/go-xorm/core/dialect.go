@@ -244,6 +244,9 @@ func (b *Base) CreateTableSql(table *Table, tableName, storeEngine, charset stri
 				sql += col.StringNoPk(b.dialect)
 			}
 			sql = strings.TrimSpace(sql)
+			if b.DriverName() == MYSQL && len(col.Comment) > 0 {
+				sql += " COMMENT '" + col.Comment + "'"
+			}
 			sql += ", "
 		}
 
@@ -279,9 +282,9 @@ func (b *Base) ForUpdateSql(query string) string {
 func (b *Base) LogSQL(sql string, args []interface{}) {
 	if b.logger != nil && b.logger.IsShowSQL() {
 		if len(args) > 0 {
-			b.logger.Info("[sql]", sql, args)
+			b.logger.Infof("[SQL] %v %v", sql, args)
 		} else {
-			b.logger.Info("[sql]", sql)
+			b.logger.Infof("[SQL] %v", sql)
 		}
 	}
 }

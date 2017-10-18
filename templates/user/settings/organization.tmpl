@@ -1,0 +1,35 @@
+{{template "base/head" .}}
+<div class="user settings account_link">
+	{{template "user/settings/navbar" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "settings.orgs"}}
+			{{if .SignedUser.CanCreateOrganization}}
+			<div class="ui right">
+				<a class="ui black tiny button" href="{{AppSubUrl}}/org/create">{{.i18n.Tr "admin.orgs.new_orga"}}</a>
+			</div>
+			{{end}}
+		</h4>
+		<div class="ui attached segment orgs">
+			{{if .Orgs}}
+				<div class="ui middle aligned divided list">
+					{{range .Orgs}}
+					<div class="item">
+						<div class="right floated content">
+							<a class="ui blue small button" href="{{AppSubUrl}}/org/{{.Name}}/members/action/leave?uid={{.ID}}">{{$.i18n.Tr "org.members.leave"}}</a>
+						</div>
+						<img class="ui mini image" src="{{.RelAvatarLink}}">
+						<div class="content">
+								<a href="{{.HomeLink}}">{{.Name}}</a>
+						</div>
+					</div>
+					{{end}}
+				</div>
+			{{else}}
+				{{.i18n.Tr "settings.orgs_none"}}
+			{{end}}
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

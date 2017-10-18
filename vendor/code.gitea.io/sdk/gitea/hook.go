@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -19,6 +20,7 @@ var (
 )
 
 // Hook a hook is a web hook when one repository changed
+// swagger:response Hook
 type Hook struct {
 	ID      int64             `json:"id"`
 	Type    string            `json:"type"`
@@ -30,14 +32,18 @@ type Hook struct {
 	Created time.Time         `json:"created_at"`
 }
 
+// HookList represents a list of API hook.
+// swagger:response HookList
+type HookList []*Hook
+
 // ListOrgHooks list all the hooks of one organization
-func (c *Client) ListOrgHooks(org string) ([]*Hook, error) {
+func (c *Client) ListOrgHooks(org string) (HookList, error) {
 	hooks := make([]*Hook, 0, 10)
 	return hooks, c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s/hooks", org), nil, nil, &hooks)
 }
 
 // ListRepoHooks list all the hooks of one repository
-func (c *Client) ListRepoHooks(user, repo string) ([]*Hook, error) {
+func (c *Client) ListRepoHooks(user, repo string) (HookList, error) {
 	hooks := make([]*Hook, 0, 10)
 	return hooks, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/hooks", user, repo), nil, nil, &hooks)
 }
@@ -55,11 +61,16 @@ func (c *Client) GetRepoHook(user, repo string, id int64) (*Hook, error) {
 }
 
 // CreateHookOption options when create a hook
+// swagger:parameters orgCreateHook repoCreateHook
 type CreateHookOption struct {
-	Type   string            `json:"type" binding:"Required"`
+	// in: body
+	Type string `json:"type" binding:"Required"`
+	// in: body
 	Config map[string]string `json:"config" binding:"Required"`
-	Events []string          `json:"events"`
-	Active bool              `json:"active"`
+	// in: body
+	Events []string `json:"events"`
+	// in: body
+	Active bool `json:"active"`
 }
 
 // CreateOrgHook create one hook for an organization, with options
@@ -83,10 +94,14 @@ func (c *Client) CreateRepoHook(user, repo string, opt CreateHookOption) (*Hook,
 }
 
 // EditHookOption options when modify one hook
+// swagger:parameters orgEditHook repoEditHook
 type EditHookOption struct {
+	// in: body
 	Config map[string]string `json:"config"`
-	Events []string          `json:"events"`
-	Active *bool             `json:"active"`
+	// in: body
+	Events []string `json:"events"`
+	// in: body
+	Active *bool `json:"active"`
 }
 
 // EditOrgHook modify one hook of an organization, with hook id and options
@@ -136,17 +151,27 @@ type PayloadUser struct {
 
 // PayloadCommit FIXME: consider use same format as API when commits API are added.
 type PayloadCommit struct {
-	ID        string       `json:"id"`
-	Message   string       `json:"message"`
-	URL       string       `json:"url"`
-	Author    *PayloadUser `json:"author"`
-	Committer *PayloadUser `json:"committer"`
-	Timestamp time.Time    `json:"timestamp"`
+	ID           string                     `json:"id"`
+	Message      string                     `json:"message"`
+	URL          string                     `json:"url"`
+	Author       *PayloadUser               `json:"author"`
+	Committer    *PayloadUser               `json:"committer"`
+	Verification *PayloadCommitVerification `json:"verification"`
+	Timestamp    time.Time                  `json:"timestamp"`
+}
+
+// PayloadCommitVerification represent the GPG verification part of a commit. FIXME: like PayloadCommit consider use same format as API when commits API are added.
+type PayloadCommitVerification struct {
+	Verified  bool   `json:"verified"`
+	Reason    string `json:"reason"`
+	Signature string `json:"signature"`
+	Payload   string `json:"payload"`
 }
 
 var (
 	_ Payloader = &CreatePayload{}
 	_ Payloader = &PushPayload{}
+	_ Payloader = &IssuePayload{}
 	_ Payloader = &PullRequestPayload{}
 )
 
@@ -277,7 +302,32 @@ const (
 	HookIssueLabelCleared HookIssueAction = "label_cleared"
 	// HookIssueSynchronized synchronized
 	HookIssueSynchronized HookIssueAction = "synchronized"
+	// HookIssueMilestoned is an issue action for when a milestone is set on an issue.
+	HookIssueMilestoned HookIssueAction = "milestoned"
+	// HookIssueDemilestoned is an issue action for when a milestone is cleared on an issue.
+	HookIssueDemilestoned HookIssueAction = "demilestoned"
 )
+
+// IssuePayload represents the payload information that is sent along with an issue event.
+type IssuePayload struct {
+	Secret     string          `json:"secret"`
+	Action     HookIssueAction `json:"action"`
+	Index      int64           `json:"number"`
+	Changes    *ChangesPayload `json:"changes,omitempty"`
+	Issue      *Issue          `json:"issue"`
+	Repository *Repository     `json:"repository"`
+	Sender     *User           `json:"sender"`
+}
+
+// SetSecret modifies the secret of the IssuePayload.
+func (p *IssuePayload) SetSecret(secret string) {
+	p.Secret = secret
+}
+
+// JSONPayload encodes the IssuePayload to JSON, with an indentation of two spaces.
+func (p *IssuePayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
 
 // ChangesFromPayload FIXME
 type ChangesFromPayload struct {
@@ -308,7 +358,7 @@ type PullRequestPayload struct {
 	Sender      *User           `json:"sender"`
 }
 
-// SetSecret FIXME
+// SetSecret modifies the secret of the PullRequestPayload.
 func (p *PullRequestPayload) SetSecret(secret string) {
 	p.Secret = secret
 }
@@ -316,4 +366,40 @@ func (p *PullRequestPayload) SetSecret(secret string) {
 // JSONPayload FIXME
 func (p *PullRequestPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
+}
+
+//__________                           .__  __
+//\______   \ ____ ______   ____  _____|__|/  |_  ___________ ___.__.
+// |       _// __ \\____ \ /  _ \/  ___/  \   __\/  _ \_  __ <   |  |
+// |    |   \  ___/|  |_> >  <_> )___ \|  ||  | (  <_> )  | \/\___  |
+// |____|_  /\___  >   __/ \____/____  >__||__|  \____/|__|   / ____|
+//        \/     \/|__|              \/                       \/
+
+// HookRepoAction an action that happens to a repo
+type HookRepoAction string
+
+const (
+	// HookRepoCreated created
+	HookRepoCreated HookRepoAction = "created"
+	// HookRepoDeleted deleted
+	HookRepoDeleted HookRepoAction = "deleted"
+)
+
+// RepositoryPayload payload for repository webhooks
+type RepositoryPayload struct {
+	Secret       string         `json:"secret"`
+	Action       HookRepoAction `json:"action"`
+	Repository   *Repository    `json:"repository"`
+	Organization *User          `json:"organization"`
+	Sender       *User          `json:"sender"`
+}
+
+// SetSecret set the payload's secret
+func (p *RepositoryPayload) SetSecret(secret string) {
+	p.Secret = secret
+}
+
+// JSONPayload JSON representation of the payload
+func (p *RepositoryPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", " ")
 }

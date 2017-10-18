@@ -21,9 +21,11 @@ import (
 const (
 	tplSettingsOptions base.TplName = "repo/settings/options"
 	tplCollaboration   base.TplName = "repo/settings/collaboration"
+	tplBranches        base.TplName = "repo/settings/branches"
 	tplGithooks        base.TplName = "repo/settings/githooks"
 	tplGithookEdit     base.TplName = "repo/settings/githook_edit"
 	tplDeployKeys      base.TplName = "repo/settings/deploy_keys"
+	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
 )
 
 // Settings show a repository's settings page
@@ -71,6 +73,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			err := models.NewRepoRedirect(ctx.Repo.Owner.ID, repo.ID, repo.Name, newRepoName)
 			if err != nil {
 				ctx.Handle(500, "NewRepoRedirect", err)
+				return
 			}
 
 			log.Trace("Repository name changed: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newRepoName)
@@ -78,17 +81,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		// In case it's just a case change.
 		repo.Name = newRepoName
 		repo.LowerName = strings.ToLower(newRepoName)
-
-		if ctx.Repo.GitRepo.IsBranchExist(form.Branch) &&
-			repo.DefaultBranch != form.Branch {
-			repo.DefaultBranch = form.Branch
-			if err := ctx.Repo.GitRepo.SetDefaultBranch(form.Branch); err != nil {
-				if !git.IsErrUnsupportedVersion(err) {
-					ctx.Handle(500, "SetDefaultBranch", err)
-					return
-				}
-			}
-		}
 		repo.Description = form.Description
 		repo.Website = form.Website
 
@@ -120,12 +112,15 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		if form.Interval > 0 {
+		interval, err := time.ParseDuration(form.Interval)
+		if err != nil || interval < setting.Mirror.MinInterval {
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
+		} else {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
-			ctx.Repo.Mirror.Interval = form.Interval
-			ctx.Repo.Mirror.NextUpdate = time.Now().Add(time.Duration(form.Interval) * time.Hour)
+			ctx.Repo.Mirror.Interval = interval
+			ctx.Repo.Mirror.NextUpdate = time.Now().Add(interval)
 			if err := models.UpdateMirror(ctx.Repo.Mirror); err != nil {
-				ctx.Handle(500, "UpdateMirror", err)
+				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 				return
 			}
 		}
@@ -154,17 +149,21 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Index:  int(tp),
 				Config: new(models.UnitConfig),
 			})
 		}
 
 		if form.EnableWiki {
 			if form.EnableExternalWiki {
+				if !strings.HasPrefix(form.ExternalWikiURL, "http://") && !strings.HasPrefix(form.ExternalWikiURL, "https://") {
+					ctx.Flash.Error(ctx.Tr("repo.settings.external_wiki_url_error"))
+					ctx.Redirect(repo.Link() + "/settings")
+					return
+				}
+
 				units = append(units, models.RepoUnit{
 					RepoID: repo.ID,
 					Type:   models.UnitTypeExternalWiki,
-					Index:  int(models.UnitTypeExternalWiki),
 					Config: &models.ExternalWikiConfig{
 						ExternalWikiURL: form.ExternalWikiURL,
 					},
@@ -173,7 +172,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				units = append(units, models.RepoUnit{
 					RepoID: repo.ID,
 					Type:   models.UnitTypeWiki,
-					Index:  int(models.UnitTypeWiki),
 					Config: new(models.UnitConfig),
 				})
 			}
@@ -181,10 +179,14 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		if form.EnableIssues {
 			if form.EnableExternalTracker {
+				if !strings.HasPrefix(form.ExternalTrackerURL, "http://") && !strings.HasPrefix(form.ExternalTrackerURL, "https://") {
+					ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))
+					ctx.Redirect(repo.Link() + "/settings")
+					return
+				}
 				units = append(units, models.RepoUnit{
 					RepoID: repo.ID,
-					Type:   models.UnitTypeExternalWiki,
-					Index:  int(models.UnitTypeExternalWiki),
+					Type:   models.UnitTypeExternalTracker,
 					Config: &models.ExternalTrackerConfig{
 						ExternalTrackerURL:    form.ExternalTrackerURL,
 						ExternalTrackerFormat: form.TrackerURLFormat,
@@ -195,8 +197,10 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				units = append(units, models.RepoUnit{
 					RepoID: repo.ID,
 					Type:   models.UnitTypeIssues,
-					Index:  int(models.UnitTypeIssues),
-					Config: new(models.UnitConfig),
+					Config: &models.IssuesConfig{
+						EnableTimetracker:                form.EnableTimetracker,
+						AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
+					},
 				})
 			}
 		}
@@ -205,7 +209,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   models.UnitTypePullRequests,
-				Index:  int(models.UnitTypePullRequests),
 				Config: new(models.UnitConfig),
 			})
 		}
@@ -309,7 +312,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 		}
 
-		if err := models.DeleteRepository(ctx.Repo.Owner.ID, repo.ID); err != nil {
+		if err := models.DeleteRepository(ctx.User, ctx.Repo.Owner.ID, repo.ID); err != nil {
 			ctx.Handle(500, "DeleteRepository", err)
 			return
 		}
@@ -429,6 +432,7 @@ func DeleteCollaboration(ctx *context.Context) {
 	})
 }
 
+// parseOwnerAndRepo get repos by owner
 func parseOwnerAndRepo(ctx *context.Context) (*models.User, *models.Repository) {
 	owner, err := models.GetUserByName(ctx.Params(":username"))
 	if err != nil {
@@ -523,7 +527,7 @@ func DeployKeys(ctx *context.Context) {
 }
 
 // DeployKeysPost response for adding a deploy key of a repository
-func DeployKeysPost(ctx *context.Context, form auth.AddSSHKeyForm) {
+func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 

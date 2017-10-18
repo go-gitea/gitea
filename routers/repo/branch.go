@@ -5,11 +5,10 @@
 package repo
 
 import (
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
 )
 
 const (
@@ -34,58 +33,49 @@ func Branches(ctx *context.Context) {
 	ctx.HTML(200, tplBranch)
 }
 
-// DeleteBranchPost responses for delete merged branch
-func DeleteBranchPost(ctx *context.Context) {
-	branchName := ctx.Params(":name")
-	commitID := ctx.Query("commit")
-
-	defer func() {
-		redirectTo := ctx.Query("redirect_to")
-		if len(redirectTo) == 0 {
-			redirectTo = ctx.Repo.RepoLink
-		}
-
-		ctx.JSON(200, map[string]interface{}{
-			"redirect": redirectTo,
-		})
-	}()
-
-	fullBranchName := ctx.Repo.Owner.Name + "/" + branchName
-
-	if !ctx.Repo.GitRepo.IsBranchExist(branchName) || branchName == "master" {
-		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+// CreateBranch creates new branch in repository
+func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
+	if !ctx.Repo.CanCreateBranch() {
+		ctx.Handle(404, "CreateBranch", nil)
 		return
 	}
 
-	if len(commitID) > 0 {
-		branchCommitID, err := ctx.Repo.GitRepo.GetBranchCommitID(branchName)
-		if err != nil {
-			log.Error(4, "GetBranchCommitID: %v", err)
-			return
-		}
-
-		if branchCommitID != commitID {
-			ctx.Flash.Error(ctx.Tr("repo.branch.delete_branch_has_new_commits", fullBranchName))
-			return
-		}
-	}
-
-	if err := ctx.Repo.GitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
-		Force: true,
-	}); err != nil {
-		log.Error(4, "DeleteBranch: %v", err)
-		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+	if ctx.HasError() {
+		ctx.Flash.Error(ctx.GetErrMsg())
+		ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName)
 		return
 	}
 
-	issueID := ctx.QueryInt64("issue_id")
-	if issueID > 0 {
-		if err := models.AddDeletePRBranchComment(ctx.User, ctx.Repo.Repository, issueID, branchName); err != nil {
-			log.Error(4, "DeleteBranch: %v", err)
-			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+	var err error
+	if ctx.Repo.IsViewBranch {
+		err = ctx.Repo.Repository.CreateNewBranch(ctx.User, ctx.Repo.BranchName, form.NewBranchName)
+	} else {
+		err = ctx.Repo.Repository.CreateNewBranchFromCommit(ctx.User, ctx.Repo.BranchName, form.NewBranchName)
+	}
+	if err != nil {
+		if models.IsErrTagAlreadyExists(err) {
+			e := err.(models.ErrTagAlreadyExists)
+			ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName)
 			return
 		}
+		if models.IsErrBranchAlreadyExists(err) {
+			e := err.(models.ErrBranchAlreadyExists)
+			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", e.BranchName))
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName)
+			return
+		}
+		if models.IsErrBranchNameConflict(err) {
+			e := err.(models.ErrBranchNameConflict)
+			ctx.Flash.Error(ctx.Tr("repo.branch.branch_name_conflict", form.NewBranchName, e.BranchName))
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName)
+			return
+		}
+
+		ctx.Handle(500, "CreateNewBranch", err)
+		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", fullBranchName))
+	ctx.Flash.Success(ctx.Tr("repo.branch.create_success", form.NewBranchName))
+	ctx.Redirect(ctx.Repo.RepoLink + "/src/" + form.NewBranchName)
 }

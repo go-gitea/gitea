@@ -50,6 +50,21 @@
 							</div>
 						</div>
 						<div class="ui divider"></div>
+
+						<div class="team-units required grouped field"{{if eq .Team.Authorize 3}} style="display: none"{{end}}>
+							<label>{{.i18n.Tr "org.team_unit_desc"}}</label>
+							<br>
+							{{range $t, $unit := $.Units}}
+							<div class="field">
+								<div class="ui toggle checkbox">
+									<input type="checkbox" class="hidden" name="units" value="{{$unit.Type}}"{{if $.Team.UnitEnabled $unit.Type}} checked{{end}}>
+									<label>{{$.i18n.Tr $unit.NameKey}}</label>
+									<span class="help">{{$.i18n.Tr $unit.DescKey}}</span>
+								</div>
+							</div>
+							{{end}}
+						</div>
+						<div class="ui divider"></div>
 					{{end}}
 
 					<div class="field">

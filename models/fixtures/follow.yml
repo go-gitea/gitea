@@ -1,0 +1,14 @@
+-
+  id: 1
+  user_id: 4
+  follow_id: 2
+
+-
+  id: 2
+  user_id: 8
+  follow_id: 2
+
+-
+  id: 3
+  user_id: 2
+  follow_id: 8

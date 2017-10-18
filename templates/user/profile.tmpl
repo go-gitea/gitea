@@ -22,7 +22,7 @@
 							{{if .Owner.Location}}
 								<li><i class="octicon octicon-location"></i> {{.Owner.Location}}</li>
 							{{end}}
-							{{if or (and $.ShowUserEmail .Owner.Email .IsSigned) (and .Owner.Email .IsSigned (not .Owner.KeepEmailPrivate))}}
+							{{if and $.ShowUserEmail .Owner.Email .IsSigned (not .Owner.KeepEmailPrivate)}}
 								<li>
 									<i class="octicon octicon-mail"></i>
 									<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
@@ -33,6 +33,14 @@
 									<i class="octicon octicon-link"></i>
 									<a target="_blank" rel="noopener" href="{{.Owner.Website}}">{{.Owner.Website}}</a>
 								</li>
+							{{end}}
+							{{range .OpenIDs}}
+								{{if .Show}}
+									<li>
+										<i class="fa fa-openid"></i>
+										<a target="_blank" rel="noopener" href="{{.URI}}">{{.URI}}</a>
+									</li>
+								{{end}}
 							{{end}}
 							<li><i class="octicon octicon-clock"></i> {{.i18n.Tr "user.join_on"}} {{DateFmtShort .Owner.Created}}</li>
 							<li>
@@ -92,6 +100,7 @@
 					</div>
 				{{else if eq .TabName "stars"}}
 					<div class="stars">
+						{{template "explore/search" .}}
 						{{template "explore/repo_list" .}}
 						{{template "base/paginate" .}}
 					</div>

@@ -1,0 +1,186 @@
+{{range .Issue.Comments}}
+	{{ $createdStr:= TimeSince .Created $.Lang }}
+
+	<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF, 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING, 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL -->
+	{{if eq .Type 0}}
+		<div class="comment" id="{{.HashTag}}">
+			<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<div class="content">
+				<div class="ui top attached header">
+					<span class="text grey"><a {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}</span>
+					<div class="ui right actions">
+						{{if gt .ShowTag 0}}
+							<div class="item tag">
+								{{if eq .ShowTag 1}}
+									{{$.i18n.Tr "repo.issues.poster"}}
+								{{else if eq .ShowTag 2}}
+									{{$.i18n.Tr "repo.issues.collaborator"}}
+								{{else if eq .ShowTag 3}}
+									{{$.i18n.Tr "repo.issues.owner"}}
+								{{end}}
+							</div>
+						{{end}}
+						{{if or $.IsRepositoryAdmin (eq .Poster.ID $.SignedUserID)}}
+							<div class="item action">
+								<a class="edit-content" href="#"><i class="octicon octicon-pencil"></i></a>
+								<a class="delete-comment" href="#" data-comment-id={{.HashTag}} data-url="{{$.RepoLink}}/comments/{{.ID}}/delete" data-locale="{{$.i18n.Tr "repo.issues.delete_comment_confirm"}}"><i class="octicon octicon-x"></i></a>
+							</div>
+						{{end}}
+					</div>
+				</div>
+				<div class="ui attached segment">
+					<div class="render-content markdown has-emoji">
+						{{if .RenderedContent}}
+							{{.RenderedContent|Str2html}}
+						{{else}}
+							<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
+						{{end}}
+					</div>
+					<div class="raw-content hide">{{.Content}}</div>
+					<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}"></div>
+				</div>
+				{{if .Attachments}}
+					<div class="ui bottom attached segment">
+						<div class="ui small images">
+							{{range .Attachments}}
+								<a target="_blank" rel="noopener" href="{{AppSubUrl}}/attachments/{{.UUID}}">
+									{{if FilenameIsImage .Name}}
+										<img class="ui image" src="{{AppSubUrl}}/attachments/{{.UUID}}" title='{{$.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
+									{{else}}
+										<span class="ui image octicon octicon-desktop-download" title='{{$.i18n.Tr "repo.issues.attachment.download" .Name}}'></span>
+									{{end}}
+								</a>
+							{{end}}
+						</div>
+					</div>
+				{{end}}
+			</div>
+		</div>
+
+	{{else if eq .Type 1}}
+		<div class="event">
+			<span class="octicon octicon-primitive-dot"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.reopened_at" .EventTag $createdStr | Safe}}</span>
+		</div>
+	{{else if eq .Type 2}}
+		<div class="event">
+			<span class="octicon octicon-circle-slash"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}</span>
+		</div>
+	{{else if eq .Type 4}}
+		<div class="event">
+			<span class="octicon octicon-bookmark"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.commit_ref_at" .EventTag $createdStr | Safe}}</span>
+
+			<div class="detail">
+				<span class="octicon octicon-git-commit"></span>
+				<span class="text grey">{{.Content | Str2html}}</span>
+			</div>
+		</div>
+	{{else if eq .Type 7}}
+		{{if .Label}}
+			<div class="event">
+				<span class="octicon octicon-primitive-dot"></span>
+				<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+					<img src="{{.Poster.RelAvatarLink}}">
+				</a>
+				<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
+				{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color .Label.Name $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color .Label.Name $createdStr | Safe}}{{end}}</span>
+			</div>
+		{{end}}
+	{{else if eq .Type 8}}
+		<div class="event">
+			<span class="octicon octicon-primitive-dot"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
+			{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.change_milestone_at" .OldMilestone.Name .Milestone.Name $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_milestone_at" .OldMilestone.Name $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.add_milestone_at" .Milestone.Name $createdStr | Safe}}{{end}}</span>
+		</div>
+	{{else if eq .Type 9}}
+		<div class="event">
+			<span class="octicon octicon-primitive-dot"></span>
+			{{if gt .AssigneeID 0}}{{if eq .Poster.ID .AssigneeID}}<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a> <span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.self_assign_at" $createdStr | Safe}} </span>
+			{{else}}<a class="ui avatar image" href="{{.Assignee.HomeLink}}">
+				<img src="{{.Assignee.RelAvatarLink}}">
+			</a><span class="text grey"><a href="{{.Assignee.HomeLink}}">{{.Assignee.Name}}</a> {{$.i18n.Tr "repo.issues.add_assignee_at" .Poster.Name $createdStr | Safe}} </span>{{end}}{{else if gt .OldAssigneeID 0}}
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a> <span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.remove_assignee_at" $createdStr | Safe}} </span>{{end}}
+		</div>
+	{{else if eq .Type 10}}
+		<div class="event">
+			<span class="octicon octicon-primitive-dot"></span>
+		</div>
+		<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+			<img src="{{.Poster.RelAvatarLink}}">
+		</a>
+		<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
+		{{$.i18n.Tr "repo.issues.change_title_at" .OldTitle .NewTitle $createdStr | Safe}}
+		</span>
+	{{else if eq .Type 11}}
+		<div class="event">
+			<span class="octicon octicon-primitive-dot"></span>
+		</div>
+		<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+			<img src="{{.Poster.RelAvatarLink}}">
+		</a>
+		<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
+		{{$.i18n.Tr "repo.issues.delete_branch_at" .CommitSHA $createdStr | Safe}}
+		</span>
+    {{else if eq .Type 12}}
+		<div class="event">
+			<span class="octicon octicon-primitive-dot"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.start_tracking_history"  $createdStr | Safe}}</span>
+		</div>
+	{{else if eq .Type 13}}
+		<div class="event">
+			<span class="octicon octicon-primitive-dot"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.stop_tracking_history"  $createdStr | Safe}}</span>
+
+			<div class="detail">
+				<span class="octicon octicon-clock"></span>
+				<span class="text grey">{{.Content}}</span>
+			</div>
+		</div>
+	{{else if eq .Type 14}}
+		<div class="event">
+			<span class="octicon octicon-primitive-dot"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.add_time_history"  $createdStr | Safe}}</span>
+			<div class="detail">
+				<span class="octicon octicon-clock"></span>
+				<span class="text grey">{{.Content}}</span>
+			</div>
+		</div>
+	{{else if eq .Type 15}}
+		<div class="event">
+			<span class="octicon octicon-primitive-dot"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.cancel_tracking_history"  $createdStr | Safe}}</span>
+		</div>
+	{{end}}
+{{end}}

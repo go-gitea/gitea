@@ -20,6 +20,7 @@ import (
 	"github.com/go-xorm/xorm"
 
 	"code.gitea.io/gitea/modules/auth/ldap"
+	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -35,14 +36,16 @@ const (
 	LoginSMTP             // 3
 	LoginPAM              // 4
 	LoginDLDAP            // 5
+	LoginOAuth2           // 6
 )
 
 // LoginNames contains the name of LoginType values.
 var LoginNames = map[LoginType]string{
-	LoginLDAP:  "LDAP (via BindDN)",
-	LoginDLDAP: "LDAP (simple auth)", // Via direct bind
-	LoginSMTP:  "SMTP",
-	LoginPAM:   "PAM",
+	LoginLDAP:   "LDAP (via BindDN)",
+	LoginDLDAP:  "LDAP (simple auth)", // Via direct bind
+	LoginSMTP:   "SMTP",
+	LoginPAM:    "PAM",
+	LoginOAuth2: "OAuth2",
 }
 
 // SecurityProtocolNames contains the name of SecurityProtocol values.
@@ -57,6 +60,7 @@ var (
 	_ core.Conversion = &LDAPConfig{}
 	_ core.Conversion = &SMTPConfig{}
 	_ core.Conversion = &PAMConfig{}
+	_ core.Conversion = &OAuth2Config{}
 )
 
 // LDAPConfig holds configuration for LDAP login source.
@@ -115,29 +119,38 @@ func (cfg *PAMConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
+// OAuth2Config holds configuration for the OAuth2 login source.
+type OAuth2Config struct {
+	Provider                      string
+	ClientID                      string
+	ClientSecret                  string
+	OpenIDConnectAutoDiscoveryURL string
+	CustomURLMapping              *oauth2.CustomURLMapping
+}
+
+// FromDB fills up an OAuth2Config from serialized format.
+func (cfg *OAuth2Config) FromDB(bs []byte) error {
+	return json.Unmarshal(bs, cfg)
+}
+
+// ToDB exports an SMTPConfig to a serialized format.
+func (cfg *OAuth2Config) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
 // LoginSource represents an external way for authorizing users.
 type LoginSource struct {
-	ID        int64 `xorm:"pk autoincr"`
-	Type      LoginType
-	Name      string          `xorm:"UNIQUE"`
-	IsActived bool            `xorm:"INDEX NOT NULL DEFAULT false"`
-	Cfg       core.Conversion `xorm:"TEXT"`
+	ID            int64 `xorm:"pk autoincr"`
+	Type          LoginType
+	Name          string          `xorm:"UNIQUE"`
+	IsActived     bool            `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsSyncEnabled bool            `xorm:"INDEX NOT NULL DEFAULT false"`
+	Cfg           core.Conversion `xorm:"TEXT"`
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
+	CreatedUnix int64     `xorm:"INDEX created"`
 	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX"`
-}
-
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (source *LoginSource) BeforeInsert() {
-	source.CreatedUnix = time.Now().Unix()
-	source.UpdatedUnix = source.CreatedUnix
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (source *LoginSource) BeforeUpdate() {
-	source.UpdatedUnix = time.Now().Unix()
+	UpdatedUnix int64     `xorm:"INDEX updated"`
 }
 
 // Cell2Int64 converts a xorm.Cell type to int64,
@@ -162,20 +175,18 @@ func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 			source.Cfg = new(SMTPConfig)
 		case LoginPAM:
 			source.Cfg = new(PAMConfig)
+		case LoginOAuth2:
+			source.Cfg = new(OAuth2Config)
 		default:
 			panic("unrecognized login source type: " + com.ToStr(*val))
 		}
 	}
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (source *LoginSource) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		source.Created = time.Unix(source.CreatedUnix, 0).Local()
-	case "updated_unix":
-		source.Updated = time.Unix(source.UpdatedUnix, 0).Local()
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (source *LoginSource) AfterLoad() {
+	source.Created = time.Unix(source.CreatedUnix, 0).Local()
+	source.Updated = time.Unix(source.UpdatedUnix, 0).Local()
 }
 
 // TypeName return name of this login source type.
@@ -201,6 +212,11 @@ func (source *LoginSource) IsSMTP() bool {
 // IsPAM returns true of this source is of the PAM type.
 func (source *LoginSource) IsPAM() bool {
 	return source.Type == LoginPAM
+}
+
+// IsOAuth2 returns true of this source is of the OAuth2 type.
+func (source *LoginSource) IsOAuth2() bool {
+	return source.Type == LoginOAuth2
 }
 
 // HasTLS returns true of this source supports TLS.
@@ -250,6 +266,11 @@ func (source *LoginSource) PAM() *PAMConfig {
 	return source.Cfg.(*PAMConfig)
 }
 
+// OAuth2 returns OAuth2Config for this source, if of OAuth2 type.
+func (source *LoginSource) OAuth2() *OAuth2Config {
+	return source.Cfg.(*OAuth2Config)
+}
+
 // CreateLoginSource inserts a LoginSource in the DB if not already
 // existing with the given name.
 func CreateLoginSource(source *LoginSource) error {
@@ -259,21 +280,35 @@ func CreateLoginSource(source *LoginSource) error {
 	} else if has {
 		return ErrLoginSourceAlreadyExist{source.Name}
 	}
+	// Synchronization is only aviable with LDAP for now
+	if !source.IsLDAP() {
+		source.IsSyncEnabled = false
+	}
 
 	_, err = x.Insert(source)
+	if err == nil && source.IsOAuth2() && source.IsActived {
+		oAuth2Config := source.OAuth2()
+		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
+		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
+
+		if err != nil {
+			// remove the LoginSource in case of errors while registering OAuth2 providers
+			x.Delete(source)
+		}
+	}
 	return err
 }
 
 // LoginSources returns a slice of all login sources found in DB.
 func LoginSources() ([]*LoginSource, error) {
-	auths := make([]*LoginSource, 0, 5)
+	auths := make([]*LoginSource, 0, 6)
 	return auths, x.Find(&auths)
 }
 
 // GetLoginSourceByID returns login source by given ID.
 func GetLoginSourceByID(id int64) (*LoginSource, error) {
 	source := new(LoginSource)
-	has, err := x.Id(id).Get(source)
+	has, err := x.ID(id).Get(source)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -284,7 +319,26 @@ func GetLoginSourceByID(id int64) (*LoginSource, error) {
 
 // UpdateSource updates a LoginSource record in DB.
 func UpdateSource(source *LoginSource) error {
-	_, err := x.Id(source.ID).AllCols().Update(source)
+	var originalLoginSource *LoginSource
+	if source.IsOAuth2() {
+		// keep track of the original values so we can restore in case of errors while registering OAuth2 providers
+		var err error
+		if originalLoginSource, err = GetLoginSourceByID(source.ID); err != nil {
+			return err
+		}
+	}
+
+	_, err := x.ID(source.ID).AllCols().Update(source)
+	if err == nil && source.IsOAuth2() && source.IsActived {
+		oAuth2Config := source.OAuth2()
+		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
+		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
+
+		if err != nil {
+			// restore original values since we cannot update the provider it self
+			x.ID(source.ID).AllCols().Update(originalLoginSource)
+		}
+	}
 	return err
 }
 
@@ -296,7 +350,19 @@ func DeleteSource(source *LoginSource) error {
 	} else if count > 0 {
 		return ErrLoginSourceInUse{source.ID}
 	}
-	_, err = x.Id(source.ID).Delete(new(LoginSource))
+
+	count, err = x.Count(&ExternalLoginUser{LoginSourceID: source.ID})
+	if err != nil {
+		return err
+	} else if count > 0 {
+		return ErrLoginSourceInUse{source.ID}
+	}
+
+	if source.IsOAuth2() {
+		oauth2.RemoveProvider(source.Name)
+	}
+
+	_, err = x.ID(source.ID).Delete(new(LoginSource))
 	return err
 }
 
@@ -329,8 +395,8 @@ func composeFullName(firstname, surname, username string) string {
 // LoginViaLDAP queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
 func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoRegister bool) (*User, error) {
-	username, fn, sn, mail, isAdmin, succeed := source.Cfg.(*LDAPConfig).SearchEntry(login, password, source.Type == LoginDLDAP)
-	if !succeed {
+	sr := source.Cfg.(*LDAPConfig).SearchEntry(login, password, source.Type == LoginDLDAP)
+	if sr == nil {
 		// User not in LDAP, do nothing
 		return nil, ErrUserNotExist{0, login, 0}
 	}
@@ -340,28 +406,28 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 	}
 
 	// Fallback.
-	if len(username) == 0 {
-		username = login
+	if len(sr.Username) == 0 {
+		sr.Username = login
 	}
 	// Validate username make sure it satisfies requirement.
-	if binding.AlphaDashDotPattern.MatchString(username) {
-		return nil, fmt.Errorf("Invalid pattern for attribute 'username' [%s]: must be valid alpha or numeric or dash(-_) or dot characters", username)
+	if binding.AlphaDashDotPattern.MatchString(sr.Username) {
+		return nil, fmt.Errorf("Invalid pattern for attribute 'username' [%s]: must be valid alpha or numeric or dash(-_) or dot characters", sr.Username)
 	}
 
-	if len(mail) == 0 {
-		mail = fmt.Sprintf("%s@localhost", username)
+	if len(sr.Mail) == 0 {
+		sr.Mail = fmt.Sprintf("%s@localhost", sr.Username)
 	}
 
 	user = &User{
-		LowerName:   strings.ToLower(username),
-		Name:        username,
-		FullName:    composeFullName(fn, sn, username),
-		Email:       mail,
+		LowerName:   strings.ToLower(sr.Username),
+		Name:        sr.Username,
+		FullName:    composeFullName(sr.Name, sr.Surname, sr.Username),
+		Email:       sr.Mail,
 		LoginType:   source.Type,
 		LoginSource: source.ID,
 		LoginName:   login,
 		IsActive:    true,
-		IsAdmin:     isAdmin,
+		IsAdmin:     sr.IsAdmin,
 	}
 	return user, CreateUser(user)
 }
@@ -428,10 +494,7 @@ func SMTPAuth(a smtp.Auth, cfg *SMTPConfig) error {
 	}
 
 	if ok, _ := c.Extension("AUTH"); ok {
-		if err = c.Auth(a); err != nil {
-			return err
-		}
-		return nil
+		return c.Auth(a)
 	}
 	return ErrUnsupportedLoginType
 }
@@ -549,8 +612,23 @@ func UserSignIn(username, password string) (*User, error) {
 	var user *User
 	if strings.Contains(username, "@") {
 		user = &User{Email: strings.ToLower(strings.TrimSpace(username))}
+		// check same email
+		cnt, err := x.Count(user)
+		if err != nil {
+			return nil, err
+		}
+		if cnt > 1 {
+			return nil, ErrEmailAlreadyUsed{
+				Email: user.Email,
+			}
+		}
 	} else {
-		user = &User{LowerName: strings.ToLower(strings.TrimSpace(username))}
+		trimmedUsername := strings.TrimSpace(username)
+		if len(trimmedUsername) == 0 {
+			return nil, ErrUserNotExist{0, username, 0}
+		}
+
+		user = &User{LowerName: strings.ToLower(trimmedUsername)}
 	}
 
 	hasUser, err := x.Get(user)
@@ -560,7 +638,7 @@ func UserSignIn(username, password string) (*User, error) {
 
 	if hasUser {
 		switch user.LoginType {
-		case LoginNoType, LoginPlain:
+		case LoginNoType, LoginPlain, LoginOAuth2:
 			if user.ValidatePassword(password) {
 				return user, nil
 			}
@@ -569,7 +647,7 @@ func UserSignIn(username, password string) (*User, error) {
 
 		default:
 			var source LoginSource
-			hasSource, err := x.Id(user.LoginSource).Get(&source)
+			hasSource, err := x.ID(user.LoginSource).Get(&source)
 			if err != nil {
 				return nil, err
 			} else if !hasSource {
@@ -580,12 +658,16 @@ func UserSignIn(username, password string) (*User, error) {
 		}
 	}
 
-	sources := make([]*LoginSource, 0, 3)
-	if err = x.UseBool().Find(&sources, &LoginSource{IsActived: true}); err != nil {
+	sources := make([]*LoginSource, 0, 5)
+	if err = x.Where("is_actived = ?", true).Find(&sources); err != nil {
 		return nil, err
 	}
 
 	for _, source := range sources {
+		if source.IsOAuth2() {
+			// don't try to authenticate against OAuth2 sources
+			continue
+		}
 		authUser, err := ExternalUserLogin(nil, username, password, source, true)
 		if err == nil {
 			return authUser, nil

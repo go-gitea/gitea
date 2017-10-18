@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -9,12 +10,14 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"net"
 	"net/mail"
 	"net/url"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -26,11 +29,13 @@ import (
 	"code.gitea.io/gitea/modules/user"
 
 	"github.com/Unknwon/com"
+	"github.com/dgrijalva/jwt-go"
 	_ "github.com/go-macaron/cache/memcache" // memcache plugin for cache
 	_ "github.com/go-macaron/cache/redis"
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
-	ini "gopkg.in/ini.v1"
+	"github.com/go-xorm/core"
+	"gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
 
@@ -58,6 +63,7 @@ const (
 var (
 	// AppVer settings
 	AppVer         string
+	AppBuiltWith   string
 	AppName        string
 	AppURL         string
 	AppSubURL      string
@@ -82,22 +88,25 @@ var (
 	EnablePprof          bool
 
 	SSH = struct {
-		Disabled            bool           `ini:"DISABLE_SSH"`
-		StartBuiltinServer  bool           `ini:"START_SSH_SERVER"`
-		Domain              string         `ini:"SSH_DOMAIN"`
-		Port                int            `ini:"SSH_PORT"`
-		ListenHost          string         `ini:"SSH_LISTEN_HOST"`
-		ListenPort          int            `ini:"SSH_LISTEN_PORT"`
-		RootPath            string         `ini:"SSH_ROOT_PATH"`
-		ServerCiphers       []string       `ini:"SSH_SERVER_CIPHERS"`
-		KeyTestPath         string         `ini:"SSH_KEY_TEST_PATH"`
-		KeygenPath          string         `ini:"SSH_KEYGEN_PATH"`
-		MinimumKeySizeCheck bool           `ini:"-"`
-		MinimumKeySizes     map[string]int `ini:"-"`
+		Disabled             bool           `ini:"DISABLE_SSH"`
+		StartBuiltinServer   bool           `ini:"START_SSH_SERVER"`
+		BuiltinServerUser    string         `ini:"BUILTIN_SSH_SERVER_USER"`
+		Domain               string         `ini:"SSH_DOMAIN"`
+		Port                 int            `ini:"SSH_PORT"`
+		ListenHost           string         `ini:"SSH_LISTEN_HOST"`
+		ListenPort           int            `ini:"SSH_LISTEN_PORT"`
+		RootPath             string         `ini:"SSH_ROOT_PATH"`
+		ServerCiphers        []string       `ini:"SSH_SERVER_CIPHERS"`
+		KeyTestPath          string         `ini:"SSH_KEY_TEST_PATH"`
+		KeygenPath           string         `ini:"SSH_KEYGEN_PATH"`
+		AuthorizedKeysBackup bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
+		MinimumKeySizeCheck  bool           `ini:"-"`
+		MinimumKeySizes      map[string]int `ini:"-"`
+		ExposeAnonymous      bool           `ini:"SSH_EXPOSE_ANONYMOUS"`
 	}{
 		Disabled:           false,
 		StartBuiltinServer: false,
-		Domain:             "localhost",
+		Domain:             "",
 		Port:               22,
 		KeygenPath:         "ssh-keygen",
 	}
@@ -118,6 +127,7 @@ var (
 	ReverseProxyAuthUser string
 	MinPasswordLength    int
 	ImportLocalPaths     bool
+	DisableGitHooks      bool
 
 	// Database settings
 	UseSQLite3    bool
@@ -155,6 +165,7 @@ var (
 		PullRequestQueueLength int
 		PreferredLicenses      []string
 		DisableHTTPGit         bool
+		UseCompatSSHURI        bool
 
 		// Repository editor settings
 		Editor struct {
@@ -170,6 +181,11 @@ var (
 			FileMaxSize  int64
 			MaxFiles     int
 		} `ini:"-"`
+
+		// Repository local settings
+		Local struct {
+			LocalCopyPath string
+		} `ini:"-"`
 	}{
 		AnsiCharset:            "",
 		ForcePrivate:           false,
@@ -178,6 +194,7 @@ var (
 		PullRequestQueueLength: 1000,
 		PreferredLicenses:      []string{"Apache License 2.0,MIT License"},
 		DisableHTTPGit:         false,
+		UseCompatSSHURI:        false,
 
 		// Repository editor settings
 		Editor: struct {
@@ -202,6 +219,13 @@ var (
 			FileMaxSize:  3,
 			MaxFiles:     5,
 		},
+
+		// Repository local settings
+		Local: struct {
+			LocalCopyPath string
+		}{
+			LocalCopyPath: "tmp/local-repo",
+		},
 	}
 	RepoRootPath string
 	ScriptType   = "bash"
@@ -224,6 +248,11 @@ var (
 		User struct {
 			RepoPagingNum int
 		} `ini:"ui.user"`
+		Meta struct {
+			Author      string
+			Description string
+			Keywords    string
+		} `ini:"ui.meta"`
 	}{
 		ExplorePagingNum:   20,
 		IssuePagingNum:     10,
@@ -246,9 +275,18 @@ var (
 		}{
 			RepoPagingNum: 15,
 		},
+		Meta: struct {
+			Author      string
+			Description string
+			Keywords    string
+		}{
+			Author:      "Gitea - Git with a cup of tea",
+			Description: "Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go",
+			Keywords:    "go,git,self-hosted,gitea",
+		},
 	}
 
-	// Markdown sttings
+	// Markdown settings
 	Markdown = struct {
 		EnableHardLineBreak bool
 		CustomURLSchemes    []string `ini:"CUSTOM_URL_SCHEMES"`
@@ -256,6 +294,11 @@ var (
 	}{
 		EnableHardLineBreak: false,
 		FileExtensions:      strings.Split(".md,.markdown,.mdown,.mkd", ","),
+	}
+
+	// Admin settings
+	Admin struct {
+		DisableRegularOrgCreation bool
 	}
 
 	// Picture settings
@@ -314,13 +357,21 @@ var (
 			Schedule   string
 			OlderThan  time.Duration
 		} `ini:"cron.archive_cleanup"`
+		SyncExternalUsers struct {
+			Enabled        bool
+			RunAtStart     bool
+			Schedule       string
+			UpdateExisting bool
+		} `ini:"cron.sync_external_users"`
 	}{
 		UpdateMirror: struct {
 			Enabled    bool
 			RunAtStart bool
 			Schedule   string
 		}{
-			Schedule: "@every 10m",
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 10m",
 		},
 		RepoHealthCheck: struct {
 			Enabled    bool
@@ -329,15 +380,18 @@ var (
 			Timeout    time.Duration
 			Args       []string `delim:" "`
 		}{
-			Schedule: "@every 24h",
-			Timeout:  60 * time.Second,
-			Args:     []string{},
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 24h",
+			Timeout:    60 * time.Second,
+			Args:       []string{},
 		},
 		CheckRepoStats: struct {
 			Enabled    bool
 			RunAtStart bool
 			Schedule   string
 		}{
+			Enabled:    true,
 			RunAtStart: true,
 			Schedule:   "@every 24h",
 		},
@@ -347,14 +401,27 @@ var (
 			Schedule   string
 			OlderThan  time.Duration
 		}{
+			Enabled:    true,
 			RunAtStart: true,
 			Schedule:   "@every 24h",
 			OlderThan:  24 * time.Hour,
+		},
+		SyncExternalUsers: struct {
+			Enabled        bool
+			RunAtStart     bool
+			Schedule       string
+			UpdateExisting bool
+		}{
+			Enabled:        true,
+			RunAtStart:     false,
+			Schedule:       "@every 24h",
+			UpdateExisting: true,
 		},
 	}
 
 	// Git settings
 	Git = struct {
+		Version                  string `ini:"-"`
 		DisableDiffHighlight     bool
 		MaxGitDiffLines          int
 		MaxGitDiffLineCharacters int
@@ -389,10 +456,9 @@ var (
 	}
 
 	// Mirror settings
-	Mirror = struct {
-		DefaultInterval int
-	}{
-		DefaultInterval: 8,
+	Mirror struct {
+		DefaultInterval time.Duration
+		MinInterval     time.Duration
 	}
 
 	// API settings
@@ -407,7 +473,7 @@ var (
 	Names     []string
 	dateLangs map[string]string
 
-	// Highlight settings are loaded in modules/template/hightlight.go
+	// Highlight settings are loaded in modules/template/highlight.go
 
 	// Other settings
 	ShowFooterBranding         bool
@@ -415,14 +481,15 @@ var (
 	ShowFooterTemplateLoadTime bool
 
 	// Global setting objects
-	Cfg          *ini.File
-	CustomPath   string // Custom directory path
-	CustomConf   string
-	CustomPID    string
-	ProdMode     bool
-	RunUser      string
-	IsWindows    bool
-	HasRobotsTxt bool
+	Cfg           *ini.File
+	CustomPath    string // Custom directory path
+	CustomConf    string
+	CustomPID     string
+	ProdMode      bool
+	RunUser       string
+	IsWindows     bool
+	HasRobotsTxt  bool
+	InternalToken string // internal access token
 )
 
 // DateLang transforms standard language locale name to corresponding value in datetime plugin.
@@ -436,7 +503,11 @@ func DateLang(lang string) string {
 
 // execPath returns the executable path.
 func execPath() (string, error) {
-	file, err := exec.LookPath(os.Args[0])
+	execFile := os.Args[0]
+	if IsWindows && filepath.IsAbs(execFile) {
+		return filepath.Clean(execFile), nil
+	}
+	file, err := exec.LookPath(execFile)
 	if err != nil {
 		return "", err
 	}
@@ -524,21 +595,9 @@ func NewContext() {
 
 	Cfg = ini.Empty()
 
-	if err != nil {
-		log.Fatal(4, "Failed to parse 'app.ini': %v", err)
-	}
-
 	CustomPath = os.Getenv("GITEA_CUSTOM")
 	if len(CustomPath) == 0 {
-		// For backward compatibility
-		// TODO: drop in 1.1.0 ?
-		CustomPath = os.Getenv("GOGS_CUSTOM")
-		if len(CustomPath) == 0 {
-			CustomPath = workDir + "/custom"
-		} else {
-			log.Warn(`Usage of GOGS_CUSTOM is deprecated and will be *removed* in a future release,
-please consider changing to GITEA_CUSTOM`)
-		}
+		CustomPath = workDir + "/custom"
 	}
 
 	if len(CustomPID) > 0 {
@@ -547,6 +606,8 @@ please consider changing to GITEA_CUSTOM`)
 
 	if len(CustomConf) == 0 {
 		CustomConf = CustomPath + "/conf/app.ini"
+	} else if !filepath.IsAbs(CustomConf) {
+		CustomConf = filepath.Join(workDir, CustomConf)
 	}
 
 	if com.IsFile(CustomConf) {
@@ -569,20 +630,6 @@ please consider changing to GITEA_CUSTOM`)
 
 	sec := Cfg.Section("server")
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
-	AppURL = sec.Key("ROOT_URL").MustString("http://localhost:3000/")
-	if AppURL[len(AppURL)-1] != '/' {
-		AppURL += "/"
-	}
-
-	// Check if has app suburl.
-	url, err := url.Parse(AppURL)
-	if err != nil {
-		log.Fatal(4, "Invalid ROOT_URL '%s': %s", AppURL, err)
-	}
-	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
-	// This value is empty if site does not have sub-url.
-	AppSubURL = strings.TrimSuffix(url.Path, "/")
-	AppSubURLDepth = strings.Count(AppSubURL, "/")
 
 	Protocol = HTTP
 	if sec.Key("PROTOCOL").String() == "https" {
@@ -603,7 +650,46 @@ please consider changing to GITEA_CUSTOM`)
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
-	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(string(Protocol) + "://localhost:" + HTTPPort + "/")
+
+	defaultAppURL := string(Protocol) + "://" + Domain
+	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
+		defaultAppURL += ":" + HTTPPort
+	}
+	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
+	AppURL = strings.TrimRight(AppURL, "/") + "/"
+
+	// Check if has app suburl.
+	url, err := url.Parse(AppURL)
+	if err != nil {
+		log.Fatal(4, "Invalid ROOT_URL '%s': %s", AppURL, err)
+	}
+	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
+	// This value is empty if site does not have sub-url.
+	AppSubURL = strings.TrimSuffix(url.Path, "/")
+	AppSubURLDepth = strings.Count(AppSubURL, "/")
+	// Check if Domain differs from AppURL domain than update it to AppURL's domain
+	// TODO: Can be replaced with url.Hostname() when minimal GoLang version is 1.8
+	urlHostname := strings.SplitN(url.Host, ":", 2)[0]
+	if urlHostname != Domain && net.ParseIP(urlHostname) == nil {
+		Domain = urlHostname
+	}
+
+	var defaultLocalURL string
+	switch Protocol {
+	case UnixSocket:
+		defaultLocalURL = "http://unix/"
+	case FCGI:
+		defaultLocalURL = AppURL
+	default:
+		defaultLocalURL = string(Protocol) + "://"
+		if HTTPAddr == "0.0.0.0" {
+			defaultLocalURL += "localhost"
+		} else {
+			defaultLocalURL += HTTPAddr
+		}
+		defaultLocalURL += ":" + HTTPPort + "/"
+	}
+	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(workDir)
@@ -618,6 +704,9 @@ please consider changing to GITEA_CUSTOM`)
 		LandingPageURL = LandingPageHome
 	}
 
+	if len(SSH.Domain) == 0 {
+		SSH.Domain = Domain
+	}
 	SSH.RootPath = path.Join(homeDir, ".ssh")
 	SSH.ServerCiphers = sec.Key("SSH_SERVER_CIPHERS").Strings(",")
 	SSH.KeyTestPath = os.TempDir()
@@ -650,6 +739,8 @@ please consider changing to GITEA_CUSTOM`)
 			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
 		}
 	}
+	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
+	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
 	if err = Cfg.Section("server").MapTo(&LFS); err != nil {
 		log.Fatal(4, "Failed to map LFS settings: %v", err)
@@ -703,7 +794,7 @@ please consider changing to GITEA_CUSTOM`)
 			log.Fatal(4, "Error retrieving git version: %v", err)
 		}
 
-		splitVersion := strings.SplitN(binVersion, ".", 3)
+		splitVersion := strings.SplitN(binVersion, ".", 4)
 
 		majorVersion, err := strconv.ParseUint(splitVersion[0], 10, 64)
 		if err != nil {
@@ -741,6 +832,44 @@ please consider changing to GITEA_CUSTOM`)
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
+	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
+	InternalToken = sec.Key("INTERNAL_TOKEN").String()
+	if len(InternalToken) == 0 {
+		secretBytes := make([]byte, 32)
+		_, err := io.ReadFull(rand.Reader, secretBytes)
+		if err != nil {
+			log.Fatal(4, "Error reading random bytes: %v", err)
+		}
+
+		secretKey := base64.RawURLEncoding.EncodeToString(secretBytes)
+
+		now := time.Now()
+		InternalToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"nbf": now.Unix(),
+		}).SignedString([]byte(secretKey))
+
+		if err != nil {
+			log.Fatal(4, "Error generate internal token: %v", err)
+		}
+
+		// Save secret
+		cfgSave := ini.Empty()
+		if com.IsFile(CustomConf) {
+			// Keeps custom settings if there is already something.
+			if err := cfgSave.Append(CustomConf); err != nil {
+				log.Error(4, "Failed to load custom conf '%s': %v", CustomConf, err)
+			}
+		}
+
+		cfgSave.Section("security").Key("INTERNAL_TOKEN").SetValue(InternalToken)
+
+		if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
+			log.Fatal(4, "Failed to create '%s': %v", CustomConf, err)
+		}
+		if err := cfgSave.SaveTo(CustomConf); err != nil {
+			log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
+		}
+	}
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -789,9 +918,13 @@ please consider changing to GITEA_CUSTOM`)
 		}
 	}
 
+	SSH.BuiltinServerUser = Cfg.Section("server").Key("BUILTIN_SSH_SERVER_USER").MustString(RunUser)
+
 	// Determine and create root git repository path.
 	sec = Cfg.Section("repository")
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
+	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
+	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
 	RepoRootPath = sec.Key("ROOT").MustString(path.Join(homeDir, "gitea-repositories"))
 	forcePathSeparator(RepoRootPath)
 	if !filepath.IsAbs(RepoRootPath) {
@@ -806,6 +939,8 @@ please consider changing to GITEA_CUSTOM`)
 		log.Fatal(4, "Failed to map Repository.Editor settings: %v", err)
 	} else if err = Cfg.Section("repository.upload").MapTo(&Repository.Upload); err != nil {
 		log.Fatal(4, "Failed to map Repository.Upload settings: %v", err)
+	} else if err = Cfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
+		log.Fatal(4, "Failed to map Repository.Local settings: %v", err)
 	}
 
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
@@ -856,18 +991,26 @@ please consider changing to GITEA_CUSTOM`)
 		log.Fatal(4, "Failed to map UI settings: %v", err)
 	} else if err = Cfg.Section("markdown").MapTo(&Markdown); err != nil {
 		log.Fatal(4, "Failed to map Markdown settings: %v", err)
+	} else if err = Cfg.Section("admin").MapTo(&Admin); err != nil {
+		log.Fatal(4, "Fail to map Admin settings: %v", err)
 	} else if err = Cfg.Section("cron").MapTo(&Cron); err != nil {
 		log.Fatal(4, "Failed to map Cron settings: %v", err)
 	} else if err = Cfg.Section("git").MapTo(&Git); err != nil {
 		log.Fatal(4, "Failed to map Git settings: %v", err)
-	} else if err = Cfg.Section("mirror").MapTo(&Mirror); err != nil {
-		log.Fatal(4, "Failed to map Mirror settings: %v", err)
 	} else if err = Cfg.Section("api").MapTo(&API); err != nil {
 		log.Fatal(4, "Failed to map API settings: %v", err)
 	}
 
-	if Mirror.DefaultInterval <= 0 {
-		Mirror.DefaultInterval = 24
+	sec = Cfg.Section("mirror")
+	Mirror.MinInterval = sec.Key("MIN_INTERVAL").MustDuration(10 * time.Minute)
+	Mirror.DefaultInterval = sec.Key("DEFAULT_INTERVAL").MustDuration(8 * time.Hour)
+	if Mirror.MinInterval.Minutes() < 1 {
+		log.Warn("Mirror.MinInterval is too low")
+		Mirror.MinInterval = 1 * time.Minute
+	}
+	if Mirror.DefaultInterval < Mirror.MinInterval {
+		log.Warn("Mirror.DefaultInterval is less than Mirror.MinInterval")
+		Mirror.DefaultInterval = time.Hour * 8
 	}
 
 	Langs = Cfg.Section("i18n").Key("LANGS").Strings(",")
@@ -891,18 +1034,27 @@ please consider changing to GITEA_CUSTOM`)
 
 // Service settings
 var Service struct {
-	ActiveCodeLives                int
-	ResetPwdCodeLives              int
-	RegisterEmailConfirm           bool
-	DisableRegistration            bool
-	ShowRegistrationButton         bool
-	RequireSignInView              bool
-	EnableNotifyMail               bool
-	EnableReverseProxyAuth         bool
-	EnableReverseProxyAutoRegister bool
-	EnableCaptcha                  bool
-	DefaultKeepEmailPrivate        bool
-	NoReplyAddress                 string
+	ActiveCodeLives                         int
+	ResetPwdCodeLives                       int
+	RegisterEmailConfirm                    bool
+	DisableRegistration                     bool
+	ShowRegistrationButton                  bool
+	RequireSignInView                       bool
+	EnableNotifyMail                        bool
+	EnableReverseProxyAuth                  bool
+	EnableReverseProxyAutoRegister          bool
+	EnableCaptcha                           bool
+	DefaultKeepEmailPrivate                 bool
+	DefaultAllowCreateOrganization          bool
+	DefaultEnableTimetracking               bool
+	DefaultAllowOnlyContributorsToTrackTime bool
+	NoReplyAddress                          string
+
+	// OpenID settings
+	EnableOpenIDSignIn bool
+	EnableOpenIDSignUp bool
+	OpenIDWhitelist    []*regexp.Regexp
+	OpenIDBlacklist    []*regexp.Regexp
 }
 
 func newService() {
@@ -916,7 +1068,29 @@ func newService() {
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool()
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
+	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
+	Service.DefaultEnableTimetracking = sec.Key("DEFAULT_ENABLE_TIMETRACKING").MustBool(true)
+	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
+
+	sec = Cfg.Section("openid")
+	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(false)
+	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration && Service.EnableOpenIDSignIn)
+	pats := sec.Key("WHITELISTED_URIS").Strings(" ")
+	if len(pats) != 0 {
+		Service.OpenIDWhitelist = make([]*regexp.Regexp, len(pats))
+		for i, p := range pats {
+			Service.OpenIDWhitelist[i] = regexp.MustCompilePOSIX(p)
+		}
+	}
+	pats = sec.Key("BLACKLISTED_URIS").Strings(" ")
+	if len(pats) != 0 {
+		Service.OpenIDBlacklist = make([]*regexp.Regexp, len(pats))
+		for i, p := range pats {
+			Service.OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
+		}
+	}
+
 }
 
 var logLevels = map[string]string{
@@ -929,26 +1103,25 @@ var logLevels = map[string]string{
 }
 
 func newLogService() {
-	log.Info("Gitea v%s", AppVer)
+	log.Info("Gitea v%s%s", AppVer, AppBuiltWith)
 
 	LogModes = strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
 	LogConfigs = make([]string, len(LogModes))
 
 	useConsole := false
-	for _, mode := range LogModes {
-		if mode == "console" {
+	for i := 0; i < len(LogModes); i++ {
+		LogModes[i] = strings.TrimSpace(LogModes[i])
+		if LogModes[i] == "console" {
 			useConsole = true
 		}
 	}
+
 	if !useConsole {
 		log.DelLogger("console")
 	}
 
 	for i, mode := range LogModes {
-		mode = strings.TrimSpace(mode)
-
 		sec, err := Cfg.GetSection("log." + mode)
-
 		if err != nil {
 			sec, _ = Cfg.NewSection("log." + mode)
 		}
@@ -1005,6 +1178,94 @@ func newLogService() {
 	}
 }
 
+// NewXORMLogService initializes xorm logger service
+func NewXORMLogService(disableConsole bool) {
+	logModes := strings.Split(Cfg.Section("log").Key("MODE").MustString("console"), ",")
+	var logConfigs string
+	for _, mode := range logModes {
+		mode = strings.TrimSpace(mode)
+
+		if disableConsole && mode == "console" {
+			continue
+		}
+
+		sec, err := Cfg.GetSection("log." + mode)
+		if err != nil {
+			sec, _ = Cfg.NewSection("log." + mode)
+		}
+
+		validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
+		// Log level.
+		levelName := Cfg.Section("log."+mode).Key("LEVEL").In(
+			Cfg.Section("log").Key("LEVEL").In("Trace", validLevels),
+			validLevels)
+		level, ok := logLevels[levelName]
+		if !ok {
+			log.Fatal(4, "Unknown log level: %s", levelName)
+		}
+
+		// Generate log configuration.
+		switch mode {
+		case "console":
+			logConfigs = fmt.Sprintf(`{"level":%s}`, level)
+		case "file":
+			logPath := sec.Key("FILE_NAME").MustString(path.Join(LogRootPath, "xorm.log"))
+			if err = os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
+				panic(err.Error())
+			}
+			logPath = filepath.Join(filepath.Dir(logPath), "xorm.log")
+
+			logConfigs = fmt.Sprintf(
+				`{"level":%s,"filename":"%s","rotate":%v,"maxlines":%d,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
+				logPath,
+				sec.Key("LOG_ROTATE").MustBool(true),
+				sec.Key("MAX_LINES").MustInt(1000000),
+				1<<uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28)),
+				sec.Key("DAILY_ROTATE").MustBool(true),
+				sec.Key("MAX_DAYS").MustInt(7))
+		case "conn":
+			logConfigs = fmt.Sprintf(`{"level":%s,"reconnectOnMsg":%v,"reconnect":%v,"net":"%s","addr":"%s"}`, level,
+				sec.Key("RECONNECT_ON_MSG").MustBool(),
+				sec.Key("RECONNECT").MustBool(),
+				sec.Key("PROTOCOL").In("tcp", []string{"tcp", "unix", "udp"}),
+				sec.Key("ADDR").MustString(":7020"))
+		case "smtp":
+			logConfigs = fmt.Sprintf(`{"level":%s,"username":"%s","password":"%s","host":"%s","sendTos":"%s","subject":"%s"}`, level,
+				sec.Key("USER").MustString("example@example.com"),
+				sec.Key("PASSWD").MustString("******"),
+				sec.Key("HOST").MustString("127.0.0.1:25"),
+				sec.Key("RECEIVERS").MustString("[]"),
+				sec.Key("SUBJECT").MustString("Diagnostic message from serve"))
+		case "database":
+			logConfigs = fmt.Sprintf(`{"level":%s,"driver":"%s","conn":"%s"}`, level,
+				sec.Key("DRIVER").String(),
+				sec.Key("CONN").String())
+		}
+
+		log.NewXORMLogger(Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000), mode, logConfigs)
+		if !disableConsole {
+			log.Info("XORM Log Mode: %s(%s)", strings.Title(mode), levelName)
+		}
+
+		var lvl core.LogLevel
+		switch levelName {
+		case "Trace", "Debug":
+			lvl = core.LOG_DEBUG
+		case "Info":
+			lvl = core.LOG_INFO
+		case "Warn":
+			lvl = core.LOG_WARNING
+		case "Error", "Critical":
+			lvl = core.LOG_ERR
+		}
+		log.XORMLogger.SetLevel(lvl)
+	}
+
+	if len(logConfigs) == 0 {
+		log.DiscardXORMLogger()
+	}
+}
+
 func newCacheService() {
 	CacheAdapter = Cfg.Section("cache").Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"})
 	switch CacheAdapter {
@@ -1035,11 +1296,12 @@ func newSessionService() {
 // Mailer represents mail service.
 type Mailer struct {
 	// Mailer
-	QueueLength           int
-	Name                  string
-	From                  string
-	FromEmail             string
-	EnableHTMLAlternative bool
+	QueueLength     int
+	Name            string
+	From            string
+	FromName        string
+	FromEmail       string
+	SendAsPlainText bool
 
 	// SMTP sender
 	Host              string
@@ -1068,9 +1330,9 @@ func newMailService() {
 	}
 
 	MailService = &Mailer{
-		QueueLength: sec.Key("SEND_BUFFER_LEN").MustInt(100),
-		Name:        sec.Key("NAME").MustString(AppName),
-		EnableHTMLAlternative: sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(),
+		QueueLength:     sec.Key("SEND_BUFFER_LEN").MustInt(100),
+		Name:            sec.Key("NAME").MustString(AppName),
+		SendAsPlainText: sec.Key("SEND_AS_PLAIN_TEXT").MustBool(false),
 
 		Host:           sec.Key("HOST").String(),
 		User:           sec.Key("USER").String(),
@@ -1087,10 +1349,16 @@ func newMailService() {
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
 
+	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") {
+		log.Warn("ENABLE_HTML_ALTERNATIVE is deprecated, use SEND_AS_PLAIN_TEXT")
+		MailService.SendAsPlainText = !sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false)
+	}
+
 	parsed, err := mail.ParseAddress(MailService.From)
 	if err != nil {
 		log.Fatal(4, "Invalid mailer.FROM (%s): %v", MailService.From, err)
 	}
+	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
 
 	log.Info("Mail Service Enabled")
@@ -1123,7 +1391,7 @@ func newWebhookService() {
 	Webhook.QueueLength = sec.Key("QUEUE_LENGTH").MustInt(1000)
 	Webhook.DeliverTimeout = sec.Key("DELIVER_TIMEOUT").MustInt(5)
 	Webhook.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool()
-	Webhook.Types = []string{"gogs", "slack"}
+	Webhook.Types = []string{"gitea", "gogs", "slack", "discord"}
 	Webhook.PagingNum = sec.Key("PAGING_NUM").MustInt(10)
 }
 
@@ -1131,6 +1399,7 @@ func newWebhookService() {
 func NewServices() {
 	newService()
 	newLogService()
+	NewXORMLogService(false)
 	newCacheService()
 	newSessionService()
 	newMailService()

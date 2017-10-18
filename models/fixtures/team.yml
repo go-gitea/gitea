@@ -2,10 +2,11 @@
   id: 1
   org_id: 3
   lower_name: owners
-  name: owners
+  name: Owners
   authorize: 4 # owner
   num_repos: 2
   num_members: 1
+  unit_types: '[1,2,3,4,5,6,7]'
 
 -
   id: 2
@@ -15,21 +16,33 @@
   authorize: 2 # write
   num_repos: 1
   num_members: 2
+  unit_types: '[1,2,3,4,5,6,7]'
 
 -
   id: 3
   org_id: 6
   lower_name: owners
-  name: owners
+  name: Owners
   authorize: 4 # owner
   num_repos: 0
   num_members: 1
+  unit_types: '[1,2,3,4,5,6,7]'
 
 -
   id: 4
   org_id: 7
   lower_name: owners
-  name: owners
+  name: Owners
   authorize: 4 # owner
   num_repos: 0
   num_members: 1
+  unit_types: '[1,2,3,4,5,6,7]'
+-
+  id: 5
+  org_id: 17
+  lower_name: owners
+  name: Owners
+  authorize: 4 # owner
+  num_repos: 2
+  num_members: 2
+  unit_types: '[1,2,3,4,5,6,7]'

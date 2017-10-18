@@ -59,7 +59,7 @@ func (q *NumericRangeQuery) SetBoost(b float64) {
 	q.BoostVal = &boost
 }
 
-func (q *NumericRangeQuery) Boost() float64{
+func (q *NumericRangeQuery) Boost() float64 {
 	return q.BoostVal.Value()
 }
 
@@ -67,16 +67,16 @@ func (q *NumericRangeQuery) SetField(f string) {
 	q.FieldVal = f
 }
 
-func (q *NumericRangeQuery) Field() string{
+func (q *NumericRangeQuery) Field() string {
 	return q.FieldVal
 }
 
-func (q *NumericRangeQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error) {
+func (q *NumericRangeQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
 	field := q.FieldVal
 	if q.FieldVal == "" {
 		field = m.DefaultSearchField()
 	}
-	return searcher.NewNumericRangeSearcher(i, q.Min, q.Max, q.InclusiveMin, q.InclusiveMax, field, q.BoostVal.Value(), explain)
+	return searcher.NewNumericRangeSearcher(i, q.Min, q.Max, q.InclusiveMin, q.InclusiveMax, field, q.BoostVal.Value(), options)
 }
 
 func (q *NumericRangeQuery) Validate() error {

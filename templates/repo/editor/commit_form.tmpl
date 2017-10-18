@@ -10,7 +10,7 @@
 		</div>
 		<div class="quick-pull-choice js-quick-pull-choice">
 			<div class="field">
-		 		<div class="ui radio checkbox">
+		 		<div class="ui radio checkbox {{if not .CanCommitToBranch}}disabled{{end}}">
 					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" {{if eq .commit_choice "direct"}}checked{{end}}>
 					<label>
 						<i class="octicon octicon-git-commit" height="16" width="14"></i>

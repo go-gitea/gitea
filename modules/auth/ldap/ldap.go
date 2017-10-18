@@ -47,6 +47,15 @@ type Source struct {
 	Enabled           bool   // if this source is disabled
 }
 
+// SearchResult : user data
+type SearchResult struct {
+	Username string // Username
+	Name     string // Name
+	Surname  string // Surname
+	Mail     string // E-mail address
+	IsAdmin  bool   // if user is administrator
+}
+
 func (ls *Source) sanitizedUserQuery(username string) (string, bool) {
 	// See http://tools.ietf.org/search/rfc4515
 	badCharacters := "\x00()*\\"
@@ -149,18 +158,39 @@ func bindUser(l *ldap.Conn, userDN, passwd string) error {
 	return err
 }
 
+func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
+	if len(ls.AdminFilter) > 0 {
+		log.Trace("Checking admin with filter %s and base %s", ls.AdminFilter, userDN)
+		search := ldap.NewSearchRequest(
+			userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
+			[]string{ls.AttributeName},
+			nil)
+
+		sr, err := l.Search(search)
+
+		if err != nil {
+			log.Error(4, "LDAP Admin Search failed unexpectedly! (%v)", err)
+		} else if len(sr.Entries) < 1 {
+			log.Error(4, "LDAP Admin Search failed")
+		} else {
+			return true
+		}
+	}
+	return false
+}
+
 // SearchEntry : search an LDAP source if an entry (name, passwd) is valid and in the specific filter
-func (ls *Source) SearchEntry(name, passwd string, directBind bool) (string, string, string, string, bool, bool) {
+func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResult {
 	// See https://tools.ietf.org/search/rfc4513#section-5.1.2
 	if len(passwd) == 0 {
 		log.Debug("Auth. failed for %s, password cannot be empty")
-		return "", "", "", "", false, false
+		return nil
 	}
 	l, err := dial(ls)
 	if err != nil {
 		log.Error(4, "LDAP Connect error, %s:%v", ls.Host, err)
 		ls.Enabled = false
-		return "", "", "", "", false, false
+		return nil
 	}
 	defer l.Close()
 
@@ -171,7 +201,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) (string, str
 		var ok bool
 		userDN, ok = ls.sanitizedUserDN(name)
 		if !ok {
-			return "", "", "", "", false, false
+			return nil
 		}
 	} else {
 		log.Trace("LDAP will use BindDN.")
@@ -179,7 +209,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) (string, str
 		var found bool
 		userDN, found = ls.findUserDN(l, name)
 		if !found {
-			return "", "", "", "", false, false
+			return nil
 		}
 	}
 
@@ -187,13 +217,13 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) (string, str
 		// binds user (checking password) before looking-up attributes in user context
 		err = bindUser(l, userDN, passwd)
 		if err != nil {
-			return "", "", "", "", false, false
+			return nil
 		}
 	}
 
 	userFilter, ok := ls.sanitizedUserQuery(name)
 	if !ok {
-		return "", "", "", "", false, false
+		return nil
 	}
 
 	log.Trace("Fetching attributes '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, userFilter, userDN)
@@ -205,7 +235,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) (string, str
 	sr, err := l.Search(search)
 	if err != nil {
 		log.Error(4, "LDAP Search failed unexpectedly! (%v)", err)
-		return "", "", "", "", false, false
+		return nil
 	} else if len(sr.Entries) < 1 {
 		if directBind {
 			log.Error(4, "User filter inhibited user login.")
@@ -213,39 +243,78 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) (string, str
 			log.Error(4, "LDAP Search failed unexpectedly! (0 entries)")
 		}
 
-		return "", "", "", "", false, false
+		return nil
 	}
 
 	username := sr.Entries[0].GetAttributeValue(ls.AttributeUsername)
 	firstname := sr.Entries[0].GetAttributeValue(ls.AttributeName)
 	surname := sr.Entries[0].GetAttributeValue(ls.AttributeSurname)
 	mail := sr.Entries[0].GetAttributeValue(ls.AttributeMail)
-
-	isAdmin := false
-	if len(ls.AdminFilter) > 0 {
-		log.Trace("Checking admin with filter %s and base %s", ls.AdminFilter, userDN)
-		search = ldap.NewSearchRequest(
-			userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
-			[]string{ls.AttributeName},
-			nil)
-
-		sr, err = l.Search(search)
-		if err != nil {
-			log.Error(4, "LDAP Admin Search failed unexpectedly! (%v)", err)
-		} else if len(sr.Entries) < 1 {
-			log.Error(4, "LDAP Admin Search failed")
-		} else {
-			isAdmin = true
-		}
-	}
+	isAdmin := checkAdmin(l, ls, userDN)
 
 	if !directBind && ls.AttributesInBind {
 		// binds user (checking password) after looking-up attributes in BindDN context
 		err = bindUser(l, userDN, passwd)
 		if err != nil {
-			return "", "", "", "", false, false
+			return nil
 		}
 	}
 
-	return username, firstname, surname, mail, isAdmin, true
+	return &SearchResult{
+		Username: username,
+		Name:     firstname,
+		Surname:  surname,
+		Mail:     mail,
+		IsAdmin:  isAdmin,
+	}
+}
+
+// SearchEntries : search an LDAP source for all users matching userFilter
+func (ls *Source) SearchEntries() []*SearchResult {
+	l, err := dial(ls)
+	if err != nil {
+		log.Error(4, "LDAP Connect error, %s:%v", ls.Host, err)
+		ls.Enabled = false
+		return nil
+	}
+	defer l.Close()
+
+	if ls.BindDN != "" && ls.BindPassword != "" {
+		err := l.Bind(ls.BindDN, ls.BindPassword)
+		if err != nil {
+			log.Debug("Failed to bind as BindDN[%s]: %v", ls.BindDN, err)
+			return nil
+		}
+		log.Trace("Bound as BindDN %s", ls.BindDN)
+	} else {
+		log.Trace("Proceeding with anonymous LDAP search.")
+	}
+
+	userFilter := fmt.Sprintf(ls.Filter, "*")
+
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, userFilter, ls.UserBase)
+	search := ldap.NewSearchRequest(
+		ls.UserBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
+		[]string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail},
+		nil)
+
+	sr, err := l.Search(search)
+	if err != nil {
+		log.Error(4, "LDAP Search failed unexpectedly! (%v)", err)
+		return nil
+	}
+
+	result := make([]*SearchResult, len(sr.Entries))
+
+	for i, v := range sr.Entries {
+		result[i] = &SearchResult{
+			Username: v.GetAttributeValue(ls.AttributeUsername),
+			Name:     v.GetAttributeValue(ls.AttributeName),
+			Surname:  v.GetAttributeValue(ls.AttributeSurname),
+			Mail:     v.GetAttributeValue(ls.AttributeMail),
+			IsAdmin:  checkAdmin(l, ls, v.DN),
+		}
+	}
+
+	return result
 }

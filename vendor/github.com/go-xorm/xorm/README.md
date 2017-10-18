@@ -2,11 +2,9 @@
 
 Xorm is a simple and powerful ORM for Go.
 
-[![CircleCI](https://circleci.com/gh/go-xorm/xorm/tree/master.svg?style=svg)](https://circleci.com/gh/go-xorm/xorm/tree/master)  [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-xorm/xorm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-
-# Notice
-
-The last master version is not backwards compatible. You should use `engine.ShowSQL()` and `engine.Logger().SetLevel()` instead of `engine.ShowSQL = `, `engine.ShowInfo = ` and so on.
+[![CircleCI](https://circleci.com/gh/go-xorm/xorm.svg?style=shield)](https://circleci.com/gh/go-xorm/xorm) [![codecov](https://codecov.io/gh/go-xorm/xorm/branch/master/graph/badge.svg)](https://codecov.io/gh/go-xorm/xorm)
+[![](https://goreportcard.com/badge/github.com/go-xorm/xorm)](https://goreportcard.com/report/github.com/go-xorm/xorm) 
+[![Join the chat at https://img.shields.io/discord/323460943201959939.svg](https://img.shields.io/discord/323460943201959939.svg)](https://discord.gg/HuR2CF3)
 
 # Features
 
@@ -36,7 +34,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * Mysql: [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
 
-* MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
+* MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/tree/master/godrv)
 
 * Postgres: [github.com/lib/pq](https://github.com/lib/pq)
 
@@ -46,11 +44,22 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * MsSql: [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
-* MsSql: [github.com/lunny/godbc](https://github.com/lunny/godbc)
-
 * Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (experiment)
 
 # Changelog
+
+* **v0.6.3**
+    * merge tests to main project
+    * add `Exist` function
+    * add `SumInt` function
+    * Mysql now support read and create column comment.
+    * fix time related bugs.
+    * fix some other bugs.
+
+* **v0.6.2**
+    * refactor tag parse methods
+    * add Scan features to Get
+    * add QueryString method
 
 * **v0.6.0**
     * remove support for ql
@@ -59,31 +68,9 @@ methods can use `builder.Cond` as parameter
     * add Sum, SumInt, SumInt64 and NotIn methods
     * some bugs fixed
 
-* **v0.5.0**
-    * logging interface changed
-    * some bugs fixed
-
-* **v0.4.5**
-    * many bugs fixed
-    * extends support unlimited deepth
-    * Delete Limit support
-
-* **v0.4.4**
-    * ql database expriment support
-    * tidb database expriment support
-    * sql.NullString and etc. field support
-    * select ForUpdate support
-    * many bugs fixed
-
 [More changes ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-16)
 
 # Installation
-
-If you have [gopm](https://github.com/gpmgo/gopm) installed,
-
-	gopm get github.com/go-xorm/xorm
-
-Or
 
 	go get github.com/go-xorm/xorm
 
@@ -119,19 +106,21 @@ type User struct {
 err := engine.Sync2(new(User))
 ```
 
-* Query a SQL string, the returned results is []map[string][]byte
+* `Query` runs a SQL string, the returned results is `[]map[string][]byte`, `QueryString` returns `[]map[string]string`.
 
 ```Go
 results, err := engine.Query("select * from user")
+
+results, err := engine.QueryString("select * from user")
 ```
 
-* Execute a SQL string, the returned results
+* `Execute` runs a SQL string, it returns `affected` and `error`
 
 ```Go
 affected, err := engine.Exec("update user set age = ? where name = ?", age, name)
 ```
 
-* Insert one or multiple records to database
+* `Insert` one or multiple records to database
 
 ```Go
 affected, err := engine.Insert(&user)
@@ -153,6 +142,37 @@ has, err := engine.Get(&user)
 // SELECT * FROM user LIMIT 1
 has, err := engine.Where("name = ?", name).Desc("id").Get(&user)
 // SELECT * FROM user WHERE name = ? ORDER BY id DESC LIMIT 1
+var name string
+has, err := engine.Where("id = ?", id).Cols("name").Get(&name)
+// SELECT name FROM user WHERE id = ?
+var id int64
+has, err := engine.Where("name = ?", name).Cols("id").Get(&id)
+// SELECT id FROM user WHERE name = ?
+var valuesMap = make(map[string]string)
+has, err := engine.Where("id = ?", id).Get(&valuesMap)
+// SELECT * FROM user WHERE id = ?
+var valuesSlice = make([]interface{}, len(cols))
+has, err := engine.Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
+// SELECT col1, col2, col3 FROM user WHERE id = ?
+```
+
+* Check if one record exist on table
+
+```Go
+has, err := testEngine.Exist(new(RecordExist))
+// SELECT * FROM record_exist LIMIT 1
+has, err = testEngine.Exist(&RecordExist{
+		Name: "test1",
+	})
+// SELECT * FROM record_exist WHERE name = ? LIMIT 1
+has, err = testEngine.Where("name = ?", "test1").Exist(&RecordExist{})
+// SELECT * FROM record_exist WHERE name = ? LIMIT 1
+has, err = testEngine.SQL("select * from record_exist where name = ?", "test1").Exist()
+// select * from record_exist where name = ?
+has, err = testEngine.Table("record_exist").Exist()
+// SELECT * FROM record_exist LIMIT 1
+has, err = testEngine.Table("record_exist").Where("name = ?", "test1").Exist()
+// SELECT * FROM record_exist WHERE name = ? LIMIT 1
 ```
 
 * Query multiple records from database, also you can use join and extends
@@ -247,13 +267,21 @@ err := engine.Where(builder.NotIn("a", 1, 2).And(builder.In("b", "c", "d", "e"))
 
 # Cases
 
+* [studygolang](http://studygolang.com/) - [github.com/studygolang/studygolang](https://github.com/studygolang/studygolang)
+
+* [Gitea](http://gitea.io) - [github.com/go-gitea/gitea](http://github.com/go-gitea/gitea)
+
+* [Gogs](http://try.gogits.org) - [github.com/gogits/gogs](http://github.com/gogits/gogs)
+
+* [grafana](https://grafana.com/) - [github.com/grafana/grafana](http://github.com/grafana/grafana)
+
 * [github.com/m3ng9i/qreader](https://github.com/m3ng9i/qreader)
 
 * [Wego](http://github.com/go-tango/wego)
 
 * [Docker.cn](https://docker.cn/)
 
-* [Gogs](http://try.gogits.org) - [github.com/gogits/gogs](http://github.com/gogits/gogs)
+* [Xorm Adapter](https://github.com/casbin/xorm-adapter) for [Casbin](https://github.com/casbin/casbin) - [github.com/casbin/xorm-adapter](https://github.com/casbin/xorm-adapter)
 
 * [Gorevel](http://gorevel.cn/) - [github.com/goofcc/gorevel](http://github.com/goofcc/gorevel)
 

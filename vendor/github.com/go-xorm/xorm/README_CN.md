@@ -4,11 +4,9 @@
 
 xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作非常简便。
 
-[![CircleCI](https://circleci.com/gh/go-xorm/xorm/tree/master.svg?style=svg)](https://circleci.com/gh/go-xorm/xorm/tree/master)  [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-xorm/xorm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-
-# 注意
-
-最新的版本有不兼容的更新，您必须使用 `engine.ShowSQL()` 和 `engine.Logger().SetLevel()` 来替代 `engine.ShowSQL = `, `engine.ShowInfo = ` 等等。
+[![CircleCI](https://circleci.com/gh/go-xorm/xorm.svg?style=shield)](https://circleci.com/gh/go-xorm/xorm) [![codecov](https://codecov.io/gh/go-xorm/xorm/branch/master/graph/badge.svg)](https://codecov.io/gh/go-xorm/xorm)
+[![](https://goreportcard.com/badge/github.com/go-xorm/xorm)](https://goreportcard.com/report/github.com/go-xorm/xorm)
+[![Join the chat at https://img.shields.io/discord/323460943201959939.svg](https://img.shields.io/discord/323460943201959939.svg)](https://discord.gg/HuR2CF3)
 
 ## 特性
 
@@ -54,6 +52,20 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 ## 更新日志
 
+* **v0.6.3**
+    * 合并单元测试到主工程
+    * 新增`Exist`方法
+    * 新增`SumInt`方法
+    * Mysql新增读取和创建字段注释支持
+    * 新增`SetConnMaxLifetime`方法
+    * 修正了时间相关的Bug
+    * 修复了一些其它Bug
+
+* **v0.6.2**
+    * 重构Tag解析方式
+    * Get方法新增类似Scan的特性
+    * 新增 QueryString 方法
+
 * **v0.6.0**
     * 去除对 ql 的支持
     * 新增条件查询分析器 [github.com/go-xorm/builder](https://github.com/go-xorm/builder), 从因此 `Where, And, Or` 函数
@@ -65,27 +77,9 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
     * logging接口进行不兼容改变
     * Bug修正
 
-* **v0.4.5**
-    * bug修正
-    * extends 支持无限级
-    * Delete Limit 支持
-
-* **v0.4.4**
-    * Tidb 数据库支持
-    * QL 试验性支持
-    * sql.NullString支持
-    * ForUpdate 支持
-    * bug修正
-
 [更多更新日志...](https://github.com/go-xorm/manual-zh-CN/tree/master/chapter-16)
 
 ## 安装
-
-推荐使用 [gopm](https://github.com/gpmgo/gopm) 进行安装：
-
-	gopm get github.com/go-xorm/xorm
-
-或者您也可以使用go工具进行安装：
 
 	go get github.com/go-xorm/xorm
 
@@ -121,13 +115,15 @@ type User struct {
 err := engine.Sync2(new(User))
 ```
 
-* 最原始的也支持SQL语句查询，返回的结果类型为 []map[string][]byte
+* `Query` 最原始的也支持SQL语句查询，返回的结果类型为 []map[string][]byte。`QueryString` 返回 []map[string]string
 
 ```Go
 results, err := engine.Query("select * from user")
+
+results, err := engine.QueryString("select * from user")
 ```
 
-* 执行一个SQL语句
+* `Exec` 执行一个SQL语句
 
 ```Go
 affected, err := engine.Exec("update user set age = ? where name = ?", age, name)
@@ -155,6 +151,37 @@ has, err := engine.Get(&user)
 // SELECT * FROM user LIMIT 1
 has, err := engine.Where("name = ?", name).Desc("id").Get(&user)
 // SELECT * FROM user WHERE name = ? ORDER BY id DESC LIMIT 1
+var name string
+has, err := engine.Where("id = ?", id).Cols("name").Get(&name)
+// SELECT name FROM user WHERE id = ?
+var id int64
+has, err := engine.Where("name = ?", name).Cols("id").Get(&id)
+// SELECT id FROM user WHERE name = ?
+var valuesMap = make(map[string]string)
+has, err := engine.Where("id = ?", id).Get(&valuesMap)
+// SELECT * FROM user WHERE id = ?
+var valuesSlice = make([]interface{}, len(cols))
+has, err := engine.Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
+// SELECT col1, col2, col3 FROM user WHERE id = ?
+```
+
+* 检测记录是否存在
+
+```Go
+has, err := testEngine.Exist(new(RecordExist))
+// SELECT * FROM record_exist LIMIT 1
+has, err = testEngine.Exist(&RecordExist{
+		Name: "test1",
+	})
+// SELECT * FROM record_exist WHERE name = ? LIMIT 1
+has, err = testEngine.Where("name = ?", "test1").Exist(&RecordExist{})
+// SELECT * FROM record_exist WHERE name = ? LIMIT 1
+has, err = testEngine.SQL("select * from record_exist where name = ?", "test1").Exist()
+// select * from record_exist where name = ?
+has, err = testEngine.Table("record_exist").Exist()
+// SELECT * FROM record_exist LIMIT 1
+has, err = testEngine.Table("record_exist").Where("name = ?", "test1").Exist()
+// SELECT * FROM record_exist WHERE name = ? LIMIT 1
 ```
 
 * 查询多条记录，当然可以使用Join和extends来组合使用
@@ -248,13 +275,21 @@ err := engine.Where(builder.NotIn("a", 1, 2).And(builder.In("b", "c", "d", "e"))
 
 # 案例
 
+* [Go语言中文网](http://studygolang.com/) - [github.com/studygolang/studygolang](https://github.com/studygolang/studygolang)
+
+* [Gitea](http://gitea.io) - [github.com/go-gitea/gitea](http://github.com/go-gitea/gitea)
+
+* [Gogs](http://try.gogits.org) - [github.com/gogits/gogs](http://github.com/gogits/gogs)
+
+* [grafana](https://grafana.com/) - [github.com/grafana/grafana](http://github.com/grafana/grafana)
+
 * [github.com/m3ng9i/qreader](https://github.com/m3ng9i/qreader)
 
 * [Wego](http://github.com/go-tango/wego)
 
 * [Docker.cn](https://docker.cn/)
 
-* [Gogs](http://try.gogits.org) - [github.com/gogits/gogs](http://github.com/gogits/gogs)
+* [Xorm Adapter](https://github.com/casbin/xorm-adapter) for [Casbin](https://github.com/casbin/casbin) - [github.com/casbin/xorm-adapter](https://github.com/casbin/xorm-adapter)
 
 * [Gowalker](http://gowalker.org) - [github.com/Unknwon/gowalker](http://github.com/Unknwon/gowalker)
 

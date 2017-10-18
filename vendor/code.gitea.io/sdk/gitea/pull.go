@@ -14,6 +14,7 @@ import (
 // PullRequest represents a pull request API object.
 type PullRequest struct {
 	ID        int64      `json:"id"`
+	URL       string     `json:"url"`
 	Index     int64      `json:"number"`
 	Poster    *User      `json:"user"`
 	Title     string     `json:"title"`
@@ -37,6 +38,9 @@ type PullRequest struct {
 	Base      *PRBranchInfo `json:"base"`
 	Head      *PRBranchInfo `json:"head"`
 	MergeBase string        `json:"merge_base"`
+
+	Created *time.Time `json:"created_at"`
+	Updated *time.Time `json:"updated_at"`
 }
 
 // PRBranchInfo base branch info when send a PR

@@ -10,7 +10,7 @@ import (
 	"github.com/Unknwon/com"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -19,15 +19,36 @@ func (issue *Issue) mailSubject() string {
 }
 
 // mailIssueCommentToParticipants can be used for both new issue creation and comment.
-func mailIssueCommentToParticipants(issue *Issue, doer *User, mentions []string) error {
+// This function sends two list of emails:
+// 1. Repository watchers and users who are participated in comments.
+// 2. Users who are not in 1. but get mentioned in current issue/comment.
+func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, comment *Comment, mentions []string) error {
 	if !setting.Service.EnableNotifyMail {
 		return nil
 	}
 
-	// Mail watchers.
-	watchers, err := GetWatchers(issue.RepoID)
+	watchers, err := getWatchers(e, issue.RepoID)
 	if err != nil {
-		return fmt.Errorf("GetWatchers [%d]: %v", issue.RepoID, err)
+		return fmt.Errorf("getWatchers [repo_id: %d]: %v", issue.RepoID, err)
+	}
+	participants, err := getParticipantsByIssueID(e, issue.ID)
+	if err != nil {
+		return fmt.Errorf("getParticipantsByIssueID [issue_id: %d]: %v", issue.ID, err)
+	}
+
+	// In case the issue poster is not watching the repository and is active,
+	// even if we have duplicated in watchers, can be safely filtered out.
+	poster, err := GetUserByID(issue.PosterID)
+	if err != nil {
+		return fmt.Errorf("GetUserByID [%d]: %v", issue.PosterID, err)
+	}
+	if issue.PosterID != doer.ID && poster.IsActive && !poster.ProhibitLogin {
+		participants = append(participants, issue.Poster)
+	}
+
+	// Assignee must receive any communications
+	if issue.Assignee != nil && issue.AssigneeID > 0 && issue.AssigneeID != doer.ID {
+		participants = append(participants, issue.Assignee)
 	}
 
 	tos := make([]string, 0, len(watchers)) // List of email addresses.
@@ -37,7 +58,7 @@ func mailIssueCommentToParticipants(issue *Issue, doer *User, mentions []string)
 			continue
 		}
 
-		to, err := GetUserByID(watchers[i].UserID)
+		to, err := getUserByID(e, watchers[i].UserID)
 		if err != nil {
 			return fmt.Errorf("GetUserByID [%d]: %v", watchers[i].UserID, err)
 		}
@@ -48,7 +69,18 @@ func mailIssueCommentToParticipants(issue *Issue, doer *User, mentions []string)
 		tos = append(tos, to.Email)
 		names = append(names, to.Name)
 	}
-	SendIssueCommentMail(issue, doer, tos)
+	for i := range participants {
+		if participants[i].ID == doer.ID {
+			continue
+		} else if com.IsSliceContainsStr(names, participants[i].Name) {
+			continue
+		}
+
+		tos = append(tos, participants[i].Email)
+		names = append(names, participants[i].Name)
+	}
+
+	SendIssueCommentMail(issue, doer, comment, tos)
 
 	// Mail mentioned people and exclude watchers.
 	names = append(names, doer.Name)
@@ -60,7 +92,7 @@ func mailIssueCommentToParticipants(issue *Issue, doer *User, mentions []string)
 
 		tos = append(tos, mentions[i])
 	}
-	SendIssueMentionMail(issue, doer, GetUserEmailsByNames(tos))
+	SendIssueMentionMail(issue, doer, comment, getUserEmailsByNames(e, tos))
 
 	return nil
 }
@@ -68,12 +100,16 @@ func mailIssueCommentToParticipants(issue *Issue, doer *User, mentions []string)
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
 func (issue *Issue) MailParticipants() (err error) {
-	mentions := markdown.FindAllMentions(issue.Content)
-	if err = UpdateIssueMentions(x, issue.ID, mentions); err != nil {
+	return issue.mailParticipants(x)
+}
+
+func (issue *Issue) mailParticipants(e Engine) (err error) {
+	mentions := markup.FindAllMentions(issue.Content)
+	if err = UpdateIssueMentions(e, issue.ID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
 	}
 
-	if err = mailIssueCommentToParticipants(issue, issue.Poster, mentions); err != nil {
+	if err = mailIssueCommentToParticipants(e, issue, issue.Poster, nil, mentions); err != nil {
 		log.Error(4, "mailIssueCommentToParticipants: %v", err)
 	}
 

@@ -1,0 +1,28 @@
+{{if eq .HookType "gitea"}}
+	<p>{{.i18n.Tr "repo.settings.add_webhook_desc" "https://docs.gitea.io/en-us/webhooks/" | Str2html}}</p>
+	<form class="ui form" action="{{.BaseLink}}/settings/hooks/gitea/{{if .PageIsSettingsHooksNew}}new{{else}}{{.Webhook.ID}}{{end}}" method="post">
+		{{.CsrfTokenHtml}}
+		<div class="required field {{if .Err_PayloadURL}}error{{end}}">
+			<label for="payload_url">{{.i18n.Tr "repo.settings.payload_url"}}</label>
+			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required>
+		</div>
+		<div class="field">
+			<label>{{.i18n.Tr "repo.settings.content_type"}}</label>
+			<div class="ui selection dropdown">
+				<input type="hidden" id="content_type" name="content_type" value="{{if .Webhook.ContentType}}{{.Webhook.ContentType}}{{else}}application/json{{end}}">
+				<div class="default text"></div>
+				<i class="dropdown icon"></i>
+				<div class="menu">
+					<div class="item" data-value="1">application/json</div>
+					<div class="item" data-value="2">application/x-www-form-urlencoded</div>
+				</div>
+			</div>
+		</div>
+		<input class="fake" type="password">
+		<div class="field {{if .Err_Secret}}error{{end}}">
+			<label for="secret">{{.i18n.Tr "repo.settings.secret"}}</label>
+			<input id="secret" name="secret" type="password" value="{{.Webhook.Secret}}" autocomplete="off">
+		</div>
+		{{template "repo/settings/hook_settings" .}}
+	</form>
+{{end}}

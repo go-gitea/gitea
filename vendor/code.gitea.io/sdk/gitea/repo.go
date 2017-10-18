@@ -19,14 +19,19 @@ type Permission struct {
 }
 
 // Repository represents a API repository.
+// swagger:response Repository
 type Repository struct {
 	ID            int64       `json:"id"`
 	Owner         *User       `json:"owner"`
 	Name          string      `json:"name"`
 	FullName      string      `json:"full_name"`
 	Description   string      `json:"description"`
+	Empty         bool        `json:"empty"`
 	Private       bool        `json:"private"`
 	Fork          bool        `json:"fork"`
+	Parent        *Repository `json:"parent"`
+	Mirror        bool        `json:"mirror"`
+	Size          int         `json:"size"`
 	HTMLURL       string      `json:"html_url"`
 	SSHURL        string      `json:"ssh_url"`
 	CloneURL      string      `json:"clone_url"`
@@ -40,6 +45,10 @@ type Repository struct {
 	Updated       time.Time   `json:"updated_at"`
 	Permissions   *Permission `json:"permissions,omitempty"`
 }
+
+// RepositoryList represents a list of API repository.
+// swagger:response RepositoryList
+type RepositoryList []*Repository
 
 // ListMyRepos lists all repositories for the authenticated user that has access to.
 func (c *Client) ListMyRepos() ([]*Repository, error) {
@@ -60,14 +69,37 @@ func (c *Client) ListOrgRepos(org string) ([]*Repository, error) {
 }
 
 // CreateRepoOption options when creating repository
+//swagger:parameters createOrgRepo adminCreateRepo createCurrentUserRepo
 type CreateRepoOption struct {
-	Name        string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	// Name of the repository to create
+	//
+	// in: body
+	// unique: true
+	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	// Description of the repository to create
+	//
+	// in: body
 	Description string `json:"description" binding:"MaxSize(255)"`
-	Private     bool   `json:"private"`
-	AutoInit    bool   `json:"auto_init"`
-	Gitignores  string `json:"gitignores"`
-	License     string `json:"license"`
-	Readme      string `json:"readme"`
+	// Is the repository to create private ?
+	//
+	// in: body
+	Private bool `json:"private"`
+	// Init the repository to create ?
+	//
+	// in: body
+	AutoInit bool `json:"auto_init"`
+	// Gitignores to use
+	//
+	// in: body
+	Gitignores string `json:"gitignores"`
+	// License to use
+	//
+	// in: body
+	License string `json:"license"`
+	// Readme of the repository to create
+	//
+	// in: body
+	Readme string `json:"readme"`
 }
 
 // CreateRepo creates a repository for authenticated user.
@@ -103,15 +135,24 @@ func (c *Client) DeleteRepo(owner, repo string) error {
 }
 
 // MigrateRepoOption options when migrate repository from an external place
+// swagger:parameters repoMigrate
 type MigrateRepoOption struct {
-	CloneAddr    string `json:"clone_addr" binding:"Required"`
+	// in: body
+	CloneAddr string `json:"clone_addr" binding:"Required"`
+	// in: body
 	AuthUsername string `json:"auth_username"`
+	// in: body
 	AuthPassword string `json:"auth_password"`
-	UID          int    `json:"uid" binding:"Required"`
-	RepoName     string `json:"repo_name" binding:"Required"`
-	Mirror       bool   `json:"mirror"`
-	Private      bool   `json:"private"`
-	Description  string `json:"description"`
+	// in: body
+	UID int `json:"uid" binding:"Required"`
+	// in: body
+	RepoName string `json:"repo_name" binding:"Required"`
+	// in: body
+	Mirror bool `json:"mirror"`
+	// in: body
+	Private bool `json:"private"`
+	// in: body
+	Description string `json:"description"`
 }
 
 // MigrateRepo migrates a repository from other Git hosting sources for the
@@ -126,4 +167,10 @@ func (c *Client) MigrateRepo(opt MigrateRepoOption) (*Repository, error) {
 	}
 	repo := new(Repository)
 	return repo, c.getParsedResponse("POST", "/repos/migrate", jsonHeader, bytes.NewReader(body), repo)
+}
+
+// MirrorSync adds a mirrored repository to the mirror sync queue.
+func (c *Client) MirrorSync(owner, repo string) error {
+	_, err := c.getResponse("POST", fmt.Sprintf("/repos/%s/%s/mirror-sync", owner, repo), nil, nil)
+	return err
 }

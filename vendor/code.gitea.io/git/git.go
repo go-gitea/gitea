@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -8,6 +9,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/mcuadros/go-version"
 )
 
 // Version return this package's current version
@@ -21,6 +24,8 @@ var (
 	Debug = false
 	// Prefix the log prefix
 	Prefix = "[git-module] "
+	// GitVersionRequired is the minimum Git version required
+	GitVersionRequired = "1.8.1.6"
 )
 
 func log(format string, args ...interface{}) {
@@ -66,7 +71,13 @@ func BinVersion() (string, error) {
 }
 
 func init() {
-	BinVersion()
+	gitVersion, err := BinVersion()
+	if err != nil {
+		panic(fmt.Sprintf("Git version missing: %v", err))
+	}
+	if version.Compare(gitVersion, GitVersionRequired, "<") {
+		panic(fmt.Sprintf("Git version not supported. Requires version > %v", GitVersionRequired))
+	}
 }
 
 // Fsck verifies the connectivity and validity of the objects in the database

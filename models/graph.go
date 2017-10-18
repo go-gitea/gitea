@@ -78,8 +78,8 @@ func graphItemFromString(s string, r *git.Repository) (GraphItem, error) {
 		return GraphItem{}, fmt.Errorf("Failed parsing grap line:%s. Expect 1 or two fields", s)
 	}
 
-	rows := strings.Split(data, "|")
-	if len(rows) != 8 {
+	rows := strings.SplitN(data, "|", 8)
+	if len(rows) < 8 {
 		return GraphItem{}, fmt.Errorf("Failed parsing grap line:%s - Should containt 8 datafields", s)
 	}
 

@@ -35,8 +35,21 @@ func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, l
 }
 
 // CreateUser api for creating a user
-// see https://github.com/gogits/go-gogs-client/wiki/Administration-Users#create-a-new-user
 func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
+	// swagger:route POST /admin/users admin adminCreateUser
+	//
+	//     Consumes:
+	//     - application/json
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       201: User
+	//       403: forbidden
+	//       422: validationError
+	//       500: error
+
 	u := &models.User{
 		Name:      form.Username,
 		FullName:  form.FullName,
@@ -73,8 +86,21 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 }
 
 // EditUser api for modifying a user's information
-// see https://github.com/gogits/go-gogs-client/wiki/Administration-Users#edit-an-existing-user
 func EditUser(ctx *context.APIContext, form api.EditUserOption) {
+	// swagger:route PATCH /admin/users/{username} admin adminEditUser
+	//
+	//     Consumes:
+	//     - application/json
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: User
+	//       403: forbidden
+	//       422: validationError
+	//       500: error
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -130,8 +156,18 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 }
 
 // DeleteUser api for deleting a user
-// https://github.com/gogits/go-gogs-client/wiki/Administration-Users#delete-a-user
 func DeleteUser(ctx *context.APIContext) {
+	// swagger:route DELETE /admin/users/{username} admin adminDeleteUser
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       204: empty
+	//       403: forbidden
+	//       422: validationError
+	//       500: error
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -152,8 +188,21 @@ func DeleteUser(ctx *context.APIContext) {
 }
 
 // CreatePublicKey api for creating a public key to a user
-// see https://github.com/gogits/go-gogs-client/wiki/Administration-Users#create-a-public-key-for-user
 func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
+	// swagger:route POST /admin/users/{username}/keys admin adminCreatePublicKey
+	//
+	//     Consumes:
+	//     - application/json
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       201: PublicKey
+	//       403: forbidden
+	//       422: validationError
+	//       500: error
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return

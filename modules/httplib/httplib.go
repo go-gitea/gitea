@@ -62,6 +62,11 @@ func newRequest(url, method string) *Request {
 	return &Request{url, &req, map[string]string{}, map[string]string{}, defaultSetting, &resp, nil}
 }
 
+// NewRequest returns *Request with specific method
+func NewRequest(url, method string) *Request {
+	return newRequest(url, method)
+}
+
 // Get returns *Request with GET method.
 func Get(url string) *Request {
 	return newRequest(url, "GET")
@@ -303,9 +308,13 @@ func (r *Request) getResponse() (*http.Response, error) {
 
 	if trans == nil {
 		// create default transport
+		proxy := r.setting.Proxy
+		if proxy == nil {
+			proxy = http.ProxyFromEnvironment
+		}
 		trans = &http.Transport{
 			TLSClientConfig: r.setting.TLSClientConfig,
-			Proxy:           r.setting.Proxy,
+			Proxy:           proxy,
 			Dial:            TimeoutDialer(r.setting.ConnectTimeout, r.setting.ReadWriteTimeout),
 		}
 	} else {
@@ -434,7 +443,7 @@ func (r *Request) ToXML(v interface{}) error {
 	return err
 }
 
-// Response executes request client gets response mannually.
+// Response executes request client gets response manually.
 func (r *Request) Response() (*http.Response, error) {
 	return r.getResponse()
 }

@@ -7,127 +7,96 @@
 			<div class="ten wide column">
 				{{template "user/dashboard/feeds" .}}
 			</div>
-			<div class="six wide column">
-				<div class="ui {{if not .ContextUser.IsOrganization}}three{{else}}two{{end}} item tabable menu">
-					<a class="item active" data-tab="repos">{{.i18n.Tr "repository"}}</a>
+			<div id="app" class="six wide column">
+				<repo-search
+					:search-limit="searchLimit"
+					:suburl="suburl"
+					:uid="uid"
+					:more-repos-link="'{{.ContextUser.HomeLink}}'"
 					{{if not .ContextUser.IsOrganization}}
-						<a class="item" data-tab="orgs">{{.i18n.Tr "organization"}}</a>
+					:organizations="[
+						{{range .ContextUser.Orgs}}
+						{name: '{{.Name}}', num_repos: '{{.NumRepos}}'},
+						{{end}}
+					]"
+					:is-organization="false"
+					:organizations-total-count="{{.ContextUser.GetOrganizationCount}}"
+					:can-create-organization="{{.SignedUser.CanCreateOrganization}}"
 					{{end}}
-					<a class="item" data-tab="mirrors">{{.i18n.Tr "mirror"}}</a>
-				</div>
-				<div class="ui tab active list" data-tab="repos">
-					<div class="ui fluid input">
-						<input id="search_repo" name="q" value="" placeholder="{{.i18n.Tr "home.search_repos"}}" autofocus="">
-					</div>
-					<h4 class="ui top attached header">
-						{{.i18n.Tr "home.my_repos"}} <span class="ui grey label">{{.ContextUser.NumRepos}}</span>
-						<div class="ui right">
-							<a class="poping up" href="{{AppSubUrl}}/repo/create" data-content="{{.i18n.Tr "new_repo"}}" data-variation="tiny inverted" data-position="left center">
-								<i class="plus icon"></i>
-								<span class="sr-only">{{.i18n.Tr "new_repo"}}</span>
-							</a>
+					inline-template
+					v-cloak
+				>
+					<div>
+						<div v-if="!isOrganization" class="ui two item stackable tabable menu">
+							<a :class="{item: true, active: tab === 'repos'}" @click="changeTab('repos')">{{.i18n.Tr "repository"}}</a>
+							<a :class="{item: true, active: tab === 'organizations'}" @click="changeTab('organizations')">{{.i18n.Tr "organization"}}</a>
 						</div>
-					</h4>
-					<div class="ui attached table segment">
-						<ul class="repo-owner-name-list search-list">
-							{{range .Repos}}
-								<li {{if .IsPrivate}}class="private"{{end}} data-title="{{.Name}}">
-									<a href="{{AppSubUrl}}/{{$.ContextUser.Name}}/{{.Name}}">
-										<i class="octicon octicon-{{if .IsFork}}repo-forked{{else if .IsPrivate}}lock{{else if .IsMirror}}repo-clone{{else}}repo{{end}}"></i>
-										<strong class="text truncate item-name">{{.Name}}</strong>
-										<span class="ui right text light grey">
-											{{.NumStars}} <i class="octicon octicon-star rear"></i>
-										</span>
+						<div v-show="tab === 'repos'" class="ui tab active list">
+							<h4 class="ui top attached header">
+								{{.i18n.Tr "home.my_repos"}} <span class="ui grey label">${reposTotalCount}</span>
+								<div class="ui right">
+									<a class="poping up" :href="suburl + '/repo/create'" data-content="{{.i18n.Tr "new_repo"}}" data-variation="tiny inverted" data-position="left center">
+										<i class="plus icon"></i>
+										<span class="sr-only">{{.i18n.Tr "new_repo"}}</span>
 									</a>
-								</li>
-							{{end}}
-							{{if gt .ContextUser.NumRepos .MaxShowRepoNum}}
-							<li>
-								<a href="{{.ContextUser.HomeLink}}">{{.i18n.Tr "home.show_more_repos"}}</a>
-							</li>
-							{{end}}
-						</ul>
-					</div>
-
-					{{if not .ContextUser.IsOrganization}}
-						<h4 class="ui top attached header">
-							{{.i18n.Tr "home.collaborative_repos"}}
-						</h4>
-						<div class="ui attached table segment">
-							<ul id="collaborative-repo-list" class="search-list">
-								{{range .CollaborativeRepos}}
-									<li {{if .IsPrivate}}class="private"{{end}} data-title="{{.Name}}">
-										<a href="{{AppSubUrl}}/{{.Owner.Name}}/{{.Name}}">
-											<i class="octicon octicon-{{if .IsPrivate}}lock{{else if .IsFork}}repo-forked{{else if .IsMirror}}repo-clone{{else}}repo{{end}}"></i>
-											<span class="text truncate owner-and-repo">
-												<span class="text truncate owner-name">{{.Owner.Name}}</span> / <strong>{{.Name}}</strong>
-											</span>
-											<span class="ui right text light grey">
-												{{.NumStars}} <i class="octicon octicon-star rear"></i>
-											</span>
-										</a>
-									</li>
-								{{end}}
-							</ul>
-						</div>
-					{{end}}
-				</div>
-
-				{{if not .ContextUser.IsOrganization}}
-					<div class="ui tab list" data-tab="orgs">
-						<h4 class="ui top attached header">
-							{{.i18n.Tr "home.my_orgs"}} <span class="ui grey label">{{.ContextUser.GetOrganizationCount}}</span>
-							<div class="ui right">
-								<a class="poping up" href="{{AppSubUrl}}/org/create" data-content="{{.i18n.Tr "new_org"}}" data-variation="tiny inverted" data-position="left center">
-									<i class="plus icon"></i>
-									<span class="sr-only">{{.i18n.Tr "new_org"}}</span>
-								</a>
+								</div>
+							</h4>
+							<div class="ui attached secondary segment repos-search">
+								<div class="ui fluid icon input" :class="{loading: isLoading}">
+									<input @input="searchRepos" v-model="searchQuery" ref="search" placeholder="{{.i18n.Tr "home.search_repos"}}">
+									<i class="search icon"></i>
+								</div>
+								<div class="ui secondary tiny pointing borderless menu center aligned grid repos-filter">
+									<a class="item" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">{{.i18n.Tr "all"}}</a>
+									<a class="item" :class="{active: reposFilter === 'sources'}" @click="changeReposFilter('sources')">{{.i18n.Tr "sources"}}</a>
+									<a class="item" :class="{active: reposFilter === 'forks'}" @click="changeReposFilter('forks')">{{.i18n.Tr "forks"}}</a>
+									<a class="item" :class="{active: reposFilter === 'mirrors'}" @click="changeReposFilter('mirrors')">{{.i18n.Tr "mirrors"}}</a>
+									<a class="item" :class="{active: reposFilter === 'collaborative'}" @click="changeReposFilter('collaborative')">{{.i18n.Tr "collaborative"}}</a>
+								</div>
 							</div>
-						</h4>
-						<div class="ui attached table segment">
-							<ul class="repo-owner-name-list">
-								{{range .ContextUser.Orgs}}
-									<li>
-										<a href="{{AppSubUrl}}/{{.Name}}">
-											<i class="octicon octicon-organization"></i>
-											<strong class="text truncate item-name">{{.Name}}</strong>
+							<div class="ui attached table segment">
+								<ul class="repo-owner-name-list">
+									<li v-for="repo in repos" :class="{'private': repo.private}" v-show="showRepo(repo, reposFilter)">
+										<a :href="suburl + '/' + repo.full_name">
+											<i :class="repoClass(repo)"></i>
+											<strong class="text truncate item-name">${repo.full_name}</strong>
 											<span class="ui right text light grey">
-												{{.NumRepos}} <i class="octicon octicon-repo rear"></i>
+												${repo.stars_count} <i class="octicon octicon-star rear"></i>
 											</span>
 										</a>
 									</li>
-								{{end}}
-							</ul>
+									<li v-if="repos.length < reposTotalCount">
+										<a :href="moreReposLink">{{.i18n.Tr "home.show_more_repos"}}</a>
+									</li>
+								</ul>
+							</div>
 						</div>
-					</div>
-				{{end}}
-
-				<div class="ui tab list" data-tab="mirrors">
-					<h4 class="ui top attached header">
-						{{.i18n.Tr "home.my_mirrors"}} <span class="ui grey label">{{.MirrorCount}}</span>
-						<div class="ui right">
-							<a class="poping up" href="{{AppSubUrl}}/repo/migrate?mirror=1" data-content="{{.i18n.Tr "new_mirror"}}" data-variation="tiny inverted" data-position="left center">
-								<i class="plus icon"></i>
-								<span class="sr-only">{{.i18n.Tr "new_mirror"}}</span>
-							</a>
-						</div>
-					</h4>
-					<div class="ui attached table segment">
-						<ul class="repo-owner-name-list">
-							{{range .Mirrors}}
-								<li {{if .IsPrivate}}class="private"{{end}}>
-									<a href="{{AppSubUrl}}/{{$.ContextUser.Name}}/{{.Name}}">
-										<i class="octicon octicon-repo-clone"></i>
-										<strong class="text truncate item-name">{{.Name}}</strong>
-										<span class="ui right text light grey">
-											{{.Interval}}H <i class="octicon octicon-sync rear"></i>
-										</span>
+						<div v-if="!isOrganization" v-show="tab === 'organizations'" class="ui tab active list">
+							<h4 class="ui top attached header">
+								{{.i18n.Tr "home.my_orgs"}} <span class="ui grey label">${organizationsTotalCount}</span>
+								<div v-if="canCreateOrganization" class="ui right">
+									<a class="poping up" :href="suburl + '/org/create'" data-content="{{.i18n.Tr "new_org"}}" data-variation="tiny inverted" data-position="left center">
+										<i class="plus icon"></i>
+										<span class="sr-only">{{.i18n.Tr "new_org"}}</span>
 									</a>
-								</li>
-							{{end}}
-						</ul>
+								</div>
+							</h4>
+							<div class="ui attached table segment">
+								<ul class="repo-owner-name-list">
+									<li v-for="org in organizations">
+										<a :href="suburl + '/' + org.name">
+											<i class="octicon octicon-organization"></i>
+											<strong class="text truncate item-name">${org.name}</strong>
+											<span class="ui right text light grey">
+												${org.num_repos} <i class="octicon octicon-repo rear"></i>
+											</span>
+										</a>
+									</li>
+								</ul>
+							</div>
+						</div>
 					</div>
-				</div>
+				</repo-search>
 			</div>
 		</div>
 	</div>

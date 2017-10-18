@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en-US">
+<body onload="run()">
+</body>
+</html>
+<script>
+    'use strict';
+    function run () {
+        var oauth2 = window.opener.swaggerUIRedirectOauth2;
+        var sentState = oauth2.state;
+        var isValid, qp;
+
+        qp = (window.location.hash || location.search).substring(1);
+
+        qp = qp ? JSON.parse('{"' + qp.replace(/&/g, '","').replace(/=/g, '":"') + '"}',
+                function (key, value) {
+                    return key === "" ? value : decodeURIComponent(value)
+                }
+        ) : {}
+
+        isValid = qp.state === sentState
+
+        if (oauth2.auth.schema.get("flow") === "accessCode" && !oauth2.auth.code) {
+            if (!isValid) {
+                oauth2.errCb({
+                    authId: oauth2.auth.name,
+                    source: "auth",
+                    level: "warning",
+                    message: "Authorization may be unsafe, passed state was changed in server Passed state wasn't returned from auth server"
+                });
+            }
+
+            if (qp.code) {
+                delete oauth2.state;
+                oauth2.auth.code = qp.code;
+                createForm(oauth2.auth, qp).submit();
+            } else {
+                oauth2.errCb({
+                    authId: oauth2.auth.name,
+                    source: "auth",
+                    level: "error",
+                    message: "Authorization failed: no accessCode came from the server"
+                });
+                window.close();
+            }
+        } else {
+            oauth2.callback({auth: oauth2.auth, token: qp, isValid: isValid});
+            window.close();
+        }
+    }
+
+    function createForm(auth, qp) {
+        var form = document.createElement("form");
+        var schema = auth.schema;
+        var action = schema.get("tokenUrl");
+        var name, input;
+
+        var fields = {
+            code: qp.code,
+            "redirect_uri": location.protocol + "//" + location.host + location.pathname,
+            "grant_type": "authorization_code",
+            "client_secret": auth.clientSecret,
+            "client_id": auth.clientId
+        }
+
+        for ( name in fields ) {
+            input = document.createElement("input");
+            input.name = name;
+            input.value = fields[name];
+            input.type = "hidden";
+            form.appendChild(input);
+        }
+
+
+        form.method = "POST";
+        form.action = action;
+
+        document.body.appendChild(form);
+
+        return form;
+    }
+
+</script>

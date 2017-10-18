@@ -3,12 +3,6 @@
 	{{template "org/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		{{if .IsOrganizationOwner}}
-			<div class="text right">
-				<a class="ui blue button" href="{{.OrgLink}}/invitations/new"><i class="octicon octicon-repo-create"></i> {{.i18n.Tr "org.invite_someone"}}</a>
-			</div>
-			<div class="ui divider"></div>
-		{{end}}
 
 		<div class="list">
 			{{range .Members}}

@@ -69,8 +69,8 @@ func (repo *Repository) InitWiki() error {
 
 	if err := git.InitRepository(repo.WikiPath(), true); err != nil {
 		return fmt.Errorf("InitRepository: %v", err)
-	} else if err = createUpdateHook(repo.WikiPath()); err != nil {
-		return fmt.Errorf("createUpdateHook: %v", err)
+	} else if err = createDelegateHooks(repo.WikiPath()); err != nil {
+		return fmt.Errorf("createDelegateHooks: %v", err)
 	}
 	return nil
 }
@@ -84,7 +84,11 @@ func (repo *Repository) LocalWikiPath() string {
 func (repo *Repository) UpdateLocalWiki() error {
 	// Don't pass branch name here because it fails to clone and
 	// checkout to a specific branch when wiki is an empty repository.
-	return UpdateLocalCopyBranch(repo.WikiPath(), repo.LocalWikiPath(), "")
+	var branch = ""
+	if com.IsExist(repo.LocalWikiPath()) {
+		branch = "master"
+	}
+	return UpdateLocalCopyBranch(repo.WikiPath(), repo.LocalWikiPath(), branch)
 }
 
 func discardLocalWikiChanges(localPath string) error {
@@ -159,7 +163,10 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiPath, wikiPath, conten
 		Message:   message,
 	}); err != nil {
 		return fmt.Errorf("CommitChanges: %v", err)
-	} else if err = git.Push(localPath, "origin", "master"); err != nil {
+	} else if err = git.Push(localPath, git.PushOptions{
+		Remote: "origin",
+		Branch: "master",
+	}); err != nil {
 		return fmt.Errorf("Push: %v", err)
 	}
 
@@ -205,7 +212,10 @@ func (repo *Repository) DeleteWikiPage(doer *User, wikiPath string) (err error) 
 		Message:   message,
 	}); err != nil {
 		return fmt.Errorf("CommitChanges: %v", err)
-	} else if err = git.Push(localPath, "origin", "master"); err != nil {
+	} else if err = git.Push(localPath, git.PushOptions{
+		Remote: "origin",
+		Branch: "master",
+	}); err != nil {
 		return fmt.Errorf("Push: %v", err)
 	}
 

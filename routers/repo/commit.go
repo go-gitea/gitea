@@ -13,7 +13,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/paginater"
 )
 
@@ -47,6 +49,10 @@ func renderIssueLinks(oldCommits *list.List, repoLink string) *list.List {
 // Commits render branch's commits
 func Commits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
+	if ctx.Repo.Commit == nil {
+		ctx.Handle(404, "Commit not found", nil)
+		return
+	}
 
 	commitsCount, err := ctx.Repo.Commit.CommitsCount()
 	if err != nil {
@@ -68,6 +74,8 @@ func Commits(ctx *context.Context) {
 	}
 	commits = renderIssueLinks(commits, ctx.Repo.RepoLink)
 	commits = models.ValidateCommitsWithEmails(commits)
+	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
@@ -121,6 +129,8 @@ func SearchCommits(ctx *context.Context) {
 	}
 	commits = renderIssueLinks(commits, ctx.Repo.RepoLink)
 	commits = models.ValidateCommitsWithEmails(commits)
+	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
 	ctx.Data["Keyword"] = keyword
@@ -167,6 +177,8 @@ func FileHistory(ctx *context.Context) {
 	}
 	commits = renderIssueLinks(commits, ctx.Repo.RepoLink)
 	commits = models.ValidateCommitsWithEmails(commits)
+	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
@@ -198,6 +210,14 @@ func Diff(ctx *context.Context) {
 	if len(commitID) != 40 {
 		commitID = commit.ID.String()
 	}
+
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
+	if err != nil {
+		log.Error(3, "GetLatestCommitStatus: %v", err)
+	}
+
+	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
+
 	diff, err := models.GetDiffCommit(models.RepoPath(userName, repoName),
 		commitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
@@ -222,6 +242,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["IsImageFile"] = commit.IsImageFile
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
+	ctx.Data["Verification"] = models.ParseCommitWithSignature(commit)
 	ctx.Data["Author"] = models.ValidateCommitWithEmail(commit)
 	ctx.Data["Diff"] = diff
 	ctx.Data["Parents"] = parents
@@ -276,6 +297,8 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
+	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 
 	ctx.Data["CommitRepoLink"] = ctx.Repo.RepoLink
 	ctx.Data["Commits"] = commits
@@ -292,5 +315,6 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", afterCommitID)
 	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", beforeCommitID)
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", afterCommitID)
+	ctx.Data["RequireHighlightJS"] = true
 	ctx.HTML(200, tplDiff)
 }

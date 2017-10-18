@@ -11,7 +11,12 @@ import (
 	"time"
 )
 
+// PublicKeyList represents a list of PublicKey
+// swagger:response PublicKeyList
+type PublicKeyList []*PublicKey
+
 // PublicKey publickey is a user key to push code to repository
+// swagger:response PublicKey
 type PublicKey struct {
 	ID      int64     `json:"id"`
 	Key     string    `json:"key"`

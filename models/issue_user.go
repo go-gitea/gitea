@@ -69,7 +69,7 @@ func updateIssueUserByAssignee(e Engine, issue *Issue) (err error) {
 // UpdateIssueUserByAssignee updates issue-user relation for assignee.
 func UpdateIssueUserByAssignee(issue *Issue) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func UpdateIssueUsersByMentions(e Engine, issueID int64, uids []int64) error {
 
 		iu.IsMentioned = true
 		if has {
-			_, err = e.Id(iu.ID).AllCols().Update(iu)
+			_, err = e.ID(iu.ID).Cols("is_mentioned").Update(iu)
 		} else {
 			_, err = e.Insert(iu)
 		}

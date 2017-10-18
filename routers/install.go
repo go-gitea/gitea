@@ -81,7 +81,7 @@ func Install(ctx *context.Context) {
 	form.RepoRootPath = setting.RepoRootPath
 	form.LFSRootPath = setting.LFS.ContentPath
 
-	// Note(unknwon): it's hard for Windows users change a running user,
+	// Note(unknown): it's hard for Windows users change a running user,
 	// 	so just use current one if config says default.
 	if setting.IsWindows && setting.RunUser == "git" {
 		form.RunUser = user.CurrentUsername()
@@ -99,7 +99,7 @@ func Install(ctx *context.Context) {
 	if setting.MailService != nil {
 		form.SMTPHost = setting.MailService.Host
 		form.SMTPFrom = setting.MailService.From
-		form.SMTPEmail = setting.MailService.User
+		form.SMTPUser = setting.MailService.User
 	}
 	form.RegisterConfirm = setting.Service.RegisterEmailConfirm
 	form.MailNotify = setting.Service.EnableNotifyMail
@@ -108,10 +108,14 @@ func Install(ctx *context.Context) {
 	form.OfflineMode = setting.OfflineMode
 	form.DisableGravatar = setting.DisableGravatar
 	form.EnableFederatedAvatar = setting.EnableFederatedAvatar
+	form.EnableOpenIDSignIn = true
+	form.EnableOpenIDSignUp = true
 	form.DisableRegistration = setting.Service.DisableRegistration
 	form.EnableCaptcha = setting.Service.EnableCaptcha
 	form.RequireSignInView = setting.Service.RequireSignInView
 	form.DefaultKeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
+	form.DefaultAllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
+	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
 	form.NoReplyAddress = setting.Service.NoReplyAddress
 
 	auth.AssignForm(form, ctx.Data)
@@ -124,7 +128,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	ctx.Data["CurDbOption"] = form.DbType
 
 	if ctx.HasError() {
-		if ctx.HasValue("Err_SMTPEmail") {
+		if ctx.HasValue("Err_SMTPUser") {
 			ctx.Data["Err_SMTP"] = true
 		}
 		if ctx.HasValue("Err_AdminName") ||
@@ -257,6 +261,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("repository").Key("ROOT").SetValue(form.RepoRootPath)
 	cfg.Section("").Key("RUN_USER").SetValue(form.RunUser)
 	cfg.Section("server").Key("SSH_DOMAIN").SetValue(form.Domain)
+	cfg.Section("server").Key("DOMAIN").SetValue(form.Domain)
 	cfg.Section("server").Key("HTTP_PORT").SetValue(form.HTTPPort)
 	cfg.Section("server").Key("ROOT_URL").SetValue(form.AppURL)
 
@@ -279,7 +284,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		cfg.Section("mailer").Key("ENABLED").SetValue("true")
 		cfg.Section("mailer").Key("HOST").SetValue(form.SMTPHost)
 		cfg.Section("mailer").Key("FROM").SetValue(form.SMTPFrom)
-		cfg.Section("mailer").Key("USER").SetValue(form.SMTPEmail)
+		cfg.Section("mailer").Key("USER").SetValue(form.SMTPUser)
 		cfg.Section("mailer").Key("PASSWD").SetValue(form.SMTPPasswd)
 	} else {
 		cfg.Section("mailer").Key("ENABLED").SetValue("false")
@@ -290,10 +295,14 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(com.ToStr(form.OfflineMode))
 	cfg.Section("picture").Key("DISABLE_GRAVATAR").SetValue(com.ToStr(form.DisableGravatar))
 	cfg.Section("picture").Key("ENABLE_FEDERATED_AVATAR").SetValue(com.ToStr(form.EnableFederatedAvatar))
+	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(com.ToStr(form.EnableOpenIDSignIn))
+	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(com.ToStr(form.EnableOpenIDSignUp))
 	cfg.Section("service").Key("DISABLE_REGISTRATION").SetValue(com.ToStr(form.DisableRegistration))
 	cfg.Section("service").Key("ENABLE_CAPTCHA").SetValue(com.ToStr(form.EnableCaptcha))
 	cfg.Section("service").Key("REQUIRE_SIGNIN_VIEW").SetValue(com.ToStr(form.RequireSignInView))
 	cfg.Section("service").Key("DEFAULT_KEEP_EMAIL_PRIVATE").SetValue(com.ToStr(form.DefaultKeepEmailPrivate))
+	cfg.Section("service").Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").SetValue(com.ToStr(form.DefaultAllowCreateOrganization))
+	cfg.Section("service").Key("DEFAULT_ENABLE_TIMETRACKING").SetValue(com.ToStr(form.DefaultEnableTimetracking))
 	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(com.ToStr(form.NoReplyAddress))
 
 	cfg.Section("").Key("RUN_MODE").SetValue("prod")

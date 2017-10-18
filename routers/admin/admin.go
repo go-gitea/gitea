@@ -73,7 +73,7 @@ var sysStatus struct {
 }
 
 func updateSystemStatus() {
-	sysStatus.Uptime = base.TimeSincePro(startTime)
+	sysStatus.Uptime = base.TimeSincePro(startTime, "en")
 
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)
@@ -121,6 +121,7 @@ const (
 	syncSSHAuthorizedKey
 	syncRepositoryUpdateHook
 	reinitMissingRepository
+	syncExternalUsers
 )
 
 // Dashboard show admin panel dashboard
@@ -144,7 +145,7 @@ func Dashboard(ctx *context.Context) {
 			err = models.DeleteRepositoryArchives()
 		case cleanMissingRepos:
 			success = ctx.Tr("admin.dashboard.delete_missing_repos_success")
-			err = models.DeleteMissingRepositories()
+			err = models.DeleteMissingRepositories(ctx.User)
 		case gitGCRepos:
 			success = ctx.Tr("admin.dashboard.git_gc_repos_success")
 			err = models.GitGcRepos()
@@ -152,11 +153,14 @@ func Dashboard(ctx *context.Context) {
 			success = ctx.Tr("admin.dashboard.resync_all_sshkeys_success")
 			err = models.RewriteAllPublicKeys()
 		case syncRepositoryUpdateHook:
-			success = ctx.Tr("admin.dashboard.resync_all_update_hooks_success")
-			err = models.RewriteRepositoryUpdateHook()
+			success = ctx.Tr("admin.dashboard.resync_all_hooks_success")
+			err = models.SyncRepositoryHooks()
 		case reinitMissingRepository:
 			success = ctx.Tr("admin.dashboard.reinit_missing_repos_success")
 			err = models.ReinitMissingRepositories()
+		case syncExternalUsers:
+			success = ctx.Tr("admin.dashboard.sync_external_users_started")
+			go models.SyncExternalUsers()
 		}
 
 		if err != nil {
@@ -194,12 +198,14 @@ func Config(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminConfig"] = true
 
+	ctx.Data["CustomConf"] = setting.CustomConf
 	ctx.Data["AppUrl"] = setting.AppURL
 	ctx.Data["Domain"] = setting.Domain
 	ctx.Data["OfflineMode"] = setting.OfflineMode
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = strings.Title(macaron.Env)
+	ctx.Data["GitVersion"] = setting.Git.Version
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
 	ctx.Data["StaticRootPath"] = setting.StaticRootPath
 	ctx.Data["LogRootPath"] = setting.LogRootPath

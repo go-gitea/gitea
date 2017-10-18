@@ -96,10 +96,29 @@ func (label *Label) ForegroundColor() template.CSS {
 	return template.CSS("#000")
 }
 
-// NewLabels creates new label(s) for a repository.
-func NewLabels(labels ...*Label) error {
-	_, err := x.Insert(labels)
+func newLabel(e Engine, label *Label) error {
+	_, err := e.Insert(label)
 	return err
+}
+
+// NewLabel creates a new label for a repository
+func NewLabel(label *Label) error {
+	return newLabel(x, label)
+}
+
+// NewLabels creates new labels for a repository.
+func NewLabels(labels ...*Label) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	for _, label := range labels {
+		if err := newLabel(sess, label); err != nil {
+			return err
+		}
+	}
+	return sess.Commit()
 }
 
 // getLabelInRepoByName returns a label by Name in given repository.
@@ -203,7 +222,7 @@ func GetLabelsByIssueID(issueID int64) ([]*Label, error) {
 }
 
 func updateLabel(e Engine, l *Label) error {
-	_, err := e.Id(l.ID).AllCols().Update(l)
+	_, err := e.ID(l.ID).AllCols().Update(l)
 	return err
 }
 
@@ -223,12 +242,12 @@ func DeleteLabel(repoID, labelID int64) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if _, err = sess.Id(labelID).Delete(new(Label)); err != nil {
+	if _, err = sess.ID(labelID).Delete(new(Label)); err != nil {
 		return err
 	} else if _, err = sess.
 		Where("label_id = ?", labelID).
@@ -298,7 +317,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -327,7 +346,7 @@ func newIssueLabels(e *xorm.Session, issue *Issue, labels []*Label, doer *User) 
 // NewIssueLabels creates a list of issue-label relations.
 func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -375,7 +394,7 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 // DeleteIssueLabel deletes issue-label relation.
 func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}

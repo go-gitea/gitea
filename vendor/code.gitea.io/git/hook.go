@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/Unknwon/com"
@@ -17,7 +18,7 @@ import (
 // hookNames is a list of Git server hooks' name that are supported.
 var hookNames = []string{
 	"pre-receive",
-	// "update",
+	"update",
 	"post-receive",
 }
 
@@ -52,8 +53,9 @@ func GetHook(repoPath, name string) (*Hook, error) {
 	}
 	h := &Hook{
 		name: name,
-		path: path.Join(repoPath, "hooks", name),
+		path: path.Join(repoPath, "hooks", name+".d", name),
 	}
+	samplePath := filepath.Join(repoPath, "hooks", name+".sample")
 	if isFile(h.path) {
 		data, err := ioutil.ReadFile(h.path)
 		if err != nil {
@@ -61,8 +63,8 @@ func GetHook(repoPath, name string) (*Hook, error) {
 		}
 		h.IsActive = true
 		h.Content = string(data)
-	} else if isFile(h.path + ".sample") {
-		data, err := ioutil.ReadFile(h.path + ".sample")
+	} else if isFile(samplePath) {
+		data, err := ioutil.ReadFile(samplePath)
 		if err != nil {
 			return nil, err
 		}

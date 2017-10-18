@@ -15,11 +15,11 @@
 						{{else if .ResendLimited}}
 							<p class="center">{{.i18n.Tr "auth.resent_limit_prompt"}}</p>
 						{{else}}
-							<p>{{.i18n.Tr "auth.confirmation_mail_sent_prompt" .SignedUser.Email .Hours | Str2html}}</p>
+							<p>{{.i18n.Tr "auth.confirmation_mail_sent_prompt" .SignedUser.Email .ActiveCodeLives | Str2html}}</p>
 						{{end}}
 					{{else}}
 						{{if .IsSendRegisterMail}}
-							<p>{{.i18n.Tr "auth.confirmation_mail_sent_prompt" .Email .Hours | Str2html}}</p>
+							<p>{{.i18n.Tr "auth.confirmation_mail_sent_prompt" .Email .ActiveCodeLives | Str2html}}</p>
 						{{else if .IsActivateFailed}}
 							<p>{{.i18n.Tr "auth.invalid_code"}}</p>
 						{{else}}

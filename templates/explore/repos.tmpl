@@ -1,14 +1,10 @@
 {{template "base/head" .}}
 <div class="explore repositories">
+	{{template "explore/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
-			{{template "explore/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "explore/search" .}}
-				{{template "explore/repo_list" .}}
-				{{template "base/paginate" .}}
-			</div>
-		</div>
+		{{template "explore/search" .}}
+		{{template "explore/repo_list" .}}
+		{{template "base/paginate" .}}
 	</div>
 </div>
 {{template "base/footer" .}}

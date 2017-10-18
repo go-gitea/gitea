@@ -8,7 +8,7 @@ Package xorm is a simple and powerful ORM for Go.
 
 Installation
 
-Make sure you have installed Go 1.1+ and then:
+Make sure you have installed Go 1.6+ and then:
 
     go get github.com/go-xorm/xorm
 
@@ -24,7 +24,7 @@ Generally, one engine for an application is enough. You can set it as package va
 
 Raw Methods
 
-Xorm also support raw sql execution:
+XORM also support raw SQL execution:
 
 1. query a SQL string, the returned results is []map[string][]byte
 
@@ -36,7 +36,7 @@ Xorm also support raw sql execution:
 
 ORM Methods
 
-There are 7 major ORM methods and many helpful methods to use to operate database.
+There are 8 major ORM methods and many helpful methods to use to operate database.
 
 1. Insert one or multiple records to database
 
@@ -51,16 +51,28 @@ There are 7 major ORM methods and many helpful methods to use to operate databas
     // INSERT INTO struct1 () values ()
     // INSERT INTO struct2 () values (),(),()
 
-2. Query one record from database
+2. Query one record or one variable from database
 
     has, err := engine.Get(&user)
     // SELECT * FROM user LIMIT 1
 
+    var id int64
+    has, err := engine.Table("user").Where("name = ?", name).Get(&id)
+    // SELECT id FROM user WHERE name = ? LIMIT 1
+
 3. Query multiple records from database
 
-    sliceOfStructs := new(Struct)
-    err := engine.Find(sliceOfStructs)
+    var sliceOfStructs []Struct
+    err := engine.Find(&sliceOfStructs)
     // SELECT * FROM user
+
+    var mapOfStructs = make(map[int64]Struct)
+    err := engine.Find(&mapOfStructs)
+    // SELECT * FROM user
+
+    var int64s []int64
+    err := engine.Table("user").Cols("id").Find(&int64s)
+    // SELECT id FROM user
 
 4. Query multiple records and record by record handle, there two methods, one is Iterate,
 another is Rows
@@ -78,7 +90,7 @@ another is Rows
 
 5. Update one or more records
 
-    affected, err := engine.Id(...).Update(&user)
+    affected, err := engine.ID(...).Update(&user)
     // UPDATE user SET ...
 
 6. Delete one or more records, Delete MUST has condition
@@ -91,20 +103,34 @@ another is Rows
     counts, err := engine.Count(&user)
     // SELECT count(*) AS total FROM user
 
+    counts, err := engine.SQL("select count(*) FROM user").Count()
+    // select count(*) FROM user
+
+8. Sum records
+
+    sumFloat64, err := engine.Sum(&user, "id")
+    // SELECT sum(id) from user
+
+    sumFloat64s, err := engine.Sums(&user, "id1", "id2")
+    // SELECT sum(id1), sum(id2) from user
+
+    sumInt64s, err := engine.SumsInt(&user, "id1", "id2")
+    // SELECT sum(id1), sum(id2) from user
+
 Conditions
 
-The above 7 methods could use with condition methods chainable.
-Attention: the above 7 methods should be the last chainable method.
+The above 8 methods could use with condition methods chainable.
+Attention: the above 8 methods should be the last chainable method.
 
-1. Id, In
+1. ID, In
 
-    engine.Id(1).Get(&user) // for single primary key
+    engine.ID(1).Get(&user) // for single primary key
     // SELECT * FROM user WHERE id = 1
-    engine.Id(core.PK{1, 2}).Get(&user) // for composite primary keys
+    engine.ID(core.PK{1, 2}).Get(&user) // for composite primary keys
     // SELECT * FROM user WHERE id1 = 1 AND id2 = 2
     engine.In("id", 1, 2, 3).Find(&users)
     // SELECT * FROM user WHERE id IN (1, 2, 3)
-    engine.In("id", []int{1, 2, 3})
+    engine.In("id", []int{1, 2, 3}).Find(&users)
     // SELECT * FROM user WHERE id IN (1, 2, 3)
 
 2. Where, And, Or
@@ -127,10 +153,10 @@ Attention: the above 7 methods should be the last chainable method.
     // SELECT TOP 5 * FROM user // for mssql
     // SELECT * FROM user LIMIT .. OFFSET 0 //for other databases
 
-5. Sql, let you custom SQL
+5. SQL, let you custom SQL
 
     var users []User
-    engine.Sql("select * from user").Find(&users)
+    engine.SQL("select * from user").Find(&users)
 
 6. Cols, Omit, Distinct
 

@@ -8,19 +8,14 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
 	"path"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
-
-	"code.gitea.io/git"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -34,6 +29,11 @@ func HTTP(ctx *context.Context) {
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
 
+	if ctx.Query("go-get") == "1" {
+		context.EarlyResponseForGoGetMeta(ctx)
+		return
+	}
+
 	var isPull bool
 	service := ctx.Query("service")
 	if service == "git-receive-pack" ||
@@ -42,13 +42,25 @@ func HTTP(ctx *context.Context) {
 	} else if service == "git-upload-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-pack") {
 		isPull = true
+	} else if service == "git-upload-archive" ||
+		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-archive") {
+		isPull = true
 	} else {
 		isPull = (ctx.Req.Method == "GET")
 	}
 
+	var accessMode models.AccessMode
+	if isPull {
+		accessMode = models.AccessModeRead
+	} else {
+		accessMode = models.AccessModeWrite
+	}
+
 	isWiki := false
+	var unitType = models.UnitTypeCode
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
+		unitType = models.UnitTypeWiki
 		reponame = reponame[:len(reponame)-5]
 	}
 
@@ -79,6 +91,7 @@ func HTTP(ctx *context.Context) {
 		authUser     *models.User
 		authUsername string
 		authPasswd   string
+		environ      []string
 	)
 
 	// check access
@@ -123,41 +136,76 @@ func HTTP(ctx *context.Context) {
 					ctx.Handle(http.StatusInternalServerError, "UserSignIn error: %v", err)
 					return
 				}
+			}
 
-				// Assume username now is a token.
-				token, err := models.GetAccessTokenBySHA(authUsername)
+			if authUser == nil {
+				isUsernameToken := len(authPasswd) == 0 || authPasswd == "x-oauth-basic"
+
+				// Assume username is token
+				authToken := authUsername
+
+				if !isUsernameToken {
+					// Assume password is token
+					authToken = authPasswd
+
+					authUser, err = models.GetUserByName(authUsername)
+					if err != nil {
+						if models.IsErrUserNotExist(err) {
+							ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
+						} else {
+							ctx.Handle(http.StatusInternalServerError, "GetUserByName", err)
+						}
+						return
+					}
+				}
+
+				// Assume password is a token.
+				token, err := models.GetAccessTokenBySHA(authToken)
 				if err != nil {
 					if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
-						ctx.HandleText(http.StatusUnauthorized, "invalid token")
+						ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
 					} else {
 						ctx.Handle(http.StatusInternalServerError, "GetAccessTokenBySha", err)
 					}
 					return
 				}
+
+				if isUsernameToken {
+					authUser, err = models.GetUserByID(token.UID)
+					if err != nil {
+						ctx.Handle(http.StatusInternalServerError, "GetUserByID", err)
+						return
+					}
+				} else if authUser.ID != token.UID {
+					ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
+					return
+				}
+
 				token.Updated = time.Now()
 				if err = models.UpdateAccessToken(token); err != nil {
 					ctx.Handle(http.StatusInternalServerError, "UpdateAccessToken", err)
 				}
-				authUser, err = models.GetUserByID(token.UID)
-				if err != nil {
-					ctx.Handle(http.StatusInternalServerError, "GetUserByID", err)
+			} else {
+				_, err = models.GetTwoFactorByUID(authUser.ID)
+
+				if err == nil {
+					// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
+					ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
+					return
+				} else if !models.IsErrTwoFactorNotEnrolled(err) {
+					ctx.Handle(http.StatusInternalServerError, "IsErrTwoFactorNotEnrolled", err)
 					return
 				}
 			}
 
 			if !isPublicPull {
-				var tp = models.AccessModeWrite
-				if isPull {
-					tp = models.AccessModeRead
-				}
-
-				has, err := models.HasAccess(authUser, repo, tp)
+				has, err := models.HasAccess(authUser.ID, repo, accessMode)
 				if err != nil {
 					ctx.Handle(http.StatusInternalServerError, "HasAccess", err)
 					return
 				} else if !has {
-					if tp == models.AccessModeRead {
-						has, err = models.HasAccess(authUser, repo, models.AccessModeWrite)
+					if accessMode == models.AccessModeRead {
+						has, err = models.HasAccess(authUser.ID, repo, models.AccessModeWrite)
 						if err != nil {
 							ctx.Handle(http.StatusInternalServerError, "HasAccess2", err)
 							return
@@ -177,82 +225,47 @@ func HTTP(ctx *context.Context) {
 				}
 			}
 		}
-	}
 
-	callback := func(rpc string, input []byte) {
-		if rpc != "receive-pack" || isWiki {
+		if !repo.CheckUnitUser(authUser.ID, authUser.IsAdmin, unitType) {
+			ctx.HandleText(http.StatusForbidden, fmt.Sprintf("User %s does not have allowed access to repository %s 's code",
+				authUser.Name, repo.RepoPath()))
 			return
 		}
 
-		var lastLine int64
-		for {
-			head := input[lastLine : lastLine+2]
-			if head[0] == '0' && head[1] == '0' {
-				size, err := strconv.ParseInt(string(input[lastLine+2:lastLine+4]), 16, 32)
-				if err != nil {
-					log.Error(4, "%v", err)
-					return
-				}
-
-				if size == 0 {
-					//fmt.Println(string(input[lastLine:]))
-					break
-				}
-
-				line := input[lastLine : lastLine+size]
-				idx := bytes.IndexRune(line, '\000')
-				if idx > -1 {
-					line = line[:idx]
-				}
-
-				fields := strings.Fields(string(line))
-				if len(fields) >= 3 {
-					oldCommitID := fields[0][4:]
-					newCommitID := fields[1]
-					refFullName := fields[2]
-
-					// FIXME: handle error.
-					if err = models.PushUpdate(models.PushUpdateOptions{
-						RefFullName:  refFullName,
-						OldCommitID:  oldCommitID,
-						NewCommitID:  newCommitID,
-						PusherID:     authUser.ID,
-						PusherName:   authUser.Name,
-						RepoUserName: username,
-						RepoName:     reponame,
-					}); err == nil {
-						go models.AddTestPullRequestTask(authUser, repo.ID, strings.TrimPrefix(refFullName, git.BranchPrefix), true)
-					}
-
-				}
-				lastLine = lastLine + size
-			} else {
-				break
-			}
+		environ = []string{
+			models.EnvRepoUsername + "=" + username,
+			models.EnvRepoName + "=" + reponame,
+			models.EnvPusherName + "=" + authUser.Name,
+			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
+			models.ProtectedBranchRepoID + fmt.Sprintf("=%d", repo.ID),
+		}
+		if isWiki {
+			environ = append(environ, models.EnvRepoIsWiki+"=true")
+		} else {
+			environ = append(environ, models.EnvRepoIsWiki+"=false")
 		}
 	}
 
 	HTTPBackend(ctx, &serviceConfig{
 		UploadPack:  true,
 		ReceivePack: true,
-		OnSucceed:   callback,
+		Env:         environ,
 	})(ctx.Resp, ctx.Req.Request)
-
-	runtime.GC()
 }
 
 type serviceConfig struct {
 	UploadPack  bool
 	ReceivePack bool
-	OnSucceed   func(rpc string, input []byte)
+	Env         []string
 }
 
 type serviceHandler struct {
-	cfg  *serviceConfig
-	w    http.ResponseWriter
-	r    *http.Request
-	dir  string
-	file string
+	cfg     *serviceConfig
+	w       http.ResponseWriter
+	r       *http.Request
+	dir     string
+	file    string
+	environ []string
 }
 
 func (h *serviceHandler) setHeaderNoCache() {
@@ -358,14 +371,11 @@ func serviceRPC(h serviceHandler, service string) {
 		h.w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+
 	h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-result", service))
 
-	var (
-		reqBody = h.r.Body
-		input   []byte
-		br      io.Reader
-		err     error
-	)
+	var err error
+	var reqBody = h.r.Body
 
 	// Handle GZIP.
 	if h.r.Header.Get("Content-Encoding") == "gzip" {
@@ -377,31 +387,21 @@ func serviceRPC(h serviceHandler, service string) {
 		}
 	}
 
-	if h.cfg.OnSucceed != nil {
-		input, err = ioutil.ReadAll(reqBody)
-		if err != nil {
-			log.GitLogger.Error(2, "fail to read request body: %v", err)
-			h.w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	// set this for allow pre-receive and post-receive execute
+	h.environ = append(h.environ, "SSH_ORIGINAL_COMMAND="+service)
 
-		br = bytes.NewReader(input)
-	} else {
-		br = reqBody
-	}
-
+	var stderr bytes.Buffer
 	cmd := exec.Command("git", service, "--stateless-rpc", h.dir)
 	cmd.Dir = h.dir
-	cmd.Stdout = h.w
-	cmd.Stdin = br
-	if err := cmd.Run(); err != nil {
-		log.GitLogger.Error(2, "fail to serve RPC(%s): %v", service, err)
-		h.w.WriteHeader(http.StatusInternalServerError)
-		return
+	if service == "receive-pack" {
+		cmd.Env = append(os.Environ(), h.environ...)
 	}
-
-	if h.cfg.OnSucceed != nil {
-		h.cfg.OnSucceed(service, input)
+	cmd.Stdout = h.w
+	cmd.Stdin = reqBody
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		log.GitLogger.Error(2, "fail to serve RPC(%s): %v - %v", service, err, stderr)
+		return
 	}
 }
 
@@ -518,7 +518,7 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 					return
 				}
 
-				route.handler(serviceHandler{cfg, w, r, dir, file})
+				route.handler(serviceHandler{cfg, w, r, dir, file, cfg.Env})
 				return
 			}
 		}

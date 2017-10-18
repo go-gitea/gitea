@@ -26,18 +26,43 @@ const (
 	tplEditDiffPreview base.TplName = "repo/editor/diff_preview"
 	tplDeleteFile      base.TplName = "repo/editor/delete"
 	tplUploadFile      base.TplName = "repo/editor/upload"
+
+	frmCommitChoiceDirect    string = "direct"
+	frmCommitChoiceNewBranch string = "commit-to-new-branch"
 )
+
+func renderCommitRights(ctx *context.Context) bool {
+	canCommit, err := ctx.Repo.CanCommitToBranch(ctx.User)
+	if err != nil {
+		log.Error(4, "CanCommitToBranch: %v", err)
+	}
+	ctx.Data["CanCommitToBranch"] = canCommit
+	return canCommit
+}
+
+// getParentTreeFields returns list of parent tree names and corresponding tree paths
+// based on given tree path.
+func getParentTreeFields(treePath string) (treeNames []string, treePaths []string) {
+	if len(treePath) == 0 {
+		return treeNames, treePaths
+	}
+
+	treeNames = strings.Split(treePath, "/")
+	treePaths = make([]string, len(treeNames))
+	for i := range treeNames {
+		treePaths[i] = strings.Join(treeNames[:i+1], "/")
+	}
+	return treeNames, treePaths
+}
 
 func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["PageIsEdit"] = true
 	ctx.Data["IsNewFile"] = isNewFile
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
+	canCommit := renderCommitRights(ctx)
 
-	var treeNames []string
-	if len(ctx.Repo.TreePath) > 0 {
-		treeNames = strings.Split(ctx.Repo.TreePath, "/")
-	}
+	treeNames, treePaths := getParentTreeFields(ctx.Repo.TreePath)
 
 	if !isNewFile {
 		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
@@ -87,10 +112,15 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	}
 
 	ctx.Data["TreeNames"] = treeNames
+	ctx.Data["TreePaths"] = treePaths
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
-	ctx.Data["commit_choice"] = "direct"
+	if canCommit {
+		ctx.Data["commit_choice"] = frmCommitChoiceDirect
+	} else {
+		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
+	}
 	ctx.Data["new_branch_name"] = ""
 	ctx.Data["last_commit"] = ctx.Repo.Commit.ID
 	ctx.Data["MarkdownFileExts"] = strings.Join(setting.Markdown.FileExtensions, ",")
@@ -116,6 +146,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 	ctx.Data["IsNewFile"] = isNewFile
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
+	canCommit := renderCommitRights(ctx)
 
 	oldBranchName := ctx.Repo.BranchName
 	branchName := oldBranchName
@@ -123,19 +154,16 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 	lastCommit := form.LastCommit
 	form.LastCommit = ctx.Repo.Commit.ID.String()
 
-	if form.CommitChoice == "commit-to-new-branch" {
+	if form.CommitChoice == frmCommitChoiceNewBranch {
 		branchName = form.NewBranchName
 	}
 
 	form.TreePath = strings.Trim(form.TreePath, " /")
-
-	var treeNames []string
-	if len(form.TreePath) > 0 {
-		treeNames = strings.Split(form.TreePath, "/")
-	}
+	treeNames, treePaths := getParentTreeFields(form.TreePath)
 
 	ctx.Data["TreePath"] = form.TreePath
 	ctx.Data["TreeNames"] = treeNames
+	ctx.Data["TreePaths"] = treePaths
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + branchName
 	ctx.Data["FileContent"] = form.Content
 	ctx.Data["commit_summary"] = form.CommitSummary
@@ -164,6 +192,11 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), tplEditFile, &form)
 			return
 		}
+	} else if !canCommit {
+		ctx.Data["Err_NewBranchName"] = true
+		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
+		ctx.RenderWithErr(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", branchName), tplEditFile, &form)
+		return
 	}
 
 	var newTreePath string
@@ -317,10 +350,17 @@ func DeleteFile(ctx *context.Context) {
 	ctx.Data["PageIsDelete"] = true
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName
 	ctx.Data["TreePath"] = ctx.Repo.TreePath
+	canCommit := renderCommitRights(ctx)
+
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
-	ctx.Data["commit_choice"] = "direct"
+	if canCommit {
+		ctx.Data["commit_choice"] = frmCommitChoiceDirect
+	} else {
+		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
+	}
 	ctx.Data["new_branch_name"] = ""
+
 	ctx.HTML(200, tplDeleteFile)
 }
 
@@ -329,11 +369,12 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 	ctx.Data["PageIsDelete"] = true
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName
 	ctx.Data["TreePath"] = ctx.Repo.TreePath
+	canCommit := renderCommitRights(ctx)
 
 	oldBranchName := ctx.Repo.BranchName
 	branchName := oldBranchName
 
-	if form.CommitChoice == "commit-to-new-branch" {
+	if form.CommitChoice == frmCommitChoiceNewBranch {
 		branchName = form.NewBranchName
 	}
 	ctx.Data["commit_summary"] = form.CommitSummary
@@ -352,6 +393,11 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), tplDeleteFile, &form)
 			return
 		}
+	} else if !canCommit {
+		ctx.Data["Err_NewBranchName"] = true
+		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
+		ctx.RenderWithErr(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", branchName), tplDeleteFile, &form)
+		return
 	}
 
 	message := strings.TrimSpace(form.CommitSummary)
@@ -390,18 +436,24 @@ func renderUploadSettings(ctx *context.Context) {
 func UploadFile(ctx *context.Context) {
 	ctx.Data["PageIsUpload"] = true
 	renderUploadSettings(ctx)
+	canCommit := renderCommitRights(ctx)
 
-	// We must at least have one element for user to input.
-	treeNames := []string{""}
-	if len(ctx.Repo.TreePath) > 0 {
-		treeNames = strings.Split(ctx.Repo.TreePath, "/")
+	treeNames, treePaths := getParentTreeFields(ctx.Repo.TreePath)
+	if len(treeNames) == 0 {
+		// We must at least have one element for user to input.
+		treeNames = []string{""}
 	}
 
 	ctx.Data["TreeNames"] = treeNames
+	ctx.Data["TreePaths"] = treePaths
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
-	ctx.Data["commit_choice"] = "direct"
+	if canCommit {
+		ctx.Data["commit_choice"] = frmCommitChoiceDirect
+	} else {
+		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
+	}
 	ctx.Data["new_branch_name"] = ""
 
 	ctx.HTML(200, tplUploadFile)
@@ -411,24 +463,25 @@ func UploadFile(ctx *context.Context) {
 func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 	ctx.Data["PageIsUpload"] = true
 	renderUploadSettings(ctx)
+	canCommit := renderCommitRights(ctx)
 
 	oldBranchName := ctx.Repo.BranchName
 	branchName := oldBranchName
 
-	if form.CommitChoice == "commit-to-new-branch" {
+	if form.CommitChoice == frmCommitChoiceNewBranch {
 		branchName = form.NewBranchName
 	}
 
 	form.TreePath = strings.Trim(form.TreePath, " /")
-
-	// We must at least have one element for user to input.
-	treeNames := []string{""}
-	if len(form.TreePath) > 0 {
-		treeNames = strings.Split(form.TreePath, "/")
+	treeNames, treePaths := getParentTreeFields(form.TreePath)
+	if len(treeNames) == 0 {
+		// We must at least have one element for user to input.
+		treeNames = []string{""}
 	}
 
 	ctx.Data["TreePath"] = form.TreePath
 	ctx.Data["TreeNames"] = treeNames
+	ctx.Data["TreePaths"] = treePaths
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + branchName
 	ctx.Data["commit_summary"] = form.CommitSummary
 	ctx.Data["commit_message"] = form.CommitMessage
@@ -446,6 +499,11 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), tplUploadFile, &form)
 			return
 		}
+	} else if !canCommit {
+		ctx.Data["Err_NewBranchName"] = true
+		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
+		ctx.RenderWithErr(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", branchName), tplUploadFile, &form)
+		return
 	}
 
 	var newTreePath string

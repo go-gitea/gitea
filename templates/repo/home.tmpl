@@ -4,34 +4,21 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<p id="repo-desc">
-			{{if .Repository.DescriptionHTML}}<span class="description has-emoji">{{.Repository.DescriptionHTML}}</span>{{else}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
+			{{if .Repository.DescriptionHTML}}<span class="description has-emoji">{{.Repository.DescriptionHTML}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
 			<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
 		</p>
 		<div class="ui secondary menu">
 			{{if .PullRequestCtx.Allowed}}
 				<div class="fitted item">
-					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch}}...{{.Username}}:{{.BranchName}}">
-						<button class="ui green small button"><i class="octicon octicon-git-compare"></i></button>
+					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch}}...{{if .SignedUser.HasForkedRepo .BaseRepo.ID }}{{.SignedUser.Name}}:{{end}}{{.BranchName}}">
+						<button class="ui green tiny compact button"><i class="octicon octicon-git-compare"></i></button>
 					</a>
 				</div>
 			{{end}}
 			{{template "repo/branch_dropdown" .}}
-			<div class="fitted item">
-				<div class="ui breadcrumb">
-					<a class="section" href="{{.RepoLink}}/src/{{EscapePound .BranchName}}">{{EllipsisString .Repository.Name 25}}</a>
-					{{ $n := len .TreeNames}}
-					{{ $l := Subtract $n 1}}
-					{{range $i, $v := .TreeNames}}
-						<div class="divider"> / </div>
-						{{if eq $i $l}}
-							<span class="active section">{{EllipsisString $v 15}}</span>
-						{{else}}
-							{{ $p := index $.Paths $i}}
-							<span class="section"><a href="{{EscapePound $.BranchLink}}/{{EscapePound $p}}">{{EllipsisString $v 15}}</a></span>
-						{{end}}
-					{{end}}
-				</div>
-			</div>
+			{{ $n := len .TreeNames}}
+			{{ $l := Subtract $n 1}}
+			<div class="fitted item"><span class="ui breadcrumb repo-path"><a class="section" href="{{.RepoLink}}/src/{{EscapePound .BranchName}}">{{EllipsisString .Repository.Name 30}}</a>{{range $i, $v := .TreeNames}}<span class="divider">/</span>{{if eq $i $l}}<span class="active section">{{EllipsisString $v 30}}</span>{{else}}{{ $p := index $.Paths $i}}<span class="section"><a href="{{EscapePound $.BranchLink}}/{{EscapePound $p}}">{{EllipsisString $v 30}}</a></span>{{end}}{{end}}</span></div>
 			<div class="right fitted item">
 				{{if .Repository.CanEnableEditor}}
 					<div id="file-buttons" class="ui tiny blue buttons">
@@ -48,27 +35,29 @@
 					</div>
 				{{end}}
 
-				<!-- Only show colne panel in repository home page -->
+				<!-- Only show clone panel in repository home page -->
 				{{if eq $n 0}}
-					<div class="ui action small input" id="clone-panel">
+					<div class="ui action tiny input" id="clone-panel">
 						{{if not $.DisableHTTP}}
 							<button class="ui basic clone button" id="repo-clone-https" data-link="{{.CloneLink.HTTPS}}">
 								{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
 							</button>
 						{{end}}
-						{{if not $.DisableSSH}}
+						{{if and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
 							<button class="ui basic clone button" id="repo-clone-ssh" data-link="{{.CloneLink.SSH}}">
 								SSH
 							</button>
 						{{end}}
 						{{if not $.DisableHTTP}}
 							<input id="repo-clone-url" value="{{$.CloneLink.HTTPS}}" readonly>
-						{{else}}
+						{{else if and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
 							<input id="repo-clone-url" value="{{$.CloneLink.SSH}}" readonly>
 						{{end}}
-						<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
-							<i class="octicon octicon-clippy"></i>
-						</button>
+						{{if or ((not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)))}}
+							<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
+								<i class="octicon octicon-clippy"></i>
+							</button>
+						{{end}}
 						<div class="ui basic jump dropdown icon button poping up" data-content="{{.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
 							<i class="download icon"></i>
 							<div class="menu">

@@ -80,17 +80,14 @@ func (pr *PullRequest) BeforeUpdate() {
 	pr.MergedUnix = pr.Merged.Unix()
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 // Note: don't try to get Issue because will end up recursive querying.
-func (pr *PullRequest) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "merged_unix":
-		if !pr.HasMerged {
-			return
-		}
-
-		pr.Merged = time.Unix(pr.MergedUnix, 0).Local()
+func (pr *PullRequest) AfterLoad() {
+	if !pr.HasMerged {
+		return
 	}
+
+	pr.Merged = time.Unix(pr.MergedUnix, 0).Local()
 }
 
 // Note: don't try to get Issue because will end up recursive querying.
@@ -115,11 +112,15 @@ func (pr *PullRequest) LoadAttributes() error {
 
 // LoadIssue loads issue information from database
 func (pr *PullRequest) LoadIssue() (err error) {
+	return pr.loadIssue(x)
+}
+
+func (pr *PullRequest) loadIssue(e Engine) (err error) {
 	if pr.Issue != nil {
 		return nil
 	}
 
-	pr.Issue, err = GetIssueByID(pr.IssueID)
+	pr.Issue, err = getIssueByID(e, pr.IssueID)
 	return err
 }
 
@@ -193,6 +194,8 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		Base:      apiBaseBranchInfo,
 		Head:      apiHeadBranchInfo,
 		MergeBase: pr.MergeBase,
+		Created:   &pr.Issue.Created,
+		Updated:   &pr.Issue.Updated,
 	}
 
 	if pr.Status != PullRequestStatusChecking {
@@ -322,7 +325,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 		return fmt.Errorf("git push: %s", stderr)
 	}
 
-	pr.MergedCommitID, err = headGitRepo.GetBranchCommitID(pr.HeadBranch)
+	pr.MergedCommitID, err = baseGitRepo.GetBranchCommitID(pr.BaseBranch)
 	if err != nil {
 		return fmt.Errorf("GetBranchCommit: %v", err)
 	}
@@ -400,25 +403,26 @@ func (pr *PullRequest) setMerged() (err error) {
 	pr.HasMerged = true
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = pr.LoadIssue(); err != nil {
+	if err = pr.loadIssue(sess); err != nil {
 		return err
 	}
 
-	if pr.Issue.Repo.Owner == nil {
-		if err = pr.Issue.Repo.GetOwner(); err != nil {
-			return err
-		}
+	if err = pr.Issue.loadRepo(sess); err != nil {
+		return err
+	}
+	if err = pr.Issue.Repo.getOwner(sess); err != nil {
+		return err
 	}
 
 	if err = pr.Issue.changeStatus(sess, pr.Merger, pr.Issue.Repo, true); err != nil {
 		return fmt.Errorf("Issue.changeStatus: %v", err)
 	}
-	if _, err = sess.Id(pr.ID).AllCols().Update(pr); err != nil {
+	if _, err = sess.ID(pr.ID).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
 		return fmt.Errorf("update pull request: %v", err)
 	}
 
@@ -488,23 +492,31 @@ func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
 
 	if err != nil {
 		// Errors are signaled by a non-zero status that is not 1
-		if err.Error() == "exit status 1" {
+		if strings.Contains(err.Error(), "exit status 1") {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("git merge-base --is-ancestor: %v %v", stderr, err)
 	}
 
-	// We can ignore this error since we only get here when there's a valid commit in headFile
-	commitID, _ := ioutil.ReadFile(pr.BaseRepo.RepoPath() + "/" + headFile)
-	cmd := string(commitID)[:40] + ".." + pr.BaseBranch
+	commitIDBytes, err := ioutil.ReadFile(pr.BaseRepo.RepoPath() + "/" + headFile)
+	if err != nil {
+		return nil, fmt.Errorf("ReadFile(%s): %v", headFile, err)
+	}
+	commitID := string(commitIDBytes)
+	if len(commitID) < 40 {
+		return nil, fmt.Errorf(`ReadFile(%s): invalid commit-ID "%s"`, headFile, commitID)
+	}
+	cmd := commitID[:40] + ".." + pr.BaseBranch
 
 	// Get the commit from BaseBranch where the pull request got merged
 	mergeCommit, stderr, err := process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("isMerged (git rev-list --ancestry-path --merges --reverse): %d", pr.BaseRepo.ID),
 		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
 		"git", "rev-list", "--ancestry-path", "--merges", "--reverse", cmd)
-
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v %v", stderr, err)
+	} else if len(mergeCommit) < 40 {
+		// PR was fast-forwarded, so just use last commit of PR
+		mergeCommit = commitID[:40]
 	}
 
 	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
@@ -587,7 +599,7 @@ func (pr *PullRequest) testPatch() (err error) {
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte) (err error) {
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -595,7 +607,7 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	if err = newIssue(sess, pull.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       pull,
-		LableIDs:    labelIDs,
+		LabelIDs:    labelIDs,
 		Attachments: uuids,
 		IsPull:      true,
 	}); err != nil {
@@ -625,15 +637,16 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		return fmt.Errorf("Commit: %v", err)
 	}
 
+	UpdateIssueIndexer(pull.ID)
+
 	if err = NotifyWatchers(&Action{
-		ActUserID:    pull.Poster.ID,
-		ActUserName:  pull.Poster.Name,
-		OpType:       ActionCreatePullRequest,
-		Content:      fmt.Sprintf("%d|%s", pull.Index, pull.Title),
-		RepoID:       repo.ID,
-		RepoUserName: repo.Owner.Name,
-		RepoName:     repo.Name,
-		IsPrivate:    repo.IsPrivate,
+		ActUserID: pull.Poster.ID,
+		ActUser:   pull.Poster,
+		OpType:    ActionCreatePullRequest,
+		Content:   fmt.Sprintf("%d|%s", pull.Index, pull.Title),
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
 	}); err != nil {
 		log.Error(4, "NotifyWatchers: %v", err)
 	} else if err = pull.MailParticipants(); err != nil {
@@ -674,8 +687,6 @@ func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xor
 		sess.And("issue.is_closed=?", opts.State == "closed")
 	}
 
-	sortIssuesSession(sess, opts.SortType)
-
 	if labelIDs, err := base.StringsToInt64s(opts.Labels); err != nil {
 		return nil, err
 	} else if len(labelIDs) > 0 {
@@ -709,6 +720,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 
 	prs := make([]*PullRequest, 0, ItemsPerPage)
 	findSession, err := listPullRequestStatement(baseRepoID, opts)
+	sortIssuesSession(findSession, opts.SortType)
 	if err != nil {
 		log.Error(4, "listPullRequestStatement", err)
 		return nil, maxResults, err
@@ -783,7 +795,7 @@ func GetPullRequestByIndex(repoID int64, index int64) (*PullRequest, error) {
 
 func getPullRequestByID(e Engine, id int64) (*PullRequest, error) {
 	pr := new(PullRequest)
-	has, err := e.Id(id).Get(pr)
+	has, err := e.ID(id).Get(pr)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -817,13 +829,13 @@ func GetPullRequestByIssueID(issueID int64) (*PullRequest, error) {
 
 // Update updates all fields of pull request.
 func (pr *PullRequest) Update() error {
-	_, err := x.Id(pr.ID).AllCols().Update(pr)
+	_, err := x.ID(pr.ID).AllCols().Update(pr)
 	return err
 }
 
 // UpdateCols updates specific fields of pull request.
 func (pr *PullRequest) UpdateCols(cols ...string) error {
-	_, err := x.Id(pr.ID).Cols(cols...).Update(pr)
+	_, err := x.ID(pr.ID).Cols(cols...).Update(pr)
 	return err
 }
 
@@ -899,7 +911,10 @@ func (pr *PullRequest) PushToBaseRepo() (err error) {
 
 	_ = os.Remove(file)
 
-	if err = git.Push(headRepoPath, tmpRemoteName, fmt.Sprintf("%s:%s", pr.HeadBranch, headFile)); err != nil {
+	if err = git.Push(headRepoPath, git.PushOptions{
+		Remote: tmpRemoteName,
+		Branch: fmt.Sprintf("%s:%s", pr.HeadBranch, headFile),
+	}); err != nil {
 		return fmt.Errorf("Push: %v", err)
 	}
 
@@ -1049,29 +1064,30 @@ func (pr *PullRequest) checkAndUpdateStatus() {
 // TODO: test more pull requests at same time.
 func TestPullRequests() {
 	prs := make([]*PullRequest, 0, 10)
-	x.Iterate(PullRequest{
-		Status: PullRequestStatusChecking,
-	},
-		func(idx int, bean interface{}) error {
-			pr := bean.(*PullRequest)
 
-			if err := pr.GetBaseRepo(); err != nil {
-				log.Error(3, "GetBaseRepo: %v", err)
-				return nil
-			}
-			if pr.manuallyMerged() {
-				return nil
-			}
-			if err := pr.testPatch(); err != nil {
-				log.Error(3, "testPatch: %v", err)
-				return nil
-			}
-			prs = append(prs, pr)
-			return nil
-		})
+	err := x.Where("status = ?", PullRequestStatusChecking).Find(&prs)
+	if err != nil {
+		log.Error(3, "Find Checking PRs", err)
+		return
+	}
+
+	var checkedPRs = make(map[int64]struct{})
 
 	// Update pull request status.
 	for _, pr := range prs {
+		checkedPRs[pr.ID] = struct{}{}
+		if err := pr.GetBaseRepo(); err != nil {
+			log.Error(3, "GetBaseRepo: %v", err)
+			continue
+		}
+		if pr.manuallyMerged() {
+			continue
+		}
+		if err := pr.testPatch(); err != nil {
+			log.Error(3, "testPatch: %v", err)
+			continue
+		}
+
 		pr.checkAndUpdateStatus()
 	}
 
@@ -1080,7 +1096,12 @@ func TestPullRequests() {
 		log.Trace("TestPullRequests[%v]: processing test task", prID)
 		pullRequestQueue.Remove(prID)
 
-		pr, err := GetPullRequestByID(com.StrTo(prID).MustInt64())
+		id := com.StrTo(prID).MustInt64()
+		if _, ok := checkedPRs[id]; ok {
+			continue
+		}
+
+		pr, err := GetPullRequestByID(id)
 		if err != nil {
 			log.Error(4, "GetPullRequestByID[%s]: %v", prID, err)
 			continue

@@ -96,6 +96,11 @@ func CreateOrUpdateIssueNotifications(issue *Issue, notificationAuthorID int64) 
 }
 
 func createOrUpdateIssueNotifications(e Engine, issue *Issue, notificationAuthorID int64) error {
+	issueWatches, err := getIssueWatchers(e, issue.ID)
+	if err != nil {
+		return err
+	}
+
 	watches, err := getWatchers(e, issue.RepoID)
 	if err != nil {
 		return err
@@ -106,23 +111,42 @@ func createOrUpdateIssueNotifications(e Engine, issue *Issue, notificationAuthor
 		return err
 	}
 
-	for _, watch := range watches {
+	alreadyNotified := make(map[int64]struct{}, len(issueWatches)+len(watches))
+
+	notifyUser := func(userID int64) error {
 		// do not send notification for the own issuer/commenter
-		if watch.UserID == notificationAuthorID {
+		if userID == notificationAuthorID {
+			return nil
+		}
+
+		if _, ok := alreadyNotified[userID]; ok {
+			return nil
+		}
+		alreadyNotified[userID] = struct{}{}
+
+		if notificationExists(notifications, issue.ID, userID) {
+			return updateIssueNotification(e, userID, issue.ID, notificationAuthorID)
+		}
+		return createIssueNotification(e, userID, issue, notificationAuthorID)
+	}
+
+	for _, issueWatch := range issueWatches {
+		// ignore if user unwatched the issue
+		if !issueWatch.IsWatching {
+			alreadyNotified[issueWatch.UserID] = struct{}{}
 			continue
 		}
 
-		if notificationExists(notifications, issue.ID, watch.UserID) {
-			err = updateIssueNotification(e, watch.UserID, issue.ID, notificationAuthorID)
-		} else {
-			err = createIssueNotification(e, watch.UserID, issue, notificationAuthorID)
-		}
-
-		if err != nil {
+		if err := notifyUser(issueWatch.UserID); err != nil {
 			return err
 		}
 	}
 
+	for _, watch := range watches {
+		if err := notifyUser(watch.UserID); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -171,7 +195,7 @@ func updateIssueNotification(e Engine, userID, issueID, updatedByID int64) error
 	notification.Status = NotificationStatusUnread
 	notification.UpdatedBy = updatedByID
 
-	_, err = e.Id(notification.ID).Update(notification)
+	_, err = e.ID(notification.ID).Update(notification)
 	return err
 }
 
@@ -189,23 +213,20 @@ func NotificationsForUser(user *User, statuses []NotificationStatus, page, perPa
 	return notificationsForUser(x, user, statuses, page, perPage)
 }
 func notificationsForUser(e Engine, user *User, statuses []NotificationStatus, page, perPage int) (notifications []*Notification, err error) {
-	// FIXME: Xorm does not support aliases types (like NotificationStatus) on In() method
-	s := make([]uint8, len(statuses))
-	for i, status := range statuses {
-		s[i] = uint8(status)
+	if len(statuses) == 0 {
+		return
 	}
 
 	sess := e.
 		Where("user_id = ?", user.ID).
-		In("status", s).
+		In("status", statuses).
 		OrderBy("updated_unix DESC")
 
 	if page > 0 && perPage > 0 {
 		sess.Limit(perPage, (page-1)*perPage)
 	}
 
-	err = sess.
-		Find(&notifications)
+	err = sess.Find(&notifications)
 	return
 }
 
@@ -253,7 +274,7 @@ func setNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {
 
 	notification.Status = NotificationStatusRead
 
-	_, err = e.Id(notification.ID).Update(notification)
+	_, err = e.ID(notification.ID).Update(notification)
 	return err
 }
 
@@ -270,7 +291,7 @@ func SetNotificationStatus(notificationID int64, user *User, status Notification
 
 	notification.Status = status
 
-	_, err = x.Id(notificationID).Update(notification)
+	_, err = x.ID(notificationID).Update(notification)
 	return err
 }
 

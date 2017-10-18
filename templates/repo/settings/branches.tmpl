@@ -1,0 +1,77 @@
+{{template "base/head" .}}
+<div class="repository settings edit">
+	{{template "repo/header" .}}
+	{{template "repo/settings/navbar" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "repo.default_branch"}}
+		</h4>
+		<div class="ui attached segment">
+			<p>
+				{{.i18n.Tr "repo.settings.default_branch_desc"}}
+			</p>
+			<form class="ui form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="action" value="default_branch">
+				{{if not .Repository.IsBare}}
+				<div class="required inline field">
+					<div class="ui dropdown selection" tabindex="0">
+						<select name="branch">
+							<option value="{{.Repository.DefaultBranch}}">{{.Repository.DefaultBranch}}</option>
+							{{range .Branches}}
+								<option value="{{.}}">{{.}}</option>
+							{{end}}
+						</select><i class="dropdown icon"></i>
+						<div class="default text">{{.Repository.DefaultBranch}}</div>
+						<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
+							{{range .Branches}}
+								<div class="item" data-value="{{.}}">{{.}}</div>
+							{{end}}
+						</div>
+					</div>
+					<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
+				</div>
+				{{end}}
+			</form>
+		</div>
+
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "repo.settings.protected_branch"}}
+		</h4>
+
+		<div class="ui attached table segment">
+			<div class="ui grid padded">
+				<div class="eight wide column">
+					<div class="ui fluid dropdown selection" tabindex="0">
+						<i class="dropdown icon"></i>
+						<div class="default text">{{.i18n.Tr "repo.settings.choose_branch"}}</div>
+						<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
+							{{range .LeftBranches}}
+								<a class="item" href="{{$.Repository.Link}}/settings/branches/{{.}}">{{.}}</a>
+							{{end}}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="ui grid padded">
+				<div class="sixteen wide column">
+					<table class="ui single line table padded">
+						<tbody>
+							{{range .ProtectedBranches}}
+								<tr>
+									<td><div class="ui basic label blue">{{.BranchName}}</div></td>
+									<td class="right aligned"><a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/{{.BranchName}}">Edit</a></td>
+								</tr>
+							{{else}}
+								<tr class="center aligned"><td>{{.i18n.Tr "repo.settings.no_protected_branch"}}</td></tr>
+							{{end}}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

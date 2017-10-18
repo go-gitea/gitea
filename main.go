@@ -8,29 +8,38 @@ package main // import "code.gitea.io/gitea"
 
 import (
 	"os"
+	"strings"
 
 	"code.gitea.io/gitea/cmd"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	// register supported doc types
+	_ "code.gitea.io/gitea/modules/markup/markdown"
+	_ "code.gitea.io/gitea/modules/markup/orgmode"
+
 	"github.com/urfave/cli"
 )
 
 // Version holds the current Gitea version
-var Version = "1.1.0+dev"
+var Version = "1.3.0-dev"
+
+// Tags holds the build tags used
+var Tags = ""
 
 func init() {
 	setting.AppVer = Version
+	setting.AppBuiltWith = formatBuiltWith(Tags)
 }
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "Gitea"
 	app.Usage = "A painless self-hosted Git service"
-	app.Version = Version
+	app.Version = Version + formatBuiltWith(Tags)
 	app.Commands = []cli.Command{
 		cmd.CmdWeb,
 		cmd.CmdServ,
-		cmd.CmdUpdate,
+		cmd.CmdHook,
 		cmd.CmdDump,
 		cmd.CmdCert,
 		cmd.CmdAdmin,
@@ -40,5 +49,12 @@ func main() {
 	if err != nil {
 		log.Fatal(4, "Failed to run app with %s: %v", os.Args, err)
 	}
+}
 
+func formatBuiltWith(Tags string) string {
+	if len(Tags) == 0 {
+		return ""
+	}
+
+	return " built with: " + strings.Replace(Tags, " ", ", ", -1)
 }

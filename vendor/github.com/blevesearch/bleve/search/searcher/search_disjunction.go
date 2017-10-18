@@ -50,11 +50,22 @@ func tooManyClauses(count int) bool {
 }
 
 func tooManyClausesErr() error {
-	return fmt.Errorf("TooManyClauses[maxClauseCount is set to %d]", DisjunctionMaxClauseCount)
+	return fmt.Errorf("TooManyClauses[maxClauseCount is set to %d]",
+		DisjunctionMaxClauseCount)
 }
 
-func NewDisjunctionSearcher(indexReader index.IndexReader, qsearchers []search.Searcher, min float64, explain bool) (*DisjunctionSearcher, error) {
-	if tooManyClauses(len(qsearchers)) {
+func NewDisjunctionSearcher(indexReader index.IndexReader,
+	qsearchers []search.Searcher, min float64, options search.SearcherOptions) (
+	*DisjunctionSearcher, error) {
+	return newDisjunctionSearcher(indexReader, qsearchers, min, options,
+		true)
+}
+
+func newDisjunctionSearcher(indexReader index.IndexReader,
+	qsearchers []search.Searcher, min float64, options search.SearcherOptions,
+	limit bool) (
+	*DisjunctionSearcher, error) {
+	if limit && tooManyClauses(len(qsearchers)) {
 		return nil, tooManyClausesErr()
 	}
 	// build the downstream searchers
@@ -70,7 +81,7 @@ func NewDisjunctionSearcher(indexReader index.IndexReader, qsearchers []search.S
 		searchers:    searchers,
 		numSearchers: len(searchers),
 		currs:        make([]*search.DocumentMatch, len(searchers)),
-		scorer:       scorer.NewDisjunctionQueryScorer(explain),
+		scorer:       scorer.NewDisjunctionQueryScorer(options),
 		min:          int(min),
 		matching:     make([]*search.DocumentMatch, len(searchers)),
 		matchingIdxs: make([]int, len(searchers)),
@@ -161,7 +172,8 @@ func (s *DisjunctionSearcher) SetQueryNorm(qnorm float64) {
 	}
 }
 
-func (s *DisjunctionSearcher) Next(ctx *search.SearchContext) (*search.DocumentMatch, error) {
+func (s *DisjunctionSearcher) Next(ctx *search.SearchContext) (
+	*search.DocumentMatch, error) {
 	if !s.initialized {
 		err := s.initSearchers(ctx)
 		if err != nil {
@@ -199,7 +211,8 @@ func (s *DisjunctionSearcher) Next(ctx *search.SearchContext) (*search.DocumentM
 	return rv, nil
 }
 
-func (s *DisjunctionSearcher) Advance(ctx *search.SearchContext, ID index.IndexInternalID) (*search.DocumentMatch, error) {
+func (s *DisjunctionSearcher) Advance(ctx *search.SearchContext,
+	ID index.IndexInternalID) (*search.DocumentMatch, error) {
 	if !s.initialized {
 		err := s.initSearchers(ctx)
 		if err != nil {

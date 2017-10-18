@@ -5,6 +5,8 @@
 package auth
 
 import (
+	"code.gitea.io/gitea/models"
+
 	"github.com/go-macaron/binding"
 	"gopkg.in/macaron.v1"
 )
@@ -21,7 +23,7 @@ type CreateOrgForm struct {
 	OrgName string `binding:"Required;AlphaDashDot;MaxSize(35)" locale:"org.org_name_holder"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *CreateOrgForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -31,12 +33,12 @@ type UpdateOrgSettingForm struct {
 	Name            string `binding:"Required;AlphaDashDot;MaxSize(35)" locale:"org.org_name_holder"`
 	FullName        string `binding:"MaxSize(100)"`
 	Description     string `binding:"MaxSize(255)"`
-	Website         string `binding:"Url;MaxSize(255)"`
+	Website         string `binding:"ValidUrl;MaxSize(255)"`
 	Location        string `binding:"MaxSize(50)"`
 	MaxRepoCreation int
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *UpdateOrgSettingForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -53,9 +55,10 @@ type CreateTeamForm struct {
 	TeamName    string `binding:"Required;AlphaDashDot;MaxSize(30)"`
 	Description string `binding:"MaxSize(255)"`
 	Permission  string
+	Units       []models.UnitType
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *CreateTeamForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }

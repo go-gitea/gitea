@@ -66,19 +66,15 @@ func (repo *Repository) SetDefaultBranch(name string) error {
 
 // GetBranches returns all branches of the repository.
 func (repo *Repository) GetBranches() ([]string, error) {
-	stdout, err := NewCommand("show-ref", "--heads").RunInDir(repo.Path)
+	stdout, err := NewCommand("for-each-ref", "--format=%(refname)", BranchPrefix).RunInDir(repo.Path)
 	if err != nil {
 		return nil, err
 	}
 
-	infos := strings.Split(stdout, "\n")
-	branches := make([]string, len(infos)-1)
-	for i, info := range infos[:len(infos)-1] {
-		fields := strings.Fields(info)
-		if len(fields) != 2 {
-			continue // NOTE: I should believe git will not give me wrong string.
-		}
-		branches[i] = strings.TrimPrefix(fields[1], BranchPrefix)
+	refs := strings.Split(stdout, "\n")
+	branches := make([]string, len(refs)-1)
+	for i, ref := range refs[:len(refs)-1] {
+		branches[i] = strings.TrimPrefix(ref, BranchPrefix)
 	}
 	return branches, nil
 }
@@ -90,10 +86,12 @@ type DeleteBranchOptions struct {
 
 // DeleteBranch delete a branch by name on repository.
 func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) error {
-	cmd := NewCommand("branch", "-d")
+	cmd := NewCommand("branch")
 
 	if opts.Force {
-		cmd.AddArguments("-f")
+		cmd.AddArguments("-D")
+	} else {
+		cmd.AddArguments("-d")
 	}
 
 	cmd.AddArguments(name)
