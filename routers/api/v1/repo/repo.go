@@ -624,7 +624,17 @@ func ListContentsAtSHA(ctx *context.APIContext) {
 	//       500: error
 
 	rawLink := filepath.Join(ctx.Repo.RepoLink, "/raw/", ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
-	listing, err := repoTreeListing(ctx.Repo.GitRepo, ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath, rawLink)
+	tree, err := ctx.Repo.GitRepo.GetTree(ctx.Repo.Commit.ID.String())
+	if err != nil {
+		if models.IsErrRepoNotExist(err) {
+			ctx.Status(404)
+		} else {
+			ctx.Handle(500, "GetRepo", err)
+		}
+		return
+	}
+
+	listing, err := treeListing(tree, ctx.Repo.TreePath, rawLink, ctx.QueryBool("recursive"))
 	if err != nil {
 		ctx.Handle(500, "RepoTreeListing", err)
 		return
@@ -652,9 +662,9 @@ func ListContentsAtSHA(ctx *context.APIContext) {
 // RepoFile represents a file blob contained in the repository
 type RepoFile struct {
 	Path     string            `json:"path"`
-	Mode     git.EntryMode     `json:"mode"`
+	// Mode     git.EntryMode     `json:"mode"`
 	Type     git.ObjectType    `json:"type"`
-	Size     int64             `json:"size"`
+	Size     int64             `json:"size"` // TODO: Do we include this? It's expensive...
 	SHA      string            `json:"sha"`
 	URL      string            `json:"url"`
 }
@@ -666,8 +676,13 @@ type RepoTreeListing struct {
 	Tree     []*RepoFile `json:"tree"`
 }
 
-func repoFile(e *git.TreeEntry, rawLink string) *RepoFile {
-	filePath := filepath.Join(e.GetSubJumpablePathName(), e.Name())
+func repoFile(e *git.TreeEntry, parentPath string, rawLink string) *RepoFile {
+	var filePath string
+	if parentPath != "" {
+		filePath = filepath.Join(parentPath, e.Name())
+	} else {
+		filePath = e.Name()
+	}
 	return &RepoFile{
 		Path: filePath,
 		// Mode: e.mode,  // TODO: Not exported by `git.TreeEntry`
@@ -678,12 +693,8 @@ func repoFile(e *git.TreeEntry, rawLink string) *RepoFile {
 	}
 }
 
-func repoTreeListing(r *git.Repository, commit, treePath, rawLink string, recursive bool) (*RepoTreeListing, error) {
-	tree, err := r.GetTree(commit)
-	if err != nil {
-		return nil, err
-	}
-	tree, err = tree.SubTree(treePath)
+func treeListing(t *git.Tree, treePath, rawLink string, recursive bool) (*RepoTreeListing, error) {
+	tree, err := t.SubTree(treePath)
 	if err != nil {
 		return nil, err
 	}
@@ -697,9 +708,13 @@ func repoTreeListing(r *git.Repository, commit, treePath, rawLink string, recurs
 	for i := range treeEntries {
 		entry := treeEntries[i]
 		if entry.IsDir() && recursive {
-			// TODO:
+			subListing, err := treeListing(t, filepath.Join(treePath, entry.Name()), rawLink, recursive)
+			if err != nil {
+				return nil, err
+			}
+			entries = append(entries, subListing.Tree...)
 		} else {
-			entries = append(entries, repoFile(treeEntries[i], rawLink))
+			entries = append(entries, repoFile(treeEntries[i], treePath, rawLink))
 		}
 	}
 
