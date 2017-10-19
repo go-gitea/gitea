@@ -9,8 +9,12 @@ import (
 	"net/http"
 	"strings"
 
+	api "code.gitea.io/sdk/gitea"
+	"code.gitea.io/git"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -606,3 +610,80 @@ func TopicSearch(ctx *context.Context) {
 // TODO: Since this is where the repo details are, it would seem to be the right place to add
 // listing of files -- see https://developer.github.com/v3/git/trees/ for what the GitHub API
 // looks like
+// List contents of one repository
+func ListContentsAtSHA(ctx *context.APIContext) {
+	// swagger:route GET /repos/{username}/{reponame}/git/trees/{sha} repository repoListAtSHA
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: RepoFiles
+	//       403: forbidden
+	//       500: error
+
+	log.Warn(" -- loaded with context: %s, %s, %s, %s, %s",
+		ctx, ctx.Repo, ctx.Repo.Repository,
+		ctx.Repo.GitRepo, ctx.Params("sha"))
+
+	tree, err := ctx.Repo.GitRepo.GetTree(ctx.Repo.Commit.ID.String())
+	if err != nil {
+		ctx.NotFoundOrServerError("Repo.Repository.RepoPath", git.IsErrNotExist, err)
+		return
+	}
+
+	entries, err := tree.ListEntries()
+	if err != nil {
+		ctx.Handle(500, "ListEntries", err)
+		return
+	}
+	entries.CustomSort(base.NaturalSortLess)
+
+	// entriesInfo, err := entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath)
+	// if err != nil {
+	// 	ctx.Handle(500, "GetCommitsInfo", err)
+	// 	return
+	// }
+
+	var names []string
+	for i := range entries {
+		names = append(names, entries[i].Name())
+	}
+	ctx.JSON(200, names)
+
+	//TODO: Looks lke we'll need a custom type RepoListing or something to match the GitHub
+	// sample output, and some subtype of TreeEntry for each entry in the tree. We can then
+	// populate it from the ListeEntries(), with some sort of solution for the `recusrvie=1` case
+
+	// TODO: Make output match the GitHub sample output:
+	// {
+	//   "sha": "9fb037999f264ba9a7fc6274d15fa3ae2ab98312",
+	//   "url": "https://api.github.com/repos/octocat/Hello-World/trees/9fb037999f264ba9a7fc6274d15fa3ae2ab98312",
+	//   "tree": [
+	//     {
+	//       "path": "file.rb",
+	//       "mode": "100644",
+	//       "type": "blob",
+	//       "size": 30,
+	//       "sha": "44b4fc6d56897b048c772eb4087f854f46256132",
+	//       "url": "https://api.github.com/repos/octocat/Hello-World/git/blobs/44b4fc6d56897b048c772eb4087f854f46256132"
+	//     },
+	//     {
+	//       "path": "subdir",
+	//       "mode": "040000",
+	//       "type": "tree",
+	//       "sha": "f484d249c660418515fb01c2b9662073663c242e",
+	//       "url": "https://api.github.com/repos/octocat/Hello-World/git/blobs/f484d249c660418515fb01c2b9662073663c242e"
+	//     },
+	//     {
+	//       "path": "exec_file",
+	//       "mode": "100755",
+	//       "type": "blob",
+	//       "size": 75,
+	//       "sha": "45b983be36b73c0788dc9cbcb76cbb80fc7bb057",
+	//       "url": "https://api.github.com/repos/octocat/Hello-World/git/blobs/45b983be36b73c0788dc9cbcb76cbb80fc7bb057"
+	//     }
+	//   ],
+	//   "truncated": false
+	// }
+}
