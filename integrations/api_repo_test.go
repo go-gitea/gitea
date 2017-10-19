@@ -313,3 +313,16 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 		session.MakeRequest(t, req, testCase.expectedStatus)
 	}
 }
+
+func TestAPIListRepoEntries(t *testing.T) {
+	prepareTestEnv(t)
+
+	// TODO: Make this actually work!!!
+	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/tree/thing/thing")
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var repo api.Repository
+	DecodeJSON(t, resp, &repo)
+	assert.EqualValues(t, 1, repo.ID)
+	assert.EqualValues(t, "repo1", repo.Name)
+}
