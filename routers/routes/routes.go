@@ -160,7 +160,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		return ""
 	})
 	m.Get("/", ignSignIn, routers.Home)
-	m.Get("/swagger", ignSignIn, routers.Swagger)
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")

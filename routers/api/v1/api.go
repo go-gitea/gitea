@@ -277,6 +277,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 	m.Group("/v1", func() {
 		// Miscellaneous
+		m.Get("/swagger", misc.Swagger)
 		m.Get("/version", misc.Version)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
