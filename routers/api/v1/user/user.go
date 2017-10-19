@@ -35,7 +35,7 @@ func Search(ctx *context.APIContext) {
 		opts.PageSize = 10
 	}
 
-	users, _, err := models.SearchUserByName(opts)
+	users, _, err := models.SearchUsers(opts)
 	if err != nil {
 		ctx.JSON(500, map[string]interface{}{
 			"ok":    false,
