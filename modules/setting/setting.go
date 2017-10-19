@@ -740,8 +740,13 @@ func NewContext() {
 	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
-	if err = Cfg.Section("server").MapTo(&LFS); err != nil {
+	sec = Cfg.Section("server")
+	if err = sec.MapTo(&LFS); err != nil {
 		log.Fatal(4, "Failed to map LFS settings: %v", err)
+	}
+	LFS.ContentPath = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
+	if !filepath.IsAbs(LFS.ContentPath) {
+		LFS.ContentPath = filepath.Join(workDir, LFS.ContentPath)
 	}
 
 	if LFS.StartServer {
