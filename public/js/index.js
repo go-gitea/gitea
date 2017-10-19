@@ -1886,14 +1886,14 @@ function initFilterBranchTagDropdown(selector) {
                     }
                     return null;
                 },
-                getSelectedIndexInFiltered() {
+                getSelectedIndexInFiltered: function() {
                     for (var i = 0, j = this.filteredItems.length; i < j; ++i) {
                         if (this.filteredItems[i].selected)
                             return i;
                     }
                     return -1;
                 },
-                scrollToActive() {
+                scrollToActive: function() {
                     var el = this.$refs['listItem' + this.active];
                     if (!el || el.length === 0) {
                         return;
