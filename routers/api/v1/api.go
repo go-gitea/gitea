@@ -275,6 +275,8 @@ func mustAllowPulls(ctx *context.Context) {
 func RegisterRoutes(m *macaron.Macaron) {
 	bind := binding.Bind
 
+	m.Get("/swagger", misc.Swagger) //Render V1 by default
+
 	m.Group("/v1", func() {
 		// Miscellaneous
 		m.Get("/swagger", misc.Swagger)

@@ -74,7 +74,7 @@
 window.onload = function() {
   // Build a system
   const ui = SwaggerUIBundle({
-    url: "{{AppUrl}}swagger.v1.json",
+    url: "{{AppUrl}}swagger.{{.APIJSONVersion}}.json",
     dom_id: '#swagger-ui',
     deepLinking: true,
     presets: [

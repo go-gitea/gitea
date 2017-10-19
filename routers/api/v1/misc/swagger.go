@@ -12,7 +12,8 @@ import (
 // tplSwagger swagger page template
 const tplSwagger base.TplName = "swagger"
 
-// Swagger render swagger-ui page
+// Swagger render swagger-ui page with v1 json
 func Swagger(ctx *context.Context) {
+	ctx.Data["APIJSONVersion"] = "v1"
 	ctx.HTML(200, tplSwagger)
 }
