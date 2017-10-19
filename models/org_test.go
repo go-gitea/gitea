@@ -241,7 +241,7 @@ func TestOrganizations(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	testSuccess := func(opts *SearchUserOptions, expectedOrgIDs []int64) {
 		opts.Type = UserTypeOrganization
-		orgs, err := SearchUsers(opts)
+		orgs, _, err := SearchUsers(opts)
 		assert.NoError(t, err)
 		if assert.Len(t, orgs, len(expectedOrgIDs)) {
 			for i, expectedOrgID := range expectedOrgIDs {
