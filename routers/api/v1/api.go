@@ -576,7 +576,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("/status", repo.GetCombinedCommitStatusByRef)
 					m.Get("/statuses", repo.GetCommitStatusesByRef)
 				})
-				m.Get("/git/tree/:sha", context.RepoRef(), repo.ListContentsAtSHA)
+				m.Get("/git/trees/*", context.RepoRef(), repo.ListContentsAtSHA)
 			}, repoAssignment())
 		})
 
