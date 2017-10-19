@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"path/filepath"
 
 	api "code.gitea.io/sdk/gitea"
 	"code.gitea.io/git"
@@ -618,43 +619,18 @@ func ListContentsAtSHA(ctx *context.APIContext) {
 	//     - application/json
 	//
 	//     Responses:
-	//       200: RepoFiles
+	//       200: RepoTreeListing
 	//       403: forbidden
 	//       500: error
 
-	log.Warn(" -- loaded with context: %s, %s, %s, %s, %s",
-		ctx, ctx.Repo, ctx.Repo.Repository,
-		ctx.Repo.GitRepo, ctx.Params("sha"))
-
-	tree, err := ctx.Repo.GitRepo.GetTree(ctx.Repo.Commit.ID.String())
+	rawLink := filepath.Join(ctx.Repo.RepoLink, "/raw/", ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
+	listing, err := repoTreeListing(ctx.Repo.GitRepo, ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath, rawLink)
 	if err != nil {
-		ctx.NotFoundOrServerError("Repo.Repository.RepoPath", git.IsErrNotExist, err)
+		ctx.Handle(500, "RepoTreeListing", err)
 		return
 	}
 
-	entries, err := tree.ListEntries()
-	if err != nil {
-		ctx.Handle(500, "ListEntries", err)
-		return
-	}
-	entries.CustomSort(base.NaturalSortLess)
-
-	// entriesInfo, err := entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath)
-	// if err != nil {
-	// 	ctx.Handle(500, "GetCommitsInfo", err)
-	// 	return
-	// }
-
-	var names []string
-	for i := range entries {
-		names = append(names, entries[i].Name())
-	}
-	ctx.JSON(200, names)
-
-	//TODO: Looks lke we'll need a custom type RepoListing or something to match the GitHub
-	// sample output, and some subtype of TreeEntry for each entry in the tree. We can then
-	// populate it from the ListeEntries(), with some sort of solution for the `recusrvie=1` case
-
+	ctx.JSON(200, listing)
 	// TODO: Make output match the GitHub sample output:
 	// {
 	//   "sha": "9fb037999f264ba9a7fc6274d15fa3ae2ab98312",
@@ -668,22 +644,68 @@ func ListContentsAtSHA(ctx *context.APIContext) {
 	//       "sha": "44b4fc6d56897b048c772eb4087f854f46256132",
 	//       "url": "https://api.github.com/repos/octocat/Hello-World/git/blobs/44b4fc6d56897b048c772eb4087f854f46256132"
 	//     },
-	//     {
-	//       "path": "subdir",
-	//       "mode": "040000",
-	//       "type": "tree",
-	//       "sha": "f484d249c660418515fb01c2b9662073663c242e",
-	//       "url": "https://api.github.com/repos/octocat/Hello-World/git/blobs/f484d249c660418515fb01c2b9662073663c242e"
-	//     },
-	//     {
-	//       "path": "exec_file",
-	//       "mode": "100755",
-	//       "type": "blob",
-	//       "size": 75,
-	//       "sha": "45b983be36b73c0788dc9cbcb76cbb80fc7bb057",
-	//       "url": "https://api.github.com/repos/octocat/Hello-World/git/blobs/45b983be36b73c0788dc9cbcb76cbb80fc7bb057"
-	//     }
 	//   ],
 	//   "truncated": false
 	// }
+}
+
+// RepoFile represents a file blob contained in the repository
+type RepoFile struct {
+	Path     string            `json:"path"`
+	Mode     git.EntryMode     `json:"mode"`
+	Type     git.ObjectType    `json:"type"`
+	Size     int64             `json:"size"`
+	SHA      string            `json:"sha"`
+	URL      string            `json:"url"`
+}
+
+// RepoTreeListing represents a tree (or subtree) listing in the repository
+type RepoTreeListing struct {
+	SHA      string     `json:"sha"`
+	Path     string     `json:"path"`
+	Tree     []*RepoFile `json:"tree"`
+}
+
+func repoFile(e *git.TreeEntry, rawLink string) *RepoFile {
+	filePath := filepath.Join(e.GetSubJumpablePathName(), e.Name())
+	return &RepoFile{
+		Path: filePath,
+		// Mode: e.mode,  // TODO: Not exported by `git.TreeEntry`
+		Type: e.Type,
+		// Size: e.Size(), // TODO: Expensive!
+		SHA: e.ID.String(),
+		URL: filepath.Join(rawLink, filePath),
+	}
+}
+
+func repoTreeListing(r *git.Repository, commit, treePath, rawLink string, recursive bool) (*RepoTreeListing, error) {
+	tree, err := r.GetTree(commit)
+	if err != nil {
+		return nil, err
+	}
+	tree, err = tree.SubTree(treePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var entries []*RepoFile
+	treeEntries, err := tree.ListEntries()
+	if err != nil {
+		return nil, err
+	}
+	treeEntries.CustomSort(base.NaturalSortLess)
+	for i := range treeEntries {
+		entry := treeEntries[i]
+		if entry.IsDir() && recursive {
+			// TODO:
+		} else {
+			entries = append(entries, repoFile(treeEntries[i], rawLink))
+		}
+	}
+
+	return &RepoTreeListing{
+		SHA: tree.ID.String(),
+	        Path: treePath,
+		Tree: entries,
+	}, nil
 }
