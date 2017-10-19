@@ -32,7 +32,7 @@
 						</div>
 						{{if .CanBeForked}}
 							<div class="ui compact labeled button" tabindex="0">
-								<a class="ui compact button {{if eq .OwnerID $.SignedUserID}}poping up{{end}}" {{if not (eq .OwnerID $.SignedUserID)}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" data-position="top center" data-variation="tiny"{{end}}>
+								<a class="ui compact button {{if not $.CanSignedUserFork}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" data-position="top center" data-variation="tiny"{{end}}>
 									<i class="octicon octicon-repo-forked"></i>{{$.i18n.Tr "repo.fork"}}
 								</a>
 								<a class="ui basic label" href="{{.Link}}/forks">
@@ -88,6 +88,12 @@
 			{{if or (.Repository.UnitEnabled $.UnitTypeWiki) (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}
 				<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" {{if (.Repository.UnitEnabled $.UnitTypeExternalWiki)}} target="_blank" {{end}}>
 					<i class="octicon octicon-book"></i> {{.i18n.Tr "repo.wiki"}}
+				</a>
+			{{end}}
+
+			{{if and (.Repository.AnyUnitEnabled $.UnitTypePullRequests $.UnitTypeIssues $.UnitTypeReleases) (not .IsBareRepo)}}
+				<a class="{{if .PageIsActivity}}active{{end}} item" href="{{.RepoLink}}/activity">
+					<i class="octicon octicon-pulse"></i> {{.i18n.Tr "repo.activity"}}
 				</a>
 			{{end}}
 

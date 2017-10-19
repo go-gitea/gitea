@@ -34,17 +34,14 @@ func Search(ctx *context.APIContext) {
 		OwnerID:  ctx.QueryInt64("uid"),
 		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 	}
-	if ctx.User != nil && ctx.User.ID == opts.OwnerID {
-		opts.Searcher = ctx.User
-	}
 
-	// Check visibility.
-	if ctx.IsSigned && opts.OwnerID > 0 {
-		if ctx.User.ID == opts.OwnerID {
-			opts.Private = true
-			opts.Collaborate = true
+	if opts.OwnerID > 0 {
+		var repoOwner *models.User
+		if ctx.User != nil && ctx.User.ID == opts.OwnerID {
+			repoOwner = ctx.User
 		} else {
-			u, err := models.GetUserByID(opts.OwnerID)
+			var err error
+			repoOwner, err = models.GetUserByID(opts.OwnerID)
 			if err != nil {
 				ctx.JSON(500, api.SearchError{
 					OK:    false,
@@ -52,13 +49,15 @@ func Search(ctx *context.APIContext) {
 				})
 				return
 			}
-			if u.IsOrganization() && u.IsOwnedBy(ctx.User.ID) {
-				opts.Private = true
-			}
+		}
 
-			if !u.IsOrganization() {
-				opts.Collaborate = true
-			}
+		if !repoOwner.IsOrganization() {
+			opts.Collaborate = true
+		}
+
+		// Check visibility.
+		if ctx.IsSigned && (ctx.User.ID == repoOwner.ID || (repoOwner.IsOrganization() && repoOwner.IsOwnedBy(ctx.User.ID))) {
+			opts.Private = true
 		}
 	}
 

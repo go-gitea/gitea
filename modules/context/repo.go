@@ -76,6 +76,11 @@ func (r *Repository) CanEnableEditor() bool {
 	return r.Repository.CanEnableEditor() && r.IsViewBranch && r.IsWriter()
 }
 
+// CanCreateBranch returns true if repository is editable and user has proper access level.
+func (r *Repository) CanCreateBranch() bool {
+	return r.Repository.CanCreateBranch() && r.IsWriter()
+}
+
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected
 func (r *Repository) CanCommitToBranch(doer *models.User) (bool, error) {
@@ -134,21 +139,23 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 	}
 }
 
-// composeGoGetImport returns go-get-import meta content.
-func composeGoGetImport(owner, repo string) string {
+// ComposeGoGetImport returns go-get-import meta content.
+func ComposeGoGetImport(owner, repo string) string {
 	return path.Join(setting.Domain, setting.AppSubURL, owner, repo)
 }
 
-// earlyResponseForGoGetMeta responses appropriate go-get meta with status 200
+// EarlyResponseForGoGetMeta responses appropriate go-get meta with status 200
 // if user does not have actual access to the requested repository,
 // or the owner or repository does not exist at all.
 // This is particular a workaround for "go get" command which does not respect
 // .netrc file.
-func earlyResponseForGoGetMeta(ctx *Context) {
+func EarlyResponseForGoGetMeta(ctx *Context) {
+	username := ctx.Params(":username")
+	reponame := ctx.Params(":reponame")
 	ctx.PlainText(200, []byte(com.Expand(`<meta name="go-import" content="{GoGetImport} git {CloneLink}">`,
 		map[string]string{
-			"GoGetImport": composeGoGetImport(ctx.Params(":username"), strings.TrimSuffix(ctx.Params(":reponame"), ".git")),
-			"CloneLink":   models.ComposeHTTPSCloneURL(ctx.Params(":username"), ctx.Params(":reponame")),
+			"GoGetImport": ComposeGoGetImport(username, strings.TrimSuffix(reponame, ".git")),
+			"CloneLink":   models.ComposeHTTPSCloneURL(username, reponame),
 		})))
 }
 
@@ -172,6 +179,75 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	ctx.Redirect(redirectPath)
 }
 
+func repoAssignment(ctx *Context, repo *models.Repository) {
+	// Admin has super access.
+	if ctx.IsSigned && ctx.User.IsAdmin {
+		ctx.Repo.AccessMode = models.AccessModeOwner
+	} else {
+		var userID int64
+		if ctx.User != nil {
+			userID = ctx.User.ID
+		}
+		mode, err := models.AccessLevel(userID, repo)
+		if err != nil {
+			ctx.Handle(500, "AccessLevel", err)
+			return
+		}
+		ctx.Repo.AccessMode = mode
+	}
+
+	// Check access.
+	if ctx.Repo.AccessMode == models.AccessModeNone {
+		if ctx.Query("go-get") == "1" {
+			EarlyResponseForGoGetMeta(ctx)
+			return
+		}
+		ctx.Handle(404, "no access right", nil)
+		return
+	}
+	ctx.Data["HasAccess"] = true
+
+	if repo.IsMirror {
+		var err error
+		ctx.Repo.Mirror, err = models.GetMirrorByRepoID(repo.ID)
+		if err != nil {
+			ctx.Handle(500, "GetMirror", err)
+			return
+		}
+		ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
+		ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
+		ctx.Data["Mirror"] = ctx.Repo.Mirror
+	}
+
+	ctx.Repo.Repository = repo
+	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
+	ctx.Data["IsBareRepo"] = ctx.Repo.Repository.IsBare
+}
+
+// RepoIDAssignment returns a macaron handler which assigns the repo to the context.
+func RepoIDAssignment() macaron.Handler {
+	return func(ctx *Context) {
+		repoID := ctx.ParamsInt64(":repoid")
+
+		// Get repository.
+		repo, err := models.GetRepositoryByID(repoID)
+		if err != nil {
+			if models.IsErrRepoNotExist(err) {
+				ctx.Handle(404, "GetRepositoryByID", nil)
+			} else {
+				ctx.Handle(500, "GetRepositoryByID", err)
+			}
+			return
+		}
+
+		if err = repo.GetOwner(); err != nil {
+			ctx.Handle(500, "GetOwner", err)
+			return
+		}
+		repoAssignment(ctx, repo)
+	}
+}
+
 // RepoAssignment returns a macaron to handle repository assignment
 func RepoAssignment() macaron.Handler {
 	return func(ctx *Context) {
@@ -191,7 +267,7 @@ func RepoAssignment() macaron.Handler {
 			if err != nil {
 				if models.IsErrUserNotExist(err) {
 					if ctx.Query("go-get") == "1" {
-						earlyResponseForGoGetMeta(ctx)
+						EarlyResponseForGoGetMeta(ctx)
 						return
 					}
 					ctx.Handle(404, "GetUserByName", nil)
@@ -213,7 +289,7 @@ func RepoAssignment() macaron.Handler {
 					RedirectToRepo(ctx, redirectRepoID)
 				} else if models.IsErrRepoRedirectNotExist(err) {
 					if ctx.Query("go-get") == "1" {
-						earlyResponseForGoGetMeta(ctx)
+						EarlyResponseForGoGetMeta(ctx)
 						return
 					}
 					ctx.Handle(404, "GetRepositoryByName", nil)
@@ -227,47 +303,10 @@ func RepoAssignment() macaron.Handler {
 		}
 		repo.Owner = owner
 
-		// Admin has super access.
-		if ctx.IsSigned && ctx.User.IsAdmin {
-			ctx.Repo.AccessMode = models.AccessModeOwner
-		} else {
-			var userID int64
-			if ctx.User != nil {
-				userID = ctx.User.ID
-			}
-			mode, err := models.AccessLevel(userID, repo)
-			if err != nil {
-				ctx.Handle(500, "AccessLevel", err)
-				return
-			}
-			ctx.Repo.AccessMode = mode
-		}
-
-		// Check access.
-		if ctx.Repo.AccessMode == models.AccessModeNone {
-			if ctx.Query("go-get") == "1" {
-				earlyResponseForGoGetMeta(ctx)
-				return
-			}
-			ctx.Handle(404, "no access right", err)
+		repoAssignment(ctx, repo)
+		if ctx.Written() {
 			return
 		}
-		ctx.Data["HasAccess"] = true
-
-		if repo.IsMirror {
-			ctx.Repo.Mirror, err = models.GetMirrorByRepoID(repo.ID)
-			if err != nil {
-				ctx.Handle(500, "GetMirror", err)
-				return
-			}
-			ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
-			ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
-			ctx.Data["Mirror"] = ctx.Repo.Mirror
-		}
-
-		ctx.Repo.Repository = repo
-		ctx.Data["RepoName"] = ctx.Repo.Repository.Name
-		ctx.Data["IsBareRepo"] = ctx.Repo.Repository.IsBare
 
 		gitRepo, err := git.OpenRepository(models.RepoPath(userName, repoName))
 		if err != nil {
@@ -288,6 +327,7 @@ func RepoAssignment() macaron.Handler {
 
 		count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
 			IncludeDrafts: false,
+			IncludeTags:   true,
 		})
 		if err != nil {
 			ctx.Handle(500, "GetReleaseCountByRepoID", err)
@@ -301,6 +341,11 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["IsRepositoryOwner"] = ctx.Repo.IsOwner()
 		ctx.Data["IsRepositoryAdmin"] = ctx.Repo.IsAdmin()
 		ctx.Data["IsRepositoryWriter"] = ctx.Repo.IsWriter()
+
+		if ctx.Data["CanSignedUserFork"], err = ctx.Repo.Repository.CanUserFork(ctx.User); err != nil {
+			ctx.Handle(500, "CanUserFork", err)
+			return
+		}
 
 		ctx.Data["DisableSSH"] = setting.SSH.Disabled
 		ctx.Data["ExposeAnonSSH"] = setting.SSH.ExposeAnonymous
@@ -373,7 +418,7 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
 		if ctx.Query("go-get") == "1" {
-			ctx.Data["GoGetImport"] = composeGoGetImport(owner.Name, repo.Name)
+			ctx.Data["GoGetImport"] = ComposeGoGetImport(owner.Name, repo.Name)
 			prefix := setting.AppURL + path.Join(owner.Name, repo.Name, "src", ctx.Repo.BranchName)
 			ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
 			ctx.Data["GoDocFile"] = prefix + "{/dir}/{file}#L{line}"
@@ -488,6 +533,7 @@ func RepoRef() macaron.Handler {
 		ctx.Data["IsViewBranch"] = ctx.Repo.IsViewBranch
 		ctx.Data["IsViewTag"] = ctx.Repo.IsViewTag
 		ctx.Data["IsViewCommit"] = ctx.Repo.IsViewCommit
+		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch()
 
 		ctx.Repo.CommitsCount, err = ctx.Repo.Commit.CommitsCount()
 		if err != nil {
@@ -538,11 +584,20 @@ func LoadRepoUnits() macaron.Handler {
 	}
 }
 
-// CheckUnit will check whether
+// CheckUnit will check whether unit type is enabled
 func CheckUnit(unitType models.UnitType) macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.Repo.Repository.UnitEnabled(unitType) {
 			ctx.Handle(404, "CheckUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitType))
+		}
+	}
+}
+
+// CheckAnyUnit will check whether any of the unit types are enabled
+func CheckAnyUnit(unitTypes ...models.UnitType) macaron.Handler {
+	return func(ctx *Context) {
+		if !ctx.Repo.Repository.AnyUnitEnabled(unitTypes...) {
+			ctx.Handle(404, "CheckAnyUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitTypes))
 		}
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"net"
 	"net/mail"
 	"net/url"
 	"os"
@@ -89,6 +90,7 @@ var (
 	SSH = struct {
 		Disabled             bool           `ini:"DISABLE_SSH"`
 		StartBuiltinServer   bool           `ini:"START_SSH_SERVER"`
+		BuiltinServerUser    string         `ini:"BUILTIN_SSH_SERVER_USER"`
 		Domain               string         `ini:"SSH_DOMAIN"`
 		Port                 int            `ini:"SSH_PORT"`
 		ListenHost           string         `ini:"SSH_LISTEN_HOST"`
@@ -664,6 +666,12 @@ func NewContext() {
 	// This value is empty if site does not have sub-url.
 	AppSubURL = strings.TrimSuffix(url.Path, "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
+	// Check if Domain differs from AppURL domain than update it to AppURL's domain
+	// TODO: Can be replaced with url.Hostname() when minimal GoLang version is 1.8
+	urlHostname := strings.SplitN(url.Host, ":", 2)[0]
+	if urlHostname != Domain && net.ParseIP(urlHostname) == nil {
+		Domain = urlHostname
+	}
 
 	var defaultLocalURL string
 	switch Protocol {
@@ -907,6 +915,8 @@ func NewContext() {
 			log.Fatal(4, "Expect user '%s' but current user is: %s", RunUser, currentUser)
 		}
 	}
+
+	SSH.BuiltinServerUser = Cfg.Section("server").Key("BUILTIN_SSH_SERVER_USER").MustString(RunUser)
 
 	// Determine and create root git repository path.
 	sec = Cfg.Section("repository")
@@ -1287,6 +1297,7 @@ type Mailer struct {
 	QueueLength     int
 	Name            string
 	From            string
+	FromName        string
 	FromEmail       string
 	SendAsPlainText bool
 
@@ -1345,6 +1356,7 @@ func newMailService() {
 	if err != nil {
 		log.Fatal(4, "Invalid mailer.FROM (%s): %v", MailService.From, err)
 	}
+	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
 
 	log.Info("Mail Service Enabled")

@@ -15,7 +15,6 @@ else
 endif
 
 BINDATA := modules/{options,public,templates}/bindata.go
-STYLESHEETS := $(wildcard public/less/index.less public/less/_*.less)
 DOCKER_TAG := gitea/gitea:latest
 GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
 GOFMT ?= gofmt -s
@@ -63,13 +62,14 @@ all: build
 .PHONY: clean
 clean:
 	$(GO) clean -i ./...
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) integrations*.test integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/ integrations/mysql.ini integrations/pgsql.ini
-
-required-gofmt-version:
-	@$(GO) version  | grep -q '\(1.7\|1.8\)' || { echo "We require go version 1.7 or 1.8 to format code" >&2 && exit 1; }
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA) \
+		integrations*.test \
+		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-sqlite/ \
+		integrations/indexers-mysql/ integrations/indexers-pgsql integrations/indexers-sqlite \
+		integrations/mysql.ini integrations/pgsql.ini
 
 .PHONY: fmt
-fmt: required-gofmt-version
+fmt:
 	$(GOFMT) -w $(GOFILES)
 
 .PHONY: vet
@@ -121,7 +121,7 @@ misspell:
 	misspell -w -i unknwon $(GOFILES)
 
 .PHONY: fmt-check
-fmt-check: required-gofmt-version
+fmt-check:
 	# get all go files and run go fmt on them
 	@diff=$$($(GOFMT) -d $(GOFILES)); \
 	if [ -n "$$diff" ]; then \
@@ -131,7 +131,7 @@ fmt-check: required-gofmt-version
 	fi;
 
 .PHONY: test
-test: fmt-check
+test:
 	$(GO) test $(PACKAGES)
 
 .PHONY: coverage
@@ -289,23 +289,17 @@ public/js/index.js: $(JAVASCRIPTS)
 	cat $< >| $@
 
 .PHONY: stylesheets-check
-stylesheets-check: stylesheets
+stylesheets-check: generate-stylesheets
 	@diff=$$(git diff public/css/index.css); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make stylesheets' and commit the result:"; \
+		echo "Please run 'make generate-stylesheets' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi;
 
-.PHONY: stylesheets
-stylesheets: public/css/index.css
-
-.IGNORE: public/css/index.css
-public/css/index.css: $(STYLESHEETS)
-	@which lessc > /dev/null; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/kib357/less-go/lessc; \
-	fi
-	lessc -i $< -o $@
+.PHONY: generate-stylesheets
+generate-stylesheets:
+	node_modules/.bin/lessc --no-ie-compat --clean-css public/less/index.less public/css/index.css
 
 .PHONY: swagger-ui
 swagger-ui:

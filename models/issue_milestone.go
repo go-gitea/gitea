@@ -51,27 +51,21 @@ func (m *Milestone) BeforeUpdate() {
 	m.ClosedDateUnix = m.ClosedDate.Unix()
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of
+// AfterLoad is invoked from XORM after setting the value of a field of
 // this object.
-func (m *Milestone) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "num_closed_issues":
-		m.NumOpenIssues = m.NumIssues - m.NumClosedIssues
-
-	case "deadline_unix":
-		m.Deadline = time.Unix(m.DeadlineUnix, 0).Local()
-		if m.Deadline.Year() == 9999 {
-			return
-		}
-
-		m.DeadlineString = m.Deadline.Format("2006-01-02")
-		if time.Now().Local().After(m.Deadline) {
-			m.IsOverDue = true
-		}
-
-	case "closed_date_unix":
-		m.ClosedDate = time.Unix(m.ClosedDateUnix, 0).Local()
+func (m *Milestone) AfterLoad() {
+	m.NumOpenIssues = m.NumIssues - m.NumClosedIssues
+	m.Deadline = time.Unix(m.DeadlineUnix, 0).Local()
+	if m.Deadline.Year() == 9999 {
+		return
 	}
+
+	m.DeadlineString = m.Deadline.Format("2006-01-02")
+	if time.Now().Local().After(m.Deadline) {
+		m.IsOverDue = true
+	}
+
+	m.ClosedDate = time.Unix(m.ClosedDateUnix, 0).Local()
 }
 
 // State returns string representation of milestone status.
@@ -171,7 +165,7 @@ func GetMilestones(repoID int64, page int, isClosed bool, sortType string) ([]*M
 }
 
 func updateMilestone(e Engine, m *Milestone) error {
-	_, err := e.Id(m.ID).AllCols().Update(m)
+	_, err := e.ID(m.ID).AllCols().Update(m)
 	return err
 }
 
@@ -227,7 +221,7 @@ func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
 
 	repo.NumMilestones = int(countRepoMilestones(sess, repo.ID))
 	repo.NumClosedMilestones = int(countRepoClosedMilestones(sess, repo.ID))
-	if _, err = sess.Id(repo.ID).AllCols().Update(repo); err != nil {
+	if _, err = sess.ID(repo.ID).Cols("num_milestones, num_closed_milestones").Update(repo); err != nil {
 		return err
 	}
 	return sess.Commit()
@@ -335,13 +329,13 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	if _, err = sess.Id(m.ID).Delete(new(Milestone)); err != nil {
+	if _, err = sess.ID(m.ID).Delete(new(Milestone)); err != nil {
 		return err
 	}
 
 	repo.NumMilestones = int(countRepoMilestones(sess, repo.ID))
 	repo.NumClosedMilestones = int(countRepoClosedMilestones(sess, repo.ID))
-	if _, err = sess.Id(repo.ID).AllCols().Update(repo); err != nil {
+	if _, err = sess.ID(repo.ID).Cols("num_milestones, num_closed_milestones").Update(repo); err != nil {
 		return err
 	}
 

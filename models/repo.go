@@ -216,25 +216,18 @@ type Repository struct {
 	UpdatedUnix int64     `xorm:"INDEX updated"`
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (repo *Repository) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "default_branch":
-		// FIXME: use models migration to solve all at once.
-		if len(repo.DefaultBranch) == 0 {
-			repo.DefaultBranch = "master"
-		}
-	case "num_closed_issues":
-		repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
-	case "num_closed_pulls":
-		repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
-	case "num_closed_milestones":
-		repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
-	case "created_unix":
-		repo.Created = time.Unix(repo.CreatedUnix, 0).Local()
-	case "updated_unix":
-		repo.Updated = time.Unix(repo.UpdatedUnix, 0)
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (repo *Repository) AfterLoad() {
+	// FIXME: use models migration to solve all at once.
+	if len(repo.DefaultBranch) == 0 {
+		repo.DefaultBranch = "master"
 	}
+
+	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
+	repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
+	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
+	repo.Created = time.Unix(repo.CreatedUnix, 0).Local()
+	repo.Updated = time.Unix(repo.UpdatedUnix, 0)
 }
 
 // MustOwner always returns a valid *User object to avoid
@@ -390,10 +383,27 @@ func (repo *Repository) getUnitsByUserID(e Engine, userID int64, isAdmin bool) (
 
 // UnitEnabled if this repository has the given unit enabled
 func (repo *Repository) UnitEnabled(tp UnitType) bool {
-	repo.getUnits(x)
+	if err := repo.getUnits(x); err != nil {
+		log.Warn("Error loading repository (ID: %d) units: %s", repo.ID, err.Error())
+	}
 	for _, unit := range repo.Units {
 		if unit.Type == tp {
 			return true
+		}
+	}
+	return false
+}
+
+// AnyUnitEnabled if this repository has the any of the given units enabled
+func (repo *Repository) AnyUnitEnabled(tps ...UnitType) bool {
+	if err := repo.getUnits(x); err != nil {
+		log.Warn("Error loading repository (ID: %d) units: %s", repo.ID, err.Error())
+	}
+	for _, unit := range repo.Units {
+		for _, tp := range tps {
+			if unit.Type == tp {
+				return true
+			}
 		}
 	}
 	return false
@@ -627,7 +637,7 @@ func (repo *Repository) updateSize(e Engine) error {
 	}
 
 	repo.Size = repoInfoSize.Size + repoInfoSize.SizePack
-	_, err = e.Id(repo.ID).Cols("size").Update(repo)
+	_, err = e.ID(repo.ID).Cols("size").Update(repo)
 	return err
 }
 
@@ -638,7 +648,26 @@ func (repo *Repository) UpdateSize() error {
 
 // CanBeForked returns true if repository meets the requirements of being forked.
 func (repo *Repository) CanBeForked() bool {
-	return !repo.IsBare
+	return !repo.IsBare && repo.UnitEnabled(UnitTypeCode)
+}
+
+// CanUserFork returns true if specified user can fork repository.
+func (repo *Repository) CanUserFork(user *User) (bool, error) {
+	if user == nil {
+		return false, nil
+	}
+	if repo.OwnerID != user.ID && !user.HasForkedRepo(repo.ID) {
+		return true, nil
+	}
+	if err := user.GetOwnedOrganizations(); err != nil {
+		return false, err
+	}
+	for _, org := range user.OwnedOrgs {
+		if repo.OwnerID != org.ID && !org.HasForkedRepo(repo.ID) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // CanEnablePulls returns true if repository meets the requirements of accepting pulls.
@@ -813,14 +842,19 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 		repoName += ".wiki"
 	}
 
+	sshUser := setting.RunUser
+	if setting.SSH.StartBuiltinServer {
+		sshUser = setting.SSH.BuiltinServerUser
+	}
+
 	repo.Owner = repo.MustOwner()
 	cl := new(CloneLink)
 	if setting.SSH.Port != 22 {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s:%d/%s/%s.git", setting.RunUser, setting.SSH.Domain, setting.SSH.Port, repo.Owner.Name, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s:%d/%s/%s.git", sshUser, setting.SSH.Domain, setting.SSH.Port, repo.Owner.Name, repoName)
 	} else if setting.Repository.UseCompatSSHURI {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", setting.RunUser, setting.SSH.Domain, repo.Owner.Name, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, setting.SSH.Domain, repo.Owner.Name, repoName)
 	} else {
-		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", setting.RunUser, setting.SSH.Domain, repo.Owner.Name, repoName)
+		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, setting.SSH.Domain, repo.Owner.Name, repoName)
 	}
 	cl.HTTPS = ComposeHTTPSCloneURL(repo.Owner.Name, repoName)
 	return cl
@@ -939,6 +973,10 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		}
 		if headBranch != nil {
 			repo.DefaultBranch = headBranch.Name
+		}
+
+		if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
+			log.Error(4, "Failed to synchronize tags to releases for repository: %v", err)
 		}
 	}
 
@@ -1248,19 +1286,17 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 
 	// insert units for repo
 	var units = make([]RepoUnit, 0, len(defaultRepoUnits))
-	for i, tp := range defaultRepoUnits {
+	for _, tp := range defaultRepoUnits {
 		if tp == UnitTypeIssues {
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Index:  i,
 				Config: &IssuesConfig{EnableTimetracker: setting.Service.DefaultEnableTimetracking, AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime},
 			})
 		} else {
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Index:  i,
 			})
 		}
 
@@ -1300,7 +1336,7 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 		}
 	}
 
-	if err = watchRepo(e, u.ID, repo.ID, true); err != nil {
+	if err = watchRepo(e, doer.ID, repo.ID, true); err != nil {
 		return fmt.Errorf("watchRepo: %v", err)
 	} else if err = newRepoAction(e, u, repo); err != nil {
 		return fmt.Errorf("newRepoAction: %v", err)
@@ -1422,7 +1458,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	repo.Owner = newOwner
 
 	// Update repository.
-	if _, err := sess.Id(repo.ID).Update(repo); err != nil {
+	if _, err := sess.ID(repo.ID).Update(repo); err != nil {
 		return fmt.Errorf("update owner: %v", err)
 	}
 
@@ -1454,7 +1490,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 			}
 
 			t.NumRepos--
-			if _, err := sess.Id(t.ID).AllCols().Update(t); err != nil {
+			if _, err := sess.ID(t.ID).Cols("num_repos").Update(t); err != nil {
 				return fmt.Errorf("decrease team repository count '%d': %v", t.ID, err)
 			}
 		}
@@ -1485,7 +1521,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("decrease old owner repository count: %v", err)
 	}
 
-	if err = watchRepo(sess, newOwner.ID, repo.ID, true); err != nil {
+	if err = watchRepo(sess, doer.ID, repo.ID, true); err != nil {
 		return fmt.Errorf("watchRepo: %v", err)
 	} else if err = transferRepoAction(sess, doer, owner, repo); err != nil {
 		return fmt.Errorf("transferRepoAction: %v", err)
@@ -1573,7 +1609,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 		repo.Website = repo.Website[:255]
 	}
 
-	if _, err = e.Id(repo.ID).AllCols().Update(repo); err != nil {
+	if _, err = e.ID(repo.ID).AllCols().Update(repo); err != nil {
 		return fmt.Errorf("update: %v", err)
 	}
 
@@ -1692,7 +1728,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return ErrRepoNotExist{repoID, uid, ""}
 	}
 
-	if cnt, err := sess.Id(repoID).Delete(&Repository{}); err != nil {
+	if cnt, err := sess.ID(repoID).Delete(&Repository{}); err != nil {
 		return err
 	} else if cnt != 1 {
 		return ErrRepoNotExist{repoID, uid, ""}
@@ -1873,7 +1909,7 @@ func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
 
 func getRepositoryByID(e Engine, id int64) (*Repository, error) {
 	repo := new(Repository)
-	has, err := e.Id(id).Get(repo)
+	has, err := e.ID(id).Get(repo)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -2389,39 +2425,4 @@ func (repo *Repository) GetUserFork(userID int64) (*Repository, error) {
 		return nil, nil
 	}
 	return &forkedRepo, nil
-}
-
-// __________                             .__
-// \______   \____________    ____   ____ |  |__
-//  |    |  _/\_  __ \__  \  /    \_/ ___\|  |  \
-//  |    |   \ |  | \// __ \|   |  \  \___|   Y  \
-//  |______  / |__|  (____  /___|  /\___  >___|  /
-//         \/             \/     \/     \/     \/
-//
-
-// CreateNewBranch creates a new repository branch
-func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName string) (err error) {
-	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
-
-	localPath := repo.LocalCopyPath()
-
-	if err = discardLocalRepoBranchChanges(localPath, oldBranchName); err != nil {
-		return fmt.Errorf("discardLocalRepoChanges: %v", err)
-	} else if err = repo.UpdateLocalCopyBranch(oldBranchName); err != nil {
-		return fmt.Errorf("UpdateLocalCopyBranch: %v", err)
-	}
-
-	if err = repo.CheckoutNewBranch(oldBranchName, branchName); err != nil {
-		return fmt.Errorf("CreateNewBranch: %v", err)
-	}
-
-	if err = git.Push(localPath, git.PushOptions{
-		Remote: "origin",
-		Branch: branchName,
-	}); err != nil {
-		return fmt.Errorf("Push: %v", err)
-	}
-
-	return nil
 }

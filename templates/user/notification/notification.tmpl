@@ -5,18 +5,14 @@
 		<h1 class="ui dividing header">{{.i18n.Tr "notification.notifications"}}</h1>
 
 		<div class="ui top attached tabular menu">
-			<a href="{{AppSubUrl}}/notifications?q=unread">
-				<div class="{{if eq .Status 1}}active{{end}} item">
-					{{.i18n.Tr "notification.unread"}}
-					{{if .NotificationUnreadCount}}
-						<div class="ui label">{{.NotificationUnreadCount}}</div>
-					{{end}}
-				</div>
+			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active{{end}} item">
+				{{.i18n.Tr "notification.unread"}}
+				{{if .NotificationUnreadCount}}
+					<div class="ui label">{{.NotificationUnreadCount}}</div>
+				{{end}}
 			</a>
-			<a href="{{AppSubUrl}}/notifications?q=read">
-				<div class="{{if eq .Status 2}}active{{end}} item">
-					{{.i18n.Tr "notification.read"}}
-				</div>
+			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active{{end}} item">
+				{{.i18n.Tr "notification.read"}}
 			</a>
 		</div>
 		<div class="ui bottom attached active tab segment">

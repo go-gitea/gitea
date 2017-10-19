@@ -26,6 +26,7 @@ type ProtectedBranch struct {
 	ID               int64  `xorm:"pk autoincr"`
 	RepoID           int64  `xorm:"UNIQUE(s)"`
 	BranchName       string `xorm:"UNIQUE(s)"`
+	CanPush          bool   `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist  bool
 	WhitelistUserIDs []int64   `xorm:"JSON TEXT"`
 	WhitelistTeamIDs []int64   `xorm:"JSON TEXT"`
@@ -141,7 +142,7 @@ func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, white
 		return nil
 	}
 
-	if _, err = x.Id(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
+	if _, err = x.ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
 		return fmt.Errorf("Update: %v", err)
 	}
 

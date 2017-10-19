@@ -61,6 +61,8 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	ctx.Data["repo_name"] = forkRepo.Name
 	ctx.Data["description"] = forkRepo.Description
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate
+	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !ctx.User.HasForkedRepo(forkRepo.ID)
+	ctx.Data["CanForkToUser"] = canForkToUser
 
 	if err = forkRepo.GetOwner(); err != nil {
 		ctx.Handle(500, "GetOwner", err)
@@ -69,11 +71,23 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	ctx.Data["ForkFrom"] = forkRepo.Owner.Name + "/" + forkRepo.Name
 	ctx.Data["ForkFromOwnerID"] = forkRepo.Owner.ID
 
-	if err := ctx.User.GetOrganizations(true); err != nil {
-		ctx.Handle(500, "GetOrganizations", err)
+	if err := ctx.User.GetOwnedOrganizations(); err != nil {
+		ctx.Handle(500, "GetOwnedOrganizations", err)
 		return nil
 	}
-	ctx.Data["Orgs"] = ctx.User.Orgs
+	var orgs []*models.User
+	for _, org := range ctx.User.OwnedOrgs {
+		if forkRepo.OwnerID != org.ID && !org.HasForkedRepo(forkRepo.ID) {
+			orgs = append(orgs, org)
+		}
+	}
+	ctx.Data["Orgs"] = orgs
+
+	if canForkToUser {
+		ctx.Data["ContextUser"] = ctx.User
+	} else if len(orgs) > 0 {
+		ctx.Data["ContextUser"] = orgs[0]
+	}
 
 	return forkRepo
 }
@@ -87,7 +101,6 @@ func Fork(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["ContextUser"] = ctx.User
 	ctx.HTML(200, tplFork)
 }
 
@@ -95,15 +108,16 @@ func Fork(ctx *context.Context) {
 func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 	ctx.Data["Title"] = ctx.Tr("new_fork")
 
+	ctxUser := checkContextUser(ctx, form.UID)
+	if ctx.Written() {
+		return
+	}
+
 	forkRepo := getForkRepository(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	ctxUser := checkContextUser(ctx, form.UID)
-	if ctx.Written() {
-		return
-	}
 	ctx.Data["ContextUser"] = ctxUser
 
 	if ctx.HasError() {
@@ -179,14 +193,30 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 	return issue
 }
 
+func setMergeTarget(ctx *context.Context, pull *models.PullRequest) {
+	if ctx.Repo.Owner.Name == pull.HeadUserName {
+		ctx.Data["HeadTarget"] = pull.HeadBranch
+	} else if pull.HeadRepo == nil {
+		ctx.Data["HeadTarget"] = pull.HeadUserName + ":" + pull.HeadBranch
+	} else {
+		ctx.Data["HeadTarget"] = pull.HeadUserName + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
+	}
+	ctx.Data["BaseTarget"] = pull.BaseBranch
+}
+
 // PrepareMergedViewPullInfo show meta information for a merged pull request view page
 func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) {
 	pull := issue.PullRequest
-	ctx.Data["HasMerged"] = true
-	ctx.Data["HeadTarget"] = issue.PullRequest.HeadUserName + "/" + pull.HeadBranch
-	ctx.Data["BaseTarget"] = ctx.Repo.Owner.Name + "/" + pull.BaseBranch
 
 	var err error
+	if err = pull.GetHeadRepo(); err != nil {
+		ctx.Handle(500, "GetHeadRepo", err)
+		return
+	}
+
+	setMergeTarget(ctx, pull)
+	ctx.Data["HasMerged"] = true
+
 	ctx.Data["NumCommits"], err = ctx.Repo.GitRepo.CommitsCountBetween(pull.MergeBase, pull.MergedCommitID)
 	if err != nil {
 		ctx.Handle(500, "Repo.GitRepo.CommitsCountBetween", err)
@@ -204,19 +234,15 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 	repo := ctx.Repo.Repository
 	pull := issue.PullRequest
 
-	ctx.Data["HeadTarget"] = pull.HeadUserName + "/" + pull.HeadBranch
-	ctx.Data["BaseTarget"] = ctx.Repo.Owner.Name + "/" + pull.BaseBranch
-
-	var (
-		headGitRepo *git.Repository
-		err         error
-	)
-
+	var err error
 	if err = pull.GetHeadRepo(); err != nil {
 		ctx.Handle(500, "GetHeadRepo", err)
 		return nil
 	}
 
+	setMergeTarget(ctx, pull)
+
+	var headGitRepo *git.Repository
 	if pull.HeadRepo != nil {
 		headGitRepo, err = git.OpenRepository(pull.HeadRepo.RepoPath())
 		if err != nil {

@@ -41,7 +41,7 @@ const (
 	tplSettingsOrganization base.TplName = "user/settings/organization"
 	tplSettingsRepositories base.TplName = "user/settings/repos"
 	tplSettingsDelete       base.TplName = "user/settings/delete"
-	tplSecurity             base.TplName = "user/security"
+	tplSettingsSecurity     base.TplName = "user/settings/security"
 )
 
 // Settings render user's profile page
@@ -191,22 +191,35 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/avatar")
 }
 
-// SettingsPassword render change user's password page
-func SettingsPassword(ctx *context.Context) {
+// SettingsSecurity render change user's password page and 2FA
+func SettingsSecurity(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsPassword"] = true
+	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["Email"] = ctx.User.Email
-	ctx.HTML(200, tplSettingsPassword)
+
+	enrolled := true
+	_, err := models.GetTwoFactorByUID(ctx.User.ID)
+	if err != nil {
+		if models.IsErrTwoFactorNotEnrolled(err) {
+			enrolled = false
+		} else {
+			ctx.Handle(500, "SettingsTwoFactor", err)
+			return
+		}
+	}
+
+	ctx.Data["TwofaEnrolled"] = enrolled
+	ctx.HTML(200, tplSettingsSecurity)
 }
 
-// SettingsPasswordPost response for change user's password
-func SettingsPasswordPost(ctx *context.Context, form auth.ChangePasswordForm) {
+// SettingsSecurityPost response for change user's password
+func SettingsSecurityPost(ctx *context.Context, form auth.ChangePasswordForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsPassword"] = true
+	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["PageIsSettingsDelete"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplSettingsPassword)
+		ctx.HTML(200, tplSettingsSecurity)
 		return
 	}
 
@@ -230,7 +243,7 @@ func SettingsPasswordPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/password")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 }
 
 // SettingsEmails render user's emails page
@@ -509,30 +522,10 @@ func SettingsDeleteApplication(ctx *context.Context) {
 	})
 }
 
-// SettingsTwoFactor renders the 2FA page.
-func SettingsTwoFactor(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsTwofa"] = true
-
-	enrolled := true
-	_, err := models.GetTwoFactorByUID(ctx.User.ID)
-	if err != nil {
-		if models.IsErrTwoFactorNotEnrolled(err) {
-			enrolled = false
-		} else {
-			ctx.Handle(500, "SettingsTwoFactor", err)
-			return
-		}
-	}
-
-	ctx.Data["TwofaEnrolled"] = enrolled
-	ctx.HTML(200, tplSettingsTwofa)
-}
-
 // SettingsTwoFactorRegenerateScratch regenerates the user's 2FA scratch code.
 func SettingsTwoFactorRegenerateScratch(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsTwofa"] = true
+	ctx.Data["PageIsSettingsSecurity"] = true
 
 	t, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if err != nil {
@@ -551,13 +544,13 @@ func SettingsTwoFactorRegenerateScratch(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_scratch_token_regenerated", t.ScratchToken))
-	ctx.Redirect(setting.AppSubURL + "/user/settings/two_factor")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 }
 
 // SettingsTwoFactorDisable deletes the user's 2FA settings.
 func SettingsTwoFactorDisable(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsTwofa"] = true
+	ctx.Data["PageIsSettingsSecurity"] = true
 
 	t, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if err != nil {
@@ -571,7 +564,7 @@ func SettingsTwoFactorDisable(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
-	ctx.Redirect(setting.AppSubURL + "/user/settings/two_factor")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 }
 
 func twofaGenerateSecretAndQr(ctx *context.Context) bool {
@@ -615,7 +608,7 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 // SettingsTwoFactorEnroll shows the page where the user can enroll into 2FA.
 func SettingsTwoFactorEnroll(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsTwofa"] = true
+	ctx.Data["PageIsSettingsSecurity"] = true
 
 	t, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if t != nil {
@@ -638,7 +631,7 @@ func SettingsTwoFactorEnroll(ctx *context.Context) {
 // SettingsTwoFactorEnrollPost handles enrolling the user into 2FA.
 func SettingsTwoFactorEnrollPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsTwofa"] = true
+	ctx.Data["PageIsSettingsSecurity"] = true
 
 	t, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if t != nil {
@@ -691,7 +684,7 @@ func SettingsTwoFactorEnrollPost(ctx *context.Context, form auth.TwoFactorAuthFo
 	ctx.Session.Delete("twofaSecret")
 	ctx.Session.Delete("twofaUri")
 	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", t.ScratchToken))
-	ctx.Redirect(setting.AppSubURL + "/user/settings/two_factor")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 }
 
 // SettingsAccountLinks render the account links settings page
