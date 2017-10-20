@@ -2080,12 +2080,17 @@ $(".commit-button").click(function() {
 
 function initNavbarContentToggle() {
     var content = $('#navbar');
+    var toggle = $('#navbar-expand-toggle');
     var isExpanded = false;
-    $('#navbar-expand-toggle').click(function() {
+    toggle.click(function() {
         isExpanded = !isExpanded;
-        if (isExpanded)
+        if (isExpanded) {
             content.addClass('shown');
-        else
+            toggle.addClass('active');
+        }
+        else {
             content.removeClass('shown');
+            toggle.removeClass('active');
+        }
     });
 }
