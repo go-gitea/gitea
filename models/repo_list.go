@@ -110,7 +110,22 @@ type SearchRepoOptions struct {
 	// maximum: setting.ExplorePagingNum
 	// in: query
 	PageSize int `json:"limit"` // Can be smaller than or equal to setting.ExplorePagingNum
+	// Type of repository to search, related to owner
+	//
+	// in: query
+	SearchMode SearchMode `json:"type"`
 }
+
+// SearchMode is repository filtering mode identifier
+type SearchMode string
+
+const (
+	SearchModeAny           SearchMode = ""              // SearchModeAny any mode (default)
+	SearchModeFork                     = "FORK"          // SearchModeFork fork mode
+	SearchModeMirror                   = "MIRROR"        // SearchModeMirror mirror mode
+	SearchModeSource                   = "SOURCE"        // SearchModeSource source mode
+	SearchModeCollaborative            = "COLLABORATIVE" // SearchModeCollaborative collaborative mode
+)
 
 //SearchOrderBy is used to sort the result
 type SearchOrderBy string
@@ -136,6 +151,10 @@ const (
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
 func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, error) {
+	if opts.OwnerID <= 0 && (opts.SearchMode == SearchModeSource || opts.SearchMode == SearchModeFork) {
+		return nil, 0, nil
+	}
+
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
@@ -154,9 +173,12 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 				"star.uid": opts.OwnerID,
 			}
 		} else {
-			var accessCond builder.Cond = builder.Eq{"owner_id": opts.OwnerID}
+			var accessCond = builder.NewCond()
+			if opts.SearchMode != SearchModeCollaborative {
+				accessCond = builder.Eq{"owner_id": opts.OwnerID}
+			}
 
-			if opts.Collaborate {
+			if opts.Collaborate && (opts.SearchMode == SearchModeAny || opts.SearchMode == SearchModeMirror || opts.SearchMode == SearchModeCollaborative) {
 				collaborateCond := builder.And(
 					builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", opts.OwnerID),
 					builder.Neq{"owner_id": opts.OwnerID})
@@ -177,6 +199,17 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 
 	if opts.Keyword != "" {
 		cond = cond.And(builder.Like{"lower_name", strings.ToLower(opts.Keyword)})
+	}
+
+	if opts.SearchMode != SearchModeAny {
+		cond = cond.And(builder.Eq{"is_mirror": opts.SearchMode == SearchModeMirror})
+
+		switch opts.SearchMode {
+		case SearchModeSource:
+			cond = cond.And(builder.Eq{"is_fork": false})
+		case SearchModeFork:
+			cond = cond.And(builder.Eq{"is_fork": true})
+		}
 	}
 
 	if len(opts.OrderBy) == 0 {

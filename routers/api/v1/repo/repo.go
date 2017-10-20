@@ -29,10 +29,25 @@ func Search(ctx *context.APIContext) {
 	//       200: SearchResults
 	//       500: SearchError
 
+	var searchMode models.SearchMode
+	switch ctx.Query("mode") {
+	case "fork":
+		searchMode = models.SearchModeFork
+	case "mirror":
+		searchMode = models.SearchModeMirror
+	case "source":
+		searchMode = models.SearchModeSource
+	case "collaborative":
+		searchMode = models.SearchModeCollaborative
+	default:
+		searchMode = models.SearchModeAny
+	}
+
 	opts := &models.SearchRepoOptions{
-		Keyword:  strings.Trim(ctx.Query("q"), " "),
-		OwnerID:  ctx.QueryInt64("uid"),
-		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		Keyword:    strings.Trim(ctx.Query("q"), " "),
+		OwnerID:    ctx.QueryInt64("uid"),
+		PageSize:   convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		SearchMode: searchMode,
 	}
 
 	if opts.OwnerID > 0 {
