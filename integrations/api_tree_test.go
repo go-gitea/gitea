@@ -79,3 +79,15 @@ func TestAPIGetTree(t *testing.T) {
 // 	assert.EqualValues(t, 1, repo.ID)
 // 	assert.EqualValues(t, "repo1", repo.Name)
 // }
+
+// func TestVersion(t *testing.T) {
+// 	prepareTestEnv(t)
+
+// 	setting.AppVer = "test-version-1"
+// 	req := NewRequest(t, "GET", "/api/v1/version")
+// 	resp := MakeRequest(t, req, http.StatusOK)
+
+// 	var version gitea.ServerVersion
+// 	DecodeJSON(t, resp, &version)
+// 	assert.Equal(t, setting.AppVer, string(version.Version))
+// }
