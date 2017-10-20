@@ -1568,6 +1568,7 @@ $(document).ready(function () {
     initVueApp();
     initTeamSettings();
     initCtrlEnterSubmit();
+    initNavbarContentToggle();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -2076,3 +2077,15 @@ function initFilterBranchTagDropdown(selector) {
 $(".commit-button").click(function() {
     $(this).parent().find('.commit-body').toggle();
 });
+
+function initNavbarContentToggle() {
+    var content = $('#navbar');
+    var isExpanded = false;
+    $('#navbar-expand-toggle').click(function() {
+        isExpanded = !isExpanded;
+        if (isExpanded)
+            content.addClass('shown');
+        else
+            content.removeClass('shown');
+    });
+}

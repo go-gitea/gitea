@@ -115,6 +115,11 @@ pre, code {
         -ms-flex-direction: inherit;
         flex-direction: inherit;
     }
+    @media only screen and (max-width: 767px) {
+        #navbar:not(.shown) > *:not(:first-child) {
+            display: none;
+        }
+    }
 }
 
 .ui {
@@ -442,7 +447,7 @@ footer {
 
 // Conditional display
 @media only screen and (min-width: 768px) {
-    .mobile-only {
+    .mobile-only, .ui.button.mobile-only {
       display: none;
     }
     // has the same behaviour of sr-only, hiding the content for
