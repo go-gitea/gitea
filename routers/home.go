@@ -183,7 +183,7 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 
 	opts.Keyword = strings.Trim(ctx.Query("q"), " ")
 	opts.OrderBy = orderBy
-	if len(opts.Keyword) == 0 && isKeywordValid(opts.Keyword) {
+	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
 		users, count, err = models.SearchUsers(opts)
 		if err != nil {
 			ctx.Handle(500, "SearchUsers", err)
