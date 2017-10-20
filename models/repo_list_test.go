@@ -5,6 +5,7 @@
 package models
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -61,106 +62,183 @@ func TestSearchRepositoryByName(t *testing.T) {
 	assert.Equal(t, int64(3), count)
 	assert.Len(t, repos, 3)
 
+	// Test non existing owner
+	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{OwnerID: int64(99999)})
+
+	assert.NoError(t, err)
+	assert.Empty(t, repos)
+	assert.Equal(t, int64(0), count)
+
+	// excepted count by repo type
+	type ec map[SearchMode]int
+
+	helperEC := ec{SearchModeAny: 14, SearchModeSource: 0, SearchModeFork: 0, SearchModeMirror: 4, SearchModeCollaborative: 10}
+	helperECZero := ec{SearchModeAny: 0, SearchModeSource: 0, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 0}
+
 	testCases := []struct {
 		name  string
 		opts  *SearchRepoOptions
-		count int
+		count ec
 	}{
 		{name: "PublicRepositoriesByName",
 			opts:  &SearchRepoOptions{Keyword: "big_test_", PageSize: 10},
-			count: 4},
+			count: ec{SearchModeAny: 7, SearchModeSource: 0, SearchModeFork: 0, SearchModeMirror: 2, SearchModeCollaborative: 5}},
 		{name: "PublicAndPrivateRepositoriesByName",
 			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 1, PageSize: 10, Private: true},
-			count: 8},
+			count: helperEC},
 		{name: "PublicAndPrivateRepositoriesByNameWithPagesizeLimitFirstPage",
 			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 1, PageSize: 5, Private: true},
-			count: 8},
+			count: helperEC},
 		{name: "PublicAndPrivateRepositoriesByNameWithPagesizeLimitSecondPage",
 			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 2, PageSize: 5, Private: true},
-			count: 8},
+			count: helperEC},
+		{name: "PublicAndPrivateRepositoriesByNameWithPagesizeLimitThirdPage",
+			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 3, PageSize: 5, Private: true},
+			count: helperEC},
+		{name: "PublicAndPrivateRepositoriesByNameWithPagesizeLimitFourthPage",
+			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 3, PageSize: 5, Private: true},
+			count: helperEC},
 		{name: "PublicRepositoriesOfUser",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15},
-			count: 2},
+			count: ec{SearchModeAny: 2, SearchModeSource: 2, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 0}},
 		{name: "PublicRepositoriesOfUser2",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 18},
-			count: 0},
+			count: helperECZero},
+		{name: "PublicRepositoriesOfUser3",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 20},
+			count: ec{SearchModeAny: 4, SearchModeSource: 0, SearchModeFork: 1, SearchModeMirror: 1, SearchModeCollaborative: 0}},
 		{name: "PublicAndPrivateRepositoriesOfUser",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true},
-			count: 4},
+			count: ec{SearchModeAny: 4, SearchModeSource: 4, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 0}},
 		{name: "PublicAndPrivateRepositoriesOfUser2",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 18, Private: true},
-			count: 0},
+			count: helperECZero},
+		{name: "PublicAndPrivateRepositoriesOfUser3",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 20, Private: true},
+			count: ec{SearchModeAny: 4, SearchModeSource: 0, SearchModeFork: 2, SearchModeMirror: 2, SearchModeCollaborative: 0}},
 		{name: "PublicRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Collaborate: true},
-			count: 4},
+			count: ec{SearchModeAny: 4, SearchModeSource: 2, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 2}},
 		{name: "PublicRepositoriesOfUser2IncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 18, Collaborate: true},
-			count: 1},
+			count: ec{SearchModeAny: 1, SearchModeSource: 0, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 1}},
+		{name: "PublicRepositoriesOfUser3IncludingCollaborative",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 20, Collaborate: true},
+			count: ec{SearchModeAny: 4, SearchModeSource: 0, SearchModeFork: 1, SearchModeMirror: 2, SearchModeCollaborative: 1}},
 		{name: "PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, Collaborate: true},
-			count: 8},
+			count: ec{SearchModeAny: 8, SearchModeSource: 4, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 4}},
 		{name: "PublicAndPrivateRepositoriesOfUser2IncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 18, Private: true, Collaborate: true},
-			count: 4},
+			count: ec{SearchModeAny: 4, SearchModeSource: 2, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 2}},
+		{name: "PublicAndPrivateRepositoriesOfUser3IncludingCollaborative",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 20, Private: true, Collaborate: true},
+			count: ec{SearchModeAny: 6, SearchModeSource: 0, SearchModeFork: 2, SearchModeMirror: 2, SearchModeCollaborative: 2}},
 		{name: "PublicRepositoriesOfOrganization",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17},
-			count: 1},
+			count: ec{SearchModeAny: 1, SearchModeSource: 1, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 0}},
 		{name: "PublicAndPrivateRepositoriesOfOrganization",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17, Private: true},
-			count: 2},
+			count: ec{SearchModeAny: 2, SearchModeSource: 2, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 0}},
 		{name: "AllPublic/PublicRepositoriesByName",
 			opts:  &SearchRepoOptions{Keyword: "big_test_", PageSize: 10, AllPublic: true},
-			count: 4},
+			count: ec{SearchModeAny: 7, SearchModeSource: 0, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 0}},
 		{name: "AllPublic/PublicAndPrivateRepositoriesByName",
 			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 1, PageSize: 10, Private: true, AllPublic: true},
-			count: 8},
+			count: helperEC},
 		{name: "AllPublic/PublicRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Collaborate: true, AllPublic: true},
-			count: 12},
+			count: ec{SearchModeAny: 15, SearchModeSource: 4, SearchModeFork: 0, SearchModeMirror: 2, SearchModeCollaborative: 9}},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, Collaborate: true, AllPublic: true},
-			count: 16},
+			count: ec{SearchModeAny: 19, SearchModeSource: 4, SearchModeFork: 0, SearchModeMirror: 3, SearchModeCollaborative: 12}},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborativeByName",
 			opts:  &SearchRepoOptions{Keyword: "test", Page: 1, PageSize: 10, OwnerID: 15, Private: true, Collaborate: true, AllPublic: true},
-			count: 10},
+			count: ec{SearchModeAny: 14, SearchModeSource: 4, SearchModeFork: 0, SearchModeMirror: 3, SearchModeCollaborative: 7}},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUser2IncludingCollaborativeByName",
 			opts:  &SearchRepoOptions{Keyword: "test", Page: 1, PageSize: 10, OwnerID: 18, Private: true, Collaborate: true, AllPublic: true},
-			count: 8},
+			count: ec{SearchModeAny: 9, SearchModeSource: 2, SearchModeFork: 0, SearchModeMirror: 2, SearchModeCollaborative: 5}},
 		{name: "AllPublic/PublicRepositoriesOfOrganization",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17, AllPublic: true},
-			count: 12},
+			count: ec{SearchModeAny: 15, SearchModeSource: 2, SearchModeFork: 0, SearchModeMirror: 2, SearchModeCollaborative: 11}},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			repos, count, err := SearchRepositoryByName(testCase.opts)
-
-			assert.NoError(t, err)
-			assert.Equal(t, int64(testCase.count), count)
-
-			var expectedLen int
-			if testCase.opts.PageSize*testCase.opts.Page > testCase.count {
-				expectedLen = testCase.count % testCase.opts.PageSize
-			} else {
-				expectedLen = testCase.opts.PageSize
-			}
-			assert.Len(t, repos, expectedLen)
-
-			for _, repo := range repos {
-				assert.NotEmpty(t, repo.Name)
-
-				if len(testCase.opts.Keyword) > 0 {
-					assert.Contains(t, repo.Name, testCase.opts.Keyword)
+			for searchMode, expectedCount := range testCase.count {
+				testName := "SearchModeAny"
+				testCase.opts.SearchMode = searchMode
+				if len(searchMode) > 0 {
+					testName = fmt.Sprintf("SearchMode%s", searchMode)
 				}
 
-				if testCase.opts.OwnerID > 0 && !testCase.opts.Collaborate && !testCase.opts.AllPublic {
-					assert.Equal(t, testCase.opts.OwnerID, repo.Owner.ID)
-				}
+				t.Run(testName, func(t *testing.T) {
+					repos, count, err := SearchRepositoryByName(testCase.opts)
 
-				if !testCase.opts.Private {
-					assert.False(t, repo.IsPrivate)
-				}
+					assert.NoError(t, err)
+					assert.Equal(t, int64(expectedCount), count)
+
+					var expectedLen int
+					if testCase.opts.PageSize*testCase.opts.Page > expectedCount+testCase.opts.PageSize {
+						expectedLen = 0
+					} else if testCase.opts.PageSize*testCase.opts.Page > expectedCount {
+						expectedLen = expectedCount % testCase.opts.PageSize
+					} else {
+						expectedLen = testCase.opts.PageSize
+					}
+					if assert.Len(t, repos, expectedLen) {
+						var tester func(t *testing.T, ownerID int64, repo *Repository)
+
+						switch searchMode {
+						case SearchModeSource:
+							tester = SearchModeSourceTester
+						case SearchModeFork:
+							tester = SearchModeForkTester
+						case SearchModeMirror:
+							tester = SearchModeMirrorTester
+						case SearchModeCollaborative:
+							tester = SearchModeCollaborativeTester
+						}
+
+						for _, repo := range repos {
+							assert.NotEmpty(t, repo.Name)
+
+							if len(testCase.opts.Keyword) > 0 {
+								assert.Contains(t, repo.Name, testCase.opts.Keyword)
+							}
+
+							if !testCase.opts.Private {
+								assert.False(t, repo.IsPrivate)
+							}
+
+							if tester != nil {
+								tester(t, testCase.opts.OwnerID, repo)
+							}
+						}
+					}
+				})
 			}
 		})
 	}
+}
+
+func SearchModeSourceTester(t *testing.T, ownerID int64, repo *Repository) {
+	assert.False(t, repo.IsFork)
+	assert.False(t, repo.IsMirror)
+	assert.Equal(t, ownerID, repo.Owner.ID)
+}
+
+func SearchModeForkTester(t *testing.T, ownerID int64, repo *Repository) {
+	assert.True(t, repo.IsFork)
+	assert.False(t, repo.IsMirror)
+	assert.Equal(t, ownerID, repo.Owner.ID)
+}
+
+func SearchModeMirrorTester(t *testing.T, ownerID int64, repo *Repository) {
+	assert.True(t, repo.IsMirror)
+}
+
+func SearchModeCollaborativeTester(t *testing.T, ownerID int64, repo *Repository) {
+	assert.False(t, repo.IsMirror)
+	assert.NotEqual(t, ownerID, repo.Owner.ID)
 }

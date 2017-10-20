@@ -66,9 +66,9 @@ func TestAPISearchRepo(t *testing.T) {
 		expectedResults
 	}{
 		{name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50", expectedResults: expectedResults{
-			nil:   {count: 12},
-			user:  {count: 12},
-			user2: {count: 12}},
+			nil:   {count: 15},
+			user:  {count: 15},
+			user2: {count: 15}},
 		},
 		{name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10", expectedResults: expectedResults{
 			nil:   {count: 10},
@@ -81,9 +81,9 @@ func TestAPISearchRepo(t *testing.T) {
 			user2: {count: 10}},
 		},
 		{name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s", "big_test_"), expectedResults: expectedResults{
-			nil:   {count: 4, repoName: "big_test_"},
-			user:  {count: 4, repoName: "big_test_"},
-			user2: {count: 4, repoName: "big_test_"}},
+			nil:   {count: 7, repoName: "big_test_"},
+			user:  {count: 7, repoName: "big_test_"},
+			user2: {count: 7, repoName: "big_test_"}},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
 			nil:   {count: 4},
@@ -113,9 +113,11 @@ func TestAPISearchRepo(t *testing.T) {
 			for userToLogin, expected := range testCase.expectedResults {
 				var session *TestSession
 				var testName string
+				var userID int64
 				if userToLogin != nil && userToLogin.ID > 0 {
 					testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
 					session = loginUser(t, userToLogin.Name)
+					userID = userToLogin.ID
 				} else {
 					testName = "AnonymousUser"
 					session = emptyTestSession(t)
@@ -130,6 +132,11 @@ func TestAPISearchRepo(t *testing.T) {
 
 					assert.Len(t, body.Data, expected.count)
 					for _, repo := range body.Data {
+						r := models.AssertExistsAndLoadBean(t, &models.Repository{ID: repo.ID}).(*models.Repository)
+						hasAccess, err := models.HasAccess(userID, r, models.AccessModeRead)
+						assert.NoError(t, err)
+						assert.True(t, hasAccess)
+
 						assert.NotEmpty(t, repo.Name)
 
 						if len(expected.repoName) > 0 {
