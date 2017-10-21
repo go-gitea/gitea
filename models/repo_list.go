@@ -120,11 +120,16 @@ type SearchRepoOptions struct {
 type SearchMode string
 
 const (
-	SearchModeAny           SearchMode = ""              // SearchModeAny any mode (default)
-	SearchModeFork                     = "FORK"          // SearchModeFork fork mode
-	SearchModeMirror                   = "MIRROR"        // SearchModeMirror mirror mode
-	SearchModeSource                   = "SOURCE"        // SearchModeSource source mode
-	SearchModeCollaborative            = "COLLABORATIVE" // SearchModeCollaborative collaborative mode
+	// SearchModeAny any mode (default)
+	SearchModeAny SearchMode = ""
+	// SearchModeFork fork mode
+	SearchModeFork = "FORK"
+	// SearchModeMirror mirror mode
+	SearchModeMirror = "MIRROR"
+	// SearchModeSource source mode
+	SearchModeSource = "SOURCE"
+	// SearchModeCollaborative collaborative mode
+	SearchModeCollaborative = "COLLABORATIVE"
 )
 
 //SearchOrderBy is used to sort the result
