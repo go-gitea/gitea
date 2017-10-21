@@ -123,16 +123,18 @@
         }
     }
 
-    &.new.repo {
-        .ui.form {
-            .selection.dropdown:not(.owner) {
-                width: 50%!important;
-            }
-            #auto-init {
-                margin-left: @create-page-form-input-padding+15px;
-            }
-        }
-    }
+	&.new.repo {
+		.ui.form {
+			.selection.dropdown:not(.owner) {
+				width: 50%!important;
+			}
+			@media only screen and (min-width: 768px) {
+				#auto-init {
+					margin-left: @create-page-form-input-padding+15px;
+				}
+			}
+		}
+	}
 }
 
 .new.webhook {
