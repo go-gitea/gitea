@@ -29,7 +29,7 @@
 			{{if .Repository.UnitEnabled $.UnitTypePullRequests}}
 				<div class="column">
 					{{if gt .Activity.ActivePRCount 0}}
-					<div class="table">
+					<div class="stats-table">
 						<a href="#merged-pull-requests" class="table-cell tiny background purple" style="width: {{.Activity.MergedPRPerc}}%"></a>
 						<a href="#proposed-pull-requests" class="table-cell tiny background green"></a>
 					</div>
@@ -40,7 +40,7 @@
 			{{if .Repository.UnitEnabled $.UnitTypeIssues}}
 				<div class="column">
 					{{if gt .Activity.ActiveIssueCount 0}}
-					<div class="table">
+					<div class="stats-table">
 						<a href="#closed-issues" class="table-cell tiny background red" style="width: {{.Activity.ClosedIssuePerc}}%"></a>
 						<a href="#new-issues" class="table-cell tiny background green"></a>
 					</div>
