@@ -96,6 +96,7 @@ var (
 		ListenHost           string         `ini:"SSH_LISTEN_HOST"`
 		ListenPort           int            `ini:"SSH_LISTEN_PORT"`
 		RootPath             string         `ini:"SSH_ROOT_PATH"`
+		ServerCiphers        []string       `ini:"SSH_SERVER_CIPHERS"`
 		KeyTestPath          string         `ini:"SSH_KEY_TEST_PATH"`
 		KeygenPath           string         `ini:"SSH_KEYGEN_PATH"`
 		AuthorizedKeysBackup bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
@@ -480,15 +481,16 @@ var (
 	ShowFooterTemplateLoadTime bool
 
 	// Global setting objects
-	Cfg           *ini.File
-	CustomPath    string // Custom directory path
-	CustomConf    string
-	CustomPID     string
-	ProdMode      bool
-	RunUser       string
-	IsWindows     bool
-	HasRobotsTxt  bool
-	InternalToken string // internal access token
+	Cfg               *ini.File
+	CustomPath        string // Custom directory path
+	CustomConf        string
+	CustomPID         string
+	ProdMode          bool
+	RunUser           string
+	IsWindows         bool
+	HasRobotsTxt      bool
+	InternalToken     string // internal access token
+	IterateBufferSize int
 )
 
 // DateLang transforms standard language locale name to corresponding value in datetime plugin.
@@ -707,6 +709,7 @@ func NewContext() {
 		SSH.Domain = Domain
 	}
 	SSH.RootPath = path.Join(homeDir, ".ssh")
+	SSH.ServerCiphers = sec.Key("SSH_SERVER_CIPHERS").Strings(",")
 	SSH.KeyTestPath = os.TempDir()
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
 		log.Fatal(4, "Failed to map SSH settings: %v", err)
@@ -873,6 +876,7 @@ func NewContext() {
 			log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
 		}
 	}
+	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
