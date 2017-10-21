@@ -830,12 +830,10 @@
 
     &.commits {
         .header {
-            .ui.right {
-                .search {
-                    input {
-                        font-weight: normal;
-                        padding: 5px 10px;
-                    }
+            .search {
+                input {
+                    font-weight: normal;
+                    padding: 5px 10px;
                 }
             }
         }
@@ -846,7 +844,9 @@
                 padding-left: 15px;
             }
             .sha {
-                text-align: center;
+                &td {
+                    text-align: center;
+                }
                 width: 140px;
             }
         }
