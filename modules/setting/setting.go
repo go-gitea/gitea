@@ -96,6 +96,7 @@ var (
 		ListenHost           string         `ini:"SSH_LISTEN_HOST"`
 		ListenPort           int            `ini:"SSH_LISTEN_PORT"`
 		RootPath             string         `ini:"SSH_ROOT_PATH"`
+		ServerCiphers        []string       `ini:"SSH_SERVER_CIPHERS"`
 		KeyTestPath          string         `ini:"SSH_KEY_TEST_PATH"`
 		KeygenPath           string         `ini:"SSH_KEYGEN_PATH"`
 		AuthorizedKeysBackup bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
@@ -708,6 +709,7 @@ func NewContext() {
 		SSH.Domain = Domain
 	}
 	SSH.RootPath = path.Join(homeDir, ".ssh")
+	SSH.ServerCiphers = sec.Key("SSH_SERVER_CIPHERS").Strings(",")
 	SSH.KeyTestPath = os.TempDir()
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
 		log.Fatal(4, "Failed to map SSH settings: %v", err)
