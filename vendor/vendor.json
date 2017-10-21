@@ -624,16 +624,16 @@
 			"revisionTime": "2016-10-16T15:41:25Z"
 		},
 		{
-			"checksumSHA1": "avqi4lkviHdrNJ92cXCwrw9x870=",
+			"checksumSHA1": "QV4HZTfaXvhD+5PcGM2p+7aCYYI=",
 			"path": "github.com/lib/pq",
-			"revision": "d8eeeb8bae8896dd8e1b7e514ab0d396c4f12a1b",
-			"revisionTime": "2016-11-03T02:43:54Z"
+			"revision": "456514e2defec52e0cd37f90ccf17ec8b28295e2",
+			"revisionTime": "2017-10-19T22:30:07Z"
 		},
 		{
-			"checksumSHA1": "xppHi82MLqVx1eyQmbhTesAEjx8=",
+			"checksumSHA1": "AU3fA8Sm33Vj9PBoRPSeYfxLRuE=",
 			"path": "github.com/lib/pq/oid",
-			"revision": "d8eeeb8bae8896dd8e1b7e514ab0d396c4f12a1b",
-			"revisionTime": "2016-11-03T02:43:54Z"
+			"revision": "456514e2defec52e0cd37f90ccf17ec8b28295e2",
+			"revisionTime": "2017-10-19T22:30:07Z"
 		},
 		{
 			"checksumSHA1": "O3KUfEXQPfdQ+tCMpP2RAIRJJqY=",
