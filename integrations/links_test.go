@@ -26,7 +26,8 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user/sign_up",
 		"/user/login",
 		"/user/forgot_password",
-		"/swagger",
+		"/api/swagger",
+		"/api/v1/swagger",
 		// TODO: follow this page and test every link
 		"/vendor/librejs.html",
 	}
@@ -47,7 +48,8 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"/explore/organizations?q=test&tab=",
 		"/",
 		"/user/forgot_password",
-		"/swagger",
+		"/api/swagger",
+		"/api/v1/swagger",
 		"/issues",
 		"/issues?type=your_repositories&repo=0&sort=&state=open",
 		"/issues?type=assigned&repo=0&sort=&state=open",
