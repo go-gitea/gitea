@@ -66,24 +66,12 @@
 
 -
   id: 12
-  user_id: 19
-  repo_id: 23
-  mode: 4 # owner
-  
--
-  id: 13
-  user_id: 19
-  repo_id: 24
-  mode: 4 # owner
-
--
-  id: 14
-  user_id: 19
+  user_id: 20
   repo_id: 27
   mode: 4 # owner
   
 -
-  id: 15
-  user_id: 19
+  id: 13
+  user_id: 20
   repo_id: 28
   mode: 4 # owner

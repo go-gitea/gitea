@@ -106,7 +106,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 			count: helperECZero},
 		{name: "PublicRepositoriesOfUser3",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 20},
-			count: ec{SearchModeAny: 4, SearchModeSource: 0, SearchModeFork: 1, SearchModeMirror: 1, SearchModeCollaborative: 0}},
+			count: ec{SearchModeAny: 2, SearchModeSource: 0, SearchModeFork: 1, SearchModeMirror: 1, SearchModeCollaborative: 0}},
 		{name: "PublicAndPrivateRepositoriesOfUser",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true},
 			count: ec{SearchModeAny: 4, SearchModeSource: 4, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 0}},
@@ -124,16 +124,16 @@ func TestSearchRepositoryByName(t *testing.T) {
 			count: ec{SearchModeAny: 1, SearchModeSource: 0, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 1}},
 		{name: "PublicRepositoriesOfUser3IncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 20, Collaborate: true},
-			count: ec{SearchModeAny: 4, SearchModeSource: 0, SearchModeFork: 1, SearchModeMirror: 2, SearchModeCollaborative: 1}},
+			count: ec{SearchModeAny: 3, SearchModeSource: 0, SearchModeFork: 1, SearchModeMirror: 2, SearchModeCollaborative: 0}},
 		{name: "PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, Collaborate: true},
 			count: ec{SearchModeAny: 8, SearchModeSource: 4, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 4}},
 		{name: "PublicAndPrivateRepositoriesOfUser2IncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 18, Private: true, Collaborate: true},
-			count: ec{SearchModeAny: 4, SearchModeSource: 2, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 2}},
+			count: ec{SearchModeAny: 4, SearchModeSource: 0, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 4}},
 		{name: "PublicAndPrivateRepositoriesOfUser3IncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 20, Private: true, Collaborate: true},
-			count: ec{SearchModeAny: 6, SearchModeSource: 0, SearchModeFork: 2, SearchModeMirror: 2, SearchModeCollaborative: 2}},
+			count: ec{SearchModeAny: 6, SearchModeSource: 0, SearchModeFork: 2, SearchModeMirror: 4, SearchModeCollaborative: 0}},
 		{name: "PublicRepositoriesOfOrganization",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17},
 			count: ec{SearchModeAny: 1, SearchModeSource: 1, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 0}},
@@ -142,25 +142,25 @@ func TestSearchRepositoryByName(t *testing.T) {
 			count: ec{SearchModeAny: 2, SearchModeSource: 2, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 0}},
 		{name: "AllPublic/PublicRepositoriesByName",
 			opts:  &SearchRepoOptions{Keyword: "big_test_", PageSize: 10, AllPublic: true},
-			count: ec{SearchModeAny: 7, SearchModeSource: 0, SearchModeFork: 0, SearchModeMirror: 0, SearchModeCollaborative: 0}},
+			count: ec{SearchModeAny: 7, SearchModeSource: 0, SearchModeFork: 0, SearchModeMirror: 2, SearchModeCollaborative: 5}},
 		{name: "AllPublic/PublicAndPrivateRepositoriesByName",
 			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 1, PageSize: 10, Private: true, AllPublic: true},
 			count: helperEC},
 		{name: "AllPublic/PublicRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Collaborate: true, AllPublic: true},
-			count: ec{SearchModeAny: 15, SearchModeSource: 4, SearchModeFork: 0, SearchModeMirror: 2, SearchModeCollaborative: 9}},
+			count: ec{SearchModeAny: 15, SearchModeSource: 2, SearchModeFork: 0, SearchModeMirror: 2, SearchModeCollaborative: 9}},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, Collaborate: true, AllPublic: true},
-			count: ec{SearchModeAny: 19, SearchModeSource: 4, SearchModeFork: 0, SearchModeMirror: 3, SearchModeCollaborative: 12}},
+			count: ec{SearchModeAny: 19, SearchModeSource: 4, SearchModeFork: 0, SearchModeMirror: 2, SearchModeCollaborative: 11}},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborativeByName",
 			opts:  &SearchRepoOptions{Keyword: "test", Page: 1, PageSize: 10, OwnerID: 15, Private: true, Collaborate: true, AllPublic: true},
-			count: ec{SearchModeAny: 14, SearchModeSource: 4, SearchModeFork: 0, SearchModeMirror: 3, SearchModeCollaborative: 7}},
+			count: ec{SearchModeAny: 13, SearchModeSource: 4, SearchModeFork: 0, SearchModeMirror: 2, SearchModeCollaborative: 7}},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUser2IncludingCollaborativeByName",
 			opts:  &SearchRepoOptions{Keyword: "test", Page: 1, PageSize: 10, OwnerID: 18, Private: true, Collaborate: true, AllPublic: true},
-			count: ec{SearchModeAny: 9, SearchModeSource: 2, SearchModeFork: 0, SearchModeMirror: 2, SearchModeCollaborative: 5}},
+			count: ec{SearchModeAny: 11, SearchModeSource: 0, SearchModeFork: 0, SearchModeMirror: 2, SearchModeCollaborative: 9}},
 		{name: "AllPublic/PublicRepositoriesOfOrganization",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17, AllPublic: true},
-			count: ec{SearchModeAny: 15, SearchModeSource: 2, SearchModeFork: 0, SearchModeMirror: 2, SearchModeCollaborative: 11}},
+			count: ec{SearchModeAny: 15, SearchModeSource: 1, SearchModeFork: 0, SearchModeMirror: 2, SearchModeCollaborative: 10}},
 	}
 
 	for _, testCase := range testCases {
@@ -172,6 +172,11 @@ func TestSearchRepositoryByName(t *testing.T) {
 					testName = fmt.Sprintf("SearchMode%s", searchMode)
 				}
 
+				page := testCase.opts.Page
+				if page <= 0 {
+					page = 1
+				}
+
 				t.Run(testName, func(t *testing.T) {
 					repos, count, err := SearchRepositoryByName(testCase.opts)
 
@@ -179,9 +184,9 @@ func TestSearchRepositoryByName(t *testing.T) {
 					assert.Equal(t, int64(expectedCount), count)
 
 					var expectedLen int
-					if testCase.opts.PageSize*testCase.opts.Page > expectedCount+testCase.opts.PageSize {
+					if testCase.opts.PageSize*page > expectedCount+testCase.opts.PageSize {
 						expectedLen = 0
-					} else if testCase.opts.PageSize*testCase.opts.Page > expectedCount {
+					} else if testCase.opts.PageSize*page > expectedCount {
 						expectedLen = expectedCount % testCase.opts.PageSize
 					} else {
 						expectedLen = testCase.opts.PageSize

@@ -151,7 +151,13 @@ const (
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
 func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, error) {
-	if opts.OwnerID <= 0 && (opts.SearchMode == SearchModeSource || opts.SearchMode == SearchModeFork) {
+	var onlyOwnersRepo = opts.SearchMode == SearchModeFork || opts.SearchMode == SearchModeSource
+
+	if onlyOwnersRepo && opts.OwnerID <= 0 {
+		return nil, 0, nil
+	}
+
+	if opts.SearchMode == SearchModeCollaborative && opts.OwnerID > 0 && !opts.Collaborate && !opts.AllPublic {
 		return nil, 0, nil
 	}
 
@@ -178,7 +184,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 				accessCond = builder.Eq{"owner_id": opts.OwnerID}
 			}
 
-			if opts.Collaborate && (opts.SearchMode == SearchModeAny || opts.SearchMode == SearchModeMirror || opts.SearchMode == SearchModeCollaborative) {
+			if opts.Collaborate && !onlyOwnersRepo {
 				collaborateCond := builder.And(
 					builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", opts.OwnerID),
 					builder.Neq{"owner_id": opts.OwnerID})
@@ -191,10 +197,10 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 
 			cond = cond.And(accessCond)
 		}
-	}
 
-	if opts.OwnerID > 0 && opts.AllPublic {
-		cond = cond.Or(builder.Eq{"is_private": false})
+		if opts.AllPublic && !onlyOwnersRepo {
+			cond = cond.Or(builder.Eq{"is_private": false})
+		}
 	}
 
 	if opts.Keyword != "" {
@@ -209,6 +215,8 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 			cond = cond.And(builder.Eq{"is_fork": false})
 		case SearchModeFork:
 			cond = cond.And(builder.Eq{"is_fork": true})
+		case SearchModeCollaborative:
+			cond = cond.And(builder.Neq{"owner_id": opts.OwnerID})
 		}
 	}
 
