@@ -36,30 +36,14 @@ func HTTP(ctx *context.Context) {
 
 	var isPull bool
 	service := ctx.Query("service")
-	if service == "git-receive-pack" ||
-		strings.HasSuffix(ctx.Req.URL.Path, "git-receive-pack") {
-		isPull = false
-	} else if service == "git-upload-pack" ||
-		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-pack") {
+	if (service == "git-upload-pack" || strings.HasSuffix(ctx.Req.URL.Path, "git-upload-pack") ||
+		service == "git-upload-archive" || strings.HasSuffix(ctx.Req.URL.Path, "git-upload-archive")) ||
+		(service != "git-receive-pack" && !strings.HasSuffix(ctx.Req.URL.Path, "git-receive-pack") && ctx.Req.Method == "GET") {
 		isPull = true
-	} else if service == "git-upload-archive" ||
-		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-archive") {
-		isPull = true
-	} else {
-		isPull = (ctx.Req.Method == "GET")
 	}
 
-	var accessMode models.AccessMode
-	if isPull {
-		accessMode = models.AccessModeRead
-	} else {
-		accessMode = models.AccessModeWrite
-	}
-
-	isWiki := false
 	var unitType = models.UnitTypeCode
 	if strings.HasSuffix(reponame, ".wiki") {
-		isWiki = true
 		unitType = models.UnitTypeWiki
 		reponame = reponame[:len(reponame)-5]
 	}
@@ -68,9 +52,9 @@ func HTTP(ctx *context.Context) {
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.Handle(http.StatusNotFound, "GetUserByName", nil)
-		} else {
-			ctx.Handle(http.StatusInternalServerError, "GetUserByName", err)
+			return
 		}
+		ctx.Handle(http.StatusInternalServerError, "GetUserByName", err)
 		return
 	}
 
@@ -78,171 +62,45 @@ func HTTP(ctx *context.Context) {
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			ctx.Handle(http.StatusNotFound, "GetRepositoryByName", nil)
-		} else {
-			ctx.Handle(http.StatusInternalServerError, "GetRepositoryByName", err)
+			return
 		}
+		ctx.Handle(http.StatusInternalServerError, "GetRepositoryByName", err)
 		return
 	}
 
+	var environ []string
+
+	// Check access
 	// Only public pull don't need auth.
-	isPublicPull := !repo.IsPrivate && isPull
-	var (
-		askAuth      = !isPublicPull || setting.Service.RequireSignInView
-		authUser     *models.User
-		authUsername string
-		authPasswd   string
-		environ      []string
-	)
-
-	// check access
-	if askAuth {
+	if repo.IsPrivate || !isPull || setting.Service.RequireSignInView {
+		var reverseProxyAuth bool
+		var authHeader = ctx.Req.Header.Get("Authorization")
 		if setting.Service.EnableReverseProxyAuth {
-			authUsername = ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
-			if len(authUsername) == 0 {
-				ctx.HandleText(401, "reverse proxy login error. authUsername empty")
-				return
-			}
-			authUser, err = models.GetUserByName(authUsername)
-			if err != nil {
-				ctx.HandleText(401, "reverse proxy login error, got error while running GetUserByName")
-				return
-			}
-		} else {
-			authHead := ctx.Req.Header.Get("Authorization")
-			if len(authHead) == 0 {
-				ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=\".\"")
-				ctx.Error(http.StatusUnauthorized)
-				return
-			}
-
-			auths := strings.Fields(authHead)
-			// currently check basic auth
-			// TODO: support digit auth
-			// FIXME: middlewares/context.go did basic auth check already,
-			// maybe could use that one.
-			if len(auths) != 2 || auths[0] != "Basic" {
-				ctx.HandleText(http.StatusUnauthorized, "no basic auth and digit auth")
-				return
-			}
-			authUsername, authPasswd, err = base.BasicAuthDecode(auths[1])
-			if err != nil {
-				ctx.HandleText(http.StatusUnauthorized, "no basic auth and digit auth")
-				return
-			}
-
-			authUser, err = models.UserSignIn(authUsername, authPasswd)
-			if err != nil {
-				if !models.IsErrUserNotExist(err) {
-					ctx.Handle(http.StatusInternalServerError, "UserSignIn error: %v", err)
-					return
-				}
-			}
-
-			if authUser == nil {
-				isUsernameToken := len(authPasswd) == 0 || authPasswd == "x-oauth-basic"
-
-				// Assume username is token
-				authToken := authUsername
-
-				if !isUsernameToken {
-					// Assume password is token
-					authToken = authPasswd
-
-					authUser, err = models.GetUserByName(authUsername)
-					if err != nil {
-						if models.IsErrUserNotExist(err) {
-							ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
-						} else {
-							ctx.Handle(http.StatusInternalServerError, "GetUserByName", err)
-						}
-						return
-					}
-				}
-
-				// Assume password is a token.
-				token, err := models.GetAccessTokenBySHA(authToken)
-				if err != nil {
-					if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
-						ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
-					} else {
-						ctx.Handle(http.StatusInternalServerError, "GetAccessTokenBySha", err)
-					}
-					return
-				}
-
-				if isUsernameToken {
-					authUser, err = models.GetUserByID(token.UID)
-					if err != nil {
-						ctx.Handle(http.StatusInternalServerError, "GetUserByID", err)
-						return
-					}
-				} else if authUser.ID != token.UID {
-					ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
-					return
-				}
-
-				token.Updated = time.Now()
-				if err = models.UpdateAccessToken(token); err != nil {
-					ctx.Handle(http.StatusInternalServerError, "UpdateAccessToken", err)
-				}
-			} else {
-				_, err = models.GetTwoFactorByUID(authUser.ID)
-
-				if err == nil {
-					// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
-					ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
-					return
-				} else if !models.IsErrTwoFactorNotEnrolled(err) {
-					ctx.Handle(http.StatusInternalServerError, "IsErrTwoFactorNotEnrolled", err)
-					return
-				}
-			}
-
-			if !isPublicPull {
-				has, err := models.HasAccess(authUser.ID, repo, accessMode)
-				if err != nil {
-					ctx.Handle(http.StatusInternalServerError, "HasAccess", err)
-					return
-				} else if !has {
-					if accessMode == models.AccessModeRead {
-						has, err = models.HasAccess(authUser.ID, repo, models.AccessModeWrite)
-						if err != nil {
-							ctx.Handle(http.StatusInternalServerError, "HasAccess2", err)
-							return
-						} else if !has {
-							ctx.HandleText(http.StatusForbidden, "User permission denied")
-							return
-						}
-					} else {
-						ctx.HandleText(http.StatusForbidden, "User permission denied")
-						return
-					}
-				}
-
-				if !isPull && repo.IsMirror {
-					ctx.HandleText(http.StatusForbidden, "mirror repository is read-only")
-					return
-				}
-			}
+			reverseProxyAuth = true
+			authHeader = ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
 		}
-
-		if !repo.CheckUnitUser(authUser.ID, authUser.IsAdmin, unitType) {
-			ctx.HandleText(http.StatusForbidden, fmt.Sprintf("User %s does not have allowed access to repository %s 's code",
-				authUser.Name, repo.RepoPath()))
+		authUser, promptForAuth, httpStatus, err := checkAccess(repo, unitType, isPull, authHeader, reverseProxyAuth)
+		if err != nil {
+			if httpStatus == http.StatusInternalServerError {
+				ctx.Handle(httpStatus, "checkAccess", err)
+				return
+			}
+			ctx.HandleText(httpStatus, err.Error())
+			return
+		}
+		if promptForAuth {
+			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=\".\"")
+			ctx.Error(http.StatusUnauthorized)
 			return
 		}
 
 		environ = []string{
-			models.EnvRepoUsername + "=" + username,
-			models.EnvRepoName + "=" + reponame,
-			models.EnvPusherName + "=" + authUser.Name,
-			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
-			models.ProtectedBranchRepoID + fmt.Sprintf("=%d", repo.ID),
-		}
-		if isWiki {
-			environ = append(environ, models.EnvRepoIsWiki+"=true")
-		} else {
-			environ = append(environ, models.EnvRepoIsWiki+"=false")
+			fmt.Sprintf("%s=%s", models.EnvRepoUsername, username),
+			fmt.Sprintf("%s=%s", models.EnvRepoName, reponame),
+			fmt.Sprintf("%s=%s", models.EnvPusherName, authUser.Name),
+			fmt.Sprintf("%s=%d", models.EnvPusherID, authUser.ID),
+			fmt.Sprintf("%s=%d", models.ProtectedBranchRepoID, repo.ID),
+			fmt.Sprintf("%s=%t", models.EnvRepoIsWiki, unitType == models.UnitTypeWiki),
 		}
 	}
 
@@ -251,6 +109,131 @@ func HTTP(ctx *context.Context) {
 		ReceivePack: true,
 		Env:         environ,
 	})(ctx.Resp, ctx.Req.Request)
+}
+
+func checkAccess(repo *models.Repository, unitType models.UnitType, isPull bool, authHeader string, reverseProxyAuth bool) (*models.User, bool, int, error) {
+	if len(authHeader) == 0 {
+		if reverseProxyAuth {
+			return nil, false, http.StatusUnauthorized, fmt.Errorf("reverse proxy login error. authUsername empty")
+		}
+		return nil, true, 0, nil
+	}
+
+	var (
+		authUser *models.User
+		err      error
+	)
+
+	if reverseProxyAuth {
+		authUser, err = models.GetUserByName(authHeader)
+		if err != nil {
+			return nil, false, http.StatusUnauthorized, fmt.Errorf("reverse proxy login error, got error while running GetUserByName")
+		}
+	} else {
+		auths := strings.Fields(authHeader)
+		// currently check basic auth
+		// TODO: support digit auth
+		// FIXME: middlewares/context.go did basic auth check already,
+		// maybe could use that one.
+		if len(auths) != 2 || auths[0] != "Basic" {
+			return nil, false, http.StatusUnauthorized, fmt.Errorf("no basic auth and digit auth")
+		}
+		authUsername, authPasswd, err := base.BasicAuthDecode(auths[1])
+		if err != nil {
+			return nil, false, http.StatusUnauthorized, fmt.Errorf("no basic auth and digit auth")
+		}
+
+		authUser, err = models.UserSignIn(authUsername, authPasswd)
+		if err != nil && !models.IsErrUserNotExist(err) {
+			return nil, false, http.StatusInternalServerError, fmt.Errorf("UserSignIn: %v", err)
+		}
+
+		if authUser == nil {
+			isUsernameToken := len(authPasswd) == 0 || authPasswd == "x-oauth-basic"
+
+			// Assume username is token
+			authToken := authUsername
+
+			if !isUsernameToken {
+				// Assume password is token
+				authToken = authPasswd
+
+				authUser, err = models.GetUserByName(authUsername)
+				if err != nil {
+					if models.IsErrUserNotExist(err) {
+						return nil, false, http.StatusUnauthorized, fmt.Errorf("invalid credentials")
+					}
+					return nil, false, http.StatusInternalServerError, fmt.Errorf("GetUserByName: %v", err)
+				}
+			}
+
+			// Assume password is a token.
+			token, err := models.GetAccessTokenBySHA(authToken)
+			if err != nil {
+				if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
+					return nil, false, http.StatusUnauthorized, fmt.Errorf("invalid credentials")
+				}
+				return nil, false, http.StatusInternalServerError, fmt.Errorf("GetAccessTokenBySha: %v", err)
+			}
+
+			if isUsernameToken {
+				authUser, err = models.GetUserByID(token.UID)
+				if err != nil {
+					return nil, false, http.StatusInternalServerError, fmt.Errorf("GetUserByID: %v", err)
+				}
+			} else if authUser.ID != token.UID {
+				return nil, false, http.StatusUnauthorized, fmt.Errorf("invalid credentials")
+			}
+
+			token.Updated = time.Now()
+			if err = models.UpdateAccessToken(token); err != nil {
+				return nil, false, http.StatusInternalServerError, fmt.Errorf("UpdateAccessToken: %v", err)
+			}
+		} else {
+			_, err = models.GetTwoFactorByUID(authUser.ID)
+
+			if err == nil {
+				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
+				return nil, false, http.StatusUnauthorized,
+					fmt.Errorf("Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
+			} else if !models.IsErrTwoFactorNotEnrolled(err) {
+				return nil, false, http.StatusInternalServerError, fmt.Errorf("IsErrTwoFactorNotEnrolled: %v", err)
+			}
+		}
+
+		if repo.IsPrivate || !isPull {
+			var accessMode = models.AccessModeWrite
+			if isPull {
+				accessMode = models.AccessModeRead
+			}
+			has, err := models.HasAccess(authUser.ID, repo, accessMode)
+			if err != nil {
+				return nil, false, http.StatusInternalServerError, fmt.Errorf("HasAccess: %v", err)
+			} else if !has {
+				if accessMode == models.AccessModeRead {
+					has, err = models.HasAccess(authUser.ID, repo, models.AccessModeWrite)
+					if err != nil {
+						return nil, false, http.StatusInternalServerError, fmt.Errorf("HasAccess2: %v", err)
+					} else if !has {
+						return nil, false, http.StatusForbidden, fmt.Errorf("User permission denied")
+					}
+				} else {
+					return nil, false, http.StatusForbidden, fmt.Errorf("User permission denied")
+				}
+			}
+
+			if !isPull && repo.IsMirror {
+				return nil, false, http.StatusForbidden, fmt.Errorf("mirror repository is read-only")
+			}
+		}
+	}
+
+	if !repo.CheckUnitUser(authUser.ID, authUser.IsAdmin, unitType) {
+		return nil, false, http.StatusForbidden,
+			fmt.Errorf("User %s does not have allowed access to repository %s 's code", authUser.Name, repo.RepoPath())
+	}
+
+	return authUser, false, 0, nil
 }
 
 type serviceConfig struct {
