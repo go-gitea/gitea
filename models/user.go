@@ -816,7 +816,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	}
 
 	// Delete all local copies of repository wiki that user owns.
-	if err = x.
+	if err = x.BufferSize(setting.IterateBufferSize).
 		Where("owner_id=?", u.ID).
 		Iterate(new(Repository), func(idx int, bean interface{}) error {
 			repo := bean.(*Repository)
