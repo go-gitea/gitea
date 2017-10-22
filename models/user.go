@@ -1275,17 +1275,17 @@ type SearchUserOptions struct {
 func (opts *SearchUserOptions) toConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{"type": opts.Type}
 	if len(opts.Keyword) > 0 {
+		lowerKeyword := strings.ToLower(opts.Keyword)
 		cond = cond.And(builder.Or(
-			builder.Like{"lower_name", strings.ToLower(opts.Keyword)},
-			builder.Like{"LOWER(full_name)", strings.ToLower(opts.Keyword)},
+			builder.Like{"lower_name", lowerKeyword},
+			builder.Like{"LOWER(full_name)", lowerKeyword},
 		))
 	}
 
-	if opts.IsActive == util.OptionalBoolTrue {
-		cond = cond.And(builder.Eq{"is_active": true})
-	} else if opts.IsActive == util.OptionalBoolFalse {
-		cond = cond.And(builder.Eq{"is_active": false})
+	if !opts.IsActive.IsNone() {
+		cond = cond.And(builder.Eq{"is_active": opts.IsActive.IsTrue()})
 	}
+
 	return cond
 }
 
