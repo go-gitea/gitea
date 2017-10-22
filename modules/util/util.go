@@ -26,7 +26,7 @@ func (o OptionalBool) IsFalse() bool {
 	return o == OptionalBoolFalse
 }
 
-// IsNone return true if equal to OptionalBoolFalse
+// IsNone return true if equal to OptionalBoolNone
 func (o OptionalBool) IsNone() bool {
 	return o == OptionalBoolNone
 }

@@ -16,14 +16,13 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 
 	assert.NoError(t, CreateOrUpdateIssueNotifications(issue, 2))
 
-	// 9 are inactive, thus notifications for user 1 and 4 is created
+	// User 9 is inactive, thus notifications for user 1 and 4 are created
 	notf := AssertExistsAndLoadBean(t, &Notification{UserID: 1, IssueID: issue.ID}).(*Notification)
 	assert.Equal(t, NotificationStatusUnread, notf.Status)
 	CheckConsistencyFor(t, &Issue{ID: issue.ID})
 
 	notf = AssertExistsAndLoadBean(t, &Notification{UserID: 4, IssueID: issue.ID}).(*Notification)
 	assert.Equal(t, NotificationStatusUnread, notf.Status)
-	CheckConsistencyFor(t, &Issue{ID: issue.ID})
 }
 
 func TestNotificationsForUser(t *testing.T) {
