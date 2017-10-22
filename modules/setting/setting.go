@@ -108,6 +108,7 @@ var (
 		StartBuiltinServer: false,
 		Domain:             "",
 		Port:               22,
+		ServerCiphers:      []string{"aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "arcfour256", "arcfour128"},
 		KeygenPath:         "ssh-keygen",
 	}
 
@@ -709,7 +710,10 @@ func NewContext() {
 		SSH.Domain = Domain
 	}
 	SSH.RootPath = path.Join(homeDir, ".ssh")
-	SSH.ServerCiphers = sec.Key("SSH_SERVER_CIPHERS").Strings(",")
+	serverCiphers := sec.Key("SSH_SERVER_CIPHERS").Strings(",")
+	if len(serverCiphers) > 0 {
+		SSH.ServerCiphers = serverCiphers
+	}
 	SSH.KeyTestPath = os.TempDir()
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
 		log.Fatal(4, "Failed to map SSH settings: %v", err)
