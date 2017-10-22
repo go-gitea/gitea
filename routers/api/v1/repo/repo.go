@@ -6,6 +6,7 @@ package repo
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	api "code.gitea.io/sdk/gitea"
@@ -15,7 +16,41 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/convert"
+)
+
+// SearchRepoOption options when searching repositories
+// swagger:parameters repoSearch
+type SearchRepoOption struct { // TODO: Move SearchRepoOption to Gitea SDK
+	// Keyword to search
+	//
+	// in: query
+	Keyword string `json:"q"`
+	// Repository owner to search
+	//
+	// in: query
+	OwnerID int64 `json:"uid"`
+	// Limit of result
+	//
+	// maximum: setting.ExplorePagingNum
+	// in: query
+	PageSize int `json:"limit"`
+	// Type of repository to search, related to owner
+	//
+	// in: query
+	SearchMode string `json:"mode"`
+}
+
+// searchMode is repository filtering mode identifier
+type searchMode int
+
+const (
+	searchModeAny searchMode = iota + 1
+	searchModeFork
+	searchModeMirror
+	searchModeSource
+	searchModeCollaborative
 )
 
 // Search repositories via options
@@ -27,27 +62,40 @@ func Search(ctx *context.APIContext) {
 	//
 	//     Responses:
 	//       200: SearchResults
+	//       422: validationError
 	//       500: SearchError
 
-	var searchMode models.SearchMode
-	switch ctx.Query("mode") {
-	case "fork":
-		searchMode = models.SearchModeFork
-	case "mirror":
-		searchMode = models.SearchModeMirror
-	case "source":
-		searchMode = models.SearchModeSource
-	case "collaborative":
-		searchMode = models.SearchModeCollaborative
-	default:
-		searchMode = models.SearchModeAny
+	opts := &models.SearchRepoOptions{
+		Keyword:     strings.Trim(ctx.Query("q"), " "),
+		OwnerID:     ctx.QueryInt64("uid"),
+		PageSize:    convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		Collaborate: util.OptionalBoolFalse,
 	}
 
-	opts := &models.SearchRepoOptions{
-		Keyword:    strings.Trim(ctx.Query("q"), " "),
-		OwnerID:    ctx.QueryInt64("uid"),
-		PageSize:   convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		SearchMode: searchMode,
+	var modeQuery = ctx.Query("mode")
+	var mode searchMode
+	switch modeQuery {
+	case "source":
+		mode = searchModeSource
+		opts.Fork = util.OptionalBoolFalse
+		opts.Mirror = util.OptionalBoolFalse
+	case "fork":
+		mode = searchModeFork
+		opts.Fork = util.OptionalBoolTrue
+	case "mirror":
+		mode = searchModeMirror
+		opts.Mirror = util.OptionalBoolTrue
+	case "collaborative":
+		mode = searchModeCollaborative
+		opts.Mirror = util.OptionalBoolFalse
+	case "":
+		mode = searchModeAny
+	}
+
+	err := validateSearchInput(opts.OwnerID, modeQuery, mode)
+	if err != nil {
+		ctx.Error(http.StatusUnprocessableEntity, "", err)
+		return
 	}
 
 	if opts.OwnerID > 0 {
@@ -55,7 +103,6 @@ func Search(ctx *context.APIContext) {
 		if ctx.User != nil && ctx.User.ID == opts.OwnerID {
 			repoOwner = ctx.User
 		} else {
-			var err error
 			repoOwner, err = models.GetUserByID(opts.OwnerID)
 			if err != nil {
 				ctx.JSON(500, api.SearchError{
@@ -67,7 +114,11 @@ func Search(ctx *context.APIContext) {
 		}
 
 		if !repoOwner.IsOrganization() {
-			opts.Collaborate = true
+			if mode == searchModeCollaborative {
+				opts.Collaborate = util.OptionalBoolTrue
+			} else if mode != searchModeSource && mode != searchModeFork {
+				opts.Collaborate = util.OptionalBoolNone
+			}
 		}
 
 		// Check visibility.
@@ -115,6 +166,22 @@ func Search(ctx *context.APIContext) {
 		OK:   true,
 		Data: results,
 	})
+}
+
+func validateSearchInput(ownerID int64, modeQuery string, mode searchMode) error {
+	var errors []string
+	if mode == 0 {
+		errors = append(errors, fmt.Sprintf("Invalid search mode: \"%s\"", modeQuery))
+	}
+
+	if ownerID <= 0 && (mode == searchModeFork || mode == searchModeSource) {
+		errors = append(errors, fmt.Sprintf("Invalid combination of input params: \"mode=%s\" has to be combined with \"uid\"", modeQuery))
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf(strings.Join(errors, " "))
+	}
+	return nil
 }
 
 // CreateUserRepo create a repository for a user

@@ -1102,7 +1102,7 @@
             "type": "integer",
             "format": "int64",
             "x-go-name": "OwnerID",
-            "description": "Owner in we search search",
+            "description": "Repository owner to search",
             "name": "uid",
             "in": "query"
           },
@@ -1118,13 +1118,16 @@
             "type": "string",
             "x-go-name": "SearchMode",
             "description": "Type of repository to search, related to owner",
-            "name": "type",
+            "name": "mode",
             "in": "query"
           }
         ],
         "responses": {
           "200": {
             "$ref": "#/responses/SearchResults"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           },
           "500": {
             "$ref": "#/responses/SearchError"

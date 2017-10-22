@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/repo"
 )
 
@@ -157,13 +158,14 @@ func Profile(ctx *context.Context) {
 			}
 		} else {
 			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-				Keyword:  keyword,
-				OwnerID:  ctxUser.ID,
-				OrderBy:  orderBy,
-				Private:  showPrivate,
-				Page:     page,
-				PageSize: setting.UI.User.RepoPagingNum,
-				Starred:  true,
+				Keyword:     keyword,
+				OwnerID:     ctxUser.ID,
+				OrderBy:     orderBy,
+				Private:     showPrivate,
+				Page:        page,
+				PageSize:    setting.UI.User.RepoPagingNum,
+				Starred:     true,
+				Collaborate: util.OptionalBoolFalse,
 			})
 			if err != nil {
 				ctx.Handle(500, "SearchRepositoryByName", err)
@@ -199,14 +201,13 @@ func Profile(ctx *context.Context) {
 			ctx.Data["Total"] = total
 		} else {
 			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-				Keyword:     keyword,
-				OwnerID:     ctxUser.ID,
-				OrderBy:     orderBy,
-				Private:     showPrivate,
-				Page:        page,
-				IsProfile:   true,
-				PageSize:    setting.UI.User.RepoPagingNum,
-				Collaborate: true,
+				Keyword:   keyword,
+				OwnerID:   ctxUser.ID,
+				OrderBy:   orderBy,
+				Private:   showPrivate,
+				Page:      page,
+				IsProfile: true,
+				PageSize:  setting.UI.User.RepoPagingNum,
 			})
 			if err != nil {
 				ctx.Handle(500, "SearchRepositoryByName", err)
