@@ -522,6 +522,12 @@
 			"revisionTime": "2016-02-12T04:00:40Z"
 		},
 		{
+			"checksumSHA1": "+IzngblnBQNh+GmsS2O7jqmzSVQ=",
+			"path": "github.com/kballard/go-shellquote",
+			"revision": "cd60e84ee657ff3dc51de0b4f55dd299a3e136f2",
+			"revisionTime": "2017-06-19T18:30:22Z"
+		},
+		{
 			"checksumSHA1": "VJk3rOWfxEV9Ilig5lgzH1qg8Ss=",
 			"path": "github.com/keybase/go-crypto/brainpool",
 			"revision": "00ac4db533f63ef97576cbc7b07939ff7daf7329",
