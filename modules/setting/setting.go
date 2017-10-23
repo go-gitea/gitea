@@ -324,11 +324,6 @@ var (
 	// Time settings
 	TimeFormat string
 
-	// Cache settings
-	CacheAdapter  string
-	CacheInterval int
-	CacheConn     string
-
 	// Session settings
 	SessionConfig  session.Options
 	CSRFCookieName = "_csrf"
@@ -1277,15 +1272,30 @@ func NewXORMLogService(disableConsole bool) {
 	}
 }
 
+// Cache represents cache settings
+type Cache struct {
+	Adapter  string
+	Interval int
+	Conn     string
+}
+
+var (
+	// CacheService the global cache
+	CacheService *Cache
+)
+
 func newCacheService() {
-	CacheAdapter = Cfg.Section("cache").Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"})
-	switch CacheAdapter {
+	sec := Cfg.Section("mailer")
+	CacheService = &Cache{
+		Adapter: sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"}),
+	}
+	switch CacheService.Adapter {
 	case "memory":
-		CacheInterval = Cfg.Section("cache").Key("INTERVAL").MustInt(60)
+		CacheService.Interval = sec.Key("INTERVAL").MustInt(60)
 	case "redis", "memcache":
-		CacheConn = strings.Trim(Cfg.Section("cache").Key("HOST").String(), "\" ")
+		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
 	default:
-		log.Fatal(4, "Unknown cache adapter: %s", CacheAdapter)
+		log.Fatal(4, "Unknown cache adapter: %s", CacheService.Adapter)
 	}
 
 	log.Info("Cache Service Enabled")

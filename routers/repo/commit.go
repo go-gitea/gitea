@@ -54,7 +54,7 @@ func Commits(ctx *context.Context) {
 		return
 	}
 
-	commitsCount, err := ctx.Repo.Commit.CommitsCount()
+	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
 		ctx.Handle(500, "GetCommitsCount", err)
 		return
@@ -89,7 +89,7 @@ func Commits(ctx *context.Context) {
 func Graph(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 
-	commitsCount, err := ctx.Repo.Commit.CommitsCount()
+	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
 		ctx.Handle(500, "GetCommitsCount", err)
 		return
