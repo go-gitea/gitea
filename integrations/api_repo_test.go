@@ -119,10 +119,18 @@ func TestAPISearchRepo(t *testing.T) {
 			nil:   {count: 1},
 			user:  {count: 1},
 			user4: {count: 2, includesPrivate: true}}},
+		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeFork/Exclusive", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s&exclusive=1", user4.ID, "fork"), expectedResults: expectedResults{
+			nil:   {count: 1},
+			user:  {count: 1},
+			user4: {count: 2, includesPrivate: true}}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeMirror", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "mirror"), expectedResults: expectedResults{
 			nil:   {count: 2},
 			user:  {count: 2},
 			user4: {count: 4, includesPrivate: true}}},
+		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeMirror/Exclusive", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s&exclusive=1", user4.ID, "mirror"), expectedResults: expectedResults{
+			nil:   {count: 1},
+			user:  {count: 1},
+			user4: {count: 2, includesPrivate: true}}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeCollaborative", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "collaborative"), expectedResults: expectedResults{
 			nil:   {count: 0},
 			user:  {count: 0},

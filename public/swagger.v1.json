@@ -1120,6 +1120,13 @@
             "description": "Type of repository to search, related to owner",
             "name": "mode",
             "in": "query"
+          },
+          {
+            "type": "boolean",
+            "x-go-name": "OwnerExclusive",
+            "description": "Search only owners repositories\nHas effect only if owner is provided and mode is not \"collaborative\"",
+            "name": "exclusive",
+            "in": "query"
           }
         ],
         "responses": {

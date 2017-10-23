@@ -40,18 +40,12 @@ type SearchRepoOption struct { // TODO: Move SearchRepoOption to Gitea SDK
 	//
 	// in: query
 	SearchMode string `json:"mode"`
+	// Search only owners repositories
+	// Has effect only if owner is provided and mode is not "collaborative"
+	//
+	// in: query
+	OwnerExclusive bool `json:"exclusive"`
 }
-
-// searchMode is repository filtering mode identifier
-type searchMode int
-
-const (
-	searchModeAny searchMode = iota + 1
-	searchModeFork
-	searchModeMirror
-	searchModeSource
-	searchModeCollaborative
-)
 
 // Search repositories via options
 func Search(ctx *context.APIContext) {
@@ -69,35 +63,32 @@ func Search(ctx *context.APIContext) {
 		Keyword:     strings.Trim(ctx.Query("q"), " "),
 		OwnerID:     ctx.QueryInt64("uid"),
 		PageSize:    convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		Collaborate: util.OptionalBoolFalse,
+		Collaborate: util.OptionalBoolNone,
 	}
 
-	var modeQuery = ctx.Query("mode")
-	var mode searchMode
-	switch modeQuery {
+	if ctx.QueryBool("exclusive") {
+		opts.Collaborate = util.OptionalBoolFalse
+	}
+
+	var mode = ctx.Query("mode")
+	switch mode {
 	case "source":
-		mode = searchModeSource
 		opts.Fork = util.OptionalBoolFalse
 		opts.Mirror = util.OptionalBoolFalse
 	case "fork":
-		mode = searchModeFork
 		opts.Fork = util.OptionalBoolTrue
 	case "mirror":
-		mode = searchModeMirror
 		opts.Mirror = util.OptionalBoolTrue
 	case "collaborative":
-		mode = searchModeCollaborative
 		opts.Mirror = util.OptionalBoolFalse
+		opts.Collaborate = util.OptionalBoolTrue
 	case "":
-		mode = searchModeAny
-	}
-
-	err := validateSearchInput(opts.OwnerID, modeQuery, mode)
-	if err != nil {
-		ctx.Error(http.StatusUnprocessableEntity, "", err)
+	default:
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid search mode: \"%s\"", mode))
 		return
 	}
 
+	var err error
 	if opts.OwnerID > 0 {
 		var repoOwner *models.User
 		if ctx.User != nil && ctx.User.ID == opts.OwnerID {
@@ -113,12 +104,8 @@ func Search(ctx *context.APIContext) {
 			}
 		}
 
-		if !repoOwner.IsOrganization() {
-			if mode == searchModeCollaborative {
-				opts.Collaborate = util.OptionalBoolTrue
-			} else if mode != searchModeSource && mode != searchModeFork {
-				opts.Collaborate = util.OptionalBoolNone
-			}
+		if repoOwner.IsOrganization() {
+			opts.Collaborate = util.OptionalBoolFalse
 		}
 
 		// Check visibility.
@@ -166,22 +153,6 @@ func Search(ctx *context.APIContext) {
 		OK:   true,
 		Data: results,
 	})
-}
-
-func validateSearchInput(ownerID int64, modeQuery string, mode searchMode) error {
-	var errors []string
-	if mode == 0 {
-		errors = append(errors, fmt.Sprintf("Invalid search mode: \"%s\"", modeQuery))
-	}
-
-	if ownerID <= 0 && (mode == searchModeFork || mode == searchModeSource) {
-		errors = append(errors, fmt.Sprintf("Invalid combination of input params: \"mode=%s\" has to be combined with \"uid\"", modeQuery))
-	}
-
-	if len(errors) > 0 {
-		return fmt.Errorf(strings.Join(errors, " "))
-	}
-	return nil
 }
 
 // CreateUserRepo create a repository for a user
