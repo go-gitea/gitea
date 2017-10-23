@@ -35,6 +35,7 @@ import (
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
 	"github.com/go-xorm/core"
+	"github.com/kballard/go-shellquote"
 	"gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
@@ -1358,7 +1359,6 @@ func newMailService() {
 
 		UseSendmail:  sec.Key("USE_SENDMAIL").MustBool(),
 		SendmailPath: sec.Key("SENDMAIL_PATH").MustString("sendmail"),
-		SendmailArgs: sec.Key("SENDMAIL_ARGS").Strings(" "),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
 
@@ -1373,6 +1373,11 @@ func newMailService() {
 	}
 	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
+
+	MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
+	if err != nil && MailService.UseSendmail {
+		log.Error(4, "Failed to parse Sendmail args: %v", CustomConf, err)
+	}
 
 	log.Info("Mail Service Enabled")
 }
