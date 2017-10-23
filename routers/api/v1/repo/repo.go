@@ -634,7 +634,7 @@ func ListContentsAtSHA(ctx *context.APIContext) {
 		return
 	}
 
-	listing, err := treeListing(tree, ctx.Repo.TreePath, rawLink, ctx.QueryBool("recursive"))
+	listing, err := models.NewRepoTreeListing(tree, ctx.Repo.TreePath, rawLink, ctx.QueryBool("recursive"))
 	if err != nil {
 		ctx.Handle(500, "RepoTreeListing", err)
 		return
@@ -657,70 +657,4 @@ func ListContentsAtSHA(ctx *context.APIContext) {
 	//   ],
 	//   "truncated": false
 	// }
-}
-
-// RepoFile represents a file blob contained in the repository
-type RepoFile struct {
-	Path     string            `json:"path"`
-	// Mode     git.EntryMode     `json:"mode"`
-	Type     git.ObjectType    `json:"type"`
-	Size     int64             `json:"size"` // TODO: Do we include this? It's expensive...
-	SHA      string            `json:"sha"`
-	URL      string            `json:"url"`
-}
-
-// RepoTreeListing represents a tree (or subtree) listing in the repository
-type RepoTreeListing struct {
-	SHA      string     `json:"sha"`
-	Path     string     `json:"path"`
-	Tree     []*RepoFile `json:"tree"`
-}
-
-func repoFile(e *git.TreeEntry, parentPath string, rawLink string) *RepoFile {
-	var filePath string
-	if parentPath != "" {
-		filePath = filepath.Join(parentPath, e.Name())
-	} else {
-		filePath = e.Name()
-	}
-	return &RepoFile{
-		Path: filePath,
-		// Mode: e.mode,  // TODO: Not exported by `git.TreeEntry`
-		Type: e.Type,
-		// Size: e.Size(), // TODO: Expensive!
-		SHA: e.ID.String(),
-		URL: filepath.Join(rawLink, filePath),
-	}
-}
-
-func treeListing(t *git.Tree, treePath, rawLink string, recursive bool) (*RepoTreeListing, error) {
-	tree, err := t.SubTree(treePath)
-	if err != nil {
-		return nil, err
-	}
-
-	var entries []*RepoFile
-	treeEntries, err := tree.ListEntries()
-	if err != nil {
-		return nil, err
-	}
-	treeEntries.CustomSort(base.NaturalSortLess)
-	for i := range treeEntries {
-		entry := treeEntries[i]
-		if entry.IsDir() && recursive {
-			subListing, err := treeListing(t, filepath.Join(treePath, entry.Name()), rawLink, recursive)
-			if err != nil {
-				return nil, err
-			}
-			entries = append(entries, subListing.Tree...)
-		} else {
-			entries = append(entries, repoFile(treeEntries[i], treePath, rawLink))
-		}
-	}
-
-	return &RepoTreeListing{
-		SHA: tree.ID.String(),
-	        Path: treePath,
-		Tree: entries,
-	}, nil
 }
