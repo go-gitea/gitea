@@ -104,17 +104,15 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) b
 
 // GetCommitsCount returns cached commit count for current view
 func (r *Repository) GetCommitsCount() (int64, error) {
+	var contextName string
 	if r.IsViewBranch {
-		return cache.GetInt64(fmt.Sprintf("branch-commits-count-%d-%s", r.Repository.ID, r.BranchName), func() (int64, error) {
-			return r.Commit.CommitsCount()
-		})
+		contextName = r.BranchName
+	} else if r.IsViewTag {
+		contextName = r.TagName
+	} else {
+		contextName = r.CommitID
 	}
-	if r.IsViewTag {
-		return cache.GetInt64(fmt.Sprintf("tag-commits-count-%d-%s", r.Repository.ID, r.TagName), func() (int64, error) {
-			return r.Commit.CommitsCount()
-		})
-	}
-	return cache.GetInt64(fmt.Sprintf("commit-commits-count-%d-%s", r.Repository.ID, r.CommitID), func() (int64, error) {
+	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName), func() (int64, error) {
 		return r.Commit.CommitsCount()
 	})
 }

@@ -213,7 +213,7 @@ func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 			}
 		} else {
 			// Clear cache for tag commit count
-			cache.Remove(fmt.Sprintf("tag-commits-count-%d-%s", repo.ID, tagName))
+			cache.Remove(repo.GetCommitsCountCacheKey(tagName))
 			err = pushUpdateAddTag(repo, gitRepo, tagName)
 			if err != nil {
 				return nil, fmt.Errorf("pushUpdateAddTag: %v", err)
@@ -222,8 +222,8 @@ func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 	} else if !isDelRef {
 		// If is branch reference
 
-		// Clear cache for branch commit counr
-		cache.Remove(fmt.Sprintf("branch-commits-count-%d-%s", repo.ID, opts.RefFullName[len(git.BranchPrefix):]))
+		// Clear cache for branch commit count
+		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefFullName[len(git.BranchPrefix):]))
 
 		newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 		if err != nil {
