@@ -32,17 +32,22 @@ func newSignatureFromCommitline(line []byte) (_ *Signature, err error) {
 	sig.Email = string(line[emailStart+1 : emailEnd])
 
 	// Check date format.
-	firstChar := line[emailEnd+2]
-	if firstChar >= 48 && firstChar <= 57 {
-		timestop := bytes.IndexByte(line[emailEnd+2:], ' ')
-		timestring := string(line[emailEnd+2 : emailEnd+2+timestop])
-		seconds, _ := strconv.ParseInt(timestring, 10, 64)
-		sig.When = time.Unix(seconds, 0)
-	} else {
-		sig.When, err = time.Parse("Mon Jan _2 15:04:05 2006 -0700", string(line[emailEnd+2:]))
-		if err != nil {
-			return nil, err
+	if len(line) > emailEnd+2 {
+		firstChar := line[emailEnd+2]
+		if firstChar >= 48 && firstChar <= 57 {
+			timestop := bytes.IndexByte(line[emailEnd+2:], ' ')
+			timestring := string(line[emailEnd+2 : emailEnd+2+timestop])
+			seconds, _ := strconv.ParseInt(timestring, 10, 64)
+			sig.When = time.Unix(seconds, 0)
+		} else {
+			sig.When, err = time.Parse("Mon Jan _2 15:04:05 2006 -0700", string(line[emailEnd+2:]))
+			if err != nil {
+				return nil, err
+			}
 		}
+	} else {
+		// Fall back to unix 0 time
+		sig.When = time.Unix(0, 0)
 	}
 	return sig, nil
 }
