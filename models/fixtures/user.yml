@@ -13,6 +13,7 @@
   avatar: avatar1
   avatar_email: user1@example.com
   num_repos: 0
+  is_active: true
 
 -
   id: 2
@@ -62,6 +63,7 @@
   avatar_email: user4@example.com
   num_repos: 0
   num_following: 1
+  is_active: true
 
 -
   id: 5

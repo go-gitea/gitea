@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/user"
 
 	"github.com/Unknwon/paginater"
@@ -147,20 +148,11 @@ func ExploreRepos(ctx *context.Context) {
 	})
 }
 
-// UserSearchOptions options when render search user page
-type UserSearchOptions struct {
-	Type     models.UserType
-	Counter  func() int64
-	Ranger   func(*models.SearchUserOptions) ([]*models.User, error)
-	PageSize int
-	TplName  base.TplName
-}
-
 // RenderUserSearch render user search page
-func RenderUserSearch(ctx *context.Context, opts *UserSearchOptions) {
-	page := ctx.QueryInt("page")
-	if page <= 1 {
-		page = 1
+func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplName base.TplName) {
+	opts.Page = ctx.QueryInt("page")
+	if opts.Page <= 1 {
+		opts.Page = 1
 	}
 
 	var (
@@ -189,40 +181,22 @@ func RenderUserSearch(ctx *context.Context, opts *UserSearchOptions) {
 		orderBy = "name ASC"
 	}
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
-	if len(keyword) == 0 {
-		users, err = opts.Ranger(&models.SearchUserOptions{
-			OrderBy:  orderBy,
-			Page:     page,
-			PageSize: opts.PageSize,
-		})
+	opts.Keyword = strings.Trim(ctx.Query("q"), " ")
+	opts.OrderBy = orderBy
+	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
+		users, count, err = models.SearchUsers(opts)
 		if err != nil {
-			ctx.Handle(500, "opts.Ranger", err)
+			ctx.Handle(500, "SearchUsers", err)
 			return
 		}
-		count = opts.Counter()
-	} else {
-		if isKeywordValid(keyword) {
-			users, count, err = models.SearchUserByName(&models.SearchUserOptions{
-				Keyword:  keyword,
-				Type:     opts.Type,
-				OrderBy:  orderBy,
-				Page:     page,
-				PageSize: opts.PageSize,
-			})
-			if err != nil {
-				ctx.Handle(500, "SearchUserByName", err)
-				return
-			}
-		}
 	}
-	ctx.Data["Keyword"] = keyword
+	ctx.Data["Keyword"] = opts.Keyword
 	ctx.Data["Total"] = count
-	ctx.Data["Page"] = paginater.New(int(count), opts.PageSize, page, 5)
+	ctx.Data["Page"] = paginater.New(int(count), opts.PageSize, opts.Page, 5)
 	ctx.Data["Users"] = users
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
 
-	ctx.HTML(200, opts.TplName)
+	ctx.HTML(200, tplName)
 }
 
 // ExploreUsers render explore users page
@@ -231,13 +205,11 @@ func ExploreUsers(ctx *context.Context) {
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreUsers"] = true
 
-	RenderUserSearch(ctx, &UserSearchOptions{
+	RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type:     models.UserTypeIndividual,
-		Counter:  models.CountUsers,
-		Ranger:   models.Users,
 		PageSize: setting.UI.ExplorePagingNum,
-		TplName:  tplExploreUsers,
-	})
+		IsActive: util.OptionalBoolTrue,
+	}, tplExploreUsers)
 }
 
 // ExploreOrganizations render explore organizations page
@@ -246,13 +218,10 @@ func ExploreOrganizations(ctx *context.Context) {
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreOrganizations"] = true
 
-	RenderUserSearch(ctx, &UserSearchOptions{
+	RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type:     models.UserTypeOrganization,
-		Counter:  models.CountOrganizations,
-		Ranger:   models.Organizations,
 		PageSize: setting.UI.ExplorePagingNum,
-		TplName:  tplExploreOrganizations,
-	})
+	}, tplExploreOrganizations)
 }
 
 // NotFound render 404 page

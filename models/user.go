@@ -36,6 +36,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // UserType defines the user type
@@ -729,22 +730,6 @@ func CountUsers() int64 {
 	return countUsers(x)
 }
 
-// Users returns number of users in given page.
-func Users(opts *SearchUserOptions) ([]*User, error) {
-	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = "name ASC"
-	}
-
-	users := make([]*User, 0, opts.PageSize)
-	sess := x.
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		Where("type=0")
-
-	return users, sess.
-		OrderBy(opts.OrderBy).
-		Find(&users)
-}
-
 // get user by verify code
 func getVerifyUser(code string) (user *User) {
 	if len(code) <= base.TimeLimitCodeLength {
@@ -1284,15 +1269,34 @@ type SearchUserOptions struct {
 	OrderBy  string
 	Page     int
 	PageSize int // Can be smaller than or equal to setting.UI.ExplorePagingNum
+	IsActive util.OptionalBool
 }
 
-// SearchUserByName takes keyword and part of user name to search,
-// it returns results in given range and number of total results.
-func SearchUserByName(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
-	if len(opts.Keyword) == 0 {
-		return users, 0, nil
+func (opts *SearchUserOptions) toConds() builder.Cond {
+	var cond builder.Cond = builder.Eq{"type": opts.Type}
+	if len(opts.Keyword) > 0 {
+		lowerKeyword := strings.ToLower(opts.Keyword)
+		cond = cond.And(builder.Or(
+			builder.Like{"lower_name", lowerKeyword},
+			builder.Like{"LOWER(full_name)", lowerKeyword},
+		))
 	}
-	opts.Keyword = strings.ToLower(opts.Keyword)
+
+	if !opts.IsActive.IsNone() {
+		cond = cond.And(builder.Eq{"is_active": opts.IsActive.IsTrue()})
+	}
+
+	return cond
+}
+
+// SearchUsers takes options i.e. keyword and part of user name to search,
+// it returns results in given range and number of total results.
+func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
+	cond := opts.toConds()
+	count, err := x.Where(cond).Count(new(User))
+	if err != nil {
+		return nil, 0, fmt.Errorf("Count: %v", err)
+	}
 
 	if opts.PageSize <= 0 || opts.PageSize > setting.UI.ExplorePagingNum {
 		opts.PageSize = setting.UI.ExplorePagingNum
@@ -1300,29 +1304,15 @@ func SearchUserByName(opts *SearchUserOptions) (users []*User, _ int64, _ error)
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
+	if len(opts.OrderBy) == 0 {
+		opts.OrderBy = "name ASC"
+	}
 
 	users = make([]*User, 0, opts.PageSize)
-
-	// Append conditions
-	cond := builder.And(
-		builder.Eq{"type": opts.Type},
-		builder.Or(
-			builder.Like{"lower_name", opts.Keyword},
-			builder.Like{"LOWER(full_name)", opts.Keyword},
-		),
-	)
-
-	count, err := x.Where(cond).Count(new(User))
-	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
-	}
-
-	sess := x.Where(cond).
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	if len(opts.OrderBy) > 0 {
-		sess.OrderBy(opts.OrderBy)
-	}
-	return users, count, sess.Find(&users)
+	return users, count, x.Where(cond).
+		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
+		OrderBy(opts.OrderBy).
+		Find(&users)
 }
 
 // GetStarredRepos returns the repos starred by a particular user
