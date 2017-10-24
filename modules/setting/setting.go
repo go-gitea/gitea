@@ -1374,9 +1374,11 @@ func newMailService() {
 	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
 
-	MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
-	if err != nil && MailService.UseSendmail {
-		log.Error(4, "Failed to parse Sendmail args: %v", CustomConf, err)
+	if MailService.UseSendmail {
+		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
+		if err != nil {
+			log.Error(4, "Failed to parse Sendmail args: %v", CustomConf, err)
+		}
 	}
 
 	log.Info("Mail Service Enabled")
