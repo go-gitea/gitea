@@ -438,7 +438,7 @@ var (
 	}{
 		DisableDiffHighlight:     false,
 		MaxGitDiffLines:          1000,
-		MaxGitDiffLineCharacters: 500,
+		MaxGitDiffLineCharacters: 5000,
 		MaxGitDiffFiles:          100,
 		GCArgs:                   []string{},
 		Timeout: struct {
