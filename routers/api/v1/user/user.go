@@ -7,13 +7,12 @@ package user
 import (
 	"strings"
 
-	"github.com/Unknwon/com"
-	"github.com/gogits/gogs/pkg/markup"
-
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/Unknwon/com"
 )
 
 // Search search users
