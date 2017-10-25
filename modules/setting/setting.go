@@ -1277,6 +1277,7 @@ type Cache struct {
 	Adapter  string
 	Interval int
 	Conn     string
+	TTL      time.Duration
 }
 
 var (
@@ -1285,7 +1286,7 @@ var (
 )
 
 func newCacheService() {
-	sec := Cfg.Section("mailer")
+	sec := Cfg.Section("cache")
 	CacheService = &Cache{
 		Adapter: sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"}),
 	}
@@ -1297,6 +1298,7 @@ func newCacheService() {
 	default:
 		log.Fatal(4, "Unknown cache adapter: %s", CacheService.Adapter)
 	}
+	CacheService.TTL = sec.Key("ITEM_TTL").MustDuration(16 * time.Hour)
 
 	log.Info("Cache Service Enabled")
 }

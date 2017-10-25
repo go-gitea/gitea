@@ -5,8 +5,6 @@
 package cache
 
 import (
-	"time"
-
 	"code.gitea.io/gitea/modules/setting"
 
 	mc "github.com/go-macaron/cache"
@@ -31,7 +29,7 @@ func NewContext() error {
 
 // GetInt returns key value from cache with callback when no key exists in cache
 func GetInt(key string, getFunc func() (int, error)) (int, error) {
-	if conn == nil {
+	if conn == nil || setting.CacheService.TTL == 0 {
 		return getFunc()
 	}
 	if !conn.IsExist(key) {
@@ -42,14 +40,14 @@ func GetInt(key string, getFunc func() (int, error)) (int, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		conn.Put(key, value, int64(time.Hour.Seconds()))
+		conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
 	}
 	return conn.Get(key).(int), nil
 }
 
 // GetInt64 returns key value from cache with callback when no key exists in cache
 func GetInt64(key string, getFunc func() (int64, error)) (int64, error) {
-	if conn == nil {
+	if conn == nil || setting.CacheService.TTL == 0 {
 		return getFunc()
 	}
 	if !conn.IsExist(key) {
@@ -60,7 +58,7 @@ func GetInt64(key string, getFunc func() (int64, error)) (int64, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		conn.Put(key, value, int64(time.Hour.Seconds()))
+		conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
 	}
 	return conn.Get(key).(int64), nil
 }
