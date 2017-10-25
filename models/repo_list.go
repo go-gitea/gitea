@@ -182,21 +182,12 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 		cond = cond.And(builder.Like{"lower_name", strings.ToLower(opts.Keyword)})
 	}
 
-	var forkCond builder.Cond
-	var mirrorCond builder.Cond
-
 	if opts.Fork != util.OptionalBoolNone {
-		forkCond = builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue}
+		cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
 	}
 
 	if opts.Mirror != util.OptionalBoolNone {
-		mirrorCond = builder.Eq{"is_mirror": opts.Mirror == util.OptionalBoolTrue}
-	}
-
-	if opts.Fork == util.OptionalBoolTrue && opts.Mirror == util.OptionalBoolTrue {
-		cond = cond.And(builder.Or(forkCond, mirrorCond))
-	} else {
-		cond = cond.And(forkCond, mirrorCond)
+		cond = cond.And(builder.Eq{"is_mirror": opts.Mirror == util.OptionalBoolTrue})
 	}
 
 	if len(opts.OrderBy) == 0 {
