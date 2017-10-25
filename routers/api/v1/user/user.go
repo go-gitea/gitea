@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Unknwon/com"
+	"github.com/gogits/gogs/pkg/markup"
 
 	api "code.gitea.io/sdk/gitea"
 
@@ -50,7 +51,7 @@ func Search(ctx *context.APIContext) {
 			ID:        users[i].ID,
 			UserName:  users[i].Name,
 			AvatarURL: users[i].AvatarLink(),
-			FullName:  users[i].FullName,
+			FullName:  markup.Sanitize(users[i].FullName),
 		}
 		if ctx.IsSigned {
 			results[i].Email = users[i].Email
