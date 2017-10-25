@@ -16,13 +16,8 @@ import (
 )
 
 type (
-
 	// DingtalkPayload represents
 	DingtalkPayload dingtalk.Payload
-
-	// DingtalkMeta meta info
-	DingtalkMeta struct {
-	}
 )
 
 // SetSecret sets the dingtalk secret
@@ -37,7 +32,7 @@ func (p *DingtalkPayload) JSONPayload() ([]byte, error) {
 	return data, nil
 }
 
-func getDingtalkCreatePayload(p *api.CreatePayload, meta *DingtalkMeta) (*DingtalkPayload, error) {
+func getDingtalkCreatePayload(p *api.CreatePayload) (*DingtalkPayload, error) {
 	// created tag/branch
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
@@ -54,7 +49,7 @@ func getDingtalkCreatePayload(p *api.CreatePayload, meta *DingtalkMeta) (*Dingta
 	}, nil
 }
 
-func getDingtalkPushPayload(p *api.PushPayload, meta *DingtalkMeta) (*DingtalkPayload, error) {
+func getDingtalkPushPayload(p *api.PushPayload) (*DingtalkPayload, error) {
 	var (
 		branchName = git.RefEndName(p.Ref)
 		commitDesc string
@@ -79,8 +74,12 @@ func getDingtalkPushPayload(p *api.PushPayload, meta *DingtalkMeta) (*DingtalkPa
 	var text string
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
-		text += fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL,
-			strings.TrimRight(commit.Message, "\r\n"), commit.Author.Name)
+		var authorName string
+		if commit.Author != nil {
+			authorName = " - " + commit.Author.Name
+		}
+		text += fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
+			strings.TrimRight(commit.Message, "\r\n")) + authorName
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
 			text += "\n"
@@ -90,8 +89,8 @@ func getDingtalkPushPayload(p *api.PushPayload, meta *DingtalkMeta) (*DingtalkPa
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text:        title,
-			Title:       text,
+			Text:        text,
+			Title:       title,
 			HideAvatar:  "0",
 			SingleTitle: linkText,
 			SingleURL:   titleLink,
@@ -99,7 +98,7 @@ func getDingtalkPushPayload(p *api.PushPayload, meta *DingtalkMeta) (*DingtalkPa
 	}, nil
 }
 
-func getDingtalkPullRequestPayload(p *api.PullRequestPayload, meta *DingtalkMeta) (*DingtalkPayload, error) {
+func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload, error) {
 	var text, title string
 	switch p.Action {
 	case api.HookIssueOpened:
@@ -139,8 +138,8 @@ func getDingtalkPullRequestPayload(p *api.PullRequestPayload, meta *DingtalkMeta
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text:        title,
-			Title:       text,
+			Text:        text,
+			Title:       title,
 			HideAvatar:  "0",
 			SingleTitle: "view pull request",
 			SingleURL:   p.PullRequest.HTMLURL,
@@ -148,7 +147,7 @@ func getDingtalkPullRequestPayload(p *api.PullRequestPayload, meta *DingtalkMeta
 	}, nil
 }
 
-func getDingtalkRepositoryPayload(p *api.RepositoryPayload, meta *DingtalkMeta) (*DingtalkPayload, error) {
+func getDingtalkRepositoryPayload(p *api.RepositoryPayload) (*DingtalkPayload, error) {
 	var title, url string
 	switch p.Action {
 	case api.HookRepoCreated:
@@ -183,17 +182,15 @@ func getDingtalkRepositoryPayload(p *api.RepositoryPayload, meta *DingtalkMeta) 
 func GetDingtalkPayload(p api.Payloader, event HookEventType, meta string) (*DingtalkPayload, error) {
 	s := new(DingtalkPayload)
 
-	dingtalk := &DingtalkMeta{}
-
 	switch event {
 	case HookEventCreate:
-		return getDingtalkCreatePayload(p.(*api.CreatePayload), dingtalk)
+		return getDingtalkCreatePayload(p.(*api.CreatePayload))
 	case HookEventPush:
-		return getDingtalkPushPayload(p.(*api.PushPayload), dingtalk)
+		return getDingtalkPushPayload(p.(*api.PushPayload))
 	case HookEventPullRequest:
-		return getDingtalkPullRequestPayload(p.(*api.PullRequestPayload), dingtalk)
+		return getDingtalkPullRequestPayload(p.(*api.PullRequestPayload))
 	case HookEventRepository:
-		return getDingtalkRepositoryPayload(p.(*api.RepositoryPayload), dingtalk)
+		return getDingtalkRepositoryPayload(p.(*api.RepositoryPayload))
 	}
 
 	return s, nil

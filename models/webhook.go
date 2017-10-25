@@ -527,7 +527,7 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 	case DING_TALK:
 		payloader, err = GetDingtalkPayload(p, event, w.Meta)
 		if err != nil {
-			return fmt.Errorf("GetDiscordPayload: %v", err)
+			return fmt.Errorf("GetDingtalkPayload: %v", err)
 		}
 	default:
 		p.SetSecret(w.Secret)
