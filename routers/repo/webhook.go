@@ -293,7 +293,7 @@ func DingtalkHooksNewPost(ctx *context.Context, form auth.NewDingtalkHookForm) {
 		ContentType:  models.ContentTypeJSON,
 		HookEvent:    ParseHookEvent(form.WebhookForm),
 		IsActive:     form.Active,
-		HookTaskType: models.DING_TALK,
+		HookTaskType: models.DINGTALK,
 		Meta:         "",
 		OrgID:        orCtx.OrgID,
 	}
@@ -385,19 +385,12 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 		return nil, nil
 	}
 
+	ctx.Data["HookType"] = w.HookTaskType.Name()
 	switch w.HookTaskType {
 	case models.SLACK:
 		ctx.Data["SlackHook"] = w.GetSlackHook()
-		ctx.Data["HookType"] = "slack"
-	case models.GOGS:
-		ctx.Data["HookType"] = "gogs"
 	case models.DISCORD:
 		ctx.Data["DiscordHook"] = w.GetDiscordHook()
-		ctx.Data["HookType"] = "discord"
-	case models.DING_TALK:
-		ctx.Data["HookType"] = "dingtalk"
-	default:
-		ctx.Data["HookType"] = "gitea"
 	}
 
 	ctx.Data["History"], err = w.History(1)
