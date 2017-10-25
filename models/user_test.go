@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,6 +37,56 @@ func TestCanCreateOrganization(t *testing.T) {
 	user.AllowCreateOrganization = true
 	assert.True(t, admin.CanCreateOrganization())
 	assert.False(t, user.CanCreateOrganization())
+}
+
+func TestSearchUsers(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	testSuccess := func(opts *SearchUserOptions, expectedUserOrOrgIDs []int64) {
+		users, _, err := SearchUsers(opts)
+		assert.NoError(t, err)
+		if assert.Len(t, users, len(expectedUserOrOrgIDs)) {
+			for i, expectedID := range expectedUserOrOrgIDs {
+				assert.EqualValues(t, expectedID, users[i].ID)
+			}
+		}
+	}
+
+	// test orgs
+	testOrgSuccess := func(opts *SearchUserOptions, expectedOrgIDs []int64) {
+		opts.Type = UserTypeOrganization
+		testSuccess(opts, expectedOrgIDs)
+	}
+
+	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1, PageSize: 2},
+		[]int64{3, 6})
+
+	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 2, PageSize: 2},
+		[]int64{7, 17})
+
+	testOrgSuccess(&SearchUserOptions{Page: 3, PageSize: 2},
+		[]int64{})
+
+	// test users
+	testUserSuccess := func(opts *SearchUserOptions, expectedUserIDs []int64) {
+		opts.Type = UserTypeIndividual
+		testSuccess(opts, expectedUserIDs)
+	}
+
+	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1},
+		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18})
+
+	testUserSuccess(&SearchUserOptions{Page: 1, IsActive: util.OptionalBoolFalse},
+		[]int64{9})
+
+	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1, IsActive: util.OptionalBoolTrue},
+		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18})
+
+	testUserSuccess(&SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", Page: 1, IsActive: util.OptionalBoolTrue},
+		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
+
+	// order by name asc default
+	testUserSuccess(&SearchUserOptions{Keyword: "user1", Page: 1, IsActive: util.OptionalBoolTrue},
+		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
 }
 
 func TestDeleteUser(t *testing.T) {
