@@ -332,15 +332,15 @@ const (
 	SLACK
 	GITEA
 	DISCORD
-	DING_TALK
+	DINGTALK
 )
 
 var hookTaskTypes = map[string]HookTaskType{
-	"gitea":     GITEA,
-	"gogs":      GOGS,
-	"slack":     SLACK,
-	"discord":   DISCORD,
-	"ding_talk": DING_TALK,
+	"gitea":    GITEA,
+	"gogs":     GOGS,
+	"slack":    SLACK,
+	"discord":  DISCORD,
+	"dingtalk": DINGTALK,
 }
 
 // ToHookTaskType returns HookTaskType by given name.
@@ -359,8 +359,8 @@ func (t HookTaskType) Name() string {
 		return "slack"
 	case DISCORD:
 		return "discord"
-	case DING_TALK:
-		return "ding_talk"
+	case DINGTALK:
+		return "dingtalk"
 	}
 	return ""
 }
@@ -524,7 +524,7 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		if err != nil {
 			return fmt.Errorf("GetDiscordPayload: %v", err)
 		}
-	case DING_TALK:
+	case DINGTALK:
 		payloader, err = GetDingtalkPayload(p, event, w.Meta)
 		if err != nil {
 			return fmt.Errorf("GetDingtalkPayload: %v", err)
