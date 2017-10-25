@@ -1236,6 +1236,8 @@ func ValidateCommitsWithEmails(oldCommits *list.List) *list.List {
 			} else {
 				u = v
 			}
+		} else {
+			u = nil
 		}
 
 		newCommits.PushBack(UserCommit{
