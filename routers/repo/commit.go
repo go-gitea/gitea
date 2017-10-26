@@ -53,8 +53,9 @@ func Commits(ctx *context.Context) {
 		ctx.Handle(404, "Commit not found", nil)
 		return
 	}
+	ctx.Data["PageIsViewCode"] = true
 
-	commitsCount, err := ctx.Repo.Commit.CommitsCount()
+	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
 		ctx.Handle(500, "GetCommitsCount", err)
 		return
@@ -88,8 +89,9 @@ func Commits(ctx *context.Context) {
 // Graph render commit graph - show commits from all branches.
 func Graph(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
+	ctx.Data["PageIsViewCode"] = true
 
-	commitsCount, err := ctx.Repo.Commit.CommitsCount()
+	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
 		ctx.Handle(500, "GetCommitsCount", err)
 		return
@@ -114,6 +116,7 @@ func Graph(ctx *context.Context) {
 // SearchCommits render commits filtered by keyword
 func SearchCommits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
+	ctx.Data["PageIsViewCode"] = true
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	if len(keyword) == 0 {

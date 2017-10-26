@@ -4,14 +4,16 @@
 			<th class="four wide">
 				{{if .LatestCommitUser}}
 					<img class="ui avatar image img-12" src="{{.LatestCommitUser.RelAvatarLink}}" />
-				  {{if .LatestCommitUser.FullName}}
-					  <a href="{{AppSubUrl}}/{{.LatestCommitUser.Name}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
-				  {{else}}
-				    <a href="{{AppSubUrl}}/{{.LatestCommitUser.Name}}"><strong>{{.LatestCommit.Author.Name}}</strong></a>
-				  {{end}}
+					{{if .LatestCommitUser.FullName}}
+						<a href="{{AppSubUrl}}/{{.LatestCommitUser.Name}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
+					{{else}}
+						<a href="{{AppSubUrl}}/{{.LatestCommitUser.Name}}"><strong>{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}</strong></a>
+					{{end}}
 				{{else}}
-					<img class="ui avatar image img-12" src="{{AvatarLink .LatestCommit.Author.Email}}" />
-					<strong>{{.LatestCommit.Author.Name}}</strong>
+					{{if .LatestCommit.Author}}
+						<img class="ui avatar image img-12" src="{{AvatarLink .LatestCommit.Author.Email}}" />
+						<strong>{{.LatestCommit.Author.Name}}</strong>
+					{{end}}
 				{{end}}
 				<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified }} isVerified {{end}}{{end}}" href="{{.RepoLink}}/commit/{{.LatestCommit.ID}}">
 						{{ShortSha .LatestCommit.ID.String}}
@@ -30,7 +32,7 @@
 			</th>
 			<th class="nine wide">
 			</th>
-			<th class="three wide text grey right age">{{TimeSince .LatestCommit.Author.When $.Lang}}</th>
+			<th class="three wide text grey right age">{{if .LatestCommit.Author}}{{TimeSince .LatestCommit.Author.When $.Lang}}{{end}}</th>
 		</tr>
 	</thead>
 	<tbody>

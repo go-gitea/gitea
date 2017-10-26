@@ -9,9 +9,10 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 
 	"code.gitea.io/git"
-
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -119,11 +120,24 @@ func pushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string)
 	if err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
-	tagCreatedUnix := commit.Author.When.Unix()
 
-	author, err := GetUserByEmail(commit.Author.Email)
-	if err != nil && !IsErrUserNotExist(err) {
-		return fmt.Errorf("GetUserByEmail: %v", err)
+	sig := tag.Tagger
+	if sig == nil {
+		sig = commit.Author
+	}
+	if sig == nil {
+		sig = commit.Committer
+	}
+
+	var author *User
+	var createdAt = time.Unix(1, 0)
+
+	if sig != nil {
+		author, err = GetUserByEmail(sig.Email)
+		if err != nil && !IsErrUserNotExist(err) {
+			return fmt.Errorf("GetUserByEmail: %v", err)
+		}
+		createdAt = sig.When
 	}
 
 	commitsCount, err := commit.CommitsCount()
@@ -144,7 +158,8 @@ func pushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string)
 			IsDraft:      false,
 			IsPrerelease: false,
 			IsTag:        true,
-			CreatedUnix:  tagCreatedUnix,
+			Created:      createdAt,
+			CreatedUnix:  createdAt.Unix(),
 		}
 		if author != nil {
 			rel.PublisherID = author.ID
@@ -155,7 +170,8 @@ func pushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string)
 		}
 	} else {
 		rel.Sha1 = commit.ID.String()
-		rel.CreatedUnix = tagCreatedUnix
+		rel.Created = createdAt
+		rel.CreatedUnix = createdAt.Unix()
 		rel.NumCommits = commitsCount
 		rel.IsDraft = false
 		if rel.IsTag && author != nil {
@@ -205,19 +221,26 @@ func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 	var commits = &PushCommits{}
 	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 		// If is tag reference
+		tagName := opts.RefFullName[len(git.TagPrefix):]
 		if isDelRef {
-			err = pushUpdateDeleteTag(repo, gitRepo, opts.RefFullName[len(git.TagPrefix):])
+			err = pushUpdateDeleteTag(repo, gitRepo, tagName)
 			if err != nil {
 				return nil, fmt.Errorf("pushUpdateDeleteTag: %v", err)
 			}
 		} else {
-			err = pushUpdateAddTag(repo, gitRepo, opts.RefFullName[len(git.TagPrefix):])
+			// Clear cache for tag commit count
+			cache.Remove(repo.GetCommitsCountCacheKey(tagName, true))
+			err = pushUpdateAddTag(repo, gitRepo, tagName)
 			if err != nil {
 				return nil, fmt.Errorf("pushUpdateAddTag: %v", err)
 			}
 		}
 	} else if !isDelRef {
 		// If is branch reference
+
+		// Clear cache for branch commit count
+		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefFullName[len(git.BranchPrefix):], true))
+
 		newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 		if err != nil {
 			return nil, fmt.Errorf("gitRepo.GetCommit: %v", err)

@@ -99,9 +99,9 @@ func NewMacaron() *macaron.Macaron {
 		Redirect:    true,
 	}))
 	m.Use(cache.Cacher(cache.Options{
-		Adapter:       setting.CacheAdapter,
-		AdapterConfig: setting.CacheConn,
-		Interval:      setting.CacheInterval,
+		Adapter:       setting.CacheService.Adapter,
+		AdapterConfig: setting.CacheService.Conn,
+		Interval:      setting.CacheService.Interval,
 	}))
 	m.Use(captcha.Captchaer(captcha.Options{
 		SubURL: setting.AppSubURL,
@@ -550,7 +550,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/branches", func() {
 			m.Post("/_new/*", context.RepoRef(), bindIgnErr(auth.NewBranchForm{}), repo.CreateBranch)
-		}, reqRepoWriter, repo.MustBeNotBare)
+			m.Post("/delete", repo.DeleteBranchPost)
+			m.Post("/restore", repo.RestoreBranchPost)
+		}, reqRepoWriter, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
+
 	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits())
 
 	// Releases
@@ -573,9 +576,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 				ctx.Handle(500, "GetBranchCommit", err)
 				return
 			}
-			ctx.Repo.CommitsCount, err = ctx.Repo.Commit.CommitsCount()
+			ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
 			if err != nil {
-				ctx.Handle(500, "CommitsCount", err)
+				ctx.Handle(500, "GetCommitsCount", err)
 				return
 			}
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
@@ -614,6 +617,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, context.RepoRef(), repo.MustBeNotBare, context.CheckAnyUnit(models.UnitTypePullRequests, models.UnitTypeIssues, models.UnitTypeReleases))
 
 		m.Get("/archive/*", repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.Download)
+
+		m.Group("/branches", func() {
+			m.Get("", repo.Branches)
+		}, repo.MustBeNotBare, context.RepoRef(), context.CheckUnit(models.UnitTypeCode))
 
 		m.Group("/pulls/:index", func() {
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
