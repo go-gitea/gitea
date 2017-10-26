@@ -24,7 +24,7 @@ func FollowUser(userID, followID int64) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func UnfollowUser(userID, followID int64) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}

@@ -9,6 +9,12 @@ import (
 	"strings"
 )
 
+// Init initialize regexps for markdown parsing
+func Init() {
+	getIssueFullPattern()
+	NewSanitizer()
+}
+
 // Parser defines an interface for parsering markup file to HTML
 type Parser interface {
 	Name() string // markup format name
@@ -17,66 +23,94 @@ type Parser interface {
 }
 
 var (
-	parsers = make(map[string]Parser)
+	extParsers = make(map[string]Parser)
+	parsers    = make(map[string]Parser)
 )
 
 // RegisterParser registers a new markup file parser
 func RegisterParser(parser Parser) {
+	parsers[parser.Name()] = parser
 	for _, ext := range parser.Extensions() {
-		parsers[strings.ToLower(ext)] = parser
+		extParsers[strings.ToLower(ext)] = parser
 	}
+}
+
+// GetParserByFileName get parser by filename
+func GetParserByFileName(filename string) Parser {
+	extension := strings.ToLower(filepath.Ext(filename))
+	return extParsers[extension]
+}
+
+// GetParserByType returns a parser according type
+func GetParserByType(tp string) Parser {
+	return parsers[tp]
 }
 
 // Render renders markup file to HTML with all specific handling stuff.
 func Render(filename string, rawBytes []byte, urlPrefix string, metas map[string]string) []byte {
-	return render(filename, rawBytes, urlPrefix, metas, false)
+	return renderFile(filename, rawBytes, urlPrefix, metas, false)
 }
 
-func render(filename string, rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
-	extension := strings.ToLower(filepath.Ext(filename))
-	if parser, ok := parsers[extension]; ok {
-		return parser.Render(rawBytes, urlPrefix, metas, isWiki)
-	}
-	return nil
+// RenderByType renders markup to HTML with special links and returns string type.
+func RenderByType(tp string, rawBytes []byte, urlPrefix string, metas map[string]string) []byte {
+	return renderByType(tp, rawBytes, urlPrefix, metas, false)
 }
 
 // RenderString renders Markdown to HTML with special links and returns string type.
 func RenderString(filename string, raw, urlPrefix string, metas map[string]string) string {
-	return string(render(filename, []byte(raw), urlPrefix, metas, false))
+	return string(renderFile(filename, []byte(raw), urlPrefix, metas, false))
 }
 
 // RenderWiki renders markdown wiki page to HTML and return HTML string
 func RenderWiki(filename string, rawBytes []byte, urlPrefix string, metas map[string]string) string {
-	return string(render(filename, rawBytes, urlPrefix, metas, true))
+	return string(renderFile(filename, rawBytes, urlPrefix, metas, true))
+}
+
+func render(parser Parser, rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
+	urlPrefix = strings.Replace(urlPrefix, " ", "+", -1)
+	result := parser.Render(rawBytes, urlPrefix, metas, isWiki)
+	result = PostProcess(result, urlPrefix, metas, isWiki)
+	return SanitizeBytes(result)
+}
+
+func renderByType(tp string, rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
+	if parser, ok := parsers[tp]; ok {
+		return render(parser, rawBytes, urlPrefix, metas, isWiki)
+	}
+	return nil
+}
+
+func renderFile(filename string, rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
+	extension := strings.ToLower(filepath.Ext(filename))
+	if parser, ok := extParsers[extension]; ok {
+		return render(parser, rawBytes, urlPrefix, metas, isWiki)
+	}
+	return nil
 }
 
 // Type returns if markup format via the filename
 func Type(filename string) string {
-	extension := strings.ToLower(filepath.Ext(filename))
-	if parser, ok := parsers[extension]; ok {
+	if parser := GetParserByFileName(filename); parser != nil {
 		return parser.Name()
 	}
 	return ""
 }
 
-// ReadmeFileType reports whether name looks like a README file
-// based on its name and find the parser via its ext name
-func ReadmeFileType(name string) (string, bool) {
-	if IsReadmeFile(name) {
-		return Type(name), true
+// IsMarkupFile reports whether file is a markup type file
+func IsMarkupFile(name, markup string) bool {
+	if parser := GetParserByFileName(name); parser != nil {
+		return parser.Name() == markup
 	}
-	return "", false
+	return false
 }
 
 // IsReadmeFile reports whether name looks like a README file
 // based on its name.
 func IsReadmeFile(name string) bool {
+	name = strings.ToLower(name)
 	if len(name) < 6 {
 		return false
-	}
-
-	name = strings.ToLower(name)
-	if len(name) == 6 {
+	} else if len(name) == 6 {
 		return name == "readme"
 	}
 	return name[:7] == "readme."

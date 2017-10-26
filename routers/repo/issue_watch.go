@@ -21,10 +21,8 @@ func IssueWatch(c *context.Context) {
 		return
 	}
 
-	issueIndex := c.ParamsInt64("index")
-	issue, err := models.GetIssueByIndex(c.Repo.Repository.ID, issueIndex)
-	if err != nil {
-		c.Handle(http.StatusInternalServerError, "GetIssueByIndex", err)
+	issue := GetActionIssue(c)
+	if c.Written() {
 		return
 	}
 
@@ -33,6 +31,6 @@ func IssueWatch(c *context.Context) {
 		return
 	}
 
-	url := fmt.Sprintf("%s/issues/%d", c.Repo.RepoLink, issueIndex)
+	url := fmt.Sprintf("%s/issues/%d", c.Repo.RepoLink, issue.Index)
 	c.Redirect(url, http.StatusSeeOther)
 }

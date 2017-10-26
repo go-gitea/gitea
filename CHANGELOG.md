@@ -6,6 +6,48 @@
   * Password reset URL changed from `/user/forget_password` to `/user/forgot_password`
   * SSH keys management URL changed from `/user/settings/ssh` to `/user/settings/keys`
 
+## [1.1.4](https://github.com/go-gitea/gitea/releases/tag/v1.1.4) - 2017-09-04
+
+* BUGFIXES
+  * Fix rendering of external links (#2292) (#2315)
+  * Fix deleted milestone bug (#1942) (#2300)
+  * fix 500 error when view an issue which's milestone deleted (#2297) (#2299)
+  * Fix SHA1 hash linking (#2143) (#2293)
+  * back port from #1709 (#2291)
+
+## [1.1.3](https://github.com/go-gitea/gitea/releases/tag/v1.1.3) - 2017-08-03
+
+* BUGFIXES
+  * Fix PR template error (#2008)
+  * Fix markdown rendering (fix #1530) (#2043)
+  * Fix missing less sources for oauth (backport #1288) (#2135)
+  * Don't ignore gravatar error (#2138)
+  * Fix diff of renamed and modified file (#2136)
+  * Fix fast-forward PR bug (#2137)
+  * Fix some security bugs
+
+## [1.1.2](https://github.com/go-gitea/gitea/releases/tag/v1.1.2) - 2017-06-13
+
+* BUGFIXES
+  * Enforce netgo build tag while cross-compilation (Backport of #1690) (#1731)
+  * fix update avatar
+  * fix delete user failed on sqlite (#1321)
+  * fix bug not to trim space of login username (#1806)
+  * Backport bugfixes #1220 and #1393 to v1.1 (#1758)
+
+## [1.1.1](https://github.com/go-gitea/gitea/releases/tag/v1.1.1) - 2017-05-04
+
+* BUGFIXES
+  * Markdown Sanitation Fix [#1646](https://github.com/go-gitea/gitea/pull/1646)
+  * Fix broken hooks [#1376](https://github.com/go-gitea/gitea/pull/1376)
+  * Fix migration issue [#1375](https://github.com/go-gitea/gitea/pull/1375)
+  * Fix Wiki Issues [#1338](https://github.com/go-gitea/gitea/pull/1338)
+  * Forgotten migration for wiki githooks [#1237](https://github.com/go-gitea/gitea/pull/1237)
+  * Commit messages can contain pipes [#1218](https://github.com/go-gitea/gitea/pull/1218)
+  * Verify external tracker URLs [#1236](https://github.com/go-gitea/gitea/pull/1236)
+  * Allow upgrade after downgrade [#1197](https://github.com/go-gitea/gitea/pull/1197)
+  * 500 on delete repo with issue [#1195](https://github.com/go-gitea/gitea/pull/1195)
+  * INI compat with CrowdIn [#1192](https://github.com/go-gitea/gitea/pull/1192)
 
 ## [1.1.0](https://github.com/go-gitea/gitea/releases/tag/v1.1.0) - 2017-03-09
 

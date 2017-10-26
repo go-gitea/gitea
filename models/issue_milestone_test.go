@@ -5,13 +5,13 @@
 package models
 
 import (
+	"sort"
 	"testing"
+	"time"
 
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
-	"sort"
-	"time"
 )
 
 func TestMilestone_State(t *testing.T) {

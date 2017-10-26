@@ -113,20 +113,19 @@ func (q *DateRangeQuery) SetBoost(b float64) {
 	q.BoostVal = &boost
 }
 
-func (q *DateRangeQuery) Boost() float64{
+func (q *DateRangeQuery) Boost() float64 {
 	return q.BoostVal.Value()
 }
-
 
 func (q *DateRangeQuery) SetField(f string) {
 	q.FieldVal = f
 }
 
-func (q *DateRangeQuery) Field() string{
+func (q *DateRangeQuery) Field() string {
 	return q.FieldVal
 }
 
-func (q *DateRangeQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error) {
+func (q *DateRangeQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
 	min, max, err := q.parseEndpoints()
 	if err != nil {
 		return nil, err
@@ -137,7 +136,7 @@ func (q *DateRangeQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, e
 		field = m.DefaultSearchField()
 	}
 
-	return searcher.NewNumericRangeSearcher(i, min, max, q.InclusiveStart, q.InclusiveEnd, field, q.BoostVal.Value(), explain)
+	return searcher.NewNumericRangeSearcher(i, min, max, q.InclusiveStart, q.InclusiveEnd, field, q.BoostVal.Value(), options)
 }
 
 func (q *DateRangeQuery) parseEndpoints() (*float64, *float64, error) {

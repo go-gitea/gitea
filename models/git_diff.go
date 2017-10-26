@@ -365,10 +365,12 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 			}
 
 			curFile = &DiffFile{
-				Name:     a,
-				Index:    len(diff.Files) + 1,
-				Type:     DiffFileChange,
-				Sections: make([]*DiffSection, 0, 10),
+				Name:      b,
+				OldName:   a,
+				Index:     len(diff.Files) + 1,
+				Type:      DiffFileChange,
+				Sections:  make([]*DiffSection, 0, 10),
+				IsRenamed: a != b,
 			}
 			diff.Files = append(diff.Files, curFile)
 			if len(diff.Files) >= maxFiles {
@@ -401,9 +403,6 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 					curFile.Type = DiffFileChange
 				case strings.HasPrefix(line, "similarity index 100%"):
 					curFile.Type = DiffFileRename
-					curFile.IsRenamed = true
-					curFile.OldName = curFile.Name
-					curFile.Name = b
 				}
 				if curFile.Type > 0 {
 					if strings.HasSuffix(line, " 160000\n") {

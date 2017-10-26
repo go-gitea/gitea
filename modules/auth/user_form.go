@@ -41,11 +41,14 @@ type InstallForm struct {
 	OfflineMode                    bool
 	DisableGravatar                bool
 	EnableFederatedAvatar          bool
+	EnableOpenIDSignIn             bool
+	EnableOpenIDSignUp             bool
 	DisableRegistration            bool
 	EnableCaptcha                  bool
 	RequireSignInView              bool
 	DefaultKeepEmailPrivate        bool
 	DefaultAllowCreateOrganization bool
+	DefaultEnableTimetracking      bool
 	NoReplyAddress                 string
 
 	AdminName          string `binding:"OmitEmpty;AlphaDashDot;MaxSize(30)" locale:"install.admin_name"`
@@ -100,7 +103,7 @@ func (f *SignInForm) Validate(ctx *macaron.Context, errs binding.Errors) binding
 
 // UpdateProfileForm form for updating profile
 type UpdateProfileForm struct {
-	Name             string `binding:"OmitEmpty;MaxSize(35)"`
+	Name             string `binding:"AlphaDashDot;MaxSize(35)"`
 	FullName         string `binding:"MaxSize(100)"`
 	Email            string `binding:"Required;Email;MaxSize(254)"`
 	KeepEmailPrivate bool

@@ -7,7 +7,7 @@
 
 <body>
 	<p>Hi <b>{{.Username}}</b>,</p>
-	<p>Please click the following link to verify your email address within <b>{{.ResetPwdCodeLives}} hours</b>:</p>
+	<p>Please click the following link to verify your email address within <b>{{.ResetPwdCodeLives}}</b>:</p>
 	<p><a href="{{AppUrl}}user/reset_password?code={{.Code}}">{{AppUrl}}user/reset_password?code={{.Code}}</a></p>
 	<p>Not working? Try copying and pasting it to your browser.</p>
 	<p>© <a target="_blank" rel="noopener" href="{{AppUrl}}">{{AppName}}</a></p>

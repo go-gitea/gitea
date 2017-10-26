@@ -21,7 +21,7 @@ func TestAccessLevel(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	user1 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user2 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
+	user2 := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 	repo1 := AssertExistsAndLoadBean(t, &Repository{OwnerID: 2, IsPrivate: false}).(*Repository)
 	repo2 := AssertExistsAndLoadBean(t, &Repository{OwnerID: 3, IsPrivate: true}).(*Repository)
 
@@ -46,7 +46,7 @@ func TestHasAccess(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	user1 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user2 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
+	user2 := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 	repo1 := AssertExistsAndLoadBean(t, &Repository{OwnerID: 2, IsPrivate: false}).(*Repository)
 	repo2 := AssertExistsAndLoadBean(t, &Repository{OwnerID: 3, IsPrivate: true}).(*Repository)
 

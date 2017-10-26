@@ -114,6 +114,36 @@ var migrations = []Migration{
 	NewMigration("add field for login source synchronization", addLoginSourceSyncEnabledColumn),
 	// v32 -> v33
 	NewMigration("add units for team", addUnitsToRepoTeam),
+	// v33 -> v34
+	NewMigration("remove columns from action", removeActionColumns),
+	// v34 -> v35
+	NewMigration("give all units to owner teams", giveAllUnitsToOwnerTeams),
+	// v35 -> v36
+	NewMigration("adds comment to an action", addCommentIDToAction),
+	// v36 -> v37
+	NewMigration("regenerate git hooks", regenerateGitHooks36),
+	// v37 -> v38
+	NewMigration("unescape user full names", unescapeUserFullNames),
+	// v38 -> v39
+	NewMigration("remove commits and settings unit types", removeCommitsUnitType),
+	// v39 -> v40
+	NewMigration("adds time tracking and stopwatches", addTimetracking),
+	// v40 -> v41
+	NewMigration("migrate protected branch struct", migrateProtectedBranchStruct),
+	// v41 -> v42
+	NewMigration("add default value to user prohibit_login", addDefaultValueToUserProhibitLogin),
+	// v42 -> v43
+	NewMigration("add tags to releases and sync existing repositories", releaseAddColumnIsTagAndSyncTags),
+	// v43 -> v44
+	NewMigration("fix protected branch can push value to false", fixProtectedBranchCanPushValue),
+	// v44 -> v45
+	NewMigration("remove duplicate unit types", removeDuplicateUnitTypes),
+	// v45 -> v46
+	NewMigration("remove index column from repo_unit table", removeIndexColumnFromRepoUnitTable),
+	// v46 -> v47
+	NewMigration("remove organization watch repositories", removeOrganizationWatchRepo),
+	// v47 -> v48
+	NewMigration("add deleted branches", addDeletedBranch),
 }
 
 // Migrate database to current version
@@ -147,7 +177,7 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 	if int(v-minDBVersion) > len(migrations) {
 		// User downgraded Gitea.
 		currentVersion.Version = int64(len(migrations) + minDBVersion)
-		_, err = x.Id(1).Update(currentVersion)
+		_, err = x.ID(1).Update(currentVersion)
 		return err
 	}
 	for i, m := range migrations[v-minDBVersion:] {
@@ -156,18 +186,11 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 			return fmt.Errorf("do migrate: %v", err)
 		}
 		currentVersion.Version = v + int64(i) + 1
-		if _, err = x.Id(1).Update(currentVersion); err != nil {
+		if _, err = x.ID(1).Update(currentVersion); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func sessionRelease(sess *xorm.Session) {
-	if !sess.IsCommitedOrRollbacked {
-		sess.Rollback()
-	}
-	sess.Close()
 }
 
 func fixLocaleFileLoadPanic(_ *xorm.Engine) error {
@@ -210,7 +233,7 @@ func trimCommitActionAppURLPrefix(x *xorm.Engine) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -283,7 +306,7 @@ func issueToIssueLabel(x *xorm.Engine) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -326,7 +349,7 @@ func attachmentRefactor(x *xorm.Engine) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -404,7 +427,7 @@ func renamePullRequestFields(x *xorm.Engine) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -488,7 +511,7 @@ func generateOrgRandsAndSalt(x *xorm.Engine) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -707,8 +730,7 @@ func convertDateToUnix(x *xorm.Engine) (err error) {
 		offset := 0
 		for {
 			beans := make([]*Bean, 0, 100)
-			if err = x.SQL(fmt.Sprintf("SELECT * FROM `%s` ORDER BY id ASC LIMIT 100 OFFSET %d",
-				table.name, offset)).Find(&beans); err != nil {
+			if err = x.Table(table.name).Asc("id").Limit(100, offset).Find(&beans); err != nil {
 				return fmt.Errorf("select beans [table: %s, offset: %d]: %v", table.name, offset, err)
 			}
 			log.Trace("Table [%s]: offset: %d, beans: %d", table.name, offset, len(beans))

@@ -21,25 +21,30 @@ import (
 	"github.com/blevesearch/bleve/index"
 )
 
-type Location struct {
-	Pos            float64   `json:"pos"`
-	Start          float64   `json:"start"`
-	End            float64   `json:"end"`
-	ArrayPositions []float64 `json:"array_positions"`
-}
+type ArrayPositions []uint64
 
-// SameArrayElement returns true if two locations are point to
-// the same array element
-func (l *Location) SameArrayElement(other *Location) bool {
-	if len(l.ArrayPositions) != len(other.ArrayPositions) {
+func (ap ArrayPositions) Equals(other ArrayPositions) bool {
+	if len(ap) != len(other) {
 		return false
 	}
-	for i, elem := range l.ArrayPositions {
-		if other.ArrayPositions[i] != elem {
+	for i := range ap {
+		if ap[i] != other[i] {
 			return false
 		}
 	}
 	return true
+}
+
+type Location struct {
+	// Pos is the position of the term within the field, starting at 1
+	Pos            uint64         `json:"pos"`
+	
+	// Start and End are the byte offsets of the term in the field
+	Start          uint64         `json:"start"`
+	End            uint64         `json:"end"`
+	
+	// ArrayPositions contains the positions of the term within any elements.
+	ArrayPositions ArrayPositions `json:"array_positions"`
 }
 
 type Locations []*Location
@@ -68,10 +73,6 @@ type DocumentMatch struct {
 	// SearchRequest.Fields. Text fields are returned as strings, numeric
 	// fields as float64s and date fields as time.RFC3339 formatted strings.
 	Fields map[string]interface{} `json:"fields,omitempty"`
-
-	// as we learn field terms, we can cache important ones for later use
-	// for example, sorting and building facets need these values
-	CachedFieldTerms index.FieldTerms `json:"-"`
 
 	// if we load the document for this hit, remember it so we dont load again
 	Document *document.Document `json:"-"`
@@ -136,6 +137,11 @@ type Searcher interface {
 	Min() int
 
 	DocumentMatchPoolSize() int
+}
+
+type SearcherOptions struct {
+	Explain            bool
+	IncludeTermVectors bool
 }
 
 // SearchContext represents the context around a single search

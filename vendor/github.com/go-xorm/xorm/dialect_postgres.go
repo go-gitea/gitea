@@ -781,6 +781,9 @@ func (db *postgres) SqlType(c *core.Column) string {
 	case core.TinyInt:
 		res = core.SmallInt
 		return res
+	case core.Bit:
+		res = core.Boolean
+		return res
 	case core.MediumInt, core.Int, core.Integer:
 		if c.IsAutoIncrement {
 			return core.Serial

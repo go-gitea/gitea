@@ -18,7 +18,7 @@
 								<input id="file-name" value="{{$v}}" placeholder="{{$.i18n.Tr "repo.editor.name_your_file"}}" data-ec-url-prefix="{{$.EditorconfigURLPrefix}}" required autofocus>
 								<span class="octicon octicon-info poping up" data-content="{{$.i18n.Tr "repo.editor.filename_help"}}" data-position="bottom center" data-variation="tiny inverted"></span>
 							{{else}}
-								<span class="section"><a href="{{EscapePound $.BranchLink}}/{{EscapePound $v}}">{{$v}}</a></span>
+								<span class="section"><a href="{{EscapePound $.BranchLink}}/{{index $.TreePaths $i | EscapePound}}">{{$v}}</a></span>
 							{{end}}
 						{{end}}
 						<span>{{.i18n.Tr "repo.editor.or"}} <a href="{{EscapePound $.BranchLink}}{{if not .IsNewFile}}/{{EscapePound .TreePath}}{{end}}">{{.i18n.Tr "repo.editor.cancel_lower"}}</a></span>

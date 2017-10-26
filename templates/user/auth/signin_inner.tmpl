@@ -1,7 +1,7 @@
 		{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn)}}
 		{{template "base/alert" .}}
 		{{end}}
-		<h4 class="ui top attached header">
+		<h4 class="ui top attached header center">
 			{{.i18n.Tr "auth.login_userpass"}}
 		</h4>
 		<div class="ui attached segment">

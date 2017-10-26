@@ -46,7 +46,7 @@ func (repo *Repository) AddCollaborator(u *User) error {
 	collaboration.Mode = AccessModeWrite
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -136,14 +136,14 @@ func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode AccessMode
 	collaboration.Mode = mode
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
 	if _, err = sess.
 		Id(collaboration.ID).
-		AllCols().
+		Cols("mode").
 		Update(collaboration); err != nil {
 		return fmt.Errorf("update collaboration: %v", err)
 	} else if _, err = sess.Exec("UPDATE access SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
@@ -161,7 +161,7 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}

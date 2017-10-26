@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -152,9 +153,21 @@ func Pull(repoPath string, opts PullRemoteOptions) error {
 	return err
 }
 
+// PushOptions options when push to remote
+type PushOptions struct {
+	Remote string
+	Branch string
+	Force  bool
+}
+
 // Push pushs local commits to given remote branch.
-func Push(repoPath, remote, branch string) error {
-	_, err := NewCommand("push", remote, branch).RunInDir(repoPath)
+func Push(repoPath string, opts PushOptions) error {
+	cmd := NewCommand("push")
+	if opts.Force {
+		cmd.AddArguments("-f")
+	}
+	cmd.AddArguments(opts.Remote, opts.Branch)
+	_, err := cmd.RunInDir(repoPath)
 	return err
 }
 
@@ -260,4 +273,15 @@ func parseSize(objects string) *CountObject {
 		}
 	}
 	return repoSize
+}
+
+// GetLatestCommitTime returns time for latest commit in repository (across all branches)
+func GetLatestCommitTime(repoPath string) (time.Time, error) {
+	cmd := NewCommand("for-each-ref", "--sort=-committerdate", "refs/heads/", "--count", "1", "--format=%(committerdate)")
+	stdout, err := cmd.RunInDir(repoPath)
+	if err != nil {
+		return time.Time{}, err
+	}
+	commitTime := strings.TrimSpace(stdout)
+	return time.Parse("Mon Jan 02 15:04:05 2006 -0700", commitTime)
 }

@@ -185,7 +185,7 @@ func runServ(c *cli.Context) error {
 		} else if lfsVerb == "download" {
 			requestedMode = models.AccessModeRead
 		} else {
-			fail("Unknown LFS verb", "Unkown lfs verb %s", lfsVerb)
+			fail("Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
 		}
 	}
 
@@ -250,7 +250,7 @@ func runServ(c *cli.Context) error {
 					user.Name, requestedMode, repoPath)
 			}
 
-			if !repo.CheckUnitUser(user.ID, unitType) {
+			if !repo.CheckUnitUser(user.ID, user.IsAdmin, unitType) {
 				fail("You do not have allowed for this action",
 					"User %s does not have allowed access to repository %s 's code",
 					user.Name, repoPath)

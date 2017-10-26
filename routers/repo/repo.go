@@ -67,6 +67,10 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 
 // Create render creating repository page
 func Create(ctx *context.Context) {
+	if !ctx.User.CanCreateRepo() {
+		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()), tplCreate, nil)
+	}
+
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	// Give default value for template to render.
@@ -89,7 +93,7 @@ func Create(ctx *context.Context) {
 func handleCreateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form interface{}) {
 	switch {
 	case models.IsErrReachLimitOfRepo(err):
-		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", owner.RepoCreationNum()), tpl, form)
+		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", owner.MaxCreationLimit()), tpl, form)
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
@@ -123,7 +127,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		return
 	}
 
-	repo, err := models.CreateRepository(ctxUser, models.CreateRepoOptions{
+	repo, err := models.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
 		Name:        form.RepoName,
 		Description: form.Description,
 		Gitignores:  form.Gitignores,
@@ -139,7 +143,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 	}
 
 	if repo != nil {
-		if errDelete := models.DeleteRepository(ctxUser.ID, repo.ID); errDelete != nil {
+		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 			log.Error(4, "DeleteRepository: %v", errDelete)
 		}
 	}
@@ -200,7 +204,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
-	repo, err := models.MigrateRepository(ctxUser, models.MigrateRepoOptions{
+	repo, err := models.MigrateRepository(ctx.User, ctxUser, models.MigrateRepoOptions{
 		Name:        form.RepoName,
 		Description: form.Description,
 		IsPrivate:   form.Private || setting.Repository.ForcePrivate,
@@ -214,7 +218,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	}
 
 	if repo != nil {
-		if errDelete := models.DeleteRepository(ctxUser.ID, repo.ID); errDelete != nil {
+		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 			log.Error(4, "DeleteRepository: %v", errDelete)
 		}
 	}

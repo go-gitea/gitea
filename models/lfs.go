@@ -2,7 +2,6 @@ package models
 
 import (
 	"errors"
-	"github.com/go-xorm/xorm"
 	"time"
 )
 
@@ -14,7 +13,7 @@ type LFSMetaObject struct {
 	RepositoryID int64     `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Existing     bool      `xorm:"-"`
 	Created      time.Time `xorm:"-"`
-	CreatedUnix  int64
+	CreatedUnix  int64     `xorm:"created"`
 }
 
 // LFSTokenResponse defines the JSON structure in which the JWT token is stored.
@@ -56,7 +55,7 @@ func NewLFSMetaObject(m *LFSMetaObject) (*LFSMetaObject, error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -94,7 +93,7 @@ func RemoveLFSMetaObjectByOid(oid string) error {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -108,15 +107,7 @@ func RemoveLFSMetaObjectByOid(oid string) error {
 	return sess.Commit()
 }
 
-// BeforeInsert sets the time at which the LFSMetaObject was created.
-func (m *LFSMetaObject) BeforeInsert() {
-	m.CreatedUnix = time.Now().Unix()
-}
-
-// AfterSet stores the LFSMetaObject creation time in the database as local time.
-func (m *LFSMetaObject) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		m.Created = time.Unix(m.CreatedUnix, 0).Local()
-	}
+// AfterLoad stores the LFSMetaObject creation time in the database as local time.
+func (m *LFSMetaObject) AfterLoad() {
+	m.Created = time.Unix(m.CreatedUnix, 0).Local()
 }

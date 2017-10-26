@@ -259,6 +259,7 @@ func ConnectOpenID(ctx *context.Context) {
 
 // ConnectOpenIDPost handles submission of a form to connect an OpenID URI to an existing account
 func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
+
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -300,10 +301,6 @@ func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
 
 // RegisterOpenID shows a form to create a new user authenticated via an OpenID URI
 func RegisterOpenID(ctx *context.Context) {
-	if !setting.Service.EnableOpenIDSignUp {
-		ctx.Error(403)
-		return
-	}
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -328,10 +325,6 @@ func RegisterOpenID(ctx *context.Context) {
 
 // RegisterOpenIDPost handles submission of a form to create a new user authenticated via an OpenID URI
 func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.SignUpOpenIDForm) {
-	if !setting.Service.EnableOpenIDSignUp {
-		ctx.Error(403)
-		return
-	}
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -404,7 +397,8 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	if models.CountUsers() == 1 {
 		u.IsAdmin = true
 		u.IsActive = true
-		if err := models.UpdateUser(u); err != nil {
+		u.SetLastLogin()
+		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
 			ctx.Handle(500, "UpdateUser", err)
 			return
 		}
@@ -415,7 +409,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 		models.SendActivateAccountMail(ctx.Context, u)
 		ctx.Data["IsSendRegisterMail"] = true
 		ctx.Data["Email"] = u.Email
-		ctx.Data["Hours"] = setting.Service.ActiveCodeLives / 60
+		ctx.Data["ActiveCodeLives"] = base.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
 		ctx.HTML(200, TplActivate)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {

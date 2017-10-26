@@ -70,7 +70,11 @@ func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, std
 		return err
 	}
 
-	return cmd.Wait()
+	if err := cmd.Wait(); err != nil {
+		return err
+	}
+
+	return ctx.Err()
 }
 
 // RunInDirTimeout executes the command in given directory with given timeout,

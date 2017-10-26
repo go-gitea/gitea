@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -11,7 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
-	macaron "gopkg.in/macaron.v1"
+	"gopkg.in/macaron.v1"
 )
 
 // _______________________________________    _________.______________________ _______________.___.
@@ -94,19 +95,41 @@ type RepoSettingForm struct {
 	EnablePrune   bool
 
 	// Advanced settings
-	EnableWiki            bool
-	EnableExternalWiki    bool
-	ExternalWikiURL       string
-	EnableIssues          bool
-	EnableExternalTracker bool
-	ExternalTrackerURL    string
-	TrackerURLFormat      string
-	TrackerIssueStyle     string
-	EnablePulls           bool
+	EnableWiki                       bool
+	EnableExternalWiki               bool
+	ExternalWikiURL                  string
+	EnableIssues                     bool
+	EnableExternalTracker            bool
+	ExternalTrackerURL               string
+	TrackerURLFormat                 string
+	TrackerIssueStyle                string
+	EnablePulls                      bool
+	EnableTimetracker                bool
+	AllowOnlyContributorsToTrackTime bool
 }
 
 // Validate validates the fields
 func (f *RepoSettingForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// __________                             .__
+// \______   \____________    ____   ____ |  |__
+//  |    |  _/\_  __ \__  \  /    \_/ ___\|  |  \
+//  |    |   \ |  | \// __ \|   |  \  \___|   Y  \
+//  |______  / |__|  (____  /___|  /\___  >___|  /
+//         \/             \/     \/     \/     \/
+
+// ProtectBranchForm form for changing protected branch settings
+type ProtectBranchForm struct {
+	Protected       bool
+	EnableWhitelist bool
+	WhitelistUsers  string
+	WhitelistTeams  string
+}
+
+// Validate validates the fields
+func (f *ProtectBranchForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -123,6 +146,7 @@ type WebhookForm struct {
 	Create      bool
 	Push        bool
 	PullRequest bool
+	Repository  bool
 	Active      bool
 }
 
@@ -154,6 +178,19 @@ func (f *NewWebhookForm) Validate(ctx *macaron.Context, errs binding.Errors) bin
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// NewGogshookForm form for creating gogs hook
+type NewGogshookForm struct {
+	PayloadURL  string `binding:"Required;ValidUrl"`
+	ContentType int    `binding:"Required"`
+	Secret      string
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewGogshookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // NewSlackHookForm form for creating slack hook
 type NewSlackHookForm struct {
 	PayloadURL string `binding:"Required;ValidUrl"`
@@ -169,6 +206,19 @@ func (f *NewSlackHookForm) Validate(ctx *macaron.Context, errs binding.Errors) b
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// NewDiscordHookForm form for creating discord hook
+type NewDiscordHookForm struct {
+	PayloadURL string `binding:"Required;ValidUrl"`
+	Username   string
+	IconURL    string
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewDiscordHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // .___
 // |   | ______ ________ __   ____
 // |   |/  ___//  ___/  |  \_/ __ \
@@ -180,6 +230,7 @@ func (f *NewSlackHookForm) Validate(ctx *macaron.Context, errs binding.Errors) b
 type CreateIssueForm struct {
 	Title       string `binding:"Required;MaxSize(255)"`
 	LabelIDs    string `form:"label_ids"`
+	Ref         string `form:"ref"`
 	MilestoneID int64
 	AssigneeID  int64
 	Content     string
@@ -392,5 +443,23 @@ type DeleteRepoFileForm struct {
 
 // Validate validates the fields
 func (f *DeleteRepoFileForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// ___________.__                 ___________                     __
+// \__    ___/|__| _____   ____   \__    ___/___________    ____ |  | __ ___________
+// |    |   |  |/     \_/ __ \    |    |  \_  __ \__  \ _/ ___\|  |/ // __ \_  __ \
+// |    |   |  |  Y Y  \  ___/    |    |   |  | \// __ \\  \___|    <\  ___/|  | \/
+// |____|   |__|__|_|  /\___  >   |____|   |__|  (____  /\___  >__|_ \\___  >__|
+// \/     \/                        \/     \/     \/    \/
+
+// AddTimeManuallyForm form that adds spent time manually.
+type AddTimeManuallyForm struct {
+	Hours   int `binding:"Range(0,1000)"`
+	Minutes int `binding:"Range(0,1000)"`
+}
+
+// Validate validates the fields
+func (f *AddTimeManuallyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }

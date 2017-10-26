@@ -56,7 +56,7 @@ func Edit(ctx *context.APIContext, form api.EditOrgOption) {
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
-	if err := models.UpdateUser(org); err != nil {
+	if err := models.UpdateUserCols(org, "full_name", "description", "website", "location"); err != nil {
 		ctx.Error(500, "UpdateUser", err)
 		return
 	}

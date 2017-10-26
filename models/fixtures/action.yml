@@ -3,21 +3,15 @@
   user_id: 2
   op_type: 12 # close issue
   act_user_id: 2
-  act_user_name: user2
   repo_id: 2
-  repo_user_name: user2
-  repo_name: repo2
   is_private: true
 
 -
   id: 2
   user_id: 3
   op_type: 2 # rename repo
-  act_user_id: 3
-  act_user_name: user3
+  act_user_id: 2
   repo_id: 3
-  repo_user_name: user3
-  repo_name: repo3
   is_private: true
   content: oldRepoName
 
@@ -26,8 +20,5 @@
   user_id: 11
   op_type: 1 # create repo
   act_user_id: 11
-  act_user_name: user11
   repo_id: 9
-  repo_user_name: user11
-  repo_name: repo9
   is_private: false

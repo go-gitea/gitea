@@ -1,5 +1,6 @@
-FROM alpine:3.5
-MAINTAINER Thomas Boerger <thomas@webhippie.de>
+FROM alpine:3.6
+
+LABEL maintainer="The Gitea Authors"
 
 EXPOSE 22 3000
 
@@ -24,7 +25,7 @@ RUN addgroup \
     -u 1000 \
     -G git \
     git && \
-  echo "git:$(date +%s | sha256sum | base64 | head -c 32)" | chpasswd
+  echo "git:$(dd if=/dev/urandom bs=24 count=1 status=none | base64)" | chpasswd
 
 ENV USER git
 ENV GITEA_CUSTOM /data/gitea

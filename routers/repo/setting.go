@@ -25,6 +25,7 @@ const (
 	tplGithooks        base.TplName = "repo/settings/githooks"
 	tplGithookEdit     base.TplName = "repo/settings/githook_edit"
 	tplDeployKeys      base.TplName = "repo/settings/deploy_keys"
+	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
 )
 
 // Settings show a repository's settings page
@@ -148,7 +149,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Index:  int(tp),
 				Config: new(models.UnitConfig),
 			})
 		}
@@ -164,7 +164,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				units = append(units, models.RepoUnit{
 					RepoID: repo.ID,
 					Type:   models.UnitTypeExternalWiki,
-					Index:  int(models.UnitTypeExternalWiki),
 					Config: &models.ExternalWikiConfig{
 						ExternalWikiURL: form.ExternalWikiURL,
 					},
@@ -173,7 +172,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				units = append(units, models.RepoUnit{
 					RepoID: repo.ID,
 					Type:   models.UnitTypeWiki,
-					Index:  int(models.UnitTypeWiki),
 					Config: new(models.UnitConfig),
 				})
 			}
@@ -189,7 +187,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				units = append(units, models.RepoUnit{
 					RepoID: repo.ID,
 					Type:   models.UnitTypeExternalTracker,
-					Index:  int(models.UnitTypeExternalTracker),
 					Config: &models.ExternalTrackerConfig{
 						ExternalTrackerURL:    form.ExternalTrackerURL,
 						ExternalTrackerFormat: form.TrackerURLFormat,
@@ -200,8 +197,10 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				units = append(units, models.RepoUnit{
 					RepoID: repo.ID,
 					Type:   models.UnitTypeIssues,
-					Index:  int(models.UnitTypeIssues),
-					Config: new(models.UnitConfig),
+					Config: &models.IssuesConfig{
+						EnableTimetracker:                form.EnableTimetracker,
+						AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
+					},
 				})
 			}
 		}
@@ -210,7 +209,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   models.UnitTypePullRequests,
-				Index:  int(models.UnitTypePullRequests),
 				Config: new(models.UnitConfig),
 			})
 		}
@@ -314,7 +312,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 		}
 
-		if err := models.DeleteRepository(ctx.Repo.Owner.ID, repo.ID); err != nil {
+		if err := models.DeleteRepository(ctx.User, ctx.Repo.Owner.ID, repo.ID); err != nil {
 			ctx.Handle(500, "DeleteRepository", err)
 			return
 		}
@@ -431,141 +429,6 @@ func DeleteCollaboration(ctx *context.Context) {
 
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
-	})
-}
-
-// ProtectedBranch render the page to protect the repository
-func ProtectedBranch(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsBranches"] = true
-
-	protectedBranches, err := ctx.Repo.Repository.GetProtectedBranches()
-	if err != nil {
-		ctx.Handle(500, "GetProtectedBranches", err)
-		return
-	}
-	ctx.Data["ProtectedBranches"] = protectedBranches
-
-	branches := ctx.Data["Branches"].([]string)
-	leftBranches := make([]string, 0, len(branches)-len(protectedBranches))
-	for _, b := range branches {
-		var protected bool
-		for _, pb := range protectedBranches {
-			if b == pb.BranchName {
-				protected = true
-				break
-			}
-		}
-		if !protected {
-			leftBranches = append(leftBranches, b)
-		}
-	}
-
-	ctx.Data["LeftBranches"] = leftBranches
-
-	ctx.HTML(200, tplBranches)
-}
-
-// ProtectedBranchPost response for protect for a branch of a repository
-func ProtectedBranchPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsBranches"] = true
-
-	repo := ctx.Repo.Repository
-
-	switch ctx.Query("action") {
-	case "default_branch":
-		if ctx.HasError() {
-			ctx.HTML(200, tplBranches)
-			return
-		}
-
-		branch := strings.ToLower(ctx.Query("branch"))
-		if ctx.Repo.GitRepo.IsBranchExist(branch) &&
-			repo.DefaultBranch != branch {
-			repo.DefaultBranch = branch
-			if err := ctx.Repo.GitRepo.SetDefaultBranch(branch); err != nil {
-				if !git.IsErrUnsupportedVersion(err) {
-					ctx.Handle(500, "SetDefaultBranch", err)
-					return
-				}
-			}
-			if err := repo.UpdateDefaultBranch(); err != nil {
-				ctx.Handle(500, "SetDefaultBranch", err)
-				return
-			}
-		}
-
-		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
-
-		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
-	case "protected_branch":
-		if ctx.HasError() {
-			ctx.JSON(200, map[string]string{
-				"redirect": setting.AppSubURL + ctx.Req.URL.Path,
-			})
-			return
-		}
-
-		branchName := strings.ToLower(ctx.Query("branchName"))
-		if len(branchName) == 0 || !ctx.Repo.GitRepo.IsBranchExist(branchName) {
-			ctx.JSON(200, map[string]string{
-				"redirect": setting.AppSubURL + ctx.Req.URL.Path,
-			})
-			return
-		}
-
-		canPush := ctx.QueryBool("canPush")
-
-		if canPush {
-			if err := ctx.Repo.Repository.AddProtectedBranch(branchName, canPush); err != nil {
-				ctx.Flash.Error(ctx.Tr("repo.settings.add_protected_branch_failed", branchName))
-				ctx.JSON(200, map[string]string{
-					"status": "ok",
-				})
-				return
-			}
-
-			ctx.Flash.Success(ctx.Tr("repo.settings.add_protected_branch_success", branchName))
-			ctx.JSON(200, map[string]string{
-				"redirect": setting.AppSubURL + ctx.Req.URL.Path,
-			})
-		} else {
-			if err := ctx.Repo.Repository.DeleteProtectedBranch(ctx.QueryInt64("id")); err != nil {
-				ctx.Flash.Error("DeleteProtectedBranch: " + err.Error())
-			} else {
-				ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success", branchName))
-			}
-
-			ctx.JSON(200, map[string]interface{}{
-				"status": "ok",
-			})
-		}
-	default:
-		ctx.Handle(404, "", nil)
-	}
-}
-
-// ChangeProtectedBranch response for changing access of a protect branch
-func ChangeProtectedBranch(ctx *context.Context) {
-	if err := ctx.Repo.Repository.ChangeProtectedBranch(
-		ctx.QueryInt64("id"),
-		ctx.QueryBool("canPush")); err != nil {
-		log.Error(4, "ChangeProtectedBranch: %v", err)
-	}
-}
-
-// DeleteProtectedBranch delete a protection for a branch of a repository
-func DeleteProtectedBranch(ctx *context.Context) {
-	if err := ctx.Repo.Repository.DeleteProtectedBranch(ctx.QueryInt64("id")); err != nil {
-		ctx.Flash.Error("DeleteProtectedBranch: " + err.Error())
-	} else {
-		ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success"))
-	}
-
-	ctx.JSON(200, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/settings/branches",
 	})
 }
 

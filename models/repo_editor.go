@@ -136,7 +136,10 @@ func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (
 		Message:   opts.Message,
 	}); err != nil {
 		return fmt.Errorf("CommitChanges: %v", err)
-	} else if err = git.Push(localPath, "origin", opts.NewBranch); err != nil {
+	} else if err = git.Push(localPath, git.PushOptions{
+		Remote: "origin",
+		Branch: opts.NewBranch,
+	}); err != nil {
 		return fmt.Errorf("git push origin %s: %v", opts.NewBranch, err)
 	}
 
@@ -152,27 +155,29 @@ func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (
 	}
 
 	// Simulate push event.
-	pushCommits := &PushCommits{
-		Len:     1,
-		Commits: []*PushCommit{CommitToPushCommit(commit)},
-	}
 	oldCommitID := opts.LastCommitID
 	if opts.NewBranch != opts.OldBranch {
 		oldCommitID = git.EmptySHA
 	}
-	if err := CommitRepoAction(CommitRepoActionOptions{
-		PusherName:  doer.Name,
-		RepoOwnerID: repo.MustOwner().ID,
-		RepoName:    repo.Name,
-		RefFullName: git.BranchPrefix + opts.NewBranch,
-		OldCommitID: oldCommitID,
-		NewCommitID: commit.ID.String(),
-		Commits:     pushCommits,
-	}); err != nil {
-		log.Error(4, "CommitRepoAction: %v", err)
-		return nil
-	}
 
+	if err = repo.GetOwner(); err != nil {
+		return fmt.Errorf("GetOwner: %v", err)
+	}
+	err = PushUpdate(
+		opts.NewBranch,
+		PushUpdateOptions{
+			PusherID:     doer.ID,
+			PusherName:   doer.Name,
+			RepoUserName: repo.Owner.Name,
+			RepoName:     repo.Name,
+			RefFullName:  git.BranchPrefix + opts.NewBranch,
+			OldCommitID:  oldCommitID,
+			NewCommitID:  commit.ID.String(),
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("PushUpdate: %v", err)
+	}
 	return nil
 }
 
@@ -273,7 +278,10 @@ func (repo *Repository) DeleteRepoFile(doer *User, opts DeleteRepoFileOptions) (
 		Message:   opts.Message,
 	}); err != nil {
 		return fmt.Errorf("CommitChanges: %v", err)
-	} else if err = git.Push(localPath, "origin", opts.NewBranch); err != nil {
+	} else if err = git.Push(localPath, git.PushOptions{
+		Remote: "origin",
+		Branch: opts.NewBranch,
+	}); err != nil {
 		return fmt.Errorf("git push origin %s: %v", opts.NewBranch, err)
 	}
 
@@ -289,23 +297,29 @@ func (repo *Repository) DeleteRepoFile(doer *User, opts DeleteRepoFileOptions) (
 	}
 
 	// Simulate push event.
-	pushCommits := &PushCommits{
-		Len:     1,
-		Commits: []*PushCommit{CommitToPushCommit(commit)},
-	}
-	if err := CommitRepoAction(CommitRepoActionOptions{
-		PusherName:  doer.Name,
-		RepoOwnerID: repo.MustOwner().ID,
-		RepoName:    repo.Name,
-		RefFullName: git.BranchPrefix + opts.NewBranch,
-		OldCommitID: opts.LastCommitID,
-		NewCommitID: commit.ID.String(),
-		Commits:     pushCommits,
-	}); err != nil {
-		log.Error(4, "CommitRepoAction: %v", err)
-		return nil
+	oldCommitID := opts.LastCommitID
+	if opts.NewBranch != opts.OldBranch {
+		oldCommitID = git.EmptySHA
 	}
 
+	if err = repo.GetOwner(); err != nil {
+		return fmt.Errorf("GetOwner: %v", err)
+	}
+	err = PushUpdate(
+		opts.NewBranch,
+		PushUpdateOptions{
+			PusherID:     doer.ID,
+			PusherName:   doer.Name,
+			RepoUserName: repo.Owner.Name,
+			RepoName:     repo.Name,
+			RefFullName:  git.BranchPrefix + opts.NewBranch,
+			OldCommitID:  oldCommitID,
+			NewCommitID:  commit.ID.String(),
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("PushUpdate: %v", err)
+	}
 	return nil
 }
 
@@ -395,7 +409,7 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 	}
 
 	sess := x.NewSession()
-	defer sessionRelease(sess)
+	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
@@ -509,7 +523,10 @@ func (repo *Repository) UploadRepoFiles(doer *User, opts UploadRepoFileOptions) 
 		Message:   opts.Message,
 	}); err != nil {
 		return fmt.Errorf("CommitChanges: %v", err)
-	} else if err = git.Push(localPath, "origin", opts.NewBranch); err != nil {
+	} else if err = git.Push(localPath, git.PushOptions{
+		Remote: "origin",
+		Branch: opts.NewBranch,
+	}); err != nil {
 		return fmt.Errorf("git push origin %s: %v", opts.NewBranch, err)
 	}
 
@@ -525,21 +542,28 @@ func (repo *Repository) UploadRepoFiles(doer *User, opts UploadRepoFileOptions) 
 	}
 
 	// Simulate push event.
-	pushCommits := &PushCommits{
-		Len:     1,
-		Commits: []*PushCommit{CommitToPushCommit(commit)},
+	oldCommitID := opts.LastCommitID
+	if opts.NewBranch != opts.OldBranch {
+		oldCommitID = git.EmptySHA
 	}
-	if err := CommitRepoAction(CommitRepoActionOptions{
-		PusherName:  doer.Name,
-		RepoOwnerID: repo.MustOwner().ID,
-		RepoName:    repo.Name,
-		RefFullName: git.BranchPrefix + opts.NewBranch,
-		OldCommitID: opts.LastCommitID,
-		NewCommitID: commit.ID.String(),
-		Commits:     pushCommits,
-	}); err != nil {
-		log.Error(4, "CommitRepoAction: %v", err)
-		return nil
+
+	if err = repo.GetOwner(); err != nil {
+		return fmt.Errorf("GetOwner: %v", err)
+	}
+	err = PushUpdate(
+		opts.NewBranch,
+		PushUpdateOptions{
+			PusherID:     doer.ID,
+			PusherName:   doer.Name,
+			RepoUserName: repo.Owner.Name,
+			RepoName:     repo.Name,
+			RefFullName:  git.BranchPrefix + opts.NewBranch,
+			OldCommitID:  oldCommitID,
+			NewCommitID:  commit.ID.String(),
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("PushUpdate: %v", err)
 	}
 
 	return DeleteUploads(uploads...)

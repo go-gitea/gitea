@@ -1,9 +1,10 @@
 package models
 
 import (
-	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"html/template"
 	"testing"
+
+	dmp "github.com/sergi/go-diff/diffmatchpatch"
 )
 
 func assertEqual(t *testing.T, s1 string, s2 template.HTML) {

@@ -48,6 +48,8 @@ type Index interface {
 	Advanced() (store.KVStore, error)
 }
 
+type DocumentFieldTermVisitor func(field string, term []byte)
+
 type IndexReader interface {
 	TermFieldReader(term []byte, field string, includeFreq, includeNorm, includeTermVectors bool) (TermFieldReader, error)
 
@@ -64,7 +66,7 @@ type IndexReader interface {
 	FieldDictPrefix(field string, termPrefix []byte) (FieldDict, error)
 
 	Document(id string) (*document.Document, error)
-	DocumentFieldTerms(id IndexInternalID, fields []string) (FieldTerms, error)
+	DocumentVisitFieldTerms(id IndexInternalID, fields []string, visitor DocumentFieldTermVisitor) error
 
 	Fields() ([]string, error)
 

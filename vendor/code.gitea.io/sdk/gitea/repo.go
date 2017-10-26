@@ -69,7 +69,7 @@ func (c *Client) ListOrgRepos(org string) ([]*Repository, error) {
 }
 
 // CreateRepoOption options when creating repository
-//swagger:parameters createOrgRepo
+//swagger:parameters createOrgRepo adminCreateRepo createCurrentUserRepo
 type CreateRepoOption struct {
 	// Name of the repository to create
 	//
@@ -135,15 +135,24 @@ func (c *Client) DeleteRepo(owner, repo string) error {
 }
 
 // MigrateRepoOption options when migrate repository from an external place
+// swagger:parameters repoMigrate
 type MigrateRepoOption struct {
-	CloneAddr    string `json:"clone_addr" binding:"Required"`
+	// in: body
+	CloneAddr string `json:"clone_addr" binding:"Required"`
+	// in: body
 	AuthUsername string `json:"auth_username"`
+	// in: body
 	AuthPassword string `json:"auth_password"`
-	UID          int    `json:"uid" binding:"Required"`
-	RepoName     string `json:"repo_name" binding:"Required"`
-	Mirror       bool   `json:"mirror"`
-	Private      bool   `json:"private"`
-	Description  string `json:"description"`
+	// in: body
+	UID int `json:"uid" binding:"Required"`
+	// in: body
+	RepoName string `json:"repo_name" binding:"Required"`
+	// in: body
+	Mirror bool `json:"mirror"`
+	// in: body
+	Private bool `json:"private"`
+	// in: body
+	Description string `json:"description"`
 }
 
 // MigrateRepo migrates a repository from other Git hosting sources for the

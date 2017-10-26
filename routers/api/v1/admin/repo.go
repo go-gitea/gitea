@@ -13,8 +13,21 @@ import (
 )
 
 // CreateRepo api for creating a repository
-// see https://github.com/gogits/go-gogs-client/wiki/Administration-Repositories#create-a-new-repository
 func CreateRepo(ctx *context.APIContext, form api.CreateRepoOption) {
+	// swagger:route POST /admin/users/{username}/repos admin adminCreateRepo
+	//
+	//     Consumes:
+	//     - application/json
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       201: Repository
+	//       403: forbidden
+	//       422: validationError
+	//       500: error
+
 	owner := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return

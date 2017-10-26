@@ -18,7 +18,7 @@
 				<input name="title" value="{{.title}}" autofocus required>
 			</div>
 			<div class="field">
-				<textarea id="edit_area" name="content" data-id="wiki-{{.old_title}}" data-url="{{AppSubUrl}}/api/v1/markdown" data-context="{{.RepoLink}}">{{if .PageIsWikiEdit}}{{.content}}{{else}}{{.i18n.Tr "repo.wiki.welcome"}}{{end}}</textarea required>
+				<textarea id="edit_area" name="content" data-id="wiki-{{.old_title}}" data-url="{{AppSubUrl}}/api/v1/markdown" data-context="{{.RepoLink}}/wiki">{{if .PageIsWikiEdit}}{{.content}}{{else}}{{.i18n.Tr "repo.wiki.welcome"}}{{end}}</textarea required>
 			</div>
 			<div class="field">
 				<input name="message" placeholder="{{.i18n.Tr "repo.wiki.default_commit_message"}}">

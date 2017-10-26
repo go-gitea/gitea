@@ -289,7 +289,12 @@ func (im *IndexMappingImpl) UnmarshalJSON(data []byte) error {
 }
 
 func (im *IndexMappingImpl) determineType(data interface{}) string {
-	// first see if the object implements Classifier
+	// first see if the object implements bleveClassifier
+	bleveClassifier, ok := data.(bleveClassifier)
+	if ok {
+		return bleveClassifier.BleveType()
+	}
+	// next see if the object implements Classifier
 	classifier, ok := data.(Classifier)
 	if ok {
 		return classifier.Type()

@@ -4,7 +4,9 @@
 	<div class="ui container">
 		<div class="ui grid">
 			{{template "org/settings/navbar" .}}
-			{{template "repo/settings/hook_list" .}}
+			<div class="twelve wide column content">
+				{{template "repo/settings/hook_list" .}}
+			</div>
 		</div>
 	</div>
 </div>
