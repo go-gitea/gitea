@@ -640,8 +640,8 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			var isForcePush = false
 
 			// detect force push
-			if !isNewBranch && git.EmptySHA != opts.Commits.Commits[0].Sha1 {
-				output, err := git.NewCommand("rev-list", opts.Commits.Commits[0].Sha1, "^"+opts.Commits.Commits[len(opts.Commits.Commits)-1].Sha1).RunInDir(repo.RepoPath())
+			if !isNewBranch && git.EmptySHA != opts.OldCommitID {
+				output, err := git.NewCommand("rev-list", opts.OldCommitID, "^"+opts.NewCommitID).RunInDir(repo.RepoPath())
 				if err != nil {
 					return fmt.Errorf("rev-list: %v", err)
 				} else if len(output) > 0 {
@@ -676,8 +676,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 					}
 				}
 
-				for i := 0; i < len(opts.Commits.Commits); i++ {
-					c := opts.Commits.Commits[i]
+				for _, c := range opts.Commits.Commits {
 					if err := CreatePullPushComment(pusher, issue.Repo, issue, c.Message, c.Sha1, issue.Repo.FullName()); err != nil {
 						return fmt.Errorf("CreatePullPushComment: %v", err)
 					}

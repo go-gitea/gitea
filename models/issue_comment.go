@@ -9,15 +9,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/xorm"
-	"github.com/grafana/grafana/pkg/setting"
-
 	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
+	"github.com/go-xorm/xorm"
 )
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
@@ -189,7 +189,7 @@ func (c *Comment) PRURL() string {
 // TargetURL returns the main link on this comment
 func (c *Comment) TargetURL() string {
 	if c.Type == CommentTypePullPushCommit {
-		return fmt.Sprintf("%s/%s/commit/%s", setting.AppSubUrl, c.RepoFullName, c.CommitSHA)
+		return fmt.Sprintf("%s/%s/commit/%s", setting.AppSubURL, c.RepoFullName, c.CommitSHA)
 	}
 	return ""
 }
