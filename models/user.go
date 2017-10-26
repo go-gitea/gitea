@@ -1205,6 +1205,9 @@ type UserCommit struct {
 
 // ValidateCommitWithEmail check if author's e-mail of commit is corresponding to a user.
 func ValidateCommitWithEmail(c *git.Commit) *User {
+	if c.Author == nil {
+		return nil
+	}
 	u, err := GetUserByEmail(c.Author.Email)
 	if err != nil {
 		return nil
@@ -1223,11 +1226,15 @@ func ValidateCommitsWithEmails(oldCommits *list.List) *list.List {
 	for e != nil {
 		c := e.Value.(*git.Commit)
 
-		if v, ok := emails[c.Author.Email]; !ok {
-			u, _ = GetUserByEmail(c.Author.Email)
-			emails[c.Author.Email] = u
+		if c.Author != nil {
+			if v, ok := emails[c.Author.Email]; !ok {
+				u, _ = GetUserByEmail(c.Author.Email)
+				emails[c.Author.Email] = u
+			} else {
+				u = v
+			}
 		} else {
-			u = v
+			u = nil
 		}
 
 		newCommits.PushBack(UserCommit{
