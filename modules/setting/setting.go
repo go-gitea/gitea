@@ -35,6 +35,7 @@ import (
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
 	"github.com/go-xorm/core"
+	"github.com/kballard/go-shellquote"
 	"gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
@@ -108,6 +109,7 @@ var (
 		StartBuiltinServer: false,
 		Domain:             "",
 		Port:               22,
+		ServerCiphers:      []string{"aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "arcfour256", "arcfour128"},
 		KeygenPath:         "ssh-keygen",
 	}
 
@@ -323,11 +325,6 @@ var (
 	// Time settings
 	TimeFormat string
 
-	// Cache settings
-	CacheAdapter  string
-	CacheInterval int
-	CacheConn     string
-
 	// Session settings
 	SessionConfig  session.Options
 	CSRFCookieName = "_csrf"
@@ -363,6 +360,12 @@ var (
 			Schedule       string
 			UpdateExisting bool
 		} `ini:"cron.sync_external_users"`
+		DeletedBranchesCleanup struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+			OlderThan  time.Duration
+		} `ini:"cron.deleted_branches_cleanup"`
 	}{
 		UpdateMirror: struct {
 			Enabled    bool
@@ -417,6 +420,17 @@ var (
 			Schedule:       "@every 24h",
 			UpdateExisting: true,
 		},
+		DeletedBranchesCleanup: struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+			OlderThan  time.Duration
+		}{
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@every 24h",
+			OlderThan:  24 * time.Hour,
+		},
 	}
 
 	// Git settings
@@ -437,7 +451,7 @@ var (
 	}{
 		DisableDiffHighlight:     false,
 		MaxGitDiffLines:          1000,
-		MaxGitDiffLineCharacters: 500,
+		MaxGitDiffLineCharacters: 5000,
 		MaxGitDiffFiles:          100,
 		GCArgs:                   []string{},
 		Timeout: struct {
@@ -709,7 +723,10 @@ func NewContext() {
 		SSH.Domain = Domain
 	}
 	SSH.RootPath = path.Join(homeDir, ".ssh")
-	SSH.ServerCiphers = sec.Key("SSH_SERVER_CIPHERS").Strings(",")
+	serverCiphers := sec.Key("SSH_SERVER_CIPHERS").Strings(",")
+	if len(serverCiphers) > 0 {
+		SSH.ServerCiphers = serverCiphers
+	}
 	SSH.KeyTestPath = os.TempDir()
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
 		log.Fatal(4, "Failed to map SSH settings: %v", err)
@@ -1273,16 +1290,33 @@ func NewXORMLogService(disableConsole bool) {
 	}
 }
 
+// Cache represents cache settings
+type Cache struct {
+	Adapter  string
+	Interval int
+	Conn     string
+	TTL      time.Duration
+}
+
+var (
+	// CacheService the global cache
+	CacheService *Cache
+)
+
 func newCacheService() {
-	CacheAdapter = Cfg.Section("cache").Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"})
-	switch CacheAdapter {
-	case "memory":
-		CacheInterval = Cfg.Section("cache").Key("INTERVAL").MustInt(60)
-	case "redis", "memcache":
-		CacheConn = strings.Trim(Cfg.Section("cache").Key("HOST").String(), "\" ")
-	default:
-		log.Fatal(4, "Unknown cache adapter: %s", CacheAdapter)
+	sec := Cfg.Section("cache")
+	CacheService = &Cache{
+		Adapter: sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"}),
 	}
+	switch CacheService.Adapter {
+	case "memory":
+		CacheService.Interval = sec.Key("INTERVAL").MustInt(60)
+	case "redis", "memcache":
+		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
+	default:
+		log.Fatal(4, "Unknown cache adapter: %s", CacheService.Adapter)
+	}
+	CacheService.TTL = sec.Key("ITEM_TTL").MustDuration(16 * time.Hour)
 
 	log.Info("Cache Service Enabled")
 }
@@ -1322,6 +1356,7 @@ type Mailer struct {
 	// Sendmail sender
 	UseSendmail  bool
 	SendmailPath string
+	SendmailArgs []string
 }
 
 var (
@@ -1367,6 +1402,13 @@ func newMailService() {
 	}
 	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
+
+	if MailService.UseSendmail {
+		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
+		if err != nil {
+			log.Error(4, "Failed to parse Sendmail args: %v", CustomConf, err)
+		}
+	}
 
 	log.Info("Mail Service Enabled")
 }

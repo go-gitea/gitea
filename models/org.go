@@ -201,23 +201,6 @@ func CountOrganizations() int64 {
 	return count
 }
 
-// Organizations returns number of organizations in given page.
-func Organizations(opts *SearchUserOptions) ([]*User, error) {
-	orgs := make([]*User, 0, opts.PageSize)
-
-	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = "name ASC"
-	}
-
-	sess := x.
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		Where("type=1")
-
-	return orgs, sess.
-		OrderBy(opts.OrderBy).
-		Find(&orgs)
-}
-
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(org *User) (err error) {
 	sess := x.NewSession()

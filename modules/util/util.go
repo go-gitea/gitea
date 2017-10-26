@@ -16,6 +16,21 @@ const (
 	OptionalBoolFalse
 )
 
+// IsTrue return true if equal to OptionalBoolTrue
+func (o OptionalBool) IsTrue() bool {
+	return o == OptionalBoolTrue
+}
+
+// IsFalse return true if equal to OptionalBoolFalse
+func (o OptionalBool) IsFalse() bool {
+	return o == OptionalBoolFalse
+}
+
+// IsNone return true if equal to OptionalBoolNone
+func (o OptionalBool) IsNone() bool {
+	return o == OptionalBoolNone
+}
+
 // OptionalBoolOf get the corresponding OptionalBool of a bool
 func OptionalBoolOf(b bool) OptionalBool {
 	if b {

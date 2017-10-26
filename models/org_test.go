@@ -237,27 +237,6 @@ func TestCountOrganizations(t *testing.T) {
 	assert.Equal(t, expected, CountOrganizations())
 }
 
-func TestOrganizations(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	testSuccess := func(opts *SearchUserOptions, expectedOrgIDs []int64) {
-		orgs, err := Organizations(opts)
-		assert.NoError(t, err)
-		if assert.Len(t, orgs, len(expectedOrgIDs)) {
-			for i, expectedOrgID := range expectedOrgIDs {
-				assert.EqualValues(t, expectedOrgID, orgs[i].ID)
-			}
-		}
-	}
-	testSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1, PageSize: 2},
-		[]int64{3, 6})
-
-	testSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 2, PageSize: 2},
-		[]int64{7, 17})
-
-	testSuccess(&SearchUserOptions{Page: 3, PageSize: 2},
-		[]int64{})
-}
-
 func TestDeleteOrganization(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	org := AssertExistsAndLoadBean(t, &User{ID: 6}).(*User)

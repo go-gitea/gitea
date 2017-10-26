@@ -258,6 +258,17 @@ func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
 	return repo.innerAPIFormat(mode, false)
 }
 
+// GetCommitsCountCacheKey returns cache key used for commits count caching.
+func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) string {
+	var prefix string
+	if isRef {
+		prefix = "ref"
+	} else {
+		prefix = "commit"
+	}
+	return fmt.Sprintf("commits-count-%d-%s-%s", repo.ID, prefix, contextName)
+}
+
 func (repo *Repository) innerAPIFormat(mode AccessMode, isParent bool) *api.Repository {
 	var parent *api.Repository
 

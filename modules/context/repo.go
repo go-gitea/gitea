@@ -13,7 +13,9 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/com"
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
 	"gopkg.in/macaron.v1"
@@ -98,6 +100,21 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) b
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
 	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
 		r.IsWriter() || issue.IsPoster(user.ID) || issue.AssigneeID == user.ID)
+}
+
+// GetCommitsCount returns cached commit count for current view
+func (r *Repository) GetCommitsCount() (int64, error) {
+	var contextName string
+	if r.IsViewBranch {
+		contextName = r.BranchName
+	} else if r.IsViewTag {
+		contextName = r.TagName
+	} else {
+		contextName = r.CommitID
+	}
+	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, r.IsViewBranch || r.IsViewTag), func() (int64, error) {
+		return r.Commit.CommitsCount()
+	})
 }
 
 // GetEditorconfig returns the .editorconfig definition if found in the
@@ -535,9 +552,9 @@ func RepoRef() macaron.Handler {
 		ctx.Data["IsViewCommit"] = ctx.Repo.IsViewCommit
 		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch()
 
-		ctx.Repo.CommitsCount, err = ctx.Repo.Commit.CommitsCount()
+		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
 		if err != nil {
-			ctx.Handle(500, "CommitsCount", err)
+			ctx.Handle(500, "GetCommitsCount", err)
 			return
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount

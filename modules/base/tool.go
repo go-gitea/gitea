@@ -211,7 +211,7 @@ func AvatarLink(email string) string {
 	}
 
 	if !setting.DisableGravatar {
-		return setting.GravatarSource + HashEmail(email)
+		return setting.GravatarSource + HashEmail(email) + "?d=identicon"
 	}
 
 	return DefaultAvatarLink()

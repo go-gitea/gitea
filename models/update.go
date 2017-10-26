@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/git"
-
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -221,19 +221,26 @@ func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 	var commits = &PushCommits{}
 	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 		// If is tag reference
+		tagName := opts.RefFullName[len(git.TagPrefix):]
 		if isDelRef {
-			err = pushUpdateDeleteTag(repo, gitRepo, opts.RefFullName[len(git.TagPrefix):])
+			err = pushUpdateDeleteTag(repo, gitRepo, tagName)
 			if err != nil {
 				return nil, fmt.Errorf("pushUpdateDeleteTag: %v", err)
 			}
 		} else {
-			err = pushUpdateAddTag(repo, gitRepo, opts.RefFullName[len(git.TagPrefix):])
+			// Clear cache for tag commit count
+			cache.Remove(repo.GetCommitsCountCacheKey(tagName, true))
+			err = pushUpdateAddTag(repo, gitRepo, tagName)
 			if err != nil {
 				return nil, fmt.Errorf("pushUpdateAddTag: %v", err)
 			}
 		}
 	} else if !isDelRef {
 		// If is branch reference
+
+		// Clear cache for branch commit count
+		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefFullName[len(git.BranchPrefix):], true))
+
 		newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 		if err != nil {
 			return nil, fmt.Errorf("gitRepo.GetCommit: %v", err)

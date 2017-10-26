@@ -3,10 +3,10 @@
 	"ignore": "test appengine",
 	"package": [
 		{
-			"checksumSHA1": "9dxw/SGpdhNNm704gt6F02ItYtQ=",
+			"checksumSHA1": "JN/re4+x/hCzMLGHmieUcykVDAg=",
 			"path": "code.gitea.io/git",
-			"revision": "d7487da878e40ee6c4fac7280b518c0ed0be702c",
-			"revisionTime": "2017-09-16T17:49:37Z"
+			"revision": "d47b98c44c9a6472e44ab80efe65235e11c6da2a",
+			"revisionTime": "2017-10-23T00:52:09Z"
 		},
 		{
 			"checksumSHA1": "Zgp5RqU+20L2p9TNl1rSsUIWEEE=",
@@ -520,6 +520,12 @@
 			"path": "github.com/juju/errors",
 			"revision": "b2c7a7da5b2995941048f60146e67702a292e468",
 			"revisionTime": "2016-02-12T04:00:40Z"
+		},
+		{
+			"checksumSHA1": "+IzngblnBQNh+GmsS2O7jqmzSVQ=",
+			"path": "github.com/kballard/go-shellquote",
+			"revision": "cd60e84ee657ff3dc51de0b4f55dd299a3e136f2",
+			"revisionTime": "2017-06-19T18:30:22Z"
 		},
 		{
 			"checksumSHA1": "VJk3rOWfxEV9Ilig5lgzH1qg8Ss=",
