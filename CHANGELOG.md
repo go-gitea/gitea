@@ -1,4 +1,11 @@
 # Changelog
+## [1.2.2](https://github.com/go-gitea/gitea/releases/tag/v1.2.2) - 2017-10-26
+* BUGFIXES
+  * Add checks for commits with missing author and time (#2771) (#2785)
+  * Fix sending mail with a non-latin display name (#2559) (#2783)
+  * Sync MaxGitDiffLineCharacters with conf/app.ini (#2779) (#2780)
+  * Update vendor git (#2765) (#2772)
+  * Fix emojify image URL (#2769) (#2773)
 
 ## [1.2.1](https://github.com/go-gitea/gitea/releases/tag/v1.2.1) - 2017-10-16
 * BUGFIXES
