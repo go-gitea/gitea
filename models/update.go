@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/cache"
@@ -119,11 +120,24 @@ func pushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string)
 	if err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
-	tagCreatedUnix := commit.Author.When.Unix()
 
-	author, err := GetUserByEmail(commit.Author.Email)
-	if err != nil && !IsErrUserNotExist(err) {
-		return fmt.Errorf("GetUserByEmail: %v", err)
+	sig := tag.Tagger
+	if sig == nil {
+		sig = commit.Author
+	}
+	if sig == nil {
+		sig = commit.Committer
+	}
+
+	var author *User
+	var createdAt = time.Unix(1, 0)
+
+	if sig != nil {
+		author, err = GetUserByEmail(sig.Email)
+		if err != nil && !IsErrUserNotExist(err) {
+			return fmt.Errorf("GetUserByEmail: %v", err)
+		}
+		createdAt = sig.When
 	}
 
 	commitsCount, err := commit.CommitsCount()
@@ -144,7 +158,8 @@ func pushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string)
 			IsDraft:      false,
 			IsPrerelease: false,
 			IsTag:        true,
-			CreatedUnix:  tagCreatedUnix,
+			Created:      createdAt,
+			CreatedUnix:  createdAt.Unix(),
 		}
 		if author != nil {
 			rel.PublisherID = author.ID
@@ -155,7 +170,8 @@ func pushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string)
 		}
 	} else {
 		rel.Sha1 = commit.ID.String()
-		rel.CreatedUnix = tagCreatedUnix
+		rel.Created = createdAt
+		rel.CreatedUnix = createdAt.Unix()
 		rel.NumCommits = commitsCount
 		rel.IsDraft = false
 		if rel.IsTag && author != nil {
