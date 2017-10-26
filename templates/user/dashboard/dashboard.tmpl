@@ -49,23 +49,23 @@
 								<div class="ui secondary tiny pointing borderless menu center aligned grid repos-filter">
 									<a class="item" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
 										{{.i18n.Tr "all"}}
-										<div v-show="reposFilter === 'all'" class="ui circular mini grey label">${isLoading ? 0 : repoTypes['all'].count}</div>
+										<div v-show="reposFilter === 'all'" class="ui circular mini grey label">${repoTypeCount}</div>
 									</a>
 									<a class="item" :class="{active: reposFilter === 'sources'}" @click="changeReposFilter('sources')">
 										{{.i18n.Tr "sources"}}
-										<div v-show="reposFilter === 'sources'" class="ui circular mini grey label">${isLoading ? 0 : repoTypes['sources'].count}</div>
+										<div v-show="reposFilter === 'sources'" class="ui circular mini grey label">${repoTypeCount}</div>
 									</a>
 									<a class="item" :class="{active: reposFilter === 'forks'}" @click="changeReposFilter('forks')">
 										{{.i18n.Tr "forks"}}
-										<div v-show="reposFilter === 'forks'" class="ui circular mini grey label">${isLoading ? 0 : repoTypes['forks'].count}</div>
+										<div v-show="reposFilter === 'forks'" class="ui circular mini grey label">${repoTypeCount}</div>
 									</a>
 									<a class="item" :class="{active: reposFilter === 'mirrors'}" @click="changeReposFilter('mirrors')">
 										{{.i18n.Tr "mirrors"}}
-										<div v-show="reposFilter === 'mirrors'" class="ui circular mini grey label">${isLoading ? 0 : repoTypes['mirrors'].count}</div>
+										<div v-show="reposFilter === 'mirrors'" class="ui circular mini grey label">${repoTypeCount}</div>
 									</a>
 									<a class="item" :class="{active: reposFilter === 'collaborative'}" @click="changeReposFilter('collaborative')">
 										{{.i18n.Tr "collaborative"}}
-										<div v-show="reposFilter === 'collaborative'" class="ui circular mini grey label">${isLoading ? 0 : repoTypes['collaborative'].count}</div>
+										<div v-show="reposFilter === 'collaborative'" class="ui circular mini grey label">${repoTypeCount}</div>
 									</a>
 								</div>
 							</div>
