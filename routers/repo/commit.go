@@ -55,7 +55,7 @@ func Commits(ctx *context.Context) {
 	}
 	ctx.Data["PageIsViewCode"] = true
 
-	commitsCount, err := ctx.Repo.Commit.CommitsCount()
+	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
 		ctx.Handle(500, "GetCommitsCount", err)
 		return
@@ -91,7 +91,7 @@ func Graph(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 	ctx.Data["PageIsViewCode"] = true
 
-	commitsCount, err := ctx.Repo.Commit.CommitsCount()
+	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
 		ctx.Handle(500, "GetCommitsCount", err)
 		return
