@@ -1313,6 +1313,27 @@
             border-bottom: 1px solid #A3C293;
         }
 	}
+	.ui.segment.sub-menu {
+		padding: 7px;
+		line-height: 0;
+		.list {
+			width: 100%;
+			display: flex;
+			.item {
+				width:100%;
+				border-radius: 3px;
+				a {
+					color: black;
+					&:hover {
+						color: #666;
+					}
+				}
+				&.active {
+					background: rgba(0,0,0,.05);;
+				}
+			}
+		}
+	}
 }
 // End of .repository
 
