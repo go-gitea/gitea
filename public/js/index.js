@@ -1423,29 +1423,18 @@ $(document).ready(function () {
     });
 
     // Helpers.
-    $('.delete-button').click(function () {
-        var $this = $(this);
-        var filter = "";
-        if ($this.attr("id")) {
-          filter += "#"+$this.attr("id")
-        }
-        $('.delete.modal'+filter).modal({
-            closable: false,
-            onApprove: function () {
-                if ($this.data('type') == "form") {
-                    $($this.data('form')).submit();
-                    return;
-                }
+    $('.delete-button').click(showDeletePopup);
 
-                $.post($this.data('url'), {
-                    "_csrf": csrf,
-                    "id": $this.data("id")
-                }).done(function (data) {
-                    window.location.href = data.redirect;
-                });
-            }
-        }).modal('show');
-        return false;
+    $('.delete-branch-button').click(showDeletePopup);
+
+    $('.undo-button').click(function() {
+        var $this = $(this);
+        $.post($this.data('url'), {
+            "_csrf": csrf,
+            "id": $this.data("id")
+        }).done(function(data) {
+            window.location.href = data.redirect;
+        });
     });
     $('.show-panel.button').click(function () {
         $($(this).data('panel')).show();
@@ -1607,6 +1596,32 @@ $(function () {
         }
     });
 });
+
+function showDeletePopup() {
+    var $this = $(this);
+    var filter = "";
+    if ($this.attr("id")) {
+        filter += "#" + $this.attr("id")
+    }
+
+    $('.delete.modal' + filter).modal({
+        closable: false,
+        onApprove: function() {
+            if ($this.data('type') == "form") {
+                $($this.data('form')).submit();
+                return;
+            }
+
+            $.post($this.data('url'), {
+                "_csrf": csrf,
+                "id": $this.data("id")
+            }).done(function(data) {
+                window.location.href = data.redirect;
+            });
+        }
+    }).modal('show');
+    return false;
+}
 
 function initVueComponents(){
     var vueDelimeters = ['${', '}'];

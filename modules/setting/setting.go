@@ -35,6 +35,7 @@ import (
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
 	"github.com/go-xorm/core"
+	"github.com/kballard/go-shellquote"
 	"gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
@@ -359,6 +360,12 @@ var (
 			Schedule       string
 			UpdateExisting bool
 		} `ini:"cron.sync_external_users"`
+		DeletedBranchesCleanup struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+			OlderThan  time.Duration
+		} `ini:"cron.deleted_branches_cleanup"`
 	}{
 		UpdateMirror: struct {
 			Enabled    bool
@@ -412,6 +419,17 @@ var (
 			RunAtStart:     false,
 			Schedule:       "@every 24h",
 			UpdateExisting: true,
+		},
+		DeletedBranchesCleanup: struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+			OlderThan  time.Duration
+		}{
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@every 24h",
+			OlderThan:  24 * time.Hour,
 		},
 	}
 
@@ -1338,6 +1356,7 @@ type Mailer struct {
 	// Sendmail sender
 	UseSendmail  bool
 	SendmailPath string
+	SendmailArgs []string
 }
 
 var (
@@ -1383,6 +1402,13 @@ func newMailService() {
 	}
 	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
+
+	if MailService.UseSendmail {
+		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
+		if err != nil {
+			log.Error(4, "Failed to parse Sendmail args: %v", CustomConf, err)
+		}
+	}
 
 	log.Info("Mail Service Enabled")
 }

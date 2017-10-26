@@ -114,6 +114,7 @@ func init() {
 		new(CommitStatus),
 		new(Stopwatch),
 		new(TrackedTime),
+		new(DeletedBranch),
 	)
 
 	gonicNames := []string{"SSL", "UID"}

@@ -73,12 +73,6 @@
 				</a>
 			{{end}}
 
-			{{if and (.Repository.UnitEnabled $.UnitTypeCode) (not .IsBareRepo)}}
-			<a class="{{if (or (.PageIsCommits) (.PageIsDiff))}}active{{end}} item" href="{{.RepoLink}}/commits/{{EscapePound .BranchName}}">
-				<i class="octicon octicon-history"></i> {{.i18n.Tr "repo.commits"}} <span class="ui {{if not .CommitsCount}}gray{{else}}blue{{end}} small label">{{.CommitsCount}}</span>
-			</a>
-			{{end}}
-
 			{{if and (.Repository.UnitEnabled $.UnitTypeReleases) (not .IsBareRepo) }}
 			<a class="{{if .PageIsReleaseList}}active{{end}} item" href="{{.RepoLink}}/releases">
 				<i class="octicon octicon-tag"></i> {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .Repository.NumReleases}}gray{{else}}blue{{end}} small label">{{.Repository.NumReleases}}</span>

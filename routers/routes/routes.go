@@ -550,7 +550,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/branches", func() {
 			m.Post("/_new/*", context.RepoRef(), bindIgnErr(auth.NewBranchForm{}), repo.CreateBranch)
-		}, reqRepoWriter, repo.MustBeNotBare)
+			m.Post("/delete", repo.DeleteBranchPost)
+			m.Post("/restore", repo.RestoreBranchPost)
+		}, reqRepoWriter, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
+
 	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits())
 
 	// Releases
@@ -614,6 +617,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, context.RepoRef(), repo.MustBeNotBare, context.CheckAnyUnit(models.UnitTypePullRequests, models.UnitTypeIssues, models.UnitTypeReleases))
 
 		m.Get("/archive/*", repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode), repo.Download)
+
+		m.Group("/branches", func() {
+			m.Get("", repo.Branches)
+		}, repo.MustBeNotBare, context.RepoRef(), context.CheckUnit(models.UnitTypeCode))
 
 		m.Group("/pulls/:index", func() {
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
