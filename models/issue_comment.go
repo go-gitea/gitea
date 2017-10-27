@@ -600,8 +600,8 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 	return err
 }
 
-// ClearPullPushComent clear all the push commit on issue since fore push
-func ClearPullPushComent(issue *Issue) error {
+// ClearPullPushComment clear all the push commit on issue since fore push
+func ClearPullPushComment(issue *Issue) error {
 	_, err := x.Delete(&Comment{
 		Type:    CommentTypePullPushCommit,
 		IssueID: issue.ID,
@@ -610,8 +610,8 @@ func ClearPullPushComent(issue *Issue) error {
 }
 
 // CreatePullPushComment creates a commit when push commit to a pull request.
-func CreatePullPushComment(doer *User, repo *Repository, issue *Issue, content, commitSHA, repoFullName string) error {
-	if len(commitSHA) == 0 {
+func CreatePullPushComment(doer *User, repo *Repository, issue *Issue, commit *PushCommit) error {
+	if len(commit.Sha1) == 0 {
 		return fmt.Errorf("cannot create reference with empty commit SHA")
 	}
 
@@ -619,7 +619,7 @@ func CreatePullPushComment(doer *User, repo *Repository, issue *Issue, content, 
 	has, err := x.Get(&Comment{
 		Type:      CommentTypePullPushCommit,
 		IssueID:   issue.ID,
-		CommitSHA: commitSHA,
+		CommitSHA: commit.Sha1,
 	})
 	if err != nil {
 		return fmt.Errorf("check pull push comment: %v", err)
@@ -631,9 +631,9 @@ func CreatePullPushComment(doer *User, repo *Repository, issue *Issue, content, 
 			Doer:         doer,
 			Repo:         repo,
 			Issue:        issue,
-			CommitSHA:    commitSHA,
-			Content:      content,
-			RepoFullName: repoFullName,
+			CommitSHA:    commit.Sha1,
+			Content:      commit.Message,
+			RepoFullName: repo.FullName(),
 		})
 	}
 	return err

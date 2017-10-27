@@ -670,13 +670,13 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 
 			for _, issue := range issues {
 				if isForcePush {
-					if err := ClearPullPushComent(issue); err != nil {
+					if err := ClearPullPushComment(issue); err != nil {
 						return fmt.Errorf("ClearPullPushComent: %v", err)
 					}
 				}
 
 				for _, c := range opts.Commits.Commits {
-					if err := CreatePullPushComment(pusher, issue.Repo, issue, c.Message, c.Sha1, issue.Repo.FullName()); err != nil {
+					if err := CreatePullPushComment(pusher, issue.Repo, issue, c); err != nil {
 						return fmt.Errorf("CreatePullPushComment: %v", err)
 					}
 				}
