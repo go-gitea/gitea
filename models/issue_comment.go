@@ -639,6 +639,16 @@ func CreatePullPushComment(doer *User, repo *Repository, issue *Issue, commit *P
 	return err
 }
 
+func updateCommentRepoFullName(e Engine, repoID int64, newRepoFullName string) error {
+	_, err := e.Where("issue_id IN (SELECT id FROM issue WHERE repo_id = ?)", repoID).
+		And("`type` = ?", CommentTypePullPushCommit).
+		Cols("repo_full_name").
+		Update(&Comment{
+			RepoFullName: newRepoFullName,
+		})
+	return err
+}
+
 // GetCommentByID returns the comment by given ID.
 func GetCommentByID(id int64) (*Comment, error) {
 	c := new(Comment)

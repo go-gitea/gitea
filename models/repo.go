@@ -1478,13 +1478,8 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	// Update comment repofullname
-	if _, err := sess.Where("issue_id IN (SELECT id FROM issue WHERE repo_id = ?)", repo.ID).
-		And("`type` = ?", CommentTypePullPushCommit).
-		Cols("repo_full_name").
-		Update(&Comment{
-			RepoFullName: repo.FullName(),
-		}); err != nil {
-		return fmt.Errorf("update comment: %v", err)
+	if err := updateCommentRepoFullName(sess, repo.ID, repo.FullName()); err != nil {
+		return fmt.Errorf("updateCommentRepoFullName: %v", err)
 	}
 
 	// Remove redundant collaborators.
@@ -1605,14 +1600,7 @@ func ChangeRepositoryName(repo *Repository, oldRepoName, newRepoName string) (er
 		RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
 	}
 
-	_, err = x.Where("issue_id IN (SELECT id FROM issue WHERE repo_id = ?)", repo.ID).
-		And("`type` = ?", CommentTypePullPushCommit).
-		Cols("repo_full_name").
-		Update(&Comment{
-			RepoFullName: u.Name + "/" + newRepoName,
-		})
-
-	return err
+	return updateCommentRepoFullName(x, repo.ID, u.Name+"/"+newRepoName)
 }
 
 func getRepositoriesByForkID(e Engine, forkID int64) ([]*Repository, error) {
