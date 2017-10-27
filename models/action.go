@@ -630,31 +630,30 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			}
 		}
 
-		// if there is a pull request fro this branch, then update pull request
+		// if there is a pull request from this branch, then update pull request
 		prs, err := GetUnmergedPullRequestsByHeadInfo(repo.ID, refName)
 		if err != nil {
 			return fmt.Errorf("GetUnmergedPullRequestsByHeadInfo: %v", err)
 		}
 
 		if len(prs) > 0 {
-			var isForcePush = false
+			var isForcePush bool
 
 			// detect force push
 			if !isNewBranch && git.EmptySHA != opts.OldCommitID {
 				output, err := git.NewCommand("rev-list", opts.OldCommitID, "^"+opts.NewCommitID).RunInDir(repo.RepoPath())
 				if err != nil {
 					return fmt.Errorf("rev-list: %v", err)
-				} else if len(output) > 0 {
-					isForcePush = true
 				}
+				isForcePush = len(output) > 0
 			}
 
 			if err := PullRequestList(prs).LoadAttributes(); err != nil {
 				return fmt.Errorf("PullRequestList.LoadAttributes: %v", err)
 			}
 
-			var issues = make([]*Issue, 0, len(prs))
-			var lastCommitID = opts.Commits.Commits[len(opts.Commits.Commits)-1].Sha1
+			issues := make([]*Issue, 0, len(prs))
+			lastCommitID := opts.Commits.Commits[len(opts.Commits.Commits)-1].Sha1
 			for _, pr := range prs {
 				pr.LastCommitID = lastCommitID
 				if err := pr.UpdateCols("last_commit_id"); err != nil {

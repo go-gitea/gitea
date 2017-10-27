@@ -279,18 +279,20 @@ func (c *Comment) LoadAssignees() error {
 
 // LoadCommitStatus if comment.Type is CommentTypePullPushCommit, then load commit status
 func (c *Comment) LoadCommitStatus() error {
-	if c.CommitStatus == nil {
-		issue, err := getIssueByID(x, c.IssueID)
-		if err != nil {
-			return err
-		}
-		commitStatuses, err := GetLatestCommitStatus(issue.RepoID, c.CommitSHA, 0)
-		if err != nil {
-			return err
-		}
-
-		c.CommitStatus = CalcCommitStatus(commitStatuses)
+	if c.CommitStatus != nil {
+		return nil
 	}
+
+	issue, err := getIssueByID(x, c.IssueID)
+	if err != nil {
+		return err
+	}
+	commitStatuses, err := GetLatestCommitStatus(issue.RepoID, c.CommitSHA, 0)
+	if err != nil {
+		return err
+	}
+
+	c.CommitStatus = CalcCommitStatus(commitStatuses)
 	return nil
 }
 
@@ -621,19 +623,19 @@ func CreatePullPushComment(doer *User, repo *Repository, issue *Issue, content, 
 	})
 	if err != nil {
 		return fmt.Errorf("check pull push comment: %v", err)
-	} else if has {
-		return nil
 	}
 
-	_, err = CreateComment(&CreateCommentOptions{
-		Type:         CommentTypePullPushCommit,
-		Doer:         doer,
-		Repo:         repo,
-		Issue:        issue,
-		CommitSHA:    commitSHA,
-		Content:      content,
-		RepoFullName: repoFullName,
-	})
+	if !has {
+		_, err = CreateComment(&CreateCommentOptions{
+			Type:         CommentTypePullPushCommit,
+			Doer:         doer,
+			Repo:         repo,
+			Issue:        issue,
+			CommitSHA:    commitSHA,
+			Content:      content,
+			RepoFullName: repoFullName,
+		})
+	}
 	return err
 }
 
