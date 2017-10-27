@@ -367,6 +367,7 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["DisableSSH"] = setting.SSH.Disabled
 		ctx.Data["ExposeAnonSSH"] = setting.SSH.ExposeAnonymous
 		ctx.Data["DisableHTTP"] = setting.Repository.DisableHTTPGit
+		ctx.Data["RepoSearchEnabled"] = setting.Indexer.RepoIndexerEnabled
 		ctx.Data["CloneLink"] = repo.CloneLink()
 		ctx.Data["WikiCloneLink"] = repo.WikiCloneLink()
 

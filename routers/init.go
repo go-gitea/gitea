@@ -66,6 +66,7 @@ func GlobalInit() {
 		// Booting long running goroutines.
 		cron.NewContext()
 		models.InitIssueIndexer()
+		models.InitRepoIndexer()
 		models.InitSyncMirrors()
 		models.InitDeliverHooks()
 		models.InitTestPullRequests()

@@ -144,6 +144,8 @@ var migrations = []Migration{
 	NewMigration("remove organization watch repositories", removeOrganizationWatchRepo),
 	// v47 -> v48
 	NewMigration("add deleted branches", addDeletedBranch),
+	// v48 -> v49
+	NewMigration("add repo indexer status", addRepoIndexerStatus),
 }
 
 // Migrate database to current version

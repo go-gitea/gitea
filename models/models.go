@@ -13,6 +13,10 @@ import (
 	"path"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
+
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/core"
@@ -23,9 +27,6 @@ import (
 
 	// Needed for the MSSSQL driver
 	_ "github.com/denisenkom/go-mssqldb"
-
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 // Engine represents a xorm engine or session.
@@ -115,6 +116,7 @@ func init() {
 		new(Stopwatch),
 		new(TrackedTime),
 		new(DeletedBranch),
+		new(RepoIndexerStatus),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -150,8 +152,13 @@ func LoadConfigs() {
 	DbCfg.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
 
 	sec = setting.Cfg.Section("indexer")
-	setting.Indexer.IssuePath = sec.Key("ISSUE_INDEXER_PATH").MustString("indexers/issues.bleve")
+	setting.Indexer.IssuePath = absolutePath(
+		sec.Key("ISSUE_INDEXER_PATH").MustString("indexers/issues.bleve"))
+	setting.Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_ENABLED").MustBool(false)
+	setting.Indexer.RepoPath = absolutePath(
+		sec.Key("REPO_INDEXER_PATH").MustString("indexers/repos.bleve"))
 	setting.Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
+	setting.Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(512 * 1024 * 1024)
 }
 
 // parsePostgreSQLHostPort parses given input in various forms defined in
@@ -335,4 +342,13 @@ func DumpDatabase(filePath string, dbType string) error {
 		return x.DumpTablesToFile(tbs, filePath, core.DbType(dbType))
 	}
 	return x.DumpTablesToFile(tbs, filePath)
+}
+
+// absolutePath make path absolute if it is relative
+func absolutePath(path string) string {
+	workDir, err := setting.WorkDir()
+	if err != nil {
+		log.Fatal(4, "Failed to get work directory: %v", err)
+	}
+	return util.EnsureAbsolutePath(path, workDir)
 }
