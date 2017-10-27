@@ -1477,6 +1477,16 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("update owner: %v", err)
 	}
 
+	// Update comment repofullname
+	if _, err := sess.Where("issue_id IN (SELECT id FROM issue WHERE repo_id = ?)", repo.ID).
+		And("`type` = ?", CommentTypePullPushCommit).
+		Cols("repo_full_name").
+		Update(&Comment{
+			RepoFullName: repo.FullName(),
+		}); err != nil {
+		return fmt.Errorf("update comment: %v", err)
+	}
+
 	// Remove redundant collaborators.
 	collaborators, err := repo.getCollaborators(sess)
 	if err != nil {
@@ -1567,7 +1577,8 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 }
 
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
-func ChangeRepositoryName(u *User, oldRepoName, newRepoName string) (err error) {
+func ChangeRepositoryName(repo *Repository, oldRepoName, newRepoName string) (err error) {
+	u := repo.Owner
 	oldRepoName = strings.ToLower(oldRepoName)
 	newRepoName = strings.ToLower(newRepoName)
 	if err = IsUsableRepoName(newRepoName); err != nil {
@@ -1579,11 +1590,6 @@ func ChangeRepositoryName(u *User, oldRepoName, newRepoName string) (err error) 
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
 		return ErrRepoAlreadyExist{u.Name, newRepoName}
-	}
-
-	repo, err := GetRepositoryByName(u.ID, oldRepoName)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryByName: %v", err)
 	}
 
 	// Change repository directory name.
@@ -1599,7 +1605,14 @@ func ChangeRepositoryName(u *User, oldRepoName, newRepoName string) (err error) 
 		RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
 	}
 
-	return nil
+	_, err = x.Where("issue_id IN (SELECT id FROM issue WHERE repo_id = ?)", repo.ID).
+		And("`type` = ?", CommentTypePullPushCommit).
+		Cols("repo_full_name").
+		Update(&Comment{
+			RepoFullName: u.Name + "/" + newRepoName,
+		})
+
+	return err
 }
 
 func getRepositoriesByForkID(e Engine, forkID int64) ([]*Repository, error) {

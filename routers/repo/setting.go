@@ -55,7 +55,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		// Check if repository name has been changed.
 		if repo.LowerName != strings.ToLower(newRepoName) {
 			isNameChanged = true
-			if err := models.ChangeRepositoryName(ctx.Repo.Owner, repo.Name, newRepoName); err != nil {
+			if err := models.ChangeRepositoryName(ctx.Repo.Repository, repo.Name, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
 				case models.IsErrRepoAlreadyExist(err):
