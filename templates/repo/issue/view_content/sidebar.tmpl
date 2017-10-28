@@ -191,7 +191,8 @@
 			{{end}}
 		{{end}}
 
-		{{if .IssueDependenciesEnabled}}
+		{{if .IsSigned}}
+			{{if .IssueDependenciesEnabled}}
 		<div class="ui divider"></div>
 
 		<div class="ui depending">
@@ -312,4 +313,5 @@
 		</div>
 	</div>
 </div>
+	{{end}}
 {{end}}
