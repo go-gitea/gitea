@@ -141,7 +141,7 @@ func (IssueDependencyIssue) TableName() string {
 func IssueNoDependenciesLeft(issue *Issue) bool {
 
 	exists, err := x.
-		Join("INNER", "issue", "issue.id = issue_dependency.issue_id").
+		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
 		Where("issue_dependency.issue_id = ?", issue.ID).
 		And("issue.is_closed = ?", "0").
 		Exist(&IssueDependencyIssue{})
@@ -150,9 +150,5 @@ func IssueNoDependenciesLeft(issue *Issue) bool {
 		return false
 	}
 
-	if exists{
-		return false
-	}
-
-	return true
+	return !exists
 }
