@@ -521,6 +521,16 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 	return ""
 }
 
+// URL to redirect to for deprecated URL scheme
+func repoRefRedirect(ctx *Context) string {
+	urlPath := ctx.Req.URL.String()
+	idx := strings.LastIndex(urlPath, ctx.Params("*"))
+	if idx < 0 {
+		idx = len(urlPath)
+	}
+	return path.Join(urlPath[:idx], ctx.Repo.BranchNameSubURL())
+}
+
 // RepoRefByType handles repository reference name for a specific type
 // of repository reference
 func RepoRefByType(refType RepoRefType) macaron.Handler {
@@ -548,6 +558,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 		// Get default branch.
 		if len(ctx.Params("*")) == 0 {
 			refName = ctx.Repo.Repository.DefaultBranch
+			ctx.Repo.BranchName = refName
 			if !ctx.Repo.GitRepo.IsBranchExist(refName) {
 				brs, err := ctx.Repo.GitRepo.GetBranches()
 				if err != nil {
@@ -571,6 +582,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 
 		} else {
 			refName = getRefName(ctx, refType)
+			ctx.Repo.BranchName = refName
 			if ctx.Repo.GitRepo.IsBranchExist(refName) {
 				ctx.Repo.IsViewBranch = true
 
@@ -605,15 +617,11 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 
 			if refType == RepoRefUnknown {
 				// redirect from old URL scheme to new URL scheme
-				ctx.Redirect(path.Join(
-					ctx.Repo.BranchNameSubURL(),
-					ctx.Repo.TreePath,
-				))
+				ctx.Redirect(repoRefRedirect(ctx))
 				return
 			}
 		}
 
-		ctx.Repo.BranchName = refName
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
 		ctx.Data["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 		ctx.Data["CommitID"] = ctx.Repo.CommitID
