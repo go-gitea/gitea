@@ -86,11 +86,11 @@ func ObjectOidHandler(ctx *context.Context) {
 
 	if ctx.Req.Method == "GET" || ctx.Req.Method == "HEAD" {
 		if MetaMatcher(ctx.Req) {
-			GetMetaHandler(ctx)
+			getMetaHandler(ctx)
 			return
 		}
 		if ContentMatcher(ctx.Req) || len(ctx.Params("filename")) > 0 {
-			GetContentHandler(ctx)
+			getContentHandler(ctx)
 			return
 		}
 	} else if ctx.Req.Method == "PUT" && ContentMatcher(ctx.Req) {
@@ -100,26 +100,35 @@ func ObjectOidHandler(ctx *context.Context) {
 
 }
 
-// GetContentHandler gets the content from the content store
-func GetContentHandler(ctx *context.Context) {
+func getAuthenticatedRepoAndMeta(ctx *context.Context, rv *RequestVars, requireWrite bool) (*models.LFSMetaObject, *models.Repository) {
+	repositoryString := rv.User + "/" + rv.Repo
+	repository, err := models.GetRepositoryByRef(repositoryString)
+	if err != nil {
+		log.Debug("Could not find repository: %s - %s", repositoryString, err)
+		writeStatus(ctx, 404)
+		return nil, nil
+	}
 
+	if !authenticate(ctx, repository, rv.Authorization, requireWrite) {
+		requireAuth(ctx)
+		return nil, nil
+	}
+
+	meta, err := repository.GetLFSMetaObjectByOid(rv.Oid)
+	if err != nil {
+		writeStatus(ctx, 404)
+		return nil, nil
+	}
+
+	return meta, repository
+}
+
+// getContentHandler gets the content from the content store
+func getContentHandler(ctx *context.Context) {
 	rv := unpack(ctx)
 
-	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	repository, err := models.GetRepositoryByID(meta.RepositoryID)
-
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	if !authenticate(ctx, repository, rv.Authorization, false) {
-		requireAuth(ctx)
+	meta, _ := getAuthenticatedRepoAndMeta(ctx, rv, false)
+	if meta == nil {
 		return
 	}
 
@@ -160,26 +169,12 @@ func GetContentHandler(ctx *context.Context) {
 	logRequest(ctx.Req, statusCode)
 }
 
-// GetMetaHandler retrieves metadata about the object
-func GetMetaHandler(ctx *context.Context) {
-
+// getMetaHandler retrieves metadata about the object
+func getMetaHandler(ctx *context.Context) {
 	rv := unpack(ctx)
 
-	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	repository, err := models.GetRepositoryByID(meta.RepositoryID)
-
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	if !authenticate(ctx, repository, rv.Authorization, false) {
-		requireAuth(ctx)
+	meta, _ := getAuthenticatedRepoAndMeta(ctx, rv, false)
+	if meta == nil {
 		return
 	}
 
@@ -210,7 +205,6 @@ func PostHandler(ctx *context.Context) {
 
 	repositoryString := rv.User + "/" + rv.Repo
 	repository, err := models.GetRepositoryByRef(repositoryString)
-
 	if err != nil {
 		log.Debug("Could not find repository: %s - %s", repositoryString, err)
 		writeStatus(ctx, 404)
@@ -222,7 +216,6 @@ func PostHandler(ctx *context.Context) {
 	}
 
 	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Oid: rv.Oid, Size: rv.Size, RepositoryID: repository.ID})
-
 	if err != nil {
 		writeStatus(ctx, 404)
 		return
@@ -281,9 +274,9 @@ func BatchHandler(ctx *context.Context) {
 			return
 		}
 
-		meta, err := models.GetLFSMetaObjectByOid(object.Oid)
-
 		contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
+
+		meta, err := repository.GetLFSMetaObjectByOid(object.Oid)
 		if err == nil && contentStore.Exists(meta) { // Object is found and exists
 			responseObjects = append(responseObjects, Represent(object, meta, true, false))
 			continue
@@ -291,9 +284,8 @@ func BatchHandler(ctx *context.Context) {
 
 		// Object is not found
 		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size, RepositoryID: repository.ID})
-
 		if err == nil {
-			responseObjects = append(responseObjects, Represent(object, meta, meta.Existing, true))
+			responseObjects = append(responseObjects, Represent(object, meta, meta.Existing, !contentStore.Exists(meta)))
 		}
 	}
 
@@ -310,30 +302,18 @@ func BatchHandler(ctx *context.Context) {
 func PutHandler(ctx *context.Context) {
 	rv := unpack(ctx)
 
-	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
-
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	repository, err := models.GetRepositoryByID(meta.RepositoryID)
-
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	if !authenticate(ctx, repository, rv.Authorization, true) {
-		requireAuth(ctx)
+	meta, repository := getAuthenticatedRepoAndMeta(ctx, rv, true)
+	if meta == nil {
 		return
 	}
 
 	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
 	if err := contentStore.Put(meta, ctx.Req.Body().ReadCloser()); err != nil {
-		models.RemoveLFSMetaObjectByOid(rv.Oid)
 		ctx.Resp.WriteHeader(500)
 		fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
+		if err = repository.RemoveLFSMetaObjectByOid(rv.Oid); err != nil {
+			log.Error(4, "RemoveLFSMetaObjectByOid: %v", err)
+		}
 		return
 	}
 
