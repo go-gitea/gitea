@@ -2453,7 +2453,6 @@ func (repo *Repository) GetUserFork(userID int64) (*Repository, error) {
 	return &forkedRepo, nil
 }
 
-
 // Get Blocked By Dependencies, aka all issues this issue is blocked by.
 func (repo *Repository) getBlockedByDependencies(e Engine, issueID int64) (_ []*IssueDependencyIssue, err error) {
 	var issueDeps []*IssueDependencyIssue
