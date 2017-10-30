@@ -541,7 +541,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, repo.MustBeNotBare, reqRepoWriter)
 
 		m.Group("/branches", func() {
-			m.Post("/_new/*", context.RepoRef(), bindIgnErr(auth.NewBranchForm{}), repo.CreateBranch)
+			m.Group("/_new/", func() {
+				m.Post("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.CreateBranch)
+				m.Post("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.CreateBranch)
+				m.Post("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.CreateBranch)
+			}, bindIgnErr(auth.NewBranchForm{}))
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
 		}, reqRepoWriter, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
@@ -626,7 +630,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.SingleDownload)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.SingleDownload)
 			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(context.RepoRefUnknown), repo.SingleDownload)
+			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.SingleDownload)
 		}, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
 
 		m.Group("/commits", func() {
@@ -634,7 +638,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RefCommits)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RefCommits)
 			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(context.RepoRefUnknown), repo.RefCommits)
+			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.RefCommits)
 		}, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
 
 		m.Group("", func() {
@@ -647,7 +651,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.Home)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.Home)
 			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(context.RepoRefUnknown), repo.Home)
+			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.Home)
 		}, repo.SetEditorconfigIfExists)
 
 		m.Group("", func() {

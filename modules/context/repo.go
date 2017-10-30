@@ -463,9 +463,9 @@ func RepoAssignment() macaron.Handler {
 type RepoRefType int
 
 const (
-	// RepoRefUnknown unknown type, make educated guess and redirect.
+	// RepoRefLegacy unknown type, make educated guess and redirect.
 	// for backward compatibility with previous URL scheme
-	RepoRefUnknown RepoRefType = iota
+	RepoRefLegacy RepoRefType = iota
 	// RepoRefBranch branch
 	RepoRefBranch
 	// RepoRefTag tag
@@ -497,7 +497,7 @@ func getRefNameFromPath(ctx *Context, path string, isExist func(string) bool) st
 func getRefName(ctx *Context, pathType RepoRefType) string {
 	path := ctx.Params("*")
 	switch pathType {
-	case RepoRefUnknown:
+	case RepoRefLegacy:
 		if refName := getRefName(ctx, RepoRefBranch); len(refName) > 0 {
 			return refName
 		}
@@ -615,7 +615,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				return
 			}
 
-			if refType == RepoRefUnknown {
+			if refType == RepoRefLegacy {
 				// redirect from old URL scheme to new URL scheme
 				ctx.Redirect(repoRefRedirect(ctx))
 				return
