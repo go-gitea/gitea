@@ -2037,6 +2037,7 @@ function buildIssuesList() {
                     $('#newDependency').val(result.id);
                     return false;
                 }
+
             });*/
     });
 }
