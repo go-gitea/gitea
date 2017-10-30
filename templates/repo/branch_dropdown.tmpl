@@ -10,10 +10,10 @@
 		</div>
 		<div class="data" style="display: none" data-mode="{{if .IsViewTag}}tags{{else}}branches{{end}}">
 			{{range .Branches}}
-				<div class="item branch {{if eq $.BranchName .}}selected{{end}}" data-url="{{$.RepoLink}}/{{if $.PageIsCommits}}commits{{else}}src{{end}}/{{EscapePound .}}{{if $.TreePath}}/{{EscapePound $.TreePath}}{{end}}">{{.}}</div>
+				<div class="item branch {{if eq $.BranchName .}}selected{{end}}" data-url="{{$.RepoLink}}/{{if $.PageIsCommits}}commits{{else}}src{{end}}/branch/{{EscapePound .}}{{if $.TreePath}}/{{EscapePound $.TreePath}}{{end}}">{{.}}</div>
 			{{end}}
 			{{range .Tags}}
-				<div class="item tag {{if eq $.BranchName .}}selected{{end}}" data-url="{{$.RepoLink}}/{{if $.PageIsCommits}}commits{{else}}src{{end}}/{{EscapePound .}}{{if $.TreePath}}/{{EscapePound $.TreePath}}{{end}}">{{.}}</div>
+				<div class="item tag {{if eq $.BranchName .}}selected{{end}}" data-url="{{$.RepoLink}}/{{if $.PageIsCommits}}commits{{else}}src{{end}}/tag/{{EscapePound .}}{{if $.TreePath}}/{{EscapePound $.TreePath}}{{end}}">{{.}}</div>
 			{{end}}
 		</div>
 		<div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>

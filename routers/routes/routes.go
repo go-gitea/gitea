@@ -522,34 +522,30 @@ func RegisterRoutes(m *macaron.Macaron) {
 			Post(bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
 
 		m.Group("", func() {
-			m.Combo("/_edit/*").Get(repo.EditFile).
-				Post(bindIgnErr(auth.EditRepoFileForm{}), repo.EditFilePost)
-			m.Combo("/_new/*").Get(repo.NewFile).
-				Post(bindIgnErr(auth.EditRepoFileForm{}), repo.NewFilePost)
-			m.Post("/_preview/*", bindIgnErr(auth.EditPreviewDiffForm{}), repo.DiffPreviewPost)
-			m.Combo("/_delete/*").Get(repo.DeleteFile).
-				Post(bindIgnErr(auth.DeleteRepoFileForm{}), repo.DeleteFilePost)
-
 			m.Group("", func() {
-				m.Combo("/_upload/*").Get(repo.UploadFile).
+				m.Combo("/_edit/*").Get(repo.EditFile).
+					Post(bindIgnErr(auth.EditRepoFileForm{}), repo.EditFilePost)
+				m.Combo("/_new/*").Get(repo.NewFile).
+					Post(bindIgnErr(auth.EditRepoFileForm{}), repo.NewFilePost)
+				m.Post("/_preview/*", bindIgnErr(auth.EditPreviewDiffForm{}), repo.DiffPreviewPost)
+				m.Combo("/_delete/*").Get(repo.DeleteFile).
+					Post(bindIgnErr(auth.DeleteRepoFileForm{}), repo.DeleteFilePost)
+				m.Combo("/_upload/*", repo.MustBeAbleToUpload).
+					Get(repo.UploadFile).
 					Post(bindIgnErr(auth.UploadRepoFileForm{}), repo.UploadFilePost)
+			}, context.RepoRefByType(context.RepoRefBranch), repo.MustBeEditable)
+			m.Group("", func() {
 				m.Post("/upload-file", repo.UploadFileToServer)
 				m.Post("/upload-remove", bindIgnErr(auth.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
-			}, func(ctx *context.Context) {
-				if !setting.Repository.Upload.Enabled {
-					ctx.Handle(404, "", nil)
-					return
-				}
-			})
-		}, repo.MustBeNotBare, reqRepoWriter, context.RepoRef(), func(ctx *context.Context) {
-			if !ctx.Repo.Repository.CanEnableEditor() || ctx.Repo.IsViewCommit {
-				ctx.Handle(404, "", nil)
-				return
-			}
-		})
+			}, context.RepoRef(), repo.MustBeEditable, repo.MustBeAbleToUpload)
+		}, repo.MustBeNotBare, reqRepoWriter)
 
 		m.Group("/branches", func() {
-			m.Post("/_new/*", context.RepoRef(), bindIgnErr(auth.NewBranchForm{}), repo.CreateBranch)
+			m.Group("/_new/", func() {
+				m.Post("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.CreateBranch)
+				m.Post("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.CreateBranch)
+				m.Post("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.CreateBranch)
+			}, bindIgnErr(auth.NewBranchForm{}))
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
 		}, reqRepoWriter, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
@@ -629,15 +625,36 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/cleanup", context.RepoRef(), repo.CleanUpPullRequest)
 		}, repo.MustAllowPulls)
 
+		m.Group("/raw", func() {
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.SingleDownload)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.SingleDownload)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.SingleDownload)
+			// "/*" route is deprecated, and kept for backward compatibility
+			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.SingleDownload)
+		}, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
+
+		m.Group("/commits", func() {
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RefCommits)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RefCommits)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RefCommits)
+			// "/*" route is deprecated, and kept for backward compatibility
+			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.RefCommits)
+		}, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
+
 		m.Group("", func() {
-			m.Get("/raw/*", repo.SingleDownload)
-			m.Get("/commits/*", repo.RefCommits)
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
 		}, repo.MustBeNotBare, context.RepoRef(), context.CheckUnit(models.UnitTypeCode))
 
+		m.Group("/src", func() {
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.Home)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.Home)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.Home)
+			// "/*" route is deprecated, and kept for backward compatibility
+			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.Home)
+		}, repo.SetEditorconfigIfExists)
+
 		m.Group("", func() {
-			m.Get("/src/*", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("/forks", repo.Forks)
 		}, context.RepoRef(), context.CheckUnit(models.UnitTypeCode))
 		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)",
