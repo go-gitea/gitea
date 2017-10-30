@@ -675,8 +675,8 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 					}
 				}
 
-				for _, c := range opts.Commits.Commits {
-					if err := CreatePullPushComment(pusher, issue.Repo, issue, c); err != nil {
+				for i := len(opts.Commits.Commits) - 1; i >= 0; i-- {
+					if err := CreatePullPushComment(pusher, issue.Repo, issue, opts.Commits.Commits[i]); err != nil {
 						return fmt.Errorf("CreatePullPushComment: %v", err)
 					}
 				}
