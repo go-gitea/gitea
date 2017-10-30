@@ -141,6 +141,12 @@ var migrations = []Migration{
 	// v45 -> v46
 	NewMigration("remove index column from repo_unit table", removeIndexColumnFromRepoUnitTable),
 	// v46 -> v47
+	NewMigration("remove organization watch repositories", removeOrganizationWatchRepo),
+	// v47 -> v48
+	NewMigration("add deleted branches", addDeletedBranch),
+	// v48 -> v49
+	NewMigration("add repo indexer status", addRepoIndexerStatus),
+	// v49 -> v50
 	NewMigration("add issue_dependency table", addIssueDependencyTables),
 }
 

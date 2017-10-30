@@ -5,30 +5,32 @@
 package migrations
 
 import (
-	"fmt"
-
 	"github.com/go-xorm/xorm"
-	"time"
 )
 
-func addIssueDependencyTables(x *xorm.Engine) (err error) {
+func removeOrganizationWatchRepo(x *xorm.Engine) error {
+	// UserType defines the user type
+	type UserType int
 
-	type IssueDependency struct {
-		ID           int64     `xorm:"pk autoincr"`
-		UserID       int64     `xorm:"UNIQUE(watch) NOT NULL"`
-		IssueID      int64     `xorm:"UNIQUE(watch) NOT NULL"`
-		DependencyID int64     `xorm:"UNIQUE(watch) NOT NULL"`
-		Created      time.Time `xorm:"-"`
-		CreatedUnix  int64     `xorm:"INDEX created"`
-		Updated      time.Time `xorm:"-"`
-		UpdatedUnix  int64     `xorm:"updated"`
+	const (
+		// UserTypeIndividual defines an individual user
+		UserTypeIndividual UserType = iota // Historic reason to make it starts at 0.
+
+		// UserTypeOrganization defines an organization
+		UserTypeOrganization
+	)
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if _, err := sess.Exec("DELETE FROM `watch` WHERE `user_id` IN (SELECT `id` FROM `user` WHERE `type` = ?)", UserTypeOrganization); err != nil {
+		return err
+	}
+	if _, err := sess.Exec("UPDATE `repository` SET num_watches = (SELECT count(*) FROM watch WHERE `repository`.`id` = watch.repo_id)"); err != nil {
+		return err
 	}
 
-	err = x.Sync(new(IssueDependency))
-
-	if err != nil {
-		return fmt.Errorf("Error creating issue_dependency_table column definition: %v", err)
-	}
-
-	return err
+	return sess.Commit()
 }

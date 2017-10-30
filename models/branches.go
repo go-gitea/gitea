@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
@@ -192,4 +193,110 @@ func (repo *Repository) DeleteProtectedBranch(id int64) (err error) {
 	}
 
 	return sess.Commit()
+}
+
+// DeletedBranch struct
+type DeletedBranch struct {
+	ID          int64     `xorm:"pk autoincr"`
+	RepoID      int64     `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Name        string    `xorm:"UNIQUE(s) NOT NULL"`
+	Commit      string    `xorm:"UNIQUE(s) NOT NULL"`
+	DeletedByID int64     `xorm:"INDEX"`
+	DeletedBy   *User     `xorm:"-"`
+	Deleted     time.Time `xorm:"-"`
+	DeletedUnix int64     `xorm:"INDEX created"`
+}
+
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (deletedBranch *DeletedBranch) AfterLoad() {
+	deletedBranch.Deleted = time.Unix(deletedBranch.DeletedUnix, 0).Local()
+}
+
+// AddDeletedBranch adds a deleted branch to the database
+func (repo *Repository) AddDeletedBranch(branchName, commit string, deletedByID int64) error {
+	deletedBranch := &DeletedBranch{
+		RepoID:      repo.ID,
+		Name:        branchName,
+		Commit:      commit,
+		DeletedByID: deletedByID,
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if _, err := sess.InsertOne(deletedBranch); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+// GetDeletedBranches returns all the deleted branches
+func (repo *Repository) GetDeletedBranches() ([]*DeletedBranch, error) {
+	deletedBranches := make([]*DeletedBranch, 0)
+	return deletedBranches, x.Where("repo_id = ?", repo.ID).Desc("deleted_unix").Find(&deletedBranches)
+}
+
+// GetDeletedBranchByID get a deleted branch by its ID
+func (repo *Repository) GetDeletedBranchByID(ID int64) (*DeletedBranch, error) {
+	deletedBranch := &DeletedBranch{ID: ID}
+	has, err := x.Get(deletedBranch)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, nil
+	}
+	return deletedBranch, nil
+}
+
+// RemoveDeletedBranch removes a deleted branch from the database
+func (repo *Repository) RemoveDeletedBranch(id int64) (err error) {
+	deletedBranch := &DeletedBranch{
+		RepoID: repo.ID,
+		ID:     id,
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if affected, err := sess.Delete(deletedBranch); err != nil {
+		return err
+	} else if affected != 1 {
+		return fmt.Errorf("remove deleted branch ID(%v) failed", id)
+	}
+
+	return sess.Commit()
+}
+
+// LoadUser loads the user that deleted the branch
+// When there's no user found it returns a NewGhostUser
+func (deletedBranch *DeletedBranch) LoadUser() {
+	user, err := GetUserByID(deletedBranch.DeletedByID)
+	if err != nil {
+		user = NewGhostUser()
+	}
+	deletedBranch.DeletedBy = user
+}
+
+// RemoveOldDeletedBranches removes old deleted branches
+func RemoveOldDeletedBranches() {
+	if !taskStatusTable.StartIfNotRunning(`deleted_branches_cleanup`) {
+		return
+	}
+	defer taskStatusTable.Stop(`deleted_branches_cleanup`)
+
+	log.Trace("Doing: DeletedBranchesCleanup")
+
+	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)
+	_, err := x.Where("deleted_unix < ?", deleteBefore.Unix()).Delete(new(DeletedBranch))
+	if err != nil {
+		log.Error(4, "DeletedBranchesCleanup: %v", err)
+	}
 }

@@ -202,7 +202,6 @@ func SSHKeyGenParsePublicKey(key string) (string, int, error) {
 }
 
 // SSHNativeParsePublicKey extracts the key type and length using the golang SSH library.
-// NOTE: ed25519 is not supported.
 func SSHNativeParsePublicKey(keyLine string) (string, int, error) {
 	fields := strings.Fields(keyLine)
 	if len(fields) < 2 {
@@ -251,7 +250,7 @@ func SSHNativeParsePublicKey(keyLine string) (string, int, error) {
 		return "ecdsa", 384, nil
 	case ssh.KeyAlgoECDSA521:
 		return "ecdsa", 521, nil
-	case "ssh-ed25519": // TODO: replace with ssh constant when available
+	case ssh.KeyAlgoED25519:
 		return "ed25519", 256, nil
 	}
 	return "", 0, fmt.Errorf("unsupported key length detection for type: %s", pkey.Type())
@@ -277,6 +276,10 @@ func CheckPublicKeyString(content string) (_ string, err error) {
 	// remove any unnecessary whitespace now
 	content = strings.TrimSpace(content)
 
+	if !setting.SSH.MinimumKeySizeCheck {
+		return content, nil
+	}
+
 	var (
 		fnName  string
 		keyType string
@@ -294,9 +297,6 @@ func CheckPublicKeyString(content string) (_ string, err error) {
 	}
 	log.Trace("Key info [native: %v]: %s-%d", setting.SSH.StartBuiltinServer, keyType, length)
 
-	if !setting.SSH.MinimumKeySizeCheck {
-		return content, nil
-	}
 	if minLen, found := setting.SSH.MinimumKeySizes[keyType]; found && length >= minLen {
 		return content, nil
 	} else if found && length < minLen {

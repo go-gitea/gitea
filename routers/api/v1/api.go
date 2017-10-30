@@ -275,8 +275,11 @@ func mustAllowPulls(ctx *context.Context) {
 func RegisterRoutes(m *macaron.Macaron) {
 	bind := binding.Bind
 
+	m.Get("/swagger", misc.Swagger) //Render V1 by default
+
 	m.Group("/v1", func() {
 		// Miscellaneous
+		m.Get("/swagger", misc.Swagger)
 		m.Get("/version", misc.Version)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
@@ -388,7 +391,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Post(reqToken(), bind(api.CreateForkOption{}), repo.CreateFork)
 				m.Group("/branches", func() {
 					m.Get("", repo.ListBranches)
-					m.Get("/*", context.RepoRef(), repo.GetBranch)
+					m.Get("/*", context.RepoRefByType(context.RepoRefBranch), repo.GetBranch)
 				})
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).

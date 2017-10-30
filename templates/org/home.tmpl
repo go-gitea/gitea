@@ -52,11 +52,6 @@
 						{{end}}
 					{{end}}
 				</div>
-				{{if .IsOrganizationOwner}}
-					<div class="ui bottom attached segment">
-						<a class="ui blue small button" href="{{.OrgLink}}/invitations/new">{{.i18n.Tr "org.invite_someone"}}</a>
-					</div>
-				{{end}}
 
 				{{if .IsOrganizationMember}}
 					<div class="ui top attached header">

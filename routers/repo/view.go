@@ -93,16 +93,13 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		if isTextFile {
 			d, _ := ioutil.ReadAll(dataRc)
 			buf = append(buf, d...)
-			newbuf := markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas())
-			if newbuf != nil {
+			if markup.Type(readmeFile.Name()) != "" {
 				ctx.Data["IsMarkup"] = true
+				ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
 			} else {
-				// FIXME This is the only way to show non-markdown files
-				// instead of a broken "View Raw" link
-				ctx.Data["IsMarkup"] = false
-				newbuf = bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1)
+				ctx.Data["IsRenderedHTML"] = true
+				ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
 			}
-			ctx.Data["FileContent"] = string(newbuf)
 		}
 	}
 
@@ -195,14 +192,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		d, _ := ioutil.ReadAll(dataRc)
 		buf = append(buf, d...)
 
-		tp := markup.Type(blob.Name())
-		isSupportedMarkup := tp != ""
-		ctx.Data["IsMarkup"] = isSupportedMarkup
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
-		if isSupportedMarkup {
+		if markup.Type(blob.Name()) != "" {
+			ctx.Data["IsMarkup"] = true
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
 		} else if readmeExist {
+			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
 		} else {
 			// Building code view blocks with line number on server side.
@@ -301,9 +297,9 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["Title"] = title
 	ctx.Data["RequireHighlightJS"] = true
 
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName
+	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink
-	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchName
+	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
 
 	if len(ctx.Repo.TreePath) > 0 {
 		treeLink += "/" + ctx.Repo.TreePath

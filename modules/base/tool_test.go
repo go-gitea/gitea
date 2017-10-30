@@ -135,7 +135,7 @@ func TestAvatarLink(t *testing.T) {
 
 	setting.DisableGravatar = false
 	assert.Equal(t,
-		"353cbad9b58e69c96154ad99f92bedc7",
+		"353cbad9b58e69c96154ad99f92bedc7?d=identicon",
 		AvatarLink("gitea@example.com"),
 	)
 }
