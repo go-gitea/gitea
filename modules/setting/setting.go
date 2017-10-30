@@ -98,6 +98,8 @@ var (
 		ListenPort           int            `ini:"SSH_LISTEN_PORT"`
 		RootPath             string         `ini:"SSH_ROOT_PATH"`
 		ServerCiphers        []string       `ini:"SSH_SERVER_CIPHERS"`
+		ServerKeyExchanges   []string       `ini:"SSH_SERVER_KEY_EXCHANGES"`
+		ServerMACs           []string       `ini:"SSH_SERVER_MACS"`
 		KeyTestPath          string         `ini:"SSH_KEY_TEST_PATH"`
 		KeygenPath           string         `ini:"SSH_KEYGEN_PATH"`
 		AuthorizedKeysBackup bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
@@ -110,6 +112,8 @@ var (
 		Domain:             "",
 		Port:               22,
 		ServerCiphers:      []string{"aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "arcfour256", "arcfour128"},
+		ServerKeyExchanges: []string{"diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "curve25519-sha256@libssh.org"},
+		ServerMACs:         []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1", "hmac-sha1-96"},
 		KeygenPath:         "ssh-keygen",
 	}
 
@@ -731,6 +735,14 @@ func NewContext() {
 	serverCiphers := sec.Key("SSH_SERVER_CIPHERS").Strings(",")
 	if len(serverCiphers) > 0 {
 		SSH.ServerCiphers = serverCiphers
+	}
+	serverKeyExchanges := sec.Key("SSH_SERVER_KEY_EXCHANGES").Strings(",")
+	if len(serverKeyExchanges) > 0 {
+		SSH.ServerKeyExchanges = serverKeyExchanges
+	}
+	serverMACs := sec.Key("SSH_SERVER_MACS").Strings(",")
+	if len(serverMACs) > 0 {
+		SSH.ServerMACs = serverMACs
 	}
 	SSH.KeyTestPath = os.TempDir()
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
