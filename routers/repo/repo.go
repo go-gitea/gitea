@@ -34,6 +34,21 @@ func MustBeNotBare(ctx *context.Context) {
 	}
 }
 
+// MustBeEditable check that repo can be edited
+func MustBeEditable(ctx *context.Context) {
+	if !ctx.Repo.Repository.CanEnableEditor() || ctx.Repo.IsViewCommit {
+		ctx.Handle(404, "", nil)
+		return
+	}
+}
+
+// MustBeAbleToUpload check that repo can be uploaded to
+func MustBeAbleToUpload(ctx *context.Context) {
+	if !setting.Repository.Upload.Enabled {
+		ctx.Handle(404, "", nil)
+	}
+}
+
 func checkContextUser(ctx *context.Context, uid int64) *models.User {
 	orgs, err := models.GetOwnedOrgsByUserIDDesc(ctx.User.ID, "updated_unix")
 	if err != nil {

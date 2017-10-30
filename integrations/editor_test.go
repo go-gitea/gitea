@@ -111,7 +111,7 @@ func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePa
 	resp = session.MakeRequest(t, req, http.StatusFound)
 
 	// Verify the change
-	req = NewRequest(t, "GET", path.Join(user, repo, "raw", branch, filePath))
+	req = NewRequest(t, "GET", path.Join(user, repo, "raw/branch", branch, filePath))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.EqualValues(t, newContent, string(resp.Body))
 
@@ -142,7 +142,7 @@ func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, bra
 	resp = session.MakeRequest(t, req, http.StatusFound)
 
 	// Verify the change
-	req = NewRequest(t, "GET", path.Join(user, repo, "raw", targetBranch, filePath))
+	req = NewRequest(t, "GET", path.Join(user, repo, "raw/branch", targetBranch, filePath))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.EqualValues(t, newContent, string(resp.Body))
 
