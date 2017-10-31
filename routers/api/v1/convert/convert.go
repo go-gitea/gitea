@@ -190,3 +190,14 @@ func ToTeam(team *models.Team) *api.Team {
 		Permission:  team.Authorize.String(),
 	}
 }
+
+// ToTrackedTime convert models.TrackedTime to api.TrackedTime
+func ToTrackedTime(trackedTime *models.TrackedTime) *api.TrackedTime {
+	return &api.TrackedTime{
+		ID:      trackedTime.ID,
+		IssueID: trackedTime.IssueID,
+		UserID:  trackedTime.UserID,
+		Time:    trackedTime.Time,
+		Created: trackedTime.Created,
+	}
+}
