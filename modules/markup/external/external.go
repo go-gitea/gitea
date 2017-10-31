@@ -61,12 +61,18 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 			log.Error(4, "%s create temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 			return []byte("")
 		}
+		defer os.Remove(fPath)
 
 		_, err = io.Copy(f, rd)
-		f.Close()
-		os.Remove(fPath)
 		if err != nil {
+			f.Close()
 			log.Error(4, "%s write data to temp file when rendering %s failed: %v", p.Name(), p.Command, err)
+			return []byte("")
+		}
+
+		err = f.Close()
+		if err != nil {
+			log.Error(4, "%s close temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 			return []byte("")
 		}
 		args = append(args, fPath)
