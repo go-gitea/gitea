@@ -14,6 +14,7 @@ RUN apk --no-cache add \
     s6 \
     curl \
     openssh \
+    gettext \
     tzdata
 RUN addgroup \
     -S -g 1000 \
