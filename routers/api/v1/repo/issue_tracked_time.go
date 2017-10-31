@@ -7,14 +7,13 @@ package repo
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/routers/api/v1/convert"
 	api "code.gitea.io/sdk/gitea"
 )
 
 func convertTrackedTimes(trackedTimes []*models.TrackedTime) []*api.TrackedTime {
 	apiTrackedTimes := make([]*api.TrackedTime, len(trackedTimes))
 	for i, trackedTime := range trackedTimes {
-		apiTrackedTimes[i] = convert.ToTrackedTime(trackedTime)
+		apiTrackedTimes[i] = trackedTime.APIFormat()
 	}
 	return apiTrackedTimes
 }
@@ -89,7 +88,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 		ctx.Error(500, "AddTime", err)
 		return
 	}
-	ctx.JSON(200, convert.ToTrackedTime(trackedTime))
+	ctx.JSON(200, trackedTime.APIFormat())
 }
 
 // ListTrackedTimesByUser  lists all tracked times of the user
