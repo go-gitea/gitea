@@ -5,8 +5,8 @@
 package integrations
 
 import (
+	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -33,23 +33,166 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 	}
 }
 
-type searchResponseBody struct {
-	ok   bool
-	data []api.Repository
-}
-
-func TestAPISearchRepoNotLogin(t *testing.T) {
+func TestAPISearchRepo(t *testing.T) {
 	prepareTestEnv(t)
 	const keyword = "test"
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/search?q=%s", keyword)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var body searchResponseBody
+	var body api.SearchResults
 	DecodeJSON(t, resp, &body)
-	for _, repo := range body.data {
-		assert.True(t, strings.Contains(repo.Name, keyword))
+	assert.NotEmpty(t, body.Data)
+	for _, repo := range body.Data {
+		assert.Contains(t, repo.Name, keyword)
+		assert.False(t, repo.Private)
 	}
+
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 15}).(*models.User)
+	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 16}).(*models.User)
+	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 18}).(*models.User)
+	user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 20}).(*models.User)
+	orgUser := models.AssertExistsAndLoadBean(t, &models.User{ID: 17}).(*models.User)
+
+	// Map of expected results, where key is user for login
+	type expectedResults map[*models.User]struct {
+		count           int
+		repoOwnerID     int64
+		repoName        string
+		includesPrivate bool
+	}
+
+	testCases := []struct {
+		name, requestURL string
+		expectedResults
+	}{
+		{name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50", expectedResults: expectedResults{
+			nil:   {count: 15},
+			user:  {count: 15},
+			user2: {count: 15}},
+		},
+		{name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10", expectedResults: expectedResults{
+			nil:   {count: 10},
+			user:  {count: 10},
+			user2: {count: 10}},
+		},
+		{name: "RepositoriesDefaultMax10", requestURL: "/api/v1/repos/search", expectedResults: expectedResults{
+			nil:   {count: 10},
+			user:  {count: 10},
+			user2: {count: 10}},
+		},
+		{name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s", "big_test_"), expectedResults: expectedResults{
+			nil:   {count: 7, repoName: "big_test_"},
+			user:  {count: 7, repoName: "big_test_"},
+			user2: {count: 7, repoName: "big_test_"}},
+		},
+		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
+			nil:   {count: 4},
+			user:  {count: 8, includesPrivate: true},
+			user2: {count: 4}},
+		},
+		{name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
+			nil:   {count: 1},
+			user:  {count: 1},
+			user2: {count: 2, includesPrivate: true}},
+		},
+		{name: "RepositoriesAccessibleAndRelatedToUser3", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user3.ID), expectedResults: expectedResults{
+			nil:   {count: 1},
+			user:  {count: 1},
+			user2: {count: 1},
+			user3: {count: 4, includesPrivate: true}},
+		},
+		{name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
+			nil:   {count: 1, repoOwnerID: orgUser.ID},
+			user:  {count: 2, repoOwnerID: orgUser.ID, includesPrivate: true},
+			user2: {count: 1, repoOwnerID: orgUser.ID}},
+		},
+		{name: "RepositoriesAccessibleAndRelatedToUser4", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user4.ID), expectedResults: expectedResults{
+			nil:   {count: 3},
+			user:  {count: 3},
+			user4: {count: 6, includesPrivate: true}}},
+		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeSource", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "source"), expectedResults: expectedResults{
+			nil:   {count: 0},
+			user:  {count: 0},
+			user4: {count: 0, includesPrivate: true}}},
+		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeFork", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "fork"), expectedResults: expectedResults{
+			nil:   {count: 1},
+			user:  {count: 1},
+			user4: {count: 2, includesPrivate: true}}},
+		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeFork/Exclusive", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s&exclusive=1", user4.ID, "fork"), expectedResults: expectedResults{
+			nil:   {count: 1},
+			user:  {count: 1},
+			user4: {count: 2, includesPrivate: true}}},
+		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeMirror", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "mirror"), expectedResults: expectedResults{
+			nil:   {count: 2},
+			user:  {count: 2},
+			user4: {count: 4, includesPrivate: true}}},
+		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeMirror/Exclusive", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s&exclusive=1", user4.ID, "mirror"), expectedResults: expectedResults{
+			nil:   {count: 1},
+			user:  {count: 1},
+			user4: {count: 2, includesPrivate: true}}},
+		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeCollaborative", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "collaborative"), expectedResults: expectedResults{
+			nil:   {count: 0},
+			user:  {count: 0},
+			user4: {count: 0, includesPrivate: true}}},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			for userToLogin, expected := range testCase.expectedResults {
+				var session *TestSession
+				var testName string
+				var userID int64
+				if userToLogin != nil && userToLogin.ID > 0 {
+					testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
+					session = loginUser(t, userToLogin.Name)
+					userID = userToLogin.ID
+				} else {
+					testName = "AnonymousUser"
+					session = emptyTestSession(t)
+				}
+
+				t.Run(testName, func(t *testing.T) {
+					request := NewRequest(t, "GET", testCase.requestURL)
+					response := session.MakeRequest(t, request, http.StatusOK)
+
+					var body api.SearchResults
+					DecodeJSON(t, response, &body)
+
+					assert.Len(t, body.Data, expected.count)
+					for _, repo := range body.Data {
+						r := getRepo(t, repo.ID)
+						hasAccess, err := models.HasAccess(userID, r, models.AccessModeRead)
+						assert.NoError(t, err)
+						assert.True(t, hasAccess)
+
+						assert.NotEmpty(t, repo.Name)
+
+						if len(expected.repoName) > 0 {
+							assert.Contains(t, repo.Name, expected.repoName)
+						}
+
+						if expected.repoOwnerID > 0 {
+							assert.Equal(t, expected.repoOwnerID, repo.Owner.ID)
+						}
+
+						if !expected.includesPrivate {
+							assert.False(t, repo.Private)
+						}
+					}
+				})
+			}
+		})
+	}
+}
+
+var repoCache = make(map[int64]*models.Repository)
+
+func getRepo(t *testing.T, repoID int64) *models.Repository {
+	if _, ok := repoCache[repoID]; !ok {
+		repoCache[repoID] = models.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
+	}
+	return repoCache[repoID]
 }
 
 func TestAPIViewRepo(t *testing.T) {

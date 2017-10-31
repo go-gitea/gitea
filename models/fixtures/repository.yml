@@ -9,7 +9,7 @@
   num_pulls: 2
   num_closed_pulls: 0
   num_milestones: 2
-  num_watches: 2
+  num_watches: 3
 
 -
   id: 2
@@ -29,7 +29,7 @@
   lower_name: repo3
   name: repo3
   is_private: true
-  num_issues: 0
+  num_issues: 1
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
@@ -176,3 +176,206 @@
   lower_name: repo15
   name: repo15
   is_bare: true
+
+-
+  id: 16
+  owner_id: 2
+  lower_name: repo16
+  name: repo16
+  is_private: true
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_watches: 0
+
+-
+  id: 17
+  owner_id: 15
+  lower_name: big_test_public_1
+  name: big_test_public_1
+  is_private: false
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_watches: 0
+  is_mirror: false
+  is_fork: false
+
+-
+  id: 18
+  owner_id: 15
+  lower_name: big_test_public_2
+  name: big_test_public_2
+  is_private: false
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
+  is_fork: false
+
+-
+  id: 19
+  owner_id: 15
+  lower_name: big_test_private_1
+  name: big_test_private_1
+  is_private: true
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
+  is_fork: false
+
+-
+  id: 20
+  owner_id: 15
+  lower_name: big_test_private_2
+  name: big_test_private_2
+  is_private: true
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
+  is_fork: false
+
+-
+  id: 21
+  owner_id: 16
+  lower_name: big_test_public_3
+  name: big_test_public_3
+  is_private: false
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
+  is_fork: false
+
+-
+  id: 22
+  owner_id: 16
+  lower_name: big_test_private_3
+  name: big_test_private_3
+  is_private: true
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
+  is_fork: false
+
+-
+  id: 23
+  owner_id: 17
+  lower_name: big_test_public_4
+  name: big_test_public_4
+  is_private: false
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
+  is_fork: false
+
+-
+  id: 24
+  owner_id: 17
+  lower_name: big_test_private_4
+  name: big_test_private_4
+  is_private: true
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
+  is_fork: false
+
+-
+  id: 25
+  owner_id: 20
+  lower_name: big_test_public_mirror_5
+  name: big_test_public_mirror_5
+  is_private: false
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_watches: 0
+  is_mirror: true
+  is_fork: false
+
+-
+  id: 26
+  owner_id: 20
+  lower_name: big_test_private_mirror_5
+  name: big_test_private_mirror_5
+  is_private: true
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_watches: 0
+  is_mirror: true
+  is_fork: false
+
+-
+  id: 27
+  owner_id: 19
+  lower_name: big_test_public_mirror_6
+  name: big_test_public_mirror_6
+  is_private: false
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_watches: 0
+  is_mirror: true
+  num_forks: 1
+  is_fork: false
+
+-
+  id: 28
+  owner_id: 19
+  lower_name: big_test_private_mirror_6
+  name: big_test_private_mirror_6
+  is_private: true
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_watches: 0
+  is_mirror: true
+  num_forks: 1
+  is_fork: false
+  
+-
+  id: 29
+  fork_id: 27
+  owner_id: 20
+  lower_name: big_test_public_fork_7
+  name: big_test_public_fork_7
+  is_private: false
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
+  is_fork: true
+  
+-
+  id: 30
+  fork_id: 28
+  owner_id: 20
+  lower_name: big_test_private_fork_7
+  name: big_test_private_fork_7
+  is_private: true
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  is_mirror: false
+  is_fork: true

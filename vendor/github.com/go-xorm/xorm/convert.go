@@ -334,3 +334,15 @@ func convertInt(v interface{}) (int64, error) {
 	}
 	return 0, fmt.Errorf("unsupported type: %v", v)
 }
+
+func asBool(bs []byte) (bool, error) {
+	if len(bs) == 0 {
+		return false, nil
+	}
+	if bs[0] == 0x00 {
+		return false, nil
+	} else if bs[0] == 0x01 {
+		return true, nil
+	}
+	return strconv.ParseBool(string(bs))
+}

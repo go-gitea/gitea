@@ -86,6 +86,22 @@ function initEditForm() {
     initEditDiffTab($('.edit.form'));
 }
 
+function initBranchSelector() {
+    var $selectBranch = $('.ui.select-branch')
+    var $branchMenu = $selectBranch.find('.reference-list-menu');
+    $branchMenu.find('.item:not(.no-select)').click(function () {
+        var selectedValue = $(this).data('id');
+        $($(this).data('id-selector')).val(selectedValue);
+        $selectBranch.find('.ui .branch-name').text(selectedValue);
+    });
+    $selectBranch.find('.reference.column').click(function () {
+        $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
+        $selectBranch.find('.reference .text').removeClass('black');
+        $($(this).data('target')).css('display', 'block');
+        $(this).find('.text').addClass('black');
+        return false;
+    });
+}
 
 function updateIssuesMeta(url, action, issueIds, elementId, afterSuccess) {
     $.ajax({
@@ -106,6 +122,7 @@ function initCommentForm() {
         return
     }
 
+    initBranchSelector();
     initCommentPreviewTab($('.comment.form'));
 
     // Labels
@@ -311,9 +328,22 @@ function initInstall() {
             $('#offline-mode').checkbox('uncheck');
         }
     });
+    $('#enable-openid-signin input').change(function () {
+        if ($(this).is(':checked')) {
+            if ( $('#disable-registration input').is(':checked') ) {
+            } else {
+                $('#enable-openid-signup').checkbox('check');
+            }
+        } else {
+            $('#enable-openid-signup').checkbox('uncheck');
+        }
+    });
     $('#disable-registration input').change(function () {
         if ($(this).is(':checked')) {
             $('#enable-captcha').checkbox('uncheck');
+            $('#enable-openid-signup').checkbox('uncheck');
+        } else {
+            $('#enable-openid-signup').checkbox('check');
         }
     });
     $('#enable-captcha input').change(function () {
@@ -332,9 +362,11 @@ function initRepository() {
         var $dropdown = $(selector);
         $dropdown.dropdown({
             fullTextSearch: true,
+            selectOnKeydown: false,
             onChange: function (text, value, $choice) {
-                window.location.href = $choice.data('url');
-                console.log($choice.data('url'))
+                if ($choice.data('url')) {
+                    window.location.href = $choice.data('url');
+                }
             },
             message: {noResults: $dropdown.data('no-results')}
         });
@@ -343,15 +375,7 @@ function initRepository() {
     // File list and commits
     if ($('.repository.file.list').length > 0 ||
         ('.repository.commits').length > 0) {
-        initFilterSearchDropdown('.choose.reference .dropdown');
-
-        $('.reference.column').click(function () {
-            $('.choose.reference .scrolling.menu').css('display', 'none');
-            $('.choose.reference .text').removeClass('black');
-            $($(this).data('target')).css('display', 'block');
-            $(this).find('.text').addClass('black');
-            return false;
-        });
+        initFilterBranchTagDropdown('.choose.reference .dropdown');
     }
 
     // Wiki
@@ -374,15 +398,19 @@ function initRepository() {
         $('.enable-system').change(function () {
             if (this.checked) {
                 $($(this).data('target')).removeClass('disabled');
+                if (!$(this).data('context')) $($(this).data('context')).addClass('disabled');
             } else {
                 $($(this).data('target')).addClass('disabled');
+                if (!$(this).data('context')) $($(this).data('context')).removeClass('disabled');
             }
         });
         $('.enable-system-radio').change(function () {
             if (this.value == 'false') {
                 $($(this).data('target')).addClass('disabled');
+                if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).removeClass('disabled');
             } else if (this.value == 'true') {
                 $($(this).data('target')).removeClass('disabled');
+                if (typeof $(this).data('context') !== 'undefined')  $($(this).data('context')).addClass('disabled');
             }
         });
     }
@@ -605,42 +633,18 @@ function initRepository() {
     if ($('.repository.compare.pull').length > 0) {
         initFilterSearchDropdown('.choose.branch .dropdown');
     }
-}
 
-function initProtectedBranch() {
-    $('#protectedBranch').change(function () {
-        var $this = $(this);
-        $.post($this.data('url'), {
-                "_csrf": csrf,
-                "canPush": true,
-                "branchName": $this.val(),
-            },
-            function (data) {
-                if (data.redirect) {
-                    window.location.href = data.redirect;
-                } else {
-                    location.reload();
-                }
+    // Branches
+    if ($('.repository.settings.branches').length > 0) {
+        initFilterSearchDropdown('.protected-branches .dropdown');
+        $('.enable-protection, .enable-whitelist').change(function () {
+            if (this.checked) {
+                $($(this).data('target')).removeClass('disabled');
+            } else {
+                $($(this).data('target')).addClass('disabled');
             }
-        );
-    });
-
-    $('.rm').click(function () {
-        var $this = $(this);
-        $.post($this.data('url'), {
-                "_csrf": csrf,
-                "canPush": false,
-                "branchName": $this.data('val'),
-            },
-            function (data) {
-                if (data.redirect) {
-                    window.location.href = data.redirect;
-                } else {
-                    location.reload();
-                }
-            }
-        );
-    });
+        });
+    }
 }
 
 function initRepositoryCollaboration() {
@@ -1220,104 +1224,53 @@ function hideWhenLostFocus(body, parent) {
 }
 
 function searchUsers() {
-    if (!$('#search-user-box .results').length) {
-        return;
-    }
-
     var $searchUserBox = $('#search-user-box');
-    var $results = $searchUserBox.find('.results');
-    $searchUserBox.keyup(function () {
-        var $this = $(this);
-        var keyword = $this.find('input').val();
-        if (keyword.length < 2) {
-            $results.hide();
-            return;
-        }
+    $searchUserBox.search({
+        minCharacters: 2,
+        apiSettings: {
+            url: suburl + '/api/v1/users/search?q={query}',
+            onResponse: function(response) {
+                var items = [];
+                $.each(response.data, function (i, item) {
+                    var title = item.login;
+                    if (item.full_name && item.full_name.length > 0) {
+                        title += ' (' + item.full_name + ')';
+                    }
+                    items.push({
+                        title: title,
+                        image: item.avatar_url
+                    })
+                });
 
-        $.ajax({
-            url: suburl + '/api/v1/users/search?q=' + keyword,
-            dataType: "json",
-            success: function (response) {
-                var notEmpty = function (str) {
-                    return str && str.length > 0;
-                };
-
-                $results.html('');
-
-                if (response.ok && response.data.length) {
-                    var html = '';
-                    $.each(response.data, function (i, item) {
-                        html += '<div class="item"><img class="ui avatar image" src="' + item.avatar_url + '"><span class="username">' + item.login + '</span>';
-                        if (notEmpty(item.full_name)) {
-                            html += ' (' + item.full_name + ')';
-                        }
-                        html += '</div>';
-                    });
-                    $results.html(html);
-                    $this.find('.results .item').click(function () {
-                        $this.find('input').val($(this).find('.username').text());
-                        $results.hide();
-                    });
-                    $results.show();
-                } else {
-                    $results.hide();
-                }
+                return { results: items }
             }
-        });
+        },
+        searchFields: ['login', 'full_name'],
+        showNoResults: false
     });
-    $searchUserBox.find('input').focus(function () {
-        $searchUserBox.keyup();
-    });
-    hideWhenLostFocus('#search-user-box .results', '#search-user-box');
 }
 
-// FIXME: merge common parts in two functions
 function searchRepositories() {
-    if (!$('#search-repo-box .results').length) {
-        return;
-    }
-
     var $searchRepoBox = $('#search-repo-box');
-    var $results = $searchRepoBox.find('.results');
-    $searchRepoBox.keyup(function () {
-        var $this = $(this);
-        var keyword = $this.find('input').val();
-        if (keyword.length < 2) {
-            $results.hide();
-            return;
-        }
+    $searchRepoBox.search({
+        minCharacters: 2,
+        apiSettings: {
+            url: suburl + '/api/v1/repos/search?q={query}&uid=' + $searchRepoBox.data('uid'),
+            onResponse: function(response) {
+                var items = [];
+                $.each(response.data, function (i, item) {
+                    items.push({
+                        title: item.full_name.split("/")[1],
+                        description: item.full_name
+                    })
+                });
 
-        $.ajax({
-            url: suburl + '/api/v1/repos/search?q=' + keyword + "&uid=" + $searchRepoBox.data('uid'),
-            dataType: "json",
-            success: function (response) {
-                var notEmpty = function (str) {
-                    return str && str.length > 0;
-                };
-
-                $results.html('');
-
-                if (response.ok && response.data.length) {
-                    var html = '';
-                    $.each(response.data, function (i, item) {
-                        html += '<div class="item"><i class="icon octicon octicon-repo"></i> <span class="fullname">' + item.full_name + '</span></div>';
-                    });
-                    $results.html(html);
-                    $this.find('.results .item').click(function () {
-                        $this.find('input').val($(this).find('.fullname').text().split("/")[1]);
-                        $results.hide();
-                    });
-                    $results.show();
-                } else {
-                    $results.hide();
-                }
+                return { results: items }
             }
-        });
+        },
+        searchFields: ['full_name'],
+        showNoResults: false
     });
-    $searchRepoBox.find('input').focus(function () {
-        $searchRepoBox.keyup();
-    });
-    hideWhenLostFocus('#search-repo-box .results', '#search-repo-box');
 }
 
 function initCodeView() {
@@ -1359,7 +1312,7 @@ $(document).ready(function () {
     });
 
     // Semantic UI modules.
-    $('.dropdown').dropdown();
+    $('.dropdown:not(.custom)').dropdown();
     $('.jump.dropdown').dropdown({
         action: 'hide',
         onShow: function () {
@@ -1443,7 +1396,7 @@ $(document).ready(function () {
 
     // Emojify
     emojify.setConfig({
-        img_dir: suburl + '/img/emoji',
+        img_dir: suburl + '/vendor/plugins/emojify/images',
         ignore_emoticons: true
     });
     var hasEmoji = document.getElementsByClassName('has-emoji');
@@ -1470,29 +1423,18 @@ $(document).ready(function () {
     });
 
     // Helpers.
-    $('.delete-button').click(function () {
-        var $this = $(this);
-        var filter = "";
-        if ($this.attr("id")) {
-          filter += "#"+$this.attr("id")
-        }
-        $('.delete.modal'+filter).modal({
-            closable: false,
-            onApprove: function () {
-                if ($this.data('type') == "form") {
-                    $($this.data('form')).submit();
-                    return;
-                }
+    $('.delete-button').click(showDeletePopup);
 
-                $.post($this.data('url'), {
-                    "_csrf": csrf,
-                    "id": $this.data("id")
-                }).done(function (data) {
-                    window.location.href = data.redirect;
-                });
-            }
-        }).modal('show');
-        return false;
+    $('.delete-branch-button').click(showDeletePopup);
+
+    $('.undo-button').click(function() {
+        var $this = $(this);
+        $.post($this.data('url'), {
+            "_csrf": csrf,
+            "id": $this.data("id")
+        }).done(function(data) {
+            window.location.href = data.redirect;
+        });
     });
     $('.show-panel.button').click(function () {
         $($(this).data('panel')).show();
@@ -1564,12 +1506,12 @@ $(document).ready(function () {
     initEditForm();
     initEditor();
     initOrganization();
-    initProtectedBranch();
     initWebhook();
     initAdmin();
     initCodeView();
-    initDashboardSearch();
+    initVueApp();
     initTeamSettings();
+    initCtrlEnterSubmit();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -1655,29 +1597,90 @@ $(function () {
     });
 });
 
-function initDashboardSearch() {
-    var el = document.getElementById('dashboard-repo-search');
-    if (!el) {
-        return;
+function showDeletePopup() {
+    var $this = $(this);
+    var filter = "";
+    if ($this.attr("id")) {
+        filter += "#" + $this.attr("id")
     }
 
-    new Vue({
-        delimiters: ['${', '}'],
-        el: el,
+    $('.delete.modal' + filter).modal({
+        closable: false,
+        onApprove: function() {
+            if ($this.data('type') == "form") {
+                $($this.data('form')).submit();
+                return;
+            }
 
-        data: {
-            tab: 'repos',
-            repos: [],
-            searchQuery: '',
-            suburl: document.querySelector('meta[name=_suburl]').content,
-            uid: document.querySelector('meta[name=_context_uid]').content
+            $.post($this.data('url'), {
+                "_csrf": csrf,
+                "id": $this.data("id")
+            }).done(function(data) {
+                window.location.href = data.redirect;
+            });
+        }
+    }).modal('show');
+    return false;
+}
+
+function initVueComponents(){
+    var vueDelimeters = ['${', '}'];
+
+    Vue.component('repo-search', {
+        delimiters: vueDelimeters,
+
+        props: {
+            searchLimit: {
+                type: Number,
+                default: 10
+            },
+            suburl: {
+                type: String,
+                required: true
+            },
+            uid: {
+                type: Number,
+                required: true
+            },
+            organizations: {
+                type: Array,
+                default: []
+            },
+            isOrganization: {
+                type: Boolean,
+                default: true
+            },
+            canCreateOrganization: {
+                type: Boolean,
+                default: false
+            },
+            organizationsTotalCount: {
+                type: Number,
+                default: 0
+            },
+            moreReposLink: {
+                type: String,
+                default: ''
+            }
+        },
+
+        data: function() {
+            return {
+                tab: 'repos',
+                repos: [],
+                reposTotalCount: 0,
+                reposFilter: 'all',
+                searchQuery: '',
+                isLoading: false
+            }
         },
 
         mounted: function() {
             this.searchRepos();
 
+            var self = this;
             Vue.nextTick(function() {
-                document.querySelector('#search_repo').focus();
+                self.$refs.search.focus();
             });
         },
 
@@ -1686,19 +1689,45 @@ function initDashboardSearch() {
                 this.tab = t;
             },
 
-            searchKeyUp: function() {
-                this.searchRepos();
+            changeReposFilter: function(filter) {
+                this.reposFilter = filter;
+            },
+
+            showRepo: function(repo, filter) {
+                switch (filter) {
+                    case 'sources':
+                        return repo.owner.id == this.uid && !repo.mirror && !repo.fork;
+                    case 'forks':
+                        return repo.owner.id == this.uid && !repo.mirror && repo.fork;
+                    case 'mirrors':
+                        return repo.mirror;
+                    case 'collaborative':
+                        return repo.owner.id != this.uid && !repo.mirror;
+                    default:
+                        return true;
+                }
             },
 
             searchRepos: function() {
                 var self = this;
-                $.getJSON(this.searchURL(), function(result) {
-                    self.repos = result.data;
+                this.isLoading = true;
+                var searchedQuery = this.searchQuery;
+                $.getJSON(this.searchURL(), function(result, textStatus, request) {
+                    if (searchedQuery == self.searchQuery) {
+                        self.repos = result.data;
+                        if (searchedQuery == "") {
+                            self.reposTotalCount = request.getResponseHeader('X-Total-Count');
+                        }
+                    }
+                }).always(function() {
+                    if (searchedQuery == self.searchQuery) {
+                        self.isLoading = false;
+                    }
                 });
             },
 
             searchURL: function() {
-                return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery;
+                return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery + '&limit=' + this.searchLimit;
             },
 
             repoClass: function(repo) {
@@ -1713,5 +1742,237 @@ function initDashboardSearch() {
                 }
             }
         }
+    })
+}
+
+function initCtrlEnterSubmit() {
+    $(".js-quick-submit").keydown(function(e) {
+        if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.keyCode == 13 || e.keyCode == 10)) {
+            $(this).closest("form").submit();
+        }
+    });
+}
+
+function initVueApp() {
+    var el = document.getElementById('app');
+    if (!el) {
+        return;
+    }
+
+    initVueComponents();
+
+    new Vue({
+        delimiters: ['${', '}'],
+        el: el,
+
+        data: {
+            searchLimit: document.querySelector('meta[name=_search_limit]').content,
+            suburl: document.querySelector('meta[name=_suburl]').content,
+            uid: document.querySelector('meta[name=_context_uid]').content,
+        },
+    });
+}
+function timeAddManual() {
+    $('.mini.modal')
+        .modal({
+            duration: 200,
+            onApprove: function() {
+                $('#add_time_manual_form').submit();
+            }
+        }).modal('show')
+    ;
+}
+
+function toggleStopwatch() {
+    $("#toggle_stopwatch_form").submit();
+}
+function cancelStopwatch() {
+    $("#cancel_stopwatch_form").submit();
+}
+
+function initFilterBranchTagDropdown(selector) {
+    $(selector).each(function() {
+        var $dropdown = $(this);
+        var $data = $dropdown.find('.data');
+        var data = {
+            items: [],
+            mode: $data.data('mode'),
+            searchTerm: '',
+            noResults: '',
+            canCreateBranch: false,
+            menuVisible: false,
+            active: 0
+        };
+        $data.find('.item').each(function() {
+            data.items.push({
+                name: $(this).text(),
+                url: $(this).data('url'),
+                branch: $(this).hasClass('branch'),
+                tag: $(this).hasClass('tag'),
+                selected: $(this).hasClass('selected')
+            });
+        });
+        $data.remove();
+        new Vue({
+            delimiters: ['${', '}'],
+            el: this,
+            data: data,
+
+            beforeMount: function () {
+                var vm = this;
+
+                this.noResults = vm.$el.getAttribute('data-no-results');
+                this.canCreateBranch = vm.$el.getAttribute('data-can-create-branch') === 'true';
+
+                document.body.addEventListener('click', function(event) {
+                    if (vm.$el.contains(event.target)) {
+                        return;
+                    }
+                    if (vm.menuVisible) {
+                        Vue.set(vm, 'menuVisible', false);
+                    }
+                });
+            },
+
+            watch: {
+                menuVisible: function(visible) {
+                    if (visible) {
+                        this.focusSearchField();
+                    }
+                }
+            },
+
+            computed: {
+                filteredItems: function() {
+                    var vm = this;
+
+                    var items = vm.items.filter(function (item) {
+                        return ((vm.mode === 'branches' && item.branch)
+                                || (vm.mode === 'tags' && item.tag))
+                            && (!vm.searchTerm
+                                || item.name.toLowerCase().indexOf(vm.searchTerm.toLowerCase()) >= 0);
+                    });
+
+                    vm.active = (items.length === 0 && vm.showCreateNewBranch ? 0 : -1);
+
+                    return items;
+                },
+                showNoResults: function() {
+                    return this.filteredItems.length === 0
+                            && !this.showCreateNewBranch;
+                },
+                showCreateNewBranch: function() {
+                    var vm = this;
+                    if (!this.canCreateBranch || !vm.searchTerm || vm.mode === 'tags') {
+                        return false;
+                    }
+
+                    return vm.items.filter(function (item) {
+                        return item.name.toLowerCase() === vm.searchTerm.toLowerCase()
+                    }).length === 0;
+                }
+            },
+
+            methods: {
+                selectItem: function(item) {
+                    var prev = this.getSelected();
+                    if (prev !== null) {
+                        prev.selected = false;
+                    }
+                    item.selected = true;
+                    window.location.href = item.url;
+                },
+                createNewBranch: function() {
+                    if (!this.showCreateNewBranch) {
+                        return;
+                    }
+                    this.$refs.newBranchForm.submit();
+                },
+                focusSearchField: function() {
+                    var vm = this;
+                    Vue.nextTick(function() {
+                        vm.$refs.searchField.focus();
+                    });
+                },
+                getSelected: function() {
+                    for (var i = 0, j = this.items.length; i < j; ++i) {
+                        if (this.items[i].selected)
+                            return this.items[i];
+                    }
+                    return null;
+                },
+                getSelectedIndexInFiltered: function() {
+                    for (var i = 0, j = this.filteredItems.length; i < j; ++i) {
+                        if (this.filteredItems[i].selected)
+                            return i;
+                    }
+                    return -1;
+                },
+                scrollToActive: function() {
+                    var el = this.$refs['listItem' + this.active];
+                    if (!el || el.length === 0) {
+                        return;
+                    }
+                    if (Array.isArray(el)) {
+                        el = el[0];
+                    }
+
+                    var cont = this.$refs.scrollContainer;
+
+                     if (el.offsetTop < cont.scrollTop) {
+                         cont.scrollTop = el.offsetTop;
+                     }
+                     else if (el.offsetTop + el.clientHeight > cont.scrollTop + cont.clientHeight) {
+                        cont.scrollTop = el.offsetTop + el.clientHeight - cont.clientHeight;
+                    }
+                },
+                keydown: function(event) {
+                    var vm = this;
+                    if (event.keyCode === 40) {
+                        // arrow down
+                        event.preventDefault();
+
+                        if (vm.active === -1) {
+                            vm.active = vm.getSelectedIndexInFiltered();
+                        }
+
+                        if (vm.active + (vm.showCreateNewBranch ? 0 : 1) >= vm.filteredItems.length) {
+                            return;
+                        }
+                        vm.active++;
+                        vm.scrollToActive();
+                    }
+                    if (event.keyCode === 38) {
+                        // arrow up
+                        event.preventDefault();
+
+                         if (vm.active === -1) {
+                            vm.active = vm.getSelectedIndexInFiltered();
+                        }
+
+                         if (vm.active <= 0) {
+                            return;
+                        }
+                        vm.active--;
+                        vm.scrollToActive();
+                    }
+                    if (event.keyCode == 13) {
+                        // enter
+                        event.preventDefault();
+
+                         if (vm.active >= vm.filteredItems.length) {
+                            vm.createNewBranch();
+                        } else if (vm.active >= 0) {
+                            vm.selectItem(vm.filteredItems[vm.active]);
+                        }
+                    }
+                    if (event.keyCode == 27) {
+                        // escape
+                        event.preventDefault();
+                        vm.menuVisible = false;
+                    }
+                }
+            }
+        });
     });
 }

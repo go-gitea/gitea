@@ -201,23 +201,6 @@ func CountOrganizations() int64 {
 	return count
 }
 
-// Organizations returns number of organizations in given page.
-func Organizations(opts *SearchUserOptions) ([]*User, error) {
-	orgs := make([]*User, 0, opts.PageSize)
-
-	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = "name ASC"
-	}
-
-	sess := x.
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		Where("type=1")
-
-	return orgs, sess.
-		OrderBy(opts.OrderBy).
-		Find(&orgs)
-}
-
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(org *User) (err error) {
 	sess := x.NewSession()
@@ -235,11 +218,7 @@ func DeleteOrganization(org *User) (err error) {
 		}
 	}
 
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 func deleteOrg(e *xorm.Session, u *User) error {
@@ -263,7 +242,7 @@ func deleteOrg(e *xorm.Session, u *User) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	if _, err = e.Id(u.ID).Delete(new(User)); err != nil {
+	if _, err = e.ID(u.ID).Delete(new(User)); err != nil {
 		return fmt.Errorf("Delete: %v", err)
 	}
 
@@ -416,7 +395,7 @@ func ChangeOrgUserStatus(orgID, uid int64, public bool) error {
 	}
 
 	ou.IsPublic = public
-	_, err = x.Id(ou.ID).AllCols().Update(ou)
+	_, err = x.ID(ou.ID).Cols("is_public").Update(ou)
 	return err
 }
 
@@ -484,7 +463,7 @@ func RemoveOrgUser(orgID, userID int64) error {
 		return err
 	}
 
-	if _, err := sess.Id(ou.ID).Delete(ou); err != nil {
+	if _, err := sess.ID(ou.ID).Delete(ou); err != nil {
 		return err
 	} else if _, err = sess.Exec("UPDATE `user` SET num_members=num_members-1 WHERE id=?", orgID); err != nil {
 		return err
@@ -575,6 +554,11 @@ func (org *User) getUserTeamIDs(e Engine, userID int64) ([]int64, error) {
 		Join("INNER", "team_user", "`team_user`.team_id = team.id").
 		And("`team_user`.uid = ?", userID).
 		Find(&teamIDs)
+}
+
+// TeamsWithAccessToRepo returns all teamsthat have given access level to the repository.
+func (org *User) TeamsWithAccessToRepo(repoID int64, mode AccessMode) ([]*Team, error) {
+	return GetTeamsWithAccessToRepo(org.ID, repoID, mode)
 }
 
 // GetUserTeamIDs returns of all team IDs of the organization that user is member of.
@@ -675,7 +659,7 @@ func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id AND `repository`.is_mirror=?", true).
 		Where(env.cond()).
-		GroupBy("`repository`.id").
+		GroupBy("`repository`.id, `repository`.updated_unix").
 		OrderBy("updated_unix DESC").
 		Cols("`repository`.id").
 		Find(&repoIDs)

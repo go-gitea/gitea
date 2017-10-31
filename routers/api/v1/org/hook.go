@@ -15,6 +15,15 @@ import (
 
 // ListHooks list an organziation's webhooks
 func ListHooks(ctx *context.APIContext) {
+	// swagger:route GET /orgs/{orgname}/hooks organization orgListHooks
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: HookList
+	//       500: error
+
 	org := ctx.Org.Organization
 	orgHooks, err := models.GetWebhooksByOrgID(org.ID)
 	if err != nil {
@@ -30,6 +39,16 @@ func ListHooks(ctx *context.APIContext) {
 
 // GetHook get an organization's hook by id
 func GetHook(ctx *context.APIContext) {
+	// swagger:route GET /orgs/{orgname}/hooks/{id} organization orgGetHook
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: Hook
+	//       404: notFound
+	//       500: error
+
 	org := ctx.Org.Organization
 	hookID := ctx.ParamsInt64(":id")
 	hook, err := utils.GetOrgHook(ctx, org.ID, hookID)
@@ -41,6 +60,19 @@ func GetHook(ctx *context.APIContext) {
 
 // CreateHook create a hook for an organization
 func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
+	// swagger:route POST /orgs/{orgname}/hooks/ organization orgCreateHook
+	//
+	//     Consumes:
+	//     - application/json
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       201: Hook
+	//       422: validationError
+	//       500: error
+
 	if !utils.CheckCreateHookOption(ctx, &form) {
 		return
 	}
@@ -49,12 +81,36 @@ func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 
 // EditHook modify a hook of a repository
 func EditHook(ctx *context.APIContext, form api.EditHookOption) {
+	// swagger:route PATCH /orgs/{orgname}/hooks/{id} organization orgEditHook
+	//
+	//     Consumes:
+	//     - application/json
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       200: Hook
+	//       422: validationError
+	//       404: notFound
+	//       500: error
+
 	hookID := ctx.ParamsInt64(":id")
 	utils.EditOrgHook(ctx, &form, hookID)
 }
 
 // DeleteHook delete a hook of an organization
 func DeleteHook(ctx *context.APIContext) {
+	// swagger:route DELETE /orgs/{orgname}/hooks/{id} organization orgDeleteHook
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       204: empty
+	//       404: notFound
+	//       500: error
+
 	org := ctx.Org.Organization
 	hookID := ctx.ParamsInt64(":id")
 	if err := models.DeleteWebhookByOrgID(org.ID, hookID); err != nil {

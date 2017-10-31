@@ -23,6 +23,28 @@
 //     - application/json
 //     - text/html
 //
+//     Security:
+//     - BasicAuth: []
+//     - Token: []
+//     - AccessToken: []
+//     - AuthorizationHeaderToken: []
+//
+//     SecurityDefinitions:
+//     BasicAuth:
+//          type: basic
+//     Token:
+//          type: apiKey
+//          name: token
+//          in: query
+//     AccessToken:
+//          type: apiKey
+//          name: access_token
+//          in: query
+//     AuthorizationHeaderToken:
+//          type: apiKey
+//          name: Authorization
+//          in: header
+//
 // swagger:meta
 package v1
 
@@ -235,7 +257,7 @@ func orgAssignment(args ...bool) macaron.Handler {
 }
 
 func mustEnableIssues(ctx *context.APIContext) {
-	if !ctx.Repo.Repository.EnableUnit(models.UnitTypeIssues) {
+	if !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) {
 		ctx.Status(404)
 		return
 	}
@@ -253,8 +275,11 @@ func mustAllowPulls(ctx *context.Context) {
 func RegisterRoutes(m *macaron.Macaron) {
 	bind := binding.Bind
 
+	m.Get("/swagger", misc.Swagger) //Render V1 by default
+
 	m.Group("/v1", func() {
 		// Miscellaneous
+		m.Get("/swagger", misc.Swagger)
 		m.Get("/version", misc.Version)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
@@ -328,6 +353,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Delete("", user.Unstar)
 				}, repoAssignment())
 			})
+			m.Get("/times", repo.ListMyTrackedTimes)
 
 			m.Get("/subscriptions", user.GetMyWatchedRepos)
 		}, reqToken())
@@ -365,7 +391,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Post(reqToken(), bind(api.CreateForkOption{}), repo.CreateFork)
 				m.Group("/branches", func() {
 					m.Get("", repo.ListBranches)
-					m.Get("/*", context.RepoRef(), repo.GetBranch)
+					m.Get("/*", context.RepoRefByType(context.RepoRefBranch), repo.GetBranch)
 				})
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
@@ -373,6 +399,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Combo("/:id").Get(repo.GetDeployKey).
 						Delete(repo.DeleteDeploykey)
 				}, reqToken(), reqRepoWriter())
+				m.Group("/times", func() {
+					m.Combo("").Get(repo.ListTrackedTimesByRepository)
+					m.Combo("/:timetrackingusername").Get(repo.ListTrackedTimesByUser)
+
+				}, mustEnableIssues)
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
 						Post(reqToken(), bind(api.CreateIssueOption{}), repo.CreateIssue)
@@ -398,6 +429,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 								Put(reqToken(), bind(api.IssueLabelsOption{}), repo.ReplaceIssueLabels).
 								Delete(reqToken(), repo.ClearIssueLabels)
 							m.Delete("/:id", reqToken(), repo.DeleteIssueLabel)
+						})
+
+						m.Group("/times", func() {
+							m.Combo("").Get(repo.ListTrackedTimes).
+								Post(reqToken(), bind(api.AddTimeOption{}), repo.AddTime)
 						})
 
 					})

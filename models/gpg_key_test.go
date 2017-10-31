@@ -219,6 +219,7 @@ Q0KHb+QcycSgbDx0ZAvdIacuKvBBcbxrsmFUI4LR+oIup0G9gUc0roPvr014jYQL
 	key, err := AddGPGKey(1, testEmailWithUpperCaseLetters)
 	assert.NoError(t, err)
 
-	assert.Len(t, key.Emails, 1)
-	assert.Equal(t, "user1@example.com", key.Emails[0].Email)
+	if assert.Len(t, key.Emails, 1) {
+		assert.Equal(t, "user1@example.com", key.Emails[0].Email)
+	}
 }

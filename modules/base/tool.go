@@ -211,7 +211,7 @@ func AvatarLink(email string) string {
 	}
 
 	if !setting.DisableGravatar {
-		return setting.GravatarSource + HashEmail(email)
+		return setting.GravatarSource + HashEmail(email) + "?d=identicon"
 	}
 
 	return DefaultAvatarLink()
@@ -495,6 +495,16 @@ func Int64sToMap(ints []int64) map[int64]bool {
 		m[i] = true
 	}
 	return m
+}
+
+// Int64sContains returns if a int64 in a slice of int64
+func Int64sContains(intsSlice []int64, a int64) bool {
+	for _, c := range intsSlice {
+		if c == a {
+			return true
+		}
+	}
+	return false
 }
 
 // IsLetter reports whether the rune is a letter (category L).

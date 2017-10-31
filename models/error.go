@@ -4,9 +4,7 @@
 
 package models
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // ErrNameReserved represents a "reserved name" error.
 type ErrNameReserved struct {
@@ -260,19 +258,19 @@ func (err ErrKeyNameAlreadyUsed) Error() string {
 	return fmt.Sprintf("public key already exists [owner_id: %d, name: %s]", err.OwnerID, err.Name)
 }
 
-// ErrGPGEmailNotFound represents a "ErrGPGEmailNotFound" kind of error.
-type ErrGPGEmailNotFound struct {
-	Email string
+// ErrGPGNoEmailFound represents a "ErrGPGNoEmailFound" kind of error.
+type ErrGPGNoEmailFound struct {
+	FailedEmails []string
 }
 
-// IsErrGPGEmailNotFound checks if an error is a ErrGPGEmailNotFound.
-func IsErrGPGEmailNotFound(err error) bool {
-	_, ok := err.(ErrGPGEmailNotFound)
+// IsErrGPGNoEmailFound checks if an error is a ErrGPGNoEmailFound.
+func IsErrGPGNoEmailFound(err error) bool {
+	_, ok := err.(ErrGPGNoEmailFound)
 	return ok
 }
 
-func (err ErrGPGEmailNotFound) Error() string {
-	return fmt.Sprintf("failed to found email or is not confirmed : %s", err.Email)
+func (err ErrGPGNoEmailFound) Error() string {
+	return fmt.Sprintf("none of the emails attached to the GPG key could be found: %v", err.FailedEmails)
 }
 
 // ErrGPGKeyParsing represents a "ErrGPGKeyParsing" kind of error.
@@ -651,6 +649,51 @@ func (err ErrBranchNotExist) Error() string {
 	return fmt.Sprintf("branch does not exist [name: %s]", err.Name)
 }
 
+// ErrBranchAlreadyExists represents an error that branch with such name already exists
+type ErrBranchAlreadyExists struct {
+	BranchName string
+}
+
+// IsErrBranchAlreadyExists checks if an error is an ErrBranchAlreadyExists.
+func IsErrBranchAlreadyExists(err error) bool {
+	_, ok := err.(ErrBranchAlreadyExists)
+	return ok
+}
+
+func (err ErrBranchAlreadyExists) Error() string {
+	return fmt.Sprintf("branch already exists [name: %s]", err.BranchName)
+}
+
+// ErrBranchNameConflict represents an error that branch name conflicts with other branch
+type ErrBranchNameConflict struct {
+	BranchName string
+}
+
+// IsErrBranchNameConflict checks if an error is an ErrBranchNameConflict.
+func IsErrBranchNameConflict(err error) bool {
+	_, ok := err.(ErrBranchNameConflict)
+	return ok
+}
+
+func (err ErrBranchNameConflict) Error() string {
+	return fmt.Sprintf("branch conflicts with existing branch [name: %s]", err.BranchName)
+}
+
+// ErrTagAlreadyExists represents an error that tag with such name already exists
+type ErrTagAlreadyExists struct {
+	TagName string
+}
+
+// IsErrTagAlreadyExists checks if an error is an ErrTagAlreadyExists.
+func IsErrTagAlreadyExists(err error) bool {
+	_, ok := err.(ErrTagAlreadyExists)
+	return ok
+}
+
+func (err ErrTagAlreadyExists) Error() string {
+	return fmt.Sprintf("tag already exists [name: %s]", err.TagName)
+}
+
 //  __      __      ___.   .__                   __
 // /  \    /  \ ____\_ |__ |  |__   ____   ____ |  | __
 // \   \/\/   // __ \| __ \|  |  \ /  _ \ /  _ \|  |/ /
@@ -768,6 +811,50 @@ func IsErrCommentNotExist(err error) bool {
 
 func (err ErrCommentNotExist) Error() string {
 	return fmt.Sprintf("comment does not exist [id: %d, issue_id: %d]", err.ID, err.IssueID)
+}
+
+//  _________ __                                __         .__
+//  /   _____//  |_  ____ ________  _  _______ _/  |_  ____ |  |__
+//  \_____  \\   __\/  _ \\____ \ \/ \/ /\__  \\   __\/ ___\|  |  \
+//  /        \|  | (  <_> )  |_> >     /  / __ \|  | \  \___|   Y  \
+//  /_______  /|__|  \____/|   __/ \/\_/  (____  /__|  \___  >___|  /
+// \/             |__|                \/          \/     \/
+
+// ErrStopwatchNotExist represents a "Stopwatch Not Exist" kind of error.
+type ErrStopwatchNotExist struct {
+	ID int64
+}
+
+// IsErrStopwatchNotExist checks if an error is a ErrStopwatchNotExist.
+func IsErrStopwatchNotExist(err error) bool {
+	_, ok := err.(ErrStopwatchNotExist)
+	return ok
+}
+
+func (err ErrStopwatchNotExist) Error() string {
+	return fmt.Sprintf("stopwatch does not exist [id: %d]", err.ID)
+}
+
+// ___________                     __              .______________.__
+// \__    ___/___________    ____ |  | __ ____   __| _/\__    ___/|__| _____   ____
+// |    |  \_  __ \__  \ _/ ___\|  |/ // __ \ / __ |   |    |   |  |/     \_/ __ \
+// |    |   |  | \// __ \\  \___|    <\  ___// /_/ |   |    |   |  |  Y Y  \  ___/
+// |____|   |__|  (____  /\___  >__|_ \\___  >____ |   |____|   |__|__|_|  /\___  >
+// \/     \/     \/    \/     \/                     \/     \/
+
+// ErrTrackedTimeNotExist represents a "TrackedTime Not Exist" kind of error.
+type ErrTrackedTimeNotExist struct {
+	ID int64
+}
+
+// IsErrTrackedTimeNotExist checks if an error is a ErrTrackedTimeNotExist.
+func IsErrTrackedTimeNotExist(err error) bool {
+	_, ok := err.(ErrTrackedTimeNotExist)
+	return ok
+}
+
+func (err ErrTrackedTimeNotExist) Error() string {
+	return fmt.Sprintf("tracked time does not exist [id: %d]", err.ID)
 }
 
 // .____          ___.          .__

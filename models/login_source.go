@@ -148,20 +148,9 @@ type LoginSource struct {
 	Cfg           core.Conversion `xorm:"TEXT"`
 
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
+	CreatedUnix int64     `xorm:"INDEX created"`
 	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX"`
-}
-
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (source *LoginSource) BeforeInsert() {
-	source.CreatedUnix = time.Now().Unix()
-	source.UpdatedUnix = source.CreatedUnix
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (source *LoginSource) BeforeUpdate() {
-	source.UpdatedUnix = time.Now().Unix()
+	UpdatedUnix int64     `xorm:"INDEX updated"`
 }
 
 // Cell2Int64 converts a xorm.Cell type to int64,
@@ -194,14 +183,10 @@ func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 	}
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (source *LoginSource) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		source.Created = time.Unix(source.CreatedUnix, 0).Local()
-	case "updated_unix":
-		source.Updated = time.Unix(source.UpdatedUnix, 0).Local()
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (source *LoginSource) AfterLoad() {
+	source.Created = time.Unix(source.CreatedUnix, 0).Local()
+	source.Updated = time.Unix(source.UpdatedUnix, 0).Local()
 }
 
 // TypeName return name of this login source type.
@@ -323,7 +308,7 @@ func LoginSources() ([]*LoginSource, error) {
 // GetLoginSourceByID returns login source by given ID.
 func GetLoginSourceByID(id int64) (*LoginSource, error) {
 	source := new(LoginSource)
-	has, err := x.Id(id).Get(source)
+	has, err := x.ID(id).Get(source)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -343,7 +328,7 @@ func UpdateSource(source *LoginSource) error {
 		}
 	}
 
-	_, err := x.Id(source.ID).AllCols().Update(source)
+	_, err := x.ID(source.ID).AllCols().Update(source)
 	if err == nil && source.IsOAuth2() && source.IsActived {
 		oAuth2Config := source.OAuth2()
 		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
@@ -351,7 +336,7 @@ func UpdateSource(source *LoginSource) error {
 
 		if err != nil {
 			// restore original values since we cannot update the provider it self
-			x.Id(source.ID).AllCols().Update(originalLoginSource)
+			x.ID(source.ID).AllCols().Update(originalLoginSource)
 		}
 	}
 	return err
@@ -377,7 +362,7 @@ func DeleteSource(source *LoginSource) error {
 		oauth2.RemoveProvider(source.Name)
 	}
 
-	_, err = x.Id(source.ID).Delete(new(LoginSource))
+	_, err = x.ID(source.ID).Delete(new(LoginSource))
 	return err
 }
 
@@ -509,10 +494,7 @@ func SMTPAuth(a smtp.Auth, cfg *SMTPConfig) error {
 	}
 
 	if ok, _ := c.Extension("AUTH"); ok {
-		if err = c.Auth(a); err != nil {
-			return err
-		}
-		return nil
+		return c.Auth(a)
 	}
 	return ErrUnsupportedLoginType
 }
@@ -665,7 +647,7 @@ func UserSignIn(username, password string) (*User, error) {
 
 		default:
 			var source LoginSource
-			hasSource, err := x.Id(user.LoginSource).Get(&source)
+			hasSource, err := x.ID(user.LoginSource).Get(&source)
 			if err != nil {
 				return nil, err
 			} else if !hasSource {
@@ -677,7 +659,7 @@ func UserSignIn(username, password string) (*User, error) {
 	}
 
 	sources := make([]*LoginSource, 0, 5)
-	if err = x.UseBool().Find(&sources, &LoginSource{IsActived: true}); err != nil {
+	if err = x.Where("is_actived = ?", true).Find(&sources); err != nil {
 		return nil, err
 	}
 

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -75,7 +76,7 @@ func TestRenameRepoAction(t *testing.T) {
 	assert.NoError(t, RenameRepoAction(user, oldRepoName, repo))
 	AssertExistsAndLoadBean(t, actionBean)
 
-	_, err := x.Id(repo.ID).Cols("name", "lower_name").Update(repo)
+	_, err := x.ID(repo.ID).Cols("name", "lower_name").Update(repo)
 	assert.NoError(t, err)
 	CheckConsistencyFor(t, &Action{})
 }
@@ -103,22 +104,23 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	pushCommits.Len = len(pushCommits.Commits)
 
 	payloadCommits := pushCommits.ToAPIPayloadCommits("/username/reponame")
-	assert.Len(t, payloadCommits, 2)
-	assert.Equal(t, "abcdef1", payloadCommits[0].ID)
-	assert.Equal(t, "message1", payloadCommits[0].Message)
-	assert.Equal(t, "/username/reponame/commit/abcdef1", payloadCommits[0].URL)
-	assert.Equal(t, "User Two", payloadCommits[0].Committer.Name)
-	assert.Equal(t, "user2", payloadCommits[0].Committer.UserName)
-	assert.Equal(t, "User Four", payloadCommits[0].Author.Name)
-	assert.Equal(t, "user4", payloadCommits[0].Author.UserName)
+	if assert.Len(t, payloadCommits, 2) {
+		assert.Equal(t, "abcdef1", payloadCommits[0].ID)
+		assert.Equal(t, "message1", payloadCommits[0].Message)
+		assert.Equal(t, "/username/reponame/commit/abcdef1", payloadCommits[0].URL)
+		assert.Equal(t, "User Two", payloadCommits[0].Committer.Name)
+		assert.Equal(t, "user2", payloadCommits[0].Committer.UserName)
+		assert.Equal(t, "User Four", payloadCommits[0].Author.Name)
+		assert.Equal(t, "user4", payloadCommits[0].Author.UserName)
 
-	assert.Equal(t, "abcdef2", payloadCommits[1].ID)
-	assert.Equal(t, "message2", payloadCommits[1].Message)
-	assert.Equal(t, "/username/reponame/commit/abcdef2", payloadCommits[1].URL)
-	assert.Equal(t, "User Two", payloadCommits[1].Committer.Name)
-	assert.Equal(t, "user2", payloadCommits[1].Committer.UserName)
-	assert.Equal(t, "User Two", payloadCommits[1].Author.Name)
-	assert.Equal(t, "user2", payloadCommits[1].Author.UserName)
+		assert.Equal(t, "abcdef2", payloadCommits[1].ID)
+		assert.Equal(t, "message2", payloadCommits[1].Message)
+		assert.Equal(t, "/username/reponame/commit/abcdef2", payloadCommits[1].URL)
+		assert.Equal(t, "User Two", payloadCommits[1].Committer.Name)
+		assert.Equal(t, "user2", payloadCommits[1].Committer.UserName)
+		assert.Equal(t, "User Two", payloadCommits[1].Author.Name)
+		assert.Equal(t, "user2", payloadCommits[1].Author.UserName)
+	}
 }
 
 func TestPushCommits_AvatarLink(t *testing.T) {
@@ -144,11 +146,11 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 	pushCommits.Len = len(pushCommits.Commits)
 
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f",
+		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon",
 		pushCommits.AvatarLink("user2@example.com"))
 
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/19ade630b94e1e0535b3df7387434154",
+		"https://secure.gravatar.com/avatar/19ade630b94e1e0535b3df7387434154?d=identicon",
 		pushCommits.AvatarLink("nonexistent@example.com"))
 }
 
@@ -201,55 +203,116 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	CheckConsistencyFor(t, &Action{})
 }
 
-func TestCommitRepoAction(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 2, OwnerID: user.ID}).(*Repository)
-	repo.Owner = user
-
-	pushCommits := NewPushCommits()
-	pushCommits.Commits = []*PushCommit{
-		{
-			Sha1:           "abcdef1",
-			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user4@example.com",
-			AuthorName:     "User Four",
-			Message:        "message1",
-		},
-		{
-			Sha1:           "abcdef2",
-			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user2@example.com",
-			AuthorName:     "User Two",
-			Message:        "message2",
-		},
-	}
-	pushCommits.Len = len(pushCommits.Commits)
-
-	actionBean := &Action{
-		OpType:    ActionCommitRepo,
-		ActUserID: user.ID,
-		ActUser:   user,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		RefName:   "refName",
-		IsPrivate: repo.IsPrivate,
-	}
+func testCorrectRepoAction(t *testing.T, opts CommitRepoActionOptions, actionBean *Action) {
 	AssertNotExistsBean(t, actionBean)
-	assert.NoError(t, CommitRepoAction(CommitRepoActionOptions{
-		PusherName:  user.Name,
-		RepoOwnerID: user.ID,
-		RepoName:    repo.Name,
-		RefFullName: "refName",
-		OldCommitID: "oldCommitID",
-		NewCommitID: "newCommitID",
-		Commits:     pushCommits,
-	}))
+	assert.NoError(t, CommitRepoAction(opts))
 	AssertExistsAndLoadBean(t, actionBean)
 	CheckConsistencyFor(t, &Action{})
+}
+
+func TestCommitRepoAction(t *testing.T) {
+	samples := []struct {
+		userID                  int64
+		repositoryID            int64
+		commitRepoActionOptions CommitRepoActionOptions
+		action                  Action
+	}{
+		{
+			userID:       2,
+			repositoryID: 2,
+			commitRepoActionOptions: CommitRepoActionOptions{
+				RefFullName: "refName",
+				OldCommitID: "oldCommitID",
+				NewCommitID: "newCommitID",
+				Commits: &PushCommits{
+					avatars: make(map[string]string),
+					Commits: []*PushCommit{
+						{
+							Sha1:           "abcdef1",
+							CommitterEmail: "user2@example.com",
+							CommitterName:  "User Two",
+							AuthorEmail:    "user4@example.com",
+							AuthorName:     "User Four",
+							Message:        "message1",
+						},
+						{
+							Sha1:           "abcdef2",
+							CommitterEmail: "user2@example.com",
+							CommitterName:  "User Two",
+							AuthorEmail:    "user2@example.com",
+							AuthorName:     "User Two",
+							Message:        "message2",
+						},
+					},
+					Len: 2,
+				},
+			},
+			action: Action{
+				OpType:  ActionCommitRepo,
+				RefName: "refName",
+			},
+		},
+		{
+			userID:       2,
+			repositoryID: 1,
+			commitRepoActionOptions: CommitRepoActionOptions{
+				RefFullName: git.TagPrefix + "v1.1",
+				OldCommitID: git.EmptySHA,
+				NewCommitID: "newCommitID",
+				Commits:     &PushCommits{},
+			},
+			action: Action{
+				OpType:  ActionPushTag,
+				RefName: "v1.1",
+			},
+		},
+		{
+			userID:       2,
+			repositoryID: 1,
+			commitRepoActionOptions: CommitRepoActionOptions{
+				RefFullName: git.TagPrefix + "v1.1",
+				OldCommitID: "oldCommitID",
+				NewCommitID: git.EmptySHA,
+				Commits:     &PushCommits{},
+			},
+			action: Action{
+				OpType:  ActionDeleteTag,
+				RefName: "v1.1",
+			},
+		},
+		{
+			userID:       2,
+			repositoryID: 1,
+			commitRepoActionOptions: CommitRepoActionOptions{
+				RefFullName: git.BranchPrefix + "feature/1",
+				OldCommitID: "oldCommitID",
+				NewCommitID: git.EmptySHA,
+				Commits:     &PushCommits{},
+			},
+			action: Action{
+				OpType:  ActionDeleteBranch,
+				RefName: "feature/1",
+			},
+		},
+	}
+
+	for _, s := range samples {
+		prepareTestEnv(t)
+
+		user := AssertExistsAndLoadBean(t, &User{ID: s.userID}).(*User)
+		repo := AssertExistsAndLoadBean(t, &Repository{ID: s.repositoryID, OwnerID: user.ID}).(*Repository)
+		repo.Owner = user
+
+		s.commitRepoActionOptions.PusherName = user.Name
+		s.commitRepoActionOptions.RepoOwnerID = user.ID
+		s.commitRepoActionOptions.RepoName = repo.Name
+
+		s.action.ActUserID = user.ID
+		s.action.RepoID = repo.ID
+		s.action.IsPrivate = repo.IsPrivate
+
+		testCorrectRepoAction(t, s.commitRepoActionOptions, &s.action)
+	}
 }
 
 func TestTransferRepoAction(t *testing.T) {
@@ -274,7 +337,7 @@ func TestTransferRepoAction(t *testing.T) {
 	assert.NoError(t, TransferRepoAction(user2, user2, repo))
 	AssertExistsAndLoadBean(t, actionBean)
 
-	_, err := x.Id(repo.ID).Cols("owner_id").Update(repo)
+	_, err := x.ID(repo.ID).Cols("owner_id").Update(repo)
 	assert.NoError(t, err)
 	CheckConsistencyFor(t, &Action{})
 }
@@ -313,9 +376,10 @@ func TestGetFeeds(t *testing.T) {
 		IncludeDeleted:   true,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, actions, 1)
-	assert.EqualValues(t, 1, actions[0].ID)
-	assert.EqualValues(t, user.ID, actions[0].UserID)
+	if assert.Len(t, actions, 1) {
+		assert.EqualValues(t, 1, actions[0].ID)
+		assert.EqualValues(t, user.ID, actions[0].UserID)
+	}
 
 	actions, err = GetFeeds(GetFeedsOptions{
 		RequestedUser:    user,
@@ -342,8 +406,10 @@ func TestGetFeeds2(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 1)
-	assert.EqualValues(t, 2, actions[0].ID)
-	assert.EqualValues(t, org.ID, actions[0].UserID)
+	if assert.Len(t, actions, 1) {
+		assert.EqualValues(t, 2, actions[0].ID)
+		assert.EqualValues(t, org.ID, actions[0].UserID)
+	}
 
 	actions, err = GetFeeds(GetFeedsOptions{
 		RequestedUser:    org,

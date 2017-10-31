@@ -1,0 +1,34 @@
+-
+  id: 1
+  user_id: 1
+  issue_id: 1
+  time: 400
+  created_unix: 946684800
+
+-
+  id: 2
+  user_id: 2
+  issue_id: 2
+  time: 3661
+  created_unix: 946684801
+
+-
+  id: 3
+  user_id: 2
+  issue_id: 2
+  time: 1
+  created_unix: 946684802
+
+-
+  id: 4
+  user_id: -1
+  issue_id: 4
+  time: 1
+  created_unix: 946684802
+
+-
+  id: 5
+  user_id: 2
+  issue_id: 5
+  time: 1
+  created_unix: 946684802

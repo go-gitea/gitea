@@ -16,9 +16,8 @@ import (
 // RepoUnit describes all units of a repository
 type RepoUnit struct {
 	ID          int64
-	RepoID      int64    `xorm:"INDEX(s)"`
-	Type        UnitType `xorm:"INDEX(s)"`
-	Index       int
+	RepoID      int64           `xorm:"INDEX(s)"`
+	Type        UnitType        `xorm:"INDEX(s)"`
 	Config      core.Conversion `xorm:"TEXT"`
 	CreatedUnix int64           `xorm:"INDEX CREATED"`
 	Created     time.Time       `xorm:"-"`
@@ -70,30 +69,45 @@ func (cfg *ExternalTrackerConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
+// IssuesConfig describes issues config
+type IssuesConfig struct {
+	EnableTimetracker                bool
+	AllowOnlyContributorsToTrackTime bool
+}
+
+// FromDB fills up a IssuesConfig from serialized format.
+func (cfg *IssuesConfig) FromDB(bs []byte) error {
+	return json.Unmarshal(bs, &cfg)
+}
+
+// ToDB exports a IssuesConfig to a serialized format.
+func (cfg *IssuesConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
 		switch UnitType(Cell2Int64(val)) {
-		case UnitTypeCode, UnitTypeIssues, UnitTypePullRequests, UnitTypeReleases,
+		case UnitTypeCode, UnitTypePullRequests, UnitTypeReleases,
 			UnitTypeWiki:
 			r.Config = new(UnitConfig)
 		case UnitTypeExternalWiki:
 			r.Config = new(ExternalWikiConfig)
 		case UnitTypeExternalTracker:
 			r.Config = new(ExternalTrackerConfig)
+		case UnitTypeIssues:
+			r.Config = new(IssuesConfig)
 		default:
 			panic("unrecognized repo unit type: " + com.ToStr(*val))
 		}
 	}
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (r *RepoUnit) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		r.Created = time.Unix(r.CreatedUnix, 0).Local()
-	}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (r *RepoUnit) AfterLoad() {
+	r.Created = time.Unix(r.CreatedUnix, 0).Local()
 }
 
 // Unit returns Unit
@@ -103,11 +117,6 @@ func (r *RepoUnit) Unit() Unit {
 
 // CodeConfig returns config for UnitTypeCode
 func (r *RepoUnit) CodeConfig() *UnitConfig {
-	return r.Config.(*UnitConfig)
-}
-
-// IssuesConfig returns config for UnitTypeIssues
-func (r *RepoUnit) IssuesConfig() *UnitConfig {
 	return r.Config.(*UnitConfig)
 }
 
@@ -124,6 +133,11 @@ func (r *RepoUnit) ReleasesConfig() *UnitConfig {
 // ExternalWikiConfig returns config for UnitTypeExternalWiki
 func (r *RepoUnit) ExternalWikiConfig() *ExternalWikiConfig {
 	return r.Config.(*ExternalWikiConfig)
+}
+
+// IssuesConfig returns config for UnitTypeIssues
+func (r *RepoUnit) IssuesConfig() *IssuesConfig {
+	return r.Config.(*IssuesConfig)
 }
 
 // ExternalTrackerConfig returns config for UnitTypeExternalTracker

@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -30,18 +31,18 @@ type Message struct {
 }
 
 // NewMessageFrom creates new mail message object with custom From header.
-func NewMessageFrom(to []string, from, subject, body string) *Message {
+func NewMessageFrom(to []string, fromDisplayName, fromAddress, subject, body string) *Message {
 	log.Trace("NewMessageFrom (body):\n%s", body)
 
 	msg := gomail.NewMessage()
-	msg.SetHeader("From", from)
+	msg.SetAddressHeader("From", fromAddress, fromDisplayName)
 	msg.SetHeader("To", to...)
 	msg.SetHeader("Subject", subject)
 	msg.SetDateHeader("Date", time.Now())
 
 	plainBody, err := html2text.FromString(body)
 	if err != nil || setting.MailService.SendAsPlainText {
-		if strings.Contains(body[:100], "<html>") {
+		if strings.Contains(base.TruncateString(body, 100), "<html>") {
 			log.Warn("Mail contains HTML but configured to send as plain text.")
 		}
 		msg.SetBody("text/plain", plainBody)
@@ -57,7 +58,7 @@ func NewMessageFrom(to []string, from, subject, body string) *Message {
 
 // NewMessage creates new mail message object with default From header.
 func NewMessage(to []string, subject, body string) *Message {
-	return NewMessageFrom(to, setting.MailService.From, subject, body)
+	return NewMessageFrom(to, setting.MailService.FromName, setting.MailService.FromEmail, subject, body)
 }
 
 type loginAuth struct {
@@ -208,6 +209,7 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	var waitError error
 
 	args := []string{"-F", from, "-i"}
+	args = append(args, setting.MailService.SendmailArgs...)
 	args = append(args, to...)
 	log.Trace("Sending with: %s %v", setting.MailService.SendmailPath, args)
 	cmd := exec.Command(setting.MailService.SendmailPath, args...)

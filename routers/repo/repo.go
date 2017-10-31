@@ -34,6 +34,21 @@ func MustBeNotBare(ctx *context.Context) {
 	}
 }
 
+// MustBeEditable check that repo can be edited
+func MustBeEditable(ctx *context.Context) {
+	if !ctx.Repo.Repository.CanEnableEditor() || ctx.Repo.IsViewCommit {
+		ctx.Handle(404, "", nil)
+		return
+	}
+}
+
+// MustBeAbleToUpload check that repo can be uploaded to
+func MustBeAbleToUpload(ctx *context.Context) {
+	if !setting.Repository.Upload.Enabled {
+		ctx.Handle(404, "", nil)
+	}
+}
+
 func checkContextUser(ctx *context.Context, uid int64) *models.User {
 	orgs, err := models.GetOwnedOrgsByUserIDDesc(ctx.User.ID, "updated_unix")
 	if err != nil {
@@ -127,7 +142,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		return
 	}
 
-	repo, err := models.CreateRepository(ctxUser, models.CreateRepoOptions{
+	repo, err := models.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
 		Name:        form.RepoName,
 		Description: form.Description,
 		Gitignores:  form.Gitignores,
@@ -143,7 +158,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 	}
 
 	if repo != nil {
-		if errDelete := models.DeleteRepository(ctxUser.ID, repo.ID); errDelete != nil {
+		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 			log.Error(4, "DeleteRepository: %v", errDelete)
 		}
 	}
@@ -204,7 +219,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
-	repo, err := models.MigrateRepository(ctxUser, models.MigrateRepoOptions{
+	repo, err := models.MigrateRepository(ctx.User, ctxUser, models.MigrateRepoOptions{
 		Name:        form.RepoName,
 		Description: form.Description,
 		IsPrivate:   form.Private || setting.Repository.ForcePrivate,
@@ -218,7 +233,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	}
 
 	if repo != nil {
-		if errDelete := models.DeleteRepository(ctxUser.ID, repo.ID); errDelete != nil {
+		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 			log.Error(4, "DeleteRepository: %v", errDelete)
 		}
 	}

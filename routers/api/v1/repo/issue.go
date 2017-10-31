@@ -31,16 +31,11 @@ func ListIssues(ctx *context.APIContext) {
 	issues, err := models.Issues(&models.IssuesOptions{
 		RepoID:   ctx.Repo.Repository.ID,
 		Page:     ctx.QueryInt("page"),
+		PageSize: setting.UI.IssuePagingNum,
 		IsClosed: isClosed,
 	})
 	if err != nil {
 		ctx.Error(500, "Issues", err)
-		return
-	}
-
-	err = models.IssueList(issues).LoadAttributes()
-	if err != nil {
-		ctx.Error(500, "LoadAttributes", err)
 		return
 	}
 

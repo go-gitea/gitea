@@ -80,17 +80,14 @@ func (pr *PullRequest) BeforeUpdate() {
 	pr.MergedUnix = pr.Merged.Unix()
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
 // Note: don't try to get Issue because will end up recursive querying.
-func (pr *PullRequest) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "merged_unix":
-		if !pr.HasMerged {
-			return
-		}
-
-		pr.Merged = time.Unix(pr.MergedUnix, 0).Local()
+func (pr *PullRequest) AfterLoad() {
+	if !pr.HasMerged {
+		return
 	}
+
+	pr.Merged = time.Unix(pr.MergedUnix, 0).Local()
 }
 
 // Note: don't try to get Issue because will end up recursive querying.
@@ -425,7 +422,7 @@ func (pr *PullRequest) setMerged() (err error) {
 	if err = pr.Issue.changeStatus(sess, pr.Merger, pr.Issue.Repo, true); err != nil {
 		return fmt.Errorf("Issue.changeStatus: %v", err)
 	}
-	if _, err = sess.Id(pr.ID).AllCols().Update(pr); err != nil {
+	if _, err = sess.ID(pr.ID).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
 		return fmt.Errorf("update pull request: %v", err)
 	}
 
@@ -640,6 +637,8 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		return fmt.Errorf("Commit: %v", err)
 	}
 
+	UpdateIssueIndexer(pull.ID)
+
 	if err = NotifyWatchers(&Action{
 		ActUserID: pull.Poster.ID,
 		ActUser:   pull.Poster,
@@ -796,7 +795,7 @@ func GetPullRequestByIndex(repoID int64, index int64) (*PullRequest, error) {
 
 func getPullRequestByID(e Engine, id int64) (*PullRequest, error) {
 	pr := new(PullRequest)
-	has, err := e.Id(id).Get(pr)
+	has, err := e.ID(id).Get(pr)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -830,13 +829,13 @@ func GetPullRequestByIssueID(issueID int64) (*PullRequest, error) {
 
 // Update updates all fields of pull request.
 func (pr *PullRequest) Update() error {
-	_, err := x.Id(pr.ID).AllCols().Update(pr)
+	_, err := x.ID(pr.ID).AllCols().Update(pr)
 	return err
 }
 
 // UpdateCols updates specific fields of pull request.
 func (pr *PullRequest) UpdateCols(cols ...string) error {
-	_, err := x.Id(pr.ID).Cols(cols...).Update(pr)
+	_, err := x.ID(pr.ID).Cols(cols...).Update(pr)
 	return err
 }
 

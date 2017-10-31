@@ -7,8 +7,6 @@ package git
 import (
 	"fmt"
 	"strings"
-
-	"github.com/mcuadros/go-version"
 )
 
 // BranchPrefix base dir of the branch information file store on git
@@ -56,10 +54,6 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 
 // SetDefaultBranch sets default branch of repository.
 func (repo *Repository) SetDefaultBranch(name string) error {
-	if version.Compare(gitVersion, "1.7.10", "<") {
-		return ErrUnsupportedVersion{"1.7.10"}
-	}
-
 	_, err := NewCommand("symbolic-ref", "HEAD", BranchPrefix+name).RunInDir(repo.Path)
 	return err
 }
@@ -86,10 +80,12 @@ type DeleteBranchOptions struct {
 
 // DeleteBranch delete a branch by name on repository.
 func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) error {
-	cmd := NewCommand("branch", "-d")
+	cmd := NewCommand("branch")
 
 	if opts.Force {
-		cmd.AddArguments("-f")
+		cmd.AddArguments("-D")
+	} else {
+		cmd.AddArguments("-d")
 	}
 
 	cmd.AddArguments(name)

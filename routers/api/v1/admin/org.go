@@ -14,8 +14,21 @@ import (
 )
 
 // CreateOrg api for create organization
-// see https://github.com/gogits/go-gogs-client/wiki/Administration-Organizations#create-a-new-organization
 func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
+	// swagger:route POST /admin/users/{username}/orgs admin adminCreateOrg
+	//
+	//     Consumes:
+	//     - application/json
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       201: Organization
+	//       403: forbidden
+	//       422: validationError
+	//       500: error
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return

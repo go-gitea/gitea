@@ -41,11 +41,14 @@ type InstallForm struct {
 	OfflineMode                    bool
 	DisableGravatar                bool
 	EnableFederatedAvatar          bool
+	EnableOpenIDSignIn             bool
+	EnableOpenIDSignUp             bool
 	DisableRegistration            bool
 	EnableCaptcha                  bool
 	RequireSignInView              bool
 	DefaultKeepEmailPrivate        bool
 	DefaultAllowCreateOrganization bool
+	DefaultEnableTimetracking      bool
 	NoReplyAddress                 string
 
 	AdminName          string `binding:"OmitEmpty;AlphaDashDot;MaxSize(30)" locale:"install.admin_name"`

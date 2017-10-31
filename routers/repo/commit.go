@@ -13,7 +13,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/paginater"
 )
 
@@ -47,8 +49,13 @@ func renderIssueLinks(oldCommits *list.List, repoLink string) *list.List {
 // Commits render branch's commits
 func Commits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
+	if ctx.Repo.Commit == nil {
+		ctx.Handle(404, "Commit not found", nil)
+		return
+	}
+	ctx.Data["PageIsViewCode"] = true
 
-	commitsCount, err := ctx.Repo.Commit.CommitsCount()
+	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
 		ctx.Handle(500, "GetCommitsCount", err)
 		return
@@ -82,8 +89,9 @@ func Commits(ctx *context.Context) {
 // Graph render commit graph - show commits from all branches.
 func Graph(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
+	ctx.Data["PageIsViewCode"] = true
 
-	commitsCount, err := ctx.Repo.Commit.CommitsCount()
+	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
 		ctx.Handle(500, "GetCommitsCount", err)
 		return
@@ -108,10 +116,11 @@ func Graph(ctx *context.Context) {
 // SearchCommits render commits filtered by keyword
 func SearchCommits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
+	ctx.Data["PageIsViewCode"] = true
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	if len(keyword) == 0 {
-		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchName)
+		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchNameSubURL())
 		return
 	}
 	all := ctx.QueryBool("all")
@@ -204,6 +213,14 @@ func Diff(ctx *context.Context) {
 	if len(commitID) != 40 {
 		commitID = commit.ID.String()
 	}
+
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
+	if err != nil {
+		log.Error(3, "GetLatestCommitStatus: %v", err)
+	}
+
+	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
+
 	diff, err := models.GetDiffCommit(models.RepoPath(userName, repoName),
 		commitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)

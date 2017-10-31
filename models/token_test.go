@@ -48,17 +48,19 @@ func TestListAccessTokens(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	tokens, err := ListAccessTokens(1)
 	assert.NoError(t, err)
-	assert.Len(t, tokens, 2)
-	assert.Equal(t, int64(1), tokens[0].UID)
-	assert.Equal(t, int64(1), tokens[1].UID)
-	assert.Contains(t, []string{tokens[0].Name, tokens[1].Name}, "Token A")
-	assert.Contains(t, []string{tokens[0].Name, tokens[1].Name}, "Token B")
+	if assert.Len(t, tokens, 2) {
+		assert.Equal(t, int64(1), tokens[0].UID)
+		assert.Equal(t, int64(1), tokens[1].UID)
+		assert.Contains(t, []string{tokens[0].Name, tokens[1].Name}, "Token A")
+		assert.Contains(t, []string{tokens[0].Name, tokens[1].Name}, "Token B")
+	}
 
 	tokens, err = ListAccessTokens(2)
 	assert.NoError(t, err)
-	assert.Len(t, tokens, 1)
-	assert.Equal(t, int64(2), tokens[0].UID)
-	assert.Equal(t, "Token A", tokens[0].Name)
+	if assert.Len(t, tokens, 1) {
+		assert.Equal(t, int64(2), tokens[0].UID)
+		assert.Equal(t, "Token A", tokens[0].Name)
+	}
 
 	tokens, err = ListAccessTokens(100)
 	assert.NoError(t, err)

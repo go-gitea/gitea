@@ -13,7 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/mailer"
-	"code.gitea.io/gitea/modules/markdown"
+	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"gopkg.in/gomail.v2"
 	"gopkg.in/macaron.v1"
@@ -150,7 +151,7 @@ func composeTplData(subject, body, link string) map[string]interface{} {
 
 func composeIssueCommentMessage(issue *Issue, doer *User, comment *Comment, tplName base.TplName, tos []string, info string) *mailer.Message {
 	subject := issue.mailSubject()
-	body := string(markdown.RenderString(issue.Content, issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
+	body := string(markup.RenderByType(markdown.MarkupName, []byte(issue.Content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
 
 	data := make(map[string]interface{}, 10)
 	if comment != nil {
@@ -166,7 +167,7 @@ func composeIssueCommentMessage(issue *Issue, doer *User, comment *Comment, tplN
 		log.Error(3, "Template: %v", err)
 	}
 
-	msg := mailer.NewMessageFrom(tos, fmt.Sprintf(`"%s" <%s>`, doer.DisplayName(), setting.MailService.FromEmail), subject, content.String())
+	msg := mailer.NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, content.String())
 	msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 	return msg
 }

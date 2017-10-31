@@ -70,10 +70,7 @@ func (s *ContentStore) Put(meta *models.LFSMetaObject, r io.Reader) error {
 		return errHashMismatch
 	}
 
-	if err := os.Rename(tmpPath, path); err != nil {
-		return err
-	}
-	return nil
+	return os.Rename(tmpPath, path)
 }
 
 // Exists returns true if the object exists in the content store.

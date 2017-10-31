@@ -48,7 +48,7 @@ func (q *FuzzyQuery) SetBoost(b float64) {
 	q.BoostVal = &boost
 }
 
-func (q *FuzzyQuery) Boost() float64{
+func (q *FuzzyQuery) Boost() float64 {
 	return q.BoostVal.Value()
 }
 
@@ -56,7 +56,7 @@ func (q *FuzzyQuery) SetField(f string) {
 	q.FieldVal = f
 }
 
-func (q *FuzzyQuery) Field() string{
+func (q *FuzzyQuery) Field() string {
 	return q.FieldVal
 }
 
@@ -68,10 +68,10 @@ func (q *FuzzyQuery) SetPrefix(p int) {
 	q.Prefix = p
 }
 
-func (q *FuzzyQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, explain bool) (search.Searcher, error) {
+func (q *FuzzyQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
 	field := q.FieldVal
 	if q.FieldVal == "" {
 		field = m.DefaultSearchField()
 	}
-	return searcher.NewFuzzySearcher(i, q.Term, q.Prefix, q.Fuzziness, field, q.BoostVal.Value(), explain)
+	return searcher.NewFuzzySearcher(i, q.Term, q.Prefix, q.Fuzziness, field, q.BoostVal.Value(), options)
 }

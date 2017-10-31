@@ -13,6 +13,7 @@ import (
 	"github.com/go-xorm/xorm"
 	"gopkg.in/ini.v1"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -40,30 +41,34 @@ type Mirror struct {
 
 // BeforeInsert will be invoked by XORM before inserting a record
 func (m *Mirror) BeforeInsert() {
-	m.UpdatedUnix = time.Now().Unix()
-	m.NextUpdateUnix = m.NextUpdate.Unix()
+	if m != nil {
+		m.UpdatedUnix = time.Now().Unix()
+		m.NextUpdateUnix = m.NextUpdate.Unix()
+	}
 }
 
 // BeforeUpdate is invoked from XORM before updating this object.
 func (m *Mirror) BeforeUpdate() {
-	m.UpdatedUnix = time.Now().Unix()
-	m.NextUpdateUnix = m.NextUpdate.Unix()
+	if m != nil {
+		m.UpdatedUnix = m.Updated.Unix()
+		m.NextUpdateUnix = m.NextUpdate.Unix()
+	}
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (m *Mirror) AfterSet(colName string, _ xorm.Cell) {
-	var err error
-	switch colName {
-	case "repo_id":
-		m.Repo, err = GetRepositoryByID(m.RepoID)
-		if err != nil {
-			log.Error(3, "GetRepositoryByID[%d]: %v", m.ID, err)
-		}
-	case "updated_unix":
-		m.Updated = time.Unix(m.UpdatedUnix, 0).Local()
-	case "next_update_unix":
-		m.NextUpdate = time.Unix(m.NextUpdateUnix, 0).Local()
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (m *Mirror) AfterLoad(session *xorm.Session) {
+	if m == nil {
+		return
 	}
+
+	var err error
+	m.Repo, err = getRepositoryByID(session, m.RepoID)
+	if err != nil {
+		log.Error(3, "getRepositoryByID[%d]: %v", m.ID, err)
+	}
+
+	m.Updated = time.Unix(m.UpdatedUnix, 0).Local()
+	m.NextUpdate = time.Unix(m.NextUpdateUnix, 0).Local()
 }
 
 // ScheduleNextUpdate calculates and sets next update time.
@@ -148,6 +153,15 @@ func (m *Mirror) runSync() bool {
 		return false
 	}
 
+	gitRepo, err := git.OpenRepository(repoPath)
+	if err != nil {
+		log.Error(4, "OpenRepository: %v", err)
+		return false
+	}
+	if err = SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
+		log.Error(4, "Failed to synchronize tags to releases for repository: %v", err)
+	}
+
 	if err := m.Repo.UpdateSize(); err != nil {
 		log.Error(4, "Failed to update size for mirror repository: %v", err)
 	}
@@ -165,6 +179,7 @@ func (m *Mirror) runSync() bool {
 		}
 	}
 
+	m.Updated = time.Now()
 	return true
 }
 
@@ -185,7 +200,7 @@ func GetMirrorByRepoID(repoID int64) (*Mirror, error) {
 }
 
 func updateMirror(e Engine, m *Mirror) error {
-	_, err := e.Id(m.ID).AllCols().Update(m)
+	_, err := e.ID(m.ID).AllCols().Update(m)
 	return err
 }
 

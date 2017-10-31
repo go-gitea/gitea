@@ -13,11 +13,15 @@ import (
 	"code.gitea.io/gitea/cmd"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	// register supported doc types
+	_ "code.gitea.io/gitea/modules/markup/markdown"
+	_ "code.gitea.io/gitea/modules/markup/orgmode"
+
 	"github.com/urfave/cli"
 )
 
 // Version holds the current Gitea version
-var Version = "1.1.0+dev"
+var Version = "1.3.0-dev"
 
 // Tags holds the build tags used
 var Tags = ""

@@ -4,6 +4,7 @@
 [![Join the chat at https://gitter.im/blevesearch/bleve](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/blevesearch/bleve?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![codebeat](https://codebeat.co/badges/38a7cbc9-9cf5-41c0-a315-0746178230f4)](https://codebeat.co/projects/github-com-blevesearch-bleve)
 [![Go Report Card](https://goreportcard.com/badge/blevesearch/bleve)](https://goreportcard.com/report/blevesearch/bleve)
+[![Sourcegraph](https://sourcegraph.com/github.com/blevesearch/bleve/-/badge.svg)](https://sourcegraph.com/github.com/blevesearch/bleve?badge)  [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 modern text indexing in go - [blevesearch.com](http://www.blevesearch.com/)
 
@@ -33,29 +34,33 @@ Discuss usage and development of bleve in the [google group](https://groups.goog
 
 ## Indexing
 
-		message := struct{
-			Id   string
-			From string
-			Body string
-		}{
-			Id:   "example",
-			From: "marty.schoch@gmail.com",
-			Body: "bleve indexing is easy",
-		}
+```go
+message := struct{
+	Id   string
+	From string
+	Body string
+}{
+	Id:   "example",
+	From: "marty.schoch@gmail.com",
+	Body: "bleve indexing is easy",
+}
 
-		mapping := bleve.NewIndexMapping()
-		index, err := bleve.New("example.bleve", mapping)
-		if err != nil {
-			panic(err)
-		}
-		index.Index(message.Id, message)
+mapping := bleve.NewIndexMapping()
+index, err := bleve.New("example.bleve", mapping)
+if err != nil {
+	panic(err)
+}
+index.Index(message.Id, message)
+```
 
 ## Querying
 
-		index, _ := bleve.Open("example.bleve")
-		query := bleve.NewQueryStringQuery("bleve")
-		searchRequest := bleve.NewSearchRequest(query)
-		searchResult, _ := index.Search(searchRequest)
+```go
+index, _ := bleve.Open("example.bleve")
+query := bleve.NewQueryStringQuery("bleve")
+searchRequest := bleve.NewSearchRequest(query)
+searchResult, _ := index.Search(searchRequest)
+```
 
 ## License
 

@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"fmt"
+	"net/http"
 	"strings"
 
 	api "code.gitea.io/sdk/gitea"
@@ -14,35 +16,85 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
+// SearchRepoOption options when searching repositories
+// swagger:parameters repoSearch
+type SearchRepoOption struct { // TODO: Move SearchRepoOption to Gitea SDK
+	// Keyword to search
+	//
+	// in: query
+	Keyword string `json:"q"`
+	// Repository owner to search
+	//
+	// in: query
+	OwnerID int64 `json:"uid"`
+	// Limit of result
+	//
+	// maximum: setting.ExplorePagingNum
+	// in: query
+	PageSize int `json:"limit"`
+	// Type of repository to search, related to owner
+	//
+	// in: query
+	SearchMode string `json:"mode"`
+	// Search only owners repositories
+	// Has effect only if owner is provided and mode is not "collaborative"
+	//
+	// in: query
+	OwnerExclusive bool `json:"exclusive"`
+}
+
 // Search repositories via options
 func Search(ctx *context.APIContext) {
-	// swagger:route GET /repos/search repoSearch
+	// swagger:route GET /repos/search repository repoSearch
 	//
 	//     Produces:
 	//     - application/json
 	//
 	//     Responses:
 	//       200: SearchResults
+	//       422: validationError
 	//       500: SearchError
 
 	opts := &models.SearchRepoOptions{
-		Keyword:  strings.Trim(ctx.Query("q"), " "),
-		OwnerID:  ctx.QueryInt64("uid"),
-		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-	}
-	if ctx.User != nil && ctx.User.ID == opts.OwnerID {
-		opts.Searcher = ctx.User
+		Keyword:     strings.Trim(ctx.Query("q"), " "),
+		OwnerID:     ctx.QueryInt64("uid"),
+		PageSize:    convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		Collaborate: util.OptionalBoolNone,
 	}
 
-	// Check visibility.
-	if ctx.IsSigned && opts.OwnerID > 0 {
-		if ctx.User.ID == opts.OwnerID {
-			opts.Private = true
+	if ctx.QueryBool("exclusive") {
+		opts.Collaborate = util.OptionalBoolFalse
+	}
+
+	var mode = ctx.Query("mode")
+	switch mode {
+	case "source":
+		opts.Fork = util.OptionalBoolFalse
+		opts.Mirror = util.OptionalBoolFalse
+	case "fork":
+		opts.Fork = util.OptionalBoolTrue
+	case "mirror":
+		opts.Mirror = util.OptionalBoolTrue
+	case "collaborative":
+		opts.Mirror = util.OptionalBoolFalse
+		opts.Collaborate = util.OptionalBoolTrue
+	case "":
+	default:
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid search mode: \"%s\"", mode))
+		return
+	}
+
+	var err error
+	if opts.OwnerID > 0 {
+		var repoOwner *models.User
+		if ctx.User != nil && ctx.User.ID == opts.OwnerID {
+			repoOwner = ctx.User
 		} else {
-			u, err := models.GetUserByID(opts.OwnerID)
+			repoOwner, err = models.GetUserByID(opts.OwnerID)
 			if err != nil {
 				ctx.JSON(500, api.SearchError{
 					OK:    false,
@@ -50,10 +102,15 @@ func Search(ctx *context.APIContext) {
 				})
 				return
 			}
-			if u.IsOrganization() && u.IsOwnedBy(ctx.User.ID) {
-				opts.Private = true
-			}
-			// FIXME: how about collaborators?
+		}
+
+		if repoOwner.IsOrganization() {
+			opts.Collaborate = util.OptionalBoolFalse
+		}
+
+		// Check visibility.
+		if ctx.IsSigned && (ctx.User.ID == repoOwner.ID || (repoOwner.IsOrganization() && repoOwner.IsOwnedBy(ctx.User.ID))) {
+			opts.Private = true
 		}
 	}
 
@@ -91,6 +148,7 @@ func Search(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(count), setting.API.MaxResponseItems)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(200, api.SearchResults{
 		OK:   true,
 		Data: results,
@@ -99,7 +157,7 @@ func Search(ctx *context.APIContext) {
 
 // CreateUserRepo create a repository for a user
 func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateRepoOption) {
-	repo, err := models.CreateRepository(owner, models.CreateRepoOptions{
+	repo, err := models.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
 		Name:        opt.Name,
 		Description: opt.Description,
 		Gitignores:  opt.Gitignores,
@@ -115,7 +173,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 			ctx.Error(422, "", err)
 		} else {
 			if repo != nil {
-				if err = models.DeleteRepository(ctx.User.ID, repo.ID); err != nil {
+				if err = models.DeleteRepository(ctx.User, ctx.User.ID, repo.ID); err != nil {
 					log.Error(4, "DeleteRepository: %v", err)
 				}
 			}
@@ -128,8 +186,21 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 }
 
 // Create one repository of mine
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#create
 func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
+	// swagger:route POST /user/repos repository user createCurrentUserRepo
+	//
+	//     Consumes:
+	//     - application/json
+	//
+	//     Produces:
+	//     - application/json
+	//
+	//     Responses:
+	//       201: Repository
+	//       403: forbidden
+	//       422: validationError
+	//       500: error
+
 	// Shouldn't reach this condition, but just in case.
 	if ctx.User.IsOrganization() {
 		ctx.Error(422, "", "not allowed creating repository for organization")
@@ -140,7 +211,7 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 
 // CreateOrgRepo create one repository of the organization
 func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
-	// swagger:route POST /org/{org}/repos createOrgRepo
+	// swagger:route POST /org/{org}/repos organization createOrgRepo
 	//
 	//     Consumes:
 	//     - application/json
@@ -173,7 +244,7 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 
 // Migrate migrate remote git repository to gitea
 func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
-	// swagger:route POST /repos/migrate
+	// swagger:route POST /repos/migrate repository repoMigrate
 	//
 	//     Consumes:
 	//     - application/json
@@ -235,7 +306,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		return
 	}
 
-	repo, err := models.MigrateRepository(ctxUser, models.MigrateRepoOptions{
+	repo, err := models.MigrateRepository(ctx.User, ctxUser, models.MigrateRepoOptions{
 		Name:        form.RepoName,
 		Description: form.Description,
 		IsPrivate:   form.Private || setting.Repository.ForcePrivate,
@@ -244,7 +315,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	})
 	if err != nil {
 		if repo != nil {
-			if errDelete := models.DeleteRepository(ctxUser.ID, repo.ID); errDelete != nil {
+			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 				log.Error(4, "DeleteRepository: %v", errDelete)
 			}
 		}
@@ -258,7 +329,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 
 // Get one repository
 func Get(ctx *context.APIContext) {
-	// swagger:route GET /repos/{username}/{reponame}
+	// swagger:route GET /repos/{username}/{reponame} repository repoGet
 	//
 	//     Produces:
 	//     - application/json
@@ -272,7 +343,7 @@ func Get(ctx *context.APIContext) {
 
 // GetByID returns a single Repository
 func GetByID(ctx *context.APIContext) {
-	// swagger:route GET /repositories/{id}
+	// swagger:route GET /repositories/{id} repository repoGetByID
 	//
 	//     Produces:
 	//     - application/json
@@ -304,7 +375,7 @@ func GetByID(ctx *context.APIContext) {
 
 // Delete one repository
 func Delete(ctx *context.APIContext) {
-	// swagger:route DELETE /repos/{username}/{reponame}
+	// swagger:route DELETE /repos/{username}/{reponame} repository repoDelete
 	//
 	//     Produces:
 	//     - application/json
@@ -326,7 +397,7 @@ func Delete(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.DeleteRepository(owner.ID, repo.ID); err != nil {
+	if err := models.DeleteRepository(ctx.User, owner.ID, repo.ID); err != nil {
 		ctx.Error(500, "DeleteRepository", err)
 		return
 	}
@@ -337,7 +408,7 @@ func Delete(ctx *context.APIContext) {
 
 // MirrorSync adds a mirrored repository to the sync queue
 func MirrorSync(ctx *context.APIContext) {
-	// swagger:route POST /repos/{username}/{reponame}/mirror-sync repoMirrorSync
+	// swagger:route POST /repos/{username}/{reponame}/mirror-sync repository repoMirrorSync
 	//
 	//     Produces:
 	//     - application/json

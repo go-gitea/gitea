@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	tplDashborad base.TplName = "user/dashboard/dashboard"
+	tplDashboard base.TplName = "user/dashboard/dashboard"
 	tplIssues    base.TplName = "user/dashboard/issues"
 	tplProfile   base.TplName = "user/profile"
 	tplOrgHome   base.TplName = "org/home"
@@ -54,24 +54,14 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 }
 
 // retrieveFeeds loads feeds for the specified user
-func retrieveFeeds(ctx *context.Context, user *models.User, includePrivate, isProfile bool, includeDeletedComments bool) {
-	var requestingID int64
-	if ctx.User != nil {
-		requestingID = ctx.User.ID
-	}
-	actions, err := models.GetFeeds(models.GetFeedsOptions{
-		RequestedUser:    user,
-		RequestingUserID: requestingID,
-		IncludePrivate:   includePrivate,
-		OnlyPerformedBy:  isProfile,
-		IncludeDeleted:   includeDeletedComments,
-	})
+func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) {
+	actions, err := models.GetFeeds(options)
 	if err != nil {
 		ctx.Handle(500, "GetFeeds", err)
 		return
 	}
 
-	userCache := map[int64]*models.User{user.ID: user}
+	userCache := map[int64]*models.User{options.RequestedUser.ID: options.RequestedUser}
 	if ctx.User != nil {
 		userCache[ctx.User.ID] = ctx.User
 	}
@@ -131,31 +121,14 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Tr("dashboard")
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
-
-	// Only user can have collaborative repositories.
-	if !ctxUser.IsOrganization() {
-		collaborateRepos, err := ctx.User.GetAccessibleRepositories(setting.UI.User.RepoPagingNum)
-		if err != nil {
-			ctx.Handle(500, "GetAccessibleRepositories", err)
-			return
-		} else if err = models.RepositoryList(collaborateRepos).LoadAttributes(); err != nil {
-			ctx.Handle(500, "RepositoryList.LoadAttributes", err)
-			return
-		}
-		ctx.Data["CollaborativeRepos"] = collaborateRepos
-	}
+	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
 
 	var err error
-	var repos, mirrors []*models.Repository
+	var mirrors []*models.Repository
 	if ctxUser.IsOrganization() {
 		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
 		if err != nil {
 			ctx.Handle(500, "AccessibleReposEnv", err)
-			return
-		}
-		repos, err = env.Repos(1, setting.UI.User.RepoPagingNum)
-		if err != nil {
-			ctx.Handle(500, "env.Repos", err)
 			return
 		}
 
@@ -165,19 +138,12 @@ func Dashboard(ctx *context.Context) {
 			return
 		}
 	} else {
-		if err = ctxUser.GetRepositories(1, setting.UI.User.RepoPagingNum); err != nil {
-			ctx.Handle(500, "GetRepositories", err)
-			return
-		}
-		repos = ctxUser.Repos
-
 		mirrors, err = ctxUser.GetMirrorRepositories()
 		if err != nil {
 			ctx.Handle(500, "GetMirrorRepositories", err)
 			return
 		}
 	}
-	ctx.Data["Repos"] = repos
 	ctx.Data["MaxShowRepoNum"] = setting.UI.User.RepoPagingNum
 
 	if err := models.MirrorRepositoryList(mirrors).LoadAttributes(); err != nil {
@@ -187,11 +153,15 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["MirrorCount"] = len(mirrors)
 	ctx.Data["Mirrors"] = mirrors
 
-	retrieveFeeds(ctx, ctxUser, true, false, false)
+	retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+		IncludePrivate:  true,
+		OnlyPerformedBy: false,
+		IncludeDeleted:  false,
+	})
 	if ctx.Written() {
 		return
 	}
-	ctx.HTML(200, tplDashborad)
+	ctx.HTML(200, tplDashboard)
 }
 
 // Issues render the user issues page
@@ -270,92 +240,75 @@ func Issues(ctx *context.Context) {
 		userRepoIDs = []int64{-1}
 	}
 
-	var issues []*models.Issue
-	switch filterMode {
-	case models.FilterModeAll:
-		// Get all issues from repositories from this user.
-		issues, err = models.Issues(&models.IssuesOptions{
-			RepoIDs:  userRepoIDs,
-			RepoID:   repoID,
-			Page:     page,
-			IsClosed: util.OptionalBoolOf(isShowClosed),
-			IsPull:   util.OptionalBoolOf(isPullList),
-			SortType: sortType,
-		})
-
-	case models.FilterModeAssign:
-		// Get all issues assigned to this user.
-		issues, err = models.Issues(&models.IssuesOptions{
-			RepoID:     repoID,
-			AssigneeID: ctxUser.ID,
-			Page:       page,
-			IsClosed:   util.OptionalBoolOf(isShowClosed),
-			IsPull:     util.OptionalBoolOf(isPullList),
-			SortType:   sortType,
-		})
-
-	case models.FilterModeCreate:
-		// Get all issues created by this user.
-		issues, err = models.Issues(&models.IssuesOptions{
-			RepoID:   repoID,
-			PosterID: ctxUser.ID,
-			Page:     page,
-			IsClosed: util.OptionalBoolOf(isShowClosed),
-			IsPull:   util.OptionalBoolOf(isPullList),
-			SortType: sortType,
-		})
-	case models.FilterModeMention:
-		// Get all issues created by this user.
-		issues, err = models.Issues(&models.IssuesOptions{
-			RepoID:      repoID,
-			MentionedID: ctxUser.ID,
-			Page:        page,
-			IsClosed:    util.OptionalBoolOf(isShowClosed),
-			IsPull:      util.OptionalBoolOf(isPullList),
-			SortType:    sortType,
-		})
+	opts := &models.IssuesOptions{
+		RepoID:   repoID,
+		IsClosed: util.OptionalBoolOf(isShowClosed),
+		IsPull:   util.OptionalBoolOf(isPullList),
+		SortType: sortType,
 	}
 
+	switch filterMode {
+	case models.FilterModeAll:
+		opts.RepoIDs = userRepoIDs
+	case models.FilterModeAssign:
+		opts.AssigneeID = ctxUser.ID
+	case models.FilterModeCreate:
+		opts.PosterID = ctxUser.ID
+	case models.FilterModeMention:
+		opts.MentionedID = ctxUser.ID
+	}
+
+	counts, err := models.CountIssuesByRepo(opts)
+	if err != nil {
+		ctx.Handle(500, "CountIssuesByRepo", err)
+		return
+	}
+
+	opts.Page = page
+	opts.PageSize = setting.UI.IssuePagingNum
+	issues, err := models.Issues(opts)
 	if err != nil {
 		ctx.Handle(500, "Issues", err)
 		return
 	}
 
-	showRepos, err := models.IssueList(issues).LoadRepositories()
-	if err != nil {
-		ctx.Handle(500, "LoadRepositories", fmt.Errorf("%v", err))
-		return
+	showReposMap := make(map[int64]*models.Repository, len(counts))
+	for repoID := range counts {
+		repo, err := models.GetRepositoryByID(repoID)
+		if err != nil {
+			ctx.Handle(500, "GetRepositoryByID", err)
+			return
+		}
+		showReposMap[repoID] = repo
 	}
 
 	if repoID > 0 {
-		var theRepo *models.Repository
-		for _, repo := range showRepos {
-			if repo.ID == repoID {
-				theRepo = repo
-				break
-			}
-		}
-
-		if theRepo == nil {
-			theRepo, err = models.GetRepositoryByID(repoID)
+		if _, ok := showReposMap[repoID]; !ok {
+			repo, err := models.GetRepositoryByID(repoID)
 			if err != nil {
-				ctx.Handle(500, "GetRepositoryByID", fmt.Errorf("[#%d]%v", repoID, err))
+				ctx.Handle(500, "GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
 				return
 			}
-			showRepos = append(showRepos, theRepo)
+			showReposMap[repoID] = repo
 		}
 
+		repo := showReposMap[repoID]
+
 		// Check if user has access to given repository.
-		if !theRepo.IsOwnedBy(ctxUser.ID) && !theRepo.HasAccess(ctxUser) {
-			ctx.Handle(404, "Issues", fmt.Errorf("#%d", repoID))
+		if !repo.IsOwnedBy(ctxUser.ID) && !repo.HasAccess(ctxUser) {
+			ctx.Status(404)
 			return
 		}
 	}
 
-	err = models.RepositoryList(showRepos).LoadAttributes()
-	if err != nil {
+	showRepos := models.RepositoryListOfMap(showReposMap)
+	if err = showRepos.LoadAttributes(); err != nil {
 		ctx.Handle(500, "LoadAttributes", fmt.Errorf("%v", err))
 		return
+	}
+
+	for _, issue := range issues {
+		issue.Repo = showReposMap[issue.RepoID]
 	}
 
 	issueStats := models.GetUserIssueStats(repoID, ctxUser.ID, userRepoIDs, filterMode, isPullList)
@@ -369,6 +322,7 @@ func Issues(ctx *context.Context) {
 
 	ctx.Data["Issues"] = issues
 	ctx.Data["Repos"] = showRepos
+	ctx.Data["Counts"] = counts
 	ctx.Data["Page"] = paginater.New(total, setting.UI.IssuePagingNum, page, 5)
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["ViewType"] = viewType

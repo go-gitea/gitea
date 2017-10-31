@@ -20,6 +20,7 @@ var (
 )
 
 // Hook a hook is a web hook when one repository changed
+// swagger:response Hook
 type Hook struct {
 	ID      int64             `json:"id"`
 	Type    string            `json:"type"`
@@ -31,14 +32,18 @@ type Hook struct {
 	Created time.Time         `json:"created_at"`
 }
 
+// HookList represents a list of API hook.
+// swagger:response HookList
+type HookList []*Hook
+
 // ListOrgHooks list all the hooks of one organization
-func (c *Client) ListOrgHooks(org string) ([]*Hook, error) {
+func (c *Client) ListOrgHooks(org string) (HookList, error) {
 	hooks := make([]*Hook, 0, 10)
 	return hooks, c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s/hooks", org), nil, nil, &hooks)
 }
 
 // ListRepoHooks list all the hooks of one repository
-func (c *Client) ListRepoHooks(user, repo string) ([]*Hook, error) {
+func (c *Client) ListRepoHooks(user, repo string) (HookList, error) {
 	hooks := make([]*Hook, 0, 10)
 	return hooks, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/hooks", user, repo), nil, nil, &hooks)
 }
@@ -56,11 +61,16 @@ func (c *Client) GetRepoHook(user, repo string, id int64) (*Hook, error) {
 }
 
 // CreateHookOption options when create a hook
+// swagger:parameters orgCreateHook repoCreateHook
 type CreateHookOption struct {
-	Type   string            `json:"type" binding:"Required"`
+	// in: body
+	Type string `json:"type" binding:"Required"`
+	// in: body
 	Config map[string]string `json:"config" binding:"Required"`
-	Events []string          `json:"events"`
-	Active bool              `json:"active"`
+	// in: body
+	Events []string `json:"events"`
+	// in: body
+	Active bool `json:"active"`
 }
 
 // CreateOrgHook create one hook for an organization, with options
@@ -84,10 +94,14 @@ func (c *Client) CreateRepoHook(user, repo string, opt CreateHookOption) (*Hook,
 }
 
 // EditHookOption options when modify one hook
+// swagger:parameters orgEditHook repoEditHook
 type EditHookOption struct {
+	// in: body
 	Config map[string]string `json:"config"`
-	Events []string          `json:"events"`
-	Active *bool             `json:"active"`
+	// in: body
+	Events []string `json:"events"`
+	// in: body
+	Active *bool `json:"active"`
 }
 
 // EditOrgHook modify one hook of an organization, with hook id and options

@@ -16,11 +16,13 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 
 	assert.NoError(t, CreateOrUpdateIssueNotifications(issue, 2))
 
+	// User 9 is inactive, thus notifications for user 1 and 4 are created
 	notf := AssertExistsAndLoadBean(t, &Notification{UserID: 1, IssueID: issue.ID}).(*Notification)
 	assert.Equal(t, NotificationStatusUnread, notf.Status)
+	CheckConsistencyFor(t, &Issue{ID: issue.ID})
+
 	notf = AssertExistsAndLoadBean(t, &Notification{UserID: 4, IssueID: issue.ID}).(*Notification)
 	assert.Equal(t, NotificationStatusUnread, notf.Status)
-	CheckConsistencyFor(t, &Issue{ID: issue.ID})
 }
 
 func TestNotificationsForUser(t *testing.T) {
@@ -29,9 +31,10 @@ func TestNotificationsForUser(t *testing.T) {
 	statuses := []NotificationStatus{NotificationStatusRead, NotificationStatusUnread}
 	notfs, err := NotificationsForUser(user, statuses, 1, 10)
 	assert.NoError(t, err)
-	assert.Len(t, notfs, 1)
-	assert.EqualValues(t, 2, notfs[0].ID)
-	assert.EqualValues(t, user.ID, notfs[0].UserID)
+	if assert.Len(t, notfs, 1) {
+		assert.EqualValues(t, 2, notfs[0].ID)
+		assert.EqualValues(t, user.ID, notfs[0].UserID)
+	}
 }
 
 func TestNotification_GetRepo(t *testing.T) {
