@@ -2009,11 +2009,15 @@ function showAddDependencyModal() {
 function buildIssuesList() {
     // Get a list of issues
     var repolink = $('#repolink').val();
+    var issueIndex = $('#issueIndex').val();
+
     $.getJSON( '/api/v1/repos' + repolink + '/issues', function( data ) {
 
         $.each(data, function (i, issue) {
-            //$('#newDependency').append('<option value="' + issue.id + '"><b>#' + issue.number + '</b> ' + issue.title + '</option>');
-            $('.new-dependency-dropdown').append('<div class="item" data-value="' + issue.id + '"><b>#' + issue.number + '</b> ' + issue.title + '</div>');
+            if(issue.number != issueIndex) {
+                //$('#newDependency').append('<option value="' + issue.id + '"><b>#' + issue.number + '</b> ' + issue.title + '</option>');
+                $('.new-dependency-dropdown').append('<div class="item" data-value="' + issue.id + '"><b>#' + issue.number + '</b> ' + issue.title + '</div>');
+            }
         });
 
         $('.new-dependency-drop-list').dropdown({
