@@ -10,7 +10,7 @@ import (
 	api "code.gitea.io/sdk/gitea"
 )
 
-func convertTrackedTimes(trackedTimes []*models.TrackedTime) []*api.TrackedTime {
+func trackedTimesToAPIFormat(trackedTimes []*models.TrackedTime) []*api.TrackedTime {
 	apiTrackedTimes := make([]*api.TrackedTime, len(trackedTimes))
 	for i, trackedTime := range trackedTimes {
 		apiTrackedTimes[i] = trackedTime.APIFormat()
@@ -48,7 +48,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		ctx.Error(500, "GetTrackedTimesByIssue", err)
 		return
 	}
-	apiTrackedTimes := convertTrackedTimes(trackedTimes)
+	apiTrackedTimes := trackedTimesToAPIFormat(trackedTimes)
 	ctx.JSON(200, &apiTrackedTimes)
 }
 
@@ -127,7 +127,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		ctx.Error(500, "GetTrackedTimesByUser", err)
 		return
 	}
-	apiTrackedTimes := convertTrackedTimes(trackedTimes)
+	apiTrackedTimes := trackedTimesToAPIFormat(trackedTimes)
 	ctx.JSON(200, &apiTrackedTimes)
 }
 
@@ -152,7 +152,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		ctx.Error(500, "GetTrackedTimesByUser", err)
 		return
 	}
-	apiTrackedTimes := convertTrackedTimes(trackedTimes)
+	apiTrackedTimes := trackedTimesToAPIFormat(trackedTimes)
 	ctx.JSON(200, &apiTrackedTimes)
 }
 
@@ -171,6 +171,6 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 		ctx.Error(500, "GetTrackedTimesByUser", err)
 		return
 	}
-	apiTrackedTimes := convertTrackedTimes(trackedTimes)
+	apiTrackedTimes := trackedTimesToAPIFormat(trackedTimes)
 	ctx.JSON(200, &apiTrackedTimes)
 }
