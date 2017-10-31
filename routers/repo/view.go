@@ -297,9 +297,9 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["Title"] = title
 	ctx.Data["RequireHighlightJS"] = true
 
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName
+	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink
-	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchName
+	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
 
 	if len(ctx.Repo.TreePath) > 0 {
 		treeLink += "/" + ctx.Repo.TreePath

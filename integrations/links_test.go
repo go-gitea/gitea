@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	api "code.gitea.io/sdk/gitea"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLinksNoLogin(t *testing.T) {
@@ -35,6 +37,20 @@ func TestLinksNoLogin(t *testing.T) {
 	for _, link := range links {
 		req := NewRequest(t, "GET", link)
 		MakeRequest(t, req, http.StatusOK)
+	}
+}
+
+func TestRedirectsNoLogin(t *testing.T) {
+	prepareTestEnv(t)
+
+	var redirects = map[string]string{
+		"/user2/repo1/commits/master": "/user2/repo1/commits/branch/master",
+		"/user2/repo1/src/master":     "/user2/repo1/src/branch/master",
+	}
+	for link, redirectLink := range redirects {
+		req := NewRequest(t, "GET", link)
+		resp := MakeRequest(t, req, http.StatusFound)
+		assert.EqualValues(t, redirectLink, RedirectURL(t, resp))
 	}
 }
 
@@ -99,7 +115,7 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"",
 		"/issues",
 		"/pulls",
-		"/commits/master",
+		"/commits/branch/master",
 		"/graph",
 		"/settings",
 		"/settings/collaboration",
