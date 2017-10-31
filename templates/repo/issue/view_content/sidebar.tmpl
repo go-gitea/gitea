@@ -231,7 +231,6 @@
 			{{end}}
 
 			{{if .BlockingDependencies}}
-			<div class="ui relaxed divided list">
 				<span class="text" data-tooltip="{{if .Issue.IsPull}}
 						{{.i18n.Tr "repo.issues.dependency.pr_close_blocks"}}
 				{{else}}
@@ -239,6 +238,7 @@
 				{{end}}" data-inverted="">
 					{{.i18n.Tr "repo.issues.dependency.blocks_short"}}:
 				</span>
+			<div class="ui relaxed divided list">
 				{{range .BlockingDependencies}}
 				<div class="item">
 					<div class="right floated content">
