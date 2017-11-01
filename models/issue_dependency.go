@@ -146,9 +146,5 @@ func IssueNoDependenciesLeft(issue *Issue) (exists bool, err error) {
 		And("issue.is_closed = ?", "0").
 		Exist(&IssueDependencyIssue{})
 
-	/*if err != nil {
-		return false
-	}*/
-
 	return !exists, err
 }
