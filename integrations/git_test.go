@@ -7,12 +7,15 @@ package integrations
 import (
 	"context"
 	"net/http"
+	"os"
+	"path/filepath"
 	"testing"
-
 	"time"
 
+	"code.gitea.io/git"
+
+	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
-	git "gopkg.in/src-d/go-git.v4"
 )
 
 func TestClonePush_ViaHTTP_NoLogin(t *testing.T) {
@@ -31,11 +34,11 @@ func TestClonePush_ViaHTTP_NoLogin(t *testing.T) {
 
 	go s.ListenAndServe()
 
-	r := git.NewMemoryRepository()
-	err := r.Clone(&git.CloneOptions{URL: "http://localhost:3000/user2/repo1.git"})
+	dstPath := filepath.Join(os.TempDir(), "repo1")
+	os.RemoveAll(dstPath)
+
+	err := git.Clone("http://localhost:3000/user2/repo1.git", dstPath, git.CloneRepoOptions{})
 	assert.NoError(t, err)
 
-	empty, err := r.IsEmpty()
-	assert.NoError(t, err)
-	assert.False(t, empty)
+	assert.True(t, com.IsExist(filepath.Join(dstPath, "README.md")))
 }
