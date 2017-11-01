@@ -25,7 +25,7 @@ pipeline:
     image: appleboy/drone-git-push
     pull: true
     secrets: [ git_push_ssh_key ]
-    remote_name: origin
+    remote: git@github.com:go-gitea/gitea.git
     force: false
     commit: true
     commit_message: "[skip ci] Updated translations via Crowdin"
