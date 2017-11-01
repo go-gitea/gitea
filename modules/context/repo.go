@@ -523,12 +523,9 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 
 // URL to redirect to for deprecated URL scheme
 func repoRefRedirect(ctx *Context) string {
-	urlPath := ctx.Req.URL.String()
-	idx := strings.LastIndex(urlPath, ctx.Params("*"))
-	if idx < 0 {
-		idx = len(urlPath)
-	}
-	return path.Join(urlPath[:idx], ctx.Repo.BranchNameSubURL())
+	urlPath := strings.TrimSuffix(ctx.Req.URL.String(), ctx.Params("*"))
+	urlPath = strings.TrimPrefix(urlPath, "/")
+	return setting.AppURL + path.Join(urlPath, ctx.Repo.BranchNameSubURL())
 }
 
 // RepoRefByType handles repository reference name for a specific type
