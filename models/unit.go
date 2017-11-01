@@ -9,13 +9,13 @@ type UnitType int
 
 // Enumerate all the unit types
 const (
-	UnitTypeCode              UnitType = iota + 1 // 1 code
-	UnitTypeIssues                                // 2 issues
-	UnitTypePullRequests                          // 3 PRs
-	UnitTypeReleases                              // 4 Releases
-	UnitTypeWiki                                  // 5 Wiki
-	UnitTypeExternalWiki                          // 6 ExternalWiki
-	UnitTypeExternalTracker                       // 7 ExternalTracker
+	UnitTypeCode            UnitType = iota + 1 // 1 code
+	UnitTypeIssues                              // 2 issues
+	UnitTypePullRequests                        // 3 PRs
+	UnitTypeReleases                            // 4 Releases
+	UnitTypeWiki                                // 5 Wiki
+	UnitTypeExternalWiki                        // 6 ExternalWiki
+	UnitTypeExternalTracker                     // 7 ExternalTracker
 	UnitTypeIssueDependencies                     // 8 Issue Dependencies
 )
 
@@ -138,13 +138,13 @@ var (
 
 	// Units contains all the units
 	Units = map[UnitType]Unit{
-		UnitTypeCode:              UnitCode,
-		UnitTypeIssues:            UnitIssues,
-		UnitTypeExternalTracker:   UnitExternalTracker,
-		UnitTypePullRequests:      UnitPullRequests,
-		UnitTypeReleases:          UnitReleases,
-		UnitTypeWiki:              UnitWiki,
-		UnitTypeExternalWiki:      UnitExternalWiki,
+		UnitTypeCode:            UnitCode,
+		UnitTypeIssues:          UnitIssues,
+		UnitTypeExternalTracker: UnitExternalTracker,
+		UnitTypePullRequests:    UnitPullRequests,
+		UnitTypeReleases:        UnitReleases,
+		UnitTypeWiki:            UnitWiki,
+		UnitTypeExternalWiki:    UnitExternalWiki,
 		UnitTypeIssueDependencies: UnitIssueDependencies,
 	}
 )
