@@ -1527,7 +1527,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "201": {
             "$ref": "#/responses/Hook"
           }
         }
