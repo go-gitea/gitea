@@ -1705,7 +1705,7 @@ function initVueComponents(){
                 return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery + '&limit=' + this.searchLimit + '&mode=' + this.repoTypes[this.reposFilter].searchMode + (this.reposFilter !== 'all' ? '&exclusive=1' : '');
             },
             repoTypeCount: function() {
-                return this.isLoading ? 0 : this.repoTypes[this.reposFilter].count;
+                return this.repoTypes[this.reposFilter].count;
             }
         },
 
@@ -1725,6 +1725,8 @@ function initVueComponents(){
 
             changeReposFilter: function(filter) {
                 this.reposFilter = filter;
+                this.repos = [];
+                this.repoTypes[filter].count = 0;
                 this.searchRepos(filter);
             },
 

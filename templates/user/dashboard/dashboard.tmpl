@@ -69,7 +69,7 @@
 									</a>
 								</div>
 							</div>
-							<div v-if="!isLoading" class="ui attached table segment">
+							<div class="ui attached table segment">
 								<ul class="repo-owner-name-list">
 									<li v-for="repo in repos" :class="{'private': repo.private}" v-show="showRepo(repo, reposFilter)">
 										<a :href="suburl + '/' + repo.full_name">
@@ -84,9 +84,6 @@
 										<a :href="moreReposLink">{{.i18n.Tr "home.show_more_repos"}}</a>
 									</li>
 								</ul>
-							</div>
-							<div v-else class="ui attached segment">
-								<div class="ui active centered inline small loader"></div>
 							</div>
 						</div>
 						<div v-if="!isOrganization" v-show="tab === 'organizations'" class="ui tab active list">
