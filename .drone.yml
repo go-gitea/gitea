@@ -20,18 +20,19 @@ pipeline:
     when:
       event: [ push ]
       branch: [ master ]
-      
+
   git_push:
     image: appleboy/drone-git-push
     pull: true
     secrets: [ git_push_ssh_key ]
+    remote_name: origin
     force: false
     commit: true
     commit_message: "[skip ci] Updated translations via Crowdin"
     when:
       event: [ push ]
       branch: [ master ]
-      
+
   pre-build:
     image: webhippie/nodejs:latest
     pull: true
@@ -40,7 +41,7 @@ pipeline:
       - make stylesheets-check
     when:
       event: [ push, tag, pull_request ]
-      
+
   build:
     image: webhippie/golang:edge
     pull: true
