@@ -25,7 +25,7 @@ pipeline:
     image: alpine:3.6
     commands:
       - sed -i -e 's/="/=/g' -e 's/"$$//g' ./options/locale/*.ini
-	    - sed -i -e 's/\\"/"/g' ./options/locale/*.ini
+      - sed -i -e 's/\\"/"/g' ./options/locale/*.ini
     when:
       event: [ push ]
       branch: [ master ]
