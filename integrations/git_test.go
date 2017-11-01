@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"context"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -34,8 +35,9 @@ func TestClonePush_ViaHTTP_NoLogin(t *testing.T) {
 
 	go s.ListenAndServe()
 
-	dstPath := filepath.Join(os.TempDir(), "repo1")
-	os.RemoveAll(dstPath)
+	dstPath, err := ioutil.TempDir("", "repo1")
+	assert.NoError(t, err)
+	defer os.RemoveAll(dstPath)
 
 	err := git.Clone("http://localhost:3000/user2/repo1.git", dstPath, git.CloneRepoOptions{})
 	assert.NoError(t, err)
