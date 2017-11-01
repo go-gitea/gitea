@@ -9,6 +9,29 @@ clone:
     tags: true
 
 pipeline:
+  download_translations:
+    image: jonasfranz/crowdin
+    pull: true
+    secrets: [ crowdin_key ]
+    project_identifier: gitea
+    ignore_branch: true
+    download: true
+    export_dir: options/locale/
+    when:
+      event: [ push ]
+      branch: [ master ]
+      
+  git_push:
+    image: appleboy/drone-git-push
+    pull: true
+    secrets: [ git_push_ssh_key ]
+    force: false
+    commit: true
+    commit_message: "[skip ci] Updated translations via Crowdin"
+    when:
+      event: [ push ]
+      branch: [ master ]
+      
   pre-build:
     image: webhippie/nodejs:latest
     pull: true
@@ -17,6 +40,7 @@ pipeline:
       - make stylesheets-check
     when:
       event: [ push, tag, pull_request ]
+      
   build:
     image: webhippie/golang:edge
     pull: true
@@ -212,18 +236,6 @@ pipeline:
       event: [ push ]
       branch: [ master ]
 
-  translations:
-    image: jonasfranz/crowdin
-    pull: true
-    secrets: [ crowdin_key ]
-    project_identifier: gitea
-    ignore_branch: true
-    files:
-      locale_en-US.ini: options/locale/locale_en-US.ini
-    when:
-      event: [ push ]
-      branch: [ master ]
-
   github:
     image: plugins/github-release:1
     pull: true
@@ -232,6 +244,19 @@ pipeline:
       - dist/release/*
     when:
       event: [ tag ]
+
+  upload_translations:
+    image: jonasfranz/crowdin
+    pull: true
+    secrets: [ crowdin_key ]
+    project_identifier: gitea
+    ignore_branch: true
+    download: false
+    files:
+      locale_en-US.ini: options/locale/locale_en-US.ini
+    when:
+      event: [ push ]
+      branch: [ master ]
 
   discord:
     image: appleboy/drone-discord:1.0.0
