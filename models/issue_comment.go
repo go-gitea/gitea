@@ -79,23 +79,23 @@ const (
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID               int64 `xorm:"pk autoincr"`
-	Type             CommentType
-	PosterID         int64 `xorm:"INDEX"`
-	Poster           *User `xorm:"-"`
-	IssueID          int64 `xorm:"INDEX"`
-	LabelID          int64
-	Label            *Label `xorm:"-"`
-	OldMilestoneID   int64
-	MilestoneID      int64
-	OldMilestone     *Milestone `xorm:"-"`
-	Milestone        *Milestone `xorm:"-"`
-	OldAssigneeID    int64
-	AssigneeID       int64
-	Assignee         *User `xorm:"-"`
-	OldAssignee      *User `xorm:"-"`
-	OldTitle         string
-	NewTitle         string
+	ID             int64 `xorm:"pk autoincr"`
+	Type           CommentType
+	PosterID       int64 `xorm:"INDEX"`
+	Poster         *User `xorm:"-"`
+	IssueID        int64 `xorm:"INDEX"`
+	LabelID        int64
+	Label          *Label `xorm:"-"`
+	OldMilestoneID int64
+	MilestoneID    int64
+	OldMilestone   *Milestone `xorm:"-"`
+	Milestone      *Milestone `xorm:"-"`
+	OldAssigneeID  int64
+	AssigneeID     int64
+	Assignee       *User `xorm:"-"`
+	OldAssignee    *User `xorm:"-"`
+	OldTitle       string
+	NewTitle       string
 	DependentIssueID int64
 	DependentIssue   *Issue `xorm:"-"`
 
@@ -118,30 +118,25 @@ type Comment struct {
 	ShowTag CommentTag `xorm:"-"`
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (c *Comment) AfterSet(colName string, _ xorm.Cell) {
-	var err error
-	switch colName {
-	case "id":
-		c.Attachments, err = GetAttachmentsByCommentID(c.ID)
-		if err != nil {
-			log.Error(3, "GetAttachmentsByCommentID[%d]: %v", c.ID, err)
-		}
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (c *Comment) AfterLoad(session *xorm.Session) {
+	c.Created = time.Unix(c.CreatedUnix, 0).Local()
+	c.Updated = time.Unix(c.UpdatedUnix, 0).Local()
 
-	case "poster_id":
-		c.Poster, err = GetUserByID(c.PosterID)
-		if err != nil {
-			if IsErrUserNotExist(err) {
-				c.PosterID = -1
-				c.Poster = NewGhostUser()
-			} else {
-				log.Error(3, "GetUserByID[%d]: %v", c.ID, err)
-			}
+	var err error
+	c.Attachments, err = getAttachmentsByCommentID(session, c.ID)
+	if err != nil {
+		log.Error(3, "getAttachmentsByCommentID[%d]: %v", c.ID, err)
+	}
+
+	c.Poster, err = getUserByID(session, c.PosterID)
+	if err != nil {
+		if IsErrUserNotExist(err) {
+			c.PosterID = -1
+			c.Poster = NewGhostUser()
+		} else {
+			log.Error(3, "getUserByID[%d]: %v", c.ID, err)
 		}
-	case "created_unix":
-		c.Created = time.Unix(c.CreatedUnix, 0).Local()
-	case "updated_unix":
-		c.Updated = time.Unix(c.UpdatedUnix, 0).Local()
 	}
 }
 
@@ -322,27 +317,25 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	}
 
 	comment := &Comment{
-		Type:             opts.Type,
-		PosterID:         opts.Doer.ID,
-		Poster:           opts.Doer,
-		IssueID:          opts.Issue.ID,
-		LabelID:          LabelID,
-		OldMilestoneID:   opts.OldMilestoneID,
-		MilestoneID:      opts.MilestoneID,
-		OldAssigneeID:    opts.OldAssigneeID,
-		AssigneeID:       opts.AssigneeID,
-		CommitID:         opts.CommitID,
-		CommitSHA:        opts.CommitSHA,
-		Line:             opts.LineNum,
-		Content:          opts.Content,
-		OldTitle:         opts.OldTitle,
-		NewTitle:         opts.NewTitle,
+		Type:           opts.Type,
+		PosterID:       opts.Doer.ID,
+		Poster:         opts.Doer,
+		IssueID:        opts.Issue.ID,
+		LabelID:        LabelID,
+		OldMilestoneID: opts.OldMilestoneID,
+		MilestoneID:    opts.MilestoneID,
+		OldAssigneeID:  opts.OldAssigneeID,
+		AssigneeID:     opts.AssigneeID,
+		CommitID:       opts.CommitID,
+		CommitSHA:      opts.CommitSHA,
+		Line:           opts.LineNum,
+		Content:        opts.Content,
+		OldTitle:       opts.OldTitle,
+		NewTitle:       opts.NewTitle,
 		DependentIssue:   opts.DependentIssue,
 		DependentIssueID: depID,
 	}
-
-	_, err = e.Insert(comment)
-	if err != nil {
+	if _, err = e.Insert(comment); err != nil {
 		return nil, err
 	}
 
@@ -532,11 +525,11 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 
 // CreateCommentOptions defines options for creating comment
 type CreateCommentOptions struct {
-	Type           CommentType
-	Doer           *User
-	Repo           *Repository
-	Issue          *Issue
-	Label          *Label
+	Type  CommentType
+	Doer  *User
+	Repo  *Repository
+	Issue *Issue
+	Label *Label
 	DependentIssue *Issue
 
 	OldMilestoneID int64
