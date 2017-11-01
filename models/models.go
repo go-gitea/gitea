@@ -117,6 +117,7 @@ func init() {
 		new(TrackedTime),
 		new(DeletedBranch),
 		new(RepoIndexerStatus),
+		new(IssueDependency),
 	)
 
 	gonicNames := []string{"SSL", "UID"}

@@ -138,17 +138,17 @@ func (IssueDependencyIssue) TableName() string {
 }
 
 // IssueNoDependenciesLeft checks if issue can be closed
-func IssueNoDependenciesLeft(issue *Issue) bool {
+func IssueNoDependenciesLeft(issue *Issue) (exists bool, err error) {
 
-	exists, err := x.
+	exists, err = x.
 		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
 		Where("issue_dependency.issue_id = ?", issue.ID).
 		And("issue.is_closed = ?", "0").
 		Exist(&IssueDependencyIssue{})
 
-	if err != nil {
+	/*if err != nil {
 		return false
-	}
+	}*/
 
-	return !exists
+	return !exists, err
 }

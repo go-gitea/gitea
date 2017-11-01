@@ -455,7 +455,12 @@ func MergePullRequest(ctx *context.Context) {
 	pr.Issue = issue
 	pr.Issue.Repo = ctx.Repo.Repository
 
-	if !models.IssueNoDependenciesLeft(issue) {
+	noDeps, err := models.IssueNoDependenciesLeft(issue)
+	if err != nil {
+		return
+	}
+
+	if !noDeps {
 		ctx.Flash.Error("You need to close all issues blocking this pull request before you can merge it!")
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 		return
