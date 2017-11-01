@@ -6,6 +6,7 @@ package repo
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	api "code.gitea.io/sdk/gitea"
@@ -15,8 +16,36 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 )
+
+// SearchRepoOption options when searching repositories
+// swagger:parameters repoSearch
+type SearchRepoOption struct { // TODO: Move SearchRepoOption to Gitea SDK
+	// Keyword to search
+	//
+	// in: query
+	Keyword string `json:"q"`
+	// Repository owner to search
+	//
+	// in: query
+	OwnerID int64 `json:"uid"`
+	// Limit of result
+	//
+	// maximum: setting.ExplorePagingNum
+	// in: query
+	PageSize int `json:"limit"`
+	// Type of repository to search, related to owner
+	//
+	// in: query
+	SearchMode string `json:"mode"`
+	// Search only owners repositories
+	// Has effect only if owner is provided and mode is not "collaborative"
+	//
+	// in: query
+	OwnerExclusive bool `json:"exclusive"`
+}
 
 // Search repositories via options
 func Search(ctx *context.APIContext) {
@@ -27,20 +56,44 @@ func Search(ctx *context.APIContext) {
 	//
 	//     Responses:
 	//       200: SearchResults
+	//       422: validationError
 	//       500: SearchError
 
 	opts := &models.SearchRepoOptions{
-		Keyword:  strings.Trim(ctx.Query("q"), " "),
-		OwnerID:  ctx.QueryInt64("uid"),
-		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		Keyword:     strings.Trim(ctx.Query("q"), " "),
+		OwnerID:     ctx.QueryInt64("uid"),
+		PageSize:    convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		Collaborate: util.OptionalBoolNone,
 	}
 
+	if ctx.QueryBool("exclusive") {
+		opts.Collaborate = util.OptionalBoolFalse
+	}
+
+	var mode = ctx.Query("mode")
+	switch mode {
+	case "source":
+		opts.Fork = util.OptionalBoolFalse
+		opts.Mirror = util.OptionalBoolFalse
+	case "fork":
+		opts.Fork = util.OptionalBoolTrue
+	case "mirror":
+		opts.Mirror = util.OptionalBoolTrue
+	case "collaborative":
+		opts.Mirror = util.OptionalBoolFalse
+		opts.Collaborate = util.OptionalBoolTrue
+	case "":
+	default:
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid search mode: \"%s\"", mode))
+		return
+	}
+
+	var err error
 	if opts.OwnerID > 0 {
 		var repoOwner *models.User
 		if ctx.User != nil && ctx.User.ID == opts.OwnerID {
 			repoOwner = ctx.User
 		} else {
-			var err error
 			repoOwner, err = models.GetUserByID(opts.OwnerID)
 			if err != nil {
 				ctx.JSON(500, api.SearchError{
@@ -51,8 +104,8 @@ func Search(ctx *context.APIContext) {
 			}
 		}
 
-		if !repoOwner.IsOrganization() {
-			opts.Collaborate = true
+		if repoOwner.IsOrganization() {
+			opts.Collaborate = util.OptionalBoolFalse
 		}
 
 		// Check visibility.

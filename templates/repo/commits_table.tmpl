@@ -2,7 +2,7 @@
 	{{.CommitCount}} {{.i18n.Tr "repo.commits.commits"}} {{if .Branch}}({{.Branch}}){{end}}
 	{{if .PageIsCommits}}
 		<div class="ui right">
-			<form action="{{.RepoLink}}/commits/{{.BranchName}}/search">
+			<form action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
 				<div class="ui tiny search input">
 					<input name="q" placeholder="{{.i18n.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
 				</div>
@@ -75,17 +75,17 @@
 	{{if gt .TotalPages 1}}
 		<div class="center page buttons">
 			<div class="ui borderless pagination menu">
-				<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.RepoLink}}/commits/{{$.BranchName}}{{if $.FileName}}/{{$.FileName}}{{end}}?page={{.Previous}}"{{end}}>
+				<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.RepoLink}}/commits/{{$.BranchNameSubURL}}{{if $.FileName}}/{{$.FileName}}{{end}}?page={{.Previous}}"{{end}}>
 					<i class="left arrow icon"></i> {{$.i18n.Tr "repo.issues.previous"}}
 				</a>
 				{{range .Pages}}
 					{{if eq .Num -1}}
 						<a class="disabled item">...</a>
 					{{else}}
-						<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.RepoLink}}/commits/{{$.BranchName}}{{if $.FileName}}/{{$.FileName}}{{end}}?page={{.Num}}"{{end}}>{{.Num}}</a>
+						<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.RepoLink}}/commits/{{$.BranchNameSubURL}}{{if $.FileName}}/{{$.FileName}}{{end}}?page={{.Num}}"{{end}}>{{.Num}}</a>
 					{{end}}
 				{{end}}
-				<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.RepoLink}}/commits/{{$.BranchName}}{{if $.FileName}}/{{$.FileName}}{{end}}?page={{.Next}}"{{end}}>
+				<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.RepoLink}}/commits/{{$.BranchNameSubURL}}{{if $.FileName}}/{{$.FileName}}{{end}}?page={{.Next}}"{{end}}>
 					{{$.i18n.Tr "repo.issues.next"}} <i class="icon right arrow"></i>
 				</a>
 			</div>

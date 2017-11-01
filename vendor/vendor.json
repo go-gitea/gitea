@@ -3,10 +3,10 @@
 	"ignore": "test appengine",
 	"package": [
 		{
-			"checksumSHA1": "9dxw/SGpdhNNm704gt6F02ItYtQ=",
+			"checksumSHA1": "JN/re4+x/hCzMLGHmieUcykVDAg=",
 			"path": "code.gitea.io/git",
-			"revision": "d7487da878e40ee6c4fac7280b518c0ed0be702c",
-			"revisionTime": "2017-09-16T17:49:37Z"
+			"revision": "d47b98c44c9a6472e44ab80efe65235e11c6da2a",
+			"revisionTime": "2017-10-23T00:52:09Z"
 		},
 		{
 			"checksumSHA1": "Zgp5RqU+20L2p9TNl1rSsUIWEEE=",
@@ -97,6 +97,12 @@
 			"path": "github.com/blevesearch/bleve/analysis/lang/en",
 			"revision": "011b168f7b84ffef05aed6716d73d21b1a33e971",
 			"revisionTime": "2017-06-14T16:31:07Z"
+		},
+		{
+			"checksumSHA1": "xj8o/nQj59yt+o+RZSa0n9V3vKY=",
+			"path": "github.com/blevesearch/bleve/analysis/token/camelcase",
+			"revision": "174f8ed44a0bf65e7c8fb228b60b58de62654cd2",
+			"revisionTime": "2017-06-28T17:18:15Z"
 		},
 		{
 			"checksumSHA1": "3VIPkl12t1ko4y6DkbPcz+MtQjY=",
@@ -522,6 +528,12 @@
 			"revisionTime": "2016-02-12T04:00:40Z"
 		},
 		{
+			"checksumSHA1": "+IzngblnBQNh+GmsS2O7jqmzSVQ=",
+			"path": "github.com/kballard/go-shellquote",
+			"revision": "cd60e84ee657ff3dc51de0b4f55dd299a3e136f2",
+			"revisionTime": "2017-06-19T18:30:22Z"
+		},
+		{
 			"checksumSHA1": "VJk3rOWfxEV9Ilig5lgzH1qg8Ss=",
 			"path": "github.com/keybase/go-crypto/brainpool",
 			"revision": "00ac4db533f63ef97576cbc7b07939ff7daf7329",
@@ -624,16 +636,16 @@
 			"revisionTime": "2016-10-16T15:41:25Z"
 		},
 		{
-			"checksumSHA1": "avqi4lkviHdrNJ92cXCwrw9x870=",
+			"checksumSHA1": "QV4HZTfaXvhD+5PcGM2p+7aCYYI=",
 			"path": "github.com/lib/pq",
-			"revision": "d8eeeb8bae8896dd8e1b7e514ab0d396c4f12a1b",
-			"revisionTime": "2016-11-03T02:43:54Z"
+			"revision": "456514e2defec52e0cd37f90ccf17ec8b28295e2",
+			"revisionTime": "2017-10-19T22:30:07Z"
 		},
 		{
-			"checksumSHA1": "xppHi82MLqVx1eyQmbhTesAEjx8=",
+			"checksumSHA1": "AU3fA8Sm33Vj9PBoRPSeYfxLRuE=",
 			"path": "github.com/lib/pq/oid",
-			"revision": "d8eeeb8bae8896dd8e1b7e514ab0d396c4f12a1b",
-			"revisionTime": "2016-11-03T02:43:54Z"
+			"revision": "456514e2defec52e0cd37f90ccf17ec8b28295e2",
+			"revisionTime": "2017-10-19T22:30:07Z"
 		},
 		{
 			"checksumSHA1": "O3KUfEXQPfdQ+tCMpP2RAIRJJqY=",

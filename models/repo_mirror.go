@@ -50,7 +50,7 @@ func (m *Mirror) BeforeInsert() {
 // BeforeUpdate is invoked from XORM before updating this object.
 func (m *Mirror) BeforeUpdate() {
 	if m != nil {
-		m.UpdatedUnix = time.Now().Unix()
+		m.UpdatedUnix = m.Updated.Unix()
 		m.NextUpdateUnix = m.NextUpdate.Unix()
 	}
 }
@@ -179,6 +179,7 @@ func (m *Mirror) runSync() bool {
 		}
 	}
 
+	m.Updated = time.Now()
 	return true
 }
 

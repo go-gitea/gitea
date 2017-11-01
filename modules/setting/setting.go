@@ -35,6 +35,7 @@ import (
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
 	"github.com/go-xorm/core"
+	"github.com/kballard/go-shellquote"
 	"gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
@@ -96,6 +97,7 @@ var (
 		ListenHost           string         `ini:"SSH_LISTEN_HOST"`
 		ListenPort           int            `ini:"SSH_LISTEN_PORT"`
 		RootPath             string         `ini:"SSH_ROOT_PATH"`
+		ServerCiphers        []string       `ini:"SSH_SERVER_CIPHERS"`
 		KeyTestPath          string         `ini:"SSH_KEY_TEST_PATH"`
 		KeygenPath           string         `ini:"SSH_KEYGEN_PATH"`
 		AuthorizedKeysBackup bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
@@ -107,6 +109,7 @@ var (
 		StartBuiltinServer: false,
 		Domain:             "",
 		Port:               22,
+		ServerCiphers:      []string{"aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "arcfour256", "arcfour128"},
 		KeygenPath:         "ssh-keygen",
 	}
 
@@ -137,8 +140,11 @@ var (
 
 	// Indexer settings
 	Indexer struct {
-		IssuePath         string
-		UpdateQueueLength int
+		IssuePath          string
+		RepoIndexerEnabled bool
+		RepoPath           string
+		UpdateQueueLength  int
+		MaxIndexerFileSize int64
 	}
 
 	// Webhook settings
@@ -231,12 +237,13 @@ var (
 
 	// UI settings
 	UI = struct {
-		ExplorePagingNum   int
-		IssuePagingNum     int
-		FeedMaxCommitNum   int
-		ThemeColorMetaTag  string
-		MaxDisplayFileSize int64
-		ShowUserEmail      bool
+		ExplorePagingNum    int
+		IssuePagingNum      int
+		RepoSearchPagingNum int
+		FeedMaxCommitNum    int
+		ThemeColorMetaTag   string
+		MaxDisplayFileSize  int64
+		ShowUserEmail       bool
 
 		Admin struct {
 			UserPagingNum   int
@@ -253,11 +260,12 @@ var (
 			Keywords    string
 		} `ini:"ui.meta"`
 	}{
-		ExplorePagingNum:   20,
-		IssuePagingNum:     10,
-		FeedMaxCommitNum:   5,
-		ThemeColorMetaTag:  `#6cc644`,
-		MaxDisplayFileSize: 8388608,
+		ExplorePagingNum:    20,
+		IssuePagingNum:      10,
+		RepoSearchPagingNum: 10,
+		FeedMaxCommitNum:    5,
+		ThemeColorMetaTag:   `#6cc644`,
+		MaxDisplayFileSize:  8388608,
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -322,11 +330,6 @@ var (
 	// Time settings
 	TimeFormat string
 
-	// Cache settings
-	CacheAdapter  string
-	CacheInterval int
-	CacheConn     string
-
 	// Session settings
 	SessionConfig  session.Options
 	CSRFCookieName = "_csrf"
@@ -362,6 +365,12 @@ var (
 			Schedule       string
 			UpdateExisting bool
 		} `ini:"cron.sync_external_users"`
+		DeletedBranchesCleanup struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+			OlderThan  time.Duration
+		} `ini:"cron.deleted_branches_cleanup"`
 	}{
 		UpdateMirror: struct {
 			Enabled    bool
@@ -416,6 +425,17 @@ var (
 			Schedule:       "@every 24h",
 			UpdateExisting: true,
 		},
+		DeletedBranchesCleanup: struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+			OlderThan  time.Duration
+		}{
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@every 24h",
+			OlderThan:  24 * time.Hour,
+		},
 	}
 
 	// Git settings
@@ -436,7 +456,7 @@ var (
 	}{
 		DisableDiffHighlight:     false,
 		MaxGitDiffLines:          1000,
-		MaxGitDiffLineCharacters: 500,
+		MaxGitDiffLineCharacters: 5000,
 		MaxGitDiffFiles:          100,
 		GCArgs:                   []string{},
 		Timeout: struct {
@@ -480,15 +500,16 @@ var (
 	ShowFooterTemplateLoadTime bool
 
 	// Global setting objects
-	Cfg           *ini.File
-	CustomPath    string // Custom directory path
-	CustomConf    string
-	CustomPID     string
-	ProdMode      bool
-	RunUser       string
-	IsWindows     bool
-	HasRobotsTxt  bool
-	InternalToken string // internal access token
+	Cfg               *ini.File
+	CustomPath        string // Custom directory path
+	CustomConf        string
+	CustomPID         string
+	ProdMode          bool
+	RunUser           string
+	IsWindows         bool
+	HasRobotsTxt      bool
+	InternalToken     string // internal access token
+	IterateBufferSize int
 )
 
 // DateLang transforms standard language locale name to corresponding value in datetime plugin.
@@ -707,6 +728,10 @@ func NewContext() {
 		SSH.Domain = Domain
 	}
 	SSH.RootPath = path.Join(homeDir, ".ssh")
+	serverCiphers := sec.Key("SSH_SERVER_CIPHERS").Strings(",")
+	if len(serverCiphers) > 0 {
+		SSH.ServerCiphers = serverCiphers
+	}
 	SSH.KeyTestPath = os.TempDir()
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
 		log.Fatal(4, "Failed to map SSH settings: %v", err)
@@ -740,8 +765,13 @@ func NewContext() {
 	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
-	if err = Cfg.Section("server").MapTo(&LFS); err != nil {
+	sec = Cfg.Section("server")
+	if err = sec.MapTo(&LFS); err != nil {
 		log.Fatal(4, "Failed to map LFS settings: %v", err)
+	}
+	LFS.ContentPath = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
+	if !filepath.IsAbs(LFS.ContentPath) {
+		LFS.ContentPath = filepath.Join(workDir, LFS.ContentPath)
 	}
 
 	if LFS.StartServer {
@@ -868,6 +898,7 @@ func NewContext() {
 			log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
 		}
 	}
+	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -1264,16 +1295,33 @@ func NewXORMLogService(disableConsole bool) {
 	}
 }
 
+// Cache represents cache settings
+type Cache struct {
+	Adapter  string
+	Interval int
+	Conn     string
+	TTL      time.Duration
+}
+
+var (
+	// CacheService the global cache
+	CacheService *Cache
+)
+
 func newCacheService() {
-	CacheAdapter = Cfg.Section("cache").Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"})
-	switch CacheAdapter {
-	case "memory":
-		CacheInterval = Cfg.Section("cache").Key("INTERVAL").MustInt(60)
-	case "redis", "memcache":
-		CacheConn = strings.Trim(Cfg.Section("cache").Key("HOST").String(), "\" ")
-	default:
-		log.Fatal(4, "Unknown cache adapter: %s", CacheAdapter)
+	sec := Cfg.Section("cache")
+	CacheService = &Cache{
+		Adapter: sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"}),
 	}
+	switch CacheService.Adapter {
+	case "memory":
+		CacheService.Interval = sec.Key("INTERVAL").MustInt(60)
+	case "redis", "memcache":
+		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
+	default:
+		log.Fatal(4, "Unknown cache adapter: %s", CacheService.Adapter)
+	}
+	CacheService.TTL = sec.Key("ITEM_TTL").MustDuration(16 * time.Hour)
 
 	log.Info("Cache Service Enabled")
 }
@@ -1313,6 +1361,7 @@ type Mailer struct {
 	// Sendmail sender
 	UseSendmail  bool
 	SendmailPath string
+	SendmailArgs []string
 }
 
 var (
@@ -1358,6 +1407,13 @@ func newMailService() {
 	}
 	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
+
+	if MailService.UseSendmail {
+		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
+		if err != nil {
+			log.Error(4, "Failed to parse Sendmail args: %v", CustomConf, err)
+		}
+	}
 
 	log.Info("Mail Service Enabled")
 }

@@ -28,26 +28,26 @@
 								<span class="ui green label">{{$.i18n.Tr "repo.release.stable"}}</span>
 							{{end}}
 							<span class="tag text blue">
-								<a href="{{$.RepoLink}}/src/{{.TagName}}" rel="nofollow"><i class="tag icon"></i> {{.TagName}}</a>
+								<a href="{{$.RepoLink}}/src/tag/{{.TagName}}" rel="nofollow"><i class="tag icon"></i> {{.TagName}}</a>
 							</span>
 							<span class="commit">
-								<a href="{{$.RepoLink}}/src/{{.Sha1}}" rel="nofollow"><i class="code icon"></i> {{ShortSha .Sha1}}</a>
+								<a href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow"><i class="code icon"></i> {{ShortSha .Sha1}}</a>
 							</span>
 						{{end}}
 					</div>
 					<div class="ui twelve wide column detail">
 						{{if .IsTag}}
 							<h4>
-								<a href="{{$.RepoLink}}/src/{{.TagName}}" rel="nofollow"><i class="tag icon"></i> {{.TagName}}</a>
+								<a href="{{$.RepoLink}}/src/tag/{{.TagName}}" rel="nofollow"><i class="tag icon"></i> {{.TagName}}</a>
 							</h4>
 							<div class="download">
-								<a href="{{$.RepoLink}}/src/{{.Sha1}}" rel="nofollow"><i class="code icon"></i> {{ShortSha .Sha1}}</a>
+								<a href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow"><i class="code icon"></i> {{ShortSha .Sha1}}</a>
 								<a href="{{$.RepoLink}}/archive/{{.TagName}}.zip" rel="nofollow"><i class="octicon octicon-file-zip"></i> ZIP</a>
 								<a href="{{$.RepoLink}}/archive/{{.TagName}}.tar.gz"><i class="octicon octicon-file-zip"></i> TAR.GZ</a>
 							</div>
 						{{else}}
 							<h3>
-								<a href="{{$.RepoLink}}/src/{{.TagName}}">{{.Title}}</a>
+								<a href="{{$.RepoLink}}/src/tag/{{.TagName}}">{{.Title}}</a>
 								{{if $.IsRepositoryWriter}}<small>(<a href="{{$.RepoLink}}/releases/edit/{{.TagName}}" rel="nofollow">{{$.i18n.Tr "repo.release.edit"}}</a>)</small>{{end}}
 							</h3>
 							<p class="text grey">

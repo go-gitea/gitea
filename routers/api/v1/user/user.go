@@ -7,12 +7,12 @@ package user
 import (
 	"strings"
 
-	"github.com/Unknwon/com"
-
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/Unknwon/com"
 )
 
 // Search search users
@@ -35,7 +35,7 @@ func Search(ctx *context.APIContext) {
 		opts.PageSize = 10
 	}
 
-	users, _, err := models.SearchUserByName(opts)
+	users, _, err := models.SearchUsers(opts)
 	if err != nil {
 		ctx.JSON(500, map[string]interface{}{
 			"ok":    false,
@@ -50,7 +50,7 @@ func Search(ctx *context.APIContext) {
 			ID:        users[i].ID,
 			UserName:  users[i].Name,
 			AvatarURL: users[i].AvatarLink(),
-			FullName:  users[i].FullName,
+			FullName:  markup.Sanitize(users[i].FullName),
 		}
 		if ctx.IsSigned {
 			results[i].Email = users[i].Email

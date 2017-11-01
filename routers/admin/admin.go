@@ -224,9 +224,9 @@ func Config(ctx *context.Context) {
 		ctx.Data["Mailer"] = setting.MailService
 	}
 
-	ctx.Data["CacheAdapter"] = setting.CacheAdapter
-	ctx.Data["CacheInterval"] = setting.CacheInterval
-	ctx.Data["CacheConn"] = setting.CacheConn
+	ctx.Data["CacheAdapter"] = setting.CacheService.Adapter
+	ctx.Data["CacheInterval"] = setting.CacheService.Interval
+	ctx.Data["CacheConn"] = setting.CacheService.Conn
 
 	ctx.Data["SessionConfig"] = setting.SessionConfig
 
