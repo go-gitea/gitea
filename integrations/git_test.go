@@ -39,7 +39,7 @@ func TestClonePush_ViaHTTP_NoLogin(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.RemoveAll(dstPath)
 
-	err := git.Clone("http://localhost:3000/user2/repo1.git", dstPath, git.CloneRepoOptions{})
+	err = git.Clone("http://localhost:3000/user2/repo1.git", dstPath, git.CloneRepoOptions{})
 	assert.NoError(t, err)
 
 	assert.True(t, com.IsExist(filepath.Join(dstPath, "README.md")))
