@@ -2457,8 +2457,7 @@ func (repo *Repository) GetUserFork(userID int64) (*Repository, error) {
 func (repo *Repository) getBlockedByDependencies(e Engine, issueID int64) (_ []*IssueDependencyIssue, err error) {
 	var issueDeps []*IssueDependencyIssue
 
-	err = x.Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").Where("issue_id = ?", issueID).Find(&issueDeps)
-	if err != nil {
+	if err = x.Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").Where("issue_id = ?", issueID).Find(&issueDeps); err != nil {
 		return issueDeps, err
 	}
 
@@ -2466,11 +2465,10 @@ func (repo *Repository) getBlockedByDependencies(e Engine, issueID int64) (_ []*
 }
 
 // Get Blocking Dependencies, aka all issues this issue blocks.
-func (repo *Repository) getBlockingDependencies(e Engine, issueID int64) (_ []*IssueDependencyIssue, err error) {
+func (repo *Repository) getBlockingDependencies(e Engine, issueID int64) ([]*IssueDependencyIssue, error) {
 	var issueDeps []*IssueDependencyIssue
 
-	err = x.Join("INNER", "issue", "issue.id = issue_dependency.issue_id").Where("dependency_id = ?", issueID).Find(&issueDeps)
-	if err != nil {
+	if err := x.Join("INNER", "issue", "issue.id = issue_dependency.issue_id").Where("dependency_id = ?", issueID).Find(&issueDeps); err != nil {
 		return issueDeps, err
 	}
 

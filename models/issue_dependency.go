@@ -52,16 +52,12 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (exists bool, err erro
 		}
 
 		// Add comment referencing the new dependency
-		_, err = createIssueDependencyComment(sess, user, issue, dep, true)
-
-		if err != nil {
+		if _, err = createIssueDependencyComment(sess, user, issue, dep, true); err != nil {
 			return exists, err
 		}
 
 		// Create a new comment for the dependent issue
-		_, err = createIssueDependencyComment(sess, user, dep, issue, true)
-
-		if err != nil {
+		if _, err = createIssueDependencyComment(sess, user, dep, issue, true); err != nil {
 			return exists, err
 		}
 	}
@@ -73,8 +69,8 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 	sess := x.NewSession()
 
 	// Check if it exists
-	exists, err := issueDepExists(x, issue.ID, dep.ID)
-	if err != nil {
+	var exists bool
+	if exists, err = issueDepExists(x, issue.ID, dep.ID); err != nil {
 		return err
 	}
 
@@ -92,22 +88,17 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 			return
 		}
 
-		_, err := x.Delete(&issueDepToDelete)
-		if err != nil {
+		if _, err := x.Delete(&issueDepToDelete); err != nil {
 			return err
 		}
 
 		// Add comment referencing the removed dependency
-		_, err = createIssueDependencyComment(sess, user, issue, dep, false)
-
-		if err != nil {
+		if _, err = createIssueDependencyComment(sess, user, issue, dep, false); err != nil {
 			return err
 		}
 
 		// Create a new comment for the dependent issue
-		_, err = createIssueDependencyComment(sess, user, dep, issue, false)
-
-		if err != nil {
+		if _, err = createIssueDependencyComment(sess, user, dep, issue, false); err != nil {
 			return err
 		}
 	}
@@ -119,11 +110,7 @@ func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err erro
 
 	exists, err = e.Where("(issue_id = ? AND dependency_id = ?) OR (issue_id = ? AND dependency_id = ?)", issueID, depID, depID, issueID).Exist(&IssueDependency{})
 
-	if err != nil {
-		return exists, err
-	}
-
-	return exists, nil
+	return
 }
 
 // IssueDependencyIssue custom type for mysql join
