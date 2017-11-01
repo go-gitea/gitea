@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
@@ -44,13 +45,13 @@ func TestRedirectsNoLogin(t *testing.T) {
 	prepareTestEnv(t)
 
 	var redirects = map[string]string{
-		"/user2/repo1/commits/master": "/user2/repo1/commits/branch/master",
-		"/user2/repo1/src/master":     "/user2/repo1/src/branch/master",
+		"/user2/repo1/commits/master": "user2/repo1/commits/branch/master",
+		"/user2/repo1/src/master":     "user2/repo1/src/branch/master",
 	}
 	for link, redirectLink := range redirects {
 		req := NewRequest(t, "GET", link)
 		resp := MakeRequest(t, req, http.StatusFound)
-		assert.EqualValues(t, redirectLink, RedirectURL(t, resp))
+		assert.EqualValues(t, setting.AppURL+redirectLink, RedirectURL(t, resp))
 	}
 }
 
