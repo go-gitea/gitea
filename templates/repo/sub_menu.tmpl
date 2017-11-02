@@ -2,7 +2,7 @@
 	<div class="ui two horizontal center link list">
 		{{if and (.Repository.UnitEnabled $.UnitTypeCode) (not .IsBareRepo)}}
 			<div class="item{{if .PageIsCommits}} active{{end}}">
-				<a href="{{.RepoLink}}/commits/{{EscapePound .BranchName}}"><i class="octicon octicon-history"></i> <b>{{.CommitsCount}}</b> {{.i18n.Tr "repo.commits"}}</a>
+				<a href="{{.RepoLink}}/commits{{if .IsViewBranch}}/branch{{else if .IsViewTag}}/tag{{else if .IsViewCommit}}/commit{{end}}/{{EscapePound .BranchName}}"><i class="octicon octicon-history"></i> <b>{{.CommitsCount}}</b> {{.i18n.Tr "repo.commits"}}</a>
 			</div>
 		{{end}}
 		{{if and (.Repository.UnitEnabled $.UnitTypeCode) (not .IsBareRepo) }}
