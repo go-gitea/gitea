@@ -284,7 +284,7 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *TestRespo
 	mac.ServeHTTP(respWriter, req)
 	if expectedStatus != NoExpectedStatus {
 		assert.EqualValues(t, expectedStatus, respWriter.HeaderCode,
-			"Request URL: %s", req.URL.String())
+			"Request: %s %s", req.Method, req.URL.String())
 	}
 	return &TestResponse{
 		HeaderCode: respWriter.HeaderCode,
