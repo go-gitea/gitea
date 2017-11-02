@@ -272,15 +272,15 @@ func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (e
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}
 
+	content := c.Content
+
 	switch opType {
-	case ActionCommentIssue:
-		issue.Content = c.Content
 	case ActionCloseIssue:
-		issue.Content = fmt.Sprintf("Closed #%d", issue.Index)
+		content = fmt.Sprintf("Closed #%d", issue.Index)
 	case ActionReopenIssue:
-		issue.Content = fmt.Sprintf("Reopened #%d", issue.Index)
+		content = fmt.Sprintf("Reopened #%d", issue.Index)
 	}
-	if err = mailIssueCommentToParticipants(e, issue, c.Poster, c, mentions); err != nil {
+	if err = mailIssueCommentToParticipants(e, issue, c.Poster, content, c, mentions); err != nil {
 		log.Error(4, "mailIssueCommentToParticipants: %v", err)
 	}
 

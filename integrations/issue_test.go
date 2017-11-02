@@ -107,7 +107,7 @@ func TestNoLoginViewIssue(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 }
 
-func testNewIssue(t *testing.T, session *TestSession, user, repo, title string) {
+func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content string) string {
 
 	req := NewRequest(t, "GET", path.Join(user, repo, "issues", "new"))
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -116,17 +116,70 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title string) 
 	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
-		"title": title,
+		"_csrf":   htmlDoc.GetCSRF(),
+		"title":   title,
+		"content": content,
+	})
+	resp = session.MakeRequest(t, req, http.StatusFound)
+
+	issueURL := RedirectURL(t, resp)
+	req = NewRequest(t, "GET", issueURL)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	val := htmlDoc.doc.Find("#issue-title").Text()
+	assert.Equal(t, title, val)
+	val = htmlDoc.doc.Find(".comment-list .comments .comment .render-content p").First().Text()
+	assert.Equal(t, content, val)
+
+	return issueURL
+}
+
+func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, status string) {
+
+	req := NewRequest(t, "GET", issueURL)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	link, exists := htmlDoc.doc.Find("#comment-form").Attr("action")
+	assert.True(t, exists, "The template has changed")
+
+	commentCount := htmlDoc.doc.Find(".comment-list .comments .comment .render-content").Length()
+
+	req = NewRequestWithValues(t, "POST", link, map[string]string{
+		"_csrf":   htmlDoc.GetCSRF(),
+		"content": content,
+		"status":  status,
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
 
 	req = NewRequest(t, "GET", RedirectURL(t, resp))
 	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc = NewHTMLParser(t, resp.Body)
+
+	val := htmlDoc.doc.Find(".comment-list .comments .comment .render-content p").Eq(commentCount).Text()
+	assert.Equal(t, content, val)
 }
 
 func TestNewIssue(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user2")
-	testNewIssue(t, session, "user2", "repo1", "Title")
+	testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+}
+
+func TestIssueCommentClose(t *testing.T) {
+	prepareTestEnv(t)
+	session := loginUser(t, "user2")
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+	testIssueAddComment(t, session, issueURL, "Test comment 1", "")
+	testIssueAddComment(t, session, issueURL, "Test comment 2", "")
+	testIssueAddComment(t, session, issueURL, "Test comment 3", "close")
+
+	// Validate that issue content has not been updated
+	req := NewRequest(t, "GET", issueURL)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	val := htmlDoc.doc.Find(".comment-list .comments .comment .render-content p").First().Text()
+	assert.Equal(t, "Description", val)
 }
