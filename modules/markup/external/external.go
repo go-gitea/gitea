@@ -7,16 +7,14 @@ package external
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
-
-	gouuid "github.com/satori/go.uuid"
 )
 
 // RegisterParsers registers all supported third part parsers according settings
@@ -55,13 +53,12 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 
 	if p.IsInputFile {
 		// write to templ file
-		fPath := filepath.Join(os.TempDir(), gouuid.NewV4().String())
-		f, err := os.Create(fPath)
+		f, err := ioutil.TempFile("", "gitea_input")
 		if err != nil {
 			log.Error(4, "%s create temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 			return []byte("")
 		}
-		defer os.Remove(fPath)
+		defer os.Remove(f.Name())
 
 		_, err = io.Copy(f, rd)
 		if err != nil {
@@ -75,7 +72,7 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 			log.Error(4, "%s close temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 			return []byte("")
 		}
-		args = append(args, fPath)
+		args = append(args, f.Name())
 	}
 
 	cmd := exec.Command(commands[0], args...)
