@@ -521,11 +521,6 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 	return ""
 }
 
-// URL to redirect to for deprecated URL scheme
-func repoRefRedirect(ctx *Context) string {
-	return path.Join(setting.AppSubURL, strings.TrimSuffix(ctx.Req.URL.String(), ctx.Params("*")), ctx.Repo.BranchNameSubURL())
-}
-
 // RepoRefByType handles repository reference name for a specific type
 // of repository reference
 func RepoRefByType(refType RepoRefType) macaron.Handler {
@@ -612,7 +607,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 
 			if refType == RepoRefLegacy {
 				// redirect from old URL scheme to new URL scheme
-				ctx.Redirect(repoRefRedirect(ctx))
+				ctx.Redirect(path.Join(setting.AppSubURL, strings.TrimSuffix(ctx.Req.URL.String(), ctx.Params("*")), ctx.Repo.BranchNameSubURL()))
 				return
 			}
 		}
