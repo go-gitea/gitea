@@ -1,4 +1,9 @@
 # Changelog
+## [1.2.3](https://github.com/go-gitea/gitea/releases/tag/v1.2.3) - 2017-11-03
+* BUGFIXES
+  * Only require one email when validating GPG key (#2266, #2467, #2663) (#2788)
+  * Fix order of comments (#2835) (#2839)
+
 ## [1.2.2](https://github.com/go-gitea/gitea/releases/tag/v1.2.2) - 2017-10-26
 * BUGFIXES
   * Add checks for commits with missing author and time (#2771) (#2785)
