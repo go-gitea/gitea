@@ -613,6 +613,7 @@ func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 	}
 	return comments, sess.
 		Asc("comment.created_unix").
+		Asc("comment.id").
 		Find(&comments)
 }
 
