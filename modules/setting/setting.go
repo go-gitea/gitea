@@ -532,7 +532,7 @@ func getAppPath() (string, error) {
 	if IsWindows && filepath.IsAbs(os.Args[0]) {
 		appPath = filepath.Clean(os.Args[0])
 	} else {
-		appPath, err := exec.LookPath(os.Args[0])
+		appPath, err = exec.LookPath(os.Args[0])
 	}
 
 	if err != nil {
@@ -785,7 +785,7 @@ func NewContext() {
 	}
 	LFS.ContentPath = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
 	if !filepath.IsAbs(LFS.ContentPath) {
-		LFS.ContentPath = filepath.Join(workDir, LFS.ContentPath)
+		LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
 	}
 
 	if LFS.StartServer {

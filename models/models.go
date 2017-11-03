@@ -16,7 +16,6 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
@@ -347,13 +346,4 @@ func DumpDatabase(filePath string, dbType string) error {
 		return x.DumpTablesToFile(tbs, filePath, core.DbType(dbType))
 	}
 	return x.DumpTablesToFile(tbs, filePath)
-}
-
-// absolutePath make path absolute if it is relative
-func absolutePath(path string) string {
-	workDir, err := setting.WorkDir()
-	if err != nil {
-		log.Fatal(4, "Failed to get work directory: %v", err)
-	}
-	return util.EnsureAbsolutePath(path, workDir)
 }
