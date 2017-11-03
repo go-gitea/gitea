@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -51,7 +52,7 @@ func TestMain(m *testing.M) {
 
 	err := models.InitFixtures(
 		helper,
-		"models/fixtures/",
+		path.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
 	)
 	if err != nil {
 		fmt.Printf("Error initializing test database: %v\n", err)
@@ -134,7 +135,9 @@ func initIntegrationTest() {
 func prepareTestEnv(t testing.TB) {
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, com.CopyDir("integrations/gitea-repositories-meta", setting.RepoRootPath))
+
+	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
+		setting.RepoRootPath))
 }
 
 type TestSession struct {

@@ -11,11 +11,11 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
@@ -152,11 +152,15 @@ func LoadConfigs() {
 	DbCfg.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
 
 	sec = setting.Cfg.Section("indexer")
-	setting.Indexer.IssuePath = absolutePath(
-		sec.Key("ISSUE_INDEXER_PATH").MustString("indexers/issues.bleve"))
+	setting.Indexer.IssuePath = sec.Key("ISSUE_INDEXER_PATH").MustString(path.Join(setting.AppDataPath, "indexers/issues.bleve"))
+	if !filepath.IsAbs(setting.Indexer.IssuePath) {
+		setting.Indexer.IssuePath = path.Join(setting.AppWorkPath, setting.Indexer.IssuePath)
+	}
 	setting.Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_ENABLED").MustBool(false)
-	setting.Indexer.RepoPath = absolutePath(
-		sec.Key("REPO_INDEXER_PATH").MustString("indexers/repos.bleve"))
+	setting.Indexer.RepoPath = sec.Key("REPO_INDEXER_PATH").MustString(path.Join(setting.AppDataPath, "indexers/repos.bleve"))
+	if !filepath.IsAbs(setting.Indexer.RepoPath) {
+		setting.Indexer.RepoPath = path.Join(setting.AppWorkPath, setting.Indexer.RepoPath)
+	}
 	setting.Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
 	setting.Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(512 * 1024 * 1024)
 }
@@ -342,13 +346,4 @@ func DumpDatabase(filePath string, dbType string) error {
 		return x.DumpTablesToFile(tbs, filePath, core.DbType(dbType))
 	}
 	return x.DumpTablesToFile(tbs, filePath)
-}
-
-// absolutePath make path absolute if it is relative
-func absolutePath(path string) string {
-	workDir, err := setting.WorkDir()
-	if err != nil {
-		log.Fatal(4, "Failed to get work directory: %v", err)
-	}
-	return util.EnsureAbsolutePath(path, workDir)
 }

@@ -149,9 +149,9 @@ func composeTplData(subject, body, link string) map[string]interface{} {
 	return data
 }
 
-func composeIssueCommentMessage(issue *Issue, doer *User, comment *Comment, tplName base.TplName, tos []string, info string) *mailer.Message {
+func composeIssueCommentMessage(issue *Issue, doer *User, content string, comment *Comment, tplName base.TplName, tos []string, info string) *mailer.Message {
 	subject := issue.mailSubject()
-	body := string(markup.RenderByType(markdown.MarkupName, []byte(issue.Content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
+	body := string(markup.RenderByType(markdown.MarkupName, []byte(content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
 
 	data := make(map[string]interface{}, 10)
 	if comment != nil {
@@ -161,30 +161,30 @@ func composeIssueCommentMessage(issue *Issue, doer *User, comment *Comment, tplN
 	}
 	data["Doer"] = doer
 
-	var content bytes.Buffer
+	var mailBody bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&content, string(tplName), data); err != nil {
+	if err := templates.ExecuteTemplate(&mailBody, string(tplName), data); err != nil {
 		log.Error(3, "Template: %v", err)
 	}
 
-	msg := mailer.NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, content.String())
+	msg := mailer.NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 	msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 	return msg
 }
 
 // SendIssueCommentMail composes and sends issue comment emails to target receivers.
-func SendIssueCommentMail(issue *Issue, doer *User, comment *Comment, tos []string) {
+func SendIssueCommentMail(issue *Issue, doer *User, content string, comment *Comment, tos []string) {
 	if len(tos) == 0 {
 		return
 	}
 
-	mailer.SendAsync(composeIssueCommentMessage(issue, doer, comment, mailIssueComment, tos, "issue comment"))
+	mailer.SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueComment, tos, "issue comment"))
 }
 
 // SendIssueMentionMail composes and sends issue mention emails to target receivers.
-func SendIssueMentionMail(issue *Issue, doer *User, comment *Comment, tos []string) {
+func SendIssueMentionMail(issue *Issue, doer *User, content string, comment *Comment, tos []string) {
 	if len(tos) == 0 {
 		return
 	}
-	mailer.SendAsync(composeIssueCommentMessage(issue, doer, comment, mailIssueMention, tos, "issue mention"))
+	mailer.SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueMention, tos, "issue mention"))
 }

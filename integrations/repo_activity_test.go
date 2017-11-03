@@ -31,9 +31,9 @@ func TestRepoActivity(t *testing.T) {
 	testPullCreate(t, session, "user1", "repo1", "feat/much_better_readme")
 
 	// Create issues (3 new issues)
-	testNewIssue(t, session, "user2", "repo1", "Issue 1")
-	testNewIssue(t, session, "user2", "repo1", "Issue 2")
-	testNewIssue(t, session, "user2", "repo1", "Issue 3")
+	testNewIssue(t, session, "user2", "repo1", "Issue 1", "Description 1")
+	testNewIssue(t, session, "user2", "repo1", "Issue 2", "Description 2")
+	testNewIssue(t, session, "user2", "repo1", "Issue 3", "Description 3")
 
 	// Create releases (1 new release)
 	createNewRelease(t, session, "/user2/repo1", "v1.0.0", "v1.0.0", false, false)
