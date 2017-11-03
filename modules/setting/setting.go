@@ -71,6 +71,7 @@ var (
 	AppSubURLDepth int // Number of slashes
 	AppPath        string
 	AppDataPath    string
+	AppWorkPath    string
 
 	// Server settings
 	Protocol             Scheme
@@ -525,17 +526,46 @@ func DateLang(lang string) string {
 	return "en"
 }
 
-// execPath returns the executable path.
-func execPath() (string, error) {
-	execFile := os.Args[0]
-	if IsWindows && filepath.IsAbs(execFile) {
-		return filepath.Clean(execFile), nil
+func getAppPath() (string, error) {
+	var appPath string
+	var err error
+	if IsWindows && filepath.IsAbs(os.Args[0]) {
+		appPath = filepath.Clean(os.Args[0])
+	} else {
+		appPath, err = exec.LookPath(os.Args[0])
 	}
-	file, err := exec.LookPath(execFile)
+
 	if err != nil {
 		return "", err
 	}
-	return filepath.Abs(file)
+	appPath, err = filepath.Abs(appPath)
+	if err != nil {
+		return "", err
+	}
+	// Note: we don't use path.Dir here because it does not handle case
+	//	which path starts with two "/" in Windows: "//psf/Home/..."
+	return strings.Replace(appPath, "\\", "/", -1), err
+}
+
+func getWorkPath(appPath string) string {
+	workPath := ""
+	giteaWorkPath := os.Getenv("GITEA_WORK_DIR")
+	gogsWorkPath := os.Getenv("GOGS_WORK_DIR")
+
+	if len(giteaWorkPath) > 0 {
+		workPath = giteaWorkPath
+	} else if len(gogsWorkPath) > 0 {
+		log.Warn(`Usage of GOGS_WORK_DIR is deprecated and will be *removed* in a future release, please consider changing to GITEA_WORK_DIR`)
+		workPath = gogsWorkPath
+	} else {
+		i := strings.LastIndex(appPath, "/")
+		if i == -1 {
+			workPath = appPath
+		} else {
+			workPath = appPath[:i]
+		}
+	}
+	return strings.Replace(workPath, "\\", "/", -1)
 }
 
 func init() {
@@ -543,35 +573,10 @@ func init() {
 	log.NewLogger(0, "console", `{"level": 0}`)
 
 	var err error
-	if AppPath, err = execPath(); err != nil {
+	if AppPath, err = getAppPath(); err != nil {
 		log.Fatal(4, "Failed to get app path: %v", err)
 	}
-
-	// Note: we don't use path.Dir here because it does not handle case
-	//	which path starts with two "/" in Windows: "//psf/Home/..."
-	AppPath = strings.Replace(AppPath, "\\", "/", -1)
-}
-
-// WorkDir returns absolute path of work directory.
-func WorkDir() (string, error) {
-	wd := os.Getenv("GITEA_WORK_DIR")
-	if len(wd) > 0 {
-		return wd, nil
-	}
-	// Use GOGS_WORK_DIR if available, for backward compatibility
-	// TODO: drop in 1.1.0 ?
-	wd = os.Getenv("GOGS_WORK_DIR")
-	if len(wd) > 0 {
-		log.Warn(`Usage of GOGS_WORK_DIR is deprecated and will be *removed* in a future release,
-please consider changing to GITEA_WORK_DIR`)
-		return wd, nil
-	}
-
-	i := strings.LastIndex(AppPath, "/")
-	if i == -1 {
-		return AppPath, nil
-	}
-	return AppPath[:i], nil
+	AppWorkPath = getWorkPath(AppPath)
 }
 
 func forcePathSeparator(path string) {
@@ -612,16 +617,13 @@ func createPIDFile(pidPath string) {
 // NewContext initializes configuration context.
 // NOTE: do not print any log except error.
 func NewContext() {
-	workDir, err := WorkDir()
-	if err != nil {
-		log.Fatal(4, "Failed to get work directory: %v", err)
-	}
-
 	Cfg = ini.Empty()
 
 	CustomPath = os.Getenv("GITEA_CUSTOM")
 	if len(CustomPath) == 0 {
-		CustomPath = workDir + "/custom"
+		CustomPath = path.Join(AppWorkPath, "custom")
+	} else if !filepath.IsAbs(CustomPath) {
+		CustomPath = path.Join(AppWorkPath, CustomPath)
 	}
 
 	if len(CustomPID) > 0 {
@@ -629,13 +631,13 @@ func NewContext() {
 	}
 
 	if len(CustomConf) == 0 {
-		CustomConf = CustomPath + "/conf/app.ini"
+		CustomConf = path.Join(CustomPath, "conf/app.ini")
 	} else if !filepath.IsAbs(CustomConf) {
-		CustomConf = filepath.Join(workDir, CustomConf)
+		CustomConf = path.Join(CustomPath, CustomConf)
 	}
 
 	if com.IsFile(CustomConf) {
-		if err = Cfg.Append(CustomConf); err != nil {
+		if err := Cfg.Append(CustomConf); err != nil {
 			log.Fatal(4, "Failed to load custom conf '%s': %v", CustomConf, err)
 		}
 	} else {
@@ -649,7 +651,7 @@ func NewContext() {
 	}
 	homeDir = strings.Replace(homeDir, "\\", "/", -1)
 
-	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(workDir, "log"))
+	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
 
 	sec := Cfg.Section("server")
@@ -716,8 +718,8 @@ func NewContext() {
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
-	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(workDir)
-	AppDataPath = sec.Key("APP_DATA_PATH").MustString("data")
+	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)
+	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
 
@@ -783,7 +785,7 @@ func NewContext() {
 	}
 	LFS.ContentPath = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
 	if !filepath.IsAbs(LFS.ContentPath) {
-		LFS.ContentPath = filepath.Join(workDir, LFS.ContentPath)
+		LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
 	}
 
 	if LFS.StartServer {
@@ -915,7 +917,7 @@ func NewContext() {
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
 	if !filepath.IsAbs(AttachmentPath) {
-		AttachmentPath = path.Join(workDir, AttachmentPath)
+		AttachmentPath = path.Join(AppWorkPath, AttachmentPath)
 	}
 	AttachmentAllowedTypes = strings.Replace(sec.Key("ALLOWED_TYPES").MustString("image/jpeg,image/png,application/zip,application/gzip"), "|", ",", -1)
 	AttachmentMaxSize = sec.Key("MAX_SIZE").MustInt64(4)
@@ -969,7 +971,7 @@ func NewContext() {
 	RepoRootPath = sec.Key("ROOT").MustString(path.Join(homeDir, "gitea-repositories"))
 	forcePathSeparator(RepoRootPath)
 	if !filepath.IsAbs(RepoRootPath) {
-		RepoRootPath = path.Join(workDir, RepoRootPath)
+		RepoRootPath = path.Join(AppWorkPath, RepoRootPath)
 	} else {
 		RepoRootPath = path.Clean(RepoRootPath)
 	}
@@ -985,14 +987,14 @@ func NewContext() {
 	}
 
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
-		Repository.Upload.TempPath = path.Join(workDir, Repository.Upload.TempPath)
+		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
 
 	sec = Cfg.Section("picture")
 	AvatarUploadPath = sec.Key("AVATAR_UPLOAD_PATH").MustString(path.Join(AppDataPath, "avatars"))
 	forcePathSeparator(AvatarUploadPath)
 	if !filepath.IsAbs(AvatarUploadPath) {
-		AvatarUploadPath = path.Join(workDir, AvatarUploadPath)
+		AvatarUploadPath = path.Join(AppWorkPath, AvatarUploadPath)
 	}
 	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
 	case "duoshuo":
@@ -1254,7 +1256,7 @@ func NewXORMLogService(disableConsole bool) {
 			if err = os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
 				panic(err.Error())
 			}
-			logPath = filepath.Join(filepath.Dir(logPath), "xorm.log")
+			logPath = path.Join(filepath.Dir(logPath), "xorm.log")
 
 			logConfigs = fmt.Sprintf(
 				`{"level":%s,"filename":"%s","rotate":%v,"maxlines":%d,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
@@ -1341,7 +1343,10 @@ func newCacheService() {
 func newSessionService() {
 	SessionConfig.Provider = Cfg.Section("session").Key("PROVIDER").In("memory",
 		[]string{"memory", "file", "redis", "mysql"})
-	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").String(), "\" ")
+	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").MustString(path.Join(AppDataPath, "sessions")), "\" ")
+	if !filepath.IsAbs(SessionConfig.ProviderConfig) {
+		SessionConfig.ProviderConfig = path.Join(AppWorkPath, SessionConfig.ProviderConfig)
+	}
 	SessionConfig.CookieName = Cfg.Section("session").Key("COOKIE_NAME").MustString("i_like_gitea")
 	SessionConfig.CookiePath = AppSubURL
 	SessionConfig.Secure = Cfg.Section("session").Key("COOKIE_SECURE").MustBool(false)
