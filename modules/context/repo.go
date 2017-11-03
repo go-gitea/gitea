@@ -466,6 +466,9 @@ const (
 	// RepoRefLegacy unknown type, make educated guess and redirect.
 	// for backward compatibility with previous URL scheme
 	RepoRefLegacy RepoRefType = iota
+	// RepoRefAny is for usage where educated guess is needed
+	// but redirect can not be made
+	RepoRefAny
 	// RepoRefBranch branch
 	RepoRefBranch
 	// RepoRefTag tag
@@ -497,7 +500,7 @@ func getRefNameFromPath(ctx *Context, path string, isExist func(string) bool) st
 func getRefName(ctx *Context, pathType RepoRefType) string {
 	path := ctx.Params("*")
 	switch pathType {
-	case RepoRefLegacy:
+	case RepoRefLegacy, RepoRefAny:
 		if refName := getRefName(ctx, RepoRefBranch); len(refName) > 0 {
 			return refName
 		}
