@@ -60,8 +60,8 @@ const (
 	LandingPageExplore LandingPage = "/explore"
 )
 
-// MarkupRender defines the external render configed on ini
-type MarkupRender struct {
+// MarkupParser defines the external parser configed on ini
+type MarkupParser struct {
 	Enabled        bool
 	MarkupName     string
 	Command        string
@@ -525,7 +525,7 @@ var (
 	InternalToken     string // internal access token
 	IterateBufferSize int
 
-	ExternalMarkupRenders []MarkupRender
+	ExternalMarkupParsers []MarkupParser
 )
 
 // DateLang transforms standard language locale name to corresponding value in datetime plugin.
@@ -1114,7 +1114,7 @@ func NewContext() {
 			continue
 		}
 
-		ExternalMarkupRenders = append(ExternalMarkupRenders, MarkupRender{
+		ExternalMarkupParsers = append(ExternalMarkupParsers, MarkupParser{
 			Enabled:        sec.Key("ENABLED").MustBool(false),
 			MarkupName:     name,
 			FileExtensions: exts,

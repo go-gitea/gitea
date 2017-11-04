@@ -19,16 +19,16 @@ import (
 
 // RegisterParsers registers all supported third part parsers according settings
 func RegisterParsers() {
-	for _, render := range setting.ExternalMarkupRenders {
-		if render.Enabled && render.Command != "" && len(render.FileExtensions) > 0 {
-			markup.RegisterParser(&Parser{render})
+	for _, parser := range setting.ExternalMarkupParsers {
+		if parser.Enabled && parser.Command != "" && len(parser.FileExtensions) > 0 {
+			markup.RegisterParser(&Parser{parser})
 		}
 	}
 }
 
 // Parser implements markup.Parser for external tools
 type Parser struct {
-	setting.MarkupRender
+	setting.MarkupParser
 }
 
 // Name returns the external tool name
