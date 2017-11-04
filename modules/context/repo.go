@@ -507,7 +507,11 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		if refName := getRefName(ctx, RepoRefTag); len(refName) > 0 {
 			return refName
 		}
-		return getRefName(ctx, RepoRefCommit)
+		if refName := getRefName(ctx, RepoRefCommit); len(refName) > 0 {
+			return refName
+		}
+		ctx.Repo.TreePath = path
+		return ctx.Repo.Repository.DefaultBranch
 	case RepoRefBranch:
 		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsBranchExist)
 	case RepoRefTag:
