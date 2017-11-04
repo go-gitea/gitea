@@ -68,8 +68,14 @@ func GetPullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	pr.GetBaseRepo()
-	pr.GetHeadRepo()
+	if err = pr.GetBaseRepo(); err != nil {
+		ctx.Error(500, "GetBaseRepo", err)
+		return
+	}
+	if err = pr.GetHeadRepo(); err != nil {
+		ctx.Error(500, "GetHeadRepo", err)
+		return
+	}
 	ctx.JSON(200, pr.APIFormat())
 }
 
