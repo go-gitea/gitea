@@ -25,4 +25,7 @@ func TestAPIReposRaw(t *testing.T) {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/raw/%s/README.md", user.Name, ref)
 		session.MakeRequest(t, req, http.StatusOK)
 	}
+	// Test default branch
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/raw/README.md", user.Name)
+	session.MakeRequest(t, req, http.StatusOK)
 }
