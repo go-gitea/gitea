@@ -151,10 +151,12 @@ func listen(config *ssh.ServerConfig, host string, port int) {
 }
 
 // Listen starts a SSH server listens on given port.
-func Listen(host string, port int, ciphers []string) {
+func Listen(host string, port int, ciphers []string, keyExchanges []string, macs []string) {
 	config := &ssh.ServerConfig{
 		Config: ssh.Config{
-			Ciphers: ciphers,
+			Ciphers:      ciphers,
+			KeyExchanges: keyExchanges,
+			MACs:         macs,
 		},
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
 			pkey, err := models.SearchPublicKeyByContent(strings.TrimSpace(string(ssh.MarshalAuthorizedKey(key))))

@@ -120,7 +120,7 @@ func SearchCommits(ctx *context.Context) {
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	if len(keyword) == 0 {
-		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchName)
+		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchNameSubURL())
 		return
 	}
 	all := ctx.QueryBool("all")

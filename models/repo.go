@@ -205,10 +205,11 @@ type Repository struct {
 	ExternalMetas map[string]string `xorm:"-"`
 	Units         []*RepoUnit       `xorm:"-"`
 
-	IsFork   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
-	ForkID   int64       `xorm:"INDEX"`
-	BaseRepo *Repository `xorm:"-"`
-	Size     int64       `xorm:"NOT NULL DEFAULT 0"`
+	IsFork        bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	ForkID        int64              `xorm:"INDEX"`
+	BaseRepo      *Repository        `xorm:"-"`
+	Size          int64              `xorm:"NOT NULL DEFAULT 0"`
+	IndexerStatus *RepoIndexerStatus `xorm:"-"`
 
 	Created     time.Time `xorm:"-"`
 	CreatedUnix int64     `xorm:"INDEX created"`
@@ -782,8 +783,10 @@ func UpdateLocalCopyBranch(repoPath, localPath, branch string) error {
 		if err != nil {
 			return fmt.Errorf("git fetch origin: %v", err)
 		}
-		if err := git.ResetHEAD(localPath, true, "origin/"+branch); err != nil {
-			return fmt.Errorf("git reset --hard origin/%s: %v", branch, err)
+		if len(branch) > 0 {
+			if err := git.ResetHEAD(localPath, true, "origin/"+branch); err != nil {
+				return fmt.Errorf("git reset --hard origin/%s: %v", branch, err)
+			}
 		}
 	}
 	return nil
@@ -989,6 +992,7 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
 			log.Error(4, "Failed to synchronize tags to releases for repository: %v", err)
 		}
+		UpdateRepoIndexer(repo)
 	}
 
 	if err = repo.UpdateSize(); err != nil {
@@ -1883,6 +1887,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		go HookQueue.Add(repo.ID)
 	}
 
+	DeleteRepoFromIndexer(repo)
 	return nil
 }
 
