@@ -38,8 +38,8 @@ and answer the questions so we can understand and reproduce the
 problematic behavior.
 
 To show us that the issue you are having is in Gitea itself, please
-write clear, concise instructions so we can reproduce the behavior
-(even if it seems obvious). The more detailed and specific you are,
+write clear, concise instructions so we can reproduce the behavior—
+even if it seems obvious. The more detailed and specific you are,
 the faster we can fix the issue. Check out [How to Report Bugs
 Effectively](http://www.chiark.greenend.org.uk/~sgtatham/bugs.html).
 
@@ -48,15 +48,10 @@ getting free help.
 
 ## Discuss your design
 
-The project welcomes submissions but please let everyone know what
-you're working on if you want to change or add something to the Gitea
-repositories.
-
-Before starting to write something new for the Gitea project, please [file
-an issue](https://github.com/go-gitea/gitea/issues/new). Significant
-changes must go through the [change proposal
-process](https://github.com/go-gitea/proposals) before they can be
-accepted.
+The project welcomes submissions. If you want to change or add something, 
+please let everyone know what you're working on—[file an issue](https://github.com/go-gitea/gitea/issues/new)! 
+Significant changes must go through the [change proposal process](https://github.com/go-gitea/proposals) 
+before they can be accepted.
 
 This process gives everyone a chance to validate the design, helps
 prevent duplication of effort, and ensures that the idea fits inside
@@ -72,9 +67,9 @@ and keep the compatibility on upgrade. To make sure you are
 running the test suite exactly like we do, you should install
 the CLI for [Drone CI](https://github.com/drone/drone), as
 we are using the server for continous testing, following [these
-instructions](http://readme.drone.io/usage/getting-started-cli). After
-that you can simply call `drone exec` within your working directory and
-it will try to run the test suite locally.
+instructions](http://readme.drone.io/usage/getting-started-cli). After that, 
+you can simply call `drone exec` within your working directory and it will try 
+to run the test suite locally.
 
 ## Vendoring
 
@@ -109,13 +104,13 @@ An exception are the tools to build the CSS and images.
 
 ## Code review
 
-Changes to Gitea must be reviewed before they are accepted, no matter who
-makes the change even if it is an owner or a maintainer. We use GitHub's
-pull request workflow to do that and we also use [LGTM](http://lgtm.co)
+Changes to Gitea must be reviewed before they are accepted—no matter who
+makes the change, even if they are an owner or a maintainer. We use GitHub's
+pull request workflow to do that. And, we also use [LGTM](http://lgtm.co)
 to ensure every PR is reviewed by at least 2 maintainers.
 
-Please try to make your pull request easy to review for us.
-Please read the [How to get faster PR reviews](https://github.com/kubernetes/community/blob/master/contributors/devel/faster_reviews.md) guide,
+Please try to make your pull request easy to review for us. And, please read 
+the *[How to get faster PR reviews](https://github.com/kubernetes/community/blob/master/contributors/devel/faster_reviews.md)* guide;
 it has lots of useful tips for any project you may want to contribute.
 Some of the key points:
 
@@ -146,7 +141,7 @@ import (
 )
 ```
 
-## Sign your work
+## Sign-off your work
 
 The sign-off is a simple line at the end of the explanation for the
 patch. Your signature certifies that you wrote the patch or otherwise
@@ -158,9 +153,9 @@ to every git commit message:
 Signed-off-by: Joe Smith <joe.smith@email.com>
 ```
 
-Please use your real name, we really dislike pseudonyms or anonymous
+Please use your real name; we really dislike pseudonyms or anonymous
 contributions. We are in the open-source world without secrets. If you
-set your `user.name` and `user.email` git configs, you can sign your
+set your `user.name` and `user.email` git configs, you can sign-off your
 commit automatically with `git commit -s`.
 
 ## Release Cycle
@@ -170,18 +165,20 @@ on, finishing, and issuing releases. The overall goal is to make a
 minor release every two months, which breaks down into one month of
 general development followed by one month of testing and polishing
 known as the release freeze. All the feature pull requests should be
-merged in the first month of one release period and during the frozen
-period a corresponding release branch is open for fix backported from
-master. Release candidate are made along this period for user testing to
+merged in the first month of one release period. And, during the frozen
+period, a corresponding release branch is open for fixes backported from
+master. Release candidates are made during this period for user testing to
 obtain a final version that is maintained in this branch. A release is
 maintained by issuing patch releases to only correct critical problems
 such as crashes or security issues.
 
-The current release cycle is aligned to start on December 25 to February
-24, next is February 25 to April 24, and etc. On this cycle, we also
-maybe publish the previous release minor version. For example, the
-current release version is v1.1, but we maybe also publish v1.0.2. When
-we publish v1.2, then we will stop publish v1.0.3.
+Major release cycles are bimonthly. They always begin on the 25th and end on 
+the 24th (i.e., the 25th of December to February 24th). 
+
+During a development cycle, we may also publish any necessary minor releases 
+for the previous version. For example, if the latest, published release is 
+v1.2, then minor changes for the previous release—e.g., v1.1.0 -> v1.1.1—are
+still possible.
 
 ## Maintainers
 

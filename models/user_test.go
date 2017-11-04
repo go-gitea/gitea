@@ -63,7 +63,10 @@ func TestSearchUsers(t *testing.T) {
 	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 2, PageSize: 2},
 		[]int64{7, 17})
 
-	testOrgSuccess(&SearchUserOptions{Page: 3, PageSize: 2},
+	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 3, PageSize: 2},
+		[]int64{19})
+
+	testOrgSuccess(&SearchUserOptions{Page: 4, PageSize: 2},
 		[]int64{})
 
 	// test users
@@ -73,13 +76,13 @@ func TestSearchUsers(t *testing.T) {
 	}
 
 	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1},
-		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18})
+		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20})
 
 	testUserSuccess(&SearchUserOptions{Page: 1, IsActive: util.OptionalBoolFalse},
 		[]int64{9})
 
 	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1, IsActive: util.OptionalBoolTrue},
-		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18})
+		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20})
 
 	testUserSuccess(&SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", Page: 1, IsActive: util.OptionalBoolTrue},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})

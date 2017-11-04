@@ -51,6 +51,7 @@ func TestAPISearchRepo(t *testing.T) {
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 15}).(*models.User)
 	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 16}).(*models.User)
 	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 18}).(*models.User)
+	user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 20}).(*models.User)
 	orgUser := models.AssertExistsAndLoadBean(t, &models.User{ID: 17}).(*models.User)
 
 	// Map of expected results, where key is user for login
@@ -66,9 +67,9 @@ func TestAPISearchRepo(t *testing.T) {
 		expectedResults
 	}{
 		{name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50", expectedResults: expectedResults{
-			nil:   {count: 12},
-			user:  {count: 12},
-			user2: {count: 12}},
+			nil:   {count: 15},
+			user:  {count: 15},
+			user2: {count: 15}},
 		},
 		{name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10", expectedResults: expectedResults{
 			nil:   {count: 10},
@@ -81,9 +82,9 @@ func TestAPISearchRepo(t *testing.T) {
 			user2: {count: 10}},
 		},
 		{name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s", "big_test_"), expectedResults: expectedResults{
-			nil:   {count: 4, repoName: "big_test_"},
-			user:  {count: 4, repoName: "big_test_"},
-			user2: {count: 4, repoName: "big_test_"}},
+			nil:   {count: 7, repoName: "big_test_"},
+			user:  {count: 7, repoName: "big_test_"},
+			user2: {count: 7, repoName: "big_test_"}},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
 			nil:   {count: 4},
@@ -106,6 +107,34 @@ func TestAPISearchRepo(t *testing.T) {
 			user:  {count: 2, repoOwnerID: orgUser.ID, includesPrivate: true},
 			user2: {count: 1, repoOwnerID: orgUser.ID}},
 		},
+		{name: "RepositoriesAccessibleAndRelatedToUser4", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user4.ID), expectedResults: expectedResults{
+			nil:   {count: 3},
+			user:  {count: 3},
+			user4: {count: 6, includesPrivate: true}}},
+		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeSource", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "source"), expectedResults: expectedResults{
+			nil:   {count: 0},
+			user:  {count: 0},
+			user4: {count: 0, includesPrivate: true}}},
+		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeFork", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "fork"), expectedResults: expectedResults{
+			nil:   {count: 1},
+			user:  {count: 1},
+			user4: {count: 2, includesPrivate: true}}},
+		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeFork/Exclusive", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s&exclusive=1", user4.ID, "fork"), expectedResults: expectedResults{
+			nil:   {count: 1},
+			user:  {count: 1},
+			user4: {count: 2, includesPrivate: true}}},
+		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeMirror", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "mirror"), expectedResults: expectedResults{
+			nil:   {count: 2},
+			user:  {count: 2},
+			user4: {count: 4, includesPrivate: true}}},
+		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeMirror/Exclusive", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s&exclusive=1", user4.ID, "mirror"), expectedResults: expectedResults{
+			nil:   {count: 1},
+			user:  {count: 1},
+			user4: {count: 2, includesPrivate: true}}},
+		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeCollaborative", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "collaborative"), expectedResults: expectedResults{
+			nil:   {count: 0},
+			user:  {count: 0},
+			user4: {count: 0, includesPrivate: true}}},
 	}
 
 	for _, testCase := range testCases {
@@ -113,9 +142,11 @@ func TestAPISearchRepo(t *testing.T) {
 			for userToLogin, expected := range testCase.expectedResults {
 				var session *TestSession
 				var testName string
+				var userID int64
 				if userToLogin != nil && userToLogin.ID > 0 {
 					testName = fmt.Sprintf("LoggedUser%d", userToLogin.ID)
 					session = loginUser(t, userToLogin.Name)
+					userID = userToLogin.ID
 				} else {
 					testName = "AnonymousUser"
 					session = emptyTestSession(t)
@@ -130,6 +161,11 @@ func TestAPISearchRepo(t *testing.T) {
 
 					assert.Len(t, body.Data, expected.count)
 					for _, repo := range body.Data {
+						r := getRepo(t, repo.ID)
+						hasAccess, err := models.HasAccess(userID, r, models.AccessModeRead)
+						assert.NoError(t, err)
+						assert.True(t, hasAccess)
+
 						assert.NotEmpty(t, repo.Name)
 
 						if len(expected.repoName) > 0 {
@@ -148,6 +184,15 @@ func TestAPISearchRepo(t *testing.T) {
 			}
 		})
 	}
+}
+
+var repoCache = make(map[int64]*models.Repository)
+
+func getRepo(t *testing.T, repoID int64) *models.Repository {
+	if _, ok := repoCache[repoID]; !ok {
+		repoCache[repoID] = models.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
+	}
+	return repoCache[repoID]
 }
 
 func TestAPIViewRepo(t *testing.T) {

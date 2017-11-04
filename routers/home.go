@@ -108,14 +108,13 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	keyword := strings.Trim(ctx.Query("q"), " ")
 
 	repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-		Page:        page,
-		PageSize:    opts.PageSize,
-		OrderBy:     orderBy,
-		Private:     opts.Private,
-		Keyword:     keyword,
-		OwnerID:     opts.OwnerID,
-		Collaborate: true,
-		AllPublic:   true,
+		Page:      page,
+		PageSize:  opts.PageSize,
+		OrderBy:   orderBy,
+		Private:   opts.Private,
+		Keyword:   keyword,
+		OwnerID:   opts.OwnerID,
+		AllPublic: true,
 	})
 	if err != nil {
 		ctx.Handle(500, "SearchRepositoryByName", err)

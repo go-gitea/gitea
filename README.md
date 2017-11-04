@@ -33,17 +33,17 @@ This project has been
 ## Notes
 
 1. **YOU MUST READ THE [CONTRIBUTORS GUIDE](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST.**
-2. If you found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
+2. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
 3. If you're interested in using our APIs, we have experimental support with [documentation](https://godoc.org/code.gitea.io/sdk/gitea).
 
 ## Docs
 
-For more information and instructions about how to install Gitea
-please look at our [documentation](https://docs.gitea.io/en-us/).
-If you cannot find some specific information, then head over to
-our [Discord server](https://discord.gg/NsatcWJ)
-or [Matrix room](https://matrix.to/#/#gitea:matrix.org) to chat with us
-or use the [forum](https://discourse.gitea.io/).
+For more information and instructions about how to install Gitea, please look 
+at our [documentation](https://docs.gitea.io/en-us/). If you have questions 
+that are not covered by the documentation, you can get in contact with us on 
+our [Discord server](https://discord.gg/NsatcWJ), 
+[Matrix room](https://matrix.to/#/#gitea:matrix.org), 
+or [forum](https://discourse.gitea.io/)!
 
 ## Contributing
 

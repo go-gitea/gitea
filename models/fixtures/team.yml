@@ -37,6 +37,7 @@
   num_repos: 0
   num_members: 1
   unit_types: '[1,2,3,4,5,6,7]'
+
 -
   id: 5
   org_id: 17
@@ -45,4 +46,14 @@
   authorize: 4 # owner
   num_repos: 2
   num_members: 2
+  unit_types: '[1,2,3,4,5,6,7]'
+
+-
+  id: 6
+  org_id: 19
+  lower_name: owners
+  name: Owners
+  authorize: 4 # owner
+  num_repos: 2
+  num_members: 1
   unit_types: '[1,2,3,4,5,6,7]'

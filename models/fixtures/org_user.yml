@@ -45,3 +45,11 @@
   is_public: false
   is_owner: true
   num_teams: 1
+
+-
+  id: 7
+  uid: 20
+  org_id: 19
+  is_public: true
+  is_owner: true
+  num_teams: 1

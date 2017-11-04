@@ -14,14 +14,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testCreateBranch(t *testing.T, session *TestSession, user, repo, oldRefName, newBranchName string, expectedStatus int) string {
+func testCreateBranch(t *testing.T, session *TestSession, user, repo, oldRefSubURL, newBranchName string, expectedStatus int) string {
 	var csrf string
 	if expectedStatus == http.StatusNotFound {
-		csrf = GetCSRF(t, session, path.Join(user, repo, "src/master"))
+		csrf = GetCSRF(t, session, path.Join(user, repo, "src/branch/master"))
 	} else {
-		csrf = GetCSRF(t, session, path.Join(user, repo, "src", oldRefName))
+		csrf = GetCSRF(t, session, path.Join(user, repo, "src", oldRefSubURL))
 	}
-	req := NewRequestWithValues(t, "POST", path.Join(user, repo, "branches/_new", oldRefName), map[string]string{
+	req := NewRequestWithValues(t, "POST", path.Join(user, repo, "branches/_new", oldRefSubURL), map[string]string{
 		"_csrf":           csrf,
 		"new_branch_name": newBranchName,
 	})
@@ -34,72 +34,72 @@ func testCreateBranch(t *testing.T, session *TestSession, user, repo, oldRefName
 
 func TestCreateBranch(t *testing.T) {
 	tests := []struct {
-		OldBranchOrCommit string
-		NewBranch         string
-		CreateRelease     string
-		FlashMessage      string
-		ExpectedStatus    int
+		OldRefSubURL   string
+		NewBranch      string
+		CreateRelease  string
+		FlashMessage   string
+		ExpectedStatus int
 	}{
 		{
-			OldBranchOrCommit: "master",
-			NewBranch:         "feature/test1",
-			ExpectedStatus:    http.StatusFound,
-			FlashMessage:      i18n.Tr("en", "repo.branch.create_success", "feature/test1"),
+			OldRefSubURL:   "branch/master",
+			NewBranch:      "feature/test1",
+			ExpectedStatus: http.StatusFound,
+			FlashMessage:   i18n.Tr("en", "repo.branch.create_success", "feature/test1"),
 		},
 		{
-			OldBranchOrCommit: "master",
-			NewBranch:         "",
-			ExpectedStatus:    http.StatusFound,
-			FlashMessage:      i18n.Tr("en", "form.NewBranchName") + i18n.Tr("en", "form.require_error"),
+			OldRefSubURL:   "branch/master",
+			NewBranch:      "",
+			ExpectedStatus: http.StatusFound,
+			FlashMessage:   i18n.Tr("en", "form.NewBranchName") + i18n.Tr("en", "form.require_error"),
 		},
 		{
-			OldBranchOrCommit: "master",
-			NewBranch:         "feature=test1",
-			ExpectedStatus:    http.StatusFound,
-			FlashMessage:      i18n.Tr("en", "form.NewBranchName") + i18n.Tr("en", "form.git_ref_name_error"),
+			OldRefSubURL:   "branch/master",
+			NewBranch:      "feature=test1",
+			ExpectedStatus: http.StatusFound,
+			FlashMessage:   i18n.Tr("en", "form.NewBranchName") + i18n.Tr("en", "form.git_ref_name_error"),
 		},
 		{
-			OldBranchOrCommit: "master",
-			NewBranch:         strings.Repeat("b", 101),
-			ExpectedStatus:    http.StatusFound,
-			FlashMessage:      i18n.Tr("en", "form.NewBranchName") + i18n.Tr("en", "form.max_size_error", "100"),
+			OldRefSubURL:   "branch/master",
+			NewBranch:      strings.Repeat("b", 101),
+			ExpectedStatus: http.StatusFound,
+			FlashMessage:   i18n.Tr("en", "form.NewBranchName") + i18n.Tr("en", "form.max_size_error", "100"),
 		},
 		{
-			OldBranchOrCommit: "master",
-			NewBranch:         "master",
-			ExpectedStatus:    http.StatusFound,
-			FlashMessage:      i18n.Tr("en", "repo.branch.branch_already_exists", "master"),
+			OldRefSubURL:   "branch/master",
+			NewBranch:      "master",
+			ExpectedStatus: http.StatusFound,
+			FlashMessage:   i18n.Tr("en", "repo.branch.branch_already_exists", "master"),
 		},
 		{
-			OldBranchOrCommit: "master",
-			NewBranch:         "master/test",
-			ExpectedStatus:    http.StatusFound,
-			FlashMessage:      i18n.Tr("en", "repo.branch.branch_name_conflict", "master/test", "master"),
+			OldRefSubURL:   "branch/master",
+			NewBranch:      "master/test",
+			ExpectedStatus: http.StatusFound,
+			FlashMessage:   i18n.Tr("en", "repo.branch.branch_name_conflict", "master/test", "master"),
 		},
 		{
-			OldBranchOrCommit: "acd1d892867872cb47f3993468605b8aa59aa2e0",
-			NewBranch:         "feature/test2",
-			ExpectedStatus:    http.StatusNotFound,
+			OldRefSubURL:   "commit/acd1d892867872cb47f3993468605b8aa59aa2e0",
+			NewBranch:      "feature/test2",
+			ExpectedStatus: http.StatusNotFound,
 		},
 		{
-			OldBranchOrCommit: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
-			NewBranch:         "feature/test3",
-			ExpectedStatus:    http.StatusFound,
-			FlashMessage:      i18n.Tr("en", "repo.branch.create_success", "feature/test3"),
+			OldRefSubURL:   "commit/65f1bf27bc3bf70f64657658635e66094edbcb4d",
+			NewBranch:      "feature/test3",
+			ExpectedStatus: http.StatusFound,
+			FlashMessage:   i18n.Tr("en", "repo.branch.create_success", "feature/test3"),
 		},
 		{
-			OldBranchOrCommit: "master",
-			NewBranch:         "v1.0.0",
-			CreateRelease:     "v1.0.0",
-			ExpectedStatus:    http.StatusFound,
-			FlashMessage:      i18n.Tr("en", "repo.branch.tag_collision", "v1.0.0"),
+			OldRefSubURL:   "branch/master",
+			NewBranch:      "v1.0.0",
+			CreateRelease:  "v1.0.0",
+			ExpectedStatus: http.StatusFound,
+			FlashMessage:   i18n.Tr("en", "repo.branch.tag_collision", "v1.0.0"),
 		},
 		{
-			OldBranchOrCommit: "v1.0.0",
-			NewBranch:         "feature/test4",
-			CreateRelease:     "v1.0.0",
-			ExpectedStatus:    http.StatusFound,
-			FlashMessage:      i18n.Tr("en", "repo.branch.create_success", "feature/test4"),
+			OldRefSubURL:   "tag/v1.0.0",
+			NewBranch:      "feature/test4",
+			CreateRelease:  "v1.0.0",
+			ExpectedStatus: http.StatusFound,
+			FlashMessage:   i18n.Tr("en", "repo.branch.create_success", "feature/test4"),
 		},
 	}
 	for _, test := range tests {
@@ -108,7 +108,7 @@ func TestCreateBranch(t *testing.T) {
 		if test.CreateRelease != "" {
 			createNewRelease(t, session, "/user2/repo1", test.CreateRelease, test.CreateRelease, false, false)
 		}
-		redirectURL := testCreateBranch(t, session, "user2", "repo1", test.OldBranchOrCommit, test.NewBranch, test.ExpectedStatus)
+		redirectURL := testCreateBranch(t, session, "user2", "repo1", test.OldRefSubURL, test.NewBranch, test.ExpectedStatus)
 		if test.ExpectedStatus == http.StatusFound {
 			req := NewRequest(t, "GET", redirectURL)
 			resp := session.MakeRequest(t, req, http.StatusOK)
@@ -124,7 +124,7 @@ func TestCreateBranch(t *testing.T) {
 func TestCreateBranchInvalidCSRF(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user2")
-	req := NewRequestWithValues(t, "POST", "user2/repo1/branches/_new/master", map[string]string{
+	req := NewRequestWithValues(t, "POST", "user2/repo1/branches/_new/branch/master", map[string]string{
 		"_csrf":           "fake_csrf",
 		"new_branch_name": "test",
 	})
