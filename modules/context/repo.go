@@ -466,6 +466,9 @@ const (
 	// RepoRefLegacy unknown type, make educated guess and redirect.
 	// for backward compatibility with previous URL scheme
 	RepoRefLegacy RepoRefType = iota
+	// RepoRefAny is for usage where educated guess is needed
+	// but redirect can not be made
+	RepoRefAny
 	// RepoRefBranch branch
 	RepoRefBranch
 	// RepoRefTag tag
@@ -497,7 +500,7 @@ func getRefNameFromPath(ctx *Context, path string, isExist func(string) bool) st
 func getRefName(ctx *Context, pathType RepoRefType) string {
 	path := ctx.Params("*")
 	switch pathType {
-	case RepoRefLegacy:
+	case RepoRefLegacy, RepoRefAny:
 		if refName := getRefName(ctx, RepoRefBranch); len(refName) > 0 {
 			return refName
 		}
@@ -519,16 +522,6 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		log.Error(4, "Unrecognized path type: %v", path)
 	}
 	return ""
-}
-
-// URL to redirect to for deprecated URL scheme
-func repoRefRedirect(ctx *Context) string {
-	urlPath := ctx.Req.URL.String()
-	idx := strings.LastIndex(urlPath, ctx.Params("*"))
-	if idx < 0 {
-		idx = len(urlPath)
-	}
-	return path.Join(urlPath[:idx], ctx.Repo.BranchNameSubURL())
 }
 
 // RepoRefByType handles repository reference name for a specific type
@@ -617,7 +610,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 
 			if refType == RepoRefLegacy {
 				// redirect from old URL scheme to new URL scheme
-				ctx.Redirect(repoRefRedirect(ctx))
+				ctx.Redirect(path.Join(setting.AppSubURL, strings.TrimSuffix(ctx.Req.URL.String(), ctx.Params("*")), ctx.Repo.BranchNameSubURL()))
 				return
 			}
 		}
