@@ -26,10 +26,6 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 		MilestoneID: ctx.QueryInt64("milestone"),
 	})
 
-	/*prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
-		Page:  form.Page,
-		State: form.State,
-	})*/
 	if err != nil {
 		ctx.Error(500, "PullRequests", err)
 		return
@@ -37,10 +33,22 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 
 	apiPrs := make([]*api.PullRequest, len(prs))
 	for i := range prs {
-		prs[i].LoadIssue()
-		prs[i].LoadAttributes()
-		prs[i].GetBaseRepo()
-		prs[i].GetHeadRepo()
+		if err = prs[i].LoadIssue(); err != nil {
+			ctx.Error(500, "LoadIssue", err)
+			return
+		}
+		if err = prs[i].LoadAttributes(); err != nil {
+			ctx.Error(500, "LoadAttributes", err)
+			return
+		}
+		if err = prs[i].GetBaseRepo(); err != nil {
+			ctx.Error(500, "GetBaseRepo", err)
+			return
+		}
+		if err = prs[i].GetHeadRepo(); err != nil {
+			ctx.Error(500, "GetHeadRepo", err)
+			return
+		}
 		apiPrs[i] = prs[i].APIFormat()
 	}
 
@@ -60,8 +68,14 @@ func GetPullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	pr.GetBaseRepo()
-	pr.GetHeadRepo()
+	if err = pr.GetBaseRepo(); err != nil {
+		ctx.Error(500, "GetBaseRepo", err)
+		return
+	}
+	if err = pr.GetHeadRepo(); err != nil {
+		ctx.Error(500, "GetHeadRepo", err)
+		return
+	}
 	ctx.JSON(200, pr.APIFormat())
 }
 
