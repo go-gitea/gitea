@@ -971,9 +971,9 @@ func NewContext() {
 	RepoRootPath = sec.Key("ROOT").MustString(path.Join(homeDir, "gitea-repositories"))
 	forcePathSeparator(RepoRootPath)
 	if !filepath.IsAbs(RepoRootPath) {
-		RepoRootPath = path.Join(AppWorkPath, RepoRootPath)
+		RepoRootPath = filepath.Join(AppWorkPath, RepoRootPath)
 	} else {
-		RepoRootPath = path.Clean(RepoRootPath)
+		RepoRootPath = filepath.Clean(RepoRootPath)
 	}
 	ScriptType = sec.Key("SCRIPT_TYPE").MustString("bash")
 	if err = Cfg.Section("repository").MapTo(&Repository); err != nil {
