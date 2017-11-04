@@ -10,19 +10,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var thirdBranch = DeletedBranch{
-	Name:        "test",
-	Commit:      "5655464564554545466464656",
-	DeletedByID: int64(1),
-}
-
 func TestAddDeletedBranch(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	firstBranch := AssertExistsAndLoadBean(t, &DeletedBranch{ID: 1}).(*DeletedBranch)
 
 	assert.Error(t, repo.AddDeletedBranch(firstBranch.Name, firstBranch.Commit, firstBranch.DeletedByID))
-	assert.NoError(t, repo.AddDeletedBranch(thirdBranch.Name, thirdBranch.Commit, thirdBranch.DeletedByID))
+	assert.NoError(t, repo.AddDeletedBranch("test", "5655464564554545466464656", int64(1)))
 }
 
 func TestGetDeletedBranches(t *testing.T) {
