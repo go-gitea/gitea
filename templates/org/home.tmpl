@@ -64,7 +64,10 @@
 						{{range .Teams}}
 							<div class="item">
 								<a href="{{$.OrgLink}}/teams/{{.LowerName}}"><strong class="team-name">{{.Name}}</strong></a>
-								<p class="text grey">{{.NumMembers}} {{$.i18n.Tr "org.lower_members"}} · {{.NumRepos}} {{$.i18n.Tr "org.lower_repositories"}}</p>
+								<p class="text grey">
+									<a href="{{$.OrgLink}}/teams/{{.LowerName}}"><strong>{{.NumMembers}}</strong> {{$.i18n.Tr "org.lower_members"}}</a> ·
+									<a href="{{$.OrgLink}}/teams/{{.LowerName}}/repositories"><strong>{{.NumRepos}}</strong> {{$.i18n.Tr "org.lower_repositories"}}</a>
+								</p>
 							</div>
 						{{end}}
 					</div>

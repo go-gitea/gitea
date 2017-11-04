@@ -40,6 +40,8 @@ pipeline:
     force: false
     commit: true
     commit_message: "[skip ci] Updated translations via Crowdin"
+    author_name: GiteaBot
+    author_email: teabot@gitea.io
     when:
       event: [ push ]
       branch: [ master ]
