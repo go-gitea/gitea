@@ -548,7 +548,7 @@
                 }
                 .content {
                     margin-left: 4em;
-                    .header {
+                    > .header {
                         #avatar-arrow;
                         font-weight: normal;
                         padding: auto 15px;
@@ -1348,6 +1348,43 @@
                     background: rgba(0,0,0,.05);;
                 }
             }
+        }
+    }
+    .segment.reactions, .select-reaction {
+        &.dropdown .menu {
+            right: 0!important;
+            left: auto!important;
+            > .header {
+                margin: 0.75rem 0 .5rem;
+            }
+            > .item {
+                float: left;
+                padding: .5rem .5rem !important;
+                img.emoji {
+                    margin-right: 0;
+                }
+            }
+        }
+    }
+    .segment.reactions {
+        padding: .3em 1em;
+        .ui.label {
+            padding: .4em;
+            &.disabled {
+                cursor: default;
+            }
+            > img {
+                height: 1.5em !important;
+            }
+        }
+        .select-reaction {
+            float: none;
+            &:not(.active) a {
+                display: none;
+            }
+        }
+        &:hover .select-reaction a {
+            display: block;
         }
     }
 }
