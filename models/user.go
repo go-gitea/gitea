@@ -1353,35 +1353,6 @@ func GetWatchedRepos(userID int64, private bool) ([]*Repository, error) {
 	return repos, nil
 }
 
-// existsInSlice returns true if string exists in slice
-func existsInSlice(target string, slice []string) bool {
-	i := sort.Search(len(slice),
-		func(i int) bool { return slice[i] == target })
-	return i < len(slice)
-}
-
-// IsEqualSlice returns true if slices are equal
-func IsEqualSlice(target []string, source []string) bool {
-	if len(target) != len(source) {
-		return false
-	}
-
-	if (target == nil) != (source == nil) {
-		return false
-	}
-
-	sort.Strings(target)
-	sort.Strings(source)
-
-	for i, v := range target {
-		if v != source[i] {
-			return false
-		}
-	}
-
-	return true
-}
-
 // deleteKeysMarkedForDeletion returns true if ssh keys needs update
 func deleteKeysMarkedForDeletion(keys []string) (sshKeysNeedUpdate bool, err error) {
 	// Start session
