@@ -9,11 +9,12 @@ import (
 	"strings"
 	"time"
 
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+
+	"code.gitea.io/git"
+	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
@@ -609,34 +610,132 @@ func ClearPullPushComment(issue *Issue) error {
 	return err
 }
 
-// CreatePullPushComment creates a commit when push commit to a pull request.
-func CreatePullPushComment(doer *User, repo *Repository, issue *Issue, commit *PushCommit) error {
-	if len(commit.Sha1) == 0 {
-		return fmt.Errorf("cannot create reference with empty commit SHA")
+func createPullPushCommentsNonForcePush(doer *User, issues []*Issue, commits []*PushCommit) error {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
 	}
 
-	// Check if same reference from same commit has already existed.
-	has, err := x.Get(&Comment{
-		Type:      CommentTypePullPushCommit,
-		IssueID:   issue.ID,
-		CommitSHA: commit.Sha1,
-	})
-	if err != nil {
-		return fmt.Errorf("check pull push comment: %v", err)
+	for _, issue := range issues {
+		for i := len(commits) - 1; i >= 0; i-- {
+			_, err := createComment(sess, &CreateCommentOptions{
+				Type:         CommentTypePullPushCommit,
+				Doer:         doer,
+				Repo:         issue.Repo,
+				Issue:        issue,
+				CommitSHA:    commits[i].Sha1,
+				Content:      commits[i].Message,
+				RepoFullName: issue.Repo.FullName(),
+			})
+			if err != nil {
+				return err
+			}
+		}
 	}
 
-	if !has {
-		_, err = CreateComment(&CreateCommentOptions{
-			Type:         CommentTypePullPushCommit,
-			Doer:         doer,
-			Repo:         repo,
-			Issue:        issue,
-			CommitSHA:    commit.Sha1,
-			Content:      commit.Message,
-			RepoFullName: repo.FullName(),
+	return sess.Commit()
+}
+
+// CreatePullPushComments creates commit comments when push commits to a pull request.
+func CreatePullPushComments(doer *User, issues []*Issue, commits []*PushCommit, isForcePush bool) error {
+	if !isForcePush {
+		return createPullPushCommentsNonForcePush(doer, issues, commits)
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	var commitIDCache = make(map[string]string)
+	var ok bool
+	for _, issue := range issues {
+		var commitID string
+		var key = fmt.Sprintf("%s/%s", issue.Repo.RepoPath(), issue.PullRequest.BaseBranch)
+		if commitID, ok = commitIDCache[key]; !ok {
+			gitRepo, err := git.OpenRepository(issue.Repo.RepoPath())
+			if err != nil {
+				return fmt.Errorf("OpenRepository: %v", err)
+			}
+			commit, err := gitRepo.GetBranchCommit(issue.PullRequest.BaseBranch)
+			if err != nil {
+				return fmt.Errorf("GetBranchCommit: %v", err)
+			}
+			commitID = commit.ID.String()
+			commitIDCache[key] = commitID
+		}
+
+		var startIdx = -1
+		for i := len(commits) - 1; i >= 0; i-- {
+			if commitID == commits[i].Sha1 {
+				startIdx = i
+				break
+			}
+		}
+		if startIdx > -1 {
+			commits = commits[:startIdx]
+		}
+		if len(commits) <= 0 {
+			continue
+		}
+
+		var alreadyComments []*Comment
+		err := sess.Find(&alreadyComments, &Comment{
+			Type:    CommentTypePullPushCommit,
+			IssueID: issue.ID,
 		})
+		if err != nil {
+			return fmt.Errorf("check pull push comment: %v", err)
+		}
+
+		var deleteCommitIDs = make([]int64, 0, len(alreadyComments))
+		var keepCommentSha1s = make(map[string]struct{})
+		for _, comment := range alreadyComments {
+			var find bool
+			for _, commit := range commits {
+				if commit.Sha1 == comment.CommitSHA {
+					find = true
+					break
+				}
+			}
+			if !find {
+				deleteCommitIDs = append(deleteCommitIDs, comment.ID)
+			} else {
+				keepCommentSha1s[comment.CommitSHA] = struct{}{}
+			}
+		}
+
+		if len(deleteCommitIDs) > 0 {
+			if _, err := sess.In("id", deleteCommitIDs).Delete(new(Comment)); err != nil {
+				return fmt.Errorf("Delete unused commit comment: %v", err)
+			}
+		}
+
+		for i := len(commits) - 1; i >= 0; i-- {
+			if _, ok := keepCommentSha1s[commits[i].Sha1]; ok {
+				continue
+			}
+
+			_, err := createComment(sess, &CreateCommentOptions{
+				Type:         CommentTypePullPushCommit,
+				Doer:         doer,
+				Repo:         issue.Repo,
+				Issue:        issue,
+				CommitSHA:    commits[i].Sha1,
+				Content:      commits[i].Message,
+				RepoFullName: issue.Repo.FullName(),
+			})
+			if err != nil {
+				return err
+			}
+		}
 	}
-	return err
+
+	return sess.Commit()
 }
 
 func updateCommentRepoFullName(e Engine, repoID int64, newRepoFullName string) error {

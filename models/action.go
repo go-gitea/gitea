@@ -14,15 +14,15 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"code.gitea.io/git"
 	api "code.gitea.io/sdk/gitea"
 
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
 )
 
 // ActionType represents the type of an action.
@@ -669,46 +669,8 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 				return fmt.Errorf("IssueList.LoadRepositories: %v", err)
 			}
 
-			var commitIDCache = make(map[string]string)
-			var ok bool
-			for _, issue := range issues {
-				var commitID string
-				if isForcePush {
-					if err := ClearPullPushComment(issue); err != nil {
-						return fmt.Errorf("ClearPullPushComent: %v", err)
-					}
-
-					var key = fmt.Sprintf("%s/%s", issue.Repo.RepoPath(), issue.PullRequest.BaseBranch)
-					if commitID, ok = commitIDCache[key]; !ok {
-						gitRepo, err := git.OpenRepository(issue.Repo.RepoPath())
-						if err != nil {
-							return fmt.Errorf("OpenRepository: %v", err)
-						}
-						commit, err := gitRepo.GetBranchCommit(issue.PullRequest.BaseBranch)
-						if err != nil {
-							return fmt.Errorf("GetBranchCommit: %v", err)
-						}
-						commitID = commit.ID.String()
-						commitIDCache[key] = commitID
-					}
-				}
-
-				var findStart = false
-				for i := len(commentCommits) - 1; i >= 0; i-- {
-					if isForcePush {
-						if commitID == commentCommits[i].Sha1 {
-							findStart = true
-							continue
-						}
-						if !findStart {
-							continue
-						}
-					}
-
-					if err := CreatePullPushComment(pusher, issue.Repo, issue, commentCommits[i]); err != nil {
-						return fmt.Errorf("CreatePullPushComment: %v", err)
-					}
-				}
+			if err := CreatePullPushComments(pusher, issues, commentCommits, isForcePush); err != nil {
+				return fmt.Errorf("CreatePullPushComments: %v", err)
 			}
 		}
 
