@@ -1426,7 +1426,20 @@ func synchronizeLdapSSHPublicKeys(s *LoginSource, SSHPublicKeys []string, usr *U
 		log.Trace("synchronizeLdapSSHPublicKeys[%s]: LDAP Public Keys are already in sync for %s (LDAP:%v/DB:%v)", s.Name, usr.Name, len(ldapKeys), len(giteaKeys))
 	} else {
 		log.Trace("synchronizeLdapSSHPublicKeys[%s]: LDAP Public Key needs update for user %s (LDAP:%v/DB:%v)", s.Name, usr.Name, len(ldapKeys), len(giteaKeys))
-		// Delete giteaKeys that doesn't exist in ldapKeys and has been synced from LDAP earlier
+
+		// Add LDAP Public SSH Keys that doesn't already exist in DB
+		var newLdapSSHKeys []string
+		for _, LDAPPublicSSHKey := range ldapKeys {
+			if !util.ExistsInSlice(LDAPPublicSSHKey, giteaKeys) {
+				newLdapSSHKeys = append(newLdapSSHKeys, LDAPPublicSSHKey)
+			}
+		}
+		sshKeysNeedUpdate, err = addLdapSSHPublicKeys(s, usr, newLdapSSHKeys)
+		if err != nil {
+			log.Error(4, "synchronizeLdapSSHPublicKeys[%s]: Error updating LDAP Public SSH Keys for user %s: %v", s.Name, usr.Name, err)
+		}
+
+		// Mark LDAP keys from DB that doesn't exist in LDAP for deletion
 		for _, giteaKey := range giteaKeys {
 			if !util.ExistsInSlice(giteaKey, ldapKeys) {
 				log.Trace("synchronizeLdapSSHPublicKeys[%s]: Marking LDAP Public SSH Key for deletion for user %s: %v", s.Name, usr.Name, giteaKey)
@@ -1439,18 +1452,6 @@ func synchronizeLdapSSHPublicKeys(s *LoginSource, SSHPublicKeys []string, usr *U
 	sshKeysNeedUpdate, err = deleteKeysMarkedForDeletion(giteaKeysToDelete)
 	if err != nil {
 		log.Error(4, "synchronizeLdapSSHPublicKeys[%s]: Error deleting LDAP Public SSH Keys marked for deletion for user %s: %v", s.Name, usr.Name, err)
-	}
-
-	// Add LDAP Public SSH Keys that doesn't already exist in DB
-	var newLdapSSHKeys []string
-	for _, LDAPPublicSSHKey := range ldapKeys {
-		if !util.ExistsInSlice(LDAPPublicSSHKey, giteaKeys) {
-			newLdapSSHKeys = append(newLdapSSHKeys, LDAPPublicSSHKey)
-		}
-	}
-	sshKeysNeedUpdate, err = addLdapSSHPublicKeys(s, usr, newLdapSSHKeys)
-	if err != nil {
-		log.Error(4, "synchronizeLdapSSHPublicKeys[%s]: Error updating LDAP Public SSH Keys for user %s: %v", s.Name, usr.Name, err)
 	}
 
 	return sshKeysNeedUpdate, err
