@@ -1089,7 +1089,7 @@ func NewContext() {
 	for _, sec := range Cfg.Section("markup").ChildSections() {
 		name := strings.TrimLeft(sec.Name(), "markup.")
 		if name == "" {
-			log.Warn(sec.Name() + " name is empty, ignored")
+			log.Warn("name is empty, markup " + sec.Name() + "ignored")
 			continue
 		}
 
@@ -1097,20 +1097,20 @@ func NewContext() {
 		var exts = make([]string, 0, len(extensions))
 		for _, extension := range extensions {
 			if !extensionReg.MatchString(extension) {
-				log.Warn(sec.Name() + " FILE_EXTENSIONS " + extension + " is invalid, ignored")
+				log.Warn(sec.Name() + " file extension " + extension + " is invalid. Extension ignored")
 			} else {
 				exts = append(exts, extension)
 			}
 		}
 
 		if len(exts) == 0 {
-			log.Warn(sec.Name() + " FILE_EXTENSIONS is empty, ignored")
+			log.Warn(sec.Name() + " file extension is empty, markup " + name + " ignored")
 			continue
 		}
 
 		command := sec.Key("RENDER_COMMAND").MustString("")
 		if command == "" {
-			log.Warn(sec.Name() + " RENDER_COMMAND is empty, ignored")
+			log.Warn(" RENDER_COMMAND is empty, markup " + name + " ignored")
 			continue
 		}
 
