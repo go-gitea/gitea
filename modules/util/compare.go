@@ -28,7 +28,7 @@ func IsSliceInt64Eq(a, b []int64) bool {
 	return true
 }
 
-// existsInSlice returns true if string exists in slice
+// ExistsInSlice returns true if string exists in slice
 func ExistsInSlice(target string, slice []string) bool {
 	i := sort.Search(len(slice),
 		func(i int) bool { return slice[i] == target })
