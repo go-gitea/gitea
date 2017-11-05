@@ -53,7 +53,7 @@ type PublicKey struct {
 	Content       string     `xorm:"TEXT NOT NULL"`
 	Mode          AccessMode `xorm:"NOT NULL DEFAULT 2"`
 	Type          KeyType    `xorm:"NOT NULL DEFAULT 1"`
-	LoginSourceID int64      `xorm:"-"`
+	LoginSourceID int64      `xorm:"NOT NULL DEFAULT 0"`
 
 	Created           time.Time `xorm:"-"`
 	CreatedUnix       int64     `xorm:"created"`

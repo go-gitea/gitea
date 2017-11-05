@@ -146,6 +146,8 @@ var migrations = []Migration{
 	NewMigration("add deleted branches", addDeletedBranch),
 	// v48 -> v49
 	NewMigration("add repo indexer status", addRepoIndexerStatus),
+	// v49 -> v50
+	NewMigration("add login source id column for public_key table", addLoginSourceIdToPublicKeyTable),
 }
 
 // Migrate database to current version
