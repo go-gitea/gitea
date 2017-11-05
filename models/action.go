@@ -573,6 +573,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		}
 	}
 
+	var commentCommits = opts.Commits.Commits
 	if len(opts.Commits.Commits) > setting.UI.FeedMaxCommitNum {
 		opts.Commits.Commits = opts.Commits.Commits[:setting.UI.FeedMaxCommitNum]
 	}
@@ -653,7 +654,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			}
 
 			issues := make([]*Issue, 0, len(prs))
-			lastCommitID := opts.Commits.Commits[len(opts.Commits.Commits)-1].Sha1
+			lastCommitID := commentCommits[len(commentCommits)-1].Sha1
 			for _, pr := range prs {
 				pr.LastCommitID = lastCommitID
 				if err := pr.UpdateCols("last_commit_id"); err != nil {
@@ -668,15 +669,43 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 				return fmt.Errorf("IssueList.LoadRepositories: %v", err)
 			}
 
+			var commitIDCache = make(map[string]string)
+			var ok bool
 			for _, issue := range issues {
+				var commitID string
 				if isForcePush {
 					if err := ClearPullPushComment(issue); err != nil {
 						return fmt.Errorf("ClearPullPushComent: %v", err)
 					}
+
+					var key = fmt.Sprintf("%s/%s", issue.Repo.RepoPath(), issue.PullRequest.BaseBranch)
+					if commitID, ok = commitIDCache[key]; !ok {
+						gitRepo, err := git.OpenRepository(issue.Repo.RepoPath())
+						if err != nil {
+							return fmt.Errorf("OpenRepository: %v", err)
+						}
+						commit, err := gitRepo.GetBranchCommit(issue.PullRequest.BaseBranch)
+						if err != nil {
+							return fmt.Errorf("GetBranchCommit: %v", err)
+						}
+						commitID = commit.ID.String()
+						commitIDCache[key] = commitID
+					}
 				}
 
-				for i := len(opts.Commits.Commits) - 1; i >= 0; i-- {
-					if err := CreatePullPushComment(pusher, issue.Repo, issue, opts.Commits.Commits[i]); err != nil {
+				var findStart = false
+				for i := len(commentCommits) - 1; i >= 0; i-- {
+					if isForcePush {
+						if commitID == commentCommits[i].Sha1 {
+							findStart = true
+							continue
+						}
+						if !findStart {
+							continue
+						}
+					}
+
+					if err := CreatePullPushComment(pusher, issue.Repo, issue, commentCommits[i]); err != nil {
 						return fmt.Errorf("CreatePullPushComment: %v", err)
 					}
 				}
