@@ -1414,7 +1414,7 @@ func synchronizeLdapSSHPublicKeys(s *LoginSource, SSHPublicKeys []string, usr *U
 	var ldapKeys []string
 	for _, v := range SSHPublicKeys {
 		ldapKey := strings.Join(strings.Split(v, " ")[:2], " ")
-		if !existsInSlice(ldapKey, ldapKeys) {
+		if !util.ExistsInSlice(ldapKey, ldapKeys) {
 			ldapKeys = append(ldapKeys, ldapKey)
 		}
 	}
@@ -1422,13 +1422,13 @@ func synchronizeLdapSSHPublicKeys(s *LoginSource, SSHPublicKeys []string, usr *U
 
 	// Check if Public Key sync is needed
 	var giteaKeysToDelete []string
-	if IsEqualSlice(giteaKeys, ldapKeys) {
+	if util.IsEqualSlice(giteaKeys, ldapKeys) {
 		log.Trace("synchronizeLdapSSHPublicKeys[%s]: LDAP Public Keys are already in sync for %s (LDAP:%v/DB:%v)", s.Name, usr.Name, len(ldapKeys), len(giteaKeys))
 	} else {
 		log.Trace("synchronizeLdapSSHPublicKeys[%s]: LDAP Public Key needs update for user %s (LDAP:%v/DB:%v)", s.Name, usr.Name, len(ldapKeys), len(giteaKeys))
 		// Delete giteaKeys that doesn't exist in ldapKeys and has been synced from LDAP earlier
 		for _, giteaKey := range giteaKeys {
-			if !existsInSlice(giteaKey, ldapKeys) {
+			if !util.ExistsInSlice(giteaKey, ldapKeys) {
 				log.Trace("synchronizeLdapSSHPublicKeys[%s]: Marking LDAP Public SSH Key for deletion for user %s: %v", s.Name, usr.Name, giteaKey)
 				giteaKeysToDelete = append(giteaKeysToDelete, giteaKey)
 			}
@@ -1444,7 +1444,7 @@ func synchronizeLdapSSHPublicKeys(s *LoginSource, SSHPublicKeys []string, usr *U
 	// Add LDAP Public SSH Keys that doesn't already exist in DB
 	var newLdapSSHKeys []string
 	for _, LDAPPublicSSHKey := range ldapKeys {
-		if !existsInSlice(LDAPPublicSSHKey, giteaKeys) {
+		if !util.ExistsInSlice(LDAPPublicSSHKey, giteaKeys) {
 			newLdapSSHKeys = append(newLdapSSHKeys, LDAPPublicSSHKey)
 		}
 	}
