@@ -10,7 +10,7 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-func addLoginSourceIdToPublicKeyTable(x *xorm.Engine) error {
+func addLoginSourceIDToPublicKeyTable(x *xorm.Engine) error {
 	type PublicKey struct {
 		LoginSourceID int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
