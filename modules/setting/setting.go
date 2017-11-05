@@ -35,6 +35,7 @@ import (
 	"github.com/go-macaron/session"
 	_ "github.com/go-macaron/session/redis" // redis plugin for store session
 	"github.com/go-xorm/core"
+	"github.com/kballard/go-shellquote"
 	"gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
@@ -70,6 +71,7 @@ var (
 	AppSubURLDepth int // Number of slashes
 	AppPath        string
 	AppDataPath    string
+	AppWorkPath    string
 
 	// Server settings
 	Protocol             Scheme
@@ -96,6 +98,9 @@ var (
 		ListenHost           string         `ini:"SSH_LISTEN_HOST"`
 		ListenPort           int            `ini:"SSH_LISTEN_PORT"`
 		RootPath             string         `ini:"SSH_ROOT_PATH"`
+		ServerCiphers        []string       `ini:"SSH_SERVER_CIPHERS"`
+		ServerKeyExchanges   []string       `ini:"SSH_SERVER_KEY_EXCHANGES"`
+		ServerMACs           []string       `ini:"SSH_SERVER_MACS"`
 		KeyTestPath          string         `ini:"SSH_KEY_TEST_PATH"`
 		KeygenPath           string         `ini:"SSH_KEYGEN_PATH"`
 		AuthorizedKeysBackup bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
@@ -107,6 +112,9 @@ var (
 		StartBuiltinServer: false,
 		Domain:             "",
 		Port:               22,
+		ServerCiphers:      []string{"aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "arcfour256", "arcfour128"},
+		ServerKeyExchanges: []string{"diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "curve25519-sha256@libssh.org"},
+		ServerMACs:         []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1", "hmac-sha1-96"},
 		KeygenPath:         "ssh-keygen",
 	}
 
@@ -137,8 +145,11 @@ var (
 
 	// Indexer settings
 	Indexer struct {
-		IssuePath         string
-		UpdateQueueLength int
+		IssuePath          string
+		RepoIndexerEnabled bool
+		RepoPath           string
+		UpdateQueueLength  int
+		MaxIndexerFileSize int64
 	}
 
 	// Webhook settings
@@ -231,12 +242,13 @@ var (
 
 	// UI settings
 	UI = struct {
-		ExplorePagingNum   int
-		IssuePagingNum     int
-		FeedMaxCommitNum   int
-		ThemeColorMetaTag  string
-		MaxDisplayFileSize int64
-		ShowUserEmail      bool
+		ExplorePagingNum    int
+		IssuePagingNum      int
+		RepoSearchPagingNum int
+		FeedMaxCommitNum    int
+		ThemeColorMetaTag   string
+		MaxDisplayFileSize  int64
+		ShowUserEmail       bool
 
 		Admin struct {
 			UserPagingNum   int
@@ -253,11 +265,12 @@ var (
 			Keywords    string
 		} `ini:"ui.meta"`
 	}{
-		ExplorePagingNum:   20,
-		IssuePagingNum:     10,
-		FeedMaxCommitNum:   5,
-		ThemeColorMetaTag:  `#6cc644`,
-		MaxDisplayFileSize: 8388608,
+		ExplorePagingNum:    20,
+		IssuePagingNum:      10,
+		RepoSearchPagingNum: 10,
+		FeedMaxCommitNum:    5,
+		ThemeColorMetaTag:   `#6cc644`,
+		MaxDisplayFileSize:  8388608,
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -322,11 +335,6 @@ var (
 	// Time settings
 	TimeFormat string
 
-	// Cache settings
-	CacheAdapter  string
-	CacheInterval int
-	CacheConn     string
-
 	// Session settings
 	SessionConfig  session.Options
 	CSRFCookieName = "_csrf"
@@ -362,6 +370,12 @@ var (
 			Schedule       string
 			UpdateExisting bool
 		} `ini:"cron.sync_external_users"`
+		DeletedBranchesCleanup struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+			OlderThan  time.Duration
+		} `ini:"cron.deleted_branches_cleanup"`
 	}{
 		UpdateMirror: struct {
 			Enabled    bool
@@ -416,6 +430,17 @@ var (
 			Schedule:       "@every 24h",
 			UpdateExisting: true,
 		},
+		DeletedBranchesCleanup: struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+			OlderThan  time.Duration
+		}{
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@every 24h",
+			OlderThan:  24 * time.Hour,
+		},
 	}
 
 	// Git settings
@@ -436,7 +461,7 @@ var (
 	}{
 		DisableDiffHighlight:     false,
 		MaxGitDiffLines:          1000,
-		MaxGitDiffLineCharacters: 500,
+		MaxGitDiffLineCharacters: 5000,
 		MaxGitDiffFiles:          100,
 		GCArgs:                   []string{},
 		Timeout: struct {
@@ -480,15 +505,16 @@ var (
 	ShowFooterTemplateLoadTime bool
 
 	// Global setting objects
-	Cfg           *ini.File
-	CustomPath    string // Custom directory path
-	CustomConf    string
-	CustomPID     string
-	ProdMode      bool
-	RunUser       string
-	IsWindows     bool
-	HasRobotsTxt  bool
-	InternalToken string // internal access token
+	Cfg               *ini.File
+	CustomPath        string // Custom directory path
+	CustomConf        string
+	CustomPID         string
+	ProdMode          bool
+	RunUser           string
+	IsWindows         bool
+	HasRobotsTxt      bool
+	InternalToken     string // internal access token
+	IterateBufferSize int
 )
 
 // DateLang transforms standard language locale name to corresponding value in datetime plugin.
@@ -500,17 +526,46 @@ func DateLang(lang string) string {
 	return "en"
 }
 
-// execPath returns the executable path.
-func execPath() (string, error) {
-	execFile := os.Args[0]
-	if IsWindows && filepath.IsAbs(execFile) {
-		return filepath.Clean(execFile), nil
+func getAppPath() (string, error) {
+	var appPath string
+	var err error
+	if IsWindows && filepath.IsAbs(os.Args[0]) {
+		appPath = filepath.Clean(os.Args[0])
+	} else {
+		appPath, err = exec.LookPath(os.Args[0])
 	}
-	file, err := exec.LookPath(execFile)
+
 	if err != nil {
 		return "", err
 	}
-	return filepath.Abs(file)
+	appPath, err = filepath.Abs(appPath)
+	if err != nil {
+		return "", err
+	}
+	// Note: we don't use path.Dir here because it does not handle case
+	//	which path starts with two "/" in Windows: "//psf/Home/..."
+	return strings.Replace(appPath, "\\", "/", -1), err
+}
+
+func getWorkPath(appPath string) string {
+	workPath := ""
+	giteaWorkPath := os.Getenv("GITEA_WORK_DIR")
+	gogsWorkPath := os.Getenv("GOGS_WORK_DIR")
+
+	if len(giteaWorkPath) > 0 {
+		workPath = giteaWorkPath
+	} else if len(gogsWorkPath) > 0 {
+		log.Warn(`Usage of GOGS_WORK_DIR is deprecated and will be *removed* in a future release, please consider changing to GITEA_WORK_DIR`)
+		workPath = gogsWorkPath
+	} else {
+		i := strings.LastIndex(appPath, "/")
+		if i == -1 {
+			workPath = appPath
+		} else {
+			workPath = appPath[:i]
+		}
+	}
+	return strings.Replace(workPath, "\\", "/", -1)
 }
 
 func init() {
@@ -518,35 +573,10 @@ func init() {
 	log.NewLogger(0, "console", `{"level": 0}`)
 
 	var err error
-	if AppPath, err = execPath(); err != nil {
+	if AppPath, err = getAppPath(); err != nil {
 		log.Fatal(4, "Failed to get app path: %v", err)
 	}
-
-	// Note: we don't use path.Dir here because it does not handle case
-	//	which path starts with two "/" in Windows: "//psf/Home/..."
-	AppPath = strings.Replace(AppPath, "\\", "/", -1)
-}
-
-// WorkDir returns absolute path of work directory.
-func WorkDir() (string, error) {
-	wd := os.Getenv("GITEA_WORK_DIR")
-	if len(wd) > 0 {
-		return wd, nil
-	}
-	// Use GOGS_WORK_DIR if available, for backward compatibility
-	// TODO: drop in 1.1.0 ?
-	wd = os.Getenv("GOGS_WORK_DIR")
-	if len(wd) > 0 {
-		log.Warn(`Usage of GOGS_WORK_DIR is deprecated and will be *removed* in a future release,
-please consider changing to GITEA_WORK_DIR`)
-		return wd, nil
-	}
-
-	i := strings.LastIndex(AppPath, "/")
-	if i == -1 {
-		return AppPath, nil
-	}
-	return AppPath[:i], nil
+	AppWorkPath = getWorkPath(AppPath)
 }
 
 func forcePathSeparator(path string) {
@@ -587,16 +617,13 @@ func createPIDFile(pidPath string) {
 // NewContext initializes configuration context.
 // NOTE: do not print any log except error.
 func NewContext() {
-	workDir, err := WorkDir()
-	if err != nil {
-		log.Fatal(4, "Failed to get work directory: %v", err)
-	}
-
 	Cfg = ini.Empty()
 
 	CustomPath = os.Getenv("GITEA_CUSTOM")
 	if len(CustomPath) == 0 {
-		CustomPath = workDir + "/custom"
+		CustomPath = path.Join(AppWorkPath, "custom")
+	} else if !filepath.IsAbs(CustomPath) {
+		CustomPath = path.Join(AppWorkPath, CustomPath)
 	}
 
 	if len(CustomPID) > 0 {
@@ -604,13 +631,13 @@ func NewContext() {
 	}
 
 	if len(CustomConf) == 0 {
-		CustomConf = CustomPath + "/conf/app.ini"
+		CustomConf = path.Join(CustomPath, "conf/app.ini")
 	} else if !filepath.IsAbs(CustomConf) {
-		CustomConf = filepath.Join(workDir, CustomConf)
+		CustomConf = path.Join(CustomPath, CustomConf)
 	}
 
 	if com.IsFile(CustomConf) {
-		if err = Cfg.Append(CustomConf); err != nil {
+		if err := Cfg.Append(CustomConf); err != nil {
 			log.Fatal(4, "Failed to load custom conf '%s': %v", CustomConf, err)
 		}
 	} else {
@@ -624,7 +651,7 @@ func NewContext() {
 	}
 	homeDir = strings.Replace(homeDir, "\\", "/", -1)
 
-	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(workDir, "log"))
+	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
 
 	sec := Cfg.Section("server")
@@ -691,8 +718,8 @@ func NewContext() {
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
-	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(workDir)
-	AppDataPath = sec.Key("APP_DATA_PATH").MustString("data")
+	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)
+	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
 
@@ -707,6 +734,18 @@ func NewContext() {
 		SSH.Domain = Domain
 	}
 	SSH.RootPath = path.Join(homeDir, ".ssh")
+	serverCiphers := sec.Key("SSH_SERVER_CIPHERS").Strings(",")
+	if len(serverCiphers) > 0 {
+		SSH.ServerCiphers = serverCiphers
+	}
+	serverKeyExchanges := sec.Key("SSH_SERVER_KEY_EXCHANGES").Strings(",")
+	if len(serverKeyExchanges) > 0 {
+		SSH.ServerKeyExchanges = serverKeyExchanges
+	}
+	serverMACs := sec.Key("SSH_SERVER_MACS").Strings(",")
+	if len(serverMACs) > 0 {
+		SSH.ServerMACs = serverMACs
+	}
 	SSH.KeyTestPath = os.TempDir()
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
 		log.Fatal(4, "Failed to map SSH settings: %v", err)
@@ -740,8 +779,13 @@ func NewContext() {
 	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
 
-	if err = Cfg.Section("server").MapTo(&LFS); err != nil {
+	sec = Cfg.Section("server")
+	if err = sec.MapTo(&LFS); err != nil {
 		log.Fatal(4, "Failed to map LFS settings: %v", err)
+	}
+	LFS.ContentPath = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
+	if !filepath.IsAbs(LFS.ContentPath) {
+		LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
 	}
 
 	if LFS.StartServer {
@@ -868,11 +912,12 @@ func NewContext() {
 			log.Fatal(4, "Error saving generated JWT Secret to custom config: %v", err)
 		}
 	}
+	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
 	if !filepath.IsAbs(AttachmentPath) {
-		AttachmentPath = path.Join(workDir, AttachmentPath)
+		AttachmentPath = path.Join(AppWorkPath, AttachmentPath)
 	}
 	AttachmentAllowedTypes = strings.Replace(sec.Key("ALLOWED_TYPES").MustString("image/jpeg,image/png,application/zip,application/gzip"), "|", ",", -1)
 	AttachmentMaxSize = sec.Key("MAX_SIZE").MustInt64(4)
@@ -926,9 +971,9 @@ func NewContext() {
 	RepoRootPath = sec.Key("ROOT").MustString(path.Join(homeDir, "gitea-repositories"))
 	forcePathSeparator(RepoRootPath)
 	if !filepath.IsAbs(RepoRootPath) {
-		RepoRootPath = path.Join(workDir, RepoRootPath)
+		RepoRootPath = filepath.Join(AppWorkPath, RepoRootPath)
 	} else {
-		RepoRootPath = path.Clean(RepoRootPath)
+		RepoRootPath = filepath.Clean(RepoRootPath)
 	}
 	ScriptType = sec.Key("SCRIPT_TYPE").MustString("bash")
 	if err = Cfg.Section("repository").MapTo(&Repository); err != nil {
@@ -942,14 +987,14 @@ func NewContext() {
 	}
 
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
-		Repository.Upload.TempPath = path.Join(workDir, Repository.Upload.TempPath)
+		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
 
 	sec = Cfg.Section("picture")
 	AvatarUploadPath = sec.Key("AVATAR_UPLOAD_PATH").MustString(path.Join(AppDataPath, "avatars"))
 	forcePathSeparator(AvatarUploadPath)
 	if !filepath.IsAbs(AvatarUploadPath) {
-		AvatarUploadPath = path.Join(workDir, AvatarUploadPath)
+		AvatarUploadPath = path.Join(AppWorkPath, AvatarUploadPath)
 	}
 	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
 	case "duoshuo":
@@ -1211,7 +1256,7 @@ func NewXORMLogService(disableConsole bool) {
 			if err = os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
 				panic(err.Error())
 			}
-			logPath = filepath.Join(filepath.Dir(logPath), "xorm.log")
+			logPath = path.Join(filepath.Dir(logPath), "xorm.log")
 
 			logConfigs = fmt.Sprintf(
 				`{"level":%s,"filename":"%s","rotate":%v,"maxlines":%d,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
@@ -1264,16 +1309,33 @@ func NewXORMLogService(disableConsole bool) {
 	}
 }
 
+// Cache represents cache settings
+type Cache struct {
+	Adapter  string
+	Interval int
+	Conn     string
+	TTL      time.Duration
+}
+
+var (
+	// CacheService the global cache
+	CacheService *Cache
+)
+
 func newCacheService() {
-	CacheAdapter = Cfg.Section("cache").Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"})
-	switch CacheAdapter {
-	case "memory":
-		CacheInterval = Cfg.Section("cache").Key("INTERVAL").MustInt(60)
-	case "redis", "memcache":
-		CacheConn = strings.Trim(Cfg.Section("cache").Key("HOST").String(), "\" ")
-	default:
-		log.Fatal(4, "Unknown cache adapter: %s", CacheAdapter)
+	sec := Cfg.Section("cache")
+	CacheService = &Cache{
+		Adapter: sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"}),
 	}
+	switch CacheService.Adapter {
+	case "memory":
+		CacheService.Interval = sec.Key("INTERVAL").MustInt(60)
+	case "redis", "memcache":
+		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
+	default:
+		log.Fatal(4, "Unknown cache adapter: %s", CacheService.Adapter)
+	}
+	CacheService.TTL = sec.Key("ITEM_TTL").MustDuration(16 * time.Hour)
 
 	log.Info("Cache Service Enabled")
 }
@@ -1281,7 +1343,10 @@ func newCacheService() {
 func newSessionService() {
 	SessionConfig.Provider = Cfg.Section("session").Key("PROVIDER").In("memory",
 		[]string{"memory", "file", "redis", "mysql"})
-	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").String(), "\" ")
+	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").MustString(path.Join(AppDataPath, "sessions")), "\" ")
+	if !filepath.IsAbs(SessionConfig.ProviderConfig) {
+		SessionConfig.ProviderConfig = path.Join(AppWorkPath, SessionConfig.ProviderConfig)
+	}
 	SessionConfig.CookieName = Cfg.Section("session").Key("COOKIE_NAME").MustString("i_like_gitea")
 	SessionConfig.CookiePath = AppSubURL
 	SessionConfig.Secure = Cfg.Section("session").Key("COOKIE_SECURE").MustBool(false)
@@ -1313,6 +1378,7 @@ type Mailer struct {
 	// Sendmail sender
 	UseSendmail  bool
 	SendmailPath string
+	SendmailArgs []string
 }
 
 var (
@@ -1358,6 +1424,13 @@ func newMailService() {
 	}
 	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
+
+	if MailService.UseSendmail {
+		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
+		if err != nil {
+			log.Error(4, "Failed to parse Sendmail args: %v", CustomConf, err)
+		}
+	}
 
 	log.Info("Mail Service Enabled")
 }

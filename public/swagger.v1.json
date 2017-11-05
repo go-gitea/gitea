@@ -1102,7 +1102,7 @@
             "type": "integer",
             "format": "int64",
             "x-go-name": "OwnerID",
-            "description": "Owner in we search search",
+            "description": "Repository owner to search",
             "name": "uid",
             "in": "query"
           },
@@ -1113,11 +1113,28 @@
             "description": "Limit of result\n\nmaximum: setting.ExplorePagingNum",
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "x-go-name": "SearchMode",
+            "description": "Type of repository to search, related to owner",
+            "name": "mode",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "x-go-name": "OwnerExclusive",
+            "description": "Search only owners repositories\nHas effect only if owner is provided and mode is not \"collaborative\"",
+            "name": "exclusive",
+            "in": "query"
           }
         ],
         "responses": {
           "200": {
             "$ref": "#/responses/SearchResults"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           },
           "500": {
             "$ref": "#/responses/SearchError"

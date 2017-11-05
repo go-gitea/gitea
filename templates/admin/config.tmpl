@@ -170,10 +170,19 @@
 				{{if .MailerEnabled}}
 					<dt>{{.i18n.Tr "admin.config.mailer_name"}}</dt>
 					<dd>{{.Mailer.Name}}</dd>
-					<dt>{{.i18n.Tr "admin.config.mailer_disable_helo"}}</dt>
-					<dd><i class="fa fa{{if .Mailer.DisableHelo}}-check{{end}}-square-o"></i></dd>
-					<dt>{{.i18n.Tr "admin.config.mailer_host"}}</dt>
-					<dd>{{.Mailer.Host}}</dd>
+					{{if not .Mailer.UseSendmail}}
+						<dt>{{.i18n.Tr "admin.config.mailer_disable_helo"}}</dt>
+						<dd><i class="fa fa{{if .Mailer.DisableHelo}}-check{{end}}-square-o"></i></dd>
+						<dt>{{.i18n.Tr "admin.config.mailer_host"}}</dt>
+						<dd>{{.Mailer.Host}}</dd>
+					{{else}}
+						<dt>{{.i18n.Tr "admin.config.mailer_use_sendmail"}}</dt>
+						<dd><i class="fa fa-check-square-o"></i></dd>
+						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_path"}}</dt>
+						<dd>{{.Mailer.SendmailPath}}</dd>
+						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_args"}}</dt>
+						<dd>{{.Mailer.SendmailArgs}}</dd>
+					{{end}}
 					<dt>{{.i18n.Tr "admin.config.mailer_user"}}</dt>
 					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd><br>
 					<form class="ui form" action="{{AppSubUrl}}/admin/config/test_mail" method="post">

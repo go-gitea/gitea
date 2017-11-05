@@ -12,6 +12,8 @@ PATH     = data/gitea.db
 
 [indexer]
 ISSUE_INDEXER_PATH = integrations/indexers-mysql/issues.bleve
+REPO_INDEXER_ENABLED = true
+REPO_INDEXER_PATH = integrations/indexers-mysql/repos.bleve
 
 [repository]
 ROOT = integrations/gitea-integration-mysql/gitea-repositories
@@ -47,6 +49,7 @@ ENABLE_FEDERATED_AVATAR = false
 
 [session]
 PROVIDER = file
+PROVIDER_CONFIG = data/sessions-mysql
 
 [log]
 MODE      = console,file

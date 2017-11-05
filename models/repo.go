@@ -205,10 +205,11 @@ type Repository struct {
 	ExternalMetas map[string]string `xorm:"-"`
 	Units         []*RepoUnit       `xorm:"-"`
 
-	IsFork   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
-	ForkID   int64       `xorm:"INDEX"`
-	BaseRepo *Repository `xorm:"-"`
-	Size     int64       `xorm:"NOT NULL DEFAULT 0"`
+	IsFork        bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	ForkID        int64              `xorm:"INDEX"`
+	BaseRepo      *Repository        `xorm:"-"`
+	Size          int64              `xorm:"NOT NULL DEFAULT 0"`
+	IndexerStatus *RepoIndexerStatus `xorm:"-"`
 
 	Created     time.Time `xorm:"-"`
 	CreatedUnix int64     `xorm:"INDEX created"`
@@ -256,6 +257,17 @@ func (repo *Repository) APIURL() string {
 // APIFormat converts a Repository to api.Repository
 func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
 	return repo.innerAPIFormat(mode, false)
+}
+
+// GetCommitsCountCacheKey returns cache key used for commits count caching.
+func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) string {
+	var prefix string
+	if isRef {
+		prefix = "ref"
+	} else {
+		prefix = "commit"
+	}
+	return fmt.Sprintf("commits-count-%d-%s-%s", repo.ID, prefix, contextName)
 }
 
 func (repo *Repository) innerAPIFormat(mode AccessMode, isParent bool) *api.Repository {
@@ -771,8 +783,10 @@ func UpdateLocalCopyBranch(repoPath, localPath, branch string) error {
 		if err != nil {
 			return fmt.Errorf("git fetch origin: %v", err)
 		}
-		if err := git.ResetHEAD(localPath, true, "origin/"+branch); err != nil {
-			return fmt.Errorf("git reset --hard origin/%s: %v", branch, err)
+		if len(branch) > 0 {
+			if err := git.ResetHEAD(localPath, true, "origin/"+branch); err != nil {
+				return fmt.Errorf("git reset --hard origin/%s: %v", branch, err)
+			}
 		}
 	}
 	return nil
@@ -978,6 +992,7 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
 			log.Error(4, "Failed to synchronize tags to releases for repository: %v", err)
 		}
+		UpdateRepoIndexer(repo)
 	}
 
 	if err = repo.UpdateSize(); err != nil {
@@ -1872,6 +1887,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		go HookQueue.Add(repo.ID)
 	}
 
+	DeleteRepoFromIndexer(repo)
 	return nil
 }
 
@@ -2145,7 +2161,7 @@ func GitFsck() {
 	log.Trace("Doing: GitFsck")
 
 	if err := x.
-		Where("id>0").
+		Where("id>0").BufferSize(setting.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repo := bean.(*Repository)
@@ -2167,7 +2183,7 @@ func GitFsck() {
 func GitGcRepos() error {
 	args := append([]string{"gc"}, setting.Git.GCArgs...)
 	return x.
-		Where("id > 0").
+		Where("id > 0").BufferSize(setting.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repo := bean.(*Repository)

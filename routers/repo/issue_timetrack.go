@@ -15,14 +15,12 @@ import (
 
 // AddTimeManually tracks time manually
 func AddTimeManually(c *context.Context, form auth.AddTimeManuallyForm) {
-	issueIndex := c.ParamsInt64("index")
-	issue, err := models.GetIssueByIndex(c.Repo.Repository.ID, issueIndex)
-	if err != nil {
-		if models.IsErrIssueNotExist(err) {
-			c.Handle(http.StatusNotFound, "GetIssueByIndex", err)
-			return
-		}
-		c.Handle(http.StatusInternalServerError, "GetIssueByIndex", err)
+	issue := GetActionIssue(c)
+	if c.Written() {
+		return
+	}
+	if !c.Repo.CanUseTimetracker(issue, c.User) {
+		c.Handle(http.StatusNotFound, "CanUseTimetracker", nil)
 		return
 	}
 	url := issue.HTMLURL()

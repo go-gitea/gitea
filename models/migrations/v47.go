@@ -10,14 +10,20 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-func addLoginSourceLdapPublicSSHKeySyncEnabled(x *xorm.Engine) error {
-	// LoginSource see models/login_source.go
-	type LoginSource struct {
-		IsLdapPublicSSHKeySyncEnabled bool `xorm:"INDEX NOT NULL DEFAULT false"`
+func addDeletedBranch(x *xorm.Engine) (err error) {
+	// DeletedBranch contains the deleted branch information
+	type DeletedBranch struct {
+		ID          int64  `xorm:"pk autoincr"`
+		RepoID      int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		Name        string `xorm:"UNIQUE(s) NOT NULL"`
+		Commit      string `xorm:"UNIQUE(s) NOT NULL"`
+		DeletedByID int64  `xorm:"INDEX NOT NULL"`
+		DeletedUnix int64  `xorm:"INDEX"`
 	}
 
-	if err := x.Sync2(new(LoginSource)); err != nil {
+	if err = x.Sync2(new(DeletedBranch)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
+
 	return nil
 }

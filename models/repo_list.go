@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/go-xorm/builder"
 )
 
@@ -88,29 +90,28 @@ func (repos MirrorRepositoryList) LoadAttributes() error {
 }
 
 // SearchRepoOptions holds the search options
-// swagger:parameters repoSearch
 type SearchRepoOptions struct {
-	// Keyword to search
-	//
-	// in: query
-	Keyword string `json:"q"`
-	// Owner in we search search
-	//
-	// in: query
-	OwnerID     int64         `json:"uid"`
-	Searcher    *User         `json:"-"` //ID of the person who's seeking
-	OrderBy     SearchOrderBy `json:"-"`
-	Private     bool          `json:"-"` // Include private repositories in results
-	Collaborate bool          `json:"-"` // Include collaborative repositories
-	Starred     bool          `json:"-"`
-	Page        int           `json:"-"`
-	IsProfile   bool          `json:"-"`
-	AllPublic   bool          `json:"-"` // Include also all public repositories
-	// Limit of result
-	//
-	// maximum: setting.ExplorePagingNum
-	// in: query
-	PageSize int `json:"limit"` // Can be smaller than or equal to setting.ExplorePagingNum
+	Keyword   string
+	OwnerID   int64
+	OrderBy   SearchOrderBy
+	Private   bool // Include private repositories in results
+	Starred   bool
+	Page      int
+	IsProfile bool
+	AllPublic bool // Include also all public repositories
+	PageSize  int  // Can be smaller than or equal to setting.ExplorePagingNum
+	// None -> include collaborative AND non-collaborative
+	// True -> include just collaborative
+	// False -> incude just non-collaborative
+	Collaborate util.OptionalBool
+	// None -> include forks AND non-forks
+	// True -> include just forks
+	// False -> include just non-forks
+	Fork util.OptionalBool
+	// None -> include mirrors AND non-mirrors
+	// True -> include just mirrors
+	// False -> include just non-mirrors
+	Mirror util.OptionalBool
 }
 
 //SearchOrderBy is used to sort the result
@@ -136,57 +137,57 @@ const (
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
-func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, count int64, err error) {
-	var cond = builder.NewCond()
+func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
 
-	var starJoin bool
-	if opts.Starred && opts.OwnerID > 0 {
-		cond = builder.Eq{
-			"star.uid": opts.OwnerID,
-		}
-		starJoin = true
-	}
-
-	// Append conditions
-	if !opts.Starred && opts.OwnerID > 0 {
-		var searcherReposCond builder.Cond = builder.Eq{"owner_id": opts.OwnerID}
-		if opts.Searcher != nil {
-			var ownerIds []int64
-
-			ownerIds = append(ownerIds, opts.Searcher.ID)
-			err = opts.Searcher.GetOrganizations(true)
-
-			if err != nil {
-				return nil, 0, fmt.Errorf("Organization: %v", err)
-			}
-
-			for _, org := range opts.Searcher.Orgs {
-				ownerIds = append(ownerIds, org.ID)
-			}
-
-			searcherReposCond = searcherReposCond.Or(builder.In("owner_id", ownerIds))
-			if opts.Collaborate {
-				searcherReposCond = searcherReposCond.Or(builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ? AND owner_id != ?)",
-					opts.Searcher.ID, opts.Searcher.ID))
-			}
-		}
-		cond = cond.And(searcherReposCond)
-	}
+	var cond = builder.NewCond()
 
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
-	if opts.OwnerID > 0 && opts.AllPublic {
-		cond = cond.Or(builder.Eq{"is_private": false})
+	var starred bool
+	if opts.OwnerID > 0 {
+		if opts.Starred {
+			starred = true
+			cond = builder.Eq{"star.uid": opts.OwnerID}
+		} else {
+			var accessCond = builder.NewCond()
+			if opts.Collaborate != util.OptionalBoolTrue {
+				accessCond = builder.Eq{"owner_id": opts.OwnerID}
+			}
+
+			if opts.Collaborate != util.OptionalBoolFalse {
+				collaborateCond := builder.And(
+					builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", opts.OwnerID),
+					builder.Neq{"owner_id": opts.OwnerID})
+				if !opts.Private {
+					collaborateCond = collaborateCond.And(builder.Expr("owner_id NOT IN (SELECT org_id FROM org_user WHERE org_user.uid = ? AND org_user.is_public = ?)", opts.OwnerID, false))
+				}
+
+				accessCond = accessCond.Or(collaborateCond)
+			}
+
+			if opts.AllPublic {
+				accessCond = accessCond.Or(builder.Eq{"is_private": false})
+			}
+
+			cond = cond.And(accessCond)
+		}
 	}
 
-	opts.Keyword = strings.ToLower(opts.Keyword)
 	if opts.Keyword != "" {
-		cond = cond.And(builder.Like{"lower_name", opts.Keyword})
+		cond = cond.And(builder.Like{"lower_name", strings.ToLower(opts.Keyword)})
+	}
+
+	if opts.Fork != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
+	}
+
+	if opts.Mirror != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"is_mirror": opts.Mirror == util.OptionalBoolTrue})
 	}
 
 	if len(opts.OrderBy) == 0 {
@@ -196,26 +197,23 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, coun
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if starJoin {
-		count, err = sess.
-			Join("INNER", "star", "star.repo_id = repository.id").
-			Where(cond).
-			Count(new(Repository))
-		if err != nil {
-			return nil, 0, fmt.Errorf("Count: %v", err)
-		}
-
+	if starred {
 		sess.Join("INNER", "star", "star.repo_id = repository.id")
-	} else {
-		count, err = sess.
-			Where(cond).
-			Count(new(Repository))
-		if err != nil {
-			return nil, 0, fmt.Errorf("Count: %v", err)
-		}
 	}
 
-	repos = make([]*Repository, 0, opts.PageSize)
+	count, err := sess.
+		Where(cond).
+		Count(new(Repository))
+	if err != nil {
+		return nil, 0, fmt.Errorf("Count: %v", err)
+	}
+
+	// Set again after reset by Count()
+	if starred {
+		sess.Join("INNER", "star", "star.repo_id = repository.id")
+	}
+
+	repos := make(RepositoryList, 0, opts.PageSize)
 	if err = sess.
 		Where(cond).
 		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
@@ -230,5 +228,5 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, coun
 		}
 	}
 
-	return
+	return repos, count, nil
 }

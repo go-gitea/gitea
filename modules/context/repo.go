@@ -13,7 +13,10 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/com"
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
 	"gopkg.in/macaron.v1"
@@ -98,6 +101,35 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) b
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
 	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
 		r.IsWriter() || issue.IsPoster(user.ID) || issue.AssigneeID == user.ID)
+}
+
+// GetCommitsCount returns cached commit count for current view
+func (r *Repository) GetCommitsCount() (int64, error) {
+	var contextName string
+	if r.IsViewBranch {
+		contextName = r.BranchName
+	} else if r.IsViewTag {
+		contextName = r.TagName
+	} else {
+		contextName = r.CommitID
+	}
+	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, r.IsViewBranch || r.IsViewTag), func() (int64, error) {
+		return r.Commit.CommitsCount()
+	})
+}
+
+// BranchNameSubURL sub-URL for the BranchName field
+func (r *Repository) BranchNameSubURL() string {
+	switch {
+	case r.IsViewBranch:
+		return "branch/" + r.BranchName
+	case r.IsViewTag:
+		return "tag/" + r.BranchName
+	case r.IsViewCommit:
+		return "commit/" + r.BranchName
+	}
+	log.Error(4, "Unknown view type for repo: %v", r)
+	return ""
 }
 
 // GetEditorconfig returns the .editorconfig definition if found in the
@@ -350,6 +382,7 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["DisableSSH"] = setting.SSH.Disabled
 		ctx.Data["ExposeAnonSSH"] = setting.SSH.ExposeAnonymous
 		ctx.Data["DisableHTTP"] = setting.Repository.DisableHTTPGit
+		ctx.Data["RepoSearchEnabled"] = setting.Indexer.RepoIndexerEnabled
 		ctx.Data["CloneLink"] = repo.CloneLink()
 		ctx.Data["WikiCloneLink"] = repo.WikiCloneLink()
 
@@ -426,8 +459,78 @@ func RepoAssignment() macaron.Handler {
 	}
 }
 
-// RepoRef handles repository reference name including those contain `/`.
+// RepoRefType type of repo reference
+type RepoRefType int
+
+const (
+	// RepoRefLegacy unknown type, make educated guess and redirect.
+	// for backward compatibility with previous URL scheme
+	RepoRefLegacy RepoRefType = iota
+	// RepoRefAny is for usage where educated guess is needed
+	// but redirect can not be made
+	RepoRefAny
+	// RepoRefBranch branch
+	RepoRefBranch
+	// RepoRefTag tag
+	RepoRefTag
+	// RepoRefCommit commit
+	RepoRefCommit
+)
+
+// RepoRef handles repository reference names when the ref name is not
+// explicitly given
 func RepoRef() macaron.Handler {
+	// since no ref name is explicitly specified, ok to just use branch
+	return RepoRefByType(RepoRefBranch)
+}
+
+func getRefNameFromPath(ctx *Context, path string, isExist func(string) bool) string {
+	refName := ""
+	parts := strings.Split(path, "/")
+	for i, part := range parts {
+		refName = strings.TrimPrefix(refName+"/"+part, "/")
+		if isExist(refName) {
+			ctx.Repo.TreePath = strings.Join(parts[i+1:], "/")
+			return refName
+		}
+	}
+	return ""
+}
+
+func getRefName(ctx *Context, pathType RepoRefType) string {
+	path := ctx.Params("*")
+	switch pathType {
+	case RepoRefLegacy, RepoRefAny:
+		if refName := getRefName(ctx, RepoRefBranch); len(refName) > 0 {
+			return refName
+		}
+		if refName := getRefName(ctx, RepoRefTag); len(refName) > 0 {
+			return refName
+		}
+		if refName := getRefName(ctx, RepoRefCommit); len(refName) > 0 {
+			return refName
+		}
+		ctx.Repo.TreePath = path
+		return ctx.Repo.Repository.DefaultBranch
+	case RepoRefBranch:
+		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsBranchExist)
+	case RepoRefTag:
+		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsTagExist)
+	case RepoRefCommit:
+		parts := strings.Split(path, "/")
+		if len(parts) > 0 && len(parts[0]) == 40 {
+			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
+			return parts[0]
+		}
+	default:
+		log.Error(4, "Unrecognized path type: %v", path)
+	}
+	return ""
+}
+
+// RepoRefByType handles repository reference name for a specific type
+// of repository reference
+func RepoRefByType(refType RepoRefType) macaron.Handler {
 	return func(ctx *Context) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsBare {
@@ -452,6 +555,7 @@ func RepoRef() macaron.Handler {
 		// Get default branch.
 		if len(ctx.Params("*")) == 0 {
 			refName = ctx.Repo.Repository.DefaultBranch
+			ctx.Repo.BranchName = refName
 			if !ctx.Repo.GitRepo.IsBranchExist(refName) {
 				brs, err := ctx.Repo.GitRepo.GetBranches()
 				if err != nil {
@@ -474,25 +578,8 @@ func RepoRef() macaron.Handler {
 			ctx.Repo.IsViewBranch = true
 
 		} else {
-			hasMatched := false
-			parts := strings.Split(ctx.Params("*"), "/")
-			for i, part := range parts {
-				refName = strings.TrimPrefix(refName+"/"+part, "/")
-
-				if ctx.Repo.GitRepo.IsBranchExist(refName) ||
-					ctx.Repo.GitRepo.IsTagExist(refName) {
-					if i < len(parts)-1 {
-						ctx.Repo.TreePath = strings.Join(parts[i+1:], "/")
-					}
-					hasMatched = true
-					break
-				}
-			}
-			if !hasMatched && len(parts[0]) == 40 {
-				refName = parts[0]
-				ctx.Repo.TreePath = strings.Join(parts[1:], "/")
-			}
-
+			refName = getRefName(ctx, refType)
+			ctx.Repo.BranchName = refName
 			if ctx.Repo.GitRepo.IsBranchExist(refName) {
 				ctx.Repo.IsViewBranch = true
 
@@ -524,10 +611,16 @@ func RepoRef() macaron.Handler {
 				ctx.Handle(404, "RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refName))
 				return
 			}
+
+			if refType == RepoRefLegacy {
+				// redirect from old URL scheme to new URL scheme
+				ctx.Redirect(path.Join(setting.AppSubURL, strings.TrimSuffix(ctx.Req.URL.String(), ctx.Params("*")), ctx.Repo.BranchNameSubURL()))
+				return
+			}
 		}
 
-		ctx.Repo.BranchName = refName
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
+		ctx.Data["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 		ctx.Data["CommitID"] = ctx.Repo.CommitID
 		ctx.Data["TreePath"] = ctx.Repo.TreePath
 		ctx.Data["IsViewBranch"] = ctx.Repo.IsViewBranch
@@ -535,9 +628,9 @@ func RepoRef() macaron.Handler {
 		ctx.Data["IsViewCommit"] = ctx.Repo.IsViewCommit
 		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch()
 
-		ctx.Repo.CommitsCount, err = ctx.Repo.Commit.CommitsCount()
+		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
 		if err != nil {
-			ctx.Handle(500, "CommitsCount", err)
+			ctx.Handle(500, "GetCommitsCount", err)
 			return
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
