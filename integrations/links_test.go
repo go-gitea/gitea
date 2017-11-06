@@ -7,8 +7,10 @@ package integrations
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
@@ -50,7 +52,7 @@ func TestRedirectsNoLogin(t *testing.T) {
 	for link, redirectLink := range redirects {
 		req := NewRequest(t, "GET", link)
 		resp := MakeRequest(t, req, http.StatusFound)
-		assert.EqualValues(t, redirectLink, RedirectURL(t, resp))
+		assert.EqualValues(t, path.Join(setting.AppSubURL, redirectLink), RedirectURL(t, resp))
 	}
 }
 
