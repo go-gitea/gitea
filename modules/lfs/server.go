@@ -69,6 +69,11 @@ func (v *RequestVars) ObjectLink() string {
 	return fmt.Sprintf("%s%s/%s/info/lfs/objects/%s", setting.AppURL, v.User, v.Repo, v.Oid)
 }
 
+// VerifyLink builds a URL for verifying the object.
+func (v *RequestVars) VerifyLink() string {
+	return fmt.Sprintf("%s%s/%s/info/lfs/verify", setting.AppURL, v.User, v.Repo)
+}
+
 // link provides a structure used to build a hypermedia representation of an HTTP link.
 type link struct {
 	Href      string            `json:"href"`
@@ -320,6 +325,35 @@ func PutHandler(ctx *context.Context) {
 	logRequest(ctx.Req, 200)
 }
 
+// VerifyHandler verify oid and it's size from the content store
+func VerifyHandler(ctx *context.Context) {
+
+	if !setting.LFS.StartServer {
+		writeStatus(ctx, 404)
+		return
+	}
+
+	if !ContentMatcher(ctx.Req) {
+		writeStatus(ctx, 400)
+		return
+	}
+
+	rv := unpack(ctx)
+
+	meta, _ := getAuthenticatedRepoAndMeta(ctx, rv, true)
+	if meta == nil {
+		return
+	}
+
+	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
+	if !contentStore.Verify(meta) {
+		writeStatus(ctx, 404)
+		return
+	}
+
+	logRequest(ctx.Req, 200)
+}
+
 // Represent takes a RequestVars and Meta and turns it into a Representation suitable
 // for json encoding
 func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload bool) *Representation {
@@ -345,6 +379,11 @@ func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload boo
 
 	if upload {
 		rep.Actions["upload"] = &link{Href: rv.ObjectLink(), Header: header}
+	}
+
+	if upload && !download {
+		// Force client side verify action while gitea lacks proper server side verification
+		rep.Actions["verify"] = &link{Href: rv.VerifyLink(), Header: header}
 	}
 
 	return rep

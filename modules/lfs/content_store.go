@@ -82,6 +82,15 @@ func (s *ContentStore) Exists(meta *models.LFSMetaObject) bool {
 	return true
 }
 
+// Verify returns true if the object exists in the content store and size is correct.
+func (s *ContentStore) Verify(meta *models.LFSMetaObject) bool {
+	path := filepath.Join(s.BasePath, transformKey(meta.Oid))
+	if fi, err := os.Stat(path); os.IsNotExist(err) || fi.Size() != meta.Size {
+		return false
+	}
+	return true
+}
+
 func transformKey(key string) string {
 	if len(key) < 5 {
 		return key
