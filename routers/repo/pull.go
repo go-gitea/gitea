@@ -81,23 +81,23 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 		}
 	}
 
-	var testForkRepo = forkRepo
+	var traverseParentRepo = forkRepo
 	for {
-		if ctx.User.ID == testForkRepo.OwnerID {
+		if ctx.User.ID == traverseParentRepo.OwnerID {
 			canForkToUser = false
 		} else {
 			for i, org := range orgs {
-				if org.ID == testForkRepo.OwnerID {
+				if org.ID == traverseParentRepo.OwnerID {
 					orgs = append(orgs[:i], orgs[i+1:]...)
 					break
 				}
 			}
 		}
 
-		if !testForkRepo.IsFork {
+		if !traverseParentRepo.IsFork {
 			break
 		}
-		testForkRepo, err = models.GetRepositoryByID(testForkRepo.ForkID)
+		traverseParentRepo, err = models.GetRepositoryByID(traverseParentRepo.ForkID)
 		if err != nil {
 			ctx.Handle(500, "GetRepositoryByID", err)
 			return nil
@@ -150,21 +150,21 @@ func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 	}
 
 	var err error
-	var testForkRepo = forkRepo
+	var traverseParentRepo = forkRepo
 	for {
-		if ctxUser.ID == testForkRepo.OwnerID {
+		if ctxUser.ID == traverseParentRepo.OwnerID {
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
 			return
 		}
-		repo, has := models.HasForkedRepo(ctxUser.ID, testForkRepo.ID)
+		repo, has := models.HasForkedRepo(ctxUser.ID, traverseParentRepo.ID)
 		if has {
 			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
 			return
 		}
-		if !testForkRepo.IsFork {
+		if !traverseParentRepo.IsFork {
 			break
 		}
-		testForkRepo, err = models.GetRepositoryByID(testForkRepo.ForkID)
+		traverseParentRepo, err = models.GetRepositoryByID(traverseParentRepo.ForkID)
 		if err != nil {
 			ctx.Handle(500, "GetRepositoryByID", err)
 			return
