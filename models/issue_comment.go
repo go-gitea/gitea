@@ -80,9 +80,10 @@ const (
 type Comment struct {
 	ID             int64 `xorm:"pk autoincr"`
 	Type           CommentType
-	PosterID       int64 `xorm:"INDEX"`
-	Poster         *User `xorm:"-"`
-	IssueID        int64 `xorm:"INDEX"`
+	PosterID       int64  `xorm:"INDEX"`
+	Poster         *User  `xorm:"-"`
+	IssueID        int64  `xorm:"INDEX"`
+	Issue          *Issue `xorm:"-"`
 	LabelID        int64
 	Label          *Label `xorm:"-"`
 	OldMilestoneID int64
@@ -108,7 +109,6 @@ type Comment struct {
 
 	// Reference issue in commit message
 	CommitSHA    string        `xorm:"VARCHAR(40)"`
-	RepoFullName string        `xorm:"VARCHAR(200)"`
 	CommitStatus *CommitStatus `xorm:"-"`
 
 	Attachments []*Attachment `xorm:"-"`
@@ -189,7 +189,7 @@ func (c *Comment) PRURL() string {
 // TargetURL returns the main link on this comment
 func (c *Comment) TargetURL() string {
 	if c.Type == CommentTypePullPushCommit {
-		return fmt.Sprintf("%s/%s/commit/%s", setting.AppSubURL, c.RepoFullName, c.CommitSHA)
+		return fmt.Sprintf("%s/%s/commit/%s", setting.AppSubURL, c.Issue.Repo.FullName(), c.CommitSHA)
 	}
 	return ""
 }
@@ -340,7 +340,6 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:        opts.Content,
 		OldTitle:       opts.OldTitle,
 		NewTitle:       opts.NewTitle,
-		RepoFullName:   opts.RepoFullName,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -532,7 +531,6 @@ type CreateCommentOptions struct {
 	CommitSHA      string
 	LineNum        int64
 	Content        string
-	RepoFullName   string
 	Attachments    []string // UUIDs of attachments
 }
 
@@ -620,13 +618,12 @@ func createPullPushCommentsNonForcePush(doer *User, issues []*Issue, commits []*
 	for _, issue := range issues {
 		for i := len(commits) - 1; i >= 0; i-- {
 			_, err := createComment(sess, &CreateCommentOptions{
-				Type:         CommentTypePullPushCommit,
-				Doer:         doer,
-				Repo:         issue.Repo,
-				Issue:        issue,
-				CommitSHA:    commits[i].Sha1,
-				Content:      commits[i].Message,
-				RepoFullName: issue.Repo.FullName(),
+				Type:      CommentTypePullPushCommit,
+				Doer:      doer,
+				Repo:      issue.Repo,
+				Issue:     issue,
+				CommitSHA: commits[i].Sha1,
+				Content:   commits[i].Message,
 			})
 			if err != nil {
 				return err
@@ -720,13 +717,12 @@ func CreatePullPushComments(doer *User, issues []*Issue, commits []*PushCommit, 
 			}
 
 			_, err := createComment(sess, &CreateCommentOptions{
-				Type:         CommentTypePullPushCommit,
-				Doer:         doer,
-				Repo:         issue.Repo,
-				Issue:        issue,
-				CommitSHA:    commits[i].Sha1,
-				Content:      commits[i].Message,
-				RepoFullName: issue.Repo.FullName(),
+				Type:      CommentTypePullPushCommit,
+				Doer:      doer,
+				Repo:      issue.Repo,
+				Issue:     issue,
+				CommitSHA: commits[i].Sha1,
+				Content:   commits[i].Message,
 			})
 			if err != nil {
 				return err
@@ -735,16 +731,6 @@ func CreatePullPushComments(doer *User, issues []*Issue, commits []*PushCommit, 
 	}
 
 	return sess.Commit()
-}
-
-func updateCommentRepoFullName(e Engine, repoID int64, newRepoFullName string) error {
-	_, err := e.Where("issue_id IN (SELECT id FROM issue WHERE repo_id = ?)", repoID).
-		And("`type` = ?", CommentTypePullPushCommit).
-		Cols("repo_full_name").
-		Update(&Comment{
-			RepoFullName: newRepoFullName,
-		})
-	return err
 }
 
 // GetCommentByID returns the comment by given ID.

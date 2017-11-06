@@ -806,7 +806,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		Iterate(new(Repository), func(idx int, bean interface{}) error {
 			repo := bean.(*Repository)
 			RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
-			return updateCommentRepoFullName(x, repo.ID, newUserName+"/"+repo.Name)
+			return nil
 		}); err != nil {
 		return fmt.Errorf("Delete repository wiki local copy: %v", err)
 	}

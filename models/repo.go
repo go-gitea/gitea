@@ -1477,11 +1477,6 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("update owner: %v", err)
 	}
 
-	// Update comment repofullname
-	if err := updateCommentRepoFullName(sess, repo.ID, repo.FullName()); err != nil {
-		return fmt.Errorf("updateCommentRepoFullName: %v", err)
-	}
-
 	// Remove redundant collaborators.
 	collaborators, err := repo.getCollaborators(sess)
 	if err != nil {
@@ -1600,7 +1595,7 @@ func ChangeRepositoryName(repo *Repository, oldRepoName, newRepoName string) (er
 		RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
 	}
 
-	return updateCommentRepoFullName(x, repo.ID, u.Name+"/"+newRepoName)
+	return nil
 }
 
 func getRepositoriesByForkID(e Engine, forkID int64) ([]*Repository, error) {
