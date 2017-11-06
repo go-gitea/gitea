@@ -24,8 +24,10 @@ pipeline:
   update-translations:
     image: alpine:3.6
     commands:
+      - mv ./options/locale/locale_en-US.ini ./options/
       - sed -i -e 's/="/=/g' -e 's/"$$//g' ./options/locale/*.ini
-      - sed -i -e 's/\\"/"/g' ./options/locale/*.ini
+      - sed -i -e 's/\\\\"/"/g' ./options/locale/*.ini
+      - mv ./options/locale_en-US.ini ./options/locale/
     when:
       event: [ push ]
       branch: [ master ]
@@ -38,6 +40,8 @@ pipeline:
     force: false
     commit: true
     commit_message: "[skip ci] Updated translations via Crowdin"
+    author_name: GiteaBot
+    author_email: teabot@gitea.io
     when:
       event: [ push ]
       branch: [ master ]

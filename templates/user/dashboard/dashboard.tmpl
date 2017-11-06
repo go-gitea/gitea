@@ -43,15 +43,30 @@
 							</h4>
 							<div class="ui attached secondary segment repos-search">
 								<div class="ui fluid icon input" :class="{loading: isLoading}">
-									<input @input="searchRepos" v-model="searchQuery" ref="search" placeholder="{{.i18n.Tr "home.search_repos"}}">
+									<input @input="searchRepos(reposFilter)" v-model="searchQuery" ref="search" placeholder="{{.i18n.Tr "home.search_repos"}}">
 									<i class="search icon"></i>
 								</div>
 								<div class="ui secondary tiny pointing borderless menu center aligned grid repos-filter">
-									<a class="item" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">{{.i18n.Tr "all"}}</a>
-									<a class="item" :class="{active: reposFilter === 'sources'}" @click="changeReposFilter('sources')">{{.i18n.Tr "sources"}}</a>
-									<a class="item" :class="{active: reposFilter === 'forks'}" @click="changeReposFilter('forks')">{{.i18n.Tr "forks"}}</a>
-									<a class="item" :class="{active: reposFilter === 'mirrors'}" @click="changeReposFilter('mirrors')">{{.i18n.Tr "mirrors"}}</a>
-									<a class="item" :class="{active: reposFilter === 'collaborative'}" @click="changeReposFilter('collaborative')">{{.i18n.Tr "collaborative"}}</a>
+									<a class="item" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
+										{{.i18n.Tr "all"}}
+										<div v-show="reposFilter === 'all'" class="ui circular mini grey label">${repoTypeCount}</div>
+									</a>
+									<a class="item" :class="{active: reposFilter === 'sources'}" @click="changeReposFilter('sources')">
+										{{.i18n.Tr "sources"}}
+										<div v-show="reposFilter === 'sources'" class="ui circular mini grey label">${repoTypeCount}</div>
+									</a>
+									<a class="item" :class="{active: reposFilter === 'forks'}" @click="changeReposFilter('forks')">
+										{{.i18n.Tr "forks"}}
+										<div v-show="reposFilter === 'forks'" class="ui circular mini grey label">${repoTypeCount}</div>
+									</a>
+									<a class="item" :class="{active: reposFilter === 'mirrors'}" @click="changeReposFilter('mirrors')">
+										{{.i18n.Tr "mirrors"}}
+										<div v-show="reposFilter === 'mirrors'" class="ui circular mini grey label">${repoTypeCount}</div>
+									</a>
+									<a class="item" :class="{active: reposFilter === 'collaborative'}" @click="changeReposFilter('collaborative')">
+										{{.i18n.Tr "collaborative"}}
+										<div v-show="reposFilter === 'collaborative'" class="ui circular mini grey label">${repoTypeCount}</div>
+									</a>
 								</div>
 							</div>
 							<div class="ui attached table segment">
@@ -65,7 +80,7 @@
 											</span>
 										</a>
 									</li>
-									<li v-if="repos.length < reposTotalCount">
+									<li v-if="showMoreReposLink">
 										<a :href="moreReposLink">{{.i18n.Tr "home.show_more_repos"}}</a>
 									</li>
 								</ul>

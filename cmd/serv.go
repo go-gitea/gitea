@@ -50,9 +50,9 @@ func setup(logPath string) error {
 	models.LoadConfigs()
 
 	if setting.UseSQLite3 || setting.UseTiDB {
-		workDir, _ := setting.WorkDir()
-		if err := os.Chdir(workDir); err != nil {
-			log.GitLogger.Fatal(4, "Failed to change directory %s: %v", workDir, err)
+		workPath := setting.AppWorkPath
+		if err := os.Chdir(workPath); err != nil {
+			log.GitLogger.Fatal(4, "Failed to change directory %s: %v", workPath, err)
 		}
 	}
 
