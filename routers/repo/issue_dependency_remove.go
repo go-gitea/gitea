@@ -50,8 +50,7 @@ func RemoveDependency(c *context.Context) {
 		return
 	}
 
-	err = models.RemoveIssueDependency(c.User, issue, dep, depType)
-	if err != nil {
+	if err = models.RemoveIssueDependency(c.User, issue, dep, depType); err != nil {
 		c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
 		return
 	}

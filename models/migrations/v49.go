@@ -24,9 +24,7 @@ func addIssueDependencyTables(x *xorm.Engine) (err error) {
 		UpdatedUnix  int64     `xorm:"updated"`
 	}
 
-	err = x.Sync(new(IssueDependency))
-
-	if err != nil {
+	if err = x.Sync(new(IssueDependency)); err != nil {
 		return fmt.Errorf("Error creating issue_dependency_table column definition: %v", err)
 	}
 

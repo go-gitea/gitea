@@ -193,97 +193,97 @@
 
 		{{if .IsSigned}}
 			{{if .IssueDependenciesEnabled}}
-		<div class="ui divider"></div>
+				<div class="ui divider"></div>
 
-		<div class="ui depending">
-			<span class="text"><strong>{{.i18n.Tr "repo.issues.dependency.title"}}</strong></span>
-			<br>
-			{{if .BlockedByDependencies}}
-			<span class="text" data-tooltip="{{if .Issue.IsPull}}
-					{{.i18n.Tr "repo.issues.dependency.issue_closing_blockedby"}}
-				{{else}}
-					{{.i18n.Tr "repo.issues.dependency.pr_closing_blockedby"}}
-				{{end}}" data-inverted="">
-			{{.i18n.Tr "repo.issues.dependency.blocked_by_short"}}:
-			</span>
-			<div class="ui relaxed divided list">
-				{{range .BlockedByDependencies}}
-				<div class="item">
-					<div class="right floated content">
-						<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blockedBy');">
-							<i class="delete icon text red"></i>
-						</a>
-						{{if .IsClosed}}
-						<div class="ui red mini label">
-							<i class="octicon octicon-issue-closed"></i>
+				<div class="ui depending">
+					<span class="text"><strong>{{.i18n.Tr "repo.issues.dependency.title"}}</strong></span>
+					<br>
+					{{if .BlockedByDependencies}}
+						<span class="text" data-tooltip="{{if .Issue.IsPull}}
+								{{.i18n.Tr "repo.issues.dependency.issue_closing_blockedby"}}
+							{{else}}
+								{{.i18n.Tr "repo.issues.dependency.pr_closing_blockedby"}}
+							{{end}}" data-inverted="">
+							{{.i18n.Tr "repo.issues.dependency.blocked_by_short"}}:
+						</span>
+						<div class="ui relaxed divided list">
+							{{range .BlockedByDependencies}}
+								<div class="item">
+									<div class="right floated content">
+										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blockedBy');">
+											<i class="delete icon text red"></i>
+										</a>
+										{{if .IsClosed}}
+											<div class="ui red mini label">
+												<i class="octicon octicon-issue-closed"></i>
+											</div>
+										{{else}}
+											<div class="ui green mini label">
+												<i class="octicon octicon-issue-opened"></i>
+											</div>
+										{{end}}
+									</div>
+									<div class="ui black label">#{{.Index}}</div>
+									<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+								</div>
+							{{end}}
 						</div>
-						{{else}}
-						<div class="ui green mini label">
-							<i class="octicon octicon-issue-opened"></i>
-						</div>
-						{{end}}
-					</div>
-					<div class="ui black label">#{{.Index}}</div>
-					<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
-				</div>
-				{{end}}
-			</div>
-			{{end}}
+					{{end}}
 
-			{{if .BlockingDependencies}}
-			<span class="text" data-tooltip="{{if .Issue.IsPull}}
-					{{.i18n.Tr "repo.issues.dependency.pr_close_blocks"}}
-				{{else}}
-					{{.i18n.Tr "repo.issues.dependency.issue_close_blocks"}}
-				{{end}}" data-inverted="">
-			{{.i18n.Tr "repo.issues.dependency.blocks_short"}}:
-			</span>
-			<div class="ui relaxed divided list">
-				{{range .BlockingDependencies}}
-				<div class="item">
-					<div class="right floated content">
-						<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blocking');">
-							<i class="delete icon text red"></i>
-						</a>
-						{{if .IsClosed}}
-						<div class="ui red tiny label">
-							<i class="octicon octicon-issue-closed"></i>
+					{{if .BlockingDependencies}}
+						<span class="text" data-tooltip="{{if .Issue.IsPull}}
+								{{.i18n.Tr "repo.issues.dependency.pr_close_blocks"}}
+							{{else}}
+								{{.i18n.Tr "repo.issues.dependency.issue_close_blocks"}}
+							{{end}}" data-inverted="">
+							{{.i18n.Tr "repo.issues.dependency.blocks_short"}}:
+						</span>
+						<div class="ui relaxed divided list">
+							{{range .BlockingDependencies}}
+								<div class="item">
+									<div class="right floated content">
+										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blocking');">
+											<i class="delete icon text red"></i>
+										</a>
+										{{if .IsClosed}}
+											<div class="ui red tiny label">
+												<i class="octicon octicon-issue-closed"></i>
+											</div>
+										{{else}}
+											<div class="ui green mini label">
+												<i class="octicon octicon-issue-opened"></i>
+											</div>
+										{{end}}
+									</div>
+									<div class="ui black label">#{{.Index}}</div>
+									<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+								</div>
+							{{end}}
 						</div>
-						{{else}}
-						<div class="ui green mini label">
-							<i class="octicon octicon-issue-opened"></i>
-						</div>
-						{{end}}
-					</div>
-					<div class="ui black label">#{{.Index}}</div>
-					<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
-				</div>
-				{{end}}
-			</div>
-			{{end}}
+					{{end}}
 
-			{{if (and (not .BlockedByDependencies) (not .BlockingDependencies))}}
-			<p>{{.i18n.Tr "repo.issues.dependency.no_dependencies"}}</p>
-			{{end}}
-			<div>
-				<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/dependency/add" id="addDependencyForm">
-					{{$.CsrfTokenHtml}}
-					<div class="ui fluid action input">
-						<div class="ui search selection dropdown new-dependency-drop-list" style="min-width: 13.9rem;border-radius: 4px 0 0 4px;border-right: 0;white-space: nowrap;">
-							<input name="newDependency" type="hidden">
-							<i class="dropdown icon"></i>
-							<div class="default text">{{.i18n.Tr "repo.issues.dependency.add"}}</div>
-							<div class="menu new-dependency-dropdown">
+					{{if (and (not .BlockedByDependencies) (not .BlockingDependencies))}}
+						<p>{{.i18n.Tr "repo.issues.dependency.no_dependencies"}}</p>
+					{{end}}
+					<div>
+						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/dependency/add" id="addDependencyForm">
+							{{$.CsrfTokenHtml}}
+							<div class="ui fluid action input">
+								<div class="ui search selection dropdown new-dependency-drop-list" style="min-width: 13.9rem;border-radius: 4px 0 0 4px;border-right: 0;white-space: nowrap;">
+									<input name="newDependency" type="hidden">
+									<i class="dropdown icon"></i>
+									<div class="default text">{{.i18n.Tr "repo.issues.dependency.add"}}</div>
+									<div class="menu new-dependency-dropdown">
 
+									</div>
+								</div>
+								<button class="ui green icon button">
+									<i class="plus icon"></i>
+								</button>
 							</div>
-						</div>
-						<button class="ui green icon button">
-							<i class="plus icon"></i>
-						</button><!-- {{.i18n.Tr "repo.issues.dependency.add"}} -->
+						</form>
 					</div>
-				</form>
-			</div>
-		</div>
+				</div>
 	</div>
 </div>
 

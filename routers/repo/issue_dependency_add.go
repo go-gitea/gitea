@@ -16,8 +16,6 @@ import (
 // AddDependency adds new dependencies
 func AddDependency(c *context.Context) {
 
-	// TODO: should should an issue only have dependencies in it's own repo?
-
 	depID, err := strconv.ParseInt(c.Req.PostForm.Get("newDependency"), 10, 64)
 	if err != nil {
 		c.Handle(http.StatusBadRequest, "issue ID is not int", err)
