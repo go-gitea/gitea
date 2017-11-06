@@ -9,11 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
-
-	"code.gitea.io/git"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
