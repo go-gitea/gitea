@@ -8,12 +8,12 @@ import (
 	"time"
 )
 
-// IssueDependency is connection request for receiving issue notification.
+// IssueDependency represents an issue dependency
 type IssueDependency struct {
 	ID           int64     `xorm:"pk autoincr"`
-	UserID       int64     `xorm:"UNIQUE(watch) NOT NULL"`
-	IssueID      int64     `xorm:"UNIQUE(watch) NOT NULL"`
-	DependencyID int64     `xorm:"UNIQUE(watch) NOT NULL"`
+	UserID       int64     `xorm:"NOT NULL"`
+	IssueID      int64     `xorm:"NOT NULL"`
+	DependencyID int64     `xorm:"NOT NULL"`
 	Created      time.Time `xorm:"-"`
 	CreatedUnix  int64     `xorm:"INDEX created"`
 	Updated      time.Time `xorm:"-"`
