@@ -12,8 +12,8 @@ import (
 type IssueDependency struct {
 	ID           int64     `xorm:"pk autoincr"`
 	UserID       int64     `xorm:"NOT NULL"`
-	IssueID      int64     `xorm:"NOT NULL"`
-	DependencyID int64     `xorm:"NOT NULL"`
+	IssueID      int64     `xorm:"UNIQUE(issue_dependency) NOT NULL"`
+	DependencyID int64     `xorm:"UNIQUE(issue_dependency) NOT NULL"`
 	Created      time.Time `xorm:"-"`
 	CreatedUnix  int64     `xorm:"INDEX created"`
 	Updated      time.Time `xorm:"-"`
