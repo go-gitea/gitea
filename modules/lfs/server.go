@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/dgrijalva/jwt-go"
 	"gopkg.in/macaron.v1"
 )
@@ -66,12 +68,12 @@ type ObjectError struct {
 
 // ObjectLink builds a URL linking to the object.
 func (v *RequestVars) ObjectLink() string {
-	return fmt.Sprintf("%s%s/%s/info/lfs/objects/%s", setting.AppURL, v.User, v.Repo, v.Oid)
+	return path.Join(setting.AppURL, v.User, v.Repo, "info/lfs/objects", v.Oid)
 }
 
 // VerifyLink builds a URL for verifying the object.
 func (v *RequestVars) VerifyLink() string {
-	return fmt.Sprintf("%s%s/%s/info/lfs/verify", setting.AppURL, v.User, v.Repo)
+	return path.Join(setting.AppURL, v.User, v.Repo, "info/lfs/verify")
 }
 
 // link provides a structure used to build a hypermedia representation of an HTTP link.
@@ -325,7 +327,7 @@ func PutHandler(ctx *context.Context) {
 	logRequest(ctx.Req, 200)
 }
 
-// VerifyHandler verify oid and it's size from the content store
+// VerifyHandler verify oid and its size from the content store
 func VerifyHandler(ctx *context.Context) {
 
 	if !setting.LFS.StartServer {
