@@ -204,7 +204,7 @@ pipeline:
     pull: true
     secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
-    tags: [ 'latest' ]
+    tags: [ 'latest', 'develop' ]
     when:
       event: [ push ]
       branch: [ master ]
