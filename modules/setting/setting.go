@@ -60,7 +60,7 @@ const (
 	LandingPageExplore LandingPage = "/explore"
 )
 
-// MarkupParser defines the external parser configed on ini
+// MarkupParser defines the external parser configured in ini
 type MarkupParser struct {
 	Enabled        bool
 	MarkupName     string

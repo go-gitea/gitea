@@ -52,7 +52,7 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 	)
 
 	if p.IsInputFile {
-		// write to templ file
+		// write to temp file
 		f, err := ioutil.TempFile("", "gitea_input")
 		if err != nil {
 			log.Error(4, "%s create temp file when rendering %s failed: %v", p.Name(), p.Command, err)
