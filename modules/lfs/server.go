@@ -347,7 +347,13 @@ func VerifyHandler(ctx *context.Context) {
 	}
 
 	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
-	if !contentStore.Verify(meta) {
+	ok, err := contentStore.Verify(meta)
+	if err != nil {
+		ctx.Resp.WriteHeader(500)
+		fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
+		return
+	}
+	if !ok {
 		writeStatus(ctx, 422)
 		return
 	}
