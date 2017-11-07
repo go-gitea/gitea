@@ -152,7 +152,7 @@ func getContentHandler(ctx *context.Context) {
 		return
 	}
 
-	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(meta.Size, 10))
+	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(meta.Size-fromByte, 10))
 	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
 
 	filename := ctx.Params("filename")
