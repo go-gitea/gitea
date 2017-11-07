@@ -329,7 +329,6 @@ func PutHandler(ctx *context.Context) {
 
 // VerifyHandler verify oid and its size from the content store
 func VerifyHandler(ctx *context.Context) {
-
 	if !setting.LFS.StartServer {
 		writeStatus(ctx, 404)
 		return
@@ -349,7 +348,7 @@ func VerifyHandler(ctx *context.Context) {
 
 	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
 	if !contentStore.Verify(meta) {
-		writeStatus(ctx, 404)
+		writeStatus(ctx, 422)
 		return
 	}
 
