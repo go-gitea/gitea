@@ -1,0 +1,34 @@
+# http://editorconfig.org
+
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.go]
+indent_style = tab
+indent_size = 8
+
+[*.{tmpl,html}]
+indent_style = tab
+indent_size = 4
+
+[*.{less}]
+indent_style = space
+indent_size = 4
+
+[*.{yml}]
+indent_style = space
+indent_size = 2
+
+[*.js]
+indent_style = space
+indent_size = 4
+
+[Makefile]
+indent_style = tab
+
+[*.md]
+trim_trailing_whitespace = false
