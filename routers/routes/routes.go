@@ -681,6 +681,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Get("/objects/:oid/:filename", lfs.ObjectOidHandler)
 				m.Any("/objects/:oid", lfs.ObjectOidHandler)
 				m.Post("/objects", lfs.PostHandler)
+				m.Post("/verify", lfs.VerifyHandler)
 				m.Any("/*", func(ctx *context.Context) {
 					ctx.Handle(404, "", nil)
 				})
