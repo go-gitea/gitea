@@ -53,7 +53,7 @@
 							{{end}}
 						</div>
 					</a>
-					<form ref="newBranchForm" action="{{.RepoLink}}/branches/_new/{{EscapePound .BranchName}}" method="post">
+					<form ref="newBranchForm" action="{{.RepoLink}}/branches/_new/{{EscapePound .BranchNameSubURL}}" method="post">
 						{{.CsrfTokenHtml}}
 						<input type="hidden" name="new_branch_name" v-model="searchTerm">
 					</form>
