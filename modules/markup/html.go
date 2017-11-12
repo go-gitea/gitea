@@ -126,69 +126,82 @@ func URLJoin(base string, elems ...string) string {
 	return u.String()
 }
 
-// WrapLink make an html text segment into a link to the provided url,
-// sensibly handling parts of the input that are already links
-func WrapLink(htmlBytes []byte, defaultURL string) []byte {
-	var buf bytes.Buffer
-	remainder := htmlBytes
-	defaultLinkOpen := []byte(fmt.Sprintf(`<a rel="nofollow" href="%s">`, defaultURL))
-	defaultLinkClose := []byte("</a>")
-	for len(remainder) > 0 {
-		openIndex := bytes.Index(remainder, []byte("<a "))
-		if openIndex < 0 {
-			break
-		}
-		closeIndex := bytes.Index(remainder, []byte("</a>"))
-		if closeIndex < 0 || closeIndex < openIndex {
-			break
-		}
-		closeIndex += 4 // account for length of "</a>"
+// RenderIssueIndexPatternOptions options for RenderIssueIndexPattern function
+type RenderIssueIndexPatternOptions struct {
+	// url to which non-special formatting should be linked. If empty,
+	// no such links will be added
+	DefaultURL string
+	URLPrefix  string
+	Metas      map[string]string
+}
 
-		if openIndex > 0 {
-			buf.Write(defaultLinkOpen)
-			buf.Write(remainder[:openIndex])
-			buf.Write(defaultLinkClose)
-		}
-		buf.Write(remainder[openIndex:closeIndex])
-		remainder = remainder[closeIndex:]
+// addText add text to the given buffer, adding a link to the default url
+// if appropriate
+func (opts RenderIssueIndexPatternOptions) addText(text []byte, buf *bytes.Buffer) {
+	if len(text) == 0 {
+		return
+	} else if len(opts.DefaultURL) == 0 {
+		buf.Write(text)
+		return
 	}
-	if len(remainder) > 0 {
-		buf.Write(defaultLinkOpen)
-		buf.Write(remainder)
-		buf.Write(defaultLinkClose)
-	}
-	return buf.Bytes()
+	buf.WriteString(`<a rel="nofollow" href="`)
+	buf.WriteString(opts.DefaultURL)
+	buf.WriteString(`">`)
+	buf.Write(text)
+	buf.WriteString(`</a>`)
 }
 
 // RenderIssueIndexPattern renders issue indexes to corresponding links.
-func RenderIssueIndexPattern(rawBytes []byte, urlPrefix string, metas map[string]string) []byte {
-	urlPrefix = cutoutVerbosePrefix(urlPrefix)
+func RenderIssueIndexPattern(rawBytes []byte, opts RenderIssueIndexPatternOptions) []byte {
+	opts.URLPrefix = cutoutVerbosePrefix(opts.URLPrefix)
 
 	pattern := IssueNumericPattern
-	if metas["style"] == IssueNameStyleAlphanumeric {
+	if opts.Metas["style"] == IssueNameStyleAlphanumeric {
 		pattern = IssueAlphanumericPattern
 	}
 
-	ms := pattern.FindAll(rawBytes, -1)
-	for _, m := range ms {
-		if m[0] == ' ' || m[0] == '(' {
-			m = m[1:] // ignore leading space or opening parentheses
+	var buf bytes.Buffer
+	remainder := rawBytes
+	for {
+		indices := pattern.FindIndex(remainder)
+		if indices == nil || len(indices) < 2 {
+			opts.addText(remainder, &buf)
+			return buf.Bytes()
 		}
-		var link string
-		if metas == nil {
-			link = fmt.Sprintf(`<a href="%s">%s</a>`, URLJoin(urlPrefix, "issues", string(m[1:])), m)
+		startIndex := indices[0]
+		endIndex := indices[1]
+		opts.addText(remainder[:startIndex], &buf)
+		if remainder[startIndex] == '(' || remainder[startIndex] == ' ' {
+			buf.WriteByte(remainder[startIndex])
+			startIndex++
+		}
+		if opts.Metas == nil {
+			buf.WriteString(`<a href="`)
+			buf.WriteString(URLJoin(
+				opts.URLPrefix, "issues", string(remainder[startIndex+1:endIndex])))
+			buf.WriteString(`">`)
+			buf.Write(remainder[startIndex:endIndex])
+			buf.WriteString(`</a>`)
 		} else {
 			// Support for external issue tracker
-			if metas["style"] == IssueNameStyleAlphanumeric {
-				metas["index"] = string(m)
+			buf.WriteString(`<a href="`)
+			if opts.Metas["style"] == IssueNameStyleAlphanumeric {
+				opts.Metas["index"] = string(remainder[startIndex:endIndex])
 			} else {
-				metas["index"] = string(m[1:])
+				opts.Metas["index"] = string(remainder[startIndex+1 : endIndex])
 			}
-			link = fmt.Sprintf(`<a href="%s">%s</a>`, com.Expand(metas["format"], metas), m)
+			buf.WriteString(com.Expand(opts.Metas["format"], opts.Metas))
+			buf.WriteString(`">`)
+			buf.Write(remainder[startIndex:endIndex])
+			buf.WriteString(`</a>`)
 		}
-		rawBytes = bytes.Replace(rawBytes, m, []byte(link), 1)
+		if endIndex < len(remainder) &&
+			(remainder[endIndex] == ')' || remainder[endIndex] == ' ') {
+			buf.WriteByte(remainder[endIndex])
+			endIndex++
+		}
+		remainder = remainder[endIndex:]
 	}
-	return rawBytes
 }
 
 // IsSameDomain checks if given url string has the same hostname as current Gitea instance
@@ -466,7 +479,10 @@ func RenderSpecialLink(rawBytes []byte, urlPrefix string, metas map[string]strin
 
 	rawBytes = RenderFullIssuePattern(rawBytes)
 	rawBytes = RenderShortLinks(rawBytes, urlPrefix, false, isWikiMarkdown)
-	rawBytes = RenderIssueIndexPattern(rawBytes, urlPrefix, metas)
+	rawBytes = RenderIssueIndexPattern(rawBytes, RenderIssueIndexPatternOptions{
+		URLPrefix: urlPrefix,
+		Metas:     metas,
+	})
 	rawBytes = RenderCrossReferenceIssueIndexPattern(rawBytes, urlPrefix, metas)
 	rawBytes = renderFullSha1Pattern(rawBytes, urlPrefix)
 	rawBytes = renderSha1CurrentPattern(rawBytes, urlPrefix)

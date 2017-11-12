@@ -254,22 +254,26 @@ func ReplaceLeft(s, old, new string) string {
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
 func RenderCommitMessage(msg, urlPrefix string, metas map[string]string) template.HTML {
-	cleanMsg := template.HTMLEscapeString(msg)
-	fullMessage := string(markup.RenderIssueIndexPattern([]byte(cleanMsg), urlPrefix, metas))
-	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
-	if len(msgLines) == 0 {
-		return template.HTML("")
-	}
-	return template.HTML(msgLines[0])
+	return renderCommitMessage(msg, markup.RenderIssueIndexPatternOptions{
+		URLPrefix: urlPrefix,
+		Metas:     metas,
+	})
 }
 
 // RenderCommitMessageLink renders commit message as a XXS-safe link to the provided
 // default url, handling for special links.
 func RenderCommitMessageLink(msg, urlPrefix string, urlDefault string, metas map[string]string) template.HTML {
+	return renderCommitMessage(msg, markup.RenderIssueIndexPatternOptions{
+		DefaultURL: urlDefault,
+		URLPrefix:  urlPrefix,
+		Metas:      metas,
+	})
+}
+
+func renderCommitMessage(msg string, opts markup.RenderIssueIndexPatternOptions) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
-	fullMsg := markup.RenderIssueIndexPattern([]byte(cleanMsg), urlPrefix, metas)
-	linkedMessage := string(markup.WrapLink(fullMsg, urlDefault))
-	msgLines := strings.Split(strings.TrimSpace(linkedMessage), "\n")
+	fullMessage := string(markup.RenderIssueIndexPattern([]byte(cleanMsg), opts))
+	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
 	if len(msgLines) == 0 {
 		return template.HTML("")
 	}

@@ -55,9 +55,12 @@ func link(href, contents string) string {
 	return fmt.Sprintf("<a href=\"%s\">%s</a>", href, contents)
 }
 
-func testRenderIssueIndexPattern(t *testing.T, input, expected string, metas map[string]string) {
-	assert.Equal(t, expected,
-		string(RenderIssueIndexPattern([]byte(input), AppSubURL, metas)))
+func testRenderIssueIndexPattern(t *testing.T, input, expected string, opts RenderIssueIndexPatternOptions) {
+	if len(opts.URLPrefix) == 0 {
+		opts.URLPrefix = AppSubURL
+	}
+	actual := string(RenderIssueIndexPattern([]byte(input), opts))
+	assert.Equal(t, expected, actual)
 }
 
 func TestURLJoin(t *testing.T) {
@@ -85,40 +88,11 @@ func TestURLJoin(t *testing.T) {
 	}
 }
 
-func TestWrapLink(t *testing.T) {
-	const defaultURL = "http://try.gitea.io/"
-	type test struct {
-		InputHTML string
-		Expected  string
-	}
-	for _, test := range []test{
-		{
-			InputHTML: "no links at all",
-			Expected:  `<a rel="nofollow" href="http://try.gitea.io/">no links at all</a>`,
-		},
-		{
-			InputHTML: `here is <a href="#">one link</a>`,
-			Expected: `<a rel="nofollow" href="http://try.gitea.io/">here is </a>` +
-				`<a href="#">one link</a>`,
-		},
-		{
-			InputHTML: `this has <a href="one">multiple </a><a rel="nofollow" href="two">links</a>!`,
-			Expected: `<a rel="nofollow" href="http://try.gitea.io/">this has </a>` +
-				`<a href="one">multiple </a><a rel="nofollow" href="two">links</a>` +
-				`<a rel="nofollow" href="http://try.gitea.io/">!</a>`,
-		},
-	} {
-		inputBytes := []byte(test.InputHTML)
-		output := WrapLink(inputBytes, defaultURL)
-		assert.Equal(t, test.Expected, string(output))
-	}
-}
-
 func TestRender_IssueIndexPattern(t *testing.T) {
 	// numeric: render inputs without valid mentions
 	test := func(s string) {
-		testRenderIssueIndexPattern(t, s, s, nil)
-		testRenderIssueIndexPattern(t, s, s, numericMetas)
+		testRenderIssueIndexPattern(t, s, s, RenderIssueIndexPatternOptions{})
+		testRenderIssueIndexPattern(t, s, s, RenderIssueIndexPatternOptions{Metas: numericMetas})
 	}
 
 	// should not render anything when there are no mentions
@@ -152,13 +126,13 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 			links[i] = numericIssueLink(URLJoin(setting.AppSubURL, "issues"), index)
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expectedNil, nil)
+		testRenderIssueIndexPattern(t, s, expectedNil, RenderIssueIndexPatternOptions{})
 
 		for i, index := range indices {
 			links[i] = numericIssueLink("https://someurl.com/someUser/someRepo/", index)
 		}
 		expectedNum := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expectedNum, numericMetas)
+		testRenderIssueIndexPattern(t, s, expectedNum, RenderIssueIndexPatternOptions{Metas: numericMetas})
 	}
 
 	// should render freestanding mentions
@@ -184,7 +158,7 @@ func TestRender_IssueIndexPattern3(t *testing.T) {
 
 	// alphanumeric: render inputs without valid mentions
 	test := func(s string) {
-		testRenderIssueIndexPattern(t, s, s, alphanumericMetas)
+		testRenderIssueIndexPattern(t, s, s, RenderIssueIndexPatternOptions{Metas: alphanumericMetas})
 	}
 	test("")
 	test("this is a test")
@@ -216,11 +190,31 @@ func TestRender_IssueIndexPattern4(t *testing.T) {
 			links[i] = alphanumIssueLink("https://someurl.com/someUser/someRepo/", name)
 		}
 		expected := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expected, alphanumericMetas)
+		testRenderIssueIndexPattern(t, s, expected, RenderIssueIndexPatternOptions{Metas: alphanumericMetas})
 	}
 	test("OTT-1234 test", "%s test", "OTT-1234")
 	test("test T-12 issue", "test %s issue", "T-12")
 	test("test issue ABCDEFGHIJ-1234567890", "test issue %s", "ABCDEFGHIJ-1234567890")
+}
+
+func TestRenderIssueIndexPatternWithDefaultURL(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	// alphanumeric: render inputs with valid mentions
+	test := func(input string, expected string) {
+		testRenderIssueIndexPattern(t, input, expected, RenderIssueIndexPatternOptions{
+			DefaultURL: AppURL,
+		})
+	}
+	test("hello #123 world",
+		fmt.Sprintf(`<a rel="nofollow" href="%s">hello</a> `, AppURL)+
+			fmt.Sprintf(`<a href="%sissues/123">#123</a> `, AppSubURL)+
+			fmt.Sprintf(`<a rel="nofollow" href="%s">world</a>`, AppURL))
+	test("hello (#123) world",
+		fmt.Sprintf(`<a rel="nofollow" href="%s">hello </a>`, AppURL)+
+			fmt.Sprintf(`(<a href="%sissues/123">#123</a>)`, AppSubURL)+
+			fmt.Sprintf(`<a rel="nofollow" href="%s"> world</a>`, AppURL))
 }
 
 func TestRender_AutoLink(t *testing.T) {
