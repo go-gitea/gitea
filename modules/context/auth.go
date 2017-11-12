@@ -38,7 +38,7 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 		}
 
 		// Check non-logged users landing page.
-		if !ctx.IsSigned && ctx.Req.RequestURI == "/" && setting.LandingPageURL != setting.LandingPageHome {
+		if ctx.Req.RequestURI == "/" && setting.LandingPageURL != setting.LandingPageHome {
 			ctx.Redirect(setting.AppSubURL + string(setting.LandingPageURL))
 			return
 		}
