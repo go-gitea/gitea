@@ -201,7 +201,6 @@ func TestRenderIssueIndexPatternWithDefaultURL(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
 
-	// alphanumeric: render inputs with valid mentions
 	test := func(input string, expected string) {
 		testRenderIssueIndexPattern(t, input, expected, RenderIssueIndexPatternOptions{
 			DefaultURL: AppURL,
