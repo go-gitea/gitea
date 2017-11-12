@@ -85,6 +85,35 @@ func TestURLJoin(t *testing.T) {
 	}
 }
 
+func TestWrapLink(t *testing.T) {
+	const defaultURL = "http://try.gitea.io/"
+	type test struct {
+		InputHTML string
+		Expected  string
+	}
+	for _, test := range []test{
+		{
+			InputHTML: "no links at all",
+			Expected:  `<a rel="nofollow" href="http://try.gitea.io/">no links at all</a>`,
+		},
+		{
+			InputHTML: `here is <a href="#">one link</a>`,
+			Expected: `<a rel="nofollow" href="http://try.gitea.io/">here is </a>` +
+				`<a href="#">one link</a>`,
+		},
+		{
+			InputHTML: `this has <a href="one">multiple </a><a rel="nofollow" href="two">links</a>!`,
+			Expected: `<a rel="nofollow" href="http://try.gitea.io/">this has </a>` +
+				`<a href="one">multiple </a><a rel="nofollow" href="two">links</a>` +
+				`<a rel="nofollow" href="http://try.gitea.io/">!</a>`,
+		},
+	} {
+		inputBytes := []byte(test.InputHTML)
+		output := WrapLink(inputBytes, defaultURL)
+		assert.Equal(t, test.Expected, string(output))
+	}
+}
+
 func TestRender_IssueIndexPattern(t *testing.T) {
 	// numeric: render inputs without valid mentions
 	test := func(s string) {

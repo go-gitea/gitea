@@ -110,7 +110,8 @@ func NewFuncMap() []template.FuncMap {
 		"EscapePound": func(str string) string {
 			return strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(str)
 		},
-		"RenderCommitMessage": RenderCommitMessage,
+		"RenderCommitMessage":     RenderCommitMessage,
+		"RenderCommitMessageLink": RenderCommitMessageLink,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
 		},
@@ -252,28 +253,27 @@ func ReplaceLeft(s, old, new string) string {
 }
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
-func RenderCommitMessage(full bool, msg, urlPrefix string, metas map[string]string) template.HTML {
+func RenderCommitMessage(msg, urlPrefix string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
 	fullMessage := string(markup.RenderIssueIndexPattern([]byte(cleanMsg), urlPrefix, metas))
 	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
-	numLines := len(msgLines)
-	if numLines == 0 {
+	if len(msgLines) == 0 {
 		return template.HTML("")
-	} else if !full {
-		return template.HTML(msgLines[0])
-	} else if numLines == 1 || (numLines >= 2 && len(msgLines[1]) == 0) {
-		// First line is a header, standalone or followed by empty line
-		header := fmt.Sprintf("<h3>%s</h3>", msgLines[0])
-		if numLines >= 2 {
-			fullMessage = header + fmt.Sprintf("\n<pre>%s</pre>", strings.Join(msgLines[2:], "\n"))
-		} else {
-			fullMessage = header
-		}
-	} else {
-		// Non-standard git message, there is no header line
-		fullMessage = fmt.Sprintf("<h4>%s</h4>", strings.Join(msgLines, "<br>"))
 	}
-	return template.HTML(fullMessage)
+	return template.HTML(msgLines[0])
+}
+
+// RenderCommitMessageLink renders commit message as a XXS-safe link to the provided
+// default url, handling for special links.
+func RenderCommitMessageLink(msg, urlPrefix string, urlDefault string, metas map[string]string) template.HTML {
+	cleanMsg := template.HTMLEscapeString(msg)
+	fullMsg := markup.RenderIssueIndexPattern([]byte(cleanMsg), urlPrefix, metas)
+	linkedMessage := string(markup.WrapLink(fullMsg, urlDefault))
+	msgLines := strings.Split(strings.TrimSpace(linkedMessage), "\n")
+	if len(msgLines) == 0 {
+		return template.HTML("")
+	}
+	return template.HTML(msgLines[0])
 }
 
 // Actioner describes an action

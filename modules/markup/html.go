@@ -126,6 +126,40 @@ func URLJoin(base string, elems ...string) string {
 	return u.String()
 }
 
+// WrapLink make an html text segment into a link to the provided url,
+// sensibly handling parts of the input that are already links
+func WrapLink(htmlBytes []byte, defaultURL string) []byte {
+	var buf bytes.Buffer
+	remainder := htmlBytes
+	defaultLinkOpen := []byte(fmt.Sprintf(`<a rel="nofollow" href="%s">`, defaultURL))
+	defaultLinkClose := []byte("</a>")
+	for len(remainder) > 0 {
+		openIndex := bytes.Index(remainder, []byte("<a "))
+		if openIndex < 0 {
+			break
+		}
+		closeIndex := bytes.Index(remainder, []byte("</a>"))
+		if closeIndex < 0 || closeIndex < openIndex {
+			break
+		}
+		closeIndex += 4 // account for length of "</a>"
+
+		if openIndex > 0 {
+			buf.Write(defaultLinkOpen)
+			buf.Write(remainder[:openIndex])
+			buf.Write(defaultLinkClose)
+		}
+		buf.Write(remainder[openIndex:closeIndex])
+		remainder = remainder[closeIndex:]
+	}
+	if len(remainder) > 0 {
+		buf.Write(defaultLinkOpen)
+		buf.Write(remainder)
+		buf.Write(defaultLinkClose)
+	}
+	return buf.Bytes()
+}
+
 // RenderIssueIndexPattern renders issue indexes to corresponding links.
 func RenderIssueIndexPattern(rawBytes []byte, urlPrefix string, metas map[string]string) []byte {
 	urlPrefix = cutoutVerbosePrefix(urlPrefix)
