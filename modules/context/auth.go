@@ -42,7 +42,7 @@ func Toggle(options *ToggleOptions) macaron.Handler {
 			ctx.Redirect(setting.AppSubURL + string(setting.LandingPageURL))
 			return
 		}
-		
+
 		// Redirect to dashboard if user tries to visit any non-login page.
 		if options.SignOutRequired && ctx.IsSigned && ctx.Req.RequestURI != "/" {
 			ctx.Redirect(setting.AppSubURL + "/")

@@ -97,11 +97,7 @@ func checkAutoLogin(ctx *context.Context) bool {
 			ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
 			ctx.Redirect(redirectTo)
 		} else {
-			if setting.LandingPageURL != setting.LandingPageHome {
-  			ctx.Redirect(setting.AppSubURL + string(setting.LandingPageURL))
-			} else {
-				ctx.Redirect(setting.AppSubURL + "/")
-			}
+			ctx.Redirect(setting.AppSubURL + string(setting.LandingPageURL))
 		}
 		return true
 	}
