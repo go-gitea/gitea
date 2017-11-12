@@ -159,6 +159,9 @@ func NewFuncMap() []template.FuncMap {
 			return setting.DisableGitHooks
 		},
 		"TrN": TrN,
+		"UnescapeBS": func(str string) string {
+			return strings.NewReplacer("\\;", ";", "\\#", "#").Replace(str)
+		},
 	}}
 }
 
