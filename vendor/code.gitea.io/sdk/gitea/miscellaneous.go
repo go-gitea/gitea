@@ -4,22 +4,19 @@
 
 package gitea
 
-// SearchResults results of search
-// swagger:response SearchResults
+// SearchResults results of a successful search
 type SearchResults struct {
 	OK   bool          `json:"ok"`
 	Data []*Repository `json:"data"`
 }
 
-// SearchError error of failing search
-// swagger:response SearchError
+// SearchError error of a failed search
 type SearchError struct {
 	OK    bool   `json:"ok"`
 	Error string `json:"error"`
 }
 
 // MarkdownOption markdown options
-// swagger:parameters renderMarkdown
 type MarkdownOption struct {
 	// Text markdown to render
 	//
@@ -44,9 +41,8 @@ type MarkdownOption struct {
 type MarkdownRender string
 
 // ServerVersion wraps the version of the server
-// swagger:response ServerVersion
 type ServerVersion struct {
-	Version string
+	Version string `json:"version"`
 }
 
 // ServerVersion returns the version of the server

@@ -20,9 +20,8 @@ func (c *Client) ListForks(user, repo string) ([]*Repository, error) {
 }
 
 // CreateForkOption options for creating a fork
-// swagger:parameters createFork
 type CreateForkOption struct {
-	// in: body
+	// organization name, if forking into an organization
 	Organization *string `json:"organization"`
 }
 

@@ -60,6 +60,15 @@ const (
 	LandingPageExplore LandingPage = "/explore"
 )
 
+// MarkupParser defines the external parser configured in ini
+type MarkupParser struct {
+	Enabled        bool
+	MarkupName     string
+	Command        string
+	FileExtensions []string
+	IsInputFile    bool
+}
+
 // settings
 var (
 	// AppVer settings
@@ -515,6 +524,8 @@ var (
 	HasRobotsTxt      bool
 	InternalToken     string // internal access token
 	IterateBufferSize int
+
+	ExternalMarkupParsers []MarkupParser
 )
 
 // DateLang transforms standard language locale name to corresponding value in datetime plugin.
@@ -1073,6 +1084,44 @@ func NewContext() {
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
+
+	extensionReg := regexp.MustCompile(`\.\w`)
+	for _, sec := range Cfg.Section("markup").ChildSections() {
+		name := strings.TrimLeft(sec.Name(), "markup.")
+		if name == "" {
+			log.Warn("name is empty, markup " + sec.Name() + "ignored")
+			continue
+		}
+
+		extensions := sec.Key("FILE_EXTENSIONS").Strings(",")
+		var exts = make([]string, 0, len(extensions))
+		for _, extension := range extensions {
+			if !extensionReg.MatchString(extension) {
+				log.Warn(sec.Name() + " file extension " + extension + " is invalid. Extension ignored")
+			} else {
+				exts = append(exts, extension)
+			}
+		}
+
+		if len(exts) == 0 {
+			log.Warn(sec.Name() + " file extension is empty, markup " + name + " ignored")
+			continue
+		}
+
+		command := sec.Key("RENDER_COMMAND").MustString("")
+		if command == "" {
+			log.Warn(" RENDER_COMMAND is empty, markup " + name + " ignored")
+			continue
+		}
+
+		ExternalMarkupParsers = append(ExternalMarkupParsers, MarkupParser{
+			Enabled:        sec.Key("ENABLED").MustBool(false),
+			MarkupName:     name,
+			FileExtensions: exts,
+			Command:        command,
+			IsInputFile:    sec.Key("IS_INPUT_FILE").MustBool(false),
+		})
+	}
 }
 
 // Service settings
@@ -1133,7 +1182,6 @@ func newService() {
 			Service.OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
 		}
 	}
-
 }
 
 var logLevels = map[string]string{
