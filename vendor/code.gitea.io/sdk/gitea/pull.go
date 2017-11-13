@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// PullRequest represents a pull request API object.
+// PullRequest represents a pull request
 type PullRequest struct {
 	ID        int64      `json:"id"`
 	URL       string     `json:"url"`
@@ -31,6 +31,7 @@ type PullRequest struct {
 
 	Mergeable      bool       `json:"mergeable"`
 	HasMerged      bool       `json:"merged"`
+	// swagger:strfmt date-time
 	Merged         *time.Time `json:"merged_at"`
 	MergedCommitID *string    `json:"merge_commit_sha"`
 	MergedBy       *User      `json:"merged_by"`
@@ -39,11 +40,13 @@ type PullRequest struct {
 	Head      *PRBranchInfo `json:"head"`
 	MergeBase string        `json:"merge_base"`
 
+	// swagger:strfmt date-time
 	Created *time.Time `json:"created_at"`
+	// swagger:strfmt date-time
 	Updated *time.Time `json:"updated_at"`
 }
 
-// PRBranchInfo base branch info when send a PR
+// PRBranchInfo information about a branch
 type PRBranchInfo struct {
 	Name       string      `json:"label"`
 	Ref        string      `json:"ref"`
@@ -52,7 +55,7 @@ type PRBranchInfo struct {
 	Repository *Repository `json:"repo"`
 }
 
-// ListPullRequestsOptions options when list PRs
+// ListPullRequestsOptions options for listing pull requests
 type ListPullRequestsOptions struct {
 	Page  int    `json:"page"`
 	State string `json:"state"`

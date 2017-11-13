@@ -28,31 +28,35 @@ func listUserFollowers(ctx *context.APIContext, u *models.User) {
 	responseAPIUsers(ctx, users)
 }
 
-// ListMyFollowers list all my followers
+// ListMyFollowers list the authenticated user's followers
 func ListMyFollowers(ctx *context.APIContext) {
-	// swagger:route GET /user/followers user userCurrentListFollowers
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: UserList
-	//       500: error
-
+	// swagger:operation GET /user/followers user userCurrentListFollowers
+	// ---
+	// summary: List the authenticated user's followers
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/UserList"
 	listUserFollowers(ctx, ctx.User)
 }
 
-// ListFollowers list user's followers
+// ListFollowers list the given user's followers
 func ListFollowers(ctx *context.APIContext) {
-	// swagger:route GET /users/:username/followers user userListFollowers
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: UserList
-	//       500: error
-
+	// swagger:operation GET /users/{username}/followers user userListFollowers
+	// ---
+	// summary: List the given user's followers
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/UserList"
 	u := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -69,31 +73,35 @@ func listUserFollowing(ctx *context.APIContext, u *models.User) {
 	responseAPIUsers(ctx, users)
 }
 
-// ListMyFollowing list all my followings
+// ListMyFollowing list the users that the authenticated user is following
 func ListMyFollowing(ctx *context.APIContext) {
-	// swagger:route GET /user/following user userCurrentListFollowing
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: UserList
-	//       500: error
-
+	// swagger:operation GET /user/following user userCurrentListFollowing
+	// ---
+	// summary: List the users that the authenticated user is following
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/UserList"
 	listUserFollowing(ctx, ctx.User)
 }
 
-// ListFollowing list user's followings
+// ListFollowing list the users that the given user is following
 func ListFollowing(ctx *context.APIContext) {
-	// swagger:route GET /users/{username}/following user userListFollowing
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: UserList
-	//       500: error
-
+	// swagger:operation GET /users/{username}/following user userListFollowing
+	// ---
+	// summary: List the users that the given user is following
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/UserList"
 	u := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -109,14 +117,22 @@ func checkUserFollowing(ctx *context.APIContext, u *models.User, followID int64)
 	}
 }
 
-// CheckMyFollowing check if the repo is followed by me
+// CheckMyFollowing whether the given user is followed by the authenticated user
 func CheckMyFollowing(ctx *context.APIContext) {
-	// swagger:route GET /user/following/{username} user userCurrentCheckFollowing
-	//
-	//     Responses:
-	//       204: empty
-	//       404: notFound
-
+	// swagger:operation GET /user/following/{followee} user userCurrentCheckFollowing
+	// ---
+	// summary: Check whether a user is followed by the authenticated user
+	// parameters:
+	// - name: followee
+	//   in: path
+	//   description: username of followed user
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	target := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -124,14 +140,27 @@ func CheckMyFollowing(ctx *context.APIContext) {
 	checkUserFollowing(ctx, ctx.User, target.ID)
 }
 
-// CheckFollowing check if the repo is followed by user
+// CheckFollowing check if one user is following another user
 func CheckFollowing(ctx *context.APIContext) {
-	// swagger:route GET /users/{username}/following/:target user userCheckFollowing
-	//
-	//     Responses:
-	//       204: empty
-	//       404: notFound
-
+	// swagger:operation GET /users/{follower}/following/{followee} user userCheckFollowing
+	// ---
+	// summary: Check if one user is following another user
+	// parameters:
+	// - name: follower
+	//   in: path
+	//   description: username of following user
+	//   type: string
+	//   required: true
+	// - name: followee
+	//   in: path
+	//   description: username of followed user
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	u := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -143,14 +172,20 @@ func CheckFollowing(ctx *context.APIContext) {
 	checkUserFollowing(ctx, u, target.ID)
 }
 
-// Follow follow one repository
+// Follow follow a user
 func Follow(ctx *context.APIContext) {
-	// swagger:route PUT /user/following/{username} user userCurrentPutFollow
-	//
-	//     Responses:
-	//       204: empty
-	//       500: error
-
+	// swagger:operation PUT /user/following/{username} user userCurrentPutFollow
+	// ---
+	// summary: Follow a user
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user to follow
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	target := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -162,14 +197,20 @@ func Follow(ctx *context.APIContext) {
 	ctx.Status(204)
 }
 
-// Unfollow unfollow one repository
+// Unfollow unfollow a user
 func Unfollow(ctx *context.APIContext) {
-	// swagger:route DELETE /user/following/{username} user userCurrentDeleteFollow
-	//
-	//     Responses:
-	//       204: empty
-	//       500: error
-
+	// swagger:operation DELETE /user/following/{username} user userCurrentDeleteFollow
+	// ---
+	// summary: Unfollow a user
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user to unfollow
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	target := GetUserByParams(ctx)
 	if ctx.Written() {
 		return

@@ -41,14 +41,17 @@ func (f *CreateRepoForm) Validate(ctx *macaron.Context, errs binding.Errors) bin
 
 // MigrateRepoForm form for migrating repository
 type MigrateRepoForm struct {
+	// required: true
 	CloneAddr    string `json:"clone_addr" binding:"Required"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
-	UID          int64  `json:"uid" binding:"Required"`
-	RepoName     string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Mirror       bool   `json:"mirror"`
-	Private      bool   `json:"private"`
-	Description  string `json:"description" binding:"MaxSize(255)"`
+	// required: true
+	UID int64 `json:"uid" binding:"Required"`
+	// required: true
+	RepoName    string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Mirror      bool   `json:"mirror"`
+	Private     bool   `json:"private"`
+	Description string `json:"description" binding:"MaxSize(255)"`
 }
 
 // Validate validates the fields

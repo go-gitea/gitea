@@ -4,11 +4,7 @@
 
 // Package v1 Gitea API.
 //
-// This provide API interface to communicate with this Gitea instance.
-//
-// Terms Of Service:
-//
-// there are no TOS at this moment, use at your own risk we take no responsibility
+// This documentation describes the Gitea API.
 //
 //     Schemes: http, https
 //     BasePath: /api/v1
@@ -51,11 +47,6 @@ package v1
 import (
 	"strings"
 
-	"github.com/go-macaron/binding"
-	"gopkg.in/macaron.v1"
-
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
@@ -63,8 +54,13 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/repo"
+	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/go-macaron/binding"
+	"gopkg.in/macaron.v1"
 )
 
 func repoAssignment() macaron.Handler {
@@ -320,7 +316,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("", user.GetAuthenticatedUser)
 			m.Combo("/emails").Get(user.ListEmails).
 				Post(bind(api.CreateEmailOption{}), user.AddEmail).
-				Delete(bind(api.CreateEmailOption{}), user.DeleteEmail)
+				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
 
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {
@@ -435,7 +431,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 							m.Combo("").Get(repo.ListTrackedTimes).
 								Post(reqToken(), bind(api.AddTimeOption{}), repo.AddTime)
 						})
-
 					})
 				}, mustEnableIssues)
 				m.Group("/labels", func() {
@@ -484,8 +479,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Post(reqToken(), reqRepoWriter(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				})
 				m.Group("/commits/:ref", func() {
-					m.Get("/status", repo.GetCombinedCommitStatus)
-					m.Get("/statuses", repo.GetCommitStatuses)
+					m.Get("/status", repo.GetCombinedCommitStatusByRef)
+					m.Get("/statuses", repo.GetCommitStatusesByRef)
 				})
 			}, repoAssignment())
 		})
