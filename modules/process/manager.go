@@ -116,12 +116,11 @@ func (pm *Manager) ExecDirEnv(timeout time.Duration, dir, desc string, env []str
 	err := cmd.Wait()
 	pm.Remove(pid)
 
-	if err == nil {
-		return stdOut.String(), stdErr.String(), nil
+	if err != nil {
+		err = fmt.Errorf("exec(%d:%s) failed: %v(%v) stdout: %v stderr: %v", pid, desc, err, ctx.Err(), stdOut, stdErr)
 	}
 
-	out := fmt.Errorf("exec(%d:%s) failed: %v stdout: %v stderr: %v", pid, desc, ctx.Err(), stdOut, stdErr)
-	return stdOut.String(), stdErr.String(), out
+	return stdOut.String(), stdErr.String(), err
 }
 
 // Kill and remove a process from list.
