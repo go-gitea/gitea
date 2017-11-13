@@ -24,7 +24,6 @@ WORKINGDIR=/home/git/gitea
 DAEMON=$WORKINGDIR/$NAME
 DAEMON_ARGS="web"
 USER=git
-USERBIND="setcap cap_net_bind_service=+ep"
 STOP_SCHEDULE="${STOP_SCHEDULE:-QUIT/5/TERM/1/KILL/5}"
 
 # Read configuration variable file if it is present
@@ -35,7 +34,6 @@ STOP_SCHEDULE="${STOP_SCHEDULE:-QUIT/5/TERM/1/KILL/5}"
 
 do_start()
 {
-    $USERBIND $DAEMON
     sh -c "USER=$USER start-stop-daemon --start --quiet --pidfile $PIDFILE --make-pidfile \\
         --background --chdir $WORKINGDIR --chuid $USER \\
         --exec $DAEMON -- $DAEMON_ARGS"
