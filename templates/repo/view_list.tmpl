@@ -27,7 +27,7 @@
 							</div>
 						{{end}}
 				</a>
-				<span class="grey has-emoji">{{RenderCommitMessage false .LatestCommit.Summary .RepoLink $.Repository.ComposeMetas}}
+				<span class="grey has-emoji">{{RenderCommitMessage .LatestCommit.Summary .RepoLink $.Repository.ComposeMetas}}
 				{{template "repo/commit_status" .LatestCommitStatus}}</span>
 			</th>
 			<th class="nine wide">
@@ -75,9 +75,7 @@
 					</td>
 				{{end}}
 				<td class="message collapsing has-emoji">
-					<a rel="nofollow" href="{{$.RepoLink}}/commit/{{$commit.ID}}">
-						{{RenderCommitMessage false $commit.Summary $.RepoLink $.Repository.ComposeMetas}}
-					</a>
+					{{RenderCommitMessageLink $commit.Summary $.RepoLink (print $.RepoLink "/commit/" $commit.ID) $.Repository.ComposeMetas}}
 				</td>
 				<td class="text grey right age">{{TimeSince $commit.Committer.When $.Lang}}</td>
 			</tr>
