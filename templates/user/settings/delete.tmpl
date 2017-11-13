@@ -13,14 +13,14 @@
 			<form class="ui form" id="delete-form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<input class="fake" type="password">
-				<div class="inline required field {{if .Err_Password}}error{{end}}">
+				<div class="required field {{if .Err_Password}}error{{end}}">
 					<label for="password">{{.i18n.Tr "password"}}</label>
 					<input id="password" name="password" type="password" autofocus required>
 				</div>
-				<div class="ui red button delete-button" data-type="form" data-form="#delete-form">
-					{{.i18n.Tr "settings.confirm_delete_account"}}
-				</div>
-				<div>
+				<div class="field">
+					<div class="ui red button delete-button" data-type="form" data-form="#delete-form">
+						{{.i18n.Tr "settings.confirm_delete_account"}}
+					</div>
 					<a href="{{AppSubUrl}}/user/forgot_password?email={{.Email}}">{{.i18n.Tr "auth.forgot_password"}}</a>
 				</div>
 			</form>

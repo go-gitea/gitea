@@ -20,15 +20,30 @@ func trackedTimesToAPIFormat(trackedTimes []*models.TrackedTime) []*api.TrackedT
 
 // ListTrackedTimes list all the tracked times of an issue
 func ListTrackedTimes(ctx *context.APIContext) {
-	// swagger:route GET /repos/{username}/{reponame}/issues/{issue}/times repository issueTrackedTimes
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: TrackedTimes
-	//	 404: error
-	//       500: error
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/times issue issueTrackedTimes
+	// ---
+	// summary: List an issue's tracked times
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: index of the issue
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/TrackedTimeList"
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.Error(404, "IsTimetrackerEnabled", "Timetracker is diabled")
 		return
@@ -54,17 +69,40 @@ func ListTrackedTimes(ctx *context.APIContext) {
 
 // AddTime adds time manual to the given issue
 func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
-	// swagger:route Post /repos/{username}/{reponame}/issues/{issue}/times repository addTime
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: TrackedTime
-	//       400: error
-	//       403: error
-	//	 404: error
-	//       500: error
+	// swagger:operation Post /repos/{owner}/{repo}/issues/{index}/times issue issueAddTime
+	// ---
+	// summary: Add a tracked time to a issue
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: index of the issue to add tracked time to
+	//   type: integer
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/AddTimeOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/TrackedTime"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/error"
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -93,16 +131,30 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 
 // ListTrackedTimesByUser  lists all tracked times of the user
 func ListTrackedTimesByUser(ctx *context.APIContext) {
-	// swagger:route GET /repos/{username}/{reponame}/times/{timetrackingusername} user userTrackedTimes
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: TrackedTimes
-	//       400: error
-	//	 404: error
-	//       500: error
+	// swagger:operation GET /repos/{owner}/{repo}/times/{tracker} user userTrackedTimes
+	// ---
+	// summary: List a user's tracked times in a repo
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: user
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/TrackedTimeList"
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
 		return
@@ -131,17 +183,27 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	ctx.JSON(200, &apiTrackedTimes)
 }
 
-// ListTrackedTimesByRepository lists all tracked times of the user
+// ListTrackedTimesByRepository lists all tracked times of the repository
 func ListTrackedTimesByRepository(ctx *context.APIContext) {
-	// swagger:route GET /repos/{username}/{reponame}/times repository repoTrackedTimes
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: TrackedTimes
-	//       400: error
-	//       500: error
+	// swagger:operation GET /repos/{owner}/{repo}/times repository repoTrackedTimes
+	// ---
+	// summary: List a repo's tracked times
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/TrackedTimeList"
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
 		return
@@ -158,14 +220,14 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 
 // ListMyTrackedTimes lists all tracked times of the current user
 func ListMyTrackedTimes(ctx *context.APIContext) {
-	// swagger:route GET /user/times user userTrackedTimes
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: TrackedTimes
-	//       500: error
+	// swagger:operation GET /user/times user userCurrentTrackedTimes
+	// ---
+	// summary: List the current user's tracked times
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/TrackedTimeList"
 	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{UserID: ctx.User.ID})
 	if err != nil {
 		ctx.Error(500, "GetTrackedTimesByUser", err)
