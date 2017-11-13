@@ -5,13 +5,12 @@
 package admin
 
 import (
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	api "code.gitea.io/sdk/gitea"
 )
 
 func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, loginName string) {
@@ -34,22 +33,27 @@ func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, l
 	u.LoginName = loginName
 }
 
-// CreateUser api for creating a user
+// CreateUser create a user
 func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
-	// swagger:route POST /admin/users admin adminCreateUser
-	//
-	//     Consumes:
-	//     - application/json
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       201: User
-	//       403: forbidden
-	//       422: validationError
-	//       500: error
-
+	// swagger:operation POST /admin/users admin adminCreateUser
+	// ---
+	// summary: Create a user
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateUserOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/User"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	u := &models.User{
 		Name:      form.Username,
 		FullName:  form.FullName,
@@ -87,20 +91,30 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 
 // EditUser api for modifying a user's information
 func EditUser(ctx *context.APIContext, form api.EditUserOption) {
-	// swagger:route PATCH /admin/users/{username} admin adminEditUser
-	//
-	//     Consumes:
-	//     - application/json
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: User
-	//       403: forbidden
-	//       422: validationError
-	//       500: error
-
+	// swagger:operation PATCH /admin/users/{username} admin adminEditUser
+	// ---
+	// summary: Edit an existing user
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user to edit
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditUserOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/User"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -157,17 +171,24 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 
 // DeleteUser api for deleting a user
 func DeleteUser(ctx *context.APIContext) {
-	// swagger:route DELETE /admin/users/{username} admin adminDeleteUser
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       204: empty
-	//       403: forbidden
-	//       422: validationError
-	//       500: error
-
+	// swagger:operation DELETE /admin/users/{username} admin adminDeleteUser
+	// ---
+	// summary: Delete a user
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user to delete
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -189,20 +210,26 @@ func DeleteUser(ctx *context.APIContext) {
 
 // CreatePublicKey api for creating a public key to a user
 func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
-	// swagger:route POST /admin/users/{username}/keys admin adminCreatePublicKey
-	//
-	//     Consumes:
-	//     - application/json
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       201: PublicKey
-	//       403: forbidden
-	//       422: validationError
-	//       500: error
-
+	// swagger:operation POST /admin/users/{username}/keys admin adminCreatePublicKey
+	// ---
+	// summary: Add a public key on behalf of a user
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of the user
+	//   type: string
+	//   required: true
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/PublicKey"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
