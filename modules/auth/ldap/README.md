@@ -1,4 +1,4 @@
-Gogs LDAP Authentication Module
+Gitea LDAP Authentication Module
 ===============================
 
 ## About
