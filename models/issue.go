@@ -1447,3 +1447,45 @@ func updateIssue(e Engine, issue *Issue) error {
 func UpdateIssue(issue *Issue) error {
 	return updateIssue(x, issue)
 }
+
+// Get Blocked By Dependencies, aka all issues this issue is blocked by.
+func (issue *Issue) getBlockedByDependencies(e Engine) (_ []*Issue, err error) {
+	var issueDeps []*Issue
+
+	if err = x.
+		Table("issue_dependency").
+		Select("issue.*").
+		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
+		Where("issue_id = ?", issue.ID).
+		Find(&issueDeps); err != nil {
+		return issueDeps, err
+	}
+
+	return issueDeps, nil
+}
+
+// Get Blocking Dependencies, aka all issues this issue blocks.
+func (issue *Issue) getBlockingDependencies(e Engine) ([]*Issue, error) {
+	var issueDeps []*Issue
+
+	if err := x.
+		Table("issue_dependency").
+		Select("issue.*").
+		Join("INNER", "issue", "issue.id = issue_dependency.issue_id").
+		Where("dependency_id = ?", issue.ID).
+		Find(&issueDeps); err != nil {
+		return issueDeps, err
+	}
+
+	return issueDeps, nil
+}
+
+// BlockedByDependencies finds all Dependencies an issue is blocked by
+func (issue *Issue) BlockedByDependencies() (_ []*Issue, err error) {
+	return issue.getBlockedByDependencies(x)
+}
+
+// BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
+func (issue *Issue) BlockingDependencies() (_ []*Issue, err error) {
+	return issue.getBlockingDependencies(x)
+}
