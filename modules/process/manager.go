@@ -6,13 +6,12 @@ package process
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os/exec"
 	"sync"
 	"time"
-
-	"code.gitea.io/gitea/modules/log"
 )
 
 // TODO: This packages still uses a singleton for the Manager.
@@ -101,7 +100,10 @@ func (pm *Manager) ExecDirEnv(timeout time.Duration, dir, desc string, env []str
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
-	cmd := exec.Command(cmdName, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, cmdName, args...)
 	cmd.Dir = dir
 	cmd.Env = env
 	cmd.Stdout = stdOut
@@ -111,30 +113,14 @@ func (pm *Manager) ExecDirEnv(timeout time.Duration, dir, desc string, env []str
 	}
 
 	pid := pm.Add(desc, cmd)
-	done := make(chan error)
-	go func() {
-		done <- cmd.Wait()
-	}()
-
-	var err error
-	select {
-	case <-time.After(timeout):
-		if errKill := pm.Kill(pid); errKill != nil {
-			log.Error(4, "exec(%d:%s) failed to kill: %v", pid, desc, errKill)
-		}
-		<-done
-		return "", "", ErrExecTimeout
-	case err = <-done:
-	}
-
+	err := cmd.Wait()
 	pm.Remove(pid)
 
 	if err != nil {
-		out := fmt.Errorf("exec(%d:%s) failed: %v stdout: %v stderr: %v", pid, desc, err, stdOut, stdErr)
-		return stdOut.String(), stdErr.String(), out
+		err = fmt.Errorf("exec(%d:%s) failed: %v(%v) stdout: %v stderr: %v", pid, desc, err, ctx.Err(), stdOut, stdErr)
 	}
 
-	return stdOut.String(), stdErr.String(), nil
+	return stdOut.String(), stdErr.String(), err
 }
 
 // Kill and remove a process from list.
