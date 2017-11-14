@@ -60,7 +60,7 @@
 							</a>
 						</td>
 						<td class="message collapsing">
-							<span class="has-emoji{{if gt .ParentCount 1}} grey text{{end}}">{{RenderCommitMessage false .Summary $.RepoLink $.Repository.ComposeMetas}}</span>
+							<span class="has-emoji{{if gt .ParentCount 1}} grey text{{end}}">{{RenderCommitMessage .Summary $.RepoLink $.Repository.ComposeMetas}}</span>
 							{{template "repo/commit_status" .Status}}
 						</td>
 						<td class="grey text right aligned">{{TimeSince .Author.When $.Lang}}</td>

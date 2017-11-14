@@ -20,8 +20,26 @@ func composeDeployKeysAPILink(repoPath string) string {
 }
 
 // ListDeployKeys list all the deploy keys of a repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories-Deploy-Keys#list-deploy-keys
 func ListDeployKeys(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/keys repository repoListKeys
+	// ---
+	// summary: List a repository's keys
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/DeployKeyList"
 	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.Error(500, "ListDeployKeys", err)
@@ -42,8 +60,31 @@ func ListDeployKeys(ctx *context.APIContext) {
 }
 
 // GetDeployKey get a deploy key by id
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories-Deploy-Keys#get-a-deploy-key
 func GetDeployKey(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/keys/{id} repository repoGetKey
+	// ---
+	// summary: Get a repository's key by id
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the key to get
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/DeployKey"
 	key, err := models.GetDeployKeyByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrDeployKeyNotExist(err) {
@@ -85,8 +126,32 @@ func HandleAddKeyError(ctx *context.APIContext, err error) {
 }
 
 // CreateDeployKey create deploy key for a repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories-Deploy-Keys#add-a-new-deploy-key
 func CreateDeployKey(ctx *context.APIContext, form api.CreateKeyOption) {
+	// swagger:operation POST /repos/{owner}/{repo}/keys repository repoCreateKey
+	// ---
+	// summary: Add a key to a repository
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateKeyOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/DeployKey"
 	content, err := models.CheckPublicKeyString(form.Key)
 	if err != nil {
 		HandleCheckKeyStringError(ctx, err)
@@ -105,8 +170,29 @@ func CreateDeployKey(ctx *context.APIContext, form api.CreateKeyOption) {
 }
 
 // DeleteDeploykey delete deploy key for a repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories-Deploy-Keys#remove-a-deploy-key
 func DeleteDeploykey(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/keys/{id} repository repoDeleteKey
+	// ---
+	// summary: Delete a key from a repository
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the key to delete
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	if err := models.DeleteDeployKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrKeyAccessDenied(err) {
 			ctx.Error(403, "", "You do not have access to this key")
