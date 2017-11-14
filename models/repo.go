@@ -734,12 +734,12 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 }
 
 // BlockedByDependencies finds all Dependencies an issue is blocked by
-func (repo *Repository) BlockedByDependencies(issueID int64) (_ []*IssueDependencyIssue, err error) {
+func (repo *Repository) BlockedByDependencies(issueID int64) (_ []*Issue, err error) {
 	return repo.getBlockedByDependencies(x, issueID)
 }
 
 // BlockingDependencies returns all blocking dependencies
-func (repo *Repository) BlockingDependencies(issueID int64) (_ []*IssueDependencyIssue, err error) {
+func (repo *Repository) BlockingDependencies(issueID int64) (_ []*Issue, err error) {
 	return repo.getBlockingDependencies(x, issueID)
 }
 
@@ -2454,10 +2454,15 @@ func (repo *Repository) GetUserFork(userID int64) (*Repository, error) {
 }
 
 // Get Blocked By Dependencies, aka all issues this issue is blocked by.
-func (repo *Repository) getBlockedByDependencies(e Engine, issueID int64) (_ []*IssueDependencyIssue, err error) {
-	var issueDeps []*IssueDependencyIssue
+func (repo *Repository) getBlockedByDependencies(e Engine, issueID int64) (_ []*Issue, err error) {
+	var issueDeps []*Issue
 
-	if err = x.Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").Where("issue_id = ?", issueID).Find(&issueDeps); err != nil {
+	if err = x.
+		Table("issue_dependency").
+		Select("issue.*").
+		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
+		Where("issue_id = ?", issueID).
+		Find(&issueDeps); err != nil {
 		return issueDeps, err
 	}
 
@@ -2465,10 +2470,15 @@ func (repo *Repository) getBlockedByDependencies(e Engine, issueID int64) (_ []*
 }
 
 // Get Blocking Dependencies, aka all issues this issue blocks.
-func (repo *Repository) getBlockingDependencies(e Engine, issueID int64) ([]*IssueDependencyIssue, error) {
-	var issueDeps []*IssueDependencyIssue
+func (repo *Repository) getBlockingDependencies(e Engine, issueID int64) ([]*Issue, error) {
+	var issueDeps []*Issue
 
-	if err := x.Join("INNER", "issue", "issue.id = issue_dependency.issue_id").Where("dependency_id = ?", issueID).Find(&issueDeps); err != nil {
+	if err := x.
+		Table("issue_dependency").
+		Select("issue.*").
+		Join("INNER", "issue", "issue.id = issue_dependency.issue_id").
+		Where("dependency_id = ?", issueID).
+		Find(&issueDeps); err != nil {
 		return issueDeps, err
 	}
 

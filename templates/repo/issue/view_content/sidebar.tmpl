@@ -210,7 +210,7 @@
 							{{range .BlockedByDependencies}}
 								<div class="item">
 									<div class="right floated content">
-										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blockedBy');">
+										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blockedBy');">
 											<i class="delete icon text red"></i>
 										</a>
 										{{if .IsClosed}}
@@ -242,7 +242,7 @@
 							{{range .BlockingDependencies}}
 								<div class="item">
 									<div class="right floated content">
-										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blocking');">
+										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blocking');">
 											<i class="delete icon text red"></i>
 										</a>
 										{{if .IsClosed}}

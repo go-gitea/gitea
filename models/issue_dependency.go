@@ -113,25 +113,16 @@ func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err erro
 	return
 }
 
-// IssueDependencyIssue custom type for mysql join
-type IssueDependencyIssue struct {
-	IssueDependency `xorm:"extends"`
-	Issue           `xorm:"extends"`
-}
-
-// TableName returns table name for mysql join
-func (IssueDependencyIssue) TableName() string {
-	return "issue_dependency"
-}
-
 // IssueNoDependenciesLeft checks if issue can be closed
 func IssueNoDependenciesLeft(issue *Issue) (bool, error) {
 
 	exists, err := x.
+		Table("issue_dependency").
+		Select("issue.*").
 		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
 		Where("issue_dependency.issue_id = ?", issue.ID).
 		And("issue.is_closed = ?", "0").
-		Exist(&IssueDependencyIssue{})
+		Exist(&Issue{})
 
 	return !exists, err
 }
