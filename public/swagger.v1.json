@@ -849,13 +849,19 @@
           },
           {
             "type": "integer",
-            "description": "if provided, will return only repos owned by the user with the given id",
+            "description": "search only for repos that the user with the given id owns or contributes to",
             "name": "uid",
             "in": "query"
           },
           {
             "type": "integer",
-            "description": "maximum number of repos to return",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
           },
@@ -867,7 +873,7 @@
           },
           {
             "type": "boolean",
-            "description": "only search for repositories owned by the authenticated user",
+            "description": "if `uid` is given, search only for repos that the user owns",
             "name": "exclusive",
             "in": "query"
           }
