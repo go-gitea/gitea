@@ -46,6 +46,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdServ,
 		cmd.CmdHook,
 		cmd.CmdDump,
+		cmd.CmdRestore,
 		cmd.CmdCert,
 		cmd.CmdAdmin,
 		cmd.CmdGenerate,

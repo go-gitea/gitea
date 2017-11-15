@@ -9,10 +9,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -22,6 +24,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"gopkg.in/yaml.v2"
 
 	// Needed for the Postgresql driver
 	_ "github.com/lib/pq"
@@ -359,4 +362,81 @@ func DumpDatabase(filePath string, dbType string) error {
 		return x.DumpTablesToFile(tbs, filePath, core.DbType(dbType))
 	}
 	return x.DumpTablesToFile(tbs, filePath)
+}
+
+// DumpDatabaseFixtures dumps all data from database to fixtures files on dirPath
+func DumpDatabaseFixtures(dirPath string) error {
+	for _, t := range tables {
+		if err := dumpTableFixtures(t, dirPath); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func dumpTableFixtures(bean interface{}, dirPath string) error {
+	table := x.TableInfo(bean)
+	f, err := os.Create(filepath.Join(dirPath, table.Name+".yml"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	var bufferSize = 100
+	var objs = make([]interface{}, 0, bufferSize)
+	err = x.BufferSize(bufferSize).Iterate(bean, func(idx int, obj interface{}) error {
+		objs = append(objs, obj)
+		if len(objs) == bufferSize {
+			// BLOCK: need yaml support gonic name mapper
+			data, err := yaml.Marshal(objs)
+			if err != nil {
+				return err
+			}
+			_, err = f.Write(data)
+			if err != nil {
+				return err
+			}
+			objs = make([]interface{}, 0, bufferSize)
+		}
+		return err
+	})
+	if err != nil {
+		return err
+	}
+	if len(objs) > 0 {
+		data, err := yaml.Marshal(objs)
+		if err != nil {
+			return err
+		}
+		_, err = f.Write(data)
+	}
+	return err
+}
+
+// RestoreDatabaseFixtures restores all data from dir to database
+func RestoreDatabaseFixtures(dirPath string) error {
+	for _, t := range tables {
+		if err := restoreTableFixtures(t, dirPath); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func restoreTableFixtures(bean interface{}, dirPath string) error {
+	table := x.TableInfo(bean)
+	data, err := ioutil.ReadFile(filepath.Join(dirPath, table.Name+".yml"))
+	if err != nil {
+		return err
+	}
+
+	var bufferSize = 100
+	v := reflect.MakeSlice(table.Type, 0, bufferSize)
+	// BLOCK: need yaml support gonic name mapper
+	err = yaml.Unmarshal(data, v.Interface())
+	if err != nil {
+		return err
+	}
+
+	_, err = x.Insert(v.Interface())
+	return err
 }

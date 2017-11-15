@@ -1,5 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Copyright 2016 The Gitea Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -44,10 +44,6 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Value: os.TempDir(),
 			Usage: "Temporary dir path",
 		},
-		cli.StringFlag{
-			Name:  "database, d",
-			Usage: "Specify the database SQL syntax",
-		},
 		cli.BoolFlag{
 			Name:  "skip-repository, R",
 			Usage: "Skip the repository dumping",
@@ -83,10 +79,9 @@ func runDump(ctx *cli.Context) error {
 		os.Setenv("TMPDIR", tmpWorkDir)
 	}
 
-	dbDump := path.Join(tmpWorkDir, "gitea-db.sql")
+	log.Printf("Packing dump files...")
 
 	fileName := fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix())
-	log.Printf("Packing dump files...")
 	z, err := zip.Create(fileName)
 	if err != nil {
 		log.Fatalf("Failed to create %s: %v", fileName, err)
@@ -106,20 +101,23 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
-	targetDBType := ctx.String("database")
-	if len(targetDBType) > 0 && targetDBType != models.DbCfg.Type {
-		log.Printf("Dumping database %s => %s...", models.DbCfg.Type, targetDBType)
-	} else {
-		log.Printf("Dumping database...")
+	log.Printf("Dumping database...")
+
+	dbDump := path.Join(tmpWorkDir, "database")
+	if err := os.MkdirAll(dbDump, os.ModePerm); err != nil {
+		log.Fatalf("Failed to create database dir: %v", err)
 	}
 
-	if err := models.DumpDatabase(dbDump, targetDBType); err != nil {
+	if err := models.DumpDatabaseFixtures(dbDump); err != nil {
 		log.Fatalf("Failed to dump database: %v", err)
 	}
 
-	if err := z.AddFile("gitea-db.sql", dbDump); err != nil {
-		log.Fatalf("Failed to include gitea-db.sql: %v", err)
+	if err := z.AddDir("database", dbDump); err != nil {
+		log.Fatalf("Failed to include database: %v", err)
 	}
+
+	log.Printf("Dumping custom directory ... %s", setting.CustomPath)
+
 	customDir, err := os.Stat(setting.CustomPath)
 	if err == nil && customDir.IsDir() {
 		if err := z.AddDir("custom", setting.CustomPath); err != nil {
@@ -130,7 +128,7 @@ func runDump(ctx *cli.Context) error {
 	}
 
 	if com.IsExist(setting.AppDataPath) {
-		log.Printf("Packing data directory...%s", setting.AppDataPath)
+		log.Printf("Dumping data directory ... %s", setting.AppDataPath)
 
 		var sessionAbsPath string
 		if setting.SessionConfig.Provider == "file" {
@@ -141,8 +139,19 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
-	if err := z.AddDir("log", setting.LogRootPath); err != nil {
-		log.Fatalf("Failed to include log: %v", err)
+	verPath := filepath.Join(tmpWorkDir, "VERSION")
+	verf, err := os.Create(verPath)
+	if err != nil {
+		log.Fatalf("Failed to create version file: %v", err)
+	}
+	_, err = verf.WriteString(setting.AppVer)
+	verf.Close()
+	if err != nil {
+		log.Fatalf("Failed to write version to file: %v", err)
+	}
+
+	if err = z.AddFile("VERSION", verPath); err != nil {
+		log.Fatalf("Failed to add version file: %v", err)
 	}
 
 	if err = z.Close(); err != nil {
