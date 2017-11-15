@@ -160,10 +160,6 @@ func NewFuncMap() []template.FuncMap {
 			return setting.DisableGitHooks
 		},
 		"TrN": TrN,
-		// TODO: Remove this once go-ini parser supports unescaping comment characters
-		"UnescapeLocale": func(str string) string {
-			return strings.NewReplacer("\\;", ";", "\\#", "#").Replace(str)
-		},
 	}}
 }
 

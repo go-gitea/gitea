@@ -39,10 +39,10 @@
 			"revisionTime": "2015-10-08T13:54:07Z"
 		},
 		{
-			"checksumSHA1": "gSAaJ38R4iqG2CEsZe/ftOs3V9w=",
+			"checksumSHA1": "GwPkXd1UL3D7F3IuHHM+V0r4MB4=",
 			"path": "github.com/Unknwon/i18n",
-			"revision": "39d6f2727e0698b1021ceb6a77c1801aa92e7d5d",
-			"revisionTime": "2016-06-03T08:28:25Z"
+			"revision": "b64d336589669d317928070e70ba0ae558f16633",
+			"revisionTime": "2017-11-14T19:46:41Z"
 		},
 		{
 			"checksumSHA1": "BkrPsaiF83hWNDvM2o/rMBdUz5o=",
@@ -1490,10 +1490,10 @@
 			"revisionTime": "2016-04-11T21:29:32Z"
 		},
 		{
-			"checksumSHA1": "RVc+qy5SP9wOZye+2/5LPJg/SHE=",
+			"checksumSHA1": "PDsaJzdBVB5Ocolpgh89M+9+ysU=",
 			"path": "gopkg.in/ini.v1",
-			"revision": "20b96f641a5ea98f2f8619ff4f3e061cff4833bd",
-			"revisionTime": "2017-08-13T05:15:16Z"
+			"revision": "7e7da451323b6766da368f8a1e8ec9a88a16b4a0",
+			"revisionTime": "2017-11-14T01:13:26Z"
 		},
 		{
 			"checksumSHA1": "7jPSjzw3mckHVQ2SjY4NvtIJR4g=",
