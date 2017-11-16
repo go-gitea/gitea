@@ -1,5 +1,4 @@
 FROM alpine:3.6
-
 LABEL maintainer="The Gitea Authors"
 
 EXPOSE 22 3000
