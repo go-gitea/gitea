@@ -5,6 +5,9 @@
 package cache
 
 import (
+	"fmt"
+	"strconv"
+
 	"code.gitea.io/gitea/modules/setting"
 
 	mc "github.com/go-macaron/cache"
@@ -42,7 +45,18 @@ func GetInt(key string, getFunc func() (int, error)) (int, error) {
 		}
 		conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
 	}
-	return conn.Get(key).(int), nil
+	switch value := conn.Get(key).(type) {
+	case int:
+		return value, nil
+	case string:
+		v, err := strconv.Atoi(value)
+		if err != nil {
+			return 0, err
+		}
+		return v, nil
+	default:
+		return 0, fmt.Errorf("Unsupported cached value type: %v", value)
+	}
 }
 
 // GetInt64 returns key value from cache with callback when no key exists in cache
@@ -60,7 +74,18 @@ func GetInt64(key string, getFunc func() (int64, error)) (int64, error) {
 		}
 		conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
 	}
-	return conn.Get(key).(int64), nil
+	switch value := conn.Get(key).(type) {
+	case int64:
+		return value, nil
+	case string:
+		v, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		return v, nil
+	default:
+		return 0, fmt.Errorf("Unsupported cached value type: %v", value)
+	}
 }
 
 // Remove key from cache
