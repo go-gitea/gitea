@@ -1279,7 +1279,7 @@
 			"revisionTime": "2016-09-14T08:04:27Z"
 		},
 		{
-			"checksumSHA1": "sFH/xPPl/UZgLj+ypPNPlT+2Sx0=",
+			"checksumSHA1": "IQkUIOnvlf0tYloFx9mLaXSvXWQ=",
 			"path": "golang.org/x/crypto/curve25519",
 			"revision": "9f005a07e0d31d45e6656d241bb5c0f2efd4bc94",
 			"revisionTime": "2017-09-21T17:41:56Z"
