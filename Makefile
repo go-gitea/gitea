@@ -181,12 +181,12 @@ generate-ini:
 			integrations/pgsql.ini.tmpl > integrations/pgsql.ini
 
 .PHONY: test-mysql
-test-mysql: integrations.mysql.test generate-ini
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test
+test-mysql: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test
 
 .PHONY: test-pgsql
-test-pgsql: integrations.pgsql.test generate-ini
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test
+test-pgsql: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test
@@ -205,11 +205,8 @@ bench-pgsql: integrations.pgsql.test generate-ini
 integration-test-coverage: integrations.cover.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
-integrations.mysql.test: $(SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.mysql.test
-
-integrations.pgsql.test: $(SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.pgsql.test
+integrations.test: $(SOURCES)
+	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.test
 
 integrations.sqlite.test: $(SOURCES)
 	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite'
