@@ -491,6 +491,43 @@ func (err ErrLastOrgOwner) Error() string {
 	return fmt.Sprintf("user is the last member of owner team [uid: %d]", err.UID)
 }
 
+//
+// TODO LFS header
+//
+
+// ErrRepoNotExist represents a "LFSLockNotExist" kind of error.
+type ErrLFSLockNotExist struct {
+	ID     int64
+	RepoID int64
+	Path   string
+}
+
+// IsErrLFSLockNotExist checks if an error is a ErrLFSLockNotExist.
+func IsErrLFSLockNotExist(err error) bool {
+	_, ok := err.(ErrLFSLockNotExist)
+	return ok
+}
+
+func (err ErrLFSLockNotExist) Error() string {
+	return fmt.Sprintf("lfs lock does not exist [id: %d, rid: %d, path: %s]", err.ID, err.RepoID, err.Path)
+}
+
+// ErrLFSLockAlreadyExist represents a "LFSLockAlreadyExist" kind of error.
+type ErrLFSLockAlreadyExist struct {
+	RepoID int64
+	Path   string
+}
+
+// IsErrLFSLockAlreadyExist checks if an error is a ErrLFSLockAlreadyExist.
+func IsErrLFSLockAlreadyExist(err error) bool {
+	_, ok := err.(ErrLFSLockAlreadyExist)
+	return ok
+}
+
+func (err ErrLFSLockAlreadyExist) Error() string {
+	return fmt.Sprintf("lfs lock already exists [rid: %d, path: %s]", err.RepoID, err.Path)
+}
+
 // __________                           .__  __
 // \______   \ ____ ______   ____  _____|__|/  |_  ___________ ___.__.
 //  |       _// __ \\____ \ /  _ \/  ___/  \   __\/  _ \_  __ <   |  |
