@@ -7,7 +7,6 @@ package models
 import (
 	"time"
 "strconv"
-	"code.gitea.io/git"
 	api "code.gitea.io/sdk/gitea"
 )
 
@@ -77,16 +76,20 @@ func IsLFSLockExist(repoID int64, path string) (bool, error) {
 }
 
 // CreateLFSLock creates a new lock.
-func CreateLFSLock(gitRepo *git.Repository, lock *LFSLock) error {
+func CreateLFSLock(lock *LFSLock) (*LFSLock, error) {
 	isExist, err := IsLFSLockExist(lock.RepoID, lock.Path)
 	if err != nil {
-		return err
+		return nil, err
 	} else if isExist {
-		return ErrLFSLockAlreadyExist{lock.RepoID, lock.Path}
+		l, err := GetLFSLock(lock.RepoID, lock.Path)
+		if err != nil {
+			return nil, err
+		}
+		return l, ErrLFSLockAlreadyExist{lock.RepoID, lock.Path}
 	}
 
 	_, err = x.InsertOne(lock)
-	return err
+	return lock, err
 }
 
 // GetLFSLock returns release by given path.
@@ -101,4 +104,22 @@ func GetLFSLock(repoID int64, path string) (*LFSLock, error) {
 	rel := &LFSLock{RepoID: repoID, Path: path} //TODO Define if path should needed to be lower for windows compat ?
 	_, err = x.Get(rel)
 	return rel, err
+}
+
+// GetLFSLockByID returns release by given id.
+func GetLFSLockByID(id int64) (*LFSLock, error) {
+	lock := new(LFSLock)
+	has, err := x.ID(id).Get(lock)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrLFSLockNotExist{id, 0, ""}
+	}
+	return lock, nil
+}
+
+// GetLFSLockByRepoID returns a list of locks of repository.
+func GetLFSLockByRepoID(repoID int64) (locks []*LFSLock, err error) {
+	err = x.Where("repo_id = ?", repoID).Find(&locks)
+	return locks, err
 }
