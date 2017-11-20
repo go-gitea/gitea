@@ -12,6 +12,8 @@ import (
 	"gopkg.in/macaron.v1"
 )
 
+//TODO handle 403 forbidden
+
 func checkRequest(req macaron.Request) int {
 	if !setting.LFS.StartServer {
 		return 404
@@ -25,8 +27,8 @@ func checkRequest(req macaron.Request) int {
 func handleLockListOut(ctx *context.Context, lock *models.LFSLock, err error) {
 	if err != nil {
 		if models.IsErrLFSLockNotExist(err) {
-			ctx.JSON(404, api.LFSLockError{
-				Message: "not found : " + err.Error(),
+			ctx.JSON(200, api.LFSLockList{
+				Locks: []*api.LFSLock{},
 			})
 			return
 		}
@@ -36,8 +38,8 @@ func handleLockListOut(ctx *context.Context, lock *models.LFSLock, err error) {
 		return
 	}
 	if ctx.Repo.Repository.ID != lock.RepoID {
-		ctx.JSON(404, api.LFSLockError{
-			Message: "not found : " + err.Error(),
+		ctx.JSON(200, api.LFSLockList{
+			Locks: []*api.LFSLock{},
 		})
 		return
 	}
@@ -48,6 +50,7 @@ func handleLockListOut(ctx *context.Context, lock *models.LFSLock, err error) {
 
 // GetListLockHandler list locks
 func GetListLockHandler(ctx *context.Context) {
+	//TODO LFS Servers should ensure that users have at least pull access to the repository
 	status := checkRequest(ctx.Req)
 	if status != 200 {
 		writeStatus(ctx, status)
@@ -97,6 +100,7 @@ func GetListLockHandler(ctx *context.Context) {
 
 // PostLockHandler create lock
 func PostLockHandler(ctx *context.Context) {
+	//TODO Servers should ensure that users have push access to the repository, and that files are locked exclusively to one user.
 	status := checkRequest(ctx.Req)
 	if status != 200 {
 		writeStatus(ctx, status)
