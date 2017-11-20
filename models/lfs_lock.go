@@ -5,9 +5,10 @@
 package models
 
 import (
-	"time"
-"strconv"
 	api "code.gitea.io/sdk/gitea"
+	"fmt"
+	"strconv"
+	"time"
 )
 
 // LFSLock represents a git lfs lfock of repository.
@@ -69,14 +70,13 @@ func (l *LFSLock) APIFormat() *api.LFSLock {
 	}
 }
 
-
 // IsLFSLockExist returns true if lock with given path already exists.
 func IsLFSLockExist(repoID int64, path string) (bool, error) {
 	return x.Get(&LFSLock{RepoID: repoID, Path: path}) //TODO Define if path should needed to be lower for windows compat ?
 }
 
 // CreateLFSLock creates a new lock.
-func CreateLFSLock(lock *LFSLock) (*LFSLock, error) {
+func CreateLFSLock(lock *LFSLock, u *User) (*LFSLock, error) {
 	isExist, err := IsLFSLockExist(lock.RepoID, lock.Path)
 	if err != nil {
 		return nil, err
@@ -86,6 +86,18 @@ func CreateLFSLock(lock *LFSLock) (*LFSLock, error) {
 			return nil, err
 		}
 		return l, ErrLFSLockAlreadyExist{lock.RepoID, lock.Path}
+	}
+
+	repo, err := GetRepositoryByID(lock.RepoID)
+	if err != nil {
+		return nil, err
+	}
+
+	has, err := HasAccess(u.ID, repo, AccessModeWrite)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrLFSLockUnauthorizedAction{0, lock.RepoID, u, "create"}
 	}
 
 	_, err = x.InsertOne(lock)
@@ -122,4 +134,31 @@ func GetLFSLockByID(id int64) (*LFSLock, error) {
 func GetLFSLockByRepoID(repoID int64) (locks []*LFSLock, err error) {
 	err = x.Where("repo_id = ?", repoID).Find(&locks)
 	return locks, err
+}
+
+// DeleteLFSLockByID deletes a lock by given ID.
+func DeleteLFSLockByID(id int64, u *User, force bool) error {
+
+	lock, err := GetLFSLockByID(id)
+	if err != nil {
+		return err
+	}
+	repo, err := GetRepositoryByID(lock.RepoID)
+	if err != nil {
+		return err
+	}
+
+	has, err := HasAccess(u.ID, repo, AccessModeWrite)
+	if err != nil {
+		return err
+	} else if !has {
+		return ErrLFSLockUnauthorizedAction{id, repo.ID, u, "delete"}
+	}
+
+	if !force && u.ID != lock.OwnerID {
+		return fmt.Errorf("user doesn't own lock and force flag is not set")
+	}
+
+	_, err = x.ID(id).Delete(new(LFSLock))
+	return err
 }

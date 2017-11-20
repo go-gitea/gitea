@@ -57,3 +57,9 @@ type LFSLockError struct {
 	Documentation string   `json:"documentation_url,omitempty"`
 	RequestID     string   `json:"request_id,omitempty"`
 }
+
+// LFSLockDeleteRequest contains params of a delete request
+// https://github.com/git-lfs/git-lfs/blob/master/docs/api/locking.md#delete-lock
+type LFSLockDeleteRequest struct {
+	Force bool `json:"force"`
+}

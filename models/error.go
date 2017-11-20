@@ -512,6 +512,24 @@ func (err ErrLFSLockNotExist) Error() string {
 	return fmt.Sprintf("lfs lock does not exist [id: %d, rid: %d, path: %s]", err.ID, err.RepoID, err.Path)
 }
 
+// ErrLFSLockUnauthorizedAction represents a "LFSLockUnauthorizedAction" kind of error.
+type ErrLFSLockUnauthorizedAction struct {
+	ID     int64
+	RepoID int64
+	User   *User
+	Action string
+}
+
+// IsErrLFSLockUnauthorizedAction checks if an error is a ErrLFSLockUnauthorizedAction.
+func IsErrLFSLockUnauthorizedAction(err error) bool {
+	_, ok := err.(ErrLFSLockUnauthorizedAction)
+	return ok
+}
+
+func (err ErrLFSLockUnauthorizedAction) Error() string {
+	return fmt.Sprintf("User %s  doesn't rigth to %s for lfs lock [id: %d, rid: %d]", err.User.DisplayName(), err.Action, err.ID, err.RepoID)
+}
+
 // ErrLFSLockAlreadyExist represents a "LFSLockAlreadyExist" kind of error.
 type ErrLFSLockAlreadyExist struct {
 	RepoID int64

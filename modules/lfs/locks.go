@@ -100,7 +100,6 @@ func GetListLockHandler(ctx *context.Context) {
 
 // PostLockHandler create lock
 func PostLockHandler(ctx *context.Context) {
-	//TODO Servers should ensure that users have push access to the repository, and that files are locked exclusively to one user.
 	status := checkRequest(ctx.Req)
 	if status != 200 {
 		writeStatus(ctx, status)
@@ -119,12 +118,18 @@ func PostLockHandler(ctx *context.Context) {
 	lock, err := models.CreateLFSLock(&models.LFSLock{
 		RepoID: ctx.Repo.Repository.ID,
 		Path:   req.Path,
-	})
+	}, ctx.User)
 	if err != nil {
 		if models.IsErrLFSLockAlreadyExist(err) {
 			ctx.JSON(409, api.LFSLockError{
 				Lock:    lock.APIFormat(),
 				Message: "already created lock",
+			})
+			return
+		}
+		if models.IsErrLFSLockUnauthorizedAction(err) {
+			ctx.JSON(403, api.LFSLockError{
+				Message: "You must have push access to create locks : " + err.Error(),
 			})
 			return
 		}
@@ -170,13 +175,33 @@ func VerifyLockHandler(ctx *context.Context) {
 
 // UnLockHandler delete locks
 func UnLockHandler(ctx *context.Context) {
-	//TODO LFS servers should ensure that callers have push access to the repository. They should also prevent a user from deleting another user's lock, unless the force property is given.
 	status := checkRequest(ctx.Req)
 	if status != 200 {
 		writeStatus(ctx, status)
 		return
 	}
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
-	//TODO
+
+	var req api.LFSLockDeleteRequest
+	dec := json.NewDecoder(ctx.Req.Body().ReadCloser())
+	err := dec.Decode(&req)
+	if err != nil {
+		writeStatus(ctx, 400)
+		return
+	}
+
+	err = models.DeleteLFSLockByID(ctx.ParamsInt64("id"), ctx.User, req.Force)
+	if err != nil {
+		if models.IsErrLFSLockUnauthorizedAction(err) {
+			ctx.JSON(403, api.LFSLockError{
+				Message: "You must have push access to delete locks : " + err.Error(),
+			})
+			return
+		}
+		ctx.JSON(500, api.LFSLockError{
+			Message: "unable to delete lock : " + err.Error(),
+		})
+		return
+	}
 	ctx.JSON(404, api.LFSLockError{Message: "Not found"})
 }
