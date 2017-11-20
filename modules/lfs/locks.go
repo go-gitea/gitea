@@ -33,7 +33,7 @@ func handleLockListOut(ctx *context.Context, lock *models.LFSLock, err error) {
 			return
 		}
 		ctx.JSON(500, api.LFSLockError{
-			Message: "internal server error : " + err.Error(),
+			Message: "unable to list locks : " + err.Error(),
 		})
 		return
 	}
@@ -85,7 +85,7 @@ func GetListLockHandler(ctx *context.Context) {
 	lockList, err := models.GetLFSLockByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.JSON(500, api.LFSLockError{
-			Message: "internal server error : " + err.Error(),
+			Message: "unable to list locks : " + err.Error(),
 		})
 		return
 	}
@@ -138,18 +138,39 @@ func PostLockHandler(ctx *context.Context) {
 
 // VerifyLockHandler list locks for verification
 func VerifyLockHandler(ctx *context.Context) {
+	//TODO LFS Servers should ensure that users have push access to the repository.
 	status := checkRequest(ctx.Req)
 	if status != 200 {
 		writeStatus(ctx, status)
 		return
 	}
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
-	//TODO
-	ctx.JSON(404, api.LFSLockError{Message: "Not found"})
+	//TODO handle body json cursor and limit
+	lockList, err := models.GetLFSLockByRepoID(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.JSON(500, api.LFSLockError{
+			Message: "unable to list locks : " + err.Error(),
+		})
+		return
+	}
+	lockOursListAPI := make([]*api.LFSLock, 0, len(lockList))
+	lockTheirsListAPI := make([]*api.LFSLock, 0, len(lockList))
+	for i, l := range lockList {
+		if l.Owner.ID == ctx.User.ID {
+			lockOursListAPI[i] = l.APIFormat()
+		} else {
+			lockTheirsListAPI[i] = l.APIFormat()
+		}
+	}
+	ctx.JSON(200, api.LFSLockListVerify{
+		Ours:   lockOursListAPI,
+		Theirs: lockTheirsListAPI,
+	})
 }
 
 // UnLockHandler delete locks
 func UnLockHandler(ctx *context.Context) {
+	//TODO LFS servers should ensure that callers have push access to the repository. They should also prevent a user from deleting another user's lock, unless the force property is given.
 	status := checkRequest(ctx.Req)
 	if status != 200 {
 		writeStatus(ctx, status)
