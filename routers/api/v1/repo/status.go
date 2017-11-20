@@ -14,6 +14,34 @@ import (
 
 // NewCommitStatus creates a new CommitStatus
 func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
+	// swagger:operation POST /repos/{owner}/{repo}/statuses/{sha} repository repoCreateStatus
+	// ---
+	// summary: Create a commit status
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: sha
+	//   in: path
+	//   description: sha of the commit
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateStatusOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/StatusList"
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {
 		sha = ctx.Params("ref")
@@ -43,10 +71,63 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 
 // GetCommitStatuses returns all statuses for any given commit hash
 func GetCommitStatuses(ctx *context.APIContext) {
-	sha := ctx.Params("sha")
-	if len(sha) == 0 {
-		sha = ctx.Params("ref")
-	}
+	// swagger:operation GET /repos/{owner}/{repo}/statuses/{sha} repository repoListStatuses
+	// ---
+	// summary: Get a commit's statuses
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: sha
+	//   in: path
+	//   description: sha of the commit
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/StatusList"
+	getCommitStatuses(ctx, ctx.Params("sha"))
+}
+
+// GetCommitStatusesByRef returns all statuses for any given commit ref
+func GetCommitStatusesByRef(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/commits/{ref}/statuses repository repoListStatusesByRef
+	// ---
+	// summary: Get a commit's statuses, by branch/tag/commit reference
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: path
+	//   description: name of branch/tag/commit
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/StatusList"
+	getCommitStatuses(ctx, ctx.Params("ref"))
+}
+
+func getCommitStatuses(ctx *context.APIContext, sha string) {
 	if len(sha) == 0 {
 		ctx.Error(400, "ref/sha not given", nil)
 		return
@@ -78,12 +159,33 @@ type combinedCommitStatus struct {
 	URL        string                   `json:"url"`
 }
 
-// GetCombinedCommitStatus returns the combined status for any given commit hash
-func GetCombinedCommitStatus(ctx *context.APIContext) {
-	sha := ctx.Params("sha")
-	if len(sha) == 0 {
-		sha = ctx.Params("ref")
-	}
+// GetCombinedCommitStatusByRef returns the combined status for any given commit hash
+func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/commits/{ref}/statuses repository repoGetCombinedStatusByRef
+	// ---
+	// summary: Get a commit's combined status, by branch/tag/commit reference
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: path
+	//   description: name of branch/tag/commit
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Status"
+	sha := ctx.Params("ref")
 	if len(sha) == 0 {
 		ctx.Error(400, "ref/sha not given", nil)
 		return

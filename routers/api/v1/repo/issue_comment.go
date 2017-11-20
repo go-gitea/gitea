@@ -15,6 +15,34 @@ import (
 
 // ListIssueComments list all the comments of an issue
 func ListIssueComments(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issue/{index}/comments issue issueGetComments
+	// ---
+	// summary: List all comments on an issue
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: index of the issue
+	//   type: integer
+	//   required: true
+	// - name: string
+	//   in: query
+	//   description: if provided, only comments updated since the specified time are returned.
+	//   type: string
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/CommentList"
 	var since time.Time
 	if len(ctx.Query("since")) > 0 {
 		since, _ = time.Parse(time.RFC3339, ctx.Query("since"))
@@ -44,8 +72,31 @@ func ListIssueComments(ctx *context.APIContext) {
 	ctx.JSON(200, &apiComments)
 }
 
-// ListRepoIssueComments returns all issue-comments for an issue
+// ListRepoIssueComments returns all issue-comments for a repo
 func ListRepoIssueComments(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issues/comments issue issueGetRepoComments
+	// ---
+	// summary: List all comments in a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: string
+	//   in: query
+	//   description: if provided, only comments updated since the provided time are returned.
+	//   type: string
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/CommentList"
 	var since time.Time
 	if len(ctx.Query("since")) > 0 {
 		since, _ = time.Parse(time.RFC3339, ctx.Query("since"))
@@ -70,6 +121,36 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 
 // CreateIssueComment create a comment for an issue
 func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOption) {
+	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/comments issue issueCreateComment
+	// ---
+	// summary: Add a comment to an issue
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: index of the issue
+	//   type: integer
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateIssueOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Comment"
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(500, "GetIssueByIndex", err)
@@ -87,6 +168,81 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 
 // EditIssueComment modify a comment of an issue
 func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/issues/comments/{id} issue issueEditComment
+	// ---
+	// summary: Edit a comment
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the comment to edit
+	//   type: integer
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditIssueCommentOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Comment"
+	editIssueComment(ctx, form)
+}
+
+// EditIssueCommentDeprecated modify a comment of an issue
+func EditIssueCommentDeprecated(ctx *context.APIContext, form api.EditIssueCommentOption) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index}/comments/{id} issue issueEditCommentDeprecated
+	// ---
+	// summary: Edit a comment
+	// deprecated: true
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: this parameter is ignored
+	//   type: integer
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the comment to edit
+	//   type: integer
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditIssueCommentOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Comment"
+	editIssueComment(ctx, form)
+}
+
+func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) {
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
@@ -115,6 +271,65 @@ func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 
 // DeleteIssueComment delete a comment from an issue
 func DeleteIssueComment(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/comments/{id} issue issueDeleteComment
+	// ---
+	// summary: Delete a comment
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of comment to delete
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	deleteIssueComment(ctx)
+}
+
+// DeleteIssueCommentDeprecated delete a comment from an issue
+func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/comments/{id} issue issueDeleteCommentDeprecated
+	// ---
+	// summary: Delete a comment
+	// deprecated: true
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: this parameter is ignored
+	//   type: integer
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of comment to delete
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	deleteIssueComment(ctx)
+}
+
+func deleteIssueComment(ctx *context.APIContext) {
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {

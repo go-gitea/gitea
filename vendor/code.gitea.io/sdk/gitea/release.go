@@ -23,7 +23,9 @@ type Release struct {
 	ZipURL       string    `json:"zipball_url"`
 	IsDraft      bool      `json:"draft"`
 	IsPrerelease bool      `json:"prerelease"`
+	// swagger:strfmt date-time
 	CreatedAt    time.Time `json:"created_at"`
+	// swagger:strfmt date-time
 	PublishedAt  time.Time `json:"published_at"`
 	Publisher    *User     `json:"author"`
 }
@@ -48,6 +50,7 @@ func (c *Client) GetRelease(user, repo string, id int64) (*Release, error) {
 
 // CreateReleaseOption options when creating a release
 type CreateReleaseOption struct {
+	// required: true
 	TagName      string `json:"tag_name" binding:"Required"`
 	Target       string `json:"target_commitish"`
 	Title        string `json:"name"`
