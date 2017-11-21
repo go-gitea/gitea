@@ -28,10 +28,11 @@ func populateIssueIndexer() error {
 	batch := indexer.IssueIndexerBatch()
 	for page := 1; ; page++ {
 		repos, _, err := SearchRepositoryByName(&SearchRepoOptions{
-			Page:     page,
-			PageSize: 10,
-			OrderBy:  SearchOrderByID,
-			Private:  true,
+			Page:        page,
+			PageSize:    10,
+			OrderBy:     SearchOrderByID,
+			Private:     true,
+			Collaborate: util.OptionalBoolFalse,
 		})
 		if err != nil {
 			return fmt.Errorf("Repositories: %v", err)

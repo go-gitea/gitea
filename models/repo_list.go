@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/go-xorm/builder"
 )
 
@@ -88,28 +90,28 @@ func (repos MirrorRepositoryList) LoadAttributes() error {
 }
 
 // SearchRepoOptions holds the search options
-// swagger:parameters repoSearch
 type SearchRepoOptions struct {
-	// Keyword to search
-	//
-	// in: query
-	Keyword string `json:"q"`
-	// Owner in we search search
-	//
-	// in: query
-	OwnerID     int64         `json:"uid"`
-	OrderBy     SearchOrderBy `json:"-"`
-	Private     bool          `json:"-"` // Include private repositories in results
-	Collaborate bool          `json:"-"` // Include collaborative repositories
-	Starred     bool          `json:"-"`
-	Page        int           `json:"-"`
-	IsProfile   bool          `json:"-"`
-	AllPublic   bool          `json:"-"` // Include also all public repositories
-	// Limit of result
-	//
-	// maximum: setting.ExplorePagingNum
-	// in: query
-	PageSize int `json:"limit"` // Can be smaller than or equal to setting.ExplorePagingNum
+	Keyword   string
+	OwnerID   int64
+	OrderBy   SearchOrderBy
+	Private   bool // Include private repositories in results
+	Starred   bool
+	Page      int
+	IsProfile bool
+	AllPublic bool // Include also all public repositories
+	PageSize  int  // Can be smaller than or equal to setting.ExplorePagingNum
+	// None -> include collaborative AND non-collaborative
+	// True -> include just collaborative
+	// False -> incude just non-collaborative
+	Collaborate util.OptionalBool
+	// None -> include forks AND non-forks
+	// True -> include just forks
+	// False -> include just non-forks
+	Fork util.OptionalBool
+	// None -> include mirrors AND non-mirrors
+	// True -> include just mirrors
+	// False -> include just non-mirrors
+	Mirror util.OptionalBool
 }
 
 //SearchOrderBy is used to sort the result
@@ -146,17 +148,18 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
-	starred := false
+	var starred bool
 	if opts.OwnerID > 0 {
 		if opts.Starred {
 			starred = true
-			cond = builder.Eq{
-				"star.uid": opts.OwnerID,
-			}
+			cond = builder.Eq{"star.uid": opts.OwnerID}
 		} else {
-			var accessCond builder.Cond = builder.Eq{"owner_id": opts.OwnerID}
+			var accessCond = builder.NewCond()
+			if opts.Collaborate != util.OptionalBoolTrue {
+				accessCond = builder.Eq{"owner_id": opts.OwnerID}
+			}
 
-			if opts.Collaborate {
+			if opts.Collaborate != util.OptionalBoolFalse {
 				collaborateCond := builder.And(
 					builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", opts.OwnerID),
 					builder.Neq{"owner_id": opts.OwnerID})
@@ -167,16 +170,24 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 				accessCond = accessCond.Or(collaborateCond)
 			}
 
+			if opts.AllPublic {
+				accessCond = accessCond.Or(builder.Eq{"is_private": false})
+			}
+
 			cond = cond.And(accessCond)
 		}
 	}
 
-	if opts.OwnerID > 0 && opts.AllPublic {
-		cond = cond.Or(builder.Eq{"is_private": false})
-	}
-
 	if opts.Keyword != "" {
 		cond = cond.And(builder.Like{"lower_name", strings.ToLower(opts.Keyword)})
+	}
+
+	if opts.Fork != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
+	}
+
+	if opts.Mirror != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"is_mirror": opts.Mirror == util.OptionalBoolTrue})
 	}
 
 	if len(opts.OrderBy) == 0 {

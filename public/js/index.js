@@ -1114,7 +1114,7 @@ function initAdmin() {
         $('#auth_type').change(function () {
             $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls').hide();
 
-            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required] .has-tls input[required]').removeAttr('required');
+            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
 
             var authType = $(this).val();
             switch (authType) {
@@ -1423,29 +1423,18 @@ $(document).ready(function () {
     });
 
     // Helpers.
-    $('.delete-button').click(function () {
-        var $this = $(this);
-        var filter = "";
-        if ($this.attr("id")) {
-          filter += "#"+$this.attr("id")
-        }
-        $('.delete.modal'+filter).modal({
-            closable: false,
-            onApprove: function () {
-                if ($this.data('type') == "form") {
-                    $($this.data('form')).submit();
-                    return;
-                }
+    $('.delete-button').click(showDeletePopup);
 
-                $.post($this.data('url'), {
-                    "_csrf": csrf,
-                    "id": $this.data("id")
-                }).done(function (data) {
-                    window.location.href = data.redirect;
-                });
-            }
-        }).modal('show');
-        return false;
+    $('.delete-branch-button').click(showDeletePopup);
+
+    $('.undo-button').click(function() {
+        var $this = $(this);
+        $.post($this.data('url'), {
+            "_csrf": csrf,
+            "id": $this.data("id")
+        }).done(function(data) {
+            window.location.href = data.redirect;
+        });
     });
     $('.show-panel.button').click(function () {
         $($(this).data('panel')).show();
@@ -1608,6 +1597,32 @@ $(function () {
     });
 });
 
+function showDeletePopup() {
+    var $this = $(this);
+    var filter = "";
+    if ($this.attr("id")) {
+        filter += "#" + $this.attr("id")
+    }
+
+    $('.delete.modal' + filter).modal({
+        closable: false,
+        onApprove: function() {
+            if ($this.data('type') == "form") {
+                $($this.data('form')).submit();
+                return;
+            }
+
+            $.post($this.data('url'), {
+                "_csrf": csrf,
+                "id": $this.data("id")
+            }).done(function(data) {
+                window.location.href = data.redirect;
+            });
+        }
+    }).modal('show');
+    return false;
+}
+
 function initVueComponents(){
     var vueDelimeters = ['${', '}'];
 
@@ -1656,12 +1671,46 @@ function initVueComponents(){
                 reposTotalCount: 0,
                 reposFilter: 'all',
                 searchQuery: '',
-                isLoading: false
+                isLoading: false,
+                repoTypes: {
+                    'all': {
+                        count: 0,
+                        searchMode: '',
+                    },
+                    'forks': {
+                        count: 0,
+                        searchMode: 'fork',
+                    },
+                    'mirrors': {
+                        count: 0,
+                        searchMode: 'mirror',
+                    },
+                    'sources': {
+                        count: 0,
+                        searchMode: 'source',
+                    },
+                    'collaborative': {
+                        count: 0,
+                        searchMode: 'collaborative',
+                    },
+                }
+            }
+        },
+
+        computed: {
+            showMoreReposLink: function() {
+                return this.repos.length > 0 && this.repos.length < this.repoTypes[this.reposFilter].count;
+            },
+            searchURL: function() {
+                return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery + '&limit=' + this.searchLimit + '&mode=' + this.repoTypes[this.reposFilter].searchMode + (this.reposFilter !== 'all' ? '&exclusive=1' : '');
+            },
+            repoTypeCount: function() {
+                return this.repoTypes[this.reposFilter].count;
             }
         },
 
         mounted: function() {
-            this.searchRepos();
+            this.searchRepos(this.reposFilter);
 
             var self = this;
             Vue.nextTick(function() {
@@ -1676,6 +1725,9 @@ function initVueComponents(){
 
             changeReposFilter: function(filter) {
                 this.reposFilter = filter;
+                this.repos = [];
+                this.repoTypes[filter].count = 0;
+                this.searchRepos(filter);
             },
 
             showRepo: function(repo, filter) {
@@ -1693,26 +1745,29 @@ function initVueComponents(){
                 }
             },
 
-            searchRepos: function() {
+            searchRepos: function(reposFilter) {
                 var self = this;
+
                 this.isLoading = true;
+
+                var searchedMode = this.repoTypes[reposFilter].searchMode;
+                var searchedURL = this.searchURL;
                 var searchedQuery = this.searchQuery;
-                $.getJSON(this.searchURL(), function(result, textStatus, request) {
-                    if (searchedQuery == self.searchQuery) {
+
+                $.getJSON(searchedURL, function(result, textStatus, request) {
+                    if (searchedURL == self.searchURL) {
                         self.repos = result.data;
-                        if (searchedQuery == "") {
-                            self.reposTotalCount = request.getResponseHeader('X-Total-Count');
+                        var count = request.getResponseHeader('X-Total-Count');
+                        if (searchedQuery === '' && searchedMode === '') {
+                            self.reposTotalCount = count;
                         }
+                        self.repoTypes[reposFilter].count = count;
                     }
                 }).always(function() {
-                    if (searchedQuery == self.searchQuery) {
+                    if (searchedURL == self.searchURL) {
                         self.isLoading = false;
                     }
                 });
-            },
-
-            searchURL: function() {
-                return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery + '&limit=' + this.searchLimit;
             },
 
             repoClass: function(repo) {

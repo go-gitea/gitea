@@ -13,9 +13,17 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
-// ListEmails list all the emails of mine
+// ListEmails list all of the authenticated user's email addresses
 // see https://github.com/gogits/go-gogs-client/wiki/Users-Emails#list-email-addresses-for-a-user
 func ListEmails(ctx *context.APIContext) {
+	// swagger:operation GET /user/emails user userListEmails
+	// ---
+	// summary: List the authenticated user's email addresses
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/EmailList"
 	emails, err := models.GetEmailAddresses(ctx.User.ID)
 	if err != nil {
 		ctx.Error(500, "GetEmailAddresses", err)
@@ -28,9 +36,26 @@ func ListEmails(ctx *context.APIContext) {
 	ctx.JSON(200, &apiEmails)
 }
 
-// AddEmail add email for me
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Emails#add-email-addresses
+// AddEmail add an email address
 func AddEmail(ctx *context.APIContext, form api.CreateEmailOption) {
+	// swagger:operation POST /user/emails user userAddEmail
+	// ---
+	// summary: Add email addresses
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: options
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateEmailOption"
+	// parameters:
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateEmailOption"
+	// responses:
+	//   '201':
+	//     "$ref": "#/responses/EmailList"
 	if len(form.Emails) == 0 {
 		ctx.Status(422)
 		return
@@ -62,8 +87,20 @@ func AddEmail(ctx *context.APIContext, form api.CreateEmailOption) {
 }
 
 // DeleteEmail delete email
-// see https://github.com/gogits/go-gogs-client/wiki/Users-Emails#delete-email-addresses
-func DeleteEmail(ctx *context.APIContext, form api.CreateEmailOption) {
+func DeleteEmail(ctx *context.APIContext, form api.DeleteEmailOption) {
+	// swagger:operation DELETE /user/emails user userDeleteEmail
+	// ---
+	// summary: Delete email addresses
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/DeleteEmailOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	if len(form.Emails) == 0 {
 		ctx.Status(204)
 		return

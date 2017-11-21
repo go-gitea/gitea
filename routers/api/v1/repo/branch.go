@@ -13,8 +13,31 @@ import (
 )
 
 // GetBranch get a branch of a repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#get-branch
 func GetBranch(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/branches/{branch} repository repoGetBranch
+	// ---
+	// summary: List a repository's branches
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: branch
+	//   in: path
+	//   description: branch to get
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Branch"
 	if ctx.Repo.TreePath != "" {
 		// if TreePath != "", then URL contained extra slashes
 		// (i.e. "master/subbranch" instead of "master"), so branch does
@@ -42,8 +65,26 @@ func GetBranch(ctx *context.APIContext) {
 }
 
 // ListBranches list all the branches of a repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories#list-branches
 func ListBranches(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/branches repository repoListBranches
+	// ---
+	// summary: List a repository's branches
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/BranchList"
 	branches, err := ctx.Repo.Repository.GetBranches()
 	if err != nil {
 		ctx.Error(500, "GetBranches", err)

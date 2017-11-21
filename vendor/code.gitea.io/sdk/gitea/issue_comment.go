@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// Comment represents a comment in commit and issue page.
+// Comment represents a comment on a commit or issue
 type Comment struct {
 	ID       int64     `json:"id"`
 	HTMLURL  string    `json:"html_url"`
@@ -19,7 +19,9 @@ type Comment struct {
 	IssueURL string    `json:"issue_url"`
 	Poster   *User     `json:"user"`
 	Body     string    `json:"body"`
+	// swagger:strfmt date-time
 	Created  time.Time `json:"created_at"`
+	// swagger:strfmt date-time
 	Updated  time.Time `json:"updated_at"`
 }
 
@@ -35,8 +37,9 @@ func (c *Client) ListRepoIssueComments(owner, repo string) ([]*Comment, error) {
 	return comments, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/issues/comments", owner, repo), nil, nil, &comments)
 }
 
-// CreateIssueCommentOption is option when creating an issue comment.
+// CreateIssueCommentOption options for creating a comment on an issue
 type CreateIssueCommentOption struct {
+	// required:true
 	Body string `json:"body" binding:"Required"`
 }
 
@@ -50,8 +53,9 @@ func (c *Client) CreateIssueComment(owner, repo string, index int64, opt CreateI
 	return comment, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/issues/%d/comments", owner, repo, index), jsonHeader, bytes.NewReader(body), comment)
 }
 
-// EditIssueCommentOption is option when editing an issue comment.
+// EditIssueCommentOption options for editing a comment
 type EditIssueCommentOption struct {
+	// required: true
 	Body string `json:"body" binding:"Required"`
 }
 

@@ -1,13 +1,14 @@
 package lfs
 
 import (
-	"code.gitea.io/gitea/models"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"io"
 	"os"
 	"path/filepath"
+
+	"code.gitea.io/gitea/models"
 )
 
 var (
@@ -80,6 +81,20 @@ func (s *ContentStore) Exists(meta *models.LFSMetaObject) bool {
 		return false
 	}
 	return true
+}
+
+// Verify returns true if the object exists in the content store and size is correct.
+func (s *ContentStore) Verify(meta *models.LFSMetaObject) (bool, error) {
+	path := filepath.Join(s.BasePath, transformKey(meta.Oid))
+
+	fi, err := os.Stat(path)
+	if os.IsNotExist(err) || err == nil && fi.Size() != meta.Size {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func transformKey(key string) string {

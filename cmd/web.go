@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
@@ -58,6 +59,8 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	routers.GlobalInit()
+
+	external.RegisterParsers()
 
 	m := routes.NewMacaron()
 	routes.RegisterRoutes(m)
