@@ -648,6 +648,12 @@
 			"revisionTime": "2017-10-19T22:30:07Z"
 		},
 		{
+			"checksumSHA1": "gVEVVVLsFxLE+ADLuzkmzMxlmMA=",
+			"path": "github.com/lunny/dingtalk_webhook",
+			"revision": "e3534c89ef969912856dfa39e56b09e58c5f5daf",
+			"revisionTime": "2017-10-25T03:15:54Z"
+		},
+		{
 			"checksumSHA1": "O3KUfEXQPfdQ+tCMpP2RAIRJJqY=",
 			"path": "github.com/markbates/goth",
 			"revision": "90362394a367f9d77730911973462a53d69662ba",
