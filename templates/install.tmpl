@@ -85,10 +85,10 @@
 						<span class="help">{{.i18n.Tr "install.repo_path_helper"}}</span>
 					</div>
 					<div class="inline field {{if .Err_LFSRootPath}}error{{end}}">
-          	<label for="lfs_root_path">{{.i18n.Tr "install.lfs_path"}}</label>
-          	<input id="lfs_root_path" name="lfs_root_path" value="{{.lfs_root_path}}">
-          	<span class="help">{{.i18n.Tr "install.lfs_path_helper"}}</span>
-          </div>
+						<label for="lfs_root_path">{{.i18n.Tr "install.lfs_path"}}</label>
+						<input id="lfs_root_path" name="lfs_root_path" value="{{.lfs_root_path}}">
+						<span class="help">{{.i18n.Tr "install.lfs_path_helper"}}</span>
+					</div>
 					<div class="inline required field {{if .Err_RunUser}}error{{end}}">
 						<label for="run_user">{{.i18n.Tr "install.run_user"}}</label>
 						<input id="run_user" name="run_user" value="{{.run_user}}" required>
