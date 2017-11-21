@@ -150,6 +150,9 @@ func DeleteLFSLockByID(id int64, u *User, force bool) error {
 
 //CheckLFSAccessForRepo check needed access mode base on action
 func CheckLFSAccessForRepo(u *User, repoID int64, action string) error {
+	if u == nil {
+		return ErrLFSLockUnauthorizedAction{repoID, "undefined", action}
+	}
 	mode := AccessModeRead
 	if action == "create" || action == "delete" || action == "verify" {
 		mode = AccessModeWrite
@@ -163,7 +166,7 @@ func CheckLFSAccessForRepo(u *User, repoID int64, action string) error {
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrLFSLockUnauthorizedAction{repo.ID, u, action}
+		return ErrLFSLockUnauthorizedAction{repo.ID, u.DisplayName(), action}
 	}
 	return nil
 }

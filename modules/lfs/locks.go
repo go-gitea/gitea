@@ -16,9 +16,11 @@ func checkRequest(req macaron.Request) int {
 	if !setting.LFS.StartServer {
 		return 404
 	}
-	if !ContentMatcher(req) || req.Header.Get("Content-Type") != contentMediaType {
-		return 400
-	}
+	/*
+		if !ContentMatcher(req) || req.Header.Get("Content-Type") != contentMediaType {
+			return 400
+		}
+	*/
 	return 200
 }
 

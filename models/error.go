@@ -514,9 +514,9 @@ func (err ErrLFSLockNotExist) Error() string {
 
 // ErrLFSLockUnauthorizedAction represents a "LFSLockUnauthorizedAction" kind of error.
 type ErrLFSLockUnauthorizedAction struct {
-	RepoID int64
-	User   *User
-	Action string
+	RepoID   int64
+	UserName string
+	Action   string
 }
 
 // IsErrLFSLockUnauthorizedAction checks if an error is a ErrLFSLockUnauthorizedAction.
@@ -526,7 +526,7 @@ func IsErrLFSLockUnauthorizedAction(err error) bool {
 }
 
 func (err ErrLFSLockUnauthorizedAction) Error() string {
-	return fmt.Sprintf("User %s  doesn't rigth to %s for lfs lock [rid: %d]", err.User.DisplayName(), err.Action, err.RepoID)
+	return fmt.Sprintf("User %s doesn't have rigth to %s for lfs lock [rid: %d]", err.UserName, err.Action, err.RepoID)
 }
 
 // ErrLFSLockAlreadyExist represents a "LFSLockAlreadyExist" kind of error.
