@@ -37,6 +37,20 @@ func (err ErrNamePatternNotAllowed) Error() string {
 	return fmt.Sprintf("name pattern is not allowed [pattern: %s]", err.Pattern)
 }
 
+// ErrSSHDisabled represents an "SSH disabled" error.
+type ErrSSHDisabled struct {
+}
+
+// IsErrSSHDisabled checks if an error is a ErrSSHDisabled.
+func IsErrSSHDisabled(err error) bool {
+	_, ok := err.(ErrSSHDisabled)
+	return ok
+}
+
+func (err ErrSSHDisabled) Error() string {
+	return "SSH is disabled"
+}
+
 //  ____ ___
 // |    |   \______ ___________
 // |    |   /  ___// __ \_  __ \

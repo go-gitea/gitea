@@ -260,7 +260,7 @@ func SSHNativeParsePublicKey(keyLine string) (string, int, error) {
 // It returns the actual public key line on success.
 func CheckPublicKeyString(content string) (_ string, err error) {
 	if setting.SSH.Disabled {
-		return "", errors.New("SSH is disabled")
+		return "", ErrSSHDisabled{}
 	}
 
 	content, err = parseKeyString(content)
