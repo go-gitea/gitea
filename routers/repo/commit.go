@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"container/list"
 	"path"
 	"strings"
 
