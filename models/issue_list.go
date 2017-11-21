@@ -290,6 +290,7 @@ func (issues IssueList) loadComments(e Engine) (err error) {
 	return nil
 }
 
+// loadAttributes loads all attributes, expect for attachments and comments
 func (issues IssueList) loadAttributes(e Engine) (err error) {
 	if _, err = issues.loadRepositories(e); err != nil {
 		return
@@ -315,18 +316,21 @@ func (issues IssueList) loadAttributes(e Engine) (err error) {
 		return
 	}
 
-	if err = issues.loadAttachments(e); err != nil {
-		return
-	}
-
-	if err = issues.loadComments(e); err != nil {
-		return
-	}
-
 	return nil
 }
 
-// LoadAttributes loads atrributes of the issues
+// LoadAttributes loads attributes of the issues, except for attachments and
+// comments
 func (issues IssueList) LoadAttributes() error {
 	return issues.loadAttributes(x)
+}
+
+// LoadAttachments loads attachments
+func (issues IssueList) LoadAttachments() error {
+	return issues.loadAttachments(x)
+}
+
+// LoadComments loads comments
+func (issues IssueList) LoadComments() error {
+	return issues.loadComments(x)
 }
