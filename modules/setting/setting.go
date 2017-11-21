@@ -562,13 +562,9 @@ func getAppPath() (string, error) {
 func getWorkPath(appPath string) string {
 	workPath := ""
 	giteaWorkPath := os.Getenv("GITEA_WORK_DIR")
-	gogsWorkPath := os.Getenv("GOGS_WORK_DIR")
 
 	if len(giteaWorkPath) > 0 {
 		workPath = giteaWorkPath
-	} else if len(gogsWorkPath) > 0 {
-		log.Warn(`Usage of GOGS_WORK_DIR is deprecated and will be *removed* in a future release, please consider changing to GITEA_WORK_DIR`)
-		workPath = gogsWorkPath
 	} else {
 		i := strings.LastIndex(appPath, "/")
 		if i == -1 {
