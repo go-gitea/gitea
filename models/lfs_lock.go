@@ -77,6 +77,10 @@ func IsLFSLockExist(repoID int64, path string) (bool, error) {
 
 // CreateLFSLock creates a new lock.
 func CreateLFSLock(lock *LFSLock, u *User) (*LFSLock, error) {
+	err := CheckLFSAccessForRepo(u, lock.RepoID, "create")
+	if err != nil {
+		return nil, err
+	}
 	isExist, err := IsLFSLockExist(lock.RepoID, lock.Path)
 	if err != nil {
 		return nil, err
@@ -87,19 +91,6 @@ func CreateLFSLock(lock *LFSLock, u *User) (*LFSLock, error) {
 		}
 		return l, ErrLFSLockAlreadyExist{lock.RepoID, lock.Path}
 	}
-
-	repo, err := GetRepositoryByID(lock.RepoID)
-	if err != nil {
-		return nil, err
-	}
-
-	has, err := HasAccess(u.ID, repo, AccessModeWrite)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrLFSLockUnauthorizedAction{0, lock.RepoID, u, "create"}
-	}
-
 	_, err = x.InsertOne(lock)
 	return lock, err
 }
@@ -143,16 +134,10 @@ func DeleteLFSLockByID(id int64, u *User, force bool) error {
 	if err != nil {
 		return err
 	}
-	repo, err := GetRepositoryByID(lock.RepoID)
-	if err != nil {
-		return err
-	}
 
-	has, err := HasAccess(u.ID, repo, AccessModeWrite)
+	err = CheckLFSAccessForRepo(u, lock.RepoID, "delete")
 	if err != nil {
 		return err
-	} else if !has {
-		return ErrLFSLockUnauthorizedAction{id, repo.ID, u, "delete"}
 	}
 
 	if !force && u.ID != lock.OwnerID {
@@ -161,4 +146,24 @@ func DeleteLFSLockByID(id int64, u *User, force bool) error {
 
 	_, err = x.ID(id).Delete(new(LFSLock))
 	return err
+}
+
+//CheckLFSAccessForRepo check needed access mode base on action
+func CheckLFSAccessForRepo(u *User, repoID int64, action string) error {
+	mode := AccessModeRead
+	if action == "create" || action == "delete" || action == "verify" {
+		mode = AccessModeWrite
+	}
+
+	repo, err := GetRepositoryByID(repoID)
+	if err != nil {
+		return err
+	}
+	has, err := HasAccess(u.ID, repo, mode)
+	if err != nil {
+		return err
+	} else if !has {
+		return ErrLFSLockUnauthorizedAction{repo.ID, u, action}
+	}
+	return nil
 }

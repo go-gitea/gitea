@@ -12,8 +12,6 @@ import (
 	"gopkg.in/macaron.v1"
 )
 
-//TODO handle 403 forbidden
-
 func checkRequest(req macaron.Request) int {
 	if !setting.LFS.StartServer {
 		return 404
@@ -50,7 +48,6 @@ func handleLockListOut(ctx *context.Context, lock *models.LFSLock, err error) {
 
 // GetListLockHandler list locks
 func GetListLockHandler(ctx *context.Context) {
-	//TODO LFS Servers should ensure that users have at least pull access to the repository
 	status := checkRequest(ctx.Req)
 	if status != 200 {
 		writeStatus(ctx, status)
@@ -58,8 +55,20 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
 
+	err := models.CheckLFSAccessForRepo(ctx.User, ctx.Repo.Repository.ID, "list")
+	if err != nil {
+		if models.IsErrLFSLockUnauthorizedAction(err) {
+			ctx.JSON(403, api.LFSLockError{
+				Message: "You must have pull access to list locks : " + err.Error(),
+			})
+			return
+		}
+		ctx.JSON(500, api.LFSLockError{
+			Message: "unable to list lock : " + err.Error(),
+		})
+		return
+	}
 	//TODO handle query cursor and limit
-
 	id := ctx.Query("id")
 	if id != "" { //Case where we request a specific id
 		v, err := strconv.ParseInt(id, 10, 64)
@@ -143,13 +152,28 @@ func PostLockHandler(ctx *context.Context) {
 
 // VerifyLockHandler list locks for verification
 func VerifyLockHandler(ctx *context.Context) {
-	//TODO LFS Servers should ensure that users have push access to the repository.
 	status := checkRequest(ctx.Req)
 	if status != 200 {
 		writeStatus(ctx, status)
 		return
 	}
+
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
+
+	err := models.CheckLFSAccessForRepo(ctx.User, ctx.Repo.Repository.ID, "verify")
+	if err != nil {
+		if models.IsErrLFSLockUnauthorizedAction(err) {
+			ctx.JSON(403, api.LFSLockError{
+				Message: "You must have push access to verify locks : " + err.Error(),
+			})
+			return
+		}
+		ctx.JSON(500, api.LFSLockError{
+			Message: "unable to verify lock : " + err.Error(),
+		})
+		return
+	}
+
 	//TODO handle body json cursor and limit
 	lockList, err := models.GetLFSLockByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
