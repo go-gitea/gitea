@@ -495,7 +495,7 @@ func (err ErrLastOrgOwner) Error() string {
 // TODO LFS header
 //
 
-// ErrRepoNotExist represents a "LFSLockNotExist" kind of error.
+// ErrLFSLockNotExist represents a "LFSLockNotExist" kind of error.
 type ErrLFSLockNotExist struct {
 	ID     int64
 	RepoID int64
