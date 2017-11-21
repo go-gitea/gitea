@@ -3,9 +3,11 @@
 // license that can be found in the LICENSE file.
 
 // This code was translated into a form compatible with 6a from the public
-// domain sources in SUPERCOP: http://bench.cr.yp.to/supercop.html
+// domain sources in SUPERCOP: https://bench.cr.yp.to/supercop.html
 
 // +build amd64,!gccgo,!appengine
+
+#include "const_amd64.h"
 
 // func mul(dest, a, b *[5]uint64)
 TEXT ·mul(SB),0,$16-24
@@ -121,7 +123,7 @@ TEXT ·mul(SB),0,$16-24
 	MULQ 32(CX)
 	ADDQ AX,R14
 	ADCQ DX,R15
-	MOVQ ·REDMASK51(SB),SI
+	MOVQ $REDMASK51,SI
 	SHLQ $13,R9:R8
 	ANDQ SI,R8
 	SHLQ $13,R11:R10
