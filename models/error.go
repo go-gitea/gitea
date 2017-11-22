@@ -491,9 +491,12 @@ func (err ErrLastOrgOwner) Error() string {
 	return fmt.Sprintf("user is the last member of owner team [uid: %d]", err.UID)
 }
 
-//
-// TODO LFS header
-//
+//.____   ____________________
+//|    |  \_   _____/   _____/
+//|    |   |    __) \_____  \
+//|    |___|     \  /        \
+//|_______ \___  / /_______  /
+//        \/   \/          \/
 
 // ErrLFSLockNotExist represents a "LFSLockNotExist" kind of error.
 type ErrLFSLockNotExist struct {
