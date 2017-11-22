@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div class="repository wiki view">
 	{{template "repo/header" .}}
-	{{ $title := .title | Sanitize}}
+	{{ $title := .title}}
 	<div class="ui container">
 		<div class="ui grid">
 			<div class="ui ten wide column">
@@ -21,7 +21,7 @@
 							</div>
 							<div class="scrolling menu">
 								{{range .Pages}}
-									<div class="item {{if eq $.Title .Name}}selected{{end}}" data-url="{{$.RepoLink}}/wiki/{{.URL}}">{{.Name | Sanitize}}</div>
+									<div class="item {{if eq $.Title .Name}}selected{{end}}" data-url="{{$.RepoLink}}/wiki/{{.URL}}">{{.Name}}</div>
 								{{end}}
 							</div>
 						</div>
