@@ -16,11 +16,9 @@ func checkRequest(req macaron.Request) int {
 	if !setting.LFS.StartServer {
 		return 404
 	}
-	/*
-		if !ContentMatcher(req) || req.Header.Get("Content-Type") != contentMediaType {
-			return 400
-		}
-	*/
+	if !MetaMatcher(req) || req.Header.Get("Content-Type") != metaMediaType {
+		return 400
+	}
 	return 200
 }
 
@@ -129,7 +127,8 @@ func PostLockHandler(ctx *context.Context) {
 	lock, err := models.CreateLFSLock(&models.LFSLock{
 		RepoID: ctx.Repo.Repository.ID,
 		Path:   req.Path,
-	}, ctx.User)
+		Owner:  ctx.User,
+	})
 	if err != nil {
 		if models.IsErrLFSLockAlreadyExist(err) {
 			ctx.JSON(409, api.LFSLockError{
@@ -186,11 +185,11 @@ func VerifyLockHandler(ctx *context.Context) {
 	}
 	lockOursListAPI := make([]*api.LFSLock, 0, len(lockList))
 	lockTheirsListAPI := make([]*api.LFSLock, 0, len(lockList))
-	for i, l := range lockList {
+	for _, l := range lockList {
 		if l.Owner.ID == ctx.User.ID {
-			lockOursListAPI[i] = l.APIFormat()
+			lockOursListAPI = append(lockOursListAPI, l.APIFormat())
 		} else {
-			lockTheirsListAPI[i] = l.APIFormat()
+			lockTheirsListAPI = append(lockTheirsListAPI, l.APIFormat())
 		}
 	}
 	ctx.JSON(200, api.LFSLockListVerify{

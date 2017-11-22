@@ -14,7 +14,7 @@ import (
 // LFSLock represents a git lfs lfock of repository.
 type LFSLock struct {
 	ID          int64       `xorm:"pk autoincr"`
-	RepoID      int64       `xorm:"INDEX UNIQUE(n)"`
+	RepoID      int64       `xorm:"INDEX"`
 	Repo        *Repository `xorm:"-"`
 	OwnerID     int64       `xorm:"INDEX"`
 	Owner       *User       `xorm:"-"`
@@ -28,11 +28,13 @@ func (l *LFSLock) BeforeInsert() {
 	if l.CreatedUnix == 0 {
 		l.CreatedUnix = time.Now().Unix()
 	}
+	l.OwnerID = l.Owner.ID
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (l *LFSLock) AfterLoad() {
 	l.Created = time.Unix(l.CreatedUnix, 0).Local()
+	l.Owner, _ = GetUserByID(l.OwnerID)
 }
 
 func (l *LFSLock) loadAttributes(e Engine) error {
@@ -76,8 +78,8 @@ func IsLFSLockExist(repoID int64, path string) (bool, error) {
 }
 
 // CreateLFSLock creates a new lock.
-func CreateLFSLock(lock *LFSLock, u *User) (*LFSLock, error) {
-	err := CheckLFSAccessForRepo(u, lock.RepoID, "create")
+func CreateLFSLock(lock *LFSLock) (*LFSLock, error) {
+	err := CheckLFSAccessForRepo(lock.Owner, lock.RepoID, "create")
 	if err != nil {
 		return nil, err
 	}
