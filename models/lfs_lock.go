@@ -130,24 +130,23 @@ func GetLFSLockByRepoID(repoID int64) (locks []*LFSLock, err error) {
 }
 
 // DeleteLFSLockByID deletes a lock by given ID.
-func DeleteLFSLockByID(id int64, u *User, force bool) error {
-
+func DeleteLFSLockByID(id int64, u *User, force bool) (*LFSLock, error) {
 	lock, err := GetLFSLockByID(id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = CheckLFSAccessForRepo(u, lock.RepoID, "delete")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !force && u.ID != lock.OwnerID {
-		return fmt.Errorf("user doesn't own lock and force flag is not set")
+		return nil, fmt.Errorf("user doesn't own lock and force flag is not set")
 	}
 
 	_, err = x.ID(id).Delete(new(LFSLock))
-	return err
+	return lock, err
 }
 
 //CheckLFSAccessForRepo check needed access mode base on action

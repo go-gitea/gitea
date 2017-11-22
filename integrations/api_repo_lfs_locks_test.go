@@ -5,7 +5,6 @@
 package integrations
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -97,7 +96,6 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
 	req.Body = ioutil.NopCloser(strings.NewReader("{}"))
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	fmt.Println(string(resp.Body))
 	var lfsLocksVerify api.LFSLockListVerify
 	DecodeJSON(t, resp, &lfsLocksVerify)
 	assert.Len(t, lfsLocksVerify.Ours, 2)
@@ -105,5 +103,22 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	for _, lock := range lfsLocksVerify.Ours {
 		assert.EqualValues(t, user.DisplayName(), lock.Owner.Name)
 	}
+
+	req = NewRequestf(t, "POST", "/%s/%s/info/lfs/locks/%s/unlock", user.Name, repo.Name, lfsLocksVerify.Ours[0].ID)
+	req.Header.Set("Accept", "application/vnd.git-lfs+json")
+	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+	req.Body = ioutil.NopCloser(strings.NewReader("{}"))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	var lfsLockRep api.LFSLockResponse
+	DecodeJSON(t, resp, &lfsLockRep)
+	assert.Equal(t, lfsLocksVerify.Ours[0].ID, lfsLockRep.Lock.ID)
+	assert.Equal(t, user.DisplayName(), lfsLockRep.Lock.Owner.Name)
+
+	req = NewRequestf(t, "GET", "/%s/%s/info/lfs/locks", user.Name, repo.Name)
+	req.Header.Set("Accept", "application/vnd.git-lfs+json")
+	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &lfsLocks)
+	assert.Len(t, lfsLocks.Locks, 1)
 
 }

@@ -215,7 +215,7 @@ func UnLockHandler(ctx *context.Context) {
 		return
 	}
 
-	err = models.DeleteLFSLockByID(ctx.ParamsInt64("id"), ctx.User, req.Force)
+	lock, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.User, req.Force)
 	if err != nil {
 		if models.IsErrLFSLockUnauthorizedAction(err) {
 			ctx.JSON(403, api.LFSLockError{
@@ -228,5 +228,5 @@ func UnLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	ctx.JSON(404, api.LFSLockError{Message: "Not found"})
+	ctx.JSON(200, api.LFSLockResponse{Lock: lock.APIFormat()})
 }

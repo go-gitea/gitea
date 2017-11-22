@@ -690,7 +690,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("/", lfs.GetListLockHandler)
 					m.Post("/", lfs.PostLockHandler)
 					m.Post("/verify", lfs.VerifyLockHandler)
-					m.Post("/:id/unlock", lfs.UnLockHandler)
+					m.Post("/:lid/unlock", lfs.UnLockHandler)
 				}, context.RepoAssignment())
 				m.Any("/*", func(ctx *context.Context) {
 					ctx.Handle(404, "", nil)
