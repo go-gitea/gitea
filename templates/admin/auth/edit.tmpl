@@ -44,11 +44,12 @@
 						<label for="port">{{.i18n.Tr "admin.auths.port"}}</label>
 						<input id="port" name="port" value="{{$cfg.Port}}"  placeholder="e.g. 636" required>
 					</div>
+					<div class="field">
+						<label for="bind_dn">{{.i18n.Tr "admin.auths.bind_dn"}}</label>
+						<input id="bind_dn" name="bind_dn" value="{{$cfg.BindDN}}" placeholder="e.g. cn=Search,dc=mydomain,dc=com">
+						<p class="help text blue">{{.i18n.Tr "admin.auths.bind_dn_helper"}}</p>
+					</div>
 					{{if .Source.IsLDAP}}
-						<div class="field">
-							<label for="bind_dn">{{.i18n.Tr "admin.auths.bind_dn"}}</label>
-							<input id="bind_dn" name="bind_dn" value="{{$cfg.BindDN}}" placeholder="e.g. cn=Search,dc=mydomain,dc=com">
-						</div>
 						<input class="fake" type="password">
 						<div class="field">
 							<label for="bind_password">{{.i18n.Tr "admin.auths.bind_password"}}</label>

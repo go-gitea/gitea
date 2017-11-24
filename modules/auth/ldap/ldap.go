@@ -64,7 +64,7 @@ func (ls *Source) sanitizedUserQuery(username string) (string, bool) {
 		return "", false
 	}
 
-	return fmt.Sprintf(ls.Filter, username), true
+	return strings.Replace(ls.Filter, "%s", username, -1), true
 }
 
 func (ls *Source) sanitizedUserDN(username string) (string, bool) {
@@ -75,18 +75,19 @@ func (ls *Source) sanitizedUserDN(username string) (string, bool) {
 		return "", false
 	}
 
-	return fmt.Sprintf(ls.UserDN, username), true
+	return strings.Replace(ls.UserDN, "%s", username, -1), true
 }
 
 func (ls *Source) findUserDN(l *ldap.Conn, name string) (string, bool) {
 	log.Trace("Search for LDAP user: %s", name)
 	if ls.BindDN != "" && ls.BindPassword != "" {
-		err := l.Bind(ls.BindDN, ls.BindPassword)
+		bindDN := strings.Replace(ls.BindDN, "%s", name, -1)
+		err := l.Bind(bindDN, ls.BindPassword)
 		if err != nil {
-			log.Debug("Failed to bind as BindDN[%s]: %v", ls.BindDN, err)
+			log.Debug("Failed to bind as BindDN[%s]: %v", bindDN, err)
 			return "", false
 		}
-		log.Trace("Bound as BindDN %s", ls.BindDN)
+		log.Trace("Bound as BindDN %s", bindDN)
 	} else {
 		log.Trace("Proceeding with anonymous LDAP search.")
 	}
@@ -195,6 +196,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	defer l.Close()
 
 	var userDN string
+	var bindDN string
 	if directBind {
 		log.Trace("LDAP will bind directly via UserDN template: %s", ls.UserDN)
 
@@ -203,11 +205,18 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		if !ok {
 			return nil
 		}
+		if len(ls.BindDN) > 0 {
+			bindDN = strings.Replace(ls.BindDN, "%s", name, -1)
+			log.Trace("We will use this template to bind: %s", bindDN)
+		} else {
+			bindDN = userDN
+		}
 	} else {
 		log.Trace("LDAP will use BindDN.")
 
 		var found bool
 		userDN, found = ls.findUserDN(l, name)
+		bindDN = userDN
 		if !found {
 			return nil
 		}
@@ -215,7 +224,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 
 	if directBind || !ls.AttributesInBind {
 		// binds user (checking password) before looking-up attributes in user context
-		err = bindUser(l, userDN, passwd)
+		err = bindUser(l, bindDN, passwd)
 		if err != nil {
 			return nil
 		}
