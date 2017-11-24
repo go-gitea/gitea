@@ -1,67 +1,43 @@
-// Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package models
 
 import (
-	api "code.gitea.io/sdk/gitea"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
+
+	api "code.gitea.io/sdk/gitea"
 )
 
-// LFSLock represents a git lfs lfock of repository.
+// LFSLock represents a git lfs lock of repository.
 type LFSLock struct {
-	ID          int64       `xorm:"pk autoincr"`
-	RepoID      int64       `xorm:"INDEX"`
-	Repo        *Repository `xorm:"-"`
-	OwnerID     int64       `xorm:"INDEX"`
-	Owner       *User       `xorm:"-"`
-	Path        string
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
+	ID      int64       `xorm:"pk autoincr"`
+	Repo    *Repository `xorm:"-"`
+	RepoID  int64       `xorm:"INDEX"`
+	Owner   *User       `xorm:"-"`
+	OwnerID int64       `xorm:"INDEX"`
+	Path    string
+	Created time.Time `xorm:"created"`
 }
 
 // BeforeInsert is invoked from XORM before inserting an object of this type.
 func (l *LFSLock) BeforeInsert() {
-	if l.CreatedUnix == 0 {
-		l.CreatedUnix = time.Now().Unix()
-	}
 	l.OwnerID = l.Owner.ID
+	l.Path = strings.ToLower(l.Path)
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (l *LFSLock) AfterLoad() {
-	l.Created = time.Unix(l.CreatedUnix, 0).Local()
 	l.Owner, _ = GetUserByID(l.OwnerID)
-}
-
-func (l *LFSLock) loadAttributes(e Engine) error {
-	var err error
-	if l.Repo == nil {
-		l.Repo, err = GetRepositoryByID(l.RepoID)
-		if err != nil {
-			return err
-		}
-	}
-	if l.Owner == nil {
-		l.Owner, err = GetUserByID(l.OwnerID)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// LoadAttributes load repo and publisher attributes for a lock
-func (l *LFSLock) LoadAttributes() error {
-	return l.loadAttributes(x)
+	l.Repo, _ = GetRepositoryByID(l.RepoID)
 }
 
 // APIFormat convert a Release to lfs.LFSLock
 func (l *LFSLock) APIFormat() *api.LFSLock {
-	//TODO move to api
 	return &api.LFSLock{
 		ID:       strconv.FormatInt(l.ID, 10),
 		Path:     l.Path,
@@ -72,43 +48,37 @@ func (l *LFSLock) APIFormat() *api.LFSLock {
 	}
 }
 
-// IsLFSLockExist returns true if lock with given path already exists.
-func IsLFSLockExist(repoID int64, path string) (bool, error) {
-	return x.Get(&LFSLock{RepoID: repoID, Path: path}) //TODO Define if path should needed to be lower for windows compat ?
-}
-
 // CreateLFSLock creates a new lock.
 func CreateLFSLock(lock *LFSLock) (*LFSLock, error) {
 	err := CheckLFSAccessForRepo(lock.Owner, lock.RepoID, "create")
 	if err != nil {
 		return nil, err
 	}
-	isExist, err := IsLFSLockExist(lock.RepoID, lock.Path)
-	if err != nil {
-		return nil, err
-	} else if isExist {
-		l, err := GetLFSLock(lock.RepoID, lock.Path)
-		if err != nil {
-			return nil, err
-		}
+
+	l, err := GetLFSLock(lock.RepoID, lock.Path)
+	if err == nil {
 		return l, ErrLFSLockAlreadyExist{lock.RepoID, lock.Path}
 	}
+	if !IsErrLFSLockNotExist(err) {
+		return nil, err
+	}
+
 	_, err = x.InsertOne(lock)
 	return lock, err
 }
 
 // GetLFSLock returns release by given path.
 func GetLFSLock(repoID int64, path string) (*LFSLock, error) {
-	isExist, err := IsLFSLockExist(repoID, path)
+	path = strings.ToLower(path)
+	rel := &LFSLock{RepoID: repoID, Path: path} //TODO Define if path should needed to be lower for windows compat ?
+	has, err := x.Get(rel)
 	if err != nil {
 		return nil, err
-	} else if !isExist {
+	}
+	if !has {
 		return nil, ErrLFSLockNotExist{0, repoID, path}
 	}
-
-	rel := &LFSLock{RepoID: repoID, Path: path} //TODO Define if path should needed to be lower for windows compat ?
-	_, err = x.Get(rel)
-	return rel, err
+	return rel, nil
 }
 
 // GetLFSLockByID returns release by given id.
@@ -126,7 +96,7 @@ func GetLFSLockByID(id int64) (*LFSLock, error) {
 // GetLFSLockByRepoID returns a list of locks of repository.
 func GetLFSLockByRepoID(repoID int64) (locks []*LFSLock, err error) {
 	err = x.Where("repo_id = ?", repoID).Find(&locks)
-	return locks, err
+	return
 }
 
 // DeleteLFSLockByID deletes a lock by given ID.

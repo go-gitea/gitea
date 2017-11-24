@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
@@ -81,6 +82,12 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	req.Body = ioutil.NopCloser(strings.NewReader("{\"path\": \"path/test\"}"))
 	resp = session.MakeRequest(t, req, http.StatusConflict)
 
+	req = NewRequestf(t, "POST", "/%s/%s/info/lfs/locks", user.Name, repo.Name)
+	req.Header.Set("Accept", "application/vnd.git-lfs+json")
+	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+	req.Body = ioutil.NopCloser(strings.NewReader("{\"path\": \"Foo/BaR.zip\"}"))
+	resp = session.MakeRequest(t, req, http.StatusConflict)
+
 	req = NewRequestf(t, "GET", "/%s/%s/info/lfs/locks", user.Name, repo.Name)
 	req.Header.Set("Accept", "application/vnd.git-lfs+json")
 	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
@@ -102,6 +109,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	assert.Len(t, lfsLocksVerify.Theirs, 0)
 	for _, lock := range lfsLocksVerify.Ours {
 		assert.EqualValues(t, user.DisplayName(), lock.Owner.Name)
+		assert.WithinDuration(t, time.Now(), lock.LockedAt, 10*time.Second)
 	}
 
 	req = NewRequestf(t, "POST", "/%s/%s/info/lfs/locks/%s/unlock", user.Name, repo.Name, lfsLocksVerify.Ours[0].ID)
