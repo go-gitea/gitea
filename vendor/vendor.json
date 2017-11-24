@@ -33,10 +33,10 @@
 			"revisionTime": "2016-07-15T03:28:08Z"
 		},
 		{
-			"checksumSHA1": "ly9VLPE9GKo2U7mnbZyjb2LDQ3w=",
+			"checksumSHA1": "IrtvVIFBTQmk0+vM7g2xtka5SFg=",
 			"path": "github.com/Unknwon/com",
-			"revision": "28b053d5a2923b87ce8c5a08f3af779894a72758",
-			"revisionTime": "2015-10-08T13:54:07Z"
+			"revision": "7677a1d7c1137cd3dd5ba7a076d0c898a1ef4520",
+			"revisionTime": "2017-08-19T22:39:52Z"
 		},
 		{
 			"checksumSHA1": "GwPkXd1UL3D7F3IuHHM+V0r4MB4=",
@@ -1508,10 +1508,10 @@
 			"revisionTime": "2016-08-08T14:54:09Z"
 		},
 		{
-			"checksumSHA1": "u1dW5zfo2SWot04r5cL8dTbmtcc=",
+			"checksumSHA1": "VJKlO1AEWQivq2S4DvdmAJU2Fvs=",
 			"path": "gopkg.in/macaron.v1",
-			"revision": "aa6b7ee41a182898a33d798c655df1cac9d2230b",
-			"revisionTime": "2017-01-22T14:42:53Z"
+			"revision": "75f2e9b42e99652f0d82b28ccb73648f44615faa",
+			"revisionTime": "2017-11-24T00:20:17Z"
 		},
 		{
 			"checksumSHA1": "6QPjE+qflEBHg+JPJd9e4iQuRAk=",
