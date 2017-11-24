@@ -15,11 +15,10 @@ import (
 
 // LFSLock represents a git lfs lock of repository.
 type LFSLock struct {
-	ID      int64       `xorm:"pk autoincr"`
-	Repo    *Repository `xorm:"-"`
-	RepoID  int64       `xorm:"INDEX"`
-	Owner   *User       `xorm:"-"`
-	OwnerID int64       `xorm:"INDEX"`
+	ID      int64 `xorm:"pk autoincr"`
+	RepoID  int64 `xorm:"INDEX"`
+	Owner   *User `xorm:"-"`
+	OwnerID int64 `xorm:"INDEX"`
 	Path    string
 	Created time.Time `xorm:"created"`
 }
@@ -33,7 +32,6 @@ func (l *LFSLock) BeforeInsert() {
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (l *LFSLock) AfterLoad() {
 	l.Owner, _ = GetUserByID(l.OwnerID)
-	l.Repo, _ = GetRepositoryByID(l.RepoID)
 }
 
 // APIFormat convert a Release to lfs.LFSLock
