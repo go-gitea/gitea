@@ -52,81 +52,127 @@ func TestAPILFSLocksNotLogin(t *testing.T) {
 func TestAPILFSLocksLogged(t *testing.T) {
 	prepareTestEnv(t)
 	setting.LFS.StartServer = true
-	session := loginUser(t, "user2")
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) //in org 3
+	user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User) //in org 3
 
-	req := NewRequestf(t, "GET", "/%s/%s/info/lfs/locks", user.Name, repo.Name)
-	req.Header.Set("Accept", "application/vnd.git-lfs+json")
-	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	var lfsLocks api.LFSLockList
-	DecodeJSON(t, resp, &lfsLocks)
-	assert.Len(t, lfsLocks.Locks, 0)
+	repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository) // own by org 3
 
-	req = NewRequestf(t, "POST", "/%s/%s/info/lfs/locks", user.Name, repo.Name)
-	req.Header.Set("Accept", "application/vnd.git-lfs+json")
-	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
-	req.Body = ioutil.NopCloser(strings.NewReader("{\"path\": \"foo/bar.zip\"}"))
-	resp = session.MakeRequest(t, req, http.StatusCreated)
+	tests := []struct {
+		user       *models.User
+		repo       *models.Repository
+		path       string
+		httpResult int
+		addTime    []int
+	}{
+		{user: user2, repo: repo1, path: "foo/bar.zip", httpResult: http.StatusCreated, addTime: []int{0}},
+		{user: user2, repo: repo1, path: "path/test", httpResult: http.StatusCreated, addTime: []int{0}},
+		{user: user2, repo: repo1, path: "path/test", httpResult: http.StatusConflict},
+		{user: user2, repo: repo1, path: "Foo/BaR.zip", httpResult: http.StatusConflict},
+		{user: user4, repo: repo1, path: "FoO/BaR.zip", httpResult: http.StatusForbidden},
+		{user: user4, repo: repo1, path: "path/test-user4", httpResult: http.StatusForbidden},
+		{user: user2, repo: repo1, path: "patH/Test-user4", httpResult: http.StatusCreated, addTime: []int{0}},
 
-	req = NewRequestf(t, "POST", "/%s/%s/info/lfs/locks", user.Name, repo.Name)
-	req.Header.Set("Accept", "application/vnd.git-lfs+json")
-	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
-	req.Body = ioutil.NopCloser(strings.NewReader("{\"path\": \"path/test\"}"))
-	resp = session.MakeRequest(t, req, http.StatusCreated)
-
-	req = NewRequestf(t, "POST", "/%s/%s/info/lfs/locks", user.Name, repo.Name)
-	req.Header.Set("Accept", "application/vnd.git-lfs+json")
-	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
-	req.Body = ioutil.NopCloser(strings.NewReader("{\"path\": \"path/test\"}"))
-	resp = session.MakeRequest(t, req, http.StatusConflict)
-
-	req = NewRequestf(t, "POST", "/%s/%s/info/lfs/locks", user.Name, repo.Name)
-	req.Header.Set("Accept", "application/vnd.git-lfs+json")
-	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
-	req.Body = ioutil.NopCloser(strings.NewReader("{\"path\": \"Foo/BaR.zip\"}"))
-	resp = session.MakeRequest(t, req, http.StatusConflict)
-
-	req = NewRequestf(t, "GET", "/%s/%s/info/lfs/locks", user.Name, repo.Name)
-	req.Header.Set("Accept", "application/vnd.git-lfs+json")
-	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &lfsLocks)
-	assert.Len(t, lfsLocks.Locks, 2)
-	for _, lock := range lfsLocks.Locks {
-		assert.EqualValues(t, user.DisplayName(), lock.Owner.Name)
+		{user: user2, repo: repo3, path: "test/foo/bar.zip", httpResult: http.StatusCreated, addTime: []int{1, 2}},
+		{user: user4, repo: repo3, path: "test/foo/bar.zip", httpResult: http.StatusConflict},
+		{user: user4, repo: repo3, path: "test/foo/bar.bin", httpResult: http.StatusCreated, addTime: []int{1, 2}},
 	}
 
-	req = NewRequestf(t, "POST", "/%s/%s/info/lfs/locks/verify", user.Name, repo.Name)
-	req.Header.Set("Accept", "application/vnd.git-lfs+json")
-	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
-	req.Body = ioutil.NopCloser(strings.NewReader("{}"))
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	var lfsLocksVerify api.LFSLockListVerify
-	DecodeJSON(t, resp, &lfsLocksVerify)
-	assert.Len(t, lfsLocksVerify.Ours, 2)
-	assert.Len(t, lfsLocksVerify.Theirs, 0)
-	for _, lock := range lfsLocksVerify.Ours {
-		assert.EqualValues(t, user.DisplayName(), lock.Owner.Name)
-		assert.WithinDuration(t, time.Now(), lock.LockedAt, 10*time.Second)
+	resultsTests := []struct {
+		user        *models.User
+		repo        *models.Repository
+		totalCount  int
+		oursCount   int
+		theirsCount int
+		locksOwners []*models.User
+		locksTimes  []time.Time
+	}{
+		{user: user2, repo: repo1, totalCount: 3, oursCount: 3, theirsCount: 0, locksOwners: []*models.User{user2, user2, user2}, locksTimes: []time.Time{}},
+		{user: user2, repo: repo3, totalCount: 2, oursCount: 1, theirsCount: 1, locksOwners: []*models.User{user2, user4}, locksTimes: []time.Time{}},
+		{user: user4, repo: repo3, totalCount: 2, oursCount: 1, theirsCount: 1, locksOwners: []*models.User{user2, user4}, locksTimes: []time.Time{}},
 	}
 
-	req = NewRequestf(t, "POST", "/%s/%s/info/lfs/locks/%s/unlock", user.Name, repo.Name, lfsLocksVerify.Ours[0].ID)
-	req.Header.Set("Accept", "application/vnd.git-lfs+json")
-	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
-	req.Body = ioutil.NopCloser(strings.NewReader("{}"))
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	var lfsLockRep api.LFSLockResponse
-	DecodeJSON(t, resp, &lfsLockRep)
-	assert.Equal(t, lfsLocksVerify.Ours[0].ID, lfsLockRep.Lock.ID)
-	assert.Equal(t, user.DisplayName(), lfsLockRep.Lock.Owner.Name)
+	deleteTests := []struct {
+		user   *models.User
+		repo   *models.Repository
+		lockID string
+	}{}
 
-	req = NewRequestf(t, "GET", "/%s/%s/info/lfs/locks", user.Name, repo.Name)
-	req.Header.Set("Accept", "application/vnd.git-lfs+json")
-	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &lfsLocks)
-	assert.Len(t, lfsLocks.Locks, 1)
+	//create locks
+	for _, test := range tests {
+		session := loginUser(t, test.user.Name)
+		req := NewRequestf(t, "POST", "/%s/info/lfs/locks", test.repo.FullName())
+		req.Header.Set("Accept", "application/vnd.git-lfs+json")
+		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+		req.Body = ioutil.NopCloser(strings.NewReader("{\"path\": \"" + test.path + "\"}"))
+		session.MakeRequest(t, req, test.httpResult)
+		if len(test.addTime) > 0 {
+			for _, id := range test.addTime {
+				resultsTests[id].locksTimes = append(resultsTests[id].locksTimes, time.Now())
+			}
+		}
+	}
 
+	//check creation
+	for _, test := range resultsTests {
+		session := loginUser(t, test.user.Name)
+		req := NewRequestf(t, "GET", "/%s/info/lfs/locks", test.repo.FullName())
+		req.Header.Set("Accept", "application/vnd.git-lfs+json")
+		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		var lfsLocks api.LFSLockList
+		DecodeJSON(t, resp, &lfsLocks)
+		assert.Len(t, lfsLocks.Locks, test.totalCount)
+		for i, lock := range lfsLocks.Locks {
+			assert.EqualValues(t, test.locksOwners[i].DisplayName(), lock.Owner.Name)
+			assert.WithinDuration(t, test.locksTimes[i], lock.LockedAt, 1*time.Second)
+		}
+
+		req = NewRequestf(t, "POST", "/%s/info/lfs/locks/verify", test.repo.FullName())
+		req.Header.Set("Accept", "application/vnd.git-lfs+json")
+		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+		req.Body = ioutil.NopCloser(strings.NewReader("{}"))
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		var lfsLocksVerify api.LFSLockListVerify
+		DecodeJSON(t, resp, &lfsLocksVerify)
+		assert.Len(t, lfsLocksVerify.Ours, test.oursCount)
+		assert.Len(t, lfsLocksVerify.Theirs, test.theirsCount)
+		for _, lock := range lfsLocksVerify.Ours {
+			assert.EqualValues(t, test.user.DisplayName(), lock.Owner.Name)
+			deleteTests = append(deleteTests, struct {
+				user   *models.User
+				repo   *models.Repository
+				lockID string
+			}{test.user, test.repo, lock.ID})
+		}
+		for _, lock := range lfsLocksVerify.Theirs {
+			assert.NotEqual(t, test.user.DisplayName(), lock.Owner.Name)
+		}
+	}
+
+	//remove all locks
+	for _, test := range deleteTests {
+		session := loginUser(t, test.user.Name)
+		req := NewRequestf(t, "POST", "/%s/info/lfs/locks/%s/unlock", test.repo.FullName(), test.lockID)
+		req.Header.Set("Accept", "application/vnd.git-lfs+json")
+		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+		req.Body = ioutil.NopCloser(strings.NewReader("{}"))
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		var lfsLockRep api.LFSLockResponse
+		DecodeJSON(t, resp, &lfsLockRep)
+		assert.Equal(t, test.lockID, lfsLockRep.Lock.ID)
+		assert.Equal(t, test.user.DisplayName(), lfsLockRep.Lock.Owner.Name)
+	}
+
+	// check taht we don't have any lock
+	for _, test := range resultsTests {
+		session := loginUser(t, test.user.Name)
+		req := NewRequestf(t, "GET", "/%s/info/lfs/locks", test.repo.FullName())
+		req.Header.Set("Accept", "application/vnd.git-lfs+json")
+		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		var lfsLocks api.LFSLockList
+		DecodeJSON(t, resp, &lfsLocks)
+		assert.Len(t, lfsLocks.Locks, 0)
+	}
 }
