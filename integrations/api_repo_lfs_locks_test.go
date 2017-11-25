@@ -5,9 +5,8 @@
 package integrations
 
 import (
-	"io/ioutil"
+	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -102,10 +101,9 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	//create locks
 	for _, test := range tests {
 		session := loginUser(t, test.user.Name)
-		req := NewRequestf(t, "POST", "/%s/info/lfs/locks", test.repo.FullName())
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/info/lfs/locks", test.repo.FullName()), map[string]string{"path": test.path})
 		req.Header.Set("Accept", "application/vnd.git-lfs+json")
 		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
-		req.Body = ioutil.NopCloser(strings.NewReader("{\"path\": \"" + test.path + "\"}"))
 		session.MakeRequest(t, req, test.httpResult)
 		if len(test.addTime) > 0 {
 			for _, id := range test.addTime {
@@ -129,10 +127,9 @@ func TestAPILFSLocksLogged(t *testing.T) {
 			assert.WithinDuration(t, test.locksTimes[i], lock.LockedAt, 1*time.Second)
 		}
 
-		req = NewRequestf(t, "POST", "/%s/info/lfs/locks/verify", test.repo.FullName())
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/info/lfs/locks/verify", test.repo.FullName()), map[string]string{})
 		req.Header.Set("Accept", "application/vnd.git-lfs+json")
 		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
-		req.Body = ioutil.NopCloser(strings.NewReader("{}"))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		var lfsLocksVerify api.LFSLockListVerify
 		DecodeJSON(t, resp, &lfsLocksVerify)
@@ -154,10 +151,9 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	//remove all locks
 	for _, test := range deleteTests {
 		session := loginUser(t, test.user.Name)
-		req := NewRequestf(t, "POST", "/%s/info/lfs/locks/%s/unlock", test.repo.FullName(), test.lockID)
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/info/lfs/locks/%s/unlock", test.repo.FullName(), test.lockID), map[string]string{})
 		req.Header.Set("Accept", "application/vnd.git-lfs+json")
 		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
-		req.Body = ioutil.NopCloser(strings.NewReader("{}"))
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		var lfsLockRep api.LFSLockResponse
 		DecodeJSON(t, resp, &lfsLockRep)
