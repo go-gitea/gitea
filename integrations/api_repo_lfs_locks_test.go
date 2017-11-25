@@ -165,7 +165,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		assert.Equal(t, test.user.DisplayName(), lfsLockRep.Lock.Owner.Name)
 	}
 
-	// check taht we don't have any lock
+	// check that we don't have any lock
 	for _, test := range resultsTests {
 		session := loginUser(t, test.user.Name)
 		req := NewRequestf(t, "GET", "/%s/info/lfs/locks", test.repo.FullName())
