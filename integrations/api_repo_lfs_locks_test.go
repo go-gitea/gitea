@@ -72,6 +72,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		{user: user4, repo: repo1, path: "FoO/BaR.zip", httpResult: http.StatusForbidden},
 		{user: user4, repo: repo1, path: "path/test-user4", httpResult: http.StatusForbidden},
 		{user: user2, repo: repo1, path: "patH/Test-user4", httpResult: http.StatusCreated, addTime: []int{0}},
+		{user: user2, repo: repo1, path: "some/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/path", httpResult: http.StatusCreated, addTime: []int{0}},
 
 		{user: user2, repo: repo3, path: "test/foo/bar.zip", httpResult: http.StatusCreated, addTime: []int{1, 2}},
 		{user: user4, repo: repo3, path: "test/foo/bar.zip", httpResult: http.StatusConflict},
@@ -87,7 +88,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		locksOwners []*models.User
 		locksTimes  []time.Time
 	}{
-		{user: user2, repo: repo1, totalCount: 3, oursCount: 3, theirsCount: 0, locksOwners: []*models.User{user2, user2, user2}, locksTimes: []time.Time{}},
+		{user: user2, repo: repo1, totalCount: 4, oursCount: 4, theirsCount: 0, locksOwners: []*models.User{user2, user2, user2, user2}, locksTimes: []time.Time{}},
 		{user: user2, repo: repo3, totalCount: 2, oursCount: 1, theirsCount: 1, locksOwners: []*models.User{user2, user4}, locksTimes: []time.Time{}},
 		{user: user4, repo: repo3, totalCount: 2, oursCount: 1, theirsCount: 1, locksOwners: []*models.User{user2, user4}, locksTimes: []time.Time{}},
 	}
