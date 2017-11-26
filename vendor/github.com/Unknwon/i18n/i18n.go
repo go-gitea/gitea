@@ -156,7 +156,10 @@ func GetDescriptionByLang(lang string) string {
 }
 
 func SetMessageWithDesc(lang, langDesc string, localeFile interface{}, otherLocaleFiles ...interface{}) error {
-	message, err := ini.Load(localeFile, otherLocaleFiles...)
+	message, err := ini.LoadSources(ini.LoadOptions{
+		IgnoreInlineComment:         true,
+		UnescapeValueCommentSymbols: true,
+	}, localeFile, otherLocaleFiles...)
 	if err == nil {
 		message.BlockMode = false
 		lc := new(locale)
@@ -194,10 +197,11 @@ func (l Locale) Index() int {
 // Tr translates content to target language.
 func Tr(lang, format string, args ...interface{}) string {
 	var section string
-	parts := strings.SplitN(format, ".", 2)
-	if len(parts) == 2 {
-		section = parts[0]
-		format = parts[1]
+
+	idx := strings.IndexByte(format, '.')
+	if idx > 0 {
+		section = format[:idx]
+		format = format[idx+1:]
 	}
 
 	value, ok := locales.Get(lang, section, format)
@@ -208,15 +212,17 @@ func Tr(lang, format string, args ...interface{}) string {
 	if len(args) > 0 {
 		params := make([]interface{}, 0, len(args))
 		for _, arg := range args {
-			if arg != nil {
-				val := reflect.ValueOf(arg)
-				if val.Kind() == reflect.Slice {
-					for i := 0; i < val.Len(); i++ {
-						params = append(params, val.Index(i).Interface())
-					}
-				} else {
-					params = append(params, arg)
+			if arg == nil {
+				continue
+			}
+
+			val := reflect.ValueOf(arg)
+			if val.Kind() == reflect.Slice {
+				for i := 0; i < val.Len(); i++ {
+					params = append(params, val.Index(i).Interface())
 				}
+			} else {
+				params = append(params, arg)
 			}
 		}
 		return fmt.Sprintf(format, params...)

@@ -339,6 +339,7 @@ func DeleteEmail(ctx *context.Context) {
 func SettingsKeys(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsKeys"] = true
+	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
 	keys, err := models.ListPublicKeys(ctx.User.ID)
 	if err != nil {
@@ -405,13 +406,15 @@ func SettingsKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	case "ssh":
 		content, err := models.CheckPublicKeyString(form.Content)
 		if err != nil {
-			if models.IsErrKeyUnableVerify(err) {
+			if models.IsErrSSHDisabled(err) {
+				ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
+			} else if models.IsErrKeyUnableVerify(err) {
 				ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
 			} else {
 				ctx.Flash.Error(ctx.Tr("form.invalid_ssh_key", err.Error()))
-				ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
-				return
 			}
+			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+			return
 		}
 
 		if _, err = models.AddPublicKey(ctx.User.ID, form.Title, content); err != nil {

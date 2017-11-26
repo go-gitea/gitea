@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/dgrijalva/jwt-go"
 	"gopkg.in/macaron.v1"
 )
@@ -66,7 +68,12 @@ type ObjectError struct {
 
 // ObjectLink builds a URL linking to the object.
 func (v *RequestVars) ObjectLink() string {
-	return fmt.Sprintf("%s%s/%s/info/lfs/objects/%s", setting.AppURL, v.User, v.Repo, v.Oid)
+	return setting.AppURL + path.Join(v.User, v.Repo, "info/lfs/objects", v.Oid)
+}
+
+// VerifyLink builds a URL for verifying the object.
+func (v *RequestVars) VerifyLink() string {
+	return setting.AppURL + path.Join(v.User, v.Repo, "info/lfs/verify")
 }
 
 // link provides a structure used to build a hypermedia representation of an HTTP link.
@@ -320,6 +327,40 @@ func PutHandler(ctx *context.Context) {
 	logRequest(ctx.Req, 200)
 }
 
+// VerifyHandler verify oid and its size from the content store
+func VerifyHandler(ctx *context.Context) {
+	if !setting.LFS.StartServer {
+		writeStatus(ctx, 404)
+		return
+	}
+
+	if !ContentMatcher(ctx.Req) {
+		writeStatus(ctx, 400)
+		return
+	}
+
+	rv := unpack(ctx)
+
+	meta, _ := getAuthenticatedRepoAndMeta(ctx, rv, true)
+	if meta == nil {
+		return
+	}
+
+	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
+	ok, err := contentStore.Verify(meta)
+	if err != nil {
+		ctx.Resp.WriteHeader(500)
+		fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
+		return
+	}
+	if !ok {
+		writeStatus(ctx, 422)
+		return
+	}
+
+	logRequest(ctx.Req, 200)
+}
+
 // Represent takes a RequestVars and Meta and turns it into a Representation suitable
 // for json encoding
 func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload bool) *Representation {
@@ -345,6 +386,11 @@ func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload boo
 
 	if upload {
 		rep.Actions["upload"] = &link{Href: rv.ObjectLink(), Header: header}
+	}
+
+	if upload && !download {
+		// Force client side verify action while gitea lacks proper server side verification
+		rep.Actions["verify"] = &link{Href: rv.VerifyLink(), Header: header}
 	}
 
 	return rep

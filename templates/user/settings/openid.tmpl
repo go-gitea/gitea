@@ -48,7 +48,7 @@
 				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_OpenID}}error{{end}}">
 					<label for="openid">{{.i18n.Tr "settings.add_new_openid"}}</label>
-					<input id="openid" name="openid" type="openid" autofocus required>
+					<input id="openid" name="openid" type="text" autofocus required>
 				</div>
 				<button class="ui green button">
 					{{.i18n.Tr "settings.add_openid"}}
