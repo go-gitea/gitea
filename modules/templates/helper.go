@@ -304,7 +304,7 @@ func renderCommitBody(msg string, opts markup.RenderIssueIndexPatternOptions) te
 		return template.HTML("")
 	}
 	body := msgLines[1:]
-	return template.HTML(strings.Join(body, "\n"))
+	return template.HTML(strings.Join(body, "<br>"))
 }
 
 func IsMultilineCommitMessage(msg string) bool {
