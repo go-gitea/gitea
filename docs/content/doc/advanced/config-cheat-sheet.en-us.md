@@ -19,7 +19,7 @@ This is a cheat sheet for the Gitea configuration file. It is helpful for more f
 
 Before getting started, make sure you know that any change to the configuration should be made in `custom/conf/app.ini` or any corresponding location.
 
-All default settings can be found in [app.ini](https://github.com/go-gitea/gitea/blob/master/conf/app.ini) (replace master in URL with name of tag for released versions). If you see anything which looks like `%(X)s`, it is a feature powered by [ini](https://github.com/go-ini/ini/#recursive-values) for reading values recursively.
+All default settings can be found in [app.ini.sample](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample) (replace master in URL with name of tag for released versions). If you see anything which looks like `%(X)s`, it is a feature powered by [ini](https://github.com/go-ini/ini/#recursive-values) for reading values recursively.
 
 Any configuration option that is marked by :exclamation: means that you should keep the default value unless you fully understand what you are doing.
 
