@@ -161,7 +161,7 @@ func testEditFileToNewBranchAndSendPull(t *testing.T, session *TestSession, user
 
 	req = NewRequestWithValues(t, "POST", url,
 		map[string]string{
-			"_csrf": htmlDoc.GetCSRF(),
+			"_csrf": GetCSRF(t, session, url),
 			"title": "pull request from " + targetBranch,
 		},
 	)

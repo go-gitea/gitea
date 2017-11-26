@@ -198,8 +198,10 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			}
 		}
 	} else {
-		var repoIDs = make([]int64, 0, len(issues))
-		var shas = make([]string, 0, len(issues))
+		var repoSHAs = make([]struct {
+			RepoID int64
+			SHA    string
+		}, 0, len(issues))
 		var pullIDs = make([]int64, 0, len(issues))
 		var repoCache = make(map[int64]*git.Repository)
 
@@ -218,35 +220,40 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 				return
 			}
 
-			var rep *git.Repository
+			var gitRepo *git.Repository
 			var ok bool
-			if rep, ok = repoCache[issue.PullRequest.HeadRepoID]; !ok {
+			if gitRepo, ok = repoCache[issue.PullRequest.HeadRepoID]; !ok {
 				if err := issue.PullRequest.GetHeadRepo(); err != nil {
 					ctx.ServerError("GetHeadRepo", err)
 					return
 				}
 
-				rep, err = git.OpenRepository(issue.PullRequest.HeadRepo.RepoPath())
+				gitRepo, err = git.OpenRepository(issue.PullRequest.HeadRepo.RepoPath())
 				if err != nil {
 					ctx.ServerError("OpenRepository", err)
 					return
 				}
-				repoCache[issue.PullRequest.HeadRepoID] = rep
+				repoCache[issue.PullRequest.HeadRepoID] = gitRepo
 			}
 
-			sha, err := rep.GetBranchCommitID(issue.PullRequest.HeadBranch)
+			sha, err := gitRepo.GetBranchCommitID(issue.PullRequest.HeadBranch)
 			if err != nil {
 				log.Error(4, "GetBranchCommitID: %v", err)
 			} else {
-				repoIDs = append(repoIDs, issue.RepoID)
-				shas = append(shas, sha)
+				repoSHAs = append(repoSHAs, struct {
+					RepoID int64
+					SHA    string
+				}{
+					RepoID: issue.RepoID,
+					SHA:    sha,
+				})
 				pullIDs = append(pullIDs, issue.ID)
 			}
 		}
 
 		var issuesStates = make(map[int64]*models.CommitStatus, len(issues))
-		if len(repoIDs) > 0 {
-			commitStatuses, err := models.GetLatestCommitStatuses(repoIDs, shas)
+		if len(repoSHAs) > 0 {
+			commitStatuses, err := models.GetLatestCommitStatuses(repoSHAs)
 			if err != nil {
 				ctx.ServerError("GetLatestCommitStatuses", err)
 				return

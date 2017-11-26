@@ -6,7 +6,6 @@ package models
 
 import (
 	"container/list"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -160,43 +159,32 @@ func GetLatestCommitStatus(repo *Repository, sha string, page int) ([]*CommitSta
 }
 
 // GetLatestCommitStatuses returns all statuses with given repoIDs and shas
-func GetLatestCommitStatuses(repoIDs []int64, shas []string) ([][]*CommitStatus, error) {
-	if len(repoIDs) != len(shas) {
-		return nil, errors.New("parameter repoIDs should have the same size of shas")
-	}
-
-	var results = make([]struct {
-		ID     int64
-		RepoID int64
-		SHA    string
-	}, 0, 10*len(repoIDs))
-
+func GetLatestCommitStatuses(repoSHAs []struct {
+	RepoID int64
+	SHA    string
+}) ([][]*CommitStatus, error) {
 	var cond = builder.NewCond()
-	for i := 0; i < len(repoIDs); i++ {
+	for i := 0; i < len(repoSHAs); i++ {
 		cond = cond.Or(builder.Eq{
-			"repo_id": repoIDs[i],
-			"sha":     shas[i],
+			"repo_id": repoSHAs[i].RepoID,
+			"sha":     repoSHAs[i].SHA,
 		})
 	}
 
-	err := x.Table(&CommitStatus{}).
+	var ids = make([]int64, 0, len(repoSHAs))
+	err := x.Table("commit_status").
 		Where(cond).
-		Select("max( id ) as id, repo_id, sha").
-		GroupBy("repo_id, sha, context").OrderBy("max( id ) desc").Find(&results)
+		Select("max( id ) as id").
+		GroupBy("repo_id, sha, context").
+		OrderBy("max( id ) desc").
+		Find(&ids)
 	if err != nil {
 		return nil, err
 	}
 
-	var returns = make([][]*CommitStatus, len(repoIDs))
-	if len(results) == 0 {
+	var returns = make([][]*CommitStatus, len(repoSHAs))
+	if len(ids) == 0 {
 		return returns, nil
-	}
-
-	var ids = make([]int64, 0, len(results))
-	var repoIDsMap = make(map[string][]int64, len(repoIDs))
-	for _, res := range results {
-		ids = append(ids, res.ID)
-		repoIDsMap[fmt.Sprintf("%d-%s", res.RepoID, res.SHA)] = append(repoIDsMap[fmt.Sprintf("%d-%s", res.RepoID, res.SHA)], res.ID)
 	}
 
 	statuses := make(map[int64]*CommitStatus, len(ids))
@@ -205,8 +193,14 @@ func GetLatestCommitStatuses(repoIDs []int64, shas []string) ([][]*CommitStatus,
 		return nil, err
 	}
 
-	for i := 0; i < len(repoIDs); i++ {
-		for _, id := range repoIDsMap[fmt.Sprintf("%d-%s", repoIDs[i], shas[i])] {
+	var repoIDsMap = make(map[string][]int64, len(repoSHAs))
+	for _, status := range statuses {
+		key := fmt.Sprintf("%d-%s", status.RepoID, status.SHA)
+		repoIDsMap[key] = append(repoIDsMap[key], status.ID)
+	}
+
+	for i := 0; i < len(repoSHAs); i++ {
+		for _, id := range repoIDsMap[fmt.Sprintf("%d-%s", repoSHAs[i].RepoID, repoSHAs[i].SHA)] {
 			returns[i] = append(returns[i], statuses[id])
 		}
 	}
