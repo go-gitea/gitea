@@ -308,12 +308,7 @@ func renderCommitBody(msg string, opts markup.RenderIssueIndexPatternOptions) te
 }
 
 func IsMultilineCommitMessage(msg string) bool {
-	msgLines := strings.Split(strings.TrimSpace(msg), "\n")
-	if len(msgLines) > 1 {
-		return true
-	} else {
-		return false
-	}
+	return strings.Count(strings.TrimSpace(msg), "\n") > 1
 }
 
 // Actioner describes an action
