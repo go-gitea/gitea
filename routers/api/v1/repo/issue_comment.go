@@ -168,7 +168,7 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 
 // EditIssueComment modify a comment of an issue
 func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/comments/{id} issue issueEditComment
+	// swagger:operation PATCH /repos/{owner}/{repo}/issues/comments/{id} issue issueEditComment
 	// ---
 	// summary: Edit a comment
 	// consumes:
@@ -198,6 +198,51 @@ func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Comment"
+	editIssueComment(ctx, form)
+}
+
+// EditIssueCommentDeprecated modify a comment of an issue
+func EditIssueCommentDeprecated(ctx *context.APIContext, form api.EditIssueCommentOption) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index}/comments/{id} issue issueEditCommentDeprecated
+	// ---
+	// summary: Edit a comment
+	// deprecated: true
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: this parameter is ignored
+	//   type: integer
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the comment to edit
+	//   type: integer
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditIssueCommentOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Comment"
+	editIssueComment(ctx, form)
+}
+
+func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) {
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
@@ -226,7 +271,7 @@ func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 
 // DeleteIssueComment delete a comment from an issue
 func DeleteIssueComment(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/comments/{id} issue issueDeleteComment
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/comments/{id} issue issueDeleteComment
 	// ---
 	// summary: Delete a comment
 	// parameters:
@@ -248,6 +293,43 @@ func DeleteIssueComment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	deleteIssueComment(ctx)
+}
+
+// DeleteIssueCommentDeprecated delete a comment from an issue
+func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/comments/{id} issue issueDeleteCommentDeprecated
+	// ---
+	// summary: Delete a comment
+	// deprecated: true
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: this parameter is ignored
+	//   type: integer
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of comment to delete
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	deleteIssueComment(ctx)
+}
+
+func deleteIssueComment(ctx *context.APIContext) {
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {

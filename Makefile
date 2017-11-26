@@ -55,10 +55,10 @@ else
 	endif
 endif
 
-include docker/Makefile
-
 .PHONY: all
 all: build
+
+include docker/Makefile
 
 .PHONY: clean
 clean:
