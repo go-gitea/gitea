@@ -150,8 +150,8 @@ func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, bra
 	return resp
 }
 
-func testEditFileToNewBranchAndSendPull(t *testing.T, session *TestSession, user, repo, branch, targetBranch, filePath string) *TestResponse {
-	testEditFileToNewBranch(t, session, user, repo, branch, targetBranch, filePath)
+func testEditFileToNewBranchAndSendPull(t *testing.T, session *TestSession, user, repo, branch, targetBranch, filePath, newContent string) *TestResponse {
+	testEditFileToNewBranch(t, session, user, repo, branch, targetBranch, filePath, newContent)
 
 	url := path.Join(user, repo, "compare", branch+"..."+targetBranch)
 

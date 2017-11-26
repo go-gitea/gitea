@@ -36,7 +36,7 @@ func TestRepoPullsWithStatus(t *testing.T) {
 	var size = 5
 	// create some pulls
 	for i := 0; i < size; i++ {
-		testEditFileToNewBranchAndSendPull(t, session, "user2", "repo16", "master", fmt.Sprintf("test%d", i), "readme.md")
+		testEditFileToNewBranchAndSendPull(t, session, "user2", "repo16", "master", fmt.Sprintf("test%d", i), "readme.md", fmt.Sprintf("test%d", i))
 	}
 
 	// look for repo's pulls page
