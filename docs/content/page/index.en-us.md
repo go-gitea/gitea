@@ -181,6 +181,7 @@ The goal of this project is to make the easiest, fastest, and most painless way 
         - Milestones
         - Labels
         - Assign issues
+        - Track time
         - Filter
             - Open
             - Closed
