@@ -112,6 +112,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLink": RenderCommitMessageLink,
 		"RenderCommitBody":		RenderCommitBody,
 		"RenderCommitBodyLink":		RenderCommitBodyLink,
+		"IsMultilineCommitMessage":	IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
 		},
@@ -304,6 +305,15 @@ func renderCommitBody(msg string, opts markup.RenderIssueIndexPatternOptions) te
 	}
 	body := msgLines[1:]
 	return template.HTML(strings.Join(body, "\n"))
+}
+
+func IsMultilineCommitMessage(msg string) bool {
+	msgLines := strings.Split(strings.TrimSpace(msg), "\n")
+	if len(msgLines) > 1 {
+		return true
+	} else {
+		return false
+	}
 }
 
 // Actioner describes an action
