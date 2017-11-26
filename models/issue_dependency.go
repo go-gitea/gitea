@@ -30,17 +30,17 @@ const (
 )
 
 // CreateIssueDependency creates a new dependency for an issue
-func CreateIssueDependency(user *User, issue, dep *Issue) (exists bool, err error) {
+func CreateIssueDependency(user *User, issue, dep *Issue) (exists, circular bool, err error) {
 	sess := x.NewSession()
 
 	// Check if it aleready exists
-	exists, err = issueDepExists(x, issue.ID, dep.ID)
+	exists, circular, err = issueDepExists(x, issue.ID, dep.ID)
 	if err != nil {
-		return exists, err
+		return
 	}
 
 	// If it not exists, create it, otherwise show an error message
-	if !exists {
+	if !exists && !circular {
 		newIssueDependency := &IssueDependency{
 			UserID:       user.ID,
 			IssueID:      issue.ID,
@@ -48,20 +48,20 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (exists bool, err erro
 		}
 
 		if _, err := x.Insert(newIssueDependency); err != nil {
-			return exists, err
+			return exists, circular, err
 		}
 
 		// Add comment referencing the new dependency
 		if _, err = createIssueDependencyComment(sess, user, issue, dep, true); err != nil {
-			return exists, err
+			return
 		}
 
 		// Create a new comment for the dependent issue
 		if _, err = createIssueDependencyComment(sess, user, dep, issue, true); err != nil {
-			return exists, err
+			return
 		}
 	}
-	return exists, nil
+	return exists, circular, nil
 }
 
 // RemoveIssueDependency removes a dependency from an issue
@@ -70,7 +70,7 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 
 	// Check if it exists
 	var exists bool
-	if exists, err = issueDepExists(x, issue.ID, dep.ID); err != nil {
+	if exists, _, err = issueDepExists(x, issue.ID, dep.ID); err != nil {
 		return err
 	}
 
@@ -106,9 +106,15 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 }
 
 // Check if the dependency already exists
-func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err error) {
+func issueDepExists(e Engine, issueID int64, depID int64) (exists, circular bool, err error) {
 
-	exists, err = e.Where("(issue_id = ? AND dependency_id = ?) OR (issue_id = ? AND dependency_id = ?)", issueID, depID, depID, issueID).Exist(&IssueDependency{})
+	// Check if the dependency exists
+	exists, err = e.Where("(issue_id = ? AND dependency_id = ?)", issueID, depID).Exist(&IssueDependency{})
+
+	// If not, check for circular dependencies
+	if !exists {
+		circular, err = e.Where("issue_id = ? AND dependency_id = ?", depID, issueID).Exist(&IssueDependency{})
+	}
 
 	return
 }
