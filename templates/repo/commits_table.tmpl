@@ -30,7 +30,7 @@
 					<th class="three wide right aligned">{{.i18n.Tr "repo.commits.date"}}</th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody class="commit-list">
 				{{ $r:= List .Commits}}
 				{{range $r}}
 					<tr>
