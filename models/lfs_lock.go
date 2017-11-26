@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -26,12 +27,16 @@ type LFSLock struct {
 // BeforeInsert is invoked from XORM before inserting an object of this type.
 func (l *LFSLock) BeforeInsert() {
 	l.OwnerID = l.Owner.ID
-	l.Path = strings.ToLower(l.Path)
+	l.Path = cleanPath(l.Path)
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (l *LFSLock) AfterLoad() {
 	l.Owner, _ = GetUserByID(l.OwnerID)
+}
+
+func cleanPath(p string) string {
+	return strings.ToLower(path.Clean(p))
 }
 
 // APIFormat convert a Release to lfs.LFSLock
@@ -67,8 +72,8 @@ func CreateLFSLock(lock *LFSLock) (*LFSLock, error) {
 
 // GetLFSLock returns release by given path.
 func GetLFSLock(repoID int64, path string) (*LFSLock, error) {
-	path = strings.ToLower(path)
-	rel := &LFSLock{RepoID: repoID, Path: path} //TODO Define if path should needed to be lower for windows compat ?
+	path = cleanPath(path)
+	rel := &LFSLock{RepoID: repoID, Path: path}
 	has, err := x.Get(rel)
 	if err != nil {
 		return nil, err

@@ -68,6 +68,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		{user: user2, repo: repo1, path: "path/test", httpResult: http.StatusCreated, addTime: []int{0}},
 		{user: user2, repo: repo1, path: "path/test", httpResult: http.StatusConflict},
 		{user: user2, repo: repo1, path: "Foo/BaR.zip", httpResult: http.StatusConflict},
+		{user: user2, repo: repo1, path: "Foo/Test/../subFOlder/../Relative/../BaR.zip", httpResult: http.StatusConflict},
 		{user: user4, repo: repo1, path: "FoO/BaR.zip", httpResult: http.StatusForbidden},
 		{user: user4, repo: repo1, path: "path/test-user4", httpResult: http.StatusForbidden},
 		{user: user2, repo: repo1, path: "patH/Test-user4", httpResult: http.StatusCreated, addTime: []int{0}},
