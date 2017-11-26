@@ -110,6 +110,8 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"RenderCommitMessage":     RenderCommitMessage,
 		"RenderCommitMessageLink": RenderCommitMessageLink,
+		"RenderCommitBody":		RenderCommitBody,
+		"RenderCommitBodyLink":		RenderCommitBodyLink,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
 		},
@@ -276,6 +278,32 @@ func renderCommitMessage(msg string, opts markup.RenderIssueIndexPatternOptions)
 		return template.HTML("")
 	}
 	return template.HTML(msgLines[0])
+}
+
+func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.HTML {
+	return renderCommitBody(msg, markup.RenderIssueIndexPatternOptions{
+		URLPrefix: 	urlPrefix,
+		Metas:		metas,
+	})
+}
+
+func RenderCommitBodyLink(msg, urlPrefix string, urlDefault string, metas map[string]string) template.HTML {
+	return renderCommitMessage(msg, markup.RenderIssueIndexPatternOptions{
+		DefaultURL: urlDefault,
+		URLPrefix:  urlPrefix,
+		Metas:      metas,
+	})
+}
+
+func renderCommitBody(msg string, opts markup.RenderIssueIndexPatternOptions) template.HTML {
+	cleanMsg := template.HTMLEscapeString(msg)
+	fullMessage := string(markup.RenderIssueIndexPattern([]byte(cleanMsg), opts))
+	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
+	if len(msgLines) == 0 {
+		return template.HTML("")
+	}
+	body := msgLines[1:]
+	return template.HTML(strings.Join(body, "\n"))
 }
 
 // Actioner describes an action
