@@ -154,12 +154,7 @@ func testEditFileToNewBranchAndSendPull(t *testing.T, session *TestSession, user
 	testEditFileToNewBranch(t, session, user, repo, branch, targetBranch, filePath, newContent)
 
 	url := path.Join(user, repo, "compare", branch+"..."+targetBranch)
-
-	req := NewRequest(t, "GET", url)
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-
-	req = NewRequestWithValues(t, "POST", url,
+	req := NewRequestWithValues(t, "POST", url,
 		map[string]string{
 			"_csrf": GetCSRF(t, session, url),
 			"title": "pull request from " + targetBranch,
