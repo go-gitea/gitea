@@ -17,10 +17,10 @@ import (
 // LFSLock represents a git lfs lock of repository.
 type LFSLock struct {
 	ID      int64     `xorm:"pk autoincr"`
-	RepoID  int64     `xorm:"UNIQUE(path_by_repo) INDEX NOT NULL"`
+	RepoID  int64     `xorm:"INDEX NOT NULL"`
 	Owner   *User     `xorm:"-"`
 	OwnerID int64     `xorm:"INDEX NOT NULL"`
-	Path    string    `xorm:"TEXT UNIQUE(path_by_repo)"`
+	Path    string    `xorm:"TEXT"`
 	Created time.Time `xorm:"created"`
 }
 
