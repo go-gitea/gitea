@@ -140,11 +140,11 @@ coverage:
 	fi
 	echo "mode: set" > coverage.all
 	for PKG in $(PACKAGES); do\
-		egrep "$$PKG[^/]*\.go" integration.coverage.out > int.coverage.out;\
-		gocovmerge $$GOPATH/src/$$PKG/coverage.out int.coverage.out > pkg.coverage.out;\
-		grep -h -v "^mode:" pkg.coverage.out >>  coverage.all;\
-		mv pkg.coverage.out $$GOPATH/src/$$PKG/coverage.out;\
-		rm int.coverage.out;\
+		echo "mode: set" > pkg_integration.coverage.out;\
+		egrep "$$PKG/[^/]*\.go" integration.coverage.out >> pkg_integration.coverage.out;\
+		gocovmerge $$GOPATH/src/$$PKG/coverage.out pkg_integration.coverage.out\
+		  | grep -h -v "^mode:" >> coverage.all;\
+		rm pkg_integration.coverage.out;\
 	done;
 
 .PHONY: unit-test-coverage
