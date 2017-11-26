@@ -193,12 +193,12 @@ bench-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.bench .
 
 .PHONY: bench-mysql
-bench-mysql: integrations.mysql.test generate-ini
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test -test.bench .
+bench-mysql: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test -test.bench .
 
 .PHONY: bench-pgsql
-bench-pgsql: integrations.pgsql.test generate-ini
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.bench .
+bench-pgsql: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test -test.bench .
 
 
 .PHONY: integration-test-coverage
