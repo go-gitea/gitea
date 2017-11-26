@@ -34,11 +34,15 @@ func Search(ctx *context.APIContext) {
 	//   type: string
 	// - name: uid
 	//   in: query
-	//   description: if provided, will return only repos owned by the user with the given id
+	//   description: search only for repos that the user with the given id owns or contributes to
+	//   type: integer
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: maximum number of repos to return
+	//   description: page size of results, maximum page size is 50
 	//   type: integer
 	// - name: mode
 	//   in: query
@@ -47,7 +51,7 @@ func Search(ctx *context.APIContext) {
 	//   type: string
 	// - name: exclusive
 	//   in: query
-	//   description: only search for repositories owned by the authenticated user
+	//   description: if `uid` is given, search only for repos that the user owns
 	//   type: boolean
 	// responses:
 	//   "200":
@@ -57,6 +61,7 @@ func Search(ctx *context.APIContext) {
 	opts := &models.SearchRepoOptions{
 		Keyword:     strings.Trim(ctx.Query("q"), " "),
 		OwnerID:     ctx.QueryInt64("uid"),
+		Page:        ctx.QueryInt("page"),
 		PageSize:    convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		Collaborate: util.OptionalBoolNone,
 	}

@@ -107,7 +107,7 @@ func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 	//   schema:
 	//     "$ref": "#/definitions/CreateHookOption"
 	// responses:
-	//   "200":
+	//   "201":
 	//     "$ref": "#/responses/Hook"
 	if !utils.CheckCreateHookOption(ctx, &form) {
 		return

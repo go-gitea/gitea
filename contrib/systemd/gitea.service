@@ -14,6 +14,7 @@ After=network.target
 ###
 #LimitMEMLOCK=infinity
 #LimitNOFILE=65535
+RestartSec=2s
 Type=simple
 User=git
 Group=git
