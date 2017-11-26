@@ -138,14 +138,7 @@ coverage:
 	@hash gocovmerge > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/wadey/gocovmerge; \
 	fi
-	echo "mode: set" > coverage.all
-	for PKG in $(PACKAGES); do\
-		echo "mode: set" > pkg_integration.coverage.out;\
-		egrep "$$PKG/[^/]*\.go" integration.coverage.out >> pkg_integration.coverage.out;\
-		gocovmerge $$GOPATH/src/$$PKG/coverage.out pkg_integration.coverage.out\
-		  | grep -h -v "^mode:" >> coverage.all;\
-		rm pkg_integration.coverage.out;\
-	done;
+	gocovmerge integration.coverage.out $(shell find . -type f -name "coverage.out") > coverage.all;\
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
