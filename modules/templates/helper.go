@@ -299,12 +299,12 @@ func RenderCommitBodyLink(msg, urlPrefix string, urlDefault string, metas map[st
 func renderCommitBody(msg string, opts markup.RenderIssueIndexPatternOptions) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
 	fullMessage := string(markup.RenderIssueIndexPattern([]byte(cleanMsg), opts))
-	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
-	if len(msgLines) == 0 {
+	msgLines := strings.Replace(strings.TrimSpace(fullMessage), "\n\n", "\n", -1)
+	body := strings.Split(msgLines,"\n")
+	if len(body) == 0 {
 		return template.HTML("")
 	}
-	body := msgLines[1:]
-	return template.HTML(strings.Join(body, "<br>"))
+	return template.HTML(strings.Join(body[1:], "\n"))
 }
 
 func IsMultilineCommitMessage(msg string) bool {
