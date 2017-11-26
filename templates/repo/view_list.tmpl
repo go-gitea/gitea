@@ -28,6 +28,10 @@
 						{{end}}
 				</a>
 				<span class="grey has-emoji">{{RenderCommitMessage .LatestCommit.Summary .RepoLink $.Repository.ComposeMetas}}
+                {{if IsMultilineCommitMessage .LatestCommit.Message}}
+                <button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
+                <p class="commit-body" style="display: none;">{{RenderCommitBody .LatestCommit.Message $.RepoLink $.Repository.ComposeMetas}}</span>
+                {{end}}
 				{{template "repo/commit_status" .LatestCommitStatus}}</span>
 			</th>
 			<th class="nine wide">
