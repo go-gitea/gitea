@@ -37,7 +37,9 @@ type Status struct {
 	URL         string      `json:"url"`
 	Context     string      `json:"context"`
 	Creator     *User       `json:"creator"`
+	// swagger:strfmt date-time
 	Created     time.Time   `json:"created_at"`
+	// swagger:strfmt date-time
 	Updated     time.Time   `json:"updated_at"`
 }
 

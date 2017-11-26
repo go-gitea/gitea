@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"container/list"
 	"path"
 	"strings"
 
@@ -37,15 +36,6 @@ func RefCommits(ctx *context.Context) {
 	}
 }
 
-func renderIssueLinks(oldCommits *list.List, repoLink string) *list.List {
-	newCommits := list.New()
-	for e := oldCommits.Front(); e != nil; e = e.Next() {
-		c := e.Value.(*git.Commit)
-		newCommits.PushBack(c)
-	}
-	return newCommits
-}
-
 // Commits render branch's commits
 func Commits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
@@ -73,7 +63,6 @@ func Commits(ctx *context.Context) {
 		ctx.Handle(500, "CommitsByRange", err)
 		return
 	}
-	commits = renderIssueLinks(commits, ctx.Repo.RepoLink)
 	commits = models.ValidateCommitsWithEmails(commits)
 	commits = models.ParseCommitsWithSignature(commits)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
@@ -130,7 +119,6 @@ func SearchCommits(ctx *context.Context) {
 		ctx.Handle(500, "SearchCommits", err)
 		return
 	}
-	commits = renderIssueLinks(commits, ctx.Repo.RepoLink)
 	commits = models.ValidateCommitsWithEmails(commits)
 	commits = models.ParseCommitsWithSignature(commits)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
@@ -178,7 +166,6 @@ func FileHistory(ctx *context.Context) {
 		ctx.Handle(500, "CommitsByFileAndRange", err)
 		return
 	}
-	commits = renderIssueLinks(commits, ctx.Repo.RepoLink)
 	commits = models.ValidateCommitsWithEmails(commits)
 	commits = models.ParseCommitsWithSignature(commits)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)

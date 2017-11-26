@@ -27,14 +27,33 @@ func listUserOrgs(ctx *context.APIContext, u *models.User, all bool) {
 }
 
 // ListMyOrgs list all my orgs
-// see https://github.com/gogits/go-gogs-client/wiki/Organizations#list-your-organizations
 func ListMyOrgs(ctx *context.APIContext) {
+	// swagger:operation GET /user/orgs organization orgListCurrentUserOrgs
+	// ---
+	// summary: List the current user's organizations
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/OrganizationList"
 	listUserOrgs(ctx, ctx.User, true)
 }
 
 // ListUserOrgs list user's orgs
-// see https://github.com/gogits/go-gogs-client/wiki/Organizations#list-user-organizations
 func ListUserOrgs(ctx *context.APIContext) {
+	// swagger:operation GET /user/{username}/orgs organization orgListUserOrgs
+	// ---
+	// summary: List a user's organizations
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/OrganizationList"
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -43,14 +62,46 @@ func ListUserOrgs(ctx *context.APIContext) {
 }
 
 // Get get an organization
-// see https://github.com/gogits/go-gogs-client/wiki/Organizations#get-an-organization
 func Get(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org} organization orgGet
+	// ---
+	// summary: Get an organization
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization to get
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Organization"
 	ctx.JSON(200, convert.ToOrganization(ctx.Org.Organization))
 }
 
 // Edit change an organization's information
-// see https://github.com/gogits/go-gogs-client/wiki/Organizations#edit-an-organization
 func Edit(ctx *context.APIContext, form api.EditOrgOption) {
+	// swagger:operation PATCH /orgs/{org} organization orgEdit
+	// ---
+	// summary: Edit an organization
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization to edit
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditOrgOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Organization"
 	org := ctx.Org.Organization
 	org.FullName = form.FullName
 	org.Description = form.Description
