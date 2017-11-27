@@ -111,7 +111,6 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessage":     RenderCommitMessage,
 		"RenderCommitMessageLink": RenderCommitMessageLink,
 		"RenderCommitBody":		RenderCommitBody,
-		"RenderCommitBodyLink":		RenderCommitBodyLink,
 		"IsMultilineCommitMessage":	IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
@@ -285,14 +284,6 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 	return renderCommitBody(msg, markup.RenderIssueIndexPatternOptions{
 		URLPrefix: 	urlPrefix,
 		Metas:		metas,
-	})
-}
-
-func RenderCommitBodyLink(msg, urlPrefix string, urlDefault string, metas map[string]string) template.HTML {
-	return renderCommitMessage(msg, markup.RenderIssueIndexPatternOptions{
-		DefaultURL: urlDefault,
-		URLPrefix:  urlPrefix,
-		Metas:      metas,
 	})
 }
 
