@@ -291,8 +291,7 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 func renderCommitBody(msg string, opts markup.RenderIssueIndexPatternOptions) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
 	fullMessage := string(markup.RenderIssueIndexPattern([]byte(cleanMsg), opts))
-	msgLines := strings.Replace(strings.TrimSpace(fullMessage), "\n\n", "\n", -1)
-	body := strings.Split(msgLines,"\n")
+	body := strings.Split(strings.TrimSpace(fullMessage),"\n")
 	if len(body) == 0 {
 		return template.HTML("")
 	}
