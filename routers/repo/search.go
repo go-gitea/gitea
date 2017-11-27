@@ -38,7 +38,7 @@ func Search(ctx *context.Context) {
 	pager := paginater.New(total, setting.UI.RepoSearchPagingNum, page, 5)
 	ctx.Data["Page"] = pager
 	ctx.Data["SourcePath"] = setting.AppSubURL + "/" +
-		path.Join(ctx.Repo.Repository.Owner.Name, ctx.Repo.Repository.Name, "src", ctx.Repo.Repository.DefaultBranch)
+		path.Join(ctx.Repo.Repository.Owner.Name, ctx.Repo.Repository.Name, "src", "branch", ctx.Repo.Repository.DefaultBranch)
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PageIsViewCode"] = true
