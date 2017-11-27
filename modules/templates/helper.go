@@ -16,16 +16,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/microcosm-cc/bluemonday"
-	"golang.org/x/net/html/charset"
-	"golang.org/x/text/transform"
-	"gopkg.in/editorconfig/editorconfig-core-go.v1"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+
+	"golang.org/x/net/html/charset"
+	"golang.org/x/text/transform"
+	"gopkg.in/editorconfig/editorconfig-core-go.v1"
 )
 
 // NewFuncMap returns functions for injecting to templates
@@ -67,7 +66,6 @@ func NewFuncMap() []template.FuncMap {
 		"AvatarLink":   base.AvatarLink,
 		"Safe":         Safe,
 		"SafeJS":       SafeJS,
-		"Sanitize":     bluemonday.UGCPolicy().Sanitize,
 		"Str2html":     Str2html,
 		"TimeSince":    base.TimeSince,
 		"RawTimeSince": base.RawTimeSince,
