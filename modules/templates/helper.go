@@ -280,6 +280,7 @@ func renderCommitMessage(msg string, opts markup.RenderIssueIndexPatternOptions)
 	return template.HTML(msgLines[0])
 }
 
+// Extracts the body of a commit message without its title, and makes it XSS-safe
 func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.HTML {
 	return renderCommitBody(msg, markup.RenderIssueIndexPatternOptions{
 		URLPrefix: 	urlPrefix,
