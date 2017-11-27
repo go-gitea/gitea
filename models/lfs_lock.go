@@ -20,7 +20,7 @@ type LFSLock struct {
 	RepoID  int64     `xorm:"UNIQUE(path_by_repo) INDEX NOT NULL"`
 	Owner   *User     `xorm:"-"`
 	OwnerID int64     `xorm:"INDEX NOT NULL"`
-	Path    string    `xorm:"VARCHAR(1024) UNIQUE(path_by_repo)"`
+	Path    string    `xorm:"VARCHAR(512) UNIQUE(path_by_repo)"`
 	Created time.Time `xorm:"created"`
 }
 
