@@ -180,6 +180,37 @@ pipeline:
     when:
       event: [ push, tag ]
 
+  build_docs:
+    image: webhippie/hugo:latest
+    pull: true
+    commands:
+      - cd docs
+      - make trans-copy
+      - make clean
+      - make build
+
+  docker:
+    image: plugins/docker:17.05
+    pull: true
+    secrets: [ docker_username, docker_password ]
+    repo: gitea/docs
+    dockerfile: docs/Dockerfile
+    tags: [ '${DRONE_BRANCH##release/v}' ]
+    when:
+      event: [ push ]
+      branch: [ release/* ]
+
+  docker:
+    image: plugins/docker:17.05
+    pull: true
+    secrets: [ docker_username, docker_password ]
+    repo: gitea/docs
+    dockerfile: docs/Dockerfile
+    tags: [ 'latest' ]
+    when:
+      event: [ push ]
+      branch: [ master ]
+
   docker:
     image: plugins/docker:17.05
     pull: true

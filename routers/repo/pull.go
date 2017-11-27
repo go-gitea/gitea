@@ -257,12 +257,24 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) {
 	setMergeTarget(ctx, pull)
 	ctx.Data["HasMerged"] = true
 
-	ctx.Data["NumCommits"], err = ctx.Repo.GitRepo.CommitsCountBetween(pull.MergeBase, pull.MergedCommitID)
+	mergedCommit, err := ctx.Repo.GitRepo.GetCommit(pull.MergedCommitID)
+	if err != nil {
+		ctx.Handle(500, "GetCommit", err)
+		return
+	}
+	// the ID of the last commit in the PR (not including the merge commit)
+	endCommitID, err := mergedCommit.ParentID(mergedCommit.ParentCount() - 1)
+	if err != nil {
+		ctx.Handle(500, "ParentID", err)
+		return
+	}
+
+	ctx.Data["NumCommits"], err = ctx.Repo.GitRepo.CommitsCountBetween(pull.MergeBase, endCommitID.String())
 	if err != nil {
 		ctx.Handle(500, "Repo.GitRepo.CommitsCountBetween", err)
 		return
 	}
-	ctx.Data["NumFiles"], err = ctx.Repo.GitRepo.FilesCountBetween(pull.MergeBase, pull.MergedCommitID)
+	ctx.Data["NumFiles"], err = ctx.Repo.GitRepo.FilesCountBetween(pull.MergeBase, endCommitID.String())
 	if err != nil {
 		ctx.Handle(500, "Repo.GitRepo.FilesCountBetween", err)
 		return
@@ -338,19 +350,19 @@ func ViewPullCommits(ctx *context.Context) {
 		ctx.Data["Username"] = ctx.Repo.Owner.Name
 		ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 
-		startCommit, err := ctx.Repo.GitRepo.GetCommit(pull.MergeBase)
+		mergedCommit, err := ctx.Repo.GitRepo.GetCommit(pull.MergedCommitID)
 		if err != nil {
 			ctx.Handle(500, "Repo.GitRepo.GetCommit", err)
 			return
 		}
-		endCommit, err := ctx.Repo.GitRepo.GetCommit(pull.MergedCommitID)
+		endCommitID, err := mergedCommit.ParentID(mergedCommit.ParentCount() - 1)
 		if err != nil {
-			ctx.Handle(500, "Repo.GitRepo.GetCommit", err)
+			ctx.Handle(500, "ParentID", err)
 			return
 		}
-		commits, err = ctx.Repo.GitRepo.CommitsBetween(endCommit, startCommit)
+		commits, err = ctx.Repo.GitRepo.CommitsBetweenIDs(endCommitID.String(), pull.MergeBase)
 		if err != nil {
-			ctx.Handle(500, "Repo.GitRepo.CommitsBetween", err)
+			ctx.Handle(500, "Repo.GitRepo.CommitsBetweenIDs", err)
 			return
 		}
 	} else {
@@ -402,7 +414,17 @@ func ViewPullFiles(ctx *context.Context) {
 
 		diffRepoPath = ctx.Repo.GitRepo.Path
 		startCommitID = pull.MergeBase
-		endCommitID = pull.MergedCommitID
+		mergedCommit, err := ctx.Repo.GitRepo.GetCommit(pull.MergedCommitID)
+		if err != nil {
+			ctx.Handle(500, "GetCommit", err)
+			return
+		}
+		endCommitSha, err := mergedCommit.ParentID(mergedCommit.ParentCount() - 1)
+		if err != nil {
+			ctx.Handle(500, "ParentID", err)
+			return
+		}
+		endCommitID = endCommitSha.String()
 		gitRepo = ctx.Repo.GitRepo
 
 		headTarget = path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
@@ -458,9 +480,9 @@ func ViewPullFiles(ctx *context.Context) {
 	}
 
 	ctx.Data["IsImageFile"] = commit.IsImageFile
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", endCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", startCommitID)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", endCommitID)
+	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", endCommitID)
+	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", startCommitID)
+	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", endCommitID)
 	ctx.Data["RequireHighlightJS"] = true
 
 	ctx.HTML(200, tplPullFiles)
@@ -667,9 +689,9 @@ func PrepareCompareDiff(
 	ctx.Data["IsImageFile"] = headCommit.IsImageFile
 
 	headTarget := path.Join(headUser.Name, repo.Name)
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", headCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", prInfo.MergeBase)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", headCommitID)
+	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", headCommitID)
+	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", prInfo.MergeBase)
+	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", headCommitID)
 	return false
 }
 

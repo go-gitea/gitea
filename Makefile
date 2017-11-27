@@ -138,14 +138,7 @@ coverage:
 	@hash gocovmerge > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/wadey/gocovmerge; \
 	fi
-	echo "mode: set" > coverage.all
-	for PKG in $(PACKAGES); do\
-		egrep "$$PKG[^/]*\.go" integration.coverage.out > int.coverage.out;\
-		gocovmerge $$GOPATH/src/$$PKG/coverage.out int.coverage.out > pkg.coverage.out;\
-		grep -h -v "^mode:" pkg.coverage.out >>  coverage.all;\
-		mv pkg.coverage.out $$GOPATH/src/$$PKG/coverage.out;\
-		rm int.coverage.out;\
-	done;
+	gocovmerge integration.coverage.out $(shell find . -type f -name "coverage.out") > coverage.all;\
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
@@ -193,12 +186,12 @@ bench-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.bench .
 
 .PHONY: bench-mysql
-bench-mysql: integrations.mysql.test generate-ini
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test -test.bench .
+bench-mysql: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test -test.bench .
 
 .PHONY: bench-pgsql
-bench-pgsql: integrations.pgsql.test generate-ini
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.bench .
+bench-pgsql: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test -test.bench .
 
 
 .PHONY: integration-test-coverage

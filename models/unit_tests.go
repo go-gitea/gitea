@@ -32,7 +32,10 @@ func CreateTestEngine(fixturesDir string) error {
 	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
 		return err
 	}
-	x.ShowSQL(true)
+	switch os.Getenv("GITEA_UNIT_TESTS_VERBOSE") {
+	case "true", "1":
+		x.ShowSQL(true)
+	}
 
 	return InitFixtures(&testfixtures.SQLite{}, fixturesDir)
 }
