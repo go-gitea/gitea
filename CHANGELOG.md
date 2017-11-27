@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.3.0-rc2) - 2017-11-27
+* BUGFIXES
+  * Fix memcache support when value is returned as string always (#2950)
+  * Update golang x/crypto dependencies - Fix SSH transport fail (#2951)
+  * Fix files/commits of merged PRs (#2970)
+  * Fix error when add user has full name to team (#2975)
+  * Fix go-get, src and raw urls to new scheme (#2986)
+  * Fix over-escaped characters (#2992)
+
 ## [1.3.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.3.0-rc1) - 2017-11-15
 * BREAKING
   * Make URL scheme unambiguous (#2408)
