@@ -182,7 +182,7 @@ func Contexter() macaron.Handler {
 					branchName = repo.DefaultBranch
 				}
 			}
-			prefix := setting.AppURL + path.Join(ownerName, repoName, "src", branchName)
+			prefix := setting.AppURL + path.Join(ownerName, repoName, "src", "branch", branchName)
 			c.PlainText(http.StatusOK, []byte(com.Expand(`
 <html>
 	<head>
