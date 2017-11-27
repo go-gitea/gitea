@@ -2018,5 +2018,5 @@ function initFilterBranchTagDropdown(selector) {
 }
 
 $(".commit-button").click(function() {
-    $(this).next().toggle();
+    $(this).parent().find('.commit-body').toggle();
 });
