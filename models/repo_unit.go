@@ -73,7 +73,7 @@ func (cfg *ExternalTrackerConfig) ToDB() ([]byte, error) {
 type IssuesConfig struct {
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
-	EnableDependencies		 bool
+	EnableDependencies               bool
 }
 
 // FromDB fills up a IssuesConfig from serialized format.
@@ -91,7 +91,7 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
 		switch UnitType(Cell2Int64(val)) {
-		case UnitTypeCode, UnitTypePullRequests, UnitTypeReleases, UnitTypeIssueDependencies,
+		case UnitTypeCode, UnitTypePullRequests, UnitTypeReleases,
 			UnitTypeWiki:
 			r.Config = new(UnitConfig)
 		case UnitTypeExternalWiki:
@@ -145,12 +145,6 @@ func (r *RepoUnit) IssuesConfig() *IssuesConfig {
 func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return r.Config.(*ExternalTrackerConfig)
 }
-
-// IssueDependenciesConfig returns config for UnitTypeIssueDependencies
-func (r *RepoUnit) IssueDependenciesConfig() *UnitConfig {
-	return r.Config.(*UnitConfig)
-}
-
 func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
 	return units, e.Where("repo_id = ?", repoID).Find(&units)
 }

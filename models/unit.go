@@ -16,7 +16,6 @@ const (
 	UnitTypeWiki                                  // 5 Wiki
 	UnitTypeExternalWiki                          // 6 ExternalWiki
 	UnitTypeExternalTracker                       // 7 ExternalTracker
-	UnitTypeIssueDependencies                     // 8 Issue Dependencies
 )
 
 var (
@@ -29,7 +28,6 @@ var (
 		UnitTypeWiki,
 		UnitTypeExternalWiki,
 		UnitTypeExternalTracker,
-		UnitTypeIssueDependencies,
 	}
 
 	// defaultRepoUnits contains the default unit types
@@ -128,14 +126,6 @@ var (
 		4,
 	}
 
-	UnitIssueDependencies = Unit{
-		UnitTypeIssueDependencies,
-		"repo.issue_dependency",
-		"/issues",
-		"repo.issue_dependency.desc",
-		5,
-	}
-
 	// Units contains all the units
 	Units = map[UnitType]Unit{
 		UnitTypeCode:              UnitCode,
@@ -145,6 +135,5 @@ var (
 		UnitTypeReleases:          UnitReleases,
 		UnitTypeWiki:              UnitWiki,
 		UnitTypeExternalWiki:      UnitExternalWiki,
-		UnitTypeIssueDependencies: UnitIssueDependencies,
 	}
 )

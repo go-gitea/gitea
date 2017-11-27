@@ -30,7 +30,7 @@ func AddDependency(c *context.Context) {
 	}
 
 	// Check if the Repo is allowed to have dependencies
-	if !c.Repo.Repository.UnitEnabled(models.UnitTypeIssueDependencies) {
+	if !c.Repo.CanUseDependencies(issue, c.User) {
 		c.Handle(404, "MustEnableIssueDependencies", nil)
 		return
 	}

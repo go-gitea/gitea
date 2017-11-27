@@ -40,8 +40,9 @@ ________                                   .___                   .__
  |    `   \  ___/|  |_> >  ___/|   |  \/ /_/ \  ___/|   |  \  \___|  \  ___/ \___ \
 /_______  /\___  >   __/ \___  >___|  /\____ |\___  >___|  /\___  >__|\___  >____  >
         \/     \/|__|        \/     \/      \/    \/     \/     \/        \/     \/
- */
+*/
 
+// IsDependenciesEnabled returns if dependecies are enabled and returns the default setting if not set.
 func (repo *Repository) IsDependenciesEnabled() bool {
 	var u *RepoUnit
 	var err error

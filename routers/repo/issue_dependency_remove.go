@@ -28,6 +28,12 @@ func RemoveDependency(c *context.Context) {
 		return
 	}
 
+	// Check if the Repo is allowed to have dependencies
+	if !c.Repo.CanUseDependencies(issue, c.User) {
+		c.Handle(404, "MustEnableIssueDependencies", nil)
+		return
+	}
+
 	// Dependency Type
 	depTypeStr := c.Req.PostForm.Get("dependencyType")
 
