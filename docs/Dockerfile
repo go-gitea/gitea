@@ -16,7 +16,7 @@ EXPOSE 80
 RUN apk add --no-cache wget mailcap ca-certificates
 COPY --from=build-env /go/bin/caddy /usr/sbin/caddy
 
-COPY docker/caddy.conf /etc/caddy.conf
-COPY public /srv/www
+COPY docs/docker/caddy.conf /etc/caddy.conf
+COPY docs/public /srv/www
 
 CMD ["/usr/sbin/caddy", "-conf", "/etc/caddy.conf"]
