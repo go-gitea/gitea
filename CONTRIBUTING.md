@@ -50,8 +50,10 @@ getting free help.
 
 The project welcomes submissions. If you want to change or add something, 
 please let everyone know what you're working on—[file an issue](https://github.com/go-gitea/gitea/issues/new)! 
-Significant changes must go through the [change proposal process](https://github.com/go-gitea/proposals) 
-before they can be accepted.
+Significant changes must go through the change proposal process 
+before they can be accepted. To create a proposal, file an issue with
+your proposed changes documented, and make sure to note in the title
+of the issue that it is a proposal.
 
 This process gives everyone a chance to validate the design, helps
 prevent duplication of effort, and ensures that the idea fits inside
