@@ -76,11 +76,12 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		ctx.Data["ReadmeInList"] = true
 		ctx.Data["ReadmeExist"] = true
 
-		dataRc, err := readmeFile.Data()
+		dataRc, err := readmeFile.DataAsync()
 		if err != nil {
 			ctx.Handle(500, "Data", err)
 			return
 		}
+		defer dataRc.Close()
 
 		buf := make([]byte, 1024)
 		n, _ := dataRc.Read(buf)
@@ -91,14 +92,21 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		ctx.Data["FileName"] = readmeFile.Name()
 		// FIXME: what happens when README file is an image?
 		if isTextFile {
-			d, _ := ioutil.ReadAll(dataRc)
-			buf = append(buf, d...)
-			if markup.Type(readmeFile.Name()) != "" {
-				ctx.Data["IsMarkup"] = true
-				ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
+			if readmeFile.Size() >= setting.UI.MaxDisplayFileSize {
+				// Pretend that this is a normal text file to display 'This file is too large to be shown'
+				ctx.Data["IsFileTooLarge"] = true
+				ctx.Data["IsTextFile"] = true
+				ctx.Data["FileSize"] = readmeFile.Size()
 			} else {
-				ctx.Data["IsRenderedHTML"] = true
-				ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
+				d, _ := ioutil.ReadAll(dataRc)
+				buf = append(buf, d...)
+				if markup.Type(readmeFile.Name()) != "" {
+					ctx.Data["IsMarkup"] = true
+					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
+				} else {
+					ctx.Data["IsRenderedHTML"] = true
+					ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
+				}
 			}
 		}
 	}
@@ -135,11 +143,12 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsViewFile"] = true
 
 	blob := entry.Blob()
-	dataRc, err := blob.Data()
+	dataRc, err := blob.DataAsync()
 	if err != nil {
-		ctx.Handle(500, "Data", err)
+		ctx.Handle(500, "DataAsync", err)
 		return
 	}
+	defer dataRc.Close()
 
 	ctx.Data["FileSize"] = blob.Size()
 	ctx.Data["FileName"] = blob.Name()

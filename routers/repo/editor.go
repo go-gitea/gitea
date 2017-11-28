@@ -73,11 +73,16 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		// No way to edit a directory online.
 		if entry.IsDir() {
-			ctx.Handle(404, "", nil)
+			ctx.Handle(404, "entry.IsDir", nil)
 			return
 		}
 
 		blob := entry.Blob()
+		if blob.Size() >= setting.UI.MaxDisplayFileSize {
+			ctx.Handle(404, "blob.Size", err)
+			return
+		}
+
 		dataRc, err := blob.Data()
 		if err != nil {
 			ctx.Handle(404, "blob.Data", err)
@@ -93,7 +98,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		// Only text file are editable online.
 		if !base.IsTextFile(buf) {
-			ctx.Handle(404, "", nil)
+			ctx.Handle(404, "base.IsTextFile", nil)
 			return
 		}
 
