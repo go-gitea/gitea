@@ -41,7 +41,6 @@ func TestAPILFSLocksNotLogin(t *testing.T) {
 
 	req := NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks", user.Name, repo.Name)
 	req.Header.Set("Accept", "application/vnd.git-lfs+json")
-	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
 	resp := MakeRequest(t, req, http.StatusForbidden)
 	var lfsLockError api.LFSLockError
 	DecodeJSON(t, resp, &lfsLockError)
@@ -118,7 +117,6 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		session := loginUser(t, test.user.Name)
 		req := NewRequestf(t, "GET", "/%s.git/info/lfs/locks", test.repo.FullName())
 		req.Header.Set("Accept", "application/vnd.git-lfs+json")
-		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		var lfsLocks api.LFSLockList
 		DecodeJSON(t, resp, &lfsLocks)
@@ -167,7 +165,6 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		session := loginUser(t, test.user.Name)
 		req := NewRequestf(t, "GET", "/%s.git/info/lfs/locks", test.repo.FullName())
 		req.Header.Set("Accept", "application/vnd.git-lfs+json")
-		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		var lfsLocks api.LFSLockList
 		DecodeJSON(t, resp, &lfsLocks)
