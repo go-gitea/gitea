@@ -23,13 +23,13 @@ func TestAPILFSLocksNotStarted(t *testing.T) {
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
-	req := NewRequestf(t, "GET", "/%s/%s/info/lfs/locks", user.Name, repo.Name)
+	req := NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks", user.Name, repo.Name)
 	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequestf(t, "POST", "/%s/%s/info/lfs/locks", user.Name, repo.Name)
+	req = NewRequestf(t, "POST", "/%s/%s.git/info/lfs/locks", user.Name, repo.Name)
 	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequestf(t, "GET", "/%s/%s/info/lfs/locks/verify", user.Name, repo.Name)
+	req = NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks/verify", user.Name, repo.Name)
 	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequestf(t, "GET", "/%s/%s/info/lfs/locks/10/unlock", user.Name, repo.Name)
+	req = NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks/10/unlock", user.Name, repo.Name)
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
@@ -39,9 +39,8 @@ func TestAPILFSLocksNotLogin(t *testing.T) {
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
-	req := NewRequestf(t, "GET", "/%s/%s/info/lfs/locks", user.Name, repo.Name)
+	req := NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks", user.Name, repo.Name)
 	req.Header.Set("Accept", "application/vnd.git-lfs+json")
-	req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
 	resp := MakeRequest(t, req, http.StatusForbidden)
 	var lfsLockError api.LFSLockError
 	DecodeJSON(t, resp, &lfsLockError)
@@ -102,7 +101,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	//create locks
 	for _, test := range tests {
 		session := loginUser(t, test.user.Name)
-		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/info/lfs/locks", test.repo.FullName()), map[string]string{"path": test.path})
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks", test.repo.FullName()), map[string]string{"path": test.path})
 		req.Header.Set("Accept", "application/vnd.git-lfs+json")
 		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
 		session.MakeRequest(t, req, test.httpResult)
@@ -116,9 +115,8 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	//check creation
 	for _, test := range resultsTests {
 		session := loginUser(t, test.user.Name)
-		req := NewRequestf(t, "GET", "/%s/info/lfs/locks", test.repo.FullName())
+		req := NewRequestf(t, "GET", "/%s.git/info/lfs/locks", test.repo.FullName())
 		req.Header.Set("Accept", "application/vnd.git-lfs+json")
-		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		var lfsLocks api.LFSLockList
 		DecodeJSON(t, resp, &lfsLocks)
@@ -128,7 +126,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 			assert.WithinDuration(t, test.locksTimes[i], lock.LockedAt, 1*time.Second)
 		}
 
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/info/lfs/locks/verify", test.repo.FullName()), map[string]string{})
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks/verify", test.repo.FullName()), map[string]string{})
 		req.Header.Set("Accept", "application/vnd.git-lfs+json")
 		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
 		resp = session.MakeRequest(t, req, http.StatusOK)
@@ -152,7 +150,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	//remove all locks
 	for _, test := range deleteTests {
 		session := loginUser(t, test.user.Name)
-		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/info/lfs/locks/%s/unlock", test.repo.FullName(), test.lockID), map[string]string{})
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks/%s/unlock", test.repo.FullName(), test.lockID), map[string]string{})
 		req.Header.Set("Accept", "application/vnd.git-lfs+json")
 		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
 		resp := session.MakeRequest(t, req, http.StatusOK)
@@ -165,9 +163,8 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	// check that we don't have any lock
 	for _, test := range resultsTests {
 		session := loginUser(t, test.user.Name)
-		req := NewRequestf(t, "GET", "/%s/info/lfs/locks", test.repo.FullName())
+		req := NewRequestf(t, "GET", "/%s.git/info/lfs/locks", test.repo.FullName())
 		req.Header.Set("Accept", "application/vnd.git-lfs+json")
-		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		var lfsLocks api.LFSLockList
 		DecodeJSON(t, resp, &lfsLocks)
