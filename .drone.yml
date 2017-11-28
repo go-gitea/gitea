@@ -194,6 +194,7 @@ pipeline:
     pull: true
     secrets: [ docker_username, docker_password ]
     repo: gitea/docs
+    context: docs
     dockerfile: docs/Dockerfile
     tags: [ '${DRONE_BRANCH##release/v}' ]
     when:
@@ -205,6 +206,7 @@ pipeline:
     pull: true
     secrets: [ docker_username, docker_password ]
     repo: gitea/docs
+    context: docs
     dockerfile: docs/Dockerfile
     tags: [ 'latest' ]
     when:
