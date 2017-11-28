@@ -69,12 +69,12 @@ type PullRequest struct {
 	BaseBranch      string
 	ProtectedBranch *ProtectedBranch `xorm:"-"`
 	MergeBase       string           `xorm:"VARCHAR(40)"`
-
-	HasMerged      bool           `xorm:"INDEX"`
-	MergedCommitID string         `xorm:"VARCHAR(40)"`
-	MergerID       int64          `xorm:"INDEX"`
-	Merger         *User          `xorm:"-"`
-	MergedUnix     util.TimeStamp `xorm:"updated INDEX"`
+	LastCommitID    string           `xorm:"-"`
+	HasMerged       bool             `xorm:"INDEX"`
+	MergedCommitID  string           `xorm:"VARCHAR(40)"`
+	MergerID        int64            `xorm:"INDEX"`
+	Merger          *User            `xorm:"-"`
+	MergedUnix      util.TimeStamp   `xorm:"updated INDEX"`
 }
 
 // Note: don't try to get Issue because will end up recursive querying.

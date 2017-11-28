@@ -186,83 +186,29 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		}
 	}
 
-	if !isPullList {
-		// Get posters.
-		for i := 0; i < len(issues); i++ {
-			// Check read status
-			if !ctx.IsSigned {
-				issues[i].IsRead = true
-			} else if err = issues[i].GetIsRead(ctx.User.ID); err != nil {
-				ctx.ServerError("GetIsRead", err)
-				return
-			}
+	// Get posters.
+	for i := 0; i < len(issues); i++ {
+		// Check read status
+		if !ctx.IsSigned {
+			issues[i].IsRead = true
+		} else if err = issues[i].GetIsRead(ctx.User.ID); err != nil {
+			ctx.ServerError("GetIsRead", err)
+			return
 		}
-	} else {
-		var repoSHAs = make([]struct {
-			RepoID int64
-			SHA    string
-		}, 0, len(issues))
-		var pullIDs = make([]int64, 0, len(issues))
-		var repoCache = make(map[int64]*git.Repository)
+	}
 
-		// Get posters.
-		for i, issue := range issues {
-			// Check read status
-			if !ctx.IsSigned {
-				issues[i].IsRead = true
-			} else if err = issues[i].GetIsRead(ctx.User.ID); err != nil {
-				ctx.ServerError("GetIsRead", err)
-				return
-			}
-
-			if err := issue.LoadAttributes(); err != nil {
-				ctx.ServerError("LoadAttributes", err)
-				return
-			}
-
-			var gitRepo *git.Repository
-			var ok bool
-			if gitRepo, ok = repoCache[issue.PullRequest.HeadRepoID]; !ok {
-				if err := issue.PullRequest.GetHeadRepo(); err != nil {
-					ctx.ServerError("GetHeadRepo", err)
-					return
-				}
-
-				gitRepo, err = git.OpenRepository(issue.PullRequest.HeadRepo.RepoPath())
-				if err != nil {
-					ctx.ServerError("OpenRepository", err)
-					return
-				}
-				repoCache[issue.PullRequest.HeadRepoID] = gitRepo
-			}
-
-			sha, err := gitRepo.GetBranchCommitID(issue.PullRequest.HeadBranch)
-			if err != nil {
-				log.Error(4, "GetBranchCommitID: %v", err)
-			} else {
-				repoSHAs = append(repoSHAs, struct {
-					RepoID int64
-					SHA    string
-				}{
-					RepoID: issue.RepoID,
-					SHA:    sha,
-				})
-				pullIDs = append(pullIDs, issue.ID)
-			}
+	if isPullOption == util.OptionalBoolTrue && len(issues) > 0 {
+		commitStatuses, err := models.GetIssuesLatestCommitStatuses(issues)
+		if err != nil {
+			ctx.ServerError("GetIssuesLatestCommitStatuses", err)
+			return
 		}
 
 		var issuesStates = make(map[int64]*models.CommitStatus, len(issues))
-		if len(repoSHAs) > 0 {
-			commitStatuses, err := models.GetLatestCommitStatuses(repoSHAs)
-			if err != nil {
-				ctx.ServerError("GetLatestCommitStatuses", err)
-				return
-			}
-
-			for i, statuses := range commitStatuses {
-				issuesStates[pullIDs[i]] = models.CalcCommitStatus(statuses)
-			}
+		for i, statuses := range commitStatuses {
+			issuesStates[issues[i].PullRequest.ID] = models.CalcCommitStatus(statuses)
 		}
+
 		ctx.Data["IssuesStates"] = issuesStates
 	}
 

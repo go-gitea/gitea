@@ -158,21 +158,42 @@ func GetLatestCommitStatus(repo *Repository, sha string, page int) ([]*CommitSta
 	return statuses, x.In("id", ids).Find(&statuses)
 }
 
-// GetLatestCommitStatuses returns all statuses with given repoIDs and shas
-func GetLatestCommitStatuses(repoSHAs []struct {
-	RepoID int64
-	SHA    string
-}) ([][]*CommitStatus, error) {
+// GetIssuesLatestCommitStatuses returns all statuses with given repoIDs and shas
+func GetIssuesLatestCommitStatuses(issues []*Issue) ([][]*CommitStatus, error) {
 	var cond = builder.NewCond()
-	for i := 0; i < len(repoSHAs); i++ {
+	var repoCache = make(map[int64]*git.Repository)
+	var err error
+	for i := 0; i < len(issues); i++ {
+		var gitRepo *git.Repository
+		var ok bool
+		if gitRepo, ok = repoCache[issues[i].PullRequest.HeadRepoID]; !ok {
+			if err := issues[i].PullRequest.GetHeadRepo(); err != nil {
+				log.Error(4, "GetHeadRepo[%d, %d]: %v", issues[i].PullRequest.ID, issues[i].PullRequest.HeadRepoID, err)
+				continue
+			}
+
+			gitRepo, err = git.OpenRepository(issues[i].PullRequest.HeadRepo.RepoPath())
+			if err != nil {
+				log.Error(4, "OpenRepository[%d, %s]: %v", issues[i].PullRequest.ID, issues[i].PullRequest.HeadRepo.RepoPath(), err)
+				continue
+			}
+			repoCache[issues[i].PullRequest.HeadRepoID] = gitRepo
+		}
+
+		issues[i].PullRequest.LastCommitID, err = gitRepo.GetBranchCommitID(issues[i].PullRequest.HeadBranch)
+		if err != nil {
+			log.Error(4, "GetBranchCommitID[%d, %s]: %v", issues[i].PullRequest.ID, issues[i].PullRequest.HeadBranch, err)
+			continue
+		}
+
 		cond = cond.Or(builder.Eq{
-			"repo_id": repoSHAs[i].RepoID,
-			"sha":     repoSHAs[i].SHA,
+			"repo_id": issues[i].RepoID,
+			"sha":     issues[i].PullRequest.LastCommitID,
 		})
 	}
 
-	var ids = make([]int64, 0, len(repoSHAs))
-	err := x.Table("commit_status").
+	var ids = make([]int64, 0, len(issues))
+	err = x.Table("commit_status").
 		Where(cond).
 		Select("max( id ) as id").
 		GroupBy("repo_id, sha, context").
@@ -182,7 +203,7 @@ func GetLatestCommitStatuses(repoSHAs []struct {
 		return nil, err
 	}
 
-	var returns = make([][]*CommitStatus, len(repoSHAs))
+	var returns = make([][]*CommitStatus, len(issues))
 	if len(ids) == 0 {
 		return returns, nil
 	}
@@ -193,14 +214,15 @@ func GetLatestCommitStatuses(repoSHAs []struct {
 		return nil, err
 	}
 
-	var repoIDsMap = make(map[string][]int64, len(repoSHAs))
+	var repoIDsMap = make(map[string][]int64, len(issues))
 	for _, status := range statuses {
 		key := fmt.Sprintf("%d-%s", status.RepoID, status.SHA)
 		repoIDsMap[key] = append(repoIDsMap[key], status.ID)
 	}
 
-	for i := 0; i < len(repoSHAs); i++ {
-		for _, id := range repoIDsMap[fmt.Sprintf("%d-%s", repoSHAs[i].RepoID, repoSHAs[i].SHA)] {
+	for i := 0; i < len(issues); i++ {
+		key := fmt.Sprintf("%d-%s", issues[i].RepoID, issues[i].PullRequest.LastCommitID)
+		for _, id := range repoIDsMap[key] {
 			returns[i] = append(returns[i], statuses[id])
 		}
 	}
