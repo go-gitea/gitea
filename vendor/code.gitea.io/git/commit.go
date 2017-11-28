@@ -98,10 +98,11 @@ func (c *Commit) IsImageFile(name string) bool {
 		return false
 	}
 
-	dataRc, err := blob.Data()
+	dataRc, err := blob.DataAsync()
 	if err != nil {
 		return false
 	}
+	defer dataRc.Close()
 	buf := make([]byte, 1024)
 	n, _ := dataRc.Read(buf)
 	buf = buf[:n]
