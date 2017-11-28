@@ -19,8 +19,8 @@ func TestIssues(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
 	assert.NoError(t, models.LoadFixtures())
 
-	ctx := test.MockContext(t)
-	ctx.User = models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	ctx := test.MockContext(t, "issues")
+	test.LoadUser(t, ctx, 2)
 	ctx.SetParams(":type", "issues")
 	ctx.Req.Form.Set("state", "closed")
 	Issues(ctx)
