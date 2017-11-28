@@ -463,7 +463,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				})
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
-						Post(reqToken(), reqRepoWriter(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
+						Post(reqToken(), reqRepoWriter(), context.RepoRef(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
 					m.Combo("/:id").Get(repo.GetRelease).
 						Patch(reqToken(), reqRepoWriter(), bind(api.EditReleaseOption{}), repo.EditRelease).
 						Delete(reqToken(), reqRepoWriter(), repo.DeleteRelease)
