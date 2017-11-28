@@ -1271,22 +1271,27 @@ func GetUser(user *User) (bool, error) {
 
 // SearchUserOptions contains the options for searching
 type SearchUserOptions struct {
-	Keyword  string
-	Type     UserType
-	OrderBy  string
-	Page     int
-	PageSize int // Can be smaller than or equal to setting.UI.ExplorePagingNum
-	IsActive util.OptionalBool
+	Keyword       string
+	Type          UserType
+	OrderBy       string
+	Page          int
+	PageSize      int // Can be smaller than or equal to setting.UI.ExplorePagingNum
+	IsActive      util.OptionalBool
+	SearchByEmail bool // Search by email as well as username/full name
 }
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{"type": opts.Type}
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
-		cond = cond.And(builder.Or(
+		keywordCond := builder.Or(
 			builder.Like{"lower_name", lowerKeyword},
 			builder.Like{"LOWER(full_name)", lowerKeyword},
-		))
+		)
+		if opts.SearchByEmail {
+			keywordCond = keywordCond.Or(builder.Like{"LOWER(email)", lowerKeyword})
+		}
+		cond = cond.And(keywordCond)
 	}
 
 	if !opts.IsActive.IsNone() {

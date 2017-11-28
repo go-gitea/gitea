@@ -191,7 +191,7 @@ type ErrWikiAlreadyExist struct {
 	Title string
 }
 
-// IsErrWikiAlreadyExist checks if an error is a ErrWikiAlreadyExist.
+// IsErrWikiAlreadyExist checks if an error is an ErrWikiAlreadyExist.
 func IsErrWikiAlreadyExist(err error) bool {
 	_, ok := err.(ErrWikiAlreadyExist)
 	return ok
@@ -199,6 +199,21 @@ func IsErrWikiAlreadyExist(err error) bool {
 
 func (err ErrWikiAlreadyExist) Error() string {
 	return fmt.Sprintf("wiki page already exists [title: %s]", err.Title)
+}
+
+// ErrWikiReservedName represents a reserved name error.
+type ErrWikiReservedName struct {
+	Title string
+}
+
+// IsErrWikiReservedName checks if an error is an ErrWikiReservedName.
+func IsErrWikiReservedName(err error) bool {
+	_, ok := err.(ErrWikiReservedName)
+	return ok
+}
+
+func (err ErrWikiReservedName) Error() string {
+	return fmt.Sprintf("wiki title is reserved: %s", err.Title)
 }
 
 // __________     ___.   .__  .__          ____  __.

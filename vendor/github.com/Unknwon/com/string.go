@@ -19,9 +19,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"encoding/base64"
 	"errors"
-	"io"
 	r "math/rand"
 	"strconv"
 	"strings"
@@ -30,41 +28,53 @@ import (
 	"unicode/utf8"
 )
 
-// AESEncrypt encrypts text and given key with AES.
-func AESEncrypt(key, text []byte) ([]byte, error) {
+// AESGCMEncrypt encrypts plaintext with the given key using AES in GCM mode.
+func AESGCMEncrypt(key, plaintext []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
-	b := base64.StdEncoding.EncodeToString(text)
-	ciphertext := make([]byte, aes.BlockSize+len(b))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
 		return nil, err
 	}
-	cfb := cipher.NewCFBEncrypter(block, iv)
-	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
-	return ciphertext, nil
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := rand.Read(nonce); err != nil {
+		return nil, err
+	}
+
+	ciphertext := gcm.Seal(nil, nonce, plaintext, nil)
+	return append(nonce, ciphertext...), nil
 }
 
-// AESDecrypt decrypts text and given key with AES.
-func AESDecrypt(key, text []byte) ([]byte, error) {
+// AESGCMDecrypt decrypts ciphertext with the given key using AES in GCM mode.
+func AESGCMDecrypt(key, ciphertext []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
-	if len(text) < aes.BlockSize {
-		return nil, errors.New("ciphertext too short")
-	}
-	iv := text[:aes.BlockSize]
-	text = text[aes.BlockSize:]
-	cfb := cipher.NewCFBDecrypter(block, iv)
-	cfb.XORKeyStream(text, text)
-	data, err := base64.StdEncoding.DecodeString(string(text))
+
+	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return nil, err
 	}
-	return data, nil
+
+	size := gcm.NonceSize()
+	if len(ciphertext)-size <= 0 {
+		return nil, errors.New("Ciphertext is empty")
+	}
+
+	nonce := ciphertext[:size]
+	ciphertext = ciphertext[size:]
+
+	plainText, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return plainText, nil
 }
 
 // IsLetter returns true if the 'l' is an English letter.

@@ -237,11 +237,11 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Diff"] = diff
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", commitID)
+	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", commitID)
 	if commit.ParentCount() > 0 {
-		ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", parents[0])
+		ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", parents[0])
 	}
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", commitID)
+	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", commitID)
 	ctx.HTML(200, tplDiff)
 }
 
@@ -302,9 +302,9 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", afterCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", beforeCommitID)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", afterCommitID)
+	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", afterCommitID)
+	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", beforeCommitID)
+	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", afterCommitID)
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.HTML(200, tplDiff)
 }

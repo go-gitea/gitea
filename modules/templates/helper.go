@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"html/template"
 	"mime"
+	"net/url"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -105,6 +106,7 @@ func NewFuncMap() []template.FuncMap {
 		"ShortSha":          base.ShortSha,
 		"MD5":               base.EncodeMD5,
 		"ActionContent2Commits": ActionContent2Commits,
+		"PathEscape":            url.PathEscape,
 		"EscapePound": func(str string) string {
 			return strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(str)
 		},
