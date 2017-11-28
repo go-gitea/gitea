@@ -22,11 +22,16 @@ type Blob struct {
 // Data gets content of blob all at once and wrap it as io.Reader.
 // This can be very slow and memory consuming for huge content.
 func (b *Blob) Data() (io.Reader, error) {
-	stdout, err := NewCommand("show", b.ID.String()).RunInDirBytes(b.repo.Path)
-	if err != nil {
-		return nil, err
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
+	// Preallocate memory to save ~50% memory usage on big files.
+	stdout.Grow(int(b.Size() + 2048))
+
+	if err := b.DataPipeline(stdout, stderr); err != nil {
+		return nil, concatenateError(err, stderr.String())
 	}
-	return bytes.NewBuffer(stdout), nil
+	return stdout, nil
 }
 
 // DataPipeline gets content of blob and write the result or error to stdout or stderr

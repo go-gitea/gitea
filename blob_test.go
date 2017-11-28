@@ -17,6 +17,9 @@ var testBlob = &Blob{
 	repo: &Repository{},
 	TreeEntry: &TreeEntry{
 		ID: MustIDFromString("176d8dfe018c850d01851b05fb8a430096247353"),
+		ptree: &Tree{
+			repo: &Repository{},
+		},
 	},
 }
 
