@@ -362,7 +362,6 @@ func (f *EditReleaseForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // NewWikiForm form for creating wiki
 type NewWikiForm struct {
-	OldTitle string
 	Title    string `binding:"Required"`
 	Content  string `binding:"Required"`
 	Message  string
