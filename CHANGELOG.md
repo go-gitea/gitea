@@ -1,15 +1,6 @@
 # Changelog
 
-## [1.3.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.3.0-rc2) - 2017-11-27
-* BUGFIXES
-  * Fix memcache support when value is returned as string always (#2950)
-  * Update golang x/crypto dependencies - Fix SSH transport fail (#2951)
-  * Fix files/commits of merged PRs (#2970)
-  * Fix error when add user has full name to team (#2975)
-  * Fix go-get, src and raw urls to new scheme (#2986)
-  * Fix over-escaped characters (#2992)
-
-## [1.3.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.3.0-rc1) - 2017-11-15
+## [1.3.0](https://github.com/go-gitea/gitea/releases/tag/v1.3.0) - 2017-11-29
 * BREAKING
   * Make URL scheme unambiguous (#2408)
 * FEATURE
@@ -30,6 +21,14 @@
   * Disable custom Git Hooks globally via configuration file (#2450)
   * Sync releases table with tags on push and for mirrors (#2459)
 * BUGFIXES
+  * Fix label comments for French locale (#3017)
+  * Remove duplicate "Max Diff Lines" from config view (#3001)
+  * Fix over-escaped characters (#2992)
+  * Fix go-get, src and raw urls to new scheme (#2986)
+  * Fix error when add user has full name to team (#2975)
+  * Fix files/commits of merged PRs (#2970)
+  * Update golang x/crypto dependencies - Fix SSH transport fail (#2951)
+  * Fix memcache support when value is returned as string always (#2950)
   * Fix issue link rendering in commit messages (#2897)
   * Fix adding a new authentication source after selecting OAuth (#2889)
   * Fix new branch creation to new url scheme (#2884)
@@ -109,6 +108,8 @@
   * Fix duplicated rel attribute (#2549)
   * Fix tests code to prevent some runtime errors (#2381)
 * ENHANCEMENT
+  * Memory usage improvements and lower minimal git requirement to 1.7.2 (#3013) (#3028)
+  * Set OpenID support on by default when installing new instance (#3010) (#3027)
   * Use api.TrackedTime in API (#2807)
   * Configurable SSH key exchange algorithm and MAC suite (#2806)
   * Add Safari pinned tab icon (#2799)
