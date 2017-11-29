@@ -7,6 +7,7 @@ package lfs
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -16,12 +17,18 @@ import (
 	"gopkg.in/macaron.v1"
 )
 
-func checkRequest(req macaron.Request) int {
+func checkRequest(req macaron.Request, post bool) int {
 	if !setting.LFS.StartServer {
 		return 404
 	}
-	if !MetaMatcher(req) || req.Header.Get("Content-Type") != metaMediaType {
+	if !MetaMatcher(req) {
 		return 400
+	}
+	if post {
+		mediaParts := strings.Split(req.Header.Get("Content-Type"), ";")
+		if mediaParts[0] != metaMediaType {
+			return 400
+		}
 	}
 	return 200
 }
@@ -52,7 +59,7 @@ func handleLockListOut(ctx *context.Context, lock *models.LFSLock, err error) {
 
 // GetListLockHandler list locks
 func GetListLockHandler(ctx *context.Context) {
-	status := checkRequest(ctx.Req)
+	status := checkRequest(ctx.Req, false)
 	if status != 200 {
 		writeStatus(ctx, status)
 		return
@@ -113,7 +120,7 @@ func GetListLockHandler(ctx *context.Context) {
 
 // PostLockHandler create lock
 func PostLockHandler(ctx *context.Context) {
-	status := checkRequest(ctx.Req)
+	status := checkRequest(ctx.Req, true)
 	if status != 200 {
 		writeStatus(ctx, status)
 		return
@@ -157,7 +164,7 @@ func PostLockHandler(ctx *context.Context) {
 
 // VerifyLockHandler list locks for verification
 func VerifyLockHandler(ctx *context.Context) {
-	status := checkRequest(ctx.Req)
+	status := checkRequest(ctx.Req, true)
 	if status != 200 {
 		writeStatus(ctx, status)
 		return
@@ -204,7 +211,7 @@ func VerifyLockHandler(ctx *context.Context) {
 
 // UnLockHandler delete locks
 func UnLockHandler(ctx *context.Context) {
-	status := checkRequest(ctx.Req)
+	status := checkRequest(ctx.Req, true)
 	if status != 200 {
 		writeStatus(ctx, status)
 		return
