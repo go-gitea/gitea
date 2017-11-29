@@ -679,7 +679,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes(), context.LoadRepoUnits())
 
 		m.Group("/:reponame", func() {
-			m.Group("/info/lfs", func() {
+			m.Group("\\.git/info/lfs", func() {
 				m.Post("/objects/batch", lfs.BatchHandler)
 				m.Get("/objects/:oid/:filename", lfs.ObjectOidHandler)
 				m.Any("/objects/:oid", lfs.ObjectOidHandler)
