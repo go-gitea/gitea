@@ -147,9 +147,9 @@ var migrations = []Migration{
 	// v48 -> v49
 	NewMigration("add repo indexer status", addRepoIndexerStatus),
 	// v49 -> v50
-	NewMigration("add issue_dependencies", addIssueDependencies),
-	// v49 -> v50
 	NewMigration("add lfs lock table", addLFSLock),
+	// v50 -> v51
+	NewMigration("add issue_dependencies", addIssueDependencies),
 }
 
 // Migrate database to current version
