@@ -143,6 +143,9 @@ func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	if treeEntry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
+		return nil, git.ErrNotExist{ID: "", RelPath: ".editorconfig"}
+	}
 	reader, err := treeEntry.Blob().Data()
 	if err != nil {
 		return nil, err
