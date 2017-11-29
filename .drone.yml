@@ -189,22 +189,24 @@ pipeline:
       - make clean
       - make build
 
-  docker:
+  docker_docs:
     image: plugins/docker:17.05
     pull: true
     secrets: [ docker_username, docker_password ]
     repo: gitea/docs
+    context: docs
     dockerfile: docs/Dockerfile
     tags: [ '${DRONE_BRANCH##release/v}' ]
     when:
       event: [ push ]
       branch: [ release/* ]
 
-  docker:
+  docker_docs:
     image: plugins/docker:17.05
     pull: true
     secrets: [ docker_username, docker_password ]
     repo: gitea/docs
+    context: docs
     dockerfile: docs/Dockerfile
     tags: [ 'latest' ]
     when:

@@ -320,6 +320,9 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 	if err != nil {
 		return "", false
 	}
+	if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
+		return "", false
+	}
 	r, err = entry.Blob().Data()
 	if err != nil {
 		return "", false

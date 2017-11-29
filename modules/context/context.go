@@ -36,6 +36,7 @@ type Context struct {
 	Session session.Store
 
 	Link        string // current request URL
+	EscapedLink string
 	User        *models.User
 	IsSigned    bool
 	IsBasicAuth bool
@@ -157,7 +158,7 @@ func Contexter() macaron.Handler {
 			csrf:    x,
 			Flash:   f,
 			Session: sess,
-			Link:    setting.AppSubURL + strings.TrimSuffix(c.Req.URL.Path, "/"),
+			Link:    setting.AppSubURL + strings.TrimSuffix(c.Req.URL.EscapedPath(), "/"),
 			Repo: &Repository{
 				PullRequest: &PullRequest{},
 			},
