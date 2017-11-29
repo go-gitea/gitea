@@ -45,10 +45,11 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 
 // ServeBlob download a git.Blob
 func ServeBlob(ctx *context.Context, blob *git.Blob) error {
-	dataRc, err := blob.Data()
+	dataRc, err := blob.DataAsync()
 	if err != nil {
 		return err
 	}
+	defer dataRc.Close()
 
 	return ServeData(ctx, ctx.Repo.TreePath, dataRc)
 }
