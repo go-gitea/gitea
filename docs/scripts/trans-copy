@@ -12,6 +12,7 @@ set -e
 #
 
 declare -a LOCALES=(
+  "fr-fr"
   "nl-nl"
   "pt-br"
   "zh-cn"
