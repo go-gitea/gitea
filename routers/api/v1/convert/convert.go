@@ -77,11 +77,12 @@ func ToCommit(c *git.Commit) *api.PayloadCommit {
 // ToPublicKey convert models.PublicKey to api.PublicKey
 func ToPublicKey(apiLink string, key *models.PublicKey) *api.PublicKey {
 	return &api.PublicKey{
-		ID:      key.ID,
-		Key:     key.Content,
-		URL:     apiLink + com.ToStr(key.ID),
-		Title:   key.Name,
-		Created: key.Created,
+		ID:          key.ID,
+		Key:         key.Content,
+		URL:         apiLink + com.ToStr(key.ID),
+		Title:       key.Name,
+		Fingerprint: key.Fingerprint,
+		Created:     key.Created,
 	}
 }
 

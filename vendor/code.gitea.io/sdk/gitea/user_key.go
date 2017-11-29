@@ -13,10 +13,11 @@ import (
 
 // PublicKey publickey is a user key to push code to repository
 type PublicKey struct {
-	ID      int64     `json:"id"`
-	Key     string    `json:"key"`
-	URL     string    `json:"url,omitempty"`
-	Title   string    `json:"title,omitempty"`
+	ID          int64  `json:"id"`
+	Key         string `json:"key"`
+	URL         string `json:"url,omitempty"`
+	Title       string `json:"title,omitempty"`
+	Fingerprint string `json:"fingerprint,omitempty"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at,omitempty"`
 }

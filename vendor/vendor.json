@@ -3,16 +3,16 @@
 	"ignore": "test appengine",
 	"package": [
 		{
-			"checksumSHA1": "JN/re4+x/hCzMLGHmieUcykVDAg=",
+			"checksumSHA1": "vAVjAz7Wpjnu7GGba4JLIDTpQEw=",
 			"path": "code.gitea.io/git",
-			"revision": "d47b98c44c9a6472e44ab80efe65235e11c6da2a",
-			"revisionTime": "2017-10-23T00:52:09Z"
+			"revision": "f9dd6826bbb51c92c6964ce18176c304ea286e54",
+			"revisionTime": "2017-11-28T15:25:05Z"
 		},
 		{
-			"checksumSHA1": "OICEgmUefW4L4l/FK/NVFnl/aOM=",
+			"checksumSHA1": "QQ7g7B9+EIzGjO14KCGEs9TNEzM=",
 			"path": "code.gitea.io/sdk/gitea",
-			"revision": "1da52cf95ff3e7953227cfa0469e1c05a7d02557",
-			"revisionTime": "2017-11-12T09:10:33Z"
+			"revision": "ec7d3af43b598c1a3f2cb12f633b9625649d8e54",
+			"revisionTime": "2017-11-28T12:30:39Z"
 		},
 		{
 			"checksumSHA1": "bOODD4Gbw3GfcuQPU2dI40crxxk=",
@@ -33,10 +33,10 @@
 			"revisionTime": "2016-07-15T03:28:08Z"
 		},
 		{
-			"checksumSHA1": "ly9VLPE9GKo2U7mnbZyjb2LDQ3w=",
+			"checksumSHA1": "IrtvVIFBTQmk0+vM7g2xtka5SFg=",
 			"path": "github.com/Unknwon/com",
-			"revision": "28b053d5a2923b87ce8c5a08f3af779894a72758",
-			"revisionTime": "2015-10-08T13:54:07Z"
+			"revision": "7677a1d7c1137cd3dd5ba7a076d0c898a1ef4520",
+			"revisionTime": "2017-08-19T22:39:52Z"
 		},
 		{
 			"checksumSHA1": "GwPkXd1UL3D7F3IuHHM+V0r4MB4=",
@@ -1508,10 +1508,10 @@
 			"revisionTime": "2016-08-08T14:54:09Z"
 		},
 		{
-			"checksumSHA1": "u1dW5zfo2SWot04r5cL8dTbmtcc=",
+			"checksumSHA1": "VJKlO1AEWQivq2S4DvdmAJU2Fvs=",
 			"path": "gopkg.in/macaron.v1",
-			"revision": "aa6b7ee41a182898a33d798c655df1cac9d2230b",
-			"revisionTime": "2017-01-22T14:42:53Z"
+			"revision": "75f2e9b42e99652f0d82b28ccb73648f44615faa",
+			"revisionTime": "2017-11-24T00:20:17Z"
 		},
 		{
 			"checksumSHA1": "6QPjE+qflEBHg+JPJd9e4iQuRAk=",

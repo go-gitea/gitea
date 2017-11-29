@@ -480,9 +480,9 @@ func ViewPullFiles(ctx *context.Context) {
 	}
 
 	ctx.Data["IsImageFile"] = commit.IsImageFile
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", endCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", startCommitID)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", endCommitID)
+	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", endCommitID)
+	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", startCommitID)
+	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", endCommitID)
 	ctx.Data["RequireHighlightJS"] = true
 
 	ctx.HTML(200, tplPullFiles)
@@ -689,9 +689,9 @@ func PrepareCompareDiff(
 	ctx.Data["IsImageFile"] = headCommit.IsImageFile
 
 	headTarget := path.Join(headUser.Name, repo.Name)
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", headCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", prInfo.MergeBase)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", headCommitID)
+	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", headCommitID)
+	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", prInfo.MergeBase)
+	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", headCommitID)
 	return false
 }
 
