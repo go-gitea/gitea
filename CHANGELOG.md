@@ -108,6 +108,8 @@
   * Fix duplicated rel attribute (#2549)
   * Fix tests code to prevent some runtime errors (#2381)
 * ENHANCEMENT
+  * Memory usage improvements and lower minimal git requirement to 1.7.2 (#3013) (#3028)
+  * Set OpenID support on by default when installing new instance (#3010) (#3027)
   * Use api.TrackedTime in API (#2807)
   * Configurable SSH key exchange algorithm and MAC suite (#2806)
   * Add Safari pinned tab icon (#2799)
