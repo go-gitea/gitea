@@ -95,6 +95,17 @@ Both the LDAP via BindDN and the simple auth LDAP share the following fields:
     matching supplied login name against multiple attributes such as user
     identifier, email or even phone number.
   - Example: `(&(objectClass=Person)(|(uid=%[1]s)(mail=%[1]s)(mobile=%[1]s)))`
+- Enable user synchronization
+  - This option enables a periodic task that synchronizes the Gitea users with
+    the LDAP server. The default period is every 24 hours but that can be
+    changed in the app.ini file.  See the *cron.sync_external_users* section in
+    the [sample
+    app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
+    for detailed comments about that section.  The *User Search Base* and *User
+    Filter* settings described above will limit which users can use Gitea and
+    which users will be synchronized.  When initially run the task will create
+    all LDAP users that match the given settings so take care if working with
+    large Enterprise LDAP directories.
 
 **LDAP using simple auth** adds the following fields:
 
