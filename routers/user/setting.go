@@ -30,7 +30,6 @@ import (
 const (
 	tplSettingsProfile      base.TplName = "user/settings/profile"
 	tplSettingsAvatar       base.TplName = "user/settings/avatar"
-	tplSettingsPassword     base.TplName = "user/settings/password"
 	tplSettingsEmails       base.TplName = "user/settings/email"
 	tplSettingsKeys         base.TplName = "user/settings/keys"
 	tplSettingsSocial       base.TplName = "user/settings/social"
