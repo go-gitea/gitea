@@ -222,7 +222,9 @@ func SettingsSecurityPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		return
 	}
 
-	if ctx.User.IsPasswordSet() && !ctx.User.ValidatePassword(form.OldPassword) {
+	if len(form.Password) < setting.MinPasswordLength {
+		ctx.Flash.Error(ctx.Tr("auth.password_too_short", setting.MinPasswordLength))
+	} else if ctx.User.IsPasswordSet() && !ctx.User.ValidatePassword(form.OldPassword) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
