@@ -38,7 +38,7 @@
 	<div class="ui attached table segment">
 		<div class="file-view {{if .IsMarkup}}markdown{{else if .IsRenderedHTML}}plain-text{{else if .IsTextFile}}code-view{{end}} has-emoji">
 			{{if .IsMarkup}}
-				{{if .FileContent}}{{.FileContent | Str2html}}{{end}}
+				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
 			{{else if .IsRenderedHTML}}
 				<pre>{{if .FileContent}}{{.FileContent | Str2html}}{{end}}</pre>
 			{{else if not .IsTextFile}}
