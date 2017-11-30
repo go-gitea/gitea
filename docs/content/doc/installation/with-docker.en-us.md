@@ -183,6 +183,8 @@ To start this setup based on `docker-compose` you just have to execute `docker-c
 
 If you want to shutdown the setup again just execute `docker-compose down`, this will stop and kill the containers, the volumes will still exist.
 
+Notice: if you use a non 3000 port on http, you need change app.ini `LOCAL_ROOT_URL  = http://localhost:3000/`.
+
 ## Install
 
 After starting the Docker setup via `docker-compose` you should access Gitea with your favorite browser to finalize the installation. Please visit http://server-ip:3000 and follow the installation wizard. If you have started a database with the `docker-compose` setup as documented above please note that you have to use `db` as the database hostname.
