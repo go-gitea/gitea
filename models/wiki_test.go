@@ -74,6 +74,14 @@ func TestWikiFilenameToName(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, test.Expected, name)
 	}
+	for _, badFilename := range []string{
+		"nofileextension",
+		"wrongfileextension.txt",
+		"badescaping%%.md",
+	} {
+		_, err := WikiFilenameToName(badFilename)
+		assert.Error(t, err)
+	}
 }
 
 func TestWikiNameToFilenameToName(t *testing.T) {
@@ -115,7 +123,7 @@ func TestRepository_WikiPath(t *testing.T) {
 }
 
 func TestRepository_HasWiki(t *testing.T) {
-	prepareTestEnv(t)
+	PrepareTestEnv(t)
 	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	assert.True(t, repo1.HasWiki())
 	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
@@ -123,7 +131,7 @@ func TestRepository_HasWiki(t *testing.T) {
 }
 
 func TestRepository_InitWiki(t *testing.T) {
-	prepareTestEnv(t)
+	PrepareTestEnv(t)
 	// repo1 already has a wiki
 	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	assert.NoError(t, repo1.InitWiki())
@@ -135,7 +143,7 @@ func TestRepository_InitWiki(t *testing.T) {
 }
 
 func TestRepository_LocalWikiPath(t *testing.T) {
-	prepareTestEnv(t)
+	PrepareTestEnv(t)
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	expected := filepath.Join(setting.AppDataPath, "tmp/local-wiki/1")
 	assert.Equal(t, expected, repo.LocalWikiPath())
@@ -150,11 +158,23 @@ func TestRepository_AddWikiPage(t *testing.T) {
 		"Another page",
 		"Here's a <tag> and a/slash",
 	} {
-		prepareTestEnv(t)
+		PrepareTestEnv(t)
 		assert.NoError(t, repo.AddWikiPage(doer, wikiName, wikiContent, commitMsg))
 		expectedPath := path.Join(repo.LocalWikiPath(), WikiNameToFilename(wikiName))
 		assert.True(t, com.IsExist(expectedPath))
 	}
+
+	// test for already-existing wiki name
+	PrepareTestEnv(t)
+	err := repo.AddWikiPage(doer, "Home", wikiContent, commitMsg)
+	assert.Error(t, err)
+	assert.True(t, IsErrWikiAlreadyExist(err))
+
+	// test for reserved wiki name
+	PrepareTestEnv(t)
+	err = repo.AddWikiPage(doer, "_edit", wikiContent, commitMsg)
+	assert.Error(t, err)
+	assert.True(t, IsErrWikiReservedName(err))
 }
 
 func TestRepository_EditWikiPage(t *testing.T) {
@@ -163,20 +183,23 @@ func TestRepository_EditWikiPage(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	doer := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	for _, newWikiName := range []string{
+		"Home", // same name as before
 		"New home",
 		"New/name/with/slashes",
 	} {
-		prepareTestEnv(t)
+		PrepareTestEnv(t)
 		assert.NoError(t, repo.EditWikiPage(doer, "Home", newWikiName, newWikiContent, commitMsg))
 		newPath := path.Join(repo.LocalWikiPath(), WikiNameToFilename(newWikiName))
 		assert.True(t, com.IsExist(newPath))
-		oldPath := path.Join(repo.LocalWikiPath(), "Home.md")
-		assert.False(t, com.IsExist(oldPath))
+		if newWikiName != "Home" {
+			oldPath := path.Join(repo.LocalWikiPath(), "Home.md")
+			assert.False(t, com.IsExist(oldPath))
+		}
 	}
 }
 
 func TestRepository_DeleteWikiPage(t *testing.T) {
-	prepareTestEnv(t)
+	PrepareTestEnv(t)
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	doer := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.NoError(t, repo.DeleteWikiPage(doer, "Home"))
