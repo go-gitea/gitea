@@ -234,3 +234,46 @@ languages:
           url: https://discourse.gitea.io/
           weight: 80
           pre: group
+
+  fr-fr:
+    weight: 5
+    languageName: Français
+    menu:
+      page:
+        - name: Site
+          url: /fr-fr/
+          weight: 10
+          pre: home
+          post: active
+        - name: Documentation
+          url: https://docs.gitea.io/fr-fr/
+          weight: 20
+          pre: question
+        - name: API
+          url: https://try.gitea.io/api/swagger
+          weight: 25
+          pre: plug
+        - name: Blog
+          url: https://blog.gitea.io/
+          weight: 30
+          pre: rss
+        - name: Code
+          url: https://code.gitea.io/
+          weight: 40
+          pre: code
+        - name: Téléchargement
+          url: https://dl.gitea.io/
+          weight: 50
+          pre: download
+        - name: GitHub
+          url: https://github.com/go-gitea/
+          weight: 60
+          pre: github
+        - name: Discord Chat
+          url: https://discord.gg/NsatcWJ
+          weight: 70
+          pre: comment
+        - name: Forum
+          url: https://discourse.gitea.io/
+          weight: 80
+          pre: group
