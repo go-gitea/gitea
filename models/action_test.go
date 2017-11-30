@@ -297,7 +297,7 @@ func TestCommitRepoAction(t *testing.T) {
 	}
 
 	for _, s := range samples {
-		prepareTestEnv(t)
+		PrepareTestEnv(t)
 
 		user := AssertExistsAndLoadBean(t, &User{ID: s.userID}).(*User)
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: s.repositoryID, OwnerID: user.ID}).(*Repository)
