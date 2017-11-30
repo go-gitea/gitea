@@ -30,7 +30,7 @@
 					<th class="three wide right aligned">{{.i18n.Tr "repo.commits.date"}}</th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody class="commit-list">
 				{{ $r:= List .Commits}}
 				{{range $r}}
 					<tr>
@@ -61,6 +61,10 @@
 						</td>
 						<td class="message collapsing">
 							<span class="has-emoji{{if gt .ParentCount 1}} grey text{{end}}">{{RenderCommitMessage .Summary $.RepoLink $.Repository.ComposeMetas}}</span>
+							{{if IsMultilineCommitMessage .Message}}
+							<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
+							<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+							{{end}}
 							{{template "repo/commit_status" .Status}}
 						</td>
 						<td class="grey text right aligned">{{TimeSince .Author.When $.Lang}}</td>

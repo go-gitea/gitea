@@ -1,6 +1,6 @@
 <table id="repo-files-table" class="ui fixed single line table">
 	<thead>
-		<tr>
+		<tr class="commit-list">
 			<th class="four wide">
 				{{if .LatestCommitUser}}
 					<img class="ui avatar image img-12" src="{{.LatestCommitUser.RelAvatarLink}}" />
@@ -28,6 +28,10 @@
 						{{end}}
 				</a>
 				<span class="grey has-emoji">{{RenderCommitMessage .LatestCommit.Summary .RepoLink $.Repository.ComposeMetas}}
+				{{if IsMultilineCommitMessage .LatestCommit.Message}}
+					<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
+					<pre class="commit-body" style="display: none;">{{RenderCommitBody .LatestCommit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+				{{end}}
 				{{template "repo/commit_status" .LatestCommitStatus}}</span>
 			</th>
 			<th class="nine wide">
