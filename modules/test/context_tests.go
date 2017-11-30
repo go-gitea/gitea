@@ -9,31 +9,44 @@ import (
 	"net/url"
 	"testing"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 
+	"github.com/go-macaron/session"
+	_ "github.com/mattn/go-sqlite3" // for the test engine
 	"github.com/stretchr/testify/assert"
-	macaron "gopkg.in/macaron.v1"
+	"gopkg.in/macaron.v1"
 )
 
 // MockContext mock context for unit tests
-func MockContext(t *testing.T) *context.Context {
-	var macaronContext *macaron.Context
-	mac := macaron.New()
-	mac.Get("*/", func(ctx *macaron.Context) {
-		macaronContext = ctx
-	})
-	req, err := http.NewRequest("GET", "star", nil)
-	assert.NoError(t, err)
-	req.Form = url.Values{}
-	mac.ServeHTTP(&mockResponseWriter{}, req)
-	assert.NotNil(t, macaronContext)
-	assert.EqualValues(t, req, macaronContext.Req.Request)
+func MockContext(t *testing.T, path string) *context.Context {
+	var macaronContext macaron.Context
+	macaronContext.ReplaceAllParams(macaron.Params{})
 	macaronContext.Locale = &mockLocale{}
+	requestURL, err := url.Parse(path)
+	assert.NoError(t, err)
+	macaronContext.Req = macaron.Request{Request: &http.Request{
+		URL:  requestURL,
+		Form: url.Values{},
+	}}
 	macaronContext.Resp = &mockResponseWriter{}
 	macaronContext.Render = &mockRender{ResponseWriter: macaronContext.Resp}
+	macaronContext.Data = map[string]interface{}{}
 	return &context.Context{
-		Context: macaronContext,
+		Context: &macaronContext,
+		Flash:   &session.Flash{},
 	}
+}
+
+// LoadRepo load a repo into a test context.
+func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
+	ctx.Repo = &context.Repository{}
+	ctx.Repo.Repository = models.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
+}
+
+// LoadUser load a user into a test context.
+func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
+	ctx.User = models.AssertExistsAndLoadBean(t, &models.User{ID: userID}).(*models.User)
 }
 
 type mockLocale struct{}
@@ -43,7 +56,7 @@ func (l mockLocale) Language() string {
 }
 
 func (l mockLocale) Tr(s string, _ ...interface{}) string {
-	return "test translation"
+	return s
 }
 
 type mockResponseWriter struct {
@@ -91,7 +104,8 @@ func (tr *mockRender) SetResponseWriter(rw http.ResponseWriter) {
 	tr.ResponseWriter = rw
 }
 
-func (tr *mockRender) JSON(int, interface{}) {
+func (tr *mockRender) JSON(status int, _ interface{}) {
+	tr.Status(status)
 }
 
 func (tr *mockRender) JSONString(interface{}) (string, error) {
