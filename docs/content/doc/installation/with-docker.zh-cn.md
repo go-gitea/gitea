@@ -37,6 +37,8 @@ docker run -d --name=gitea -p 10022:22 -p 10080:3000 -v /var/lib/gitea:/data git
 
 然后 容器已经运行成功，在浏览器中访问 http://hostname:10080 就可以看到界面了。你可以尝试在上面创建项目，clone操作 `git clone ssh://git@hostname:10022/username/repo.git`.
 
+注意：目前端口改为非3000时，需要修改配置文件 `LOCAL_ROOT_URL  = http://localhost:3000/`。
+
 ## 需要帮助?
 
 如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "seek-help.zh-cn.md" >}})
