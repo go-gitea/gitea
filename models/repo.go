@@ -1740,13 +1740,13 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrRepoNotExist{repoID, uid, ""}
+		return ErrRepoNotExist{repoID, uid, "", ""}
 	}
 
 	if cnt, err := sess.ID(repoID).Delete(&Repository{}); err != nil {
 		return err
 	} else if cnt != 1 {
-		return ErrRepoNotExist{repoID, uid, ""}
+		return ErrRepoNotExist{repoID, uid, "", ""}
 	}
 
 	if org.IsOrganization() {
@@ -1902,7 +1902,7 @@ func GetRepositoryByOwnerAndName(ownerName, repoName string) (*Repository, error
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrRepoNotExist{0, 0, ownerName + "/" + repoName}
+		return nil, ErrRepoNotExist{0, 0, ownerName, repoName}
 	}
 	return &repo, nil
 }
@@ -1917,7 +1917,7 @@ func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrRepoNotExist{0, ownerID, name}
+		return nil, ErrRepoNotExist{0, ownerID, "", name}
 	}
 	return repo, err
 }
@@ -1928,7 +1928,7 @@ func getRepositoryByID(e Engine, id int64) (*Repository, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrRepoNotExist{id, 0, ""}
+		return nil, ErrRepoNotExist{id, 0, "", ""}
 	}
 	return repo, nil
 }

@@ -964,7 +964,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 // GetIssueByRef returns an Issue specified by a GFM reference.
 // See https://help.github.com/articles/writing-on-github#references for more information on the syntax.
 func GetIssueByRef(ref string) (*Issue, error) {
-	n := strings.IndexByte(ref, byte('#'))
+	n := strings.IndexByte(ref, '#')
 	if n == -1 {
 		return nil, errMissingIssueNumber
 	}
@@ -974,7 +974,7 @@ func GetIssueByRef(ref string) (*Issue, error) {
 		return nil, errInvalidIssueNumber
 	}
 
-	i := strings.IndexByte(ref[:n], byte('/'))
+	i := strings.IndexByte(ref[:n], '/')
 	if i < 2 {
 		return nil, ErrInvalidReference
 	}

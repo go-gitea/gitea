@@ -66,11 +66,7 @@ func HTTP(ctx *context.Context) {
 
 	repo, err := models.GetRepositoryByOwnerAndName(username, reponame)
 	if err != nil {
-		if models.IsErrRepoNotExist(err) {
-			ctx.Handle(http.StatusNotFound, "GetRepositoryByOwnerAndName", nil)
-		} else {
-			ctx.Handle(http.StatusInternalServerError, "GetRepositoryByOwnerAndName", err)
-		}
+		ctx.NotFoundOrServerError("GetRepositoryByOwnerAndName", models.IsErrRepoNotExist, err)
 		return
 	}
 
