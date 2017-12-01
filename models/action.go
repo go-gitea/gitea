@@ -14,15 +14,14 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
-
 	"code.gitea.io/git"
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
 )
 
 // ActionType represents the type of an action.
@@ -59,14 +58,16 @@ var (
 	issueReferenceKeywordsPat                     *regexp.Regexp
 )
 
+const issueRefRegexpStr = `(?:\S+/\S=)?#\d+`
+
 func assembleKeywordsPattern(words []string) string {
-	return fmt.Sprintf(`(?i)(?:%s) \S+`, strings.Join(words, "|"))
+	return fmt.Sprintf(`(?i)(?:%s) %s`, strings.Join(words, "|"), issueRefRegexpStr)
 }
 
 func init() {
 	issueCloseKeywordsPat = regexp.MustCompile(assembleKeywordsPattern(issueCloseKeywords))
 	issueReopenKeywordsPat = regexp.MustCompile(assembleKeywordsPattern(issueReopenKeywords))
-	issueReferenceKeywordsPat = regexp.MustCompile(`(?i)(?:)(^| )\S+`)
+	issueReferenceKeywordsPat = regexp.MustCompile(issueRefRegexpStr)
 }
 
 // Action represents user operation type and other information to
@@ -390,6 +391,49 @@ func (pc *PushCommits) AvatarLink(email string) string {
 	return pc.avatars[email]
 }
 
+// getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
+// if the provided ref is misformatted or references a non-existent issue.
+func getIssueFromRef(repo *Repository, ref string) (*Issue, error) {
+	ref = ref[strings.IndexByte(ref, ' ')+1:]
+	ref = strings.TrimRightFunc(ref, issueIndexTrimRight)
+
+	var refRepo *Repository
+	poundIndex := strings.IndexByte(ref, '#')
+	if poundIndex < 0 {
+		return nil, nil
+	} else if poundIndex == 0 {
+		refRepo = repo
+	} else {
+		slashIndex := strings.IndexByte(ref, '/')
+		if slashIndex < 0 || slashIndex >= poundIndex {
+			return nil, nil
+		}
+		ownerName := ref[:slashIndex]
+		repoName := ref[slashIndex+1 : poundIndex]
+		var err error
+		refRepo, err = GetRepositoryByOwnerAndName(ownerName, repoName)
+		if err != nil {
+			if IsErrRepoNotExist(err) {
+				return nil, nil
+			}
+			return nil, err
+		}
+	}
+	issueIndex, err := strconv.ParseInt(ref[poundIndex+1:], 10, 64)
+	if err != nil {
+		return nil, nil
+	}
+
+	issue, err := GetIssueByIndex(refRepo.ID, int64(issueIndex))
+	if err != nil {
+		if IsErrIssueNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return issue, nil
+}
+
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
 func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) error {
 	// Commits are appended in the reverse order.
@@ -398,31 +442,12 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) err
 
 		refMarked := make(map[int64]bool)
 		for _, ref := range issueReferenceKeywordsPat.FindAllString(c.Message, -1) {
-			ref = ref[strings.IndexByte(ref, byte(' '))+1:]
-			ref = strings.TrimRightFunc(ref, issueIndexTrimRight)
-
-			if len(ref) == 0 {
-				continue
-			}
-
-			// Add repo name if missing
-			if ref[0] == '#' {
-				ref = fmt.Sprintf("%s%s", repo.FullName(), ref)
-			} else if !strings.Contains(ref, "/") {
-				// FIXME: We don't support User#ID syntax yet
-				// return ErrNotImplemented
-				continue
-			}
-
-			issue, err := GetIssueByRef(ref)
+			issue, err := getIssueFromRef(repo, ref)
 			if err != nil {
-				if IsErrIssueNotExist(err) || err == errMissingIssueNumber || err == errInvalidIssueNumber {
-					continue
-				}
 				return err
 			}
 
-			if refMarked[issue.ID] {
+			if issue == nil || refMarked[issue.ID] {
 				continue
 			}
 			refMarked[issue.ID] = true
@@ -436,31 +461,12 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) err
 		refMarked = make(map[int64]bool)
 		// FIXME: can merge this one and next one to a common function.
 		for _, ref := range issueCloseKeywordsPat.FindAllString(c.Message, -1) {
-			ref = ref[strings.IndexByte(ref, byte(' '))+1:]
-			ref = strings.TrimRightFunc(ref, issueIndexTrimRight)
-
-			if len(ref) == 0 {
-				continue
-			}
-
-			// Add repo name if missing
-			if ref[0] == '#' {
-				ref = fmt.Sprintf("%s%s", repo.FullName(), ref)
-			} else if !strings.Contains(ref, "/") {
-				// We don't support User#ID syntax yet
-				// return ErrNotImplemented
-				continue
-			}
-
-			issue, err := GetIssueByRef(ref)
+			issue, err := getIssueFromRef(repo, ref)
 			if err != nil {
-				if IsErrIssueNotExist(err) || err == errMissingIssueNumber || err == errInvalidIssueNumber {
-					continue
-				}
 				return err
 			}
 
-			if refMarked[issue.ID] {
+			if issue == nil || refMarked[issue.ID] {
 				continue
 			}
 			refMarked[issue.ID] = true
@@ -476,31 +482,12 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) err
 
 		// It is conflict to have close and reopen at same time, so refsMarked doesn't need to reinit here.
 		for _, ref := range issueReopenKeywordsPat.FindAllString(c.Message, -1) {
-			ref = ref[strings.IndexByte(ref, byte(' '))+1:]
-			ref = strings.TrimRightFunc(ref, issueIndexTrimRight)
-
-			if len(ref) == 0 {
-				continue
-			}
-
-			// Add repo name if missing
-			if ref[0] == '#' {
-				ref = fmt.Sprintf("%s%s", repo.FullName(), ref)
-			} else if !strings.Contains(ref, "/") {
-				// We don't support User#ID syntax yet
-				// return ErrNotImplemented
-				continue
-			}
-
-			issue, err := GetIssueByRef(ref)
+			issue, err := getIssueFromRef(repo, ref)
 			if err != nil {
-				if IsErrIssueNotExist(err) || err == errMissingIssueNumber || err == errInvalidIssueNumber {
-					continue
-				}
 				return err
 			}
 
-			if refMarked[issue.ID] {
+			if issue == nil || refMarked[issue.ID] {
 				continue
 			}
 			refMarked[issue.ID] = true
