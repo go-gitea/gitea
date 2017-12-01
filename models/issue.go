@@ -974,7 +974,12 @@ func GetIssueByRef(ref string) (*Issue, error) {
 		return nil, errInvalidIssueNumber
 	}
 
-	repo, err := GetRepositoryByRef(ref[:n])
+	n = strings.IndexByte(ref[:n], byte('/'))
+	if n < 2 {
+		return nil, ErrInvalidReference
+	}
+
+	repo, err := GetRepositoryByOwnerAndName(ref[:n], ref[n+1:])
 	if err != nil {
 		return nil, err
 	}
