@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 
+	"github.com/go-macaron/session"
 	"github.com/stretchr/testify/assert"
 	macaron "gopkg.in/macaron.v1"
 )
@@ -33,6 +34,9 @@ func MockContext(t *testing.T) *context.Context {
 	macaronContext.Render = &mockRender{ResponseWriter: macaronContext.Resp}
 	return &context.Context{
 		Context: macaronContext,
+		Flash: &session.Flash{
+			Values: make(url.Values),
+		},
 	}
 }
 
