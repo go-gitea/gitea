@@ -572,9 +572,10 @@ func (err ErrLFSLockAlreadyExist) Error() string {
 
 // ErrRepoNotExist represents a "RepoNotExist" kind of error.
 type ErrRepoNotExist struct {
-	ID   int64
-	UID  int64
-	Name string
+	ID        int64
+	UID       int64
+	OwnerName string
+	Name      string
 }
 
 // IsErrRepoNotExist checks if an error is a ErrRepoNotExist.
@@ -584,7 +585,8 @@ func IsErrRepoNotExist(err error) bool {
 }
 
 func (err ErrRepoNotExist) Error() string {
-	return fmt.Sprintf("repository does not exist [id: %d, uid: %d, name: %s]", err.ID, err.UID, err.Name)
+	return fmt.Sprintf("repository does not exist [id: %d, uid: %d, owner_name: %s, name: %s]",
+		err.ID, err.UID, err.OwnerName, err.Name)
 }
 
 // ErrRepoAlreadyExist represents a "RepoAlreadyExist" kind of error.

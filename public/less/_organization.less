@@ -1,162 +1,162 @@
 .organization {
-	padding-top: 15px;
-	padding-bottom: @footer-margin * 2;
+    padding-top: 15px;
+    padding-bottom: @footer-margin * 2;
 
-	.head {
-		.ui.header {
-			.text {
-				vertical-align: middle;
-				font-size: 1.6rem;
-				margin-left: 15px;
-			}
-			.ui.right {
-				margin-top: 5px;
-			}
-		}
-	}
+    .head {
+        .ui.header {
+            .text {
+                vertical-align: middle;
+                font-size: 1.6rem;
+                margin-left: 15px;
+            }
+            .ui.right {
+                margin-top: 5px;
+            }
+        }
+    }
 
-	&.new.org {
-		#create-page-form;
-		form {
-			.header {
-				padding-left: 0 !important;
-				text-align: center;
-			}
-		}
-	}
+    &.new.org {
+        #create-page-form;
+        form {
+            .header {
+                padding-left: 0 !important;
+                text-align: center;
+            }
+        }
+    }
 
-	&.options {
-		input {
-			min-width: 300px;
-		}
-	}
+    &.options {
+        input {
+            min-width: 300px;
+        }
+    }
 
-	&.profile {
-		#org-avatar {
-			width: 100px;
-			height: 100px;
-			margin-right: 15px;
-		}
+    &.profile {
+        #org-avatar {
+            width: 100px;
+            height: 100px;
+            margin-right: 15px;
+        }
 
-		#org-info {
-			.ui.header {
-				font-size: 36px;
-				margin-bottom: 0;
-			}
-			.desc {
-				font-size: 16px;
-				margin-bottom: 10px;
-			}
-			.meta {
-				.item {
-					display: inline-block;
-					margin-right: 10px;
+        #org-info {
+            .ui.header {
+                font-size: 36px;
+                margin-bottom: 0;
+            }
+            .desc {
+                font-size: 16px;
+                margin-bottom: 10px;
+            }
+            .meta {
+                .item {
+                    display: inline-block;
+                    margin-right: 10px;
 
-					.icon {
-						margin-right: 5px;
-					}
-				}
-			}
-		}
+                    .icon {
+                        margin-right: 5px;
+                    }
+                }
+            }
+        }
 
-		.ui.top.header {
-			.ui.right {
-				margin-top: 0;
-			}
-		}
+        .ui.top.header {
+            .ui.right {
+                margin-top: 0;
+            }
+        }
 
-		.teams {
-			.item {
-				padding: 10px 15px;
-			}
-		}
-	}
+        .teams {
+            .item {
+                padding: 10px 15px;
+            }
+        }
+    }
 
-	&.teams,
-	&.profile {
-		.members {
-			.ui.avatar {
-				width: 48px;
-				height: 48px;
-				margin-right: 5px;
-			}
-		}
-	}
+    &.teams,
+    &.profile {
+        .members {
+            .ui.avatar {
+                width: 48px;
+                height: 48px;
+                margin-right: 5px;
+            }
+        }
+    }
 
-	&.invite {
-		#invite-box {
-			margin: auto;
-			margin-top: 50px;
-			width: 500px !important;
+    &.invite {
+        #invite-box {
+            margin: auto;
+            margin-top: 50px;
+            width: 500px !important;
 
-			#search-user-box {
-				input {
-					margin-left: 0;
-					width: 300px;
-				}
-			}
-			.ui.button {
-				margin-left: 5px;
-				margin-top: -3px;
-			}
-		}
-	}
+            #search-user-box {
+                input {
+                    margin-left: 0;
+                    width: 300px;
+                }
+            }
+            .ui.button {
+                margin-left: 5px;
+                margin-top: -3px;
+            }
+        }
+    }
 
-	&.members {
-		.list {
-			.item {
-				margin-left: 0;
-				margin-right: 0;
-				border-bottom: 1px solid #eee;
+    &.members {
+        .list {
+            .item {
+                margin-left: 0;
+                margin-right: 0;
+                border-bottom: 1px solid #eee;
 
-				.ui.avatar {
-					width: 48px;
-					height: 48px;
-				}
-				.meta {
-					line-height: 24px;
-				}
-			}
-		}
-	}
+                .ui.avatar {
+                    width: 48px;
+                    height: 48px;
+                }
+                .meta {
+                    line-height: 24px;
+                }
+            }
+        }
+    }
 
-	&.teams {
-		.detail {
-			.item {
-				padding: 10px 15px;
+    &.teams {
+        .detail {
+            .item {
+                padding: 10px 15px;
 
-				&:not(:last-child) {
-					border-bottom: 1px solid #eee;
-				}
-			}
-		}
+                &:not(:last-child) {
+                    border-bottom: 1px solid #eee;
+                }
+            }
+        }
 
-		.repositories,
-		.members {
-			.item {
-				padding: 10px 20px;
-				line-height: 32px;
+        .repositories,
+        .members {
+            .item {
+                padding: 10px 20px;
+                line-height: 32px;
 
-				&:not(:last-child) {
-					border-bottom: 1px solid #DDD;
-				}
+                &:not(:last-child) {
+                    border-bottom: 1px solid #DDD;
+                }
 
-				.button {
-					padding: 9px 10px;
-				}
-			}
-		}
+                .button {
+                    padding: 9px 10px;
+                }
+            }
+        }
 
-		#add-repo-form,
-		#add-member-form {
-			input {
-				margin-left: 0;
-			}
+        #add-repo-form,
+        #add-member-form {
+            input {
+                margin-left: 0;
+            }
 
-			.ui.button {
-				margin-left: 5px;
-				margin-top: -3px;
-			}
-		}
-	}
+            .ui.button {
+                margin-left: 5px;
+                margin-top: -3px;
+            }
+        }
+    }
 }
