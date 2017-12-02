@@ -1740,13 +1740,13 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrRepoNotExist{repoID, uid, ""}
+		return ErrRepoNotExist{repoID, uid, "", ""}
 	}
 
 	if cnt, err := sess.ID(repoID).Delete(&Repository{}); err != nil {
 		return err
 	} else if cnt != 1 {
-		return ErrRepoNotExist{repoID, uid, ""}
+		return ErrRepoNotExist{repoID, uid, "", ""}
 	}
 
 	if org.IsOrganization() {
@@ -1891,21 +1891,20 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	return nil
 }
 
-// GetRepositoryByRef returns a Repository specified by a GFM reference.
-// See https://help.github.com/articles/writing-on-github#references for more information on the syntax.
-func GetRepositoryByRef(ref string) (*Repository, error) {
-	n := strings.IndexByte(ref, byte('/'))
-	if n < 2 {
-		return nil, ErrInvalidReference
-	}
-
-	userName, repoName := ref[:n], ref[n+1:]
-	user, err := GetUserByName(userName)
+// GetRepositoryByOwnerAndName returns the repository by given ownername and reponame.
+func GetRepositoryByOwnerAndName(ownerName, repoName string) (*Repository, error) {
+	var repo Repository
+	has, err := x.Select("repository.*").
+		Join("INNER", "user", "`user`.id = repository.owner_id").
+		Where("repository.lower_name = ?", strings.ToLower(repoName)).
+		And("`user`.lower_name = ?", strings.ToLower(ownerName)).
+		Get(&repo)
 	if err != nil {
 		return nil, err
+	} else if !has {
+		return nil, ErrRepoNotExist{0, 0, ownerName, repoName}
 	}
-
-	return GetRepositoryByName(user.ID, repoName)
+	return &repo, nil
 }
 
 // GetRepositoryByName returns the repository by given name under user if exists.
@@ -1918,7 +1917,7 @@ func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrRepoNotExist{0, ownerID, name}
+		return nil, ErrRepoNotExist{0, ownerID, "", name}
 	}
 	return repo, err
 }
@@ -1929,7 +1928,7 @@ func getRepositoryByID(e Engine, id int64) (*Repository, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrRepoNotExist{id, 0, ""}
+		return nil, ErrRepoNotExist{id, 0, "", ""}
 	}
 	return repo, nil
 }
