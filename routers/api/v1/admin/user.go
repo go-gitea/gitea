@@ -258,19 +258,27 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
 	}
 
+	if _, err := models.GetPublicKeyByID(ctx.ParamsInt64(":id")); err != nil {
+		if models.IsErrKeyNotExist(err) {
+			ctx.Status(404)
+		} else {
+			ctx.Error(500, "DeleteUserPublicKey", err)
+		}
+		return
+	}
+
 	if err := models.DeletePublicKey(u, ctx.ParamsInt64(":id")); err != nil {
-		if models.IsErrUserOwnRepos(err) ||
-			models.IsErrUserHasOrgs(err) {
-			ctx.Error(422, "", err)
+		if models.IsErrKeyAccessDenied(err) {
+			ctx.Error(403, "", "You do not have access to this key")
 		} else {
 			ctx.Error(500, "DeleteUserPublicKey", err)
 		}
