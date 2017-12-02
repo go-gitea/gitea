@@ -236,3 +236,47 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	}
 	user.CreateUserPublicKey(ctx, form, u.ID)
 }
+
+// DeleteUserPublicKey api for deleting a user's public key
+func DeleteUserPublicKey(ctx *context.APIContext) {
+	// swagger:operation DELETE /admin/users/{username}/keys/{id} admin adminDeleteUserPublicKey
+	// ---
+	// summary: Delete a user's public key on behalf of a user
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: key's id to delete
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	u := user.GetUserByParams(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := models.DeletePublicKey(u, ctx.ParamsInt64(":id")); err != nil {
+		if models.IsErrUserOwnRepos(err) ||
+			models.IsErrUserHasOrgs(err) {
+			ctx.Error(422, "", err)
+		} else {
+			ctx.Error(500, "DeleteUserPublicKey", err)
+		}
+		return
+	}
+	log.Trace("Key deleted by admin(%s): %s", ctx.User.Name, u.Name)
+
+	ctx.Status(204)
+}
