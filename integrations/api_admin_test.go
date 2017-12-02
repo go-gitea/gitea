@@ -47,6 +47,27 @@ func TestAPIAdminDeleteMissingSSHKey(t *testing.T) {
 	// user1 is an admin user
 	session := loginUser(t, "user1")
 
-	req := NewRequestf(t, "DELETE", "/api/v1/admin/users/user1/keys/99999")
+	req := NewRequestf(t, "DELETE", "/api/v1/admin/users/user1/keys/%d", models.NonexistentID)
 	session.MakeRequest(t, req, http.StatusNotFound)
+}
+
+func TestAPIAdminDeleteUnauthorizedKey(t *testing.T) {
+	prepareTestEnv(t)
+	adminUsername := "user1"
+	normalUsername := "user2"
+	session := loginUser(t, adminUsername)
+
+	urlStr := fmt.Sprintf("/api/v1/admin/users/%s/keys", adminUsername)
+	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
+		"key":   "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDAu7tvIvX6ZHrRXuZNfkR3XLHSsuCK9Zn3X58lxBcQzuo5xZgB6vRwwm/QtJuF+zZPtY5hsQILBLmF+BZ5WpKZp1jBeSjH2G7lxet9kbcH+kIVj0tPFEoyKI9wvWqIwC4prx/WVk2wLTJjzBAhyNxfEq7C9CeiX9pQEbEqJfkKCQ== nocomment\n",
+		"title": "test-key",
+	})
+	resp := session.MakeRequest(t, req, http.StatusCreated)
+	var newPublicKey api.PublicKey
+	DecodeJSON(t, resp, &newPublicKey)
+
+	session = loginUser(t, normalUsername)
+	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d",
+		adminUsername, newPublicKey.ID)
+	session.MakeRequest(t, req, http.StatusForbidden)
 }

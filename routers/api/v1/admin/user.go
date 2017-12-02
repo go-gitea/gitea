@@ -241,7 +241,7 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 func DeleteUserPublicKey(ctx *context.APIContext) {
 	// swagger:operation DELETE /admin/users/{username}/keys/{id} admin adminDeleteUserPublicKey
 	// ---
-	// summary: Delete a user's public key on behalf of a user
+	// summary: Delete a user's public key
 	// produces:
 	// - application/json
 	// parameters:
@@ -252,8 +252,8 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	//   required: true
 	// - name: id
 	//   in: path
-	//   description: key's id to delete
-	//   type: string
+	//   description: id of the key to delete
+	//   type: integer
 	//   required: true
 	// responses:
 	//   "204":
