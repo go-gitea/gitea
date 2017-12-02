@@ -1,62 +1,62 @@
 .user {
-	&:not(.icon) {
-		padding-top: 15px;
-		padding-bottom: @footer-margin * 2;
-	}
+    &:not(.icon) {
+        padding-top: 15px;
+        padding-bottom: @footer-margin * 2;
+    }
 
-	&.profile {
-		.ui.card {
-			.username {
-				display: block;
-			}
-			.extra.content {
-				padding: 0;
+    &.profile {
+        .ui.card {
+            .username {
+                display: block;
+            }
+            .extra.content {
+                padding: 0;
 
-				ul {
-					margin: 0;
-					padding: 0;
+                ul {
+                    margin: 0;
+                    padding: 0;
 
-					li {
-						padding: 10px;
-						list-style: none;
+                    li {
+                        padding: 10px;
+                        list-style: none;
 
-						&:not(:last-child) {
-							border-bottom: 1px solid #eaeaea;
-						}
+                        &:not(:last-child) {
+                            border-bottom: 1px solid #eaeaea;
+                        }
 
-						.octicon {
-							margin-left: 1px;
-							margin-right: 5px;
-						}
+                        .octicon {
+                            margin-left: 1px;
+                            margin-right: 5px;
+                        }
 
-						&.follow {
-							.ui.button {
-								width: 100%;
-							}
-						}
-					}
-				}
-			}
-		}
+                        &.follow {
+                            .ui.button {
+                                width: 100%;
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-		.ui.repository.list {
-			margin-top: 25px;
-		}
-	}
+        .ui.repository.list {
+            margin-top: 25px;
+        }
+    }
 
-	&.followers {
-		.header.name {
-			font-size: 20px;
-			line-height: 24px;
-			vertical-align: middle;
-		}
+    &.followers {
+        .header.name {
+            font-size: 20px;
+            line-height: 24px;
+            vertical-align: middle;
+        }
 
-		.follow {
-			.ui.button {
-				padding: 8px 15px;
-			}
-		}
-	}
+        .follow {
+            .ui.button {
+                padding: 8px 15px;
+            }
+        }
+    }
 
     &.notification {
         .octicon {
