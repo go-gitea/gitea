@@ -1,158 +1,158 @@
 .dashboard {
-	padding-top: 15px;
-	padding-bottom: @footer-margin * 2;
+    padding-top: 15px;
+    padding-bottom: @footer-margin * 2;
 
-	&.feeds,
-	&.issues {
-		.context.user.menu {
-			z-index: 101;
-			min-width: 200px;
-			.ui.header {
-				font-size: 1rem;
-				text-transform: none;
-			}
-		}
-		.filter.menu {
-			.item {
-				text-align: left;
-				.text {
-					height: 16px;
-					vertical-align: middle;
-					&.truncate {
-						width: 85%;
-					}
-				}
-				.floating.label {
-					top: 7px;
-					left: 90%;
-					width: 15%;
-				}
-			}
+    &.feeds,
+    &.issues {
+        .context.user.menu {
+            z-index: 101;
+            min-width: 200px;
+            .ui.header {
+                font-size: 1rem;
+                text-transform: none;
+            }
+        }
+        .filter.menu {
+            .item {
+                text-align: left;
+                .text {
+                    height: 16px;
+                    vertical-align: middle;
+                    &.truncate {
+                        width: 85%;
+                    }
+                }
+                .floating.label {
+                    top: 7px;
+                    left: 90%;
+                    width: 15%;
+                }
+            }
 
-			// Sort
-			.jump.item {
-				margin: 1px;
-				padding-right: 0;
-			}
-			.menu {
-				max-height: 300px;
-				overflow-x: auto;
-				right: 0!important;
-				left: auto!important;
-			}
-		}
-		.ui.right .head.menu {
-			margin-top: -5px;
-			.item.active {
-				color: #d9453d;
-			}
-		}
-	}
+            // Sort
+            .jump.item {
+                margin: 1px;
+                padding-right: 0;
+            }
+            .menu {
+                max-height: 300px;
+                overflow-x: auto;
+                right: 0!important;
+                left: auto!important;
+            }
+        }
+        .ui.right .head.menu {
+            margin-top: -5px;
+            .item.active {
+                color: #d9453d;
+            }
+        }
+    }
 }
 
 &.feeds {
-	.news {
-		> .ui.grid {
-			margin-left: auto;
-			margin-right: auto;
-		}
-		.ui.avatar {
-			margin-top: 13px;
-		}
-		p {
-			line-height: 1em;
-		}
-		.time-since {
-			font-size: 13px;
-		}
-		.issue.title {
-			width: 80%;
-		}
-		.push.news .content ul {
-			font-size: 13px;
-			list-style: none;
-			padding-left: 10px;
+    .news {
+        > .ui.grid {
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .ui.avatar {
+            margin-top: 13px;
+        }
+        p {
+            line-height: 1em;
+        }
+        .time-since {
+            font-size: 13px;
+        }
+        .issue.title {
+            width: 80%;
+        }
+        .push.news .content ul {
+            font-size: 13px;
+            list-style: none;
+            padding-left: 10px;
 
-			img {
-				margin-bottom: -2px;
-			}
-			.text.truncate {
-				width: 80%;
-				margin-bottom: -5px;
-			}
-		}
-		.commit-id {
-			font-family: Consolas, monospace;
-		}
-		code {
-			padding: 1px;
-			font-size: 85%;
-			background-color: rgba(0, 0, 0, 0.04);
-			border-radius: 3px;
-			word-break: break-all;
-		}
-	}
+            img {
+                margin-bottom: -2px;
+            }
+            .text.truncate {
+                width: 80%;
+                margin-bottom: -5px;
+            }
+        }
+        .commit-id {
+            font-family: Consolas, monospace;
+        }
+        code {
+            padding: 1px;
+            font-size: 85%;
+            background-color: rgba(0, 0, 0, 0.04);
+            border-radius: 3px;
+            word-break: break-all;
+        }
+    }
 
-	.list {
-		.header {
-			.ui.label {
-				margin-top: -4px;
-				padding: 4px 5px;
-				font-weight: normal;
-			}
+    .list {
+        .header {
+            .ui.label {
+                margin-top: -4px;
+                padding: 4px 5px;
+                font-weight: normal;
+            }
 
-			.plus.icon {
-				margin-top: 5px;
-			}
-		}
-		ul {
-			list-style: none;
-			margin: 0;
-			padding-left: 0;
+            .plus.icon {
+                margin-top: 5px;
+            }
+        }
+        ul {
+            list-style: none;
+            margin: 0;
+            padding-left: 0;
 
-			li {
-				&:not(:last-child) {
-					border-bottom: 1px solid #EAEAEA;
-				}
+            li {
+                &:not(:last-child) {
+                    border-bottom: 1px solid #EAEAEA;
+                }
 
-				&.private {
-					background-color: #fcf8e9;
-				}
+                &.private {
+                    background-color: #fcf8e9;
+                }
 
-				a {
-					padding: 6px 1.2em;
-					display: block;
+                a {
+                    padding: 6px 1.2em;
+                    display: block;
 
-					.octicon {
-						color: #888;
+                    .octicon {
+                        color: #888;
 
-						&.rear {
-					    font-size: 15px;
-						}
-					}
-					.star-num {
-						font-size: 12px;
-					}
-				}
-			}
-		}
+                        &.rear {
+                        font-size: 15px;
+                        }
+                    }
+                    .star-num {
+                        font-size: 12px;
+                    }
+                }
+            }
+        }
 
-		.repo-owner-name-list {
-			.item-name {
-				max-width: 70%;
-		    margin-bottom: -4px;
-			}
-		}
+        .repo-owner-name-list {
+            .item-name {
+                max-width: 70%;
+            margin-bottom: -4px;
+            }
+        }
 
-		#collaborative-repo-list {
-			.owner-and-repo {
-				max-width: 80%;
-		    margin-bottom: -5px;
-			}
-			.owner-name {
-				max-width: 120px;
-		    margin-bottom: -5px;
-			}
-		}
-	}
+        #collaborative-repo-list {
+            .owner-and-repo {
+                max-width: 80%;
+            margin-bottom: -5px;
+            }
+            .owner-name {
+                max-width: 120px;
+            margin-bottom: -5px;
+            }
+        }
+    }
 }
