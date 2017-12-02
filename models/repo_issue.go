@@ -32,22 +32,3 @@ func (repo *Repository) AllowOnlyContributorsToTrackTime() bool {
 	}
 	return u.IssuesConfig().AllowOnlyContributorsToTrackTime
 }
-
-/*
-________                                   .___                   .__
-\______ \   ____ ______   ____   ____    __| _/____   ____   ____ |__| ____   ______
- |    |  \_/ __ \\____ \_/ __ \ /    \  / __ |/ __ \ /    \_/ ___\|  |/ __ \ /  ___/
- |    `   \  ___/|  |_> >  ___/|   |  \/ /_/ \  ___/|   |  \  \___|  \  ___/ \___ \
-/_______  /\___  >   __/ \___  >___|  /\____ |\___  >___|  /\___  >__|\___  >____  >
-        \/     \/|__|        \/     \/      \/    \/     \/     \/        \/     \/
-*/
-
-// IsDependenciesEnabled returns if dependecies are enabled and returns the default setting if not set.
-func (repo *Repository) IsDependenciesEnabled() bool {
-	var u *RepoUnit
-	var err error
-	if u, err = repo.GetUnit(UnitTypeIssues); err != nil {
-		return setting.Service.DefaultEnableDependencies
-	}
-	return u.IssuesConfig().EnableDependencies
-}

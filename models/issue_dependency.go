@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/modules/setting"
 	"time"
 )
 
@@ -131,4 +132,14 @@ func IssueNoDependenciesLeft(issue *Issue) (bool, error) {
 		Exist(&Issue{})
 
 	return !exists, err
+}
+
+// IsDependenciesEnabled returns if dependecies are enabled and returns the default setting if not set.
+func (repo *Repository) IsDependenciesEnabled() bool {
+	var u *RepoUnit
+	var err error
+	if u, err = repo.GetUnit(UnitTypeIssues); err != nil {
+		return setting.Service.DefaultEnableDependencies
+	}
+	return u.IssuesConfig().EnableDependencies
 }
