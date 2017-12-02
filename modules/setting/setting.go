@@ -331,6 +331,7 @@ var (
 	LibravatarService     *libravatar.Libravatar
 
 	// Log settings
+	LogLevel    string
 	LogRootPath string
 	LogModes    []string
 	LogConfigs  []string
@@ -659,6 +660,7 @@ func NewContext() {
 	}
 	homeDir = strings.Replace(homeDir, "\\", "/", -1)
 
+	LogLevel = getLogLevel("log", "LEVEL", "Info")
 	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
 
@@ -1192,6 +1194,11 @@ var logLevels = map[string]string{
 	"Critical": "5",
 }
 
+func getLogLevel(section string, key string, defaultValue string) string {
+	validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
+	return Cfg.Section(section).Key(key).In(defaultValue, validLevels)
+}
+
 func newLogService() {
 	log.Info("Gitea v%s%s", AppVer, AppBuiltWith)
 
@@ -1216,11 +1223,8 @@ func newLogService() {
 			sec, _ = Cfg.NewSection("log." + mode)
 		}
 
-		validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
 		// Log level.
-		levelName := Cfg.Section("log."+mode).Key("LEVEL").In(
-			Cfg.Section("log").Key("LEVEL").In("Trace", validLevels),
-			validLevels)
+		levelName := getLogLevel("log."+mode, "LEVEL", LogLevel)
 		level, ok := logLevels[levelName]
 		if !ok {
 			log.Fatal(4, "Unknown log level: %s", levelName)
@@ -1284,11 +1288,8 @@ func NewXORMLogService(disableConsole bool) {
 			sec, _ = Cfg.NewSection("log." + mode)
 		}
 
-		validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
 		// Log level.
-		levelName := Cfg.Section("log."+mode).Key("LEVEL").In(
-			Cfg.Section("log").Key("LEVEL").In("Trace", validLevels),
-			validLevels)
+		levelName := getLogLevel("log."+mode, "LEVEL", LogLevel)
 		level, ok := logLevels[levelName]
 		if !ok {
 			log.Fatal(4, "Unknown log level: %s", levelName)
