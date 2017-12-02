@@ -31,7 +31,7 @@
 							<a :class="{item: true, active: tab === 'repos'}" @click="changeTab('repos')">{{.i18n.Tr "repository"}}</a>
 							<a :class="{item: true, active: tab === 'organizations'}" @click="changeTab('organizations')">{{.i18n.Tr "organization"}}</a>
 						</div>
-						<div v-show="tab === 'repos'" class="ui tab active list">
+						<div v-show="tab === 'repos'" class="ui tab active list dashboard-repos">
 							<h4 class="ui top attached header">
 								{{.i18n.Tr "home.my_repos"}} <span class="ui grey label">${reposTotalCount}</span>
 								<div class="ui right">
