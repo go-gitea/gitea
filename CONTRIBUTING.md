@@ -48,9 +48,9 @@ getting free help.
 
 ## Discuss your design
 
-The project welcomes submissions. If you want to change or add something, 
-please let everyone know what you're working on—[file an issue](https://github.com/go-gitea/gitea/issues/new)! 
-Significant changes must go through the change proposal process 
+The project welcomes submissions. If you want to change or add something,
+please let everyone know what you're working on—[file an issue](https://github.com/go-gitea/gitea/issues/new)!
+Significant changes must go through the change proposal process
 before they can be accepted. To create a proposal, file an issue with
 your proposed changes documented, and make sure to note in the title
 of the issue that it is a proposal.
@@ -69,8 +69,8 @@ and keep the compatibility on upgrade. To make sure you are
 running the test suite exactly like we do, you should install
 the CLI for [Drone CI](https://github.com/drone/drone), as
 we are using the server for continous testing, following [these
-instructions](http://readme.drone.io/usage/getting-started-cli). After that, 
-you can simply call `drone exec` within your working directory and it will try 
+instructions](http://readme.drone.io/usage/getting-started-cli). After that,
+you can simply call `drone exec` within your working directory and it will try
 to run the test suite locally.
 
 ## Vendoring
@@ -100,7 +100,7 @@ Generally, the go build tools are installed as-needed in the `Makefile`.
 An exception are the tools to build the CSS and images.
 
 - To build CSS: Install [Node.js](https://nodejs.org/en/download/package-manager)
-  with `npm` and then run `npm install` and `make stylesheets`.
+  with `npm` and then run `npm install` and `make generate-stylesheets`.
 - To build Images: ImageMagick, inkscape and zopflipng binaries must be
   available in your `PATH` to run `make generate-images`.
 
@@ -111,7 +111,7 @@ makes the change, even if they are an owner or a maintainer. We use GitHub's
 pull request workflow to do that. And, we also use [LGTM](http://lgtm.co)
 to ensure every PR is reviewed by at least 2 maintainers.
 
-Please try to make your pull request easy to review for us. And, please read 
+Please try to make your pull request easy to review for us. And, please read
 the *[How to get faster PR reviews](https://github.com/kubernetes/community/blob/master/contributors/devel/pull-requests.md#best-practices-for-faster-reviews)* guide;
 it has lots of useful tips for any project you may want to contribute.
 Some of the key points:
@@ -174,11 +174,11 @@ obtain a final version that is maintained in this branch. A release is
 maintained by issuing patch releases to only correct critical problems
 such as crashes or security issues.
 
-Major release cycles are bimonthly. They always begin on the 25th and end on 
-the 24th (i.e., the 25th of December to February 24th). 
+Major release cycles are bimonthly. They always begin on the 25th and end on
+the 24th (i.e., the 25th of December to February 24th).
 
-During a development cycle, we may also publish any necessary minor releases 
-for the previous version. For example, if the latest, published release is 
+During a development cycle, we may also publish any necessary minor releases
+for the previous version. For example, if the latest, published release is
 v1.2, then minor changes for the previous release—e.g., v1.1.0 -> v1.1.1—are
 still possible.
 

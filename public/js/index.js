@@ -2017,6 +2017,10 @@ function initFilterBranchTagDropdown(selector) {
     });
 }
 
+$(".commit-button").click(function() {
+    $(this).parent().find('.commit-body').toggle();
+});
+
 function deleteDependencyModal(id, type) {
     $('.remove-dependency')
         .modal({

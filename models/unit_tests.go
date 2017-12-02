@@ -5,7 +5,9 @@
 package models
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -13,6 +15,7 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	_ "github.com/mattn/go-sqlite3" // for the test engine
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/testfixtures.v2"
 )
@@ -20,9 +23,30 @@ import (
 // NonexistentID an ID that will never exist
 const NonexistentID = 9223372036854775807
 
-// CreateTestEngine create in-memory sqlite database for unit tests
-// Any package that calls this must import github.com/mattn/go-sqlite3
-func CreateTestEngine(fixturesDir string) error {
+// giteaRoot a path to the gitea root
+var giteaRoot string
+
+// MainTest a reusable TestMain(..) function for unit tests that need to use a
+// test database. Creates the test database, and sets necessary settings.
+func MainTest(m *testing.M, pathToGiteaRoot string) {
+	giteaRoot = pathToGiteaRoot
+	fixturesDir := filepath.Join(pathToGiteaRoot, "models", "fixtures")
+	if err := createTestEngine(fixturesDir); err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating test engine: %v\n", err)
+		os.Exit(1)
+	}
+
+	setting.AppURL = "https://try.gitea.io/"
+	setting.RunUser = "runuser"
+	setting.SSH.Port = 3000
+	setting.SSH.Domain = "try.gitea.io"
+	setting.RepoRootPath = filepath.Join(os.TempDir(), "repos")
+	setting.AppDataPath = filepath.Join(os.TempDir(), "appdata")
+
+	os.Exit(m.Run())
+}
+
+func createTestEngine(fixturesDir string) error {
 	var err error
 	x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 	if err != nil {
@@ -45,10 +69,13 @@ func PrepareTestDatabase() error {
 	return LoadFixtures()
 }
 
-func prepareTestEnv(t testing.TB) {
+// PrepareTestEnv prepares the environment for unit tests. Can only be called
+// by tests that use the above MainTest(..) function.
+func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, com.CopyDir("../integrations/gitea-repositories-meta", setting.RepoRootPath))
+	metaPath := filepath.Join(giteaRoot, "integrations", "gitea-repositories-meta")
+	assert.NoError(t, com.CopyDir(metaPath, setting.RepoRootPath))
 }
 
 type testCond struct {

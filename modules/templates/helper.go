@@ -110,8 +110,10 @@ func NewFuncMap() []template.FuncMap {
 		"EscapePound": func(str string) string {
 			return strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(str)
 		},
-		"RenderCommitMessage":     RenderCommitMessage,
-		"RenderCommitMessageLink": RenderCommitMessageLink,
+		"RenderCommitMessage":      RenderCommitMessage,
+		"RenderCommitMessageLink":  RenderCommitMessageLink,
+		"RenderCommitBody":         RenderCommitBody,
+		"IsMultilineCommitMessage": IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
 		},
@@ -278,6 +280,29 @@ func renderCommitMessage(msg string, opts markup.RenderIssueIndexPatternOptions)
 		return template.HTML("")
 	}
 	return template.HTML(msgLines[0])
+}
+
+// RenderCommitBody extracts the body of a commit message without its title.
+func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.HTML {
+	return renderCommitBody(msg, markup.RenderIssueIndexPatternOptions{
+		URLPrefix: urlPrefix,
+		Metas:     metas,
+	})
+}
+
+func renderCommitBody(msg string, opts markup.RenderIssueIndexPatternOptions) template.HTML {
+	cleanMsg := template.HTMLEscapeString(msg)
+	fullMessage := string(markup.RenderIssueIndexPattern([]byte(cleanMsg), opts))
+	body := strings.Split(strings.TrimSpace(fullMessage), "\n")
+	if len(body) == 0 {
+		return template.HTML("")
+	}
+	return template.HTML(strings.Join(body[1:], "\n"))
+}
+
+// IsMultilineCommitMessage checks to see if a commit message contains multiple lines.
+func IsMultilineCommitMessage(msg string) bool {
+	return strings.Count(strings.TrimSpace(msg), "\n") > 1
 }
 
 // Actioner describes an action

@@ -30,7 +30,6 @@ import (
 const (
 	tplSettingsProfile      base.TplName = "user/settings/profile"
 	tplSettingsAvatar       base.TplName = "user/settings/avatar"
-	tplSettingsPassword     base.TplName = "user/settings/password"
 	tplSettingsEmails       base.TplName = "user/settings/email"
 	tplSettingsKeys         base.TplName = "user/settings/keys"
 	tplSettingsSocial       base.TplName = "user/settings/social"
@@ -223,7 +222,9 @@ func SettingsSecurityPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		return
 	}
 
-	if ctx.User.IsPasswordSet() && !ctx.User.ValidatePassword(form.OldPassword) {
+	if len(form.Password) < setting.MinPasswordLength {
+		ctx.Flash.Error(ctx.Tr("auth.password_too_short", setting.MinPasswordLength))
+	} else if ctx.User.IsPasswordSet() && !ctx.User.ValidatePassword(form.OldPassword) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
