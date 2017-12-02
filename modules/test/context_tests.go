@@ -34,7 +34,9 @@ func MockContext(t *testing.T, path string) *context.Context {
 	macaronContext.Data = map[string]interface{}{}
 	return &context.Context{
 		Context: &macaronContext,
-		Flash:   &session.Flash{},
+		Flash: &session.Flash{
+			Values: make(url.Values),
+		},
 	}
 }
 
