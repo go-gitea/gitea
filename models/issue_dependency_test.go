@@ -6,6 +6,7 @@ import (
 )
 
 func TestCreateIssueDependency(t *testing.T) {
+	// Prepare
 	assert.NoError(t, PrepareTestDatabase())
 
 	user1, err := GetUserByID(1)
