@@ -6,12 +6,13 @@ package integrations
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName string) *TestResponse {
+func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName string) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", "/repo/migrate")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
