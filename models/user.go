@@ -315,10 +315,9 @@ func (u *User) generateRandomAvatar(e Engine) error {
 	return nil
 }
 
-// RelAvatarLink returns relative avatar link to the site domain,
-// which includes app sub-url as prefix. However, it is possible
-// to return full URL if user enables Gravatar-like service.
-func (u *User) RelAvatarLink() string {
+// SizedRelAvatarLink returns a relative link to the user's avatar. When
+// applicable, the link is for an avatar of the indicated size (in pixels).
+func (u *User) SizedRelAvatarLink(size int) string {
 	if u.ID == -1 {
 		return base.DefaultAvatarLink()
 	}
@@ -338,7 +337,14 @@ func (u *User) RelAvatarLink() string {
 
 		return setting.AppSubURL + "/avatars/" + u.Avatar
 	}
-	return base.AvatarLink(u.AvatarEmail)
+	return base.SizedAvatarLink(u.AvatarEmail, size)
+}
+
+// RelAvatarLink returns a relative link to the user's avatar. The link
+// may either be a sub-URL to this site, or a full URL to an external avatar
+// service.
+func (u *User) RelAvatarLink() string {
+	return u.SizedRelAvatarLink(base.DefaultAvatarSize)
 }
 
 // AvatarLink returns user avatar absolute link.
