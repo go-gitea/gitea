@@ -495,6 +495,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Post("/cancel", repo.CancelStopwatch)
 					})
 				})
+				m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeIssueReaction)
 			})
 
 			m.Post("/labels", reqRepoWriter, repo.UpdateIssueLabel)
@@ -505,6 +506,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/comments/:id", func() {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
+			m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeCommentReaction)
 		}, context.CheckAnyUnit(models.UnitTypeIssues, models.UnitTypePullRequests))
 		m.Group("/labels", func() {
 			m.Post("/new", bindIgnErr(auth.CreateLabelForm{}), repo.NewLabel)
