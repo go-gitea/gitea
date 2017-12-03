@@ -28,13 +28,13 @@ type Release struct {
 	LowerTagName     string
 	Target           string
 	Title            string
-	Sha1             string      `xorm:"VARCHAR(40)"`
+	Sha1             string `xorm:"VARCHAR(40)"`
 	NumCommits       int64
-	NumCommitsBehind int64       `xorm:"-"`
-	Note             string      `xorm:"TEXT"`
-	IsDraft          bool        `xorm:"NOT NULL DEFAULT false"`
-	IsPrerelease     bool        `xorm:"NOT NULL DEFAULT false"`
-	IsTag            bool        `xorm:"NOT NULL DEFAULT false"`
+	NumCommitsBehind int64  `xorm:"-"`
+	Note             string `xorm:"TEXT"`
+	IsDraft          bool   `xorm:"NOT NULL DEFAULT false"`
+	IsPrerelease     bool   `xorm:"NOT NULL DEFAULT false"`
+	IsTag            bool   `xorm:"NOT NULL DEFAULT false"`
 
 	Attachments []*Attachment `xorm:"-"`
 
