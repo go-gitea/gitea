@@ -49,6 +49,8 @@ When you find the correct .tmpl file, you need to copy it in the `custom/templat
 You can now customize the template you copied in `custom/templates`, being carefully to not break the Gitea syntax.
 Any statement contained inside `{{` and `}}` are Gitea templete's syntax and shouldn't be touch, unless you know what are you doing.
 
+To add in custom HTML to the header or the footer of the page, in the `templates/custom` directory there are `header.tmpl` and `footer.tmpl` that can be modified. This is useful if you want to add in custom CSS files, or additional Javascript.
+
 ## Customizing gitignores, labels, licenses, locales, and readmes.
 
 Place your own files in corresponding sub-folder under `custom/options`.
