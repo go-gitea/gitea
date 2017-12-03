@@ -54,6 +54,56 @@ func GetRelease(ctx *context.APIContext) {
 	ctx.JSON(200, release.APIFormat())
 }
 
+// ListReleaseAttachments get all the attachments of a release
+func ListReleaseAttachments(ctx *context.APIContext) {
+	id := ctx.ParamsInt64(":id")
+	release, err := models.GetReleaseByID(id)
+	if err != nil {
+		ctx.Error(500, "GetReleaseByID", err)
+		return
+	}
+	if release.RepoID != ctx.Repo.Repository.ID {
+		ctx.Status(404)
+		return
+	}
+	// load the attachments of this release
+	attachments, err := models.GetAttachmentsByReleaseID(id)
+	if err != nil {
+		ctx.Error(500, "GetAttachmentsByReleaseID", err)
+		return
+	}
+	// build the attachment list
+	apiAttachments := make([]*api.Attachment, len(attachments))
+	for i := range attachments {
+		apiAttachments[i] = attachments[i].APIFormat()
+	}
+	ctx.JSON(200, apiAttachments)
+}
+
+// GetReleaseAttachment get a single attachment of a release
+func GetReleaseAttachment(ctx *context.APIContext) {
+	id := ctx.ParamsInt64(":id")
+	attachmentID := ctx.ParamsInt64(":assetId")
+	release, err := models.GetReleaseByID(id)
+	if err != nil {
+		ctx.Error(500, "GetReleaseByID", err)
+		return
+	}
+	if release.RepoID != ctx.Repo.Repository.ID {
+		ctx.Status(404)
+		return
+	}
+	// load the attachments of this release
+	attachment, err := models.GetAttachmentByID(attachmentID)
+	// if the attachment was not found, or it was found but is not associated with this release, then throw 404
+	if err != nil || id != attachment.ReleaseID {
+		ctx.Status(404)
+		return
+	}
+
+	ctx.JSON(200, attachment.APIFormat())
+}
+
 // ListReleases list a repository's releases
 func ListReleases(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/releases repository repoListReleases
@@ -92,6 +142,29 @@ func ListReleases(ctx *context.APIContext) {
 		rels[i] = release.APIFormat()
 	}
 	ctx.JSON(200, rels)
+}
+
+// GetLatestRelease Gets the latest release in a repository. Draft releases and prereleases are not returned
+func GetLatestRelease(ctx *context.APIContext) {
+	// we set the pageSize to 1 to get back only one release
+	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+		IncludeDrafts:      false,
+		ExcludePrereleases: true,
+	}, 1, 1)
+	if err != nil {
+		ctx.Error(500, "GetReleasesByRepoID", err)
+		return
+	}
+	if len(releases) <= 0 {
+		// no releases found, just return 404
+		ctx.Status(404)
+		return
+	}
+	if err := releases[0].LoadAttributes(); err != nil {
+		ctx.Error(500, "LoadAttributes", err)
+		return
+	}
+	ctx.JSON(200, releases[0].APIFormat())
 }
 
 // CreateRelease create a release
