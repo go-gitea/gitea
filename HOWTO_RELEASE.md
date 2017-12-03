@@ -1,3 +1,6 @@
+# Releasing Gitea
+
+
 Release procedure is as follows:
 
 - Let $vmaj, $vmin and $vpat be Major, Minor and Patch version numbers
