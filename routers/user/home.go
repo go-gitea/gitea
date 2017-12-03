@@ -365,6 +365,28 @@ func showOrgProfile(ctx *context.Context) {
 	org := ctx.Org.Organization
 	ctx.Data["Title"] = org.DisplayName()
 
+	ctx.Data["SortType"] = ctx.Query("sort")
+	switch ctx.Query("sort") {
+	case "newest":
+		orderBy = models.SearchOrderByNewest
+	case "oldest":
+		orderBy = models.SearchOrderByOldest
+	case "recentupdate":
+		orderBy = models.SearchOrderByRecentUpdated
+	case "leastupdate":
+		orderBy = models.SearchOrderByLeastUpdated
+	case "reversealphabetically":
+		orderBy = models.SearchOrderByAlphabeticallyReverse
+	case "alphabetically":
+		orderBy = models.SearchOrderByAlphabetically
+	default:
+		ctx.Data["SortType"] = "recentupdate"
+		orderBy = models.SearchOrderByRecentUpdated
+	}
+
+	keyword := strings.Trim(ctx.Query("q"), " ")
+	ctx.Data["Keyword"] = keyword
+
 	page := ctx.QueryInt("page")
 	if page <= 0 {
 		page = 1
