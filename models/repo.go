@@ -605,9 +605,14 @@ func (repo *Repository) RepoPath() string {
 	return repo.repoPath(x)
 }
 
+// GitConfigPath returns the path to a repository's git config/ directory
+func GitConfigPath(repoPath string) string {
+	return filepath.Join(repoPath, "config")
+}
+
 // GitConfigPath returns the repository git config path
 func (repo *Repository) GitConfigPath() string {
-	return filepath.Join(repo.RepoPath(), "config")
+	return GitConfigPath(repo.RepoPath())
 }
 
 // RelLink returns the repository relative link

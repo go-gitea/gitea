@@ -76,17 +76,23 @@ func (m *Mirror) ScheduleNextUpdate() {
 	m.NextUpdate = time.Now().Add(m.Interval)
 }
 
+func remoteAddress(repoPath string) (string, error) {
+	cfg, err := ini.Load(GitConfigPath(repoPath))
+	if err != nil {
+		return "", err
+	}
+	return cfg.Section("remote \"origin\"").Key("url").Value(), nil
+}
+
 func (m *Mirror) readAddress() {
 	if len(m.address) > 0 {
 		return
 	}
-
-	cfg, err := ini.Load(m.Repo.GitConfigPath())
+	var err error
+	m.address, err = remoteAddress(m.Repo.RepoPath())
 	if err != nil {
-		log.Error(4, "Load: %v", err)
-		return
+		log.Error(4, "remoteAddress: %v", err)
 	}
-	m.address = cfg.Section("remote \"origin\"").Key("url").Value()
 }
 
 // HandleCloneUserCredentials replaces user credentials from HTTP/HTTPS URL
@@ -105,6 +111,19 @@ func HandleCloneUserCredentials(url string, mosaics bool) string {
 		return url[:start+3] + "<credentials>" + url[i:]
 	}
 	return url[:start+3] + url[i+1:]
+}
+
+// sanitizeOutput sanitizes output of a command, replacing occurrences of the
+// repository's remote address with a sanitized version.
+func sanitizeOutput(output, repoPath string) (string, error) {
+	remoteAddr, err := remoteAddress(repoPath)
+	if err != nil {
+		// if we're unable to load the remote address, then we're unable to
+		// sanitize.
+		return "", err
+	}
+	sanitized := HandleCloneUserCredentials(remoteAddr, true)
+	return strings.Replace(output, remoteAddr, sanitized, -1), nil
 }
 
 // Address returns mirror address from Git repository config without credentials.
@@ -145,7 +164,14 @@ func (m *Mirror) runSync() bool {
 	if _, stderr, err := process.GetManager().ExecDir(
 		timeout, repoPath, fmt.Sprintf("Mirror.runSync: %s", repoPath),
 		"git", gitArgs...); err != nil {
-		desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", repoPath, stderr)
+		// sanitize the output, since it may contain the remote address, which may
+		// contain a password
+		message, err := sanitizeOutput(stderr, repoPath)
+		if err != nil {
+			log.Error(4, "sanitizeOutput: %v", err)
+			return false
+		}
+		desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", repoPath, message)
 		log.Error(4, desc)
 		if err = CreateRepositoryNotice(desc); err != nil {
 			log.Error(4, "CreateRepositoryNotice: %v", err)
@@ -170,7 +196,14 @@ func (m *Mirror) runSync() bool {
 		if _, stderr, err := process.GetManager().ExecDir(
 			timeout, wikiPath, fmt.Sprintf("Mirror.runSync: %s", wikiPath),
 			"git", "remote", "update", "--prune"); err != nil {
-			desc := fmt.Sprintf("Failed to update mirror wiki repository '%s': %s", wikiPath, stderr)
+			// sanitize the output, since it may contain the remote address, which may
+			// contain a password
+			message, err := sanitizeOutput(stderr, wikiPath)
+			if err != nil {
+				log.Error(4, "sanitizeOutput: %v", err)
+				return false
+			}
+			desc := fmt.Sprintf("Failed to update mirror wiki repository '%s': %s", wikiPath, message)
 			log.Error(4, desc)
 			if err = CreateRepositoryNotice(desc); err != nil {
 				log.Error(4, "CreateRepositoryNotice: %v", err)

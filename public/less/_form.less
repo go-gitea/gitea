@@ -1,144 +1,144 @@
 .form {
-	.help {
-		color: #999999;
-		padding-top: .6em;
-		padding-bottom: .6em;
-		display: inline-block;
-	}
+    .help {
+        color: #999999;
+        padding-top: .6em;
+        padding-bottom: .6em;
+        display: inline-block;
+    }
 }
 .ui.attached.header {
-	background: #f0f0f0;
-	.right {
-		margin-top: -5px;
-		.button {
-			padding: 8px 10px;
-			font-weight: normal;
-		}
-	}
+    background: #f0f0f0;
+    .right {
+        margin-top: -5px;
+        .button {
+            padding: 8px 10px;
+            font-weight: normal;
+        }
+    }
 }
 
 @create-page-form-input-padding: 250px !important;
 #create-page-form {
-	form {
-		margin: auto;
-		width: 800px!important;
-		.ui.message {
-			text-align: center;
-		}
-		.header {
-			padding-left: @create-page-form-input-padding+30px;
-		}
-		.inline.field > label {
-			text-align: right;
-			width: @create-page-form-input-padding;
-			word-wrap: break-word;
-		}
-		.help {
-			margin-left: @create-page-form-input-padding+15px;
-		}
-		.optional .title {
-			margin-left: @create-page-form-input-padding;
-		}
-		input,
-		textarea {
-			width: 50%!important;
-		}
-	}
+    form {
+        margin: auto;
+        width: 800px!important;
+        .ui.message {
+            text-align: center;
+        }
+        .header {
+            padding-left: @create-page-form-input-padding+30px;
+        }
+        .inline.field > label {
+            text-align: right;
+            width: @create-page-form-input-padding;
+            word-wrap: break-word;
+        }
+        .help {
+            margin-left: @create-page-form-input-padding+15px;
+        }
+        .optional .title {
+            margin-left: @create-page-form-input-padding;
+        }
+        input,
+        textarea {
+            width: 50%!important;
+        }
+    }
 }
 
 .signin {
-	.oauth2{
-		div {
-		  display: inline-block;
-			p {
-			  margin: 10px 5px 0 0;
-			  float: left;
-			}
-		}
-		a {
-		  margin-right: 3px;
-			&:last-child {
-			  margin-right: 0px;
-			}
-		}
-		img {
-		  width: 32px;
-		  height: 32px;
-		  &.openidConnect {
-			width: auto;
-		  }
-		}
-	}
+    .oauth2{
+        div {
+          display: inline-block;
+            p {
+              margin: 10px 5px 0 0;
+              float: left;
+            }
+        }
+        a {
+          margin-right: 3px;
+            &:last-child {
+              margin-right: 0px;
+            }
+        }
+        img {
+          width: 32px;
+          height: 32px;
+          &.openidConnect {
+            width: auto;
+          }
+        }
+    }
 }
 .user.activate,
 .user.forgot.password,
 .user.reset.password,
 .user.signin,
 .user.signup {
-	@input-padding: 200px!important;
-	#create-page-form;
-	form {
-		width: 700px!important;
-		.header {
-			padding-left: 0 !important;
-			text-align: center;
-		}
-		.inline.field > label {
-			width: @input-padding;
-		}
-	}
+    @input-padding: 200px!important;
+    #create-page-form;
+    form {
+        width: 700px!important;
+        .header {
+            padding-left: 0 !important;
+            text-align: center;
+        }
+        .inline.field > label {
+            width: @input-padding;
+        }
+    }
 }
 
 .repository {
-	&.new.repo,
-	&.new.migrate,
-	&.new.fork {
-		#create-page-form;
-		form {
-			.dropdown {
-				.dropdown.icon {
-					margin-top: -7px!important;
-				}
-				.text {
-					margin-right: 0!important;
-					i {
-						margin-right: 0!important;
-					}
-				}
-			}
-			.header {
-				padding-left: 0 !important;
-				text-align: center;
-			}
-		}
-	}
+    &.new.repo,
+    &.new.migrate,
+    &.new.fork {
+        #create-page-form;
+        form {
+            .dropdown {
+                .dropdown.icon {
+                    margin-top: -7px!important;
+                }
+                .text {
+                    margin-right: 0!important;
+                    i {
+                        margin-right: 0!important;
+                    }
+                }
+            }
+            .header {
+                padding-left: 0 !important;
+                text-align: center;
+            }
+        }
+    }
 
-	&.new.repo {
-		.ui.form {
-			.selection.dropdown:not(.owner) {
-				width: 50%!important;
-			}
-			#auto-init {
-				margin-left: @create-page-form-input-padding+15px;
-			}
-		}
-	}
+    &.new.repo {
+        .ui.form {
+            .selection.dropdown:not(.owner) {
+                width: 50%!important;
+            }
+            #auto-init {
+                margin-left: @create-page-form-input-padding+15px;
+            }
+        }
+    }
 }
 
 .new.webhook {
-	form {
-		.help {
-			margin-left: 25px;
-		}
-	}
+    form {
+        .help {
+            margin-left: 25px;
+        }
+    }
 }
 
 .new.webhook {
-	.events.fields {
-		.column {
-			padding-left: 40px;
-		}
-	}
+    .events.fields {
+        .column {
+            padding-left: 40px;
+        }
+    }
 }
 
 .githook {

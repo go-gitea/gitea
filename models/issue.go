@@ -5,7 +5,6 @@
 package models
 
 import (
-	"errors"
 	"fmt"
 	"path"
 	"sort"
@@ -20,11 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-)
-
-var (
-	errMissingIssueNumber = errors.New("No issue number specified")
-	errInvalidIssueNumber = errors.New("Invalid issue number")
 )
 
 // Issue represents an issue or pull request of repository.
@@ -959,32 +953,6 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 	}
 
 	return nil
-}
-
-// GetIssueByRef returns an Issue specified by a GFM reference.
-// See https://help.github.com/articles/writing-on-github#references for more information on the syntax.
-func GetIssueByRef(ref string) (*Issue, error) {
-	n := strings.IndexByte(ref, '#')
-	if n == -1 {
-		return nil, errMissingIssueNumber
-	}
-
-	index, err := com.StrTo(ref[n+1:]).Int64()
-	if err != nil {
-		return nil, errInvalidIssueNumber
-	}
-
-	i := strings.IndexByte(ref[:n], '/')
-	if i < 2 {
-		return nil, ErrInvalidReference
-	}
-
-	repo, err := GetRepositoryByOwnerAndName(ref[:i], ref[i+1:n])
-	if err != nil {
-		return nil, err
-	}
-
-	return GetIssueByIndex(repo.ID, index)
 }
 
 // GetRawIssueByIndex returns raw issue without loading attributes by index in a repository.
