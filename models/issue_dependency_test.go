@@ -1,8 +1,8 @@
 package models
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestCreateIssueDependency(t *testing.T) {
