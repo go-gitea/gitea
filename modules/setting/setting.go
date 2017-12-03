@@ -326,6 +326,7 @@ var (
 	// Picture settings
 	AvatarUploadPath      string
 	GravatarSource        string
+	GravatarSourceURL     *url.URL
 	DisableGravatar       bool
 	EnableFederatedAvatar bool
 	LibravatarService     *libravatar.Libravatar
@@ -1027,18 +1028,22 @@ func NewContext() {
 	if DisableGravatar {
 		EnableFederatedAvatar = false
 	}
+	if EnableFederatedAvatar || !DisableGravatar {
+		GravatarSourceURL, err = url.Parse(GravatarSource)
+		if err != nil {
+			log.Fatal(4, "Failed to parse Gravatar URL(%s): %v",
+				GravatarSource, err)
+		}
+	}
 
 	if EnableFederatedAvatar {
 		LibravatarService = libravatar.New()
-		parts := strings.Split(GravatarSource, "/")
-		if len(parts) >= 3 {
-			if parts[0] == "https:" {
-				LibravatarService.SetUseHTTPS(true)
-				LibravatarService.SetSecureFallbackHost(parts[2])
-			} else {
-				LibravatarService.SetUseHTTPS(false)
-				LibravatarService.SetFallbackHost(parts[2])
-			}
+		if GravatarSourceURL.Scheme == "https" {
+			LibravatarService.SetUseHTTPS(true)
+			LibravatarService.SetSecureFallbackHost(GravatarSourceURL.Host)
+		} else {
+			LibravatarService.SetUseHTTPS(false)
+			LibravatarService.SetFallbackHost(GravatarSourceURL.Host)
 		}
 	}
 
