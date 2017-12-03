@@ -10,14 +10,15 @@ import (
 	"sort"
 	"strings"
 
-	api "code.gitea.io/sdk/gitea"
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
+	"github.com/go-xorm/xorm"
 )
 
 // Issue represents an issue or pull request of repository.
@@ -1022,12 +1023,11 @@ func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
-	RepoID      int64
+	RepoIDs     []int64 // include all repos if empty
 	AssigneeID  int64
 	PosterID    int64
 	MentionedID int64
 	MilestoneID int64
-	RepoIDs     []int64
 	Page        int
 	PageSize    int
 	IsClosed    util.OptionalBool
@@ -1073,9 +1073,7 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
 		sess.In("issue.id", opts.IssueIDs)
 	}
 
-	if opts.RepoID > 0 {
-		sess.And("issue.repo_id=?", opts.RepoID)
-	} else if len(opts.RepoIDs) > 0 {
+	if len(opts.RepoIDs) > 0 {
 		// In case repository IDs are provided but actually no repository has issue.
 		sess.In("issue.repo_id", opts.RepoIDs)
 	}
@@ -1339,58 +1337,92 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 	return stats, err
 }
 
+// UserIssueStatsOptions contains parameters accepted by GetUserIssueStats.
+type UserIssueStatsOptions struct {
+	UserID      int64
+	RepoID      int64
+	UserRepoIDs []int64
+	FilterMode  int
+	IsPull      bool
+	IsClosed    bool
+}
+
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
-func GetUserIssueStats(repoID, uid int64, repoIDs []int64, filterMode int, isPull bool) *IssueStats {
+func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
+	var err error
 	stats := &IssueStats{}
 
-	countSession := func(isClosed, isPull bool, repoID int64, repoIDs []int64) *xorm.Session {
-		sess := x.
-			Where("issue.is_closed = ?", isClosed).
-			And("issue.is_pull = ?", isPull)
-
-		if repoID > 0 {
-			sess.And("repo_id = ?", repoID)
-		} else if len(repoIDs) > 0 {
-			sess.In("repo_id", repoIDs)
-		}
-
-		return sess
+	cond := builder.NewCond()
+	cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull})
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
 	}
 
-	stats.AssignCount, _ = countSession(false, isPull, repoID, nil).
-		And("assignee_id = ?", uid).
-		Count(new(Issue))
-
-	stats.CreateCount, _ = countSession(false, isPull, repoID, nil).
-		And("poster_id = ?", uid).
-		Count(new(Issue))
-
-	stats.YourRepositoriesCount, _ = countSession(false, isPull, repoID, repoIDs).
-		Count(new(Issue))
-
-	switch filterMode {
+	switch opts.FilterMode {
 	case FilterModeAll:
-		stats.OpenCount, _ = countSession(false, isPull, repoID, repoIDs).
+		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
+			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
-		stats.ClosedCount, _ = countSession(true, isPull, repoID, repoIDs).
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
+			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
 	case FilterModeAssign:
-		stats.OpenCount, _ = countSession(false, isPull, repoID, nil).
-			And("assignee_id = ?", uid).
+		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
+			And("assignee_id = ?", opts.UserID).
 			Count(new(Issue))
-		stats.ClosedCount, _ = countSession(true, isPull, repoID, nil).
-			And("assignee_id = ?", uid).
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
+			And("assignee_id = ?", opts.UserID).
 			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
 	case FilterModeCreate:
-		stats.OpenCount, _ = countSession(false, isPull, repoID, nil).
-			And("poster_id = ?", uid).
+		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
+			And("poster_id = ?", opts.UserID).
 			Count(new(Issue))
-		stats.ClosedCount, _ = countSession(true, isPull, repoID, nil).
-			And("poster_id = ?", uid).
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
+			And("poster_id = ?", opts.UserID).
 			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return stats
+	cond = cond.And(builder.Eq{"issue.is_closed": opts.IsClosed})
+	stats.AssignCount, err = x.Where(cond).
+		And("assignee_id = ?", opts.UserID).
+		Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	stats.CreateCount, err = x.Where(cond).
+		And("poster_id = ?", opts.UserID).
+		Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	stats.YourRepositoriesCount, err = x.Where(cond).
+		And(builder.In("issue.repo_id", opts.UserRepoIDs)).
+		Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
 }
 
 // GetRepoIssueStats returns number of open and closed repository issues by given filter mode.

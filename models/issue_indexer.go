@@ -42,7 +42,7 @@ func populateIssueIndexer() error {
 		}
 		for _, repo := range repos {
 			issues, err := Issues(&IssuesOptions{
-				RepoID:   repo.ID,
+				RepoIDs:  []int64{repo.ID},
 				IsClosed: util.OptionalBoolNone,
 				IsPull:   util.OptionalBoolNone,
 			})

@@ -56,7 +56,7 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	issues, err := models.Issues(&models.IssuesOptions{
-		RepoID:   ctx.Repo.Repository.ID,
+		RepoIDs:  []int64{ctx.Repo.Repository.ID},
 		Page:     ctx.QueryInt("page"),
 		PageSize: setting.UI.IssuePagingNum,
 		IsClosed: isClosed,
