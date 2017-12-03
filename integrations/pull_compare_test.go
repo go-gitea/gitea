@@ -23,5 +23,5 @@ func TestPullCompare(t *testing.T) {
 
 	req = NewRequest(t, "GET", link)
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	assert.EqualValues(t, http.StatusOK, resp.Code)
 }
