@@ -21,7 +21,7 @@ func (repos RepositoryList) Len() int {
 }
 
 func (repos RepositoryList) Less(i, j int) bool {
-	return repos[i].ID < repos[j].ID
+	return repos[i].FullName() < repos[j].FullName()
 }
 
 func (repos RepositoryList) Swap(i, j int) {
