@@ -1,15 +1,16 @@
 package base
 
 import (
+	"net/url"
 	"os"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/Unknwon/i18n"
 	macaroni18n "github.com/go-macaron/i18n"
 	"github.com/stretchr/testify/assert"
-	"net/url"
 )
 
 var BaseDate time.Time

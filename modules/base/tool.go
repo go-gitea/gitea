@@ -16,6 +16,8 @@ import (
 	"math"
 	"math/big"
 	"net/http"
+	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -27,8 +29,6 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/i18n"
 	"github.com/gogits/chardet"
-	"net/url"
-	"path"
 )
 
 // EncodeMD5 encodes string to md5 hex value.
