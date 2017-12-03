@@ -25,12 +25,12 @@ func assertProtectedBranch(t *testing.T, repoID int64, branchName string, isErr,
 
 	resp := MakeRequest(t, req, NoExpectedStatus)
 	if isErr {
-		assert.EqualValues(t, http.StatusInternalServerError, resp.HeaderCode)
+		assert.EqualValues(t, http.StatusInternalServerError, resp.Code)
 	} else {
-		assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+		assert.EqualValues(t, http.StatusOK, resp.Code)
 		var branch models.ProtectedBranch
-		t.Log(string(resp.Body))
-		assert.NoError(t, json.Unmarshal(resp.Body, &branch))
+		t.Log(resp.Body.String())
+		assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), &branch))
 		assert.Equal(t, canPush, !branch.IsProtected())
 	}
 }
