@@ -17,7 +17,7 @@ func TestCreateIssueDependency(t *testing.T) {
 	issue2, err := GetIssueByID(2)
 	assert.NoError(t, err)
 
-	// Create a dependency and check if it was successfull
+	// Create a dependency and check if it was successful
 	exists, circular, err := CreateIssueDependency(user1, issue1, issue2)
 	assert.NoError(t, err)
 	assert.False(t, exists)
@@ -48,7 +48,7 @@ func TestCreateIssueDependency(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, left)
 
-	// Test removing the depencency
+	// Test removing the dependency
 	err = RemoveIssueDependency(user1, issue1, issue2, DependencyTypeBlockedBy)
 	assert.NoError(t, err)
 }
