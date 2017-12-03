@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -7,6 +8,7 @@ package user
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/paginater"
@@ -365,6 +367,7 @@ func showOrgProfile(ctx *context.Context) {
 	org := ctx.Org.Organization
 	ctx.Data["Title"] = org.DisplayName()
 
+	var orderBy models.SearchOrderBy
 	ctx.Data["SortType"] = ctx.Query("sort")
 	switch ctx.Query("sort") {
 	case "newest":
@@ -416,13 +419,33 @@ func showOrgProfile(ctx *context.Context) {
 		ctx.Data["Repos"] = repos
 	} else {
 		showPrivate := ctx.IsSigned && ctx.User.IsAdmin
-		repos, err = models.GetUserRepositories(org.ID, showPrivate, page, setting.UI.User.RepoPagingNum, "")
-		if err != nil {
-			ctx.Handle(500, "GetRepositories", err)
-			return
+		if len(keyword) == 0 {
+			repos, err = models.GetUserRepositories(org.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
+			if err != nil {
+				ctx.Handle(500, "GetRepositories", err)
+				return
+			}
+			ctx.Data["Repos"] = repos
+			count = models.CountUserRepositories(org.ID, showPrivate)
+			ctx.Data["Total"] = count
+		} else {
+			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
+				Keyword:   keyword,
+				OwnerID:   org.ID,
+				OrderBy:   orderBy,
+				Private:   showPrivate,
+				Page:      page,
+				IsProfile: true,
+				PageSize:  setting.UI.User.RepoPagingNum,
+			})
+			if err != nil {
+				ctx.Handle(500, "SearchRepositoryByName", err)
+				return
+			}
+
+			ctx.Data["Repos"] = repos
+			ctx.Data["Total"] = count
 		}
-		ctx.Data["Repos"] = repos
-		count = models.CountUserRepositories(org.ID, showPrivate)
 	}
 	ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
 
