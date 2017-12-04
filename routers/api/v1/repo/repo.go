@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
@@ -18,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/convert"
+	api "code.gitea.io/sdk/gitea"
 )
 
 // Search repositories via options
@@ -327,12 +326,13 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		RemoteAddr:  remoteAddr,
 	})
 	if err != nil {
+		err = util.URLSanitizedError(err, remoteAddr)
 		if repo != nil {
 			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 				log.Error(4, "DeleteRepository: %v", errDelete)
 			}
 		}
-		ctx.Error(500, "MigrateRepository", models.HandleCloneUserCredentials(err.Error(), true))
+		ctx.Error(500, "MigrateRepository", err)
 		return
 	}
 

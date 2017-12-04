@@ -16,6 +16,8 @@ import (
 	"math"
 	"math/big"
 	"net/http"
+	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -197,24 +199,59 @@ func DefaultAvatarLink() string {
 	return setting.AppSubURL + "/img/avatar_default.png"
 }
 
+// DefaultAvatarSize is a sentinel value for the default avatar size, as
+// determined by the avatar-hosting service.
+const DefaultAvatarSize = -1
+
+// libravatarURL returns the URL for the given email. This function should only
+// be called if a federated avatar service is enabled.
+func libravatarURL(email string) (*url.URL, error) {
+	urlStr, err := setting.LibravatarService.FromEmail(email)
+	if err != nil {
+		log.Error(4, "LibravatarService.FromEmail(email=%s): error %v", email, err)
+		return nil, err
+	}
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		log.Error(4, "Failed to parse libravatar url(%s): error %v", urlStr, err)
+		return nil, err
+	}
+	return u, nil
+}
+
+// SizedAvatarLink returns a sized link to the avatar for the given email
+// address.
+func SizedAvatarLink(email string, size int) string {
+	var avatarURL *url.URL
+	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
+		var err error
+		avatarURL, err = libravatarURL(email)
+		if err != nil {
+			return DefaultAvatarLink()
+		}
+	} else if !setting.DisableGravatar {
+		// copy GravatarSourceURL, because we will modify its Path.
+		copyOfGravatarSourceURL := *setting.GravatarSourceURL
+		avatarURL = &copyOfGravatarSourceURL
+		avatarURL.Path = path.Join(avatarURL.Path, HashEmail(email))
+	} else {
+		return DefaultAvatarLink()
+	}
+
+	vals := avatarURL.Query()
+	vals.Set("d", "identicon")
+	if size != DefaultAvatarSize {
+		vals.Set("s", strconv.Itoa(size))
+	}
+	avatarURL.RawQuery = vals.Encode()
+	return avatarURL.String()
+}
+
 // AvatarLink returns relative avatar link to the site domain by given email,
 // which includes app sub-url as prefix. However, it is possible
 // to return full URL if user enables Gravatar-like service.
 func AvatarLink(email string) string {
-	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
-		url, err := setting.LibravatarService.FromEmail(email)
-		if err != nil {
-			log.Error(4, "LibravatarService.FromEmail(email=%s): error %v", email, err)
-			return DefaultAvatarLink()
-		}
-		return url
-	}
-
-	if !setting.DisableGravatar {
-		return setting.GravatarSource + HashEmail(email) + "?d=identicon"
-	}
-
-	return DefaultAvatarLink()
+	return SizedAvatarLink(email, DefaultAvatarSize)
 }
 
 // Seconds-based time units

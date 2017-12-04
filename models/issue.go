@@ -5,7 +5,6 @@
 package models
 
 import (
-	"errors"
 	"fmt"
 	"path"
 	"sort"
@@ -20,11 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-)
-
-var (
-	errMissingIssueNumber = errors.New("No issue number specified")
-	errInvalidIssueNumber = errors.New("Invalid issue number")
 )
 
 // Issue represents an issue or pull request of repository.
@@ -60,6 +54,7 @@ type Issue struct {
 
 	Attachments []*Attachment `xorm:"-"`
 	Comments    []*Comment    `xorm:"-"`
+	Reactions   ReactionList  `xorm:"-"`
 }
 
 // BeforeUpdate is invoked from XORM before updating this object.
@@ -161,6 +156,37 @@ func (issue *Issue) loadComments(e Engine) (err error) {
 	return err
 }
 
+func (issue *Issue) loadReactions(e Engine) (err error) {
+	if issue.Reactions != nil {
+		return nil
+	}
+	reactions, err := findReactions(e, FindReactionsOptions{
+		IssueID: issue.ID,
+	})
+	if err != nil {
+		return err
+	}
+	// Load reaction user data
+	if _, err := ReactionList(reactions).LoadUsers(); err != nil {
+		return err
+	}
+
+	// Cache comments to map
+	comments := make(map[int64]*Comment)
+	for _, comment := range issue.Comments {
+		comments[comment.ID] = comment
+	}
+	// Add reactions either to issue or comment
+	for _, react := range reactions {
+		if react.CommentID == 0 {
+			issue.Reactions = append(issue.Reactions, react)
+		} else if comment, ok := comments[react.CommentID]; ok {
+			comment.Reactions = append(comment.Reactions, react)
+		}
+	}
+	return nil
+}
+
 func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadRepo(e); err != nil {
 		return
@@ -198,10 +224,10 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 	}
 
 	if err = issue.loadComments(e); err != nil {
-		return
+		return err
 	}
 
-	return nil
+	return issue.loadReactions(e)
 }
 
 // LoadAttributes loads the attribute of this issue.
@@ -959,32 +985,6 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 	}
 
 	return nil
-}
-
-// GetIssueByRef returns an Issue specified by a GFM reference.
-// See https://help.github.com/articles/writing-on-github#references for more information on the syntax.
-func GetIssueByRef(ref string) (*Issue, error) {
-	n := strings.IndexByte(ref, '#')
-	if n == -1 {
-		return nil, errMissingIssueNumber
-	}
-
-	index, err := com.StrTo(ref[n+1:]).Int64()
-	if err != nil {
-		return nil, errInvalidIssueNumber
-	}
-
-	i := strings.IndexByte(ref[:n], '/')
-	if i < 2 {
-		return nil, ErrInvalidReference
-	}
-
-	repo, err := GetRepositoryByOwnerAndName(ref[:i], ref[i+1:n])
-	if err != nil {
-		return nil, err
-	}
-
-	return GetIssueByIndex(repo.ID, index)
 }
 
 // GetRawIssueByIndex returns raw issue without loading attributes by index in a repository.

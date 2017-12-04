@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/cookiejar"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path"
@@ -158,7 +159,7 @@ func (s *TestSession) GetCookie(name string) *http.Cookie {
 	return nil
 }
 
-func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *TestResponse {
+func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
@@ -167,7 +168,7 @@ func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatu
 	resp := MakeRequest(t, req, expectedStatus)
 
 	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.Headers["Set-Cookie"], ";"))
+	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 	s.jar.SetCookies(baseURL, cr.Cookies())
 
@@ -207,7 +208,7 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	resp = MakeRequest(t, req, http.StatusFound)
 
 	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.Headers["Set-Cookie"], ";"))
+	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 
 	session := emptyTestSession(t)
@@ -217,30 +218,6 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	session.jar.SetCookies(baseURL, cr.Cookies())
 
 	return session
-}
-
-type TestResponseWriter struct {
-	HeaderCode int
-	Writer     io.Writer
-	Headers    http.Header
-}
-
-func (w *TestResponseWriter) Header() http.Header {
-	return w.Headers
-}
-
-func (w *TestResponseWriter) Write(b []byte) (int, error) {
-	return w.Writer.Write(b)
-}
-
-func (w *TestResponseWriter) WriteHeader(n int) {
-	w.HeaderCode = n
-}
-
-type TestResponse struct {
-	HeaderCode int
-	Body       []byte
-	Headers    http.Header
 }
 
 func NewRequest(t testing.TB, method, urlStr string) *http.Request {
@@ -278,26 +255,18 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *ht
 
 const NoExpectedStatus = -1
 
-func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *TestResponse {
-	buffer := bytes.NewBuffer(nil)
-	respWriter := &TestResponseWriter{
-		Writer:  buffer,
-		Headers: make(map[string][]string),
-	}
-	mac.ServeHTTP(respWriter, req)
+func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
+	recorder := httptest.NewRecorder()
+	mac.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		assert.EqualValues(t, expectedStatus, respWriter.HeaderCode,
+		assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String())
 	}
-	return &TestResponse{
-		HeaderCode: respWriter.HeaderCode,
-		Body:       buffer.Bytes(),
-		Headers:    respWriter.Headers,
-	}
+	return recorder
 }
 
-func DecodeJSON(t testing.TB, resp *TestResponse, v interface{}) {
-	decoder := json.NewDecoder(bytes.NewBuffer(resp.Body))
+func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
+	decoder := json.NewDecoder(resp.Body)
 	assert.NoError(t, decoder.Decode(v))
 }
 
@@ -308,8 +277,8 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 	return doc.GetCSRF()
 }
 
-func RedirectURL(t testing.TB, resp *TestResponse) string {
-	urlSlice := resp.Headers["Location"]
+func RedirectURL(t testing.TB, resp *httptest.ResponseRecorder) string {
+	urlSlice := resp.HeaderMap["Location"]
 	assert.NotEmpty(t, urlSlice, "No redirect URL founds")
 	return urlSlice[0]
 }

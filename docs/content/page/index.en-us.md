@@ -182,6 +182,7 @@ The goal of this project is to make the easiest, fastest, and most painless way 
         - Labels
         - Assign issues
         - Track time
+        - Reactions
         - Filter
             - Open
             - Closed
