@@ -146,11 +146,18 @@ pre, code {
         }
     }
 
-   &.menu,
-   &.vertical.menu,
-   &.segment {
-       box-shadow: none;
-   }
+    &.menu,
+    &.vertical.menu,
+    &.segment {
+        box-shadow: none;
+    }
+
+    /* overide semantic selector '.ui.menu:not(.vertical) .item > .button' */
+    .menu:not(.vertical) .item .button {
+        padding-bottom: .78571429em;
+        padding-top: .78571429em;
+        font-size: 1em;
+    }
 
     .text {
         &.red {
