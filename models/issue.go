@@ -54,6 +54,7 @@ type Issue struct {
 
 	Attachments []*Attachment `xorm:"-"`
 	Comments    []*Comment    `xorm:"-"`
+	Reactions   ReactionList  `xorm:"-"`
 }
 
 // BeforeUpdate is invoked from XORM before updating this object.
@@ -155,6 +156,37 @@ func (issue *Issue) loadComments(e Engine) (err error) {
 	return err
 }
 
+func (issue *Issue) loadReactions(e Engine) (err error) {
+	if issue.Reactions != nil {
+		return nil
+	}
+	reactions, err := findReactions(e, FindReactionsOptions{
+		IssueID: issue.ID,
+	})
+	if err != nil {
+		return err
+	}
+	// Load reaction user data
+	if _, err := ReactionList(reactions).LoadUsers(); err != nil {
+		return err
+	}
+
+	// Cache comments to map
+	comments := make(map[int64]*Comment)
+	for _, comment := range issue.Comments {
+		comments[comment.ID] = comment
+	}
+	// Add reactions either to issue or comment
+	for _, react := range reactions {
+		if react.CommentID == 0 {
+			issue.Reactions = append(issue.Reactions, react)
+		} else if comment, ok := comments[react.CommentID]; ok {
+			comment.Reactions = append(comment.Reactions, react)
+		}
+	}
+	return nil
+}
+
 func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadRepo(e); err != nil {
 		return
@@ -192,10 +224,10 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 	}
 
 	if err = issue.loadComments(e); err != nil {
-		return
+		return err
 	}
 
-	return nil
+	return issue.loadReactions(e)
 }
 
 // LoadAttributes loads the attribute of this issue.

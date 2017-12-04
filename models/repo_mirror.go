@@ -6,18 +6,18 @@ package models
 
 import (
 	"fmt"
-	"strings"
 	"time"
-
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-	"gopkg.in/ini.v1"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/util"
+
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/xorm"
+	"gopkg.in/ini.v1"
 )
 
 // MirrorQueue holds an UniqueQueue object of the mirror
@@ -95,24 +95,6 @@ func (m *Mirror) readAddress() {
 	}
 }
 
-// HandleCloneUserCredentials replaces user credentials from HTTP/HTTPS URL
-// with placeholder <credentials>.
-// It will fail for any other forms of clone addresses.
-func HandleCloneUserCredentials(url string, mosaics bool) string {
-	i := strings.Index(url, "@")
-	if i == -1 {
-		return url
-	}
-	start := strings.Index(url, "://")
-	if start == -1 {
-		return url
-	}
-	if mosaics {
-		return url[:start+3] + "<credentials>" + url[i:]
-	}
-	return url[:start+3] + url[i+1:]
-}
-
 // sanitizeOutput sanitizes output of a command, replacing occurrences of the
 // repository's remote address with a sanitized version.
 func sanitizeOutput(output, repoPath string) (string, error) {
@@ -122,14 +104,13 @@ func sanitizeOutput(output, repoPath string) (string, error) {
 		// sanitize.
 		return "", err
 	}
-	sanitized := HandleCloneUserCredentials(remoteAddr, true)
-	return strings.Replace(output, remoteAddr, sanitized, -1), nil
+	return util.SanitizeMessage(output, remoteAddr), nil
 }
 
 // Address returns mirror address from Git repository config without credentials.
 func (m *Mirror) Address() string {
 	m.readAddress()
-	return HandleCloneUserCredentials(m.address, false)
+	return util.SanitizeURLCredentials(m.address, false)
 }
 
 // FullAddress returns mirror address from Git repository config.

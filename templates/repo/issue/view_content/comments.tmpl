@@ -22,6 +22,7 @@
 								{{end}}
 							</div>
 						{{end}}
+						{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID) }}
 						{{if or $.IsRepositoryAdmin (eq .Poster.ID $.SignedUserID)}}
 							<div class="item action">
 								<a class="edit-content" href="#"><i class="octicon octicon-pencil"></i></a>
@@ -41,6 +42,12 @@
 					<div class="raw-content hide">{{.Content}}</div>
 					<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}"></div>
 				</div>
+				{{$reactions := .Reactions.GroupByType}}
+				{{if $reactions}}
+					<div class="ui attached segment reactions">
+						{{template "repo/issue/view_content/reactions" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions }}
+					</div>
+				{{end}}
 				{{if .Attachments}}
 					<div class="ui bottom attached segment">
 						<div class="ui small images">

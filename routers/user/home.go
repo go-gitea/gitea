@@ -7,6 +7,7 @@ package user
 import (
 	"bytes"
 	"fmt"
+	"sort"
 
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/paginater"
@@ -302,6 +303,7 @@ func Issues(ctx *context.Context) {
 	}
 
 	showRepos := models.RepositoryListOfMap(showReposMap)
+	sort.Sort(showRepos)
 	if err = showRepos.LoadAttributes(); err != nil {
 		ctx.Handle(500, "LoadAttributes", fmt.Errorf("%v", err))
 		return

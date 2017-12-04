@@ -149,7 +149,10 @@ var migrations = []Migration{
 	// v49 -> v50
 	NewMigration("add lfs lock table", addLFSLock),
 	// v50 -> v51
+	NewMigration("add reactions", addReactions),
+	// v51 -> v52
 	NewMigration("add issue_dependencies", addIssueDependencies),
+
 }
 
 // Migrate database to current version
