@@ -152,7 +152,6 @@ var migrations = []Migration{
 	NewMigration("add reactions", addReactions),
 	// v51 -> v52
 	NewMigration("add issue_dependencies", addIssueDependencies),
-
 }
 
 // Migrate database to current version
