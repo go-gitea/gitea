@@ -268,6 +268,16 @@ func (f *CreateCommentForm) Validate(ctx *macaron.Context, errs binding.Errors) 
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// ReactionForm form for adding and removing reaction
+type ReactionForm struct {
+	Content string `binding:"Required;In(+1,-1,laugh,confused,heart,hooray)"`
+}
+
+// Validate validates the fields
+func (f *ReactionForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 //    _____  .__.__                   __
 //   /     \ |__|  |   ____   _______/  |_  ____   ____   ____
 //  /  \ /  \|  |  | _/ __ \ /  ___/\   __\/  _ \ /    \_/ __ \
