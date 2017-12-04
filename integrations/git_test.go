@@ -18,17 +18,20 @@ import (
 	"time"
 
 	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
 )
 
-func onGiteaWebRun(t *testing.T, callback func(*testing.T, string)) {
+func onGiteaWebRun(t *testing.T, callback func(*testing.T, *url.URL)) {
 	s := http.Server{
 		Handler: mac,
 	}
 
-	listener, err := net.Listen("tcp", "")
+	u, err := url.Parse(setting.AppURL)
+	assert.NoError(t, err)
+	listener, err := net.Listen("tcp", u.Host)
 	assert.NoError(t, err)
 
 	defer func() {
@@ -39,23 +42,20 @@ func onGiteaWebRun(t *testing.T, callback func(*testing.T, string)) {
 
 	go s.Serve(listener)
 
-	_, port, err := net.SplitHostPort(listener.Addr().String())
-	assert.NoError(t, err)
-
-	callback(t, fmt.Sprintf("http://localhost:%s/", port))
+	callback(t, u)
 }
 
 func TestGit(t *testing.T) {
 	prepareTestEnv(t)
 
-	onGiteaWebRun(t, func(t *testing.T, urlPrefix string) {
+	onGiteaWebRun(t, func(t *testing.T, u *url.URL) {
 		dstPath, err := ioutil.TempDir("", "repo1")
 		assert.NoError(t, err)
 		defer os.RemoveAll(dstPath)
+		u.Path = "user2/repo1.git"
 
 		t.Run("CloneNoLogin", func(t *testing.T) {
-			err = git.Clone(fmt.Sprintf("%suser2/repo1.git", urlPrefix),
-				dstPath, git.CloneRepoOptions{})
+			err = git.Clone(u.String(), dstPath, git.CloneRepoOptions{})
 			assert.NoError(t, err)
 			assert.True(t, com.IsExist(filepath.Join(dstPath, "README.md")))
 		})
@@ -95,8 +95,8 @@ func TestGit(t *testing.T) {
 			assert.NoError(t, err)
 
 			//Push
-			u, err := url.Parse(fmt.Sprintf("%suser2/repo1.git", urlPrefix))
 			u.User = url.UserPassword("user2", "password")
+			fmt.Printf("Debug : %s \n", u.String())
 			assert.NoError(t, err)
 			err = git.Push(dstPath, git.PushOptions{
 				Branch: "master",
