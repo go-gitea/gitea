@@ -6,7 +6,6 @@ package integrations
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -68,7 +67,6 @@ func TestGit(t *testing.T) {
 				defer tmpFile.Close()
 				_, err = tmpFile.Write(data)
 				assert.NoError(t, err)
-				fmt.Printf("Debug : %s / %s \n", dstPath, filepath.Base(tmpFile.Name()))
 
 				//Commit
 				err = git.AddChanges(dstPath, false, filepath.Base(tmpFile.Name()))
@@ -90,8 +88,6 @@ func TestGit(t *testing.T) {
 
 				//Push
 				u.User = url.UserPassword("user2", "password")
-				fmt.Printf("Debug : %s \n", u.String())
-				assert.NoError(t, err)
 				err = git.Push(dstPath, git.PushOptions{
 					Branch: "master",
 					Remote: u.String(),
@@ -110,7 +106,6 @@ func TestGit(t *testing.T) {
 				defer tmpFile.Close()
 				_, err = tmpFile.Write(data)
 				assert.NoError(t, err)
-				fmt.Printf("Debug : %s / %s \n", dstPath, filepath.Base(tmpFile.Name()))
 
 				//Setup git LFS
 				_, err = git.NewCommand("lfs").AddArguments("install").RunInDir(dstPath)
@@ -138,8 +133,6 @@ func TestGit(t *testing.T) {
 
 				//Push
 				u.User = url.UserPassword("user2", "password")
-				fmt.Printf("Debug : %s \n", u.String())
-				assert.NoError(t, err)
 				err = git.Push(dstPath, git.PushOptions{
 					Branch: "master",
 					Remote: u.String(),
