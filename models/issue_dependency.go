@@ -89,7 +89,7 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 			return
 		}
 
-		if _, err := x.Delete(&issueDepToDelete); err != nil {
+		if _, err := sess.Delete(&issueDepToDelete); err != nil {
 			return err
 		}
 
