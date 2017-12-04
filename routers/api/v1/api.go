@@ -458,14 +458,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
 						Post(reqToken(), reqRepoWriter(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
-					m.Combo("/:id").Get(repo.GetRelease).
-						Patch(reqToken(), reqRepoWriter(), bind(api.EditReleaseOption{}), repo.EditRelease).
-						Delete(reqToken(), reqRepoWriter(), repo.DeleteRelease)
 					m.Combo("/latest").Get(repo.GetLatestRelease)
 					m.Group("/:id", func() {
 						m.Combo("").Get(repo.GetRelease).
-							Patch(bind(api.EditReleaseOption{}), repo.EditRelease).
-							Delete(repo.DeleteRelease)
+							Patch(reqToken(), reqRepoWriter(), bind(api.EditReleaseOption{}), repo.EditRelease).
+							Delete(reqToken(), reqRepoWriter(), repo.DeleteRelease)
 						m.Group("/assets", func() {
 							m.Combo("").Get(repo.ListReleaseAttachments)
 							m.Combo("/:assetId").Get(repo.GetReleaseAttachment)
