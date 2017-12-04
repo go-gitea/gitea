@@ -54,56 +54,99 @@ func TestGit(t *testing.T) {
 		defer os.RemoveAll(dstPath)
 		u.Path = "user2/repo1.git"
 
-		t.Run("CloneNoLogin", func(t *testing.T) {
-			err = git.Clone(u.String(), dstPath, git.CloneRepoOptions{})
-			assert.NoError(t, err)
-			assert.True(t, com.IsExist(filepath.Join(dstPath, "README.md")))
+		t.Run("Standard", func(t *testing.T) {
+			t.Run("CloneNoLogin", func(t *testing.T) {
+				err = git.Clone(u.String(), dstPath, git.CloneRepoOptions{})
+				assert.NoError(t, err)
+				assert.True(t, com.IsExist(filepath.Join(dstPath, "README.md")))
+			})
+			t.Run("PushCommit", func(t *testing.T) {
+				data := make([]byte, 1024)
+				_, err := rand.Read(data)
+				assert.NoError(t, err)
+				tmpFile, err := ioutil.TempFile(dstPath, "data-file-")
+				defer tmpFile.Close()
+				_, err = tmpFile.Write(data)
+				assert.NoError(t, err)
+				fmt.Printf("Debug : %s / %s \n", dstPath, filepath.Base(tmpFile.Name()))
+
+				//Commit
+				err = git.AddChanges(dstPath, false, filepath.Base(tmpFile.Name()))
+				assert.NoError(t, err)
+				err = git.CommitChanges(dstPath, git.CommitChangesOptions{
+					Committer: &git.Signature{
+						Email: "user2@example.com",
+						Name:  "User Two",
+						When:  time.Now(),
+					},
+					Author: &git.Signature{
+						Email: "user2@example.com",
+						Name:  "User Two",
+						When:  time.Now(),
+					},
+					Message: "Testing commit",
+				})
+				assert.NoError(t, err)
+
+				//Push
+				u.User = url.UserPassword("user2", "password")
+				fmt.Printf("Debug : %s \n", u.String())
+				assert.NoError(t, err)
+				err = git.Push(dstPath, git.PushOptions{
+					Branch: "master",
+					Remote: u.String(),
+					Force:  false,
+				})
+				assert.NoError(t, err)
+			})
 		})
-
 		t.Run("LFS", func(t *testing.T) {
-			/* Generate random file */
-			data := make([]byte, 1024)
-			_, err := rand.Read(data)
-			assert.NoError(t, err)
-			tmpFile, err := ioutil.TempFile(dstPath, "data-file-")
-			defer tmpFile.Close()
-			_, err = tmpFile.Write(data)
-			assert.NoError(t, err)
+			t.Run("PushCommit", func(t *testing.T) {
+				/* Generate random file */
+				data := make([]byte, 1024)
+				_, err := rand.Read(data)
+				assert.NoError(t, err)
+				tmpFile, err := ioutil.TempFile(dstPath, "data-file-")
+				defer tmpFile.Close()
+				_, err = tmpFile.Write(data)
+				assert.NoError(t, err)
+				fmt.Printf("Debug : %s / %s \n", dstPath, filepath.Base(tmpFile.Name()))
 
-			//Setup git LFS
-			_, err = git.NewCommand("lfs").AddArguments("install").RunInDir(dstPath)
-			assert.NoError(t, err)
-			_, err = git.NewCommand("lfs").AddArguments("track", "data-file-*").RunInDir(dstPath)
-			assert.NoError(t, err)
+				//Setup git LFS
+				_, err = git.NewCommand("lfs").AddArguments("install").RunInDir(dstPath)
+				assert.NoError(t, err)
+				_, err = git.NewCommand("lfs").AddArguments("track", "data-file-*").RunInDir(dstPath)
+				assert.NoError(t, err)
 
-			//Commit
-			err = git.AddChanges(dstPath, false, ".gitattributes", tmpFile.Name())
-			assert.NoError(t, err)
-			err = git.CommitChanges(dstPath, git.CommitChangesOptions{
-				Committer: &git.Signature{
-					Email: "test@email.com",
-					Name:  "User2",
-					When:  time.Now(),
-				},
-				Author: &git.Signature{
-					Email: "test@email.com",
-					Name:  "User2",
-					When:  time.Now(),
-				},
-				Message: "Testing LFS ",
+				//Commit
+				err = git.AddChanges(dstPath, false, ".gitattributes", filepath.Base(tmpFile.Name()))
+				assert.NoError(t, err)
+				err = git.CommitChanges(dstPath, git.CommitChangesOptions{
+					Committer: &git.Signature{
+						Email: "user2@example.com",
+						Name:  "User Two",
+						When:  time.Now(),
+					},
+					Author: &git.Signature{
+						Email: "user2@example.com",
+						Name:  "User Two",
+						When:  time.Now(),
+					},
+					Message: "Testing LFS ",
+				})
+				assert.NoError(t, err)
+
+				//Push
+				u.User = url.UserPassword("user2", "password")
+				fmt.Printf("Debug : %s \n", u.String())
+				assert.NoError(t, err)
+				err = git.Push(dstPath, git.PushOptions{
+					Branch: "master",
+					Remote: u.String(),
+					Force:  false,
+				})
+				assert.NoError(t, err)
 			})
-			assert.NoError(t, err)
-
-			//Push
-			u.User = url.UserPassword("user2", "password")
-			fmt.Printf("Debug : %s \n", u.String())
-			assert.NoError(t, err)
-			err = git.Push(dstPath, git.PushOptions{
-				Branch: "master",
-				Remote: u.String(),
-				Force:  false,
-			})
-			assert.NoError(t, err)
 		})
 	})
 }
