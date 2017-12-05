@@ -140,6 +140,19 @@ func TestGit(t *testing.T) {
 				})
 				assert.NoError(t, err)
 			})
+			t.Run("Locks", func(t *testing.T) {
+				_, err = git.NewCommand("remote").AddArguments("set-url", "origin", u.String()).RunInDir(dstPath) //TODO add test ssh git-lfs-creds
+				assert.NoError(t, err)
+				_, err = git.NewCommand("lfs").AddArguments("locks").RunInDir(dstPath)
+				assert.NoError(t, err)
+				_, err = git.NewCommand("lfs").AddArguments("lock", "README.md").RunInDir(dstPath)
+				assert.NoError(t, err)
+				_, err = git.NewCommand("lfs").AddArguments("locks").RunInDir(dstPath)
+				assert.NoError(t, err)
+				_, err = git.NewCommand("lfs").AddArguments("unlock", "README.md").RunInDir(dstPath)
+				assert.NoError(t, err)
+			})
+
 		})
 	})
 }
