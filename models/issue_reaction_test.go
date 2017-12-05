@@ -6,9 +6,9 @@ package models
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func addReaction(t *testing.T, doer *User, issue *Issue, comment *Comment, content string) {
