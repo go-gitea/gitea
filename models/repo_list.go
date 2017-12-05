@@ -16,6 +16,18 @@ import (
 // RepositoryList contains a list of repositories
 type RepositoryList []*Repository
 
+func (repos RepositoryList) Len() int {
+	return len(repos)
+}
+
+func (repos RepositoryList) Less(i, j int) bool {
+	return repos[i].FullName() < repos[j].FullName()
+}
+
+func (repos RepositoryList) Swap(i, j int) {
+	repos[i], repos[j] = repos[j], repos[i]
+}
+
 // RepositoryListOfMap make list from values of map
 func RepositoryListOfMap(repoMap map[int64]*Repository) RepositoryList {
 	return RepositoryList(valuesRepository(repoMap))
