@@ -13,3 +13,15 @@ type swaggerResponseServerVersion struct {
 	// in:body
 	Body api.ServerVersion `json:"body"`
 }
+
+// swagger:response Attachment
+type swaggerResponseAttachment struct {
+	// in:body
+	Body api.Attachment `json:"body"`
+}
+
+// swagger:response AttachmentList
+type swaggerResponseAttachmentList struct {
+	// in:body
+	Body []api.Attachment `json:"body"`
+}

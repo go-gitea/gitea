@@ -56,6 +56,30 @@ func GetRelease(ctx *context.APIContext) {
 
 // ListReleaseAttachments get all the attachments of a release
 func ListReleaseAttachments(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/releases/{id}/assets repository getReleaseAttachments
+	// ---
+	// summary: List the assets (attachments in a release)
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the release in the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/AttachmentList"
 	id := ctx.ParamsInt64(":id")
 	release, err := models.GetReleaseByID(id)
 	if err != nil {
@@ -82,6 +106,35 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 
 // GetReleaseAttachment get a single attachment of a release
 func GetReleaseAttachment(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/releases/{id}/assets/{assetId} repository getReleaseAttachment
+	// ---
+	// summary: Get a specific asset (attachment) from a release of a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the release in the repo
+	//   type: string
+	//   required: true
+	// - name: assetId
+	//   in: path
+	//   description: assetId of the asset (attachment) in the release of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Attachment"
 	id := ctx.ParamsInt64(":id")
 	attachmentID := ctx.ParamsInt64(":assetId")
 	release, err := models.GetReleaseByID(id)
@@ -144,8 +197,28 @@ func ListReleases(ctx *context.APIContext) {
 	ctx.JSON(200, rels)
 }
 
-// GetLatestRelease gets the latest release in a repository. Draft releases and prereleases are not returned
+// GetLatestRelease gets the latest release in a repository. Draft releases and prereleases are excluded
 func GetLatestRelease(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/releases/latest repository repoGetLatestRelease
+	// ---
+	// summary: Gets the latest release in a repository. Draft releases and prereleases are excluded
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Release"
+
 	// we set the pageSize to 1 to get back only one release
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
 		IncludeDrafts:      false,
