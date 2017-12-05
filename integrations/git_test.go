@@ -93,7 +93,7 @@ func TestGit(t *testing.T) {
 					Remote: u.String(),
 					Force:  false,
 				})
-				//TODO assert.NoError(t, err)
+				assert.NoError(t, err)
 			})
 		})
 		t.Run("LFS", func(t *testing.T) {
@@ -138,7 +138,7 @@ func TestGit(t *testing.T) {
 					Remote: u.String(),
 					Force:  false,
 				})
-				//TODO assert.NoError(t, err)
+				assert.NoError(t, err)
 			})
 			t.Run("Locks", func(t *testing.T) {
 				_, err = git.NewCommand("remote").AddArguments("set-url", "origin", u.String()).RunInDir(dstPath) //TODO add test ssh git-lfs-creds

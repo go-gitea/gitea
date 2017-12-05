@@ -132,7 +132,6 @@ pipeline:
       TAGS: bindata
       GOPATH: /srv/app
     commands:
-      - apk add --no-cache git-lfs
       - make test-mysql
     when:
       event: [ tag ]
@@ -145,7 +144,6 @@ pipeline:
       TAGS: bindata
       GOPATH: /srv/app
     commands:
-      - apk add --no-cache git-lfs
       - make test-pgsql
     when:
       event: [ push, tag, pull_request ]
