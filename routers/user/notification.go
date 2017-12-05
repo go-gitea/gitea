@@ -115,7 +115,7 @@ func NotificationStatusPost(c *context.Context) {
 
 // NotificationPurgePost is a route for 'purging' the list of notifications - marking all unread as read
 func NotificationPurgePost(c *context.Context) {
-	err := models.SwapNotificationStatuses(c.User, models.NotificationStatusUnread, models.NotificationStatusRead)
+	err := models.UpdateNotificationStatuses(c.User, models.NotificationStatusUnread, models.NotificationStatusRead)
 	if err != nil {
 		c.Handle(500, "ErrPurgeNotificationsForUser", err)
 		return

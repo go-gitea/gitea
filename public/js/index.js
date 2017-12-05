@@ -151,7 +151,13 @@ function initReactionSelector(parent) {
                     react.remove();
                 }
                 if (!resp.empty) {
-                    react = $('<div class="ui attached segment reactions"></div>').appendTo(content);
+                    react = $('<div class="ui attached segment reactions"></div>');
+                    var attachments = content.find('.segment.bottom:first');
+                    if (attachments.length > 0) {
+                        react.insertBefore(attachments);
+                    } else {
+                        react.appendTo(content);
+                    }
                     react.html(resp.html);
                     var hasEmoji = react.find('.has-emoji');
                     for (var i = 0; i < hasEmoji.length; i++) {

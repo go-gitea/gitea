@@ -312,15 +312,13 @@ func getNotificationByID(notificationID int64) (*Notification, error) {
 	return notification, nil
 }
 
-// SetNotificationStatus change the notification status
-func SwapNotificationStatuses(user *User, currentStatus NotificationStatus, desiredStatus NotificationStatus) error {
+// UpdateNotificationStatuses updates the statuses of all of a user's notifications that are of the currentStatus type to the desiredStatus
+func UpdateNotificationStatuses(user *User, currentStatus NotificationStatus, desiredStatus NotificationStatus) error {
 	n := &Notification{Status: desiredStatus, UpdatedBy: user.ID}
-	// This isn't run when updating many records at once, so we do it manually and then specify the fields to update
 	n.BeforeUpdate()
 	_, err := x.
 		Where("user_id = ? AND status = ?", user.ID, currentStatus).
 		Cols("status", "updated_by", "updated_unix").
 		Update(n)
-		
 	return err
 }

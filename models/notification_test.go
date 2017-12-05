@@ -34,6 +34,8 @@ func TestNotificationsForUser(t *testing.T) {
 	if assert.Len(t, notfs, 2) {
 		assert.EqualValues(t, 2, notfs[0].ID)
 		assert.EqualValues(t, user.ID, notfs[0].UserID)
+		assert.EqualValues(t, 4, notfs[1].ID)
+		assert.EqualValues(t, user.ID, notfs[1].UserID)
 	}
 }
 
@@ -80,7 +82,7 @@ func TestSetNotificationStatus(t *testing.T) {
 	assert.Error(t, SetNotificationStatus(NonexistentID, user, NotificationStatusRead))
 }
 
-func TestSwapNotificationStatuses(t *testing.T) {
+func TestUpdateNotificationStatuses(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	notfUnread := AssertExistsAndLoadBean(t,
@@ -89,7 +91,7 @@ func TestSwapNotificationStatuses(t *testing.T) {
 		&Notification{UserID: user.ID, Status: NotificationStatusRead}).(*Notification)
 	notfPinned := AssertExistsAndLoadBean(t,
 		&Notification{UserID: user.ID, Status: NotificationStatusPinned}).(*Notification)
-	assert.NoError(t, SwapNotificationStatuses(user, NotificationStatusUnread, NotificationStatusRead))
+	assert.NoError(t, UpdateNotificationStatuses(user, NotificationStatusUnread, NotificationStatusRead))
 	AssertExistsAndLoadBean(t,
 		&Notification{ID: notfUnread.ID, Status: NotificationStatusRead})
 	AssertExistsAndLoadBean(t,
