@@ -312,7 +312,7 @@ func getNotificationByID(notificationID int64) (*Notification, error) {
 	return notification, nil
 }
 
-// SetNotificationStatus change the notification status
+// SwapNotificationStatuses swaps the statuses of all of a user's notifications that are of the currentStatus type
 func SwapNotificationStatuses(user *User, currentStatus NotificationStatus, desiredStatus NotificationStatus) error {
 	n := &Notification{Status: desiredStatus, UpdatedBy: user.ID}
 	// This isn't run when updating many records at once, so we do it manually and then specify the fields to update
