@@ -367,6 +367,10 @@ func Collaboration(ctx *context.Context) {
 // CollaborationPost response for actions for a collaboration of a repository
 func CollaborationPost(ctx *context.Context) {
 	name := strings.ToLower(ctx.Query("collaborator"))
+	// name may be formatted as "username (fullname)"
+	if strings.Contains(name, "(") && strings.HasSuffix(name, ")") {
+		name = strings.TrimSpace(strings.Split(name, "(")[0])
+	}
 	if len(name) == 0 || ctx.Repo.Owner.LowerName == name {
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
 		return
