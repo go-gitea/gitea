@@ -117,7 +117,7 @@ func NotificationStatusPost(c *context.Context) {
 func NotificationPurgePost(c *context.Context) {
 	err := models.UpdateNotificationStatuses(c.User, models.NotificationStatusUnread, models.NotificationStatusRead)
 	if err != nil {
-		c.Handle(500, "ErrPurgeNotificationsForUser", err)
+		c.Handle(500, "ErrUpdateNotificationStatuses", err)
 		return
 	}
 
