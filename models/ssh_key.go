@@ -506,10 +506,7 @@ func deletePublicKeys(e *xorm.Session, keyIDs ...int64) error {
 func DeletePublicKey(doer *User, id int64) (err error) {
 	key, err := GetPublicKeyByID(id)
 	if err != nil {
-		if IsErrKeyNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("GetPublicKeyByID: %v", err)
+		return err
 	}
 
 	// Check if user has access to delete this key.
