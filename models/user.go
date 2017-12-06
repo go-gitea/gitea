@@ -1390,15 +1390,18 @@ func deleteKeysMarkedForDeletion(keys []string) (sshKeysNeedUpdate bool, err err
 
 func addLdapSSHPublicKeys(s *LoginSource, usr *User, SSHPublicKeys []string) (sshKeysNeedUpdate bool, err error) {
 	for _, LDAPPublicSSHKey := range SSHPublicKeys {
-		LDAPPublicSSHKeyName := strings.Join([]string{s.Name, LDAPPublicSSHKey[0:40]}, "-")
-		_, err := AddPublicKey(usr.ID, LDAPPublicSSHKeyName, LDAPPublicSSHKey, s.ID)
-		if err != nil {
-			log.Error(4, "addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)
+		if strings.HasPrefix(strings.ToLower(LDAPPublicSSHKey), "ssh") {
+			LDAPPublicSSHKeyName := strings.Join([]string{s.Name, LDAPPublicSSHKey[0:40]}, "-")
+			_, err := AddPublicKey(usr.ID, LDAPPublicSSHKeyName, LDAPPublicSSHKey, s.ID)
+			if err != nil {
+				log.Error(4, "addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)
+			} else {
+				log.Trace("addLdapSSHPublicKeys[%s]: Added LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, LDAPPublicSSHKey)
+				sshKeysNeedUpdate = true
+			}
 		} else {
-			log.Trace("addLdapSSHPublicKeys[%s]: Added LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, LDAPPublicSSHKey)
-			sshKeysNeedUpdate = true
+			log.Error(3, "addLdapSSHPublicKeys[%s]: Skipping invalid LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, LDAPPublicSSHKey)
 		}
-
 	}
 	return sshKeysNeedUpdate, err
 }
