@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"time"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
-
-	"code.gitea.io/gitea/modules/setting"
 )
 
 // Reaction represents a reactions on issues and comments.
