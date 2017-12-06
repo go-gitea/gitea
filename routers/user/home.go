@@ -406,6 +406,9 @@ func showOrgProfile(ctx *context.Context) {
 			ctx.Handle(500, "AccessibleReposEnv", err)
 			return
 		}
+		if len(keyword) != 0 {
+			env.AddKeyword(keyword)
+		}
 		repos, err = env.Repos(page, setting.UI.User.RepoPagingNum)
 		if err != nil {
 			ctx.Handle(500, "env.Repos", err)
