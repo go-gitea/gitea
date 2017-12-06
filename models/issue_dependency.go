@@ -33,9 +33,13 @@ const (
 // CreateIssueDependency creates a new dependency for an issue
 func CreateIssueDependency(user *User, issue, dep *Issue) (exists, circular bool, err error) {
 	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		return false, false, err
+	}
+	defer sess.Close()
 
 	// Check if it aleready exists
-	exists, circular, err = issueDepExists(x, issue.ID, dep.ID)
+	exists, circular, err = issueDepExists(sess, issue.ID, dep.ID)
 	if err != nil {
 		return
 	}
@@ -48,7 +52,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (exists, circular bool
 			DependencyID: dep.ID,
 		}
 
-		if _, err := x.Insert(newIssueDependency); err != nil {
+		if _, err := sess.Insert(newIssueDependency); err != nil {
 			return exists, circular, err
 		}
 
@@ -62,16 +66,20 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (exists, circular bool
 			return
 		}
 	}
-	return exists, circular, nil
+	return exists, circular, sess.Commit()
 }
 
 // RemoveIssueDependency removes a dependency from an issue
 func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType DependencyType) (err error) {
 	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	defer sess.Close()
 
 	// Check if it exists
 	var exists bool
-	if exists, _, err = issueDepExists(x, issue.ID, dep.ID); err != nil {
+	if exists, _, err = issueDepExists(sess, issue.ID, dep.ID); err != nil {
 		return err
 	}
 
@@ -103,7 +111,7 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 			return err
 		}
 	}
-	return nil
+	return sess.Commit()
 }
 
 // Check if the dependency already exists
