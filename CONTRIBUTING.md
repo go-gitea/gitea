@@ -11,7 +11,7 @@
   - [Translation](#translation)
   - [Code review](#code-review)
   - [Styleguide](#styleguide)
-  - [Sign your work](#sign-your-work)
+  - [Sign-off your work](#sign-off-your-work)
   - [Release Cycle](#release-cycle)
   - [Maintainers](#maintainers)
   - [Owners](#owners)

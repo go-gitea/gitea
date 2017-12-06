@@ -39,8 +39,8 @@ services:
     volumes:
       - ./gitea:/data
     ports:
-      - 3000:3000
-      - 222:22
+      - "3000:3000"
+      - "222:22"
 ```
 
 ## Custom port
@@ -63,10 +63,10 @@ services:
     volumes:
       - ./gitea:/data
     ports:
--      - 3000:3000
--      - 222:22
-+      - 8080:3000
-+      - 2221:22
+-      - "3000:3000"
+-      - "222:22"
++      - "8080:3000"
++      - "2221:22"
 ```
 
 ## MySQL database
@@ -89,8 +89,8 @@ services:
     volumes:
       - ./gitea:/data
      ports:
-       - 3000:3000
-       - 222:22
+       - "3000:3000"
+       - "222:22"
 +    depends_on:
 +      - db
 +
@@ -128,8 +128,8 @@ services:
     volumes:
       - ./gitea:/data
      ports:
-       - 3000:3000
-       - 222:22
+       - "3000:3000"
+       - "222:22"
 +    depends_on:
 +      - db
 +
@@ -171,8 +171,8 @@ services:
 -      - ./gitea:/data
 +      - gitea:/data
     ports:
-      - 3000:3000
-      - 222:22
+      - "3000:3000"
+      - "222:22"
 ```
 
 If you are using MySQL or PostgreSQL it's up to you to create named volumes for these containers as well.
