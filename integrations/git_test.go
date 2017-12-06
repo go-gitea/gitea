@@ -18,6 +18,7 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
@@ -48,17 +49,44 @@ func TestGit(t *testing.T) {
 	prepareTestEnv(t)
 
 	onGiteaWebRun(t, func(t *testing.T, u *url.URL) {
-		dstPath, err := ioutil.TempDir("", "repo1")
+		dstPath, err := ioutil.TempDir("", "repo-tmp-17")
 		assert.NoError(t, err)
 		defer os.RemoveAll(dstPath)
 		u.Path = "user2/repo1.git"
 
 		t.Run("Standard", func(t *testing.T) {
+
 			t.Run("CloneNoLogin", func(t *testing.T) {
+				dstLocalPath, err := ioutil.TempDir("", "repo1")
+				assert.NoError(t, err)
+				defer os.RemoveAll(dstLocalPath)
+				err = git.Clone(u.String(), dstLocalPath, git.CloneRepoOptions{})
+				assert.NoError(t, err)
+				assert.True(t, com.IsExist(filepath.Join(dstLocalPath, "README.md")))
+			})
+
+			t.Run("CreateRepo", func(t *testing.T) {
+				session := loginUser(t, "user2")
+				req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
+					AutoInit:    true,
+					Description: "Temporary repo",
+					Name:        "repo-tmp-17",
+					Private:     false,
+					Gitignores:  "",
+					License:     "WTFPL",
+					Readme:      "Default",
+				})
+				session.MakeRequest(t, req, http.StatusCreated)
+			})
+
+			u.Path = "user2/repo-tmp-17.git"
+			u.User = url.UserPassword("user2", "password")
+			t.Run("Clone", func(t *testing.T) {
 				err = git.Clone(u.String(), dstPath, git.CloneRepoOptions{})
 				assert.NoError(t, err)
 				assert.True(t, com.IsExist(filepath.Join(dstPath, "README.md")))
 			})
+
 			t.Run("PushCommit", func(t *testing.T) {
 				data := make([]byte, 1024)
 				_, err := rand.Read(data)
@@ -87,7 +115,6 @@ func TestGit(t *testing.T) {
 				assert.NoError(t, err)
 
 				//Push
-				u.User = url.UserPassword("user2", "password")
 				err = git.Push(dstPath, git.PushOptions{
 					Branch: "master",
 					Remote: u.String(),
