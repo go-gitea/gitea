@@ -6,27 +6,30 @@ package integrations
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	api "code.gitea.io/sdk/gitea"
+
+	"github.com/stretchr/testify/assert"
 )
+
+type makeRequestFunc func(testing.TB, *http.Request, int) *httptest.ResponseRecorder
 
 func TestGPGKeys(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user2")
 
 	tt := []struct {
-		name       string
-		reqBuilder func(testing.TB, *http.Request, int) *TestResponse
-		results    []int
+		name        string
+		makeRequest makeRequestFunc
+		results     []int
 	}{
-		{name: "NoLogin", reqBuilder: MakeRequest,
+		{name: "NoLogin", makeRequest: MakeRequest,
 			results: []int{http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized},
 		},
-		{name: "LoggedAsUser2", reqBuilder: session.MakeRequest,
+		{name: "LoggedAsUser2", makeRequest: session.MakeRequest,
 			results: []int{http.StatusOK, http.StatusOK, http.StatusNotFound, http.StatusNoContent, http.StatusInternalServerError, http.StatusInternalServerError, http.StatusCreated, http.StatusCreated}},
 	}
 
@@ -35,29 +38,29 @@ func TestGPGKeys(t *testing.T) {
 		//Basic test on result code
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("ViewOwnGPGKeys", func(t *testing.T) {
-				testViewOwnGPGKeys(t, tc.reqBuilder, tc.results[0])
+				testViewOwnGPGKeys(t, tc.makeRequest, tc.results[0])
 			})
 			t.Run("ViewGPGKeys", func(t *testing.T) {
-				testViewGPGKeys(t, tc.reqBuilder, tc.results[1])
+				testViewGPGKeys(t, tc.makeRequest, tc.results[1])
 			})
 			t.Run("GetGPGKey", func(t *testing.T) {
-				testGetGPGKey(t, tc.reqBuilder, tc.results[2])
+				testGetGPGKey(t, tc.makeRequest, tc.results[2])
 			})
 			t.Run("DeleteGPGKey", func(t *testing.T) {
-				testDeleteGPGKey(t, tc.reqBuilder, tc.results[3])
+				testDeleteGPGKey(t, tc.makeRequest, tc.results[3])
 			})
 
 			t.Run("CreateInvalidGPGKey", func(t *testing.T) {
-				testCreateInvalidGPGKey(t, tc.reqBuilder, tc.results[4])
+				testCreateInvalidGPGKey(t, tc.makeRequest, tc.results[4])
 			})
 			t.Run("CreateNoneRegistredEmailGPGKey", func(t *testing.T) {
-				testCreateNoneRegistredEmailGPGKey(t, tc.reqBuilder, tc.results[5])
+				testCreateNoneRegistredEmailGPGKey(t, tc.makeRequest, tc.results[5])
 			})
 			t.Run("CreateValidGPGKey", func(t *testing.T) {
-				testCreateValidGPGKey(t, tc.reqBuilder, tc.results[6])
+				testCreateValidGPGKey(t, tc.makeRequest, tc.results[6])
 			})
 			t.Run("CreateValidSecondaryEmailGPGKey", func(t *testing.T) {
-				testCreateValidSecondaryEmailGPGKey(t, tc.reqBuilder, tc.results[7])
+				testCreateValidSecondaryEmailGPGKey(t, tc.makeRequest, tc.results[7])
 			})
 		})
 	}
@@ -140,39 +143,39 @@ func TestGPGKeys(t *testing.T) {
 	})
 }
 
-func testViewOwnGPGKeys(t *testing.T, reqBuilder func(testing.TB, *http.Request, int) *TestResponse, expected int) {
+func testViewOwnGPGKeys(t *testing.T, makeRequest makeRequestFunc, expected int) {
 	req := NewRequest(t, "GET", "/api/v1/user/gpg_keys")
-	reqBuilder(t, req, expected)
+	makeRequest(t, req, expected)
 }
 
-func testViewGPGKeys(t *testing.T, reqBuilder func(testing.TB, *http.Request, int) *TestResponse, expected int) {
+func testViewGPGKeys(t *testing.T, makeRequest makeRequestFunc, expected int) {
 	req := NewRequest(t, "GET", "/api/v1/users/user2/gpg_keys")
-	reqBuilder(t, req, expected)
+	makeRequest(t, req, expected)
 }
 
-func testGetGPGKey(t *testing.T, reqBuilder func(testing.TB, *http.Request, int) *TestResponse, expected int) {
+func testGetGPGKey(t *testing.T, makeRequest makeRequestFunc, expected int) {
 	req := NewRequest(t, "GET", "/api/v1/user/gpg_keys/1")
-	reqBuilder(t, req, expected)
+	makeRequest(t, req, expected)
 }
 
-func testDeleteGPGKey(t *testing.T, reqBuilder func(testing.TB, *http.Request, int) *TestResponse, expected int) {
+func testDeleteGPGKey(t *testing.T, makeRequest makeRequestFunc, expected int) {
 	req := NewRequest(t, "DELETE", "/api/v1/user/gpg_keys/1")
-	reqBuilder(t, req, expected)
+	makeRequest(t, req, expected)
 }
 
-func testCreateGPGKey(t *testing.T, reqBuilder func(testing.TB, *http.Request, int) *TestResponse, expected int, publicKey string) {
+func testCreateGPGKey(t *testing.T, makeRequest makeRequestFunc, expected int, publicKey string) {
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/gpg_keys", api.CreateGPGKeyOption{
 		ArmoredKey: publicKey,
 	})
-	reqBuilder(t, req, expected)
+	makeRequest(t, req, expected)
 }
 
-func testCreateInvalidGPGKey(t *testing.T, reqBuilder func(testing.TB, *http.Request, int) *TestResponse, expected int) {
-	testCreateGPGKey(t, reqBuilder, expected, "invalid_key")
+func testCreateInvalidGPGKey(t *testing.T, makeRequest makeRequestFunc, expected int) {
+	testCreateGPGKey(t, makeRequest, expected, "invalid_key")
 }
 
-func testCreateNoneRegistredEmailGPGKey(t *testing.T, reqBuilder func(testing.TB, *http.Request, int) *TestResponse, expected int) {
-	testCreateGPGKey(t, reqBuilder, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
+func testCreateNoneRegistredEmailGPGKey(t *testing.T, makeRequest makeRequestFunc, expected int) {
+	testCreateGPGKey(t, makeRequest, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFmGUygBCACjCNbKvMGgp0fd5vyFW9olE1CLCSyyF9gQN2hSuzmZLuAZF2Kh
 dCMCG2T1UwzUB/yWUFWJ2BtCwSjuaRv+cGohqEy6bhEBV90peGA33lHfjx7wP25O
@@ -191,9 +194,9 @@ INx/MmBfmtCq05FqNclvU+sj2R3N1JJOtBOjZrJHQbJhzoILou8AkxeX1A+q9OAz
 -----END PGP PUBLIC KEY BLOCK-----`)
 }
 
-func testCreateValidGPGKey(t *testing.T, reqBuilder func(testing.TB, *http.Request, int) *TestResponse, expected int) {
+func testCreateValidGPGKey(t *testing.T, makeRequest makeRequestFunc, expected int) {
 	//User2 <user2@example.com> //primary & activated
-	testCreateGPGKey(t, reqBuilder, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
+	testCreateGPGKey(t, makeRequest, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFmGVsMBCACuxgZ7W7rI9xN08Y4M7B8yx/6/I4Slm94+wXf8YNRvAyqj30dW
 VJhyBcnfNRDLKSQp5o/hhfDkCgdqBjLa1PnHlGS3PXJc0hP/FyYPD2BFvNMPpCYS
@@ -225,9 +228,9 @@ uy6MA3VSB99SK9ducGmE1Jv8mcziREroz2TEGr0zPs6h
 -----END PGP PUBLIC KEY BLOCK-----`)
 }
 
-func testCreateValidSecondaryEmailGPGKey(t *testing.T, reqBuilder func(testing.TB, *http.Request, int) *TestResponse, expected int) {
+func testCreateValidSecondaryEmailGPGKey(t *testing.T, makeRequest makeRequestFunc, expected int) {
 	//User2 <user21@example.com> //secondary and not activated
-	testCreateGPGKey(t, reqBuilder, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
+	testCreateGPGKey(t, makeRequest, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFmGWN4BCAC18V4tVGO65VLCV7p14FuXJlUtZ5CuYMvgEkcOqrvRaBSW9ao4
 PGESOhJpfWpnW3QgJniYndLzPpsmdHEclEER6aZjiNgReWPOjHD5tykWocZAJqXD

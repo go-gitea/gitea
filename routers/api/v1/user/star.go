@@ -30,18 +30,22 @@ func getStarredRepos(userID int64, private bool) ([]*api.Repository, error) {
 	return repos, nil
 }
 
-// GetStarredRepos returns the repos that the user specified by the APIContext
-// has starred
+// GetStarredRepos returns the repos that the given user has starred
 func GetStarredRepos(ctx *context.APIContext) {
-	// swagger:route GET /users/{username}/starred user userListStarred
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: RepositoryList
-	//       500: error
-
+	// swagger:operation GET /users/{username}/starred user userListStarred
+	// ---
+	// summary: The repos that the given user has starred
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RepositoryList"
 	user := GetUserByParams(ctx)
 	private := user.ID == ctx.User.ID
 	repos, err := getStarredRepos(user.ID, private)
@@ -53,15 +57,14 @@ func GetStarredRepos(ctx *context.APIContext) {
 
 // GetMyStarredRepos returns the repos that the authenticated user has starred
 func GetMyStarredRepos(ctx *context.APIContext) {
-	// swagger:route GET /user/starred user userCurrentListStarred
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: RepositoryList
-	//       500: error
-
+	// swagger:operation GET /user/starred user userCurrentListStarred
+	// ---
+	// summary: The repos that the authenticated user has starred
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RepositoryList"
 	repos, err := getStarredRepos(ctx.User.ID, true)
 	if err != nil {
 		ctx.Error(500, "getStarredRepos", err)
@@ -71,12 +74,25 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 
 // IsStarring returns whether the authenticated is starring the repo
 func IsStarring(ctx *context.APIContext) {
-	// swagger:route GET /user/starred/{username}/{reponame} user userCurrentCheckStarring
-	//
-	//     Responses:
-	//       204: empty
-	//       404: notFound
-
+	// swagger:operation GET /user/starred/{owner}/{repo} user userCurrentCheckStarring
+	// ---
+	// summary: Whether the authenticated is starring the repo
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	if models.IsStaring(ctx.User.ID, ctx.Repo.Repository.ID) {
 		ctx.Status(204)
 	} else {
@@ -86,12 +102,23 @@ func IsStarring(ctx *context.APIContext) {
 
 // Star the repo specified in the APIContext, as the authenticated user
 func Star(ctx *context.APIContext) {
-	// swagger:route PUT /user/starred/{username}/{reponame} user userCurrentPutStar
-	//
-	//     Responses:
-	//       204: empty
-	//       500: error
-
+	// swagger:operation PUT /user/starred/{owner}/{repo} user userCurrentPutStar
+	// ---
+	// summary: Star the given repo
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo to star
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo to star
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	err := models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(500, "StarRepo", err)
@@ -102,12 +129,23 @@ func Star(ctx *context.APIContext) {
 
 // Unstar the repo specified in the APIContext, as the authenticated user
 func Unstar(ctx *context.APIContext) {
-	// swagger:route DELETE /user/starred/{username}/{reponame} user userCurrentDeleteStar
-	//
-	//     Responses:
-	//       204: empty
-	//       500: error
-
+	// swagger:operation DELETE /user/starred/{owner}/{repo} user userCurrentDeleteStar
+	// ---
+	// summary: Unstar the given repo
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo to unstar
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo to unstar
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	err := models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
 		ctx.Error(500, "StarRepo", err)

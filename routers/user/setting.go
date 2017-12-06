@@ -30,7 +30,6 @@ import (
 const (
 	tplSettingsProfile      base.TplName = "user/settings/profile"
 	tplSettingsAvatar       base.TplName = "user/settings/avatar"
-	tplSettingsPassword     base.TplName = "user/settings/password"
 	tplSettingsEmails       base.TplName = "user/settings/email"
 	tplSettingsKeys         base.TplName = "user/settings/keys"
 	tplSettingsSocial       base.TplName = "user/settings/social"
@@ -223,7 +222,9 @@ func SettingsSecurityPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		return
 	}
 
-	if ctx.User.IsPasswordSet() && !ctx.User.ValidatePassword(form.OldPassword) {
+	if len(form.Password) < setting.MinPasswordLength {
+		ctx.Flash.Error(ctx.Tr("auth.password_too_short", setting.MinPasswordLength))
+	} else if ctx.User.IsPasswordSet() && !ctx.User.ValidatePassword(form.OldPassword) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
@@ -339,6 +340,7 @@ func DeleteEmail(ctx *context.Context) {
 func SettingsKeys(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsKeys"] = true
+	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
 	keys, err := models.ListPublicKeys(ctx.User.ID)
 	if err != nil {
@@ -405,13 +407,15 @@ func SettingsKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	case "ssh":
 		content, err := models.CheckPublicKeyString(form.Content)
 		if err != nil {
-			if models.IsErrKeyUnableVerify(err) {
+			if models.IsErrSSHDisabled(err) {
+				ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
+			} else if models.IsErrKeyUnableVerify(err) {
 				ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
 			} else {
 				ctx.Flash.Error(ctx.Tr("form.invalid_ssh_key", err.Error()))
-				ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
-				return
 			}
+			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+			return
 		}
 
 		if _, err = models.AddPublicKey(ctx.User.ID, form.Title, content, 0); err != nil {

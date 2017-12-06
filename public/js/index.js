@@ -117,6 +117,54 @@ function updateIssuesMeta(url, action, issueIds, elementId, afterSuccess) {
     })
 }
 
+function initReactionSelector(parent) {
+    var reactions = '';
+    if (!parent) {
+        parent = $(document);
+        reactions = '.reactions > ';
+    }
+
+    parent.find(reactions + 'a.label').popup({'position': 'bottom left', 'metadata': {'content': 'title', 'title': 'none'}});
+
+    parent.find('.select-reaction > .menu > .item, ' + reactions + 'a.label').on('click', function(e){
+        var vm = this;
+        e.preventDefault();
+
+        if ($(this).hasClass('disabled')) return;
+
+        var actionURL = $(this).hasClass('item') ?
+                $(this).closest('.select-reaction').data('action-url') :
+                $(this).data('action-url');
+        var url = actionURL + '/' + ($(this).hasClass('blue') ? 'unreact' : 'react');
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: {
+                '_csrf': csrf,
+                'content': $(this).data('content')
+            }
+        }).done(function(resp) {
+            if (resp && (resp.html || resp.empty)) {
+                var content = $(vm).closest('.content');
+                var react = content.find('.segment.reactions');
+                if (react.length > 0) {
+                    react.remove();
+                }
+                if (!resp.empty) {
+                    react = $('<div class="ui attached segment reactions"></div>').appendTo(content);
+                    react.html(resp.html);
+                    var hasEmoji = react.find('.has-emoji');
+                    for (var i = 0; i < hasEmoji.length; i++) {
+                        emojify.run(hasEmoji.get(i));
+                    }
+                    react.find('.dropdown').dropdown();
+                    initReactionSelector(react);
+                }
+            }
+        });
+    });
+}
+
 function initCommentForm() {
     if ($('.comment.form').length == 0) {
         return
@@ -594,6 +642,7 @@ function initRepository() {
             $('#status').val($statusButton.data('status-val'));
             $('#comment-form').submit();
         });
+        initReactionSelector();
     }
 
     // Diff
@@ -1114,7 +1163,7 @@ function initAdmin() {
         $('#auth_type').change(function () {
             $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls').hide();
 
-            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required] .has-tls input[required]').removeAttr('required');
+            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
 
             var authType = $(this).val();
             switch (authType) {
@@ -2016,3 +2065,7 @@ function initFilterBranchTagDropdown(selector) {
         });
     });
 }
+
+$(".commit-button").click(function() {
+    $(this).parent().find('.commit-body').toggle();
+});

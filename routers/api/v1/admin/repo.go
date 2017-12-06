@@ -14,20 +14,26 @@ import (
 
 // CreateRepo api for creating a repository
 func CreateRepo(ctx *context.APIContext, form api.CreateRepoOption) {
-	// swagger:route POST /admin/users/{username}/repos admin adminCreateRepo
-	//
-	//     Consumes:
-	//     - application/json
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       201: Repository
-	//       403: forbidden
-	//       422: validationError
-	//       500: error
-
+	// swagger:operation POST /admin/users/{username}/repos admin adminCreateRepo
+	// ---
+	// summary: Create a repository on behalf a user
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of the user. This user will own the created repository
+	//   type: string
+	//   required: true
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Repository"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	owner := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return

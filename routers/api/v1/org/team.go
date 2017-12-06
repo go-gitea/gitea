@@ -15,6 +15,20 @@ import (
 
 // ListTeams list all the teams of an organization
 func ListTeams(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/teams organization orgListTeams
+	// ---
+	// summary: List an organization's teams
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/TeamList"
 	org := ctx.Org.Organization
 	if err := org.GetTeams(); err != nil {
 		ctx.Error(500, "GetTeams", err)
@@ -30,11 +44,45 @@ func ListTeams(ctx *context.APIContext) {
 
 // GetTeam api for get a team
 func GetTeam(ctx *context.APIContext) {
+	// swagger:operation GET /teams/{id} organization orgGetTeam
+	// ---
+	// summary: Get a team
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the team to get
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Team"
 	ctx.JSON(200, convert.ToTeam(ctx.Org.Team))
 }
 
 // CreateTeam api for create a team
 func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
+	// swagger:operation POST /orgs/{org}/teams organization orgCreateTeam
+	// ---
+	// summary: Create a team
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateTeamOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Team"
 	team := &models.Team{
 		OrgID:       ctx.Org.Organization.ID,
 		Name:        form.Name,
@@ -55,6 +103,26 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 
 // EditTeam api for edit a team
 func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
+	// swagger:operation PATCH /teams/{id} organization orgEditTeam
+	// ---
+	// summary: Edit a team
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the team to edit
+	//   type: integer
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditTeamOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Team"
 	team := &models.Team{
 		ID:          ctx.Org.Team.ID,
 		OrgID:       ctx.Org.Team.OrgID,
@@ -71,6 +139,20 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 
 // DeleteTeam api for delete a team
 func DeleteTeam(ctx *context.APIContext) {
+	// swagger:operation DELETE /teams/{id} organization orgDeleteTeam
+	// ---
+	// summary: Delete a team
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the team to delete
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: team deleted
+	//     schema:
+	//       "$ref": "#/responses/empty"
 	if err := models.DeleteTeam(ctx.Org.Team); err != nil {
 		ctx.Error(500, "DeleteTeam", err)
 		return
@@ -80,6 +162,20 @@ func DeleteTeam(ctx *context.APIContext) {
 
 // GetTeamMembers api for get a team's members
 func GetTeamMembers(ctx *context.APIContext) {
+	// swagger:operation GET /teams/{id}/members organization orgListTeamMembers
+	// ---
+	// summary: List a team's members
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the team
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/UserList"
 	if !models.IsOrganizationMember(ctx.Org.Team.OrgID, ctx.User.ID) {
 		ctx.Status(404)
 		return
@@ -98,6 +194,25 @@ func GetTeamMembers(ctx *context.APIContext) {
 
 // AddTeamMember api for add a member to a team
 func AddTeamMember(ctx *context.APIContext) {
+	// swagger:operation PUT /teams/{id}/members/{username} organization orgAddTeamMember
+	// ---
+	// summary: Add a team member
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the team
+	//   type: integer
+	//   required: true
+	// - name: username
+	//   in: path
+	//   description: username of the user to add
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -111,6 +226,25 @@ func AddTeamMember(ctx *context.APIContext) {
 
 // RemoveTeamMember api for remove one member from a team
 func RemoveTeamMember(ctx *context.APIContext) {
+	// swagger:operation DELETE /teams/{id}/members/{username} organization orgAddTeamMember
+	// ---
+	// summary: Remove a team member
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the team
+	//   type: integer
+	//   required: true
+	// - name: username
+	//   in: path
+	//   description: username of the user to remove
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -125,6 +259,20 @@ func RemoveTeamMember(ctx *context.APIContext) {
 
 // GetTeamRepos api for get a team's repos
 func GetTeamRepos(ctx *context.APIContext) {
+	// swagger:operation GET /teams/{id}/repos organization orgListTeamRepos
+	// ---
+	// summary: List a team's repos
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the team
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RepositoryList"
 	team := ctx.Org.Team
 	if err := team.GetRepositories(); err != nil {
 		ctx.Error(500, "GetTeamRepos", err)
@@ -157,6 +305,30 @@ func getRepositoryByParams(ctx *context.APIContext) *models.Repository {
 
 // AddTeamRepository api for adding a repository to a team
 func AddTeamRepository(ctx *context.APIContext) {
+	// swagger:operation PUT /teams/{id}/repos/{org}/{repo} organization orgAddTeamMember
+	// ---
+	// summary: Add a repository to a team
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the team
+	//   type: integer
+	//   required: true
+	// - name: org
+	//   in: path
+	//   description: organization that owns the repo to add
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo to add
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	repo := getRepositoryByParams(ctx)
 	if ctx.Written() {
 		return
@@ -177,6 +349,32 @@ func AddTeamRepository(ctx *context.APIContext) {
 
 // RemoveTeamRepository api for removing a repository from a team
 func RemoveTeamRepository(ctx *context.APIContext) {
+	// swagger:operation DELETE /teams/{id}/repos/{org}/{repo} organization orgAddTeamMember
+	// ---
+	// summary: Remove a repository from a team
+	// description: This does not delete the repository, it only removes the
+	//              repository from the team.
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the team
+	//   type: integer
+	//   required: true
+	// - name: org
+	//   in: path
+	//   description: organization that owns the repo to remove
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo to remove
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	repo := getRepositoryByParams(ctx)
 	if ctx.Written() {
 		return

@@ -6,6 +6,7 @@ package org
 
 import (
 	"path"
+	"strings"
 
 	"github.com/Unknwon/com"
 
@@ -76,6 +77,10 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 		uname := ctx.Query("uname")
+		// uname may be formatted as "username (fullname)"
+		if strings.Contains(uname, "(") && strings.HasSuffix(uname, ")") {
+			uname = strings.TrimSpace(strings.Split(uname, "(")[0])
+		}
 		var u *models.User
 		u, err = models.GetUserByName(uname)
 		if err != nil {

@@ -110,7 +110,7 @@ var migrations = []Migration{
 	NewMigration("add commit status table", addCommitStatus),
 	// v30 -> 31
 	NewMigration("add primary key to external login user", addExternalLoginUserPK),
-	// 31 -> 32
+	// v31 -> 32
 	NewMigration("add field for login source synchronization", addLoginSourceSyncEnabledColumn),
 	// v32 -> v33
 	NewMigration("add units for team", addUnitsToRepoTeam),
@@ -147,6 +147,10 @@ var migrations = []Migration{
 	// v48 -> v49
 	NewMigration("add repo indexer status", addRepoIndexerStatus),
 	// v49 -> v50
+	NewMigration("add lfs lock table", addLFSLock),
+	// v50 -> v51
+	NewMigration("add reactions", addReactions),
+	// v51 -> v52
 	NewMigration("add login source id column for public_key table", addLoginSourceIDToPublicKeyTable),
 }
 

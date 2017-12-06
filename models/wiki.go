@@ -22,22 +22,37 @@ import (
 )
 
 var (
-	reservedWikiPaths = []string{"_pages", "_new", "_edit"}
+	reservedWikiNames = []string{"_pages", "_new", "_edit"}
 	wikiWorkingPool   = sync.NewExclusivePool()
 )
 
-// ToWikiPageURL formats a string to corresponding wiki URL name.
-func ToWikiPageURL(name string) string {
+// NormalizeWikiName normalizes a wiki name
+func NormalizeWikiName(name string) string {
+	return strings.Replace(name, "-", " ", -1)
+}
+
+// WikiNameToSubURL converts a wiki name to its corresponding sub-URL.
+func WikiNameToSubURL(name string) string {
 	return url.QueryEscape(strings.Replace(name, " ", "-", -1))
 }
 
-// ToWikiPageName formats a URL back to corresponding wiki page name,
-// and removes leading characters './' to prevent changing files
-// that are not belong to wiki repository.
-func ToWikiPageName(urlString string) string {
-	name, _ := url.QueryUnescape(strings.Replace(urlString, "-", " ", -1))
-	name = strings.Replace(name, "\t", " ", -1)
-	return strings.Replace(strings.TrimLeft(name, "./"), "/", " ", -1)
+// WikiNameToFilename converts a wiki name to its corresponding filename.
+func WikiNameToFilename(name string) string {
+	name = strings.Replace(name, " ", "-", -1)
+	return url.QueryEscape(name) + ".md"
+}
+
+// WikiFilenameToName converts a wiki filename to its corresponding page name.
+func WikiFilenameToName(filename string) (string, error) {
+	if !strings.HasSuffix(filename, ".md") {
+		return "", fmt.Errorf("Invalid wiki filename: %s", filename)
+	}
+	basename := filename[:len(filename)-3]
+	unescaped, err := url.QueryUnescape(basename)
+	if err != nil {
+		return "", err
+	}
+	return NormalizeWikiName(unescaped), nil
 }
 
 // WikiCloneLink returns clone URLs of repository wiki.
@@ -81,7 +96,7 @@ func (repo *Repository) LocalWikiPath() string {
 }
 
 // UpdateLocalWiki makes sure the local copy of repository wiki is up-to-date.
-func (repo *Repository) UpdateLocalWiki() error {
+func (repo *Repository) updateLocalWiki() error {
 	// Don't pass branch name here because it fails to clone and
 	// checkout to a specific branch when wiki is an empty repository.
 	var branch = ""
@@ -95,19 +110,19 @@ func discardLocalWikiChanges(localPath string) error {
 	return discardLocalRepoBranchChanges(localPath, "master")
 }
 
-// pathAllowed checks if a wiki path is allowed
-func pathAllowed(path string) error {
-	for i := range reservedWikiPaths {
-		if path == reservedWikiPaths[i] {
-			return ErrWikiAlreadyExist{path}
+// nameAllowed checks if a wiki name is allowed
+func nameAllowed(name string) error {
+	for _, reservedName := range reservedWikiNames {
+		if name == reservedName {
+			return ErrWikiReservedName{name}
 		}
 	}
 	return nil
 }
 
-// updateWikiPage adds new page to repository wiki.
-func (repo *Repository) updateWikiPage(doer *User, oldWikiPath, wikiPath, content, message string, isNew bool) (err error) {
-	if err = pathAllowed(wikiPath); err != nil {
+// updateWikiPage adds a new page to the repository wiki.
+func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
+	if err = nameAllowed(newWikiName); err != nil {
 		return err
 	}
 
@@ -121,23 +136,21 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiPath, wikiPath, conten
 	localPath := repo.LocalWikiPath()
 	if err = discardLocalWikiChanges(localPath); err != nil {
 		return fmt.Errorf("discardLocalWikiChanges: %v", err)
-	} else if err = repo.UpdateLocalWiki(); err != nil {
+	} else if err = repo.updateLocalWiki(); err != nil {
 		return fmt.Errorf("UpdateLocalWiki: %v", err)
 	}
 
-	title := ToWikiPageName(wikiPath)
-	filename := path.Join(localPath, wikiPath+".md")
+	newWikiPath := path.Join(localPath, WikiNameToFilename(newWikiName))
 
 	// If not a new file, show perform update not create.
 	if isNew {
-		if com.IsExist(filename) {
-			return ErrWikiAlreadyExist{filename}
+		if com.IsExist(newWikiPath) {
+			return ErrWikiAlreadyExist{newWikiPath}
 		}
 	} else {
-		file := path.Join(localPath, oldWikiPath+".md")
-
-		if err := os.Remove(file); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", file, err)
+		oldWikiPath := path.Join(localPath, WikiNameToFilename(oldWikiName))
+		if err := os.Remove(oldWikiPath); err != nil {
+			return fmt.Errorf("Failed to remove %s: %v", oldWikiPath, err)
 		}
 	}
 
@@ -146,15 +159,16 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiPath, wikiPath, conten
 	// as a new page operation.
 	// So we want to make sure the symlink is removed before write anything.
 	// The new file we created will be in normal text format.
+	if err = os.RemoveAll(newWikiPath); err != nil {
+		return err
+	}
 
-	_ = os.Remove(filename)
-
-	if err = ioutil.WriteFile(filename, []byte(content), 0666); err != nil {
+	if err = ioutil.WriteFile(newWikiPath, []byte(content), 0666); err != nil {
 		return fmt.Errorf("WriteFile: %v", err)
 	}
 
 	if len(message) == 0 {
-		message = "Update page '" + title + "'"
+		message = "Update page '" + newWikiName + "'"
 	}
 	if err = git.AddChanges(localPath, true); err != nil {
 		return fmt.Errorf("AddChanges: %v", err)
@@ -174,36 +188,35 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiPath, wikiPath, conten
 }
 
 // AddWikiPage adds a new wiki page with a given wikiPath.
-func (repo *Repository) AddWikiPage(doer *User, wikiPath, content, message string) error {
-	return repo.updateWikiPage(doer, "", wikiPath, content, message, true)
+func (repo *Repository) AddWikiPage(doer *User, wikiName, content, message string) error {
+	return repo.updateWikiPage(doer, "", wikiName, content, message, true)
 }
 
 // EditWikiPage updates a wiki page identified by its wikiPath,
 // optionally also changing wikiPath.
-func (repo *Repository) EditWikiPage(doer *User, oldWikiPath, wikiPath, content, message string) error {
-	return repo.updateWikiPage(doer, oldWikiPath, wikiPath, content, message, false)
+func (repo *Repository) EditWikiPage(doer *User, oldWikiName, newWikiName, content, message string) error {
+	return repo.updateWikiPage(doer, oldWikiName, newWikiName, content, message, false)
 }
 
-// DeleteWikiPage deletes a wiki page identified by its wikiPath.
-func (repo *Repository) DeleteWikiPage(doer *User, wikiPath string) (err error) {
+// DeleteWikiPage deletes a wiki page identified by its path.
+func (repo *Repository) DeleteWikiPage(doer *User, wikiName string) (err error) {
 	wikiWorkingPool.CheckIn(com.ToStr(repo.ID))
 	defer wikiWorkingPool.CheckOut(com.ToStr(repo.ID))
 
 	localPath := repo.LocalWikiPath()
 	if err = discardLocalWikiChanges(localPath); err != nil {
 		return fmt.Errorf("discardLocalWikiChanges: %v", err)
-	} else if err = repo.UpdateLocalWiki(); err != nil {
+	} else if err = repo.updateLocalWiki(); err != nil {
 		return fmt.Errorf("UpdateLocalWiki: %v", err)
 	}
 
-	filename := path.Join(localPath, wikiPath+".md")
+	filename := path.Join(localPath, WikiNameToFilename(wikiName))
 
 	if err := os.Remove(filename); err != nil {
 		return fmt.Errorf("Failed to remove %s: %v", filename, err)
 	}
 
-	title := ToWikiPageName(wikiPath)
-	message := "Delete page '" + title + "'"
+	message := "Delete page '" + wikiName + "'"
 
 	if err = git.AddChanges(localPath, true); err != nil {
 		return fmt.Errorf("AddChanges: %v", err)

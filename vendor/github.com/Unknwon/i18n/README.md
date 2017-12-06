@@ -1,4 +1,4 @@
-i18n
+i18n [![GoDoc](https://godoc.org/github.com/Unknwon/i18n?status.svg)](https://godoc.org/github.com/Unknwon/i18n) [![Sourcegraph](https://sourcegraph.com/github.com/Unknwon/i18n/-/badge.svg)](https://sourcegraph.com/github.com/Unknwon/i18n?badge)
 ====
 
 Package i18n is for app Internationalization and Localization.
@@ -131,4 +131,6 @@ This command can operate 1 or more files in one command.
 
 ## More information
 
-If the key does not exist, then i18n will return the key string to caller. For instance, when key name is `hi` and it does not exist in locale file, simply return `hi` as output.
+- The first locale you load to the module is considered as **default locale**.
+- When matching non-default locale and didn't find the string, i18n will have a second try on default locale.
+- If i18n still cannot find string in the default locale, raw string will be returned. For instance, when the string is `hi` and it does not exist in locale file, simply return `hi` as output.

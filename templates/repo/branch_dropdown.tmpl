@@ -1,6 +1,6 @@
 <div class="fitted item choose reference">
 	<div class="ui floating filter dropdown custom" data-can-create-branch="{{.CanCreateBranch}}" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
-		<div class="ui basic small button" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+		<div class="ui basic small compact button" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
 			<span class="text">
 				<i class="octicon octicon-git-branch"></i>
 				{{if .IsViewBranch}}{{.i18n.Tr "repo.branch"}}{{else}}{{.i18n.Tr "repo.tree"}}{{end}}:
@@ -53,7 +53,7 @@
 							{{end}}
 						</div>
 					</a>
-					<form ref="newBranchForm" action="{{.RepoLink}}/branches/_new/{{EscapePound .BranchName}}" method="post">
+					<form ref="newBranchForm" action="{{.RepoLink}}/branches/_new/{{EscapePound .BranchNameSubURL}}" method="post">
 						{{.CsrfTokenHtml}}
 						<input type="hidden" name="new_branch_name" v-model="searchTerm">
 					</form>

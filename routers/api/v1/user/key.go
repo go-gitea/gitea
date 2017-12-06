@@ -53,31 +53,35 @@ func listPublicKeys(ctx *context.APIContext, uid int64) {
 	ctx.JSON(200, &apiKeys)
 }
 
-// ListMyPublicKeys list all my public keys
+// ListMyPublicKeys list all of the authenticated user's public keys
 func ListMyPublicKeys(ctx *context.APIContext) {
-	// swagger:route GET /user/keys user userCurrentListKeys
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: PublicKeyList
-	//       500: error
-
+	// swagger:operation GET /user/keys user userCurrentListKeys
+	// ---
+	// summary: List the authenticated user's public keys
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PublicKeyList"
 	listPublicKeys(ctx, ctx.User.ID)
 }
 
-// ListPublicKeys list all user's public keys
+// ListPublicKeys list the given user's public keys
 func ListPublicKeys(ctx *context.APIContext) {
-	// swagger:route GET /users/{username}/keys user userListKeys
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: PublicKeyList
-	//       500: error
-
+	// swagger:operation GET /users/{username}/keys user userListKeys
+	// ---
+	// summary: List the given user's public keys
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PublicKeyList"
 	user := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -85,18 +89,24 @@ func ListPublicKeys(ctx *context.APIContext) {
 	listPublicKeys(ctx, user.ID)
 }
 
-// GetPublicKey get one public key
+// GetPublicKey get a public key
 func GetPublicKey(ctx *context.APIContext) {
-	// swagger:route GET /user/keys/{id} user userCurrentGetKey
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: PublicKey
-	//       404: notFound
-	//       500: error
-
+	// swagger:operation GET /user/keys/{id} user userCurrentGetKey
+	// ---
+	// summary: Get a public key
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of key to get
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PublicKey"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	key, err := models.GetPublicKeyByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrKeyNotExist(err) {
@@ -130,34 +140,44 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 
 // CreatePublicKey create one public key for me
 func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
-	// swagger:route POST /user/keys user userCurrentPostKey
-	//
-	//     Consumes:
-	//     - application/json
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       201: PublicKey
-	//       422: validationError
-	//       500: error
-
+	// swagger:operation POST /user/keys user userCurrentPostKey
+	// ---
+	// summary: Create a public key
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateKeyOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/PublicKey"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	CreateUserPublicKey(ctx, form, ctx.User.ID)
 }
 
-// DeletePublicKey delete one public key of mine
+// DeletePublicKey delete one public key
 func DeletePublicKey(ctx *context.APIContext) {
-	// swagger:route DELETE /user/keys/{id} user userCurrentDeleteKey
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       204: empty
-	//       403: forbidden
-	//       500: error
-
+	// swagger:operation DELETE /user/keys/{id} user userCurrentDeleteKey
+	// ---
+	// summary: Delete a public key
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of key to delete
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	if err := models.DeletePublicKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrKeyAccessDenied(err) {
 			ctx.Error(403, "", "You do not have access to this key")

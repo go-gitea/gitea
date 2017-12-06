@@ -49,6 +49,9 @@ func populateIssueIndexer() error {
 			if err != nil {
 				return err
 			}
+			if err = IssueList(issues).LoadComments(); err != nil {
+				return err
+			}
 			for _, issue := range issues {
 				if err := batch.Add(issue.update()); err != nil {
 					return err

@@ -61,7 +61,7 @@ func (t *TwoFactor) getEncryptionKey() []byte {
 
 // SetSecret sets the 2FA secret.
 func (t *TwoFactor) SetSecret(secret string) error {
-	secretBytes, err := com.AESEncrypt(t.getEncryptionKey(), []byte(secret))
+	secretBytes, err := com.AESGCMEncrypt(t.getEncryptionKey(), []byte(secret))
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (t *TwoFactor) ValidateTOTP(passcode string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	secret, err := com.AESDecrypt(t.getEncryptionKey(), decodedStoredSecret)
+	secret, err := com.AESGCMDecrypt(t.getEncryptionKey(), decodedStoredSecret)
 	if err != nil {
 		return false, err
 	}

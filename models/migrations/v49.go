@@ -6,16 +6,25 @@ package migrations
 
 import (
 	"fmt"
+	"time"
+
+	"code.gitea.io/gitea/models"
 
 	"github.com/go-xorm/xorm"
 )
 
-func addLoginSourceIDToPublicKeyTable(x *xorm.Engine) error {
-	type PublicKey struct {
-		LoginSourceID int64 `xorm:"NOT NULL DEFAULT 0"`
+func addLFSLock(x *xorm.Engine) error {
+	// LFSLock see models/lfs_lock.go
+	type LFSLock struct {
+		ID      int64        `xorm:"pk autoincr"`
+		RepoID  int64        `xorm:"INDEX NOT NULL"`
+		Owner   *models.User `xorm:"-"`
+		OwnerID int64        `xorm:"INDEX NOT NULL"`
+		Path    string       `xorm:"TEXT"`
+		Created time.Time    `xorm:"created"`
 	}
 
-	if err := x.Sync2(new(PublicKey)); err != nil {
+	if err := x.Sync2(new(LFSLock)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 	return nil

@@ -17,6 +17,7 @@ type DeployKey struct {
 	Key      string    `json:"key"`
 	URL      string    `json:"url"`
 	Title    string    `json:"title"`
+	// swagger:strfmt date-time
 	Created  time.Time `json:"created_at"`
 	ReadOnly bool      `json:"read_only"`
 }
@@ -33,18 +34,15 @@ func (c *Client) GetDeployKey(user, repo string, keyID int64) (*DeployKey, error
 	return key, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/keys/%d", user, repo, keyID), nil, nil, &key)
 }
 
-// CreateKeyOption options when create deploy key
-// swagger:parameters userCurrentPostKey adminCreatePublicKey
+// CreateKeyOption options when creating a key
 type CreateKeyOption struct {
 	// Title of the key to add
 	//
-	// in: body
 	// required: true
 	// unique: true
 	Title string `json:"title" binding:"Required"`
 	// An armored SSH key to add
 	//
-	// in: body
 	// required: true
 	// unique: true
 	Key string `json:"key" binding:"Required"`

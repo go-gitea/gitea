@@ -515,6 +515,7 @@ func GitHooksEditPost(ctx *context.Context) {
 func DeployKeys(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
+	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
 	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID)
 	if err != nil {
@@ -545,15 +546,17 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 
 	content, err := models.CheckPublicKeyString(form.Content)
 	if err != nil {
-		if models.IsErrKeyUnableVerify(err) {
+		if models.IsErrSSHDisabled(err) {
+			ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
+		} else if models.IsErrKeyUnableVerify(err) {
 			ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
 		} else {
 			ctx.Data["HasError"] = true
 			ctx.Data["Err_Content"] = true
 			ctx.Flash.Error(ctx.Tr("form.invalid_ssh_key", err.Error()))
-			ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
-			return
 		}
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
+		return
 	}
 
 	key, err := models.AddDeployKey(ctx.Repo.Repository.ID, form.Title, content)

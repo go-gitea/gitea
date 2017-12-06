@@ -27,7 +27,7 @@
 		<div class="ui secondary menu">
 			{{if .PullRequestCtx.Allowed}}
 				<div class="fitted item">
-					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch}}...{{if .SignedUser.HasForkedRepo .BaseRepo.ID }}{{.SignedUser.Name}}:{{end}}{{.BranchName}}">
+					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch}}...{{if .IsForkedRepo}}{{.Repository.Owner.Name}}:{{else}}{{if .SignedUser.HasForkedRepo .BaseRepo.ID}}{{.SignedUser.Name}}:{{end}}{{end}}{{.BranchName}}">
 						<button class="ui green tiny compact button"><i class="octicon octicon-git-compare"></i></button>
 					</a>
 				</div>

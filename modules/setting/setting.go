@@ -56,9 +56,19 @@ type LandingPage string
 
 // enumerates all the landing page types
 const (
-	LandingPageHome    LandingPage = "/"
-	LandingPageExplore LandingPage = "/explore"
+	LandingPageHome          LandingPage = "/"
+	LandingPageExplore       LandingPage = "/explore"
+	LandingPageOrganizations LandingPage = "/explore/organizations"
 )
+
+// MarkupParser defines the external parser configured in ini
+type MarkupParser struct {
+	Enabled        bool
+	MarkupName     string
+	Command        string
+	FileExtensions []string
+	IsInputFile    bool
+}
 
 // settings
 var (
@@ -246,6 +256,7 @@ var (
 		IssuePagingNum      int
 		RepoSearchPagingNum int
 		FeedMaxCommitNum    int
+		ReactionMaxUserNum  int
 		ThemeColorMetaTag   string
 		MaxDisplayFileSize  int64
 		ShowUserEmail       bool
@@ -269,6 +280,7 @@ var (
 		IssuePagingNum:      10,
 		RepoSearchPagingNum: 10,
 		FeedMaxCommitNum:    5,
+		ReactionMaxUserNum:  10,
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
 		Admin: struct {
@@ -316,11 +328,13 @@ var (
 	// Picture settings
 	AvatarUploadPath      string
 	GravatarSource        string
+	GravatarSourceURL     *url.URL
 	DisableGravatar       bool
 	EnableFederatedAvatar bool
 	LibravatarService     *libravatar.Libravatar
 
 	// Log settings
+	LogLevel    string
 	LogRootPath string
 	LogModes    []string
 	LogConfigs  []string
@@ -515,6 +529,8 @@ var (
 	HasRobotsTxt      bool
 	InternalToken     string // internal access token
 	IterateBufferSize int
+
+	ExternalMarkupParsers []MarkupParser
 )
 
 // DateLang transforms standard language locale name to corresponding value in datetime plugin.
@@ -550,13 +566,9 @@ func getAppPath() (string, error) {
 func getWorkPath(appPath string) string {
 	workPath := ""
 	giteaWorkPath := os.Getenv("GITEA_WORK_DIR")
-	gogsWorkPath := os.Getenv("GOGS_WORK_DIR")
 
 	if len(giteaWorkPath) > 0 {
 		workPath = giteaWorkPath
-	} else if len(gogsWorkPath) > 0 {
-		log.Warn(`Usage of GOGS_WORK_DIR is deprecated and will be *removed* in a future release, please consider changing to GITEA_WORK_DIR`)
-		workPath = gogsWorkPath
 	} else {
 		i := strings.LastIndex(appPath, "/")
 		if i == -1 {
@@ -651,6 +663,7 @@ func NewContext() {
 	}
 	homeDir = strings.Replace(homeDir, "\\", "/", -1)
 
+	LogLevel = getLogLevel("log", "LEVEL", "Info")
 	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
 
@@ -726,6 +739,8 @@ func NewContext() {
 	switch sec.Key("LANDING_PAGE").MustString("home") {
 	case "explore":
 		LandingPageURL = LandingPageExplore
+	case "organizations":
+		LandingPageURL = LandingPageOrganizations
 	default:
 		LandingPageURL = LandingPageHome
 	}
@@ -1015,18 +1030,22 @@ func NewContext() {
 	if DisableGravatar {
 		EnableFederatedAvatar = false
 	}
+	if EnableFederatedAvatar || !DisableGravatar {
+		GravatarSourceURL, err = url.Parse(GravatarSource)
+		if err != nil {
+			log.Fatal(4, "Failed to parse Gravatar URL(%s): %v",
+				GravatarSource, err)
+		}
+	}
 
 	if EnableFederatedAvatar {
 		LibravatarService = libravatar.New()
-		parts := strings.Split(GravatarSource, "/")
-		if len(parts) >= 3 {
-			if parts[0] == "https:" {
-				LibravatarService.SetUseHTTPS(true)
-				LibravatarService.SetSecureFallbackHost(parts[2])
-			} else {
-				LibravatarService.SetUseHTTPS(false)
-				LibravatarService.SetFallbackHost(parts[2])
-			}
+		if GravatarSourceURL.Scheme == "https" {
+			LibravatarService.SetUseHTTPS(true)
+			LibravatarService.SetSecureFallbackHost(GravatarSourceURL.Host)
+		} else {
+			LibravatarService.SetUseHTTPS(false)
+			LibravatarService.SetFallbackHost(GravatarSourceURL.Host)
 		}
 	}
 
@@ -1073,6 +1092,44 @@ func NewContext() {
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
+
+	extensionReg := regexp.MustCompile(`\.\w`)
+	for _, sec := range Cfg.Section("markup").ChildSections() {
+		name := strings.TrimLeft(sec.Name(), "markup.")
+		if name == "" {
+			log.Warn("name is empty, markup " + sec.Name() + "ignored")
+			continue
+		}
+
+		extensions := sec.Key("FILE_EXTENSIONS").Strings(",")
+		var exts = make([]string, 0, len(extensions))
+		for _, extension := range extensions {
+			if !extensionReg.MatchString(extension) {
+				log.Warn(sec.Name() + " file extension " + extension + " is invalid. Extension ignored")
+			} else {
+				exts = append(exts, extension)
+			}
+		}
+
+		if len(exts) == 0 {
+			log.Warn(sec.Name() + " file extension is empty, markup " + name + " ignored")
+			continue
+		}
+
+		command := sec.Key("RENDER_COMMAND").MustString("")
+		if command == "" {
+			log.Warn(" RENDER_COMMAND is empty, markup " + name + " ignored")
+			continue
+		}
+
+		ExternalMarkupParsers = append(ExternalMarkupParsers, MarkupParser{
+			Enabled:        sec.Key("ENABLED").MustBool(false),
+			MarkupName:     name,
+			FileExtensions: exts,
+			Command:        command,
+			IsInputFile:    sec.Key("IS_INPUT_FILE").MustBool(false),
+		})
+	}
 }
 
 // Service settings
@@ -1117,7 +1174,7 @@ func newService() {
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 
 	sec = Cfg.Section("openid")
-	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(false)
+	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
 	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration && Service.EnableOpenIDSignIn)
 	pats := sec.Key("WHITELISTED_URIS").Strings(" ")
 	if len(pats) != 0 {
@@ -1133,7 +1190,6 @@ func newService() {
 			Service.OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
 		}
 	}
-
 }
 
 var logLevels = map[string]string{
@@ -1143,6 +1199,11 @@ var logLevels = map[string]string{
 	"Warn":     "3",
 	"Error":    "4",
 	"Critical": "5",
+}
+
+func getLogLevel(section string, key string, defaultValue string) string {
+	validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
+	return Cfg.Section(section).Key(key).In(defaultValue, validLevels)
 }
 
 func newLogService() {
@@ -1169,11 +1230,8 @@ func newLogService() {
 			sec, _ = Cfg.NewSection("log." + mode)
 		}
 
-		validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
 		// Log level.
-		levelName := Cfg.Section("log."+mode).Key("LEVEL").In(
-			Cfg.Section("log").Key("LEVEL").In("Trace", validLevels),
-			validLevels)
+		levelName := getLogLevel("log."+mode, "LEVEL", LogLevel)
 		level, ok := logLevels[levelName]
 		if !ok {
 			log.Fatal(4, "Unknown log level: %s", levelName)
@@ -1237,11 +1295,8 @@ func NewXORMLogService(disableConsole bool) {
 			sec, _ = Cfg.NewSection("log." + mode)
 		}
 
-		validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
 		// Log level.
-		levelName := Cfg.Section("log."+mode).Key("LEVEL").In(
-			Cfg.Section("log").Key("LEVEL").In("Trace", validLevels),
-			validLevels)
+		levelName := getLogLevel("log."+mode, "LEVEL", LogLevel)
 		level, ok := logLevels[levelName]
 		if !ok {
 			log.Fatal(4, "Unknown log level: %s", levelName)
@@ -1344,7 +1399,7 @@ func newSessionService() {
 	SessionConfig.Provider = Cfg.Section("session").Key("PROVIDER").In("memory",
 		[]string{"memory", "file", "redis", "mysql"})
 	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").MustString(path.Join(AppDataPath, "sessions")), "\" ")
-	if !filepath.IsAbs(SessionConfig.ProviderConfig) {
+	if SessionConfig.Provider == "file" && !filepath.IsAbs(SessionConfig.ProviderConfig) {
 		SessionConfig.ProviderConfig = path.Join(AppWorkPath, SessionConfig.ProviderConfig)
 	}
 	SessionConfig.CookieName = Cfg.Section("session").Key("COOKIE_NAME").MustString("i_like_gitea")
@@ -1462,7 +1517,7 @@ func newWebhookService() {
 	Webhook.QueueLength = sec.Key("QUEUE_LENGTH").MustInt(1000)
 	Webhook.DeliverTimeout = sec.Key("DELIVER_TIMEOUT").MustInt(5)
 	Webhook.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool()
-	Webhook.Types = []string{"gitea", "gogs", "slack", "discord"}
+	Webhook.Types = []string{"gitea", "gogs", "slack", "discord", "dingtalk"}
 	Webhook.PagingNum = sec.Key("PAGING_NUM").MustInt(10)
 }
 

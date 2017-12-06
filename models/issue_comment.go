@@ -107,6 +107,7 @@ type Comment struct {
 	CommitSHA string `xorm:"VARCHAR(40)"`
 
 	Attachments []*Attachment `xorm:"-"`
+	Reactions   ReactionList  `xorm:"-"`
 
 	// For view issue page.
 	ShowTag CommentTag `xorm:"-"`
@@ -285,6 +286,29 @@ func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (e
 	}
 
 	return nil
+}
+
+func (c *Comment) loadReactions(e Engine) (err error) {
+	if c.Reactions != nil {
+		return nil
+	}
+	c.Reactions, err = findReactions(e, FindReactionsOptions{
+		IssueID:   c.IssueID,
+		CommentID: c.ID,
+	})
+	if err != nil {
+		return err
+	}
+	// Load reaction user data
+	if _, err := c.Reactions.LoadUsers(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// LoadReactions loads comment reactions
+func (c *Comment) LoadReactions() error {
+	return c.loadReactions(x)
 }
 
 func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {

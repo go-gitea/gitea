@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"path"
 	"strings"
 	"testing"
@@ -13,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string) *TestResponse {
+func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -29,7 +30,7 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum strin
 	return resp
 }
 
-func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum string) *TestResponse {
+func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum string) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 

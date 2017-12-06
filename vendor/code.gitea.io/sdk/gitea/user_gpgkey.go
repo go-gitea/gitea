@@ -11,12 +11,7 @@ import (
 	"time"
 )
 
-// GPGKeyList represents a list of GPGKey
-// swagger:response GPGKeyList
-type GPGKeyList []*GPGKey
-
 // GPGKey a user GPG key to sign commit and tag in repository
-// swagger:response GPGKey
 type GPGKey struct {
 	ID                int64          `json:"id"`
 	PrimaryKeyID      string         `json:"primary_key_id"`
@@ -28,7 +23,9 @@ type GPGKey struct {
 	CanEncryptComms   bool           `json:"can_encrypt_comms"`
 	CanEncryptStorage bool           `json:"can_encrypt_storage"`
 	CanCertify        bool           `json:"can_certify"`
+	// swagger:strfmt date-time
 	Created           time.Time      `json:"created_at,omitempty"`
+	// swagger:strfmt date-time
 	Expires           time.Time      `json:"expires_at,omitempty"`
 }
 
@@ -40,11 +37,9 @@ type GPGKeyEmail struct {
 }
 
 // CreateGPGKeyOption options create user GPG key
-// swagger:parameters userCurrentPostGPGKey
 type CreateGPGKeyOption struct {
 	// An armored GPG key to add
 	//
-	// in: body
 	// required: true
 	// unique: true
 	ArmoredKey string `json:"armored_public_key" binding:"Required"`

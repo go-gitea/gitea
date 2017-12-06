@@ -13,6 +13,30 @@ import (
 
 // GetRelease get a single release of a repository
 func GetRelease(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/releases repository repoGetRelease
+	// ---
+	// summary: Get a release
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: id of the release to get
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Release"
 	id := ctx.ParamsInt64(":id")
 	release, err := models.GetReleaseByID(id)
 	if err != nil {
@@ -32,6 +56,25 @@ func GetRelease(ctx *context.APIContext) {
 
 // ListReleases list a repository's releases
 func ListReleases(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/releases repository repoListReleases
+	// ---
+	// summary: List a repo's releases
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ReleaseList"
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
 		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite,
 		IncludeTags:   false,
@@ -53,6 +96,31 @@ func ListReleases(ctx *context.APIContext) {
 
 // CreateRelease create a release
 func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
+	// swagger:operation GET /repos/{owner}/{repo}/releases repository repoCreateRelease
+	// ---
+	// summary: Create a release
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateReleaseOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Release"
 	if ctx.Repo.AccessMode < models.AccessModeWrite {
 		ctx.Status(403)
 		return
@@ -110,6 +178,36 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 
 // EditRelease edit a release
 func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/releases/{id} repository repoEditRelease
+	// ---
+	// summary: Update a release
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the release to edit
+	//   type: integer
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditReleaseOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Release"
 	if ctx.Repo.AccessMode < models.AccessModeWrite {
 		ctx.Status(403)
 		return
@@ -163,6 +261,28 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 
 // DeleteRelease delete a release from a repository
 func DeleteRelease(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/releases/{id} repository repoDeleteRelease
+	// ---
+	// summary: Delete a release
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the release to delete
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	if ctx.Repo.AccessMode < models.AccessModeWrite {
 		ctx.Status(403)
 		return
