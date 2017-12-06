@@ -8,8 +8,8 @@ package user
 import (
 	"bytes"
 	"fmt"
-	"strings"
 	"sort"
+	"strings"
 
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/paginater"
