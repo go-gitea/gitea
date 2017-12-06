@@ -2,7 +2,7 @@
 	{{range .Repos}}
 		<div class="item">
 			<div class="ui header">
-				<a class="name" href="{{AppSubUrl}}/{{if .Owner}}{{.Owner.Name}}{{else if $.Org}}{{$.Org.Name}}{{else}}{{$.Owner.Name}}{{end}}/{{.Name}}">{{if or $.PageIsExplore $.PageIsProfileStarList }}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}</a>
+				<a class="name" href="{{.HTMLURL}}">{{if or $.PageIsExplore $.PageIsProfileStarList }}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}</a>
 				{{if .IsPrivate}}
 					<span class="text gold"><i class="octicon octicon-lock"></i></span>
 				{{else if .IsFork}}
