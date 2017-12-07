@@ -112,3 +112,15 @@ func NotificationStatusPost(c *context.Context) {
 	url := fmt.Sprintf("%s/notifications", setting.AppSubURL)
 	c.Redirect(url, 303)
 }
+
+// NotificationPurgePost is a route for 'purging' the list of notifications - marking all unread as read
+func NotificationPurgePost(c *context.Context) {
+	err := models.UpdateNotificationStatuses(c.User, models.NotificationStatusUnread, models.NotificationStatusRead)
+	if err != nil {
+		c.Handle(500, "ErrUpdateNotificationStatuses", err)
+		return
+	}
+
+	url := fmt.Sprintf("%s/notifications", setting.AppSubURL)
+	c.Redirect(url, 303)
+}
