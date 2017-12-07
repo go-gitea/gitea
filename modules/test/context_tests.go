@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"testing"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 
@@ -49,6 +50,15 @@ func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 // LoadUser load a user into a test context.
 func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
 	ctx.User = models.AssertExistsAndLoadBean(t, &models.User{ID: userID}).(*models.User)
+}
+
+// LoadGitRepo load a git repo into a test context. Requires that ctx.Repo has
+// already been populated.
+func LoadGitRepo(t *testing.T, ctx *context.Context) {
+	assert.NoError(t, ctx.Repo.Repository.GetOwner())
+	var err error
+	ctx.Repo.GitRepo, err = git.OpenRepository(ctx.Repo.Repository.RepoPath())
+	assert.NoError(t, err)
 }
 
 type mockLocale struct{}
