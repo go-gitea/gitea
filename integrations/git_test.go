@@ -80,7 +80,7 @@ func TestGit(t *testing.T) {
 			})
 
 			u.Path = "user2/repo-tmp-17.git"
-			u.User = url.UserPassword("user2", "password")
+			u.User = url.UserPassword("user2", userPassword)
 			t.Run("Clone", func(t *testing.T) {
 				err = git.Clone(u.String(), dstPath, git.CloneRepoOptions{})
 				assert.NoError(t, err)
@@ -159,7 +159,7 @@ func TestGit(t *testing.T) {
 				assert.NoError(t, err)
 
 				//Push
-				u.User = url.UserPassword("user2", "password")
+				u.User = url.UserPassword("user2", userPassword)
 				err = git.Push(dstPath, git.PushOptions{
 					Branch: "master",
 					Remote: u.String(),
