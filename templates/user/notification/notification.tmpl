@@ -14,7 +14,7 @@
 			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active{{end}} item">
 				{{.i18n.Tr "notification.read"}}
 			</a>
-			{{if and (gt (len .Notifications) 0) (eq .Status 1) (.NotificationUnreadCount)}}
+			{{if and (eq .Status 1) (.NotificationUnreadCount)}}
 				<form action="{{AppSubUrl}}/notifications/purge" method="POST" style="margin-left: auto;">
 					{{$.CsrfTokenHtml}}
 					<button class="ui mini button primary" title='{{$.i18n.Tr "notification.mark_all_as_read"}}'>
