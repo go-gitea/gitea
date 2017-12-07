@@ -706,6 +706,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/notifications", func() {
 		m.Get("", user.Notifications)
 		m.Post("/status", user.NotificationStatusPost)
+		m.Post("/purge", user.NotificationPurgePost)
 	}, reqSignIn)
 
 	m.Group("/api", func() {
