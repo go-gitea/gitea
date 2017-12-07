@@ -152,11 +152,13 @@ pre, code {
         box-shadow: none;
     }
 
-    /* overide semantic selector '.ui.menu:not(.vertical) .item > .button' */
-    .menu:not(.vertical) .item .button {
-        padding-bottom: .78571429em;
-        padding-top: .78571429em;
-        font-size: 1em;
+    /* Overide semantic selector '.ui.menu:not(.vertical) .item > .button' */
+    /* This fixes the commit graph button on the commits page */
+    .menu:not(.vertical) .item > .button.compact {
+        padding: .58928571em 1.125em;
+    }
+    .menu:not(.vertical) .item > .button.small {
+        font-size: .92857143rem;
     }
 
     .text {
