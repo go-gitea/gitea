@@ -5,8 +5,8 @@
 package models
 
 import (
-	"code.gitea.io/gitea/modules/setting"
 	"time"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // IssueDependency represents an issue dependency
