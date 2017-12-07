@@ -31,9 +31,11 @@ func TestNotificationsForUser(t *testing.T) {
 	statuses := []NotificationStatus{NotificationStatusRead, NotificationStatusUnread}
 	notfs, err := NotificationsForUser(user, statuses, 1, 10)
 	assert.NoError(t, err)
-	if assert.Len(t, notfs, 1) {
+	if assert.Len(t, notfs, 2) {
 		assert.EqualValues(t, 2, notfs[0].ID)
 		assert.EqualValues(t, user.ID, notfs[0].UserID)
+		assert.EqualValues(t, 4, notfs[1].ID)
+		assert.EqualValues(t, user.ID, notfs[1].UserID)
 	}
 }
 
@@ -57,12 +59,12 @@ func TestNotification_GetIssue(t *testing.T) {
 
 func TestGetNotificationCount(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	cnt, err := GetNotificationCount(user, NotificationStatusUnread)
+	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	cnt, err := GetNotificationCount(user, NotificationStatusRead)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, cnt)
 
-	cnt, err = GetNotificationCount(user, NotificationStatusRead)
+	cnt, err = GetNotificationCount(user, NotificationStatusUnread)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }
@@ -78,4 +80,22 @@ func TestSetNotificationStatus(t *testing.T) {
 
 	assert.Error(t, SetNotificationStatus(1, user, NotificationStatusRead))
 	assert.Error(t, SetNotificationStatus(NonexistentID, user, NotificationStatusRead))
+}
+
+func TestUpdateNotificationStatuses(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	notfUnread := AssertExistsAndLoadBean(t,
+		&Notification{UserID: user.ID, Status: NotificationStatusUnread}).(*Notification)
+	notfRead := AssertExistsAndLoadBean(t,
+		&Notification{UserID: user.ID, Status: NotificationStatusRead}).(*Notification)
+	notfPinned := AssertExistsAndLoadBean(t,
+		&Notification{UserID: user.ID, Status: NotificationStatusPinned}).(*Notification)
+	assert.NoError(t, UpdateNotificationStatuses(user, NotificationStatusUnread, NotificationStatusRead))
+	AssertExistsAndLoadBean(t,
+		&Notification{ID: notfUnread.ID, Status: NotificationStatusRead})
+	AssertExistsAndLoadBean(t,
+		&Notification{ID: notfRead.ID, Status: NotificationStatusRead})
+	AssertExistsAndLoadBean(t,
+		&Notification{ID: notfPinned.ID, Status: NotificationStatusPinned})
 }
