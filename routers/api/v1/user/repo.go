@@ -13,7 +13,7 @@ import (
 // listUserRepos - List the repositories owned by the given user.
 func listUserRepos(ctx *context.APIContext, u *models.User) {
 	showPrivateRepos := ctx.IsSigned && (ctx.User.ID == u.ID || ctx.User.IsAdmin)
-	repos, err := models.GetUserRepositories(u.ID, showPrivateRepos, 1, u.NumRepos, "")
+	repos, err := models.GetUserRepositories(u.ID, showPrivateRepos, 1, u.NumRepos, models.RepoOrderByRecentUpdated)
 	if err != nil {
 		ctx.Error(500, "GetUserRepositories", err)
 		return
@@ -67,7 +67,7 @@ func ListMyRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	ownRepos, err := models.GetUserRepositories(ctx.User.ID, true, 1, ctx.User.NumRepos, "")
+	ownRepos, err := models.GetUserRepositories(ctx.User.ID, true, 1, ctx.User.NumRepos, models.RepoOrderByRecentUpdated)
 	if err != nil {
 		ctx.Error(500, "GetUserRepositories", err)
 		return

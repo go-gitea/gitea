@@ -54,13 +54,13 @@ func TestUser_GetStarredRepos(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	starred, err := user.GetStarredRepos(false, 1, 10, "")
+	starred, err := user.GetStarredRepos(false, 1, 10, RepoOrderByRecentUpdated)
 	assert.NoError(t, err)
 	if assert.Len(t, starred, 1) {
 		assert.Equal(t, int64(4), starred[0].ID)
 	}
 
-	starred, err = user.GetStarredRepos(true, 1, 10, "")
+	starred, err = user.GetStarredRepos(true, 1, 10, RepoOrderByRecentUpdated)
 	assert.NoError(t, err)
 	if assert.Len(t, starred, 2) {
 		assert.Equal(t, int64(2), starred[0].ID)
@@ -73,11 +73,11 @@ func TestUser_GetStarredRepos2(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	starred, err := user.GetStarredRepos(false, 1, 10, "")
+	starred, err := user.GetStarredRepos(false, 1, 10, RepoOrderByRecentUpdated)
 	assert.NoError(t, err)
 	assert.Len(t, starred, 0)
 
-	starred, err = user.GetStarredRepos(true, 1, 10, "")
+	starred, err = user.GetStarredRepos(true, 1, 10, RepoOrderByRecentUpdated)
 	assert.NoError(t, err)
 	assert.Len(t, starred, 0)
 }

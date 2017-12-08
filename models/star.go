@@ -71,14 +71,11 @@ func (repo *Repository) GetStargazers(page int) ([]*User, error) {
 }
 
 // GetStarredRepos returns the repos the user starred.
-func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string) (repos RepositoryList, err error) {
-	if len(orderBy) == 0 {
-		orderBy = "updated_unix DESC"
-	}
+func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy RepoOrderByType) (repos RepositoryList, err error) {
 	sess := x.
 		Join("INNER", "star", "star.repo_id = repository.id").
 		Where("star.uid = ?", u.ID).
-		OrderBy(orderBy)
+		OrderBy(orderBy.SQL())
 
 	if !private {
 		sess = sess.And("is_private = ?", false)

@@ -82,7 +82,7 @@ func populateRepoIndexer() error {
 		repos, _, err := SearchRepositoryByName(&SearchRepoOptions{
 			Page:     page,
 			PageSize: 10,
-			OrderBy:  SearchOrderByID,
+			OrderBy:  RepoOrderByID,
 			Private:  true,
 		})
 		if err != nil {

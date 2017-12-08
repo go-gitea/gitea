@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/user"
+	"code.gitea.io/gitea/routers/utils"
 
 	"github.com/Unknwon/paginater"
 )
@@ -75,42 +76,15 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		page = 1
 	}
 
-	var (
-		repos   []*models.Repository
-		count   int64
-		err     error
-		orderBy models.SearchOrderBy
-	)
-
-	ctx.Data["SortType"] = ctx.Query("sort")
-	switch ctx.Query("sort") {
-	case "newest":
-		orderBy = models.SearchOrderByNewest
-	case "oldest":
-		orderBy = models.SearchOrderByOldest
-	case "recentupdate":
-		orderBy = models.SearchOrderByRecentUpdated
-	case "leastupdate":
-		orderBy = models.SearchOrderByLeastUpdated
-	case "reversealphabetically":
-		orderBy = models.SearchOrderByAlphabeticallyReverse
-	case "alphabetically":
-		orderBy = models.SearchOrderByAlphabetically
-	case "reversesize":
-		orderBy = models.SearchOrderBySizeReverse
-	case "size":
-		orderBy = models.SearchOrderBySize
-	default:
-		ctx.Data["SortType"] = "recentupdate"
-		orderBy = models.SearchOrderByRecentUpdated
-	}
+	orderByType := utils.ParseRepoOrderByType(ctx.Query("sort"))
+	ctx.Data["SortType"] = utils.ToQueryString(orderByType)
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 
-	repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
+	repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
 		Page:      page,
 		PageSize:  opts.PageSize,
-		OrderBy:   orderBy,
+		OrderBy:   orderByType,
 		Private:   opts.Private,
 		Keyword:   keyword,
 		OwnerID:   opts.OwnerID,

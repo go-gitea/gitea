@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/repo"
+	"code.gitea.io/gitea/routers/utils"
 )
 
 const (
@@ -105,33 +106,16 @@ func Profile(ctx *context.Context) {
 		page = 1
 	}
 
-	var (
-		repos   []*models.Repository
-		count   int64
-		orderBy models.SearchOrderBy
-	)
-
-	ctx.Data["SortType"] = ctx.Query("sort")
-	switch ctx.Query("sort") {
-	case "newest":
-		orderBy = models.SearchOrderByNewest
-	case "oldest":
-		orderBy = models.SearchOrderByOldest
-	case "recentupdate":
-		orderBy = models.SearchOrderByRecentUpdated
-	case "leastupdate":
-		orderBy = models.SearchOrderByLeastUpdated
-	case "reversealphabetically":
-		orderBy = models.SearchOrderByAlphabeticallyReverse
-	case "alphabetically":
-		orderBy = models.SearchOrderByAlphabetically
-	default:
-		ctx.Data["SortType"] = "recentupdate"
-		orderBy = models.SearchOrderByRecentUpdated
-	}
+	orderByType := utils.ParseRepoOrderByType(ctx.Query("sort"))
+	ctx.Data["SortType"] = utils.ToQueryString(orderByType)
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	ctx.Data["Keyword"] = keyword
+
+	var (
+		repos []*models.Repository
+		count int64
+	)
 	switch tab {
 	case "activity":
 		retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
@@ -145,7 +129,7 @@ func Profile(ctx *context.Context) {
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
 		if len(keyword) == 0 {
-			repos, err = ctxUser.GetStarredRepos(showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
+			repos, err = ctxUser.GetStarredRepos(showPrivate, page, setting.UI.User.RepoPagingNum, orderByType)
 			if err != nil {
 				ctx.Handle(500, "GetStarredRepos", err)
 				return
@@ -160,7 +144,7 @@ func Profile(ctx *context.Context) {
 			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
 				Keyword:     keyword,
 				OwnerID:     ctxUser.ID,
-				OrderBy:     orderBy,
+				OrderBy:     orderByType,
 				Private:     showPrivate,
 				Page:        page,
 				PageSize:    setting.UI.User.RepoPagingNum,
@@ -179,7 +163,7 @@ func Profile(ctx *context.Context) {
 	default:
 		if len(keyword) == 0 {
 			var total int
-			repos, err = models.GetUserRepositories(ctxUser.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
+			repos, err = models.GetUserRepositories(ctxUser.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderByType)
 			if err != nil {
 				ctx.Handle(500, "GetRepositories", err)
 				return
@@ -203,7 +187,7 @@ func Profile(ctx *context.Context) {
 			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
 				Keyword:   keyword,
 				OwnerID:   ctxUser.ID,
-				OrderBy:   orderBy,
+				OrderBy:   orderByType,
 				Private:   showPrivate,
 				Page:      page,
 				IsProfile: true,

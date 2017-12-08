@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-xorm/builder"
@@ -101,11 +102,73 @@ func (repos MirrorRepositoryList) LoadAttributes() error {
 	return repos.loadAttributes(x)
 }
 
+// RepoOrderByType is an option for ordering repos.
+type RepoOrderByType int
+
+// RepoOrderByType constants
+const (
+	RepoOrderByAlphabetically RepoOrderByType = iota
+	RepoOrderByAlphabeticallyReverse
+	RepoOrderByLeastUpdated
+	RepoOrderByRecentUpdated
+	RepoOrderByOldest
+	RepoOrderByNewest
+	RepoOrderBySize
+	RepoOrderBySizeReverse
+	RepoOrderByID
+)
+
+// SQL returns a sql "ORDER BY" expression for the given type
+func (s RepoOrderByType) SQL() string {
+	switch s {
+	case RepoOrderByAlphabetically:
+		return "name ASC"
+	case RepoOrderByAlphabeticallyReverse:
+		return "name DESC"
+	case RepoOrderByLeastUpdated:
+		return "updated_unix ASC"
+	case RepoOrderByRecentUpdated:
+		return "updated_unix DESC"
+	case RepoOrderByOldest:
+		return "created_unix ASC"
+	case RepoOrderByNewest:
+		return "created_unix DESC"
+	case RepoOrderBySize:
+		return "size ASC"
+	case RepoOrderBySizeReverse:
+		return "size DESC"
+	case RepoOrderByID:
+		return "id ASC"
+	default:
+		log.Error(4, "Unrecognized RepoOrderByType: %v", s)
+		return ""
+	}
+}
+
+// Column returns the column that the given type orders by.
+func (s RepoOrderByType) Column() string {
+	switch s {
+	case RepoOrderByAlphabetically, RepoOrderByAlphabeticallyReverse:
+		return "name"
+	case RepoOrderByLeastUpdated, RepoOrderByRecentUpdated:
+		return "updated_unix"
+	case RepoOrderByOldest, RepoOrderByNewest:
+		return "created_unix"
+	case RepoOrderBySize, RepoOrderBySizeReverse:
+		return "size"
+	case RepoOrderByID:
+		return "id"
+	default:
+		log.Error(4, "Unrecognized RepoOrderByType: %v", s)
+		return ""
+	}
+}
+
 // SearchRepoOptions holds the search options
 type SearchRepoOptions struct {
 	Keyword   string
 	OwnerID   int64
-	OrderBy   SearchOrderBy
+	OrderBy   RepoOrderByType
 	Private   bool // Include private repositories in results
 	Starred   bool
 	Page      int
@@ -125,27 +188,6 @@ type SearchRepoOptions struct {
 	// False -> include just non-mirrors
 	Mirror util.OptionalBool
 }
-
-//SearchOrderBy is used to sort the result
-type SearchOrderBy string
-
-func (s SearchOrderBy) String() string {
-	return string(s)
-}
-
-// Strings for sorting result
-const (
-	SearchOrderByAlphabetically        SearchOrderBy = "name ASC"
-	SearchOrderByAlphabeticallyReverse               = "name DESC"
-	SearchOrderByLeastUpdated                        = "updated_unix ASC"
-	SearchOrderByRecentUpdated                       = "updated_unix DESC"
-	SearchOrderByOldest                              = "created_unix ASC"
-	SearchOrderByNewest                              = "created_unix DESC"
-	SearchOrderBySize                                = "size ASC"
-	SearchOrderBySizeReverse                         = "size DESC"
-	SearchOrderByID                                  = "id ASC"
-	SearchOrderByIDReverse                           = "id DESC"
-)
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
@@ -202,10 +244,6 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 		cond = cond.And(builder.Eq{"is_mirror": opts.Mirror == util.OptionalBoolTrue})
 	}
 
-	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = SearchOrderByAlphabetically
-	}
-
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -229,7 +267,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 	if err = sess.
 		Where(cond).
 		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		OrderBy(opts.OrderBy.String()).
+		OrderBy(opts.OrderBy.SQL()).
 		Find(&repos); err != nil {
 		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
