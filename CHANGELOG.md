@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.3.1](https://github.com/go-gitea/gitea/releases/tag/v1.3.1) - 2017-12-08
+* BUGFIXES
+  * Sanitize logs for mirror sync (#3057, #3082) (#3078)
+  * Fix missing branch in release bug (#3108) (#3117)
+  * Fix repo indexer and submodule bug (#3107) (#3110)
+  * Fix legacy URL redirects (#3100) (#3106)
+  * Fix redis session failed (#3086) (#3089)
+  * Fix issue list branch link broken (#3061) (#3070)
+  * Fix missing password length check when change password (#3039) (#3071)
+
 ## [1.3.0](https://github.com/go-gitea/gitea/releases/tag/v1.3.0) - 2017-11-29
 * BREAKING
   * Make URL scheme unambiguous (#2408)
