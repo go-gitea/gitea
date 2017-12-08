@@ -36,7 +36,7 @@ func (l *LFSLock) AfterLoad() {
 }
 
 func cleanPath(p string) string {
-	return strings.ToLower(path.Clean(p))
+	return path.Clean(p)
 }
 
 // APIFormat convert a Release to lfs.LFSLock
@@ -73,8 +73,8 @@ func CreateLFSLock(lock *LFSLock) (*LFSLock, error) {
 // GetLFSLock returns release by given path.
 func GetLFSLock(repoID int64, path string) (*LFSLock, error) {
 	path = cleanPath(path)
-	rel := &LFSLock{RepoID: repoID, Path: path}
-	has, err := x.Get(rel)
+	rel := &LFSLock{RepoID: repoID}
+	has, err := x.Where("lower(path) = ?", strings.ToLower(path)).Get(rel)
 	if err != nil {
 		return nil, err
 	}
