@@ -60,6 +60,15 @@
 						<label for="content">{{.i18n.Tr "repo.settings.deploy_key_content"}}</label>
 						<textarea id="ssh-key-content" name="content" required>{{.content}}</textarea>
 					</div>
+                    <div class="field">
+                        <div class="ui checkbox {{if .Err_IsWritable}}error{{end}}">
+                            <input id="ssh-key-is-writable" name="is_writable" class="hidden" type="checkbox" value="{{.is_writable}}" autofocus>
+                            <label for="is_writable">
+                                {{.i18n.Tr "repo.settings.is_writable"}}
+                            </label>
+                            <small style="padding-left: 26px;">{{$.i18n.Tr "settings.is_writable_info"}}</small>
+                        </div>
+                    </div>
 					<button class="ui green button">
 						{{.i18n.Tr "repo.settings.add_deploy_key"}}
 					</button>
