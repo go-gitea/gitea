@@ -94,7 +94,7 @@ pipeline:
       TAGS: bindata sqlite
       GOPATH: /srv/app
     commands:
-      - make unit-test-coverage
+      - make test
     when:
       event: [ push, pull_request ]
       branch: [ release/* ]
