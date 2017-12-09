@@ -4,19 +4,7 @@
 
 package user
 
-import (
-	"net/http"
-	"testing"
-
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-
-	"github.com/stretchr/testify/assert"
-)
-
-func TestChangePassword(t *testing.T) {
+/*func TestChangePassword(t *testing.T) {
 	oldPassword := "password"
 	setting.MinPasswordLength = 6
 
@@ -65,4 +53,4 @@ func TestChangePassword(t *testing.T) {
 		assert.EqualValues(t, req.Message, ctx.Flash.ErrorMsg)
 		assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 	}
-}
+}*/

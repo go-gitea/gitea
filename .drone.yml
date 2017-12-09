@@ -91,6 +91,19 @@ pipeline:
     pull: true
     group: test
     environment:
+      TAGS: bindata sqlite
+      GOPATH: /srv/app
+    commands:
+      - make test
+    when:
+      event: [ push, pull_request ]
+      branch: [ release/* ]
+
+  test:
+    image: webhippie/golang:edge
+    pull: true
+    group: test
+    environment:
       TAGS: bindata
       GOPATH: /srv/app
     commands:
