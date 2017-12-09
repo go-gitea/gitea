@@ -17,7 +17,7 @@ menu:
 
 We won't cover the basics of a Golang setup within this guide. If you don't know how to get the environment up and running you should follow the official [install instructions](https://golang.org/doc/install).
 
-**Note**: Go version 1.7 or higher is required
+**Note**: Go version 1.8 or higher is required
 
 ## Download
 
