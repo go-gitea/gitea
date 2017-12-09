@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/routers/utils"
 )
 
 const (
@@ -76,11 +77,7 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Error(404)
 			return
 		}
-		uname := ctx.Query("uname")
-		// uname may be formatted as "username (fullname)"
-		if strings.Contains(uname, "(") && strings.HasSuffix(uname, ")") {
-			uname = strings.TrimSpace(strings.Split(uname, "(")[0])
-		}
+		uname := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.Query("uname")))
 		var u *models.User
 		u, err = models.GetUserByName(uname)
 		if err != nil {

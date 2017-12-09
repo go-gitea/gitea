@@ -179,7 +179,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 						ctx.Data["IsLFSFile"] = true
 						ctx.Data["FileSize"] = size
 						filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
-						ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), oid, filenameBase64)
+						ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), oid, filenameBase64)
 					}
 				}
 			}
