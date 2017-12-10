@@ -7,7 +7,6 @@ package git
 import (
 	"bytes"
 	"container/list"
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -272,71 +271,60 @@ func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 }
 
 // commitsBefore the limit is depth, not total number of returned commits.
-func (repo *Repository) commitsBefore(l *list.List, parent *list.Element, id SHA1, current, limit int) error {
-	// Reach the limit
-	if limit > 0 && current > limit {
-		return nil
-	}
-
-	commit, err := repo.getCommit(id)
-	if err != nil {
-		return fmt.Errorf("getCommit: %v", err)
-	}
-
-	var e *list.Element
-	if parent == nil {
-		e = l.PushBack(commit)
+func (repo *Repository) commitsBefore(id SHA1, limit int) (*list.List, error) {
+	cmd := NewCommand("log")
+	if limit > 0 {
+		cmd.AddArguments("-"+ strconv.Itoa(limit), prettyLogFormat, id.String())
 	} else {
-		var in = parent
-		for {
-			if in == nil {
-				break
-			} else if in.Value.(*Commit).ID.Equal(commit.ID) {
-				return nil
-			} else if in.Next() == nil {
-				break
-			}
-
-			if in.Value.(*Commit).Committer.When.Equal(commit.Committer.When) {
-				break
-			}
-
-			if in.Value.(*Commit).Committer.When.After(commit.Committer.When) &&
-				in.Next().Value.(*Commit).Committer.When.Before(commit.Committer.When) {
-				break
-			}
-
-			in = in.Next()
-		}
-
-		e = l.InsertAfter(commit, in)
+		cmd.AddArguments(prettyLogFormat, id.String())
 	}
 
-	pr := parent
-	if commit.ParentCount() > 1 {
-		pr = e
+	stdout, err := cmd.RunInDirBytes(repo.Path)
+	if err != nil {
+		return nil, err
 	}
 
-	for i := 0; i < commit.ParentCount(); i++ {
-		id, err := commit.ParentID(i)
+	formattedLog, err := repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
+	if err != nil {
+		return nil, err
+	}
+
+	commits := list.New()
+	for logEntry := formattedLog.Front(); logEntry != nil; logEntry = logEntry.Next() {
+		commit := logEntry.Value.(*Commit)
+		branches, err := repo.getBranches(commit, 2)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		err = repo.commitsBefore(l, pr, id, current+1, limit)
-		if err != nil {
-			return err
+
+		if len(branches) > 1 {
+			break
 		}
+
+		commits.PushBack(commit)
 	}
 
-	return nil
+	return commits, nil
 }
 
 func (repo *Repository) getCommitsBefore(id SHA1) (*list.List, error) {
-	l := list.New()
-	return l, repo.commitsBefore(l, nil, id, 1, 0)
+	return repo.commitsBefore(id, 0)
 }
 
 func (repo *Repository) getCommitsBeforeLimit(id SHA1, num int) (*list.List, error) {
-	l := list.New()
-	return l, repo.commitsBefore(l, nil, id, 1, num)
+	return repo.commitsBefore(id, num)
+}
+
+func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error) {
+	stdout, err := NewCommand("for-each-ref", "--count="+ strconv.Itoa(limit), "--format=%(refname)", "--contains", commit.ID.String(), BranchPrefix).RunInDir(repo.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	refs := strings.Split(stdout, "\n")
+	branches := make([]string, len(refs)-1)
+	for i, ref := range refs[:len(refs)-1] {
+		branches[i] = strings.TrimPrefix(ref, BranchPrefix)
+	}
+	return branches, nil
 }
