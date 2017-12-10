@@ -131,7 +131,8 @@ fmt-check:
 
 .PHONY: test
 test:
-	$(GO) test $(PACKAGES)
+	$(GO) build # test if go build succeed without sqlite support
+	$(GO) test -tags=sqlite $(PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -142,7 +143,7 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	for PKG in $(PACKAGES); do $(GO) test -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
+	for PKG in $(PACKAGES); do $(GO) test -tags=sqlite -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
 
 .PHONY: test-vendor
 test-vendor:
