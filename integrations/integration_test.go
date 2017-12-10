@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/macaron.v1"
@@ -259,10 +260,26 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 	recorder := httptest.NewRecorder()
 	mac.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		assert.EqualValues(t, expectedStatus, recorder.Code,
-			"Request: %s %s", req.Method, req.URL.String())
+		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+			"Request: %s %s", req.Method, req.URL.String()) {
+			logErrorMessage(t, recorder)
+		}
 	}
 	return recorder
+}
+
+// logErrorMessage logs the flash error message, if one exists.
+func logErrorMessage(t testing.TB, recorder *httptest.ResponseRecorder) {
+	// we must copy the buffer, so that we don't "use up" the original one
+	respBuf := bytes.NewBuffer(recorder.Body.Bytes())
+	htmlDoc, err := goquery.NewDocumentFromReader(respBuf)
+	if err != nil {
+		return // probably a non-HTML response
+	}
+	errMsg := htmlDoc.Find(".ui.negative.message").Text()
+	if len(errMsg) > 0 {
+		t.Log("A flash error message was found:", errMsg)
+	}
 }
 
 func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
