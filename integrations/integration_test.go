@@ -262,17 +262,26 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
-			logErrorMessage(t, recorder)
+			logUnexpectedResponse(t, recorder)
 		}
 	}
 	return recorder
 }
 
-// logErrorMessage logs the flash error message, if one exists.
-func logErrorMessage(t testing.TB, recorder *httptest.ResponseRecorder) {
-	// we must copy the buffer, so that we don't "use up" the original one
-	respBuf := bytes.NewBuffer(recorder.Body.Bytes())
-	htmlDoc, err := goquery.NewDocumentFromReader(respBuf)
+// logUnexpectedResponse logs the contents of an unexpected response.
+func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
+	respBytes := recorder.Body.Bytes()
+	if len(respBytes) == 0 {
+		return
+	} else if len(respBytes) < 500 {
+		// if body is short, just log the whole thing
+		t.Log("Response:", string(respBytes))
+		return
+	}
+
+	// log the "flash" error message, if one exists
+	// we must create a new buffer, so that we don't "use up" resp.Body
+	htmlDoc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(respBytes))
 	if err != nil {
 		return // probably a non-HTML response
 	}
