@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 
 	"github.com/go-macaron/session"
-	_ "github.com/mattn/go-sqlite3" // for the test engine
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/macaron.v1"
 )
