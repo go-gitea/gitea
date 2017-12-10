@@ -121,3 +121,26 @@
 		</div>
 	</div>
 </form>
+
+<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/tribute/tribute.css">
+<script src="{{AppSubUrl}}/vendor/plugins/tribute/tribute.min.js"></script>
+<script>
+var issuesTribute = new Tribute({
+  values: [
+  {{ range .Assignees }}
+	{key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
+	 name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'},
+  {{ end }}
+  ],
+  noMatchTemplate: function () { return null },
+  menuItemTemplate: function (item) {
+    var user = item.original;
+    var itemStr = '<img src="' + user.avatar + '"/><span class="name">' + user.name + '</span>';
+    if (user.fullname && user.fullname != '') {
+    	itemStr += '<span class="fullname">' + user.fullname + '</span>';
+    }
+    return itemStr;
+  }
+})
+issuesTribute.attach(document.getElementById('content'))
+</script>
