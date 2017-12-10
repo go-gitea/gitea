@@ -131,7 +131,8 @@ fmt-check:
 
 .PHONY: test
 test:
-	$(GO) test $(PACKAGES)
+	$(GO) build # test if go build succeed without sqlite support
+	$(GO) test -tags=sqlite $(PACKAGES)
 
 .PHONY: coverage
 coverage:
