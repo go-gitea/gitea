@@ -283,5 +283,5 @@ func GetLatestCommitTime(repoPath string) (time.Time, error) {
 		return time.Time{}, err
 	}
 	commitTime := strings.TrimSpace(stdout)
-	return time.Parse("Mon Jan 02 15:04:05 2006 -0700", commitTime)
+	return time.Parse(GitTimeLayout, commitTime)
 }
