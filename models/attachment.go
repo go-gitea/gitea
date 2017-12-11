@@ -31,11 +31,8 @@ type Attachment struct {
 
 // IncreaseDownloadCount is update download count + 1
 func (a *Attachment) IncreaseDownloadCount() error {
-	sess := x.NewSession()
-	defer sess.Close()
-
 	// Update download count.
-	if _, err := sess.Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
+	if _, err := x.Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
 		return fmt.Errorf("increase attachment count: %v", err)
 	}
 
