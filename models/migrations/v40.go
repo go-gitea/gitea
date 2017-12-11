@@ -5,7 +5,6 @@
 package migrations
 
 import (
-	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -45,7 +44,7 @@ func migrateProtectedBranchStruct(x *xorm.Engine) error {
 		log.Warn("Unable to drop columns in SQLite")
 	case setting.UseMySQL, setting.UsePostgreSQL, setting.UseMSSQL, setting.UseTiDB:
 		if _, err := x.Exec("ALTER TABLE protected_branch DROP COLUMN can_push"); err != nil {
-			return fmt.Errorf("DROP COLUMN can_push: %v", err)
+			log.Warn("DROP COLUMN can_push (skipping): %v", err)
 		}
 	default:
 		log.Fatal(4, "Unrecognized DB")

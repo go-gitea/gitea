@@ -5,9 +5,8 @@
 package migrations
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-xorm/xorm"
 )
@@ -35,8 +34,8 @@ func addDefaultValueToUserProhibitLogin(x *xorm.Engine) (err error) {
 	}
 
 	if err != nil {
-		return fmt.Errorf("Error changing user prohibit_login column definition: %v", err)
+		log.Warn("Error changing user prohibit_login column definition (skipping): %v", err)
 	}
 
-	return err
+	return nil
 }
