@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // env keys for git hooks need
@@ -158,8 +159,7 @@ func pushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string)
 			IsDraft:      false,
 			IsPrerelease: false,
 			IsTag:        true,
-			Created:      createdAt,
-			CreatedUnix:  createdAt.Unix(),
+			CreatedUnix:  util.TimeStamp(createdAt.Unix()),
 		}
 		if author != nil {
 			rel.PublisherID = author.ID
@@ -170,8 +170,7 @@ func pushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string)
 		}
 	} else {
 		rel.Sha1 = commit.ID.String()
-		rel.Created = createdAt
-		rel.CreatedUnix = createdAt.Unix()
+		rel.CreatedUnix = util.TimeStamp(createdAt.Unix())
 		rel.NumCommits = commitsCount
 		rel.IsDraft = false
 		if rel.IsTag && author != nil {

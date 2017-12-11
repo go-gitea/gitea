@@ -2,18 +2,18 @@ package models
 
 import (
 	"errors"
-	"time"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // LFSMetaObject stores metadata for LFS tracked files.
 type LFSMetaObject struct {
-	ID           int64     `xorm:"pk autoincr"`
-	Oid          string    `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Size         int64     `xorm:"NOT NULL"`
-	RepositoryID int64     `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Existing     bool      `xorm:"-"`
-	Created      time.Time `xorm:"-"`
-	CreatedUnix  int64     `xorm:"created"`
+	ID           int64          `xorm:"pk autoincr"`
+	Oid          string         `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Size         int64          `xorm:"NOT NULL"`
+	RepositoryID int64          `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Existing     bool           `xorm:"-"`
+	CreatedUnix  util.TimeStamp `xorm:"created"`
 }
 
 // LFSTokenResponse defines the JSON structure in which the JWT token is stored.
@@ -104,9 +104,4 @@ func (repo *Repository) RemoveLFSMetaObjectByOid(oid string) error {
 	}
 
 	return sess.Commit()
-}
-
-// AfterLoad stores the LFSMetaObject creation time in the database as local time.
-func (m *LFSMetaObject) AfterLoad() {
-	m.Created = time.Unix(m.CreatedUnix, 0).Local()
 }

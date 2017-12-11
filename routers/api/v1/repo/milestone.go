@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ListMilestones list all the milestones for a repository
@@ -118,10 +119,10 @@ func CreateMilestone(ctx *context.APIContext, form api.CreateMilestoneOption) {
 	}
 
 	milestone := &models.Milestone{
-		RepoID:   ctx.Repo.Repository.ID,
-		Name:     form.Title,
-		Content:  form.Description,
-		Deadline: *form.Deadline,
+		RepoID:       ctx.Repo.Repository.ID,
+		Name:         form.Title,
+		Content:      form.Description,
+		DeadlineUnix: util.TimeStamp(form.Deadline.Unix()),
 	}
 
 	if err := models.NewMilestone(milestone); err != nil {
@@ -175,7 +176,7 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 		milestone.Content = *form.Description
 	}
 	if form.Deadline != nil && !form.Deadline.IsZero() {
-		milestone.Deadline = *form.Deadline
+		milestone.DeadlineUnix = util.TimeStamp(form.Deadline.Unix())
 	}
 
 	if err := models.UpdateMilestone(milestone); err != nil {

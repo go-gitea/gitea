@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-xorm/xorm"
 	"github.com/keybase/go-crypto/openpgp"
@@ -26,17 +27,14 @@ import (
 
 // GPGKey represents a GPG key.
 type GPGKey struct {
-	ID                int64     `xorm:"pk autoincr"`
-	OwnerID           int64     `xorm:"INDEX NOT NULL"`
-	KeyID             string    `xorm:"INDEX CHAR(16) NOT NULL"`
-	PrimaryKeyID      string    `xorm:"CHAR(16)"`
-	Content           string    `xorm:"TEXT NOT NULL"`
-	Created           time.Time `xorm:"-"`
-	CreatedUnix       int64
-	Expired           time.Time `xorm:"-"`
-	ExpiredUnix       int64
-	Added             time.Time `xorm:"-"`
-	AddedUnix         int64
+	ID                int64          `xorm:"pk autoincr"`
+	OwnerID           int64          `xorm:"INDEX NOT NULL"`
+	KeyID             string         `xorm:"INDEX CHAR(16) NOT NULL"`
+	PrimaryKeyID      string         `xorm:"CHAR(16)"`
+	Content           string         `xorm:"TEXT NOT NULL"`
+	CreatedUnix       util.TimeStamp `xorm:"created"`
+	ExpiredUnix       util.TimeStamp
+	AddedUnix         util.TimeStamp
 	SubsKey           []*GPGKey `xorm:"-"`
 	Emails            []*EmailAddress
 	CanSign           bool
@@ -47,17 +45,11 @@ type GPGKey struct {
 
 // BeforeInsert will be invoked by XORM before inserting a record
 func (key *GPGKey) BeforeInsert() {
-	key.AddedUnix = time.Now().Unix()
-	key.ExpiredUnix = key.Expired.Unix()
-	key.CreatedUnix = key.Created.Unix()
+	key.AddedUnix = util.TimeStampNow()
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (key *GPGKey) AfterLoad(session *xorm.Session) {
-	key.Added = time.Unix(key.AddedUnix, 0).Local()
-	key.Expired = time.Unix(key.ExpiredUnix, 0).Local()
-	key.Created = time.Unix(key.CreatedUnix, 0).Local()
-
 	err := session.Where("primary_key_id=?", key.KeyID).Find(&key.SubsKey)
 	if err != nil {
 		log.Error(3, "Find Sub GPGkeys[%d]: %v", key.KeyID, err)
@@ -163,8 +155,8 @@ func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, e
 		KeyID:             pubkey.KeyIdString(),
 		PrimaryKeyID:      primaryID,
 		Content:           content,
-		Created:           pubkey.CreationTime,
-		Expired:           expiry,
+		CreatedUnix:       util.TimeStamp(pubkey.CreationTime.Unix()),
+		ExpiredUnix:       util.TimeStamp(expiry.Unix()),
 		CanSign:           pubkey.CanSign(),
 		CanEncryptComms:   pubkey.PubKeyAlgo.CanEncrypt(),
 		CanEncryptStorage: pubkey.PubKeyAlgo.CanEncrypt(),
@@ -236,8 +228,8 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 		KeyID:             pubkey.KeyIdString(),
 		PrimaryKeyID:      "",
 		Content:           content,
-		Created:           pubkey.CreationTime,
-		Expired:           expiry,
+		CreatedUnix:       util.TimeStamp(pubkey.CreationTime.Unix()),
+		ExpiredUnix:       util.TimeStamp(expiry.Unix()),
 		Emails:            emails,
 		SubsKey:           subkeys,
 		CanSign:           pubkey.CanSign(),
