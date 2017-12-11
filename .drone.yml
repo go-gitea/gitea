@@ -79,7 +79,7 @@ pipeline:
     environment:
       GOPATH: /srv/app
     commands:
-      - make build # test if build succeeds without the sqlite tag
+      - go build # test if build succeeds without the sqlite tag
     when:
       event: [ push, tag, pull_request ]
 
