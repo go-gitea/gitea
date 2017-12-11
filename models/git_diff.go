@@ -248,30 +248,54 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 		lineCount           int
 		curFileLinesCount   int
 		curFileLFSPrefix    bool
+
+		input = bufio.NewReader(reader)
+		isEOF = false
 	)
 
-	input := bufio.NewReader(reader)
-	isEOF := false
 	for !isEOF {
 		var linebuf bytes.Buffer
 		for {
-			b, err := input.ReadByte()
+			peek, err := input.Peek(maxLineCharacters)
+			if err != nil && err != bufio.ErrBufferFull {
+				return nil, fmt.Errorf("PeekByte: %v", err)
+			}
+			newLine := bytes.IndexByte(peek, '\n');
+			if newLine == -1 {
+				// Instead of reading things, and copying memory around,
+				//  we simply discard them (which doesn't allocate memory)
+				curFile.IsIncomplete = true
+				// We already know that we can read `len(peek)` amount of bytes,
+				//  hence no error-checking
+				input.Discard(len(peek))
+				continue
+			}
+			if curFile.IsIncomplete {
+				// Since we get here without hiting the above case, we've found a newline
+				//  and only discard that part.
+				input.Discard(newLine)
+				break
+			}
+			buff := make([]byte, newLine)
+			n, err := input.Read(buff)
 			if err != nil {
 				if err == io.EOF {
 					isEOF = true
 					break
-				} else {
-					return nil, fmt.Errorf("ReadByte: %v", err)
 				}
+				return nil, fmt.Errorf("Read: %v", err)
 			}
-			if b == '\n' {
-				break
+			if n != newLine {
+				return nil, fmt.Errorf("Read: could not read enough bytes %d != %d", n, newLine)
 			}
-			if linebuf.Len() < maxLineCharacters {
-				linebuf.WriteByte(b)
-			} else if linebuf.Len() == maxLineCharacters {
-				curFile.IsIncomplete = true
+			n, err = linebuf.Write(buff)
+			if err != nil {
+				return nil, fmt.Errorf("Write: %v", err)
 			}
+			if n != newLine {
+				return nil, fmt.Errorf("Write: could not write enough bytes %d != %d", n, newLine)
+			}
+			break
 		}
 		line := linebuf.String()
 
