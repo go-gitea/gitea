@@ -757,12 +757,17 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 	return template.HTML(descPattern.ReplaceAllStringFunc(markup.Sanitize(repo.Description), sanitize))
 }
 
-// LocalCopyPath returns the local repository copy path
-func (repo *Repository) LocalCopyPath() string {
+// LocalCopyPath returns the local repository copy path.
+func LocalCopyPath() string {
 	if filepath.IsAbs(setting.Repository.Local.LocalCopyPath) {
-		return path.Join(setting.Repository.Local.LocalCopyPath, com.ToStr(repo.ID))
+		return setting.Repository.Local.LocalCopyPath
 	}
-	return path.Join(setting.AppDataPath, setting.Repository.Local.LocalCopyPath, com.ToStr(repo.ID))
+	return path.Join(setting.AppDataPath, setting.Repository.Local.LocalCopyPath)
+}
+
+// LocalCopyPath returns the local repository copy path for the given repo.
+func (repo *Repository) LocalCopyPath() string {
+	return path.Join(LocalCopyPath(), com.ToStr(repo.ID))
 }
 
 // UpdateLocalCopyBranch pulls latest changes of given branch from repoPath to localPath.
