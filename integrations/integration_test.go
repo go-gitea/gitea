@@ -136,6 +136,7 @@ func initIntegrationTest() {
 func prepareTestEnv(t testing.TB) {
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, os.RemoveAll(models.LocalCopyPath()))
 
 	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))
