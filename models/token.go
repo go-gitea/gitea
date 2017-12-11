@@ -29,7 +29,7 @@ type AccessToken struct {
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (t *AccessToken) AfterLoad() {
 	t.HasUsed = t.UpdatedUnix > t.CreatedUnix
-	t.HasRecentActivity = t.UpdatedUnix.Add(int64(7*24*time.Hour/time.Second)) > util.TimeStampNow()
+	t.HasRecentActivity = t.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
 }
 
 // NewAccessToken creates new access token.

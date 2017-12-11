@@ -60,7 +60,7 @@ func (m *Mirror) AfterLoad(session *xorm.Session) {
 
 // ScheduleNextUpdate calculates and sets next update time.
 func (m *Mirror) ScheduleNextUpdate() {
-	m.NextUpdateUnix = util.TimeStampNow().Add(int64(m.Interval / time.Second))
+	m.NextUpdateUnix = util.TimeStampNow().AddDuration(m.Interval)
 }
 
 func remoteAddress(repoPath string) (string, error) {
