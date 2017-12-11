@@ -78,12 +78,10 @@ func (m *Milestone) APIFormat() *api.Milestone {
 		ClosedIssues: m.NumClosedIssues,
 	}
 	if m.IsClosed {
-		tm := m.ClosedDateUnix.AsTime()
-		apiMilestone.Closed = &tm
+		apiMilestone.Closed = m.ClosedDateUnix.AsTimePtr()
 	}
 	if m.DeadlineUnix.Year() < 9999 {
-		tm := m.DeadlineUnix.AsTime()
-		apiMilestone.Deadline = &tm
+		apiMilestone.Deadline = m.DeadlineUnix.AsTimePtr()
 	}
 	return apiMilestone
 }
