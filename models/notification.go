@@ -6,7 +6,8 @@ package models
 
 import (
 	"fmt"
-	"time"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 type (
@@ -51,32 +52,8 @@ type Notification struct {
 	Issue      *Issue      `xorm:"-"`
 	Repository *Repository `xorm:"-"`
 
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX NOT NULL"`
-	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX NOT NULL"`
-}
-
-// BeforeInsert runs while inserting a record
-func (n *Notification) BeforeInsert() {
-	var (
-		now     = time.Now()
-		nowUnix = now.Unix()
-	)
-	n.Created = now
-	n.CreatedUnix = nowUnix
-	n.Updated = now
-	n.UpdatedUnix = nowUnix
-}
-
-// BeforeUpdate runs while updating a record
-func (n *Notification) BeforeUpdate() {
-	var (
-		now     = time.Now()
-		nowUnix = now.Unix()
-	)
-	n.Updated = now
-	n.UpdatedUnix = nowUnix
+	CreatedUnix util.TimeStamp `xorm:"created INDEX NOT NULL"`
+	UpdatedUnix util.TimeStamp `xorm:"updated INDEX NOT NULL"`
 }
 
 // CreateOrUpdateIssueNotifications creates an issue notification
@@ -212,6 +189,7 @@ func getIssueNotification(e Engine, userID, issueID int64) (*Notification, error
 func NotificationsForUser(user *User, statuses []NotificationStatus, page, perPage int) ([]*Notification, error) {
 	return notificationsForUser(x, user, statuses, page, perPage)
 }
+
 func notificationsForUser(e Engine, user *User, statuses []NotificationStatus, page, perPage int) (notifications []*Notification, err error) {
 	if len(statuses) == 0 {
 		return

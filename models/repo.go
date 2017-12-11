@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/cae/zip"
@@ -211,10 +212,8 @@ type Repository struct {
 	Size          int64              `xorm:"NOT NULL DEFAULT 0"`
 	IndexerStatus *RepoIndexerStatus `xorm:"-"`
 
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX created"`
-	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX updated"`
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
@@ -227,8 +226,6 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
 	repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
 	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
-	repo.Created = time.Unix(repo.CreatedUnix, 0).Local()
-	repo.Updated = time.Unix(repo.UpdatedUnix, 0)
 }
 
 // MustOwner always returns a valid *User object to avoid
@@ -309,8 +306,8 @@ func (repo *Repository) innerAPIFormat(mode AccessMode, isParent bool) *api.Repo
 		Watchers:      repo.NumWatches,
 		OpenIssues:    repo.NumOpenIssues,
 		DefaultBranch: repo.DefaultBranch,
-		Created:       repo.Created,
-		Updated:       repo.Updated,
+		Created:       repo.CreatedUnix.AsTime(),
+		Updated:       repo.UpdatedUnix.AsTime(),
 		Permissions:   permission,
 	}
 }
@@ -1011,10 +1008,10 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 
 	if opts.IsMirror {
 		if _, err = x.InsertOne(&Mirror{
-			RepoID:      repo.ID,
-			Interval:    setting.Mirror.DefaultInterval,
-			EnablePrune: true,
-			NextUpdate:  time.Now().Add(setting.Mirror.DefaultInterval),
+			RepoID:         repo.ID,
+			Interval:       setting.Mirror.DefaultInterval,
+			EnablePrune:    true,
+			NextUpdateUnix: util.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
 		}); err != nil {
 			return repo, fmt.Errorf("InsertOne: %v", err)
 		}

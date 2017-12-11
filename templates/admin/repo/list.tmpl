@@ -36,7 +36,7 @@
 							<td>{{.NumStars}}</td>
 							<td>{{.NumIssues}}</td>
 							<td>{{SizeFmt .Size}}</td>
-							<td><span title="{{DateFmtLong .Created}}">{{DateFmtShort .Created}}</span></td>
+							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Current}}" data-id="{{.ID}}"><i class="trash icon text red"></i></a></td>
 						</tr>
 					{{end}}

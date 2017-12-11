@@ -42,7 +42,7 @@
 									</li>
 								{{end}}
 							{{end}}
-							<li><i class="octicon octicon-clock"></i> {{.i18n.Tr "user.join_on"}} {{DateFmtShort .Owner.Created}}</li>
+							<li><i class="octicon octicon-clock"></i> {{.i18n.Tr "user.join_on"}} {{.Owner.CreatedUnix.FormatShort}}</li>
 							<li>
 								<i class="octicon octicon-person"></i>
 								<a href="{{.Owner.HomeLink}}/followers">

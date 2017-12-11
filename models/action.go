@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
@@ -85,15 +86,9 @@ type Action struct {
 	Comment     *Comment    `xorm:"-"`
 	IsDeleted   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
 	RefName     string
-	IsPrivate   bool      `xorm:"INDEX NOT NULL DEFAULT false"`
-	Content     string    `xorm:"TEXT"`
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX created"`
-}
-
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (a *Action) AfterLoad() {
-	a.Created = time.Unix(a.CreatedUnix, 0).Local()
+	IsPrivate   bool           `xorm:"INDEX NOT NULL DEFAULT false"`
+	Content     string         `xorm:"TEXT"`
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 }
 
 // GetOpType gets the ActionType of this action.
@@ -229,7 +224,7 @@ func (a *Action) GetContent() string {
 
 // GetCreate returns the action creation time.
 func (a *Action) GetCreate() time.Time {
-	return a.Created
+	return a.CreatedUnix.AsTime()
 }
 
 // GetIssueInfos returns a list of issues associated with

@@ -163,7 +163,7 @@
 
 		<div class="issue list">
 			{{range .Issues}}
-				{{ $timeStr:= TimeSince .Created $.Lang }}
+				{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 				<li class="item">
 					<div class="ui checkbox issue-checkbox">
 						<input type="checkbox" data-issue-id={{.ID}}></input>
