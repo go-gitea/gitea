@@ -64,7 +64,7 @@ type PublicKey struct {
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (key *PublicKey) AfterLoad() {
 	key.HasUsed = key.UpdatedUnix > key.CreatedUnix
-	key.HasRecentActivity = key.UpdatedUnix.Add(int64(7*24*time.Hour/time.Second)) > util.TimeStampNow()
+	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
 }
 
 // OmitEmail returns content of public key without email address.

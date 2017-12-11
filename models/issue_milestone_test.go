@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
@@ -28,7 +29,7 @@ func TestMilestone_APIFormat(t *testing.T) {
 		IsClosed:        false,
 		NumOpenIssues:   5,
 		NumClosedIssues: 6,
-		Deadline:        time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+		DeadlineUnix:    util.TimeStamp(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC).Unix()),
 	}
 	assert.Equal(t, api.Milestone{
 		ID:           milestone.ID,
@@ -37,7 +38,7 @@ func TestMilestone_APIFormat(t *testing.T) {
 		Description:  milestone.Content,
 		OpenIssues:   milestone.NumOpenIssues,
 		ClosedIssues: milestone.NumClosedIssues,
-		Deadline:     &milestone.Deadline,
+		Deadline:     milestone.DeadlineUnix.AsTimePtr(),
 	}, *milestone.APIFormat())
 }
 

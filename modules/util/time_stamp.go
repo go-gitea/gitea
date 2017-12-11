@@ -19,6 +19,11 @@ func (ts TimeStamp) Add(seconds int64) TimeStamp {
 	return ts + TimeStamp(seconds)
 }
 
+// AddDuration adds time.Duration and return sum
+func (ts TimeStamp) AddDuration(interval time.Duration) TimeStamp {
+	return ts + TimeStamp(interval/time.Second)
+}
+
 // Year returns the time's year
 func (ts TimeStamp) Year() int {
 	return ts.AsTime().Year()
