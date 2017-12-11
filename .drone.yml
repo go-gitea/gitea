@@ -73,6 +73,16 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
+  build-without-gcc:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      GOPATH: /srv/app
+    commands:
+      - go build # test if build succeeds without the sqlite tag
+    when:
+      event: [ push, tag, pull_request ]
+
   test:
     image: webhippie/golang:edge
     pull: true
