@@ -24,9 +24,9 @@
 						<b>{{$.i18n.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.KeyID}} {{end}}
 					</div>
 					<div class="activity meta">
-						<i>{{$.i18n.Tr "settings.add_on"}} <span>{{DateFmtShort .Added}}</span></i>
+						<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.AddedUnix.FormatShort}}</span></i>
 						-
-						<i>{{if not .Expired.IsZero }}{{$.i18n.Tr "settings.valid_until"}} <span>{{DateFmtShort .Expired}}</span>{{else}}{{$.i18n.Tr "settings.valid_forever"}}{{end}}</i>
+						<i>{{if .ExpiredUnix}}{{$.i18n.Tr "settings.valid_until"}} <span>{{.ExpiredUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.valid_forever"}}{{end}}</i>
 					</div>
 				</div>
 			</div>

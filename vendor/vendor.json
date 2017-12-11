@@ -3,10 +3,10 @@
 	"ignore": "test appengine",
 	"package": [
 		{
-			"checksumSHA1": "vAVjAz7Wpjnu7GGba4JLIDTpQEw=",
+			"checksumSHA1": "UnJFMWkh0ulYlOV0etJYgt5SzJY=",
 			"path": "code.gitea.io/git",
-			"revision": "f9dd6826bbb51c92c6964ce18176c304ea286e54",
-			"revisionTime": "2017-11-28T15:25:05Z"
+			"revision": "4768133d10fa395278f545f3bf3ce44552b30ad6",
+			"revisionTime": "2017-12-10T10:06:09Z"
 		},
 		{
 			"checksumSHA1": "QQ7g7B9+EIzGjO14KCGEs9TNEzM=",
@@ -324,10 +324,10 @@
 			"revisionTime": "2015-10-26T16:03:18Z"
 		},
 		{
-			"checksumSHA1": "Lf3uUXTkKK5DJ37BxQvxO1Fq+K8=",
+			"checksumSHA1": "HZHDKs2ZV3FhKKTBfMzkv3+moaQ=",
 			"path": "github.com/davecgh/go-spew/spew",
-			"revision": "976c720a22c8eb4eb6a0b4348ad85ad12491a506",
-			"revisionTime": "2016-09-25T22:06:09Z"
+			"revision": "ecdeabc65495df2dec95d7c4a4c3e021903035e5",
+			"revisionTime": "2017-10-02T20:02:53Z"
 		},
 		{
 			"checksumSHA1": "zJ5PJN6nh9CRhxfub9e7BNzekR0=",
@@ -720,10 +720,10 @@
 			"revisionTime": "2017-07-05T08:25:03Z"
 		},
 		{
-			"checksumSHA1": "9mjAkIoPrJdiGcR0pBa81NoFY4U=",
+			"checksumSHA1": "YTgxXagoxQMgJhALc0pOQYmTAqg=",
 			"path": "github.com/mcuadros/go-version",
-			"revision": "d52711f8d6bea8dc01efafdb68ad95a4e2606630",
-			"revisionTime": "2014-12-06T21:13:39Z"
+			"revision": "88e56e02bea1c203c99222c365fa52a69996ccac",
+			"revisionTime": "2017-10-03T09:47:16Z"
 		},
 		{
 			"checksumSHA1": "r1klEIiloTrSYFv3cjaJcPHLkLo=",
@@ -1128,10 +1128,10 @@
 			"revisionTime": "2016-03-22T02:19:37Z"
 		},
 		{
-			"checksumSHA1": "zKKp5SZ3d3ycKe4EKMNT0BqAWBw=",
+			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
 			"path": "github.com/pmezard/go-difflib/difflib",
-			"revision": "976c720a22c8eb4eb6a0b4348ad85ad12491a506",
-			"revisionTime": "2016-09-25T22:06:09Z"
+			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",
+			"revisionTime": "2016-01-10T10:55:54Z"
 		},
 		{
 			"checksumSHA1": "pcKYSF+UN342M6Y+GSL5QhqKVk0=",
@@ -1183,10 +1183,16 @@
 			"revisionTime": "2016-12-08T13:07:38Z"
 		},
 		{
-			"checksumSHA1": "Q2V7Zs3diLmLfmfbiuLpSxETSuY=",
+			"checksumSHA1": "mGbTYZ8dHVTiPTTJu3ktp+84pPI=",
 			"path": "github.com/stretchr/testify/assert",
-			"revision": "976c720a22c8eb4eb6a0b4348ad85ad12491a506",
-			"revisionTime": "2016-09-25T22:06:09Z"
+			"revision": "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f",
+			"revisionTime": "2017-08-14T20:04:35Z"
+		},
+		{
+			"checksumSHA1": "7vs6dSc1PPGBKyzb/SCIyeMJPLQ=",
+			"path": "github.com/stretchr/testify/require",
+			"revision": "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f",
+			"revisionTime": "2017-08-14T20:04:35Z"
 		},
 		{
 			"checksumSHA1": "MAnxhGyQfhoyoATeT1zJDPyWq7A=",

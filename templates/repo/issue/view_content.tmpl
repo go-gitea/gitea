@@ -8,7 +8,7 @@
 		{{template "repo/issue/view_title" .}}
 	{{end}}
 
-	{{ $createdStr:= TimeSince .Issue.Created $.Lang }}
+	{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.Lang }}
 	<div class="twelve wide column comment-list">
 		<ui class="ui comments">
 			<div class="comment">

@@ -7,7 +7,6 @@ package models
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
@@ -17,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
@@ -98,10 +98,8 @@ type Comment struct {
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
 
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX created"`
-	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX updated"`
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
 	CommitSHA string `xorm:"VARCHAR(40)"`
@@ -115,9 +113,6 @@ type Comment struct {
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (c *Comment) AfterLoad(session *xorm.Session) {
-	c.Created = time.Unix(c.CreatedUnix, 0).Local()
-	c.Updated = time.Unix(c.UpdatedUnix, 0).Local()
-
 	var err error
 	c.Attachments, err = getAttachmentsByCommentID(session, c.ID)
 	if err != nil {
@@ -191,8 +186,8 @@ func (c *Comment) APIFormat() *api.Comment {
 		IssueURL: c.IssueURL(),
 		PRURL:    c.PRURL(),
 		Body:     c.Content,
-		Created:  c.Created,
-		Updated:  c.Updated,
+		Created:  c.CreatedUnix.AsTime(),
+		Updated:  c.UpdatedUnix.AsTime(),
 	}
 }
 

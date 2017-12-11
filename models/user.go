@@ -94,12 +94,9 @@ type User struct {
 	Rands            string `xorm:"VARCHAR(10)"`
 	Salt             string `xorm:"VARCHAR(10)"`
 
-	Created       time.Time `xorm:"-"`
-	CreatedUnix   int64     `xorm:"INDEX created"`
-	Updated       time.Time `xorm:"-"`
-	UpdatedUnix   int64     `xorm:"INDEX updated"`
-	LastLogin     time.Time `xorm:"-"`
-	LastLoginUnix int64     `xorm:"INDEX"`
+	CreatedUnix   util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix   util.TimeStamp `xorm:"INDEX updated"`
+	LastLoginUnix util.TimeStamp `xorm:"INDEX"`
 
 	// Remember visibility choice for convenience, true for private
 	LastRepoVisibility bool
@@ -145,7 +142,7 @@ func (u *User) BeforeUpdate() {
 
 // SetLastLogin set time to last login
 func (u *User) SetLastLogin() {
-	u.LastLoginUnix = time.Now().Unix()
+	u.LastLoginUnix = util.TimeStampNow()
 }
 
 // UpdateDiffViewStyle updates the users diff view style
@@ -154,12 +151,13 @@ func (u *User) UpdateDiffViewStyle(style string) error {
 	return UpdateUserCols(u, "diff_view_style")
 }
 
+/*
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (u *User) AfterLoad() {
 	u.Created = time.Unix(u.CreatedUnix, 0).Local()
 	u.Updated = time.Unix(u.UpdatedUnix, 0).Local()
 	u.LastLogin = time.Unix(u.LastLoginUnix, 0).Local()
-}
+}*/
 
 // getEmail returns an noreply email, if the user has set to keep his
 // email address private, otherwise the primary email address.

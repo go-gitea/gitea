@@ -82,7 +82,7 @@ func ToPublicKey(apiLink string, key *models.PublicKey) *api.PublicKey {
 		URL:         apiLink + com.ToStr(key.ID),
 		Title:       key.Name,
 		Fingerprint: key.Fingerprint,
-		Created:     key.Created,
+		Created:     key.CreatedUnix.AsTime(),
 	}
 }
 
@@ -95,8 +95,8 @@ func ToGPGKey(key *models.GPGKey) *api.GPGKey {
 			PrimaryKeyID:      k.PrimaryKeyID,
 			KeyID:             k.KeyID,
 			PublicKey:         k.Content,
-			Created:           k.Created,
-			Expires:           k.Expired,
+			Created:           k.CreatedUnix.AsTime(),
+			Expires:           k.ExpiredUnix.AsTime(),
 			CanSign:           k.CanSign,
 			CanEncryptComms:   k.CanEncryptComms,
 			CanEncryptStorage: k.CanEncryptStorage,
@@ -112,8 +112,8 @@ func ToGPGKey(key *models.GPGKey) *api.GPGKey {
 		PrimaryKeyID:      key.PrimaryKeyID,
 		KeyID:             key.KeyID,
 		PublicKey:         key.Content,
-		Created:           key.Created,
-		Expires:           key.Expired,
+		Created:           key.CreatedUnix.AsTime(),
+		Expires:           key.ExpiredUnix.AsTime(),
 		Emails:            emails,
 		SubsKey:           subkeys,
 		CanSign:           key.CanSign,
@@ -152,8 +152,8 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 		Active:  w.IsActive,
 		Config:  config,
 		Events:  w.EventsArray(),
-		Updated: w.Updated,
-		Created: w.Created,
+		Updated: w.UpdatedUnix.AsTime(),
+		Created: w.CreatedUnix.AsTime(),
 	}
 }
 

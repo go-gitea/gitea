@@ -18,7 +18,7 @@
 				<li class="ui grid">
 					<div class="ui four wide column meta">
 						{{if .IsTag}}
-							{{if .Created}}<span class="time">{{TimeSince .Created $.Lang}}</span>{{end}}
+							{{if .CreatedUnix}}<span class="time">{{TimeSinceUnix .CreatedUnix $.Lang}}</span>{{end}}
 						{{else}}
 							{{if .IsDraft}}
 								<span class="ui yellow label">{{$.i18n.Tr "repo.release.draft"}}</span>
@@ -55,7 +55,7 @@
 									<img class="img-10" src="{{.Publisher.RelAvatarLink}}">
 									<a href="{{AppSubUrl}}/{{.Publisher.Name}}">{{.Publisher.Name}}</a>
 								</span>
-								{{if .Created}}<span class="time">{{TimeSince .Created $.Lang}}</span>{{end}}
+								{{if .CreatedUnix}}<span class="time">{{TimeSinceUnix .CreatedUnix $.Lang}}</span>{{end}}
 								<span class="ahead">{{$.i18n.Tr "repo.release.ahead" .NumCommitsBehind .Target | Str2html}}</span>
 							</p>
 							<div class="markdown desc">

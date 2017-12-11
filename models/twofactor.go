@@ -8,13 +8,13 @@ import (
 	"crypto/md5"
 	"crypto/subtle"
 	"encoding/base64"
-	"time"
 
 	"github.com/Unknwon/com"
 	"github.com/pquerna/otp/totp"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // TwoFactor represents a two-factor authentication token.
@@ -23,17 +23,8 @@ type TwoFactor struct {
 	UID          int64 `xorm:"UNIQUE"`
 	Secret       string
 	ScratchToken string
-
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX created"`
-	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX updated"`
-}
-
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (t *TwoFactor) AfterLoad() {
-	t.Created = time.Unix(t.CreatedUnix, 0).Local()
-	t.Updated = time.Unix(t.UpdatedUnix, 0).Local()
+	CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix  util.TimeStamp `xorm:"INDEX updated"`
 }
 
 // GenerateScratchToken recreates the scratch token the user is using.

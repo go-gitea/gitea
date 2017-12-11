@@ -5,9 +5,8 @@
 package models
 
 import (
-	"time"
-
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/go-xorm/xorm"
@@ -27,16 +26,14 @@ type Milestone struct {
 	Completeness    int  // Percentage(1-100).
 	IsOverDue       bool `xorm:"-"`
 
-	DeadlineString string    `xorm:"-"`
-	Deadline       time.Time `xorm:"-"`
-	DeadlineUnix   int64
-	ClosedDate     time.Time `xorm:"-"`
-	ClosedDateUnix int64
+	DeadlineString string `xorm:"-"`
+	DeadlineUnix   util.TimeStamp
+	ClosedDateUnix util.TimeStamp
 }
 
 // BeforeInsert is invoked from XORM before inserting an object of this type.
 func (m *Milestone) BeforeInsert() {
-	m.DeadlineUnix = m.Deadline.Unix()
+	m.DeadlineUnix = util.TimeStampNow()
 }
 
 // BeforeUpdate is invoked from XORM before updating this object.
@@ -46,26 +43,20 @@ func (m *Milestone) BeforeUpdate() {
 	} else {
 		m.Completeness = 0
 	}
-
-	m.DeadlineUnix = m.Deadline.Unix()
-	m.ClosedDateUnix = m.ClosedDate.Unix()
 }
 
 // AfterLoad is invoked from XORM after setting the value of a field of
 // this object.
 func (m *Milestone) AfterLoad() {
 	m.NumOpenIssues = m.NumIssues - m.NumClosedIssues
-	m.Deadline = time.Unix(m.DeadlineUnix, 0).Local()
-	if m.Deadline.Year() == 9999 {
+	if m.DeadlineUnix.Year() == 9999 {
 		return
 	}
 
-	m.DeadlineString = m.Deadline.Format("2006-01-02")
-	if time.Now().Local().After(m.Deadline) {
+	m.DeadlineString = m.DeadlineUnix.Format("2006-01-02")
+	if util.TimeStampNow() >= m.DeadlineUnix {
 		m.IsOverDue = true
 	}
-
-	m.ClosedDate = time.Unix(m.ClosedDateUnix, 0).Local()
 }
 
 // State returns string representation of milestone status.
@@ -87,10 +78,10 @@ func (m *Milestone) APIFormat() *api.Milestone {
 		ClosedIssues: m.NumClosedIssues,
 	}
 	if m.IsClosed {
-		apiMilestone.Closed = &m.ClosedDate
+		apiMilestone.Closed = m.ClosedDateUnix.AsTimePtr()
 	}
-	if m.Deadline.Year() < 9999 {
-		apiMilestone.Deadline = &m.Deadline
+	if m.DeadlineUnix.Year() < 9999 {
+		apiMilestone.Deadline = m.DeadlineUnix.AsTimePtr()
 	}
 	return apiMilestone
 }

@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
@@ -67,27 +68,11 @@ type PullRequest struct {
 	BaseBranch   string
 	MergeBase    string `xorm:"VARCHAR(40)"`
 
-	HasMerged      bool      `xorm:"INDEX"`
-	MergedCommitID string    `xorm:"VARCHAR(40)"`
-	MergerID       int64     `xorm:"INDEX"`
-	Merger         *User     `xorm:"-"`
-	Merged         time.Time `xorm:"-"`
-	MergedUnix     int64     `xorm:"INDEX"`
-}
-
-// BeforeUpdate is invoked from XORM before updating an object of this type.
-func (pr *PullRequest) BeforeUpdate() {
-	pr.MergedUnix = pr.Merged.Unix()
-}
-
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-// Note: don't try to get Issue because will end up recursive querying.
-func (pr *PullRequest) AfterLoad() {
-	if !pr.HasMerged {
-		return
-	}
-
-	pr.Merged = time.Unix(pr.MergedUnix, 0).Local()
+	HasMerged      bool           `xorm:"INDEX"`
+	MergedCommitID string         `xorm:"VARCHAR(40)"`
+	MergerID       int64          `xorm:"INDEX"`
+	Merger         *User          `xorm:"-"`
+	MergedUnix     util.TimeStamp `xorm:"updated INDEX"`
 }
 
 // Note: don't try to get Issue because will end up recursive querying.
@@ -194,8 +179,8 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		Base:      apiBaseBranchInfo,
 		Head:      apiHeadBranchInfo,
 		MergeBase: pr.MergeBase,
-		Created:   &pr.Issue.Created,
-		Updated:   &pr.Issue.Updated,
+		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
+		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
 	}
 
 	if pr.Status != PullRequestStatusChecking {
@@ -203,7 +188,7 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		apiPullRequest.Mergeable = mergeable
 	}
 	if pr.HasMerged {
-		apiPullRequest.Merged = &pr.Merged
+		apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
 		apiPullRequest.MergedCommitID = &pr.MergedCommitID
 		apiPullRequest.MergedBy = pr.Merger.APIFormat()
 	}
@@ -330,7 +315,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository) (err error
 		return fmt.Errorf("GetBranchCommit: %v", err)
 	}
 
-	pr.Merged = time.Now()
+	pr.MergedUnix = util.TimeStampNow()
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
@@ -396,7 +381,7 @@ func (pr *PullRequest) setMerged() (err error) {
 	if pr.HasMerged {
 		return fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	}
-	if pr.MergedCommitID == "" || pr.Merged.IsZero() || pr.Merger == nil {
+	if pr.MergedCommitID == "" || pr.MergedUnix == 0 || pr.Merger == nil {
 		return fmt.Errorf("Unable to merge PullRequest[%d], some required fields are empty", pr.Index)
 	}
 
@@ -442,7 +427,7 @@ func (pr *PullRequest) manuallyMerged() bool {
 	}
 	if commit != nil {
 		pr.MergedCommitID = commit.ID.String()
-		pr.Merged = commit.Author.When
+		pr.MergedUnix = util.TimeStamp(commit.Author.When.Unix())
 		pr.Status = PullRequestStatusManuallyMerged
 		merger, _ := GetUserByEmail(commit.Author.Email)
 
