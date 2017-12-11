@@ -736,7 +736,7 @@ func GetDeployKeyByRepo(keyID, repoID int64) (*DeployKey, error) {
 	return key, nil
 }
 
-// UpdateDeployKeyCols updates deploy key information only columns.
+// UpdateDeployKeyCols updates deploy key information in the specified columns.
 func UpdateDeployKeyCols(key *DeployKey, cols ...string) error {
 	_, err := x.ID(key.ID).Cols(cols...).Update(key)
 	return err
