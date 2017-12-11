@@ -58,7 +58,6 @@
 {{if .RequireDropzone}}
 	<script src="{{AppSubUrl}}/vendor/plugins/dropzone/dropzone.js"></script>
 {{end}}
-
 {{if .RequireTribute}}
 	<script src="{{AppSubUrl}}/vendor/plugins/tribute/tribute.min.js"></script>
 
@@ -73,12 +72,12 @@
 			],
 			noMatchTemplate: function () { return null },
 			menuItemTemplate: function (item) {
-			var user = item.original;
-			var itemStr = '<img src="' + user.avatar + '"/><span class="name">' + user.name + '</span>';
-			if (user.fullname && user.fullname != '') {
-				itemStr += '<span class="fullname">' + user.fullname + '</span>';
-			}
-			return itemStr;
+				var user = item.original;
+				var itemStr = '<img src="' + user.avatar + '"/><span class="name">' + user.name + '</span>';
+				if (user.fullname && user.fullname != '') {
+					itemStr += '<span class="fullname">' + user.fullname + '</span>';
+				}
+				return itemStr;
 			}
 		})
 		issuesTribute.attach(document.getElementById('content'))
