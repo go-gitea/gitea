@@ -1,4 +1,4 @@
-package assert
+package require
 
 // Assertions provides assertion methods around the
 // TestingT interface.
@@ -13,4 +13,4 @@ func New(t TestingT) *Assertions {
 	}
 }
 
-//go:generate go run ../_codegen/main.go -output-package=assert -template=assertion_forward.go.tmpl -include-format-funcs
+//go:generate go run ../_codegen/main.go -output-package=require -template=require_forward.go.tmpl -include-format-funcs
