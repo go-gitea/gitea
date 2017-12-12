@@ -44,7 +44,7 @@ func migrateProtectedBranchStruct(x *xorm.Engine) error {
 		log.Warn("Unable to drop columns in SQLite")
 	case setting.UseMySQL, setting.UsePostgreSQL, setting.UseMSSQL, setting.UseTiDB:
 		if _, err := x.Exec("ALTER TABLE protected_branch DROP COLUMN can_push"); err != nil {
-			// Ignoring this error in case we run this migration second time (after migration reordeting)
+			// Ignoring this error in case we run this migration second time (after migration reordering)
 			log.Warn("DROP COLUMN can_push (skipping): %v", err)
 		}
 	default:
