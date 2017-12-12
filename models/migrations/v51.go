@@ -34,6 +34,7 @@ func addDefaultValueToUserProhibitLogin(x *xorm.Engine) (err error) {
 	}
 
 	if err != nil {
+		// Ignoring this error in case we run this migration second time (after migration reordeting)
 		log.Warn("Error changing user prohibit_login column definition: %v", err)
 	}
 
