@@ -120,8 +120,6 @@ func TestRepoPullsWithStatus(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	doc = NewHTMLParser(t, resp.Body)
 
-	fmt.Println(string(resp.Body))
-
 	doc.doc.Find("li.item").Each(func(i int, s *goquery.Selection) {
 		cls, ok := s.Find("i.commit-status").Attr("class")
 		assert.True(t, ok)
