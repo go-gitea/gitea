@@ -238,7 +238,7 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 	var (
 		diff = &Diff{Files: make([]*DiffFile, 0)}
 
-		curFile    *DiffFile
+		curFile    = &DiffFile{}
 		curSection = &DiffSection{
 			Lines: make([]*DiffLine, 0, 10),
 		}
