@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"regexp"
 
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/paginater"
@@ -454,15 +455,31 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		return
 	}
 
+	regExpTasks := regexp.MustCompile(`(^\s*-\s\[[\sx]\]\s)|(\n\s*-\s\[[\sx]\]\s)`)
+	tasksMatches := regExpTasks.FindAllStringIndex(form.Content, -1)
+	tasks := len(tasksMatches)
+
+	regExpTasksdone := regexp.MustCompile(`(^\s*-\s\[[x]\]\s)|(\n\s*-\s\[[x]\]\s)`)
+	tasksdoneMatches := regExpTasksdone.FindAllStringIndex(form.Content, -1)
+	tasksdone := len(tasksdoneMatches)
+
+	tasksprogress := 0
+	if(tasks > 0) {
+		tasksprogress = 100 * tasksdone / tasks
+	}
+
 	issue := &models.Issue{
-		RepoID:      repo.ID,
-		Title:       form.Title,
-		PosterID:    ctx.User.ID,
-		Poster:      ctx.User,
-		MilestoneID: milestoneID,
-		AssigneeID:  assigneeID,
-		Content:     form.Content,
-		Ref:         form.Ref,
+		RepoID:        repo.ID,
+		Title:         form.Title,
+		PosterID:      ctx.User.ID,
+		Poster:        ctx.User,
+		MilestoneID:   milestoneID,
+		AssigneeID:    assigneeID,
+		Content:       form.Content,
+		Ref:           form.Ref,
+		Tasks:         tasks,
+		Tasksdone:     tasksdone,
+		Tasksprogress: tasksprogress,
 	}
 	if err := models.NewIssue(repo, issue, labelIDs, attachments); err != nil {
 		ctx.Handle(500, "NewIssue", err)

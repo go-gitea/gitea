@@ -9,6 +9,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"regexp"
 
 	api "code.gitea.io/sdk/gitea"
 	"github.com/Unknwon/com"
@@ -31,6 +32,9 @@ type Issue struct {
 	Title           string      `xorm:"name"`
 	Content         string      `xorm:"TEXT"`
 	RenderedContent string      `xorm:"-"`
+	Tasks           int
+	Tasksdone       int
+	Tasksprogress   int
 	Labels          []*Label    `xorm:"-"`
 	MilestoneID     int64       `xorm:"INDEX"`
 	Milestone       *Milestone  `xorm:"-"`
@@ -740,10 +744,24 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	oldContent := issue.Content
 	issue.Content = content
-	if err = UpdateIssueCols(issue, "content"); err != nil {
+
+	regExpTasks := regexp.MustCompile(`(^\s*-\s\[[\sx]\]\s)|(\n\s*-\s\[[\sx]\]\s)`)
+        tasksMatches := regExpTasks.FindAllStringIndex(content, -1)
+        issue.Tasks = len(tasksMatches)
+
+        regExpTasksdone := regexp.MustCompile(`(^\s*-\s\[[x]\]\s)|(\n\s*-\s\[[x]\]\s)`)
+        tasksdoneMatches := regExpTasksdone.FindAllStringIndex(content, -1)
+        issue.Tasksdone = len(tasksdoneMatches)
+
+        issue.Tasksprogress = 0
+        if(issue.Tasks > 0) {
+                issue.Tasksprogress = 100 * issue.Tasksdone / issue.Tasks
+        }
+
+	if err = UpdateIssueCols(issue, "content", "tasks", "tasksdone", "tasksprogress"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
-
+	
 	if issue.IsPull {
 		issue.PullRequest.Issue = issue
 		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
