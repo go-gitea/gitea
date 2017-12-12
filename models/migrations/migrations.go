@@ -59,7 +59,7 @@ type Version struct {
 	Version int64
 }
 
-func emptyMigtation(x *xorm.Engine) error {
+func emptyMigration(x *xorm.Engine) error {
 	return nil
 }
 
@@ -137,11 +137,11 @@ var migrations = []Migration{
 	// v41 -> v42
 	NewMigration("remove duplicate unit types", removeDuplicateUnitTypes),
 	// v42 -> v43
-	NewMigration("empty step", emptyMigtation),
+	NewMigration("empty step", emptyMigration),
 	// v43 -> v44
-	NewMigration("empty step", emptyMigtation),
+	NewMigration("empty step", emptyMigration),
 	// v44 -> v45
-	NewMigration("empty step", emptyMigtation),
+	NewMigration("empty step", emptyMigration),
 	// v45 -> v46
 	NewMigration("remove index column from repo_unit table", removeIndexColumnFromRepoUnitTable),
 	// v46 -> v47
