@@ -475,6 +475,26 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
 }
 
+// commentTag returns the CommentTag for a comment in/with the given repo, poster and issue
+func commentTag(repo *models.Repository, poster *models.User, issue *models.Issue) (models.CommentTag, error) {
+	if repo.IsOwnedBy(poster.ID) {
+		return models.CommentTagOwner, nil
+	} else if repo.Owner.IsOrganization() {
+		isOwner, err := repo.Owner.IsOwnedBy(poster.ID)
+		if err != nil {
+			return models.CommentTagNone, err
+		} else if isOwner {
+			return models.CommentTagOwner, nil
+		}
+	}
+	if poster.IsWriterOfRepo(repo) {
+		return models.CommentTagWriter, nil
+	} else if poster.ID == issue.PosterID {
+		return models.CommentTagPoster, nil
+	}
+	return models.CommentTagNone, nil
+}
+
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
@@ -644,15 +664,11 @@ func ViewIssue(ctx *context.Context) {
 				continue
 			}
 
-			if repo.IsOwnedBy(comment.PosterID) ||
-				(repo.Owner.IsOrganization() && repo.Owner.IsOwnedBy(comment.PosterID)) {
-				comment.ShowTag = models.CommentTagOwner
-			} else if comment.Poster.IsWriterOfRepo(repo) {
-				comment.ShowTag = models.CommentTagWriter
-			} else if comment.PosterID == issue.PosterID {
-				comment.ShowTag = models.CommentTagPoster
+			comment.ShowTag, err = commentTag(repo, comment.Poster, issue)
+			if err != nil {
+				ctx.Handle(500, "commentTag", err)
+				return
 			}
-
 			marked[comment.PosterID] = comment.ShowTag
 
 			isAdded := false

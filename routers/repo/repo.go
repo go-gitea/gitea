@@ -74,9 +74,19 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 	}
 
 	// Check ownership of organization.
-	if !org.IsOrganization() || !(ctx.User.IsAdmin || org.IsOwnedBy(ctx.User.ID)) {
+	if !org.IsOrganization() {
 		ctx.Error(403)
 		return nil
+	}
+	if !ctx.User.IsAdmin {
+		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.Handle(500, "IsOwnedBy", err)
+			return nil
+		} else if !isOwner {
+			ctx.Error(403)
+			return nil
+		}
 	}
 	return org
 }
