@@ -755,7 +755,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	if err = UpdateIssueCols(issue, "content", "tasks", "tasksdone"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
-	
+
 	if issue.IsPull {
 		issue.PullRequest.Issue = issue
 		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
