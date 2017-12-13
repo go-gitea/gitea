@@ -7,9 +7,9 @@ package models
 import (
 	"fmt"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
-	"regexp"
 
 	api "code.gitea.io/sdk/gitea"
 	"github.com/Unknwon/com"
@@ -34,9 +34,9 @@ type Issue struct {
 	RenderedContent string      `xorm:"-"`
 	Tasks           int
 	Tasksdone       int
-	Labels          []*Label    `xorm:"-"`
-	MilestoneID     int64       `xorm:"INDEX"`
-	Milestone       *Milestone  `xorm:"-"`
+	Labels          []*Label   `xorm:"-"`
+	MilestoneID     int64      `xorm:"INDEX"`
+	Milestone       *Milestone `xorm:"-"`
 	Priority        int
 	AssigneeID      int64        `xorm:"INDEX"`
 	Assignee        *User        `xorm:"-"`
@@ -745,12 +745,12 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	issue.Content = content
 
 	regExpTasks := regexp.MustCompile(`(^\s*-\s\[[\sx]\]\s)|(\n\s*-\s\[[\sx]\]\s)`)
-        tasksMatches := regExpTasks.FindAllStringIndex(content, -1)
-        issue.Tasks = len(tasksMatches)
+	tasksMatches := regExpTasks.FindAllStringIndex(content, -1)
+	issue.Tasks = len(tasksMatches)
 
-        regExpTasksdone := regexp.MustCompile(`(^\s*-\s\[[x]\]\s)|(\n\s*-\s\[[x]\]\s)`)
-        tasksdoneMatches := regExpTasksdone.FindAllStringIndex(content, -1)
-        issue.Tasksdone = len(tasksdoneMatches)
+	regExpTasksdone := regexp.MustCompile(`(^\s*-\s\[[x]\]\s)|(\n\s*-\s\[[x]\]\s)`)
+	tasksdoneMatches := regExpTasksdone.FindAllStringIndex(content, -1)
+	issue.Tasksdone = len(tasksdoneMatches)
 
 	if err = UpdateIssueCols(issue, "content", "tasks", "tasksdone"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)

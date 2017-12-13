@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
-	"regexp"
 
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/paginater"
