@@ -24,6 +24,9 @@ func addPullRequestOptions(x *xorm.Engine) error {
 
 	sess := x.NewSession()
 	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
 
 	//Updating existing issue units
 	units := make([]*RepoUnit, 0, 100)
