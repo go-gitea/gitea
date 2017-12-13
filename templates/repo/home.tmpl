@@ -25,9 +25,9 @@
 		</div>
 		{{template "repo/sub_menu" .}}
 		<div class="ui secondary menu">
-			{{if .PullRequestCtx.Allowed}}
+			{{if and .PullRequestCtx.Allowed .IsViewBranch}}
 				<div class="fitted item">
-					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch}}...{{if .IsForkedRepo}}{{.Repository.Owner.Name}}:{{else}}{{if .SignedUser.HasForkedRepo .BaseRepo.ID}}{{.SignedUser.Name}}:{{end}}{{end}}{{.BranchName}}">
+					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch}}...{{.Repository.Owner.Name}}:{{.BranchName}}">
 						<button class="ui green tiny compact button"><i class="octicon octicon-git-compare"></i></button>
 					</a>
 				</div>
