@@ -29,12 +29,10 @@ type ProtectedBranch struct {
 	BranchName       string `xorm:"UNIQUE(s)"`
 	CanPush          bool   `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist  bool
-	WhitelistUserIDs []int64   `xorm:"JSON TEXT"`
-	WhitelistTeamIDs []int64   `xorm:"JSON TEXT"`
-	Created          time.Time `xorm:"-"`
-	CreatedUnix      int64     `xorm:"created"`
-	Updated          time.Time `xorm:"-"`
-	UpdatedUnix      int64     `xorm:"updated"`
+	WhitelistUserIDs []int64        `xorm:"JSON TEXT"`
+	WhitelistTeamIDs []int64        `xorm:"JSON TEXT"`
+	CreatedUnix      util.TimeStamp `xorm:"created"`
+	UpdatedUnix      util.TimeStamp `xorm:"updated"`
 }
 
 // IsProtected returns if the branch is protected
@@ -197,19 +195,13 @@ func (repo *Repository) DeleteProtectedBranch(id int64) (err error) {
 
 // DeletedBranch struct
 type DeletedBranch struct {
-	ID          int64     `xorm:"pk autoincr"`
-	RepoID      int64     `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Name        string    `xorm:"UNIQUE(s) NOT NULL"`
-	Commit      string    `xorm:"UNIQUE(s) NOT NULL"`
-	DeletedByID int64     `xorm:"INDEX"`
-	DeletedBy   *User     `xorm:"-"`
-	Deleted     time.Time `xorm:"-"`
-	DeletedUnix int64     `xorm:"INDEX created"`
-}
-
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (deletedBranch *DeletedBranch) AfterLoad() {
-	deletedBranch.Deleted = time.Unix(deletedBranch.DeletedUnix, 0).Local()
+	ID          int64          `xorm:"pk autoincr"`
+	RepoID      int64          `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Name        string         `xorm:"UNIQUE(s) NOT NULL"`
+	Commit      string         `xorm:"UNIQUE(s) NOT NULL"`
+	DeletedByID int64          `xorm:"INDEX"`
+	DeletedBy   *User          `xorm:"-"`
+	DeletedUnix util.TimeStamp `xorm:"INDEX created"`
 }
 
 // AddDeletedBranch adds a deleted branch to the database

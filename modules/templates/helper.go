@@ -65,14 +65,15 @@ func NewFuncMap() []template.FuncMap {
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
-		"AvatarLink":   base.AvatarLink,
-		"Safe":         Safe,
-		"SafeJS":       SafeJS,
-		"Str2html":     Str2html,
-		"TimeSince":    base.TimeSince,
-		"RawTimeSince": base.RawTimeSince,
-		"FileSize":     base.FileSize,
-		"Subtract":     base.Subtract,
+		"AvatarLink":    base.AvatarLink,
+		"Safe":          Safe,
+		"SafeJS":        SafeJS,
+		"Str2html":      Str2html,
+		"TimeSince":     base.TimeSince,
+		"TimeSinceUnix": base.TimeSinceUnix,
+		"RawTimeSince":  base.RawTimeSince,
+		"FileSize":      base.FileSize,
+		"Subtract":      base.Subtract,
 		"Add": func(a, b int) int {
 			return a + b
 		},

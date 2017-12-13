@@ -9,7 +9,6 @@ import (
 	"path"
 	"sort"
 	"strings"
-	"time"
 
 	api "code.gitea.io/sdk/gitea"
 	"github.com/Unknwon/com"
@@ -45,29 +44,13 @@ type Issue struct {
 	NumComments     int
 	Ref             string
 
-	Deadline     time.Time `xorm:"-"`
-	DeadlineUnix int64     `xorm:"INDEX"`
-	Created      time.Time `xorm:"-"`
-	CreatedUnix  int64     `xorm:"INDEX created"`
-	Updated      time.Time `xorm:"-"`
-	UpdatedUnix  int64     `xorm:"INDEX updated"`
+	DeadlineUnix util.TimeStamp `xorm:"INDEX"`
+	CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix  util.TimeStamp `xorm:"INDEX updated"`
 
 	Attachments []*Attachment `xorm:"-"`
 	Comments    []*Comment    `xorm:"-"`
 	Reactions   ReactionList  `xorm:"-"`
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (issue *Issue) BeforeUpdate() {
-	issue.DeadlineUnix = issue.Deadline.Unix()
-}
-
-// AfterLoad is invoked from XORM after setting the value of a field of
-// this object.
-func (issue *Issue) AfterLoad() {
-	issue.Deadline = time.Unix(issue.DeadlineUnix, 0).Local()
-	issue.Created = time.Unix(issue.CreatedUnix, 0).Local()
-	issue.Updated = time.Unix(issue.UpdatedUnix, 0).Local()
 }
 
 func (issue *Issue) loadRepo(e Engine) (err error) {
@@ -307,8 +290,8 @@ func (issue *Issue) APIFormat() *api.Issue {
 		Labels:   apiLabels,
 		State:    issue.State(),
 		Comments: issue.NumComments,
-		Created:  issue.Created,
-		Updated:  issue.Updated,
+		Created:  issue.CreatedUnix.AsTime(),
+		Updated:  issue.UpdatedUnix.AsTime(),
 	}
 
 	if issue.Milestone != nil {
@@ -322,7 +305,7 @@ func (issue *Issue) APIFormat() *api.Issue {
 			HasMerged: issue.PullRequest.HasMerged,
 		}
 		if issue.PullRequest.HasMerged {
-			apiIssue.PullRequest.Merged = &issue.PullRequest.Merged
+			apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
 		}
 	}
 

@@ -74,6 +74,10 @@
 	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/gitgraph/gitgraph.css">
 {{end}}
 
+{{if .RequireTribute}}
+	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/tribute/tribute.css">
+{{end}}
+
 	<!-- Stylesheet -->
 	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/semantic/semantic.min.css">
 	<link rel="stylesheet" href="{{AppSubUrl}}/css/index.css?v={{MD5 AppVer}}">

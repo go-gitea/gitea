@@ -10,11 +10,11 @@ import (
 	"mime/multipart"
 	"os"
 	"path"
-	"time"
 
 	gouuid "github.com/satori/go.uuid"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -25,24 +25,14 @@ type Attachment struct {
 	ReleaseID     int64  `xorm:"INDEX"`
 	CommentID     int64
 	Name          string
-	DownloadCount int64     `xorm:"DEFAULT 0"`
-	Created       time.Time `xorm:"-"`
-	CreatedUnix   int64     `xorm:"created"`
-}
-
-// AfterLoad is invoked from XORM after setting the value of a field of
-// this object.
-func (a *Attachment) AfterLoad() {
-	a.Created = time.Unix(a.CreatedUnix, 0).Local()
+	DownloadCount int64          `xorm:"DEFAULT 0"`
+	CreatedUnix   util.TimeStamp `xorm:"created"`
 }
 
 // IncreaseDownloadCount is update download count + 1
 func (a *Attachment) IncreaseDownloadCount() error {
-	sess := x.NewSession()
-	defer sess.Close()
-
 	// Update download count.
-	if _, err := sess.Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
+	if _, err := x.Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
 		return fmt.Errorf("increase attachment count: %v", err)
 	}
 

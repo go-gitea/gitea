@@ -58,6 +58,32 @@
 {{if .RequireDropzone}}
 	<script src="{{AppSubUrl}}/vendor/plugins/dropzone/dropzone.js"></script>
 {{end}}
+{{if .RequireTribute}}
+	<script src="{{AppSubUrl}}/vendor/plugins/tribute/tribute.min.js"></script>
+
+	{{if .Assignees}}
+	<script>
+		var issuesTribute = new Tribute({
+			values: [
+			{{ range .Assignees }}
+			{key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
+			name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'},
+			{{ end }}
+			],
+			noMatchTemplate: function () { return null },
+			menuItemTemplate: function (item) {
+				var user = item.original;
+				var itemStr = '<img src="' + user.avatar + '"/><span class="name">' + user.name + '</span>';
+				if (user.fullname && user.fullname != '') {
+					itemStr += '<span class="fullname">' + user.fullname + '</span>';
+				}
+				return itemStr;
+			}
+		})
+		issuesTribute.attach(document.getElementById('content'))
+	</script>
+	{{end}}
+{{end}}
 	<script src="{{AppSubUrl}}/vendor/plugins/autolink/autolink.js"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/emojify/emojify.min.js"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/clipboard/clipboard.min.js"></script>

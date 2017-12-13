@@ -123,7 +123,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		assert.Len(t, lfsLocks.Locks, test.totalCount)
 		for i, lock := range lfsLocks.Locks {
 			assert.EqualValues(t, test.locksOwners[i].DisplayName(), lock.Owner.Name)
-			assert.WithinDuration(t, test.locksTimes[i], lock.LockedAt, 1*time.Second)
+			assert.WithinDuration(t, test.locksTimes[i], lock.LockedAt, 3*time.Second)
 		}
 
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks/verify", test.repo.FullName()), map[string]string{})

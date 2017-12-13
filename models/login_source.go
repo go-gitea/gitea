@@ -12,7 +12,6 @@ import (
 	"net/smtp"
 	"net/textproto"
 	"strings"
-	"time"
 
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
@@ -23,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // LoginType represents an login type.
@@ -147,10 +147,8 @@ type LoginSource struct {
 	IsSyncEnabled bool            `xorm:"INDEX NOT NULL DEFAULT false"`
 	Cfg           core.Conversion `xorm:"TEXT"`
 
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX created"`
-	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX updated"`
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 }
 
 // Cell2Int64 converts a xorm.Cell type to int64,
@@ -181,12 +179,6 @@ func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 			panic("unrecognized login source type: " + com.ToStr(*val))
 		}
 	}
-}
-
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (source *LoginSource) AfterLoad() {
-	source.Created = time.Unix(source.CreatedUnix, 0).Local()
-	source.Updated = time.Unix(source.UpdatedUnix, 0).Local()
 }
 
 // TypeName return name of this login source type.

@@ -7,7 +7,6 @@ package auth
 import (
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
@@ -19,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 )
 
@@ -59,7 +59,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 				}
 				return 0
 			}
-			t.Updated = time.Now()
+			t.UpdatedUnix = util.TimeStampNow()
 			if err = models.UpdateAccessToken(t); err != nil {
 				log.Error(4, "UpdateAccessToken: %v", err)
 			}

@@ -1,5 +1,5 @@
 {{range .Issue.Comments}}
-	{{ $createdStr:= TimeSince .Created $.Lang }}
+	{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 
 	<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF, 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING, 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL -->
 	{{if eq .Type 0}}

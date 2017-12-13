@@ -15,7 +15,6 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
-	_ "github.com/mattn/go-sqlite3" // for the test engine
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/testfixtures.v2"
 )

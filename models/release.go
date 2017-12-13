@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 	"github.com/go-xorm/builder"
 )
@@ -30,28 +30,13 @@ type Release struct {
 	Title            string
 	Sha1             string `xorm:"VARCHAR(40)"`
 	NumCommits       int64
-	NumCommitsBehind int64  `xorm:"-"`
-	Note             string `xorm:"TEXT"`
-	IsDraft          bool   `xorm:"NOT NULL DEFAULT false"`
-	IsPrerelease     bool   `xorm:"NOT NULL DEFAULT false"`
-	IsTag            bool   `xorm:"NOT NULL DEFAULT false"`
-
-	Attachments []*Attachment `xorm:"-"`
-
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
-}
-
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (r *Release) BeforeInsert() {
-	if r.CreatedUnix == 0 {
-		r.CreatedUnix = time.Now().Unix()
-	}
-}
-
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (r *Release) AfterLoad() {
-	r.Created = time.Unix(r.CreatedUnix, 0).Local()
+	NumCommitsBehind int64          `xorm:"-"`
+	Note             string         `xorm:"TEXT"`
+	IsDraft          bool           `xorm:"NOT NULL DEFAULT false"`
+	IsPrerelease     bool           `xorm:"NOT NULL DEFAULT false"`
+	IsTag            bool           `xorm:"NOT NULL DEFAULT false"`
+	Attachments      []*Attachment  `xorm:"-"`
+	CreatedUnix      util.TimeStamp `xorm:"created INDEX"`
 }
 
 func (r *Release) loadAttributes(e Engine) error {
@@ -104,8 +89,8 @@ func (r *Release) APIFormat() *api.Release {
 		ZipURL:       r.ZipURL(),
 		IsDraft:      r.IsDraft,
 		IsPrerelease: r.IsPrerelease,
-		CreatedAt:    r.Created,
-		PublishedAt:  r.Created,
+		CreatedAt:    r.CreatedUnix.AsTime(),
+		PublishedAt:  r.CreatedUnix.AsTime(),
 		Publisher:    r.Publisher.APIFormat(),
 	}
 }
@@ -144,7 +129,7 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 		}
 
 		rel.Sha1 = commit.ID.String()
-		rel.CreatedUnix = commit.Author.When.Unix()
+		rel.CreatedUnix = util.TimeStamp(commit.Author.When.Unix())
 		rel.NumCommits, err = commit.CommitsCount()
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
@@ -345,7 +330,7 @@ func (rs *releaseSorter) Less(i, j int) bool {
 	if diffNum != 0 {
 		return diffNum > 0
 	}
-	return rs.rels[i].Created.After(rs.rels[j].Created)
+	return rs.rels[i].CreatedUnix > rs.rels[j].CreatedUnix
 }
 
 func (rs *releaseSorter) Swap(i, j int) {

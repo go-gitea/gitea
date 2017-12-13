@@ -33,9 +33,9 @@ func TestCreateComment(t *testing.T) {
 	assert.EqualValues(t, "Hello", comment.Content)
 	assert.EqualValues(t, issue.ID, comment.IssueID)
 	assert.EqualValues(t, doer.ID, comment.PosterID)
-	AssertInt64InRange(t, now, then, comment.CreatedUnix)
+	AssertInt64InRange(t, now, then, int64(comment.CreatedUnix))
 	AssertExistsAndLoadBean(t, comment) // assert actually added to DB
 
 	updatedIssue := AssertExistsAndLoadBean(t, &Issue{ID: issue.ID}).(*Issue)
-	AssertInt64InRange(t, now, then, updatedIssue.UpdatedUnix)
+	AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
 }
