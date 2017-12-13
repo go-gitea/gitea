@@ -55,6 +55,16 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
+  build-without-gcc:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      GOPATH: /srv/app
+    commands:
+      - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
+    when:
+      event: [ push, tag, pull_request ]
+
   build:
     image: webhippie/golang:edge
     pull: true
@@ -70,16 +80,6 @@ pipeline:
       - make misspell-check
       - make test-vendor
       - make build
-    when:
-      event: [ push, tag, pull_request ]
-
-  build-without-gcc:
-    image: webhippie/golang:edge
-    pull: true
-    environment:
-      GOPATH: /srv/app
-    commands:
-      - go build # test if build succeeds without the sqlite tag
     when:
       event: [ push, tag, pull_request ]
 
