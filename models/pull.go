@@ -563,9 +563,15 @@ func (pr *PullRequest) testPatch() (err error) {
 		return fmt.Errorf("git read-tree --index-output=%s %s: %v - %s", indexTmpPath, pr.BaseBranch, err, stderr)
 	}
 
+	args := []string{"apply", "--check", "--cached"}
+	if pr.BaseRepo.MustGetUnit(UnitTypePullRequests).PullRequestsConfig().IgnoreWhitespaceConflicts {
+		args = append(args, "--ignore-whitespace")
+	}
+	args = append(args, patchPath)
+
 	_, stderr, err = process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("testPatch (git apply --check): %d", pr.BaseRepo.ID),
 		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
-		"git", "apply", "--check", "--cached", patchPath)
+		"git", args...)
 	if err != nil {
 		for i := range patchConflicts {
 			if strings.Contains(stderr, patchConflicts[i]) {

@@ -190,9 +190,8 @@
 					</div>
 				</div>
 
-				<div class="ui divider"></div>
-
 				{{if .Repository.CanEnablePulls}}
+					<div class="ui divider"></div>
 					{{$pullRequestUnit := (.Repository.MustGetUnit $.UnitTypePullRequests)}}
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.pulls"}}</label>
