@@ -107,6 +107,10 @@ type RepoSettingForm struct {
 	TrackerURLFormat                 string
 	TrackerIssueStyle                string
 	EnablePulls                      bool
+	PullsIgnoreWhitespace            bool
+	PullsAllowMerge                  bool
+	PullsAllowRebase                 bool
+	PullsAllowSquash                 bool
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 }
