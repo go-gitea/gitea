@@ -427,7 +427,6 @@ func RepoAssignment() macaron.Handler {
 				return
 			}
 		}
-		ctx.Data["IsForkedRepo"] = repo.IsFork
 
 		// People who have push access or have forked repository can propose a new pull request.
 		if ctx.Repo.IsWriter() || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID)) {
