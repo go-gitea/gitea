@@ -175,14 +175,14 @@ LFS_START_SERVER = false
 ; Where your lfs files put on, default is data/lfs.
 LFS_CONTENT_PATH = data/lfs
 ; LFS authentication secret, changed this to yourself.
-LFS_JWT_SECRET   =
+LFS_JWT_SECRET =
 
 ; Define allowed algorithms and their minimum key length (use -1 to disable a type)
 [ssh.minimum_key_sizes]
 ED25519 = 256
-ECDSA   = 256
-RSA     = 2048
-DSA     = 1024
+ECDSA = 256
+RSA = 2048
+DSA = 1024
 
 [database]
 ; Either "mysql", "postgres", "mssql" or "sqlite3", it's your choice
