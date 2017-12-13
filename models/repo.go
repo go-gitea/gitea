@@ -427,6 +427,11 @@ func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
 			Type:   tp,
 			Config: new(ExternalTrackerConfig),
 		}
+	} else if tp == UnitTypePullRequests {
+		return &RepoUnit{
+			Type:   tp,
+			Config: new(PullRequestsConfig),
+		}
 	}
 	return &RepoUnit{
 		Type:   tp,
