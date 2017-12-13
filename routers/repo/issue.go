@@ -463,23 +463,17 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	tasksdoneMatches := regExpTasksdone.FindAllStringIndex(form.Content, -1)
 	tasksdone := len(tasksdoneMatches)
 
-	tasksprogress := 0
-	if(tasks > 0) {
-		tasksprogress = 100 * tasksdone / tasks
-	}
-
 	issue := &models.Issue{
-		RepoID:        repo.ID,
-		Title:         form.Title,
-		PosterID:      ctx.User.ID,
-		Poster:        ctx.User,
-		MilestoneID:   milestoneID,
-		AssigneeID:    assigneeID,
-		Content:       form.Content,
-		Ref:           form.Ref,
-		Tasks:         tasks,
-		Tasksdone:     tasksdone,
-		Tasksprogress: tasksprogress,
+		RepoID:      repo.ID,
+		Title:       form.Title,
+		PosterID:    ctx.User.ID,
+		Poster:      ctx.User,
+		MilestoneID: milestoneID,
+		AssigneeID:  assigneeID,
+		Content:     form.Content,
+		Ref:         form.Ref,
+		Tasks:       tasks,
+		Tasksdone:   tasksdone,
 	}
 	if err := models.NewIssue(repo, issue, labelIDs, attachments); err != nil {
 		ctx.Handle(500, "NewIssue", err)

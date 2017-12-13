@@ -185,7 +185,7 @@
 					<p class="desc">
 						{{$.i18n.Tr "repo.issues.opened_by" $timeStr .Poster.HomeLink .Poster.Name | Safe}}
 						{{if gt .Tasks 0}}
-							<span class="octicon octicon-checklist"></span> {{.Tasksdone}} / {{.Tasks}} <span class="progress-bar"><span class="progress" style="width:{{.Tasksprogress}}%;"></span></span>
+							<span class="octicon octicon-checklist"></span> {{.Tasksdone}} / {{.Tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{.Tasksdone}} / {{.Tasks}});"></span></span>
 						{{end}}
 						{{if .Milestone}}
 							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">

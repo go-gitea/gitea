@@ -34,7 +34,6 @@ type Issue struct {
 	RenderedContent string      `xorm:"-"`
 	Tasks           int
 	Tasksdone       int
-	Tasksprogress   int
 	Labels          []*Label    `xorm:"-"`
 	MilestoneID     int64       `xorm:"INDEX"`
 	Milestone       *Milestone  `xorm:"-"`
@@ -753,12 +752,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
         tasksdoneMatches := regExpTasksdone.FindAllStringIndex(content, -1)
         issue.Tasksdone = len(tasksdoneMatches)
 
-        issue.Tasksprogress = 0
-        if(issue.Tasks > 0) {
-                issue.Tasksprogress = 100 * issue.Tasksdone / issue.Tasks
-        }
-
-	if err = UpdateIssueCols(issue, "content", "tasks", "tasksdone", "tasksprogress"); err != nil {
+	if err = UpdateIssueCols(issue, "content", "tasks", "tasksdone"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 	
