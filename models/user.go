@@ -151,14 +151,6 @@ func (u *User) UpdateDiffViewStyle(style string) error {
 	return UpdateUserCols(u, "diff_view_style")
 }
 
-/*
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (u *User) AfterLoad() {
-	u.Created = time.Unix(u.CreatedUnix, 0).Local()
-	u.Updated = time.Unix(u.UpdatedUnix, 0).Local()
-	u.LastLogin = time.Unix(u.LastLoginUnix, 0).Local()
-}*/
-
 // getEmail returns an noreply email, if the user has set to keep his
 // email address private, otherwise the primary email address.
 func (u *User) getEmail() string {

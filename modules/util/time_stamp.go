@@ -4,7 +4,11 @@
 
 package util
 
-import "time"
+import (
+	"time"
+
+	"code.gitea.io/gitea/modules/setting"
+)
 
 // TimeStamp defines a timestamp
 type TimeStamp int64
@@ -31,13 +35,13 @@ func (ts TimeStamp) Year() int {
 
 // AsTime convert timestamp as time.Time in Local locale
 func (ts TimeStamp) AsTime() (tm time.Time) {
-	tm = time.Unix(int64(ts), 0).Local()
+	tm = time.Unix(int64(ts), 0).In(setting.UILocation)
 	return
 }
 
 // AsTimePtr convert timestamp as *time.Time in Local locale
 func (ts TimeStamp) AsTimePtr() *time.Time {
-	tm := time.Unix(int64(ts), 0).Local()
+	tm := time.Unix(int64(ts), 0).In(setting.UILocation)
 	return &tm
 }
 

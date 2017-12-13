@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
@@ -219,8 +220,8 @@ func runServ(c *cli.Context) error {
 				fail("Internal error", "GetDeployKey: %v", err)
 			}
 
-			deployKey.Updated = time.Now()
-			if err = models.UpdateDeployKey(deployKey); err != nil {
+			deployKey.UpdatedUnix = util.TimeStampNow()
+			if err = models.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
 				fail("Internal error", "UpdateDeployKey: %v", err)
 			}
 		} else {

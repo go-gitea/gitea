@@ -164,7 +164,7 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 		Key:      key.Content,
 		URL:      apiLink + com.ToStr(key.ID),
 		Title:    key.Name,
-		Created:  key.Created,
+		Created:  key.CreatedUnix.AsTime(),
 		ReadOnly: true, // All deploy keys are read-only.
 	}
 }
