@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.3.2](https://github.com/go-gitea/gitea/releases/tag/v1.3.2) - 2017-12-14
+* BUGFIXES
+  * fix run web with -p push failed (#3154) (#3179)
+  * Fix source download link when no code unit allowed (#3166) (#3169)
+  * Allow adding collaborators with (fullname) (#3103) (#3168)
+  * Fix repo links (#3093) (#3163)
+  * Fix Uninitialized variable in ParsePatch (#3156) (#3162)
+  * Fix migration order v1.3 (#3157)
+  * Fix avatar URLs (#3069) (#3143)
+
 ## [1.3.1](https://github.com/go-gitea/gitea/releases/tag/v1.3.1) - 2017-12-08
 * BUGFIXES
   * Sanitize logs for mirror sync (#3057, #3082) (#3078)
