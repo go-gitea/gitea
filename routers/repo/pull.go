@@ -520,7 +520,12 @@ func MergePullRequest(ctx *context.Context) {
 
 	pr.Issue = issue
 	pr.Issue.Repo = ctx.Repo.Repository
-	if err = pr.Merge(ctx.User, ctx.Repo.GitRepo); err != nil {
+	if err = pr.Merge(ctx.User, ctx.Repo.GitRepo, models.MergeStyle(ctx.Query("do"))); err != nil {
+		if models.IsErrInvalidMergeStyle(err) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_strategy"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		}
 		ctx.Handle(500, "Merge", err)
 		return
 	}

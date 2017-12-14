@@ -497,7 +497,11 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pr.Merge(ctx.User, ctx.Repo.GitRepo); err != nil {
+	if err := pr.Merge(ctx.User, ctx.Repo.GitRepo, models.MergeStyle(ctx.Query("merge_style"))); err != nil {
+		if models.IsErrInvalidMergeStyle(err) {
+			ctx.Status(405)
+			return
+		}
 		ctx.Error(500, "Merge", err)
 		return
 	}
