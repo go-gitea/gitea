@@ -17,8 +17,8 @@
 						{{if not .IsBin}}
 							<span class="add" data-line="{{.Addition}}">{{.Addition}}</span>
 							<span class="bar">
-								<span class="pull-left add"></span>
-								<span class="pull-left del"></span>
+								<div class="pull-left add"></div>
+								<div class="pull-left del"></div>
 							</span>
 							<span class="del" data-line="{{.Deletion}}">{{.Deletion}}</span>
 						{{else}}
@@ -36,19 +36,26 @@
 	{{range $i, $file := .Diff.Files}}
 		{{if $file.IsIncomplete}}
 			<div class="diff-file-box diff-box file-content">
-				<h4 class="ui top attached normal header">
-					{{$.i18n.Tr "repo.diff.file_suppressed"}}
+				<h4 class="ui top attached normal header rounded">
 					<div class="diff-counter count ui left">
 						{{if not $file.IsRenamed}}
 							<span class="add" data-line="{{.Addition}}">+ {{.Addition}}</span>
 							<span class="bar">
-								<span class="pull-left add"></span>
-								<span class="pull-left del"></span>
+								<div class="pull-left add"></div>
+								<div class="pull-left del"></div>
 							</span>
 							<span class="del" data-line="{{.Deletion}}">- {{.Deletion}}</span>
 						{{end}}
 					</div>
 					<span class="file">{{$file.Name}}</span>
+					<div>{{$.i18n.Tr "repo.diff.file_suppressed"}}</div>
+					{{if not $file.IsSubmodule}}
+						{{if $file.IsDeleted}}
+							<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+						{{else}}
+							<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+						{{end}}
+					{{end}}
 				</h4>
 			</div>
 		{{else}}
@@ -60,8 +67,8 @@
 						{{else if not $file.IsRenamed}}
 							<span class="add" data-line="{{.Addition}}">+ {{.Addition}}</span>
 							<span class="bar">
-								<span class="pull-left add"></span>
-								<span class="pull-left del"></span>
+								<div class="pull-left add"></div>
+								<div class="pull-left del"></div>
 							</span>
 							<span class="del" data-line="{{.Deletion}}">- {{.Deletion}}</span>
 						{{end}}
