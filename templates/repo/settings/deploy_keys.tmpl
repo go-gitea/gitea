@@ -31,7 +31,7 @@
 										{{.Fingerprint}}
 									</div>
 									<div class="activity meta">
-										<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —  <i class="octicon octicon-info"></i> {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
+										<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —  <i class="octicon octicon-info"></i> {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}} - <span>Read{{if .IsWritable}} / Write {{end}}</i>
 									</div>
 								</div>
 						</div>
@@ -62,7 +62,7 @@
 					</div>
 					<div class="field">
 						<div class="ui checkbox {{if .Err_IsWritable}}error{{end}}">
-							<input id="ssh-key-is-writable" name="is_writable" class="hidden" type="checkbox" value="{{.is_writable}}" autofocus>
+							<input id="ssh-key-is-writable" name="is_writable" class="hidden" type="checkbox" value="1">
 							<label for="is_writable">
 								{{.i18n.Tr "repo.settings.is_writable"}}
 							</label>
