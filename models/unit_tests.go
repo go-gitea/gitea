@@ -17,6 +17,7 @@ import (
 	"github.com/go-xorm/xorm"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/testfixtures.v2"
+	"net/url"
 )
 
 // NonexistentID an ID that will never exist
@@ -28,9 +29,10 @@ var giteaRoot string
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, pathToGiteaRoot string) {
+	var err error
 	giteaRoot = pathToGiteaRoot
 	fixturesDir := filepath.Join(pathToGiteaRoot, "models", "fixtures")
-	if err := createTestEngine(fixturesDir); err != nil {
+	if err = createTestEngine(fixturesDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating test engine: %v\n", err)
 		os.Exit(1)
 	}
@@ -41,6 +43,13 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	setting.SSH.Domain = "try.gitea.io"
 	setting.RepoRootPath = filepath.Join(os.TempDir(), "repos")
 	setting.AppDataPath = filepath.Join(os.TempDir(), "appdata")
+	setting.AppWorkPath = pathToGiteaRoot
+	setting.StaticRootPath = pathToGiteaRoot
+	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error url.Parse: %v\n", err)
+		os.Exit(1)
+	}
 
 	os.Exit(m.Run())
 }
@@ -138,6 +147,14 @@ func AssertNotExistsBean(t *testing.T, bean interface{}, conditions ...interface
 	exists, err := loadBeanIfExists(bean, conditions...)
 	assert.NoError(t, err)
 	assert.False(t, exists)
+}
+
+// AssertExistsIf asserts that a bean exists or does not exist, depending on
+// what is expected.
+func AssertExistsIf(t *testing.T, expected bool, bean interface{}, conditions ...interface{}) {
+	exists, err := loadBeanIfExists(bean, conditions...)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, exists)
 }
 
 // AssertSuccessfulInsert assert that beans is successfully inserted

@@ -776,7 +776,7 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 			return nil
 		}
 		if err = issue.LoadAttributes(); err != nil {
-			ctx.Handle(500, "LoadAttributes", nil)
+			ctx.Handle(500, "LoadAttributes", err)
 			return nil
 		}
 	}

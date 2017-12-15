@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/Unknwon/i18n"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +31,7 @@ func testCreateBranch(t *testing.T, session *TestSession, user, repo, oldRefSubU
 	if expectedStatus != http.StatusFound {
 		return ""
 	}
-	return RedirectURL(t, resp)
+	return test.RedirectURL(resp)
 }
 
 func TestCreateBranch(t *testing.T) {
