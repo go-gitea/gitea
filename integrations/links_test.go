@@ -167,7 +167,6 @@ func testRepoLinksNoLogin(repoPath string, t *testing.T) {
 func TestRepoLinksNoLogin(t *testing.T) {
 	var repos = []string{
 		"user2/repo1",
-		"user2/repo15",
 		"user5/repo4",
 	}
 
