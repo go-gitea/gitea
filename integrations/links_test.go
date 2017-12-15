@@ -151,3 +151,27 @@ func TestLinksLogin(t *testing.T) {
 
 	testLinksAsUser("user2", t)
 }
+
+func testRepoLinksNoLogin(repoPath string, t *testing.T) {
+	prepareTestEnv(t)
+
+	var links = map[string]int{
+		"/": 200,
+	}
+	for link, expectedStatus := range links {
+		req := NewRequest(t, "GET", path.Join(repoPath, link))
+		MakeRequest(t, req, expectedStatus)
+	}
+}
+
+func TestRepoLinksNoLogin(t *testing.T) {
+	var repos = []string{
+		"user2/repo1",
+		"user2/repo15",
+		"user5/repo4",
+	}
+
+	for _, repoPath := range repos {
+		testRepoLinksNoLogin(repoPath, t)
+	}
+}
