@@ -600,8 +600,8 @@ type DeployKey struct {
 	Fingerprint string
 	Content     string `xorm:"-"`
 
-	Mode       AccessMode
-	IsWritable bool `xorm:"-"`
+	Mode     AccessMode
+	ReadOnly bool `xorm:"-"`
 
 	CreatedUnix       util.TimeStamp `xorm:"created"`
 	UpdatedUnix       util.TimeStamp `xorm:"updated"`
@@ -613,7 +613,7 @@ type DeployKey struct {
 func (key *DeployKey) AfterLoad() {
 	key.HasUsed = key.UpdatedUnix > key.CreatedUnix
 	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
-	key.IsWritable = key.Mode == AccessModeWrite
+	key.ReadOnly = key.Mode == AccessModeRead
 }
 
 // GetContent gets associated public key content.
@@ -675,14 +675,14 @@ func HasDeployKey(keyID, repoID int64) bool {
 }
 
 // AddDeployKey add new deploy key to database and authorized_keys file.
-func AddDeployKey(repoID int64, name, content string, isWritable bool) (*DeployKey, error) {
+func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey, error) {
 	fingerprint, err := calcFingerprint(content)
 	if err != nil {
 		return nil, err
 	}
 
 	accessMode := AccessModeRead
-	if isWritable {
+	if !readOnly {
 		accessMode = AccessModeWrite
 	}
 
