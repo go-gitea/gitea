@@ -35,7 +35,6 @@ type getCommitsInfoState struct {
 	entries []*TreeEntry
 	// set of filepaths to get info for
 	entryPaths map[string]struct{}
-	branchName string
 	treePath   string
 	headCommit *Commit
 
@@ -91,7 +90,9 @@ func targetedSearch(state *getCommitsInfoState, done chan error) {
 			done <- err
 			return
 		}
+		state.lock.Lock()
 		commit, err := state.headCommit.repo.getCommit(id)
+		state.lock.Unlock()
 		if err != nil {
 			done <- err
 			return
@@ -100,7 +101,7 @@ func targetedSearch(state *getCommitsInfoState, done chan error) {
 	}
 }
 
-func initGetCommitInfoState(entries Entries, headCommit *Commit, branchName, treePath string) *getCommitsInfoState {
+func initGetCommitInfoState(entries Entries, headCommit *Commit, treePath string) *getCommitsInfoState {
 	entryPaths := make(map[string]struct{}, len(entries))
 	for _, entry := range entries {
 		entryPaths[path.Join(treePath, entry.Name())] = struct{}{}
@@ -113,15 +114,14 @@ func initGetCommitInfoState(entries Entries, headCommit *Commit, branchName, tre
 		entryPaths:    entryPaths,
 		commits:       make(map[string]*Commit, len(entries)),
 		targetedPaths: make(map[string]struct{}, len(entries)),
-		branchName:    branchName,
 		treePath:      treePath,
 		headCommit:    headCommit,
 	}
 }
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(commit *Commit, branchName, treePath string) ([][]interface{}, error) {
-	state := initGetCommitInfoState(tes, commit, branchName, treePath)
+func (tes Entries) GetCommitsInfo(commit *Commit, treePath string) ([][]interface{}, error) {
+	state := initGetCommitInfoState(tes, commit, treePath)
 	if err := getCommitsInfo(state); err != nil {
 		return nil, err
 	}
