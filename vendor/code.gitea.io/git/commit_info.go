@@ -90,9 +90,7 @@ func targetedSearch(state *getCommitsInfoState, done chan error) {
 			done <- err
 			return
 		}
-		state.lock.Lock()
 		commit, err := state.headCommit.repo.getCommit(id)
-		state.lock.Unlock()
 		if err != nil {
 			done <- err
 			return
