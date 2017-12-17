@@ -189,6 +189,13 @@ Note: Actually, Gitea supports only SMTP with STARTTLS.
 - `ENABLED`: Enable this to run cron tasks periodically.
 - `RUN_AT_START`: Enable this to run cron tasks at start time.
 
+### Cron - Cleanup old repository archives (`cron.archive_cleanup`)
+
+- `ENABLED`: Enable service. Defaults to true.
+- `RUN_AT_START`: Run tasks at start up time (if ENABLED). Defaults to true.
+- `SCHEDULE`: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`. Defaults to `@every 24h`.
+- `OLDER_THAN`: Archives created more than `OLDER_THAN` ago are subject to deletion, e.g. `12h`. Defaults to `24h`.
+
 ### Cron - Update Mirrors (`cron.update_mirrors`)
 
 - `SCHEDULE`: Cron syntax for scheduling update mirrors, e.g. `@every 1h`.

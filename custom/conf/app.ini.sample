@@ -493,7 +493,11 @@ SCHEDULE = @every 24h
 
 ; Clean up old repository archives
 [cron.archive_cleanup]
+; Whether to enable the job
+ENABLED = true
+; Whether to always run at least once at start up time (if ENABLED)
 RUN_AT_START = true
+; Time interval for job to run
 SCHEDULE = @every 24h
 ; Archives created more than OLDER_THAN ago are subject to deletion
 OLDER_THAN = 24h
