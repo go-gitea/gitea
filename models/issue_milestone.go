@@ -282,7 +282,7 @@ func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilesto
 		}
 	}
 
-	return updateIssue(e, issue)
+	return updateIssueCols(e, issue, "milestone_id")
 }
 
 // ChangeMilestoneAssign changes assignment of milestone for issue.
