@@ -326,22 +326,40 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 			return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, stderr)
 		}
 	case MergeStyleRebase:
+		// Checkout head branch
+		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+			fmt.Sprintf("PullRequest.Merge (git checkout): %s", tmpBasePath),
+			"git", "checkout", "-b", "head_repo_"+pr.HeadBranch, "head_repo/"+pr.HeadBranch); err != nil {
+			return fmt.Errorf("git checkout: %s", stderr)
+		}
 		// Rebase before merging
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 			fmt.Sprintf("PullRequest.Merge (git rebase): %s", tmpBasePath),
-			"git", "rebase", "-q", pr.BaseBranch, "head_repo/"+pr.HeadBranch); err != nil {
+			"git", "rebase", "-q", pr.BaseBranch); err != nil {
 			return fmt.Errorf("git rebase [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
+		}
+		// Checkout base branch again
+		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+			fmt.Sprintf("PullRequest.Merge (git checkout): %s", tmpBasePath),
+			"git", "checkout", pr.BaseBranch); err != nil {
+			return fmt.Errorf("git checkout: %s", stderr)
+		}
+		// Merge fast forward
+		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+			fmt.Sprintf("PullRequest.Merge (git rebase): %s", tmpBasePath),
+			"git", "merge", "--ff-only", "-q", "head_repo_"+pr.HeadBranch); err != nil {
+			return fmt.Errorf("git merge --ff-only [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
 		}
 	case MergeStyleSquash:
 		// Merge with squash
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git rebase): %s", tmpBasePath),
+			fmt.Sprintf("PullRequest.Merge (git squash): %s", tmpBasePath),
 			"git", "merge", "-q", "--squash", "head_repo/"+pr.HeadBranch); err != nil {
 			return fmt.Errorf("git merge --squash [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
 		}
 		sig := pr.Issue.Poster.NewGitSig()
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
-			fmt.Sprintf("PullRequest.Merge (git merge): %s", tmpBasePath),
+			fmt.Sprintf("PullRequest.Merge (git squash): %s", tmpBasePath),
 			"git", "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
 			"-m", message); err != nil {
 			return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, stderr)
@@ -396,7 +414,6 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return nil
 	}
 
-	// TODO: when squash commits, no need to append merge commit.
 	// It is possible that head branch is not fully sync with base branch for merge commits,
 	// so we need to get latest head commit and append merge commit manually
 	// to avoid strange diff commits produced.
@@ -405,12 +422,14 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		log.Error(4, "GetBranchCommit: %v", err)
 		return nil
 	}
-	l.PushFront(mergeCommit)
+	if mergeStyle == MergeStyleRegular {
+		l.PushFront(mergeCommit)
+	}
 
 	p := &api.PushPayload{
 		Ref:        git.BranchPrefix + pr.BaseBranch,
 		Before:     pr.MergeBase,
-		After:      pr.MergedCommitID,
+		After:      mergeCommit.ID.String(),
 		CompareURL: setting.AppURL + pr.BaseRepo.ComposeCompareURL(pr.MergeBase, pr.MergedCommitID),
 		Commits:    ListToPushCommits(l).ToAPIPayloadCommits(pr.BaseRepo.HTMLURL()),
 		Repo:       pr.BaseRepo.APIFormat(AccessModeNone),
