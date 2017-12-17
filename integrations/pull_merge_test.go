@@ -16,16 +16,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string) *httptest.ResponseRecorder {
+func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum, mergeStyle string) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Click the little green button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("form.ui.form>button.ui.green.button").Parent().Attr("action")
+	link, exists := htmlDoc.doc.Find(".ui.form." + mergeStyle + "-fields > form").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
+		"do":    mergeStyle,
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
 
@@ -58,7 +59,7 @@ func TestPullMerge(t *testing.T) {
 
 	elem := strings.Split(test.RedirectURL(resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
-	testPullMerge(t, session, elem[1], elem[2], elem[4])
+	testPullMerge(t, session, elem[1], elem[2], elem[4], "merge")
 }
 
 func TestPullCleanUpAfterMerge(t *testing.T) {
@@ -71,7 +72,7 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 
 	elem := strings.Split(test.RedirectURL(resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
-	testPullMerge(t, session, elem[1], elem[2], elem[4])
+	testPullMerge(t, session, elem[1], elem[2], elem[4], "merge")
 
 	// Check PR branch deletion
 	resp = testPullCleanUp(t, session, elem[1], elem[2], elem[4])
