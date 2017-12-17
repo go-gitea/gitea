@@ -332,6 +332,20 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 			"git", "rebase", "-q", pr.BaseBranch, "head_repo/"+pr.HeadBranch); err != nil {
 			return fmt.Errorf("git rebase [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
 		}
+	case MergeStyleSquash:
+		// Merge with squash
+		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+			fmt.Sprintf("PullRequest.Merge (git rebase): %s", tmpBasePath),
+			"git", "merge", "-q", "--squash", "head_repo/"+pr.HeadBranch); err != nil {
+			return fmt.Errorf("git merge --squash [%s -> %s]: %s", headRepoPath, tmpBasePath, stderr)
+		}
+		sig := pr.Issue.Poster.NewGitSig()
+		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
+			fmt.Sprintf("PullRequest.Merge (git merge): %s", tmpBasePath),
+			"git", "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
+			"-m", message); err != nil {
+			return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, stderr)
+		}
 	default:
 		return ErrInvalidMergeStyle{pr.BaseRepo.ID, mergeStyle}
 	}
