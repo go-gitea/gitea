@@ -582,7 +582,7 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 	if _, err := e.ID(issue.ID).Cols(cols...).Update(issue); err != nil {
 		return err
 	}
-	UpdateIssueIndexer(issue.ID)
+	UpdateIssueIndexerCols(issue.ID, cols...)
 	return nil
 }
 
