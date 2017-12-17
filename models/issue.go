@@ -272,6 +272,23 @@ func (issue *Issue) State() api.StateType {
 	return api.StateOpen
 }
 
+// GetPullRequestMergeMessage returns default message used when merging pull request
+func (issue *Issue) GetPullRequestMergeMessage() string {
+	if !issue.IsPull {
+		return ""
+	}
+	pr := issue.PullRequest
+	return fmt.Sprintf("Merge branch '%s' of %s/%s into %s", pr.HeadBranch, pr.HeadUserName, pr.HeadRepo.Name, pr.BaseBranch)
+}
+
+// GetPullRequestSquashMessage returns default message used when squash and merging pull request
+func (issue *Issue) GetPullRequestSquashMessage() string {
+	if !issue.IsPull {
+		return ""
+	}
+	return fmt.Sprintf("%s (#%d)", issue.Title, issue.Index)
+}
+
 // APIFormat assumes some fields assigned with values:
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest

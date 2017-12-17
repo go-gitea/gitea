@@ -330,6 +330,25 @@ func (f *InitializeLabelsForm) Validate(ctx *macaron.Context, errs binding.Error
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// __________      .__  .__    __________                                     __
+// \______   \__ __|  | |  |   \______   \ ____  ________ __   ____   _______/  |_
+//  |     ___/  |  \  | |  |    |       _// __ \/ ____/  |  \_/ __ \ /  ___/\   __\
+//  |    |   |  |  /  |_|  |__  |    |   \  ___< <_|  |  |  /\  ___/ \___ \  |  |
+//  |____|   |____/|____/____/  |____|_  /\___  >__   |____/  \___  >____  > |__|
+//                                     \/     \/   |__|           \/     \/
+
+// MergePullRequestForm form for merging Pull Request
+type MergePullRequestForm struct {
+	Do                string `binding:"Required;In(merge,rebase,squash)"`
+	MergeTitleField   string
+	MergeMessageField string
+}
+
+// Validate validates the fields
+func (f *MergePullRequestForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // __________       .__
 // \______   \ ____ |  |   ____ _____    ______ ____
 //  |       _// __ \|  | _/ __ \\__  \  /  ___// __ \

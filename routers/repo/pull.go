@@ -493,7 +493,7 @@ func ViewPullFiles(ctx *context.Context) {
 }
 
 // MergePullRequest response for merging pull request
-func MergePullRequest(ctx *context.Context) {
+func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 	issue := checkPullInfo(ctx)
 	if ctx.Written() {
 		return
@@ -518,11 +518,32 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
+	if ctx.HasError() {
+		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+		return
+	}
+
+	message := strings.TrimSpace(form.MergeTitleField)
+	if len(message) == 0 {
+		if models.MergeStyle(form.Do) == models.MergeStyleRegular {
+			message = issue.GetPullRequestMergeMessage()
+		}
+		if models.MergeStyle(form.Do) == models.MergeStyleSquash {
+			message = issue.GetPullRequestSquashMessage()
+		}
+	}
+
+	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
+	if len(form.MergeMessageField) > 0 {
+		message += "\n\n" + form.MergeMessageField
+	}
+
 	pr.Issue = issue
 	pr.Issue.Repo = ctx.Repo.Repository
-	if err = pr.Merge(ctx.User, ctx.Repo.GitRepo, models.MergeStyle(ctx.Query("do"))); err != nil {
+	if err = pr.Merge(ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
-			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_strategy"))
+			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 			return
 		}

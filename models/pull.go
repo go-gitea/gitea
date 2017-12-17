@@ -246,7 +246,7 @@ const (
 
 // Merge merges pull request to base repository.
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
-func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle MergeStyle) (err error) {
+func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle MergeStyle, message string) (err error) {
 	if err = pr.GetHeadRepo(); err != nil {
 		return fmt.Errorf("GetHeadRepo: %v", err)
 	} else if err = pr.GetBaseRepo(); err != nil {
@@ -322,7 +322,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 			fmt.Sprintf("PullRequest.Merge (git merge): %s", tmpBasePath),
 			"git", "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
-			"-m", fmt.Sprintf("Merge branch '%s' of %s/%s into %s", pr.HeadBranch, pr.HeadUserName, pr.HeadRepo.Name, pr.BaseBranch)); err != nil {
+			"-m", message); err != nil {
 			return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, stderr)
 		}
 	case MergeStyleRebase:
