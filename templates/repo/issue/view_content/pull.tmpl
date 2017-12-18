@@ -46,7 +46,7 @@
 							<form action="{{.Link}}/merge" method="post">
 								{{.CsrfTokenHtml}}
 								<div class="field">
-									<input type="text" name="merge_title_field" value="{{.Issue.GetPullRequestMergeMessage}}">
+									<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultMergeMessage}}">
 								</div>
 								<div class="field">
 									<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}"></textarea>
@@ -78,7 +78,7 @@
 							<form action="{{.Link}}/merge" method="post">
 								{{.CsrfTokenHtml}}
 								<div class="field">
-									<input type="text" name="merge_title_field" value="{{.Issue.GetPullRequestSquashMessage}}">
+									<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultSquashMessage}}">
 								</div>
 								<div class="field">
 									<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}"></textarea>

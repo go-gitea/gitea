@@ -70,7 +70,7 @@ func TestPullRebase(t *testing.T) {
 
 	resp := testPullCreate(t, session, "user1", "repo1", "master")
 
-	elem := strings.Split(RedirectURL(t, resp), "/")
+	elem := strings.Split(test.RedirectURL(resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
 	testPullMerge(t, session, elem[1], elem[2], elem[4], "rebase")
 }
@@ -84,7 +84,7 @@ func TestPullSquash(t *testing.T) {
 
 	resp := testPullCreate(t, session, "user1", "repo1", "master")
 
-	elem := strings.Split(RedirectURL(t, resp), "/")
+	elem := strings.Split(test.RedirectURL(resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
 	testPullMerge(t, session, elem[1], elem[2], elem[4], "squash")
 }

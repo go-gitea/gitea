@@ -512,6 +512,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		}
 		return
 	}
+	pr.Issue = issue
 
 	if !pr.CanAutoMerge() || pr.HasMerged {
 		ctx.Handle(404, "MergePullRequest", nil)
@@ -527,10 +528,10 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 	message := strings.TrimSpace(form.MergeTitleField)
 	if len(message) == 0 {
 		if models.MergeStyle(form.Do) == models.MergeStyleRegular {
-			message = issue.GetPullRequestMergeMessage()
+			message = pr.GetDefaultMergeMessage()
 		}
 		if models.MergeStyle(form.Do) == models.MergeStyleSquash {
-			message = issue.GetPullRequestSquashMessage()
+			message = pr.GetDefaultSquashMessage()
 		}
 	}
 

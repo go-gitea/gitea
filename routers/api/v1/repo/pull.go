@@ -512,10 +512,10 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	message := strings.TrimSpace(form.MergeTitleField)
 	if len(message) == 0 {
 		if models.MergeStyle(form.Do) == models.MergeStyleRegular {
-			message = fmt.Sprintf("Merge branch '%s' of %s/%s into %s", pr.HeadBranch, pr.HeadUserName, pr.HeadRepo.Name, pr.BaseBranch)
+			message = pr.GetDefaultMergeMessage()
 		}
 		if models.MergeStyle(form.Do) == models.MergeStyleSquash {
-			message = fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index)
+			message = pr.GetDefaultSquashMessage()
 		}
 	}
 

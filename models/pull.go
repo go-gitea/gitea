@@ -109,6 +109,22 @@ func (pr *PullRequest) loadIssue(e Engine) (err error) {
 	return err
 }
 
+// GetDefaultMergeMessage returns default message used when merging pull request
+func (pr *PullRequest) GetDefaultMergeMessage() string {
+	return fmt.Sprintf("Merge branch '%s' of %s/%s into %s", pr.HeadBranch, pr.HeadUserName, pr.HeadRepo.Name, pr.BaseBranch)
+}
+
+// GetDefaultSquashMessage returns default message used when squash and merging pull request
+func (pr *PullRequest) GetDefaultSquashMessage() string {
+	if pr.Issue == nil {
+		if err := pr.LoadIssue(); err != nil {
+			log.Error(4, "LoadIssue: %v", err)
+			return ""
+		}
+	}
+	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index)
+}
+
 // APIFormat assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
