@@ -165,31 +165,33 @@ func UpdateMilestone(m *Milestone) error {
 	return updateMilestone(x, m)
 }
 
-func countRepoMilestones(e Engine, repoID int64) int64 {
-	count, _ := e.
+func countRepoMilestones(e Engine, repoID int64) (int64, error) {
+	return e.
 		Where("repo_id=?", repoID).
 		Count(new(Milestone))
-	return count
 }
 
-func countRepoClosedMilestones(e Engine, repoID int64) int64 {
-	closed, _ := e.
+func countRepoClosedMilestones(e Engine, repoID int64) (int64, error) {
+	return e.
 		Where("repo_id=? AND is_closed=?", repoID, true).
 		Count(new(Milestone))
-	return closed
 }
 
 // CountRepoClosedMilestones returns number of closed milestones in given repository.
-func CountRepoClosedMilestones(repoID int64) int64 {
+func CountRepoClosedMilestones(repoID int64) (int64, error) {
 	return countRepoClosedMilestones(x, repoID)
 }
 
 // MilestoneStats returns number of open and closed milestones of given repository.
-func MilestoneStats(repoID int64) (open int64, closed int64) {
-	open, _ = x.
+func MilestoneStats(repoID int64) (open int64, closed int64, err error) {
+	open, err = x.
 		Where("repo_id=? AND is_closed=?", repoID, false).
 		Count(new(Milestone))
-	return open, CountRepoClosedMilestones(repoID)
+	if err != nil {
+		return 0, 0, nil
+	}
+	closed, err = CountRepoClosedMilestones(repoID)
+	return open, closed, err
 }
 
 // ChangeMilestoneStatus changes the milestone open/closed status.
@@ -210,8 +212,17 @@ func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
 		return err
 	}
 
-	repo.NumMilestones = int(countRepoMilestones(sess, repo.ID))
-	repo.NumClosedMilestones = int(countRepoClosedMilestones(sess, repo.ID))
+	numMilestones, err := countRepoMilestones(sess, repo.ID)
+	if err != nil {
+		return err
+	}
+	numClosedMilestones, err := countRepoClosedMilestones(sess, repo.ID)
+	if err != nil {
+		return err
+	}
+	repo.NumMilestones = int(numMilestones)
+	repo.NumClosedMilestones = int(numClosedMilestones)
+
 	if _, err = sess.ID(repo.ID).Cols("num_milestones, num_closed_milestones").Update(repo); err != nil {
 		return err
 	}
@@ -324,8 +335,17 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	repo.NumMilestones = int(countRepoMilestones(sess, repo.ID))
-	repo.NumClosedMilestones = int(countRepoClosedMilestones(sess, repo.ID))
+	numMilestones, err := countRepoMilestones(sess, repo.ID)
+	if err != nil {
+		return err
+	}
+	numClosedMilestones, err := countRepoClosedMilestones(sess, repo.ID)
+	if err != nil {
+		return err
+	}
+	repo.NumMilestones = int(numMilestones)
+	repo.NumClosedMilestones = int(numClosedMilestones)
+
 	if _, err = sess.ID(repo.ID).Cols("num_milestones, num_closed_milestones").Update(repo); err != nil {
 		return err
 	}

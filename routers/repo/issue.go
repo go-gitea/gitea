@@ -1067,7 +1067,11 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["PageIsMilestones"] = true
 
 	isShowClosed := ctx.Query("state") == "closed"
-	openCount, closedCount := models.MilestoneStats(ctx.Repo.Repository.ID)
+	openCount, closedCount, err := models.MilestoneStats(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.Handle(500, "MilestoneStats", err)
+		return
+	}
 	ctx.Data["OpenCount"] = openCount
 	ctx.Data["ClosedCount"] = closedCount
 
