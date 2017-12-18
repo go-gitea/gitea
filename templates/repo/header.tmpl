@@ -62,7 +62,7 @@
 			{{end}}
 
 			{{if .Repository.UnitEnabled $.UnitTypeExternalTracker}}
-				<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
+				<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues" target="_blank">
 					<i class="octicon octicon-issue-opened"></i> {{.i18n.Tr "repo.issues"}} </span>
 				</a>
 			{{end}}
