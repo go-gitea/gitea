@@ -52,7 +52,7 @@ and it takes care of all the other things for you`,
 }
 
 func runHTTPRedirector() {
-	source := setting.HTTPAddr + ":80"
+	source := fmt.Sprintf("%s:%s", setting.HTTPAddr, setting.PortToRedirect)
 	dest := strings.TrimSuffix(setting.AppURL, "/")
 	log.Info("Redirecting: %s to %s", source, dest)
 
@@ -67,7 +67,7 @@ func runHTTPRedirector() {
 	var err = runHTTP(source, context2.ClearHandler(handler))
 
 	if err != nil {
-		log.Fatal(4, "Failed to start port 80 redirector: %v", err)
+		log.Fatal(4, "Failed to start port redirection: %v", err)
 	}
 }
 
@@ -144,7 +144,7 @@ func runWeb(ctx *cli.Context) error {
 	case setting.HTTP:
 		err = runHTTP(listenAddr, context2.ClearHandler(m))
 	case setting.HTTPS:
-		if setting.RedirectPort80 {
+		if setting.RedirectOtherPort {
 			go runHTTPRedirector()
 		}
 		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))

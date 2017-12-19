@@ -89,7 +89,8 @@ var (
 	HTTPAddr             string
 	HTTPPort             string
 	LocalURL             string
-	RedirectPort80       bool
+	RedirectOtherPort    bool
+	PortToRedirect       string
 	OfflineMode          bool
 	DisableRouterLog     bool
 	CertFile             string
@@ -733,7 +734,8 @@ func NewContext() {
 		defaultLocalURL += ":" + HTTPPort + "/"
 	}
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
-	RedirectPort80 = sec.Key("REDIRECT_PORT_80").MustBool(false)
+	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
+	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)
