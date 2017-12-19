@@ -44,7 +44,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (exists, circular bool
 		return
 	}
 
-	// If it not exists, create it, otherwiseshow an error message
+	// If it not exists, create it, otherwise show an error message
 	if !exists && !circular {
 		newIssueDependency := &IssueDependency{
 			UserID:       user.ID,
