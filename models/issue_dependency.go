@@ -79,7 +79,15 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 
 	// Check if it exists
 	var exists bool
-	if exists, _, err = issueDepExists(sess, issue.ID, dep.ID); err != nil {
+	switch depType {
+	case DependencyTypeBlockedBy:
+		exists, _, err = issueDepExists(sess, issue.ID, dep.ID)
+	case DependencyTypeBlocking:
+		exists, _, err = issueDepExists(sess, dep.ID, issue.ID)
+	default:
+		return
+	}
+	if err != nil {
 		return err
 	}
 
