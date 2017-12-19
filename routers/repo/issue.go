@@ -351,6 +351,7 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireTribute"] = true
 	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
@@ -478,6 +479,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireDropzone"] = true
+	ctx.Data["RequireTribute"] = true
 	renderAttachmentSettings(ctx)
 
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
@@ -774,7 +776,7 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 			return nil
 		}
 		if err = issue.LoadAttributes(); err != nil {
-			ctx.Handle(500, "LoadAttributes", nil)
+			ctx.Handle(500, "LoadAttributes", err)
 			return nil
 		}
 	}
@@ -1065,7 +1067,11 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["PageIsMilestones"] = true
 
 	isShowClosed := ctx.Query("state") == "closed"
-	openCount, closedCount := models.MilestoneStats(ctx.Repo.Repository.ID)
+	openCount, closedCount, err := models.MilestoneStats(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.Handle(500, "MilestoneStats", err)
+		return
+	}
 	ctx.Data["OpenCount"] = openCount
 	ctx.Data["ClosedCount"] = closedCount
 
@@ -1138,10 +1144,10 @@ func NewMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	}
 
 	if err = models.NewMilestone(&models.Milestone{
-		RepoID:   ctx.Repo.Repository.ID,
-		Name:     form.Title,
-		Content:  form.Content,
-		Deadline: deadline,
+		RepoID:       ctx.Repo.Repository.ID,
+		Name:         form.Title,
+		Content:      form.Content,
+		DeadlineUnix: util.TimeStamp(deadline.Unix()),
 	}); err != nil {
 		ctx.Handle(500, "NewMilestone", err)
 		return
@@ -1210,7 +1216,7 @@ func EditMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	}
 	m.Name = form.Title
 	m.Content = form.Content
-	m.Deadline = deadline
+	m.DeadlineUnix = util.TimeStamp(deadline.Unix())
 	if err = models.UpdateMilestone(m); err != nil {
 		ctx.Handle(500, "UpdateMilestone", err)
 		return
@@ -1243,7 +1249,7 @@ func ChangeMilestonStatus(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=open")
 	case "close":
 		if !m.IsClosed {
-			m.ClosedDate = time.Now()
+			m.ClosedDateUnix = util.TimeStampNow()
 			if err = models.ChangeMilestoneStatus(m, true); err != nil {
 				ctx.Handle(500, "ChangeMilestoneStatus", err)
 				return

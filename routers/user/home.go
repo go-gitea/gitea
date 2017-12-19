@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/Unknwon/com"
 	"github.com/Unknwon/paginater"
 
 	"code.gitea.io/gitea/models"
@@ -192,18 +191,14 @@ func Issues(ctx *context.Context) {
 		viewType = "all"
 	} else {
 		viewType = ctx.Query("type")
-		types := []string{"all", "assigned", "created_by"}
-		if !com.IsSliceContainsStr(types, viewType) {
-			viewType = "all"
-		}
-
 		switch viewType {
-		case "all":
-			filterMode = models.FilterModeAll
 		case "assigned":
 			filterMode = models.FilterModeAssign
 		case "created_by":
 			filterMode = models.FilterModeCreate
+		case "all": // filterMode already set to All
+		default:
+			viewType = "all"
 		}
 	}
 

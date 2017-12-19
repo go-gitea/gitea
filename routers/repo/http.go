@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // HTTP implmentation git smart HTTP protocol
@@ -167,7 +168,7 @@ func HTTP(ctx *context.Context) {
 					return
 				}
 
-				token.Updated = time.Now()
+				token.UpdatedUnix = util.TimeStampNow()
 				if err = models.UpdateAccessToken(token); err != nil {
 					ctx.Handle(http.StatusInternalServerError, "UpdateAccessToken", err)
 				}

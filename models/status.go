@@ -8,11 +8,11 @@ import (
 	"container/list"
 	"fmt"
 	"strings"
-	"time"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/go-xorm/xorm"
@@ -65,17 +65,8 @@ type CommitStatus struct {
 	Creator     *User             `xorm:"-"`
 	CreatorID   int64
 
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX created"`
-	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX updated"`
-}
-
-// AfterLoad is invoked from XORM after setting the value of a field of
-// this object.
-func (status *CommitStatus) AfterLoad() {
-	status.Created = time.Unix(status.CreatedUnix, 0).Local()
-	status.Updated = time.Unix(status.UpdatedUnix, 0).Local()
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 }
 
 func (status *CommitStatus) loadRepo(e Engine) (err error) {
@@ -106,8 +97,8 @@ func (status *CommitStatus) APIURL() string {
 func (status *CommitStatus) APIFormat() *api.Status {
 	status.loadRepo(x)
 	apiStatus := &api.Status{
-		Created:     status.Created,
-		Updated:     status.Created,
+		Created:     status.CreatedUnix.AsTime(),
+		Updated:     status.CreatedUnix.AsTime(),
 		State:       api.StatusState(status.State),
 		TargetURL:   status.TargetURL,
 		Description: status.Description,

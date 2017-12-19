@@ -26,6 +26,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/i18n"
 	"github.com/gogits/chardet"
@@ -357,11 +358,15 @@ func timeSincePro(then, now time.Time, lang string) string {
 }
 
 func timeSince(then, now time.Time, lang string) string {
+	return timeSinceUnix(then.Unix(), now.Unix(), lang)
+}
+
+func timeSinceUnix(then, now int64, lang string) string {
 	lbl := "tool.ago"
-	diff := now.Unix() - then.Unix()
-	if then.After(now) {
+	diff := now - then
+	if then > now {
 		lbl = "tool.from_now"
-		diff = then.Unix() - now.Unix()
+		diff = then - now
 	}
 	if diff <= 0 {
 		return i18n.Tr(lang, "tool.now")
@@ -385,6 +390,17 @@ func htmlTimeSince(then, now time.Time, lang string) template.HTML {
 	return template.HTML(fmt.Sprintf(`<span class="time-since" title="%s">%s</span>`,
 		then.Format(setting.TimeFormat),
 		timeSince(then, now, lang)))
+}
+
+// TimeSinceUnix calculates the time interval and generate user-friendly string.
+func TimeSinceUnix(then util.TimeStamp, lang string) template.HTML {
+	return htmlTimeSinceUnix(then, util.TimeStamp(time.Now().Unix()), lang)
+}
+
+func htmlTimeSinceUnix(then, now util.TimeStamp, lang string) template.HTML {
+	return template.HTML(fmt.Sprintf(`<span class="time-since" title="%s">%s</span>`,
+		then.Format(setting.TimeFormat),
+		timeSinceUnix(int64(then), int64(now), lang)))
 }
 
 // Storage space size types

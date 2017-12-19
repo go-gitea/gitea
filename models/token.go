@@ -10,6 +10,7 @@ import (
 	gouuid "github.com/satori/go.uuid"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // AccessToken represents a personal access token.
@@ -19,20 +20,16 @@ type AccessToken struct {
 	Name string
 	Sha1 string `xorm:"UNIQUE VARCHAR(40)"`
 
-	Created           time.Time `xorm:"-"`
-	CreatedUnix       int64     `xorm:"INDEX created"`
-	Updated           time.Time `xorm:"-"`
-	UpdatedUnix       int64     `xorm:"INDEX updated"`
-	HasRecentActivity bool      `xorm:"-"`
-	HasUsed           bool      `xorm:"-"`
+	CreatedUnix       util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix       util.TimeStamp `xorm:"INDEX updated"`
+	HasRecentActivity bool           `xorm:"-"`
+	HasUsed           bool           `xorm:"-"`
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (t *AccessToken) AfterLoad() {
-	t.Created = time.Unix(t.CreatedUnix, 0).Local()
-	t.Updated = time.Unix(t.UpdatedUnix, 0).Local()
-	t.HasUsed = t.Updated.After(t.Created)
-	t.HasRecentActivity = t.Updated.Add(7 * 24 * time.Hour).After(time.Now())
+	t.HasUsed = t.UpdatedUnix > t.CreatedUnix
+	t.HasRecentActivity = t.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
 }
 
 // NewAccessToken creates new access token.

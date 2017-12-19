@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -122,7 +123,7 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
 
-	issueURL := RedirectURL(t, resp)
+	issueURL := test.RedirectURL(resp)
 	req = NewRequest(t, "GET", issueURL)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
@@ -153,7 +154,7 @@ func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, 
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
 
-	req = NewRequest(t, "GET", RedirectURL(t, resp))
+	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc = NewHTMLParser(t, resp.Body)

@@ -427,7 +427,6 @@ func RepoAssignment() macaron.Handler {
 				return
 			}
 		}
-		ctx.Data["IsForkedRepo"] = repo.IsFork
 
 		// People who have push access or have forked repository can propose a new pull request.
 		if ctx.Repo.IsWriter() || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID)) {
@@ -618,7 +617,11 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 
 			if refType == RepoRefLegacy {
 				// redirect from old URL scheme to new URL scheme
-				ctx.Redirect(path.Join(setting.AppSubURL, strings.TrimSuffix(ctx.Req.URL.String(), ctx.Params("*")), ctx.Repo.BranchNameSubURL()))
+				ctx.Redirect(path.Join(
+					setting.AppSubURL,
+					strings.TrimSuffix(ctx.Req.URL.String(), ctx.Params("*")),
+					ctx.Repo.BranchNameSubURL(),
+					ctx.Repo.TreePath))
 				return
 			}
 		}

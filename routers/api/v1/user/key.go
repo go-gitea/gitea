@@ -178,8 +178,12 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	if err := models.DeletePublicKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
-		if models.IsErrKeyAccessDenied(err) {
+		if models.IsErrKeyNotExist(err) {
+			ctx.Status(404)
+		} else if models.IsErrKeyAccessDenied(err) {
 			ctx.Error(403, "", "You do not have access to this key")
 		} else {
 			ctx.Error(500, "DeletePublicKey", err)

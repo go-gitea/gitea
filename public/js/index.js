@@ -151,7 +151,13 @@ function initReactionSelector(parent) {
                     react.remove();
                 }
                 if (!resp.empty) {
-                    react = $('<div class="ui attached segment reactions"></div>').appendTo(content);
+                    react = $('<div class="ui attached segment reactions"></div>');
+                    var attachments = content.find('.segment.bottom:first');
+                    if (attachments.length > 0) {
+                        react.insertBefore(attachments);
+                    } else {
+                        react.appendTo(content);
+                    }
                     react.html(resp.html);
                     var hasEmoji = react.find('.has-emoji');
                     for (var i = 0; i < hasEmoji.length; i++) {
@@ -564,6 +570,7 @@ function initRepository() {
             if ($editContentZone.html().length == 0) {
                 $editContentZone.html($('#edit-content-form').html());
                 $textarea = $segment.find('textarea');
+                issuesTribute.attach($textarea.get());
 
                 // Give new write/preview data-tab name to distinguish from others
                 var $editContentForm = $editContentZone.find('.ui.comment.form');

@@ -16,7 +16,7 @@
 						{{$.i18n.Tr "settings.delete_key"}}
 					</button>
 				</div>
-				<i class="mega-octicon octicon-key {{if or .Expired.IsZero (.Expired.After $.PageStartTime)}}green{{end}}"></i>
+				<i class="mega-octicon octicon-key {{if or (eq .ExpiredUnix 0) ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}"></i>
 				<div class="content">
 					{{range .Emails}}<strong>{{.Email}} </strong>{{end}}
 					<div class="print meta">
@@ -24,9 +24,9 @@
 						<b>{{$.i18n.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.KeyID}} {{end}}
 					</div>
 					<div class="activity meta">
-						<i>{{$.i18n.Tr "settings.add_on"}} <span>{{DateFmtShort .Added}}</span></i>
+						<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.AddedUnix.FormatShort}}</span></i>
 						-
-						<i>{{if not .Expired.IsZero }}{{$.i18n.Tr "settings.valid_until"}} <span>{{DateFmtShort .Expired}}</span>{{else}}{{$.i18n.Tr "settings.valid_forever"}}{{end}}</i>
+						<i>{{if .ExpiredUnix}}{{$.i18n.Tr "settings.valid_until"}} <span>{{.ExpiredUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.valid_forever"}}{{end}}</i>
 					</div>
 				</div>
 			</div>

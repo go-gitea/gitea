@@ -191,6 +191,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 
 		rel.Title = form.Title
 		rel.Note = form.Content
+		rel.Target = form.Target
 		rel.IsDraft = len(form.Draft) > 0
 		rel.IsPrerelease = form.Prerelease
 		rel.PublisherID = ctx.User.ID

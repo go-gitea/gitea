@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/macaron.v1"
@@ -136,6 +137,7 @@ func initIntegrationTest() {
 func prepareTestEnv(t testing.TB) {
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, os.RemoveAll(models.LocalCopyPath()))
 
 	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))
@@ -259,10 +261,35 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 	recorder := httptest.NewRecorder()
 	mac.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		assert.EqualValues(t, expectedStatus, recorder.Code,
-			"Request: %s %s", req.Method, req.URL.String())
+		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+			"Request: %s %s", req.Method, req.URL.String()) {
+			logUnexpectedResponse(t, recorder)
+		}
 	}
 	return recorder
+}
+
+// logUnexpectedResponse logs the contents of an unexpected response.
+func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
+	respBytes := recorder.Body.Bytes()
+	if len(respBytes) == 0 {
+		return
+	} else if len(respBytes) < 500 {
+		// if body is short, just log the whole thing
+		t.Log("Response:", string(respBytes))
+		return
+	}
+
+	// log the "flash" error message, if one exists
+	// we must create a new buffer, so that we don't "use up" resp.Body
+	htmlDoc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(respBytes))
+	if err != nil {
+		return // probably a non-HTML response
+	}
+	errMsg := htmlDoc.Find(".ui.negative.message").Text()
+	if len(errMsg) > 0 {
+		t.Log("A flash error message was found:", errMsg)
+	}
 }
 
 func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
@@ -275,10 +302,4 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	return doc.GetCSRF()
-}
-
-func RedirectURL(t testing.TB, resp *httptest.ResponseRecorder) string {
-	urlSlice := resp.HeaderMap["Location"]
-	assert.NotEmpty(t, urlSlice, "No redirect URL founds")
-	return urlSlice[0]
 }

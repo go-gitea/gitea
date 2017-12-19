@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"code.gitea.io/git"
 
@@ -19,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -45,9 +45,9 @@ func MustEnableWiki(ctx *context.Context) {
 
 // PageMeta wiki page meat information
 type PageMeta struct {
-	Name    string
-	SubURL  string
-	Updated time.Time
+	Name        string
+	SubURL      string
+	UpdatedUnix util.TimeStamp
 }
 
 // findEntryForFile finds the tree entry for a target filepath.
@@ -266,9 +266,9 @@ func WikiPages(ctx *context.Context) {
 			return
 		}
 		pages = append(pages, PageMeta{
-			Name:    wikiName,
-			SubURL:  models.WikiNameToSubURL(wikiName),
-			Updated: c.Author.When,
+			Name:        wikiName,
+			SubURL:      models.WikiNameToSubURL(wikiName),
+			UpdatedUnix: util.TimeStamp(c.Author.When.Unix()),
 		})
 	}
 	ctx.Data["Pages"] = pages
