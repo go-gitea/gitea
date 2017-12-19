@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
@@ -28,7 +29,7 @@ func TestMilestone_APIFormat(t *testing.T) {
 		IsClosed:        false,
 		NumOpenIssues:   5,
 		NumClosedIssues: 6,
-		Deadline:        time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+		DeadlineUnix:    util.TimeStamp(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC).Unix()),
 	}
 	assert.Equal(t, api.Milestone{
 		ID:           milestone.ID,
@@ -37,7 +38,7 @@ func TestMilestone_APIFormat(t *testing.T) {
 		Description:  milestone.Content,
 		OpenIssues:   milestone.NumOpenIssues,
 		ClosedIssues: milestone.NumClosedIssues,
-		Deadline:     &milestone.Deadline,
+		Deadline:     milestone.DeadlineUnix.AsTimePtr(),
 	}, *milestone.APIFormat())
 }
 
@@ -145,31 +146,42 @@ func TestCountRepoMilestones(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	test := func(repoID int64) {
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		assert.EqualValues(t, repo.NumMilestones, countRepoMilestones(x, repoID))
+		count, err := countRepoMilestones(x, repoID)
+		assert.NoError(t, err)
+		assert.EqualValues(t, repo.NumMilestones, count)
 	}
 	test(1)
 	test(2)
 	test(3)
-	assert.EqualValues(t, 0, countRepoMilestones(x, NonexistentID))
+
+	count, err := countRepoMilestones(x, NonexistentID)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, count)
 }
 
 func TestCountRepoClosedMilestones(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	test := func(repoID int64) {
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		assert.EqualValues(t, repo.NumClosedMilestones, CountRepoClosedMilestones(repoID))
+		count, err := CountRepoClosedMilestones(repoID)
+		assert.NoError(t, err)
+		assert.EqualValues(t, repo.NumClosedMilestones, count)
 	}
 	test(1)
 	test(2)
 	test(3)
-	assert.EqualValues(t, 0, countRepoMilestones(x, NonexistentID))
+
+	count, err := CountRepoClosedMilestones(NonexistentID)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, count)
 }
 
 func TestMilestoneStats(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	test := func(repoID int64) {
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		open, closed := MilestoneStats(repoID)
+		open, closed, err := MilestoneStats(repoID)
+		assert.NoError(t, err)
 		assert.EqualValues(t, repo.NumMilestones-repo.NumClosedMilestones, open)
 		assert.EqualValues(t, repo.NumClosedMilestones, closed)
 	}
@@ -177,7 +189,8 @@ func TestMilestoneStats(t *testing.T) {
 	test(2)
 	test(3)
 
-	open, closed := MilestoneStats(NonexistentID)
+	open, closed, err := MilestoneStats(NonexistentID)
+	assert.NoError(t, err)
 	assert.EqualValues(t, 0, open)
 	assert.EqualValues(t, 0, closed)
 }

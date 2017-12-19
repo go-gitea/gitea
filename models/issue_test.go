@@ -166,5 +166,5 @@ func TestUpdateIssueCols(t *testing.T) {
 	updatedIssue := AssertExistsAndLoadBean(t, &Issue{ID: issue.ID}).(*Issue)
 	assert.EqualValues(t, newTitle, updatedIssue.Title)
 	assert.EqualValues(t, prevContent, updatedIssue.Content)
-	AssertInt64InRange(t, now, then, updatedIssue.UpdatedUnix)
+	AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
 }

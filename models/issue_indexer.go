@@ -102,6 +102,26 @@ func (issue *Issue) update() indexer.IssueIndexerUpdate {
 	}
 }
 
+// updateNeededCols whether a change to the specified columns requires updating
+// the issue indexer
+func updateNeededCols(cols []string) bool {
+	for _, col := range cols {
+		switch col {
+		case "name", "content":
+			return true
+		}
+	}
+	return false
+}
+
+// UpdateIssueIndexerCols update an issue in the issue indexer, given changes
+// to the specified columns
+func UpdateIssueIndexerCols(issueID int64, cols ...string) {
+	if updateNeededCols(cols) {
+		UpdateIssueIndexer(issueID)
+	}
+}
+
 // UpdateIssueIndexer add/update an issue to the issue indexer
 func UpdateIssueIndexer(issueID int64) {
 	select {

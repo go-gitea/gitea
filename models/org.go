@@ -453,7 +453,12 @@ func RemoveOrgUser(orgID, userID int64) error {
 			return err
 		}
 		if t.NumMembers == 1 {
-			return ErrLastOrgOwner{UID: userID}
+			if err := t.GetMembers(); err != nil {
+				return err
+			}
+			if t.Members[0].ID == userID {
+				return ErrLastOrgOwner{UID: userID}
+			}
 		}
 	}
 

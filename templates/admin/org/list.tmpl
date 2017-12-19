@@ -33,7 +33,7 @@
 							<td>{{.NumTeams}}</td>
 							<td>{{.NumMembers}}</td>
 							<td>{{.NumRepos}}</td>
-							<td><span title="{{DateFmtLong .Created}}">{{DateFmtShort .Created}}</span></td>
+							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
 							<td><a href="{{AppSubUrl}}/org/{{.Name}}/settings"><i class="fa fa-pencil-square-o"></i></a></td>
 						</tr>
 					{{end}}

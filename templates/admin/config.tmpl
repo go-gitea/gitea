@@ -99,7 +99,7 @@
 				<dt>{{.i18n.Tr "admin.config.db_user"}}</dt>
 				<dd>{{if .DbCfg.User}}{{.DbCfg.User}}{{else}}-{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.db_ssl_mode"}}</dt>
-				<dd><i class="fa fa{{if .DbCfg.SSLMode}}-check{{end}}-square-o"></i> {{.i18n.Tr "admin.config.db_ssl_mode_helper"}}</dd>
+				<dd>{{if .DbCfg.SSLMode}}{{.DbCfg.SSLMode}}{{else}}-{{end}} {{.i18n.Tr "admin.config.db_ssl_mode_helper"}}</dd>
 				<dt>{{.i18n.Tr "admin.config.db_path"}}</dt>
 				<dd>{{if .DbCfg.Path}}{{.DbCfg.Path}}{{else}}-{{end}} {{.i18n.Tr "admin.config.db_path_helper"}}</dd>
 			</dl>
