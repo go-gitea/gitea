@@ -160,7 +160,7 @@ var migrations = []Migration{
 	NewMigration("add lfs lock table", addLFSLock),
 	// v53 -> v54
 	NewMigration("add reactions", addReactions),
-	// v51 -> v52
+	// v54 -> v55
 	NewMigration("add login source id column for public_key table", addLoginSourceIDToPublicKeyTable),
 }
 
