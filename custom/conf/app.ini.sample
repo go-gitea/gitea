@@ -288,12 +288,12 @@ DEFAULT_KEEP_EMAIL_PRIVATE = false
 ; Default value for AllowCreateOrganization
 ; New user will have rights set to create organizations depending on this setting
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
-; Default value for EnableTimetracking
-; Repositories will use timetracking by default depending on this setting
-DEFAULT_ENABLE_TIMETRACKING = true
 ; Default value for EnableDependencies
 ; Repositories will use depencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true
+; Default value for EnableTimetracking
+; Repositories will use timetracking by default depending on this setting
+DEFAULT_ENABLE_TIMETRACKING = true
 ; Default value for AllowOnlyContributorsToTrackTime
 ; Only users with write permissions could track time if this is true
 DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME = true

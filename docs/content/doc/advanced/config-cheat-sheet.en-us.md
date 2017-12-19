@@ -128,6 +128,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: Enable this to allow auto-registration for reverse authentication.
 - `DISABLE_MINIMUM_KEY_SIZE_CHECK`: Do not check minimum key size with corresponding type.
 - `ENABLE_CAPTCHA`: Enable this to use captcha validation for registration.
+- `DEFAULT_ENABLE_DEPENDENCIES`: Enable this to have dependencies enabled by default.
 
 ## Webhook (`webhook`)
 
