@@ -1503,20 +1503,6 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 
 	// Remove old team-repository relations.
 	if owner.IsOrganization() {
-		if err = owner.getTeams(sess); err != nil {
-			return fmt.Errorf("getTeams: %v", err)
-		}
-		for _, t := range owner.Teams {
-			if !t.hasRepository(sess, repo.ID) {
-				continue
-			}
-
-			t.NumRepos--
-			if _, err := sess.ID(t.ID).Cols("num_repos").Update(t); err != nil {
-				return fmt.Errorf("decrease team repository count '%d': %v", t.ID, err)
-			}
-		}
-
 		if err = owner.removeOrgRepo(sess, repo.ID); err != nil {
 			return fmt.Errorf("removeOrgRepo: %v", err)
 		}
