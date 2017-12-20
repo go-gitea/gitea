@@ -5,12 +5,15 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
+const testReposDir = "tests/repos/"
 const benchmarkReposDir = "benchmark/repos/"
 
-func setupGitRepo(url string, name string) (string, error) {
-	repoDir := filepath.Join(benchmarkReposDir, name)
+func cloneRepo(url, dir, name string) (string, error) {
+	repoDir := filepath.Join(dir, name)
 	if _, err := os.Stat(repoDir); err == nil {
 		return repoDir, nil
 	}
@@ -20,6 +23,60 @@ func setupGitRepo(url string, name string) (string, error) {
 		Quiet:   true,
 		Timeout: 5 * time.Minute,
 	})
+}
+
+func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
+	// these test case are specific to the repo1 test repo
+	testCases := []struct {
+		CommitID    string
+		Path        string
+		ExpectedIDs map[string]string
+	}{
+		{"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2", "", map[string]string{
+			"file1.txt": "95bb4d39648ee7e325106df01a621c530863a653",
+			"file2.txt": "8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
+		}},
+		{"2839944139e0de9737a044f78b0e4b40d989a9e3", "", map[string]string{
+			"file1.txt":   "2839944139e0de9737a044f78b0e4b40d989a9e3",
+			"branch1.txt": "9c9aef8dd84e02bc7ec12641deb4c930a7c30185",
+		}},
+		{"5c80b0245c1c6f8343fa418ec374b13b5d4ee658", "branch2", map[string]string{
+			"branch2.txt": "5c80b0245c1c6f8343fa418ec374b13b5d4ee658",
+		}},
+	}
+	for _, testCase := range testCases {
+		commit, err := repo1.GetCommit(testCase.CommitID)
+		assert.NoError(t, err)
+		tree, err := commit.Tree.SubTree(testCase.Path)
+		assert.NoError(t, err)
+		entries, err := tree.ListEntries()
+		assert.NoError(t, err)
+		commitsInfo, err := entries.GetCommitsInfo(commit, testCase.Path)
+		assert.NoError(t, err)
+		assert.Len(t, commitsInfo, len(testCase.ExpectedIDs))
+		for _, commitInfo := range commitsInfo {
+			entry := commitInfo[0].(*TreeEntry)
+			commit := commitInfo[1].(*Commit)
+			expectedID, ok := testCase.ExpectedIDs[entry.Name()]
+			if !assert.True(t, ok) {
+				continue
+			}
+			assert.Equal(t, expectedID, commit.ID.String())
+		}
+	}
+}
+
+func TestEntries_GetCommitsInfo(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+	bareRepo1, err := OpenRepository(bareRepo1Path)
+	assert.NoError(t, err)
+	testGetCommitsInfo(t, bareRepo1)
+
+	clonedPath, err := cloneRepo(bareRepo1Path, testReposDir, "repo1")
+	assert.NoError(t, err)
+	clonedRepo1, err := OpenRepository(clonedPath)
+	assert.NoError(t, err)
+	testGetCommitsInfo(t, clonedRepo1)
 }
 
 func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
@@ -36,7 +93,7 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 	for _, benchmark := range benchmarks {
 		var commit *Commit
 		var entries Entries
-		if repoPath, err := setupGitRepo(benchmark.url, benchmark.name); err != nil {
+		if repoPath, err := cloneRepo(benchmark.url, benchmarkReposDir, benchmark.name); err != nil {
 			b.Fatal(err)
 		} else if repo, err := OpenRepository(repoPath); err != nil {
 			b.Fatal(err)

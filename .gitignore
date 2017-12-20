@@ -26,3 +26,4 @@ _testmain.go
 coverage.out
 
 benchmark/
+tests/repos/repo1/
