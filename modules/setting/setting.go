@@ -73,8 +73,8 @@ type MarkupParser struct {
 // enumerates all the policy repository creating
 const (
 	RepoCreatingLastUserVisibility = "last"
-	RepoCreatingPrivate = "private"
-	RepoCreatingPublic = "public"
+	RepoCreatingPrivate            = "private"
+	RepoCreatingPublic             = "public"
 )
 
 // settings
