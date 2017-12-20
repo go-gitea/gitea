@@ -7,6 +7,7 @@ package integrations
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -73,4 +74,27 @@ func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
 	assert.True(t, exists, "The template has changed")
 	sshURL := fmt.Sprintf("ssh://%s@%s:%d/user2/repo1.git", setting.RunUser, setting.SSH.Domain, setting.SSH.Port)
 	assert.Equal(t, sshURL, link)
+}
+
+func testRepoLinksNoLogin(repoPath string, t *testing.T) {
+	prepareTestEnv(t)
+
+	var links = map[string]int{
+		"/": 200,
+	}
+	for link, expectedStatus := range links {
+		req := NewRequest(t, "GET", path.Join(repoPath, link))
+		MakeRequest(t, req, expectedStatus)
+	}
+}
+
+func TestRepoLinksNoLogin(t *testing.T) {
+	var repos = []string{
+		"user2/repo1",
+		"user5/repo4",
+	}
+
+	for _, repoPath := range repos {
+		testRepoLinksNoLogin(repoPath, t)
+	}
 }
