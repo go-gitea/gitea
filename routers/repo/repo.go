@@ -82,13 +82,16 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 }
 
 func getRepoPrivate(ctx *context.Context) bool {
-	switch setting.Repository.DefaultPrivate {
+	switch strings.ToLower(setting.Repository.DefaultPrivate) {
 	case setting.RepoCreatingLastUserVisibility:
 		return ctx.User.LastRepoVisibility
 	case setting.RepoCreatingPrivate:
 		return true
+	case setting.RepoCreatingPublic:
+		return false
+	default:
+		return ctx.User.LastRepoVisibility
 	}
-	return false
 }
 
 // Create render creating repository page

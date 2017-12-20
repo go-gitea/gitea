@@ -72,9 +72,9 @@ type MarkupParser struct {
 
 // enumerates all the policy repository creating
 const (
-	RepoCreatingLastUserVisibility = iota
-	RepoCreatingPrivate
-	RepoCreatingPublic
+	RepoCreatingLastUserVisibility = "last"
+	RepoCreatingPrivate = "private"
+	RepoCreatingPublic = "public"
 )
 
 // settings
@@ -187,7 +187,7 @@ var (
 	Repository = struct {
 		AnsiCharset            string
 		ForcePrivate           bool
-		DefaultPrivate         int
+		DefaultPrivate         string
 		MaxCreationLimit       int
 		MirrorQueueLength      int
 		PullRequestQueueLength int
