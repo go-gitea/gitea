@@ -39,6 +39,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SCRIPT_TYPE`: The script type your server supports, usually this is `bash`, but some customers report that they only have `sh`.
 - `ANSI_CHARSET`: The default charset for an unrecognized charset.
 - `FORCE_PRIVATE`: Force every new repository to be private.
+- `DEFAULT_PRIVATE`: Default private when create a new repository, could be: `last`, `private` and `public`. Default is last which means last user repo visiblity.
 - `MAX_CREATION_LIMIT`: Global maximum creation limit of repositories per user, `-1` means no limit.
 - `PULL_REQUEST_QUEUE_LENGTH`:exclamation:: Length of pull request patch test queue, make it as large as possible.
 - `MIRROR_QUEUE_LENGTH`: Patch test queue length, increase if pull request patch testing starts hanging. Defaults to 1000.
