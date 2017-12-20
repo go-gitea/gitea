@@ -198,6 +198,7 @@ func getCommitsInfo(state *getCommitsInfoState) error {
 	}
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = state.headCommit.repo.Path
+	defer cmd.Wait()
 
 	readCloser, err := cmd.StdoutPipe()
 	if err != nil {
