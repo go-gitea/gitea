@@ -1493,11 +1493,17 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	// Dummy object.
 	collaboration := &Collaboration{RepoID: repo.ID}
 	for _, c := range collaborators {
-		collaboration.UserID = c.ID
-		if c.ID == newOwner.ID || newOwner.IsOrgMember(c.ID) {
-			if _, err = sess.Delete(collaboration); err != nil {
-				return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
+		if c.ID != newOwner.ID {
+			isMember, err := newOwner.IsOrgMember(c.ID)
+			if err != nil {
+				return fmt.Errorf("IsOrgMember: %v", err)
+			} else if !isMember {
+				continue
 			}
+		}
+		collaboration.UserID = c.ID
+		if _, err = sess.Delete(collaboration); err != nil {
+			return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
 		}
 	}
 
