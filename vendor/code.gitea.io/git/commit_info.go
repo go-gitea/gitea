@@ -79,7 +79,7 @@ func targetedSearch(state *getCommitsInfoState, done chan error) {
 			done <- nil
 			return
 		}
-		command := NewCommand("rev-list", "-1", "HEAD", "--", entryPath)
+		command := NewCommand("rev-list", "-1", state.headCommit.ID.String(), "--", entryPath)
 		output, err := command.RunInDir(state.headCommit.repo.Path)
 		if err != nil {
 			done <- err
@@ -192,7 +192,7 @@ func getCommitsInfo(state *getCommitsInfoState) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
-	args := []string{"log", getCommitsInfoPretty, "--name-status", "-c"}
+	args := []string{"log", state.headCommit.ID.String(), getCommitsInfoPretty, "--name-status", "-c"}
 	if len(state.treePath) > 0 {
 		args = append(args, "--", state.treePath)
 	}
