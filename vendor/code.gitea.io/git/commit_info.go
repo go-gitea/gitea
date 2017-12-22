@@ -207,6 +207,10 @@ func getCommitsInfo(state *getCommitsInfoState) error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
+	// it's okay to ignore the error returned by cmd.Wait(); we expect the
+	// subprocess to sometimes have a non-zero exit status, since we may
+	// prematurely close stdout, resulting in a broken pipe.
+	defer cmd.Wait()
 
 	numThreads := runtime.NumCPU()
 	done := make(chan error, numThreads)
@@ -216,6 +220,14 @@ func getCommitsInfo(state *getCommitsInfoState) error {
 
 	scanner := bufio.NewScanner(readCloser)
 	err = state.processGitLogOutput(scanner)
+
+	// it is important that we close stdout here; if we do not close
+	// stdout, the subprocess will keep running, and the deffered call
+	// cmd.Wait() may block for a long time.
+	if closeErr := readCloser.Close(); closeErr != nil && err == nil {
+		err = closeErr
+	}
+
 	for i := 0; i < numThreads; i++ {
 		doneErr := <-done
 		if doneErr != nil && err == nil {
