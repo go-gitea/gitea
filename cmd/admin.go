@@ -8,7 +8,9 @@ package cmd
 import (
 	"fmt"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
@@ -24,6 +26,7 @@ to make automatic initialization process more smoothly`,
 		Subcommands: []cli.Command{
 			subcmdCreateUser,
 			subcmdChangePassword,
+			subcmdRepoSyncReleases,
 		},
 	}
 
@@ -75,6 +78,12 @@ to make automatic initialization process more smoothly`,
 				Usage: "New password to set for user",
 			},
 		},
+	}
+
+	subcmdRepoSyncReleases = cli.Command{
+		Name:   "repo-sync-releases",
+		Usage:  "Synchronize repository releases with tags",
+		Action: runRepoSyncReleases,
 	}
 )
 
@@ -143,5 +152,43 @@ func runCreateUser(c *cli.Context) error {
 	}
 
 	fmt.Printf("New user '%s' has been successfully created!\n", c.String("name"))
+	return nil
+}
+
+func runRepoSyncReleases(c *cli.Context) error {
+
+	setting.NewContext()
+	models.LoadConfigs()
+
+	setting.NewXORMLogService(false)
+	if err := models.SetEngine(); err != nil {
+		return fmt.Errorf("models.SetEngine: %v", err)
+	}
+
+	repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{})
+	if err != nil {
+		log.Fatal(4, "SearchRepositoryByName: %v", err)
+		return nil
+	}
+	log.Trace("Found %d repos", count)
+	for _, repo := range repos {
+		log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
+		gitRepo, err := git.OpenRepository(repo.RepoPath())
+		if err != nil {
+			log.Warn("OpenRepository: %v", err)
+			continue
+		}
+
+		oldnum := repo.NumReleases
+		log.Trace(" currentgNumReleases is %d, running SyncReleasesWithTags", oldnum)
+
+		if err = models.SyncReleasesWithTags(repo, gitRepo); err != nil {
+			log.Warn("SyncReleasesWithTags: %v", err)
+		}
+
+		log.Trace("Repo %s releases synchronized to tags: from %d to %d",
+			repo.FullName(), oldnum, repo.NumReleases)
+	}
+
 	return nil
 }
