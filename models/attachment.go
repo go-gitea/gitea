@@ -140,17 +140,23 @@ func DeleteAttachments(attachments []*Attachment, remove bool) (int, error) {
 	}
 
 	var ids = make([]int64, 0, len(attachments))
-	for i, a := range attachments {
-		if remove {
-			if err := os.Remove(a.LocalPath()); err != nil {
-				return i, err
-			}
-		}
+	for _, a := range attachments {
 		ids = append(ids, a.ID)
 	}
 
 	cnt, err := x.In("id", ids).NoAutoCondition().Delete(attachments[0])
-	return int(cnt), err
+	if err != nil {
+		return 0, err
+	}
+
+	if remove {
+		for i, a := range attachments {
+			if err := os.Remove(a.LocalPath()); err != nil {
+				return i, err
+			}
+		}
+	}
+	return int(cnt), nil
 }
 
 // DeleteAttachmentsByIssue deletes all attachments associated with the given issue.
