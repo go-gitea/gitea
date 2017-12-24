@@ -39,8 +39,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SCRIPT_TYPE`: The script type your server supports, usually this is `bash`, but some customers report that they only have `sh`.
 - `ANSI_CHARSET`: The default charset for an unrecognized charset.
 - `FORCE_PRIVATE`: Force every new repository to be private.
+- `DEFAULT_PRIVATE`: Default private when create a new repository, could be: `last`, `private` and `public`. Default is last which means last user repo visiblity.
 - `MAX_CREATION_LIMIT`: Global maximum creation limit of repositories per user, `-1` means no limit.
 - `PULL_REQUEST_QUEUE_LENGTH`:exclamation:: Length of pull request patch test queue, make it as large as possible.
+- `MIRROR_QUEUE_LENGTH`: Patch test queue length, increase if pull request patch testing starts hanging. Defaults to 1000.
+- `PREFERRED_LICENSES`: Preferred Licenses to place at the top of the List. Name must match file name in conf/license or custom/conf/license. Defaults to 'Apache License 2.0,MIT License'
+- `DISABLE_HTTP_GIT`: Disable ability to interact with repositories by HTTP protocol.  Defaults to false
+- `USE_COMPAT_SSH_URI`: Force ssh:// clone url instead of scp-style uri when default SSH port is used. Defaults to false.
 
 ## UI (`ui`)
 

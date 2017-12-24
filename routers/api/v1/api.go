@@ -177,7 +177,10 @@ func reqOrgMembership() macaron.Handler {
 			return
 		}
 
-		if !models.IsOrganizationMember(orgID, ctx.User.ID) {
+		if isMember, err := models.IsOrganizationMember(orgID, ctx.User.ID); err != nil {
+			ctx.Error(500, "IsOrganizationMember", err)
+			return
+		} else if !isMember {
 			if ctx.Org.Organization != nil {
 				ctx.Error(403, "", "Must be an organization member")
 			} else {
@@ -200,7 +203,10 @@ func reqOrgOwnership() macaron.Handler {
 			return
 		}
 
-		if !models.IsOrganizationOwner(orgID, ctx.User.ID) {
+		isOwner, err := models.IsOrganizationOwner(orgID, ctx.User.ID)
+		if err != nil {
+			ctx.Error(500, "IsOrganizationOwner", err)
+		} else if !isOwner {
 			if ctx.Org.Organization != nil {
 				ctx.Error(403, "", "Must be an organization owner")
 			} else {

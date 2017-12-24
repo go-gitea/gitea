@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 const ownerTeamName = "Owners"
@@ -47,7 +49,12 @@ func (t *Team) IsOwnerTeam() bool {
 
 // IsMember returns true if given user is a member of team.
 func (t *Team) IsMember(userID int64) bool {
-	return IsTeamMember(t.OrgID, t.ID, userID)
+	isMember, err := IsTeamMember(t.OrgID, t.ID, userID)
+	if err != nil {
+		log.Error(4, "IsMember: %v", err)
+		return false
+	}
+	return isMember
 }
 
 func (t *Team) getRepositories(e Engine) error {
@@ -413,17 +420,17 @@ type TeamUser struct {
 	UID    int64 `xorm:"UNIQUE(s)"`
 }
 
-func isTeamMember(e Engine, orgID, teamID, userID int64) bool {
-	has, _ := e.
+func isTeamMember(e Engine, orgID, teamID, userID int64) (bool, error) {
+	return e.
 		Where("org_id=?", orgID).
 		And("team_id=?", teamID).
 		And("uid=?", userID).
-		Get(new(TeamUser))
-	return has
+		Table("team_user").
+		Exist()
 }
 
 // IsTeamMember returns true if given user is a member of team.
-func IsTeamMember(orgID, teamID, userID int64) bool {
+func IsTeamMember(orgID, teamID, userID int64) (bool, error) {
 	return isTeamMember(x, orgID, teamID, userID)
 }
 
@@ -471,8 +478,9 @@ func GetUserTeams(orgID, userID int64) ([]*Team, error) {
 // AddTeamMember adds new membership of given team to given organization,
 // the user will have membership to given organization automatically when needed.
 func AddTeamMember(team *Team, userID int64) error {
-	if IsTeamMember(team.OrgID, team.ID, userID) {
-		return nil
+	isAlreadyMember, err := IsTeamMember(team.OrgID, team.ID, userID)
+	if err != nil || isAlreadyMember {
+		return err
 	}
 
 	if err := AddOrgUser(team.OrgID, userID); err != nil {
@@ -529,8 +537,9 @@ func AddTeamMember(team *Team, userID int64) error {
 }
 
 func removeTeamMember(e Engine, team *Team, userID int64) error {
-	if !isTeamMember(e, team.OrgID, team.ID, userID) {
-		return nil
+	isMember, err := isTeamMember(e, team.OrgID, team.ID, userID)
+	if err != nil || !isMember {
+		return err
 	}
 
 	// Check if the user to delete is the last member in owner team.
@@ -566,7 +575,7 @@ func removeTeamMember(e Engine, team *Team, userID int64) error {
 
 	// This must exist.
 	ou := new(OrgUser)
-	_, err := e.
+	_, err = e.
 		Where("uid = ?", userID).
 		And("org_id = ?", team.OrgID).
 		Get(ou)

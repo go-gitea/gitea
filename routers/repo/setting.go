@@ -234,13 +234,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		if ctx.Repo.Owner.IsOrganization() {
-			if !ctx.Repo.Owner.IsOwnedBy(ctx.User.ID) {
-				ctx.Error(404)
-				return
-			}
-		}
-
 		if !repo.IsMirror {
 			ctx.Error(404)
 			return
@@ -266,13 +259,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		if repo.Name != form.RepoName {
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 			return
-		}
-
-		if ctx.Repo.Owner.IsOrganization() {
-			if !ctx.Repo.Owner.IsOwnedBy(ctx.User.ID) {
-				ctx.Error(404)
-				return
-			}
 		}
 
 		newOwner := ctx.Query("new_owner_name")
@@ -307,13 +293,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		if ctx.Repo.Owner.IsOrganization() {
-			if !ctx.Repo.Owner.IsOwnedBy(ctx.User.ID) {
-				ctx.Error(404)
-				return
-			}
-		}
-
 		if err := models.DeleteRepository(ctx.User, ctx.Repo.Owner.ID, repo.ID); err != nil {
 			ctx.Handle(500, "DeleteRepository", err)
 			return
@@ -331,13 +310,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		if repo.Name != form.RepoName {
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 			return
-		}
-
-		if ctx.Repo.Owner.IsOrganization() {
-			if !ctx.Repo.Owner.IsOwnedBy(ctx.User.ID) {
-				ctx.Error(404)
-				return
-			}
 		}
 
 		repo.DeleteWiki()
@@ -393,10 +365,16 @@ func CollaborationPost(ctx *context.Context) {
 	}
 
 	// Check if user is organization member.
-	if ctx.Repo.Owner.IsOrganization() && ctx.Repo.Owner.IsOrgMember(u.ID) {
-		ctx.Flash.Info(ctx.Tr("repo.settings.user_is_org_member"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
-		return
+	if ctx.Repo.Owner.IsOrganization() {
+		isMember, err := ctx.Repo.Owner.IsOrgMember(u.ID)
+		if err != nil {
+			ctx.Handle(500, "IsOrgMember", err)
+			return
+		} else if isMember {
+			ctx.Flash.Info(ctx.Tr("repo.settings.user_is_org_member"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+			return
+		}
 	}
 
 	if err = ctx.Repo.Repository.AddCollaborator(u); err != nil {

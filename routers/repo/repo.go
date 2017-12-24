@@ -74,11 +74,34 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 	}
 
 	// Check ownership of organization.
-	if !org.IsOrganization() || !(ctx.User.IsAdmin || org.IsOwnedBy(ctx.User.ID)) {
+	if !org.IsOrganization() {
 		ctx.Error(403)
 		return nil
 	}
+	if !ctx.User.IsAdmin {
+		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.Handle(500, "IsOwnedBy", err)
+			return nil
+		} else if !isOwner {
+			ctx.Error(403)
+			return nil
+		}
+	}
 	return org
+}
+
+func getRepoPrivate(ctx *context.Context) bool {
+	switch strings.ToLower(setting.Repository.DefaultPrivate) {
+	case setting.RepoCreatingLastUserVisibility:
+		return ctx.User.LastRepoVisibility
+	case setting.RepoCreatingPrivate:
+		return true
+	case setting.RepoCreatingPublic:
+		return false
+	default:
+		return ctx.User.LastRepoVisibility
+	}
 }
 
 // Create render creating repository page
@@ -94,7 +117,7 @@ func Create(ctx *context.Context) {
 	ctx.Data["Licenses"] = models.Licenses
 	ctx.Data["Readmes"] = models.Readmes
 	ctx.Data["readme"] = "Default"
-	ctx.Data["private"] = ctx.User.LastRepoVisibility
+	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 
 	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
@@ -170,7 +193,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 // Migrate render migration of repository page
 func Migrate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
-	ctx.Data["private"] = ctx.User.LastRepoVisibility
+	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["mirror"] = ctx.Query("mirror") == "1"
 	ctx.Data["LFSActive"] = setting.LFS.StartServer
