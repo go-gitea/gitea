@@ -190,8 +190,8 @@ func Issues(ctx *context.Context) {
 		issues = []*models.Issue{}
 	} else {
 		issues, err = models.Issues(&models.IssuesOptions{
+			RepoIDs:     []int64{repo.ID},
 			AssigneeID:  assigneeID,
-			RepoID:      repo.ID,
 			PosterID:    posterID,
 			MentionedID: mentionedID,
 			MilestoneID: milestoneID,
