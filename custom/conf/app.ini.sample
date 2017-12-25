@@ -16,6 +16,8 @@ SCRIPT_TYPE = bash
 ANSI_CHARSET =
 ; Force every new repository to be private
 FORCE_PRIVATE = false
+; Default private when create a new repository, could be: last, private, public. Default is last which means last user repo visiblity.
+DEFAULT_PRIVATE = last
 ; Global maximum creation limit of repository per user, -1 means no limit
 MAX_CREATION_LIMIT = -1
 ; Mirror sync queue length, increase if mirror syncing starts hanging

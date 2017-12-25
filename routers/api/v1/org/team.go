@@ -176,7 +176,11 @@ func GetTeamMembers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	if !models.IsOrganizationMember(ctx.Org.Team.OrgID, ctx.User.ID) {
+	isMember, err := models.IsOrganizationMember(ctx.Org.Team.OrgID, ctx.User.ID)
+	if err != nil {
+		ctx.Error(500, "IsOrganizationMember", err)
+		return
+	} else if !isMember {
 		ctx.Status(404)
 		return
 	}
