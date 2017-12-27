@@ -1657,6 +1657,14 @@ $(function () {
 function showDeletePopup() {
     var $this = $(this);
     var filter = "";
+    
+    // Replace content to repositoy name
+    var content = "";
+    var pattern = /&([^]*)[^]gt;|<b>[^]*[^]<\/b>/;
+    content = $('.content').html();
+    content = content.replace(pattern,"<b>"+$this.data("repo-name")+"</b> ");
+    $('.content').html(content);
+    
     if ($this.attr("id")) {
         filter += "#" + $this.attr("id")
     }
