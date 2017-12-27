@@ -1679,7 +1679,7 @@ $(function () {
 function showDeletePopup() {
     var $this = $(this);
     var filter = "";
- 
+
     // Replace content to repositoy name
     var content = $('.content').text();
     content     = content.replace("%s",$this.data('repo-name'));
