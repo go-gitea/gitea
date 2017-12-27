@@ -100,7 +100,7 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 
 	elem := strings.Split(test.RedirectURL(resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
-	testPullMerge(t, session, elem[1], elem[2], elem[4], "merge")
+	testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleMerge)
 
 	// Check PR branch deletion
 	resp = testPullCleanUp(t, session, elem[1], elem[2], elem[4])
