@@ -1689,18 +1689,6 @@ function showDeletePopup() {
         filter += "#" + $this.attr("id")
     }
 
-    if(pattern.test($this.data('url'))) {
-        uri = $this.data('url').replace(pattern,$this.data('id'));
-        content = $('.content p:nth-child(2)').html();
-        $.post(uri, {
-             "_csrf": csrf,
-             "id": $this.data('id')
-         }).done(function(r){
-             content = content.replace(/(\&[^](.*)(?=re))|(<[^](.*)(?=re))/,"<b>"+r+"</b> ");
-             $('.content p:nth-child(2)').html(content);
-         });
-     }
-
     $('.delete.modal' + filter).modal({
         closable: false,
         onApprove: function() {
