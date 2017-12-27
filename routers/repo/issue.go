@@ -727,16 +727,18 @@ func ViewIssue(ctx *context.Context) {
 			}
 		}
 
-		prConfig := repo.MustGetUnit(models.UnitTypePullRequests).PullRequestsConfig()
+		prUnit, err := repo.GetUnit(models.UnitTypePullRequests)
+		if err != nil {
+			ctx.Handle(500, "GetUnit", err)
+			return
+		}
+		prConfig := prUnit.PullRequestsConfig()
 
 		// Check correct values and select default
-
 		if ms, ok := ctx.Data["MergeStyle"].(models.MergeStyle); !ok ||
-			ms == models.MergeStyleRegular && !prConfig.AllowMerge ||
-			ms == models.MergeStyleRebase && !prConfig.AllowRebase ||
-			ms == models.MergeStyleSquash && !prConfig.AllowSquash {
+			!prConfig.IsMergeStyleAllowed(ms) {
 			if prConfig.AllowMerge {
-				ctx.Data["MergeStyle"] = models.MergeStyleRegular
+				ctx.Data["MergeStyle"] = models.MergeStyleMerge
 			} else if prConfig.AllowRebase {
 				ctx.Data["MergeStyle"] = models.MergeStyleRebase
 			} else if prConfig.AllowSquash {

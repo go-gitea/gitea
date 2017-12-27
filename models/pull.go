@@ -111,16 +111,22 @@ func (pr *PullRequest) loadIssue(e Engine) (err error) {
 
 // GetDefaultMergeMessage returns default message used when merging pull request
 func (pr *PullRequest) GetDefaultMergeMessage() string {
+	if pr.HeadRepo == nil {
+		var err error
+		pr.HeadRepo, err = GetRepositoryByID(pr.HeadRepoID)
+		if err != nil {
+			log.Error(4, "GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
+			return ""
+		}
+	}
 	return fmt.Sprintf("Merge branch '%s' of %s/%s into %s", pr.HeadBranch, pr.HeadUserName, pr.HeadRepo.Name, pr.BaseBranch)
 }
 
 // GetDefaultSquashMessage returns default message used when squash and merging pull request
 func (pr *PullRequest) GetDefaultSquashMessage() string {
-	if pr.Issue == nil {
-		if err := pr.LoadIssue(); err != nil {
-			log.Error(4, "LoadIssue: %v", err)
-			return ""
-		}
+	if err := pr.LoadIssue(); err != nil {
+		log.Error(4, "LoadIssue: %v", err)
+		return ""
 	}
 	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index)
 }
@@ -252,8 +258,8 @@ func (pr *PullRequest) CanAutoMerge() bool {
 type MergeStyle string
 
 const (
-	// MergeStyleRegular create merge commit
-	MergeStyleRegular MergeStyle = "merge"
+	// MergeStyleMerge create merge commit
+	MergeStyleMerge MergeStyle = "merge"
 	// MergeStyleRebase rebase before merging
 	MergeStyleRebase MergeStyle = "rebase"
 	// MergeStyleSquash squash commits into single commit before merging
@@ -269,12 +275,14 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return fmt.Errorf("GetBaseRepo: %v", err)
 	}
 
-	pullsConfig := pr.BaseRepo.MustGetUnit(UnitTypePullRequests).PullRequestsConfig()
+	prUnit, err := pr.BaseRepo.GetUnit(UnitTypePullRequests)
+	if err != nil {
+		return err
+	}
+	prConfig := prUnit.PullRequestsConfig()
 
 	// Check if merge style is correct and allowed
-	if mergeStyle == MergeStyleRegular && !pullsConfig.AllowMerge ||
-		mergeStyle == MergeStyleRebase && !pullsConfig.AllowRebase ||
-		mergeStyle == MergeStyleSquash && !pullsConfig.AllowSquash {
+	if !prConfig.IsMergeStyleAllowed(mergeStyle) {
 		return ErrInvalidMergeStyle{pr.BaseRepo.ID, mergeStyle}
 	}
 
@@ -327,7 +335,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	}
 
 	switch mergeStyle {
-	case MergeStyleRegular:
+	case MergeStyleMerge:
 		if _, stderr, err = process.GetManager().ExecDir(-1, tmpBasePath,
 			fmt.Sprintf("PullRequest.Merge (git merge --no-ff --no-commit): %s", tmpBasePath),
 			"git", "merge", "--no-ff", "--no-commit", "head_repo/"+pr.HeadBranch); err != nil {
@@ -438,7 +446,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		log.Error(4, "GetBranchCommit: %v", err)
 		return nil
 	}
-	if mergeStyle == MergeStyleRegular {
+	if mergeStyle == MergeStyleMerge {
 		l.PushFront(mergeCommit)
 	}
 
@@ -645,8 +653,14 @@ func (pr *PullRequest) testPatch() (err error) {
 		return fmt.Errorf("git read-tree --index-output=%s %s: %v - %s", indexTmpPath, pr.BaseBranch, err, stderr)
 	}
 
+	prUnit, err := pr.BaseRepo.GetUnit(UnitTypePullRequests)
+	if err != nil {
+		return err
+	}
+	prConfig := prUnit.PullRequestsConfig()
+
 	args := []string{"apply", "--check", "--cached"}
-	if pr.BaseRepo.MustGetUnit(UnitTypePullRequests).PullRequestsConfig().IgnoreWhitespaceConflicts {
+	if prConfig.IgnoreWhitespaceConflicts {
 		args = append(args, "--ignore-whitespace")
 	}
 	args = append(args, patchPath)

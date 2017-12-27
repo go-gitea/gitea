@@ -11,22 +11,23 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum, mergeStyle string) *httptest.ResponseRecorder {
+func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeStyle models.MergeStyle) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Click the little green button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find(".ui.form." + mergeStyle + "-fields > form").Attr("action")
+	link, exists := htmlDoc.doc.Find(".ui.form." + string(mergeStyle) + "-fields > form").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
-		"do":    mergeStyle,
+		"do":    string(mergeStyle),
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
 
@@ -59,7 +60,7 @@ func TestPullMerge(t *testing.T) {
 
 	elem := strings.Split(test.RedirectURL(resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
-	testPullMerge(t, session, elem[1], elem[2], elem[4], "merge")
+	testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleMerge)
 }
 
 func TestPullRebase(t *testing.T) {
@@ -72,7 +73,7 @@ func TestPullRebase(t *testing.T) {
 
 	elem := strings.Split(test.RedirectURL(resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
-	testPullMerge(t, session, elem[1], elem[2], elem[4], "rebase")
+	testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebase)
 }
 
 func TestPullSquash(t *testing.T) {
@@ -86,7 +87,7 @@ func TestPullSquash(t *testing.T) {
 
 	elem := strings.Split(test.RedirectURL(resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
-	testPullMerge(t, session, elem[1], elem[2], elem[4], "squash")
+	testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleSquash)
 }
 
 func TestPullCleanUpAfterMerge(t *testing.T) {

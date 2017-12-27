@@ -103,6 +103,13 @@ func (cfg *PullRequestsConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
+// IsMergeStyleAllowed returns if merge style is allowed
+func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
+	return mergeStyle == MergeStyleMerge && cfg.AllowMerge ||
+		mergeStyle == MergeStyleRebase && cfg.AllowRebase ||
+		mergeStyle == MergeStyleSquash && cfg.AllowSquash
+}
+
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {

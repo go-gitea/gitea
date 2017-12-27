@@ -527,7 +527,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 
 	message := strings.TrimSpace(form.MergeTitleField)
 	if len(message) == 0 {
-		if models.MergeStyle(form.Do) == models.MergeStyleRegular {
+		if models.MergeStyle(form.Do) == models.MergeStyleMerge {
 			message = pr.GetDefaultMergeMessage()
 		}
 		if models.MergeStyle(form.Do) == models.MergeStyleSquash {
