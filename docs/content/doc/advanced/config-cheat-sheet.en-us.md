@@ -87,6 +87,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LFS_START_SERVER`: Enables git-lfs support. `true` or `false`, default is `false`.
 - `LFS_CONTENT_PATH`: Where your lfs files put on, default is `data/lfs`.
 - `LFS_JWT_SECRET`: LFS authentication secret, changed this to yourself.
+- `REDIRECT_OTHER_PORT`: If true and `PROTOCOL` is https, redirects http requests on another port to `ROOT_URL`, default is `false`.
+- `PORT_TO_REDIRECT`: Port used when `REDIRECT_OTHER_PORT` is true, default is `80`.
 
 ## Database (`database`)
 
