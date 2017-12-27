@@ -30,15 +30,6 @@ func Repos(ctx *context.Context) {
 	})
 }
 
-// GetRepoName get name repository
-func GetRepoName(ctx *context.Context) string {
-	repo, err := models.GetRepositoryByID(ctx.QueryInt64("id"))
-	if err != nil {
-		ctx.Handle(500, "GetRepositoryByID", err)
-	}
-	return repo.Name
-}
-
 // DeleteRepo delete one repository
 func DeleteRepo(ctx *context.Context) {
 	repo, err := models.GetRepositoryByID(ctx.QueryInt64("id"))

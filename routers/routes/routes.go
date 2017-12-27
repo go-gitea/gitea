@@ -281,7 +281,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/repos", func() {
 			m.Get("", admin.Repos)
 			m.Post("/delete", admin.DeleteRepo)
-			m.Post("/:repoid", admin.GetRepoName)
 		})
 
 		m.Group("/auths", func() {
