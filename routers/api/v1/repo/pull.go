@@ -502,13 +502,6 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		form.Do = string(models.MergeStyleMerge)
 	}
 
-	if models.MergeStyle(form.Do) != models.MergeStyleMerge &&
-		models.MergeStyle(form.Do) != models.MergeStyleRebase &&
-		models.MergeStyle(form.Do) != models.MergeStyleSquash {
-		ctx.Status(405)
-		return
-	}
-
 	message := strings.TrimSpace(form.MergeTitleField)
 	if len(message) == 0 {
 		if models.MergeStyle(form.Do) == models.MergeStyleMerge {
