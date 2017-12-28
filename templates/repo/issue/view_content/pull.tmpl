@@ -38,10 +38,10 @@
 					{{$.i18n.Tr "repo.pulls.can_auto_merge_desc"}}
 				</div>
 				{{if .IsRepositoryWriter}}
-					{{$pullRequestUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
-					{{if or $pullRequestUnit.PullRequestsConfig.AllowMerge $pullRequestUnit.PullRequestsConfig.AllowRebase $pullRequestUnit.PullRequestsConfig.AllowSquash}}
+					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
+					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowSquash}}
 						<div class="ui divider"></div>
-						{{if $pullRequestUnit.PullRequestsConfig.AllowMerge}}
+						{{if $prUnit.PullRequestsConfig.AllowMerge}}
 						<div class="ui form merge-fields" style="display: none">
 							<form action="{{.Link}}/merge" method="post">
 								{{.CsrfTokenHtml}}
@@ -60,7 +60,7 @@
 							</form>
 						</div>
 						{{end}}
-						{{if $pullRequestUnit.PullRequestsConfig.AllowRebase}}
+						{{if $prUnit.PullRequestsConfig.AllowRebase}}
 						<div class="ui form rebase-fields" style="display: none">
 							<form action="{{.Link}}/merge" method="post">
 								{{.CsrfTokenHtml}}
@@ -73,7 +73,7 @@
 							</form>
 						</div>
 						{{end}}
-						{{if $pullRequestUnit.PullRequestsConfig.AllowSquash}}
+						{{if $prUnit.PullRequestsConfig.AllowSquash}}
 						<div class="ui form squash-fields" style="display: none">
 							<form action="{{.Link}}/merge" method="post">
 								{{.CsrfTokenHtml}}
@@ -110,13 +110,13 @@
 							<div class="ui dropdown icon button">
 								<i class="dropdown icon"></i>
 								<div class="menu">
-									{{if $pullRequestUnit.PullRequestsConfig.AllowMerge}}
+									{{if $prUnit.PullRequestsConfig.AllowMerge}}
 									<div class="item{{if eq .MergeStyle "merge"}} active selected{{end}}" data-do="merge">{{$.i18n.Tr "repo.pulls.merge_pull_request"}}</div>
 									{{end}}
-									{{if $pullRequestUnit.PullRequestsConfig.AllowRebase}}
+									{{if $prUnit.PullRequestsConfig.AllowRebase}}
 									<div class="item{{if eq .MergeStyle "rebase"}} active selected{{end}}" data-do="rebase">{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}</div>
 									{{end}}
-									{{if $pullRequestUnit.PullRequestsConfig.AllowSquash}}
+									{{if $prUnit.PullRequestsConfig.AllowSquash}}
 									<div class="item{{if eq .MergeStyle "squash"}} active selected{{end}}" data-do="squash">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}</div>
 									{{end}}
 								</div>

@@ -193,7 +193,7 @@
 				{{if .Repository.CanEnablePulls}}
 					<div class="ui divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled $.UnitTypePullRequests}}
-					{{$pullRequestUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
+					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.pulls"}}</label>
 						<div class="ui checkbox">
@@ -204,25 +204,25 @@
 					<div class="field{{if not $pullRequestEnabled}} disabled{{end}}" id="pull_box">
 						<div class="field">
 							<div class="ui checkbox">
-								<input name="pulls_ignore_whitespace" type="checkbox" {{if and $pullRequestEnabled ($pullRequestUnit.PullRequestsConfig.IgnoreWhitespaceConflicts)}}checked{{end}}>
+								<input name="pulls_ignore_whitespace" type="checkbox" {{if and $pullRequestEnabled ($prUnit.PullRequestsConfig.IgnoreWhitespaceConflicts)}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.settings.pulls.ignore_whitespace"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
-								<input name="pulls_allow_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($pullRequestUnit.PullRequestsConfig.AllowMerge)}}checked{{end}}>
+								<input name="pulls_allow_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowMerge)}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.settings.pulls.allow_merge_commits"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
-								<input name="pulls_allow_rebase" type="checkbox" {{if or (not $pullRequestEnabled) ($pullRequestUnit.PullRequestsConfig.AllowRebase)}}checked{{end}}>
+								<input name="pulls_allow_rebase" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebase)}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.settings.pulls.allow_rebase_merge"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
-								<input name="pulls_allow_squash" type="checkbox" {{if or (not $pullRequestEnabled) ($pullRequestUnit.PullRequestsConfig.AllowSquash)}}checked{{end}}>
+								<input name="pulls_allow_squash" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowSquash)}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.settings.pulls.allow_squash_commits"}}</label>
 							</div>
 						</div>

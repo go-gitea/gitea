@@ -878,7 +878,7 @@ func (err ErrPullRequestAlreadyExists) Error() string {
 		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
 }
 
-// ErrInvalidMergeStyle represents a an error if merging with disabled merge strategy
+// ErrInvalidMergeStyle represents an error if merging with disabled merge strategy
 type ErrInvalidMergeStyle struct {
 	ID    int64
 	Style MergeStyle
