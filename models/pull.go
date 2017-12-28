@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -415,6 +416,9 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	if err = MergePullRequestAction(doer, pr.Issue.Repo, pr.Issue); err != nil {
 		log.Error(4, "MergePullRequestAction [%d]: %v", pr.ID, err)
 	}
+
+	// Reset cached commit count
+	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
 
 	// Reload pull request information.
 	if err = pr.LoadAttributes(); err != nil {
