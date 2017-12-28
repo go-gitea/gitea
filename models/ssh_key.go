@@ -600,8 +600,8 @@ type DeployKey struct {
 	Fingerprint string
 	Content     string `xorm:"-"`
 
-	Mode     AccessMode
-	ReadOnly bool `xorm:"-"`
+	Mode     AccessMode `xorm:"NOT NULL DEFAULT 1"`
+	ReadOnly bool       `xorm:"-"`
 
 	CreatedUnix       util.TimeStamp `xorm:"created"`
 	UpdatedUnix       util.TimeStamp `xorm:"updated"`
