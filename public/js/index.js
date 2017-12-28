@@ -1691,6 +1691,10 @@ function showDeletePopup() {
 
     $('.delete.modal' + filter).modal({
         closable: false,
+        onDeny: function() {
+            content     = content.replace("<strong>"+$this.data('repo-name')+"</strong>", "%s");
+            $('.content').html(content);
+        },
         onApprove: function() {
             if ($this.data('type') == "form") {
                 $($this.data('form')).submit();
