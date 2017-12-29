@@ -18,20 +18,18 @@ func TestCreateIssueDependency(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create a dependency and check if it was successful
-	exists, circular, err := CreateIssueDependency(user1, issue1, issue2)
+	err = CreateIssueDependency(user1, issue1, issue2)
 	assert.NoError(t, err)
-	assert.False(t, exists)
-	assert.False(t, circular)
 
 	// Do it again to see if it will check if the dependency already exists
-	exists, _, err = CreateIssueDependency(user1, issue1, issue2)
-	assert.NoError(t, err)
-	assert.True(t, exists)
+	err = CreateIssueDependency(user1, issue1, issue2)
+	assert.Error(t, err)
+	assert.True(t, IsErrDependencyExists(err))
 
 	// Check for circular dependencies
-	_, circular, err = CreateIssueDependency(user1, issue2, issue1)
-	assert.NoError(t, err)
-	assert.True(t, exists)
+	err = CreateIssueDependency(user1, issue2, issue1)
+	assert.Error(t, err)
+	assert.True(t, IsErrCircularDependency(err))
 
 	_ = AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeAddDependency, PosterID: user1.ID, IssueID: issue1.ID})
 
