@@ -29,21 +29,21 @@ const (
 )
 
 // CreateIssueDependency creates a new dependency for an issue
-func CreateIssueDependency(user *User, issue, dep *Issue) (exists, circular bool, err error) {
+func CreateIssueDependency(user *User, issue, dep *Issue) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
-		return false, false, err
+		return err
 	}
 
 	// Check if it aleready exists
-	exists, circular, err = issueDepExists(sess, issue.ID, dep.ID)
+	err = issueDepExists(sess, issue.ID, dep.ID)
 	if err != nil {
 		return
 	}
 
 	// If it not exists, create it, otherwise show an error message
-	if !exists && !circular {
+	if !IsErrDependencyExists(err) && !IsErrCircularDependency(err) {
 		newIssueDependency := &IssueDependency{
 			UserID:       user.ID,
 			IssueID:      issue.ID,
@@ -51,7 +51,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (exists, circular bool
 		}
 
 		if _, err := sess.Insert(newIssueDependency); err != nil {
-			return exists, circular, err
+			return err
 		}
 
 		// Add comment referencing the new dependency
@@ -64,7 +64,8 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (exists, circular bool
 			return
 		}
 	}
-	return exists, circular, sess.Commit()
+
+	return sess.Commit()
 }
 
 // RemoveIssueDependency removes a dependency from an issue
@@ -79,14 +80,18 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 	var exists bool
 	switch depType {
 	case DependencyTypeBlockedBy:
-		exists, _, err = issueDepExists(sess, issue.ID, dep.ID)
+		err = issueDepExists(sess, issue.ID, dep.ID)
 	case DependencyTypeBlocking:
-		exists, _, err = issueDepExists(sess, dep.ID, issue.ID)
+		err = issueDepExists(sess, dep.ID, issue.ID)
 	default:
 		return
 	}
 	if err != nil {
-		return err
+		if IsErrDependencyExists(err) {
+			exists = true
+		} else {
+			return err
+		}
 	}
 
 	// If it exists, remove it
@@ -121,14 +126,21 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 }
 
 // Check if the dependency already exists
-func issueDepExists(e Engine, issueID int64, depID int64) (exists, circular bool, err error) {
+func issueDepExists(e Engine, issueID int64, depID int64) (err error) {
 
 	// Check if the dependency exists
-	exists, err = e.Where("(issue_id = ? AND dependency_id = ?)", issueID, depID).Exist(&IssueDependency{})
+	exists, err := e.Where("(issue_id = ? AND dependency_id = ?)", issueID, depID).Exist(&IssueDependency{})
+	if exists {
+		return ErrDependencyExists{issueID, depID}
+	}
 
 	// If not, check for circular dependencies
-	if !exists {
-		circular, err = e.Where("issue_id = ? AND dependency_id = ?", depID, issueID).Exist(&IssueDependency{})
+	circular, err := e.Where("issue_id = ? AND dependency_id = ?", depID, issueID).Exist(&IssueDependency{})
+	if err != nil {
+		return err
+	}
+	if circular {
+		return ErrCircularDependency{issueID, depID}
 	}
 
 	return

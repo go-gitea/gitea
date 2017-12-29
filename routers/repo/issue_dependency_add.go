@@ -51,19 +51,16 @@ func AddDependency(c *context.Context) {
 	if dep.Index == issueIndex {
 		c.Flash.Error(c.Tr("repo.issues.dependency.add_error_same_issue"))
 	} else {
-
-		exists, circular, err := models.CreateIssueDependency(c.User, issue, dep)
+		err := models.CreateIssueDependency(c.User, issue, dep)
 		if err != nil {
-			c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
-			return
-		}
-
-		if exists {
-			c.Flash.Error(c.Tr("repo.issues.dependency.add_error_dep_exists"))
-		}
-
-		if circular {
-			c.Flash.Error(c.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
+			if models.IsErrDependencyExists(err) {
+				c.Flash.Error(c.Tr("repo.issues.dependency.add_error_dep_exists"))
+			} else if models.IsErrCircularDependency(err) {
+				c.Flash.Error(c.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
+			} else {
+				c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
+				return
+			}
 		}
 	}
 
