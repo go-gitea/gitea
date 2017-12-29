@@ -7,7 +7,6 @@ package repo
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -16,11 +15,7 @@ import (
 // AddDependency adds new dependencies
 func AddDependency(c *context.Context) {
 
-	depID, err := strconv.ParseInt(c.Req.PostForm.Get("newDependency"), 10, 64)
-	if err != nil {
-		c.Handle(http.StatusBadRequest, "issue ID is not int", err)
-		return
-	}
+	depID := c.QueryInt64("newDependency")
 
 	issueIndex := c.ParamsInt64("index")
 	issue, err := models.GetIssueByIndex(c.Repo.Repository.ID, issueIndex)
