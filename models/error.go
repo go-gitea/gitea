@@ -1185,7 +1185,7 @@ type ErrDependencyExists struct {
 	DependencyID int64
 }
 
-// IsErrssDependencyExists checks if an error is a ErrDependencyExists.
+// IsErrDependencyExists checks if an error is a ErrDependencyExists.
 func IsErrDependencyExists(err error) bool {
 	_, ok := err.(ErrDependencyExists)
 	return ok
