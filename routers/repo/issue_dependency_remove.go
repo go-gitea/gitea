@@ -7,7 +7,6 @@ package repo
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
