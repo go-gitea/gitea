@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"net/http"
 
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/paginater"
@@ -28,7 +29,6 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"net/http"
 )
 
 const (
