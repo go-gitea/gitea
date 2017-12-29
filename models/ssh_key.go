@@ -600,8 +600,7 @@ type DeployKey struct {
 	Fingerprint string
 	Content     string `xorm:"-"`
 
-	Mode     AccessMode `xorm:"NOT NULL DEFAULT 1"`
-	ReadOnly bool       `xorm:"-"`
+	Mode AccessMode `xorm:"NOT NULL DEFAULT 1"`
 
 	CreatedUnix       util.TimeStamp `xorm:"created"`
 	UpdatedUnix       util.TimeStamp `xorm:"updated"`
@@ -613,7 +612,6 @@ type DeployKey struct {
 func (key *DeployKey) AfterLoad() {
 	key.HasUsed = key.UpdatedUnix > key.CreatedUnix
 	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
-	key.ReadOnly = key.Mode == AccessModeRead
 }
 
 // GetContent gets associated public key content.
@@ -624,6 +622,11 @@ func (key *DeployKey) GetContent() error {
 	}
 	key.Content = pkey.Content
 	return nil
+}
+
+// IsReadOnly checks if the key can only be used for read operations
+func (key *DeployKey) IsReadOnly() bool {
+	return key.Mode == AccessModeRead
 }
 
 func checkDeployKey(e Engine, keyID, repoID int64, name string) error {

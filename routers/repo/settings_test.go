@@ -31,9 +31,9 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
 	models.AssertExistsAndLoadBean(t, &models.DeployKey{
-		Name:     addKeyForm.Title,
-		Content:  addKeyForm.Content,
-		ReadOnly: true,
+		Name:    addKeyForm.Title,
+		Content: addKeyForm.Content,
+		Mode:    models.AccessModeRead,
 	})
 }
 
@@ -54,8 +54,8 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
 	models.AssertExistsAndLoadBean(t, &models.DeployKey{
-		Name:     addKeyForm.Title,
-		Content:  addKeyForm.Content,
-		ReadOnly: false,
+		Name:    addKeyForm.Title,
+		Content: addKeyForm.Content,
+		Mode:    models.AccessModeWrite,
 	})
 }
