@@ -527,7 +527,7 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	if !noDeps {
-		ctx.Flash.Error("You need to close all issues blocking this pull request before you can merge it!")
+		ctx.Flash.Error(ctx.Tr("issues.dependency.pr_close_blocked"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 		return
 	}
