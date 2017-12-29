@@ -26,7 +26,7 @@ func RemoveDependency(ctx *context.Context) {
 
 	// Check if the Repo is allowed to have dependencies
 	if !ctx.Repo.CanCreateIssueDependencies(issue, ctx.User) {
-		ctx.Handle(404, "MustEnableIssueDependencies", nil)
+		ctx.Handle(404, "NotAllowedToCreateIssueDependencies", nil)
 		return
 	}
 
@@ -53,7 +53,7 @@ func RemoveDependency(ctx *context.Context) {
 	}
 
 	if err = models.RemoveIssueDependency(ctx.User, issue, dep, depType); err != nil {
-		ctx.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
+		ctx.Handle(http.StatusInternalServerError, "RemoveIssueDependency", err)
 		return
 	}
 
