@@ -7,6 +7,7 @@ package models
 import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // IssueDependency represents an issue dependency
@@ -165,6 +166,7 @@ func (repo *Repository) IsDependenciesEnabled() bool {
 	var u *RepoUnit
 	var err error
 	if u, err = repo.GetUnit(UnitTypeIssues); err != nil {
+		log.Trace("%s", err)
 		return setting.Service.DefaultEnableDependencies
 	}
 	return u.IssuesConfig().EnableDependencies
