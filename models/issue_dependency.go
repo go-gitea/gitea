@@ -6,19 +6,17 @@ package models
 
 import (
 	"code.gitea.io/gitea/modules/setting"
-	"time"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // IssueDependency represents an issue dependency
 type IssueDependency struct {
-	ID           int64     `xorm:"pk autoincr"`
-	UserID       int64     `xorm:"NOT NULL"`
-	IssueID      int64     `xorm:"UNIQUE(issue_dependency) NOT NULL"`
-	DependencyID int64     `xorm:"UNIQUE(issue_dependency) NOT NULL"`
-	Created      time.Time `xorm:"-"`
-	CreatedUnix  int64     `xorm:"INDEX created"`
-	Updated      time.Time `xorm:"-"`
-	UpdatedUnix  int64     `xorm:"updated"`
+	ID           int64          `xorm:"pk autoincr"`
+	UserID       int64          `xorm:"NOT NULL"`
+	IssueID      int64          `xorm:"UNIQUE(issue_dependency) NOT NULL"`
+	DependencyID int64          `xorm:"UNIQUE(issue_dependency) NOT NULL"`
+	CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix  util.TimeStamp `xorm:"updated"`
 }
 
 // DependencyType Defines Dependency Type Constants
@@ -33,10 +31,10 @@ const (
 // CreateIssueDependency creates a new dependency for an issue
 func CreateIssueDependency(user *User, issue, dep *Issue) (exists, circular bool, err error) {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return false, false, err
 	}
-	defer sess.Close()
 
 	// Check if it aleready exists
 	exists, circular, err = issueDepExists(sess, issue.ID, dep.ID)
@@ -72,10 +70,10 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (exists, circular bool
 // RemoveIssueDependency removes a dependency from an issue
 func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType DependencyType) (err error) {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	defer sess.Close()
 
 	// Check if it exists
 	var exists bool
