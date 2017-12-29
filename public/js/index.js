@@ -2115,7 +2115,6 @@ function buildIssuesList() {
 
         $.each(data, function (i, issue) {
             if(issue.number != issueIndex) {
-                //$('#newDependency').append('<option value="' + issue.id + '"><b>#' + issue.number + '</b> ' + issue.title + '</option>');
                 $('.new-dependency-dropdown').append('<div class="item" data-value="' + issue.id + '"><b>#' + issue.number + '</b> ' + issue.title + '</div>');
             }
         });
@@ -2123,26 +2122,6 @@ function buildIssuesList() {
         $('.new-dependency-drop-list').dropdown({
             fullTextSearch: true
         });
-
-        /*$('.issue-search')
-            .search({
-                source: data,
-                searchFields: [
-                    'number',
-                    'title',
-                    'body'
-                ],
-                fields: {
-                    title: 'title',
-                    description: 'body'
-                },
-                searchFullText: false,
-                onSelect: function (result) {
-                    $('#newDependency').val(result.id);
-                    return false;
-                }
-
-            });*/
     });
 }
 
