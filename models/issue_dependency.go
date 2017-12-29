@@ -89,7 +89,7 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 		return err
 	}
 
-	// If it exists, remove it, otherwise show an error message
+	// If it exists, remove it
 	if exists {
 
 		var issueDepToDelete IssueDependency
