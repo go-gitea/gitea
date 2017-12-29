@@ -209,7 +209,7 @@
 							{{range .BlockedByDependencies}}
 								<div class="item">
 									<div class="right floated content">
-										{{if $.CanUseDependencies}}
+										{{if $.CanCreateIssueDependencies}}
 										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blockedBy');">
 											<i class="delete icon text red"></i>
 										</a>
@@ -243,7 +243,7 @@
 							{{range .BlockingDependencies}}
 								<div class="item">
 									<div class="right floated content">
-										{{if $.CanUseDependencies}}
+										{{if $.CanCreateIssueDependencies}}
 										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blocking');">
 											<i class="delete icon text red"></i>
 										</a>
@@ -269,7 +269,7 @@
 						<p>{{.i18n.Tr "repo.issues.dependency.no_dependencies"}}</p>
 					{{end}}
 
-					{{if .CanUseDependencies}}
+					{{if .CanCreateIssueDependencies}}
 					<div>
 						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/dependency/add" id="addDependencyForm">
 							{{$.CsrfTokenHtml}}
@@ -292,7 +292,7 @@
 				</div>
 	</div>
 </div>
-{{if .CanUseDependencies}}
+{{if .CanCreateIssueDependencies}}
 <input type="hidden" id="repolink" value="{{$.RepoLink}}">
 <!-- I know, there is probably a better way to do this -->
 <input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>

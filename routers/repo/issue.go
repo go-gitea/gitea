@@ -652,7 +652,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	// Check if the user can use the dependencies
-	ctx.Data["CanUseDependencies"] = ctx.Repo.CanUseDependencies(issue, ctx.User)
+	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(issue, ctx.User)
 
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
