@@ -21,13 +21,13 @@ var (
 )
 
 // IsOwnedBy returns true if given user is in the owner team.
-func (org *User) IsOwnedBy(uid int64) bool {
+func (org *User) IsOwnedBy(uid int64) (bool, error) {
 	return IsOrganizationOwner(org.ID, uid)
 }
 
 // IsOrgMember returns true if given user is member of organization.
-func (org *User) IsOrgMember(uid int64) bool {
-	return org.IsOrganization() && IsOrganizationMember(org.ID, uid)
+func (org *User) IsOrgMember(uid int64) (bool, error) {
+	return IsOrganizationMember(org.ID, uid)
 }
 
 func (org *User) getTeam(e Engine, name string) (*Team, error) {
@@ -285,32 +285,32 @@ type OrgUser struct {
 }
 
 // IsOrganizationOwner returns true if given user is in the owner team.
-func IsOrganizationOwner(orgID, uid int64) bool {
-	has, _ := x.
+func IsOrganizationOwner(orgID, uid int64) (bool, error) {
+	return x.
 		Where("is_owner=?", true).
 		And("uid=?", uid).
 		And("org_id=?", orgID).
-		Get(new(OrgUser))
-	return has
+		Table("org_user").
+		Exist()
 }
 
 // IsOrganizationMember returns true if given user is member of organization.
-func IsOrganizationMember(orgID, uid int64) bool {
-	has, _ := x.
+func IsOrganizationMember(orgID, uid int64) (bool, error) {
+	return x.
 		Where("uid=?", uid).
 		And("org_id=?", orgID).
-		Get(new(OrgUser))
-	return has
+		Table("org_user").
+		Exist()
 }
 
 // IsPublicMembership returns true if given user public his/her membership.
-func IsPublicMembership(orgID, uid int64) bool {
-	has, _ := x.
+func IsPublicMembership(orgID, uid int64) (bool, error) {
+	return x.
 		Where("uid=?", uid).
 		And("org_id=?", orgID).
 		And("is_public=?", true).
-		Get(new(OrgUser))
-	return has
+		Table("org_user").
+		Exist()
 }
 
 func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*User, error) {
@@ -401,8 +401,9 @@ func ChangeOrgUserStatus(orgID, uid int64, public bool) error {
 
 // AddOrgUser adds new user to given organization.
 func AddOrgUser(orgID, uid int64) error {
-	if IsOrganizationMember(orgID, uid) {
-		return nil
+	isAlreadyMember, err := IsOrganizationMember(orgID, uid)
+	if err != nil || isAlreadyMember {
+		return err
 	}
 
 	sess := x.NewSession()
@@ -447,7 +448,9 @@ func RemoveOrgUser(orgID, userID int64) error {
 	}
 
 	// Check if the user to delete is the last member in owner team.
-	if IsOrganizationOwner(orgID, userID) {
+	if isOwner, err := IsOrganizationOwner(orgID, userID); err != nil {
+		return err
+	} else if isOwner {
 		t, err := org.GetOwnerTeam()
 		if err != nil {
 			return err

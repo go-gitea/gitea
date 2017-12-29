@@ -67,7 +67,15 @@ func ListMembers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
-	publicOnly := ctx.User == nil || !ctx.Org.Organization.IsOrgMember(ctx.User.ID)
+	publicOnly := true
+	if ctx.User != nil {
+		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.User.ID)
+		if err != nil {
+			ctx.Error(500, "IsOrgMember", err)
+			return
+		}
+		publicOnly = !isMember
+	}
 	listMembers(ctx, publicOnly)
 }
 
@@ -119,19 +127,30 @@ func IsMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if ctx.User != nil && ctx.Org.Organization.IsOrgMember(ctx.User.ID) {
-		if ctx.Org.Organization.IsOrgMember(userToCheck.ID) {
-			ctx.Status(204)
-		} else {
+	if ctx.User != nil {
+		userIsMember, err := ctx.Org.Organization.IsOrgMember(ctx.User.ID)
+		if err != nil {
+			ctx.Error(500, "IsOrgMember", err)
+			return
+		} else if userIsMember {
+			userToCheckIsMember, err := ctx.Org.Organization.IsOrgMember(ctx.User.ID)
+			if err != nil {
+				ctx.Error(500, "IsOrgMember", err)
+			} else if userToCheckIsMember {
+				ctx.Status(204)
+			} else {
+				ctx.Status(404)
+			}
+			return
+		} else if ctx.User.ID == userToCheck.ID {
 			ctx.Status(404)
+			return
 		}
-	} else if ctx.User != nil && ctx.User.ID == userToCheck.ID {
-		ctx.Status(404)
-	} else {
-		redirectURL := fmt.Sprintf("%sapi/v1/orgs/%s/public_members/%s",
-			setting.AppURL, ctx.Org.Organization.Name, userToCheck.Name)
-		ctx.Redirect(redirectURL, 302)
 	}
+
+	redirectURL := fmt.Sprintf("%sapi/v1/orgs/%s/public_members/%s",
+		setting.AppURL, ctx.Org.Organization.Name, userToCheck.Name)
+	ctx.Redirect(redirectURL, 302)
 }
 
 // IsPublicMember check if a user is a public member of an organization

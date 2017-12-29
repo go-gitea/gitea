@@ -487,12 +487,22 @@ func (u *User) IsOrganization() bool {
 
 // IsUserOrgOwner returns true if user is in the owner team of given organization.
 func (u *User) IsUserOrgOwner(orgID int64) bool {
-	return IsOrganizationOwner(orgID, u.ID)
+	isOwner, err := IsOrganizationOwner(orgID, u.ID)
+	if err != nil {
+		log.Error(4, "IsOrganizationOwner: %v", err)
+		return false
+	}
+	return isOwner
 }
 
 // IsPublicMember returns true if user public his/her membership in given organization.
 func (u *User) IsPublicMember(orgID int64) bool {
-	return IsPublicMembership(orgID, u.ID)
+	isMember, err := IsPublicMembership(orgID, u.ID)
+	if err != nil {
+		log.Error(4, "IsPublicMembership: %v", err)
+		return false
+	}
+	return isMember
 }
 
 func (u *User) getOrganizationCount(e Engine) (int64, error) {
