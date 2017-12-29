@@ -14,28 +14,24 @@ import (
 )
 
 // RemoveDependency removes the dependency
-func RemoveDependency(c *context.Context) {
-	depID, err := strconv.ParseInt(c.Req.PostForm.Get("removeDependencyID"), 10, 64)
-	if err != nil {
-		c.Handle(http.StatusBadRequest, "issue ID is not int", err)
-		return
-	}
+func RemoveDependency(ctx *context.Context) {
+	depID := ctx.QueryInt64("removeDependencyID")
 
-	issueIndex := c.ParamsInt64("index")
-	issue, err := models.GetIssueByIndex(c.Repo.Repository.ID, issueIndex)
+	issueIndex := ctx.ParamsInt64("index")
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
-		c.Handle(http.StatusInternalServerError, "GetIssueByIndex", err)
+		ctx.Handle(http.StatusInternalServerError, "GetIssueByIndex", err)
 		return
 	}
 
 	// Check if the Repo is allowed to have dependencies
-	if !c.Repo.CanCreateIssueDependencies(issue, c.User) {
-		c.Handle(404, "MustEnableIssueDependencies", nil)
+	if !ctx.Repo.CanCreateIssueDependencies(issue, ctx.User) {
+		ctx.Handle(404, "MustEnableIssueDependencies", nil)
 		return
 	}
 
 	// Dependency Type
-	depTypeStr := c.Req.PostForm.Get("dependencyType")
+	depTypeStr := ctx.Req.PostForm.Get("dependencyType")
 
 	var depType models.DependencyType
 
@@ -45,22 +41,22 @@ func RemoveDependency(c *context.Context) {
 	case "blocking":
 		depType = models.DependencyTypeBlocking
 	default:
-		c.Handle(http.StatusBadRequest, "GetDependecyType", nil)
+		ctx.Handle(http.StatusBadRequest, "GetDependecyType", nil)
 		return
 	}
 
 	// Dependency
 	dep, err := models.GetIssueByID(depID)
 	if err != nil {
-		c.Handle(http.StatusInternalServerError, "GetIssueByID", err)
+		ctx.Handle(http.StatusInternalServerError, "GetIssueByID", err)
 		return
 	}
 
-	if err = models.RemoveIssueDependency(c.User, issue, dep, depType); err != nil {
-		c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
+	if err = models.RemoveIssueDependency(ctx.User, issue, dep, depType); err != nil {
+		ctx.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
 		return
 	}
 
-	url := fmt.Sprintf("%s/issues/%d", c.Repo.RepoLink, issueIndex)
-	c.Redirect(url, http.StatusSeeOther)
+	url := fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issueIndex)
+	ctx.Redirect(url, http.StatusSeeOther)
 }
