@@ -285,7 +285,7 @@ DISABLE_REGISTRATION = false
 REQUIRE_SIGNIN_VIEW = false
 ; Mail notification
 ENABLE_NOTIFY_MAIL = false
-; More detail: https://github.com/go-gitea/gitea/issues/165
+; More detail: https://github.com/gogits/gogs/issues/165
 ENABLE_REVERSE_PROXY_AUTHENTICATION = false
 ENABLE_REVERSE_PROXY_AUTO_REGISTRATION = false
 ; Enable captcha validation for registration
