@@ -1692,7 +1692,7 @@ function showDeletePopup() {
     $('.delete.modal' + filter).modal({
         closable: false,
         onDeny: function() {
-            content     = content.replace("<strong>"+$this.data('repo-name')+"</strong>", "%s");
+            content     = content.replace("<strong>"+$this.data('repo-name')+"</strong>", "&lt;strong&gt;%s&lt;/strong&gt;");
             $('.content').html(content);
         },
         onApprove: function() {
