@@ -165,29 +165,40 @@ func runRepoSyncReleases(c *cli.Context) error {
 		return fmt.Errorf("models.SetEngine: %v", err)
 	}
 
-	repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{})
-	if err != nil {
-		log.Fatal(4, "SearchRepositoryByName: %v", err)
-		return nil
-	}
-	log.Trace("Found %d repos", count)
-	for _, repo := range repos {
-		log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
-		gitRepo, err := git.OpenRepository(repo.RepoPath())
+	log.Trace("Synchronizing repository releases (this may take a while)")
+	for page := 1; ; page++ {
+		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
+			Page:     page,
+			PageSize: 10,
+			Private:  true,
+		})
 		if err != nil {
-			log.Warn("OpenRepository: %v", err)
-			continue
+			log.Fatal(4, "SearchRepositoryByName: %v", err)
+			return err
 		}
-
-		oldnum := repo.NumReleases
-		log.Trace(" currentgNumReleases is %d, running SyncReleasesWithTags", oldnum)
-
-		if err = models.SyncReleasesWithTags(repo, gitRepo); err != nil {
-			log.Warn("SyncReleasesWithTags: %v", err)
+		if len(repos) == 0 {
+			break
 		}
+		log.Trace("Processing next %d repos of %d", len(repos), count)
+		for _, repo := range repos {
+			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
+			gitRepo, err := git.OpenRepository(repo.RepoPath())
+			if err != nil {
+				log.Warn("OpenRepository: %v", err)
+				continue
+			}
 
-		log.Trace("Repo %s releases synchronized to tags: from %d to %d",
-			repo.FullName(), oldnum, repo.NumReleases)
+			oldnum := repo.NumReleases
+			log.Trace(" currentNumReleases is %d, running SyncReleasesWithTags", oldnum)
+
+			if err = models.SyncReleasesWithTags(repo, gitRepo); err != nil {
+				log.Warn(" SyncReleasesWithTags: %v", err)
+				continue
+			}
+
+			log.Trace(" repo %s releases synchronized to tags: from %d to %d",
+				repo.FullName(), oldnum, repo.NumReleases)
+		}
 	}
 
 	return nil
