@@ -49,8 +49,9 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 
 	keysURL := fmt.Sprintf("/api/v1/repos/%s/%s/keys", repoOwner.Name, repo.Name)
 	rawKeyBody := api.CreateKeyOption{
-		Title: "read-only",
-		Key:   "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDAu7tvIvX6ZHrRXuZNfkR3XLHSsuCK9Zn3X58lxBcQzuo5xZgB6vRwwm/QtJuF+zZPtY5hsQILBLmF+BZ5WpKZp1jBeSjH2G7lxet9kbcH+kIVj0tPFEoyKI9wvWqIwC4prx/WVk2wLTJjzBAhyNxfEq7C9CeiX9pQEbEqJfkKCQ== nocomment\n",
+		Title:    "read-only",
+		Key:      "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDAu7tvIvX6ZHrRXuZNfkR3XLHSsuCK9Zn3X58lxBcQzuo5xZgB6vRwwm/QtJuF+zZPtY5hsQILBLmF+BZ5WpKZp1jBeSjH2G7lxet9kbcH+kIVj0tPFEoyKI9wvWqIwC4prx/WVk2wLTJjzBAhyNxfEq7C9CeiX9pQEbEqJfkKCQ== nocomment\n",
+		ReadOnly: true,
 	}
 	req := NewRequestWithJSON(t, "POST", keysURL, rawKeyBody)
 	resp := session.MakeRequest(t, req, http.StatusCreated)
@@ -76,7 +77,6 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 	rawKeyBody := api.CreateKeyOption{
 		Title: "read-write",
 		Key:   "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDsufOCrDDlT8DLkodnnJtbq7uGflcPae7euTfM+Laq4So+v4WeSV362Rg0O/+Sje1UthrhN6lQkfRkdWIlCRQEXg+LMqr6RhvDfZquE2Xwqv/itlz7LjbdAUdYoO1iH7rMSmYvQh4WEnC/DAacKGbhdGIM/ZBz0z6tHm7bPgbI9ykEKekTmPwQFP1Qebvf5NYOFMWqQ2sCEAI9dBMVLoojsIpV+KADf+BotiIi8yNfTG2rzmzpxBpW9fYjd1Sy1yd4NSUpoPbEJJYJ1TrjiSWlYOVq9Ar8xW1O87i6gBjL/3zN7ANeoYhaAXupdOS6YL22YOK/yC0tJtXwwdh/eSrh",
-		Mode:  models.AccessModeWrite,
 	}
 	req := NewRequestWithJSON(t, "POST", keysURL, rawKeyBody)
 	resp := session.MakeRequest(t, req, http.StatusCreated)
@@ -84,9 +84,9 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 	var newDeployKey api.DeployKey
 	DecodeJSON(t, resp, &newDeployKey)
 	models.AssertExistsAndLoadBean(t, &models.DeployKey{
-		ID:       newDeployKey.ID,
-		Name:     rawKeyBody.Title,
-		Content:  rawKeyBody.Key,
-		ReadOnly: false,
+		ID:      newDeployKey.ID,
+		Name:    rawKeyBody.Title,
+		Content: rawKeyBody.Key,
+		Mode:    models.AccessModeWrite,
 	})
 }
