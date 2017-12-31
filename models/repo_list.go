@@ -13,6 +13,8 @@ import (
 	"github.com/go-xorm/builder"
 )
 
+const RepositoryListDefaultPageSize = 64
+
 // RepositoryList contains a list of repositories
 type RepositoryList []*Repository
 

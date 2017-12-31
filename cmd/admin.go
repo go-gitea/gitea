@@ -169,7 +169,7 @@ func runRepoSyncReleases(c *cli.Context) error {
 	for page := 1; ; page++ {
 		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
 			Page:     page,
-			PageSize: 10,
+			PageSize: models.RepositoryListDefaultPageSize,
 			Private:  true,
 		})
 		if err != nil {
