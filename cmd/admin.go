@@ -188,7 +188,14 @@ func runRepoSyncReleases(c *cli.Context) error {
 				continue
 			}
 
-			oldnum := repo.NumReleases
+			oldnum, err := models.GetReleaseCountByRepoID(repo.ID,
+				models.FindReleasesOptions{
+					IncludeDrafts: false,
+					IncludeTags:   true,
+				})
+			if err != nil {
+				log.Warn(" GetReleaseCountByRepoID: %v", err)
+			}
 			log.Trace(" currentNumReleases is %d, running SyncReleasesWithTags", oldnum)
 
 			if err = models.SyncReleasesWithTags(repo, gitRepo); err != nil {
@@ -196,8 +203,18 @@ func runRepoSyncReleases(c *cli.Context) error {
 				continue
 			}
 
+			count, err = models.GetReleaseCountByRepoID(repo.ID,
+				models.FindReleasesOptions{
+					IncludeDrafts: false,
+					IncludeTags:   true,
+				})
+			if err != nil {
+				log.Warn(" GetReleaseCountByRepoID: %v", err)
+				continue
+			}
+
 			log.Trace(" repo %s releases synchronized to tags: from %d to %d",
-				repo.FullName(), oldnum, repo.NumReleases)
+				repo.FullName(), oldnum, count)
 		}
 	}
 
