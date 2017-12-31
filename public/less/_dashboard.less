@@ -29,26 +29,23 @@
                 }
             }
 
-            // Sort
-            .jump.item {
-                margin: 1px;
-                padding-right: 0;
-            }
-            .menu {
-                max-height: 300px;
-                overflow-x: auto;
-                right: 0!important;
-                left: auto!important;
-            }
-        }
-        .ui.right .head.menu {
-            margin-top: -5px;
-            .item.active {
-                color: #d9453d;
-            }
-        }
+			// Sort
+			.jump.item {
+				margin: 1px;
+				padding-right: 0;
+			}
+			.menu {
+				max-height: 300px;
+				overflow-x: auto;
+				right: 0!important;
+				left: auto!important;
+			}
+		}
+		.right.stackable.menu > .item.active {
+			color: #d9453d;
+		}
     }
-
+    
     /* Accomodate for Semantic's 1px hacks on .attached elements */
     .dashboard-repos {
         margin: 0 1px;
