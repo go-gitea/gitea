@@ -59,9 +59,8 @@ func branchAction(t *testing.T, button string) (*HTMLDoc, string) {
 	link, exists := htmlDoc.doc.Find(button).Attr("data-url")
 	assert.True(t, exists, "The template has changed")
 
-	htmlDoc = NewHTMLParser(t, resp.Body)
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf": getCsrf(htmlDoc.doc),
+		"_csrf": getCsrf(t, htmlDoc.doc),
 	})
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
@@ -73,7 +72,8 @@ func branchAction(t *testing.T, button string) (*HTMLDoc, string) {
 	return NewHTMLParser(t, resp.Body), url.Query()["name"][0]
 }
 
-func getCsrf(doc *goquery.Document) string {
-	csrf, _ := doc.Find("meta[name=\"_csrf\"]").Attr("content")
+func getCsrf(t *testing.T, doc *goquery.Document) string {
+	csrf, exists := doc.Find("meta[name=\"_csrf\"]").Attr("content")
+	assert.True(t, exists)
 	return csrf
 }

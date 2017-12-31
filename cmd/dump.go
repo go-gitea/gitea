@@ -126,10 +126,7 @@ func runDump(ctx *cli.Context) error {
 
 		var sessionAbsPath string
 		if setting.SessionConfig.Provider == "file" {
-			if len(setting.SessionConfig.ProviderConfig) == 0 {
-				setting.SessionConfig.ProviderConfig = "data/sessions"
-			}
-			sessionAbsPath, _ = filepath.Abs(setting.SessionConfig.ProviderConfig)
+			sessionAbsPath = setting.SessionConfig.ProviderConfig
 		}
 		if err := zipAddDirectoryExclude(z, "data", setting.AppDataPath, sessionAbsPath); err != nil {
 			log.Fatalf("Failed to include data directory: %v", err)

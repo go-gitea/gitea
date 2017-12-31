@@ -9,6 +9,43 @@ clone:
     tags: true
 
 pipeline:
+  download_translations:
+    image: jonasfranz/crowdin
+    pull: true
+    secrets: [ crowdin_key ]
+    project_identifier: gitea
+    ignore_branch: true
+    download: true
+    export_dir: options/locale/
+    when:
+      event: [ push ]
+      branch: [ master ]
+
+  update-translations:
+    image: alpine:3.6
+    commands:
+      - mv ./options/locale/locale_en-US.ini ./options/
+      - sed -i -e 's/="/=/g' -e 's/"$$//g' ./options/locale/*.ini
+      - sed -i -e 's/\\\\"/"/g' ./options/locale/*.ini
+      - mv ./options/locale_en-US.ini ./options/locale/
+    when:
+      event: [ push ]
+      branch: [ master ]
+
+  git_push:
+    image: appleboy/drone-git-push
+    pull: true
+    secrets: [ git_push_ssh_key ]
+    remote: git@github.com:go-gitea/gitea.git
+    force: false
+    commit: true
+    commit_message: "[skip ci] Updated translations via Crowdin"
+    author_name: GiteaBot
+    author_email: teabot@gitea.io
+    when:
+      event: [ push ]
+      branch: [ master ]
+
   pre-build:
     image: webhippie/nodejs:latest
     pull: true
@@ -17,6 +54,17 @@ pipeline:
       - make stylesheets-check
     when:
       event: [ push, tag, pull_request ]
+
+  build-without-gcc:
+    image: webhippie/golang:edge
+    pull: true
+    environment:
+      GOPATH: /srv/app
+    commands:
+      - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
+    when:
+      event: [ push, tag, pull_request ]
+
   build:
     image: webhippie/golang:edge
     pull: true
@@ -47,6 +95,19 @@ pipeline:
     when:
       event: [ push, pull_request ]
       branch: [ master ]
+
+  test:
+    image: webhippie/golang:edge
+    pull: true
+    group: test
+    environment:
+      TAGS: bindata sqlite
+      GOPATH: /srv/app
+    commands:
+      - make test
+    when:
+      event: [ push, pull_request ]
+      branch: [ release/* ]
 
   test:
     image: webhippie/golang:edge
@@ -142,6 +203,39 @@ pipeline:
     when:
       event: [ push, tag ]
 
+  build_docs:
+    image: webhippie/hugo:latest
+    pull: true
+    commands:
+      - cd docs
+      - make trans-copy
+      - make clean
+      - make build
+
+  docker_docs:
+    image: plugins/docker:17.05
+    pull: true
+    secrets: [ docker_username, docker_password ]
+    repo: gitea/docs
+    context: docs
+    dockerfile: docs/Dockerfile
+    tags: [ '${DRONE_BRANCH##release/v}' ]
+    when:
+      event: [ push ]
+      branch: [ release/* ]
+
+  docker_docs:
+    image: plugins/docker:17.05
+    pull: true
+    secrets: [ docker_username, docker_password ]
+    repo: gitea/docs
+    context: docs
+    dockerfile: docs/Dockerfile
+    tags: [ 'latest' ]
+    when:
+      event: [ push ]
+      branch: [ master ]
+
   docker:
     image: plugins/docker:17.05
     pull: true
@@ -212,18 +306,6 @@ pipeline:
       event: [ push ]
       branch: [ master ]
 
-  translations:
-    image: jonasfranz/crowdin
-    pull: true
-    secrets: [ crowdin_key ]
-    project_identifier: gitea
-    ignore_branch: true
-    files:
-      locale_en-US.ini: options/locale/locale_en-US.ini
-    when:
-      event: [ push ]
-      branch: [ master ]
-
   github:
     image: plugins/github-release:1
     pull: true
@@ -232,6 +314,19 @@ pipeline:
       - dist/release/*
     when:
       event: [ tag ]
+
+  upload_translations:
+    image: jonasfranz/crowdin
+    pull: true
+    secrets: [ crowdin_key ]
+    project_identifier: gitea
+    ignore_branch: true
+    download: false
+    files:
+      locale_en-US.ini: options/locale/locale_en-US.ini
+    when:
+      event: [ push ]
+      branch: [ master ]
 
   discord:
     image: appleboy/drone-discord:1.0.0

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"path"
 	"strings"
 	"testing"
@@ -154,6 +155,35 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 		pushCommits.AvatarLink("nonexistent@example.com"))
 }
 
+func Test_getIssueFromRef(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	for _, test := range []struct {
+		Ref             string
+		ExpectedIssueID int64
+	}{
+		{"#2", 2},
+		{"reopen #2", 2},
+		{"user2/repo2#1", 4},
+		{"fixes user2/repo2#1", 4},
+	} {
+		issue, err := getIssueFromRef(repo, test.Ref)
+		assert.NoError(t, err)
+		if assert.NotNil(t, issue) {
+			assert.EqualValues(t, test.ExpectedIssueID, issue.ID)
+		}
+	}
+
+	for _, badRef := range []string{
+		"doesnotexist/doesnotexist#1",
+		fmt.Sprintf("#%d", NonexistentID),
+	} {
+		issue, err := getIssueFromRef(repo, badRef)
+		assert.NoError(t, err)
+		assert.Nil(t, issue)
+	}
+}
+
 func TestUpdateIssuesCommit(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	pushCommits := []*PushCommit{
@@ -297,7 +327,7 @@ func TestCommitRepoAction(t *testing.T) {
 	}
 
 	for _, s := range samples {
-		prepareTestEnv(t)
+		PrepareTestEnv(t)
 
 		user := AssertExistsAndLoadBean(t, &User{ID: s.userID}).(*User)
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: s.repositoryID, OwnerID: user.ID}).(*Repository)

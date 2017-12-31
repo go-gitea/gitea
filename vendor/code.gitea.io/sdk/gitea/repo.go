@@ -11,15 +11,14 @@ import (
 	"time"
 )
 
-// Permission represents a API permission.
+// Permission represents a set of permissions
 type Permission struct {
 	Admin bool `json:"admin"`
 	Push  bool `json:"push"`
 	Pull  bool `json:"pull"`
 }
 
-// Repository represents a API repository.
-// swagger:response Repository
+// Repository represents a repository
 type Repository struct {
 	ID            int64       `json:"id"`
 	Owner         *User       `json:"owner"`
@@ -41,14 +40,12 @@ type Repository struct {
 	Watchers      int         `json:"watchers_count"`
 	OpenIssues    int         `json:"open_issues_count"`
 	DefaultBranch string      `json:"default_branch"`
+	// swagger:strfmt date-time
 	Created       time.Time   `json:"created_at"`
+	// swagger:strfmt date-time
 	Updated       time.Time   `json:"updated_at"`
 	Permissions   *Permission `json:"permissions,omitempty"`
 }
-
-// RepositoryList represents a list of API repository.
-// swagger:response RepositoryList
-type RepositoryList []*Repository
 
 // ListMyRepos lists all repositories for the authenticated user that has access to.
 func (c *Client) ListMyRepos() ([]*Repository, error) {
@@ -69,36 +66,24 @@ func (c *Client) ListOrgRepos(org string) ([]*Repository, error) {
 }
 
 // CreateRepoOption options when creating repository
-//swagger:parameters createOrgRepo adminCreateRepo createCurrentUserRepo
+// swagger:model
 type CreateRepoOption struct {
 	// Name of the repository to create
 	//
-	// in: body
+	// required: true
 	// unique: true
 	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 	// Description of the repository to create
-	//
-	// in: body
 	Description string `json:"description" binding:"MaxSize(255)"`
-	// Is the repository to create private ?
-	//
-	// in: body
+	// Whether the repository is private
 	Private bool `json:"private"`
-	// Init the repository to create ?
-	//
-	// in: body
+	// Whether the repository should be auto-intialized?
 	AutoInit bool `json:"auto_init"`
 	// Gitignores to use
-	//
-	// in: body
 	Gitignores string `json:"gitignores"`
 	// License to use
-	//
-	// in: body
 	License string `json:"license"`
 	// Readme of the repository to create
-	//
-	// in: body
 	Readme string `json:"readme"`
 }
 
@@ -134,24 +119,18 @@ func (c *Client) DeleteRepo(owner, repo string) error {
 	return err
 }
 
-// MigrateRepoOption options when migrate repository from an external place
-// swagger:parameters repoMigrate
+// MigrateRepoOption options for migrating a repository from an external service
 type MigrateRepoOption struct {
-	// in: body
+	// required: true
 	CloneAddr string `json:"clone_addr" binding:"Required"`
-	// in: body
 	AuthUsername string `json:"auth_username"`
-	// in: body
 	AuthPassword string `json:"auth_password"`
-	// in: body
+	// required: true
 	UID int `json:"uid" binding:"Required"`
-	// in: body
+	// required: true
 	RepoName string `json:"repo_name" binding:"Required"`
-	// in: body
 	Mirror bool `json:"mirror"`
-	// in: body
 	Private bool `json:"private"`
-	// in: body
 	Description string `json:"description"`
 }
 

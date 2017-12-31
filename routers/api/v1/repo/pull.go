@@ -18,6 +18,25 @@ import (
 
 // ListPullRequests returns a list of all PRs
 func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls repository repoListPullRequests
+	// ---
+	// summary: List a repo's pull requests
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullRequestList"
 	prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
 		Page:        ctx.QueryInt("page"),
 		State:       ctx.QueryTrim("state"),
@@ -26,10 +45,6 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 		MilestoneID: ctx.QueryInt64("milestone"),
 	})
 
-	/*prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
-		Page:  form.Page,
-		State: form.State,
-	})*/
 	if err != nil {
 		ctx.Error(500, "PullRequests", err)
 		return
@@ -37,10 +52,22 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 
 	apiPrs := make([]*api.PullRequest, len(prs))
 	for i := range prs {
-		prs[i].LoadIssue()
-		prs[i].LoadAttributes()
-		prs[i].GetBaseRepo()
-		prs[i].GetHeadRepo()
+		if err = prs[i].LoadIssue(); err != nil {
+			ctx.Error(500, "LoadIssue", err)
+			return
+		}
+		if err = prs[i].LoadAttributes(); err != nil {
+			ctx.Error(500, "LoadAttributes", err)
+			return
+		}
+		if err = prs[i].GetBaseRepo(); err != nil {
+			ctx.Error(500, "GetBaseRepo", err)
+			return
+		}
+		if err = prs[i].GetHeadRepo(); err != nil {
+			ctx.Error(500, "GetHeadRepo", err)
+			return
+		}
 		apiPrs[i] = prs[i].APIFormat()
 	}
 
@@ -50,6 +77,30 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 
 // GetPullRequest returns a single PR based on index
 func GetPullRequest(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index} repository repoGetPullRequest
+	// ---
+	// summary: Get a pull request
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to get
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullRequest"
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -60,13 +111,44 @@ func GetPullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	pr.GetBaseRepo()
-	pr.GetHeadRepo()
+	if err = pr.GetBaseRepo(); err != nil {
+		ctx.Error(500, "GetBaseRepo", err)
+		return
+	}
+	if err = pr.GetHeadRepo(); err != nil {
+		ctx.Error(500, "GetHeadRepo", err)
+		return
+	}
 	ctx.JSON(200, pr.APIFormat())
 }
 
 // CreatePullRequest does what it says
 func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption) {
+	// swagger:operation POST /repos/{owner}/{repo}/pulls repository repoCreatePullRequest
+	// ---
+	// summary: Create a pull request
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreatePullRequestOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/PullRequest"
 	var (
 		repo        = ctx.Repo.Repository
 		labelIDs    []int64
@@ -190,6 +272,36 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 
 // EditPullRequest does what it says
 func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/pulls/{index} repository repoEditPullRequest
+	// ---
+	// summary: Update a pull request
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to edit
+	//   type: integer
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditPullRequestOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/PullRequest"
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -269,13 +381,42 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		return
 	}
 
+	// TODO this should be 200, not 201
 	ctx.JSON(201, pr.APIFormat())
 }
 
 // IsPullRequestMerged checks if a PR exists given an index
-//  - Returns 204 if it exists
-//    Otherwise 404
 func IsPullRequestMerged(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}/merge repository repoPullRequestIsMerged
+	// ---
+	// summary: Check if a pull request has been merged
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: pull request has been merged
+	//     schema:
+	//       "$ref": "#/responses/empty"
+	//   "404":
+	//     description: pull request has not been merged
+	//     schema:
+	//       "$ref": "#/responses/empty"
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -294,6 +435,32 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 
 // MergePullRequest merges a PR given an index
 func MergePullRequest(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/merge repository repoMergePullRequest
+	// ---
+	// summary: Merge a pull request
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to merge
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/empty"
+	//   "405":
+	//     "$ref": "#/responses/empty"
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {

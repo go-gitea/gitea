@@ -62,7 +62,6 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	ctx.Data["description"] = forkRepo.Description
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate
 	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !ctx.User.HasForkedRepo(forkRepo.ID)
-	ctx.Data["CanForkToUser"] = canForkToUser
 
 	if err = forkRepo.GetOwner(); err != nil {
 		ctx.Handle(500, "GetOwner", err)
@@ -81,6 +80,31 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 			orgs = append(orgs, org)
 		}
 	}
+
+	var traverseParentRepo = forkRepo
+	for {
+		if ctx.User.ID == traverseParentRepo.OwnerID {
+			canForkToUser = false
+		} else {
+			for i, org := range orgs {
+				if org.ID == traverseParentRepo.OwnerID {
+					orgs = append(orgs[:i], orgs[i+1:]...)
+					break
+				}
+			}
+		}
+
+		if !traverseParentRepo.IsFork {
+			break
+		}
+		traverseParentRepo, err = models.GetRepositoryByID(traverseParentRepo.ForkID)
+		if err != nil {
+			ctx.Handle(500, "GetRepositoryByID", err)
+			return nil
+		}
+	}
+
+	ctx.Data["CanForkToUser"] = canForkToUser
 	ctx.Data["Orgs"] = orgs
 
 	if canForkToUser {
@@ -125,15 +149,35 @@ func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 		return
 	}
 
-	repo, has := models.HasForkedRepo(ctxUser.ID, forkRepo.ID)
-	if has {
-		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
-		return
+	var err error
+	var traverseParentRepo = forkRepo
+	for {
+		if ctxUser.ID == traverseParentRepo.OwnerID {
+			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
+			return
+		}
+		repo, has := models.HasForkedRepo(ctxUser.ID, traverseParentRepo.ID)
+		if has {
+			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
+			return
+		}
+		if !traverseParentRepo.IsFork {
+			break
+		}
+		traverseParentRepo, err = models.GetRepositoryByID(traverseParentRepo.ForkID)
+		if err != nil {
+			ctx.Handle(500, "GetRepositoryByID", err)
+			return
+		}
 	}
 
 	// Check ownership of organization.
 	if ctxUser.IsOrganization() {
-		if !ctxUser.IsOwnedBy(ctx.User.ID) {
+		isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.Handle(500, "IsOwnedBy", err)
+			return
+		} else if !isOwner {
 			ctx.Error(403)
 			return
 		}
@@ -217,12 +261,24 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) {
 	setMergeTarget(ctx, pull)
 	ctx.Data["HasMerged"] = true
 
-	ctx.Data["NumCommits"], err = ctx.Repo.GitRepo.CommitsCountBetween(pull.MergeBase, pull.MergedCommitID)
+	mergedCommit, err := ctx.Repo.GitRepo.GetCommit(pull.MergedCommitID)
+	if err != nil {
+		ctx.Handle(500, "GetCommit", err)
+		return
+	}
+	// the ID of the last commit in the PR (not including the merge commit)
+	endCommitID, err := mergedCommit.ParentID(mergedCommit.ParentCount() - 1)
+	if err != nil {
+		ctx.Handle(500, "ParentID", err)
+		return
+	}
+
+	ctx.Data["NumCommits"], err = ctx.Repo.GitRepo.CommitsCountBetween(pull.MergeBase, endCommitID.String())
 	if err != nil {
 		ctx.Handle(500, "Repo.GitRepo.CommitsCountBetween", err)
 		return
 	}
-	ctx.Data["NumFiles"], err = ctx.Repo.GitRepo.FilesCountBetween(pull.MergeBase, pull.MergedCommitID)
+	ctx.Data["NumFiles"], err = ctx.Repo.GitRepo.FilesCountBetween(pull.MergeBase, endCommitID.String())
 	if err != nil {
 		ctx.Handle(500, "Repo.GitRepo.FilesCountBetween", err)
 		return
@@ -298,19 +354,19 @@ func ViewPullCommits(ctx *context.Context) {
 		ctx.Data["Username"] = ctx.Repo.Owner.Name
 		ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 
-		startCommit, err := ctx.Repo.GitRepo.GetCommit(pull.MergeBase)
+		mergedCommit, err := ctx.Repo.GitRepo.GetCommit(pull.MergedCommitID)
 		if err != nil {
 			ctx.Handle(500, "Repo.GitRepo.GetCommit", err)
 			return
 		}
-		endCommit, err := ctx.Repo.GitRepo.GetCommit(pull.MergedCommitID)
+		endCommitID, err := mergedCommit.ParentID(mergedCommit.ParentCount() - 1)
 		if err != nil {
-			ctx.Handle(500, "Repo.GitRepo.GetCommit", err)
+			ctx.Handle(500, "ParentID", err)
 			return
 		}
-		commits, err = ctx.Repo.GitRepo.CommitsBetween(endCommit, startCommit)
+		commits, err = ctx.Repo.GitRepo.CommitsBetweenIDs(endCommitID.String(), pull.MergeBase)
 		if err != nil {
-			ctx.Handle(500, "Repo.GitRepo.CommitsBetween", err)
+			ctx.Handle(500, "Repo.GitRepo.CommitsBetweenIDs", err)
 			return
 		}
 	} else {
@@ -362,7 +418,17 @@ func ViewPullFiles(ctx *context.Context) {
 
 		diffRepoPath = ctx.Repo.GitRepo.Path
 		startCommitID = pull.MergeBase
-		endCommitID = pull.MergedCommitID
+		mergedCommit, err := ctx.Repo.GitRepo.GetCommit(pull.MergedCommitID)
+		if err != nil {
+			ctx.Handle(500, "GetCommit", err)
+			return
+		}
+		endCommitSha, err := mergedCommit.ParentID(mergedCommit.ParentCount() - 1)
+		if err != nil {
+			ctx.Handle(500, "ParentID", err)
+			return
+		}
+		endCommitID = endCommitSha.String()
 		gitRepo = ctx.Repo.GitRepo
 
 		headTarget = path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
@@ -418,9 +484,9 @@ func ViewPullFiles(ctx *context.Context) {
 	}
 
 	ctx.Data["IsImageFile"] = commit.IsImageFile
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", endCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", startCommitID)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", endCommitID)
+	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", endCommitID)
+	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", startCommitID)
+	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", endCommitID)
 	ctx.Data["RequireHighlightJS"] = true
 
 	ctx.HTML(200, tplPullFiles)
@@ -627,9 +693,9 @@ func PrepareCompareDiff(
 	ctx.Data["IsImageFile"] = headCommit.IsImageFile
 
 	headTarget := path.Join(headUser.Name, repo.Name)
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", headCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", prInfo.MergeBase)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", headCommitID)
+	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", headCommitID)
+	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", prInfo.MergeBase)
+	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", headCommitID)
 	return false
 }
 
@@ -639,6 +705,7 @@ func CompareAndPullRequest(ctx *context.Context) {
 	ctx.Data["PageIsComparePull"] = true
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireHighlightJS"] = true
+	ctx.Data["RequireTribute"] = true
 	setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 	renderAttachmentSettings(ctx)
 

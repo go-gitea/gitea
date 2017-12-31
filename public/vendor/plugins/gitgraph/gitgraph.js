@@ -44,6 +44,15 @@ var gitGraph = function (canvas, rawGraphList, config) {
 	
 	var ctx = canvas.getContext("2d");
 	
+	var devicePixelRatio = window.devicePixelRatio || 1;
+	var backingStoreRatio = ctx.webkitBackingStorePixelRatio ||
+	                        ctx.mozBackingStorePixelRatio ||
+	                        ctx.msBackingStorePixelRatio ||
+	                        ctx.oBackingStorePixelRatio ||
+	                        ctx.backingStorePixelRatio || 1;
+
+	var ratio = devicePixelRatio / backingStoreRatio;
+
 	var init = function () {
 		var maxWidth = 0;
 		var i;
@@ -61,12 +70,20 @@ var gitGraph = function (canvas, rawGraphList, config) {
 			graphList.unshift(row);
 		}
 		
-		canvas.width = maxWidth * config.unitSize;
-		canvas.height = graphList.length * config.unitSize;
+		var width = maxWidth * config.unitSize;
+		var height = graphList.length * config.unitSize;
+
+		canvas.width = width * ratio;
+		canvas.height = height * ratio;
+
+		canvas.style.width = width + 'px';
+		canvas.style.height = height + 'px';
 		
 		ctx.lineWidth = config.lineWidth;
 		ctx.lineJoin = "round";
 		ctx.lineCap = "round";
+
+		ctx.scale(ratio, ratio);
 	};
 	
 	var genRandomStr = function () {
@@ -186,7 +203,7 @@ var gitGraph = function (canvas, rawGraphList, config) {
 			}
 		}
 		
-		y = canvas.height - config.unitSize * 0.5;
+		y = (canvas.height / ratio) - config.unitSize * 0.5;
 		
 		//iterate
 		for (i = 0, l = graphList.length; i < l; i++) {

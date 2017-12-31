@@ -36,6 +36,7 @@ type Context struct {
 	Session session.Store
 
 	Link        string // current request URL
+	EscapedLink string
 	User        *models.User
 	IsSigned    bool
 	IsBasicAuth bool
@@ -157,7 +158,7 @@ func Contexter() macaron.Handler {
 			csrf:    x,
 			Flash:   f,
 			Session: sess,
-			Link:    setting.AppSubURL + strings.TrimSuffix(c.Req.URL.Path, "/"),
+			Link:    setting.AppSubURL + strings.TrimSuffix(c.Req.URL.EscapedPath(), "/"),
 			Repo: &Repository{
 				PullRequest: &PullRequest{},
 			},
@@ -175,14 +176,11 @@ func Contexter() macaron.Handler {
 			repoName := c.Params(":reponame")
 			branchName := "master"
 
-			owner, err := models.GetUserByName(ownerName)
-			if err == nil {
-				repo, err := models.GetRepositoryByName(owner.ID, repoName)
-				if err == nil && len(repo.DefaultBranch) > 0 {
-					branchName = repo.DefaultBranch
-				}
+			repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+			if err == nil && len(repo.DefaultBranch) > 0 {
+				branchName = repo.DefaultBranch
 			}
-			prefix := setting.AppURL + path.Join(ownerName, repoName, "src", branchName)
+			prefix := setting.AppURL + path.Join(ownerName, repoName, "src", "branch", branchName)
 			c.PlainText(http.StatusOK, []byte(com.Expand(`
 <html>
 	<head>
@@ -213,7 +211,7 @@ func Contexter() macaron.Handler {
 			ctx.Data["SignedUserName"] = ctx.User.Name
 			ctx.Data["IsAdmin"] = ctx.User.IsAdmin
 		} else {
-			ctx.Data["SignedUserID"] = 0
+			ctx.Data["SignedUserID"] = int64(0)
 			ctx.Data["SignedUserName"] = ""
 		}
 

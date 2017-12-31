@@ -3,9 +3,11 @@
 // license that can be found in the LICENSE file.
 
 // This code was translated into a form compatible with 6a from the public
-// domain sources in SUPERCOP: http://bench.cr.yp.to/supercop.html
+// domain sources in SUPERCOP: https://bench.cr.yp.to/supercop.html
 
 // +build amd64,!gccgo,!appengine
+
+#include "const_amd64.h"
 
 // func freeze(inout *[5]uint64)
 TEXT ·freeze(SB),7,$0-8
@@ -16,7 +18,7 @@ TEXT ·freeze(SB),7,$0-8
 	MOVQ 16(DI),CX
 	MOVQ 24(DI),R8
 	MOVQ 32(DI),R9
-	MOVQ ·REDMASK51(SB),AX
+	MOVQ $REDMASK51,AX
 	MOVQ AX,R10
 	SUBQ $18,R10
 	MOVQ $3,R11

@@ -10,8 +10,7 @@ import (
 	"fmt"
 )
 
-// Organization a group of some repositories, users and teams
-// swagger:response Organization
+// Organization represents an organization
 type Organization struct {
 	ID          int64  `json:"id"`
 	UserName    string `json:"username"`
@@ -40,22 +39,17 @@ func (c *Client) GetOrg(orgname string) (*Organization, error) {
 	return org, c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s", orgname), nil, nil, org)
 }
 
-// CreateOrgOption create one organization options
-// swagger:parameters adminCreateOrg
+// CreateOrgOption options for creating an organization
 type CreateOrgOption struct {
-	// in: body
+	// required: true
 	UserName string `json:"username" binding:"Required"`
-	// in: body
 	FullName string `json:"full_name"`
-	// in: body
 	Description string `json:"description"`
-	// in: body
 	Website string `json:"website"`
-	// in: body
 	Location string `json:"location"`
 }
 
-// EditOrgOption edit one organization options
+// EditOrgOption options for editing an organization
 type EditOrgOption struct {
 	FullName    string `json:"full_name"`
 	Description string `json:"description"`

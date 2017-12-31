@@ -76,11 +76,12 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		ctx.Data["ReadmeInList"] = true
 		ctx.Data["ReadmeExist"] = true
 
-		dataRc, err := readmeFile.Data()
+		dataRc, err := readmeFile.DataAsync()
 		if err != nil {
 			ctx.Handle(500, "Data", err)
 			return
 		}
+		defer dataRc.Close()
 
 		buf := make([]byte, 1024)
 		n, _ := dataRc.Read(buf)
@@ -91,14 +92,21 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		ctx.Data["FileName"] = readmeFile.Name()
 		// FIXME: what happens when README file is an image?
 		if isTextFile {
-			d, _ := ioutil.ReadAll(dataRc)
-			buf = append(buf, d...)
-			if markup.Type(readmeFile.Name()) != "" {
-				ctx.Data["IsMarkup"] = true
-				ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
+			if readmeFile.Size() >= setting.UI.MaxDisplayFileSize {
+				// Pretend that this is a normal text file to display 'This file is too large to be shown'
+				ctx.Data["IsFileTooLarge"] = true
+				ctx.Data["IsTextFile"] = true
+				ctx.Data["FileSize"] = readmeFile.Size()
 			} else {
-				ctx.Data["IsRenderedHTML"] = true
-				ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
+				d, _ := ioutil.ReadAll(dataRc)
+				buf = append(buf, d...)
+				if markup.Type(readmeFile.Name()) != "" {
+					ctx.Data["IsMarkup"] = true
+					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
+				} else {
+					ctx.Data["IsRenderedHTML"] = true
+					ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
+				}
 			}
 		}
 	}
@@ -135,11 +143,12 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsViewFile"] = true
 
 	blob := entry.Blob()
-	dataRc, err := blob.Data()
+	dataRc, err := blob.DataAsync()
 	if err != nil {
-		ctx.Handle(500, "Data", err)
+		ctx.Handle(500, "DataAsync", err)
 		return
 	}
+	defer dataRc.Close()
 
 	ctx.Data["FileSize"] = blob.Size()
 	ctx.Data["FileName"] = blob.Name()
@@ -170,7 +179,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 						ctx.Data["IsLFSFile"] = true
 						ctx.Data["FileSize"] = size
 						filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
-						ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), oid, filenameBase64)
+						ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), oid, filenameBase64)
 					}
 				}
 			}
@@ -297,9 +306,9 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["Title"] = title
 	ctx.Data["RequireHighlightJS"] = true
 
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName
+	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink
-	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchName
+	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
 
 	if len(ctx.Repo.TreePath) > 0 {
 		treeLink += "/" + ctx.Repo.TreePath

@@ -39,6 +39,8 @@ const (
 	tplMilestoneNew  base.TplName = "repo/issue/milestone_new"
 	tplMilestoneEdit base.TplName = "repo/issue/milestone_edit"
 
+	tplReactions base.TplName = "repo/issue/view_content/reactions"
+
 	issueTemplateKey = "IssueTemplate"
 )
 
@@ -188,8 +190,8 @@ func Issues(ctx *context.Context) {
 		issues = []*models.Issue{}
 	} else {
 		issues, err = models.Issues(&models.IssuesOptions{
+			RepoIDs:     []int64{repo.ID},
 			AssigneeID:  assigneeID,
-			RepoID:      repo.ID,
 			PosterID:    posterID,
 			MentionedID: mentionedID,
 			MilestoneID: milestoneID,
@@ -319,6 +321,9 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 	if err != nil {
 		return "", false
 	}
+	if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
+		return "", false
+	}
 	r, err = entry.Blob().Data()
 	if err != nil {
 		return "", false
@@ -346,6 +351,7 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireTribute"] = true
 	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
@@ -469,10 +475,31 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
 }
 
+// commentTag returns the CommentTag for a comment in/with the given repo, poster and issue
+func commentTag(repo *models.Repository, poster *models.User, issue *models.Issue) (models.CommentTag, error) {
+	if repo.IsOwnedBy(poster.ID) {
+		return models.CommentTagOwner, nil
+	} else if repo.Owner.IsOrganization() {
+		isOwner, err := repo.Owner.IsOwnedBy(poster.ID)
+		if err != nil {
+			return models.CommentTagNone, err
+		} else if isOwner {
+			return models.CommentTagOwner, nil
+		}
+	}
+	if poster.IsWriterOfRepo(repo) {
+		return models.CommentTagWriter, nil
+	} else if poster.ID == issue.PosterID {
+		return models.CommentTagPoster, nil
+	}
+	return models.CommentTagNone, nil
+}
+
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireDropzone"] = true
+	ctx.Data["RequireTribute"] = true
 	renderAttachmentSettings(ctx)
 
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
@@ -637,15 +664,11 @@ func ViewIssue(ctx *context.Context) {
 				continue
 			}
 
-			if repo.IsOwnedBy(comment.PosterID) ||
-				(repo.Owner.IsOrganization() && repo.Owner.IsOwnedBy(comment.PosterID)) {
-				comment.ShowTag = models.CommentTagOwner
-			} else if comment.Poster.IsWriterOfRepo(repo) {
-				comment.ShowTag = models.CommentTagWriter
-			} else if comment.PosterID == issue.PosterID {
-				comment.ShowTag = models.CommentTagPoster
+			comment.ShowTag, err = commentTag(repo, comment.Poster, issue)
+			if err != nil {
+				ctx.Handle(500, "commentTag", err)
+				return
 			}
-
 			marked[comment.PosterID] = comment.ShowTag
 
 			isAdded := false
@@ -723,9 +746,8 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 		ctx.NotFoundOrServerError("GetIssueByIndex", models.IsErrIssueNotExist, err)
 		return nil
 	}
-	if issue.IsPull && !ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) ||
-		!issue.IsPull && !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) {
-		ctx.Handle(404, "IssueOrPullRequestUnitNotAllowed", nil)
+	checkIssueRights(ctx, issue)
+	if ctx.Written() {
 		return nil
 	}
 	if err = issue.LoadAttributes(); err != nil {
@@ -733,6 +755,13 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 		return nil
 	}
 	return issue
+}
+
+func checkIssueRights(ctx *context.Context, issue *models.Issue) {
+	if issue.IsPull && !ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) ||
+		!issue.IsPull && !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) {
+		ctx.Handle(404, "IssueOrPullRequestUnitNotAllowed", nil)
+	}
 }
 
 func getActionIssues(ctx *context.Context) []*models.Issue {
@@ -763,7 +792,7 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 			return nil
 		}
 		if err = issue.LoadAttributes(); err != nil {
-			ctx.Handle(500, "LoadAttributes", nil)
+			ctx.Handle(500, "LoadAttributes", err)
 			return nil
 		}
 	}
@@ -1054,7 +1083,11 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["PageIsMilestones"] = true
 
 	isShowClosed := ctx.Query("state") == "closed"
-	openCount, closedCount := models.MilestoneStats(ctx.Repo.Repository.ID)
+	openCount, closedCount, err := models.MilestoneStats(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.Handle(500, "MilestoneStats", err)
+		return
+	}
 	ctx.Data["OpenCount"] = openCount
 	ctx.Data["ClosedCount"] = closedCount
 
@@ -1127,10 +1160,10 @@ func NewMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	}
 
 	if err = models.NewMilestone(&models.Milestone{
-		RepoID:   ctx.Repo.Repository.ID,
-		Name:     form.Title,
-		Content:  form.Content,
-		Deadline: deadline,
+		RepoID:       ctx.Repo.Repository.ID,
+		Name:         form.Title,
+		Content:      form.Content,
+		DeadlineUnix: util.TimeStamp(deadline.Unix()),
 	}); err != nil {
 		ctx.Handle(500, "NewMilestone", err)
 		return
@@ -1199,7 +1232,7 @@ func EditMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	}
 	m.Name = form.Title
 	m.Content = form.Content
-	m.Deadline = deadline
+	m.DeadlineUnix = util.TimeStamp(deadline.Unix())
 	if err = models.UpdateMilestone(m); err != nil {
 		ctx.Handle(500, "UpdateMilestone", err)
 		return
@@ -1232,7 +1265,7 @@ func ChangeMilestonStatus(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=open")
 	case "close":
 		if !m.IsClosed {
-			m.ClosedDate = time.Now()
+			m.ClosedDateUnix = util.TimeStampNow()
 			if err = models.ChangeMilestoneStatus(m, true); err != nil {
 				ctx.Handle(500, "ChangeMilestoneStatus", err)
 				return
@@ -1254,5 +1287,148 @@ func DeleteMilestone(ctx *context.Context) {
 
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/milestones",
+	})
+}
+
+// ChangeIssueReaction create a reaction for issue
+func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.Handle(500, "ChangeIssueReaction", errors.New(ctx.GetErrMsg()))
+		return
+	}
+
+	switch ctx.Params(":action") {
+	case "react":
+		reaction, err := models.CreateIssueReaction(ctx.User, issue, form.Content)
+		if err != nil {
+			log.Info("CreateIssueReaction: %s", err)
+			break
+		}
+		// Reload new reactions
+		issue.Reactions = nil
+		if err = issue.LoadAttributes(); err != nil {
+			log.Info("issue.LoadAttributes: %s", err)
+			break
+		}
+
+		log.Trace("Reaction for issue created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, reaction.ID)
+	case "unreact":
+		if err := models.DeleteIssueReaction(ctx.User, issue, form.Content); err != nil {
+			ctx.Handle(500, "DeleteIssueReaction", err)
+			return
+		}
+
+		// Reload new reactions
+		issue.Reactions = nil
+		if err := issue.LoadAttributes(); err != nil {
+			log.Info("issue.LoadAttributes: %s", err)
+			break
+		}
+
+		log.Trace("Reaction for issue removed: %d/%d", ctx.Repo.Repository.ID, issue.ID)
+	default:
+		ctx.Handle(404, fmt.Sprintf("Unknown action %s", ctx.Params(":action")), nil)
+		return
+	}
+
+	if len(issue.Reactions) == 0 {
+		ctx.JSON(200, map[string]interface{}{
+			"empty": true,
+			"html":  "",
+		})
+		return
+	}
+
+	html, err := ctx.HTMLString(string(tplReactions), map[string]interface{}{
+		"ctx":       ctx.Data,
+		"ActionURL": fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index),
+		"Reactions": issue.Reactions.GroupByType(),
+	})
+	if err != nil {
+		ctx.Handle(500, "ChangeIssueReaction.HTMLString", err)
+		return
+	}
+	ctx.JSON(200, map[string]interface{}{
+		"html": html,
+	})
+}
+
+// ChangeCommentReaction create a reaction for comment
+func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
+	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
+		return
+	}
+
+	issue, err := models.GetIssueByID(comment.IssueID)
+	checkIssueRights(ctx, issue)
+	if ctx.Written() {
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.Handle(500, "ChangeCommentReaction", errors.New(ctx.GetErrMsg()))
+		return
+	}
+
+	switch ctx.Params(":action") {
+	case "react":
+		reaction, err := models.CreateCommentReaction(ctx.User, issue, comment, form.Content)
+		if err != nil {
+			log.Info("CreateCommentReaction: %s", err)
+			break
+		}
+		// Reload new reactions
+		comment.Reactions = nil
+		if err = comment.LoadReactions(); err != nil {
+			log.Info("comment.LoadReactions: %s", err)
+			break
+		}
+
+		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID, reaction.ID)
+	case "unreact":
+		if err := models.DeleteCommentReaction(ctx.User, issue, comment, form.Content); err != nil {
+			ctx.Handle(500, "DeleteCommentReaction", err)
+			return
+		}
+
+		// Reload new reactions
+		comment.Reactions = nil
+		if err = comment.LoadReactions(); err != nil {
+			log.Info("comment.LoadReactions: %s", err)
+			break
+		}
+
+		log.Trace("Reaction for comment removed: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
+	default:
+		ctx.Handle(404, fmt.Sprintf("Unknown action %s", ctx.Params(":action")), nil)
+		return
+	}
+
+	if len(comment.Reactions) == 0 {
+		ctx.JSON(200, map[string]interface{}{
+			"empty": true,
+			"html":  "",
+		})
+		return
+	}
+
+	html, err := ctx.HTMLString(string(tplReactions), map[string]interface{}{
+		"ctx":       ctx.Data,
+		"ActionURL": fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID),
+		"Reactions": comment.Reactions.GroupByType(),
+	})
+	if err != nil {
+		ctx.Handle(500, "ChangeCommentReaction.HTMLString", err)
+		return
+	}
+	ctx.JSON(200, map[string]interface{}{
+		"html": html,
 	})
 }

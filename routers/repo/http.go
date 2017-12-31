@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // HTTP implmentation git smart HTTP protocol
@@ -64,23 +65,9 @@ func HTTP(ctx *context.Context) {
 		reponame = reponame[:len(reponame)-5]
 	}
 
-	repoUser, err := models.GetUserByName(username)
+	repo, err := models.GetRepositoryByOwnerAndName(username, reponame)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.Handle(http.StatusNotFound, "GetUserByName", nil)
-		} else {
-			ctx.Handle(http.StatusInternalServerError, "GetUserByName", err)
-		}
-		return
-	}
-
-	repo, err := models.GetRepositoryByName(repoUser.ID, reponame)
-	if err != nil {
-		if models.IsErrRepoNotExist(err) {
-			ctx.Handle(http.StatusNotFound, "GetRepositoryByName", nil)
-		} else {
-			ctx.Handle(http.StatusInternalServerError, "GetRepositoryByName", err)
-		}
+		ctx.NotFoundOrServerError("GetRepositoryByOwnerAndName", models.IsErrRepoNotExist, err)
 		return
 	}
 
@@ -181,7 +168,7 @@ func HTTP(ctx *context.Context) {
 					return
 				}
 
-				token.Updated = time.Now()
+				token.UpdatedUnix = util.TimeStampNow()
 				if err = models.UpdateAccessToken(token); err != nil {
 					ctx.Handle(http.StatusInternalServerError, "UpdateAccessToken", err)
 				}

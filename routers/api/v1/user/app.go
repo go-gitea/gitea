@@ -13,15 +13,14 @@ import (
 
 // ListAccessTokens list all the access tokens
 func ListAccessTokens(ctx *context.APIContext) {
-	// swagger:route GET /users/{username}/tokens user userGetTokens
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: AccessTokenList
-	//       500: error
-
+	// swagger:operation GET /users/{username}/tokens user userGetTokens
+	// ---
+	// summary: List the authenticated user's access tokens
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/AccessTokenList"
 	tokens, err := models.ListAccessTokens(ctx.User.ID)
 	if err != nil {
 		ctx.Error(500, "ListAccessTokens", err)
@@ -40,18 +39,16 @@ func ListAccessTokens(ctx *context.APIContext) {
 
 // CreateAccessToken create access tokens
 func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption) {
-	// swagger:route POST /users/{username} /tokens user userCreateToken
-	//
-	//     Consumes:
-	//     - application/json
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: AccessToken
-	//       500: error
-
+	// swagger:operation POST /users/{username}/tokens user userCreateToken
+	// ---
+	// summary: Create an access token
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/AccessToken"
 	t := &models.AccessToken{
 		UID:  ctx.User.ID,
 		Name: form.Name,

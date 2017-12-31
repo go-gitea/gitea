@@ -7,6 +7,7 @@ package integrations
 import (
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -14,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkOwnerName, forkRepoName string) *TestResponse {
+func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkOwnerName, forkRepoName string) *httptest.ResponseRecorder {
 	forkOwner := models.AssertExistsAndLoadBean(t, &models.User{Name: forkOwnerName}).(*models.User)
 
 	// Step0: check the existence of the to-fork repo

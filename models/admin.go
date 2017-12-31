@@ -6,7 +6,6 @@ package models
 
 import (
 	"fmt"
-	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -26,14 +25,8 @@ const (
 type Notice struct {
 	ID          int64 `xorm:"pk autoincr"`
 	Type        NoticeType
-	Description string    `xorm:"TEXT"`
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX created"`
-}
-
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (n *Notice) AfterLoad() {
-	n.Created = time.Unix(n.CreatedUnix, 0).Local()
+	Description string         `xorm:"TEXT"`
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 }
 
 // TrStr returns a translation format string.

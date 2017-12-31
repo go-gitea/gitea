@@ -80,12 +80,22 @@ func SlackLinkFormatter(url string, text string) string {
 	return fmt.Sprintf("<%s|%s>", url, SlackTextFormatter(text))
 }
 
-func getSlackCreatePayload(p *api.CreatePayload, slack *SlackMeta) (*SlackPayload, error) {
-	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+// SlackLinkToRef slack-formatter link to a repo ref
+func SlackLinkToRef(repoURL, ref string) string {
+	refName := git.RefEndName(ref)
+	switch {
+	case strings.HasPrefix(ref, git.BranchPrefix):
+		return SlackLinkFormatter(repoURL+"/src/branch/"+refName, refName)
+	case strings.HasPrefix(ref, git.TagPrefix):
+		return SlackLinkFormatter(repoURL+"/src/tag/"+refName, refName)
+	default:
+		return SlackLinkFormatter(repoURL+"/src/commit/"+refName, refName)
+	}
+}
 
+func getSlackCreatePayload(p *api.CreatePayload, slack *SlackMeta) (*SlackPayload, error) {
 	repoLink := SlackLinkFormatter(p.Repo.HTMLURL, p.Repo.Name)
-	refLink := SlackLinkFormatter(p.Repo.HTMLURL+"/src/"+refName, refName)
+	refLink := SlackLinkToRef(p.Repo.HTMLURL, p.Ref)
 	text := fmt.Sprintf("[%s:%s] %s created by %s", repoLink, refLink, p.RefType, p.Sender.UserName)
 
 	return &SlackPayload{
@@ -99,7 +109,6 @@ func getSlackCreatePayload(p *api.CreatePayload, slack *SlackMeta) (*SlackPayloa
 func getSlackPushPayload(p *api.PushPayload, slack *SlackMeta) (*SlackPayload, error) {
 	// n new commits
 	var (
-		branchName   = git.RefEndName(p.Ref)
 		commitDesc   string
 		commitString string
 	)
@@ -116,7 +125,7 @@ func getSlackPushPayload(p *api.PushPayload, slack *SlackMeta) (*SlackPayload, e
 	}
 
 	repoLink := SlackLinkFormatter(p.Repo.HTMLURL, p.Repo.Name)
-	branchLink := SlackLinkFormatter(p.Repo.HTMLURL+"/src/"+branchName, branchName)
+	branchLink := SlackLinkToRef(p.Repo.HTMLURL, p.Ref)
 	text := fmt.Sprintf("[%s:%s] %s pushed by %s", repoLink, branchLink, commitString, p.Pusher.UserName)
 
 	var attachmentText string

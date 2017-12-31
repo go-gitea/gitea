@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"path"
 	"strings"
 	"testing"
@@ -13,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testPullCreate(t *testing.T, session *TestSession, user, repo, branch string) *TestResponse {
+func testPullCreate(t *testing.T, session *TestSession, user, repo, branch string) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 

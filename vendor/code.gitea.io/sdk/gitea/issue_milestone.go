@@ -19,7 +19,9 @@ type Milestone struct {
 	State        StateType  `json:"state"`
 	OpenIssues   int        `json:"open_issues"`
 	ClosedIssues int        `json:"closed_issues"`
+	// swagger:strfmt date-time
 	Closed       *time.Time `json:"closed_at"`
+	// swagger:strfmt date-time
 	Deadline     *time.Time `json:"due_on"`
 }
 
@@ -35,10 +37,11 @@ func (c *Client) GetMilestone(owner, repo string, id int64) (*Milestone, error) 
 	return milestone, c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/milestones/%d", owner, repo, id), nil, nil, milestone)
 }
 
-// CreateMilestoneOption options when creating milestone
+// CreateMilestoneOption options for creating a milestone
 type CreateMilestoneOption struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
+	// swagger:strfmt date-time
 	Deadline    *time.Time `json:"due_on"`
 }
 
@@ -52,7 +55,7 @@ func (c *Client) CreateMilestone(owner, repo string, opt CreateMilestoneOption) 
 	return milestone, c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/milestones", owner, repo), jsonHeader, bytes.NewReader(body), milestone)
 }
 
-// EditMilestoneOption options when modify milestone
+// EditMilestoneOption options for editing a milestone
 type EditMilestoneOption struct {
 	Title       string     `json:"title"`
 	Description *string    `json:"description"`
