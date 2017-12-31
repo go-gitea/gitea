@@ -29,7 +29,7 @@ func populateIssueIndexer() error {
 	for page := 1; ; page++ {
 		repos, _, err := SearchRepositoryByName(&SearchRepoOptions{
 			Page:        page,
-			PageSize:    10,
+			PageSize:    RepositoryListDefaultPageSize,
 			OrderBy:     SearchOrderByID,
 			Private:     true,
 			Collaborate: util.OptionalBoolFalse,
