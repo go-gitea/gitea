@@ -41,14 +41,17 @@ func (f *CreateRepoForm) Validate(ctx *macaron.Context, errs binding.Errors) bin
 
 // MigrateRepoForm form for migrating repository
 type MigrateRepoForm struct {
+	// required: true
 	CloneAddr    string `json:"clone_addr" binding:"Required"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
-	UID          int64  `json:"uid" binding:"Required"`
-	RepoName     string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Mirror       bool   `json:"mirror"`
-	Private      bool   `json:"private"`
-	Description  string `json:"description" binding:"MaxSize(255)"`
+	// required: true
+	UID int64 `json:"uid" binding:"Required"`
+	// required: true
+	RepoName    string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Mirror      bool   `json:"mirror"`
+	Private     bool   `json:"private"`
+	Description string `json:"description" binding:"MaxSize(255)"`
 }
 
 // Validate validates the fields
@@ -219,6 +222,17 @@ func (f *NewDiscordHookForm) Validate(ctx *macaron.Context, errs binding.Errors)
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// NewDingtalkHookForm form for creating dingtalk hook
+type NewDingtalkHookForm struct {
+	PayloadURL string `binding:"Required;ValidUrl"`
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewDingtalkHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // .___
 // |   | ______ ________ __   ____
 // |   |/  ___//  ___/  |  \_/ __ \
@@ -251,6 +265,16 @@ type CreateCommentForm struct {
 
 // Validate validates the fields
 func (f *CreateCommentForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// ReactionForm form for adding and removing reaction
+type ReactionForm struct {
+	Content string `binding:"Required;In(+1,-1,laugh,confused,heart,hooray)"`
+}
+
+// Validate validates the fields
+func (f *ReactionForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -348,10 +372,9 @@ func (f *EditReleaseForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // NewWikiForm form for creating wiki
 type NewWikiForm struct {
-	OldTitle string
-	Title    string `binding:"Required"`
-	Content  string `binding:"Required"`
-	Message  string
+	Title   string `binding:"Required"`
+	Content string `binding:"Required"`
+	Message string
 }
 
 // Validate validates the fields

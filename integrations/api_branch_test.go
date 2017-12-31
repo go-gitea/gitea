@@ -20,10 +20,10 @@ func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
 	req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/branches/%s", branchName)
 	resp := session.MakeRequest(t, req, NoExpectedStatus)
 	if !exists {
-		assert.EqualValues(t, http.StatusNotFound, resp.HeaderCode)
+		assert.EqualValues(t, http.StatusNotFound, resp.Code)
 		return
 	}
-	assert.EqualValues(t, http.StatusOK, resp.HeaderCode)
+	assert.EqualValues(t, http.StatusOK, resp.Code)
 	var branch api.Branch
 	DecodeJSON(t, resp, &branch)
 	assert.EqualValues(t, branchName, branch.Name)

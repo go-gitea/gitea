@@ -7,6 +7,9 @@ package models
 import (
 	"time"
 
+	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/sdk/gitea"
+
 	"github.com/go-xorm/builder"
 )
 
@@ -22,7 +25,18 @@ type TrackedTime struct {
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (t *TrackedTime) AfterLoad() {
-	t.Created = time.Unix(t.CreatedUnix, 0).Local()
+	t.Created = time.Unix(t.CreatedUnix, 0).In(setting.UILocation)
+}
+
+// APIFormat converts TrackedTime to API format
+func (t *TrackedTime) APIFormat() *api.TrackedTime {
+	return &api.TrackedTime{
+		ID:      t.ID,
+		IssueID: t.IssueID,
+		UserID:  t.UserID,
+		Time:    t.Time,
+		Created: t.Created,
+	}
 }
 
 // FindTrackedTimesOptions represent the filters for tracked times. If an ID is 0 it will be ignored.

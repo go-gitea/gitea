@@ -1,22 +1,26 @@
 <h4 class="ui top attached header">
-	{{.CommitCount}} {{.i18n.Tr "repo.commits.commits"}} {{if .Branch}}({{.Branch}}){{end}}
-	{{if .PageIsCommits}}
-		<div class="ui right">
-			<form action="{{.RepoLink}}/commits/{{.BranchName}}/search">
-				<div class="ui tiny search input">
-					<input name="q" placeholder="{{.i18n.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
-				</div>
-				&nbsp;
-				<div class="ui checkbox">
-					<input type="checkbox" name="all" id="all" value="true" {{.All}}>
-					<label for="all">{{.i18n.Tr "repo.commits.search_all"}} &nbsp;&nbsp;</label>
-				</div>
-				<button class="ui black tiny button" data-panel="#add-deploy-key-panel">{{.i18n.Tr "repo.commits.find"}}</button>
-			</form>
+	<div class="ui stackable grid">
+		<div class="six wide column">
+			{{.CommitCount}} {{.i18n.Tr "repo.commits.commits"}} {{if .Branch}}({{.Branch}}){{end}}
 		</div>
-	{{else if .IsDiffCompare}}
-		<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID}}" class="ui green sha label">{{ShortSha .BeforeCommitID}}</a> ... <a href="{{$.CommitRepoLink}}/commit/{{.AfterCommitID}}" class="ui green sha label">{{ShortSha .AfterCommitID}}</a>
-	{{end}}
+		<div class="ten wide right aligned column">
+			{{if .PageIsCommits}}
+				<form action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
+					<div class="ui tiny search input">
+						<input name="q" placeholder="{{.i18n.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
+					</div>
+					&nbsp;
+					<div class="ui checkbox">
+						<input type="checkbox" name="all" id="all" value="true" {{.All}}>
+						<label for="all">{{.i18n.Tr "repo.commits.search_all"}} &nbsp;&nbsp;</label>
+					</div>
+					<button class="ui black tiny button" data-panel="#add-deploy-key-panel">{{.i18n.Tr "repo.commits.find"}}</button>
+				</form>
+			{{else if .IsDiffCompare}}
+				<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID}}" class="ui green sha label">{{ShortSha .BeforeCommitID}}</a> ... <a href="{{$.CommitRepoLink}}/commit/{{.AfterCommitID}}" class="ui green sha label">{{ShortSha .AfterCommitID}}</a>
+			{{end}}
+		</div>
+	</div>
 </h4>
 
 {{if .Commits}}
@@ -30,7 +34,7 @@
 					<th class="three wide right aligned">{{.i18n.Tr "repo.commits.date"}}</th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody class="commit-list">
 				{{ $r:= List .Commits}}
 				{{range $r}}
 					<tr>
@@ -60,7 +64,11 @@
 							</a>
 						</td>
 						<td class="message collapsing">
-							<span class="has-emoji{{if gt .ParentCount 1}} grey text{{end}}">{{RenderCommitMessage false .Summary $.RepoLink $.Repository.ComposeMetas}}</span>
+							<span class="has-emoji{{if gt .ParentCount 1}} grey text{{end}}">{{RenderCommitMessage .Summary $.RepoLink $.Repository.ComposeMetas}}</span>
+							{{if IsMultilineCommitMessage .Message}}
+							<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
+							<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+							{{end}}
 							{{template "repo/commit_status" .Status}}
 						</td>
 						<td class="grey text right aligned">{{TimeSince .Author.When $.Lang}}</td>
@@ -75,17 +83,17 @@
 	{{if gt .TotalPages 1}}
 		<div class="center page buttons">
 			<div class="ui borderless pagination menu">
-				<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.RepoLink}}/commits/{{$.BranchName}}{{if $.FileName}}/{{$.FileName}}{{end}}?page={{.Previous}}"{{end}}>
+				<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.RepoLink}}/commits/{{$.BranchNameSubURL}}{{if $.FileName}}/{{$.FileName}}{{end}}?page={{.Previous}}"{{end}}>
 					<i class="left arrow icon"></i> {{$.i18n.Tr "repo.issues.previous"}}
 				</a>
 				{{range .Pages}}
 					{{if eq .Num -1}}
 						<a class="disabled item">...</a>
 					{{else}}
-						<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.RepoLink}}/commits/{{$.BranchName}}{{if $.FileName}}/{{$.FileName}}{{end}}?page={{.Num}}"{{end}}>{{.Num}}</a>
+						<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.RepoLink}}/commits/{{$.BranchNameSubURL}}{{if $.FileName}}/{{$.FileName}}{{end}}?page={{.Num}}"{{end}}>{{.Num}}</a>
 					{{end}}
 				{{end}}
-				<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.RepoLink}}/commits/{{$.BranchName}}{{if $.FileName}}/{{$.FileName}}{{end}}?page={{.Next}}"{{end}}>
+				<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.RepoLink}}/commits/{{$.BranchNameSubURL}}{{if $.FileName}}/{{$.FileName}}{{end}}?page={{.Next}}"{{end}}>
 					{{$.i18n.Tr "repo.issues.next"}} <i class="icon right arrow"></i>
 				</a>
 			</div>

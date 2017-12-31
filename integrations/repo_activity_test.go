@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +22,7 @@ func TestRepoActivity(t *testing.T) {
 	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 	resp := testPullCreate(t, session, "user1", "repo1", "master")
-	elem := strings.Split(RedirectURL(t, resp), "/")
+	elem := strings.Split(test.RedirectURL(resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
 	testPullMerge(t, session, elem[1], elem[2], elem[4])
 
@@ -31,9 +33,9 @@ func TestRepoActivity(t *testing.T) {
 	testPullCreate(t, session, "user1", "repo1", "feat/much_better_readme")
 
 	// Create issues (3 new issues)
-	testNewIssue(t, session, "user2", "repo1", "Issue 1")
-	testNewIssue(t, session, "user2", "repo1", "Issue 2")
-	testNewIssue(t, session, "user2", "repo1", "Issue 3")
+	testNewIssue(t, session, "user2", "repo1", "Issue 1", "Description 1")
+	testNewIssue(t, session, "user2", "repo1", "Issue 2", "Description 2")
+	testNewIssue(t, session, "user2", "repo1", "Issue 3", "Description 3")
 
 	// Create releases (1 new release)
 	createNewRelease(t, session, "/user2/repo1", "v1.0.0", "v1.0.0", false, false)

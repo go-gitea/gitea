@@ -5,26 +5,20 @@
 package models
 
 import (
-	"errors"
 	"fmt"
 	"path"
 	"sort"
 	"strings"
-	"time"
-
-	api "code.gitea.io/sdk/gitea"
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-)
+	api "code.gitea.io/sdk/gitea"
 
-var (
-	errMissingIssueNumber = errors.New("No issue number specified")
-	errInvalidIssueNumber = errors.New("Invalid issue number")
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/builder"
+	"github.com/go-xorm/xorm"
 )
 
 // Issue represents an issue or pull request of repository.
@@ -51,28 +45,13 @@ type Issue struct {
 	NumComments     int
 	Ref             string
 
-	Deadline     time.Time `xorm:"-"`
-	DeadlineUnix int64     `xorm:"INDEX"`
-	Created      time.Time `xorm:"-"`
-	CreatedUnix  int64     `xorm:"INDEX created"`
-	Updated      time.Time `xorm:"-"`
-	UpdatedUnix  int64     `xorm:"INDEX updated"`
+	DeadlineUnix util.TimeStamp `xorm:"INDEX"`
+	CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix  util.TimeStamp `xorm:"INDEX updated"`
 
 	Attachments []*Attachment `xorm:"-"`
 	Comments    []*Comment    `xorm:"-"`
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (issue *Issue) BeforeUpdate() {
-	issue.DeadlineUnix = issue.Deadline.Unix()
-}
-
-// AfterLoad is invoked from XORM after setting the value of a field of
-// this object.
-func (issue *Issue) AfterLoad() {
-	issue.Deadline = time.Unix(issue.DeadlineUnix, 0).Local()
-	issue.Created = time.Unix(issue.CreatedUnix, 0).Local()
-	issue.Updated = time.Unix(issue.UpdatedUnix, 0).Local()
+	Reactions   ReactionList  `xorm:"-"`
 }
 
 func (issue *Issue) loadRepo(e Engine) (err error) {
@@ -161,6 +140,37 @@ func (issue *Issue) loadComments(e Engine) (err error) {
 	return err
 }
 
+func (issue *Issue) loadReactions(e Engine) (err error) {
+	if issue.Reactions != nil {
+		return nil
+	}
+	reactions, err := findReactions(e, FindReactionsOptions{
+		IssueID: issue.ID,
+	})
+	if err != nil {
+		return err
+	}
+	// Load reaction user data
+	if _, err := ReactionList(reactions).LoadUsers(); err != nil {
+		return err
+	}
+
+	// Cache comments to map
+	comments := make(map[int64]*Comment)
+	for _, comment := range issue.Comments {
+		comments[comment.ID] = comment
+	}
+	// Add reactions either to issue or comment
+	for _, react := range reactions {
+		if react.CommentID == 0 {
+			issue.Reactions = append(issue.Reactions, react)
+		} else if comment, ok := comments[react.CommentID]; ok {
+			comment.Reactions = append(comment.Reactions, react)
+		}
+	}
+	return nil
+}
+
 func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadRepo(e); err != nil {
 		return
@@ -198,10 +208,10 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 	}
 
 	if err = issue.loadComments(e); err != nil {
-		return
+		return err
 	}
 
-	return nil
+	return issue.loadReactions(e)
 }
 
 // LoadAttributes loads the attribute of this issue.
@@ -281,8 +291,8 @@ func (issue *Issue) APIFormat() *api.Issue {
 		Labels:   apiLabels,
 		State:    issue.State(),
 		Comments: issue.NumComments,
-		Created:  issue.Created,
-		Updated:  issue.Updated,
+		Created:  issue.CreatedUnix.AsTime(),
+		Updated:  issue.UpdatedUnix.AsTime(),
 	}
 
 	if issue.Milestone != nil {
@@ -296,7 +306,7 @@ func (issue *Issue) APIFormat() *api.Issue {
 			HasMerged: issue.PullRequest.HasMerged,
 		}
 		if issue.PullRequest.HasMerged {
-			apiIssue.PullRequest.Merged = &issue.PullRequest.Merged
+			apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
 		}
 	}
 
@@ -573,7 +583,7 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 	if _, err := e.ID(issue.ID).Cols(cols...).Update(issue); err != nil {
 		return err
 	}
-	UpdateIssueIndexer(issue.ID)
+	UpdateIssueIndexerCols(issue.ID, cols...)
 	return nil
 }
 
@@ -961,27 +971,6 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 	return nil
 }
 
-// GetIssueByRef returns an Issue specified by a GFM reference.
-// See https://help.github.com/articles/writing-on-github#references for more information on the syntax.
-func GetIssueByRef(ref string) (*Issue, error) {
-	n := strings.IndexByte(ref, byte('#'))
-	if n == -1 {
-		return nil, errMissingIssueNumber
-	}
-
-	index, err := com.StrTo(ref[n+1:]).Int64()
-	if err != nil {
-		return nil, errInvalidIssueNumber
-	}
-
-	repo, err := GetRepositoryByRef(ref[:n])
-	if err != nil {
-		return nil, err
-	}
-
-	return GetIssueByIndex(repo.ID, index)
-}
-
 // GetRawIssueByIndex returns raw issue without loading attributes by index in a repository.
 func GetRawIssueByIndex(repoID, index int64) (*Issue, error) {
 	issue := &Issue{
@@ -1034,12 +1023,11 @@ func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
-	RepoID      int64
+	RepoIDs     []int64 // include all repos if empty
 	AssigneeID  int64
 	PosterID    int64
 	MentionedID int64
 	MilestoneID int64
-	RepoIDs     []int64
 	Page        int
 	PageSize    int
 	IsClosed    util.OptionalBool
@@ -1085,9 +1073,7 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
 		sess.In("issue.id", opts.IssueIDs)
 	}
 
-	if opts.RepoID > 0 {
-		sess.And("issue.repo_id=?", opts.RepoID)
-	} else if len(opts.RepoIDs) > 0 {
+	if len(opts.RepoIDs) > 0 {
 		// In case repository IDs are provided but actually no repository has issue.
 		sess.In("issue.repo_id", opts.RepoIDs)
 	}
@@ -1351,58 +1337,92 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 	return stats, err
 }
 
+// UserIssueStatsOptions contains parameters accepted by GetUserIssueStats.
+type UserIssueStatsOptions struct {
+	UserID      int64
+	RepoID      int64
+	UserRepoIDs []int64
+	FilterMode  int
+	IsPull      bool
+	IsClosed    bool
+}
+
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
-func GetUserIssueStats(repoID, uid int64, repoIDs []int64, filterMode int, isPull bool) *IssueStats {
+func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
+	var err error
 	stats := &IssueStats{}
 
-	countSession := func(isClosed, isPull bool, repoID int64, repoIDs []int64) *xorm.Session {
-		sess := x.
-			Where("issue.is_closed = ?", isClosed).
-			And("issue.is_pull = ?", isPull)
-
-		if repoID > 0 {
-			sess.And("repo_id = ?", repoID)
-		} else if len(repoIDs) > 0 {
-			sess.In("repo_id", repoIDs)
-		}
-
-		return sess
+	cond := builder.NewCond()
+	cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull})
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
 	}
 
-	stats.AssignCount, _ = countSession(false, isPull, repoID, nil).
-		And("assignee_id = ?", uid).
-		Count(new(Issue))
-
-	stats.CreateCount, _ = countSession(false, isPull, repoID, nil).
-		And("poster_id = ?", uid).
-		Count(new(Issue))
-
-	stats.YourRepositoriesCount, _ = countSession(false, isPull, repoID, repoIDs).
-		Count(new(Issue))
-
-	switch filterMode {
+	switch opts.FilterMode {
 	case FilterModeAll:
-		stats.OpenCount, _ = countSession(false, isPull, repoID, repoIDs).
+		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
+			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
-		stats.ClosedCount, _ = countSession(true, isPull, repoID, repoIDs).
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
+			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
 	case FilterModeAssign:
-		stats.OpenCount, _ = countSession(false, isPull, repoID, nil).
-			And("assignee_id = ?", uid).
+		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
+			And("assignee_id = ?", opts.UserID).
 			Count(new(Issue))
-		stats.ClosedCount, _ = countSession(true, isPull, repoID, nil).
-			And("assignee_id = ?", uid).
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
+			And("assignee_id = ?", opts.UserID).
 			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
 	case FilterModeCreate:
-		stats.OpenCount, _ = countSession(false, isPull, repoID, nil).
-			And("poster_id = ?", uid).
+		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
+			And("poster_id = ?", opts.UserID).
 			Count(new(Issue))
-		stats.ClosedCount, _ = countSession(true, isPull, repoID, nil).
-			And("poster_id = ?", uid).
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
+			And("poster_id = ?", opts.UserID).
 			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return stats
+	cond = cond.And(builder.Eq{"issue.is_closed": opts.IsClosed})
+	stats.AssignCount, err = x.Where(cond).
+		And("assignee_id = ?", opts.UserID).
+		Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	stats.CreateCount, err = x.Where(cond).
+		And("poster_id = ?", opts.UserID).
+		Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	stats.YourRepositoriesCount, err = x.Where(cond).
+		And(builder.In("issue.repo_id", opts.UserRepoIDs)).
+		Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
 }
 
 // GetRepoIssueStats returns number of open and closed repository issues by given filter mode.

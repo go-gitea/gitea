@@ -12,6 +12,25 @@ import (
 
 // ListSubscribers list a repo's subscribers (i.e. watchers)
 func ListSubscribers(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/subscribers repository repoListSubscribers
+	// ---
+	// summary: List a repo's watchers
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/UserList"
 	subscribers, err := ctx.Repo.Repository.GetWatchers(0)
 	if err != nil {
 		ctx.Error(500, "GetWatchers", err)

@@ -42,11 +42,14 @@ func populateIssueIndexer() error {
 		}
 		for _, repo := range repos {
 			issues, err := Issues(&IssuesOptions{
-				RepoID:   repo.ID,
+				RepoIDs:  []int64{repo.ID},
 				IsClosed: util.OptionalBoolNone,
 				IsPull:   util.OptionalBoolNone,
 			})
 			if err != nil {
+				return err
+			}
+			if err = IssueList(issues).LoadComments(); err != nil {
 				return err
 			}
 			for _, issue := range issues {
@@ -96,6 +99,26 @@ func (issue *Issue) update() indexer.IssueIndexerUpdate {
 			Content:  issue.Content,
 			Comments: comments,
 		},
+	}
+}
+
+// updateNeededCols whether a change to the specified columns requires updating
+// the issue indexer
+func updateNeededCols(cols []string) bool {
+	for _, col := range cols {
+		switch col {
+		case "name", "content":
+			return true
+		}
+	}
+	return false
+}
+
+// UpdateIssueIndexerCols update an issue in the issue indexer, given changes
+// to the specified columns
+func UpdateIssueIndexerCols(issueID int64, cols ...string) {
+	if updateNeededCols(cols) {
+		UpdateIssueIndexer(issueID)
 	}
 }
 

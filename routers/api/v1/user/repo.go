@@ -36,15 +36,20 @@ func listUserRepos(ctx *context.APIContext, u *models.User) {
 
 // ListUserRepos - list the repos owned by the given user.
 func ListUserRepos(ctx *context.APIContext) {
-	// swagger:route GET /users/{username}/repos user userListRepos
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: RepositoryList
-	//       500: error
-
+	// swagger:operation GET /users/{username}/repos user userListRepos
+	// ---
+	// summary: List the repos owned by the given user
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RepositoryList"
 	user := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -54,14 +59,14 @@ func ListUserRepos(ctx *context.APIContext) {
 
 // ListMyRepos - list the repositories you own or have access to.
 func ListMyRepos(ctx *context.APIContext) {
-	// swagger:route GET /user/repos user userCurrentListRepos
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: RepositoryList
-	//       500: error
+	// swagger:operation GET /user/repos user userCurrentListRepos
+	// ---
+	// summary: List the repos that the authenticated user owns or has access to
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RepositoryList"
 	ownRepos, err := models.GetUserRepositories(ctx.User.ID, true, 1, ctx.User.NumRepos, "")
 	if err != nil {
 		ctx.Error(500, "GetUserRepositories", err)
@@ -87,14 +92,19 @@ func ListMyRepos(ctx *context.APIContext) {
 
 // ListOrgRepos - list the repositories of an organization.
 func ListOrgRepos(ctx *context.APIContext) {
-	// swagger:route GET /orgs/{orgname}/repos organization orgListRepos
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: RepositoryList
-	//       500: error
-
+	// swagger:operation GET /orgs/{org}/repos organization orgListRepos
+	// ---
+	// summary: List an organization's repos
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RepositoryList"
 	listUserRepos(ctx, ctx.Org.Organization)
 }

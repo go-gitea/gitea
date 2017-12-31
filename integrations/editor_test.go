@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"path"
 	"testing"
 
@@ -72,7 +73,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	// Check body for error message
-	assert.Contains(t, string(resp.Body), "Can not commit to protected branch &#39;master&#39;.")
+	assert.Contains(t, resp.Body.String(), "Can not commit to protected branch &#39;master&#39;.")
 
 	// remove the protected branch
 	csrf = GetCSRF(t, session, "/user2/repo1/settings/branches")
@@ -89,7 +90,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 
 }
 
-func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePath, newContent string) *TestResponse {
+func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePath, newContent string) *httptest.ResponseRecorder {
 	// Get to the 'edit this file' page
 	req := NewRequest(t, "GET", path.Join(user, repo, "_edit", branch, filePath))
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -111,14 +112,14 @@ func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePa
 	resp = session.MakeRequest(t, req, http.StatusFound)
 
 	// Verify the change
-	req = NewRequest(t, "GET", path.Join(user, repo, "raw", branch, filePath))
+	req = NewRequest(t, "GET", path.Join(user, repo, "raw/branch", branch, filePath))
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	assert.EqualValues(t, newContent, string(resp.Body))
+	assert.EqualValues(t, newContent, resp.Body.String())
 
 	return resp
 }
 
-func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, branch, targetBranch, filePath, newContent string) *TestResponse {
+func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, branch, targetBranch, filePath, newContent string) *httptest.ResponseRecorder {
 
 	// Get to the 'edit this file' page
 	req := NewRequest(t, "GET", path.Join(user, repo, "_edit", branch, filePath))
@@ -142,9 +143,9 @@ func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, bra
 	resp = session.MakeRequest(t, req, http.StatusFound)
 
 	// Verify the change
-	req = NewRequest(t, "GET", path.Join(user, repo, "raw", targetBranch, filePath))
+	req = NewRequest(t, "GET", path.Join(user, repo, "raw/branch", targetBranch, filePath))
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	assert.EqualValues(t, newContent, string(resp.Body))
+	assert.EqualValues(t, newContent, resp.Body.String())
 
 	return resp
 }

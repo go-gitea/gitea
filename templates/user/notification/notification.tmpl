@@ -14,6 +14,14 @@
 			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active{{end}} item">
 				{{.i18n.Tr "notification.read"}}
 			</a>
+			{{if and (eq .Status 1) (.NotificationUnreadCount)}}
+				<form action="{{AppSubUrl}}/notifications/purge" method="POST" style="margin-left: auto;">
+					{{$.CsrfTokenHtml}}
+					<button class="ui mini button primary" title='{{$.i18n.Tr "notification.mark_all_as_read"}}'>
+						<i class="octicon octicon-checklist"></i>
+					</button>
+				</form>
+			{{end}}
 		</div>
 		<div class="ui bottom attached active tab segment">
 			{{if eq (len .Notifications) 0}}

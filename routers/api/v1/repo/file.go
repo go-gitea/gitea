@@ -13,8 +13,30 @@ import (
 )
 
 // GetRawFile get a file by path on a repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories-Contents#download-raw-content
 func GetRawFile(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/raw/{filepath} repository repoGetRawFile
+	// ---
+	// summary: Get a file from a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: filepath
+	//   in: path
+	//   description: filepath of the file to get
+	//   type: string
+	//   required: true
+	// responses:
+	//       200:
 	if !ctx.Repo.HasAccess() {
 		ctx.Status(404)
 		return
@@ -40,8 +62,30 @@ func GetRawFile(ctx *context.APIContext) {
 }
 
 // GetArchive get archive of a repository
-// see https://github.com/gogits/go-gogs-client/wiki/Repositories-Contents#download-archive
 func GetArchive(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/archive/{filepath} repository repoGetArchive
+	// ---
+	// summary: Get an archive of a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: archive
+	//   in: path
+	//   description: archive to download, consisting of a git reference and archive
+	//   type: string
+	//   required: true
+	// responses:
+	//       200:
 	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
@@ -55,6 +99,29 @@ func GetArchive(ctx *context.APIContext) {
 
 // GetEditorconfig get editor config of a repository
 func GetEditorconfig(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/editorconfig/{filepath} repository repoGetEditorConfig
+	// ---
+	// summary: Get the EditorConfig definitions of a file in a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: filepath
+	//   in: path
+	//   description: filepath of file to get
+	//   type: string
+	//   required: true
+	// responses:
+	//       200:
 	ec, err := ctx.Repo.GetEditorconfig()
 	if err != nil {
 		if git.IsErrNotExist(err) {

@@ -117,6 +117,60 @@ function updateIssuesMeta(url, action, issueIds, elementId, afterSuccess) {
     })
 }
 
+function initReactionSelector(parent) {
+    var reactions = '';
+    if (!parent) {
+        parent = $(document);
+        reactions = '.reactions > ';
+    }
+
+    parent.find(reactions + 'a.label').popup({'position': 'bottom left', 'metadata': {'content': 'title', 'title': 'none'}});
+
+    parent.find('.select-reaction > .menu > .item, ' + reactions + 'a.label').on('click', function(e){
+        var vm = this;
+        e.preventDefault();
+
+        if ($(this).hasClass('disabled')) return;
+
+        var actionURL = $(this).hasClass('item') ?
+                $(this).closest('.select-reaction').data('action-url') :
+                $(this).data('action-url');
+        var url = actionURL + '/' + ($(this).hasClass('blue') ? 'unreact' : 'react');
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: {
+                '_csrf': csrf,
+                'content': $(this).data('content')
+            }
+        }).done(function(resp) {
+            if (resp && (resp.html || resp.empty)) {
+                var content = $(vm).closest('.content');
+                var react = content.find('.segment.reactions');
+                if (react.length > 0) {
+                    react.remove();
+                }
+                if (!resp.empty) {
+                    react = $('<div class="ui attached segment reactions"></div>');
+                    var attachments = content.find('.segment.bottom:first');
+                    if (attachments.length > 0) {
+                        react.insertBefore(attachments);
+                    } else {
+                        react.appendTo(content);
+                    }
+                    react.html(resp.html);
+                    var hasEmoji = react.find('.has-emoji');
+                    for (var i = 0; i < hasEmoji.length; i++) {
+                        emojify.run(hasEmoji.get(i));
+                    }
+                    react.find('.dropdown').dropdown();
+                    initReactionSelector(react);
+                }
+            }
+        });
+    });
+}
+
 function initCommentForm() {
     if ($('.comment.form').length == 0) {
         return
@@ -516,6 +570,7 @@ function initRepository() {
             if ($editContentZone.html().length == 0) {
                 $editContentZone.html($('#edit-content-form').html());
                 $textarea = $segment.find('textarea');
+                issuesTribute.attach($textarea.get());
 
                 // Give new write/preview data-tab name to distinguish from others
                 var $editContentForm = $editContentZone.find('.ui.comment.form');
@@ -594,6 +649,7 @@ function initRepository() {
             $('#status').val($statusButton.data('status-val'));
             $('#comment-form').submit();
         });
+        initReactionSelector();
     }
 
     // Diff
@@ -1114,7 +1170,7 @@ function initAdmin() {
         $('#auth_type').change(function () {
             $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls').hide();
 
-            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required] .has-tls input[required]').removeAttr('required');
+            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
 
             var authType = $(this).val();
             switch (authType) {
@@ -1475,11 +1531,11 @@ $(document).ready(function () {
     $('.issue-checkbox').click(function() {
         var numChecked = $('.issue-checkbox').children('input:checked').length;
         if (numChecked > 0) {
-            $('.issue-filters').hide();
-            $('.issue-actions').show();
+            $('#issue-filters').hide();
+            $('#issue-actions').show();
         } else {
-            $('.issue-filters').show();
-            $('.issue-actions').hide();
+            $('#issue-filters').show();
+            $('#issue-actions').hide();
         }
     });
 
@@ -1512,6 +1568,7 @@ $(document).ready(function () {
     initVueApp();
     initTeamSettings();
     initCtrlEnterSubmit();
+    initNavbarContentToggle();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -1671,12 +1728,46 @@ function initVueComponents(){
                 reposTotalCount: 0,
                 reposFilter: 'all',
                 searchQuery: '',
-                isLoading: false
+                isLoading: false,
+                repoTypes: {
+                    'all': {
+                        count: 0,
+                        searchMode: '',
+                    },
+                    'forks': {
+                        count: 0,
+                        searchMode: 'fork',
+                    },
+                    'mirrors': {
+                        count: 0,
+                        searchMode: 'mirror',
+                    },
+                    'sources': {
+                        count: 0,
+                        searchMode: 'source',
+                    },
+                    'collaborative': {
+                        count: 0,
+                        searchMode: 'collaborative',
+                    },
+                }
+            }
+        },
+
+        computed: {
+            showMoreReposLink: function() {
+                return this.repos.length > 0 && this.repos.length < this.repoTypes[this.reposFilter].count;
+            },
+            searchURL: function() {
+                return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery + '&limit=' + this.searchLimit + '&mode=' + this.repoTypes[this.reposFilter].searchMode + (this.reposFilter !== 'all' ? '&exclusive=1' : '');
+            },
+            repoTypeCount: function() {
+                return this.repoTypes[this.reposFilter].count;
             }
         },
 
         mounted: function() {
-            this.searchRepos();
+            this.searchRepos(this.reposFilter);
 
             var self = this;
             Vue.nextTick(function() {
@@ -1691,6 +1782,9 @@ function initVueComponents(){
 
             changeReposFilter: function(filter) {
                 this.reposFilter = filter;
+                this.repos = [];
+                this.repoTypes[filter].count = 0;
+                this.searchRepos(filter);
             },
 
             showRepo: function(repo, filter) {
@@ -1708,26 +1802,29 @@ function initVueComponents(){
                 }
             },
 
-            searchRepos: function() {
+            searchRepos: function(reposFilter) {
                 var self = this;
+
                 this.isLoading = true;
+
+                var searchedMode = this.repoTypes[reposFilter].searchMode;
+                var searchedURL = this.searchURL;
                 var searchedQuery = this.searchQuery;
-                $.getJSON(this.searchURL(), function(result, textStatus, request) {
-                    if (searchedQuery == self.searchQuery) {
+
+                $.getJSON(searchedURL, function(result, textStatus, request) {
+                    if (searchedURL == self.searchURL) {
                         self.repos = result.data;
-                        if (searchedQuery == "") {
-                            self.reposTotalCount = request.getResponseHeader('X-Total-Count');
+                        var count = request.getResponseHeader('X-Total-Count');
+                        if (searchedQuery === '' && searchedMode === '') {
+                            self.reposTotalCount = count;
                         }
+                        self.repoTypes[reposFilter].count = count;
                     }
                 }).always(function() {
-                    if (searchedQuery == self.searchQuery) {
+                    if (searchedURL == self.searchURL) {
                         self.isLoading = false;
                     }
                 });
-            },
-
-            searchURL: function() {
-                return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery + '&limit=' + this.searchLimit;
             },
 
             repoClass: function(repo) {
@@ -1974,5 +2071,26 @@ function initFilterBranchTagDropdown(selector) {
                 }
             }
         });
+    });
+}
+
+$(".commit-button").click(function() {
+    $(this).parent().find('.commit-body').toggle();
+});
+
+function initNavbarContentToggle() {
+    var content = $('#navbar');
+    var toggle = $('#navbar-expand-toggle');
+    var isExpanded = false;
+    toggle.click(function() {
+        isExpanded = !isExpanded;
+        if (isExpanded) {
+            content.addClass('shown');
+            toggle.addClass('active');
+        }
+        else {
+            content.removeClass('shown');
+            toggle.removeClass('active');
+        }
     });
 }

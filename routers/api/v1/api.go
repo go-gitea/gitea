@@ -4,11 +4,7 @@
 
 // Package v1 Gitea API.
 //
-// This provide API interface to communicate with this Gitea instance.
-//
-// Terms Of Service:
-//
-// there are no TOS at this moment, use at your own risk we take no responsibility
+// This documentation describes the Gitea API.
 //
 //     Schemes: http, https
 //     BasePath: /api/v1
@@ -51,11 +47,6 @@ package v1
 import (
 	"strings"
 
-	"github.com/go-macaron/binding"
-	"gopkg.in/macaron.v1"
-
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
@@ -63,8 +54,13 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/repo"
+	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/go-macaron/binding"
+	"gopkg.in/macaron.v1"
 )
 
 func repoAssignment() macaron.Handler {
@@ -181,7 +177,10 @@ func reqOrgMembership() macaron.Handler {
 			return
 		}
 
-		if !models.IsOrganizationMember(orgID, ctx.User.ID) {
+		if isMember, err := models.IsOrganizationMember(orgID, ctx.User.ID); err != nil {
+			ctx.Error(500, "IsOrganizationMember", err)
+			return
+		} else if !isMember {
 			if ctx.Org.Organization != nil {
 				ctx.Error(403, "", "Must be an organization member")
 			} else {
@@ -204,7 +203,10 @@ func reqOrgOwnership() macaron.Handler {
 			return
 		}
 
-		if !models.IsOrganizationOwner(orgID, ctx.User.ID) {
+		isOwner, err := models.IsOrganizationOwner(orgID, ctx.User.ID)
+		if err != nil {
+			ctx.Error(500, "IsOrganizationOwner", err)
+		} else if !isOwner {
 			if ctx.Org.Organization != nil {
 				ctx.Error(403, "", "Must be an organization owner")
 			} else {
@@ -320,7 +322,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("", user.GetAuthenticatedUser)
 			m.Combo("/emails").Get(user.ListEmails).
 				Post(bind(api.CreateEmailOption{}), user.AddEmail).
-				Delete(bind(api.CreateEmailOption{}), user.DeleteEmail)
+				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
 
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {
@@ -385,13 +387,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Put(bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
 						Delete(repo.DeleteCollaborator)
 				}, reqToken())
-				m.Get("/raw/*", context.RepoRef(), repo.GetRawFile)
+				m.Get("/raw/*", context.RepoRefByType(context.RepoRefAny), repo.GetRawFile)
 				m.Get("/archive/*", repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
 					Post(reqToken(), bind(api.CreateForkOption{}), repo.CreateFork)
 				m.Group("/branches", func() {
 					m.Get("", repo.ListBranches)
-					m.Get("/*", context.RepoRef(), repo.GetBranch)
+					m.Get("/*", context.RepoRefByType(context.RepoRefBranch), repo.GetBranch)
 				})
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
@@ -410,7 +412,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Group("/comments", func() {
 						m.Get("", repo.ListRepoIssueComments)
 						m.Combo("/:id", reqToken()).
-							Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueComment)
+							Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueComment).
+							Delete(repo.DeleteIssueComment)
 					})
 					m.Group("/:index", func() {
 						m.Combo("").Get(repo.GetIssue).
@@ -419,8 +422,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Group("/comments", func() {
 							m.Combo("").Get(repo.ListIssueComments).
 								Post(reqToken(), bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
-							m.Combo("/:id", reqToken()).Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueComment).
-								Delete(repo.DeleteIssueComment)
+							m.Combo("/:id", reqToken()).Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueCommentDeprecated).
+								Delete(repo.DeleteIssueCommentDeprecated)
 						})
 
 						m.Group("/labels", func() {
@@ -435,7 +438,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 							m.Combo("").Get(repo.ListTrackedTimes).
 								Post(reqToken(), bind(api.AddTimeOption{}), repo.AddTime)
 						})
-
 					})
 				}, mustEnableIssues)
 				m.Group("/labels", func() {
@@ -484,8 +486,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Post(reqToken(), reqRepoWriter(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				})
 				m.Group("/commits/:ref", func() {
-					m.Get("/status", repo.GetCombinedCommitStatus)
-					m.Get("/statuses", repo.GetCommitStatuses)
+					m.Get("/status", repo.GetCombinedCommitStatusByRef)
+					m.Get("/statuses", repo.GetCommitStatusesByRef)
 				})
 			}, repoAssignment())
 		})
@@ -546,7 +548,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/:username", func() {
 					m.Combo("").Patch(bind(api.EditUserOption{}), admin.EditUser).
 						Delete(admin.DeleteUser)
-					m.Post("/keys", bind(api.CreateKeyOption{}), admin.CreatePublicKey)
+					m.Group("/keys", func() {
+						m.Post("", bind(api.CreateKeyOption{}), admin.CreatePublicKey)
+						m.Delete("/:id", admin.DeleteUserPublicKey)
+					})
 					m.Post("/orgs", bind(api.CreateOrgOption{}), admin.CreateOrg)
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
 				})

@@ -5,9 +5,8 @@
 package models
 
 import (
-	"time"
-
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/go-xorm/xorm"
@@ -27,16 +26,14 @@ type Milestone struct {
 	Completeness    int  // Percentage(1-100).
 	IsOverDue       bool `xorm:"-"`
 
-	DeadlineString string    `xorm:"-"`
-	Deadline       time.Time `xorm:"-"`
-	DeadlineUnix   int64
-	ClosedDate     time.Time `xorm:"-"`
-	ClosedDateUnix int64
+	DeadlineString string `xorm:"-"`
+	DeadlineUnix   util.TimeStamp
+	ClosedDateUnix util.TimeStamp
 }
 
 // BeforeInsert is invoked from XORM before inserting an object of this type.
 func (m *Milestone) BeforeInsert() {
-	m.DeadlineUnix = m.Deadline.Unix()
+	m.DeadlineUnix = util.TimeStampNow()
 }
 
 // BeforeUpdate is invoked from XORM before updating this object.
@@ -46,26 +43,20 @@ func (m *Milestone) BeforeUpdate() {
 	} else {
 		m.Completeness = 0
 	}
-
-	m.DeadlineUnix = m.Deadline.Unix()
-	m.ClosedDateUnix = m.ClosedDate.Unix()
 }
 
 // AfterLoad is invoked from XORM after setting the value of a field of
 // this object.
 func (m *Milestone) AfterLoad() {
 	m.NumOpenIssues = m.NumIssues - m.NumClosedIssues
-	m.Deadline = time.Unix(m.DeadlineUnix, 0).Local()
-	if m.Deadline.Year() == 9999 {
+	if m.DeadlineUnix.Year() == 9999 {
 		return
 	}
 
-	m.DeadlineString = m.Deadline.Format("2006-01-02")
-	if time.Now().Local().After(m.Deadline) {
+	m.DeadlineString = m.DeadlineUnix.Format("2006-01-02")
+	if util.TimeStampNow() >= m.DeadlineUnix {
 		m.IsOverDue = true
 	}
-
-	m.ClosedDate = time.Unix(m.ClosedDateUnix, 0).Local()
 }
 
 // State returns string representation of milestone status.
@@ -87,10 +78,10 @@ func (m *Milestone) APIFormat() *api.Milestone {
 		ClosedIssues: m.NumClosedIssues,
 	}
 	if m.IsClosed {
-		apiMilestone.Closed = &m.ClosedDate
+		apiMilestone.Closed = m.ClosedDateUnix.AsTimePtr()
 	}
-	if m.Deadline.Year() < 9999 {
-		apiMilestone.Deadline = &m.Deadline
+	if m.DeadlineUnix.Year() < 9999 {
+		apiMilestone.Deadline = m.DeadlineUnix.AsTimePtr()
 	}
 	return apiMilestone
 }
@@ -174,31 +165,33 @@ func UpdateMilestone(m *Milestone) error {
 	return updateMilestone(x, m)
 }
 
-func countRepoMilestones(e Engine, repoID int64) int64 {
-	count, _ := e.
+func countRepoMilestones(e Engine, repoID int64) (int64, error) {
+	return e.
 		Where("repo_id=?", repoID).
 		Count(new(Milestone))
-	return count
 }
 
-func countRepoClosedMilestones(e Engine, repoID int64) int64 {
-	closed, _ := e.
+func countRepoClosedMilestones(e Engine, repoID int64) (int64, error) {
+	return e.
 		Where("repo_id=? AND is_closed=?", repoID, true).
 		Count(new(Milestone))
-	return closed
 }
 
 // CountRepoClosedMilestones returns number of closed milestones in given repository.
-func CountRepoClosedMilestones(repoID int64) int64 {
+func CountRepoClosedMilestones(repoID int64) (int64, error) {
 	return countRepoClosedMilestones(x, repoID)
 }
 
 // MilestoneStats returns number of open and closed milestones of given repository.
-func MilestoneStats(repoID int64) (open int64, closed int64) {
-	open, _ = x.
+func MilestoneStats(repoID int64) (open int64, closed int64, err error) {
+	open, err = x.
 		Where("repo_id=? AND is_closed=?", repoID, false).
 		Count(new(Milestone))
-	return open, CountRepoClosedMilestones(repoID)
+	if err != nil {
+		return 0, 0, nil
+	}
+	closed, err = CountRepoClosedMilestones(repoID)
+	return open, closed, err
 }
 
 // ChangeMilestoneStatus changes the milestone open/closed status.
@@ -219,8 +212,17 @@ func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
 		return err
 	}
 
-	repo.NumMilestones = int(countRepoMilestones(sess, repo.ID))
-	repo.NumClosedMilestones = int(countRepoClosedMilestones(sess, repo.ID))
+	numMilestones, err := countRepoMilestones(sess, repo.ID)
+	if err != nil {
+		return err
+	}
+	numClosedMilestones, err := countRepoClosedMilestones(sess, repo.ID)
+	if err != nil {
+		return err
+	}
+	repo.NumMilestones = int(numMilestones)
+	repo.NumClosedMilestones = int(numClosedMilestones)
+
 	if _, err = sess.ID(repo.ID).Cols("num_milestones, num_closed_milestones").Update(repo); err != nil {
 		return err
 	}
@@ -291,7 +293,7 @@ func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilesto
 		}
 	}
 
-	return updateIssue(e, issue)
+	return updateIssueCols(e, issue, "milestone_id")
 }
 
 // ChangeMilestoneAssign changes assignment of milestone for issue.
@@ -333,8 +335,17 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	repo.NumMilestones = int(countRepoMilestones(sess, repo.ID))
-	repo.NumClosedMilestones = int(countRepoClosedMilestones(sess, repo.ID))
+	numMilestones, err := countRepoMilestones(sess, repo.ID)
+	if err != nil {
+		return err
+	}
+	numClosedMilestones, err := countRepoClosedMilestones(sess, repo.ID)
+	if err != nil {
+		return err
+	}
+	repo.NumMilestones = int(numMilestones)
+	repo.NumClosedMilestones = int(numClosedMilestones)
+
 	if _, err = sess.ID(repo.ID).Cols("num_milestones, num_closed_milestones").Update(repo); err != nil {
 		return err
 	}

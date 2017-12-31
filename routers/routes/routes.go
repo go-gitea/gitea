@@ -396,11 +396,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
 					m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 					m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
+					m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
 					m.Get("/:id", repo.WebHooksEdit)
 					m.Post("/gitea/:id", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksEditPost)
 					m.Post("/gogs/:id", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksEditPost)
 					m.Post("/slack/:id", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksEditPost)
 					m.Post("/discord/:id", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
+					m.Post("/dingtalk/:id", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
 				})
 
 				m.Route("/delete", "GET,POST", org.SettingsDelete)
@@ -444,12 +446,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
 				m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 				m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
+				m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
 				m.Get("/:id", repo.WebHooksEdit)
 				m.Post("/:id/test", repo.TestWebhook)
 				m.Post("/gitea/:id", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksEditPost)
 				m.Post("/gogs/:id", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
 				m.Post("/slack/:id", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksEditPost)
 				m.Post("/discord/:id", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
+				m.Post("/dingtalk/:id", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
 
 				m.Group("/git", func() {
 					m.Get("", repo.GitHooks)
@@ -491,6 +495,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Post("/cancel", repo.CancelStopwatch)
 					})
 				})
+				m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeIssueReaction)
 			})
 
 			m.Post("/labels", reqRepoWriter, repo.UpdateIssueLabel)
@@ -501,6 +506,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/comments/:id", func() {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
+			m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeCommentReaction)
 		}, context.CheckAnyUnit(models.UnitTypeIssues, models.UnitTypePullRequests))
 		m.Group("/labels", func() {
 			m.Post("/new", bindIgnErr(auth.CreateLabelForm{}), repo.NewLabel)
@@ -522,34 +528,30 @@ func RegisterRoutes(m *macaron.Macaron) {
 			Post(bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
 
 		m.Group("", func() {
-			m.Combo("/_edit/*").Get(repo.EditFile).
-				Post(bindIgnErr(auth.EditRepoFileForm{}), repo.EditFilePost)
-			m.Combo("/_new/*").Get(repo.NewFile).
-				Post(bindIgnErr(auth.EditRepoFileForm{}), repo.NewFilePost)
-			m.Post("/_preview/*", bindIgnErr(auth.EditPreviewDiffForm{}), repo.DiffPreviewPost)
-			m.Combo("/_delete/*").Get(repo.DeleteFile).
-				Post(bindIgnErr(auth.DeleteRepoFileForm{}), repo.DeleteFilePost)
-
 			m.Group("", func() {
-				m.Combo("/_upload/*").Get(repo.UploadFile).
+				m.Combo("/_edit/*").Get(repo.EditFile).
+					Post(bindIgnErr(auth.EditRepoFileForm{}), repo.EditFilePost)
+				m.Combo("/_new/*").Get(repo.NewFile).
+					Post(bindIgnErr(auth.EditRepoFileForm{}), repo.NewFilePost)
+				m.Post("/_preview/*", bindIgnErr(auth.EditPreviewDiffForm{}), repo.DiffPreviewPost)
+				m.Combo("/_delete/*").Get(repo.DeleteFile).
+					Post(bindIgnErr(auth.DeleteRepoFileForm{}), repo.DeleteFilePost)
+				m.Combo("/_upload/*", repo.MustBeAbleToUpload).
+					Get(repo.UploadFile).
 					Post(bindIgnErr(auth.UploadRepoFileForm{}), repo.UploadFilePost)
+			}, context.RepoRefByType(context.RepoRefBranch), repo.MustBeEditable)
+			m.Group("", func() {
 				m.Post("/upload-file", repo.UploadFileToServer)
 				m.Post("/upload-remove", bindIgnErr(auth.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
-			}, func(ctx *context.Context) {
-				if !setting.Repository.Upload.Enabled {
-					ctx.Handle(404, "", nil)
-					return
-				}
-			})
-		}, repo.MustBeNotBare, reqRepoWriter, context.RepoRef(), func(ctx *context.Context) {
-			if !ctx.Repo.Repository.CanEnableEditor() || ctx.Repo.IsViewCommit {
-				ctx.Handle(404, "", nil)
-				return
-			}
-		})
+			}, context.RepoRef(), repo.MustBeEditable, repo.MustBeAbleToUpload)
+		}, repo.MustBeNotBare, reqRepoWriter)
 
 		m.Group("/branches", func() {
-			m.Post("/_new/*", context.RepoRef(), bindIgnErr(auth.NewBranchForm{}), repo.CreateBranch)
+			m.Group("/_new/", func() {
+				m.Post("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.CreateBranch)
+				m.Post("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.CreateBranch)
+				m.Post("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.CreateBranch)
+			}, bindIgnErr(auth.NewBranchForm{}))
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
 		}, reqRepoWriter, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
@@ -608,7 +610,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/wiki", func() {
 			m.Get("/raw/*", repo.WikiRaw)
-			m.Get("/*", repo.WikiRaw)
 		}, repo.MustEnableWiki)
 
 		m.Group("/activity", func() {
@@ -629,15 +630,36 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/cleanup", context.RepoRef(), repo.CleanUpPullRequest)
 		}, repo.MustAllowPulls)
 
+		m.Group("/raw", func() {
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.SingleDownload)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.SingleDownload)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.SingleDownload)
+			// "/*" route is deprecated, and kept for backward compatibility
+			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.SingleDownload)
+		}, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
+
+		m.Group("/commits", func() {
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RefCommits)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RefCommits)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RefCommits)
+			// "/*" route is deprecated, and kept for backward compatibility
+			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.RefCommits)
+		}, repo.MustBeNotBare, context.CheckUnit(models.UnitTypeCode))
+
 		m.Group("", func() {
-			m.Get("/raw/*", repo.SingleDownload)
-			m.Get("/commits/*", repo.RefCommits)
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
 		}, repo.MustBeNotBare, context.RepoRef(), context.CheckUnit(models.UnitTypeCode))
 
+		m.Group("/src", func() {
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.Home)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.Home)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.Home)
+			// "/*" route is deprecated, and kept for backward compatibility
+			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.Home)
+		}, repo.SetEditorconfigIfExists)
+
 		m.Group("", func() {
-			m.Get("/src/*", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("/forks", repo.Forks)
 		}, context.RepoRef(), context.CheckUnit(models.UnitTypeCode))
 		m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)",
@@ -659,11 +681,18 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes(), context.LoadRepoUnits())
 
 		m.Group("/:reponame", func() {
-			m.Group("/info/lfs", func() {
+			m.Group("\\.git/info/lfs", func() {
 				m.Post("/objects/batch", lfs.BatchHandler)
 				m.Get("/objects/:oid/:filename", lfs.ObjectOidHandler)
 				m.Any("/objects/:oid", lfs.ObjectOidHandler)
 				m.Post("/objects", lfs.PostHandler)
+				m.Post("/verify", lfs.VerifyHandler)
+				m.Group("/locks", func() {
+					m.Get("/", lfs.GetListLockHandler)
+					m.Post("/", lfs.PostLockHandler)
+					m.Post("/verify", lfs.VerifyLockHandler)
+					m.Post("/:lid/unlock", lfs.UnLockHandler)
+				}, context.RepoAssignment())
 				m.Any("/*", func(ctx *context.Context) {
 					ctx.Handle(404, "", nil)
 				})
@@ -677,6 +706,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/notifications", func() {
 		m.Get("", user.Notifications)
 		m.Post("/status", user.NotificationStatusPost)
+		m.Post("/purge", user.NotificationPurgePost)
 	}, reqSignIn)
 
 	m.Group("/api", func() {

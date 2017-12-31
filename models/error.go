@@ -37,6 +37,20 @@ func (err ErrNamePatternNotAllowed) Error() string {
 	return fmt.Sprintf("name pattern is not allowed [pattern: %s]", err.Pattern)
 }
 
+// ErrSSHDisabled represents an "SSH disabled" error.
+type ErrSSHDisabled struct {
+}
+
+// IsErrSSHDisabled checks if an error is a ErrSSHDisabled.
+func IsErrSSHDisabled(err error) bool {
+	_, ok := err.(ErrSSHDisabled)
+	return ok
+}
+
+func (err ErrSSHDisabled) Error() string {
+	return "SSH is disabled"
+}
+
 //  ____ ___
 // |    |   \______ ___________
 // |    |   /  ___// __ \_  __ \
@@ -177,7 +191,7 @@ type ErrWikiAlreadyExist struct {
 	Title string
 }
 
-// IsErrWikiAlreadyExist checks if an error is a ErrWikiAlreadyExist.
+// IsErrWikiAlreadyExist checks if an error is an ErrWikiAlreadyExist.
 func IsErrWikiAlreadyExist(err error) bool {
 	_, ok := err.(ErrWikiAlreadyExist)
 	return ok
@@ -185,6 +199,21 @@ func IsErrWikiAlreadyExist(err error) bool {
 
 func (err ErrWikiAlreadyExist) Error() string {
 	return fmt.Sprintf("wiki page already exists [title: %s]", err.Title)
+}
+
+// ErrWikiReservedName represents a reserved name error.
+type ErrWikiReservedName struct {
+	Title string
+}
+
+// IsErrWikiReservedName checks if an error is an ErrWikiReservedName.
+func IsErrWikiReservedName(err error) bool {
+	_, ok := err.(ErrWikiReservedName)
+	return ok
+}
+
+func (err ErrWikiReservedName) Error() string {
+	return fmt.Sprintf("wiki title is reserved: %s", err.Title)
 }
 
 // __________     ___.   .__  .__          ____  __.
@@ -477,6 +506,63 @@ func (err ErrLastOrgOwner) Error() string {
 	return fmt.Sprintf("user is the last member of owner team [uid: %d]", err.UID)
 }
 
+//.____   ____________________
+//|    |  \_   _____/   _____/
+//|    |   |    __) \_____  \
+//|    |___|     \  /        \
+//|_______ \___  / /_______  /
+//        \/   \/          \/
+
+// ErrLFSLockNotExist represents a "LFSLockNotExist" kind of error.
+type ErrLFSLockNotExist struct {
+	ID     int64
+	RepoID int64
+	Path   string
+}
+
+// IsErrLFSLockNotExist checks if an error is a ErrLFSLockNotExist.
+func IsErrLFSLockNotExist(err error) bool {
+	_, ok := err.(ErrLFSLockNotExist)
+	return ok
+}
+
+func (err ErrLFSLockNotExist) Error() string {
+	return fmt.Sprintf("lfs lock does not exist [id: %d, rid: %d, path: %s]", err.ID, err.RepoID, err.Path)
+}
+
+// ErrLFSLockUnauthorizedAction represents a "LFSLockUnauthorizedAction" kind of error.
+type ErrLFSLockUnauthorizedAction struct {
+	RepoID   int64
+	UserName string
+	Action   string
+}
+
+// IsErrLFSLockUnauthorizedAction checks if an error is a ErrLFSLockUnauthorizedAction.
+func IsErrLFSLockUnauthorizedAction(err error) bool {
+	_, ok := err.(ErrLFSLockUnauthorizedAction)
+	return ok
+}
+
+func (err ErrLFSLockUnauthorizedAction) Error() string {
+	return fmt.Sprintf("User %s doesn't have rigth to %s for lfs lock [rid: %d]", err.UserName, err.Action, err.RepoID)
+}
+
+// ErrLFSLockAlreadyExist represents a "LFSLockAlreadyExist" kind of error.
+type ErrLFSLockAlreadyExist struct {
+	RepoID int64
+	Path   string
+}
+
+// IsErrLFSLockAlreadyExist checks if an error is a ErrLFSLockAlreadyExist.
+func IsErrLFSLockAlreadyExist(err error) bool {
+	_, ok := err.(ErrLFSLockAlreadyExist)
+	return ok
+}
+
+func (err ErrLFSLockAlreadyExist) Error() string {
+	return fmt.Sprintf("lfs lock already exists [rid: %d, path: %s]", err.RepoID, err.Path)
+}
+
 // __________                           .__  __
 // \______   \ ____ ______   ____  _____|__|/  |_  ___________ ___.__.
 //  |       _// __ \\____ \ /  _ \/  ___/  \   __\/  _ \_  __ <   |  |
@@ -486,9 +572,10 @@ func (err ErrLastOrgOwner) Error() string {
 
 // ErrRepoNotExist represents a "RepoNotExist" kind of error.
 type ErrRepoNotExist struct {
-	ID   int64
-	UID  int64
-	Name string
+	ID        int64
+	UID       int64
+	OwnerName string
+	Name      string
 }
 
 // IsErrRepoNotExist checks if an error is a ErrRepoNotExist.
@@ -498,7 +585,8 @@ func IsErrRepoNotExist(err error) bool {
 }
 
 func (err ErrRepoNotExist) Error() string {
-	return fmt.Sprintf("repository does not exist [id: %d, uid: %d, name: %s]", err.ID, err.UID, err.Name)
+	return fmt.Sprintf("repository does not exist [id: %d, uid: %d, owner_name: %s, name: %s]",
+		err.ID, err.UID, err.OwnerName, err.Name)
 }
 
 // ErrRepoAlreadyExist represents a "RepoAlreadyExist" kind of error.

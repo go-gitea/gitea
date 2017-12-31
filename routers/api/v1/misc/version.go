@@ -12,17 +12,13 @@ import (
 
 // Version shows the version of the Gitea server
 func Version(ctx *context.APIContext) {
-	// swagger:route GET /version miscellaneous getVersion
-	//
-	// Return Gitea running version.
-	//
-	// This show current running Gitea application version.
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: ServerVersion
-
+	// swagger:operation GET /version miscellaneous getVersion
+	// ---
+	// summary: Returns the version of the Gitea application
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ServerVersion"
 	ctx.JSON(200, &gitea.ServerVersion{Version: setting.AppVer})
 }

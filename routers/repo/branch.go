@@ -202,7 +202,7 @@ func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.GetErrMsg())
-		ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName)
+		ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
 		return
 	}
 
@@ -216,19 +216,19 @@ func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
 		if models.IsErrTagAlreadyExists(err) {
 			e := err.(models.ErrTagAlreadyExists)
 			ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
-			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName)
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
 			return
 		}
 		if models.IsErrBranchAlreadyExists(err) {
 			e := err.(models.ErrBranchAlreadyExists)
 			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", e.BranchName))
-			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName)
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
 			return
 		}
 		if models.IsErrBranchNameConflict(err) {
 			e := err.(models.ErrBranchNameConflict)
 			ctx.Flash.Error(ctx.Tr("repo.branch.branch_name_conflict", form.NewBranchName, e.BranchName))
-			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchName)
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
 			return
 		}
 
@@ -237,5 +237,5 @@ func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.branch.create_success", form.NewBranchName))
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/" + form.NewBranchName)
+	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + form.NewBranchName)
 }

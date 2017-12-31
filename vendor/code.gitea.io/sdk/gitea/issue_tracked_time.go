@@ -12,9 +12,9 @@ import (
 )
 
 // TrackedTime worked time for an issue / pr
-// swagger:response TrackedTime
 type TrackedTime struct {
 	ID      int64     `json:"id"`
+	// swagger:strfmt date-time
 	Created time.Time `json:"created"`
 	// Time in seconds
 	Time    int64 `json:"time"`
@@ -23,7 +23,6 @@ type TrackedTime struct {
 }
 
 // TrackedTimes represent a list of tracked times
-// swagger:response TrackedTimes
 type TrackedTimes []*TrackedTime
 
 // GetUserTrackedTimes list tracked times of a user
@@ -44,10 +43,10 @@ func (c *Client) GetMyTrackedTimes() (TrackedTimes, error) {
 	return times, c.getParsedResponse("GET", "/user/times", nil, nil, &times)
 }
 
-// AddTimeOption adds time manually to an issue
-// swagger:parameters addTime
+// AddTimeOption options for adding time to an issue
 type AddTimeOption struct {
-	// in: body
+	// time in seconds
+	// required: true
 	Time int64 `json:"time" binding:"Required"`
 }
 

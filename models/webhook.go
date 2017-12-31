@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 
 	gouuid "github.com/satori/go.uuid"
@@ -105,10 +106,8 @@ type Webhook struct {
 	Meta         string     `xorm:"TEXT"` // store hook-specific attributes
 	LastStatus   HookStatus // Last delivery status
 
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX created"`
-	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX updated"`
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 }
 
 // AfterLoad updates the webhook object upon setting a column
@@ -117,9 +116,6 @@ func (w *Webhook) AfterLoad() {
 	if err := json.Unmarshal([]byte(w.Events), w.HookEvent); err != nil {
 		log.Error(3, "Unmarshal[%d]: %v", w.ID, err)
 	}
-
-	w.Created = time.Unix(w.CreatedUnix, 0).Local()
-	w.Updated = time.Unix(w.UpdatedUnix, 0).Local()
 }
 
 // GetSlackHook returns slack metadata
@@ -332,13 +328,15 @@ const (
 	SLACK
 	GITEA
 	DISCORD
+	DINGTALK
 )
 
 var hookTaskTypes = map[string]HookTaskType{
-	"gitea":   GITEA,
-	"gogs":    GOGS,
-	"slack":   SLACK,
-	"discord": DISCORD,
+	"gitea":    GITEA,
+	"gogs":     GOGS,
+	"slack":    SLACK,
+	"discord":  DISCORD,
+	"dingtalk": DINGTALK,
 }
 
 // ToHookTaskType returns HookTaskType by given name.
@@ -357,6 +355,8 @@ func (t HookTaskType) Name() string {
 		return "slack"
 	case DISCORD:
 		return "discord"
+	case DINGTALK:
+		return "dingtalk"
 	}
 	return ""
 }
@@ -519,6 +519,11 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 		payloader, err = GetDiscordPayload(p, event, w.Meta)
 		if err != nil {
 			return fmt.Errorf("GetDiscordPayload: %v", err)
+		}
+	case DINGTALK:
+		payloader, err = GetDingtalkPayload(p, event, w.Meta)
+		if err != nil {
+			return fmt.Errorf("GetDingtalkPayload: %v", err)
 		}
 	default:
 		p.SetSecret(w.Secret)

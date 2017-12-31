@@ -94,12 +94,9 @@ type User struct {
 	Rands            string `xorm:"VARCHAR(10)"`
 	Salt             string `xorm:"VARCHAR(10)"`
 
-	Created       time.Time `xorm:"-"`
-	CreatedUnix   int64     `xorm:"INDEX created"`
-	Updated       time.Time `xorm:"-"`
-	UpdatedUnix   int64     `xorm:"INDEX updated"`
-	LastLogin     time.Time `xorm:"-"`
-	LastLoginUnix int64     `xorm:"INDEX"`
+	CreatedUnix   util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix   util.TimeStamp `xorm:"INDEX updated"`
+	LastLoginUnix util.TimeStamp `xorm:"INDEX"`
 
 	// Remember visibility choice for convenience, true for private
 	LastRepoVisibility bool
@@ -145,20 +142,13 @@ func (u *User) BeforeUpdate() {
 
 // SetLastLogin set time to last login
 func (u *User) SetLastLogin() {
-	u.LastLoginUnix = time.Now().Unix()
+	u.LastLoginUnix = util.TimeStampNow()
 }
 
 // UpdateDiffViewStyle updates the users diff view style
 func (u *User) UpdateDiffViewStyle(style string) error {
 	u.DiffViewStyle = style
 	return UpdateUserCols(u, "diff_view_style")
-}
-
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (u *User) AfterLoad() {
-	u.Created = time.Unix(u.CreatedUnix, 0).Local()
-	u.Updated = time.Unix(u.UpdatedUnix, 0).Local()
-	u.LastLogin = time.Unix(u.LastLoginUnix, 0).Local()
 }
 
 // getEmail returns an noreply email, if the user has set to keep his
@@ -315,10 +305,9 @@ func (u *User) generateRandomAvatar(e Engine) error {
 	return nil
 }
 
-// RelAvatarLink returns relative avatar link to the site domain,
-// which includes app sub-url as prefix. However, it is possible
-// to return full URL if user enables Gravatar-like service.
-func (u *User) RelAvatarLink() string {
+// SizedRelAvatarLink returns a relative link to the user's avatar. When
+// applicable, the link is for an avatar of the indicated size (in pixels).
+func (u *User) SizedRelAvatarLink(size int) string {
 	if u.ID == -1 {
 		return base.DefaultAvatarLink()
 	}
@@ -338,7 +327,14 @@ func (u *User) RelAvatarLink() string {
 
 		return setting.AppSubURL + "/avatars/" + u.Avatar
 	}
-	return base.AvatarLink(u.AvatarEmail)
+	return base.SizedAvatarLink(u.AvatarEmail, size)
+}
+
+// RelAvatarLink returns a relative link to the user's avatar. The link
+// may either be a sub-URL to this site, or a full URL to an external avatar
+// service.
+func (u *User) RelAvatarLink() string {
+	return u.SizedRelAvatarLink(base.DefaultAvatarSize)
 }
 
 // AvatarLink returns user avatar absolute link.
@@ -491,12 +487,22 @@ func (u *User) IsOrganization() bool {
 
 // IsUserOrgOwner returns true if user is in the owner team of given organization.
 func (u *User) IsUserOrgOwner(orgID int64) bool {
-	return IsOrganizationOwner(orgID, u.ID)
+	isOwner, err := IsOrganizationOwner(orgID, u.ID)
+	if err != nil {
+		log.Error(4, "IsOrganizationOwner: %v", err)
+		return false
+	}
+	return isOwner
 }
 
 // IsPublicMember returns true if user public his/her membership in given organization.
 func (u *User) IsPublicMember(orgID int64) bool {
-	return IsPublicMembership(orgID, u.ID)
+	isMember, err := IsPublicMembership(orgID, u.ID)
+	if err != nil {
+		log.Error(4, "IsPublicMembership: %v", err)
+		return false
+	}
+	return isMember
 }
 
 func (u *User) getOrganizationCount(e Engine) (int64, error) {
@@ -974,6 +980,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 		&IssueUser{UID: u.ID},
 		&EmailAddress{UID: u.ID},
 		&UserOpenID{UID: u.ID},
+		&Reaction{UserID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1271,22 +1278,27 @@ func GetUser(user *User) (bool, error) {
 
 // SearchUserOptions contains the options for searching
 type SearchUserOptions struct {
-	Keyword  string
-	Type     UserType
-	OrderBy  string
-	Page     int
-	PageSize int // Can be smaller than or equal to setting.UI.ExplorePagingNum
-	IsActive util.OptionalBool
+	Keyword       string
+	Type          UserType
+	OrderBy       string
+	Page          int
+	PageSize      int // Can be smaller than or equal to setting.UI.ExplorePagingNum
+	IsActive      util.OptionalBool
+	SearchByEmail bool // Search by email as well as username/full name
 }
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{"type": opts.Type}
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
-		cond = cond.And(builder.Or(
+		keywordCond := builder.Or(
 			builder.Like{"lower_name", lowerKeyword},
 			builder.Like{"LOWER(full_name)", lowerKeyword},
-		))
+		)
+		if opts.SearchByEmail {
+			keywordCond = keywordCond.Or(builder.Like{"LOWER(email)", lowerKeyword})
+		}
+		cond = cond.And(keywordCond)
 	}
 
 	if !opts.IsActive.IsNone() {

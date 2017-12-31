@@ -238,7 +238,7 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 	var (
 		diff = &Diff{Files: make([]*DiffFile, 0)}
 
-		curFile    *DiffFile
+		curFile    = &DiffFile{}
 		curSection = &DiffSection{
 			Lines: make([]*DiffLine, 0, 10),
 		}
@@ -252,19 +252,27 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 	input := bufio.NewReader(reader)
 	isEOF := false
 	for !isEOF {
-		line, err := input.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				isEOF = true
-			} else {
-				return nil, fmt.Errorf("ReadString: %v", err)
+		var linebuf bytes.Buffer
+		for {
+			b, err := input.ReadByte()
+			if err != nil {
+				if err == io.EOF {
+					isEOF = true
+					break
+				} else {
+					return nil, fmt.Errorf("ReadByte: %v", err)
+				}
+			}
+			if b == '\n' {
+				break
+			}
+			if linebuf.Len() < maxLineCharacters {
+				linebuf.WriteByte(b)
+			} else if linebuf.Len() == maxLineCharacters {
+				curFile.IsIncomplete = true
 			}
 		}
-
-		if len(line) > 0 && line[len(line)-1] == '\n' {
-			// Remove line break.
-			line = line[:len(line)-1]
-		}
+		line := linebuf.String()
 
 		if strings.HasPrefix(line, "+++ ") || strings.HasPrefix(line, "--- ") || len(line) == 0 {
 			continue
@@ -295,7 +303,7 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 		lineCount++
 
 		// Diff data too large, we only show the first about maxLines lines
-		if curFileLinesCount >= maxLines || len(line) >= maxLineCharacters {
+		if curFileLinesCount >= maxLines {
 			curFile.IsIncomplete = true
 		}
 

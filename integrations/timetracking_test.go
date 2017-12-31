@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -47,7 +49,7 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 	if canTrackTime {
 		resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
-		req = NewRequest(t, "GET", RedirectURL(t, resp))
+		req = NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
 
@@ -65,7 +67,7 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 		})
 		resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
-		req = NewRequest(t, "GET", RedirectURL(t, resp))
+		req = NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
 

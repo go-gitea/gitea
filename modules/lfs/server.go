@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/dgrijalva/jwt-go"
 	"gopkg.in/macaron.v1"
 )
@@ -66,7 +68,12 @@ type ObjectError struct {
 
 // ObjectLink builds a URL linking to the object.
 func (v *RequestVars) ObjectLink() string {
-	return fmt.Sprintf("%s%s/%s/info/lfs/objects/%s", setting.AppURL, v.User, v.Repo, v.Oid)
+	return setting.AppURL + path.Join(v.User, v.Repo+".git", "info/lfs/objects", v.Oid)
+}
+
+// VerifyLink builds a URL for verifying the object.
+func (v *RequestVars) VerifyLink() string {
+	return setting.AppURL + path.Join(v.User, v.Repo+".git", "info/lfs/verify")
 }
 
 // link provides a structure used to build a hypermedia representation of an HTTP link.
@@ -86,11 +93,11 @@ func ObjectOidHandler(ctx *context.Context) {
 
 	if ctx.Req.Method == "GET" || ctx.Req.Method == "HEAD" {
 		if MetaMatcher(ctx.Req) {
-			GetMetaHandler(ctx)
+			getMetaHandler(ctx)
 			return
 		}
 		if ContentMatcher(ctx.Req) || len(ctx.Params("filename")) > 0 {
-			GetContentHandler(ctx)
+			getContentHandler(ctx)
 			return
 		}
 	} else if ctx.Req.Method == "PUT" && ContentMatcher(ctx.Req) {
@@ -100,26 +107,34 @@ func ObjectOidHandler(ctx *context.Context) {
 
 }
 
-// GetContentHandler gets the content from the content store
-func GetContentHandler(ctx *context.Context) {
+func getAuthenticatedRepoAndMeta(ctx *context.Context, rv *RequestVars, requireWrite bool) (*models.LFSMetaObject, *models.Repository) {
+	repository, err := models.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
+	if err != nil {
+		log.Debug("Could not find repository: %s/%s - %s", rv.User, rv.Repo, err)
+		writeStatus(ctx, 404)
+		return nil, nil
+	}
 
+	if !authenticate(ctx, repository, rv.Authorization, requireWrite) {
+		requireAuth(ctx)
+		return nil, nil
+	}
+
+	meta, err := repository.GetLFSMetaObjectByOid(rv.Oid)
+	if err != nil {
+		writeStatus(ctx, 404)
+		return nil, nil
+	}
+
+	return meta, repository
+}
+
+// getContentHandler gets the content from the content store
+func getContentHandler(ctx *context.Context) {
 	rv := unpack(ctx)
 
-	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	repository, err := models.GetRepositoryByID(meta.RepositoryID)
-
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	if !authenticate(ctx, repository, rv.Authorization, false) {
-		requireAuth(ctx)
+	meta, _ := getAuthenticatedRepoAndMeta(ctx, rv, false)
+	if meta == nil {
 		return
 	}
 
@@ -143,7 +158,7 @@ func GetContentHandler(ctx *context.Context) {
 		return
 	}
 
-	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(meta.Size, 10))
+	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(meta.Size-fromByte, 10))
 	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
 
 	filename := ctx.Params("filename")
@@ -160,26 +175,12 @@ func GetContentHandler(ctx *context.Context) {
 	logRequest(ctx.Req, statusCode)
 }
 
-// GetMetaHandler retrieves metadata about the object
-func GetMetaHandler(ctx *context.Context) {
-
+// getMetaHandler retrieves metadata about the object
+func getMetaHandler(ctx *context.Context) {
 	rv := unpack(ctx)
 
-	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	repository, err := models.GetRepositoryByID(meta.RepositoryID)
-
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	if !authenticate(ctx, repository, rv.Authorization, false) {
-		requireAuth(ctx)
+	meta, _ := getAuthenticatedRepoAndMeta(ctx, rv, false)
+	if meta == nil {
 		return
 	}
 
@@ -195,7 +196,6 @@ func GetMetaHandler(ctx *context.Context) {
 
 // PostHandler instructs the client how to upload data
 func PostHandler(ctx *context.Context) {
-
 	if !setting.LFS.StartServer {
 		writeStatus(ctx, 404)
 		return
@@ -208,11 +208,9 @@ func PostHandler(ctx *context.Context) {
 
 	rv := unpack(ctx)
 
-	repositoryString := rv.User + "/" + rv.Repo
-	repository, err := models.GetRepositoryByRef(repositoryString)
-
+	repository, err := models.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
 	if err != nil {
-		log.Debug("Could not find repository: %s - %s", repositoryString, err)
+		log.Debug("Could not find repository: %s/%s - %s", rv.User, rv.Repo, err)
 		writeStatus(ctx, 404)
 		return
 	}
@@ -222,7 +220,6 @@ func PostHandler(ctx *context.Context) {
 	}
 
 	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Oid: rv.Oid, Size: rv.Size, RepositoryID: repository.ID})
-
 	if err != nil {
 		writeStatus(ctx, 404)
 		return
@@ -261,12 +258,10 @@ func BatchHandler(ctx *context.Context) {
 
 	// Create a response object
 	for _, object := range bv.Objects {
-
-		repositoryString := object.User + "/" + object.Repo
-		repository, err := models.GetRepositoryByRef(repositoryString)
+		repository, err := models.GetRepositoryByOwnerAndName(object.User, object.Repo)
 
 		if err != nil {
-			log.Debug("Could not find repository: %s - %s", repositoryString, err)
+			log.Debug("Could not find repository: %s/%s - %s", object.User, object.Repo, err)
 			writeStatus(ctx, 404)
 			return
 		}
@@ -281,9 +276,9 @@ func BatchHandler(ctx *context.Context) {
 			return
 		}
 
-		meta, err := models.GetLFSMetaObjectByOid(object.Oid)
-
 		contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
+
+		meta, err := repository.GetLFSMetaObjectByOid(object.Oid)
 		if err == nil && contentStore.Exists(meta) { // Object is found and exists
 			responseObjects = append(responseObjects, Represent(object, meta, true, false))
 			continue
@@ -291,9 +286,8 @@ func BatchHandler(ctx *context.Context) {
 
 		// Object is not found
 		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size, RepositoryID: repository.ID})
-
 		if err == nil {
-			responseObjects = append(responseObjects, Represent(object, meta, meta.Existing, true))
+			responseObjects = append(responseObjects, Represent(object, meta, meta.Existing, !contentStore.Exists(meta)))
 		}
 	}
 
@@ -310,30 +304,52 @@ func BatchHandler(ctx *context.Context) {
 func PutHandler(ctx *context.Context) {
 	rv := unpack(ctx)
 
-	meta, err := models.GetLFSMetaObjectByOid(rv.Oid)
-
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	repository, err := models.GetRepositoryByID(meta.RepositoryID)
-
-	if err != nil {
-		writeStatus(ctx, 404)
-		return
-	}
-
-	if !authenticate(ctx, repository, rv.Authorization, true) {
-		requireAuth(ctx)
+	meta, repository := getAuthenticatedRepoAndMeta(ctx, rv, true)
+	if meta == nil {
 		return
 	}
 
 	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
 	if err := contentStore.Put(meta, ctx.Req.Body().ReadCloser()); err != nil {
-		models.RemoveLFSMetaObjectByOid(rv.Oid)
 		ctx.Resp.WriteHeader(500)
 		fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
+		if err = repository.RemoveLFSMetaObjectByOid(rv.Oid); err != nil {
+			log.Error(4, "RemoveLFSMetaObjectByOid: %v", err)
+		}
+		return
+	}
+
+	logRequest(ctx.Req, 200)
+}
+
+// VerifyHandler verify oid and its size from the content store
+func VerifyHandler(ctx *context.Context) {
+	if !setting.LFS.StartServer {
+		writeStatus(ctx, 404)
+		return
+	}
+
+	if !ContentMatcher(ctx.Req) {
+		writeStatus(ctx, 400)
+		return
+	}
+
+	rv := unpack(ctx)
+
+	meta, _ := getAuthenticatedRepoAndMeta(ctx, rv, true)
+	if meta == nil {
+		return
+	}
+
+	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
+	ok, err := contentStore.Verify(meta)
+	if err != nil {
+		ctx.Resp.WriteHeader(500)
+		fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
+		return
+	}
+	if !ok {
+		writeStatus(ctx, 422)
 		return
 	}
 
@@ -365,6 +381,11 @@ func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload boo
 
 	if upload {
 		rep.Actions["upload"] = &link{Href: rv.ObjectLink(), Header: header}
+	}
+
+	if upload && !download {
+		// Force client side verify action while gitea lacks proper server side verification
+		rep.Actions["verify"] = &link{Href: rv.VerifyLink(), Header: header}
 	}
 
 	return rep

@@ -56,8 +56,25 @@ type LandingPage string
 
 // enumerates all the landing page types
 const (
-	LandingPageHome    LandingPage = "/"
-	LandingPageExplore LandingPage = "/explore"
+	LandingPageHome          LandingPage = "/"
+	LandingPageExplore       LandingPage = "/explore"
+	LandingPageOrganizations LandingPage = "/explore/organizations"
+)
+
+// MarkupParser defines the external parser configured in ini
+type MarkupParser struct {
+	Enabled        bool
+	MarkupName     string
+	Command        string
+	FileExtensions []string
+	IsInputFile    bool
+}
+
+// enumerates all the policy repository creating
+const (
+	RepoCreatingLastUserVisibility = "last"
+	RepoCreatingPrivate            = "private"
+	RepoCreatingPublic             = "public"
 )
 
 // settings
@@ -71,6 +88,7 @@ var (
 	AppSubURLDepth int // Number of slashes
 	AppPath        string
 	AppDataPath    string
+	AppWorkPath    string
 
 	// Server settings
 	Protocol             Scheme
@@ -78,6 +96,8 @@ var (
 	HTTPAddr             string
 	HTTPPort             string
 	LocalURL             string
+	RedirectOtherPort    bool
+	PortToRedirect       string
 	OfflineMode          bool
 	DisableRouterLog     bool
 	CertFile             string
@@ -98,6 +118,8 @@ var (
 		ListenPort           int            `ini:"SSH_LISTEN_PORT"`
 		RootPath             string         `ini:"SSH_ROOT_PATH"`
 		ServerCiphers        []string       `ini:"SSH_SERVER_CIPHERS"`
+		ServerKeyExchanges   []string       `ini:"SSH_SERVER_KEY_EXCHANGES"`
+		ServerMACs           []string       `ini:"SSH_SERVER_MACS"`
 		KeyTestPath          string         `ini:"SSH_KEY_TEST_PATH"`
 		KeygenPath           string         `ini:"SSH_KEYGEN_PATH"`
 		AuthorizedKeysBackup bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
@@ -110,6 +132,8 @@ var (
 		Domain:             "",
 		Port:               22,
 		ServerCiphers:      []string{"aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "arcfour256", "arcfour128"},
+		ServerKeyExchanges: []string{"diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "curve25519-sha256@libssh.org"},
+		ServerMACs:         []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1", "hmac-sha1-96"},
 		KeygenPath:         "ssh-keygen",
 	}
 
@@ -165,6 +189,7 @@ var (
 	Repository = struct {
 		AnsiCharset            string
 		ForcePrivate           bool
+		DefaultPrivate         string
 		MaxCreationLimit       int
 		MirrorQueueLength      int
 		PullRequestQueueLength int
@@ -194,6 +219,7 @@ var (
 	}{
 		AnsiCharset:            "",
 		ForcePrivate:           false,
+		DefaultPrivate:         RepoCreatingLastUserVisibility,
 		MaxCreationLimit:       -1,
 		MirrorQueueLength:      1000,
 		PullRequestQueueLength: 1000,
@@ -241,6 +267,7 @@ var (
 		IssuePagingNum      int
 		RepoSearchPagingNum int
 		FeedMaxCommitNum    int
+		ReactionMaxUserNum  int
 		ThemeColorMetaTag   string
 		MaxDisplayFileSize  int64
 		ShowUserEmail       bool
@@ -264,6 +291,7 @@ var (
 		IssuePagingNum:      10,
 		RepoSearchPagingNum: 10,
 		FeedMaxCommitNum:    5,
+		ReactionMaxUserNum:  10,
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
 		Admin: struct {
@@ -311,11 +339,13 @@ var (
 	// Picture settings
 	AvatarUploadPath      string
 	GravatarSource        string
+	GravatarSourceURL     *url.URL
 	DisableGravatar       bool
 	EnableFederatedAvatar bool
 	LibravatarService     *libravatar.Libravatar
 
 	// Log settings
+	LogLevel    string
 	LogRootPath string
 	LogModes    []string
 	LogConfigs  []string
@@ -510,6 +540,11 @@ var (
 	HasRobotsTxt      bool
 	InternalToken     string // internal access token
 	IterateBufferSize int
+
+	ExternalMarkupParsers []MarkupParser
+	// UILocation is the location on the UI, so that we can display the time on UI.
+	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
+	UILocation = time.Local
 )
 
 // DateLang transforms standard language locale name to corresponding value in datetime plugin.
@@ -521,17 +556,42 @@ func DateLang(lang string) string {
 	return "en"
 }
 
-// execPath returns the executable path.
-func execPath() (string, error) {
-	execFile := os.Args[0]
-	if IsWindows && filepath.IsAbs(execFile) {
-		return filepath.Clean(execFile), nil
+func getAppPath() (string, error) {
+	var appPath string
+	var err error
+	if IsWindows && filepath.IsAbs(os.Args[0]) {
+		appPath = filepath.Clean(os.Args[0])
+	} else {
+		appPath, err = exec.LookPath(os.Args[0])
 	}
-	file, err := exec.LookPath(execFile)
+
 	if err != nil {
 		return "", err
 	}
-	return filepath.Abs(file)
+	appPath, err = filepath.Abs(appPath)
+	if err != nil {
+		return "", err
+	}
+	// Note: we don't use path.Dir here because it does not handle case
+	//	which path starts with two "/" in Windows: "//psf/Home/..."
+	return strings.Replace(appPath, "\\", "/", -1), err
+}
+
+func getWorkPath(appPath string) string {
+	workPath := ""
+	giteaWorkPath := os.Getenv("GITEA_WORK_DIR")
+
+	if len(giteaWorkPath) > 0 {
+		workPath = giteaWorkPath
+	} else {
+		i := strings.LastIndex(appPath, "/")
+		if i == -1 {
+			workPath = appPath
+		} else {
+			workPath = appPath[:i]
+		}
+	}
+	return strings.Replace(workPath, "\\", "/", -1)
 }
 
 func init() {
@@ -539,35 +599,10 @@ func init() {
 	log.NewLogger(0, "console", `{"level": 0}`)
 
 	var err error
-	if AppPath, err = execPath(); err != nil {
+	if AppPath, err = getAppPath(); err != nil {
 		log.Fatal(4, "Failed to get app path: %v", err)
 	}
-
-	// Note: we don't use path.Dir here because it does not handle case
-	//	which path starts with two "/" in Windows: "//psf/Home/..."
-	AppPath = strings.Replace(AppPath, "\\", "/", -1)
-}
-
-// WorkDir returns absolute path of work directory.
-func WorkDir() (string, error) {
-	wd := os.Getenv("GITEA_WORK_DIR")
-	if len(wd) > 0 {
-		return wd, nil
-	}
-	// Use GOGS_WORK_DIR if available, for backward compatibility
-	// TODO: drop in 1.1.0 ?
-	wd = os.Getenv("GOGS_WORK_DIR")
-	if len(wd) > 0 {
-		log.Warn(`Usage of GOGS_WORK_DIR is deprecated and will be *removed* in a future release,
-please consider changing to GITEA_WORK_DIR`)
-		return wd, nil
-	}
-
-	i := strings.LastIndex(AppPath, "/")
-	if i == -1 {
-		return AppPath, nil
-	}
-	return AppPath[:i], nil
+	AppWorkPath = getWorkPath(AppPath)
 }
 
 func forcePathSeparator(path string) {
@@ -608,16 +643,13 @@ func createPIDFile(pidPath string) {
 // NewContext initializes configuration context.
 // NOTE: do not print any log except error.
 func NewContext() {
-	workDir, err := WorkDir()
-	if err != nil {
-		log.Fatal(4, "Failed to get work directory: %v", err)
-	}
-
 	Cfg = ini.Empty()
 
 	CustomPath = os.Getenv("GITEA_CUSTOM")
 	if len(CustomPath) == 0 {
-		CustomPath = workDir + "/custom"
+		CustomPath = path.Join(AppWorkPath, "custom")
+	} else if !filepath.IsAbs(CustomPath) {
+		CustomPath = path.Join(AppWorkPath, CustomPath)
 	}
 
 	if len(CustomPID) > 0 {
@@ -625,13 +657,13 @@ func NewContext() {
 	}
 
 	if len(CustomConf) == 0 {
-		CustomConf = CustomPath + "/conf/app.ini"
+		CustomConf = path.Join(CustomPath, "conf/app.ini")
 	} else if !filepath.IsAbs(CustomConf) {
-		CustomConf = filepath.Join(workDir, CustomConf)
+		CustomConf = path.Join(CustomPath, CustomConf)
 	}
 
 	if com.IsFile(CustomConf) {
-		if err = Cfg.Append(CustomConf); err != nil {
+		if err := Cfg.Append(CustomConf); err != nil {
 			log.Fatal(4, "Failed to load custom conf '%s': %v", CustomConf, err)
 		}
 	} else {
@@ -645,7 +677,8 @@ func NewContext() {
 	}
 	homeDir = strings.Replace(homeDir, "\\", "/", -1)
 
-	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(workDir, "log"))
+	LogLevel = getLogLevel("log", "LEVEL", "Info")
+	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
 
 	sec := Cfg.Section("server")
@@ -710,16 +743,20 @@ func NewContext() {
 		defaultLocalURL += ":" + HTTPPort + "/"
 	}
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
+	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
+	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
-	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(workDir)
-	AppDataPath = sec.Key("APP_DATA_PATH").MustString("data")
+	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)
+	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
 
 	switch sec.Key("LANDING_PAGE").MustString("home") {
 	case "explore":
 		LandingPageURL = LandingPageExplore
+	case "organizations":
+		LandingPageURL = LandingPageOrganizations
 	default:
 		LandingPageURL = LandingPageHome
 	}
@@ -731,6 +768,14 @@ func NewContext() {
 	serverCiphers := sec.Key("SSH_SERVER_CIPHERS").Strings(",")
 	if len(serverCiphers) > 0 {
 		SSH.ServerCiphers = serverCiphers
+	}
+	serverKeyExchanges := sec.Key("SSH_SERVER_KEY_EXCHANGES").Strings(",")
+	if len(serverKeyExchanges) > 0 {
+		SSH.ServerKeyExchanges = serverKeyExchanges
+	}
+	serverMACs := sec.Key("SSH_SERVER_MACS").Strings(",")
+	if len(serverMACs) > 0 {
+		SSH.ServerMACs = serverMACs
 	}
 	SSH.KeyTestPath = os.TempDir()
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
@@ -771,7 +816,7 @@ func NewContext() {
 	}
 	LFS.ContentPath = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
 	if !filepath.IsAbs(LFS.ContentPath) {
-		LFS.ContentPath = filepath.Join(workDir, LFS.ContentPath)
+		LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
 	}
 
 	if LFS.StartServer {
@@ -903,7 +948,7 @@ func NewContext() {
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
 	if !filepath.IsAbs(AttachmentPath) {
-		AttachmentPath = path.Join(workDir, AttachmentPath)
+		AttachmentPath = path.Join(AppWorkPath, AttachmentPath)
 	}
 	AttachmentAllowedTypes = strings.Replace(sec.Key("ALLOWED_TYPES").MustString("image/jpeg,image/png,application/zip,application/gzip"), "|", ",", -1)
 	AttachmentMaxSize = sec.Key("MAX_SIZE").MustInt64(4)
@@ -957,9 +1002,9 @@ func NewContext() {
 	RepoRootPath = sec.Key("ROOT").MustString(path.Join(homeDir, "gitea-repositories"))
 	forcePathSeparator(RepoRootPath)
 	if !filepath.IsAbs(RepoRootPath) {
-		RepoRootPath = path.Join(workDir, RepoRootPath)
+		RepoRootPath = filepath.Join(AppWorkPath, RepoRootPath)
 	} else {
-		RepoRootPath = path.Clean(RepoRootPath)
+		RepoRootPath = filepath.Clean(RepoRootPath)
 	}
 	ScriptType = sec.Key("SCRIPT_TYPE").MustString("bash")
 	if err = Cfg.Section("repository").MapTo(&Repository); err != nil {
@@ -973,14 +1018,14 @@ func NewContext() {
 	}
 
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
-		Repository.Upload.TempPath = path.Join(workDir, Repository.Upload.TempPath)
+		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
 
 	sec = Cfg.Section("picture")
 	AvatarUploadPath = sec.Key("AVATAR_UPLOAD_PATH").MustString(path.Join(AppDataPath, "avatars"))
 	forcePathSeparator(AvatarUploadPath)
 	if !filepath.IsAbs(AvatarUploadPath) {
-		AvatarUploadPath = path.Join(workDir, AvatarUploadPath)
+		AvatarUploadPath = path.Join(AppWorkPath, AvatarUploadPath)
 	}
 	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
 	case "duoshuo":
@@ -1001,18 +1046,22 @@ func NewContext() {
 	if DisableGravatar {
 		EnableFederatedAvatar = false
 	}
+	if EnableFederatedAvatar || !DisableGravatar {
+		GravatarSourceURL, err = url.Parse(GravatarSource)
+		if err != nil {
+			log.Fatal(4, "Failed to parse Gravatar URL(%s): %v",
+				GravatarSource, err)
+		}
+	}
 
 	if EnableFederatedAvatar {
 		LibravatarService = libravatar.New()
-		parts := strings.Split(GravatarSource, "/")
-		if len(parts) >= 3 {
-			if parts[0] == "https:" {
-				LibravatarService.SetUseHTTPS(true)
-				LibravatarService.SetSecureFallbackHost(parts[2])
-			} else {
-				LibravatarService.SetUseHTTPS(false)
-				LibravatarService.SetFallbackHost(parts[2])
-			}
+		if GravatarSourceURL.Scheme == "https" {
+			LibravatarService.SetUseHTTPS(true)
+			LibravatarService.SetSecureFallbackHost(GravatarSourceURL.Host)
+		} else {
+			LibravatarService.SetUseHTTPS(false)
+			LibravatarService.SetFallbackHost(GravatarSourceURL.Host)
 		}
 	}
 
@@ -1059,6 +1108,44 @@ func NewContext() {
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
+
+	extensionReg := regexp.MustCompile(`\.\w`)
+	for _, sec := range Cfg.Section("markup").ChildSections() {
+		name := strings.TrimLeft(sec.Name(), "markup.")
+		if name == "" {
+			log.Warn("name is empty, markup " + sec.Name() + "ignored")
+			continue
+		}
+
+		extensions := sec.Key("FILE_EXTENSIONS").Strings(",")
+		var exts = make([]string, 0, len(extensions))
+		for _, extension := range extensions {
+			if !extensionReg.MatchString(extension) {
+				log.Warn(sec.Name() + " file extension " + extension + " is invalid. Extension ignored")
+			} else {
+				exts = append(exts, extension)
+			}
+		}
+
+		if len(exts) == 0 {
+			log.Warn(sec.Name() + " file extension is empty, markup " + name + " ignored")
+			continue
+		}
+
+		command := sec.Key("RENDER_COMMAND").MustString("")
+		if command == "" {
+			log.Warn(" RENDER_COMMAND is empty, markup " + name + " ignored")
+			continue
+		}
+
+		ExternalMarkupParsers = append(ExternalMarkupParsers, MarkupParser{
+			Enabled:        sec.Key("ENABLED").MustBool(false),
+			MarkupName:     name,
+			FileExtensions: exts,
+			Command:        command,
+			IsInputFile:    sec.Key("IS_INPUT_FILE").MustBool(false),
+		})
+	}
 }
 
 // Service settings
@@ -1103,7 +1190,7 @@ func newService() {
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 
 	sec = Cfg.Section("openid")
-	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(false)
+	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
 	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration && Service.EnableOpenIDSignIn)
 	pats := sec.Key("WHITELISTED_URIS").Strings(" ")
 	if len(pats) != 0 {
@@ -1119,7 +1206,6 @@ func newService() {
 			Service.OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
 		}
 	}
-
 }
 
 var logLevels = map[string]string{
@@ -1129,6 +1215,11 @@ var logLevels = map[string]string{
 	"Warn":     "3",
 	"Error":    "4",
 	"Critical": "5",
+}
+
+func getLogLevel(section string, key string, defaultValue string) string {
+	validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
+	return Cfg.Section(section).Key(key).In(defaultValue, validLevels)
 }
 
 func newLogService() {
@@ -1155,11 +1246,8 @@ func newLogService() {
 			sec, _ = Cfg.NewSection("log." + mode)
 		}
 
-		validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
 		// Log level.
-		levelName := Cfg.Section("log."+mode).Key("LEVEL").In(
-			Cfg.Section("log").Key("LEVEL").In("Trace", validLevels),
-			validLevels)
+		levelName := getLogLevel("log."+mode, "LEVEL", LogLevel)
 		level, ok := logLevels[levelName]
 		if !ok {
 			log.Fatal(4, "Unknown log level: %s", levelName)
@@ -1223,11 +1311,8 @@ func NewXORMLogService(disableConsole bool) {
 			sec, _ = Cfg.NewSection("log." + mode)
 		}
 
-		validLevels := []string{"Trace", "Debug", "Info", "Warn", "Error", "Critical"}
 		// Log level.
-		levelName := Cfg.Section("log."+mode).Key("LEVEL").In(
-			Cfg.Section("log").Key("LEVEL").In("Trace", validLevels),
-			validLevels)
+		levelName := getLogLevel("log."+mode, "LEVEL", LogLevel)
 		level, ok := logLevels[levelName]
 		if !ok {
 			log.Fatal(4, "Unknown log level: %s", levelName)
@@ -1242,7 +1327,7 @@ func NewXORMLogService(disableConsole bool) {
 			if err = os.MkdirAll(path.Dir(logPath), os.ModePerm); err != nil {
 				panic(err.Error())
 			}
-			logPath = filepath.Join(filepath.Dir(logPath), "xorm.log")
+			logPath = path.Join(filepath.Dir(logPath), "xorm.log")
 
 			logConfigs = fmt.Sprintf(
 				`{"level":%s,"filename":"%s","rotate":%v,"maxlines":%d,"maxsize":%d,"daily":%v,"maxdays":%d}`, level,
@@ -1329,7 +1414,10 @@ func newCacheService() {
 func newSessionService() {
 	SessionConfig.Provider = Cfg.Section("session").Key("PROVIDER").In("memory",
 		[]string{"memory", "file", "redis", "mysql"})
-	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").String(), "\" ")
+	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").MustString(path.Join(AppDataPath, "sessions")), "\" ")
+	if SessionConfig.Provider == "file" && !filepath.IsAbs(SessionConfig.ProviderConfig) {
+		SessionConfig.ProviderConfig = path.Join(AppWorkPath, SessionConfig.ProviderConfig)
+	}
 	SessionConfig.CookieName = Cfg.Section("session").Key("COOKIE_NAME").MustString("i_like_gitea")
 	SessionConfig.CookiePath = AppSubURL
 	SessionConfig.Secure = Cfg.Section("session").Key("COOKIE_SECURE").MustBool(false)
@@ -1445,7 +1533,7 @@ func newWebhookService() {
 	Webhook.QueueLength = sec.Key("QUEUE_LENGTH").MustInt(1000)
 	Webhook.DeliverTimeout = sec.Key("DELIVER_TIMEOUT").MustInt(5)
 	Webhook.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool()
-	Webhook.Types = []string{"gitea", "gogs", "slack", "discord"}
+	Webhook.Types = []string{"gitea", "gogs", "slack", "discord", "dingtalk"}
 	Webhook.PagingNum = sec.Key("PAGING_NUM").MustInt(10)
 }
 
