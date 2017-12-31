@@ -4,11 +4,9 @@
     padding-top: 15px;
     padding-bottom: @footer-margin * 2;
 
-    .head {
-        .column {
-            padding-top: 5px !important;
-            padding-bottom: 5px !important;
-        }
+    .header-grid {
+        padding-top: 5px;
+        padding-bottom: 5px;
         .ui.compact.menu {
             margin-left: 1rem;
         }
@@ -34,6 +32,10 @@
             margin-top: -1px;
             font-size: 15px;
         }
+        .button {
+            margin-top: 2px;
+            margin-bottom: 2px;
+        }
     }
 
     .tabs {
@@ -54,6 +56,20 @@
 
     .owner.dropdown {
         min-width: 40% !important;
+    }
+    #file-buttons {
+        /* The reason for the !important is that Semantic itself has
+        margin-left: 0 !important on right items on mobile, which is mostly
+        to make sure elements which on menus would otherwise be on the right
+        align correctly with other elements when stacked.
+        Unfortunately, this brings some weird alignment on this particular
+        element, so we need to override it. */
+        margin-left: auto !important;
+        font-weight: normal;
+        .ui.button {
+            padding: 8px 10px;
+            font-weight: normal;
+        }
     }
 
     .metas {
@@ -133,7 +149,6 @@
     }
 
     #clone-panel {
-        margin-left: 5px;
         width: 350px;
 
         input {
@@ -235,9 +250,10 @@
             .header {
                 .icon {
                     font-size: 1em;
-                    margin-top: -2px;
                 }
                 .file-actions {
+                    margin-top: 0;
+                    margin-bottom: -5px;
                     padding-left: 20px;
                     .btn-octicon {
                         display: inline-block;
@@ -814,12 +830,10 @@
 
     &.commits {
         .header {
-            .ui.right {
-                .search {
-                    input {
-                        font-weight: normal;
-                        padding: 5px 10px;
-                    }
+            .search {
+                input {
+                    font-weight: normal;
+                    padding: 5px 10px;
                 }
             }
         }
@@ -830,7 +844,9 @@
                 padding-left: 15px;
             }
             .sha {
-                text-align: center;
+                &td {
+                    text-align: center;
+                }
                 width: 140px;
             }
         }
@@ -897,6 +913,9 @@
             &.rename {
                 background-color: #dad8ff;
             }
+        }
+        .ui.right {
+            margin-bottom: 15px;
         }
     }
     .diff-box .header {
@@ -1039,6 +1058,7 @@
                 max-width: 100%;
                 padding: 5px 5px 0 5px;
             }
+            clear: right;
         }
     }
     .code-view {
@@ -1241,6 +1261,13 @@
                 }
             }
         }
+
+        @media only screen and (max-width: 767px) {
+			.dividing.header .stackable.grid .button {
+				margin-top: 2px;
+				margin-bottom: 2px;
+			}
+		}
     }
 
     &.settings {
@@ -1437,8 +1464,8 @@
     }
 }
 
-.issue-actions {
-        display: none;
+#issue-actions {
+    display: none;
 }
 
 .issue.list {
@@ -1650,4 +1677,17 @@ tbody.commit-list {
 
 .commit-body {
     white-space: pre-wrap;
+}
+
+@media only screen and (max-width: 767px) {
+	.ui.stackable.menu {
+		&.mobile--margin-between-items > .item {
+			margin-top: 5px;
+			margin-bottom: 5px;
+		}
+		&.mobile--no-negative-margins {
+			margin-left: 0;
+			margin-right: 0;
+		}
+	}
 }

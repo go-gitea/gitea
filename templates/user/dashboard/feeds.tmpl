@@ -4,7 +4,7 @@
 			<img class="ui avatar image" src="{{.GetActAvatar}}" alt="">
 		</div>
 		<div class="ui grid">
-			<div class="ui fifteen wide column">
+			<div class="ui thirteen wide column">
 				<div class="{{if eq .GetOpType 5}}push news{{end}}">
 					<p>
 						<a href="{{AppSubUrl}}/{{.GetActUserName}}">{{.ShortActUserName}}</a>
@@ -79,7 +79,7 @@
 					<p class="text italic light grey">{{TimeSince .GetCreate $.i18n.Lang}}</p>
 				</div>
 			</div>
-			<div class="ui one wide column">
+			<div class="ui three wide right aligned column">
 				<i class="text grey mega-octicon octicon-{{ActionIcon .GetOpType}}"></i>
 			</div>
 		</div>
