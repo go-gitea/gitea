@@ -229,6 +229,11 @@ they served:
   * [Thomas Boerger](https://github.com/tboerger) <thomas@webhippie.de>
   * [Kim Carlbäcker](https://github.com/bkcsoft) <kim.carlbacker@gmail.com>
 
+* 2016-11-04 ~ 2017-12-31
+  * [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
+  * [Lauris Bukšis-Haberkorns](https://github.com/lafriks) <lauris@nix.lv>
+  * [Kim Carlbäcker](https://github.com/bkcsoft) <kim.carlbacker@gmail.com>
+
 ## Versions
 
 Gitea has the `master` branch as a tip branch and has version branches
