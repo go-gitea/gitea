@@ -37,6 +37,8 @@ From the root of the source tree, run:
 
     make generate all
 
+More info: https://docs.gitea.io/en-us/install-from-source/
+
 ## Using
 
     ./gitea web
