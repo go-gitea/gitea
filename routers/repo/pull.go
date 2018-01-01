@@ -527,7 +527,7 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	if !noDeps {
-		ctx.Flash.Error(ctx.Tr("issues.dependency.pr_close_blocked"))
+		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 		return
 	}
