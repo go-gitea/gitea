@@ -37,24 +37,11 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-const (
-	tplUpdateHook = "#!/usr/bin/env %s\n%s update $1 $2 $3 --config='%s'\n"
-)
-
 var repoWorkingPool = sync.NewExclusivePool()
 
 var (
-	// ErrRepoFileNotExist repository file does not exist error
-	ErrRepoFileNotExist = errors.New("Repository file does not exist")
-
-	// ErrRepoFileNotLoaded repository file not loaded error
-	ErrRepoFileNotLoaded = errors.New("Repository file not loaded")
-
 	// ErrMirrorNotExist mirror does not exist error
 	ErrMirrorNotExist = errors.New("Mirror does not exist")
-
-	// ErrInvalidReference invalid reference specified error
-	ErrInvalidReference = errors.New("Invalid reference specified")
 
 	// ErrNameEmpty name is empty error
 	ErrNameEmpty = errors.New("Name is empty")
