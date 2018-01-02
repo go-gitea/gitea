@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -455,14 +454,6 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		return
 	}
 
-	regExpTasks := regexp.MustCompile(`(^\s*-\s\[[\sx]\]\s)|(\n\s*-\s\[[\sx]\]\s)`)
-	tasksMatches := regExpTasks.FindAllStringIndex(form.Content, -1)
-	tasks := len(tasksMatches)
-
-	regExpTasksdone := regexp.MustCompile(`(^\s*-\s\[[x]\]\s)|(\n\s*-\s\[[x]\]\s)`)
-	tasksdoneMatches := regExpTasksdone.FindAllStringIndex(form.Content, -1)
-	tasksdone := len(tasksdoneMatches)
-
 	issue := &models.Issue{
 		RepoID:      repo.ID,
 		Title:       form.Title,
@@ -472,8 +463,6 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		AssigneeID:  assigneeID,
 		Content:     form.Content,
 		Ref:         form.Ref,
-		Tasks:       tasks,
-		Tasksdone:   tasksdone,
 	}
 	if err := models.NewIssue(repo, issue, labelIDs, attachments); err != nil {
 		ctx.Handle(500, "NewIssue", err)

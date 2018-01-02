@@ -33,11 +33,9 @@ type Issue struct {
 	Title           string      `xorm:"name"`
 	Content         string      `xorm:"TEXT"`
 	RenderedContent string      `xorm:"-"`
-	Tasks           int
-	Tasksdone       int
-	Labels          []*Label   `xorm:"-"`
-	MilestoneID     int64      `xorm:"INDEX"`
-	Milestone       *Milestone `xorm:"-"`
+	Labels          []*Label    `xorm:"-"`
+	MilestoneID     int64       `xorm:"INDEX"`
+	Milestone       *Milestone  `xorm:"-"`
 	Priority        int
 	AssigneeID      int64        `xorm:"INDEX"`
 	Assignee        *User        `xorm:"-"`
@@ -55,6 +53,19 @@ type Issue struct {
 	Attachments []*Attachment `xorm:"-"`
 	Comments    []*Comment    `xorm:"-"`
 	Reactions   ReactionList  `xorm:"-"`
+}
+
+var (
+	issueTasksPat     *regexp.Regexp
+	issueTasksDonePat *regexp.Regexp
+)
+
+const issueTasksRegexpStr = `(^\s*-\s\[[\sx]\]\s)|(\n\s*-\s\[[\sx]\]\s)`
+const issueTasksDoneRegexpStr = `(^\s*-\s\[[x]\]\s)|(\n\s*-\s\[[x]\]\s)`
+
+func init() {
+	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
+	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
 }
 
 func (issue *Issue) loadRepo(e Engine) (err error) {
@@ -745,15 +756,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	oldContent := issue.Content
 	issue.Content = content
 
-	regExpTasks := regexp.MustCompile(`(^\s*-\s\[[\sx]\]\s)|(\n\s*-\s\[[\sx]\]\s)`)
-	tasksMatches := regExpTasks.FindAllStringIndex(content, -1)
-	issue.Tasks = len(tasksMatches)
-
-	regExpTasksdone := regexp.MustCompile(`(^\s*-\s\[[x]\]\s)|(\n\s*-\s\[[x]\]\s)`)
-	tasksdoneMatches := regExpTasksdone.FindAllStringIndex(content, -1)
-	issue.Tasksdone = len(tasksdoneMatches)
-
-	if err = UpdateIssueCols(issue, "content", "tasks", "tasksdone"); err != nil {
+	if err = UpdateIssueCols(issue, "content"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
@@ -828,6 +831,16 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 	}
 	go HookQueue.Add(issue.RepoID)
 	return nil
+}
+
+// GetTasks returns the amount of tasks in the issues content
+func (issue *Issue) GetTasks() int {
+	return len(issueTasksPat.FindAllStringIndex(issue.Content, -1))
+}
+
+// GetTasksDone returns the amount of completed tasks in the issues content
+func (issue *Issue) GetTasksDone() int {
+	return len(issueTasksDonePat.FindAllStringIndex(issue.Content, -1))
 }
 
 // NewIssueOptions represents the options of a new issue.
