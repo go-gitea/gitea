@@ -2129,18 +2129,20 @@ function buildIssuesList() {
     var repolink = $('#repolink').val();
     var issueIndex = $('#issueIndex').val();
 
-    $.getJSON( '/api/v1/repos' + repolink + '/issues', function( data ) {
+    if(repolink !== undefined) {
+        $.getJSON('/api/v1/repos' + repolink + '/issues', function (data) {
 
-        $.each(data, function (i, issue) {
-            if(issue.number != issueIndex) {
-                $('.new-dependency-dropdown').append('<div class="item" data-value="' + issue.id + '"><b>#' + issue.number + '</b> ' + issue.title + '</div>');
-            }
-        });
+            $.each(data, function (i, issue) {
+                if (issue.number != issueIndex) {
+                    $('.new-dependency-dropdown').append('<div class="item" data-value="' + issue.id + '"><b>#' + issue.number + '</b> ' + issue.title + '</div>');
+                }
+            });
 
-        $('.new-dependency-drop-list').dropdown({
-            fullTextSearch: true
+            $('.new-dependency-drop-list').dropdown({
+                fullTextSearch: true
+            });
         });
-    });
+    }
 }
 
 buildIssuesList();
