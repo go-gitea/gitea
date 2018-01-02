@@ -37,24 +37,11 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-const (
-	tplUpdateHook = "#!/usr/bin/env %s\n%s update $1 $2 $3 --config='%s'\n"
-)
-
 var repoWorkingPool = sync.NewExclusivePool()
 
 var (
-	// ErrRepoFileNotExist repository file does not exist error
-	ErrRepoFileNotExist = errors.New("Repository file does not exist")
-
-	// ErrRepoFileNotLoaded repository file not loaded error
-	ErrRepoFileNotLoaded = errors.New("Repository file not loaded")
-
 	// ErrMirrorNotExist mirror does not exist error
 	ErrMirrorNotExist = errors.New("Mirror does not exist")
-
-	// ErrInvalidReference invalid reference specified error
-	ErrInvalidReference = errors.New("Invalid reference specified")
 
 	// ErrNameEmpty name is empty error
 	ErrNameEmpty = errors.New("Name is empty")
@@ -1493,30 +1480,22 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	// Dummy object.
 	collaboration := &Collaboration{RepoID: repo.ID}
 	for _, c := range collaborators {
-		collaboration.UserID = c.ID
-		if c.ID == newOwner.ID || newOwner.IsOrgMember(c.ID) {
-			if _, err = sess.Delete(collaboration); err != nil {
-				return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
+		if c.ID != newOwner.ID {
+			isMember, err := newOwner.IsOrgMember(c.ID)
+			if err != nil {
+				return fmt.Errorf("IsOrgMember: %v", err)
+			} else if !isMember {
+				continue
 			}
+		}
+		collaboration.UserID = c.ID
+		if _, err = sess.Delete(collaboration); err != nil {
+			return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
 		}
 	}
 
 	// Remove old team-repository relations.
 	if owner.IsOrganization() {
-		if err = owner.getTeams(sess); err != nil {
-			return fmt.Errorf("getTeams: %v", err)
-		}
-		for _, t := range owner.Teams {
-			if !t.hasRepository(sess, repo.ID) {
-				continue
-			}
-
-			t.NumRepos--
-			if _, err := sess.ID(t.ID).Cols("num_repos").Update(t); err != nil {
-				return fmt.Errorf("decrease team repository count '%d': %v", t.ID, err)
-			}
-		}
-
 		if err = owner.removeOrgRepo(sess, repo.ID); err != nil {
 			return fmt.Errorf("removeOrgRepo: %v", err)
 		}

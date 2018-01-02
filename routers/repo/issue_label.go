@@ -155,17 +155,13 @@ func UpdateIssueLabel(ctx *context.Context) {
 		}
 
 		if action == "toggle" {
-			anyHaveLabel := false
+			// detach if any issues already have label, otherwise attach
+			action = "attach"
 			for _, issue := range issues {
 				if issue.HasLabel(label.ID) {
-					anyHaveLabel = true
+					action = "detach"
 					break
 				}
-			}
-			if anyHaveLabel {
-				action = "detach"
-			} else {
-				action = "attach"
 			}
 		}
 
