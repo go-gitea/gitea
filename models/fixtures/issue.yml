@@ -47,6 +47,8 @@
   content: content for the fourth issue
   is_closed: true
   is_pull: false
+  created_unix: 946684830
+  updated_unix: 978307200
 
 -
   id: 5
@@ -57,6 +59,9 @@
   content: content for the fifth issue
   is_closed: true
   is_pull: false
+  created_unix: 946684840
+  updated_unix: 978307200
+
 -
   id: 6
   repo_id: 3
@@ -68,5 +73,5 @@
   is_closed: false
   is_pull: false
   num_comments: 0
-  created_unix: 946684800
+  created_unix: 946684850
   updated_unix: 978307200

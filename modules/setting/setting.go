@@ -70,6 +70,13 @@ type MarkupParser struct {
 	IsInputFile    bool
 }
 
+// enumerates all the policy repository creating
+const (
+	RepoCreatingLastUserVisibility = "last"
+	RepoCreatingPrivate            = "private"
+	RepoCreatingPublic             = "public"
+)
+
 // settings
 var (
 	// AppVer settings
@@ -89,6 +96,8 @@ var (
 	HTTPAddr             string
 	HTTPPort             string
 	LocalURL             string
+	RedirectOtherPort    bool
+	PortToRedirect       string
 	OfflineMode          bool
 	DisableRouterLog     bool
 	CertFile             string
@@ -180,6 +189,7 @@ var (
 	Repository = struct {
 		AnsiCharset            string
 		ForcePrivate           bool
+		DefaultPrivate         string
 		MaxCreationLimit       int
 		MirrorQueueLength      int
 		PullRequestQueueLength int
@@ -209,6 +219,7 @@ var (
 	}{
 		AnsiCharset:            "",
 		ForcePrivate:           false,
+		DefaultPrivate:         RepoCreatingLastUserVisibility,
 		MaxCreationLimit:       -1,
 		MirrorQueueLength:      1000,
 		PullRequestQueueLength: 1000,
@@ -531,6 +542,9 @@ var (
 	IterateBufferSize int
 
 	ExternalMarkupParsers []MarkupParser
+	// UILocation is the location on the UI, so that we can display the time on UI.
+	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
+	UILocation = time.Local
 )
 
 // DateLang transforms standard language locale name to corresponding value in datetime plugin.
@@ -729,6 +743,8 @@ func NewContext() {
 		defaultLocalURL += ":" + HTTPPort + "/"
 	}
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
+	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
+	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)

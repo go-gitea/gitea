@@ -1,22 +1,26 @@
 <h4 class="ui top attached header">
-	{{.CommitCount}} {{.i18n.Tr "repo.commits.commits"}} {{if .Branch}}({{.Branch}}){{end}}
-	{{if .PageIsCommits}}
-		<div class="ui right">
-			<form action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
-				<div class="ui tiny search input">
-					<input name="q" placeholder="{{.i18n.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
-				</div>
-				&nbsp;
-				<div class="ui checkbox">
-					<input type="checkbox" name="all" id="all" value="true" {{.All}}>
-					<label for="all">{{.i18n.Tr "repo.commits.search_all"}} &nbsp;&nbsp;</label>
-				</div>
-				<button class="ui black tiny button" data-panel="#add-deploy-key-panel">{{.i18n.Tr "repo.commits.find"}}</button>
-			</form>
+	<div class="ui stackable grid">
+		<div class="six wide column">
+			{{.CommitCount}} {{.i18n.Tr "repo.commits.commits"}} {{if .Branch}}({{.Branch}}){{end}}
 		</div>
-	{{else if .IsDiffCompare}}
-		<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID}}" class="ui green sha label">{{ShortSha .BeforeCommitID}}</a> ... <a href="{{$.CommitRepoLink}}/commit/{{.AfterCommitID}}" class="ui green sha label">{{ShortSha .AfterCommitID}}</a>
-	{{end}}
+		<div class="ten wide right aligned column">
+			{{if .PageIsCommits}}
+				<form action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
+					<div class="ui tiny search input">
+						<input name="q" placeholder="{{.i18n.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
+					</div>
+					&nbsp;
+					<div class="ui checkbox">
+						<input type="checkbox" name="all" id="all" value="true" {{.All}}>
+						<label for="all">{{.i18n.Tr "repo.commits.search_all"}} &nbsp;&nbsp;</label>
+					</div>
+					<button class="ui black tiny button" data-panel="#add-deploy-key-panel">{{.i18n.Tr "repo.commits.find"}}</button>
+				</form>
+			{{else if .IsDiffCompare}}
+				<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID}}" class="ui green sha label">{{ShortSha .BeforeCommitID}}</a> ... <a href="{{$.CommitRepoLink}}/commit/{{.AfterCommitID}}" class="ui green sha label">{{ShortSha .AfterCommitID}}</a>
+			{{end}}
+		</div>
+	</div>
 </h4>
 
 {{if .Commits}}

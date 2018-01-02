@@ -2,7 +2,7 @@
 <div class="dashboard issues">
 	{{template "user/dashboard/navbar" .}}
 	<div class="ui container">
-		<div class="ui grid">
+		<div class="ui stackable grid">
 			<div class="four wide column">
 				<div class="ui secondary vertical filter menu">
 					<a class="{{if eq .ViewType "your_repositories"}}ui basic blue button{{end}} item" href="{{.Link}}?type=your_repositories&repo={{.RepoID}}&sort={{$.SortType}}&state={{.State}}">
@@ -64,8 +64,16 @@
 							<div class="ui label">{{if not $.RepoID}}{{.Repo.FullName}}{{end}}#{{.Index}}</div>
 							<a class="title has-emoji" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/issues/{{.Index}}">{{.Title}}</a>
 
-							{{range .Labels}}
-								<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{.Name}}</a>
+							{{with .Labels}}
+								{{/* If we have any labels, we should show them
+								with a 2.5 line height, this way they don't look
+								awful and they don't stack on top of each other,
+								especially on mobile views. */}}
+								<span style="line-height: 2.5">
+									{{range .}}
+										<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{.Name}}</a>
+									{{end}}
+								</span>
 							{{end}}
 
 							{{if .NumComments}}

@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,7 +56,7 @@ func TestPullMerge(t *testing.T) {
 
 	resp := testPullCreate(t, session, "user1", "repo1", "master")
 
-	elem := strings.Split(RedirectURL(t, resp), "/")
+	elem := strings.Split(test.RedirectURL(resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
 	testPullMerge(t, session, elem[1], elem[2], elem[4])
 }
@@ -67,7 +69,7 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 
 	resp := testPullCreate(t, session, "user1", "repo1", "feature/test")
 
-	elem := strings.Split(RedirectURL(t, resp), "/")
+	elem := strings.Split(test.RedirectURL(resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
 	testPullMerge(t, session, elem[1], elem[2], elem[4])
 

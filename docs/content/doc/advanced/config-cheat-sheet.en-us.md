@@ -39,8 +39,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SCRIPT_TYPE`: The script type your server supports, usually this is `bash`, but some customers report that they only have `sh`.
 - `ANSI_CHARSET`: The default charset for an unrecognized charset.
 - `FORCE_PRIVATE`: Force every new repository to be private.
+- `DEFAULT_PRIVATE`: Default private when create a new repository, could be: `last`, `private` and `public`. Default is last which means last user repo visiblity.
 - `MAX_CREATION_LIMIT`: Global maximum creation limit of repositories per user, `-1` means no limit.
 - `PULL_REQUEST_QUEUE_LENGTH`:exclamation:: Length of pull request patch test queue, make it as large as possible.
+- `MIRROR_QUEUE_LENGTH`: Patch test queue length, increase if pull request patch testing starts hanging. Defaults to 1000.
+- `PREFERRED_LICENSES`: Preferred Licenses to place at the top of the List. Name must match file name in conf/license or custom/conf/license. Defaults to 'Apache License 2.0,MIT License'
+- `DISABLE_HTTP_GIT`: Disable ability to interact with repositories by HTTP protocol.  Defaults to false
+- `USE_COMPAT_SSH_URI`: Force ssh:// clone url instead of scp-style uri when default SSH port is used. Defaults to false.
 
 ## UI (`ui`)
 
@@ -82,6 +87,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LFS_START_SERVER`: Enables git-lfs support. `true` or `false`, default is `false`.
 - `LFS_CONTENT_PATH`: Where your lfs files put on, default is `data/lfs`.
 - `LFS_JWT_SECRET`: LFS authentication secret, changed this to yourself.
+- `REDIRECT_OTHER_PORT`: If true and `PROTOCOL` is https, redirects http requests on another port to `ROOT_URL`, default is `false`.
+- `PORT_TO_REDIRECT`: Port used when `REDIRECT_OTHER_PORT` is true, default is `80`.
 
 ## Database (`database`)
 
@@ -188,6 +195,13 @@ Note: Actually, Gitea supports only SMTP with STARTTLS.
 
 - `ENABLED`: Enable this to run cron tasks periodically.
 - `RUN_AT_START`: Enable this to run cron tasks at start time.
+
+### Cron - Cleanup old repository archives (`cron.archive_cleanup`)
+
+- `ENABLED`: Enable service. Defaults to true.
+- `RUN_AT_START`: Run tasks at start up time (if ENABLED). Defaults to true.
+- `SCHEDULE`: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`. Defaults to `@every 24h`.
+- `OLDER_THAN`: Archives created more than `OLDER_THAN` ago are subject to deletion, e.g. `12h`. Defaults to `24h`.
 
 ### Cron - Update Mirrors (`cron.update_mirrors`)
 
