@@ -9,13 +9,14 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/Unknwon/paginater"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/Unknwon/com"
+	"github.com/Unknwon/paginater"
 )
 
 const (
@@ -231,21 +232,30 @@ func Issues(ctx *context.Context) {
 			return
 		}
 	}
-
 	if len(userRepoIDs) <= 0 {
 		userRepoIDs = []int64{-1}
 	}
 
 	opts := &models.IssuesOptions{
-		RepoID:   repoID,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		IsPull:   util.OptionalBoolOf(isPullList),
 		SortType: sortType,
 	}
 
+	if repoID > 0 {
+		opts.RepoIDs = []int64{repoID}
+	}
+
 	switch filterMode {
 	case models.FilterModeAll:
-		opts.RepoIDs = userRepoIDs
+		if repoID > 0 {
+			if !com.IsSliceContainsInt64(userRepoIDs, repoID) {
+				// force an empty result
+				opts.RepoIDs = []int64{-1}
+			}
+		} else {
+			opts.RepoIDs = userRepoIDs
+		}
 	case models.FilterModeAssign:
 		opts.AssigneeID = ctxUser.ID
 	case models.FilterModeCreate:
@@ -308,7 +318,18 @@ func Issues(ctx *context.Context) {
 		issue.Repo = showReposMap[issue.RepoID]
 	}
 
-	issueStats := models.GetUserIssueStats(repoID, ctxUser.ID, userRepoIDs, filterMode, isPullList)
+	issueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
+		UserID:      ctxUser.ID,
+		RepoID:      repoID,
+		UserRepoIDs: userRepoIDs,
+		FilterMode:  filterMode,
+		IsPull:      isPullList,
+		IsClosed:    isShowClosed,
+	})
+	if err != nil {
+		ctx.Handle(500, "GetUserIssueStats", err)
+		return
+	}
 
 	var total int
 	if !isShowClosed {

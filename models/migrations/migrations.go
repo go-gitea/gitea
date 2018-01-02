@@ -59,6 +59,10 @@ type Version struct {
 	Version int64
 }
 
+func emptyMigration(x *xorm.Engine) error {
+	return nil
+}
+
 // This is a sequence of migrations. Add new migrations to the bottom of the list.
 // If you want to "retire" a migration, remove it from the top of the list and
 // update minDBVersion accordingly
@@ -127,17 +131,17 @@ var migrations = []Migration{
 	// v38 -> v39
 	NewMigration("remove commits and settings unit types", removeCommitsUnitType),
 	// v39 -> v40
-	NewMigration("adds time tracking and stopwatches", addTimetracking),
-	// v40 -> v41
-	NewMigration("migrate protected branch struct", migrateProtectedBranchStruct),
-	// v41 -> v42
-	NewMigration("add default value to user prohibit_login", addDefaultValueToUserProhibitLogin),
-	// v42 -> v43
 	NewMigration("add tags to releases and sync existing repositories", releaseAddColumnIsTagAndSyncTags),
-	// v43 -> v44
+	// v40 -> v41
 	NewMigration("fix protected branch can push value to false", fixProtectedBranchCanPushValue),
-	// v44 -> v45
+	// v41 -> v42
 	NewMigration("remove duplicate unit types", removeDuplicateUnitTypes),
+	// v42 -> v43
+	NewMigration("empty step", emptyMigration),
+	// v43 -> v44
+	NewMigration("empty step", emptyMigration),
+	// v44 -> v45
+	NewMigration("empty step", emptyMigration),
 	// v45 -> v46
 	NewMigration("remove index column from repo_unit table", removeIndexColumnFromRepoUnitTable),
 	// v46 -> v47
@@ -147,8 +151,14 @@ var migrations = []Migration{
 	// v48 -> v49
 	NewMigration("add repo indexer status", addRepoIndexerStatus),
 	// v49 -> v50
-	NewMigration("add lfs lock table", addLFSLock),
+	NewMigration("adds time tracking and stopwatches", addTimetracking),
 	// v50 -> v51
+	NewMigration("migrate protected branch struct", migrateProtectedBranchStruct),
+	// v51 -> v52
+	NewMigration("add default value to user prohibit_login", addDefaultValueToUserProhibitLogin),
+	// v52 -> v53
+	NewMigration("add lfs lock table", addLFSLock),
+	// v53 -> v54
 	NewMigration("add reactions", addReactions),
 }
 
