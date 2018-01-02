@@ -130,8 +130,12 @@
 {{template "custom/header" .}}
 </head>
 <body>
+	{{template "custom/body_outer_pre" .}}
+
 	<div class="full height">
 		<noscript>{{.i18n.Tr "enable_javascript"}}</noscript>
+
+		{{template "custom/body_inner_pre" .}}
 
 		{{if not .PageIsInstall}}
 			<div class="ui top secondary stackable main menu following bar light">
