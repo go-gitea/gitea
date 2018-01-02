@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -73,11 +74,34 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 	}
 
 	// Check ownership of organization.
-	if !org.IsOrganization() || !(ctx.User.IsAdmin || org.IsOwnedBy(ctx.User.ID)) {
+	if !org.IsOrganization() {
 		ctx.Error(403)
 		return nil
 	}
+	if !ctx.User.IsAdmin {
+		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.Handle(500, "IsOwnedBy", err)
+			return nil
+		} else if !isOwner {
+			ctx.Error(403)
+			return nil
+		}
+	}
 	return org
+}
+
+func getRepoPrivate(ctx *context.Context) bool {
+	switch strings.ToLower(setting.Repository.DefaultPrivate) {
+	case setting.RepoCreatingLastUserVisibility:
+		return ctx.User.LastRepoVisibility
+	case setting.RepoCreatingPrivate:
+		return true
+	case setting.RepoCreatingPublic:
+		return false
+	default:
+		return ctx.User.LastRepoVisibility
+	}
 }
 
 // Create render creating repository page
@@ -93,7 +117,7 @@ func Create(ctx *context.Context) {
 	ctx.Data["Licenses"] = models.Licenses
 	ctx.Data["Readmes"] = models.Readmes
 	ctx.Data["readme"] = "Default"
-	ctx.Data["private"] = ctx.User.LastRepoVisibility
+	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 
 	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
@@ -169,7 +193,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 // Migrate render migration of repository page
 func Migrate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
-	ctx.Data["private"] = ctx.User.LastRepoVisibility
+	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["mirror"] = ctx.Query("mirror") == "1"
 	ctx.Data["LFSActive"] = setting.LFS.StartServer
@@ -232,6 +256,9 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
+	// remoteAddr may contain credentials, so we sanitize it
+	err = util.URLSanitizedError(err, remoteAddr)
+
 	if repo != nil {
 		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 			log.Error(4, "DeleteRepository: %v", errDelete)
@@ -241,11 +268,11 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	if strings.Contains(err.Error(), "Authentication failed") ||
 		strings.Contains(err.Error(), "could not read Username") {
 		ctx.Data["Err_Auth"] = true
-		ctx.RenderWithErr(ctx.Tr("form.auth_failed", models.HandleCloneUserCredentials(err.Error(), true)), tplMigrate, &form)
+		ctx.RenderWithErr(ctx.Tr("form.auth_failed", err.Error()), tplMigrate, &form)
 		return
 	} else if strings.Contains(err.Error(), "fatal:") {
 		ctx.Data["Err_CloneAddr"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.migrate.failed", models.HandleCloneUserCredentials(err.Error(), true)), tplMigrate, &form)
+		ctx.RenderWithErr(ctx.Tr("repo.migrate.failed", err.Error()), tplMigrate, &form)
 		return
 	}
 

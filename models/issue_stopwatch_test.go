@@ -2,7 +2,8 @@ package models
 
 import (
 	"testing"
-	"time"
+
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -62,7 +63,7 @@ func TestCreateOrStopIssueStopwatch(t *testing.T) {
 
 	assert.NoError(t, CreateOrStopIssueStopwatch(user3, issue1))
 	sw := AssertExistsAndLoadBean(t, &Stopwatch{UserID: 3, IssueID: 1}).(*Stopwatch)
-	assert.Equal(t, true, sw.Created.Before(time.Now()))
+	assert.Equal(t, true, sw.CreatedUnix <= util.TimeStampNow())
 
 	assert.NoError(t, CreateOrStopIssueStopwatch(user2, issue2))
 	AssertNotExistsBean(t, &Stopwatch{UserID: 2, IssueID: 2})

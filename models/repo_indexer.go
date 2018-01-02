@@ -81,7 +81,7 @@ func populateRepoIndexer() error {
 	for page := 1; ; page++ {
 		repos, _, err := SearchRepositoryByName(&SearchRepoOptions{
 			Page:     page,
-			PageSize: 10,
+			PageSize: RepositoryListDefaultPageSize,
 			OrderBy:  SearchOrderByID,
 			Private:  true,
 		})
@@ -98,10 +98,6 @@ func populateRepoIndexer() error {
 			}
 		}
 	}
-}
-
-type updateBatch struct {
-	updates []indexer.RepoIndexerUpdate
 }
 
 func updateRepoIndexer(repo *Repository) error {
@@ -162,6 +158,10 @@ func addUpdate(filename string, repo *Repository, batch *indexer.Batch) error {
 	if stat, err := os.Stat(filepath); err != nil {
 		return err
 	} else if stat.Size() > setting.Indexer.MaxIndexerFileSize {
+		return nil
+	} else if stat.IsDir() {
+		// file could actually be a directory, if it is the root of a submodule.
+		// We do not index submodule contents, so don't do anything.
 		return nil
 	}
 	fileContents, err := ioutil.ReadFile(filepath)

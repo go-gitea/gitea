@@ -9,13 +9,14 @@ import (
 	"net/url"
 	"testing"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 
 	"github.com/go-macaron/session"
-	_ "github.com/mattn/go-sqlite3" // for the test engine
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/macaron.v1"
+	"net/http/httptest"
 )
 
 // MockContext mock context for unit tests
@@ -44,11 +45,21 @@ func MockContext(t *testing.T, path string) *context.Context {
 func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 	ctx.Repo = &context.Repository{}
 	ctx.Repo.Repository = models.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
+	ctx.Repo.RepoLink = ctx.Repo.Repository.Link()
 }
 
 // LoadUser load a user into a test context.
 func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
 	ctx.User = models.AssertExistsAndLoadBean(t, &models.User{ID: userID}).(*models.User)
+}
+
+// LoadGitRepo load a git repo into a test context. Requires that ctx.Repo has
+// already been populated.
+func LoadGitRepo(t *testing.T, ctx *context.Context) {
+	assert.NoError(t, ctx.Repo.Repository.GetOwner())
+	var err error
+	ctx.Repo.GitRepo, err = git.OpenRepository(ctx.Repo.Repository.RepoPath())
+	assert.NoError(t, err)
 }
 
 type mockLocale struct{}
@@ -62,32 +73,21 @@ func (l mockLocale) Tr(s string, _ ...interface{}) string {
 }
 
 type mockResponseWriter struct {
-	status int
-	size   int
-}
-
-func (rw *mockResponseWriter) Header() http.Header {
-	return map[string][]string{}
+	httptest.ResponseRecorder
+	size int
 }
 
 func (rw *mockResponseWriter) Write(b []byte) (int, error) {
 	rw.size += len(b)
-	return len(b), nil
-}
-
-func (rw *mockResponseWriter) WriteHeader(status int) {
-	rw.status = status
-}
-
-func (rw *mockResponseWriter) Flush() {
+	return rw.ResponseRecorder.Write(b)
 }
 
 func (rw *mockResponseWriter) Status() int {
-	return rw.status
+	return rw.ResponseRecorder.Code
 }
 
 func (rw *mockResponseWriter) Written() bool {
-	return rw.status > 0
+	return rw.ResponseRecorder.Code > 0
 }
 
 func (rw *mockResponseWriter) Size() int {

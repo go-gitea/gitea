@@ -16,6 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/utils"
 )
 
 const (
@@ -118,7 +120,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		} else {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
 			ctx.Repo.Mirror.Interval = interval
-			ctx.Repo.Mirror.NextUpdate = time.Now().Add(interval)
+			ctx.Repo.Mirror.NextUpdateUnix = util.TimeStampNow().AddDuration(interval)
 			if err := models.UpdateMirror(ctx.Repo.Mirror); err != nil {
 				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 				return
@@ -232,13 +234,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		if ctx.Repo.Owner.IsOrganization() {
-			if !ctx.Repo.Owner.IsOwnedBy(ctx.User.ID) {
-				ctx.Error(404)
-				return
-			}
-		}
-
 		if !repo.IsMirror {
 			ctx.Error(404)
 			return
@@ -264,13 +259,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		if repo.Name != form.RepoName {
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 			return
-		}
-
-		if ctx.Repo.Owner.IsOrganization() {
-			if !ctx.Repo.Owner.IsOwnedBy(ctx.User.ID) {
-				ctx.Error(404)
-				return
-			}
 		}
 
 		newOwner := ctx.Query("new_owner_name")
@@ -305,13 +293,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		if ctx.Repo.Owner.IsOrganization() {
-			if !ctx.Repo.Owner.IsOwnedBy(ctx.User.ID) {
-				ctx.Error(404)
-				return
-			}
-		}
-
 		if err := models.DeleteRepository(ctx.User, ctx.Repo.Owner.ID, repo.ID); err != nil {
 			ctx.Handle(500, "DeleteRepository", err)
 			return
@@ -329,13 +310,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		if repo.Name != form.RepoName {
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 			return
-		}
-
-		if ctx.Repo.Owner.IsOrganization() {
-			if !ctx.Repo.Owner.IsOwnedBy(ctx.User.ID) {
-				ctx.Error(404)
-				return
-			}
 		}
 
 		repo.DeleteWiki()
@@ -366,7 +340,7 @@ func Collaboration(ctx *context.Context) {
 
 // CollaborationPost response for actions for a collaboration of a repository
 func CollaborationPost(ctx *context.Context) {
-	name := strings.ToLower(ctx.Query("collaborator"))
+	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.Query("collaborator")))
 	if len(name) == 0 || ctx.Repo.Owner.LowerName == name {
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
 		return
@@ -391,10 +365,16 @@ func CollaborationPost(ctx *context.Context) {
 	}
 
 	// Check if user is organization member.
-	if ctx.Repo.Owner.IsOrganization() && ctx.Repo.Owner.IsOrgMember(u.ID) {
-		ctx.Flash.Info(ctx.Tr("repo.settings.user_is_org_member"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
-		return
+	if ctx.Repo.Owner.IsOrganization() {
+		isMember, err := ctx.Repo.Owner.IsOrgMember(u.ID)
+		if err != nil {
+			ctx.Handle(500, "IsOrgMember", err)
+			return
+		} else if isMember {
+			ctx.Flash.Info(ctx.Tr("repo.settings.user_is_org_member"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+			return
+		}
 	}
 
 	if err = ctx.Repo.Repository.AddCollaborator(u); err != nil {

@@ -31,24 +31,38 @@ This project has been
 [forked](https://blog.gitea.io/2016/12/welcome-to-gitea/) from
 [Gogs](https://gogs.io) since 2016.11 but changed a lot.
 
-## Notes
+## Building
 
-1. **YOU MUST READ THE [CONTRIBUTORS GUIDE](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST.**
-2. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
-3. If you're interested in using our APIs, we have experimental support with [documentation](https://godoc.org/code.gitea.io/sdk/gitea).
+From the root of the source tree, run:
 
-## Docs
+    make generate all
 
-For more information and instructions about how to install Gitea, please look 
-at our [documentation](https://docs.gitea.io/en-us/). If you have questions 
-that are not covered by the documentation, you can get in contact with us on 
-our [Discord server](https://discord.gg/NsatcWJ), 
-[Matrix room](https://matrix.to/#/#gitea:matrix.org), 
-or [forum](https://discourse.gitea.io/)!
+More info: https://docs.gitea.io/en-us/install-from-source/
+
+## Using
+
+    ./gitea web
+
+NOTE: If you're interested in using our APIs, we have experimental
+support with [documentation](https://godoc.org/code.gitea.io/sdk/gitea).
 
 ## Contributing
 
-Fork -> Patch -> Push -> Pull Request
+Expected workflow is: Fork -> Patch -> Push -> Pull Request
+
+NOTES:
+
+1. **YOU MUST READ THE [CONTRIBUTORS GUIDE](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST.**
+2. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
+
+## Further information
+
+For more information and instructions about how to install Gitea, please look
+at our [documentation](https://docs.gitea.io/en-us/). If you have questions
+that are not covered by the documentation, you can get in contact with us on
+our [Discord server](https://discord.gg/NsatcWJ),
+[Matrix room](https://matrix.to/#/#gitea:matrix.org),
+or [forum](https://discourse.gitea.io/)!
 
 ## Authors
 

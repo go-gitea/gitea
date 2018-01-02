@@ -6,14 +6,17 @@ package integrations
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"path"
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string) *TestResponse {
+func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -29,7 +32,7 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum strin
 	return resp
 }
 
-func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum string) *TestResponse {
+func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum string) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -53,7 +56,7 @@ func TestPullMerge(t *testing.T) {
 
 	resp := testPullCreate(t, session, "user1", "repo1", "master")
 
-	elem := strings.Split(RedirectURL(t, resp), "/")
+	elem := strings.Split(test.RedirectURL(resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
 	testPullMerge(t, session, elem[1], elem[2], elem[4])
 }
@@ -66,7 +69,7 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 
 	resp := testPullCreate(t, session, "user1", "repo1", "feature/test")
 
-	elem := strings.Split(RedirectURL(t, resp), "/")
+	elem := strings.Split(test.RedirectURL(resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
 	testPullMerge(t, session, elem[1], elem[2], elem[4])
 

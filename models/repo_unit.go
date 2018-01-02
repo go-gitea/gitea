@@ -6,7 +6,8 @@ package models
 
 import (
 	"encoding/json"
-	"time"
+
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/core"
@@ -19,8 +20,7 @@ type RepoUnit struct {
 	RepoID      int64           `xorm:"INDEX(s)"`
 	Type        UnitType        `xorm:"INDEX(s)"`
 	Config      core.Conversion `xorm:"TEXT"`
-	CreatedUnix int64           `xorm:"INDEX CREATED"`
-	Created     time.Time       `xorm:"-"`
+	CreatedUnix util.TimeStamp  `xorm:"INDEX CREATED"`
 }
 
 // UnitConfig describes common unit config
@@ -103,11 +103,6 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 			panic("unrecognized repo unit type: " + com.ToStr(*val))
 		}
 	}
-}
-
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (r *RepoUnit) AfterLoad() {
-	r.Created = time.Unix(r.CreatedUnix, 0).Local()
 }
 
 // Unit returns Unit

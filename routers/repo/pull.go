@@ -173,7 +173,11 @@ func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 
 	// Check ownership of organization.
 	if ctxUser.IsOrganization() {
-		if !ctxUser.IsOwnedBy(ctx.User.ID) {
+		isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.Handle(500, "IsOwnedBy", err)
+			return
+		} else if !isOwner {
 			ctx.Error(403)
 			return
 		}
@@ -701,6 +705,7 @@ func CompareAndPullRequest(ctx *context.Context) {
 	ctx.Data["PageIsComparePull"] = true
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireHighlightJS"] = true
+	ctx.Data["RequireTribute"] = true
 	setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 	renderAttachmentSettings(ctx)
 

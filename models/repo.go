@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/cae/zip"
@@ -36,24 +37,11 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-const (
-	tplUpdateHook = "#!/usr/bin/env %s\n%s update $1 $2 $3 --config='%s'\n"
-)
-
 var repoWorkingPool = sync.NewExclusivePool()
 
 var (
-	// ErrRepoFileNotExist repository file does not exist error
-	ErrRepoFileNotExist = errors.New("Repository file does not exist")
-
-	// ErrRepoFileNotLoaded repository file not loaded error
-	ErrRepoFileNotLoaded = errors.New("Repository file not loaded")
-
 	// ErrMirrorNotExist mirror does not exist error
 	ErrMirrorNotExist = errors.New("Mirror does not exist")
-
-	// ErrInvalidReference invalid reference specified error
-	ErrInvalidReference = errors.New("Invalid reference specified")
 
 	// ErrNameEmpty name is empty error
 	ErrNameEmpty = errors.New("Name is empty")
@@ -211,10 +199,8 @@ type Repository struct {
 	Size          int64              `xorm:"NOT NULL DEFAULT 0"`
 	IndexerStatus *RepoIndexerStatus `xorm:"-"`
 
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX created"`
-	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX updated"`
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
@@ -227,8 +213,6 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
 	repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
 	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
-	repo.Created = time.Unix(repo.CreatedUnix, 0).Local()
-	repo.Updated = time.Unix(repo.UpdatedUnix, 0)
 }
 
 // MustOwner always returns a valid *User object to avoid
@@ -309,8 +293,8 @@ func (repo *Repository) innerAPIFormat(mode AccessMode, isParent bool) *api.Repo
 		Watchers:      repo.NumWatches,
 		OpenIssues:    repo.NumOpenIssues,
 		DefaultBranch: repo.DefaultBranch,
-		Created:       repo.Created,
-		Updated:       repo.Updated,
+		Created:       repo.CreatedUnix.AsTime(),
+		Updated:       repo.UpdatedUnix.AsTime(),
 		Permissions:   permission,
 	}
 }
@@ -757,12 +741,17 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 	return template.HTML(descPattern.ReplaceAllStringFunc(markup.Sanitize(repo.Description), sanitize))
 }
 
-// LocalCopyPath returns the local repository copy path
-func (repo *Repository) LocalCopyPath() string {
+// LocalCopyPath returns the local repository copy path.
+func LocalCopyPath() string {
 	if filepath.IsAbs(setting.Repository.Local.LocalCopyPath) {
-		return path.Join(setting.Repository.Local.LocalCopyPath, com.ToStr(repo.ID))
+		return setting.Repository.Local.LocalCopyPath
 	}
-	return path.Join(setting.AppDataPath, setting.Repository.Local.LocalCopyPath, com.ToStr(repo.ID))
+	return path.Join(setting.AppDataPath, setting.Repository.Local.LocalCopyPath)
+}
+
+// LocalCopyPath returns the local repository copy path for the given repo.
+func (repo *Repository) LocalCopyPath() string {
+	return path.Join(LocalCopyPath(), com.ToStr(repo.ID))
 }
 
 // UpdateLocalCopyBranch pulls latest changes of given branch from repoPath to localPath.
@@ -1006,10 +995,10 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 
 	if opts.IsMirror {
 		if _, err = x.InsertOne(&Mirror{
-			RepoID:      repo.ID,
-			Interval:    setting.Mirror.DefaultInterval,
-			EnablePrune: true,
-			NextUpdate:  time.Now().Add(setting.Mirror.DefaultInterval),
+			RepoID:         repo.ID,
+			Interval:       setting.Mirror.DefaultInterval,
+			EnablePrune:    true,
+			NextUpdateUnix: util.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
 		}); err != nil {
 			return repo, fmt.Errorf("InsertOne: %v", err)
 		}
@@ -1491,30 +1480,22 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	// Dummy object.
 	collaboration := &Collaboration{RepoID: repo.ID}
 	for _, c := range collaborators {
-		collaboration.UserID = c.ID
-		if c.ID == newOwner.ID || newOwner.IsOrgMember(c.ID) {
-			if _, err = sess.Delete(collaboration); err != nil {
-				return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
+		if c.ID != newOwner.ID {
+			isMember, err := newOwner.IsOrgMember(c.ID)
+			if err != nil {
+				return fmt.Errorf("IsOrgMember: %v", err)
+			} else if !isMember {
+				continue
 			}
+		}
+		collaboration.UserID = c.ID
+		if _, err = sess.Delete(collaboration); err != nil {
+			return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
 		}
 	}
 
 	// Remove old team-repository relations.
 	if owner.IsOrganization() {
-		if err = owner.getTeams(sess); err != nil {
-			return fmt.Errorf("getTeams: %v", err)
-		}
-		for _, t := range owner.Teams {
-			if !t.hasRepository(sess, repo.ID) {
-				continue
-			}
-
-			t.NumRepos--
-			if _, err := sess.ID(t.ID).Cols("num_repos").Update(t); err != nil {
-				return fmt.Errorf("decrease team repository count '%d': %v", t.ID, err)
-			}
-		}
-
 		if err = owner.removeOrgRepo(sess, repo.ID); err != nil {
 			return fmt.Errorf("removeOrgRepo: %v", err)
 		}

@@ -70,6 +70,13 @@ type MarkupParser struct {
 	IsInputFile    bool
 }
 
+// enumerates all the policy repository creating
+const (
+	RepoCreatingLastUserVisibility = "last"
+	RepoCreatingPrivate            = "private"
+	RepoCreatingPublic             = "public"
+)
+
 // settings
 var (
 	// AppVer settings
@@ -89,6 +96,8 @@ var (
 	HTTPAddr             string
 	HTTPPort             string
 	LocalURL             string
+	RedirectOtherPort    bool
+	PortToRedirect       string
 	OfflineMode          bool
 	DisableRouterLog     bool
 	CertFile             string
@@ -180,6 +189,7 @@ var (
 	Repository = struct {
 		AnsiCharset            string
 		ForcePrivate           bool
+		DefaultPrivate         string
 		MaxCreationLimit       int
 		MirrorQueueLength      int
 		PullRequestQueueLength int
@@ -209,6 +219,7 @@ var (
 	}{
 		AnsiCharset:            "",
 		ForcePrivate:           false,
+		DefaultPrivate:         RepoCreatingLastUserVisibility,
 		MaxCreationLimit:       -1,
 		MirrorQueueLength:      1000,
 		PullRequestQueueLength: 1000,
@@ -256,6 +267,7 @@ var (
 		IssuePagingNum      int
 		RepoSearchPagingNum int
 		FeedMaxCommitNum    int
+		ReactionMaxUserNum  int
 		ThemeColorMetaTag   string
 		MaxDisplayFileSize  int64
 		ShowUserEmail       bool
@@ -279,6 +291,7 @@ var (
 		IssuePagingNum:      10,
 		RepoSearchPagingNum: 10,
 		FeedMaxCommitNum:    5,
+		ReactionMaxUserNum:  10,
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
 		Admin: struct {
@@ -326,6 +339,7 @@ var (
 	// Picture settings
 	AvatarUploadPath      string
 	GravatarSource        string
+	GravatarSourceURL     *url.URL
 	DisableGravatar       bool
 	EnableFederatedAvatar bool
 	LibravatarService     *libravatar.Libravatar
@@ -528,6 +542,9 @@ var (
 	IterateBufferSize int
 
 	ExternalMarkupParsers []MarkupParser
+	// UILocation is the location on the UI, so that we can display the time on UI.
+	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
+	UILocation = time.Local
 )
 
 // DateLang transforms standard language locale name to corresponding value in datetime plugin.
@@ -726,6 +743,8 @@ func NewContext() {
 		defaultLocalURL += ":" + HTTPPort + "/"
 	}
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
+	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
+	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)
@@ -1027,18 +1046,22 @@ func NewContext() {
 	if DisableGravatar {
 		EnableFederatedAvatar = false
 	}
+	if EnableFederatedAvatar || !DisableGravatar {
+		GravatarSourceURL, err = url.Parse(GravatarSource)
+		if err != nil {
+			log.Fatal(4, "Failed to parse Gravatar URL(%s): %v",
+				GravatarSource, err)
+		}
+	}
 
 	if EnableFederatedAvatar {
 		LibravatarService = libravatar.New()
-		parts := strings.Split(GravatarSource, "/")
-		if len(parts) >= 3 {
-			if parts[0] == "https:" {
-				LibravatarService.SetUseHTTPS(true)
-				LibravatarService.SetSecureFallbackHost(parts[2])
-			} else {
-				LibravatarService.SetUseHTTPS(false)
-				LibravatarService.SetFallbackHost(parts[2])
-			}
+		if GravatarSourceURL.Scheme == "https" {
+			LibravatarService.SetUseHTTPS(true)
+			LibravatarService.SetSecureFallbackHost(GravatarSourceURL.Host)
+		} else {
+			LibravatarService.SetUseHTTPS(false)
+			LibravatarService.SetFallbackHost(GravatarSourceURL.Host)
 		}
 	}
 
@@ -1392,7 +1415,7 @@ func newSessionService() {
 	SessionConfig.Provider = Cfg.Section("session").Key("PROVIDER").In("memory",
 		[]string{"memory", "file", "redis", "mysql"})
 	SessionConfig.ProviderConfig = strings.Trim(Cfg.Section("session").Key("PROVIDER_CONFIG").MustString(path.Join(AppDataPath, "sessions")), "\" ")
-	if !filepath.IsAbs(SessionConfig.ProviderConfig) {
+	if SessionConfig.Provider == "file" && !filepath.IsAbs(SessionConfig.ProviderConfig) {
 		SessionConfig.ProviderConfig = path.Join(AppWorkPath, SessionConfig.ProviderConfig)
 	}
 	SessionConfig.CookieName = Cfg.Section("session").Key("COOKIE_NAME").MustString("i_like_gitea")

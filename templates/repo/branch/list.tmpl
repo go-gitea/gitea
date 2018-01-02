@@ -39,7 +39,7 @@
 									<td>
 									{{if .IsDeleted}}
 										<s>{{.Name}}</s>
-										<p class="time">{{$.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}} {{TimeSince .DeletedBranch.Deleted $.i18n.Lang}}</p>
+										<p class="time">{{$.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}} {{TimeSinceUnix .DeletedBranch.DeletedUnix $.i18n.Lang}}</p>
 									{{else}}
 										{{.Name}}
 										<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
