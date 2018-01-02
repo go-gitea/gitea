@@ -298,7 +298,7 @@ DEFAULT_KEEP_EMAIL_PRIVATE = false
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Default value for EnableTimetracking
 ; Repositories will use timetracking by default depending on this setting
-DEFAULT_ENABLE_TIMETRACKING = true
+DEFAULT_ENABLE_TIMETRACKING = false
 ; Default value for AllowOnlyContributorsToTrackTime
 ; Only users with write permissions could track time if this is true
 DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME = true
