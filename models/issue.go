@@ -7,6 +7,7 @@ package models
 import (
 	"fmt"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -52,6 +53,19 @@ type Issue struct {
 	Attachments []*Attachment `xorm:"-"`
 	Comments    []*Comment    `xorm:"-"`
 	Reactions   ReactionList  `xorm:"-"`
+}
+
+var (
+	issueTasksPat     *regexp.Regexp
+	issueTasksDonePat *regexp.Regexp
+)
+
+const issueTasksRegexpStr = `(^\s*-\s\[[\sx]\]\s)|(\n\s*-\s\[[\sx]\]\s)`
+const issueTasksDoneRegexpStr = `(^\s*-\s\[[x]\]\s)|(\n\s*-\s\[[x]\]\s)`
+
+func init() {
+	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
+	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
 }
 
 func (issue *Issue) loadRepo(e Engine) (err error) {
@@ -741,6 +755,7 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	oldContent := issue.Content
 	issue.Content = content
+
 	if err = UpdateIssueCols(issue, "content"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
@@ -816,6 +831,16 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 	}
 	go HookQueue.Add(issue.RepoID)
 	return nil
+}
+
+// GetTasks returns the amount of tasks in the issues content
+func (issue *Issue) GetTasks() int {
+	return len(issueTasksPat.FindAllStringIndex(issue.Content, -1))
+}
+
+// GetTasksDone returns the amount of completed tasks in the issues content
+func (issue *Issue) GetTasksDone() int {
+	return len(issueTasksDonePat.FindAllStringIndex(issue.Content, -1))
 }
 
 // NewIssueOptions represents the options of a new issue.
