@@ -21,8 +21,6 @@ Any changes to the Gitea configuration file should be made in `custom/conf/app.i
 
 The defaults provided here are best-effort (not built automatically). They are accurately recorded in [app.ini.sample](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample) (s/master/<tag|release\>. Any string in the format `%(X)s` is a feature powered by [ini](https://github.com/go-ini/ini/#recursive-values), for reading values recursively.
 
-Any configuration option that is marked by :exclamation: means that you should keep the default value unless you fully understand what you are doing.
-
 Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 **Note:** A full restart is required for Gitea configuration changes to take effect.
@@ -37,11 +35,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `ROOT`: **~/gitea-repositories/**: Root path for storing all repository data. It must be an absolute path.
 - `SCRIPT_TYPE`: **bash**: The script type your server supports, usually this is `bash`, but some users report that only `sh` is available.
-- `ANSI_CHARSET`: **\<none\>**: The default charset for an unrecognized charset.
+- `ANSI_CHARSET`: **\<empty\>**: The default charset for an unrecognized charset.
 - `FORCE_PRIVATE`: **false**: Force every new repository to be private.
 - `DEFAULT_PRIVATE`: **last**: Default private when create a new repository. \[last, private, public\]
 - `MAX_CREATION_LIMIT`: **-1**: Global maximum creation limit of repositories per user, `-1` means no limit.
-- `PULL_REQUEST_QUEUE_LENGTH`:exclamation:: **1000**: Length of pull request patch test queue, make it as large as possible.
+- `PULL_REQUEST_QUEUE_LENGTH`: **1000**: Length of pull request patch test queue, make it as large as possible. Use caution when editing this value.
 - `MIRROR_QUEUE_LENGTH`: **1000**: Patch test queue length, increase if pull request patch testing starts hanging.
 - `PREFERRED_LICENSES`: **Apache License 2.0,MIT License**: Preferred Licenses to place at the top of the List. Name must match file name in conf/license or custom/conf/license.
 - `DISABLE_HTTP_GIT`: **false**: Disable the ability to interact with repositories over the HTTP protocol.
@@ -84,12 +82,12 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DISABLE_ROUTER_LOG`: **false**: Mutes printing of the router log.
 - `CERT_FILE`: **custom/https/cert.pem**: Cert file path used for HTTPS.
 - `KEY_FILE`: **custom/https/key.pem**: Key file path used for HTTPS.
-- `STATIC_ROOT_PATH`: **./**Upper level of template and static files path.
+- `STATIC_ROOT_PATH`: **./**: Upper level of template and static files path.
 - `ENABLE_GZIP`: **false**: Enables application-level GZIP support.
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users, either `home` or `explore`.
 - `LFS_START_SERVER`: **false**: Enables git-lfs support.
 - `LFS_CONTENT_PATH`: **./data/lfs**: Where to store lfs files.
-- `LFS_JWT_SECRET`: **\<none\>**: LFS authentication secret, change this a unique string.
+- `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, redirects http requests on another (https) port.
 - `PORT_TO_REDIRECT`: **80**: Port used when `REDIRECT_OTHER_PORT` is true.
 
@@ -99,7 +97,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `HOST`: **127.0.0.1:3306**: Database host address and port.
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
-- `PASSWD`: **\<none\>**: Database user password.
+- `PASSWD`: **\<empty\>**: Database user password.
 - `SSL_MODE`: **disable**: For PostgreSQL only.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 
@@ -117,8 +115,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `ENABLE_OPENID_SIGNIN`: **false**: Allow authentication in via OpenID.
 - `ENABLE_OPENID_SIGNUP`: **! DISABLE\_REGISTRATION**: Allow registering via OpenID.
-- `WHITELISTED_URIS`: **\<none\>**: If non-empty, list of POSIX regex patterns matching OpenID URI's to permit.
-- `BLACKLISTED_URIS`: **\<none\>**: If non-empty, list of POSIX regex pattenrs matching OpenID URI's to block.
+- `WHITELISTED_URIS`: **\<empty\>**: If non-empty, list of POSIX regex patterns matching OpenID URI's to permit.
+- `BLACKLISTED_URIS`: **\<empty\>**: If non-empty, list of POSIX regex patterns matching OpenID URI's to block.
 
 ## Service (`service`)
 
@@ -128,13 +126,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DISABLE_REGISTRATION`: **false**: Disable registration, after which only admin can create accounts for users.
 - `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page.
 - `ENABLE_NOTIFY_MAIL`: **false**: Enable this to send e-mail to watchers of a repository when something happens, like creating issues. Requires `Mailer` to be enabled.
-- `ENABLE_REVERSE_PROXY_AUTHENTICATION`: **false**: Enable this to allow reverse proxy authentication, more detail: https://github.com/gogits/gogs/issues/165
+- `ENABLE_REVERSE_PROXY_AUTHENTICATION`: **false**: Enable this to allow reverse proxy authentication.
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration for reverse authentication.
 - `ENABLE_CAPTCHA`: **true**: Enable this to use captcha validation for registration.
 
 ## Webhook (`webhook`)
 
-- `QUEUE_LENGTH`:exclamation:: **1000**: Hook task queue length.
+- `QUEUE_LENGTH`: **1000**: Hook task queue length. Use caution when editing this value.
 - `DELIVER_TIMEOUT`: **5**: Delivery timeout (sec) for shooting webhooks.
 - `SKIP_TLS_VERIFY`: **false**: Allow insecure certification.
 - `PAGING_NUM`: **10**: Number of webhook history events that are shown in one page.
@@ -142,13 +140,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Mailer (`mailer`)
 
 - `ENABLED`: **false**: Enable to use a mail service.
-- `DISABLE_HELO`: **\<none\>**: Disable HELO operation.
-- `HELO_HOSTNAME`: **\<none\>**: Custom hostname for HELO operation.
-- `HOST`: **\<none\>**: SMTP mail host address and port (example: smtp.gitea.io:587).
-- `FROM`: **\<none\>**: Mail from address, RFC 5322. This can be just an email address, or the "Name" \<email@example.com\> format.
-- `USER`: **\<none\>**: Username of mailing user (usually the sender's e-mail address).
-- `PASSWD`: **\<none\>**: Password of mailing user.
-- `SKIP_VERIFY`: **\<none\>**: Do not verify the self-signed certificates.
+- `DISABLE_HELO`: **\<empty\>**: Disable HELO operation.
+- `HELO_HOSTNAME`: **\<empty\>**: Custom hostname for HELO operation.
+- `HOST`: **\<empty\>**: SMTP mail host address and port (example: smtp.gitea.io:587).
+- `FROM`: **\<empty\>**: Mail from address, RFC 5322. This can be just an email address, or the "Name" \<email@example.com\> format.
+- `USER`: **\<empty\>**: Username of mailing user (usually the sender's e-mail address).
+- `PASSWD`: **\<empty\>**: Password of mailing user.
+- `SKIP_VERIFY`: **\<empty\>**: Do not verify the self-signed certificates.
    - **Note:** Gitea only supports SMTP with STARTTLS.
 - `USE_SENDMAIL`: **false** Use the operating system's `sendmail` command instead of SMTP. This is common on linux systems.
    - Note that enabling sendmail will ignore all other `mailer` settings except `ENABLED`, `FROM` and `SENDMAIL_PATH`.
@@ -158,7 +156,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, or `memcache`. If you want to use `redis` or `memcache`, be sure to rebuild everything with build tags `redis` or `memcache`: `go build -tags='redis'`.
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory cache only.
-- `HOST`: **\<none\>**: Connection string for `redis` and `memcache`.
+- `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`.
     - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
     - Memache: `127.0.0.1:9090;127.0.0.1:9091`
 
@@ -187,9 +185,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Log (`log`)
 
-- `ROOT_PATH`: **\<none\>**: Root path for log files.
+- `ROOT_PATH`: **\<empty\>**: Root path for log files.
 - `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values.
-- `LEVEL`: **Trace**: General log level.
+- `LEVEL`: **Trace**: General log level. \[Trace, Debug, Info, Warn, Error, Critical\]
 
 ## Cron (`cron`)
 
@@ -201,7 +199,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLED`: **true**: Enable service.
 - `RUN_AT_START`: **true**: Run tasks at start up time (if ENABLED).
 - `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
-- `OLDER_THAN`: **24h**Archives created more than `OLDER_THAN` ago are subject to deletion, e.g. `12h`.
+- `OLDER_THAN`: **24h**: Archives created more than `OLDER_THAN` ago are subject to deletion, e.g. `12h`.
 
 ### Cron - Update Mirrors (`cron.update_mirrors`)
 
@@ -211,7 +209,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `SCHEDULE`: **every 24h**: Cron syntax for scheduling repository health check.
 - `TIMEOUT`: **60s**: Time duration syntax for health check execution timeout.
-- `ARGS`: **\<none\>**: Arguments for command `git fsck`, e.g. `--unreachable --tags`.
+- `ARGS`: **\<empty\>**: Arguments for command `git fsck`, e.g. `--unreachable --tags`.
 
 ### Cron - Repository Statistics Check (`cron.check_repo_stats`)
 
@@ -223,7 +221,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_GIT_DIFF_LINES`: **100**: Max number of lines allowed of a single file in diff view.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
-- `GC_ARGS`: **\<none\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`.
+- `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`.
 
 ## Other (`other`)
 
