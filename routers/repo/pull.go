@@ -1026,7 +1026,7 @@ func DownloadPullDiff(ctx *context.Context) {
 	}
 	patch, err := pr.BaseRepo.PatchPath(pr.Index)
 	if err != nil {
-		ctx.Handle(500, "GetRepositoryByID", err)
+		ctx.Handle(500, "PatchPath", err)
 		return
 	}
 
