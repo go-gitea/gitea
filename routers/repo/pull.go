@@ -1019,11 +1019,6 @@ func DownloadPullDiff(ctx *context.Context) {
 		ctx.Handle(500, "GetBaseRepo", err)
 		return
 	}
-	if pr.BaseRepo == nil {
-		ctx.Handle(500, "BaseRepo",
-			fmt.Errorf("Pull request base repo is not a fork"))
-		return
-	}
 	patch, err := pr.BaseRepo.PatchPath(pr.Index)
 	if err != nil {
 		ctx.Handle(500, "PatchPath", err)
