@@ -225,6 +225,24 @@ Note: Actually, Gitea supports only SMTP with STARTTLS.
 - `MAX_GIT_DIFF_FILES`: Max number of files shown in diff view.
 - `GC_ARGS`: Arguments for command `git gc`, e.g. `--aggressive --auto`.
 
+## markup (`markup`)
+
+Gitea supports external markup support, you can integrate all your favorite tool. For example,
+below will add a markup named `asciidoc` which is followed `markup.` ini section. And there are some config items below.
+
+```ini
+[markup.asciidoc]
+ENABLED = false
+FILE_EXTENSIONS = .adoc,.asciidoc
+RENDER_COMMAND = "asciidoc --out-file=- -"
+IS_INPUT_FILE = false
+```
+
+- ENABLED: Whether enable this tool. default is false.
+- FILE_EXTENSIONS: List of file extensions that should be rendered by an external command.  Multiple extentions needs a comma as splitter.
+- RENDER_COMMAND: External command to render all matching extensions.
+- IS_INPUT_FILE: Input is not a standard input but a file param followed `RENDER_COMMAND`, default is false.
+
 ## Other (`other`)
 
 - `SHOW_FOOTER_BRANDING`: Enable this to show Gitea branding in the footer.
