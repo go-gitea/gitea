@@ -727,6 +727,26 @@ func ViewIssue(ctx *context.Context) {
 			}
 		}
 
+		prUnit, err := repo.GetUnit(models.UnitTypePullRequests)
+		if err != nil {
+			ctx.Handle(500, "GetUnit", err)
+			return
+		}
+		prConfig := prUnit.PullRequestsConfig()
+
+		// Check correct values and select default
+		if ms, ok := ctx.Data["MergeStyle"].(models.MergeStyle); !ok ||
+			!prConfig.IsMergeStyleAllowed(ms) {
+			if prConfig.AllowMerge {
+				ctx.Data["MergeStyle"] = models.MergeStyleMerge
+			} else if prConfig.AllowRebase {
+				ctx.Data["MergeStyle"] = models.MergeStyleRebase
+			} else if prConfig.AllowSquash {
+				ctx.Data["MergeStyle"] = models.MergeStyleSquash
+			} else {
+				ctx.Data["MergeStyle"] = ""
+			}
+		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 	}
 
