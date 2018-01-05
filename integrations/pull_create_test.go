@@ -56,7 +56,15 @@ func TestPullCreate(t *testing.T) {
 	// check .diff can be accessed and matches performed change
 	req := NewRequest(t, "GET", url+".diff")
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	assert.Regexp(t, "\\+Hello, World \\(Edited\\)", resp.Body)
+	assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
 	assert.Regexp(t, "^diff", resp.Body)
+	assert.NotRegexp(t, "diff.*diff", resp.Body) // not two diffs, just one
+
+	// check .patch can be accessed and matches performed change
+	req = NewRequest(t, "GET", url+".patch")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
+	assert.Regexp(t, "diff", resp.Body)
+	assert.Regexp(t, `Subject: \[PATCH\] Update 'README.md'`, resp.Body)
 	assert.NotRegexp(t, "diff.*diff", resp.Body) // not two diffs, just one
 }
