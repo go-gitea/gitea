@@ -51,6 +51,8 @@ Any statement contained inside `{{` and `}}` are Gitea templete's syntax and sho
 
 To add in custom HTML to the header or the footer of the page, in the `templates/custom` directory there are `header.tmpl` and `footer.tmpl` that can be modified. This is useful if you want to add in custom CSS files, or additional Javascript.
 
+If all you want is to add extra links to the top navigation bar, or extra tabs to the repository view, you can put them in `extra_links.tmpl` and `extra_tabs.tmpl` inside your `custom/templates/custom/` directory.
+
 ## Customizing gitignores, labels, licenses, locales, and readmes.
 
 Place your own files in corresponding sub-folder under `custom/options`.
