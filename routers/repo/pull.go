@@ -1,4 +1,6 @@
-// Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors.
+// Copyright 2014 The Gogs Authors.
+// All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -990,4 +992,38 @@ func CleanUpPullRequest(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", fullBranchName))
+}
+
+// DownloadPullDiff render a pull's raw diff
+func DownloadPullDiff(ctx *context.Context) {
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.Handle(404, "GetIssueByIndex", err)
+		} else {
+			ctx.Handle(500, "GetIssueByIndex", err)
+		}
+		return
+	}
+
+	// Redirect elsewhere if it's not a pull request
+	if !issue.IsPull {
+		ctx.Handle(404, "DownloadPullDiff",
+			fmt.Errorf("Issue is not a pull request"))
+		return
+	}
+
+	pr := issue.PullRequest
+
+	if err = pr.GetBaseRepo(); err != nil {
+		ctx.Handle(500, "GetBaseRepo", err)
+		return
+	}
+	patch, err := pr.BaseRepo.PatchPath(pr.Index)
+	if err != nil {
+		ctx.Handle(500, "PatchPath", err)
+		return
+	}
+
+	ctx.ServeFileContent(patch)
 }
