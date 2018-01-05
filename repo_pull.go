@@ -73,3 +73,8 @@ func (repo *Repository) GetPullRequestInfo(basePath, baseBranch, headBranch stri
 func (repo *Repository) GetPatch(base, head string) ([]byte, error) {
 	return NewCommand("diff", "-p", "--binary", base, head).RunInDirBytes(repo.Path)
 }
+
+// GetFormatPatch generates and returns format-patch data between given revisions.
+func (repo *Repository) GetFormatPatch(base, head string) ([]byte, error) {
+	return NewCommand("format-patch", "--binary", "--stdout", base + "..." + head).RunInDirBytes(repo.Path)
+}
