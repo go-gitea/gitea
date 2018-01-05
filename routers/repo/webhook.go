@@ -33,7 +33,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.hooks")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["BaseLink"] = ctx.Repo.RepoLink
-	ctx.Data["Description"] = ctx.Tr("repo.settings.hooks_desc", "https://godoc.org/code.gitea.io/sdk/gitea")
+	ctx.Data["Description"] = ctx.Tr("repo.settings.hooks_desc", "https://docs.gitea.io/en-us/webhooks/")
 
 	ws, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {

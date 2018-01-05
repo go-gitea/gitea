@@ -77,9 +77,9 @@ func ListIssues(ctx *context.APIContext) {
 
 // GetIssue get an issue of a repository
 func GetIssue(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/issues/{id} issue issueGetIssue
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index} issue issueGetIssue
 	// ---
-	// summary: Get an issue by id
+	// summary: Get an issue
 	// produces:
 	// - application/json
 	// parameters:
@@ -93,9 +93,9 @@ func GetIssue(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: index
 	//   in: path
-	//   description: id of the issue to get
+	//   description: index of the issue to get
 	//   type: integer
 	//   required: true
 	// responses:
@@ -190,7 +190,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 
 // EditIssue modify an issue of a repository
 func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{id} issue issueEditIssue
+	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index} issue issueEditIssue
 	// ---
 	// summary: Edit an issue
 	// consumes:
@@ -208,9 +208,9 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: index
 	//   in: path
-	//   description: id of the issue to edit
+	//   description: index of the issue to edit
 	//   type: integer
 	//   required: true
 	// - name: body
