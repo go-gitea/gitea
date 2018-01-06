@@ -312,7 +312,11 @@
 			<input type="hidden" value="" name="removeDependencyID" id="removeDependencyID"/>
 			<input type="hidden" value="" name="dependencyType" id="dependencyType"/>
 		</form>
-		<p>{{.i18n.Tr "repo.issues.dependency.remove_text"}}</p>
+		<p>{{if .Issue.IsPull}}
+			{{.i18n.Tr "repo.issues.dependency.pr_remove_text"}}
+		{{else}}
+			{{.i18n.Tr "repo.issues.dependency.issue_remove_text"}}
+		{{end}}</p>
 	</div>
 	<div class="actions">
 		<div class="ui basic red cancel inverted button">
