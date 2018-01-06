@@ -878,6 +878,23 @@ func (err ErrPullRequestAlreadyExists) Error() string {
 		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
 }
 
+// ErrInvalidMergeStyle represents an error if merging with disabled merge strategy
+type ErrInvalidMergeStyle struct {
+	ID    int64
+	Style MergeStyle
+}
+
+// IsErrInvalidMergeStyle checks if an error is a ErrInvalidMergeStyle.
+func IsErrInvalidMergeStyle(err error) bool {
+	_, ok := err.(ErrInvalidMergeStyle)
+	return ok
+}
+
+func (err ErrInvalidMergeStyle) Error() string {
+	return fmt.Sprintf("merge strategy is not allowed or is invalid [repo_id: %d, strategy: %s]",
+		err.ID, err.Style)
+}
+
 // _________                                       __
 // \_   ___ \  ____   _____   _____   ____   _____/  |_
 // /    \  \/ /  _ \ /     \ /     \_/ __ \ /    \   __\
