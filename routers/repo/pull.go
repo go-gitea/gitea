@@ -9,6 +9,7 @@ package repo
 import (
 	"container/list"
 	"fmt"
+	"net/url"
 	"path"
 	"strings"
 
@@ -568,7 +569,8 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	// format: <base branch>...[<head repo>:]<head branch>
 	// base<-head: master...head:feature
 	// same repo: master...feature
-	infos := strings.Split(ctx.Params("*"), "...")
+	info_d, _ := url.QueryUnescape(ctx.Params("*"))
+	infos := strings.Split(info_d, "...")
 	if len(infos) != 2 {
 		log.Trace("ParseCompareInfo[%d]: not enough compared branches information %s", baseRepo.ID, infos)
 		ctx.Handle(404, "CompareAndPullRequest", nil)
