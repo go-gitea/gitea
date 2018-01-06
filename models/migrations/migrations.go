@@ -162,7 +162,9 @@ var migrations = []Migration{
 	NewMigration("add reactions", addReactions),
 	// v54 -> v55
 	NewMigration("add pull request options", addPullRequestOptions),
-	// v51 -> v52
+	// v55 -> v56
+	NewMigration("add writable deploy keys", addModeToDeploKeys),
+	// v56 -> v57
 	NewMigration("add issue_dependencies", addIssueDependencies),
 }
 
