@@ -2,7 +2,7 @@
 {{with .Repository}}
 	<div class="ui container">
 		<div class="ui stackable grid header-grid">
-			<div class="ten wide column">
+			<div class="eight wide column">
 				<div class="ui huge breadcrumb">
 					<i class="mega-octicon octicon-{{if .IsPrivate}}lock{{else if .IsMirror}}repo-clone{{else if .IsFork}}repo-forked{{else}}repo{{end}}"></i>
 					<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
@@ -13,7 +13,7 @@
 				</div>
 			</div>
 
-			<div class="ui six wide right aligned column">
+			<div class="ui eight wide right aligned column">
 				<div class="ui compact labeled button" tabindex="0">
 					<a class="ui compact button" href="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
 						<i class="icon fa-eye{{if not $.IsWatchingRepo}}-slash{{end}}"></i>{{if $.IsWatchingRepo}}{{$.i18n.Tr "repo.unwatch"}}{{else}}{{$.i18n.Tr "repo.watch"}}{{end}}
