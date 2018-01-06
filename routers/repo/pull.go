@@ -569,8 +569,8 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	// format: <base branch>...[<head repo>:]<head branch>
 	// base<-head: master...head:feature
 	// same repo: master...feature
-	info_d, _ := url.QueryUnescape(ctx.Params("*"))
-	infos := strings.Split(info_d, "...")
+	infoPath, _ := url.QueryUnescape(ctx.Params("*"))
+	infos := strings.Split(infoPath, "...")
 	if len(infos) != 2 {
 		log.Trace("ParseCompareInfo[%d]: not enough compared branches information %s", baseRepo.ID, infos)
 		ctx.Handle(404, "CompareAndPullRequest", nil)
