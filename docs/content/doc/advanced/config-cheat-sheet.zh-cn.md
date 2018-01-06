@@ -186,6 +186,25 @@ menu:
 - `MAX_GIT_DIFF_FILES`: 比较视图中的最大现实文件数目。
 - `GC_ARGS`: 执行 `git gc` 命令的参数, 比如： `--aggressive --auto`。
 
+## markup (`markup`)
+
+外部渲染工具支持，你可以用你熟悉的文档渲染工具. 比如一下将新增一个名字为 `asciidoc` 的渲染工具which is followed `markup.` ini section. And there are some config items below.
+
+```ini
+[markup.asciidoc]
+ENABLED = false
+FILE_EXTENSIONS = .adoc,.asciidoc
+RENDER_COMMAND = "asciidoc --out-file=- -"
+IS_INPUT_FILE = false
+```
+
+- ENABLED: 是否启用，默认为false。
+- FILE_EXTENSIONS: 关联的文档的扩展名，多个扩展名用都好分隔。
+- RENDER_COMMAND: 工具的命令行命令及参数。
+- IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。
+
+
+
 ## Other (`other`)
 
 - `SHOW_FOOTER_BRANDING`: 为真则在页面底部显示Gitea的字样。
