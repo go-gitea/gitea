@@ -649,6 +649,28 @@ function initRepository() {
             $('#status').val($statusButton.data('status-val'));
             $('#comment-form').submit();
         });
+
+        // Pull Request merge button
+        var $mergeButton = $('.merge-button > button');
+        $mergeButton.on('click', function(e) {
+            e.preventDefault();
+            $('.' + $(this).data('do') + '-fields').show();
+            $(this).parent().hide();
+        });
+        $('.merge-button > .dropdown').dropdown({
+            onChange: function (text, value, $choice) {
+                if ($choice.data('do')) {
+                    $mergeButton.find('.button-text').text($choice.text());
+                    $mergeButton.data('do', $choice.data('do'));
+                }
+            }
+        });
+        $('.merge-cancel').on('click', function(e) {
+            e.preventDefault();
+            $(this).closest('.form').hide();
+            $mergeButton.parent().show();
+        });
+
         initReactionSelector();
     }
 
