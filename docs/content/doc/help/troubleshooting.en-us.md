@@ -7,7 +7,7 @@ toc: true
 draft: false
 menu:
   sidebar:
-    parent: "Help"
+    parent: "help"
     name: "Troubleshooting"
     weight: 20
     identifier: "troubleshooting"

@@ -215,8 +215,3 @@ be placed in `/data/gitea` directory. If using host volumes it's quite easy to a
 files; for named volumes this is done through another container or by direct access at
 `/var/lib/docker/volumes/gitea_gitea/_data`. The configuration file will be saved at
 `/data/gitea/conf/app.ini` after the installation.
-
-# Anything missing?
-
-If anything is missing from this page, then reach out using [Discord](https://discord.gg/NsatcWJ)
-or the [IRC Channel](http://webchat.freenode.net?nick=giteachat....&channels=%23gitea&prompt=1).

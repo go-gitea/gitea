@@ -67,8 +67,3 @@ bundled templates, options, plugins and themes are in `/usr/local/share/gitea`, 
 is in `/usr/local/etc/rc.d/gitea`.
 
 To enable Gitea to run as a service, run `sysrc gitea_enable=YES` and start it with `service gitea start`.
-
-## Anything missing?
-
-If anything is missing from this page, then reach out using [Discord](https://discord.gg/NsatcWJ)
-or the [IRC Channel](http://webchat.freenode.net?nick=giteachat....&channels=%23gitea&prompt=1).

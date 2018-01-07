@@ -89,8 +89,3 @@ launched manually from command line, it can be killed by pressing `Ctrl + C`.
 ```
 ./gitea web
 ```
-
-## Anything missing?
-
-If anything is missing from this page, then reach out using [Discord](https://discord.gg/NsatcWJ)
-or the [IRC Channel](http://webchat.freenode.net?nick=giteachat....&channels=%23gitea&prompt=1).

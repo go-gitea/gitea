@@ -51,8 +51,3 @@ For errors like `702 runWeb()] [E] Failed to start server: listen tcp 0.0.0.0:30
 bind: address already in use` gitea needs to be started on another free port. This
 is possible using `./gitea web -p $PORT`. It's possible another instance of gitea
 is already running.
-
-## Anything missing?
-
-If anything is missing from this page, then reach out using [Discord](https://discord.gg/NsatcWJ)
-or the [IRC Channel](http://webchat.freenode.net?nick=giteachat....&channels=%23gitea&prompt=1).
