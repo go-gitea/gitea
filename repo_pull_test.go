@@ -5,15 +5,18 @@
 package git
 
 import (
+	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetFormatPatch(t *testing.T) {
-	repo, err := OpenRepository(".");
+	repo, err := OpenRepository(".")
 	assert.NoError(t, err)
-	patchb, err := repo.GetFormatPatch("cdb43f0e^", "cdb43f0e")
+	rd, err := repo.GetFormatPatch("cdb43f0e^", "cdb43f0e")
+	assert.NoError(t, err)
+	patchb, err := ioutil.ReadAll(rd)
 	assert.NoError(t, err)
 	patch := string(patchb)
 	assert.Regexp(t, "^From cdb43f0e", patch)
