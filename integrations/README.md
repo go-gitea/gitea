@@ -17,3 +17,6 @@ go test -c code.gitea.io/gitea/integrations \
   -test.v -test.run GPG
 ```
 
+Make sure to perform a clean build before running tests:
+
+    make clean build
