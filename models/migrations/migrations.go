@@ -162,6 +162,8 @@ var migrations = []Migration{
 	NewMigration("add reactions", addReactions),
 	// v54 -> v55
 	NewMigration("add pull request options", addPullRequestOptions),
+	// v55 -> v56
+	NewMigration("add writable deploy keys", addModeToDeploKeys),
 }
 
 // Migrate database to current version

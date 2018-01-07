@@ -247,14 +247,20 @@ func (c *Comment) LoadAssignees() error {
 	if c.OldAssigneeID > 0 {
 		c.OldAssignee, err = getUserByID(x, c.OldAssigneeID)
 		if err != nil {
-			return err
+			if !IsErrUserNotExist(err) {
+				return err
+			}
+			c.OldAssignee = NewGhostUser()
 		}
 	}
 
 	if c.AssigneeID > 0 {
 		c.Assignee, err = getUserByID(x, c.AssigneeID)
 		if err != nil {
-			return err
+			if !IsErrUserNotExist(err) {
+				return err
+			}
+			c.Assignee = NewGhostUser()
 		}
 	}
 	return nil
