@@ -12,7 +12,7 @@ Example command to run GPG test with sqlite backend:
 ```
 go test -c code.gitea.io/gitea/integrations \
   -o integrations.sqlite.test -tags 'sqlite' &&
-  GITEA_ROOT="$GOPATH/src/code.gitea.io/gitea"
+  GITEA_ROOT="$GOPATH/src/code.gitea.io/gitea" \
   GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test \
   -test.v -test.run GPG
 ```
