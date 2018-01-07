@@ -9,6 +9,7 @@ package repo
 import (
 	"container/list"
 	"fmt"
+	"io"
 	"path"
 	"strings"
 
@@ -1033,7 +1034,7 @@ func DownloadPullDiff(ctx *context.Context) {
 		return
 	}
 
-	// Redirect elsewhere if it's not a pull request
+	// Return not found if it's not a pull request
 	if !issue.IsPull {
 		ctx.Handle(404, "DownloadPullDiff",
 			fmt.Errorf("Issue is not a pull request"))
@@ -1053,4 +1054,49 @@ func DownloadPullDiff(ctx *context.Context) {
 	}
 
 	ctx.ServeFileContent(patch)
+}
+
+// DownloadPullPatch render a pull's raw patch
+func DownloadPullPatch(ctx *context.Context) {
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.Handle(404, "GetIssueByIndex", err)
+		} else {
+			ctx.Handle(500, "GetIssueByIndex", err)
+		}
+		return
+	}
+
+	// Return not found if it's not a pull request
+	if !issue.IsPull {
+		ctx.Handle(404, "DownloadPullDiff",
+			fmt.Errorf("Issue is not a pull request"))
+		return
+	}
+
+	pr := issue.PullRequest
+
+	if err = pr.GetHeadRepo(); err != nil {
+		ctx.Handle(500, "GetHeadRepo", err)
+		return
+	}
+
+	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		ctx.Handle(500, "OpenRepository", err)
+		return
+	}
+
+	patch, err := headGitRepo.GetFormatPatch(pr.MergeBase, pr.HeadBranch)
+	if err != nil {
+		ctx.Handle(500, "GetFormatPatch", err)
+		return
+	}
+
+	_, err = io.Copy(ctx, patch)
+	if err != nil {
+		ctx.Handle(500, "io.Copy", err)
+		return
+	}
 }
