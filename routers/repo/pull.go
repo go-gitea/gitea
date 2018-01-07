@@ -1094,5 +1094,9 @@ func DownloadPullPatch(ctx *context.Context) {
 		return
 	}
 
-	io.Copy(ctx, patch)
+	_, err = io.Copy(ctx, patch)
+	if err != nil {
+		ctx.Handle(500, "io.Copy", err)
+		return
+	}
 }
