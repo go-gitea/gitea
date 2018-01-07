@@ -600,6 +600,8 @@ type DeployKey struct {
 	Fingerprint string
 	Content     string `xorm:"-"`
 
+	Mode AccessMode `xorm:"NOT NULL DEFAULT 1"`
+
 	CreatedUnix       util.TimeStamp `xorm:"created"`
 	UpdatedUnix       util.TimeStamp `xorm:"updated"`
 	HasRecentActivity bool           `xorm:"-"`
@@ -620,6 +622,11 @@ func (key *DeployKey) GetContent() error {
 	}
 	key.Content = pkey.Content
 	return nil
+}
+
+// IsReadOnly checks if the key can only be used for read operations
+func (key *DeployKey) IsReadOnly() bool {
+	return key.Mode == AccessModeRead
 }
 
 func checkDeployKey(e Engine, keyID, repoID int64, name string) error {
@@ -646,7 +653,7 @@ func checkDeployKey(e Engine, keyID, repoID int64, name string) error {
 }
 
 // addDeployKey adds new key-repo relation.
-func addDeployKey(e *xorm.Session, keyID, repoID int64, name, fingerprint string) (*DeployKey, error) {
+func addDeployKey(e *xorm.Session, keyID, repoID int64, name, fingerprint string, mode AccessMode) (*DeployKey, error) {
 	if err := checkDeployKey(e, keyID, repoID, name); err != nil {
 		return nil, err
 	}
@@ -656,6 +663,7 @@ func addDeployKey(e *xorm.Session, keyID, repoID int64, name, fingerprint string
 		RepoID:      repoID,
 		Name:        name,
 		Fingerprint: fingerprint,
+		Mode:        mode,
 	}
 	_, err := e.Insert(key)
 	return key, err
@@ -670,15 +678,20 @@ func HasDeployKey(keyID, repoID int64) bool {
 }
 
 // AddDeployKey add new deploy key to database and authorized_keys file.
-func AddDeployKey(repoID int64, name, content string) (*DeployKey, error) {
+func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey, error) {
 	fingerprint, err := calcFingerprint(content)
 	if err != nil {
 		return nil, err
 	}
 
+	accessMode := AccessModeRead
+	if !readOnly {
+		accessMode = AccessModeWrite
+	}
+
 	pkey := &PublicKey{
 		Fingerprint: fingerprint,
-		Mode:        AccessModeRead,
+		Mode:        accessMode,
 		Type:        KeyTypeDeploy,
 	}
 	has, err := x.Get(pkey)
@@ -701,7 +714,7 @@ func AddDeployKey(repoID int64, name, content string) (*DeployKey, error) {
 		}
 	}
 
-	key, err := addDeployKey(sess, pkey.ID, repoID, name, pkey.Fingerprint)
+	key, err := addDeployKey(sess, pkey.ID, repoID, name, pkey.Fingerprint, accessMode)
 	if err != nil {
 		return nil, fmt.Errorf("addDeployKey: %v", err)
 	}
