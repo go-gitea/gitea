@@ -263,10 +263,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`.
 
-## markup (`markup`)
+## Markup (`markup`)
 
-Gitea supports external markup support, you can integrate all your favorite tool. For example,
-below will add a markup named `asciidoc` which is followed `markup.` ini section. And there are some config items below.
+Gitea can support Markup using external tools. The example below will add a markup named `asciidoc`.
 
 ```ini
 [markup.asciidoc]
@@ -276,10 +275,11 @@ RENDER_COMMAND = "asciidoc --out-file=- -"
 IS_INPUT_FILE = false
 ```
 
-- ENABLED: Whether enable this tool. default is false.
-- FILE_EXTENSIONS: List of file extensions that should be rendered by an external command.  Multiple extentions needs a comma as splitter.
-- RENDER_COMMAND: External command to render all matching extensions.
-- IS_INPUT_FILE: Input is not a standard input but a file param followed `RENDER_COMMAND`, default is false.
+- ENABLED: **false** Enable markup support.
+- FILE\_EXTENSIONS: **\<empty\>**List of file extensions that should be rendered by an external
+   command. Multiple extentions needs a comma as splitter.
+- RENDER\_COMMAND: External command to render all matching extensions.
+- IS\_INPUT\_FILE: **false** Input is not a standard input but a file param followed `RENDER_COMMAND`.
 
 ## Other (`other`)
 
