@@ -22,9 +22,9 @@ Run the below command in a terminal:
 sudo vim /etc/systemd/system/gitea.service
 ```
 
-Add code to the file from [here](https://github.com/go-gitea/gitea/blob/master/contrib/systemd/gitea.service).
+Copy the sample [gitea.service](https://github.com/go-gitea/gitea/blob/master/contrib/systemd/gitea.service).
 
-Uncomment any service that needs to be enabled, such as MySQL.
+Uncomment any service that needs to be enabled on this host, such as MySQL.
 
 Change the user, home directory, and other required startup values. Change the
 PORT or remove the -p flag if default port is used.
@@ -43,8 +43,9 @@ Install supervisor by running below command in terminal:
 sudo apt install supervisor
 ```
 
-Create a log dir for the supervisor logs(assuming gitea is installed in /home/git/gitea/):
+Create a log dir for the supervisor logs:
 ```
+# assuming gitea is installed in /home/git/gitea/
 mkdir /home/git/gitea/log/supervisor
 ```
 
@@ -53,9 +54,10 @@ Open supervisor config file in a file editor:
 sudo vim /etc/supervisor/supervisord.conf
 ```
 
-Append the code at the end of the file from [here](https://github.com/go-gitea/gitea/blob/master/contrib/supervisor/gitea).
+Append the configuration from the sample
+[supervisord config](https://github.com/go-gitea/gitea/blob/master/contrib/supervisor/gitea).
 
-Change the user(git) and home)/home/git) settings to match the deployment
+Change the user(git) and home(/home/git) settings to match the deployment
 environment. Change the PORT or remove the -p flag if default port is used.
 
 Lastly enable and start supervisor at boot:

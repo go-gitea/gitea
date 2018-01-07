@@ -258,7 +258,6 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 ## Browser Support
 
 - Please see [Semantic UI](https://github.com/Semantic-Org/Semantic-UI#browser-support) for specific versions of supported browsers.
-- The officially supported minimum screen **1024x768**. It may still work on smaller sizes, but no promises or fixes.
 
 ## Components
 

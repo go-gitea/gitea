@@ -15,7 +15,7 @@ menu:
 
 # Installation with Docker
 
-Gitea provides automatically updated Docker images within it's Docker Hub organization. It
+Gitea provides automatically updated Docker images within its Docker Hub organization. It is
 possible to always use the latest stable tag or to use another service that handles updating
 Docker images.
 

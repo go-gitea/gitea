@@ -31,8 +31,8 @@ As Gitea is written in Go, it uses some Go variables, such as:
   * `GOARCH`
   * [`GOPATH`](https://golang.org/cmd/go/#hdr-GOPATH_environment_variable)
 
-For others, check [official documentation](https://golang.org/cmd/go/#hdr-Generate_Go_files_by_processing_source).
-about variables used when running the generator
+For documentation about each of the variables available, refer to the
+[official Go documentation](https://golang.org/cmd/go/#hdr-Environment_variables).
 
 ## Gitea files
 
