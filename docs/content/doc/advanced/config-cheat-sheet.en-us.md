@@ -276,7 +276,7 @@ IS_INPUT_FILE = false
 ```
 
 - ENABLED: **false** Enable markup support.
-- FILE\_EXTENSIONS: **\<empty\>**List of file extensions that should be rendered by an external
+- FILE\_EXTENSIONS: **\<empty\>** List of file extensions that should be rendered by an external
    command. Multiple extentions needs a comma as splitter.
 - RENDER\_COMMAND: External command to render all matching extensions.
 - IS\_INPUT\_FILE: **false** Input is not a standard input but a file param followed `RENDER_COMMAND`.
