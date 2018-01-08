@@ -625,6 +625,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/pulls/:index", func() {
 			m.Get(".diff", repo.DownloadPullDiff)
+			m.Get(".patch", repo.DownloadPullPatch)
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
 			m.Get("/files", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ViewPullFiles)
 			m.Post("/merge", reqRepoWriter, bindIgnErr(auth.MergePullRequestForm{}), repo.MergePullRequest)

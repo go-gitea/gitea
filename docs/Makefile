@@ -24,6 +24,7 @@ build: $(THEME)
 .PHONY: update
 update: $(THEME)
 
-$(THEME):
-	mkdir -p $@
-	curl -s $(ARCHIVE) | tar xz -C $@
+$(THEME): $(THEME)/theme.toml
+$(THEME)/theme.toml:
+	mkdir -p $$(dirname $@)
+	curl -s $(ARCHIVE) | tar xz -C $$(dirname $@)
