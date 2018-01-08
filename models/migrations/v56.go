@@ -5,56 +5,29 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/setting"
 	"fmt"
+
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/go-xorm/xorm"
-	"time"
 )
 
-func addIssueDependencies(x *xorm.Engine) (err error) {
-
-	type IssueDependency struct {
-		ID           int64     `xorm:"pk autoincr"`
-		UserID       int64     `xorm:"NOT NULL"`
-		IssueID      int64     `xorm:"NOT NULL"`
-		DependencyID int64     `xorm:"NOT NULL"`
-		Created      time.Time `xorm:"-"`
-		CreatedUnix  int64     `xorm:"INDEX created"`
-		Updated      time.Time `xorm:"-"`
-		UpdatedUnix  int64     `xorm:"updated"`
-	}
-
-	if err = x.Sync(new(IssueDependency)); err != nil {
-		return fmt.Errorf("Error creating issue_dependency_table column definition: %v", err)
-	}
-
-	// RepoUnit describes all units of a repository
-	type RepoUnit struct {
-		ID          int64
-		RepoID      int64                  `xorm:"INDEX(s)"`
-		Type        int                    `xorm:"INDEX(s)"`
-		Config      map[string]interface{} `xorm:"JSON"`
-		CreatedUnix int64                  `xorm:"INDEX CREATED"`
-		Created     time.Time              `xorm:"-"`
-	}
-
-	//Updating existing issue units
-	units := make([]*RepoUnit, 0, 100)
-	err = x.Where("`type` = ?", V16UnitTypeIssues).Find(&units)
-	if err != nil {
-		return fmt.Errorf("Query repo units: %v", err)
-	}
-	for _, unit := range units {
-		if unit.Config == nil {
-			unit.Config = make(map[string]interface{})
+func removeIsOwnerColumnFromOrgUser(x *xorm.Engine) (err error) {
+	switch {
+	case setting.UseSQLite3:
+		log.Warn("Unable to drop columns in SQLite")
+	case setting.UseMySQL, setting.UseTiDB, setting.UsePostgreSQL:
+		if _, err := x.Exec("ALTER TABLE org_user DROP COLUMN is_owner, DROP COLUMN num_teams"); err != nil {
+			return fmt.Errorf("DROP COLUMN org_user.is_owner, org_user.num_teams: %v", err)
 		}
-		if _, ok := unit.Config["EnableDependencies"]; !ok {
-			unit.Config["EnableDependencies"] = setting.Service.DefaultEnableDependencies
+	case setting.UseMSSQL:
+		if _, err := x.Exec("ALTER TABLE org_user DROP COLUMN is_owner, num_teams"); err != nil {
+			return fmt.Errorf("DROP COLUMN org_user.is_owner, org_user.num_teams: %v", err)
 		}
-		if _, err := x.ID(unit.ID).Cols("config").Update(unit); err != nil {
-			return err
-		}
+	default:
+		log.Fatal(4, "Unrecognized DB")
 	}
 
-	return err
+	return nil
 }

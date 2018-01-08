@@ -165,6 +165,8 @@ var migrations = []Migration{
 	// v55 -> v56
 	NewMigration("add writable deploy keys", addModeToDeploKeys),
 	// v56 -> v57
+	NewMigration("remove is_owner, num_teams columns from org_user", removeIsOwnerColumnFromOrgUser),
+	// v57 -> v58
 	NewMigration("add issue_dependencies", addIssueDependencies),
 }
 

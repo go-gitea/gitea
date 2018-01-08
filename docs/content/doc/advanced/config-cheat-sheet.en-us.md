@@ -101,6 +101,14 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSL_MODE`: **disable**: For PostgreSQL only.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 
+## Indexer (`indexer`)
+
+- `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search.
+- `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space).
+- `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
+- `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
+- `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of each index files.
+
 ## Security (`security`)
 
 - `INSTALL_LOCK`: **false**: Disable to allow accessing the install page.
