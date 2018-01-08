@@ -368,16 +368,12 @@ func TestGetOrgUsersByUserID(t *testing.T) {
 			ID:       orgUsers[0].ID,
 			OrgID:    6,
 			UID:      5,
-			IsOwner:  true,
-			IsPublic: true,
-			NumTeams: 1}, *orgUsers[0])
+			IsPublic: true}, *orgUsers[0])
 		assert.Equal(t, OrgUser{
 			ID:       orgUsers[1].ID,
 			OrgID:    7,
 			UID:      5,
-			IsOwner:  true,
-			IsPublic: false,
-			NumTeams: 1}, *orgUsers[1])
+			IsPublic: false}, *orgUsers[1])
 	}
 
 	publicOrgUsers, err := GetOrgUsersByUserID(5, false)
@@ -400,16 +396,12 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 			ID:       orgUsers[0].ID,
 			OrgID:    3,
 			UID:      2,
-			IsOwner:  true,
-			IsPublic: true,
-			NumTeams: 1}, *orgUsers[0])
+			IsPublic: true}, *orgUsers[0])
 		assert.Equal(t, OrgUser{
 			ID:       orgUsers[1].ID,
 			OrgID:    3,
 			UID:      4,
-			IsOwner:  false,
-			IsPublic: false,
-			NumTeams: 0}, *orgUsers[1])
+			IsPublic: false}, *orgUsers[1])
 	}
 
 	orgUsers, err = GetOrgUsersByOrgID(NonexistentID)
