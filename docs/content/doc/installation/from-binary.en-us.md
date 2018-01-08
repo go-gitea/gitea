@@ -18,7 +18,7 @@ menu:
 All downloads come with SQLite, MySQL and PostgreSQL support, and are built with embedded assets. Keep in mind that this can be different for older releases. The installation based on our binaries is quite simple, just choose the file matching your platform from the [downloads page](https://dl.gitea.io/gitea), copy the URL and replace the URL within the commands below:
 
 ```
-wget -O gitea https://dl.gitea.io/gitea/1.0.1/gitea-1.0.1-linux-amd64
+wget -O gitea https://dl.gitea.io/gitea/1.3.2/gitea-1.3.2-linux-amd64
 chmod +x gitea
 ```
 
