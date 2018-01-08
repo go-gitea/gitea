@@ -425,7 +425,7 @@ func TestGetFeeds2(t *testing.T) {
 	// test with an organization user
 	assert.NoError(t, PrepareTestDatabase())
 	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	userID := AssertExistsAndLoadBean(t, &OrgUser{OrgID: org.ID, IsOwner: true}).(*OrgUser).UID
+	const userID = 2 // user2 is an owner of the organization
 
 	actions, err := GetFeeds(GetFeedsOptions{
 		RequestedUser:    org,
