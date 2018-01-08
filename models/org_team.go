@@ -518,22 +518,6 @@ func AddTeamMember(team *Team, userID int64) error {
 		}
 	}
 
-	// We make sure it exists before.
-	ou := new(OrgUser)
-	if _, err := sess.
-		Where("uid = ?", userID).
-		And("org_id = ?", team.OrgID).
-		Get(ou); err != nil {
-		return err
-	}
-	ou.NumTeams++
-	if team.IsOwnerTeam() {
-		ou.IsOwner = true
-	}
-	if _, err := sess.ID(ou.ID).Cols("num_teams, is_owner").Update(ou); err != nil {
-		return err
-	}
-
 	return sess.Commit()
 }
 
@@ -574,25 +558,6 @@ func removeTeamMember(e Engine, team *Team, userID int64) error {
 		}
 	}
 
-	// This must exist.
-	ou := new(OrgUser)
-	_, err = e.
-		Where("uid = ?", userID).
-		And("org_id = ?", team.OrgID).
-		Get(ou)
-	if err != nil {
-		return err
-	}
-	ou.NumTeams--
-	if team.IsOwnerTeam() {
-		ou.IsOwner = false
-	}
-	if _, err = e.
-		ID(ou.ID).
-		Cols("num_teams").
-		Update(ou); err != nil {
-		return err
-	}
 	return nil
 }
 
