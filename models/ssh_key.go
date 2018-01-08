@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -54,20 +55,16 @@ type PublicKey struct {
 	Mode        AccessMode `xorm:"NOT NULL DEFAULT 2"`
 	Type        KeyType    `xorm:"NOT NULL DEFAULT 1"`
 
-	Created           time.Time `xorm:"-"`
-	CreatedUnix       int64     `xorm:"created"`
-	Updated           time.Time `xorm:"-"`
-	UpdatedUnix       int64     `xorm:"updated"`
-	HasRecentActivity bool      `xorm:"-"`
-	HasUsed           bool      `xorm:"-"`
+	CreatedUnix       util.TimeStamp `xorm:"created"`
+	UpdatedUnix       util.TimeStamp `xorm:"updated"`
+	HasRecentActivity bool           `xorm:"-"`
+	HasUsed           bool           `xorm:"-"`
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (key *PublicKey) AfterLoad() {
-	key.Created = time.Unix(key.CreatedUnix, 0).Local()
-	key.Updated = time.Unix(key.UpdatedUnix, 0).Local()
-	key.HasUsed = key.Updated.After(key.Created)
-	key.HasRecentActivity = key.Updated.Add(7 * 24 * time.Hour).After(time.Now())
+	key.HasUsed = key.UpdatedUnix > key.CreatedUnix
+	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
 }
 
 // OmitEmail returns content of public key without email address.
@@ -484,7 +481,7 @@ func UpdatePublicKeyUpdated(id int64) error {
 	}
 
 	_, err := x.ID(id).Cols("updated_unix").Update(&PublicKey{
-		UpdatedUnix: time.Now().Unix(),
+		UpdatedUnix: util.TimeStampNow(),
 	})
 	if err != nil {
 		return err
@@ -603,20 +600,18 @@ type DeployKey struct {
 	Fingerprint string
 	Content     string `xorm:"-"`
 
-	Created           time.Time `xorm:"-"`
-	CreatedUnix       int64     `xorm:"created"`
-	Updated           time.Time `xorm:"-"`
-	UpdatedUnix       int64     `xorm:"updated"`
-	HasRecentActivity bool      `xorm:"-"`
-	HasUsed           bool      `xorm:"-"`
+	Mode AccessMode `xorm:"NOT NULL DEFAULT 1"`
+
+	CreatedUnix       util.TimeStamp `xorm:"created"`
+	UpdatedUnix       util.TimeStamp `xorm:"updated"`
+	HasRecentActivity bool           `xorm:"-"`
+	HasUsed           bool           `xorm:"-"`
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (key *DeployKey) AfterLoad() {
-	key.Created = time.Unix(key.CreatedUnix, 0).Local()
-	key.Updated = time.Unix(key.UpdatedUnix, 0).Local()
-	key.HasUsed = key.Updated.After(key.Created)
-	key.HasRecentActivity = key.Updated.Add(7 * 24 * time.Hour).After(time.Now())
+	key.HasUsed = key.UpdatedUnix > key.CreatedUnix
+	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
 }
 
 // GetContent gets associated public key content.
@@ -627,6 +622,11 @@ func (key *DeployKey) GetContent() error {
 	}
 	key.Content = pkey.Content
 	return nil
+}
+
+// IsReadOnly checks if the key can only be used for read operations
+func (key *DeployKey) IsReadOnly() bool {
+	return key.Mode == AccessModeRead
 }
 
 func checkDeployKey(e Engine, keyID, repoID int64, name string) error {
@@ -653,7 +653,7 @@ func checkDeployKey(e Engine, keyID, repoID int64, name string) error {
 }
 
 // addDeployKey adds new key-repo relation.
-func addDeployKey(e *xorm.Session, keyID, repoID int64, name, fingerprint string) (*DeployKey, error) {
+func addDeployKey(e *xorm.Session, keyID, repoID int64, name, fingerprint string, mode AccessMode) (*DeployKey, error) {
 	if err := checkDeployKey(e, keyID, repoID, name); err != nil {
 		return nil, err
 	}
@@ -663,6 +663,7 @@ func addDeployKey(e *xorm.Session, keyID, repoID int64, name, fingerprint string
 		RepoID:      repoID,
 		Name:        name,
 		Fingerprint: fingerprint,
+		Mode:        mode,
 	}
 	_, err := e.Insert(key)
 	return key, err
@@ -677,15 +678,20 @@ func HasDeployKey(keyID, repoID int64) bool {
 }
 
 // AddDeployKey add new deploy key to database and authorized_keys file.
-func AddDeployKey(repoID int64, name, content string) (*DeployKey, error) {
+func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey, error) {
 	fingerprint, err := calcFingerprint(content)
 	if err != nil {
 		return nil, err
 	}
 
+	accessMode := AccessModeRead
+	if !readOnly {
+		accessMode = AccessModeWrite
+	}
+
 	pkey := &PublicKey{
 		Fingerprint: fingerprint,
-		Mode:        AccessModeRead,
+		Mode:        accessMode,
 		Type:        KeyTypeDeploy,
 	}
 	has, err := x.Get(pkey)
@@ -708,7 +714,7 @@ func AddDeployKey(repoID int64, name, content string) (*DeployKey, error) {
 		}
 	}
 
-	key, err := addDeployKey(sess, pkey.ID, repoID, name, pkey.Fingerprint)
+	key, err := addDeployKey(sess, pkey.ID, repoID, name, pkey.Fingerprint, accessMode)
 	if err != nil {
 		return nil, fmt.Errorf("addDeployKey: %v", err)
 	}
@@ -741,6 +747,12 @@ func GetDeployKeyByRepo(keyID, repoID int64) (*DeployKey, error) {
 		return nil, ErrDeployKeyNotExist{0, keyID, repoID}
 	}
 	return key, nil
+}
+
+// UpdateDeployKeyCols updates deploy key information in the specified columns.
+func UpdateDeployKeyCols(key *DeployKey, cols ...string) error {
+	_, err := x.ID(key.ID).Cols(cols...).Update(key)
+	return err
 }
 
 // UpdateDeployKey updates deploy key information.

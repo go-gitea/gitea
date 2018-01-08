@@ -190,8 +190,8 @@ func Issues(ctx *context.Context) {
 		issues = []*models.Issue{}
 	} else {
 		issues, err = models.Issues(&models.IssuesOptions{
+			RepoIDs:     []int64{repo.ID},
 			AssigneeID:  assigneeID,
-			RepoID:      repo.ID,
 			PosterID:    posterID,
 			MentionedID: mentionedID,
 			MilestoneID: milestoneID,
@@ -351,6 +351,7 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireTribute"] = true
 	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
@@ -474,10 +475,31 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
 }
 
+// commentTag returns the CommentTag for a comment in/with the given repo, poster and issue
+func commentTag(repo *models.Repository, poster *models.User, issue *models.Issue) (models.CommentTag, error) {
+	if repo.IsOwnedBy(poster.ID) {
+		return models.CommentTagOwner, nil
+	} else if repo.Owner.IsOrganization() {
+		isOwner, err := repo.Owner.IsOwnedBy(poster.ID)
+		if err != nil {
+			return models.CommentTagNone, err
+		} else if isOwner {
+			return models.CommentTagOwner, nil
+		}
+	}
+	if poster.IsWriterOfRepo(repo) {
+		return models.CommentTagWriter, nil
+	} else if poster.ID == issue.PosterID {
+		return models.CommentTagPoster, nil
+	}
+	return models.CommentTagNone, nil
+}
+
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireDropzone"] = true
+	ctx.Data["RequireTribute"] = true
 	renderAttachmentSettings(ctx)
 
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
@@ -642,15 +664,11 @@ func ViewIssue(ctx *context.Context) {
 				continue
 			}
 
-			if repo.IsOwnedBy(comment.PosterID) ||
-				(repo.Owner.IsOrganization() && repo.Owner.IsOwnedBy(comment.PosterID)) {
-				comment.ShowTag = models.CommentTagOwner
-			} else if comment.Poster.IsWriterOfRepo(repo) {
-				comment.ShowTag = models.CommentTagWriter
-			} else if comment.PosterID == issue.PosterID {
-				comment.ShowTag = models.CommentTagPoster
+			comment.ShowTag, err = commentTag(repo, comment.Poster, issue)
+			if err != nil {
+				ctx.Handle(500, "commentTag", err)
+				return
 			}
-
 			marked[comment.PosterID] = comment.ShowTag
 
 			isAdded := false
@@ -709,6 +727,26 @@ func ViewIssue(ctx *context.Context) {
 			}
 		}
 
+		prUnit, err := repo.GetUnit(models.UnitTypePullRequests)
+		if err != nil {
+			ctx.Handle(500, "GetUnit", err)
+			return
+		}
+		prConfig := prUnit.PullRequestsConfig()
+
+		// Check correct values and select default
+		if ms, ok := ctx.Data["MergeStyle"].(models.MergeStyle); !ok ||
+			!prConfig.IsMergeStyleAllowed(ms) {
+			if prConfig.AllowMerge {
+				ctx.Data["MergeStyle"] = models.MergeStyleMerge
+			} else if prConfig.AllowRebase {
+				ctx.Data["MergeStyle"] = models.MergeStyleRebase
+			} else if prConfig.AllowSquash {
+				ctx.Data["MergeStyle"] = models.MergeStyleSquash
+			} else {
+				ctx.Data["MergeStyle"] = ""
+			}
+		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 	}
 
@@ -774,7 +812,7 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 			return nil
 		}
 		if err = issue.LoadAttributes(); err != nil {
-			ctx.Handle(500, "LoadAttributes", nil)
+			ctx.Handle(500, "LoadAttributes", err)
 			return nil
 		}
 	}
@@ -1065,7 +1103,11 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["PageIsMilestones"] = true
 
 	isShowClosed := ctx.Query("state") == "closed"
-	openCount, closedCount := models.MilestoneStats(ctx.Repo.Repository.ID)
+	openCount, closedCount, err := models.MilestoneStats(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.Handle(500, "MilestoneStats", err)
+		return
+	}
 	ctx.Data["OpenCount"] = openCount
 	ctx.Data["ClosedCount"] = closedCount
 
@@ -1138,10 +1180,10 @@ func NewMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	}
 
 	if err = models.NewMilestone(&models.Milestone{
-		RepoID:   ctx.Repo.Repository.ID,
-		Name:     form.Title,
-		Content:  form.Content,
-		Deadline: deadline,
+		RepoID:       ctx.Repo.Repository.ID,
+		Name:         form.Title,
+		Content:      form.Content,
+		DeadlineUnix: util.TimeStamp(deadline.Unix()),
 	}); err != nil {
 		ctx.Handle(500, "NewMilestone", err)
 		return
@@ -1210,7 +1252,7 @@ func EditMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	}
 	m.Name = form.Title
 	m.Content = form.Content
-	m.Deadline = deadline
+	m.DeadlineUnix = util.TimeStamp(deadline.Unix())
 	if err = models.UpdateMilestone(m); err != nil {
 		ctx.Handle(500, "UpdateMilestone", err)
 		return
@@ -1243,7 +1285,7 @@ func ChangeMilestonStatus(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=open")
 	case "close":
 		if !m.IsClosed {
-			m.ClosedDate = time.Now()
+			m.ClosedDateUnix = util.TimeStampNow()
 			if err = models.ChangeMilestoneStatus(m, true); err != nil {
 				ctx.Handle(500, "ChangeMilestoneStatus", err)
 				return

@@ -15,11 +15,13 @@ menu:
 
 # Backup and Restore
 
-Gitea currently has a `dump` command that will save your installation to a zip file. There will be a `restore` command implemented at some point in the future. You will be able to use this to back up your installation, as well as make migrating servers easier.
+Gitea currently has a `dump` command that will save the installation to a zip file. This
+file can be unpacked and used to restore an instance.
 
 ## Backup Command (`dump`)
 
-First, switch to the user running gitea: `su git` (or whatever user you are using). Run `./gitea dump` in the gitea installation directory. You should see some output similar to this:
+Switch to the user running gitea: `su git`. Run `./gitea dump` in the gitea installation
+directory. There should be some output similar to the following:
 
 ```
 2016/12/27 22:32:09 Creating tmp work dir: /tmp/gitea-dump-417443001
@@ -30,17 +32,31 @@ First, switch to the user running gitea: `su git` (or whatever user you are usin
 2016/12/27 22:32:34 Finish dumping in file gitea-dump-1482906742.zip
 ```
 
-Inside the `gitea-dump-1482906742.zip` file, you will find the following:
+Inside the `gitea-dump-1482906742.zip` file, will be the following:
 
-* `custom/conf/app.ini` - This is your server config.
-* `gitea-db.sql` - SQL dump of your database.
-* `gitea-repo.zip` - This zip will be a complete copy of your repo folder.
-   See Config -> repository -> `ROOT` for the location.
-* `log/` - this will contain various logs. You don't need these if you are doing
-   a migration.
+* `custom/conf/app.ini` - Server config.
+* `gitea-db.sql` - SQL dump of database
+* `gitea-repo.zip` - Complete copy of the repository directory.
+* `log/` - Various logs. They are not needed for a recovery or migration.
 
-Intermediate backup files are created in a temporary directory specified either with the `--tempdir` command-line parameter or the `TMPDIR` environment variable.
+Intermediate backup files are created in a temporary directory specified either with the
+`--tempdir` command-line parameter or the `TMPDIR` environment variable.
 
 ## Restore Command (`restore`)
 
-WIP: Does not exist yet.
+There is currently no support for a recovery command. It is a manual process that mostly
+involves moving files to their correct locations and restoring a database dump.
+
+Example:
+```
+apt-get install gitea
+unzip gitea-dump-1482906742.zip
+cd gitea-dump-1482906742
+mv custom/conf/app.ini /etc/gitea/conf/app.ini
+unzip gitea-repo.zip
+mv gitea-repo/* /var/lib/gitea/repositories/
+chown -R gitea:gitea /etc/gitea/conf/app.ini /var/lib/gitea/repositories/
+mysql -u$USER -p$PASS $DATABASE <gitea-db.sql
+# or  sqlite3 $DATABASE_PATH <gitea-db.sql
+service gitea restart
+```

@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/Unknwon/i18n"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,7 +40,7 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 
 	resp = session.MakeRequest(t, req, http.StatusFound)
 
-	RedirectURL(t, resp) // check that redirect URL exists
+	test.RedirectURL(resp) // check that redirect URL exists
 }
 
 func checkLatestReleaseAndCount(t *testing.T, session *TestSession, repoURL, version, label string, count int) {

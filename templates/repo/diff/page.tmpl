@@ -15,34 +15,39 @@
 				{{end}}
 			</div>
 			<div class="ui attached info segment {{if .Commit.Signature}} isSigned {{if .Verification.Verified }} isVerified {{end}}{{end}}">
-				{{if .Author}}
-					<img class="ui avatar image" src="{{.Author.RelAvatarLink}}" />
-				  {{if .Author.FullName}}
-			  	  <a href="{{.Author.HomeLink}}"><strong>{{.Author.FullName}}</strong></a> {{if .IsSigned}}<{{.Commit.Author.Email}}>{{end}}
-				  {{else}}
-  				  <a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a> {{if .IsSigned}}<{{.Commit.Author.Email}}>{{end}}
-				  {{end}}
-				{{else}}
-					<img class="ui avatar image" src="{{AvatarLink .Commit.Author.Email}}" />
-					<strong>{{.Commit.Author.Name}}</strong>
-				{{end}}
-				<span class="text grey" id="authored-time">{{TimeSince .Commit.Author.When $.Lang}}</span>
-				<div class="ui right">
-					<div class="ui horizontal list">
-						{{if .Parents}}
-							<div class="item">
-								{{.i18n.Tr "repo.diff.parent"}}
-							</div>
-							<div class="item">
-								{{range .Parents}}
-									<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.}}">{{ShortSha .}}</a>
-								{{end}}
-							</div>
+				<div class="ui stackable grid">
+					<div class="nine wide column">
+						{{if .Author}}
+							<img class="ui avatar image" src="{{.Author.RelAvatarLink}}" />
+						{{if .Author.FullName}}
+						<a href="{{.Author.HomeLink}}"><strong>{{.Author.FullName}}</strong></a> {{if .IsSigned}}<{{.Commit.Author.Email}}>{{end}}
+						{{else}}
+						<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a> {{if .IsSigned}}<{{.Commit.Author.Email}}>{{end}}
 						{{end}}
-						<div class="item">{{.i18n.Tr "repo.diff.commit"}}</div>
-						<div class="item"><span class="ui blue sha label">{{ShortSha .CommitID}}</span></div>
+						{{else}}
+							<img class="ui avatar image" src="{{AvatarLink .Commit.Author.Email}}" />
+							<strong>{{.Commit.Author.Name}}</strong>
+						{{end}}
+						<span class="text grey" id="authored-time">{{TimeSince .Commit.Author.When $.Lang}}</span>
 					</div>
-				</div>
+					<div class="seven wide right aligned column">
+						<div class="ui horizontal list">
+							{{if .Parents}}
+								<div class="item">
+									{{.i18n.Tr "repo.diff.parent"}}
+								</div>
+								<div class="item">
+									{{range .Parents}}
+										<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.}}">{{ShortSha .}}</a>
+									{{end}}
+								</div>
+							{{end}}
+							<div class="mobile-only"></div>
+							<div class="item">{{.i18n.Tr "repo.diff.commit"}}</div>
+							<div class="item"><span class="ui blue sha label">{{ShortSha .CommitID}}</span></div>
+						</div>
+					</div><!-- end column -->
+				</div><!-- end grid -->
 			</div>
 			{{if .Commit.Signature}}
 				{{if .Verification.Verified }}

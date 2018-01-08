@@ -3,7 +3,7 @@
 	{{template "user/dashboard/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<div class="ui grid">
+		<div class="ui mobile reversed stackable grid">
 			<div class="ten wide column">
 				{{template "user/dashboard/feeds" .}}
 			</div>
@@ -27,7 +27,7 @@
 					v-cloak
 				>
 					<div>
-						<div v-if="!isOrganization" class="ui two item stackable tabable menu">
+						<div v-if="!isOrganization" class="ui two item tabable menu">
 							<a :class="{item: true, active: tab === 'repos'}" @click="changeTab('repos')">{{.i18n.Tr "repository"}}</a>
 							<a :class="{item: true, active: tab === 'organizations'}" @click="changeTab('organizations')">{{.i18n.Tr "organization"}}</a>
 						</div>

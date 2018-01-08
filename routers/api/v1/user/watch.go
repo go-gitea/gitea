@@ -97,7 +97,7 @@ func IsWatching(ctx *context.APIContext) {
 			Subscribed:    true,
 			Ignored:       false,
 			Reason:        nil,
-			CreatedAt:     ctx.Repo.Repository.Created,
+			CreatedAt:     ctx.Repo.Repository.CreatedUnix.AsTime(),
 			URL:           subscriptionURL(ctx.Repo.Repository),
 			RepositoryURL: repositoryURL(ctx.Repo.Repository),
 		})
@@ -134,7 +134,7 @@ func Watch(ctx *context.APIContext) {
 		Subscribed:    true,
 		Ignored:       false,
 		Reason:        nil,
-		CreatedAt:     ctx.Repo.Repository.Created,
+		CreatedAt:     ctx.Repo.Repository.CreatedUnix.AsTime(),
 		URL:           subscriptionURL(ctx.Repo.Repository),
 		RepositoryURL: repositoryURL(ctx.Repo.Repository),
 	})

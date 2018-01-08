@@ -7,9 +7,9 @@ package models
 import (
 	"bytes"
 	"fmt"
-	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
@@ -17,19 +17,13 @@ import (
 
 // Reaction represents a reactions on issues and comments.
 type Reaction struct {
-	ID          int64     `xorm:"pk autoincr"`
-	Type        string    `xorm:"INDEX UNIQUE(s) NOT NULL"`
-	IssueID     int64     `xorm:"INDEX UNIQUE(s) NOT NULL"`
-	CommentID   int64     `xorm:"INDEX UNIQUE(s)"`
-	UserID      int64     `xorm:"INDEX UNIQUE(s) NOT NULL"`
-	User        *User     `xorm:"-"`
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX created"`
-}
-
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (s *Reaction) AfterLoad() {
-	s.Created = time.Unix(s.CreatedUnix, 0).Local()
+	ID          int64          `xorm:"pk autoincr"`
+	Type        string         `xorm:"INDEX UNIQUE(s) NOT NULL"`
+	IssueID     int64          `xorm:"INDEX UNIQUE(s) NOT NULL"`
+	CommentID   int64          `xorm:"INDEX UNIQUE(s)"`
+	UserID      int64          `xorm:"INDEX UNIQUE(s) NOT NULL"`
+	User        *User          `xorm:"-"`
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 }
 
 // FindReactionsOptions describes the conditions to Find reactions

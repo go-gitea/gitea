@@ -26,7 +26,7 @@
 
 	{{if .Issue.IsPull}}
 		{{if .Issue.PullRequest.HasMerged}}
-			{{ $mergedStr:= TimeSince .Issue.PullRequest.Merged $.Lang }}
+			{{ $mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix $.Lang }}
 			<a {{if gt .Issue.PullRequest.Merger.ID 0}}href="{{.Issue.PullRequest.Merger.HomeLink}}"{{end}}>{{.Issue.PullRequest.Merger.Name}}</a>
 			<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits .HeadTarget .BaseTarget $mergedStr | Str2html}}</span>
 		{{else}}
@@ -34,7 +34,7 @@
 			<span class="pull-desc">{{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}</span>
 		{{end}}
 	{{else}}
-		{{ $createdStr:= TimeSince .Issue.Created $.Lang }}
+		{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.Lang }}
 		<span class="time-desc">
 			{{if gt .Issue.Poster.ID 0}}
 				{{$.i18n.Tr "repo.issues.opened_by" $createdStr .Issue.Poster.HomeLink .Issue.Poster.Name | Safe}}

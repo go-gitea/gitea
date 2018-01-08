@@ -250,16 +250,21 @@ func TestDeleteTeam(t *testing.T) {
 
 func TestIsTeamMember(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
+	test := func(orgID, teamID, userID int64, expected bool) {
+		isMember, err := IsTeamMember(orgID, teamID, userID)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, isMember)
+	}
 
-	assert.True(t, IsTeamMember(3, 1, 2))
-	assert.False(t, IsTeamMember(3, 1, 4))
-	assert.False(t, IsTeamMember(3, 1, NonexistentID))
+	test(3, 1, 2, true)
+	test(3, 1, 4, false)
+	test(3, 1, NonexistentID, false)
 
-	assert.True(t, IsTeamMember(3, 2, 2))
-	assert.True(t, IsTeamMember(3, 2, 4))
+	test(3, 2, 2, true)
+	test(3, 2, 4, true)
 
-	assert.False(t, IsTeamMember(3, NonexistentID, NonexistentID))
-	assert.False(t, IsTeamMember(NonexistentID, NonexistentID, NonexistentID))
+	test(3, NonexistentID, NonexistentID, false)
+	test(NonexistentID, NonexistentID, NonexistentID, false)
 }
 
 func TestGetTeamMembers(t *testing.T) {

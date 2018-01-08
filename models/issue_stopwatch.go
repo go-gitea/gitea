@@ -7,26 +7,16 @@ package models
 import (
 	"fmt"
 	"time"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Stopwatch represents a stopwatch for time tracking.
 type Stopwatch struct {
-	ID          int64     `xorm:"pk autoincr"`
-	IssueID     int64     `xorm:"INDEX"`
-	UserID      int64     `xorm:"INDEX"`
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64
-}
-
-// BeforeInsert will be invoked by XORM before inserting a record
-// representing this object.
-func (s *Stopwatch) BeforeInsert() {
-	s.CreatedUnix = time.Now().Unix()
-}
-
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (s *Stopwatch) AfterLoad() {
-	s.Created = time.Unix(s.CreatedUnix, 0).Local()
+	ID          int64          `xorm:"pk autoincr"`
+	IssueID     int64          `xorm:"INDEX"`
+	UserID      int64          `xorm:"INDEX"`
+	CreatedUnix util.TimeStamp `xorm:"created"`
 }
 
 func getStopwatch(e Engine, userID, issueID int64) (sw *Stopwatch, exists bool, err error) {
@@ -61,7 +51,7 @@ func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
 	}
 	if exists {
 		// Create tracked time out of the time difference between start date and actual date
-		timediff := time.Now().Unix() - sw.CreatedUnix
+		timediff := time.Now().Unix() - int64(sw.CreatedUnix)
 
 		// Create TrackedTime
 		tt := &TrackedTime{
@@ -92,7 +82,6 @@ func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
 		sw = &Stopwatch{
 			UserID:  user.ID,
 			IssueID: issue.ID,
-			Created: time.Now(),
 		}
 
 		if _, err := x.Insert(sw); err != nil {

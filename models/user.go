@@ -94,12 +94,9 @@ type User struct {
 	Rands            string `xorm:"VARCHAR(10)"`
 	Salt             string `xorm:"VARCHAR(10)"`
 
-	Created       time.Time `xorm:"-"`
-	CreatedUnix   int64     `xorm:"INDEX created"`
-	Updated       time.Time `xorm:"-"`
-	UpdatedUnix   int64     `xorm:"INDEX updated"`
-	LastLogin     time.Time `xorm:"-"`
-	LastLoginUnix int64     `xorm:"INDEX"`
+	CreatedUnix   util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix   util.TimeStamp `xorm:"INDEX updated"`
+	LastLoginUnix util.TimeStamp `xorm:"INDEX"`
 
 	// Remember visibility choice for convenience, true for private
 	LastRepoVisibility bool
@@ -145,20 +142,13 @@ func (u *User) BeforeUpdate() {
 
 // SetLastLogin set time to last login
 func (u *User) SetLastLogin() {
-	u.LastLoginUnix = time.Now().Unix()
+	u.LastLoginUnix = util.TimeStampNow()
 }
 
 // UpdateDiffViewStyle updates the users diff view style
 func (u *User) UpdateDiffViewStyle(style string) error {
 	u.DiffViewStyle = style
 	return UpdateUserCols(u, "diff_view_style")
-}
-
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (u *User) AfterLoad() {
-	u.Created = time.Unix(u.CreatedUnix, 0).Local()
-	u.Updated = time.Unix(u.UpdatedUnix, 0).Local()
-	u.LastLogin = time.Unix(u.LastLoginUnix, 0).Local()
 }
 
 // getEmail returns an noreply email, if the user has set to keep his
@@ -398,8 +388,8 @@ func (u *User) NewGitSig() *git.Signature {
 	}
 }
 
-// EncodePasswd encodes password to safe format.
-func (u *User) EncodePasswd() {
+// HashPassword hashes a password using PBKDF.
+func (u *User) HashPassword() {
 	newPasswd := pbkdf2.Key([]byte(u.Passwd), []byte(u.Salt), 10000, 50, sha256.New)
 	u.Passwd = fmt.Sprintf("%x", newPasswd)
 }
@@ -407,7 +397,7 @@ func (u *User) EncodePasswd() {
 // ValidatePassword checks if given password matches the one belongs to the user.
 func (u *User) ValidatePassword(passwd string) bool {
 	newUser := &User{Passwd: passwd, Salt: u.Salt}
-	newUser.EncodePasswd()
+	newUser.HashPassword()
 	return subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(newUser.Passwd)) == 1
 }
 
@@ -497,12 +487,22 @@ func (u *User) IsOrganization() bool {
 
 // IsUserOrgOwner returns true if user is in the owner team of given organization.
 func (u *User) IsUserOrgOwner(orgID int64) bool {
-	return IsOrganizationOwner(orgID, u.ID)
+	isOwner, err := IsOrganizationOwner(orgID, u.ID)
+	if err != nil {
+		log.Error(4, "IsOrganizationOwner: %v", err)
+		return false
+	}
+	return isOwner
 }
 
 // IsPublicMember returns true if user public his/her membership in given organization.
 func (u *User) IsPublicMember(orgID int64) bool {
-	return IsPublicMembership(orgID, u.ID)
+	isMember, err := IsPublicMembership(orgID, u.ID)
+	if err != nil {
+		log.Error(4, "IsPublicMembership: %v", err)
+		return false
+	}
+	return isMember
 }
 
 func (u *User) getOrganizationCount(e Engine) (int64, error) {
@@ -711,7 +711,7 @@ func CreateUser(u *User) (err error) {
 	if u.Salt, err = GetUserSalt(); err != nil {
 		return err
 	}
-	u.EncodePasswd()
+	u.HashPassword()
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	u.MaxRepoCreation = -1
 
