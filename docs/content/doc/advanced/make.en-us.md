@@ -15,16 +15,17 @@ menu:
 
 # Make
 
-Gitea makes heavy use of Make to automate tasks and have a faster development. This guide cover how to install Make.
+Gitea makes heavy use of Make to automate tasks and improve development. This
+guide covers how to install Make.
 
 ### On Linux
 
-You can install with your package manager. 
+Install with the package manager.
 
 On Ubuntu/Debian:
 
 ```bash
-sudo apt-get install build-essential
+sudo apt-get install make
 ```
 
 On Fedora/RHEL/CentOS:
@@ -35,10 +36,11 @@ sudo yum install make
 
 ### On Windows
 
-If you are using Windows, you can download and use one of these distributions of Make:
+One of these three distributions of Make will run on Windows:
 
 - [Single binary build](http://www.equation.com/servlet/equation.cmd?fa=make). Copy somewhere and add to `PATH`.
   - [32-bits version](ftp://ftp.equation.com/make/32/make.exe)
   - [64-bits version](ftp://ftp.equation.com/make/64/make.exe)
-- [MinGW](http://www.mingw.org/) includes a build. The binary is called `mingw32-make.exe` instead of `make.exe`. Add the `bin` folder to your `PATH`.
+- [MinGW](http://www.mingw.org/) includes a build.
+  - The binary is called `mingw32-make.exe` instead of `make.exe`. Add the `bin` folder to `PATH`.
 - [Chocolatey package](https://chocolatey.org/packages/make). Run `choco install make`

@@ -78,7 +78,7 @@ Both the LDAP via BindDN and the simple auth LDAP share the following fields:
 
 - Bind Password (optional)
   - The password for the Bind DN specified above, if any. _Note: The password
-    is stored in plaintext at the server. As such, ensure that your Bind DN
+    is stored in plaintext at the server. As such, ensure that the Bind DN
     has as few privileges as possible._
 
 - User Search Base **(required)**
@@ -110,7 +110,8 @@ Both the LDAP via BindDN and the simple auth LDAP share the following fields:
 **LDAP using simple auth** adds the following fields:
 
 - User DN **(required)**
-  - A template to use as the user's DN. The `%s` matching parameter will be substituted with login name given on sign-in form.
+  - A template to use as the user's DN. The `%s` matching parameter will be
+    substituted with login name given on sign-in form.
   - Example: `cn=%s,ou=Users,dc=mydomain,dc=com`
   - Example: `uid=%s,ou=Users,dc=mydomain,dc=com`
 
@@ -141,18 +142,20 @@ Both the LDAP via BindDN and the simple auth LDAP share the following fields:
 
 ## PAM (Pluggable Authentication Module)
 
-To configure this you just need to set the 'PAM Service Name' to a filename in `/etc/pam.d/`.
-If you want it to work with normal Linux passwords, the user running Gitea must have read access to `/etc/shadow`.
+To configure PAM, set the 'PAM Service Name' to a filename in `/etc/pam.d/`. To
+work with normal Linux passwords, the user running Gitea must have read access
+to `/etc/shadow`.
 
 ## SMTP (Simple Mail Transfer Protocol)
 
-This option allows Gitea to log in to your SMTP host as a Gitea user. To configure this, simply set the fields below:
+This option allows Gitea to log in to an SMTP host as a Gitea user. To
+configure this, set the fields below:
 
 - Authentication Name **(required)**
   - A name to assign to the new method of authorization.
 
 - SMTP Authentication Type **(required)**
-  - Type of authentication for use on your SMTP host, PLAIN or LOGIN.
+  - Type of authentication to use to connect to SMTP host, PLAIN or LOGIN.
 
 - Host **(required)**
   - The address where the SMTP host can be reached.
@@ -163,7 +166,8 @@ This option allows Gitea to log in to your SMTP host as a Gitea user. To configu
   - Example: `587`
 
 - Allowed Domains
-  - Restrict what domains can log in if you're using public SMTP host or SMTP host with multiple domains.
+  - Restrict what domains can log in if using a public SMTP host or SMTP host
+    with multiple domains.
   - Example: `gitea.io,mydomain.com,mydomain2.com`
 
 - Enable TLS Encryption
@@ -171,15 +175,17 @@ This option allows Gitea to log in to your SMTP host as a Gitea user. To configu
 
 - Skip TLS Verify
   - Disable TLS verify on authentication.
-  
+
 - This authentication is activate
   - Enable or disable this auth.
 
 ## FreeIPA
 
-- In order to log in to Gitea using FreeIPA credentials, you need to create a bind account for Gitea to use:
+- In order to log in to Gitea using FreeIPA credentials,a bind account needs to
+  be created for Gitea:
 
--  On the FreeIPA server, create a `gitea.ldif` file, replacing `dc=example,dc=com` with your DN, and providing an appropriately secure password:
+- On the FreeIPA server, create a `gitea.ldif` file, replacing `dc=example,dc=com`
+  with your DN, and provide an appropriately secure password:
 ```
   dn: uid=gitea,cn=sysaccounts,cn=etc,dc=example,dc=com
   changetype: add
@@ -191,15 +197,18 @@ This option allows Gitea to log in to your SMTP host as a Gitea user. To configu
   nsIdleTimeout: 0
 ```
 
-- Import the LDIF (change localhost to an IPA server if needed), you’ll be prompted for your Directory Manager password:
+- Import the LDIF (change localhost to an IPA server if needed). A prompt for
+ Directory Manager password will be presented:
 ```
   ldapmodify -h localhost -p 389 -x -D \
   "cn=Directory Manager" -W -f gitea.ldif
 ```
--  Add an IPA group for gitea_users :
+- Add an IPA group for gitea\_users :
 ```
   ipa group-add --desc="Gitea Users" gitea_users
 ```
--  Note: If you get an error about IPA credentials, please run `kinit admin` and give your admin account password.
+- Note: For errors about IPA credentials, run `kinit admin` and provide the
+  domain admin account password.
 
--  Now login to the Gitea as an Administrator, click on "Authentication" under Admin Panel. Then click `Add New Source` and fill in the details, changing all where appropriate to your own domain.
+- Log in to Gitea as an Administrator and click on "Authentication" under Admin Panel.
+  Then click `Add New Source` and fill in the details, changing all where appropriate.
