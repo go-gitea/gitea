@@ -19,3 +19,4 @@ Release procedure is as follows:
 - Push the branches and tags (`git push --tags`)
   - No need to create the Release. CI does that automatically.
 - Send PR to https://github.com/go-gitea/blog announcing the release
+- Update latest release number in `docs/content/doc/installation/from-binary*.md`
