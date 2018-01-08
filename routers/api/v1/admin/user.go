@@ -132,7 +132,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 			ctx.Error(500, "UpdateUser", err)
 			return
 		}
-		u.EncodePasswd()
+		u.HashPassword()
 	}
 
 	u.LoginName = form.LoginName

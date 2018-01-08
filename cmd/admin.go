@@ -111,7 +111,7 @@ func runChangePassword(c *cli.Context) error {
 	if user.Salt, err = models.GetUserSalt(); err != nil {
 		return fmt.Errorf("%v", err)
 	}
-	user.EncodePasswd()
+	user.HashPassword()
 	if err := models.UpdateUserCols(user, "passwd", "salt"); err != nil {
 		return fmt.Errorf("%v", err)
 	}
