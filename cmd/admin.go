@@ -111,7 +111,7 @@ func runChangePassword(c *cli.Context) error {
 }
 
 func runCreateUser(c *cli.Context) error {
-	if err := argsSet(c, "username", "password"); err != nil {
+	if err := argsSet(c, "name", "password", "email"); err != nil {
 		return err
 	}
 
