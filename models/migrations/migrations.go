@@ -164,6 +164,8 @@ var migrations = []Migration{
 	NewMigration("add pull request options", addPullRequestOptions),
 	// v55 -> v56
 	NewMigration("add writable deploy keys", addModeToDeploKeys),
+	// v56 -> v57
+	NewMigration("remove is_owner, num_teams columns from org_user", removeIsOwnerColumnFromOrgUser),
 }
 
 // Migrate database to current version
