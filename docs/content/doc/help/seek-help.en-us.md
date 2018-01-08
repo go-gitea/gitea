@@ -15,9 +15,9 @@ menu:
 
 # Support Options
 
+- [Discord](https://discord.gg/NsatcWJ)
 - [#gitea on Freenode](http://webchat.freenode.net?nick=giteachat....&channels=%23gitea&prompt=1)
 - [Matrix](https://matrix.to/#/#gitea-dev:matrix.org)
-- [Discord](https://discord.gg/NsatcWJ)
 
 ## Bugs
 
