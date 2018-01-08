@@ -103,11 +103,9 @@ func (ctx *Context) Handle(status int, title string, err error) {
 
 	switch status {
 	case 404:
-		ctx.Data["Title"] = title
+		ctx.Data["Title"] = "Page Not Found"
 	case 500:
 		ctx.Data["Title"] = "Internal Server Error"
-	default:
-		ctx.Data["Title"] = title
 	}
 	ctx.HTML(status, base.TplName(fmt.Sprintf("status/%d", status)))
 }

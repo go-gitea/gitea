@@ -569,7 +569,18 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	// format: <base branch>...[<head repo>:]<head branch>
 	// base<-head: master...head:feature
 	// same repo: master...feature
-	infoPath, _ := url.QueryUnescape(ctx.Params("*"))
+
+	var (
+		headUser   *models.User
+		headBranch string
+		isSameRepo bool
+		infoPath   string
+		err        error
+	)
+	infoPath, err = url.QueryUnescape(ctx.Params("*"))
+	if err != nil {
+		ctx.Handle(404, "QueryUnescape", err)
+	}
 	infos := strings.Split(infoPath, "...")
 	if len(infos) != 2 {
 		log.Trace("ParseCompareInfo[%d]: not enough compared branches information %s", baseRepo.ID, infos)
@@ -579,13 +590,6 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 
 	baseBranch := infos[0]
 	ctx.Data["BaseBranch"] = baseBranch
-
-	var (
-		headUser   *models.User
-		headBranch string
-		isSameRepo bool
-		err        error
-	)
 
 	// If there is no head repository, it means pull request between same repository.
 	headInfos := strings.Split(infos[1], ":")
