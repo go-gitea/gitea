@@ -18,12 +18,12 @@ func IssueStopwatch(c *context.Context) {
 		return
 	}
 	if !c.Repo.CanUseTimetracker(issue, c.User) {
-		c.Handle(http.StatusNotFound, "CanUseTimetracker", nil)
+		c.Handle(404, "CanUseTimetracker", nil)
 		return
 	}
 
 	if err := models.CreateOrStopIssueStopwatch(c.User, issue); err != nil {
-		c.Handle(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
+		c.Handle(500, "CreateOrStopIssueStopwatch", err)
 		return
 	}
 
@@ -38,12 +38,12 @@ func CancelStopwatch(c *context.Context) {
 		return
 	}
 	if !c.Repo.CanUseTimetracker(issue, c.User) {
-		c.Handle(http.StatusNotFound, "CanUseTimetracker", nil)
+		c.Handle(404, "CanUseTimetracker", nil)
 		return
 	}
 
 	if err := models.CancelStopwatch(c.User, issue); err != nil {
-		c.Handle(http.StatusInternalServerError, "CancelStopwatch", err)
+		c.Handle(500, "CancelStopwatch", err)
 		return
 	}
 
