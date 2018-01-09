@@ -68,6 +68,24 @@ func init() {
 	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
 }
 
+func (issue *Issue) totalTimes(e Engine) (string, error) {
+	times, err := GetTrackedTimes(FindTrackedTimesOptions{IssueID: issue.ID})
+	if err != nil {
+		return "", err
+	}
+	var totalTime int64
+	for _, trackedTime := range times {
+		totalTime += trackedTime.Time
+	}
+	return secToTime(totalTime), nil
+}
+
+// TotalTimes returns the total amount of tracked time for the issue
+func (issue *Issue) TotalTimes() string {
+	times, _ := issue.totalTimes(x)
+	return times
+}
+
 func (issue *Issue) loadRepo(e Engine) (err error) {
 	if issue.Repo == nil {
 		issue.Repo, err = getRepositoryByID(e, issue.RepoID)
@@ -76,6 +94,14 @@ func (issue *Issue) loadRepo(e Engine) (err error) {
 		}
 	}
 	return nil
+}
+
+// IsTimetrackerEnabled returns true if the repo enables timetracking
+func (issue *Issue) IsTimetrackerEnabled() bool {
+	if issue.loadRepo(x) != nil {
+		return false
+	}
+	return issue.Repo.IsTimetrackerEnabled()
 }
 
 // GetPullRequest returns the issue pull request

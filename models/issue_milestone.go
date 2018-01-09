@@ -86,6 +86,30 @@ func (m *Milestone) APIFormat() *api.Milestone {
 	return apiMilestone
 }
 
+func (m *Milestone) totalTimes(e Engine) (string, error) {
+	times, err := GetTrackedTimes(FindTrackedTimesOptions{MilestoneID: m.ID})
+	if err != nil {
+		return "", err
+	}
+	var totalTime int64
+	for _, trackedTime := range times {
+		totalTime += trackedTime.Time
+	}
+	return secToTime(totalTime), nil
+}
+
+// TotalTimes returns the amount of tracked time of the issues inside the milestone
+func (m *Milestone) TotalTimes() string {
+	times, _ := m.totalTimes(x)
+	return times
+}
+
+// MustGetRepo returns milestone's repository by ignoring errors
+func (m *Milestone) MustGetRepo() *Repository {
+	repo, _ := GetRepositoryByID(m.RepoID)
+	return repo
+}
+
 // NewMilestone creates new milestone of repository.
 func NewMilestone(m *Milestone) (err error) {
 	sess := x.NewSession()

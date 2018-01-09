@@ -44,6 +44,7 @@ type FindTrackedTimesOptions struct {
 	IssueID      int64
 	UserID       int64
 	RepositoryID int64
+	MilestoneID  int64
 }
 
 // ToCond will convert each condition into a xorm-Cond
@@ -58,12 +59,15 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 	if opts.RepositoryID != 0 {
 		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepositoryID})
 	}
+	if opts.MilestoneID != 0 {
+		cond = cond.And(builder.Eq{"issue.milestone_id": opts.MilestoneID})
+	}
 	return cond
 }
 
 // GetTrackedTimes returns all tracked times that fit to the given options.
 func GetTrackedTimes(options FindTrackedTimesOptions) (trackedTimes []*TrackedTime, err error) {
-	if options.RepositoryID > 0 {
+	if options.RepositoryID > 0 || options.MilestoneID > 0 {
 		err = x.Join("INNER", "issue", "issue.id = tracked_time.issue_id").Where(options.ToCond()).Find(&trackedTimes)
 		return
 	}
