@@ -25,43 +25,45 @@ GITEA_CUSTOM=/home/gitea/custom ./gitea web
 
 ## From Go language
 
-As Gitea is written in Go, it uses some Go variables as:
+As Gitea is written in Go, it uses some Go variables, such as:
 
   * `GOOS`
   * `GOARCH`
-  * `GOPATH`
+  * [`GOPATH`](https://golang.org/cmd/go/#hdr-GOPATH_environment_variable)
 
-For `GOPATH`, check [official documentation about GOPATH environment variable](https://golang.org/cmd/go/#hdr-GOPATH_environment_variable).
-
-For others, check [official documentation about variables used when it runs the generator](https://golang.org/cmd/go/#hdr-Generate_Go_files_by_processing_source).
+For documentation about each of the variables available, refer to the
+[official Go documentation](https://golang.org/cmd/go/#hdr-Environment_variables).
 
 ## Gitea files
 
-  * `GITEA_WORK_DIR`: Gitea absolute path of work directory.
-  * `GITEA_CUSTOM`: Gitea uses `GITEA_WORK_DIR`/custom folder by default. Use this variable to change *custom* directory.
+  * `GITEA_WORK_DIR`: Absolute path of working directory.
+  * `GITEA_CUSTOM`: Gitea uses `GITEA_WORK_DIR`/custom folder by default. Use this variable
+     to change *custom* directory.
   * `GOGS_WORK_DIR`: Deprecated, use `GITEA_WORK_DIR`
   * `GOGS_CUSTOM`: Deprecated, use `GITEA_CUSTOM`
 
 ## Operating system specifics
 
-  * `USER`: system user that launch Gitea. Useful for repository URL address on Gitea interface
-  * `USERNAME`: if no USER found, Gitea will try `USERNAME`
-  * `HOME`: User home directory path (**except if** you're running on Windows, check  the following `USERPROFILE` variable)
+  * `USER`: System user that Gitea will run as. Used for some repository access strings.
+  * `USERNAME`: if no `USER` found, Gitea will use `USERNAME`
+  * `HOME`: User home directory path. The `USERPROFILE` environment variable is used in Windows.
 
 ### Only on Windows
 
   * `USERPROFILE`: User home directory path. If empty, uses `HOMEDRIVE` + `HOMEPATH`
-  * `HOMEDRIVE`: Main drive path you will use to get home directory
+  * `HOMEDRIVE`: Main drive path used to access the home directory (C:)
   * `HOMEPATH`: Home relative path in the given home drive path
 
 ## Macaron (framework used by Gitea)
 
   * `HOST`: Host Macaron will listen on
   * `PORT`: Port Macaron will listen on
-  * `MACARON_ENV`: global variable to provide special functionality for development environments vs production environments. If MACARON_ENV is set to "" or "development" then templates will be recompiled on every request. For more performance, set the MACARON_ENV environment variable to "production".
+  * `MACARON_ENV`: global variable to provide special functionality for development environments
+     vs. production environments. If MACARON_ENV is set to "" or "development" then templates will
+     be recompiled on every request. For more performance, set the MACARON_ENV environment variable
+     to "production".
 
 ## Miscellaneous
 
-  * `SKIP_MINWINSVC`: Do not run as a service on Windows if set to 1
+  * `SKIP_MINWINSVC`: If set to 1, do not run as a service on Windows.
   * `ZOOKEEPER_PATH`: [Zookeeper](http://zookeeper.apache.org/) jar file path
-

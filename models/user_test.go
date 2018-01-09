@@ -5,6 +5,7 @@
 package models
 
 import (
+	"math/rand"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -122,4 +123,42 @@ func TestDeleteUser(t *testing.T) {
 	test(4)
 	test(8)
 	test(11)
+}
+
+func TestHashPasswordDeterministic(t *testing.T) {
+	b := make([]byte, 16)
+	rand.Read(b)
+	u := &User{Salt: string(b)}
+	for i := 0; i < 50; i++ {
+		// generate a random password
+		rand.Read(b)
+		pass := string(b)
+
+		// save the current password in the user - hash it and store the result
+		u.Passwd = pass
+		u.HashPassword()
+		r1 := u.Passwd
+
+		// run again
+		u.Passwd = pass
+		u.HashPassword()
+		r2 := u.Passwd
+
+		// assert equal (given the same salt+pass, the same result is produced)
+		assert.Equal(t, r1, r2)
+	}
+}
+
+func BenchmarkHashPassword(b *testing.B) {
+	// BenchmarkHashPassword ensures that it takes a reasonable amount of time
+	// to hash a password - in order to protect from brute-force attacks.
+	pass := "password1337"
+	bs := make([]byte, 16)
+	rand.Read(bs)
+	u := &User{Salt: string(bs), Passwd: pass}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		u.HashPassword()
+		u.Passwd = pass
+	}
 }

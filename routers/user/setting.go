@@ -235,7 +235,7 @@ func SettingsSecurityPost(ctx *context.Context, form auth.ChangePasswordForm) {
 			ctx.Handle(500, "UpdateUser", err)
 			return
 		}
-		ctx.User.EncodePasswd()
+		ctx.User.HashPassword()
 		if err := models.UpdateUserCols(ctx.User, "salt", "passwd"); err != nil {
 			ctx.Handle(500, "UpdateUser", err)
 			return

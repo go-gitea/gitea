@@ -15,42 +15,57 @@ menu:
 
 # Customizing Gitea
 
-The main way to customize Gitea is by using the `custom` folder. This is the central place to override and configure features.
+Customizing Gitea is typically done using the `custom` folder. This is the central
+place to override configuration settings, templates, etc.
 
-If you install Gitea from binary, after the installation process ends, you can find the `custom` folder next to the binary.
-Gitea will create the folder for you and prepopulate it with a `conf` folder inside, where Gitea stores all the configuration settings provided through the installation steps (have a look [here](https://docs.gitea.io/en-us/config-cheat-sheet/) for a complete list).
+If Gitea is deployed from binary, all default paths will be relative to the gitea
+binary. If installed from a distribution, these paths will likely be modified to
+the Linux Filesystem Standard. Gitea will create required folders, including `custom/`.
+Application settings are configured in `custom/conf/app.ini`. Distributions may
+provide a symlink for `custom` using `/etc/gitea/`.
 
-If you can't find the `custom` folder next to the binary, please check the `GITEA_CUSTOM` environment variable, that can be used to override the default path to something else. `GITEA_CUSTOM` might be set for example in your launch script file. Please have a look [here](https://docs.gitea.io/en-us/specific-variables/) for a complete list of environment variables.
+- [Quick Cheat Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/)
+- [Complete List](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
 
-**Note** that you have to restart Gitea for it to notice the changes.
+If the `custom` folder can't be found next to the binary, check the `GITEA_CUSTOM`
+environment variable; this can be used to override the default path to something else.
+`GITEA_CUSTOM` might, for example, be set by an init script.
+
+- [List of Environment Variables](https://docs.gitea.io/en-us/specific-variables/)
+
+**Note:** Gitea must perform a full restart to see configuration changes.
 
 ## Customizing /robots.txt
 
-To make Gitea serve your own `/robots.txt` (by default, an empty 404 status is served), simply create a file called `robots.txt` in the `custom` folder with the [expected contents](http://www.robotstxt.org/).
+To make Gitea serve a custom `/robots.txt` (default: empty 404), create a file called
+`robots.txt` in the `custom` folder with [expected contents](http://www.robotstxt.org/).
 
 ## Serving custom public files
 
-To make Gitea serve custom public files (like pages and images), use the folder `custom/public/` as the webroot. Symbolic links will be followed.
+To make Gitea serve custom public files (like pages and images), use the folder
+`custom/public/` as the webroot. Symbolic links will be followed.
 
-For example, a file `image.png` stored in `custom/public`, can be accessed with the url `http://your-gitea-url/image.png`.
+For example, a file `image.png` stored in `custom/public/`, can be accessed with
+the url `http://gitea.domain.tld/image.png`.
 
 ## Changing the default avatar
 
-Place the png image at the following path: `custom/public/img/avatar_default.png`
+Place the png image at the following path: `custom/public/img/avatar\_default.png`
 
 ## Customizing Gitea pages
 
-The `custom/templates` folder allows you to change every single page of Gitea.
+The `custom/templates` folder allows changing every single page of Gitea. Templates
+to override can be found in the `templates` directory of Gitea source. Override by
+making a copy of the file under `custom/templates` using a full path structure
+matching source.
 
-You need to be aware of the template you want to change. All templates can be found in the `templates` folder of the Gitea sources.
+Any statement contained inside `{{` and `}}` are Gitea's templete syntax and
+shouldn't be touched without fully understanding these components.
 
-When you find the correct .tmpl file, you need to copy it in the `custom/templates` folder of your installation, __respecting__ any subfolder you found in the source template.
-
-You can now customize the template you copied in `custom/templates`, being carefully to not break the Gitea syntax.
-Any statement contained inside `{{` and `}}` are Gitea templete's syntax and shouldn't be touch, unless you know what are you doing.
-
-To add in custom HTML to the header or the footer of the page, in the `templates/custom` directory there are `header.tmpl` and `footer.tmpl` that can be modified. This is useful if you want to add in custom CSS files, or additional Javascript.
+To add custom HTML to the header or the footer of the page, in the `templates/custom`
+directory there is `header.tmpl` and `footer.tmpl` that can be modified. This can be
+a useful place to add custom CSS files or additional Javascript.
 
 ## Customizing gitignores, labels, licenses, locales, and readmes.
 
-Place your own files in corresponding sub-folder under `custom/options`.
+Place custom files in corresponding sub-folder under `custom/options`.
