@@ -2,9 +2,11 @@
 <div class="repository view issue pull">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<div class="navbar">
-			{{template "repo/issue/navbar" .}}
-			<div class="ui right">
+		<div class="ui two column stackable grid">
+			<div class="column">
+				{{template "repo/issue/navbar" .}}
+			</div>
+			<div class="column right aligned">
 				{{if .PageIsIssueList}}
 					<a class="ui green button" href="{{.RepoLink}}/issues/new">{{.i18n.Tr "repo.issues.new"}}</a>
 				{{else}}

@@ -649,6 +649,28 @@ function initRepository() {
             $('#status').val($statusButton.data('status-val'));
             $('#comment-form').submit();
         });
+
+        // Pull Request merge button
+        var $mergeButton = $('.merge-button > button');
+        $mergeButton.on('click', function(e) {
+            e.preventDefault();
+            $('.' + $(this).data('do') + '-fields').show();
+            $(this).parent().hide();
+        });
+        $('.merge-button > .dropdown').dropdown({
+            onChange: function (text, value, $choice) {
+                if ($choice.data('do')) {
+                    $mergeButton.find('.button-text').text($choice.text());
+                    $mergeButton.data('do', $choice.data('do'));
+                }
+            }
+        });
+        $('.merge-cancel').on('click', function(e) {
+            e.preventDefault();
+            $(this).closest('.form').hide();
+            $mergeButton.parent().show();
+        });
+
         initReactionSelector();
     }
 
@@ -1531,11 +1553,11 @@ $(document).ready(function () {
     $('.issue-checkbox').click(function() {
         var numChecked = $('.issue-checkbox').children('input:checked').length;
         if (numChecked > 0) {
-            $('.issue-filters').hide();
-            $('.issue-actions').show();
+            $('#issue-filters').hide();
+            $('#issue-actions').show();
         } else {
-            $('.issue-filters').show();
-            $('.issue-actions').hide();
+            $('#issue-filters').show();
+            $('#issue-actions').hide();
         }
     });
 
@@ -1568,6 +1590,7 @@ $(document).ready(function () {
     initVueApp();
     initTeamSettings();
     initCtrlEnterSubmit();
+    initNavbarContentToggle();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -2076,3 +2099,20 @@ function initFilterBranchTagDropdown(selector) {
 $(".commit-button").click(function() {
     $(this).parent().find('.commit-body').toggle();
 });
+
+function initNavbarContentToggle() {
+    var content = $('#navbar');
+    var toggle = $('#navbar-expand-toggle');
+    var isExpanded = false;
+    toggle.click(function() {
+        isExpanded = !isExpanded;
+        if (isExpanded) {
+            content.addClass('shown');
+            toggle.addClass('active');
+        }
+        else {
+            content.removeClass('shown');
+            toggle.removeClass('active');
+        }
+    });
+}

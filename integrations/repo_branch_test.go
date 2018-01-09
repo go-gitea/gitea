@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testCreateBranch(t *testing.T, session *TestSession, user, repo, oldRefSubURL, newBranchName string, expectedStatus int) string {
+func testCreateBranch(t testing.TB, session *TestSession, user, repo, oldRefSubURL, newBranchName string, expectedStatus int) string {
 	var csrf string
 	if expectedStatus == http.StatusNotFound {
 		csrf = GetCSRF(t, session, path.Join(user, repo, "src/branch/master"))

@@ -161,6 +161,12 @@ var migrations = []Migration{
 	// v53 -> v54
 	NewMigration("add reactions", addReactions),
 	// v54 -> v55
+	NewMigration("add pull request options", addPullRequestOptions),
+	// v55 -> v56
+	NewMigration("add writable deploy keys", addModeToDeploKeys),
+	// v56 -> v57
+	NewMigration("remove is_owner, num_teams columns from org_user", removeIsOwnerColumnFromOrgUser),
+	// v57 -> v58
 	NewMigration("add login source id column for public_key table", addLoginSourceIDToPublicKeyTable),
 }
 

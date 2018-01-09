@@ -15,25 +15,28 @@ menu:
 
 # Upgrade from Gogs
 
-Gogs versions up to 0.9.146 (db schema version 15) can be smoothly upgraded to Gitea.
+Gogs, version 0.9.146 and older, can be easily migrated to Gitea.
 
-There are some steps to do so below. On Unix run as your Gogs user:
+There are some basic steps to follow. On a Linux system run as the Gogs user:
 
-* Create a Gogs backup with `gogs dump`. This creates `gogs-dump-[timestamp].zip` file containing all your Gogs data. 
-* Download the file matching your platform from the [downloads page](https://dl.gitea.io/gitea).
+* Create a Gogs backup with `gogs dump`. This creates `gogs-dump-[timestamp].zip` file
+  containing all important Gogs data.
+* Download the file matching the destination platform from the [downloads page](https://dl.gitea.io/gitea).
 * Put the binary at the desired install location.
 * Copy `gogs/custom/conf/app.ini` to `gitea/custom/conf/app.ini`.
-* If you have custom `templates, public` in `gogs/custom/` copy them to `gitea/custom/`.
-* If you have any other custom folders like `gitignore, label, license, locale, readme` in `gogs/custom/conf` copy them to `gitea/custom/options`.
+* Copy custom `templates, public` from `gogs/custom/` to `gitea/custom/`.
+* For any other custom folders, such as `gitignore, label, license, locale, readme` in
+  `gogs/custom/conf`, copy them to `gitea/custom/options`.
 * Copy `gogs/data/` to `gitea/data/`. It contains issue attachments and avatars.
 * Verify by starting Gitea with `gitea web`.
-* Enter Gitea admin panel on the UI, run `Rewrite '.ssh/authorized_keys' file`, then run `Rewrite all update hook of repositories` (needed when custom config path is changed).
+* Enter Gitea admin panel on the UI, run `Rewrite '.ssh/authorized_keys' file`.
+* If custom or config path was changed, run `Rewrite all update hook of repositories`.
 
 ### Change gogs specific information:
 
 * Rename `gogs-repositories/` to `gitea-repositories/`
 * Rename `gogs-data/` to `gitea-data/`
-* In your `gitea/custom/conf/app.ini` change:
+* In `gitea/custom/conf/app.ini` change:
 
 FROM:
 ```
@@ -63,19 +66,22 @@ ROOT_PATH = /home/:USER/gitea/log
 
 ### Troubleshooting
 
-* If you encounter errors relating to custom templates in the `gitea/custom/templates` folder, try moving the templates causing the errors away one by one. They may not be compatible with Gitea.
+* If errors are encountered relating to custom templates in the `gitea/custom/templates`
+  folder, try moving the templates causing the errors away one by one. They may not be
+  compatible with Gitea or an update.
 
 ### Add Gitea to startup on Unix
 
-Update the appropriate file from [gitea/contrib](https://github.com/go-gitea/gitea/tree/master/contrib) with the right environment variables.
+Update the appropriate file from [gitea/contrib](https://github.com/go-gitea/gitea/tree/master/contrib)
+with the right environment variables.
 
-For distro's with systemd:
+For distros with systemd:
 
 * Copy the updated script to `/etc/systemd/system/gitea.service`
 * Add the service to the startup with: `sudo systemctl enable gitea`
 * Disable old gogs startup script: `sudo systemctl disable gogs`
 
-For distro's with SysVinit:
+For distros with SysVinit:
 
 * Copy the updated script to `/etc/init.d/gitea`
 * Add the service to the startup with: `sudo rc-update add gitea`

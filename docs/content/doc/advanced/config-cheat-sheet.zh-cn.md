@@ -29,6 +29,7 @@ menu:
 - `SCRIPT_TYPE`: 服务器支持的Shell类型，通常是 `bash`，但有些服务器也有可能是 `sh`。
 - `ANSI_CHARSET`: 默认字符编码。
 - `FORCE_PRIVATE`: 强制所有git工程必须私有。
+- `DEFAULT_PRIVATE`: 默认创建的git工程为私有。 可以是`last`, `private` 或 `public`。默认值是 `last`表示用户最后创建的Repo的选择。
 - `MAX_CREATION_LIMIT`: 全局最大每个用户创建的git工程数目， `-1` 表示没限制。
 - `PULL_REQUEST_QUEUE_LENGTH`: 小心：合并请求测试队列的长度，尽量放大。
 
@@ -184,6 +185,25 @@ menu:
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: 比较视图中一行最大字符数。
 - `MAX_GIT_DIFF_FILES`: 比较视图中的最大现实文件数目。
 - `GC_ARGS`: 执行 `git gc` 命令的参数, 比如： `--aggressive --auto`。
+
+## markup (`markup`)
+
+外部渲染工具支持，你可以用你熟悉的文档渲染工具. 比如一下将新增一个名字为 `asciidoc` 的渲染工具which is followed `markup.` ini section. And there are some config items below.
+
+```ini
+[markup.asciidoc]
+ENABLED = false
+FILE_EXTENSIONS = .adoc,.asciidoc
+RENDER_COMMAND = "asciidoc --out-file=- -"
+IS_INPUT_FILE = false
+```
+
+- ENABLED: 是否启用，默认为false。
+- FILE_EXTENSIONS: 关联的文档的扩展名，多个扩展名用都好分隔。
+- RENDER_COMMAND: 工具的命令行命令及参数。
+- IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。
+
+
 
 ## Other (`other`)
 

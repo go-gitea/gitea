@@ -13,6 +13,13 @@ import (
 	"github.com/go-xorm/builder"
 )
 
+// RepositoryListDefaultPageSize is the default number of repositories
+// to load in memory when running administrative tasks on all (or almost
+// all) of them.
+// The number should be low enough to avoid filling up all RAM with
+// repository data...
+const RepositoryListDefaultPageSize = 64
+
 // RepositoryList contains a list of repositories
 type RepositoryList []*Repository
 

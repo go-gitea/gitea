@@ -3,16 +3,16 @@
 	"ignore": "test appengine",
 	"package": [
 		{
-			"checksumSHA1": "UnJFMWkh0ulYlOV0etJYgt5SzJY=",
+			"checksumSHA1": "1WHdGmDRsFRTD5N69l+MEbZr+nM=",
 			"path": "code.gitea.io/git",
-			"revision": "4768133d10fa395278f545f3bf3ce44552b30ad6",
-			"revisionTime": "2017-12-10T10:06:09Z"
+			"revision": "f4a91053671bee69f1995e456c1541668717c19d",
+			"revisionTime": "2018-01-07T06:11:05Z"
 		},
 		{
-			"checksumSHA1": "QQ7g7B9+EIzGjO14KCGEs9TNEzM=",
+			"checksumSHA1": "Qtq0kW+BnpYMOriaoCjMa86WGG8=",
 			"path": "code.gitea.io/sdk/gitea",
-			"revision": "ec7d3af43b598c1a3f2cb12f633b9625649d8e54",
-			"revisionTime": "2017-11-28T12:30:39Z"
+			"revision": "79eee8f12c7fc1cc5b802c5cdc5b494ef3733866",
+			"revisionTime": "2017-12-20T06:57:50Z"
 		},
 		{
 			"checksumSHA1": "bOODD4Gbw3GfcuQPU2dI40crxxk=",
@@ -1185,12 +1185,6 @@
 		{
 			"checksumSHA1": "mGbTYZ8dHVTiPTTJu3ktp+84pPI=",
 			"path": "github.com/stretchr/testify/assert",
-			"revision": "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f",
-			"revisionTime": "2017-08-14T20:04:35Z"
-		},
-		{
-			"checksumSHA1": "7vs6dSc1PPGBKyzb/SCIyeMJPLQ=",
-			"path": "github.com/stretchr/testify/require",
 			"revision": "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f",
 			"revisionTime": "2017-08-14T20:04:35Z"
 		},

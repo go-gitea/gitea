@@ -19,31 +19,41 @@
 
 @create-page-form-input-padding: 250px !important;
 #create-page-form {
-    form {
-        margin: auto;
-        width: 800px!important;
-        .ui.message {
-            text-align: center;
-        }
-        .header {
-            padding-left: @create-page-form-input-padding+30px;
-        }
-        .inline.field > label {
-            text-align: right;
-            width: @create-page-form-input-padding;
-            word-wrap: break-word;
-        }
-        .help {
-            margin-left: @create-page-form-input-padding+15px;
-        }
-        .optional .title {
-            margin-left: @create-page-form-input-padding;
-        }
-        input,
-        textarea {
-            width: 50%!important;
-        }
-    }
+	form {
+		margin: auto;
+		.ui.message {
+			text-align: center;
+		}
+		@media only screen and (min-width: 768px) {
+			width: 800px!important;
+			.header {
+				padding-left: @create-page-form-input-padding+30px;
+			}
+			.inline.field > label {
+				text-align: right;
+				width: @create-page-form-input-padding;
+				word-wrap: break-word;
+			}
+			.help {
+				margin-left: @create-page-form-input-padding+15px;
+			}
+			.optional .title {
+				margin-left: @create-page-form-input-padding;
+			}
+			input,
+			textarea {
+				width: 50%!important;
+			}
+		}
+		@media only screen and (max-width: 767px) {
+			.optional .title {
+				margin-left: 15px;
+			}
+			.inline.field > label {
+				display: block;
+			}
+		}
+	}
 }
 
 .signin {
@@ -113,16 +123,18 @@
         }
     }
 
-    &.new.repo {
-        .ui.form {
-            .selection.dropdown:not(.owner) {
-                width: 50%!important;
-            }
-            #auto-init {
-                margin-left: @create-page-form-input-padding+15px;
-            }
-        }
-    }
+	&.new.repo {
+		.ui.form {
+			.selection.dropdown:not(.owner) {
+				width: 50%!important;
+			}
+			@media only screen and (min-width: 768px) {
+				#auto-init {
+					margin-left: @create-page-form-input-padding+15px;
+				}
+			}
+		}
+	}
 }
 
 .new.webhook {

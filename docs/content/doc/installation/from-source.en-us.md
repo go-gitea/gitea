@@ -15,52 +15,66 @@ menu:
 
 # Installation from source
 
-We won't cover the basics of a Golang setup within this guide. If you don't know how to get the environment up and running you should follow the official [install instructions](https://golang.org/doc/install).
+This section will not include basic [installation instructions](https://golang.org/doc/install).
 
 **Note**: Go version 1.7 or higher is required
 
 ## Download
 
-First of all you have to retrieve the source code, the easiest way is to simply use directly Go for that. Just call the following commands to fetch the source and to switch into the working directory.
+First retrieve the source code. The easiest way is to use the Go tool. Use the following
+commands to fetch the source and switch into the source directory.
 
 ```
 go get -d -u code.gitea.io/gitea
 cd $GOPATH/src/code.gitea.io/gitea
 ```
 
-Now it's time to decide which version of Gitea you want to build and install. Currently there are multiple options you can choose from. If you want to build our `master` branch you can directly go ahead to the [build section](#build), this branch represents our current development version and this is not intended for production use.
+Decide which version of Gitea to build and install. Currently, there are multiple options
+to choose from. The `master` branch represents the current development version. To build
+with master, skip to the [build section](#build).
 
-If you want to build the latest stable version that acts as a development branch for the tagged releases you can see the available branches and how to checkout this branch with these commands:
-
+To work with tagged releases, the following commands can be used:
 ```
 git branch -a
 git checkout v1.0
 ```
 
-If you would validate a Pull Request, first your must enable this new branch : (`xyz` is the PR id, for example `2663` for [#2663](https://github.com/go-gitea/gitea/pull/2663))
+To validate a Pull Request, first enable the new branch (`xyz` is the PR id; for example
+`2663` for [#2663](https://github.com/go-gitea/gitea/pull/2663)):
 
 ```
 git fetch origin pull/xyz/head:pr-xyz
 ```
 
-Last but not least you can also directly build our tagged versions like `v1.0.0`, if you want to build Gitea from the source this is the suggested way for that. To use the tags you need to list the available tags and checkout a specific tag with the following commands:
+To build Gitea from source at a specific tagged release (like v1.0.0), list the available
+tags and check out the specific tag.
+
+List available tags with the following.
 
 ```
 git tag -l
-git checkout v1.0.0
-git checkout pr-xyz
+git checkout v1.0.0  # or git checkout pr-xyz
 ```
 
 ## Build
 
-Since we already bundle all required libraries to build Gitea you can continue with the build process itself. We provide various [make tasks](https://github.com/go-gitea/gitea/blob/master/Makefile) to keep the build process as simple as possible. <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>See here how to get Make</a>. Depending on your requirements you possibly want to add various build tags, you can choose between these tags:
+Since all required libraries are already bundled in the Gitea source, it's
+possible to build Gitea with no additional downloads. Various
+[make tasks](https://github.com/go-gitea/gitea/blob/master/Makefile) are
+provided to keep the build process as simple as possible.
+<a href='{{< relref "doc/advanced/make.en-us.md" >}}'>See here how to get Make</a>.
+Depending on requirements, the following build tags can be included.
 
-* `bindata`: With this tag you can embed all assets required to run an instance of Gitea, this makes a deployment quite easy because you don't need to care about any additional file.
-* `sqlite`: With this tag you can enable support for a [SQLite3](https://sqlite.org/) database, this is only suggested for tiny Gitea installations.
-* `tidb`: With this tag you can enable support for a [TiDB](https://github.com/pingcap/tidb) database, it's a quite simple file-based database comparable with SQLite.
-* `pam`: With this tag you can enable support for PAM (Linux Pluggable Authentication Modules), this is useful if your users should be authenticated via your available system users.
+* `bindata`: Build a single monolithic binary, with all assets included.
+* `sqlite`: Enable support for a [SQLite3](https://sqlite.org/) database. Suggested only
+  for tiny installations.
+* `tidb`: Enable support for a [TiDB](https://github.com/pingcap/tidb) database.
+* `pam`: Enable support for PAM (Linux Pluggable Authentication Modules). Can be used to
+  authenticate local users or extend authentication to methods available to PAM.
 
-Now it's time to build the binary, we suggest to embed the assets with the `bindata` build tag, to include the assets you also have to execute the `generate` make task, otherwise the assets are not prepared to get embedded:
+Bundling assets into the binary using the `bindata` build tag can make development and
+testing easier, but is not ideal for a production deployment. To include assets, they
+must be built separately using the `generate` make task.
 
 ```
 TAGS="bindata" make generate build
@@ -68,12 +82,10 @@ TAGS="bindata" make generate build
 
 ## Test
 
-After following the steps above you will have a `gitea` binary within your working directory, first you can test it if it works like expected and afterwards you can copy it to the destination where you want to store it. When you launch Gitea manually from your CLI you can always kill it by hitting `Ctrl + C`.
+After following the steps above a `gitea` binary will be available in the working directory.
+It can be tested from this directory or moved to a directory with test data. When Gitea is
+launched manually from command line, it can be killed by pressing `Ctrl + C`.
 
 ```
 ./gitea web
 ```
-
-## Anything missing?
-
-Are we missing anything on this page? Then feel free to reach out to us on our [Discord server](https://discord.gg/NsatcWJ), there you will get answers to any question pretty fast.
