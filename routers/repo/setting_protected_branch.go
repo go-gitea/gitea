@@ -94,7 +94,7 @@ func ProtectedBranchPost(ctx *context.Context) {
 func SettingsProtectedBranch(c *context.Context) {
 	branch := c.Params("*")
 	if !c.Repo.GitRepo.IsBranchExist(branch) {
-		c.NotFound()
+		c.NotFound("IsBranchExist", nil)
 		return
 	}
 
@@ -142,7 +142,7 @@ func SettingsProtectedBranch(c *context.Context) {
 func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm) {
 	branch := ctx.Params("*")
 	if !ctx.Repo.GitRepo.IsBranchExist(branch) {
-		ctx.NotFound()
+		ctx.NotFound("IsBranchExist", nil)
 		return
 	}
 

@@ -906,7 +906,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
 	if setting.MailService == nil {
-		ctx.Handle(403, "ForgotPasswdPost", nil)
+		ctx.NotFound("ForgotPasswdPost", nil)
 		return
 	}
 	ctx.Data["IsResetRequest"] = true

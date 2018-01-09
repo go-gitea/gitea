@@ -353,10 +353,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("", func() {
 			m.Get("/create", org.Create)
 			m.Post("/create", bindIgnErr(auth.CreateOrgForm{}), org.CreatePost)
-		}, func(ctx *context.Context) {
-			if !ctx.User.CanCreateOrganization() {
-				ctx.NotFound()
-			}
 		})
 
 		m.Group("/:org", func() {

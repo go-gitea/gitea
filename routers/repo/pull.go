@@ -940,7 +940,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	}
 
 	if !ctx.User.IsWriterOfRepo(pr.HeadRepo) {
-		ctx.Handle(403, "CleanUpPullRequest", nil)
+		ctx.NotFound("CleanUpPullRequest", nil)
 		return
 	}
 
