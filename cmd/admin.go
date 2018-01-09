@@ -6,7 +6,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 
 	"code.gitea.io/git"
@@ -196,26 +195,4 @@ func getReleaseCount(id int64) (int64, error) {
 			IncludeTags: true,
 		},
 	)
-}
-
-// argsSet checks that all the required arguments are set. args is a list of
-// arguments that must be set in the passed Context.
-func argsSet(c *cli.Context, args ...string) error {
-	for _, a := range args {
-		if !c.IsSet(a) {
-			return errors.New(a + " is not set")
-		}
-	}
-	return nil
-}
-
-func initDB() error {
-	setting.NewContext()
-	models.LoadConfigs()
-
-	setting.NewXORMLogService(false)
-	if err := models.SetEngine(); err != nil {
-		return fmt.Errorf("models.SetEngine: %v", err)
-	}
-	return nil
 }
