@@ -310,7 +310,7 @@ func Issues(ctx *context.Context) {
 	showRepos := models.RepositoryListOfMap(showReposMap)
 	sort.Sort(showRepos)
 	if err = showRepos.LoadAttributes(); err != nil {
-		ctx.Handle(500, "LoadAttributes", fmt.Errorf("%v", err))
+		ctx.Handle(500, "LoadAttributes", err)
 		return
 	}
 
