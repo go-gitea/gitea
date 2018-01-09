@@ -477,7 +477,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Combo("").Get(repo.GetPullRequest).
 							Patch(reqToken(), reqRepoWriter(), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
-							Post(reqToken(), reqRepoWriter(), repo.MergePullRequest)
+							Post(reqToken(), reqRepoWriter(), bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
 					})
 
 				}, mustAllowPulls, context.ReferencesGitRepo())

@@ -9,11 +9,16 @@ draft: false
 
 # What is Gitea?
 
-Gitea is a painless self-hosted Git service. It is similar to GitHub, Bitbucket or Gitlab. The initial development have been done on [Gogs](http://gogs.io) but we have forked it and named it Gitea. If you want to read more about the reasons why we have done that please read [this](https://blog.gitea.io/2016/12/welcome-to-gitea/) blog post.
+Gitea is a painless self-hosted Git service. It is similar to GitHub, Bitbucket, and Gitlab.
+Gitea is a fork of [Gogs](http://gogs.io). See the [Gitea Announcement](https://blog.gitea.io/2016/12/welcome-to-gitea/)
+blog post to read about the justification for a fork.
 
 ## Purpose
 
-The goal of this project is to make the easiest, fastest, and most painless way of setting up a self-hosted Git service. With Go, this can be done with an independent binary distribution across ALL platforms that Go supports, including Linux, macOS and Windows, even on architectures like ARM or PowerPC.
+The goal of this project is to provide the easiest, fastest, and most painless way of setting
+up a self-hosted Git service. With Go, this can be done with an independent binary distribution
+across all platforms and architectures that Go supports. This support includes Linux, macOS, and
+Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 
 ## Features
 
@@ -25,7 +30,7 @@ The goal of this project is to make the easiest, fastest, and most painless way 
         - Pull requests
         - Repository creation
     - Searchable repository list
-    - List of your organizations
+    - List of organizations
     - A list of mirror repositories
 - Issues dashboard
     - Context switcher (organization or current user)
@@ -67,9 +72,9 @@ The goal of this project is to make the easiest, fastest, and most painless way 
         - PostgreSQL
         - SQLite3
         - MSSQL
-        - [TiDB](https://github.com/pingcap/tidb) (experimental)
+        - TiDB (experimental, not recommended)
     - Configuration file
-        - See [here](https://github.com/go-gitea/gitea/blob/master/conf/app.ini)
+        - [app.ini](https://github.com/go-gitea/gitea/blob/master/conf/app.ini)
     - Admin panel
         - Statistics
         - Actions
@@ -245,14 +250,14 @@ The goal of this project is to make the easiest, fastest, and most painless way 
 
 ## System Requirements
 
-- A cheap Raspberry Pi is powerful enough for basic functionality.
-- 2 CPU cores and 1GB RAM would be the baseline for teamwork.
-- Gitea is supposed to be run with a dedicated non-root user account on UNIX systems, no other mode of operation is supported. (**NOTE**: in case you run it with your own user account and the built-in SSH server disabled, Gitea modifies the `~/.ssh/authorized_keys` file so you will **not** be able to interactively log in.)
+- A Raspberry Pi 3 is powerful enough to run Gitea for small workloads.
+- 2 CPU cores and 1GB RAM is typically sufficient for small teams/projects.
+- Gitea should be run with a dedicated non-root system account on UNIX-type systems.
+   - Note: Gitea manages the `~/.ssh/authorized_keys` file. Running gitea as a regular user could break that user's ability to log in.
 
 ## Browser Support
 
 - Please see [Semantic UI](https://github.com/Semantic-Org/Semantic-UI#browser-support) for specific versions of supported browsers.
-- The official support minimal size  is **1024*768**, UI may still looks right in smaller size but no promises and fixes.
 
 ## Components
 

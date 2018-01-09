@@ -37,24 +37,11 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-const (
-	tplUpdateHook = "#!/usr/bin/env %s\n%s update $1 $2 $3 --config='%s'\n"
-)
-
 var repoWorkingPool = sync.NewExclusivePool()
 
 var (
-	// ErrRepoFileNotExist repository file does not exist error
-	ErrRepoFileNotExist = errors.New("Repository file does not exist")
-
-	// ErrRepoFileNotLoaded repository file not loaded error
-	ErrRepoFileNotLoaded = errors.New("Repository file not loaded")
-
 	// ErrMirrorNotExist mirror does not exist error
 	ErrMirrorNotExist = errors.New("Mirror does not exist")
-
-	// ErrInvalidReference invalid reference specified error
-	ErrInvalidReference = errors.New("Invalid reference specified")
 
 	// ErrNameEmpty name is empty error
 	ErrNameEmpty = errors.New("Name is empty")
@@ -440,6 +427,11 @@ func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
 			Type:   tp,
 			Config: new(ExternalTrackerConfig),
 		}
+	} else if tp == UnitTypePullRequests {
+		return &RepoUnit{
+			Type:   tp,
+			Config: new(PullRequestsConfig),
+		}
 	}
 	return &RepoUnit{
 		Type:   tp,
@@ -583,7 +575,9 @@ func (repo *Repository) GetMirror() (err error) {
 	return err
 }
 
-// GetBaseRepo returns the base repository
+// GetBaseRepo populates repo.BaseRepo for a fork repository and
+// returns an error on failure (NOTE: no error is returned for
+// non-fork repositories, and BaseRepo will be left untouched)
 func (repo *Repository) GetBaseRepo() (err error) {
 	if !repo.IsFork {
 		return nil
