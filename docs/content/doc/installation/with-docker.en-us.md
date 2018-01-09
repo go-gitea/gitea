@@ -154,7 +154,7 @@ services:
     ports:
       - "3000:3000"
       - "222:22"
-+   depends_on:
++    depends_on:
 +      - db
 +
 +  db:
