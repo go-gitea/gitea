@@ -1553,11 +1553,11 @@ $(document).ready(function () {
     $('.issue-checkbox').click(function() {
         var numChecked = $('.issue-checkbox').children('input:checked').length;
         if (numChecked > 0) {
-            $('.issue-filters').hide();
-            $('.issue-actions').show();
+            $('#issue-filters').hide();
+            $('#issue-actions').show();
         } else {
-            $('.issue-filters').show();
-            $('.issue-actions').hide();
+            $('#issue-filters').show();
+            $('#issue-actions').hide();
         }
     });
 
@@ -1590,6 +1590,7 @@ $(document).ready(function () {
     initVueApp();
     initTeamSettings();
     initCtrlEnterSubmit();
+    initNavbarContentToggle();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -1679,8 +1680,7 @@ function showDeletePopup() {
     var $this = $(this);
     var filter = "";
 
-
-    // Replace class content
+    // Replace content to repositoy name
     var content = $('.content').text();
     content     = content.replace("%s",$this.data('repo-name'));
     $('.content').html(content);
@@ -2109,3 +2109,20 @@ function initFilterBranchTagDropdown(selector) {
 $(".commit-button").click(function() {
     $(this).parent().find('.commit-body').toggle();
 });
+
+function initNavbarContentToggle() {
+    var content = $('#navbar');
+    var toggle = $('#navbar-expand-toggle');
+    var isExpanded = false;
+    toggle.click(function() {
+        isExpanded = !isExpanded;
+        if (isExpanded) {
+            content.addClass('shown');
+            toggle.addClass('active');
+        }
+        else {
+            content.removeClass('shown');
+            toggle.removeClass('active');
+        }
+    });
+}
