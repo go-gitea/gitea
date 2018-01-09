@@ -31,7 +31,7 @@ func Search(ctx *context.Context) {
 	}
 	total, searchResults, err := search.PerformSearch(ctx.Repo.Repository.ID, keyword, page, setting.UI.RepoSearchPagingNum)
 	if err != nil {
-		ctx.Handle(500, "SearchResults", err)
+		ctx.ServerError("SearchResults", err)
 		return
 	}
 	ctx.Data["Keyword"] = keyword

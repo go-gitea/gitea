@@ -17,7 +17,7 @@ import (
 func IssueWatch(c *context.Context) {
 	watch, err := strconv.ParseBool(c.Req.PostForm.Get("watch"))
 	if err != nil {
-		c.Handle(http.StatusInternalServerError, "watch is not bool", err)
+		c.ServerError("watch is not bool", err)
 		return
 	}
 
@@ -27,7 +27,7 @@ func IssueWatch(c *context.Context) {
 	}
 
 	if err := models.CreateOrUpdateIssueWatch(c.User.ID, issue.ID, watch); err != nil {
-		c.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueWatch", err)
+		c.ServerError("CreateOrUpdateIssueWatch", err)
 		return
 	}
 
