@@ -388,8 +388,8 @@ func (u *User) NewGitSig() *git.Signature {
 	}
 }
 
-// EncodePasswd encodes password to safe format.
-func (u *User) EncodePasswd() {
+// HashPassword hashes a password using PBKDF.
+func (u *User) HashPassword() {
 	newPasswd := pbkdf2.Key([]byte(u.Passwd), []byte(u.Salt), 10000, 50, sha256.New)
 	u.Passwd = fmt.Sprintf("%x", newPasswd)
 }
@@ -397,7 +397,7 @@ func (u *User) EncodePasswd() {
 // ValidatePassword checks if given password matches the one belongs to the user.
 func (u *User) ValidatePassword(passwd string) bool {
 	newUser := &User{Passwd: passwd, Salt: u.Salt}
-	newUser.EncodePasswd()
+	newUser.HashPassword()
 	return subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(newUser.Passwd)) == 1
 }
 
@@ -711,7 +711,7 @@ func CreateUser(u *User) (err error) {
 	if u.Salt, err = GetUserSalt(); err != nil {
 		return err
 	}
-	u.EncodePasswd()
+	u.HashPassword()
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	u.MaxRepoCreation = -1
 
