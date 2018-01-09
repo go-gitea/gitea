@@ -200,7 +200,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 			ctx.Handle(500, "UpdateUser", err)
 			return
 		}
-		u.EncodePasswd()
+		u.HashPassword()
 	}
 
 	u.LoginName = form.LoginName

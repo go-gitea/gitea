@@ -211,7 +211,12 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   models.UnitTypePullRequests,
-				Config: new(models.UnitConfig),
+				Config: &models.PullRequestsConfig{
+					IgnoreWhitespaceConflicts: form.PullsIgnoreWhitespace,
+					AllowMerge:                form.PullsAllowMerge,
+					AllowRebase:               form.PullsAllowRebase,
+					AllowSquash:               form.PullsAllowSquash,
+				},
 			})
 		}
 
@@ -539,7 +544,7 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 		return
 	}
 
-	key, err := models.AddDeployKey(ctx.Repo.Repository.ID, form.Title, content)
+	key, err := models.AddDeployKey(ctx.Repo.Repository.ID, form.Title, content, !form.IsWritable)
 	if err != nil {
 		ctx.Data["HasError"] = true
 		switch {

@@ -427,6 +427,11 @@ func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
 			Type:   tp,
 			Config: new(ExternalTrackerConfig),
 		}
+	} else if tp == UnitTypePullRequests {
+		return &RepoUnit{
+			Type:   tp,
+			Config: new(PullRequestsConfig),
+		}
 	}
 	return &RepoUnit{
 		Type:   tp,
@@ -570,7 +575,9 @@ func (repo *Repository) GetMirror() (err error) {
 	return err
 }
 
-// GetBaseRepo returns the base repository
+// GetBaseRepo populates repo.BaseRepo for a fork repository and
+// returns an error on failure (NOTE: no error is returned for
+// non-fork repositories, and BaseRepo will be left untouched)
 func (repo *Repository) GetBaseRepo() (err error) {
 	if !repo.IsFork {
 		return nil
