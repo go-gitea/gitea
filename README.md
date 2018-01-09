@@ -10,6 +10,7 @@
 [![Go Report Card](https://goreportcard.com/badge/code.gitea.io/gitea)](https://goreportcard.com/report/code.gitea.io/gitea)
 [![GoDoc](https://godoc.org/code.gitea.io/gitea?status.svg)](https://godoc.org/code.gitea.io/gitea)
 [![Release](https://github-release-version.herokuapp.com/github/go-gitea/gitea/release.svg?style=flat)](https://github.com/go-gitea/gitea/releases/latest)
+[![Help Contribute to Open Source](https://www.codetriage.com/go-gitea/gitea/badges/users.svg)](https://www.codetriage.com/go-gitea/gitea)
 
 | | | |
 |:---:|:---:|:---:|
