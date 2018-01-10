@@ -66,6 +66,8 @@ To add custom HTML to the header or the footer of the page, in the `templates/cu
 directory there is `header.tmpl` and `footer.tmpl` that can be modified. This can be
 a useful place to add custom CSS files or additional Javascript.
 
+If all you want is to add extra links to the top navigation bar, or extra tabs to the repository view, you can put them in `extra_links.tmpl` and `extra_tabs.tmpl` inside your `custom/templates/custom/` directory.
+
 ## Customizing gitignores, labels, licenses, locales, and readmes.
 
 Place custom files in corresponding sub-folder under `custom/options`.
