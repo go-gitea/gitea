@@ -69,13 +69,10 @@ func init() {
 }
 
 func (issue *Issue) totalTimes(e Engine) (string, error) {
-	times, err := GetTrackedTimes(FindTrackedTimesOptions{IssueID: issue.ID})
+	opts := FindTrackedTimesOptions{IssueID: issue.ID}
+	totalTime, err := e.Where(opts.ToCond()).SumInt(&TrackedTime{}, "time")
 	if err != nil {
 		return "", err
-	}
-	var totalTime int64
-	for _, trackedTime := range times {
-		totalTime += trackedTime.Time
 	}
 	return secToTime(totalTime), nil
 }

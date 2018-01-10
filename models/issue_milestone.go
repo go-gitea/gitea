@@ -87,13 +87,10 @@ func (m *Milestone) APIFormat() *api.Milestone {
 }
 
 func (m *Milestone) totalTimes(e Engine) (string, error) {
-	times, err := GetTrackedTimes(FindTrackedTimesOptions{MilestoneID: m.ID})
+	opts := FindTrackedTimesOptions{MilestoneID: m.ID}
+	totalTime, err := e.Where(opts.ToCond()).SumInt(&TrackedTime{}, "time")
 	if err != nil {
 		return "", err
-	}
-	var totalTime int64
-	for _, trackedTime := range times {
-		totalTime += trackedTime.Time
 	}
 	return secToTime(totalTime), nil
 }
