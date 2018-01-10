@@ -120,7 +120,7 @@ func HTTP(ctx *context.Context) {
 			authUser, err = models.UserSignIn(authUsername, authPasswd)
 			if err != nil {
 				if !models.IsErrUserNotExist(err) {
-					ctx.Handle(http.StatusInternalServerError, "UserSignIn error: %v", err)
+					ctx.ServerError("UserSignIn error: %v", err)
 					return
 				}
 			}
@@ -140,7 +140,7 @@ func HTTP(ctx *context.Context) {
 						if models.IsErrUserNotExist(err) {
 							ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
 						} else {
-							ctx.Handle(http.StatusInternalServerError, "GetUserByName", err)
+							ctx.ServerError("GetUserByName", err)
 						}
 						return
 					}
@@ -152,7 +152,7 @@ func HTTP(ctx *context.Context) {
 					if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
 						ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
 					} else {
-						ctx.Handle(http.StatusInternalServerError, "GetAccessTokenBySha", err)
+						ctx.ServerError("GetAccessTokenBySha", err)
 					}
 					return
 				}
@@ -160,7 +160,7 @@ func HTTP(ctx *context.Context) {
 				if isUsernameToken {
 					authUser, err = models.GetUserByID(token.UID)
 					if err != nil {
-						ctx.Handle(http.StatusInternalServerError, "GetUserByID", err)
+						ctx.ServerError("GetUserByID", err)
 						return
 					}
 				} else if authUser.ID != token.UID {
@@ -170,7 +170,7 @@ func HTTP(ctx *context.Context) {
 
 				token.UpdatedUnix = util.TimeStampNow()
 				if err = models.UpdateAccessToken(token); err != nil {
-					ctx.Handle(http.StatusInternalServerError, "UpdateAccessToken", err)
+					ctx.ServerError("UpdateAccessToken", err)
 				}
 			} else {
 				_, err = models.GetTwoFactorByUID(authUser.ID)
@@ -180,7 +180,7 @@ func HTTP(ctx *context.Context) {
 					ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
 					return
 				} else if !models.IsErrTwoFactorNotEnrolled(err) {
-					ctx.Handle(http.StatusInternalServerError, "IsErrTwoFactorNotEnrolled", err)
+					ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
 					return
 				}
 			}
@@ -188,13 +188,13 @@ func HTTP(ctx *context.Context) {
 			if !isPublicPull {
 				has, err := models.HasAccess(authUser.ID, repo, accessMode)
 				if err != nil {
-					ctx.Handle(http.StatusInternalServerError, "HasAccess", err)
+					ctx.ServerError("HasAccess", err)
 					return
 				} else if !has {
 					if accessMode == models.AccessModeRead {
 						has, err = models.HasAccess(authUser.ID, repo, models.AccessModeWrite)
 						if err != nil {
-							ctx.Handle(http.StatusInternalServerError, "HasAccess2", err)
+							ctx.ServerError("HasAccess2", err)
 							return
 						} else if !has {
 							ctx.HandleText(http.StatusForbidden, "User permission denied")
@@ -501,7 +501,7 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 				dir, err := getGitRepoPath(m[1])
 				if err != nil {
 					log.GitLogger.Error(4, err.Error())
-					ctx.Handle(http.StatusNotFound, "HTTPBackend", err)
+					ctx.NotFound("HTTPBackend", err)
 					return
 				}
 
@@ -510,7 +510,7 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 			}
 		}
 
-		ctx.Handle(http.StatusNotFound, "HTTPBackend", nil)
+		ctx.NotFound("HTTPBackend", nil)
 		return
 	}
 }

@@ -20,7 +20,7 @@ func AddTimeManually(c *context.Context, form auth.AddTimeManuallyForm) {
 		return
 	}
 	if !c.Repo.CanUseTimetracker(issue, c.User) {
-		c.Handle(http.StatusNotFound, "CanUseTimetracker", nil)
+		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
 	url := issue.HTMLURL()
@@ -40,7 +40,7 @@ func AddTimeManually(c *context.Context, form auth.AddTimeManuallyForm) {
 	}
 
 	if _, err := models.AddTime(c.User, issue, int64(total.Seconds())); err != nil {
-		c.Handle(http.StatusInternalServerError, "AddTime", err)
+		c.ServerError("AddTime", err)
 		return
 	}
 

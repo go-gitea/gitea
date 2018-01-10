@@ -72,19 +72,19 @@ func Releases(ctx *context.Context) {
 
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts, page, limit)
 	if err != nil {
-		ctx.Handle(500, "GetReleasesByRepoID", err)
+		ctx.ServerError("GetReleasesByRepoID", err)
 		return
 	}
 
 	count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, opts)
 	if err != nil {
-		ctx.Handle(500, "GetReleaseCountByRepoID", err)
+		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return
 	}
 
 	err = models.GetReleaseAttachments(releases...)
 	if err != nil {
-		ctx.Handle(500, "GetReleaseAttachments", err)
+		ctx.ServerError("GetReleaseAttachments", err)
 		return
 	}
 
@@ -103,14 +103,14 @@ func Releases(ctx *context.Context) {
 				if models.IsErrUserNotExist(err) {
 					r.Publisher = models.NewGhostUser()
 				} else {
-					ctx.Handle(500, "GetUserByID", err)
+					ctx.ServerError("GetUserByID", err)
 					return
 				}
 			}
 			cacheUsers[r.PublisherID] = r.Publisher
 		}
 		if err := calReleaseNumCommitsBehind(ctx.Repo, r, countCache); err != nil {
-			ctx.Handle(500, "calReleaseNumCommitsBehind", err)
+			ctx.ServerError("calReleaseNumCommitsBehind", err)
 			return
 		}
 		r.Note = markdown.RenderString(r.Note, ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas())
@@ -154,7 +154,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !models.IsErrReleaseNotExist(err) {
-			ctx.Handle(500, "GetRelease", err)
+			ctx.ServerError("GetRelease", err)
 			return
 		}
 
@@ -178,7 +178,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 			case models.IsErrInvalidTagName(err):
 				ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_invalid"), tplReleaseNew, &form)
 			default:
-				ctx.Handle(500, "CreateRelease", err)
+				ctx.ServerError("CreateRelease", err)
 			}
 			return
 		}
@@ -199,7 +199,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 
 		if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
 			ctx.Data["Err_TagName"] = true
-			ctx.Handle(500, "UpdateRelease", err)
+			ctx.ServerError("UpdateRelease", err)
 			return
 		}
 	}
@@ -219,9 +219,9 @@ func EditRelease(ctx *context.Context) {
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if models.IsErrReleaseNotExist(err) {
-			ctx.Handle(404, "GetRelease", err)
+			ctx.NotFound("GetRelease", err)
 		} else {
-			ctx.Handle(500, "GetRelease", err)
+			ctx.ServerError("GetRelease", err)
 		}
 		return
 	}
@@ -246,14 +246,14 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if models.IsErrReleaseNotExist(err) {
-			ctx.Handle(404, "GetRelease", err)
+			ctx.NotFound("GetRelease", err)
 		} else {
-			ctx.Handle(500, "GetRelease", err)
+			ctx.ServerError("GetRelease", err)
 		}
 		return
 	}
 	if rel.IsTag {
-		ctx.Handle(404, "GetRelease", err)
+		ctx.NotFound("GetRelease", err)
 		return
 	}
 	ctx.Data["tag_name"] = rel.TagName
@@ -277,7 +277,7 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
 	if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
-		ctx.Handle(500, "UpdateRelease", err)
+		ctx.ServerError("UpdateRelease", err)
 		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/releases")
