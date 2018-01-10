@@ -145,7 +145,7 @@ func TestRepository_InitWiki(t *testing.T) {
 func TestRepository_LocalWikiPath(t *testing.T) {
 	PrepareTestEnv(t)
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	expected := filepath.Join(setting.AppDataPath, "tmp/local-wiki/1")
+	expected := filepath.Join(setting.AppDataPath, setting.Repository.Local.LocalWikiPath, "1")
 	assert.Equal(t, expected, repo.LocalWikiPath())
 }
 
