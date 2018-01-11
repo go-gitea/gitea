@@ -64,6 +64,10 @@ var (
 	//   http://spec.commonmark.org/0.28/#email-address
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
 	emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*")
+
+	// matches http/https links. used for autlinking those. partly modified from
+	// the original present in autolink.js
+	linkRegex = regexp.MustCompile(`(?:(?:http|https):\/\/(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)(?:(?:\/[\+~%\/\.\w\-]*)?\??(?:[\-\+:=&;%@\.\w]*)#?(?:[\.\!\/\\\w]*))?`)
 )
 
 // regexp for full links to issues/pulls
@@ -468,6 +472,19 @@ func RenderEmailAddress(rawBytes []byte) []byte {
 	return emailRegex.ReplaceAll(rawBytes, emailReplace)
 }
 
+// RenderAutoLink creates links for any HTTP or HTTPS URL not captured by
+// markdown.
+func RenderAutoLink(rawBytes []byte) []byte {
+	return linkRegex.ReplaceAllFunc(rawBytes, func(b []byte) []byte {
+		// this is matched by the getIssueFullPattern, so we stay out of it.
+		if getIssueFullPattern().Match(b) || AnySHA1Pattern.Match(b) {
+			return b
+		}
+		res := html.EscapeString(string(b))
+		return []byte(`<a href="` + res + `">` + res + `</a>`)
+	})
+}
+
 // RenderSpecialLink renders mentions, indexes and SHA1 strings to corresponding links.
 func RenderSpecialLink(rawBytes []byte, urlPrefix string, metas map[string]string, isWikiMarkdown bool) []byte {
 	ms := MentionPattern.FindAll(rawBytes, -1)
@@ -477,9 +494,13 @@ func RenderSpecialLink(rawBytes []byte, urlPrefix string, metas map[string]strin
 			[]byte(fmt.Sprintf(`<a href="%s">%s</a>`, util.URLJoin(setting.AppURL, string(m[1:])), m)), -1)
 	}
 
-	rawBytes = RenderEmailAddress(rawBytes)
+	newRawBytes := RenderShortLinks(rawBytes, urlPrefix, false, isWikiMarkdown)
+	if len(newRawBytes) != len(rawBytes) {
+		return PostProcess(newRawBytes, urlPrefix, metas, isWikiMarkdown)
+	}
+	rawBytes = RenderEmailAddress(newRawBytes)
+	rawBytes = RenderAutoLink(rawBytes)
 	rawBytes = RenderFullIssuePattern(rawBytes)
-	rawBytes = RenderShortLinks(rawBytes, urlPrefix, false, isWikiMarkdown)
 	rawBytes = RenderIssueIndexPattern(rawBytes, RenderIssueIndexPatternOptions{
 		URLPrefix: urlPrefix,
 		Metas:     metas,

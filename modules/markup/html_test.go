@@ -207,14 +207,6 @@ func TestRender_AutoLink(t *testing.T) {
 	test(util.URLJoin(setting.AppSubURL, "issues", "3333"),
 		numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), 3333))
 
-	// render external issue URLs
-	for _, externalURL := range []string{
-		"http://1111/2222/ssss-issues/3333?param=blah&blahh=333",
-		"http://test.com/issues/33333",
-		"https://issues/333"} {
-		test(externalURL, externalURL)
-	}
-
 	// render valid commit URLs
 	tmp := util.URLJoin(AppSubURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
 	test(tmp, "<a href=\""+tmp+"\">d8a994ef24</a>")

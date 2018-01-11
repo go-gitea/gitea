@@ -22,21 +22,20 @@ type Renderer struct {
 	IsWiki    bool
 }
 
-var byteHTTPS = []byte("https://")
-var byteHTTP = []byte("http://")
+var byteMailto = []byte("mailto:")
 
 // Link defines how formal links should be processed to produce corresponding HTML elements.
 func (r *Renderer) Link(out *bytes.Buffer, link []byte, title []byte, content []byte) {
-	if len(link) > 0 && !markup.IsLink(link) {
-		// Ensure that we only rewrite the link for HTTP and HTTPS
-		if bytes.HasPrefix(link, byteHTTP) || bytes.HasPrefix(link, byteHTTPS) {
-			lnk := string(link)
-			if r.IsWiki {
-				lnk = util.URLJoin("wiki", lnk)
-			}
-			mLink := util.URLJoin(r.URLPrefix, lnk)
-			link = []byte(mLink)
+	// special case: this is not a link, a hash link or a mailto:, so it's a
+	// relative URL
+	if len(link) > 0 && !markup.IsLink(link) &&
+		link[0] != '#' && !bytes.HasPrefix(link, byteMailto) {
+		lnk := string(link)
+		if r.IsWiki {
+			lnk = util.URLJoin("wiki", lnk)
 		}
+		mLink := util.URLJoin(r.URLPrefix, lnk)
+		link = []byte(mLink)
 	}
 
 	r.Renderer.Link(out, link, title, content)
@@ -134,8 +133,7 @@ const (
 		blackfriday.EXTENSION_TABLES |
 		blackfriday.EXTENSION_FENCED_CODE |
 		blackfriday.EXTENSION_STRIKETHROUGH |
-		blackfriday.EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK |
-		blackfriday.EXTENSION_AUTOLINK
+		blackfriday.EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK
 	blackfridayHTMLFlags = 0 |
 		blackfriday.HTML_SKIP_STYLE |
 		blackfriday.HTML_OMIT_CONTENTS |
