@@ -35,9 +35,9 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 		org, err := models.GetUserByName(orgName)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
-				ctx.Handle(404, "GetUserByName", err)
+				ctx.NotFound("GetUserByName", err)
 			} else {
-				ctx.Handle(500, "GetUserByName", err)
+				ctx.ServerError("GetUserByName", err)
 			}
 			return nil
 		}
@@ -46,7 +46,7 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 	ctx.Data["ContextUser"] = ctxUser
 
 	if err := ctx.User.GetOrganizations(true); err != nil {
-		ctx.Handle(500, "GetOrganizations", err)
+		ctx.ServerError("GetOrganizations", err)
 		return nil
 	}
 	ctx.Data["Orgs"] = ctx.User.Orgs
@@ -58,7 +58,7 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) {
 	actions, err := models.GetFeeds(options)
 	if err != nil {
-		ctx.Handle(500, "GetFeeds", err)
+		ctx.ServerError("GetFeeds", err)
 		return
 	}
 
@@ -76,7 +76,7 @@ func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) {
 				if models.IsErrUserNotExist(err) {
 					continue
 				}
-				ctx.Handle(500, "GetUserByID", err)
+				ctx.ServerError("GetUserByID", err)
 				return
 			}
 			userCache[act.ActUserID] = u
@@ -90,7 +90,7 @@ func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) {
 				if models.IsErrRepoNotExist(err) {
 					continue
 				}
-				ctx.Handle(500, "GetRepositoryByID", err)
+				ctx.ServerError("GetRepositoryByID", err)
 				return
 			}
 		}
@@ -103,7 +103,7 @@ func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) {
 				if models.IsErrUserNotExist(err) {
 					continue
 				}
-				ctx.Handle(500, "GetUserByID", err)
+				ctx.ServerError("GetUserByID", err)
 				return
 			}
 		}
@@ -129,26 +129,26 @@ func Dashboard(ctx *context.Context) {
 	if ctxUser.IsOrganization() {
 		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
 		if err != nil {
-			ctx.Handle(500, "AccessibleReposEnv", err)
+			ctx.ServerError("AccessibleReposEnv", err)
 			return
 		}
 
 		mirrors, err = env.MirrorRepos()
 		if err != nil {
-			ctx.Handle(500, "env.MirrorRepos", err)
+			ctx.ServerError("env.MirrorRepos", err)
 			return
 		}
 	} else {
 		mirrors, err = ctxUser.GetMirrorRepositories()
 		if err != nil {
-			ctx.Handle(500, "GetMirrorRepositories", err)
+			ctx.ServerError("GetMirrorRepositories", err)
 			return
 		}
 	}
 	ctx.Data["MaxShowRepoNum"] = setting.UI.User.RepoPagingNum
 
 	if err := models.MirrorRepositoryList(mirrors).LoadAttributes(); err != nil {
-		ctx.Handle(500, "MirrorRepositoryList.LoadAttributes", err)
+		ctx.ServerError("MirrorRepositoryList.LoadAttributes", err)
 		return
 	}
 	ctx.Data["MirrorCount"] = len(mirrors)
@@ -217,18 +217,18 @@ func Issues(ctx *context.Context) {
 	if ctxUser.IsOrganization() {
 		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
 		if err != nil {
-			ctx.Handle(500, "AccessibleReposEnv", err)
+			ctx.ServerError("AccessibleReposEnv", err)
 			return
 		}
 		userRepoIDs, err = env.RepoIDs(1, ctxUser.NumRepos)
 		if err != nil {
-			ctx.Handle(500, "env.RepoIDs", err)
+			ctx.ServerError("env.RepoIDs", err)
 			return
 		}
 	} else {
 		userRepoIDs, err = ctxUser.GetAccessRepoIDs()
 		if err != nil {
-			ctx.Handle(500, "ctxUser.GetAccessRepoIDs", err)
+			ctx.ServerError("ctxUser.GetAccessRepoIDs", err)
 			return
 		}
 	}
@@ -266,7 +266,7 @@ func Issues(ctx *context.Context) {
 
 	counts, err := models.CountIssuesByRepo(opts)
 	if err != nil {
-		ctx.Handle(500, "CountIssuesByRepo", err)
+		ctx.ServerError("CountIssuesByRepo", err)
 		return
 	}
 
@@ -274,7 +274,7 @@ func Issues(ctx *context.Context) {
 	opts.PageSize = setting.UI.IssuePagingNum
 	issues, err := models.Issues(opts)
 	if err != nil {
-		ctx.Handle(500, "Issues", err)
+		ctx.ServerError("Issues", err)
 		return
 	}
 
@@ -282,7 +282,7 @@ func Issues(ctx *context.Context) {
 	for repoID := range counts {
 		repo, err := models.GetRepositoryByID(repoID)
 		if err != nil {
-			ctx.Handle(500, "GetRepositoryByID", err)
+			ctx.ServerError("GetRepositoryByID", err)
 			return
 		}
 		showReposMap[repoID] = repo
@@ -292,7 +292,7 @@ func Issues(ctx *context.Context) {
 		if _, ok := showReposMap[repoID]; !ok {
 			repo, err := models.GetRepositoryByID(repoID)
 			if err != nil {
-				ctx.Handle(500, "GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
+				ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
 				return
 			}
 			showReposMap[repoID] = repo
@@ -310,7 +310,7 @@ func Issues(ctx *context.Context) {
 	showRepos := models.RepositoryListOfMap(showReposMap)
 	sort.Sort(showRepos)
 	if err = showRepos.LoadAttributes(); err != nil {
-		ctx.Handle(500, "LoadAttributes", err)
+		ctx.ServerError("LoadAttributes", err)
 		return
 	}
 
@@ -327,7 +327,7 @@ func Issues(ctx *context.Context) {
 		IsClosed:    isShowClosed,
 	})
 	if err != nil {
-		ctx.Handle(500, "GetUserIssueStats", err)
+		ctx.ServerError("GetUserIssueStats", err)
 		return
 	}
 
@@ -361,7 +361,7 @@ func Issues(ctx *context.Context) {
 func ShowSSHKeys(ctx *context.Context, uid int64) {
 	keys, err := models.ListPublicKeys(uid)
 	if err != nil {
-		ctx.Handle(500, "ListPublicKeys", err)
+		ctx.ServerError("ListPublicKeys", err)
 		return
 	}
 
@@ -396,17 +396,17 @@ func showOrgProfile(ctx *context.Context) {
 	if ctx.IsSigned && !ctx.User.IsAdmin {
 		env, err := org.AccessibleReposEnv(ctx.User.ID)
 		if err != nil {
-			ctx.Handle(500, "AccessibleReposEnv", err)
+			ctx.ServerError("AccessibleReposEnv", err)
 			return
 		}
 		repos, err = env.Repos(page, setting.UI.User.RepoPagingNum)
 		if err != nil {
-			ctx.Handle(500, "env.Repos", err)
+			ctx.ServerError("env.Repos", err)
 			return
 		}
 		count, err = env.CountRepos()
 		if err != nil {
-			ctx.Handle(500, "env.CountRepos", err)
+			ctx.ServerError("env.CountRepos", err)
 			return
 		}
 		ctx.Data["Repos"] = repos
@@ -414,7 +414,7 @@ func showOrgProfile(ctx *context.Context) {
 		showPrivate := ctx.IsSigned && ctx.User.IsAdmin
 		repos, err = models.GetUserRepositories(org.ID, showPrivate, page, setting.UI.User.RepoPagingNum, "")
 		if err != nil {
-			ctx.Handle(500, "GetRepositories", err)
+			ctx.ServerError("GetRepositories", err)
 			return
 		}
 		ctx.Data["Repos"] = repos
@@ -423,7 +423,7 @@ func showOrgProfile(ctx *context.Context) {
 	ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
 
 	if err := org.GetMembers(); err != nil {
-		ctx.Handle(500, "GetMembers", err)
+		ctx.ServerError("GetMembers", err)
 		return
 	}
 	ctx.Data["Members"] = org.Members
@@ -438,9 +438,9 @@ func Email2User(ctx *context.Context) {
 	u, err := models.GetUserByEmail(ctx.Query("email"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Handle(404, "GetUserByEmail", err)
+			ctx.NotFound("GetUserByEmail", err)
 		} else {
-			ctx.Handle(500, "GetUserByEmail", err)
+			ctx.ServerError("GetUserByEmail", err)
 		}
 		return
 	}

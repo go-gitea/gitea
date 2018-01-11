@@ -47,7 +47,7 @@ func NewUser(ctx *context.Context) {
 
 	sources, err := models.LoginSources()
 	if err != nil {
-		ctx.Handle(500, "LoginSources", err)
+		ctx.ServerError("LoginSources", err)
 		return
 	}
 	ctx.Data["Sources"] = sources
@@ -64,7 +64,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 
 	sources, err := models.LoginSources()
 	if err != nil {
-		ctx.Handle(500, "LoginSources", err)
+		ctx.ServerError("LoginSources", err)
 		return
 	}
 	ctx.Data["Sources"] = sources
@@ -108,7 +108,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplUserNew, &form)
 		default:
-			ctx.Handle(500, "CreateUser", err)
+			ctx.ServerError("CreateUser", err)
 		}
 		return
 	}
@@ -126,7 +126,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 func prepareUserInfo(ctx *context.Context) *models.User {
 	u, err := models.GetUserByID(ctx.ParamsInt64(":userid"))
 	if err != nil {
-		ctx.Handle(500, "GetUserByID", err)
+		ctx.ServerError("GetUserByID", err)
 		return nil
 	}
 	ctx.Data["User"] = u
@@ -134,7 +134,7 @@ func prepareUserInfo(ctx *context.Context) *models.User {
 	if u.LoginSource > 0 {
 		ctx.Data["LoginSource"], err = models.GetLoginSourceByID(u.LoginSource)
 		if err != nil {
-			ctx.Handle(500, "GetLoginSourceByID", err)
+			ctx.ServerError("GetLoginSourceByID", err)
 			return nil
 		}
 	} else {
@@ -143,7 +143,7 @@ func prepareUserInfo(ctx *context.Context) *models.User {
 
 	sources, err := models.LoginSources()
 	if err != nil {
-		ctx.Handle(500, "LoginSources", err)
+		ctx.ServerError("LoginSources", err)
 		return nil
 	}
 	ctx.Data["Sources"] = sources
@@ -197,7 +197,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 		u.Passwd = form.Password
 		var err error
 		if u.Salt, err = models.GetUserSalt(); err != nil {
-			ctx.Handle(500, "UpdateUser", err)
+			ctx.ServerError("UpdateUser", err)
 			return
 		}
 		u.HashPassword()
@@ -221,7 +221,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
 		} else {
-			ctx.Handle(500, "UpdateUser", err)
+			ctx.ServerError("UpdateUser", err)
 		}
 		return
 	}
@@ -235,7 +235,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 func DeleteUser(ctx *context.Context) {
 	u, err := models.GetUserByID(ctx.ParamsInt64(":userid"))
 	if err != nil {
-		ctx.Handle(500, "GetUserByID", err)
+		ctx.ServerError("GetUserByID", err)
 		return
 	}
 
@@ -252,7 +252,7 @@ func DeleteUser(ctx *context.Context) {
 				"redirect": setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"),
 			})
 		default:
-			ctx.Handle(500, "DeleteUser", err)
+			ctx.ServerError("DeleteUser", err)
 		}
 		return
 	}

@@ -90,9 +90,17 @@ func (repo *Repository) InitWiki() error {
 	return nil
 }
 
+// LocalWikiPath returns the local wiki repository copy path.
+func LocalWikiPath() string {
+	if filepath.IsAbs(setting.Repository.Local.LocalWikiPath) {
+		return setting.Repository.Local.LocalWikiPath
+	}
+	return path.Join(setting.AppDataPath, setting.Repository.Local.LocalWikiPath)
+}
+
 // LocalWikiPath returns the path to the local wiki repository (?).
 func (repo *Repository) LocalWikiPath() string {
-	return path.Join(setting.AppDataPath, "tmp/local-wiki", com.ToStr(repo.ID))
+	return path.Join(LocalWikiPath(), com.ToStr(repo.ID))
 }
 
 // UpdateLocalWiki makes sure the local copy of repository wiki is up-to-date.

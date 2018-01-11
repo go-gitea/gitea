@@ -193,7 +193,7 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 		label.Color = *form.Color
 	}
 	if err := models.UpdateLabel(label); err != nil {
-		ctx.Handle(500, "UpdateLabel", err)
+		ctx.ServerError("UpdateLabel", err)
 		return
 	}
 	ctx.JSON(200, label.APIFormat())
