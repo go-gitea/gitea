@@ -64,7 +64,7 @@ var (
 func MustEnableIssues(ctx *context.Context) {
 	if !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) &&
 		!ctx.Repo.Repository.UnitEnabled(models.UnitTypeExternalTracker) {
-		ctx.Handle(404, "MustEnableIssues", nil)
+		ctx.NotFound("MustEnableIssues", nil)
 		return
 	}
 
@@ -78,7 +78,7 @@ func MustEnableIssues(ctx *context.Context) {
 // MustAllowPulls check if repository enable pull requests
 func MustAllowPulls(ctx *context.Context) {
 	if !ctx.Repo.Repository.AllowsPulls() {
-		ctx.Handle(404, "MustAllowPulls", nil)
+		ctx.NotFound("MustAllowPulls", nil)
 		return
 	}
 
@@ -167,7 +167,7 @@ func Issues(ctx *context.Context) {
 			IssueIDs:    issueIDs,
 		})
 		if err != nil {
-			ctx.Handle(500, "GetIssueStats", err)
+			ctx.ServerError("GetIssueStats", err)
 			return
 		}
 	}
@@ -204,7 +204,7 @@ func Issues(ctx *context.Context) {
 			IssueIDs:    issueIDs,
 		})
 		if err != nil {
-			ctx.Handle(500, "Issues", err)
+			ctx.ServerError("Issues", err)
 			return
 		}
 	}
@@ -215,7 +215,7 @@ func Issues(ctx *context.Context) {
 		if !ctx.IsSigned {
 			issues[i].IsRead = true
 		} else if err = issues[i].GetIsRead(ctx.User.ID); err != nil {
-			ctx.Handle(500, "GetIsRead", err)
+			ctx.ServerError("GetIsRead", err)
 			return
 		}
 	}
@@ -224,14 +224,14 @@ func Issues(ctx *context.Context) {
 	// Get milestones.
 	ctx.Data["Milestones"], err = models.GetMilestonesByRepoID(repo.ID)
 	if err != nil {
-		ctx.Handle(500, "GetAllRepoMilestones", err)
+		ctx.ServerError("GetAllRepoMilestones", err)
 		return
 	}
 
 	// Get assignees.
 	ctx.Data["Assignees"], err = repo.GetAssignees()
 	if err != nil {
-		ctx.Handle(500, "GetAssignees", err)
+		ctx.ServerError("GetAssignees", err)
 		return
 	}
 
@@ -261,18 +261,18 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 	var err error
 	ctx.Data["OpenMilestones"], err = models.GetMilestones(repo.ID, -1, false, "")
 	if err != nil {
-		ctx.Handle(500, "GetMilestones", err)
+		ctx.ServerError("GetMilestones", err)
 		return
 	}
 	ctx.Data["ClosedMilestones"], err = models.GetMilestones(repo.ID, -1, true, "")
 	if err != nil {
-		ctx.Handle(500, "GetMilestones", err)
+		ctx.ServerError("GetMilestones", err)
 		return
 	}
 
 	ctx.Data["Assignees"], err = repo.GetAssignees()
 	if err != nil {
-		ctx.Handle(500, "GetAssignees", err)
+		ctx.ServerError("GetAssignees", err)
 		return
 	}
 }
@@ -285,7 +285,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.
 
 	labels, err := models.GetLabelsByRepoID(repo.ID, "")
 	if err != nil {
-		ctx.Handle(500, "GetLabelsByRepoID", err)
+		ctx.ServerError("GetLabelsByRepoID", err)
 		return nil
 	}
 	ctx.Data["Labels"] = labels
@@ -297,7 +297,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.
 
 	brs, err := ctx.Repo.GitRepo.GetBranches()
 	if err != nil {
-		ctx.Handle(500, "GetBranches", err)
+		ctx.ServerError("GetBranches", err)
 		return nil
 	}
 	ctx.Data["Branches"] = brs
@@ -406,7 +406,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 	if milestoneID > 0 {
 		ctx.Data["Milestone"], err = repo.GetMilestoneByID(milestoneID)
 		if err != nil {
-			ctx.Handle(500, "GetMilestoneByID", err)
+			ctx.ServerError("GetMilestoneByID", err)
 			return nil, 0, 0
 		}
 		ctx.Data["milestone_id"] = milestoneID
@@ -417,7 +417,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 	if assigneeID > 0 {
 		ctx.Data["Assignee"], err = repo.GetAssigneeByID(assigneeID)
 		if err != nil {
-			ctx.Handle(500, "GetAssigneeByID", err)
+			ctx.ServerError("GetAssigneeByID", err)
 			return nil, 0, 0
 		}
 		ctx.Data["assignee_id"] = assigneeID
@@ -465,7 +465,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		Ref:         form.Ref,
 	}
 	if err := models.NewIssue(repo, issue, labelIDs, attachments); err != nil {
-		ctx.Handle(500, "NewIssue", err)
+		ctx.ServerError("NewIssue", err)
 		return
 	}
 
@@ -505,9 +505,9 @@ func ViewIssue(ctx *context.Context) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.Handle(404, "GetIssueByIndex", err)
+			ctx.NotFound("GetIssueByIndex", err)
 		} else {
-			ctx.Handle(500, "GetIssueByIndex", err)
+			ctx.ServerError("GetIssueByIndex", err)
 		}
 		return
 	}
@@ -518,7 +518,7 @@ func ViewIssue(ctx *context.Context) {
 	if ctx.User != nil {
 		iw, exists, err = models.GetIssueWatch(ctx.User.ID, issue.ID)
 		if err != nil {
-			ctx.Handle(500, "GetIssueWatch", err)
+			ctx.ServerError("GetIssueWatch", err)
 			return
 		}
 		if !exists {
@@ -581,7 +581,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 	labels, err := models.GetLabelsByRepoID(repo.ID, "")
 	if err != nil {
-		ctx.Handle(500, "GetLabelsByRepoID", err)
+		ctx.ServerError("GetLabelsByRepoID", err)
 		return
 	}
 	hasSelected := false
@@ -605,7 +605,7 @@ func ViewIssue(ctx *context.Context) {
 	if ctx.IsSigned {
 		// Update issue-user.
 		if err = issue.ReadBy(ctx.User.ID); err != nil {
-			ctx.Handle(500, "ReadBy", err)
+			ctx.ServerError("ReadBy", err)
 			return
 		}
 	}
@@ -625,7 +625,7 @@ func ViewIssue(ctx *context.Context) {
 				var exists bool
 				var sw *models.Stopwatch
 				if exists, sw, err = models.HasUserStopwatch(ctx.User.ID); err != nil {
-					ctx.Handle(500, "HasUserStopwatch", err)
+					ctx.ServerError("HasUserStopwatch", err)
 					return
 				}
 				ctx.Data["HasUserStopwatch"] = exists
@@ -633,7 +633,7 @@ func ViewIssue(ctx *context.Context) {
 					// Add warning if the user has already a stopwatch
 					var otherIssue *models.Issue
 					if otherIssue, err = models.GetIssueByID(sw.IssueID); err != nil {
-						ctx.Handle(500, "GetIssueByID", err)
+						ctx.ServerError("GetIssueByID", err)
 						return
 					}
 					// Add link to the issue of the already running stopwatch
@@ -645,7 +645,7 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["CanUseTimetracker"] = false
 		}
 		if ctx.Data["WorkingUsers"], err = models.TotalTimes(models.FindTrackedTimesOptions{IssueID: issue.ID}); err != nil {
-			ctx.Handle(500, "TotalTimes", err)
+			ctx.ServerError("TotalTimes", err)
 			return
 		}
 	}
@@ -666,7 +666,7 @@ func ViewIssue(ctx *context.Context) {
 
 			comment.ShowTag, err = commentTag(repo, comment.Poster, issue)
 			if err != nil {
-				ctx.Handle(500, "commentTag", err)
+				ctx.ServerError("commentTag", err)
 				return
 			}
 			marked[comment.PosterID] = comment.ShowTag
@@ -683,12 +683,12 @@ func ViewIssue(ctx *context.Context) {
 			}
 		} else if comment.Type == models.CommentTypeLabel {
 			if err = comment.LoadLabel(); err != nil {
-				ctx.Handle(500, "LoadLabel", err)
+				ctx.ServerError("LoadLabel", err)
 				return
 			}
 		} else if comment.Type == models.CommentTypeMilestone {
 			if err = comment.LoadMilestone(); err != nil {
-				ctx.Handle(500, "LoadMilestone", err)
+				ctx.ServerError("LoadMilestone", err)
 				return
 			}
 			ghostMilestone := &models.Milestone{
@@ -703,7 +703,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 		} else if comment.Type == models.CommentTypeAssignees {
 			if err = comment.LoadAssignees(); err != nil {
-				ctx.Handle(500, "LoadAssignees", err)
+				ctx.ServerError("LoadAssignees", err)
 				return
 			}
 		}
@@ -729,7 +729,7 @@ func ViewIssue(ctx *context.Context) {
 
 		prUnit, err := repo.GetUnit(models.UnitTypePullRequests)
 		if err != nil {
-			ctx.Handle(500, "GetUnit", err)
+			ctx.ServerError("GetUnit", err)
 			return
 		}
 		prConfig := prUnit.PullRequestsConfig()
@@ -771,7 +771,7 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 		return nil
 	}
 	if err = issue.LoadAttributes(); err != nil {
-		ctx.Handle(500, "LoadAttributes", nil)
+		ctx.ServerError("LoadAttributes", nil)
 		return nil
 	}
 	return issue
@@ -780,7 +780,7 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 func checkIssueRights(ctx *context.Context, issue *models.Issue) {
 	if issue.IsPull && !ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) ||
 		!issue.IsPull && !ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues) {
-		ctx.Handle(404, "IssueOrPullRequestUnitNotAllowed", nil)
+		ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
 	}
 }
 
@@ -793,14 +793,14 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 	for _, stringIssueID := range strings.Split(commaSeparatedIssueIDs, ",") {
 		issueID, err := strconv.ParseInt(stringIssueID, 10, 64)
 		if err != nil {
-			ctx.Handle(500, "ParseInt", err)
+			ctx.ServerError("ParseInt", err)
 			return nil
 		}
 		issueIDs = append(issueIDs, issueID)
 	}
 	issues, err := models.GetIssuesByIDs(issueIDs)
 	if err != nil {
-		ctx.Handle(500, "GetIssuesByIDs", err)
+		ctx.ServerError("GetIssuesByIDs", err)
 		return nil
 	}
 	// Check access rights for all issues
@@ -808,11 +808,11 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 	prUnitEnabled := ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests)
 	for _, issue := range issues {
 		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
-			ctx.Handle(404, "IssueOrPullRequestUnitNotAllowed", nil)
+			ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
 			return nil
 		}
 		if err = issue.LoadAttributes(); err != nil {
-			ctx.Handle(500, "LoadAttributes", err)
+			ctx.ServerError("LoadAttributes", err)
 			return nil
 		}
 	}
@@ -838,7 +838,7 @@ func UpdateIssueTitle(ctx *context.Context) {
 	}
 
 	if err := issue.ChangeTitle(ctx.User, title); err != nil {
-		ctx.Handle(500, "ChangeTitle", err)
+		ctx.ServerError("ChangeTitle", err)
 		return
 	}
 
@@ -861,7 +861,7 @@ func UpdateIssueContent(ctx *context.Context) {
 
 	content := ctx.Query("content")
 	if err := issue.ChangeContent(ctx.User, content); err != nil {
-		ctx.Handle(500, "ChangeContent", err)
+		ctx.ServerError("ChangeContent", err)
 		return
 	}
 
@@ -885,7 +885,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 		}
 		issue.MilestoneID = milestoneID
 		if err := models.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
-			ctx.Handle(500, "ChangeMilestoneAssign", err)
+			ctx.ServerError("ChangeMilestoneAssign", err)
 			return
 		}
 	}
@@ -908,7 +908,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 			continue
 		}
 		if err := issue.ChangeAssignee(ctx.User, assigneeID); err != nil {
-			ctx.Handle(500, "ChangeAssignee", err)
+			ctx.ServerError("ChangeAssignee", err)
 			return
 		}
 	}
@@ -935,12 +935,12 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 
 	if _, err := models.IssueList(issues).LoadRepositories(); err != nil {
-		ctx.Handle(500, "LoadRepositories", err)
+		ctx.ServerError("LoadRepositories", err)
 		return
 	}
 	for _, issue := range issues {
 		if err := issue.ChangeStatus(ctx.User, issue.Repo, isClosed); err != nil {
-			ctx.Handle(500, "ChangeStatus", err)
+			ctx.ServerError("ChangeStatus", err)
 			return
 		}
 	}
@@ -982,7 +982,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 				pr, err := models.GetUnmergedPullRequest(pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch)
 				if err != nil {
 					if !models.IsErrPullRequestNotExist(err) {
-						ctx.Handle(500, "GetUnmergedPullRequest", err)
+						ctx.ServerError("GetUnmergedPullRequest", err)
 						return
 					}
 				}
@@ -990,7 +990,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 				// Regenerate patch and test conflict.
 				if pr == nil {
 					if err = issue.PullRequest.UpdatePatch(); err != nil {
-						ctx.Handle(500, "UpdatePatch", err)
+						ctx.ServerError("UpdatePatch", err)
 						return
 					}
 
@@ -1030,7 +1030,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 	comment, err := models.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Content, attachments)
 	if err != nil {
-		ctx.Handle(500, "CreateIssueComment", err)
+		ctx.ServerError("CreateIssueComment", err)
 		return
 	}
 
@@ -1063,7 +1063,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 	if err = models.UpdateComment(comment); err != nil {
-		ctx.Handle(500, "UpdateComment", err)
+		ctx.ServerError("UpdateComment", err)
 		return
 	}
 
@@ -1089,7 +1089,7 @@ func DeleteComment(ctx *context.Context) {
 	}
 
 	if err = models.DeleteComment(comment); err != nil {
-		ctx.Handle(500, "DeleteCommentByID", err)
+		ctx.ServerError("DeleteCommentByID", err)
 		return
 	}
 
@@ -1105,7 +1105,7 @@ func Milestones(ctx *context.Context) {
 	isShowClosed := ctx.Query("state") == "closed"
 	openCount, closedCount, err := models.MilestoneStats(ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.Handle(500, "MilestoneStats", err)
+		ctx.ServerError("MilestoneStats", err)
 		return
 	}
 	ctx.Data["OpenCount"] = openCount
@@ -1127,7 +1127,7 @@ func Milestones(ctx *context.Context) {
 
 	miles, err := models.GetMilestones(ctx.Repo.Repository.ID, page, isShowClosed, sortType)
 	if err != nil {
-		ctx.Handle(500, "GetMilestones", err)
+		ctx.ServerError("GetMilestones", err)
 		return
 	}
 	for _, m := range miles {
@@ -1185,7 +1185,7 @@ func NewMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 		Content:      form.Content,
 		DeadlineUnix: util.TimeStamp(deadline.Unix()),
 	}); err != nil {
-		ctx.Handle(500, "NewMilestone", err)
+		ctx.ServerError("NewMilestone", err)
 		return
 	}
 
@@ -1204,9 +1204,9 @@ func EditMilestone(ctx *context.Context) {
 	m, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrMilestoneNotExist(err) {
-			ctx.Handle(404, "", nil)
+			ctx.NotFound("", nil)
 		} else {
-			ctx.Handle(500, "GetMilestoneByRepoID", err)
+			ctx.ServerError("GetMilestoneByRepoID", err)
 		}
 		return
 	}
@@ -1244,9 +1244,9 @@ func EditMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	m, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrMilestoneNotExist(err) {
-			ctx.Handle(404, "", nil)
+			ctx.NotFound("", nil)
 		} else {
-			ctx.Handle(500, "GetMilestoneByRepoID", err)
+			ctx.ServerError("GetMilestoneByRepoID", err)
 		}
 		return
 	}
@@ -1254,7 +1254,7 @@ func EditMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	m.Content = form.Content
 	m.DeadlineUnix = util.TimeStamp(deadline.Unix())
 	if err = models.UpdateMilestone(m); err != nil {
-		ctx.Handle(500, "UpdateMilestone", err)
+		ctx.ServerError("UpdateMilestone", err)
 		return
 	}
 
@@ -1267,9 +1267,9 @@ func ChangeMilestonStatus(ctx *context.Context) {
 	m, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrMilestoneNotExist(err) {
-			ctx.Handle(404, "", err)
+			ctx.NotFound("", err)
 		} else {
-			ctx.Handle(500, "GetMilestoneByRepoID", err)
+			ctx.ServerError("GetMilestoneByRepoID", err)
 		}
 		return
 	}
@@ -1278,7 +1278,7 @@ func ChangeMilestonStatus(ctx *context.Context) {
 	case "open":
 		if m.IsClosed {
 			if err = models.ChangeMilestoneStatus(m, false); err != nil {
-				ctx.Handle(500, "ChangeMilestoneStatus", err)
+				ctx.ServerError("ChangeMilestoneStatus", err)
 				return
 			}
 		}
@@ -1287,7 +1287,7 @@ func ChangeMilestonStatus(ctx *context.Context) {
 		if !m.IsClosed {
 			m.ClosedDateUnix = util.TimeStampNow()
 			if err = models.ChangeMilestoneStatus(m, true); err != nil {
-				ctx.Handle(500, "ChangeMilestoneStatus", err)
+				ctx.ServerError("ChangeMilestoneStatus", err)
 				return
 			}
 		}
@@ -1318,7 +1318,7 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 	}
 
 	if ctx.HasError() {
-		ctx.Handle(500, "ChangeIssueReaction", errors.New(ctx.GetErrMsg()))
+		ctx.ServerError("ChangeIssueReaction", errors.New(ctx.GetErrMsg()))
 		return
 	}
 
@@ -1339,7 +1339,7 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 		log.Trace("Reaction for issue created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, reaction.ID)
 	case "unreact":
 		if err := models.DeleteIssueReaction(ctx.User, issue, form.Content); err != nil {
-			ctx.Handle(500, "DeleteIssueReaction", err)
+			ctx.ServerError("DeleteIssueReaction", err)
 			return
 		}
 
@@ -1352,7 +1352,7 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 
 		log.Trace("Reaction for issue removed: %d/%d", ctx.Repo.Repository.ID, issue.ID)
 	default:
-		ctx.Handle(404, fmt.Sprintf("Unknown action %s", ctx.Params(":action")), nil)
+		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.Params(":action")), nil)
 		return
 	}
 
@@ -1370,7 +1370,7 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 		"Reactions": issue.Reactions.GroupByType(),
 	})
 	if err != nil {
-		ctx.Handle(500, "ChangeIssueReaction.HTMLString", err)
+		ctx.ServerError("ChangeIssueReaction.HTMLString", err)
 		return
 	}
 	ctx.JSON(200, map[string]interface{}{
@@ -1393,7 +1393,7 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 	}
 
 	if ctx.HasError() {
-		ctx.Handle(500, "ChangeCommentReaction", errors.New(ctx.GetErrMsg()))
+		ctx.ServerError("ChangeCommentReaction", errors.New(ctx.GetErrMsg()))
 		return
 	}
 
@@ -1414,7 +1414,7 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID, reaction.ID)
 	case "unreact":
 		if err := models.DeleteCommentReaction(ctx.User, issue, comment, form.Content); err != nil {
-			ctx.Handle(500, "DeleteCommentReaction", err)
+			ctx.ServerError("DeleteCommentReaction", err)
 			return
 		}
 
@@ -1427,7 +1427,7 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 
 		log.Trace("Reaction for comment removed: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
 	default:
-		ctx.Handle(404, fmt.Sprintf("Unknown action %s", ctx.Params(":action")), nil)
+		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.Params(":action")), nil)
 		return
 	}
 
@@ -1445,7 +1445,7 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 		"Reactions": comment.Reactions.GroupByType(),
 	})
 	if err != nil {
-		ctx.Handle(500, "ChangeCommentReaction.HTMLString", err)
+		ctx.ServerError("ChangeCommentReaction.HTMLString", err)
 		return
 	}
 	ctx.JSON(200, map[string]interface{}{

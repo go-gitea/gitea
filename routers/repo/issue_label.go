@@ -48,7 +48,7 @@ func InitializeLabels(ctx *context.Context, form auth.InitializeLabelsForm) {
 		}
 	}
 	if err := models.NewLabels(labels...); err != nil {
-		ctx.Handle(500, "NewLabels", err)
+		ctx.ServerError("NewLabels", err)
 		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/labels")
@@ -58,7 +58,7 @@ func InitializeLabels(ctx *context.Context, form auth.InitializeLabelsForm) {
 func RetrieveLabels(ctx *context.Context) {
 	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Query("sort"))
 	if err != nil {
-		ctx.Handle(500, "RetrieveLabels.GetLabels", err)
+		ctx.ServerError("RetrieveLabels.GetLabels", err)
 		return
 	}
 	for _, l := range labels {
@@ -86,7 +86,7 @@ func NewLabel(ctx *context.Context, form auth.CreateLabelForm) {
 		Color:  form.Color,
 	}
 	if err := models.NewLabel(l); err != nil {
-		ctx.Handle(500, "NewLabel", err)
+		ctx.ServerError("NewLabel", err)
 		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/labels")
@@ -100,7 +100,7 @@ func UpdateLabel(ctx *context.Context, form auth.CreateLabelForm) {
 		case models.IsErrLabelNotExist(err):
 			ctx.Error(404)
 		default:
-			ctx.Handle(500, "UpdateLabel", err)
+			ctx.ServerError("UpdateLabel", err)
 		}
 		return
 	}
@@ -108,7 +108,7 @@ func UpdateLabel(ctx *context.Context, form auth.CreateLabelForm) {
 	l.Name = form.Title
 	l.Color = form.Color
 	if err := models.UpdateLabel(l); err != nil {
-		ctx.Handle(500, "UpdateLabel", err)
+		ctx.ServerError("UpdateLabel", err)
 		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/labels")
@@ -139,7 +139,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 	case "clear":
 		for _, issue := range issues {
 			if err := issue.ClearLabels(ctx.User); err != nil {
-				ctx.Handle(500, "ClearLabels", err)
+				ctx.ServerError("ClearLabels", err)
 				return
 			}
 		}
@@ -149,7 +149,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 			if models.IsErrLabelNotExist(err) {
 				ctx.Error(404, "GetLabelByID")
 			} else {
-				ctx.Handle(500, "GetLabelByID", err)
+				ctx.ServerError("GetLabelByID", err)
 			}
 			return
 		}
@@ -168,14 +168,14 @@ func UpdateIssueLabel(ctx *context.Context) {
 		if action == "attach" {
 			for _, issue := range issues {
 				if err = issue.AddLabel(ctx.User, label); err != nil {
-					ctx.Handle(500, "AddLabel", err)
+					ctx.ServerError("AddLabel", err)
 					return
 				}
 			}
 		} else {
 			for _, issue := range issues {
 				if err = issue.RemoveLabel(ctx.User, label); err != nil {
-					ctx.Handle(500, "RemoveLabel", err)
+					ctx.ServerError("RemoveLabel", err)
 					return
 				}
 			}

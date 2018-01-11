@@ -73,7 +73,7 @@ func handleUsernameChange(ctx *context.Context, newName string) {
 				ctx.Flash.Error(ctx.Tr("user.newName_pattern_not_allowed"))
 				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			default:
-				ctx.Handle(500, "ChangeUserName", err)
+				ctx.ServerError("ChangeUserName", err)
 			}
 			return
 		}
@@ -111,7 +111,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateProfileForm) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
 			return
 		}
-		ctx.Handle(500, "UpdateUser", err)
+		ctx.ServerError("UpdateUser", err)
 		return
 	}
 
@@ -202,7 +202,7 @@ func SettingsSecurity(ctx *context.Context) {
 		if models.IsErrTwoFactorNotEnrolled(err) {
 			enrolled = false
 		} else {
-			ctx.Handle(500, "SettingsTwoFactor", err)
+			ctx.ServerError("SettingsTwoFactor", err)
 			return
 		}
 	}
@@ -231,12 +231,12 @@ func SettingsSecurityPost(ctx *context.Context, form auth.ChangePasswordForm) {
 	} else {
 		var err error
 		if ctx.User.Salt, err = models.GetUserSalt(); err != nil {
-			ctx.Handle(500, "UpdateUser", err)
+			ctx.ServerError("UpdateUser", err)
 			return
 		}
 		ctx.User.HashPassword(form.Password)
 		if err := models.UpdateUserCols(ctx.User, "salt", "passwd"); err != nil {
-			ctx.Handle(500, "UpdateUser", err)
+			ctx.ServerError("UpdateUser", err)
 			return
 		}
 		log.Trace("User password updated: %s", ctx.User.Name)
@@ -253,7 +253,7 @@ func SettingsEmails(ctx *context.Context) {
 
 	emails, err := models.GetEmailAddresses(ctx.User.ID)
 	if err != nil {
-		ctx.Handle(500, "GetEmailAddresses", err)
+		ctx.ServerError("GetEmailAddresses", err)
 		return
 	}
 	ctx.Data["Emails"] = emails
@@ -269,7 +269,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	// Make emailaddress primary.
 	if ctx.Query("_method") == "PRIMARY" {
 		if err := models.MakeEmailPrimary(&models.EmailAddress{ID: ctx.QueryInt64("id")}); err != nil {
-			ctx.Handle(500, "MakeEmailPrimary", err)
+			ctx.ServerError("MakeEmailPrimary", err)
 			return
 		}
 
@@ -281,7 +281,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	// Add Email address.
 	emails, err := models.GetEmailAddresses(ctx.User.ID)
 	if err != nil {
-		ctx.Handle(500, "GetEmailAddresses", err)
+		ctx.ServerError("GetEmailAddresses", err)
 		return
 	}
 	ctx.Data["Emails"] = emails
@@ -301,7 +301,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsEmails, &form)
 			return
 		}
-		ctx.Handle(500, "AddEmailAddress", err)
+		ctx.ServerError("AddEmailAddress", err)
 		return
 	}
 
@@ -324,7 +324,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 // DeleteEmail response for delete user's email
 func DeleteEmail(ctx *context.Context) {
 	if err := models.DeleteEmailAddress(&models.EmailAddress{ID: ctx.QueryInt64("id"), UID: ctx.User.ID}); err != nil {
-		ctx.Handle(500, "DeleteEmail", err)
+		ctx.ServerError("DeleteEmail", err)
 		return
 	}
 	log.Trace("Email address deleted: %s", ctx.User.Name)
@@ -343,14 +343,14 @@ func SettingsKeys(ctx *context.Context) {
 
 	keys, err := models.ListPublicKeys(ctx.User.ID)
 	if err != nil {
-		ctx.Handle(500, "ListPublicKeys", err)
+		ctx.ServerError("ListPublicKeys", err)
 		return
 	}
 	ctx.Data["Keys"] = keys
 
 	gpgkeys, err := models.ListGPGKeys(ctx.User.ID)
 	if err != nil {
-		ctx.Handle(500, "ListGPGKeys", err)
+		ctx.ServerError("ListGPGKeys", err)
 		return
 	}
 	ctx.Data["GPGKeys"] = gpgkeys
@@ -365,14 +365,14 @@ func SettingsKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 
 	keys, err := models.ListPublicKeys(ctx.User.ID)
 	if err != nil {
-		ctx.Handle(500, "ListPublicKeys", err)
+		ctx.ServerError("ListPublicKeys", err)
 		return
 	}
 	ctx.Data["Keys"] = keys
 
 	gpgkeys, err := models.ListGPGKeys(ctx.User.ID)
 	if err != nil {
-		ctx.Handle(500, "ListGPGKeys", err)
+		ctx.ServerError("ListGPGKeys", err)
 		return
 	}
 	ctx.Data["GPGKeys"] = gpgkeys
@@ -397,7 +397,7 @@ func SettingsKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 				ctx.Data["Err_Content"] = true
 				ctx.RenderWithErr(ctx.Tr("settings.gpg_no_key_email_found"), tplSettingsKeys, &form)
 			default:
-				ctx.Handle(500, "AddPublicKey", err)
+				ctx.ServerError("AddPublicKey", err)
 			}
 			return
 		}
@@ -427,7 +427,7 @@ func SettingsKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 				ctx.Data["Err_Title"] = true
 				ctx.RenderWithErr(ctx.Tr("settings.ssh_key_name_used"), tplSettingsKeys, &form)
 			default:
-				ctx.Handle(500, "AddPublicKey", err)
+				ctx.ServerError("AddPublicKey", err)
 			}
 			return
 		}
@@ -473,7 +473,7 @@ func SettingsApplications(ctx *context.Context) {
 
 	tokens, err := models.ListAccessTokens(ctx.User.ID)
 	if err != nil {
-		ctx.Handle(500, "ListAccessTokens", err)
+		ctx.ServerError("ListAccessTokens", err)
 		return
 	}
 	ctx.Data["Tokens"] = tokens
@@ -489,7 +489,7 @@ func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm
 	if ctx.HasError() {
 		tokens, err := models.ListAccessTokens(ctx.User.ID)
 		if err != nil {
-			ctx.Handle(500, "ListAccessTokens", err)
+			ctx.ServerError("ListAccessTokens", err)
 			return
 		}
 		ctx.Data["Tokens"] = tokens
@@ -502,7 +502,7 @@ func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm
 		Name: form.Name,
 	}
 	if err := models.NewAccessToken(t); err != nil {
-		ctx.Handle(500, "NewAccessToken", err)
+		ctx.ServerError("NewAccessToken", err)
 		return
 	}
 
@@ -532,17 +532,17 @@ func SettingsTwoFactorRegenerateScratch(ctx *context.Context) {
 
 	t, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if err != nil {
-		ctx.Handle(500, "SettingsTwoFactor", err)
+		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 
 	if err = t.GenerateScratchToken(); err != nil {
-		ctx.Handle(500, "SettingsTwoFactor", err)
+		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 
 	if err = models.UpdateTwoFactor(t); err != nil {
-		ctx.Handle(500, "SettingsTwoFactor", err)
+		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 
@@ -557,12 +557,12 @@ func SettingsTwoFactorDisable(ctx *context.Context) {
 
 	t, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if err != nil {
-		ctx.Handle(500, "SettingsTwoFactor", err)
+		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 
 	if err = models.DeleteTwoFactorByID(t.ID, ctx.User.ID); err != nil {
-		ctx.Handle(500, "SettingsTwoFactor", err)
+		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 
@@ -584,7 +584,7 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 			AccountName: ctx.User.Name,
 		})
 		if err != nil {
-			ctx.Handle(500, "SettingsTwoFactor", err)
+			ctx.ServerError("SettingsTwoFactor", err)
 			return false
 		}
 	}
@@ -592,13 +592,13 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 	ctx.Data["TwofaSecret"] = otpKey.Secret()
 	img, err := otpKey.Image(320, 240)
 	if err != nil {
-		ctx.Handle(500, "SettingsTwoFactor", err)
+		ctx.ServerError("SettingsTwoFactor", err)
 		return false
 	}
 
 	var imgBytes bytes.Buffer
 	if err = png.Encode(&imgBytes, img); err != nil {
-		ctx.Handle(500, "SettingsTwoFactor", err)
+		ctx.ServerError("SettingsTwoFactor", err)
 		return false
 	}
 
@@ -616,11 +616,11 @@ func SettingsTwoFactorEnroll(ctx *context.Context) {
 	t, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if t != nil {
 		// already enrolled
-		ctx.Handle(500, "SettingsTwoFactor", err)
+		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 	if err != nil && !models.IsErrTwoFactorNotEnrolled(err) {
-		ctx.Handle(500, "SettingsTwoFactor", err)
+		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 
@@ -639,11 +639,11 @@ func SettingsTwoFactorEnrollPost(ctx *context.Context, form auth.TwoFactorAuthFo
 	t, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if t != nil {
 		// already enrolled
-		ctx.Handle(500, "SettingsTwoFactor", err)
+		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 	if err != nil && !models.IsErrTwoFactorNotEnrolled(err) {
-		ctx.Handle(500, "SettingsTwoFactor", err)
+		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 
@@ -670,17 +670,17 @@ func SettingsTwoFactorEnrollPost(ctx *context.Context, form auth.TwoFactorAuthFo
 	}
 	err = t.SetSecret(secret)
 	if err != nil {
-		ctx.Handle(500, "SettingsTwoFactor", err)
+		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 	err = t.GenerateScratchToken()
 	if err != nil {
-		ctx.Handle(500, "SettingsTwoFactor", err)
+		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 
 	if err = models.NewTwoFactor(t); err != nil {
-		ctx.Handle(500, "SettingsTwoFactor", err)
+		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 
@@ -697,7 +697,7 @@ func SettingsAccountLinks(ctx *context.Context) {
 
 	accountLinks, err := models.ListAccountLinks(ctx.User)
 	if err != nil {
-		ctx.Handle(500, "ListAccountLinks", err)
+		ctx.ServerError("ListAccountLinks", err)
 		return
 	}
 
@@ -744,7 +744,7 @@ func SettingsDelete(ctx *context.Context) {
 			if models.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsDelete, nil)
 			} else {
-				ctx.Handle(500, "UserSignIn", err)
+				ctx.ServerError("UserSignIn", err)
 			}
 			return
 		}
@@ -758,7 +758,7 @@ func SettingsDelete(ctx *context.Context) {
 				ctx.Flash.Error(ctx.Tr("form.still_has_org"))
 				ctx.Redirect(setting.AppSubURL + "/user/settings/delete")
 			default:
-				ctx.Handle(500, "DeleteUser", err)
+				ctx.ServerError("DeleteUser", err)
 			}
 		} else {
 			log.Trace("Account deleted: %s", ctx.User.Name)
@@ -776,7 +776,7 @@ func SettingsOrganization(ctx *context.Context) {
 	ctx.Data["PageIsSettingsOrganization"] = true
 	orgs, err := models.GetOrgsByUserID(ctx.User.ID, ctx.IsSigned)
 	if err != nil {
-		ctx.Handle(500, "GetOrgsByUserID", err)
+		ctx.ServerError("GetOrgsByUserID", err)
 		return
 	}
 	ctx.Data["Orgs"] = orgs
@@ -791,7 +791,7 @@ func SettingsRepos(ctx *context.Context) {
 
 	var err error
 	if err = ctxUser.GetRepositories(1, setting.UI.User.RepoPagingNum); err != nil {
-		ctx.Handle(500, "GetRepositories", err)
+		ctx.ServerError("GetRepositories", err)
 		return
 	}
 	repos := ctxUser.Repos
@@ -800,12 +800,12 @@ func SettingsRepos(ctx *context.Context) {
 		if repos[i].IsFork {
 			err := repos[i].GetBaseRepo()
 			if err != nil {
-				ctx.Handle(500, "GetBaseRepo", err)
+				ctx.ServerError("GetBaseRepo", err)
 				return
 			}
 			err = repos[i].BaseRepo.GetOwner()
 			if err != nil {
-				ctx.Handle(500, "GetOwner", err)
+				ctx.ServerError("GetOwner", err)
 				return
 			}
 		}
