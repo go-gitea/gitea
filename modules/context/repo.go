@@ -174,10 +174,10 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 			repo.ForkID = 0
 			return
 		}
-		ctx.Handle(500, "GetBaseRepo", err)
+		ctx.ServerError("GetBaseRepo", err)
 		return
 	} else if err = repo.BaseRepo.GetOwner(); err != nil {
-		ctx.Handle(500, "BaseRepo.GetOwner", err)
+		ctx.ServerError("BaseRepo.GetOwner", err)
 		return
 	}
 }
@@ -209,7 +209,7 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 
 	repo, err := models.GetRepositoryByID(redirectRepoID)
 	if err != nil {
-		ctx.Handle(500, "GetRepositoryByID", err)
+		ctx.ServerError("GetRepositoryByID", err)
 		return
 	}
 
@@ -233,7 +233,7 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 		}
 		mode, err := models.AccessLevel(userID, repo)
 		if err != nil {
-			ctx.Handle(500, "AccessLevel", err)
+			ctx.ServerError("AccessLevel", err)
 			return
 		}
 		ctx.Repo.AccessMode = mode
@@ -245,7 +245,7 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 			EarlyResponseForGoGetMeta(ctx)
 			return
 		}
-		ctx.Handle(404, "no access right", nil)
+		ctx.NotFound("no access right", nil)
 		return
 	}
 	ctx.Data["HasAccess"] = true
@@ -254,7 +254,7 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 		var err error
 		ctx.Repo.Mirror, err = models.GetMirrorByRepoID(repo.ID)
 		if err != nil {
-			ctx.Handle(500, "GetMirror", err)
+			ctx.ServerError("GetMirror", err)
 			return
 		}
 		ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
@@ -276,15 +276,15 @@ func RepoIDAssignment() macaron.Handler {
 		repo, err := models.GetRepositoryByID(repoID)
 		if err != nil {
 			if models.IsErrRepoNotExist(err) {
-				ctx.Handle(404, "GetRepositoryByID", nil)
+				ctx.NotFound("GetRepositoryByID", nil)
 			} else {
-				ctx.Handle(500, "GetRepositoryByID", err)
+				ctx.ServerError("GetRepositoryByID", err)
 			}
 			return
 		}
 
 		if err = repo.GetOwner(); err != nil {
-			ctx.Handle(500, "GetOwner", err)
+			ctx.ServerError("GetOwner", err)
 			return
 		}
 		repoAssignment(ctx, repo)
@@ -313,9 +313,9 @@ func RepoAssignment() macaron.Handler {
 						EarlyResponseForGoGetMeta(ctx)
 						return
 					}
-					ctx.Handle(404, "GetUserByName", nil)
+					ctx.NotFound("GetUserByName", nil)
 				} else {
-					ctx.Handle(500, "GetUserByName", err)
+					ctx.ServerError("GetUserByName", err)
 				}
 				return
 			}
@@ -335,12 +335,12 @@ func RepoAssignment() macaron.Handler {
 						EarlyResponseForGoGetMeta(ctx)
 						return
 					}
-					ctx.Handle(404, "GetRepositoryByName", nil)
+					ctx.NotFound("GetRepositoryByName", nil)
 				} else {
-					ctx.Handle(500, "LookupRepoRedirect", err)
+					ctx.ServerError("LookupRepoRedirect", err)
 				}
 			} else {
-				ctx.Handle(500, "GetRepositoryByName", err)
+				ctx.ServerError("GetRepositoryByName", err)
 			}
 			return
 		}
@@ -353,7 +353,7 @@ func RepoAssignment() macaron.Handler {
 
 		gitRepo, err := git.OpenRepository(models.RepoPath(userName, repoName))
 		if err != nil {
-			ctx.Handle(500, "RepoAssignment Invalid repo "+models.RepoPath(userName, repoName), err)
+			ctx.ServerError("RepoAssignment Invalid repo "+models.RepoPath(userName, repoName), err)
 			return
 		}
 		ctx.Repo.GitRepo = gitRepo
@@ -363,7 +363,7 @@ func RepoAssignment() macaron.Handler {
 
 		tags, err := ctx.Repo.GitRepo.GetTags()
 		if err != nil {
-			ctx.Handle(500, "GetTags", err)
+			ctx.ServerError("GetTags", err)
 			return
 		}
 		ctx.Data["Tags"] = tags
@@ -373,7 +373,7 @@ func RepoAssignment() macaron.Handler {
 			IncludeTags:   true,
 		})
 		if err != nil {
-			ctx.Handle(500, "GetReleaseCountByRepoID", err)
+			ctx.ServerError("GetReleaseCountByRepoID", err)
 			return
 		}
 		ctx.Repo.Repository.NumReleases = int(count)
@@ -386,7 +386,7 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["IsRepositoryWriter"] = ctx.Repo.IsWriter()
 
 		if ctx.Data["CanSignedUserFork"], err = ctx.Repo.Repository.CanUserFork(ctx.User); err != nil {
-			ctx.Handle(500, "CanUserFork", err)
+			ctx.ServerError("CanUserFork", err)
 			return
 		}
 
@@ -411,7 +411,7 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["TagName"] = ctx.Repo.TagName
 		brs, err := ctx.Repo.GitRepo.GetBranches()
 		if err != nil {
-			ctx.Handle(500, "GetBranches", err)
+			ctx.ServerError("GetBranches", err)
 			return
 		}
 		ctx.Data["Branches"] = brs
@@ -558,7 +558,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
 			if err != nil {
-				ctx.Handle(500, "RepoRef Invalid repo "+repoPath, err)
+				ctx.ServerError("RepoRef Invalid repo "+repoPath, err)
 				return
 			}
 		}
@@ -570,19 +570,19 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 			if !ctx.Repo.GitRepo.IsBranchExist(refName) {
 				brs, err := ctx.Repo.GitRepo.GetBranches()
 				if err != nil {
-					ctx.Handle(500, "GetBranches", err)
+					ctx.ServerError("GetBranches", err)
 					return
 				} else if len(brs) == 0 {
 					err = fmt.Errorf("No branches in non-bare repository %s",
 						ctx.Repo.GitRepo.Path)
-					ctx.Handle(500, "GetBranches", err)
+					ctx.ServerError("GetBranches", err)
 					return
 				}
 				refName = brs[0]
 			}
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
 			if err != nil {
-				ctx.Handle(500, "GetBranchCommit", err)
+				ctx.ServerError("GetBranchCommit", err)
 				return
 			}
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
@@ -596,7 +596,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
 				if err != nil {
-					ctx.Handle(500, "GetBranchCommit", err)
+					ctx.ServerError("GetBranchCommit", err)
 					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
@@ -605,7 +605,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				ctx.Repo.IsViewTag = true
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
 				if err != nil {
-					ctx.Handle(500, "GetTagCommit", err)
+					ctx.ServerError("GetTagCommit", err)
 					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
@@ -615,11 +615,11 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
 				if err != nil {
-					ctx.Handle(404, "GetCommit", nil)
+					ctx.NotFound("GetCommit", nil)
 					return
 				}
 			} else {
-				ctx.Handle(404, "RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refName))
+				ctx.NotFound("RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refName))
 				return
 			}
 
@@ -645,7 +645,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 
 		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
 		if err != nil {
-			ctx.Handle(500, "GetCommitsCount", err)
+			ctx.ServerError("GetCommitsCount", err)
 			return
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
@@ -656,7 +656,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 func RequireRepoAdmin() macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.IsSigned || (!ctx.Repo.IsAdmin() && !ctx.User.IsAdmin) {
-			ctx.Handle(404, ctx.Req.RequestURI, nil)
+			ctx.NotFound(ctx.Req.RequestURI, nil)
 			return
 		}
 	}
@@ -666,7 +666,7 @@ func RequireRepoAdmin() macaron.Handler {
 func RequireRepoWriter() macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.IsSigned || (!ctx.Repo.IsWriter() && !ctx.User.IsAdmin) {
-			ctx.Handle(404, ctx.Req.RequestURI, nil)
+			ctx.NotFound(ctx.Req.RequestURI, nil)
 			return
 		}
 	}
@@ -686,7 +686,7 @@ func LoadRepoUnits() macaron.Handler {
 		}
 		err := ctx.Repo.Repository.LoadUnitsByUserID(userID, isAdmin)
 		if err != nil {
-			ctx.Handle(500, "LoadUnitsByUserID", err)
+			ctx.ServerError("LoadUnitsByUserID", err)
 			return
 		}
 	}
@@ -696,7 +696,7 @@ func LoadRepoUnits() macaron.Handler {
 func CheckUnit(unitType models.UnitType) macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.Repo.Repository.UnitEnabled(unitType) {
-			ctx.Handle(404, "CheckUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitType))
+			ctx.NotFound("CheckUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitType))
 		}
 	}
 }
@@ -705,7 +705,7 @@ func CheckUnit(unitType models.UnitType) macaron.Handler {
 func CheckAnyUnit(unitTypes ...models.UnitType) macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.Repo.Repository.AnyUnitEnabled(unitTypes...) {
-			ctx.Handle(404, "CheckAnyUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitTypes))
+			ctx.NotFound("CheckAnyUnit", fmt.Errorf("%s: %v", ctx.Tr("units.error.unit_not_allowed"), unitTypes))
 		}
 	}
 }
@@ -714,7 +714,7 @@ func CheckAnyUnit(unitTypes ...models.UnitType) macaron.Handler {
 func GitHookService() macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.User.CanEditGitHook() {
-			ctx.Handle(404, "GitHookService", nil)
+			ctx.NotFound("GitHookService", nil)
 			return
 		}
 	}

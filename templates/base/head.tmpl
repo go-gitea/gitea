@@ -158,6 +158,9 @@
 					{{end}}
 
 					<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
+
+					{{template "custom/extra_links" .}}
+
 					{{/*
 						<div class="item">
 						<div class="ui icon input">

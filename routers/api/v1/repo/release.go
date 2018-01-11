@@ -132,7 +132,7 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !models.IsErrReleaseNotExist(err) {
-			ctx.Handle(500, "GetRelease", err)
+			ctx.ServerError("GetRelease", err)
 			return
 		}
 		rel = &models.Release{
@@ -169,7 +169,7 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		rel.IsTag = false
 
 		if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
-			ctx.Handle(500, "UpdateRelease", err)
+			ctx.ServerError("UpdateRelease", err)
 			return
 		}
 	}

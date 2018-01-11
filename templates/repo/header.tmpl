@@ -89,6 +89,8 @@
 				</a>
 			{{end}}
 
+			{{template "custom/extra_tabs" .}}
+
 			{{if .IsRepositoryAdmin}}
 				<div class="right menu">
 					<a class="{{if .PageIsSettings}}active{{end}} item" href="{{.RepoLink}}/settings">
