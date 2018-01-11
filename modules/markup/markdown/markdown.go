@@ -22,10 +22,14 @@ type Renderer struct {
 	IsWiki    bool
 }
 
+var byteHTTPS = []byte("https://")
+var byteHTTP = []byte("http://")
+
 // Link defines how formal links should be processed to produce corresponding HTML elements.
 func (r *Renderer) Link(out *bytes.Buffer, link []byte, title []byte, content []byte) {
 	if len(link) > 0 && !markup.IsLink(link) {
-		if link[0] != '#' {
+		// Ensure that we only rewrite the link for HTTP and HTTPS
+		if bytes.HasPrefix(link, byteHTTP) || bytes.HasPrefix(link, byteHTTPS) {
 			lnk := string(link)
 			if r.IsWiki {
 				lnk = util.URLJoin("wiki", lnk)
@@ -124,30 +128,34 @@ func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byt
 	out.WriteString("</a>")
 }
 
+const (
+	blackfridayExtensions = 0 |
+		blackfriday.EXTENSION_NO_INTRA_EMPHASIS |
+		blackfriday.EXTENSION_TABLES |
+		blackfriday.EXTENSION_FENCED_CODE |
+		blackfriday.EXTENSION_STRIKETHROUGH |
+		blackfriday.EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK |
+		blackfriday.EXTENSION_AUTOLINK
+	blackfridayHTMLFlags = 0 |
+		blackfriday.HTML_SKIP_STYLE |
+		blackfriday.HTML_OMIT_CONTENTS |
+		blackfriday.HTML_USE_SMARTYPANTS
+)
+
 // RenderRaw renders Markdown to HTML without handling special links.
 func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
-	htmlFlags := 0
-	htmlFlags |= blackfriday.HTML_SKIP_STYLE
-	htmlFlags |= blackfriday.HTML_OMIT_CONTENTS
 	renderer := &Renderer{
-		Renderer:  blackfriday.HtmlRenderer(htmlFlags, "", ""),
+		Renderer:  blackfriday.HtmlRenderer(blackfridayHTMLFlags, "", ""),
 		URLPrefix: urlPrefix,
 		IsWiki:    wikiMarkdown,
 	}
 
-	// set up the parser
-	extensions := 0
-	extensions |= blackfriday.EXTENSION_NO_INTRA_EMPHASIS
-	extensions |= blackfriday.EXTENSION_TABLES
-	extensions |= blackfriday.EXTENSION_FENCED_CODE
-	extensions |= blackfriday.EXTENSION_STRIKETHROUGH
-	extensions |= blackfriday.EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK
-
+	exts := blackfridayExtensions
 	if setting.Markdown.EnableHardLineBreak {
-		extensions |= blackfriday.EXTENSION_HARD_LINE_BREAK
+		exts |= blackfriday.EXTENSION_HARD_LINE_BREAK
 	}
 
-	body = blackfriday.Markdown(body, renderer, extensions)
+	body = blackfriday.Markdown(body, renderer, exts)
 	return body
 }
 
