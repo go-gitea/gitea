@@ -57,6 +57,13 @@ var (
 	AnySHA1Pattern = regexp.MustCompile(`(http\S*)://(\S+)/(\S+)/(\S+)/(\S+)/([0-9a-f]{40})(?:/?([^#\s]+)?(?:#(\S+))?)?`)
 
 	validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
+
+	// While this email regex is definitely not perfect and I'm sure you can come up
+	// with edge cases, it is still accepted by the CommonMark specification, as
+	// well as the HTML5 spec:
+	//   http://spec.commonmark.org/0.28/#email-address
+	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
+	emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*")
 )
 
 // regexp for full links to issues/pulls
@@ -454,6 +461,13 @@ func renderSha1CurrentPattern(rawBytes []byte, urlPrefix string) []byte {
 	return rawBytes
 }
 
+var emailReplace = []byte(`<a href="mailto:$0">$0</a>`)
+
+// RenderEmailAddress replaces raw email addresses with a mailto: link.
+func RenderEmailAddress(rawBytes []byte) []byte {
+	return emailRegex.ReplaceAll(rawBytes, emailReplace)
+}
+
 // RenderSpecialLink renders mentions, indexes and SHA1 strings to corresponding links.
 func RenderSpecialLink(rawBytes []byte, urlPrefix string, metas map[string]string, isWikiMarkdown bool) []byte {
 	ms := MentionPattern.FindAll(rawBytes, -1)
@@ -463,6 +477,7 @@ func RenderSpecialLink(rawBytes []byte, urlPrefix string, metas map[string]strin
 			[]byte(fmt.Sprintf(`<a href="%s">%s</a>`, util.URLJoin(setting.AppURL, string(m[1:])), m)), -1)
 	}
 
+	rawBytes = RenderEmailAddress(rawBytes)
 	rawBytes = RenderFullIssuePattern(rawBytes)
 	rawBytes = RenderShortLinks(rawBytes, urlPrefix, false, isWikiMarkdown)
 	rawBytes = RenderIssueIndexPattern(rawBytes, RenderIssueIndexPatternOptions{
