@@ -135,13 +135,11 @@ func TestHashPasswordDeterministic(t *testing.T) {
 		pass := string(b)
 
 		// save the current password in the user - hash it and store the result
-		u.Passwd = pass
-		u.HashPassword()
+		u.HashPassword(pass)
 		r1 := u.Passwd
 
 		// run again
-		u.Passwd = pass
-		u.HashPassword()
+		u.HashPassword(pass)
 		r2 := u.Passwd
 
 		// assert equal (given the same salt+pass, the same result is produced)
@@ -158,7 +156,6 @@ func BenchmarkHashPassword(b *testing.B) {
 	u := &User{Salt: string(bs), Passwd: pass}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		u.HashPassword()
-		u.Passwd = pass
+		u.HashPassword(pass)
 	}
 }
