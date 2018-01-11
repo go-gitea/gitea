@@ -58,8 +58,8 @@ var (
 
 	// DbCfg holds the database settings
 	DbCfg struct {
-		Type, Host, Name, User, Passwd, Path, SSLMode string
-		Timeout                                       int
+		Type, Host, Name, User, Passwd, Path, SSLMode, Schema string
+		Timeout                                               int
 	}
 
 	// EnableSQLite3 use SQLite3
@@ -147,6 +147,7 @@ func LoadConfigs() {
 	DbCfg.Host = sec.Key("HOST").String()
 	DbCfg.Name = sec.Key("NAME").String()
 	DbCfg.User = sec.Key("USER").String()
+	DbCfg.Schema = sec.Key("SCHEMA").MustString("public")
 	if len(DbCfg.Passwd) == 0 {
 		DbCfg.Passwd = sec.Key("PASSWD").String()
 	}
@@ -213,6 +214,7 @@ func getEngine() (*xorm.Engine, error) {
 				DbCfg.User, DbCfg.Passwd, DbCfg.Host, DbCfg.Name, Param)
 		}
 	case "postgres":
+		xorm.DefaultPostgresSchema = DbCfg.Schema
 		host, port := parsePostgreSQLHostPort(DbCfg.Host)
 		if host[0] == '/' { // looks like a unix socket
 			connStr = fmt.Sprintf("postgres://%s:%s@:%s/%s%ssslmode=%s&host=%s",
@@ -275,6 +277,31 @@ func SetEngine() (err error) {
 	return nil
 }
 
+// SetSchema for setting default postgres schema.
+func SetSchema() (err error) {
+	if !setting.UsePostgreSQL {
+		return nil
+	}
+
+	row, err := x.Exec(`SELECT schema_name FROM information_schema.schemata WHERE schema_name = '` + DbCfg.Schema + `';`)
+	if err != nil {
+		return err
+	}
+
+	affects, err := row.RowsAffected()
+	if affects == 0 {
+		if _, err = x.Exec(`CREATE SCHEMA "` + DbCfg.Schema + `"`); err != nil {
+			return err
+		}
+	}
+
+	if _, err = x.Exec(`SET SEARCH_PATH TO ` + DbCfg.Schema + `, pg_catalog`); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // NewEngine initializes a new xorm.Engine
 func NewEngine(migrateFunc func(*xorm.Engine) error) (err error) {
 	if err = SetEngine(); err != nil {
@@ -282,6 +309,10 @@ func NewEngine(migrateFunc func(*xorm.Engine) error) (err error) {
 	}
 
 	if err = x.Ping(); err != nil {
+		return err
+	}
+
+	if err = SetSchema(); err != nil {
 		return err
 	}
 

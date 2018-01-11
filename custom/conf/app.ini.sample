@@ -214,6 +214,8 @@ SQLITE_TIMEOUT = 500
 ITERATE_BUFFER_SIZE = 50
 ; Show the database generated SQL
 LOG_SQL = true
+; For "postgres" only, default is public
+SCHEMA = public
 
 [indexer]
 ISSUE_INDEXER_PATH = indexers/issues.bleve
