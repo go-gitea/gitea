@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -712,7 +711,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 		} else if comment.Type == models.CommentTypeRemoveDependency || comment.Type == models.CommentTypeAddDependency {
 			if err = comment.LoadDepIssueDetails(); err != nil {
-				ctx.Handle(http.StatusInternalServerError, "LoadDepIssueDetails", err)
+				ctx.ServerError("LoadDepIssueDetails", err)
 				return
 			}
 		}

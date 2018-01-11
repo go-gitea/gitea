@@ -20,13 +20,13 @@ func AddDependency(ctx *context.Context) {
 	issueIndex := ctx.ParamsInt64("index")
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
-		ctx.Handle(http.StatusInternalServerError, "GetIssueByIndex", err)
+		ctx.ServerError("GetIssueByIndex", err)
 		return
 	}
 
 	// Check if the Repo is allowed to have dependencies
 	if !ctx.Repo.CanCreateIssueDependencies(issue, ctx.User) {
-		ctx.Handle(404, "NotAllowedToCreateIssueDependencies", nil)
+		ctx.NotFound("NotAllowedToCreateIssueDependencies", nil)
 		return
 	}
 
@@ -58,7 +58,7 @@ func AddDependency(ctx *context.Context) {
 			} else if models.IsErrCircularDependency(err) {
 				ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
 			} else {
-				ctx.Handle(http.StatusInternalServerError, "CreateOrUpdateIssueDependency", err)
+				ctx.ServerError("CreateOrUpdateIssueDependency", err)
 				return
 			}
 		}

@@ -19,13 +19,13 @@ func RemoveDependency(ctx *context.Context) {
 	issueIndex := ctx.ParamsInt64("index")
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
-		ctx.Handle(http.StatusInternalServerError, "GetIssueByIndex", err)
+		ctx.ServerError("GetIssueByIndex", err)
 		return
 	}
 
 	// Check if the Repo is allowed to have dependencies
 	if !ctx.Repo.CanCreateIssueDependencies(issue, ctx.User) {
-		ctx.Handle(404, "NotAllowedToCreateIssueDependencies", nil)
+		ctx.NotFound("NotAllowedToCreateIssueDependencies", nil)
 		return
 	}
 
@@ -40,19 +40,20 @@ func RemoveDependency(ctx *context.Context) {
 	case "blocking":
 		depType = models.DependencyTypeBlocking
 	default:
-		ctx.Handle(http.StatusBadRequest, "GetDependecyType", nil)
+		ctx.Error(http.StatusBadRequest, "GetDependecyType")
+		//ctx.Handle(http.StatusBadRequest, "GetDependecyType", nil)
 		return
 	}
 
 	// Dependency
 	dep, err := models.GetIssueByID(depID)
 	if err != nil {
-		ctx.Handle(http.StatusInternalServerError, "GetIssueByID", err)
+		ctx.ServerError("GetIssueByID", err)
 		return
 	}
 
 	if err = models.RemoveIssueDependency(ctx.User, issue, dep, depType); err != nil {
-		ctx.Handle(http.StatusInternalServerError, "RemoveIssueDependency", err)
+		ctx.ServerError("RemoveIssueDependency", err)
 		return
 	}
 
