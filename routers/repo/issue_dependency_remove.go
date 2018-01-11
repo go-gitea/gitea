@@ -52,7 +52,6 @@ func RemoveDependency(ctx *context.Context) {
 		return
 	}
 
-
 	if err = models.RemoveIssueDependency(ctx.User, issue, dep, depType); err != nil {
 		ctx.ServerError("RemoveIssueDependency", err)
 		return
