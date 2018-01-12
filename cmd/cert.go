@@ -90,16 +90,16 @@ func pemBlockForKey(priv interface{}) *pem.Block {
 	}
 }
 
-func runCert(ctx *cli.Context) error {
-	if len(ctx.String("host")) == 0 {
-		log.Fatal("Missing required --host parameter")
+func runCert(c *cli.Context) error {
+	if err := argsSet(c, "host"); err != nil {
+		return err
 	}
 
 	var priv interface{}
 	var err error
-	switch ctx.String("ecdsa-curve") {
+	switch c.String("ecdsa-curve") {
 	case "":
-		priv, err = rsa.GenerateKey(rand.Reader, ctx.Int("rsa-bits"))
+		priv, err = rsa.GenerateKey(rand.Reader, c.Int("rsa-bits"))
 	case "P224":
 		priv, err = ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
 	case "P256":
@@ -109,23 +109,23 @@ func runCert(ctx *cli.Context) error {
 	case "P521":
 		priv, err = ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	default:
-		log.Fatalf("Unrecognized elliptic curve: %q", ctx.String("ecdsa-curve"))
+		log.Fatalf("Unrecognized elliptic curve: %q", c.String("ecdsa-curve"))
 	}
 	if err != nil {
 		log.Fatalf("Failed to generate private key: %v", err)
 	}
 
 	var notBefore time.Time
-	if len(ctx.String("start-date")) == 0 {
-		notBefore = time.Now()
-	} else {
-		notBefore, err = time.Parse("Jan 2 15:04:05 2006", ctx.String("start-date"))
+	if startDate := c.String("start-date"); startDate != "" {
+		notBefore, err = time.Parse("Jan 2 15:04:05 2006", startDate)
 		if err != nil {
 			log.Fatalf("Failed to parse creation date: %v", err)
 		}
+	} else {
+		notBefore = time.Now()
 	}
 
-	notAfter := notBefore.Add(ctx.Duration("duration"))
+	notAfter := notBefore.Add(c.Duration("duration"))
 
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
@@ -147,7 +147,7 @@ func runCert(ctx *cli.Context) error {
 		BasicConstraintsValid: true,
 	}
 
-	hosts := strings.Split(ctx.String("host"), ",")
+	hosts := strings.Split(c.String("host"), ",")
 	for _, h := range hosts {
 		if ip := net.ParseIP(h); ip != nil {
 			template.IPAddresses = append(template.IPAddresses, ip)
@@ -156,7 +156,7 @@ func runCert(ctx *cli.Context) error {
 		}
 	}
 
-	if ctx.Bool("ca") {
+	if c.Bool("ca") {
 		template.IsCA = true
 		template.KeyUsage |= x509.KeyUsageCertSign
 	}
