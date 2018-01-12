@@ -22,10 +22,6 @@ const (
 
 // Create render the page for create organization
 func Create(ctx *context.Context) {
-	if !ctx.User.CanCreateOrganization() {
-		ctx.NotFound("CanCreateOrganization", nil)
-	}
-
 	ctx.Data["Title"] = ctx.Tr("new_org")
 	if !ctx.User.CanCreateOrganization() {
 		ctx.ServerError("Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
@@ -36,11 +32,12 @@ func Create(ctx *context.Context) {
 
 // CreatePost response for create organization
 func CreatePost(ctx *context.Context, form auth.CreateOrgForm) {
-	if !ctx.User.CanCreateOrganization() {
-		ctx.NotFound("CanCreateOrganization", nil)
-	}
-
 	ctx.Data["Title"] = ctx.Tr("new_org")
+
+	if !ctx.User.CanCreateOrganization() {
+		ctx.ServerError("Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
+		return
+	}
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplCreateOrg)
