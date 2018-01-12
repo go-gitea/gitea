@@ -40,14 +40,14 @@ func RefCommits(ctx *context.Context) {
 func Commits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 	if ctx.Repo.Commit == nil {
-		ctx.Handle(404, "Commit not found", nil)
+		ctx.NotFound("Commit not found", nil)
 		return
 	}
 	ctx.Data["PageIsViewCode"] = true
 
 	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
-		ctx.Handle(500, "GetCommitsCount", err)
+		ctx.ServerError("GetCommitsCount", err)
 		return
 	}
 
@@ -60,7 +60,7 @@ func Commits(ctx *context.Context) {
 	// Both `git log branchName` and `git log commitId` work.
 	commits, err := ctx.Repo.Commit.CommitsByRange(page)
 	if err != nil {
-		ctx.Handle(500, "CommitsByRange", err)
+		ctx.ServerError("CommitsByRange", err)
 		return
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
@@ -82,13 +82,13 @@ func Graph(ctx *context.Context) {
 
 	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
-		ctx.Handle(500, "GetCommitsCount", err)
+		ctx.ServerError("GetCommitsCount", err)
 		return
 	}
 
 	graph, err := models.GetCommitGraph(ctx.Repo.GitRepo)
 	if err != nil {
-		ctx.Handle(500, "GetCommitGraph", err)
+		ctx.ServerError("GetCommitGraph", err)
 		return
 	}
 
@@ -116,7 +116,7 @@ func SearchCommits(ctx *context.Context) {
 
 	commits, err := ctx.Repo.Commit.SearchCommits(keyword, all)
 	if err != nil {
-		ctx.Handle(500, "SearchCommits", err)
+		ctx.ServerError("SearchCommits", err)
 		return
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
@@ -148,10 +148,10 @@ func FileHistory(ctx *context.Context) {
 	branchName := ctx.Repo.BranchName
 	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(branchName, fileName)
 	if err != nil {
-		ctx.Handle(500, "FileCommitsCount", err)
+		ctx.ServerError("FileCommitsCount", err)
 		return
 	} else if commitsCount == 0 {
-		ctx.Handle(404, "FileCommitsCount", nil)
+		ctx.NotFound("FileCommitsCount", nil)
 		return
 	}
 
@@ -163,7 +163,7 @@ func FileHistory(ctx *context.Context) {
 
 	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(branchName, fileName, page)
 	if err != nil {
-		ctx.Handle(500, "CommitsByFileAndRange", err)
+		ctx.ServerError("CommitsByFileAndRange", err)
 		return
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
@@ -191,9 +191,9 @@ func Diff(ctx *context.Context) {
 	commit, err := ctx.Repo.GitRepo.GetCommit(commitID)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.Handle(404, "Repo.GitRepo.GetCommit", err)
+			ctx.NotFound("Repo.GitRepo.GetCommit", err)
 		} else {
-			ctx.Handle(500, "Repo.GitRepo.GetCommit", err)
+			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 		}
 		return
 	}
@@ -212,7 +212,7 @@ func Diff(ctx *context.Context) {
 		commitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
 	if err != nil {
-		ctx.Handle(404, "GetDiffCommit", err)
+		ctx.NotFound("GetDiffCommit", err)
 		return
 	}
 
@@ -221,7 +221,7 @@ func Diff(ctx *context.Context) {
 		sha, err := commit.ParentID(i)
 		parents[i] = sha.String()
 		if err != nil {
-			ctx.Handle(404, "repo.Diff", err)
+			ctx.NotFound("repo.Diff", err)
 			return
 		}
 	}
@@ -253,7 +253,7 @@ func RawDiff(ctx *context.Context) {
 		models.RawDiffType(ctx.Params(":ext")),
 		ctx.Resp,
 	); err != nil {
-		ctx.Handle(500, "GetRawDiff", err)
+		ctx.ServerError("GetRawDiff", err)
 		return
 	}
 }
@@ -269,7 +269,7 @@ func CompareDiff(ctx *context.Context) {
 
 	commit, err := ctx.Repo.GitRepo.GetCommit(afterCommitID)
 	if err != nil {
-		ctx.Handle(404, "GetCommit", err)
+		ctx.NotFound("GetCommit", err)
 		return
 	}
 
@@ -277,13 +277,13 @@ func CompareDiff(ctx *context.Context) {
 		afterCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
 	if err != nil {
-		ctx.Handle(404, "GetDiffRange", err)
+		ctx.NotFound("GetDiffRange", err)
 		return
 	}
 
 	commits, err := commit.CommitsBeforeUntil(beforeCommitID)
 	if err != nil {
-		ctx.Handle(500, "CommitsBeforeUntil", err)
+		ctx.ServerError("CommitsBeforeUntil", err)
 		return
 	}
 	commits = models.ValidateCommitsWithEmails(commits)

@@ -388,17 +388,20 @@ func (u *User) NewGitSig() *git.Signature {
 	}
 }
 
+func hashPassword(passwd, salt string) string {
+	tempPasswd := pbkdf2.Key([]byte(passwd), []byte(salt), 10000, 50, sha256.New)
+	return fmt.Sprintf("%x", tempPasswd)
+}
+
 // HashPassword hashes a password using PBKDF.
-func (u *User) HashPassword() {
-	newPasswd := pbkdf2.Key([]byte(u.Passwd), []byte(u.Salt), 10000, 50, sha256.New)
-	u.Passwd = fmt.Sprintf("%x", newPasswd)
+func (u *User) HashPassword(passwd string) {
+	u.Passwd = hashPassword(passwd, u.Salt)
 }
 
 // ValidatePassword checks if given password matches the one belongs to the user.
 func (u *User) ValidatePassword(passwd string) bool {
-	newUser := &User{Passwd: passwd, Salt: u.Salt}
-	newUser.HashPassword()
-	return subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(newUser.Passwd)) == 1
+	tempHash := hashPassword(passwd, u.Salt)
+	return subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1
 }
 
 // IsPasswordSet checks if the password is set or left empty
@@ -711,7 +714,7 @@ func CreateUser(u *User) (err error) {
 	if u.Salt, err = GetUserSalt(); err != nil {
 		return err
 	}
-	u.HashPassword()
+	u.HashPassword(u.Passwd)
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	u.MaxRepoCreation = -1
 
