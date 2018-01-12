@@ -30,7 +30,7 @@ func GetNotificationCount(c *context.Context) {
 
 	count, err := models.GetNotificationCount(c.User, models.NotificationStatusUnread)
 	if err != nil {
-		c.Handle(500, "GetNotificationCount", err)
+		c.ServerError("GetNotificationCount", err)
 		return
 	}
 
@@ -62,13 +62,13 @@ func Notifications(c *context.Context) {
 	statuses := []models.NotificationStatus{status, models.NotificationStatusPinned}
 	notifications, err := models.NotificationsForUser(c.User, statuses, page, perPage)
 	if err != nil {
-		c.Handle(500, "ErrNotificationsForUser", err)
+		c.ServerError("ErrNotificationsForUser", err)
 		return
 	}
 
 	total, err := models.GetNotificationCount(c.User, status)
 	if err != nil {
-		c.Handle(500, "ErrGetNotificationCount", err)
+		c.ServerError("ErrGetNotificationCount", err)
 		return
 	}
 
@@ -100,12 +100,12 @@ func NotificationStatusPost(c *context.Context) {
 	case "pinned":
 		status = models.NotificationStatusPinned
 	default:
-		c.Handle(500, "InvalidNotificationStatus", errors.New("Invalid notification status"))
+		c.ServerError("InvalidNotificationStatus", errors.New("Invalid notification status"))
 		return
 	}
 
 	if err := models.SetNotificationStatus(notificationID, c.User, status); err != nil {
-		c.Handle(500, "SetNotificationStatus", err)
+		c.ServerError("SetNotificationStatus", err)
 		return
 	}
 
@@ -117,7 +117,7 @@ func NotificationStatusPost(c *context.Context) {
 func NotificationPurgePost(c *context.Context) {
 	err := models.UpdateNotificationStatuses(c.User, models.NotificationStatusUnread, models.NotificationStatusRead)
 	if err != nil {
-		c.Handle(500, "ErrUpdateNotificationStatuses", err)
+		c.ServerError("ErrUpdateNotificationStatuses", err)
 		return
 	}
 

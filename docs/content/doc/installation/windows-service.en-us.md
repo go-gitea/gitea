@@ -15,19 +15,22 @@ menu:
 
 # Register as a Windows Service
 
-To register Gitea as a Windows service, first run `cmd` as an Administrator, and then run the following command:
+To register Gitea as a Windows service, open a command prompt (cmd) as an Administrator,
+then run the following command:
 
 ```
 sc create gitea start= auto binPath= ""C:\gitea\gitea.exe" web --config "C:\gitea\custom\conf\app.ini""
 ```
 
-Do not forget to replace `C:\gitea` with your real Gitea folder.
+Do not forget to replace `C:\gitea` with the correct Gitea directory.
 
-After, open "Windows Services", search for the service named "gitea", right-click it and click on "Run". If everything is OK you should be able to reach Gitea on `http://localhost:3000` (or the port is was configured, if different than 3000).
+Open "Windows Services", search for the service named "gitea", right-click it and click on
+"Run". If everything is OK Gitea will be reachable on `http://localhost:3000` (or the port
+that was configured).
 
 ## Unregister as a service
 
-To unregister Gitea as a service, open `cmd` as an Administrator and run:
+To unregister Gitea as a service, open a command prompt (cmd) as an Administrator and run:
 
 ```
 sc delete gitea

@@ -46,6 +46,10 @@ type CreateKeyOption struct {
 	// required: true
 	// unique: true
 	Key string `json:"key" binding:"Required"`
+	// Describe if the key has only read access or read/write
+	//
+	// required: false
+	ReadOnly bool `json:"read_only"`
 }
 
 // CreateDeployKey options when create one deploy key

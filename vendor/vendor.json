@@ -3,16 +3,16 @@
 	"ignore": "test appengine",
 	"package": [
 		{
-			"checksumSHA1": "Em29XiKkOh5rFFXdkCjqqsQ7fe4=",
+			"checksumSHA1": "1WHdGmDRsFRTD5N69l+MEbZr+nM=",
 			"path": "code.gitea.io/git",
-			"revision": "4ec3654064ef7eef4f05f891073a38039ad8d0f7",
-			"revisionTime": "2017-12-22T02:43:26Z"
+			"revision": "f4a91053671bee69f1995e456c1541668717c19d",
+			"revisionTime": "2018-01-07T06:11:05Z"
 		},
 		{
-			"checksumSHA1": "QQ7g7B9+EIzGjO14KCGEs9TNEzM=",
+			"checksumSHA1": "Qtq0kW+BnpYMOriaoCjMa86WGG8=",
 			"path": "code.gitea.io/sdk/gitea",
-			"revision": "ec7d3af43b598c1a3f2cb12f633b9625649d8e54",
-			"revisionTime": "2017-11-28T12:30:39Z"
+			"revision": "79eee8f12c7fc1cc5b802c5cdc5b494ef3733866",
+			"revisionTime": "2017-12-20T06:57:50Z"
 		},
 		{
 			"checksumSHA1": "bOODD4Gbw3GfcuQPU2dI40crxxk=",

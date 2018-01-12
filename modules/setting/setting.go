@@ -215,6 +215,7 @@ var (
 		// Repository local settings
 		Local struct {
 			LocalCopyPath string
+			LocalWikiPath string
 		} `ini:"-"`
 	}{
 		AnsiCharset:            "",
@@ -254,8 +255,10 @@ var (
 		// Repository local settings
 		Local: struct {
 			LocalCopyPath string
+			LocalWikiPath string
 		}{
 			LocalCopyPath: "tmp/local-repo",
+			LocalWikiPath: "tmp/local-wiki",
 		},
 	}
 	RepoRootPath string
@@ -1038,7 +1041,7 @@ func NewContext() {
 		GravatarSource = source
 	}
 	DisableGravatar = sec.Key("DISABLE_GRAVATAR").MustBool()
-	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool()
+	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(!InstallLock)
 	if OfflineMode {
 		DisableGravatar = true
 		EnableFederatedAvatar = false

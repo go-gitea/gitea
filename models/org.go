@@ -10,6 +10,8 @@ import (
 	"os"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
+
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
@@ -139,10 +141,8 @@ func CreateOrganization(org, owner *User) (err error) {
 
 	// Add initial creator to organization and owner team.
 	if _, err = sess.Insert(&OrgUser{
-		UID:      owner.ID,
-		OrgID:    org.ID,
-		IsOwner:  true,
-		NumTeams: 1,
+		UID:   owner.ID,
+		OrgID: org.ID,
 	}); err != nil {
 		return fmt.Errorf("insert org-user relation: %v", err)
 	}
@@ -280,18 +280,25 @@ type OrgUser struct {
 	UID      int64 `xorm:"INDEX UNIQUE(s)"`
 	OrgID    int64 `xorm:"INDEX UNIQUE(s)"`
 	IsPublic bool  `xorm:"INDEX"`
-	IsOwner  bool
-	NumTeams int
+}
+
+func isOrganizationOwner(e Engine, orgID, uid int64) (bool, error) {
+	ownerTeam := &Team{
+		OrgID: orgID,
+		Name:  ownerTeamName,
+	}
+	if has, err := e.Get(ownerTeam); err != nil {
+		return false, err
+	} else if !has {
+		log.Error(4, "Organization does not have owner team: %d", orgID)
+		return false, nil
+	}
+	return isTeamMember(e, orgID, ownerTeam.ID, uid)
 }
 
 // IsOrganizationOwner returns true if given user is in the owner team.
 func IsOrganizationOwner(orgID, uid int64) (bool, error) {
-	return x.
-		Where("is_owner=?", true).
-		And("uid=?", uid).
-		And("org_id=?", orgID).
-		Table("org_user").
-		Exist()
+	return isOrganizationOwner(x, orgID, uid)
 }
 
 // IsOrganizationMember returns true if given user is member of organization.
@@ -336,9 +343,10 @@ func GetOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
 func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	return orgs, sess.
-		Where("`org_user`.uid=?", userID).
-		And("`org_user`.is_owner=?", true).
-		Join("INNER", "`org_user`", "`org_user`.org_id=`user`.id").
+		Join("INNER", "`team_user`", "`team_user`.org_id=`user`.id").
+		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
+		Where("`team_user`.uid=?", userID).
+		And("`team`.authorize=?", AccessModeOwner).
 		Asc("`user`.name").
 		Find(&orgs)
 }

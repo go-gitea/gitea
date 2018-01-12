@@ -136,7 +136,7 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 func loadBranches(ctx *context.Context) []*Branch {
 	rawBranches, err := ctx.Repo.Repository.GetBranches()
 	if err != nil {
-		ctx.Handle(500, "GetBranches", err)
+		ctx.ServerError("GetBranches", err)
 		return nil
 	}
 
@@ -144,13 +144,13 @@ func loadBranches(ctx *context.Context) []*Branch {
 	for i := range rawBranches {
 		commit, err := rawBranches[i].GetCommit()
 		if err != nil {
-			ctx.Handle(500, "GetCommit", err)
+			ctx.ServerError("GetCommit", err)
 			return nil
 		}
 
 		isProtected, err := ctx.Repo.Repository.IsProtectedBranch(rawBranches[i].Name, ctx.User)
 		if err != nil {
-			ctx.Handle(500, "IsProtectedBranch", err)
+			ctx.ServerError("IsProtectedBranch", err)
 			return nil
 		}
 
@@ -164,7 +164,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 	if ctx.Repo.IsWriter() {
 		deletedBranches, err := getDeletedBranches(ctx)
 		if err != nil {
-			ctx.Handle(500, "getDeletedBranches", err)
+			ctx.ServerError("getDeletedBranches", err)
 			return nil
 		}
 		branches = append(branches, deletedBranches...)
@@ -196,7 +196,7 @@ func getDeletedBranches(ctx *context.Context) ([]*Branch, error) {
 // CreateBranch creates new branch in repository
 func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
 	if !ctx.Repo.CanCreateBranch() {
-		ctx.Handle(404, "CreateBranch", nil)
+		ctx.NotFound("CreateBranch", nil)
 		return
 	}
 
@@ -232,7 +232,7 @@ func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
 			return
 		}
 
-		ctx.Handle(500, "CreateNewBranch", err)
+		ctx.ServerError("CreateNewBranch", err)
 		return
 	}
 

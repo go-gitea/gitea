@@ -117,7 +117,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		AllPublic: true,
 	})
 	if err != nil {
-		ctx.Handle(500, "SearchRepositoryByName", err)
+		ctx.ServerError("SearchRepositoryByName", err)
 		return
 	}
 	ctx.Data["Keyword"] = keyword
@@ -185,7 +185,7 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
 		users, count, err = models.SearchUsers(opts)
 		if err != nil {
-			ctx.Handle(500, "SearchUsers", err)
+			ctx.ServerError("SearchUsers", err)
 			return
 		}
 	}
@@ -226,5 +226,5 @@ func ExploreOrganizations(ctx *context.Context) {
 // NotFound render 404 page
 func NotFound(ctx *context.Context) {
 	ctx.Data["Title"] = "Page Not Found"
-	ctx.Handle(404, "home.NotFound", nil)
+	ctx.NotFound("home.NotFound", nil)
 }

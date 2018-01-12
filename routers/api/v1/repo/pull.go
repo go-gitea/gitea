@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 
@@ -434,7 +435,7 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 }
 
 // MergePullRequest merges a PR given an index
-func MergePullRequest(ctx *context.APIContext) {
+func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/merge repository repoMergePullRequest
 	// ---
 	// summary: Merge a pull request
@@ -464,7 +465,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
-			ctx.Handle(404, "GetPullRequestByIndex", err)
+			ctx.NotFound("GetPullRequestByIndex", err)
 		} else {
 			ctx.Error(500, "GetPullRequestByIndex", err)
 		}
@@ -472,7 +473,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	if err = pr.GetHeadRepo(); err != nil {
-		ctx.Handle(500, "GetHeadRepo", err)
+		ctx.ServerError("GetHeadRepo", err)
 		return
 	}
 
@@ -497,7 +498,30 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pr.Merge(ctx.User, ctx.Repo.GitRepo); err != nil {
+	if len(form.Do) == 0 {
+		form.Do = string(models.MergeStyleMerge)
+	}
+
+	message := strings.TrimSpace(form.MergeTitleField)
+	if len(message) == 0 {
+		if models.MergeStyle(form.Do) == models.MergeStyleMerge {
+			message = pr.GetDefaultMergeMessage()
+		}
+		if models.MergeStyle(form.Do) == models.MergeStyleSquash {
+			message = pr.GetDefaultSquashMessage()
+		}
+	}
+
+	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
+	if len(form.MergeMessageField) > 0 {
+		message += "\n\n" + form.MergeMessageField
+	}
+
+	if err := pr.Merge(ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
+		if models.IsErrInvalidMergeStyle(err) {
+			ctx.Status(405)
+			return
+		}
 		ctx.Error(500, "Merge", err)
 		return
 	}
@@ -536,9 +560,9 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headUser, err = models.GetUserByName(headInfos[0])
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
-				ctx.Handle(404, "GetUserByName", nil)
+				ctx.NotFound("GetUserByName", nil)
 			} else {
-				ctx.Handle(500, "GetUserByName", err)
+				ctx.ServerError("GetUserByName", err)
 			}
 			return nil, nil, nil, nil, "", ""
 		}

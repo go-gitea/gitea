@@ -37,7 +37,7 @@ func SignInOpenID(ctx *context.Context) {
 	// Check auto-login.
 	isSucceed, err := AutoSignIn(ctx)
 	if err != nil {
-		ctx.Handle(500, "AutoSignIn", err)
+		ctx.ServerError("AutoSignIn", err)
 		return
 	}
 
@@ -276,7 +276,7 @@ func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplConnectOID, &form)
 		} else {
-			ctx.Handle(500, "ConnectOpenIDPost", err)
+			ctx.ServerError("ConnectOpenIDPost", err)
 		}
 		return
 	}
@@ -288,7 +288,7 @@ func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplConnectOID, &form)
 			return
 		}
-		ctx.Handle(500, "AddUserOpenID", err)
+		ctx.ServerError("AddUserOpenID", err)
 		return
 	}
 
@@ -376,7 +376,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplSignUpOID, &form)
 		default:
-			ctx.Handle(500, "CreateUser", err)
+			ctx.ServerError("CreateUser", err)
 		}
 		return
 	}
@@ -389,7 +389,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplSignUpOID, &form)
 			return
 		}
-		ctx.Handle(500, "AddUserOpenID", err)
+		ctx.ServerError("AddUserOpenID", err)
 		return
 	}
 
@@ -399,7 +399,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 		u.IsActive = true
 		u.SetLastLogin()
 		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
-			ctx.Handle(500, "UpdateUser", err)
+			ctx.ServerError("UpdateUser", err)
 			return
 		}
 	}
