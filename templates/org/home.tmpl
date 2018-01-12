@@ -1,21 +1,18 @@
 {{template "base/head" .}}
 <div class="organization profile">
-	<div class="ui container">
-		<div class="ui grid">
-			<div class="ui sixteen wide column">
-				<img class="ui left" id="org-avatar" src="{{.Org.SizedRelAvatarLink 140}}"/>
-				<div id="org-info">
-					<div class="ui header">
-						{{.Org.DisplayName}}
-						{{if .IsOrganizationOwner}}<a class="text grey" href="{{.OrgLink}}/settings"><span class="octicon octicon-gear"></span></a>{{end}}
-					</div>
-					{{if .Org.Description}}<p class="desc">{{.Org.Description}}</p>{{end}}
-					<div class="text grey meta">
-						{{if .Org.Location}}<div class="item"><span class="octicon octicon-location"></span> <span>{{.Org.Location}}</span></div>{{end}}
-						{{if .Org.Website}}<div class="item"><span class="octicon octicon-link"></span> <a target="_blank" rel="noopener" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
-					</div>
-				</div>
-
+	{{/* overflow: auto is the clearfix - this avoids the image going beyond
+	the container where it is supposed to stay inside. */}}
+	<div class="ui container" style="overflow: auto">
+		<img class="ui left" id="org-avatar" src="{{.Org.SizedRelAvatarLink 140}}"/>
+		<div id="org-info">
+			<div class="ui header">
+				{{.Org.DisplayName}}
+				{{if .IsOrganizationOwner}}<a class="text grey" href="{{.OrgLink}}/settings"><span class="octicon octicon-gear"></span></a>{{end}}
+			</div>
+			{{if .Org.Description}}<p class="desc">{{.Org.Description}}</p>{{end}}
+			<div class="text grey meta">
+				{{if .Org.Location}}<div class="item"><span class="octicon octicon-location"></span> <span>{{.Org.Location}}</span></div>{{end}}
+				{{if .Org.Website}}<div class="item"><span class="octicon octicon-link"></span> <a target="_blank" rel="noopener" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
 			</div>
 		</div>
 	</div>
@@ -23,7 +20,7 @@
 	<div class="ui divider"></div>
 
 	<div class="ui container">
-		<div class="ui grid">
+		<div class="ui mobile reversed stackable grid">
 			<div class="ui eleven wide column">
 				{{if .IsOrganizationOwner}}
 					<div class="text right">

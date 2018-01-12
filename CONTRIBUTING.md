@@ -229,6 +229,11 @@ they served:
   * [Thomas Boerger](https://github.com/tboerger) <thomas@webhippie.de>
   * [Kim Carlbäcker](https://github.com/bkcsoft) <kim.carlbacker@gmail.com>
 
+* 2018-01-01 ~ 2018-12-31
+  * [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
+  * [Lauris Bukšis-Haberkorns](https://github.com/lafriks) <lauris@nix.lv>
+  * [Kim Carlbäcker](https://github.com/bkcsoft) <kim.carlbacker@gmail.com>
+
 ## Versions
 
 Gitea has the `master` branch as a tip branch and has version branches
@@ -247,7 +252,7 @@ be reviewed by two maintainers and must pass the automatic tests.
 Code that you contribute should use the standard copyright header:
 
 ```
-// Copyright 2017 The Gitea Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 ```

@@ -36,7 +36,6 @@
         ],
         "summary": "Create a user",
         "operationId": "adminCreateUser",
-        "security": null,
         "parameters": [
           {
             "name": "body",
@@ -69,7 +68,6 @@
         ],
         "summary": "Delete a user",
         "operationId": "adminDeleteUser",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -103,7 +101,6 @@
         ],
         "summary": "Edit an existing user",
         "operationId": "adminEditUser",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -146,7 +143,6 @@
         ],
         "summary": "Add a public key on behalf of a user",
         "operationId": "adminCreatePublicKey",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -179,7 +175,6 @@
         ],
         "summary": "Delete a user's public key",
         "operationId": "adminDeleteUserPublicKey",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -222,7 +217,6 @@
         ],
         "summary": "Create an organization",
         "operationId": "adminCreateOrg",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -258,7 +252,6 @@
         ],
         "summary": "Create a repository on behalf a user",
         "operationId": "adminCreateRepo",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -294,7 +287,6 @@
         ],
         "summary": "Render a markdown document as HTML",
         "operationId": "renderMarkdown",
-        "security": null,
         "parameters": [
           {
             "name": "body",
@@ -327,7 +319,6 @@
         ],
         "summary": "Render raw markdown as HTML",
         "operationId": "renderMarkdownRaw",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -358,7 +349,6 @@
         ],
         "summary": "Create a repository in an organization",
         "operationId": "createOrgRepo",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -398,7 +388,6 @@
         ],
         "summary": "Get an organization",
         "operationId": "orgGet",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -426,7 +415,6 @@
         ],
         "summary": "Edit an organization",
         "operationId": "orgEdit",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -460,7 +448,6 @@
         ],
         "summary": "List an organization's webhooks",
         "operationId": "orgListHooks",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/HookList"
@@ -481,7 +468,6 @@
         ],
         "summary": "Create a hook",
         "operationId": "orgCreateHook",
-        "security": null,
         "responses": {
           "201": {
             "$ref": "#/responses/Hook"
@@ -499,7 +485,6 @@
         ],
         "summary": "Get a hook",
         "operationId": "orgGetHook",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/Hook"
@@ -515,7 +500,6 @@
         ],
         "summary": "Delete a hook",
         "operationId": "orgDeleteHook",
-        "security": null,
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
@@ -534,7 +518,6 @@
         ],
         "summary": "Update a hook",
         "operationId": "orgEditHook",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/Hook"
@@ -552,7 +535,6 @@
         ],
         "summary": "List an organization's members",
         "operationId": "orgListMembers",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -576,7 +558,6 @@
         ],
         "summary": "Check if a user is a member of an organization",
         "operationId": "orgIsMember",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -617,7 +598,6 @@
         ],
         "summary": "Remove a member from an organization",
         "operationId": "orgDeleteMember",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -654,7 +634,6 @@
         ],
         "summary": "List an organization's public members",
         "operationId": "orgListPublicMembers",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -678,7 +657,6 @@
         ],
         "summary": "Check if a user is a public member of an organization",
         "operationId": "orgIsPublicMember",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -719,7 +697,6 @@
         ],
         "summary": "Publicize a user's membership",
         "operationId": "orgPublicizeMember",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -754,7 +731,6 @@
         ],
         "summary": "Conceal a user's membership",
         "operationId": "orgConcealMember",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -788,7 +764,6 @@
         ],
         "summary": "List an organization's repos",
         "operationId": "orgListRepos",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -815,7 +790,6 @@
         ],
         "summary": "List an organization's teams",
         "operationId": "orgListTeams",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -843,7 +817,6 @@
         ],
         "summary": "Create a team",
         "operationId": "orgCreateTeam",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -880,7 +853,6 @@
         ],
         "summary": "Migrate a remote git repository",
         "operationId": "repoMigrate",
-        "security": null,
         "parameters": [
           {
             "name": "body",
@@ -907,7 +879,6 @@
         ],
         "summary": "Search for repositories",
         "operationId": "repoSearch",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -966,7 +937,6 @@
         ],
         "summary": "Get a repository",
         "operationId": "repoGet",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -998,7 +968,6 @@
         ],
         "summary": "Delete a repository",
         "operationId": "repoDelete",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1035,7 +1004,6 @@
         ],
         "summary": "Get an archive of a repository",
         "operationId": "repoGetArchive",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1074,7 +1042,6 @@
         ],
         "summary": "List a repository's branches",
         "operationId": "repoListBranches",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1108,7 +1075,6 @@
         ],
         "summary": "List a repository's branches",
         "operationId": "repoGetBranch",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1149,7 +1115,6 @@
         ],
         "summary": "List a repository's collaborators",
         "operationId": "repoListCollaborators",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1183,7 +1148,6 @@
         ],
         "summary": "Check if a user is a collaborator of a repository",
         "operationId": "repoCheckCollaborator",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1225,7 +1189,6 @@
         ],
         "summary": "Add a collaborator to a repository",
         "operationId": "repoAddCollaborator",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1271,7 +1234,6 @@
         ],
         "summary": "Delete a collaborator from a repository",
         "operationId": "repoDeleteCollaborator",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1312,7 +1274,6 @@
         ],
         "summary": "Get a commit's combined status, by branch/tag/commit reference",
         "operationId": "repoGetCombinedStatusByRef",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1353,7 +1314,6 @@
         ],
         "summary": "Get the EditorConfig definitions of a file in a repository",
         "operationId": "repoGetEditorConfig",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1392,7 +1352,6 @@
         ],
         "summary": "List a repository's forks",
         "operationId": "listForks",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1424,7 +1383,6 @@
         ],
         "summary": "Fork a repository",
         "operationId": "createFork",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1465,7 +1423,6 @@
         ],
         "summary": "List the hooks in a repository",
         "operationId": "repoListHooks",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1500,7 +1457,6 @@
         ],
         "summary": "Create a hook",
         "operationId": "repoCreateHook",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1541,7 +1497,6 @@
         ],
         "summary": "Get a hook",
         "operationId": "repoGetHook",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1580,7 +1535,6 @@
         ],
         "summary": "Edit a hook in a repository",
         "operationId": "repoEditHook",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1621,7 +1575,6 @@
         ],
         "summary": "List all comments on an issue",
         "operationId": "issueGetComments",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1671,7 +1624,6 @@
         ],
         "summary": "Replace an issue's labels",
         "operationId": "issueReplaceLabels",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1720,7 +1672,6 @@
         ],
         "summary": "Add a label to an issue",
         "operationId": "issueAddLabel",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1766,7 +1717,6 @@
         ],
         "summary": "Remove all labels from an issue",
         "operationId": "issueClearLabels",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1807,7 +1757,6 @@
         ],
         "summary": "Remove a label from an issue",
         "operationId": "issueRemoveLabel",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1855,7 +1804,6 @@
         ],
         "summary": "List a repository's issues",
         "operationId": "issueListIssues",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1902,7 +1850,6 @@
         ],
         "summary": "Create an issue",
         "operationId": "issueCreateIssue",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1943,7 +1890,6 @@
         ],
         "summary": "List all comments in a repository",
         "operationId": "issueGetRepoComments",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -1980,7 +1926,6 @@
         ],
         "summary": "Delete a comment",
         "operationId": "issueDeleteComment",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2022,7 +1967,6 @@
         ],
         "summary": "Edit a comment",
         "operationId": "issueEditComment",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2060,7 +2004,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/issues/{id}": {
+    "/repos/{owner}/{repo}/issues/{index}": {
       "get": {
         "produces": [
           "application/json"
@@ -2068,9 +2012,8 @@
         "tags": [
           "issue"
         ],
-        "summary": "Get an issue by id",
+        "summary": "Get an issue",
         "operationId": "issueGetIssue",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2088,8 +2031,8 @@
           },
           {
             "type": "integer",
-            "description": "id of the issue to get",
-            "name": "id",
+            "description": "index of the issue to get",
+            "name": "index",
             "in": "path",
             "required": true
           }
@@ -2112,7 +2055,6 @@
         ],
         "summary": "Edit an issue",
         "operationId": "issueEditIssue",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2130,8 +2072,8 @@
           },
           {
             "type": "integer",
-            "description": "id of the issue to edit",
-            "name": "id",
+            "description": "index of the issue to edit",
+            "name": "index",
             "in": "path",
             "required": true
           },
@@ -2163,7 +2105,6 @@
         ],
         "summary": "Add a comment to an issue",
         "operationId": "issueCreateComment",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2209,7 +2150,6 @@
         "summary": "Delete a comment",
         "operationId": "issueDeleteCommentDeprecated",
         "deprecated": true,
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2259,7 +2199,6 @@
         "summary": "Edit a comment",
         "operationId": "issueEditCommentDeprecated",
         "deprecated": true,
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2314,7 +2253,6 @@
         ],
         "summary": "Get an issue's labels",
         "operationId": "issueGetLabels",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2358,7 +2296,6 @@
         ],
         "summary": "List an issue's tracked times",
         "operationId": "issueTrackedTimes",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2400,7 +2337,6 @@
         ],
         "summary": "Add a tracked time to a issue",
         "operationId": "issueAddTime",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2454,7 +2390,6 @@
         ],
         "summary": "List a repository's keys",
         "operationId": "repoListKeys",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2489,7 +2424,6 @@
         ],
         "summary": "Add a key to a repository",
         "operationId": "repoCreateKey",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2530,7 +2464,6 @@
         ],
         "summary": "Get a repository's key by id",
         "operationId": "repoGetKey",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2566,7 +2499,6 @@
         ],
         "summary": "Delete a key from a repository",
         "operationId": "repoDeleteKey",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2607,7 +2539,6 @@
         ],
         "summary": "Get all of a repository's labels",
         "operationId": "issueListLabels",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2642,7 +2573,6 @@
         ],
         "summary": "Create a label",
         "operationId": "issueCreateLabel",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2683,7 +2613,6 @@
         ],
         "summary": "Get a single label",
         "operationId": "issueGetLabel",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2719,7 +2648,6 @@
         ],
         "summary": "Delete a label",
         "operationId": "issueDeleteLabel",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2761,7 +2689,6 @@
         ],
         "summary": "Update a label",
         "operationId": "issueEditLabel",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2809,7 +2736,6 @@
         ],
         "summary": "Get all of a repository's milestones",
         "operationId": "issueGetMilestones",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2851,7 +2777,6 @@
         ],
         "summary": "Create a milestone",
         "operationId": "issueCreateMilestone",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2892,7 +2817,6 @@
         ],
         "summary": "Get a milestone",
         "operationId": "issueGetMilestone",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/Milestone"
@@ -2905,7 +2829,6 @@
         ],
         "summary": "Delete a milestone",
         "operationId": "issueDeleteMilestone",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2947,7 +2870,6 @@
         ],
         "summary": "Update a milestone",
         "operationId": "issueEditMilestone",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -2988,7 +2910,6 @@
         ],
         "summary": "Sync a mirrored repository",
         "operationId": "repoMirrorSync",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3022,7 +2943,6 @@
         ],
         "summary": "List a repo's pull requests",
         "operationId": "repoListPullRequests",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3057,7 +2977,6 @@
         ],
         "summary": "Create a pull request",
         "operationId": "repoCreatePullRequest",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3098,7 +3017,6 @@
         ],
         "summary": "Get a pull request",
         "operationId": "repoGetPullRequest",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3140,7 +3058,6 @@
         ],
         "summary": "Update a pull request",
         "operationId": "repoEditPullRequest",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3188,7 +3105,6 @@
         ],
         "summary": "Check if a pull request has been merged",
         "operationId": "repoPullRequestIsMerged",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3236,7 +3152,6 @@
         ],
         "summary": "Merge a pull request",
         "operationId": "repoMergePullRequest",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3280,7 +3195,6 @@
         ],
         "summary": "Get a file from a repository",
         "operationId": "repoGetRawFile",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3322,7 +3236,6 @@
         ],
         "summary": "Create a release",
         "operationId": "repoCreateRelease",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3360,7 +3273,6 @@
         ],
         "summary": "Delete a release",
         "operationId": "repoDeleteRelease",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3402,7 +3314,6 @@
         ],
         "summary": "Update a release",
         "operationId": "repoEditRelease",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3450,7 +3361,6 @@
         ],
         "summary": "List a repo's stargazers",
         "operationId": "repoListStargazers",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3484,7 +3394,6 @@
         ],
         "summary": "Get a commit's statuses",
         "operationId": "repoListStatuses",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3523,7 +3432,6 @@
         ],
         "summary": "Create a commit status",
         "operationId": "repoCreateStatus",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3571,7 +3479,6 @@
         ],
         "summary": "List a repo's watchers",
         "operationId": "repoListSubscribers",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3602,7 +3509,6 @@
         ],
         "summary": "Check if the current user is watching a repo",
         "operationId": "userCurrentCheckSubscription",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3631,7 +3537,6 @@
         ],
         "summary": "Watch a repo",
         "operationId": "userCurrentPutSubscription",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3660,7 +3565,6 @@
         ],
         "summary": "Unwatch a repo",
         "operationId": "userCurrentDeleteSubscription",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3694,7 +3598,6 @@
         ],
         "summary": "List a repo's tracked times",
         "operationId": "repoTrackedTimes",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3728,7 +3631,6 @@
         ],
         "summary": "List a user's tracked times in a repo",
         "operationId": "userTrackedTimes",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3769,7 +3671,6 @@
         ],
         "summary": "Delete a hook in a repository",
         "operationId": "repoDeleteHook",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -3813,7 +3714,6 @@
         ],
         "summary": "Get a repository by id",
         "operationId": "repoGetByID",
-        "security": null,
         "parameters": [
           {
             "type": "integer",
@@ -3840,7 +3740,6 @@
         ],
         "summary": "Get a team",
         "operationId": "orgGetTeam",
-        "security": null,
         "parameters": [
           {
             "type": "integer",
@@ -3862,7 +3761,6 @@
         ],
         "summary": "Delete a team",
         "operationId": "orgDeleteTeam",
-        "security": null,
         "parameters": [
           {
             "type": "integer",
@@ -3893,7 +3791,6 @@
         ],
         "summary": "Edit a team",
         "operationId": "orgEditTeam",
-        "security": null,
         "parameters": [
           {
             "type": "integer",
@@ -3927,7 +3824,6 @@
         ],
         "summary": "List a team's members",
         "operationId": "orgListTeamMembers",
-        "security": null,
         "parameters": [
           {
             "type": "integer",
@@ -3954,7 +3850,6 @@
         ],
         "summary": "Add a team member",
         "operationId": "orgAddTeamMember",
-        "security": null,
         "parameters": [
           {
             "type": "integer",
@@ -3986,7 +3881,6 @@
         ],
         "summary": "Remove a team member",
         "operationId": "orgAddTeamMember",
-        "security": null,
         "parameters": [
           {
             "type": "integer",
@@ -4020,7 +3914,6 @@
         ],
         "summary": "List a team's repos",
         "operationId": "orgListTeamRepos",
-        "security": null,
         "parameters": [
           {
             "type": "integer",
@@ -4047,7 +3940,6 @@
         ],
         "summary": "Add a repository to a team",
         "operationId": "orgAddTeamMember",
-        "security": null,
         "parameters": [
           {
             "type": "integer",
@@ -4087,7 +3979,6 @@
         ],
         "summary": "Remove a repository from a team",
         "operationId": "orgAddTeamMember",
-        "security": null,
         "parameters": [
           {
             "type": "integer",
@@ -4128,7 +4019,6 @@
         ],
         "summary": "Get the authenticated user",
         "operationId": "userGetCurrent",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/User"
@@ -4146,7 +4036,6 @@
         ],
         "summary": "List the authenticated user's email addresses",
         "operationId": "userListEmails",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/EmailList"
@@ -4162,7 +4051,6 @@
         ],
         "summary": "Add email addresses",
         "operationId": "userAddEmail",
-        "security": null,
         "parameters": [
           {
             "name": "body",
@@ -4187,7 +4075,6 @@
         ],
         "summary": "Delete email addresses",
         "operationId": "userDeleteEmail",
-        "security": null,
         "parameters": [
           {
             "name": "body",
@@ -4214,7 +4101,6 @@
         ],
         "summary": "List the authenticated user's followers",
         "operationId": "userCurrentListFollowers",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/UserList"
@@ -4232,7 +4118,6 @@
         ],
         "summary": "List the users that the authenticated user is following",
         "operationId": "userCurrentListFollowing",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/UserList"
@@ -4247,7 +4132,6 @@
         ],
         "summary": "Check whether a user is followed by the authenticated user",
         "operationId": "userCurrentCheckFollowing",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -4274,7 +4158,6 @@
         ],
         "summary": "Follow a user",
         "operationId": "userCurrentPutFollow",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -4296,7 +4179,6 @@
         ],
         "summary": "Unfollow a user",
         "operationId": "userCurrentDeleteFollow",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -4323,7 +4205,6 @@
         ],
         "summary": "List the authenticated user's GPG keys",
         "operationId": "userCurrentListGPGKeys",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/GPGKeyList"
@@ -4342,7 +4223,6 @@
         ],
         "summary": "Create a GPG key",
         "operationId": "userCurrentPostGPGKey",
-        "security": null,
         "parameters": [
           {
             "name": "Form",
@@ -4372,7 +4252,6 @@
         ],
         "summary": "Get a GPG key",
         "operationId": "userCurrentGetGPGKey",
-        "security": null,
         "parameters": [
           {
             "type": "integer",
@@ -4400,7 +4279,6 @@
         ],
         "summary": "Remove a GPG key",
         "operationId": "userCurrentDeleteGPGKey",
-        "security": null,
         "parameters": [
           {
             "type": "integer",
@@ -4430,7 +4308,6 @@
         ],
         "summary": "List the authenticated user's public keys",
         "operationId": "userCurrentListKeys",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/PublicKeyList"
@@ -4449,7 +4326,6 @@
         ],
         "summary": "Create a public key",
         "operationId": "userCurrentPostKey",
-        "security": null,
         "parameters": [
           {
             "name": "body",
@@ -4479,7 +4355,6 @@
         ],
         "summary": "Get a public key",
         "operationId": "userCurrentGetKey",
-        "security": null,
         "parameters": [
           {
             "type": "integer",
@@ -4507,7 +4382,6 @@
         ],
         "summary": "Delete a public key",
         "operationId": "userCurrentDeleteKey",
-        "security": null,
         "parameters": [
           {
             "type": "integer",
@@ -4540,7 +4414,6 @@
         ],
         "summary": "List the current user's organizations",
         "operationId": "orgListCurrentUserOrgs",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/OrganizationList"
@@ -4558,7 +4431,6 @@
         ],
         "summary": "List the repos that the authenticated user owns or has access to",
         "operationId": "userCurrentListRepos",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/RepositoryList"
@@ -4578,7 +4450,6 @@
         ],
         "summary": "Create a repository",
         "operationId": "createCurrentUserRepo",
-        "security": null,
         "parameters": [
           {
             "name": "body",
@@ -4605,7 +4476,6 @@
         ],
         "summary": "The repos that the authenticated user has starred",
         "operationId": "userCurrentListStarred",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/RepositoryList"
@@ -4620,7 +4490,6 @@
         ],
         "summary": "Whether the authenticated is starring the repo",
         "operationId": "userCurrentCheckStarring",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -4652,7 +4521,6 @@
         ],
         "summary": "Star the given repo",
         "operationId": "userCurrentPutStar",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -4681,7 +4549,6 @@
         ],
         "summary": "Unstar the given repo",
         "operationId": "userCurrentDeleteStar",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -4715,7 +4582,6 @@
         ],
         "summary": "List repositories watched by the authenticated user",
         "operationId": "userCurrentListSubscriptions",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/RepositoryList"
@@ -4733,7 +4599,6 @@
         ],
         "summary": "List the current user's tracked times",
         "operationId": "userCurrentTrackedTimes",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/TrackedTimeList"
@@ -4751,7 +4616,6 @@
         ],
         "summary": "List a user's organizations",
         "operationId": "orgListUserOrgs",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -4777,7 +4641,6 @@
         ],
         "summary": "Search for users",
         "operationId": "userSearch",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -4806,7 +4669,6 @@
         ],
         "summary": "Check if one user is following another user",
         "operationId": "userCheckFollowing",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -4843,7 +4705,6 @@
         ],
         "summary": "Get a user",
         "operationId": "userGet",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -4873,7 +4734,6 @@
         ],
         "summary": "List the given user's followers",
         "operationId": "userListFollowers",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -4900,7 +4760,6 @@
         ],
         "summary": "List the users that the given user is following",
         "operationId": "userListFollowing",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -4927,7 +4786,6 @@
         ],
         "summary": "List the given user's GPG keys",
         "operationId": "userListGPGKeys",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -4954,7 +4812,6 @@
         ],
         "summary": "List the given user's public keys",
         "operationId": "userListKeys",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -4981,7 +4838,6 @@
         ],
         "summary": "List the repos owned by the given user",
         "operationId": "userListRepos",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -5008,7 +4864,6 @@
         ],
         "summary": "The repos that the given user has starred",
         "operationId": "userListStarred",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -5035,7 +4890,6 @@
         ],
         "summary": "List the repositories watched by a user",
         "operationId": "userListSubscriptions",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -5061,7 +4915,6 @@
         ],
         "summary": "List the authenticated user's access tokens",
         "operationId": "userGetTokens",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/AccessTokenList"
@@ -5080,7 +4933,6 @@
         ],
         "summary": "Create an access token",
         "operationId": "userCreateToken",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -5106,7 +4958,6 @@
         ],
         "summary": "Returns the version of the Gitea application",
         "operationId": "getVersion",
-        "security": null,
         "responses": {
           "200": {
             "$ref": "#/responses/ServerVersion"

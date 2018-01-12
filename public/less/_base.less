@@ -1,7 +1,7 @@
 @footer-margin: 40px;
 
 body {
-    font-family: "Helvetica Neue", "Microsoft YaHei", Arial, Helvetica, sans-serif !important;
+    font-family: "Lato", "Microsoft YaHei", Arial, Helvetica, sans-serif !important;
     background-color: #fff;
     overflow-y: scroll;
     -webkit-font-smoothing: antialiased;
@@ -61,6 +61,7 @@ pre, code {
     z-index: 900;
     left: 0;
     width: 100%;
+    margin: 0;
     &.light {
         background-color: white;
         border-bottom: 1px solid #DDDDDD;
@@ -86,18 +87,11 @@ pre, code {
     .top.menu .menu {
         z-index: 900;
     }
-    .icon,
     .octicon {
-        margin-right: 5px !important;
-    }
-    .head.link.item {
-        padding-right: 0 !important;
-    }
-    .avatar > .ui.image {
-        margin-right: 0;
-    }
-    .avatar .octicon-triangle-down {
-        margin-top: 6.5px;
+        &.fitted {
+            margin-right: 0;
+        }
+        margin-right: .75em;
     }
     .searchbox {
         background-color: rgb(244, 244, 244) !important;
@@ -109,15 +103,24 @@ pre, code {
         width: 16px;
         text-align: center;
     }
-    .right.menu {
-        .menu {
-            left: auto;
-            right: 0;
-        }
-        .dropdown .menu {
-            margin-top: 0;
+    @media only screen and (max-width: 767px) {
+        #navbar:not(.shown) > *:not(:first-child) {
+            display: none;
         }
     }
+}
+
+.right.stackable.menu {
+    // responsive fix: this makes sure that the right menu when the page
+    // is on mobile view will have elements stacked on top of each other.
+    // no, stackable won't work on right menus.
+    margin-left: auto;
+    display: flex;
+    display: -ms-flexbox;
+    -ms-flex-align: inherit;
+    align-items: inherit;
+    -ms-flex-direction: inherit;
+    flex-direction: inherit;
 }
 
 .ui {
@@ -441,6 +444,23 @@ footer {
         height: (2px * @i) !important;
     }
     .generate-img(@n, (@i + 1));
+}
+
+// Conditional display
+@media only screen and (min-width: 768px) {
+    .mobile-only, .ui.button.mobile-only {
+      display: none;
+    }
+    // has the same behaviour of sr-only, hiding the content for
+    // non-screenreaders, but is shown on mobile devices.
+    .sr-mobile-only {
+        .sr-only();
+    }
+}
+@media only screen and (max-width: 767px) {
+    .not-mobile {
+        display: none;
+    }
 }
 
 // Accessibility

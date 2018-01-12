@@ -8,7 +8,9 @@ package cmd
 import (
 	"fmt"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
@@ -24,6 +26,7 @@ to make automatic initialization process more smoothly`,
 		Subcommands: []cli.Command{
 			subcmdCreateUser,
 			subcmdChangePassword,
+			subcmdRepoSyncReleases,
 		},
 	}
 
@@ -76,6 +79,12 @@ to make automatic initialization process more smoothly`,
 			},
 		},
 	}
+
+	subcmdRepoSyncReleases = cli.Command{
+		Name:   "repo-sync-releases",
+		Usage:  "Synchronize repository releases with tags",
+		Action: runRepoSyncReleases,
+	}
 )
 
 func runChangePassword(c *cli.Context) error {
@@ -98,11 +107,10 @@ func runChangePassword(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("%v", err)
 	}
-	user.Passwd = c.String("password")
 	if user.Salt, err = models.GetUserSalt(); err != nil {
 		return fmt.Errorf("%v", err)
 	}
-	user.EncodePasswd()
+	user.HashPassword(c.String("password"))
 	if err := models.UpdateUserCols(user, "passwd", "salt"); err != nil {
 		return fmt.Errorf("%v", err)
 	}
@@ -143,5 +151,71 @@ func runCreateUser(c *cli.Context) error {
 	}
 
 	fmt.Printf("New user '%s' has been successfully created!\n", c.String("name"))
+	return nil
+}
+
+func runRepoSyncReleases(c *cli.Context) error {
+
+	setting.NewContext()
+	models.LoadConfigs()
+
+	setting.NewXORMLogService(false)
+	if err := models.SetEngine(); err != nil {
+		return fmt.Errorf("models.SetEngine: %v", err)
+	}
+
+	log.Trace("Synchronizing repository releases (this may take a while)")
+	for page := 1; ; page++ {
+		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
+			Page:     page,
+			PageSize: models.RepositoryListDefaultPageSize,
+			Private:  true,
+		})
+		if err != nil {
+			log.Fatal(4, "SearchRepositoryByName: %v", err)
+			return err
+		}
+		if len(repos) == 0 {
+			break
+		}
+		log.Trace("Processing next %d repos of %d", len(repos), count)
+		for _, repo := range repos {
+			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
+			gitRepo, err := git.OpenRepository(repo.RepoPath())
+			if err != nil {
+				log.Warn("OpenRepository: %v", err)
+				continue
+			}
+
+			oldnum, err := models.GetReleaseCountByRepoID(repo.ID,
+				models.FindReleasesOptions{
+					IncludeDrafts: false,
+					IncludeTags:   true,
+				})
+			if err != nil {
+				log.Warn(" GetReleaseCountByRepoID: %v", err)
+			}
+			log.Trace(" currentNumReleases is %d, running SyncReleasesWithTags", oldnum)
+
+			if err = models.SyncReleasesWithTags(repo, gitRepo); err != nil {
+				log.Warn(" SyncReleasesWithTags: %v", err)
+				continue
+			}
+
+			count, err = models.GetReleaseCountByRepoID(repo.ID,
+				models.FindReleasesOptions{
+					IncludeDrafts: false,
+					IncludeTags:   true,
+				})
+			if err != nil {
+				log.Warn(" GetReleaseCountByRepoID: %v", err)
+				continue
+			}
+
+			log.Trace(" repo %s releases synchronized to tags: from %d to %d",
+				repo.FullName(), oldnum, count)
+		}
+	}
+
 	return nil
 }

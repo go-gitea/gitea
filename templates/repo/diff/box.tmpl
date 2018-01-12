@@ -82,7 +82,7 @@
 						{{end}}
 					{{end}}
 				</h4>
-				<div class="ui attached table segment">
+				<div class="ui attached unstackable table segment">
 					{{if ne $file.Type 4}}
 						{{$isImage := (call $.IsImageFile $file.Name)}}
 						{{if and $isImage}}

@@ -31,7 +31,7 @@ func releaseAddColumnIsTagAndSyncTags(x *xorm.Engine) error {
 
 	// For the sake of SQLite3, we can't use x.Iterate here.
 	offset := 0
-	pageSize := 20
+	pageSize := models.RepositoryListDefaultPageSize
 	for {
 		repos := make([]*models.Repository, 0, pageSize)
 		if err := x.Table("repository").Asc("id").Limit(pageSize, offset).Find(&repos); err != nil {

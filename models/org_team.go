@@ -102,10 +102,11 @@ func (t *Team) addRepository(e Engine, repo *Repository) (err error) {
 		return err
 	}
 
-	t.NumRepos++
-	if _, err = e.ID(t.ID).Cols("num_repos").Update(t); err != nil {
+	if _, err = e.Incr("num_repos").ID(t.ID).Update(new(Team)); err != nil {
 		return fmt.Errorf("update team: %v", err)
 	}
+
+	t.NumRepos++
 
 	if err = repo.recalculateTeamAccesses(e, 0); err != nil {
 		return fmt.Errorf("recalculateAccesses: %v", err)
@@ -488,8 +489,6 @@ func AddTeamMember(team *Team, userID int64) error {
 	}
 
 	// Get team and its repositories.
-	team.NumMembers++
-
 	if err := team.GetRepositories(); err != nil {
 		return err
 	}
@@ -506,31 +505,17 @@ func AddTeamMember(team *Team, userID int64) error {
 		TeamID: team.ID,
 	}); err != nil {
 		return err
-	} else if _, err := sess.ID(team.ID).Update(team); err != nil {
+	} else if _, err := sess.Incr("num_members").ID(team.ID).Update(new(Team)); err != nil {
 		return err
 	}
+
+	team.NumMembers++
 
 	// Give access to team repositories.
 	for _, repo := range team.Repos {
 		if err := repo.recalculateTeamAccesses(sess, 0); err != nil {
 			return err
 		}
-	}
-
-	// We make sure it exists before.
-	ou := new(OrgUser)
-	if _, err := sess.
-		Where("uid = ?", userID).
-		And("org_id = ?", team.OrgID).
-		Get(ou); err != nil {
-		return err
-	}
-	ou.NumTeams++
-	if team.IsOwnerTeam() {
-		ou.IsOwner = true
-	}
-	if _, err := sess.ID(ou.ID).Cols("num_teams, is_owner").Update(ou); err != nil {
-		return err
 	}
 
 	return sess.Commit()
@@ -573,25 +558,6 @@ func removeTeamMember(e Engine, team *Team, userID int64) error {
 		}
 	}
 
-	// This must exist.
-	ou := new(OrgUser)
-	_, err = e.
-		Where("uid = ?", userID).
-		And("org_id = ?", team.OrgID).
-		Get(ou)
-	if err != nil {
-		return err
-	}
-	ou.NumTeams--
-	if team.IsOwnerTeam() {
-		ou.IsOwner = false
-	}
-	if _, err = e.
-		ID(ou.ID).
-		Cols("num_teams").
-		Update(ou); err != nil {
-		return err
-	}
 	return nil
 }
 
