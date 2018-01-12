@@ -465,7 +465,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
-			ctx.Handle(404, "GetPullRequestByIndex", err)
+			ctx.NotFound("GetPullRequestByIndex", err)
 		} else {
 			ctx.Error(500, "GetPullRequestByIndex", err)
 		}
@@ -473,7 +473,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	}
 
 	if err = pr.GetHeadRepo(); err != nil {
-		ctx.Handle(500, "GetHeadRepo", err)
+		ctx.ServerError("GetHeadRepo", err)
 		return
 	}
 
@@ -560,9 +560,9 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headUser, err = models.GetUserByName(headInfos[0])
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
-				ctx.Handle(404, "GetUserByName", nil)
+				ctx.NotFound("GetUserByName", nil)
 			} else {
-				ctx.Handle(500, "GetUserByName", err)
+				ctx.ServerError("GetUserByName", err)
 			}
 			return nil, nil, nil, nil, "", ""
 		}

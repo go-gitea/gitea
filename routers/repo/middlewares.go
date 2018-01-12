@@ -15,7 +15,7 @@ func SetEditorconfigIfExists(ctx *context.Context) {
 	if err != nil && !git.IsErrNotExist(err) {
 		description := fmt.Sprintf("Error while getting .editorconfig file: %v", err)
 		if err := models.CreateRepositoryNotice(description); err != nil {
-			ctx.Handle(500, "ErrCreatingReporitoryNotice", err)
+			ctx.ServerError("ErrCreatingReporitoryNotice", err)
 		}
 		return
 	}
@@ -47,6 +47,6 @@ func SetDiffViewStyle(ctx *context.Context) {
 
 	ctx.Data["IsSplitStyle"] = style == "split"
 	if err := ctx.User.UpdateDiffViewStyle(style); err != nil {
-		ctx.Handle(500, "ErrUpdateDiffViewStyle", err)
+		ctx.ServerError("ErrUpdateDiffViewStyle", err)
 	}
 }

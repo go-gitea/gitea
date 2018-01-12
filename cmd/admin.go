@@ -107,11 +107,10 @@ func runChangePassword(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("%v", err)
 	}
-	user.Passwd = c.String("password")
 	if user.Salt, err = models.GetUserSalt(); err != nil {
 		return fmt.Errorf("%v", err)
 	}
-	user.HashPassword()
+	user.HashPassword(c.String("password"))
 	if err := models.UpdateUserCols(user, "passwd", "salt"); err != nil {
 		return fmt.Errorf("%v", err)
 	}

@@ -20,6 +20,7 @@ ROOT = integrations/gitea-integration-mysql/gitea-repositories
 
 [repository.local]
 LOCAL_COPY_PATH = tmp/local-repo-mysql
+LOCAL_WIKI_PATH = tmp/local-wiki-mysql
 
 [server]
 SSH_DOMAIN       = localhost
@@ -28,6 +29,7 @@ ROOT_URL         = http://localhost:3001/
 DISABLE_SSH      = false
 SSH_PORT         = 22
 LFS_START_SERVER = true
+LFS_CONTENT_PATH = data/lfs-mysql
 OFFLINE_MODE     = false
 
 [mailer]

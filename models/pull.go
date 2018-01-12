@@ -299,7 +299,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	}
 
 	// Clone base repo.
-	tmpBasePath := path.Join(setting.AppDataPath, "tmp/repos", com.ToStr(time.Now().Nanosecond())+".git")
+	tmpBasePath := path.Join(LocalCopyPath(), "merge-"+com.ToStr(time.Now().Nanosecond())+".git")
 
 	if err := os.MkdirAll(path.Dir(tmpBasePath), os.ModePerm); err != nil {
 		return fmt.Errorf("Failed to create dir %s: %v", tmpBasePath, err)

@@ -35,7 +35,7 @@ func Authentications(ctx *context.Context) {
 	var err error
 	ctx.Data["Sources"], err = models.LoginSources()
 	if err != nil {
-		ctx.Handle(500, "LoginSources", err)
+		ctx.ServerError("LoginSources", err)
 		return
 	}
 
@@ -197,7 +197,7 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 			ctx.Data["Err_Name"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(models.ErrLoginSourceAlreadyExist).Name), tplAuthNew, form)
 		} else {
-			ctx.Handle(500, "CreateSource", err)
+			ctx.ServerError("CreateSource", err)
 		}
 		return
 	}
@@ -221,7 +221,7 @@ func EditAuthSource(ctx *context.Context) {
 
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
-		ctx.Handle(500, "GetLoginSourceByID", err)
+		ctx.ServerError("GetLoginSourceByID", err)
 		return
 	}
 	ctx.Data["Source"] = source
@@ -245,7 +245,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
-		ctx.Handle(500, "GetLoginSourceByID", err)
+		ctx.ServerError("GetLoginSourceByID", err)
 		return
 	}
 	ctx.Data["Source"] = source
@@ -282,7 +282,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 			ctx.Flash.Error(err.Error(), true)
 			ctx.HTML(200, tplAuthEdit)
 		} else {
-			ctx.Handle(500, "UpdateSource", err)
+			ctx.ServerError("UpdateSource", err)
 		}
 		return
 	}
@@ -296,7 +296,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 func DeleteAuthSource(ctx *context.Context) {
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
-		ctx.Handle(500, "GetLoginSourceByID", err)
+		ctx.ServerError("GetLoginSourceByID", err)
 		return
 	}
 
