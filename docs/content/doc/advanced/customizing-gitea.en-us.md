@@ -62,11 +62,31 @@ matching source.
 Any statement contained inside `{{` and `}}` are Gitea's templete syntax and
 shouldn't be touched without fully understanding these components.
 
-To add custom HTML to the header or the footer of the page, in the `templates/custom`
-directory there is `header.tmpl` and `footer.tmpl` that can be modified. This can be
-a useful place to add custom CSS files or additional Javascript.
+### Adding links and tabs
 
 If all you want is to add extra links to the top navigation bar, or extra tabs to the repository view, you can put them in `extra_links.tmpl` and `extra_tabs.tmpl` inside your `custom/templates/custom/` directory.
+
+For instance, let's say you are in Germany and must add the famously legally-required "Impressum"/about page, listing who is responsible for the site's content:
+just place it under your "custom/public/" directory (for instance `custom/public/impressum.html`) and put a link to it in `custom/templates/custom/extra_links.tmpl`.
+
+To match the current style, the link should have the class name "item", and you can use `{{AppSubUrl}}` to get the base URL:
+`<a class="item" href="{{AppSubUrl}}/impressum.html">Impressum</a>`
+
+You can add new tabs in the same way, putting them in `extra_tabs.tmpl`.
+The exact HTML needed to match the style of other tabs is in the file
+`templates/repo/header.tmpl`
+([source in GitHub](https://github.com/go-gitea/gitea/blob/master/templates/repo/header.tmpl))
+
+### Other additions to the page
+
+Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful templates you can put in your `custom/templates/custom/` directory:
+
+- `header.tmpl`, just before the end of the `<head>` tag where you can add custom CSS files for instance.
+- `body_outer_pre.tmpl`, right after the start of `<body>`.
+- `body_inner_pre.tmpl`, before the top navigation bar, but already inside the main container `<div class="full height">`.
+- `body_inner_post.tmpl`, before the end of the main container.
+- `body_outer_post.tmpl`, before the bottom `<footer>` element.
+- `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional Javascript.
 
 ## Customizing gitignores, labels, licenses, locales, and readmes.
 

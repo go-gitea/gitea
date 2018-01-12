@@ -229,13 +229,12 @@ func SettingsSecurityPost(ctx *context.Context, form auth.ChangePasswordForm) {
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
 	} else {
-		ctx.User.Passwd = form.Password
 		var err error
 		if ctx.User.Salt, err = models.GetUserSalt(); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		ctx.User.HashPassword()
+		ctx.User.HashPassword(form.Password)
 		if err := models.UpdateUserCols(ctx.User, "salt", "passwd"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
