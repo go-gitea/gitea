@@ -176,10 +176,7 @@ func PostProcess(rawHTML []byte, urlPrefix string, metas map[string]string, isWi
 		isWikiMarkdown: isWikiMarkdown,
 	}
 	for _, node := range nodes {
-		err = ctx.visitNode(node)
-		if err != nil {
-			return nil, err
-		}
+		ctx.visitNode(node)
 	}
 
 	// Create buffer in which the data will be placed again. We know that the
@@ -189,38 +186,31 @@ func PostProcess(rawHTML []byte, urlPrefix string, metas map[string]string, isWi
 	// Render everything to buf.
 	for _, node := range nodes {
 		err = html.Render(buf, node)
+		if err != nil {
+			return nil, &postProcessError{"error rendering processed HTML", err}
+		}
 		buf.WriteByte('\n')
-	}
-	if err != nil {
-		return nil, &postProcessError{"error rendering processed HTML", err}
 	}
 
 	// Everything done successfully, return parsed data.
 	return buf.Bytes(), nil
 }
 
-func (ctx *postProcessCtx) visitNode(node *html.Node) error {
-	// In the case of text nodes, we just make it visit RenderSpecialLinks, and
-	// there it will be handled.
-	// We ignore code and pre.
-	// Links are parsed through their own set of renderers.
+func (ctx *postProcessCtx) visitNode(node *html.Node) {
+	// We ignore code, pre and already generated links.
 	switch node.Type {
 	case html.TextNode:
-		return ctx.textNode(node)
+		ctx.textNode(node)
 	case html.ElementNode:
 		if node.Data == "a" || node.Data == "code" || node.Data == "pre" {
 			// TODO: consider placing shortLinkProcessorFull with true
-			return nil
+			return
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
-			err := ctx.visitNode(node)
-			if err != nil {
-				return err
-			}
+			ctx.visitNode(node)
 		}
 	}
 	// ignore everything else
-	return nil
 }
 
 var processors = [...]func(ctx *postProcessCtx, node *html.Node){
@@ -237,11 +227,10 @@ var processors = [...]func(ctx *postProcessCtx, node *html.Node){
 
 // textNode runs the passed node through various processors, in order to handle
 // all kinds of special links handled by the post-processing.
-func (ctx *postProcessCtx) textNode(node *html.Node) error {
+func (ctx *postProcessCtx) textNode(node *html.Node) {
 	for _, processor := range processors {
 		processor(ctx, node)
 	}
-	return nil
 }
 
 func createLink(href, content string) *html.Node {
@@ -459,7 +448,7 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 		id := node.Data[match[2]:match[3]]
 		var link *html.Node
 		if ctx.metas == nil {
-			link = createLink(util.URLJoin(ctx.urlPrefix, "issues", id[1:]), id)
+			link = createLink(util.URLJoin(prefix, "issues", id[1:]), id)
 		} else {
 			// Support for external issue tracker
 			if ctx.metas["style"] == IssueNameStyleAlphanumeric {
@@ -469,6 +458,7 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 			}
 			link = createLink(com.Expand(ctx.metas["format"], ctx.metas), id)
 		}
+		replaceContent(node, match[2], match[3], link)
 	}
 }
 
