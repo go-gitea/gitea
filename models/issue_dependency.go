@@ -43,27 +43,25 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (err error) {
 		return
 	}
 
-	// If it not exists, create it, otherwise show an error message
-	if !IsErrDependencyExists(err) && !IsErrCircularDependency(err) {
-		newIssueDependency := &IssueDependency{
-			UserID:       user.ID,
-			IssueID:      issue.ID,
-			DependencyID: dep.ID,
-		}
+	// No error means the dependency doesn't exist nor is circular, so we can proceed to create a new one.
+	newIssueDependency := &IssueDependency{
+		UserID:       user.ID,
+		IssueID:      issue.ID,
+		DependencyID: dep.ID,
+	}
 
-		if _, err := sess.Insert(newIssueDependency); err != nil {
-			return err
-		}
+	if _, err := sess.Insert(newIssueDependency); err != nil {
+		return err
+	}
 
-		// Add comment referencing the new dependency
-		if _, err = createIssueDependencyComment(sess, user, issue, dep, true); err != nil {
-			return
-		}
+	// Add comment referencing the new dependency
+	if _, err = createIssueDependencyComment(sess, user, issue, dep, true); err != nil {
+		return
+	}
 
-		// Create a new comment for the dependent issue
-		if _, err = createIssueDependencyComment(sess, user, dep, issue, true); err != nil {
-			return
-		}
+	// Create a new comment for the dependent issue
+	if _, err = createIssueDependencyComment(sess, user, dep, issue, true); err != nil {
+		return
 	}
 
 	return sess.Commit()
