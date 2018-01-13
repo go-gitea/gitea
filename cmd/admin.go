@@ -20,9 +20,7 @@ var (
 	// CmdAdmin represents the available admin sub-command.
 	CmdAdmin = cli.Command{
 		Name:  "admin",
-		Usage: "Perform admin operations on command line",
-		Description: `Allow using internal logic of Gitea without hacking into the source code
-to make automatic initialization process more smoothly`,
+		Usage: "Command line interface to perform common administrative operations",
 		Subcommands: []cli.Command{
 			subcmdCreateUser,
 			subcmdChangePassword,
@@ -37,17 +35,14 @@ to make automatic initialization process more smoothly`,
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "name",
-				Value: "",
 				Usage: "Username",
 			},
 			cli.StringFlag{
 				Name:  "password",
-				Value: "",
 				Usage: "User password",
 			},
 			cli.StringFlag{
 				Name:  "email",
-				Value: "",
 				Usage: "User email address",
 			},
 			cli.BoolFlag{
@@ -88,56 +83,42 @@ to make automatic initialization process more smoothly`,
 )
 
 func runChangePassword(c *cli.Context) error {
-	if !c.IsSet("password") {
-		return fmt.Errorf("Password is not specified")
-	} else if !c.IsSet("username") {
-		return fmt.Errorf("Username is not specified")
+	if err := argsSet(c, "username", "password"); err != nil {
+		return err
 	}
 
-	setting.NewContext()
-	models.LoadConfigs()
-
-	setting.NewXORMLogService(false)
-	if err := models.SetEngine(); err != nil {
-		return fmt.Errorf("models.SetEngine: %v", err)
+	if err := initDB(); err != nil {
+		return err
 	}
 
 	uname := c.String("username")
 	user, err := models.GetUserByName(uname)
 	if err != nil {
-		return fmt.Errorf("%v", err)
+		return err
 	}
 	if user.Salt, err = models.GetUserSalt(); err != nil {
-		return fmt.Errorf("%v", err)
+		return err
 	}
 	user.HashPassword(c.String("password"))
 	if err := models.UpdateUserCols(user, "passwd", "salt"); err != nil {
-		return fmt.Errorf("%v", err)
+		return err
 	}
 
-	fmt.Printf("User '%s' password has been successfully updated!\n", uname)
+	fmt.Printf("%s's password has been successfully updated!\n", user.Name)
 	return nil
 }
 
 func runCreateUser(c *cli.Context) error {
-	if !c.IsSet("name") {
-		return fmt.Errorf("Username is not specified")
-	} else if !c.IsSet("password") {
-		return fmt.Errorf("Password is not specified")
-	} else if !c.IsSet("email") {
-		return fmt.Errorf("Email is not specified")
+	if err := argsSet(c, "name", "password", "email"); err != nil {
+		return err
 	}
 
 	if c.IsSet("config") {
 		setting.CustomConf = c.String("config")
 	}
 
-	setting.NewContext()
-	models.LoadConfigs()
-
-	setting.NewXORMLogService(false)
-	if err := models.SetEngine(); err != nil {
-		return fmt.Errorf("models.SetEngine: %v", err)
+	if err := initDB(); err != nil {
+		return err
 	}
 
 	if err := models.CreateUser(&models.User{
@@ -155,13 +136,8 @@ func runCreateUser(c *cli.Context) error {
 }
 
 func runRepoSyncReleases(c *cli.Context) error {
-
-	setting.NewContext()
-	models.LoadConfigs()
-
-	setting.NewXORMLogService(false)
-	if err := models.SetEngine(); err != nil {
-		return fmt.Errorf("models.SetEngine: %v", err)
+	if err := initDB(); err != nil {
+		return err
 	}
 
 	log.Trace("Synchronizing repository releases (this may take a while)")
@@ -172,8 +148,7 @@ func runRepoSyncReleases(c *cli.Context) error {
 			Private:  true,
 		})
 		if err != nil {
-			log.Fatal(4, "SearchRepositoryByName: %v", err)
-			return err
+			return fmt.Errorf("SearchRepositoryByName: %v", err)
 		}
 		if len(repos) == 0 {
 			break
@@ -187,11 +162,7 @@ func runRepoSyncReleases(c *cli.Context) error {
 				continue
 			}
 
-			oldnum, err := models.GetReleaseCountByRepoID(repo.ID,
-				models.FindReleasesOptions{
-					IncludeDrafts: false,
-					IncludeTags:   true,
-				})
+			oldnum, err := getReleaseCount(repo.ID)
 			if err != nil {
 				log.Warn(" GetReleaseCountByRepoID: %v", err)
 			}
@@ -202,11 +173,7 @@ func runRepoSyncReleases(c *cli.Context) error {
 				continue
 			}
 
-			count, err = models.GetReleaseCountByRepoID(repo.ID,
-				models.FindReleasesOptions{
-					IncludeDrafts: false,
-					IncludeTags:   true,
-				})
+			count, err = getReleaseCount(repo.ID)
 			if err != nil {
 				log.Warn(" GetReleaseCountByRepoID: %v", err)
 				continue
@@ -218,4 +185,13 @@ func runRepoSyncReleases(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+func getReleaseCount(id int64) (int64, error) {
+	return models.GetReleaseCountByRepoID(
+		id,
+		models.FindReleasesOptions{
+			IncludeTags: true,
+		},
+	)
 }
