@@ -52,8 +52,8 @@ var (
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
-	// anySha1Pattern allows to split url containing SHA into parts
-	anySha1Pattern = regexp.MustCompile(`https?://(?:\S+/){4}([0-9a-f]{40})/?([^#\s]+)?(?:#(\S+))?`)
+	// anySHA1Pattern allows to split url containing SHA into parts
+	anySHA1Pattern = regexp.MustCompile(`https?://(?:\S+/){4}([0-9a-f]{40})/?([^#\s]+)?(?:#(\S+))?`)
 
 	validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
 
@@ -150,70 +150,9 @@ func (p *postProcessError) Error() string {
 	return "PostProcess: " + p.context + ", " + p.Error()
 }
 
-type postProcessCtx struct {
-	metas          map[string]string
-	urlPrefix      string
-	isWikiMarkdown bool
-}
+type processor func(ctx *postProcessCtx, node *html.Node)
 
-// PostProcess does the final required transformations to the passed raw HTML
-// data, and ensures its validity. Transformations include: replacing links and
-// emails with HTML links, parsing shortlinks in the format of [[Link]], like
-// MediaWiki, linking issues in the format #ID, and mentions in the format
-// @user, and others.
-func PostProcess(rawHTML []byte, urlPrefix string, metas map[string]string, isWikiMarkdown bool) ([]byte, error) {
-	// parse the HTML
-	nodes, err := html.ParseFragment(bytes.NewReader(rawHTML), nil)
-	if err != nil {
-		return nil, &postProcessError{"invalid HTML", err}
-	}
-
-	// create the context, and visit all the nodes recursively, starting from
-	// the root
-	ctx := &postProcessCtx{
-		metas:          metas,
-		urlPrefix:      urlPrefix,
-		isWikiMarkdown: isWikiMarkdown,
-	}
-	for _, node := range nodes {
-		ctx.visitNode(node)
-	}
-
-	// Create buffer in which the data will be placed again. We know that the
-	// length will be at least that of rawHTML; to spare a few alloc+copy, we
-	// reuse rawHTML, resetting its length to 0.
-	buf := bytes.NewBuffer(rawHTML[:0])
-	// Render everything to buf.
-	for _, node := range nodes {
-		err = html.Render(buf, node)
-		if err != nil {
-			return nil, &postProcessError{"error rendering processed HTML", err}
-		}
-		buf.WriteByte('\n')
-	}
-
-	// Everything done successfully, return parsed data.
-	return buf.Bytes(), nil
-}
-
-func (ctx *postProcessCtx) visitNode(node *html.Node) {
-	// We ignore code, pre and already generated links.
-	switch node.Type {
-	case html.TextNode:
-		ctx.textNode(node)
-	case html.ElementNode:
-		if node.Data == "a" || node.Data == "code" || node.Data == "pre" {
-			// TODO: consider placing shortLinkProcessorFull with true
-			return
-		}
-		for n := node.FirstChild; n != nil; n = n.NextSibling {
-			ctx.visitNode(node)
-		}
-	}
-	// ignore everything else
-}
-
-var processors = [...]func(ctx *postProcessCtx, node *html.Node){
+var defaultProcessors = []processor{
 	mentionProcessor,
 	shortLinkProcessor,
 	fullIssuePatternProcessor,
@@ -225,10 +164,156 @@ var processors = [...]func(ctx *postProcessCtx, node *html.Node){
 	linkProcessor,
 }
 
+type postProcessCtx struct {
+	metas          map[string]string
+	urlPrefix      string
+	isWikiMarkdown bool
+
+	// processors used by this context.
+	procs []processor
+
+	// if set to true, when an <a> is found, instead of just returning during
+	// visitNode, it will recursively visit the node exclusively running
+	// shortLinkProcessorFull with true.
+	visitLinksForShortLinks bool
+}
+
+// PostProcess does the final required transformations to the passed raw HTML
+// data, and ensures its validity. Transformations include: replacing links and
+// emails with HTML links, parsing shortlinks in the format of [[Link]], like
+// MediaWiki, linking issues in the format #ID, and mentions in the format
+// @user, and others.
+func PostProcess(
+	rawHTML []byte,
+	urlPrefix string,
+	metas map[string]string,
+	isWikiMarkdown bool,
+) ([]byte, error) {
+	// create the context from the parameters
+	ctx := &postProcessCtx{
+		metas:          metas,
+		urlPrefix:      urlPrefix,
+		isWikiMarkdown: isWikiMarkdown,
+		procs:          defaultProcessors,
+		visitLinksForShortLinks: true,
+	}
+	return ctx.postProcess(rawHTML)
+}
+
+var commitMessageProcessors = []processor{
+	mentionProcessor,
+	fullIssuePatternProcessor,
+	issueIndexPatternProcessor,
+	crossReferenceIssueIndexPatternProcessor,
+	fullSha1PatternProcessor,
+	sha1CurrentPatternProcessor,
+	emailAddressProcessor,
+	linkProcessor,
+}
+
+// RenderCommitMessage will use the same logic as PostProcess, but will disable
+// the shortLinkProcessor and will add a defaultLinkProcessor if defaultLink is
+// set, which changes every text node into a link to the passed default link.
+func RenderCommitMessage(
+	rawHTML []byte,
+	urlPrefix, defaultLink string,
+	metas map[string]string,
+) ([]byte, error) {
+	ctx := &postProcessCtx{
+		metas:     metas,
+		urlPrefix: urlPrefix,
+		procs:     commitMessageProcessors,
+	}
+	if defaultLink != "" {
+		// we don't have to fear data races, because being
+		// commitMessageProcessors of fixed len and cap, every time we append
+		// something to it the slice is realloc+copied, so append always
+		// generates the slice ex-novo.
+		ctx.procs = append(ctx.procs, genDefaultLinkProcessor(defaultLink))
+	}
+	return ctx.postProcess(rawHTML)
+}
+
+func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
+	if ctx.procs == nil {
+		ctx.procs = defaultProcessors
+	}
+
+	// give a generous extra 50 bytes
+	res := make([]byte, 0, len(rawHTML)+50)
+	res = append(res, "<body>"...)
+	res = append(res, rawHTML...)
+	res = append(res, "</body>"...)
+
+	// parse the HTML
+	nodes, err := html.ParseFragment(bytes.NewReader(res), nil)
+	if err != nil {
+		return nil, &postProcessError{"invalid HTML", err}
+	}
+
+	for _, node := range nodes {
+		ctx.visitNode(node)
+	}
+
+	// Create buffer in which the data will be placed again. We know that the
+	// length will be at least that of res; to spare a few alloc+copy, we
+	// reuse res, resetting its length to 0.
+	buf := bytes.NewBuffer(res[:0])
+	// Render everything to buf.
+	for _, node := range nodes {
+		err = html.Render(buf, node)
+		if err != nil {
+			return nil, &postProcessError{"error rendering processed HTML", err}
+		}
+	}
+
+	// remove initial parts - because Render creates a whole HTML page.
+	const lenInit = len(`<html><head></head><body>`)
+	const lenEnd = len(`</body></html>`)
+	res = buf.Bytes()
+	res = res[lenInit : len(res)-lenEnd]
+
+	// Everything done successfully, return parsed data.
+	return res, nil
+}
+
+func (ctx *postProcessCtx) visitNode(node *html.Node) {
+	// We ignore code, pre and already generated links.
+	switch node.Type {
+	case html.TextNode:
+		ctx.textNode(node)
+	case html.ElementNode:
+		if node.Data == "a" || node.Data == "code" || node.Data == "pre" {
+			if node.Data == "a" && ctx.visitLinksForShortLinks {
+				ctx.visitNodeForShortLinks(node)
+			}
+			return
+		}
+		for n := node.FirstChild; n != nil; n = n.NextSibling {
+			ctx.visitNode(n)
+		}
+	}
+	// ignore everything else
+}
+
+func (ctx *postProcessCtx) visitNodeForShortLinks(node *html.Node) {
+	switch node.Type {
+	case html.TextNode:
+		shortLinkProcessorFull(ctx, node, true)
+	case html.ElementNode:
+		if node.Data == "code" || node.Data == "pre" {
+			return
+		}
+		for n := node.FirstChild; n != nil; n = n.NextSibling {
+			ctx.visitNodeForShortLinks(n)
+		}
+	}
+}
+
 // textNode runs the passed node through various processors, in order to handle
 // all kinds of special links handled by the post-processing.
 func (ctx *postProcessCtx) textNode(node *html.Node) {
-	for _, processor := range processors {
+	for _, processor := range ctx.procs {
 		processor(ctx, node)
 	}
 }
@@ -267,22 +352,23 @@ func replaceContent(node *html.Node, i, j int, newNode *html.Node) {
 	// Get the current next sibling, before which we place the replaced data,
 	// and after that we place the new text node.
 	nextSibling := node.NextSibling
-	node.Parent.InsertBefore(nextSibling, newNode)
+	node.Parent.InsertBefore(newNode, nextSibling)
 	if after != "" {
-		node.Parent.InsertBefore(nextSibling, &html.Node{
+		node.Parent.InsertBefore(&html.Node{
 			Type: html.TextNode,
 			Data: after,
-		})
+		}, nextSibling)
 	}
 }
 
 func mentionProcessor(_ *postProcessCtx, node *html.Node) {
-	ms := mentionPattern.FindAllStringSubmatchIndex(node.Data, -1)
-	for _, m := range ms {
-		// Replace the mention with a link to the specified user.
-		mention := node.Data[m[2]:m[3]]
-		replaceContent(node, m[2], m[3], createLink(util.URLJoin(setting.AppURL, mention[1:]), mention))
+	m := mentionPattern.FindStringSubmatchIndex(node.Data)
+	if m == nil {
+		return
 	}
+	// Replace the mention with a link to the specified user.
+	mention := node.Data[m[2]:m[3]]
+	replaceContent(node, m[2], m[3], createLink(util.URLJoin(setting.AppURL, mention[1:]), mention))
 }
 
 func shortLinkProcessor(ctx *postProcessCtx, node *html.Node) {
@@ -290,148 +376,158 @@ func shortLinkProcessor(ctx *postProcessCtx, node *html.Node) {
 }
 
 func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
-	ms := shortLinkPattern.FindAllStringSubmatchIndex(node.Data, -1)
-	for _, m := range ms {
-		content := node.Data[m[2]:m[3]]
-		tail := node.Data[m[4]:m[5]]
-		props := make(map[string]string)
+	m := shortLinkPattern.FindStringSubmatchIndex(node.Data)
+	if m == nil {
+		return
+	}
 
-		// MediaWiki uses [[link|text]], while GitHub uses [[text|link]]
-		// It makes page handling terrible, but we prefer GitHub syntax
-		// And fall back to MediaWiki only when it is obvious from the look
-		// Of text and link contents
-		sl := strings.Split(content, "|")
-		for _, v := range sl {
-			if equalPos := strings.IndexByte(v, '='); equalPos == -1 {
-				// There is no equal in this argument; this is a mandatory arg
-				if props["name"] == "" {
-					if isLinkStr(v) {
-						// If we clearly see it is a link, we save it so
+	content := node.Data[m[2]:m[3]]
+	tail := node.Data[m[4]:m[5]]
+	props := make(map[string]string)
 
-						// But first we need to ensure, that if both mandatory args provided
-						// look like links, we stick to GitHub syntax
-						if props["link"] != "" {
-							props["name"] = props["link"]
-						}
+	// MediaWiki uses [[link|text]], while GitHub uses [[text|link]]
+	// It makes page handling terrible, but we prefer GitHub syntax
+	// And fall back to MediaWiki only when it is obvious from the look
+	// Of text and link contents
+	sl := strings.Split(content, "|")
+	for _, v := range sl {
+		if equalPos := strings.IndexByte(v, '='); equalPos == -1 {
+			// There is no equal in this argument; this is a mandatory arg
+			if props["name"] == "" {
+				if isLinkStr(v) {
+					// If we clearly see it is a link, we save it so
 
-						props["link"] = strings.TrimSpace(v)
-					} else {
-						props["name"] = v
+					// But first we need to ensure, that if both mandatory args provided
+					// look like links, we stick to GitHub syntax
+					if props["link"] != "" {
+						props["name"] = props["link"]
 					}
-				} else {
+
 					props["link"] = strings.TrimSpace(v)
+				} else {
+					props["name"] = v
 				}
 			} else {
-				// There is an equal; optional argument.
-
-				sep := strings.IndexByte(v, '=')
-				key, val := v[:sep], html.UnescapeString(v[sep+1:])
-				if (val[0] == '"' || val[0] == '\'') && (val[len(val)-1] == '"' || val[len(val)-1] == '\'') {
-					val = val[1 : len(val)-1]
-				}
-				props[key] = val
+				props["link"] = strings.TrimSpace(v)
 			}
-		}
-
-		var name, link string
-		if props["link"] != "" {
-			link = props["link"]
-		} else if props["name"] != "" {
-			link = props["name"]
-		}
-		if props["title"] != "" {
-			name = props["title"]
-		} else if props["name"] != "" {
-			name = props["name"]
 		} else {
-			name = link
-		}
+			// There is an equal; optional argument.
 
-		name += tail
-		image := false
-		switch ext := filepath.Ext(string(link)); ext {
-		// fast path: empty string, ignore
-		case "":
-			break
-		case ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp", ".gif", ".bmp", ".ico", ".svg":
-			image = true
-		}
+			sep := strings.IndexByte(v, '=')
+			key, val := v[:sep], html.UnescapeString(v[sep+1:])
 
-		childNode := &html.Node{}
-		linkNode := &html.Node{
-			FirstChild: childNode,
-			LastChild:  childNode,
-			Type:       html.ElementNode,
-			Data:       "a",
-			DataAtom:   atom.A,
+			// When parsing HTML, x/net/html will change all quotes which are
+			// not used for syntax into UTF-8 quotes. So checking val[0] won't
+			// be enough, since that only checks a single byte.
+			if (strings.HasPrefix(val, "“") && strings.HasSuffix(val, "”")) ||
+				(strings.HasPrefix(val, "‘") && strings.HasSuffix(val, "’")) {
+				const lenQuote = len("‘")
+				val = val[lenQuote : len(val)-lenQuote]
+			}
+			props[key] = val
 		}
-		childNode.Parent = linkNode
-		absoluteLink := isLinkStr(link)
+	}
+
+	var name, link string
+	if props["link"] != "" {
+		link = props["link"]
+	} else if props["name"] != "" {
+		link = props["name"]
+	}
+	if props["title"] != "" {
+		name = props["title"]
+	} else if props["name"] != "" {
+		name = props["name"]
+	} else {
+		name = link
+	}
+
+	name += tail
+	image := false
+	switch ext := filepath.Ext(string(link)); ext {
+	// fast path: empty string, ignore
+	case "":
+		break
+	case ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp", ".gif", ".bmp", ".ico", ".svg":
+		image = true
+	}
+
+	childNode := &html.Node{}
+	linkNode := &html.Node{
+		FirstChild: childNode,
+		LastChild:  childNode,
+		Type:       html.ElementNode,
+		Data:       "a",
+		DataAtom:   atom.A,
+	}
+	childNode.Parent = linkNode
+	absoluteLink := isLinkStr(link)
+	if !absoluteLink {
+		link = strings.Replace(link, " ", "+", -1)
+	}
+	urlPrefix := ctx.urlPrefix
+	if image {
 		if !absoluteLink {
-			link = strings.Replace(link, " ", "+", -1)
+			if IsSameDomain(urlPrefix) {
+				urlPrefix = strings.Replace(urlPrefix, "/src/", "/raw/", 1)
+			}
+			if ctx.isWikiMarkdown {
+				link = util.URLJoin("wiki", "raw", link)
+			}
+			link = util.URLJoin(urlPrefix, link)
 		}
-		urlPrefix := ctx.urlPrefix
-		if image {
-			if !absoluteLink {
-				if IsSameDomain(urlPrefix) {
-					urlPrefix = strings.Replace(urlPrefix, "/src/", "/raw/", 1)
-				}
-				if ctx.isWikiMarkdown {
-					link = util.URLJoin("wiki", "raw", link)
-				}
-				link = util.URLJoin(urlPrefix, link)
-			}
-			title := props["title"]
-			if title == "" {
-				title = props["alt"]
-			}
-			if title == "" {
-				title = path.Base(string(name))
-			}
-			alt := props["alt"]
-			if alt == "" {
-				alt = name
-			}
+		title := props["title"]
+		if title == "" {
+			title = props["alt"]
+		}
+		if title == "" {
+			title = path.Base(string(name))
+		}
+		alt := props["alt"]
+		if alt == "" {
+			alt = name
+		}
 
-			// make the childNode an image - if we can, we also place the alt
-			childNode.Type = html.ElementNode
-			childNode.DataAtom = atom.Img
-			childNode.Attr = []html.Attribute{
-				{Key: "src", Val: link},
-				{Key: "title", Val: title},
-				{Key: "alt", Val: alt},
-			}
-			if alt == "" {
-				childNode.Attr = childNode.Attr[:2]
-			}
-		} else {
-			childNode.Type = html.TextNode
-			childNode.Data = name
+		// make the childNode an image - if we can, we also place the alt
+		childNode.Type = html.ElementNode
+		childNode.Data = "img"
+		childNode.DataAtom = atom.Img
+		childNode.Attr = []html.Attribute{
+			{Key: "src", Val: link},
+			{Key: "title", Val: title},
+			{Key: "alt", Val: alt},
 		}
+		if alt == "" {
+			childNode.Attr = childNode.Attr[:2]
+		}
+	} else {
 		if !absoluteLink {
 			if ctx.isWikiMarkdown {
 				link = util.URLJoin("wiki", link)
 			}
 			link = util.URLJoin(urlPrefix, link)
 		}
-		if noLink {
-			linkNode = childNode
-		} else {
-			linkNode.Attr = []html.Attribute{{Key: "href", Val: link}}
-		}
-		replaceContent(node, m[0], m[1], linkNode)
+		childNode.Type = html.TextNode
+		childNode.Data = name
 	}
+	if noLink {
+		linkNode = childNode
+	} else {
+		linkNode.Attr = []html.Attribute{{Key: "href", Val: link}}
+	}
+	replaceContent(node, m[0], m[1], linkNode)
 }
 
 func fullIssuePatternProcessor(ctx *postProcessCtx, node *html.Node) {
-	ms := getIssueFullPattern().FindAllStringSubmatchIndex(node.Data, -1)
-	for _, m := range ms {
-		link := node.Data[m[0]:m[1]]
-		id := "#" + node.Data[m[2]:m[3]]
-		// TODO if m[4]:m[5] is not nil, then link is to a comment,
-		// and we should indicate that in the text somehow
-		replaceContent(node, m[0], m[1], createLink(link, id))
+	m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
+	if m == nil {
+		return
 	}
+	link := node.Data[m[0]:m[1]]
+	id := "#" + node.Data[m[2]:m[3]]
+	// TODO if m[4]:m[5] is not nil, then link is to a comment,
+	// and we should indicate that in the text somehow
+	replaceContent(node, m[0], m[1], createLink(link, id))
 }
 
 func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
@@ -443,99 +539,124 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 		pattern = issueAlphanumericPattern
 	}
 
-	matches := pattern.FindAllStringSubmatchIndex(node.Data, -1)
-	for _, match := range matches {
-		id := node.Data[match[2]:match[3]]
-		var link *html.Node
-		if ctx.metas == nil {
-			link = createLink(util.URLJoin(prefix, "issues", id[1:]), id)
-		} else {
-			// Support for external issue tracker
-			if ctx.metas["style"] == IssueNameStyleAlphanumeric {
-				ctx.metas["index"] = id
-			} else {
-				ctx.metas["index"] = id[1:]
-			}
-			link = createLink(com.Expand(ctx.metas["format"], ctx.metas), id)
-		}
-		replaceContent(node, match[2], match[3], link)
+	match := pattern.FindStringSubmatchIndex(node.Data)
+	if match == nil {
+		return
 	}
+	id := node.Data[match[2]:match[3]]
+	var link *html.Node
+	if ctx.metas == nil {
+		link = createLink(util.URLJoin(prefix, "issues", id[1:]), id)
+	} else {
+		// Support for external issue tracker
+		if ctx.metas["style"] == IssueNameStyleAlphanumeric {
+			ctx.metas["index"] = id
+		} else {
+			ctx.metas["index"] = id[1:]
+		}
+		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), id)
+	}
+	replaceContent(node, match[2], match[3], link)
 }
 
 func crossReferenceIssueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
-	ms := crossReferenceIssueNumericPattern.FindAllStringSubmatchIndex(node.Data, -1)
-	for _, m := range ms {
-		ref := node.Data[m[2]:m[3]]
-
-		parts := strings.SplitN(ref, "#", 2)
-		repo, issue := parts[0], parts[1]
-
-		replaceContent(node, m[2], m[3],
-			createLink(util.URLJoin(setting.AppURL, repo, "issues", issue), ref))
+	m := crossReferenceIssueNumericPattern.FindStringSubmatchIndex(node.Data)
+	if m == nil {
+		return
 	}
+	ref := node.Data[m[2]:m[3]]
+
+	parts := strings.SplitN(ref, "#", 2)
+	repo, issue := parts[0], parts[1]
+
+	replaceContent(node, m[2], m[3],
+		createLink(util.URLJoin(setting.AppURL, repo, "issues", issue), ref))
 }
 
 // fullSha1PatternProcessor renders SHA containing URLs
 func fullSha1PatternProcessor(ctx *postProcessCtx, node *html.Node) {
-	ms := anySha1Pattern.FindAllStringSubmatchIndex(node.Data, -1)
-	for _, m := range ms {
-		// take out what's relevant
-		urlFull := node.Data[m[0]:m[1]]
-		hash := node.Data[m[2]:m[3]]
-		subtree := node.Data[m[4]:m[5]]
-
-		// check if we have a line, if we do place it inside the line var
-		var line string
-		if len(m) > 6 {
-			line = node.Data[m[6]:m[7]]
-		}
-
-		text := base.ShortSha(hash)
-		if subtree != "" {
-			text += "/" + subtree
-		}
-		if line != "" {
-			text += " ("
-			text += line
-			text += ")"
-		}
-
-		replaceContent(node, m[0], m[1], createLink(urlFull, text))
+	m := anySHA1Pattern.FindStringSubmatchIndex(node.Data)
+	if m == nil {
+		return
 	}
+	// take out what's relevant
+	urlFull := node.Data[m[0]:m[1]]
+	hash := node.Data[m[2]:m[3]]
+
+	var subtree, line string
+
+	// optional, we do them depending on the length.
+	if m[7] > 0 {
+		line = node.Data[m[6]:m[7]]
+	}
+	if m[5] > 0 {
+		subtree = node.Data[m[4]:m[5]]
+	}
+
+	text := base.ShortSha(hash)
+	if subtree != "" {
+		text += "/" + subtree
+	}
+	if line != "" {
+		text += " ("
+		text += line
+		text += ")"
+	}
+
+	replaceContent(node, m[0], m[1], createLink(urlFull, text))
 }
 
 // sha1CurrentPatternProcessor renders SHA1 strings to corresponding links that
 // are assumed to be in the same repository.
 func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
-	ms := sha1CurrentPattern.FindAllStringSubmatchIndex(node.Data, -1)
-	for _, m := range ms {
-		hash := node.Data[m[2]:m[3]]
-		// The regex does not lie, it matches the hash pattern.
-		// However, a regex cannot know if a hash actually exists or not.
-		// We could assume that a SHA1 hash should probably contain alphas AND numerics
-		// but that is not always the case.
-		// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
-		// as used by git and github for linking and thus we have to do similar.
-		replaceContent(node, m[2], m[3],
-			createLink(util.URLJoin(ctx.urlPrefix, "commit", hash), base.ShortSha(hash)))
+	m := sha1CurrentPattern.FindStringSubmatchIndex(node.Data)
+	if m == nil {
+		return
 	}
+	hash := node.Data[m[2]:m[3]]
+	// The regex does not lie, it matches the hash pattern.
+	// However, a regex cannot know if a hash actually exists or not.
+	// We could assume that a SHA1 hash should probably contain alphas AND numerics
+	// but that is not always the case.
+	// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
+	// as used by git and github for linking and thus we have to do similar.
+	replaceContent(node, m[2], m[3],
+		createLink(util.URLJoin(ctx.urlPrefix, "commit", hash), base.ShortSha(hash)))
 }
 
 // emailAddressProcessor replaces raw email addresses with a mailto: link.
 func emailAddressProcessor(ctx *postProcessCtx, node *html.Node) {
-	ms := emailRegex.FindAllStringIndex(node.Data, -1)
-	for _, m := range ms {
-		mail := node.Data[m[0]:m[1]]
-		replaceContent(node, m[0], m[1], createLink("mailto:"+mail, mail))
+	m := emailRegex.FindStringIndex(node.Data)
+	if m == nil {
+		return
 	}
+	mail := node.Data[m[0]:m[1]]
+	replaceContent(node, m[0], m[1], createLink("mailto:"+mail, mail))
 }
 
 // linkProcessor creates links for any HTTP or HTTPS URL not captured by
 // markdown.
 func linkProcessor(ctx *postProcessCtx, node *html.Node) {
-	ms := linkRegex.FindAllStringIndex(node.Data, -1)
-	for _, m := range ms {
-		uri := node.Data[m[0]:m[1]]
-		replaceContent(node, m[0], m[1], createLink(uri, uri))
+	m := linkRegex.FindStringIndex(node.Data)
+	if m == nil {
+		return
+	}
+	uri := node.Data[m[0]:m[1]]
+	replaceContent(node, m[0], m[1], createLink(uri, uri))
+}
+
+func genDefaultLinkProcessor(defaultLink string) processor {
+	return func(ctx *postProcessCtx, node *html.Node) {
+		ch := &html.Node{
+			Parent: node,
+			Type:   html.TextNode,
+			Data:   node.Data,
+		}
+
+		node.Type = html.ElementNode
+		node.Data = "a"
+		node.DataAtom = atom.A
+		node.Attr = []html.Attribute{{Key: "href", Val: defaultLink}}
+		node.FirstChild, node.LastChild = ch, ch
 	}
 }

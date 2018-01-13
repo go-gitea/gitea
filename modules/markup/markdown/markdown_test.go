@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/markup"
 	. "code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -39,69 +38,6 @@ func TestRender_StandardLinks(t *testing.T) {
 	test("[WikiPage](WikiPage)",
 		`<p><a href="`+lnk+`" rel="nofollow">WikiPage</a></p>`,
 		`<p><a href="`+lnkWiki+`" rel="nofollow">WikiPage</a></p>`)
-}
-
-func TestRender_ShortLinks(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
-	tree := util.URLJoin(AppSubURL, "src", "master")
-
-	test := func(input, expected, expectedWiki string) {
-		buffer := RenderString(input, tree, nil)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
-		buffer = RenderWiki([]byte(input), setting.AppSubURL, nil)
-		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
-	}
-
-	rawtree := util.URLJoin(AppSubURL, "raw", "master")
-	url := util.URLJoin(tree, "Link")
-	otherUrl := util.URLJoin(tree, "OtherLink")
-	imgurl := util.URLJoin(rawtree, "Link.jpg")
-	urlWiki := util.URLJoin(AppSubURL, "wiki", "Link")
-	otherUrlWiki := util.URLJoin(AppSubURL, "wiki", "OtherLink")
-	imgurlWiki := util.URLJoin(AppSubURL, "wiki", "raw", "Link.jpg")
-	favicon := "http://google.com/favicon.ico"
-
-	test(
-		"[[Link]]",
-		`<p><a href="`+url+`" rel="nofollow">Link</a></p>`,
-		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a></p>`)
-	test(
-		"[[Link.jpg]]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="Link.jpg" title="Link.jpg"/></a></p>`,
-		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="Link.jpg" title="Link.jpg"/></a></p>`)
-	test(
-		"[["+favicon+"]]",
-		`<p><a href="`+favicon+`" rel="nofollow"><img src="`+favicon+`" title="favicon.ico"/></a></p>`,
-		`<p><a href="`+favicon+`" rel="nofollow"><img src="`+favicon+`" title="favicon.ico"/></a></p>`)
-	test(
-		"[[Name|Link]]",
-		`<p><a href="`+url+`" rel="nofollow">Name</a></p>`,
-		`<p><a href="`+urlWiki+`" rel="nofollow">Name</a></p>`)
-	test(
-		"[[Name|Link.jpg]]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="Name" title="Name"/></a></p>`,
-		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="Name" title="Name"/></a></p>`)
-	test(
-		"[[Name|Link.jpg|alt=AltName]]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="AltName"/></a></p>`,
-		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="AltName" title="AltName"/></a></p>`)
-	test(
-		"[[Name|Link.jpg|title=Title]]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="Title" title="Title"/></a></p>`,
-		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="Title" title="Title"/></a></p>`)
-	test(
-		"[[Name|Link.jpg|alt=AltName|title=Title]]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="Title"/></a></p>`,
-		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="AltName" title="Title"/></a></p>`)
-	test(
-		"[[Name|Link.jpg|alt=\"AltName\"|title='Title']]",
-		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" alt="AltName" title="Title"/></a></p>`,
-		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" alt="AltName" title="Title"/></a></p>`)
-	test(
-		"[[Link]] [[OtherLink]]",
-		`<p><a href="`+url+`" rel="nofollow">Link</a> <a href="`+otherUrl+`" rel="nofollow">OtherLink</a></p>`,
-		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a> <a href="`+otherUrlWiki+`" rel="nofollow">OtherLink</a></p>`)
 }
 
 func TestMisc_IsMarkdownFile(t *testing.T) {
@@ -146,30 +82,6 @@ func TestRender_Images(t *testing.T) {
 	test(
 		"[["+title+"|"+url+"]]",
 		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" alt="`+title+`" title="`+title+`"/></a></p>`)
-}
-
-func TestRegExp_ShortLinkPattern(t *testing.T) {
-	trueTestCases := []string{
-		"[[stuff]]",
-		"[[]]",
-		"[[stuff|title=Difficult name with spaces*!]]",
-	}
-	falseTestCases := []string{
-		"test",
-		"abcdefg",
-		"[[]",
-		"[[",
-		"[]",
-		"]]",
-		"abcdefghijklmnopqrstuvwxyz",
-	}
-
-	for _, testCase := range trueTestCases {
-		assert.True(t, markup.ShortLinkPattern.MatchString(testCase))
-	}
-	for _, testCase := range falseTestCases {
-		assert.False(t, markup.ShortLinkPattern.MatchString(testCase))
-	}
 }
 
 func testAnswers(baseURLContent, baseURLImages string) []string {
