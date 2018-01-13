@@ -984,7 +984,6 @@ func ResetPasswdPost(ctx *context.Context) {
 			return
 		}
 
-		u.Passwd = passwd
 		var err error
 		if u.Rands, err = models.GetUserSalt(); err != nil {
 			ctx.ServerError("UpdateUser", err)
@@ -994,7 +993,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		u.HashPassword()
+		u.HashPassword(passwd)
 		if err := models.UpdateUserCols(u, "passwd", "rands", "salt"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return

@@ -138,6 +138,22 @@ func (u *User) BeforeUpdate() {
 	if u.MaxRepoCreation < -1 {
 		u.MaxRepoCreation = -1
 	}
+
+	// Organization does not need email
+	u.Email = strings.ToLower(u.Email)
+	if !u.IsOrganization() {
+		if len(u.AvatarEmail) == 0 {
+			u.AvatarEmail = u.Email
+		}
+		if len(u.AvatarEmail) > 0 {
+			u.Avatar = base.HashEmail(u.AvatarEmail)
+		}
+	}
+
+	u.LowerName = strings.ToLower(u.Name)
+	u.Location = base.TruncateString(u.Location, 255)
+	u.Website = base.TruncateString(u.Website, 255)
+	u.Description = base.TruncateString(u.Description, 255)
 }
 
 // SetLastLogin set time to last login
@@ -388,17 +404,20 @@ func (u *User) NewGitSig() *git.Signature {
 	}
 }
 
+func hashPassword(passwd, salt string) string {
+	tempPasswd := pbkdf2.Key([]byte(passwd), []byte(salt), 10000, 50, sha256.New)
+	return fmt.Sprintf("%x", tempPasswd)
+}
+
 // HashPassword hashes a password using PBKDF.
-func (u *User) HashPassword() {
-	newPasswd := pbkdf2.Key([]byte(u.Passwd), []byte(u.Salt), 10000, 50, sha256.New)
-	u.Passwd = fmt.Sprintf("%x", newPasswd)
+func (u *User) HashPassword(passwd string) {
+	u.Passwd = hashPassword(passwd, u.Salt)
 }
 
 // ValidatePassword checks if given password matches the one belongs to the user.
 func (u *User) ValidatePassword(passwd string) bool {
-	newUser := &User{Passwd: passwd, Salt: u.Salt}
-	newUser.HashPassword()
-	return subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(newUser.Passwd)) == 1
+	tempHash := hashPassword(passwd, u.Salt)
+	return subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1
 }
 
 // IsPasswordSet checks if the password is set or left empty
@@ -711,7 +730,7 @@ func CreateUser(u *User) (err error) {
 	if u.Salt, err = GetUserSalt(); err != nil {
 		return err
 	}
-	u.HashPassword()
+	u.HashPassword(u.Passwd)
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	u.MaxRepoCreation = -1
 
@@ -837,22 +856,6 @@ func checkDupEmail(e Engine, u *User) error {
 }
 
 func updateUser(e Engine, u *User) error {
-	// Organization does not need email
-	u.Email = strings.ToLower(u.Email)
-	if !u.IsOrganization() {
-		if len(u.AvatarEmail) == 0 {
-			u.AvatarEmail = u.Email
-		}
-		if len(u.AvatarEmail) > 0 {
-			u.Avatar = base.HashEmail(u.AvatarEmail)
-		}
-	}
-
-	u.LowerName = strings.ToLower(u.Name)
-	u.Location = base.TruncateString(u.Location, 255)
-	u.Website = base.TruncateString(u.Website, 255)
-	u.Description = base.TruncateString(u.Description, 255)
-
 	_, err := e.ID(u.ID).AllCols().Update(u)
 	return err
 }
@@ -868,22 +871,6 @@ func UpdateUserCols(u *User, cols ...string) error {
 }
 
 func updateUserCols(e Engine, u *User, cols ...string) error {
-	// Organization does not need email
-	u.Email = strings.ToLower(u.Email)
-	if !u.IsOrganization() {
-		if len(u.AvatarEmail) == 0 {
-			u.AvatarEmail = u.Email
-		}
-		if len(u.AvatarEmail) > 0 {
-			u.Avatar = base.HashEmail(u.AvatarEmail)
-		}
-	}
-
-	u.LowerName = strings.ToLower(u.Name)
-	u.Location = base.TruncateString(u.Location, 255)
-	u.Website = base.TruncateString(u.Website, 255)
-	u.Description = base.TruncateString(u.Description, 255)
-
 	_, err := e.ID(u.ID).Cols(cols...).Update(u)
 	return err
 }
