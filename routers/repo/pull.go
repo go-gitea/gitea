@@ -408,7 +408,7 @@ func ViewPullFiles(ctx *context.Context) {
 
 		headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
 		if err != nil {
-			ctx.ServerError("GetBranchCommitID", err)
+			ctx.ServerError("GetRefCommitID", err)
 			return
 		}
 
