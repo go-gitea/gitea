@@ -259,9 +259,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.P
 	setMergeTarget(ctx, pull)
 	ctx.Data["HasMerged"] = true
 
-	gitRepo := ctx.Repo.GitRepo
-
-	prInfo, err := gitRepo.GetPullRequestInfo(ctx.Repo.Repository.RepoPath(),
+	prInfo, err := ctx.Repo.GitRepo.GetPullRequestInfo(ctx.Repo.Repository.RepoPath(),
 		pull.MergeBase, pull.GetGitRefName())
 
 	if err != nil {
