@@ -952,6 +952,10 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 	for _, issue := range issues {
 		if err := issue.ChangeStatus(ctx.User, issue.Repo, isClosed); err != nil {
+			if models.IsErrDependenciesLeft(err) {
+				ctx.Error(409, "", fmt.Sprintf("cannot close this issue because it still has open dependencies"))
+				return
+			}
 			ctx.ServerError("ChangeStatus", err)
 			return
 		}
@@ -986,23 +990,6 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 			(form.Status == "reopen" || form.Status == "close") &&
 			!(issue.IsPull && issue.PullRequest.HasMerged) {
 
-			// Check for open dependencies
-			noDeps, err := models.IssueNoDependenciesLeft(issue)
-			if err != nil {
-				return
-			}
-
-			if form.Status == "close" && !noDeps {
-				if issue.IsPull {
-					ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
-					ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
-				} else {
-					ctx.Flash.Error(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
-					ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
-				}
-				return
-			}
-
 			// Duplication and conflict check should apply to reopen pull request.
 			var pr *models.PullRequest
 
@@ -1032,6 +1019,16 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 			} else {
 				if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, form.Status == "close"); err != nil {
 					log.Error(4, "ChangeStatus: %v", err)
+
+					if models.IsErrDependenciesLeft(err) {
+						if issue.IsPull {
+							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+							ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
+						} else {
+							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
+							ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+						}
+					}
 				} else {
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 

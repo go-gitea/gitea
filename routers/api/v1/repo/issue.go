@@ -173,6 +173,10 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 
 	if form.Closed {
 		if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, true); err != nil {
+			if models.IsErrDependenciesLeft(err) {
+				ctx.Error(409, "", fmt.Sprintf("cannot close this issue because it still has open dependencies"))
+				return
+			}
 			ctx.Error(500, "ChangeStatus", err)
 			return
 		}
@@ -280,6 +284,10 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	}
 	if form.State != nil {
 		if err = issue.ChangeStatus(ctx.User, ctx.Repo.Repository, api.StateClosed == api.StateType(*form.State)); err != nil {
+			if models.IsErrDependenciesLeft(err) {
+				ctx.Error(409, "", fmt.Sprintf("cannot close this issue because it still has open dependencies"))
+				return
+			}
 			ctx.Error(500, "ChangeStatus", err)
 			return
 		}
