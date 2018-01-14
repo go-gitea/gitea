@@ -25,7 +25,7 @@ func AddDependency(ctx *context.Context) {
 	}
 
 	// Check if the Repo is allowed to have dependencies
-	if !ctx.Repo.CanCreateIssueDependencies(issue, ctx.User) {
+	if !ctx.Repo.CanCreateIssueDependencies(ctx.User) {
 		ctx.NotFound("NotAllowedToCreateIssueDependencies", nil)
 		return
 	}

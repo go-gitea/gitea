@@ -302,6 +302,9 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.
 	}
 	ctx.Data["Branches"] = brs
 
+	//
+	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.User)
+
 	return labels
 }
 
@@ -651,7 +654,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	// Check if the user can use the dependencies
-	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(issue, ctx.User)
+	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.User)
 
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
