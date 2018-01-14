@@ -470,13 +470,13 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) err
 				continue
 			}
 
-				if err = issue.ChangeStatus(doer, repo, true); err != nil {
-					// Don't return an error when dependencies are open as this would let the push fail
-					if IsErrDependenciesLeft(err) {
-						return nil
-					}
-					return err
+			if err = issue.ChangeStatus(doer, repo, true); err != nil {
+				// Don't return an error when dependencies are open as this would let the push fail
+				if IsErrDependenciesLeft(err) {
+					return nil
 				}
+				return err
+			}
 		}
 
 		// It is conflict to have close and reopen at same time, so refsMarked doesn't need to reinit here.

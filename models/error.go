@@ -1230,10 +1230,10 @@ func (err ErrCircularDependency) Error() string {
 
 // ErrDependenciesLeft represents an error where the issue you're trying to close still has dependencies left.
 type ErrDependenciesLeft struct {
-	IssueID      int64
+	IssueID int64
 }
 
-// IsErrCircularDependency checks if an error is a ErrCircularDependency.
+// IsErrDependenciesLeft checks if an error is a ErrCircularDependency.
 func IsErrDependenciesLeft(err error) bool {
 	_, ok := err.(ErrDependenciesLeft)
 	return ok
