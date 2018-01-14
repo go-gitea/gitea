@@ -70,8 +70,8 @@ func InitRepoIndexer() {
 	if !setting.Indexer.RepoIndexerEnabled {
 		return
 	}
-	indexer.InitRepoIndexer(populateRepoIndexerAsynchronously)
 	repoIndexerOperationQueue = make(chan repoIndexerOperation, setting.Indexer.UpdateQueueLength)
+	indexer.InitRepoIndexer(populateRepoIndexerAsynchronously)
 	go processRepoIndexerOperationQueue()
 }
 
