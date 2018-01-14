@@ -79,9 +79,15 @@ func InitRepoIndexer() {
 // with pre-existing data. This should only be run when the indexer is created
 // for the first time.
 func populateRepoIndexerAsynchronously() error {
-	var maxRepoID int64
-	_, err := x.Select("MAX(id)").Table("repository").Get(&maxRepoID)
+	exist, err := x.Table("repository").Exist()
 	if err != nil {
+		return err
+	} else if !exist {
+		return nil
+	}
+
+	var maxRepoID int64
+	if _, err = x.Select("MAX(id)").Table("repository").Get(&maxRepoID); err != nil {
 		return err
 	}
 	go populateRepoIndexer(maxRepoID)
