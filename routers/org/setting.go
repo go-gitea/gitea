@@ -48,7 +48,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	if org.LowerName != strings.ToLower(form.Name) {
 		isExist, err := models.IsUserExist(org.ID, form.Name)
 		if err != nil {
-			ctx.Handle(500, "IsUserExist", err)
+			ctx.ServerError("IsUserExist", err)
 			return
 		} else if isExist {
 			ctx.Data["OrgName"] = true
@@ -59,7 +59,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 				ctx.Data["OrgName"] = true
 				ctx.RenderWithErr(ctx.Tr("form.illegal_username"), tplSettingsOptions, &form)
 			} else {
-				ctx.Handle(500, "ChangeUserName", err)
+				ctx.ServerError("ChangeUserName", err)
 			}
 			return
 		}
@@ -80,7 +80,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	org.Website = form.Website
 	org.Location = form.Location
 	if err := models.UpdateUser(org); err != nil {
-		ctx.Handle(500, "UpdateUser", err)
+		ctx.ServerError("UpdateUser", err)
 		return
 	}
 	log.Trace("Organization setting updated: %s", org.Name)
@@ -120,7 +120,7 @@ func SettingsDelete(ctx *context.Context) {
 			if models.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsDelete, nil)
 			} else {
-				ctx.Handle(500, "UserSignIn", err)
+				ctx.ServerError("UserSignIn", err)
 			}
 			return
 		}
@@ -130,7 +130,7 @@ func SettingsDelete(ctx *context.Context) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
 			} else {
-				ctx.Handle(500, "DeleteOrganization", err)
+				ctx.ServerError("DeleteOrganization", err)
 			}
 		} else {
 			log.Trace("Organization deleted: %s", org.Name)
@@ -151,7 +151,7 @@ func Webhooks(ctx *context.Context) {
 
 	ws, err := models.GetWebhooksByOrgID(ctx.Org.Organization.ID)
 	if err != nil {
-		ctx.Handle(500, "GetWebhooksByOrgId", err)
+		ctx.ServerError("GetWebhooksByOrgId", err)
 		return
 	}
 

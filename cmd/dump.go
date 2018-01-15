@@ -68,19 +68,19 @@ func runDump(ctx *cli.Context) error {
 	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
 		log.Fatalf("Path does not exist: %s", tmpDir)
 	}
-	TmpWorkDir, err := ioutil.TempDir(tmpDir, "gitea-dump-")
+	tmpWorkDir, err := ioutil.TempDir(tmpDir, "gitea-dump-")
 	if err != nil {
 		log.Fatalf("Failed to create tmp work directory: %v", err)
 	}
-	log.Printf("Creating tmp work dir: %s", TmpWorkDir)
+	log.Printf("Creating tmp work dir: %s", tmpWorkDir)
 
 	// work-around #1103
 	if os.Getenv("TMPDIR") == "" {
-		os.Setenv("TMPDIR", TmpWorkDir)
+		os.Setenv("TMPDIR", tmpWorkDir)
 	}
 
-	reposDump := path.Join(TmpWorkDir, "gitea-repo.zip")
-	dbDump := path.Join(TmpWorkDir, "gitea-db.sql")
+	reposDump := path.Join(tmpWorkDir, "gitea-repo.zip")
+	dbDump := path.Join(tmpWorkDir, "gitea-db.sql")
 
 	log.Printf("Dumping local repositories...%s", setting.RepoRootPath)
 	zip.Verbose = ctx.Bool("verbose")
@@ -146,10 +146,10 @@ func runDump(ctx *cli.Context) error {
 		log.Printf("Can't change file access permissions mask to 0600: %v", err)
 	}
 
-	log.Printf("Removing tmp work dir: %s", TmpWorkDir)
+	log.Printf("Removing tmp work dir: %s", tmpWorkDir)
 
-	if err := os.RemoveAll(TmpWorkDir); err != nil {
-		log.Fatalf("Failed to remove %s: %v", TmpWorkDir, err)
+	if err := os.RemoveAll(tmpWorkDir); err != nil {
+		log.Fatalf("Failed to remove %s: %v", tmpWorkDir, err)
 	}
 	log.Printf("Finish dumping in file %s", fileName)
 
