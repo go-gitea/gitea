@@ -37,7 +37,7 @@ var (
 		},
 		Subcommands: []cli.Command{
 			subcmdHookPreReceive,
-			subcmdHookUpadte,
+			subcmdHookUpdate,
 			subcmdHookPostReceive,
 		},
 	}
@@ -48,7 +48,7 @@ var (
 		Description: "This command should only be called by Git",
 		Action:      runHookPreReceive,
 	}
-	subcmdHookUpadte = cli.Command{
+	subcmdHookUpdate = cli.Command{
 		Name:        "update",
 		Usage:       "Delegate update Git hook",
 		Description: "This command should only be called by Git",

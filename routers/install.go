@@ -33,7 +33,7 @@ const (
 // InstallInit prepare for rendering installation page
 func InstallInit(ctx *context.Context) {
 	if setting.InstallLock {
-		ctx.Handle(404, "Install", errors.New("Installation is prohibited"))
+		ctx.NotFound("Install", errors.New("Installation is prohibited"))
 		return
 	}
 

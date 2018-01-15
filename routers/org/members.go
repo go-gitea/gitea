@@ -26,7 +26,7 @@ func Members(ctx *context.Context) {
 	ctx.Data["PageIsOrgMembers"] = true
 
 	if err := org.GetMembers(); err != nil {
-		ctx.Handle(500, "GetMembers", err)
+		ctx.ServerError("GetMembers", err)
 		return
 	}
 	ctx.Data["Members"] = org.Members
