@@ -1679,22 +1679,15 @@ $(function () {
 function showDeletePopup() {
     var $this = $(this);
     var filter = "";
-
-    // Replace content to repositoy name
-    var content = $('.content').text();
-    content     = content.replace("%s",$this.data('repo-name'));
-    $('.content').html(content);
-
     if ($this.attr("id")) {
         filter += "#" + $this.attr("id")
     }
 
-    $('.delete.modal' + filter).modal({
+    var dialog = $('.delete.modal' + filter);
+    dialog.find('.repo-name').text($this.data('repo-name'));
+
+    dialog.modal({
         closable: false,
-        onDeny: function() {
-            content     = content.replace($this.data('repo-name'), "%s");
-            $('.content').text(content);
-        },
         onApprove: function() {
             if ($this.data('type') == "form") {
                 $($this.data('form')).submit();
