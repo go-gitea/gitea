@@ -5,7 +5,6 @@
 package context
 
 import (
-	"fmt"
 	"html"
 	"html/template"
 	"io"
@@ -92,8 +91,8 @@ func (ctx *Context) RenderWithErr(msg string, tpl base.TplName, form interface{}
 	ctx.HTML(200, tpl)
 }
 
-// Handle handles and logs error by given status.
-func (ctx *Context) Handle(status int, title string, err error) {
+// NotFound displays a 404 (Not Found) page and prints the given error, if any.
+func (ctx *Context) NotFound(title string, err error) {
 	if err != nil {
 		log.Error(4, "%s: %v", title, err)
 		if macaron.Env != macaron.PROD {
@@ -101,13 +100,22 @@ func (ctx *Context) Handle(status int, title string, err error) {
 		}
 	}
 
-	switch status {
-	case 404:
-		ctx.Data["Title"] = "Page Not Found"
-	case 500:
-		ctx.Data["Title"] = "Internal Server Error"
+	ctx.Data["Title"] = "Page Not Found"
+	ctx.HTML(http.StatusNotFound, base.TplName("status/404"))
+}
+
+// ServerError displays a 500 (Internal Server Error) page and prints the given
+// error, if any.
+func (ctx *Context) ServerError(title string, err error) {
+	if err != nil {
+		log.Error(4, "%s: %v", title, err)
+		if macaron.Env != macaron.PROD {
+			ctx.Data["ErrorMsg"] = err
+		}
 	}
-	ctx.HTML(status, base.TplName(fmt.Sprintf("status/%d", status)))
+
+	ctx.Data["Title"] = "Internal Server Error"
+	ctx.HTML(404, base.TplName("status/500"))
 }
 
 // NotFoundOrServerError use error check function to determine if the error
@@ -115,11 +123,11 @@ func (ctx *Context) Handle(status int, title string, err error) {
 // or error context description for logging purpose of 500 server error.
 func (ctx *Context) NotFoundOrServerError(title string, errck func(error) bool, err error) {
 	if errck(err) {
-		ctx.Handle(404, title, err)
+		ctx.NotFound(title, err)
 		return
 	}
 
-	ctx.Handle(500, title, err)
+	ctx.ServerError(title, err)
 }
 
 // HandleText handles HTTP status code
@@ -218,7 +226,7 @@ func Contexter() macaron.Handler {
 		// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 		if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
 			if err := ctx.Req.ParseMultipartForm(setting.AttachmentMaxSize << 20); err != nil && !strings.Contains(err.Error(), "EOF") { // 32MB max size
-				ctx.Handle(500, "ParseMultipartForm", err)
+				ctx.ServerError("ParseMultipartForm", err)
 				return
 			}
 		}

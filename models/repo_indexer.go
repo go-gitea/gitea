@@ -70,34 +70,58 @@ func InitRepoIndexer() {
 	if !setting.Indexer.RepoIndexerEnabled {
 		return
 	}
-	indexer.InitRepoIndexer(populateRepoIndexer)
 	repoIndexerOperationQueue = make(chan repoIndexerOperation, setting.Indexer.UpdateQueueLength)
+	indexer.InitRepoIndexer(populateRepoIndexerAsynchronously)
 	go processRepoIndexerOperationQueue()
 }
 
-// populateRepoIndexer populate the repo indexer with data
-func populateRepoIndexer() error {
-	log.Info("Populating repository indexer (this may take a while)")
-	for page := 1; ; page++ {
-		repos, _, err := SearchRepositoryByName(&SearchRepoOptions{
-			Page:     page,
-			PageSize: RepositoryListDefaultPageSize,
-			OrderBy:  SearchOrderByID,
-			Private:  true,
-		})
+// populateRepoIndexerAsynchronously asynchronously populates the repo indexer
+// with pre-existing data. This should only be run when the indexer is created
+// for the first time.
+func populateRepoIndexerAsynchronously() error {
+	exist, err := x.Table("repository").Exist()
+	if err != nil {
+		return err
+	} else if !exist {
+		return nil
+	}
+
+	var maxRepoID int64
+	if _, err = x.Select("MAX(id)").Table("repository").Get(&maxRepoID); err != nil {
+		return err
+	}
+	go populateRepoIndexer(maxRepoID)
+	return nil
+}
+
+// populateRepoIndexer populate the repo indexer with pre-existing data. This
+// should only be run when the indexer is created for the first time.
+func populateRepoIndexer(maxRepoID int64) {
+	log.Info("Populating the repo indexer with existing repositories")
+	// start with the maximum existing repo ID and work backwards, so that we
+	// don't include repos that are created after gitea starts; such repos will
+	// already be added to the indexer, and we don't need to add them again.
+	for maxRepoID > 0 {
+		repos := make([]*Repository, 0, RepositoryListDefaultPageSize)
+		err := x.Where("id <= ?", maxRepoID).
+			OrderBy("id DESC").
+			Limit(RepositoryListDefaultPageSize).
+			Find(&repos)
 		if err != nil {
-			return err
+			log.Error(4, "populateRepoIndexer: %v", err)
+			return
 		} else if len(repos) == 0 {
-			return nil
+			break
 		}
 		for _, repo := range repos {
-			if err = updateRepoIndexer(repo); err != nil {
-				// only log error, since this should not prevent
-				// gitea from starting up
-				log.Error(4, "updateRepoIndexer: repoID=%d, %v", repo.ID, err)
+			repoIndexerOperationQueue <- repoIndexerOperation{
+				repo:    repo,
+				deleted: false,
 			}
+			maxRepoID = repo.ID - 1
 		}
 	}
+	log.Info("Done populating the repo indexer with existing repositories")
 }
 
 func updateRepoIndexer(repo *Repository) error {

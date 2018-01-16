@@ -180,7 +180,7 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 	}
 
 	if err := models.UpdateMilestone(milestone); err != nil {
-		ctx.Handle(500, "UpdateMilestone", err)
+		ctx.ServerError("UpdateMilestone", err)
 		return
 	}
 	ctx.JSON(200, milestone.APIFormat())

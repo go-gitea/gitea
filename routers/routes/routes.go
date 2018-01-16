@@ -312,25 +312,25 @@ func RegisterRoutes(m *macaron.Macaron) {
 				if models.IsErrAttachmentNotExist(err) {
 					ctx.Error(404)
 				} else {
-					ctx.Handle(500, "GetAttachmentByUUID", err)
+					ctx.ServerError("GetAttachmentByUUID", err)
 				}
 				return
 			}
 
 			fr, err := os.Open(attach.LocalPath())
 			if err != nil {
-				ctx.Handle(500, "Open", err)
+				ctx.ServerError("Open", err)
 				return
 			}
 			defer fr.Close()
 
 			if err := attach.IncreaseDownloadCount(); err != nil {
-				ctx.Handle(500, "Update", err)
+				ctx.ServerError("Update", err)
 				return
 			}
 
 			if err = repo.ServeData(ctx, attach.Name, fr); err != nil {
-				ctx.Handle(500, "ServeData", err)
+				ctx.ServerError("ServeData", err)
 				return
 			}
 		})
@@ -353,10 +353,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("", func() {
 			m.Get("/create", org.Create)
 			m.Post("/create", bindIgnErr(auth.CreateOrgForm{}), org.CreatePost)
-		}, func(ctx *context.Context) {
-			if !ctx.User.CanCreateOrganization() {
-				ctx.NotFound()
-			}
 		})
 
 		m.Group("/:org", func() {
@@ -575,12 +571,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 			var err error
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 			if err != nil {
-				ctx.Handle(500, "GetBranchCommit", err)
+				ctx.ServerError("GetBranchCommit", err)
 				return
 			}
 			ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
 			if err != nil {
-				ctx.Handle(500, "GetCommitsCount", err)
+				ctx.ServerError("GetCommitsCount", err)
 				return
 			}
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
@@ -696,7 +692,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/:lid/unlock", lfs.UnLockHandler)
 				}, context.RepoAssignment())
 				m.Any("/*", func(ctx *context.Context) {
-					ctx.Handle(404, "", nil)
+					ctx.NotFound("", nil)
 				})
 			}, ignSignInAndCsrf)
 			m.Any("/*", ignSignInAndCsrf, repo.HTTP)
@@ -725,7 +721,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		if setting.HasRobotsTxt {
 			ctx.ServeFileContent(path.Join(setting.CustomPath, "robots.txt"))
 		} else {
-			ctx.Handle(404, "", nil)
+			ctx.NotFound("", nil)
 		}
 	})
 

@@ -51,9 +51,9 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Org.Organization, err = models.GetUserByName(orgName)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Handle(404, "GetUserByName", err)
+			ctx.NotFound("GetUserByName", err)
 		} else {
-			ctx.Handle(500, "GetUserByName", err)
+			ctx.ServerError("GetUserByName", err)
 		}
 		return
 	}
@@ -75,7 +75,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	} else if ctx.IsSigned {
 		ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.User.ID)
 		if err != nil {
-			ctx.Handle(500, "IsOwnedBy", err)
+			ctx.ServerError("IsOwnedBy", err)
 			return
 		}
 
@@ -86,7 +86,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		} else {
 			ctx.Org.IsMember, err = org.IsOrgMember(ctx.User.ID)
 			if err != nil {
-				ctx.Handle(500, "IsOrgMember", err)
+				ctx.ServerError("IsOrgMember", err)
 				return
 			}
 		}
@@ -96,7 +96,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 	if (requireMember && !ctx.Org.IsMember) ||
 		(requireOwner && !ctx.Org.IsOwner) {
-		ctx.Handle(404, "OrgAssignment", err)
+		ctx.NotFound("OrgAssignment", err)
 		return
 	}
 	ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
@@ -109,13 +109,13 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	if ctx.Org.IsMember {
 		if ctx.Org.IsOwner {
 			if err := org.GetTeams(); err != nil {
-				ctx.Handle(500, "GetTeams", err)
+				ctx.ServerError("GetTeams", err)
 				return
 			}
 		} else {
 			org.Teams, err = org.GetUserTeams(ctx.User.ID)
 			if err != nil {
-				ctx.Handle(500, "GetUserTeams", err)
+				ctx.ServerError("GetUserTeams", err)
 				return
 			}
 		}
@@ -135,20 +135,20 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		}
 
 		if !teamExists {
-			ctx.Handle(404, "OrgAssignment", err)
+			ctx.NotFound("OrgAssignment", err)
 			return
 		}
 
 		ctx.Data["IsTeamMember"] = ctx.Org.IsTeamMember
 		if requireTeamMember && !ctx.Org.IsTeamMember {
-			ctx.Handle(404, "OrgAssignment", err)
+			ctx.NotFound("OrgAssignment", err)
 			return
 		}
 
 		ctx.Org.IsTeamAdmin = ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.Authorize >= models.AccessModeAdmin
 		ctx.Data["IsTeamAdmin"] = ctx.Org.IsTeamAdmin
 		if requireTeamAdmin && !ctx.Org.IsTeamAdmin {
-			ctx.Handle(404, "OrgAssignment", err)
+			ctx.NotFound("OrgAssignment", err)
 			return
 		}
 	}

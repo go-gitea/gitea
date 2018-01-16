@@ -48,7 +48,7 @@ func Activity(ctx *context.Context) {
 		ctx.Repo.Repository.UnitEnabled(models.UnitTypeReleases),
 		ctx.Repo.Repository.UnitEnabled(models.UnitTypeIssues),
 		ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests)); err != nil {
-		ctx.Handle(500, "GetActivityStats", err)
+		ctx.ServerError("GetActivityStats", err)
 		return
 	}
 

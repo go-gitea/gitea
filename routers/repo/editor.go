@@ -73,19 +73,19 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		// No way to edit a directory online.
 		if entry.IsDir() {
-			ctx.Handle(404, "entry.IsDir", nil)
+			ctx.NotFound("entry.IsDir", nil)
 			return
 		}
 
 		blob := entry.Blob()
 		if blob.Size() >= setting.UI.MaxDisplayFileSize {
-			ctx.Handle(404, "blob.Size", err)
+			ctx.NotFound("blob.Size", err)
 			return
 		}
 
 		dataRc, err := blob.Data()
 		if err != nil {
-			ctx.Handle(404, "blob.Data", err)
+			ctx.NotFound("blob.Data", err)
 			return
 		}
 
@@ -98,7 +98,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		// Only text file are editable online.
 		if !base.IsTextFile(buf) {
-			ctx.Handle(404, "base.IsTextFile", nil)
+			ctx.NotFound("base.IsTextFile", nil)
 			return
 		}
 
@@ -214,7 +214,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 				break
 			}
 
-			ctx.Handle(500, "Repo.Commit.GetTreeEntryByPath", err)
+			ctx.ServerError("Repo.Commit.GetTreeEntryByPath", err)
 			return
 		}
 		if index != len(treeNames)-1 {
@@ -244,14 +244,14 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 				ctx.Data["Err_TreePath"] = true
 				ctx.RenderWithErr(ctx.Tr("repo.editor.file_editing_no_longer_exists", oldTreePath), tplEditFile, &form)
 			} else {
-				ctx.Handle(500, "GetTreeEntryByPath", err)
+				ctx.ServerError("GetTreeEntryByPath", err)
 			}
 			return
 		}
 		if lastCommit != ctx.Repo.CommitID {
 			files, err := ctx.Repo.Commit.GetFilesChangedSinceCommit(lastCommit)
 			if err != nil {
-				ctx.Handle(500, "GetFilesChangedSinceCommit", err)
+				ctx.ServerError("GetFilesChangedSinceCommit", err)
 				return
 			}
 
@@ -269,7 +269,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(form.TreePath)
 		if err != nil {
 			if !git.IsErrNotExist(err) {
-				ctx.Handle(500, "GetTreeEntryByPath", err)
+				ctx.ServerError("GetTreeEntryByPath", err)
 				return
 			}
 		}
@@ -422,7 +422,7 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 		TreePath:     ctx.Repo.TreePath,
 		Message:      message,
 	}); err != nil {
-		ctx.Handle(500, "DeleteRepoFile", err)
+		ctx.ServerError("DeleteRepoFile", err)
 		return
 	}
 
@@ -521,7 +521,7 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 				break
 			}
 
-			ctx.Handle(500, "Repo.Commit.GetTreeEntryByPath", err)
+			ctx.ServerError("Repo.Commit.GetTreeEntryByPath", err)
 			return
 		}
 
