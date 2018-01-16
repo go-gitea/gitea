@@ -56,7 +56,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build-without-gcc:
-    image: webhippie/golang:edge
+    image: webhippie/golang:1.8
     pull: true
     environment:
       GOPATH: /srv/app
@@ -66,7 +66,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build:
-    image: webhippie/golang:1.8
+    image: webhippie/golang:edge
     pull: true
     environment:
       TAGS: bindata sqlite
@@ -84,7 +84,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test:
-    image: webhippie/golang:1.8
+    image: webhippie/golang:edge
     pull: true
     group: test
     environment:
@@ -97,7 +97,7 @@ pipeline:
       branch: [ master ]
 
   test:
-    image: webhippie/golang:1.8
+    image: webhippie/golang:edge
     pull: true
     group: test
     environment:
@@ -135,7 +135,7 @@ pipeline:
   #     event: [ push, tag, pull_request ]
 
   test-mysql:
-    image: webhippie/golang:1.8
+    image: webhippie/golang:edge
     pull: true
     group: test
     environment:
@@ -148,7 +148,7 @@ pipeline:
       branch: [ master ]
 
   test-mysql:
-    image: webhippie/golang:1.8
+    image: webhippie/golang:edge
     pull: true
     group: test
     environment:
@@ -160,7 +160,7 @@ pipeline:
       event: [ tag ]
 
   test-pgsql:
-    image: webhippie/golang:1.8
+    image: webhippie/golang:edge
     pull: true
     group: test
     environment:
