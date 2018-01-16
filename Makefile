@@ -159,7 +159,7 @@ test-vendor:
 
 .PHONY: test-sqlite
 test-sqlite: integrations.sqlite.test
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.v
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
 
 generate-ini:
 	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
@@ -175,11 +175,11 @@ generate-ini:
 
 .PHONY: test-mysql
 test-mysql: integrations.test generate-ini
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test -test.v
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test
 
 .PHONY: test-pgsql
 test-pgsql: integrations.test generate-ini
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test -test.v
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test
