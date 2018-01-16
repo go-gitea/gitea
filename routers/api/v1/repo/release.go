@@ -96,7 +96,7 @@ func ListReleases(ctx *context.APIContext) {
 
 // CreateRelease create a release
 func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
-	// swagger:operation GET /repos/{owner}/{repo}/releases repository repoCreateRelease
+	// swagger:operation POST /repos/{owner}/{repo}/releases repository repoCreateRelease
 	// ---
 	// summary: Create a release
 	// consumes:
