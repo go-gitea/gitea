@@ -106,7 +106,7 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 		return false
 	}
 	defer f.Close()
-	
+
 	fi, err := f.Stat()
 	if err != nil {
 		log.Printf("[Static] %q exists, but fails to open: %v", file, err)
