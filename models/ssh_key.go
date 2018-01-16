@@ -387,10 +387,6 @@ func addKey(e Engine, key *PublicKey) (err error) {
 		return err
 	}
 
-	// Don't need to rewrite this file if builtin SSH server is enabled.
-	if setting.SSH.StartBuiltinServer {
-		return nil
-	}
 	return appendAuthorizedKeysToFile(key)
 }
 
