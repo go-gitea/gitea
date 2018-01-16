@@ -106,10 +106,11 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 		return false
 	}
 	defer f.Close()
-
+	
 	fi, err := f.Stat()
 	if err != nil {
-		return true // File exists but fail to open.
+		log.Printf("[Static] %q exists, but fails to open: %v", file, err)
+		return true
 	}
 
 	// Try to serve index file
