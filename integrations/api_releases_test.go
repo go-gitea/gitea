@@ -53,8 +53,9 @@ func TestAPICreateRelease(t *testing.T) {
 		Note:    newRelease.Note,
 	})
 
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/releases/%d",
+	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d",
 		owner.Name, repo.Name, newRelease.ID)
+	req = NewRequest(t, "GET", urlStr)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	var release api.Release
@@ -63,4 +64,22 @@ func TestAPICreateRelease(t *testing.T) {
 	assert.Equal(t, newRelease.TagName, release.TagName)
 	assert.Equal(t, newRelease.Title, release.Title)
 	assert.Equal(t, newRelease.Note, release.Note)
+
+	req = NewRequestWithJSON(t, "PATCH", urlStr, &api.EditReleaseOption{
+		TagName:      release.TagName,
+		Title:        release.Title,
+		Note:         "updated",
+		IsDraft:      &release.IsDraft,
+		IsPrerelease: &release.IsPrerelease,
+		Target:       release.Target,
+	})
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &newRelease)
+	models.AssertExistsAndLoadBean(t, &models.Release{
+		ID:      newRelease.ID,
+		TagName: newRelease.TagName,
+		Title:   newRelease.Title,
+		Note:    newRelease.Note,
+	})
 }
