@@ -123,7 +123,7 @@ pipeline:
 
   # Commented until db locking have been resolved!
   # test-sqlite:
-  #   image: webhippie/golang:1.8
+  #   image: webhippie/golang:edge
   #   pull: true
   #   group: test
   #   environment:
