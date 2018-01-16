@@ -56,7 +56,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build-without-gcc:
-    image: webhippie/golang:edge
+    image: webhippie/golang:1.8
     pull: true
     environment:
       GOPATH: /srv/app
