@@ -86,6 +86,13 @@ func populateRepoIndexerAsynchronously() error {
 		return nil
 	}
 
+	// if there is any existing repo indexer metadata in the DB, delete it
+	// since we are starting afresh. Also, xorm requires deletes to have a
+	// condition, and we want to delete everything, thus 1=1.
+	if _, err := x.Where("1=1").Delete(new(RepoIndexerStatus)); err != nil {
+		return err
+	}
+
 	var maxRepoID int64
 	if _, err = x.Select("MAX(id)").Table("repository").Get(&maxRepoID); err != nil {
 		return err
