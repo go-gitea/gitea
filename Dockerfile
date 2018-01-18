@@ -2,7 +2,7 @@
 ###################################
 #Build stage
 FROM golang:1.9-alpine3.7 AS build-env
-LABEL maintainer="maintainers@gitea.io"
+LABEL maintainer "maintainers@gitea.io"
 
 ARG GITEA_VERSION
 ARG TAGS="sqlite"
@@ -20,7 +20,7 @@ RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
  && make clean generate build
 
 FROM alpine:3.7
-LABEL maintainer="maintainers@gitea.io"
+LABEL maintainer "maintainers@gitea.io"
 
 EXPOSE 22 3000
 
