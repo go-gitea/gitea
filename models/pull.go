@@ -1005,6 +1005,7 @@ func (pr *PullRequest) PushToBaseRepo() (err error) {
 	if err = git.Push(headRepoPath, git.PushOptions{
 		Remote: tmpRemoteName,
 		Branch: fmt.Sprintf("%s:%s", pr.HeadBranch, headFile),
+		Force: true,
 	}); err != nil {
 		return fmt.Errorf("Push: %v", err)
 	}
