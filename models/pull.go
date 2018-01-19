@@ -132,6 +132,11 @@ func (pr *PullRequest) GetDefaultSquashMessage() string {
 	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index)
 }
 
+// GetGitRefName returns git ref for hidden pull request branch
+func (pr *PullRequest) GetGitRefName() string {
+	return fmt.Sprintf("refs/pull/%d/head", pr.Index)
+}
+
 // APIFormat assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
@@ -562,7 +567,7 @@ func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
 	indexTmpPath := filepath.Join(os.TempDir(), "gitea-"+pr.BaseRepo.Name+"-"+strconv.Itoa(time.Now().Nanosecond()))
 	defer os.Remove(indexTmpPath)
 
-	headFile := fmt.Sprintf("refs/pull/%d/head", pr.Index)
+	headFile := pr.GetGitRefName()
 
 	// Check if a pull request is merged into BaseBranch
 	_, stderr, err := process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("isMerged (git merge-base --is-ancestor): %d", pr.BaseRepo.ID),
@@ -980,7 +985,7 @@ func (pr *PullRequest) UpdatePatch() (err error) {
 // corresponding branches of base repository.
 // FIXME: Only push branches that are actually updates?
 func (pr *PullRequest) PushToBaseRepo() (err error) {
-	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo 'refs/pull/%d/head'", pr.BaseRepoID, pr.Index)
+	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitRefName())
 
 	headRepoPath := pr.HeadRepo.RepoPath()
 	headGitRepo, err := git.OpenRepository(headRepoPath)
@@ -995,7 +1000,7 @@ func (pr *PullRequest) PushToBaseRepo() (err error) {
 	// Make sure to remove the remote even if the push fails
 	defer headGitRepo.RemoveRemote(tmpRemoteName)
 
-	headFile := fmt.Sprintf("refs/pull/%d/head", pr.Index)
+	headFile := pr.GetGitRefName()
 
 	// Remove head in case there is a conflict.
 	file := path.Join(pr.BaseRepo.RepoPath(), headFile)
