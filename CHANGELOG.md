@@ -1,5 +1,32 @@
 # Changelog
 
+# [1.4.0](https://github.com/go-gitea/gitea/releases/tag/v1.4.0) - 2018-0X-XX
+
+<!-- You can find the blog post, featuring images and examples, here: TODO -->
+
+Following are just the highlights of this release, if you want to see everything that was merged, you can do that [here.](https://github.com/go-gitea/gitea/pulls?utf8=%E2%9C%93&q=is%3Apr+is%3Amerged+milestone%3A1.4.0))
+
+- **BREAKING:** if you used `GOGS_WORK_DIR` to change the working directory of Gitea, that won't work anymore - you'll need to use `GITEA_WORK_DIR`. ([#2946](https://github.com/go-gitea/gitea/pull/2946))
+- You can know place reactions on issues, PRs and issue comments. ([#2856](https://github.com/go-gitea/gitea/pull/2856))
+- Responsive UI: Gitea should now work much better on mobile devices. ([#2750](https://github.com/go-gitea/gitea/pull/2750))
+- Merge options in Pull Requests, similar to GitHub's, like Squash & Merge and Rebase & Merge, have been implemented. Changing your repository settings, if PRs are a part of your workflow, will be needed. ([#3188](https://github.com/go-gitea/gitea/pull/3188))
+- Added mention completion in issue editor, autocompleting your mention after you start typing the username of an user followed by an `@`. ([#3136](https://github.com/go-gitea/gitea/pull/3136))
+- Progress bar for issues with checkboxes, similar to GitHub's. ([#3171](https://github.com/go-gitea/gitea/pull/3171))
+- Long commits now have an expandable body. ([#2980](https://github.com/go-gitea/gitea/pull/2980))
+- On the notification page, there is now a button at the top to mark all notifications as read. ([#3097](https://github.com/go-gitea/gitea/pull/3097))
+- Deploy keys can now have write access to a repository ([#3225](https://github.com/go-gitea/gitea/pull/3225))
+- There are now various ways to tweak your Gitea templates to your needs, by creating custom templates of HTML to be placed in various parts of every page. You can find out all about it [on the documentation](https://docs.gitea.io/en-us/customizing-gitea/#customizing-gitea-pages). ([#3051](https://github.com/go-gitea/gitea/pull/3051), [#3286](https://github.com/go-gitea/gitea/pull/3286), [#3345](https://github.com/go-gitea/gitea/pull/3345))
+- If your Gitea server is running on HTTPS, you can now tweak your settings to create an HTTP server which will redirect all its requests to the HTTPS server. ([#1928](https://github.com/go-gitea/gitea/pull/1928))
+- We now serve .patch and .diff files for pull requests, just like GitHub does. ([#3239](https://github.com/go-gitea/gitea/pull/3293), [#3305](https://github.com/go-gitea/gitea/pull/3305))
+- The default app.ini now resides in `custom/conf/app.ini.sample`. ([#1522](https://github.com/go-gitea/gitea/pull/1522))
+- [Dingtalk](https://www.dingtalk.com/en) webhooks are now supported, porting over the feature from Gogs. ([#2777](https://github.com/go-gitea/gitea/pull/2777))
+- We added support for the [File Locking API](https://github.com/git-lfs/git-lfs/blob/master/docs/api/locking.md) for Git LFS. ([#2938](https://github.com/go-gitea/gitea/pull/2938))
+- The Gitea docs now features [French](https://docs.gitea.io/fr-fr/). ([#3030](https://github.com/go-gitea/gitea/pull/3030))
+- Various minor improvements to the UI, you can find out about them [here](https://github.com/go-gitea/gitea/pulls?q=is%3Apr+author%3Asilverwind+milestone%3A1.4.0).
+- If you run the `gitea` executable with no commands, it will now run the default webserver. ([#3331](https://github.com/go-gitea/gitea/pull/3331))
+
+# Pre-1.4
+
 ## [1.3.1](https://github.com/go-gitea/gitea/releases/tag/v1.3.1) - 2017-12-08
 * BUGFIXES
   * Sanitize logs for mirror sync (#3057, #3082) (#3078)
