@@ -1683,7 +1683,10 @@ function showDeletePopup() {
         filter += "#" + $this.attr("id")
     }
 
-    $('.delete.modal' + filter).modal({
+    var dialog = $('.delete.modal' + filter);
+    dialog.find('.repo-name').text($this.data('repo-name'));
+
+    dialog.modal({
         closable: false,
         onApprove: function() {
             if ($this.data('type') == "form") {
