@@ -1,6 +1,6 @@
 # Changelog
 
-# 1.4 release
+# [1.4.0](https://github.com/go-gitea/gitea/releases/tag/v1.4.0) - 2018-0X-XX
 
 <!-- You can find the blog post, featuring images and examples, here: TODO -->
 
