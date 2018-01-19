@@ -253,40 +253,30 @@ func setMergeTarget(ctx *context.Context, pull *models.PullRequest) {
 }
 
 // PrepareMergedViewPullInfo show meta information for a merged pull request view page
-func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) {
+func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullRequestInfo {
 	pull := issue.PullRequest
-
-	var err error
-	if err = pull.GetHeadRepo(); err != nil {
-		ctx.ServerError("GetHeadRepo", err)
-		return
-	}
 
 	setMergeTarget(ctx, pull)
 	ctx.Data["HasMerged"] = true
 
-	mergedCommit, err := ctx.Repo.GitRepo.GetCommit(pull.MergedCommitID)
-	if err != nil {
-		ctx.ServerError("GetCommit", err)
-		return
-	}
-	// the ID of the last commit in the PR (not including the merge commit)
-	endCommitID, err := mergedCommit.ParentID(mergedCommit.ParentCount() - 1)
-	if err != nil {
-		ctx.ServerError("ParentID", err)
-		return
-	}
+	prInfo, err := ctx.Repo.GitRepo.GetPullRequestInfo(ctx.Repo.Repository.RepoPath(),
+		pull.MergeBase, pull.GetGitRefName())
 
-	ctx.Data["NumCommits"], err = ctx.Repo.GitRepo.CommitsCountBetween(pull.MergeBase, endCommitID.String())
 	if err != nil {
-		ctx.ServerError("Repo.GitRepo.CommitsCountBetween", err)
-		return
+		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
+			ctx.Data["IsPullReuqestBroken"] = true
+			ctx.Data["BaseTarget"] = "deleted"
+			ctx.Data["NumCommits"] = 0
+			ctx.Data["NumFiles"] = 0
+			return nil
+		}
+
+		ctx.ServerError("GetPullRequestInfo", err)
+		return nil
 	}
-	ctx.Data["NumFiles"], err = ctx.Repo.GitRepo.FilesCountBetween(pull.MergeBase, endCommitID.String())
-	if err != nil {
-		ctx.ServerError("Repo.GitRepo.FilesCountBetween", err)
-		return
-	}
+	ctx.Data["NumCommits"] = prInfo.Commits.Len()
+	ctx.Data["NumFiles"] = prInfo.NumFiles
+	return prInfo
 }
 
 // PrepareViewPullInfo show meta information for a pull request preview page
@@ -351,28 +341,16 @@ func ViewPullCommits(ctx *context.Context) {
 
 	var commits *list.List
 	if pull.HasMerged {
-		PrepareMergedViewPullInfo(ctx, issue)
+		prInfo := PrepareMergedViewPullInfo(ctx, issue)
 		if ctx.Written() {
+			return
+		} else if prInfo == nil {
+			ctx.NotFound("ViewPullCommits", nil)
 			return
 		}
 		ctx.Data["Username"] = ctx.Repo.Owner.Name
 		ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-
-		mergedCommit, err := ctx.Repo.GitRepo.GetCommit(pull.MergedCommitID)
-		if err != nil {
-			ctx.ServerError("Repo.GitRepo.GetCommit", err)
-			return
-		}
-		endCommitID, err := mergedCommit.ParentID(mergedCommit.ParentCount() - 1)
-		if err != nil {
-			ctx.ServerError("ParentID", err)
-			return
-		}
-		commits, err = ctx.Repo.GitRepo.CommitsBetweenIDs(endCommitID.String(), pull.MergeBase)
-		if err != nil {
-			ctx.ServerError("Repo.GitRepo.CommitsBetweenIDs", err)
-			return
-		}
+		commits = prInfo.Commits
 	} else {
 		prInfo := PrepareViewPullInfo(ctx, issue)
 		if ctx.Written() {
@@ -415,25 +393,25 @@ func ViewPullFiles(ctx *context.Context) {
 
 	var headTarget string
 	if pull.HasMerged {
-		PrepareMergedViewPullInfo(ctx, issue)
+		prInfo := PrepareMergedViewPullInfo(ctx, issue)
 		if ctx.Written() {
+			return
+		} else if prInfo == nil {
+			ctx.NotFound("ViewPullFiles", nil)
 			return
 		}
 
 		diffRepoPath = ctx.Repo.GitRepo.Path
-		startCommitID = pull.MergeBase
-		mergedCommit, err := ctx.Repo.GitRepo.GetCommit(pull.MergedCommitID)
-		if err != nil {
-			ctx.ServerError("GetCommit", err)
-			return
-		}
-		endCommitSha, err := mergedCommit.ParentID(mergedCommit.ParentCount() - 1)
-		if err != nil {
-			ctx.ServerError("ParentID", err)
-			return
-		}
-		endCommitID = endCommitSha.String()
 		gitRepo = ctx.Repo.GitRepo
+
+		headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
+		if err != nil {
+			ctx.ServerError("GetRefCommitID", err)
+			return
+		}
+
+		startCommitID = prInfo.MergeBase
+		endCommitID = headCommitID
 
 		headTarget = path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 		ctx.Data["Username"] = ctx.Repo.Owner.Name
