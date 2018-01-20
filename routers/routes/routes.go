@@ -70,7 +70,7 @@ func NewMacaron() *macaron.Macaron {
 		&public.Options{
 			Prefix:       "avatars",
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour,
+			ExpiresAfter: time.Hour * 6,
 		},
 	))
 
