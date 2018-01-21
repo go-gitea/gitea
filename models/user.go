@@ -19,7 +19,6 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -1411,19 +1410,14 @@ func synchronizeLdapSSHPublicKeys(s *LoginSource, SSHPublicKeys []string, usr *U
 
 	// Get Public Keys from DB with LDAP source
 	var giteaKeys []string
-	keys, err := ListPublicKeys(usr.ID)
+	keys, err := ListPublicLdapSSHKeys(usr.ID)
 	if err != nil {
 		log.Error(4, "synchronizeLdapSSHPublicKeys[%s]: Error listing LDAP Public SSH Keys for user %s: %v", s.Name, usr.Name, err)
 	}
 
-	// Get Public Keys from DB, which has been synchronized from LDAP
 	for _, v := range keys {
-		// If key was synced from LDAP, add it to list
-		if v.LoginSourceID > 0 {
-			giteaKeys = append(giteaKeys, v.OmitEmail())
-		}
+		giteaKeys = append(giteaKeys, v.OmitEmail())
 	}
-	sort.Strings(giteaKeys)
 
 	// Get Public Keys from LDAP and skip duplicate keys
 	var ldapKeys []string
@@ -1433,7 +1427,6 @@ func synchronizeLdapSSHPublicKeys(s *LoginSource, SSHPublicKeys []string, usr *U
 			ldapKeys = append(ldapKeys, ldapKey)
 		}
 	}
-	sort.Strings(ldapKeys)
 
 	// Check if Public Key sync is needed
 	var giteaKeysToDelete []string
