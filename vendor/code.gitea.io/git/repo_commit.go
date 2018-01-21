@@ -11,8 +11,8 @@ import (
 	"strings"
 )
 
-// getRefCommitID returns the last commit ID string of given reference (branch or tag).
-func (repo *Repository) getRefCommitID(name string) (string, error) {
+// GetRefCommitID returns the last commit ID string of given reference (branch or tag).
+func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	stdout, err := NewCommand("show-ref", "--verify", name).RunInDir(repo.Path)
 	if err != nil {
 		if strings.Contains(err.Error(), "not a valid ref") {
@@ -25,12 +25,12 @@ func (repo *Repository) getRefCommitID(name string) (string, error) {
 
 // GetBranchCommitID returns last commit ID string of given branch.
 func (repo *Repository) GetBranchCommitID(name string) (string, error) {
-	return repo.getRefCommitID(BranchPrefix + name)
+	return repo.GetRefCommitID(BranchPrefix + name)
 }
 
 // GetTagCommitID returns last commit ID string of given tag.
 func (repo *Repository) GetTagCommitID(name string) (string, error) {
-	return repo.getRefCommitID(TagPrefix + name)
+	return repo.GetRefCommitID(TagPrefix + name)
 }
 
 // parseCommitData parses commit information from the (uncompressed) raw

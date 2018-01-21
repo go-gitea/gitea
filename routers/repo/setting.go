@@ -67,14 +67,14 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				case models.IsErrNamePatternNotAllowed(err):
 					ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
 				default:
-					ctx.Handle(500, "ChangeRepositoryName", err)
+					ctx.ServerError("ChangeRepositoryName", err)
 				}
 				return
 			}
 
 			err := models.NewRepoRedirect(ctx.Repo.Owner.ID, repo.ID, repo.Name, newRepoName)
 			if err != nil {
-				ctx.Handle(500, "NewRepoRedirect", err)
+				ctx.ServerError("NewRepoRedirect", err)
 				return
 			}
 
@@ -94,7 +94,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		visibilityChanged := repo.IsPrivate != form.Private
 		repo.IsPrivate = form.Private
 		if err := models.UpdateRepository(repo, visibilityChanged); err != nil {
-			ctx.Handle(500, "UpdateRepository", err)
+			ctx.ServerError("UpdateRepository", err)
 			return
 		}
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -110,7 +110,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 	case "mirror":
 		if !repo.IsMirror {
-			ctx.Handle(404, "", nil)
+			ctx.NotFound("", nil)
 			return
 		}
 
@@ -127,7 +127,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 		}
 		if err := ctx.Repo.Mirror.SaveAddress(form.MirrorAddress); err != nil {
-			ctx.Handle(500, "SaveAddress", err)
+			ctx.ServerError("SaveAddress", err)
 			return
 		}
 
@@ -136,7 +136,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 	case "mirror-sync":
 		if !repo.IsMirror {
-			ctx.Handle(404, "", nil)
+			ctx.NotFound("", nil)
 			return
 		}
 
@@ -221,7 +221,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		if err := models.UpdateRepositoryUnits(repo, units); err != nil {
-			ctx.Handle(500, "UpdateRepositoryUnits", err)
+			ctx.ServerError("UpdateRepositoryUnits", err)
 			return
 		}
 		log.Trace("Repository advanced settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -246,10 +246,10 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		repo.IsMirror = false
 
 		if _, err := models.CleanUpMigrateInfo(repo); err != nil {
-			ctx.Handle(500, "CleanUpMigrateInfo", err)
+			ctx.ServerError("CleanUpMigrateInfo", err)
 			return
 		} else if err = models.DeleteMirrorByRepoID(ctx.Repo.Repository.ID); err != nil {
-			ctx.Handle(500, "DeleteMirrorByRepoID", err)
+			ctx.ServerError("DeleteMirrorByRepoID", err)
 			return
 		}
 		log.Trace("Repository converted from mirror to regular: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -269,7 +269,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		newOwner := ctx.Query("new_owner_name")
 		isExist, err := models.IsUserExist(0, newOwner)
 		if err != nil {
-			ctx.Handle(500, "IsUserExist", err)
+			ctx.ServerError("IsUserExist", err)
 			return
 		} else if !isExist {
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
@@ -280,7 +280,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else {
-				ctx.Handle(500, "TransferOwnership", err)
+				ctx.ServerError("TransferOwnership", err)
 			}
 			return
 		}
@@ -299,7 +299,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		if err := models.DeleteRepository(ctx.User, ctx.Repo.Owner.ID, repo.ID); err != nil {
-			ctx.Handle(500, "DeleteRepository", err)
+			ctx.ServerError("DeleteRepository", err)
 			return
 		}
 		log.Trace("Repository deleted: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -324,7 +324,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
 	default:
-		ctx.Handle(404, "", nil)
+		ctx.NotFound("", nil)
 	}
 }
 
@@ -335,7 +335,7 @@ func Collaboration(ctx *context.Context) {
 
 	users, err := ctx.Repo.Repository.GetCollaborators()
 	if err != nil {
-		ctx.Handle(500, "GetCollaborators", err)
+		ctx.ServerError("GetCollaborators", err)
 		return
 	}
 	ctx.Data["Collaborators"] = users
@@ -357,7 +357,7 @@ func CollaborationPost(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
 			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
 		} else {
-			ctx.Handle(500, "GetUserByName", err)
+			ctx.ServerError("GetUserByName", err)
 		}
 		return
 	}
@@ -373,7 +373,7 @@ func CollaborationPost(ctx *context.Context) {
 	if ctx.Repo.Owner.IsOrganization() {
 		isMember, err := ctx.Repo.Owner.IsOrgMember(u.ID)
 		if err != nil {
-			ctx.Handle(500, "IsOrgMember", err)
+			ctx.ServerError("IsOrgMember", err)
 			return
 		} else if isMember {
 			ctx.Flash.Info(ctx.Tr("repo.settings.user_is_org_member"))
@@ -383,7 +383,7 @@ func CollaborationPost(ctx *context.Context) {
 	}
 
 	if err = ctx.Repo.Repository.AddCollaborator(u); err != nil {
-		ctx.Handle(500, "AddCollaborator", err)
+		ctx.ServerError("AddCollaborator", err)
 		return
 	}
 
@@ -422,9 +422,9 @@ func parseOwnerAndRepo(ctx *context.Context) (*models.User, *models.Repository) 
 	owner, err := models.GetUserByName(ctx.Params(":username"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Handle(404, "GetUserByName", err)
+			ctx.NotFound("GetUserByName", err)
 		} else {
-			ctx.Handle(500, "GetUserByName", err)
+			ctx.ServerError("GetUserByName", err)
 		}
 		return nil, nil
 	}
@@ -432,9 +432,9 @@ func parseOwnerAndRepo(ctx *context.Context) (*models.User, *models.Repository) 
 	repo, err := models.GetRepositoryByName(owner.ID, ctx.Params(":reponame"))
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
-			ctx.Handle(404, "GetRepositoryByName", err)
+			ctx.NotFound("GetRepositoryByName", err)
 		} else {
-			ctx.Handle(500, "GetRepositoryByName", err)
+			ctx.ServerError("GetRepositoryByName", err)
 		}
 		return nil, nil
 	}
@@ -449,7 +449,7 @@ func GitHooks(ctx *context.Context) {
 
 	hooks, err := ctx.Repo.GitRepo.Hooks()
 	if err != nil {
-		ctx.Handle(500, "Hooks", err)
+		ctx.ServerError("Hooks", err)
 		return
 	}
 	ctx.Data["Hooks"] = hooks
@@ -466,9 +466,9 @@ func GitHooksEdit(ctx *context.Context) {
 	hook, err := ctx.Repo.GitRepo.GetHook(name)
 	if err != nil {
 		if err == git.ErrNotValidHook {
-			ctx.Handle(404, "GetHook", err)
+			ctx.NotFound("GetHook", err)
 		} else {
-			ctx.Handle(500, "GetHook", err)
+			ctx.ServerError("GetHook", err)
 		}
 		return
 	}
@@ -482,15 +482,15 @@ func GitHooksEditPost(ctx *context.Context) {
 	hook, err := ctx.Repo.GitRepo.GetHook(name)
 	if err != nil {
 		if err == git.ErrNotValidHook {
-			ctx.Handle(404, "GetHook", err)
+			ctx.NotFound("GetHook", err)
 		} else {
-			ctx.Handle(500, "GetHook", err)
+			ctx.ServerError("GetHook", err)
 		}
 		return
 	}
 	hook.Content = ctx.Query("content")
 	if err = hook.Update(); err != nil {
-		ctx.Handle(500, "hook.Update", err)
+		ctx.ServerError("hook.Update", err)
 		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/hooks/git")
@@ -504,7 +504,7 @@ func DeployKeys(ctx *context.Context) {
 
 	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.Handle(500, "ListDeployKeys", err)
+		ctx.ServerError("ListDeployKeys", err)
 		return
 	}
 	ctx.Data["Deploykeys"] = keys
@@ -519,7 +519,7 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 
 	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.Handle(500, "ListDeployKeys", err)
+		ctx.ServerError("ListDeployKeys", err)
 		return
 	}
 	ctx.Data["Deploykeys"] = keys
@@ -555,7 +555,7 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
 		default:
-			ctx.Handle(500, "AddDeployKey", err)
+			ctx.ServerError("AddDeployKey", err)
 		}
 		return
 	}
