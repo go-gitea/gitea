@@ -472,6 +472,14 @@ func ListPublicKeys(uid int64) ([]*PublicKey, error) {
 		Find(&keys)
 }
 
+// ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user.
+func ListPublicLdapSSHKeys(uid int64) ([]*PublicKey, error) {
+	keys := make([]*PublicKey, 0, 5)
+	return keys, x.
+		Where("owner_id = ? AND login_source_id > 0", uid).
+		Find(&keys)
+}
+
 // UpdatePublicKeyUpdated updates public key use time.
 func UpdatePublicKeyUpdated(id int64) error {
 	// Check if key exists before update as affected rows count is unreliable
