@@ -1557,11 +1557,7 @@ func SyncExternalUsers() {
 				} else if updateExisting {
 					existingUsers = append(existingUsers, usr.ID)
 
-					err = UpdateUser(usr)
-					if err != nil {
-						log.Error(4, "SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
-					}
-
+					// Synchronize SSH Public Key if that attribute is set
 					if isAttributeSSHPublicKeySet {
 						synchronizeLdapSSHPublicKeys(s, su.SSHPublicKey, usr)
 					}
