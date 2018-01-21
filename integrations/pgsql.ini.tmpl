@@ -8,7 +8,6 @@ NAME     = {{TEST_PGSQL_DBNAME}}
 USER     = {{TEST_PGSQL_USERNAME}}
 PASSWD   = {{TEST_PGSQL_PASSWORD}}
 SSL_MODE = disable
-PATH     = data/gitea.db
 
 [indexer]
 ISSUE_INDEXER_PATH = integrations/indexers-pgsql/issues.bleve
@@ -27,23 +26,27 @@ SSH_DOMAIN       = localhost
 HTTP_PORT        = 3002
 ROOT_URL         = http://localhost:3002/
 DISABLE_SSH      = false
-SSH_PORT         = 22
+SSH_LISTEN_HOST  = localhost
+SSH_PORT         = 2202
+START_SSH_SERVER = true
 LFS_START_SERVER = true
 LFS_CONTENT_PATH = data/lfs-pgsql
 OFFLINE_MODE     = false
+LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
+APP_DATA_PATH    = integrations/gitea-integration-pgsql/data
 
 [mailer]
 ENABLED = false
 
 [service]
-REGISTER_EMAIL_CONFIRM     = false
-ENABLE_NOTIFY_MAIL         = false
-DISABLE_REGISTRATION       = false
-ENABLE_CAPTCHA             = false
-REQUIRE_SIGNIN_VIEW        = false
-DEFAULT_KEEP_EMAIL_PRIVATE = false
+REGISTER_EMAIL_CONFIRM            = false
+ENABLE_NOTIFY_MAIL                = false
+DISABLE_REGISTRATION              = false
+ENABLE_CAPTCHA                    = false
+REQUIRE_SIGNIN_VIEW               = false
+DEFAULT_KEEP_EMAIL_PRIVATE        = false
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
-NO_REPLY_ADDRESS           = noreply.example.org
+NO_REPLY_ADDRESS                  = noreply.example.org
 
 [picture]
 DISABLE_GRAVATAR        = false
@@ -54,7 +57,7 @@ PROVIDER = file
 PROVIDER_CONFIG = data/sessions-pgsql
 
 [log]
-MODE = console,file
+MODE      = console,file
 ROOT_PATH = pgsql-log
 
 [log.console]
@@ -64,6 +67,6 @@ LEVEL = Warn
 LEVEL = Debug
 
 [security]
-INSTALL_LOCK = true
-SECRET_KEY   = 9pCviYTWSb
-INTERNAL_TOKEN = test
+INSTALL_LOCK   = true
+SECRET_KEY     = 9pCviYTWSb
+INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.hhSVGOANkaKk3vfCd2jDOIww4pUk0xtg9JRde5UogyQ

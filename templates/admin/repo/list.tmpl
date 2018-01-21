@@ -37,7 +37,7 @@
 							<td>{{.NumIssues}}</td>
 							<td>{{SizeFmt .Size}}</td>
 							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
-							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Current}}" data-id="{{.ID}}"><i class="trash icon text red"></i></a></td>
+							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Current}}" data-id="{{.ID}}" data-repo-name="{{.Name}}"><i class="trash icon text red"></i></a></td>
 						</tr>
 					{{end}}
 				</tbody>
@@ -55,7 +55,7 @@
 	</div>
 	<div class="content">
 		<p>{{.i18n.Tr "repo.settings.delete_desc"}}</p>
-		{{.i18n.Tr "repo.settings.delete_notices_2"}}<br>
+		{{.i18n.Tr "repo.settings.delete_notices_2" `<span class="repo-name"></span>` | Safe}}<br>
 		{{.i18n.Tr "repo.settings.delete_notices_fork_1"}}<br>
 	</div>
 	{{template "base/delete_modal_actions" .}}

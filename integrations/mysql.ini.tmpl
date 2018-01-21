@@ -8,7 +8,6 @@ NAME     = {{TEST_MYSQL_DBNAME}}
 USER     = {{TEST_MYSQL_USERNAME}}
 PASSWD   = {{TEST_MYSQL_PASSWORD}}
 SSL_MODE = disable
-PATH     = data/gitea.db
 
 [indexer]
 ISSUE_INDEXER_PATH = integrations/indexers-mysql/issues.bleve
@@ -27,10 +26,14 @@ SSH_DOMAIN       = localhost
 HTTP_PORT        = 3001
 ROOT_URL         = http://localhost:3001/
 DISABLE_SSH      = false
-SSH_PORT         = 22
+SSH_LISTEN_HOST  = localhost
+SSH_PORT         = 2201
+START_SSH_SERVER = true
 LFS_START_SERVER = true
 LFS_CONTENT_PATH = data/lfs-mysql
 OFFLINE_MODE     = false
+LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
+APP_DATA_PATH    = integrations/gitea-integration-mysql/data
 
 [mailer]
 ENABLED = false

@@ -17,7 +17,7 @@ menu:
 
 This section will not include basic [installation instructions](https://golang.org/doc/install).
 
-**Note**: Go version 1.7 or higher is required
+**Note**: Go version 1.8 or higher is required
 
 ## Download
 
