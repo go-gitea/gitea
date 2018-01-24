@@ -613,13 +613,15 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 	}
 
 	// Check for open dependencies
-	noDeps, err := IssueNoDependenciesLeft(issue)
-	if err != nil {
-		return err
-	}
+	if isClosed { // only check if we're about to close an issue
+		noDeps, err := IssueNoDependenciesLeft(issue)
+		if err != nil {
+			return err
+		}
 
-	if !noDeps {
-		return ErrDependenciesLeft{issue.ID}
+		if !noDeps {
+			return ErrDependenciesLeft{issue.ID}
+		}
 	}
 
 	issue.IsClosed = isClosed
