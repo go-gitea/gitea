@@ -20,7 +20,6 @@ var (
 )
 
 // Hook a hook is a web hook when one repository changed
-// swagger:response Hook
 type Hook struct {
 	ID      int64             `json:"id"`
 	Type    string            `json:"type"`
@@ -28,12 +27,13 @@ type Hook struct {
 	Config  map[string]string `json:"config"`
 	Events  []string          `json:"events"`
 	Active  bool              `json:"active"`
+	// swagger:strfmt date-time
 	Updated time.Time         `json:"updated_at"`
+	// swagger:strfmt date-time
 	Created time.Time         `json:"created_at"`
 }
 
 // HookList represents a list of API hook.
-// swagger:response HookList
 type HookList []*Hook
 
 // ListOrgHooks list all the hooks of one organization
@@ -61,15 +61,14 @@ func (c *Client) GetRepoHook(user, repo string, id int64) (*Hook, error) {
 }
 
 // CreateHookOption options when create a hook
-// swagger:parameters orgCreateHook repoCreateHook
 type CreateHookOption struct {
-	// in: body
+	// required: true
+	// enum: gitea,gogs,slack,discord
 	Type string `json:"type" binding:"Required"`
-	// in: body
+	// required: true
 	Config map[string]string `json:"config" binding:"Required"`
-	// in: body
 	Events []string `json:"events"`
-	// in: body
+	// default: false
 	Active bool `json:"active"`
 }
 
@@ -94,13 +93,9 @@ func (c *Client) CreateRepoHook(user, repo string, opt CreateHookOption) (*Hook,
 }
 
 // EditHookOption options when modify one hook
-// swagger:parameters orgEditHook repoEditHook
 type EditHookOption struct {
-	// in: body
 	Config map[string]string `json:"config"`
-	// in: body
 	Events []string `json:"events"`
-	// in: body
 	Active *bool `json:"active"`
 }
 
@@ -142,25 +137,32 @@ type Payloader interface {
 	JSONPayload() ([]byte, error)
 }
 
-// PayloadUser FIXME
+// PayloadUser represents the author or committer of a commit
 type PayloadUser struct {
+	// Full name of the commit author
 	Name     string `json:"name"`
+	// swagger:strfmt email
 	Email    string `json:"email"`
 	UserName string `json:"username"`
 }
 
-// PayloadCommit FIXME: consider use same format as API when commits API are added.
+// FIXME: consider using same format as API when commits API are added.
+//        applies to PayloadCommit and PayloadCommitVerification
+
+// PayloadCommit represents a commit
 type PayloadCommit struct {
+	// sha1 hash of the commit
 	ID           string                     `json:"id"`
 	Message      string                     `json:"message"`
 	URL          string                     `json:"url"`
 	Author       *PayloadUser               `json:"author"`
 	Committer    *PayloadUser               `json:"committer"`
 	Verification *PayloadCommitVerification `json:"verification"`
+	// swagger:strfmt date-time
 	Timestamp    time.Time                  `json:"timestamp"`
 }
 
-// PayloadCommitVerification represent the GPG verification part of a commit. FIXME: like PayloadCommit consider use same format as API when commits API are added.
+// PayloadCommitVerification represents the GPG verification of a commit
 type PayloadCommitVerification struct {
 	Verified  bool   `json:"verified"`
 	Reason    string `json:"reason"`

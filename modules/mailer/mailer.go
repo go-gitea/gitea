@@ -209,6 +209,7 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	var waitError error
 
 	args := []string{"-F", from, "-i"}
+	args = append(args, setting.MailService.SendmailArgs...)
 	args = append(args, to...)
 	log.Trace("Sending with: %s %v", setting.MailService.SendmailPath, args)
 	cmd := exec.Command(setting.MailService.SendmailPath, args...)

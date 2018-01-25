@@ -11,7 +11,11 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
@@ -23,9 +27,6 @@ import (
 
 	// Needed for the MSSSQL driver
 	_ "github.com/denisenkom/go-mssqldb"
-
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 // Engine represents a xorm engine or session.
@@ -37,7 +38,7 @@ type Engine interface {
 	Exec(string, ...interface{}) (sql.Result, error)
 	Find(interface{}, ...interface{}) error
 	Get(interface{}) (bool, error)
-	Id(interface{}) *xorm.Session
+	ID(interface{}) *xorm.Session
 	In(string, ...interface{}) *xorm.Session
 	Incr(column string, arg ...interface{}) *xorm.Session
 	Insert(...interface{}) (int64, error)
@@ -114,6 +115,10 @@ func init() {
 		new(CommitStatus),
 		new(Stopwatch),
 		new(TrackedTime),
+		new(DeletedBranch),
+		new(RepoIndexerStatus),
+		new(LFSLock),
+		new(Reaction),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -149,8 +154,17 @@ func LoadConfigs() {
 	DbCfg.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
 
 	sec = setting.Cfg.Section("indexer")
-	setting.Indexer.IssuePath = sec.Key("ISSUE_INDEXER_PATH").MustString("indexers/issues.bleve")
+	setting.Indexer.IssuePath = sec.Key("ISSUE_INDEXER_PATH").MustString(path.Join(setting.AppDataPath, "indexers/issues.bleve"))
+	if !filepath.IsAbs(setting.Indexer.IssuePath) {
+		setting.Indexer.IssuePath = path.Join(setting.AppWorkPath, setting.Indexer.IssuePath)
+	}
+	setting.Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_ENABLED").MustBool(false)
+	setting.Indexer.RepoPath = sec.Key("REPO_INDEXER_PATH").MustString(path.Join(setting.AppDataPath, "indexers/repos.bleve"))
+	if !filepath.IsAbs(setting.Indexer.RepoPath) {
+		setting.Indexer.RepoPath = path.Join(setting.AppWorkPath, setting.Indexer.RepoPath)
+	}
 	setting.Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
+	setting.Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
 }
 
 // parsePostgreSQLHostPort parses given input in various forms defined in

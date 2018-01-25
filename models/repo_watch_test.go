@@ -40,8 +40,8 @@ func TestGetWatchers(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	watches, err := GetWatchers(repo.ID)
 	assert.NoError(t, err)
-	// Two watchers are inactive, thus minus 2
-	assert.Len(t, watches, repo.NumWatches-2)
+	// One watchers are inactive, thus minus 1
+	assert.Len(t, watches, repo.NumWatches-1)
 	for _, watch := range watches {
 		assert.EqualValues(t, repo.ID, watch.RepoID)
 	}
@@ -62,7 +62,7 @@ func TestRepository_GetWatchers(t *testing.T) {
 		AssertExistsAndLoadBean(t, &Watch{UserID: watcher.ID, RepoID: repo.ID})
 	}
 
-	repo = AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+	repo = AssertExistsAndLoadBean(t, &Repository{ID: 9}).(*Repository)
 	watchers, err = repo.GetWatchers(1)
 	assert.NoError(t, err)
 	assert.Len(t, watchers, 0)
@@ -78,7 +78,7 @@ func TestNotifyWatchers(t *testing.T) {
 	}
 	assert.NoError(t, NotifyWatchers(action))
 
-	// Two watchers are inactive, thus action is only created for user 8, 10
+	// One watchers are inactive, thus action is only created for user 8, 1, 4
 	AssertExistsAndLoadBean(t, &Action{
 		ActUserID: action.ActUserID,
 		UserID:    8,
@@ -87,7 +87,13 @@ func TestNotifyWatchers(t *testing.T) {
 	})
 	AssertExistsAndLoadBean(t, &Action{
 		ActUserID: action.ActUserID,
-		UserID:    10,
+		UserID:    1,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
+	AssertExistsAndLoadBean(t, &Action{
+		ActUserID: action.ActUserID,
+		UserID:    4,
 		RepoID:    action.RepoID,
 		OpType:    action.OpType,
 	})

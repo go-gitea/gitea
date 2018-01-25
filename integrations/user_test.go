@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/Unknwon/i18n"
 	"github.com/stretchr/testify/assert"
@@ -86,7 +87,7 @@ func TestRenameReservedUsername(t *testing.T) {
 		})
 		resp := session.MakeRequest(t, req, http.StatusFound)
 
-		req = NewRequest(t, "GET", RedirectURL(t, resp))
+		req = NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,

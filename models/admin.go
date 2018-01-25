@@ -6,13 +6,11 @@ package models
 
 import (
 	"fmt"
-	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
 )
 
 //NoticeType describes the notice type
@@ -27,17 +25,8 @@ const (
 type Notice struct {
 	ID          int64 `xorm:"pk autoincr"`
 	Type        NoticeType
-	Description string    `xorm:"TEXT"`
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX created"`
-}
-
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (n *Notice) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		n.Created = time.Unix(n.CreatedUnix, 0).Local()
-	}
+	Description string         `xorm:"TEXT"`
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 }
 
 // TrStr returns a translation format string.
@@ -97,7 +86,7 @@ func Notices(page, pageSize int) ([]*Notice, error) {
 
 // DeleteNotice deletes a system notice by given ID.
 func DeleteNotice(id int64) error {
-	_, err := x.Id(id).Delete(new(Notice))
+	_, err := x.ID(id).Delete(new(Notice))
 	return err
 }
 

@@ -44,11 +44,17 @@ func addGitRefNameBindingRule() {
 			}
 			// Additional rules as described at https://www.kernel.org/pub/software/scm/git/docs/git-check-ref-format.html
 			if strings.HasPrefix(str, "/") || strings.HasSuffix(str, "/") ||
-				strings.HasPrefix(str, ".") || strings.HasSuffix(str, ".") ||
-				strings.HasSuffix(str, ".lock") ||
-				strings.Contains(str, "..") || strings.Contains(str, "//") {
+				strings.HasSuffix(str, ".") || strings.Contains(str, "..") ||
+				strings.Contains(str, "//") {
 				errs.Add([]string{name}, ErrGitRefName, "GitRefName")
 				return false, errs
+			}
+			parts := strings.Split(str, "/")
+			for _, part := range parts {
+				if strings.HasSuffix(part, ".lock") || strings.HasPrefix(part, ".") {
+					errs.Add([]string{name}, ErrGitRefName, "GitRefName")
+					return false, errs
+				}
 			}
 
 			return true, errs

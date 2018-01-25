@@ -8,11 +8,32 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/go-xorm/builder"
 )
 
+// RepositoryListDefaultPageSize is the default number of repositories
+// to load in memory when running administrative tasks on all (or almost
+// all) of them.
+// The number should be low enough to avoid filling up all RAM with
+// repository data...
+const RepositoryListDefaultPageSize = 64
+
 // RepositoryList contains a list of repositories
 type RepositoryList []*Repository
+
+func (repos RepositoryList) Len() int {
+	return len(repos)
+}
+
+func (repos RepositoryList) Less(i, j int) bool {
+	return repos[i].FullName() < repos[j].FullName()
+}
+
+func (repos RepositoryList) Swap(i, j int) {
+	repos[i], repos[j] = repos[j], repos[i]
+}
 
 // RepositoryListOfMap make list from values of map
 func RepositoryListOfMap(repoMap map[int64]*Repository) RepositoryList {
@@ -88,112 +109,134 @@ func (repos MirrorRepositoryList) LoadAttributes() error {
 }
 
 // SearchRepoOptions holds the search options
-// swagger:parameters repoSearch
 type SearchRepoOptions struct {
-	// Keyword to search
-	//
-	// in: query
-	Keyword string `json:"q"`
-	// Owner in we search search
-	//
-	// in: query
-	OwnerID     int64  `json:"uid"`
-	Searcher    *User  `json:"-"` //ID of the person who's seeking
-	OrderBy     string `json:"-"`
-	Private     bool   `json:"-"` // Include private repositories in results
-	Collaborate bool   `json:"-"` // Include collaborative repositories
-	Starred     bool   `json:"-"`
-	Page        int    `json:"-"`
-	IsProfile   bool   `json:"-"`
-	// Limit of result
-	//
-	// maximum: setting.ExplorePagingNum
-	// in: query
-	PageSize int `json:"limit"` // Can be smaller than or equal to setting.ExplorePagingNum
+	Keyword   string
+	OwnerID   int64
+	OrderBy   SearchOrderBy
+	Private   bool // Include private repositories in results
+	Starred   bool
+	Page      int
+	IsProfile bool
+	AllPublic bool // Include also all public repositories
+	PageSize  int  // Can be smaller than or equal to setting.ExplorePagingNum
+	// None -> include collaborative AND non-collaborative
+	// True -> include just collaborative
+	// False -> incude just non-collaborative
+	Collaborate util.OptionalBool
+	// None -> include forks AND non-forks
+	// True -> include just forks
+	// False -> include just non-forks
+	Fork util.OptionalBool
+	// None -> include mirrors AND non-mirrors
+	// True -> include just mirrors
+	// False -> include just non-mirrors
+	Mirror util.OptionalBool
 }
+
+//SearchOrderBy is used to sort the result
+type SearchOrderBy string
+
+func (s SearchOrderBy) String() string {
+	return string(s)
+}
+
+// Strings for sorting result
+const (
+	SearchOrderByAlphabetically        SearchOrderBy = "name ASC"
+	SearchOrderByAlphabeticallyReverse               = "name DESC"
+	SearchOrderByLeastUpdated                        = "updated_unix ASC"
+	SearchOrderByRecentUpdated                       = "updated_unix DESC"
+	SearchOrderByOldest                              = "created_unix ASC"
+	SearchOrderByNewest                              = "created_unix DESC"
+	SearchOrderBySize                                = "size ASC"
+	SearchOrderBySizeReverse                         = "size DESC"
+	SearchOrderByID                                  = "id ASC"
+	SearchOrderByIDReverse                           = "id DESC"
+)
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
-func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, count int64, err error) {
-	var cond = builder.NewCond()
+func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
 
-	var starJoin bool
-	if opts.Starred && opts.OwnerID > 0 {
-		cond = builder.Eq{
-			"star.uid": opts.OwnerID,
-		}
-		starJoin = true
-	}
-
-	opts.Keyword = strings.ToLower(opts.Keyword)
-	if opts.Keyword != "" {
-		cond = cond.And(builder.Like{"lower_name", opts.Keyword})
-	}
-
-	// Append conditions
-	if !opts.Starred && opts.OwnerID > 0 {
-		var searcherReposCond builder.Cond = builder.Eq{"owner_id": opts.OwnerID}
-		if opts.Searcher != nil {
-			var ownerIds []int64
-
-			ownerIds = append(ownerIds, opts.Searcher.ID)
-			err = opts.Searcher.GetOrganizations(true)
-
-			if err != nil {
-				return nil, 0, fmt.Errorf("Organization: %v", err)
-			}
-
-			for _, org := range opts.Searcher.Orgs {
-				ownerIds = append(ownerIds, org.ID)
-			}
-
-			searcherReposCond = searcherReposCond.Or(builder.In("owner_id", ownerIds))
-			if opts.Collaborate {
-				searcherReposCond = searcherReposCond.Or(builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ? AND owner_id != ?)",
-					opts.Searcher.ID, opts.Searcher.ID))
-			}
-		}
-		cond = cond.And(searcherReposCond)
-	}
+	var cond = builder.NewCond()
 
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
+	var starred bool
+	if opts.OwnerID > 0 {
+		if opts.Starred {
+			starred = true
+			cond = builder.Eq{"star.uid": opts.OwnerID}
+		} else {
+			var accessCond = builder.NewCond()
+			if opts.Collaborate != util.OptionalBoolTrue {
+				accessCond = builder.Eq{"owner_id": opts.OwnerID}
+			}
+
+			if opts.Collaborate != util.OptionalBoolFalse {
+				collaborateCond := builder.And(
+					builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", opts.OwnerID),
+					builder.Neq{"owner_id": opts.OwnerID})
+				if !opts.Private {
+					collaborateCond = collaborateCond.And(builder.Expr("owner_id NOT IN (SELECT org_id FROM org_user WHERE org_user.uid = ? AND org_user.is_public = ?)", opts.OwnerID, false))
+				}
+
+				accessCond = accessCond.Or(collaborateCond)
+			}
+
+			if opts.AllPublic {
+				accessCond = accessCond.Or(builder.Eq{"is_private": false})
+			}
+
+			cond = cond.And(accessCond)
+		}
+	}
+
+	if opts.Keyword != "" {
+		cond = cond.And(builder.Like{"lower_name", strings.ToLower(opts.Keyword)})
+	}
+
+	if opts.Fork != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
+	}
+
+	if opts.Mirror != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"is_mirror": opts.Mirror == util.OptionalBoolTrue})
+	}
+
 	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = "name ASC"
+		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if starJoin {
-		count, err = sess.
-			Join("INNER", "star", "star.repo_id = repository.id").
-			Where(cond).
-			Count(new(Repository))
-		if err != nil {
-			return nil, 0, fmt.Errorf("Count: %v", err)
-		}
-
+	if starred {
 		sess.Join("INNER", "star", "star.repo_id = repository.id")
-	} else {
-		count, err = sess.
-			Where(cond).
-			Count(new(Repository))
-		if err != nil {
-			return nil, 0, fmt.Errorf("Count: %v", err)
-		}
 	}
 
-	repos = make([]*Repository, 0, opts.PageSize)
+	count, err := sess.
+		Where(cond).
+		Count(new(Repository))
+	if err != nil {
+		return nil, 0, fmt.Errorf("Count: %v", err)
+	}
+
+	// Set again after reset by Count()
+	if starred {
+		sess.Join("INNER", "star", "star.repo_id = repository.id")
+	}
+
+	repos := make(RepositoryList, 0, opts.PageSize)
 	if err = sess.
 		Where(cond).
 		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		OrderBy(opts.OrderBy).
+		OrderBy(opts.OrderBy.String()).
 		Find(&repos); err != nil {
 		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
@@ -202,81 +245,6 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (repos RepositoryList, coun
 		if err = repos.loadAttributes(sess); err != nil {
 			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
 		}
-	}
-
-	return
-}
-
-// Repositories returns all repositories
-func Repositories(opts *SearchRepoOptions) (_ RepositoryList, count int64, err error) {
-	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = "id ASC"
-	}
-
-	repos := make(RepositoryList, 0, opts.PageSize)
-
-	if err = x.
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		OrderBy(opts.OrderBy).
-		Find(&repos); err != nil {
-		return nil, 0, fmt.Errorf("Repo: %v", err)
-	}
-
-	if err = repos.loadAttributes(x); err != nil {
-		return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
-	}
-
-	count = countRepositories(-1, opts.Private)
-
-	return repos, count, nil
-}
-
-// GetRecentUpdatedRepositories returns the list of repositories that are recently updated.
-func GetRecentUpdatedRepositories(opts *SearchRepoOptions) (repos RepositoryList, _ int64, _ error) {
-	var cond = builder.NewCond()
-
-	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = "updated_unix DESC"
-	}
-
-	if !opts.Private {
-		cond = builder.Eq{
-			"is_private": false,
-		}
-	}
-
-	if opts.Searcher != nil && !opts.Searcher.IsAdmin {
-		var ownerIds []int64
-
-		ownerIds = append(ownerIds, opts.Searcher.ID)
-		err := opts.Searcher.GetOrganizations(true)
-
-		if err != nil {
-			return nil, 0, fmt.Errorf("Organization: %v", err)
-		}
-
-		for _, org := range opts.Searcher.Orgs {
-			ownerIds = append(ownerIds, org.ID)
-		}
-
-		cond = cond.Or(builder.In("owner_id", ownerIds))
-	}
-
-	count, err := x.Where(cond).Count(new(Repository))
-	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
-	}
-
-	if err = x.Where(cond).
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		Limit(opts.PageSize).
-		OrderBy(opts.OrderBy).
-		Find(&repos); err != nil {
-		return nil, 0, fmt.Errorf("Repo: %v", err)
-	}
-
-	if err = repos.loadAttributes(x); err != nil {
-		return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
 	}
 
 	return repos, count, nil

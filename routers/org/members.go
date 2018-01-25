@@ -17,8 +17,6 @@ import (
 const (
 	// tplMembers template for organization members page
 	tplMembers base.TplName = "org/member/members"
-	// tplMemberInvite template for orgnization invite page
-	tplMemberInvite base.TplName = "org/member/invite"
 )
 
 // Members render orgnization users page
@@ -28,7 +26,7 @@ func Members(ctx *context.Context) {
 	ctx.Data["PageIsOrgMembers"] = true
 
 	if err := org.GetMembers(); err != nil {
-		ctx.Handle(500, "GetMembers", err)
+		ctx.ServerError("GetMembers", err)
 		return
 	}
 	ctx.Data["Members"] = org.Members
@@ -93,42 +91,4 @@ func MembersAction(ctx *context.Context) {
 	} else {
 		ctx.Redirect(setting.AppSubURL + "/")
 	}
-}
-
-// Invitation render organization invitation page
-func Invitation(ctx *context.Context) {
-	org := ctx.Org.Organization
-	ctx.Data["Title"] = org.FullName
-	ctx.Data["PageIsOrgMembers"] = true
-
-	if ctx.Req.Method == "POST" {
-		uname := ctx.Query("uname")
-		u, err := models.GetUserByName(uname)
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
-				ctx.Redirect(ctx.Org.OrgLink + "/invitations/new")
-			} else {
-				ctx.Handle(500, " GetUserByName", err)
-			}
-			return
-		}
-
-		if u.IsOrganization() {
-			ctx.Flash.Error(ctx.Tr("form.cannot_invite_org_to_org"))
-			ctx.Redirect(ctx.Org.OrgLink + "/invitations/new")
-			return
-		}
-
-		if err = org.AddMember(u.ID); err != nil {
-			ctx.Handle(500, " AddMember", err)
-			return
-		}
-
-		log.Trace("New member added(%s): %s", org.Name, u.Name)
-		ctx.Redirect(ctx.Org.OrgLink + "/members")
-		return
-	}
-
-	ctx.HTML(200, tplMemberInvite)
 }

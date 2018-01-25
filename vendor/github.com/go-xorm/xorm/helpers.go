@@ -422,7 +422,7 @@ func genCols(table *core.Table, session *Session, bean interface{}, useCol bool,
 
 		if (col.IsCreated || col.IsUpdated) && session.statement.UseAutoTime /*&& isZero(fieldValue.Interface())*/ {
 			// if time is non-empty, then set to auto time
-			val, t := session.engine.NowTime2(col.SQLType.Name)
+			val, t := session.engine.nowTime(col)
 			args = append(args, val)
 
 			var colName = col.Name

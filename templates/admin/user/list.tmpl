@@ -36,9 +36,9 @@
 							<td><i class="fa fa{{if .IsActive}}-check{{end}}-square-o"></i></td>
 							<td><i class="fa fa{{if .IsAdmin}}-check{{end}}-square-o"></i></td>
 							<td>{{.NumRepos}}</td>
-							<td><span title="{{DateFmtLong .Created}}">{{DateFmtShort .Created }}</span></td>
+							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
 							{{if .LastLoginUnix}}
-								<td><span title="{{DateFmtLong .LastLogin}}">{{DateFmtShort .LastLogin }}</span></td>
+								<td><span title="{{.LastLoginUnix.FormatLong}}">{{.LastLoginUnix.FormatShort}}</span></td>
 							{{else}}
 								<td><span>{{$.i18n.Tr "admin.users.never_login"}}</span></td>
 							{{end}}

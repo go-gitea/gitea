@@ -22,7 +22,7 @@ func (issue *Issue) mailSubject() string {
 // This function sends two list of emails:
 // 1. Repository watchers and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
-func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, comment *Comment, mentions []string) error {
+func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content string, comment *Comment, mentions []string) error {
 	if !setting.Service.EnableNotifyMail {
 		return nil
 	}
@@ -80,7 +80,7 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, comment 
 		names = append(names, participants[i].Name)
 	}
 
-	SendIssueCommentMail(issue, doer, comment, tos)
+	SendIssueCommentMail(issue, doer, content, comment, tos)
 
 	// Mail mentioned people and exclude watchers.
 	names = append(names, doer.Name)
@@ -92,7 +92,7 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, comment 
 
 		tos = append(tos, mentions[i])
 	}
-	SendIssueMentionMail(issue, doer, comment, getUserEmailsByNames(e, tos))
+	SendIssueMentionMail(issue, doer, content, comment, getUserEmailsByNames(e, tos))
 
 	return nil
 }
@@ -109,7 +109,7 @@ func (issue *Issue) mailParticipants(e Engine) (err error) {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
 	}
 
-	if err = mailIssueCommentToParticipants(e, issue, issue.Poster, nil, mentions); err != nil {
+	if err = mailIssueCommentToParticipants(e, issue, issue.Poster, issue.Content, nil, mentions); err != nil {
 		log.Error(4, "mailIssueCommentToParticipants: %v", err)
 	}
 

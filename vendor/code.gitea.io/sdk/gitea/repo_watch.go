@@ -10,8 +10,7 @@ import (
 	"time"
 )
 
-// WatchInfo represents a API watch status of one repository
-// swagger:response WatchInfo
+// WatchInfo represents an API watch status of one repository
 type WatchInfo struct {
 	Subscribed    bool        `json:"subscribed"`
 	Ignored       bool        `json:"ignored"`

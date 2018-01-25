@@ -25,46 +25,61 @@ func InitIssueIndexer() {
 
 // populateIssueIndexer populate the issue indexer with issue data
 func populateIssueIndexer() error {
+	batch := indexer.IssueIndexerBatch()
 	for page := 1; ; page++ {
-		repos, _, err := Repositories(&SearchRepoOptions{
-			Page:     page,
-			PageSize: 10,
+		repos, _, err := SearchRepositoryByName(&SearchRepoOptions{
+			Page:        page,
+			PageSize:    RepositoryListDefaultPageSize,
+			OrderBy:     SearchOrderByID,
+			Private:     true,
+			Collaborate: util.OptionalBoolFalse,
 		})
 		if err != nil {
 			return fmt.Errorf("Repositories: %v", err)
 		}
 		if len(repos) == 0 {
-			return nil
+			return batch.Flush()
 		}
 		for _, repo := range repos {
 			issues, err := Issues(&IssuesOptions{
-				RepoID:   repo.ID,
+				RepoIDs:  []int64{repo.ID},
 				IsClosed: util.OptionalBoolNone,
 				IsPull:   util.OptionalBoolNone,
 			})
-			updates := make([]indexer.IssueIndexerUpdate, len(issues))
-			for i, issue := range issues {
-				updates[i] = issue.update()
+			if err != nil {
+				return err
 			}
-			if err = indexer.BatchUpdateIssues(updates...); err != nil {
-				return fmt.Errorf("BatchUpdate: %v", err)
+			if err = IssueList(issues).LoadComments(); err != nil {
+				return err
+			}
+			for _, issue := range issues {
+				if err := batch.Add(issue.update()); err != nil {
+					return err
+				}
 			}
 		}
 	}
 }
 
 func processIssueIndexerUpdateQueue() {
+	batch := indexer.IssueIndexerBatch()
 	for {
+		var issueID int64
 		select {
-		case issueID := <-issueIndexerUpdateQueue:
-			issue, err := GetIssueByID(issueID)
-			if err != nil {
-				log.Error(4, "issuesIndexer.Index: %v", err)
-				continue
+		case issueID = <-issueIndexerUpdateQueue:
+		default:
+			// flush whatever updates we currently have, since we
+			// might have to wait a while
+			if err := batch.Flush(); err != nil {
+				log.Error(4, "IssueIndexer: %v", err)
 			}
-			if err = indexer.UpdateIssue(issue.update()); err != nil {
-				log.Error(4, "issuesIndexer.Index: %v", err)
-			}
+			issueID = <-issueIndexerUpdateQueue
+		}
+		issue, err := GetIssueByID(issueID)
+		if err != nil {
+			log.Error(4, "GetIssueByID: %v", err)
+		} else if err = batch.Add(issue.update()); err != nil {
+			log.Error(4, "IssueIndexer: %v", err)
 		}
 	}
 }
@@ -84,6 +99,26 @@ func (issue *Issue) update() indexer.IssueIndexerUpdate {
 			Content:  issue.Content,
 			Comments: comments,
 		},
+	}
+}
+
+// updateNeededCols whether a change to the specified columns requires updating
+// the issue indexer
+func updateNeededCols(cols []string) bool {
+	for _, col := range cols {
+		switch col {
+		case "name", "content":
+			return true
+		}
+	}
+	return false
+}
+
+// UpdateIssueIndexerCols update an issue in the issue indexer, given changes
+// to the specified columns
+func UpdateIssueIndexerCols(issueID int64, cols ...string) {
+	if updateNeededCols(cols) {
+		UpdateIssueIndexer(issueID)
 	}
 }
 

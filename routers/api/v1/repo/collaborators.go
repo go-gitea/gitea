@@ -13,6 +13,25 @@ import (
 
 // ListCollaborators list a repository's collaborators
 func ListCollaborators(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/collaborators repository repoListCollaborators
+	// ---
+	// summary: List a repository's collaborators
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/UserList"
 	if !ctx.Repo.IsWriter() {
 		ctx.Error(403, "", "User does not have push access")
 		return
@@ -31,6 +50,32 @@ func ListCollaborators(ctx *context.APIContext) {
 
 // IsCollaborator check if a user is a collaborator of a repository
 func IsCollaborator(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/collaborators/{collaborator} repository repoCheckCollaborator
+	// ---
+	// summary: Check if a user is a collaborator of a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: collaborator
+	//   in: path
+	//   description: username of the collaborator
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/empty"
 	if !ctx.Repo.IsWriter() {
 		ctx.Error(403, "", "User does not have push access")
 		return
@@ -56,8 +101,36 @@ func IsCollaborator(ctx *context.APIContext) {
 	}
 }
 
-// AddCollaborator add a collaborator of a repository
+// AddCollaborator add a collaborator to a repository
 func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
+	// swagger:operation PUT /repos/{owner}/{repo}/collaborators/{collaborator} repository repoAddCollaborator
+	// ---
+	// summary: Add a collaborator to a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: collaborator
+	//   in: path
+	//   description: username of the collaborator to add
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/AddCollaboratorOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	if !ctx.Repo.IsWriter() {
 		ctx.Error(403, "", "User does not have push access")
 		return
@@ -89,6 +162,30 @@ func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
 
 // DeleteCollaborator delete a collaborator from a repository
 func DeleteCollaborator(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/collaborators/{collaborator} repository repoDeleteCollaborator
+	// ---
+	// summary: Delete a collaborator from a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: collaborator
+	//   in: path
+	//   description: username of the collaborator to delete
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	if !ctx.Repo.IsWriter() {
 		ctx.Error(403, "", "User does not have push access")
 		return

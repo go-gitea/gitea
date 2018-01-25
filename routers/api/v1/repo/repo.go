@@ -6,45 +6,94 @@ package repo
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
-
-	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/convert"
+	api "code.gitea.io/sdk/gitea"
 )
 
 // Search repositories via options
 func Search(ctx *context.APIContext) {
-	// swagger:route GET /repos/search repository repoSearch
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: SearchResults
-	//       500: SearchError
-
+	// swagger:operation GET /repos/search repository repoSearch
+	// ---
+	// summary: Search for repositories
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: q
+	//   in: query
+	//   description: keyword
+	//   type: string
+	// - name: uid
+	//   in: query
+	//   description: search only for repos that the user with the given id owns or contributes to
+	//   type: integer
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
+	// - name: mode
+	//   in: query
+	//   description: type of repository to search for. Supported values are
+	//                "fork", "source", "mirror" and "collaborative"
+	//   type: string
+	// - name: exclusive
+	//   in: query
+	//   description: if `uid` is given, search only for repos that the user owns
+	//   type: boolean
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/SearchResults"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	opts := &models.SearchRepoOptions{
-		Keyword:  strings.Trim(ctx.Query("q"), " "),
-		OwnerID:  ctx.QueryInt64("uid"),
-		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-	}
-	if ctx.User != nil && ctx.User.ID == opts.OwnerID {
-		opts.Searcher = ctx.User
+		Keyword:     strings.Trim(ctx.Query("q"), " "),
+		OwnerID:     ctx.QueryInt64("uid"),
+		Page:        ctx.QueryInt("page"),
+		PageSize:    convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		Collaborate: util.OptionalBoolNone,
 	}
 
-	// Check visibility.
-	if ctx.IsSigned && opts.OwnerID > 0 {
-		if ctx.User.ID == opts.OwnerID {
-			opts.Private = true
-			opts.Collaborate = true
+	if ctx.QueryBool("exclusive") {
+		opts.Collaborate = util.OptionalBoolFalse
+	}
+
+	var mode = ctx.Query("mode")
+	switch mode {
+	case "source":
+		opts.Fork = util.OptionalBoolFalse
+		opts.Mirror = util.OptionalBoolFalse
+	case "fork":
+		opts.Fork = util.OptionalBoolTrue
+	case "mirror":
+		opts.Mirror = util.OptionalBoolTrue
+	case "collaborative":
+		opts.Mirror = util.OptionalBoolFalse
+		opts.Collaborate = util.OptionalBoolTrue
+	case "":
+	default:
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid search mode: \"%s\"", mode))
+		return
+	}
+
+	var err error
+	if opts.OwnerID > 0 {
+		var repoOwner *models.User
+		if ctx.User != nil && ctx.User.ID == opts.OwnerID {
+			repoOwner = ctx.User
 		} else {
-			u, err := models.GetUserByID(opts.OwnerID)
+			repoOwner, err = models.GetUserByID(opts.OwnerID)
 			if err != nil {
 				ctx.JSON(500, api.SearchError{
 					OK:    false,
@@ -52,12 +101,25 @@ func Search(ctx *context.APIContext) {
 				})
 				return
 			}
-			if u.IsOrganization() && u.IsOwnedBy(ctx.User.ID) {
-				opts.Private = true
-			}
+		}
 
-			if !u.IsOrganization() {
-				opts.Collaborate = true
+		if repoOwner.IsOrganization() {
+			opts.Collaborate = util.OptionalBoolFalse
+		}
+
+		// Check visibility.
+		if ctx.IsSigned {
+			if ctx.User.ID == repoOwner.ID {
+				opts.Private = true
+			} else if repoOwner.IsOrganization() {
+				opts.Private, err = repoOwner.IsOwnedBy(ctx.User.ID)
+				if err != nil {
+					ctx.JSON(500, api.SearchError{
+						OK:    false,
+						Error: err.Error(),
+					})
+					return
+				}
 			}
 		}
 	}
@@ -135,22 +197,23 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 
 // Create one repository of mine
 func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
-	// swagger:route POST /user/repos repository user createCurrentUserRepo
-	//
-	//     Consumes:
-	//     - application/json
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       201: Repository
-	//       403: forbidden
-	//       422: validationError
-	//       500: error
-
-	// Shouldn't reach this condition, but just in case.
+	// swagger:operation POST /user/repos repository user createCurrentUserRepo
+	// ---
+	// summary: Create a repository
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateRepoOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Repository"
 	if ctx.User.IsOrganization() {
+		// Shouldn't reach this condition, but just in case.
 		ctx.Error(422, "", "not allowed creating repository for organization")
 		return
 	}
@@ -159,20 +222,30 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 
 // CreateOrgRepo create one repository of the organization
 func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
-	// swagger:route POST /org/{org}/repos organization createOrgRepo
-	//
-	//     Consumes:
-	//     - application/json
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       201: Repository
-	//       422: validationError
-	//       403: forbidden
-	//       500: error
-
+	// swagger:operation POST /org/{org}/repos organization createOrgRepo
+	// ---
+	// summary: Create a repository in an organization
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of organization
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateRepoOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Repository"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	org, err := models.GetOrgByName(ctx.Params(":org"))
 	if err != nil {
 		if models.IsErrOrgNotExist(err) {
@@ -183,7 +256,11 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 		return
 	}
 
-	if !org.IsOwnedBy(ctx.User.ID) {
+	isOwner, err := org.IsOwnedBy(ctx.User.ID)
+	if err != nil {
+		ctx.ServerError("IsOwnedBy", err)
+		return
+	} else if !isOwner {
 		ctx.Error(403, "", "Given user is not owner of organization.")
 		return
 	}
@@ -192,19 +269,21 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 
 // Migrate migrate remote git repository to gitea
 func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
-	// swagger:route POST /repos/migrate repository repoMigrate
-	//
-	//     Consumes:
-	//     - application/json
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       201: Repository
-	//       422: validationError
-	//       500: error
-
+	// swagger:operation POST /repos/migrate repository repoMigrate
+	// ---
+	// summary: Migrate a remote git repository
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/MigrateRepoForm"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Repository"
 	ctxUser := ctx.User
 	// Not equal means context user is an organization,
 	// or is another user/organization if current user is admin.
@@ -228,7 +307,11 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 
 	if ctxUser.IsOrganization() && !ctx.User.IsAdmin {
 		// Check ownership of organization.
-		if !ctxUser.IsOwnedBy(ctx.User.ID) {
+		isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.Error(500, "IsOwnedBy", err)
+			return
+		} else if !isOwner {
 			ctx.Error(403, "", "Given user is not owner of organization.")
 			return
 		}
@@ -262,12 +345,13 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		RemoteAddr:  remoteAddr,
 	})
 	if err != nil {
+		err = util.URLSanitizedError(err, remoteAddr)
 		if repo != nil {
 			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 				log.Error(4, "DeleteRepository: %v", errDelete)
 			}
 		}
-		ctx.Error(500, "MigrateRepository", models.HandleCloneUserCredentials(err.Error(), true))
+		ctx.Error(500, "MigrateRepository", err)
 		return
 	}
 
@@ -277,29 +361,44 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 
 // Get one repository
 func Get(ctx *context.APIContext) {
-	// swagger:route GET /repos/{username}/{reponame} repository repoGet
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: Repository
-	//       500: error
-
+	// swagger:operation GET /repos/{owner}/{repo} repository repoGet
+	// ---
+	// summary: Get a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Repository"
 	ctx.JSON(200, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
 }
 
 // GetByID returns a single Repository
 func GetByID(ctx *context.APIContext) {
-	// swagger:route GET /repositories/{id} repository repoGetByID
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: Repository
-	//       500: error
-
+	// swagger:operation GET /repositories/{id} repository repoGetByID
+	// ---
+	// summary: Get a repository by id
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the repo to get
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Repository"
 	repo, err := models.GetRepositoryByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
@@ -323,16 +422,27 @@ func GetByID(ctx *context.APIContext) {
 
 // Delete one repository
 func Delete(ctx *context.APIContext) {
-	// swagger:route DELETE /repos/{username}/{reponame} repository repoDelete
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       204: empty
-	//       403: forbidden
-	//       500: error
-
+	// swagger:operation DELETE /repos/{owner}/{repo} repository repoDelete
+	// ---
+	// summary: Delete a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo to delete
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo to delete
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	if !ctx.Repo.IsAdmin() {
 		ctx.Error(403, "", "Must have admin rights")
 		return
@@ -340,9 +450,15 @@ func Delete(ctx *context.APIContext) {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	if owner.IsOrganization() && !owner.IsOwnedBy(ctx.User.ID) {
-		ctx.Error(403, "", "Given user is not owner of organization.")
-		return
+	if owner.IsOrganization() {
+		isOwner, err := owner.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.Error(500, "IsOwnedBy", err)
+			return
+		} else if !isOwner {
+			ctx.Error(403, "", "Given user is not owner of organization.")
+			return
+		}
 	}
 
 	if err := models.DeleteRepository(ctx.User, owner.ID, repo.ID); err != nil {
@@ -356,15 +472,25 @@ func Delete(ctx *context.APIContext) {
 
 // MirrorSync adds a mirrored repository to the sync queue
 func MirrorSync(ctx *context.APIContext) {
-	// swagger:route POST /repos/{username}/{reponame}/mirror-sync repository repoMirrorSync
-	//
-	//     Produces:
-	//     - application/json
-	//
-	//     Responses:
-	//       200: empty
-	//       403: forbidden
-
+	// swagger:operation POST /repos/{owner}/{repo}/mirror-sync repository repoMirrorSync
+	// ---
+	// summary: Sync a mirrored repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo to sync
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo to sync
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/empty"
 	repo := ctx.Repo.Repository
 
 	if !ctx.Repo.IsWriter() {

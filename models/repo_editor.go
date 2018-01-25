@@ -178,6 +178,8 @@ func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (
 	if err != nil {
 		return fmt.Errorf("PushUpdate: %v", err)
 	}
+	UpdateRepoIndexer(repo)
+
 	return nil
 }
 

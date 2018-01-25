@@ -19,17 +19,17 @@
 							</span>
 							<i class="dropdown icon"></i>
 							<div class="menu">
-								<div class="item" data-value="{{.SignedUser.ID}}">
-									<img class="ui mini image" src="{{.SignedUser.RelAvatarLink}}">
-									{{.SignedUser.ShortName 20}}
-								</div>
+								{{if .CanForkToUser}}
+									<div class="item" data-value="{{.SignedUser.ID}}">
+										<img class="ui mini image" src="{{.SignedUser.RelAvatarLink}}">
+										{{.SignedUser.ShortName 20}}
+									</div>
+								{{end}}
 								{{range .Orgs}}
-									{{if and (.IsOwnedBy $.SignedUser.ID) (ne .ID $.ForkFromOwnerID)}}
-										<div class="item" data-value="{{.ID}}">
-											<img class="ui mini image" src="{{.RelAvatarLink}}">
-											{{.ShortName 20}}
-										</div>
-									{{end}}
+									<div class="item" data-value="{{.ID}}">
+										<img class="ui mini image" src="{{.RelAvatarLink}}">
+										{{.ShortName 20}}
+									</div>
 								{{end}}
 							</div>
 						</div>

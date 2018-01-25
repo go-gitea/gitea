@@ -24,7 +24,6 @@ func Repos(ctx *context.Context) {
 	ctx.Data["PageIsAdminRepositories"] = true
 
 	routers.RenderRepoSearch(ctx, &routers.RepoSearchOptions{
-		Ranger:   models.Repositories,
 		Private:  true,
 		PageSize: setting.UI.Admin.RepoPagingNum,
 		TplName:  tplRepos,
@@ -35,12 +34,12 @@ func Repos(ctx *context.Context) {
 func DeleteRepo(ctx *context.Context) {
 	repo, err := models.GetRepositoryByID(ctx.QueryInt64("id"))
 	if err != nil {
-		ctx.Handle(500, "GetRepositoryByID", err)
+		ctx.ServerError("GetRepositoryByID", err)
 		return
 	}
 
 	if err := models.DeleteRepository(ctx.User, repo.MustOwner().ID, repo.ID); err != nil {
-		ctx.Handle(500, "DeleteRepository", err)
+		ctx.ServerError("DeleteRepository", err)
 		return
 	}
 	log.Trace("Repository deleted: %s/%s", repo.MustOwner().Name, repo.Name)

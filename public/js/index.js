@@ -117,6 +117,60 @@ function updateIssuesMeta(url, action, issueIds, elementId, afterSuccess) {
     })
 }
 
+function initReactionSelector(parent) {
+    var reactions = '';
+    if (!parent) {
+        parent = $(document);
+        reactions = '.reactions > ';
+    }
+
+    parent.find(reactions + 'a.label').popup({'position': 'bottom left', 'metadata': {'content': 'title', 'title': 'none'}});
+
+    parent.find('.select-reaction > .menu > .item, ' + reactions + 'a.label').on('click', function(e){
+        var vm = this;
+        e.preventDefault();
+
+        if ($(this).hasClass('disabled')) return;
+
+        var actionURL = $(this).hasClass('item') ?
+                $(this).closest('.select-reaction').data('action-url') :
+                $(this).data('action-url');
+        var url = actionURL + '/' + ($(this).hasClass('blue') ? 'unreact' : 'react');
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: {
+                '_csrf': csrf,
+                'content': $(this).data('content')
+            }
+        }).done(function(resp) {
+            if (resp && (resp.html || resp.empty)) {
+                var content = $(vm).closest('.content');
+                var react = content.find('.segment.reactions');
+                if (react.length > 0) {
+                    react.remove();
+                }
+                if (!resp.empty) {
+                    react = $('<div class="ui attached segment reactions"></div>');
+                    var attachments = content.find('.segment.bottom:first');
+                    if (attachments.length > 0) {
+                        react.insertBefore(attachments);
+                    } else {
+                        react.appendTo(content);
+                    }
+                    react.html(resp.html);
+                    var hasEmoji = react.find('.has-emoji');
+                    for (var i = 0; i < hasEmoji.length; i++) {
+                        emojify.run(hasEmoji.get(i));
+                    }
+                    react.find('.dropdown').dropdown();
+                    initReactionSelector(react);
+                }
+            }
+        });
+    });
+}
+
 function initCommentForm() {
     if ($('.comment.form').length == 0) {
         return
@@ -362,9 +416,11 @@ function initRepository() {
         var $dropdown = $(selector);
         $dropdown.dropdown({
             fullTextSearch: true,
+            selectOnKeydown: false,
             onChange: function (text, value, $choice) {
-                window.location.href = $choice.data('url');
-                console.log($choice.data('url'))
+                if ($choice.data('url')) {
+                    window.location.href = $choice.data('url');
+                }
             },
             message: {noResults: $dropdown.data('no-results')}
         });
@@ -373,15 +429,7 @@ function initRepository() {
     // File list and commits
     if ($('.repository.file.list').length > 0 ||
         ('.repository.commits').length > 0) {
-        initFilterSearchDropdown('.choose.reference .dropdown');
-
-        $('.reference.column').click(function () {
-            $('.choose.reference .scrolling.menu').css('display', 'none');
-            $('.choose.reference .text').removeClass('black');
-            $($(this).data('target')).css('display', 'block');
-            $(this).find('.text').addClass('black');
-            return false;
-        });
+        initFilterBranchTagDropdown('.choose.reference .dropdown');
     }
 
     // Wiki
@@ -522,6 +570,7 @@ function initRepository() {
             if ($editContentZone.html().length == 0) {
                 $editContentZone.html($('#edit-content-form').html());
                 $textarea = $segment.find('textarea');
+                issuesTribute.attach($textarea.get());
 
                 // Give new write/preview data-tab name to distinguish from others
                 var $editContentForm = $editContentZone.find('.ui.comment.form');
@@ -600,6 +649,29 @@ function initRepository() {
             $('#status').val($statusButton.data('status-val'));
             $('#comment-form').submit();
         });
+
+        // Pull Request merge button
+        var $mergeButton = $('.merge-button > button');
+        $mergeButton.on('click', function(e) {
+            e.preventDefault();
+            $('.' + $(this).data('do') + '-fields').show();
+            $(this).parent().hide();
+        });
+        $('.merge-button > .dropdown').dropdown({
+            onChange: function (text, value, $choice) {
+                if ($choice.data('do')) {
+                    $mergeButton.find('.button-text').text($choice.text());
+                    $mergeButton.data('do', $choice.data('do'));
+                }
+            }
+        });
+        $('.merge-cancel').on('click', function(e) {
+            e.preventDefault();
+            $(this).closest('.form').hide();
+            $mergeButton.parent().show();
+        });
+
+        initReactionSelector();
     }
 
     // Diff
@@ -1120,7 +1192,7 @@ function initAdmin() {
         $('#auth_type').change(function () {
             $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls').hide();
 
-            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required] .has-tls input[required]').removeAttr('required');
+            $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
 
             var authType = $(this).val();
             switch (authType) {
@@ -1230,104 +1302,53 @@ function hideWhenLostFocus(body, parent) {
 }
 
 function searchUsers() {
-    if (!$('#search-user-box .results').length) {
-        return;
-    }
-
     var $searchUserBox = $('#search-user-box');
-    var $results = $searchUserBox.find('.results');
-    $searchUserBox.keyup(function () {
-        var $this = $(this);
-        var keyword = $this.find('input').val();
-        if (keyword.length < 2) {
-            $results.hide();
-            return;
-        }
+    $searchUserBox.search({
+        minCharacters: 2,
+        apiSettings: {
+            url: suburl + '/api/v1/users/search?q={query}',
+            onResponse: function(response) {
+                var items = [];
+                $.each(response.data, function (i, item) {
+                    var title = item.login;
+                    if (item.full_name && item.full_name.length > 0) {
+                        title += ' (' + item.full_name + ')';
+                    }
+                    items.push({
+                        title: title,
+                        image: item.avatar_url
+                    })
+                });
 
-        $.ajax({
-            url: suburl + '/api/v1/users/search?q=' + keyword,
-            dataType: "json",
-            success: function (response) {
-                var notEmpty = function (str) {
-                    return str && str.length > 0;
-                };
-
-                $results.html('');
-
-                if (response.ok && response.data.length) {
-                    var html = '';
-                    $.each(response.data, function (i, item) {
-                        html += '<div class="item"><img class="ui avatar image" src="' + item.avatar_url + '"><span class="username">' + item.login + '</span>';
-                        if (notEmpty(item.full_name)) {
-                            html += ' (' + item.full_name + ')';
-                        }
-                        html += '</div>';
-                    });
-                    $results.html(html);
-                    $this.find('.results .item').click(function () {
-                        $this.find('input').val($(this).find('.username').text());
-                        $results.hide();
-                    });
-                    $results.show();
-                } else {
-                    $results.hide();
-                }
+                return { results: items }
             }
-        });
+        },
+        searchFields: ['login', 'full_name'],
+        showNoResults: false
     });
-    $searchUserBox.find('input').focus(function () {
-        $searchUserBox.keyup();
-    });
-    hideWhenLostFocus('#search-user-box .results', '#search-user-box');
 }
 
-// FIXME: merge common parts in two functions
 function searchRepositories() {
-    if (!$('#search-repo-box .results').length) {
-        return;
-    }
-
     var $searchRepoBox = $('#search-repo-box');
-    var $results = $searchRepoBox.find('.results');
-    $searchRepoBox.keyup(function () {
-        var $this = $(this);
-        var keyword = $this.find('input').val();
-        if (keyword.length < 2) {
-            $results.hide();
-            return;
-        }
+    $searchRepoBox.search({
+        minCharacters: 2,
+        apiSettings: {
+            url: suburl + '/api/v1/repos/search?q={query}&uid=' + $searchRepoBox.data('uid'),
+            onResponse: function(response) {
+                var items = [];
+                $.each(response.data, function (i, item) {
+                    items.push({
+                        title: item.full_name.split("/")[1],
+                        description: item.full_name
+                    })
+                });
 
-        $.ajax({
-            url: suburl + '/api/v1/repos/search?q=' + keyword + "&uid=" + $searchRepoBox.data('uid'),
-            dataType: "json",
-            success: function (response) {
-                var notEmpty = function (str) {
-                    return str && str.length > 0;
-                };
-
-                $results.html('');
-
-                if (response.ok && response.data.length) {
-                    var html = '';
-                    $.each(response.data, function (i, item) {
-                        html += '<div class="item"><i class="icon octicon octicon-repo"></i> <span class="fullname">' + item.full_name + '</span></div>';
-                    });
-                    $results.html(html);
-                    $this.find('.results .item').click(function () {
-                        $this.find('input').val($(this).find('.fullname').text().split("/")[1]);
-                        $results.hide();
-                    });
-                    $results.show();
-                } else {
-                    $results.hide();
-                }
+                return { results: items }
             }
-        });
+        },
+        searchFields: ['full_name'],
+        showNoResults: false
     });
-    $searchRepoBox.find('input').focus(function () {
-        $searchRepoBox.keyup();
-    });
-    hideWhenLostFocus('#search-repo-box .results', '#search-repo-box');
 }
 
 function initCodeView() {
@@ -1369,7 +1390,7 @@ $(document).ready(function () {
     });
 
     // Semantic UI modules.
-    $('.dropdown').dropdown();
+    $('.dropdown:not(.custom)').dropdown();
     $('.jump.dropdown').dropdown({
         action: 'hide',
         onShow: function () {
@@ -1453,7 +1474,7 @@ $(document).ready(function () {
 
     // Emojify
     emojify.setConfig({
-        img_dir: suburl + '/plugins/emojify/images',
+        img_dir: suburl + '/vendor/plugins/emojify/images',
         ignore_emoticons: true
     });
     var hasEmoji = document.getElementsByClassName('has-emoji');
@@ -1480,29 +1501,18 @@ $(document).ready(function () {
     });
 
     // Helpers.
-    $('.delete-button').click(function () {
-        var $this = $(this);
-        var filter = "";
-        if ($this.attr("id")) {
-          filter += "#"+$this.attr("id")
-        }
-        $('.delete.modal'+filter).modal({
-            closable: false,
-            onApprove: function () {
-                if ($this.data('type') == "form") {
-                    $($this.data('form')).submit();
-                    return;
-                }
+    $('.delete-button').click(showDeletePopup);
 
-                $.post($this.data('url'), {
-                    "_csrf": csrf,
-                    "id": $this.data("id")
-                }).done(function (data) {
-                    window.location.href = data.redirect;
-                });
-            }
-        }).modal('show');
-        return false;
+    $('.delete-branch-button').click(showDeletePopup);
+
+    $('.undo-button').click(function() {
+        var $this = $(this);
+        $.post($this.data('url'), {
+            "_csrf": csrf,
+            "id": $this.data("id")
+        }).done(function(data) {
+            window.location.href = data.redirect;
+        });
     });
     $('.show-panel.button').click(function () {
         $($(this).data('panel')).show();
@@ -1543,11 +1553,11 @@ $(document).ready(function () {
     $('.issue-checkbox').click(function() {
         var numChecked = $('.issue-checkbox').children('input:checked').length;
         if (numChecked > 0) {
-            $('.issue-filters').hide();
-            $('.issue-actions').show();
+            $('#issue-filters').hide();
+            $('#issue-actions').show();
         } else {
-            $('.issue-filters').show();
-            $('.issue-actions').hide();
+            $('#issue-filters').show();
+            $('#issue-actions').hide();
         }
     });
 
@@ -1579,6 +1589,8 @@ $(document).ready(function () {
     initCodeView();
     initVueApp();
     initTeamSettings();
+    initCtrlEnterSubmit();
+    initNavbarContentToggle();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -1664,6 +1676,35 @@ $(function () {
     });
 });
 
+function showDeletePopup() {
+    var $this = $(this);
+    var filter = "";
+    if ($this.attr("id")) {
+        filter += "#" + $this.attr("id")
+    }
+
+    var dialog = $('.delete.modal' + filter);
+    dialog.find('.repo-name').text($this.data('repo-name'));
+
+    dialog.modal({
+        closable: false,
+        onApprove: function() {
+            if ($this.data('type') == "form") {
+                $($this.data('form')).submit();
+                return;
+            }
+
+            $.post($this.data('url'), {
+                "_csrf": csrf,
+                "id": $this.data("id")
+            }).done(function(data) {
+                window.location.href = data.redirect;
+            });
+        }
+    }).modal('show');
+    return false;
+}
+
 function initVueComponents(){
     var vueDelimeters = ['${', '}'];
 
@@ -1712,12 +1753,46 @@ function initVueComponents(){
                 reposTotalCount: 0,
                 reposFilter: 'all',
                 searchQuery: '',
-                isLoading: false
+                isLoading: false,
+                repoTypes: {
+                    'all': {
+                        count: 0,
+                        searchMode: '',
+                    },
+                    'forks': {
+                        count: 0,
+                        searchMode: 'fork',
+                    },
+                    'mirrors': {
+                        count: 0,
+                        searchMode: 'mirror',
+                    },
+                    'sources': {
+                        count: 0,
+                        searchMode: 'source',
+                    },
+                    'collaborative': {
+                        count: 0,
+                        searchMode: 'collaborative',
+                    },
+                }
+            }
+        },
+
+        computed: {
+            showMoreReposLink: function() {
+                return this.repos.length > 0 && this.repos.length < this.repoTypes[this.reposFilter].count;
+            },
+            searchURL: function() {
+                return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery + '&limit=' + this.searchLimit + '&mode=' + this.repoTypes[this.reposFilter].searchMode + (this.reposFilter !== 'all' ? '&exclusive=1' : '');
+            },
+            repoTypeCount: function() {
+                return this.repoTypes[this.reposFilter].count;
             }
         },
 
         mounted: function() {
-            this.searchRepos();
+            this.searchRepos(this.reposFilter);
 
             var self = this;
             Vue.nextTick(function() {
@@ -1732,6 +1807,9 @@ function initVueComponents(){
 
             changeReposFilter: function(filter) {
                 this.reposFilter = filter;
+                this.repos = [];
+                this.repoTypes[filter].count = 0;
+                this.searchRepos(filter);
             },
 
             showRepo: function(repo, filter) {
@@ -1749,26 +1827,29 @@ function initVueComponents(){
                 }
             },
 
-            searchRepos: function() {
+            searchRepos: function(reposFilter) {
                 var self = this;
+
                 this.isLoading = true;
+
+                var searchedMode = this.repoTypes[reposFilter].searchMode;
+                var searchedURL = this.searchURL;
                 var searchedQuery = this.searchQuery;
-                $.getJSON(this.searchURL(), function(result, textStatus, request) {
-                    if (searchedQuery == self.searchQuery) {
+
+                $.getJSON(searchedURL, function(result, textStatus, request) {
+                    if (searchedURL == self.searchURL) {
                         self.repos = result.data;
-                        if (searchedQuery == "") {
-                            self.reposTotalCount = request.getResponseHeader('X-Total-Count');
+                        var count = request.getResponseHeader('X-Total-Count');
+                        if (searchedQuery === '' && searchedMode === '') {
+                            self.reposTotalCount = count;
                         }
+                        self.repoTypes[reposFilter].count = count;
                     }
                 }).always(function() {
-                    if (searchedQuery == self.searchQuery) {
+                    if (searchedURL == self.searchURL) {
                         self.isLoading = false;
                     }
                 });
-            },
-
-            searchURL: function() {
-                return this.suburl + '/api/v1/repos/search?uid=' + this.uid + '&q=' + this.searchQuery + '&limit=' + this.searchLimit;
             },
 
             repoClass: function(repo) {
@@ -1784,6 +1865,14 @@ function initVueComponents(){
             }
         }
     })
+}
+
+function initCtrlEnterSubmit() {
+    $(".js-quick-submit").keydown(function(e) {
+        if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.keyCode == 13 || e.keyCode == 10)) {
+            $(this).closest("form").submit();
+        }
+    });
 }
 
 function initVueApp() {
@@ -1821,4 +1910,212 @@ function toggleStopwatch() {
 }
 function cancelStopwatch() {
     $("#cancel_stopwatch_form").submit();
+}
+
+function initFilterBranchTagDropdown(selector) {
+    $(selector).each(function() {
+        var $dropdown = $(this);
+        var $data = $dropdown.find('.data');
+        var data = {
+            items: [],
+            mode: $data.data('mode'),
+            searchTerm: '',
+            noResults: '',
+            canCreateBranch: false,
+            menuVisible: false,
+            active: 0
+        };
+        $data.find('.item').each(function() {
+            data.items.push({
+                name: $(this).text(),
+                url: $(this).data('url'),
+                branch: $(this).hasClass('branch'),
+                tag: $(this).hasClass('tag'),
+                selected: $(this).hasClass('selected')
+            });
+        });
+        $data.remove();
+        new Vue({
+            delimiters: ['${', '}'],
+            el: this,
+            data: data,
+
+            beforeMount: function () {
+                var vm = this;
+
+                this.noResults = vm.$el.getAttribute('data-no-results');
+                this.canCreateBranch = vm.$el.getAttribute('data-can-create-branch') === 'true';
+
+                document.body.addEventListener('click', function(event) {
+                    if (vm.$el.contains(event.target)) {
+                        return;
+                    }
+                    if (vm.menuVisible) {
+                        Vue.set(vm, 'menuVisible', false);
+                    }
+                });
+            },
+
+            watch: {
+                menuVisible: function(visible) {
+                    if (visible) {
+                        this.focusSearchField();
+                    }
+                }
+            },
+
+            computed: {
+                filteredItems: function() {
+                    var vm = this;
+
+                    var items = vm.items.filter(function (item) {
+                        return ((vm.mode === 'branches' && item.branch)
+                                || (vm.mode === 'tags' && item.tag))
+                            && (!vm.searchTerm
+                                || item.name.toLowerCase().indexOf(vm.searchTerm.toLowerCase()) >= 0);
+                    });
+
+                    vm.active = (items.length === 0 && vm.showCreateNewBranch ? 0 : -1);
+
+                    return items;
+                },
+                showNoResults: function() {
+                    return this.filteredItems.length === 0
+                            && !this.showCreateNewBranch;
+                },
+                showCreateNewBranch: function() {
+                    var vm = this;
+                    if (!this.canCreateBranch || !vm.searchTerm || vm.mode === 'tags') {
+                        return false;
+                    }
+
+                    return vm.items.filter(function (item) {
+                        return item.name.toLowerCase() === vm.searchTerm.toLowerCase()
+                    }).length === 0;
+                }
+            },
+
+            methods: {
+                selectItem: function(item) {
+                    var prev = this.getSelected();
+                    if (prev !== null) {
+                        prev.selected = false;
+                    }
+                    item.selected = true;
+                    window.location.href = item.url;
+                },
+                createNewBranch: function() {
+                    if (!this.showCreateNewBranch) {
+                        return;
+                    }
+                    this.$refs.newBranchForm.submit();
+                },
+                focusSearchField: function() {
+                    var vm = this;
+                    Vue.nextTick(function() {
+                        vm.$refs.searchField.focus();
+                    });
+                },
+                getSelected: function() {
+                    for (var i = 0, j = this.items.length; i < j; ++i) {
+                        if (this.items[i].selected)
+                            return this.items[i];
+                    }
+                    return null;
+                },
+                getSelectedIndexInFiltered: function() {
+                    for (var i = 0, j = this.filteredItems.length; i < j; ++i) {
+                        if (this.filteredItems[i].selected)
+                            return i;
+                    }
+                    return -1;
+                },
+                scrollToActive: function() {
+                    var el = this.$refs['listItem' + this.active];
+                    if (!el || el.length === 0) {
+                        return;
+                    }
+                    if (Array.isArray(el)) {
+                        el = el[0];
+                    }
+
+                    var cont = this.$refs.scrollContainer;
+
+                     if (el.offsetTop < cont.scrollTop) {
+                         cont.scrollTop = el.offsetTop;
+                     }
+                     else if (el.offsetTop + el.clientHeight > cont.scrollTop + cont.clientHeight) {
+                        cont.scrollTop = el.offsetTop + el.clientHeight - cont.clientHeight;
+                    }
+                },
+                keydown: function(event) {
+                    var vm = this;
+                    if (event.keyCode === 40) {
+                        // arrow down
+                        event.preventDefault();
+
+                        if (vm.active === -1) {
+                            vm.active = vm.getSelectedIndexInFiltered();
+                        }
+
+                        if (vm.active + (vm.showCreateNewBranch ? 0 : 1) >= vm.filteredItems.length) {
+                            return;
+                        }
+                        vm.active++;
+                        vm.scrollToActive();
+                    }
+                    if (event.keyCode === 38) {
+                        // arrow up
+                        event.preventDefault();
+
+                         if (vm.active === -1) {
+                            vm.active = vm.getSelectedIndexInFiltered();
+                        }
+
+                         if (vm.active <= 0) {
+                            return;
+                        }
+                        vm.active--;
+                        vm.scrollToActive();
+                    }
+                    if (event.keyCode == 13) {
+                        // enter
+                        event.preventDefault();
+
+                         if (vm.active >= vm.filteredItems.length) {
+                            vm.createNewBranch();
+                        } else if (vm.active >= 0) {
+                            vm.selectItem(vm.filteredItems[vm.active]);
+                        }
+                    }
+                    if (event.keyCode == 27) {
+                        // escape
+                        event.preventDefault();
+                        vm.menuVisible = false;
+                    }
+                }
+            }
+        });
+    });
+}
+
+$(".commit-button").click(function() {
+    $(this).parent().find('.commit-body').toggle();
+});
+
+function initNavbarContentToggle() {
+    var content = $('#navbar');
+    var toggle = $('#navbar-expand-toggle');
+    var isExpanded = false;
+    toggle.click(function() {
+        isExpanded = !isExpanded;
+        if (isExpanded) {
+            content.addClass('shown');
+            toggle.addClass('active');
+        }
+        else {
+            content.removeClass('shown');
+            toggle.removeClass('active');
+        }
+    });
 }

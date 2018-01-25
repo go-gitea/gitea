@@ -22,35 +22,16 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/Unknwon/com"
+	"code.gitea.io/gitea/modules/util"
 )
-
-func composeGoGetImport(owner, repo, sub string) string {
-	return path.Join(setting.Domain, setting.AppSubURL, owner, repo, sub)
-}
-
-// earlyResponseForGoGetMeta responses appropriate go-get meta with status 200
-// if user does not have actual access to the requested repository,
-// or the owner or repository does not exist at all.
-// This is particular a workaround for "go get" command which does not respect
-// .netrc file.
-func earlyResponseForGoGetMeta(ctx *context.Context, username, reponame, subpath string) {
-	ctx.PlainText(200, []byte(com.Expand(`<meta name="go-import" content="{GoGetImport} git {CloneLink}">`,
-		map[string]string{
-			"GoGetImport": composeGoGetImport(username, reponame, subpath),
-			"CloneLink":   models.ComposeHTTPSCloneURL(username, reponame),
-		})))
-}
 
 // HTTP implmentation git smart HTTP protocol
 func HTTP(ctx *context.Context) {
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
-	subpath := ctx.Params("*")
 
 	if ctx.Query("go-get") == "1" {
-		earlyResponseForGoGetMeta(ctx, username, reponame, subpath)
+		context.EarlyResponseForGoGetMeta(ctx)
 		return
 	}
 
@@ -84,23 +65,9 @@ func HTTP(ctx *context.Context) {
 		reponame = reponame[:len(reponame)-5]
 	}
 
-	repoUser, err := models.GetUserByName(username)
+	repo, err := models.GetRepositoryByOwnerAndName(username, reponame)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.Handle(http.StatusNotFound, "GetUserByName", nil)
-		} else {
-			ctx.Handle(http.StatusInternalServerError, "GetUserByName", err)
-		}
-		return
-	}
-
-	repo, err := models.GetRepositoryByName(repoUser.ID, reponame)
-	if err != nil {
-		if models.IsErrRepoNotExist(err) {
-			ctx.Handle(http.StatusNotFound, "GetRepositoryByName", nil)
-		} else {
-			ctx.Handle(http.StatusInternalServerError, "GetRepositoryByName", err)
-		}
+		ctx.NotFoundOrServerError("GetRepositoryByOwnerAndName", models.IsErrRepoNotExist, err)
 		return
 	}
 
@@ -153,44 +120,58 @@ func HTTP(ctx *context.Context) {
 			authUser, err = models.UserSignIn(authUsername, authPasswd)
 			if err != nil {
 				if !models.IsErrUserNotExist(err) {
-					ctx.Handle(http.StatusInternalServerError, "UserSignIn error: %v", err)
+					ctx.ServerError("UserSignIn error: %v", err)
 					return
 				}
 			}
 
 			if authUser == nil {
-				authUser, err = models.GetUserByName(authUsername)
+				isUsernameToken := len(authPasswd) == 0 || authPasswd == "x-oauth-basic"
 
-				if err != nil {
-					if models.IsErrUserNotExist(err) {
-						ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
-					} else {
-						ctx.Handle(http.StatusInternalServerError, "GetUserByName", err)
+				// Assume username is token
+				authToken := authUsername
+
+				if !isUsernameToken {
+					// Assume password is token
+					authToken = authPasswd
+
+					authUser, err = models.GetUserByName(authUsername)
+					if err != nil {
+						if models.IsErrUserNotExist(err) {
+							ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
+						} else {
+							ctx.ServerError("GetUserByName", err)
+						}
+						return
 					}
-					return
 				}
 
 				// Assume password is a token.
-				token, err := models.GetAccessTokenBySHA(authPasswd)
+				token, err := models.GetAccessTokenBySHA(authToken)
 				if err != nil {
 					if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
 						ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
 					} else {
-						ctx.Handle(http.StatusInternalServerError, "GetAccessTokenBySha", err)
+						ctx.ServerError("GetAccessTokenBySha", err)
 					}
 					return
 				}
 
-				if authUser.ID != token.UID {
+				if isUsernameToken {
+					authUser, err = models.GetUserByID(token.UID)
+					if err != nil {
+						ctx.ServerError("GetUserByID", err)
+						return
+					}
+				} else if authUser.ID != token.UID {
 					ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
 					return
 				}
 
-				token.Updated = time.Now()
+				token.UpdatedUnix = util.TimeStampNow()
 				if err = models.UpdateAccessToken(token); err != nil {
-					ctx.Handle(http.StatusInternalServerError, "UpdateAccessToken", err)
+					ctx.ServerError("UpdateAccessToken", err)
 				}
-
 			} else {
 				_, err = models.GetTwoFactorByUID(authUser.ID)
 
@@ -199,7 +180,7 @@ func HTTP(ctx *context.Context) {
 					ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
 					return
 				} else if !models.IsErrTwoFactorNotEnrolled(err) {
-					ctx.Handle(http.StatusInternalServerError, "IsErrTwoFactorNotEnrolled", err)
+					ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
 					return
 				}
 			}
@@ -207,13 +188,13 @@ func HTTP(ctx *context.Context) {
 			if !isPublicPull {
 				has, err := models.HasAccess(authUser.ID, repo, accessMode)
 				if err != nil {
-					ctx.Handle(http.StatusInternalServerError, "HasAccess", err)
+					ctx.ServerError("HasAccess", err)
 					return
 				} else if !has {
 					if accessMode == models.AccessModeRead {
 						has, err = models.HasAccess(authUser.ID, repo, models.AccessModeWrite)
 						if err != nil {
-							ctx.Handle(http.StatusInternalServerError, "HasAccess2", err)
+							ctx.ServerError("HasAccess2", err)
 							return
 						} else if !has {
 							ctx.HandleText(http.StatusForbidden, "User permission denied")
@@ -520,7 +501,7 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 				dir, err := getGitRepoPath(m[1])
 				if err != nil {
 					log.GitLogger.Error(4, err.Error())
-					ctx.Handle(http.StatusNotFound, "HTTPBackend", err)
+					ctx.NotFound("HTTPBackend", err)
 					return
 				}
 
@@ -529,7 +510,7 @@ func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
 			}
 		}
 
-		ctx.Handle(http.StatusNotFound, "HTTPBackend", nil)
+		ctx.NotFound("HTTPBackend", nil)
 		return
 	}
 }

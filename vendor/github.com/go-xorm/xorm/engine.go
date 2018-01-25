@@ -1516,10 +1516,14 @@ func (engine *Engine) Import(r io.Reader) ([]sql.Result, error) {
 	return results, lastError
 }
 
-// NowTime2 return current time
-func (engine *Engine) NowTime2(sqlTypeName string) (interface{}, time.Time) {
+// nowTime return current time
+func (engine *Engine) nowTime(col *core.Column) (interface{}, time.Time) {
 	t := time.Now()
-	return engine.formatTime(sqlTypeName, t.In(engine.DatabaseTZ)), t.In(engine.TZLocation)
+	var tz = engine.DatabaseTZ
+	if !col.DisableTimeZone && col.TimeZone != nil {
+		tz = col.TimeZone
+	}
+	return engine.formatTime(col.SQLType.Name, t.In(tz)), t.In(engine.TZLocation)
 }
 
 func (engine *Engine) formatColTime(col *core.Column, t time.Time) (v interface{}) {
@@ -1573,4 +1577,11 @@ func (engine *Engine) CondDeleted(colName string) builder.Cond {
 		return builder.IsNull{colName}
 	}
 	return builder.IsNull{colName}.Or(builder.Eq{colName: zeroTime1})
+}
+
+// BufferSize sets buffer size for iterate
+func (engine *Engine) BufferSize(size int) *Session {
+	session := engine.NewSession()
+	session.isAutoClose = true
+	return session.BufferSize(size)
 }

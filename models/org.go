@@ -10,6 +10,8 @@ import (
 	"os"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
+
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
@@ -21,13 +23,13 @@ var (
 )
 
 // IsOwnedBy returns true if given user is in the owner team.
-func (org *User) IsOwnedBy(uid int64) bool {
+func (org *User) IsOwnedBy(uid int64) (bool, error) {
 	return IsOrganizationOwner(org.ID, uid)
 }
 
 // IsOrgMember returns true if given user is member of organization.
-func (org *User) IsOrgMember(uid int64) bool {
-	return org.IsOrganization() && IsOrganizationMember(org.ID, uid)
+func (org *User) IsOrgMember(uid int64) (bool, error) {
+	return IsOrganizationMember(org.ID, uid)
 }
 
 func (org *User) getTeam(e Engine, name string) (*Team, error) {
@@ -139,10 +141,8 @@ func CreateOrganization(org, owner *User) (err error) {
 
 	// Add initial creator to organization and owner team.
 	if _, err = sess.Insert(&OrgUser{
-		UID:      owner.ID,
-		OrgID:    org.ID,
-		IsOwner:  true,
-		NumTeams: 1,
+		UID:   owner.ID,
+		OrgID: org.ID,
 	}); err != nil {
 		return fmt.Errorf("insert org-user relation: %v", err)
 	}
@@ -201,23 +201,6 @@ func CountOrganizations() int64 {
 	return count
 }
 
-// Organizations returns number of organizations in given page.
-func Organizations(opts *SearchUserOptions) ([]*User, error) {
-	orgs := make([]*User, 0, opts.PageSize)
-
-	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = "name ASC"
-	}
-
-	sess := x.
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		Where("type=1")
-
-	return orgs, sess.
-		OrderBy(opts.OrderBy).
-		Find(&orgs)
-}
-
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(org *User) (err error) {
 	sess := x.NewSession()
@@ -259,7 +242,7 @@ func deleteOrg(e *xorm.Session, u *User) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	if _, err = e.Id(u.ID).Delete(new(User)); err != nil {
+	if _, err = e.ID(u.ID).Delete(new(User)); err != nil {
 		return fmt.Errorf("Delete: %v", err)
 	}
 
@@ -297,37 +280,44 @@ type OrgUser struct {
 	UID      int64 `xorm:"INDEX UNIQUE(s)"`
 	OrgID    int64 `xorm:"INDEX UNIQUE(s)"`
 	IsPublic bool  `xorm:"INDEX"`
-	IsOwner  bool
-	NumTeams int
+}
+
+func isOrganizationOwner(e Engine, orgID, uid int64) (bool, error) {
+	ownerTeam := &Team{
+		OrgID: orgID,
+		Name:  ownerTeamName,
+	}
+	if has, err := e.Get(ownerTeam); err != nil {
+		return false, err
+	} else if !has {
+		log.Error(4, "Organization does not have owner team: %d", orgID)
+		return false, nil
+	}
+	return isTeamMember(e, orgID, ownerTeam.ID, uid)
 }
 
 // IsOrganizationOwner returns true if given user is in the owner team.
-func IsOrganizationOwner(orgID, uid int64) bool {
-	has, _ := x.
-		Where("is_owner=?", true).
-		And("uid=?", uid).
-		And("org_id=?", orgID).
-		Get(new(OrgUser))
-	return has
+func IsOrganizationOwner(orgID, uid int64) (bool, error) {
+	return isOrganizationOwner(x, orgID, uid)
 }
 
 // IsOrganizationMember returns true if given user is member of organization.
-func IsOrganizationMember(orgID, uid int64) bool {
-	has, _ := x.
+func IsOrganizationMember(orgID, uid int64) (bool, error) {
+	return x.
 		Where("uid=?", uid).
 		And("org_id=?", orgID).
-		Get(new(OrgUser))
-	return has
+		Table("org_user").
+		Exist()
 }
 
 // IsPublicMembership returns true if given user public his/her membership.
-func IsPublicMembership(orgID, uid int64) bool {
-	has, _ := x.
+func IsPublicMembership(orgID, uid int64) (bool, error) {
+	return x.
 		Where("uid=?", uid).
 		And("org_id=?", orgID).
 		And("is_public=?", true).
-		Get(new(OrgUser))
-	return has
+		Table("org_user").
+		Exist()
 }
 
 func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*User, error) {
@@ -353,9 +343,10 @@ func GetOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
 func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	return orgs, sess.
-		Where("`org_user`.uid=?", userID).
-		And("`org_user`.is_owner=?", true).
-		Join("INNER", "`org_user`", "`org_user`.org_id=`user`.id").
+		Join("INNER", "`team_user`", "`team_user`.org_id=`user`.id").
+		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
+		Where("`team_user`.uid=?", userID).
+		And("`team`.authorize=?", AccessModeOwner).
 		Asc("`user`.name").
 		Find(&orgs)
 }
@@ -412,14 +403,15 @@ func ChangeOrgUserStatus(orgID, uid int64, public bool) error {
 	}
 
 	ou.IsPublic = public
-	_, err = x.Id(ou.ID).AllCols().Update(ou)
+	_, err = x.ID(ou.ID).Cols("is_public").Update(ou)
 	return err
 }
 
 // AddOrgUser adds new user to given organization.
 func AddOrgUser(orgID, uid int64) error {
-	if IsOrganizationMember(orgID, uid) {
-		return nil
+	isAlreadyMember, err := IsOrganizationMember(orgID, uid)
+	if err != nil || isAlreadyMember {
+		return err
 	}
 
 	sess := x.NewSession()
@@ -464,13 +456,20 @@ func RemoveOrgUser(orgID, userID int64) error {
 	}
 
 	// Check if the user to delete is the last member in owner team.
-	if IsOrganizationOwner(orgID, userID) {
+	if isOwner, err := IsOrganizationOwner(orgID, userID); err != nil {
+		return err
+	} else if isOwner {
 		t, err := org.GetOwnerTeam()
 		if err != nil {
 			return err
 		}
 		if t.NumMembers == 1 {
-			return ErrLastOrgOwner{UID: userID}
+			if err := t.GetMembers(); err != nil {
+				return err
+			}
+			if t.Members[0].ID == userID {
+				return ErrLastOrgOwner{UID: userID}
+			}
 		}
 	}
 
@@ -480,7 +479,7 @@ func RemoveOrgUser(orgID, userID int64) error {
 		return err
 	}
 
-	if _, err := sess.Id(ou.ID).Delete(ou); err != nil {
+	if _, err := sess.ID(ou.ID).Delete(ou); err != nil {
 		return err
 	} else if _, err = sess.Exec("UPDATE `user` SET num_members=num_members-1 WHERE id=?", orgID); err != nil {
 		return err

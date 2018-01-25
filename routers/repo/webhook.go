@@ -33,11 +33,11 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.hooks")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["BaseLink"] = ctx.Repo.RepoLink
-	ctx.Data["Description"] = ctx.Tr("repo.settings.hooks_desc", "https://godoc.org/code.gitea.io/sdk/gitea")
+	ctx.Data["Description"] = ctx.Tr("repo.settings.hooks_desc", "https://docs.gitea.io/en-us/webhooks/")
 
 	ws, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.Handle(500, "GetWebhooksByRepoID", err)
+		ctx.ServerError("GetWebhooksByRepoID", err)
 		return
 	}
 	ctx.Data["Webhooks"] = ws
@@ -76,7 +76,7 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 func checkHookType(ctx *context.Context) string {
 	hookType := strings.ToLower(ctx.Params(":type"))
 	if !com.IsSliceContainsStr(setting.Webhook.Types, hookType) {
-		ctx.Handle(404, "checkHookType", nil)
+		ctx.NotFound("checkHookType", nil)
 		return ""
 	}
 	return hookType
@@ -91,7 +91,7 @@ func WebhooksNew(ctx *context.Context) {
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
-		ctx.Handle(500, "getOrgRepoCtx", err)
+		ctx.ServerError("getOrgRepoCtx", err)
 		return
 	}
 
@@ -136,7 +136,7 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
-		ctx.Handle(500, "getOrgRepoCtx", err)
+		ctx.ServerError("getOrgRepoCtx", err)
 		return
 	}
 	ctx.Data["BaseLink"] = orCtx.Link
@@ -162,10 +162,10 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 		OrgID:        orCtx.OrgID,
 	}
 	if err := w.UpdateEvent(); err != nil {
-		ctx.Handle(500, "UpdateEvent", err)
+		ctx.ServerError("UpdateEvent", err)
 		return
 	} else if err := models.CreateWebhook(w); err != nil {
-		ctx.Handle(500, "CreateWebhook", err)
+		ctx.ServerError("CreateWebhook", err)
 		return
 	}
 
@@ -174,7 +174,7 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 }
 
 // GogsHooksNewPost response for creating webhook
-func GogsHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
+func GogsHooksNewPost(ctx *context.Context, form auth.NewGogshookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
@@ -183,7 +183,7 @@ func GogsHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
-		ctx.Handle(500, "getOrgRepoCtx", err)
+		ctx.ServerError("getOrgRepoCtx", err)
 		return
 	}
 	ctx.Data["BaseLink"] = orCtx.Link
@@ -209,10 +209,10 @@ func GogsHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 		OrgID:        orCtx.OrgID,
 	}
 	if err := w.UpdateEvent(); err != nil {
-		ctx.Handle(500, "UpdateEvent", err)
+		ctx.ServerError("UpdateEvent", err)
 		return
 	} else if err := models.CreateWebhook(w); err != nil {
-		ctx.Handle(500, "CreateWebhook", err)
+		ctx.ServerError("CreateWebhook", err)
 		return
 	}
 
@@ -229,7 +229,7 @@ func DiscordHooksNewPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
-		ctx.Handle(500, "getOrgRepoCtx", err)
+		ctx.ServerError("getOrgRepoCtx", err)
 		return
 	}
 
@@ -243,7 +243,7 @@ func DiscordHooksNewPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 		IconURL:  form.IconURL,
 	})
 	if err != nil {
-		ctx.Handle(500, "Marshal", err)
+		ctx.ServerError("Marshal", err)
 		return
 	}
 
@@ -258,10 +258,50 @@ func DiscordHooksNewPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 		OrgID:        orCtx.OrgID,
 	}
 	if err := w.UpdateEvent(); err != nil {
-		ctx.Handle(500, "UpdateEvent", err)
+		ctx.ServerError("UpdateEvent", err)
 		return
 	} else if err := models.CreateWebhook(w); err != nil {
-		ctx.Handle(500, "CreateWebhook", err)
+		ctx.ServerError("CreateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
+	ctx.Redirect(orCtx.Link + "/settings/hooks")
+}
+
+// DingtalkHooksNewPost response for creating dingtalk hook
+func DingtalkHooksNewPost(ctx *context.Context, form auth.NewDingtalkHookForm) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksNew"] = true
+	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+
+	orCtx, err := getOrgRepoCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getOrgRepoCtx", err)
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	w := &models.Webhook{
+		RepoID:       orCtx.RepoID,
+		URL:          form.PayloadURL,
+		ContentType:  models.ContentTypeJSON,
+		HookEvent:    ParseHookEvent(form.WebhookForm),
+		IsActive:     form.Active,
+		HookTaskType: models.DINGTALK,
+		Meta:         "",
+		OrgID:        orCtx.OrgID,
+	}
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := models.CreateWebhook(w); err != nil {
+		ctx.ServerError("CreateWebhook", err)
 		return
 	}
 
@@ -278,7 +318,7 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
-		ctx.Handle(500, "getOrgRepoCtx", err)
+		ctx.ServerError("getOrgRepoCtx", err)
 		return
 	}
 
@@ -294,7 +334,7 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 		Color:    form.Color,
 	})
 	if err != nil {
-		ctx.Handle(500, "Marshal", err)
+		ctx.ServerError("Marshal", err)
 		return
 	}
 
@@ -309,10 +349,10 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 		OrgID:        orCtx.OrgID,
 	}
 	if err := w.UpdateEvent(); err != nil {
-		ctx.Handle(500, "UpdateEvent", err)
+		ctx.ServerError("UpdateEvent", err)
 		return
 	} else if err := models.CreateWebhook(w); err != nil {
-		ctx.Handle(500, "CreateWebhook", err)
+		ctx.ServerError("CreateWebhook", err)
 		return
 	}
 
@@ -325,7 +365,7 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
-		ctx.Handle(500, "getOrgRepoCtx", err)
+		ctx.ServerError("getOrgRepoCtx", err)
 		return nil, nil
 	}
 	ctx.Data["BaseLink"] = orCtx.Link
@@ -338,29 +378,24 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 	}
 	if err != nil {
 		if models.IsErrWebhookNotExist(err) {
-			ctx.Handle(404, "GetWebhookByID", nil)
+			ctx.NotFound("GetWebhookByID", nil)
 		} else {
-			ctx.Handle(500, "GetWebhookByID", err)
+			ctx.ServerError("GetWebhookByID", err)
 		}
 		return nil, nil
 	}
 
+	ctx.Data["HookType"] = w.HookTaskType.Name()
 	switch w.HookTaskType {
 	case models.SLACK:
 		ctx.Data["SlackHook"] = w.GetSlackHook()
-		ctx.Data["HookType"] = "slack"
-	case models.GOGS:
-		ctx.Data["HookType"] = "gogs"
 	case models.DISCORD:
 		ctx.Data["DiscordHook"] = w.GetDiscordHook()
-		ctx.Data["HookType"] = "discord"
-	default:
-		ctx.Data["HookType"] = "gitea"
 	}
 
 	ctx.Data["History"], err = w.History(1)
 	if err != nil {
-		ctx.Handle(500, "History", err)
+		ctx.ServerError("History", err)
 	}
 	return orCtx, w
 }
@@ -408,10 +443,10 @@ func WebHooksEditPost(ctx *context.Context, form auth.NewWebhookForm) {
 	w.HookEvent = ParseHookEvent(form.WebhookForm)
 	w.IsActive = form.Active
 	if err := w.UpdateEvent(); err != nil {
-		ctx.Handle(500, "UpdateEvent", err)
+		ctx.ServerError("UpdateEvent", err)
 		return
 	} else if err := models.UpdateWebhook(w); err != nil {
-		ctx.Handle(500, "WebHooksEditPost", err)
+		ctx.ServerError("WebHooksEditPost", err)
 		return
 	}
 
@@ -420,7 +455,7 @@ func WebHooksEditPost(ctx *context.Context, form auth.NewWebhookForm) {
 }
 
 // GogsHooksEditPost response for editing gogs hook
-func GogsHooksEditPost(ctx *context.Context, form auth.NewWebhookForm) {
+func GogsHooksEditPost(ctx *context.Context, form auth.NewGogshookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.update_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true
@@ -447,10 +482,10 @@ func GogsHooksEditPost(ctx *context.Context, form auth.NewWebhookForm) {
 	w.HookEvent = ParseHookEvent(form.WebhookForm)
 	w.IsActive = form.Active
 	if err := w.UpdateEvent(); err != nil {
-		ctx.Handle(500, "UpdateEvent", err)
+		ctx.ServerError("UpdateEvent", err)
 		return
 	} else if err := models.UpdateWebhook(w); err != nil {
-		ctx.Handle(500, "GogsHooksEditPost", err)
+		ctx.ServerError("GogsHooksEditPost", err)
 		return
 	}
 
@@ -482,7 +517,7 @@ func SlackHooksEditPost(ctx *context.Context, form auth.NewSlackHookForm) {
 		Color:    form.Color,
 	})
 	if err != nil {
-		ctx.Handle(500, "Marshal", err)
+		ctx.ServerError("Marshal", err)
 		return
 	}
 
@@ -491,10 +526,10 @@ func SlackHooksEditPost(ctx *context.Context, form auth.NewSlackHookForm) {
 	w.HookEvent = ParseHookEvent(form.WebhookForm)
 	w.IsActive = form.Active
 	if err := w.UpdateEvent(); err != nil {
-		ctx.Handle(500, "UpdateEvent", err)
+		ctx.ServerError("UpdateEvent", err)
 		return
 	} else if err := models.UpdateWebhook(w); err != nil {
-		ctx.Handle(500, "UpdateWebhook", err)
+		ctx.ServerError("UpdateWebhook", err)
 		return
 	}
 
@@ -524,7 +559,7 @@ func DiscordHooksEditPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 		IconURL:  form.IconURL,
 	})
 	if err != nil {
-		ctx.Handle(500, "Marshal", err)
+		ctx.ServerError("Marshal", err)
 		return
 	}
 
@@ -533,10 +568,42 @@ func DiscordHooksEditPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 	w.HookEvent = ParseHookEvent(form.WebhookForm)
 	w.IsActive = form.Active
 	if err := w.UpdateEvent(); err != nil {
-		ctx.Handle(500, "UpdateEvent", err)
+		ctx.ServerError("UpdateEvent", err)
 		return
 	} else if err := models.UpdateWebhook(w); err != nil {
-		ctx.Handle(500, "UpdateWebhook", err)
+		ctx.ServerError("UpdateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
+	ctx.Redirect(fmt.Sprintf("%s/settings/hooks/%d", orCtx.Link, w.ID))
+}
+
+// DingtalkHooksEditPost response for editing discord hook
+func DingtalkHooksEditPost(ctx *context.Context, form auth.NewDingtalkHookForm) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksEdit"] = true
+
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() {
+		return
+	}
+	ctx.Data["Webhook"] = w
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	w.URL = form.PayloadURL
+	w.HookEvent = ParseHookEvent(form.WebhookForm)
+	w.IsActive = form.Active
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := models.UpdateWebhook(w); err != nil {
+		ctx.ServerError("UpdateWebhook", err)
 		return
 	}
 

@@ -10,12 +10,11 @@ import (
 	"mime/multipart"
 	"os"
 	"path"
-	"time"
 
-	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -26,27 +25,14 @@ type Attachment struct {
 	ReleaseID     int64  `xorm:"INDEX"`
 	CommentID     int64
 	Name          string
-	DownloadCount int64     `xorm:"DEFAULT 0"`
-	Created       time.Time `xorm:"-"`
-	CreatedUnix   int64     `xorm:"created"`
-}
-
-// AfterSet is invoked from XORM after setting the value of a field of
-// this object.
-func (a *Attachment) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		a.Created = time.Unix(a.CreatedUnix, 0).Local()
-	}
+	DownloadCount int64          `xorm:"DEFAULT 0"`
+	CreatedUnix   util.TimeStamp `xorm:"created"`
 }
 
 // IncreaseDownloadCount is update download count + 1
 func (a *Attachment) IncreaseDownloadCount() error {
-	sess := x.NewSession()
-	defer sess.Close()
-
 	// Update download count.
-	if _, err := sess.Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
+	if _, err := x.Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
 		return fmt.Errorf("increase attachment count: %v", err)
 	}
 
@@ -133,6 +119,10 @@ func GetAttachmentsByIssueID(issueID int64) ([]*Attachment, error) {
 
 // GetAttachmentsByCommentID returns all attachments if comment by given ID.
 func GetAttachmentsByCommentID(commentID int64) ([]*Attachment, error) {
+	return getAttachmentsByCommentID(x, commentID)
+}
+
+func getAttachmentsByCommentID(e Engine, commentID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, x.Where("comment_id=?", commentID).Find(&attachments)
 }
@@ -145,19 +135,28 @@ func DeleteAttachment(a *Attachment, remove bool) error {
 
 // DeleteAttachments deletes the given attachments and optionally the associated files.
 func DeleteAttachments(attachments []*Attachment, remove bool) (int, error) {
-	for i, a := range attachments {
-		if remove {
+	if len(attachments) == 0 {
+		return 0, nil
+	}
+
+	var ids = make([]int64, 0, len(attachments))
+	for _, a := range attachments {
+		ids = append(ids, a.ID)
+	}
+
+	cnt, err := x.In("id", ids).NoAutoCondition().Delete(attachments[0])
+	if err != nil {
+		return 0, err
+	}
+
+	if remove {
+		for i, a := range attachments {
 			if err := os.Remove(a.LocalPath()); err != nil {
 				return i, err
 			}
 		}
-
-		if _, err := x.Delete(a); err != nil {
-			return i, err
-		}
 	}
-
-	return len(attachments), nil
+	return int(cnt), nil
 }
 
 // DeleteAttachmentsByIssue deletes all attachments associated with the given issue.

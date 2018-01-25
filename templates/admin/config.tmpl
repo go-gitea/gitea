@@ -99,7 +99,7 @@
 				<dt>{{.i18n.Tr "admin.config.db_user"}}</dt>
 				<dd>{{if .DbCfg.User}}{{.DbCfg.User}}{{else}}-{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.db_ssl_mode"}}</dt>
-				<dd><i class="fa fa{{if .DbCfg.SSLMode}}-check{{end}}-square-o"></i> {{.i18n.Tr "admin.config.db_ssl_mode_helper"}}</dd>
+				<dd>{{if .DbCfg.SSLMode}}{{.DbCfg.SSLMode}}{{else}}-{{end}} {{.i18n.Tr "admin.config.db_ssl_mode_helper"}}</dd>
 				<dt>{{.i18n.Tr "admin.config.db_path"}}</dt>
 				<dd>{{if .DbCfg.Path}}{{.DbCfg.Path}}{{else}}-{{end}} {{.i18n.Tr "admin.config.db_path_helper"}}</dd>
 			</dl>
@@ -170,10 +170,19 @@
 				{{if .MailerEnabled}}
 					<dt>{{.i18n.Tr "admin.config.mailer_name"}}</dt>
 					<dd>{{.Mailer.Name}}</dd>
-					<dt>{{.i18n.Tr "admin.config.mailer_disable_helo"}}</dt>
-					<dd><i class="fa fa{{if .Mailer.DisableHelo}}-check{{end}}-square-o"></i></dd>
-					<dt>{{.i18n.Tr "admin.config.mailer_host"}}</dt>
-					<dd>{{.Mailer.Host}}</dd>
+					{{if not .Mailer.UseSendmail}}
+						<dt>{{.i18n.Tr "admin.config.mailer_disable_helo"}}</dt>
+						<dd><i class="fa fa{{if .Mailer.DisableHelo}}-check{{end}}-square-o"></i></dd>
+						<dt>{{.i18n.Tr "admin.config.mailer_host"}}</dt>
+						<dd>{{.Mailer.Host}}</dd>
+					{{else}}
+						<dt>{{.i18n.Tr "admin.config.mailer_use_sendmail"}}</dt>
+						<dd><i class="fa fa-check-square-o"></i></dd>
+						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_path"}}</dt>
+						<dd>{{.Mailer.SendmailPath}}</dd>
+						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_args"}}</dt>
+						<dd>{{.Mailer.SendmailArgs}}</dd>
+					{{end}}
 					<dt>{{.i18n.Tr "admin.config.mailer_user"}}</dt>
 					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd><br>
 					<form class="ui form" action="{{AppSubUrl}}/admin/config/test_mail" method="post">
@@ -255,8 +264,6 @@
 				<dd>{{.Git.MaxGitDiffFiles}}</dd>
 				<dt>{{.i18n.Tr "admin.config.git_gc_args"}}</dt>
 				<dd><code>{{.Git.GCArgs}}</code></dd>
-				<dt>{{.i18n.Tr "admin.config.git_max_diff_lines"}}</dt>
-				<dd>{{.Git.MaxGitDiffLines}}</dd>
 				<div class="ui divider"></div>
 				<dt>{{.i18n.Tr "admin.config.git_migrate_timeout"}}</dt>
 				<dd>{{.Git.Timeout.Migrate}} {{.i18n.Tr "tool.raw_seconds"}}</dd>

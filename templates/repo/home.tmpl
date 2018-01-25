@@ -3,14 +3,31 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<p id="repo-desc">
-			{{if .Repository.DescriptionHTML}}<span class="description has-emoji">{{.Repository.DescriptionHTML}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
-			<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
-		</p>
-		<div class="ui secondary menu">
-			{{if .PullRequestCtx.Allowed}}
+		<div class="ui repo-description">
+			<div id="repo-desc">
+				{{if .Repository.DescriptionHTML}}<span class="description has-emoji">{{.Repository.DescriptionHTML}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
+				<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
+			</div>
+			{{if .RepoSearchEnabled}}
+				<div class="ui repo-search">
+					<form class="ui form" action="{{.RepoLink}}/search" method="get">
+						<div class="field">
+							<div class="ui action input">
+								<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
+								<button class="ui icon button" type="submit">
+									<i class="search icon"></i>
+								</button>
+							</div>
+						</div>
+					</form>
+				</div>
+			{{end}}
+		</div>
+		{{template "repo/sub_menu" .}}
+		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
+			{{if and .PullRequestCtx.Allowed .IsViewBranch}}
 				<div class="fitted item">
-					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch}}...{{if .SignedUser.HasForkedRepo .BaseRepo.ID }}{{.SignedUser.Name}}:{{end}}{{.BranchName}}">
+					<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch}}...{{.Repository.Owner.Name}}:{{.BranchName}}">
 						<button class="ui green tiny compact button"><i class="octicon octicon-git-compare"></i></button>
 					</a>
 				</div>
@@ -18,10 +35,10 @@
 			{{template "repo/branch_dropdown" .}}
 			{{ $n := len .TreeNames}}
 			{{ $l := Subtract $n 1}}
-			<div class="fitted item"><span class="ui breadcrumb repo-path"><a class="section" href="{{.RepoLink}}/src/{{EscapePound .BranchName}}">{{EllipsisString .Repository.Name 30}}</a>{{range $i, $v := .TreeNames}}<span class="divider">/</span>{{if eq $i $l}}<span class="active section">{{EllipsisString $v 30}}</span>{{else}}{{ $p := index $.Paths $i}}<span class="section"><a href="{{EscapePound $.BranchLink}}/{{EscapePound $p}}">{{EllipsisString $v 30}}</a></span>{{end}}{{end}}</span></div>
-			<div class="right fitted item">
+			<div class="fitted item"><span class="ui breadcrumb repo-path"><a class="section" href="{{.RepoLink}}/src/{{EscapePound .BranchNameSubURL}}">{{EllipsisString .Repository.Name 30}}</a>{{range $i, $v := .TreeNames}}<span class="divider">/</span>{{if eq $i $l}}<span class="active section">{{EllipsisString $v 30}}</span>{{else}}{{ $p := index $.Paths $i}}<span class="section"><a href="{{EscapePound $.BranchLink}}/{{EscapePound $p}}">{{EllipsisString $v 30}}</a></span>{{end}}{{end}}</span></div>
+			<div class="right fitted item" id="file-buttons">
 				{{if .Repository.CanEnableEditor}}
-					<div id="file-buttons" class="ui tiny blue buttons">
+					<div class="ui tiny blue buttons">
 						{{if .CanAddFile}}
 							<a href="{{.RepoLink}}/_new/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}" class="ui button">
 								{{.i18n.Tr "repo.editor.new_file"}}
@@ -34,6 +51,9 @@
 						{{end}}
 					</div>
 				{{end}}
+
+			</div>
+			<div class="fitted item">
 
 				<!-- Only show clone panel in repository home page -->
 				{{if eq $n 0}}

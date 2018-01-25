@@ -15,18 +15,23 @@ import (
 
 // Markdown render markdown document to HTML
 func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
-	// swagger:route POST /markdown miscellaneous renderMarkdown
-	//
-	//     Consumes:
-	//     - application/json
-	//
-	//     Produces:
+	// swagger:operation POST /markdown miscellaneous renderMarkdown
+	// ---
+	// summary: Render a markdown document as HTML
+	// parameters:
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/MarkdownOption"
+	// consumes:
+	// - application/json
+	// produces:
 	//     - text/html
-	//
-	//     Responses:
-	//       200: MarkdownRender
-	//       422: validationError
-
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/MarkdownRender"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	if ctx.HasAPIError() {
 		ctx.Error(422, "", ctx.GetErrMsg())
 		return
@@ -53,17 +58,22 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 
 // MarkdownRaw render raw markdown HTML
 func MarkdownRaw(ctx *context.APIContext) {
-	// swagger:route POST /markdown/raw miscellaneous renderMarkdownRaw
-	//
-	//     Consumes:
+	// swagger:operation POST /markdown/raw miscellaneous renderMarkdownRaw
+	// ---
+	// summary: Render raw markdown as HTML
+	// parameters:
+	// - name: body
+	//   in: body
+	//   type: string
+	// consumes:
 	//     - text/plain
-	//
-	//     Produces:
+	// produces:
 	//     - text/html
-	//
-	//     Responses:
-	//       200: MarkdownRender
-	//       422: validationError
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/MarkdownRender"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	body, err := ctx.Req.Body().Bytes()
 	if err != nil {
 		ctx.Error(422, "", err)

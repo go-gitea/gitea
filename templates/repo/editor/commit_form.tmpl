@@ -14,7 +14,8 @@
 					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" {{if eq .commit_choice "direct"}}checked{{end}}>
 					<label>
 						<i class="octicon octicon-git-commit" height="16" width="14"></i>
-						{{.i18n.Tr "repo.editor.commit_directly_to_this_branch" .BranchName | Safe}}
+						{{$branchName := .BranchName | Str2html}}
+						{{.i18n.Tr "repo.editor.commit_directly_to_this_branch" $branchName | Safe}}
 					</label>
 				</div>
 			</div>

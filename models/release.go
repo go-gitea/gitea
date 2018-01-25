@@ -8,14 +8,13 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 	"github.com/go-xorm/builder"
-	"github.com/go-xorm/xorm"
 )
 
 // Release represents a release of repository.
@@ -31,31 +30,13 @@ type Release struct {
 	Title            string
 	Sha1             string `xorm:"VARCHAR(40)"`
 	NumCommits       int64
-	NumCommitsBehind int64  `xorm:"-"`
-	Note             string `xorm:"TEXT"`
-	IsDraft          bool   `xorm:"NOT NULL DEFAULT false"`
-	IsPrerelease     bool   `xorm:"NOT NULL DEFAULT false"`
-	IsTag            bool   `xorm:"NOT NULL DEFAULT false"`
-
-	Attachments []*Attachment `xorm:"-"`
-
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX"`
-}
-
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (r *Release) BeforeInsert() {
-	if r.CreatedUnix == 0 {
-		r.CreatedUnix = time.Now().Unix()
-	}
-}
-
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (r *Release) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		r.Created = time.Unix(r.CreatedUnix, 0).Local()
-	}
+	NumCommitsBehind int64          `xorm:"-"`
+	Note             string         `xorm:"TEXT"`
+	IsDraft          bool           `xorm:"NOT NULL DEFAULT false"`
+	IsPrerelease     bool           `xorm:"NOT NULL DEFAULT false"`
+	IsTag            bool           `xorm:"NOT NULL DEFAULT false"`
+	Attachments      []*Attachment  `xorm:"-"`
+	CreatedUnix      util.TimeStamp `xorm:"created INDEX"`
 }
 
 func (r *Release) loadAttributes(e Engine) error {
@@ -108,8 +89,8 @@ func (r *Release) APIFormat() *api.Release {
 		ZipURL:       r.ZipURL(),
 		IsDraft:      r.IsDraft,
 		IsPrerelease: r.IsPrerelease,
-		CreatedAt:    r.Created,
-		PublishedAt:  r.Created,
+		CreatedAt:    r.CreatedUnix.AsTime(),
+		PublishedAt:  r.CreatedUnix.AsTime(),
 		Publisher:    r.Publisher.APIFormat(),
 	}
 }
@@ -148,7 +129,7 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 		}
 
 		rel.Sha1 = commit.ID.String()
-		rel.CreatedUnix = commit.Author.When.Unix()
+		rel.CreatedUnix = util.TimeStamp(commit.Author.When.Unix())
 		rel.NumCommits, err = commit.CommitsCount()
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
@@ -174,7 +155,7 @@ func addReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error
 	for i := range attachments {
 		attachments[i].ReleaseID = releaseID
 		// No assign value could be 0, so ignore AllCols().
-		if _, err = x.Id(attachments[i].ID).Update(attachments[i]); err != nil {
+		if _, err = x.ID(attachments[i].ID).Update(attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
 		}
 	}
@@ -224,7 +205,7 @@ func GetRelease(repoID int64, tagName string) (*Release, error) {
 func GetReleaseByID(id int64) (*Release, error) {
 	rel := new(Release)
 	has, err := x.
-		Id(id).
+		ID(id).
 		Get(rel)
 	if err != nil {
 		return nil, err
@@ -349,7 +330,7 @@ func (rs *releaseSorter) Less(i, j int) bool {
 	if diffNum != 0 {
 		return diffNum > 0
 	}
-	return rs.rels[i].Created.After(rs.rels[j].Created)
+	return rs.rels[i].CreatedUnix > rs.rels[j].CreatedUnix
 }
 
 func (rs *releaseSorter) Swap(i, j int) {
@@ -369,7 +350,7 @@ func UpdateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	_, err = x.Id(rel.ID).AllCols().Update(rel)
+	_, err = x.ID(rel.ID).AllCols().Update(rel)
 	if err != nil {
 		return err
 	}
@@ -406,7 +387,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 			return fmt.Errorf("git tag -d: %v - %s", err, stderr)
 		}
 
-		if _, err = x.Id(rel.ID).Delete(new(Release)); err != nil {
+		if _, err = x.ID(rel.ID).Delete(new(Release)); err != nil {
 			return fmt.Errorf("Delete: %v", err)
 		}
 	} else {
@@ -416,7 +397,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		rel.Title = ""
 		rel.Note = ""
 
-		if _, err = x.Id(rel.ID).AllCols().Update(rel); err != nil {
+		if _, err = x.ID(rel.ID).AllCols().Update(rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
 		}
 	}

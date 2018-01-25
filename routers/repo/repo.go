@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -30,14 +31,29 @@ const (
 // MustBeNotBare render when a repo is a bare git dir
 func MustBeNotBare(ctx *context.Context) {
 	if ctx.Repo.Repository.IsBare {
-		ctx.Handle(404, "MustBeNotBare", nil)
+		ctx.NotFound("MustBeNotBare", nil)
+	}
+}
+
+// MustBeEditable check that repo can be edited
+func MustBeEditable(ctx *context.Context) {
+	if !ctx.Repo.Repository.CanEnableEditor() || ctx.Repo.IsViewCommit {
+		ctx.NotFound("", nil)
+		return
+	}
+}
+
+// MustBeAbleToUpload check that repo can be uploaded to
+func MustBeAbleToUpload(ctx *context.Context) {
+	if !setting.Repository.Upload.Enabled {
+		ctx.NotFound("", nil)
 	}
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *models.User {
 	orgs, err := models.GetOwnedOrgsByUserIDDesc(ctx.User.ID, "updated_unix")
 	if err != nil {
-		ctx.Handle(500, "GetOwnedOrgsByUserIDDesc", err)
+		ctx.ServerError("GetOwnedOrgsByUserIDDesc", err)
 		return nil
 	}
 	ctx.Data["Orgs"] = orgs
@@ -53,16 +69,39 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 	}
 
 	if err != nil {
-		ctx.Handle(500, "GetUserByID", fmt.Errorf("[%d]: %v", uid, err))
+		ctx.ServerError("GetUserByID", fmt.Errorf("[%d]: %v", uid, err))
 		return nil
 	}
 
 	// Check ownership of organization.
-	if !org.IsOrganization() || !(ctx.User.IsAdmin || org.IsOwnedBy(ctx.User.ID)) {
+	if !org.IsOrganization() {
 		ctx.Error(403)
 		return nil
 	}
+	if !ctx.User.IsAdmin {
+		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("IsOwnedBy", err)
+			return nil
+		} else if !isOwner {
+			ctx.Error(403)
+			return nil
+		}
+	}
 	return org
+}
+
+func getRepoPrivate(ctx *context.Context) bool {
+	switch strings.ToLower(setting.Repository.DefaultPrivate) {
+	case setting.RepoCreatingLastUserVisibility:
+		return ctx.User.LastRepoVisibility
+	case setting.RepoCreatingPrivate:
+		return true
+	case setting.RepoCreatingPublic:
+		return false
+	default:
+		return ctx.User.LastRepoVisibility
+	}
 }
 
 // Create render creating repository page
@@ -78,7 +117,7 @@ func Create(ctx *context.Context) {
 	ctx.Data["Licenses"] = models.Licenses
 	ctx.Data["Readmes"] = models.Readmes
 	ctx.Data["readme"] = "Default"
-	ctx.Data["private"] = ctx.User.LastRepoVisibility
+	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 
 	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
@@ -104,7 +143,7 @@ func handleCreateError(ctx *context.Context, owner *models.User, err error, name
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tpl, form)
 	default:
-		ctx.Handle(500, name, err)
+		ctx.ServerError(name, err)
 	}
 }
 
@@ -154,7 +193,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 // Migrate render migration of repository page
 func Migrate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
-	ctx.Data["private"] = ctx.User.LastRepoVisibility
+	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["mirror"] = ctx.Query("mirror") == "1"
 	ctx.Data["LFSActive"] = setting.LFS.StartServer
@@ -196,10 +235,10 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 			case addrErr.IsInvalidPath:
 				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tplMigrate, &form)
 			default:
-				ctx.Handle(500, "Unknown error", err)
+				ctx.ServerError("Unknown error", err)
 			}
 		} else {
-			ctx.Handle(500, "ParseRemoteAddr", err)
+			ctx.ServerError("ParseRemoteAddr", err)
 		}
 		return
 	}
@@ -217,6 +256,9 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
+	// remoteAddr may contain credentials, so we sanitize it
+	err = util.URLSanitizedError(err, remoteAddr)
+
 	if repo != nil {
 		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 			log.Error(4, "DeleteRepository: %v", errDelete)
@@ -226,11 +268,11 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	if strings.Contains(err.Error(), "Authentication failed") ||
 		strings.Contains(err.Error(), "could not read Username") {
 		ctx.Data["Err_Auth"] = true
-		ctx.RenderWithErr(ctx.Tr("form.auth_failed", models.HandleCloneUserCredentials(err.Error(), true)), tplMigrate, &form)
+		ctx.RenderWithErr(ctx.Tr("form.auth_failed", err.Error()), tplMigrate, &form)
 		return
 	} else if strings.Contains(err.Error(), "fatal:") {
 		ctx.Data["Err_CloneAddr"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.migrate.failed", models.HandleCloneUserCredentials(err.Error(), true)), tplMigrate, &form)
+		ctx.RenderWithErr(ctx.Tr("repo.migrate.failed", err.Error()), tplMigrate, &form)
 		return
 	}
 
@@ -261,7 +303,7 @@ func Action(ctx *context.Context) {
 	}
 
 	if err != nil {
-		ctx.Handle(500, fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
 		return
 	}
 
@@ -300,7 +342,7 @@ func Download(ctx *context.Context) {
 
 	if !com.IsDir(archivePath) {
 		if err := os.MkdirAll(archivePath, os.ModePerm); err != nil {
-			ctx.Handle(500, "Download -> os.MkdirAll(archivePath)", err)
+			ctx.ServerError("Download -> os.MkdirAll(archivePath)", err)
 			return
 		}
 	}
@@ -314,30 +356,30 @@ func Download(ctx *context.Context) {
 	if gitRepo.IsBranchExist(refName) {
 		commit, err = gitRepo.GetBranchCommit(refName)
 		if err != nil {
-			ctx.Handle(500, "GetBranchCommit", err)
+			ctx.ServerError("GetBranchCommit", err)
 			return
 		}
 	} else if gitRepo.IsTagExist(refName) {
 		commit, err = gitRepo.GetTagCommit(refName)
 		if err != nil {
-			ctx.Handle(500, "GetTagCommit", err)
+			ctx.ServerError("GetTagCommit", err)
 			return
 		}
 	} else if len(refName) >= 4 && len(refName) <= 40 {
 		commit, err = gitRepo.GetCommit(refName)
 		if err != nil {
-			ctx.Handle(404, "GetCommit", nil)
+			ctx.NotFound("GetCommit", nil)
 			return
 		}
 	} else {
-		ctx.Handle(404, "Download", nil)
+		ctx.NotFound("Download", nil)
 		return
 	}
 
 	archivePath = path.Join(archivePath, base.ShortSha(commit.ID.String())+ext)
 	if !com.IsFile(archivePath) {
 		if err := commit.CreateArchive(archivePath, archiveType); err != nil {
-			ctx.Handle(500, "Download -> CreateArchive "+archivePath, err)
+			ctx.ServerError("Download -> CreateArchive "+archivePath, err)
 			return
 		}
 	}

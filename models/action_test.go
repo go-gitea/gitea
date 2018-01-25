@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"path"
 	"strings"
 	"testing"
@@ -76,7 +77,7 @@ func TestRenameRepoAction(t *testing.T) {
 	assert.NoError(t, RenameRepoAction(user, oldRepoName, repo))
 	AssertExistsAndLoadBean(t, actionBean)
 
-	_, err := x.Id(repo.ID).Cols("name", "lower_name").Update(repo)
+	_, err := x.ID(repo.ID).Cols("name", "lower_name").Update(repo)
 	assert.NoError(t, err)
 	CheckConsistencyFor(t, &Action{})
 }
@@ -146,12 +147,41 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 	pushCommits.Len = len(pushCommits.Commits)
 
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f",
+		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon",
 		pushCommits.AvatarLink("user2@example.com"))
 
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/19ade630b94e1e0535b3df7387434154",
+		"https://secure.gravatar.com/avatar/19ade630b94e1e0535b3df7387434154?d=identicon",
 		pushCommits.AvatarLink("nonexistent@example.com"))
+}
+
+func Test_getIssueFromRef(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	for _, test := range []struct {
+		Ref             string
+		ExpectedIssueID int64
+	}{
+		{"#2", 2},
+		{"reopen #2", 2},
+		{"user2/repo2#1", 4},
+		{"fixes user2/repo2#1", 4},
+	} {
+		issue, err := getIssueFromRef(repo, test.Ref)
+		assert.NoError(t, err)
+		if assert.NotNil(t, issue) {
+			assert.EqualValues(t, test.ExpectedIssueID, issue.ID)
+		}
+	}
+
+	for _, badRef := range []string{
+		"doesnotexist/doesnotexist#1",
+		fmt.Sprintf("#%d", NonexistentID),
+	} {
+		issue, err := getIssueFromRef(repo, badRef)
+		assert.NoError(t, err)
+		assert.Nil(t, issue)
+	}
 }
 
 func TestUpdateIssuesCommit(t *testing.T) {
@@ -297,7 +327,7 @@ func TestCommitRepoAction(t *testing.T) {
 	}
 
 	for _, s := range samples {
-		prepareTestEnv(t)
+		PrepareTestEnv(t)
 
 		user := AssertExistsAndLoadBean(t, &User{ID: s.userID}).(*User)
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: s.repositoryID, OwnerID: user.ID}).(*Repository)
@@ -337,7 +367,7 @@ func TestTransferRepoAction(t *testing.T) {
 	assert.NoError(t, TransferRepoAction(user2, user2, repo))
 	AssertExistsAndLoadBean(t, actionBean)
 
-	_, err := x.Id(repo.ID).Cols("owner_id").Update(repo)
+	_, err := x.ID(repo.ID).Cols("owner_id").Update(repo)
 	assert.NoError(t, err)
 	CheckConsistencyFor(t, &Action{})
 }
@@ -395,7 +425,7 @@ func TestGetFeeds2(t *testing.T) {
 	// test with an organization user
 	assert.NoError(t, PrepareTestDatabase())
 	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	userID := AssertExistsAndLoadBean(t, &OrgUser{OrgID: org.ID, IsOwner: true}).(*OrgUser).UID
+	const userID = 2 // user2 is an owner of the organization
 
 	actions, err := GetFeeds(GetFeedsOptions{
 		RequestedUser:    org,

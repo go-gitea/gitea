@@ -13,8 +13,8 @@ import (
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/analysis/analyzer/custom"
 	"github.com/blevesearch/bleve/analysis/token/lowercase"
-	"github.com/blevesearch/bleve/analysis/token/unicodenorm"
 	"github.com/blevesearch/bleve/analysis/tokenizer/unicode"
+	"github.com/blevesearch/bleve/index/upsidedown"
 )
 
 // issueIndexer (thread-safe) index for searching issues
@@ -34,32 +34,34 @@ type IssueIndexerUpdate struct {
 	Data    *IssueIndexerData
 }
 
+func (update IssueIndexerUpdate) addToBatch(batch *bleve.Batch) error {
+	return batch.Index(indexerID(update.IssueID), update.Data)
+}
+
 const issueIndexerAnalyzer = "issueIndexer"
 
 // InitIssueIndexer initialize issue indexer
 func InitIssueIndexer(populateIndexer func() error) {
 	_, err := os.Stat(setting.Indexer.IssuePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			if err = createIssueIndexer(); err != nil {
-				log.Fatal(4, "CreateIssuesIndexer: %v", err)
-			}
-			if err = populateIndexer(); err != nil {
-				log.Fatal(4, "PopulateIssuesIndex: %v", err)
-			}
-		} else {
-			log.Fatal(4, "InitIssuesIndexer: %v", err)
-		}
-	} else {
+	if err != nil && !os.IsNotExist(err) {
+		log.Fatal(4, "InitIssueIndexer: %v", err)
+	} else if err == nil {
 		issueIndexer, err = bleve.Open(setting.Indexer.IssuePath)
-		if err != nil {
-			log.Error(4, "Unable to open issues indexer (%s)."+
-				" If the error is due to incompatible versions, try deleting the indexer files;"+
-				" gitea will recreate them with the appropriate version the next time it runs."+
-				" Deleting the indexer files will not result in loss of data.",
-				setting.Indexer.IssuePath)
-			log.Fatal(4, "InitIssuesIndexer, open index: %v", err)
+		if err == nil {
+			return
+		} else if err != upsidedown.IncompatibleVersion {
+			log.Fatal(4, "InitIssueIndexer, open index: %v", err)
 		}
+		log.Warn("Incompatible bleve version, deleting and recreating issue indexer")
+		if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
+			log.Fatal(4, "InitIssueIndexer: remove index, %v", err)
+		}
+	}
+	if err = createIssueIndexer(); err != nil {
+		log.Fatal(4, "InitIssuesIndexer: create index, %v", err)
+	}
+	if err = populateIndexer(); err != nil {
+		log.Fatal(4, "InitIssueIndexer: populate index, %v", err)
 	}
 }
 
@@ -75,17 +77,13 @@ func createIssueIndexer() error {
 	docMapping.AddFieldMappingsAt("Content", textFieldMapping)
 	docMapping.AddFieldMappingsAt("Comments", textFieldMapping)
 
-	const unicodeNormNFC = "unicodeNormNFC"
-	if err := mapping.AddCustomTokenFilter(unicodeNormNFC, map[string]interface{}{
-		"type": unicodenorm.Name,
-		"form": unicodenorm.NFC,
-	}); err != nil {
+	if err := addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return err
 	} else if err = mapping.AddCustomAnalyzer(issueIndexerAnalyzer, map[string]interface{}{
 		"type":          custom.Name,
 		"char_filters":  []string{},
 		"tokenizer":     unicode.Name,
-		"token_filters": []string{unicodeNormNFC, lowercase.Name},
+		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
 	}); err != nil {
 		return err
 	}
@@ -98,21 +96,12 @@ func createIssueIndexer() error {
 	return err
 }
 
-// UpdateIssue update the issue indexer
-func UpdateIssue(update IssueIndexerUpdate) error {
-	return issueIndexer.Index(indexerID(update.IssueID), update.Data)
-}
-
-// BatchUpdateIssues perform a batch update of the issue indexer
-func BatchUpdateIssues(updates ...IssueIndexerUpdate) error {
-	batch := issueIndexer.NewBatch()
-	for _, update := range updates {
-		err := batch.Index(indexerID(update.IssueID), update.Data)
-		if err != nil {
-			return err
-		}
+// IssueIndexerBatch batch to add updates to
+func IssueIndexerBatch() *Batch {
+	return &Batch{
+		batch: issueIndexer.NewBatch(),
+		index: issueIndexer,
 	}
-	return issueIndexer.Batch(batch)
 }
 
 // SearchIssuesByKeyword searches for issues by given conditions.

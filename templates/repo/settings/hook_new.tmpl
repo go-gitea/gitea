@@ -15,6 +15,8 @@
 					<img class="img-13" src="{{AppSubUrl}}/img/slack.png">
 				{{else if eq .HookType "discord"}}
 					<img class="img-13" src="{{AppSubUrl}}/img/discord.png">
+				{{else if eq .HookType "dingtalk"}}
+					<img class="img-13" src="{{AppSubUrl}}/img/dingtalk.ico">
 				{{end}}
 			</div>
 		</h4>
@@ -23,6 +25,7 @@
 			{{template "repo/settings/hook_gogs" .}}
 			{{template "repo/settings/hook_slack" .}}
 			{{template "repo/settings/hook_discord" .}}
+			{{template "repo/settings/hook_dingtalk" .}}
 		</div>
 
 		{{template "repo/settings/hook_history" .}}

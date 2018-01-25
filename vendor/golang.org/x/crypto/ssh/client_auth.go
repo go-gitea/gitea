@@ -30,8 +30,10 @@ func (c *connection) clientAuthenticate(config *ClientConfig) error {
 	// then any untried methods suggested by the server.
 	tried := make(map[string]bool)
 	var lastMethods []string
+
+	sessionID := c.transport.getSessionID()
 	for auth := AuthMethod(new(noneAuth)); auth != nil; {
-		ok, methods, err := auth.auth(c.transport.getSessionID(), config.User, c.transport, config.Rand)
+		ok, methods, err := auth.auth(sessionID, config.User, c.transport, config.Rand)
 		if err != nil {
 			return err
 		}
@@ -177,31 +179,26 @@ func (cb publicKeyCallback) method() string {
 }
 
 func (cb publicKeyCallback) auth(session []byte, user string, c packetConn, rand io.Reader) (bool, []string, error) {
-	// Authentication is performed in two stages. The first stage sends an
-	// enquiry to test if each key is acceptable to the remote. The second
-	// stage attempts to authenticate with the valid keys obtained in the
-	// first stage.
+	// Authentication is performed by sending an enquiry to test if a key is
+	// acceptable to the remote. If the key is acceptable, the client will
+	// attempt to authenticate with the valid key.  If not the client will repeat
+	// the process with the remaining keys.
 
 	signers, err := cb()
 	if err != nil {
 		return false, nil, err
 	}
-	var validKeys []Signer
-	for _, signer := range signers {
-		if ok, err := validateKey(signer.PublicKey(), user, c); ok {
-			validKeys = append(validKeys, signer)
-		} else {
-			if err != nil {
-				return false, nil, err
-			}
-		}
-	}
-
-	// methods that may continue if this auth is not successful.
 	var methods []string
-	for _, signer := range validKeys {
-		pub := signer.PublicKey()
+	for _, signer := range signers {
+		ok, err := validateKey(signer.PublicKey(), user, c)
+		if err != nil {
+			return false, nil, err
+		}
+		if !ok {
+			continue
+		}
 
+		pub := signer.PublicKey()
 		pubKey := pub.Marshal()
 		sign, err := signer.Sign(rand, buildDataSignedForAuth(session, userAuthRequestMsg{
 			User:    user,
@@ -234,11 +231,27 @@ func (cb publicKeyCallback) auth(session []byte, user string, c packetConn, rand
 		if err != nil {
 			return false, nil, err
 		}
-		if success {
+
+		// If authentication succeeds or the list of available methods does not
+		// contain the "publickey" method, do not attempt to authenticate with any
+		// other keys.  According to RFC 4252 Section 7, the latter can occur when
+		// additional authentication methods are required.
+		if success || !containsMethod(methods, cb.method()) {
 			return success, methods, err
 		}
 	}
+
 	return false, methods, nil
+}
+
+func containsMethod(methods []string, method string) bool {
+	for _, m := range methods {
+		if m == method {
+			return true
+		}
+	}
+
+	return false
 }
 
 // validateKey validates the key provided is acceptable to the server.
@@ -270,7 +283,9 @@ func confirmKeyAck(key PublicKey, c packetConn) (bool, error) {
 		}
 		switch packet[0] {
 		case msgUserAuthBanner:
-			// TODO(gpaul): add callback to present the banner to the user
+			if err := handleBannerResponse(c, packet); err != nil {
+				return false, err
+			}
 		case msgUserAuthPubKeyOk:
 			var msg userAuthPubKeyOkMsg
 			if err := Unmarshal(packet, &msg); err != nil {
@@ -312,7 +327,9 @@ func handleAuthResponse(c packetConn) (bool, []string, error) {
 
 		switch packet[0] {
 		case msgUserAuthBanner:
-			// TODO: add callback to present the banner to the user
+			if err := handleBannerResponse(c, packet); err != nil {
+				return false, nil, err
+			}
 		case msgUserAuthFailure:
 			var msg userAuthFailureMsg
 			if err := Unmarshal(packet, &msg); err != nil {
@@ -327,6 +344,24 @@ func handleAuthResponse(c packetConn) (bool, []string, error) {
 	}
 }
 
+func handleBannerResponse(c packetConn, packet []byte) error {
+	var msg userAuthBannerMsg
+	if err := Unmarshal(packet, &msg); err != nil {
+		return err
+	}
+
+	transport, ok := c.(*handshakeTransport)
+	if !ok {
+		return nil
+	}
+
+	if transport.bannerCallback != nil {
+		return transport.bannerCallback(msg.Message)
+	}
+
+	return nil
+}
+
 // KeyboardInteractiveChallenge should print questions, optionally
 // disabling echoing (e.g. for passwords), and return all the answers.
 // Challenge may be called multiple times in a single session. After
@@ -336,7 +371,7 @@ func handleAuthResponse(c packetConn) (bool, []string, error) {
 // both CLI and GUI environments.
 type KeyboardInteractiveChallenge func(user, instruction string, questions []string, echos []bool) (answers []string, err error)
 
-// KeyboardInteractive returns a AuthMethod using a prompt/response
+// KeyboardInteractive returns an AuthMethod using a prompt/response
 // sequence controlled by the server.
 func KeyboardInteractive(challenge KeyboardInteractiveChallenge) AuthMethod {
 	return challenge
@@ -372,7 +407,9 @@ func (cb KeyboardInteractiveChallenge) auth(session []byte, user string, c packe
 		// like handleAuthResponse, but with less options.
 		switch packet[0] {
 		case msgUserAuthBanner:
-			// TODO: Print banners during userauth.
+			if err := handleBannerResponse(c, packet); err != nil {
+				return false, nil, err
+			}
 			continue
 		case msgUserAuthInfoRequest:
 			// OK

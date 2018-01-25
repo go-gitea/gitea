@@ -6,18 +6,18 @@ package models
 
 import (
 	"fmt"
-	"strings"
 	"time"
-
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-	"gopkg.in/ini.v1"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/util"
+
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/xorm"
+	"gopkg.in/ini.v1"
 )
 
 // MirrorQueue holds an UniqueQueue object of the mirror
@@ -31,10 +31,8 @@ type Mirror struct {
 	Interval    time.Duration
 	EnablePrune bool `xorm:"NOT NULL DEFAULT true"`
 
-	Updated        time.Time `xorm:"-"`
-	UpdatedUnix    int64     `xorm:"INDEX"`
-	NextUpdate     time.Time `xorm:"-"`
-	NextUpdateUnix int64     `xorm:"INDEX"`
+	UpdatedUnix    util.TimeStamp `xorm:"INDEX"`
+	NextUpdateUnix util.TimeStamp `xorm:"INDEX"`
 
 	address string `xorm:"-"`
 }
@@ -42,79 +40,64 @@ type Mirror struct {
 // BeforeInsert will be invoked by XORM before inserting a record
 func (m *Mirror) BeforeInsert() {
 	if m != nil {
-		m.UpdatedUnix = time.Now().Unix()
-		m.NextUpdateUnix = m.NextUpdate.Unix()
+		m.UpdatedUnix = util.TimeStampNow()
+		m.NextUpdateUnix = util.TimeStampNow()
 	}
 }
 
-// BeforeUpdate is invoked from XORM before updating this object.
-func (m *Mirror) BeforeUpdate() {
-	if m != nil {
-		m.UpdatedUnix = time.Now().Unix()
-		m.NextUpdateUnix = m.NextUpdate.Unix()
-	}
-}
-
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (m *Mirror) AfterSet(colName string, _ xorm.Cell) {
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (m *Mirror) AfterLoad(session *xorm.Session) {
 	if m == nil {
 		return
 	}
 
 	var err error
-	switch colName {
-	case "repo_id":
-		m.Repo, err = GetRepositoryByID(m.RepoID)
-		if err != nil {
-			log.Error(3, "GetRepositoryByID[%d]: %v", m.ID, err)
-		}
-	case "updated_unix":
-		m.Updated = time.Unix(m.UpdatedUnix, 0).Local()
-	case "next_update_unix":
-		m.NextUpdate = time.Unix(m.NextUpdateUnix, 0).Local()
+	m.Repo, err = getRepositoryByID(session, m.RepoID)
+	if err != nil {
+		log.Error(3, "getRepositoryByID[%d]: %v", m.ID, err)
 	}
 }
 
 // ScheduleNextUpdate calculates and sets next update time.
 func (m *Mirror) ScheduleNextUpdate() {
-	m.NextUpdate = time.Now().Add(m.Interval)
+	m.NextUpdateUnix = util.TimeStampNow().AddDuration(m.Interval)
+}
+
+func remoteAddress(repoPath string) (string, error) {
+	cfg, err := ini.Load(GitConfigPath(repoPath))
+	if err != nil {
+		return "", err
+	}
+	return cfg.Section("remote \"origin\"").Key("url").Value(), nil
 }
 
 func (m *Mirror) readAddress() {
 	if len(m.address) > 0 {
 		return
 	}
-
-	cfg, err := ini.Load(m.Repo.GitConfigPath())
+	var err error
+	m.address, err = remoteAddress(m.Repo.RepoPath())
 	if err != nil {
-		log.Error(4, "Load: %v", err)
-		return
+		log.Error(4, "remoteAddress: %v", err)
 	}
-	m.address = cfg.Section("remote \"origin\"").Key("url").Value()
 }
 
-// HandleCloneUserCredentials replaces user credentials from HTTP/HTTPS URL
-// with placeholder <credentials>.
-// It will fail for any other forms of clone addresses.
-func HandleCloneUserCredentials(url string, mosaics bool) string {
-	i := strings.Index(url, "@")
-	if i == -1 {
-		return url
+// sanitizeOutput sanitizes output of a command, replacing occurrences of the
+// repository's remote address with a sanitized version.
+func sanitizeOutput(output, repoPath string) (string, error) {
+	remoteAddr, err := remoteAddress(repoPath)
+	if err != nil {
+		// if we're unable to load the remote address, then we're unable to
+		// sanitize.
+		return "", err
 	}
-	start := strings.Index(url, "://")
-	if start == -1 {
-		return url
-	}
-	if mosaics {
-		return url[:start+3] + "<credentials>" + url[i:]
-	}
-	return url[:start+3] + url[i+1:]
+	return util.SanitizeMessage(output, remoteAddr), nil
 }
 
 // Address returns mirror address from Git repository config without credentials.
 func (m *Mirror) Address() string {
 	m.readAddress()
-	return HandleCloneUserCredentials(m.address, false)
+	return util.SanitizeURLCredentials(m.address, false)
 }
 
 // FullAddress returns mirror address from Git repository config.
@@ -149,7 +132,14 @@ func (m *Mirror) runSync() bool {
 	if _, stderr, err := process.GetManager().ExecDir(
 		timeout, repoPath, fmt.Sprintf("Mirror.runSync: %s", repoPath),
 		"git", gitArgs...); err != nil {
-		desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", repoPath, stderr)
+		// sanitize the output, since it may contain the remote address, which may
+		// contain a password
+		message, err := sanitizeOutput(stderr, repoPath)
+		if err != nil {
+			log.Error(4, "sanitizeOutput: %v", err)
+			return false
+		}
+		desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", repoPath, message)
 		log.Error(4, desc)
 		if err = CreateRepositoryNotice(desc); err != nil {
 			log.Error(4, "CreateRepositoryNotice: %v", err)
@@ -174,7 +164,14 @@ func (m *Mirror) runSync() bool {
 		if _, stderr, err := process.GetManager().ExecDir(
 			timeout, wikiPath, fmt.Sprintf("Mirror.runSync: %s", wikiPath),
 			"git", "remote", "update", "--prune"); err != nil {
-			desc := fmt.Sprintf("Failed to update mirror wiki repository '%s': %s", wikiPath, stderr)
+			// sanitize the output, since it may contain the remote address, which may
+			// contain a password
+			message, err := sanitizeOutput(stderr, wikiPath)
+			if err != nil {
+				log.Error(4, "sanitizeOutput: %v", err)
+				return false
+			}
+			desc := fmt.Sprintf("Failed to update mirror wiki repository '%s': %s", wikiPath, message)
 			log.Error(4, desc)
 			if err = CreateRepositoryNotice(desc); err != nil {
 				log.Error(4, "CreateRepositoryNotice: %v", err)
@@ -183,6 +180,7 @@ func (m *Mirror) runSync() bool {
 		}
 	}
 
+	m.UpdatedUnix = util.TimeStampNow()
 	return true
 }
 
@@ -203,7 +201,7 @@ func GetMirrorByRepoID(repoID int64) (*Mirror, error) {
 }
 
 func updateMirror(e Engine, m *Mirror) error {
-	_, err := e.Id(m.ID).AllCols().Update(m)
+	_, err := e.ID(m.ID).AllCols().Update(m)
 	return err
 }
 

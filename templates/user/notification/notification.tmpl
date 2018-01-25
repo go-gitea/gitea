@@ -5,19 +5,23 @@
 		<h1 class="ui dividing header">{{.i18n.Tr "notification.notifications"}}</h1>
 
 		<div class="ui top attached tabular menu">
-			<a href="{{AppSubUrl}}/notifications?q=unread">
-				<div class="{{if eq .Status 1}}active{{end}} item">
-					{{.i18n.Tr "notification.unread"}}
-					{{if .NotificationUnreadCount}}
-						<div class="ui label">{{.NotificationUnreadCount}}</div>
-					{{end}}
-				</div>
+			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active{{end}} item">
+				{{.i18n.Tr "notification.unread"}}
+				{{if .NotificationUnreadCount}}
+					<div class="ui label">{{.NotificationUnreadCount}}</div>
+				{{end}}
 			</a>
-			<a href="{{AppSubUrl}}/notifications?q=read">
-				<div class="{{if eq .Status 2}}active{{end}} item">
-					{{.i18n.Tr "notification.read"}}
-				</div>
+			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active{{end}} item">
+				{{.i18n.Tr "notification.read"}}
 			</a>
+			{{if and (eq .Status 1) (.NotificationUnreadCount)}}
+				<form action="{{AppSubUrl}}/notifications/purge" method="POST" style="margin-left: auto;">
+					{{$.CsrfTokenHtml}}
+					<button class="ui mini button primary" title='{{$.i18n.Tr "notification.mark_all_as_read"}}'>
+						<i class="octicon octicon-checklist"></i>
+					</button>
+				</form>
+			{{end}}
 		</div>
 		<div class="ui bottom attached active tab segment">
 			{{if eq (len .Notifications) 0}}

@@ -205,7 +205,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		if _, ok := session.statement.columnMap[strings.ToLower(table.Updated)]; !ok {
 			colNames = append(colNames, session.engine.Quote(table.Updated)+" = ?")
 			col := table.UpdatedColumn()
-			val, t := session.engine.NowTime2(col.SQLType.Name)
+			val, t := session.engine.nowTime(col)
 			args = append(args, val)
 
 			var colName = col.Name

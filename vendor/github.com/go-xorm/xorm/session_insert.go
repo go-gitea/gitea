@@ -126,7 +126,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 					}
 				}
 				if (col.IsCreated || col.IsUpdated) && session.statement.UseAutoTime {
-					val, t := session.engine.NowTime2(col.SQLType.Name)
+					val, t := session.engine.nowTime(col)
 					args = append(args, val)
 
 					var colName = col.Name
@@ -181,7 +181,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 					}
 				}
 				if (col.IsCreated || col.IsUpdated) && session.statement.UseAutoTime {
-					val, t := session.engine.NowTime2(col.SQLType.Name)
+					val, t := session.engine.nowTime(col)
 					args = append(args, val)
 
 					var colName = col.Name

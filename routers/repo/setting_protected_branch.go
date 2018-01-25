@@ -24,7 +24,7 @@ func ProtectedBranch(ctx *context.Context) {
 
 	protectedBranches, err := ctx.Repo.Repository.GetProtectedBranches()
 	if err != nil {
-		ctx.Handle(500, "GetProtectedBranches", err)
+		ctx.ServerError("GetProtectedBranches", err)
 		return
 	}
 	ctx.Data["ProtectedBranches"] = protectedBranches
@@ -71,12 +71,12 @@ func ProtectedBranchPost(ctx *context.Context) {
 			repo.DefaultBranch = branch
 			if err := ctx.Repo.GitRepo.SetDefaultBranch(branch); err != nil {
 				if !git.IsErrUnsupportedVersion(err) {
-					ctx.Handle(500, "SetDefaultBranch", err)
+					ctx.ServerError("SetDefaultBranch", err)
 					return
 				}
 			}
 			if err := repo.UpdateDefaultBranch(); err != nil {
-				ctx.Handle(500, "SetDefaultBranch", err)
+				ctx.ServerError("SetDefaultBranch", err)
 				return
 			}
 		}
@@ -86,7 +86,7 @@ func ProtectedBranchPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
 	default:
-		ctx.Handle(404, "", nil)
+		ctx.NotFound("", nil)
 	}
 }
 
@@ -94,7 +94,7 @@ func ProtectedBranchPost(ctx *context.Context) {
 func SettingsProtectedBranch(c *context.Context) {
 	branch := c.Params("*")
 	if !c.Repo.GitRepo.IsBranchExist(branch) {
-		c.NotFound()
+		c.NotFound("IsBranchExist", nil)
 		return
 	}
 
@@ -104,7 +104,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	protectBranch, err := models.GetProtectedBranchBy(c.Repo.Repository.ID, branch)
 	if err != nil {
 		if !models.IsErrBranchNotExist(err) {
-			c.Handle(500, "GetProtectBranchOfRepoByName", err)
+			c.ServerError("GetProtectBranchOfRepoByName", err)
 			return
 		}
 	}
@@ -118,7 +118,7 @@ func SettingsProtectedBranch(c *context.Context) {
 
 	users, err := c.Repo.Repository.GetWriters()
 	if err != nil {
-		c.Handle(500, "Repo.Repository.GetWriters", err)
+		c.ServerError("Repo.Repository.GetWriters", err)
 		return
 	}
 	c.Data["Users"] = users
@@ -127,7 +127,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	if c.Repo.Owner.IsOrganization() {
 		teams, err := c.Repo.Owner.TeamsWithAccessToRepo(c.Repo.Repository.ID, models.AccessModeWrite)
 		if err != nil {
-			c.Handle(500, "Repo.Owner.TeamsWithAccessToRepo", err)
+			c.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return
 		}
 		c.Data["Teams"] = teams
@@ -142,14 +142,14 @@ func SettingsProtectedBranch(c *context.Context) {
 func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm) {
 	branch := ctx.Params("*")
 	if !ctx.Repo.GitRepo.IsBranchExist(branch) {
-		ctx.NotFound()
+		ctx.NotFound("IsBranchExist", nil)
 		return
 	}
 
 	protectBranch, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branch)
 	if err != nil {
 		if !models.IsErrBranchNotExist(err) {
-			ctx.Handle(500, "GetProtectBranchOfRepoByName", err)
+			ctx.ServerError("GetProtectBranchOfRepoByName", err)
 			return
 		}
 	}
@@ -168,7 +168,7 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 		whitelistTeams, _ := base.StringsToInt64s(strings.Split(f.WhitelistTeams, ","))
 		err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, whitelistUsers, whitelistTeams)
 		if err != nil {
-			ctx.Handle(500, "UpdateProtectBranch", err)
+			ctx.ServerError("UpdateProtectBranch", err)
 			return
 		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_protect_branch_success", branch))
@@ -176,7 +176,7 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 	} else {
 		if protectBranch != nil {
 			if err := ctx.Repo.Repository.DeleteProtectedBranch(protectBranch.ID); err != nil {
-				ctx.Handle(500, "DeleteProtectedBranch", err)
+				ctx.ServerError("DeleteProtectedBranch", err)
 				return
 			}
 		}

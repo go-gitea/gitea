@@ -7,7 +7,6 @@ package models
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
@@ -17,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
@@ -98,44 +98,35 @@ type Comment struct {
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
 
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX created"`
-	Updated     time.Time `xorm:"-"`
-	UpdatedUnix int64     `xorm:"INDEX updated"`
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
 	CommitSHA string `xorm:"VARCHAR(40)"`
 
 	Attachments []*Attachment `xorm:"-"`
+	Reactions   ReactionList  `xorm:"-"`
 
 	// For view issue page.
 	ShowTag CommentTag `xorm:"-"`
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (c *Comment) AfterSet(colName string, _ xorm.Cell) {
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (c *Comment) AfterLoad(session *xorm.Session) {
 	var err error
-	switch colName {
-	case "id":
-		c.Attachments, err = GetAttachmentsByCommentID(c.ID)
-		if err != nil {
-			log.Error(3, "GetAttachmentsByCommentID[%d]: %v", c.ID, err)
-		}
+	c.Attachments, err = getAttachmentsByCommentID(session, c.ID)
+	if err != nil {
+		log.Error(3, "getAttachmentsByCommentID[%d]: %v", c.ID, err)
+	}
 
-	case "poster_id":
-		c.Poster, err = GetUserByID(c.PosterID)
-		if err != nil {
-			if IsErrUserNotExist(err) {
-				c.PosterID = -1
-				c.Poster = NewGhostUser()
-			} else {
-				log.Error(3, "GetUserByID[%d]: %v", c.ID, err)
-			}
+	c.Poster, err = getUserByID(session, c.PosterID)
+	if err != nil {
+		if IsErrUserNotExist(err) {
+			c.PosterID = -1
+			c.Poster = NewGhostUser()
+		} else {
+			log.Error(3, "getUserByID[%d]: %v", c.ID, err)
 		}
-	case "created_unix":
-		c.Created = time.Unix(c.CreatedUnix, 0).Local()
-	case "updated_unix":
-		c.Updated = time.Unix(c.UpdatedUnix, 0).Local()
 	}
 }
 
@@ -195,8 +186,8 @@ func (c *Comment) APIFormat() *api.Comment {
 		IssueURL: c.IssueURL(),
 		PRURL:    c.PRURL(),
 		Body:     c.Content,
-		Created:  c.Created,
-		Updated:  c.Updated,
+		Created:  c.CreatedUnix.AsTime(),
+		Updated:  c.UpdatedUnix.AsTime(),
 	}
 }
 
@@ -256,14 +247,20 @@ func (c *Comment) LoadAssignees() error {
 	if c.OldAssigneeID > 0 {
 		c.OldAssignee, err = getUserByID(x, c.OldAssigneeID)
 		if err != nil {
-			return err
+			if !IsErrUserNotExist(err) {
+				return err
+			}
+			c.OldAssignee = NewGhostUser()
 		}
 	}
 
 	if c.AssigneeID > 0 {
 		c.Assignee, err = getUserByID(x, c.AssigneeID)
 		if err != nil {
-			return err
+			if !IsErrUserNotExist(err) {
+				return err
+			}
+			c.Assignee = NewGhostUser()
 		}
 	}
 	return nil
@@ -277,19 +274,42 @@ func (c *Comment) MailParticipants(e Engine, opType ActionType, issue *Issue) (e
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}
 
+	content := c.Content
+
 	switch opType {
-	case ActionCommentIssue:
-		issue.Content = c.Content
 	case ActionCloseIssue:
-		issue.Content = fmt.Sprintf("Closed #%d", issue.Index)
+		content = fmt.Sprintf("Closed #%d", issue.Index)
 	case ActionReopenIssue:
-		issue.Content = fmt.Sprintf("Reopened #%d", issue.Index)
+		content = fmt.Sprintf("Reopened #%d", issue.Index)
 	}
-	if err = mailIssueCommentToParticipants(e, issue, c.Poster, c, mentions); err != nil {
+	if err = mailIssueCommentToParticipants(e, issue, c.Poster, content, c, mentions); err != nil {
 		log.Error(4, "mailIssueCommentToParticipants: %v", err)
 	}
 
 	return nil
+}
+
+func (c *Comment) loadReactions(e Engine) (err error) {
+	if c.Reactions != nil {
+		return nil
+	}
+	c.Reactions, err = findReactions(e, FindReactionsOptions{
+		IssueID:   c.IssueID,
+		CommentID: c.ID,
+	})
+	if err != nil {
+		return err
+	}
+	// Load reaction user data
+	if _, err := c.Reactions.LoadUsers(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// LoadReactions loads comment reactions
+func (c *Comment) LoadReactions() error {
+	return c.loadReactions(x)
 }
 
 func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
@@ -361,7 +381,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 			attachments[i].IssueID = opts.Issue.ID
 			attachments[i].CommentID = comment.ID
 			// No assign value could be 0, so ignore AllCols().
-			if _, err = e.Id(attachments[i].ID).Update(attachments[i]); err != nil {
+			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
 				return nil, fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
 			}
 		}
@@ -574,7 +594,7 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 // GetCommentByID returns the comment by given ID.
 func GetCommentByID(id int64) (*Comment, error) {
 	c := new(Comment)
-	has, err := x.Id(id).Get(c)
+	has, err := x.ID(id).Get(c)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -616,6 +636,7 @@ func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 	}
 	return comments, sess.
 		Asc("comment.created_unix").
+		Asc("comment.id").
 		Find(&comments)
 }
 
@@ -652,7 +673,7 @@ func GetCommentsByRepoIDSince(repoID, since int64) ([]*Comment, error) {
 
 // UpdateComment updates information of comment.
 func UpdateComment(c *Comment) error {
-	if _, err := x.Id(c.ID).AllCols().Update(c); err != nil {
+	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
 	} else if c.Type == CommentTypeComment {
 		UpdateIssueIndexer(c.IssueID)

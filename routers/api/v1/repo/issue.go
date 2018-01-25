@@ -18,6 +18,33 @@ import (
 
 // ListIssues list the issues of a repository
 func ListIssues(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issues issue issueListIssues
+	// ---
+	// summary: List a repository's issues
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: state
+	//   in: query
+	//   description: whether issue is open or closed
+	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of requested issues
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/IssueList"
 	var isClosed util.OptionalBool
 	switch ctx.Query("state") {
 	case "closed":
@@ -29,19 +56,13 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	issues, err := models.Issues(&models.IssuesOptions{
-		RepoID:   ctx.Repo.Repository.ID,
+		RepoIDs:  []int64{ctx.Repo.Repository.ID},
 		Page:     ctx.QueryInt("page"),
 		PageSize: setting.UI.IssuePagingNum,
 		IsClosed: isClosed,
 	})
 	if err != nil {
 		ctx.Error(500, "Issues", err)
-		return
-	}
-
-	err = models.IssueList(issues).LoadAttributes()
-	if err != nil {
-		ctx.Error(500, "LoadAttributes", err)
 		return
 	}
 
@@ -56,6 +77,30 @@ func ListIssues(ctx *context.APIContext) {
 
 // GetIssue get an issue of a repository
 func GetIssue(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index} issue issueGetIssue
+	// ---
+	// summary: Get an issue
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue to get
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Issue"
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -70,6 +115,31 @@ func GetIssue(ctx *context.APIContext) {
 
 // CreateIssue create an issue of a repository
 func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
+	// swagger:operation POST /repos/{owner}/{repo}/issues issue issueCreateIssue
+	// ---
+	// summary: Create an issue
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateIssueOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Issue"
 	issue := &models.Issue{
 		RepoID:   ctx.Repo.Repository.ID,
 		Title:    form.Title,
@@ -120,6 +190,36 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 
 // EditIssue modify an issue of a repository
 func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index} issue issueEditIssue
+	// ---
+	// summary: Edit an issue
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue to edit
+	//   type: integer
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditIssueOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Issue"
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {

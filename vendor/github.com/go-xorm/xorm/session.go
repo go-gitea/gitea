@@ -41,6 +41,8 @@ type Session struct {
 	beforeClosures []func(interface{})
 	afterClosures  []func(interface{})
 
+	afterProcessors []executedProcessor
+
 	prepareStmt bool
 	stmtCache   map[uint32]*core.Stmt //key: hash.Hash32 of (queryStr, len(queryStr))
 
@@ -74,6 +76,8 @@ func (session *Session) Init() {
 	session.afterDeleteBeans = make(map[interface{}]*[]func(interface{}), 0)
 	session.beforeClosures = make([]func(interface{}), 0)
 	session.afterClosures = make([]func(interface{}), 0)
+
+	session.afterProcessors = make([]executedProcessor, 0)
 
 	session.lastSQL = ""
 	session.lastSQLArgs = []interface{}{}
@@ -296,37 +300,40 @@ func (session *Session) getField(dataStruct *reflect.Value, key string, table *c
 // Cell cell is a result of one column field
 type Cell *interface{}
 
-func (session *Session) rows2Beans(rows *core.Rows, fields []string, fieldsCount int,
+func (session *Session) rows2Beans(rows *core.Rows, fields []string,
 	table *core.Table, newElemFunc func([]string) reflect.Value,
 	sliceValueSetFunc func(*reflect.Value, core.PK) error) error {
 	for rows.Next() {
 		var newValue = newElemFunc(fields)
 		bean := newValue.Interface()
-		dataStruct := rValue(bean)
+		dataStruct := newValue.Elem()
 
 		// handle beforeClosures
-		scanResults, err := session.row2Slice(rows, fields, fieldsCount, bean)
+		scanResults, err := session.row2Slice(rows, fields, bean)
 		if err != nil {
 			return err
 		}
-		pk, err := session.slice2Bean(scanResults, fields, fieldsCount, bean, &dataStruct, table)
+		pk, err := session.slice2Bean(scanResults, fields, bean, &dataStruct, table)
 		if err != nil {
 			return err
 		}
-		err = sliceValueSetFunc(&newValue, pk)
-		if err != nil {
-			return err
-		}
+		session.afterProcessors = append(session.afterProcessors, executedProcessor{
+			fun: func(*Session, interface{}) error {
+				return sliceValueSetFunc(&newValue, pk)
+			},
+			session: session,
+			bean:    bean,
+		})
 	}
 	return nil
 }
 
-func (session *Session) row2Slice(rows *core.Rows, fields []string, fieldsCount int, bean interface{}) ([]interface{}, error) {
+func (session *Session) row2Slice(rows *core.Rows, fields []string, bean interface{}) ([]interface{}, error) {
 	for _, closure := range session.beforeClosures {
 		closure(bean)
 	}
 
-	scanResults := make([]interface{}, fieldsCount)
+	scanResults := make([]interface{}, len(fields))
 	for i := 0; i < len(fields); i++ {
 		var cell interface{}
 		scanResults[i] = &cell
@@ -343,19 +350,48 @@ func (session *Session) row2Slice(rows *core.Rows, fields []string, fieldsCount 
 	return scanResults, nil
 }
 
-func (session *Session) slice2Bean(scanResults []interface{}, fields []string, fieldsCount int, bean interface{}, dataStruct *reflect.Value, table *core.Table) (core.PK, error) {
+func (session *Session) slice2Bean(scanResults []interface{}, fields []string, bean interface{}, dataStruct *reflect.Value, table *core.Table) (core.PK, error) {
 	defer func() {
 		if b, hasAfterSet := bean.(AfterSetProcessor); hasAfterSet {
 			for ii, key := range fields {
 				b.AfterSet(key, Cell(scanResults[ii].(*interface{})))
 			}
 		}
-
-		// handle afterClosures
-		for _, closure := range session.afterClosures {
-			closure(bean)
-		}
 	}()
+
+	// handle afterClosures
+	for _, closure := range session.afterClosures {
+		session.afterProcessors = append(session.afterProcessors, executedProcessor{
+			fun: func(sess *Session, bean interface{}) error {
+				closure(bean)
+				return nil
+			},
+			session: session,
+			bean:    bean,
+		})
+	}
+
+	if a, has := bean.(AfterLoadProcessor); has {
+		session.afterProcessors = append(session.afterProcessors, executedProcessor{
+			fun: func(sess *Session, bean interface{}) error {
+				a.AfterLoad()
+				return nil
+			},
+			session: session,
+			bean:    bean,
+		})
+	}
+
+	if a, has := bean.(AfterLoadSessionProcessor); has {
+		session.afterProcessors = append(session.afterProcessors, executedProcessor{
+			fun: func(sess *Session, bean interface{}) error {
+				a.AfterLoad(sess)
+				return nil
+			},
+			session: session,
+			bean:    bean,
+		})
+	}
 
 	var tempMap = make(map[string]int)
 	var pk core.PK

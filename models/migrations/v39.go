@@ -6,60 +6,52 @@ package migrations
 
 import (
 	"fmt"
-	"time"
 
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/git"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-xorm/xorm"
 )
 
-// Stopwatch see models/issue_stopwatch.go
-type Stopwatch struct {
-	ID          int64     `xorm:"pk autoincr"`
-	IssueID     int64     `xorm:"INDEX"`
-	UserID      int64     `xorm:"INDEX"`
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64
+// ReleaseV39 describes the added field for Release
+type ReleaseV39 struct {
+	IsTag bool `xorm:"NOT NULL DEFAULT false"`
 }
 
-// TrackedTime see models/issue_tracked_time.go
-type TrackedTime struct {
-	ID          int64     `xorm:"pk autoincr" json:"id"`
-	IssueID     int64     `xorm:"INDEX" json:"issue_id"`
-	UserID      int64     `xorm:"INDEX" json:"user_id"`
-	Created     time.Time `xorm:"-" json:"created"`
-	CreatedUnix int64     `json:"-"`
-	Time        int64     `json:"time"`
+// TableName will be invoked by XORM to customrize the table name
+func (*ReleaseV39) TableName() string {
+	return "release"
 }
 
-func addTimetracking(x *xorm.Engine) error {
-	if err := x.Sync2(new(Stopwatch)); err != nil {
+func releaseAddColumnIsTagAndSyncTags(x *xorm.Engine) error {
+	if err := x.Sync2(new(ReleaseV39)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
-	if err := x.Sync2(new(TrackedTime)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	//Updating existing issue units
-	var units []*RepoUnit
-	x.Where("type = ?", V16UnitTypeIssues).Find(&units)
-	for _, unit := range units {
-		if unit.Config == nil {
-			unit.Config = make(map[string]interface{})
+
+	// For the sake of SQLite3, we can't use x.Iterate here.
+	offset := 0
+	pageSize := models.RepositoryListDefaultPageSize
+	for {
+		repos := make([]*models.Repository, 0, pageSize)
+		if err := x.Table("repository").Asc("id").Limit(pageSize, offset).Find(&repos); err != nil {
+			return fmt.Errorf("select repos [offset: %d]: %v", offset, err)
 		}
-		changes := false
-		if _, ok := unit.Config["EnableTimetracker"]; !ok {
-			unit.Config["EnableTimetracker"] = setting.Service.DefaultEnableTimetracking
-			changes = true
-		}
-		if _, ok := unit.Config["AllowOnlyContributorsToTrackTime"]; !ok {
-			unit.Config["AllowOnlyContributorsToTrackTime"] = setting.Service.DefaultAllowOnlyContributorsToTrackTime
-			changes = true
-		}
-		if changes {
-			if _, err := x.Id(unit.ID).Cols("config").Update(unit); err != nil {
-				return err
+		for _, repo := range repos {
+			gitRepo, err := git.OpenRepository(repo.RepoPath())
+			if err != nil {
+				log.Warn("OpenRepository: %v", err)
+				continue
+			}
+
+			if err = models.SyncReleasesWithTags(repo, gitRepo); err != nil {
+				log.Warn("SyncReleasesWithTags: %v", err)
 			}
 		}
+		if len(repos) < pageSize {
+			break
+		}
+		offset += pageSize
 	}
 	return nil
 }

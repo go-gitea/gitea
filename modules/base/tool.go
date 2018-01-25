@@ -16,6 +16,8 @@ import (
 	"math"
 	"math/big"
 	"net/http"
+	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -24,6 +26,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/i18n"
 	"github.com/gogits/chardet"
@@ -197,24 +200,59 @@ func DefaultAvatarLink() string {
 	return setting.AppSubURL + "/img/avatar_default.png"
 }
 
+// DefaultAvatarSize is a sentinel value for the default avatar size, as
+// determined by the avatar-hosting service.
+const DefaultAvatarSize = -1
+
+// libravatarURL returns the URL for the given email. This function should only
+// be called if a federated avatar service is enabled.
+func libravatarURL(email string) (*url.URL, error) {
+	urlStr, err := setting.LibravatarService.FromEmail(email)
+	if err != nil {
+		log.Error(4, "LibravatarService.FromEmail(email=%s): error %v", email, err)
+		return nil, err
+	}
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		log.Error(4, "Failed to parse libravatar url(%s): error %v", urlStr, err)
+		return nil, err
+	}
+	return u, nil
+}
+
+// SizedAvatarLink returns a sized link to the avatar for the given email
+// address.
+func SizedAvatarLink(email string, size int) string {
+	var avatarURL *url.URL
+	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
+		var err error
+		avatarURL, err = libravatarURL(email)
+		if err != nil {
+			return DefaultAvatarLink()
+		}
+	} else if !setting.DisableGravatar {
+		// copy GravatarSourceURL, because we will modify its Path.
+		copyOfGravatarSourceURL := *setting.GravatarSourceURL
+		avatarURL = &copyOfGravatarSourceURL
+		avatarURL.Path = path.Join(avatarURL.Path, HashEmail(email))
+	} else {
+		return DefaultAvatarLink()
+	}
+
+	vals := avatarURL.Query()
+	vals.Set("d", "identicon")
+	if size != DefaultAvatarSize {
+		vals.Set("s", strconv.Itoa(size))
+	}
+	avatarURL.RawQuery = vals.Encode()
+	return avatarURL.String()
+}
+
 // AvatarLink returns relative avatar link to the site domain by given email,
 // which includes app sub-url as prefix. However, it is possible
 // to return full URL if user enables Gravatar-like service.
 func AvatarLink(email string) string {
-	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
-		url, err := setting.LibravatarService.FromEmail(email)
-		if err != nil {
-			log.Error(4, "LibravatarService.FromEmail(email=%s): error %v", email, err)
-			return DefaultAvatarLink()
-		}
-		return url
-	}
-
-	if !setting.DisableGravatar {
-		return setting.GravatarSource + HashEmail(email)
-	}
-
-	return DefaultAvatarLink()
+	return SizedAvatarLink(email, DefaultAvatarSize)
 }
 
 // Seconds-based time units
@@ -320,11 +358,15 @@ func timeSincePro(then, now time.Time, lang string) string {
 }
 
 func timeSince(then, now time.Time, lang string) string {
+	return timeSinceUnix(then.Unix(), now.Unix(), lang)
+}
+
+func timeSinceUnix(then, now int64, lang string) string {
 	lbl := "tool.ago"
-	diff := now.Unix() - then.Unix()
-	if then.After(now) {
+	diff := now - then
+	if then > now {
 		lbl = "tool.from_now"
-		diff = then.Unix() - now.Unix()
+		diff = then - now
 	}
 	if diff <= 0 {
 		return i18n.Tr(lang, "tool.now")
@@ -348,6 +390,17 @@ func htmlTimeSince(then, now time.Time, lang string) template.HTML {
 	return template.HTML(fmt.Sprintf(`<span class="time-since" title="%s">%s</span>`,
 		then.Format(setting.TimeFormat),
 		timeSince(then, now, lang)))
+}
+
+// TimeSinceUnix calculates the time interval and generate user-friendly string.
+func TimeSinceUnix(then util.TimeStamp, lang string) template.HTML {
+	return htmlTimeSinceUnix(then, util.TimeStamp(time.Now().Unix()), lang)
+}
+
+func htmlTimeSinceUnix(then, now util.TimeStamp, lang string) template.HTML {
+	return template.HTML(fmt.Sprintf(`<span class="time-since" title="%s">%s</span>`,
+		then.Format(setting.TimeFormat),
+		timeSinceUnix(int64(then), int64(now), lang)))
 }
 
 // Storage space size types

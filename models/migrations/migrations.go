@@ -59,6 +59,10 @@ type Version struct {
 	Version int64
 }
 
+func emptyMigration(x *xorm.Engine) error {
+	return nil
+}
+
 // This is a sequence of migrations. Add new migrations to the bottom of the list.
 // If you want to "retire" a migration, remove it from the top of the list and
 // update minDBVersion accordingly
@@ -110,7 +114,7 @@ var migrations = []Migration{
 	NewMigration("add commit status table", addCommitStatus),
 	// v30 -> 31
 	NewMigration("add primary key to external login user", addExternalLoginUserPK),
-	// 31 -> 32
+	// v31 -> 32
 	NewMigration("add field for login source synchronization", addLoginSourceSyncEnabledColumn),
 	// v32 -> v33
 	NewMigration("add units for team", addUnitsToRepoTeam),
@@ -127,15 +131,41 @@ var migrations = []Migration{
 	// v38 -> v39
 	NewMigration("remove commits and settings unit types", removeCommitsUnitType),
 	// v39 -> v40
-	NewMigration("adds time tracking and stopwatches", addTimetracking),
-	// v40 -> v41
-	NewMigration("migrate protected branch struct", migrateProtectedBranchStruct),
-	// v41 -> v42
-	NewMigration("add default value to user prohibit_login", addDefaultValueToUserProhibitLogin),
-	// v42 -> v43
 	NewMigration("add tags to releases and sync existing repositories", releaseAddColumnIsTagAndSyncTags),
-	// v43 -> v44
+	// v40 -> v41
 	NewMigration("fix protected branch can push value to false", fixProtectedBranchCanPushValue),
+	// v41 -> v42
+	NewMigration("remove duplicate unit types", removeDuplicateUnitTypes),
+	// v42 -> v43
+	NewMigration("empty step", emptyMigration),
+	// v43 -> v44
+	NewMigration("empty step", emptyMigration),
+	// v44 -> v45
+	NewMigration("empty step", emptyMigration),
+	// v45 -> v46
+	NewMigration("remove index column from repo_unit table", removeIndexColumnFromRepoUnitTable),
+	// v46 -> v47
+	NewMigration("remove organization watch repositories", removeOrganizationWatchRepo),
+	// v47 -> v48
+	NewMigration("add deleted branches", addDeletedBranch),
+	// v48 -> v49
+	NewMigration("add repo indexer status", addRepoIndexerStatus),
+	// v49 -> v50
+	NewMigration("adds time tracking and stopwatches", addTimetracking),
+	// v50 -> v51
+	NewMigration("migrate protected branch struct", migrateProtectedBranchStruct),
+	// v51 -> v52
+	NewMigration("add default value to user prohibit_login", addDefaultValueToUserProhibitLogin),
+	// v52 -> v53
+	NewMigration("add lfs lock table", addLFSLock),
+	// v53 -> v54
+	NewMigration("add reactions", addReactions),
+	// v54 -> v55
+	NewMigration("add pull request options", addPullRequestOptions),
+	// v55 -> v56
+	NewMigration("add writable deploy keys", addModeToDeploKeys),
+	// v56 -> v57
+	NewMigration("remove is_owner, num_teams columns from org_user", removeIsOwnerColumnFromOrgUser),
 }
 
 // Migrate database to current version
@@ -169,7 +199,7 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 	if int(v-minDBVersion) > len(migrations) {
 		// User downgraded Gitea.
 		currentVersion.Version = int64(len(migrations) + minDBVersion)
-		_, err = x.Id(1).Update(currentVersion)
+		_, err = x.ID(1).Update(currentVersion)
 		return err
 	}
 	for i, m := range migrations[v-minDBVersion:] {
@@ -178,7 +208,7 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 			return fmt.Errorf("do migrate: %v", err)
 		}
 		currentVersion.Version = v + int64(i) + 1
-		if _, err = x.Id(1).Update(currentVersion); err != nil {
+		if _, err = x.ID(1).Update(currentVersion); err != nil {
 			return err
 		}
 	}

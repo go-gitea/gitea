@@ -15,7 +15,6 @@ else
 endif
 
 BINDATA := modules/{options,public,templates}/bindata.go
-DOCKER_TAG := gitea/gitea:latest
 GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
 GOFMT ?= gofmt -s
 
@@ -59,6 +58,8 @@ endif
 .PHONY: all
 all: build
 
+include docker/Makefile
+
 .PHONY: clean
 clean:
 	$(GO) clean -i ./...
@@ -89,8 +90,6 @@ generate-swagger:
 		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
 	fi
 	swagger generate spec -o ./public/swagger.v1.json
-	$(SED_INPLACE) "s;\".ref\": \"#/definitions/GPGKey\";\"type\": \"object\";g" ./public/swagger.v1.json
-	$(SED_INPLACE) "s;^          \".ref\": \"#/definitions/Repository\";          \"type\": \"object\";g" ./public/swagger.v1.json
 
 .PHONY: errcheck
 errcheck:
@@ -132,25 +131,18 @@ fmt-check:
 
 .PHONY: test
 test:
-	$(GO) test $(PACKAGES)
+	$(GO) test -tags=sqlite $(PACKAGES)
 
 .PHONY: coverage
 coverage:
 	@hash gocovmerge > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/wadey/gocovmerge; \
 	fi
-	echo "mode: set" > coverage.all
-	for PKG in $(PACKAGES); do\
-		egrep "$$PKG[^/]*\.go" integration.coverage.out > int.coverage.out;\
-		gocovmerge $$GOPATH/src/$$PKG/coverage.out int.coverage.out > pkg.coverage.out;\
-		grep -h -v "^mode:" pkg.coverage.out >>  coverage.all;\
-		mv pkg.coverage.out $$GOPATH/src/$$PKG/coverage.out;\
-		rm int.coverage.out;\
-	done;
+	gocovmerge integration.coverage.out $(shell find . -type f -name "coverage.out") > coverage.all;\
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	for PKG in $(PACKAGES); do $(GO) test -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
+	for PKG in $(PACKAGES); do $(GO) test -tags=sqlite -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
 
 .PHONY: test-vendor
 test-vendor:
@@ -182,35 +174,32 @@ generate-ini:
 			integrations/pgsql.ini.tmpl > integrations/pgsql.ini
 
 .PHONY: test-mysql
-test-mysql: integrations.mysql.test generate-ini
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test
+test-mysql: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test
 
 .PHONY: test-pgsql
-test-pgsql: integrations.pgsql.test generate-ini
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test
+test-pgsql: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.bench .
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
 .PHONY: bench-mysql
-bench-mysql: integrations.mysql.test generate-ini
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test -test.bench .
+bench-mysql: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
 .PHONY: bench-pgsql
-bench-pgsql: integrations.pgsql.test generate-ini
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.bench .
+bench-pgsql: integrations.test generate-ini
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
 
 .PHONY: integration-test-coverage
 integration-test-coverage: integrations.cover.test generate-ini
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
-integrations.mysql.test: $(SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.mysql.test
-
-integrations.pgsql.test: $(SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.pgsql.test
+integrations.test: $(SOURCES)
+	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.test
 
 integrations.sqlite.test: $(SOURCES)
 	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite'
@@ -230,11 +219,6 @@ build: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES)
 	$(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
-
-.PHONY: docker
-docker:
-	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" webhippie/golang:edge make clean generate build
-	docker build -t $(DOCKER_TAG) .
 
 .PHONY: release
 release: release-dirs release-windows release-linux release-darwin release-copy release-check
@@ -289,29 +273,25 @@ public/js/index.js: $(JAVASCRIPTS)
 	cat $< >| $@
 
 .PHONY: stylesheets-check
-stylesheets-check: stylesheets
+stylesheets-check: generate-stylesheets
 	@diff=$$(git diff public/css/index.css); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make stylesheets' and commit the result:"; \
+		echo "Please run 'make generate-stylesheets' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi;
 
-.PHONY: stylesheets
-stylesheets:
-	@hash minify > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/tdewolff/minify/cmd/minify; \
-	fi
-	node_modules/.bin/lessc --no-ie-compat public/less/index.less public/css/index.css
-	minify -o public/css/index.css public/css/index.css
+.PHONY: generate-stylesheets
+generate-stylesheets:
+	node_modules/.bin/lessc --no-ie-compat --clean-css public/less/index.less public/css/index.css
 
 .PHONY: swagger-ui
 swagger-ui:
 	rm -Rf public/vendor/assets/swagger-ui
-	git clone --depth=10 -b v3.0.7 --single-branch https://github.com/swagger-api/swagger-ui.git $(TMPDIR)/swagger-ui
+	git clone --depth=10 -b v3.3.2 --single-branch https://github.com/swagger-api/swagger-ui.git $(TMPDIR)/swagger-ui
 	mv $(TMPDIR)/swagger-ui/dist public/vendor/assets/swagger-ui
 	rm -Rf $(TMPDIR)/swagger-ui
-	$(SED_INPLACE) "s;http://petstore.swagger.io/v2/swagger.json;../../swagger.v1.json;g" public/assets/swagger-ui/index.html
+	$(SED_INPLACE) "s;http://petstore.swagger.io/v2/swagger.json;../../../swagger.v1.json;g" public/vendor/assets/swagger-ui/index.html
 
 .PHONY: update-translations
 update-translations:

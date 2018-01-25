@@ -37,7 +37,7 @@ var (
 		},
 		Subcommands: []cli.Command{
 			subcmdHookPreReceive,
-			subcmdHookUpadte,
+			subcmdHookUpdate,
 			subcmdHookPostReceive,
 		},
 	}
@@ -48,7 +48,7 @@ var (
 		Description: "This command should only be called by Git",
 		Action:      runHookPreReceive,
 	}
-	subcmdHookUpadte = cli.Command{
+	subcmdHookUpdate = cli.Command{
 		Name:        "update",
 		Usage:       "Delegate update Git hook",
 		Description: "This command should only be called by Git",
@@ -118,7 +118,7 @@ func runHookPreReceive(c *cli.Context) error {
 		if protectBranch != nil && protectBranch.IsProtected() {
 			// detect force push
 			if git.EmptySHA != oldCommitID {
-				output, err := git.NewCommand("rev-list", oldCommitID, "^"+newCommitID).RunInDir(repoPath)
+				output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDir(repoPath)
 				if err != nil {
 					fail("Internal error", "Fail to detect force push: %v", err)
 				} else if len(output) > 0 {

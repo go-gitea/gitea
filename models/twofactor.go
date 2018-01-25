@@ -5,17 +5,20 @@
 package models
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/md5"
+	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
-	"time"
+	"errors"
+	"io"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
 	"github.com/pquerna/otp/totp"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // TwoFactor represents a two-factor authentication token.
@@ -24,21 +27,8 @@ type TwoFactor struct {
 	UID          int64 `xorm:"UNIQUE"`
 	Secret       string
 	ScratchToken string
-
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"INDEX created"`
-	Updated     time.Time `xorm:"-"` // Note: Updated must below Created for AfterSet.
-	UpdatedUnix int64     `xorm:"INDEX updated"`
-}
-
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (t *TwoFactor) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		t.Created = time.Unix(t.CreatedUnix, 0).Local()
-	case "updated_unix":
-		t.Updated = time.Unix(t.UpdatedUnix, 0).Local()
-	}
+	CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix  util.TimeStamp `xorm:"INDEX updated"`
 }
 
 // GenerateScratchToken recreates the scratch token the user is using.
@@ -66,7 +56,7 @@ func (t *TwoFactor) getEncryptionKey() []byte {
 
 // SetSecret sets the 2FA secret.
 func (t *TwoFactor) SetSecret(secret string) error {
-	secretBytes, err := com.AESEncrypt(t.getEncryptionKey(), []byte(secret))
+	secretBytes, err := aesEncrypt(t.getEncryptionKey(), []byte(secret))
 	if err != nil {
 		return err
 	}
@@ -80,12 +70,49 @@ func (t *TwoFactor) ValidateTOTP(passcode string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	secret, err := com.AESDecrypt(t.getEncryptionKey(), decodedStoredSecret)
+	secret, err := aesDecrypt(t.getEncryptionKey(), decodedStoredSecret)
 	if err != nil {
 		return false, err
 	}
 	secretStr := string(secret)
 	return totp.Validate(passcode, secretStr), nil
+}
+
+// aesEncrypt encrypts text and given key with AES.
+func aesEncrypt(key, text []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	b := base64.StdEncoding.EncodeToString(text)
+	ciphertext := make([]byte, aes.BlockSize+len(b))
+	iv := ciphertext[:aes.BlockSize]
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return nil, err
+	}
+	cfb := cipher.NewCFBEncrypter(block, iv)
+	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
+	return ciphertext, nil
+}
+
+// aesDecrypt decrypts text and given key with AES.
+func aesDecrypt(key, text []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	if len(text) < aes.BlockSize {
+		return nil, errors.New("ciphertext too short")
+	}
+	iv := text[:aes.BlockSize]
+	text = text[aes.BlockSize:]
+	cfb := cipher.NewCFBDecrypter(block, iv)
+	cfb.XORKeyStream(text, text)
+	data, err := base64.StdEncoding.DecodeString(string(text))
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 // NewTwoFactor creates a new two-factor authentication token.
@@ -100,7 +127,7 @@ func NewTwoFactor(t *TwoFactor) error {
 
 // UpdateTwoFactor updates a two-factor authentication token.
 func UpdateTwoFactor(t *TwoFactor) error {
-	_, err := x.Id(t.ID).AllCols().Update(t)
+	_, err := x.ID(t.ID).AllCols().Update(t)
 	return err
 }
 
@@ -119,7 +146,7 @@ func GetTwoFactorByUID(uid int64) (*TwoFactor, error) {
 
 // DeleteTwoFactorByID deletes two-factor authentication token by given ID.
 func DeleteTwoFactorByID(id, userID int64) error {
-	cnt, err := x.Id(id).Delete(&TwoFactor{
+	cnt, err := x.ID(id).Delete(&TwoFactor{
 		UID: userID,
 	})
 	if err != nil {

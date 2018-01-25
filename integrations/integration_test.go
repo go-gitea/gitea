@@ -13,9 +13,11 @@ import (
 	"log"
 	"net/http"
 	"net/http/cookiejar"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -24,6 +26,7 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/macaron.v1"
@@ -51,7 +54,7 @@ func TestMain(m *testing.M) {
 
 	err := models.InitFixtures(
 		helper,
-		"models/fixtures/",
+		path.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
 	)
 	if err != nil {
 		fmt.Printf("Error initializing test database: %v\n", err)
@@ -61,6 +64,10 @@ func TestMain(m *testing.M) {
 
 	if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("os.RemoveAll: %v\n", err)
+		os.Exit(1)
+	}
+	if err = os.RemoveAll(setting.Indexer.RepoPath); err != nil {
+		fmt.Printf("Unable to remove repo indexer: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -130,7 +137,11 @@ func initIntegrationTest() {
 func prepareTestEnv(t testing.TB) {
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, com.CopyDir("integrations/gitea-repositories-meta", setting.RepoRootPath))
+	assert.NoError(t, os.RemoveAll(models.LocalCopyPath()))
+	assert.NoError(t, os.RemoveAll(models.LocalWikiPath()))
+
+	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
+		setting.RepoRootPath))
 }
 
 type TestSession struct {
@@ -151,7 +162,7 @@ func (s *TestSession) GetCookie(name string) *http.Cookie {
 	return nil
 }
 
-func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *TestResponse {
+func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
@@ -160,7 +171,7 @@ func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatu
 	resp := MakeRequest(t, req, expectedStatus)
 
 	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.Headers["Set-Cookie"], ";"))
+	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 	s.jar.SetCookies(baseURL, cr.Cookies())
 
@@ -200,7 +211,7 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	resp = MakeRequest(t, req, http.StatusFound)
 
 	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.Headers["Set-Cookie"], ";"))
+	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 
 	session := emptyTestSession(t)
@@ -210,30 +221,6 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	session.jar.SetCookies(baseURL, cr.Cookies())
 
 	return session
-}
-
-type TestResponseWriter struct {
-	HeaderCode int
-	Writer     io.Writer
-	Headers    http.Header
-}
-
-func (w *TestResponseWriter) Header() http.Header {
-	return w.Headers
-}
-
-func (w *TestResponseWriter) Write(b []byte) (int, error) {
-	return w.Writer.Write(b)
-}
-
-func (w *TestResponseWriter) WriteHeader(n int) {
-	w.HeaderCode = n
-}
-
-type TestResponse struct {
-	HeaderCode int
-	Body       []byte
-	Headers    http.Header
 }
 
 func NewRequest(t testing.TB, method, urlStr string) *http.Request {
@@ -271,26 +258,43 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *ht
 
 const NoExpectedStatus = -1
 
-func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *TestResponse {
-	buffer := bytes.NewBuffer(nil)
-	respWriter := &TestResponseWriter{
-		Writer:  buffer,
-		Headers: make(map[string][]string),
-	}
-	mac.ServeHTTP(respWriter, req)
+func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
+	recorder := httptest.NewRecorder()
+	mac.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		assert.EqualValues(t, expectedStatus, respWriter.HeaderCode,
-			"Request URL: %s", req.URL.String())
+		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+			"Request: %s %s", req.Method, req.URL.String()) {
+			logUnexpectedResponse(t, recorder)
+		}
 	}
-	return &TestResponse{
-		HeaderCode: respWriter.HeaderCode,
-		Body:       buffer.Bytes(),
-		Headers:    respWriter.Headers,
+	return recorder
+}
+
+// logUnexpectedResponse logs the contents of an unexpected response.
+func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
+	respBytes := recorder.Body.Bytes()
+	if len(respBytes) == 0 {
+		return
+	} else if len(respBytes) < 500 {
+		// if body is short, just log the whole thing
+		t.Log("Response:", string(respBytes))
+		return
+	}
+
+	// log the "flash" error message, if one exists
+	// we must create a new buffer, so that we don't "use up" resp.Body
+	htmlDoc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(respBytes))
+	if err != nil {
+		return // probably a non-HTML response
+	}
+	errMsg := htmlDoc.Find(".ui.negative.message").Text()
+	if len(errMsg) > 0 {
+		t.Log("A flash error message was found:", errMsg)
 	}
 }
 
-func DecodeJSON(t testing.TB, resp *TestResponse, v interface{}) {
-	decoder := json.NewDecoder(bytes.NewBuffer(resp.Body))
+func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
+	decoder := json.NewDecoder(resp.Body)
 	assert.NoError(t, decoder.Decode(v))
 }
 
@@ -299,10 +303,4 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	return doc.GetCSRF()
-}
-
-func RedirectURL(t testing.TB, resp *TestResponse) string {
-	urlSlice := resp.Headers["Location"]
-	assert.NotEmpty(t, urlSlice, "No redirect URL founds")
-	return urlSlice[0]
 }

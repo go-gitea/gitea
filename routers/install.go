@@ -33,7 +33,7 @@ const (
 // InstallInit prepare for rendering installation page
 func InstallInit(ctx *context.Context) {
 	if setting.InstallLock {
-		ctx.Handle(404, "Install", errors.New("Installation is prohibited"))
+		ctx.NotFound("Install", errors.New("Installation is prohibited"))
 		return
 	}
 
@@ -108,8 +108,8 @@ func Install(ctx *context.Context) {
 	form.OfflineMode = setting.OfflineMode
 	form.DisableGravatar = setting.DisableGravatar
 	form.EnableFederatedAvatar = setting.EnableFederatedAvatar
-	form.EnableOpenIDSignIn = true
-	form.EnableOpenIDSignUp = true
+	form.EnableOpenIDSignIn = setting.Service.EnableOpenIDSignIn
+	form.EnableOpenIDSignUp = setting.Service.EnableOpenIDSignUp
 	form.DisableRegistration = setting.Service.DisableRegistration
 	form.EnableCaptcha = setting.Service.EnableCaptcha
 	form.RequireSignInView = setting.Service.RequireSignInView
@@ -310,7 +310,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("session").Key("PROVIDER").SetValue("file")
 
 	cfg.Section("log").Key("MODE").SetValue("file")
-	cfg.Section("log").Key("LEVEL").SetValue("Info")
+	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel)
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")

@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"path"
 	"strings"
 	"testing"
@@ -13,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testPullCreate(t *testing.T, session *TestSession, user, repo, branch string) *TestResponse {
+func testPullCreate(t *testing.T, session *TestSession, user, repo, branch string) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -38,15 +39,32 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch strin
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
 
-	//TODO check the redirected URL
-
 	return resp
 }
 
 func TestPullCreate(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user1")
-	testRepoFork(t, session)
-	testEditFile(t, session, "user1", "repo1", "master", "README.md")
-	testPullCreate(t, session, "user1", "repo1", "master")
+	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+	resp := testPullCreate(t, session, "user1", "repo1", "master")
+
+	// check the redirected URL
+	url := resp.HeaderMap.Get("Location")
+	assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
+
+	// check .diff can be accessed and matches performed change
+	req := NewRequest(t, "GET", url+".diff")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
+	assert.Regexp(t, "^diff", resp.Body)
+	assert.NotRegexp(t, "diff.*diff", resp.Body) // not two diffs, just one
+
+	// check .patch can be accessed and matches performed change
+	req = NewRequest(t, "GET", url+".patch")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
+	assert.Regexp(t, "diff", resp.Body)
+	assert.Regexp(t, `Subject: \[PATCH\] Update 'README.md'`, resp.Body)
+	assert.NotRegexp(t, "diff.*diff", resp.Body) // not two diffs, just one
 }

@@ -25,7 +25,7 @@ func TestCreateOrUpdateIssueWatch(t *testing.T) {
 func TestGetIssueWatch(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	_, exists, err := GetIssueWatch(1, 1)
+	_, exists, err := GetIssueWatch(9, 1)
 	assert.Equal(t, true, exists)
 	assert.NoError(t, err)
 

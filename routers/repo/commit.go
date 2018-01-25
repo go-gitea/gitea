@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"container/list"
 	"path"
 	"strings"
 
@@ -37,26 +36,18 @@ func RefCommits(ctx *context.Context) {
 	}
 }
 
-func renderIssueLinks(oldCommits *list.List, repoLink string) *list.List {
-	newCommits := list.New()
-	for e := oldCommits.Front(); e != nil; e = e.Next() {
-		c := e.Value.(*git.Commit)
-		newCommits.PushBack(c)
-	}
-	return newCommits
-}
-
 // Commits render branch's commits
 func Commits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 	if ctx.Repo.Commit == nil {
-		ctx.Handle(404, "Commit not found", nil)
+		ctx.NotFound("Commit not found", nil)
 		return
 	}
+	ctx.Data["PageIsViewCode"] = true
 
-	commitsCount, err := ctx.Repo.Commit.CommitsCount()
+	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
-		ctx.Handle(500, "GetCommitsCount", err)
+		ctx.ServerError("GetCommitsCount", err)
 		return
 	}
 
@@ -69,10 +60,9 @@ func Commits(ctx *context.Context) {
 	// Both `git log branchName` and `git log commitId` work.
 	commits, err := ctx.Repo.Commit.CommitsByRange(page)
 	if err != nil {
-		ctx.Handle(500, "CommitsByRange", err)
+		ctx.ServerError("CommitsByRange", err)
 		return
 	}
-	commits = renderIssueLinks(commits, ctx.Repo.RepoLink)
 	commits = models.ValidateCommitsWithEmails(commits)
 	commits = models.ParseCommitsWithSignature(commits)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
@@ -88,16 +78,17 @@ func Commits(ctx *context.Context) {
 // Graph render commit graph - show commits from all branches.
 func Graph(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
+	ctx.Data["PageIsViewCode"] = true
 
-	commitsCount, err := ctx.Repo.Commit.CommitsCount()
+	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
-		ctx.Handle(500, "GetCommitsCount", err)
+		ctx.ServerError("GetCommitsCount", err)
 		return
 	}
 
 	graph, err := models.GetCommitGraph(ctx.Repo.GitRepo)
 	if err != nil {
-		ctx.Handle(500, "GetCommitGraph", err)
+		ctx.ServerError("GetCommitGraph", err)
 		return
 	}
 
@@ -114,20 +105,20 @@ func Graph(ctx *context.Context) {
 // SearchCommits render commits filtered by keyword
 func SearchCommits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
+	ctx.Data["PageIsViewCode"] = true
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	if len(keyword) == 0 {
-		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchName)
+		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchNameSubURL())
 		return
 	}
 	all := ctx.QueryBool("all")
 
 	commits, err := ctx.Repo.Commit.SearchCommits(keyword, all)
 	if err != nil {
-		ctx.Handle(500, "SearchCommits", err)
+		ctx.ServerError("SearchCommits", err)
 		return
 	}
-	commits = renderIssueLinks(commits, ctx.Repo.RepoLink)
 	commits = models.ValidateCommitsWithEmails(commits)
 	commits = models.ParseCommitsWithSignature(commits)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
@@ -157,10 +148,10 @@ func FileHistory(ctx *context.Context) {
 	branchName := ctx.Repo.BranchName
 	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(branchName, fileName)
 	if err != nil {
-		ctx.Handle(500, "FileCommitsCount", err)
+		ctx.ServerError("FileCommitsCount", err)
 		return
 	} else if commitsCount == 0 {
-		ctx.Handle(404, "FileCommitsCount", nil)
+		ctx.NotFound("FileCommitsCount", nil)
 		return
 	}
 
@@ -172,10 +163,9 @@ func FileHistory(ctx *context.Context) {
 
 	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(branchName, fileName, page)
 	if err != nil {
-		ctx.Handle(500, "CommitsByFileAndRange", err)
+		ctx.ServerError("CommitsByFileAndRange", err)
 		return
 	}
-	commits = renderIssueLinks(commits, ctx.Repo.RepoLink)
 	commits = models.ValidateCommitsWithEmails(commits)
 	commits = models.ParseCommitsWithSignature(commits)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
@@ -201,9 +191,9 @@ func Diff(ctx *context.Context) {
 	commit, err := ctx.Repo.GitRepo.GetCommit(commitID)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.Handle(404, "Repo.GitRepo.GetCommit", err)
+			ctx.NotFound("Repo.GitRepo.GetCommit", err)
 		} else {
-			ctx.Handle(500, "Repo.GitRepo.GetCommit", err)
+			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 		}
 		return
 	}
@@ -222,7 +212,7 @@ func Diff(ctx *context.Context) {
 		commitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
 	if err != nil {
-		ctx.Handle(404, "GetDiffCommit", err)
+		ctx.NotFound("GetDiffCommit", err)
 		return
 	}
 
@@ -231,7 +221,7 @@ func Diff(ctx *context.Context) {
 		sha, err := commit.ParentID(i)
 		parents[i] = sha.String()
 		if err != nil {
-			ctx.Handle(404, "repo.Diff", err)
+			ctx.NotFound("repo.Diff", err)
 			return
 		}
 	}
@@ -247,11 +237,11 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Diff"] = diff
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", commitID)
+	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", commitID)
 	if commit.ParentCount() > 0 {
-		ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", parents[0])
+		ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", parents[0])
 	}
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", commitID)
+	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", commitID)
 	ctx.HTML(200, tplDiff)
 }
 
@@ -263,7 +253,7 @@ func RawDiff(ctx *context.Context) {
 		models.RawDiffType(ctx.Params(":ext")),
 		ctx.Resp,
 	); err != nil {
-		ctx.Handle(500, "GetRawDiff", err)
+		ctx.ServerError("GetRawDiff", err)
 		return
 	}
 }
@@ -279,7 +269,7 @@ func CompareDiff(ctx *context.Context) {
 
 	commit, err := ctx.Repo.GitRepo.GetCommit(afterCommitID)
 	if err != nil {
-		ctx.Handle(404, "GetCommit", err)
+		ctx.NotFound("GetCommit", err)
 		return
 	}
 
@@ -287,13 +277,13 @@ func CompareDiff(ctx *context.Context) {
 		afterCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
 	if err != nil {
-		ctx.Handle(404, "GetDiffRange", err)
+		ctx.NotFound("GetDiffRange", err)
 		return
 	}
 
 	commits, err := commit.CommitsBeforeUntil(beforeCommitID)
 	if err != nil {
-		ctx.Handle(500, "CommitsBeforeUntil", err)
+		ctx.ServerError("CommitsBeforeUntil", err)
 		return
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
@@ -312,9 +302,9 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", afterCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", beforeCommitID)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", afterCommitID)
+	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", afterCommitID)
+	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", beforeCommitID)
+	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", afterCommitID)
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.HTML(200, tplDiff)
 }

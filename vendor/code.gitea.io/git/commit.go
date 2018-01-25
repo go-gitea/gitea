@@ -12,8 +12,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-
-	"github.com/mcuadros/go-version"
 )
 
 // Commit represents a git commit.
@@ -100,10 +98,11 @@ func (c *Commit) IsImageFile(name string) bool {
 		return false
 	}
 
-	dataRc, err := blob.Data()
+	dataRc, err := blob.DataAsync()
 	if err != nil {
 		return false
 	}
+	defer dataRc.Close()
 	buf := make([]byte, 1024)
 	n, _ := dataRc.Read(buf)
 	buf = buf[:n]
@@ -160,13 +159,7 @@ func CommitChanges(repoPath string, opts CommitChangesOptions) error {
 
 func commitsCount(repoPath, revision, relpath string) (int64, error) {
 	var cmd *Command
-	isFallback := false
-	if version.Compare(gitVersion, "1.8.0", "<") {
-		isFallback = true
-		cmd = NewCommand("log", "--pretty=format:''")
-	} else {
-		cmd = NewCommand("rev-list", "--count")
-	}
+	cmd = NewCommand("rev-list", "--count")
 	cmd.AddArguments(revision)
 	if len(relpath) > 0 {
 		cmd.AddArguments("--", relpath)
@@ -177,9 +170,6 @@ func commitsCount(repoPath, revision, relpath string) (int64, error) {
 		return 0, err
 	}
 
-	if isFallback {
-		return int64(strings.Count(stdout, "\n")) + 1, nil
-	}
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 }
 

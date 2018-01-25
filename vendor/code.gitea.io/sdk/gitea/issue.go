@@ -27,7 +27,8 @@ type PullRequestMeta struct {
 	Merged    *time.Time `json:"merged_at"`
 }
 
-// Issue an issue to a repository
+// Issue represents an issue in a repository
+// swagger:model
 type Issue struct {
 	ID        int64      `json:"id"`
 	URL       string     `json:"url"`
@@ -38,9 +39,15 @@ type Issue struct {
 	Labels    []*Label   `json:"labels"`
 	Milestone *Milestone `json:"milestone"`
 	Assignee  *User      `json:"assignee"`
+	// Whether the issue is open or closed
+	//
+	// type: string
+	// enum: open,closed
 	State     StateType  `json:"state"`
 	Comments  int        `json:"comments"`
+	// swagger:strfmt date-time
 	Created   time.Time  `json:"created_at"`
+	// swagger:strfmt date-time
 	Updated   time.Time  `json:"updated_at"`
 
 	PullRequest *PullRequestMeta `json:"pull_request"`
@@ -78,10 +85,14 @@ func (c *Client) GetIssue(owner, repo string, index int64) (*Issue, error) {
 
 // CreateIssueOption options to create one issue
 type CreateIssueOption struct {
+	// required:true
 	Title     string  `json:"title" binding:"Required"`
 	Body      string  `json:"body"`
+	// username of assignee
 	Assignee  string  `json:"assignee"`
+	// milestone id
 	Milestone int64   `json:"milestone"`
+	// list of label ids
 	Labels    []int64 `json:"labels"`
 	Closed    bool    `json:"closed"`
 }
@@ -97,7 +108,7 @@ func (c *Client) CreateIssue(owner, repo string, opt CreateIssueOption) (*Issue,
 		jsonHeader, bytes.NewReader(body), issue)
 }
 
-// EditIssueOption edit issue options
+// EditIssueOption options for editing an issue
 type EditIssueOption struct {
 	Title     string  `json:"title"`
 	Body      *string `json:"body"`

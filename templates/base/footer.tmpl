@@ -3,7 +3,13 @@
 <body>
 	<div>
 */}}
+
+	{{template "custom/body_inner_post" .}}
+
 	</div>
+
+	{{template "custom/body_outer_post" .}}
+
 	<footer>
 		<div class="ui container">
 			<div class="ui left">
@@ -22,8 +28,8 @@
 						{{end}}
 					</div>
 				</div>
-				<a href="{{AppSubUrl}}/vendor/librejs.html" data-jslicense="1">Javascript licenses</a>
-				<a href="{{AppSubUrl}}/swagger">API</a>
+				<a href="{{AppSubUrl}}/vendor/librejs.html" data-jslicense="1">JavaScript licenses</a>
+				<a href="{{AppSubUrl}}/api/swagger">API</a>
 				<a target="_blank" rel="noopener" href="https://gitea.io">{{.i18n.Tr "website"}}</a>
 				{{if (or .ShowFooterVersion .PageIsAdmin)}}<span class="version">{{GoVer}}</span>{{end}}
 			</div>
@@ -58,6 +64,32 @@
 {{if .RequireDropzone}}
 	<script src="{{AppSubUrl}}/vendor/plugins/dropzone/dropzone.js"></script>
 {{end}}
+{{if .RequireTribute}}
+	<script src="{{AppSubUrl}}/vendor/plugins/tribute/tribute.min.js"></script>
+
+	{{if .Assignees}}
+	<script>
+		var issuesTribute = new Tribute({
+			values: [
+			{{ range .Assignees }}
+			{key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
+			name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'},
+			{{ end }}
+			],
+			noMatchTemplate: function () { return null },
+			menuItemTemplate: function (item) {
+				var user = item.original;
+				var itemStr = '<img src="' + user.avatar + '"/><span class="name">' + user.name + '</span>';
+				if (user.fullname && user.fullname != '') {
+					itemStr += '<span class="fullname">' + user.fullname + '</span>';
+				}
+				return itemStr;
+			}
+		})
+		issuesTribute.attach(document.getElementById('content'))
+	</script>
+	{{end}}
+{{end}}
 	<script src="{{AppSubUrl}}/vendor/plugins/autolink/autolink.js"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/emojify/emojify.min.js"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/clipboard/clipboard.min.js"></script>
@@ -66,5 +98,6 @@
 	<!-- JavaScript -->
 	<script src="{{AppSubUrl}}/vendor/plugins/semantic/semantic.min.js"></script>
 	<script src="{{AppSubUrl}}/js/index.js?v={{MD5 AppVer}}"></script>
+{{template "custom/footer" .}}
 </body>
 </html>

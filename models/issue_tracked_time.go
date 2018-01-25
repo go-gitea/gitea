@@ -7,8 +7,10 @@ package models
 import (
 	"time"
 
+	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/sdk/gitea"
+
 	"github.com/go-xorm/builder"
-	"github.com/go-xorm/xorm"
 )
 
 // TrackedTime represents a time that was spent for a specific issue.
@@ -17,21 +19,23 @@ type TrackedTime struct {
 	IssueID     int64     `xorm:"INDEX" json:"issue_id"`
 	UserID      int64     `xorm:"INDEX" json:"user_id"`
 	Created     time.Time `xorm:"-" json:"created"`
-	CreatedUnix int64     `json:"-"`
+	CreatedUnix int64     `xorm:"created" json:"-"`
 	Time        int64     `json:"time"`
 }
 
-// BeforeInsert will be invoked by XORM before inserting a record
-// representing this object.
-func (t *TrackedTime) BeforeInsert() {
-	t.CreatedUnix = time.Now().Unix()
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (t *TrackedTime) AfterLoad() {
+	t.Created = time.Unix(t.CreatedUnix, 0).In(setting.UILocation)
 }
 
-// AfterSet is invoked from XORM after setting the value of a field of this object.
-func (t *TrackedTime) AfterSet(colName string, _ xorm.Cell) {
-	switch colName {
-	case "created_unix":
-		t.Created = time.Unix(t.CreatedUnix, 0).Local()
+// APIFormat converts TrackedTime to API format
+func (t *TrackedTime) APIFormat() *api.TrackedTime {
+	return &api.TrackedTime{
+		ID:      t.ID,
+		IssueID: t.IssueID,
+		UserID:  t.UserID,
+		Time:    t.Time,
+		Created: t.Created,
 	}
 }
 
