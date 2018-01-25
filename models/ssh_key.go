@@ -473,11 +473,11 @@ func ListPublicKeys(uid int64) ([]*PublicKey, error) {
 		Find(&keys)
 }
 
-// ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user.
-func ListPublicLdapSSHKeys(uid int64) ([]*PublicKey, error) {
+// ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user and ldap source.
+func ListPublicLdapSSHKeys(uid int64, lsid int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
 	return keys, x.
-		Where("owner_id = ? AND login_source_id > 0", uid).
+		Where("owner_id = ? AND login_source_id = ?", uid, lsid).
 		Find(&keys)
 }
 

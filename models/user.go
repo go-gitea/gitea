@@ -1395,9 +1395,9 @@ func addLdapSSHPublicKeys(s *LoginSource, usr *User, SSHPublicKeys []string) (ss
 func synchronizeLdapSSHPublicKeys(s *LoginSource, SSHPublicKeys []string, usr *User) (sshKeysNeedUpdate bool, err error) {
 	log.Trace("synchronizeLdapSSHPublicKeys[%s]: Handling LDAP Public SSH Key synchronization for user %s", s.Name, usr.Name)
 
-	// Get Public Keys from DB with LDAP source
+	// Get Public Keys from DB with current LDAP source
 	var giteaKeys []string
-	keys, err := ListPublicLdapSSHKeys(usr.ID)
+	keys, err := ListPublicLdapSSHKeys(usr.ID, s.ID)
 	if err != nil {
 		log.Error(4, "synchronizeLdapSSHPublicKeys[%s]: Error listing LDAP Public SSH Keys for user %s: %v", s.Name, usr.Name, err)
 	}
