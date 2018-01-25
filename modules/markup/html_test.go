@@ -342,6 +342,7 @@ func TestRegExp_IssueNumericPattern(t *testing.T) {
 		"#1234",
 		"#0",
 		"#1234567890987654321",
+		"[#1234]",
 	}
 	falseTestCases := []string{
 		"# 1234",
@@ -368,6 +369,7 @@ func TestRegExp_IssueAlphanumericPattern(t *testing.T) {
 		"A-1",
 		"RC-80",
 		"ABCDEFGHIJ-1234567890987654321234567890",
+		"[JIRA-134]",
 	}
 	falseTestCases := []string{
 		"RC-08",
