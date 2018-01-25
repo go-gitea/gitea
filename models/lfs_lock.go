@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/sdk/gitea"
+	"github.com/go-xorm/xorm"
 )
 
 // LFSLock represents a git lfs lock of repository.
@@ -34,13 +35,13 @@ func (l *LFSLock) BeforeInsert() {
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (l *LFSLock) AfterLoad() {
+func (l *LFSLock) AfterLoad(session *xorm.Session) {
 	var err error
-	l.Owner, err = GetUserByID(l.OwnerID)
+	l.Owner, err = getUserByID(session, l.OwnerID)
 	if err != nil {
 		log.Error(2, "LFS lock AfterLoad failed OwnerId[%d] not found: %v", l.OwnerID, err)
 	}
-	l.Repo, err = GetRepositoryByID(l.RepoID)
+	l.Repo, err = getRepositoryByID(session, l.RepoID)
 	if err != nil {
 		log.Error(2, "LFS lock AfterLoad failed RepoId[%d] not found: %v", l.RepoID, err)
 	}
