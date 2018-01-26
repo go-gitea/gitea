@@ -86,7 +86,7 @@ type UpdateRepoFileOptions struct {
 
 // UpdateRepoFile adds or updates a file in repository.
 func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (err error) {
-	repoID := com.ToStr(repo.ID))
+	repoID := com.ToStr(repo.ID)
 	repoWorkingPool.CheckIn(repoID)
 	defer repoWorkingPool.CheckOut(repoID)
 
