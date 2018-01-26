@@ -285,6 +285,9 @@ func TestRender_CrossReferences(t *testing.T) {
 	test(
 		"gogits/gogs#12345",
 		`<p><a href="`+URLJoin(AppURL, "gogits", "gogs", "issues", "12345")+`" rel="nofollow">gogits/gogs#12345</a></p>`)
+	test(
+		"go-gitea/gitea#12345",
+		`<p><a href="`+URLJoin(AppURL, "go-gitea", "gitea", "issues", "12345")+`" rel="nofollow">go-gitea/gitea#12345</a></p>`)
 }
 
 func TestRender_FullIssueURLs(t *testing.T) {
