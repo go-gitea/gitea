@@ -5,6 +5,7 @@
 package sync
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -57,14 +58,18 @@ func (p *ExclusivePool) CheckIn(identity string) {
 // CheckOut checks out an instance from the pool and releases the lock
 // to let other instances with same identity to grab the lock.
 func (p *ExclusivePool) CheckOut(identity string) {
+	fmt.Println("ExclusivePool.CheckOut", identity)
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
+	fmt.Println("Running unlock")
 	p.pool[identity].Unlock()
 	if p.count[identity] == 1 {
+		fmt.Println("Deleting")
 		delete(p.pool, identity)
 		delete(p.count, identity)
 	} else {
+		fmt.Println("Decreasing identiy")
 		p.count[identity]--
 	}
 }
