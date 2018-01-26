@@ -56,20 +56,26 @@ func getParentTreeFields(treePath string) (treeNames []string, treePaths []strin
 }
 
 func editFile(ctx *context.Context, isNewFile bool) {
+	fmt.Println("EDIT FILE 1")
+
 	ctx.Data["PageIsEdit"] = true
 	ctx.Data["IsNewFile"] = isNewFile
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
+	fmt.Println("EDIT FILE: renderCommitRights")
 	canCommit := renderCommitRights(ctx)
 
+	fmt.Println("EDIT FILE: getParentTreeFields")
 	treeNames, treePaths := getParentTreeFields(ctx.Repo.TreePath)
 
 	if !isNewFile {
+		fmt.Println("EDIT FILE: GetTreeEntryByPath")
 		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 		if err != nil {
 			ctx.NotFoundOrServerError("GetTreeEntryByPath", git.IsErrNotExist, err)
 			return
 		}
+		fmt.Println("EDIT FILE: newFile")
 
 		// No way to edit a directory online.
 		if entry.IsDir() {
@@ -77,33 +83,41 @@ func editFile(ctx *context.Context, isNewFile bool) {
 			return
 		}
 
+		fmt.Println("EDIT FILE: newFile")
 		blob := entry.Blob()
 		if blob.Size() >= setting.UI.MaxDisplayFileSize {
 			ctx.NotFound("blob.Size", err)
 			return
 		}
 
+		fmt.Println("EDIT FILE: newFile")
 		dataRc, err := blob.Data()
 		if err != nil {
 			ctx.NotFound("blob.Data", err)
 			return
 		}
 
+		fmt.Println("EDIT FILE: newFile blob")
 		ctx.Data["FileSize"] = blob.Size()
+		fmt.Println("EDIT FILE: newFile blo2")
 		ctx.Data["FileName"] = blob.Name()
 
 		buf := make([]byte, 1024)
+		fmt.Println("EDIT FILE: newFile askdhask")
 		n, _ := dataRc.Read(buf)
 		buf = buf[:n]
 
+		fmt.Println("EDIT FILE: newFile jshda")
 		// Only text file are editable online.
 		if !base.IsTextFile(buf) {
 			ctx.NotFound("base.IsTextFile", nil)
 			return
 		}
 
+		fmt.Println("EDIT FILE: newFile fofof")
 		d, _ := ioutil.ReadAll(dataRc)
 		buf = append(buf, d...)
+		fmt.Println("EDIT FILE: newFile askdhjas")
 		if content, err := templates.ToUTF8WithErr(buf); err != nil {
 			if err != nil {
 				log.Error(4, "ToUTF8WithErr: %v", err)
@@ -113,9 +127,11 @@ func editFile(ctx *context.Context, isNewFile bool) {
 			ctx.Data["FileContent"] = content
 		}
 	} else {
+		fmt.Println("EDIT FILE: else branch")
 		treeNames = append(treeNames, "") // Append empty string to allow user name the new file.
 	}
 
+	fmt.Println("Data")
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["TreePaths"] = treePaths
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
@@ -133,7 +149,9 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["PreviewableFileModes"] = strings.Join(setting.Repository.Editor.PreviewableFileModes, ",")
 	ctx.Data["EditorconfigURLPrefix"] = fmt.Sprintf("%s/api/v1/repos/%s/editorconfig/", setting.AppSubURL, ctx.Repo.Repository.FullName())
 
+	fmt.Println("Render")
 	ctx.HTML(200, tplEditFile)
+	fmt.Println("Render successful")
 }
 
 // EditFile render edit file page
