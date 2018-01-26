@@ -169,6 +169,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 	ctx.Data["IsNewFile"] = isNewFile
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
+	fmt.Println("EFP renderCommitRights")
 	canCommit := renderCommitRights(ctx)
 
 	oldBranchName := ctx.Repo.BranchName
@@ -182,6 +183,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 	}
 
 	form.TreePath = strings.Trim(form.TreePath, " /")
+	fmt.Println("EFP getParentTreeFields")
 	treeNames, treePaths := getParentTreeFields(form.TreePath)
 
 	ctx.Data["TreePath"] = form.TreePath
@@ -198,27 +200,36 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["PreviewableFileModes"] = strings.Join(setting.Repository.Editor.PreviewableFileModes, ",")
 
+	fmt.Println("EFP HasError")
 	if ctx.HasError() {
+		fmt.Println("EFP HasError, tplEditFile")
 		ctx.HTML(200, tplEditFile)
+		fmt.Println("EFP rendered")
 		return
 	}
 
 	if len(form.TreePath) == 0 {
 		ctx.Data["Err_TreePath"] = true
+		fmt.Println("EFP RenderWithErr filename_cannot_be_empty")
 		ctx.RenderWithErr(ctx.Tr("repo.editor.filename_cannot_be_empty"), tplEditFile, &form)
+		fmt.Println("EFP rendered")
 		return
 	}
 
 	if oldBranchName != branchName {
 		if _, err := ctx.Repo.Repository.GetBranch(branchName); err == nil {
 			ctx.Data["Err_NewBranchName"] = true
+			fmt.Println("EFP RenderWitHErr branch exists")
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), tplEditFile, &form)
+			fmt.Println("EFP rendered")
 			return
 		}
 	} else if !canCommit {
 		ctx.Data["Err_NewBranchName"] = true
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
+		fmt.Println("EFP RenderWithErr protected")
 		ctx.RenderWithErr(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", branchName), tplEditFile, &form)
+		fmt.Println("EFP rendered")
 		return
 	}
 
@@ -312,6 +323,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		message += "\n\n" + form.CommitMessage
 	}
 
+	fmt.Println("EFP UpdateRepoFile")
 	if err := ctx.Repo.Repository.UpdateRepoFile(ctx.User, models.UpdateRepoFileOptions{
 		LastCommitID: lastCommit,
 		OldBranch:    oldBranchName,
@@ -323,10 +335,12 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		IsNewFile:    isNewFile,
 	}); err != nil {
 		ctx.Data["Err_TreePath"] = true
+		fmt.Println("EFP update err", err)
 		ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_update_file", form.TreePath, err), tplEditFile, &form)
 		return
 	}
 
+	fmt.Println("EFP redirect")
 	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + branchName + "/" + strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(form.TreePath))
 }
 
