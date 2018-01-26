@@ -86,12 +86,11 @@ type UpdateRepoFileOptions struct {
 
 // UpdateRepoFile adds or updates a file in repository.
 func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (err error) {
-	repoID := com.ToStr(repo.ID)
 	fmt.Println("UpdateRepoFile START ============")
 	fmt.Println("Checking in")
-	repoWorkingPool.CheckIn(repoID)
+	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
 	fmt.Println("Checked in")
-	defer repoWorkingPool.CheckOut(repoID)
+	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
 
 	fmt.Println("Discarding/updating branches")
 	if err = repo.DiscardLocalRepoBranchChanges(opts.OldBranch); err != nil {
