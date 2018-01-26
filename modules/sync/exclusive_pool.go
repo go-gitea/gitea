@@ -6,6 +6,7 @@ package sync
 
 import (
 	"fmt"
+	"runtime/debug"
 	"sync"
 )
 
@@ -43,6 +44,7 @@ func NewExclusivePool() *ExclusivePool {
 // with same identity is using the lock.
 func (p *ExclusivePool) CheckIn(identity string) {
 	fmt.Println("CHECKING IN WITH IDENTITY", identity)
+	debug.PrintStack()
 	p.lock.Lock()
 
 	lock, has := p.pool[identity]
@@ -60,6 +62,7 @@ func (p *ExclusivePool) CheckIn(identity string) {
 // to let other instances with same identity to grab the lock.
 func (p *ExclusivePool) CheckOut(identity string) {
 	fmt.Println("CHECKING OUT WITH IDENTITY", identity)
+	debug.PrintStack()
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
