@@ -76,6 +76,7 @@ func (session *Session) Init() {
 	session.afterDeleteBeans = make(map[interface{}]*[]func(interface{}), 0)
 	session.beforeClosures = make([]func(interface{}), 0)
 	session.afterClosures = make([]func(interface{}), 0)
+	session.stmtCache = make(map[uint32]*core.Stmt)
 
 	session.afterProcessors = make([]executedProcessor, 0)
 
@@ -262,13 +263,13 @@ func (session *Session) canCache() bool {
 	return true
 }
 
-func (session *Session) doPrepare(sqlStr string) (stmt *core.Stmt, err error) {
+func (session *Session) doPrepare(db *core.DB, sqlStr string) (stmt *core.Stmt, err error) {
 	crc := crc32.ChecksumIEEE([]byte(sqlStr))
 	// TODO try hash(sqlStr+len(sqlStr))
 	var has bool
 	stmt, has = session.stmtCache[crc]
 	if !has {
-		stmt, err = session.DB().Prepare(sqlStr)
+		stmt, err = db.Prepare(sqlStr)
 		if err != nil {
 			return nil, err
 		}
@@ -461,6 +462,10 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 				hasAssigned = true
 
 				if len(bs) > 0 {
+					if fieldType.Kind() == reflect.String {
+						fieldValue.SetString(string(bs))
+						continue
+					}
 					if fieldValue.CanAddr() {
 						err := json.Unmarshal(bs, fieldValue.Addr().Interface())
 						if err != nil {

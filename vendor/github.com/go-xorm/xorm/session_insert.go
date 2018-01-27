@@ -400,7 +400,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 			return 0, err
 		}
 
-		handleAfterInsertProcessorFunc(bean)
+		defer handleAfterInsertProcessorFunc(bean)
 
 		if cacher := session.engine.getCacher2(table); cacher != nil && session.statement.UseCache {
 			session.cacheInsert(table, tableName)
@@ -445,7 +445,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		handleAfterInsertProcessorFunc(bean)
+		defer handleAfterInsertProcessorFunc(bean)
 
 		if cacher := session.engine.getCacher2(table); cacher != nil && session.statement.UseCache {
 			session.cacheInsert(table, tableName)
