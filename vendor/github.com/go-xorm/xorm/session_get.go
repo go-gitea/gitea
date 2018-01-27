@@ -5,6 +5,7 @@
 package xorm
 
 import (
+	"database/sql"
 	"errors"
 	"reflect"
 	"strconv"
@@ -77,6 +78,13 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bea
 
 	if !rows.Next() {
 		return false, nil
+	}
+
+	switch bean.(type) {
+	case sql.NullInt64, sql.NullBool, sql.NullFloat64, sql.NullString:
+		return true, rows.Scan(&bean)
+	case *sql.NullInt64, *sql.NullBool, *sql.NullFloat64, *sql.NullString:
+		return true, rows.Scan(bean)
 	}
 
 	switch beanKind {

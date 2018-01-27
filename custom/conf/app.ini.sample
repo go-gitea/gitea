@@ -198,6 +198,7 @@ DB_TYPE = mysql
 HOST = 127.0.0.1:3306
 NAME = gitea
 USER = root
+; Use PASSWD = `your password` for quoting if you use special characters in the password.
 PASSWD =
 ; For "postgres" only, either "disable", "require" or "verify-full"
 SSL_MODE = disable
@@ -342,6 +343,7 @@ KEY_FILE = custom/mailer/key.pem
 FROM =
 ; Mailer user name and password
 USER =
+; Use PASSWD = `your password` for quoting if you use special characters in the password.
 PASSWD =
 ; Send mails as plain text
 SEND_AS_PLAIN_TEXT = false
@@ -464,6 +466,7 @@ SUBJECT = Diagnostic message from server
 HOST =
 ; Mailer user name and password
 USER =
+; Use PASSWD = `your password` for quoting if you use special characters in the password.
 PASSWD =
 ; Receivers, can be one or more, e.g. 1@example.com,2@example.com
 RECEIVERS =
