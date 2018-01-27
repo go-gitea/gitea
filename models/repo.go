@@ -1580,8 +1580,17 @@ func ChangeRepositoryName(u *User, oldRepoName, newRepoName string) (err error) 
 	}
 
 	// Change repository directory name.
-	if err = os.Rename(repo.RepoPath(), RepoPath(u.Name, newRepoName)); err != nil {
+	newRepoPath := RepoPath(u.Name, newRepoName)
+	if err = os.Rename(repo.RepoPath(), newRepoPath); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
+	}
+
+	localPath := repo.LocalCopyPath()
+	if com.IsExist(localPath) {
+		_, err := git.NewCommand("remote", "set-url", "origin", newRepoPath).RunInDir(localPath)
+		if err != nil {
+			return fmt.Errorf("git remote set-url origin %s: %v", newRepoPath, err)
+		}
 	}
 
 	wikiPath := repo.WikiPath()
