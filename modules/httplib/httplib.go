@@ -25,7 +25,7 @@ import (
 	"time"
 )
 
-var defaultSetting = Settings{false, "GogsServer", 60 * time.Second, 60 * time.Second, nil, nil, nil, false}
+var defaultSetting = Settings{false, "GiteaServer", 60 * time.Second, 60 * time.Second, nil, nil, nil, false}
 var defaultCookieJar http.CookieJar
 var settingMutex sync.Mutex
 
