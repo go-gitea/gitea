@@ -353,6 +353,8 @@ func TestRegExp_IssueNumericPattern(t *testing.T) {
 		"#1A2B",
 		"",
 		"ABC",
+		"[]",
+		"[x]",
 	}
 
 	for _, testCase := range trueTestCases {
@@ -382,6 +384,7 @@ func TestRegExp_IssueAlphanumericPattern(t *testing.T) {
 		"ABC",
 		"GG-",
 		"rm-1",
+		"[]",
 	}
 
 	for _, testCase := range trueTestCases {
