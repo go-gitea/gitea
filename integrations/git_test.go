@@ -214,11 +214,9 @@ func TestGit(t *testing.T) {
 						commitAndPush(t, bigSize, dstPath)
 					})
 				})
-				/* Failed without #3152. TODO activate with fix.
 				t.Run("Locks", func(t *testing.T) {
-				  lockTest(t, u.String(), dstPath)
+					lockTest(t, u.String(), dstPath)
 				})
-				*/
 			})
 		})
 	})
