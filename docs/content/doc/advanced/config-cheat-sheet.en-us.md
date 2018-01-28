@@ -118,7 +118,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `HOST`: **127.0.0.1:3306**: Database host address and port.
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
-- `PASSWD`: **\<empty\>**: Database user password.
+- `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password. 
 - `SSL_MODE`: **disable**: For PostgreSQL only.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 
@@ -185,7 +185,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `FROM`: **\<empty\>**: Mail from address, RFC 5322. This can be just an email address, or
    the "Name" \<email@example.com\> format.
 - `USER`: **\<empty\>**: Username of mailing user (usually the sender's e-mail address).
-- `PASSWD`: **\<empty\>**: Password of mailing user.
+- `PASSWD`: **\<empty\>**: Password of mailing user.  Use \`your password\` for quoting if you use special characters in the password.
 - `SKIP_VERIFY`: **\<empty\>**: Do not verify the self-signed certificates.
    - **Note:** Gitea only supports SMTP with STARTTLS.
 - `USE_SENDMAIL`: **false** Use the operating system's `sendmail` command instead of SMTP.
