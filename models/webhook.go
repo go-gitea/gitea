@@ -684,7 +684,7 @@ func DeliverHooks() {
 
 		repoID, err := com.StrTo(repoIDStr).Int64()
 		if err != nil {
-			log.Error(4, "Invalid repoID: %s", repoIDStr)
+			log.Error(4, "Invalid repo ID: %s", repoIDStr)
 			continue
 		}
 
