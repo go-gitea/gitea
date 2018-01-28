@@ -298,10 +298,6 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	}()
 
 	headRepoPath := RepoPath(pr.HeadUserName, pr.HeadRepo.Name)
-	headGitRepo, err := git.OpenRepository(headRepoPath)
-	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
-	}
 
 	// Clone base repo.
 	tmpBasePath := path.Join(LocalCopyPath(), "merge-"+com.ToStr(time.Now().Nanosecond())+".git")
@@ -441,7 +437,7 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return nil
 	}
 
-	l, err := headGitRepo.CommitsBetweenIDs(pr.MergedCommitID, pr.MergeBase)
+	l, err := baseGitRepo.CommitsBetweenIDs(pr.MergedCommitID, pr.MergeBase)
 	if err != nil {
 		log.Error(4, "CommitsBetweenIDs: %v", err)
 		return nil
