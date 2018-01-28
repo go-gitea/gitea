@@ -774,17 +774,17 @@ func UpdateLocalCopyBranch(repoPath, localPath, branch string) error {
 			return fmt.Errorf("git clone %s: %v", branch, err)
 		}
 	} else {
-		if err := git.Checkout(localPath, git.CheckoutOptions{
-			Branch: branch,
-		}); err != nil {
-			return fmt.Errorf("git checkout %s: %v", branch, err)
-		}
-
 		_, err := git.NewCommand("fetch", "origin").RunInDir(localPath)
 		if err != nil {
 			return fmt.Errorf("git fetch origin: %v", err)
 		}
 		if len(branch) > 0 {
+			if err := git.Checkout(localPath, git.CheckoutOptions{
+				Branch: branch,
+			}); err != nil {
+				return fmt.Errorf("git checkout %s: %v", branch, err)
+			}
+
 			if err := git.ResetHEAD(localPath, true, "origin/"+branch); err != nil {
 				return fmt.Errorf("git reset --hard origin/%s: %v", branch, err)
 			}
