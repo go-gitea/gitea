@@ -41,8 +41,10 @@ LINE_WRAP_EXTENSIONS = .txt,.md,.markdown,.mdown,.mkd,
 PREVIEWABLE_FILE_MODES = markdown
 
 [repository.local]
-; Path for uploads. Defaults to `tmp/local-repo`
+; Path for local repository copy. Defaults to `tmp/local-repo`
 LOCAL_COPY_PATH = tmp/local-repo
+; Path for local wiki copy. Defaults to `tmp/local-wiki`
+LOCAL_WIKI_PATH = tmp/local-wiki
 
 [repository.upload]
 ; Whether repository file uploads are enabled. Defaults to `true`
