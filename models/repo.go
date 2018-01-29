@@ -774,17 +774,17 @@ func UpdateLocalCopyBranch(repoPath, localPath, branch string) error {
 			return fmt.Errorf("git clone %s: %v", branch, err)
 		}
 	} else {
-		if err := git.Checkout(localPath, git.CheckoutOptions{
-			Branch: branch,
-		}); err != nil {
-			return fmt.Errorf("git checkout %s: %v", branch, err)
-		}
-
 		_, err := git.NewCommand("fetch", "origin").RunInDir(localPath)
 		if err != nil {
 			return fmt.Errorf("git fetch origin: %v", err)
 		}
 		if len(branch) > 0 {
+			if err := git.Checkout(localPath, git.CheckoutOptions{
+				Branch: branch,
+			}); err != nil {
+				return fmt.Errorf("git checkout %s: %v", branch, err)
+			}
+
 			if err := git.ResetHEAD(localPath, true, "origin/"+branch); err != nil {
 				return fmt.Errorf("git reset --hard origin/%s: %v", branch, err)
 			}
@@ -1579,9 +1579,23 @@ func ChangeRepositoryName(u *User, oldRepoName, newRepoName string) (err error) 
 		return fmt.Errorf("GetRepositoryByName: %v", err)
 	}
 
-	// Change repository directory name.
-	if err = os.Rename(repo.RepoPath(), RepoPath(u.Name, newRepoName)); err != nil {
+	// Change repository directory name. We must lock the local copy of the
+	// repo so that we can atomically rename the repo path and updates the
+	// local copy's origin accordingly.
+	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
+	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
+
+	newRepoPath := RepoPath(u.Name, newRepoName)
+	if err = os.Rename(repo.RepoPath(), newRepoPath); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
+	}
+
+	localPath := repo.LocalCopyPath()
+	if com.IsExist(localPath) {
+		_, err := git.NewCommand("remote", "set-url", "origin", newRepoPath).RunInDir(localPath)
+		if err != nil {
+			return fmt.Errorf("git remote set-url origin %s: %v", newRepoPath, err)
+		}
 	}
 
 	wikiPath := repo.WikiPath()
