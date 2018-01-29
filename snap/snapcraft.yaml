@@ -19,6 +19,7 @@ apps:
     plugs: [network, network-bind]
   web:
     command: bin/gitea web
+    daemon: simple
     plugs: [network, network-bind]
   serv:
     command: bin/gitea serv
