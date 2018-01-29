@@ -16,7 +16,8 @@ fi
 export USERNAME=root
 export USER=root
 
-export GITEA_WORK_DIR=$(snapctl get GITEA_WORK_DIR)
-export GITEA_CUSTOM=$(snapctl get GITEA_CUSTOM)
+export GITEA_WORK_DIR=$(snapctl get gitea.snap.workdir)
+export GITEA_CUSTOM=$(snapctl get gitea.snap.custom)
 
+$SNAP/bin/gconfig save
 cd $SNAP/gitea; ./gitea $@

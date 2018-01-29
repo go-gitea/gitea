@@ -19,7 +19,6 @@ apps:
     plugs: [network, network-bind]
   web:
     command: bin/gitea web
-    daemon: simple
     plugs: [network, network-bind]
   serv:
     command: bin/gitea serv
@@ -90,7 +89,9 @@ parts:
             $src/public \
             $src/scripts \
             $SNAPCRAFT_PART_INSTALL/static/
-      cp    $src/README.md $src/LICENSE \
+      cp -r $src/README.md \
+            $src/LICENSE  \
+            $src/custom \
             $SNAPCRAFT_PART_INSTALL/
     prime:
       - -etc
@@ -112,6 +113,8 @@ parts:
     organize:
       simple_launcher.sh: bin/gitea
       app.ini: gitea/snapApp.ini
+      configuration.sh: bin/gconfig
     prime:
       - bin/gitea
+      - bin/gconfig
       - gitea/snapApp.ini

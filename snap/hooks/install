@@ -1,19 +1,10 @@
 #!/bin/bash
 
-SDATA=''; SCOMMON='';
-if env | grep -q root; then
-  export SDATA=$(echo $SNAP_DATA | sed s!$SNAP_REVISION!current!)
-  export SCOMMON="$SNAP_COMMON"
-  export isRoot=`true`
-  snapctl set GITEA_WORK_DIR=$SDATA/custom
-  snapctl set GITEA_CUSTOM=$SCOMMON
-else
-  echo "You are not running gitea as root. This is required for the snap package."
-  echo "Please re-run as root."
-  exit 1
-fi
-
-export appini="$SDATA/custom/conf/app.ini"
+export SDATA=$(echo $SNAP_DATA | sed "s|$SNAP_REVISION|current|")
+export SCOMMON="$SNAP_COMMON"
+export isRoot=`true`
+snapctl set gitea.snap.workdir="$SDATA/custom"
+snapctl set gitea.snap.custom="$SCOMMON"
 
 function mkDirCommon(){
   for dir in $@; do
@@ -46,12 +37,7 @@ mkdirData   certs              \
             static/scripts     \
             static/public
 
-if [ ! -f $appini ]; then
-  echo "app.ini not found. Initializing Configuration."
-  out=$(sed s!SNAP_DIR_DATA!$SDATA!g $SNAP/gitea/snapApp.ini)
-  out=$(echo "$out" | sed s!SNAP_DIR_COMMON!$SCOMMON!g)
-  echo "$out" > $appini
-fi
+[[ -f $SNAP_COMMON/conf/app.ini ]] || $SNAP/bin/gconfig install
 
 # Configure Git to use the right templates
 mkdir -p $SDATA/git/
