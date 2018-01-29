@@ -166,7 +166,7 @@ func (r *Request) Header(key, value string) *Request {
 
 // HeaderWithSensitiveCase add header item string in request and keep the case of the header key.
 func (r *Request) HeaderWithSensitiveCase(key, value string) *Request {
-	r.req.Header[key]=value
+	r.req.Header[key] = []string{value}
 	return r
 }
 
