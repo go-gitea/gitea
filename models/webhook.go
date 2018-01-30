@@ -588,8 +588,8 @@ func (t *HookTask) deliver() {
 		Header("X-Gitea-Event", string(t.EventType)).
 		Header("X-Gogs-Delivery", t.UUID).
 		Header("X-Gogs-Event", string(t.EventType)).
-		Header("X-GitHub-Delivery", t.UUID).
-		Header("X-GitHub-Event", string(t.EventType)).
+		HeaderWithSensitiveCase("X-GitHub-Delivery", t.UUID).
+		HeaderWithSensitiveCase("X-GitHub-Event", string(t.EventType)).
 		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify})
 
 	switch t.ContentType {
