@@ -115,7 +115,7 @@
 				return ':' + item.original + ':';
 			},
 			menuItemTemplate: function (item) {
-				return '<img class="emoji" src="/vendor/plugins/emojify/images/' + item.original + '.png"/>' + item.original;
+				return '<img class="emoji" src="{{AppSubUrl}}/vendor/plugins/emojify/images/' + item.original + '.png"/>' + item.original;
 			}
 		});
 		emojiTribute.attach(document.getElementById('content'))
