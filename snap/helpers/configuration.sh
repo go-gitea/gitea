@@ -19,7 +19,7 @@ IFS='
   [[ "$1" = "init" ]] && src="$smp"
   [[ "$1" = "snap" ]] && src="$basecfg"
 
-  for l in `sed 's_;\([A-Z]*\)_\1_g' $src | grep -v -e '^;' -e '^$'`; do
+  for l in $(sed 's_;\([A-Z]*\)_\1_g' $src | grep -v -e '^;' -e '^$'); do
     if echo $l | grep -q '^[[]'; then
       category=$(CatToSnap "$l")
     elif echo $l | grep -q '^[A-Z]'; then
@@ -46,7 +46,7 @@ IFS='
   [[ -f $src ]] && cp "$src" "$tmpIni"
   cp $tmpIni $bak
   echo '' > $cfg
-  for l in `grep -v -e '^;' -e '^$' $tmpIni`; do
+  for l in $(grep -v -e '^;' -e '^$' $tmpIni); do
     if echo $l | grep -q '^[[]'; then
       category=$(CatToSnap "$l")
       catUnset=true
