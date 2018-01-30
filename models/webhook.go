@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 
+	"github.com/Unknwon/com"
 	gouuid "github.com/satori/go.uuid"
 )
 
@@ -677,9 +678,15 @@ func DeliverHooks() {
 	}
 
 	// Start listening on new hook requests.
-	for repoID := range HookQueue.Queue() {
-		log.Trace("DeliverHooks [repo_id: %v]", repoID)
-		HookQueue.Remove(repoID)
+	for repoIDStr := range HookQueue.Queue() {
+		log.Trace("DeliverHooks [repo_id: %v]", repoIDStr)
+		HookQueue.Remove(repoIDStr)
+
+		repoID, err := com.StrTo(repoIDStr).Int64()
+		if err != nil {
+			log.Error(4, "Invalid repo ID: %s", repoIDStr)
+			continue
+		}
 
 		tasks = make([]*HookTask, 0, 5)
 		if err := x.Where("repo_id=? AND is_delivered=?", repoID, false).Find(&tasks); err != nil {
