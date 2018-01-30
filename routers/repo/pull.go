@@ -957,37 +957,21 @@ func CleanUpPullRequest(ctx *context.Context) {
 	}
 
 	// Check if branch has no new commits
-	if len(pr.MergedCommitID) > 0 {
-		branchCommitID, err := gitRepo.GetBranchCommitID(pr.HeadBranch)
-		if err != nil {
-			log.Error(4, "GetBranchCommitID: %v", err)
-			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
-			return
-		}
-
-		commit, err := gitBaseRepo.GetCommit(pr.MergedCommitID)
-		if err != nil {
-			log.Error(4, "GetCommit: %v", err)
-			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
-			return
-		}
-
-		isParent := false
-		for i := 0; i < commit.ParentCount(); i++ {
-			if parent, err := commit.Parent(i); err != nil {
-				log.Error(4, "Parent: %v", err)
-				ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
-				return
-			} else if parent.ID.String() == branchCommitID {
-				isParent = true
-				break
-			}
-		}
-
-		if !isParent {
-			ctx.Flash.Error(ctx.Tr("repo.branch.delete_branch_has_new_commits", fullBranchName))
-			return
-		}
+	headCommitID, err := gitBaseRepo.GetRefCommitID(pr.GetGitRefName())
+	if err != nil {
+		log.Error(4, "GetRefCommitID: %v", err)
+		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+		return
+	}
+	branchCommitID, err := gitRepo.GetBranchCommitID(pr.HeadBranch)
+	if err != nil {
+		log.Error(4, "GetBranchCommitID: %v", err)
+		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+		return
+	}
+	if headCommitID != branchCommitID {
+		ctx.Flash.Error(ctx.Tr("repo.branch.delete_branch_has_new_commits", fullBranchName))
+		return
 	}
 
 	if err := gitRepo.DeleteBranch(pr.HeadBranch, git.DeleteBranchOptions{
