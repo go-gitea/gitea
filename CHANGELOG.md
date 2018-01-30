@@ -4,10 +4,12 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [go-gitea/gitea](https://github.com/1.4.0/releases/tag/v1.4.0) - 2018-01-30
+## [1.4.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.4.0-rc1) - 2018-01-31
 * BREAKING
   * Drop deprecated GOGS\_WORK\_DIR use (#2946)
   * Fix API status code for hook creation (#2814)
+* SECURITY
+  * Sanitize logs for mirror sync (#3057)
 * FEATURE
   * Serve .patch and .diff for pull requests (#3305, #3293)
   * Add repo-sync-releases admin command (#3254)
@@ -22,10 +24,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Responsive view (#2750)
 * BUGFIXES
   * Add content type and doctype to requests made with go-get (#3426, #3423)
-  * Fix branch deletion for squash or rebase merged pull requests (#3425)
   * Fix SQL type error for webhooks (#3424)
   * Fix PR merge error (#3421)
-  * Fix empty checkout bug (#3419)
   * Recognize more characters in crossreferenced repo name (#3413)
   * Fix MSSQL bug on org (#3405)
   * HTML escape all lines of the search result (#3402)
@@ -35,17 +35,15 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Use issue number/index instead of id for API URL. Fix #3297 (#3298)
   * Fix repo-transfer-and-team-repo-count bug (#3241)
   * Fix always-on SSL Mode checkbox in admin page (#3208)
-  * Fix wiki page list not rendering after UpdatedUnix changes (#3175)
   * Fix source download link when no code unit allowed (#3166)
   * Fix org owner cannot be removed if he is not in owner team (#3164)
-  * fix run web with -p push failed (#3154)
+  * Fix run web with -p push failed (#3154)
   * Fix gpg tmpl (#3153)
   * Fix SSH auth lfs locks (#3152)
   * Improvements for supporting UI Location (#3146)
   * Fix new pull request link (#3133)
   * Fix missing branch in release bug (#3108)
   * Allow adding collaborators with (fullname) (#3103)
-  * Fix reaction possition when there is attachments (#3099)
   * Fix repo links (#3093)
   * fix lfs url refs + keep path upper/lowercase in db. (#3092)
   * Fix redis session failed (#3086)
@@ -61,7 +59,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Various wiki bug fixes (#2996)
   * Fix go-get, src and raw urls to new scheme (#2978)
   * Fix error when add user has full name to team (#2973)
-  * Fix files/commits of merged PRs (#2937)
   * Fix memcache support when value is returned as string always (#2924)
 * ENHANCEMENT
   * Use GiteaServer as the user agent for http requests (#3404)
@@ -74,7 +71,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add more additional template snippets (#3286)
   * Open external tracker in blank window, consistently with wiki (#3227)
   * Fix repo links on user profile (#3197)
-  * Fix ignored errors when checking if organization, team member (#3177)
   * Enable emoji for wiki view (#3158)
   * Small improve on deleting attachements (#3145)
   * Reduce overhead of upgrades for users with custom stylesheets/JS (#3051)
@@ -87,15 +83,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix language names (#2955)
   * Remove render issue link (#2954)
   * Git LFS lock api (#2938)
-  * Remove unnecessary IssueList attribute loads (#2936)
   * Page parameter for repo search API (#2915)
   * Apply LANDING\_PAGE config options for logged in users (#2894)
   * Enable admin to search by email (#2888)
   * Hide add key button if SSH is disabled (#2873)
   * Fix comment API paths (#2813)
   * Add an option to allow redirect of http port 80 to https. (#1928)
-* SECURITY
-  * Sanitize logs for mirror sync (#3057)
 * MISC
   * Fix organization profile on mobile devices (#3332)
   * Fix guide link for webhooks in repository settings (#3291) (#3292)
@@ -110,7 +103,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Delete a user's public key via admin api (closes #3014) (#3059)
   * Dashboard: Fix line height problem in issue titles (#3054)
   * Remove duplicate "Max Diff Lines" from config view (#2987)
-  * Fix fault PR renaming app.ini (#1522) (#2977)
   * Drop unmaintained gogs migration script (#2947)
   * App restarts to quickly if it fails to start. (#2945)
   * Add owner to delete repo message (#2886)
