@@ -1140,10 +1140,20 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
 		if err != nil {
 			return err
 		}
-		if len(labelIDs) > 0 {
+		if len(labelIDs) == 1 {
 			sess.
 				Join("INNER", "issue_label", "issue.id = issue_label.issue_id").
 				In("issue_label.label_id", labelIDs)
+		} else if len(labelIDs) > 1{
+			cond, args, _ := builder.ToSQL(builder.In("issue_label.label_id", labelIDs))
+			sess.
+				Where(fmt.Sprintf(`issue.id IN (
+					SELECT issue_label.issue_id
+					FROM issue_label
+					WHERE %s
+					GROUP BY issue_label.issue_id
+					HAVING COUNT(issue_label.label_id) = %d
+					)`, cond, len(labelIDs)), args...)
 		}
 	}
 	return nil
@@ -1322,9 +1332,19 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 			labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
 			if err != nil {
 				log.Warn("Malformed Labels argument: %s", opts.Labels)
-			} else if len(labelIDs) > 0 {
+			} else if len(labelIDs) == 1 {
 				sess.Join("INNER", "issue_label", "issue.id = issue_label.issue_id").
 					In("issue_label.label_id", labelIDs)
+			} else if len(labelIDs) > 1 {
+				cond, args, _ := builder.ToSQL(builder.In("issue_label.label_id", labelIDs))
+				sess.
+					Where(fmt.Sprintf(`issue.id IN (
+					SELECT issue_label.issue_id
+					FROM issue_label
+					WHERE %s
+					GROUP BY issue_label.issue_id
+					HAVING COUNT(issue_label.label_id) = %d
+					)`, cond, len(labelIDs)), args...)
 			}
 		}
 

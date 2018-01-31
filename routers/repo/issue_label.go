@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"strings"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -63,6 +65,23 @@ func RetrieveLabels(ctx *context.Context) {
 	}
 	for _, l := range labels {
 		l.CalOpenIssues()
+	}
+	ctx.Data["Labels"] = labels
+	ctx.Data["NumLabels"] = len(labels)
+	ctx.Data["SortType"] = ctx.Query("sort")
+}
+
+// RetreveLabelsAndCalQueryString calculate query string when filtering issues/pulls
+func RetreveLabelsAndCalQueryString(ctx *context.Context) {
+	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Query("sort"))
+	if err != nil {
+		ctx.ServerError("RetreveLabelsAndCalQueryString.GetLabels", err)
+		return
+	}
+	selectLabelsSlice := strings.Split(ctx.Query("labels"), ",")
+	for _, l := range labels {
+		l.CalOpenIssues()
+		l.CalQueryString(selectLabelsSlice)
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)
