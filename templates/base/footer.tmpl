@@ -97,12 +97,10 @@
 				values: function (text, cb) {
 					var array = emojify.emojiNames;
 					var data = [];
-					var counter = 0;
 					for(var j=0; j<array.length; j++) {
 						if(array[j].indexOf(text) !== -1) {
 							data.push(array[j]);
-							counter++;
-							if(counter > 5) {
+							if(data.length > 5) {
 								break;
 							}
 						}
