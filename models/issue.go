@@ -1144,7 +1144,7 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
 			sess.
 				Join("INNER", "issue_label", "issue.id = issue_label.issue_id").
 				In("issue_label.label_id", labelIDs)
-		} else if len(labelIDs) > 1{
+		} else if len(labelIDs) > 1 {
 			cond, args, _ := builder.ToSQL(builder.In("issue_label.label_id", labelIDs))
 			sess.
 				Where(fmt.Sprintf(`issue.id IN (
