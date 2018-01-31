@@ -86,7 +86,7 @@ func (label *Label) CalQueryString(query []string) {
 	for _, s := range query {
 		if s == labelID {
 			labelSelected = true
-		} else {
+		} else if s != "" {
 			labelQuerySlice = append(labelQuerySlice, s)
 		}
 	}
