@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.4.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.4.0-rc1) - 2018-01-31
+## [1.4.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.4.0-rc1) - 2018-02-01
 * BREAKING
   * Drop deprecated GOGS\_WORK\_DIR use (#2946)
   * Fix API status code for hook creation (#2814)
