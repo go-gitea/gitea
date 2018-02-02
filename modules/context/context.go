@@ -189,7 +189,9 @@ func Contexter() macaron.Handler {
 				branchName = repo.DefaultBranch
 			}
 			prefix := setting.AppURL + path.Join(ownerName, repoName, "src", "branch", branchName)
-			c.PlainText(http.StatusOK, []byte(com.Expand(`<!doctype html>
+			c.Header().Set("Content-Type", "text/html")
+			c.WriteHeader(http.StatusOK)
+			c.Write([]byte(com.Expand(`<!doctype html>
 <html>
 	<head>
 		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
