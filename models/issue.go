@@ -95,7 +95,8 @@ func (issue *Issue) loadRepo(e Engine) (err error) {
 
 // IsTimetrackerEnabled returns true if the repo enables timetracking
 func (issue *Issue) IsTimetrackerEnabled() bool {
-	if issue.loadRepo(x) != nil {
+	if err := issue.loadRepo(x); err != nil {
+		log.Error(4, fmt.Sprintf("An error occured while checking if timetracker is enabled: %v", err))
 		return false
 	}
 	return issue.Repo.IsTimetrackerEnabled()
