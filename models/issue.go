@@ -70,7 +70,7 @@ func init() {
 
 func (issue *Issue) totalTimes(e Engine) (string, error) {
 	opts := FindTrackedTimesOptions{IssueID: issue.ID}
-	totalTime, err := e.Where(opts.ToCond()).SumInt(&TrackedTime{}, "time")
+	totalTime, err := opts.ToSession(e).SumInt(&TrackedTime{}, "time")
 	if err != nil {
 		return "", err
 	}

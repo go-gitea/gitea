@@ -11,6 +11,7 @@ import (
 	api "code.gitea.io/sdk/gitea"
 
 	"github.com/go-xorm/builder"
+	"github.com/go-xorm/xorm"
 )
 
 // TrackedTime represents a time that was spent for a specific issue.
@@ -65,13 +66,17 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 	return cond
 }
 
+// ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
+func (opts *FindTrackedTimesOptions) ToSession(e Engine) *xorm.Session {
+	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
+		return e.Join("INNER", "issue", "issue.id = tracked_time.issue_id").Where(opts.ToCond())
+	}
+	return x.Where(opts.ToCond())
+}
+
 // GetTrackedTimes returns all tracked times that fit to the given options.
 func GetTrackedTimes(options FindTrackedTimesOptions) (trackedTimes []*TrackedTime, err error) {
-	if options.RepositoryID > 0 || options.MilestoneID > 0 {
-		err = x.Join("INNER", "issue", "issue.id = tracked_time.issue_id").Where(options.ToCond()).Find(&trackedTimes)
-		return
-	}
-	err = x.Where(options.ToCond()).Find(&trackedTimes)
+	err = options.ToSession(x).Find(&trackedTimes)
 	return
 }
 

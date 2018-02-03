@@ -251,3 +251,11 @@ func TestDeleteMilestoneByRepoID(t *testing.T) {
 
 	assert.NoError(t, DeleteMilestoneByRepoID(NonexistentID, NonexistentID))
 }
+
+func TestMilestone_TotalTimes(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	ms, err := GetMilestoneByRepoID(1, 1)
+	assert.NoError(t, err)
+	times := ms.TotalTimes()
+	assert.Equal(t, "1h 1min 2s", times)
+}
