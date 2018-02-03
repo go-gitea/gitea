@@ -78,12 +78,12 @@ func (label *Label) CalOpenIssues() {
 	label.NumOpenIssues = label.NumIssues - label.NumClosedIssues
 }
 
-// CalQueryString calculates query string in issue/pulls list
-func (label *Label) CalQueryString(query []string) {
+// LoadSelectedLabelsAfterClick calculates the set of selected labels when a label is clicked
+func (label *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []string) {
 	var labelQuerySlice []string
 	labelSelected := false
 	labelID := fmt.Sprint(label.ID)
-	for _, s := range query {
+	for _, s := range currentSelectedLabels {
 		if s == labelID {
 			labelSelected = true
 		} else if s != "" {

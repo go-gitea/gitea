@@ -71,17 +71,17 @@ func RetrieveLabels(ctx *context.Context) {
 	ctx.Data["SortType"] = ctx.Query("sort")
 }
 
-// RetreveLabelsAndCalQueryString calculate query string when filtering issues/pulls
-func RetreveLabelsAndCalQueryString(ctx *context.Context) {
+// RetrieveLabelsAndLoadSelectedLabels calculate query string when filtering issues/pulls
+func RetrieveLabelsAndLoadSelectedLabels(ctx *context.Context) {
 	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Query("sort"))
 	if err != nil {
-		ctx.ServerError("RetreveLabelsAndCalQueryString.GetLabels", err)
+		ctx.ServerError("RetrieveLabelsAndLoadSelectedLabels.GetLabels", err)
 		return
 	}
-	selectLabelsSlice := strings.Split(ctx.Query("labels"), ",")
+	selectLabels := strings.Split(ctx.Query("labels"), ",")
 	for _, l := range labels {
 		l.CalOpenIssues()
-		l.CalQueryString(selectLabelsSlice)
+		l.LoadSelectedLabelsAfterClick(selectLabels)
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)

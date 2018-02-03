@@ -585,7 +585,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 	m.Group("/:username/:reponame", func() {
 		m.Group("", func() {
-			m.Get("/^:type(issues|pulls)$", repo.RetreveLabelsAndCalQueryString, repo.Issues)
+			m.Get("/^:type(issues|pulls)$", repo.RetrieveLabelsAndLoadSelectedLabels, repo.Issues)
 			m.Get("/^:type(issues|pulls)$/:index", repo.ViewIssue)
 			m.Get("/labels/", context.CheckAnyUnit(models.UnitTypeIssues, models.UnitTypePullRequests), repo.RetrieveLabels, repo.Labels)
 			m.Get("/milestones", context.CheckAnyUnit(models.UnitTypeIssues, models.UnitTypePullRequests), repo.Milestones)
