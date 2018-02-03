@@ -259,12 +259,16 @@ func runServ(c *cli.Context) error {
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, username, repo.Name)
 
 		now := time.Now()
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		claims := jwt.MapClaims{
 			"repo": repo.ID,
 			"op":   lfsVerb,
 			"exp":  now.Add(5 * time.Minute).Unix(),
 			"nbf":  now.Unix(),
-		})
+		}
+		if user != nil {
+			claims["user"] = user.ID
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 		// Sign and get the complete encoded token as a string using the secret
 		tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)

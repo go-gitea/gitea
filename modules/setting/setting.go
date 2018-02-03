@@ -215,6 +215,7 @@ var (
 		// Repository local settings
 		Local struct {
 			LocalCopyPath string
+			LocalWikiPath string
 		} `ini:"-"`
 	}{
 		AnsiCharset:            "",
@@ -254,8 +255,10 @@ var (
 		// Repository local settings
 		Local: struct {
 			LocalCopyPath string
+			LocalWikiPath string
 		}{
 			LocalCopyPath: "tmp/local-repo",
+			LocalWikiPath: "tmp/local-wiki",
 		},
 	}
 	RepoRootPath string

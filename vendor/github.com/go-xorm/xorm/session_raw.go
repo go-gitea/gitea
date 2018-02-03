@@ -47,9 +47,16 @@ func (session *Session) queryRows(sqlStr string, args ...interface{}) (*core.Row
 	}
 
 	if session.isAutoCommit {
+		var db *core.DB
+		if session.engine.engineGroup != nil {
+			db = session.engine.engineGroup.Slave().DB()
+		} else {
+			db = session.DB()
+		}
+
 		if session.prepareStmt {
 			// don't clear stmt since session will cache them
-			stmt, err := session.doPrepare(sqlStr)
+			stmt, err := session.doPrepare(db, sqlStr)
 			if err != nil {
 				return nil, err
 			}
@@ -61,7 +68,7 @@ func (session *Session) queryRows(sqlStr string, args ...interface{}) (*core.Row
 			return rows, nil
 		}
 
-		rows, err := session.DB().Query(sqlStr, args...)
+		rows, err := db.Query(sqlStr, args...)
 		if err != nil {
 			return nil, err
 		}
@@ -171,7 +178,7 @@ func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, er
 	}
 
 	if session.prepareStmt {
-		stmt, err := session.doPrepare(sqlStr)
+		stmt, err := session.doPrepare(session.DB(), sqlStr)
 		if err != nil {
 			return nil, err
 		}
