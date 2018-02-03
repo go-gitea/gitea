@@ -7,33 +7,20 @@
   max-width: 500px;
   overflow: auto;
   display: block;
-  box-shadow: 0px 1px 3px 1px #c7c7c7;
   z-index: 999999; }
   .tribute-container ul {
     margin: 0;
     margin-top: 2px;
     padding: 0;
     list-style: none;
-    background: #ffffff; }
+    background: #efefef; }
   .tribute-container li {
-    padding: 8px 12px;
-    border-bottom: 1px solid #dcdcdc;
+    padding: 5px 5px;
     cursor: pointer; }
     .tribute-container li.highlight, .tribute-container li:hover {
-      background: #2185D0;
-      color: #ffffff;}
-    .tribute-container li img {
-      display: inline-block;
-      vertical-align: middle;
-      width: 28px;
-      margin-right: 5px;
-    }
+      background: #ddd; }
     .tribute-container li span {
       font-weight: bold; }
-    .tribute-container li span.fullname {
-      font-weight: normal;
-      font-size: 0.8rem;
-      margin-left: 3px;}
     .tribute-container li.no-match {
       cursor: default; }
   .tribute-container .menu-highlighted {
