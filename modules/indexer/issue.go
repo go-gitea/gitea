@@ -5,8 +5,6 @@
 package indexer
 
 import (
-	"os"
-
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -14,11 +12,18 @@ import (
 	"github.com/blevesearch/bleve/analysis/analyzer/custom"
 	"github.com/blevesearch/bleve/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/analysis/tokenizer/unicode"
-	"github.com/blevesearch/bleve/index/upsidedown"
+	"github.com/ethantkoenig/rupture"
 )
 
 // issueIndexer (thread-safe) index for searching issues
 var issueIndexer bleve.Index
+
+const (
+	issueIndexerAnalyzer = "issueIndexer"
+	issueIndexerDocType  = "issueIndexerDocType"
+
+	issueIndexerLatestVersion = 1
+)
 
 // IssueIndexerData data stored in the issue indexer
 type IssueIndexerData struct {
@@ -28,35 +33,33 @@ type IssueIndexerData struct {
 	Comments []string
 }
 
+// Type returns the document type, for bleve's mapping.Classifier interface.
+func (i *IssueIndexerData) Type() string {
+	return issueIndexerDocType
+}
+
 // IssueIndexerUpdate an update to the issue indexer
 type IssueIndexerUpdate struct {
 	IssueID int64
 	Data    *IssueIndexerData
 }
 
-func (update IssueIndexerUpdate) addToBatch(batch *bleve.Batch) error {
-	return batch.Index(indexerID(update.IssueID), update.Data)
+// AddToFlushingBatch adds the update to the given flushing batch.
+func (i IssueIndexerUpdate) AddToFlushingBatch(batch rupture.FlushingBatch) error {
+	return batch.Index(indexerID(i.IssueID), i.Data)
 }
-
-const issueIndexerAnalyzer = "issueIndexer"
 
 // InitIssueIndexer initialize issue indexer
 func InitIssueIndexer(populateIndexer func() error) {
-	_, err := os.Stat(setting.Indexer.IssuePath)
-	if err != nil && !os.IsNotExist(err) {
+	var err error
+	issueIndexer, err = openIndexer(setting.Indexer.IssuePath, issueIndexerLatestVersion)
+	if err != nil {
 		log.Fatal(4, "InitIssueIndexer: %v", err)
-	} else if err == nil {
-		issueIndexer, err = bleve.Open(setting.Indexer.IssuePath)
-		if err == nil {
-			return
-		} else if err != upsidedown.IncompatibleVersion {
-			log.Fatal(4, "InitIssueIndexer, open index: %v", err)
-		}
-		log.Warn("Incompatible bleve version, deleting and recreating issue indexer")
-		if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
-			log.Fatal(4, "InitIssueIndexer: remove index, %v", err)
-		}
 	}
+	if issueIndexer != nil {
+		return
+	}
+
 	if err = createIssueIndexer(); err != nil {
 		log.Fatal(4, "InitIssuesIndexer: create index, %v", err)
 	}
@@ -70,9 +73,13 @@ func createIssueIndexer() error {
 	mapping := bleve.NewIndexMapping()
 	docMapping := bleve.NewDocumentMapping()
 
-	docMapping.AddFieldMappingsAt("RepoID", bleve.NewNumericFieldMapping())
+	numericFieldMapping := bleve.NewNumericFieldMapping()
+	numericFieldMapping.IncludeInAll = false
+	docMapping.AddFieldMappingsAt("RepoID", numericFieldMapping)
 
 	textFieldMapping := bleve.NewTextFieldMapping()
+	textFieldMapping.Store = false
+	textFieldMapping.IncludeInAll = false
 	docMapping.AddFieldMappingsAt("Title", textFieldMapping)
 	docMapping.AddFieldMappingsAt("Content", textFieldMapping)
 	docMapping.AddFieldMappingsAt("Comments", textFieldMapping)
@@ -89,7 +96,8 @@ func createIssueIndexer() error {
 	}
 
 	mapping.DefaultAnalyzer = issueIndexerAnalyzer
-	mapping.AddDocumentMapping("issues", docMapping)
+	mapping.AddDocumentMapping(issueIndexerDocType, docMapping)
+	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
 
 	var err error
 	issueIndexer, err = bleve.New(setting.Indexer.IssuePath, mapping)
@@ -97,11 +105,8 @@ func createIssueIndexer() error {
 }
 
 // IssueIndexerBatch batch to add updates to
-func IssueIndexerBatch() *Batch {
-	return &Batch{
-		batch: issueIndexer.NewBatch(),
-		index: issueIndexer,
-	}
+func IssueIndexerBatch() rupture.FlushingBatch {
+	return rupture.NewFlushingBatch(issueIndexer, maxBatchSize)
 }
 
 // SearchIssuesByKeyword searches for issues by given conditions.
