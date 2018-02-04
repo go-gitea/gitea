@@ -77,11 +77,14 @@ func TestWikiFilenameToName(t *testing.T) {
 	for _, badFilename := range []string{
 		"nofileextension",
 		"wrongfileextension.txt",
-		"badescaping%%.md",
 	} {
 		_, err := WikiFilenameToName(badFilename)
 		assert.Error(t, err)
+		assert.True(t, IsErrWikiInvalidFileName(err))
 	}
+	_, err := WikiFilenameToName("badescaping%%.md")
+	assert.Error(t, err)
+	assert.False(t, IsErrWikiInvalidFileName(err))
 }
 
 func TestWikiNameToFilenameToName(t *testing.T) {
