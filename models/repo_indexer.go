@@ -5,9 +5,7 @@
 package models
 
 import (
-	"io/ioutil"
-	"os"
-	"path"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -16,8 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/Unknwon/com"
 )
 
 // RepoIndexerStatus status of a repo's entry in the repo indexer
@@ -132,7 +128,11 @@ func populateRepoIndexer(maxRepoID int64) {
 }
 
 func updateRepoIndexer(repo *Repository) error {
-	changes, err := getRepoChanges(repo)
+	sha, err := getDefaultBranchSha(repo)
+	if err != nil {
+		return err
+	}
+	changes, err := getRepoChanges(repo, sha)
 	if err != nil {
 		return err
 	} else if changes == nil {
@@ -140,12 +140,12 @@ func updateRepoIndexer(repo *Repository) error {
 	}
 
 	batch := indexer.RepoIndexerBatch()
-	for _, filename := range changes.UpdatedFiles {
-		if err := addUpdate(filename, repo, batch); err != nil {
+	for _, update := range changes.Updates {
+		if err := addUpdate(update, repo, batch); err != nil {
 			return err
 		}
 	}
-	for _, filename := range changes.RemovedFiles {
+	for _, filename := range changes.RemovedFilenames {
 		if err := addDelete(filename, repo, batch); err != nil {
 			return err
 		}
@@ -153,56 +153,61 @@ func updateRepoIndexer(repo *Repository) error {
 	if err = batch.Flush(); err != nil {
 		return err
 	}
-	return updateLastIndexSync(repo)
+	return repo.updateIndexerStatus(sha)
 }
 
 // repoChanges changes (file additions/updates/removals) to a repo
 type repoChanges struct {
-	UpdatedFiles []string
-	RemovedFiles []string
+	Updates          []fileUpdate
+	RemovedFilenames []string
+}
+
+type fileUpdate struct {
+	Filename string
+	BlobSha  string
+}
+
+func getDefaultBranchSha(repo *Repository) (string, error) {
+	stdout, err := git.NewCommand("show-ref", "-s", repo.DefaultBranch).RunInDir(repo.RepoPath())
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(stdout), nil
 }
 
 // getRepoChanges returns changes to repo since last indexer update
-func getRepoChanges(repo *Repository) (*repoChanges, error) {
-	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
-
-	if err := repo.UpdateLocalCopyBranch(""); err != nil {
-		return nil, err
-	} else if !git.IsBranchExist(repo.LocalCopyPath(), repo.DefaultBranch) {
-		// repo does not have any commits yet, so nothing to update
-		return nil, nil
-	} else if err = repo.UpdateLocalCopyBranch(repo.DefaultBranch); err != nil {
-		return nil, err
-	} else if err = repo.getIndexerStatus(); err != nil {
+func getRepoChanges(repo *Repository, revision string) (*repoChanges, error) {
+	if err := repo.getIndexerStatus(); err != nil {
 		return nil, err
 	}
 
 	if len(repo.IndexerStatus.CommitSha) == 0 {
-		return genesisChanges(repo)
+		return genesisChanges(repo, revision)
 	}
-	return nonGenesisChanges(repo)
+	return nonGenesisChanges(repo, revision)
 }
 
-func addUpdate(filename string, repo *Repository, batch *indexer.Batch) error {
-	filepath := path.Join(repo.LocalCopyPath(), filename)
-	if stat, err := os.Stat(filepath); err != nil {
+func addUpdate(update fileUpdate, repo *Repository, batch *indexer.Batch) error {
+	stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
+		RunInDir(repo.RepoPath())
+	if err != nil {
 		return err
-	} else if stat.Size() > setting.Indexer.MaxIndexerFileSize {
-		return nil
-	} else if stat.IsDir() {
-		// file could actually be a directory, if it is the root of a submodule.
-		// We do not index submodule contents, so don't do anything.
+	}
+	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
+		return fmt.Errorf("Misformatted git cat-file output: %v", err)
+	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
 		return nil
 	}
-	fileContents, err := ioutil.ReadFile(filepath)
+
+	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
+		RunInDirBytes(repo.RepoPath())
 	if err != nil {
 		return err
 	} else if !base.IsTextFile(fileContents) {
 		return nil
 	}
 	return batch.Add(indexer.RepoIndexerUpdate{
-		Filepath: filename,
+		Filepath: update.Filename,
 		Op:       indexer.RepoIndexerOpUpdate,
 		Data: &indexer.RepoIndexerData{
 			RepoID:  repo.ID,
@@ -221,42 +226,76 @@ func addDelete(filename string, repo *Repository, batch *indexer.Batch) error {
 	})
 }
 
-// genesisChanges get changes to add repo to the indexer for the first time
-func genesisChanges(repo *Repository) (*repoChanges, error) {
-	var changes repoChanges
-	stdout, err := git.NewCommand("ls-files").RunInDir(repo.LocalCopyPath())
-	if err != nil {
-		return nil, err
-	}
-	for _, line := range strings.Split(stdout, "\n") {
-		filename := strings.TrimSpace(line)
-		if len(filename) == 0 {
+// parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command
+func parseGitLsTreeOutput(stdout string) ([]fileUpdate, error) {
+	lines := strings.Split(stdout, "\n")
+	updates := make([]fileUpdate, 0, len(lines))
+	for _, line := range lines {
+		// expect line to be "<mode> <object-type> <object-sha>\t<filename>"
+		line = strings.TrimSpace(line)
+		if len(line) == 0 {
 			continue
-		} else if filename[0] == '"' {
+		}
+		firstSpaceIndex := strings.IndexByte(line, ' ')
+		if firstSpaceIndex < 0 {
+			log.Error(4, "Misformatted git ls-tree output: %s", line)
+			continue
+		}
+		tabIndex := strings.IndexByte(line, '\t')
+		if tabIndex < 42+firstSpaceIndex || tabIndex == len(line)-1 {
+			log.Error(4, "Misformatted git ls-tree output: %s", line)
+			continue
+		}
+		if objectType := line[firstSpaceIndex+1 : tabIndex-41]; objectType != "blob" {
+			// submodules appear as commit objects, we do not index submodules
+			continue
+		}
+
+		blobSha := line[tabIndex-40 : tabIndex]
+		filename := line[tabIndex+1:]
+		if filename[0] == '"' {
+			var err error
 			filename, err = strconv.Unquote(filename)
 			if err != nil {
 				return nil, err
 			}
 		}
-		changes.UpdatedFiles = append(changes.UpdatedFiles, filename)
+		updates = append(updates, fileUpdate{
+			Filename: filename,
+			BlobSha:  blobSha,
+		})
 	}
-	return &changes, nil
+	return updates, nil
+}
+
+// genesisChanges get changes to add repo to the indexer for the first time
+func genesisChanges(repo *Repository, revision string) (*repoChanges, error) {
+	var changes repoChanges
+	stdout, err := git.NewCommand("ls-tree", "--full-tree", "-r", revision).
+		RunInDir(repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+	changes.Updates, err = parseGitLsTreeOutput(stdout)
+	return &changes, err
 }
 
 // nonGenesisChanges get changes since the previous indexer update
-func nonGenesisChanges(repo *Repository) (*repoChanges, error) {
+func nonGenesisChanges(repo *Repository, revision string) (*repoChanges, error) {
 	diffCmd := git.NewCommand("diff", "--name-status",
-		repo.IndexerStatus.CommitSha, "HEAD")
-	stdout, err := diffCmd.RunInDir(repo.LocalCopyPath())
+		repo.IndexerStatus.CommitSha, revision)
+	stdout, err := diffCmd.RunInDir(repo.RepoPath())
 	if err != nil {
 		// previous commit sha may have been removed by a force push, so
 		// try rebuilding from scratch
+		log.Warn("git diff: %v", err)
 		if err = indexer.DeleteRepoFromIndexer(repo.ID); err != nil {
 			return nil, err
 		}
-		return genesisChanges(repo)
+		return genesisChanges(repo, revision)
 	}
 	var changes repoChanges
+	updatedFilenames := make([]string, 0, 10)
 	for _, line := range strings.Split(stdout, "\n") {
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
@@ -274,23 +313,22 @@ func nonGenesisChanges(repo *Repository) (*repoChanges, error) {
 
 		switch status := line[0]; status {
 		case 'M', 'A':
-			changes.UpdatedFiles = append(changes.UpdatedFiles, filename)
+			updatedFilenames = append(updatedFilenames, filename)
 		case 'D':
-			changes.RemovedFiles = append(changes.RemovedFiles, filename)
+			changes.RemovedFilenames = append(changes.RemovedFilenames, filename)
 		default:
 			log.Warn("Unrecognized status: %c (line=%s)", status, line)
 		}
 	}
-	return &changes, nil
-}
 
-func updateLastIndexSync(repo *Repository) error {
-	stdout, err := git.NewCommand("rev-parse", "HEAD").RunInDir(repo.LocalCopyPath())
+	cmd := git.NewCommand("ls-tree", "--full-tree", revision, "--")
+	cmd.AddArguments(updatedFilenames...)
+	stdout, err = cmd.RunInDir(repo.RepoPath())
 	if err != nil {
-		return err
+		return nil, err
 	}
-	sha := strings.TrimSpace(stdout)
-	return repo.updateIndexerStatus(sha)
+	changes.Updates, err = parseGitLsTreeOutput(stdout)
+	return &changes, err
 }
 
 func processRepoIndexerOperationQueue() {
