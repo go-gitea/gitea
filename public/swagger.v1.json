@@ -589,6 +589,40 @@
           }
         }
       },
+      "put": {
+          "produces": [
+            "application/json"
+          ],
+          "tags": [
+            "organization"
+          ],
+          "summary": "Add a member to an organization",
+          "operationId": "orgAddMember",
+          "parameters": [
+            {
+              "type": "string",
+              "description": "name of the organization",
+              "name": "org",
+              "in": "path",
+              "required": true
+            },
+            {
+              "type": "string",
+              "description": "username of the user",
+              "name": "username",
+              "in": "path",
+              "required": true
+            }
+          ],
+          "responses": {
+            "204": {
+              "description": "member addded",
+              "schema": {
+                "$ref": "#/responses/empty"
+              }
+            }
+          }
+      },
       "delete": {
         "produces": [
           "application/json"

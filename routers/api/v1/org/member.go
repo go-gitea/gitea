@@ -297,3 +297,36 @@ func DeleteMember(ctx *context.APIContext) {
 	}
 	ctx.Status(204)
 }
+
+// AddMember a member to an organization
+func AddMember(ctx *context.APIContext) {
+	// swagger:operation PUT /orgs/{org}/members/{username} organization orgAddMember
+	// ---
+	// summary: Add a member to an organization
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: username
+	//   in: path
+	//   description: username of the user
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: member added
+	//     schema:
+	//       "$ref": "#/responses/empty"
+	member := user.GetUserByParams(ctx)
+	if ctx.Written() {
+		return
+	}
+	if err := ctx.Org.Organization.AddMember(member.ID); err != nil {
+		ctx.Error(500, "AddMember", err)
+	}
+	ctx.Status(204)
+}
