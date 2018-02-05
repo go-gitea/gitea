@@ -193,11 +193,19 @@ func TestIssues(t *testing.T) {
 		},
 		{
 			IssuesOptions{
+				Labels:   "1",
+				Page:     1,
+				PageSize: 4,
+			},
+			[]int64{2, 1},
+		},
+		{
+			IssuesOptions{
 				Labels:   "1,2",
 				Page:     1,
 				PageSize: 4,
 			},
-			[]int64{5, 2, 1},
+			[]int64{1},
 		},
 	} {
 		issues, err := Issues(&test.Opts)
