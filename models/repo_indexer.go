@@ -242,7 +242,7 @@ func parseGitLsTreeOutput(stdout string) ([]fileUpdate, error) {
 			continue
 		}
 		tabIndex := strings.IndexByte(line, '\t')
-		if tabIndex < 42 + firstSpaceIndex || tabIndex == len(line)-1 {
+		if tabIndex < 42+firstSpaceIndex || tabIndex == len(line)-1 {
 			log.Error(4, "Misformatted git ls-tree output: %s", line)
 			continue
 		}
