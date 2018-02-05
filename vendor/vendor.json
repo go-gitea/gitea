@@ -129,6 +129,12 @@
 			"revisionTime": "2017-06-28T17:18:15Z"
 		},
 		{
+			"checksumSHA1": "unacAFTLwgpg7wyI/mYf7Zd9eaU=",
+			"path": "github.com/blevesearch/bleve/analysis/token/unique",
+			"revision": "ff210fbc6d348ad67aa5754eaea11a463fcddafd",
+			"revisionTime": "2018-02-01T18:20:06Z"
+		},
+		{
 			"checksumSHA1": "q7C04nlJLxKmemXLop0oyJhfi5M=",
 			"path": "github.com/blevesearch/bleve/analysis/tokenizer/unicode",
 			"revision": "011b168f7b84ffef05aed6716d73d21b1a33e971",
@@ -346,6 +352,12 @@
 			"path": "github.com/elazarl/go-bindata-assetfs",
 			"revision": "57eb5e1fc594ad4b0b1dbea7b286d299e0cb43c2",
 			"revisionTime": "2015-12-24T04:54:52Z"
+		},
+		{
+			"checksumSHA1": "06ofBxeJ9c4LS2p31PCMIj7IjJU=",
+			"path": "github.com/ethantkoenig/rupture",
+			"revision": "0a76f03a811abcca2e6357329b673e9bb8ef9643",
+			"revisionTime": "2018-02-03T18:25:44Z"
 		},
 		{
 			"checksumSHA1": "imR2wF388/0fBU6RRWx8RvTi8Q8=",

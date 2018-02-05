@@ -53,7 +53,7 @@ func populateIssueIndexer() error {
 				return err
 			}
 			for _, issue := range issues {
-				if err := batch.Add(issue.update()); err != nil {
+				if err := issue.update().AddToFlushingBatch(batch); err != nil {
 					return err
 				}
 			}
@@ -78,7 +78,7 @@ func processIssueIndexerUpdateQueue() {
 		issue, err := GetIssueByID(issueID)
 		if err != nil {
 			log.Error(4, "GetIssueByID: %v", err)
-		} else if err = batch.Add(issue.update()); err != nil {
+		} else if err = issue.update().AddToFlushingBatch(batch); err != nil {
 			log.Error(4, "IssueIndexer: %v", err)
 		}
 	}
