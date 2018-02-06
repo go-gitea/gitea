@@ -6,12 +6,17 @@ package indexer
 
 import (
 	"fmt"
+	"os"
 	"strconv"
+
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/analysis/token/unicodenorm"
+	"github.com/blevesearch/bleve/index/upsidedown"
 	"github.com/blevesearch/bleve/mapping"
 	"github.com/blevesearch/bleve/search/query"
+	"github.com/ethantkoenig/rupture"
 )
 
 // indexerID a bleve-compatible unique identifier for an integer id
@@ -53,40 +58,36 @@ func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
 	})
 }
 
-// Update represents an update to an indexer
-type Update interface {
-	addToBatch(batch *bleve.Batch) error
-}
-
 const maxBatchSize = 16
 
-// Batch batch of indexer updates that automatically flushes once it
-// reaches a certain size
-type Batch struct {
-	batch *bleve.Batch
-	index bleve.Index
-}
-
-// Add add update to batch, possibly flushing
-func (batch *Batch) Add(update Update) error {
-	if err := update.addToBatch(batch.batch); err != nil {
-		return err
+// openIndexer open the index at the specified path, checking for metadata
+// updates and bleve version updates.  If index needs to be created (or
+// re-created), returns (nil, nil)
+func openIndexer(path string, latestVersion int) (bleve.Index, error) {
+	_, err := os.Stat(setting.Indexer.IssuePath)
+	if err != nil && os.IsNotExist(err) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
 	}
-	return batch.flushIfFull()
-}
 
-func (batch *Batch) flushIfFull() error {
-	if batch.batch.Size() >= maxBatchSize {
-		return batch.Flush()
+	metadata, err := rupture.ReadIndexMetadata(path)
+	if err != nil {
+		return nil, err
 	}
-	return nil
-}
+	if metadata.Version < latestVersion {
+		// the indexer is using a previous version, so we should delete it and
+		// re-populate
+		return nil, os.RemoveAll(path)
+	}
 
-// Flush manually flush the batch, regardless of its size
-func (batch *Batch) Flush() error {
-	if err := batch.index.Batch(batch.batch); err != nil {
-		return err
+	index, err := bleve.Open(path)
+	if err != nil && err == upsidedown.IncompatibleVersion {
+		// the indexer was built with a previous version of bleve, so we should
+		// delete it and re-populate
+		return nil, os.RemoveAll(path)
+	} else if err != nil {
+		return nil, err
 	}
-	batch.batch.Reset()
-	return nil
+	return index, nil
 }

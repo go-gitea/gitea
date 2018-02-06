@@ -145,7 +145,7 @@ func (u *User) BeforeUpdate() {
 		if len(u.AvatarEmail) == 0 {
 			u.AvatarEmail = u.Email
 		}
-		if len(u.AvatarEmail) > 0 {
+		if len(u.AvatarEmail) > 0 && u.Avatar == "" {
 			u.Avatar = base.HashEmail(u.AvatarEmail)
 		}
 	}
