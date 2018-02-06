@@ -154,8 +154,8 @@ func TestGit(t *testing.T) {
 
 			//Setup ssh wrapper
 			os.Setenv("GIT_SSH_COMMAND",
-				"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i " +
-				filepath.Join(setting.AppWorkPath, keyFile))
+				"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i "+
+					filepath.Join(setting.AppWorkPath, keyFile))
 			os.Setenv("GIT_SSH_VARIANT", "ssh")
 
 			//Setup clone folder
