@@ -14,6 +14,8 @@ import (
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/ethantkoenig/rupture"
 )
 
 // RepoIndexerStatus status of a repo's entry in the repo indexer
@@ -187,7 +189,7 @@ func getRepoChanges(repo *Repository, revision string) (*repoChanges, error) {
 	return nonGenesisChanges(repo, revision)
 }
 
-func addUpdate(update fileUpdate, repo *Repository, batch *indexer.Batch) error {
+func addUpdate(update fileUpdate, repo *Repository, batch rupture.FlushingBatch) error {
 	stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
 		RunInDir(repo.RepoPath())
 	if err != nil {
@@ -206,24 +208,26 @@ func addUpdate(update fileUpdate, repo *Repository, batch *indexer.Batch) error 
 	} else if !base.IsTextFile(fileContents) {
 		return nil
 	}
-	return batch.Add(indexer.RepoIndexerUpdate{
+	indexerUpdate := indexer.RepoIndexerUpdate{
 		Filepath: update.Filename,
 		Op:       indexer.RepoIndexerOpUpdate,
 		Data: &indexer.RepoIndexerData{
 			RepoID:  repo.ID,
 			Content: string(fileContents),
 		},
-	})
+	}
+	return indexerUpdate.AddToFlushingBatch(batch)
 }
 
-func addDelete(filename string, repo *Repository, batch *indexer.Batch) error {
-	return batch.Add(indexer.RepoIndexerUpdate{
+func addDelete(filename string, repo *Repository, batch rupture.FlushingBatch) error {
+	indexerUpdate := indexer.RepoIndexerUpdate{
 		Filepath: filename,
 		Op:       indexer.RepoIndexerOpDelete,
 		Data: &indexer.RepoIndexerData{
 			RepoID: repo.ID,
 		},
-	})
+	}
+	return indexerUpdate.AddToFlushingBatch(batch)
 }
 
 // parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command
