@@ -24,7 +24,7 @@ typically be found at `/etc/gitea/conf/app.ini`.
 
 The defaults provided here are best-effort (not built automatically). They are
 accurately recorded in [app.ini.sample](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
-(s/master/<tag|release\>). Any string in the format `%(X)s` is a feature powered
+(s/master/\<tag|release\>). Any string in the format `%(X)s` is a feature powered
 by [ini](https://github.com/go-ini/ini/#recursive-values), for reading values recursively.
 
 Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
@@ -118,7 +118,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `HOST`: **127.0.0.1:3306**: Database host address and port.
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
-- `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password. 
+- `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
 - `SSL_MODE`: **disable**: For PostgreSQL only.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 
