@@ -6,6 +6,7 @@ package search
 
 import (
 	"bytes"
+	"html"
 	gotemplate "html/template"
 	"strings"
 
@@ -75,17 +76,17 @@ func searchResult(result *indexer.RepoSearchResult, startIndex, endIndex int) (*
 			closeActiveIndex := util.Min(result.EndIndex-index, len(line))
 			err = writeStrings(&formattedLinesBuffer,
 				`<li>`,
-				line[:openActiveIndex],
+				html.EscapeString(line[:openActiveIndex]),
 				`<span class='active'>`,
-				line[openActiveIndex:closeActiveIndex],
+				html.EscapeString(line[openActiveIndex:closeActiveIndex]),
 				`</span>`,
-				line[closeActiveIndex:],
+				html.EscapeString(line[closeActiveIndex:]),
 				`</li>`,
 			)
 		} else {
 			err = writeStrings(&formattedLinesBuffer,
 				`<li>`,
-				line,
+				html.EscapeString(line),
 				`</li>`,
 			)
 		}

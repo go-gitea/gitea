@@ -96,7 +96,7 @@ func ListReleases(ctx *context.APIContext) {
 
 // CreateRelease create a release
 func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
-	// swagger:operation GET /repos/{owner}/{repo}/releases repository repoCreateRelease
+	// swagger:operation POST /repos/{owner}/{repo}/releases repository repoCreateRelease
 	// ---
 	// summary: Create a release
 	// consumes:
@@ -146,6 +146,7 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 			IsDraft:      form.IsDraft,
 			IsPrerelease: form.IsPrerelease,
 			IsTag:        false,
+			Repo:         ctx.Repo.Repository,
 		}
 		if err := models.CreateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
 			if models.IsErrReleaseAlreadyExist(err) {
@@ -167,6 +168,8 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		rel.IsPrerelease = form.IsPrerelease
 		rel.PublisherID = ctx.User.ID
 		rel.IsTag = false
+		rel.Repo = ctx.Repo.Repository
+		rel.Publisher = ctx.User
 
 		if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
 			ctx.ServerError("UpdateRelease", err)

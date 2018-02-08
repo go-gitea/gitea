@@ -89,6 +89,38 @@
 		issuesTribute.attach(document.getElementById('content'))
 	</script>
 	{{end}}
+	<script>
+		var emojiTribute = new Tribute({
+			collection: [{
+				trigger: ':',
+				requireLeadingSpace: true,
+				values: function (text, cb) {
+					var array = emojify.emojiNames;
+					var data = [];
+					for(var j=0; j<array.length; j++) {
+						if(array[j].indexOf(text) !== -1) {
+							data.push(array[j]);
+							if(data.length > 5) {
+								break;
+							}
+						}
+					}
+					cb(data);
+				},
+				lookup: function (item) {
+					return item;
+				},
+				selectTemplate: function (item) {
+					if (typeof item === 'undefinied') return null;
+					return ':' + item.original + ':';
+				},
+				menuItemTemplate: function (item) {
+					return '<img class="emoji" src="{{AppSubUrl}}/vendor/plugins/emojify/images/' + item.original + '.png"/>' + item.original;
+				}
+			}]
+		});
+		emojiTribute.attach(document.getElementById('content'))
+	</script>
 {{end}}
 	<script src="{{AppSubUrl}}/vendor/plugins/autolink/autolink.js"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/emojify/emojify.min.js"></script>

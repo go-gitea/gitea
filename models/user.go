@@ -138,6 +138,22 @@ func (u *User) BeforeUpdate() {
 	if u.MaxRepoCreation < -1 {
 		u.MaxRepoCreation = -1
 	}
+
+	// Organization does not need email
+	u.Email = strings.ToLower(u.Email)
+	if !u.IsOrganization() {
+		if len(u.AvatarEmail) == 0 {
+			u.AvatarEmail = u.Email
+		}
+		if len(u.AvatarEmail) > 0 && u.Avatar == "" {
+			u.Avatar = base.HashEmail(u.AvatarEmail)
+		}
+	}
+
+	u.LowerName = strings.ToLower(u.Name)
+	u.Location = base.TruncateString(u.Location, 255)
+	u.Website = base.TruncateString(u.Website, 255)
+	u.Description = base.TruncateString(u.Description, 255)
 }
 
 // SetLastLogin set time to last login
@@ -283,7 +299,9 @@ func (u *User) generateRandomAvatar(e Engine) error {
 	}
 	// NOTICE for random avatar, it still uses id as avatar name, but custom avatar use md5
 	// since random image is not a user's photo, there is no security for enumable
-	u.Avatar = fmt.Sprintf("%d", u.ID)
+	if u.Avatar == "" {
+		u.Avatar = fmt.Sprintf("%d", u.ID)
+	}
 	if err = os.MkdirAll(filepath.Dir(u.CustomAvatarPath()), os.ModePerm); err != nil {
 		return fmt.Errorf("MkdirAll: %v", err)
 	}
@@ -633,7 +651,7 @@ func NewGhostUser() *User {
 }
 
 var (
-	reservedUsernames    = []string{"assets", "css", "explore", "img", "js", "less", "plugins", "debug", "raw", "install", "api", "avatar", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "new", ".", ".."}
+	reservedUsernames    = []string{"assets", "css", "explore", "img", "js", "less", "plugins", "debug", "raw", "install", "api", "avatars", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "new", ".", ".."}
 	reservedUserPatterns = []string{"*.keys"}
 )
 
@@ -840,22 +858,6 @@ func checkDupEmail(e Engine, u *User) error {
 }
 
 func updateUser(e Engine, u *User) error {
-	// Organization does not need email
-	u.Email = strings.ToLower(u.Email)
-	if !u.IsOrganization() {
-		if len(u.AvatarEmail) == 0 {
-			u.AvatarEmail = u.Email
-		}
-		if len(u.AvatarEmail) > 0 {
-			u.Avatar = base.HashEmail(u.AvatarEmail)
-		}
-	}
-
-	u.LowerName = strings.ToLower(u.Name)
-	u.Location = base.TruncateString(u.Location, 255)
-	u.Website = base.TruncateString(u.Website, 255)
-	u.Description = base.TruncateString(u.Description, 255)
-
 	_, err := e.ID(u.ID).AllCols().Update(u)
 	return err
 }
@@ -871,22 +873,6 @@ func UpdateUserCols(u *User, cols ...string) error {
 }
 
 func updateUserCols(e Engine, u *User, cols ...string) error {
-	// Organization does not need email
-	u.Email = strings.ToLower(u.Email)
-	if !u.IsOrganization() {
-		if len(u.AvatarEmail) == 0 {
-			u.AvatarEmail = u.Email
-		}
-		if len(u.AvatarEmail) > 0 {
-			u.Avatar = base.HashEmail(u.AvatarEmail)
-		}
-	}
-
-	u.LowerName = strings.ToLower(u.Name)
-	u.Location = base.TruncateString(u.Location, 255)
-	u.Website = base.TruncateString(u.Website, 255)
-	u.Description = base.TruncateString(u.Description, 255)
-
 	_, err := e.ID(u.ID).Cols(cols...).Update(u)
 	return err
 }
