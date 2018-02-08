@@ -7,6 +7,7 @@ package routes
 import (
 	"os"
 	"path"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -53,21 +54,23 @@ func NewMacaron() *macaron.Macaron {
 	}
 	m.Use(public.Custom(
 		&public.Options{
-			SkipLogging: setting.DisableRouterLog,
+			SkipLogging:  setting.DisableRouterLog,
+			ExpiresAfter: time.Hour * 6,
 		},
 	))
 	m.Use(public.Static(
 		&public.Options{
-			Directory:   path.Join(setting.StaticRootPath, "public"),
-			SkipLogging: setting.DisableRouterLog,
+			Directory:    path.Join(setting.StaticRootPath, "public"),
+			SkipLogging:  setting.DisableRouterLog,
+			ExpiresAfter: time.Hour * 6,
 		},
 	))
-	m.Use(macaron.Static(
+	m.Use(public.StaticHandler(
 		setting.AvatarUploadPath,
-		macaron.StaticOptions{
-			Prefix:      "avatars",
-			SkipLogging: setting.DisableRouterLog,
-			ETag:        true,
+		&public.Options{
+			Prefix:       "avatars",
+			SkipLogging:  setting.DisableRouterLog,
+			ExpiresAfter: time.Hour * 6,
 		},
 	))
 

@@ -45,7 +45,7 @@ func WikiNameToFilename(name string) string {
 // WikiFilenameToName converts a wiki filename to its corresponding page name.
 func WikiFilenameToName(filename string) (string, error) {
 	if !strings.HasSuffix(filename, ".md") {
-		return "", fmt.Errorf("Invalid wiki filename: %s", filename)
+		return "", ErrWikiInvalidFileName{filename}
 	}
 	basename := filename[:len(filename)-3]
 	unescaped, err := url.QueryUnescape(basename)

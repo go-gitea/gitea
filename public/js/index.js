@@ -571,6 +571,7 @@ function initRepository() {
                 $editContentZone.html($('#edit-content-form').html());
                 $textarea = $segment.find('textarea');
                 issuesTribute.attach($textarea.get());
+                emojiTribute.attach($textarea.get());
 
                 // Give new write/preview data-tab name to distinguish from others
                 var $editContentForm = $editContentZone.find('.ui.comment.form');
