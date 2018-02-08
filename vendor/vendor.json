@@ -9,10 +9,13 @@
 			"revisionTime": "2018-01-14T14:37:32Z"
 		},
 		{
-			"checksumSHA1": "Qtq0kW+BnpYMOriaoCjMa86WGG8=",
+			"checksumSHA1": "g1n6fJkgAsi/3VYGP2h0jN2k1zc=",
+			"origin": "github.com/JonasFranzDEV/go-sdk/gitea",
 			"path": "code.gitea.io/sdk/gitea",
-			"revision": "79eee8f12c7fc1cc5b802c5cdc5b494ef3733866",
-			"revisionTime": "2017-12-20T06:57:50Z"
+			"revision": "05408a9188b961646914e6873b97de1b43a86b6a",
+			"revisionTime": "2018-02-08T21:06:42Z",
+			"version": "=711-release-api",
+			"versionExact": "711-release-api"
 		},
 		{
 			"checksumSHA1": "bOODD4Gbw3GfcuQPU2dI40crxxk=",

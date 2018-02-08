@@ -6,12 +6,14 @@ package gitea // import "code.gitea.io/sdk/gitea"
 import "time"
 
 // Attachment a generic attachment
+// swagger:model
 type Attachment struct {
-	ID            int64     `json:"id"`
-	Name          string    `json:"name"`
-	Size          int64     `json:"size"`
-	DownloadCount int64     `json:"download_count"`
-	Created       time.Time `json:"created_at"`
-	UUID          string    `json:"uuid"`
-	DownloadURL   string    `json:"browser_download_url"`
+	ID            int64  `json:"id"`
+	Name          string `json:"name"`
+	Size          int64  `json:"size"`
+	DownloadCount int64  `json:"download_count"`
+	// swagger:strfmt date-time
+	Created     time.Time `json:"created_at"`
+	UUID        string    `json:"uuid"`
+	DownloadURL string    `json:"browser_download_url"`
 }
