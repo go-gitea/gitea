@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -134,7 +135,7 @@ func TestGit(t *testing.T) {
 
 			//Setup key
 			keyFile := filepath.Join(setting.AppDataPath, "my-testing-key")
-			_, _, err := com.ExecCmd("ssh-keygen", "-f", keyFile, "-t", "rsa", "-N", "")
+			err := exec.Command("ssh-keygen", "-f", keyFile, "-t", "rsa", "-N", "").Run()
 			assert.NoError(t, err)
 			defer os.RemoveAll(keyFile)
 			defer os.RemoveAll(keyFile + ".pub")
@@ -152,13 +153,10 @@ func TestGit(t *testing.T) {
 			session.MakeRequest(t, req, http.StatusCreated)
 
 			//Setup ssh wrapper
-			sshWrapper, err := ioutil.TempFile(setting.AppDataPath, "tmp-ssh-wrapper")
-			sshWrapper.WriteString("#!/bin/sh\n\n")
-			sshWrapper.WriteString("ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i \"" + filepath.Join(setting.AppWorkPath, keyFile) + "\" $* \n\n")
-			err = sshWrapper.Chmod(os.ModePerm)
-			assert.NoError(t, err)
-			sshWrapper.Close()
-			defer os.RemoveAll(sshWrapper.Name())
+			os.Setenv("GIT_SSH_COMMAND",
+				"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i "+
+					filepath.Join(setting.AppWorkPath, keyFile))
+			os.Setenv("GIT_SSH_VARIANT", "ssh")
 
 			//Setup clone folder
 			dstPath, err := ioutil.TempDir("", "repo-tmp-18")
@@ -181,7 +179,7 @@ func TestGit(t *testing.T) {
 				})
 				//TODO get url from api
 				t.Run("Clone", func(t *testing.T) {
-					_, err = git.NewCommand("clone").AddArguments("--config", "core.sshCommand="+filepath.Join(setting.AppWorkPath, sshWrapper.Name()), u.String(), dstPath).Run()
+					_, err = git.NewCommand("clone").AddArguments(u.String(), dstPath).Run()
 					assert.NoError(t, err)
 					assert.True(t, com.IsExist(filepath.Join(dstPath, "README.md")))
 				})
@@ -196,8 +194,6 @@ func TestGit(t *testing.T) {
 				})
 			})
 			t.Run("LFS", func(t *testing.T) {
-				os.Setenv("GIT_SSH_COMMAND", filepath.Join(setting.AppWorkPath, sshWrapper.Name())) //TODO remove when fixed https://github.com/git-lfs/git-lfs/issues/2215
-				defer os.Unsetenv("GIT_SSH_COMMAND")
 				t.Run("PushCommit", func(t *testing.T) {
 					//Setup git LFS
 					_, err = git.NewCommand("lfs").AddArguments("install").RunInDir(dstPath)
