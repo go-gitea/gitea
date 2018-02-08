@@ -1,8 +1,8 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/context"
 )
 
 // GetReleaseAttachment gets a single attachment of the release
@@ -36,21 +36,20 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Attachment"
-	releaseId := ctx.ParamsInt64(":id")
-	attachId := ctx.ParamsInt64(":attachment")
-	attach, err := models.GetAttachmentByID(attachId)
+	releaseID := ctx.ParamsInt64(":id")
+	attachID := ctx.ParamsInt64(":attachment")
+	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(500, "GetAttachmentByID", err)
 		return
 	}
-	if attach.ReleaseID != releaseId {
+	if attach.ReleaseID != releaseID {
 		ctx.Status(404)
 		return
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
 	ctx.JSON(200, attach.APIFormat())
 }
-
 
 // ListReleaseAttachments lists all attachments of the release
 func ListReleaseAttachments(ctx *context.APIContext) {
@@ -78,8 +77,8 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AttachmentList"
-	releaseId := ctx.ParamsInt64(":id")
-	release, err := models.GetReleaseByID(releaseId)
+	releaseID := ctx.ParamsInt64(":id")
+	release, err := models.GetReleaseByID(releaseID)
 	if err != nil {
 		ctx.Error(500, "GetReleaseByID", err)
 		return
@@ -94,4 +93,3 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	}
 	ctx.JSON(200, release.APIFormat().Attachments)
 }
-

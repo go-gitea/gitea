@@ -94,7 +94,7 @@ type swaggerResponseSearchResults struct {
 // swagger:response AttachmentList
 type swaggerResponseAttachmentList struct {
 	//in: body
-	Body []api.Attachment `json:"body`
+	Body []api.Attachment `json:"body"`
 }
 
 // swagger:response Attachment

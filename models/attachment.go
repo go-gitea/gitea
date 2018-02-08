@@ -13,8 +13,8 @@ import (
 
 	gouuid "github.com/satori/go.uuid"
 
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
 )
 
@@ -40,16 +40,17 @@ func (a *Attachment) IncreaseDownloadCount() error {
 	return nil
 }
 
+// APIFormat converts models.Attachment to api.Attachment
 func (a *Attachment) APIFormat() *api.Attachment {
 	size, _ := a.Size()
 	return &api.Attachment{
-		ID: a.ID,
-		Name: a.Name,
-		Created: a.CreatedUnix.AsTime(),
+		ID:            a.ID,
+		Name:          a.Name,
+		Created:       a.CreatedUnix.AsTime(),
 		DownloadCount: a.DownloadCount,
-		Size: size,
-		UUID: a.UUID,
-		DownloadURL: a.DownloadURL(),
+		Size:          size,
+		UUID:          a.UUID,
+		DownloadURL:   a.DownloadURL(),
 	}
 }
 
@@ -74,7 +75,7 @@ func (a *Attachment) Size() (int64, error) {
 }
 
 // DownloadURL returns the download url of the attached file
-func (a *Attachment) DownloadURL()  string {
+func (a *Attachment) DownloadURL() string {
 	return fmt.Sprintf("%sattachments/%s", setting.AppURL, a.UUID)
 }
 
@@ -124,7 +125,6 @@ func getAttachmentByID(e Engine, id int64) (*Attachment, error) {
 	}
 	return attach, nil
 }
-
 
 func getAttachmentByUUID(e Engine, uuid string) (*Attachment, error) {
 	attach := &Attachment{UUID: uuid}
