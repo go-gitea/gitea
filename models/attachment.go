@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
+	"github.com/go-xorm/xorm"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -224,4 +225,21 @@ func DeleteAttachmentsByComment(commentID int64, remove bool) (int, error) {
 	}
 
 	return DeleteAttachments(attachments, remove)
+}
+
+// UpdateAttachment updates the given attachment in database
+func UpdateAttachment(atta *Attachment) error {
+	return updateAttachment(x, atta)
+}
+
+func updateAttachment(e Engine, atta *Attachment) error {
+	var sess *xorm.Session
+	if atta.ID != 0 || atta.UUID == "" {
+		sess = e.ID(atta.ID)
+	} else {
+		// Use uuid only if id is not set and uuid is set
+		sess = e.Where("uuid = ?", atta.UUID)
+	}
+	_, err := sess.AllCols().Update(atta)
+	return err
 }
