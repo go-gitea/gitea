@@ -3,7 +3,10 @@
 // license that can be found in the LICENSE file.
 
 package gitea // import "code.gitea.io/sdk/gitea"
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // Attachment a generic attachment
 // swagger:model
@@ -16,4 +19,22 @@ type Attachment struct {
 	Created     time.Time `json:"created_at"`
 	UUID        string    `json:"uuid"`
 	DownloadURL string    `json:"browser_download_url"`
+}
+
+// ListReleaseAttachments list release's attachments
+func (c *Client) ListReleaseAttachments(user, repo string, release int64) ([]*Attachment, error) {
+	attachments := make([]*Attachment, 0, 10)
+	err := c.getParsedResponse("GET",
+		fmt.Sprintf("/repos/%s/%s/releases/%d/attachments", user, repo, release),
+		nil, nil, &attachments)
+	return attachments, err
+}
+
+// ListReleaseAttachments list release's attachments
+func (c *Client) GetReleaseAttachment(user, repo string, release int64, id int64) (*Attachment, error) {
+	a := new(Attachment)
+	err := c.getParsedResponse("GET",
+		fmt.Sprintf("/repos/%s/%s/releases/%d/attachments/%d", user, repo, release, id),
+		nil, nil, &a)
+	return a, err
 }
