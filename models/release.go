@@ -53,10 +53,7 @@ func (r *Release) loadAttributes(e Engine) error {
 			return err
 		}
 	}
-	if err := GetReleaseAttachments(r); err != nil {
-		return err
-	}
-	return nil
+	return GetReleaseAttachments(r)
 }
 
 // LoadAttributes load repo and publisher attributes for a release
