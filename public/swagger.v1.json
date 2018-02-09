@@ -3494,6 +3494,12 @@
             "required": true
           },
           {
+            "type": "string",
+            "description": "name of the attachment",
+            "name": "name",
+            "in": "query"
+          },
+          {
             "type": "file",
             "description": "attachment to upload",
             "name": "attachment",

@@ -128,6 +128,11 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	//   description: id of the release
 	//   type: integer
 	//   required: true
+	// - name: name
+	//   in: query
+	//   description: name of the attachment
+	//   type: string
+	//   required: false
 	// - name: attachment
 	//   in: formData
 	//   description: attachment to upload
@@ -183,8 +188,13 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 
+	var filename = header.Filename
+	if query := ctx.Query("name"); query != "" {
+		filename = query
+	}
+
 	// Create a new attachment and save the file
-	attach, err := models.NewAttachment(header.Filename, buf, file)
+	attach, err := models.NewAttachment(filename, buf, file)
 	if err != nil {
 		ctx.Error(500, "NewAttachment", err)
 		return
