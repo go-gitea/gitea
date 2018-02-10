@@ -11,11 +11,11 @@ import (
 	"os"
 	"path"
 
-	gouuid "github.com/satori/go.uuid"
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
+
+	gouuid "github.com/satori/go.uuid"
 	"github.com/go-xorm/xorm"
 )
 
