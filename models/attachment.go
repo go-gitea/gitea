@@ -240,6 +240,6 @@ func updateAttachment(e Engine, atta *Attachment) error {
 		// Use uuid only if id is not set and uuid is set
 		sess = e.Where("uuid = ?", atta.UUID)
 	}
-	_, err := sess.AllCols().Update(atta)
+	_, err := sess.Cols("name", "issue_id", "release_id", "comment_id", "download_count").Update(atta)
 	return err
 }
