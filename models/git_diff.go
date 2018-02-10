@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/git"
@@ -368,8 +369,15 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 			a := line[beg+2 : middle]
 			b := line[middle+3:]
 			if hasQuote {
-				a = string(git.UnescapeChars([]byte(a[1 : len(a)-1])))
-				b = string(git.UnescapeChars([]byte(b[1 : len(b)-1])))
+				var err error
+				a, err = strconv.Unquote(a)
+				if err != nil {
+					return nil, fmt.Errorf("Unquote: %v", err)
+				}
+				b, err = strconv.Unquote(b)
+				if err != nil {
+					return nil, fmt.Errorf("Unquote: %v", err)
+				}
 			}
 
 			curFile = &DiffFile{
