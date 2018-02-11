@@ -9,6 +9,7 @@ import (
 	"container/list"
 	"encoding/json"
 	"fmt"
+	"html"
 	"html/template"
 	"mime"
 	"path/filepath"
@@ -162,6 +163,7 @@ func NewFuncMap() []template.FuncMap {
 		"UnescapeLocale": func(str string) string {
 			return strings.NewReplacer("\\;", ";", "\\#", "#").Replace(str)
 		},
+		"Escape": Escape,
 	}}
 }
 
@@ -178,6 +180,11 @@ func SafeJS(raw string) template.JS {
 // Str2html render Markdown text to HTML
 func Str2html(raw string) template.HTML {
 	return template.HTML(markup.Sanitize(raw))
+}
+
+// Escape escapes a HTML string
+func Escape(raw string) string {
+	return html.EscapeString(raw)
 }
 
 // List traversings the list
