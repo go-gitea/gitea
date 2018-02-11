@@ -9,6 +9,7 @@ import (
 	"container/list"
 	"encoding/json"
 	"fmt"
+	"html"
 	"html/template"
 	"mime"
 	"path/filepath"
@@ -25,7 +26,6 @@ import (
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
-	"html"
 )
 
 // NewFuncMap returns functions for injecting to templates
