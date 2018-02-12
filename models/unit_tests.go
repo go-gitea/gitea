@@ -28,6 +28,11 @@ const NonexistentID = 9223372036854775807
 // giteaRoot a path to the gitea root
 var giteaRoot string
 
+func fatalTestError(fmtStr string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, fmtStr, args...)
+	os.Exit(1)
+}
+
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, pathToGiteaRoot string) {
@@ -35,8 +40,7 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	giteaRoot = pathToGiteaRoot
 	fixturesDir := filepath.Join(pathToGiteaRoot, "models", "fixtures")
 	if err = createTestEngine(fixturesDir); err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating test engine: %v\n", err)
-		os.Exit(1)
+		fatalTestError("Error creating test engine: %v\n", err)
 	}
 
 	setting.AppURL = "https://try.gitea.io/"
@@ -45,23 +49,27 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	setting.SSH.Domain = "try.gitea.io"
 	setting.RepoRootPath, err = ioutil.TempDir(os.TempDir(), "repos")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "TempDir: %v\n", err)
-		os.Exit(1)
+		fatalTestError("TempDir: %v\n", err)
 	}
 	setting.AppDataPath, err = ioutil.TempDir(os.TempDir(), "appdata")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "TempDir: %v\n", err)
-		os.Exit(1)
+		fatalTestError("TempDir: %v\n", err)
 	}
 	setting.AppWorkPath = pathToGiteaRoot
 	setting.StaticRootPath = pathToGiteaRoot
 	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error url.Parse: %v\n", err)
-		os.Exit(1)
+		fatalTestError("url.Parse: %v\n", err)
 	}
 
-	os.Exit(m.Run())
+	exitStatus := m.Run()
+	if err = os.RemoveAll(setting.RepoRootPath); err != nil {
+		fatalTestError("os.RemoveAll: %v\n", err)
+	}
+	if err = os.RemoveAll(setting.AppDataPath); err != nil {
+		fatalTestError("os.RemoveAll: %v\n", err)
+	}
+	os.Exit(exitStatus)
 }
 
 func createTestEngine(fixturesDir string) error {
