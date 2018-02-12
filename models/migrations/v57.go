@@ -51,9 +51,9 @@ func addIssueDependencies(x *xorm.Engine) (err error) {
 		NewTitle         string
 		DependentIssueID int64
 
-		CommitID        int64
-		Line            int64
-		Content         string `xorm:"TEXT"`
+		CommitID int64
+		Line     int64
+		Content  string `xorm:"TEXT"`
 
 		CreatedUnix TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix TimeStamp `xorm:"INDEX updated"`

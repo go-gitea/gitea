@@ -68,7 +68,6 @@ func AddDependency(ctx *context.Context) {
 	ctx.Redirect(url, http.StatusSeeOther)
 }
 
-
 // RemoveDependency removes the dependency
 func RemoveDependency(ctx *context.Context) {
 	depID := ctx.QueryInt64("removeDependencyID")
