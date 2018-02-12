@@ -6,6 +6,8 @@ package models
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -18,7 +20,6 @@ import (
 	"github.com/go-xorm/xorm"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/testfixtures.v2"
-	"net/url"
 )
 
 // NonexistentID an ID that will never exist
@@ -42,8 +43,16 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	setting.RunUser = "runuser"
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
-	setting.RepoRootPath = filepath.Join(os.TempDir(), "repos")
-	setting.AppDataPath = filepath.Join(os.TempDir(), "appdata")
+	setting.RepoRootPath, err = ioutil.TempDir(os.TempDir(), "repos")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "TempDir: %v\n", err)
+		os.Exit(1)
+	}
+	setting.AppDataPath, err = ioutil.TempDir(os.TempDir(), "appdata")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "TempDir: %v\n", err)
+		os.Exit(1)
+	}
 	setting.AppWorkPath = pathToGiteaRoot
 	setting.StaticRootPath = pathToGiteaRoot
 	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
