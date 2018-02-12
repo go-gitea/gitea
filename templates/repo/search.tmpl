@@ -14,7 +14,7 @@
 		</div>
 		{{if .Keyword}}
 			<h3>
-				{{.i18n.Tr "repo.search.results" .Keyword .RepoLink .RepoName | Str2html}}
+				{{.i18n.Tr "repo.search.results" (.Keyword|Escape) .RepoLink .RepoName | Str2html }}
 			</h3>
 			<div class="repository search">
 				{{range $result := .SearchResults}}
