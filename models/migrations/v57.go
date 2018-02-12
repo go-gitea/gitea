@@ -28,6 +28,44 @@ func addIssueDependencies(x *xorm.Engine) (err error) {
 		return fmt.Errorf("Error creating issue_dependency_table column definition: %v", err)
 	}
 
+	// Update Comment definition
+	// This (copied) struct does only contain fields used by xorm as the only use here is to update the database
+
+	// CommentType defines the comment type
+	type CommentType int
+
+	// TimeStamp defines a timestamp
+	type TimeStamp int64
+
+	type Comment struct {
+		ID               int64 `xorm:"pk autoincr"`
+		Type             CommentType
+		PosterID         int64 `xorm:"INDEX"`
+		IssueID          int64 `xorm:"INDEX"`
+		LabelID          int64
+		OldMilestoneID   int64
+		MilestoneID      int64
+		OldAssigneeID    int64
+		AssigneeID       int64
+		OldTitle         string
+		NewTitle         string
+		DependentIssueID int64
+
+		CommitID        int64
+		Line            int64
+		Content         string `xorm:"TEXT"`
+
+		CreatedUnix TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix TimeStamp `xorm:"INDEX updated"`
+
+		// Reference issue in commit message
+		CommitSHA string `xorm:"VARCHAR(40)"`
+	}
+
+	if err = x.Sync(new(Comment)); err != nil {
+		return fmt.Errorf("Error updating issue_comment table column definition: %v", err)
+	}
+
 	// RepoUnit describes all units of a repository
 	type RepoUnit struct {
 		ID          int64
