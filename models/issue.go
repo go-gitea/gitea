@@ -1510,7 +1510,7 @@ func UpdateIssue(issue *Issue) error {
 func (issue *Issue) getBlockedByDependencies(e Engine) (_ []*Issue, err error) {
 	var issueDeps []*Issue
 
-	if err = x.
+	if err = e.
 		Table("issue_dependency").
 		Select("issue.*").
 		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
@@ -1526,7 +1526,7 @@ func (issue *Issue) getBlockedByDependencies(e Engine) (_ []*Issue, err error) {
 func (issue *Issue) getBlockingDependencies(e Engine) ([]*Issue, error) {
 	var issueDeps []*Issue
 
-	if err := x.
+	if err := e.
 		Table("issue_dependency").
 		Select("issue.*").
 		Join("INNER", "issue", "issue.id = issue_dependency.issue_id").
