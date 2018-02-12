@@ -6,9 +6,11 @@ package migrations
 
 import (
 	"code.gitea.io/gitea/modules/setting"
+
 	"fmt"
-	"github.com/go-xorm/xorm"
 	"time"
+
+	"github.com/go-xorm/xorm"
 )
 
 func addIssueDependencies(x *xorm.Engine) (err error) {
