@@ -27,6 +27,7 @@ import (
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
+	"html"
 )
 
 // NewFuncMap returns functions for injecting to templates
@@ -179,6 +180,7 @@ func NewFuncMap() []template.FuncMap {
 			return dict, nil
 		},
 		"Printf": fmt.Sprintf,
+		"Escape": Escape,
 	}}
 }
 
@@ -195,6 +197,11 @@ func SafeJS(raw string) template.JS {
 // Str2html render Markdown text to HTML
 func Str2html(raw string) template.HTML {
 	return template.HTML(markup.Sanitize(raw))
+}
+
+// Escape escapes a HTML string
+func Escape(raw string) string {
+	return html.EscapeString(raw)
 }
 
 // List traversings the list
