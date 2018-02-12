@@ -5,10 +5,10 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/setting"
-
 	"fmt"
 	"time"
+
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-xorm/xorm"
 )
