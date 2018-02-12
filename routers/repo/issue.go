@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"net/http"
 )
 
 const (
@@ -956,7 +957,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 	for _, issue := range issues {
 		if err := issue.ChangeStatus(ctx.User, issue.Repo, isClosed); err != nil {
 			if models.IsErrDependenciesLeft(err) {
-				ctx.Error(409, "", fmt.Sprintf("cannot close this issue because it still has open dependencies"))
+				ctx.Error(http.StatusPreconditionFailed, "", fmt.Sprintf("cannot close this issue because it still has open dependencies"))
 				return
 			}
 			ctx.ServerError("ChangeStatus", err)
@@ -1026,10 +1027,10 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 					if models.IsErrDependenciesLeft(err) {
 						if issue.IsPull {
 							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
-							ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
+							ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index), http.StatusTemporaryRedirect)
 						} else {
 							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
-							ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+							ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index), http.StatusTemporaryRedirect)
 						}
 					}
 				} else {

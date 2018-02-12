@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 
 	api "code.gitea.io/sdk/gitea"
+	"net/http"
 )
 
 // ListPullRequests returns a list of all PRs
@@ -367,7 +368,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	if form.State != nil {
 		if err = issue.ChangeStatus(ctx.User, ctx.Repo.Repository, api.StateClosed == api.StateType(*form.State)); err != nil {
 			if models.IsErrDependenciesLeft(err) {
-				ctx.Error(409, "", fmt.Sprintf("cannot close this pull request because it still has open dependencies"))
+				ctx.Error(http.StatusPreconditionFailed, "", fmt.Sprintf("cannot close this pull request because it still has open dependencies"))
 				return
 			}
 			ctx.Error(500, "ChangeStatus", err)
