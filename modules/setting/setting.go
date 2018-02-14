@@ -515,9 +515,11 @@ var (
 
 	// API settings
 	API = struct {
-		MaxResponseItems int
+		EnableSwaggerEndpoint bool
+		MaxResponseItems      int
 	}{
-		MaxResponseItems: 50,
+		EnableSwaggerEndpoint: true,
+		MaxResponseItems:      50,
 	}
 
 	// I18n settings
