@@ -25,7 +25,7 @@ type Release struct {
 	Repo             *Repository `xorm:"-"`
 	PublisherID      int64       `xorm:"INDEX"`
 	Publisher        *User       `xorm:"-"`
-	TagName          string      `xorm:"INDEX UNIQUE(n)"`
+	TagName          string      `xorm:"VARCHAR(191) INDEX UNIQUE(n)"`
 	LowerTagName     string
 	Target           string
 	Title            string

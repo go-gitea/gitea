@@ -45,7 +45,7 @@ type Notification struct {
 	Source NotificationSource `xorm:"SMALLINT INDEX NOT NULL"`
 
 	IssueID  int64  `xorm:"INDEX NOT NULL"`
-	CommitID string `xorm:"INDEX"`
+	CommitID string `xorm:"VARCHAR(191) INDEX"`
 
 	UpdatedBy int64 `xorm:"INDEX NOT NULL"`
 

@@ -165,8 +165,8 @@ type Repository struct {
 	OwnerID       int64  `xorm:"UNIQUE(s)"`
 	OwnerName     string `xorm:"-"`
 	Owner         *User  `xorm:"-"`
-	LowerName     string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Name          string `xorm:"INDEX NOT NULL"`
+	LowerName     string `xorm:"VARCHAR(191) UNIQUE(s) INDEX NOT NULL"`
+	Name          string `xorm:"VARCHAR(191) INDEX NOT NULL"`
 	Description   string
 	Website       string
 	DefaultBranch string

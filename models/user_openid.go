@@ -20,7 +20,7 @@ var (
 type UserOpenID struct {
 	ID   int64  `xorm:"pk autoincr"`
 	UID  int64  `xorm:"INDEX NOT NULL"`
-	URI  string `xorm:"UNIQUE NOT NULL"`
+	URI  string `xorm:"VARCHAR(191) UNIQUE NOT NULL"`
 	Show bool   `xorm:"DEFAULT false"`
 }
 

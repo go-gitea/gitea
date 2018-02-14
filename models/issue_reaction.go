@@ -18,7 +18,7 @@ import (
 // Reaction represents a reactions on issues and comments.
 type Reaction struct {
 	ID          int64          `xorm:"pk autoincr"`
-	Type        string         `xorm:"INDEX UNIQUE(s) NOT NULL"`
+	Type        string         `xorm:"VARCHAR(191) INDEX UNIQUE(s) NOT NULL"`
 	IssueID     int64          `xorm:"INDEX UNIQUE(s) NOT NULL"`
 	CommentID   int64          `xorm:"INDEX UNIQUE(s)"`
 	UserID      int64          `xorm:"INDEX UNIQUE(s) NOT NULL"`

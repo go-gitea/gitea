@@ -8,7 +8,7 @@ import "github.com/markbates/goth"
 
 // ExternalLoginUser makes the connecting between some existing user and additional external login sources
 type ExternalLoginUser struct {
-	ExternalID    string `xorm:"pk NOT NULL"`
+	ExternalID    string `xorm:"VARCHAR(191) pk NOT NULL"`
 	UserID        int64  `xorm:"INDEX NOT NULL"`
 	LoginSourceID int64  `xorm:"pk NOT NULL"`
 }

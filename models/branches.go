@@ -25,7 +25,7 @@ const (
 type ProtectedBranch struct {
 	ID                    int64  `xorm:"pk autoincr"`
 	RepoID                int64  `xorm:"UNIQUE(s)"`
-	BranchName            string `xorm:"UNIQUE(s)"`
+	BranchName            string `xorm:"VARCHAR(191) UNIQUE(s)"`
 	CanPush               bool   `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist       bool
 	WhitelistUserIDs      []int64        `xorm:"JSON TEXT"`
@@ -287,8 +287,8 @@ func (repo *Repository) DeleteProtectedBranch(id int64) (err error) {
 type DeletedBranch struct {
 	ID          int64          `xorm:"pk autoincr"`
 	RepoID      int64          `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Name        string         `xorm:"UNIQUE(s) NOT NULL"`
-	Commit      string         `xorm:"UNIQUE(s) NOT NULL"`
+	Name        string         `xorm:"VARCHAR(191) UNIQUE(s) NOT NULL"`
+	Commit      string         `xorm:"VARCHAR(191) UNIQUE(s) NOT NULL"`
 	DeletedByID int64          `xorm:"INDEX"`
 	DeletedBy   *User          `xorm:"-"`
 	DeletedUnix util.TimeStamp `xorm:"INDEX created"`

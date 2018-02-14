@@ -142,7 +142,7 @@ func (cfg *OAuth2Config) ToDB() ([]byte, error) {
 type LoginSource struct {
 	ID            int64 `xorm:"pk autoincr"`
 	Type          LoginType
-	Name          string          `xorm:"UNIQUE"`
+	Name          string          `xorm:"VARCHAR(191) UNIQUE"`
 	IsActived     bool            `xorm:"INDEX NOT NULL DEFAULT false"`
 	IsSyncEnabled bool            `xorm:"INDEX NOT NULL DEFAULT false"`
 	Cfg           core.Conversion `xorm:"TEXT"`

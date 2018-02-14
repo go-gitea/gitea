@@ -20,7 +20,7 @@ var (
 type EmailAddress struct {
 	ID          int64  `xorm:"pk autoincr"`
 	UID         int64  `xorm:"INDEX NOT NULL"`
-	Email       string `xorm:"UNIQUE NOT NULL"`
+	Email       string `xorm:"VARCHAR(191) UNIQUE NOT NULL"`
 	IsActivated bool
 	IsPrimary   bool `xorm:"-"`
 }
