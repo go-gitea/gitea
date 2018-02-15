@@ -145,7 +145,7 @@ func (u *User) BeforeUpdate() {
 		if len(u.AvatarEmail) == 0 {
 			u.AvatarEmail = u.Email
 		}
-		if len(u.AvatarEmail) > 0 {
+		if len(u.AvatarEmail) > 0 && u.Avatar == "" {
 			u.Avatar = base.HashEmail(u.AvatarEmail)
 		}
 	}
@@ -299,7 +299,9 @@ func (u *User) generateRandomAvatar(e Engine) error {
 	}
 	// NOTICE for random avatar, it still uses id as avatar name, but custom avatar use md5
 	// since random image is not a user's photo, there is no security for enumable
-	u.Avatar = fmt.Sprintf("%d", u.ID)
+	if u.Avatar == "" {
+		u.Avatar = fmt.Sprintf("%d", u.ID)
+	}
 	if err = os.MkdirAll(filepath.Dir(u.CustomAvatarPath()), os.ModePerm); err != nil {
 		return fmt.Errorf("MkdirAll: %v", err)
 	}

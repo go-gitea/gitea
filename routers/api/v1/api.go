@@ -50,6 +50,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/admin"
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/org"
@@ -277,11 +278,15 @@ func mustAllowPulls(ctx *context.Context) {
 func RegisterRoutes(m *macaron.Macaron) {
 	bind := binding.Bind
 
-	m.Get("/swagger", misc.Swagger) //Render V1 by default
+	if setting.API.EnableSwaggerEndpoint {
+		m.Get("/swagger", misc.Swagger) //Render V1 by default
+	}
 
 	m.Group("/v1", func() {
 		// Miscellaneous
-		m.Get("/swagger", misc.Swagger)
+		if setting.API.EnableSwaggerEndpoint {
+			m.Get("/swagger", misc.Swagger)
+		}
 		m.Get("/version", misc.Version)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
