@@ -182,6 +182,8 @@ var migrations = []Migration{
 	NewMigration("add language column for user setting", addLanguageSetting),
 	// v64 -> v65
 	NewMigration("add multiple assignees", addMultipleAssignees),
+	// v65 -> v66
+	NewMigration("change columns to utf8mb4 on mysql databases", mysqlColumnsToUTF8MB4),
 }
 
 // Migrate database to current version
