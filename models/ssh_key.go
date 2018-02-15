@@ -473,7 +473,7 @@ func ListPublicKeys(uid int64) ([]*PublicKey, error) {
 		Find(&keys)
 }
 
-// ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user and ldap source.
+// ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user and login source.
 func ListPublicLdapSSHKeys(uid int64, lsid int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
 	return keys, x.
