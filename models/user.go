@@ -34,6 +34,7 @@ import (
 
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -638,7 +639,7 @@ func IsUserExist(uid int64, name string) (bool, error) {
 
 // GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
-	return base.GetRandomString(10)
+	return generate.GetRandomString(10)
 }
 
 // NewGhostUser creates and returns a fake user for someone has deleted his/her account.
