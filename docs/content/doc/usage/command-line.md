@@ -95,3 +95,19 @@ in the current directory.
 - Examples:
     - `gitea dump`
     - `gitea dump --verbose`
+
+#### generate
+
+Generates random values and tokens for usage in configuration file. Useful for generating values
+for automatic deployments.
+
+- Commands:
+    - `secret`:
+        - Options:
+            - `INTERNAL_TOKEN`: Token used for internal API call authentication.
+            - `LFS_JWT_SECRET`: LFS authentication secret
+            - `SECRET_KEY`: Global secret key.
+        - Examples:
+            - `gitea secret INTERNAL_TOKEN`
+            - `gitea secret LFS_JWT_SECRET`
+            - `gitea secret SECRET_KEY`
