@@ -16,7 +16,7 @@ import (
 
 	"github.com/pquerna/otp/totp"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -33,7 +33,7 @@ type TwoFactor struct {
 
 // GenerateScratchToken recreates the scratch token the user is using.
 func (t *TwoFactor) GenerateScratchToken() error {
-	token, err := base.GetRandomString(8)
+	token, err := generate.GetRandomString(8)
 	if err != nil {
 		return err
 	}
