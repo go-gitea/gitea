@@ -14,7 +14,6 @@ import (
 	"html/template"
 	"io"
 	"math"
-	"math/big"
 	"net/http"
 	"net/url"
 	"path"
@@ -88,25 +87,6 @@ func BasicAuthEncode(username, password string) string {
 	return base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
 }
 
-// GetRandomString generate random string by specify chars.
-func GetRandomString(n int) (string, error) {
-	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-
-	buffer := make([]byte, n)
-	max := big.NewInt(int64(len(alphanum)))
-
-	for i := 0; i < n; i++ {
-		index, err := randomInt(max)
-		if err != nil {
-			return "", err
-		}
-
-		buffer[i] = alphanum[index]
-	}
-
-	return string(buffer), nil
-}
-
 // GetRandomBytesAsBase64 generates a random base64 string from n bytes
 func GetRandomBytesAsBase64(n int) string {
 	bytes := make([]byte, 32)
@@ -117,15 +97,6 @@ func GetRandomBytesAsBase64(n int) string {
 	}
 
 	return base64.RawURLEncoding.EncodeToString(bytes)
-}
-
-func randomInt(max *big.Int) (int, error) {
-	rand, err := rand.Int(rand.Reader, max)
-	if err != nil {
-		return 0, err
-	}
-
-	return int(rand.Int64()), nil
 }
 
 // VerifyTimeLimitCode verify time limit code

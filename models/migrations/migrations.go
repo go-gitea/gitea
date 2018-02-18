@@ -20,7 +20,7 @@ import (
 	gouuid "github.com/satori/go.uuid"
 	"gopkg.in/ini.v1"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -539,10 +539,10 @@ func generateOrgRandsAndSalt(x *xorm.Engine) (err error) {
 	}
 
 	for _, org := range orgs {
-		if org.Rands, err = base.GetRandomString(10); err != nil {
+		if org.Rands, err = generate.GetRandomString(10); err != nil {
 			return err
 		}
-		if org.Salt, err = base.GetRandomString(10); err != nil {
+		if org.Salt, err = generate.GetRandomString(10); err != nil {
 			return err
 		}
 		if _, err = sess.Id(org.ID).Update(org); err != nil {
