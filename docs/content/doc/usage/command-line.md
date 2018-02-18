@@ -104,10 +104,10 @@ for automatic deployments.
 - Commands:
     - `secret`:
         - Options:
-            - `INTERNAL_TOKEN`: Token used for internal API call authentication.
-            - `LFS_JWT_SECRET`: LFS authentication secret
+            - `INTERNAL_TOKEN`: Token used for an internal API call authentication.
+            - `LFS_JWT_SECRET`: LFS authentication secret.
             - `SECRET_KEY`: Global secret key.
         - Examples:
-            - `gitea secret INTERNAL_TOKEN`
-            - `gitea secret LFS_JWT_SECRET`
-            - `gitea secret SECRET_KEY`
+            - `gitea generate secret INTERNAL_TOKEN`
+            - `gitea generate secret LFS_JWT_SECRET`
+            - `gitea generate secret SECRET_KEY`
