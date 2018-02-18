@@ -73,7 +73,7 @@ func createTestEngine(fixturesDir string) error {
 	return InitFixtures(&testfixtures.SQLite{}, fixturesDir)
 }
 
-func forcedRemoveAll(dir string) error {
+func removeAllWithRetry(dir string) error {
 	var err error
 	for i := 0; i < 20; i++ {
 		err = os.RemoveAll(dir)
@@ -94,7 +94,7 @@ func PrepareTestDatabase() error {
 // by tests that use the above MainTest(..) function.
 func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
-	assert.NoError(t, forcedRemoveAll(setting.RepoRootPath))
+	assert.NoError(t, removeAllWithRetry(setting.RepoRootPath))
 	metaPath := filepath.Join(giteaRoot, "integrations", "gitea-repositories-meta")
 	assert.NoError(t, com.CopyDir(metaPath, setting.RepoRootPath))
 }
