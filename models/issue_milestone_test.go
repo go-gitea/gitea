@@ -214,13 +214,15 @@ func TestChangeMilestoneIssueStats(t *testing.T) {
 		"is_closed=0").(*Issue)
 
 	issue.IsClosed = true
-	_, err := x.Cols("is_closed").Update(issue)
+	issue.ClosedUnix = util.TimeStampNow()
+	_, err := x.Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
 	assert.NoError(t, changeMilestoneIssueStats(x.NewSession(), issue))
 	CheckConsistencyFor(t, &Milestone{})
 
 	issue.IsClosed = false
-	_, err = x.Cols("is_closed").Update(issue)
+	issue.ClosedUnix = 0
+	_, err = x.Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
 	assert.NoError(t, changeMilestoneIssueStats(x.NewSession(), issue))
 	CheckConsistencyFor(t, &Milestone{})
