@@ -785,6 +785,21 @@ func (err ErrBranchNameConflict) Error() string {
 	return fmt.Sprintf("branch conflicts with existing branch [name: %s]", err.BranchName)
 }
 
+// ErrBranchProtected represents an error that a branch is protected and the current user is not allowed to modify it
+type ErrBranchProtected struct {
+	BranchName string
+}
+
+// IsErrBranchProtected checks if an error is an ErrBranchProtected.
+func IsErrBranchProtected(err error) bool {
+	_, ok := err.(ErrBranchAlreadyExists)
+	return ok
+}
+
+func (err ErrBranchProtected) Error() string {
+	return fmt.Sprintf("branch is protected [name: %s]", err.BranchName)
+}
+
 // ErrTagAlreadyExists represents an error that tag with such name already exists
 type ErrTagAlreadyExists struct {
 	TagName string

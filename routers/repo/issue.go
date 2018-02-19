@@ -734,6 +734,20 @@ func ViewIssue(ctx *context.Context) {
 		}
 		prConfig := prUnit.PullRequestsConfig()
 
+		if ctx.IsSigned {
+			if err := pull.GetBaseRepo(); err != nil {
+				log.Error(4, "GetBaseRepo: %v", err)
+			} else {
+				// Check whether user may push
+				if protected, err := pull.BaseRepo.IsProtectedBranch(pull.BaseBranch, ctx.User); err != nil {
+					log.Error(4, "IsProtectedBranch: %v", err)
+					ctx.Data["BaseBranchNotProtected"] = false
+				} else {
+					ctx.Data["BaseBranchNotProtected"] = !protected
+				}
+			}
+		}
+
 		// Check correct values and select default
 		if ms, ok := ctx.Data["MergeStyle"].(models.MergeStyle); !ok ||
 			!prConfig.IsMergeStyleAllowed(ms) {
