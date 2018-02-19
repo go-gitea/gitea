@@ -69,7 +69,7 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
         - MSSQL
         - [TiDB](https://github.com/pingcap/tidb) (expérimental)
     - Fichier de configuration
-        - Voir [ici](https://github.com/go-gitea/gitea/blob/master/conf/app.ini)
+        - Voir [ici](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
     - Panel d'administration
         - Statistiques
         - Actions

@@ -20,7 +20,7 @@ import (
 	gouuid "github.com/satori/go.uuid"
 	"gopkg.in/ini.v1"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -167,6 +167,8 @@ var migrations = []Migration{
 	// v56 -> v57
 	NewMigration("remove is_owner, num_teams columns from org_user", removeIsOwnerColumnFromOrgUser),
 	// v57 -> v58
+	NewMigration("add closed_unix column for issues", addIssueClosedTime),
+	// v58 -> v59
 	NewMigration("add issue_dependencies", addIssueDependencies),
 }
 
@@ -541,10 +543,10 @@ func generateOrgRandsAndSalt(x *xorm.Engine) (err error) {
 	}
 
 	for _, org := range orgs {
-		if org.Rands, err = base.GetRandomString(10); err != nil {
+		if org.Rands, err = generate.GetRandomString(10); err != nil {
 			return err
 		}
-		if org.Salt, err = base.GetRandomString(10); err != nil {
+		if org.Salt, err = generate.GetRandomString(10); err != nil {
 			return err
 		}
 		if _, err = sess.Id(org.ID).Update(org); err != nil {

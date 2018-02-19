@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 
@@ -72,6 +73,18 @@ func createTestEngine(fixturesDir string) error {
 	return InitFixtures(&testfixtures.SQLite{}, fixturesDir)
 }
 
+func removeAllWithRetry(dir string) error {
+	var err error
+	for i := 0; i < 20; i++ {
+		err = os.RemoveAll(dir)
+		if err == nil {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return err
+}
+
 // PrepareTestDatabase load test fixtures into test database
 func PrepareTestDatabase() error {
 	return LoadFixtures()
@@ -81,7 +94,7 @@ func PrepareTestDatabase() error {
 // by tests that use the above MainTest(..) function.
 func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
-	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, removeAllWithRetry(setting.RepoRootPath))
 	metaPath := filepath.Join(giteaRoot, "integrations", "gitea-repositories-meta")
 	assert.NoError(t, com.CopyDir(metaPath, setting.RepoRootPath))
 }
