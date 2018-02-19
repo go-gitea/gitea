@@ -51,7 +51,7 @@ func TestPullMerge(t *testing.T) {
 	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 	testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
-	resp := testPullCreate(t, session, "user1", "repo1", "master")
+	resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
 
 	elem := strings.Split(RedirectURL(t, resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
@@ -64,7 +64,7 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 	testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited)\n")
 
-	resp := testPullCreate(t, session, "user1", "repo1", "feature/test")
+	resp := testPullCreate(t, session, "user1", "repo1", "feature/test", "This is a pull title")
 
 	elem := strings.Split(RedirectURL(t, resp), "/")
 	assert.EqualValues(t, "pulls", elem[3])
