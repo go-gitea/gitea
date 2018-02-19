@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.3](https://github.com/go-gitea/gitea/releases/tag/v1.3.3) - 2018-02-15
+* SECURITY
+  * Fix escaping changed title in comments (#3530) (#3535)
+  * Escape search query display (#3486) (#3489)
+* BUGFIXES
+  * Fix repo-transfer-and-team-repo-count bug (#3241) (#3244)
+  * Open external tracker in blank window, consistently with wiki (#3227) (#3228)
+  * Change SSL Mode from checkbox to string in admin page (#3208) (#3211)
+
 ## [1.3.2](https://github.com/go-gitea/gitea/releases/tag/v1.3.2) - 2017-12-14
 * BUGFIXES
   * fix run web with -p push failed (#3154) (#3179)
