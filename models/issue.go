@@ -49,6 +49,7 @@ type Issue struct {
 	DeadlineUnix util.TimeStamp `xorm:"INDEX"`
 	CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix  util.TimeStamp `xorm:"INDEX updated"`
+	ClosedUnix   util.TimeStamp `xorm:"INDEX"`
 
 	Attachments []*Attachment `xorm:"-"`
 	Comments    []*Comment    `xorm:"-"`
@@ -612,8 +613,13 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, repo *Repository, 
 		return nil
 	}
 	issue.IsClosed = isClosed
+	if isClosed {
+		issue.ClosedUnix = util.TimeStampNow()
+	} else {
+		issue.ClosedUnix = 0
+	}
 
-	if err = updateIssueCols(e, issue, "is_closed"); err != nil {
+	if err = updateIssueCols(e, issue, "is_closed", "closed_unix"); err != nil {
 		return err
 	}
 

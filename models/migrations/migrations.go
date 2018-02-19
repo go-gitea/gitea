@@ -166,6 +166,8 @@ var migrations = []Migration{
 	NewMigration("add writable deploy keys", addModeToDeploKeys),
 	// v56 -> v57
 	NewMigration("remove is_owner, num_teams columns from org_user", removeIsOwnerColumnFromOrgUser),
+	// v57 -> v58
+	NewMigration("add closed_unix column for issues", addIssueClosedTime),
 }
 
 // Migrate database to current version
