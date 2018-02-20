@@ -382,9 +382,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/hooks", func() {
 					m.Combo("").Get(repo.ListHooks).
 						Post(bind(api.CreateHookOption{}), repo.CreateHook)
-					m.Combo("/:id").Get(repo.GetHook).
-						Patch(bind(api.EditHookOption{}), repo.EditHook).
-						Delete(repo.DeleteHook)
+					m.Group("/:id", func() {
+						m.Combo("").Get(repo.GetHook).
+							Patch(bind(api.EditHookOption{}), repo.EditHook).
+							Delete(repo.DeleteHook)
+						m.Post("/tests", context.RepoRef(), repo.TestHook)
+					})
 				}, reqToken(), reqRepoWriter())
 				m.Group("/collaborators", func() {
 					m.Get("", repo.ListCollaborators)
