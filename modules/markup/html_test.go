@@ -13,6 +13,7 @@ import (
 	. "code.gitea.io/gitea/modules/markup"
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -37,12 +38,12 @@ var alphanumericMetas = map[string]string{
 
 // numericLink an HTML to a numeric-style issue
 func numericIssueLink(baseURL string, index int) string {
-	return link(URLJoin(baseURL, strconv.Itoa(index)), fmt.Sprintf("#%d", index))
+	return link(util.URLJoin(baseURL, strconv.Itoa(index)), fmt.Sprintf("#%d", index))
 }
 
 // alphanumLink an HTML link to an alphanumeric-style issue
 func alphanumIssueLink(baseURL string, name string) string {
-	return link(URLJoin(baseURL, name), name)
+	return link(util.URLJoin(baseURL, name), name)
 }
 
 // urlContentsLink an HTML link whose contents is the target URL
@@ -61,31 +62,6 @@ func testRenderIssueIndexPattern(t *testing.T, input, expected string, opts Rend
 	}
 	actual := string(RenderIssueIndexPattern([]byte(input), opts))
 	assert.Equal(t, expected, actual)
-}
-
-func TestURLJoin(t *testing.T) {
-	type test struct {
-		Expected string
-		Base     string
-		Elements []string
-	}
-	newTest := func(expected, base string, elements ...string) test {
-		return test{Expected: expected, Base: base, Elements: elements}
-	}
-	for _, test := range []test{
-		newTest("https://try.gitea.io/a/b/c",
-			"https://try.gitea.io", "a/b", "c"),
-		newTest("https://try.gitea.io/a/b/c",
-			"https://try.gitea.io/", "/a/b/", "/c/"),
-		newTest("https://try.gitea.io/a/c",
-			"https://try.gitea.io/", "/a/./b/", "../c/"),
-		newTest("a/b/c",
-			"a", "b/c/"),
-		newTest("a/b/d",
-			"a/", "b/c/", "/../d/"),
-	} {
-		assert.Equal(t, test.Expected, URLJoin(test.Base, test.Elements...))
-	}
 }
 
 func TestRender_IssueIndexPattern(t *testing.T) {
@@ -123,7 +99,7 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 	test := func(s, expectedFmt string, indices ...int) {
 		links := make([]interface{}, len(indices))
 		for i, index := range indices {
-			links[i] = numericIssueLink(URLJoin(setting.AppSubURL, "issues"), index)
+			links[i] = numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), index)
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNil, RenderIssueIndexPatternOptions{})
@@ -228,8 +204,8 @@ func TestRender_AutoLink(t *testing.T) {
 	}
 
 	// render valid issue URLs
-	test(URLJoin(setting.AppSubURL, "issues", "3333"),
-		numericIssueLink(URLJoin(setting.AppSubURL, "issues"), 3333))
+	test(util.URLJoin(setting.AppSubURL, "issues", "3333"),
+		numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), 3333))
 
 	// render external issue URLs
 	for _, externalURL := range []string{
@@ -240,7 +216,7 @@ func TestRender_AutoLink(t *testing.T) {
 	}
 
 	// render valid commit URLs
-	tmp := URLJoin(AppSubURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
+	tmp := util.URLJoin(AppSubURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
 	test(tmp, "<a href=\""+tmp+"\">d8a994ef24</a>")
 	tmp += "#diff-2"
 	test(tmp, "<a href=\""+tmp+"\">d8a994ef24 (diff-2)</a>")
@@ -260,8 +236,8 @@ func TestRender_Commits(t *testing.T) {
 	}
 
 	var sha = "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
-	var commit = URLJoin(AppSubURL, "commit", sha)
-	var subtree = URLJoin(commit, "src")
+	var commit = util.URLJoin(AppSubURL, "commit", sha)
+	var subtree = util.URLJoin(commit, "src")
 	var tree = strings.Replace(subtree, "/commit/", "/tree/", -1)
 	var src = strings.Replace(subtree, "/commit/", "/src/", -1)
 
@@ -284,10 +260,10 @@ func TestRender_CrossReferences(t *testing.T) {
 
 	test(
 		"gogits/gogs#12345",
-		`<p><a href="`+URLJoin(AppURL, "gogits", "gogs", "issues", "12345")+`" rel="nofollow">gogits/gogs#12345</a></p>`)
+		`<p><a href="`+util.URLJoin(AppURL, "gogits", "gogs", "issues", "12345")+`" rel="nofollow">gogits/gogs#12345</a></p>`)
 	test(
 		"go-gitea/gitea#12345",
-		`<p><a href="`+URLJoin(AppURL, "go-gitea", "gitea", "issues", "12345")+`" rel="nofollow">go-gitea/gitea#12345</a></p>`)
+		`<p><a href="`+util.URLJoin(AppURL, "go-gitea", "gitea", "issues", "12345")+`" rel="nofollow">go-gitea/gitea#12345</a></p>`)
 }
 
 func TestRender_FullIssueURLs(t *testing.T) {
@@ -482,7 +458,7 @@ func TestMisc_IsSameDomain(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	var sha = "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
-	var commit = URLJoin(AppSubURL, "commit", sha)
+	var commit = util.URLJoin(AppSubURL, "commit", sha)
 
 	assert.True(t, IsSameDomain(commit))
 	assert.False(t, IsSameDomain("http://google.com/ncr"))
