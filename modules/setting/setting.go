@@ -6,10 +6,8 @@
 package setting
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"net"
 	"net/mail"
 	"net/url"
@@ -24,12 +22,12 @@ import (
 	"time"
 
 	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
 
 	"github.com/Unknwon/com"
-	"github.com/dgrijalva/jwt-go"
 	_ "github.com/go-macaron/cache/memcache" // memcache plugin for cache
 	_ "github.com/go-macaron/cache/redis"
 	"github.com/go-macaron/session"
@@ -834,15 +832,11 @@ func NewContext() {
 		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
 
 		if err != nil || n != 32 {
-			//Generate new secret and save to config
-
-			_, err := io.ReadFull(rand.Reader, LFS.JWTSecretBytes)
-
+			LFS.JWTSecretBase64, err = generate.NewLfsJwtSecret()
 			if err != nil {
-				log.Fatal(4, "Error reading random bytes: %v", err)
+				log.Fatal(4, "Error generating JWT Secret for custom config: %v", err)
+				return
 			}
-
-			LFS.JWTSecretBase64 = base64.RawURLEncoding.EncodeToString(LFS.JWTSecretBytes)
 
 			// Save secret
 			cfg := ini.Empty()
@@ -913,19 +907,7 @@ func NewContext() {
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
 	InternalToken = sec.Key("INTERNAL_TOKEN").String()
 	if len(InternalToken) == 0 {
-		secretBytes := make([]byte, 32)
-		_, err := io.ReadFull(rand.Reader, secretBytes)
-		if err != nil {
-			log.Fatal(4, "Error reading random bytes: %v", err)
-		}
-
-		secretKey := base64.RawURLEncoding.EncodeToString(secretBytes)
-
-		now := time.Now()
-		InternalToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"nbf": now.Unix(),
-		}).SignedString([]byte(secretKey))
-
+		InternalToken, err = generate.NewInternalToken()
 		if err != nil {
 			log.Fatal(4, "Error generate internal token: %v", err)
 		}

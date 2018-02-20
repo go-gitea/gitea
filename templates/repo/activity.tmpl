@@ -134,7 +134,7 @@
 					<p class="desc">
 						<div class="ui red label">{{$.i18n.Tr "repo.activity.closed_issue_label"}}</div>
 						#{{.Index}} <a class="title has-emoji" href="{{$.Repository.HTMLURL}}/issues/{{.Index}}">{{.Title}}</a>
-						{{TimeSinceUnix .UpdatedUnix $.Lang}}
+						{{TimeSinceUnix .ClosedUnix $.Lang}}
 					</p>
 				{{end}}
 			</div>

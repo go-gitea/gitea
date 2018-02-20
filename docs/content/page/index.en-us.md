@@ -74,7 +74,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
         - MSSQL
         - TiDB (experimental, not recommended)
     - Configuration file
-        - [app.ini](https://github.com/go-gitea/gitea/blob/master/conf/app.ini)
+        - [app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
     - Admin panel
         - Statistics
         - Actions
