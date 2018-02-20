@@ -309,17 +309,8 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	}
 	prConfig := prUnit.PullRequestsConfig()
 
-<<<<<<< HEAD
 	if err := pr.CheckUserAllowedToMerge(doer); err != nil {
 		return fmt.Errorf("CheckUserAllowedToMerge: %v", err)
-=======
-	if protected, err := pr.BaseRepo.IsProtectedBranch(pr.BaseBranch, doer); err != nil {
-		return fmt.Errorf("IsProtectedBranch: %v", err)
-	} else if protected {
-		return ErrBranchProtected{
-			pr.BaseBranch,
-		}
->>>>>>> fed2b2657dfde2af6ed4fc7b32f349ee65405749
 	}
 
 	// Check if merge style is correct and allowed
