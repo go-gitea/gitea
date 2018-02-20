@@ -142,6 +142,7 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 	extensions |= blackfriday.EXTENSION_FENCED_CODE
 	extensions |= blackfriday.EXTENSION_STRIKETHROUGH
 	extensions |= blackfriday.EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK
+	extensions |= blackfriday.EXTENSION_AUTOLINK
 
 	if setting.Markdown.EnableHardLineBreak {
 		extensions |= blackfriday.EXTENSION_HARD_LINE_BREAK
