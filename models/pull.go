@@ -279,8 +279,11 @@ func (pr *PullRequest) CheckUserAllowedToMerge(doer *User) (err error) {
 			"Not signed in",
 		}
 	}
-	if err = pr.GetBaseRepo(); err != nil {
-		return fmt.Errorf("GetBaseRepo: %v", err)
+
+	if pr.BaseRepo == nil {
+		if err = pr.GetBaseRepo(); err != nil {
+			return fmt.Errorf("GetBaseRepo: %v", err)
+		}
 	}
 
 	if protected, err := pr.BaseRepo.IsProtectedBranch(pr.BaseBranch, doer); err != nil {
