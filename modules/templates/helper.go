@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"html/template"
 	"mime"
 	"net/url"
@@ -27,7 +28,6 @@ import (
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
-	"html"
 )
 
 // NewFuncMap returns functions for injecting to templates
@@ -289,7 +289,11 @@ func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string
 	cleanMsg := template.HTMLEscapeString(msg)
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
-	fullMessage, _ := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, urlDefault, metas)
+	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, urlDefault, metas)
+	if err != nil {
+		log.Error(3, "RenderCommitMessage: %v", err)
+		return ""
+	}
 	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
 	if len(msgLines) == 0 {
 		return template.HTML("")
@@ -300,7 +304,11 @@ func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string
 // RenderCommitBody extracts the body of a commit message without its title.
 func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
-	fullMessage, _ := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, "", metas)
+	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, "", metas)
+	if err != nil {
+		log.Error(3, "RenderCommitMessage: %v", err)
+		return ""
+	}
 	body := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
 	if len(body) == 0 {
 		return template.HTML("")

@@ -234,6 +234,9 @@ func RenderCommitMessage(
 	return ctx.postProcess(rawHTML)
 }
 
+var byteBodyTag = []byte("<body>")
+var byteBodyTagClosing = []byte("</body>")
+
 func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	if ctx.procs == nil {
 		ctx.procs = defaultProcessors
@@ -241,9 +244,9 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 
 	// give a generous extra 50 bytes
 	res := make([]byte, 0, len(rawHTML)+50)
-	res = append(res, "<body>"...)
+	res = append(res, byteBodyTag...)
 	res = append(res, rawHTML...)
-	res = append(res, "</body>"...)
+	res = append(res, byteBodyTagClosing...)
 
 	// parse the HTML
 	nodes, err := html.ParseFragment(bytes.NewReader(res), nil)
@@ -268,10 +271,8 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	}
 
 	// remove initial parts - because Render creates a whole HTML page.
-	const lenInit = len(`<html><head></head><body>`)
-	const lenEnd = len(`</body></html>`)
 	res = buf.Bytes()
-	res = res[lenInit : len(res)-lenEnd]
+	res = res[bytes.Index(res, byteBodyTag)+len(byteBodyTag) : bytes.LastIndex(res, byteBodyTagClosing)]
 
 	// Everything done successfully, return parsed data.
 	return res, nil
