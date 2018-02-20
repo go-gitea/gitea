@@ -63,10 +63,10 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	}
 
 	exitStatus := m.Run()
-	if err = os.RemoveAll(setting.RepoRootPath); err != nil {
+	if err = removeAllWithRetry(setting.RepoRootPath); err != nil {
 		fatalTestError("os.RemoveAll: %v\n", err)
 	}
-	if err = os.RemoveAll(setting.AppDataPath); err != nil {
+	if err = removeAllWithRetry(setting.AppDataPath); err != nil {
 		fatalTestError("os.RemoveAll: %v\n", err)
 	}
 	os.Exit(exitStatus)
