@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/russross/blackfriday"
 )
@@ -27,9 +28,9 @@ func (r *Renderer) Link(out *bytes.Buffer, link []byte, title []byte, content []
 		if link[0] != '#' {
 			lnk := string(link)
 			if r.IsWiki {
-				lnk = markup.URLJoin("wiki", lnk)
+				lnk = util.URLJoin("wiki", lnk)
 			}
-			mLink := markup.URLJoin(r.URLPrefix, lnk)
+			mLink := util.URLJoin(r.URLPrefix, lnk)
 			link = []byte(mLink)
 		}
 	}
@@ -97,7 +98,7 @@ var (
 func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byte) {
 	prefix := r.URLPrefix
 	if r.IsWiki {
-		prefix = markup.URLJoin(prefix, "wiki", "src")
+		prefix = util.URLJoin(prefix, "wiki", "src")
 	}
 	prefix = strings.Replace(prefix, "/src/", "/raw/", 1)
 	if len(link) > 0 {
@@ -110,7 +111,7 @@ func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byt
 			}
 		} else {
 			lnk := string(link)
-			lnk = markup.URLJoin(prefix, lnk)
+			lnk = util.URLJoin(prefix, lnk)
 			lnk = strings.Replace(lnk, " ", "+", -1)
 			link = []byte(lnk)
 		}
