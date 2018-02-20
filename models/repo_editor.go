@@ -86,9 +86,13 @@ type UpdateRepoFileOptions struct {
 
 // UpdateRepoFile adds or updates a file in repository.
 func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (err error) {
+	fmt.Println("UpdateRepoFile START ============")
+	fmt.Println("Checking in")
 	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
+	fmt.Println("Checked in")
 	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
 
+	fmt.Println("Discarding/updating branches")
 	if err = repo.DiscardLocalRepoBranchChanges(opts.OldBranch); err != nil {
 		return fmt.Errorf("DiscardLocalRepoBranchChanges [branch: %s]: %v", opts.OldBranch, err)
 	} else if err = repo.UpdateLocalCopyBranch(opts.OldBranch); err != nil {
@@ -96,22 +100,26 @@ func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (
 	}
 
 	if opts.OldBranch != opts.NewBranch {
+		fmt.Println("Checking out new branch")
 		if err := repo.CheckoutNewBranch(opts.OldBranch, opts.NewBranch); err != nil {
 			return fmt.Errorf("CheckoutNewBranch [old_branch: %s, new_branch: %s]: %v", opts.OldBranch, opts.NewBranch, err)
 		}
 	}
 
+	fmt.Println("Obtaining paths")
 	localPath := repo.LocalCopyPath()
 	oldFilePath := path.Join(localPath, opts.OldTreeName)
 	filePath := path.Join(localPath, opts.NewTreeName)
 	dir := path.Dir(filePath)
 
+	fmt.Println("MkdiralL")
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
 	// If it's meant to be a new file, make sure it doesn't exist.
 	if opts.IsNewFile {
+		fmt.Println("IsExist")
 		if com.IsExist(filePath) {
 			return ErrRepoFileAlreadyExist{filePath}
 		}
@@ -120,15 +128,18 @@ func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (
 	// Ignore move step if it's a new file under a directory.
 	// Otherwise, move the file when name changed.
 	if com.IsFile(oldFilePath) && opts.OldTreeName != opts.NewTreeName {
+		fmt.Println("MoveFile")
 		if err = git.MoveFile(localPath, opts.OldTreeName, opts.NewTreeName); err != nil {
 			return fmt.Errorf("git mv %s %s: %v", opts.OldTreeName, opts.NewTreeName, err)
 		}
 	}
 
+	fmt.Println("WriteFile")
 	if err = ioutil.WriteFile(filePath, []byte(opts.Content), 0666); err != nil {
 		return fmt.Errorf("WriteFile: %v", err)
 	}
 
+	fmt.Println("AddChanges and many things")
 	if err = git.AddChanges(localPath, true); err != nil {
 		return fmt.Errorf("git add --all: %v", err)
 	} else if err = git.CommitChanges(localPath, git.CommitChangesOptions{
@@ -143,11 +154,13 @@ func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (
 		return fmt.Errorf("git push origin %s: %v", opts.NewBranch, err)
 	}
 
+	fmt.Println("open repository")
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
 		log.Error(4, "OpenRepository: %v", err)
 		return nil
 	}
+	fmt.Println("GetBranchCommit")
 	commit, err := gitRepo.GetBranchCommit(opts.NewBranch)
 	if err != nil {
 		log.Error(4, "GetBranchCommit [branch: %s]: %v", opts.NewBranch, err)
@@ -163,6 +176,7 @@ func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (
 	if err = repo.GetOwner(); err != nil {
 		return fmt.Errorf("GetOwner: %v", err)
 	}
+	fmt.Println("running PushUpdate")
 	err = PushUpdate(
 		opts.NewBranch,
 		PushUpdateOptions{
@@ -178,6 +192,7 @@ func (repo *Repository) UpdateRepoFile(doer *User, opts UpdateRepoFileOptions) (
 	if err != nil {
 		return fmt.Errorf("PushUpdate: %v", err)
 	}
+	fmt.Println("Updating repo indexer")
 	UpdateRepoIndexer(repo)
 
 	return nil

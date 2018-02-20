@@ -5,6 +5,8 @@
 package sync
 
 import (
+	"fmt"
+	"runtime/debug"
 	"sync"
 )
 
@@ -41,6 +43,8 @@ func NewExclusivePool() *ExclusivePool {
 // CheckIn checks in an instance to the pool and hangs while instance
 // with same identity is using the lock.
 func (p *ExclusivePool) CheckIn(identity string) {
+	fmt.Println("CHECKING IN WITH IDENTITY", identity)
+	debug.PrintStack()
 	p.lock.Lock()
 
 	lock, has := p.pool[identity]
@@ -57,14 +61,19 @@ func (p *ExclusivePool) CheckIn(identity string) {
 // CheckOut checks out an instance from the pool and releases the lock
 // to let other instances with same identity to grab the lock.
 func (p *ExclusivePool) CheckOut(identity string) {
+	fmt.Println("CHECKING OUT WITH IDENTITY", identity)
+	debug.PrintStack()
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
+	fmt.Println("Running unlock")
 	p.pool[identity].Unlock()
 	if p.count[identity] == 1 {
+		fmt.Println("Deleting")
 		delete(p.pool, identity)
 		delete(p.count, identity)
 	} else {
+		fmt.Println("Decreasing identiy")
 		p.count[identity]--
 	}
 }
