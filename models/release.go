@@ -36,7 +36,7 @@ type Release struct {
 	IsPrerelease     bool           `xorm:"NOT NULL DEFAULT false"`
 	IsTag            bool           `xorm:"NOT NULL DEFAULT false"`
 	Attachments      []*Attachment  `xorm:"-"`
-	CreatedUnix      util.TimeStamp `xorm:"created INDEX"`
+	CreatedUnix      util.TimeStamp `xorm:"INDEX"`
 }
 
 func (r *Release) loadAttributes(e Engine) error {
@@ -134,6 +134,8 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
 		}
+	} else {
+		rel.CreatedUnix = util.TimeStampNow()
 	}
 	return nil
 }
