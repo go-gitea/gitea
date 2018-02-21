@@ -264,6 +264,21 @@ func SyncMirrors() {
 			log.Error(4, "UpdateMirror [%s]: %v", repoID, err)
 			continue
 		}
+
+		// Get latest commit date and compare to current repository updated time,
+		// update if latest commit date is newer.
+		commitDate, err := git.GetLatestCommitTime(m.Repo.RepoPath())
+		if err != nil {
+			log.Error(2, "GetLatestCommitDate [%s]: %v", m.RepoID, err)
+			continue
+		} else if commitDate.Before(*m.Repo.UpdatedUnix.AsTimePtr()) {
+			continue
+		}
+
+		if _, err = x.Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", commitDate.Unix(), m.RepoID); err != nil {
+			log.Error(2, "Update repository 'updated_unix' [%s]: %v", m.RepoID, err)
+			continue
+		}
 	}
 }
 
