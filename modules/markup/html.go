@@ -15,8 +15,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 	"golang.org/x/net/html"
@@ -112,20 +112,6 @@ func cutoutVerbosePrefix(prefix string) string {
 	return prefix
 }
 
-// URLJoin joins url components, like path.Join, but preserving contents
-func URLJoin(base string, elems ...string) string {
-	u, err := url.Parse(base)
-	if err != nil {
-		log.Error(4, "URLJoin: Invalid base URL %s", base)
-		return ""
-	}
-	joinArgs := make([]string, 0, len(elems)+1)
-	joinArgs = append(joinArgs, u.Path)
-	joinArgs = append(joinArgs, elems...)
-	u.Path = path.Join(joinArgs...)
-	return u.String()
-}
-
 // RenderIssueIndexPatternOptions options for RenderIssueIndexPattern function
 type RenderIssueIndexPatternOptions struct {
 	// url to which non-special formatting should be linked. If empty,
@@ -177,7 +163,7 @@ func RenderIssueIndexPattern(rawBytes []byte, opts RenderIssueIndexPatternOption
 		}
 		if opts.Metas == nil {
 			buf.WriteString(`<a href="`)
-			buf.WriteString(URLJoin(
+			buf.WriteString(util.URLJoin(
 				opts.URLPrefix, "issues", string(remainder[startIndex+1:endIndex])))
 			buf.WriteString(`">`)
 			buf.Write(remainder[startIndex:endIndex])
@@ -228,7 +214,7 @@ func renderFullSha1Pattern(rawBytes []byte, urlPrefix string) []byte {
 		path := protocol + "://" + paths
 		author := string(m[3])
 		repoName := string(m[4])
-		path = URLJoin(path, author, repoName)
+		path = util.URLJoin(path, author, repoName)
 		ltype := "src"
 		itemType := m[5]
 		if IsSameDomain(paths) {
@@ -260,7 +246,7 @@ func renderFullSha1Pattern(rawBytes []byte, urlPrefix string) []byte {
 			text += ")"
 		}
 		rawBytes = bytes.Replace(rawBytes, all, []byte(fmt.Sprintf(
-			`<a href="%s">%s</a>`, URLJoin(path, ltype, string(sha))+urlSuffix, text)), -1)
+			`<a href="%s">%s</a>`, util.URLJoin(path, ltype, string(sha))+urlSuffix, text)), -1)
 	}
 	return rawBytes
 }
@@ -399,9 +385,9 @@ func RenderShortLinks(rawBytes []byte, urlPrefix string, noLink bool, isWikiMark
 					urlPrefix = strings.Replace(urlPrefix, "/src/", "/raw/", 1)
 				}
 				if isWikiMarkdown {
-					link = URLJoin("wiki", "raw", link)
+					link = util.URLJoin("wiki", "raw", link)
 				}
-				link = URLJoin(urlPrefix, link)
+				link = util.URLJoin(urlPrefix, link)
 			}
 			title := props["title"]
 			if title == "" {
@@ -420,9 +406,9 @@ func RenderShortLinks(rawBytes []byte, urlPrefix string, noLink bool, isWikiMark
 			name = fmt.Sprintf(`<img src="%s" %s title="%s" />`, link, alt, title)
 		} else if !absoluteLink {
 			if isWikiMarkdown {
-				link = URLJoin("wiki", link)
+				link = util.URLJoin("wiki", link)
 			}
-			link = URLJoin(urlPrefix, link)
+			link = util.URLJoin(urlPrefix, link)
 		}
 		if noLink {
 			rawBytes = bytes.Replace(rawBytes, orig, []byte(name), -1)
@@ -445,7 +431,7 @@ func RenderCrossReferenceIssueIndexPattern(rawBytes []byte, urlPrefix string, me
 		repo := string(bytes.Split(m, []byte("#"))[0])
 		issue := string(bytes.Split(m, []byte("#"))[1])
 
-		link := fmt.Sprintf(`<a href="%s">%s</a>`, URLJoin(setting.AppURL, repo, "issues", issue), m)
+		link := fmt.Sprintf(`<a href="%s">%s</a>`, util.URLJoin(setting.AppURL, repo, "issues", issue), m)
 		rawBytes = bytes.Replace(rawBytes, m, []byte(link), 1)
 	}
 	return rawBytes
@@ -463,7 +449,7 @@ func renderSha1CurrentPattern(rawBytes []byte, urlPrefix string) []byte {
 		// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
 		// as used by git and github for linking and thus we have to do similar.
 		rawBytes = bytes.Replace(rawBytes, hash, []byte(fmt.Sprintf(
-			`<a href="%s">%s</a>`, URLJoin(urlPrefix, "commit", string(hash)), base.ShortSha(string(hash)))), -1)
+			`<a href="%s">%s</a>`, util.URLJoin(urlPrefix, "commit", string(hash)), base.ShortSha(string(hash)))), -1)
 	}
 	return rawBytes
 }
@@ -474,7 +460,7 @@ func RenderSpecialLink(rawBytes []byte, urlPrefix string, metas map[string]strin
 	for _, m := range ms {
 		m = m[bytes.Index(m, []byte("@")):]
 		rawBytes = bytes.Replace(rawBytes, m,
-			[]byte(fmt.Sprintf(`<a href="%s">%s</a>`, URLJoin(setting.AppURL, string(m[1:])), m)), -1)
+			[]byte(fmt.Sprintf(`<a href="%s">%s</a>`, util.URLJoin(setting.AppURL, string(m[1:])), m)), -1)
 	}
 
 	rawBytes = RenderFullIssuePattern(rawBytes)
