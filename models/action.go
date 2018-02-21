@@ -742,5 +742,14 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	}
 
 	actions := make([]*Action, 0, 20)
-	return actions, x.Limit(20).Desc("id").Where(cond).Find(&actions)
+
+	if err := x.Limit(20).Desc("id").Where(cond).Find(&actions); err != nil {
+		return nil, fmt.Errorf("Find: %v", err)
+	}
+
+	if err := ActionList(actions).LoadAttributes(); err != nil {
+		return nil, fmt.Errorf("LoadAttributes: %v", err)
+	}
+
+	return actions, nil
 }
