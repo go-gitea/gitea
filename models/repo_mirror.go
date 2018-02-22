@@ -271,8 +271,6 @@ func SyncMirrors() {
 		if err != nil {
 			log.Error(2, "GetLatestCommitDate [%s]: %v", m.RepoID, err)
 			continue
-		} else if commitDate.Before(*m.Repo.UpdatedUnix.AsTimePtr()) {
-			continue
 		}
 
 		if _, err = x.Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", commitDate.Unix(), m.RepoID); err != nil {
