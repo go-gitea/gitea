@@ -267,8 +267,7 @@ func SyncMirrors() {
 			continue
 		}
 
-		// Get latest commit date and compare to current repository updated time,
-		// update if latest commit date is newer.
+		// Get latest commit date and update to current repository updated time
 		commitDate, err := git.GetLatestCommitTime(m.Repo.RepoPath())
 		if err != nil {
 			log.Error(2, "GetLatestCommitDate [%s]: %v", m.RepoID, err)
