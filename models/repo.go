@@ -1946,7 +1946,7 @@ func GetRepositoryByID(id int64) (*Repository, error) {
 }
 
 // GetUserRepositories returns a list of repositories of given user.
-func GetUserRepositories(userID int64, private bool, page, pageSize int, orderBy string) (repos []*Repository, err error) {
+func GetUserRepositories(userID int64, private bool, page, pageSize int, orderBy string) ([]*Repository, error) {
 	if len(orderBy) == 0 {
 		orderBy = "updated_unix DESC"
 	}
@@ -1962,7 +1962,7 @@ func GetUserRepositories(userID int64, private bool, page, pageSize int, orderBy
 		page = 1
 	}
 	sess.Limit(pageSize, (page-1)*pageSize)
-	repos = make([]*Repository, 0, pageSize)
+	repos := make([]*Repository, 0, pageSize)
 
 	return repos, sess.Find(&repos)
 }
