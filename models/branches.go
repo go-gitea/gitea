@@ -6,7 +6,6 @@ package models
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
@@ -70,7 +69,7 @@ func GetProtectedBranchByRepoID(RepoID int64) ([]*ProtectedBranch, error) {
 
 // GetProtectedBranchBy getting protected branch by ID/Name
 func GetProtectedBranchBy(repoID int64, BranchName string) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{RepoID: repoID, BranchName: strings.ToLower(BranchName)}
+	rel := &ProtectedBranch{RepoID: repoID, BranchName: BranchName}
 	has, err := x.Get(rel)
 	if err != nil {
 		return nil, err
