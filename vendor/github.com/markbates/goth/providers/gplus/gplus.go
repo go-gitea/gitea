@@ -11,9 +11,9 @@ import (
 	"net/url"
 	"strings"
 
+	"fmt"
 	"github.com/markbates/goth"
 	"golang.org/x/oauth2"
-	"fmt"
 )
 
 const (
@@ -27,10 +27,10 @@ const (
 // one manually.
 func New(clientKey, secret, callbackURL string, scopes ...string) *Provider {
 	p := &Provider{
-		ClientKey:           clientKey,
-		Secret:              secret,
-		CallbackURL:         callbackURL,
-		providerName:        "gplus",
+		ClientKey:    clientKey,
+		Secret:       secret,
+		CallbackURL:  callbackURL,
+		providerName: "gplus",
 	}
 	p.config = newConfig(p, scopes)
 	return p

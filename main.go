@@ -45,6 +45,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdDump,
 		cmd.CmdCert,
 		cmd.CmdAdmin,
+		cmd.CmdGenerate,
 	}
 	app.Flags = append(app.Flags, []cli.Flag{}...)
 	app.Action = cmd.CmdWeb.Action
