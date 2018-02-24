@@ -52,11 +52,10 @@ menu:
 
 ## Server (`server`)
 
-- `PROTOCOL`: 可选 `http` 或 `https`。
-- `DOMAIN`: 服务器域名。
-- `ROOT_URL`: Gitea服务器的对外 URL。
-- `HTTP_ADDR`: HTTP 监听地址。
-- `HTTP_PORT`: HTTP 监听端口。
+- `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**: Gitea Web服务器的对外 URL。
+- `PROTOCOL`: **http**: 监听协议，\[http, https, fcgi, unix\] 可选。
+- `HTTP_ADDR`: **0.0.0.0**: HTTP 监听地址。
+- `HTTP_PORT`: **3000**: HTTP 监听端口。
 - `DISABLE_SSH`: 是否禁用SSH。
 - `START_SSH_SERVER`: 是否启用内部SSH服务器。
 - `SSH_PORT`: SSH端口，默认为 `22`。

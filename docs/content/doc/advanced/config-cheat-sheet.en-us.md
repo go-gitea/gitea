@@ -82,9 +82,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Server (`server`)
 
-- `PROTOCOL`: **http**: \[http, https, fcgi, unix\]
-- `DOMAIN`: **localhost**: Domain name of this server.
 - `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**: Full public URL of Gitea server.
+- `PROTOCOL`: **http**: \[http, https, fcgi, unix\]
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
    - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
