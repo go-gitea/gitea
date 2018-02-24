@@ -2171,6 +2171,14 @@ func GitFsck() {
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repo := bean.(*Repository)
+				repoFullName := repo.FullName()
+				for _, skipName := range setting.Cron.RepoHealthCheck.SkipRepos {
+					if repoFullName == skipName {
+						desc := fmt.Sprintf("Skipping health check for repository %s", repoFullName)
+						log.Trace(desc)
+						return nil
+					}
+				}
 				repoPath := repo.RepoPath()
 				if err := git.Fsck(repoPath, setting.Cron.RepoHealthCheck.Timeout, setting.Cron.RepoHealthCheck.Args...); err != nil {
 					desc := fmt.Sprintf("Failed to health check repository (%s): %v", repoPath, err)

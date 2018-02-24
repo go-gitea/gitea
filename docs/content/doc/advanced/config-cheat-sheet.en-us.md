@@ -258,6 +258,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SCHEDULE`: **every 24h**: Cron syntax for scheduling repository health check.
 - `TIMEOUT`: **60s**: Time duration syntax for health check execution timeout.
 - `ARGS`: **\<empty\>**: Arguments for command `git fsck`, e.g. `--unreachable --tags`.
+- `SKIP_REPOS`: **\<empty\>**: A list of repos which shouldn't be health-checked, e.g. `user1/repo1 user2/repo2`
 
 ### Cron - Repository Statistics Check (`cron.check_repo_stats`)
 
