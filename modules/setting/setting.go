@@ -8,7 +8,6 @@ package setting
 import (
 	"encoding/base64"
 	"fmt"
-	"net"
 	"net/mail"
 	"net/url"
 	"os"
@@ -91,6 +90,7 @@ var (
 	// Server settings
 	Protocol             Scheme
 	Domain               string
+	DomainPort           string
 	HTTPAddr             string
 	HTTPPort             string
 	LocalURL             string
@@ -703,11 +703,11 @@ func NewContext() {
 		}
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	}
-	Domain = sec.Key("DOMAIN").MustString("localhost")
+
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
 
-	defaultAppURL := string(Protocol) + "://" + Domain
+	defaultAppURL := string(Protocol) + "://localhost"
 	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
 		defaultAppURL += ":" + HTTPPort
 	}
@@ -719,16 +719,13 @@ func NewContext() {
 	if err != nil {
 		log.Fatal(4, "Invalid ROOT_URL '%s': %s", AppURL, err)
 	}
+	Domain = url.Hostname()
+	DomainPort = url.Port()
+
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL = strings.TrimSuffix(url.Path, "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
-	// Check if Domain differs from AppURL domain than update it to AppURL's domain
-	// TODO: Can be replaced with url.Hostname() when minimal GoLang version is 1.8
-	urlHostname := strings.SplitN(url.Host, ":", 2)[0]
-	if urlHostname != Domain && net.ParseIP(urlHostname) == nil {
-		Domain = urlHostname
-	}
 
 	var defaultLocalURL string
 	switch Protocol {
