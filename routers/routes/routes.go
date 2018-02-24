@@ -755,7 +755,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/purge", user.NotificationPurgePost)
 	}, reqSignIn)
 
-	if setting.API.EnableSwaggerEndpoint {
+	if setting.API.EnableSwagger {
 		m.Get("/swagger.v1.json", templates.JSONRenderer(), routers.SwaggerV1Json)
 	}
 
