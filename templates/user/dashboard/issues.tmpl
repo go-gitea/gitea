@@ -79,9 +79,9 @@
 							{{if .NumComments}}
 								<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
 							{{end}}
-
-							{{if and .IsTimetrackerEnabled .TotalTimes}}
-								<span class="comment ui right"><i class="octicon octicon-clock"></i> {{.TotalTimes}}</span>
+							{{$totalTimes := .TotalTimes}}
+							{{if and .IsTimetrackerEnabled $totalTimes}}
+								<span class="comment ui right"><i class="octicon octicon-clock"></i> {{$totalTimes}}</span>
 							{{end}}
 
 							<p class="desc">

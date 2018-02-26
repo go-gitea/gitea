@@ -80,7 +80,8 @@ func (issue *Issue) totalTimes(e Engine) (string, error) {
 
 // TotalTimes returns the total amount of tracked time for the issue
 func (issue *Issue) TotalTimes() string {
-	times, _ := issue.totalTimes(x)
+	times, err := issue.totalTimes(x)
+	log.Error(4,"TotalTimes: %v", err)
 	return times
 }
 
