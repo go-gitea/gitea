@@ -66,12 +66,14 @@ func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) {
 	if ctx.User != nil {
 		userCache[ctx.User.ID] = ctx.User
 	}
-	repoCache := map[int64]*models.Repository{}
 	for _, act := range actions {
-		// Cache results to reduce queries.
-		u, ok := userCache[act.ActUserID]
+		if act.ActUser != nil {
+			userCache[act.ActUserID] = act.ActUser
+		}
+
+		repoOwner, ok := userCache[act.Repo.OwnerID]
 		if !ok {
-			u, err = models.GetUserByID(act.ActUserID)
+			repoOwner, err = models.GetUserByID(act.Repo.OwnerID)
 			if err != nil {
 				if models.IsErrUserNotExist(err) {
 					continue
@@ -79,35 +81,9 @@ func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) {
 				ctx.ServerError("GetUserByID", err)
 				return
 			}
-			userCache[act.ActUserID] = u
+			userCache[repoOwner.ID] = repoOwner
 		}
-		act.ActUser = u
-
-		repo, ok := repoCache[act.RepoID]
-		if !ok {
-			repo, err = models.GetRepositoryByID(act.RepoID)
-			if err != nil {
-				if models.IsErrRepoNotExist(err) {
-					continue
-				}
-				ctx.ServerError("GetRepositoryByID", err)
-				return
-			}
-		}
-		act.Repo = repo
-
-		repoOwner, ok := userCache[repo.OwnerID]
-		if !ok {
-			repoOwner, err = models.GetUserByID(repo.OwnerID)
-			if err != nil {
-				if models.IsErrUserNotExist(err) {
-					continue
-				}
-				ctx.ServerError("GetUserByID", err)
-				return
-			}
-		}
-		repo.Owner = repoOwner
+		act.Repo.Owner = repoOwner
 	}
 	ctx.Data["Feeds"] = actions
 }
@@ -154,7 +130,8 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["MirrorCount"] = len(mirrors)
 	ctx.Data["Mirrors"] = mirrors
 
-	retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+	retrieveFeeds(ctx, models.GetFeedsOptions{
+		RequestedUser:   ctxUser,
 		IncludePrivate:  true,
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,

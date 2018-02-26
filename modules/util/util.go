@@ -4,6 +4,13 @@
 
 package util
 
+import (
+	"net/url"
+	"path"
+
+	"code.gitea.io/gitea/modules/log"
+)
+
 // OptionalBool a boolean that can be "null"
 type OptionalBool byte
 
@@ -45,6 +52,20 @@ func Max(a, b int) int {
 		return b
 	}
 	return a
+}
+
+// URLJoin joins url components, like path.Join, but preserving contents
+func URLJoin(base string, elems ...string) string {
+	u, err := url.Parse(base)
+	if err != nil {
+		log.Error(4, "URLJoin: Invalid base URL %s", base)
+		return ""
+	}
+	joinArgs := make([]string, 0, len(elems)+1)
+	joinArgs = append(joinArgs, u.Path)
+	joinArgs = append(joinArgs, elems...)
+	u.Path = path.Join(joinArgs...)
+	return u.String()
 }
 
 // Min min of two ints

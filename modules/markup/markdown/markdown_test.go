@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	. "code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,8 +34,8 @@ func TestRender_StandardLinks(t *testing.T) {
 	googleRendered := `<p><a href="https://google.com/" rel="nofollow">https://google.com/</a></p>`
 	test("<https://google.com/>", googleRendered, googleRendered)
 
-	lnk := markup.URLJoin(AppSubURL, "WikiPage")
-	lnkWiki := markup.URLJoin(AppSubURL, "wiki", "WikiPage")
+	lnk := util.URLJoin(AppSubURL, "WikiPage")
+	lnkWiki := util.URLJoin(AppSubURL, "wiki", "WikiPage")
 	test("[WikiPage](WikiPage)",
 		`<p><a href="`+lnk+`" rel="nofollow">WikiPage</a></p>`,
 		`<p><a href="`+lnkWiki+`" rel="nofollow">WikiPage</a></p>`)
@@ -43,7 +44,7 @@ func TestRender_StandardLinks(t *testing.T) {
 func TestRender_ShortLinks(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL
-	tree := markup.URLJoin(AppSubURL, "src", "master")
+	tree := util.URLJoin(AppSubURL, "src", "master")
 
 	test := func(input, expected, expectedWiki string) {
 		buffer := RenderString(input, tree, nil)
@@ -52,13 +53,13 @@ func TestRender_ShortLinks(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
 	}
 
-	rawtree := markup.URLJoin(AppSubURL, "raw", "master")
-	url := markup.URLJoin(tree, "Link")
-	otherUrl := markup.URLJoin(tree, "OtherLink")
-	imgurl := markup.URLJoin(rawtree, "Link.jpg")
-	urlWiki := markup.URLJoin(AppSubURL, "wiki", "Link")
-	otherUrlWiki := markup.URLJoin(AppSubURL, "wiki", "OtherLink")
-	imgurlWiki := markup.URLJoin(AppSubURL, "wiki", "raw", "Link.jpg")
+	rawtree := util.URLJoin(AppSubURL, "raw", "master")
+	url := util.URLJoin(tree, "Link")
+	otherUrl := util.URLJoin(tree, "OtherLink")
+	imgurl := util.URLJoin(rawtree, "Link.jpg")
+	urlWiki := util.URLJoin(AppSubURL, "wiki", "Link")
+	otherUrlWiki := util.URLJoin(AppSubURL, "wiki", "OtherLink")
+	imgurlWiki := util.URLJoin(AppSubURL, "wiki", "raw", "Link.jpg")
 	favicon := "http://google.com/favicon.ico"
 
 	test(
@@ -136,7 +137,7 @@ func TestRender_Images(t *testing.T) {
 
 	url := "../../.images/src/02/train.jpg"
 	title := "Train"
-	result := markup.URLJoin(AppSubURL, url)
+	result := util.URLJoin(AppSubURL, url)
 
 	test(
 		"!["+title+"]("+url+")",
@@ -259,7 +260,7 @@ Here are some links to the most important topics. You can find the full list of 
 }
 
 func TestTotal_RenderWiki(t *testing.T) {
-	answers := testAnswers(markup.URLJoin(AppSubURL, "wiki/"), markup.URLJoin(AppSubURL, "wiki", "raw/"))
+	answers := testAnswers(util.URLJoin(AppSubURL, "wiki/"), util.URLJoin(AppSubURL, "wiki", "raw/"))
 
 	for i := 0; i < len(sameCases); i++ {
 		line := RenderWiki([]byte(sameCases[i]), AppSubURL, nil)
@@ -286,10 +287,10 @@ func TestTotal_RenderWiki(t *testing.T) {
 }
 
 func TestTotal_RenderString(t *testing.T) {
-	answers := testAnswers(markup.URLJoin(AppSubURL, "src", "master/"), markup.URLJoin(AppSubURL, "raw", "master/"))
+	answers := testAnswers(util.URLJoin(AppSubURL, "src", "master/"), util.URLJoin(AppSubURL, "raw", "master/"))
 
 	for i := 0; i < len(sameCases); i++ {
-		line := RenderString(sameCases[i], markup.URLJoin(AppSubURL, "src", "master/"), nil)
+		line := RenderString(sameCases[i], util.URLJoin(AppSubURL, "src", "master/"), nil)
 		assert.Equal(t, answers[i], line)
 	}
 

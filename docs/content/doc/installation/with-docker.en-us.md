@@ -28,6 +28,8 @@ the official [install instructions](https://docs.docker.com/compose/install/).
 The most simple setup just creates a volume and a network and starts the `gitea/gitea:latest`
 image as a service. Since there is no database available one can be initialized using SQLite3.
 Create a directory like `gitea` and paste the following content into a file named `docker-compose.yml`.
+Note that the volume should be owned by the user/group with the UID/GID specified in the config file.
+If you don't give the volume correct permissions, the container may not start.
 
 ```yaml
 version: "2"
@@ -39,6 +41,9 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
     restart: always
     networks:
       - gitea
@@ -65,6 +70,9 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
     restart: always
     networks:
       - gitea
@@ -92,6 +100,9 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
     restart: always
     networks:
       - gitea
@@ -132,14 +143,17 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
     restart: always
     networks:
       - gitea
     volumes:
       - ./gitea:/data
-     ports:
-       - "3000:3000"
-       - "222:22"
+    ports:
+      - "3000:3000"
+      - "222:22"
 +    depends_on:
 +      - db
 +
@@ -160,7 +174,8 @@ services:
 
 To use named volumes instead of host volumes, define and use the named volume
 within the `docker-compose.yml` configuration. This change will automatically
-create the required volume.
+create the required volume. You don't need to worry about permissions with
+named volumes, Docker will deal with that automatically.
 
 ```diff
 version: "2"

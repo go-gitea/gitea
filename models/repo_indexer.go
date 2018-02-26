@@ -231,43 +231,17 @@ func addDelete(filename string, repo *Repository, batch rupture.FlushingBatch) e
 }
 
 // parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command
-func parseGitLsTreeOutput(stdout string) ([]fileUpdate, error) {
-	lines := strings.Split(stdout, "\n")
-	updates := make([]fileUpdate, 0, len(lines))
-	for _, line := range lines {
-		// expect line to be "<mode> <object-type> <object-sha>\t<filename>"
-		line = strings.TrimSpace(line)
-		if len(line) == 0 {
-			continue
+func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
+	entries, err := git.ParseTreeEntries(stdout)
+	if err != nil {
+		return nil, err
+	}
+	updates := make([]fileUpdate, len(entries))
+	for i, entry := range entries {
+		updates[i] = fileUpdate{
+			Filename: entry.Name(),
+			BlobSha:  entry.ID.String(),
 		}
-		firstSpaceIndex := strings.IndexByte(line, ' ')
-		if firstSpaceIndex < 0 {
-			log.Error(4, "Misformatted git ls-tree output: %s", line)
-			continue
-		}
-		tabIndex := strings.IndexByte(line, '\t')
-		if tabIndex < 42+firstSpaceIndex || tabIndex == len(line)-1 {
-			log.Error(4, "Misformatted git ls-tree output: %s", line)
-			continue
-		}
-		if objectType := line[firstSpaceIndex+1 : tabIndex-41]; objectType != "blob" {
-			// submodules appear as commit objects, we do not index submodules
-			continue
-		}
-
-		blobSha := line[tabIndex-40 : tabIndex]
-		filename := line[tabIndex+1:]
-		if filename[0] == '"' {
-			var err error
-			filename, err = strconv.Unquote(filename)
-			if err != nil {
-				return nil, err
-			}
-		}
-		updates = append(updates, fileUpdate{
-			Filename: filename,
-			BlobSha:  blobSha,
-		})
 	}
 	return updates, nil
 }
@@ -276,7 +250,7 @@ func parseGitLsTreeOutput(stdout string) ([]fileUpdate, error) {
 func genesisChanges(repo *Repository, revision string) (*repoChanges, error) {
 	var changes repoChanges
 	stdout, err := git.NewCommand("ls-tree", "--full-tree", "-r", revision).
-		RunInDir(repo.RepoPath())
+		RunInDirBytes(repo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
@@ -327,11 +301,11 @@ func nonGenesisChanges(repo *Repository, revision string) (*repoChanges, error) 
 
 	cmd := git.NewCommand("ls-tree", "--full-tree", revision, "--")
 	cmd.AddArguments(updatedFilenames...)
-	stdout, err = cmd.RunInDir(repo.RepoPath())
+	lsTreeStdout, err := cmd.RunInDirBytes(repo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
-	changes.Updates, err = parseGitLsTreeOutput(stdout)
+	changes.Updates, err = parseGitLsTreeOutput(lsTreeStdout)
 	return &changes, err
 }
 
