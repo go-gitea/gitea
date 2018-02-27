@@ -1027,10 +1027,10 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 					if models.IsErrDependenciesLeft(err) {
 						if issue.IsPull {
 							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
-							ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index), http.StatusTemporaryRedirect)
+							ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index), http.StatusSeeOther)
 						} else {
 							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
-							ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index), http.StatusTemporaryRedirect)
+							ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index), http.StatusSeeOther)
 						}
 					}
 				} else {
