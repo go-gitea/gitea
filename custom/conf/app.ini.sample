@@ -498,6 +498,8 @@ TIMEOUT = 60s
 ; Arguments for command 'git fsck', e.g. "--unreachable --tags"
 ; see more on http://git-scm.com/docs/git-fsck/1.7.5
 ARGS =
+; A list of repos which shouldn't be health-checked, e.g. "user1/repo1 user2/repo2"
+SKIP_REPOS =
 
 ; Check repository statistics
 [cron.check_repo_stats]
