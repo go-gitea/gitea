@@ -2156,4 +2156,12 @@ function buildIssuesList() {
     }
 }
 
-buildIssuesList();
+var buildIssuesListOnce = (function() {
+    var executed = false;
+    return function() {
+        if (!executed) {
+            executed = true;
+            buildIssuesList();
+        }
+    };
+})();
