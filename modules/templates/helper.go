@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"html/template"
 	"mime"
 	"net/url"
@@ -27,7 +28,6 @@ import (
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
-	"html"
 )
 
 // NewFuncMap returns functions for injecting to templates
@@ -280,26 +280,21 @@ func ReplaceLeft(s, old, new string) string {
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
 func RenderCommitMessage(msg, urlPrefix string, metas map[string]string) template.HTML {
-	return renderCommitMessage(msg, markup.RenderIssueIndexPatternOptions{
-		URLPrefix: urlPrefix,
-		Metas:     metas,
-	})
+	return RenderCommitMessageLink(msg, urlPrefix, "", metas)
 }
 
 // RenderCommitMessageLink renders commit message as a XXS-safe link to the provided
 // default url, handling for special links.
-func RenderCommitMessageLink(msg, urlPrefix string, urlDefault string, metas map[string]string) template.HTML {
-	return renderCommitMessage(msg, markup.RenderIssueIndexPatternOptions{
-		DefaultURL: urlDefault,
-		URLPrefix:  urlPrefix,
-		Metas:      metas,
-	})
-}
-
-func renderCommitMessage(msg string, opts markup.RenderIssueIndexPatternOptions) template.HTML {
+func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
-	fullMessage := string(markup.RenderIssueIndexPattern([]byte(cleanMsg), opts))
-	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
+	// we can safely assume that it will not return any error, since there
+	// shouldn't be any special HTML.
+	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, urlDefault, metas)
+	if err != nil {
+		log.Error(3, "RenderCommitMessage: %v", err)
+		return ""
+	}
+	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
 	if len(msgLines) == 0 {
 		return template.HTML("")
 	}
@@ -308,16 +303,13 @@ func renderCommitMessage(msg string, opts markup.RenderIssueIndexPatternOptions)
 
 // RenderCommitBody extracts the body of a commit message without its title.
 func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.HTML {
-	return renderCommitBody(msg, markup.RenderIssueIndexPatternOptions{
-		URLPrefix: urlPrefix,
-		Metas:     metas,
-	})
-}
-
-func renderCommitBody(msg string, opts markup.RenderIssueIndexPatternOptions) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
-	fullMessage := string(markup.RenderIssueIndexPattern([]byte(cleanMsg), opts))
-	body := strings.Split(strings.TrimSpace(fullMessage), "\n")
+	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, "", metas)
+	if err != nil {
+		log.Error(3, "RenderCommitMessage: %v", err)
+		return ""
+	}
+	body := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
 	if len(body) == 0 {
 		return template.HTML("")
 	}

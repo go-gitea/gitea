@@ -61,16 +61,16 @@ func handleUsernameChange(ctx *context.Context, newName string) {
 		if err := models.ChangeUserName(ctx.User, newName); err != nil {
 			switch {
 			case models.IsErrUserAlreadyExist(err):
-				ctx.Flash.Error(ctx.Tr("newName_been_taken"))
+				ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
 				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			case models.IsErrEmailAlreadyUsed(err):
 				ctx.Flash.Error(ctx.Tr("form.email_been_used"))
 				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			case models.IsErrNameReserved(err):
-				ctx.Flash.Error(ctx.Tr("user.newName_reserved"))
+				ctx.Flash.Error(ctx.Tr("user.form.name_reserved", newName))
 				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			case models.IsErrNamePatternNotAllowed(err):
-				ctx.Flash.Error(ctx.Tr("user.newName_pattern_not_allowed"))
+				ctx.Flash.Error(ctx.Tr("user.form.name_pattern_not_allowed", newName))
 				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			default:
 				ctx.ServerError("ChangeUserName", err)
