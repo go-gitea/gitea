@@ -23,6 +23,9 @@ func AddDependency(ctx *context.Context) {
 		return
 	}
 
+	// Redirect
+	defer ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issueIndex), http.StatusSeeOther)
+
 	// Check if the Repo is allowed to have dependencies
 	if !ctx.Repo.CanCreateIssueDependencies(ctx.User) {
 		ctx.NotFound("NotAllowedToCreateIssueDependencies", nil)
@@ -33,16 +36,12 @@ func AddDependency(ctx *context.Context) {
 	dep, err := models.GetIssueByID(depID)
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
-		url := fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issueIndex)
-		ctx.Redirect(url, http.StatusSeeOther)
 		return
 	}
 
 	// Check if both issues are in the same repo
 	if issue.RepoID != dep.RepoID {
 		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_same_repo"))
-		url := fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issueIndex)
-		ctx.Redirect(url, http.StatusSeeOther)
 		return
 	}
 
@@ -62,9 +61,6 @@ func AddDependency(ctx *context.Context) {
 			}
 		}
 	}
-
-	url := fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issueIndex)
-	ctx.Redirect(url, http.StatusSeeOther)
 }
 
 // RemoveDependency removes the dependency
