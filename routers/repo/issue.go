@@ -957,7 +957,9 @@ func UpdateIssueStatus(ctx *context.Context) {
 	for _, issue := range issues {
 		if err := issue.ChangeStatus(ctx.User, issue.Repo, isClosed); err != nil {
 			if models.IsErrDependenciesLeft(err) {
-				ctx.Error(http.StatusPreconditionFailed, "", "cannot close this issue because it still has open dependencies")
+				ctx.JSON(http.StatusPreconditionFailed, map[string]interface{}{
+					"error": "cannot close this issue because it still has open dependencies",
+				})
 				return
 			}
 			ctx.ServerError("ChangeStatus", err)
