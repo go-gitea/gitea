@@ -49,17 +49,17 @@ func AddDependency(ctx *context.Context) {
 	if dep.Index == issueIndex {
 		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_same_issue"))
 		return
-	} else {
-		err := models.CreateIssueDependency(ctx.User, issue, dep)
-		if err != nil {
-			if models.IsErrDependencyExists(err) {
-				ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_exists"))
-			} else if models.IsErrCircularDependency(err) {
-				ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
-			} else {
-				ctx.ServerError("CreateOrUpdateIssueDependency", err)
-				return
-			}
+	}
+
+	err = models.CreateIssueDependency(ctx.User, issue, dep)
+	if err != nil {
+		if models.IsErrDependencyExists(err) {
+			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_exists"))
+		} else if models.IsErrCircularDependency(err) {
+			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
+		} else {
+			ctx.ServerError("CreateOrUpdateIssueDependency", err)
+			return
 		}
 	}
 }
