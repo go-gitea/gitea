@@ -107,7 +107,7 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) b
 func (r *Repository) CanCreateIssueDependencies(user *models.User) bool {
 	// Checks for following:
 	// 1. Are dependencies enabled
-	// 2. Has the user write access?
+	// 2. Does the user have write access?
 	return r.Repository.IsDependenciesEnabled() && r.IsWriter()
 }
 
