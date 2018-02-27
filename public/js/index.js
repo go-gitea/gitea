@@ -1430,7 +1430,13 @@ $(document).ready(function () {
 
     // Highlight JS
     if (typeof hljs != 'undefined') {
-        hljs.initHighlightingOnLoad();
+        $('pre code').each(function (index, element) {
+            var worker = new Worker('/js/highlight-worker.js');
+            worker.onmessage = function(event) {
+                $(element).html(event.data);
+            }
+            worker.postMessage($(element).text());
+        });
     }
 
     // Dropzone
