@@ -2,6 +2,6 @@
 // See: https://highlightjs.org/usage/
 onmessage = function(event) {
     importScripts('/vendor/plugins/highlight/highlight.pack.js');
-    var result = self.hljs.highlightAuto(event.data);
-    postMessage(result.value);
+    var result = self.hljs.highlightAuto(event.data.text);
+    postMessage({index: event.data.index, html: result.value});
 };
