@@ -473,10 +473,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Combo("").Get(repo.GetRelease).
 							Patch(reqToken(), reqRepoWriter(), context.ReferencesGitRepo(), bind(api.EditReleaseOption{}), repo.EditRelease).
 							Delete(reqToken(), reqRepoWriter(), repo.DeleteRelease)
-						m.Group("/attachments", func() {
+						m.Group("/assets", func() {
 							m.Combo("").Get(repo.ListReleaseAttachments).
 								Post(reqToken(), reqRepoWriter(), repo.CreateReleaseAttachment)
-							m.Combo("/:attachment").Get(repo.GetReleaseAttachment).
+							m.Combo("/:asset").Get(repo.GetReleaseAttachment).
 								Patch(reqToken(), reqRepoWriter(), bind(api.EditAttachmentOptions{}), repo.EditReleaseAttachment).
 								Delete(reqToken(), reqRepoWriter(), repo.DeleteReleaseAttachment)
 						})

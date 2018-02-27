@@ -16,7 +16,7 @@ import (
 
 // GetReleaseAttachment gets a single attachment of the release
 func GetReleaseAttachment(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/releases/{id}/attachments/{attachment_id} repository repoGetReleaseAttachment
+	// swagger:operation GET /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id} repository repoGetReleaseAttachment
 	// ---
 	// summary: Get a release attachment
 	// produces:
@@ -46,7 +46,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Attachment"
 	releaseID := ctx.ParamsInt64(":id")
-	attachID := ctx.ParamsInt64(":attachment")
+	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(500, "GetAttachmentByID", err)
@@ -62,7 +62,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 
 // ListReleaseAttachments lists all attachments of the release
 func ListReleaseAttachments(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/releases/{id}/attachments repository repoListReleaseAttachments
+	// swagger:operation GET /repos/{owner}/{repo}/releases/{id}/assets repository repoListReleaseAttachments
 	// ---
 	// summary: List release's attachments
 	// produces:
@@ -105,7 +105,7 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 
 // CreateReleaseAttachment creates an attachment and saves the given file
 func CreateReleaseAttachment(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/releases/{id}/attachments repository repoCreateReleaseAttachment
+	// swagger:operation POST /repos/{owner}/{repo}/releases/{id}/assets repository repoCreateReleaseAttachment
 	// ---
 	// summary: Create a release attachment
 	// produces:
@@ -209,7 +209,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 // EditReleaseAttachment updates the given attachment
 func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptions) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/releases/{id}/attachments/{attachment_id} repository repoEditReleaseAttachment
+	// swagger:operation PATCH /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id} repository repoEditReleaseAttachment
 	// ---
 	// summary: Edit a release attachment
 	// produces:
@@ -270,7 +270,7 @@ func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptio
 
 // DeleteReleaseAttachment delete a given attachment
 func DeleteReleaseAttachment(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/releases/{id}/attachments/{attachment_id} repository repoDeleteReleaseAttachment
+	// swagger:operation DELETE /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id} repository repoDeleteReleaseAttachment
 	// ---
 	// summary: Delete a release attachment
 	// produces:
