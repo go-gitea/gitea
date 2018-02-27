@@ -2135,21 +2135,6 @@ function deleteDependencyModal(id, type) {
     ;
 }
 
-function showAddDependencyModal() {
-    // Show the modal
-    $('.add-dependency')
-        .modal({
-            duration: 200,
-            onApprove: function() {
-                $('#addDependencyForm').submit();
-
-            }
-        }).modal('show')
-    ;
-
-    buildIssuesList();
-}
-
 function buildIssuesList() {
     // Get a list of issues
     var repolink = $('#repolink').val();

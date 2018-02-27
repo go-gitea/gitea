@@ -210,9 +210,9 @@
 							<div class="item">
 								<div class="right floated content">
 									{{if $.CanCreateIssueDependencies}}
-									<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blockedBy');">
-										<i class="delete icon text red"></i>
-									</a>
+										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blockedBy');">
+											<i class="delete icon text red"></i>
+										</a>
 									{{end}}
 									{{if .IsClosed}}
 										<div class="ui red mini label">
@@ -244,9 +244,9 @@
 							<div class="item">
 								<div class="right floated content">
 									{{if $.CanCreateIssueDependencies}}
-									<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blocking');">
-										<i class="delete icon text red"></i>
-									</a>
+										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blocking');">
+											<i class="delete icon text red"></i>
+										</a>
 									{{end}}
 									{{if .IsClosed}}
 										<div class="ui red tiny label">

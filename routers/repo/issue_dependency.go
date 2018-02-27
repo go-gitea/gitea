@@ -14,7 +14,6 @@ import (
 
 // AddDependency adds new dependencies
 func AddDependency(ctx *context.Context) {
-
 	depID := ctx.QueryInt64("newDependency")
 
 	issueIndex := ctx.ParamsInt64("index")
@@ -97,7 +96,6 @@ func RemoveDependency(ctx *context.Context) {
 		depType = models.DependencyTypeBlocking
 	default:
 		ctx.Error(http.StatusBadRequest, "GetDependecyType")
-		//ctx.Handle(http.StatusBadRequest, "GetDependecyType", nil)
 		return
 	}
 

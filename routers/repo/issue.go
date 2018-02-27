@@ -303,7 +303,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.
 	}
 	ctx.Data["Branches"] = brs
 
-	//
+	// Contains true if the user can create issue dependencies
 	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.User)
 
 	return labels
