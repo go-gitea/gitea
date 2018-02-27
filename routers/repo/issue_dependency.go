@@ -28,7 +28,7 @@ func AddDependency(ctx *context.Context) {
 
 	// Check if the Repo is allowed to have dependencies
 	if !ctx.Repo.CanCreateIssueDependencies(ctx.User) {
-		ctx.NotFound("NotAllowedToCreateIssueDependencies", nil)
+		ctx.NotFound("CanCreateIssueDependencies", nil)
 		return
 	}
 
@@ -48,6 +48,7 @@ func AddDependency(ctx *context.Context) {
 	// Check if issue and dependency is the same
 	if dep.Index == issueIndex {
 		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_same_issue"))
+		return
 	} else {
 		err := models.CreateIssueDependency(ctx.User, issue, dep)
 		if err != nil {
@@ -76,7 +77,7 @@ func RemoveDependency(ctx *context.Context) {
 
 	// Check if the Repo is allowed to have dependencies
 	if !ctx.Repo.CanCreateIssueDependencies(ctx.User) {
-		ctx.NotFound("NotAllowedToCreateIssueDependencies", nil)
+		ctx.NotFound("CanCreateIssueDependencies", nil)
 		return
 	}
 
