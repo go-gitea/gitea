@@ -7,6 +7,7 @@ package repo
 import (
 	"fmt"
 	"strings"
+	"bytes"
 
 	api "code.gitea.io/sdk/gitea"
 
@@ -14,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/indexer"
 )
 
 // ListIssues list the issues of a repository
@@ -54,6 +56,22 @@ func ListIssues(ctx *context.APIContext) {
 	default:
 		isClosed = util.OptionalBoolFalse
 	}
+
+	// Check for search
+	keyword := strings.Trim(ctx.Query("q"), " ")
+	if bytes.Contains([]byte(keyword), []byte{0x00}) {
+		keyword = ""
+	}
+	var issueIDs []int64
+	var err error
+	if len(keyword) > 0 {
+		issueIDs, err = indexer.SearchIssuesByKeyword(ctx.Repo.Repository.ID, keyword)
+		if len(issueIDs) == 0 {
+			//forceEmpty = true
+		}
+	}
+	// TODO: we should create a function to search for issues with the given parameters, instead of needing to copy everything...
+	fmt.Println(issueIDs)
 
 	issues, err := models.Issues(&models.IssuesOptions{
 		RepoIDs:  []int64{ctx.Repo.Repository.ID},
