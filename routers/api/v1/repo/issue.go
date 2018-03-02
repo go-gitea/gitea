@@ -74,25 +74,20 @@ func ListIssues(ctx *context.APIContext) {
 	if len(keyword) > 0 {
 		issueIDs, err = indexer.SearchIssuesByKeyword(ctx.Repo.Repository.ID, keyword)
 
+		// Didn't found anything
+		if len(issueIDs) == 0 {
+			issues = []*models.Issue{}
+		}
+	}
+
+	// Show the results if we either dont have a keyword or the issues found by said keyword are > 0
+	if len(keyword) == 0 || len(issueIDs) > 0{
 		issues, err = models.Issues(&models.IssuesOptions{
 			RepoIDs:  []int64{ctx.Repo.Repository.ID},
 			Page:     ctx.QueryInt("page"),
 			PageSize: setting.UI.IssuePagingNum,
 			IsClosed: isClosed,
 			IssueIDs: issueIDs,
-		})
-
-		// Didn't found anything
-		if len(issueIDs) == 0 {
-			issues = []*models.Issue{}
-		}
-	} else {
-		// We need this ugly if, otherwise it would show all issues instead of none when no issue was found
-		issues, err = models.Issues(&models.IssuesOptions{
-			RepoIDs:  []int64{ctx.Repo.Repository.ID},
-			Page:     ctx.QueryInt("page"),
-			PageSize: setting.UI.IssuePagingNum,
-			IsClosed: isClosed,
 		})
 	}
 
