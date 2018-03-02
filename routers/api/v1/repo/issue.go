@@ -91,7 +91,7 @@ func ListIssues(ctx *context.APIContext) {
 			IsClosed: isClosed,
 		})
 	}
-	// TODO: we should create a function to search for issues with the given parameters, instead of needing to copy everything...
+
 	if err != nil {
 		ctx.Error(500, "Issues", err)
 		return
