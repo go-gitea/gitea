@@ -61,7 +61,6 @@ func ListIssues(ctx *context.APIContext) {
 		isClosed = util.OptionalBoolFalse
 	}
 
-	// Define issues var
 	var issues []*models.Issue
 
 	// Check for search
