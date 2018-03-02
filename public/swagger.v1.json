@@ -1821,6 +1821,12 @@
           },
           {
             "type": "string",
+            "description": "search string",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "type": "string",
             "description": "whether issue is open or closed",
             "name": "state",
             "in": "query"
