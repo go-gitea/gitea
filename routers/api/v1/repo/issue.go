@@ -44,6 +44,10 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: page number of requested issues
 	//   type: integer
+	// - name: q
+	//   in: query
+	//   description: search string
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"

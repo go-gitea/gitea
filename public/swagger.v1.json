@@ -1821,12 +1821,6 @@
           },
           {
             "type": "string",
-            "description": "search string",
-            "name": "q",
-            "in": "query"
-          },
-          {
-            "type": "string",
             "description": "whether issue is open or closed",
             "name": "state",
             "in": "query"
@@ -1835,6 +1829,12 @@
             "type": "integer",
             "description": "page number of requested issues",
             "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "search string",
+            "name": "q",
             "in": "query"
           }
         ],
@@ -3231,6 +3231,37 @@
     },
     "/repos/{owner}/{repo}/releases": {
       "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a repo's releases",
+        "operationId": "repoListReleases",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ReleaseList"
+          }
+        }
+      },
+      "post": {
         "consumes": [
           "application/json"
         ],
@@ -5207,6 +5238,11 @@
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "Key"
+        },
+        "read_only": {
+          "description": "Describe if the key has only read access or read/write",
+          "type": "boolean",
+          "x-go-name": "ReadOnly"
         },
         "title": {
           "description": "Title of the key to add",
