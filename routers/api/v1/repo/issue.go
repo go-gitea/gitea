@@ -73,11 +73,6 @@ func ListIssues(ctx *context.APIContext) {
 	var err error
 	if len(keyword) > 0 {
 		issueIDs, err = indexer.SearchIssuesByKeyword(ctx.Repo.Repository.ID, keyword)
-
-		// Didn't found anything
-		if len(issueIDs) == 0 {
-			issues = []*models.Issue{}
-		}
 	}
 
 	if len(keyword) == 0 || len(issueIDs) > 0 {
