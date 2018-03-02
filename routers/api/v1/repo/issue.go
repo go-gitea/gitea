@@ -80,7 +80,6 @@ func ListIssues(ctx *context.APIContext) {
 		}
 	}
 
-	// Show the results if we either dont have a keyword or the issues found by said keyword are > 0
 	if len(keyword) == 0 || len(issueIDs) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
 			RepoIDs:  []int64{ctx.Repo.Repository.ID},
