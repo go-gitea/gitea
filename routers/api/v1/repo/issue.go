@@ -57,6 +57,9 @@ func ListIssues(ctx *context.APIContext) {
 		isClosed = util.OptionalBoolFalse
 	}
 
+	// Define issues var
+	var issues []*models.Issue
+
 	// Check for search
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	if bytes.Contains([]byte(keyword), []byte{0x00}) {
@@ -66,19 +69,29 @@ func ListIssues(ctx *context.APIContext) {
 	var err error
 	if len(keyword) > 0 {
 		issueIDs, err = indexer.SearchIssuesByKeyword(ctx.Repo.Repository.ID, keyword)
+
+		issues, err = models.Issues(&models.IssuesOptions{
+			RepoIDs:  []int64{ctx.Repo.Repository.ID},
+			Page:     ctx.QueryInt("page"),
+			PageSize: setting.UI.IssuePagingNum,
+			IsClosed: isClosed,
+			IssueIDs: issueIDs,
+		})
+
+		// Didn't found anything
 		if len(issueIDs) == 0 {
-			//forceEmpty = true
+			issues = []*models.Issue{}
 		}
+	} else {
+		// We need this ugly if, otherwise it would show all issues instead of none when no issue was found
+		issues, err = models.Issues(&models.IssuesOptions{
+			RepoIDs:  []int64{ctx.Repo.Repository.ID},
+			Page:     ctx.QueryInt("page"),
+			PageSize: setting.UI.IssuePagingNum,
+			IsClosed: isClosed,
+		})
 	}
 	// TODO: we should create a function to search for issues with the given parameters, instead of needing to copy everything...
-	fmt.Println(issueIDs)
-
-	issues, err := models.Issues(&models.IssuesOptions{
-		RepoIDs:  []int64{ctx.Repo.Repository.ID},
-		Page:     ctx.QueryInt("page"),
-		PageSize: setting.UI.IssuePagingNum,
-		IsClosed: isClosed,
-	})
 	if err != nil {
 		ctx.Error(500, "Issues", err)
 		return
