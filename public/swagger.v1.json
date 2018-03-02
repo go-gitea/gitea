@@ -5575,7 +5575,8 @@
       "properties": {
         "color": {
           "type": "string",
-          "x-go-name": "Color"
+          "x-go-name": "Color",
+          "example": "#00aabb"
         },
         "name": {
           "type": "string",
@@ -5995,6 +5996,8 @@
           "x-go-name": "Description"
         },
         "due_on": {
+          "type": "string",
+          "format": "date-time",
           "x-go-name": "Deadline"
         },
         "state": {
@@ -6372,9 +6375,9 @@
       "type": "object",
       "properties": {
         "color": {
-          "description": "example: 00aabb",
           "type": "string",
-          "x-go-name": "Color"
+          "x-go-name": "Color",
+          "example": "00aabb"
         },
         "id": {
           "type": "integer",
@@ -6810,6 +6813,8 @@
           "x-go-name": "HasMerged"
         },
         "merged_at": {
+          "type": "string",
+          "format": "date-time",
           "x-go-name": "Merged"
         }
       },
@@ -6819,7 +6824,7 @@
       "description": "Release represents a repository release",
       "type": "object",
       "properties": {
-        "attachments": {
+        "assets": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/Attachment"
@@ -7172,6 +7177,8 @@
       "type": "object",
       "properties": {
         "created_at": {
+          "type": "string",
+          "format": "date-time",
           "x-go-name": "CreatedAt"
         },
         "ignored": {

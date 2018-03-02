@@ -3,17 +3,37 @@
 	"ignore": "test appengine",
 	"package": [
 		{
+			"path": "bytes",
+			"revision": ""
+		},
+		{
 			"checksumSHA1": "Gz+a5Qo4PCiB/Gf2f02v8HEAxDM=",
 			"path": "code.gitea.io/git",
 			"revision": "6798d0f202cdc7187c00a467b586a4bdee27e8c9",
 			"revisionTime": "2018-01-14T14:37:32Z"
 		},
 		{
-			"checksumSHA1": "cH90P/fAXmY0jNh71p0HNjY2JkA=",
+			"checksumSHA1": "41bFXnkZIiehow1sWC+sYy5qXIk=",
 			"origin": "github.com/JonasFranzDEV/go-sdk/gitea",
 			"path": "code.gitea.io/sdk/gitea",
-			"revision": "1c6256217cf1adc88399753202784a7b35c04015",
-			"revisionTime": "2018-02-09T11:17:55Z"
+			"revision": "cb7d4c0d9b9fe04555c1e99e0424dfed2c538c5b",
+			"revisionTime": "2018-03-02T10:25:38Z"
+		},
+		{
+			"path": "encoding/base64",
+			"revision": ""
+		},
+		{
+			"path": "encoding/json",
+			"revision": ""
+		},
+		{
+			"path": "errors",
+			"revision": ""
+		},
+		{
+			"path": "fmt",
+			"revision": ""
 		},
 		{
 			"checksumSHA1": "bOODD4Gbw3GfcuQPU2dI40crxxk=",
@@ -1545,10 +1565,34 @@
 			"revisionTime": "2016-09-28T15:37:09Z"
 		},
 		{
+			"path": "io",
+			"revision": ""
+		},
+		{
+			"path": "io/ioutil",
+			"revision": ""
+		},
+		{
+			"path": "mime/multipart",
+			"revision": ""
+		},
+		{
+			"path": "net/http",
+			"revision": ""
+		},
+		{
+			"path": "strings",
+			"revision": ""
+		},
+		{
 			"checksumSHA1": "JQBqnAXO83ic7bwer/MwurhQMtg=",
 			"path": "strk.kbt.io/projects/go/libravatar",
 			"revision": "5eed7bff870ae19ef51c5773dbc8f3e9fcbd0982",
 			"revisionTime": "2016-06-28T05:56:50Z"
+		},
+		{
+			"path": "time",
+			"revision": ""
 		}
 	],
 	"rootPath": "code.gitea.io/gitea"
