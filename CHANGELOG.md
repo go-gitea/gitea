@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.4.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.4.0-rc2) - 2018-03-02
 * SECURITY
   * Fix escaping changed title in comments (#3530) (#3534)
+  * Escape search query (#3486) (#3488)
 * BUGFIXES
   * Fix query protected branch bug (#3563) (#3571)
   * Fix remove team member issue (#3566) (#3570)
@@ -14,8 +15,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * If Mirrors repository no content is fetched, updated time should not be changed (#3551) (#3565)
   * Bug fix for mirrored repository releases sorted (#3522) (#3555)
   * Add issue closed time column to fix activity closed issues list (#3537) (#3540)
-  * Update markbates/goth library to usupport OAuth2 with new dropbox API (#3533) (#3539)
-  * Fixes missing avatars in offline mode (#3471) (#3477)
+  * Update markbates/goth library to support OAuth2 with new dropbox API (#3533) (#3539)
+  * Fixes missing avatars in offline mode (#3471) (#3477)
+  * Fix synchronization bug in repo indexer (#3455) (#3461)
+  * Fix rendering of wiki page list if wiki repo contains other files (#3454) (#3463)
 
 ## [1.4.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.4.0-rc1) - 2018-02-01
 * BREAKING
