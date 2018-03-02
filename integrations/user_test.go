@@ -92,7 +92,7 @@ func TestRenameReservedUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			i18n.Tr("en", "user.newName_reserved"),
+			i18n.Tr("en", "user.form.name_reserved", reservedUsername),
 		)
 
 		models.AssertNotExistsBean(t, &models.User{Name: reservedUsername})

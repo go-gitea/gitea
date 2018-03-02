@@ -176,7 +176,7 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
 
 	// Closed issues
 	sess := issuesForActivityStatement(repoID, fromTime, true, false)
-	sess.OrderBy("issue.updated_unix DESC")
+	sess.OrderBy("issue.closed_unix DESC")
 	stats.ClosedIssues = make(IssueList, 0)
 	if err = sess.Find(&stats.ClosedIssues); err != nil {
 		return err
@@ -228,7 +228,11 @@ func issuesForActivityStatement(repoID int64, fromTime time.Time, closed, unreso
 
 	if !unresolved {
 		sess.And("issue.is_pull = ?", false)
-		sess.And("issue.created_unix >= ?", fromTime.Unix())
+		if closed {
+			sess.And("issue.closed_unix >= ?", fromTime.Unix())
+		} else {
+			sess.And("issue.created_unix >= ?", fromTime.Unix())
+		}
 	} else {
 		sess.And("issue.created_unix < ?", fromTime.Unix())
 		sess.And("issue.updated_unix >= ?", fromTime.Unix())
