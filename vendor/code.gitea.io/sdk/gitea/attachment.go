@@ -45,7 +45,7 @@ func (c *Client) GetReleaseAttachment(user, repo string, release int64, id int64
 }
 
 // CreateReleaseAttachment creates an attachment for the given release
-func (c *Client) CreateReleaseAttachment(user, repo string, release int64, file *io.Reader, filename string) (*Attachment, error) {
+func (c *Client) CreateReleaseAttachment(user, repo string, release int64, file io.Reader, filename string) (*Attachment, error) {
 	// Write file to body
 	body := new(bytes.Buffer)
 	writer := multipart.NewWriter(body)
@@ -54,7 +54,7 @@ func (c *Client) CreateReleaseAttachment(user, repo string, release int64, file 
 		return nil, err
 	}
 
-	if _, err = io.Copy(part, *file); err != nil {
+	if _, err = io.Copy(part, file); err != nil {
 		return nil, err
 	}
 	if err = writer.Close(); err != nil {
