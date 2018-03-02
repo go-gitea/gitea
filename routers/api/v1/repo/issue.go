@@ -5,17 +5,17 @@
 package repo
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
-	"bytes"
 
 	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/indexer"
 )
 
 // ListIssues list the issues of a repository
