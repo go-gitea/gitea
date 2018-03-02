@@ -63,7 +63,6 @@ func ListIssues(ctx *context.APIContext) {
 
 	var issues []*models.Issue
 
-	// Check for search
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	if bytes.Contains([]byte(keyword), []byte{0x00}) {
 		keyword = ""
