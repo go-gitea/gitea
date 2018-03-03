@@ -2,6 +2,10 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+// Copyright 2018 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package models
 
 import (
@@ -54,6 +58,14 @@ type Issue struct {
 	Attachments []*Attachment `xorm:"-"`
 	Comments    []*Comment    `xorm:"-"`
 	Reactions   ReactionList  `xorm:"-"`
+	Assignees   []*User       `xorm:"-"`
+}
+
+// IssueAssignees saves all issue assignees
+type IssueAssignees struct {
+	ID         int64 `xorm:"pk autoincr"`
+	AssigneeID int64 `xorm:"INDEX"`
+	IssueID    int64 `xorm:"INDEX"`
 }
 
 var (
@@ -115,17 +127,49 @@ func (issue *Issue) loadPoster(e Engine) (err error) {
 	return
 }
 
-func (issue *Issue) loadAssignee(e Engine) (err error) {
-	if issue.Assignee == nil && issue.AssigneeID > 0 {
-		issue.Assignee, err = getUserByID(e, issue.AssigneeID)
+func (issue *Issue) loadAssignees(e Engine) (err error) {
+	var assigneeIDs []IssueAssignees
+
+	err = e.Where("issue_id = ?", issue.ID).Find(&assigneeIDs)
+	if err != nil {
+		return
+	}
+
+	for _, assignee := range assigneeIDs {
+		user, err := getUserByID(e, assignee.AssigneeID)
 		if err != nil {
-			issue.AssigneeID = -1
-			issue.Assignee = NewGhostUser()
-			if !IsErrUserNotExist(err) {
-				return fmt.Errorf("getUserByID.(assignee) [%d]: %v", issue.AssigneeID, err)
+			user = NewGhostUser()
+			if IsErrUserNotExist(err) {
+				return nil
 			}
-			err = nil
-			return
+			return err
+		}
+		issue.Assignees = append(issue.Assignees, user)
+	}
+	return
+}
+
+func GetAssigneesByIssue(issue *Issue) (assignees []*User, err error)  {
+	err = issue.loadAssignees(x)
+	if err != nil {
+		return assignees, err
+	}
+
+	return issue.Assignees, nil
+}
+
+// MakeAssigneeList concats a string with all names of the assignees. Useful for logs.
+func MakeAssigneeList(issue Issue) (AssigneeList string, err error) {
+	err = issue.loadAssignees(x)
+	if err != nil {
+		return "", err
+	}
+
+	for in, assignee := range issue.Assignees {
+		AssigneeList += assignee.Name
+
+		if len(issue.Assignees) > (in + 1) {
+			AssigneeList += ", "
 		}
 	}
 	return
@@ -206,7 +250,7 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 		}
 	}
 
-	if err = issue.loadAssignee(e); err != nil {
+	if err = issue.loadAssignees(e); err != nil {
 		return
 	}
 
@@ -313,8 +357,11 @@ func (issue *Issue) APIFormat() *api.Issue {
 	if issue.Milestone != nil {
 		apiIssue.Milestone = issue.Milestone.APIFormat()
 	}
-	if issue.Assignee != nil {
-		apiIssue.Assignee = issue.Assignee.APIFormat()
+	if len(issue.Assignees) > 0 {
+		for _, assignee := range issue.Assignees {
+			apiIssue.Assignees = append(apiIssue.Assignees, assignee.APIFormat())
+		}
+		//apiIssue.Assignee = issue.Assignee.APIFormat()
 	}
 	if issue.IsPull {
 		apiIssue.PullRequest = &api.PullRequestMeta{
@@ -570,19 +617,6 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 	}
 
 	return sess.Commit()
-}
-
-// GetAssignee sets the Assignee attribute of this issue.
-func (issue *Issue) GetAssignee() (err error) {
-	if issue.AssigneeID == 0 || issue.Assignee != nil {
-		return nil
-	}
-
-	issue.Assignee, err = GetUserByID(issue.AssigneeID)
-	if IsErrUserNotExist(err) {
-		return nil
-	}
-	return err
 }
 
 // ReadBy sets issue to be read by given user.

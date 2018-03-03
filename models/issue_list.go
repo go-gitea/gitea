@@ -165,26 +165,10 @@ func (issues IssueList) getAssigneeIDs() []int64 {
 }
 
 func (issues IssueList) loadAssignees(e Engine) error {
-	assigneeIDs := issues.getAssigneeIDs()
-	if len(assigneeIDs) == 0 {
-		return nil
-	}
-
-	assigneeMaps := make(map[int64]*User, len(assigneeIDs))
-	err := e.
-		In("id", assigneeIDs).
-		Find(&assigneeMaps)
-	if err != nil {
-		return err
-	}
-
-	for _, issue := range issues {
-		if issue.AssigneeID <= 0 {
-			continue
-		}
-		var ok bool
-		if issue.Assignee, ok = assigneeMaps[issue.AssigneeID]; !ok {
-			issue.Assignee = NewGhostUser()
+	for in := range issues {
+		err := issues[in].loadAssignees(e)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
