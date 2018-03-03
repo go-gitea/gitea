@@ -376,7 +376,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		if err != nil {                                     //Skipping not user for commiter
 			// We can expect this to often be an ErrUserNotExist. in the case
 			// it is not, however, it is important to log it.
-			if _, ok := err.(ErrUserNotExist); !ok {
+			if !IsErrUserNotExist(err) {
 				log.Error(3, "GetUserByEmail: %v", err)
 			}
 			return &CommitVerification{
