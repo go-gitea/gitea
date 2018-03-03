@@ -63,7 +63,7 @@ func ListIssues(ctx *context.APIContext) {
 	var issues []*models.Issue
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
-	if strings.IndexByte(keyword, 0) > 0 {
+	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}
 	var issueIDs []int64
