@@ -904,9 +904,6 @@ func UpdateIssueAssignee(ctx *context.Context) {
 
 	assigneeID := ctx.QueryInt64("id")
 	for _, issue := range issues {
-		if issue.AssigneeID == assigneeID {
-			continue
-		}
 		if err := issue.ChangeAssignee(ctx.User, assigneeID); err != nil {
 			ctx.ServerError("ChangeAssignee", err)
 			return

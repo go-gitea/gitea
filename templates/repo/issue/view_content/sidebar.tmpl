@@ -67,7 +67,7 @@
 		<div class="ui divider"></div>
 
 		<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
-		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-assignee dropdown">
+		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-assignees dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.assignee"}}</strong>
 				<span class="octicon octicon-gear"></span>
@@ -83,7 +83,7 @@
 				{{end}}
 			</div>
 		</div>
-		<div class="ui select-assignee list">
+		<div class="ui assignees list">
 			<span class="no-select item {{if .Issue.Assignees}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_assignee"}}</span>
 			<div class="selected">
 				{{range .Issue.Assignees}}

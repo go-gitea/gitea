@@ -51,6 +51,33 @@ func newIssueUsers(e Engine, repo *Repository, issue *Issue) error {
 	return nil
 }
 
+func updateIssueAssignees(e Engine, issue *Issue, assigneeID int64) (removed bool, err error) {
+
+	// Check if the submitted user is already assigne, if yes delete him otherwise add him
+	var toBeDeleted bool
+	for _, assignee := range issue.Assignees {
+		if assignee.ID == assigneeID {
+			toBeDeleted = true
+		}
+	}
+
+	assigneeIn := IssueAssignees{AssigneeID: assigneeID, IssueID: issue.ID}
+
+	if toBeDeleted {
+		_, err = e.Delete(assigneeIn)
+		if err != nil {
+			return toBeDeleted, err
+		}
+	} else {
+		_, err = e.Insert(assigneeIn)
+		if err != nil {
+			return toBeDeleted, err
+		}
+	}
+
+	return toBeDeleted, nil
+}
+
 func updateIssueUserByAssignee(e Engine, issue *Issue) (err error) {
 	if _, err = e.Exec("UPDATE `issue_user` SET is_assigned = ? WHERE issue_id = ?", false, issue.ID); err != nil {
 		return err
@@ -79,6 +106,22 @@ func UpdateIssueUserByAssignee(issue *Issue) (err error) {
 	}
 
 	return sess.Commit()
+}
+
+// UpdateIssueUserByAssignee updates issue-user relation for assignee.
+func UpdateIssueUserByAssignees(issue *Issue, assigneeID int64) (removed bool, err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return false, err
+	}
+
+	removed, err = updateIssueAssignees(sess, issue, assigneeID)
+	if err != nil {
+		return removed, err
+	}
+
+	return removed, sess.Commit()
 }
 
 // UpdateIssueUserByRead updates issue-user relation for reading.

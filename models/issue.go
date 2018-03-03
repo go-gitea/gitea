@@ -149,7 +149,7 @@ func (issue *Issue) loadAssignees(e Engine) (err error) {
 	return
 }
 
-func GetAssigneesByIssue(issue *Issue) (assignees []*User, err error)  {
+func GetAssigneesByIssue(issue *Issue) (assignees []*User, err error) {
 	err = issue.loadAssignees(x)
 	if err != nil {
 		return assignees, err
@@ -826,11 +826,14 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 
 // ChangeAssignee changes the Assignee field of this issue.
 func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
-	var oldAssigneeID = issue.AssigneeID
-	issue.AssigneeID = assigneeID
-	if err = UpdateIssueUserByAssignee(issue); err != nil {
+	//var oldAssigneeID = issue.AssigneeID
+	//issue.AssigneeID = assigneeID
+	removed, err := UpdateIssueUserByAssignees(issue, assigneeID)
+	if err != nil {
 		return fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
 	}
+
+	fmt.Println("assif", assigneeID)
 
 	sess := x.NewSession()
 	defer sess.Close()
@@ -839,7 +842,7 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
 
-	if _, err = createAssigneeComment(sess, doer, issue.Repo, issue, oldAssigneeID, assigneeID); err != nil {
+	if _, err = createAssigneeComment(sess, doer, issue.Repo, issue, assigneeID, removed); err != nil {
 		return fmt.Errorf("createAssigneeComment: %v", err)
 	}
 
@@ -932,14 +935,14 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	if opts.Issue.AssigneeID > 0 {
+	/*if opts.Issue.AssigneeID > 0 {
 		if err = opts.Issue.loadRepo(e); err != nil {
 			return err
 		}
 		if _, err = createAssigneeComment(e, doer, opts.Issue.Repo, opts.Issue, -1, opts.Issue.AssigneeID); err != nil {
 			return err
 		}
-	}
+	}*/
 
 	if opts.IsPull {
 		_, err = e.Exec("UPDATE `repository` SET num_pulls = num_pulls + 1 WHERE id = ?", opts.Issue.RepoID)

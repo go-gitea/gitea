@@ -8,6 +8,7 @@ import (
 	"code.gitea.io/gitea/models"
 
 	"github.com/go-xorm/xorm"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func addMultipleAssignees(x *xorm.Engine) error {
@@ -36,6 +37,51 @@ func addMultipleAssignees(x *xorm.Engine) error {
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	// Updated the comment table
+	type Comment struct {
+		ID              int64 `xorm:"pk autoincr"`
+		Type            int
+		PosterID        int64 `xorm:"INDEX"`
+		IssueID         int64 `xorm:"INDEX"`
+		LabelID         int64
+		OldMilestoneID  int64
+		MilestoneID     int64
+		OldAssigneeID   int64
+		AssigneeID      int64
+		RemovedAssignee bool
+		OldTitle        string
+		NewTitle        string
+
+		CommitID        int64
+		Line            int64
+		Content         string `xorm:"TEXT"`
+		RenderedContent string `xorm:"-"`
+
+		CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+
+		// Reference issue in commit message
+		CommitSHA string `xorm:"VARCHAR(40)"`
+	}
+	err = x.Sync2(Comment{})
+	if err != nil {
+		return err
+	}
+
+	// Migrate comments
+	// First update everything to not have nulls in db
+	_, err = x.Where("type = ?", 9).Update(Comment{RemovedAssignee:false})
+
+	allAssignementComments := []Comment{}
+	err = x.Where("type = ?", 9).Find(&allAssignementComments)
+
+	for _, comment := range allAssignementComments {
+		// Everytime where OldAssigneeID is > 0, the assignement was removed.
+		if comment.OldAssigneeID > 0 {
+			_, err = x.Id(comment.ID).Update(Comment{RemovedAssignee:true})
 		}
 	}
 
