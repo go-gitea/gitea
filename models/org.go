@@ -436,8 +436,7 @@ func AddOrgUser(orgID, uid int64) error {
 	return sess.Commit()
 }
 
-// RemoveOrgUser removes user from given organization.
-func RemoveOrgUser(orgID, userID int64) error {
+func removeOrgUser(sess *xorm.Session, orgID, userID int64) error {
 	ou := new(OrgUser)
 
 	has, err := x.
@@ -471,12 +470,6 @@ func RemoveOrgUser(orgID, userID int64) error {
 				return ErrLastOrgOwner{UID: userID}
 			}
 		}
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
 	}
 
 	if _, err := sess.ID(ou.ID).Delete(ou); err != nil {
@@ -520,6 +513,19 @@ func RemoveOrgUser(orgID, userID int64) error {
 		}
 	}
 
+	return nil
+}
+
+// RemoveOrgUser removes user from given organization.
+func RemoveOrgUser(orgID, userID int64) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := removeOrgUser(sess, orgID, userID); err != nil {
+		return err
+	}
 	return sess.Commit()
 }
 

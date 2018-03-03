@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+
+	"github.com/go-xorm/xorm"
 )
 
 const ownerTeamName = "Owners"
@@ -521,7 +523,7 @@ func AddTeamMember(team *Team, userID int64) error {
 	return sess.Commit()
 }
 
-func removeTeamMember(e Engine, team *Team, userID int64) error {
+func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 	isMember, err := isTeamMember(e, team.OrgID, team.ID, userID)
 	if err != nil || !isMember {
 		return err
@@ -556,6 +558,16 @@ func removeTeamMember(e Engine, team *Team, userID int64) error {
 		if err := repo.recalculateTeamAccesses(e, 0); err != nil {
 			return err
 		}
+	}
+
+	// Check if the user is a member of any team in the organization.
+	if count, err := e.Count(&TeamUser{
+		UID:   userID,
+		OrgID: team.OrgID,
+	}); err != nil {
+		return err
+	} else if count == 0 {
+		return removeOrgUser(e, team.OrgID, userID)
 	}
 
 	return nil

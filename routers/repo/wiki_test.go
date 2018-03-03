@@ -7,36 +7,52 @@ package repo
 import (
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
 	"testing"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/test"
 
-	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
 )
 
 const content = "Wiki contents for unit tests"
 const message = "Wiki commit message for unit tests"
 
-func wikiPath(repo *models.Repository, wikiName string) string {
-	return filepath.Join(repo.LocalWikiPath(), models.WikiNameToFilename(wikiName))
+func wikiEntry(t *testing.T, repo *models.Repository, wikiName string) *git.TreeEntry {
+	wikiRepo, err := git.OpenRepository(repo.WikiPath())
+	assert.NoError(t, err)
+	commit, err := wikiRepo.GetBranchCommit("master")
+	assert.NoError(t, err)
+	entries, err := commit.ListEntries()
+	assert.NoError(t, err)
+	for _, entry := range entries {
+		if entry.Name() == models.WikiNameToFilename(wikiName) {
+			return entry
+		}
+	}
+	return nil
 }
 
 func wikiContent(t *testing.T, repo *models.Repository, wikiName string) string {
-	bytes, err := ioutil.ReadFile(wikiPath(repo, wikiName))
+	entry := wikiEntry(t, repo, wikiName)
+	if !assert.NotNil(t, entry) {
+		return ""
+	}
+	reader, err := entry.Blob().Data()
+	assert.NoError(t, err)
+	bytes, err := ioutil.ReadAll(reader)
 	assert.NoError(t, err)
 	return string(bytes)
 }
 
 func assertWikiExists(t *testing.T, repo *models.Repository, wikiName string) {
-	assert.True(t, com.IsExist(wikiPath(repo, wikiName)))
+	assert.NotNil(t, wikiEntry(t, repo, wikiName))
 }
 
 func assertWikiNotExists(t *testing.T, repo *models.Repository, wikiName string) {
-	assert.False(t, com.IsExist(wikiPath(repo, wikiName)))
+	assert.Nil(t, wikiEntry(t, repo, wikiName))
 }
 
 func assertPagesMetas(t *testing.T, expectedNames []string, metas interface{}) {
