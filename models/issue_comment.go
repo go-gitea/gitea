@@ -89,7 +89,6 @@ type Comment struct {
 	AssigneeID      int64
 	RemovedAssignee bool
 	Assignee        *User `xorm:"-"`
-	OldAssignee     *User `xorm:"-"`
 	OldTitle        string
 	NewTitle        string
 

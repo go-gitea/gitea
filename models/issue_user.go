@@ -14,7 +14,7 @@ type IssueUser struct {
 	UID         int64 `xorm:"INDEX"` // User ID.
 	IssueID     int64
 	IsRead      bool
-	IsAssigned  bool
+	//IsAssigned  bool
 	IsMentioned bool
 }
 
@@ -34,7 +34,7 @@ func newIssueUsers(e Engine, repo *Repository, issue *Issue) error {
 		issueUsers = append(issueUsers, &IssueUser{
 			IssueID:    issue.ID,
 			UID:        assignee.ID,
-			IsAssigned: assignee.ID == issue.AssigneeID,
+			//IsAssigned: assignee.ID == issue.AssigneeID,
 		})
 		isPosterAssignee = isPosterAssignee || assignee.ID == issue.PosterID
 	}

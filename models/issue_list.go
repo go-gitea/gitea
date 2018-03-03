@@ -154,16 +154,6 @@ func (issues IssueList) loadMilestones(e Engine) error {
 	return nil
 }
 
-func (issues IssueList) getAssigneeIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(issues))
-	for _, issue := range issues {
-		if _, ok := ids[issue.AssigneeID]; !ok {
-			ids[issue.AssigneeID] = struct{}{}
-		}
-	}
-	return keysInt64(ids)
-}
-
 func (issues IssueList) loadAssignees(e Engine) error {
 	for in := range issues {
 		err := issues[in].loadAssignees(e)

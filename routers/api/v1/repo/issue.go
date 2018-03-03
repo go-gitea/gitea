@@ -242,6 +242,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		issue.Content = *form.Body
 	}
 
+	// This is the thing to add asignees. TODO
 	if ctx.Repo.IsWriter() && form.Assignee != nil &&
 		(issue.Assignee == nil || issue.Assignee.LowerName != strings.ToLower(*form.Assignee)) {
 		if len(*form.Assignee) == 0 {

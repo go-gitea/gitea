@@ -826,14 +826,10 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 
 // ChangeAssignee changes the Assignee field of this issue.
 func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
-	//var oldAssigneeID = issue.AssigneeID
-	//issue.AssigneeID = assigneeID
 	removed, err := UpdateIssueUserByAssignees(issue, assigneeID)
 	if err != nil {
 		return fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
 	}
-
-	fmt.Println("assif", assigneeID)
 
 	sess := x.NewSession()
 	defer sess.Close()
@@ -846,11 +842,11 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 		return fmt.Errorf("createAssigneeComment: %v", err)
 	}
 
-	issue.Assignee, err = GetUserByID(issue.AssigneeID)
+	/*issue.Assignee, err = GetUserByID(issue.AssigneeID)
 	if err != nil && !IsErrUserNotExist(err) {
 		log.Error(4, "GetUserByID [assignee_id: %v]: %v", issue.AssigneeID, err)
 		return nil
-	}
+	}*/
 
 	// Error not nil here means user does not exist, which is remove assignee.
 	isRemoveAssignee := err != nil
