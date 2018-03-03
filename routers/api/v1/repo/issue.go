@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 
@@ -64,7 +63,7 @@ func ListIssues(ctx *context.APIContext) {
 	var issues []*models.Issue
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
-	if bytes.Contains([]byte(keyword), []byte{0x00}) {
+	if strings.IndexByte(keyword, 0) > 0 {
 		keyword = ""
 	}
 	var issueIDs []int64
@@ -73,7 +72,7 @@ func ListIssues(ctx *context.APIContext) {
 		issueIDs, err = indexer.SearchIssuesByKeyword(ctx.Repo.Repository.ID, keyword)
 	}
 
-	// Only get the issues if we either don't have a keyword or the search returned issues
+	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
