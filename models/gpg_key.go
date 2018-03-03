@@ -374,7 +374,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		//Find Committer account
 		committer, err := GetUserByEmail(c.Committer.Email) //This find the user by primary email or activated email so commit will not be valid if email is not
 		if err != nil {                                     //Skipping not user for commiter
-			log.Error(3, "NoCommitterAccount: %v", err)
+			// No user that we know of has that PGP key.
 			return &CommitVerification{
 				Verified: false,
 				Reason:   "gpg.error.no_committer_account",
