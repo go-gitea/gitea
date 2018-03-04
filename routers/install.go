@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/user"
@@ -275,7 +276,12 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if form.LFSRootPath != "" {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
 		cfg.Section("server").Key("LFS_CONTENT_PATH").SetValue(form.LFSRootPath)
-		cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(base.GetRandomBytesAsBase64(32))
+		var secretKey string
+		if secretKey, err = generate.NewLfsJwtSecret(); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
+			return
+		}
+		cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(secretKey)
 	} else {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("false")
 	}
@@ -315,7 +321,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
 	var secretKey string
-	if secretKey, err = base.GetRandomString(10); err != nil {
+	if secretKey, err = generate.NewSecretKey(); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
 		return
 	}

@@ -2172,6 +2172,7 @@ func GitFsck() {
 			func(idx int, bean interface{}) error {
 				repo := bean.(*Repository)
 				repoPath := repo.RepoPath()
+				log.Trace(fmt.Sprintf("Running health check for repository %s", repoPath))
 				if err := git.Fsck(repoPath, setting.Cron.RepoHealthCheck.Timeout, setting.Cron.RepoHealthCheck.Args...); err != nil {
 					desc := fmt.Sprintf("Failed to health check repository (%s): %v", repoPath, err)
 					log.Warn(desc)
@@ -2183,6 +2184,7 @@ func GitFsck() {
 			}); err != nil {
 		log.Error(4, "GitFsck: %v", err)
 	}
+	log.Trace("Finished: GitFsck")
 }
 
 // GitGcRepos calls 'git gc' to remove unnecessary files and optimize the local repository

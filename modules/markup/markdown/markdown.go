@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/russross/blackfriday"
 )
@@ -21,17 +22,20 @@ type Renderer struct {
 	IsWiki    bool
 }
 
+var byteMailto = []byte("mailto:")
+
 // Link defines how formal links should be processed to produce corresponding HTML elements.
 func (r *Renderer) Link(out *bytes.Buffer, link []byte, title []byte, content []byte) {
-	if len(link) > 0 && !markup.IsLink(link) {
-		if link[0] != '#' {
-			lnk := string(link)
-			if r.IsWiki {
-				lnk = markup.URLJoin("wiki", lnk)
-			}
-			mLink := markup.URLJoin(r.URLPrefix, lnk)
-			link = []byte(mLink)
+	// special case: this is not a link, a hash link or a mailto:, so it's a
+	// relative URL
+	if len(link) > 0 && !markup.IsLink(link) &&
+		link[0] != '#' && !bytes.HasPrefix(link, byteMailto) {
+		lnk := string(link)
+		if r.IsWiki {
+			lnk = util.URLJoin("wiki", lnk)
 		}
+		mLink := util.URLJoin(r.URLPrefix, lnk)
+		link = []byte(mLink)
 	}
 
 	r.Renderer.Link(out, link, title, content)
@@ -97,7 +101,7 @@ var (
 func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byte) {
 	prefix := r.URLPrefix
 	if r.IsWiki {
-		prefix = markup.URLJoin(prefix, "wiki", "src")
+		prefix = util.URLJoin(prefix, "wiki", "src")
 	}
 	prefix = strings.Replace(prefix, "/src/", "/raw/", 1)
 	if len(link) > 0 {
@@ -110,7 +114,7 @@ func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byt
 			}
 		} else {
 			lnk := string(link)
-			lnk = markup.URLJoin(prefix, lnk)
+			lnk = util.URLJoin(prefix, lnk)
 			lnk = strings.Replace(lnk, " ", "+", -1)
 			link = []byte(lnk)
 		}
@@ -123,30 +127,33 @@ func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byt
 	out.WriteString("</a>")
 }
 
+const (
+	blackfridayExtensions = 0 |
+		blackfriday.EXTENSION_NO_INTRA_EMPHASIS |
+		blackfriday.EXTENSION_TABLES |
+		blackfriday.EXTENSION_FENCED_CODE |
+		blackfriday.EXTENSION_STRIKETHROUGH |
+		blackfriday.EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK
+	blackfridayHTMLFlags = 0 |
+		blackfriday.HTML_SKIP_STYLE |
+		blackfriday.HTML_OMIT_CONTENTS |
+		blackfriday.HTML_USE_SMARTYPANTS
+)
+
 // RenderRaw renders Markdown to HTML without handling special links.
 func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
-	htmlFlags := 0
-	htmlFlags |= blackfriday.HTML_SKIP_STYLE
-	htmlFlags |= blackfriday.HTML_OMIT_CONTENTS
 	renderer := &Renderer{
-		Renderer:  blackfriday.HtmlRenderer(htmlFlags, "", ""),
+		Renderer:  blackfriday.HtmlRenderer(blackfridayHTMLFlags, "", ""),
 		URLPrefix: urlPrefix,
 		IsWiki:    wikiMarkdown,
 	}
 
-	// set up the parser
-	extensions := 0
-	extensions |= blackfriday.EXTENSION_NO_INTRA_EMPHASIS
-	extensions |= blackfriday.EXTENSION_TABLES
-	extensions |= blackfriday.EXTENSION_FENCED_CODE
-	extensions |= blackfriday.EXTENSION_STRIKETHROUGH
-	extensions |= blackfriday.EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK
-
+	exts := blackfridayExtensions
 	if setting.Markdown.EnableHardLineBreak {
-		extensions |= blackfriday.EXTENSION_HARD_LINE_BREAK
+		exts |= blackfriday.EXTENSION_HARD_LINE_BREAK
 	}
 
-	body = blackfriday.Markdown(body, renderer, extensions)
+	body = blackfriday.Markdown(body, renderer, exts)
 	return body
 }
 

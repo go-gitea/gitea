@@ -8,15 +8,16 @@ import (
 	"net/http"
 	"strings"
 
+	"fmt"
+
 	"github.com/markbates/goth"
 	"golang.org/x/oauth2"
-	"fmt"
 )
 
 const (
-	authURL    = "https://www.dropbox.com/1/oauth2/authorize"
-	tokenURL   = "https://api.dropbox.com/1/oauth2/token"
-	accountURL = "https://api.dropbox.com/1/account/info"
+	authURL    = "https://www.dropbox.com/oauth2/authorize"
+	tokenURL   = "https://api.dropbox.com/oauth2/token"
+	accountURL = "https://api.dropbox.com/2/users/get_current_account"
 )
 
 // Provider is the implementation of `goth.Provider` for accessing Dropbox.
@@ -40,10 +41,10 @@ type Session struct {
 // create one manually.
 func New(clientKey, secret, callbackURL string, scopes ...string) *Provider {
 	p := &Provider{
-		ClientKey:           clientKey,
-		Secret:              secret,
-		CallbackURL:         callbackURL,
-		providerName:        "dropbox",
+		ClientKey:    clientKey,
+		Secret:       secret,
+		CallbackURL:  callbackURL,
+		providerName: "dropbox",
 	}
 	p.config = newConfig(p, scopes)
 	return p
@@ -86,7 +87,7 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 		return user, fmt.Errorf("%s cannot get user information without accessToken", p.providerName)
 	}
 
-	req, err := http.NewRequest("GET", accountURL, nil)
+	req, err := http.NewRequest("POST", accountURL, nil)
 	if err != nil {
 		return user, err
 	}
@@ -161,7 +162,7 @@ func newConfig(p *Provider, scopes []string) *oauth2.Config {
 
 func userFromReader(r io.Reader, user *goth.User) error {
 	u := struct {
-		Name string `json:"display_name"`
+		Name        string `json:"display_name"`
 		NameDetails struct {
 			NickName string `json:"familiar_name"`
 		} `json:"name_details"`
