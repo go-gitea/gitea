@@ -61,7 +61,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(200, convert.ToBranch(branch, c))
+	ctx.JSON(200, convert.ToBranch(ctx.Repo.Repository, branch, c))
 }
 
 // ListBranches list all the branches of a repository
@@ -98,7 +98,7 @@ func ListBranches(ctx *context.APIContext) {
 			ctx.Error(500, "GetCommit", err)
 			return
 		}
-		apiBranches[i] = convert.ToBranch(branches[i], c)
+		apiBranches[i] = convert.ToBranch(ctx.Repo.Repository, branches[i], c)
 	}
 
 	ctx.JSON(200, &apiBranches)

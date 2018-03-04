@@ -19,9 +19,10 @@ Gogs, version 0.9.146 and older, can be easily migrated to Gitea.
 
 There are some basic steps to follow. On a Linux system run as the Gogs user:
 
-* Create a Gogs backup with `gogs dump`. This creates `gogs-dump-[timestamp].zip` file
-  containing all important Gogs data.
+* Create a Gogs backup with `gogs backup`. This creates `gogs-backup-[timestamp].zip` file
+  containing all important Gogs data. You would need it if you wanted to move to the `gogs` back later.
 * Download the file matching the destination platform from the [downloads page](https://dl.gitea.io/gitea).
+ It should be `1.0.x` version. Migrating from `gogs` to any other version is impossible.
 * Put the binary at the desired install location.
 * Copy `gogs/custom/conf/app.ini` to `gitea/custom/conf/app.ini`.
 * Copy custom `templates, public` from `gogs/custom/` to `gitea/custom/`.
@@ -37,6 +38,11 @@ There are some basic steps to follow. On a Linux system run as the Gogs user:
 * Rename `gogs-repositories/` to `gitea-repositories/`
 * Rename `gogs-data/` to `gitea-data/`
 * In `gitea/custom/conf/app.ini` change:
+
+### Upgrading to most recent `gitea` version:
+After successful migration from `gogs` to `gitea 1.0.x` it is possible to upgrade to the recent `gitea` version.
+Simply download the file matching the destination platform from the [downloads page](https://dl.gitea.io/gitea)
+and replace the binary.
 
 FROM:
 ```

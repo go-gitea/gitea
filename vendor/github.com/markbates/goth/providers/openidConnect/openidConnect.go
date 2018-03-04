@@ -1,17 +1,17 @@
 package openidConnect
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/markbates/goth"
+	"golang.org/x/oauth2"
+	"io/ioutil"
 	"net/http"
 	"strings"
-	"fmt"
-	"encoding/json"
-	"encoding/base64"
-	"io/ioutil"
-	"errors"
-	"golang.org/x/oauth2"
-	"github.com/markbates/goth"
 	"time"
-	"bytes"
 )
 
 const (
@@ -89,14 +89,14 @@ func New(clientKey, secret, callbackURL, openIDAutoDiscoveryURL string, scopes .
 		Secret:      secret,
 		CallbackURL: callbackURL,
 
-		UserIdClaims:   []string{subjectClaim},
-		NameClaims:     []string{NameClaim},
-		NickNameClaims: []string{NicknameClaim, PreferredUsernameClaim},
-		EmailClaims:    []string{EmailClaim},
-		AvatarURLClaims:[]string{PictureClaim},
-		FirstNameClaims:[]string{GivenNameClaim},
-		LastNameClaims: []string{FamilyNameClaim},
-		LocationClaims: []string{AddressClaim},
+		UserIdClaims:    []string{subjectClaim},
+		NameClaims:      []string{NameClaim},
+		NickNameClaims:  []string{NicknameClaim, PreferredUsernameClaim},
+		EmailClaims:     []string{EmailClaim},
+		AvatarURLClaims: []string{PictureClaim},
+		FirstNameClaims: []string{GivenNameClaim},
+		LastNameClaims:  []string{FamilyNameClaim},
+		LocationClaims:  []string{AddressClaim},
 
 		providerName: "openid-connect",
 	}
