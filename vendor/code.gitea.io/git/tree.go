@@ -5,8 +5,6 @@
 package git
 
 import (
-	"bytes"
-	"fmt"
 	"strings"
 )
 
@@ -28,84 +26,6 @@ func NewTree(repo *Repository, id SHA1) *Tree {
 		ID:   id,
 		repo: repo,
 	}
-}
-
-var escapeChar = []byte("\\")
-
-// UnescapeChars reverses escaped characters.
-func UnescapeChars(in []byte) []byte {
-	if bytes.Index(in, escapeChar) == -1 {
-		return in
-	}
-
-	endIdx := len(in) - 1
-	isEscape := false
-	out := make([]byte, 0, endIdx+1)
-	for i := range in {
-		if in[i] == '\\' && !isEscape {
-			isEscape = true
-			continue
-		}
-		isEscape = false
-		out = append(out, in[i])
-	}
-	return out
-}
-
-// parseTreeData parses tree information from the (uncompressed) raw
-// data from the tree object.
-func parseTreeData(tree *Tree, data []byte) ([]*TreeEntry, error) {
-	entries := make([]*TreeEntry, 0, 10)
-	l := len(data)
-	pos := 0
-	for pos < l {
-		entry := new(TreeEntry)
-		entry.ptree = tree
-		step := 6
-		switch string(data[pos : pos+step]) {
-		case "100644":
-			entry.mode = EntryModeBlob
-			entry.Type = ObjectBlob
-		case "100755":
-			entry.mode = EntryModeExec
-			entry.Type = ObjectBlob
-		case "120000":
-			entry.mode = EntryModeSymlink
-			entry.Type = ObjectBlob
-		case "160000":
-			entry.mode = EntryModeCommit
-			entry.Type = ObjectCommit
-
-			step = 8
-		case "040000":
-			entry.mode = EntryModeTree
-			entry.Type = ObjectTree
-		default:
-			return nil, fmt.Errorf("unknown type: %v", string(data[pos:pos+step]))
-		}
-		pos += step + 6 // Skip string type of entry type.
-
-		step = 40
-		id, err := NewIDFromString(string(data[pos : pos+step]))
-		if err != nil {
-			return nil, err
-		}
-		entry.ID = id
-		pos += step + 1 // Skip half of SHA1.
-
-		step = bytes.IndexByte(data[pos:], '\n')
-
-		// In case entry name is surrounded by double quotes(it happens only in git-shell).
-		if data[pos] == '"' {
-			entry.name = string(UnescapeChars(data[pos+1 : pos+step-1]))
-		} else {
-			entry.name = string(data[pos : pos+step])
-		}
-
-		pos += step + 1
-		entries = append(entries, entry)
-	}
-	return entries, nil
 }
 
 // SubTree get a sub tree by the sub dir path
@@ -142,12 +62,11 @@ func (t *Tree) ListEntries() (Entries, error) {
 	if t.entriesParsed {
 		return t.entries, nil
 	}
-	t.entriesParsed = true
 
 	stdout, err := NewCommand("ls-tree", t.ID.String()).RunInDirBytes(t.repo.Path)
 	if err != nil {
 		return nil, err
 	}
-	t.entries, err = parseTreeData(t, stdout)
+	t.entries, err = parseTreeEntries(stdout, t)
 	return t.entries, err
 }

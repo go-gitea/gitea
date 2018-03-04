@@ -107,12 +107,6 @@ func TestBasicAuthEncode(t *testing.T) {
 	assert.Equal(t, "Zm9vOmJhcg==", BasicAuthEncode("foo", "bar"))
 }
 
-func TestGetRandomString(t *testing.T) {
-	randomString, err := GetRandomString(4)
-	assert.NoError(t, err)
-	assert.Len(t, randomString, 4)
-}
-
 // TODO: Test PBKDF2()
 // TODO: Test VerifyTimeLimitCode()
 // TODO: Test CreateTimeLimitCode()
