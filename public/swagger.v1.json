@@ -3420,7 +3420,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/releases/{id}/attachments": {
+    "/repos/{owner}/{repo}/releases/{id}/assets": {
       "get": {
         "produces": [
           "application/json"
@@ -3514,7 +3514,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/releases/{id}/attachments/{attachment_id}": {
+    "/repos/{owner}/{repo}/releases/{id}/assets/{attachment_id}": {
       "get": {
         "produces": [
           "application/json"
