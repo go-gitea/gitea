@@ -192,7 +192,19 @@ function initCommentForm() {
             }
         });
 
+
         $listMenu.find('.item:not(.no-select)').click(function () {
+
+            if (selector == 'select-assignees') {
+                updateIssuesMeta(
+                    $listMenu.data('update-url'),
+                    "",
+                    $listMenu.data('issue-id'),
+                    $(this).data('id')
+                );
+                return false;
+            }
+
             if ($(this).hasClass('checked')) {
                 $(this).removeClass('checked');
                 $(this).find('.octicon').removeClass('octicon-check');
