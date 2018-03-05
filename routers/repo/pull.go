@@ -813,8 +813,8 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		Poster:      ctx.User,
 		MilestoneID: milestoneID,
 		//AssigneeID:  assigneeID,
-		IsPull:      true,
-		Content:     form.Content,
+		IsPull:  true,
+		Content: form.Content,
 	}
 	pullRequest := &models.PullRequest{
 		HeadRepoID:   headRepo.ID,

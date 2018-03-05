@@ -10,10 +10,10 @@ import (
 
 // IssueUser represents an issue-user relation.
 type IssueUser struct {
-	ID          int64 `xorm:"pk autoincr"`
-	UID         int64 `xorm:"INDEX"` // User ID.
-	IssueID     int64
-	IsRead      bool
+	ID      int64 `xorm:"pk autoincr"`
+	UID     int64 `xorm:"INDEX"` // User ID.
+	IssueID int64
+	IsRead  bool
 	//IsAssigned  bool
 	IsMentioned bool
 }
@@ -32,8 +32,8 @@ func newIssueUsers(e Engine, repo *Repository, issue *Issue) error {
 	issueUsers := make([]*IssueUser, 0, len(assignees)+1)
 	for _, assignee := range assignees {
 		issueUsers = append(issueUsers, &IssueUser{
-			IssueID:    issue.ID,
-			UID:        assignee.ID,
+			IssueID: issue.ID,
+			UID:     assignee.ID,
 			//IsAssigned: assignee.ID == issue.AssigneeID,
 		})
 		isPosterAssignee = isPosterAssignee || assignee.ID == issue.PosterID

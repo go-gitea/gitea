@@ -179,7 +179,7 @@ func IsUserAssignedToIssue(issue *Issue, user *User) (isAssigned bool, err error
 }
 
 func ClearAssigneesByIssue(issue *Issue) (err error) {
-	_, err = x.Delete(IssueAssignees{IssueID:issue.ID})
+	_, err = x.Delete(IssueAssignees{IssueID: issue.ID})
 	if err != nil {
 		return err
 	}
@@ -950,7 +950,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	// Check for and validate assignees
-	var validAssigneeIDs [] int64
+	var validAssigneeIDs []int64
 	if len(opts.AssigneeIDs) > 0 {
 		for _, assigneeID := range opts.AssigneeIDs {
 			valid, err := hasAccess(e, assigneeID, opts.Repo, AccessModeWrite)

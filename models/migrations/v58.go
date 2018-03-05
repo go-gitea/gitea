@@ -7,8 +7,8 @@ package migrations
 import (
 	"code.gitea.io/gitea/models"
 
-	"github.com/go-xorm/xorm"
 	"code.gitea.io/gitea/modules/util"
+	"github.com/go-xorm/xorm"
 )
 
 func addMultipleAssignees(x *xorm.Engine) error {
@@ -73,7 +73,7 @@ func addMultipleAssignees(x *xorm.Engine) error {
 
 	// Migrate comments
 	// First update everything to not have nulls in db
-	_, err = x.Where("type = ?", 9).Update(Comment{RemovedAssignee:false})
+	_, err = x.Where("type = ?", 9).Update(Comment{RemovedAssignee: false})
 
 	allAssignementComments := []Comment{}
 	err = x.Where("type = ?", 9).Find(&allAssignementComments)
@@ -81,7 +81,7 @@ func addMultipleAssignees(x *xorm.Engine) error {
 	for _, comment := range allAssignementComments {
 		// Everytime where OldAssigneeID is > 0, the assignement was removed.
 		if comment.OldAssigneeID > 0 {
-			_, err = x.Id(comment.ID).Update(Comment{RemovedAssignee:true})
+			_, err = x.Id(comment.ID).Update(Comment{RemovedAssignee: true})
 		}
 	}
 
