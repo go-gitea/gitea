@@ -166,7 +166,8 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		form.Labels = nil
 	}
 
-	if err := models.NewIssue(ctx.Repo.Repository, issue, form.Labels, nil); err != nil {
+	// TODO
+	if err := models.NewIssue(ctx.Repo.Repository, issue, form.Labels, nil, nil); err != nil {
 		ctx.Error(500, "NewIssue", err)
 		return
 	}

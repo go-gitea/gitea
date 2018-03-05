@@ -192,10 +192,10 @@ function initCommentForm() {
             }
         });
 
-
         $listMenu.find('.item:not(.no-select)').click(function () {
 
-            if (selector == 'select-assignees') {
+            // we don't need the action attribute when updating assignees
+            if (selector == 'select-assignees' && hasLabelUpdateAction) {
                 updateIssuesMeta(
                     $listMenu.data('update-url'),
                     "",

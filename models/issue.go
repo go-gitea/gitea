@@ -915,6 +915,7 @@ type NewIssueOptions struct {
 	Repo        *Repository
 	Issue       *Issue
 	LabelIDs    []int64
+	AssigneeIDs []int64
 	Attachments []string // In UUID format.
 	IsPull      bool
 }
@@ -948,6 +949,20 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
+	// Check for and validate assignees
+	var validAssigneeIDs [] int64
+	if len(opts.AssigneeIDs) > 0 {
+		for _, assigneeID := range opts.AssigneeIDs {
+			valid, err := hasAccess(e, assigneeID, opts.Repo, AccessModeWrite)
+			if err != nil {
+				return fmt.Errorf("hasAccess [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
+			}
+			if valid {
+				validAssigneeIDs = append(validAssigneeIDs, assigneeID)
+			}
+		}
+	}
+
 	// Milestone and assignee validation should happen before insert actual object.
 	if _, err = e.Insert(opts.Issue); err != nil {
 		return err
@@ -967,6 +982,20 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			return err
 		}
 	}*/
+	// Insert the assignees
+	if len(opts.AssigneeIDs) > 0 {
+		for _, assigneeID := range opts.AssigneeIDs {
+			err = opts.Issue.ChangeAssignee(doer, assigneeID)
+			if err != nil {
+				// Irgendwo hier passiert der Fehler, warscheinlich durch die neueröffnete session
+				// in einer von den unterfunktionen. Denkbar wäre das adden in ne seperate funktion
+				// auszulagern, die dann den ganzen anderen Kram regelt (issuecomment, hooks etc)
+				// Bzw. den ganzen müll mit "ChangeAssignee" vernünftig zu machen
+				fmt.Println(err, assigneeID, opts.Issue.ID)
+				return err
+			}
+		}
+	}
 
 	if opts.IsPull {
 		_, err = e.Exec("UPDATE `repository` SET num_pulls = num_pulls + 1 WHERE id = ?", opts.Issue.RepoID)
@@ -1023,7 +1052,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 }
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
+func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -1035,6 +1064,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 		Issue:       issue,
 		LabelIDs:    labelIDs,
 		Attachments: uuids,
+		AssigneeIDs: assigneeIDs,
 	}); err != nil {
 		return fmt.Errorf("newIssue: %v", err)
 	}

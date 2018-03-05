@@ -364,7 +364,7 @@ func NewIssue(ctx *context.Context) {
 }
 
 // ValidateRepoMetas check and returns repository's meta informations
-func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64, int64, int64) {
+func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64, []int64, int64) {
 	var (
 		repo = ctx.Repo.Repository
 		err  error
@@ -372,11 +372,11 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 
 	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository)
 	if ctx.Written() {
-		return nil, 0, 0
+		return nil, nil, 0
 	}
 
 	if !ctx.Repo.IsWriter() {
-		return nil, 0, 0
+		return nil, nil, 0
 	}
 
 	var labelIDs []int64
@@ -385,7 +385,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 	if len(form.LabelIDs) > 0 {
 		labelIDs, err = base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
 		if err != nil {
-			return nil, 0, 0
+			return nil, nil, 0
 		}
 		labelIDMark := base.Int64sToMap(labelIDs)
 
@@ -407,23 +407,41 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 		ctx.Data["Milestone"], err = repo.GetMilestoneByID(milestoneID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
-			return nil, 0, 0
+			return nil, nil, 0
 		}
 		ctx.Data["milestone_id"] = milestoneID
 	}
 
 	// Check assignee.
-	assigneeID := form.AssigneeID
+	/*assigneeID := form.AssigneeID
 	if assigneeID > 0 {
 		ctx.Data["Assignee"], err = repo.GetAssigneeByID(assigneeID)
 		if err != nil {
 			ctx.ServerError("GetAssigneeByID", err)
-			return nil, 0, 0
+			return nil, nil, 0, 0
 		}
 		ctx.Data["assignee_id"] = assigneeID
-	}
+	}*/
 
-	return labelIDs, milestoneID, assigneeID
+	// Check assignees
+	var assigneeIDs []int64
+	if len(form.AssigneeIDs) > 0 {
+		assigneeIDs, err = base.StringsToInt64s(strings.Split(form.AssigneeIDs, ","))
+		if err != nil {
+			return nil, nil, 0
+		}
+		//assigneeIDMark := base.Int64sToMap(assigneeIDs)
+
+		// Check if the passed assignees actually exist
+		for _, aID := range assigneeIDs {
+			_, err = repo.GetAssigneeByID(aID)
+			if err != nil {
+				ctx.ServerError("GetAssigneeByID", err)
+				return nil, nil, 0
+			}
+		}
+	}
+	return labelIDs, assigneeIDs, milestoneID
 }
 
 // NewIssuePost response for creating new issue
@@ -440,7 +458,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		attachments []string
 	)
 
-	labelIDs, milestoneID, assigneeID := ValidateRepoMetas(ctx, form)
+	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form)
 	if ctx.Written() {
 		return
 	}
@@ -460,11 +478,10 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		PosterID:    ctx.User.ID,
 		Poster:      ctx.User,
 		MilestoneID: milestoneID,
-		AssigneeID:  assigneeID,
 		Content:     form.Content,
 		Ref:         form.Ref,
 	}
-	if err := models.NewIssue(repo, issue, labelIDs, attachments); err != nil {
+	if err := models.NewIssue(repo, issue, labelIDs, assigneeIDs, attachments); err != nil {
 		ctx.ServerError("NewIssue", err)
 		return
 	}
