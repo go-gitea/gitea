@@ -903,10 +903,20 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	}
 
 	assigneeID := ctx.QueryInt64("id")
+	action := ctx.Query("action")
+
 	for _, issue := range issues {
-		if err := issue.ChangeAssignee(ctx.User, assigneeID); err != nil {
-			ctx.ServerError("ChangeAssignee", err)
-			return
+		switch action {
+		case "clear":
+			if err := models.ClearAssigneesByIssue(issue); err != nil {
+				ctx.ServerError("ClearAssignees", err)
+				return
+			}
+		default:
+			if err := issue.ChangeAssignee(ctx.User, assigneeID); err != nil {
+				ctx.ServerError("ChangeAssignee", err)
+				return
+			}
 		}
 	}
 	ctx.JSON(200, map[string]interface{}{

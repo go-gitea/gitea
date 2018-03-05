@@ -41,7 +41,7 @@ type Issue struct {
 	MilestoneID     int64       `xorm:"INDEX"`
 	Milestone       *Milestone  `xorm:"-"`
 	Priority        int
-	AssigneeID      int64        `xorm:"INDEX"`
+	AssigneeID      int64        `xorm:"-"`
 	Assignee        *User        `xorm:"-"`
 	IsClosed        bool         `xorm:"INDEX"`
 	IsRead          bool         `xorm:"-"`
@@ -139,13 +139,18 @@ func (issue *Issue) loadAssignees(e Engine) (err error) {
 		user, err := getUserByID(e, assignee.AssigneeID)
 		if err != nil {
 			user = NewGhostUser()
-			if IsErrUserNotExist(err) {
-				return nil
+			if !IsErrUserNotExist(err) {
+				return err
 			}
-			return err
 		}
 		issue.Assignees = append(issue.Assignees, user)
 	}
+
+	// Check if we have at least one assignee and if yes put it in as `Assignee`
+	if len(issue.Assignees) > 0 {
+		issue.Assignee = issue.Assignees[0]
+	}
+
 	return
 }
 
@@ -156,6 +161,29 @@ func GetAssigneesByIssue(issue *Issue) (assignees []*User, err error) {
 	}
 
 	return issue.Assignees, nil
+}
+
+func IsUserAssignedToIssue(issue *Issue, user *User) (isAssigned bool, err error) {
+	err = issue.loadAssignees(x)
+	if err != nil {
+		return false, err
+	}
+
+	for _, assignee := range issue.Assignees {
+		if assignee.ID == user.ID {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func ClearAssigneesByIssue(issue *Issue) (err error) {
+	_, err = x.Delete(IssueAssignees{IssueID:issue.ID})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // MakeAssigneeList concats a string with all names of the assignees. Useful for logs.
