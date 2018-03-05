@@ -234,7 +234,7 @@ func UpdateAttachment(atta *Attachment) error {
 
 func updateAttachment(e Engine, atta *Attachment) error {
 	var sess *xorm.Session
-	if atta.ID != 0 || atta.UUID == "" {
+	if atta.ID != 0 && atta.UUID == "" {
 		sess = e.ID(atta.ID)
 	} else {
 		// Use uuid only if id is not set and uuid is set
