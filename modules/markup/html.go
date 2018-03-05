@@ -464,7 +464,11 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 	childNode.Parent = linkNode
 	absoluteLink := isLinkStr(link)
 	if !absoluteLink {
-		link = strings.Replace(link, " ", "+", -1)
+		if image {
+			link = strings.Replace(link, " ", "+", -1)
+		} else {
+			link = strings.Replace(link, " ", "-", -1)
+		}
 	}
 	urlPrefix := ctx.urlPrefix
 	if image {
