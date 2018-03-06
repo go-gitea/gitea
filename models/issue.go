@@ -854,30 +854,30 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 
 // ChangeAssignee changes the Assignee field of this issue.
 func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
-	removed, err := UpdateIssueUserByAssignees(issue, assigneeID)
+	sess := x.NewSession()
+	defer sess.Close()
+
+	return issue.changeAssignee(sess, doer, assigneeID)
+}
+
+func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID int64) (err error) {
+
+	// Update the assignee
+	removed, err := updateIssueAssignee(sess, issue, assigneeID)
 	if err != nil {
 		return fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-
+	// Repo infos
 	if err = issue.loadRepo(sess); err != nil {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
 
+	// Comment
 	if _, err = createAssigneeComment(sess, doer, issue.Repo, issue, assigneeID, removed); err != nil {
 		return fmt.Errorf("createAssigneeComment: %v", err)
 	}
 
-	/*issue.Assignee, err = GetUserByID(issue.AssigneeID)
-	if err != nil && !IsErrUserNotExist(err) {
-		log.Error(4, "GetUserByID [assignee_id: %v]: %v", issue.AssigneeID, err)
-		return nil
-	}*/
-
-	// Error not nil here means user does not exist, which is remove assignee.
-	isRemoveAssignee := err != nil
 	if issue.IsPull {
 		issue.PullRequest.Issue = issue
 		apiPullRequest := &api.PullRequestPayload{
@@ -886,13 +886,13 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 			Repository:  issue.Repo.APIFormat(AccessModeNone),
 			Sender:      doer.APIFormat(),
 		}
-		if isRemoveAssignee {
+		if removed {
 			apiPullRequest.Action = api.HookIssueUnassigned
 		} else {
 			apiPullRequest.Action = api.HookIssueAssigned
 		}
 		if err := PrepareWebhooks(issue.Repo, HookEventPullRequest, apiPullRequest); err != nil {
-			log.Error(4, "PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, isRemoveAssignee, err)
+			log.Error(4, "PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
 			return nil
 		}
 	}
@@ -985,12 +985,8 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	// Insert the assignees
 	if len(opts.AssigneeIDs) > 0 {
 		for _, assigneeID := range opts.AssigneeIDs {
-			err = opts.Issue.ChangeAssignee(doer, assigneeID)
+			err = opts.Issue.changeAssignee(e, doer, assigneeID)
 			if err != nil {
-				// Irgendwo hier passiert der Fehler, warscheinlich durch die neueröffnete session
-				// in einer von den unterfunktionen. Denkbar wäre das adden in ne seperate funktion
-				// auszulagern, die dann den ganzen anderen Kram regelt (issuecomment, hooks etc)
-				// Bzw. den ganzen müll mit "ChangeAssignee" vernünftig zu machen
 				fmt.Println(err, assigneeID, opts.Issue.ID)
 				return err
 			}

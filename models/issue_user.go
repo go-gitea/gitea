@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"github.com/go-xorm/xorm"
 )
 
 // IssueUser represents an issue-user relation.
@@ -51,7 +52,13 @@ func newIssueUsers(e Engine, repo *Repository, issue *Issue) error {
 	return nil
 }
 
-func updateIssueAssignees(e Engine, issue *Issue, assigneeID int64) (removed bool, err error) {
+func updateIssueAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (removed bool, err error) {
+
+	// Check if the user exists
+	_, err = GetUserByID(assigneeID)
+	if err != nil {
+		return false, err
+	}
 
 	// Check if the submitted user is already assigne, if yes delete him otherwise add him
 	var toBeDeleted bool
@@ -106,22 +113,6 @@ func UpdateIssueUserByAssignee(issue *Issue) (err error) {
 	}
 
 	return sess.Commit()
-}
-
-// UpdateIssueUserByAssignee updates issue-user relation for assignee.
-func UpdateIssueUserByAssignees(issue *Issue, assigneeID int64) (removed bool, err error) {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return false, err
-	}
-
-	removed, err = updateIssueAssignees(sess, issue, assigneeID)
-	if err != nil {
-		return removed, err
-	}
-
-	return removed, sess.Commit()
 }
 
 // UpdateIssueUserByRead updates issue-user relation for reading.
