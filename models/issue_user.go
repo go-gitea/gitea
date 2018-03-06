@@ -85,6 +85,7 @@ func updateIssueAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (remov
 	return toBeDeleted, nil
 }
 
+// What is this good for?? Saving who interacted whith which issue?
 func updateIssueUserByAssignee(e Engine, issue *Issue) (err error) {
 	if _, err = e.Exec("UPDATE `issue_user` SET is_assigned = ? WHERE issue_id = ?", false, issue.ID); err != nil {
 		return err

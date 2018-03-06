@@ -974,20 +974,11 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	/*if opts.Issue.AssigneeID > 0 {
-		if err = opts.Issue.loadRepo(e); err != nil {
-			return err
-		}
-		if _, err = createAssigneeComment(e, doer, opts.Issue.Repo, opts.Issue, -1, opts.Issue.AssigneeID); err != nil {
-			return err
-		}
-	}*/
 	// Insert the assignees
 	if len(opts.AssigneeIDs) > 0 {
 		for _, assigneeID := range opts.AssigneeIDs {
 			err = opts.Issue.changeAssignee(e, doer, assigneeID)
 			if err != nil {
-				fmt.Println(err, assigneeID, opts.Issue.ID)
 				return err
 			}
 		}
