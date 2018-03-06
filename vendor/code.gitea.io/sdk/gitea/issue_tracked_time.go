@@ -13,7 +13,7 @@ import (
 
 // TrackedTime worked time for an issue / pr
 type TrackedTime struct {
-	ID      int64     `json:"id"`
+	ID int64 `json:"id"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created"`
 	// Time in seconds

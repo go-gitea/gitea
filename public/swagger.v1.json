@@ -3225,6 +3225,37 @@
     },
     "/repos/{owner}/{repo}/releases": {
       "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a repo's releases",
+        "operationId": "repoListReleases",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ReleaseList"
+          }
+        }
+      },
+      "post": {
         "consumes": [
           "application/json"
         ],
@@ -3267,6 +3298,44 @@
       }
     },
     "/repos/{owner}/{repo}/releases/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a release",
+        "operationId": "repoGetRelease",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the release to get",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Release"
+          }
+        }
+      },
       "delete": {
         "tags": [
           "repository"
@@ -3347,6 +3416,247 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Release"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/releases/{id}/assets": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List release's attachments",
+        "operationId": "repoListReleaseAttachments",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the release",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/AttachmentList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a release attachment",
+        "operationId": "repoCreateReleaseAttachment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the release",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the attachment",
+            "name": "name",
+            "in": "query"
+          },
+          {
+            "type": "file",
+            "description": "attachment to upload",
+            "name": "attachment",
+            "in": "formData",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Attachment"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/releases/{id}/assets/{attachment_id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a release attachment",
+        "operationId": "repoGetReleaseAttachment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the release",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the attachment to get",
+            "name": "attachment_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Attachment"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a release attachment",
+        "operationId": "repoDeleteReleaseAttachment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the release",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the attachment to delete",
+            "name": "attachment_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit a release attachment",
+        "operationId": "repoEditReleaseAttachment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the release",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the attachment to edit",
+            "name": "attachment_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditAttachmentOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Attachment"
           }
         }
       }
@@ -4994,6 +5304,45 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "Attachment": {
+      "description": "Attachment a generic attachment",
+      "type": "object",
+      "properties": {
+        "browser_download_url": {
+          "type": "string",
+          "x-go-name": "DownloadURL"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "download_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DownloadCount"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Size"
+        },
+        "uuid": {
+          "type": "string",
+          "x-go-name": "UUID"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "Branch": {
       "description": "Branch represents a repository branch",
       "type": "object",
@@ -5201,6 +5550,11 @@
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "Key"
+        },
+        "read_only": {
+          "description": "Describe if the key has only read access or read/write",
+          "type": "boolean",
+          "x-go-name": "ReadOnly"
         },
         "title": {
           "description": "Title of the key to add",
@@ -5536,6 +5890,17 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
+    "EditAttachmentOptions": {
+      "description": "EditAttachmentOptions options for editing attachments",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
@@ -6459,6 +6824,13 @@
       "description": "Release represents a repository release",
       "type": "object",
       "properties": {
+        "assets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Attachment"
+          },
+          "x-go-name": "Attachments"
+        },
         "author": {
           "$ref": "#/definitions/User"
         },
@@ -6848,6 +7220,19 @@
     "AccessTokenList": {
       "description": "AccessTokenList represents a list of API access token."
     },
+    "Attachment": {
+      "schema": {
+        "$ref": "#/definitions/Attachment"
+      }
+    },
+    "AttachmentList": {
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Attachment"
+        }
+      }
+    },
     "Branch": {
       "schema": {
         "$ref": "#/definitions/Branch"
@@ -7131,7 +7516,7 @@
     },
     "parameterBodies": {
       "schema": {
-        "$ref": "#/definitions/MigrateRepoForm"
+        "$ref": "#/definitions/EditAttachmentOptions"
       },
       "headers": {
         "AddCollaboratorOption": {},
@@ -7152,6 +7537,7 @@
         "CreateTeamOption": {},
         "CreateUserOption": {},
         "DeleteEmailOption": {},
+        "EditAttachmentOptions": {},
         "EditHookOption": {},
         "EditIssueCommentOption": {},
         "EditIssueOption": {},
