@@ -389,7 +389,7 @@ func (issue *Issue) APIFormat() *api.Issue {
 		for _, assignee := range issue.Assignees {
 			apiIssue.Assignees = append(apiIssue.Assignees, assignee.APIFormat())
 		}
-		//apiIssue.Assignee = issue.Assignee.APIFormat()
+		apiIssue.Assignee = issue.Assignee.APIFormat()
 	}
 	if issue.IsPull {
 		apiIssue.PullRequest = &api.PullRequestMeta{

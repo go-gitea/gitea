@@ -197,6 +197,7 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		Body:      apiIssue.Body,
 		Labels:    apiIssue.Labels,
 		Milestone: apiIssue.Milestone,
+		Assignee:  apiIssue.Assignee,
 		Assignees: apiIssue.Assignees,
 		State:     apiIssue.State,
 		Comments:  apiIssue.Comments,
