@@ -41,10 +41,10 @@ type Repository struct {
 	OpenIssues    int         `json:"open_issues_count"`
 	DefaultBranch string      `json:"default_branch"`
 	// swagger:strfmt date-time
-	Created       time.Time   `json:"created_at"`
+	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	Updated       time.Time   `json:"updated_at"`
-	Permissions   *Permission `json:"permissions,omitempty"`
+	Updated     time.Time   `json:"updated_at"`
+	Permissions *Permission `json:"permissions,omitempty"`
 }
 
 // ListMyRepos lists all repositories for the authenticated user that has access to.
@@ -122,15 +122,15 @@ func (c *Client) DeleteRepo(owner, repo string) error {
 // MigrateRepoOption options for migrating a repository from an external service
 type MigrateRepoOption struct {
 	// required: true
-	CloneAddr string `json:"clone_addr" binding:"Required"`
+	CloneAddr    string `json:"clone_addr" binding:"Required"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
 	// required: true
 	UID int `json:"uid" binding:"Required"`
 	// required: true
-	RepoName string `json:"repo_name" binding:"Required"`
-	Mirror bool `json:"mirror"`
-	Private bool `json:"private"`
+	RepoName    string `json:"repo_name" binding:"Required"`
+	Mirror      bool   `json:"mirror"`
+	Private     bool   `json:"private"`
 	Description string `json:"description"`
 }
 
