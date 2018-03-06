@@ -13,7 +13,7 @@ import (
 
 // GetRelease get a single release of a repository
 func GetRelease(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/releases repository repoGetRelease
+	// swagger:operation GET /repos/{owner}/{repo}/releases/{id} repository repoGetRelease
 	// ---
 	// summary: Get a release
 	// produces:
@@ -29,7 +29,7 @@ func GetRelease(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: repo
+	// - name: id
 	//   in: path
 	//   description: id of the release to get
 	//   type: integer

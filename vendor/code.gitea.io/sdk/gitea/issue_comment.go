@@ -13,16 +13,16 @@ import (
 
 // Comment represents a comment on a commit or issue
 type Comment struct {
-	ID       int64     `json:"id"`
-	HTMLURL  string    `json:"html_url"`
-	PRURL    string    `json:"pull_request_url"`
-	IssueURL string    `json:"issue_url"`
-	Poster   *User     `json:"user"`
-	Body     string    `json:"body"`
+	ID       int64  `json:"id"`
+	HTMLURL  string `json:"html_url"`
+	PRURL    string `json:"pull_request_url"`
+	IssueURL string `json:"issue_url"`
+	Poster   *User  `json:"user"`
+	Body     string `json:"body"`
 	// swagger:strfmt date-time
-	Created  time.Time `json:"created_at"`
+	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	Updated  time.Time `json:"updated_at"`
+	Updated time.Time `json:"updated_at"`
 }
 
 // ListIssueComments list comments on an issue.
