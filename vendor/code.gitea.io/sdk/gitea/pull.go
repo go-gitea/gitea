@@ -29,8 +29,8 @@ type PullRequest struct {
 	DiffURL  string `json:"diff_url"`
 	PatchURL string `json:"patch_url"`
 
-	Mergeable      bool       `json:"mergeable"`
-	HasMerged      bool       `json:"merged"`
+	Mergeable bool `json:"mergeable"`
+	HasMerged bool `json:"merged"`
 	// swagger:strfmt date-time
 	Merged         *time.Time `json:"merged_at"`
 	MergedCommitID *string    `json:"merge_commit_sha"`

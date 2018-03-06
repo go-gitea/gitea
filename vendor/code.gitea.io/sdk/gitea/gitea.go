@@ -7,6 +7,7 @@ package gitea
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -69,6 +70,8 @@ func (c *Client) getResponse(method, path string, header http.Header, body io.Re
 		return nil, errors.New("403 Forbidden")
 	case 404:
 		return nil, errors.New("404 Not Found")
+	case 422:
+		return nil, fmt.Errorf("422 Unprocessable Entity: %s", string(data))
 	}
 
 	if resp.StatusCode/100 != 2 {
