@@ -217,6 +217,66 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 	return nil
 }
 
+func dropTableColumns(x *xorm.Engine, tableName string, columnNames ...string) (err error) {
+	if tableName == "" || len(columnNames) == 0 {
+		return nil
+	}
+
+	switch {
+	case setting.UseSQLite3:
+		log.Warn("Unable to drop columns in SQLite")
+	case setting.UseMySQL, setting.UseTiDB, setting.UsePostgreSQL:
+		cols := ""
+		for _, col := range columnNames {
+			if cols != "" {
+				cols += ", "
+			}
+			cols += "DROP COLUMN `" + col + "`"
+		}
+		if _, err := x.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, columnNames)); err != nil {
+			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
+		}
+	case setting.UseMSSQL:
+		sess := x.NewSession()
+		defer sess.Close()
+
+		if err = sess.Begin(); err != nil {
+			return err
+		}
+
+		cols := ""
+		for _, col := range columnNames {
+			if cols != "" {
+				cols += ", "
+			}
+			cols += "`" + strings.ToLower(col) + "`"
+		}
+		sql := fmt.Sprintf("SELECT Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID('%[1]s') AND PARENT_COLUMN_ID IN (SELECT column_id FROM sys.columns WHERE lower(NAME) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
+			tableName, strings.Replace(cols, "`", "'", -1))
+		constraints := make([]string, 0)
+		if err := sess.SQL(sql).Find(&constraints); err != nil {
+			sess.Rollback()
+			return fmt.Errorf("Find constraints: %v", err)
+		}
+		for _, constraint := range constraints {
+			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP CONSTRAINT `%s`", tableName, constraint)); err != nil {
+				sess.Rollback()
+				return fmt.Errorf("Drop table `%s` constraint `%s`: %v", tableName, constraint, err)
+			}
+		}
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN %s", tableName, cols)); err != nil {
+			sess.Rollback()
+			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
+		}
+
+		return sess.Commit()
+	default:
+		log.Fatal(4, "Unrecognized DB")
+	}
+
+	return nil
+}
+
 func fixLocaleFileLoadPanic(_ *xorm.Engine) error {
 	cfg, err := ini.Load(setting.CustomConf)
 	if err != nil {
