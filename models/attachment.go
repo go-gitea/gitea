@@ -11,10 +11,12 @@ import (
 	"os"
 	"path"
 
-	gouuid "github.com/satori/go.uuid"
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	api "code.gitea.io/sdk/gitea"
+
+	"github.com/go-xorm/xorm"
+	gouuid "github.com/satori/go.uuid"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -39,6 +41,20 @@ func (a *Attachment) IncreaseDownloadCount() error {
 	return nil
 }
 
+// APIFormat converts models.Attachment to api.Attachment
+func (a *Attachment) APIFormat() *api.Attachment {
+	size, _ := a.Size()
+	return &api.Attachment{
+		ID:            a.ID,
+		Name:          a.Name,
+		Created:       a.CreatedUnix.AsTime(),
+		DownloadCount: a.DownloadCount,
+		Size:          size,
+		UUID:          a.UUID,
+		DownloadURL:   a.DownloadURL(),
+	}
+}
+
 // AttachmentLocalPath returns where attachment is stored in local file
 // system based on given UUID.
 func AttachmentLocalPath(uuid string) string {
@@ -48,6 +64,20 @@ func AttachmentLocalPath(uuid string) string {
 // LocalPath returns where attachment is stored in local file system.
 func (a *Attachment) LocalPath() string {
 	return AttachmentLocalPath(a.UUID)
+}
+
+// Size returns the file's size of the attachment
+func (a *Attachment) Size() (int64, error) {
+	fi, err := os.Stat(a.LocalPath())
+	if err != nil {
+		return 0, err
+	}
+	return fi.Size(), nil
+}
+
+// DownloadURL returns the download url of the attached file
+func (a *Attachment) DownloadURL() string {
+	return fmt.Sprintf("%sattachments/%s", setting.AppURL, a.UUID)
 }
 
 // NewAttachment creates a new attachment object.
@@ -78,6 +108,22 @@ func NewAttachment(name string, buf []byte, file multipart.File) (_ *Attachment,
 		return nil, err
 	}
 
+	return attach, nil
+}
+
+// GetAttachmentByID returns attachment by given id
+func GetAttachmentByID(id int64) (*Attachment, error) {
+	return getAttachmentByID(x, id)
+}
+
+func getAttachmentByID(e Engine, id int64) (*Attachment, error) {
+	attach := &Attachment{ID: id}
+
+	if has, err := e.Get(attach); err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrAttachmentNotExist{ID: id, UUID: ""}
+	}
 	return attach, nil
 }
 
@@ -179,4 +225,21 @@ func DeleteAttachmentsByComment(commentID int64, remove bool) (int, error) {
 	}
 
 	return DeleteAttachments(attachments, remove)
+}
+
+// UpdateAttachment updates the given attachment in database
+func UpdateAttachment(atta *Attachment) error {
+	return updateAttachment(x, atta)
+}
+
+func updateAttachment(e Engine, atta *Attachment) error {
+	var sess *xorm.Session
+	if atta.ID != 0 && atta.UUID == "" {
+		sess = e.ID(atta.ID)
+	} else {
+		// Use uuid only if id is not set and uuid is set
+		sess = e.Where("uuid = ?", atta.UUID)
+	}
+	_, err := sess.Cols("name", "issue_id", "release_id", "comment_id", "download_count").Update(atta)
+	return err
 }

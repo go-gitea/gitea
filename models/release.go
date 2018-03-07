@@ -53,7 +53,7 @@ func (r *Release) loadAttributes(e Engine) error {
 			return err
 		}
 	}
-	return nil
+	return GetReleaseAttachments(r)
 }
 
 // LoadAttributes load repo and publisher attributes for a release
@@ -79,6 +79,10 @@ func (r *Release) TarURL() string {
 
 // APIFormat convert a Release to api.Release
 func (r *Release) APIFormat() *api.Release {
+	assets := make([]*api.Attachment, 0)
+	for _, att := range r.Attachments {
+		assets = append(assets, att.APIFormat())
+	}
 	return &api.Release{
 		ID:           r.ID,
 		TagName:      r.TagName,
@@ -92,6 +96,7 @@ func (r *Release) APIFormat() *api.Release {
 		CreatedAt:    r.CreatedUnix.AsTime(),
 		PublishedAt:  r.CreatedUnix.AsTime(),
 		Publisher:    r.Publisher.APIFormat(),
+		Attachments:  assets,
 	}
 }
 
