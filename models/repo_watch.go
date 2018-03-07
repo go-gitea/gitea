@@ -87,6 +87,21 @@ func notifyWatchers(e Engine, act *Action) error {
 		return fmt.Errorf("insert new actioner: %v", err)
 	}
 
+	act.loadRepo()
+	// check repo owner exist.
+	if err := act.Repo.getOwner(e); err != nil {
+		return fmt.Errorf("can't get repo owner: %v", err)
+	}
+
+	// Add feed for organization
+	if act.Repo.Owner.IsOrganization() && act.ActUserID != act.Repo.Owner.ID {
+		act.ID = 0
+		act.UserID = act.Repo.Owner.ID
+		if _, err = e.InsertOne(act); err != nil {
+			return fmt.Errorf("insert new actioner: %v", err)
+		}
+	}
+
 	for i := range watches {
 		if act.ActUserID == watches[i].UserID {
 			continue

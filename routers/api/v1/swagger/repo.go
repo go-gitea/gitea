@@ -90,3 +90,15 @@ type swaggerResponseWatchInfo struct {
 type swaggerResponseSearchResults struct {
 	Body api.SearchResults `json:"body"`
 }
+
+// swagger:response AttachmentList
+type swaggerResponseAttachmentList struct {
+	//in: body
+	Body []api.Attachment `json:"body"`
+}
+
+// swagger:response Attachment
+type swaggerResponseAttachment struct {
+	//in: body
+	Body api.Attachment `json:"body"`
+}

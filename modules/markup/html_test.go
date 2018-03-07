@@ -81,11 +81,13 @@ func TestRender_ShortLinks(t *testing.T) {
 
 	rawtree := util.URLJoin(AppSubURL, "raw", "master")
 	url := util.URLJoin(tree, "Link")
-	otherURL := util.URLJoin(tree, "OtherLink")
+	otherURL := util.URLJoin(tree, "Other-Link")
 	imgurl := util.URLJoin(rawtree, "Link.jpg")
+	otherImgurl := util.URLJoin(rawtree, "Link+Other.jpg")
 	urlWiki := util.URLJoin(AppSubURL, "wiki", "Link")
-	otherURLWiki := util.URLJoin(AppSubURL, "wiki", "OtherLink")
+	otherURLWiki := util.URLJoin(AppSubURL, "wiki", "Other-Link")
 	imgurlWiki := util.URLJoin(AppSubURL, "wiki", "raw", "Link.jpg")
+	otherImgurlWiki := util.URLJoin(AppSubURL, "wiki", "raw", "Link+Other.jpg")
 	favicon := "http://google.com/favicon.ico"
 
 	test(
@@ -125,7 +127,11 @@ func TestRender_ShortLinks(t *testing.T) {
 		`<p><a href="`+imgurl+`" rel="nofollow"><img src="`+imgurl+`" title="Title" alt="AltName"/></a></p>`,
 		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" title="Title" alt="AltName"/></a></p>`)
 	test(
-		"[[Link]] [[OtherLink]]",
-		`<p><a href="`+url+`" rel="nofollow">Link</a> <a href="`+otherURL+`" rel="nofollow">OtherLink</a></p>`,
-		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a> <a href="`+otherURLWiki+`" rel="nofollow">OtherLink</a></p>`)
+		"[[Name|Link Other.jpg|alt=\"AltName\"|title='Title']]",
+		`<p><a href="`+otherImgurl+`" rel="nofollow"><img src="`+otherImgurl+`" title="Title" alt="AltName"/></a></p>`,
+		`<p><a href="`+otherImgurlWiki+`" rel="nofollow"><img src="`+otherImgurlWiki+`" title="Title" alt="AltName"/></a></p>`)
+	test(
+		"[[Link]] [[Other Link]]",
+		`<p><a href="`+url+`" rel="nofollow">Link</a> <a href="`+otherURL+`" rel="nofollow">Other Link</a></p>`,
+		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a> <a href="`+otherURLWiki+`" rel="nofollow">Other Link</a></p>`)
 }
