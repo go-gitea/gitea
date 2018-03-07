@@ -852,7 +852,11 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	return nil
 }
 
-// ChangeAssignee changes the Assignee field of this issue.
+func UpdateAssignee(issue *Issue, doer *User, assigneeID int64) (err error) {
+	return issue.ChangeAssignee(doer, assigneeID)
+}
+
+// ChangeAssignee changes the Assignee of this issue.
 func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
@@ -938,7 +942,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	if assigneeID := opts.Issue.AssigneeID; assigneeID > 0 {
+	/*if assigneeID := opts.Issue.AssigneeID; assigneeID > 0 {
 		valid, err := hasAccess(e, assigneeID, opts.Repo, AccessModeWrite)
 		if err != nil {
 			return fmt.Errorf("hasAccess [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
@@ -947,7 +951,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			opts.Issue.AssigneeID = 0
 			opts.Issue.Assignee = nil
 		}
-	}
+	}*/
 
 	// Check for and validate assignees
 	var validAssigneeIDs []int64

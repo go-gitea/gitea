@@ -2,11 +2,14 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+// Copyright 2018 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package repo
 
 import (
 	"fmt"
-	"strings"
 
 	api "code.gitea.io/sdk/gitea"
 
@@ -149,17 +152,22 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	}
 
 	if ctx.Repo.IsWriter() {
-		if len(form.Assignee) > 0 {
-			assignee, err := models.GetUserByName(form.Assignee)
-			if err != nil {
-				if models.IsErrUserNotExist(err) {
-					ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", form.Assignee))
-				} else {
-					ctx.Error(500, "GetUserByName", err)
+		if len(form.Assignees) > 0 {
+			for _, assigneeName := range form.Assignees {
+				assignee, err := models.GetUserByName(assigneeName)
+				if err != nil {
+					if models.IsErrUserNotExist(err) {
+						ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", assigneeName))
+					} else {
+						ctx.Error(500, "GetUserByName", err)
+					}
+					return
 				}
-				return
+
+				// update
+				models.UpdateAssignee(issue, ctx.User, assignee.ID)
+				//issue.Assignees = append(issue.Assignees, user)
 			}
-			issue.AssigneeID = assignee.ID
 		}
 		issue.MilestoneID = form.Milestone
 	} else {
@@ -243,28 +251,41 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		issue.Content = *form.Body
 	}
 
-	// This is the thing to add asignees. TODO
-	if ctx.Repo.IsWriter() && form.Assignee != nil &&
-		(issue.Assignee == nil || issue.Assignee.LowerName != strings.ToLower(*form.Assignee)) {
-		if len(*form.Assignee) == 0 {
-			issue.AssigneeID = 0
+	// Add/delete assignees
+	// TODO: How to delete an assignee the way we're currently doing it?
+	if ctx.Repo.IsWriter() && form.Assignees != nil {
+		if len(form.Assignees) == 0 {
+			issue.Assignees = []*models.User{}
 		} else {
-			assignee, err := models.GetUserByName(*form.Assignee)
-			if err != nil {
-				if models.IsErrUserNotExist(err) {
-					ctx.Error(422, "", fmt.Sprintf("assignee does not exist: [name: %s]", *form.Assignee))
-				} else {
-					ctx.Error(500, "GetUserByName", err)
+			for _, assigneeName := range form.Assignees {
+				assignee, err := models.GetUserByName(assigneeName)
+				if err != nil {
+					if models.IsErrUserNotExist(err) {
+						ctx.Error(422, "", fmt.Sprintf("assignee does not exist: [name: %s]", *form.Assignee))
+					} else {
+						ctx.Error(500, "GetUserByName", err)
+					}
+					return
 				}
-				return
+
+				// Only add if the user isn't already assigned
+				isAssigned, err := models.IsUserAssignedToIssue(issue, assignee)
+				if err != nil {
+					ctx.Error(500, "CheckIfUserIsAssigned", err)
+					return
+				}
+				if !isAssigned {
+					models.UpdateAssignee(issue, ctx.User, assignee.ID)
+					//issue.Assignees = append(issue.Assignees, assignee)
+				}
 			}
-			issue.AssigneeID = assignee.ID
+
 		}
 
-		if err = models.UpdateIssueUserByAssignee(issue); err != nil {
+		/*if err = models.UpdateIssueUserByAssignee(issue); err != nil {
 			ctx.Error(500, "UpdateIssueUserByAssignee", err)
 			return
-		}
+		}*/
 	}
 	if ctx.Repo.IsWriter() && form.Milestone != nil &&
 		issue.MilestoneID != *form.Milestone {
