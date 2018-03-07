@@ -278,13 +278,11 @@
 						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/dependency/add" id="addDependencyForm">
 							{{$.CsrfTokenHtml}}
 							<div class="ui fluid action input">
-								<div class="ui search selection dropdown new-dependency-drop-list" style="min-width: 13.9rem;border-radius: 4px 0 0 4px;border-right: 0;white-space: nowrap;" onclick="buildIssuesListOnce();">
+								<div class="ui search selection dropdown new-dependency-drop-list" style="min-width: 13.9rem;border-radius: 4px 0 0 4px;border-right: 0;white-space: nowrap;">
 									<input name="newDependency" type="hidden">
 									<i class="dropdown icon"></i>
+									<input type="text" class="search">
 									<div class="default text">{{.i18n.Tr "repo.issues.dependency.add"}}</div>
-									<div class="menu new-dependency-dropdown">
-
-									</div>
 								</div>
 								<button class="ui green icon button">
 									<i class="plus icon"></i>
@@ -298,7 +296,7 @@
 </div>
 {{if .CanCreateIssueDependencies}}
 	<input type="hidden" id="repolink" value="{{$.RepoLink}}">
-	<!-- I know, there is probably a better way to do this -->
+	<!-- I know, there is probably a better way to do this  onclick="buildIssuesListOnce();" -->
 	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>
 
 	<div class="ui basic modal remove-dependency">

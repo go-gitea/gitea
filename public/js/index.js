@@ -1590,6 +1590,7 @@ $(document).ready(function () {
     initTeamSettings();
     initCtrlEnterSubmit();
     initNavbarContentToggle();
+    initIssueList();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -2133,33 +2134,26 @@ function deleteDependencyModal(id, type) {
     ;
 }
 
-function buildIssuesList() {
-    // Get a list of issues
+function initIssueList() {
     var repolink = $('#repolink').val();
-    var issueIndex = $('#issueIndex').val();
+    $('.new-dependency-drop-list')
+        .dropdown({
+            apiSettings: {
+                url: '/api/v1/repos' + repolink + '/issues?q={query}',
+                onResponse: function(response) {
+                    var filteredResponse = {'success': true, 'results': []};
+                    // Parse the response from the api to work with our dropdown
+                    $.each(response, function(index, issue) {
+                        filteredResponse.results.push({
+                            'name'  : '#' + issue.number + '&nbsp;' + issue.title,
+                            'value' : issue.id
+                        });
+                    });
+                    return filteredResponse;
+                },
+            },
 
-    if(repolink !== undefined) {
-        $.getJSON('/api/v1/repos' + repolink + '/issues', function (data) {
-
-            $.each(data, function (i, issue) {
-                if (issue.number != issueIndex) {
-                    $('.new-dependency-dropdown').append('<div class="item" data-value="' + issue.id + '"><b>#' + issue.number + '</b> ' + issue.title + '</div>');
-                }
-            });
-
-            $('.new-dependency-drop-list').dropdown({
-                fullTextSearch: true
-            });
-        });
-    }
+            fullTextSearch: true
+        })
+    ;
 }
-
-var buildIssuesListOnce = (function() {
-    var executed = false;
-    return function() {
-        if (!executed) {
-            executed = true;
-            buildIssuesList();
-        }
-    };
-})();
