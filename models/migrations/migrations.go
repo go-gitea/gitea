@@ -233,7 +233,7 @@ func dropTableColumns(x *xorm.Engine, tableName string, columnNames ...string) (
 			}
 			cols += "DROP COLUMN `" + col + "`"
 		}
-		if _, err := x.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, columnNames)); err != nil {
+		if _, err := x.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
 	case setting.UseMSSQL:
