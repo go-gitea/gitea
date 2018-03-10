@@ -13,13 +13,13 @@ import (
 // swagger:model
 type User struct {
 	// the user's id
-	ID        int64  `json:"id"`
+	ID int64 `json:"id"`
 	// the user's username
-	UserName  string `json:"login"`
+	UserName string `json:"login"`
 	// the user's full name
-	FullName  string `json:"full_name"`
+	FullName string `json:"full_name"`
 	// swagger:strfmt email
-	Email     string `json:"email"`
+	Email string `json:"email"`
 	// URL to the user's avatar
 	AvatarURL string `json:"avatar_url"`
 }
