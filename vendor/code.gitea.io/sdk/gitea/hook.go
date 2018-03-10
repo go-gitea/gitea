@@ -21,16 +21,16 @@ var (
 
 // Hook a hook is a web hook when one repository changed
 type Hook struct {
-	ID      int64             `json:"id"`
-	Type    string            `json:"type"`
-	URL     string            `json:"-"`
-	Config  map[string]string `json:"config"`
-	Events  []string          `json:"events"`
-	Active  bool              `json:"active"`
+	ID     int64             `json:"id"`
+	Type   string            `json:"type"`
+	URL    string            `json:"-"`
+	Config map[string]string `json:"config"`
+	Events []string          `json:"events"`
+	Active bool              `json:"active"`
 	// swagger:strfmt date-time
-	Updated time.Time         `json:"updated_at"`
+	Updated time.Time `json:"updated_at"`
 	// swagger:strfmt date-time
-	Created time.Time         `json:"created_at"`
+	Created time.Time `json:"created_at"`
 }
 
 // HookList represents a list of API hook.
@@ -67,7 +67,7 @@ type CreateHookOption struct {
 	Type string `json:"type" binding:"Required"`
 	// required: true
 	Config map[string]string `json:"config" binding:"Required"`
-	Events []string `json:"events"`
+	Events []string          `json:"events"`
 	// default: false
 	Active bool `json:"active"`
 }
@@ -95,8 +95,8 @@ func (c *Client) CreateRepoHook(user, repo string, opt CreateHookOption) (*Hook,
 // EditHookOption options when modify one hook
 type EditHookOption struct {
 	Config map[string]string `json:"config"`
-	Events []string `json:"events"`
-	Active *bool `json:"active"`
+	Events []string          `json:"events"`
+	Active *bool             `json:"active"`
 }
 
 // EditOrgHook modify one hook of an organization, with hook id and options
@@ -140,7 +140,7 @@ type Payloader interface {
 // PayloadUser represents the author or committer of a commit
 type PayloadUser struct {
 	// Full name of the commit author
-	Name     string `json:"name"`
+	Name string `json:"name"`
 	// swagger:strfmt email
 	Email    string `json:"email"`
 	UserName string `json:"username"`
@@ -159,7 +159,7 @@ type PayloadCommit struct {
 	Committer    *PayloadUser               `json:"committer"`
 	Verification *PayloadCommitVerification `json:"verification"`
 	// swagger:strfmt date-time
-	Timestamp    time.Time                  `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // PayloadCommitVerification represents the GPG verification of a commit

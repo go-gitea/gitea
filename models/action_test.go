@@ -339,6 +339,7 @@ func TestCommitRepoAction(t *testing.T) {
 
 		s.action.ActUserID = user.ID
 		s.action.RepoID = repo.ID
+		s.action.Repo = repo
 		s.action.IsPrivate = repo.IsPrivate
 
 		testCorrectRepoAction(t, s.commitRepoActionOptions, &s.action)
