@@ -54,6 +54,7 @@ type Issue struct {
 	Attachments []*Attachment `xorm:"-"`
 	Comments    []*Comment    `xorm:"-"`
 	Reactions   ReactionList  `xorm:"-"`
+	TotalTrackedTime int64  `xorm:"-"`
 }
 
 var (
@@ -69,20 +70,13 @@ func init() {
 	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
 }
 
-func (issue *Issue) totalTimes(e Engine) (string, error) {
+func (issue *Issue) loadTotalTimes(e Engine) (err error) {
 	opts := FindTrackedTimesOptions{IssueID: issue.ID}
-	totalTime, err := opts.ToSession(e).SumInt(&TrackedTime{}, "time")
+	issue.TotalTrackedTime, err = opts.ToSession(e).SumInt(&TrackedTime{}, "time")
 	if err != nil {
-		return "", err
+		return err
 	}
-	return secToTime(totalTime), nil
-}
-
-// TotalTimes returns the total amount of tracked time for the issue
-func (issue *Issue) TotalTimes() string {
-	times, err := issue.totalTimes(x)
-	log.Error(4,"TotalTimes: %v", err)
-	return times
+	return nil
 }
 
 func (issue *Issue) loadRepo(e Engine) (err error) {
@@ -248,6 +242,10 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 	}
 
 	if err = issue.loadComments(e); err != nil {
+		return err
+	}
+
+	if err = issue.loadTotalTimes(e); err != nil {
 		return err
 	}
 

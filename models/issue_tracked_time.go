@@ -94,7 +94,7 @@ func AddTime(user *User, issue *Issue, time int64) (*TrackedTime, error) {
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
-		Content: secToTime(time),
+		Content: SecToTime(time),
 		Type:    CommentTypeAddTimeManual,
 	}); err != nil {
 		return nil, err
@@ -124,7 +124,7 @@ func TotalTimes(options FindTrackedTimesOptions) (map[*User]string, error) {
 			}
 			return nil, err
 		}
-		totalTimes[user] = secToTime(total)
+		totalTimes[user] = SecToTime(total)
 	}
 	return totalTimes, nil
 }

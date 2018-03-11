@@ -181,6 +181,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"Printf": fmt.Sprintf,
 		"Escape": Escape,
+		"Sec2Time": models.SecToTime,
 	}}
 }
 

@@ -198,8 +198,8 @@
 						<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
 					{{end}}
 
-					{{if and .IsTimetrackerEnabled .TotalTimes}}
-						<span class="comment ui right"><i class="octicon octicon-clock"></i> {{.TotalTimes}}</span>
+					{{if and .IsTimetrackerEnabled .TotalTrackedTime}}
+						<span class="comment ui right"><i class="octicon octicon-clock"></i> {{.TotalTrackedTime | Sec2Time}}</span>
 					{{end}}
 
 					<p class="desc">

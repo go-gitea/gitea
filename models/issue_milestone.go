@@ -92,7 +92,7 @@ func (m *Milestone) totalTimes(e Engine) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return secToTime(totalTime), nil
+	return SecToTime(totalTime), nil
 }
 
 // TotalTimes returns the amount of tracked time of the issues inside the milestone

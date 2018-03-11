@@ -290,6 +290,43 @@ func (issues IssueList) loadComments(e Engine) (err error) {
 	return nil
 }
 
+func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
+	type totalTimesByIssue struct {
+		IssueID int64
+		Time int64
+	}
+	if len(issues) == 0 {
+		return nil
+	}
+	var trackedTimes = make(map[int64]int64, len(issues))
+
+	// select issue_id, sum(time) from tracked_time where issue_id in (<issue ids in current page>) group by issue_id
+	rows, err := e.Table("tracked_time").
+		Select("issue_id, sum(time) as time").
+		In("issue_id", issues.getIssueIDs()).
+		GroupBy("issue_id").
+		Rows(new(totalTimesByIssue))
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var totalTime totalTimesByIssue
+		err = rows.Scan(&totalTime)
+		if err != nil {
+			return err
+		}
+		trackedTimes[totalTime.IssueID] = totalTime.Time
+	}
+
+	for _, issue := range issues {
+		issue.TotalTrackedTime = trackedTimes[issue.ID]
+	}
+	return nil
+}
+
 // loadAttributes loads all attributes, expect for attachments and comments
 func (issues IssueList) loadAttributes(e Engine) (err error) {
 	if _, err = issues.loadRepositories(e); err != nil {
@@ -313,6 +350,10 @@ func (issues IssueList) loadAttributes(e Engine) (err error) {
 	}
 
 	if err = issues.loadPullRequests(e); err != nil {
+		return
+	}
+
+	if err = issues.loadTotalTrackedTimes(e); err != nil {
 		return
 	}
 
