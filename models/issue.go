@@ -1060,7 +1060,8 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
 	}
 
 	if opts.AssigneeID > 0 {
-		sess.And("issue.assignee_id=?", opts.AssigneeID)
+		sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+			And("issue_assignees.assignee_id = ?", opts.AssigneeID)
 	}
 
 	if opts.PosterID > 0 {

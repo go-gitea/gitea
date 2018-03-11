@@ -35,7 +35,6 @@ func newIssueUsers(e Engine, repo *Repository, issue *Issue) error {
 		issueUsers = append(issueUsers, &IssueUser{
 			IssueID: issue.ID,
 			UID:     assignee.ID,
-			//IsAssigned: assignee.ID == issue.AssigneeID,
 		})
 		isPosterAssignee = isPosterAssignee || assignee.ID == issue.PosterID
 	}
