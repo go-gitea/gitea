@@ -942,17 +942,6 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	/*if assigneeID := opts.Issue.AssigneeID; assigneeID > 0 {
-		valid, err := hasAccess(e, assigneeID, opts.Repo, AccessModeWrite)
-		if err != nil {
-			return fmt.Errorf("hasAccess [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
-		}
-		if !valid {
-			opts.Issue.AssigneeID = 0
-			opts.Issue.Assignee = nil
-		}
-	}*/
-
 	// Check for and validate assignees
 	var validAssigneeIDs []int64
 	if len(opts.AssigneeIDs) > 0 {

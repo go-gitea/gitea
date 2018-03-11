@@ -47,8 +47,15 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 	}
 
 	// Assignee must receive any communications
-	if issue.Assignee != nil && issue.AssigneeID > 0 && issue.AssigneeID != doer.ID {
-		participants = append(participants, issue.Assignee)
+	assignees, err :=  GetAssigneesByIssue(issue)
+	if err != nil {
+		return err
+	}
+
+	for _, assignee := range assignees {
+		if assignee.ID != doer.ID {
+			participants = append(participants, issue.Assignee)
+		}
 	}
 
 	tos := make([]string, 0, len(watchers)) // List of email addresses.
