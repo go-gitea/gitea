@@ -1830,6 +1830,12 @@
             "description": "page number of requested issues",
             "name": "page",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "search string",
+            "name": "q",
+            "in": "query"
           }
         ],
         "responses": {

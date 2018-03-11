@@ -989,13 +989,16 @@
                 margin: 0;
             }
             .lines-num {
-                border-right: 1px solid #d4d4d5;
+                border-color: #d4d4d5;
+                border-right-width: 1px;
+                border-right-style: solid;
                 padding: 0 5px;
             }
             tbody {
                 tr {
                     td.halfwidth {
-                        width: 50%;
+                        // halfwidth is used in split view - and in that case, 1% of each
+                        width: 49%;
                     }
 
                     &.tag-code td, td.tag-code {
@@ -1034,23 +1037,33 @@
                 border-color: #c1e9c1 !important;
             }
         }
-        .code-diff-split tbody tr {
-            // light gray for empty lines before / after commit
-            &.add-code td:nth-child(1), &.add-code td:nth-child(2),
-            &.del-code td:nth-child(3), &.del-code td:nth-child(4) {
-                background-color: #fafafa;
+        .code-diff-split {
+            table, tbody {
+                width: 100%;
             }
+            tbody tr {
+                // light gray for empty lines before / after commit
+                &.add-code td:nth-child(1), &.add-code td:nth-child(2),
+                &.del-code td:nth-child(3), &.del-code td:nth-child(4) {
+                    background-color: #fafafa;
+                }
 
-            &.del-code td:nth-child(1), &.del-code td:nth-child(2),
-            td.del-code {
-                background-color: #ffe0e0 !important;
-                border-color: #f1c0c0 !important;
-            }
+                &.del-code td:nth-child(1), &.del-code td:nth-child(2),
+                td.del-code {
+                    background-color: #ffe0e0 !important;
+                    border-color: #f1c0c0 !important;
+                }
 
-            &.add-code td:nth-child(3), &.add-code td:nth-child(4),
-            td.add-code{
-                background-color: #d6fcd6 !important;
-                border-color: #c1e9c1 !important;
+                &.add-code td:nth-child(3), &.add-code td:nth-child(4),
+                td.add-code{
+                    background-color: #d6fcd6 !important;
+                    border-color: #c1e9c1 !important;
+                }
+
+                td:nth-child(3) {
+                    border-left-width: 1px;
+                    border-left-style: solid;
+                }
             }
         }
         &.file-content {
@@ -1263,11 +1276,11 @@
         }
 
         @media only screen and (max-width: 767px) {
-			.dividing.header .stackable.grid .button {
-				margin-top: 2px;
-				margin-bottom: 2px;
-			}
-		}
+            .dividing.header .stackable.grid .button {
+                margin-top: 2px;
+                margin-bottom: 2px;
+            }
+        }
     }
 
     &.settings {
@@ -1698,14 +1711,14 @@ tbody.commit-list {
 }
 
 @media only screen and (max-width: 767px) {
-	.ui.stackable.menu {
-		&.mobile--margin-between-items > .item {
-			margin-top: 5px;
-			margin-bottom: 5px;
-		}
-		&.mobile--no-negative-margins {
-			margin-left: 0;
-			margin-right: 0;
-		}
-	}
+    .ui.stackable.menu {
+        &.mobile--margin-between-items > .item {
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+        &.mobile--no-negative-margins {
+            margin-left: 0;
+            margin-right: 0;
+        }
+    }
 }
