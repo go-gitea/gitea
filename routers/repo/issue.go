@@ -429,6 +429,12 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 			}
 		}
 	}
+
+	// Keep the old assignee id thingy for compatibility reasons
+	if form.AssigneeID > 0 {
+		assigneeIDs = append(assigneeIDs, form.AssigneeID)
+	}
+
 	return labelIDs, assigneeIDs, milestoneID
 }
 

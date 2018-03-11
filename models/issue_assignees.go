@@ -121,7 +121,7 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 	}
 
 	if issue.IsPull {
-		issue.PullRequest.Issue = issue
+		issue.PullRequest = &PullRequest{Issue: issue}
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),

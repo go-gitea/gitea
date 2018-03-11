@@ -814,6 +814,11 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
+	// Keep the old assignee id thingy for compatibility reasons
+	if opts.Issue.AssigneeID > 0 {
+		//opts.AssigneeIDs = append(opts.AssigneeIDs, opts.Issue.AssigneeID)
+	}
+
 	// Check for and validate assignees
 	var validAssigneeIDs []int64
 	if len(opts.AssigneeIDs) > 0 {

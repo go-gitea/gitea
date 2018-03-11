@@ -175,7 +175,9 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		Content:  form.Body,
 	}
 
-	if ctx.Repo.IsWriter() {
+	// TODO: Get all assigneeIDs and pass them to the function
+	/*
+		if ctx.Repo.IsWriter() {
 		if len(form.Assignees) > 0 {
 			for _, assigneeName := range form.Assignees {
 				err := models.AddAssigneeByName(assigneeName, issue, ctx.User)
@@ -207,6 +209,8 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	} else {
 		form.Labels = nil
 	}
+
+	 */
 
 	if err := models.NewIssue(ctx.Repo.Repository, issue, form.Labels, nil, nil); err != nil {
 		ctx.Error(500, "NewIssue", err)
