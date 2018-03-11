@@ -10,7 +10,7 @@ type Team struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	// enum: none,read,write,admin,owner
-	Permission  string `json:"permission"`
+	Permission string `json:"permission"`
 }
 
 // CreateTeamOption options for creating a team
@@ -19,7 +19,7 @@ type CreateTeamOption struct {
 	Name        string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// enum: read,write,admin
-	Permission  string `json:"permission"`
+	Permission string `json:"permission"`
 }
 
 // EditTeamOption options for editing a team
@@ -28,5 +28,5 @@ type EditTeamOption struct {
 	Name        string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// enum: read,write,admin
-	Permission  string `json:"permission"`
+	Permission string `json:"permission"`
 }

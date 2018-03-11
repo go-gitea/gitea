@@ -13,21 +13,22 @@ import (
 
 // Release represents a repository release
 type Release struct {
-	ID           int64     `json:"id"`
-	TagName      string    `json:"tag_name"`
-	Target       string    `json:"target_commitish"`
-	Title        string    `json:"name"`
-	Note         string    `json:"body"`
-	URL          string    `json:"url"`
-	TarURL       string    `json:"tarball_url"`
-	ZipURL       string    `json:"zipball_url"`
-	IsDraft      bool      `json:"draft"`
-	IsPrerelease bool      `json:"prerelease"`
+	ID           int64  `json:"id"`
+	TagName      string `json:"tag_name"`
+	Target       string `json:"target_commitish"`
+	Title        string `json:"name"`
+	Note         string `json:"body"`
+	URL          string `json:"url"`
+	TarURL       string `json:"tarball_url"`
+	ZipURL       string `json:"zipball_url"`
+	IsDraft      bool   `json:"draft"`
+	IsPrerelease bool   `json:"prerelease"`
 	// swagger:strfmt date-time
-	CreatedAt    time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	PublishedAt  time.Time `json:"published_at"`
-	Publisher    *User     `json:"author"`
+	PublishedAt time.Time     `json:"published_at"`
+	Publisher   *User         `json:"author"`
+	Attachments []*Attachment `json:"assets"`
 }
 
 // ListReleases list releases of a repository
