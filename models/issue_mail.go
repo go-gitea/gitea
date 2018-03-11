@@ -47,7 +47,7 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 	}
 
 	// Assignee must receive any communications
-	assignees, err :=  GetAssigneesByIssue(issue)
+	assignees, err := GetAssigneesByIssue(issue)
 	if err != nil {
 		return err
 	}
