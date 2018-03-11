@@ -555,8 +555,8 @@ func (repo *Repository) GetAssignees() (_ []*User, err error) {
 }
 
 // GetAssigneeByID returns the user that has write access of repository by given ID.
-func (repo *Repository) GetAssigneeByID(userID int64) (*User, error) {
-	return GetAssigneeByID(repo, userID)
+func (repo *Repository) GetUserIfHasWriteAccess(userID int64) (*User, error) {
+	return GetUserIfHasWriteAccess(repo, userID)
 }
 
 // GetMilestoneByID returns the milestone belongs to repository by given ID.

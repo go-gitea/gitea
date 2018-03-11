@@ -1109,7 +1109,7 @@ func GetUserByID(id int64) (*User, error) {
 }
 
 // GetAssigneeByID returns the user with write access of repository by given ID.
-func GetAssigneeByID(repo *Repository, userID int64) (*User, error) {
+func GetUserIfHasWriteAccess(repo *Repository, userID int64) (*User, error) {
 	has, err := HasAccess(userID, repo, AccessModeWrite)
 	if err != nil {
 		return nil, err

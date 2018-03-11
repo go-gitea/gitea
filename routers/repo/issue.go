@@ -412,17 +412,6 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 		ctx.Data["milestone_id"] = milestoneID
 	}
 
-	// Check assignee.
-	/*assigneeID := form.AssigneeID
-	if assigneeID > 0 {
-		ctx.Data["Assignee"], err = repo.GetAssigneeByID(assigneeID)
-		if err != nil {
-			ctx.ServerError("GetAssigneeByID", err)
-			return nil, nil, 0, 0
-		}
-		ctx.Data["assignee_id"] = assigneeID
-	}*/
-
 	// Check assignees
 	var assigneeIDs []int64
 	if len(form.AssigneeIDs) > 0 {
@@ -430,13 +419,12 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 		if err != nil {
 			return nil, nil, 0
 		}
-		//assigneeIDMark := base.Int64sToMap(assigneeIDs)
 
-		// Check if the passed assignees actually exist
+		// Check if the passed assignees actually exists and has write access to the repo
 		for _, aID := range assigneeIDs {
-			_, err = repo.GetAssigneeByID(aID)
+			_, err = repo.GetUserIfHasWriteAccess(aID)
 			if err != nil {
-				ctx.ServerError("GetAssigneeByID", err)
+				ctx.ServerError("GetUserIfHasWriteAccess", err)
 				return nil, nil, 0
 			}
 		}

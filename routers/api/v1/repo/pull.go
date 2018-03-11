@@ -221,7 +221,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 			return
 		}
 
-		assignee, err := repo.GetAssigneeByID(assigneeUser.ID)
+		assignee, err := repo.GetUserIfHasWriteAccess(assigneeUser.ID)
 		if err != nil {
 			ctx.Error(500, "GetAssigneeByID", err)
 			return

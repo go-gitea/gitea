@@ -141,3 +141,13 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 	go HookQueue.Add(issue.RepoID)
 	return nil
 }
+
+func AddAssigneeByName(assigneeName string, issue *Issue, doer *User) (err error) {
+	assignee, err := GetUserByName(assigneeName)
+	if err != nil {
+		return
+	}
+
+	// update
+	return UpdateAssignee(issue, doer, assignee.ID)
+}

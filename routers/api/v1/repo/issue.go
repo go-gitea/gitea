@@ -10,6 +10,7 @@ package repo
 
 import (
 	"fmt"
+	"strings"
 
 	api "code.gitea.io/sdk/gitea"
 
@@ -177,27 +178,36 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	if ctx.Repo.IsWriter() {
 		if len(form.Assignees) > 0 {
 			for _, assigneeName := range form.Assignees {
-				assignee, err := models.GetUserByName(assigneeName)
+				err := models.AddAssigneeByName(assigneeName, issue, ctx.User)
 				if err != nil {
 					if models.IsErrUserNotExist(err) {
 						ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", assigneeName))
 					} else {
-						ctx.Error(500, "GetUserByName", err)
+						ctx.Error(500, "AddAssigneeByName", err)
 					}
 					return
 				}
-
-				// update
-				models.UpdateAssignee(issue, ctx.User, assignee.ID)
-				//issue.Assignees = append(issue.Assignees, user)
 			}
 		}
+
+		// Keeping the old assigning method for compatibility reasons
+		if len(form.Assignee) > 0 {
+			err := models.AddAssigneeByName(form.Assignee, issue, ctx.User)
+			if err != nil {
+				if models.IsErrUserNotExist(err) {
+					ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", form.Assignee))
+				} else {
+					ctx.Error(500, "AddAssigneeByName", err)
+				}
+				return
+			}
+		}
+
 		issue.MilestoneID = form.Milestone
 	} else {
 		form.Labels = nil
 	}
 
-	// TODO
 	if err := models.NewIssue(ctx.Repo.Repository, issue, form.Labels, nil, nil); err != nil {
 		ctx.Error(500, "NewIssue", err)
 		return
