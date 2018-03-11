@@ -51,10 +51,10 @@ type Issue struct {
 	UpdatedUnix  util.TimeStamp `xorm:"INDEX updated"`
 	ClosedUnix   util.TimeStamp `xorm:"INDEX"`
 
-	Attachments []*Attachment `xorm:"-"`
-	Comments    []*Comment    `xorm:"-"`
-	Reactions   ReactionList  `xorm:"-"`
-	TotalTrackedTime int64  `xorm:"-"`
+	Attachments      []*Attachment `xorm:"-"`
+	Comments         []*Comment    `xorm:"-"`
+	Reactions        ReactionList  `xorm:"-"`
+	TotalTrackedTime int64         `xorm:"-"`
 }
 
 var (

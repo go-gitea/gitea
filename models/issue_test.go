@@ -280,10 +280,10 @@ func TestGetUserIssueStats(t *testing.T) {
 	}
 }
 
-func TestIssue_TotalTimes(t *testing.T) {
+func TestIssue_loadTotalTimes(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	ms, err := GetIssueByID(2)
 	assert.NoError(t, err)
-	times := ms.TotalTimes()
-	assert.Equal(t, "1h 1min 2s", times)
+	assert.NoError(t, ms.loadTotalTimes(x))
+	assert.Equal(t, int64(3662), ms.TotalTrackedTime)
 }

@@ -179,8 +179,8 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return dict, nil
 		},
-		"Printf": fmt.Sprintf,
-		"Escape": Escape,
+		"Printf":   fmt.Sprintf,
+		"Escape":   Escape,
 		"Sec2Time": models.SecToTime,
 	}}
 }

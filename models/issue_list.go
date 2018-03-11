@@ -293,7 +293,7 @@ func (issues IssueList) loadComments(e Engine) (err error) {
 func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 	type totalTimesByIssue struct {
 		IssueID int64
-		Time int64
+		Time    int64
 	}
 	if len(issues) == 0 {
 		return nil
