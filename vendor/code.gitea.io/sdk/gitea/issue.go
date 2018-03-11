@@ -39,6 +39,7 @@ type Issue struct {
 	Labels    []*Label   `json:"labels"`
 	Milestone *Milestone `json:"milestone"`
 	Assignee  *User      `json:"assignee"`
+	Assignees []*User    `json:"assignees"`
 	// Whether the issue is open or closed
 	//
 	// type: string
@@ -90,6 +91,7 @@ type CreateIssueOption struct {
 	Body  string `json:"body"`
 	// username of assignee
 	Assignee string `json:"assignee"`
+	Assignees []string `json:"assignees"`
 	// milestone id
 	Milestone int64 `json:"milestone"`
 	// list of label ids
@@ -113,6 +115,7 @@ type EditIssueOption struct {
 	Title     string  `json:"title"`
 	Body      *string `json:"body"`
 	Assignee  *string `json:"assignee"`
+	Assignees []string `json:"assignees"`
 	Milestone *int64  `json:"milestone"`
 	State     *string `json:"state"`
 }
