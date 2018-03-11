@@ -719,7 +719,7 @@ func ViewIssue(ctx *context.Context) {
 				comment.Milestone = ghostMilestone
 			}
 		} else if comment.Type == models.CommentTypeAssignees {
-			if err = comment.LoadAssignees(); err != nil {
+			if err = comment.LoadAssigneeUser(); err != nil {
 				ctx.ServerError("LoadAssignees", err)
 				return
 			}

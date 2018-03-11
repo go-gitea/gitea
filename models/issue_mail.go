@@ -54,7 +54,7 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 
 	for _, assignee := range assignees {
 		if assignee.ID != doer.ID {
-			participants = append(participants, issue.Assignee)
+			participants = append(participants, assignee)
 		}
 	}
 

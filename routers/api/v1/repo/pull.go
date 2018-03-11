@@ -344,12 +344,8 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 			}
 			issue.AssigneeID = assignee.ID
 		}
-
-		if err = models.UpdateIssueUserByAssignee(issue); err != nil {
-			ctx.Error(500, "UpdateIssueUserByAssignee", err)
-			return
-		}
 	}
+
 	if ctx.Repo.IsWriter() && form.Milestone != 0 &&
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
