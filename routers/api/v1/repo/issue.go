@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -42,6 +43,10 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: page number of requested issues
 	//   type: integer
+	// - name: q
+	//   in: query
+	//   description: search string
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
@@ -55,12 +60,30 @@ func ListIssues(ctx *context.APIContext) {
 		isClosed = util.OptionalBoolFalse
 	}
 
-	issues, err := models.Issues(&models.IssuesOptions{
-		RepoIDs:  []int64{ctx.Repo.Repository.ID},
-		Page:     ctx.QueryInt("page"),
-		PageSize: setting.UI.IssuePagingNum,
-		IsClosed: isClosed,
-	})
+	var issues []*models.Issue
+
+	keyword := strings.Trim(ctx.Query("q"), " ")
+	if strings.IndexByte(keyword, 0) >= 0 {
+		keyword = ""
+	}
+	var issueIDs []int64
+	var err error
+	if len(keyword) > 0 {
+		issueIDs, err = indexer.SearchIssuesByKeyword(ctx.Repo.Repository.ID, keyword)
+	}
+
+	// Only fetch the issues if we either don't have a keyword or the search returned issues
+	// This would otherwise return all issues if no issues were found by the search.
+	if len(keyword) == 0 || len(issueIDs) > 0 {
+		issues, err = models.Issues(&models.IssuesOptions{
+			RepoIDs:  []int64{ctx.Repo.Repository.ID},
+			Page:     ctx.QueryInt("page"),
+			PageSize: setting.UI.IssuePagingNum,
+			IsClosed: isClosed,
+			IssueIDs: issueIDs,
+		})
+	}
+
 	if err != nil {
 		ctx.Error(500, "Issues", err)
 		return

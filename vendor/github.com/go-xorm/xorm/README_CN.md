@@ -115,12 +115,33 @@ type User struct {
 err := engine.Sync2(new(User))
 ```
 
-* `Query` 最原始的也支持SQL语句查询，返回的结果类型为 []map[string][]byte。`QueryString` 返回 []map[string]string
+* 创建Engine组
+
+```Go
+dataSourceNameSlice := []string{masterDataSourceName, slave1DataSourceName, slave2DataSourceName}
+engineGroup, err := xorm.NewEngineGroup(driverName, dataSourceNameSlice)
+```
+
+```Go
+masterEngine, err := xorm.NewEngine(driverName, masterDataSourceName)
+slave1Engine, err := xorm.NewEngine(driverName, slave1DataSourceName)
+slave2Engine, err := xorm.NewEngine(driverName, slave2DataSourceName)
+engineGroup, err := xorm.NewEngineGroup(masterEngine, []*Engine{slave1Engine, slave2Engine})
+```
+
+所有使用 `engine` 都可以简单的用 `engineGroup` 来替换。
+
+* `Query` 最原始的也支持SQL语句查询，返回的结果类型为 []map[string][]byte。`QueryString` 返回 []map[string]string, `QueryInterface` 返回 `[]map[string]interface{}`.
 
 ```Go
 results, err := engine.Query("select * from user")
+results, err := engine.Where("a = 1").Query()
 
 results, err := engine.QueryString("select * from user")
+results, err := engine.Where("a = 1").QueryString()
+
+results, err := engine.QueryInterface("select * from user")
+results, err := engine.Where("a = 1").QueryInterface()
 ```
 
 * `Exec` 执行一个SQL语句
@@ -129,67 +150,81 @@ results, err := engine.QueryString("select * from user")
 affected, err := engine.Exec("update user set age = ? where name = ?", age, name)
 ```
 
-* 插入一条或者多条记录
+* `Insert` 插入一条或者多条记录
 
 ```Go
 affected, err := engine.Insert(&user)
 // INSERT INTO struct () values ()
+
 affected, err := engine.Insert(&user1, &user2)
 // INSERT INTO struct1 () values ()
 // INSERT INTO struct2 () values ()
+
 affected, err := engine.Insert(&users)
 // INSERT INTO struct () values (),(),()
+
 affected, err := engine.Insert(&user1, &users)
 // INSERT INTO struct1 () values ()
 // INSERT INTO struct2 () values (),(),()
 ```
 
-* 查询单条记录
+* `Get` 查询单条记录
 
 ```Go
 has, err := engine.Get(&user)
 // SELECT * FROM user LIMIT 1
+
 has, err := engine.Where("name = ?", name).Desc("id").Get(&user)
 // SELECT * FROM user WHERE name = ? ORDER BY id DESC LIMIT 1
+
 var name string
 has, err := engine.Where("id = ?", id).Cols("name").Get(&name)
 // SELECT name FROM user WHERE id = ?
+
 var id int64
 has, err := engine.Where("name = ?", name).Cols("id").Get(&id)
+has, err := engine.SQL("select id from user").Get(&id)
 // SELECT id FROM user WHERE name = ?
+
 var valuesMap = make(map[string]string)
 has, err := engine.Where("id = ?", id).Get(&valuesMap)
 // SELECT * FROM user WHERE id = ?
+
 var valuesSlice = make([]interface{}, len(cols))
 has, err := engine.Where("id = ?", id).Cols(cols...).Get(&valuesSlice)
 // SELECT col1, col2, col3 FROM user WHERE id = ?
 ```
 
-* 检测记录是否存在
+* `Exist` 检测记录是否存在
 
 ```Go
 has, err := testEngine.Exist(new(RecordExist))
 // SELECT * FROM record_exist LIMIT 1
+
 has, err = testEngine.Exist(&RecordExist{
 		Name: "test1",
 	})
 // SELECT * FROM record_exist WHERE name = ? LIMIT 1
+
 has, err = testEngine.Where("name = ?", "test1").Exist(&RecordExist{})
 // SELECT * FROM record_exist WHERE name = ? LIMIT 1
+
 has, err = testEngine.SQL("select * from record_exist where name = ?", "test1").Exist()
 // select * from record_exist where name = ?
+
 has, err = testEngine.Table("record_exist").Exist()
 // SELECT * FROM record_exist LIMIT 1
+
 has, err = testEngine.Table("record_exist").Where("name = ?", "test1").Exist()
 // SELECT * FROM record_exist WHERE name = ? LIMIT 1
 ```
 
-* 查询多条记录，当然可以使用Join和extends来组合使用
+* `Find` 查询多条记录，当然可以使用Join和extends来组合使用
 
 ```Go
 var users []User
 err := engine.Where("name = ?", name).And("age > 10").Limit(10, 0).Find(&users)
-// SELECT * FROM user WHERE name = ? AND age > 10 limit 0 offset 10
+// SELECT * FROM user WHERE name = ? AND age > 10 limit 10 offset 0
 
 type Detail struct {
     Id int64
@@ -206,10 +241,10 @@ err := engine.Table("user").Select("user.*, detail.*")
     Join("INNER", "detail", "detail.user_id = user.id").
     Where("user.name = ?", name).Limit(10, 0).
     Find(&users)
-// SELECT user.*, detail.* FROM user INNER JOIN detail WHERE user.name = ? limit 0 offset 10
+// SELECT user.*, detail.* FROM user INNER JOIN detail WHERE user.name = ? limit 10 offset 0
 ```
 
-* 根据条件遍历数据库，可以有两种方式: Iterate and Rows
+* `Iterate` 和 `Rows` 根据条件遍历数据库，可以有两种方式: Iterate and Rows
 
 ```Go
 err := engine.Iterate(&User{Name:name}, func(idx int, bean interface{}) error {
@@ -217,6 +252,13 @@ err := engine.Iterate(&User{Name:name}, func(idx int, bean interface{}) error {
     return nil
 })
 // SELECT * FROM user
+
+err := engine.BufferSize(100).Iterate(&User{Name:name}, func(idx int, bean interface{}) error {
+    user := bean.(*User)
+    return nil
+})
+// SELECT * FROM user Limit 0, 100
+// SELECT * FROM user Limit 101, 100
 
 rows, err := engine.Rows(&User{Name:name})
 // SELECT * FROM user
@@ -227,7 +269,7 @@ for rows.Next() {
 }
 ```
 
-* 更新数据，除非使用Cols,AllCols函数指明，默认只更新非空和非0的字段
+* `Update` 更新数据，除非使用Cols,AllCols函数指明，默认只更新非空和非0的字段
 
 ```Go
 affected, err := engine.Id(1).Update(&user)
@@ -252,18 +294,37 @@ affected, err := engine.Id(1).AllCols().Update(&user)
 // UPDATE user SET name=?,age=?,salt=?,passwd=?,updated=? Where id = ?
 ```
 
-* 删除记录，需要注意，删除必须至少有一个条件，否则会报错。要清空数据库可以用EmptyTable
+* `Delete` 删除记录，需要注意，删除必须至少有一个条件，否则会报错。要清空数据库可以用EmptyTable
 
 ```Go
 affected, err := engine.Where(...).Delete(&user)
 // DELETE FROM user Where ...
+
+affected, err := engine.ID(2).Delete(&user)
+// DELETE FROM user Where id = ?
 ```
 
-* 获取记录条数
+* `Count` 获取记录条数
 
 ```Go
 counts, err := engine.Count(&user)
 // SELECT count(*) AS total FROM user
+```
+
+* `Sum` 求和函数
+
+```Go
+agesFloat64, err := engine.Sum(&user, "age")
+// SELECT sum(age) AS total FROM user
+
+agesInt64, err := engine.SumInt(&user, "age")
+// SELECT sum(age) AS total FROM user
+
+sumFloat64Slice, err := engine.Sums(&user, "age", "score")
+// SELECT sum(age), sum(score) FROM user
+
+sumInt64Slice, err := engine.SumsInt(&user, "age", "score")
+// SELECT sum(age), sum(score) FROM user
 ```
 
 * 条件编辑器
@@ -271,6 +332,59 @@ counts, err := engine.Count(&user)
 ```Go
 err := engine.Where(builder.NotIn("a", 1, 2).And(builder.In("b", "c", "d", "e"))).Find(&users)
 // SELECT id, name ... FROM user WHERE a NOT IN (?, ?) AND b IN (?, ?, ?)
+```
+
+* 在一个Go程中多次操作数据库，但没有事务
+
+```Go
+session := engine.NewSession()
+defer session.Close()
+
+user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
+if _, err := session.Insert(&user1); err != nil {
+    return err
+}
+
+user2 := Userinfo{Username: "yyy"}
+if _, err := session.Where("id = ?", 2).Update(&user2); err != nil {
+    return err
+}
+
+if _, err := session.Exec("delete from userinfo where username = ?", user2.Username); err != nil {
+    return err
+}
+
+return nil
+```
+
+* 在一个Go程中有事务
+
+```Go
+session := engine.NewSession()
+defer session.Close()
+
+// add Begin() before any action
+if err := session.Begin(); err != nil {
+    // if returned then will rollback automatically
+    return err
+}
+
+user1 := Userinfo{Username: "xiaoxiao", Departname: "dev", Alias: "lunny", Created: time.Now()}
+if _, err := session.Insert(&user1); err != nil {
+    return err
+}
+
+user2 := Userinfo{Username: "yyy"}
+if _, err := session.Where("id = ?", 2).Update(&user2); err != nil {
+    return err
+}
+
+if _, err := session.Exec("delete from userinfo where username = ?", user2.Username); err != nil {
+    return err
+}
+
+// add Commit() after all actions
+return session.Commit()
 ```
 
 # 案例

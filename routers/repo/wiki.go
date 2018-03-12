@@ -128,6 +128,9 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 			}
 			wikiName, err := models.WikiFilenameToName(entry.Name())
 			if err != nil {
+				if models.IsErrWikiInvalidFileName(err) {
+					continue
+				}
 				ctx.ServerError("WikiFilenameToName", err)
 				return nil, nil
 			} else if wikiName == "_Sidebar" || wikiName == "_Footer" {
@@ -262,6 +265,9 @@ func WikiPages(ctx *context.Context) {
 		}
 		wikiName, err := models.WikiFilenameToName(entry.Name())
 		if err != nil {
+			if models.IsErrWikiInvalidFileName(err) {
+				continue
+			}
 			ctx.ServerError("WikiFilenameToName", err)
 			return
 		}

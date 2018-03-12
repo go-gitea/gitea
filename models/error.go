@@ -216,6 +216,21 @@ func (err ErrWikiReservedName) Error() string {
 	return fmt.Sprintf("wiki title is reserved: %s", err.Title)
 }
 
+// ErrWikiInvalidFileName represents an invalid wiki file name.
+type ErrWikiInvalidFileName struct {
+	FileName string
+}
+
+// IsErrWikiInvalidFileName checks if an error is an ErrWikiInvalidFileName.
+func IsErrWikiInvalidFileName(err error) bool {
+	_, ok := err.(ErrWikiInvalidFileName)
+	return ok
+}
+
+func (err ErrWikiInvalidFileName) Error() string {
+	return fmt.Sprintf("Invalid wiki filename: %s", err.FileName)
+}
+
 // __________     ___.   .__  .__          ____  __.
 // \______   \__ _\_ |__ |  | |__| ____   |    |/ _|____ ___.__.
 //  |     ___/  |  \ __ \|  | |  |/ ___\  |      <_/ __ <   |  |
@@ -530,21 +545,24 @@ func (err ErrLFSLockNotExist) Error() string {
 	return fmt.Sprintf("lfs lock does not exist [id: %d, rid: %d, path: %s]", err.ID, err.RepoID, err.Path)
 }
 
-// ErrLFSLockUnauthorizedAction represents a "LFSLockUnauthorizedAction" kind of error.
-type ErrLFSLockUnauthorizedAction struct {
+// ErrLFSUnauthorizedAction represents a "LFSUnauthorizedAction" kind of error.
+type ErrLFSUnauthorizedAction struct {
 	RepoID   int64
 	UserName string
-	Action   string
+	Mode     AccessMode
 }
 
-// IsErrLFSLockUnauthorizedAction checks if an error is a ErrLFSLockUnauthorizedAction.
-func IsErrLFSLockUnauthorizedAction(err error) bool {
-	_, ok := err.(ErrLFSLockUnauthorizedAction)
+// IsErrLFSUnauthorizedAction checks if an error is a ErrLFSUnauthorizedAction.
+func IsErrLFSUnauthorizedAction(err error) bool {
+	_, ok := err.(ErrLFSUnauthorizedAction)
 	return ok
 }
 
-func (err ErrLFSLockUnauthorizedAction) Error() string {
-	return fmt.Sprintf("User %s doesn't have rigth to %s for lfs lock [rid: %d]", err.UserName, err.Action, err.RepoID)
+func (err ErrLFSUnauthorizedAction) Error() string {
+	if err.Mode == AccessModeWrite {
+		return fmt.Sprintf("User %s doesn't have write access for lfs lock [rid: %d]", err.UserName, err.RepoID)
+	}
+	return fmt.Sprintf("User %s doesn't have read access for lfs lock [rid: %d]", err.UserName, err.RepoID)
 }
 
 // ErrLFSLockAlreadyExist represents a "LFSLockAlreadyExist" kind of error.

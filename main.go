@@ -21,7 +21,7 @@ import (
 )
 
 // Version holds the current Gitea version
-var Version = "1.4.0-dev"
+var Version = "1.5.0-dev"
 
 // Tags holds the build tags used
 var Tags = ""
@@ -45,6 +45,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdDump,
 		cmd.CmdCert,
 		cmd.CmdAdmin,
+		cmd.CmdGenerate,
 	}
 	app.Flags = append(app.Flags, []cli.Flag{}...)
 	app.Action = cmd.CmdWeb.Action

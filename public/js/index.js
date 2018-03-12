@@ -571,6 +571,7 @@ function initRepository() {
                 $editContentZone.html($('#edit-content-form').html());
                 $textarea = $segment.find('textarea');
                 issuesTribute.attach($textarea.get());
+                emojiTribute.attach($textarea.get());
 
                 // Give new write/preview data-tab name to distinguish from others
                 var $editContentForm = $editContentZone.find('.ui.comment.form');
@@ -770,7 +771,6 @@ function initWikiForm() {
                         function (data) {
                             preview.innerHTML = '<div class="markdown">' + data + '</div>';
                             emojify.run($('.editor-preview')[0]);
-                            $('.editor-preview').autolink();
                         }
                     );
                 }, 0);
@@ -1548,7 +1548,6 @@ $(document).ready(function () {
             node.append('<a class="anchor" href="#' + name + '"><span class="octicon octicon-link"></span></a>');
         });
     });
-    $('.markdown').autolink();
 
     $('.issue-checkbox').click(function() {
         var numChecked = $('.issue-checkbox').children('input:checked').length;
