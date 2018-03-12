@@ -16,6 +16,9 @@ else
 	ifeq ($(UNAME_S),Darwin)
 		SED_INPLACE := sed -i ''
 	endif
+	ifeq ($(UNAME_S),FreeBSD)
+		SED_INPLACE := sed -i ''
+	endif
 endif
 
 GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
