@@ -7,13 +7,12 @@ package oauth2
 import (
 	"math"
 	"net/http"
-	"os"
-	"path/filepath"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/gorilla/sessions"
+	"github.com/go-xorm/xorm"
+	"github.com/lafriks/xormstore"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/bitbucket"
@@ -41,13 +40,10 @@ type CustomURLMapping struct {
 }
 
 // Init initialize the setup of the OAuth2 library
-func Init() {
-	sessionDir := filepath.Join(setting.AppDataPath, "sessions", "oauth2")
-	if err := os.MkdirAll(sessionDir, 0700); err != nil {
-		log.Fatal(4, "Fail to create dir %s: %v", sessionDir, err)
-	}
-
-	store := sessions.NewFilesystemStore(sessionDir, []byte(sessionUsersStoreKey))
+func Init(x *xorm.Engine) {
+	store := xormstore.NewOptions(x, xormstore.Options{
+		TableName: "oauth2_sessions",
+	}, []byte(sessionUsersStoreKey))
 	// according to the Goth lib:
 	// set the maxLength of the cookies stored on the disk to a larger number to prevent issues with:
 	// securecookie: the value is too long

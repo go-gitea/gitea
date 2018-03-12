@@ -98,7 +98,7 @@ func GetActiveOAuth2Providers() ([]string, map[string]OAuth2Provider, error) {
 
 // InitOAuth2 initialize the OAuth2 lib and register all active OAuth2 providers in the library
 func InitOAuth2() {
-	oauth2.Init()
+	oauth2.Init(x)
 	loginSources, _ := GetActiveOAuth2ProviderLoginSources()
 
 	for _, source := range loginSources {
