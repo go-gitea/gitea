@@ -81,9 +81,10 @@ func NewLabel(ctx *context.Context, form auth.CreateLabelForm) {
 	}
 
 	l := &models.Label{
-		RepoID: ctx.Repo.Repository.ID,
-		Name:   form.Title,
-		Color:  form.Color,
+		RepoID:      ctx.Repo.Repository.ID,
+		Name:        form.Title,
+		Description: form.Description,
+		Color:       form.Color,
 	}
 	if err := models.NewLabel(l); err != nil {
 		ctx.ServerError("NewLabel", err)
@@ -106,6 +107,7 @@ func UpdateLabel(ctx *context.Context, form auth.CreateLabelForm) {
 	}
 
 	l.Name = form.Title
+	l.Description = form.Description
 	l.Color = form.Color
 	if err := models.UpdateLabel(l); err != nil {
 		ctx.ServerError("UpdateLabel", err)
