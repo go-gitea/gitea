@@ -53,7 +53,7 @@ func GetAssigneesByIssue(issue *Issue) (assignees []*User, err error) {
 
 // IsUserAssignedToIssue returns true when the user is assigned to the issue
 func IsUserAssignedToIssue(issue *Issue, user *User) (isAssigned bool, err error) {
-	assignees := IssueAssignees{AssigneeID:user.ID, IssueID:issue.ID}
+	assignees := IssueAssignees{AssigneeID: user.ID, IssueID: issue.ID}
 	isAssigned, err = x.Get(&assignees)
 	return
 }
@@ -137,6 +137,7 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 	return nil
 }
 
+// AddAssigneeByName does what it says
 func AddAssigneeByName(assigneeName string, issue *Issue, doer *User) (err error) {
 	assignee, err := GetUserByName(assigneeName)
 	if err != nil {

@@ -240,7 +240,7 @@ func (c *Comment) LoadMilestone() error {
 	return nil
 }
 
-// LoadAssignees if comment.Type is CommentTypeAssignees, then load assignees
+// LoadAssigneeUser if comment.Type is CommentTypeAssignees, then load assignees
 func (c *Comment) LoadAssigneeUser() error {
 	var err error
 
