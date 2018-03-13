@@ -1,3 +1,7 @@
+// Copyright 2018 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package models
 
 import (
@@ -49,18 +53,9 @@ func GetAssigneesByIssue(issue *Issue) (assignees []*User, err error) {
 
 // IsUserAssignedToIssue returns true when the user is assigned to the issue
 func IsUserAssignedToIssue(issue *Issue, user *User) (isAssigned bool, err error) {
-	err = issue.loadAssignees(x)
-	if err != nil {
-		return false, err
-	}
-
-	for _, assignee := range issue.Assignees {
-		if assignee.ID == user.ID {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	assignees := IssueAssignees{AssigneeID:user.ID, IssueID:issue.ID}
+	isAssigned, err = x.Get(&assignees)
+	return
 }
 
 // ClearAssigneesByIssue deletes all assignees for one issue

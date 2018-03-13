@@ -84,4 +84,5 @@ func addMultipleAssignees(x *xorm.Engine) error {
 			_, err = x.Id(comment.ID).Update(Comment{RemovedAssignee: true})
 		}
 	}
+	return nil
 }

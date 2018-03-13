@@ -46,7 +46,7 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 		participants = append(participants, issue.Poster)
 	}
 
-	// Assignee must receive any communications
+	// Assignees must receive any communications
 	assignees, err := GetAssigneesByIssue(issue)
 	if err != nil {
 		return err

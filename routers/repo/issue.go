@@ -714,7 +714,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 		} else if comment.Type == models.CommentTypeAssignees {
 			if err = comment.LoadAssigneeUser(); err != nil {
-				ctx.ServerError("LoadAssignees", err)
+				ctx.ServerError("LoadAssigneeUser", err)
 				return
 			}
 		}
