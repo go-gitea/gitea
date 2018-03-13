@@ -12,7 +12,7 @@
         <div class="ui divider"></div>
 
 		<div class="ui user list">
-			{{if .Keyword}}
+			{{if .SearchResults}}
                 <h3>
                     {{.i18n.Tr "explore.code_search_results" (.Keyword|Escape) | Str2html }}
                 </h3>

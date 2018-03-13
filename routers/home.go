@@ -252,47 +252,60 @@ func ExploreCode(ctx *context.Context) {
 
 	var repoIDs []int64
 	var err error
-	if ctx.User == nil {
-		repoIDs, err = models.FindUserAccessiableRepoIDs(0)
-	} else if !ctx.User.IsAdmin {
-		repoIDs, err = models.FindUserAccessiableRepoIDs(ctx.User.ID)
+	var needSearch = true
+
+	// guest user or non-admin user
+	if ctx.User == nil || !ctx.User.IsAdmin {
+		var userID int64
+		if ctx.User != nil {
+			userID = ctx.User.ID
+		}
+
+		repoIDs, err = models.FindUserAccessiableRepoIDs(userID)
+		if err != nil {
+			ctx.ServerError("SearchResults", err)
+			return
+		}
+
+		// no public repos, don't search
+		needSearch = len(repoIDs) > 0
 	}
 
-	if err != nil {
-		ctx.ServerError("SearchResults", err)
-		return
-	}
+	var total int
+	var searchResults []*search.Result
 
-	total, searchResults, err := search.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
-	if err != nil {
-		ctx.ServerError("SearchResults", err)
-		return
-	}
+	if needSearch {
+		total, searchResults, err = search.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
+		if err != nil {
+			ctx.ServerError("SearchResults", err)
+			return
+		}
 
-	var loadRepoIDs = make([]int64, 0, len(searchResults))
-	for _, result := range searchResults {
-		var find bool
-		for _, id := range loadRepoIDs {
-			if id == result.RepoID {
-				find = true
-				break
+		var loadRepoIDs = make([]int64, 0, len(searchResults))
+		for _, result := range searchResults {
+			var find bool
+			for _, id := range loadRepoIDs {
+				if id == result.RepoID {
+					find = true
+					break
+				}
+			}
+			if !find {
+				loadRepoIDs = append(loadRepoIDs, result.RepoID)
 			}
 		}
-		if !find {
-			loadRepoIDs = append(loadRepoIDs, result.RepoID)
-		}
-	}
 
-	repoMaps, err := models.GetRepositoriesMapByIDs(loadRepoIDs)
-	if err != nil {
-		ctx.ServerError("SearchResults", err)
-		return
+		repoMaps, err := models.GetRepositoriesMapByIDs(loadRepoIDs)
+		if err != nil {
+			ctx.ServerError("SearchResults", err)
+			return
+		}
+		ctx.Data["RepoMaps"] = repoMaps
 	}
 
 	ctx.Data["Keyword"] = keyword
 	pager := paginater.New(total, setting.UI.RepoSearchPagingNum, page, 5)
 	ctx.Data["Page"] = pager
-	ctx.Data["RepoMaps"] = repoMaps
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PageIsViewCode"] = true
