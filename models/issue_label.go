@@ -19,22 +19,24 @@ import (
 var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")
 
 // GetLabelTemplateFile loads the label template file by given name,
-// then parses and returns a list of name-color pairs.
-func GetLabelTemplateFile(name string) ([][2]string, error) {
+// then parses and returns a list of name-color pairs and optionally description.
+func GetLabelTemplateFile(name string) ([][3]string, error) {
 	data, err := getRepoInitFile("label", name)
 	if err != nil {
 		return nil, fmt.Errorf("getRepoInitFile: %v", err)
 	}
 
 	lines := strings.Split(string(data), "\n")
-	list := make([][2]string, 0, len(lines))
+	list := make([][3]string, 0, len(lines))
 	for i := 0; i < len(lines); i++ {
 		line := strings.TrimSpace(lines[i])
 		if len(line) == 0 {
 			continue
 		}
 
-		fields := strings.SplitN(line, " ", 2)
+		parts := strings.SplitN(line, ";", 2)
+
+		fields := strings.SplitN(parts[0], " ", 2)
 		if len(fields) != 2 {
 			return nil, fmt.Errorf("line is malformed: %s", line)
 		}
@@ -43,8 +45,14 @@ func GetLabelTemplateFile(name string) ([][2]string, error) {
 			return nil, fmt.Errorf("bad HTML color code in line: %s", line)
 		}
 
+		var description string
+
+		if len(parts) > 1 {
+			description = strings.TrimSpace(parts[1])
+		}
+
 		fields[1] = strings.TrimSpace(fields[1])
-		list = append(list, [2]string{fields[1], fields[0]})
+		list = append(list, [3]string{fields[1], fields[0], description})
 	}
 
 	return list, nil
@@ -55,6 +63,7 @@ type Label struct {
 	ID              int64 `xorm:"pk autoincr"`
 	RepoID          int64 `xorm:"INDEX"`
 	Name            string
+	Description     string
 	Color           string `xorm:"VARCHAR(7)"`
 	NumIssues       int
 	NumClosedIssues int
