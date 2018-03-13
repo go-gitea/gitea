@@ -132,7 +132,7 @@ func GetAuthURL(res http.ResponseWriter, req *http.Request) (string, error) {
 		return "", err
 	}
 
-	err = storeInSession(providerName, sess.Marshal(), req, res)
+	err = StoreInSession(providerName, sess.Marshal(), req, res)
 
 	if err != nil {
 		return "", err
@@ -166,7 +166,7 @@ var CompleteUserAuth = func(res http.ResponseWriter, req *http.Request) (goth.Us
 		return goth.User{}, err
 	}
 
-	value, err := getFromSession(providerName, req)
+	value, err := GetFromSession(providerName, req)
 	if err != nil {
 		return goth.User{}, err
 	}
@@ -193,7 +193,7 @@ var CompleteUserAuth = func(res http.ResponseWriter, req *http.Request) (goth.Us
 		return goth.User{}, err
 	}
 
-	err = storeInSession(providerName, sess.Marshal(), req, res)
+	err = StoreInSession(providerName, sess.Marshal(), req, res)
 
 	if err != nil {
 		return goth.User{}, err
@@ -284,8 +284,9 @@ func getProviderName(req *http.Request) (string, error) {
 	return "", errors.New("you must select a provider")
 }
 
-func storeInSession(key string, value string, req *http.Request, res http.ResponseWriter) error {
-	session, _ := Store.Get(req, SessionName)
+// StoreInSession stores a specified key/value pair in the session.
+func StoreInSession(key string, value string, req *http.Request, res http.ResponseWriter) error {
+	session, _ := Store.New(req, SessionName)
 
 	if err := updateSessionValue(session, key, value); err != nil {
 		return err
@@ -294,7 +295,9 @@ func storeInSession(key string, value string, req *http.Request, res http.Respon
 	return session.Save(req, res)
 }
 
-func getFromSession(key string, req *http.Request) (string, error) {
+// GetFromSession retrieves a previously-stored value from the session.
+// If no value has previously been stored at the specified key, it will return an error.
+func GetFromSession(key string, req *http.Request) (string, error) {
 	session, _ := Store.Get(req, SessionName)
 	value, err := getSessionValue(session, key)
 	if err != nil {

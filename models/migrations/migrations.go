@@ -169,6 +169,8 @@ var migrations = []Migration{
 	// v57 -> v58
 	NewMigration("add closed_unix column for issues", addIssueClosedTime),
 	// v58 -> v59
+	NewMigration("add label descriptions", addLabelsDescriptions),
+	// v59 -> v60
 	NewMigration("add multiple assignees", addMultipleAssignees),
 }
 
