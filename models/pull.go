@@ -272,6 +272,31 @@ const (
 	MergeStyleSquash MergeStyle = "squash"
 )
 
+// CheckUserAllowedToMerge checks whether the user is allowed to merge
+func (pr *PullRequest) CheckUserAllowedToMerge(doer *User) (err error) {
+	if doer == nil {
+		return ErrNotAllowedToMerge{
+			"Not signed in",
+		}
+	}
+
+	if pr.BaseRepo == nil {
+		if err = pr.GetBaseRepo(); err != nil {
+			return fmt.Errorf("GetBaseRepo: %v", err)
+		}
+	}
+
+	if protected, err := pr.BaseRepo.IsProtectedBranch(pr.BaseBranch, doer); err != nil {
+		return fmt.Errorf("IsProtectedBranch: %v", err)
+	} else if protected {
+		return ErrNotAllowedToMerge{
+			"The branch is protected",
+		}
+	}
+
+	return nil
+}
+
 // Merge merges pull request to base repository.
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
 func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle MergeStyle, message string) (err error) {
@@ -286,6 +311,10 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		return err
 	}
 	prConfig := prUnit.PullRequestsConfig()
+
+	if err := pr.CheckUserAllowedToMerge(doer); err != nil {
+		return fmt.Errorf("CheckUserAllowedToMerge: %v", err)
+	}
 
 	// Check if merge style is correct and allowed
 	if !prConfig.IsMergeStyleAllowed(mergeStyle) {
