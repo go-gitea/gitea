@@ -42,9 +42,10 @@ func InitializeLabels(ctx *context.Context, form auth.InitializeLabelsForm) {
 	labels := make([]*models.Label, len(list))
 	for i := 0; i < len(list); i++ {
 		labels[i] = &models.Label{
-			RepoID: ctx.Repo.Repository.ID,
-			Name:   list[i][0],
-			Color:  list[i][1],
+			RepoID:      ctx.Repo.Repository.ID,
+			Name:        list[i][0],
+			Description: list[i][2],
+			Color:       list[i][1],
 		}
 	}
 	if err := models.NewLabels(labels...); err != nil {
