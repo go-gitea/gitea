@@ -259,9 +259,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		Type:         models.PullRequestGitea,
 	}
 
-
 	// TODO: Get all assigneeIDs and pass them to the function
-
 
 	if err := models.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch, nil); err != nil {
 		ctx.Error(500, "NewPullRequest", err)
