@@ -250,31 +250,57 @@ func ExploreCode(ctx *context.Context) {
 		page = 1
 	}
 
-	var repoIDs []int64
-	var err error
-	var needSearch = true
+	var (
+		repoIDs []int64
+		err     error
+		isAdmin bool
+		userID  int64
+	)
+	if ctx.User != nil {
+		userID = ctx.User.ID
+		isAdmin = ctx.User.IsAdmin
+	}
 
 	// guest user or non-admin user
-	if ctx.User == nil || !ctx.User.IsAdmin {
-		var userID int64
-		if ctx.User != nil {
-			userID = ctx.User.ID
+	if ctx.User == nil || !isAdmin {
+		repoIDs, err = models.FindUserAccessibleRepoIDs(userID)
+		if err != nil {
+			ctx.ServerError("SearchResults", err)
+			return
 		}
+	}
 
-		repoIDs, err = models.FindUserAccessiableRepoIDs(userID)
+	var (
+		total         int
+		searchResults []*search.Result
+	)
+
+	// if non-admin login user, we need check UnitTypeCode at first
+	if ctx.User != nil && len(repoIDs) > 0 {
+		repoMaps, err := models.GetRepositoriesMapByIDs(repoIDs)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
 		}
 
-		// no public repos, don't search
-		needSearch = len(repoIDs) > 0
-	}
+		var rightRepoMap = make(map[int64]*models.Repository, len(repoMaps))
+		repoIDs = make([]int64, 0, len(repoMaps))
+		for id, repo := range repoMaps {
+			if repo.CheckUnitUser(userID, isAdmin, models.UnitTypeCode) {
+				rightRepoMap[id] = repo
+				repoIDs = append(repoIDs, id)
+			}
+		}
 
-	var total int
-	var searchResults []*search.Result
+		ctx.Data["RepoMaps"] = rightRepoMap
 
-	if needSearch {
+		total, searchResults, err = search.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
+		if err != nil {
+			ctx.ServerError("SearchResults", err)
+			return
+		}
+		// if non-login user or isAdmin, no need to check UnitTypeCode
+	} else if (ctx.User == nil && len(repoIDs) > 0) || isAdmin {
 		total, searchResults, err = search.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
@@ -300,6 +326,7 @@ func ExploreCode(ctx *context.Context) {
 			ctx.ServerError("SearchResults", err)
 			return
 		}
+
 		ctx.Data["RepoMaps"] = repoMaps
 	}
 
