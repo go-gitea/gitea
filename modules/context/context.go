@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -73,6 +74,26 @@ func (ctx *Context) HasError() bool {
 func (ctx *Context) HasValue(name string) bool {
 	_, ok := ctx.Data[name]
 	return ok
+}
+
+// RedirectToFirst redirects to first not empty URL
+func (ctx *Context) RedirectToFirst(location ...string) {
+	for _, loc := range location {
+		if len(loc) == 0 {
+			continue
+		}
+
+		u, err := url.Parse(loc)
+		if err != nil || (u.Scheme != "" && !strings.HasPrefix(strings.ToLower(loc), strings.ToLower(setting.AppURL))) {
+			continue
+		}
+
+		ctx.Redirect(loc)
+		return
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/")
+	return
 }
 
 // HTML calls Context.HTML and converts template name to string.
