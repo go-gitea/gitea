@@ -734,6 +734,15 @@ func ViewIssue(ctx *context.Context) {
 		}
 		prConfig := prUnit.PullRequestsConfig()
 
+		ctx.Data["AllowMerge"] = ctx.Data["IsRepositoryWriter"]
+		if err := pull.CheckUserAllowedToMerge(ctx.User); err != nil {
+			if !models.IsErrNotAllowedToMerge(err) {
+				ctx.ServerError("CheckUserAllowedToMerge", err)
+				return
+			}
+			ctx.Data["AllowMerge"] = false
+		}
+
 		// Check correct values and select default
 		if ms, ok := ctx.Data["MergeStyle"].(models.MergeStyle); !ok ||
 			!prConfig.IsMergeStyleAllowed(ms) {
