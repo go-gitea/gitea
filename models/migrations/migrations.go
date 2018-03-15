@@ -168,6 +168,8 @@ var migrations = []Migration{
 	NewMigration("remove is_owner, num_teams columns from org_user", removeIsOwnerColumnFromOrgUser),
 	// v57 -> v58
 	NewMigration("add closed_unix column for issues", addIssueClosedTime),
+	// v58 -> v59
+	NewMigration("add label descriptions", addLabelsDescriptions),
 }
 
 // Migrate database to current version
