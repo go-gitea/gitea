@@ -6,7 +6,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.4.0-rc3](https://github.com/go-gitea/gitea/releases/tag/v1.4.0-rc3) - 2018-03-16
 * SECURITY
-  * Refactor and simplify to coorectly validate redirect to url (#3674) (#3676)
+  * Refactor and simplify to correctly validate redirect to URL (#3674) (#3676)
 * BUGFIXES
   * Update markbates/goth libary to fix OAuth2 support (#3661) (#3663)
   * Fix column removal in MSSQL (#3638) (#3640)
