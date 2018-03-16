@@ -103,7 +103,7 @@
 					<img src="{{.Poster.RelAvatarLink}}">
 				</a>
 				<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
-				{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color .Label.Name $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color .Label.Name $createdStr | Safe}}{{end}}</span>
+				{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape) $createdStr | Safe}}{{end}}</span>
 			</div>
 		{{end}}
 	{{else if eq .Type 8}}
@@ -113,7 +113,7 @@
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
-			{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.change_milestone_at" .OldMilestone.Name .Milestone.Name $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_milestone_at" .OldMilestone.Name $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.add_milestone_at" .Milestone.Name $createdStr | Safe}}{{end}}</span>
+			{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}</span>
 		</div>
 	{{else if eq .Type 9}}
 		<div class="event">
@@ -131,23 +131,23 @@
 	{{else if eq .Type 10}}
 		<div class="event">
 			<span class="octicon octicon-primitive-dot"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
+			{{$.i18n.Tr "repo.issues.change_title_at" (.OldTitle|Escape) (.NewTitle|Escape) $createdStr | Safe}}
+			</span>
 		</div>
-		<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-			<img src="{{.Poster.RelAvatarLink}}">
-		</a>
-		<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
-		{{$.i18n.Tr "repo.issues.change_title_at" .OldTitle .NewTitle $createdStr | Safe}}
-		</span>
 	{{else if eq .Type 11}}
 		<div class="event">
 			<span class="octicon octicon-primitive-dot"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
+			{{$.i18n.Tr "repo.issues.delete_branch_at" .CommitSHA $createdStr | Safe}}
+			</span>
 		</div>
-		<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-			<img src="{{.Poster.RelAvatarLink}}">
-		</a>
-		<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
-		{{$.i18n.Tr "repo.issues.delete_branch_at" .CommitSHA $createdStr | Safe}}
-		</span>
     {{else if eq .Type 12}}
 		<div class="event">
 			<span class="octicon octicon-primitive-dot"></span>

@@ -8,9 +8,9 @@ import (
 	api "code.gitea.io/sdk/gitea"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Markdown render markdown document to HTML
@@ -45,7 +45,7 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	switch form.Mode {
 	case "gfm":
 		md := []byte(form.Text)
-		context := markup.URLJoin(setting.AppURL, form.Context)
+		context := util.URLJoin(setting.AppURL, form.Context)
 		if form.Wiki {
 			ctx.Write([]byte(markdown.RenderWiki(md, context, nil)))
 		} else {

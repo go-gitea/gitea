@@ -491,6 +491,7 @@ function initRepository() {
         $('.edit-label-button').click(function () {
             $('#label-modal-id').val($(this).data('id'));
             $('.edit-label .new-label-input').val($(this).data('title'));
+            $('.edit-label .new-label-desc-input').val($(this).data('description'));
             $('.edit-label .color-picker').val($(this).data('color'));
             $('.minicolors-swatch-color').css("background-color", $(this).data('color'));
             $('.edit-label.modal').modal({
@@ -571,6 +572,7 @@ function initRepository() {
                 $editContentZone.html($('#edit-content-form').html());
                 $textarea = $segment.find('textarea');
                 issuesTribute.attach($textarea.get());
+                emojiTribute.attach($textarea.get());
 
                 // Give new write/preview data-tab name to distinguish from others
                 var $editContentForm = $editContentZone.find('.ui.comment.form');
@@ -770,7 +772,6 @@ function initWikiForm() {
                         function (data) {
                             preview.innerHTML = '<div class="markdown">' + data + '</div>';
                             emojify.run($('.editor-preview')[0]);
-                            $('.editor-preview').autolink();
                         }
                     );
                 }, 0);
@@ -1548,7 +1549,6 @@ $(document).ready(function () {
             node.append('<a class="anchor" href="#' + name + '"><span class="octicon octicon-link"></span></a>');
         });
     });
-    $('.markdown').autolink();
 
     $('.issue-checkbox').click(function() {
         var numChecked = $('.issue-checkbox').children('input:checked').length;
@@ -1683,7 +1683,10 @@ function showDeletePopup() {
         filter += "#" + $this.attr("id")
     }
 
-    $('.delete.modal' + filter).modal({
+    var dialog = $('.delete.modal' + filter);
+    dialog.find('.repo-name').text($this.data('repo-name'));
+
+    dialog.modal({
         closable: false,
         onApprove: function() {
             if ($this.data('type') == "form") {

@@ -122,6 +122,7 @@ const (
 	syncRepositoryUpdateHook
 	reinitMissingRepository
 	syncExternalUsers
+	gitFsck
 )
 
 // Dashboard show admin panel dashboard
@@ -161,6 +162,9 @@ func Dashboard(ctx *context.Context) {
 		case syncExternalUsers:
 			success = ctx.Tr("admin.dashboard.sync_external_users_started")
 			go models.SyncExternalUsers()
+		case gitFsck:
+			success = ctx.Tr("admin.dashboard.git_fsck_started")
+			go models.GitFsck()
 		}
 
 		if err != nil {

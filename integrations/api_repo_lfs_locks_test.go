@@ -41,10 +41,10 @@ func TestAPILFSLocksNotLogin(t *testing.T) {
 
 	req := NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks", user.Name, repo.Name)
 	req.Header.Set("Accept", "application/vnd.git-lfs+json")
-	resp := MakeRequest(t, req, http.StatusForbidden)
+	resp := MakeRequest(t, req, http.StatusUnauthorized)
 	var lfsLockError api.LFSLockError
 	DecodeJSON(t, resp, &lfsLockError)
-	assert.Equal(t, "You must have pull access to list locks : User undefined doesn't have rigth to list for lfs lock [rid: 1]", lfsLockError.Message)
+	assert.Equal(t, "Unauthorized", lfsLockError.Message)
 }
 
 func TestAPILFSLocksLogged(t *testing.T) {
@@ -68,8 +68,8 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		{user: user2, repo: repo1, path: "path/test", httpResult: http.StatusConflict},
 		{user: user2, repo: repo1, path: "Foo/BaR.zip", httpResult: http.StatusConflict},
 		{user: user2, repo: repo1, path: "Foo/Test/../subFOlder/../Relative/../BaR.zip", httpResult: http.StatusConflict},
-		{user: user4, repo: repo1, path: "FoO/BaR.zip", httpResult: http.StatusForbidden},
-		{user: user4, repo: repo1, path: "path/test-user4", httpResult: http.StatusForbidden},
+		{user: user4, repo: repo1, path: "FoO/BaR.zip", httpResult: http.StatusUnauthorized},
+		{user: user4, repo: repo1, path: "path/test-user4", httpResult: http.StatusUnauthorized},
 		{user: user2, repo: repo1, path: "patH/Test-user4", httpResult: http.StatusCreated, addTime: []int{0}},
 		{user: user2, repo: repo1, path: "some/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/long/path", httpResult: http.StatusCreated, addTime: []int{0}},
 

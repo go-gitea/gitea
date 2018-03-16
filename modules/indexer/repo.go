@@ -5,7 +5,6 @@
 package indexer
 
 import (
-	"os"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -15,10 +14,18 @@ import (
 	"github.com/blevesearch/bleve/analysis/analyzer/custom"
 	"github.com/blevesearch/bleve/analysis/token/camelcase"
 	"github.com/blevesearch/bleve/analysis/token/lowercase"
+	"github.com/blevesearch/bleve/analysis/token/unique"
 	"github.com/blevesearch/bleve/analysis/tokenizer/unicode"
+	"github.com/blevesearch/bleve/search/query"
+	"github.com/ethantkoenig/rupture"
 )
 
-const repoIndexerAnalyzer = "repoIndexerAnalyzer"
+const (
+	repoIndexerAnalyzer = "repoIndexerAnalyzer"
+	repoIndexerDocType  = "repoIndexerDocType"
+
+	repoIndexerLatestVersion = 1
+)
 
 // repoIndexer (thread-safe) index for repository contents
 var repoIndexer bleve.Index
@@ -40,6 +47,11 @@ type RepoIndexerData struct {
 	Content string
 }
 
+// Type returns the document type, for bleve's mapping.Classifier interface.
+func (d *RepoIndexerData) Type() string {
+	return repoIndexerDocType
+}
+
 // RepoIndexerUpdate an update to the repo indexer
 type RepoIndexerUpdate struct {
 	Filepath string
@@ -47,13 +59,14 @@ type RepoIndexerUpdate struct {
 	Data     *RepoIndexerData
 }
 
-func (update RepoIndexerUpdate) addToBatch(batch *bleve.Batch) error {
+// AddToFlushingBatch adds the update to the given flushing batch.
+func (update RepoIndexerUpdate) AddToFlushingBatch(batch rupture.FlushingBatch) error {
 	id := filenameIndexerID(update.Data.RepoID, update.Filepath)
 	switch update.Op {
 	case RepoIndexerOpUpdate:
 		return batch.Index(id, update.Data)
 	case RepoIndexerOpDelete:
-		batch.Delete(id)
+		return batch.Delete(id)
 	default:
 		log.Error(4, "Unrecognized repo indexer op: %d", update.Op)
 	}
@@ -62,48 +75,50 @@ func (update RepoIndexerUpdate) addToBatch(batch *bleve.Batch) error {
 
 // InitRepoIndexer initialize repo indexer
 func InitRepoIndexer(populateIndexer func() error) {
-	_, err := os.Stat(setting.Indexer.RepoPath)
+	var err error
+	repoIndexer, err = openIndexer(setting.Indexer.RepoPath, repoIndexerLatestVersion)
 	if err != nil {
-		if os.IsNotExist(err) {
-			if err = createRepoIndexer(); err != nil {
-				log.Fatal(4, "CreateRepoIndexer: %v", err)
-			}
-			if err = populateIndexer(); err != nil {
-				log.Fatal(4, "PopulateRepoIndex: %v", err)
-			}
-		} else {
-			log.Fatal(4, "InitRepoIndexer: %v", err)
-		}
-	} else {
-		repoIndexer, err = bleve.Open(setting.Indexer.RepoPath)
-		if err != nil {
-			log.Fatal(4, "InitRepoIndexer, open index: %v", err)
-		}
+		log.Fatal(4, "InitRepoIndexer: %v", err)
+	}
+	if repoIndexer != nil {
+		return
+	}
+
+	if err = createRepoIndexer(); err != nil {
+		log.Fatal(4, "CreateRepoIndexer: %v", err)
+	}
+	if err = populateIndexer(); err != nil {
+		log.Fatal(4, "PopulateRepoIndex: %v", err)
 	}
 }
 
 // createRepoIndexer create a repo indexer if one does not already exist
 func createRepoIndexer() error {
+	var err error
 	docMapping := bleve.NewDocumentMapping()
-	docMapping.AddFieldMappingsAt("RepoID", bleve.NewNumericFieldMapping())
+	numericFieldMapping := bleve.NewNumericFieldMapping()
+	numericFieldMapping.IncludeInAll = false
+	docMapping.AddFieldMappingsAt("RepoID", numericFieldMapping)
 
 	textFieldMapping := bleve.NewTextFieldMapping()
+	textFieldMapping.IncludeInAll = false
 	docMapping.AddFieldMappingsAt("Content", textFieldMapping)
 
 	mapping := bleve.NewIndexMapping()
-	if err := addUnicodeNormalizeTokenFilter(mapping); err != nil {
+	if err = addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return err
-	} else if err := mapping.AddCustomAnalyzer(repoIndexerAnalyzer, map[string]interface{}{
+	} else if err = mapping.AddCustomAnalyzer(repoIndexerAnalyzer, map[string]interface{}{
 		"type":          custom.Name,
 		"char_filters":  []string{},
 		"tokenizer":     unicode.Name,
-		"token_filters": []string{unicodeNormalizeName, camelcase.Name, lowercase.Name},
+		"token_filters": []string{unicodeNormalizeName, camelcase.Name, lowercase.Name, unique.Name},
 	}); err != nil {
 		return err
 	}
 	mapping.DefaultAnalyzer = repoIndexerAnalyzer
-	mapping.AddDocumentMapping("repo", docMapping)
-	var err error
+	mapping.AddDocumentMapping(repoIndexerDocType, docMapping)
+	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
+
 	repoIndexer, err = bleve.New(setting.Indexer.RepoPath, mapping)
 	return err
 }
@@ -121,11 +136,8 @@ func filenameOfIndexerID(indexerID string) string {
 }
 
 // RepoIndexerBatch batch to add updates to
-func RepoIndexerBatch() *Batch {
-	return &Batch{
-		batch: repoIndexer.NewBatch(),
-		index: repoIndexer,
-	}
+func RepoIndexerBatch() rupture.FlushingBatch {
+	return rupture.NewFlushingBatch(repoIndexer, maxBatchSize)
 }
 
 // DeleteRepoFromIndexer delete all of a repo's files from indexer
@@ -138,8 +150,7 @@ func DeleteRepoFromIndexer(repoID int64) error {
 	}
 	batch := RepoIndexerBatch()
 	for _, hit := range result.Hits {
-		batch.batch.Delete(hit.ID)
-		if err = batch.flushIfFull(); err != nil {
+		if err = batch.Delete(hit.ID); err != nil {
 			return err
 		}
 	}
@@ -148,6 +159,7 @@ func DeleteRepoFromIndexer(repoID int64) error {
 
 // RepoSearchResult result of performing a search in a repo
 type RepoSearchResult struct {
+	RepoID     int64
 	StartIndex int
 	EndIndex   int
 	Filename   string
@@ -156,17 +168,29 @@ type RepoSearchResult struct {
 
 // SearchRepoByKeyword searches for files in the specified repo.
 // Returns the matching file-paths
-func SearchRepoByKeyword(repoID int64, keyword string, page, pageSize int) (int64, []*RepoSearchResult, error) {
+func SearchRepoByKeyword(repoIDs []int64, keyword string, page, pageSize int) (int64, []*RepoSearchResult, error) {
 	phraseQuery := bleve.NewMatchPhraseQuery(keyword)
 	phraseQuery.FieldVal = "Content"
 	phraseQuery.Analyzer = repoIndexerAnalyzer
-	indexerQuery := bleve.NewConjunctionQuery(
-		numericEqualityQuery(repoID, "RepoID"),
-		phraseQuery,
-	)
+
+	var indexerQuery query.Query
+	if len(repoIDs) > 0 {
+		var repoQueries = make([]query.Query, 0, len(repoIDs))
+		for _, repoID := range repoIDs {
+			repoQueries = append(repoQueries, numericEqualityQuery(repoID, "RepoID"))
+		}
+
+		indexerQuery = bleve.NewConjunctionQuery(
+			bleve.NewDisjunctionQuery(repoQueries...),
+			phraseQuery,
+		)
+	} else {
+		indexerQuery = phraseQuery
+	}
+
 	from := (page - 1) * pageSize
 	searchRequest := bleve.NewSearchRequestOptions(indexerQuery, pageSize, from, false)
-	searchRequest.Fields = []string{"Content"}
+	searchRequest.Fields = []string{"Content", "RepoID"}
 	searchRequest.IncludeLocations = true
 
 	result, err := repoIndexer.Search(searchRequest)
@@ -189,6 +213,7 @@ func SearchRepoByKeyword(repoID int64, keyword string, page, pageSize int) (int6
 			}
 		}
 		searchResults[i] = &RepoSearchResult{
+			RepoID:     int64(hit.Fields["RepoID"].(float64)),
 			StartIndex: startIndex,
 			EndIndex:   endIndex,
 			Filename:   filenameOfIndexerID(hit.ID),

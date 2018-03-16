@@ -6,6 +6,7 @@ package search
 
 import (
 	"bytes"
+	"html"
 	gotemplate "html/template"
 	"strings"
 
@@ -16,6 +17,7 @@ import (
 
 // Result a search result to display
 type Result struct {
+	RepoID         int64
 	Filename       string
 	HighlightClass string
 	LineNumbers    []int
@@ -75,17 +77,17 @@ func searchResult(result *indexer.RepoSearchResult, startIndex, endIndex int) (*
 			closeActiveIndex := util.Min(result.EndIndex-index, len(line))
 			err = writeStrings(&formattedLinesBuffer,
 				`<li>`,
-				line[:openActiveIndex],
+				html.EscapeString(line[:openActiveIndex]),
 				`<span class='active'>`,
-				line[openActiveIndex:closeActiveIndex],
+				html.EscapeString(line[openActiveIndex:closeActiveIndex]),
 				`</span>`,
-				line[closeActiveIndex:],
+				html.EscapeString(line[closeActiveIndex:]),
 				`</li>`,
 			)
 		} else {
 			err = writeStrings(&formattedLinesBuffer,
 				`<li>`,
-				line,
+				html.EscapeString(line),
 				`</li>`,
 			)
 		}
@@ -97,6 +99,7 @@ func searchResult(result *indexer.RepoSearchResult, startIndex, endIndex int) (*
 		index += len(line)
 	}
 	return &Result{
+		RepoID:         result.RepoID,
 		Filename:       result.Filename,
 		HighlightClass: highlight.FileNameToHighlightClass(result.Filename),
 		LineNumbers:    lineNumbers,
@@ -105,12 +108,12 @@ func searchResult(result *indexer.RepoSearchResult, startIndex, endIndex int) (*
 }
 
 // PerformSearch perform a search on a repository
-func PerformSearch(repoID int64, keyword string, page, pageSize int) (int, []*Result, error) {
+func PerformSearch(repoIDs []int64, keyword string, page, pageSize int) (int, []*Result, error) {
 	if len(keyword) == 0 {
 		return 0, nil, nil
 	}
 
-	total, results, err := indexer.SearchRepoByKeyword(repoID, keyword, page, pageSize)
+	total, results, err := indexer.SearchRepoByKeyword(repoIDs, keyword, page, pageSize)
 	if err != nil {
 		return 0, nil, err
 	}

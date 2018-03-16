@@ -12,3 +12,11 @@ import "time"
 func (engine *Engine) SetConnMaxLifetime(d time.Duration) {
 	engine.db.SetConnMaxLifetime(d)
 }
+
+// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
+func (eg *EngineGroup) SetConnMaxLifetime(d time.Duration) {
+	eg.Engine.SetConnMaxLifetime(d)
+	for i := 0; i < len(eg.slaves); i++ {
+		eg.slaves[i].SetConnMaxLifetime(d)
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -73,6 +74,26 @@ func (ctx *Context) HasError() bool {
 func (ctx *Context) HasValue(name string) bool {
 	_, ok := ctx.Data[name]
 	return ok
+}
+
+// RedirectToFirst redirects to first not empty URL
+func (ctx *Context) RedirectToFirst(location ...string) {
+	for _, loc := range location {
+		if len(loc) == 0 {
+			continue
+		}
+
+		u, err := url.Parse(loc)
+		if err != nil || (u.Scheme != "" && !strings.HasPrefix(strings.ToLower(loc), strings.ToLower(setting.AppURL))) {
+			continue
+		}
+
+		ctx.Redirect(loc)
+		return
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/")
+	return
 }
 
 // HTML calls Context.HTML and converts template name to string.
@@ -189,7 +210,9 @@ func Contexter() macaron.Handler {
 				branchName = repo.DefaultBranch
 			}
 			prefix := setting.AppURL + path.Join(ownerName, repoName, "src", "branch", branchName)
-			c.PlainText(http.StatusOK, []byte(com.Expand(`
+			c.Header().Set("Content-Type", "text/html")
+			c.WriteHeader(http.StatusOK)
+			c.Write([]byte(com.Expand(`<!doctype html>
 <html>
 	<head>
 		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
@@ -241,6 +264,7 @@ func Contexter() macaron.Handler {
 		ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
 		ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
 		ctx.Data["ShowFooterVersion"] = setting.ShowFooterVersion
+		ctx.Data["EnableSwaggerEndpoint"] = setting.API.EnableSwaggerEndpoint
 		ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 
 		c.Map(ctx)

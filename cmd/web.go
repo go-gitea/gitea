@@ -121,11 +121,9 @@ func runWeb(ctx *cli.Context) error {
 		}
 	}
 
-	var listenAddr string
-	if setting.Protocol == setting.UnixSocket {
-		listenAddr = fmt.Sprintf("%s", setting.HTTPAddr)
-	} else {
-		listenAddr = fmt.Sprintf("%s:%s", setting.HTTPAddr, setting.HTTPPort)
+	listenAddr := setting.HTTPAddr
+	if setting.Protocol != setting.UnixSocket {
+		listenAddr += ":" + setting.HTTPPort
 	}
 	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
 
@@ -135,6 +133,7 @@ func runWeb(ctx *cli.Context) error {
 
 	if setting.EnablePprof {
 		go func() {
+			log.Info("Starting pprof server on localhost:6060")
 			log.Info("%v", http.ListenAndServe("localhost:6060", nil))
 		}()
 	}

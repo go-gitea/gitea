@@ -24,7 +24,7 @@ typically be found at `/etc/gitea/conf/app.ini`.
 
 The defaults provided here are best-effort (not built automatically). They are
 accurately recorded in [app.ini.sample](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
-(s/master/<tag|release\>). Any string in the format `%(X)s` is a feature powered
+(s/master/\<tag|release\>). Any string in the format `%(X)s` is a feature powered
 by [ini](https://github.com/go-ini/ini/#recursive-values), for reading values recursively.
 
 Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
@@ -118,7 +118,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `HOST`: **127.0.0.1:3306**: Database host address and port.
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
-- `PASSWD`: **\<empty\>**: Database user password.
+- `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
 - `SSL_MODE`: **disable**: For PostgreSQL only.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 
@@ -128,7 +128,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space).
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
-- `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of each index files.
+- `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
 
 ## Security (`security`)
 
@@ -185,7 +185,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `FROM`: **\<empty\>**: Mail from address, RFC 5322. This can be just an email address, or
    the "Name" \<email@example.com\> format.
 - `USER`: **\<empty\>**: Username of mailing user (usually the sender's e-mail address).
-- `PASSWD`: **\<empty\>**: Password of mailing user.
+- `PASSWD`: **\<empty\>**: Password of mailing user.  Use \`your password\` for quoting if you use special characters in the password.
 - `SKIP_VERIFY`: **\<empty\>**: Do not verify the self-signed certificates.
    - **Note:** Gitea only supports SMTP with STARTTLS.
 - `USE_SENDMAIL`: **false** Use the operating system's `sendmail` command instead of SMTP.
