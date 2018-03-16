@@ -8,7 +8,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * SECURITY
   * Refactor and simplify to correctly validate redirect to URL (#3674) (#3676)
 * BUGFIXES
-  * Update markbates/goth libary to fix OAuth2 support (#3661) (#3663)
+  * Update markbates/goth library to fix OAuth2 support (#3661) (#3663)
   * Fix column removal in MSSQL (#3638) (#3640)
   * Fix wiki inter-links with spaces (#3560) (#3632)
 
