@@ -271,9 +271,5 @@ func Action(ctx *context.Context) {
 		return
 	}
 
-	redirectTo := ctx.Query("redirect_to")
-	if len(redirectTo) == 0 {
-		redirectTo = u.HomeLink()
-	}
-	ctx.Redirect(redirectTo)
+	ctx.RedirectToFirst(ctx.Query("redirect_to"), u.HomeLink())
 }

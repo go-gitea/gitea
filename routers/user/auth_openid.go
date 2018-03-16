@@ -50,12 +50,8 @@ func SignInOpenID(ctx *context.Context) {
 	}
 
 	if isSucceed {
-		if len(redirectTo) > 0 {
-			ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
-			ctx.Redirect(redirectTo)
-		} else {
-			ctx.Redirect(setting.AppSubURL + "/")
-		}
+		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
+		ctx.RedirectToFirst(redirectTo)
 		return
 	}
 
