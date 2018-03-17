@@ -23,15 +23,18 @@ const (
 
 // ProtectedBranch struct
 type ProtectedBranch struct {
-	ID               int64  `xorm:"pk autoincr"`
-	RepoID           int64  `xorm:"UNIQUE(s)"`
-	BranchName       string `xorm:"UNIQUE(s)"`
-	CanPush          bool   `xorm:"NOT NULL DEFAULT false"`
-	EnableWhitelist  bool
-	WhitelistUserIDs []int64        `xorm:"JSON TEXT"`
-	WhitelistTeamIDs []int64        `xorm:"JSON TEXT"`
-	CreatedUnix      util.TimeStamp `xorm:"created"`
-	UpdatedUnix      util.TimeStamp `xorm:"updated"`
+	ID                    int64  `xorm:"pk autoincr"`
+	RepoID                int64  `xorm:"UNIQUE(s)"`
+	BranchName            string `xorm:"UNIQUE(s)"`
+	CanPush               bool   `xorm:"NOT NULL DEFAULT false"`
+	EnableWhitelist       bool
+	WhitelistUserIDs      []int64        `xorm:"JSON TEXT"`
+	WhitelistTeamIDs      []int64        `xorm:"JSON TEXT"`
+	EnableMergeWhitelist  bool           `xorm:"NOT NULL DEFAULT false"`
+	MergeWhitelistUserIDs []int64        `xorm:"JSON TEXT"`
+	MergeWhitelistTeamIDs []int64        `xorm:"JSON TEXT"`
+	CreatedUnix           util.TimeStamp `xorm:"created"`
+	UpdatedUnix           util.TimeStamp `xorm:"updated"`
 }
 
 // IsProtected returns if the branch is protected
