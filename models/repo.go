@@ -1945,6 +1945,12 @@ func GetRepositoryByID(id int64) (*Repository, error) {
 	return getRepositoryByID(x, id)
 }
 
+// GetRepositoriesMapByIDs returns the repositories by given id slice.
+func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
+	var repos = make(map[int64]*Repository, len(ids))
+	return repos, x.In("id", ids).Find(&repos)
+}
+
 // GetUserRepositories returns a list of repositories of given user.
 func GetUserRepositories(userID int64, private bool, page, pageSize int, orderBy string) ([]*Repository, error) {
 	if len(orderBy) == 0 {
