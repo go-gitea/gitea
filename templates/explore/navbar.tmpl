@@ -8,4 +8,9 @@
 	<a class="{{if .PageIsExploreOrganizations}}active{{end}} item" href="{{AppSubUrl}}/explore/organizations">
 		<span class="octicon octicon-organization"></span> {{.i18n.Tr "explore.organizations"}}
 	</a>
+	{{if .IsRepoIndexerEnabled}}
+	<a class="{{if .PageIsExploreCode}}active{{end}} item" href="{{AppSubUrl}}/explore/code">
+		<span class="octicon octicon-code"></span> {{.i18n.Tr "explore.code"}}
+	</a>
+	{{end}}
 </div>

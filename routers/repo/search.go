@@ -29,7 +29,8 @@ func Search(ctx *context.Context) {
 	if page <= 0 {
 		page = 1
 	}
-	total, searchResults, err := search.PerformSearch(ctx.Repo.Repository.ID, keyword, page, setting.UI.RepoSearchPagingNum)
+	total, searchResults, err := search.PerformSearch([]int64{ctx.Repo.Repository.ID},
+		keyword, page, setting.UI.RepoSearchPagingNum)
 	if err != nil {
 		ctx.ServerError("SearchResults", err)
 		return

@@ -1,20 +1,41 @@
+
+###################################
+#Build stage
+FROM golang:1.10-alpine3.7 AS build-env
+
+ARG GITEA_VERSION
+ARG TAGS="sqlite"
+ENV TAGS "bindata $TAGS"
+
+#Build deps
+RUN apk --no-cache add build-base git
+
+#Setup repo
+COPY . ${GOPATH}/src/code.gitea.io/gitea
+WORKDIR ${GOPATH}/src/code.gitea.io/gitea
+
+#Checkout version if set
+RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
+ && make clean generate build
+
 FROM alpine:3.7
-LABEL maintainer="The Gitea Authors"
+LABEL maintainer="maintainers@gitea.io"
 
 EXPOSE 22 3000
 
 RUN apk --no-cache add \
-    su-exec \
-    ca-certificates \
-    sqlite \
     bash \
+    ca-certificates \
+    curl \
+    gettext \
     git \
     linux-pam \
-    s6 \
-    curl \
     openssh \
-    gettext \
+    s6 \
+    sqlite \
+    su-exec \
     tzdata
+
 RUN addgroup \
     -S -g 1000 \
     git && \
@@ -29,7 +50,6 @@ RUN addgroup \
 
 ENV USER git
 ENV GITEA_CUSTOM /data/gitea
-ENV GODEBUG=netdns=go
 
 VOLUME ["/data"]
 
@@ -37,4 +57,4 @@ ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/bin/s6-svscan", "/etc/s6"]
 
 COPY docker /
-COPY gitea /app/gitea/gitea
+COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
