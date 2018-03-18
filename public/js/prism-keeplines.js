@@ -7,11 +7,11 @@
     Prism.plugins.KeepLineMarkup = true;
 
     Prism.hooks.add('before-highlight', function (env) {
+        env.highlightedLines = {};
+
         if (!env.element.children.length) {
             return;
         }
-
-        env.highlightedLines = {};
 
         var pos = 0;
         var data = [];
