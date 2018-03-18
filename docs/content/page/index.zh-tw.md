@@ -53,7 +53,7 @@ Gitea 的首要目標是建立一個容易安裝，運行快速，安装和使�
   * [GitHub Octicons](https://octicons.github.com/)
   * [Font Awesome](http://fontawesome.io/)
   * [DropzoneJS](http://www.dropzonejs.com/)
-  * [Highlight](https://highlightjs.org/)
+  * [PrismJS](http://prismjs.com/)
   * [Clipboard](https://zenorocha.github.io/clipboard.js/)
   * [Emojify](https://github.com/Ranks/emojify.js)
   * [CodeMirror](https://codemirror.net/)

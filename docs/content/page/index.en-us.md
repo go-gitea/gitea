@@ -268,7 +268,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
   * [GitHub Octicons](https://octicons.github.com/)
   * [Font Awesome](http://fontawesome.io/)
   * [DropzoneJS](http://www.dropzonejs.com/)
-  * [Highlight](https://highlightjs.org/)
+  * [PrismJS](http://prismjs.com/)
   * [Clipboard](https://zenorocha.github.io/clipboard.js/)
   * [Emojify](https://github.com/Ranks/emojify.js)
   * [CodeMirror](https://codemirror.net/)
