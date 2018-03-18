@@ -64,6 +64,28 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 	return in
 }
 
+// CanUserMerge returns if some user could merge a pull request to this protected branch
+func (protectBranch *ProtectedBranch) CanUserMerge(userID int64) bool {
+	if !protectBranch.EnableMergeWhitelist {
+		return true
+	}
+
+	if base.Int64sContains(protectBranch.MergeWhitelistUserIDs, userID) {
+		return true
+	}
+
+	if len(protectBranch.WhitelistTeamIDs) == 0 {
+		return false
+	}
+
+	in, err := IsUserInTeams(userID, protectBranch.MergeWhitelistTeamIDs)
+	if err != nil {
+		log.Error(1, "IsUserInTeams:", err)
+		return false
+	}
+	return in
+}
+
 // GetProtectedBranchByRepoID getting protected branch by repo ID
 func GetProtectedBranchByRepoID(RepoID int64) ([]*ProtectedBranch, error) {
 	protectedBranches := make([]*ProtectedBranch, 0)
@@ -167,6 +189,27 @@ func (repo *Repository) IsProtectedBranch(branchName string, doer *User) (bool, 
 		return true, err
 	} else if has {
 		return !protectedBranch.CanUserPush(doer.ID), nil
+	}
+
+	return false, nil
+}
+
+// IsProtectedBranchForMerging checks if branch is protected for merging
+func (repo *Repository) IsProtectedBranchForMerging(branchName string, doer *User) (bool, error) {
+	if doer == nil {
+		return true, nil
+	}
+
+	protectedBranch := &ProtectedBranch{
+		RepoID:     repo.ID,
+		BranchName: branchName,
+	}
+
+	has, err := x.Get(protectedBranch)
+	if err != nil {
+		return true, err
+	} else if has {
+		return !protectedBranch.CanUserMerge(doer.ID), nil
 	}
 
 	return false, nil
