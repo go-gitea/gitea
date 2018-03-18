@@ -60,6 +60,49 @@
 							</div>
 						{{end}}
 					</div>
+
+					<div class="field">
+						<div class="ui checkbox">
+							<input class="enable-whitelist" name="enable_merge_whitelist" type="checkbox" data-target="#merge_whitelist_box" {{if .Branch.EnableMergeWhitelist}}checked{{end}}>
+							<label>{{.i18n.Tr "repo.settings.protect_merge_whitelist_committers"}}</label>
+							<p class="help">{{.i18n.Tr "repo.settings.protect_merge_whitelist_committers_desc"}}</p>
+						</div>
+					</div>
+					<div id="merge_whitelist_box" class="fields {{if not .Branch.EnableMergeWhitelist}}disabled{{end}}">
+						<div class="whitelist field">
+							<label>{{.i18n.Tr "repo.settings.protect_merge_whitelist_users"}}</label>
+							<div class="ui multiple search selection dropdown">
+								<input type="hidden" name="merge_whitelist_users" value="{{.merge_whitelist_users}}">
+								<div class="default text">{{.i18n.Tr "repo.settings.protect_whitelist_search_users"}}</div>
+								<div class="menu">
+								{{range .Users}}
+									<div class="item" data-value="{{.ID}}">
+										<img class="ui mini image" src="{{.RelAvatarLink}}">
+									{{.Name}}
+									</div>
+								{{end}}
+								</div>
+							</div>
+						</div>
+					{{if .Owner.IsOrganization}}
+						<br>
+						<div class="whitelist field">
+							<label>{{.i18n.Tr "repo.settings.protect_merge_whitelist_teams"}}</label>
+							<div class="ui multiple search selection dropdown">
+								<input type="hidden" name="merge_whitelist_teams" value="{{.merge_whitelist_teams}}">
+								<div class="default text">{{.i18n.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+								<div class="menu">
+								{{range .Teams}}
+									<div class="item" data-value="{{.ID}}">
+										<i class="octicon octicon-jersey"></i>
+									{{.Name}}
+									</div>
+								{{end}}
+								</div>
+							</div>
+						</div>
+					{{end}}
+					</div>
 				</div>
 
 				<div class="ui divider"></div>
