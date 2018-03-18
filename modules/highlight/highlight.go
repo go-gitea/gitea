@@ -26,45 +26,63 @@ var (
 
 	// Extensions that are same as highlight classes.
 	highlightExts = map[string]struct{}{
-		".arm":    {},
-		".as":     {},
-		".sh":     {},
-		".cs":     {},
-		".cpp":    {},
-		".c":      {},
-		".css":    {},
-		".cmake":  {},
-		".bat":    {},
-		".dart":   {},
-		".patch":  {},
-		".elixir": {},
-		".erlang": {},
-		".go":     {},
-		".html":   {},
-		".xml":    {},
-		".hs":     {},
-		".ini":    {},
-		".json":   {},
-		".java":   {},
-		".js":     {},
-		".less":   {},
-		".lua":    {},
-		".php":    {},
-		".py":     {},
-		".rb":     {},
-		".scss":   {},
-		".sql":    {},
-		".scala":  {},
-		".swift":  {},
-		".ts":     {},
-		".vb":     {},
-		".yml":    {},
-		".yaml":   {},
+		".c":          {},
+		".cpp":        {},
+		".css":        {},
+		".dart":       {},
+		".diff":       {},
+		".elixir":     {},
+		".erlang":     {},
+		".go":         {},
+		".html":       {},
+		".yaml":       {},
+		".ini":        {},
+		".j":          {},
+		".java":       {},
+		".js":         {},
+		".json":       {},
+		".jsx":        {},
+		".less":       {},
+		".lua":        {},
+		".php":        {},
+		".properties": {},
+		".scala":      {},
+		".scss":       {},
+		".sql":        {},
+		".swift":      {},
+		".ts":         {},
+		".tsx":        {},
+		".xml":        {},
 	}
 
 	// Extensions that are not same as highlight classes.
 	highlightMapping = map[string]string{
-		".txt": "nohighlight",
+		".as":    "actionscript",
+		".aspx":  "aspnet",
+		".bat":   "batch",
+		".cmd":   "batch",
+		".cs":    "csharp",
+		".fnc":   "plsql",
+		".hs":    "haskell",
+		".yml":   "yaml",
+		".ino":   "arduino",
+		".kt":    "kotlin",
+		".ktm":   "kotlin",
+		".kts":   "kotlin",
+		".m":     "matlab",
+		".mlx":   "matlab",
+		".pas":   "pascal",
+		".patch": "diff",
+		".py":    "python",
+		".pkb":   "plsql",
+		".pkg":   "plsql",
+		".pks":   "plsql",
+		".ps1":   "powershell",
+		".rb":    "ruby",
+		".s":     "nasm",
+		".sh":    "bash",
+		".tex":   "latex",
+		".vb":    "vbnet",
 	}
 )
 
@@ -85,18 +103,18 @@ func FileNameToHighlightClass(fname string) string {
 	}
 
 	if highlightFileNames[fname] {
-		return fname
+		return "language-" + fname
 	}
 
 	ext := path.Ext(fname)
 	if _, ok := highlightExts[ext]; ok {
-		return ext[1:]
+		return "language-" + ext[1:]
 	}
 
 	name, ok := highlightMapping[ext]
 	if ok {
-		return name
+		return "language-" + name
 	}
 
-	return ""
+	return "nohighlight"
 }

@@ -19,7 +19,7 @@ function initCommentPreviewTab($form) {
                 $previewPanel.html(data);
                 emojify.run($previewPanel[0]);
                 $('pre code', $previewPanel[0]).each(function (i, block) {
-                    hljs.highlightBlock(block);
+                    Prism.highlightElement(block, true);
                 });
             }
         );
@@ -49,7 +49,7 @@ function initEditPreviewTab($form) {
                     $previewPanel.html(data);
                     emojify.run($previewPanel[0]);
                     $('pre code', $previewPanel[0]).each(function (i, block) {
-                        hljs.highlightBlock(block);
+                        Prism.highlightElement(block, true);
                     });
                 }
             );
@@ -606,7 +606,7 @@ function initRepository() {
                                 $renderContent.html(data.content);
                                 emojify.run($renderContent[0]);
                                 $('pre code', $renderContent[0]).each(function (i, block) {
-                                    hljs.highlightBlock(block);
+                                    Prism.highlightElement(block, true);
                                 });
                             }
                         });
@@ -1430,8 +1430,8 @@ $(document).ready(function () {
     });
 
     // Highlight JS
-    if (typeof hljs != 'undefined') {
-        hljs.initHighlightingOnLoad();
+    if (typeof Prism != 'undefined') {
+        Prism.highlightAll(true);
     }
 
     // Dropzone

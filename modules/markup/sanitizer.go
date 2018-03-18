@@ -29,7 +29,7 @@ var sanitizer = &Sanitizer{}
 func NewSanitizer() {
 	sanitizer.init.Do(func() {
 		sanitizer.policy = bluemonday.UGCPolicy()
-		// We only want to allow HighlightJS specific classes for code blocks
+		// We only want to allow PrismJS specific classes for code blocks
 		sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^language-\w+$`)).OnElements("code")
 
 		// Checkboxes

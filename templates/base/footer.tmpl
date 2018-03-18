@@ -53,7 +53,8 @@
 
 <!-- Third-party libraries -->
 {{if .RequireHighlightJS}}
-	<script src="{{AppSubUrl}}/vendor/plugins/highlight/highlight.pack.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/prism/prism.js"></script>
+	<script src="{{AppSubUrl}}/js/prism-keeplines.js"></script>
 {{end}}
 {{if .RequireMinicolors}}
 	<script src="{{AppSubUrl}}/vendor/plugins/jquery.minicolors/jquery.minicolors.min.js"></script>
