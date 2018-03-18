@@ -8,6 +8,9 @@
 
     Prism.hooks.add('before-highlight', function (env) {
         env.highlightedLines = {};
+        if (!env.element.classList.contains("prism-linenums")) {
+            return;
+        }
 
         if (!env.element.children.length) {
             return;
@@ -30,6 +33,10 @@
     });
 
     Prism.hooks.add('after-highlight', function (env) {
+        if (!env.element.classList.contains("prism-linenums")) {
+            return;
+        }
+
         var ol = document.createElement('ol');
         ol.className = 'linenums';
         var lines = env.element.innerHTML.split(/\n/g);

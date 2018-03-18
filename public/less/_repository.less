@@ -990,6 +990,13 @@
         .code-diff {
             font-size: 12px;
 
+            :not(pre) > code[class*="language-"], pre[class*="language-"] {
+                background: inherit;
+            }
+            pre[class*="language-"] {
+                padding: 0;
+            }
+
             td {
                 padding: 0;
                 padding-left: 10px;
