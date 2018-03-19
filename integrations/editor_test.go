@@ -73,7 +73,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	// Check body for error message
-	assert.Contains(t, resp.Body.String(), "Can not commit to protected branch &#39;master&#39;.")
+	assert.Contains(t, resp.Body.String(), "Cannot commit to protected branch &#39;master&#39;.")
 
 	// remove the protected branch
 	csrf = GetCSRF(t, session, "/user2/repo1/settings/branches")
