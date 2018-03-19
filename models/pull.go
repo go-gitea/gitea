@@ -452,10 +452,6 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		log.Error(4, "setMerged [%d]: %v", pr.ID, err)
 	}
 
-	if err = MergePullRequestAction(doer, pr.Issue.Repo, pr.Issue); err != nil {
-		log.Error(4, "MergePullRequestAction [%d]: %v", pr.ID, err)
-	}
-
 	// Reset cached commit count
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
 
@@ -495,13 +491,18 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	if mergeStyle == MergeStyleMerge {
 		l.PushFront(mergeCommit)
 	}
+	commits := ListToPushCommits(l)
+
+	if err = MergePullRequestAction(doer, pr.Issue.Repo, pr.Issue, commits); err != nil {
+		log.Error(4, "MergePullRequestAction [%d]: %v", pr.ID, err)
+	}
 
 	p := &api.PushPayload{
 		Ref:        git.BranchPrefix + pr.BaseBranch,
 		Before:     pr.MergeBase,
 		After:      mergeCommit.ID.String(),
 		CompareURL: setting.AppURL + pr.BaseRepo.ComposeCompareURL(pr.MergeBase, pr.MergedCommitID),
-		Commits:    ListToPushCommits(l).ToAPIPayloadCommits(pr.BaseRepo.HTMLURL()),
+		Commits:    commits.ToAPIPayloadCommits(pr.BaseRepo.HTMLURL()),
 		Repo:       pr.BaseRepo.APIFormat(mode),
 		Pusher:     pr.HeadRepo.MustOwner().APIFormat(),
 		Sender:     doer.APIFormat(),

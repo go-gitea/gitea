@@ -379,6 +379,7 @@ func TestMergePullRequestAction(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1, OwnerID: user.ID}).(*Repository)
 	repo.Owner = user
 	issue := AssertExistsAndLoadBean(t, &Issue{ID: 3, RepoID: repo.ID}).(*Issue)
+	commits := &PushCommits{0, make([]*PushCommit, 0), "", nil}
 
 	actionBean := &Action{
 		OpType:    ActionMergePullRequest,
@@ -389,7 +390,7 @@ func TestMergePullRequestAction(t *testing.T) {
 		IsPrivate: repo.IsPrivate,
 	}
 	AssertNotExistsBean(t, actionBean)
-	assert.NoError(t, MergePullRequestAction(user, repo, issue))
+	assert.NoError(t, MergePullRequestAction(user, repo, issue, commits))
 	AssertExistsAndLoadBean(t, actionBean)
 	CheckConsistencyFor(t, &Action{})
 }
