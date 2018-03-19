@@ -76,6 +76,7 @@ func (a *Attachment) Size() (int64, error) {
 	return fi.Size(), nil
 }
 
+// MustSize returns the result of a.Size() by ignoring errors
 func (a *Attachment) MustSize() int64 {
 	size, err := a.Size()
 	if err != nil {
