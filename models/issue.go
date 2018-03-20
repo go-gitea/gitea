@@ -816,7 +816,17 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 	// Keep the old assignee id thingy for compatibility reasons
 	if opts.Issue.AssigneeID > 0 {
-		//opts.AssigneeIDs = append(opts.AssigneeIDs, opts.Issue.AssigneeID)
+		isAdded := false
+		// Check if the user has already been passed to issue.AssigneeIDs, if not, add it
+		for _, aID := range opts.AssigneeIDs{
+			if aID == opts.Issue.AssigneeID {
+				isAdded = true
+			}
+		}
+
+		if !isAdded {
+			opts.AssigneeIDs = append(opts.AssigneeIDs, opts.Issue.AssigneeID)
+		}
 	}
 
 	// Check for and validate assignees

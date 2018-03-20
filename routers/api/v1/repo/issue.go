@@ -175,44 +175,40 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		Content:  form.Body,
 	}
 
-	// TODO: Get all assigneeIDs and pass them to the function
-	/*
-			if ctx.Repo.IsWriter() {
-			if len(form.Assignees) > 0 {
-				for _, assigneeName := range form.Assignees {
-					err := models.AddAssigneeByName(assigneeName, issue, ctx.User)
-					if err != nil {
-						if models.IsErrUserNotExist(err) {
-							ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", assigneeName))
-						} else {
-							ctx.Error(500, "AddAssigneeByName", err)
-						}
-						return
-					}
-				}
+	// Keeping the old assigning method for compatibility reasons
+	if len(form.Assignee) > 0 {
+		user, err := models.GetUserByName(form.Assignee)
+		if err != nil {
+			if models.IsErrUserNotExist(err) {
+				ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", form.Assignee))
+			} else {
+				ctx.Error(500, "AddAssigneeByName", err)
 			}
-
-			// Keeping the old assigning method for compatibility reasons
-			if len(form.Assignee) > 0 {
-				err := models.AddAssigneeByName(form.Assignee, issue, ctx.User)
-				if err != nil {
-					if models.IsErrUserNotExist(err) {
-						ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", form.Assignee))
-					} else {
-						ctx.Error(500, "AddAssigneeByName", err)
-					}
-					return
-				}
-			}
-
-			issue.MilestoneID = form.Milestone
-		} else {
-			form.Labels = nil
+			return
 		}
 
-	*/
+		issue.AssigneeID = user.ID
+	}
 
-	if err := models.NewIssue(ctx.Repo.Repository, issue, form.Labels, nil, nil); err != nil {
+	// Loop through the assignees
+	var assigneeIDs []int64
+	if len(form.Assignees) > 0 {
+		for _, assigneeName := range form.Assignees {
+			user, err := models.GetUserByName(assigneeName)
+			if err != nil {
+				if models.IsErrUserNotExist(err) {
+					ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", assigneeName))
+				} else {
+					ctx.Error(500, "AddAssigneeByName", err)
+				}
+				return
+			}
+
+			assigneeIDs = append(assigneeIDs, user.ID)
+		}
+	}
+
+	if err := models.NewIssue(ctx.Repo.Repository, issue, form.Labels, assigneeIDs, nil); err != nil {
 		ctx.Error(500, "NewIssue", err)
 		return
 	}
