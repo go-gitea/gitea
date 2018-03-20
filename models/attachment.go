@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
@@ -73,6 +74,16 @@ func (a *Attachment) Size() (int64, error) {
 		return 0, err
 	}
 	return fi.Size(), nil
+}
+
+// MustSize returns the result of a.Size() by ignoring errors
+func (a *Attachment) MustSize() int64 {
+	size, err := a.Size()
+	if err != nil {
+		log.Error(4, "size: %v", err)
+		return 0
+	}
+	return size
 }
 
 // DownloadURL returns the download url of the attached file
