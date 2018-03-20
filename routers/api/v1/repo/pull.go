@@ -210,7 +210,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		milestoneID = milestone.ID
 	}
 
-	if len(form.Assignee) > 0 {
+	/*if len(form.Assignee) > 0 {
 		assigneeUser, err := models.GetUserByName(form.Assignee)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
@@ -228,7 +228,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		}
 
 		assigneeID = assignee.ID
-	}
+	}*/
 
 	patch, err := headGitRepo.GetPatch(prInfo.MergeBase, headBranch)
 	if err != nil {
@@ -259,9 +259,18 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		Type:         models.PullRequestGitea,
 	}
 
-	// TODO: Get all assigneeIDs and pass them to the function
+	// Get all assignee IDs
+	assigneeIDs, err := models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
+		} else {
+			ctx.Error(500, "AddAssigneeByName", err)
+		}
+		return
+	}
 
-	if err := models.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch, nil); err != nil {
+	if err := models.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch, assigneeIDs); err != nil {
 		ctx.Error(500, "NewPullRequest", err)
 		return
 	} else if err := pr.PushToBaseRepo(); err != nil {
@@ -330,21 +339,24 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		issue.Content = form.Body
 	}
 
-	if ctx.Repo.IsWriter() && len(form.Assignee) > 0 &&
-		(issue.Assignee == nil || issue.Assignee.LowerName != strings.ToLower(form.Assignee)) {
-		if len(form.Assignee) == 0 {
-			issue.AssigneeID = 0
-		} else {
-			assignee, err := models.GetUserByName(form.Assignee)
-			if err != nil {
-				if models.IsErrUserNotExist(err) {
-					ctx.Error(422, "", fmt.Sprintf("assignee does not exist: [name: %s]", form.Assignee))
-				} else {
-					ctx.Error(500, "GetUserByName", err)
-				}
-				return
+	// Add/delete assignees
+
+	// Deleting is done the Github way (quote from their api documentation):
+	// https://developer.github.com/v3/issues/#edit-an-issue
+	// "assignees" (array): Logins for Users to assign to this issue.
+	// Pass one or more user logins to replace the set of assignees on this Issue.
+	// Send an empty array ([]) to clear all assignees from the Issue.
+
+	if ctx.Repo.IsWriter() && (form.Assignees != nil || len(form.Assignee) > 0) {
+
+		err = models.UpdateAPIAssignee(issue, form.Assignee, form.Assignees, ctx.User)
+		if err != nil {
+			if models.IsErrUserNotExist(err) {
+				ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
+			} else {
+				ctx.Error(500, "UpdateAPIAssignee", err)
 			}
-			issue.AssigneeID = assignee.ID
+			return
 		}
 	}
 

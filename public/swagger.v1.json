@@ -5656,6 +5656,13 @@
           "type": "string",
           "x-go-name": "Assignee"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
+        },
         "base": {
           "type": "string",
           "x-go-name": "Base"
@@ -5965,6 +5972,13 @@
           "type": "string",
           "x-go-name": "Assignee"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
+        },
         "body": {
           "type": "string",
           "x-go-name": "Body"
@@ -6054,6 +6068,13 @@
         "assignee": {
           "type": "string",
           "x-go-name": "Assignee"
+        },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
         },
         "body": {
           "type": "string",

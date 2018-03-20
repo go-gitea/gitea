@@ -137,13 +137,82 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 	return nil
 }
 
-// AddAssigneeByName does what it says
-func AddAssigneeByName(assigneeName string, issue *Issue, doer *User) (err error) {
-	assignee, err := GetUserByName(assigneeName)
+// UpdateAPIAssignee is a helper function to add or delete one or multiple issue assignee(s)
+// Deleting is done the Github way (quote from their api documentation):
+// https://developer.github.com/v3/issues/#edit-an-issue
+// "assignees" (array): Logins for Users to assign to this issue.
+// Pass one or more user logins to replace the set of assignees on this Issue.
+// Send an empty array ([]) to clear all assignees from the Issue.
+func UpdateAPIAssignee (issue *Issue, oneAssignee string, multipleAssignees []string, doer *User) (err error){
+	// Clear everyone
+	err = ClearAssigneesByIssue(issue)
 	if err != nil {
-		return
+		return err
+	}
+	issue.Assignees = []*User{}
+
+	// Keep the old assignee thingy for compatibility reasons
+	if oneAssignee != "" {
+		// Prevent double adding assignees
+		var isDouble bool
+		for _, assignee := range multipleAssignees{
+			if assignee == oneAssignee {
+				isDouble = true
+			}
+		}
+
+		if !isDouble {
+			multipleAssignees = append(multipleAssignees, oneAssignee)
+		}
 	}
 
-	// update
-	return UpdateAssignee(issue, doer, assignee.ID)
+	// Loop through all assignees to add them
+	for _, assigneeName := range multipleAssignees {
+		assignee, err := GetUserByName(assigneeName)
+		if err != nil {
+			return err
+		}
+
+		// Update the assignee. The function will check if the user exists, is already
+		// assigned (which he shouldn't as we deleted all assignees before) and
+		// has access to the repo.
+		err = UpdateAssignee(issue, doer, assignee.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string) (assigneeIDs []int64, err error) {
+
+	// Keeping the old assigning method for compatibility reasons
+	if len(oneAssignee) > 0 {
+
+		// Prevent double adding assignees
+		var isDouble bool
+		for _, assignee := range multipleAssignees{
+			if assignee == oneAssignee {
+				isDouble = true
+			}
+		}
+
+		if !isDouble {
+			multipleAssignees = append(multipleAssignees, oneAssignee)
+		}
+	}
+
+	// Loop through the assignees
+	if len(multipleAssignees) > 0 {
+		for _, assigneeName := range multipleAssignees {
+			user, err := GetUserByName(assigneeName)
+			if err != nil {
+				return nil, err
+			}
+
+			assigneeIDs = append(assigneeIDs, user.ID)
+		}
+	}
+	return
 }

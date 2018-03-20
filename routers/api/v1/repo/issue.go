@@ -175,37 +175,15 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		Content:  form.Body,
 	}
 
-	// Keeping the old assigning method for compatibility reasons
-	if len(form.Assignee) > 0 {
-		user, err := models.GetUserByName(form.Assignee)
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", form.Assignee))
-			} else {
-				ctx.Error(500, "AddAssigneeByName", err)
-			}
-			return
+	// Get all assignee IDs
+	assigneeIDs, err := models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
+		} else {
+			ctx.Error(500, "AddAssigneeByName", err)
 		}
-
-		issue.AssigneeID = user.ID
-	}
-
-	// Loop through the assignees
-	var assigneeIDs []int64
-	if len(form.Assignees) > 0 {
-		for _, assigneeName := range form.Assignees {
-			user, err := models.GetUserByName(assigneeName)
-			if err != nil {
-				if models.IsErrUserNotExist(err) {
-					ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", assigneeName))
-				} else {
-					ctx.Error(500, "AddAssigneeByName", err)
-				}
-				return
-			}
-
-			assigneeIDs = append(assigneeIDs, user.ID)
-		}
+		return
 	}
 
 	if err := models.NewIssue(ctx.Repo.Repository, issue, form.Labels, assigneeIDs, nil); err != nil {
@@ -221,7 +199,6 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	}
 
 	// Refetch from database to assign some automatic values
-	var err error
 	issue, err = models.GetIssueByID(issue.ID)
 	if err != nil {
 		ctx.Error(500, "GetIssueByID", err)
@@ -294,41 +271,15 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 
 	if ctx.Repo.IsWriter() && (form.Assignees != nil || form.Assignee != nil) {
 
-		// Clear everyone
-		err := models.ClearAssigneesByIssue(issue)
+		oneAssignee := ""
+		if form.Assignee != nil{
+			oneAssignee = *form.Assignee
+		}
+
+		err = models.UpdateAPIAssignee(issue, oneAssignee, form.Assignees, ctx.User)
 		if err != nil {
-			ctx.Error(500, "ClearAssigneesByIssue", err)
+			ctx.Error(500, "UpdateAPIAssignee", err)
 			return
-		}
-		issue.Assignees = []*models.User{}
-
-		// Keep the old assignee thingy for compatibility reasons
-		if form.Assignee != nil {
-			if *form.Assignee != "" {
-				form.Assignees = append(form.Assignees, *form.Assignee)
-			}
-		}
-
-		// Loop through all assignees to add them
-		for _, assigneeName := range form.Assignees {
-			assignee, err := models.GetUserByName(assigneeName)
-			if err != nil {
-				if models.IsErrUserNotExist(err) {
-					ctx.Error(422, "", fmt.Sprintf("assignee does not exist: [name: %s]", *form.Assignee))
-				} else {
-					ctx.Error(500, "GetUserByName", err)
-				}
-				return
-			}
-
-			// Update the assignee. The function will check if the user exists, is already
-			// assigned (which he shouldn't as we deleted all assignees before) and
-			// has access to the repo.
-			err = models.UpdateAssignee(issue, ctx.User, assignee.ID)
-			if err != nil {
-				ctx.Error(500, "UpdateAssignee", err)
-				return
-			}
 		}
 	}
 
