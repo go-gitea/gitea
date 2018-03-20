@@ -818,7 +818,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	if opts.Issue.AssigneeID > 0 {
 		isAdded := false
 		// Check if the user has already been passed to issue.AssigneeIDs, if not, add it
-		for _, aID := range opts.AssigneeIDs{
+		for _, aID := range opts.AssigneeIDs {
 			if aID == opts.Issue.AssigneeID {
 				isAdded = true
 			}

@@ -285,41 +285,53 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	}
 
 	// Add/delete assignees
-	// TODO: How to delete an assignee the way we're currently doing it?
-	if ctx.Repo.IsWriter() && form.Assignees != nil {
-		if len(form.Assignees) == 0 {
-			issue.Assignees = []*models.User{}
-		} else {
-			for _, assigneeName := range form.Assignees {
-				assignee, err := models.GetUserByName(assigneeName)
-				if err != nil {
-					if models.IsErrUserNotExist(err) {
-						ctx.Error(422, "", fmt.Sprintf("assignee does not exist: [name: %s]", *form.Assignee))
-					} else {
-						ctx.Error(500, "GetUserByName", err)
-					}
-					return
-				}
 
-				// Only add if the user isn't already assigned
-				isAssigned, err := models.IsUserAssignedToIssue(issue, assignee)
-				if err != nil {
-					ctx.Error(500, "CheckIfUserIsAssigned", err)
-					return
-				}
-				if !isAssigned {
-					models.UpdateAssignee(issue, ctx.User, assignee.ID)
-					//issue.Assignees = append(issue.Assignees, assignee)
-				}
+	// Deleting is done the Github way (quote from their api documentation):
+	// https://developer.github.com/v3/issues/#edit-an-issue
+	// "assignees" (array): Logins for Users to assign to this issue.
+	// Pass one or more user logins to replace the set of assignees on this Issue.
+	// Send an empty array ([]) to clear all assignees from the Issue.
+
+	if ctx.Repo.IsWriter() && (form.Assignees != nil || form.Assignee != nil) {
+
+		// Clear everyone
+		err := models.ClearAssigneesByIssue(issue)
+		if err != nil{
+			ctx.Error(500, "ClearAssigneesByIssue", err)
+			return
+		}
+		issue.Assignees = []*models.User{}
+
+		// Keep the old assignee thingy for compatibility reasons
+		if form.Assignee != nil {
+			if *form.Assignee != "" {
+				form.Assignees = append(form.Assignees, *form.Assignee)
 			}
-
 		}
 
-		/*if err = models.UpdateIssueUserByAssignee(issue); err != nil {
-			ctx.Error(500, "UpdateIssueUserByAssignee", err)
-			return
-		}*/
+		// Loop through all assignees to add them
+		for _, assigneeName := range form.Assignees {
+			assignee, err := models.GetUserByName(assigneeName)
+			if err != nil {
+				if models.IsErrUserNotExist(err) {
+					ctx.Error(422, "", fmt.Sprintf("assignee does not exist: [name: %s]", *form.Assignee))
+				} else {
+					ctx.Error(500, "GetUserByName", err)
+				}
+				return
+			}
+
+			// Update the assignee. The function will check if the user exists, is already
+			// assigned (which he shouldn't as we deleted all assignees before) and
+			// has access to the repo.
+			err = models.UpdateAssignee(issue, ctx.User, assignee.ID)
+			if err != nil {
+				ctx.Error(500, "UpdateAssignee", err)
+				return
+			}
+		}
 	}
+
 	if ctx.Repo.IsWriter() && form.Milestone != nil &&
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
