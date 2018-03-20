@@ -296,7 +296,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 
 		// Clear everyone
 		err := models.ClearAssigneesByIssue(issue)
-		if err != nil{
+		if err != nil {
 			ctx.Error(500, "ClearAssigneesByIssue", err)
 			return
 		}
