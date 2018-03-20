@@ -143,7 +143,7 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 // "assignees" (array): Logins for Users to assign to this issue.
 // Pass one or more user logins to replace the set of assignees on this Issue.
 // Send an empty array ([]) to clear all assignees from the Issue.
-func UpdateAPIAssignee (issue *Issue, oneAssignee string, multipleAssignees []string, doer *User) (err error){
+func UpdateAPIAssignee(issue *Issue, oneAssignee string, multipleAssignees []string, doer *User) (err error) {
 	// Clear everyone
 	err = ClearAssigneesByIssue(issue)
 	if err != nil {
@@ -155,7 +155,7 @@ func UpdateAPIAssignee (issue *Issue, oneAssignee string, multipleAssignees []st
 	if oneAssignee != "" {
 		// Prevent double adding assignees
 		var isDouble bool
-		for _, assignee := range multipleAssignees{
+		for _, assignee := range multipleAssignees {
 			if assignee == oneAssignee {
 				isDouble = true
 			}
@@ -185,6 +185,7 @@ func UpdateAPIAssignee (issue *Issue, oneAssignee string, multipleAssignees []st
 	return
 }
 
+// MakeIDsFromAPIAssigneesToAdd returns an array with all assignee IDs
 func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string) (assigneeIDs []int64, err error) {
 
 	// Keeping the old assigning method for compatibility reasons
@@ -192,7 +193,7 @@ func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string
 
 		// Prevent double adding assignees
 		var isDouble bool
-		for _, assignee := range multipleAssignees{
+		for _, assignee := range multipleAssignees {
 			if assignee == oneAssignee {
 				isDouble = true
 			}

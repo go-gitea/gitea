@@ -272,7 +272,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	if ctx.Repo.IsWriter() && (form.Assignees != nil || form.Assignee != nil) {
 
 		oneAssignee := ""
-		if form.Assignee != nil{
+		if form.Assignee != nil {
 			oneAssignee = *form.Assignee
 		}
 
