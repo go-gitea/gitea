@@ -52,14 +52,29 @@ const (
 	ActionMirrorSyncDelete                        // 20
 )
 
+// KeywordsFoundMaskType represents the bitmask of types of keywords found in a message.
+type KeywordsFoundMaskType int
+
+// Possible bitmask types for keywords that can be found.
+const (
+	KeywordsFoundReference KeywordsFoundMaskType = 1 << iota // 1
+	KeywordsFoundReopen                                      // 2
+	KeywordsFoundClose                                       // 4
+)
+
+// IssueKeywordsToFind represents a pairing of a pattern to use to find keywords in message and the keywords bitmask value.
+type IssueKeywordsToFind struct {
+	Pattern           *regexp.Regexp
+	KeywordsFoundMask KeywordsFoundMaskType
+}
+
 var (
 	// Same as Github. See
 	// https://help.github.com/articles/closing-issues-via-commit-messages
 	issueCloseKeywords  = []string{"close", "closes", "closed", "fix", "fixes", "fixed", "resolve", "resolves", "resolved"}
 	issueReopenKeywords = []string{"reopen", "reopens", "reopened"}
 
-	issueCloseKeywordsPat, issueReopenKeywordsPat *regexp.Regexp
-	issueReferenceKeywordsPat                     *regexp.Regexp
+	issueKeywordsToFind []*IssueKeywordsToFind
 )
 
 const issueRefRegexpStr = `(?:\S+/\S=)?#\d+`
@@ -69,9 +84,21 @@ func assembleKeywordsPattern(words []string) string {
 }
 
 func init() {
-	issueCloseKeywordsPat = regexp.MustCompile(assembleKeywordsPattern(issueCloseKeywords))
-	issueReopenKeywordsPat = regexp.MustCompile(assembleKeywordsPattern(issueReopenKeywords))
-	issueReferenceKeywordsPat = regexp.MustCompile(issueRefRegexpStr)
+	// populate with details to find keywords for reference, reopen, close
+	issueKeywordsToFind = []*IssueKeywordsToFind{
+		&IssueKeywordsToFind{
+			Pattern:           regexp.MustCompile(issueRefRegexpStr),
+			KeywordsFoundMask: KeywordsFoundReference,
+		},
+		&IssueKeywordsToFind{
+			Pattern:           regexp.MustCompile(assembleKeywordsPattern(issueReopenKeywords)),
+			KeywordsFoundMask: KeywordsFoundReopen,
+		},
+		&IssueKeywordsToFind{
+			Pattern:           regexp.MustCompile(assembleKeywordsPattern(issueCloseKeywords)),
+			KeywordsFoundMask: KeywordsFoundClose,
+		},
+	}
 }
 
 // Action represents user operation type and other information to
@@ -438,74 +465,64 @@ func getIssueFromRef(repo *Repository, ref string) (*Issue, error) {
 	return issue, nil
 }
 
+// findIssueReferencesInString iterates over the keywords to find in a message and accumulates the findings into refs
+func findIssueReferencesInString(message string, repo *Repository) (map[int64]KeywordsFoundMaskType, error) {
+	refs := make(map[int64]KeywordsFoundMaskType)
+	for _, kwToFind := range issueKeywordsToFind {
+		for _, ref := range kwToFind.Pattern.FindAllString(message, -1) {
+			issue, err := getIssueFromRef(repo, ref)
+			if err != nil {
+				return nil, err
+			}
+
+			if issue != nil {
+				refs[issue.ID] |= kwToFind.KeywordsFoundMask
+			}
+		}
+	}
+	return refs, nil
+}
+
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
 func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) error {
 	// Commits are appended in the reverse order.
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]
 
-		refMarked := make(map[int64]bool)
-		for _, ref := range issueReferenceKeywordsPat.FindAllString(c.Message, -1) {
-			issue, err := getIssueFromRef(repo, ref)
-			if err != nil {
-				return err
-			}
-
-			if issue == nil || refMarked[issue.ID] {
-				continue
-			}
-			refMarked[issue.ID] = true
-
-			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, c.Message)
-			if err = CreateRefComment(doer, repo, issue, message, c.Sha1); err != nil {
-				return err
-			}
+		refs, err := findIssueReferencesInString(c.Message, repo)
+		if err != nil {
+			return err
 		}
 
-		refMarked = make(map[int64]bool)
-		// FIXME: can merge this one and next one to a common function.
-		for _, ref := range issueCloseKeywordsPat.FindAllString(c.Message, -1) {
-			issue, err := getIssueFromRef(repo, ref)
+		for id, mask := range refs {
+			issue, err := GetIssueByID(id)
 			if err != nil {
 				return err
 			}
-
-			if issue == nil || refMarked[issue.ID] {
-				continue
-			}
-			refMarked[issue.ID] = true
-
-			if issue.RepoID != repo.ID || issue.IsClosed {
+			if issue == nil {
 				continue
 			}
 
-			if err = issue.ChangeStatus(doer, repo, true); err != nil {
-				// Don't return an error when dependencies are open as this would let the push fail
-				if IsErrDependenciesLeft(err) {
-					return nil
+			if (mask & KeywordsFoundReference) == KeywordsFoundReference {
+				message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, c.Message)
+				if err = CreateRefComment(doer, repo, issue, message, c.Sha1); err != nil {
+					return err
 				}
-				return err
-			}
-		}
-
-		// It is conflict to have close and reopen at same time, so refsMarked doesn't need to reinit here.
-		for _, ref := range issueReopenKeywordsPat.FindAllString(c.Message, -1) {
-			issue, err := getIssueFromRef(repo, ref)
-			if err != nil {
-				return err
 			}
 
-			if issue == nil || refMarked[issue.ID] {
-				continue
-			}
-			refMarked[issue.ID] = true
-
-			if issue.RepoID != repo.ID || !issue.IsClosed {
-				continue
-			}
-
-			if err = issue.ChangeStatus(doer, repo, false); err != nil {
-				return err
+			// take no action if both KeywordsFoundClose and KeywordsFoundOpen are set
+			if (mask & (KeywordsFoundReopen|KeywordsFoundClose)) == KeywordsFoundClose {
+				if issue.RepoID == repo.ID && !issue.IsClosed {
+					if err = issue.ChangeStatus(doer, repo, true); err != nil {
+						return err
+					}
+				}
+			} else if (mask & (KeywordsFoundReopen|KeywordsFoundClose)) == KeywordsFoundReopen {
+				if issue.RepoID == repo.ID && issue.IsClosed {
+					if err = issue.ChangeStatus(doer, repo, false); err != nil {
+						return err
+					}
+				}
 			}
 		}
 	}
