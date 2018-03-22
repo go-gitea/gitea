@@ -93,12 +93,8 @@ func checkAutoLogin(ctx *context.Context) bool {
 	}
 
 	if isSucceed {
-		if len(redirectTo) > 0 {
-			ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
-			ctx.Redirect(redirectTo)
-		} else {
-			ctx.Redirect(setting.AppSubURL + string(setting.LandingPageURL))
-		}
+		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
+		ctx.RedirectToFirst(redirectTo, setting.AppSubURL+string(setting.LandingPageURL))
 		return true
 	}
 
@@ -350,7 +346,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 {
 		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
 		if obeyRedirect {
-			ctx.Redirect(redirectTo)
+			ctx.RedirectToFirst(redirectTo)
 		}
 		return
 	}
@@ -439,7 +435,7 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 
 			if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 {
 				ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
-				ctx.Redirect(redirectTo)
+				ctx.RedirectToFirst(redirectTo)
 				return
 			}
 

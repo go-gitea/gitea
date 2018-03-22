@@ -37,7 +37,7 @@
 					<span class="octicon octicon-check"></span>
 					{{$.i18n.Tr "repo.pulls.can_auto_merge_desc"}}
 				</div>
-				{{if .IsRepositoryWriter}}
+				{{if .AllowMerge}}
 					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowSquash}}
 						<div class="ui divider"></div>

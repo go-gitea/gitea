@@ -47,9 +47,9 @@
 						</div>
 						<div class="text small">
 							{{if .IsViewBranch}}
-								{{.i18n.Tr "repo.branch.create_from" .BranchName | Safe}}
+								{{.i18n.Tr "repo.branch.create_from" .BranchName}}
 							{{else}}
-								{{.i18n.Tr "repo.branch.create_from" (ShortSha .BranchName) | Safe}}
+								{{.i18n.Tr "repo.branch.create_from" (ShortSha .BranchName)}}
 							{{end}}
 						</div>
 					</a>
