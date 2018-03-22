@@ -13,6 +13,13 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
+// IssueAssignees saves all issue assignees
+type IssueAssignees struct {
+	ID         int64 `xorm:"pk autoincr"`
+	AssigneeID int64 `xorm:"INDEX"`
+	IssueID    int64 `xorm:"INDEX"`
+}
+
 // This loads all assignees of an issue
 func (issue *Issue) loadAssignees(e Engine) (err error) {
 	var assigneeIDs []IssueAssignees
@@ -81,6 +88,19 @@ func MakeAssigneeList(issue Issue) (AssigneeList string, err error) {
 			AssigneeList += ", "
 		}
 	}
+	return
+}
+
+// ClearAssigneeByUserID deletes all assignments of an user
+func ClearAssigneeByUserID(userID int64) (err error){
+	sess := x.NewSession()
+	defer sess.Close()
+
+	return clearAssigneeByUserID(sess, userID)
+}
+
+func clearAssigneeByUserID(sess *xorm.Session, userID int64) (err error){
+	_, err = sess.Delete(&IssueAssignees{AssigneeID:userID})
 	return
 }
 

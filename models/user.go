@@ -991,7 +991,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 	// ***** END: PublicKey *****
 
 	// Clear assignee.
-	if _, err = e.Exec("UPDATE `issue` SET assignee_id=0 WHERE assignee_id=?", u.ID); err != nil {
+	if err = clearAssigneeByUserID(e, u.ID); err != nil {
 		return fmt.Errorf("clear assignee: %v", err)
 	}
 

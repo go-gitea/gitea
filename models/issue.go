@@ -61,13 +61,6 @@ type Issue struct {
 	Assignees   []*User       `xorm:"-"`
 }
 
-// IssueAssignees saves all issue assignees
-type IssueAssignees struct {
-	ID         int64 `xorm:"pk autoincr"`
-	AssigneeID int64 `xorm:"INDEX"`
-	IssueID    int64 `xorm:"INDEX"`
-}
-
 var (
 	issueTasksPat     *regexp.Regexp
 	issueTasksDonePat *regexp.Regexp
