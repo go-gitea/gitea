@@ -14,19 +14,19 @@ func addMultipleAssignees(x *xorm.Engine) error {
 
 	// Redeclare issue struct
 	type Issue struct {
-		ID              int64       `xorm:"pk autoincr"`
-		RepoID          int64       `xorm:"INDEX UNIQUE(repo_index)"`
-		Index           int64       `xorm:"UNIQUE(repo_index)"` // Index in one repository.
-		PosterID        int64       `xorm:"INDEX"`
-		Title           string      `xorm:"name"`
-		Content         string      `xorm:"TEXT"`
-		MilestoneID     int64       `xorm:"INDEX"`
-		Priority        int
-		AssigneeID      int64        `xorm:"INDEX"`
-		IsClosed        bool         `xorm:"INDEX"`
-		IsPull          bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
-		NumComments     int
-		Ref             string
+		ID          int64  `xorm:"pk autoincr"`
+		RepoID      int64  `xorm:"INDEX UNIQUE(repo_index)"`
+		Index       int64  `xorm:"UNIQUE(repo_index)"` // Index in one repository.
+		PosterID    int64  `xorm:"INDEX"`
+		Title       string `xorm:"name"`
+		Content     string `xorm:"TEXT"`
+		MilestoneID int64  `xorm:"INDEX"`
+		Priority    int
+		AssigneeID  int64 `xorm:"INDEX"`
+		IsClosed    bool  `xorm:"INDEX"`
+		IsPull      bool  `xorm:"INDEX"` // Indicates whether is a pull request or not.
+		NumComments int
+		Ref         string
 
 		DeadlineUnix util.TimeStamp `xorm:"INDEX"`
 		CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
