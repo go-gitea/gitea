@@ -814,6 +814,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		for _, aID := range opts.AssigneeIDs {
 			if aID == opts.Issue.AssigneeID {
 				isAdded = true
+				break
 			}
 		}
 

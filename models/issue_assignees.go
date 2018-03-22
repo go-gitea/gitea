@@ -60,8 +60,7 @@ func GetAssigneesByIssue(issue *Issue) (assignees []*User, err error) {
 
 // IsUserAssignedToIssue returns true when the user is assigned to the issue
 func IsUserAssignedToIssue(issue *Issue, user *User) (isAssigned bool, err error) {
-	assignees := IssueAssignees{AssigneeID: user.ID, IssueID: issue.ID}
-	isAssigned, err = x.Get(&assignees)
+	isAssigned, err = x.Exist(&IssueAssignees{AssigneeID: user.ID, IssueID: issue.ID})
 	return
 }
 

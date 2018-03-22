@@ -73,7 +73,7 @@ func addMultipleAssignees(x *xorm.Engine) error {
 
 	// Migrate comments
 	// First update everything to not have nulls in db
-	_, err = x.Where("type = ?", 9).Update(Comment{RemovedAssignee: false})
+	_, err = x.Where("type = ?", 9).Cols("removed_assignee").Update(Comment{RemovedAssignee: false})
 
 	allAssignementComments := []Comment{}
 	err = x.Where("type = ?", 9).Find(&allAssignementComments)
