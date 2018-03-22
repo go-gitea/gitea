@@ -90,7 +90,7 @@ type CreateIssueOption struct {
 	Title string `json:"title" binding:"Required"`
 	Body  string `json:"body"`
 	// username of assignee
-	Assignee string `json:"assignee"`
+	Assignee  string   `json:"assignee"`
 	Assignees []string `json:"assignees"`
 	// milestone id
 	Milestone int64 `json:"milestone"`
@@ -112,12 +112,12 @@ func (c *Client) CreateIssue(owner, repo string, opt CreateIssueOption) (*Issue,
 
 // EditIssueOption options for editing an issue
 type EditIssueOption struct {
-	Title     string  `json:"title"`
-	Body      *string `json:"body"`
-	Assignee  *string `json:"assignee"`
+	Title     string   `json:"title"`
+	Body      *string  `json:"body"`
+	Assignee  *string  `json:"assignee"`
 	Assignees []string `json:"assignees"`
-	Milestone *int64  `json:"milestone"`
-	State     *string `json:"state"`
+	Milestone *int64   `json:"milestone"`
+	State     *string  `json:"state"`
 }
 
 // EditIssue modify an existing issue for a given repository
