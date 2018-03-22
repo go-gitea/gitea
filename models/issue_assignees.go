@@ -22,6 +22,9 @@ type IssueAssignees struct {
 
 // This loads all assignees of an issue
 func (issue *Issue) loadAssignees(e Engine) (err error) {
+	// Reset maybe preexisting assignees
+	issue.Assignees = []*User{}
+
 	var assigneeIDs []IssueAssignees
 
 	err = e.Where("issue_id = ?", issue.ID).Find(&assigneeIDs)
