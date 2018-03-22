@@ -191,7 +191,7 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 		text = p.PullRequest.Body
 		color = warnColor
 	case api.HookIssueAssigned:
-		list, err := MakeAssigneeList(Issue{ID: p.PullRequest.ID})
+		list, err := MakeAssigneeList(&Issue{ID: p.PullRequest.ID})
 		if err != nil {
 			return &DiscordPayload{}, err
 		}

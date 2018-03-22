@@ -172,7 +172,7 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 		text = fmt.Sprintf("[%s] Pull request edited: %s by %s", p.Repository.FullName, titleLink, senderLink)
 		attachmentText = SlackTextFormatter(p.PullRequest.Body)
 	case api.HookIssueAssigned:
-		list, err := MakeAssigneeList(Issue{ID: p.PullRequest.ID})
+		list, err := MakeAssigneeList(&Issue{ID: p.PullRequest.ID})
 		if err != nil {
 			return &SlackPayload{}, err
 		}
