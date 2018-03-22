@@ -306,7 +306,7 @@ func (issue *Issue) APIFormat() *api.Issue {
 		for _, assignee := range issue.Assignees {
 			apiIssue.Assignees = append(apiIssue.Assignees, assignee.APIFormat())
 		}
-		apiIssue.Assignee = issue.Assignees[0].APIFormat() // For compatibily, we're keeping the first assignee as `apiIssue.Assignee`
+		apiIssue.Assignee = issue.Assignees[0].APIFormat() // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
 	}
 	if issue.IsPull {
 		apiIssue.PullRequest = &api.PullRequestMeta{
