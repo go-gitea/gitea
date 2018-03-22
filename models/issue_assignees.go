@@ -74,7 +74,6 @@ func ClearAssigneesByIssue(issue *Issue) (err error) {
 	return nil
 }
 
-
 // MakeAssigneeList concats a string with all names of the assignees. Useful for logs.
 func MakeAssigneeList(issue Issue) (AssigneeList string, err error) {
 	err = issue.loadAssignees(x)
