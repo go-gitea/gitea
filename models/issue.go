@@ -46,10 +46,13 @@ type Issue struct {
 	NumComments     int
 	Ref             string
 
-	DeadlineUnix util.TimeStamp `xorm:"INDEX"`
-	CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix  util.TimeStamp `xorm:"INDEX updated"`
-	ClosedUnix   util.TimeStamp `xorm:"INDEX"`
+	DeadlineUnix   util.TimeStamp `xorm:"INDEX"`
+	DeadlineString string         `xorm:"-"`
+	IsOverDue      bool           `xorm:"-"`
+
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	ClosedUnix  util.TimeStamp `xorm:"INDEX"`
 
 	Attachments []*Attachment `xorm:"-"`
 	Comments    []*Comment    `xorm:"-"`
@@ -67,6 +70,13 @@ const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[x]\]\s.)|(\n\s*[-*]\s\[[x]\]\s.)`
 func init() {
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
 	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
+}
+
+func (i *Issue) AfterLoad() {
+	i.DeadlineString = i.DeadlineUnix.Format("2006-01-02")
+	if util.TimeStampNow() >= i.DeadlineUnix {
+		i.IsOverDue = true
+	}
 }
 
 func (issue *Issue) loadRepo(e Engine) (err error) {
