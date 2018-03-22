@@ -111,7 +111,7 @@ func Issues(ctx *context.Context) {
 
 	viewType := ctx.Query("type")
 	sortType := ctx.Query("sort")
-	types := []string{"all", "assigned", "created_by", "mentioned"}
+	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned"}
 	if !com.IsSliceContainsStr(types, viewType) {
 		viewType = "all"
 	}
