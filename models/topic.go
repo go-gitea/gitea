@@ -45,7 +45,7 @@ func IsErrTopicNotExist(err error) bool {
 	return ok
 }
 
-// Error implementes error interface
+// Error implements error interface
 func (err ErrTopicNotExist) Error() string {
 	return fmt.Sprintf("topic is not exist [name: %s]", err.Name)
 }
