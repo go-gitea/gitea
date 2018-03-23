@@ -1508,3 +1508,11 @@ func updateIssue(e Engine, issue *Issue) error {
 func UpdateIssue(issue *Issue) error {
 	return updateIssue(x, issue)
 }
+
+// UpdateIssueDeadline does what it says
+func UpdateIssueDeadline(issue *Issue, doer *User) (err error) {
+
+	// Make the comment
+
+	return UpdateIssue(issue)
+}

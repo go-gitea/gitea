@@ -510,3 +510,14 @@ type AddTimeManuallyForm struct {
 func (f *AddTimeManuallyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
+
+// Deadline form
+
+type DeadlineForm struct {
+	DateString string `form:"date" binding:"Required;MaxSize(10)"`
+}
+
+// Validate validates the fields
+func (f *DeadlineForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}

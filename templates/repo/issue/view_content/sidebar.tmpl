@@ -193,8 +193,27 @@
 		{{end}}
 
 		<div class="ui divider"></div>
-			<span class="text"><strong>{{.i18n.Tr "repo.issues.duedate"}}</strong></span>
+		<span class="text"><strong>{{.i18n.Tr "repo.issues.duedate"}}</strong></span>
+		{{if gt .Issue.DeadlineUnix 0}}
 			<p>{{.Issue.DeadlineString}}</p>
+		{{end}}
+
+		<form method="POST" id="add_deadline_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/deadline/update" class="ui action input fluid">
+			{{$.CsrfTokenHtml}}
+			<input placeholder='{{.i18n.Tr "repo.issues.due_date_form"}}' type="date" name="date">
+			{{if gt .Issue.DeadlineUnix 0}}
+				<input type="submit" value="{{.i18n.Tr "repo.issues.due_date_form_update"}}"/>
+			{{else}}
+				<input type="submit" value="{{.i18n.Tr "repo.issues.due_date_form_add"}}"/>
+			{{end}}
+		</form>
+
+		{{if gt .Issue.DeadlineUnix 0}}
+			<form method="POST" id="remove_deadline_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/deadline/remove" class="ui action input fluid">
+			{{$.CsrfTokenHtml}}
+				<input type="submit" value="{{.i18n.Tr "repo.issues.due_date_form_remove"}}"/>
+			</form>
+		{{end}}
 
 	</div>
 </div>
