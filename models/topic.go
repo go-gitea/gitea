@@ -28,7 +28,7 @@ type Topic struct {
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 }
 
-// RepositoryTopic represents associated repositories and topics
+// RepoTopic represents associated repositories and topics
 type RepoTopic struct {
 	RepoID  int64 `xorm:"unique(s)"`
 	TopicID int64 `xorm:"unique(s)"`
@@ -39,12 +39,13 @@ type ErrTopicNotExist struct {
 	Name string
 }
 
-// IsErrNotAllowedToMerge checks if an error is an ErrTopicNotExist.
+// IsErrTopicNotExist checks if an error is an ErrTopicNotExist.
 func IsErrTopicNotExist(err error) bool {
 	_, ok := err.(ErrTopicNotExist)
 	return ok
 }
 
+// Error implementes error interface
 func (err ErrTopicNotExist) Error() string {
 	return fmt.Sprintf("topic is not exist [name: %s]", err.Name)
 }
