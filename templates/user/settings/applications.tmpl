@@ -38,7 +38,7 @@
 				{{.i18n.Tr "settings.generate_new_token"}}
 			</h4>
 			<div class="ui attached segment">
-				<form class="ui form" action="{{.Link}}" method="post">
+				<form class="ui form ignore-dirty" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
 					<p>{{.i18n.Tr "settings.new_token_desc"}}</p>
 					<div class="field {{if .Err_Name}}error{{end}}">
