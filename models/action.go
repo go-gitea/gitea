@@ -484,7 +484,7 @@ func findIssueReferencesInString(message string, repo *Repository) (map[int64]Ke
 }
 
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
-func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) error {
+func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, commitsAreMerged bool) error {
 	// Commits are appended in the reverse order.
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]
@@ -510,17 +510,19 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit) err
 				}
 			}
 
-			// take no action if both KeywordsFoundClose and KeywordsFoundOpen are set
-			if (mask & (KeywordsFoundReopen|KeywordsFoundClose)) == KeywordsFoundClose {
-				if issue.RepoID == repo.ID && !issue.IsClosed {
-					if err = issue.ChangeStatus(doer, repo, true); err != nil {
-						return err
+			if commitsAreMerged {
+				// take no action if both KeywordsFoundClose and KeywordsFoundOpen are set
+				if (mask & (KeywordsFoundReopen|KeywordsFoundClose)) == KeywordsFoundClose {
+					if issue.RepoID == repo.ID && !issue.IsClosed {
+						if err = issue.ChangeStatus(doer, repo, true); err != nil {
+							return err
+						}
 					}
-				}
-			} else if (mask & (KeywordsFoundReopen|KeywordsFoundClose)) == KeywordsFoundReopen {
-				if issue.RepoID == repo.ID && issue.IsClosed {
-					if err = issue.ChangeStatus(doer, repo, false); err != nil {
-						return err
+				} else if (mask & (KeywordsFoundReopen|KeywordsFoundClose)) == KeywordsFoundReopen {
+					if issue.RepoID == repo.ID && issue.IsClosed {
+						if err = issue.ChangeStatus(doer, repo, false); err != nil {
+							return err
+						}
 					}
 				}
 			}
@@ -586,7 +588,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
 		}
 
-		if err = UpdateIssuesCommit(pusher, repo, opts.Commits.Commits); err != nil {
+		if err = UpdateIssuesCommit(pusher, repo, opts.Commits.Commits, true); err != nil {
 			log.Error(4, "updateIssuesCommit: %v", err)
 		}
 	}
@@ -741,16 +743,12 @@ func TransferRepoAction(doer, oldOwner *User, repo *Repository) error {
 	return transferRepoAction(x, doer, oldOwner, repo)
 }
 
-func mergePullRequestAction(e Engine, doer *User, repo *Repository, issue *Issue, commits *PushCommits) (err error) {
-	if err = UpdateIssuesCommit(doer, repo, commits.Commits); err != nil {
-		log.Error(4, "updateIssuesCommit: %v", err)
-	}
-
+func mergePullRequestAction(e Engine, doer *User, repo *Repository, pull *Issue, commits *PushCommits) (err error) {
 	if err = notifyWatchers(e, &Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		OpType:    ActionMergePullRequest,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, issue.Title),
+		Content:   fmt.Sprintf("%d|%s", pull.Index, pull.Title),
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
@@ -763,6 +761,10 @@ func mergePullRequestAction(e Engine, doer *User, repo *Repository, issue *Issue
 
 // MergePullRequestAction adds new action for merging pull request.
 func MergePullRequestAction(actUser *User, repo *Repository, pull *Issue, commits *PushCommits) error {
+	if err := UpdateIssuesCommit(actUser, repo, commits.Commits, true); err != nil {
+		log.Error(4, "updateIssuesCommit: %v", err)
+	}
+
 	return mergePullRequestAction(x, actUser, repo, pull, commits)
 }
 

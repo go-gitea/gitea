@@ -227,7 +227,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 
 	AssertNotExistsBean(t, commentBean)
 	AssertNotExistsBean(t, &Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
-	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits))
+	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, true))
 	AssertExistsAndLoadBean(t, commentBean)
 	AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
 	CheckConsistencyFor(t, &Action{})
