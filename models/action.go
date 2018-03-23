@@ -768,6 +768,33 @@ func MergePullRequestAction(actUser *User, repo *Repository, pull *Issue, commit
 	return mergePullRequestAction(x, actUser, repo, pull, commits)
 }
 
+func newPullRequestAction(e Engine, doer *User, repo *Repository, pull *Issue, commits *PushCommits) (err error) {
+	if err = NotifyWatchers(&Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    ActionCreatePullRequest,
+		Content:   fmt.Sprintf("%d|%s", pull.Index, pull.Title),
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+	}); err != nil {
+		log.Error(4, "NotifyWatchers: %v", err)
+	} else if err = pull.MailParticipants(); err != nil {
+		log.Error(4, "MailParticipants: %v", err)
+	}
+
+	return nil
+}
+
+// NewPullRequestAction adds new action for merging pull request.
+func NewPullRequestAction(actUser *User, repo *Repository, pull *Issue, commits *PushCommits) error {
+	if err := UpdateIssuesCommit(actUser, repo, commits.Commits, false); err != nil {
+		log.Error(4, "updateIssuesCommit: %v", err)
+	}
+
+	return newPullRequestAction(x, actUser, repo, pull, commits)
+}
+
 func mirrorSyncAction(e Engine, opType ActionType, repo *Repository, refName string, data []byte) error {
 	if err := notifyWatchers(e, &Action{
 		ActUserID: repo.OwnerID,

@@ -779,23 +779,45 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 
 	UpdateIssueIndexer(pull.ID)
 
-	if err = NotifyWatchers(&Action{
-		ActUserID: pull.Poster.ID,
-		ActUser:   pull.Poster,
-		OpType:    ActionCreatePullRequest,
-		Content:   fmt.Sprintf("%d|%s", pull.Index, pull.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		log.Error(4, "NotifyWatchers: %v", err)
-	} else if err = pull.MailParticipants(); err != nil {
-		log.Error(4, "MailParticipants: %v", err)
-	}
-
 	pr.Issue = pull
 	pull.PullRequest = pr
 	mode, _ := AccessLevel(pull.Poster, repo)
+
+	var (
+		baseBranch *Branch
+		headBranch *Branch
+		baseCommit *git.Commit
+		headCommit *git.Commit
+		baseGitRepo *git.Repository
+	)
+	if baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch); err != nil {
+		return nil
+	}
+	if baseCommit, err = baseBranch.GetCommit(); err != nil {
+		return nil
+	}
+	if headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch); err != nil {
+		return nil
+	}
+	if headCommit, err = headBranch.GetCommit(); err != nil {
+		return nil
+	}
+	if baseGitRepo, err = git.OpenRepository(pr.BaseRepo.RepoPath()); err != nil {
+		log.Error(4, "OpenRepository", err)
+		return nil
+	}
+
+	l, err := baseGitRepo.CommitsBetweenIDs(headCommit.ID.String(), baseCommit.ID.String())
+	if err != nil {
+		log.Error(4, "CommitsBetweenIDs: %v", err)
+		return nil
+	}
+
+	commits := ListToPushCommits(l)
+	if err = NewPullRequestAction(pull.Poster, repo, pull, commits); err != nil {
+		log.Error(4, "NewPullRequestAction [%d]: %v", pr.ID, err)
+	}
+
 	if err = PrepareWebhooks(repo, HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Index,
