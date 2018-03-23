@@ -200,18 +200,27 @@
 
 		<form method="POST" id="add_deadline_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/deadline/update" class="ui action input fluid">
 			{{$.CsrfTokenHtml}}
-			<input placeholder='{{.i18n.Tr "repo.issues.due_date_form"}}' type="date" name="date">
-			{{if gt .Issue.DeadlineUnix 0}}
-				<input type="submit" value="{{.i18n.Tr "repo.issues.due_date_form_update"}}"/>
-			{{else}}
-				<input type="submit" value="{{.i18n.Tr "repo.issues.due_date_form_add"}}"/>
-			{{end}}
+				<div class="ui fluid action input">
+					<input required placeholder='{{.i18n.Tr "repo.issues.due_date_form"}}' type="date" name="date" style="min-width: 13.9rem;border-radius: 4px 0 0 4px;border-right: 0;white-space: nowrap;">
+					{{if gt .Issue.DeadlineUnix 0}}
+						<button class="ui green icon button">
+							<i class="edit icon"></i>
+						</button>
+					{{else}}
+						<button class="ui green icon button">
+							<i class="plus icon"></i>
+						</button>
+					{{end}}
+				</div>
 		</form>
 
 		{{if gt .Issue.DeadlineUnix 0}}
 			<form method="POST" id="remove_deadline_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/deadline/remove" class="ui action input fluid">
 			{{$.CsrfTokenHtml}}
-				<input type="submit" value="{{.i18n.Tr "repo.issues.due_date_form_remove"}}"/>
+				<button class="ui red icon button">
+					<i class="remove icon"></i>
+					{{.i18n.Tr "repo.issues.due_date_form_remove"}}
+				</button>
 			</form>
 		{{end}}
 
