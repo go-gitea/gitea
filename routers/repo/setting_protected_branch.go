@@ -98,7 +98,7 @@ func SettingsProtectedBranch(c *context.Context) {
 		return
 	}
 
-	c.Data["Title"] = c.Tr("repo.settings.protected_branches") + " - " + branch
+	c.Data["Title"] = c.Tr("repo.settings.protected_branch") + " - " + branch
 	c.Data["PageIsSettingsBranches"] = true
 
 	protectBranch, err := models.GetProtectedBranchBy(c.Repo.Repository.ID, branch)

@@ -13,7 +13,7 @@
 					<div class="ui red message">
 						<p class="text left"><i class="octicon octicon-alert"></i> {{.i18n.Tr "org.settings.delete_prompt" | Str2html}}</p>
 					</div>
-					<form class="ui form" id="delete-form" action="{{.Link}}" method="post">
+					<form class="ui form ignore-dirty" id="delete-form" action="{{.Link}}" method="post">
 						{{.CsrfTokenHtml}}
 						<input class="fake" type="password">
 						<div class="inline required field {{if .Err_Password}}error{{end}}">
