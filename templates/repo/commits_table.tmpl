@@ -5,7 +5,7 @@
 		</div>
 		<div class="ten wide right aligned column">
 			{{if .PageIsCommits}}
-				<form action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
+				<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
 					<div class="ui tiny search input">
 						<input name="q" placeholder="{{.i18n.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
 					</div>
