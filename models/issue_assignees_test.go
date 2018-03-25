@@ -20,17 +20,17 @@ func TestUpdateAssignee(t *testing.T) {
 	// Assign multiple users
 	user2, err := GetUserByID(2)
 	assert.NoError(t, err)
-	err = UpdateAssignee(issue, &User{ID:1}, user2.ID)
+	err = UpdateAssignee(issue, &User{ID: 1}, user2.ID)
 	assert.NoError(t, err)
 
 	user3, err := GetUserByID(3)
 	assert.NoError(t, err)
-	err = UpdateAssignee(issue, &User{ID:1}, user3.ID)
+	err = UpdateAssignee(issue, &User{ID: 1}, user3.ID)
 	assert.NoError(t, err)
 
 	user1, err := GetUserByID(1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him
 	assert.NoError(t, err)
-	err = UpdateAssignee(issue, &User{ID:1}, user1.ID)
+	err = UpdateAssignee(issue, &User{ID: 1}, user1.ID)
 	assert.NoError(t, err)
 
 	// Check if he got removed
@@ -56,7 +56,7 @@ func TestUpdateAssignee(t *testing.T) {
 	assert.True(t, isAssigned)
 
 	// This user should not be assigned
-	isAssigned, err = IsUserAssignedToIssue(issue, &User{ID:4})
+	isAssigned, err = IsUserAssignedToIssue(issue, &User{ID: 4})
 	assert.NoError(t, err)
 	assert.False(t, isAssigned)
 
@@ -67,5 +67,5 @@ func TestUpdateAssignee(t *testing.T) {
 	// Check they're gone
 	assignees, err = GetAssigneesByIssue(issue)
 	assert.NoError(t, err)
-	assert.Equal(t,  0, len(assignees))
+	assert.Equal(t, 0, len(assignees))
 }
