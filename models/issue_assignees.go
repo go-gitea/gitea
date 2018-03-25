@@ -91,6 +91,7 @@ func deleteNotPassedAssignee(issue *Issue, doer *User, assigees []*User) (err er
 		}
 
 		if !found {
+			// This function also does comments and hooks, which is why we call it seperatly instead of directly removing the assignees here
 			if err := UpdateAssignee(issue, doer, assignee.ID); err != nil {
 				return err
 			}
