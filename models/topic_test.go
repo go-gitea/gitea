@@ -40,7 +40,7 @@ func TestAddTopic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(topics))
 
-	assert.NoError(t, SaveTopics(2, "gitea"))
+	assert.NoError(t, SaveTopics(2, "golang", "gitea"))
 	topic, err := GetTopicByName("gitea")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, topic.RepoCount)
