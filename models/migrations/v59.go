@@ -10,12 +10,12 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-func addLabelsDescriptions(x *xorm.Engine) error {
-	type Label struct {
-		Description string
+func addFsckEnabledToRepo(x *xorm.Engine) error {
+	type Repository struct {
+		IsFsckEnabled bool `xorm:"NOT NULL DEFAULT true"`
 	}
 
-	if err := x.Sync2(new(Label)); err != nil {
+	if err := x.Sync2(new(Repository)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 	return nil

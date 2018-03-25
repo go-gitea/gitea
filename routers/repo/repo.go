@@ -307,11 +307,7 @@ func Action(ctx *context.Context) {
 		return
 	}
 
-	redirectTo := ctx.Query("redirect_to")
-	if len(redirectTo) == 0 {
-		redirectTo = ctx.Repo.RepoLink
-	}
-	ctx.Redirect(redirectTo)
+	ctx.RedirectToFirst(ctx.Query("redirect_to"), ctx.Repo.RepoLink)
 }
 
 // Download download an archive of a repository

@@ -249,3 +249,28 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 
 	return repos, count, nil
 }
+
+// FindUserAccessibleRepoIDs find all accessible repositories' ID by user's id
+func FindUserAccessibleRepoIDs(userID int64) ([]int64, error) {
+	var accessCond builder.Cond = builder.Eq{"is_private": false}
+
+	if userID > 0 {
+		accessCond = accessCond.Or(
+			builder.Eq{"owner_id": userID},
+			builder.And(
+				builder.Expr("id IN (SELECT repo_id FROM `access` WHERE access.user_id = ?)", userID),
+				builder.Neq{"owner_id": userID},
+			),
+		)
+	}
+
+	repoIDs := make([]int64, 0, 10)
+	if err := x.
+		Table("repository").
+		Cols("id").
+		Where(accessCond).
+		Find(&repoIDs); err != nil {
+		return nil, fmt.Errorf("FindUserAccesibleRepoIDs: %v", err)
+	}
+	return repoIDs, nil
+}
