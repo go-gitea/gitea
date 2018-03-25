@@ -123,6 +123,7 @@ func clearAssigneeByUserID(sess *xorm.Session, userID int64) (err error) {
 	return
 }
 
+// AddAssigneeIfNotAssigned adds an assignee only if he isn't aleady assigned to the issue
 func AddAssigneeIfNotAssigned(issue *Issue, doer *User, assigneeID int64) (err error) {
 	// Check if the user is already assigned
 	isAssigned, err := IsUserAssignedToIssue(issue, &User{ID: assigneeID})
