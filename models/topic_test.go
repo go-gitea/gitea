@@ -54,15 +54,4 @@ func TestAddTopic(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(topics))
-
-	assert.NoError(t, RemoveTopicFromRepo(2, "gitea"))
-	topic, err = GetTopicByName("gitea")
-	assert.NoError(t, err)
-	assert.EqualValues(t, 0, topic.RepoCount)
-
-	topics, err = FindTopics(&FindTopicOptions{
-		RepoID: 2,
-	})
-	assert.NoError(t, err)
-	assert.EqualValues(t, 1, len(topics))
 }

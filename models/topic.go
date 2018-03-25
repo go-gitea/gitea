@@ -182,33 +182,9 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 		}
 	}
 
-	return sess.Commit()
-}
-
-// RemoveTopicFromRepo removes topic from a repoisotry
-func RemoveTopicFromRepo(repoID int64, topicName string) error {
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	var topic Topic
-	if has, err := sess.Where("name = ?", topicName).Get(&topic); err != nil {
-		return err
-	} else if !has {
-		return ErrTopicNotExist{topicName}
-	}
-
-	if _, err := sess.Delete(&RepoTopic{
-		RepoID:  repoID,
-		TopicID: topic.ID,
+	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{
+		Topics: topicNames,
 	}); err != nil {
-		return err
-	}
-
-	if _, err := sess.ID(topic.ID).Decr("repo_count").Cols("repo_count").Update(&topic); err != nil {
 		return err
 	}
 
