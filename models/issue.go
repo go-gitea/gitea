@@ -1514,5 +1514,35 @@ func UpdateIssueDeadline(issue *Issue, doer *User) (err error) {
 
 	// Make the comment
 
+	// Check if the new date was added or modified
+	var actualIssue Issue
+	if _, err := x.ID(issue.ID).Get(&actualIssue); err != nil {
+		return fmt.Errorf("getActualIssue: %v", err)
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err = issue.loadRepo(sess); err != nil {
+		return fmt.Errorf("loadRepo: %v", err)
+	}
+	if issue.DeadlineUnix == 0 {
+		if _, err = createRemovedDeadlineComment(sess, doer, issue.Repo, issue, actualIssue.DeadlineUnix); err != nil {
+			return fmt.Errorf("createRemovedDueDateComment: %v", err)
+		}
+	} else {
+		// Check if the new date was added or modified
+		// If the actual deadline is 0 => deadline added
+		if actualIssue.DeadlineUnix == 0 {
+			if _, err = createAddedDeadlineComment(sess, doer, issue.Repo, issue, issue.DeadlineUnix); err != nil {
+				return fmt.Errorf("createRemovedDueDateComment: %v", err)
+			}
+		} else {// Otherwise modified
+			if _, err = createModifiedDeadlineComment(sess, doer, issue.Repo, issue, issue.DeadlineUnix); err != nil {
+				return fmt.Errorf("createRemovedDueDateComment: %v", err)
+			}
+		}
+	}
+
 	return UpdateIssue(issue)
 }

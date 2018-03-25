@@ -60,6 +60,12 @@ const (
 	CommentTypeAddTimeManual
 	// Cancel a stopwatch for time tracking
 	CommentTypeCancelTracking
+	// Added a due date
+	CommentTypeAddedDeadline
+	// Modified the due date
+	CommentTypeModifiedDeadline
+	// Removed a due date
+	CommentTypeRemovedDeadline
 )
 
 // CommentTag defines comment tag type
@@ -482,6 +488,45 @@ func createAssigneeComment(e *xorm.Session, doer *User, repo *Repository, issue 
 		Issue:         issue,
 		OldAssigneeID: oldAssigneeID,
 		AssigneeID:    assigneeID,
+	})
+}
+
+func createAddedDeadlineComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, dateUnix util.TimeStamp) (*Comment, error) {
+	// Make string from unix date
+	date := dateUnix.Format("2006-01-02")
+
+	return createComment(e, &CreateCommentOptions{
+		Type:          CommentTypeAddedDeadline,
+		Doer:          doer,
+		Repo:          repo,
+		Issue:         issue,
+		Content:       date,
+	})
+}
+
+func createModifiedDeadlineComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, dateUnix util.TimeStamp) (*Comment, error) {
+	// Make string from unix date
+	date := dateUnix.Format("2006-01-02")
+
+	return createComment(e, &CreateCommentOptions{
+		Type:          CommentTypeModifiedDeadline,
+		Doer:          doer,
+		Repo:          repo,
+		Issue:         issue,
+		Content: date,
+	})
+}
+
+func createRemovedDeadlineComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, dateUnix util.TimeStamp) (*Comment, error) {
+	// Make string from unix date
+	date := dateUnix.Format("2006-01-02")
+
+	return createComment(e, &CreateCommentOptions{
+		Type:          CommentTypeRemovedDeadline,
+		Doer:          doer,
+		Repo:          repo,
+		Issue:         issue,
+		Content: date,
 	})
 }
 
