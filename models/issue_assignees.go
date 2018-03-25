@@ -63,7 +63,7 @@ func GetAssigneesByIssue(issue *Issue) (assignees []*User, err error) {
 
 // IsUserAssignedToIssue returns true when the user is assigned to the issue
 func IsUserAssignedToIssue(issue *Issue, user *User) (isAssigned bool, err error) {
-	isAssigned, err = x.Exist(&IssueAssignees{AssigneeID: user.ID, IssueID: issue.ID})
+	isAssigned, err = x.Exist(&IssueAssignees{IssueID:issue.ID, AssigneeID: user.ID})
 	return
 }
 
@@ -73,6 +73,30 @@ func ClearAssigneesByIssue(issue *Issue) (err error) {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// Deletes all assignees who aren't passed via the "assignees" array
+func deleteNotPassedAssignee(issue *Issue, doer *User, assigees []*User) (err error) {
+	var found bool
+
+	for _, assignee := range issue.Assignees {
+
+		found = false
+		for _, alreadyAssignee := range assigees {
+			if assignee.ID == alreadyAssignee.ID {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			if err := UpdateAssignee(issue, doer, assignee.ID); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -97,6 +121,19 @@ func MakeAssigneeList(issue *Issue) (AssigneeList string, err error) {
 func clearAssigneeByUserID(sess *xorm.Session, userID int64) (err error) {
 	_, err = sess.Delete(&IssueAssignees{AssigneeID: userID})
 	return
+}
+
+func AddAssigneeIfNotAssigned(issue *Issue, doer *User, assigneeID int64) (err error) {
+	// Check if the user is already assigned
+	isAssigned, err := IsUserAssignedToIssue(issue, &User{ID: assigneeID})
+	if err != nil {
+		return err
+	}
+
+	if !isAssigned {
+		return issue.ChangeAssignee(doer, assigneeID)
+	}
+	return nil
 }
 
 // UpdateAssignee deletes or adds an assignee to an issue
@@ -159,12 +196,7 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 // Pass one or more user logins to replace the set of assignees on this Issue.
 // Send an empty array ([]) to clear all assignees from the Issue.
 func UpdateAPIAssignee(issue *Issue, oneAssignee string, multipleAssignees []string, doer *User) (err error) {
-	// Clear everyone
-	err = ClearAssigneesByIssue(issue)
-	if err != nil {
-		return err
-	}
-	issue.Assignees = []*User{}
+	var allNewAssignees []*User
 
 	// Keep the old assignee thingy for compatibility reasons
 	if oneAssignee != "" {
@@ -188,10 +220,21 @@ func UpdateAPIAssignee(issue *Issue, oneAssignee string, multipleAssignees []str
 			return err
 		}
 
-		// Update the assignee. The function will check if the user exists, is already
-		// assigned (which he shouldn't as we deleted all assignees before) and
-		// has access to the repo.
-		err = UpdateAssignee(issue, doer, assignee.ID)
+		allNewAssignees = append(allNewAssignees, assignee)
+	}
+
+	// Delete all old assignees not passed
+	if err = deleteNotPassedAssignee(issue, doer, allNewAssignees); err != nil {
+		return err
+	}
+
+	// Add all new assignees
+	// Update the assignee. The function will check if the user exists, is already
+	// assigned (which he shouldn't as we deleted all assignees before) and
+	// has access to the repo.
+	for _, assignee := range allNewAssignees {
+		// Extra method to prevent double adding (which would result in removing)
+		err = AddAssigneeIfNotAssigned(issue, doer, assignee.ID)
 		if err != nil {
 			return err
 		}
