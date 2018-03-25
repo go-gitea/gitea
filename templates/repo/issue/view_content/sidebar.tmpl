@@ -198,8 +198,9 @@
 			<p>{{.Issue.DeadlineString}}</p>
 		{{end}}
 
-		<form method="POST" id="add_deadline_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/deadline/update" class="ui action input fluid">
-			{{$.CsrfTokenHtml}}
+		{{if and .IsSigned .IsRepositoryWriter}}
+			<form method="POST" id="add_deadline_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/deadline/update" class="ui action input fluid">
+				{{$.CsrfTokenHtml}}
 				<div class="ui fluid action input">
 					<input required placeholder='{{.i18n.Tr "repo.issues.due_date_form"}}' type="date" name="date" style="min-width: 13.9rem;border-radius: 4px 0 0 4px;border-right: 0;white-space: nowrap;">
 					{{if gt .Issue.DeadlineUnix 0}}
@@ -212,16 +213,17 @@
 						</button>
 					{{end}}
 				</div>
-		</form>
-
-		{{if gt .Issue.DeadlineUnix 0}}
-			<form method="POST" id="remove_deadline_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/deadline/remove" class="ui action input fluid">
-			{{$.CsrfTokenHtml}}
-				<button class="ui red icon button">
-					<i class="remove icon"></i>
-					{{.i18n.Tr "repo.issues.due_date_form_remove"}}
-				</button>
 			</form>
+
+			{{if gt .Issue.DeadlineUnix 0}}
+				<form method="POST" id="remove_deadline_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/deadline/remove" class="ui action input fluid">
+					{{$.CsrfTokenHtml}}
+					<button class="ui red icon button">
+						<i class="remove icon"></i>
+						{{.i18n.Tr "repo.issues.due_date_form_remove"}}
+					</button>
+				</form>
+			{{end}}
 		{{end}}
 
 	</div>
