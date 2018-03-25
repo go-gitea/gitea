@@ -1663,8 +1663,11 @@ function selectRange($list, $select, $from) {
 }
 
 $(function () {
-    if ($('.user.signin').length > 0) return;
-    $('form').areYouSure();
+    // Warn users that try to leave a page after entering data into a form.
+    // Except on sign-in pages, and for forms marked as 'ignore-dirty'.
+    if ($('.user.signin').length === 0) {
+      $('form:not(.ignore-dirty)').areYouSure();
+    }
 
     // Parse SSH Key
     $("#ssh-key-content").on('change paste keyup',function(){
