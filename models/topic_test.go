@@ -29,7 +29,7 @@ func TestAddTopic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, len(topics))
 
-	assert.NoError(t, AddTopic(2, "golang"))
+	assert.NoError(t, SaveTopics(2, "golang"))
 	topics, err = FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, len(topics))
@@ -40,7 +40,7 @@ func TestAddTopic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(topics))
 
-	assert.NoError(t, AddTopic(2, "gitea"))
+	assert.NoError(t, SaveTopics(2, "gitea"))
 	topic, err := GetTopicByName("gitea")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, topic.RepoCount)

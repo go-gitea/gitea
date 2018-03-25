@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/modules/util"
 
@@ -63,15 +64,20 @@ func GetTopicByName(name string) (*Topic, error) {
 
 // FindTopicOptions represents the options when fdin topics
 type FindTopicOptions struct {
-	RepoID int64
-	Limit  int
-	Page   int
+	RepoID  int64
+	Keyword string
+	Limit   int
+	Page    int
 }
 
 func (opts *FindTopicOptions) toConds() builder.Cond {
 	var cond = builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_topic.repo_id": opts.RepoID})
+	}
+
+	if opts.Keyword != "" {
+		cond = cond.And(builder.Like{"topic.name", opts.Keyword})
 	}
 
 	return cond
@@ -86,11 +92,18 @@ func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
 	if opts.Limit > 0 {
 		sess.Limit(opts.Limit, opts.Page*opts.Limit)
 	}
-	return topics, sess.Find(&topics)
+	return topics, sess.Desc("topic.repo_count").Find(&topics)
 }
 
-// AddTopic addes a topic to a repository
-func AddTopic(repoID int64, topicName string) error {
+// SaveTopics save topics to a repository
+func SaveTopics(repoID int64, topicNames ...string) error {
+	topics, err := FindTopics(&FindTopicOptions{
+		RepoID: repoID,
+	})
+	if err != nil {
+		return err
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -98,27 +111,75 @@ func AddTopic(repoID int64, topicName string) error {
 		return err
 	}
 
-	var topic Topic
-	if has, err := sess.Where("name = ?", topicName).Get(&topic); err != nil {
-		return err
-	} else if !has {
-		topic.Name = topicName
-		topic.RepoCount = 1
-		if _, err := sess.Insert(&topic); err != nil {
-			return err
+	var addedTopicNames []string
+	for _, topicName := range topicNames {
+		if strings.TrimSpace(topicName) == "" {
+			continue
 		}
-	} else {
-		topic.RepoCount++
-		if _, err := sess.ID(topic.ID).Cols("repo_count").Update(&topic); err != nil {
+
+		var found bool
+		for _, t := range topics {
+			if strings.EqualFold(topicName, t.Name) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			addedTopicNames = append(addedTopicNames, topicName)
+		}
+	}
+
+	var removeTopics []*Topic
+	for _, t := range topics {
+		var found bool
+		for _, topicName := range topicNames {
+			if strings.EqualFold(topicName, t.Name) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			removeTopics = append(removeTopics, t)
+		}
+	}
+
+	for _, topicName := range addedTopicNames {
+		var topic Topic
+		if has, err := sess.Where("name = ?", topicName).Get(&topic); err != nil {
+			return err
+		} else if !has {
+			topic.Name = topicName
+			topic.RepoCount = 1
+			if _, err := sess.Insert(&topic); err != nil {
+				return err
+			}
+		} else {
+			topic.RepoCount++
+			if _, err := sess.ID(topic.ID).Cols("repo_count").Update(&topic); err != nil {
+				return err
+			}
+		}
+
+		if _, err := sess.Insert(&RepoTopic{
+			RepoID:  repoID,
+			TopicID: topic.ID,
+		}); err != nil {
 			return err
 		}
 	}
 
-	if _, err := sess.Insert(&RepoTopic{
-		RepoID:  repoID,
-		TopicID: topic.ID,
-	}); err != nil {
-		return err
+	for _, topic := range removeTopics {
+		topic.RepoCount--
+		if _, err := sess.ID(topic.ID).Cols("repo_count").Update(topic); err != nil {
+			return err
+		}
+
+		if _, err := sess.Delete(&RepoTopic{
+			RepoID:  repoID,
+			TopicID: topic.ID,
+		}); err != nil {
+			return err
+		}
 	}
 
 	return sess.Commit()
