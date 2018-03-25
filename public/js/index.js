@@ -2122,3 +2122,15 @@ function initNavbarContentToggle() {
         }
     });
 }
+
+function toggleDuedateForm() {
+    $('#add_deadline_form').fadeToggle(150);
+}
+
+function deleteDueDate(url) {
+    $.post(url, {
+        '_csrf': csrf,
+    },function( data ) {
+        window.location.reload();
+    });
+}
