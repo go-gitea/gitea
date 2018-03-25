@@ -118,7 +118,6 @@ func MakeAssigneeList(issue *Issue) (AssigneeList string, err error) {
 	return
 }
 
-
 // ClearAssigneeByUserID deletes all assignments of an user
 func clearAssigneeByUserID(sess *xorm.Session, userID int64) (err error) {
 	_, err = sess.Delete(&IssueAssignees{AssigneeID: userID})
