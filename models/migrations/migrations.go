@@ -170,6 +170,8 @@ var migrations = []Migration{
 	NewMigration("add closed_unix column for issues", addIssueClosedTime),
 	// v58 -> v59
 	NewMigration("add label descriptions", addLabelsDescriptions),
+	// v59 -> v60
+	NewMigration("add merge whitelist for protected branches", addProtectedBranchMergeWhitelist),
 }
 
 // Migrate database to current version

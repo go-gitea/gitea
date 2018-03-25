@@ -286,7 +286,7 @@ func (pr *PullRequest) CheckUserAllowedToMerge(doer *User) (err error) {
 		}
 	}
 
-	if protected, err := pr.BaseRepo.IsProtectedBranch(pr.BaseBranch, doer); err != nil {
+	if protected, err := pr.BaseRepo.IsProtectedBranchForMerging(pr.BaseBranch, doer); err != nil {
 		return fmt.Errorf("IsProtectedBranch: %v", err)
 	} else if protected {
 		return ErrNotAllowedToMerge{
