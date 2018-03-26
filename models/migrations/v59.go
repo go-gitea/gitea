@@ -10,12 +10,14 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-func addFsckEnabledToRepo(x *xorm.Engine) error {
-	type Repository struct {
-		IsFsckEnabled bool `xorm:"NOT NULL DEFAULT true"`
+func addProtectedBranchMergeWhitelist(x *xorm.Engine) error {
+	type ProtectedBranch struct {
+		EnableMergeWhitelist  bool    `xorm:"NOT NULL DEFAULT false"`
+		MergeWhitelistUserIDs []int64 `xorm:"JSON TEXT"`
+		MergeWhitelistTeamIDs []int64 `xorm:"JSON TEXT"`
 	}
 
-	if err := x.Sync2(new(Repository)); err != nil {
+	if err := x.Sync2(new(ProtectedBranch)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 	return nil
