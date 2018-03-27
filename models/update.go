@@ -68,7 +68,7 @@ type PushUpdateOptions struct {
 // PushUpdate must be called for any push actions in order to
 // generates necessary push action history feeds.
 func PushUpdate(branch string, opt PushUpdateOptions) error {
-	repo, err := pushUpdate(opt)
+	repo, err := pushUpdate(branch, opt)
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func pushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string)
 	return nil
 }
 
-func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
+func pushUpdate(branch string, opts PushUpdateOptions) (repo *Repository, err error) {
 	isNewRef := opts.OldCommitID == git.EmptySHA
 	isDelRef := opts.NewCommitID == git.EmptySHA
 	if isNewRef && isDelRef {
@@ -278,5 +278,69 @@ func pushUpdate(opts PushUpdateOptions) (repo *Repository, err error) {
 	}); err != nil {
 		return nil, fmt.Errorf("CommitRepoAction: %v", err)
 	}
+
+	// create actions that update pull requests tracking the branch that was pushed to
+	prs, err := GetUnmergedPullRequestsByHeadInfo(repo.ID, branch)
+	if err != nil {
+		log.Error(4, "Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repo.ID, branch, err)
+	} else {
+		pusher, err := GetUserByID(opts.PusherID)
+		if err != nil {
+			return nil, fmt.Errorf("GetUserByID: %v", err)
+		}
+
+		for _, pr := range prs {
+			if err = pr.GetHeadRepo(); err != nil {
+				log.Error(4, "GetHeadRepo: %v", err)
+				continue
+			} else if err = pr.GetBaseRepo(); err != nil {
+				log.Error(4, "GetBaseRepo: %v", err)
+				continue
+			}
+
+			var (
+				baseBranch *Branch
+				headBranch *Branch
+				baseCommit *git.Commit
+				headCommit *git.Commit
+				headGitRepo *git.Repository
+			)
+			if baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch); err != nil {
+				log.Error(4, "BaseRepo.GetBranch: %v", err)
+				continue
+			}
+			if baseCommit, err = baseBranch.GetCommit(); err != nil {
+				log.Error(4, "baseBranch.GetCommit: %v", err)
+				continue
+			}
+			if headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch); err != nil {
+				log.Error(4, "HeadRepo.GetBranch: %v", err)
+				continue
+			}
+			if headCommit, err = headBranch.GetCommit(); err != nil {
+				log.Error(4, "headRepo.GetCommit: %v", err)
+				continue
+			}
+
+			// NOTICE: this is using pr.HeadRepo rather than pr.BaseRepo to get commits since they are going to be pushed in a go routine
+			if headGitRepo, err = git.OpenRepository(pr.HeadRepo.RepoPath()); err != nil {
+				log.Error(4, "OpenRepository", err)
+				continue
+			}
+
+			l, err := headGitRepo.CommitsBetweenIDs(headCommit.ID.String(), baseCommit.ID.String())
+			if err != nil {
+				log.Error(4, "CommitsBetweenIDs: %v", err)
+				continue
+			}
+
+			commits := ListToPushCommits(l)
+			if err = UpdatePullRequestAction(pusher, pr.BaseRepo, pr.Issue, commits); err != nil {
+				log.Error(4, "UpdatePullRequestAction [%d]: %v", pr.ID, err)
+				continue
+			}
+		}
+	}
+
 	return repo, nil
 }
