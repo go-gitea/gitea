@@ -198,6 +198,7 @@ type Repository struct {
 	BaseRepo      *Repository        `xorm:"-"`
 	Size          int64              `xorm:"NOT NULL DEFAULT 0"`
 	IndexerStatus *RepoIndexerStatus `xorm:"-"`
+	IsFsckEnabled bool               `xorm:"NOT NULL DEFAULT true"`
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
@@ -1945,6 +1946,12 @@ func GetRepositoryByID(id int64) (*Repository, error) {
 	return getRepositoryByID(x, id)
 }
 
+// GetRepositoriesMapByIDs returns the repositories by given id slice.
+func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
+	var repos = make(map[int64]*Repository, len(ids))
+	return repos, x.In("id", ids).Find(&repos)
+}
+
 // GetUserRepositories returns a list of repositories of given user.
 func GetUserRepositories(userID int64, private bool, page, pageSize int, orderBy string) ([]*Repository, error) {
 	if len(orderBy) == 0 {
@@ -2167,11 +2174,12 @@ func GitFsck() {
 	log.Trace("Doing: GitFsck")
 
 	if err := x.
-		Where("id>0").BufferSize(setting.IterateBufferSize).
+		Where("id>0 AND is_fsck_enabled=?", true).BufferSize(setting.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repo := bean.(*Repository)
 				repoPath := repo.RepoPath()
+				log.Trace("Running health check on repository %s", repoPath)
 				if err := git.Fsck(repoPath, setting.Cron.RepoHealthCheck.Timeout, setting.Cron.RepoHealthCheck.Args...); err != nil {
 					desc := fmt.Sprintf("Failed to health check repository (%s): %v", repoPath, err)
 					log.Warn(desc)
@@ -2183,6 +2191,7 @@ func GitFsck() {
 			}); err != nil {
 		log.Error(4, "GitFsck: %v", err)
 	}
+	log.Trace("Finished: GitFsck")
 }
 
 // GitGcRepos calls 'git gc' to remove unnecessary files and optimize the local repository

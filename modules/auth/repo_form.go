@@ -113,6 +113,9 @@ type RepoSettingForm struct {
 	PullsAllowSquash                 bool
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
+
+	// Admin settings
+	EnableHealthCheck bool
 }
 
 // Validate validates the fields
@@ -129,10 +132,13 @@ func (f *RepoSettingForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
-	Protected       bool
-	EnableWhitelist bool
-	WhitelistUsers  string
-	WhitelistTeams  string
+	Protected            bool
+	EnableWhitelist      bool
+	WhitelistUsers       string
+	WhitelistTeams       string
+	EnableMergeWhitelist bool
+	MergeWhitelistUsers  string
+	MergeWhitelistTeams  string
 }
 
 // Validate validates the fields
@@ -310,9 +316,10 @@ func (f *CreateMilestoneForm) Validate(ctx *macaron.Context, errs binding.Errors
 
 // CreateLabelForm form for creating label
 type CreateLabelForm struct {
-	ID    int64
-	Title string `binding:"Required;MaxSize(50)" locale:"repo.issues.label_name"`
-	Color string `binding:"Required;Size(7)" locale:"repo.issues.label_color"`
+	ID          int64
+	Title       string `binding:"Required;MaxSize(50)" locale:"repo.issues.label_title"`
+	Description string `binding:"MaxSize(200)" locale:"repo.issues.label_description"`
+	Color       string `binding:"Required;Size(7)" locale:"repo.issues.label_color"`
 }
 
 // Validate validates the fields

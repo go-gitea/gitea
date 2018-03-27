@@ -38,10 +38,10 @@
 								<tr>
 									<td>
 									{{if .IsDeleted}}
-										<s>{{.Name}}</s>
+										<s><a href="{{$.RepoLink}}/src/branch/{{.Name}}">{{.Name}}</a></s>
 										<p class="time">{{$.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}} {{TimeSinceUnix .DeletedBranch.DeletedUnix $.i18n.Lang}}</p>
 									{{else}}
-										{{.Name}}
+										<a href="{{$.RepoLink}}/src/branch/{{.Name}}">{{.Name}}</a>
 										<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 									</td>
 									{{end}}

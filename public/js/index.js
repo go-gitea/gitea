@@ -491,6 +491,7 @@ function initRepository() {
         $('.edit-label-button').click(function () {
             $('#label-modal-id').val($(this).data('id'));
             $('.edit-label .new-label-input').val($(this).data('title'));
+            $('.edit-label .new-label-desc-input').val($(this).data('description'));
             $('.edit-label .color-picker').val($(this).data('color'));
             $('.minicolors-swatch-color').css("background-color", $(this).data('color'));
             $('.edit-label.modal').modal({
@@ -771,7 +772,6 @@ function initWikiForm() {
                         function (data) {
                             preview.innerHTML = '<div class="markdown">' + data + '</div>';
                             emojify.run($('.editor-preview')[0]);
-                            $('.editor-preview').autolink();
                         }
                     );
                 }, 0);
@@ -1549,7 +1549,6 @@ $(document).ready(function () {
             node.append('<a class="anchor" href="#' + name + '"><span class="octicon octicon-link"></span></a>');
         });
     });
-    $('.markdown').autolink();
 
     $('.issue-checkbox').click(function() {
         var numChecked = $('.issue-checkbox').children('input:checked').length;
@@ -1664,8 +1663,11 @@ function selectRange($list, $select, $from) {
 }
 
 $(function () {
-    if ($('.user.signin').length > 0) return;
-    $('form').areYouSure();
+    // Warn users that try to leave a page after entering data into a form.
+    // Except on sign-in pages, and for forms marked as 'ignore-dirty'.
+    if ($('.user.signin').length === 0) {
+      $('form:not(.ignore-dirty)').areYouSure();
+    }
 
     // Parse SSH Key
     $("#ssh-key-content").on('change paste keyup',function(){
