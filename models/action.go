@@ -86,15 +86,15 @@ func assembleKeywordsPattern(words []string) string {
 func init() {
 	// populate with details to find keywords for reference, reopen, close
 	issueKeywordsToFind = []*IssueKeywordsToFind{
-		&IssueKeywordsToFind{
+		{
 			Pattern:           regexp.MustCompile(issueRefRegexpStr),
 			KeywordsFoundMask: KeywordsFoundReference,
 		},
-		&IssueKeywordsToFind{
+		{
 			Pattern:           regexp.MustCompile(assembleKeywordsPattern(issueReopenKeywords)),
 			KeywordsFoundMask: KeywordsFoundReopen,
 		},
-		&IssueKeywordsToFind{
+		{
 			Pattern:           regexp.MustCompile(assembleKeywordsPattern(issueCloseKeywords)),
 			KeywordsFoundMask: KeywordsFoundClose,
 		},
@@ -512,13 +512,13 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, com
 
 			if commitsAreMerged {
 				// take no action if both KeywordsFoundClose and KeywordsFoundOpen are set
-				if (mask & (KeywordsFoundReopen|KeywordsFoundClose)) == KeywordsFoundClose {
+				if (mask & (KeywordsFoundReopen | KeywordsFoundClose)) == KeywordsFoundClose {
 					if issue.RepoID == repo.ID && !issue.IsClosed {
 						if err = issue.ChangeStatus(doer, repo, true); err != nil {
 							return err
 						}
 					}
-				} else if (mask & (KeywordsFoundReopen|KeywordsFoundClose)) == KeywordsFoundReopen {
+				} else if (mask & (KeywordsFoundReopen | KeywordsFoundClose)) == KeywordsFoundReopen {
 					if issue.RepoID == repo.ID && issue.IsClosed {
 						if err = issue.ChangeStatus(doer, repo, false); err != nil {
 							return err

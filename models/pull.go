@@ -784,10 +784,10 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	mode, _ := AccessLevel(pull.Poster, repo)
 
 	var (
-		baseBranch *Branch
-		headBranch *Branch
-		baseCommit *git.Commit
-		headCommit *git.Commit
+		baseBranch  *Branch
+		headBranch  *Branch
+		baseCommit  *git.Commit
+		headCommit  *git.Commit
 		baseGitRepo *git.Repository
 	)
 	if baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch); err != nil {

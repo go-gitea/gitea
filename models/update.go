@@ -299,10 +299,10 @@ func pushUpdate(branch string, opts PushUpdateOptions) (repo *Repository, err er
 			}
 
 			var (
-				baseBranch *Branch
-				headBranch *Branch
-				baseCommit *git.Commit
-				headCommit *git.Commit
+				baseBranch  *Branch
+				headBranch  *Branch
+				baseCommit  *git.Commit
+				headCommit  *git.Commit
 				headGitRepo *git.Repository
 			)
 			if baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch); err != nil {
