@@ -68,17 +68,18 @@
 								<ul class="list">
 									{{if $.Repository.UnitEnabled $.UnitTypeCode}}
 									<li>
-										<a href="{{$.RepoLink}}/archive/{{.TagName}}.zip" rel="nofollow"><i class="octicon octicon-file-zip"></i> {{$.i18n.Tr "repo.release.source_code"}} (ZIP)</a>
+										<a href="{{$.RepoLink}}/archive/{{.TagName}}.zip" rel="nofollow"><strong><i class="octicon octicon-file-zip"></i> {{$.i18n.Tr "repo.release.source_code"}} (ZIP)</strong></a>
 									</li>
 									<li>
-										<a href="{{$.RepoLink}}/archive/{{.TagName}}.tar.gz"><i class="octicon octicon-file-zip"></i> {{$.i18n.Tr "repo.release.source_code"}} (TAR.GZ)</a>
+										<a href="{{$.RepoLink}}/archive/{{.TagName}}.tar.gz"><strong><i class="octicon octicon-file-zip"></i> {{$.i18n.Tr "repo.release.source_code"}} (TAR.GZ)</strong></a>
 									</li>
 									{{end}}
 									{{if .Attachments}}
 									{{range .Attachments}}
 									<li>
 										<a target="_blank" rel="noopener" href="{{AppSubUrl}}/attachments/{{.UUID}}">
-											<span class="ui image octicon octicon-desktop-download" title='{{.Name}}'></span> {{.Name}}
+											<strong><span class="ui image octicon octicon-package" title='{{.Name}}'></span> {{.Name}}</strong>
+											<span class="ui text grey right">{{.MustSize | FileSize}}</span>
 										</a>
 									</li>
 									{{end}}
