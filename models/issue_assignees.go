@@ -77,13 +77,13 @@ func ClearAssigneesByIssue(issue *Issue) (err error) {
 }
 
 // Deletes all assignees who aren't passed via the "assignees" array
-func deleteNotPassedAssignee(issue *Issue, doer *User, assigees []*User) (err error) {
+func deleteNotPassedAssignee(issue *Issue, doer *User, assignees []*User) (err error) {
 	var found bool
 
 	for _, assignee := range issue.Assignees {
 
 		found = false
-		for _, alreadyAssignee := range assigees {
+		for _, alreadyAssignee := range assignees {
 			if assignee.ID == alreadyAssignee.ID {
 				found = true
 				break
@@ -102,17 +102,17 @@ func deleteNotPassedAssignee(issue *Issue, doer *User, assigees []*User) (err er
 }
 
 // MakeAssigneeList concats a string with all names of the assignees. Useful for logs.
-func MakeAssigneeList(issue *Issue) (AssigneeList string, err error) {
+func MakeAssigneeList(issue *Issue) (assigneeList string, err error) {
 	err = issue.loadAssignees(x)
 	if err != nil {
 		return "", err
 	}
 
 	for in, assignee := range issue.Assignees {
-		AssigneeList += assignee.Name
+		assigneeList += assignee.Name
 
 		if len(issue.Assignees) > (in + 1) {
-			AssigneeList += ", "
+			assigneeList += ", "
 		}
 	}
 	return
@@ -207,6 +207,7 @@ func UpdateAPIAssignee(issue *Issue, oneAssignee string, multipleAssignees []str
 		for _, assignee := range multipleAssignees {
 			if assignee == oneAssignee {
 				isDouble = true
+				break
 			}
 		}
 
@@ -249,13 +250,14 @@ func UpdateAPIAssignee(issue *Issue, oneAssignee string, multipleAssignees []str
 func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string) (assigneeIDs []int64, err error) {
 
 	// Keeping the old assigning method for compatibility reasons
-	if len(oneAssignee) > 0 {
+	if oneAssignee != "" {
 
 		// Prevent double adding assignees
 		var isDouble bool
 		for _, assignee := range multipleAssignees {
 			if assignee == oneAssignee {
 				isDouble = true
+				break
 			}
 		}
 
@@ -264,16 +266,8 @@ func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string
 		}
 	}
 
-	// Loop through the assignees
-	if len(multipleAssignees) > 0 {
-		for _, assigneeName := range multipleAssignees {
-			user, err := GetUserByName(assigneeName)
-			if err != nil {
-				return nil, err
-			}
+	// Get the IDs of all assignees
+	assigneeIDs = GetUserIDsByNames(multipleAssignees)
 
-			assigneeIDs = append(assigneeIDs, user.ID)
-		}
-	}
 	return
 }

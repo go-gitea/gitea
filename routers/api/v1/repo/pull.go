@@ -210,26 +210,6 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		milestoneID = milestone.ID
 	}
 
-	/*if len(form.Assignee) > 0 {
-		assigneeUser, err := models.GetUserByName(form.Assignee)
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.Error(422, "", fmt.Sprintf("assignee does not exist: [name: %s]", form.Assignee))
-			} else {
-				ctx.Error(500, "GetUserByName", err)
-			}
-			return
-		}
-
-		assignee, err := repo.GetUserIfHasWriteAccess(assigneeUser.ID)
-		if err != nil {
-			ctx.Error(500, "GetAssigneeByID", err)
-			return
-		}
-
-		assigneeID = assignee.ID
-	}*/
-
 	patch, err := headGitRepo.GetPatch(prInfo.MergeBase, headBranch)
 	if err != nil {
 		ctx.Error(500, "GetPatch", err)

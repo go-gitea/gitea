@@ -849,12 +849,10 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	// Insert the assignees
-	if len(opts.AssigneeIDs) > 0 {
-		for _, assigneeID := range opts.AssigneeIDs {
-			err = opts.Issue.changeAssignee(e, doer, assigneeID)
-			if err != nil {
-				return err
-			}
+	for _, assigneeID := range opts.AssigneeIDs {
+		err = opts.Issue.changeAssignee(e, doer, assigneeID)
+		if err != nil {
+			return err
 		}
 	}
 

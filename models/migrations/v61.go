@@ -112,10 +112,5 @@ func addMultipleAssignees(x *xorm.Engine) error {
 		}
 	}
 
-	err = sess.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return sess.Commit()
 }

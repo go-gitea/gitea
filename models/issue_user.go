@@ -65,6 +65,7 @@ func updateIssueAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (remov
 	for _, assignee := range issue.Assignees {
 		if assignee.ID == assigneeID {
 			toBeDeleted = true
+			break
 		}
 	}
 
