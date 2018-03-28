@@ -159,7 +159,7 @@ var (
 	UseMSSQL      bool
 	UsePostgreSQL bool
 	UseTiDB       bool
-	ShowSQL       bool
+	LogSQL        bool
 
 	// Indexer settings
 	Indexer struct {
@@ -932,7 +932,7 @@ func NewContext() {
 		}
 	}
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
-	ShowSQL = Cfg.Section("database").Key("SHOW_SQL").MustBool(true)
+	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
