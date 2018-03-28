@@ -173,9 +173,9 @@ var migrations = []Migration{
 	// v59 -> v60
 	NewMigration("add merge whitelist for protected branches", addProtectedBranchMergeWhitelist),
 	// v60 -> v61
-	NewMigration("add multiple assignees", addMultipleAssignees),
-	// v60 -> v61
 	NewMigration("add is_fsck_enabled column for repos", addFsckEnabledToRepo),
+	// v61 -> v62
+	NewMigration("add multiple assignees", addMultipleAssignees),
 }
 
 // Migrate database to current version
