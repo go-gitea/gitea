@@ -95,6 +95,13 @@ func NewAttachment(name string, buf []byte, file multipart.File) (_ *Attachment,
 		return nil, fmt.Errorf("Copy: %v", err)
 	}
 
+	// Update file size
+	var fi os.FileInfo
+	if fi, err = fw.Stat(); err != nil {
+		return nil, fmt.Errorf("file size: %v", err)
+	}
+	attach.Size = fi.Size()
+
 	if _, err := x.Insert(attach); err != nil {
 		return nil, err
 	}
