@@ -113,6 +113,9 @@ type RepoSettingForm struct {
 	PullsAllowSquash                 bool
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
+
+	// Admin settings
+	EnableHealthCheck bool
 }
 
 // Validate validates the fields
