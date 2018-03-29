@@ -113,6 +113,9 @@ type RepoSettingForm struct {
 	PullsAllowSquash                 bool
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
+
+	// Admin settings
+	EnableHealthCheck bool
 }
 
 // Validate validates the fields
@@ -129,10 +132,13 @@ func (f *RepoSettingForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
-	Protected       bool
-	EnableWhitelist bool
-	WhitelistUsers  string
-	WhitelistTeams  string
+	Protected            bool
+	EnableWhitelist      bool
+	WhitelistUsers       string
+	WhitelistTeams       string
+	EnableMergeWhitelist bool
+	MergeWhitelistUsers  string
+	MergeWhitelistTeams  string
 }
 
 // Validate validates the fields
