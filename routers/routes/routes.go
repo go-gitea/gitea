@@ -159,7 +159,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
 	// for health check
-	m.Head("/", func() string {
+	m.Head("/", func(ctx *context.Context) string {
+		ctx.Resp.Header().Set("host_type", "gitea")
 		return ""
 	})
 	m.Get("/", ignSignIn, routers.Home)
