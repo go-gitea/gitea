@@ -5,10 +5,10 @@
 package repo
 
 import (
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+
+	api "code.gitea.io/sdk/gitea"
 )
 
 // ListIssueLabels list all the labels of an issue
