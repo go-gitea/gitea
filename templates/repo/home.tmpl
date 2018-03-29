@@ -24,7 +24,7 @@
 			{{end}}
 		</div>
 		<div class="ui repo-topic" id="repo-topic">
-		{{range .Topics}}<div class="ui label teal topic" style="cursor:pointer;">{{.Name}}</div>{{end}}
+		{{range .Topics}}<div class="ui green basic label topic" style="cursor:pointer;">{{.Name}}</div>{{end}}
 		{{if .IsRepositoryAdmin}}<a id="manage_topic" style="cursor:pointer;margin-left:10px;">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
 		</div>
 		{{if .IsRepositoryAdmin}}
@@ -33,7 +33,7 @@
 				<div class="ui fluid multiple search selection dropdown">
 					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
 					{{range .Topics}}
-					<a class="ui label teal transition visible" data-value="{{.Name}}" style="display: inline-block !important;">{{.Name}}<i class="delete icon"></i></a>
+					<a class="ui green basic label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important;">{{.Name}}<i class="delete icon"></i></a>
 					{{end}}
 					<div class="text"></div>
 				</div>
