@@ -2149,7 +2149,7 @@ function initTopicbar() {
                 var topicArray = topics.split(",");
                 var last = viewDiv.children("a").last();
                 for (var i=0;i < topicArray.length; i++) {
-                    $('<div class="ui label teal topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                    $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
                 }
             }
         }).done(function() {
@@ -2166,10 +2166,11 @@ function initTopicbar() {
             transition : 'horizontal flip',
             duration   : 200,
             variation  : false,
-            teal : true
+            blue : true,
+            basic: true,
         },
         className: {
-            label: 'ui label teal'
+            label: 'ui green basic label'
         },
         apiSettings: {
             url: suburl + '/api/v1/topics/search?q={query}',
