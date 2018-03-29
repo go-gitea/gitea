@@ -32,7 +32,7 @@ func TestInitializeLabels(t *testing.T) {
 	ctx := test.MockContext(t, "user2/repo1/labels/initialize")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 2)
-	InitializeLabels(ctx, auth.InitializeLabelsForm{"Default"})
+	InitializeLabels(ctx, auth.InitializeLabelsForm{TemplateName: "Default"})
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 	models.AssertExistsAndLoadBean(t, &models.Label{
 		RepoID: 2,
