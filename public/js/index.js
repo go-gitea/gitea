@@ -2177,7 +2177,6 @@ function initTopicbar() {
             throttle: 500,
             cache: false,
             onResponse: function(res) {
-                console.log(res)
                 var formattedResponse = {
                     success: false,
                     results: new Array(),
