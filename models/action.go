@@ -505,7 +505,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, com
 
 			if (mask & KeywordsFoundReference) == KeywordsFoundReference {
 				message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, c.Message)
-				if err = CreateRefComment(doer, repo, issue, message, c.Sha1); err != nil {
+				if err = CreateCommitRefComment(doer, repo, issue, message, c.Sha1); err != nil {
 					return err
 				}
 			}

@@ -127,7 +127,8 @@ type Comment struct {
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 
-	// Reference issue in commit message
+	// Reference issue in commit message, comments, issues, or pull requests
+	// the commit SHA for commit refs otherwise a SHA of a unique reference identifier
 	CommitSHA string `xorm:"VARCHAR(40)"`
 
 	Attachments []*Attachment `xorm:"-"`
@@ -862,17 +863,17 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 	})
 }
 
-// CreateRefComment creates a commit reference comment to issue.
-func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commitSHA string) error {
-	if len(commitSHA) == 0 {
-		return fmt.Errorf("cannot create reference with empty commit SHA")
+// createRefComment creates a commit, comment, issue, or pull request reference comment to issue.
+func createRefComment(doer *User, repo *Repository, issue *Issue, content, refSHA string, commentType CommentType) error {
+	if len(refSHA) == 0 {
+		return fmt.Errorf("cannot create reference with empty SHA")
 	}
 
-	// Check if same reference from same commit has already existed.
+	// Check if same reference from same issue and comment has already existed.
 	has, err := x.Get(&Comment{
-		Type:      CommentTypeCommitRef,
+		Type:      commentType,
 		IssueID:   issue.ID,
-		CommitSHA: commitSHA,
+		CommitSHA: refSHA,
 	})
 	if err != nil {
 		return fmt.Errorf("check reference comment: %v", err)
@@ -881,14 +882,34 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 	}
 
 	_, err = CreateComment(&CreateCommentOptions{
-		Type:      CommentTypeCommitRef,
+		Type:      commentType,
 		Doer:      doer,
 		Repo:      repo,
 		Issue:     issue,
-		CommitSHA: commitSHA,
+		CommitSHA: refSHA,
 		Content:   content,
 	})
 	return err
+}
+
+// CreateCommitRefComment creates a commit reference comment to issue.
+func CreateCommitRefComment(doer *User, repo *Repository, issue *Issue, content, commitSHA string) error {
+	return createRefComment(doer, repo, issue, content, commitSHA, CommentTypeCommitRef)
+}
+
+// CreateCommentRefComment creates a comment reference comment to issue.
+func CreateCommentRefComment(doer *User, repo *Repository, issue *Issue, content, refSHA string) error {
+	return createRefComment(doer, repo, issue, content, refSHA, CommentTypeCommentRef)
+}
+
+// CreateIssueRefComment creates a comment reference comment to issue.
+func CreateIssueRefComment(doer *User, repo *Repository, issue *Issue, content, refSHA string) error {
+	return createRefComment(doer, repo, issue, content, refSHA, CommentTypeIssueRef)
+}
+
+// CreatePullRefComment creates a comment reference comment to issue.
+func CreatePullRefComment(doer *User, repo *Repository, issue *Issue, content, refSHA string) error {
+	return createRefComment(doer, repo, issue, content, refSHA, CommentTypePullRef)
 }
 
 // GetCommentByID returns the comment by given ID.
