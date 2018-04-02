@@ -483,6 +483,67 @@ func findIssueReferencesInString(message string, repo *Repository) (map[int64]Ke
 	return refs, nil
 }
 
+// UpdateIssuesComment checks if issues are manipulated by a comment
+func UpdateIssuesComment(doer *User, repo *Repository, commentIssue *Issue, comment *Comment, canOpenClose bool) error {
+	var refString string
+	if comment != nil {
+		refString = comment.Content
+	} else {
+		refString = commentIssue.Title + ": " + commentIssue.Content
+	}
+
+	refs, err := findIssueReferencesInString(refString, repo)
+	if err != nil {
+		return err
+	}
+
+	for id, mask := range refs {
+		issue, err := GetIssueByID(id)
+		if err != nil {
+			return err
+		}
+		if issue == nil || issue.ID == commentIssue.ID {
+			continue
+		}
+
+		if (mask & KeywordsFoundReference) == KeywordsFoundReference {
+			uniqueID := fmt.Sprintf("%d", commentIssue.ID)
+			if comment != nil {
+				uniqueID += fmt.Sprintf("@%d", comment.ID)
+			}
+
+			if comment != nil {
+				err = CreateCommentRefComment(doer, repo, issue, fmt.Sprintf(`%d`, comment.ID), base.EncodeSha1(uniqueID))
+			} else if commentIssue.IsPull {
+				err = CreatePullRefComment(doer, repo, issue, fmt.Sprintf(`%d`, commentIssue.ID), base.EncodeSha1(uniqueID))
+			} else {
+				err = CreateIssueRefComment(doer, repo, issue, fmt.Sprintf(`%d`, commentIssue.ID), base.EncodeSha1(uniqueID))
+			}
+			if err != nil {
+				return err
+			}
+		}
+
+		if canOpenClose {
+			// take no action if both KeywordsFoundClose and KeywordsFoundOpen are set
+			if (mask & (KeywordsFoundReopen | KeywordsFoundClose)) == KeywordsFoundClose {
+				if issue.RepoID == repo.ID && !issue.IsClosed {
+					if err = issue.ChangeStatus(doer, repo, true); err != nil {
+						return err
+					}
+				}
+			} else if (mask & (KeywordsFoundReopen | KeywordsFoundClose)) == KeywordsFoundReopen {
+				if issue.RepoID == repo.ID && issue.IsClosed {
+					if err = issue.ChangeStatus(doer, repo, false); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
 func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, commitsAreMerged bool) error {
 	// Commits are appended in the reverse order.
