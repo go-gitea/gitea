@@ -335,8 +335,8 @@ func pushUpdate(branch string, opts PushUpdateOptions) (repo *Repository, err er
 			}
 
 			commits := ListToPushCommits(l)
-			if err = UpdatePullRequestAction(pusher, pr.BaseRepo, pr.Issue, commits); err != nil {
-				log.Error(4, "UpdatePullRequestAction [%d]: %v", pr.ID, err)
+			if err = CommitPullRequestAction(pusher, pr.BaseRepo, commits); err != nil {
+				log.Error(4, "CommitPullRequestAction [%d]: %v", pr.ID, err)
 				continue
 			}
 		}

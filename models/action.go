@@ -787,8 +787,8 @@ func NewPullRequestAction(doer *User, repo *Repository, pull *Issue, commits *Pu
 	return nil
 }
 
-// UpdatePullRequestAction adds new action for updating or merging a pull request.
-func UpdatePullRequestAction(doer *User, repo *Repository, pull *Issue, commits *PushCommits) error {
+// CommitPullRequestAction adds new action for pushed commits tracked by a pull request.
+func CommitPullRequestAction(doer *User, repo *Repository, commits *PushCommits) error {
 	if err := UpdateIssuesCommit(doer, repo, commits.Commits, false); err != nil {
 		log.Error(4, "UpdateIssuesCommit: %v", err)
 	}
