@@ -81,7 +81,20 @@
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}</span>
 		</div>
-	{{else if eq .Type 4}}
+	{{else if and (eq .Type 3) .RefExists}}
+		<div class="event">
+			<span class="octicon octicon-bookmark"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.issue_ref_at" .EventTag $createdStr | Safe}}</span>
+
+			<div class="detail">
+				<span class="octicon octicon-issue-opened"></span>
+				<span class="text grey"><a href="{{.RefURL}}"><span class="title has-emoji">{{.RefIssue.Title | Escape}}</span> (#{{.RefIssue.Index}})</a></span>
+			</div>
+		</div>
+	{{else if and (eq .Type 4) .RefExists}}
 		<div class="event">
 			<span class="octicon octicon-bookmark"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
@@ -91,7 +104,33 @@
 
 			<div class="detail">
 				<span class="octicon octicon-git-commit"></span>
-				<span class="text grey">{{.Content | Str2html}}</span>
+				<span class="text grey"><a href="{{.RefURL}}"><span class="title has-emoji">{{.RefMessage | Escape}}</span> ({{ShortSha .CommitSHA}})</a></span>
+			</div>
+		</div>
+	{{else if and (eq .Type 5) .RefExists}}
+		<div class="event">
+			<span class="octicon octicon-bookmark"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.comment_ref_at" .EventTag $createdStr | Safe}}</span>
+
+			<div class="detail">
+				<span class="octicon octicon-comment-discussion"></span>
+				<span class="text grey"><a href="{{.RefURL}}"><span class="title has-emoji">{{.RefIssue.Title | Escape}}</span> (#{{.RefIssue.Index}})</a></span>
+			</div>
+		</div>
+	{{else if and (eq .Type 6) .RefExists}}
+		<div class="event">
+			<span class="octicon octicon-bookmark"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.pull_ref_at" .EventTag $createdStr | Safe}}</span>
+
+			<div class="detail">
+				<span class="octicon octicon-git-pull-request"></span>
+				<span class="text grey"><a href="{{.RefURL}}"><span class="title has-emoji">{{.RefIssue.Title | Escape}}</span> (#{{.RefIssue.Index}})</a></span>
 			</div>
 		</div>
 	{{else if eq .Type 7}}

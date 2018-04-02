@@ -725,6 +725,10 @@ func ViewIssue(ctx *context.Context) {
 			if !isAdded && !issue.IsPoster(comment.Poster.ID) {
 				participants = append(participants, comment.Poster)
 			}
+		} else if comment.Type == models.CommentTypeIssueRef || comment.Type == models.CommentTypeCommitRef || comment.Type == models.CommentTypeCommentRef || comment.Type == models.CommentTypePullRef {
+			if err = comment.LoadReference(); err != nil {
+				continue
+			}
 		} else if comment.Type == models.CommentTypeLabel {
 			if err = comment.LoadLabel(); err != nil {
 				ctx.ServerError("LoadLabel", err)
