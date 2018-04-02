@@ -778,6 +778,10 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 
 	if opts.Type == CommentTypeComment {
 		UpdateIssueIndexer(opts.Issue.ID)
+
+		if err = CreateOrUpdateCommentAction(comment.Poster, opts.Repo, opts.Issue, comment); err != nil {
+			return nil, err
+		}
 	}
 	return comment, nil
 }
@@ -1002,6 +1006,15 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 		return err
 	} else if c.Type == CommentTypeComment {
 		UpdateIssueIndexer(c.IssueID)
+
+		issue, err := GetIssueByID(c.IssueID)
+		if err != nil {
+			return err
+		}
+
+		if err = CreateOrUpdateCommentAction(c.Poster, issue.Repo, issue, c); err != nil {
+			return err
+		}
 	}
 
 	if err := c.LoadIssue(); err != nil {

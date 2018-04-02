@@ -810,6 +810,10 @@ func MergePullRequestAction(doer *User, repo *Repository, pull *Issue, commits *
 		log.Error(4, "UpdateIssuesCommit: %v", err)
 	}
 
+	if err := UpdateIssuesComment(doer, repo, pull, nil, true); err != nil {
+		log.Error(4, "UpdateIssuesCommit: %v", err)
+	}
+
 	if err := notifyWatchers(x, &Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -828,6 +832,10 @@ func MergePullRequestAction(doer *User, repo *Repository, pull *Issue, commits *
 // NewPullRequestAction adds new action for creating a new pull request.
 func NewPullRequestAction(doer *User, repo *Repository, pull *Issue, commits *PushCommits) error {
 	if err := UpdateIssuesCommit(doer, repo, commits.Commits, false); err != nil {
+		log.Error(4, "UpdateIssuesCommit: %v", err)
+	}
+
+	if err := UpdateIssuesComment(doer, repo, pull, nil, false); err != nil {
 		log.Error(4, "UpdateIssuesCommit: %v", err)
 	}
 
@@ -853,6 +861,30 @@ func CommitPullRequestAction(doer *User, repo *Repository, commits *PushCommits)
 	if err := UpdateIssuesCommit(doer, repo, commits.Commits, false); err != nil {
 		log.Error(4, "UpdateIssuesCommit: %v", err)
 	}
+
+	// no action added
+
+	return nil
+}
+
+// CreateOrUpdateCommentAction adds new action when creating or updating a comment.
+func CreateOrUpdateCommentAction(doer *User, repo *Repository, issue *Issue, comment *Comment) error {
+	if err := UpdateIssuesComment(doer, repo, issue, comment, false); err != nil {
+		log.Error(4, "UpdateIssuesComment: %v", err)
+	}
+
+	// no action added
+
+	return nil
+}
+
+// CreateOrUpdateIssueAction adds new action when creating a new issue or pull request.
+func CreateOrUpdateIssueAction(doer *User, repo *Repository, issue *Issue) error {
+	if err := UpdateIssuesComment(doer, repo, issue, nil, false); err != nil {
+		log.Error(4, "UpdateIssuesComment: %v", err)
+	}
+
+	// no action added
 
 	return nil
 }

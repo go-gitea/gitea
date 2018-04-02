@@ -829,6 +829,10 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 		go HookQueue.Add(issue.RepoID)
 	}
 
+	if err = CreateOrUpdateIssueAction(doer, issue.Repo, issue); err != nil {
+		return fmt.Errorf("CreateOrUpdateIssueAction: %v", err)
+	}
+
 	return nil
 }
 
@@ -892,6 +896,10 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		log.Error(4, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	} else {
 		go HookQueue.Add(issue.RepoID)
+	}
+
+	if err = CreateOrUpdateIssueAction(doer, issue.Repo, issue); err != nil {
+		return fmt.Errorf("CreateOrUpdateIssueAction: %v", err)
 	}
 
 	return nil
@@ -1067,6 +1075,10 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 	}
 
 	UpdateIssueIndexer(issue.ID)
+
+	if err = CreateOrUpdateIssueAction(issue.Poster, issue.Repo, issue); err != nil {
+		return fmt.Errorf("CreateOrUpdateIssueAction: %v", err)
+	}
 
 	if err = NotifyWatchers(&Action{
 		ActUserID: issue.Poster.ID,
