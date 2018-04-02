@@ -20,6 +20,7 @@ import (
 
 	api "code.gitea.io/sdk/gitea"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/util"
@@ -128,6 +129,11 @@ type Comment struct {
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message, comments, issues, or pull requests
+	RefExists  bool
+	RefIssue   *Issue
+	RefComment *Comment
+	RefMessage string
+	RefURL     string
 	// the commit SHA for commit refs otherwise a SHA of a unique reference identifier
 	CommitSHA string `xorm:"VARCHAR(40)"`
 
@@ -262,6 +268,105 @@ func (c *Comment) HashTag() string {
 // EventTag returns unique event hash tag for comment.
 func (c *Comment) EventTag() string {
 	return "event-" + com.ToStr(c.ID)
+}
+
+// LoadReference if comment.Type is CommentType{Issue,Commit,Comment,Pull}Ref, then load RefIssue, RefComment
+func (c *Comment) LoadReference() error {
+	if c.Type == CommentTypeIssueRef || c.Type == CommentTypePullRef {
+		issueID := int64(0)
+		n, err := fmt.Sscanf(c.Content, "%d", &issueID)
+		if err != nil {
+			return err
+		}
+
+		if n == 1 {
+			refIssue, err := GetIssueByID(issueID)
+			if err != nil {
+				return err
+			}
+
+			pullOrIssue := "issues"
+			if refIssue.IsPull {
+				pullOrIssue = "pulls"
+			}
+
+			c.RefIssue = refIssue
+			c.RefURL = fmt.Sprintf("%s/%s/%d", refIssue.Repo.Link(), pullOrIssue, refIssue.Index)
+			c.RefExists = true
+		}
+	} else if c.Type == CommentTypeCommitRef {
+		if strings.HasPrefix(c.Content, `<a href="`) && strings.HasSuffix(c.Content, `</a>`) {
+			// this is an old style commit ref
+			content := strings.TrimSuffix(strings.TrimPrefix(c.Content, `<a href="`), `</a>`)
+			contentParts := strings.SplitN(content, `">`, 2)
+
+			if len(contentParts) == 2 {
+				c.RefURL = contentParts[0]
+				c.RefMessage = contentParts[1]
+				c.RefExists = true
+			}
+		} else {
+			// this is a new style commit ref
+			contentParts := strings.SplitN(c.Content, " ", 2)
+			if len(contentParts) == 2 {
+				repoID := int64(0)
+				n, err := fmt.Sscanf(contentParts[0], "%d", &repoID)
+				if err != nil {
+					return err
+				}
+
+				if n == 1 {
+					refRepo, err := GetRepositoryByID(repoID)
+					if err != nil {
+						return err
+					}
+
+					gitRepo, err := git.OpenRepository(refRepo.RepoPath())
+					if err != nil {
+						return err
+					}
+
+					refCommit, err := gitRepo.GetCommit(contentParts[1][:40])
+					if err != nil {
+						return err
+					}
+
+					c.RefURL = fmt.Sprintf("%s/commit/%s", refRepo.Link(), refCommit.ID.String())
+					c.RefMessage = refCommit.CommitMessage
+					c.RefExists = true
+				}
+			}
+		}
+	} else if c.Type == CommentTypeCommentRef {
+		commentID := int64(0)
+		n, err := fmt.Sscanf(c.Content, "%d", &commentID)
+		if err != nil {
+			return err
+		}
+
+		if n == 1 {
+			refComment, err := GetCommentByID(commentID)
+			if err != nil {
+				return err
+			}
+
+			refIssue, err := GetIssueByID(refComment.IssueID)
+			if err != nil {
+				return err
+			}
+
+			pullOrIssue := "issues"
+			if refIssue.IsPull {
+				pullOrIssue = "pulls"
+			}
+
+			c.RefIssue = refIssue
+			c.RefComment = refComment
+			c.RefURL = fmt.Sprintf("%s/%s/%d#%s", refIssue.Repo.Link(), pullOrIssue, refIssue.Index, refComment.HashTag())
+			c.RefExists = true
+		}
+	}
+	return nil
 }
 
 // LoadLabel if comment.Type is CommentTypeLabel, then load Label
