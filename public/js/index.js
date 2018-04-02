@@ -727,6 +727,70 @@ function initRepository() {
     }
 }
 
+function initPullRequestReview() {
+    if ($('.repository.pull.diff').length == 0) {
+        return;
+    }
+
+    $('.diff-detail-box.ui.sticky').sticky();
+
+    $('.btn-review').on('click', function(e) {
+        e.preventDefault();
+        $(this).closest('.dropdown').find('.menu').toggle('visible');
+    });
+
+    $('.code-view .lines-code,.code-view .lines-num')
+        .on('mouseenter', function() {
+            var parent = $(this).closest('td');
+            $(this).closest('tr').addClass(
+                parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old')
+                    ? 'focus-lines-old' : 'focus-lines-new'
+            );
+        })
+        .on('mouseleave', function() {
+            $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
+        });
+    $('.add-code-comment').on('click', function(e) {
+        e.preventDefault();
+        var isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
+        var side = $(this).data('side');
+        var idx = $(this).data('idx');
+        var form = $('#pull_review_add_comment').html();
+        var tr = $(this).closest('tr');
+        var ntr = tr.next();
+        if (!ntr.hasClass('add-comment')) {
+            ntr = $('<tr class="add-comment">'
+                    + (isSplit ? '<td class="lines-num"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="add-comment-right"></td>'
+                               : '<td class="lines-num"></td><td class="lines-num"></td><td class="add-comment-left add-comment-right"></td>')
+                    + '</tr>');
+            tr.after(ntr);
+        }
+        var td = ntr.find('.add-comment-' + side);
+        var commentCloud = td.find('.comment-code-cloud');
+        if (commentCloud.length === 0) {
+            td.html(form);
+            commentCloud = td.find('.comment-code-cloud');
+
+            var id = Math.floor(Math.random() * Math.floor(1000000));
+            var menu = commentCloud.find('.menu');
+            menu.attr('data-write', menu.attr('data-write') + id);
+            menu.attr('data-preview', menu.attr('data-preview') + id);
+            menu.find('.item').each(function(i, item) {
+                $(item).attr('data-tab', $(item).attr('data-tab') + id);
+            });
+            commentCloud.find('.tab.segment').each(function(i, item) {
+                $(item).attr('data-tab', $(item).attr('data-tab') + id);
+            });
+
+            initCommentPreviewTab(commentCloud.find('.form'));
+        }
+        commentCloud.find('textarea').focus();
+
+
+        //alert($(this).data('side') + $(this).data('idx'));
+    });
+}
+
 function initRepositoryCollaboration() {
     console.log('initRepositoryCollaboration');
 
@@ -1609,6 +1673,7 @@ $(document).ready(function () {
     initCtrlEnterSubmit();
     initNavbarContentToggle();
     initTopicbar();
+    initPullRequestReview();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {

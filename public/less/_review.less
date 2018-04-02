@@ -1,0 +1,94 @@
+.ui.button.add-code-comment {
+    font-size: 14px;
+    height: 16px;
+    padding: 0;
+    padding-top: 2px;
+    position: absolute;
+    width: 16px;
+    display: none;
+
+    &:hover {
+        font-size:16px;
+        margin-top: -2px;
+        margin-left: -2px;
+        height: 20px;
+        width: 20px;
+    }
+}
+
+.focus-lines-new .ui.button.add-code-comment.add-code-comment-right,
+.focus-lines-old .ui.button.add-code-comment.add-code-comment-left {
+    display: inline-block;
+}
+
+.comment-code-cloud {
+    padding: 4px;
+    margin: 0 auto;
+    position: relative;
+    border: 1px solid #f1f1f1;
+    margin-top: 13px;
+    margin-right: 10px;
+    margin-bottom: 5px;
+
+    &:before {
+        content: " ";
+        width: 0;
+        height: 0;
+        border-left: 13px solid transparent;
+        border-right: 13px solid transparent;
+        border-bottom: 13px solid #f1f1f1;
+        left: 20px;
+        position: absolute;
+        top: -13px;
+    }
+
+    .attached.tab {
+        border: none;
+        padding: 0;
+        margin: 0;
+
+        &.markdown {
+            padding: 1em;
+            min-height: 168px;
+        }
+    }
+
+    .right.menu.options .item {
+        padding: 0.85714286em 0.442857em;
+        cursor: pointer;
+    }
+
+    .ui.form textarea {
+        border: 0px;
+    }
+
+    .ui.attached.tabular.menu {
+        background: #f7f7f7;
+        border: 1px solid #d4d4d5;
+        padding-top: 5px;
+        padding-left: 5px;
+        margin-top: 0px;
+    }
+
+    .footer {
+        border-top: 1px solid #f1f1f1;
+        margin-top: 10px;
+
+        .markdown-info {
+            display: inline-block;
+            margin: 5px 0;
+            font-size: 12px;
+            color: rgba(0,0,0,.6)
+        }
+
+        .ui.right.floated {
+            padding-top: 6px;
+        }
+
+        &:after{
+            clear: both;
+            content: "";
+            display: block;
+        }
+    }
+}

@@ -1,0 +1,26 @@
+<div class="ui top right pointing dropdown custom">
+	<div class="ui tiny green button btn-review">
+		<span class="text">{{.i18n.Tr "repo.diff.review"}}</span>
+		<i class="dropdown icon"></i>
+	</div>
+	<div class="menu">
+		<div class="ui clearing segment">
+			<form class="ui form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<div class="ui right floated">
+					<a href="#" class="close"><i class="icon close"></i></a>
+				</div>
+				<div class="header">
+					{{$.i18n.Tr "repo.diff.review.header"}}
+				</div>
+				<div class="ui field">
+					<textarea name="comment" tabindex="0" rows="2" placeholder="{{$.i18n.Tr "repo.diff.review.placeholder"}}"></textarea>
+				</div>
+				<div class="ui divider"></div>
+				<div class="ui submit green tiny button btn-submit">{{$.i18n.Tr "repo.diff.review.approve"}}</div>
+				<div class="ui submit tiny basic button btn-submit">{{$.i18n.Tr "repo.diff.review.comment"}}</div>
+				<div class="ui submit red tiny button btn-submit">{{$.i18n.Tr "repo.diff.review.reject"}}</div>
+			</form>
+		</div>
+	</div>
+</div>
