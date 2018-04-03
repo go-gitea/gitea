@@ -335,7 +335,10 @@ func GetStatistic() (stats Statistic) {
 
 // Ping tests if database is alive
 func Ping() error {
-	return x.Ping()
+	if x != nil {
+		return x.Ping()
+	}
+	return errors.New("database not configured")
 }
 
 // DumpDatabase dumps all data from database according the special database SQL syntax to file system.
