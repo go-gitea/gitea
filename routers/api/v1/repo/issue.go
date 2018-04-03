@@ -9,13 +9,13 @@ import (
 	"net/http"
 	"strings"
 
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	api "code.gitea.io/sdk/gitea"
 )
 
 // ListIssues list the issues of a repository

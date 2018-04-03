@@ -210,6 +210,8 @@ PATH = data/gitea.db
 SQLITE_TIMEOUT = 500
 ; For iterate buffer, default is 50
 ITERATE_BUFFER_SIZE = 50
+; Show the database generated SQL
+LOG_SQL = true
 
 [indexer]
 ISSUE_INDEXER_PATH = indexers/issues.bleve
