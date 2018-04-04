@@ -477,7 +477,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	}
 	if err := models.NewIssue(repo, issue, labelIDs, assigneeIDs, attachments); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
+			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
 		}
 		ctx.ServerError("NewIssue", err)
