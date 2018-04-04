@@ -7,6 +7,7 @@ package repo
 import (
 	"fmt"
 	"strings"
+	"net/http"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
@@ -15,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 
 	api "code.gitea.io/sdk/gitea"
-	"net/http"
 )
 
 // ListPullRequests returns a list of all PRs
