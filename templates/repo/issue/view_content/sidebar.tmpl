@@ -76,11 +76,18 @@
 			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
 				{{range .Assignees}}
-					{{/*
-					{{if .IsChecked}}checked{{end}}
-					 {{if .IsChecked}}octicon-check{{end}}
-					<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?assignee={{.ID}}" data-avatar="{{.RelAvatarLink}}"><img src="{{.RelAvatarLink}}"> {{.Name}}</div>*/}}
-					<a class="item" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}"><span class="octicon"></span><img src="{{.RelAvatarLink}}"> {{.Name}}</a>
+
+					{{$AssigneeID := .ID}}
+					<a class="item{{range $.Issue.Assignees}}
+						{{if eq .ID $AssigneeID}}
+						 checked
+						{{end}}
+					{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
+						<span class="octicon{{range $.Issue.Assignees}}
+						{{if eq .ID $AssigneeID}}
+						 octicon-check
+						{{end}}
+					{{end}}"></span><img src="{{.RelAvatarLink}}"> {{.Name}}</a>
 				{{end}}
 			</div>
 		</div>
