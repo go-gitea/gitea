@@ -6,8 +6,8 @@ package repo
 
 import (
 	"fmt"
-	"strings"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
