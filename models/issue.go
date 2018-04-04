@@ -827,9 +827,11 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			if err != nil {
 				return fmt.Errorf("hasAccess [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
 			}
-			if valid {
-				validAssigneeIDs = append(validAssigneeIDs, assigneeID)
+			if !valid {
+				return ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: opts.Repo.Name}
 			}
+
+			validAssigneeIDs = append(validAssigneeIDs, assigneeID)
 		}
 	}
 
@@ -921,6 +923,9 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		Attachments: uuids,
 		AssigneeIDs: assigneeIDs,
 	}); err != nil {
+		if IsErrUserDoesNotHaveAccessToRepo(err) {
+			return err
+		}
 		return fmt.Errorf("newIssue: %v", err)
 	}
 

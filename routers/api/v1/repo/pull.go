@@ -251,6 +251,10 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	}
 
 	if err := models.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch, assigneeIDs); err != nil {
+		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
+			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
+			return
+		}
 		ctx.Error(500, "NewPullRequest", err)
 		return
 	} else if err := pr.PushToBaseRepo(); err != nil {
