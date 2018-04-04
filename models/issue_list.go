@@ -155,11 +155,38 @@ func (issues IssueList) loadMilestones(e Engine) error {
 }
 
 func (issues IssueList) loadAssignees(e Engine) error {
-	for in := range issues {
-		err := issues[in].loadAssignees(e)
+	if len(issues) == 0 {
+		return nil
+	}
+
+	type AssigneeIssue struct {
+		Assignee      *User           `xorm:"extends"`
+		IssueAssignee *IssueAssignees `xorm:"extends"`
+	}
+
+	var assignees = make(map[int64][]*User, len(issues))
+	rows, err := e.Table("issue_assignees").
+		Join("INNER", "issue", "issue.id = issue_assignees.issue_id").
+		Join("INNER", "user", "user.id = issue_assignees.assignee_id").
+		In("issue.id", issues.getIssueIDs()).
+		Rows(new(AssigneeIssue))
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var assigneeIssue AssigneeIssue
+		err = rows.Scan(&assigneeIssue)
 		if err != nil {
 			return err
 		}
+
+		assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.Assignee)
+	}
+
+	for _, issue := range issues {
+		issue.Assignees = assignees[issue.ID]
 	}
 	return nil
 }
