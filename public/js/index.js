@@ -187,6 +187,7 @@ function initCommentForm() {
         var hasLabelUpdateAction = $listMenu.data('action') == 'update';
 
         $('.' + selector).dropdown('setting', 'onHide', function(){
+            hasLabelUpdateAction = $listMenu.data('action') == 'update'; // Update the var
             if (hasLabelUpdateAction) {
                 location.reload();
             }
@@ -195,13 +196,25 @@ function initCommentForm() {
         $listMenu.find('.item:not(.no-select)').click(function () {
 
             // we don't need the action attribute when updating assignees
-            if (selector == 'select-assignees' && hasLabelUpdateAction) {
+            if (selector == 'select-assignees') {
+
+                // UI magic. We need to do this here, otherwise it would destroy the functionality of
+                // adding/removing labels
+                if ($(this).hasClass('checked')) {
+                    $(this).removeClass('checked');
+                    $(this).find('.octicon').removeClass('octicon-check');
+                } else {
+                    $(this).addClass('checked');
+                    $(this).find('.octicon').addClass('octicon-check');
+                }
+
                 updateIssuesMeta(
                     $listMenu.data('update-url'),
                     "",
                     $listMenu.data('issue-id'),
                     $(this).data('id')
                 );
+                $listMenu.data('action', 'update');
                 return false;
             }
 

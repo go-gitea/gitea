@@ -73,7 +73,7 @@
 				<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
 				<span class="octicon octicon-gear"></span>
 			</span>
-			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
+			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
 				{{range .Assignees}}
 					{{/*
