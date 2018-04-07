@@ -619,8 +619,8 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				// redirect from old URL scheme to new URL scheme
 				ctx.Redirect(path.Join(
 					setting.AppSubURL,
-					strings.TrimSuffix(ctx.Req.URL.String(), ctx.Params("*")),
-					ctx.Repo.BranchNameSubURL(),
+					path.Dir(ctx.Req.URL.String()),
+					strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(ctx.Repo.BranchNameSubURL()),
 					ctx.Repo.TreePath))
 				return
 			}
