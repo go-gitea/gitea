@@ -185,6 +185,93 @@ func Test_getIssueFromRef(t *testing.T) {
 	}
 }
 
+func TestUpdateIssuesCommentIssues(t *testing.T) {
+	for _, canOpenClose := range []bool{false, true} {
+		// if cannot open or close then issue should not change status
+		isOpen := "is_closed!=1"
+		isClosed := "is_closed=1"
+		if !canOpenClose {
+			isClosed = isOpen
+		}
+
+		assert.NoError(t, PrepareTestDatabase())
+		user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+		repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+		repo.Owner = user
+
+		commentIssue := AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 1}).(*Issue)
+		refIssue1 := AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}).(*Issue)
+		refIssue2 := AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 3}).(*Issue)
+
+		commentBean := []*Comment{
+			{
+				Type:      CommentTypeIssueRef,
+				CommitSHA: base.EncodeSha1(fmt.Sprintf("%d", commentIssue.ID)),
+				PosterID:  user.ID,
+				IssueID:   commentIssue.ID,
+			},
+			{
+				Type:      CommentTypeIssueRef,
+				CommitSHA: base.EncodeSha1(fmt.Sprintf("%d", commentIssue.ID)),
+				PosterID:  user.ID,
+				IssueID:   refIssue1.ID,
+			},
+			{
+				Type:      CommentTypeIssueRef,
+				CommitSHA: base.EncodeSha1(fmt.Sprintf("%d", commentIssue.ID)),
+				PosterID:  user.ID,
+				IssueID:   refIssue2.ID,
+			},
+		}
+
+		// test issue/pull request closing multiple issues
+		commentIssue.Title = "close #2"
+		commentIssue.Content = "close #3"
+		AssertNotExistsBean(t, commentBean[0])
+		AssertNotExistsBean(t, commentBean[1])
+		AssertNotExistsBean(t, commentBean[2])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 3}, isOpen)
+		assert.NoError(t, UpdateIssuesComment(user, repo, commentIssue, nil, canOpenClose))
+		AssertNotExistsBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, commentBean[1])
+		AssertExistsAndLoadBean(t, commentBean[2])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isClosed)
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 3}, isClosed)
+		CheckConsistencyFor(t, &Action{})
+
+		// test issue/pull request re-opening multiple issues
+		commentIssue.Title = "reopen #2"
+		commentIssue.Content = "reopen #3"
+		AssertNotExistsBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, commentBean[1])
+		AssertExistsAndLoadBean(t, commentBean[2])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isClosed)
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 3}, isClosed)
+		assert.NoError(t, UpdateIssuesComment(user, repo, commentIssue, nil, canOpenClose))
+		AssertNotExistsBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, commentBean[1])
+		AssertExistsAndLoadBean(t, commentBean[2])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 3}, isOpen)
+		CheckConsistencyFor(t, &Action{})
+
+		// test issue/pull request mixing re-opening and closing issue and self-referencing issue
+		commentIssue.Title = "reopen #2"
+		commentIssue.Content = "close #2 and reference #1"
+		AssertNotExistsBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, commentBean[1])
+		AssertExistsAndLoadBean(t, commentBean[2])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		assert.NoError(t, UpdateIssuesComment(user, repo, commentIssue, nil, canOpenClose))
+		AssertNotExistsBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, commentBean[1])
+		AssertExistsAndLoadBean(t, commentBean[2])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		CheckConsistencyFor(t, &Action{})
+	}
+}
+
 func TestUpdateIssuesCommentComments(t *testing.T) {
 	isOpen := "is_closed!=1"
 
