@@ -185,6 +185,78 @@ func Test_getIssueFromRef(t *testing.T) {
 	}
 }
 
+func TestUpdateIssuesCommentComments(t *testing.T) {
+	isOpen := "is_closed!=1"
+
+	assert.NoError(t, PrepareTestDatabase())
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo.Owner = user
+
+	commentIssue := AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 1}).(*Issue)
+	refIssue1 := AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}).(*Issue)
+	refIssue2 := AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 3}).(*Issue)
+
+	comment := Comment{
+		ID:       123456789,
+		Type:     CommentTypeComment,
+		PosterID: user.ID,
+		Poster:   user,
+		IssueID:  commentIssue.ID,
+		Content:  "this is a comment that mentions #2 and #1 too",
+	}
+
+	commentBean := []*Comment{
+		{
+			Type:      CommentTypeCommentRef,
+			CommitSHA: base.EncodeSha1(fmt.Sprintf("%d@%d", commentIssue.ID, comment.ID)),
+			PosterID:  user.ID,
+			IssueID:   commentIssue.ID,
+		},
+		{
+			Type:      CommentTypeCommentRef,
+			CommitSHA: base.EncodeSha1(fmt.Sprintf("%d@%d", commentIssue.ID, comment.ID)),
+			PosterID:  user.ID,
+			IssueID:   refIssue1.ID,
+		},
+		{
+			Type:      CommentTypeCommentRef,
+			CommitSHA: base.EncodeSha1(fmt.Sprintf("%d@%d", commentIssue.ID, comment.ID)),
+			PosterID:  user.ID,
+			IssueID:   refIssue2.ID,
+		},
+	}
+
+	// test comment referencing issue including self-referencing
+	AssertNotExistsBean(t, commentBean[0])
+	AssertNotExistsBean(t, commentBean[1])
+	AssertNotExistsBean(t, commentBean[2])
+	AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+	AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 3}, isOpen)
+	assert.NoError(t, UpdateIssuesComment(user, repo, commentIssue, &comment, false))
+	AssertNotExistsBean(t, commentBean[0])
+	AssertExistsAndLoadBean(t, commentBean[1])
+	AssertNotExistsBean(t, commentBean[2])
+	AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+	AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 3}, isOpen)
+	CheckConsistencyFor(t, &Action{})
+
+	// test comment updating issue reference
+	comment.Content = "this is a comment that mentions #2 and #3 too"
+	AssertNotExistsBean(t, commentBean[0])
+	AssertExistsAndLoadBean(t, commentBean[1])
+	AssertNotExistsBean(t, commentBean[2])
+	AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+	AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 3}, isOpen)
+	assert.NoError(t, UpdateIssuesComment(user, repo, commentIssue, &comment, false))
+	AssertNotExistsBean(t, commentBean[0])
+	AssertExistsAndLoadBean(t, commentBean[1])
+	AssertExistsAndLoadBean(t, commentBean[2])
+	AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+	AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 3}, isOpen)
+	CheckConsistencyFor(t, &Action{})
+}
+
 func TestUpdateIssuesCommit(t *testing.T) {
 	for _, commitsAreMerged := range []bool{false, true} {
 		// if commits were not merged then issue should not change status
