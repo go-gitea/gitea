@@ -198,6 +198,7 @@ type Repository struct {
 	BaseRepo      *Repository        `xorm:"-"`
 	Size          int64              `xorm:"NOT NULL DEFAULT 0"`
 	IndexerStatus *RepoIndexerStatus `xorm:"-"`
+	IsFsckEnabled bool               `xorm:"NOT NULL DEFAULT true"`
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
@@ -2173,12 +2174,12 @@ func GitFsck() {
 	log.Trace("Doing: GitFsck")
 
 	if err := x.
-		Where("id>0").BufferSize(setting.IterateBufferSize).
+		Where("id>0 AND is_fsck_enabled=?", true).BufferSize(setting.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repo := bean.(*Repository)
 				repoPath := repo.RepoPath()
-				log.Trace(fmt.Sprintf("Running health check for repository %s", repoPath))
+				log.Trace("Running health check on repository %s", repoPath)
 				if err := git.Fsck(repoPath, setting.Cron.RepoHealthCheck.Timeout, setting.Cron.RepoHealthCheck.Args...); err != nil {
 					desc := fmt.Sprintf("Failed to health check repository (%s): %v", repoPath, err)
 					log.Warn(desc)
