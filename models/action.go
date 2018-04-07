@@ -57,9 +57,9 @@ type KeywordsFoundMaskType int
 
 // Possible bitmask types for keywords that can be found.
 const (
-	KeywordsFoundReference KeywordsFoundMaskType = 1 << iota // 1
-	KeywordsFoundReopen                                      // 2
-	KeywordsFoundClose                                       // 4
+	KeywordsFoundReference KeywordsFoundMaskType = 1 << iota // 1 = 1 << 0
+	KeywordsFoundReopen                                      // 2 = 1 << 1
+	KeywordsFoundClose                                       // 4 = 1 << 2
 )
 
 // IssueKeywordsToFind represents a pairing of a pattern to use to find keywords in message and the keywords bitmask value.
@@ -74,16 +74,6 @@ var (
 	issueCloseKeywords  = []string{"close", "closes", "closed", "fix", "fixes", "fixed", "resolve", "resolves", "resolved"}
 	issueReopenKeywords = []string{"reopen", "reopens", "reopened"}
 
-	issueKeywordsToFind []*IssueKeywordsToFind
-)
-
-const issueRefRegexpStr = `(?:\S+/\S=)?#\d+`
-
-func assembleKeywordsPattern(words []string) string {
-	return fmt.Sprintf(`(?i)(?:%s) %s`, strings.Join(words, "|"), issueRefRegexpStr)
-}
-
-func init() {
 	// populate with details to find keywords for reference, reopen, close
 	issueKeywordsToFind = []*IssueKeywordsToFind{
 		{
@@ -99,6 +89,12 @@ func init() {
 			KeywordsFoundMask: KeywordsFoundClose,
 		},
 	}
+)
+
+const issueRefRegexpStr = `(?:\S+/\S=)?#\d+`
+
+func assembleKeywordsPattern(words []string) string {
+	return fmt.Sprintf(`(?i)(?:%s) %s`, strings.Join(words, "|"), issueRefRegexpStr)
 }
 
 // Action represents user operation type and other information to
@@ -492,6 +488,11 @@ func UpdateIssuesComment(doer *User, repo *Repository, commentIssue *Issue, comm
 		refString = commentIssue.Title + ": " + commentIssue.Content
 	}
 
+	uniqueID := fmt.Sprintf("%d", commentIssue.ID)
+	if comment != nil {
+		uniqueID += fmt.Sprintf("@%d", comment.ID)
+	}
+
 	refs, err := findIssueReferencesInString(refString, repo)
 	if err != nil {
 		return err
@@ -507,11 +508,6 @@ func UpdateIssuesComment(doer *User, repo *Repository, commentIssue *Issue, comm
 		}
 
 		if (mask & KeywordsFoundReference) == KeywordsFoundReference {
-			uniqueID := fmt.Sprintf("%d", commentIssue.ID)
-			if comment != nil {
-				uniqueID += fmt.Sprintf("@%d", comment.ID)
-			}
-
 			if comment != nil {
 				err = CreateCommentRefComment(doer, repo, issue, fmt.Sprintf(`%d`, comment.ID), base.EncodeSha1(uniqueID))
 			} else if commentIssue.IsPull {

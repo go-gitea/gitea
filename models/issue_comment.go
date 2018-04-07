@@ -129,11 +129,11 @@ type Comment struct {
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message, comments, issues, or pull requests
-	RefExists  bool
-	RefIssue   *Issue
-	RefComment *Comment
-	RefMessage string
-	RefURL     string
+	RefExists  bool     `xorm:"-"`
+	RefIssue   *Issue   `xorm:"-"`
+	RefComment *Comment `xorm:"-"`
+	RefMessage string   `xorm:"-"`
+	RefURL     string   `xorm:"-"`
 	// the commit SHA for commit refs otherwise a SHA of a unique reference identifier
 	CommitSHA string `xorm:"VARCHAR(40)"`
 
