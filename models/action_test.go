@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -185,52 +186,370 @@ func Test_getIssueFromRef(t *testing.T) {
 }
 
 func TestUpdateIssuesCommit(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	pushCommits := []*PushCommit{
-		{
-			Sha1:           "abcdef1",
-			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user4@example.com",
-			AuthorName:     "User Four",
-			Message:        "start working on #FST-1, #1",
-		},
-		{
-			Sha1:           "abcdef2",
-			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user2@example.com",
-			AuthorName:     "User Two",
-			Message:        "a plain message",
-		},
-		{
-			Sha1:           "abcdef2",
-			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user2@example.com",
-			AuthorName:     "User Two",
-			Message:        "close #2",
-		},
+	for _, commitsAreMerged := range []bool{false, true} {
+		// if commits were not merged then issue should not change status
+		isOpen := "is_closed!=1"
+		isClosed := "is_closed=1"
+		if !commitsAreMerged {
+			isClosed = isOpen
+		}
+
+		assert.NoError(t, PrepareTestDatabase())
+		user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+		repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+		repo.Owner = user
+
+		// test re-open of already open issue
+		pushCommits := []*PushCommit{
+			{
+				Sha1:           "abcdef1",
+				CommitterEmail: "user2@example.com",
+				CommitterName:  "User Two",
+				AuthorEmail:    "user2@example.com",
+				AuthorName:     "User Two",
+				Message:        "reoopen #2",
+			},
+		}
+		commentBean := []*Comment{
+			{
+				Type:      CommentTypeCommitRef,
+				CommitSHA: pushCommits[0].Sha1,
+				PosterID:  user.ID,
+				IssueID:   2,
+			},
+		}
+		AssertNotExistsBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, commitsAreMerged))
+		AssertExistsAndLoadBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		CheckConsistencyFor(t, &Action{})
+
+		// test simultaneous open and close on an already open issue
+		pushCommits = []*PushCommit{
+			{
+				Sha1:           "abcdef2",
+				CommitterEmail: "user2@example.com",
+				CommitterName:  "User Two",
+				AuthorEmail:    "user2@example.com",
+				AuthorName:     "User Two",
+				Message:        "reopen #2 and the close #2",
+			},
+		}
+		commentBean = []*Comment{
+			{
+				Type:      CommentTypeCommitRef,
+				CommitSHA: pushCommits[0].Sha1,
+				PosterID:  user.ID,
+				IssueID:   2,
+			},
+		}
+		AssertNotExistsBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, commitsAreMerged))
+		AssertExistsAndLoadBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		CheckConsistencyFor(t, &Action{})
+
+		// test close of an open issue
+		pushCommits = []*PushCommit{
+			{
+				Sha1:           "abcdef3",
+				CommitterEmail: "user2@example.com",
+				CommitterName:  "User Two",
+				AuthorEmail:    "user2@example.com",
+				AuthorName:     "User Two",
+				Message:        "closes #2",
+			},
+		}
+		commentBean = []*Comment{
+			{
+				Type:      CommentTypeCommitRef,
+				CommitSHA: pushCommits[0].Sha1,
+				PosterID:  user.ID,
+				IssueID:   2,
+			},
+		}
+		AssertNotExistsBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, commitsAreMerged))
+		AssertExistsAndLoadBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isClosed)
+		CheckConsistencyFor(t, &Action{})
+
+		// test close of an already closed issue
+		pushCommits = []*PushCommit{
+			{
+				Sha1:           "abcdef4",
+				CommitterEmail: "user2@example.com",
+				CommitterName:  "User Two",
+				AuthorEmail:    "user2@example.com",
+				AuthorName:     "User Two",
+				Message:        "close #2",
+			},
+		}
+		commentBean = []*Comment{
+			{
+				Type:      CommentTypeCommitRef,
+				CommitSHA: pushCommits[0].Sha1,
+				PosterID:  user.ID,
+				IssueID:   2,
+			},
+		}
+		AssertNotExistsBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isClosed)
+		assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, commitsAreMerged))
+		AssertExistsAndLoadBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isClosed)
+		CheckConsistencyFor(t, &Action{})
+
+		// test simultaneous open and close on a closed issue
+		pushCommits = []*PushCommit{
+			{
+				Sha1:           "abcdef5",
+				CommitterEmail: "user2@example.com",
+				CommitterName:  "User Two",
+				AuthorEmail:    "user2@example.com",
+				AuthorName:     "User Two",
+				Message:        "close #2 and reopen #2",
+			},
+		}
+		commentBean = []*Comment{
+			{
+				Type:      CommentTypeCommitRef,
+				CommitSHA: pushCommits[0].Sha1,
+				PosterID:  user.ID,
+				IssueID:   2,
+			},
+		}
+		AssertNotExistsBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isClosed)
+		assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, commitsAreMerged))
+		AssertExistsAndLoadBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isClosed)
+		CheckConsistencyFor(t, &Action{})
+
+		// test referencing an closed issue
+		pushCommits = []*PushCommit{
+			{
+				Sha1:           "abcdef6",
+				CommitterEmail: "user2@example.com",
+				CommitterName:  "User Two",
+				AuthorEmail:    "user2@example.com",
+				AuthorName:     "User Two",
+				Message:        "for details on how to open, see #2",
+			},
+		}
+		commentBean = []*Comment{
+			{
+				Type:      CommentTypeCommitRef,
+				CommitSHA: pushCommits[0].Sha1,
+				PosterID:  user.ID,
+				IssueID:   2,
+			},
+		}
+		AssertNotExistsBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isClosed)
+		assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, commitsAreMerged))
+		AssertExistsAndLoadBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isClosed)
+		CheckConsistencyFor(t, &Action{})
+
+		// test re-open a closed issue
+		pushCommits = []*PushCommit{
+			{
+				Sha1:           "abcdef7",
+				CommitterEmail: "user2@example.com",
+				CommitterName:  "User Two",
+				AuthorEmail:    "user2@example.com",
+				AuthorName:     "User Two",
+				Message:        "reopens #2",
+			},
+		}
+		commentBean = []*Comment{
+			{
+				Type:      CommentTypeCommitRef,
+				CommitSHA: pushCommits[0].Sha1,
+				PosterID:  user.ID,
+				IssueID:   2,
+			},
+		}
+		AssertNotExistsBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isClosed)
+		assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, commitsAreMerged))
+		AssertExistsAndLoadBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		CheckConsistencyFor(t, &Action{})
+
+		// test referencing an open issue
+		pushCommits = []*PushCommit{
+			{
+				Sha1:           "abcdef8",
+				CommitterEmail: "user2@example.com",
+				CommitterName:  "User Two",
+				AuthorEmail:    "user2@example.com",
+				AuthorName:     "User Two",
+				Message:        "for details on how to close, see #2",
+			},
+		}
+		commentBean = []*Comment{
+			{
+				Type:      CommentTypeCommitRef,
+				CommitSHA: pushCommits[0].Sha1,
+				PosterID:  user.ID,
+				IssueID:   2,
+			},
+		}
+		AssertNotExistsBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, commitsAreMerged))
+		AssertExistsAndLoadBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		CheckConsistencyFor(t, &Action{})
+
+		// test close-then-open commit order
+		pushCommits = []*PushCommit{
+			{
+				Sha1:           "abcdef10",
+				CommitterEmail: "user2@example.com",
+				CommitterName:  "User Two",
+				AuthorEmail:    "user2@example.com",
+				AuthorName:     "User Two",
+				Message:        "reopened #2",
+			},
+			{
+				Sha1:           "abcdef9",
+				CommitterEmail: "user2@example.com",
+				CommitterName:  "User Two",
+				AuthorEmail:    "user2@example.com",
+				AuthorName:     "User Two",
+				Message:        "fixes #2",
+			},
+		}
+		commentBean = []*Comment{
+			{
+				Type:      CommentTypeCommitRef,
+				CommitSHA: pushCommits[0].Sha1,
+				PosterID:  user.ID,
+				IssueID:   2,
+			},
+			{
+				Type:      CommentTypeCommitRef,
+				CommitSHA: pushCommits[1].Sha1,
+				PosterID:  user.ID,
+				IssueID:   2,
+			},
+		}
+		AssertNotExistsBean(t, commentBean[0])
+		AssertNotExistsBean(t, commentBean[1])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, commitsAreMerged))
+		AssertExistsAndLoadBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, commentBean[1])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		CheckConsistencyFor(t, &Action{})
+
+		// test open-then-close commit order
+		pushCommits = []*PushCommit{
+			{
+				Sha1:           "abcdef12",
+				CommitterEmail: "user2@example.com",
+				CommitterName:  "User Two",
+				AuthorEmail:    "user2@example.com",
+				AuthorName:     "User Two",
+				Message:        "resolved #2",
+			},
+			{
+				Sha1:           "abcdef11",
+				CommitterEmail: "user2@example.com",
+				CommitterName:  "User Two",
+				AuthorEmail:    "user2@example.com",
+				AuthorName:     "User Two",
+				Message:        "reopened #2",
+			},
+		}
+		commentBean = []*Comment{
+			{
+				Type:      CommentTypeCommitRef,
+				CommitSHA: pushCommits[0].Sha1,
+				PosterID:  user.ID,
+				IssueID:   2,
+			},
+			{
+				Type:      CommentTypeCommitRef,
+				CommitSHA: pushCommits[1].Sha1,
+				PosterID:  user.ID,
+				IssueID:   2,
+			},
+		}
+		AssertNotExistsBean(t, commentBean[0])
+		AssertNotExistsBean(t, commentBean[1])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, commitsAreMerged))
+		AssertExistsAndLoadBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, commentBean[1])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isClosed)
+		CheckConsistencyFor(t, &Action{})
+
+		// test more complex commit pattern
+		pushCommits = []*PushCommit{
+			{
+				Sha1:           "abcdef15",
+				CommitterEmail: "user2@example.com",
+				CommitterName:  "User Two",
+				AuthorEmail:    "user4@example.com",
+				AuthorName:     "User Four",
+				Message:        "start working on #FST-1, #1",
+			},
+			{
+				Sha1:           "abcdef14",
+				CommitterEmail: "user2@example.com",
+				CommitterName:  "User Two",
+				AuthorEmail:    "user2@example.com",
+				AuthorName:     "User Two",
+				Message:        "reopen #2",
+			},
+			{
+				Sha1:           "abcdef13",
+				CommitterEmail: "user2@example.com",
+				CommitterName:  "User Two",
+				AuthorEmail:    "user2@example.com",
+				AuthorName:     "User Two",
+				Message:        "close #2",
+			},
+		}
+		commentBean = []*Comment{
+			{
+				Type:      CommentTypeCommitRef,
+				CommitSHA: pushCommits[0].Sha1,
+				PosterID:  user.ID,
+				IssueID:   1,
+			},
+			{
+				Type:      CommentTypeCommitRef,
+				CommitSHA: pushCommits[1].Sha1,
+				PosterID:  user.ID,
+				IssueID:   2,
+			},
+			{
+				Type:      CommentTypeCommitRef,
+				CommitSHA: pushCommits[2].Sha1,
+				PosterID:  user.ID,
+				IssueID:   2,
+			},
+		}
+
+		AssertNotExistsBean(t, commentBean[0])
+		AssertNotExistsBean(t, commentBean[1])
+		AssertNotExistsBean(t, commentBean[2])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isClosed)
+		assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, commitsAreMerged))
+		AssertExistsAndLoadBean(t, commentBean[0])
+		AssertExistsAndLoadBean(t, commentBean[1])
+		AssertExistsAndLoadBean(t, commentBean[2])
+		AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: 2}, isOpen)
+		CheckConsistencyFor(t, &Action{})
 	}
-
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	repo.Owner = user
-
-	commentBean := &Comment{
-		Type:      CommentTypeCommitRef,
-		CommitSHA: "abcdef1",
-		PosterID:  user.ID,
-		IssueID:   1,
-	}
-	issueBean := &Issue{RepoID: repo.ID, Index: 2}
-
-	AssertNotExistsBean(t, commentBean)
-	AssertNotExistsBean(t, &Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
-	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, true))
-	AssertExistsAndLoadBean(t, commentBean)
-	AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	CheckConsistencyFor(t, &Action{})
 }
 
 func testCorrectRepoAction(t *testing.T, opts CommitRepoActionOptions, actionBean *Action) {
