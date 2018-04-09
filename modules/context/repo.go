@@ -8,6 +8,7 @@ package context
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"path"
 	"strings"
 
@@ -620,7 +621,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				ctx.Redirect(path.Join(
 					setting.AppSubURL,
 					path.Dir(ctx.Req.URL.String()),
-					strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(ctx.Repo.BranchNameSubURL()),
+					(&url.URL{Path: ctx.Repo.BranchNameSubURL()}).String(),
 					ctx.Repo.TreePath))
 				return
 			}
