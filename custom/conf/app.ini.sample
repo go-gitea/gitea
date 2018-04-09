@@ -301,6 +301,8 @@ DEFAULT_KEEP_EMAIL_PRIVATE = false
 ; Default value for AllowCreateOrganization
 ; New user will have rights set to create organizations depending on this setting
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
+; Enable Timetracking
+ENABLE_TIMETRACKING = true
 ; Default value for EnableTimetracking
 ; Repositories will use timetracking by default depending on this setting
 DEFAULT_ENABLE_TIMETRACKING = true
