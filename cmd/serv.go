@@ -151,13 +151,15 @@ func runServ(c *cli.Context) error {
 		reponame = reponame[:len(reponame)-5]
 	}
 
-	os.Setenv(models.EnvRepoUsername, username)
+	env := map[string]string{}
+
+	env[models.EnvRepoUsername] = username
 	if isWiki {
-		os.Setenv(models.EnvRepoIsWiki, "true")
+		env[models.EnvRepoIsWiki] = "true"
 	} else {
-		os.Setenv(models.EnvRepoIsWiki, "false")
+		env[models.EnvRepoIsWiki] = "false"
 	}
-	os.Setenv(models.EnvRepoName, reponame)
+	env[models.EnvRepoName] = reponame
 
 	repo, err := models.GetRepositoryByOwnerAndName(username, reponame)
 	if err != nil {
@@ -249,8 +251,8 @@ func runServ(c *cli.Context) error {
 					user.Name, repoPath)
 			}
 
-			os.Setenv(models.EnvPusherName, user.Name)
-			os.Setenv(models.EnvPusherID, fmt.Sprintf("%d", user.ID))
+			env[models.EnvPusherName] = user.Name
+			env[models.EnvPusherID] = fmt.Sprintf("%d", user.ID)
 		}
 	}
 
@@ -310,7 +312,11 @@ func runServ(c *cli.Context) error {
 		}
 	}
 
-	os.Setenv(models.ProtectedBranchRepoID, fmt.Sprintf("%d", repo.ID))
+	env[models.ProtectedBranchRepoID] = fmt.Sprintf("%d", repo.ID)
+
+	for key, value := range env {
+		gitcmd.Env = append(gitcmd.Env, fmt.Sprintf("%s=%s", key, value))
+	}
 
 	gitcmd.Dir = setting.RepoRootPath
 	gitcmd.Stdout = os.Stdout
