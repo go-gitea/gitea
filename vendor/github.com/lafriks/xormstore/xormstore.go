@@ -3,11 +3,11 @@ Package xormstore is a XORM backend for gorilla sessions
 
 Simplest form:
 
-	store := xormstore.New(engine, []byte("secret-hash-key"))
+	store, err := xormstore.New(engine, []byte("secret-hash-key"))
 
 All options:
 
-	store := xormstore.NewOptions(
+	store, err := xormstore.NewOptions(
 		engine, // *xorm.Engine
 		xormstore.Options{
 			TableName: "sessions",  // "sessions" is default
@@ -16,15 +16,19 @@ All options:
 		[]byte("secret-hash-key"),      // 32 or 64 bytes recommended, required
 		[]byte("secret-encyption-key")) // nil, 16, 24 or 32 bytes, optional
 
-		// some more settings, see sessions.Options
-		store.SessionOpts.Secure = true
-		store.SessionOpts.HttpOnly = true
-		store.SessionOpts.MaxAge = 60 * 60 * 24 * 60
+	if err != nil {
+		// xormstore can not be initialized
+	}
+
+	// some more settings, see sessions.Options
+	store.SessionOpts.Secure = true
+	store.SessionOpts.HttpOnly = true
+	store.SessionOpts.MaxAge = 60 * 60 * 24 * 60
 
 If you want periodic cleanup of expired sessions:
 
-		quit := make(chan struct{})
-		go store.PeriodicCleanup(1*time.Hour, quit)
+	quit := make(chan struct{})
+	go store.PeriodicCleanup(1*time.Hour, quit)
 
 For more information about the keys see https://github.com/gorilla/securecookie
 
@@ -83,12 +87,12 @@ func (xs *xormSession) TableName() string {
 }
 
 // New creates a new xormstore session
-func New(e *xorm.Engine, keyPairs ...[]byte) *Store {
+func New(e *xorm.Engine, keyPairs ...[]byte) (*Store, error) {
 	return NewOptions(e, Options{}, keyPairs...)
 }
 
 // NewOptions creates a new xormstore session with options
-func NewOptions(e *xorm.Engine, opts Options, keyPairs ...[]byte) *Store {
+func NewOptions(e *xorm.Engine, opts Options, keyPairs ...[]byte) (*Store, error) {
 	st := &Store{
 		e:      e,
 		opts:   opts,
@@ -103,10 +107,12 @@ func NewOptions(e *xorm.Engine, opts Options, keyPairs ...[]byte) *Store {
 	}
 
 	if !st.opts.SkipCreateTable {
-		st.e.Sync2(&xormSession{tableName: st.opts.TableName})
+		if err := st.e.Sync2(&xormSession{tableName: st.opts.TableName}); err != nil {
+			return nil, err
+		}
 	}
 
-	return st
+	return st, nil
 }
 
 // Get returns a session for the given name after adding it to the registry.
