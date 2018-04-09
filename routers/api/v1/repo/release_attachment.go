@@ -5,13 +5,15 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/sdk/gitea"
 	"errors"
 	"net/http"
 	"strings"
+
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
+
+	api "code.gitea.io/sdk/gitea"
 )
 
 // GetReleaseAttachment gets a single attachment of the release
