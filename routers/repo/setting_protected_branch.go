@@ -123,6 +123,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 	c.Data["Users"] = users
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.WhitelistUserIDs), ",")
+	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.MergeWhitelistUserIDs), ",")
 
 	if c.Repo.Owner.IsOrganization() {
 		teams, err := c.Repo.Owner.TeamsWithAccessToRepo(c.Repo.Repository.ID, models.AccessModeWrite)
@@ -132,6 +133,7 @@ func SettingsProtectedBranch(c *context.Context) {
 		}
 		c.Data["Teams"] = teams
 		c.Data["whitelist_teams"] = strings.Join(base.Int64sToStrings(protectBranch.WhitelistTeamIDs), ",")
+		c.Data["merge_whitelist_teams"] = strings.Join(base.Int64sToStrings(protectBranch.MergeWhitelistTeamIDs), ",")
 	}
 
 	c.Data["Branch"] = protectBranch
@@ -166,7 +168,10 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 		protectBranch.EnableWhitelist = f.EnableWhitelist
 		whitelistUsers, _ := base.StringsToInt64s(strings.Split(f.WhitelistUsers, ","))
 		whitelistTeams, _ := base.StringsToInt64s(strings.Split(f.WhitelistTeams, ","))
-		err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, whitelistUsers, whitelistTeams)
+		protectBranch.EnableMergeWhitelist = f.EnableMergeWhitelist
+		mergeWhitelistUsers, _ := base.StringsToInt64s(strings.Split(f.MergeWhitelistUsers, ","))
+		mergeWhitelistTeams, _ := base.StringsToInt64s(strings.Split(f.MergeWhitelistTeams, ","))
+		err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, whitelistUsers, whitelistTeams, mergeWhitelistUsers, mergeWhitelistTeams)
 		if err != nil {
 			ctx.ServerError("UpdateProtectBranch", err)
 			return

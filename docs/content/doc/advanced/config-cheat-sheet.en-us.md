@@ -84,7 +84,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `PROTOCOL`: **http**: \[http, https, fcgi, unix\]
 - `DOMAIN`: **localhost**: Domain name of this server.
-- `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**: Full public URL of Gitea server.
+- `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**:
+   Overwrite the automatically generated public URL.
+   This is useful if the internal and the external URL don't match (e.g. in Docker).
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
    - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
@@ -121,6 +123,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
 - `SSL_MODE`: **disable**: For PostgreSQL only.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
+- `LOG_SQL`: **true**: Log the executed SQL.
 
 ## Indexer (`indexer`)
 
