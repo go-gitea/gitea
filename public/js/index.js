@@ -2193,9 +2193,4 @@ function initTopicbar() {
             },
         },
     });
-
-    $("span.sizer").change(function(){
-        console.log($(this))
-        console.log($(this).text())
-    })
 }
