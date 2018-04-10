@@ -935,7 +935,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 	if err = e.Table("star").Cols("star.repo_id").
 		Where("star.uid = ?", u.ID).Find(&starredRepoIDs); err != nil {
 		return fmt.Errorf("get all stars: %v", err)
-	} else if _, err = e.Decr("num_watches").In("id", starredRepoIDs).Update(new(Repository)); err != nil {
+	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).Update(new(Repository)); err != nil {
 		return fmt.Errorf("decrease repository num_stars: %v", err)
 	}
 	// ***** END: Star *****
