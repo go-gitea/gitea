@@ -1275,3 +1275,18 @@ func IsErrDependenciesLeft(err error) bool {
 func (err ErrDependenciesLeft) Error() string {
 	return fmt.Sprintf("cannot close this issue as it still has open dependencies [issue id: %d]", err.IssueID)
 }
+
+// ErrUnknownDependencyType represents an error where an unknown dependency type was passed
+type ErrUnknownDependencyType struct {
+	Type DependencyType
+}
+
+// IsErrUnknownDependencyType checks if an error is ErrUnknownDependencyType
+func IsErrUnknownDependencyType(err error) bool {
+	_, ok := err.(ErrUnknownDependencyType)
+	return ok
+}
+
+func (err ErrUnknownDependencyType) Error() string {
+	return fmt.Sprintf("unknown dependency type [type: %d]", err.Type)
+}

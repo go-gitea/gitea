@@ -8,6 +8,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"fmt"
 )
 
 // IssueDependency represents an issue dependency
@@ -83,7 +84,7 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 	case DependencyTypeBlocking:
 		err = issueDepExists(sess, dep.ID, issue.ID)
 	default:
-		return
+		return ErrUnknownDependencyType{depType}
 	}
 	if err != nil {
 		if IsErrDependencyExists(err) {
@@ -104,7 +105,7 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 		case DependencyTypeBlocking:
 			issueDepToDelete = IssueDependency{IssueID: dep.ID, DependencyID: issue.ID}
 		default:
-			return
+			return ErrUnknownDependencyType{depType}
 		}
 
 		if _, err := sess.Delete(&issueDepToDelete); err != nil {
