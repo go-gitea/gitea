@@ -2,7 +2,7 @@
 <div class="user forgot password">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
-			<form class="ui form" action="{{.Link}}" method="post">
+			<form class="ui form ignore-dirty" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<h2 class="ui top attached header">
 					{{.i18n.Tr "auth.forgot_password_title"}}

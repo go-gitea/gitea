@@ -172,6 +172,12 @@ var migrations = []Migration{
 	// v58 -> v59
 	NewMigration("add label descriptions", addLabelsDescriptions),
 	// v59 -> v60
+	NewMigration("add merge whitelist for protected branches", addProtectedBranchMergeWhitelist),
+	// v60 -> v61
+	NewMigration("add is_fsck_enabled column for repos", addFsckEnabledToRepo),
+	// v61 -> v62
+	NewMigration("add size column for attachments", addSizeToAttachment),
+	// v62 -> v63
 	NewMigration("add login source id column for public_key table", addLoginSourceIDToPublicKeyTable),
 }
 

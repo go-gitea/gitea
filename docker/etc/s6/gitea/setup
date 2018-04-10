@@ -1,5 +1,7 @@
 #!/bin/bash
 
+/usr/sbin/update-ca-certificates
+
 if [ ! -d /data/git/.ssh ]; then
     mkdir -p /data/git/.ssh
     chmod 700 /data/git/.ssh

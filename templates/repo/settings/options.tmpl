@@ -139,19 +139,20 @@
 						</div>
 					</div>
 					<div class="field {{if (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
-						<div class="field">
-							<div class="ui checkbox">
-								<input name="enable_timetracker" class="enable-system" data-target="#only_contributors" type="checkbox" {{if .Repository.IsTimetrackerEnabled}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.settings.enable_timetracker"}}</label>
+						{{if .Repository.CanEnableTimetracker}}
+							<div class="field">
+								<div class="ui checkbox">
+									<input name="enable_timetracker" class="enable-system" data-target="#only_contributors" type="checkbox" {{if .Repository.IsTimetrackerEnabled}}checked{{end}}>
+									<label>{{.i18n.Tr "repo.settings.enable_timetracker"}}</label>
+								</div>
 							</div>
-						</div>
-						<div class="field {{if not .Repository.IsTimetrackerEnabled}}disabled{{end}}" id="only_contributors">
-							<div class="ui checkbox">
-
-								<input name="allow_only_contributors_to_track_time" type="checkbox" {{if .Repository.AllowOnlyContributorsToTrackTime}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.settings.allow_only_contributors_to_track_time"}}</label>
+							<div class="field {{if not .Repository.IsTimetrackerEnabled}}disabled{{end}}" id="only_contributors">
+								<div class="ui checkbox">
+									<input name="allow_only_contributors_to_track_time" type="checkbox" {{if .Repository.AllowOnlyContributorsToTrackTime}}checked{{end}}>
+									<label>{{.i18n.Tr "repo.settings.allow_only_contributors_to_track_time"}}</label>
+								</div>
 							</div>
-						</div>
+						{{end}}
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
@@ -236,6 +237,29 @@
 			</form>
 		</div>
 
+		{{if .IsAdmin}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "repo.settings.admin_settings"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" method="post">
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="action" value="admin">
+				<div class="field">
+					<div class="ui checkbox">
+						<input name="enable_health_check" type="checkbox" {{if .Repository.IsFsckEnabled}}checked{{end}}>
+						<label>{{.i18n.Tr "repo.settings.admin_enable_health_check"}}</label>
+					</div>
+				</div>
+
+				<div class="ui divider"></div>
+				<div class="field">
+					<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
+				</div>
+			</form>
+		</div>
+		{{end}}
+
 		{{if .IsRepositoryOwner}}
 		<h4 class="ui top attached warning header">
 			{{.i18n.Tr "repo.settings.danger_zone"}}
@@ -302,7 +326,7 @@
 		</div>
 		<div class="content">
 			<div class="ui warning message text left">
-				{{.i18n.Tr "repo.settings.convert_notices_1" | Safe}}
+				{{.i18n.Tr "repo.settings.convert_notices_1"}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
@@ -333,8 +357,8 @@
 		</div>
 		<div class="content">
 			<div class="ui warning message text left">
-				{{.i18n.Tr "repo.settings.transfer_notices_1" | Safe}} <br>
-				{{.i18n.Tr "repo.settings.transfer_notices_2" | Safe}}
+				{{.i18n.Tr "repo.settings.transfer_notices_1"}} <br>
+				{{.i18n.Tr "repo.settings.transfer_notices_2"}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
@@ -371,7 +395,7 @@
 				{{.i18n.Tr "repo.settings.delete_notices_1" | Safe}}<br>
 				{{.i18n.Tr "repo.settings.delete_notices_2" .Repository.FullName | Safe}}
 				{{if .Repository.NumForks}}<br>
-				{{.i18n.Tr "repo.settings.delete_notices_fork_1" | Safe}}
+				{{.i18n.Tr "repo.settings.delete_notices_fork_1"}}
 				{{end}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">

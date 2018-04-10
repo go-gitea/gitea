@@ -229,6 +229,24 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
+	case "admin":
+		if !ctx.User.IsAdmin {
+			ctx.Error(403)
+			return
+		}
+
+		if repo.IsFsckEnabled != form.EnableHealthCheck {
+			repo.IsFsckEnabled = form.EnableHealthCheck
+			if err := models.UpdateRepository(repo, false); err != nil {
+				ctx.ServerError("UpdateRepository", err)
+				return
+			}
+			log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
 	case "convert":
 		if !ctx.Repo.IsOwner() {
 			ctx.Error(404)
