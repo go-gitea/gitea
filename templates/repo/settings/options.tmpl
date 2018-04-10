@@ -326,7 +326,7 @@
 		</div>
 		<div class="content">
 			<div class="ui warning message text left">
-				{{.i18n.Tr "repo.settings.convert_notices_1" | Safe}}
+				{{.i18n.Tr "repo.settings.convert_notices_1"}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
@@ -357,8 +357,8 @@
 		</div>
 		<div class="content">
 			<div class="ui warning message text left">
-				{{.i18n.Tr "repo.settings.transfer_notices_1" | Safe}} <br>
-				{{.i18n.Tr "repo.settings.transfer_notices_2" | Safe}}
+				{{.i18n.Tr "repo.settings.transfer_notices_1"}} <br>
+				{{.i18n.Tr "repo.settings.transfer_notices_2"}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
@@ -395,7 +395,7 @@
 				{{.i18n.Tr "repo.settings.delete_notices_1" | Safe}}<br>
 				{{.i18n.Tr "repo.settings.delete_notices_2" .Repository.FullName | Safe}}
 				{{if .Repository.NumForks}}<br>
-				{{.i18n.Tr "repo.settings.delete_notices_fork_1" | Safe}}
+				{{.i18n.Tr "repo.settings.delete_notices_fork_1"}}
 				{{end}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
