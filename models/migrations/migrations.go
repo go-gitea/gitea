@@ -23,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/vendor/gopkg.in/ini.v1"
 )
 
 const minDBVersion = 4
