@@ -820,7 +820,6 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	// Check for and validate assignees
-	var validAssigneeIDs []int64
 	if len(opts.AssigneeIDs) > 0 {
 		for _, assigneeID := range opts.AssigneeIDs {
 			valid, err := hasAccess(e, assigneeID, opts.Repo, AccessModeWrite)
@@ -830,8 +829,6 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			if !valid {
 				return ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: opts.Repo.Name}
 			}
-
-			validAssigneeIDs = append(validAssigneeIDs, assigneeID)
 		}
 	}
 
