@@ -574,5 +574,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 				})
 			})
 		}, reqAdmin())
+
+		m.Group("/topics", func() {
+			m.Get("/search", repo.TopicSearch)
+		})
 	}, context.APIContexter())
 }

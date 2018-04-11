@@ -516,3 +516,8 @@ type AddTimeManuallyForm struct {
 func (f *AddTimeManuallyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
+
+// SaveTopicForm form for save topics for repository
+type SaveTopicForm struct {
+	Topics []string `binding:"topics;Required;"`
+}
