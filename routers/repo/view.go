@@ -314,6 +314,16 @@ func renderCode(ctx *context.Context) {
 		treeLink += "/" + ctx.Repo.TreePath
 	}
 
+	// Get Topics of this repo
+	topics, err := models.FindTopics(&models.FindTopicOptions{
+		RepoID: ctx.Repo.Repository.ID,
+	})
+	if err != nil {
+		ctx.ServerError("models.FindTopics", err)
+		return
+	}
+	ctx.Data["Topics"] = topics
+
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {

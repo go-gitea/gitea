@@ -5,7 +5,7 @@
 		{{template "base/alert" .}}
 		<div class="ui repo-description">
 			<div id="repo-desc">
-				{{if .Repository.DescriptionHTML}}<span class="description has-emoji">{{.Repository.DescriptionHTML}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
+				{{if .Repository.DescriptionHTML}}<span class="description has-emoji">{{.Repository.DescriptionHTML}}</span>{{else}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
 				<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
 			</div>
 			{{if .RepoSearchEnabled}}
@@ -23,6 +23,27 @@
 				</div>
 			{{end}}
 		</div>
+		<div class="ui repo-topic" id="repo-topic">
+		{{range .Topics}}<div class="ui green basic label topic" style="cursor:pointer;">{{.Name}}</div>{{end}}
+		{{if .IsRepositoryAdmin}}<a id="manage_topic" style="cursor:pointer;margin-left:10px;">{{.i18n.Tr "repo.topic.manage_topics"}}</a>{{end}}
+		</div>
+		{{if .IsRepositoryAdmin}}
+		<div class="ui repo-topic-edit grid" id="topic_edit" >
+			<div class="fourteen wide column">
+				<div class="ui fluid multiple search selection dropdown">
+					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if lt (Add $i 1) (len $.Topics)}},{{end}}{{end}}">
+					{{range .Topics}}
+					<a class="ui green basic label topic transition visible" data-value="{{.Name}}" style="display: inline-block !important;">{{.Name}}<i class="delete icon"></i></a>
+					{{end}}
+					<div class="text"></div>
+				</div>
+			</div>
+			<div class="one wide column">
+				<a class="ui compact button primary" href="javascript:;" id="save_topic"
+				data-link="{{.RepoLink}}/topics">{{.i18n.Tr "repo.topic.done"}}</a>
+			</div>
+		</div>
+		{{end}}
 		{{template "repo/sub_menu" .}}
 		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
 			{{if and .PullRequestCtx.Allowed .IsViewBranch}}
