@@ -142,6 +142,10 @@ var (
 		JWTSecretBytes  []byte `ini:"-"`
 	}
 
+	GitAnnex struct {
+		Enabled bool `ini:"GIT_ANNEX_ENABLED"`
+	}
+
 	// Security settings
 	InstallLock          bool
 	SecretKey            string
@@ -894,6 +898,10 @@ func NewContext() {
 				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
 
 		}
+	}
+
+	if err = sec.MapTo(&GitAnnex); err != nil {
+		log.Fatal(4, "Failed to map GitAnnex settings: %v", err)
 	}
 
 	sec = Cfg.Section("security")

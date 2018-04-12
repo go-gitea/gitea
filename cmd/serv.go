@@ -28,6 +28,7 @@ import (
 const (
 	accessDenied        = "Repository does not exist or you do not have access"
 	lfsAuthenticateVerb = "git-lfs-authenticate"
+	gitAnnexVerb        = "git-annex-shell"
 )
 
 // CmdServ represents the available serv sub-command.
@@ -61,12 +62,12 @@ func setup(logPath string) error {
 	return models.SetEngine()
 }
 
-func parseCmd(cmd string) (string, string) {
-	ss := strings.SplitN(cmd, " ", 2)
-	if len(ss) != 2 {
-		return "", ""
+func parseCmd(cmd string) (string, []string) {
+	parts := strings.Split(cmd, " ")
+	for i := range parts {
+		parts[i] = strings.Trim(parts[i], "'")
 	}
-	return ss[0], strings.Replace(ss[1], "'/", "'", 1)
+	return parts[0], parts[1:]
 }
 
 var (
@@ -75,6 +76,19 @@ var (
 		"git-upload-archive": models.AccessModeRead,
 		"git-receive-pack":   models.AccessModeWrite,
 		lfsAuthenticateVerb:  models.AccessModeNone,
+		gitAnnexVerb:         models.AccessModeNone,
+	}
+	gitAnnexCommands = map[string]models.AccessMode{
+		"commit":     models.AccessModeWrite,
+		"configlist": models.AccessModeRead,
+		"dropkey":    models.AccessModeWrite,
+		"inannex":    models.AccessModeRead,
+		"recvkey":    models.AccessModeWrite,
+		"sendkey":    models.AccessModeRead,
+	}
+	lfsAuthenticateCommands = map[string]models.AccessMode{
+		"upload":   models.AccessModeWrite,
+		"download": models.AccessModeRead,
 	}
 )
 
@@ -120,24 +134,44 @@ func runServ(c *cli.Context) error {
 	}
 
 	verb, args := parseCmd(cmd)
+	repoPath := args[0]
+	expected := 1
+	requestedMode, allowed := allowedCommands[verb]
 
-	var lfsVerb string
-	if verb == lfsAuthenticateVerb {
+	if !allowed {
+		fail("Unknown git command", "Unknown command %s", verb)
+	}
+
+	switch verb {
+	case gitAnnexVerb:
+		if !setting.GitAnnex.Enabled {
+			fail("Unknown git command", "Git-Annex support is disabled")
+		}
+		expected = -1
+		repoPath = strings.Replace(args[1], "/~/", "", 1)
+		args[1] = strings.Replace(args[1], "/~", setting.RepoRootPath, 1)
+		requestedMode, allowed = gitAnnexCommands[args[0]]
+	case lfsAuthenticateVerb:
 		if !setting.LFS.StartServer {
 			fail("Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
 		}
-
-		argsSplit := strings.Split(args, " ")
-		if len(argsSplit) >= 2 {
-			args = strings.TrimSpace(argsSplit[0])
-			lfsVerb = strings.TrimSpace(argsSplit[1])
-		}
+		expected = 2
+		requestedMode, allowed = lfsAuthenticateCommands[args[1]]
 	}
 
-	repoPath := strings.ToLower(strings.Trim(args, "'"))
+	// check we havent been pass extra args
+	if expected > 0 && len(args) != expected {
+		fail("Unknown git command", "Expected %d arguments for %s", expected, verb)
+	}
+
+	if !allowed {
+		fail("Unknown git command", "Unknown subcommand for %s: %s", verb, args[0])
+	}
+
+	repoPath = strings.ToLower(repoPath)
 	rr := strings.SplitN(repoPath, "/", 2)
 	if len(rr) != 2 {
-		fail("Invalid repository path", "Invalid repository path: %v", args)
+		fail("Invalid repository path", "Invalid repository path: %v", repoPath)
 	}
 
 	username := strings.ToLower(rr[0])
@@ -165,21 +199,6 @@ func runServ(c *cli.Context) error {
 			fail(accessDenied, "Repository does not exist: %s/%s", username, reponame)
 		}
 		fail("Internal error", "Failed to get repository: %v", err)
-	}
-
-	requestedMode, has := allowedCommands[verb]
-	if !has {
-		fail("Unknown git command", "Unknown git command %s", verb)
-	}
-
-	if verb == lfsAuthenticateVerb {
-		if lfsVerb == "upload" {
-			requestedMode = models.AccessModeWrite
-		} else if lfsVerb == "download" {
-			requestedMode = models.AccessModeRead
-		} else {
-			fail("Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
-		}
 	}
 
 	// Prohibit push to mirror repositories.
@@ -261,7 +280,7 @@ func runServ(c *cli.Context) error {
 		now := time.Now()
 		claims := jwt.MapClaims{
 			"repo": repo.ID,
-			"op":   lfsVerb,
+			"op":   args[1],
 			"exp":  now.Add(5 * time.Minute).Unix(),
 			"nbf":  now.Unix(),
 		}
@@ -293,16 +312,14 @@ func runServ(c *cli.Context) error {
 
 	// Special handle for Windows.
 	if setting.IsWindows {
-		verb = strings.Replace(verb, "-", " ", 1)
+		parts := strings.SplitN(verb, "-", 2)
+		verb = parts[0]
+		args = append(parts[1:], args...)
 	}
 
 	var gitcmd *exec.Cmd
-	verbs := strings.Split(verb, " ")
-	if len(verbs) == 2 {
-		gitcmd = exec.Command(verbs[0], verbs[1], repoPath)
-	} else {
-		gitcmd = exec.Command(verb, repoPath)
-	}
+	log.GitLogger.Info("Executing: %v %v", verb, args)
+	gitcmd = exec.Command(verb, args...)
 
 	if isWiki {
 		if err = repo.InitWiki(); err != nil {
@@ -317,6 +334,9 @@ func runServ(c *cli.Context) error {
 	gitcmd.Stdin = os.Stdin
 	gitcmd.Stderr = os.Stderr
 	if err = gitcmd.Run(); err != nil {
+		if args[0] == "inannex" {
+			fail("Not present", "")
+		}
 		fail("Internal error", "Failed to execute git command: %v", err)
 	}
 
