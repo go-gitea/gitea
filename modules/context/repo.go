@@ -558,7 +558,6 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 		// Get default branch.
 		if len(ctx.Params("*")) == 0 {
 			refName = ctx.Repo.Repository.DefaultBranch
-			ctx.Repo.BranchName = refName
 			if !ctx.Repo.GitRepo.IsBranchExist(refName) {
 				brs, err := ctx.Repo.GitRepo.GetBranches()
 				if err != nil {
@@ -572,6 +571,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				}
 				refName = brs[0]
 			}
+			ctx.Repo.BranchName = refName
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
 			if err != nil {
 				ctx.ServerError("GetBranchCommit", err)
@@ -579,7 +579,6 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 			}
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 			ctx.Repo.IsViewBranch = true
-
 		} else {
 			refName = getRefName(ctx, refType)
 			ctx.Repo.BranchName = refName
@@ -592,7 +591,6 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-
 			} else if ctx.Repo.GitRepo.IsTagExist(refName) {
 				ctx.Repo.IsViewTag = true
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
