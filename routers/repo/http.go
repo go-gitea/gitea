@@ -184,32 +184,32 @@ func HTTP(ctx *context.Context) {
 					return
 				}
 			}
+		}
 
-			if !isPublicPull {
-				has, err := models.HasAccess(authUser.ID, repo, accessMode)
-				if err != nil {
-					ctx.ServerError("HasAccess", err)
-					return
-				} else if !has {
-					if accessMode == models.AccessModeRead {
-						has, err = models.HasAccess(authUser.ID, repo, models.AccessModeWrite)
-						if err != nil {
-							ctx.ServerError("HasAccess2", err)
-							return
-						} else if !has {
-							ctx.HandleText(http.StatusForbidden, "User permission denied")
-							return
-						}
-					} else {
+		if !isPublicPull {
+			has, err := models.HasAccess(authUser.ID, repo, accessMode)
+			if err != nil {
+				ctx.ServerError("HasAccess", err)
+				return
+			} else if !has {
+				if accessMode == models.AccessModeRead {
+					has, err = models.HasAccess(authUser.ID, repo, models.AccessModeWrite)
+					if err != nil {
+						ctx.ServerError("HasAccess2", err)
+						return
+					} else if !has {
 						ctx.HandleText(http.StatusForbidden, "User permission denied")
 						return
 					}
-				}
-
-				if !isPull && repo.IsMirror {
-					ctx.HandleText(http.StatusForbidden, "mirror repository is read-only")
+				} else {
+					ctx.HandleText(http.StatusForbidden, "User permission denied")
 					return
 				}
+			}
+
+			if !isPull && repo.IsMirror {
+				ctx.HandleText(http.StatusForbidden, "mirror repository is read-only")
+				return
 			}
 		}
 

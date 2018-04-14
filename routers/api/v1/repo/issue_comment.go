@@ -7,10 +7,10 @@ package repo
 import (
 	"time"
 
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+
+	api "code.gitea.io/sdk/gitea"
 )
 
 // ListIssueComments list all the comments of an issue

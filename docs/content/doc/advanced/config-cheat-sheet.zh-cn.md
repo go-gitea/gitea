@@ -80,6 +80,7 @@ menu:
 - `PASSWD`: 数据库用户密码。
 - `SSL_MODE`: PostgreSQL数据库是否启用SSL模式。
 - `PATH`: Tidb 或者 SQLite3 数据文件存放路径。
+- `LOG_SQL`: **true**: 显示生成的SQL，默认为真。
 
 ## Security (`security`)
 

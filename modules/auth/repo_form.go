@@ -113,6 +113,9 @@ type RepoSettingForm struct {
 	PullsAllowSquash                 bool
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
+
+	// Admin settings
+	EnableHealthCheck bool
 }
 
 // Validate validates the fields
@@ -512,6 +515,11 @@ type AddTimeManuallyForm struct {
 // Validate validates the fields
 func (f *AddTimeManuallyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// SaveTopicForm form for save topics for repository
+type SaveTopicForm struct {
+	Topics []string `binding:"topics;Required;"`
 }
 
 // Deadline form
