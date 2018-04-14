@@ -72,10 +72,11 @@ func init() {
 	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
 }
 
-func (i *Issue) AfterLoad() {
-	i.DeadlineString = i.DeadlineUnix.Format("2006-01-02")
-	if util.TimeStampNow() >= i.DeadlineUnix {
-		i.IsOverDue = true
+// AfterLoad formats the unix deadline into a human-readable format
+func (issue *Issue) AfterLoad() {
+	issue.DeadlineString = issue.DeadlineUnix.Format("2006-01-02")
+	if util.TimeStampNow() >= issue.DeadlineUnix {
+		issue.IsOverDue = true
 	}
 }
 

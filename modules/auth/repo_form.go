@@ -522,8 +522,7 @@ type SaveTopicForm struct {
 	Topics []string `binding:"topics;Required;"`
 }
 
-// Deadline form
-
+// DeadlineForm hold the validation rules for deadlines
 type DeadlineForm struct {
 	DateString string `form:"date" binding:"Required;MaxSize(10)"`
 }
