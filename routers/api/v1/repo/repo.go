@@ -501,3 +501,45 @@ func MirrorSync(ctx *context.APIContext) {
 	go models.MirrorQueue.Add(repo.ID)
 	ctx.Status(200)
 }
+
+// TopicSearch search for creating topic
+func TopicSearch(ctx *context.Context) {
+	// swagger:operation GET /topics/search repository topicSearch
+	// ---
+	// summary: search topics via keyword
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: keyword
+	//   in: path
+	//   description: id of the repo to get
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Repository"
+	if ctx.User == nil {
+		ctx.JSON(403, map[string]interface{}{
+			"message": "Only owners could change the topics.",
+		})
+		return
+	}
+
+	kw := ctx.Query("q")
+
+	topics, err := models.FindTopics(&models.FindTopicOptions{
+		Keyword: kw,
+		Limit:   10,
+	})
+	if err != nil {
+		log.Error(2, "SearchTopics failed: %v", err)
+		ctx.JSON(500, map[string]interface{}{
+			"message": "Search topics failed.",
+		})
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"topics": topics,
+	})
+}
