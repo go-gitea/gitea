@@ -5689,6 +5689,11 @@
           "type": "string",
           "x-go-name": "Body"
         },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
+        },
         "head": {
           "type": "string",
           "x-go-name": "Head"
@@ -6088,6 +6093,11 @@
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "labels": {
           "type": "array",
@@ -6774,6 +6784,11 @@
         "diff_url": {
           "type": "string",
           "x-go-name": "DiffURL"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "head": {
           "$ref": "#/definitions/PRBranchInfo"

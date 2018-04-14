@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	api "code.gitea.io/sdk/gitea"
 )
@@ -236,16 +237,23 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		return
 	}
 
+	var deadline util.TimeStamp
+	deadline = util.TimeStamp(0)
+	if form.Deadline != nil {
+		deadline = util.TimeStamp(form.Deadline.Unix())
+	}
+
 	prIssue := &models.Issue{
-		RepoID:      repo.ID,
-		Index:       repo.NextIssueIndex(),
-		Title:       form.Title,
-		PosterID:    ctx.User.ID,
-		Poster:      ctx.User,
-		MilestoneID: milestoneID,
-		AssigneeID:  assigneeID,
-		IsPull:      true,
-		Content:     form.Body,
+		RepoID:       repo.ID,
+		Index:        repo.NextIssueIndex(),
+		Title:        form.Title,
+		PosterID:     ctx.User.ID,
+		Poster:       ctx.User,
+		MilestoneID:  milestoneID,
+		AssigneeID:   assigneeID,
+		IsPull:       true,
+		Content:      form.Body,
+		DeadlineUnix: deadline,
 	}
 	pr := &models.PullRequest{
 		HeadRepoID:   headRepo.ID,
@@ -326,6 +334,12 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	}
 	if len(form.Body) > 0 {
 		issue.Content = form.Body
+	}
+
+	if form.Deadline != nil && !form.Deadline.IsZero() {
+		issue.DeadlineUnix = util.TimeStamp(form.Deadline.Unix())
+	} else {
+		issue.DeadlineUnix = util.TimeStamp(0)
 	}
 
 	if ctx.Repo.IsWriter() && len(form.Assignee) > 0 &&
