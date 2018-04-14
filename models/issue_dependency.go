@@ -94,32 +94,33 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 	}
 
 	// If it exists, remove it
-	if exists {
+	if !exists {
+		return nil
+	}
 
-		var issueDepToDelete IssueDependency
+	var issueDepToDelete IssueDependency
 
-		switch depType {
-		case DependencyTypeBlockedBy:
-			issueDepToDelete = IssueDependency{IssueID: issue.ID, DependencyID: dep.ID}
-		case DependencyTypeBlocking:
-			issueDepToDelete = IssueDependency{IssueID: dep.ID, DependencyID: issue.ID}
-		default:
-			return ErrUnknownDependencyType{depType}
-		}
+	switch depType {
+	case DependencyTypeBlockedBy:
+		issueDepToDelete = IssueDependency{IssueID: issue.ID, DependencyID: dep.ID}
+	case DependencyTypeBlocking:
+		issueDepToDelete = IssueDependency{IssueID: dep.ID, DependencyID: issue.ID}
+	default:
+		return ErrUnknownDependencyType{depType}
+	}
 
-		if _, err := sess.Delete(&issueDepToDelete); err != nil {
-			return err
-		}
+	if _, err := sess.Delete(&issueDepToDelete); err != nil {
+		return err
+	}
 
-		// Add comment referencing the removed dependency
-		if _, err = createIssueDependencyComment(sess, user, issue, dep, false); err != nil {
-			return err
-		}
+	// Add comment referencing the removed dependency
+	if _, err = createIssueDependencyComment(sess, user, issue, dep, false); err != nil {
+		return err
+	}
 
-		// Create a new comment for the dependent issue
-		if _, err = createIssueDependencyComment(sess, user, dep, issue, false); err != nil {
-			return err
-		}
+	// Create a new comment for the dependent issue
+	if _, err = createIssueDependencyComment(sess, user, dep, issue, false); err != nil {
+		return err
 	}
 	return sess.Commit()
 }
