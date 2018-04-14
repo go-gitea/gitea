@@ -1516,8 +1516,6 @@ func UpdateIssue(issue *Issue) error {
 // UpdateIssueDeadline does what it says
 func UpdateIssueDeadline(issue *Issue, doer *User) (err error) {
 
-	// Make the comment
-
 	// Check if the new date was added or modified
 	var actualIssue Issue
 	if _, err := x.ID(issue.ID).Get(&actualIssue); err != nil {
@@ -1530,6 +1528,8 @@ func UpdateIssueDeadline(issue *Issue, doer *User) (err error) {
 	if err = issue.loadRepo(sess); err != nil {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
+
+	// Make the comment
 	if issue.DeadlineUnix == 0 {
 		if _, err = createRemovedDeadlineComment(sess, doer, issue.Repo, issue, actualIssue.DeadlineUnix); err != nil {
 			return fmt.Errorf("createRemovedDueDateComment: %v", err)

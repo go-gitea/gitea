@@ -278,6 +278,9 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	} else {
 		issue.DeadlineUnix = util.TimeStamp(0)
 	}
+	if err := models.UpdateIssueDeadline(issue, ctx.User); err != nil {
+		ctx.Error(500, "UpdateIssueDeadline", err)
+	}
 
 	if ctx.Repo.IsWriter() && form.Assignee != nil &&
 		(issue.Assignee == nil || issue.Assignee.LowerName != strings.ToLower(*form.Assignee)) {

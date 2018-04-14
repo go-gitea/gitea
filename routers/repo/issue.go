@@ -1519,7 +1519,6 @@ func RemoveDeadline(ctx *context.Context) {
 
 	issue.DeadlineUnix = 0
 	if err := models.UpdateIssueDeadline(issue, ctx.User); err != nil {
-		fmt.Println(err)
 		ctx.Flash.Error(ctx.Tr("repo.issues.error_removing_due_date"))
 	}
 
