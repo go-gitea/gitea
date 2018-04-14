@@ -496,11 +496,11 @@ func createAddedDeadlineComment(e *xorm.Session, doer *User, repo *Repository, i
 	date := dateUnix.Format("2006-01-02")
 
 	return createComment(e, &CreateCommentOptions{
-		Type:          CommentTypeAddedDeadline,
-		Doer:          doer,
-		Repo:          repo,
-		Issue:         issue,
-		Content:       date,
+		Type:    CommentTypeAddedDeadline,
+		Doer:    doer,
+		Repo:    repo,
+		Issue:   issue,
+		Content: date,
 	})
 }
 
@@ -509,10 +509,10 @@ func createModifiedDeadlineComment(e *xorm.Session, doer *User, repo *Repository
 	date := dateUnix.Format("2006-01-02")
 
 	return createComment(e, &CreateCommentOptions{
-		Type:          CommentTypeModifiedDeadline,
-		Doer:          doer,
-		Repo:          repo,
-		Issue:         issue,
+		Type:    CommentTypeModifiedDeadline,
+		Doer:    doer,
+		Repo:    repo,
+		Issue:   issue,
 		Content: date,
 	})
 }
@@ -522,10 +522,10 @@ func createRemovedDeadlineComment(e *xorm.Session, doer *User, repo *Repository,
 	date := dateUnix.Format("2006-01-02")
 
 	return createComment(e, &CreateCommentOptions{
-		Type:          CommentTypeRemovedDeadline,
-		Doer:          doer,
-		Repo:          repo,
-		Issue:         issue,
+		Type:    CommentTypeRemovedDeadline,
+		Doer:    doer,
+		Repo:    repo,
+		Issue:   issue,
 		Content: date,
 	})
 }

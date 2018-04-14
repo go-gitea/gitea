@@ -334,6 +334,9 @@ func (issue *Issue) APIFormat() *api.Issue {
 			apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
 		}
 	}
+	if issue.DeadlineUnix != 0 {
+		apiIssue.Deadline = issue.DeadlineUnix.AsTimePtr()
+	}
 
 	return apiIssue
 }
@@ -1537,7 +1540,7 @@ func UpdateIssueDeadline(issue *Issue, doer *User) (err error) {
 			if _, err = createAddedDeadlineComment(sess, doer, issue.Repo, issue, issue.DeadlineUnix); err != nil {
 				return fmt.Errorf("createRemovedDueDateComment: %v", err)
 			}
-		} else {// Otherwise modified
+		} else { // Otherwise modified
 			if _, err = createModifiedDeadlineComment(sess, doer, issue.Repo, issue, issue.DeadlineUnix); err != nil {
 				return fmt.Errorf("createRemovedDueDateComment: %v", err)
 			}

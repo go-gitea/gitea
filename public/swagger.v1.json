@@ -4325,6 +4325,32 @@
         }
       }
     },
+    "/topics/search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "search topics via keyword",
+        "operationId": "topicSearch",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "id of the repo to get",
+            "name": "keyword",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Repository"
+          }
+        }
+      }
+    },
     "/user": {
       "get": {
         "produces": [
@@ -5521,6 +5547,12 @@
           "type": "boolean",
           "x-go-name": "Closed"
         },
+        "due_date": {
+          "description": "deadline",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
+        },
         "labels": {
           "description": "list of label ids",
           "type": "array",
@@ -5962,6 +5994,11 @@
           "type": "string",
           "x-go-name": "Body"
         },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
+        },
         "milestone": {
           "type": "integer",
           "format": "int64",
@@ -6314,6 +6351,11 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "id": {
           "type": "integer",

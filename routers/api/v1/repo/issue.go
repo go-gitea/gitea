@@ -163,12 +163,20 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
+
+	var deadline util.TimeStamp
+	deadline = util.TimeStamp(0)
+	if form.Deadline != nil {
+		deadline = util.TimeStamp(form.Deadline.Unix())
+	}
+
 	issue := &models.Issue{
-		RepoID:   ctx.Repo.Repository.ID,
-		Title:    form.Title,
-		PosterID: ctx.User.ID,
-		Poster:   ctx.User,
-		Content:  form.Body,
+		RepoID:       ctx.Repo.Repository.ID,
+		Title:        form.Title,
+		PosterID:     ctx.User.ID,
+		Poster:       ctx.User,
+		Content:      form.Body,
+		DeadlineUnix: deadline,
 	}
 
 	if ctx.Repo.IsWriter() {
@@ -263,6 +271,12 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	}
 	if form.Body != nil {
 		issue.Content = *form.Body
+	}
+
+	if form.Deadline != nil && !form.Deadline.IsZero() {
+		issue.DeadlineUnix = util.TimeStamp(form.Deadline.Unix())
+	} else {
+		issue.DeadlineUnix = util.TimeStamp(0)
 	}
 
 	if ctx.Repo.IsWriter() && form.Assignee != nil &&
