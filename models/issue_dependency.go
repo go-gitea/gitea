@@ -33,7 +33,7 @@ const (
 func CreateIssueDependency(user *User, issue, dep *Issue) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	if err = sess.Begin(); err != nil {
 		return err
 	}
 
@@ -71,7 +71,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (err error) {
 func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType DependencyType) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	if err = sess.Begin(); err != nil {
 		return err
 	}
 
