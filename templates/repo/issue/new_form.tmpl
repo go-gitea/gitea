@@ -107,8 +107,8 @@
 						<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
 						{{range .Assignees}}
 							<a class="item" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
-								<span class="octicon" style="margin-top: 5px;"></span>
-								<span class="text" style="margin-left: 0.9em;">
+								<span class="octicon"></span>
+								<span class="text">
 									<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.Name}}
 								</span>
 							</a>
@@ -117,13 +117,13 @@
 				</div>
 				<div class="ui assignees list">
 					<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">
-					{{.i18n.Tr "repo.issues.new.no_assignees"}}
+						{{.i18n.Tr "repo.issues.new.no_assignees"}}
 					</span>
-				{{range .Assignees}}
-					<a style="padding: 5px;color:rgba(0, 0, 0, 0.87);" class="hide item" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
-						<img class="ui avatar image" src="{{.RelAvatarLink}}" style="vertical-align: middle;">&nbsp;{{.Name}}
-					</a>
-				{{end}}
+					{{range .Assignees}}
+						<a style="padding: 5px;color:rgba(0, 0, 0, 0.87);" class="hide item" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
+							<img class="ui avatar image" src="{{.RelAvatarLink}}" style="vertical-align: middle;">&nbsp;{{.Name}}
+						</a>
+					{{end}}
 				</div>
 
 			<!-- input id="assignee_ids" name="assignee_ids" type="hidden" value="{{.assignee_id}}">

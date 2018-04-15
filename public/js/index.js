@@ -196,7 +196,7 @@ function initCommentForm() {
         $listMenu.find('.item:not(.no-select)').click(function () {
 
             // we don't need the action attribute when updating assignees
-            if (selector == 'select-assignees') {
+            if (selector == 'select-assignees-modify') {
 
                 // UI magic. We need to do this here, otherwise it would destroy the functionality of
                 // adding/removing labels
@@ -214,7 +214,7 @@ function initCommentForm() {
                     $listMenu.data('issue-id'),
                     $(this).data('id')
                 );
-                $listMenu.data('action', 'update');
+                $listMenu.data('action', 'update'); // Update to reload the page when we updated items
                 return false;
             }
 
@@ -260,7 +260,8 @@ function initCommentForm() {
             return false;
         });
         $listMenu.find('.no-select.item').click(function () {
-            if (hasLabelUpdateAction) {
+            console.log('clear');
+            if (hasLabelUpdateAction || selector == 'select-assignees-modify') {
                 updateIssuesMeta(
                     $listMenu.data('update-url'),
                     "clear",
@@ -279,12 +280,15 @@ function initCommentForm() {
             });
             $noSelect.removeClass('hide');
             $($(this).parent().data('id')).val('');
+
+            $listMenu.data('action', 'update'); // Update to reload the page when we updated items
         });
     }
 
     // Init labels and assignees
     initListSubmits('select-label', 'labels');
     initListSubmits('select-assignees', 'assignees');
+    initListSubmits('select-assignees-modify', 'assignees');
 
     function selectItem(select_id, input_id) {
         var $menu = $(select_id + ' .menu');

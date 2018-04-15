@@ -68,7 +68,7 @@
 		<div class="ui divider"></div>
 
 		<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
-		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-assignees dropdown">
+		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-assignees-modify dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
 				<span class="octicon octicon-gear"></span>
@@ -87,7 +87,11 @@
 						{{if eq .ID $AssigneeID}}
 						 octicon-check
 						{{end}}
-					{{end}}"></span><img src="{{.RelAvatarLink}}"> {{.Name}}</a>
+					{{end}}"></span>
+						<span class="text">
+							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.Name}}
+						</span>
+					</a>
 				{{end}}
 			</div>
 		</div>
