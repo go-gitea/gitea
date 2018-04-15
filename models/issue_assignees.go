@@ -8,8 +8,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/sdk/gitea"
 
+	api "code.gitea.io/sdk/gitea"
 	"github.com/go-xorm/xorm"
 )
 
