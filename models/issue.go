@@ -47,7 +47,6 @@ type Issue struct {
 	Ref             string
 
 	DeadlineUnix   util.TimeStamp `xorm:"INDEX"`
-	DeadlineString string         `xorm:"-"`
 	IsOverDue      bool           `xorm:"-"`
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
@@ -72,9 +71,8 @@ func init() {
 	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
 }
 
-// AfterLoad formats the unix deadline into a human-readable format
+// AfterLoad checks if the issue is overdue and sets the property
 func (issue *Issue) AfterLoad() {
-	issue.DeadlineString = issue.DeadlineUnix.Format("2006-01-02")
 	if util.TimeStampNow() >= issue.DeadlineUnix {
 		issue.IsOverDue = true
 	}
