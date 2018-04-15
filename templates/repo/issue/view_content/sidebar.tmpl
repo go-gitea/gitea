@@ -196,7 +196,12 @@
 		<span class="text"><strong>{{.i18n.Tr "repo.issues.due_date"}}</strong></span>
 		{{if gt .Issue.DeadlineUnix 0}}
 			<p>
-				{{.Issue.DeadlineUnix.FormatShort}} -
+				<span class="octicon octicon-calendar"></span>
+				{{.Issue.DeadlineUnix.FormatShort}}
+				{{if .Issue.IsOverDue}}
+					<span style="color: red;">{{.i18n.Tr "repo.issues.due_date_overdue"}}</span>
+				{{end}}
+				<br/>
 				<a style="cursor:pointer;" onclick="toggleDuedateForm();"><i class="edit icon"></i>Edit</a> -
 				<a style="cursor:pointer;" onclick="deleteDueDate('{{$.RepoLink}}/issues/{{.Issue.Index}}/deadline/remove');"><i class="remove icon"></i>Remove</a>
 			</p>
