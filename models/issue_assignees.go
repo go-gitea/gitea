@@ -25,22 +25,13 @@ func (issue *Issue) loadAssignees(e Engine) (err error) {
 	// Reset maybe preexisting assignees
 	issue.Assignees = []*User{}
 
-	var assigneeIDs []IssueAssignees
+	err = e.Table("`user`").
+		Join("INNER", "issue_assignees", "assignee_id = `user`.id").
+		Where("issue_assignees.issue_id = ?", issue.ID).
+		Find(&issue.Assignees)
 
-	err = e.Where("issue_id = ?", issue.ID).Find(&assigneeIDs)
 	if err != nil {
-		return
-	}
-
-	for _, assignee := range assigneeIDs {
-		user, err := getUserByID(e, assignee.AssigneeID)
-		if err != nil {
-			user = NewGhostUser()
-			if !IsErrUserNotExist(err) {
-				return err
-			}
-		}
-		issue.Assignees = append(issue.Assignees, user)
+		return err
 	}
 
 	// Check if we have at least one assignee and if yes put it in as `Assignee`
