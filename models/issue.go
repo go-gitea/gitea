@@ -1548,5 +1548,10 @@ func UpdateIssueDeadline(issue *Issue, doer *User) (err error) {
 		}
 	}
 
-	return UpdateIssue(issue)
+	err = updateIssue(sess, issue)
+	if err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
