@@ -491,38 +491,18 @@ func createAssigneeComment(e *xorm.Session, doer *User, repo *Repository, issue 
 	})
 }
 
-func createAddedDeadlineComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, dateUnix util.TimeStamp) (*Comment, error) {
+func createDeadlineComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, dateUnix util.TimeStamp, deadlineCommentType CommentType) (*Comment, error) {
+	if deadlineCommentType != CommentTypeAddedDeadline &&
+		deadlineCommentType != CommentTypeModifiedDeadline &&
+		deadlineCommentType != CommentTypeRemovedDeadline {
+		return &Comment{}, fmt.Errorf("wrong comment type: %d", deadlineCommentType)
+	}
+
 	// Make string from unix date
 	date := dateUnix.Format("2006-01-02")
 
 	return createComment(e, &CreateCommentOptions{
-		Type:    CommentTypeAddedDeadline,
-		Doer:    doer,
-		Repo:    repo,
-		Issue:   issue,
-		Content: date,
-	})
-}
-
-func createModifiedDeadlineComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, dateUnix util.TimeStamp) (*Comment, error) {
-	// Make string from unix date
-	date := dateUnix.Format("2006-01-02")
-
-	return createComment(e, &CreateCommentOptions{
-		Type:    CommentTypeModifiedDeadline,
-		Doer:    doer,
-		Repo:    repo,
-		Issue:   issue,
-		Content: date,
-	})
-}
-
-func createRemovedDeadlineComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, dateUnix util.TimeStamp) (*Comment, error) {
-	// Make string from unix date
-	date := dateUnix.Format("2006-01-02")
-
-	return createComment(e, &CreateCommentOptions{
-		Type:    CommentTypeRemovedDeadline,
+		Type:    deadlineCommentType,
 		Doer:    doer,
 		Repo:    repo,
 		Issue:   issue,

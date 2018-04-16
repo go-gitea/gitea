@@ -524,7 +524,7 @@ type SaveTopicForm struct {
 
 // DeadlineForm hold the validation rules for deadlines
 type DeadlineForm struct {
-	DateString string `form:"date" binding:"Required;MaxSize(10)"`
+	DateString string `form:"date" binding:"Required;Size(10)"`
 }
 
 // Validate validates the fields

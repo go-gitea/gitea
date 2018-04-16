@@ -1529,18 +1529,18 @@ func UpdateIssueDeadline(issue *Issue, doer *User) (err error) {
 
 	// Make the comment
 	if issue.DeadlineUnix == 0 {
-		if _, err = createRemovedDeadlineComment(sess, doer, issue.Repo, issue, actualIssue.DeadlineUnix); err != nil {
+		if _, err = createDeadlineComment(sess, doer, issue.Repo, issue, actualIssue.DeadlineUnix, CommentTypeRemovedDeadline); err != nil {
 			return fmt.Errorf("createRemovedDueDateComment: %v", err)
 		}
 	} else {
 		// Check if the new date was added or modified
 		// If the actual deadline is 0 => deadline added
 		if actualIssue.DeadlineUnix == 0 {
-			if _, err = createAddedDeadlineComment(sess, doer, issue.Repo, issue, issue.DeadlineUnix); err != nil {
+			if _, err = createDeadlineComment(sess, doer, issue.Repo, issue, issue.DeadlineUnix, CommentTypeAddedDeadline); err != nil {
 				return fmt.Errorf("createRemovedDueDateComment: %v", err)
 			}
 		} else { // Otherwise modified
-			if _, err = createModifiedDeadlineComment(sess, doer, issue.Repo, issue, issue.DeadlineUnix); err != nil {
+			if _, err = createDeadlineComment(sess, doer, issue.Repo, issue, issue.DeadlineUnix, CommentTypeModifiedDeadline); err != nil {
 				return fmt.Errorf("createRemovedDueDateComment: %v", err)
 			}
 		}
