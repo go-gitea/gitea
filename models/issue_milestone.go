@@ -125,6 +125,7 @@ func GetMilestoneByRepoID(repoID, id int64) (*Milestone, error) {
 	return getMilestoneByRepoID(x, repoID, id)
 }
 
+// MilestoneList is a list of milestones offering additional functionality
 type MilestoneList []*Milestone
 
 func (milestones MilestoneList) loadTotalTrackedTimes(e Engine) error {
@@ -169,6 +170,7 @@ func (milestones MilestoneList) loadTotalTrackedTimes(e Engine) error {
 	return nil
 }
 
+// LoadTotalTrackedTimes loads for every milestone in the list the TotalTrackedTime
 func (milestones MilestoneList) LoadTotalTrackedTimes() error {
 	return milestones.loadTotalTrackedTimes(x)
 }
