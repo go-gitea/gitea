@@ -170,7 +170,7 @@ func (milestones MilestoneList) loadTotalTrackedTimes(e Engine) error {
 	return nil
 }
 
-// LoadTotalTrackedTimes loads for every milestone in the list the TotalTrackedTime
+// LoadTotalTrackedTimes loads for every milestone in the list the TotalTrackedTime by a batch request
 func (milestones MilestoneList) LoadTotalTrackedTimes() error {
 	return milestones.loadTotalTrackedTimes(x)
 }
