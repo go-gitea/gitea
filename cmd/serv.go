@@ -148,7 +148,7 @@ func runServ(c *cli.Context) error {
 			fail("Unknown git command", "Git-Annex support is disabled")
 		}
 		expected = -1
-		repoPath = strings.Replace(args[1], "/~/", "", 1)
+		repoPath = args[1]
 		args[1] = strings.Replace(args[1], "/~", setting.RepoRootPath, 1)
 		requestedMode, allowed = gitAnnexCommands[args[0]]
 	case lfsAuthenticateVerb:
@@ -156,7 +156,10 @@ func runServ(c *cli.Context) error {
 			fail("Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
 		}
 		expected = 2
+		args[0] = strings.TrimLeft(args[0], "/")
 		requestedMode, allowed = lfsAuthenticateCommands[args[1]]
+	default:
+		args[0] = strings.TrimLeft(args[0], "/")
 	}
 
 	// check we havent been pass extra args
@@ -168,7 +171,7 @@ func runServ(c *cli.Context) error {
 		fail("Unknown git command", "Unknown subcommand for %s: %s", verb, args[0])
 	}
 
-	repoPath = strings.ToLower(repoPath)
+	repoPath = strings.ToLower(strings.TrimLeft(repoPath, "/~"))
 	rr := strings.SplitN(repoPath, "/", 2)
 	if len(rr) != 2 {
 		fail("Invalid repository path", "Invalid repository path: %v", repoPath)
