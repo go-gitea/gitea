@@ -29,6 +29,8 @@ type Milestone struct {
 	DeadlineString string `xorm:"-"`
 	DeadlineUnix   util.TimeStamp
 	ClosedDateUnix util.TimeStamp
+
+	TotalTrackedTime int64 `xorm:"-"`
 }
 
 // BeforeInsert is invoked from XORM before inserting an object of this type.
@@ -86,27 +88,6 @@ func (m *Milestone) APIFormat() *api.Milestone {
 	return apiMilestone
 }
 
-func (m *Milestone) totalTimes(e Engine) (string, error) {
-	opts := FindTrackedTimesOptions{MilestoneID: m.ID}
-	totalTime, err := opts.ToSession(e).SumInt(&TrackedTime{}, "time")
-	if err != nil {
-		return "", err
-	}
-	return SecToTime(totalTime), nil
-}
-
-// TotalTimes returns the amount of tracked time of the issues inside the milestone
-func (m *Milestone) TotalTimes() string {
-	times, _ := m.totalTimes(x)
-	return times
-}
-
-// MustGetRepo returns milestone's repository by ignoring errors
-func (m *Milestone) MustGetRepo() *Repository {
-	repo, _ := GetRepositoryByID(m.RepoID)
-	return repo
-}
-
 // NewMilestone creates new milestone of repository.
 func NewMilestone(m *Milestone) (err error) {
 	sess := x.NewSession()
@@ -144,14 +125,70 @@ func GetMilestoneByRepoID(repoID, id int64) (*Milestone, error) {
 	return getMilestoneByRepoID(x, repoID, id)
 }
 
+type MilestoneList []*Milestone
+
+func (milestones MilestoneList) loadTotalTrackedTimes(e Engine) error {
+	type totalTimesByMilestone struct {
+		MilestoneID int64
+		Time        int64
+	}
+	if len(milestones) == 0 {
+		return nil
+	}
+	var trackedTimes = make(map[int64]int64, len(milestones))
+
+	// SELECT milestone_id, sum(time) as time FROM `issue`
+	// INNER JOIN `milestone` ON issue.milestone_id = milestone.id
+	// LEFT JOIN `tracked_time` ON tracked_time.issue_id = issue.id
+	// WHERE `milestone_id` IN (?) GROUP BY milestone_id
+	rows, err := e.Table("issue").
+		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
+		Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
+		Select("milestone_id, sum(time) as time").
+		In("milestone_id", milestones.getMilestoneIDs()).
+		GroupBy("milestone_id").
+		Rows(new(totalTimesByMilestone))
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var totalTime totalTimesByMilestone
+		err = rows.Scan(&totalTime)
+		if err != nil {
+			return err
+		}
+		trackedTimes[totalTime.MilestoneID] = totalTime.Time
+	}
+
+	for _, milestone := range milestones {
+		milestone.TotalTrackedTime = trackedTimes[milestone.ID]
+	}
+	return nil
+}
+
+func (milestones MilestoneList) LoadTotalTrackedTimes() error {
+	return milestones.loadTotalTrackedTimes(x)
+}
+
+func (milestones MilestoneList) getMilestoneIDs() []int64 {
+	var ids = make([]int64, 0, len(milestones))
+	for _, ms := range milestones {
+		ids = append(ids, ms.ID)
+	}
+	return ids
+}
+
 // GetMilestonesByRepoID returns all milestones of a repository.
-func GetMilestonesByRepoID(repoID int64) ([]*Milestone, error) {
+func GetMilestonesByRepoID(repoID int64) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, 10)
 	return miles, x.Where("repo_id = ?", repoID).Find(&miles)
 }
 
 // GetMilestones returns a list of milestones of given repository and status.
-func GetMilestones(repoID int64, page int, isClosed bool, sortType string) ([]*Milestone, error) {
+func GetMilestones(repoID int64, page int, isClosed bool, sortType string) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
 	sess := x.Where("repo_id = ? AND is_closed = ?", repoID, isClosed)
 	if page > 0 {
@@ -172,7 +209,6 @@ func GetMilestones(repoID int64, page int, isClosed bool, sortType string) ([]*M
 	default:
 		sess.Asc("deadline_unix")
 	}
-
 	return miles, sess.Find(&miles)
 }
 
