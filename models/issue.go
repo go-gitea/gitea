@@ -1515,26 +1515,22 @@ func UpdateIssue(issue *Issue) error {
 
 // Get Blocked By Dependencies, aka all issues this issue is blocked by.
 func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*Issue, err error) {
-	err = e.
+	return issueDeps, e.
 		Table("issue_dependency").
 		Select("issue.*").
 		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
 		Where("issue_id = ?", issue.ID).
 		Find(&issueDeps)
-
-	return
 }
 
 // Get Blocking Dependencies, aka all issues this issue blocks.
 func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*Issue, err error) {
-	err = e.
+	return issueDeps, e.
 		Table("issue_dependency").
 		Select("issue.*").
 		Join("INNER", "issue", "issue.id = issue_dependency.issue_id").
 		Where("dependency_id = ?", issue.ID).
 		Find(&issueDeps)
-
-	return
 }
 
 // BlockedByDependencies finds all Dependencies an issue is blocked by
