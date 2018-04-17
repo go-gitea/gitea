@@ -47,7 +47,6 @@ type Issue struct {
 	Ref             string
 
 	DeadlineUnix   util.TimeStamp `xorm:"INDEX"`
-	IsOverDue      bool           `xorm:"-"`
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
@@ -71,11 +70,12 @@ func init() {
 	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
 }
 
-// AfterLoad checks if the issue is overdue and sets the property
-func (issue *Issue) AfterLoad() {
+// IsOverdue checks if the issue is overdue
+func (issue *Issue) IsOverdue() bool {
 	if util.TimeStampNow() >= issue.DeadlineUnix {
-		issue.IsOverDue = true
+		return true
 	}
+	return false
 }
 
 func (issue *Issue) loadRepo(e Engine) (err error) {

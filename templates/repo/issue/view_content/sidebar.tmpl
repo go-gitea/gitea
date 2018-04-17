@@ -198,7 +198,7 @@
 			<p>
 				<span class="octicon octicon-calendar"></span>
 				{{.Issue.DeadlineUnix.FormatShort}}
-				{{if .Issue.IsOverDue}}
+				{{if .Issue.IsOverdue}}
 					<span style="color: red;">{{.i18n.Tr "repo.issues.due_date_overdue"}}</span>
 				{{end}}
 				<br/>
