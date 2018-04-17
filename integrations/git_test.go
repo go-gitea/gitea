@@ -215,7 +215,6 @@ func TestGit(t *testing.T) {
 					lockTest(t, u.String(), dstPath)
 				})
 			})
-
 			t.Run("GitAnnex", func(t *testing.T) {
 
 				err = exec.Command("which", "git-annex").Run()
@@ -255,10 +254,10 @@ func TestGit(t *testing.T) {
 
 					_, err = git.NewCommand("annex", "copy", "--to", "origin", filename).RunInDir(dstPath)
 					assert.NoError(t, err)
-					// need to remove so we can clean up - git annex creates directories 0440
-					_, err = git.NewCommand("annex", "drop", "--from", "origin", filename).RunInDir(dstPath)
-					assert.NoError(t, err)
 
+					session := loginUser(t, "user2")
+					req := NewRequest(t, "DELETE", "/api/v1/repos/user2/repo-tmp-19")
+					session.MakeRequest(t, req, http.StatusNoContent)
 				})
 			})
 		})

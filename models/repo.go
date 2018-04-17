@@ -1836,8 +1836,20 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
-	// FIXME: Remove repository files should be executed after transaction succeed.
 	repoPath := repo.repoPath(sess)
+
+	// GitAnnex locks its objects on posix systems
+	if setting.GitAnnex.Enabled && !setting.IsWindows {
+		annexObjects := path.Join(repoPath, "annex", "objects")
+		if _, err := os.Stat(annexObjects); err == nil {
+			err = exec.Command("chmod", "u+w", "-R", annexObjects).Run()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// FIXME: Remove repository files should be executed after transaction succeed.
 	removeAllWithNotice(sess, "Delete repository files", repoPath)
 
 	repo.deleteWiki(sess)
