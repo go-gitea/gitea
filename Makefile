@@ -93,7 +93,7 @@ generate-swagger:
 
 .PHONY: swagger-check
 swagger-check: generate-swagger
-	@diff=$$(git diff /public/swagger.v1.json); \
+	@diff=$$(git diff public/swagger.v1.json); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make generate-swagger' and commit the result:"; \
 		echo "$${diff}"; \
