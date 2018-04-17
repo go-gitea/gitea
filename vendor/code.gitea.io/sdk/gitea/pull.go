@@ -93,6 +93,7 @@ type CreatePullRequestOption struct {
 	Assignees []string   `json:"assignees"`
 	Milestone int64      `json:"milestone"`
 	Labels    []int64    `json:"labels"`
+	// swagger:strfmt date-time
 	Deadline  *time.Time `json:"due_date"`
 }
 
@@ -116,6 +117,7 @@ type EditPullRequestOption struct {
 	Milestone int64      `json:"milestone"`
 	Labels    []int64    `json:"labels"`
 	State     *string    `json:"state"`
+	// swagger:strfmt date-time
 	Deadline  *time.Time `json:"due_date"`
 }
 

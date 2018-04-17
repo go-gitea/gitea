@@ -96,7 +96,7 @@ type CreateIssueOption struct {
 	// username of assignee
 	Assignee  string   `json:"assignee"`
 	Assignees []string `json:"assignees"`
-	// deadline
+	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
 	// milestone id
 	Milestone int64 `json:"milestone"`
@@ -124,6 +124,7 @@ type EditIssueOption struct {
 	Assignees []string   `json:"assignees"`
 	Milestone *int64     `json:"milestone"`
 	State     *string    `json:"state"`
+	// swagger:strfmt date-time
 	Deadline  *time.Time `json:"due_date"`
 }
 
