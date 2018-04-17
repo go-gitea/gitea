@@ -62,6 +62,7 @@ func setup(logPath string) error {
 	return models.SetEngine()
 }
 
+// TODO: Maybe move to shlex module
 func parseCmd(cmd string) (string, []string) {
 	parts := strings.Split(cmd, " ")
 	for i := range parts {
