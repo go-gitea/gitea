@@ -91,6 +91,15 @@ generate-swagger:
 	fi
 	swagger generate spec -o ./public/swagger.v1.json
 
+.PHONY: swagger-check
+swagger-check: generate-swagger
+	@diff=$$(git diff /public/swagger.v1.json); \
+	if [ -n "$$diff" ]; then \
+		echo "Please run 'make generate-swagger' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi;
+
 .PHONY: errcheck
 errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
