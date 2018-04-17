@@ -11,7 +11,7 @@
 				<span class="octicon octicon-git-compare"></span>
 				<div class="ui floating filter dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
 					<div class="ui basic small button">
-						<span class="text">{{.i18n.Tr "repo.pulls.compare_base"}}: {{$.BaseBranch}}</span>
+						<span class="text">{{.i18n.Tr "repo.pulls.compare_base"}}: {{$.BaseName}}:{{$.BaseBranch}}</span>
 						<i class="dropdown icon"></i>
 					</div>
 					<div class="menu">
@@ -21,7 +21,7 @@
 						</div>
 						<div class="scrolling menu">
 							{{range .Branches}}
-								<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{EscapePound .}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}:{{end}}{{EscapePound $.HeadBranch}}">{{.}}</div>
+								<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{EscapePound .}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}:{{end}}{{EscapePound $.HeadBranch}}">{{$.BaseName}}:{{.}}</div>
 							{{end}}
 						</div>
 					</div>
@@ -29,7 +29,7 @@
 				...
 				<div class="ui floating filter dropdown">
 					<div class="ui basic small button">
-						<span class="text">{{.i18n.Tr "repo.pulls.compare_compare"}}: {{$.HeadBranch}}</span>
+						<span class="text">{{.i18n.Tr "repo.pulls.compare_compare"}}: {{$.HeadUser.Name}}:{{$.HeadBranch}}</span>
 						<i class="dropdown icon"></i>
 					</div>
 					<div class="menu">
@@ -39,7 +39,7 @@
 						</div>
 						<div class="scrolling menu">
 							{{range .HeadBranches}}
-								<div class="{{if eq $.HeadBranch .}}selected{{end}} item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}:{{end}}{{EscapePound .}}">{{.}}</div>
+								<div class="{{if eq $.HeadBranch .}}selected{{end}} item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}:{{end}}{{EscapePound .}}">{{$.HeadUser.Name}}:{{.}}</div>
 							{{end}}
 						</div>
 					</div>
