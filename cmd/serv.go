@@ -85,6 +85,7 @@ var (
 		"inannex":    models.AccessModeRead,
 		"recvkey":    models.AccessModeWrite,
 		"sendkey":    models.AccessModeRead,
+		"p2pstdio":   models.AccessModeWrite,
 	}
 	lfsAuthenticateCommands = map[string]models.AccessMode{
 		"upload":   models.AccessModeWrite,
@@ -134,7 +135,7 @@ func runServ(c *cli.Context) error {
 	}
 
 	verb, args := parseCmd(cmd)
-	repoPath := args[0]
+	repoArg := &args[0]
 	expected := 1
 	requestedMode, allowed := allowedCommands[verb]
 
@@ -147,19 +148,16 @@ func runServ(c *cli.Context) error {
 		if !setting.GitAnnex.Enabled {
 			fail("Unknown git command", "Git-Annex support is disabled")
 		}
-		expected = -1
-		repoPath = args[1]
-		args[1] = strings.Replace(args[1], "/~", setting.RepoRootPath, 1)
+		expected = -1 // can be any number of args
+		repoArg = &args[1]
+
 		requestedMode, allowed = gitAnnexCommands[args[0]]
 	case lfsAuthenticateVerb:
 		if !setting.LFS.StartServer {
 			fail("Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
 		}
 		expected = 2
-		args[0] = strings.TrimLeft(args[0], "/")
 		requestedMode, allowed = lfsAuthenticateCommands[args[1]]
-	default:
-		args[0] = strings.TrimLeft(args[0], "/")
 	}
 
 	// check we havent been pass extra args
@@ -171,10 +169,12 @@ func runServ(c *cli.Context) error {
 		fail("Unknown git command", "Unknown subcommand for %s: %s", verb, args[0])
 	}
 
-	repoPath = strings.ToLower(strings.TrimLeft(repoPath, "/~"))
-	rr := strings.SplitN(repoPath, "/", 2)
+	// normalize the repo in the command
+	*repoArg = strings.ToLower(strings.TrimLeft(*repoArg, "/~"))
+
+	rr := strings.SplitN(*repoArg, "/", 2)
 	if len(rr) != 2 {
-		fail("Invalid repository path", "Invalid repository path: %v", repoPath)
+		fail("Invalid repository path", "Invalid repository path: %s", *repoArg)
 	}
 
 	username := strings.ToLower(rr[0])
@@ -262,13 +262,13 @@ func runServ(c *cli.Context) error {
 				}
 				fail(clientMessage,
 					"User %s does not have level %v access to repository %s",
-					user.Name, requestedMode, repoPath)
+					user.Name, requestedMode, *repoArg)
 			}
 
 			if !repo.CheckUnitUser(user.ID, user.IsAdmin, unitType) {
 				fail("You do not have allowed for this action",
 					"User %s does not have allowed access to repository %s 's code",
-					user.Name, repoPath)
+					user.Name, *repoArg)
 			}
 
 			os.Setenv(models.EnvPusherName, user.Name)
@@ -313,6 +313,11 @@ func runServ(c *cli.Context) error {
 		return nil
 	}
 
+	if verb == gitAnnexVerb {
+		// need a full path to the repo
+		*repoArg = fmt.Sprintf("%s/%s", setting.RepoRootPath, *repoArg)
+	}
+
 	// Special handle for Windows.
 	if setting.IsWindows {
 		parts := strings.SplitN(verb, "-", 2)
@@ -321,7 +326,7 @@ func runServ(c *cli.Context) error {
 	}
 
 	var gitcmd *exec.Cmd
-	log.GitLogger.Info("Executing: %v %v", verb, args)
+	log.GitLogger.Debug("Executing: %v %v", verb, args)
 	gitcmd = exec.Command(verb, args...)
 
 	if isWiki {

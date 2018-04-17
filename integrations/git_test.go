@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -214,6 +215,52 @@ func TestGit(t *testing.T) {
 					lockTest(t, u.String(), dstPath)
 				})
 			})
+
+			t.Run("GitAnnex", func(t *testing.T) {
+
+				err = exec.Command("which", "git-annex").Run()
+				if err != nil {
+					t.Skip("Git annex not installed")
+				}
+
+				assert.True(t, setting.GitAnnex.Enabled)
+
+				os.Setenv("GIT_ANNEX_USE_GIT_SSH", "1")
+
+				u.Path = "user2/repo-tmp-19"
+				dstPath, err := ioutil.TempDir("", "repo-tmp-19")
+				assert.NoError(t, err)
+				defer os.RemoveAll(dstPath)
+
+				var sout string
+
+				createAndClone(t, u, dstPath)
+
+				_, err = git.NewCommand("annex").AddArguments("init", "local").RunInDir(dstPath)
+				assert.NoError(t, err)
+				filename, err := generateDataFile(littleSize, dstPath)
+
+				t.Run("AddFile", func(t *testing.T) {
+					defer exec.Command("chmod", "u+w", dstPath, "-R").Output()
+
+					_, err = git.NewCommand("annex", "add", filename).RunInDir(dstPath)
+					assert.NoError(t, err)
+
+					_, err = git.NewCommand("annex", "sync").RunInDir(dstPath)
+					assert.NoError(t, err)
+
+					sout, err = git.NewCommand("config", "--get", "remote.origin.annex-uuid").RunInDir(dstPath)
+					assert.NoError(t, err)
+					assert.Equal(t, len(strings.Trim(sout, "\n ")), 36)
+
+					_, err = git.NewCommand("annex", "copy", "--to", "origin", filename).RunInDir(dstPath)
+					assert.NoError(t, err)
+					// need to remove so we can clean up - git annex creates directories 0440
+					_, err = git.NewCommand("annex", "drop", "--from", "origin", filename).RunInDir(dstPath)
+					assert.NoError(t, err)
+
+				})
+			})
 		})
 	})
 }
@@ -231,11 +278,52 @@ func lockTest(t *testing.T, remote, repoPath string) {
 	assert.NoError(t, err)
 }
 
+func createAndClone(t *testing.T, u *url.URL, dstPath string) {
+
+	parts := strings.SplitN(u.Path, "/", 2)
+
+	session := loginUser(t, parts[0])
+	req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
+		AutoInit:    true,
+		Description: "Temporary repo",
+		Name:        parts[1],
+		Private:     false,
+		Gitignores:  "",
+		License:     "WTFPL",
+		Readme:      "Default",
+	})
+	session.MakeRequest(t, req, http.StatusCreated)
+	_, err := git.NewCommand("clone", u.String(), dstPath).Run()
+
+	assert.NoError(t, err)
+	assert.True(t, com.IsExist(filepath.Join(dstPath, "README.md")))
+}
+
 func commitAndPush(t *testing.T, size int, repoPath string) {
 	err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two")
 	assert.NoError(t, err)
 	_, err = git.NewCommand("push").RunInDir(repoPath) //Push
 	assert.NoError(t, err)
+}
+
+func generateDataFile(size int, repoPath string) (string, error) {
+
+	//Generate random file
+	data := make([]byte, size)
+	_, err := rand.Read(data)
+	if err != nil {
+		return "", err
+	}
+	tmpFile, err := ioutil.TempFile(repoPath, "data-file-")
+	if err != nil {
+		return "", err
+	}
+	defer tmpFile.Close()
+	_, err = tmpFile.Write(data)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Base(tmpFile.Name()), nil
 }
 
 func generateCommitWithNewData(size int, repoPath, email, fullName string) error {
