@@ -30,8 +30,12 @@
 				<div class="column">
 					{{if gt .Activity.ActivePRCount 0}}
 					<div class="stats-table">
-						<a href="#merged-pull-requests" class="table-cell tiny background purple" style="width: {{.Activity.MergedPRPerc}}%"></a>
+						<a href="#merged-pull-requests" class="table-cell tiny background purple" style="width: {{.Activity.MergedPRPerc}}{{if ne .Activity.MergedPRPerc 0}}%{{end}}"></a>
 						<a href="#proposed-pull-requests" class="table-cell tiny background green"></a>
+					</div>
+					{{else}}
+					<div class="stats-table">
+						<a class="table-cell tiny background light grey"></a>
 					</div>
 					{{end}}
 					{{.i18n.Tr (TrN .i18n.Lang .Activity.ActivePRCount "repo.activity.active_prs_count_1" "repo.activity.active_prs_count_n") .Activity.ActivePRCount | Safe }}
@@ -41,8 +45,12 @@
 				<div class="column">
 					{{if gt .Activity.ActiveIssueCount 0}}
 					<div class="stats-table">
-						<a href="#closed-issues" class="table-cell tiny background red" style="width: {{.Activity.ClosedIssuePerc}}%"></a>
+						<a href="#closed-issues" class="table-cell tiny background red" style="width: {{.Activity.ClosedIssuePerc}}{{if ne .Activity.ClosedIssuePerc 0}}%{{end}}"></a>
 						<a href="#new-issues" class="table-cell tiny background green"></a>
+					</div>
+					{{else}}
+					<div class="stats-table">
+						<a class="table-cell tiny background light grey"></a>
 					</div>
 					{{end}}
 					{{.i18n.Tr (TrN .i18n.Lang .Activity.ActiveIssueCount "repo.activity.active_issues_count_1" "repo.activity.active_issues_count_n") .Activity.ActiveIssueCount | Safe }}
