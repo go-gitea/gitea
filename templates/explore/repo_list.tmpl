@@ -17,6 +17,9 @@
 				</div>
 			</div>
 			{{if .DescriptionHTML}}<p class="has-emoji">{{.DescriptionHTML}}</p>{{end}}
+			<div>
+			{{range .Topics}}<div class="ui green basic label topic">{{.}}</div>{{end}}
+			</div>
 			<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix $.i18n.Lang}}</p>
 		</div>
 	{{else}}

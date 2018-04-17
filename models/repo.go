@@ -199,6 +199,7 @@ type Repository struct {
 	Size          int64              `xorm:"NOT NULL DEFAULT 0"`
 	IndexerStatus *RepoIndexerStatus `xorm:"-"`
 	IsFsckEnabled bool               `xorm:"NOT NULL DEFAULT true"`
+	Topics        []string           `xorm:"TEXT JSON"`
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`

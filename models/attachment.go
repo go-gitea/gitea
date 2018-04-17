@@ -11,7 +11,6 @@ import (
 	"os"
 	"path"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	api "code.gitea.io/sdk/gitea"
@@ -29,6 +28,7 @@ type Attachment struct {
 	CommentID     int64
 	Name          string
 	DownloadCount int64          `xorm:"DEFAULT 0"`
+	Size          int64          `xorm:"DEFAULT 0"`
 	CreatedUnix   util.TimeStamp `xorm:"created"`
 }
 
@@ -44,13 +44,12 @@ func (a *Attachment) IncreaseDownloadCount() error {
 
 // APIFormat converts models.Attachment to api.Attachment
 func (a *Attachment) APIFormat() *api.Attachment {
-	size, _ := a.Size()
 	return &api.Attachment{
 		ID:            a.ID,
 		Name:          a.Name,
 		Created:       a.CreatedUnix.AsTime(),
 		DownloadCount: a.DownloadCount,
-		Size:          size,
+		Size:          a.Size,
 		UUID:          a.UUID,
 		DownloadURL:   a.DownloadURL(),
 	}
@@ -65,25 +64,6 @@ func AttachmentLocalPath(uuid string) string {
 // LocalPath returns where attachment is stored in local file system.
 func (a *Attachment) LocalPath() string {
 	return AttachmentLocalPath(a.UUID)
-}
-
-// Size returns the file's size of the attachment
-func (a *Attachment) Size() (int64, error) {
-	fi, err := os.Stat(a.LocalPath())
-	if err != nil {
-		return 0, err
-	}
-	return fi.Size(), nil
-}
-
-// MustSize returns the result of a.Size() by ignoring errors
-func (a *Attachment) MustSize() int64 {
-	size, err := a.Size()
-	if err != nil {
-		log.Error(4, "size: %v", err)
-		return 0
-	}
-	return size
 }
 
 // DownloadURL returns the download url of the attached file
@@ -114,6 +94,13 @@ func NewAttachment(name string, buf []byte, file multipart.File) (_ *Attachment,
 	} else if _, err = io.Copy(fw, file); err != nil {
 		return nil, fmt.Errorf("Copy: %v", err)
 	}
+
+	// Update file size
+	var fi os.FileInfo
+	if fi, err = fw.Stat(); err != nil {
+		return nil, fmt.Errorf("file size: %v", err)
+	}
+	attach.Size = fi.Size()
 
 	if _, err := x.Insert(attach); err != nil {
 		return nil, err

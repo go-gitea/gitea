@@ -1591,6 +1591,7 @@ $(document).ready(function () {
     initTeamSettings();
     initCtrlEnterSubmit();
     initNavbarContentToggle();
+    initTopicbar();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -2120,5 +2121,76 @@ function initNavbarContentToggle() {
             content.removeClass('shown');
             toggle.removeClass('active');
         }
+    });
+}
+
+function initTopicbar() {
+    var mgrBtn = $("#manage_topic")
+    var editDiv = $("#topic_edit")
+    var viewDiv = $("#repo-topic")
+    var saveBtn = $("#save_topic")
+
+    mgrBtn.click(function() {
+        viewDiv.hide();
+        editDiv.show();
+    })
+
+    saveBtn.click(function() {
+        var topics = $("input[name=topics]").val();
+
+        $.post($(this).data('link'), {
+            "_csrf": csrf,
+            "topics": topics
+        }).success(function(res){
+            if (res["status"] != "ok") {
+                alert(res.message);
+            } else {
+                viewDiv.children(".topic").remove();
+                var topicArray = topics.split(",");
+                var last = viewDiv.children("a").last();
+                for (var i=0;i < topicArray.length; i++) {
+                    $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                }
+            }
+        }).done(function() {
+            editDiv.hide();
+            viewDiv.show();
+        })
+    })
+
+    $('#topic_edit .dropdown').dropdown({
+        allowAdditions: true,
+        fields: { name: "description", value: "data-value" },
+        saveRemoteData: false,
+        label: {
+            transition : 'horizontal flip',
+            duration   : 200,
+            variation  : false,
+            blue : true,
+            basic: true,
+        },
+        className: {
+            label: 'ui green basic label'
+        },
+        apiSettings: {
+            url: suburl + '/api/v1/topics/search?q={query}',
+            throttle: 500,
+            cache: false,
+            onResponse: function(res) {
+                var formattedResponse = {
+                    success: false,
+                    results: new Array(),
+                };
+
+                if (res.topics) {
+                    formattedResponse.success = true;
+                    for (var i=0;i < res.topics.length;i++) {
+                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value":res.topics[i].Name})
+                    }
+                }
+
+                return formattedResponse;
+            },
+        },
     });
 }
