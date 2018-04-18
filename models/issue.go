@@ -72,10 +72,7 @@ func init() {
 
 // IsOverdue checks if the issue is overdue
 func (issue *Issue) IsOverdue() bool {
-	if util.TimeStampNow() >= issue.DeadlineUnix {
-		return true
-	}
-	return false
+	return util.TimeStampNow() >= issue.DeadlineUnix
 }
 
 func (issue *Issue) loadRepo(e Engine) (err error) {
