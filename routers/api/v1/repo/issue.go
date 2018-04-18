@@ -165,7 +165,6 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	//     "$ref": "#/responses/Issue"
 
 	var deadline util.TimeStamp
-	deadline = util.TimeStamp(0)
 	if form.Deadline != nil {
 		deadline = util.TimeStamp(form.Deadline.Unix())
 	}

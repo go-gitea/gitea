@@ -238,7 +238,6 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	}
 
 	var deadline util.TimeStamp
-	deadline = util.TimeStamp(0)
 	if form.Deadline != nil {
 		deadline = util.TimeStamp(form.Deadline.Unix())
 	}
