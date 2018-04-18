@@ -35,7 +35,7 @@ func AddDependency(ctx *context.Context) {
 	// Dependency
 	dep, err := models.GetIssueByID(depID)
 	if err != nil {
-		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
+		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_issue_not_exist"))
 		return
 	}
 
@@ -104,8 +104,12 @@ func RemoveDependency(ctx *context.Context) {
 	}
 
 	if err = models.RemoveIssueDependency(ctx.User, issue, dep, depType); err != nil {
-		ctx.ServerError("RemoveIssueDependency", err)
-		return
+		if models.IsErrDependencyNotExists(err) {
+			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
+		} else {
+			ctx.ServerError("RemoveIssueDependency", err)
+			return
+		}
 	}
 
 	url := fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issueIndex)

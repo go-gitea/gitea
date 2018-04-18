@@ -1245,6 +1245,22 @@ func (err ErrDependencyExists) Error() string {
 	return fmt.Sprintf("issue dependency does already exist [issue id: %d, dependency id: %d]", err.IssueID, err.DependencyID)
 }
 
+// ErrDependencyNotExists represents a "DependencyAlreadyExists" kind of error.
+type ErrDependencyNotExists struct {
+	IssueID      int64
+	DependencyID int64
+}
+
+// IsErrDependencyNotExists checks if an error is a ErrDependencyExists.
+func IsErrDependencyNotExists(err error) bool {
+	_, ok := err.(ErrDependencyNotExists)
+	return ok
+}
+
+func (err ErrDependencyNotExists) Error() string {
+	return fmt.Sprintf("issue dependency does not exist [issue id: %d, dependency id: %d]", err.IssueID, err.DependencyID)
+}
+
 // ErrCircularDependency represents a "DependencyCircular" kind of error.
 type ErrCircularDependency struct {
 	IssueID      int64
