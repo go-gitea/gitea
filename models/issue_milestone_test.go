@@ -259,6 +259,8 @@ func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
 	miles := MilestoneList{
 		AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone),
 	}
+	
 	assert.NoError(t, miles.LoadTotalTrackedTimes())
+
 	assert.Equal(t, miles[0].TotalTrackedTime, int64(3662))
 }
