@@ -138,10 +138,7 @@ func (milestones MilestoneList) loadTotalTrackedTimes(e Engine) error {
 	}
 	var trackedTimes = make(map[int64]int64, len(milestones))
 
-	// SELECT milestone_id, sum(time) as time FROM `issue`
-	// INNER JOIN `milestone` ON issue.milestone_id = milestone.id
-	// LEFT JOIN `tracked_time` ON tracked_time.issue_id = issue.id
-	// WHERE `milestone_id` IN (?) GROUP BY milestone_id
+	// Get total tracked time by milestone_id
 	rows, err := e.Table("issue").
 		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
 		Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
