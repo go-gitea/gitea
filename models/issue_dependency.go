@@ -68,11 +68,6 @@ func CreateIssueDependency(user *User, issue, dep *Issue) error {
 		return err
 	}
 
-	// Create a new comment for the dependent issue
-	if err = createIssueDependencyComment(sess, user, dep, issue, true); err != nil {
-		return err
-	}
-
 	return sess.Commit()
 }
 
@@ -107,11 +102,6 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 
 	// Add comment referencing the removed dependency
 	if err = createIssueDependencyComment(sess, user, issue, dep, false); err != nil {
-		return err
-	}
-
-	// Create a new comment for the dependent issue
-	if err = createIssueDependencyComment(sess, user, dep, issue, false); err != nil {
 		return err
 	}
 	return sess.Commit()
