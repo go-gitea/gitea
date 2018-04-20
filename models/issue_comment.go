@@ -530,19 +530,36 @@ func createDeleteBranchComment(e *xorm.Session, doer *User, repo *Repository, is
 }
 
 // Creates issue dependency comment
-func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dependentIssue *Issue, add bool) (*Comment, error) {
+func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dependentIssue *Issue, add bool) (err error) {
 	cType := CommentTypeAddDependency
 	if !add {
 		cType = CommentTypeRemoveDependency
 	}
 
-	return createComment(e, &CreateCommentOptions{
+	// Make two comments, one in each issue
+	_, err = createComment(e, &CreateCommentOptions{
 		Type:           cType,
 		Doer:           doer,
 		Repo:           issue.Repo,
 		Issue:          issue,
 		DependentIssue: dependentIssue,
 	})
+	if err != nil {
+		return
+	}
+
+	_, err = createComment(e, &CreateCommentOptions{
+		Type:           cType,
+		Doer:           doer,
+		Repo:           issue.Repo,
+		Issue:          dependentIssue,
+		DependentIssue: issue,
+	})
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 // CreateCommentOptions defines options for creating comment
