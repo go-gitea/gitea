@@ -198,7 +198,7 @@
 						<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
 					{{end}}
 
-					{{if and .IsTimetrackerEnabled .TotalTrackedTime}}
+					{{if .TotalTrackedTime}}
 						<span class="comment ui right"><i class="octicon octicon-clock"></i> {{.TotalTrackedTime | Sec2Time}}</span>
 					{{end}}
 

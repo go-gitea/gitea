@@ -300,10 +300,17 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 	}
 	var trackedTimes = make(map[int64]int64, len(issues))
 
+	var ids = make([]int64, 0, len(issues))
+	for _, issue := range issues {
+		if issue.IsTimetrackerEnabled() {
+			ids = append(ids, issue.ID)
+		}
+	}
+
 	// select issue_id, sum(time) from tracked_time where issue_id in (<issue ids in current page>) group by issue_id
 	rows, err := e.Table("tracked_time").
 		Select("issue_id, sum(time) as time").
-		In("issue_id", issues.getIssueIDs()).
+		In("issue_id", ids).
 		GroupBy("issue_id").
 		Rows(new(totalTimesByIssue))
 	if err != nil {

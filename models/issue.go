@@ -244,9 +244,10 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadComments(e); err != nil {
 		return err
 	}
-
-	if err = issue.loadTotalTimes(e); err != nil {
-		return err
+	if issue.IsTimetrackerEnabled() {
+		if err = issue.loadTotalTimes(e); err != nil {
+			return err
+		}
 	}
 
 	return issue.loadReactions(e)
