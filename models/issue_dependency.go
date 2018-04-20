@@ -46,7 +46,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) (err error) {
 		return ErrDependencyExists{issue.ID, dep.ID}
 	}
 	// And if it would be circular
-	circular, err := issueDepIsCircular(sess, issue.ID, dep.ID)
+	circular, err := issueDepExists(sess, dep.ID, issue.ID)
 	if err != nil {
 		return err
 	}
@@ -134,12 +134,6 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 // Check if the dependency already exists
 func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err error) {
 	exists, err = e.Where("(issue_id = ? AND dependency_id = ?)", issueID, depID).Exist(&IssueDependency{})
-	return
-}
-
-// Checks if a dependency is circular
-func issueDepIsCircular(e Engine, issueID int64, depID int64) (circular bool, err error) {
-	circular, err = e.Where("issue_id = ? AND dependency_id = ?", depID, issueID).Exist(&IssueDependency{})
 	return
 }
 
