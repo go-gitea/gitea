@@ -77,6 +77,7 @@ pipeline:
       - make vet
       - make lint
       - make fmt-check
+      - make swagger-check
       - make misspell-check
       - make test-vendor
       - make build
