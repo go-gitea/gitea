@@ -66,3 +66,17 @@ In this case, look into the following settings:
     * `usermod` or `chsh` can be used to modify this.
   * Ensure that the `gitea serv` command in `.ssh/authorized_keys` uses the
     correct configuration file.
+
+## Missing releases after migrating repository with tags
+
+To migrate an repository *with* all tags you need to do two things
+
+* Push tags to the repository:
+```
+ git push --tags
+ ```
+ 
+ * (Re-)sync tags of all repositories within gitea:
+ ```
+ gitea admin repo-sync-releases
+ ```
