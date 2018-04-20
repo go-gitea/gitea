@@ -4325,6 +4325,32 @@
         }
       }
     },
+    "/topics/search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "search topics via keyword",
+        "operationId": "topicSearch",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "id of the repo to get",
+            "name": "keyword",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Repository"
+          }
+        }
+      }
+    },
     "/user": {
       "get": {
         "produces": [
