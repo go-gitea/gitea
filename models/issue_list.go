@@ -302,7 +302,7 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 
 	var ids = make([]int64, 0, len(issues))
 	for _, issue := range issues {
-		if issue.IsTimetrackerEnabled() {
+		if issue.Repo.IsTimetrackerEnabled() {
 			ids = append(ids, issue.ID)
 		}
 	}
