@@ -5539,6 +5539,13 @@
           "type": "string",
           "x-go-name": "Assignee"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
+        },
         "body": {
           "type": "string",
           "x-go-name": "Body"
@@ -5548,7 +5555,6 @@
           "x-go-name": "Closed"
         },
         "due_date": {
-          "description": "deadline",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
@@ -5680,6 +5686,13 @@
         "assignee": {
           "type": "string",
           "x-go-name": "Assignee"
+        },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
         },
         "base": {
           "type": "string",
@@ -5995,6 +6008,13 @@
           "type": "string",
           "x-go-name": "Assignee"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
+        },
         "body": {
           "type": "string",
           "x-go-name": "Body"
@@ -6089,6 +6109,13 @@
         "assignee": {
           "type": "string",
           "x-go-name": "Assignee"
+        },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
         },
         "body": {
           "type": "string",
@@ -6348,9 +6375,21 @@
         "assignee": {
           "$ref": "#/definitions/User"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/User"
+          },
+          "x-go-name": "Assignees"
+        },
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Closed"
         },
         "comments": {
           "type": "integer",
@@ -6764,12 +6803,24 @@
         "assignee": {
           "$ref": "#/definitions/User"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/User"
+          },
+          "x-go-name": "Assignees"
+        },
         "base": {
           "$ref": "#/definitions/PRBranchInfo"
         },
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Closed"
         },
         "comments": {
           "type": "integer",
