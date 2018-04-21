@@ -112,10 +112,13 @@ func addMultipleAssignees(x *xorm.Engine) error {
 		}
 	}
 
-	err = sess.Commit()
-	if err != nil {
+	if err := sess.Commit(); err != nil {
 		return err
 	}
 
-	return dropTableColumns(x, "issue", "assignee_id")
+	if err := dropTableColumns(x, "issue", "assignee_id"); err != nil {
+		return err
+	}
+
+	return dropTableColumns(x, "issue_user", "is_assigned")
 }

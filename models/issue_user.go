@@ -12,11 +12,10 @@ import (
 
 // IssueUser represents an issue-user relation.
 type IssueUser struct {
-	ID      int64 `xorm:"pk autoincr"`
-	UID     int64 `xorm:"INDEX"` // User ID.
-	IssueID int64
-	IsRead  bool
-	//IsAssigned  bool
+	ID          int64 `xorm:"pk autoincr"`
+	UID         int64 `xorm:"INDEX"` // User ID.
+	IssueID     int64
+	IsRead      bool
 	IsMentioned bool
 }
 
