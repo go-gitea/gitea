@@ -55,7 +55,7 @@ func TestFollowLink(t *testing.T) {
 	r, err := OpenRepository("tests/repos/repo1_bare")
 	assert.NoError(t, err)
 
-	commit, err := r.GetCommit("6fbd69e9823458e6c4a2fc5c0f6bc022b2f2acd1")
+	commit, err := r.GetCommit("37991dec2c8e592043f47155ce4808d4580f9123")
 	assert.NoError(t, err)
 
 	// get the symlink
@@ -89,4 +89,10 @@ func TestFollowLink(t *testing.T) {
 	assert.True(t, target.IsLink())
 	_, err = target.FollowLink()
 	assert.Equal(t, err.Error(), "outside_repo: points outside of repo")
+
+	// testing fix for short link bug
+	target, err = commit.Tree.GetTreeEntryByPath("foo/link_short")
+	assert.NoError(t, err)
+	_, err = target.FollowLink()
+	assert.Equal(t, err.Error(), "link_short: broken link")
 }

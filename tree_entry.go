@@ -112,7 +112,7 @@ func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
 	t := te.ptree
 
 	// traverse up directories
-	for ; t != nil && lnk[:3] == "../"; lnk = lnk[3:] {
+	for ; t != nil && strings.HasPrefix(lnk, "../"); lnk = lnk[3:] {
 		t = t.ptree
 	}
 
