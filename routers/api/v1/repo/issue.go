@@ -279,6 +279,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	}
 	if err := models.UpdateIssueDeadline(issue, ctx.User); err != nil {
 		ctx.Error(500, "UpdateIssueDeadline", err)
+		return
 	}
 
 	if ctx.Repo.IsWriter() && form.Assignee != nil &&

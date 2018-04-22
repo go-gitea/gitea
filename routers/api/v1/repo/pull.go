@@ -342,6 +342,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	}
 	if err := models.UpdateIssueDeadline(issue, ctx.User); err != nil {
 		ctx.Error(500, "UpdateIssueDeadline", err)
+		return
 	}
 
 	if ctx.Repo.IsWriter() && len(form.Assignee) > 0 &&
