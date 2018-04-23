@@ -151,15 +151,18 @@ func runServ(c *cli.Context) error {
 		reponame = reponame[:len(reponame)-5]
 	}
 
-	env := map[string]string{}
-
-	env[models.EnvRepoUsername] = username
-	if isWiki {
-		env[models.EnvRepoIsWiki] = "true"
-	} else {
-		env[models.EnvRepoIsWiki] = "false"
+	env := []string{}
+	addEnv := func(key string, value string) {
+		env = append(env, key+"="+value)
 	}
-	env[models.EnvRepoName] = reponame
+
+	addEnv(models.EnvRepoUsername, username)
+	if isWiki {
+		addEnv(models.EnvRepoIsWiki, "true")
+	} else {
+		addEnv(models.EnvRepoIsWiki, "false")
+	}
+	addEnv(models.EnvRepoName, reponame)
 
 	repo, err := models.GetRepositoryByOwnerAndName(username, reponame)
 	if err != nil {
@@ -251,8 +254,8 @@ func runServ(c *cli.Context) error {
 					user.Name, repoPath)
 			}
 
-			env[models.EnvPusherName] = user.Name
-			env[models.EnvPusherID] = fmt.Sprintf("%d", user.ID)
+			addEnv(models.EnvPusherName, user.Name)
+			addEnv(models.EnvPusherID, fmt.Sprintf("%d", user.ID))
 		}
 	}
 
@@ -312,12 +315,9 @@ func runServ(c *cli.Context) error {
 		}
 	}
 
-	env[models.ProtectedBranchRepoID] = fmt.Sprintf("%d", repo.ID)
+	addEnv(models.ProtectedBranchRepoID, fmt.Sprintf("%d", repo.ID))
 
-	for key, value := range env {
-		gitcmd.Env = append(gitcmd.Env, fmt.Sprintf("%s=%s", key, value))
-	}
-
+	gitcmd.Env = env
 	gitcmd.Dir = setting.RepoRootPath
 	gitcmd.Stdout = os.Stdout
 	gitcmd.Stdin = os.Stdin
