@@ -17,5 +17,8 @@ func removeIsOwnerColumnFromOrgUser(x *xorm.Engine) (err error) {
 		return err
 	}
 
-	return dropTableColumns(sess, "org_user", "is_owner", "num_teams")
+	if err := dropTableColumns(sess, "org_user", "is_owner", "num_teams"); err != nil {
+		return err
+	}
+	return sess.Commit()
 }
