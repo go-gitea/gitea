@@ -1513,7 +1513,11 @@ func UpdateIssueDeadline(issue *Issue, doer *User) (err error) {
 
 	// Check if the new date was added or modified
 	var actualIssue Issue
-	if _, err := x.ID(issue.ID).Get(&actualIssue); err != nil {
+	_, err = x.Table("issue").
+		Select("deadline_unix").
+		ID(issue.ID).
+		Get(&actualIssue)
+	if err != nil {
 		return fmt.Errorf("getActualIssue: %v", err)
 	}
 
@@ -1543,7 +1547,7 @@ func UpdateIssueDeadline(issue *Issue, doer *User) (err error) {
 		}
 	}
 
-	err = updateIssue(sess, issue)
+	_, err = x.ID(issue.ID).Cols("deadline_unix").Update(issue)
 	if err != nil {
 		return err
 	}
