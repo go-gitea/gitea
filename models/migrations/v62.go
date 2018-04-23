@@ -56,6 +56,9 @@ func addMultipleAssignees(x *xorm.Engine) error {
 	defer sess.Close()
 
 	err = sess.Begin()
+	if err != nil {
+		return err
+	}
 
 	for _, issue := range allIssues {
 		if issue.AssigneeID != 0 {
@@ -112,13 +115,12 @@ func addMultipleAssignees(x *xorm.Engine) error {
 		}
 	}
 
-	if err := sess.Commit(); err != nil {
+	if err := dropTableColumns(sess, "issue", "assignee_id"); err != nil {
 		return err
 	}
 
-	if err := dropTableColumns(x, "issue", "assignee_id"); err != nil {
+	if err := dropTableColumns(sess, "issue_user", "is_assigned"); err != nil {
 		return err
 	}
-
-	return dropTableColumns(x, "issue_user", "is_assigned")
+	return sess.Commit()
 }
