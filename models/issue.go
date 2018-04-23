@@ -1508,7 +1508,7 @@ func UpdateIssue(issue *Issue) error {
 	return updateIssue(x, issue)
 }
 
-// UpdateIssueDeadline does what it says
+// UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
 func UpdateIssueDeadline(issue *Issue, doer *User) (err error) {
 
 	// Check if the new date was added or modified
