@@ -31,11 +31,6 @@ type Milestone struct {
 	ClosedDateUnix util.TimeStamp
 }
 
-// BeforeInsert is invoked from XORM before inserting an object of this type.
-func (m *Milestone) BeforeInsert() {
-	m.DeadlineUnix = util.TimeStampNow()
-}
-
 // BeforeUpdate is invoked from XORM before updating this object.
 func (m *Milestone) BeforeUpdate() {
 	if m.NumIssues > 0 {
