@@ -12,8 +12,7 @@ func removeIsOwnerColumnFromOrgUser(x *xorm.Engine) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	err = sess.Begin()
-	if err != nil {
+	if err = sess.Begin(); err != nil {
 		return err
 	}
 

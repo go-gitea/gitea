@@ -139,7 +139,15 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	return issue.changeAssignee(sess, doer, assigneeID)
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if err := issue.changeAssignee(sess, doer, assigneeID); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
 
 func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID int64) (err error) {
