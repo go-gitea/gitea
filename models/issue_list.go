@@ -160,8 +160,8 @@ func (issues IssueList) loadAssignees(e Engine) error {
 	}
 
 	type AssigneeIssue struct {
-		Assignee      *User           `xorm:"extends"`
 		IssueAssignee *IssueAssignees `xorm:"extends"`
+		Assignee      *User           `xorm:"extends"`
 	}
 
 	var assignees = make(map[int64][]*User, len(issues))
