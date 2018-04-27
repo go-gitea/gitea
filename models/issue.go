@@ -1520,7 +1520,7 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix util.TimeStamp, doer *User) 
 	defer sess.Close()
 
 	// Update the deadline
-	if _, err = sess.ID(issue.ID).Cols("deadline_unix").Update(&Issue{DeadlineUnix:deadlineUnix}); err != nil {
+	if _, err = sess.ID(issue.ID).Cols("deadline_unix").Update(&Issue{DeadlineUnix: deadlineUnix}); err != nil {
 		return err
 	}
 
