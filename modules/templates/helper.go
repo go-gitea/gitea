@@ -181,6 +181,9 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"Printf": fmt.Sprintf,
 		"Escape": Escape,
+		"ParseDeadline": func(deadline string) []string {
+			return strings.Split(deadline, "|")
+		},
 	}}
 }
 

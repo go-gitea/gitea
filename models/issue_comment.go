@@ -493,22 +493,22 @@ func createAssigneeComment(e *xorm.Session, doer *User, repo *Repository, issue 
 
 func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix util.TimeStamp) (*Comment, error) {
 
-	var deadline util.TimeStamp
+	var content string
 	var commentType CommentType
 
 	// newDeadline = 0 means deleting
 	if newDeadlineUnix == 0 {
 		commentType = CommentTypeRemovedDeadline
-		deadline = issue.DeadlineUnix
+		content = issue.DeadlineUnix.Format("2006-01-02")
 	} else {
 		// Check if the new date was added or modified
 		// If the actual deadline is 0 => deadline added
 		if issue.DeadlineUnix == 0 {
 			commentType = CommentTypeAddedDeadline
-			deadline = newDeadlineUnix
+			content = newDeadlineUnix.Format("2006-01-02")
 		} else { // Otherwise modified
 			commentType = CommentTypeModifiedDeadline
-			deadline = newDeadlineUnix
+			content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
 		}
 	}
 
@@ -517,7 +517,7 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 		Doer:    doer,
 		Repo:    issue.Repo,
 		Issue:   issue,
-		Content: deadline.Format("2006-01-02"),
+		Content: content,
 	})
 }
 
