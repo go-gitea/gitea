@@ -96,17 +96,20 @@ func addMultipleAssignees(x *xorm.Engine) error {
 		// Reference issue in commit message
 		CommitSHA string `xorm:"VARCHAR(40)"`
 	}
-	err = x.Sync2(Comment{})
-	if err != nil {
+	if err := x.Sync2(Comment{}); err != nil {
 		return err
 	}
 
 	// Migrate comments
 	// First update everything to not have nulls in db
-	_, err = sess.Where("type = ?", 9).Cols("removed_assignee").Update(Comment{RemovedAssignee: false})
+	if _, err := sess.Where("type = ?", 9).Cols("removed_assignee").Update(Comment{RemovedAssignee: false}); err != nil {
+		return err
+	}
 
 	allAssignementComments := []Comment{}
-	err = sess.Where("type = ?", 9).Find(&allAssignementComments)
+	if err := sess.Where("type = ?", 9).Find(&allAssignementComments); err != nil {
+		return err
+	}
 
 	for _, comment := range allAssignementComments {
 		// Everytime where OldAssigneeID is > 0, the assignement was removed.
