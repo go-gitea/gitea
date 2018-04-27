@@ -1520,6 +1520,10 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix util.TimeStamp, doer *User) 
 	if err != nil {
 		return fmt.Errorf("getActualIssue: %v", err)
 	}*/
+	// if the deadline hasn't changed do nothing
+	if issue.DeadlineUnix == deadlineUnix {
+		return nil
+	}
 
 	sess := x.NewSession()
 	defer sess.Close()
