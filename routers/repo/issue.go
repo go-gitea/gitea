@@ -1489,8 +1489,7 @@ func UpdateDeadline(ctx *context.Context, form auth.DeadlineForm) {
 		return
 	}
 
-	issue.DeadlineUnix = util.TimeStamp(deadline.Unix())
-	if err = models.UpdateIssueDeadline(issue, ctx.User); err != nil {
+	if err = models.UpdateIssueDeadline(issue, util.TimeStamp(deadline.Unix()), ctx.User); err != nil {
 		ctx.Flash.Error(ctx.Tr("repo.issues.error_modifying_due_date"))
 	}
 
@@ -1517,8 +1516,7 @@ func RemoveDeadline(ctx *context.Context) {
 		return
 	}
 
-	issue.DeadlineUnix = 0
-	if err := models.UpdateIssueDeadline(issue, ctx.User); err != nil {
+	if err := models.UpdateIssueDeadline(issue, 0, ctx.User); err != nil {
 		ctx.Flash.Error(ctx.Tr("repo.issues.error_removing_due_date"))
 	}
 

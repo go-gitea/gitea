@@ -1509,47 +1509,43 @@ func UpdateIssue(issue *Issue) error {
 }
 
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
-func UpdateIssueDeadline(issue *Issue, doer *User) (err error) {
+func UpdateIssueDeadline(issue *Issue, deadlineUnix util.TimeStamp, doer *User) (err error) {
 
 	// Check if the new date was added or modified
-	var actualIssue Issue
+	/*var actualIssue Issue
 	_, err = x.Table("issue").
 		Select("deadline_unix").
 		ID(issue.ID).
 		Get(&actualIssue)
 	if err != nil {
 		return fmt.Errorf("getActualIssue: %v", err)
-	}
+	}*/
 
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if err = issue.loadRepo(sess); err != nil {
-		return fmt.Errorf("loadRepo: %v", err)
+	// Update the deadline
+	if _, err = sess.ID(issue.ID).Cols("deadline_unix").Update(&Issue{DeadlineUnix:deadlineUnix}); err != nil {
+		return err
 	}
 
 	// Make the comment
-	if issue.DeadlineUnix == 0 {
-		if _, err = createDeadlineComment(sess, doer, issue.Repo, issue, actualIssue.DeadlineUnix, CommentTypeRemovedDeadline); err != nil {
+	if deadlineUnix == 0 {
+		if _, err = createDeadlineComment(sess, doer, issue.Repo, issue, issue.DeadlineUnix, CommentTypeRemovedDeadline); err != nil {
 			return fmt.Errorf("createRemovedDueDateComment: %v", err)
 		}
 	} else {
 		// Check if the new date was added or modified
 		// If the actual deadline is 0 => deadline added
-		if actualIssue.DeadlineUnix == 0 {
-			if _, err = createDeadlineComment(sess, doer, issue.Repo, issue, issue.DeadlineUnix, CommentTypeAddedDeadline); err != nil {
+		if issue.DeadlineUnix == 0 {
+			if _, err = createDeadlineComment(sess, doer, issue.Repo, issue, deadlineUnix, CommentTypeAddedDeadline); err != nil {
 				return fmt.Errorf("createRemovedDueDateComment: %v", err)
 			}
 		} else { // Otherwise modified
-			if _, err = createDeadlineComment(sess, doer, issue.Repo, issue, issue.DeadlineUnix, CommentTypeModifiedDeadline); err != nil {
+			if _, err = createDeadlineComment(sess, doer, issue.Repo, issue, deadlineUnix, CommentTypeModifiedDeadline); err != nil {
 				return fmt.Errorf("createRemovedDueDateComment: %v", err)
 			}
 		}
-	}
-
-	_, err = x.ID(issue.ID).Cols("deadline_unix").Update(issue)
-	if err != nil {
-		return err
 	}
 
 	return sess.Commit()

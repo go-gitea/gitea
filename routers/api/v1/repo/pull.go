@@ -335,12 +335,12 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		issue.Content = form.Body
 	}
 
+	var deadlineUnix util.TimeStamp
 	if form.Deadline != nil && !form.Deadline.IsZero() {
-		issue.DeadlineUnix = util.TimeStamp(form.Deadline.Unix())
-	} else {
-		issue.DeadlineUnix = util.TimeStamp(0)
+		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
 	}
-	if err := models.UpdateIssueDeadline(issue, ctx.User); err != nil {
+
+	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
 		ctx.Error(500, "UpdateIssueDeadline", err)
 		return
 	}
