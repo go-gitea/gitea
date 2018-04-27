@@ -491,23 +491,38 @@ func createAssigneeComment(e *xorm.Session, doer *User, repo *Repository, issue 
 	})
 }
 
-func createDeadlineComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, dateUnix util.TimeStamp, deadlineCommentType CommentType) (*Comment, error) {
-	if deadlineCommentType != CommentTypeAddedDeadline &&
-		deadlineCommentType != CommentTypeModifiedDeadline &&
-		deadlineCommentType != CommentTypeRemovedDeadline {
-		return &Comment{}, fmt.Errorf("wrong comment type: %d", deadlineCommentType)
+func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix util.TimeStamp) (*Comment, error) {
+
+	// newDeadline = 0 means deleting
+	if newDeadlineUnix == 0 {
+		return createComment(e, &CreateCommentOptions{
+			Type:    CommentTypeRemovedDeadline,
+			Doer:    doer,
+			Repo:    issue.Repo,
+			Issue:   issue,
+			Content: issue.DeadlineUnix.Format("2006-01-02"),
+		})
+	} else {
+		// Check if the new date was added or modified
+		// If the actual deadline is 0 => deadline added
+		if issue.DeadlineUnix == 0 {
+			return createComment(e, &CreateCommentOptions{
+				Type:    CommentTypeAddedDeadline,
+				Doer:    doer,
+				Repo:    issue.Repo,
+				Issue:   issue,
+				Content: newDeadlineUnix.Format("2006-01-02"),
+			})
+		} else { // Otherwise modified
+			return createComment(e, &CreateCommentOptions{
+				Type:    CommentTypeModifiedDeadline,
+				Doer:    doer,
+				Repo:    issue.Repo,
+				Issue:   issue,
+				Content: newDeadlineUnix.Format("2006-01-02"),
+			})
+		}
 	}
-
-	// Make string from unix date
-	date := dateUnix.Format("2006-01-02")
-
-	return createComment(e, &CreateCommentOptions{
-		Type:    deadlineCommentType,
-		Doer:    doer,
-		Repo:    repo,
-		Issue:   issue,
-		Content: date,
-	})
 }
 
 func createChangeTitleComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldTitle, newTitle string) (*Comment, error) {
