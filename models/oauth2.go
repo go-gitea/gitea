@@ -97,14 +97,17 @@ func GetActiveOAuth2Providers() ([]string, map[string]OAuth2Provider, error) {
 }
 
 // InitOAuth2 initialize the OAuth2 lib and register all active OAuth2 providers in the library
-func InitOAuth2() {
-	oauth2.Init()
+func InitOAuth2() error {
+	if err := oauth2.Init(x); err != nil {
+		return err
+	}
 	loginSources, _ := GetActiveOAuth2ProviderLoginSources()
 
 	for _, source := range loginSources {
 		oAuth2Config := source.OAuth2()
 		oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 	}
+	return nil
 }
 
 // wrapOpenIDConnectInitializeError is used to wrap the error but this cannot be done in modules/auth/oauth2

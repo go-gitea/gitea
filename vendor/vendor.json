@@ -648,6 +648,18 @@
 			"revisionTime": "2016-10-16T15:41:25Z"
 		},
 		{
+			"checksumSHA1": "/X7eCdN7MX8zgCjA9s0ktzgTPlA=",
+			"path": "github.com/lafriks/xormstore",
+			"revision": "3a80a383a04b29ec2e1bf61279dd948aa809335b",
+			"revisionTime": "2018-04-09T10:45:24Z"
+		},
+		{
+			"checksumSHA1": "Vxvfs8mukr9GOLSuGIPU4ODyOZc=",
+			"path": "github.com/lafriks/xormstore/util",
+			"revision": "c0e2f3dc1ecab3536617967e4b47ee5b9e2ca229",
+			"revisionTime": "2018-03-11T19:16:53Z"
+		},
+		{
 			"checksumSHA1": "QV4HZTfaXvhD+5PcGM2p+7aCYYI=",
 			"path": "github.com/lib/pq",
 			"revision": "456514e2defec52e0cd37f90ccf17ec8b28295e2",
