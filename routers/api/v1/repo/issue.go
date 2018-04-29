@@ -164,9 +164,9 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	//   "201":
 	//     "$ref": "#/responses/Issue"
 
-	var deadline util.TimeStamp
+	var deadlineUnix util.TimeStamp
 	if form.Deadline != nil {
-		deadline = util.TimeStamp(form.Deadline.Unix())
+		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
 	}
 
 	issue := &models.Issue{
@@ -175,7 +175,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		PosterID:     ctx.User.ID,
 		Poster:       ctx.User,
 		Content:      form.Body,
-		DeadlineUnix: deadline,
+		DeadlineUnix: deadlineUnix,
 	}
 
 	if ctx.Repo.IsWriter() {
