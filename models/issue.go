@@ -51,9 +51,10 @@ type Issue struct {
 	UpdatedUnix  util.TimeStamp `xorm:"INDEX updated"`
 	ClosedUnix   util.TimeStamp `xorm:"INDEX"`
 
-	Attachments []*Attachment `xorm:"-"`
-	Comments    []*Comment    `xorm:"-"`
-	Reactions   ReactionList  `xorm:"-"`
+	Attachments      []*Attachment `xorm:"-"`
+	Comments         []*Comment    `xorm:"-"`
+	Reactions        ReactionList  `xorm:"-"`
+	TotalTrackedTime int64         `xorm:"-"`
 }
 
 var (
@@ -69,6 +70,15 @@ func init() {
 	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
 }
 
+func (issue *Issue) loadTotalTimes(e Engine) (err error) {
+	opts := FindTrackedTimesOptions{IssueID: issue.ID}
+	issue.TotalTrackedTime, err = opts.ToSession(e).SumInt(&TrackedTime{}, "time")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (issue *Issue) loadRepo(e Engine) (err error) {
 	if issue.Repo == nil {
 		issue.Repo, err = getRepositoryByID(e, issue.RepoID)
@@ -77,6 +87,15 @@ func (issue *Issue) loadRepo(e Engine) (err error) {
 		}
 	}
 	return nil
+}
+
+// IsTimetrackerEnabled returns true if the repo enables timetracking
+func (issue *Issue) IsTimetrackerEnabled() bool {
+	if err := issue.loadRepo(x); err != nil {
+		log.Error(4, fmt.Sprintf("loadRepo: %v", err))
+		return false
+	}
+	return issue.Repo.IsTimetrackerEnabled()
 }
 
 // GetPullRequest returns the issue pull request
@@ -224,6 +243,11 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 
 	if err = issue.loadComments(e); err != nil {
 		return err
+	}
+	if issue.IsTimetrackerEnabled() {
+		if err = issue.loadTotalTimes(e); err != nil {
+			return err
+		}
 	}
 
 	return issue.loadReactions(e)

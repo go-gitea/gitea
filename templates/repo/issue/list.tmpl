@@ -198,6 +198,10 @@
 						<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
 					{{end}}
 
+					{{if .TotalTrackedTime}}
+						<span class="comment ui right"><i class="octicon octicon-clock"></i> {{.TotalTrackedTime | Sec2Time}}</span>
+					{{end}}
+
 					<p class="desc">
 						{{$.i18n.Tr "repo.issues.opened_by" $timeStr .Poster.HomeLink .Poster.Name | Safe}}
 						{{$tasks := .GetTasks}}
