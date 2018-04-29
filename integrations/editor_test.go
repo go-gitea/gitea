@@ -52,7 +52,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 	// Check if master branch has been locked successfully
 	flashCookie := session.GetCookie("macaron_flash")
 	assert.NotNil(t, flashCookie)
-	assert.EqualValues(t, "success%3DBranch%2Bmaster%2Bprotect%2Boptions%2Bchanged%2Bsuccessfully.", flashCookie.Value)
+	assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Bbranch%2B%2527master%2527%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
 
 	// Request editor page
 	req = NewRequest(t, "GET", "/user2/repo1/_new/master/")
@@ -73,7 +73,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	// Check body for error message
-	assert.Contains(t, resp.Body.String(), "Can not commit to protected branch &#39;master&#39;.")
+	assert.Contains(t, resp.Body.String(), "Cannot commit to protected branch &#39;master&#39;.")
 
 	// remove the protected branch
 	csrf = GetCSRF(t, session, "/user2/repo1/settings/branches")
@@ -86,7 +86,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 	// Check if master branch has been locked successfully
 	flashCookie = session.GetCookie("macaron_flash")
 	assert.NotNil(t, flashCookie)
-	assert.EqualValues(t, "success%3DBranch%2Bmaster%2Bprotect%2Boptions%2Bremoved%2Bsuccessfully", flashCookie.Value)
+	assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Bbranch%2B%2527master%2527%2Bhas%2Bbeen%2Bdisabled.", flashCookie.Value)
 
 }
 
