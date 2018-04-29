@@ -1,0 +1,70 @@
+#!/bin/bash
+
+DOCKER_IP=${DOCKER_IP:-127.0.0.1}
+
+sqlite3() {
+  DATABASE_URI="sqlite3://file:dummy?mode=memory&cache=shared" go test -v -race -cover -coverprofile=coverage.txt -covermode=atomic
+  return $?
+}
+
+postgres10() {
+  ID=$(docker run -p 5432 -d postgres:10-alpine)
+  PORT=$(docker port "$ID" 5432 | cut -d : -f 2)
+  DATABASE_URI="postgres://user=postgres password=postgres dbname=postgres host=$DOCKER_IP port=$PORT sslmode=disable" go test -v -race -cover
+  S=$?
+  docker rm -vf "$ID" > /dev/null
+  return $S
+}
+
+postgres96() {
+  ID=$(docker run -p 5432 -d postgres:9.6-alpine)
+  PORT=$(docker port "$ID" 5432 | cut -d : -f 2)
+  DATABASE_URI="postgres://user=postgres password=postgres dbname=postgres host=$DOCKER_IP port=$PORT sslmode=disable" go test -v -race -cover
+  S=$?
+  docker rm -vf "$ID" > /dev/null
+  return $S
+}
+
+postgres94() {
+  ID=$(docker run -p 5432 -d postgres:9.4-alpine)
+  PORT=$(docker port "$ID" 5432 | cut -d : -f 2)
+  DATABASE_URI="postgres://user=postgres password=postgres dbname=postgres host=$DOCKER_IP port=$PORT sslmode=disable" go test -v -race -cover
+  S=$?
+  docker rm -vf "$ID" > /dev/null
+  return $S
+}
+
+mysql57() {
+  ID=$(docker run \
+    -e MYSQL_ROOT_PASSWORD=root \
+    -e MYSQL_USER=mysql \
+    -e MYSQL_PASSWORD=mysql \
+    -e MYSQL_DATABASE=mysql \
+    -p 3306 -d mysql:5.7)
+  PORT=$(docker port "$ID" 3306 | cut -d : -f 2)
+  DATABASE_URI="mysql://mysql:mysql@tcp($DOCKER_IP:$PORT)/mysql?charset=utf8&parseTime=True" go test -v -race -cover
+  S=$?
+  docker rm -vf "$ID" > /dev/null
+  return $S
+}
+
+mariadb10() {
+  ID=$(docker run \
+    -e MYSQL_ROOT_PASSWORD=root \
+    -e MYSQL_USER=mysql \
+    -e MYSQL_PASSWORD=mysql \
+    -e MYSQL_DATABASE=mysql \
+    -p 3306 -d mariadb:10)
+  PORT=$(docker port "$ID" 3306 | cut -d : -f 2)
+  DATABASE_URI="mysql://mysql:mysql@tcp($DOCKER_IP:$PORT)/mysql?charset=utf8&parseTime=True" go test -v -race -cover
+  S=$?
+  docker rm -vf "$ID" > /dev/null
+  return $S
+}
+
+sqlite3 || exit 1
+postgres94 || exit 1
+postgres96 || exit 1
+postgres10 || exit 1
+mysql57 || exit 1
+mariadb10 || exit 1

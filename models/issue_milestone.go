@@ -29,6 +29,8 @@ type Milestone struct {
 	DeadlineString string `xorm:"-"`
 	DeadlineUnix   util.TimeStamp
 	ClosedDateUnix util.TimeStamp
+
+	TotalTrackedTime int64 `xorm:"-"`
 }
 
 // BeforeUpdate is invoked from XORM before updating this object.
@@ -118,14 +120,69 @@ func GetMilestoneByRepoID(repoID, id int64) (*Milestone, error) {
 	return getMilestoneByRepoID(x, repoID, id)
 }
 
+// MilestoneList is a list of milestones offering additional functionality
+type MilestoneList []*Milestone
+
+func (milestones MilestoneList) loadTotalTrackedTimes(e Engine) error {
+	type totalTimesByMilestone struct {
+		MilestoneID int64
+		Time        int64
+	}
+	if len(milestones) == 0 {
+		return nil
+	}
+	var trackedTimes = make(map[int64]int64, len(milestones))
+
+	// Get total tracked time by milestone_id
+	rows, err := e.Table("issue").
+		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
+		Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
+		Select("milestone_id, sum(time) as time").
+		In("milestone_id", milestones.getMilestoneIDs()).
+		GroupBy("milestone_id").
+		Rows(new(totalTimesByMilestone))
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var totalTime totalTimesByMilestone
+		err = rows.Scan(&totalTime)
+		if err != nil {
+			return err
+		}
+		trackedTimes[totalTime.MilestoneID] = totalTime.Time
+	}
+
+	for _, milestone := range milestones {
+		milestone.TotalTrackedTime = trackedTimes[milestone.ID]
+	}
+	return nil
+}
+
+// LoadTotalTrackedTimes loads for every milestone in the list the TotalTrackedTime by a batch request
+func (milestones MilestoneList) LoadTotalTrackedTimes() error {
+	return milestones.loadTotalTrackedTimes(x)
+}
+
+func (milestones MilestoneList) getMilestoneIDs() []int64 {
+	var ids = make([]int64, 0, len(milestones))
+	for _, ms := range milestones {
+		ids = append(ids, ms.ID)
+	}
+	return ids
+}
+
 // GetMilestonesByRepoID returns all milestones of a repository.
-func GetMilestonesByRepoID(repoID int64) ([]*Milestone, error) {
+func GetMilestonesByRepoID(repoID int64) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, 10)
 	return miles, x.Where("repo_id = ?", repoID).Find(&miles)
 }
 
 // GetMilestones returns a list of milestones of given repository and status.
-func GetMilestones(repoID int64, page int, isClosed bool, sortType string) ([]*Milestone, error) {
+func GetMilestones(repoID int64, page int, isClosed bool, sortType string) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
 	sess := x.Where("repo_id = ? AND is_closed = ?", repoID, isClosed)
 	if page > 0 {
@@ -146,7 +203,6 @@ func GetMilestones(repoID int64, page int, isClosed bool, sortType string) ([]*M
 	default:
 		sess.Asc("deadline_unix")
 	}
-
 	return miles, sess.Find(&miles)
 }
 
