@@ -237,9 +237,9 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		return
 	}
 
-	var deadline util.TimeStamp
+	var deadlineUnix util.TimeStamp
 	if form.Deadline != nil {
-		deadline = util.TimeStamp(form.Deadline.Unix())
+		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
 	}
 
 	prIssue := &models.Issue{
@@ -252,7 +252,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		AssigneeID:   assigneeID,
 		IsPull:       true,
 		Content:      form.Body,
-		DeadlineUnix: deadline,
+		DeadlineUnix: deadlineUnix,
 	}
 	pr := &models.PullRequest{
 		HeadRepoID:   headRepo.ID,
