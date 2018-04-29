@@ -1480,13 +1480,6 @@ func UpdateDeadline(ctx *context.Context, form auth.DeadlineForm) {
 		return
 	}
 
-	// Check if the user has at least write access to the repo
-	if !ctx.Repo.IsWriter() {
-		ctx.Flash.Error(ctx.Tr("repo.issues.due_date_not_writer"))
-		ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
-		return
-	}
-
 	// Make unix of deadline string
 	deadline, err := time.ParseInLocation("2006-01-02", form.DateString, time.Local)
 	if err != nil {
@@ -1512,13 +1505,6 @@ func RemoveDeadline(ctx *context.Context) {
 
 	if ctx.HasError() {
 		ctx.ServerError("RemoveIssueDeadline", errors.New(ctx.GetErrMsg()))
-		return
-	}
-
-	// Check if the user has at least write access to the repo
-	if !ctx.Repo.IsWriter() {
-		ctx.Flash.Error(ctx.Tr("repo.issues.due_date_not_writer"))
-		ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
 
