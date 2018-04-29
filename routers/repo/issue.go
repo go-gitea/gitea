@@ -1139,6 +1139,12 @@ func Milestones(ctx *context.Context) {
 		ctx.ServerError("GetMilestones", err)
 		return
 	}
+	if ctx.Repo.Repository.IsTimetrackerEnabled() {
+		if miles.LoadTotalTrackedTimes(); err != nil {
+			ctx.ServerError("LoadTotalTrackedTimes", err)
+			return
+		}
+	}
 	for _, m := range miles {
 		m.RenderedContent = string(markdown.Render([]byte(m.Content), ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas()))
 	}
