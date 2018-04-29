@@ -500,16 +500,14 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 	if newDeadlineUnix == 0 {
 		commentType = CommentTypeRemovedDeadline
 		content = issue.DeadlineUnix.Format("2006-01-02")
-	} else {
+	} else if issue.DeadlineUnix == 0 {
 		// Check if the new date was added or modified
 		// If the actual deadline is 0 => deadline added
-		if issue.DeadlineUnix == 0 {
-			commentType = CommentTypeAddedDeadline
-			content = newDeadlineUnix.Format("2006-01-02")
-		} else { // Otherwise modified
-			commentType = CommentTypeModifiedDeadline
-			content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
-		}
+		commentType = CommentTypeAddedDeadline
+		content = newDeadlineUnix.Format("2006-01-02")
+	} else { // Otherwise modified
+		commentType = CommentTypeModifiedDeadline
+		content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
 	}
 
 	return createComment(e, &CreateCommentOptions{
