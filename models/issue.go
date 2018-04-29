@@ -55,7 +55,7 @@ type Issue struct {
 	Comments         []*Comment    `xorm:"-"`
 	Reactions        ReactionList  `xorm:"-"`
 	TotalTrackedTime int64         `xorm:"-"`
-	Assignees   []*User       `xorm:"-"`
+	Assignees        []*User       `xorm:"-"`
 }
 
 var (
