@@ -10,16 +10,16 @@ package gothic
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -35,8 +35,6 @@ var defaultStore sessions.Store
 
 var keySet = false
 
-var gothicRand *rand.Rand
-
 func init() {
 	key := []byte(os.Getenv("SESSION_SECRET"))
 	keySet = len(key) != 0
@@ -45,7 +43,6 @@ func init() {
 	cookieStore.Options.HttpOnly = true
 	Store = cookieStore
 	defaultStore = Store
-	gothicRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 /*
@@ -85,8 +82,9 @@ var SetState = func(req *http.Request) string {
 	//
 	// https://auth0.com/docs/protocols/oauth2/oauth-state#keep-reading
 	nonceBytes := make([]byte, 64)
-	for i := 0; i < 64; i++ {
-		nonceBytes[i] = byte(gothicRand.Int63() % 256)
+	_, err := io.ReadFull(rand.Reader, nonceBytes)
+	if err != nil {
+		panic("gothic: source of randomness unavailable: " + err.Error())
 	}
 	return base64.URLEncoding.EncodeToString(nonceBytes)
 }
