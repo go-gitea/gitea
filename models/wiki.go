@@ -67,7 +67,7 @@ func WikiPath(userName, repoName string) string {
 
 // WikiPath returns wiki data path for given repository.
 func (repo *Repository) WikiPath() string {
-	return WikiPath(repo.MustOwner().Name, repo.Name)
+	return WikiPath(repo.MustOwnerName(), repo.Name)
 }
 
 // HasWiki returns true if repository has wiki.
