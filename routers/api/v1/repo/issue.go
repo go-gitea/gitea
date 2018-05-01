@@ -367,13 +367,6 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.CreateDeadlineOption)
 	//   "201":
 	//     "$ref": "#/responses/IssueDeadline"
 
-	if !ctx.Repo.IsWriter() {
-		ctx.JSON(401, map[string]string{
-			"message": "Only users with write access to this repository can manage issue deadlines.",
-		})
-		return
-	}
-
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -381,6 +374,11 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.CreateDeadlineOption)
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
+		return
+	}
+
+	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.IsWriter() {
+		ctx.Status(403)
 		return
 	}
 
