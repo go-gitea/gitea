@@ -5594,6 +5594,11 @@
           "type": "boolean",
           "x-go-name": "Closed"
         },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
+        },
         "labels": {
           "description": "list of label ids",
           "type": "array",
@@ -5736,6 +5741,11 @@
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "head": {
           "type": "string",
@@ -6049,6 +6059,11 @@
           "type": "string",
           "x-go-name": "Body"
         },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
+        },
         "milestone": {
           "type": "integer",
           "format": "int64",
@@ -6145,6 +6160,11 @@
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "labels": {
           "type": "array",
@@ -6406,6 +6426,11 @@
           "type": "string",
           "x-go-name": "Body"
         },
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Closed"
+        },
         "comments": {
           "type": "integer",
           "format": "int64",
@@ -6415,6 +6440,11 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "id": {
           "type": "integer",
@@ -6827,6 +6857,11 @@
           "type": "string",
           "x-go-name": "Body"
         },
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Closed"
+        },
         "comments": {
           "type": "integer",
           "format": "int64",
@@ -6840,6 +6875,11 @@
         "diff_url": {
           "type": "string",
           "x-go-name": "DiffURL"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "head": {
           "$ref": "#/definitions/PRBranchInfo"

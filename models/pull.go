@@ -208,6 +208,7 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		Base:      apiBaseBranchInfo,
 		Head:      apiHeadBranchInfo,
 		MergeBase: pr.MergeBase,
+		Deadline:  apiIssue.Deadline,
 		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
 	}

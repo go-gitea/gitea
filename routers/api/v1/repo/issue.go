@@ -163,12 +163,19 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
+
+	var deadlineUnix util.TimeStamp
+	if form.Deadline != nil {
+		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
+	}
+
 	issue := &models.Issue{
-		RepoID:   ctx.Repo.Repository.ID,
-		Title:    form.Title,
-		PosterID: ctx.User.ID,
-		Poster:   ctx.User,
-		Content:  form.Body,
+		RepoID:       ctx.Repo.Repository.ID,
+		Title:        form.Title,
+		PosterID:     ctx.User.ID,
+		Poster:       ctx.User,
+		Content:      form.Body,
+		DeadlineUnix: deadlineUnix,
 	}
 
 	// Get all assignee IDs
@@ -259,6 +266,17 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	}
 	if form.Body != nil {
 		issue.Content = *form.Body
+	}
+
+	// Update the deadline
+	var deadlineUnix util.TimeStamp
+	if form.Deadline != nil && !form.Deadline.IsZero() {
+		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
+	}
+
+	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
+		ctx.Error(500, "UpdateIssueDeadline", err)
+		return
 	}
 
 	// Add/delete assignees
