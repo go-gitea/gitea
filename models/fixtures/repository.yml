@@ -379,3 +379,13 @@
   num_closed_pulls: 0
   is_mirror: false
   is_fork: true
+
+-
+  id: 31
+  owner_id: 2
+  lower_name: repo20
+  name: repo20
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
