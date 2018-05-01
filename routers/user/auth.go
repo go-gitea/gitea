@@ -221,7 +221,7 @@ func TwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 		return
 	}
 
-	if ok {
+	if ok && twofa.LastUsedPasscode != form.Passcode {
 		remember := ctx.Session.Get("twofaRemember").(bool)
 		u, err := models.GetUserByID(id)
 		if err != nil {
@@ -241,6 +241,12 @@ func TwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 				ctx.ServerError("UserSignIn", err)
 				return
 			}
+		}
+
+		twofa.LastUsedPasscode = form.Passcode
+		if err = models.UpdateTwoFactor(twofa); err != nil {
+			ctx.ServerError("UserSignIn", err)
+			return
 		}
 
 		handleSignIn(ctx, u, remember)
