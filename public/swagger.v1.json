@@ -2289,6 +2289,56 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issues/{index}/deadline": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Set an issue deadline",
+        "operationId": "issueCreateIssueDeadline",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "index of the issue to create or update a deadline on",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateDeadlineOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/IssueDeadline"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/issues/{index}/labels": {
       "get": {
         "produces": [
@@ -5470,6 +5520,21 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "CreateDeadlineOption": {
+      "description": "CreateDeadlineOption options for creating a deadline",
+      "type": "object",
+      "required": [
+        "due_date"
+      ],
+      "properties": {
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "CreateEmailOption": {
       "description": "CreateEmailOption options when creating email addresses",
       "type": "object",
@@ -7675,6 +7740,7 @@
       "headers": {
         "AddCollaboratorOption": {},
         "AddTimeOption": {},
+        "CreateDeadlineOption": {},
         "CreateEmailOption": {},
         "CreateForkOption": {},
         "CreateHookOption": {},

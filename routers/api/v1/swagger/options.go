@@ -24,6 +24,7 @@ type swaggerParameterBodies struct {
 
 	CreateIssueOption api.CreateIssueOption
 	EditIssueOption   api.EditIssueOption
+	CreateDeadlineOption api.CreateDeadlineOption
 
 	CreateIssueCommentOption api.CreateIssueCommentOption
 	EditIssueCommentOption   api.EditIssueCommentOption

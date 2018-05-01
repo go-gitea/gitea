@@ -138,3 +138,17 @@ func (c *Client) EditIssue(owner, repo string, index int64, opt EditIssueOption)
 	return issue, c.getParsedResponse("PATCH", fmt.Sprintf("/repos/%s/%s/issues/%d", owner, repo, index),
 		jsonHeader, bytes.NewReader(body), issue)
 }
+
+// CreateDeadlineOption options for creating a deadline
+type CreateDeadlineOption struct {
+	// required:true
+	// swagger:strfmt date-time
+	Deadline  *time.Time `json:"due_date"`
+}
+
+// IssueDeadline represents an issue deadline
+// swagger:model
+type IssueDeadline struct {
+	// swagger:strfmt date-time
+	Deadline *time.Time `json:"due_date"`
+}

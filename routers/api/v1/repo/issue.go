@@ -333,3 +333,66 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	}
 	ctx.JSON(201, issue.APIFormat())
 }
+
+// UpdateIssueDeadline updates an issue deadline
+func UpdateIssueDeadline(ctx *context.APIContext, form api.CreateDeadlineOption) {
+	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/deadline issue issueCreateIssueDeadline
+	// ---
+	// summary: Set an issue deadline
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue to create or update a deadline on
+	//   type: integer
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateDeadlineOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/IssueDeadline"
+
+	if !ctx.Repo.IsWriter() {
+		ctx.JSON(401, map[string]string{
+			"message": "Only users with write access to this repository can manage issue deadlines.",
+		})
+		return
+	}
+
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.Status(404)
+		} else {
+			ctx.Error(500, "GetIssueByIndex", err)
+		}
+		return
+	}
+
+	var deadlineUnix util.TimeStamp
+	if form.Deadline != nil && !form.Deadline.IsZero() {
+		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
+	}
+
+	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
+		ctx.Error(500, "UpdateIssueDeadline", err)
+		return
+	}
+
+	ctx.JSON(201, api.IssueDeadline{Deadline:form.Deadline})
+}
