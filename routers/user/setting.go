@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/Unknwon/i18n"
 )
 
 const (
@@ -105,6 +106,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateProfileForm) {
 	ctx.User.KeepEmailPrivate = form.KeepEmailPrivate
 	ctx.User.Website = form.Website
 	ctx.User.Location = form.Location
+	ctx.User.Language = form.Language
 	if err := models.UpdateUserSetting(ctx.User); err != nil {
 		if _, ok := err.(models.ErrEmailAlreadyUsed); ok {
 			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
@@ -115,8 +117,11 @@ func SettingsPost(ctx *context.Context, form auth.UpdateProfileForm) {
 		return
 	}
 
+	// Update the language to the one we just set
+	ctx.SetCookie("lang", ctx.User.Language, nil, setting.AppSubURL)
+
 	log.Trace("User settings updated: %s", ctx.User.Name)
-	ctx.Flash.Success(ctx.Tr("settings.update_profile_success"))
+	ctx.Flash.Success(i18n.Tr(ctx.User.Language, "settings.update_profile_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 

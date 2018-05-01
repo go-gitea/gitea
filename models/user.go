@@ -94,6 +94,7 @@ type User struct {
 	Website          string
 	Rands            string `xorm:"VARCHAR(10)"`
 	Salt             string `xorm:"VARCHAR(10)"`
+	Language         string `xorm:"VARCHAR(5)"`
 
 	CreatedUnix   util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix   util.TimeStamp `xorm:"INDEX updated"`
@@ -185,6 +186,7 @@ func (u *User) APIFormat() *api.User {
 		FullName:  u.FullName,
 		Email:     u.getEmail(),
 		AvatarURL: u.AvatarLink(),
+		Language:  u.Language,
 	}
 }
 

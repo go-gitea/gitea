@@ -333,6 +333,11 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	ctx.Session.Set("uid", u.ID)
 	ctx.Session.Set("uname", u.Name)
 
+	// Language setting of the user overwrites the one previously set
+	if u.Language != "" {
+		ctx.SetCookie("lang", u.Language, nil, setting.AppSubURL)
+	}
+
 	// Clear whatever CSRF has right now, force to generate a new one
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
 
@@ -698,6 +703,7 @@ func SignOut(ctx *context.Context) {
 	ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL)
 	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL)
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
+	ctx.SetCookie("lang", "", -1, setting.AppSubURL) // Setting the lang cookie will trigger the middleware to reset the language ot previous state.
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
