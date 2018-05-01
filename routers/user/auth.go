@@ -334,7 +334,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	ctx.Session.Set("uname", u.Name)
 
 	// Language setting of the user overwrites the one previously set
-	if u.Language != "" {
+	if len(u.Language) != 0 {
 		ctx.SetCookie("lang", u.Language, nil, setting.AppSubURL)
 	}
 
