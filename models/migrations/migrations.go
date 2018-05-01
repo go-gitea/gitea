@@ -177,7 +177,7 @@ var migrations = []Migration{
 	// v61 -> v62
 	NewMigration("add size column for attachments", addSizeToAttachment),
 	// v62 -> v63
-	NewMigration("add language comumn for user setting", addLanguageSetting),
+	NewMigration("add language column for user setting", addLanguageSetting),
 }
 
 // Migrate database to current version

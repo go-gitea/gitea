@@ -14,6 +14,7 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
+	"github.com/Unknwon/i18n"
 
 	"encoding/base64"
 	"html/template"
@@ -25,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"github.com/Unknwon/i18n"
 )
 
 const (
