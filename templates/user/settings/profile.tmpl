@@ -45,10 +45,10 @@
 						<div class="ui language selection dropdown" id="language">
 							<input name="language" type="hidden">
 							<i class="dropdown icon"></i>
-							<div class="text">{{.LangName}}</div>
+							<div class="text">{{range .AllLangs}}{{if eq $.SignedUser.Language .Lang}}{{.Name}}{{end}}{{end}}</div>
 							<div class="menu">
 							{{range .AllLangs}}
-								<div class="item{{if eq $.Lang .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
+								<div class="item{{if eq $.SignedUser.Language .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
 							{{end}}
 							</div>
 						</div>
