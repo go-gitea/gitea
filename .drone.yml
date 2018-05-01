@@ -238,16 +238,7 @@ pipeline:
       branch: [ master ]
 
   docker:
-    image: plugins/docker:17.05
-    pull: true
-    secrets: [ docker_username, docker_password ]
-    repo: gitea/gitea
-    tags: [ '${DRONE_TAG##v}' ]
-    when:
-      event: [ tag ]
-
-  docker:
-    image: plugins/docker:17.05
+    image: plugins/docker:17.12
     pull: true
     secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
@@ -257,14 +248,12 @@ pipeline:
       branch: [ release/* ]
 
   docker:
-    image: plugins/docker:17.05
+    image: plugins/docker:17.12
     pull: true
-    secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
-    tags: [ 'latest' ]
+    default_tags: true
     when:
-      event: [ push ]
-      branch: [ master ]
+      event: [ push, tag ]
 
   release:
     image: plugins/s3:1
