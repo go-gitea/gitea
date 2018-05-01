@@ -5579,6 +5579,13 @@
           "type": "string",
           "x-go-name": "Assignee"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
+        },
         "body": {
           "type": "string",
           "x-go-name": "Body"
@@ -5586,6 +5593,11 @@
         "closed": {
           "type": "boolean",
           "x-go-name": "Closed"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "labels": {
           "description": "list of label ids",
@@ -5715,6 +5727,13 @@
           "type": "string",
           "x-go-name": "Assignee"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
+        },
         "base": {
           "type": "string",
           "x-go-name": "Base"
@@ -5722,6 +5741,11 @@
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "head": {
           "type": "string",
@@ -6024,9 +6048,21 @@
           "type": "string",
           "x-go-name": "Assignee"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
+        },
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "milestone": {
           "type": "integer",
@@ -6114,9 +6150,21 @@
           "type": "string",
           "x-go-name": "Assignee"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
+        },
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "labels": {
           "type": "array",
@@ -6367,9 +6415,21 @@
         "assignee": {
           "$ref": "#/definitions/User"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/User"
+          },
+          "x-go-name": "Assignees"
+        },
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Closed"
         },
         "comments": {
           "type": "integer",
@@ -6380,6 +6440,11 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "id": {
           "type": "integer",
@@ -6778,12 +6843,24 @@
         "assignee": {
           "$ref": "#/definitions/User"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/User"
+          },
+          "x-go-name": "Assignees"
+        },
         "base": {
           "$ref": "#/definitions/PRBranchInfo"
         },
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Closed"
         },
         "comments": {
           "type": "integer",
@@ -6798,6 +6875,11 @@
         "diff_url": {
           "type": "string",
           "x-go-name": "DiffURL"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "head": {
           "$ref": "#/definitions/PRBranchInfo"
