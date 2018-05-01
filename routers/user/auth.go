@@ -334,9 +334,16 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	ctx.Session.Set("uname", u.Name)
 
 	// Language setting of the user overwrites the one previously set
-	if len(u.Language) != 0 {
-		ctx.SetCookie("lang", u.Language, nil, setting.AppSubURL)
+	// If the user does not have a locale set, we save the current one.
+	if len(u.Language) == 0 {
+		u.Language = ctx.Locale.Language()
+		if err := models.UpdateUser(u); err != nil {
+			log.Error(4, fmt.Sprintf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
+			return
+		}
 	}
+
+	ctx.SetCookie("lang", u.Language, nil, setting.AppSubURL)
 
 	// Clear whatever CSRF has right now, force to generate a new one
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
