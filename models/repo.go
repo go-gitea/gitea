@@ -489,7 +489,7 @@ func (repo *Repository) mustOwner(e Engine) *User {
 }
 
 func (repo *Repository) getOwnerName(e Engine) error {
-	if repo.OwnerName != "" {
+	if len(repo.OwnerName) > 0 {
 		return nil
 	}
 
