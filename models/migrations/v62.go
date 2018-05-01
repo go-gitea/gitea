@@ -6,7 +6,7 @@ package migrations
 
 import (
 	"fmt"
-	
+
 	"github.com/go-xorm/xorm"
 )
 

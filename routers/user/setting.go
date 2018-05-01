@@ -12,9 +12,9 @@ import (
 	"strings"
 
 	"github.com/Unknwon/com"
+	"github.com/Unknwon/i18n"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
-	"github.com/Unknwon/i18n"
 
 	"encoding/base64"
 	"html/template"
