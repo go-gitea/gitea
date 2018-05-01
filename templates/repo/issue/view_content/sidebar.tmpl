@@ -204,7 +204,7 @@
 				{{if and .IsSigned .IsRepositoryWriter}}
 					<br/>
 					<a style="cursor:pointer;" onclick="toggleDuedateForm();"><i class="edit icon"></i>Edit</a> -
-					<a href="{{$.RepoLink}}/issues/{{.Issue.Index}}/deadline/delete"><i class="remove icon"></i>Remove</a>
+					<a style="cursor:pointer;" onclick="deleteDueDate('{{$.RepoLink}}/issues/{{.Issue.Index}}/deadline/delete');"><i class="remove icon"></i>Remove</a>
 				{{end}}
 			</p>
 		{{else}}
