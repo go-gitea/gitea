@@ -47,9 +47,10 @@ type Issue struct {
 	Ref             string
 
 	DeadlineUnix util.TimeStamp `xorm:"INDEX"`
-	CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix  util.TimeStamp `xorm:"INDEX updated"`
-	ClosedUnix   util.TimeStamp `xorm:"INDEX"`
+
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	ClosedUnix  util.TimeStamp `xorm:"INDEX"`
 
 	Attachments      []*Attachment `xorm:"-"`
 	Comments         []*Comment    `xorm:"-"`
@@ -77,6 +78,11 @@ func (issue *Issue) loadTotalTimes(e Engine) (err error) {
 		return err
 	}
 	return nil
+}
+
+// IsOverdue checks if the issue is overdue
+func (issue *Issue) IsOverdue() bool {
+	return util.TimeStampNow() >= issue.DeadlineUnix
 }
 
 func (issue *Issue) loadRepo(e Engine) (err error) {
@@ -347,6 +353,9 @@ func (issue *Issue) APIFormat() *api.Issue {
 		if issue.PullRequest.HasMerged {
 			apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
 		}
+	}
+	if issue.DeadlineUnix != 0 {
+		apiIssue.Deadline = issue.DeadlineUnix.AsTimePtr()
 	}
 
 	return apiIssue
@@ -1521,4 +1530,31 @@ func updateIssue(e Engine, issue *Issue) error {
 // UpdateIssue updates all fields of given issue.
 func UpdateIssue(issue *Issue) error {
 	return updateIssue(x, issue)
+}
+
+// UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
+func UpdateIssueDeadline(issue *Issue, deadlineUnix util.TimeStamp, doer *User) (err error) {
+
+	// if the deadline hasn't changed do nothing
+	if issue.DeadlineUnix == deadlineUnix {
+		return nil
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	// Update the deadline
+	if err = updateIssueCols(sess, &Issue{ID: issue.ID, DeadlineUnix: deadlineUnix}, "deadline_unix"); err != nil {
+		return err
+	}
+
+	// Make the comment
+	if _, err = createDeadlineComment(sess, doer, issue, deadlineUnix); err != nil {
+		return fmt.Errorf("createRemovedDueDateComment: %v", err)
+	}
+
+	return sess.Commit()
 }

@@ -35,7 +35,7 @@ func (c *Client) ListReleaseAttachments(user, repo string, release int64) ([]*At
 	return attachments, err
 }
 
-// ListReleaseAttachments list release's attachments
+// GetReleaseAttachment returns the requested attachment
 func (c *Client) GetReleaseAttachment(user, repo string, release int64, id int64) (*Attachment, error) {
 	a := new(Attachment)
 	err := c.getParsedResponse("GET",
