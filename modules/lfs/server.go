@@ -83,6 +83,8 @@ type link struct {
 	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }
 
+var oidRegExp = regexp.MustCompile(`^[A-Fa-f0-9]+$`)
+
 // ObjectOidHandler is the main request routing entry point into LFS server functions
 func ObjectOidHandler(ctx *context.Context) {
 
@@ -217,6 +219,12 @@ func PostHandler(ctx *context.Context) {
 
 	if !authenticate(ctx, repository, rv.Authorization, true) {
 		requireAuth(ctx)
+		return
+	}
+
+	if !oidRegExp.MatchString(rv.Oid) {
+		writeStatus(ctx, 404)
+		return
 	}
 
 	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Oid: rv.Oid, Size: rv.Size, RepositoryID: repository.ID})
@@ -284,10 +292,12 @@ func BatchHandler(ctx *context.Context) {
 			continue
 		}
 
-		// Object is not found
-		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size, RepositoryID: repository.ID})
-		if err == nil {
-			responseObjects = append(responseObjects, Represent(object, meta, meta.Existing, !contentStore.Exists(meta)))
+		if oidRegExp.MatchString(object.Oid) {
+			// Object is not found
+			meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size, RepositoryID: repository.ID})
+			if err == nil {
+				responseObjects = append(responseObjects, Represent(object, meta, meta.Existing, !contentStore.Exists(meta)))
+			}
 		}
 	}
 

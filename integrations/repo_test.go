@@ -7,10 +7,12 @@ package integrations
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -73,4 +75,27 @@ func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
 	assert.True(t, exists, "The template has changed")
 	sshURL := fmt.Sprintf("ssh://%s@%s:%d/user2/repo1.git", setting.RunUser, setting.SSH.Domain, setting.SSH.Port)
 	assert.Equal(t, sshURL, link)
+}
+
+func TestViewRepoWithSymlinks(t *testing.T) {
+	prepareTestEnv(t)
+
+	session := loginUser(t, "user2")
+
+	req := NewRequest(t, "GET", "/user2/repo20.git")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	files := htmlDoc.doc.Find("#repo-files-table > TBODY > TR > TD.name")
+	items := files.Map(func(i int, s *goquery.Selection) string {
+		cls, _ := s.Find("SPAN").Attr("class")
+		file := strings.Trim(s.Find("A").Text(), " \t\n")
+		return fmt.Sprintf("%s: %s", file, cls)
+	})
+	assert.Equal(t, len(items), 5)
+	assert.Equal(t, items[0], "a: octicon octicon-file-directory")
+	assert.Equal(t, items[1], "link_b: octicon octicon-file-symlink-directory")
+	assert.Equal(t, items[2], "link_d: octicon octicon-file-symlink-file")
+	assert.Equal(t, items[3], "link_hi: octicon octicon-file-symlink-file")
+	assert.Equal(t, items[4], "link_link: octicon octicon-file-symlink-file")
 }

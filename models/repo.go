@@ -1133,7 +1133,7 @@ type CreateRepoOptions struct {
 }
 
 func getRepoInitFile(tp, name string) ([]byte, error) {
-	cleanedName := strings.TrimLeft(name, "./")
+	cleanedName := strings.TrimLeft(path.Clean("/"+name), "/")
 	relPath := path.Join("options", tp, cleanedName)
 
 	// Use custom file when available.
