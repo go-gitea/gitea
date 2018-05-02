@@ -230,6 +230,12 @@ func runServ(c *cli.Context) error {
 				fail("internal error", "Failed to get user by key ID(%d): %v", keyID, err)
 			}
 
+			if !user.IsActive {
+				fail("Your account is not active",
+					"User %s is disabled and have no access to repository %s",
+					user.Name, repoPath)
+			}
+
 			mode, err := models.AccessLevel(user.ID, repo)
 			if err != nil {
 				fail("Internal error", "Failed to check access: %v", err)
