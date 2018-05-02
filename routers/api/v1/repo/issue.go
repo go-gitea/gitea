@@ -392,5 +392,5 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 		return
 	}
 
-	ctx.JSON(201, api.IssueDeadline{Deadline:form.Deadline})
+	ctx.JSON(201, api.IssueDeadline{Deadline: form.Deadline})
 }
