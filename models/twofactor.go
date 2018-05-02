@@ -23,12 +23,13 @@ import (
 
 // TwoFactor represents a two-factor authentication token.
 type TwoFactor struct {
-	ID           int64 `xorm:"pk autoincr"`
-	UID          int64 `xorm:"UNIQUE"`
-	Secret       string
-	ScratchToken string
-	CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix  util.TimeStamp `xorm:"INDEX updated"`
+	ID               int64 `xorm:"pk autoincr"`
+	UID              int64 `xorm:"UNIQUE"`
+	Secret           string
+	ScratchToken     string
+	LastUsedPasscode string         `xorm:"VARCHAR(10)"`
+	CreatedUnix      util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix      util.TimeStamp `xorm:"INDEX updated"`
 }
 
 // GenerateScratchToken recreates the scratch token the user is using.
