@@ -61,7 +61,7 @@ func TestUpdateAssignee(t *testing.T) {
 	assert.False(t, isAssigned)
 
 	// Clean everyone
-	err = ClearAssigneesByIssue(issue)
+	err = DeleteNotPassedAssignee(issue, user1, []*User{})
 	assert.NoError(t, err)
 
 	// Check they're gone

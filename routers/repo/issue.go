@@ -932,7 +932,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	for _, issue := range issues {
 		switch action {
 		case "clear":
-			if err := models.ClearAssigneesByIssue(issue); err != nil {
+			if err := models.DeleteNotPassedAssignee(issue, ctx.User, []*models.User{}); err != nil {
 				ctx.ServerError("ClearAssignees", err)
 				return
 			}

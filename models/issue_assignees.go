@@ -58,17 +58,8 @@ func IsUserAssignedToIssue(issue *Issue, user *User) (isAssigned bool, err error
 	return
 }
 
-// ClearAssigneesByIssue deletes all assignees for one issue
-func ClearAssigneesByIssue(issue *Issue) (err error) {
-	_, err = x.Delete(IssueAssignees{IssueID: issue.ID})
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// Deletes all assignees who aren't passed via the "assignees" array
-func deleteNotPassedAssignee(issue *Issue, doer *User, assignees []*User) (err error) {
+// DeleteNotPassedAssignee deletes all assignees who aren't passed via the "assignees" array
+func DeleteNotPassedAssignee(issue *Issue, doer *User, assignees []*User) (err error) {
 	var found bool
 
 	for _, assignee := range issue.Assignees {
@@ -226,7 +217,7 @@ func UpdateAPIAssignee(issue *Issue, oneAssignee string, multipleAssignees []str
 	}
 
 	// Delete all old assignees not passed
-	if err = deleteNotPassedAssignee(issue, doer, allNewAssignees); err != nil {
+	if err = DeleteNotPassedAssignee(issue, doer, allNewAssignees); err != nil {
 		return err
 	}
 
