@@ -140,7 +140,7 @@ func (c *Client) EditIssue(owner, repo string, index int64, opt EditIssueOption)
 }
 
 // CreateDeadlineOption options for creating a deadline
-type CreateDeadlineOption struct {
+type EditDeadlineOption struct {
 	// required:true
 	// swagger:strfmt date-time
 	Deadline  *time.Time `json:"due_date"`
