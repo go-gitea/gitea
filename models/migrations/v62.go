@@ -10,14 +10,13 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-func addLanguageSetting(x *xorm.Engine) error {
-	type User struct {
-		Language string `xorm:"VARCHAR(5)"`
+func addLastUsedPasscodeTOTP(x *xorm.Engine) error {
+	type TwoFactor struct {
+		LastUsedPasscode string `xorm:"VARCHAR(10)"`
 	}
 
-	if err := x.Sync2(new(User)); err != nil {
+	if err := x.Sync2(new(TwoFactor)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
-
 	return nil
 }
