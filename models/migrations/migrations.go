@@ -176,6 +176,8 @@ var migrations = []Migration{
 	NewMigration("add is_fsck_enabled column for repos", addFsckEnabledToRepo),
 	// v61 -> v62
 	NewMigration("add size column for attachments", addSizeToAttachment),
+	// v62 -> v63
+	NewMigration("add last used passcode column for TOTP", addLastUsedPasscodeTOTP),
 }
 
 // Migrate database to current version
