@@ -2194,14 +2194,33 @@ function initTopicbar() {
         },
     });
 }
-function toggleDuedateForm() {
-    $('#add_deadline_form').fadeToggle(150);
+function toggleDeadlineForm() {
+    $('#deadlineForm').fadeToggle(150);
 }
 
-function deleteDueDate(url) {
-    $.post(url, {
-        '_csrf': csrf,
-    },function( data ) {
-        window.location.reload();
+function setDeadline() {
+    var deadline = $('#deadlineDate').val();
+    updateDeadline(deadline);
+}
+
+function updateDeadline(deadlineString) {
+    var issue_api_url = suburl + '/api/v1/repos/' + $('meta[name=_repo_owner]').attr("content") + '/' + $('meta[name=_repo_name]').attr("content") + '/issues/' + $('meta[name=_issue_index]').attr("content");
+
+    $('#deadline-loader').addClass('loading');
+
+    var realDeadline = null;
+    if (deadlineString !== '') {
+        realDeadline = deadlineString + 'T13:55:29.764Z';
+    }
+
+    $.ajax(issue_api_url + '/deadline', {
+        data: JSON.stringify({
+            'due_date': realDeadline,
+        }),
+        contentType: 'application/json',
+        type: 'POST',
+        complete: function () {
+            window.location.reload();
+        }
     });
 }

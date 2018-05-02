@@ -338,7 +338,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 func UpdateIssueDeadline(ctx *context.APIContext, form api.CreateDeadlineOption) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/deadline issue issueCreateIssueDeadline
 	// ---
-	// summary: Set an issue deadline
+	// summary: Set an issue deadline. If set to null, the deadline is deleted.
 	// consumes:
 	// - application/json
 	// produces:

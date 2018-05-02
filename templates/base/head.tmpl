@@ -21,6 +21,13 @@
 	{{if .SearchLimit}}
 		<meta name="_search_limit" content="{{.SearchLimit}}" />
 	{{end}}
+	{{with .Repository}}
+		<meta name="_repo_owner" content="{{.Owner.Name}}" />
+		<meta name="_repo_name" content="{{.Name}}" />
+	{{end}}
+	{{with .Issue}}
+		<meta name="_issue_index" content="{{.Index}}" />
+	{{end}}
 {{if .GoGetImport}}
 	<meta name="go-import" content="{{.GoGetImport}} git {{.CloneLink.HTTPS}}">
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">

@@ -194,6 +194,7 @@
 
 		<div class="ui divider"></div>
 		<span class="text"><strong>{{.i18n.Tr "repo.issues.due_date"}}</strong></span>
+		<div class="ui form" id="deadline-loader">
 		{{if gt .Issue.DeadlineUnix 0}}
 			<p>
 				<span class="octicon octicon-calendar"></span>
@@ -203,8 +204,8 @@
 				{{end}}
 				{{if and .IsSigned .IsRepositoryWriter}}
 					<br/>
-					<a style="cursor:pointer;" onclick="toggleDuedateForm();"><i class="edit icon"></i>Edit</a> -
-					<a style="cursor:pointer;" onclick="deleteDueDate('{{$.RepoLink}}/issues/{{.Issue.Index}}/deadline/delete');"><i class="remove icon"></i>Remove</a>
+					<a style="cursor:pointer;" onclick="toggleDeadlineForm();"><i class="edit icon"></i>Edit</a> -
+					<a style="cursor:pointer;" onclick="updateDeadline('');"><i class="remove icon"></i>Remove</a>
 				{{end}}
 			</p>
 		{{else}}
@@ -212,20 +213,17 @@
 		{{end}}
 
 		{{if and .IsSigned .IsRepositoryWriter}}
-			<form method="POST"{{if gt .Issue.DeadlineUnix 0}}style="display: none;"{{end}}} id="add_deadline_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/deadline/update" class="ui action input fluid">
-				{{$.CsrfTokenHtml}}
-				<div class="ui fluid action input">
-					<input required placeholder="{{.i18n.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="date" style="min-width: 13.9rem;border-radius: 4px 0 0 4px;border-right: 0;white-space: nowrap;">
-					<button class="ui green icon button">
-					{{if gt .Issue.DeadlineUnix 0}}
-							<i class="edit icon"></i>
-					{{else}}
-							<i class="plus icon"></i>
-					{{end}}
-					</button>
-				</div>
-			</form>
+			<div class="ui fluid action input"{{if gt .Issue.DeadlineUnix 0}} style="display: none;"{{end}} id="deadlineForm">
+				<input required placeholder="{{.i18n.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="deadlineDate" id="deadlineDate" style="min-width: 13.8rem;border-radius: 4px 0 0 4px;border-right: 0;white-space: nowrap;">
+				<button class="ui green icon button" onclick="setDeadline();">
+				{{if gt .Issue.DeadlineUnix 0}}
+					<i class="edit icon"></i>
+				{{else}}
+					<i class="plus icon"></i>
+				{{end}}
+				</button>
+			</div>
 		{{end}}
-
+		</div>
 	</div>
 </div>
