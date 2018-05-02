@@ -10,7 +10,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * SECURITY
   * Do not allow inactive users to access repositories using private key (#3887) (#3889)
   * Fix path cleanup in file editor, when initilizing new repository and LFS oids  (#3871) (#3873)
-  * Remove unnecessary allwed safe HTML (#3778) (#3779)
+  * Remove unnecessary allowed safe HTML (#3778) (#3779)
   * Correctly check http git access rights for reverse proxy authorized users (#3721) (#3743)
 * BUGFIXES
   * Fix to use only needed columns from tables to get repository git paths (#3870) (#3883)
