@@ -230,8 +230,8 @@ func runServ(c *cli.Context) error {
 				fail("internal error", "Failed to get user by key ID(%d): %v", keyID, err)
 			}
 
-			if !user.IsActive {
-				fail("Your account is not active",
+			if !user.IsActive || user.ProhibitLogin {
+				fail("Your account is not active or has been disabled by Adminstrator",
 					"User %s is disabled and have no access to repository %s",
 					user.Name, repoPath)
 			}
