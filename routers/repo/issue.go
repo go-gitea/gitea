@@ -1467,3 +1467,51 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 		"html": html,
 	})
 }
+
+// UpdateDeadline adds or updates a deadline
+func UpdateDeadline(ctx *context.Context, form auth.DeadlineForm) {
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.ServerError("ChangeIssueDeadline", errors.New(ctx.GetErrMsg()))
+		return
+	}
+
+	// Make unix of deadline string
+	deadline, err := time.ParseInLocation("2006-01-02", form.DateString, time.Local)
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("repo.issues.invalid_due_date_format"))
+		ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+		return
+	}
+
+	if err = models.UpdateIssueDeadline(issue, util.TimeStamp(deadline.Unix()), ctx.User); err != nil {
+		ctx.Flash.Error(ctx.Tr("repo.issues.error_modifying_due_date"))
+	}
+
+	ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+	return
+}
+
+// RemoveDeadline removes a deadline
+func RemoveDeadline(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.ServerError("RemoveIssueDeadline", errors.New(ctx.GetErrMsg()))
+		return
+	}
+
+	if err := models.UpdateIssueDeadline(issue, 0, ctx.User); err != nil {
+		ctx.Flash.Error(ctx.Tr("repo.issues.error_removing_due_date"))
+	}
+
+	ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+	return
+}

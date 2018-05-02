@@ -56,7 +56,7 @@
 						{{else}}
 							<span class="octicon octicon-calendar"></span>
 							{{if .DeadlineString}}
-								<span {{if .IsOverDue}}class="overdue"{{end}}>{{.DeadlineString}}</span>
+								<span {{if .IsOverdue}}class="overdue"{{end}}>{{.DeadlineString}}</span>
 							{{else}}
 								{{$.i18n.Tr "repo.milestones.no_due_date"}}
 							{{end}}

@@ -22,6 +22,7 @@ type PullRequest struct {
 	Labels    []*Label   `json:"labels"`
 	Milestone *Milestone `json:"milestone"`
 	Assignee  *User      `json:"assignee"`
+	Assignees []*User    `json:"assignees"`
 	State     StateType  `json:"state"`
 	Comments  int        `json:"comments"`
 
@@ -41,9 +42,14 @@ type PullRequest struct {
 	MergeBase string        `json:"merge_base"`
 
 	// swagger:strfmt date-time
+	Deadline *time.Time `json:"due_date"`
+
+	// swagger:strfmt date-time
 	Created *time.Time `json:"created_at"`
 	// swagger:strfmt date-time
 	Updated *time.Time `json:"updated_at"`
+	// swagger:strfmt date-time
+	Closed *time.Time `json:"closed_at"`
 }
 
 // PRBranchInfo information about a branch
@@ -79,13 +85,16 @@ func (c *Client) GetPullRequest(owner, repo string, index int64) (*PullRequest, 
 
 // CreatePullRequestOption options when creating a pull request
 type CreatePullRequestOption struct {
-	Head      string  `json:"head" binding:"Required"`
-	Base      string  `json:"base" binding:"Required"`
-	Title     string  `json:"title" binding:"Required"`
-	Body      string  `json:"body"`
-	Assignee  string  `json:"assignee"`
-	Milestone int64   `json:"milestone"`
-	Labels    []int64 `json:"labels"`
+	Head      string     `json:"head" binding:"Required"`
+	Base      string     `json:"base" binding:"Required"`
+	Title     string     `json:"title" binding:"Required"`
+	Body      string     `json:"body"`
+	Assignee  string     `json:"assignee"`
+	Assignees []string   `json:"assignees"`
+	Milestone int64      `json:"milestone"`
+	Labels    []int64    `json:"labels"`
+	// swagger:strfmt date-time
+	Deadline  *time.Time `json:"due_date"`
 }
 
 // CreatePullRequest create pull request with options
@@ -101,12 +110,15 @@ func (c *Client) CreatePullRequest(owner, repo string, opt CreatePullRequestOpti
 
 // EditPullRequestOption options when modify pull request
 type EditPullRequestOption struct {
-	Title     string  `json:"title"`
-	Body      string  `json:"body"`
-	Assignee  string  `json:"assignee"`
-	Milestone int64   `json:"milestone"`
-	Labels    []int64 `json:"labels"`
-	State     *string `json:"state"`
+	Title     string     `json:"title"`
+	Body      string     `json:"body"`
+	Assignee  string     `json:"assignee"`
+	Assignees []string   `json:"assignees"`
+	Milestone int64      `json:"milestone"`
+	Labels    []int64    `json:"labels"`
+	State     *string    `json:"state"`
+	// swagger:strfmt date-time
+	Deadline  *time.Time `json:"due_date"`
 }
 
 // EditPullRequest modify pull request with PR id and options
