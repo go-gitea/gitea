@@ -496,6 +496,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 					})
 				})
 				m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeIssueReaction)
+				m.Post("/deadline/update", reqRepoWriter, bindIgnErr(auth.DeadlineForm{}), repo.UpdateDeadline)
+				m.Post("/deadline/delete", reqRepoWriter, repo.RemoveDeadline)
 			})
 
 			m.Post("/labels", reqRepoWriter, repo.UpdateIssueLabel)

@@ -191,5 +191,41 @@
 				</div>
 			{{end}}
 		{{end}}
+
+		<div class="ui divider"></div>
+		<span class="text"><strong>{{.i18n.Tr "repo.issues.due_date"}}</strong></span>
+		{{if gt .Issue.DeadlineUnix 0}}
+			<p>
+				<span class="octicon octicon-calendar"></span>
+				{{.Issue.DeadlineUnix.FormatShort}}
+				{{if .Issue.IsOverdue}}
+					<span style="color: red;">{{.i18n.Tr "repo.issues.due_date_overdue"}}</span>
+				{{end}}
+				{{if and .IsSigned .IsRepositoryWriter}}
+					<br/>
+					<a style="cursor:pointer;" onclick="toggleDuedateForm();"><i class="edit icon"></i>Edit</a> -
+					<a style="cursor:pointer;" onclick="deleteDueDate('{{$.RepoLink}}/issues/{{.Issue.Index}}/deadline/delete');"><i class="remove icon"></i>Remove</a>
+				{{end}}
+			</p>
+		{{else}}
+			<p><i>{{.i18n.Tr "repo.issues.due_date_not_set"}}</i></p>
+		{{end}}
+
+		{{if and .IsSigned .IsRepositoryWriter}}
+			<form method="POST"{{if gt .Issue.DeadlineUnix 0}}style="display: none;"{{end}}} id="add_deadline_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/deadline/update" class="ui action input fluid">
+				{{$.CsrfTokenHtml}}
+				<div class="ui fluid action input">
+					<input required placeholder="{{.i18n.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="date" style="min-width: 13.9rem;border-radius: 4px 0 0 4px;border-right: 0;white-space: nowrap;">
+					<button class="ui green icon button">
+					{{if gt .Issue.DeadlineUnix 0}}
+							<i class="edit icon"></i>
+					{{else}}
+							<i class="plus icon"></i>
+					{{end}}
+					</button>
+				</div>
+			</form>
+		{{end}}
+
 	</div>
 </div>

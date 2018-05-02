@@ -60,6 +60,12 @@ const (
 	CommentTypeAddTimeManual
 	// Cancel a stopwatch for time tracking
 	CommentTypeCancelTracking
+	// Added a due date
+	CommentTypeAddedDeadline
+	// Modified the due date
+	CommentTypeModifiedDeadline
+	// Removed a due date
+	CommentTypeRemovedDeadline
 )
 
 // CommentTag defines comment tag type
@@ -482,6 +488,34 @@ func createAssigneeComment(e *xorm.Session, doer *User, repo *Repository, issue 
 		Issue:         issue,
 		OldAssigneeID: oldAssigneeID,
 		AssigneeID:    assigneeID,
+	})
+}
+
+func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix util.TimeStamp) (*Comment, error) {
+
+	var content string
+	var commentType CommentType
+
+	// newDeadline = 0 means deleting
+	if newDeadlineUnix == 0 {
+		commentType = CommentTypeRemovedDeadline
+		content = issue.DeadlineUnix.Format("2006-01-02")
+	} else if issue.DeadlineUnix == 0 {
+		// Check if the new date was added or modified
+		// If the actual deadline is 0 => deadline added
+		commentType = CommentTypeAddedDeadline
+		content = newDeadlineUnix.Format("2006-01-02")
+	} else { // Otherwise modified
+		commentType = CommentTypeModifiedDeadline
+		content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
+	}
+
+	return createComment(e, &CreateCommentOptions{
+		Type:    commentType,
+		Doer:    doer,
+		Repo:    issue.Repo,
+		Issue:   issue,
+		Content: content,
 	})
 }
 
