@@ -231,7 +231,7 @@ func runServ(c *cli.Context) error {
 			}
 
 			if !user.IsActive || user.ProhibitLogin {
-				fail("Your account is not active or has been disabled by Adminstrator",
+				fail("Your account is not active or has been disabled by Administrator",
 					"User %s is disabled and have no access to repository %s",
 					user.Name, repoPath)
 			}
