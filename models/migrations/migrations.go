@@ -177,6 +177,8 @@ var migrations = []Migration{
 	// v61 -> v62
 	NewMigration("add size column for attachments", addSizeToAttachment),
 	// v62 -> v63
+	NewMigration("add last used passcode column for TOTP", addLastUsedPasscodeTOTP),
+	// v63 -> v64
 	NewMigration("add issue_dependencies", addIssueDependencies),
 }
 
