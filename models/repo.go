@@ -2267,7 +2267,7 @@ type repoChecker struct {
 }
 
 func repoStatsCheck(checker *repoChecker) {
-	results, err := x.Query(schenaQuery(checker.querySQL))
+	results, err := x.Query(schemaQuery(checker.querySQL))
 	if err != nil {
 		log.Error(4, "Select %s: %v", checker.desc, err)
 		return
@@ -2346,7 +2346,7 @@ func CheckRepoStats() {
 
 	// FIXME: use checker when stop supporting old fork repo format.
 	// ***** START: Repository.NumForks *****
-	results, err = x.Query(schenaQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_forks!=(SELECT COUNT(*) FROM `repository` WHERE fork_id=repo.id)"))
+	results, err = x.Query(schemaQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_forks!=(SELECT COUNT(*) FROM `repository` WHERE fork_id=repo.id)"))
 	if err != nil {
 		log.Error(4, "Select repository count 'num_forks': %v", err)
 	} else {

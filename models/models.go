@@ -385,7 +385,7 @@ func DumpDatabase(filePath string, dbType string) error {
 	return x.DumpTablesToFile(tbs, filePath)
 }
 
-func schenaQuery(sql string) string {
+func schemaQuery(sql string) string {
 	if !setting.UsePostgreSQL {
 		return sql
 	}
