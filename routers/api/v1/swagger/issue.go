@@ -67,3 +67,9 @@ type swaggerResponseTrackedTimeList struct {
 	// in:body
 	Body []api.TrackedTime `json:"body"`
 }
+
+// swagger:response IssueDeadline
+type swaggerIssueDeadline struct {
+	// in:body
+	Body api.IssueDeadline `json:"body"`
+}

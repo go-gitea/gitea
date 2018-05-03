@@ -6556,6 +6556,18 @@
       },
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
+    "IssueDeadline": {
+      "description": "IssueDeadline represents an issue deadline",
+      "type": "object",
+      "properties": {
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
+    },
     "IssueLabelsOption": {
       "description": "IssueLabelsOption a collection of labels",
       "type": "object",
@@ -7531,6 +7543,11 @@
     "Issue": {
       "schema": {
         "$ref": "#/definitions/Issue"
+      }
+    },
+    "IssueDeadline": {
+      "schema": {
+        "$ref": "#/definitions/IssueDeadline"
       }
     },
     "IssueList": {
