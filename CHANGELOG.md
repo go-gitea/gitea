@@ -4,6 +4,23 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.4.1](https://github.com/go-gitea/gitea/releases/tag/v1.4.1) - 2018-05-03
+* BREAKING
+  * Add "error" as reserved username (#3882) (#3886)
+* SECURITY
+  * Do not allow inactive users to access repositories using private key (#3887) (#3889)
+  * Fix path cleanup in file editor, when initilizing new repository and LFS oids  (#3871) (#3873)
+  * Remove unnecessary allowed safe HTML (#3778) (#3779)
+  * Correctly check http git access rights for reverse proxy authorized users (#3721) (#3743)
+* BUGFIXES
+  * Fix to use only needed columns from tables to get repository git paths (#3870) (#3883)
+  * Fix GPG expire time display when time is zero (#3584) (#3884)
+  * Fix to update only issue last update time when adding a comment (#3855) (#3860)
+  * Fix repository star count after deleting user (#3781) (#3783)
+  * Use the active branch for the code tab (#3720) (#3776)
+  * Set default branch name on first push (#3715) (#3723)
+  * Show clipboard button if disable HTTP of git protocol (#3773) (#3774)
+
 ## [1.4.0](https://github.com/go-gitea/gitea/releases/tag/v1.4.0) - 2018-03-25
 * BREAKING
   * Drop deprecated GOGS\_WORK\_DIR use (#2946)
