@@ -27,9 +27,10 @@ func TestRenameUsername(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"_csrf": GetCSRF(t, session, "/user/settings"),
-		"name":  "newUsername",
-		"email": "user2@example.com",
+		"_csrf":    GetCSRF(t, session, "/user/settings"),
+		"name":     "newUsername",
+		"email":    "user2@example.com",
+		"language": "en-us",
 	})
 	session.MakeRequest(t, req, http.StatusFound)
 
@@ -84,6 +85,7 @@ func TestRenameReservedUsername(t *testing.T) {
 			"_csrf": GetCSRF(t, session, "/user/settings"),
 			"name":  reservedUsername,
 			"email": "user2@example.com",
+			"language": "en-us",
 		})
 		resp := session.MakeRequest(t, req, http.StatusFound)
 
