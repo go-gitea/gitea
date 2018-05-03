@@ -46,6 +46,7 @@ $ go get github.com/markbates/goth
 * Linkedin
 * Meetup
 * MicrosoftOnline
+* Naver
 * OneDrive
 * OpenID Connect (auto discovery)
 * Paypal

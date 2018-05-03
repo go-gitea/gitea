@@ -60,7 +60,9 @@ func GlobalInit() {
 			log.Fatal(4, "Failed to initialize ORM engine: %v", err)
 		}
 		models.HasEngine = true
-		models.InitOAuth2()
+		if err := models.InitOAuth2(); err != nil {
+			log.Fatal(4, "Failed to initialize OAuth2 support: %v", err)
+		}
 
 		models.LoadRepoConfig()
 		models.NewRepoContext()

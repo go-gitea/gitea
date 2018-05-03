@@ -652,7 +652,7 @@ func NewGhostUser() *User {
 }
 
 var (
-	reservedUsernames    = []string{"assets", "css", "explore", "img", "js", "less", "plugins", "debug", "raw", "install", "api", "avatars", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "new", ".", ".."}
+	reservedUsernames    = []string{"assets", "css", "explore", "img", "js", "less", "plugins", "debug", "raw", "install", "api", "avatars", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "error", "new", ".", ".."}
 	reservedUserPatterns = []string{"*.keys"}
 )
 
