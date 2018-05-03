@@ -78,7 +78,6 @@ func TestRenameReservedUsername(t *testing.T) {
 		"template",
 	}
 
-
 	session := loginUser(t, "user2")
 	for _, reservedUsername := range reservedUsernames {
 		t.Logf("Testing username %s", reservedUsername)
