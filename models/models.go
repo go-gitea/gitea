@@ -384,3 +384,11 @@ func DumpDatabase(filePath string, dbType string) error {
 	}
 	return x.DumpTablesToFile(tbs, filePath)
 }
+
+func schenaQuery(sql string) string {
+	if !setting.UsePostgreSQL {
+		return sql
+	}
+
+	return "SET SEARCH_PATH TO " + DbCfg.Schema + ", pg_catalog;" + sql
+}

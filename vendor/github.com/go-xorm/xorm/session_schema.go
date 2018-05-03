@@ -248,7 +248,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 			return err
 		}
 		structTables = append(structTables, table)
-		tbName := session.tbNameNoSchema(table)
+		tbName := engine.TableName(bean)
 		tbNameWithSchema := engine.TableName(tbName, true)
 
 		var oriTable *core.Table

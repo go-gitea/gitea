@@ -1108,7 +1108,7 @@ func (engine *Engine) idOfV(rv reflect.Value) (core.PK, error) {
 			}
 			fieldName = parts[1]
 		}
-		fmt.Println(table.Name, fieldName, v)
+
 		pkField := v.FieldByName(fieldName)
 		switch pkField.Kind() {
 		case reflect.String:

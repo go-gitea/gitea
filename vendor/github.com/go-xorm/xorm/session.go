@@ -281,7 +281,7 @@ func (session *Session) doPrepare(db *core.DB, sqlStr string) (stmt *core.Stmt, 
 func (session *Session) getField(dataStruct *reflect.Value, key string, table *core.Table, idx int) (*reflect.Value, error) {
 	var col *core.Column
 	if col = table.GetColumnIdx(key, idx); col == nil {
-		return nil, ErrFieldIsNotExist
+		return nil, ErrFieldIsNotExist{key, table.Name}
 	}
 
 	fieldValue, err := col.ValueOfV(dataStruct)

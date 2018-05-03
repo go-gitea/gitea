@@ -9,4 +9,6 @@ test:
   override:
     # './...' is a relative pattern which means all subdirectories
     - golint ./...
-    - go test -v -race
+    - go test -v -race -coverprofile=coverage.txt -covermode=atomic
+  post:
+    - bash <(curl -s https://codecov.io/bash)

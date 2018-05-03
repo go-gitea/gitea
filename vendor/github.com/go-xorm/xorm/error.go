@@ -26,9 +26,17 @@ var (
 	ErrNotImplemented = errors.New("Not implemented")
 	// ErrConditionType condition type unsupported
 	ErrConditionType = errors.New("Unsupported condition type")
-	// ErrFieldIsNotExist columns does not exist
-	ErrFieldIsNotExist = errors.New("Field does not exist")
 )
+
+// ErrFieldIsNotExist columns does not exist
+type ErrFieldIsNotExist struct {
+	FieldName string
+	TableName string
+}
+
+func (e ErrFieldIsNotExist) Error() string {
+	return fmt.Sprintf("field %s is not valid on table %s", e.FieldName, e.TableName)
+}
 
 // ErrFieldIsNotValid is not valid
 type ErrFieldIsNotValid struct {
