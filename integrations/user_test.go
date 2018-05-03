@@ -82,9 +82,9 @@ func TestRenameReservedUsername(t *testing.T) {
 	for _, reservedUsername := range reservedUsernames {
 		t.Logf("Testing username %s", reservedUsername)
 		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"_csrf": GetCSRF(t, session, "/user/settings"),
-			"name":  reservedUsername,
-			"email": "user2@example.com",
+			"_csrf":    GetCSRF(t, session, "/user/settings"),
+			"name":     reservedUsername,
+			"email":    "user2@example.com",
 			"language": "en-us",
 		})
 		resp := session.MakeRequest(t, req, http.StatusFound)
