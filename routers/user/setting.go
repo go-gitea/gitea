@@ -30,7 +30,7 @@ import (
 
 const (
 	tplSettingsProfile      base.TplName = "user/settings/profile"
-	tplSettingsEmails       base.TplName = "user/settings/email"
+	tplSettingsAccount      base.TplName = "user/settings/account"
 	tplSettingsKeys         base.TplName = "user/settings/keys"
 	tplSettingsSocial       base.TplName = "user/settings/social"
 	tplSettingsApplications base.TplName = "user/settings/applications"
@@ -39,7 +39,6 @@ const (
 	tplSettingsAccountLink  base.TplName = "user/settings/account_link"
 	tplSettingsOrganization base.TplName = "user/settings/organization"
 	tplSettingsRepositories base.TplName = "user/settings/repos"
-	tplSettingsDelete       base.TplName = "user/settings/delete"
 	tplSettingsSecurity     base.TplName = "user/settings/security"
 )
 
@@ -187,35 +186,29 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 
-// SettingsSecurity render change user's password page and 2FA
-func SettingsSecurity(ctx *context.Context) {
+// SettingsAccount renders change user's password, user's email and user suicide page
+func SettingsAccount(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsSecurity"] = true
+	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.User.Email
 
-	enrolled := true
-	_, err := models.GetTwoFactorByUID(ctx.User.ID)
+	emails, err := models.GetEmailAddresses(ctx.User.ID)
 	if err != nil {
-		if models.IsErrTwoFactorNotEnrolled(err) {
-			enrolled = false
-		} else {
-			ctx.ServerError("SettingsTwoFactor", err)
-			return
-		}
+		ctx.ServerError("GetEmailAddresses", err)
+		return
 	}
+	ctx.Data["Emails"] = emails
 
-	ctx.Data["TwofaEnrolled"] = enrolled
-	ctx.HTML(200, tplSettingsSecurity)
+	ctx.HTML(200, tplSettingsAccount)
 }
 
-// SettingsSecurityPost response for change user's password
-func SettingsSecurityPost(ctx *context.Context, form auth.ChangePasswordForm) {
+// SettingsAccountPost response for change user's password
+func SettingsAccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsSecurity"] = true
-	ctx.Data["PageIsSettingsDelete"] = true
+	ctx.Data["PageIsSettingsAccount"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplSettingsSecurity)
+		ctx.HTML(200, tplSettingsAccount)
 		return
 	}
 
@@ -240,28 +233,13 @@ func SettingsSecurityPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
-}
-
-// SettingsEmails render user's emails page
-func SettingsEmails(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsEmails"] = true
-
-	emails, err := models.GetEmailAddresses(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("GetEmailAddresses", err)
-		return
-	}
-	ctx.Data["Emails"] = emails
-
-	ctx.HTML(200, tplSettingsEmails)
+	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
 // SettingsEmailPost response for change user's email
 func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsEmails"] = true
+	ctx.Data["PageIsSettingsAccount"] = true
 
 	// Make emailaddress primary.
 	if ctx.Query("_method") == "PRIMARY" {
@@ -271,7 +249,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 		}
 
 		log.Trace("Email made primary: %s", ctx.User.Name)
-		ctx.Redirect(setting.AppSubURL + "/user/settings/email")
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
 
@@ -284,7 +262,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	ctx.Data["Emails"] = emails
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplSettingsEmails)
+		ctx.HTML(200, tplSettingsAccount)
 		return
 	}
 
@@ -295,7 +273,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	}
 	if err := models.AddEmailAddress(email); err != nil {
 		if models.IsErrEmailAlreadyUsed(err) {
-			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsEmails, &form)
+			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
 			return
 		}
 		ctx.ServerError("AddEmailAddress", err)
@@ -315,7 +293,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	}
 
 	log.Trace("Email address added: %s", email.Email)
-	ctx.Redirect(setting.AppSubURL + "/user/settings/email")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
 // DeleteEmail response for delete user's email
@@ -328,8 +306,59 @@ func DeleteEmail(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("settings.email_deletion_success"))
 	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/email",
+		"redirect": setting.AppSubURL + "/user/settings/account",
 	})
+}
+
+// SettingsDelete render user suicide page and response for delete user himself
+func SettingsDelete(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsAccount"] = true
+
+	if _, err := models.UserSignIn(ctx.User.Name, ctx.Query("password")); err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsAccount, nil)
+		} else {
+			ctx.ServerError("UserSignIn", err)
+		}
+		return
+	}
+
+	if err := models.DeleteUser(ctx.User); err != nil {
+		switch {
+		case models.IsErrUserOwnRepos(err):
+			ctx.Flash.Error(ctx.Tr("form.still_own_repo"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		case models.IsErrUserHasOrgs(err):
+			ctx.Flash.Error(ctx.Tr("form.still_has_org"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		default:
+			ctx.ServerError("DeleteUser", err)
+		}
+	} else {
+		log.Trace("Account deleted: %s", ctx.User.Name)
+		ctx.Redirect(setting.AppSubURL + "/")
+	}
+}
+
+// SettingsSecurity render change user's password page and 2FA
+func SettingsSecurity(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsSecurity"] = true
+
+	enrolled := true
+	_, err := models.GetTwoFactorByUID(ctx.User.ID)
+	if err != nil {
+		if models.IsErrTwoFactorNotEnrolled(err) {
+			enrolled = false
+		} else {
+			ctx.ServerError("SettingsTwoFactor", err)
+			return
+		}
+	}
+
+	ctx.Data["TwofaEnrolled"] = enrolled
+	ctx.HTML(200, tplSettingsSecurity)
 }
 
 // SettingsKeys render user's SSH/GPG public keys page
@@ -728,43 +757,6 @@ func SettingsDeleteAccountLink(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/account_link",
 	})
-}
-
-// SettingsDelete render user suicide page and response for delete user himself
-func SettingsDelete(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsDelete"] = true
-	ctx.Data["Email"] = ctx.User.Email
-
-	if ctx.Req.Method == "POST" {
-		if _, err := models.UserSignIn(ctx.User.Name, ctx.Query("password")); err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsDelete, nil)
-			} else {
-				ctx.ServerError("UserSignIn", err)
-			}
-			return
-		}
-
-		if err := models.DeleteUser(ctx.User); err != nil {
-			switch {
-			case models.IsErrUserOwnRepos(err):
-				ctx.Flash.Error(ctx.Tr("form.still_own_repo"))
-				ctx.Redirect(setting.AppSubURL + "/user/settings/delete")
-			case models.IsErrUserHasOrgs(err):
-				ctx.Flash.Error(ctx.Tr("form.still_has_org"))
-				ctx.Redirect(setting.AppSubURL + "/user/settings/delete")
-			default:
-				ctx.ServerError("DeleteUser", err)
-			}
-		} else {
-			log.Trace("Account deleted: %s", ctx.User.Name)
-			ctx.Redirect(setting.AppSubURL + "/")
-		}
-		return
-	}
-
-	ctx.HTML(200, tplSettingsDelete)
 }
 
 // SettingsOrganization render all the organization of the user

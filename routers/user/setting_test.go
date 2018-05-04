@@ -56,7 +56,7 @@ func TestChangePassword(t *testing.T) {
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
 
-		SettingsSecurityPost(ctx, auth.ChangePasswordForm{
+		SettingsAccountPost(ctx, auth.ChangePasswordForm{
 			OldPassword: req.OldPassword,
 			Password:    req.NewPassword,
 			Retype:      req.Retype,

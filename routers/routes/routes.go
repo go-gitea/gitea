@@ -219,11 +219,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("", bindIgnErr(auth.UpdateProfileForm{}), user.SettingsPost)
 		m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), user.SettingsAvatarPost)
 		m.Post("/avatar/delete", user.SettingsDeleteAvatar)
-		m.Combo("/email").Get(user.SettingsEmails).
-			Post(bindIgnErr(auth.AddEmailForm{}), user.SettingsEmailPost)
-		m.Post("/email/delete", user.DeleteEmail)
+		m.Group("/account", func() {
+			m.Combo("").Get(user.SettingsAccount).Post(bindIgnErr(auth.ChangePasswordForm{}), user.SettingsAccountPost)
+			m.Post("/email", bindIgnErr(auth.AddEmailForm{}), user.SettingsEmailPost)
+			m.Post("/email/delete", user.DeleteEmail)
+			m.Post("/delete", user.SettingsDelete)
+		})
 		m.Get("/security", user.SettingsSecurity)
-		m.Post("/security", bindIgnErr(auth.ChangePasswordForm{}), user.SettingsSecurityPost)
 		m.Group("/openid", func() {
 			m.Combo("").Get(user.SettingsOpenID).
 				Post(bindIgnErr(auth.AddOpenIDForm{}), user.SettingsOpenIDPost)
@@ -236,7 +238,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Combo("/applications").Get(user.SettingsApplications).
 			Post(bindIgnErr(auth.NewAccessTokenForm{}), user.SettingsApplicationsPost)
 		m.Post("/applications/delete", user.SettingsDeleteApplication)
-		m.Route("/delete", "GET,POST", user.SettingsDelete)
 		m.Combo("/account_link").Get(user.SettingsAccountLinks).Post(user.SettingsDeleteAccountLink)
 		m.Get("/organization", user.SettingsOrganization)
 		m.Get("/repos", user.SettingsRepos)
