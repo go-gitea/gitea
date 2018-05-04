@@ -47,6 +47,14 @@ func (m columnMap) contain(colName string) bool {
 	return false
 }
 
+func (m *columnMap) add(colName string) bool {
+	if m.contain(colName) {
+		return false
+	}
+	*m = append(*m, colName)
+	return true
+}
+
 func setColumnInt(bean interface{}, col *core.Column, t int64) {
 	v, err := col.ValueOf(bean)
 	if err != nil {

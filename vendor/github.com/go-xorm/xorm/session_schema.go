@@ -122,7 +122,7 @@ func (session *Session) DropTable(beanOrTableName interface{}) error {
 }
 
 func (session *Session) dropTable(beanOrTableName interface{}) error {
-	tableName := session.engine.tbNameNoSchema(beanOrTableName)
+	tableName := session.engine.TableName(beanOrTableName)
 	var needDrop = true
 	if !session.engine.dialect.SupportDropIfExists() {
 		sqlStr, args := session.engine.dialect.TableCheckSql(tableName)
@@ -147,7 +147,7 @@ func (session *Session) IsTableExist(beanOrTableName interface{}) (bool, error) 
 		defer session.Close()
 	}
 
-	tableName := session.engine.tbNameNoSchema(beanOrTableName)
+	tableName := session.engine.TableName(beanOrTableName)
 
 	return session.isTableExist(tableName)
 }
@@ -163,7 +163,7 @@ func (session *Session) IsTableEmpty(bean interface{}) (bool, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
-	return session.isTableEmpty(session.engine.tbNameNoSchema(bean))
+	return session.isTableEmpty(session.engine.TableName(bean))
 }
 
 func (session *Session) isTableEmpty(tableName string) (bool, error) {

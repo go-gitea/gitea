@@ -214,7 +214,7 @@ func getEngine() (*xorm.Engine, error) {
 				DbCfg.User, DbCfg.Passwd, DbCfg.Host, DbCfg.Name, Param)
 		}
 	case "postgres":
-		xorm.DefaultPostgresSchema = DbCfg.Schema
+		x.SetSchema(DbCfg.Schema)
 		host, port := parsePostgreSQLHostPort(DbCfg.Host)
 		if host[0] == '/' { // looks like a unix socket
 			connStr = fmt.Sprintf("postgres://%s:%s@:%s/%s%ssslmode=%s&host=%s",
