@@ -343,7 +343,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	// If the user does not have a locale set, we save the current one.
 	if len(u.Language) == 0 {
 		u.Language = ctx.Locale.Language()
-		if err := models.UpdateUser(u); err != nil {
+		if err := models.UpdateUserCols(u, "language"); err != nil {
 			log.Error(4, fmt.Sprintf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
 			return
 		}
