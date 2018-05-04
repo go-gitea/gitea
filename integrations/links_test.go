@@ -93,7 +93,6 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"/user2?tab=stars",
 		"/user2?tab=activity",
 		"/user/settings",
-		"/user/settings/avatar",
 		"/user/settings/security",
 		"/user/settings/security/two_factor/enroll",
 		"/user/settings/email",

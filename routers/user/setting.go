@@ -30,7 +30,6 @@ import (
 
 const (
 	tplSettingsProfile      base.TplName = "user/settings/profile"
-	tplSettingsAvatar       base.TplName = "user/settings/avatar"
 	tplSettingsEmails       base.TplName = "user/settings/email"
 	tplSettingsKeys         base.TplName = "user/settings/keys"
 	tplSettingsSocial       base.TplName = "user/settings/social"
@@ -168,13 +167,6 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 	return nil
 }
 
-// SettingsAvatar render user avatar page
-func SettingsAvatar(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsAvatar"] = true
-	ctx.HTML(200, tplSettingsAvatar)
-}
-
 // SettingsAvatarPost response for change user's avatar request
 func SettingsAvatarPost(ctx *context.Context, form auth.AvatarForm) {
 	if err := UpdateAvatarSetting(ctx, form, ctx.User); err != nil {
@@ -183,7 +175,7 @@ func SettingsAvatarPost(ctx *context.Context, form auth.AvatarForm) {
 		ctx.Flash.Success(ctx.Tr("settings.update_avatar_success"))
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/avatar")
+	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 
 // SettingsDeleteAvatar render delete avatar page
@@ -192,7 +184,7 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/avatar")
+	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 
 // SettingsSecurity render change user's password page and 2FA

@@ -217,8 +217,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/user/settings", func() {
 		m.Get("", user.Settings)
 		m.Post("", bindIgnErr(auth.UpdateProfileForm{}), user.SettingsPost)
-		m.Combo("/avatar").Get(user.SettingsAvatar).
-			Post(binding.MultipartForm(auth.AvatarForm{}), user.SettingsAvatarPost)
+		m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), user.SettingsAvatarPost)
 		m.Post("/avatar/delete", user.SettingsDeleteAvatar)
 		m.Combo("/email").Get(user.SettingsEmails).
 			Post(bindIgnErr(auth.AddEmailForm{}), user.SettingsEmailPost)
