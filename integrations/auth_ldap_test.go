@@ -7,10 +7,74 @@ package integrations
 import (
 	"net/http"
 	"os"
+	"strings"
 	"testing"
+
+	"code.gitea.io/gitea/models"
 
 	"github.com/stretchr/testify/assert"
 )
+
+type ldapUser struct {
+	UserName    string
+	Password    string
+	FullName    string
+	Email       string
+	OtherEmails []string
+	IsAdmin     bool
+	SSHKeys     []string
+}
+
+var gitLDAPUsers = []ldapUser{
+	{
+		UserName:    "professor",
+		Password:    "professor",
+		FullName:    "Hubert Farnsworth",
+		Email:       "professor@planetexpress.com",
+		OtherEmails: []string{"hubert@planetexpress.com"},
+		IsAdmin:     true,
+	},
+	{
+		UserName: "hermes",
+		Password: "hermes",
+		FullName: "Conrad Hermes",
+		Email:    "hermes@planetexpress.com",
+		IsAdmin:  true,
+	},
+	{
+		UserName: "fry",
+		Password: "fry",
+		FullName: "Philip Fry",
+		Email:    "fry@planetexpress.com",
+	},
+	{
+		UserName: "leela",
+		Password: "leela",
+		FullName: "Leela Turanga",
+		Email:    "leela@planetexpress.com",
+	},
+	{
+		UserName: "bender",
+		Password: "bender",
+		FullName: "Bender Rodríguez",
+		Email:    "bender@planetexpress.com",
+	},
+}
+
+var otherLDAPUsers = []ldapUser{
+	{
+		UserName: "zoidberg",
+		Password: "zoidberg",
+		FullName: "John Zoidberg",
+		Email:    "zoidberg@planetexpress.com",
+	},
+	{
+		UserName: "amy",
+		Password: "amy",
+		FullName: "Amy Kroker",
+		Email:    "amy@planetexpress.com",
+	},
+}
 
 func skipLDAPTests() bool {
 	return os.Getenv("TEST_LDAP") != "1"
@@ -55,12 +119,62 @@ func TestLDAPUserSignin(t *testing.T) {
 	}
 	prepareTestEnv(t)
 	addAuthSourceLDAP(t)
-	session := loginUserWithPassword(t, "fry", "fry")
+
+	u := gitLDAPUsers[0]
+
+	session := loginUserWithPassword(t, u.UserName, u.Password)
 	req := NewRequest(t, "GET", "/user/settings")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	assert.Equal(t, "fry", htmlDoc.GetInputValueByName("username"))
-	assert.Equal(t, "Philip Fry", htmlDoc.GetInputValueByName("full_name"))
-	assert.Equal(t, "fry@planetexpress.com", htmlDoc.GetInputValueByName("email"))
+
+	assert.Equal(t, u.UserName, htmlDoc.GetInputValueByName("name"))
+	assert.Equal(t, u.FullName, htmlDoc.GetInputValueByName("full_name"))
+	assert.Equal(t, u.Email, htmlDoc.GetInputValueByName("email"))
+}
+
+func TestLDAPUserSync(t *testing.T) {
+	if skipLDAPTests() {
+		t.Skip()
+		return
+	}
+	prepareTestEnv(t)
+	addAuthSourceLDAP(t)
+	models.SyncExternalUsers()
+
+	session := loginUser(t, "user1")
+	// Check if users exists
+	for _, u := range gitLDAPUsers {
+		req := NewRequest(t, "GET", "/admin/users?q="+u.UserName)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		htmlDoc := NewHTMLParser(t, resp.Body)
+
+		tr := htmlDoc.doc.Find("table.table tbody tr")
+		if !assert.True(t, tr.Length() == 1) {
+			continue
+		}
+		tds := tr.Find("td")
+		if !assert.True(t, tds.Length() > 0) {
+			continue
+		}
+		assert.Equal(t, u.UserName, strings.TrimSpace(tds.Find("td:nth-child(2) a").Text()))
+		assert.Equal(t, u.Email, strings.TrimSpace(tds.Find("td:nth-child(3) span").Text()))
+		if u.IsAdmin {
+			assert.True(t, tds.Find("td:nth-child(5) i").HasClass("fa-check-square-o"))
+		} else {
+			assert.True(t, tds.Find("td:nth-child(5) i").HasClass("fa-square-o"))
+		}
+	}
+
+	// Check if no users exist
+	for _, u := range otherLDAPUsers {
+		req := NewRequest(t, "GET", "/admin/users?q="+u.UserName)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		htmlDoc := NewHTMLParser(t, resp.Body)
+
+		tr := htmlDoc.doc.Find("table.table tbody tr")
+		assert.True(t, tr.Length() == 0)
+	}
 }
