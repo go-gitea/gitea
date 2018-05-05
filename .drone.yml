@@ -342,3 +342,8 @@ services:
       - POSTGRES_DB=test
     when:
       event: [ push, tag, pull_request ]
+
+  ldap:
+    image: gitea/test-openldap:latest
+    when:
+      event: [ push, tag, pull_request ]
