@@ -31,15 +31,11 @@ import (
 const (
 	tplSettingsProfile      base.TplName = "user/settings/profile"
 	tplSettingsAccount      base.TplName = "user/settings/account"
-	tplSettingsKeys         base.TplName = "user/settings/keys"
-	tplSettingsSocial       base.TplName = "user/settings/social"
-	tplSettingsApplications base.TplName = "user/settings/applications"
-	tplSettingsTwofa        base.TplName = "user/settings/twofa"
+	tplSettingsSecurity     base.TplName = "user/settings/security"
 	tplSettingsTwofaEnroll  base.TplName = "user/settings/twofa_enroll"
-	tplSettingsAccountLink  base.TplName = "user/settings/account_link"
+	tplSettingsKeys         base.TplName = "user/settings/keys"
 	tplSettingsOrganization base.TplName = "user/settings/organization"
 	tplSettingsRepositories base.TplName = "user/settings/repos"
-	tplSettingsSecurity     base.TplName = "user/settings/security"
 )
 
 // Settings render user's profile page
@@ -356,9 +352,107 @@ func SettingsSecurity(ctx *context.Context) {
 			return
 		}
 	}
-
 	ctx.Data["TwofaEnrolled"] = enrolled
+
+	tokens, err := models.ListAccessTokens(ctx.User.ID)
+	if err != nil {
+		ctx.ServerError("ListAccessTokens", err)
+		return
+	}
+	ctx.Data["Tokens"] = tokens
+
+	accountLinks, err := models.ListAccountLinks(ctx.User)
+	if err != nil {
+		ctx.ServerError("ListAccountLinks", err)
+		return
+	}
+
+	// map the provider display name with the LoginSource
+	sources := make(map[*models.LoginSource]string)
+	for _, externalAccount := range accountLinks {
+		if loginSource, err := models.GetLoginSourceByID(externalAccount.LoginSourceID); err == nil {
+			var providerDisplayName string
+			if loginSource.IsOAuth2() {
+				providerTechnicalName := loginSource.OAuth2().Provider
+				providerDisplayName = models.OAuth2Providers[providerTechnicalName].DisplayName
+			} else {
+				providerDisplayName = loginSource.Name
+			}
+			sources[loginSource] = providerDisplayName
+		}
+	}
+	ctx.Data["AccountLinks"] = sources
+
+	if ctx.Query("openid.return_to") != "" {
+		settingsOpenIDVerify(ctx)
+		return
+	}
+
+	openid, err := models.GetUserOpenIDs(ctx.User.ID)
+	if err != nil {
+		ctx.ServerError("GetUserOpenIDs", err)
+		return
+	}
+	ctx.Data["OpenIDs"] = openid
+
 	ctx.HTML(200, tplSettingsSecurity)
+}
+
+// SettingsApplicationsPost response for add user's access token
+func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsApplications"] = true
+
+	if ctx.HasError() {
+		tokens, err := models.ListAccessTokens(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("ListAccessTokens", err)
+			return
+		}
+		ctx.Data["Tokens"] = tokens
+		ctx.HTML(200, tplSettingsSecurity)
+		return
+	}
+
+	t := &models.AccessToken{
+		UID:  ctx.User.ID,
+		Name: form.Name,
+	}
+	if err := models.NewAccessToken(t); err != nil {
+		ctx.ServerError("NewAccessToken", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
+	ctx.Flash.Info(t.Sha1)
+
+	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+}
+
+// SettingsDeleteApplication response for delete user access token
+func SettingsDeleteApplication(ctx *context.Context) {
+	if err := models.DeleteAccessTokenByID(ctx.QueryInt64("id"), ctx.User.ID); err != nil {
+		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/user/settings/security",
+	})
+}
+
+// SettingsDeleteAccountLink delete a single account link
+func SettingsDeleteAccountLink(ctx *context.Context) {
+	if _, err := models.RemoveAccountLink(ctx.User, ctx.QueryInt64("loginSourceID")); err != nil {
+		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/user/settings/security",
+	})
 }
 
 // SettingsKeys render user's SSH/GPG public keys page
@@ -489,65 +583,6 @@ func DeleteKey(ctx *context.Context) {
 	}
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/keys",
-	})
-}
-
-// SettingsApplications render user's access tokens page
-func SettingsApplications(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsApplications"] = true
-
-	tokens, err := models.ListAccessTokens(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("ListAccessTokens", err)
-		return
-	}
-	ctx.Data["Tokens"] = tokens
-
-	ctx.HTML(200, tplSettingsApplications)
-}
-
-// SettingsApplicationsPost response for add user's access token
-func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsApplications"] = true
-
-	if ctx.HasError() {
-		tokens, err := models.ListAccessTokens(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("ListAccessTokens", err)
-			return
-		}
-		ctx.Data["Tokens"] = tokens
-		ctx.HTML(200, tplSettingsApplications)
-		return
-	}
-
-	t := &models.AccessToken{
-		UID:  ctx.User.ID,
-		Name: form.Name,
-	}
-	if err := models.NewAccessToken(t); err != nil {
-		ctx.ServerError("NewAccessToken", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
-	ctx.Flash.Info(t.Sha1)
-
-	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
-}
-
-// SettingsDeleteApplication response for delete user access token
-func SettingsDeleteApplication(ctx *context.Context) {
-	if err := models.DeleteAccessTokenByID(ctx.QueryInt64("id"), ctx.User.ID); err != nil {
-		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
-	} else {
-		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
-	}
-
-	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
 }
 
@@ -714,49 +749,6 @@ func SettingsTwoFactorEnrollPost(ctx *context.Context, form auth.TwoFactorAuthFo
 	ctx.Session.Delete("twofaUri")
 	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", t.ScratchToken))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
-}
-
-// SettingsAccountLinks render the account links settings page
-func SettingsAccountLinks(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsAccountLink"] = true
-
-	accountLinks, err := models.ListAccountLinks(ctx.User)
-	if err != nil {
-		ctx.ServerError("ListAccountLinks", err)
-		return
-	}
-
-	// map the provider display name with the LoginSource
-	sources := make(map[*models.LoginSource]string)
-	for _, externalAccount := range accountLinks {
-		if loginSource, err := models.GetLoginSourceByID(externalAccount.LoginSourceID); err == nil {
-			var providerDisplayName string
-			if loginSource.IsOAuth2() {
-				providerTechnicalName := loginSource.OAuth2().Provider
-				providerDisplayName = models.OAuth2Providers[providerTechnicalName].DisplayName
-			} else {
-				providerDisplayName = loginSource.Name
-			}
-			sources[loginSource] = providerDisplayName
-		}
-	}
-	ctx.Data["AccountLinks"] = sources
-
-	ctx.HTML(200, tplSettingsAccountLink)
-}
-
-// SettingsDeleteAccountLink delete a single account link
-func SettingsDeleteAccountLink(ctx *context.Context) {
-	if _, err := models.RemoveAccountLink(ctx.User, ctx.QueryInt64("loginSourceID")); err != nil {
-		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
-	} else {
-		ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
-	}
-
-	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/account_link",
-	})
 }
 
 // SettingsOrganization render all the organization of the user
