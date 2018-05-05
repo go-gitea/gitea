@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func skipLDAPTests() bool {
@@ -37,7 +39,7 @@ func addAuthSourceLDAP(t *testing.T) {
 		"filter":             "(&(objectClass=inetOrgPerson)(memberOf=cn=git,ou=people,dc=planetexpress,dc=com)(uid=%s))",
 		"admin_filter":       "(memberOf=cn=admin_staff,ou=people,dc=planetexpress,dc=com)",
 		"attribute_username": "uid",
-		"attribute_name":     "cn",
+		"attribute_name":     "givenName",
 		"attribute_surname":  "sn",
 		"attribute_mail":     "mail",
 		"is_sync_enabled":    "on",
@@ -53,5 +55,12 @@ func TestLDAPUserSignin(t *testing.T) {
 	}
 	prepareTestEnv(t)
 	addAuthSourceLDAP(t)
-	loginUserWithPassword(t, "fry", "fry")
+	session := loginUserWithPassword(t, "fry", "fry")
+	req := NewRequest(t, "GET", "/user/settings")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	assert.Equal(t, "fry", htmlDoc.GetInputValueByName("username"))
+	assert.Equal(t, "Philip Fry", htmlDoc.GetInputValueByName("full_name"))
+	assert.Equal(t, "fry@planetexpress.com", htmlDoc.GetInputValueByName("email"))
 }
