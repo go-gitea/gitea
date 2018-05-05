@@ -179,6 +179,8 @@ var migrations = []Migration{
 	// v62 -> v63
 	NewMigration("add last used passcode column for TOTP", addLastUsedPasscodeTOTP),
 	// v63 -> v64
+	NewMigration("add language column for user setting", addLanguageSetting),
+	// v63 -> v64
 	NewMigration("add issue_dependencies", addIssueDependencies),
 }
 
