@@ -147,6 +147,7 @@ pipeline:
     environment:
       TAGS: bindata
     commands:
+      - apk update && apk add git-lfs
       - make test-mysql
     when:
       event: [ tag ]
@@ -158,6 +159,7 @@ pipeline:
     environment:
       TAGS: bindata
     commands:
+      - apk update && apk add git-lfs
       - make test-pgsql
     when:
       event: [ push, tag, pull_request ]
