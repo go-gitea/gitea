@@ -56,7 +56,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build-without-gcc:
-    image: golang:1.10-alpine
+    image: golang:1.10
     pull: true
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
@@ -64,7 +64,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build:
-    image: golang:1.10-alpine
+    image: golang:1.10
     pull: true
     environment:
       TAGS: bindata sqlite
@@ -82,7 +82,7 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test:
-    image: golang:1.10-alpine
+    image: golang:1.10
     pull: true
     group: test
     environment:
@@ -94,7 +94,7 @@ pipeline:
       branch: [ master ]
 
   test:
-    image: golang:1.10-alpine
+    image: golang:1.10
     pull: true
     group: test
     environment:
@@ -106,7 +106,7 @@ pipeline:
       branch: [ release/* ]
 
   test:
-    image: golang:1.10-alpine
+    image: golang:1.10
     pull: true
     group: test
     environment:
@@ -118,7 +118,7 @@ pipeline:
 
   # Commented until db locking have been resolved!
   # test-sqlite:
-  #   image: golang:1.10-alpine
+  #   image: golang:1.10
   #   pull: true
   #   group: test
   #   environment:
@@ -129,44 +129,44 @@ pipeline:
   #     event: [ push, tag, pull_request ]
 
   test-mysql:
-    image: golang:1.10-alpine
+    image: golang:1.10
     pull: true
     group: test
     environment:
       TAGS: bindata
     commands:
-      - apk update && apk add git-lfs
+      - apt-get update && apt-get install -y git-lfs
       - make integration-test-coverage
     when:
       event: [ push, pull_request ]
       branch: [ master ]
 
   test-mysql:
-    image: golang:1.10-alpine
+    image: golang:1.10
     pull: true
     group: test
     environment:
       TAGS: bindata
     commands:
-      - apk update && apk add git-lfs
+      - apt-get update && apt-get install -y git-lfs
       - make test-mysql
     when:
       event: [ tag ]
 
   test-pgsql:
-    image: golang:1.10-alpine
+    image: golang:1.10
     pull: true
     group: test
     environment:
       TAGS: bindata
     commands:
-      - apk update && apk add git-lfs
+      - apt-get update && apt-get install -y git-lfs
       - make test-pgsql
     when:
       event: [ push, tag, pull_request ]
 
   generate-coverage:
-    image: golang:1.10-alpine
+    image: golang:1.10
     pull: true
     environment:
       TAGS: bindata
