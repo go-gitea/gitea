@@ -135,7 +135,8 @@ pipeline:
     environment:
       TAGS: bindata
     commands:
-      - apt-get update && apt-get install -y git-lfs
+      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+      - apt-get install -y git-lfs
       - make integration-test-coverage
     when:
       event: [ push, pull_request ]
@@ -148,7 +149,8 @@ pipeline:
     environment:
       TAGS: bindata
     commands:
-      - apt-get update && apt-get install -y git-lfs
+      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+      - apt-get install -y git-lfs
       - make test-mysql
     when:
       event: [ tag ]
@@ -160,7 +162,8 @@ pipeline:
     environment:
       TAGS: bindata
     commands:
-      - apt-get update && apt-get install -y git-lfs
+      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+      - apt-get install -y git-lfs
       - make test-pgsql
     when:
       event: [ push, tag, pull_request ]
