@@ -7395,6 +7395,11 @@
           "format": "int64",
           "x-go-name": "ID"
         },
+        "language": {
+          "description": "User locale",
+          "type": "string",
+          "x-go-name": "Language"
+        },
         "login": {
           "description": "the user's username",
           "type": "string",
