@@ -164,6 +164,7 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
+
   generate-coverage:
     image: golang:1.10
     pull: true
