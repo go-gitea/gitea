@@ -142,6 +142,7 @@ pipeline:
     environment:
       TAGS: bindata
       GOPATH: /srv/app
+      TEST_LDAP: "1"
     commands:
       - make integration-test-coverage
     when:
@@ -155,6 +156,7 @@ pipeline:
     environment:
       TAGS: bindata
       GOPATH: /srv/app
+      TEST_LDAP: "1"
     commands:
       - make test-mysql
     when:
@@ -167,6 +169,7 @@ pipeline:
     environment:
       TAGS: bindata
       GOPATH: /srv/app
+      TEST_LDAP: "1"
     commands:
       - make test-pgsql
     when:
