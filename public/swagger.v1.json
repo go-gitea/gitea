@@ -6052,7 +6052,7 @@
       "x-go-package": "code.gitea.io/gitea/vendor/code.gitea.io/sdk/gitea"
     },
     "EditDeadlineOption": {
-      "description": "CreateDeadlineOption options for creating a deadline",
+      "description": "EditDeadlineOption options for creating a deadline",
       "type": "object",
       "required": [
         "due_date"
