@@ -1221,3 +1221,25 @@ func IsErrExternalLoginUserNotExist(err error) bool {
 func (err ErrExternalLoginUserNotExist) Error() string {
 	return fmt.Sprintf("external login user link does not exists [userID: %d, loginSourceID: %d]", err.UserID, err.LoginSourceID)
 }
+
+//  __________            .__
+//  \______   \ _______  _|__| ______  _  __
+//  |       _// __ \  \/ /  |/ __ \ \/ \/ /
+//  |    |   \  ___/\   /|  \  ___/\     /
+//  |____|_  /\___  >\_/ |__|\___  >\/\_/
+//  \/     \/             \/
+
+// ErrReviewNotExist represents a "ReviewNotExist" kind of error.
+type ErrReviewNotExist struct {
+	ID int64
+}
+
+// IsErrReviewNotExist checks if an error is a ErrReviewNotExist.
+func IsErrReviewNotExist(err error) bool {
+	_, ok := err.(ErrReviewNotExist)
+	return ok
+}
+
+func (err ErrReviewNotExist) Error() string {
+	return fmt.Sprintf("review does not exist [id: %d]", err.ID)
+}

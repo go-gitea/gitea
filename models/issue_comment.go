@@ -66,6 +66,10 @@ const (
 	CommentTypeModifiedDeadline
 	// Removed a due date
 	CommentTypeRemovedDeadline
+	// Comment a line of code
+	CommentTypeCode
+	// Reviews a pull request by giving general feedback
+	CommentTypeReview
 )
 
 // CommentTag defines comment tag type
@@ -100,7 +104,8 @@ type Comment struct {
 	NewTitle       string
 
 	CommitID        int64
-	Line            int64
+	Line            int64 // - previous line / + proposed line
+	TreePath        string
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
 
@@ -115,6 +120,9 @@ type Comment struct {
 
 	// For view issue page.
 	ShowTag CommentTag `xorm:"-"`
+
+	Review   *Review `xorm:"-"`
+	ReviewID int64
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
@@ -318,6 +326,18 @@ func (c *Comment) LoadReactions() error {
 	return c.loadReactions(x)
 }
 
+func (c *Comment) loadReview(e Engine) (err error) {
+	if c.Review, err = getReviewByID(e, c.ReviewID); err != nil {
+		return err
+	}
+	return nil
+}
+
+// LoadReview loads the associated review
+func (c *Comment) LoadReview() error {
+	return c.loadReview(x)
+}
+
 func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
 	var LabelID int64
 	if opts.Label != nil {
@@ -339,6 +359,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:        opts.Content,
 		OldTitle:       opts.OldTitle,
 		NewTitle:       opts.NewTitle,
+		TreePath:       opts.TreePath,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -557,6 +578,7 @@ type CreateCommentOptions struct {
 	CommitID       int64
 	CommitSHA      string
 	LineNum        int64
+	TreePath       string
 	Content        string
 	Attachments    []string // UUIDs of attachments
 }
