@@ -19,15 +19,14 @@ const (
 
 // Review represents collection of code comments giving feedback for a PR
 type Review struct {
-	ID              int64 `xorm:"pk autoincr"`
-	Type            ReviewType
-	Pending         bool
-	Reviewer        *User    `xorm:"-"`
-	ReviewerID      int64    `xorm:"index"`
-	Issue           *Issue   `xorm:"-"`
-	IssueID         int64    `xorm:"index"`
-	ReviewCommentID int64    `xorm:"index"`
-	ReviewComment   *Comment `xorm:"-"`
+	ID         int64 `xorm:"pk autoincr"`
+	Type       ReviewType
+	Pending    bool
+	Reviewer   *User  `xorm:"-"`
+	ReviewerID int64  `xorm:"index"`
+	Issue      *Issue `xorm:"-"`
+	IssueID    int64  `xorm:"index"`
+	Content    string
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
