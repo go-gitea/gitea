@@ -40,14 +40,14 @@
 						<div class="scrolling menu">
 							{{range .HeadBranches}}
 								<div class="{{if eq $.HeadBranch .}}selected{{end}} item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}:{{end}}{{EscapePound .}}">{{$.HeadUser.Name}}:{{.}}</div>
-							{{end}} 
+							{{end}}
 						</div>
 					</div>
 				</div>
 			</div> 
 
 			{{if .IsNothingToCompare}}
-				<div class="ui segment"> 
+				<div class="ui segment">
 					{{.i18n.Tr "repo.pulls.nothing_to_compare"}}
 				</div>
 			{{else if .HasPullRequest}}
