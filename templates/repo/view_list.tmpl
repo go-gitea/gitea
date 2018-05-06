@@ -73,7 +73,7 @@
 								{{end}}
 							</a>
 						{{else}}
-							<span class="octicon octicon-file-text"></span>
+							<span class="octicon octicon-{{EntryIcon $entry}}"></span>
 							<a href="{{EscapePound $.TreeLink}}/{{EscapePound $entry.Name}}">{{$entry.Name}}</a>
 						{{end}}
 					</td>

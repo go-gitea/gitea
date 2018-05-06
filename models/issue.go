@@ -47,13 +47,15 @@ type Issue struct {
 	Ref             string
 
 	DeadlineUnix util.TimeStamp `xorm:"INDEX"`
-	CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix  util.TimeStamp `xorm:"INDEX updated"`
-	ClosedUnix   util.TimeStamp `xorm:"INDEX"`
 
-	Attachments []*Attachment `xorm:"-"`
-	Comments    []*Comment    `xorm:"-"`
-	Reactions   ReactionList  `xorm:"-"`
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	ClosedUnix  util.TimeStamp `xorm:"INDEX"`
+
+	Attachments      []*Attachment `xorm:"-"`
+	Comments         []*Comment    `xorm:"-"`
+	Reactions        ReactionList  `xorm:"-"`
+	TotalTrackedTime int64         `xorm:"-"`
 }
 
 var (
@@ -69,6 +71,20 @@ func init() {
 	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
 }
 
+func (issue *Issue) loadTotalTimes(e Engine) (err error) {
+	opts := FindTrackedTimesOptions{IssueID: issue.ID}
+	issue.TotalTrackedTime, err = opts.ToSession(e).SumInt(&TrackedTime{}, "time")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// IsOverdue checks if the issue is overdue
+func (issue *Issue) IsOverdue() bool {
+	return util.TimeStampNow() >= issue.DeadlineUnix
+}
+
 func (issue *Issue) loadRepo(e Engine) (err error) {
 	if issue.Repo == nil {
 		issue.Repo, err = getRepositoryByID(e, issue.RepoID)
@@ -77,6 +93,15 @@ func (issue *Issue) loadRepo(e Engine) (err error) {
 		}
 	}
 	return nil
+}
+
+// IsTimetrackerEnabled returns true if the repo enables timetracking
+func (issue *Issue) IsTimetrackerEnabled() bool {
+	if err := issue.loadRepo(x); err != nil {
+		log.Error(4, fmt.Sprintf("loadRepo: %v", err))
+		return false
+	}
+	return issue.Repo.IsTimetrackerEnabled()
 }
 
 // GetPullRequest returns the issue pull request
@@ -225,6 +250,11 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadComments(e); err != nil {
 		return err
 	}
+	if issue.IsTimetrackerEnabled() {
+		if err = issue.loadTotalTimes(e); err != nil {
+			return err
+		}
+	}
 
 	return issue.loadReactions(e)
 }
@@ -323,6 +353,9 @@ func (issue *Issue) APIFormat() *api.Issue {
 		if issue.PullRequest.HasMerged {
 			apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
 		}
+	}
+	if issue.DeadlineUnix != 0 {
+		apiIssue.Deadline = issue.DeadlineUnix.AsTimePtr()
 	}
 
 	return apiIssue
@@ -1497,4 +1530,31 @@ func updateIssue(e Engine, issue *Issue) error {
 // UpdateIssue updates all fields of given issue.
 func UpdateIssue(issue *Issue) error {
 	return updateIssue(x, issue)
+}
+
+// UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
+func UpdateIssueDeadline(issue *Issue, deadlineUnix util.TimeStamp, doer *User) (err error) {
+
+	// if the deadline hasn't changed do nothing
+	if issue.DeadlineUnix == deadlineUnix {
+		return nil
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	// Update the deadline
+	if err = updateIssueCols(sess, &Issue{ID: issue.ID, DeadlineUnix: deadlineUnix}, "deadline_unix"); err != nil {
+		return err
+	}
+
+	// Make the comment
+	if _, err = createDeadlineComment(sess, doer, issue, deadlineUnix); err != nil {
+		return fmt.Errorf("createRemovedDueDateComment: %v", err)
+	}
+
+	return sess.Commit()
 }

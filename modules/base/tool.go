@@ -23,6 +23,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -558,4 +559,26 @@ func IsPDFFile(data []byte) bool {
 // IsVideoFile detects if data is an video format
 func IsVideoFile(data []byte) bool {
 	return strings.Index(http.DetectContentType(data), "video/") != -1
+}
+
+// EntryIcon returns the octicon class for displaying files/directories
+func EntryIcon(entry *git.TreeEntry) string {
+	switch {
+	case entry.IsLink():
+		te, err := entry.FollowLink()
+		if err != nil {
+			log.Debug(err.Error())
+			return "file-symlink-file"
+		}
+		if te.IsDir() {
+			return "file-symlink-directory"
+		}
+		return "file-symlink-file"
+	case entry.IsDir():
+		return "file-directory"
+	case entry.IsSubModule():
+		return "file-submodule"
+	}
+
+	return "file-text"
 }

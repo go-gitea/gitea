@@ -25,6 +25,8 @@ type AuthenticationForm struct {
 	AttributeSurname              string
 	AttributeMail                 string
 	AttributesInBind              bool
+	UsePagedSearch                bool
+	SearchPageSize                int
 	Filter                        string
 	AdminFilter                   string
 	IsActive                      bool

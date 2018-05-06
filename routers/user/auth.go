@@ -221,7 +221,7 @@ func TwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 		return
 	}
 
-	if ok {
+	if ok && twofa.LastUsedPasscode != form.Passcode {
 		remember := ctx.Session.Get("twofaRemember").(bool)
 		u, err := models.GetUserByID(id)
 		if err != nil {
@@ -241,6 +241,12 @@ func TwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 				ctx.ServerError("UserSignIn", err)
 				return
 			}
+		}
+
+		twofa.LastUsedPasscode = form.Passcode
+		if err = models.UpdateTwoFactor(twofa); err != nil {
+			ctx.ServerError("UserSignIn", err)
+			return
 		}
 
 		handleSignIn(ctx, u, remember)
@@ -332,6 +338,18 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	ctx.Session.Delete("twofaRemember")
 	ctx.Session.Set("uid", u.ID)
 	ctx.Session.Set("uname", u.Name)
+
+	// Language setting of the user overwrites the one previously set
+	// If the user does not have a locale set, we save the current one.
+	if len(u.Language) == 0 {
+		u.Language = ctx.Locale.Language()
+		if err := models.UpdateUserCols(u, "language"); err != nil {
+			log.Error(4, fmt.Sprintf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
+			return
+		}
+	}
+
+	ctx.SetCookie("lang", u.Language, nil, setting.AppSubURL)
 
 	// Clear whatever CSRF has right now, force to generate a new one
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
@@ -698,6 +716,7 @@ func SignOut(ctx *context.Context) {
 	ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL)
 	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL)
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL)
+	ctx.SetCookie("lang", "", -1, setting.AppSubURL) // Setting the lang cookie will trigger the middleware to reset the language ot previous state.
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 

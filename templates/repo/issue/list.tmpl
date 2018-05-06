@@ -198,6 +198,10 @@
 						<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
 					{{end}}
 
+					{{if .TotalTrackedTime}}
+						<span class="comment ui right"><i class="octicon octicon-clock"></i> {{.TotalTrackedTime | Sec2Time}}</span>
+					{{end}}
+
 					<p class="desc">
 						{{$.i18n.Tr "repo.issues.opened_by" $timeStr .Poster.HomeLink .Poster.Name | Safe}}
 						{{$tasks := .GetTasks}}
@@ -211,6 +215,10 @@
 							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
 								<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
 							</a>
+						{{end}}
+						{{if ne .DeadlineUnix 0}}
+							<span class="octicon octicon-calendar"></span>
+							<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
 						{{end}}
 						{{if .Assignee}}
 							<a class="ui right assignee poping up" href="{{.Assignee.HomeLink}}" data-content="{{.Assignee.Name}}" data-variation="inverted" data-position="left center">
