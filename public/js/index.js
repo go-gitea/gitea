@@ -1138,6 +1138,16 @@ function initAdmin() {
         }
     }
 
+    function onUsePagedSearchChange() {
+        if ($('#use_paged_search').prop('checked')) {
+            $('.search-page-size').show()
+                .find('input').attr('required', 'required');
+        } else {
+            $('.search-page-size').hide()
+                .find('input').removeAttr('required');
+        }
+    }
+
     function onOAuth2Change() {
         $('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url').hide();
         $('.open_id_connect_auto_discovery_url input[required]').removeAttr('required');
@@ -1191,7 +1201,7 @@ function initAdmin() {
     // New authentication
     if ($('.admin.new.authentication').length > 0) {
         $('#auth_type').change(function () {
-            $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls').hide();
+            $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size').hide();
 
             $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
 
@@ -1223,9 +1233,13 @@ function initAdmin() {
             if (authType == '2' || authType == '5') {
                 onSecurityProtocolChange()
             }
+            if (authType == '2') {
+                onUsePagedSearchChange();
+            }
         });
         $('#auth_type').change();
         $('#security_protocol').change(onSecurityProtocolChange);
+        $('#use_paged_search').change(onUsePagedSearchChange);
         $('#oauth2_provider').change(onOAuth2Change);
         $('#oauth2_use_custom_url').change(onOAuth2UseCustomURLChange);
     }
@@ -1234,6 +1248,9 @@ function initAdmin() {
         var authType = $('#auth_type').val();
         if (authType == '2' || authType == '5') {
             $('#security_protocol').change(onSecurityProtocolChange);
+            if (authType == '2') {
+                $('#use_paged_search').change(onUsePagedSearchChange);
+            }
         } else if (authType == '6') {
             $('#oauth2_provider').change(onOAuth2Change);
             $('#oauth2_use_custom_url').change(onOAuth2UseCustomURLChange);
