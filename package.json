@@ -3,16 +3,5 @@
     "devDependencies": {
         "less": "^2.7.2",
         "less-plugin-clean-css": "^1.5.1"
-    },
-    "dependencies": {
-        "opencollective": "^1.0.3"
-    },
-    "collective": {
-        "type": "opencollective",
-        "url": "https://opencollective.com/gitea",
-        "logo": "https://opencollective.com/gitea/logo.txt"
-    },
-    "scripts": {
-        "postinstall": "opencollective postinstall"
     }
 }
