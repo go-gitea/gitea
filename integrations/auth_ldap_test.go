@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 
+	"github.com/Unknwon/i18n"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -177,4 +178,17 @@ func TestLDAPUserSync(t *testing.T) {
 		tr := htmlDoc.doc.Find("table.table tbody tr")
 		assert.True(t, tr.Length() == 0)
 	}
+}
+
+func TestLDAPUserSigninFailed(t *testing.T) {
+	if skipLDAPTests() {
+		t.Skip()
+		return
+	}
+	prepareTestEnv(t)
+	addAuthSourceLDAP(t)
+
+	u := otherLDAPUsers[0]
+
+	testLoginFailed(t, u.UserName, u.Password, i18n.Tr("en", "form.username_password_incorrect"))
 }
