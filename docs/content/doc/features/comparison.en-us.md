@@ -33,7 +33,8 @@ _Symbols used in table:_
 | Pull/Merge requests | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Squash merging | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Rebase merging | ✓ | ✘ | ✓ | ⁄ | ⁄ | ✘ |
-| Pull/Merge request reviews | ✘ | ✘ | ✓ | ✓ | ✓ | ✓ |
+| Pull/Merge request inline comments | ✘ | ✘ | ✓ | ✓ | ✓ | ✓ |
+| Pull/Merge request approval | ✘ | ✘ | ⁄ | ✓ | ✓ | ✓ |
 | Merge conflict resolution | ✘ | ✘ | ✓ | ✓ | ✓ | ✓ |
 | Restrict push and merge access to certain users | ✓ | ✘ | ✓ | ⁄ | ✓ | ✓ |
 | Markdown support | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -51,13 +52,12 @@ _Symbols used in table:_
 | Commit graph |
 | Web code editor |
 | Branch manager |
-| Repoistory topics |
+| Repository topics |
 | Repository code search |
 | Global code search |
 | Issue search |
 | Global issue search |
 | Git LFS 2.0 |
-| Built-in Container Registry |
 | Integrated Git-powered wiki |
 | Static Git-powerded pages |
 | Group Milestones |
@@ -78,7 +78,8 @@ _Symbols used in table:_
 | Multiple LDAP / AD server support |
 | LDAP user synchronization |
 | OpenId Connect support |
-| OAuth2.0 integration (external authorization) |
+| OAuth 2.0 integration (external authorization) |
+| OAuth 2.0 provider |
 | Two factor authentication (2FA) |
 | Mattermost/Slack integration |
 | Discord integration |
