@@ -14,7 +14,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -381,35 +381,33 @@ func dumpTableFixtures(bean interface{}, dirPath string) error {
 		return err
 	}
 	defer f.Close()
-	var bufferSize = 100
-	var objs = make([]interface{}, 0, bufferSize)
-	err = x.BufferSize(bufferSize).Iterate(bean, func(idx int, obj interface{}) error {
-		objs = append(objs, obj)
-		if len(objs) == bufferSize {
-			// BLOCK: need yaml support gonic name mapper
-			data, err := yaml.Marshal(objs)
-			if err != nil {
-				return err
-			}
-			_, err = f.Write(data)
-			if err != nil {
-				return err
-			}
-			objs = make([]interface{}, 0, bufferSize)
+
+	const bufferSize = 100
+	var start = 0
+	for {
+		objs, err := x.Table(table.Name).Limit(bufferSize, start).QueryInterface()
+		if err != nil {
+			return err
 		}
-		return err
-	})
-	if err != nil {
-		return err
-	}
-	if len(objs) > 0 {
+		if len(objs) == 0 {
+			break
+		}
+
 		data, err := yaml.Marshal(objs)
 		if err != nil {
 			return err
 		}
 		_, err = f.Write(data)
+		if err != nil {
+			return err
+		}
+		if len(objs) < bufferSize {
+			break
+		}
+		start += len(objs)
 	}
-	return err
+
+	return nil
 }
 
 // RestoreDatabaseFixtures restores all data from dir to database
@@ -429,14 +427,44 @@ func restoreTableFixtures(bean interface{}, dirPath string) error {
 		return err
 	}
 
-	var bufferSize = 100
-	v := reflect.MakeSlice(table.Type, 0, bufferSize)
-	// BLOCK: need yaml support gonic name mapper
-	err = yaml.Unmarshal(data, v.Interface())
+	const bufferSize = 100
+	var records = make([]map[string]interface{}, 0, bufferSize*10)
+	err = yaml.Unmarshal(data, records)
 	if err != nil {
 		return err
 	}
 
-	_, err = x.Insert(v.Interface())
+	if len(records) == 0 {
+		return nil
+	}
+
+	var columns = make([]string, 0, len(records[0]))
+	for k, _ := range records[0] {
+		columns = append(columns, k)
+	}
+	sort.Strings(columns)
+
+	qm := strings.Repeat("?,", len(columns))
+	qm = "(" + qm[:len(qm)-1] + ")"
+
+	var sql = "INSERT INTO " + table.Name + "(" + strings.Join(columns, ",") + ") VALUES "
+	var args = make([]interface{}, 0, bufferSize)
+	var insertSQLs = make([]string, 0, bufferSize)
+	for i, vals := range records {
+		insertSQLs = append(insertSQLs, qm)
+		for _, colName := range columns {
+			args = append(args, vals[colName])
+		}
+
+		if i+1%100 == 0 || i == len(records)-1 {
+			_, err = x.Exec(sql+strings.Join(insertSQLs, ","), args...)
+			if err != nil {
+				return err
+			}
+			insertSQLs = make([]string, 0, bufferSize)
+			args = make([]interface{}, 0, bufferSize)
+		}
+	}
+
 	return err
 }
