@@ -170,6 +170,10 @@ test-vendor:
 test-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
 
+.PHONY: test-tidb
+test-tidb: integrations.tidb.test
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/tidb.ini ./integrations.tidb.test
+
 generate-ini:
 	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
 		-e 's|{{TEST_MYSQL_DBNAME}}|${TEST_MYSQL_DBNAME}|g' \
@@ -209,6 +213,9 @@ integration-test-coverage: integrations.cover.test generate-ini
 
 integrations.test: $(SOURCES)
 	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.test
+
+integrations.tidb.test: $(SOURCES)
+	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.tidb.test -tags 'tidb'
 
 integrations.sqlite.test: $(SOURCES)
 	$(GO) test -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite'

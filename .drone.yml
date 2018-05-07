@@ -69,7 +69,7 @@ pipeline:
     image: webhippie/golang:edge
     pull: true
     environment:
-      TAGS: bindata sqlite
+      TAGS: bindata sqlite tidb
       GOPATH: /srv/app
     commands:
       - make clean
@@ -89,7 +89,7 @@ pipeline:
     pull: true
     group: test
     environment:
-      TAGS: bindata sqlite
+      TAGS: bindata sqlite tidb
       GOPATH: /srv/app
     commands:
       - make unit-test-coverage
@@ -102,7 +102,7 @@ pipeline:
     pull: true
     group: test
     environment:
-      TAGS: bindata sqlite
+      TAGS: bindata sqlite tidb
       GOPATH: /srv/app
     commands:
       - make test
@@ -172,6 +172,18 @@ pipeline:
     when:
       event: [ push, tag, pull_request ]
 
+  test-tidb:
+    image: webhippie/golang:edge
+    pull: true
+    group: test
+    environment:
+      TAGS: bindata tidb
+      GOPATH: /srv/app
+    commands:
+      - make test-tidb
+    when:
+      event: [ push, tag, pull_request ]
+
   generate-coverage:
     image: webhippie/golang:edge
     pull: true
@@ -197,7 +209,7 @@ pipeline:
     image: karalabe/xgo-latest:latest
     pull: true
     environment:
-      TAGS: bindata sqlite
+      TAGS: bindata sqlite tidb
       GOPATH: /srv/app
     commands:
       - make release
