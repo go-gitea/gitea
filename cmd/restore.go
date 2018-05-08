@@ -53,7 +53,7 @@ func runRestore(ctx *cli.Context) error {
 	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
 		log.Fatalf("Path does not exist: %s", tmpDir)
 	}
-	tmpWorkDir, err := ioutil.TempDir(tmpDir, "gitea-dump-")
+	tmpWorkDir, err := ioutil.TempDir(tmpDir, "gitea-restore-")
 	if err != nil {
 		log.Fatalf("Failed to create tmp work directory: %v", err)
 	}
