@@ -439,7 +439,7 @@ func restoreTableFixtures(bean interface{}, dirPath string) error {
 	}
 
 	var columns = make([]string, 0, len(records[0]))
-	for k, _ := range records[0] {
+	for k := range records[0] {
 		columns = append(columns, k)
 	}
 	sort.Strings(columns)
