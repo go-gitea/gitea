@@ -67,7 +67,7 @@ func runRestore(ctx *cli.Context) error {
 	srcPath := os.Args[2]
 
 	zip.Verbose = ctx.Bool("verbose")
-	log.Printf("Extracting %s to tmp work dir", srcPath)
+	log.Printf("Extracting %s to %s", srcPath, tmpWorkDir)
 	err = zip.ExtractTo(srcPath, tmpWorkDir)
 	if err != nil {
 		log.Fatalf("Failed to extract %s to tmp work directory: %v", srcPath, err)
@@ -101,7 +101,12 @@ func runRestore(ctx *cli.Context) error {
 		log.Fatalf("Failed to SetEngine: %v", err)
 	}
 
-	log.Printf("Restoring repo dir %s ...", setting.RepoRootPath)
+	err = models.SyncDBStructs()
+	if err != nil {
+		log.Fatalf("Failed to SyncDBStructs: %v", err)
+	}
+
+	log.Printf("Restoring repo dir to %s ...", setting.RepoRootPath)
 	repoPath := filepath.Join(tmpWorkDir, "repositories")
 	err = os.RemoveAll(setting.RepoRootPath)
 	if err != nil {
@@ -113,7 +118,7 @@ func runRestore(ctx *cli.Context) error {
 		log.Fatalf("Failed to move %s to %s: %v", repoPath, setting.RepoRootPath, err)
 	}
 
-	log.Printf("Restoring custom dir %s ...", setting.CustomPath)
+	log.Printf("Restoring custom dir to %s ...", setting.CustomPath)
 	customPath := filepath.Join(tmpWorkDir, "custom")
 	err = os.RemoveAll(setting.CustomPath)
 	if err != nil {
@@ -125,7 +130,7 @@ func runRestore(ctx *cli.Context) error {
 		log.Fatalf("Failed to move %s to %s: %v", customPath, setting.CustomPath, err)
 	}
 
-	log.Printf("Restoring data dir %s ...", setting.AppDataPath)
+	log.Printf("Restoring data dir to %s ...", setting.AppDataPath)
 	dataPath := filepath.Join(tmpWorkDir, "data")
 	err = os.RemoveAll(setting.AppDataPath)
 	if err != nil {
@@ -137,8 +142,8 @@ func runRestore(ctx *cli.Context) error {
 		log.Fatalf("Failed to move %s to %s: %v", dataPath, setting.AppDataPath, err)
 	}
 
-	log.Printf("Restoring database from ...")
 	dbPath := filepath.Join(tmpWorkDir, "database")
+	log.Printf("Restoring database from %s ...", dbPath)
 	err = models.RestoreDatabaseFixtures(dbPath)
 	if err != nil {
 		log.Fatalf("Failed to restore database dir %s: %v", dbPath, err)

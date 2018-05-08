@@ -304,6 +304,15 @@ func NewEngine(migrateFunc func(*xorm.Engine) error) (err error) {
 	return nil
 }
 
+// SyncDBStructs will sync database structs
+func SyncDBStructs() error {
+	if err := x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
+		return fmt.Errorf("sync database struct error: %v", err)
+	}
+
+	return nil
+}
+
 // Statistic contains the database statistics
 type Statistic struct {
 	Counter struct {
@@ -429,7 +438,7 @@ func restoreTableFixtures(bean interface{}, dirPath string) error {
 
 	const bufferSize = 100
 	var records = make([]map[string]interface{}, 0, bufferSize*10)
-	err = yaml.Unmarshal(data, records)
+	err = yaml.Unmarshal(data, &records)
 	if err != nil {
 		return err
 	}
@@ -447,7 +456,12 @@ func restoreTableFixtures(bean interface{}, dirPath string) error {
 	qm := strings.Repeat("?,", len(columns))
 	qm = "(" + qm[:len(qm)-1] + ")"
 
-	var sql = "INSERT INTO " + table.Name + "(" + strings.Join(columns, ",") + ") VALUES "
+	_, err = x.Exec("DELETE FROM `" + table.Name + "`")
+	if err != nil {
+		return err
+	}
+
+	var sql = "INSERT INTO `" + table.Name + "` (`" + strings.Join(columns, "`,`") + "`) VALUES "
 	var args = make([]interface{}, 0, bufferSize)
 	var insertSQLs = make([]string, 0, bufferSize)
 	for i, vals := range records {
