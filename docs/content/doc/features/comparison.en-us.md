@@ -68,7 +68,7 @@ _Symbols used in table:_
     <tr>
       <td>Squash merging</td>
       <td>✓</td>
-      <td>✓</td>
+      <td>✘</td>
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
@@ -77,7 +77,7 @@ _Symbols used in table:_
     <tr>
       <td>Rebase merging</td>
       <td>✓</td>
-      <td>✘</td>
+      <td>✓</td>
       <td>✓</td>
       <td>⁄</td>
       <td>⁄</td>
