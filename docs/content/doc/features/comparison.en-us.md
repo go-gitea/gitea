@@ -70,7 +70,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✘</td>
       <td>✓</td>
-      <td>✓</td>
+      <td>✘</td>
       <td>✓</td>
       <td>✓</td>
     </tr>
@@ -79,7 +79,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>
-      <td>⁄</td>
+      <td>✘</td>
       <td>⁄</td>
       <td>✘</td>
     </tr>
@@ -177,8 +177,8 @@ _Symbols used in table:_
       <td>Related issues</td>
       <td>✘</td>
       <td>✘</td>
-      <td>✓</td>
-      <td>✓</td>
+      <td>⁄</td>
+      <td>✘</td>
       <td>✓</td>
       <td>✘</td>
     </tr>
@@ -577,6 +577,15 @@ _Symbols used in table:_
       <td>⁄</td>
       <td>⁄</td>
       <td>✓</td>
+    </tr>
+    <tr>
+      <td>Multiple OS support</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>✘</td>
+      <td>✘</td>
+      <td>✘</td>
+      <td>✘</td>
     </tr>
     <tr>
       <td>Low resource usage (RAM/CPU)</td>
