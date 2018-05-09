@@ -2255,8 +2255,6 @@ function setDeadline() {
 }
 
 function updateDeadline(deadlineString) {
-    var issue_api_url = suburl + '/api/v1/repos/' + $('meta[name=_repo_owner]').attr("content") + '/' + $('meta[name=_repo_name]').attr("content") + '/issues/' + $('meta[name=_issue_index]').attr("content");
-
     $('#deadline-loader').addClass('loading');
 
     var realDeadline = null;
@@ -2264,7 +2262,7 @@ function updateDeadline(deadlineString) {
         realDeadline = deadlineString + 'T13:55:29.764Z';
     }
 
-    $.ajax(issue_api_url + '/deadline', {
+    $.ajax($('#update-issue-deadline-form').attr('action') + '/deadline', {
         data: JSON.stringify({
             'due_date': realDeadline,
         }),
