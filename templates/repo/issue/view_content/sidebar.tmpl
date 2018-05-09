@@ -211,7 +211,7 @@
 
 		<div class="ui divider"></div>
 		<span class="text"><strong>{{.i18n.Tr "repo.issues.due_date"}}</strong></span>
-		{{if gt .Issue.DeadlineUnix 0}}
+		{{if ne .Issue.DeadlineUnix 0}}
 			<p>
 				<span class="octicon octicon-calendar"></span>
 				{{.Issue.DeadlineUnix.FormatShort}}
