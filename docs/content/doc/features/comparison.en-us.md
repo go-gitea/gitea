@@ -466,7 +466,7 @@ _Symbols used in table:_
       <td>✓</td>
       <td>✓</td>
       <td>✘</td>
-      <td>✓</td>
+      <td>✘</td>
       <td>✓</td>
       <td>✓</td>
     </tr>
