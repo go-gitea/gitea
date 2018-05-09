@@ -260,7 +260,6 @@ function initCommentForm() {
             return false;
         });
         $listMenu.find('.no-select.item').click(function () {
-            console.log('clear');
             if (hasLabelUpdateAction || selector == 'select-assignees-modify') {
                 updateIssuesMeta(
                     $listMenu.data('update-url'),
@@ -268,6 +267,7 @@ function initCommentForm() {
                     $listMenu.data('issue-id'),
                     ""
                 );
+                $listMenu.data('action', 'update'); // Update to reload the page when we updated items
             }
 
             $(this).parent().find('.item').each(function () {
@@ -281,7 +281,6 @@ function initCommentForm() {
             $noSelect.removeClass('hide');
             $($(this).parent().data('id')).val('');
 
-            $listMenu.data('action', 'update'); // Update to reload the page when we updated items
         });
     }
 
