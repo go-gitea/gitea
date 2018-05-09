@@ -1,5 +1,5 @@
 workspace:
-  base: /srv/app
+  base: /go
   path: src/code.gitea.io/gitea
 
 clone:
@@ -56,21 +56,18 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   build-without-gcc:
-    image: webhippie/golang:1.8
+    image: golang:1.8
     pull: true
-    environment:
-      GOPATH: /srv/app
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
     when:
       event: [ push, tag, pull_request ]
 
   build:
-    image: webhippie/golang:edge
+    image: golang:1.10
     pull: true
     environment:
       TAGS: bindata sqlite
-      GOPATH: /srv/app
     commands:
       - make clean
       - make generate
@@ -85,12 +82,11 @@ pipeline:
       event: [ push, tag, pull_request ]
 
   test:
-    image: webhippie/golang:edge
+    image: golang:1.10
     pull: true
     group: test
     environment:
       TAGS: bindata sqlite
-      GOPATH: /srv/app
     commands:
       - make unit-test-coverage
     when:
@@ -98,12 +94,11 @@ pipeline:
       branch: [ master ]
 
   test:
-    image: webhippie/golang:edge
+    image: golang:1.10
     pull: true
     group: test
     environment:
       TAGS: bindata sqlite
-      GOPATH: /srv/app
     commands:
       - make test
     when:
@@ -111,12 +106,11 @@ pipeline:
       branch: [ release/* ]
 
   test:
-    image: webhippie/golang:edge
+    image: golang:1.10
     pull: true
     group: test
     environment:
       TAGS: bindata
-      GOPATH: /srv/app
     commands:
       - make test
     when:
@@ -124,60 +118,61 @@ pipeline:
 
   # Commented until db locking have been resolved!
   # test-sqlite:
-  #   image: webhippie/golang:edge
+  #   image: golang:1.10
   #   pull: true
   #   group: test
   #   environment:
   #     TAGS: bindata
-  #     GOPATH: /srv/app
   #   commands:
   #     - make test-sqlite
   #   when:
   #     event: [ push, tag, pull_request ]
 
   test-mysql:
-    image: webhippie/golang:edge
+    image: golang:1.10
     pull: true
     group: test
     environment:
       TAGS: bindata
-      GOPATH: /srv/app
     commands:
+      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+      - apt-get install -y git-lfs
       - make integration-test-coverage
     when:
       event: [ push, pull_request ]
       branch: [ master ]
 
   test-mysql:
-    image: webhippie/golang:edge
+    image: golang:1.10
     pull: true
     group: test
     environment:
       TAGS: bindata
-      GOPATH: /srv/app
     commands:
+      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+      - apt-get install -y git-lfs
       - make test-mysql
     when:
       event: [ tag ]
 
   test-pgsql:
-    image: webhippie/golang:edge
+    image: golang:1.10
     pull: true
     group: test
     environment:
       TAGS: bindata
-      GOPATH: /srv/app
     commands:
+      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+      - apt-get install -y git-lfs
       - make test-pgsql
     when:
       event: [ push, tag, pull_request ]
 
   generate-coverage:
-    image: webhippie/golang:edge
+    image: golang:1.10
     pull: true
     environment:
       TAGS: bindata
-      GOPATH: /srv/app
     commands:
       - make coverage
     when:
@@ -198,7 +193,6 @@ pipeline:
     pull: true
     environment:
       TAGS: bindata sqlite
-      GOPATH: /srv/app
     commands:
       - make release
     when:
