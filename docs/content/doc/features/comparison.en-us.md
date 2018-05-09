@@ -534,6 +534,15 @@ _Symbols used in table:_
       <td>✓</td>
     </tr>
     <tr>
+      <td>Webhook support</td>
+      <td>⁄</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>✓</td>
+    </tr>
+    <tr>
       <td>Mattermost/Slack integration</td>
       <td>✓</td>
       <td>✓</td>
