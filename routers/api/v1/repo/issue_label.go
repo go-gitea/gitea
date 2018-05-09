@@ -58,7 +58,7 @@ func ListIssueLabels(ctx *context.APIContext) {
 
 // AddIssueLabels add labels for an issue
 func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
-	// swagger:operation POST /repos/{owner}/{repo}/issue/{index}/labels issue issueAddLabel
+	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/labels issue issueAddLabel
 	// ---
 	// summary: Add a label to an issue
 	// consumes:
@@ -129,7 +129,7 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 
 // DeleteIssueLabel delete a label for an issue
 func DeleteIssueLabel(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/issue/{index}/labels/{id} issue issueRemoveLabel
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/labels/{id} issue issueRemoveLabel
 	// ---
 	// summary: Remove a label from an issue
 	// produces:
@@ -193,7 +193,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 
 // ReplaceIssueLabels replace labels for an issue
 func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
-	// swagger:operation PUT /repos/{owner}/{repo}/issue/{index}/labels issue issueReplaceLabels
+	// swagger:operation PUT /repos/{owner}/{repo}/issues/{index}/labels issue issueReplaceLabels
 	// ---
 	// summary: Replace an issue's labels
 	// consumes:
@@ -264,7 +264,7 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 
 // ClearIssueLabels delete all the labels for an issue
 func ClearIssueLabels(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/issue/{index}/labels issue issueClearLabels
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/labels issue issueClearLabels
 	// ---
 	// summary: Remove all labels from an issue
 	// produces:
