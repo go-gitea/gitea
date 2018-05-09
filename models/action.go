@@ -618,6 +618,16 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	case ActionDeleteBranch: // Delete Branch
 		isHookEventPush = true
 
+		if err = PrepareWebhooks(repo, HookEventDelete, &api.DeletePayload{
+			Ref:        refName,
+			RefType:    "branch",
+			PusherType: api.PusherTypeUser,
+			Repo:       apiRepo,
+			Sender:     apiPusher,
+		}); err != nil {
+			return fmt.Errorf("PrepareWebhooks.(delete branch): %v", err)
+		}
+
 	case ActionPushTag: // Create
 		isHookEventPush = true
 
@@ -640,6 +650,16 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		}
 	case ActionDeleteTag: // Delete Tag
 		isHookEventPush = true
+
+		if err = PrepareWebhooks(repo, HookEventDelete, &api.DeletePayload{
+			Ref:        refName,
+			RefType:    "tag",
+			PusherType: api.PusherTypeUser,
+			Repo:       apiRepo,
+			Sender:     apiPusher,
+		}); err != nil {
+			return fmt.Errorf("PrepareWebhooks.(delete tag): %v", err)
+		}
 	}
 
 	if isHookEventPush {
