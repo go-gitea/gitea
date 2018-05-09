@@ -238,10 +238,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/delete", user.DeleteOpenID)
 				m.Post("/toggle_visibility", user.ToggleOpenIDVisibility)
 			}, openIDSignInEnabled)
-			m.Post("/applications", bindIgnErr(auth.NewAccessTokenForm{}), user.SettingsApplicationsPost)
-			m.Post("/applications/delete", user.SettingsDeleteApplication)
 			m.Post("/account_link", user.SettingsDeleteAccountLink)
 		})
+		m.Combo("/applications").Get(user.SettingsApplications).
+			Post(bindIgnErr(auth.NewAccessTokenForm{}), user.SettingsApplicationsPost)
+		m.Post("/applications/delete", user.SettingsDeleteApplication)
 		m.Combo("/keys").Get(user.SettingsKeys).
 			Post(bindIgnErr(auth.AddKeyForm{}), user.SettingsKeysPost)
 		m.Post("/keys/delete", user.DeleteKey)

@@ -33,6 +33,7 @@ const (
 	tplSettingsAccount      base.TplName = "user/settings/account"
 	tplSettingsSecurity     base.TplName = "user/settings/security"
 	tplSettingsTwofaEnroll  base.TplName = "user/settings/twofa_enroll"
+	tplSettingsApplications base.TplName = "user/settings/applications"
 	tplSettingsKeys         base.TplName = "user/settings/keys"
 	tplSettingsOrganization base.TplName = "user/settings/organization"
 	tplSettingsRepositories base.TplName = "user/settings/repos"
@@ -354,13 +355,6 @@ func SettingsSecurity(ctx *context.Context) {
 	}
 	ctx.Data["TwofaEnrolled"] = enrolled
 
-	tokens, err := models.ListAccessTokens(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("ListAccessTokens", err)
-		return
-	}
-	ctx.Data["Tokens"] = tokens
-
 	accountLinks, err := models.ListAccountLinks(ctx.User)
 	if err != nil {
 		ctx.ServerError("ListAccountLinks", err)
@@ -398,6 +392,34 @@ func SettingsSecurity(ctx *context.Context) {
 	ctx.HTML(200, tplSettingsSecurity)
 }
 
+// SettingsDeleteAccountLink delete a single account link
+func SettingsDeleteAccountLink(ctx *context.Context) {
+	if _, err := models.RemoveAccountLink(ctx.User, ctx.QueryInt64("loginSourceID")); err != nil {
+		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/user/settings/security",
+	})
+}
+
+// SettingsApplications renders access token page
+func SettingsApplications(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsApplications"] = true
+
+	tokens, err := models.ListAccessTokens(ctx.User.ID)
+	if err != nil {
+		ctx.ServerError("ListAccessTokens", err)
+		return
+	}
+	ctx.Data["Tokens"] = tokens
+
+	ctx.HTML(200, tplSettingsApplications)
+}
+
 // SettingsApplicationsPost response for add user's access token
 func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
@@ -410,7 +432,7 @@ func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm
 			return
 		}
 		ctx.Data["Tokens"] = tokens
-		ctx.HTML(200, tplSettingsSecurity)
+		ctx.HTML(200, tplSettingsApplications)
 		return
 	}
 
@@ -426,7 +448,7 @@ func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm
 	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
 	ctx.Flash.Info(t.Sha1)
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
 }
 
 // SettingsDeleteApplication response for delete user access token
@@ -438,20 +460,7 @@ func SettingsDeleteApplication(ctx *context.Context) {
 	}
 
 	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/security",
-	})
-}
-
-// SettingsDeleteAccountLink delete a single account link
-func SettingsDeleteAccountLink(ctx *context.Context) {
-	if _, err := models.RemoveAccountLink(ctx.User, ctx.QueryInt64("loginSourceID")); err != nil {
-		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
-	} else {
-		ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
-	}
-
-	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/security",
+		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
 }
 
