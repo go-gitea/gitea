@@ -212,6 +212,10 @@
 		<div class="ui divider"></div>
 		<span class="text"><strong>{{.i18n.Tr "repo.issues.due_date"}}</strong></span>
 		<div class="ui form" id="deadline-loader">
+			<div class="ui negative message" id="deadline-err-invalid-date" style="display: none;">
+				<i class="close icon"></i>
+				The due date is invalid or out of range. Please use yyyy-mm-dd.
+			</div>
 		{{if gt .Issue.DeadlineUnix 0}}
 			<p>
 				<span class="octicon octicon-calendar"></span>

@@ -2255,10 +2255,17 @@ function setDeadline() {
 }
 
 function updateDeadline(deadlineString) {
+    $('#deadline-err-invalid-date').hide();
     $('#deadline-loader').addClass('loading');
 
     var realDeadline = null;
     if (deadlineString !== '') {
+        var dateToMatch = /([0-9]){4}-([0-9]){2}-([0-9]){2}\b/
+        if (!dateToMatch.test(deadlineString)) {
+            $('#deadline-loader').removeClass('loading');
+            $('#deadline-err-invalid-date').show();
+            return false;
+        }
         realDeadline = deadlineString + 'T13:55:29.764Z';
     }
 
@@ -2268,8 +2275,12 @@ function updateDeadline(deadlineString) {
         }),
         contentType: 'application/json',
         type: 'POST',
-        complete: function () {
+        success: function () {
             window.location.reload();
+        },
+        error: function () {
+            $('#deadline-loader').removeClass('loading');
+            $('#deadline-err-invalid-date').show();
         }
     });
 }
