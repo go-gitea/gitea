@@ -405,7 +405,7 @@ func SettingsDeleteAccountLink(ctx *context.Context) {
 	})
 }
 
-// SettingsApplications renders access token page
+// SettingsApplications render manage access token page
 func SettingsApplications(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
