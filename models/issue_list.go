@@ -154,38 +154,38 @@ func (issues IssueList) loadMilestones(e Engine) error {
 	return nil
 }
 
-func (issues IssueList) getAssigneeIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(issues))
-	for _, issue := range issues {
-		if _, ok := ids[issue.AssigneeID]; !ok {
-			ids[issue.AssigneeID] = struct{}{}
-		}
-	}
-	return keysInt64(ids)
-}
-
 func (issues IssueList) loadAssignees(e Engine) error {
-	assigneeIDs := issues.getAssigneeIDs()
-	if len(assigneeIDs) == 0 {
+	if len(issues) == 0 {
 		return nil
 	}
 
-	assigneeMaps := make(map[int64]*User, len(assigneeIDs))
-	err := e.
-		In("id", assigneeIDs).
-		Find(&assigneeMaps)
+	type AssigneeIssue struct {
+		IssueAssignee *IssueAssignees `xorm:"extends"`
+		Assignee      *User           `xorm:"extends"`
+	}
+
+	var assignees = make(map[int64][]*User, len(issues))
+	rows, err := e.Table("issue_assignees").
+		Join("INNER", "user", "`user`.id = `issue_assignees`.assignee_id").
+		In("`issue_assignees`.issue_id", issues.getIssueIDs()).
+		Rows(new(AssigneeIssue))
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var assigneeIssue AssigneeIssue
+		err = rows.Scan(&assigneeIssue)
+		if err != nil {
+			return err
+		}
+
+		assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.Assignee)
+	}
 
 	for _, issue := range issues {
-		if issue.AssigneeID <= 0 {
-			continue
-		}
-		var ok bool
-		if issue.Assignee, ok = assigneeMaps[issue.AssigneeID]; !ok {
-			issue.Assignee = NewGhostUser()
-		}
+		issue.Assignees = assignees[issue.ID]
 	}
 	return nil
 }
