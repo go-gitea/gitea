@@ -261,8 +261,9 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
+	oldContent := comment.Content
 	comment.Content = form.Body
-	if err := models.UpdateComment(comment); err != nil {
+	if err := models.UpdateComment(ctx.User, comment, oldContent); err != nil {
 		ctx.Error(500, "UpdateComment", err)
 		return
 	}
@@ -348,7 +349,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = models.DeleteComment(comment); err != nil {
+	if err = models.DeleteComment(ctx.User, comment); err != nil {
 		ctx.Error(500, "DeleteCommentByID", err)
 		return
 	}
