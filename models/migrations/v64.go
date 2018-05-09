@@ -5,96 +5,125 @@
 package migrations
 
 import (
-	"fmt"
-	"time"
-
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-xorm/xorm"
 )
 
-func addIssueDependencies(x *xorm.Engine) (err error) {
+func addMultipleAssignees(x *xorm.Engine) error {
 
-	type IssueDependency struct {
-		ID           int64     `xorm:"pk autoincr"`
-		UserID       int64     `xorm:"NOT NULL"`
-		IssueID      int64     `xorm:"NOT NULL"`
-		DependencyID int64     `xorm:"NOT NULL"`
-		Created      time.Time `xorm:"-"`
-		CreatedUnix  int64     `xorm:"INDEX created"`
-		Updated      time.Time `xorm:"-"`
-		UpdatedUnix  int64     `xorm:"updated"`
+	// Redeclare issue struct
+	type Issue struct {
+		ID          int64  `xorm:"pk autoincr"`
+		RepoID      int64  `xorm:"INDEX UNIQUE(repo_index)"`
+		Index       int64  `xorm:"UNIQUE(repo_index)"` // Index in one repository.
+		PosterID    int64  `xorm:"INDEX"`
+		Title       string `xorm:"name"`
+		Content     string `xorm:"TEXT"`
+		MilestoneID int64  `xorm:"INDEX"`
+		Priority    int
+		AssigneeID  int64 `xorm:"INDEX"`
+		IsClosed    bool  `xorm:"INDEX"`
+		IsPull      bool  `xorm:"INDEX"` // Indicates whether is a pull request or not.
+		NumComments int
+		Ref         string
+
+		DeadlineUnix util.TimeStamp `xorm:"INDEX"`
+		CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix  util.TimeStamp `xorm:"INDEX updated"`
+		ClosedUnix   util.TimeStamp `xorm:"INDEX"`
 	}
 
-	if err = x.Sync(new(IssueDependency)); err != nil {
-		return fmt.Errorf("Error creating issue_dependency_table column definition: %v", err)
+	allIssues := []Issue{}
+	err := x.Find(&allIssues)
+	if err != nil {
+		return err
 	}
 
-	// Update Comment definition
-	// This (copied) struct does only contain fields used by xorm as the only use here is to update the database
+	// Create the table
+	type IssueAssignees struct {
+		ID         int64 `xorm:"pk autoincr"`
+		AssigneeID int64 `xorm:"INDEX"`
+		IssueID    int64 `xorm:"INDEX"`
+	}
+	err = x.Sync2(IssueAssignees{})
+	if err != nil {
+		return err
+	}
 
-	// CommentType defines the comment type
-	type CommentType int
+	// Range over all issues and insert a new entry for each issue/assignee
+	sess := x.NewSession()
+	defer sess.Close()
 
-	// TimeStamp defines a timestamp
-	type TimeStamp int64
+	err = sess.Begin()
+	if err != nil {
+		return err
+	}
 
+	for _, issue := range allIssues {
+		if issue.AssigneeID != 0 {
+			_, err := sess.Insert(IssueAssignees{IssueID: issue.ID, AssigneeID: issue.AssigneeID})
+			if err != nil {
+				sess.Rollback()
+				return err
+			}
+		}
+	}
+
+	// Updated the comment table
 	type Comment struct {
-		ID               int64 `xorm:"pk autoincr"`
-		Type             CommentType
-		PosterID         int64 `xorm:"INDEX"`
-		IssueID          int64 `xorm:"INDEX"`
-		LabelID          int64
-		OldMilestoneID   int64
-		MilestoneID      int64
-		OldAssigneeID    int64
-		AssigneeID       int64
-		OldTitle         string
-		NewTitle         string
-		DependentIssueID int64
+		ID              int64 `xorm:"pk autoincr"`
+		Type            int
+		PosterID        int64 `xorm:"INDEX"`
+		IssueID         int64 `xorm:"INDEX"`
+		LabelID         int64
+		OldMilestoneID  int64
+		MilestoneID     int64
+		OldAssigneeID   int64
+		AssigneeID      int64
+		RemovedAssignee bool
+		OldTitle        string
+		NewTitle        string
 
-		CommitID int64
-		Line     int64
-		Content  string `xorm:"TEXT"`
+		CommitID        int64
+		Line            int64
+		Content         string `xorm:"TEXT"`
+		RenderedContent string `xorm:"-"`
 
-		CreatedUnix TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix TimeStamp `xorm:"INDEX updated"`
+		CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 
 		// Reference issue in commit message
 		CommitSHA string `xorm:"VARCHAR(40)"`
 	}
-
-	if err = x.Sync(new(Comment)); err != nil {
-		return fmt.Errorf("Error updating issue_comment table column definition: %v", err)
+	if err := x.Sync2(Comment{}); err != nil {
+		return err
 	}
 
-	// RepoUnit describes all units of a repository
-	type RepoUnit struct {
-		ID          int64
-		RepoID      int64                  `xorm:"INDEX(s)"`
-		Type        int                    `xorm:"INDEX(s)"`
-		Config      map[string]interface{} `xorm:"JSON"`
-		CreatedUnix int64                  `xorm:"INDEX CREATED"`
-		Created     time.Time              `xorm:"-"`
+	// Migrate comments
+	// First update everything to not have nulls in db
+	if _, err := sess.Where("type = ?", 9).Cols("removed_assignee").Update(Comment{RemovedAssignee: false}); err != nil {
+		return err
 	}
 
-	//Updating existing issue units
-	units := make([]*RepoUnit, 0, 100)
-	err = x.Where("`type` = ?", V16UnitTypeIssues).Find(&units)
-	if err != nil {
-		return fmt.Errorf("Query repo units: %v", err)
+	allAssignementComments := []Comment{}
+	if err := sess.Where("type = ?", 9).Find(&allAssignementComments); err != nil {
+		return err
 	}
-	for _, unit := range units {
-		if unit.Config == nil {
-			unit.Config = make(map[string]interface{})
-		}
-		if _, ok := unit.Config["EnableDependencies"]; !ok {
-			unit.Config["EnableDependencies"] = setting.Service.DefaultEnableDependencies
-		}
-		if _, err := x.ID(unit.ID).Cols("config").Update(unit); err != nil {
-			return err
+
+	for _, comment := range allAssignementComments {
+		// Everytime where OldAssigneeID is > 0, the assignement was removed.
+		if comment.OldAssigneeID > 0 {
+			_, err = sess.ID(comment.ID).Update(Comment{RemovedAssignee: true})
 		}
 	}
 
-	return err
+	if err := dropTableColumns(sess, "issue", "assignee_id"); err != nil {
+		return err
+	}
+
+	if err := dropTableColumns(sess, "issue_user", "is_assigned"); err != nil {
+		return err
+	}
+	return sess.Commit()
 }

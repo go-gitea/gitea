@@ -120,6 +120,7 @@ func init() {
 		new(IssueDependency),
 		new(LFSLock),
 		new(Reaction),
+		new(IssueAssignees),
 	)
 
 	gonicNames := []string{"SSL", "UID"}

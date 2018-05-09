@@ -68,23 +68,40 @@
 		<div class="ui divider"></div>
 
 		<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
-		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-assignee dropdown">
+		<div class="ui {{if not .IsRepositoryWriter}}disabled{{end}} floating jump select-assignees-modify dropdown">
 			<span class="text">
-				<strong>{{.i18n.Tr "repo.issues.new.assignee"}}</strong>
+				<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
 				<span class="octicon octicon-gear"></span>
 			</span>
-			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
-				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignee"}}</div>
+			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
+				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
 				{{range .Assignees}}
-					<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?assignee={{.ID}}" data-avatar="{{.RelAvatarLink}}"><img src="{{.RelAvatarLink}}"> {{.Name}}</div>
+
+					{{$AssigneeID := .ID}}
+					<a class="item{{range $.Issue.Assignees}}
+						{{if eq .ID $AssigneeID}}
+						 checked
+						{{end}}
+					{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
+						<span class="octicon{{range $.Issue.Assignees}}
+						{{if eq .ID $AssigneeID}}
+						 octicon-check
+						{{end}}
+					{{end}}"></span>
+						<span class="text">
+							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.Name}}
+						</span>
+					</a>
 				{{end}}
 			</div>
 		</div>
-		<div class="ui select-assignee list">
-			<span class="no-select item {{if .Issue.Assignee}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_assignee"}}</span>
+		<div class="ui assignees list">
+			<span class="no-select item {{if .Issue.Assignees}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_assignees"}}</span>
 			<div class="selected">
-				{{if .Issue.Assignee}}
-					<a class="item" href="{{$.RepoLink}}/issues?assignee={{.Issue.Assignee.ID}}"><img class="ui avatar image" src="{{.Issue.Assignee.RelAvatarLink}}"> {{.Issue.Assignee.Name}}</a>
+				{{range .Issue.Assignees}}
+					<div class="item" style="margin-bottom: 10px;">
+						<a href="{{$.RepoLink}}/issues?assignee={{.ID}}"><img class="ui avatar image" src="{{.RelAvatarLink}}">&nbsp;{{.Name}}</a>
+					</div>
 				{{end}}
 			</div>
 		</div>
