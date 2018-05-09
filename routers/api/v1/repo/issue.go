@@ -178,25 +178,22 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		DeadlineUnix: deadlineUnix,
 	}
 
-	if ctx.Repo.IsWriter() {
-		if len(form.Assignee) > 0 {
-			assignee, err := models.GetUserByName(form.Assignee)
-			if err != nil {
-				if models.IsErrUserNotExist(err) {
-					ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", form.Assignee))
-				} else {
-					ctx.Error(500, "GetUserByName", err)
-				}
-				return
-			}
-			issue.AssigneeID = assignee.ID
+	// Get all assignee IDs
+	assigneeIDs, err := models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
+		} else {
+			ctx.Error(500, "AddAssigneeByName", err)
 		}
-		issue.MilestoneID = form.Milestone
-	} else {
-		form.Labels = nil
+		return
 	}
 
-	if err := models.NewIssue(ctx.Repo.Repository, issue, form.Labels, nil); err != nil {
+	if err := models.NewIssue(ctx.Repo.Repository, issue, form.Labels, assigneeIDs, nil); err != nil {
+		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
+			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
+			return
+		}
 		ctx.Error(500, "NewIssue", err)
 		return
 	}
@@ -209,7 +206,6 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	}
 
 	// Refetch from database to assign some automatic values
-	var err error
 	issue, err = models.GetIssueByID(issue.ID)
 	if err != nil {
 		ctx.Error(500, "GetIssueByID", err)
@@ -272,6 +268,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		issue.Content = *form.Body
 	}
 
+	// Update the deadline
 	var deadlineUnix util.TimeStamp
 	if form.Deadline != nil && !form.Deadline.IsZero() {
 		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
@@ -282,28 +279,28 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 
-	if ctx.Repo.IsWriter() && form.Assignee != nil &&
-		(issue.Assignee == nil || issue.Assignee.LowerName != strings.ToLower(*form.Assignee)) {
-		if len(*form.Assignee) == 0 {
-			issue.AssigneeID = 0
-		} else {
-			assignee, err := models.GetUserByName(*form.Assignee)
-			if err != nil {
-				if models.IsErrUserNotExist(err) {
-					ctx.Error(422, "", fmt.Sprintf("assignee does not exist: [name: %s]", *form.Assignee))
-				} else {
-					ctx.Error(500, "GetUserByName", err)
-				}
-				return
-			}
-			issue.AssigneeID = assignee.ID
+	// Add/delete assignees
+
+	// Deleting is done the Github way (quote from their api documentation):
+	// https://developer.github.com/v3/issues/#edit-an-issue
+	// "assignees" (array): Logins for Users to assign to this issue.
+	// Pass one or more user logins to replace the set of assignees on this Issue.
+	// Send an empty array ([]) to clear all assignees from the Issue.
+
+	if ctx.Repo.IsWriter() && (form.Assignees != nil || form.Assignee != nil) {
+
+		oneAssignee := ""
+		if form.Assignee != nil {
+			oneAssignee = *form.Assignee
 		}
 
-		if err = models.UpdateIssueUserByAssignee(issue); err != nil {
-			ctx.Error(500, "UpdateIssueUserByAssignee", err)
+		err = models.UpdateAPIAssignee(issue, oneAssignee, form.Assignees, ctx.User)
+		if err != nil {
+			ctx.Error(500, "UpdateAPIAssignee", err)
 			return
 		}
 	}
+
 	if ctx.Repo.IsWriter() && form.Milestone != nil &&
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
