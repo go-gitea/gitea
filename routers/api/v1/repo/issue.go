@@ -270,7 +270,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 
 	// Update the deadline
 	var deadlineUnix util.TimeStamp
-	if form.Deadline != nil && !form.Deadline.IsZero() {
+	if form.Deadline != nil && !form.Deadline.IsZero() && ctx.Repo.IsWriter() {
 		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
 	}
 
@@ -374,7 +374,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 		return
 	}
 
-	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.IsWriter() {
+	if !ctx.Repo.IsWriter() {
 		ctx.Status(403)
 		return
 	}
