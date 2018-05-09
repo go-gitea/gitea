@@ -13,17 +13,14 @@ import (
 
 // Static implements the macaron static handler for serving assets.
 func Static(opts *Options) macaron.Handler {
-	return macaron.Static(
-		opts.Directory,
-		macaron.StaticOptions{
-			SkipLogging: opts.SkipLogging,
-			FileSystem: bindata.Static(bindata.Options{
-				Asset:      Asset,
-				AssetDir:   AssetDir,
-				AssetInfo:  AssetInfo,
-				AssetNames: AssetNames,
-				Prefix:     "",
-			}),
-		},
-	)
+	opts.FileSystem = bindata.Static(bindata.Options{
+		Asset:      Asset,
+		AssetDir:   AssetDir,
+		AssetInfo:  AssetInfo,
+		AssetNames: AssetNames,
+		Prefix:     "",
+	})
+	// we don't need to pass the directory, because the directory var is only
+	// used when in the options there is no FileSystem.
+	return opts.staticHandler("")
 }

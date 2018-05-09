@@ -34,6 +34,7 @@ import (
 
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -93,6 +94,7 @@ type User struct {
 	Website          string
 	Rands            string `xorm:"VARCHAR(10)"`
 	Salt             string `xorm:"VARCHAR(10)"`
+	Language         string `xorm:"VARCHAR(5)"`
 
 	CreatedUnix   util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix   util.TimeStamp `xorm:"INDEX updated"`
@@ -145,7 +147,7 @@ func (u *User) BeforeUpdate() {
 		if len(u.AvatarEmail) == 0 {
 			u.AvatarEmail = u.Email
 		}
-		if len(u.AvatarEmail) > 0 {
+		if len(u.AvatarEmail) > 0 && u.Avatar == "" {
 			u.Avatar = base.HashEmail(u.AvatarEmail)
 		}
 	}
@@ -184,6 +186,7 @@ func (u *User) APIFormat() *api.User {
 		FullName:  u.FullName,
 		Email:     u.getEmail(),
 		AvatarURL: u.AvatarLink(),
+		Language:  u.Language,
 	}
 }
 
@@ -299,7 +302,9 @@ func (u *User) generateRandomAvatar(e Engine) error {
 	}
 	// NOTICE for random avatar, it still uses id as avatar name, but custom avatar use md5
 	// since random image is not a user's photo, there is no security for enumable
-	u.Avatar = fmt.Sprintf("%d", u.ID)
+	if u.Avatar == "" {
+		u.Avatar = fmt.Sprintf("%d", u.ID)
+	}
 	if err = os.MkdirAll(filepath.Dir(u.CustomAvatarPath()), os.ModePerm); err != nil {
 		return fmt.Errorf("MkdirAll: %v", err)
 	}
@@ -636,7 +641,7 @@ func IsUserExist(uid int64, name string) (bool, error) {
 
 // GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
-	return base.GetRandomString(10)
+	return generate.GetRandomString(10)
 }
 
 // NewGhostUser creates and returns a fake user for someone has deleted his/her account.
@@ -649,7 +654,7 @@ func NewGhostUser() *User {
 }
 
 var (
-	reservedUsernames    = []string{"assets", "css", "explore", "img", "js", "less", "plugins", "debug", "raw", "install", "api", "avatars", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "new", ".", ".."}
+	reservedUsernames    = []string{"assets", "css", "explore", "img", "js", "less", "plugins", "debug", "raw", "install", "api", "avatars", "user", "org", "help", "stars", "issues", "pulls", "commits", "repo", "template", "admin", "error", "new", ".", ".."}
 	reservedUserPatterns = []string{"*.keys"}
 )
 
@@ -932,7 +937,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 	if err = e.Table("star").Cols("star.repo_id").
 		Where("star.uid = ?", u.ID).Find(&starredRepoIDs); err != nil {
 		return fmt.Errorf("get all stars: %v", err)
-	} else if _, err = e.Decr("num_watches").In("id", starredRepoIDs).Update(new(Repository)); err != nil {
+	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).Update(new(Repository)); err != nil {
 		return fmt.Errorf("decrease repository num_stars: %v", err)
 	}
 	// ***** END: Star *****

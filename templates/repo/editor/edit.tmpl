@@ -39,8 +39,9 @@
 						data-url="{{AppSubUrl}}/api/v1/markdown"
 						data-context="{{.RepoLink}}"
 						data-markdown-file-exts="{{.MarkdownFileExts}}"
-						data-line-wrap-extensions="{{.LineWrapExtensions}}">
-{{.FileContent}}</textarea required>
+						data-line-wrap-extensions="{{.LineWrapExtensions}}"
+						required>
+{{.FileContent}}</textarea>
 				</div>
 				<div class="ui bottom attached tab segment markdown" data-tab="preview">
 					{{.i18n.Tr "repo.release.loading"}}

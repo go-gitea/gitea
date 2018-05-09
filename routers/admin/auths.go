@@ -91,6 +91,10 @@ func NewAuthSource(ctx *context.Context) {
 }
 
 func parseLDAPConfig(form auth.AuthenticationForm) *models.LDAPConfig {
+	var pageSize uint32
+	if form.UsePagedSearch {
+		pageSize = uint32(form.SearchPageSize)
+	}
 	return &models.LDAPConfig{
 		Source: &ldap.Source{
 			Name:              form.Name,
@@ -107,6 +111,7 @@ func parseLDAPConfig(form auth.AuthenticationForm) *models.LDAPConfig {
 			AttributeSurname:  form.AttributeSurname,
 			AttributeMail:     form.AttributeMail,
 			AttributesInBind:  form.AttributesInBind,
+			SearchPageSize:    pageSize,
 			Filter:            form.Filter,
 			AdminFilter:       form.AdminFilter,
 			Enabled:           true,

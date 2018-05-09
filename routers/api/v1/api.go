@@ -50,6 +50,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/admin"
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/org"
@@ -277,11 +278,15 @@ func mustAllowPulls(ctx *context.Context) {
 func RegisterRoutes(m *macaron.Macaron) {
 	bind := binding.Bind
 
-	m.Get("/swagger", misc.Swagger) //Render V1 by default
+	if setting.API.EnableSwaggerEndpoint {
+		m.Get("/swagger", misc.Swagger) //Render V1 by default
+	}
 
 	m.Group("/v1", func() {
 		// Miscellaneous
-		m.Get("/swagger", misc.Swagger)
+		if setting.API.EnableSwaggerEndpoint {
+			m.Get("/swagger", misc.Swagger)
+		}
 		m.Get("/version", misc.Version)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
@@ -377,9 +382,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/hooks", func() {
 					m.Combo("").Get(repo.ListHooks).
 						Post(bind(api.CreateHookOption{}), repo.CreateHook)
-					m.Combo("/:id").Get(repo.GetHook).
-						Patch(bind(api.EditHookOption{}), repo.EditHook).
-						Delete(repo.DeleteHook)
+					m.Group("/:id", func() {
+						m.Combo("").Get(repo.GetHook).
+							Patch(bind(api.EditHookOption{}), repo.EditHook).
+							Delete(repo.DeleteHook)
+						m.Post("/tests", context.RepoRef(), repo.TestHook)
+					})
 				}, reqToken(), reqRepoWriter())
 				m.Group("/collaborators", func() {
 					m.Get("", repo.ListCollaborators)
@@ -464,9 +472,18 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
 						Post(reqToken(), reqRepoWriter(), context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
-					m.Combo("/:id").Get(repo.GetRelease).
-						Patch(reqToken(), reqRepoWriter(), context.ReferencesGitRepo(), bind(api.EditReleaseOption{}), repo.EditRelease).
-						Delete(reqToken(), reqRepoWriter(), repo.DeleteRelease)
+					m.Group("/:id", func() {
+						m.Combo("").Get(repo.GetRelease).
+							Patch(reqToken(), reqRepoWriter(), context.ReferencesGitRepo(), bind(api.EditReleaseOption{}), repo.EditRelease).
+							Delete(reqToken(), reqRepoWriter(), repo.DeleteRelease)
+						m.Group("/assets", func() {
+							m.Combo("").Get(repo.ListReleaseAttachments).
+								Post(reqToken(), reqRepoWriter(), repo.CreateReleaseAttachment)
+							m.Combo("/:asset").Get(repo.GetReleaseAttachment).
+								Patch(reqToken(), reqRepoWriter(), bind(api.EditAttachmentOptions{}), repo.EditReleaseAttachment).
+								Delete(reqToken(), reqRepoWriter(), repo.DeleteReleaseAttachment)
+						})
+					})
 				})
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(), repo.MirrorSync)
 				m.Get("/editorconfig/:filename", context.RepoRef(), repo.GetEditorconfig)
@@ -557,5 +574,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 				})
 			})
 		}, reqAdmin())
+
+		m.Group("/topics", func() {
+			m.Get("/search", repo.TopicSearch)
+		})
 	}, context.APIContexter())
 }

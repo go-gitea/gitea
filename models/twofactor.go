@@ -16,24 +16,25 @@ import (
 
 	"github.com/pquerna/otp/totp"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
 // TwoFactor represents a two-factor authentication token.
 type TwoFactor struct {
-	ID           int64 `xorm:"pk autoincr"`
-	UID          int64 `xorm:"UNIQUE"`
-	Secret       string
-	ScratchToken string
-	CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix  util.TimeStamp `xorm:"INDEX updated"`
+	ID               int64 `xorm:"pk autoincr"`
+	UID              int64 `xorm:"UNIQUE"`
+	Secret           string
+	ScratchToken     string
+	LastUsedPasscode string         `xorm:"VARCHAR(10)"`
+	CreatedUnix      util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix      util.TimeStamp `xorm:"INDEX updated"`
 }
 
 // GenerateScratchToken recreates the scratch token the user is using.
 func (t *TwoFactor) GenerateScratchToken() error {
-	token, err := base.GetRandomString(8)
+	token, err := generate.GetRandomString(8)
 	if err != nil {
 		return err
 	}

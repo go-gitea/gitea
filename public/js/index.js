@@ -491,6 +491,7 @@ function initRepository() {
         $('.edit-label-button').click(function () {
             $('#label-modal-id').val($(this).data('id'));
             $('.edit-label .new-label-input').val($(this).data('title'));
+            $('.edit-label .new-label-desc-input').val($(this).data('description'));
             $('.edit-label .color-picker').val($(this).data('color'));
             $('.minicolors-swatch-color').css("background-color", $(this).data('color'));
             $('.edit-label.modal').modal({
@@ -571,6 +572,7 @@ function initRepository() {
                 $editContentZone.html($('#edit-content-form').html());
                 $textarea = $segment.find('textarea');
                 issuesTribute.attach($textarea.get());
+                emojiTribute.attach($textarea.get());
 
                 // Give new write/preview data-tab name to distinguish from others
                 var $editContentForm = $editContentZone.find('.ui.comment.form');
@@ -770,7 +772,6 @@ function initWikiForm() {
                         function (data) {
                             preview.innerHTML = '<div class="markdown">' + data + '</div>';
                             emojify.run($('.editor-preview')[0]);
-                            $('.editor-preview').autolink();
                         }
                     );
                 }, 0);
@@ -1137,6 +1138,16 @@ function initAdmin() {
         }
     }
 
+    function onUsePagedSearchChange() {
+        if ($('#use_paged_search').prop('checked')) {
+            $('.search-page-size').show()
+                .find('input').attr('required', 'required');
+        } else {
+            $('.search-page-size').hide()
+                .find('input').removeAttr('required');
+        }
+    }
+
     function onOAuth2Change() {
         $('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url').hide();
         $('.open_id_connect_auto_discovery_url input[required]').removeAttr('required');
@@ -1190,7 +1201,7 @@ function initAdmin() {
     // New authentication
     if ($('.admin.new.authentication').length > 0) {
         $('#auth_type').change(function () {
-            $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls').hide();
+            $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size').hide();
 
             $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
 
@@ -1222,9 +1233,13 @@ function initAdmin() {
             if (authType == '2' || authType == '5') {
                 onSecurityProtocolChange()
             }
+            if (authType == '2') {
+                onUsePagedSearchChange();
+            }
         });
         $('#auth_type').change();
         $('#security_protocol').change(onSecurityProtocolChange);
+        $('#use_paged_search').change(onUsePagedSearchChange);
         $('#oauth2_provider').change(onOAuth2Change);
         $('#oauth2_use_custom_url').change(onOAuth2UseCustomURLChange);
     }
@@ -1233,6 +1248,9 @@ function initAdmin() {
         var authType = $('#auth_type').val();
         if (authType == '2' || authType == '5') {
             $('#security_protocol').change(onSecurityProtocolChange);
+            if (authType == '2') {
+                $('#use_paged_search').change(onUsePagedSearchChange);
+            }
         } else if (authType == '6') {
             $('#oauth2_provider').change(onOAuth2Change);
             $('#oauth2_use_custom_url').change(onOAuth2UseCustomURLChange);
@@ -1548,7 +1566,6 @@ $(document).ready(function () {
             node.append('<a class="anchor" href="#' + name + '"><span class="octicon octicon-link"></span></a>');
         });
     });
-    $('.markdown').autolink();
 
     $('.issue-checkbox').click(function() {
         var numChecked = $('.issue-checkbox').children('input:checked').length;
@@ -1591,6 +1608,7 @@ $(document).ready(function () {
     initTeamSettings();
     initCtrlEnterSubmit();
     initNavbarContentToggle();
+    initTopicbar();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -1663,8 +1681,11 @@ function selectRange($list, $select, $from) {
 }
 
 $(function () {
-    if ($('.user.signin').length > 0) return;
-    $('form').areYouSure();
+    // Warn users that try to leave a page after entering data into a form.
+    // Except on sign-in pages, and for forms marked as 'ignore-dirty'.
+    if ($('.user.signin').length === 0) {
+      $('form:not(.ignore-dirty)').areYouSure();
+    }
 
     // Parse SSH Key
     $("#ssh-key-content").on('change paste keyup',function(){
@@ -2117,5 +2138,87 @@ function initNavbarContentToggle() {
             content.removeClass('shown');
             toggle.removeClass('active');
         }
+    });
+}
+
+function initTopicbar() {
+    var mgrBtn = $("#manage_topic")
+    var editDiv = $("#topic_edit")
+    var viewDiv = $("#repo-topic")
+    var saveBtn = $("#save_topic")
+
+    mgrBtn.click(function() {
+        viewDiv.hide();
+        editDiv.show();
+    })
+
+    saveBtn.click(function() {
+        var topics = $("input[name=topics]").val();
+
+        $.post($(this).data('link'), {
+            "_csrf": csrf,
+            "topics": topics
+        }).success(function(res){
+            if (res["status"] != "ok") {
+                alert(res.message);
+            } else {
+                viewDiv.children(".topic").remove();
+                var topicArray = topics.split(",");
+                var last = viewDiv.children("a").last();
+                for (var i=0;i < topicArray.length; i++) {
+                    $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
+                }
+            }
+        }).done(function() {
+            editDiv.hide();
+            viewDiv.show();
+        })
+    })
+
+    $('#topic_edit .dropdown').dropdown({
+        allowAdditions: true,
+        fields: { name: "description", value: "data-value" },
+        saveRemoteData: false,
+        label: {
+            transition : 'horizontal flip',
+            duration   : 200,
+            variation  : false,
+            blue : true,
+            basic: true,
+        },
+        className: {
+            label: 'ui green basic label'
+        },
+        apiSettings: {
+            url: suburl + '/api/v1/topics/search?q={query}',
+            throttle: 500,
+            cache: false,
+            onResponse: function(res) {
+                var formattedResponse = {
+                    success: false,
+                    results: new Array(),
+                };
+
+                if (res.topics) {
+                    formattedResponse.success = true;
+                    for (var i=0;i < res.topics.length;i++) {
+                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value":res.topics[i].Name})
+                    }
+                }
+
+                return formattedResponse;
+            },
+        },
+    });
+}
+function toggleDuedateForm() {
+    $('#add_deadline_form').fadeToggle(150);
+}
+
+function deleteDueDate(url) {
+    $.post(url, {
+        '_csrf': csrf,
+    },function( data ) {
+        window.location.reload();
     });
 }

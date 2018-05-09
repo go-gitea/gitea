@@ -71,13 +71,16 @@
 								especially on mobile views. */}}
 								<span style="line-height: 2.5">
 									{{range .}}
-										<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{.Name}}</a>
+										<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
 									{{end}}
 								</span>
 							{{end}}
 
 							{{if .NumComments}}
 								<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
+							{{end}}
+							{{if .TotalTrackedTime}}
+								<span class="comment ui right"><i class="octicon octicon-clock"></i> {{.TotalTrackedTime | Sec2Time}}</span>
 							{{end}}
 
 							<p class="desc">
@@ -90,7 +93,9 @@
 								{{$tasks := .GetTasks}}
 								{{if gt $tasks 0}}
 									{{$tasksDone := .GetTasksDone}}
-									<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
+									<span class="checklist">
+										<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
+									</span>
 								{{end}}
 							</p>
 						</li>

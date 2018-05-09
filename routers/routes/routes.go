@@ -7,6 +7,7 @@ package routes
 import (
 	"os"
 	"path"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -53,21 +54,23 @@ func NewMacaron() *macaron.Macaron {
 	}
 	m.Use(public.Custom(
 		&public.Options{
-			SkipLogging: setting.DisableRouterLog,
+			SkipLogging:  setting.DisableRouterLog,
+			ExpiresAfter: time.Hour * 6,
 		},
 	))
 	m.Use(public.Static(
 		&public.Options{
-			Directory:   path.Join(setting.StaticRootPath, "public"),
-			SkipLogging: setting.DisableRouterLog,
+			Directory:    path.Join(setting.StaticRootPath, "public"),
+			SkipLogging:  setting.DisableRouterLog,
+			ExpiresAfter: time.Hour * 6,
 		},
 	))
-	m.Use(macaron.Static(
+	m.Use(public.StaticHandler(
 		setting.AvatarUploadPath,
-		macaron.StaticOptions{
-			Prefix:      "avatars",
-			SkipLogging: setting.DisableRouterLog,
-			ETag:        true,
+		&public.Options{
+			Prefix:       "avatars",
+			SkipLogging:  setting.DisableRouterLog,
+			ExpiresAfter: time.Hour * 6,
 		},
 	))
 
@@ -167,6 +170,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/repos", routers.ExploreRepos)
 		m.Get("/users", routers.ExploreUsers)
 		m.Get("/organizations", routers.ExploreOrganizations)
+		m.Get("/code", routers.ExploreCode)
 	}, ignSignIn)
 	m.Combo("/install", routers.InstallInit).Get(routers.Install).
 		Post(bindIgnErr(auth.InstallForm{}), routers.InstallPost)
@@ -492,6 +496,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 					})
 				})
 				m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeIssueReaction)
+				m.Post("/deadline/update", reqRepoWriter, bindIgnErr(auth.DeadlineForm{}), repo.UpdateDeadline)
+				m.Post("/deadline/delete", reqRepoWriter, repo.RemoveDeadline)
 			})
 
 			m.Post("/labels", reqRepoWriter, repo.UpdateIssueLabel)
@@ -582,6 +588,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
 		})
 	}, context.RepoAssignment(), context.UnitTypes(), context.LoadRepoUnits(), context.CheckUnit(models.UnitTypeReleases))
+
+	m.Group("/:username/:reponame", func() {
+		m.Post("/topics", repo.TopicPost)
+	}, context.RepoAssignment(), reqRepoAdmin)
 
 	m.Group("/:username/:reponame", func() {
 		m.Group("", func() {

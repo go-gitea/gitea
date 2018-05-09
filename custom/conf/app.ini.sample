@@ -210,6 +210,8 @@ PATH = data/gitea.db
 SQLITE_TIMEOUT = 500
 ; For iterate buffer, default is 50
 ITERATE_BUFFER_SIZE = 50
+; Show the database generated SQL
+LOG_SQL = true
 
 [indexer]
 ISSUE_INDEXER_PATH = indexers/issues.bleve
@@ -299,6 +301,8 @@ DEFAULT_KEEP_EMAIL_PRIVATE = false
 ; Default value for AllowCreateOrganization
 ; New user will have rights set to create organizations depending on this setting
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
+; Enable Timetracking
+ENABLE_TIMETRACKING = true
 ; Default value for EnableTimetracking
 ; Repositories will use timetracking by default depending on this setting
 DEFAULT_ENABLE_TIMETRACKING = true
@@ -553,6 +557,8 @@ DEFAULT_INTERVAL = 8h
 MIN_INTERVAL = 10m
 
 [api]
+; Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
+ENABLE_SWAGGER_ENDPOINT = true
 ; Max number of items will response in a page
 MAX_RESPONSE_ITEMS = 50
 

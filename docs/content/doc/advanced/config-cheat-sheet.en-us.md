@@ -24,7 +24,7 @@ typically be found at `/etc/gitea/conf/app.ini`.
 
 The defaults provided here are best-effort (not built automatically). They are
 accurately recorded in [app.ini.sample](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
-(s/master/<tag|release\>). Any string in the format `%(X)s` is a feature powered
+(s/master/\<tag|release\>). Any string in the format `%(X)s` is a feature powered
 by [ini](https://github.com/go-ini/ini/#recursive-values), for reading values recursively.
 
 Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
@@ -84,7 +84,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `PROTOCOL`: **http**: \[http, https, fcgi, unix\]
 - `DOMAIN`: **localhost**: Domain name of this server.
-- `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**: Full public URL of Gitea server.
+- `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**:
+   Overwrite the automatically generated public URL.
+   This is useful if the internal and the external URL don't match (e.g. in Docker).
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
    - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
@@ -118,9 +120,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `HOST`: **127.0.0.1:3306**: Database host address and port.
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
-- `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password. 
+- `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
 - `SSL_MODE`: **disable**: For PostgreSQL only.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
+- `LOG_SQL`: **true**: Log the executed SQL.
 
 ## Indexer (`indexer`)
 
@@ -128,7 +131,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space).
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
-- `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of each index files.
+- `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
 
 ## Security (`security`)
 

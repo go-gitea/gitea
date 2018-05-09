@@ -28,6 +28,8 @@ the official [install instructions](https://docs.docker.com/compose/install/).
 The most simple setup just creates a volume and a network and starts the `gitea/gitea:latest`
 image as a service. Since there is no database available one can be initialized using SQLite3.
 Create a directory like `gitea` and paste the following content into a file named `docker-compose.yml`.
+Note that the volume should be owned by the user/group with the UID/GID specified in the config file.
+If you don't give the volume correct permissions, the container may not start.
 
 ```yaml
 version: "2"
@@ -39,6 +41,9 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
     restart: always
     networks:
       - gitea
@@ -65,6 +70,9 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
     restart: always
     networks:
       - gitea
@@ -92,6 +100,9 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
     restart: always
     networks:
       - gitea
@@ -132,14 +143,17 @@ networks:
 services:
   server:
     image: gitea/gitea:latest
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
     restart: always
     networks:
       - gitea
     volumes:
       - ./gitea:/data
-     ports:
-       - "3000:3000"
-       - "222:22"
+    ports:
+      - "3000:3000"
+      - "222:22"
 +    depends_on:
 +      - db
 +
@@ -160,7 +174,8 @@ services:
 
 To use named volumes instead of host volumes, define and use the named volume
 within the `docker-compose.yml` configuration. This change will automatically
-create the required volume.
+create the required volume. You don't need to worry about permissions with
+named volumes, Docker will deal with that automatically.
 
 ```diff
 version: "2"
@@ -207,6 +222,27 @@ After starting the Docker setup via `docker-compose` Gitea should be available u
 favorite browser to finalize the installation. Visit http://server-ip:3000 and follow the
 installation wizard. If the database was started with the `docker-compose` setup as
 documented above please note that `db` must be used as the database hostname.
+
+## Environments variables
+
+You can configure some of Gitea's settings via environment variables:
+
+(Default values are provided in **bold**)
+
+* `APP_NAME`: **"Gitea: Git with a cup of tea"**: Application name, used in the page title.
+* `RUN_MODE`: **dev**: For performance and other purposes, change this to `prod` when deployed to a production environment.
+* `SSH_DOMAIN`: **localhost**: Domain name of this server, used for displayed clone UR in Gitea's UI.
+* `SSH_PORT`: **22**: SSH port displayed in clone URL.
+* `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
+* `HTTP_PORT`: **3000**: HTTP listen port.
+* `ROOT_URL`: **""**: Overwrite the automatically generated public URL. This is useful if the internal and the external URL don't match (e.g. in Docker).
+* `DB_TYPE`: **sqlite3**: The database type in use \[mysql, postgres, mssql, sqlite3\].
+* `DB_HOST`: **localhost:3306**: Database host address and port.
+* `DB_NAME`: **gitea**: Database name.
+* `DB_USER`: **root**: Database username.
+* `DB_PASSWD`: **"<empty>"**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
+* `INSTALL_LOCK`: **false**: Disallow access to the install page.
+* `SECRET_KEY`: **""**: Global secret key. This should be changed. If this has a value and `INSTALL_LOCK` is empty, `INSTALL_LOCK` will automatically set to `true`.
 
 # Customization
 

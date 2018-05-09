@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/Unknwon/com"
+	"github.com/Unknwon/i18n"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 
@@ -61,16 +62,16 @@ func handleUsernameChange(ctx *context.Context, newName string) {
 		if err := models.ChangeUserName(ctx.User, newName); err != nil {
 			switch {
 			case models.IsErrUserAlreadyExist(err):
-				ctx.Flash.Error(ctx.Tr("newName_been_taken"))
+				ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
 				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			case models.IsErrEmailAlreadyUsed(err):
 				ctx.Flash.Error(ctx.Tr("form.email_been_used"))
 				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			case models.IsErrNameReserved(err):
-				ctx.Flash.Error(ctx.Tr("user.newName_reserved"))
+				ctx.Flash.Error(ctx.Tr("user.form.name_reserved", newName))
 				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			case models.IsErrNamePatternNotAllowed(err):
-				ctx.Flash.Error(ctx.Tr("user.newName_pattern_not_allowed"))
+				ctx.Flash.Error(ctx.Tr("user.form.name_pattern_not_allowed", newName))
 				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			default:
 				ctx.ServerError("ChangeUserName", err)
@@ -105,6 +106,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateProfileForm) {
 	ctx.User.KeepEmailPrivate = form.KeepEmailPrivate
 	ctx.User.Website = form.Website
 	ctx.User.Location = form.Location
+	ctx.User.Language = form.Language
 	if err := models.UpdateUserSetting(ctx.User); err != nil {
 		if _, ok := err.(models.ErrEmailAlreadyUsed); ok {
 			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
@@ -115,8 +117,11 @@ func SettingsPost(ctx *context.Context, form auth.UpdateProfileForm) {
 		return
 	}
 
+	// Update the language to the one we just set
+	ctx.SetCookie("lang", ctx.User.Language, nil, setting.AppSubURL)
+
 	log.Trace("User settings updated: %s", ctx.User.Name)
-	ctx.Flash.Success(ctx.Tr("settings.update_profile_success"))
+	ctx.Flash.Success(i18n.Tr(ctx.User.Language, "settings.update_profile_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 

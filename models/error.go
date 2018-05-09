@@ -216,6 +216,21 @@ func (err ErrWikiReservedName) Error() string {
 	return fmt.Sprintf("wiki title is reserved: %s", err.Title)
 }
 
+// ErrWikiInvalidFileName represents an invalid wiki file name.
+type ErrWikiInvalidFileName struct {
+	FileName string
+}
+
+// IsErrWikiInvalidFileName checks if an error is an ErrWikiInvalidFileName.
+func IsErrWikiInvalidFileName(err error) bool {
+	_, ok := err.(ErrWikiInvalidFileName)
+	return ok
+}
+
+func (err ErrWikiInvalidFileName) Error() string {
+	return fmt.Sprintf("Invalid wiki filename: %s", err.FileName)
+}
+
 // __________     ___.   .__  .__          ____  __.
 // \______   \__ _\_ |__ |  | |__| ____   |    |/ _|____ ___.__.
 //  |     ___/  |  \ __ \|  | |  |/ ___\  |      <_/ __ <   |  |
@@ -768,6 +783,21 @@ func IsErrBranchNameConflict(err error) bool {
 
 func (err ErrBranchNameConflict) Error() string {
 	return fmt.Sprintf("branch conflicts with existing branch [name: %s]", err.BranchName)
+}
+
+// ErrNotAllowedToMerge represents an error that a branch is protected and the current user is not allowed to modify it
+type ErrNotAllowedToMerge struct {
+	Reason string
+}
+
+// IsErrNotAllowedToMerge checks if an error is an ErrNotAllowedToMerge.
+func IsErrNotAllowedToMerge(err error) bool {
+	_, ok := err.(ErrNotAllowedToMerge)
+	return ok
+}
+
+func (err ErrNotAllowedToMerge) Error() string {
+	return fmt.Sprintf("not allowed to merge [reason: %s]", err.Reason)
 }
 
 // ErrTagAlreadyExists represents an error that tag with such name already exists

@@ -2,6 +2,7 @@
 date: "2016-11-08T16:00:00+02:00"
 title: "Documentation"
 slug: "documentation"
+url: "/en-us/"
 weight: 10
 toc: true
 draft: false
@@ -74,7 +75,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
         - MSSQL
         - TiDB (experimental, not recommended)
     - Configuration file
-        - [app.ini](https://github.com/go-gitea/gitea/blob/master/conf/app.ini)
+        - [app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
     - Admin panel
         - Statistics
         - Actions

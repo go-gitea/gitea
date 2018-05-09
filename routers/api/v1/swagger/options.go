@@ -63,4 +63,6 @@ type swaggerParameterBodies struct {
 	EditUserOption   api.EditUserOption
 
 	MigrateRepoForm auth.MigrateRepoForm
+
+	EditAttachmentOptions api.EditAttachmentOptions
 }

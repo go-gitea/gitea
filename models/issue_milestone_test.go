@@ -214,13 +214,15 @@ func TestChangeMilestoneIssueStats(t *testing.T) {
 		"is_closed=0").(*Issue)
 
 	issue.IsClosed = true
-	_, err := x.Cols("is_closed").Update(issue)
+	issue.ClosedUnix = util.TimeStampNow()
+	_, err := x.Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
 	assert.NoError(t, changeMilestoneIssueStats(x.NewSession(), issue))
 	CheckConsistencyFor(t, &Milestone{})
 
 	issue.IsClosed = false
-	_, err = x.Cols("is_closed").Update(issue)
+	issue.ClosedUnix = 0
+	_, err = x.Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
 	assert.NoError(t, changeMilestoneIssueStats(x.NewSession(), issue))
 	CheckConsistencyFor(t, &Milestone{})
@@ -250,4 +252,15 @@ func TestDeleteMilestoneByRepoID(t *testing.T) {
 	CheckConsistencyFor(t, &Repository{ID: 1})
 
 	assert.NoError(t, DeleteMilestoneByRepoID(NonexistentID, NonexistentID))
+}
+
+func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	miles := MilestoneList{
+		AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone),
+	}
+
+	assert.NoError(t, miles.LoadTotalTrackedTimes())
+
+	assert.Equal(t, miles[0].TotalTrackedTime, int64(3662))
 }

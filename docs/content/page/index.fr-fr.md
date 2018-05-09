@@ -2,6 +2,7 @@
 date: "2017-08-23T09:00:00+02:00"
 title: "Documentation"
 slug: "documentation"
+url: "/fr-fr/"
 weight: 10
 toc: true
 draft: false
@@ -48,7 +49,7 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
     - Migré
 - Notifications (courriel et web)
     - Lu
-    - Non lu 
+    - Non lu
     - Épinglé
 - Page d'exploration
     - Utilisateurs
@@ -69,7 +70,7 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
         - MSSQL
         - [TiDB](https://github.com/pingcap/tidb) (expérimental)
     - Fichier de configuration
-        - Voir [ici](https://github.com/go-gitea/gitea/blob/master/conf/app.ini)
+        - Voir [ici](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
     - Panel d'administration
         - Statistiques
         - Actions

@@ -7,15 +7,15 @@ package repo
 import (
 	"time"
 
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+
+	api "code.gitea.io/sdk/gitea"
 )
 
 // ListIssueComments list all the comments of an issue
 func ListIssueComments(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/issue/{index}/comments issue issueGetComments
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/comments issue issueGetComments
 	// ---
 	// summary: List all comments on an issue
 	// produces:

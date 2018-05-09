@@ -36,7 +36,7 @@ type Release struct {
 	IsPrerelease     bool           `xorm:"NOT NULL DEFAULT false"`
 	IsTag            bool           `xorm:"NOT NULL DEFAULT false"`
 	Attachments      []*Attachment  `xorm:"-"`
-	CreatedUnix      util.TimeStamp `xorm:"created INDEX"`
+	CreatedUnix      util.TimeStamp `xorm:"INDEX"`
 }
 
 func (r *Release) loadAttributes(e Engine) error {
@@ -53,7 +53,7 @@ func (r *Release) loadAttributes(e Engine) error {
 			return err
 		}
 	}
-	return nil
+	return GetReleaseAttachments(r)
 }
 
 // LoadAttributes load repo and publisher attributes for a release
@@ -79,6 +79,10 @@ func (r *Release) TarURL() string {
 
 // APIFormat convert a Release to api.Release
 func (r *Release) APIFormat() *api.Release {
+	assets := make([]*api.Attachment, 0)
+	for _, att := range r.Attachments {
+		assets = append(assets, att.APIFormat())
+	}
 	return &api.Release{
 		ID:           r.ID,
 		TagName:      r.TagName,
@@ -92,6 +96,7 @@ func (r *Release) APIFormat() *api.Release {
 		CreatedAt:    r.CreatedUnix.AsTime(),
 		PublishedAt:  r.CreatedUnix.AsTime(),
 		Publisher:    r.Publisher.APIFormat(),
+		Attachments:  assets,
 	}
 }
 
@@ -134,6 +139,8 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
 		}
+	} else {
+		rel.CreatedUnix = util.TimeStampNow()
 	}
 	return nil
 }

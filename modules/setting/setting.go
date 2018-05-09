@@ -6,10 +6,8 @@
 package setting
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"net"
 	"net/mail"
 	"net/url"
@@ -24,12 +22,12 @@ import (
 	"time"
 
 	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
 
 	"github.com/Unknwon/com"
-	"github.com/dgrijalva/jwt-go"
 	_ "github.com/go-macaron/cache/memcache" // memcache plugin for cache
 	_ "github.com/go-macaron/cache/redis"
 	"github.com/go-macaron/session"
@@ -161,6 +159,7 @@ var (
 	UseMSSQL      bool
 	UsePostgreSQL bool
 	UseTiDB       bool
+	LogSQL        bool
 
 	// Indexer settings
 	Indexer struct {
@@ -515,9 +514,11 @@ var (
 
 	// API settings
 	API = struct {
-		MaxResponseItems int
+		EnableSwaggerEndpoint bool
+		MaxResponseItems      int
 	}{
-		MaxResponseItems: 50,
+		EnableSwaggerEndpoint: true,
+		MaxResponseItems:      50,
 	}
 
 	// I18n settings
@@ -832,15 +833,11 @@ func NewContext() {
 		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
 
 		if err != nil || n != 32 {
-			//Generate new secret and save to config
-
-			_, err := io.ReadFull(rand.Reader, LFS.JWTSecretBytes)
-
+			LFS.JWTSecretBase64, err = generate.NewLfsJwtSecret()
 			if err != nil {
-				log.Fatal(4, "Error reading random bytes: %v", err)
+				log.Fatal(4, "Error generating JWT Secret for custom config: %v", err)
+				return
 			}
-
-			LFS.JWTSecretBase64 = base64.RawURLEncoding.EncodeToString(LFS.JWTSecretBytes)
 
 			// Save secret
 			cfg := ini.Empty()
@@ -911,19 +908,7 @@ func NewContext() {
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
 	InternalToken = sec.Key("INTERNAL_TOKEN").String()
 	if len(InternalToken) == 0 {
-		secretBytes := make([]byte, 32)
-		_, err := io.ReadFull(rand.Reader, secretBytes)
-		if err != nil {
-			log.Fatal(4, "Error reading random bytes: %v", err)
-		}
-
-		secretKey := base64.RawURLEncoding.EncodeToString(secretBytes)
-
-		now := time.Now()
-		InternalToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"nbf": now.Unix(),
-		}).SignedString([]byte(secretKey))
-
+		InternalToken, err = generate.NewInternalToken()
 		if err != nil {
 			log.Fatal(4, "Error generate internal token: %v", err)
 		}
@@ -947,6 +932,7 @@ func NewContext() {
 		}
 	}
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
+	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -1165,6 +1151,7 @@ var Service struct {
 	EnableCaptcha                           bool
 	DefaultKeepEmailPrivate                 bool
 	DefaultAllowCreateOrganization          bool
+	EnableTimetracking                      bool
 	DefaultEnableTimetracking               bool
 	DefaultAllowOnlyContributorsToTrackTime bool
 	NoReplyAddress                          string
@@ -1188,7 +1175,10 @@ func newService() {
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool()
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
-	Service.DefaultEnableTimetracking = sec.Key("DEFAULT_ENABLE_TIMETRACKING").MustBool(true)
+	Service.EnableTimetracking = sec.Key("ENABLE_TIMETRACKING").MustBool(true)
+	if Service.EnableTimetracking {
+		Service.DefaultEnableTimetracking = sec.Key("DEFAULT_ENABLE_TIMETRACKING").MustBool(true)
+	}
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 
