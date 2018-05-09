@@ -24,7 +24,7 @@ type Milestone struct {
 	NumClosedIssues int
 	NumOpenIssues   int  `xorm:"-"`
 	Completeness    int  // Percentage(1-100).
-	IsOverDue       bool `xorm:"-"`
+	IsOverdue       bool `xorm:"-"`
 
 	DeadlineString string `xorm:"-"`
 	DeadlineUnix   util.TimeStamp
@@ -52,7 +52,7 @@ func (m *Milestone) AfterLoad() {
 
 	m.DeadlineString = m.DeadlineUnix.Format("2006-01-02")
 	if util.TimeStampNow() >= m.DeadlineUnix {
-		m.IsOverDue = true
+		m.IsOverdue = true
 	}
 }
 
