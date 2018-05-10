@@ -1,5 +1,5 @@
 ---
-date: "2017-01-01T16:00:00+02:00"
+date: "2018-05-10T16:00:00+02:00"
 title: "Usage: Issue and Pull Request templates"
 slug: "issue-pull-request-templates"
 weight: 15
@@ -23,22 +23,19 @@ of getting some clarifiying details.
 
 Possible file names for issue templates:
 
-```
-"ISSUE_TEMPLATE.md",
-"issue_template.md",
-".gitea/ISSUE_TEMPLATE.md",
-".gitea/issue_template.md",
-".github/ISSUE_TEMPLATE.md",
-".github/issue_template.md",
-```
+* ISSUE_TEMPLATE.md
+* issue_template.md
+* .gitea/ISSUE_TEMPLATE.md
+* .gitea/issue_template.md
+* .github/ISSUE_TEMPLATE.md
+* .github/issue_template.md
+
 
 Possible file names for PR templates:
 
-```
-"PULL_REQUEST_TEMPLATE.md",
-"pull_request_template.md",
-".gitea/PULL_REQUEST_TEMPLATE.md",
-".gitea/pull_request_template.md",
-".github/PULL_REQUEST_TEMPLATE.md",
-".github/pull_request_template.md",
-```
+* PULL_REQUEST_TEMPLATE.md
+* pull_request_template.md
+* .gitea/PULL_REQUEST_TEMPLATE.md
+* .gitea/pull_request_template.md
+* .github/PULL_REQUEST_TEMPLATE.md
+* .github/pull_request_template.md
