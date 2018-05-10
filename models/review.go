@@ -6,6 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/go-xorm/builder"
 )
 
@@ -155,4 +156,24 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 // CreateReview creates a new review based on opts
 func CreateReview(opts CreateReviewOptions) (*Review, error) {
 	return createReview(x, opts)
+}
+
+func getCurrentReview(e Engine, reviewer *User, issue *Issue) (*Review, error) {
+	reviews, err := findReviews(e, FindReviewOptions{
+		Type:       ReviewTypePending,
+		IssueID:    issue.ID,
+		ReviewerID: reviewer.ID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(reviews) == 0 {
+		return nil, ErrReviewNotExist{}
+	}
+	return reviews[0], nil
+}
+
+// GetCurrentReview returns the current pending review of reviewer for given issue
+func GetCurrentReview(reviewer *User, issue *Issue) (*Review, error) {
+	return getCurrentReview(x, reviewer, issue)
 }

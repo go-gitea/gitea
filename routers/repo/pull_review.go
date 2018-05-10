@@ -45,17 +45,14 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 
 	review := new(models.Review)
 	if form.IsReview {
+		var err error
 		// Check if the user has already a pending review for this issue
-		reviews, err := models.FindReviews(models.FindReviewOptions{
-			ReviewerID: ctx.User.ID,
-			IssueID:    issue.ID,
-			Type:       models.ReviewTypePending,
-		})
-		if err != nil {
-			ctx.ServerError("CreateCodeComment", err)
-			return
-		}
-		if len(reviews) == 0 {
+		if review, err = models.GetCurrentReview(ctx.User, issue); err != nil {
+			if !models.IsErrReviewNotExist(err) {
+				ctx.ServerError("CreateCodeComment", err)
+				return
+			}
+			// No pending review exists
 			// Create a new pending review for this issue & user
 			if review, err = models.CreateReview(models.CreateReviewOptions{
 				Type:     models.ReviewTypePending,
@@ -65,8 +62,6 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 				ctx.ServerError("CreateCodeComment", err)
 				return
 			}
-		} else {
-			review = reviews[0]
 		}
 	}
 
