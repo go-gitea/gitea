@@ -34,42 +34,6 @@ func addMultipleAssignees(x *xorm.Engine) error {
 		ClosedUnix   util.TimeStamp `xorm:"INDEX"`
 	}
 
-	allIssues := []Issue{}
-	err := x.Find(&allIssues)
-	if err != nil {
-		return err
-	}
-
-	// Create the table
-	type IssueAssignees struct {
-		ID         int64 `xorm:"pk autoincr"`
-		AssigneeID int64 `xorm:"INDEX"`
-		IssueID    int64 `xorm:"INDEX"`
-	}
-	err = x.Sync2(IssueAssignees{})
-	if err != nil {
-		return err
-	}
-
-	// Range over all issues and insert a new entry for each issue/assignee
-	sess := x.NewSession()
-	defer sess.Close()
-
-	err = sess.Begin()
-	if err != nil {
-		return err
-	}
-
-	for _, issue := range allIssues {
-		if issue.AssigneeID != 0 {
-			_, err := sess.Insert(IssueAssignees{IssueID: issue.ID, AssigneeID: issue.AssigneeID})
-			if err != nil {
-				sess.Rollback()
-				return err
-			}
-		}
-	}
-
 	// Updated the comment table
 	type Comment struct {
 		ID              int64 `xorm:"pk autoincr"`
@@ -96,8 +60,43 @@ func addMultipleAssignees(x *xorm.Engine) error {
 		// Reference issue in commit message
 		CommitSHA string `xorm:"VARCHAR(40)"`
 	}
+
+	// Create the table
+	type IssueAssignees struct {
+		ID         int64 `xorm:"pk autoincr"`
+		AssigneeID int64 `xorm:"INDEX"`
+		IssueID    int64 `xorm:"INDEX"`
+	}
+
+	if err := x.Sync2(IssueAssignees{}); err != nil {
+		return err
+	}
+
 	if err := x.Sync2(Comment{}); err != nil {
 		return err
+	}
+
+	// Range over all issues and insert a new entry for each issue/assignee
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	allIssues := []Issue{}
+	if err := sess.Find(&allIssues); err != nil {
+		return err
+	}
+
+	for _, issue := range allIssues {
+		if issue.AssigneeID != 0 {
+			_, err := sess.Insert(IssueAssignees{IssueID: issue.ID, AssigneeID: issue.AssigneeID})
+			if err != nil {
+				sess.Rollback()
+				return err
+			}
+		}
 	}
 
 	// Migrate comments
@@ -114,7 +113,10 @@ func addMultipleAssignees(x *xorm.Engine) error {
 	for _, comment := range allAssignementComments {
 		// Everytime where OldAssigneeID is > 0, the assignement was removed.
 		if comment.OldAssigneeID > 0 {
-			_, err = sess.ID(comment.ID).Update(Comment{RemovedAssignee: true})
+			_, err := sess.ID(comment.ID).Update(Comment{RemovedAssignee: true})
+			if err != nil {
+				return err
+			}
 		}
 	}
 
