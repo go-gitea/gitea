@@ -2,55 +2,56 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package orgmode
+package rst
 
 import (
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
+	"bufio"
+	"bytes"
 
-	"github.com/chaseadamsio/goorgeous"
-	"github.com/russross/blackfriday"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
+
+	gorst "github.com/hhatto/gorst"
 )
 
 func init() {
 	markup.RegisterParser(Parser{})
 }
 
-// Parser implements markup.Parser for orgmode
+// Parser implements markup.Parser for reStructuredText
 type Parser struct {
 }
 
-// Name implements markup.Parser
+// Name return the parser's name
 func (Parser) Name() string {
-	return "orgmode"
+	return "reStructuredText"
 }
 
-// Extensions implements markup.Parser
+// Extensions return the parser supported extensions
 func (Parser) Extensions() []string {
-	return []string{".org"}
+	return []string{".rst"}
 }
 
-// Render renders orgmode rawbytes to HTML
+// Render renders reStructuredText bytes to HTML
 func Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
-	htmlFlags := blackfriday.HTML_USE_XHTML
-	htmlFlags |= blackfriday.HTML_SKIP_STYLE
-	htmlFlags |= blackfriday.HTML_OMIT_CONTENTS
-	renderer := &markdown.Renderer{
-		Renderer:  blackfriday.HtmlRenderer(htmlFlags, "", ""),
-		URLPrefix: urlPrefix,
-		IsWiki:    isWiki,
+	p := gorst.NewParser(nil)
+	var b bytes.Buffer
+	w := bufio.NewWriter(&b)
+	p.ReStructuredText(bytes.NewReader(rawBytes), gorst.ToHTML(w))
+	if err := w.Flush(); err != nil {
+		log.Error(4, "Render ReStructuredText failed: %v", err)
+		return []byte("")
 	}
 
-	result := goorgeous.Org(rawBytes, renderer)
-	return result
+	return b.Bytes()
 }
 
-// RenderString reners orgmode string to HTML string
+// RenderString renders reStructuredText string to HTML
 func RenderString(rawContent string, urlPrefix string, metas map[string]string, isWiki bool) string {
 	return string(Render([]byte(rawContent), urlPrefix, metas, isWiki))
 }
 
-// Render implements markup.Parser
+// Render renders reStructuredText bytes to HTML, for implementations of markup.Parser
 func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
 	return Render(rawBytes, urlPrefix, metas, isWiki)
 }

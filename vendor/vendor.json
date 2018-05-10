@@ -522,6 +522,12 @@
 			"revisionTime": "2016-03-04T05:48:22Z"
 		},
 		{
+			"checksumSHA1": "5GrBWjLFQM2kr+5VAz3GjdMW0Vk=",
+			"path": "github.com/hhatto/gorst",
+			"revision": "ca38b600020360b1fdf2f7b29f8e5c8ab882cc44",
+			"revisionTime": "2017-06-21T01:06:40Z"
+		},
+		{
 			"checksumSHA1": "MLO0PyrK2MUO6A7Z9PxWuu43C/A=",
 			"path": "github.com/issue9/identicon",
 			"revision": "d36b54562f4cf70c83653e13dc95c220c79ef521",

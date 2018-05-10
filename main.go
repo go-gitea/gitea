@@ -16,6 +16,7 @@ import (
 	// register supported doc types
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
+	_ "code.gitea.io/gitea/modules/markup/reStructuredText"
 
 	"github.com/urfave/cli"
 )
