@@ -62,7 +62,6 @@ For more information and instructions about how to install Gitea, please look
 at our [documentation](https://docs.gitea.io/en-us/). If you have questions
 that are not covered by the documentation, you can get in contact with us on
 our [Discord server](https://discord.gg/NsatcWJ),
-[Matrix room](https://matrix.to/#/#gitea:matrix.org),
 or [forum](https://discourse.gitea.io/)!
 
 ## Authors
