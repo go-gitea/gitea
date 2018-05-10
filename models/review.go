@@ -16,14 +16,14 @@ type ReviewType int
 const ReviewTypeUnknown ReviewType = -1
 
 const (
+	// ReviewTypePending is a review which is not published yet
+	ReviewTypePending ReviewType = iota
 	// ReviewTypeApprove approves changes
-	ReviewTypeApprove ReviewType = iota
+	ReviewTypeApprove
 	// ReviewTypeComment gives general feedback
 	ReviewTypeComment
 	// ReviewTypeReject gives feedback blocking merge
 	ReviewTypeReject
-	// ReviewTypePending is a review which is not published yet
-	ReviewTypePending
 )
 
 // Review represents collection of code comments giving feedback for a PR
