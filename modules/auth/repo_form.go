@@ -356,6 +356,21 @@ func (f *MergePullRequestForm) Validate(ctx *macaron.Context, errs binding.Error
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// CodeCommentForm form for adding code comments for PRs
+type CodeCommentForm struct {
+	Content   string `binding:"Required"`
+	Side      string `binding:"Required;In(previous,proposed)"`
+	Line      int64
+	TreePath  string `form:"path" binding:"Required"`
+	CommitSHA string `form:"commit_id" binding:"Required"`
+	IsReview  bool   `form:"is_review" binding:"Required"`
+}
+
+// Validate validates the fields
+func (f *CodeCommentForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // __________       .__
 // \______   \ ____ |  |   ____ _____    ______ ____
 //  |       _// __ \|  | _/ __ \\__  \  /  ___// __ \

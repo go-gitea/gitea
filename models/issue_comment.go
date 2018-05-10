@@ -618,6 +618,20 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 	})
 }
 
+// CreateCodeComment creates a plain code comment at the specified line / path
+func CreateCodeComment(doer *User, repo *Repository, issue *Issue, commitSHA, content, treePath string, line int64) (*Comment, error) {
+	return CreateComment(&CreateCommentOptions{
+		Type:      CommentTypeCode,
+		Doer:      doer,
+		Repo:      repo,
+		Issue:     issue,
+		Content:   content,
+		LineNum:   line,
+		TreePath:  treePath,
+		CommitSHA: commitSHA,
+	})
+}
+
 // CreateRefComment creates a commit reference comment to issue.
 func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commitSHA string) error {
 	if len(commitSHA) == 0 {

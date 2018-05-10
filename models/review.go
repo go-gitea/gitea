@@ -16,13 +16,14 @@ const (
 	ReviewTypeComment
 	// ReviewTypeReject gives feedback blocking merge
 	ReviewTypeReject
+	// ReviewTypePending is a review which is not published yet
+	ReviewTypePending
 )
 
 // Review represents collection of code comments giving feedback for a PR
 type Review struct {
 	ID         int64 `xorm:"pk autoincr"`
 	Type       ReviewType
-	Pending    bool
 	Reviewer   *User  `xorm:"-"`
 	ReviewerID int64  `xorm:"index"`
 	Issue      *Issue `xorm:"-"`
@@ -85,4 +86,35 @@ func getReviewByID(e Engine, id int64) (*Review, error) {
 // GetReviewByID returns the review by the given ID
 func GetReviewByID(id int64) (*Review, error) {
 	return getReviewByID(x, id)
+}
+
+func getPendingReviewByReviewerID(e Engine, reviewer *User, issue *Issue) (review *Review, err error) {
+	var exists bool
+	if exists, err = e.Table("review").Where("reviewer_id = ? and issue_id = ? and type = ?", reviewer.ID, issue.ID, ReviewTypePending).
+		Get(review); !exists && err == nil {
+		return nil, nil
+	}
+	return
+}
+
+// GetPendingReviewByReviewer returns the latest pending review of reviewer at PR issue
+func GetPendingReviewByReviewer(reviewer *User, issue *Issue) (*Review, error) {
+	return getPendingReviewByReviewerID(x, reviewer, issue)
+}
+
+func createPendingReview(e Engine, reviewer *User, issue *Issue) (*Review, error) {
+	review := &Review{
+		Type:       ReviewTypePending,
+		Issue:      issue,
+		IssueID:    issue.ID,
+		Reviewer:   reviewer,
+		ReviewerID: reviewer.ID,
+	}
+	_, err := e.Insert(review)
+	return review, err
+}
+
+// CreatePendingReview creates an empty pending review
+func CreatePendingReview(reviewer *User, issue *Issue) (*Review, error) {
+	return createPendingReview(x, reviewer, issue)
 }
