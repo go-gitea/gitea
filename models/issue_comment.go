@@ -661,10 +661,11 @@ func GetCommentByID(id int64) (*Comment, error) {
 
 // FindCommentsOptions describes the conditions to Find comments
 type FindCommentsOptions struct {
-	RepoID  int64
-	IssueID int64
-	Since   int64
-	Type    CommentType
+	RepoID   int64
+	IssueID  int64
+	ReviewID int64
+	Since    int64
+	Type     CommentType
 }
 
 func (opts *FindCommentsOptions) toConds() builder.Cond {
@@ -674,6 +675,9 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	}
 	if opts.IssueID > 0 {
 		cond = cond.And(builder.Eq{"comment.issue_id": opts.IssueID})
+	}
+	if opts.ReviewID > 0 {
+		cond = cond.And(builder.Eq{"comment.review_id": opts.ReviewID})
 	}
 	if opts.Since > 0 {
 		cond = cond.And(builder.Gte{"comment.updated_unix": opts.Since})

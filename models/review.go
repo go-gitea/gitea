@@ -6,14 +6,15 @@ package models
 
 import "code.gitea.io/gitea/modules/util"
 
+// ReviewType defines the sort of feedback a review gives
 type ReviewType int
 
 const (
-	// Approving changes
+	// ReviewTypeApprove approves changes
 	ReviewTypeApprove ReviewType = iota
-	// General feedback
+	// ReviewTypeComment gives general feedback
 	ReviewTypeComment
-	// Feedback blocking merge
+	// ReviewTypeReject gives feedback blocking merge
 	ReviewTypeReject
 )
 
@@ -35,6 +36,41 @@ type Review struct {
 	CodeComments []*Comment `xorm:"-"`
 }
 
+func (r *Review) loadCodeComments(e Engine) (err error) {
+	r.CodeComments, err = findComments(e, FindCommentsOptions{IssueID: r.IssueID, ReviewID: r.ID})
+	return
+}
+
+// LoadCodeComments loads CodeComments
+func (r *Review) LoadCodeComments() error {
+	return r.loadCodeComments(x)
+}
+
+func (r *Review) loadIssue(e Engine) (err error) {
+	r.Issue, err = getIssueByID(e, r.IssueID)
+	return
+}
+
+func (r *Review) loadReviewer(e Engine) (err error) {
+	r.Reviewer, err = getUserByID(e, r.ReviewerID)
+	return
+}
+
+func (r *Review) loadAttributes(e Engine) (err error) {
+	if err = r.loadReviewer(e); err != nil {
+		return
+	}
+	if err = r.loadIssue(e); err != nil {
+		return
+	}
+	return
+}
+
+// LoadAttributes loads all attributes except CodeComments
+func (r *Review) LoadAttributes() error {
+	return r.loadAttributes(x)
+}
+
 func getReviewByID(e Engine, id int64) (*Review, error) {
 	review := new(Review)
 	if has, err := e.ID(id).Get(review); err != nil {
@@ -46,6 +82,7 @@ func getReviewByID(e Engine, id int64) (*Review, error) {
 	}
 }
 
+// GetReviewByID returns the review by the given ID
 func GetReviewByID(id int64) (*Review, error) {
 	return getReviewByID(x, id)
 }
