@@ -4,10 +4,16 @@
 
 package models
 
-import "code.gitea.io/gitea/modules/util"
+import (
+	"code.gitea.io/gitea/modules/util"
+	"github.com/go-xorm/builder"
+)
 
 // ReviewType defines the sort of feedback a review gives
 type ReviewType int
+
+// ReviewTypeUnknown unknown review type
+const ReviewTypeUnknown ReviewType = -1
 
 const (
 	// ReviewTypeApprove approves changes
@@ -88,33 +94,65 @@ func GetReviewByID(id int64) (*Review, error) {
 	return getReviewByID(x, id)
 }
 
-func getPendingReviewByReviewerID(e Engine, reviewer *User, issue *Issue) (review *Review, err error) {
-	var exists bool
-	if exists, err = e.Table("review").Where("reviewer_id = ? and issue_id = ? and type = ?", reviewer.ID, issue.ID, ReviewTypePending).
-		Get(review); !exists && err == nil {
-		return nil, nil
+// FindReviewOptions represent possible filters to find reviews
+type FindReviewOptions struct {
+	Type       ReviewType
+	IssueID    int64
+	ReviewerID int64
+}
+
+func (opts *FindReviewOptions) toCond() builder.Cond {
+	var cond = builder.NewCond()
+	if opts.IssueID > 0 {
+		cond = cond.And(builder.Eq{"issue_id": opts.IssueID})
 	}
-	return
+	if opts.ReviewerID > 0 {
+		cond = cond.And(builder.Eq{"reviewer_id": opts.ReviewerID})
+	}
+	if opts.Type != ReviewTypeUnknown {
+		cond = cond.And(builder.Eq{"type": opts.Type})
+	}
+	return cond
 }
 
-// GetPendingReviewByReviewer returns the latest pending review of reviewer at PR issue
-func GetPendingReviewByReviewer(reviewer *User, issue *Issue) (*Review, error) {
-	return getPendingReviewByReviewerID(x, reviewer, issue)
+func findReviews(e Engine, opts FindReviewOptions) ([]*Review, error) {
+	reviews := make([]*Review, 0, 10)
+	sess := e.Where(opts.toCond())
+	return reviews, sess.
+		Asc("created_unix").
+		Asc("id").
+		Find(&reviews)
 }
 
-func createPendingReview(e Engine, reviewer *User, issue *Issue) (*Review, error) {
+// FindReviews returns reviews passing FindReviewOptions
+func FindReviews(opts FindReviewOptions) ([]*Review, error) {
+	return findReviews(x, opts)
+}
+
+// CreateReviewOptions represent the options to create a review. Type, Issue and Reviewer are required.
+type CreateReviewOptions struct {
+	Content  string
+	Type     ReviewType
+	Issue    *Issue
+	Reviewer *User
+}
+
+func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 	review := &Review{
-		Type:       ReviewTypePending,
-		Issue:      issue,
-		IssueID:    issue.ID,
-		Reviewer:   reviewer,
-		ReviewerID: reviewer.ID,
+		Type:       opts.Type,
+		Issue:      opts.Issue,
+		IssueID:    opts.Issue.ID,
+		Reviewer:   opts.Reviewer,
+		ReviewerID: opts.Reviewer.ID,
+		Content:    opts.Content,
 	}
-	_, err := e.Insert(review)
-	return review, err
+	if _, err := e.Insert(review); err != nil {
+		return nil, err
+	}
+	return review, nil
 }
 
-// CreatePendingReview creates an empty pending review
-func CreatePendingReview(reviewer *User, issue *Issue) (*Review, error) {
-	return createPendingReview(x, reviewer, issue)
+// CreateReview creates a new review based on opts
+func CreateReview(opts CreateReviewOptions) (*Review, error) {
+	return createReview(x, opts)
 }

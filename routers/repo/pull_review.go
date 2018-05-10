@@ -42,7 +42,35 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 	if form.Side == "previous" {
 		signedLine *= -1
 	}
-	//FIXME check if line and treepath exist
+
+	review := new(models.Review)
+	if form.IsReview {
+		// Check if the user has already a pending review for this issue
+		reviews, err := models.FindReviews(models.FindReviewOptions{
+			ReviewerID: ctx.User.ID,
+			IssueID:    issue.ID,
+			Type:       models.ReviewTypePending,
+		})
+		if err != nil {
+			ctx.ServerError("CreateCodeComment", err)
+			return
+		}
+		if len(reviews) == 0 {
+			// Create a new pending review for this issue & user
+			if review, err = models.CreateReview(models.CreateReviewOptions{
+				Type:     models.ReviewTypePending,
+				Reviewer: ctx.User,
+				Issue:    issue,
+			}); err != nil {
+				ctx.ServerError("CreateCodeComment", err)
+				return
+			}
+		} else {
+			review = reviews[0]
+		}
+	}
+
+	//FIXME check if line, commit and treepath exist
 	var err error
 	comment, err = models.CreateCodeComment(
 		ctx.User,
@@ -52,31 +80,14 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 		form.Content,
 		form.TreePath,
 		signedLine,
+		review.ID,
 	)
 	if err != nil {
 		ctx.ServerError("CreateCodeComment", err)
 		return
 	}
-
-	if form.IsReview {
-		review, err := models.GetPendingReviewByReviewer(ctx.User, issue)
-		if err != nil {
-			ctx.ServerError("CreateCodeComment", err)
-			return
-		}
-		if review == nil {
-			if review, err = models.CreatePendingReview(ctx.User, issue); err != nil {
-				ctx.ServerError("CreateCodeComment", err)
-				return
-			}
-		}
-		comment.Review = review
-		comment.ReviewID = review.ID
-		if err = models.UpdateComment(comment); err != nil {
-			ctx.ServerError("CreateCodeComment", err)
-			return
-		}
-	} else {
+	// Send no notification if comment is pending
+	if !form.IsReview {
 		notification.Service.NotifyIssue(issue, ctx.User.ID)
 	}
 

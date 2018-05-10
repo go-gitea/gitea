@@ -360,6 +360,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		OldTitle:       opts.OldTitle,
 		NewTitle:       opts.NewTitle,
 		TreePath:       opts.TreePath,
+		ReviewID:       opts.ReviewID,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -579,6 +580,7 @@ type CreateCommentOptions struct {
 	CommitSHA      string
 	LineNum        int64
 	TreePath       string
+	ReviewID       int64
 	Content        string
 	Attachments    []string // UUIDs of attachments
 }
@@ -619,7 +621,7 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 }
 
 // CreateCodeComment creates a plain code comment at the specified line / path
-func CreateCodeComment(doer *User, repo *Repository, issue *Issue, commitSHA, content, treePath string, line int64) (*Comment, error) {
+func CreateCodeComment(doer *User, repo *Repository, issue *Issue, commitSHA, content, treePath string, line, reviewID int64) (*Comment, error) {
 	return CreateComment(&CreateCommentOptions{
 		Type:      CommentTypeCode,
 		Doer:      doer,
@@ -629,6 +631,7 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, commitSHA, co
 		LineNum:   line,
 		TreePath:  treePath,
 		CommitSHA: commitSHA,
+		ReviewID:  reviewID,
 	})
 }
 
