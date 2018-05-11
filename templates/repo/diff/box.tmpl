@@ -114,48 +114,18 @@
 															<a class="ui green button add-code-comment add-code-comment-right" data-side="right" data-idx="{{$line.RightIdx}}">+</a>
 															{{end}}
 														</td>
-													{{if index $.CodeComments $file.Name (mul $line.LeftIdx -1)}}
-														<td class="add-comment-left add-comment-right">
-															<div class="field comment-code-cloud">
-																<div class="comment-list">
-																	<ui class="ui comments">
-																	{{ template "repo/diff/comments" dict "root" $ "comments" (index $.CodeComments $file.Name (mul $line.LeftIdx -1))}}
-																	</ui>
-																</div>
-																<form class="ui form" action="/jonas/ggre/pulls/1/files/reviews/comments" method="post">
-																	<input name="_csrf" value="cvHYSIf3f6KNll956UBanD4Dy7c6MTUyNTk2MDkwNjg3NTcyMjY5OQ==" type="hidden">
-																	<input name="side" value="previous" type="hidden">
-																	<input name="line" value="2" type="hidden">
-																	<input name="path" value="README.md" type="hidden">
-																	<input name="commit_id" value="e324f1688f063d6fd9268fb8f02149c9eb1a867c" type="hidden">
-																	<input name="is_review" value="true" type="hidden">
-																	<input name="diff_start_cid" type="hidden">
-																	<input name="diff_end_cid" type="hidden">
-																	<input name="diff_base_cid" type="hidden">
-																	<div class="ui top attached tabular menu" data-write="write489406" data-preview="preview489406">
-																		<a class="item active" data-tab="write489406">Write</a>
-																		<a class="item" data-tab="preview489406" data-url="/api/v1/markdown" data-context="/jonas/ggre">Preview</a>
-																	</div>
-																	<div class="ui bottom attached tab segment active" data-tab="write489406">
-																		<div class="field">
-																			<textarea name="content" placeholder="Leave a comment"></textarea>
-																		</div>
-																	</div>
-																	<div class="ui bottom attached tab segment markdown" data-tab="preview489406"></div>
-																	<div class="footer">
-																		<span class="markdown-info"><i class="octicon octicon-markdown"></i> Styling with markdown is supported.</span>
-																		<div class="ui right floated">
-																			<div class="ui submit tiny basic button btn-cancel">Cancel</div>
-																			<div class="ui submit tiny basic button btn-add-single">Add single comment</div>
-																			<button type="submit" class="ui submit green tiny button btn-add-comment">Add comment</button>
-																			<div class="ui submit green tiny button btn-start-review">Start review</div>
-																		</div>
-																	</div>
-																</form>
-															</div>
-
-														</td>
-													{{end}}
+													    {{if index $.CodeComments $file.Name (mul $line.LeftIdx -1)}}
+														    <td class="add-comment-left add-comment-right">
+															    <div class="field comment-code-cloud">
+																    <div class="comment-list">
+																	    <ui class="ui comments">
+																	    {{ template "repo/diff/comments" dict "root" $ "comments" (index $.CodeComments $file.Name (mul $line.LeftIdx -1))}}
+																	    </ui>
+																    </div>
+															    {{template "repo/diff/comment_form" .}}
+															    </div>
+														    </td>
+													    {{end}}
 														<td class="lines-code lines-code-new halfwidth">
 															<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
 														</td>
