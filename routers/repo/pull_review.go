@@ -17,7 +17,6 @@ import (
 // CreateCodeComment will create a code comment including an pending review if required
 func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 	issue := GetActionIssue(ctx)
-
 	if !issue.IsPull {
 		return
 	}
@@ -87,4 +86,70 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 	}
 
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
+}
+
+// SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
+func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
+	issue := GetActionIssue(ctx)
+	if !issue.IsPull {
+		return
+	}
+	if ctx.Written() {
+		return
+	}
+	if ctx.HasError() {
+		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
+		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+		return
+	}
+	var review *models.Review
+	var err error
+	defer func() {
+		if review != nil {
+			comm, err := models.CreateComment(&models.CreateCommentOptions{
+				Type:     models.CommentTypeReview,
+				Doer:     ctx.User,
+				Content:  review.Content,
+				Issue:    issue,
+				Repo:     issue.Repo,
+				ReviewID: review.ID,
+			})
+			if err != nil || comm == nil {
+				ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+				return
+			}
+			ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()))
+		} else {
+			ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+		}
+	}()
+
+	reviewType := form.ReviewType()
+	if reviewType == models.ReviewTypeUnknown {
+		ctx.ServerError("GetCurrentReview", fmt.Errorf("unknown ReviewType: %s", form.Type))
+		return
+	}
+	review, err = models.GetCurrentReview(ctx.User, issue)
+	if err != nil {
+		if !models.IsErrReviewNotExist(err) {
+			ctx.ServerError("GetCurrentReview", err)
+			return
+		}
+		// No current review. Create a new one!
+		if review, err = models.CreateReview(models.CreateReviewOptions{
+			Type:     reviewType,
+			Issue:    issue,
+			Reviewer: ctx.User,
+			Content:  form.Content,
+		}); err != nil {
+			ctx.ServerError("CreateReview", err)
+			return
+		}
+		return
+	}
+	review.Content = form.Content
+	review.Type = reviewType
+	if err = models.UpdateReview(review); err != nil {
+		return
+	}
 }

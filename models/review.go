@@ -27,6 +27,21 @@ const (
 	ReviewTypeReject
 )
 
+// Icon returns the corresponding icon for the review type
+func (rt ReviewType) Icon() string {
+	switch rt {
+	case ReviewTypeApprove:
+		return "eye"
+	case ReviewTypeReject:
+		return "x"
+	default:
+	case ReviewTypeComment:
+	case ReviewTypeUnknown:
+		return "comment"
+	}
+	return "comment"
+}
+
 // Review represents collection of code comments giving feedback for a PR
 type Review struct {
 	ID         int64 `xorm:"pk autoincr"`
@@ -176,4 +191,12 @@ func getCurrentReview(e Engine, reviewer *User, issue *Issue) (*Review, error) {
 // GetCurrentReview returns the current pending review of reviewer for given issue
 func GetCurrentReview(reviewer *User, issue *Issue) (*Review, error) {
 	return getCurrentReview(x, reviewer, issue)
+}
+
+// UpdateReview will update all cols of the given review in db
+func UpdateReview(r *Review) error {
+	if _, err := x.ID(r.ID).AllCols().Update(r); err != nil {
+		return err
+	}
+	return nil
 }

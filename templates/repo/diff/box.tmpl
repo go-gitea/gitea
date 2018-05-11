@@ -122,7 +122,7 @@
 																	    {{ template "repo/diff/comments" dict "root" $ "comments" (index $.CodeComments $file.Name (mul $line.LeftIdx -1))}}
 																	    </ui>
 																    </div>
-															    {{template "repo/diff/comment_form" .}}
+															    {{template "repo/diff/comment_form" $}}
 															    </div>
 														    </td>
 													    {{end}}

@@ -639,6 +639,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ViewPullFiles)
 				m.Group("/reviews", func() {
 					m.Post("/comments", bindIgnErr(auth.CodeCommentForm{}), repo.CreateCodeComment)
+					m.Post("/submit", bindIgnErr(auth.SubmitReviewForm{}), repo.SubmitReview)
 				})
 			})
 		}, repo.MustAllowPulls)
