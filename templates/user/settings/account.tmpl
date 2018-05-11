@@ -77,7 +77,7 @@
 				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{.i18n.Tr "settings.add_new_email"}}</label>
-					<input id="email" name="email" type="email" autofocus required>
+					<input id="email" name="email" type="email" required>
 				</div>
 				<button class="ui green button">
 					{{.i18n.Tr "settings.add_email"}}
@@ -97,7 +97,7 @@
 				<input class="fake" type="password">
 				<div class="required field {{if .Err_Password}}error{{end}}">
 					<label for="password-confirmation">{{.i18n.Tr "password"}}</label>
-					<input id="password-confirmation" name="password" type="password" autofocus required>
+					<input id="password-confirmation" name="password" type="password" required>
 				</div>
 				<div class="field">
 					<div class="ui red button delete-button" id="delete-account" data-type="form" data-form="#delete-form">
