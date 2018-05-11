@@ -2,7 +2,9 @@
 ; Copy required sections to your own app.ini (default is custom/conf/app.ini)
 ; and modify as needed.
 
-; App name that shows on every page title
+; see https://docs.gitea.io/en-us/config-cheat-sheet/ for additional documentation.
+
+; App name that shows in every page title
 APP_NAME = Gitea: Git with a cup of tea
 ; Change it if you run locally
 RUN_USER = git
@@ -16,28 +18,28 @@ SCRIPT_TYPE = bash
 ANSI_CHARSET =
 ; Force every new repository to be private
 FORCE_PRIVATE = false
-; Default private when create a new repository, could be: last, private, public. Default is last which means last user repo visiblity.
+; Default privacy setting when creating a new repository, allowed values: last, private, public. Default is last which means the last setting used.
 DEFAULT_PRIVATE = last
-; Global maximum creation limit of repository per user, -1 means no limit
+; Global limit of repositories per user, applied at creation time. -1 means no limit
 MAX_CREATION_LIMIT = -1
 ; Mirror sync queue length, increase if mirror syncing starts hanging
 MIRROR_QUEUE_LENGTH = 1000
 ; Patch test queue length, increase if pull request patch testing starts hanging
 PULL_REQUEST_QUEUE_LENGTH = 1000
 ; Preferred Licenses to place at the top of the List
-; Name must match file name in conf/license or custom/conf/license
+; The name here must match the filename in conf/license or custom/conf/license
 PREFERRED_LICENSES = Apache License 2.0,MIT License
-; Disable ability to interact with repositories by HTTP protocol
+; Disable the ability to interact with repositories using the HTTP protocol
 DISABLE_HTTP_GIT = false
 ; Force ssh:// clone url instead of scp-style uri when default SSH port is used
 USE_COMPAT_SSH_URI = false
 
 [repository.editor]
-; List of file extensions that should have line wraps in the CodeMirror editor
-; Separate extensions with a comma. To line wrap files w/o extension, just put a comma
+; List of file extensions for which lines should be wrapped in the CodeMirror editor
+; Separate extensions with a comma. To line wrap files without an extension, just put a comma
 LINE_WRAP_EXTENSIONS = .txt,.md,.markdown,.mdown,.mkd,
 ; Valid file modes that have a preview API associated with them, such as api/v1/markdown
-; Separate values by commas. Preview tab in edit mode won't show if the file extension doesn't match
+; Separate the values by commas. The preview tab in edit mode won't be displayed if the file extension doesn't match
 PREVIEWABLE_FILE_MODES = markdown
 
 [repository.local]
@@ -53,39 +55,39 @@ ENABLED = true
 TEMP_PATH = data/tmp/uploads
 ; One or more allowed types, e.g. image/jpeg|image/png. Nothing means any file type
 ALLOWED_TYPES =
-; Max size of each file in MB. Defaults to 3MB
+; Max size of each file in megabytes. Defaults to 3MB
 FILE_MAX_SIZE = 3
 ; Max number of files per upload. Defaults to 5
 MAX_FILES = 5
 
 [ui]
-; Number of repositories that are showed in one explore page
+; Number of repositories that are displayed on one explore page
 EXPLORE_PAGING_NUM = 20
-; Number of issues that are showed in one page
+; Number of issues that are displayed on one page
 ISSUE_PAGING_NUM = 10
-; Number of maximum commits showed in one activity feed
+; Number of maximum commits displayed in one activity feed
 FEED_MAX_COMMIT_NUM = 5
 ; Value of `theme-color` meta tag, used by Android >= 5.0
 ; An invalid color like "none" or "disable" will have the default style
 ; More info: https://developers.google.com/web/updates/2014/11/Support-for-theme-color-in-Chrome-39-for-Android
 THEME_COLOR_META_TAG = `#6cc644`
-; Max size of files to be displayed (defaults is 8MiB)
+; Max size of files to be displayed (default is 8MiB)
 MAX_DISPLAY_FILE_SIZE = 8388608
-; Whether show the user email in the Explore Users page
+; Whether the email of the user should be shown in the Explore Users page
 SHOW_USER_EMAIL = true
 
 [ui.admin]
-; Number of users that are showed in one page
+; Number of users that are displayed on one page
 USER_PAGING_NUM = 50
-; Number of repos that are showed in one page
+; Number of repos that are displayed on one page
 REPO_PAGING_NUM = 50
-; Number of notices that are showed in one page
+; Number of notices that are displayed on in one page
 NOTICE_PAGING_NUM = 25
-; Number of organization that are showed in one page
+; Number of organizations that are displayed on one page
 ORG_PAGING_NUM = 50
 
 [ui.user]
-; Number of repos that are showed in one page
+; Number of repos that are displayed on one page
 REPO_PAGING_NUM = 15
 
 [ui.meta]
@@ -100,19 +102,19 @@ ENABLE_HARD_LINE_BREAK = false
 ; for example git,magnet
 CUSTOM_URL_SCHEMES =
 ; List of file extensions that should be rendered/edited as Markdown
-; Separate extensions with a comma. To render files w/o extension as markdown, just put a comma
+; Separate the extensions with a comma. To render files without any extension as markdown, just put a comma
 FILE_EXTENSIONS = .md,.markdown,.mdown,.mkd
 
 [server]
-; Listen protocol. One of 'http', 'https', 'unix' or 'fcgi'.
+; The protocol the server listens on. One of 'http', 'https', 'unix' or 'fcgi'.
 PROTOCOL = http
 DOMAIN = localhost
 ROOT_URL = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
-; Listen address. Either a IPv4/IPv6 address or the path to a unix socket.
+; The address to listen on. Either a IPv4/IPv6 address or the path to a unix socket.
 HTTP_ADDR = 0.0.0.0
 HTTP_PORT = 3000
 ; If REDIRECT_OTHER_PORT is true, and PROTOCOL is set to https an http server
-; will be started on PORT_TO_REDIRECT and redirect request to the main
+; will be started on PORT_TO_REDIRECT and it will redirect plain, non-secure http requests to the main
 ; ROOT_URL.  Defaults are false for REDIRECT_OTHER_PORT and 80 for
 ; PORT_TO_REDIRECT.
 REDIRECT_OTHER_PORT = false
@@ -125,33 +127,33 @@ UNIX_SOCKET_PERMISSION = 666
 LOCAL_ROOT_URL = %(PROTOCOL)s://%(HTTP_ADDR)s:%(HTTP_PORT)s/
 ; Disable SSH feature when not available
 DISABLE_SSH = false
-; Whether use builtin SSH server or not.
+; Whether to use the builtin SSH server or not.
 START_SSH_SERVER = false
-; Username to use for builtin SSH server. If blank, then it is the value of RUN_USER.
+; Username to use for the builtin SSH server. If blank, then it is the value of RUN_USER.
 BUILTIN_SSH_SERVER_USER =
 ; Domain name to be exposed in clone URL
 SSH_DOMAIN = %(DOMAIN)s
-; Network interface builtin SSH server listens on
+; THe network interface the builtin SSH server should listen on
 SSH_LISTEN_HOST =
 ; Port number to be exposed in clone URL
 SSH_PORT = 22
-; Port number builtin SSH server listens on
+; The port number the builtin SSH server should listen on
 SSH_LISTEN_PORT = %(SSH_PORT)s
 ; Root path of SSH directory, default is '~/.ssh', but you have to use '/home/git/.ssh'.
 SSH_ROOT_PATH =
-; For built-in SSH server only, choose the ciphers to support for SSH connections,
+; For the built-in SSH server, choose the ciphers to support for SSH connections,
 ; for system SSH this setting has no effect
 SSH_SERVER_CIPHERS = aes128-ctr, aes192-ctr, aes256-ctr, aes128-gcm@openssh.com, arcfour256, arcfour128
-; For built-in SSH server only, choose the key exchange algorithms to support for SSH connections,
+; For the built-in SSH server, choose the key exchange algorithms to support for SSH connections,
 ; for system SSH this setting has no effect
 SSH_SERVER_KEY_EXCHANGES = diffie-hellman-group1-sha1, diffie-hellman-group14-sha1, ecdh-sha2-nistp256, ecdh-sha2-nistp384, ecdh-sha2-nistp521, curve25519-sha256@libssh.org
-; For built-in SSH server only, choose the MACs to support for SSH connections,
+; For the built-in SSH server, choose the MACs to support for SSH connections,
 ; for system SSH this setting has no effect
 SSH_SERVER_MACS = hmac-sha2-256-etm@openssh.com, hmac-sha2-256, hmac-sha1, hmac-sha1-96
-; Directory to create temporary files when test public key using ssh-keygen,
-; default is system temporary directory.
+; Directory to create temporary files in when testing public keys using ssh-keygen,
+; default is the system temporary directory.
 SSH_KEY_TEST_PATH =
-; Path to ssh-keygen, default is 'ssh-keygen' and let shell find out which one to call.
+; Path to ssh-keygen, default is 'ssh-keygen' which means the shell is responsible for finding out which one to call.
 SSH_KEYGEN_PATH = ssh-keygen
 ; Enable SSH Authorized Key Backup when rewriting all keys, default is true
 SSH_BACKUP_AUTHORIZED_KEYS = true
@@ -171,7 +173,7 @@ DISABLE_ROUTER_LOG = false
 ; $ openssl pkcs12 -in cert.pfx -out key.pem -nocerts -nodes
 CERT_FILE = custom/https/cert.pem
 KEY_FILE = custom/https/key.pem
-; Upper level of template and static file path
+; Root directory containing templates and static files.
 ; default is the path where Gitea is executed
 STATIC_ROOT_PATH =
 ; Default path for App data
@@ -182,9 +184,9 @@ ENABLE_GZIP = false
 LANDING_PAGE = home
 ; Enables git-lfs support. true or false, default is false.
 LFS_START_SERVER = false
-; Where your lfs files put on, default is data/lfs.
+; Where your lfs files reside, default is data/lfs.
 LFS_CONTENT_PATH = data/lfs
-; LFS authentication secret, changed this to yourself.
+; LFS authentication secret, change this yourself
 LFS_JWT_SECRET =
 
 ; Define allowed algorithms and their minimum key length (use -1 to disable a type)
@@ -204,7 +206,7 @@ USER = root
 PASSWD =
 ; For "postgres" only, either "disable", "require" or "verify-full"
 SSL_MODE = disable
-; For "sqlite3" and "tidb", use absolute path when you start as service
+; For "sqlite3" and "tidb", use absolute path when you start gitea as service
 PATH = data/gitea.db
 ; For "sqlite3" only. Query timeout
 SQLITE_TIMEOUT = 500
@@ -222,7 +224,7 @@ UPDATE_BUFFER_LEN = 20
 MAX_FILE_SIZE = 1048576
 
 [admin]
-; Disable regular (non-admin) users to create organizations
+; Disallow regular (non-admin) users from creating organizations.
 DISABLE_REGULAR_ORG_CREATION = false
 
 [security]
@@ -230,13 +232,13 @@ DISABLE_REGULAR_ORG_CREATION = false
 INSTALL_LOCK = false
 ; !!CHANGE THIS TO KEEP YOUR USER DATA SAFE!!
 SECRET_KEY = !#@FDEWREWR&*(
-; Auto-login remember days
+; How long to remember that an user is logged in before requiring relogin (in days)
 LOGIN_REMEMBER_DAYS = 7
 COOKIE_USERNAME = gitea_awesome
 COOKIE_REMEMBER_NAME = gitea_incredible
 ; Reverse proxy authentication header name of user name
 REVERSE_PROXY_AUTHENTICATION_USER = X-WEBAUTH-USER
-; Sets the minimum password length for new Users
+; The minimum password length for new Users
 MIN_PASSWORD_LENGTH = 6
 ; True when users are allowed to import local server paths
 IMPORT_LOCAL_PATHS = false
@@ -245,7 +247,7 @@ DISABLE_GIT_HOOKS = false
 
 [openid]
 ;
-; OpenID is an open standard and decentralized authentication protocol.
+; OpenID is an open, standard and decentralized authentication protocol.
 ; Your identity is the address of a webpage you provide, which describes
 ; how to prove you are in control of that page.
 ;
@@ -264,7 +266,7 @@ DISABLE_GIT_HOOKS = false
 ; Whether to allow signin in via OpenID
 ENABLE_OPENID_SIGNIN = true
 ; Whether to allow registering via OpenID
-; Do not include to rely on DISABLE_REGISTRATION setting
+; Do not include to rely on rhw DISABLE_REGISTRATION setting
 ;ENABLE_OPENID_SIGNUP = true
 ; Allowed URI patterns (POSIX regexp).
 ; Space separated.
@@ -280,11 +282,11 @@ BLACKLISTED_URIS =
 [service]
 ; Time limit to confirm account/email registration
 ACTIVE_CODE_LIVE_MINUTES = 180
-; Time limit to confirm forgot password reset process
+; Time limit to perform the reset of a forgotten password
 RESET_PASSWD_CODE_LIVE_MINUTES = 180
-; User need to confirm e-mail for registration
+; Whether a new user needs to confirm their email when registering.
 REGISTER_EMAIL_CONFIRM = false
-; Does not allow register and admin create account only
+; Disallow registration, only allow admins to create accounts.
 DISABLE_REGISTRATION = false
 ; User must sign in to view anything.
 REQUIRE_SIGNIN_VIEW = false
@@ -296,10 +298,10 @@ ENABLE_REVERSE_PROXY_AUTO_REGISTRATION = false
 ; Enable captcha validation for registration
 ENABLE_CAPTCHA = true
 ; Default value for KeepEmailPrivate
-; New user will get the value of this setting copied into their profile
+; Each new user will get the value of this setting copied into their profile
 DEFAULT_KEEP_EMAIL_PRIVATE = false
 ; Default value for AllowCreateOrganization
-; New user will have rights set to create organizations depending on this setting
+; Every new user will have rights set to create organizations depending on this setting
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Enable Timetracking
 ENABLE_TIMETRACKING = true
@@ -307,10 +309,10 @@ ENABLE_TIMETRACKING = true
 ; Repositories will use timetracking by default depending on this setting
 DEFAULT_ENABLE_TIMETRACKING = true
 ; Default value for AllowOnlyContributorsToTrackTime
-; Only users with write permissions could track time if this is true
+; Only users with write permissions can track time if this is true
 DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME = true
 ; Default value for the domain part of the user's email address in the git log
-; if he has set KeepEmailPrivate true. The user's email replaced with a
+; if he has set KeepEmailPrivate to true. The user's email will be replaced with a
 ; concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
 NO_REPLY_ADDRESS = noreply.example.org
 
@@ -335,9 +337,9 @@ SUBJECT = %(APP_NAME)s
 ; QQ: smtp.qq.com:465
 ; Note, if the port ends with "465", SMTPS will be used. Using STARTTLS on port 587 is recommended per RFC 6409. If the server supports STARTTLS it will always be used.
 HOST =
-; Disable HELO operation when hostname are different.
+; Disable HELO operation when hostnames are different.
 DISABLE_HELO =
-; Custom hostname for HELO operation, default is from system.
+; Custom hostname for HELO operation, if no value is provided, one is retrieved from system.
 HELO_HOSTNAME =
 ; Do not verify the certificate of the server. Only use this for self-signed certificates
 SKIP_VERIFY =
@@ -377,7 +379,7 @@ ITEM_TTL = 16h
 ; Either "memory", "file", or "redis", default is "memory"
 PROVIDER = memory
 ; Provider config options
-; memory: not have any config yet
+; memory: doesn't have any config yet
 ; file: session file path, e.g. `data/sessions`
 ; redis: network=tcp,addr=:6379,password=macaron,db=0,pool_size=100,idle_timeout=180
 ; mysql: go-sql-driver/mysql dsn config string, e.g. `root:password@/session_table`
@@ -398,11 +400,11 @@ AVATAR_UPLOAD_PATH = data/avatars
 ; Chinese users can choose "duoshuo"
 ; or a custom avatar source, like: http://cn.gravatar.com/avatar/
 GRAVATAR_SOURCE = gravatar
-; This value will be forced to be true in offline mode.
+; This value will always be true in offline mode.
 DISABLE_GRAVATAR = false
 ; Federated avatar lookup uses DNS to discover avatar associated
 ; with emails, see https://www.libravatar.org
-; This value will be forced to be false in offline mode or Gravatar is disabled.
+; This value will always be false in offline mode or when Gravatar is disabled.
 ENABLE_FEDERATED_AVATAR = false
 
 [attachment]
@@ -412,9 +414,9 @@ ENABLE = true
 PATH = data/attachments
 ; One or more allowed types, e.g. image/jpeg|image/png
 ALLOWED_TYPES = image/jpeg|image/png|application/zip|application/gzip
-; Max size of each file. Defaults to 32MB
+; Max size of each file. Defaults to 4MB
 MAX_SIZE = 4
-; Max number of files per upload. Defaults to 10
+; Max number of files per upload. Defaults to 5
 MAX_FILES = 5
 
 [time]
@@ -428,7 +430,7 @@ ROOT_PATH =
 ; Either "console", "file", "conn", "smtp" or "database", default is "console"
 ; Use comma to separate multiple modes, e.g. "console, file"
 MODE = console
-; Buffer length of channel, keep it as it is if you don't know what it is.
+; Buffer length of the channel, keep it as it is if you don't know what it is.
 BUFFER_LEN = 10000
 ; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "Trace"
 LEVEL = Trace
@@ -442,13 +444,13 @@ LEVEL =
 LEVEL =
 ; This enables automated log rotate(switch of following options), default is true
 LOG_ROTATE = true
-; Max line number of single file, default is 1000000
+; Max number of lines in a single file, default is 1000000
 MAX_LINES = 1000000
-; Max size shift of single file, default is 28 means 1 << 28, 256MB
+; Max size shift of a single file, default is 28 means 1 << 28, 256MB
 MAX_SIZE_SHIFT = 28
 ; Segment log daily, default is true
 DAILY_ROTATE = true
-; Expired days of log file(delete after max days), default is 7
+; delete the log file after n days, default is 7
 MAX_DAYS = 7
 
 ; For "conn" mode only
@@ -532,9 +534,9 @@ UPDATE_EXISTING = true
 [git]
 ; Disables highlight of added and removed changes
 DISABLE_DIFF_HIGHLIGHT = false
-; Max number of lines allowed of a single file in diff view
+; Max number of lines allowed in a single file in diff view
 MAX_GIT_DIFF_LINES = 1000
-; Max number of characters of a line allowed in diff view
+; Max number of allowed characters in a line in diff view
 MAX_GIT_DIFF_LINE_CHARACTERS = 5000
 ; Max number of files shown in diff view
 MAX_GIT_DIFF_FILES = 100
@@ -559,7 +561,7 @@ MIN_INTERVAL = 10m
 [api]
 ; Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
 ENABLE_SWAGGER_ENDPOINT = true
-; Max number of items will response in a page
+; Max number of items in a page
 MAX_RESPONSE_ITEMS = 50
 
 [i18n]
@@ -598,7 +600,7 @@ ko-KR = ko
 SHOW_FOOTER_BRANDING = false
 ; Show version information about Gitea and Go in the footer
 SHOW_FOOTER_VERSION = true
-; Show time of template execution in the footer
+; Show template execution time in the footer
 SHOW_FOOTER_TEMPLATE_LOAD_TIME = true
 
 [markup.asciidoc]
@@ -607,5 +609,5 @@ ENABLED = false
 FILE_EXTENSIONS = .adoc,.asciidoc
 ; External command to render all matching extensions
 RENDER_COMMAND = "asciidoc --out-file=- -"
-; Input is not a standard input but a file
+; Don't pass the file on STDIN, pass the filename as argument instead.
 IS_INPUT_FILE = false

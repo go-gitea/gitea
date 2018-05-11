@@ -60,6 +60,12 @@ const (
 	CommentTypeAddTimeManual
 	// Cancel a stopwatch for time tracking
 	CommentTypeCancelTracking
+	// Added a due date
+	CommentTypeAddedDeadline
+	// Modified the due date
+	CommentTypeModifiedDeadline
+	// Removed a due date
+	CommentTypeRemovedDeadline
 )
 
 // CommentTag defines comment tag type
@@ -75,23 +81,22 @@ const (
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID             int64 `xorm:"pk autoincr"`
-	Type           CommentType
-	PosterID       int64 `xorm:"INDEX"`
-	Poster         *User `xorm:"-"`
-	IssueID        int64 `xorm:"INDEX"`
-	LabelID        int64
-	Label          *Label `xorm:"-"`
-	OldMilestoneID int64
-	MilestoneID    int64
-	OldMilestone   *Milestone `xorm:"-"`
-	Milestone      *Milestone `xorm:"-"`
-	OldAssigneeID  int64
-	AssigneeID     int64
-	Assignee       *User `xorm:"-"`
-	OldAssignee    *User `xorm:"-"`
-	OldTitle       string
-	NewTitle       string
+	ID              int64 `xorm:"pk autoincr"`
+	Type            CommentType
+	PosterID        int64 `xorm:"INDEX"`
+	Poster          *User `xorm:"-"`
+	IssueID         int64 `xorm:"INDEX"`
+	LabelID         int64
+	Label           *Label `xorm:"-"`
+	OldMilestoneID  int64
+	MilestoneID     int64
+	OldMilestone    *Milestone `xorm:"-"`
+	Milestone       *Milestone `xorm:"-"`
+	AssigneeID      int64
+	RemovedAssignee bool
+	Assignee        *User `xorm:"-"`
+	OldTitle        string
+	NewTitle        string
 
 	CommitID        int64
 	Line            int64
@@ -241,18 +246,9 @@ func (c *Comment) LoadMilestone() error {
 	return nil
 }
 
-// LoadAssignees if comment.Type is CommentTypeAssignees, then load assignees
-func (c *Comment) LoadAssignees() error {
+// LoadAssigneeUser if comment.Type is CommentTypeAssignees, then load assignees
+func (c *Comment) LoadAssigneeUser() error {
 	var err error
-	if c.OldAssigneeID > 0 {
-		c.OldAssignee, err = getUserByID(x, c.OldAssigneeID)
-		if err != nil {
-			if !IsErrUserNotExist(err) {
-				return err
-			}
-			c.OldAssignee = NewGhostUser()
-		}
-	}
 
 	if c.AssigneeID > 0 {
 		c.Assignee, err = getUserByID(x, c.AssigneeID)
@@ -318,21 +314,21 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		LabelID = opts.Label.ID
 	}
 	comment := &Comment{
-		Type:           opts.Type,
-		PosterID:       opts.Doer.ID,
-		Poster:         opts.Doer,
-		IssueID:        opts.Issue.ID,
-		LabelID:        LabelID,
-		OldMilestoneID: opts.OldMilestoneID,
-		MilestoneID:    opts.MilestoneID,
-		OldAssigneeID:  opts.OldAssigneeID,
-		AssigneeID:     opts.AssigneeID,
-		CommitID:       opts.CommitID,
-		CommitSHA:      opts.CommitSHA,
-		Line:           opts.LineNum,
-		Content:        opts.Content,
-		OldTitle:       opts.OldTitle,
-		NewTitle:       opts.NewTitle,
+		Type:            opts.Type,
+		PosterID:        opts.Doer.ID,
+		Poster:          opts.Doer,
+		IssueID:         opts.Issue.ID,
+		LabelID:         LabelID,
+		OldMilestoneID:  opts.OldMilestoneID,
+		MilestoneID:     opts.MilestoneID,
+		RemovedAssignee: opts.RemovedAssignee,
+		AssigneeID:      opts.AssigneeID,
+		CommitID:        opts.CommitID,
+		CommitSHA:       opts.CommitSHA,
+		Line:            opts.LineNum,
+		Content:         opts.Content,
+		OldTitle:        opts.OldTitle,
+		NewTitle:        opts.NewTitle,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -418,7 +414,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	}
 
 	// update the issue's updated_unix column
-	if err = updateIssueCols(e, opts.Issue); err != nil {
+	if err = updateIssueCols(e, opts.Issue, "updated_unix"); err != nil {
 		return nil, err
 	}
 
@@ -474,14 +470,42 @@ func createMilestoneComment(e *xorm.Session, doer *User, repo *Repository, issue
 	})
 }
 
-func createAssigneeComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldAssigneeID, assigneeID int64) (*Comment, error) {
+func createAssigneeComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, assigneeID int64, removedAssignee bool) (*Comment, error) {
 	return createComment(e, &CreateCommentOptions{
-		Type:          CommentTypeAssignees,
-		Doer:          doer,
-		Repo:          repo,
-		Issue:         issue,
-		OldAssigneeID: oldAssigneeID,
-		AssigneeID:    assigneeID,
+		Type:            CommentTypeAssignees,
+		Doer:            doer,
+		Repo:            repo,
+		Issue:           issue,
+		RemovedAssignee: removedAssignee,
+		AssigneeID:      assigneeID,
+	})
+}
+
+func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix util.TimeStamp) (*Comment, error) {
+
+	var content string
+	var commentType CommentType
+
+	// newDeadline = 0 means deleting
+	if newDeadlineUnix == 0 {
+		commentType = CommentTypeRemovedDeadline
+		content = issue.DeadlineUnix.Format("2006-01-02")
+	} else if issue.DeadlineUnix == 0 {
+		// Check if the new date was added or modified
+		// If the actual deadline is 0 => deadline added
+		commentType = CommentTypeAddedDeadline
+		content = newDeadlineUnix.Format("2006-01-02")
+	} else { // Otherwise modified
+		commentType = CommentTypeModifiedDeadline
+		content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
+	}
+
+	return createComment(e, &CreateCommentOptions{
+		Type:    commentType,
+		Doer:    doer,
+		Repo:    issue.Repo,
+		Issue:   issue,
+		Content: content,
 	})
 }
 
@@ -514,17 +538,17 @@ type CreateCommentOptions struct {
 	Issue *Issue
 	Label *Label
 
-	OldMilestoneID int64
-	MilestoneID    int64
-	OldAssigneeID  int64
-	AssigneeID     int64
-	OldTitle       string
-	NewTitle       string
-	CommitID       int64
-	CommitSHA      string
-	LineNum        int64
-	Content        string
-	Attachments    []string // UUIDs of attachments
+	OldMilestoneID  int64
+	MilestoneID     int64
+	AssigneeID      int64
+	RemovedAssignee bool
+	OldTitle        string
+	NewTitle        string
+	CommitID        int64
+	CommitSHA       string
+	LineNum         int64
+	Content         string
+	Attachments     []string // UUIDs of attachments
 }
 
 // CreateComment creates comment of issue or commit.

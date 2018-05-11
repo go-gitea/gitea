@@ -5,11 +5,11 @@
 package repo
 
 import (
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-
 	api "code.gitea.io/sdk/gitea"
 )
 
@@ -80,6 +80,62 @@ func GetHook(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(200, convert.ToHook(repo.RepoLink, hook))
+}
+
+// TestHook tests a hook
+func TestHook(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/hooks/{id}/tests repository repoTestHook
+	// ---
+	// summary: Test a push webhook
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the hook to test
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	if ctx.Repo.Commit == nil {
+		// if repo does not have any commits, then don't send a webhook
+		ctx.Status(204)
+		return
+	}
+
+	hookID := ctx.ParamsInt64(":id")
+	hook, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID)
+	if err != nil {
+		return
+	}
+
+	if err := models.PrepareWebhook(hook, ctx.Repo.Repository, models.HookEventPush, &api.PushPayload{
+		Ref:    git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
+		Before: ctx.Repo.Commit.ID.String(),
+		After:  ctx.Repo.Commit.ID.String(),
+		Commits: []*api.PayloadCommit{
+			convert.ToCommit(ctx.Repo.Repository, ctx.Repo.Commit),
+		},
+		Repo:   ctx.Repo.Repository.APIFormat(models.AccessModeNone),
+		Pusher: ctx.User.APIFormat(),
+		Sender: ctx.User.APIFormat(),
+	}); err != nil {
+		ctx.Error(500, "PrepareWebhook: ", err)
+		return
+	}
+	go models.HookQueue.Add(ctx.Repo.Repository.ID)
+	ctx.Status(204)
 }
 
 // CreateHook create a hook for a repository

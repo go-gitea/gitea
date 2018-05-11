@@ -22,6 +22,8 @@ type User struct {
 	Email string `json:"email"`
 	// URL to the user's avatar
 	AvatarURL string `json:"avatar_url"`
+	// User locale
+	Language string `json:"language"`
 }
 
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility

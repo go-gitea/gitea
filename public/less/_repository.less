@@ -119,8 +119,11 @@
         }
         .octicon {
             float: left;
-            margin-left: -5px;
-            margin-right: -7px;
+            margin: 5px -7px 0 -5px;
+            width: 16px;
+        }
+        .text{
+          margin-left: 0.9em;
         }
         .menu {
             max-height: 300px;
@@ -237,7 +240,8 @@
                     &.octicon-mail-reply {
                         margin-right: 10px;
                     }
-                    &.octicon-file-directory, &.octicon-file-submodule {
+                    &.octicon-file-directory, &.octicon-file-submodule,
+                    &.octicon-file-symlink-directory {
                         color: #1e70bf;
                     }
                 }
@@ -1543,6 +1547,9 @@
             .assignee {
                 margin-top: -5px;
                 margin-right: 5px;
+            }
+            .overdue{
+              color: red;
             }
         }
     }

@@ -109,6 +109,7 @@ type UpdateProfileForm struct {
 	KeepEmailPrivate bool
 	Website          string `binding:"ValidUrl;MaxSize(255)"`
 	Location         string `binding:"MaxSize(50)"`
+	Language         string `binding:"Size(5)"`
 }
 
 // Validate validates the fields

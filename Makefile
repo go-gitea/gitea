@@ -91,6 +91,15 @@ generate-swagger:
 	fi
 	swagger generate spec -o ./public/swagger.v1.json
 
+.PHONY: swagger-check
+swagger-check: generate-swagger
+	@diff=$$(git diff public/swagger.v1.json); \
+	if [ -n "$$diff" ]; then \
+		echo "Please run 'make generate-swagger' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi;
+
 .PHONY: errcheck
 errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
@@ -283,12 +292,12 @@ stylesheets-check: generate-stylesheets
 
 .PHONY: generate-stylesheets
 generate-stylesheets:
-	node_modules/.bin/lessc --no-ie-compat --clean-css public/less/index.less public/css/index.css
+	node_modules/.bin/lessc --clean-css public/less/index.less public/css/index.css
 
 .PHONY: swagger-ui
 swagger-ui:
 	rm -Rf public/vendor/assets/swagger-ui
-	git clone --depth=10 -b v3.3.2 --single-branch https://github.com/swagger-api/swagger-ui.git $(TMPDIR)/swagger-ui
+	git clone --depth=10 -b v3.13.4 --single-branch https://github.com/swagger-api/swagger-ui.git $(TMPDIR)/swagger-ui
 	mv $(TMPDIR)/swagger-ui/dist public/vendor/assets/swagger-ui
 	rm -Rf $(TMPDIR)/swagger-ui
 	$(SED_INPLACE) "s;http://petstore.swagger.io/v2/swagger.json;../../../swagger.v1.json;g" public/vendor/assets/swagger-ui/index.html

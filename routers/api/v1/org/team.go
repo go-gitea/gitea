@@ -123,13 +123,10 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Team"
-	team := &models.Team{
-		ID:          ctx.Org.Team.ID,
-		OrgID:       ctx.Org.Team.OrgID,
-		Name:        form.Name,
-		Description: form.Description,
-		Authorize:   models.ParseAccessMode(form.Permission),
-	}
+	team := ctx.Org.Team
+	team.Name = form.Name
+	team.Description = form.Description
+	team.Authorize = models.ParseAccessMode(form.Permission)
 	if err := models.UpdateTeam(team, true); err != nil {
 		ctx.Error(500, "EditTeam", err)
 		return

@@ -179,81 +179,115 @@ function initCommentForm() {
     initBranchSelector();
     initCommentPreviewTab($('.comment.form'));
 
-    // Labels
-    var $list = $('.ui.labels.list');
-    var $noSelect = $list.find('.no-select');
-    var $labelMenu = $('.select-label .menu');
-    var hasLabelUpdateAction = $labelMenu.data('action') == 'update';
+    // Listsubmit
+    function initListSubmits(selector, outerSelector) {
+        var $list = $('.ui.' + outerSelector + '.list');
+        var $noSelect = $list.find('.no-select');
+        var $listMenu = $('.' + selector + ' .menu');
+        var hasLabelUpdateAction = $listMenu.data('action') == 'update';
 
-    $('.select-label').dropdown('setting', 'onHide', function(){
-        if (hasLabelUpdateAction) {
-            location.reload();
-        }
-    });
-
-    $labelMenu.find('.item:not(.no-select)').click(function () {
-        if ($(this).hasClass('checked')) {
-            $(this).removeClass('checked');
-            $(this).find('.octicon').removeClass('octicon-check');
+        $('.' + selector).dropdown('setting', 'onHide', function(){
+            hasLabelUpdateAction = $listMenu.data('action') == 'update'; // Update the var
             if (hasLabelUpdateAction) {
+                location.reload();
+            }
+        });
+
+        $listMenu.find('.item:not(.no-select)').click(function () {
+
+            // we don't need the action attribute when updating assignees
+            if (selector == 'select-assignees-modify') {
+
+                // UI magic. We need to do this here, otherwise it would destroy the functionality of
+                // adding/removing labels
+                if ($(this).hasClass('checked')) {
+                    $(this).removeClass('checked');
+                    $(this).find('.octicon').removeClass('octicon-check');
+                } else {
+                    $(this).addClass('checked');
+                    $(this).find('.octicon').addClass('octicon-check');
+                }
+
                 updateIssuesMeta(
-                    $labelMenu.data('update-url'),
-                    "detach",
-                    $labelMenu.data('issue-id'),
+                    $listMenu.data('update-url'),
+                    "",
+                    $listMenu.data('issue-id'),
                     $(this).data('id')
                 );
+                $listMenu.data('action', 'update'); // Update to reload the page when we updated items
+                return false;
             }
-        } else {
-            $(this).addClass('checked');
-            $(this).find('.octicon').addClass('octicon-check');
-            if (hasLabelUpdateAction) {
-                updateIssuesMeta(
-                    $labelMenu.data('update-url'),
-                    "attach",
-                    $labelMenu.data('issue-id'),
-                    $(this).data('id')
-                );
-            }
-        }
 
-        var labelIds = [];
-        $(this).parent().find('.item').each(function () {
             if ($(this).hasClass('checked')) {
-                labelIds.push($(this).data('id'));
-                $($(this).data('id-selector')).removeClass('hide');
+                $(this).removeClass('checked');
+                $(this).find('.octicon').removeClass('octicon-check');
+                if (hasLabelUpdateAction) {
+                    updateIssuesMeta(
+                        $listMenu.data('update-url'),
+                        "detach",
+                        $listMenu.data('issue-id'),
+                        $(this).data('id')
+                    );
+                }
             } else {
-                $($(this).data('id-selector')).addClass('hide');
+                $(this).addClass('checked');
+                $(this).find('.octicon').addClass('octicon-check');
+                if (hasLabelUpdateAction) {
+                    updateIssuesMeta(
+                        $listMenu.data('update-url'),
+                        "attach",
+                        $listMenu.data('issue-id'),
+                        $(this).data('id')
+                    );
+                }
             }
+
+            var listIds = [];
+            $(this).parent().find('.item').each(function () {
+                if ($(this).hasClass('checked')) {
+                    listIds.push($(this).data('id'));
+                    $($(this).data('id-selector')).removeClass('hide');
+                } else {
+                    $($(this).data('id-selector')).addClass('hide');
+                }
+            });
+            if (listIds.length == 0) {
+                $noSelect.removeClass('hide');
+            } else {
+                $noSelect.addClass('hide');
+            }
+            $($(this).parent().data('id')).val(listIds.join(","));
+            return false;
         });
-        if (labelIds.length == 0) {
+        $listMenu.find('.no-select.item').click(function () {
+            if (hasLabelUpdateAction || selector == 'select-assignees-modify') {
+                updateIssuesMeta(
+                    $listMenu.data('update-url'),
+                    "clear",
+                    $listMenu.data('issue-id'),
+                    ""
+                );
+                $listMenu.data('action', 'update'); // Update to reload the page when we updated items
+            }
+
+            $(this).parent().find('.item').each(function () {
+                $(this).removeClass('checked');
+                $(this).find('.octicon').removeClass('octicon-check');
+            });
+
+            $list.find('.item').each(function () {
+                $(this).addClass('hide');
+            });
             $noSelect.removeClass('hide');
-        } else {
-            $noSelect.addClass('hide');
-        }
-        $($(this).parent().data('id')).val(labelIds.join(","));
-        return false;
-    });
-    $labelMenu.find('.no-select.item').click(function () {
-        if (hasLabelUpdateAction) {
-            updateIssuesMeta(
-                $labelMenu.data('update-url'),
-                "clear",
-                $labelMenu.data('issue-id'),
-                ""
-            );
-        }
+            $($(this).parent().data('id')).val('');
 
-        $(this).parent().find('.item').each(function () {
-            $(this).removeClass('checked');
-            $(this).find('.octicon').removeClass('octicon-check');
         });
+    }
 
-        $list.find('.item').each(function () {
-            $(this).addClass('hide');
-        });
-        $noSelect.removeClass('hide');
-        $($(this).parent().data('id')).val('');
-    });
+    // Init labels and assignees
+    initListSubmits('select-label', 'labels');
+    initListSubmits('select-assignees', 'assignees');
+    initListSubmits('select-assignees-modify', 'assignees');
 
     function selectItem(select_id, input_id) {
         var $menu = $(select_id + ' .menu');
@@ -1138,6 +1172,16 @@ function initAdmin() {
         }
     }
 
+    function onUsePagedSearchChange() {
+        if ($('#use_paged_search').prop('checked')) {
+            $('.search-page-size').show()
+                .find('input').attr('required', 'required');
+        } else {
+            $('.search-page-size').hide()
+                .find('input').removeAttr('required');
+        }
+    }
+
     function onOAuth2Change() {
         $('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url').hide();
         $('.open_id_connect_auto_discovery_url input[required]').removeAttr('required');
@@ -1191,7 +1235,7 @@ function initAdmin() {
     // New authentication
     if ($('.admin.new.authentication').length > 0) {
         $('#auth_type').change(function () {
-            $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls').hide();
+            $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size').hide();
 
             $('.ldap input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
 
@@ -1223,9 +1267,13 @@ function initAdmin() {
             if (authType == '2' || authType == '5') {
                 onSecurityProtocolChange()
             }
+            if (authType == '2') {
+                onUsePagedSearchChange();
+            }
         });
         $('#auth_type').change();
         $('#security_protocol').change(onSecurityProtocolChange);
+        $('#use_paged_search').change(onUsePagedSearchChange);
         $('#oauth2_provider').change(onOAuth2Change);
         $('#oauth2_use_custom_url').change(onOAuth2UseCustomURLChange);
     }
@@ -1234,6 +1282,9 @@ function initAdmin() {
         var authType = $('#auth_type').val();
         if (authType == '2' || authType == '5') {
             $('#security_protocol').change(onSecurityProtocolChange);
+            if (authType == '2') {
+                $('#use_paged_search').change(onUsePagedSearchChange);
+            }
         } else if (authType == '6') {
             $('#oauth2_provider').change(onOAuth2Change);
             $('#oauth2_use_custom_url').change(onOAuth2UseCustomURLChange);
@@ -2192,5 +2243,16 @@ function initTopicbar() {
                 return formattedResponse;
             },
         },
+    });
+}
+function toggleDuedateForm() {
+    $('#add_deadline_form').fadeToggle(150);
+}
+
+function deleteDueDate(url) {
+    $.post(url, {
+        '_csrf': csrf,
+    },function( data ) {
+        window.location.reload();
     });
 }

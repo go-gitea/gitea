@@ -254,6 +254,7 @@ func (f *NewDingtalkHookForm) Validate(ctx *macaron.Context, errs binding.Errors
 type CreateIssueForm struct {
 	Title       string `binding:"Required;MaxSize(255)"`
 	LabelIDs    string `form:"label_ids"`
+	AssigneeIDs string `form:"assignee_ids"`
 	Ref         string `form:"ref"`
 	MilestoneID int64
 	AssigneeID  int64
@@ -520,4 +521,14 @@ func (f *AddTimeManuallyForm) Validate(ctx *macaron.Context, errs binding.Errors
 // SaveTopicForm form for save topics for repository
 type SaveTopicForm struct {
 	Topics []string `binding:"topics;Required;"`
+}
+
+// DeadlineForm hold the validation rules for deadlines
+type DeadlineForm struct {
+	DateString string `form:"date" binding:"Required;Size(10)"`
+}
+
+// Validate validates the fields
+func (f *DeadlineForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
 }
