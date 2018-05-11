@@ -201,8 +201,6 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Cache (`cache`)
 
 - `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, or `memcache`.
-   - To use `redis` or `memcache`, be sure to rebuild everything with build tags `redis` or
-     `memcache`: `go build -tags='redis'`.
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory cache only.
 - `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`.
    - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`

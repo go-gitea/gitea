@@ -62,7 +62,6 @@ For more information and instructions about how to install Gitea, please look
 at our [documentation](https://docs.gitea.io/en-us/). If you have questions
 that are not covered by the documentation, you can get in contact with us on
 our [Discord server](https://discord.gg/NsatcWJ),
-[Matrix room](https://matrix.to/#/#gitea:matrix.org),
 or [forum](https://discourse.gitea.io/)!
 
 ## Authors
@@ -70,6 +69,27 @@ or [forum](https://discourse.gitea.io/)!
 * [Maintainers](https://github.com/orgs/go-gitea/people)
 * [Contributors](https://github.com/go-gitea/gitea/graphs/contributors)
 * [Translators](options/locale/TRANSLATORS)
+
+## Backers
+
+Thank you to all our backers! 🙏 [[Become a backer](https://opencollective.com/gitea#backer)]
+
+<a href="https://opencollective.com/gitea#backers" target="_blank"><img src="https://opencollective.com/gitea/backers.svg?width=890"></a>
+
+## Sponsors
+
+Support this project by becoming a sponsor. Your logo will show up here with a link to your website. [[Become a sponsor](https://opencollective.com/gitea#sponsor)]
+
+<a href="https://opencollective.com/gitea/sponsor/0/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/0/avatar.svg"></a>
+<a href="https://opencollective.com/gitea/sponsor/1/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/1/avatar.svg"></a>
+<a href="https://opencollective.com/gitea/sponsor/2/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/2/avatar.svg"></a>
+<a href="https://opencollective.com/gitea/sponsor/3/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/3/avatar.svg"></a>
+<a href="https://opencollective.com/gitea/sponsor/4/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/4/avatar.svg"></a>
+<a href="https://opencollective.com/gitea/sponsor/5/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/5/avatar.svg"></a>
+<a href="https://opencollective.com/gitea/sponsor/6/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/6/avatar.svg"></a>
+<a href="https://opencollective.com/gitea/sponsor/7/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/7/avatar.svg"></a>
+<a href="https://opencollective.com/gitea/sponsor/8/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/8/avatar.svg"></a>
+<a href="https://opencollective.com/gitea/sponsor/9/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/9/avatar.svg"></a>
 
 ## License
 
