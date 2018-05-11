@@ -152,6 +152,10 @@ pre, code {
         }
     }
 
+    &.floating.label {
+        z-index: 10;
+    }
+
     &.menu,
     &.vertical.menu,
     &.segment {
@@ -165,6 +169,14 @@ pre, code {
     }
     .menu:not(.vertical) .item > .button.small {
         font-size: .92857143rem;
+    }
+
+    &.dropdown .menu>.item>.floating.label {
+        z-index: 11;
+    }
+
+    &.dropdown .menu .menu>.item>.floating.label {
+        z-index: 21;
     }
 
     .text {
