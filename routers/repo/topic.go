@@ -21,7 +21,11 @@ func TopicPost(ctx *context.Context) {
 		return
 	}
 
-	topics := strings.Split(ctx.Query("topics"), ",")
+	var topics = make([]string, 0)
+	var topicsStr = strings.TrimSpace(ctx.Query("topics"))
+	if len(topicsStr) > 0 {
+		topics = strings.Split(topicsStr, ",")
+	}
 
 	err := models.SaveTopics(ctx.Repo.Repository.ID, topics...)
 	if err != nil {
