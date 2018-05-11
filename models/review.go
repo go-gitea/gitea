@@ -60,7 +60,7 @@ type Review struct {
 }
 
 func (r *Review) loadCodeComments(e Engine) (err error) {
-	r.CodeComments, err = findComments(e, FindCommentsOptions{IssueID: r.IssueID, ReviewID: r.ID})
+	r.CodeComments, err = findComments(e, FindCommentsOptions{IssueID: r.IssueID, ReviewID: r.ID, Type: CommentTypeCode})
 	return
 }
 
