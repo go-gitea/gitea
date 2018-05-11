@@ -36,7 +36,7 @@ func TestReview_LoadAttributes(t *testing.T) {
 func TestReview_LoadCodeComments(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	review := AssertExistsAndLoadBean(t, &Review{ID: 1}).(*Review)
+	review := AssertExistsAndLoadBean(t, &Review{ID: 4}).(*Review)
 	assert.NoError(t, review.LoadCodeComments())
 	assert.Len(t, review.CodeComments, 1)
 	assert.Equal(t, int64(4), review.CodeComments[0].Line)

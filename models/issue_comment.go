@@ -802,17 +802,30 @@ func fetchCodeComments(e Engine, issue *Issue, currentUser *User) (map[string]ma
 	if err = issue.loadRepo(e); err != nil {
 		return nil, err
 	}
+	// Find all reviews by ReviewID
+	reviews := make(map[int64]*Review)
+	var ids = make([]int64, 0, len(comments))
 	for _, comment := range comments {
-		if err = comment.loadReview(e); err != nil && !IsErrReviewNotExist(err) {
-			return nil, err
+		if comment.ReviewID != 0 {
+			ids = append(ids, comment.ReviewID)
 		}
-		if comment.Review != nil && comment.Review.Type == ReviewTypePending {
-			if currentUser == nil || currentUser.ID != comment.Review.ReviewerID {
-				continue
+	}
+	if err = e.In("id", ids).Find(&reviews); err != nil {
+		return nil, err
+	}
+	for _, comment := range comments {
+		if re, ok := reviews[comment.ReviewID]; ok && re != nil {
+			// If the review is pending only the author can see the comments
+			if re.Type == ReviewTypePending &&
+				(currentUser == nil || currentUser.ID != re.ReviewerID) {
+					continue
 			}
+			comment.Review = re
 		}
+
 		comment.RenderedContent = string(markdown.Render([]byte(comment.Content), issue.Repo.Link(),
 			issue.Repo.ComposeMetas()))
+
 		if pathToLineToComment[comment.TreePath] == nil {
 			pathToLineToComment[comment.TreePath] = make(map[int64][]*Comment)
 		}
