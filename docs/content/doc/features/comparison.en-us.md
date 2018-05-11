@@ -168,7 +168,7 @@ _Symbols used in table:_
     </tr>
     <tr>
       <td>Multiple assignees for issues</td>
-      <td>✘</td>
+      <td>✓</td>
       <td>✘</td>
       <td>✓</td>
       <td>✓</td>
