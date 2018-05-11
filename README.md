@@ -4,12 +4,11 @@
 
 [![Build Status](https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg)](https://drone.gitea.io/go-gitea/gitea)
 [![Join the Discord chat at https://discord.gg/NsatcWJ](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/NsatcWJ)
-[![Join the Matrix chat at https://matrix.to/#/#gitea:matrix.org](https://img.shields.io/badge/matrix-%23gitea%3Amatrix.org-7bc9a4.svg)](https://matrix.to/#/#gitea:matrix.org)
 [![](https://images.microbadger.com/badges/image/gitea/gitea.svg)](https://microbadger.com/images/gitea/gitea "Get your own image badge on microbadger.com")
 [![codecov](https://codecov.io/gh/go-gitea/gitea/branch/master/graph/badge.svg)](https://codecov.io/gh/go-gitea/gitea)
 [![Go Report Card](https://goreportcard.com/badge/code.gitea.io/gitea)](https://goreportcard.com/report/code.gitea.io/gitea)
 [![GoDoc](https://godoc.org/code.gitea.io/gitea?status.svg)](https://godoc.org/code.gitea.io/gitea)
-[![Release](https://github-release-version.herokuapp.com/github/go-gitea/gitea/release.svg?style=flat)](https://github.com/go-gitea/gitea/releases/latest)
+[![GitHub release](https://img.shields.io/github/release/go-gitea/gitea.svg)](https://github.com/go-gitea/gitea/releases/latest)
 [![Help Contribute to Open Source](https://www.codetriage.com/go-gitea/gitea/badges/users.svg)](https://www.codetriage.com/go-gitea/gitea)
 [![Become a backer/sponsor of gitea](https://opencollective.com/gitea/tiers/backer/badge.svg?label=backer&color=brightgreen)](https://opencollective.com/gitea)
 
@@ -63,7 +62,6 @@ For more information and instructions about how to install Gitea, please look
 at our [documentation](https://docs.gitea.io/en-us/). If you have questions
 that are not covered by the documentation, you can get in contact with us on
 our [Discord server](https://discord.gg/NsatcWJ),
-[Matrix room](https://matrix.to/#/#gitea:matrix.org),
 or [forum](https://discourse.gitea.io/)!
 
 ## Authors

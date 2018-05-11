@@ -733,6 +733,22 @@ func (err ErrRepoFileAlreadyExist) Error() string {
 	return fmt.Sprintf("repository file already exists [file_name: %s]", err.FileName)
 }
 
+// ErrUserDoesNotHaveAccessToRepo represets an error where the user doesn't has access to a given repo
+type ErrUserDoesNotHaveAccessToRepo struct {
+	UserID   int64
+	RepoName string
+}
+
+// IsErrUserDoesNotHaveAccessToRepo checks if an error is a ErrRepoFileAlreadyExist.
+func IsErrUserDoesNotHaveAccessToRepo(err error) bool {
+	_, ok := err.(ErrUserDoesNotHaveAccessToRepo)
+	return ok
+}
+
+func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
+	return fmt.Sprintf("user doesn't have acces to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
+}
+
 // __________                             .__
 // \______   \____________    ____   ____ |  |__
 //  |    |  _/\_  __ \__  \  /    \_/ ___\|  |  \

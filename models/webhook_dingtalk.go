@@ -118,8 +118,12 @@ func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload,
 		title = fmt.Sprintf("[%s] Pull request edited: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 	case api.HookIssueAssigned:
+		list, err := MakeAssigneeList(&Issue{ID: p.PullRequest.ID})
+		if err != nil {
+			return &DingtalkPayload{}, err
+		}
 		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d %s", p.Repository.FullName,
-			p.PullRequest.Assignee.UserName, p.Index, p.PullRequest.Title)
+			list, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 	case api.HookIssueUnassigned:
 		title = fmt.Sprintf("[%s] Pull request unassigned: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
