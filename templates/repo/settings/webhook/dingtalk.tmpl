@@ -6,6 +6,6 @@
 			<label for="payload_url">{{.i18n.Tr "repo.settings.payload_url"}}</label>
 			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required>
 		</div>
-		{{template "repo/settings/hook_settings" .}}
+		{{template "repo/settings/webhook/settings" .}}
 	</form>
 {{end}}
