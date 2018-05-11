@@ -471,6 +471,13 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", endCommitID)
 	ctx.Data["RequireHighlightJS"] = true
 
+	pathToLineToComment, err := models.FetchCodeComments(issue, ctx.User)
+	if err != nil {
+		ctx.ServerError("FetchCodeComments", err)
+		return
+	}
+	ctx.Data["CodeComments"] = pathToLineToComment
+
 	ctx.HTML(200, tplPullFiles)
 }
 

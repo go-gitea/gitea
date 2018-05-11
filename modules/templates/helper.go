@@ -15,6 +15,7 @@ import (
 	"mime"
 	"net/url"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"time"
@@ -185,6 +186,36 @@ func NewFuncMap() []template.FuncMap {
 		"Sec2Time": models.SecToTime,
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
+		},
+		"mul": func(first int, second int64) int64 { return second * int64(first) },
+		"dict": func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values) == 0 {
+				return nil, errors.New("invalid dict call")
+			}
+
+			dict := make(map[string]interface{})
+
+			for i := 0; i < len(values); i++ {
+				key, isset := values[i].(string)
+				if !isset {
+					if reflect.TypeOf(values[i]).Kind() == reflect.Map {
+						m := values[i].(map[string]interface{})
+						for i, v := range m {
+							dict[i] = v
+						}
+					} else {
+						return nil, errors.New("dict values must be maps")
+					}
+				} else {
+					i++
+					if i == len(values) {
+						return nil, errors.New("specify the key for non array values")
+					}
+					dict[key] = values[i]
+				}
+
+			}
+			return dict, nil
 		},
 	}}
 }

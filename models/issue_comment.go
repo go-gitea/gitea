@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
@@ -787,4 +788,40 @@ func DeleteComment(comment *Comment) error {
 		UpdateIssueIndexer(comment.IssueID)
 	}
 	return nil
+}
+
+func fetchCodeComments(e Engine, issue *Issue, currentUser *User) (map[string]map[int64][]*Comment, error) {
+	pathToLineToComment := make(map[string]map[int64][]*Comment)
+	comments, err := findComments(e, FindCommentsOptions{
+		Type:    CommentTypeCode,
+		IssueID: issue.ID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err = issue.loadRepo(e); err != nil {
+		return nil, err
+	}
+	for _, comment := range comments {
+		if err = comment.loadReview(e); err != nil && !IsErrReviewNotExist(err) {
+			return nil, err
+		}
+		if comment.Review != nil && comment.Review.Type == ReviewTypePending {
+			if currentUser == nil || currentUser.ID != comment.Review.ReviewerID {
+				continue
+			}
+		}
+		comment.RenderedContent = string(markdown.Render([]byte(comment.Content), issue.Repo.Link(),
+			issue.Repo.ComposeMetas()))
+		if pathToLineToComment[comment.TreePath] == nil {
+			pathToLineToComment[comment.TreePath] = make(map[int64][]*Comment)
+		}
+		pathToLineToComment[comment.TreePath][comment.Line] = append(pathToLineToComment[comment.TreePath][comment.Line], comment)
+	}
+	return pathToLineToComment, nil
+}
+
+// FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
+func FetchCodeComments(issue *Issue, currentUser *User) (map[string]map[int64][]*Comment, error) {
+	return fetchCodeComments(x, issue, currentUser)
 }
