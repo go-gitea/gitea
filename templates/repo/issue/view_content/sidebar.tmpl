@@ -216,7 +216,7 @@
 				<i class="close icon"></i>
 			{{.i18n.Tr "repo.issues.due_date_invalid"}}
 			</div>
-		{{if gt .Issue.DeadlineUnix 0}}
+		{{if ne .Issue.DeadlineUnix 0}}
 			<p>
 				<span class="octicon octicon-calendar"></span>
 				{{.Issue.DeadlineUnix.FormatShort}}
@@ -234,12 +234,13 @@
 		{{end}}
 
 		{{if and .IsSigned .IsRepositoryWriter}}
-			<div {{if gt .Issue.DeadlineUnix 0}} style="display: none;"{{end}} id="deadlineForm">
+			<div {{if ne .Issue.DeadlineUnix 0}} style="display: none;"{{end}} id="deadlineForm">
 				<form class="ui fluid action input" action="{{AppSubUrl}}/api/v1/repos/{{.Repository.Owner.Name}}/{{.Repository.Name}}/issues/{{.Issue.Index}}" method="post" id="update-issue-deadline-form" onsubmit="setDeadline();return false;">
+				    {{$.CsrfTokenHtml}}
 					<input required placeholder="{{.i18n.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="deadlineDate" id="deadlineDate" style="width: 12.8rem;border-radius: 4px 0 0 4px;border-right: 0;white-space: nowrap;">
 					<button class="ui green icon button">
-					{{if gt .Issue.DeadlineUnix 0}}
-						<i class="edit icon"></i>
+					{{if ne .Issue.DeadlineUnix 0}}
+							<i class="edit icon"></i>
 					{{else}}
 						<i class="plus icon"></i>
 					{{end}}

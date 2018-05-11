@@ -2197,7 +2197,11 @@ function initTopicbar() {
                 alert(res.message);
             } else {
                 viewDiv.children(".topic").remove();
+                if (topics.length == 0) {
+                    return
+                }
                 var topicArray = topics.split(",");
+                
                 var last = viewDiv.children("a").last();
                 for (var i=0;i < topicArray.length; i++) {
                     $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
