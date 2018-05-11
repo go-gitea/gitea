@@ -707,7 +707,7 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 		} else if comment.Type == models.CommentTypeCode || comment.Type == models.CommentTypeReview {
-			if err = comment.LoadReview(); err != nil {
+			if err = comment.LoadReview(); err != nil && !models.IsErrReviewNotExist(err) {
 				ctx.ServerError("LoadReview", err)
 				return
 			}
