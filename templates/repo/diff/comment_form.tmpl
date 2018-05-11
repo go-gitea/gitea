@@ -4,7 +4,6 @@
 	<input type="hidden" name="line" value="2">
 	<input type="hidden" name="path" value="README.md">
 	<input type="hidden" name="commit_id" value="e324f1688f063d6fd9268fb8f02149c9eb1a867c">
-	<input type="hidden" name="is_review" value="true">
 	<input type="hidden" name="diff_start_cid">
 	<input type="hidden" name="diff_end_cid">
 	<input type="hidden" name="diff_base_cid">
@@ -23,10 +22,16 @@
 	<div class="footer">
 		<span class="markdown-info"><i class="octicon octicon-markdown"></i> {{$.i18n.Tr "repo.diff.comment.markdown_info"}}</span>
 		<div class="ui right floated">
-			<div class="ui submit tiny basic button btn-cancel">{{$.i18n.Tr "cancel"}}</div>
-			<div class="ui submit tiny basic button btn-add-single">{{$.i18n.Tr "repo.diff.comment.add_single_comment"}}</div>
-			<button type="submit" class="ui submit green tiny button btn-add-comment">{{$.i18n.Tr "repo.diff.comment.add_review_comment"}}</button>
-			<div class="ui submit green tiny button btn-start-review">{{$.i18n.Tr "repo.diff.comment.start_review"}}</div>
+			{{if $.CurrentReview}}
+				<button name="is_review" value="true" type="submit"
+						class="ui submit green tiny button btn-add-comment">{{$.i18n.Tr "repo.diff.comment.add_review_comment"}}</button>
+			{{else}}
+				<button name="is_review" value="true"  type="submit"
+						class="ui submit green tiny button btn-start-review">{{$.i18n.Tr "repo.diff.comment.start_review"}}</button>
+			{{end}}
+			<button type="submit"
+					class="ui submit tiny basic button btn-add-single">{{$.i18n.Tr "repo.diff.comment.add_single_comment"}}</button>
+			<button type="button" class="ui submit tiny basic button btn-cancel">{{$.i18n.Tr "cancel"}}</button>
 		</div>
 	</div>
 </form>

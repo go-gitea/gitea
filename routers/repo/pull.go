@@ -477,7 +477,11 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 	ctx.Data["CodeComments"] = pathToLineToComment
-
+	ctx.Data["CurrentReview"], err = models.GetCurrentReview(ctx.User, issue)
+	if err != nil && !models.IsErrReviewNotExist(err) {
+		ctx.ServerError("GetCurrentReview", err)
+		return
+	}
 	ctx.HTML(200, tplPullFiles)
 }
 
