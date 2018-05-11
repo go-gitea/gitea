@@ -248,6 +248,24 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/keys/delete", user.DeleteKey)
 		m.Get("/organization", user.SettingsOrganization)
 		m.Get("/repos", user.SettingsRepos)
+
+		// redirects from old settings urls to new ones
+		// TODO: can be removed on next major version
+		m.Get("/avatar", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL + "/user/settings")
+		})
+		m.Get("/email", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		})
+		m.Get("/delete", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		})
+		m.Get("/openid", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+		})
+		m.Get("/account_link", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+		})
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
 	})
