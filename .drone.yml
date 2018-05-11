@@ -134,6 +134,7 @@ pipeline:
     group: test
     environment:
       TAGS: bindata
+      TEST_LDAP: "1"
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
@@ -148,6 +149,7 @@ pipeline:
     group: test
     environment:
       TAGS: bindata
+      TEST_LDAP: "1"
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
@@ -161,6 +163,7 @@ pipeline:
     group: test
     environment:
       TAGS: bindata
+      TEST_LDAP: "1"
     commands:
       - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
       - apt-get install -y git-lfs
@@ -334,5 +337,10 @@ services:
     image: postgres:9.5
     environment:
       - POSTGRES_DB=test
+    when:
+      event: [ push, tag, pull_request ]
+
+  ldap:
+    image: gitea/test-openldap:latest
     when:
       event: [ push, tag, pull_request ]
