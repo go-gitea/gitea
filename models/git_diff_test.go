@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/stretchr/testify/assert"
 )
 
 func assertEqual(t *testing.T, s1 string, s2 template.HTML) {
@@ -33,4 +34,29 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffInsert, Text: " baz"},
 		{Type: dmp.DiffEqual, Text: " biz"},
 	}, DiffLineDel))
+}
+
+func TestDiff_LoadComments(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	issue := AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
+	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	diff := &Diff{
+		Files: []*DiffFile{
+			{
+				Name: "README.md",
+				Sections: []*DiffSection{
+					{
+						Lines: []*DiffLine{
+							{
+								LeftIdx: 4,
+								RightIdx: 4,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	assert.NoError(t, diff.LoadComments(issue, user))
+	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
 }

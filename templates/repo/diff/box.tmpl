@@ -114,26 +114,29 @@
 															<a class="ui green button add-code-comment add-code-comment-right" data-side="right" data-idx="{{$line.RightIdx}}">+</a>
 															{{end}}
 														</td>
-													    {{if index $.CodeComments $file.Name (mul $line.LeftIdx -1)}}
-														    <td class="add-comment-left add-comment-right">
-															    <div class="field comment-code-cloud">
-																    <div class="comment-list">
-																	    <ui class="ui comments">
-																	    {{ template "repo/diff/comments" dict "root" $ "comments" (index $.CodeComments $file.Name (mul $line.LeftIdx -1))}}
-																	    </ui>
-																    </div>
-															    {{template "repo/diff/comment_form" $}}
-															    </div>
-														    </td>
-													    {{end}}
+
 														<td class="lines-code lines-code-new halfwidth">
 															<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
 														</td>
 													</tr>
+													{{if gt (len $line.Comments) 0}}
+														<tr>
+															<td colspan="4" class="add-comment-left add-comment-right">
+																<div class="field comment-code-cloud">
+																	<div class="comment-list">
+																		<ui class="ui comments">
+																		{{ template "repo/diff/comments" dict "root" $ "comments" $line.Comments}}
+																		</ui>
+																	</div>
+																{{template "repo/diff/comment_form" $}}
+																</div>
+															</td>
+														</tr>
+													{{end}}
 												{{end}}
 											{{end}}
 										{{else}}
-											{{template "repo/diff/section_unified" .}}
+											{{template "repo/diff/section_unified" dict "file" . "root" $}}
 										{{end}}
 									</tbody>
 								</table>
