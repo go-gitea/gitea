@@ -71,6 +71,4 @@ func (runner) Execute(args []string, r <-chan svc.ChangeRequest, changes chan<- 
 			return false, 0
 		}
 	}
-
-	return false, 0
 }
