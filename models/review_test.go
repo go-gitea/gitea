@@ -53,8 +53,8 @@ func TestReviewType_Icon(t *testing.T) {
 func TestFindReviews(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	reviews, err := FindReviews(FindReviewOptions{
-		Type: ReviewTypeApprove,
-		IssueID: 2,
+		Type:       ReviewTypeApprove,
+		IssueID:    2,
 		ReviewerID: 1,
 	})
 	assert.NoError(t, err)
@@ -71,7 +71,7 @@ func TestGetCurrentReview(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, review)
 	assert.Equal(t, ReviewTypePending, review.Type)
-	assert.Equal(t, "Pending Review", review.Content )
+	assert.Equal(t, "Pending Review", review.Content)
 
 	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	review2, err := GetCurrentReview(user2, issue)
@@ -87,9 +87,9 @@ func TestCreateReview(t *testing.T) {
 	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 
 	review, err := CreateReview(CreateReviewOptions{
-		Content: "New Review",
-		Type: ReviewTypePending,
-		Issue: issue,
+		Content:  "New Review",
+		Type:     ReviewTypePending,
+		Issue:    issue,
 		Reviewer: user,
 	})
 	assert.NoError(t, err)

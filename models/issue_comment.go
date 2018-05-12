@@ -818,7 +818,7 @@ func fetchCodeComments(e Engine, issue *Issue, currentUser *User) (map[string]ma
 			// If the review is pending only the author can see the comments
 			if re.Type == ReviewTypePending &&
 				(currentUser == nil || currentUser.ID != re.ReviewerID) {
-					continue
+				continue
 			}
 			comment.Review = re
 		}
