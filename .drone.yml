@@ -245,7 +245,7 @@ pipeline:
     pull: true
     secrets: [ docker_username, docker_password ]
     repo: gitea/gitea
-    tags: [ '${DRONE_BRANCH##release/v}' ]
+    tag: '${DRONE_BRANCH##release/v}-linux-amd64'
     when:
       event: [ push ]
       branch: [ release/* ]
@@ -255,7 +255,26 @@ pipeline:
     secrets: [ docker_username, docker_password ]
     pull: true
     repo: gitea/gitea
-    default_tags: true
+    tag: latest-linux-amd64
+    when:
+      event: [ push, tag ]
+
+  docker:
+    image: plugins/manifest
+    secrets: [ docker_username, docker_password ]
+    platforms: linux/amd64
+    template: 'gitea/gitea:${DRONE_BRANCH##release/v}-ARCH'
+    target: 'gitea/gitea:${DRONE_BRANCH##release/v}'
+    when:
+      event: [ push ]
+      branch: [ release/* ]
+
+  docker:
+    image: plugins/manifest
+    secrets: [ docker_username, docker_password ]
+    platforms: linux/amd64
+    template: gitea/gitea:latest-ARCH
+    target: gitea/gitea:latest
     when:
       event: [ push, tag ]
 

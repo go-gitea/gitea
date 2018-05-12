@@ -2,8 +2,8 @@
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
-DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
-
+DOCKER_PLATFORM ?= $(shell docker version -f {{.Server.Os}}-{{.Server.Arch}} 2>/dev/null || echo 'undefined')
+DOCKER_REF ?= $(DOCKER_IMAGE):$(DOCKER_TAG)-$(DOCKER_PLATFORM)
 
 .PHONY: docker
 docker:
