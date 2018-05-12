@@ -70,7 +70,7 @@ type Store struct {
 }
 
 type xormSession struct {
-	ID          string         `xorm:"VARCHAR(400) PK NAME 'id'"`
+	ID          string         `xorm:"VARCHAR(100) PK NAME 'id'"`
 	Data        string         `xorm:"TEXT"`
 	CreatedUnix util.TimeStamp `xorm:"created"`
 	UpdatedUnix util.TimeStamp `xorm:"updated"`
