@@ -387,8 +387,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:         opts.Content,
 		OldTitle:        opts.OldTitle,
 		NewTitle:        opts.NewTitle,
-		TreePath:       opts.TreePath,
-		ReviewID:       opts.ReviewID,
+		TreePath:        opts.TreePath,
+		ReviewID:        opts.ReviewID,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -607,8 +607,8 @@ type CreateCommentOptions struct {
 	CommitID        int64
 	CommitSHA       string
 	LineNum         int64
-	TreePath       string
-	ReviewID       int64
+	TreePath        string
+	ReviewID        int64
 	Content         string
 	Attachments     []string // UUIDs of attachments
 }
