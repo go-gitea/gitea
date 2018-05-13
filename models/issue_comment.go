@@ -6,8 +6,10 @@ package models
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
+	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
@@ -122,8 +124,9 @@ type Comment struct {
 	// For view issue page.
 	ShowTag CommentTag `xorm:"-"`
 
-	Review   *Review `xorm:"-"`
-	ReviewID int64
+	Review      *Review `xorm:"-"`
+	ReviewID    int64
+	Invalidated bool
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
@@ -337,6 +340,40 @@ func (c *Comment) loadReview(e Engine) (err error) {
 // LoadReview loads the associated review
 func (c *Comment) LoadReview() error {
 	return c.loadReview(x)
+}
+
+func (c *Comment) getPathAndFile(repoPath string) (string, string) {
+	p := path.Dir(c.TreePath)
+	if p == "." {
+		p = ""
+	}
+	p = fmt.Sprintf("%s/%s", repoPath, p)
+	file := path.Base(c.TreePath)
+	return p, file
+}
+
+func (c *Comment) checkInvalidation(e Engine, repo *git.Repository, branch string) error {
+	p, file := c.getPathAndFile(repo.Path)
+	// FIXME differentiate between previous and proposed line
+	var line = c.Line
+	if line < 0 {
+		line *= -1
+	}
+	commit, err := repo.LineBlame(branch, p, file, uint(line))
+	if err != nil {
+		return err
+	}
+	if c.CommitSHA != commit.ID.String() {
+		c.Invalidated = true
+		return UpdateComment(c)
+	}
+	return nil
+}
+
+// CheckInvalidation checks if the line of code comment got changed by another commit.
+// If the line got changed the comment is going to be invalidated.
+func (c *Comment) CheckInvalidation(repo *git.Repository, branch string) error {
+	return c.checkInvalidation(x, repo, branch)
 }
 
 func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
@@ -622,7 +659,29 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 }
 
 // CreateCodeComment creates a plain code comment at the specified line / path
-func CreateCodeComment(doer *User, repo *Repository, issue *Issue, commitSHA, content, treePath string, line, reviewID int64) (*Comment, error) {
+func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, treePath string, line, reviewID int64) (*Comment, error) {
+	pr, err := GetPullRequestByIssueID(issue.ID)
+	if err != nil {
+		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
+	}
+	if err := pr.GetHeadRepo(); err != nil {
+		return nil, fmt.Errorf("GetHeadRepo: %v", err)
+	}
+	gitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		return nil, fmt.Errorf("OpenRepository: %v", err)
+	}
+	dummyComment := &Comment{Line: line, TreePath: treePath}
+	p, file := dummyComment.getPathAndFile(gitRepo.Path)
+	// FIXME differentiate between previous and proposed line
+	var gitLine = line
+	if gitLine < 0 {
+		gitLine *= -1
+	}
+	commit, err := gitRepo.LineBlame(pr.HeadBranch, p, file, uint(gitLine))
+	if err != nil {
+		return nil, err
+	}
 	return CreateComment(&CreateCommentOptions{
 		Type:      CommentTypeCode,
 		Doer:      doer,
@@ -631,7 +690,7 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, commitSHA, co
 		Content:   content,
 		LineNum:   line,
 		TreePath:  treePath,
-		CommitSHA: commitSHA,
+		CommitSHA: commit.ID.String(),
 		ReviewID:  reviewID,
 	})
 }
@@ -792,14 +851,21 @@ func DeleteComment(comment *Comment) error {
 
 func fetchCodeComments(e Engine, issue *Issue, currentUser *User) (map[string]map[int64][]*Comment, error) {
 	pathToLineToComment := make(map[string]map[int64][]*Comment)
-	comments, err := findComments(e, FindCommentsOptions{
+
+	//Find comments
+	opts := FindCommentsOptions{
 		Type:    CommentTypeCode,
 		IssueID: issue.ID,
-	})
-	if err != nil {
+	}
+	var comments []*Comment
+	if err := e.Where(opts.toConds().And(builder.Eq{"invalidated": false})).
+		Asc("comment.created_unix").
+		Asc("comment.id").
+		Find(&comments); err != nil {
 		return nil, err
 	}
-	if err = issue.loadRepo(e); err != nil {
+
+	if err := issue.loadRepo(e); err != nil {
 		return nil, err
 	}
 	// Find all reviews by ReviewID
@@ -810,7 +876,7 @@ func fetchCodeComments(e Engine, issue *Issue, currentUser *User) (map[string]ma
 			ids = append(ids, comment.ReviewID)
 		}
 	}
-	if err = e.In("id", ids).Find(&reviews); err != nil {
+	if err := e.In("id", ids).Find(&reviews); err != nil {
 		return nil, err
 	}
 	for _, comment := range comments {

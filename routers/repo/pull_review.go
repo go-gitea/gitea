@@ -63,14 +63,11 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 			}
 		}
 	}
-
 	//FIXME check if line, commit and treepath exist
-	var err error
-	comment, err = models.CreateCodeComment(
+	comment, err := models.CreateCodeComment(
 		ctx.User,
 		issue.Repo,
 		issue,
-		form.CommitSHA,
 		form.Content,
 		form.TreePath,
 		signedLine,

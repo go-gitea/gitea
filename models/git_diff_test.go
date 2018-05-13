@@ -48,7 +48,7 @@ func TestDiff_LoadComments(t *testing.T) {
 					{
 						Lines: []*DiffLine{
 							{
-								LeftIdx: 4,
+								LeftIdx:  4,
 								RightIdx: 4,
 							},
 						},
