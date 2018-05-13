@@ -119,6 +119,7 @@ func init() {
 		new(RepoIndexerStatus),
 		new(LFSLock),
 		new(Reaction),
+		new(Review),
 	)
 
 	gonicNames := []string{"SSL", "UID"}

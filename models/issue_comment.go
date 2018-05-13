@@ -6,8 +6,11 @@ package models
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
+	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
@@ -66,6 +69,10 @@ const (
 	CommentTypeModifiedDeadline
 	// Removed a due date
 	CommentTypeRemovedDeadline
+	// Comment a line of code
+	CommentTypeCode
+	// Reviews a pull request by giving general feedback
+	CommentTypeReview
 )
 
 // CommentTag defines comment tag type
@@ -100,7 +107,8 @@ type Comment struct {
 	NewTitle       string
 
 	CommitID        int64
-	Line            int64
+	Line            int64 // - previous line / + proposed line
+	TreePath        string
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
 
@@ -115,6 +123,10 @@ type Comment struct {
 
 	// For view issue page.
 	ShowTag CommentTag `xorm:"-"`
+
+	Review      *Review `xorm:"-"`
+	ReviewID    int64
+	Invalidated bool
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
@@ -318,6 +330,52 @@ func (c *Comment) LoadReactions() error {
 	return c.loadReactions(x)
 }
 
+func (c *Comment) loadReview(e Engine) (err error) {
+	if c.Review, err = getReviewByID(e, c.ReviewID); err != nil {
+		return err
+	}
+	return nil
+}
+
+// LoadReview loads the associated review
+func (c *Comment) LoadReview() error {
+	return c.loadReview(x)
+}
+
+func (c *Comment) getPathAndFile(repoPath string) (string, string) {
+	p := path.Dir(c.TreePath)
+	if p == "." {
+		p = ""
+	}
+	p = fmt.Sprintf("%s/%s", repoPath, p)
+	file := path.Base(c.TreePath)
+	return p, file
+}
+
+func (c *Comment) checkInvalidation(e Engine, repo *git.Repository, branch string) error {
+	p, file := c.getPathAndFile(repo.Path)
+	// FIXME differentiate between previous and proposed line
+	var line = c.Line
+	if line < 0 {
+		line *= -1
+	}
+	commit, err := repo.LineBlame(branch, p, file, uint(line))
+	if err != nil {
+		return err
+	}
+	if c.CommitSHA != commit.ID.String() {
+		c.Invalidated = true
+		return UpdateComment(c)
+	}
+	return nil
+}
+
+// CheckInvalidation checks if the line of code comment got changed by another commit.
+// If the line got changed the comment is going to be invalidated.
+func (c *Comment) CheckInvalidation(repo *git.Repository, branch string) error {
+	return c.checkInvalidation(x, repo, branch)
+}
+
 func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
 	var LabelID int64
 	if opts.Label != nil {
@@ -339,6 +397,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:        opts.Content,
 		OldTitle:       opts.OldTitle,
 		NewTitle:       opts.NewTitle,
+		TreePath:       opts.TreePath,
+		ReviewID:       opts.ReviewID,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -557,6 +617,8 @@ type CreateCommentOptions struct {
 	CommitID       int64
 	CommitSHA      string
 	LineNum        int64
+	TreePath       string
+	ReviewID       int64
 	Content        string
 	Attachments    []string // UUIDs of attachments
 }
@@ -593,6 +655,43 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 		Issue:       issue,
 		Content:     content,
 		Attachments: attachments,
+	})
+}
+
+// CreateCodeComment creates a plain code comment at the specified line / path
+func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, treePath string, line, reviewID int64) (*Comment, error) {
+	pr, err := GetPullRequestByIssueID(issue.ID)
+	if err != nil {
+		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
+	}
+	if err := pr.GetHeadRepo(); err != nil {
+		return nil, fmt.Errorf("GetHeadRepo: %v", err)
+	}
+	gitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		return nil, fmt.Errorf("OpenRepository: %v", err)
+	}
+	dummyComment := &Comment{Line: line, TreePath: treePath}
+	p, file := dummyComment.getPathAndFile(gitRepo.Path)
+	// FIXME differentiate between previous and proposed line
+	var gitLine = line
+	if gitLine < 0 {
+		gitLine *= -1
+	}
+	commit, err := gitRepo.LineBlame(pr.HeadBranch, p, file, uint(gitLine))
+	if err != nil {
+		return nil, err
+	}
+	return CreateComment(&CreateCommentOptions{
+		Type:      CommentTypeCode,
+		Doer:      doer,
+		Repo:      repo,
+		Issue:     issue,
+		Content:   content,
+		LineNum:   line,
+		TreePath:  treePath,
+		CommitSHA: commit.ID.String(),
+		ReviewID:  reviewID,
 	})
 }
 
@@ -639,10 +738,11 @@ func GetCommentByID(id int64) (*Comment, error) {
 
 // FindCommentsOptions describes the conditions to Find comments
 type FindCommentsOptions struct {
-	RepoID  int64
-	IssueID int64
-	Since   int64
-	Type    CommentType
+	RepoID   int64
+	IssueID  int64
+	ReviewID int64
+	Since    int64
+	Type     CommentType
 }
 
 func (opts *FindCommentsOptions) toConds() builder.Cond {
@@ -652,6 +752,9 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	}
 	if opts.IssueID > 0 {
 		cond = cond.And(builder.Eq{"comment.issue_id": opts.IssueID})
+	}
+	if opts.ReviewID > 0 {
+		cond = cond.And(builder.Eq{"comment.review_id": opts.ReviewID})
 	}
 	if opts.Since > 0 {
 		cond = cond.And(builder.Gte{"comment.updated_unix": opts.Since})
@@ -744,4 +847,60 @@ func DeleteComment(comment *Comment) error {
 		UpdateIssueIndexer(comment.IssueID)
 	}
 	return nil
+}
+
+func fetchCodeComments(e Engine, issue *Issue, currentUser *User) (map[string]map[int64][]*Comment, error) {
+	pathToLineToComment := make(map[string]map[int64][]*Comment)
+
+	//Find comments
+	opts := FindCommentsOptions{
+		Type:    CommentTypeCode,
+		IssueID: issue.ID,
+	}
+	var comments []*Comment
+	if err := e.Where(opts.toConds().And(builder.Eq{"invalidated": false})).
+		Asc("comment.created_unix").
+		Asc("comment.id").
+		Find(&comments); err != nil {
+		return nil, err
+	}
+
+	if err := issue.loadRepo(e); err != nil {
+		return nil, err
+	}
+	// Find all reviews by ReviewID
+	reviews := make(map[int64]*Review)
+	var ids = make([]int64, 0, len(comments))
+	for _, comment := range comments {
+		if comment.ReviewID != 0 {
+			ids = append(ids, comment.ReviewID)
+		}
+	}
+	if err := e.In("id", ids).Find(&reviews); err != nil {
+		return nil, err
+	}
+	for _, comment := range comments {
+		if re, ok := reviews[comment.ReviewID]; ok && re != nil {
+			// If the review is pending only the author can see the comments
+			if re.Type == ReviewTypePending &&
+				(currentUser == nil || currentUser.ID != re.ReviewerID) {
+				continue
+			}
+			comment.Review = re
+		}
+
+		comment.RenderedContent = string(markdown.Render([]byte(comment.Content), issue.Repo.Link(),
+			issue.Repo.ComposeMetas()))
+
+		if pathToLineToComment[comment.TreePath] == nil {
+			pathToLineToComment[comment.TreePath] = make(map[int64][]*Comment)
+		}
+		pathToLineToComment[comment.TreePath][comment.Line] = append(pathToLineToComment[comment.TreePath][comment.Line], comment)
+	}
+	return pathToLineToComment, nil
+}
+
+// FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
+func FetchCodeComments(issue *Issue, currentUser *User) (map[string]map[int64][]*Comment, error) {
+	return fetchCodeComments(x, issue, currentUser)
 }

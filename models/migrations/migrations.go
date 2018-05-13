@@ -180,6 +180,8 @@ var migrations = []Migration{
 	NewMigration("add last used passcode column for TOTP", addLastUsedPasscodeTOTP),
 	// v63 -> v64
 	NewMigration("add language column for user setting", addLanguageSetting),
+	// v64 -> v65
+	NewMigration("add review", addReview),
 }
 
 // Migrate database to current version

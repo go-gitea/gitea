@@ -781,7 +781,6 @@ function initPullRequestReview() {
             commentCloud.find('.tab.segment').each(function(i, item) {
                 $(item).attr('data-tab', $(item).attr('data-tab') + id);
             });
-
             initCommentPreviewTab(commentCloud.find('.form'));
         }
         commentCloud.find('textarea').focus();

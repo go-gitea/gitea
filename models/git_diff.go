@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -57,6 +58,7 @@ type DiffLine struct {
 	RightIdx int
 	Type     DiffLineType
 	Content  string
+	Comments []*Comment
 }
 
 // GetType returns the type of a DiffLine.
@@ -223,6 +225,32 @@ type Diff struct {
 	TotalAddition, TotalDeletion int
 	Files                        []*DiffFile
 	IsIncomplete                 bool
+}
+
+// LoadComments loads comments into each line
+func (diff *Diff) LoadComments(issue *Issue, currentUser *User) error {
+	allComments, err := FetchCodeComments(issue, currentUser)
+	if err != nil {
+		return err
+	}
+	for _, file := range diff.Files {
+		if lineCommits, ok := allComments[file.Name]; ok {
+			for _, section := range file.Sections {
+				for _, line := range section.Lines {
+					if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
+						line.Comments = comments
+					}
+					if comments, ok := lineCommits[int64(line.RightIdx)]; ok {
+						line.Comments = append(line.Comments, comments...)
+					}
+					sort.SliceStable(line.Comments, func(i, j int) bool {
+						return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
+					})
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // NumFiles returns number of files changes in a diff.
