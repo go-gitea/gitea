@@ -4,10 +4,9 @@
 	"package": [
 		{
 			"checksumSHA1": "jkAY8qJRd3N2isGPpoCMoq+QkBc=",
-			"origin": "github.com/JonasFranzDEV/git",
 			"path": "code.gitea.io/git",
-			"revision": "575c3983fb275c7e87906a781ace9d97e8f4071d",
-			"revisionTime": "2018-05-13T11:02:42Z"
+			"revision": "258a447de641abb5382ad9e2f166e6011dff30fc",
+			"revisionTime": "2018-05-13T13:21:47Z"
 		},
 		{
 			"checksumSHA1": "WMD6+Qh2+5hd9uiq910pF/Ihylw=",
