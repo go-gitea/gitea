@@ -254,6 +254,7 @@ func (f *NewDingtalkHookForm) Validate(ctx *macaron.Context, errs binding.Errors
 type CreateIssueForm struct {
 	Title       string `binding:"Required;MaxSize(255)"`
 	LabelIDs    string `form:"label_ids"`
+	AssigneeIDs string `form:"assignee_ids"`
 	Ref         string `form:"ref"`
 	MilestoneID int64
 	AssigneeID  int64

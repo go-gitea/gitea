@@ -180,6 +180,8 @@ var migrations = []Migration{
 	NewMigration("add last used passcode column for TOTP", addLastUsedPasscodeTOTP),
 	// v63 -> v64
 	NewMigration("add language column for user setting", addLanguageSetting),
+	// v64 -> v65
+	NewMigration("add multiple assignees", addMultipleAssignees),
 }
 
 // Migrate database to current version
@@ -229,7 +231,7 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 	return nil
 }
 
-func dropTableColumns(x *xorm.Engine, tableName string, columnNames ...string) (err error) {
+func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...string) (err error) {
 	if tableName == "" || len(columnNames) == 0 {
 		return nil
 	}
@@ -245,17 +247,10 @@ func dropTableColumns(x *xorm.Engine, tableName string, columnNames ...string) (
 			}
 			cols += "DROP COLUMN `" + col + "`"
 		}
-		if _, err := x.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
 	case setting.UseMSSQL:
-		sess := x.NewSession()
-		defer sess.Close()
-
-		if err = sess.Begin(); err != nil {
-			return err
-		}
-
 		cols := ""
 		for _, col := range columnNames {
 			if cols != "" {

@@ -364,7 +364,7 @@ func NewIssue(ctx *context.Context) {
 }
 
 // ValidateRepoMetas check and returns repository's meta informations
-func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64, int64, int64) {
+func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64, []int64, int64) {
 	var (
 		repo = ctx.Repo.Repository
 		err  error
@@ -372,11 +372,11 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 
 	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository)
 	if ctx.Written() {
-		return nil, 0, 0
+		return nil, nil, 0
 	}
 
 	if !ctx.Repo.IsWriter() {
-		return nil, 0, 0
+		return nil, nil, 0
 	}
 
 	var labelIDs []int64
@@ -385,7 +385,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 	if len(form.LabelIDs) > 0 {
 		labelIDs, err = base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
 		if err != nil {
-			return nil, 0, 0
+			return nil, nil, 0
 		}
 		labelIDMark := base.Int64sToMap(labelIDs)
 
@@ -407,23 +407,35 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm) ([]int64
 		ctx.Data["Milestone"], err = repo.GetMilestoneByID(milestoneID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
-			return nil, 0, 0
+			return nil, nil, 0
 		}
 		ctx.Data["milestone_id"] = milestoneID
 	}
 
-	// Check assignee.
-	assigneeID := form.AssigneeID
-	if assigneeID > 0 {
-		ctx.Data["Assignee"], err = repo.GetAssigneeByID(assigneeID)
+	// Check assignees
+	var assigneeIDs []int64
+	if len(form.AssigneeIDs) > 0 {
+		assigneeIDs, err = base.StringsToInt64s(strings.Split(form.AssigneeIDs, ","))
 		if err != nil {
-			ctx.ServerError("GetAssigneeByID", err)
-			return nil, 0, 0
+			return nil, nil, 0
 		}
-		ctx.Data["assignee_id"] = assigneeID
+
+		// Check if the passed assignees actually exists and has write access to the repo
+		for _, aID := range assigneeIDs {
+			_, err = repo.GetUserIfHasWriteAccess(aID)
+			if err != nil {
+				ctx.ServerError("GetUserIfHasWriteAccess", err)
+				return nil, nil, 0
+			}
+		}
 	}
 
-	return labelIDs, milestoneID, assigneeID
+	// Keep the old assignee id thingy for compatibility reasons
+	if form.AssigneeID > 0 {
+		assigneeIDs = append(assigneeIDs, form.AssigneeID)
+	}
+
+	return labelIDs, assigneeIDs, milestoneID
 }
 
 // NewIssuePost response for creating new issue
@@ -440,7 +452,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		attachments []string
 	)
 
-	labelIDs, milestoneID, assigneeID := ValidateRepoMetas(ctx, form)
+	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form)
 	if ctx.Written() {
 		return
 	}
@@ -460,11 +472,14 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		PosterID:    ctx.User.ID,
 		Poster:      ctx.User,
 		MilestoneID: milestoneID,
-		AssigneeID:  assigneeID,
 		Content:     form.Content,
 		Ref:         form.Ref,
 	}
-	if err := models.NewIssue(repo, issue, labelIDs, attachments); err != nil {
+	if err := models.NewIssue(repo, issue, labelIDs, assigneeIDs, attachments); err != nil {
+		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
+			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
+			return
+		}
 		ctx.ServerError("NewIssue", err)
 		return
 	}
@@ -702,8 +717,8 @@ func ViewIssue(ctx *context.Context) {
 				comment.Milestone = ghostMilestone
 			}
 		} else if comment.Type == models.CommentTypeAssignees {
-			if err = comment.LoadAssignees(); err != nil {
-				ctx.ServerError("LoadAssignees", err)
+			if err = comment.LoadAssigneeUser(); err != nil {
+				ctx.ServerError("LoadAssigneeUser", err)
 				return
 			}
 		}
@@ -912,13 +927,20 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	}
 
 	assigneeID := ctx.QueryInt64("id")
+	action := ctx.Query("action")
+
 	for _, issue := range issues {
-		if issue.AssigneeID == assigneeID {
-			continue
-		}
-		if err := issue.ChangeAssignee(ctx.User, assigneeID); err != nil {
-			ctx.ServerError("ChangeAssignee", err)
-			return
+		switch action {
+		case "clear":
+			if err := models.DeleteNotPassedAssignee(issue, ctx.User, []*models.User{}); err != nil {
+				ctx.ServerError("ClearAssignees", err)
+				return
+			}
+		default:
+			if err := issue.ChangeAssignee(ctx.User, assigneeID); err != nil {
+				ctx.ServerError("ChangeAssignee", err)
+				return
+			}
 		}
 	}
 	ctx.JSON(200, map[string]interface{}{

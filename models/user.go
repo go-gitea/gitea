@@ -993,7 +993,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 	// ***** END: PublicKey *****
 
 	// Clear assignee.
-	if _, err = e.Exec("UPDATE `issue` SET assignee_id=0 WHERE assignee_id=?", u.ID); err != nil {
+	if err = clearAssigneeByUserID(e, u.ID); err != nil {
 		return fmt.Errorf("clear assignee: %v", err)
 	}
 
@@ -1110,8 +1110,8 @@ func GetUserByID(id int64) (*User, error) {
 	return getUserByID(x, id)
 }
 
-// GetAssigneeByID returns the user with write access of repository by given ID.
-func GetAssigneeByID(repo *Repository, userID int64) (*User, error) {
+// GetUserIfHasWriteAccess returns the user with write access of repository by given ID.
+func GetUserIfHasWriteAccess(repo *Repository, userID int64) (*User, error) {
 	has, err := HasAccess(userID, repo, AccessModeWrite)
 	if err != nil {
 		return nil, err

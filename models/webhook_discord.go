@@ -191,8 +191,12 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 		text = p.PullRequest.Body
 		color = warnColor
 	case api.HookIssueAssigned:
+		list, err := MakeAssigneeList(&Issue{ID: p.PullRequest.ID})
+		if err != nil {
+			return &DiscordPayload{}, err
+		}
 		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d %s", p.Repository.FullName,
-			p.PullRequest.Assignee.UserName, p.Index, p.PullRequest.Title)
+			list, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 		color = successColor
 	case api.HookIssueUnassigned:
