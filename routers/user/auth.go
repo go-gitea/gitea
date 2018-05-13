@@ -741,7 +741,8 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 
-	if setting.Service.DisableRegistration {
+	//Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
+	if !setting.Service.ShowRegistrationButton {
 		ctx.Error(403)
 		return
 	}

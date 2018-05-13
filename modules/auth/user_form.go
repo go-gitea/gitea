@@ -44,6 +44,7 @@ type InstallForm struct {
 	EnableOpenIDSignIn             bool
 	EnableOpenIDSignUp             bool
 	DisableRegistration            bool
+	AllowOnlyExternalRegistration  bool
 	EnableCaptcha                  bool
 	RequireSignInView              bool
 	DefaultKeepEmailPrivate        bool
