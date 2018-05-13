@@ -373,6 +373,10 @@ func ChangeMilestoneAssign(issue *Issue, doer *User, oldMilestoneID int64) (err 
 		hookAction = api.HookIssueDemilestoned
 	}
 
+	if err = issue.LoadAttributes(); err != nil {
+		return err
+	}
+
 	mode, _ := AccessLevel(doer.ID, issue.Repo)
 	if issue.IsPull {
 		err = issue.PullRequest.LoadIssue()
