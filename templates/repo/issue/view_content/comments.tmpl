@@ -118,15 +118,29 @@
 	{{else if eq .Type 9}}
 		<div class="event">
 			<span class="octicon octicon-primitive-dot"></span>
-			{{if gt .AssigneeID 0}}{{if eq .Poster.ID .AssigneeID}}<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
-			</a> <span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.self_assign_at" $createdStr | Safe}} </span>
-			{{else}}<a class="ui avatar image" href="{{.Assignee.HomeLink}}">
-				<img src="{{.Assignee.RelAvatarLink}}">
-			</a><span class="text grey"><a href="{{.Assignee.HomeLink}}">{{.Assignee.Name}}</a> {{$.i18n.Tr "repo.issues.add_assignee_at" .Poster.Name $createdStr | Safe}} </span>{{end}}{{else if gt .OldAssigneeID 0}}
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
-			</a> <span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a> {{$.i18n.Tr "repo.issues.remove_assignee_at" $createdStr | Safe}} </span>{{end}}
+			{{if gt .AssigneeID 0}}
+				{{if .RemovedAssignee}}
+					<a class="ui avatar image" href="{{.Assignee.HomeLink}}">
+						<img src="{{.Assignee.RelAvatarLink}}">
+					</a>
+					<span class="text grey">
+						<a href="{{.Assignee.HomeLink}}">{{.Assignee.Name}}</a>
+						{{$.i18n.Tr "repo.issues.remove_assignee_at" $createdStr | Safe}}
+					</span>
+				{{else}}
+					<a class="ui avatar image" href="{{.Assignee.HomeLink}}">
+						<img src="{{.Assignee.RelAvatarLink}}">
+					</a>
+					<span class="text grey">
+						<a href="{{.Assignee.HomeLink}}">{{.Assignee.Name}}</a>
+						{{if eq .Poster.ID .AssigneeID}}
+							{{$.i18n.Tr "repo.issues.self_assign_at" $createdStr | Safe}}
+						{{else}}
+							{{$.i18n.Tr "repo.issues.add_assignee_at" .Poster.Name $createdStr | Safe}}
+						{{end}}
+					</span>
+				{{end}}
+			{{end}}
 		</div>
 	{{else if eq .Type 10}}
 		<div class="event">

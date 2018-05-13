@@ -198,6 +198,7 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		Labels:    apiIssue.Labels,
 		Milestone: apiIssue.Milestone,
 		Assignee:  apiIssue.Assignee,
+		Assignees: apiIssue.Assignees,
 		State:     apiIssue.State,
 		Comments:  apiIssue.Comments,
 		HTMLURL:   pr.Issue.HTMLURL(),
@@ -719,7 +720,7 @@ func (pr *PullRequest) testPatch() (err error) {
 }
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte) (err error) {
+func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte, assigneeIDs []int64) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -732,7 +733,11 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		LabelIDs:    labelIDs,
 		Attachments: uuids,
 		IsPull:      true,
+		AssigneeIDs: assigneeIDs,
 	}); err != nil {
+		if IsErrUserDoesNotHaveAccessToRepo(err) {
+			return err
+		}
 		return fmt.Errorf("newIssue: %v", err)
 	}
 
