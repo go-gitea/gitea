@@ -1569,9 +1569,9 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	// Update repository count.
-	if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
+	if _, err = sess.Exec("UPDATE "+x.TableName("user", isPGEngine())+" SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
 		return fmt.Errorf("increase new owner repository count: %v", err)
-	} else if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", owner.ID); err != nil {
+	} else if _, err = sess.Exec("UPDATE "+x.TableName("user", isPGEngine())+" SET num_repos=num_repos-1 WHERE id=?", owner.ID); err != nil {
 		return fmt.Errorf("decrease old owner repository count: %v", err)
 	}
 
@@ -1871,12 +1871,12 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if repo.IsFork {
-		if _, err = sess.Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
+		if _, err = sess.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
 			return fmt.Errorf("decrease fork count: %v", err)
 		}
 	}
 
-	if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
+	if _, err = sess.Exec("UPDATE "+x.TableName("user", isPGEngine())+" SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
 		return err
 	}
 
@@ -1919,7 +1919,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if repo.NumForks > 0 {
-		if _, err = sess.Exec("UPDATE `repository` SET fork_id=0,is_fork=? WHERE fork_id=?", false, repo.ID); err != nil {
+		if _, err = sess.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET fork_id=0,is_fork=? WHERE fork_id=?", false, repo.ID); err != nil {
 			log.Error(4, "reset 'fork_id' and 'is_fork': %v", err)
 		}
 	}
@@ -1948,9 +1948,9 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 func GetRepositoryByOwnerAndName(ownerName, repoName string) (*Repository, error) {
 	var repo Repository
 	has, err := x.Select("repository.*").
-		Join("INNER", "user", "`user`.id = repository.owner_id").
+		Join("INNER", "user", "user.id = repository.owner_id").
 		Where("repository.lower_name = ?", strings.ToLower(repoName)).
-		And("`user`.lower_name = ?", strings.ToLower(ownerName)).
+		And("user.lower_name = ?", strings.ToLower(ownerName)).
 		Get(&repo)
 	if err != nil {
 		return nil, err
@@ -2294,32 +2294,32 @@ func CheckRepoStats() {
 	checkers := []*repoChecker{
 		// Repository.NumWatches
 		{
-			"SELECT repo.id FROM `repository` repo WHERE repo.num_watches!=(SELECT COUNT(*) FROM `watch` WHERE repo_id=repo.id)",
-			"UPDATE `repository` SET num_watches=(SELECT COUNT(*) FROM `watch` WHERE repo_id=?) WHERE id=?",
+			"SELECT repo.id FROM " + x.TableName("repository", isPGEngine()) + " repo WHERE repo.num_watches!=(SELECT COUNT(*) FROM `watch` WHERE repo_id=repo.id)",
+			"UPDATE " + x.TableName("repository", isPGEngine()) + " SET num_watches=(SELECT COUNT(*) FROM `watch` WHERE repo_id=?) WHERE id=?",
 			"repository count 'num_watches'",
 		},
 		// Repository.NumStars
 		{
-			"SELECT repo.id FROM `repository` repo WHERE repo.num_stars!=(SELECT COUNT(*) FROM `star` WHERE repo_id=repo.id)",
-			"UPDATE `repository` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE repo_id=?) WHERE id=?",
+			"SELECT repo.id FROM " + x.TableName("repository", isPGEngine()) + " repo WHERE repo.num_stars!=(SELECT COUNT(*) FROM `star` WHERE repo_id=repo.id)",
+			"UPDATE " + x.TableName("repository", isPGEngine()) + " SET num_stars=(SELECT COUNT(*) FROM `star` WHERE repo_id=?) WHERE id=?",
 			"repository count 'num_stars'",
 		},
 		// Label.NumIssues
 		{
-			"SELECT label.id FROM `label` WHERE label.num_issues!=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=label.id)",
-			"UPDATE `label` SET num_issues=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=?) WHERE id=?",
+			"SELECT label.id FROM " + x.TableName("label", isPGEngine()) + " WHERE label.num_issues!=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=label.id)",
+			"UPDATE " + x.TableName("label", isPGEngine()) + " SET num_issues=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=?) WHERE id=?",
 			"label count 'num_issues'",
 		},
 		// User.NumRepos
 		{
-			"SELECT `user`.id FROM `user` WHERE `user`.num_repos!=(SELECT COUNT(*) FROM `repository` WHERE owner_id=`user`.id)",
-			"UPDATE `user` SET num_repos=(SELECT COUNT(*) FROM `repository` WHERE owner_id=?) WHERE id=?",
+			"SELECT user.id FROM " + x.TableName("user", isPGEngine()) + " WHERE user.num_repos!=(SELECT COUNT(*) FROM " + x.TableName("repository", isPGEngine()) + " WHERE owner_id=user.id)",
+			"UPDATE " + x.TableName("user", isPGEngine()) + " SET num_repos=(SELECT COUNT(*) FROM " + x.TableName("repository", isPGEngine()) + " WHERE owner_id=?) WHERE id=?",
 			"user count 'num_repos'",
 		},
 		// Issue.NumComments
 		{
-			"SELECT `issue`.id FROM `issue` WHERE `issue`.num_comments!=(SELECT COUNT(*) FROM `comment` WHERE issue_id=`issue`.id AND type=0)",
-			"UPDATE `issue` SET num_comments=(SELECT COUNT(*) FROM `comment` WHERE issue_id=? AND type=0) WHERE id=?",
+			"SELECT `issue`.id FROM " + x.TableName("issue", isPGEngine()) + " WHERE `issue`.num_comments!=(SELECT COUNT(*) FROM " + x.TableName("comment", isPGEngine()) + " WHERE issue_id=`issue`.id AND type=0)",
+			"UPDATE " + x.TableName("issue", isPGEngine()) + " SET num_comments=(SELECT COUNT(*) FROM " + x.TableName("comment", isPGEngine()) + " WHERE issue_id=? AND type=0) WHERE id=?",
 			"issue count 'num_comments'",
 		},
 	}
@@ -2329,14 +2329,14 @@ func CheckRepoStats() {
 
 	// ***** START: Repository.NumClosedIssues *****
 	desc := "repository count 'num_closed_issues'"
-	results, err := x.Query("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, false)
+	results, err := x.Query(schemaQuery("SELECT repo.id FROM "+x.TableName("repository", isPGEngine())+" repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)"), true, false)
 	if err != nil {
 		log.Error(4, "Select %s: %v", desc, err)
 	} else {
 		for _, result := range results {
 			id := com.StrTo(result["id"]).MustInt64()
 			log.Trace("Updating %s: %d", desc, id)
-			_, err = x.Exec("UPDATE `repository` SET num_closed_issues=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, false, id)
+			_, err = x.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET num_closed_issues=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, false, id)
 			if err != nil {
 				log.Error(4, "Update %s[%d]: %v", desc, id, err)
 			}
@@ -2346,7 +2346,7 @@ func CheckRepoStats() {
 
 	// FIXME: use checker when stop supporting old fork repo format.
 	// ***** START: Repository.NumForks *****
-	results, err = x.Query(schemaQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_forks!=(SELECT COUNT(*) FROM `repository` WHERE fork_id=repo.id)"))
+	results, err = x.Query(schemaQuery("SELECT repo.id FROM " + x.TableName("repository", isPGEngine()) + " repo WHERE repo.num_forks!=(SELECT COUNT(*) FROM " + x.TableName("repository", isPGEngine()) + " WHERE fork_id=repo.id)"))
 	if err != nil {
 		log.Error(4, "Select repository count 'num_forks': %v", err)
 	} else {
@@ -2360,7 +2360,7 @@ func CheckRepoStats() {
 				continue
 			}
 
-			rawResult, err := x.Query("SELECT COUNT(*) FROM `repository` WHERE fork_id=?", repo.ID)
+			rawResult, err := x.Query(schemaQuery("SELECT COUNT(*) FROM "+x.TableName("repository", isPGEngine())+" WHERE fork_id=?"), repo.ID)
 			if err != nil {
 				log.Error(4, "Select count of forks[%d]: %v", repo.ID, err)
 				continue
@@ -2427,7 +2427,7 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 		return nil, err
 	}
 
-	if _, err = sess.Exec("UPDATE `repository` SET num_forks=num_forks+1 WHERE id=?", oldRepo.ID); err != nil {
+	if _, err = sess.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET num_forks=num_forks+1 WHERE id=?", oldRepo.ID); err != nil {
 		return nil, err
 	}
 

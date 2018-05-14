@@ -95,7 +95,7 @@ func NewMilestone(m *Milestone) (err error) {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `repository` SET num_milestones = num_milestones + 1 WHERE id = ?", m.RepoID); err != nil {
+	if _, err = sess.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET num_milestones = num_milestones + 1 WHERE id = ?", m.RepoID); err != nil {
 		return err
 	}
 	return sess.Commit()
@@ -401,7 +401,7 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `issue` SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
+	if _, err = sess.Exec("UPDATE "+x.TableName("issue", isPGEngine())+" SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
 		return err
 	}
 	return sess.Commit()

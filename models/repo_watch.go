@@ -31,7 +31,7 @@ func watchRepo(e Engine, userID, repoID int64, watch bool) (err error) {
 		if _, err = e.Insert(&Watch{RepoID: repoID, UserID: userID}); err != nil {
 			return err
 		}
-		_, err = e.Exec("UPDATE `repository` SET num_watches = num_watches + 1 WHERE id = ?", repoID)
+		_, err = e.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET num_watches = num_watches + 1 WHERE id = ?", repoID)
 	} else {
 		if !isWatching(e, userID, repoID) {
 			return nil
@@ -39,7 +39,7 @@ func watchRepo(e Engine, userID, repoID int64, watch bool) (err error) {
 		if _, err = e.Delete(&Watch{0, userID, repoID}); err != nil {
 			return err
 		}
-		_, err = e.Exec("UPDATE `repository` SET num_watches = num_watches - 1 WHERE id = ?", repoID)
+		_, err = e.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET num_watches = num_watches - 1 WHERE id = ?", repoID)
 	}
 	return err
 }

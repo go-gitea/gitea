@@ -146,7 +146,7 @@ func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode AccessMode
 		Cols("mode").
 		Update(collaboration); err != nil {
 		return fmt.Errorf("update collaboration: %v", err)
-	} else if _, err = sess.Exec("UPDATE access SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
+	} else if _, err = sess.Exec("UPDATE "+x.TableName("access", isPGEngine())+" SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
 		return fmt.Errorf("update access table: %v", err)
 	}
 

@@ -28,10 +28,10 @@ func StarRepo(userID, repoID int64, star bool) error {
 		if _, err := sess.Insert(&Star{UID: userID, RepoID: repoID}); err != nil {
 			return err
 		}
-		if _, err := sess.Exec("UPDATE `repository` SET num_stars = num_stars + 1 WHERE id = ?", repoID); err != nil {
+		if _, err := sess.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET num_stars = num_stars + 1 WHERE id = ?", repoID); err != nil {
 			return err
 		}
-		if _, err := sess.Exec("UPDATE `user` SET num_stars = num_stars + 1 WHERE id = ?", userID); err != nil {
+		if _, err := sess.Exec("UPDATE "+x.TableName("user", isPGEngine())+" SET num_stars = num_stars + 1 WHERE id = ?", userID); err != nil {
 			return err
 		}
 	} else {
@@ -42,10 +42,10 @@ func StarRepo(userID, repoID int64, star bool) error {
 		if _, err := sess.Delete(&Star{0, userID, repoID}); err != nil {
 			return err
 		}
-		if _, err := sess.Exec("UPDATE `repository` SET num_stars = num_stars - 1 WHERE id = ?", repoID); err != nil {
+		if _, err := sess.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET num_stars = num_stars - 1 WHERE id = ?", repoID); err != nil {
 			return err
 		}
-		if _, err := sess.Exec("UPDATE `user` SET num_stars = num_stars - 1 WHERE id = ?", userID); err != nil {
+		if _, err := sess.Exec("UPDATE "+x.TableName("user", isPGEngine())+" SET num_stars = num_stars - 1 WHERE id = ?", userID); err != nil {
 			return err
 		}
 	}
@@ -63,7 +63,7 @@ func IsStaring(userID, repoID int64) bool {
 func (repo *Repository) GetStargazers(page int) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
 	sess := x.Where("star.repo_id = ?", repo.ID).
-		Join("LEFT", "star", "`user`.id = star.uid")
+		Join("LEFT", "star", ""+x.TableName("user", isPGEngine())+".id = star.uid")
 	if page > 0 {
 		sess = sess.Limit(ItemsPerPage, (page-1)*ItemsPerPage)
 	}

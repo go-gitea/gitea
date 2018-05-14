@@ -87,7 +87,7 @@ func updateIssueAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (remov
 
 // UpdateIssueUserByRead updates issue-user relation for reading.
 func UpdateIssueUserByRead(uid, issueID int64) error {
-	_, err := x.Exec("UPDATE `issue_user` SET is_read=? WHERE uid=? AND issue_id=?", true, uid, issueID)
+	_, err := x.Exec("UPDATE "+x.TableName("issue_user", isPGEngine())+" SET is_read=? WHERE uid=? AND issue_id=?", true, uid, issueID)
 	return err
 }
 

@@ -274,7 +274,7 @@ func SyncMirrors() {
 			continue
 		}
 
-		if _, err = sess.Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", commitDate.Unix(), m.RepoID); err != nil {
+		if _, err = sess.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET updated_unix = ? WHERE id = ?", commitDate.Unix(), m.RepoID); err != nil {
 			log.Error(2, "Update repository 'updated_unix' [%s]: %v", m.RepoID, err)
 			continue
 		}

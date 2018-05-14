@@ -356,7 +356,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	case CommentTypeComment:
 		act.OpType = ActionCommentIssue
 
-		if _, err = e.Exec("UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
+		if _, err = e.Exec("UPDATE "+x.TableName("issue", isPGEngine())+" SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
 			return nil, err
 		}
 
@@ -389,9 +389,9 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		}
 
 		if opts.Issue.IsPull {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=num_closed_pulls-1 WHERE id=?", opts.Repo.ID)
+			_, err = e.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET num_closed_pulls=num_closed_pulls-1 WHERE id=?", opts.Repo.ID)
 		} else {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_issues=num_closed_issues-1 WHERE id=?", opts.Repo.ID)
+			_, err = e.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET num_closed_issues=num_closed_issues-1 WHERE id=?", opts.Repo.ID)
 		}
 		if err != nil {
 			return nil, err
@@ -404,9 +404,9 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		}
 
 		if opts.Issue.IsPull {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=num_closed_pulls+1 WHERE id=?", opts.Repo.ID)
+			_, err = e.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET num_closed_pulls=num_closed_pulls+1 WHERE id=?", opts.Repo.ID)
 		} else {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_issues=num_closed_issues+1 WHERE id=?", opts.Repo.ID)
+			_, err = e.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET num_closed_issues=num_closed_issues+1 WHERE id=?", opts.Repo.ID)
 		}
 		if err != nil {
 			return nil, err
@@ -720,7 +720,7 @@ func DeleteComment(comment *Comment) error {
 	}
 
 	if comment.Type == CommentTypeComment {
-		if _, err := sess.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
+		if _, err := sess.Exec("UPDATE "+x.TableName("issue", isPGEngine())+" SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
 			return err
 		}
 	}

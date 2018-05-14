@@ -885,9 +885,9 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	if opts.IsPull {
-		_, err = e.Exec("UPDATE `repository` SET num_pulls = num_pulls + 1 WHERE id = ?", opts.Issue.RepoID)
+		_, err = e.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET num_pulls = num_pulls + 1 WHERE id = ?", opts.Issue.RepoID)
 	} else {
-		_, err = e.Exec("UPDATE `repository` SET num_issues = num_issues + 1 WHERE id = ?", opts.Issue.RepoID)
+		_, err = e.Exec("UPDATE "+x.TableName("repository", isPGEngine())+" SET num_issues = num_issues + 1 WHERE id = ?", opts.Issue.RepoID)
 	}
 	if err != nil {
 		return err

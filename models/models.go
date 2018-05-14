@@ -214,7 +214,6 @@ func getEngine() (*xorm.Engine, error) {
 				DbCfg.User, DbCfg.Passwd, DbCfg.Host, DbCfg.Name, Param)
 		}
 	case "postgres":
-		x.SetSchema(DbCfg.Schema)
 		host, port := parsePostgreSQLHostPort(DbCfg.Host)
 		if host[0] == '/' { // looks like a unix socket
 			connStr = fmt.Sprintf("postgres://%s:%s@:%s/%s%ssslmode=%s&host=%s",
@@ -295,9 +294,7 @@ func SetSchema() (err error) {
 		}
 	}
 
-	if _, err = x.Exec(`SET SEARCH_PATH TO ` + DbCfg.Schema + `, pg_catalog`); err != nil {
-		return err
-	}
+	x.SetSchema(DbCfg.Schema)
 
 	return nil
 }
@@ -391,4 +388,8 @@ func schemaQuery(sql string) string {
 	}
 
 	return "SET SEARCH_PATH TO " + DbCfg.Schema + ", pg_catalog;" + sql
+}
+
+func isPGEngine() bool {
+	return setting.UsePostgreSQL
 }
