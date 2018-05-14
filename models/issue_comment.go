@@ -345,11 +345,7 @@ func (c *Comment) getPathAndFile(repoPath string) (string, string) {
 func (c *Comment) checkInvalidation(e Engine, repo *git.Repository, branch string) error {
 	p, file := c.getPathAndFile(repo.Path)
 	// FIXME differentiate between previous and proposed line
-	var line = c.Line
-	if line < 0 {
-		line *= -1
-	}
-	commit, err := repo.LineBlame(branch, p, file, uint(line))
+	commit, err := repo.LineBlame(branch, p, file, uint(c.UnsignedLine()))
 	if err != nil {
 		return err
 	}
@@ -364,6 +360,22 @@ func (c *Comment) checkInvalidation(e Engine, repo *git.Repository, branch strin
 // If the line got changed the comment is going to be invalidated.
 func (c *Comment) CheckInvalidation(repo *git.Repository, branch string) error {
 	return c.checkInvalidation(x, repo, branch)
+}
+
+// DiffSide returns "previous" if Comment.Line is a LOC of the previous changes and "proposed" if it is a LOC of the proposed changes.
+func (c *Comment) DiffSide() string {
+	if c.Line < 0 {
+		return "previous"
+	}
+	return "proposed"
+}
+
+// UnsignedLine returns the LOC of the code comment without + or -
+func (c *Comment) UnsignedLine() uint64 {
+	if c.Line < 0 {
+		return uint64(c.Line * -1)
+	}
+	return uint64(c.Line)
 }
 
 func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {

@@ -789,6 +789,7 @@ function initPullRequestReview() {
         var isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
         var side = $(this).data('side');
         var idx = $(this).data('idx');
+        var path = $(this).data('path');
         var form = $('#pull_review_add_comment').html();
         var tr = $(this).closest('tr');
         var ntr = tr.next();
@@ -815,12 +816,12 @@ function initPullRequestReview() {
             commentCloud.find('.tab.segment').each(function(i, item) {
                 $(item).attr('data-tab', $(item).attr('data-tab') + id);
             });
+            td.find("input[name='line']").val(idx);
+            td.find("input[name='side']").val(side === "left" ? "previous":"proposed");
+            td.find("input[name='path']").val(path);
             initCommentPreviewTab(commentCloud.find('.form'));
         }
         commentCloud.find('textarea').focus();
-
-
-        //alert($(this).data('side') + $(this).data('idx'));
     });
 }
 
@@ -2265,7 +2266,7 @@ function initTopicbar() {
                     return
                 }
                 var topicArray = topics.split(",");
-                
+
                 var last = viewDiv.children("a").last();
                 for (var i=0;i < topicArray.length; i++) {
                     $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
