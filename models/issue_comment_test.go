@@ -55,5 +55,5 @@ func TestFetchCodeComments(t *testing.T) {
 	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	res, err = FetchCodeComments(issue, user2)
 	assert.NoError(t, err)
-	assert.Empty(t, res)
+	assert.Len(t, res, 1)
 }
