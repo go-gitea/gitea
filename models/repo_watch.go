@@ -68,6 +68,7 @@ func (repo *Repository) GetWatchers(page int) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
 	sess := x.Where("watch.repo_id=?", repo.ID).
 		Join("LEFT", "watch", "`user`.id=`watch`.user_id")
+
 	if page > 0 {
 		sess = sess.Limit(ItemsPerPage, (page-1)*ItemsPerPage)
 	}
