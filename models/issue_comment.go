@@ -6,7 +6,6 @@ package models
 
 import (
 	"fmt"
-	"path"
 	"strings"
 
 	"code.gitea.io/git"
@@ -332,20 +331,9 @@ func (c *Comment) LoadReview() error {
 	return c.loadReview(x)
 }
 
-func (c *Comment) getPathAndFile(repoPath string) (string, string) {
-	p := path.Dir(c.TreePath)
-	if p == "." {
-		p = ""
-	}
-	p = fmt.Sprintf("%s/%s", repoPath, p)
-	file := path.Base(c.TreePath)
-	return p, file
-}
-
 func (c *Comment) checkInvalidation(e Engine, repo *git.Repository, branch string) error {
-	p, file := c.getPathAndFile(repo.Path)
 	// FIXME differentiate between previous and proposed line
-	commit, err := repo.LineBlame(branch, p, file, uint(c.UnsignedLine()))
+	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
 	if err != nil {
 		return err
 	}
@@ -673,14 +661,13 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}
-	dummyComment := &Comment{Line: line, TreePath: treePath}
-	p, file := dummyComment.getPathAndFile(gitRepo.Path)
 	// FIXME differentiate between previous and proposed line
 	var gitLine = line
 	if gitLine < 0 {
 		gitLine *= -1
 	}
-	commit, err := gitRepo.LineBlame(pr.HeadBranch, p, file, uint(gitLine))
+	// FIXME validate treePath
+	commit, err := gitRepo.LineBlame(pr.HeadBranch, gitRepo.Path, treePath, uint(gitLine))
 	if err != nil {
 		return nil, err
 	}
