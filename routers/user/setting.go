@@ -14,18 +14,18 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/Unknwon/com"
-	"github.com/Unknwon/i18n"
-	"github.com/pquerna/otp"
-	"github.com/pquerna/otp/totp"
-	"github.com/tstranex/u2f"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/Unknwon/com"
+	"github.com/Unknwon/i18n"
+	"github.com/pquerna/otp"
+	"github.com/pquerna/otp/totp"
+	"github.com/tstranex/u2f"
 )
 
 const (

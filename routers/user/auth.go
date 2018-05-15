@@ -18,10 +18,10 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"github.com/tstranex/u2f"
 
 	"github.com/go-macaron/captcha"
 	"github.com/markbates/goth"
+	"github.com/tstranex/u2f"
 )
 
 const (

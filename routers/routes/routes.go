@@ -6,6 +6,7 @@ package routes
 
 import (
 	"encoding/gob"
+	"net/http"
 	"os"
 	"path"
 	"time"
@@ -28,7 +29,6 @@ import (
 	"code.gitea.io/gitea/routers/private"
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
-	"github.com/tstranex/u2f"
 
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
@@ -38,8 +38,8 @@ import (
 	"github.com/go-macaron/i18n"
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
+	"github.com/tstranex/u2f"
 	"gopkg.in/macaron.v1"
-	"net/http"
 )
 
 // NewMacaron initializes Macaron instance.
