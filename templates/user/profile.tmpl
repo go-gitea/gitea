@@ -5,7 +5,7 @@
 			<div class="ui five wide column">
 				<div class="ui card">
 					{{if eq .SignedUserName .Owner.Name}}
-						<a class="image poping up" href="{{AppSubUrl}}/user/settings/avatar" id="profile-avatar" data-content="{{.i18n.Tr "user.change_avatar"}}" data-variation="inverted tiny" data-position="bottom center">
+						<a class="image poping up" href="{{AppSubUrl}}/user/settings" id="profile-avatar" data-content="{{.i18n.Tr "user.change_avatar"}}" data-variation="inverted tiny" data-position="bottom center">
 							<img src="{{.Owner.SizedRelAvatarLink 290}}" title="{{.Owner.Name}}"/>
 						</a>
 					{{else}}
