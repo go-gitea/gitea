@@ -37,6 +37,7 @@ import (
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
 	"gopkg.in/macaron.v1"
+	"net/http"
 )
 
 // NewMacaron initializes Macaron instance.
@@ -217,35 +218,54 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/user/settings", func() {
 		m.Get("", user.Settings)
 		m.Post("", bindIgnErr(auth.UpdateProfileForm{}), user.SettingsPost)
-		m.Combo("/avatar").Get(user.SettingsAvatar).
-			Post(binding.MultipartForm(auth.AvatarForm{}), user.SettingsAvatarPost)
+		m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), user.SettingsAvatarPost)
 		m.Post("/avatar/delete", user.SettingsDeleteAvatar)
-		m.Combo("/email").Get(user.SettingsEmails).
-			Post(bindIgnErr(auth.AddEmailForm{}), user.SettingsEmailPost)
-		m.Post("/email/delete", user.DeleteEmail)
-		m.Get("/security", user.SettingsSecurity)
-		m.Post("/security", bindIgnErr(auth.ChangePasswordForm{}), user.SettingsSecurityPost)
-		m.Group("/openid", func() {
-			m.Combo("").Get(user.SettingsOpenID).
-				Post(bindIgnErr(auth.AddOpenIDForm{}), user.SettingsOpenIDPost)
-			m.Post("/delete", user.DeleteOpenID)
-			m.Post("/toggle_visibility", user.ToggleOpenIDVisibility)
-		}, openIDSignInEnabled)
-		m.Combo("/keys").Get(user.SettingsKeys).
-			Post(bindIgnErr(auth.AddKeyForm{}), user.SettingsKeysPost)
-		m.Post("/keys/delete", user.DeleteKey)
+		m.Group("/account", func() {
+			m.Combo("").Get(user.SettingsAccount).Post(bindIgnErr(auth.ChangePasswordForm{}), user.SettingsAccountPost)
+			m.Post("/email", bindIgnErr(auth.AddEmailForm{}), user.SettingsEmailPost)
+			m.Post("/email/delete", user.DeleteEmail)
+			m.Post("/delete", user.SettingsDelete)
+		})
+		m.Group("/security", func() {
+			m.Get("", user.SettingsSecurity)
+			m.Group("/two_factor", func() {
+				m.Post("/regenerate_scratch", user.SettingsTwoFactorRegenerateScratch)
+				m.Post("/disable", user.SettingsTwoFactorDisable)
+				m.Get("/enroll", user.SettingsTwoFactorEnroll)
+				m.Post("/enroll", bindIgnErr(auth.TwoFactorAuthForm{}), user.SettingsTwoFactorEnrollPost)
+			})
+			m.Group("/openid", func() {
+				m.Post("", bindIgnErr(auth.AddOpenIDForm{}), user.SettingsOpenIDPost)
+				m.Post("/delete", user.DeleteOpenID)
+				m.Post("/toggle_visibility", user.ToggleOpenIDVisibility)
+			}, openIDSignInEnabled)
+			m.Post("/account_link", user.SettingsDeleteAccountLink)
+		})
 		m.Combo("/applications").Get(user.SettingsApplications).
 			Post(bindIgnErr(auth.NewAccessTokenForm{}), user.SettingsApplicationsPost)
 		m.Post("/applications/delete", user.SettingsDeleteApplication)
-		m.Route("/delete", "GET,POST", user.SettingsDelete)
-		m.Combo("/account_link").Get(user.SettingsAccountLinks).Post(user.SettingsDeleteAccountLink)
+		m.Combo("/keys").Get(user.SettingsKeys).
+			Post(bindIgnErr(auth.AddKeyForm{}), user.SettingsKeysPost)
+		m.Post("/keys/delete", user.DeleteKey)
 		m.Get("/organization", user.SettingsOrganization)
 		m.Get("/repos", user.SettingsRepos)
-		m.Group("/security/two_factor", func() {
-			m.Post("/regenerate_scratch", user.SettingsTwoFactorRegenerateScratch)
-			m.Post("/disable", user.SettingsTwoFactorDisable)
-			m.Get("/enroll", user.SettingsTwoFactorEnroll)
-			m.Post("/enroll", bindIgnErr(auth.TwoFactorAuthForm{}), user.SettingsTwoFactorEnrollPost)
+
+		// redirects from old settings urls to new ones
+		// TODO: can be removed on next major version
+		m.Get("/avatar", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL+"/user/settings", http.StatusMovedPermanently)
+		})
+		m.Get("/email", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL+"/user/settings/account", http.StatusMovedPermanently)
+		})
+		m.Get("/delete", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL+"/user/settings/account", http.StatusMovedPermanently)
+		})
+		m.Get("/openid", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL+"/user/settings/security", http.StatusMovedPermanently)
+		})
+		m.Get("/account_link", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL+"/user/settings/security", http.StatusMovedPermanently)
 		})
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true

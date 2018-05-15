@@ -93,15 +93,12 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"/user2?tab=stars",
 		"/user2?tab=activity",
 		"/user/settings",
-		"/user/settings/avatar",
+		"/user/settings/account",
 		"/user/settings/security",
 		"/user/settings/security/two_factor/enroll",
-		"/user/settings/email",
 		"/user/settings/keys",
-		"/user/settings/applications",
-		"/user/settings/account_link",
 		"/user/settings/organization",
-		"/user/settings/delete",
+		"/user/settings/repos",
 	}
 
 	session := loginUser(t, userName)

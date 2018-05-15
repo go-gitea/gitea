@@ -30,18 +30,13 @@ import (
 
 const (
 	tplSettingsProfile      base.TplName = "user/settings/profile"
-	tplSettingsAvatar       base.TplName = "user/settings/avatar"
-	tplSettingsEmails       base.TplName = "user/settings/email"
-	tplSettingsKeys         base.TplName = "user/settings/keys"
-	tplSettingsSocial       base.TplName = "user/settings/social"
-	tplSettingsApplications base.TplName = "user/settings/applications"
-	tplSettingsTwofa        base.TplName = "user/settings/twofa"
+	tplSettingsAccount      base.TplName = "user/settings/account"
+	tplSettingsSecurity     base.TplName = "user/settings/security"
 	tplSettingsTwofaEnroll  base.TplName = "user/settings/twofa_enroll"
-	tplSettingsAccountLink  base.TplName = "user/settings/account_link"
+	tplSettingsApplications base.TplName = "user/settings/applications"
+	tplSettingsKeys         base.TplName = "user/settings/keys"
 	tplSettingsOrganization base.TplName = "user/settings/organization"
 	tplSettingsRepositories base.TplName = "user/settings/repos"
-	tplSettingsDelete       base.TplName = "user/settings/delete"
-	tplSettingsSecurity     base.TplName = "user/settings/security"
 )
 
 // Settings render user's profile page
@@ -168,13 +163,6 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 	return nil
 }
 
-// SettingsAvatar render user avatar page
-func SettingsAvatar(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsAvatar"] = true
-	ctx.HTML(200, tplSettingsAvatar)
-}
-
 // SettingsAvatarPost response for change user's avatar request
 func SettingsAvatarPost(ctx *context.Context, form auth.AvatarForm) {
 	if err := UpdateAvatarSetting(ctx, form, ctx.User); err != nil {
@@ -183,7 +171,7 @@ func SettingsAvatarPost(ctx *context.Context, form auth.AvatarForm) {
 		ctx.Flash.Success(ctx.Tr("settings.update_avatar_success"))
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/avatar")
+	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 
 // SettingsDeleteAvatar render delete avatar page
@@ -192,38 +180,32 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/avatar")
+	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 
-// SettingsSecurity render change user's password page and 2FA
-func SettingsSecurity(ctx *context.Context) {
+// SettingsAccount renders change user's password, user's email and user suicide page
+func SettingsAccount(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsSecurity"] = true
+	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.User.Email
 
-	enrolled := true
-	_, err := models.GetTwoFactorByUID(ctx.User.ID)
+	emails, err := models.GetEmailAddresses(ctx.User.ID)
 	if err != nil {
-		if models.IsErrTwoFactorNotEnrolled(err) {
-			enrolled = false
-		} else {
-			ctx.ServerError("SettingsTwoFactor", err)
-			return
-		}
+		ctx.ServerError("GetEmailAddresses", err)
+		return
 	}
+	ctx.Data["Emails"] = emails
 
-	ctx.Data["TwofaEnrolled"] = enrolled
-	ctx.HTML(200, tplSettingsSecurity)
+	ctx.HTML(200, tplSettingsAccount)
 }
 
-// SettingsSecurityPost response for change user's password
-func SettingsSecurityPost(ctx *context.Context, form auth.ChangePasswordForm) {
+// SettingsAccountPost response for change user's password
+func SettingsAccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsSecurity"] = true
-	ctx.Data["PageIsSettingsDelete"] = true
+	ctx.Data["PageIsSettingsAccount"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplSettingsSecurity)
+		ctx.HTML(200, tplSettingsAccount)
 		return
 	}
 
@@ -248,28 +230,13 @@ func SettingsSecurityPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
-}
-
-// SettingsEmails render user's emails page
-func SettingsEmails(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsEmails"] = true
-
-	emails, err := models.GetEmailAddresses(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("GetEmailAddresses", err)
-		return
-	}
-	ctx.Data["Emails"] = emails
-
-	ctx.HTML(200, tplSettingsEmails)
+	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
 // SettingsEmailPost response for change user's email
 func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsEmails"] = true
+	ctx.Data["PageIsSettingsAccount"] = true
 
 	// Make emailaddress primary.
 	if ctx.Query("_method") == "PRIMARY" {
@@ -279,7 +246,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 		}
 
 		log.Trace("Email made primary: %s", ctx.User.Name)
-		ctx.Redirect(setting.AppSubURL + "/user/settings/email")
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
 
@@ -292,7 +259,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	ctx.Data["Emails"] = emails
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplSettingsEmails)
+		ctx.HTML(200, tplSettingsAccount)
 		return
 	}
 
@@ -303,7 +270,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	}
 	if err := models.AddEmailAddress(email); err != nil {
 		if models.IsErrEmailAlreadyUsed(err) {
-			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsEmails, &form)
+			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
 			return
 		}
 		ctx.ServerError("AddEmailAddress", err)
@@ -323,7 +290,7 @@ func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	}
 
 	log.Trace("Email address added: %s", email.Email)
-	ctx.Redirect(setting.AppSubURL + "/user/settings/email")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
 // DeleteEmail response for delete user's email
@@ -336,7 +303,164 @@ func DeleteEmail(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("settings.email_deletion_success"))
 	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/email",
+		"redirect": setting.AppSubURL + "/user/settings/account",
+	})
+}
+
+// SettingsDelete render user suicide page and response for delete user himself
+func SettingsDelete(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsAccount"] = true
+
+	if _, err := models.UserSignIn(ctx.User.Name, ctx.Query("password")); err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsAccount, nil)
+		} else {
+			ctx.ServerError("UserSignIn", err)
+		}
+		return
+	}
+
+	if err := models.DeleteUser(ctx.User); err != nil {
+		switch {
+		case models.IsErrUserOwnRepos(err):
+			ctx.Flash.Error(ctx.Tr("form.still_own_repo"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		case models.IsErrUserHasOrgs(err):
+			ctx.Flash.Error(ctx.Tr("form.still_has_org"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		default:
+			ctx.ServerError("DeleteUser", err)
+		}
+	} else {
+		log.Trace("Account deleted: %s", ctx.User.Name)
+		ctx.Redirect(setting.AppSubURL + "/")
+	}
+}
+
+// SettingsSecurity render change user's password page and 2FA
+func SettingsSecurity(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsSecurity"] = true
+
+	enrolled := true
+	_, err := models.GetTwoFactorByUID(ctx.User.ID)
+	if err != nil {
+		if models.IsErrTwoFactorNotEnrolled(err) {
+			enrolled = false
+		} else {
+			ctx.ServerError("SettingsTwoFactor", err)
+			return
+		}
+	}
+	ctx.Data["TwofaEnrolled"] = enrolled
+
+	accountLinks, err := models.ListAccountLinks(ctx.User)
+	if err != nil {
+		ctx.ServerError("ListAccountLinks", err)
+		return
+	}
+
+	// map the provider display name with the LoginSource
+	sources := make(map[*models.LoginSource]string)
+	for _, externalAccount := range accountLinks {
+		if loginSource, err := models.GetLoginSourceByID(externalAccount.LoginSourceID); err == nil {
+			var providerDisplayName string
+			if loginSource.IsOAuth2() {
+				providerTechnicalName := loginSource.OAuth2().Provider
+				providerDisplayName = models.OAuth2Providers[providerTechnicalName].DisplayName
+			} else {
+				providerDisplayName = loginSource.Name
+			}
+			sources[loginSource] = providerDisplayName
+		}
+	}
+	ctx.Data["AccountLinks"] = sources
+
+	if ctx.Query("openid.return_to") != "" {
+		settingsOpenIDVerify(ctx)
+		return
+	}
+
+	openid, err := models.GetUserOpenIDs(ctx.User.ID)
+	if err != nil {
+		ctx.ServerError("GetUserOpenIDs", err)
+		return
+	}
+	ctx.Data["OpenIDs"] = openid
+
+	ctx.HTML(200, tplSettingsSecurity)
+}
+
+// SettingsDeleteAccountLink delete a single account link
+func SettingsDeleteAccountLink(ctx *context.Context) {
+	if _, err := models.RemoveAccountLink(ctx.User, ctx.QueryInt64("loginSourceID")); err != nil {
+		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/user/settings/security",
+	})
+}
+
+// SettingsApplications render manage access token page
+func SettingsApplications(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsApplications"] = true
+
+	tokens, err := models.ListAccessTokens(ctx.User.ID)
+	if err != nil {
+		ctx.ServerError("ListAccessTokens", err)
+		return
+	}
+	ctx.Data["Tokens"] = tokens
+
+	ctx.HTML(200, tplSettingsApplications)
+}
+
+// SettingsApplicationsPost response for add user's access token
+func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsApplications"] = true
+
+	if ctx.HasError() {
+		tokens, err := models.ListAccessTokens(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("ListAccessTokens", err)
+			return
+		}
+		ctx.Data["Tokens"] = tokens
+		ctx.HTML(200, tplSettingsApplications)
+		return
+	}
+
+	t := &models.AccessToken{
+		UID:  ctx.User.ID,
+		Name: form.Name,
+	}
+	if err := models.NewAccessToken(t); err != nil {
+		ctx.ServerError("NewAccessToken", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
+	ctx.Flash.Info(t.Sha1)
+
+	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
+}
+
+// SettingsDeleteApplication response for delete user access token
+func SettingsDeleteApplication(ctx *context.Context) {
+	if err := models.DeleteAccessTokenByID(ctx.QueryInt64("id"), ctx.User.ID); err != nil {
+		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
 }
 
@@ -468,65 +592,6 @@ func DeleteKey(ctx *context.Context) {
 	}
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/keys",
-	})
-}
-
-// SettingsApplications render user's access tokens page
-func SettingsApplications(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsApplications"] = true
-
-	tokens, err := models.ListAccessTokens(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("ListAccessTokens", err)
-		return
-	}
-	ctx.Data["Tokens"] = tokens
-
-	ctx.HTML(200, tplSettingsApplications)
-}
-
-// SettingsApplicationsPost response for add user's access token
-func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsApplications"] = true
-
-	if ctx.HasError() {
-		tokens, err := models.ListAccessTokens(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("ListAccessTokens", err)
-			return
-		}
-		ctx.Data["Tokens"] = tokens
-		ctx.HTML(200, tplSettingsApplications)
-		return
-	}
-
-	t := &models.AccessToken{
-		UID:  ctx.User.ID,
-		Name: form.Name,
-	}
-	if err := models.NewAccessToken(t); err != nil {
-		ctx.ServerError("NewAccessToken", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
-	ctx.Flash.Info(t.Sha1)
-
-	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
-}
-
-// SettingsDeleteApplication response for delete user access token
-func SettingsDeleteApplication(ctx *context.Context) {
-	if err := models.DeleteAccessTokenByID(ctx.QueryInt64("id"), ctx.User.ID); err != nil {
-		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
-	} else {
-		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
-	}
-
-	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
 }
 
@@ -693,86 +758,6 @@ func SettingsTwoFactorEnrollPost(ctx *context.Context, form auth.TwoFactorAuthFo
 	ctx.Session.Delete("twofaUri")
 	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", t.ScratchToken))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
-}
-
-// SettingsAccountLinks render the account links settings page
-func SettingsAccountLinks(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsAccountLink"] = true
-
-	accountLinks, err := models.ListAccountLinks(ctx.User)
-	if err != nil {
-		ctx.ServerError("ListAccountLinks", err)
-		return
-	}
-
-	// map the provider display name with the LoginSource
-	sources := make(map[*models.LoginSource]string)
-	for _, externalAccount := range accountLinks {
-		if loginSource, err := models.GetLoginSourceByID(externalAccount.LoginSourceID); err == nil {
-			var providerDisplayName string
-			if loginSource.IsOAuth2() {
-				providerTechnicalName := loginSource.OAuth2().Provider
-				providerDisplayName = models.OAuth2Providers[providerTechnicalName].DisplayName
-			} else {
-				providerDisplayName = loginSource.Name
-			}
-			sources[loginSource] = providerDisplayName
-		}
-	}
-	ctx.Data["AccountLinks"] = sources
-
-	ctx.HTML(200, tplSettingsAccountLink)
-}
-
-// SettingsDeleteAccountLink delete a single account link
-func SettingsDeleteAccountLink(ctx *context.Context) {
-	if _, err := models.RemoveAccountLink(ctx.User, ctx.QueryInt64("loginSourceID")); err != nil {
-		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
-	} else {
-		ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
-	}
-
-	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/account_link",
-	})
-}
-
-// SettingsDelete render user suicide page and response for delete user himself
-func SettingsDelete(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsDelete"] = true
-	ctx.Data["Email"] = ctx.User.Email
-
-	if ctx.Req.Method == "POST" {
-		if _, err := models.UserSignIn(ctx.User.Name, ctx.Query("password")); err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsDelete, nil)
-			} else {
-				ctx.ServerError("UserSignIn", err)
-			}
-			return
-		}
-
-		if err := models.DeleteUser(ctx.User); err != nil {
-			switch {
-			case models.IsErrUserOwnRepos(err):
-				ctx.Flash.Error(ctx.Tr("form.still_own_repo"))
-				ctx.Redirect(setting.AppSubURL + "/user/settings/delete")
-			case models.IsErrUserHasOrgs(err):
-				ctx.Flash.Error(ctx.Tr("form.still_has_org"))
-				ctx.Redirect(setting.AppSubURL + "/user/settings/delete")
-			default:
-				ctx.ServerError("DeleteUser", err)
-			}
-		} else {
-			log.Trace("Account deleted: %s", ctx.User.Name)
-			ctx.Redirect(setting.AppSubURL + "/")
-		}
-		return
-	}
-
-	ctx.HTML(200, tplSettingsDelete)
 }
 
 // SettingsOrganization render all the organization of the user
