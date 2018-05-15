@@ -260,14 +260,20 @@
 				{{range $line, $comms := $lines}}
 						<div class="ui segments">
 							<div class="ui segment">
-							{{if (index $comms 0).Invalidated}}
-								<button class="ui icon button">
-									<i class="indend icon"></i>
+								{{$invalid := (index $comms 0).Invalidated}}
+							{{if $invalid}}
+								<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="ui compact right labeled button show-outdated">
+									<i class="octicon octicon-fold"></i>
+									{{$.i18n.Tr "repo.issues.review.show_outdated"}}
+								</button>
+								<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="hide ui compact right labeled button hide-outdated">
+									<i class="octicon octicon-fold"></i>
+									{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
 								</button>
 							{{end}}
 								<code>{{$filename}}</code>
 							</div>
-							<div class="ui table segment">
+							<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $invalid}} hide{{end}}">
 								<div class="diff-file-box diff-box file-content tab-size-8">
 									<div class="file-body file-code code-view code-diff code-diff-unified">
 										<table>
@@ -387,7 +393,7 @@
 									</div>
 								</div>
 							</div>
-							<div class="ui segment">
+							<div id="code-comments-{{(index $comms 0).ID}}" class="ui segment{{if $invalid}} hide{{end}}">
 								<div class="ui comments">
 									{{range $comms}}
 										{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}

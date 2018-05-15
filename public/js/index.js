@@ -762,6 +762,23 @@ function initRepository() {
 }
 
 function initPullRequestReview() {
+    $('.show-outdated').on('click', function (e) {
+        e.preventDefault();
+        var id = $(this).data('comment');
+        $(this).addClass("hide");
+        $("#code-comments-" + id).removeClass('hide');
+        $("#code-preview-" + id).removeClass('hide');
+        $("#hide-outdated-" + id).removeClass('hide');
+    });
+
+    $('.hide-outdated').on('click', function (e) {
+        e.preventDefault();
+        var id = $(this).data('comment');
+        $(this).addClass("hide");
+        $("#code-comments-" + id).addClass('hide');
+        $("#code-preview-" + id).addClass('hide');
+        $("#show-outdated-" + id).removeClass('hide');
+    });
     if ($('.repository.pull.diff').length == 0) {
         return;
     }

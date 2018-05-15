@@ -853,8 +853,13 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 		IssueID:  issue.ID,
 		ReviewID: review.ID,
 	}
+	conds := opts.toConds()
+	if review.ID == 0 {
+		conds.And(builder.Eq{"invalidated": false})
+	}
+
 	var comments []*Comment
-	if err := e.Where(opts.toConds().And(builder.Eq{"invalidated": false})).
+	if err := e.Where(conds).
 		Asc("comment.created_unix").
 		Asc("comment.id").
 		Find(&comments); err != nil {
