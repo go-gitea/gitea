@@ -726,6 +726,17 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadReview", err)
 				return
 			}
+			if comment.Review == nil {
+				continue
+			}
+			if err = comment.Review.LoadAttributes(); err != nil {
+				ctx.ServerError("Review.LoadAttributes", err)
+				return
+			}
+			if err = comment.Review.LoadCodeComments(); err != nil {
+				ctx.ServerError("Review.LoadCodeComments", err)
+				return
+			}
 		}
 	}
 

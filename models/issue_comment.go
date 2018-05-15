@@ -839,12 +839,19 @@ func DeleteComment(comment *Comment) error {
 }
 
 func fetchCodeComments(e Engine, issue *Issue, currentUser *User) (map[string]map[int64][]*Comment, error) {
-	pathToLineToComment := make(map[string]map[int64][]*Comment)
+	return fetchCodeCommentsByReview(e, issue, currentUser, nil)
+}
 
+func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review *Review) (map[string]map[int64][]*Comment, error) {
+	pathToLineToComment := make(map[string]map[int64][]*Comment)
+	if review == nil {
+		review = &Review{ID: 0}
+	}
 	//Find comments
 	opts := FindCommentsOptions{
-		Type:    CommentTypeCode,
-		IssueID: issue.ID,
+		Type:     CommentTypeCode,
+		IssueID:  issue.ID,
+		ReviewID: review.ID,
 	}
 	var comments []*Comment
 	if err := e.Where(opts.toConds().And(builder.Eq{"invalidated": false})).
@@ -870,10 +877,12 @@ func fetchCodeComments(e Engine, issue *Issue, currentUser *User) (map[string]ma
 	}
 	for _, comment := range comments {
 		if re, ok := reviews[comment.ReviewID]; ok && re != nil {
-			// If the review is pending only the author can see the comments
-			if re.Type == ReviewTypePending &&
-				(currentUser == nil || currentUser.ID != re.ReviewerID) {
-				continue
+			// If the review is pending only the author can see the comments (except the review is set)
+			if review.ID == 0 {
+				if re.Type == ReviewTypePending &&
+					(currentUser == nil || currentUser.ID != re.ReviewerID) {
+					continue
+				}
 			}
 			comment.Review = re
 		}

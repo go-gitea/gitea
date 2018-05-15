@@ -56,11 +56,11 @@ type Review struct {
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 
 	// CodeComments are the initial code comments of the review
-	CodeComments []*Comment `xorm:"-"`
+	CodeComments map[string]map[int64][]*Comment `xorm:"-"`
 }
 
 func (r *Review) loadCodeComments(e Engine) (err error) {
-	r.CodeComments, err = findComments(e, FindCommentsOptions{IssueID: r.IssueID, ReviewID: r.ID, Type: CommentTypeCode})
+	r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
 	return
 }
 
@@ -75,6 +75,9 @@ func (r *Review) loadIssue(e Engine) (err error) {
 }
 
 func (r *Review) loadReviewer(e Engine) (err error) {
+	if r.ReviewerID == 0 {
+		return nil
+	}
 	r.Reviewer, err = getUserByID(e, r.ReviewerID)
 	return
 }
