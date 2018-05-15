@@ -211,3 +211,23 @@ type TwoFactorScratchAuthForm struct {
 func (f *TwoFactorScratchAuthForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
+
+// U2FRegistrationForm for reserving an U2F name
+type U2FRegistrationForm struct {
+	Name string `binding:"Required"`
+}
+
+// Validate valideates the fields
+func (f *U2FRegistrationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// U2FDeleteForm for deleting U2F keys
+type U2FDeleteForm struct {
+	ID int64 `binding:"Required"`
+}
+
+// Validate valideates the fields
+func (f *U2FDeleteForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}

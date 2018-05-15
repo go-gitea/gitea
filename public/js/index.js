@@ -1432,6 +1432,94 @@ function initCodeView() {
     }
 }
 
+function initU2FAuth() {
+    if($('#wait-for-key').length === 0) {
+        return
+    }
+
+    $.getJSON('/user/u2f/challenge').success(function(req) {
+        console.log(req);
+        u2f.sign(req.appId, req.challenge, req.registeredKeys, u2fSigned, 30);
+    });
+}
+function u2fSigned(resp) {
+    console.log("u2fSigned", resp);
+    $.ajax({
+        url:'/user/u2f/sign',
+        type:"POST",
+        headers: {"X-Csrf-Token": csrf},
+        data: JSON.stringify(resp),
+        contentType:"application/json; charset=utf-8",
+    }).done(function(res){
+        console.log(res);
+        window.location.replace(res);
+    }).fail(function (xhr, textStatus) {
+        // TODO error handling
+        console.log(xhr);
+    });
+}
+
+function u2fRegistered(resp) {
+    if (checkError(resp)) {
+        return;
+    }
+    if(u2f !== undefined){
+        $.ajax({
+            url:'/user/settings/security/u2f/register',
+            type:"POST",
+            headers: {"X-Csrf-Token": csrf},
+            data: JSON.stringify(resp),
+            contentType:"application/json; charset=utf-8",
+            success: function(){
+                window.location.reload();
+            },
+            fail: function (xhr, textStatus) {
+                console.log(xhr);
+            }
+        });
+    }
+}
+
+// TODO better error handling
+function checkError(resp) {
+    if (!('errorCode' in resp)) {
+        return false;
+    }
+    if (resp.errorCode === u2f.ErrorCodes['OK']) {
+        return false;
+    }
+    var msg = 'U2F error code ' + resp.errorCode;
+    for (var code_name in u2f.ErrorCodes) {
+        if (u2f.ErrorCodes[code_name] === resp.errorCode) {
+            msg += ' (' + code_name + ')';
+        }
+    }
+    if (resp.errorMessage) {
+        msg += ': ' + resp.errorMessage;
+    }
+    console.log(msg);
+    return true;
+}
+function initU2FRegister() {
+    $('#register-security-key').on('click', function(e) {
+        e.preventDefault();
+        $.post("/user/settings/security/u2f/request_register", {
+            "_csrf": csrf,
+            "name": $('#nickname').val()
+        }).success(function(req) {
+            $('#register-device').modal('show');
+            if(req.registeredKeys === null) {
+                req.registeredKeys = []
+            }
+            u2f.register(req.appId, req.registerRequests, req.registeredKeys, u2fRegistered, 30);
+        }).fail(function(xhr, status, error) {
+            if(xhr.status === 409) {
+                $("#nickname").closest("div.field").addClass("error");
+            }
+        });
+    })
+}
+
 $(document).ready(function () {
     csrf = $('meta[name=_csrf]').attr("content");
     suburl = $('meta[name=_suburl]').attr("content");
@@ -1643,6 +1731,8 @@ $(document).ready(function () {
     initCtrlEnterSubmit();
     initNavbarContentToggle();
     initTopicbar();
+    initU2FAuth();
+    initU2FRegister();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -2201,7 +2291,7 @@ function initTopicbar() {
                     return
                 }
                 var topicArray = topics.split(",");
-                
+
                 var last = viewDiv.children("a").last();
                 for (var i=0;i < topicArray.length; i++) {
                     $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)

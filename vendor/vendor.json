@@ -1285,6 +1285,12 @@
 			"revisionTime": "2016-03-11T05:04:36Z"
 		},
 		{
+			"checksumSHA1": "NE1kNfAZ0AAXCUbwx196os/DSUE=",
+			"path": "github.com/tstranex/u2f",
+			"revision": "d21a03e0b1d9fc1df59ff54e7a513655c1748b0c",
+			"revisionTime": "2018-05-05T18:51:14Z"
+		},
+		{
 			"checksumSHA1": "76U6GiRZsKjr9OWohbsdfKPok/E=",
 			"path": "github.com/twinj/uuid",
 			"revision": "89173bcdda19db0eb88aef1e1cb1cb2505561d31",

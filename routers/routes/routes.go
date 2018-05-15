@@ -5,6 +5,7 @@
 package routes
 
 import (
+	"encoding/gob"
 	"os"
 	"path"
 	"time"
@@ -27,6 +28,7 @@ import (
 	"code.gitea.io/gitea/routers/private"
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
+	"github.com/tstranex/u2f"
 
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
@@ -42,6 +44,7 @@ import (
 
 // NewMacaron initializes Macaron instance.
 func NewMacaron() *macaron.Macaron {
+	gob.Register(&u2f.Challenge{})
 	m := macaron.New()
 	if !setting.DisableRouterLog {
 		m.Use(macaron.Logger())
@@ -213,6 +216,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/scratch", user.TwoFactorScratch)
 			m.Post("/scratch", bindIgnErr(auth.TwoFactorScratchAuthForm{}), user.TwoFactorScratchPost)
 		})
+		m.Group("/u2f", func() {
+			m.Get("", user.U2F)
+			m.Get("/challenge", user.U2FChallenge)
+			m.Post("/sign", bindIgnErr(u2f.SignResponse{}), user.U2FSign)
+
+		})
 	}, reqSignOut)
 
 	m.Group("/user/settings", func() {
@@ -233,6 +242,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/disable", user.SettingsTwoFactorDisable)
 				m.Get("/enroll", user.SettingsTwoFactorEnroll)
 				m.Post("/enroll", bindIgnErr(auth.TwoFactorAuthForm{}), user.SettingsTwoFactorEnrollPost)
+			})
+			m.Group("/u2f", func() {
+				m.Post("/request_register", bindIgnErr(auth.U2FRegistrationForm{}), user.U2FRegister)
+				m.Post("/register", bindIgnErr(u2f.RegisterResponse{}), user.U2FRegisterPost)
+				m.Post("/delete", bindIgnErr(auth.U2FDeleteForm{}), user.U2FDelete)
 			})
 			m.Group("/openid", func() {
 				m.Post("", bindIgnErr(auth.AddOpenIDForm{}), user.SettingsOpenIDPost)
