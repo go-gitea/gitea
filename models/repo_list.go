@@ -152,6 +152,10 @@ const (
 	SearchOrderBySizeReverse                         = "size DESC"
 	SearchOrderByID                                  = "id ASC"
 	SearchOrderByIDReverse                           = "id DESC"
+	SearchOrderByStars                               = "num_stars ASC"
+	SearchOrderByStarsReverse                        = "num_stars DESC"
+	SearchOrderByForks                               = "num_forks ASC"
+	SearchOrderByForksReverse                        = "num_forks DESC"
 )
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
