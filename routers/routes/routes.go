@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/routers/private"
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
+	userSetting "code.gitea.io/gitea/routers/user/setting"
 
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
@@ -216,39 +217,39 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}, reqSignOut)
 
 	m.Group("/user/settings", func() {
-		m.Get("", user.Settings)
-		m.Post("", bindIgnErr(auth.UpdateProfileForm{}), user.SettingsPost)
-		m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), user.SettingsAvatarPost)
-		m.Post("/avatar/delete", user.SettingsDeleteAvatar)
+		m.Get("", userSetting.Settings)
+		m.Post("", bindIgnErr(auth.UpdateProfileForm{}), userSetting.SettingsPost)
+		m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), userSetting.SettingsAvatarPost)
+		m.Post("/avatar/delete", userSetting.SettingsDeleteAvatar)
 		m.Group("/account", func() {
-			m.Combo("").Get(user.SettingsAccount).Post(bindIgnErr(auth.ChangePasswordForm{}), user.SettingsAccountPost)
-			m.Post("/email", bindIgnErr(auth.AddEmailForm{}), user.SettingsEmailPost)
-			m.Post("/email/delete", user.DeleteEmail)
-			m.Post("/delete", user.SettingsDelete)
+			m.Combo("").Get(userSetting.SettingsAccount).Post(bindIgnErr(auth.ChangePasswordForm{}), userSetting.SettingsAccountPost)
+			m.Post("/email", bindIgnErr(auth.AddEmailForm{}), userSetting.SettingsEmailPost)
+			m.Post("/email/delete", userSetting.DeleteEmail)
+			m.Post("/delete", userSetting.SettingsDelete)
 		})
 		m.Group("/security", func() {
-			m.Get("", user.SettingsSecurity)
+			m.Get("", userSetting.SettingsSecurity)
 			m.Group("/two_factor", func() {
-				m.Post("/regenerate_scratch", user.SettingsTwoFactorRegenerateScratch)
-				m.Post("/disable", user.SettingsTwoFactorDisable)
-				m.Get("/enroll", user.SettingsTwoFactorEnroll)
-				m.Post("/enroll", bindIgnErr(auth.TwoFactorAuthForm{}), user.SettingsTwoFactorEnrollPost)
+				m.Post("/regenerate_scratch", userSetting.SettingsTwoFactorRegenerateScratch)
+				m.Post("/disable", userSetting.SettingsTwoFactorDisable)
+				m.Get("/enroll", userSetting.SettingsTwoFactorEnroll)
+				m.Post("/enroll", bindIgnErr(auth.TwoFactorAuthForm{}), userSetting.SettingsTwoFactorEnrollPost)
 			})
 			m.Group("/openid", func() {
-				m.Post("", bindIgnErr(auth.AddOpenIDForm{}), user.SettingsOpenIDPost)
-				m.Post("/delete", user.DeleteOpenID)
-				m.Post("/toggle_visibility", user.ToggleOpenIDVisibility)
+				m.Post("", bindIgnErr(auth.AddOpenIDForm{}), userSetting.SettingsOpenIDPost)
+				m.Post("/delete", userSetting.DeleteOpenID)
+				m.Post("/toggle_visibility", userSetting.ToggleOpenIDVisibility)
 			}, openIDSignInEnabled)
-			m.Post("/account_link", user.SettingsDeleteAccountLink)
+			m.Post("/account_link", userSetting.SettingsDeleteAccountLink)
 		})
-		m.Combo("/applications").Get(user.SettingsApplications).
-			Post(bindIgnErr(auth.NewAccessTokenForm{}), user.SettingsApplicationsPost)
-		m.Post("/applications/delete", user.SettingsDeleteApplication)
-		m.Combo("/keys").Get(user.SettingsKeys).
-			Post(bindIgnErr(auth.AddKeyForm{}), user.SettingsKeysPost)
-		m.Post("/keys/delete", user.DeleteKey)
-		m.Get("/organization", user.SettingsOrganization)
-		m.Get("/repos", user.SettingsRepos)
+		m.Combo("/applications").Get(userSetting.SettingsApplications).
+			Post(bindIgnErr(auth.NewAccessTokenForm{}), userSetting.SettingsApplicationsPost)
+		m.Post("/applications/delete", userSetting.SettingsDeleteApplication)
+		m.Combo("/keys").Get(userSetting.SettingsKeys).
+			Post(bindIgnErr(auth.AddKeyForm{}), userSetting.SettingsKeysPost)
+		m.Post("/keys/delete", userSetting.DeleteKey)
+		m.Get("/organization", userSetting.SettingsOrganization)
+		m.Get("/repos", userSetting.SettingsRepos)
 
 		// redirects from old settings urls to new ones
 		// TODO: can be removed on next major version
