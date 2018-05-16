@@ -20,8 +20,8 @@ import (
 	"github.com/pquerna/otp/totp"
 )
 
-// SettingsTwoFactorRegenerateScratch regenerates the user's 2FA scratch code.
-func SettingsTwoFactorRegenerateScratch(ctx *context.Context) {
+// RegenerateScratchTwoFactor regenerates the user's 2FA scratch code.
+func RegenerateScratchTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
@@ -45,8 +45,8 @@ func SettingsTwoFactorRegenerateScratch(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 }
 
-// SettingsTwoFactorDisable deletes the user's 2FA settings.
-func SettingsTwoFactorDisable(ctx *context.Context) {
+// DisableTwoFactor deletes the user's 2FA settings.
+func DisableTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
@@ -103,8 +103,8 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 	return true
 }
 
-// SettingsTwoFactorEnroll shows the page where the user can enroll into 2FA.
-func SettingsTwoFactorEnroll(ctx *context.Context) {
+// EnrollTwoFactor shows the page where the user can enroll into 2FA.
+func EnrollTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
@@ -126,8 +126,8 @@ func SettingsTwoFactorEnroll(ctx *context.Context) {
 	ctx.HTML(200, tplSettingsTwofaEnroll)
 }
 
-// SettingsTwoFactorEnrollPost handles enrolling the user into 2FA.
-func SettingsTwoFactorEnrollPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
+// EnrollTwoFactorPost handles enrolling the user into 2FA.
+func EnrollTwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 

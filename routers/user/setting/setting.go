@@ -27,8 +27,8 @@ const (
 	tplSettingsRepositories base.TplName = "user/settings/repos"
 )
 
-// Settings render user's profile page
-func Settings(ctx *context.Context) {
+// Profile render user's profile page
+func Profile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.HTML(200, tplSettingsProfile)
@@ -69,8 +69,8 @@ func handleUsernameChange(ctx *context.Context, newName string) {
 	ctx.User.LowerName = strings.ToLower(newName)
 }
 
-// SettingsPost response for change user's profile
-func SettingsPost(ctx *context.Context, form auth.UpdateProfileForm) {
+// ProfilePost response for change user's profile
+func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
 
@@ -151,8 +151,8 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 	return nil
 }
 
-// SettingsAvatarPost response for change user's avatar request
-func SettingsAvatarPost(ctx *context.Context, form auth.AvatarForm) {
+// AvatarPost response for change user's avatar request
+func AvatarPost(ctx *context.Context, form auth.AvatarForm) {
 	if err := UpdateAvatarSetting(ctx, form, ctx.User); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
@@ -162,8 +162,8 @@ func SettingsAvatarPost(ctx *context.Context, form auth.AvatarForm) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 
-// SettingsDeleteAvatar render delete avatar page
-func SettingsDeleteAvatar(ctx *context.Context) {
+// DeleteAvatar render delete avatar page
+func DeleteAvatar(ctx *context.Context) {
 	if err := ctx.User.DeleteAvatar(); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
@@ -171,8 +171,8 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 
-// SettingsOrganization render all the organization of the user
-func SettingsOrganization(ctx *context.Context) {
+// Organization render all the organization of the user
+func Organization(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsOrganization"] = true
 	orgs, err := models.GetOrgsByUserID(ctx.User.ID, ctx.IsSigned)
@@ -184,8 +184,8 @@ func SettingsOrganization(ctx *context.Context) {
 	ctx.HTML(200, tplSettingsOrganization)
 }
 
-// SettingsRepos display a list of all repositories of the user
-func SettingsRepos(ctx *context.Context) {
+// Repos display a list of all repositories of the user
+func Repos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsRepos"] = true
 	ctxUser := ctx.User

@@ -16,8 +16,8 @@ const (
 	tplSettingsTwofaEnroll base.TplName = "user/settings/twofa_enroll"
 )
 
-// SettingsSecurity render change user's password page and 2FA
-func SettingsSecurity(ctx *context.Context) {
+// Security render change user's password page and 2FA
+func Security(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
@@ -77,8 +77,8 @@ func SettingsSecurity(ctx *context.Context) {
 	ctx.HTML(200, tplSettingsSecurity)
 }
 
-// SettingsDeleteAccountLink delete a single account link
-func SettingsDeleteAccountLink(ctx *context.Context) {
+// DeleteAccountLink delete a single account link
+func DeleteAccountLink(ctx *context.Context) {
 	if _, err := models.RemoveAccountLink(ctx.User, ctx.QueryInt64("loginSourceID")); err != nil {
 		ctx.Flash.Error("RemoveAccountLink: " + err.Error())
 	} else {

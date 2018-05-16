@@ -17,8 +17,8 @@ const (
 	tplSettingsAccount base.TplName = "user/settings/account"
 )
 
-// SettingsAccount renders change user's password, user's email and user suicide page
-func SettingsAccount(ctx *context.Context) {
+// Account renders change user's password, user's email and user suicide page
+func Account(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.User.Email
@@ -33,8 +33,8 @@ func SettingsAccount(ctx *context.Context) {
 	ctx.HTML(200, tplSettingsAccount)
 }
 
-// SettingsAccountPost response for change user's password
-func SettingsAccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
+// AccountPost response for change user's password
+func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
@@ -67,8 +67,8 @@ func SettingsAccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
-// SettingsEmailPost response for change user's email
-func SettingsEmailPost(ctx *context.Context, form auth.AddEmailForm) {
+// EmailPost response for change user's email
+func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
@@ -141,8 +141,8 @@ func DeleteEmail(ctx *context.Context) {
 	})
 }
 
-// SettingsDelete render user suicide page and response for delete user himself
-func SettingsDelete(ctx *context.Context) {
+// DeleteAccount render user suicide page and response for delete user himself
+func DeleteAccount(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 

@@ -16,8 +16,8 @@ const (
 	tplSettingsKeys base.TplName = "user/settings/keys"
 )
 
-// SettingsKeys render user's SSH/GPG public keys page
-func SettingsKeys(ctx *context.Context) {
+// Keys render user's SSH/GPG public keys page
+func Keys(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
@@ -39,8 +39,8 @@ func SettingsKeys(ctx *context.Context) {
 	ctx.HTML(200, tplSettingsKeys)
 }
 
-// SettingsKeysPost response for change user's SSH/GPG keys
-func SettingsKeysPost(ctx *context.Context, form auth.AddKeyForm) {
+// KeysPost response for change user's SSH/GPG keys
+func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsKeys"] = true
 

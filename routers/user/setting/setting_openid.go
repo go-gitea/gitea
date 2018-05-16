@@ -13,8 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// SettingsOpenIDPost response for change user's openid
-func SettingsOpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
+// OpenIDPost response for change user's openid
+func OpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 

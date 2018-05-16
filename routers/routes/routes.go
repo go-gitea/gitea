@@ -217,39 +217,39 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}, reqSignOut)
 
 	m.Group("/user/settings", func() {
-		m.Get("", userSetting.Settings)
-		m.Post("", bindIgnErr(auth.UpdateProfileForm{}), userSetting.SettingsPost)
-		m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), userSetting.SettingsAvatarPost)
-		m.Post("/avatar/delete", userSetting.SettingsDeleteAvatar)
+		m.Get("", userSetting.Profile)
+		m.Post("", bindIgnErr(auth.UpdateProfileForm{}), userSetting.ProfilePost)
+		m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), userSetting.AvatarPost)
+		m.Post("/avatar/delete", userSetting.DeleteAvatar)
 		m.Group("/account", func() {
-			m.Combo("").Get(userSetting.SettingsAccount).Post(bindIgnErr(auth.ChangePasswordForm{}), userSetting.SettingsAccountPost)
-			m.Post("/email", bindIgnErr(auth.AddEmailForm{}), userSetting.SettingsEmailPost)
+			m.Combo("").Get(userSetting.Account).Post(bindIgnErr(auth.ChangePasswordForm{}), userSetting.AccountPost)
+			m.Post("/email", bindIgnErr(auth.AddEmailForm{}), userSetting.EmailPost)
 			m.Post("/email/delete", userSetting.DeleteEmail)
-			m.Post("/delete", userSetting.SettingsDelete)
+			m.Post("/delete", userSetting.DeleteAccount)
 		})
 		m.Group("/security", func() {
-			m.Get("", userSetting.SettingsSecurity)
+			m.Get("", userSetting.Security)
 			m.Group("/two_factor", func() {
-				m.Post("/regenerate_scratch", userSetting.SettingsTwoFactorRegenerateScratch)
-				m.Post("/disable", userSetting.SettingsTwoFactorDisable)
-				m.Get("/enroll", userSetting.SettingsTwoFactorEnroll)
-				m.Post("/enroll", bindIgnErr(auth.TwoFactorAuthForm{}), userSetting.SettingsTwoFactorEnrollPost)
+				m.Post("/regenerate_scratch", userSetting.RegenerateScratchTwoFactor)
+				m.Post("/disable", userSetting.DisableTwoFactor)
+				m.Get("/enroll", userSetting.EnrollTwoFactor)
+				m.Post("/enroll", bindIgnErr(auth.TwoFactorAuthForm{}), userSetting.EnrollTwoFactorPost)
 			})
 			m.Group("/openid", func() {
-				m.Post("", bindIgnErr(auth.AddOpenIDForm{}), userSetting.SettingsOpenIDPost)
+				m.Post("", bindIgnErr(auth.AddOpenIDForm{}), userSetting.OpenIDPost)
 				m.Post("/delete", userSetting.DeleteOpenID)
 				m.Post("/toggle_visibility", userSetting.ToggleOpenIDVisibility)
 			}, openIDSignInEnabled)
-			m.Post("/account_link", userSetting.SettingsDeleteAccountLink)
+			m.Post("/account_link", userSetting.DeleteAccountLink)
 		})
-		m.Combo("/applications").Get(userSetting.SettingsApplications).
-			Post(bindIgnErr(auth.NewAccessTokenForm{}), userSetting.SettingsApplicationsPost)
-		m.Post("/applications/delete", userSetting.SettingsDeleteApplication)
-		m.Combo("/keys").Get(userSetting.SettingsKeys).
-			Post(bindIgnErr(auth.AddKeyForm{}), userSetting.SettingsKeysPost)
+		m.Combo("/applications").Get(userSetting.Applications).
+			Post(bindIgnErr(auth.NewAccessTokenForm{}), userSetting.ApplicationsPost)
+		m.Post("/applications/delete", userSetting.DeleteApplication)
+		m.Combo("/keys").Get(userSetting.Keys).
+			Post(bindIgnErr(auth.AddKeyForm{}), userSetting.KeysPost)
 		m.Post("/keys/delete", userSetting.DeleteKey)
-		m.Get("/organization", userSetting.SettingsOrganization)
-		m.Get("/repos", userSetting.SettingsRepos)
+		m.Get("/organization", userSetting.Organization)
+		m.Get("/repos", userSetting.Repos)
 
 		// redirects from old settings urls to new ones
 		// TODO: can be removed on next major version

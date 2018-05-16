@@ -16,8 +16,8 @@ const (
 	tplSettingsApplications base.TplName = "user/settings/applications"
 )
 
-// SettingsApplications render manage access token page
-func SettingsApplications(ctx *context.Context) {
+// Applications render manage access token page
+func Applications(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
 
@@ -31,8 +31,8 @@ func SettingsApplications(ctx *context.Context) {
 	ctx.HTML(200, tplSettingsApplications)
 }
 
-// SettingsApplicationsPost response for add user's access token
-func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
+// ApplicationsPost response for add user's access token
+func ApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
 
@@ -62,8 +62,8 @@ func SettingsApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm
 	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
 }
 
-// SettingsDeleteApplication response for delete user access token
-func SettingsDeleteApplication(ctx *context.Context) {
+// DeleteApplication response for delete user access token
+func DeleteApplication(ctx *context.Context) {
 	if err := models.DeleteAccessTokenByID(ctx.QueryInt64("id"), ctx.User.ID); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
