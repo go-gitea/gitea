@@ -236,12 +236,15 @@ func ParseCreateHook(raw []byte) (*CreatePayload, error) {
 // /_______  /\___  >____/\___  >__|  \___  >
 //         \/     \/          \/          \/
 
+// PusherType define the type to push
 type PusherType string
 
+// describe all the PusherTypes
 const (
 	PusherTypeUser PusherType = "user"
 )
 
+// DeletePayload represents delete payload
 type DeletePayload struct {
 	Ref        string      `json:"ref"`
 	RefType    string      `json:"ref_type"`
@@ -250,9 +253,11 @@ type DeletePayload struct {
 	Sender     *User       `json:"sender"`
 }
 
+// SetSecret implements Payload
 func (p *DeletePayload) SetSecret(secret string) {
 }
 
+// JSONPayload implements Payload
 func (p *DeletePayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
@@ -264,21 +269,26 @@ func (p *DeletePayload) JSONPayload() ([]byte, error) {
 //  \___  / \____/|__|  |__|_ \
 //      \/                   \/
 
+// ForkPayload represents fork payload
 type ForkPayload struct {
 	Forkee *Repository `json:"forkee"`
 	Repo   *Repository `json:"repository"`
 	Sender *User       `json:"sender"`
 }
 
+// SetSecret implements Payload
 func (p *ForkPayload) SetSecret(secret string) {
 }
 
+// JSONPayload implements Payload
 func (p *ForkPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
 
+// HookIssueCommentAction defines hook issue comment action
 type HookIssueCommentAction string
 
+// all issue comment actions
 const (
 	HookIssueCommentCreated HookIssueCommentAction = "created"
 	HookIssueCommentEdited  HookIssueCommentAction = "edited"
@@ -295,9 +305,11 @@ type IssueCommentPayload struct {
 	Sender     *User                  `json:"sender"`
 }
 
+// SetSecret implements Payload
 func (p *IssueCommentPayload) SetSecret(secret string) {
 }
 
+// JSONPayload implements Payload
 func (p *IssueCommentPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
@@ -309,8 +321,10 @@ func (p *IssueCommentPayload) JSONPayload() ([]byte, error) {
 //  |____|_  /\___  >____/\___  >____  /____  >\___  >
 //         \/     \/          \/     \/     \/     \/
 
+// HookReleaseAction defines hook release action type
 type HookReleaseAction string
 
+// all release actions
 const (
 	HookReleasePublished HookReleaseAction = "published"
 )
@@ -323,9 +337,11 @@ type ReleasePayload struct {
 	Sender     *User             `json:"sender"`
 }
 
+// SetSecret implements Payload
 func (p *ReleasePayload) SetSecret(secret string) {
 }
 
+// JSONPayload implements Payload
 func (p *ReleasePayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
