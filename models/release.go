@@ -196,14 +196,18 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 	}
 
 	if !rel.IsDraft {
-		mode, _ := AccessLevel(rel.PublisherID, rel.Repo)
-		if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
-			Action:     api.HookReleasePublished,
-			Release:    rel.APIFormat(),
-			Repository: rel.Repo.APIFormat(mode),
-			Sender:     rel.Publisher.APIFormat(),
-		}); err != nil {
-			log.Error(2, "PrepareWebhooks: %v", err)
+		if err := rel.LoadAttributes(); err != nil {
+			log.Error(2, "LoadAttributes: %v", err)
+		} else {
+			mode, _ := AccessLevel(rel.PublisherID, rel.Repo)
+			if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
+				Action:     api.HookReleasePublished,
+				Release:    rel.APIFormat(),
+				Repository: rel.Repo.APIFormat(mode),
+				Sender:     rel.Publisher.APIFormat(),
+			}); err != nil {
+				log.Error(2, "PrepareWebhooks: %v", err)
+			}
 		}
 	}
 
