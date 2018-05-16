@@ -1436,14 +1436,26 @@ function initU2FAuth() {
     if($('#wait-for-key').length === 0) {
         return
     }
-
-    $.getJSON('/user/u2f/challenge').success(function(req) {
-        console.log(req);
-        u2f.sign(req.appId, req.challenge, req.registeredKeys, u2fSigned, 30);
-    });
+    u2fApi.ensureSupport()
+        .then(function () {
+            $.getJSON('/user/u2f/challenge').success(function(req) {
+                console.log(req);
+                u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
+                    .then(u2fSigned)
+                    .catch(function (err) {
+                        if(err === undefined) {
+                            u2fError(1);
+                            return
+                        }
+                        u2fError(err.metaData.code);
+                    });
+            });
+        }).catch(function () {
+            // Fallback in case browser do not support U2F
+            window.location.href = "/user/two_factor"
+        })
 }
 function u2fSigned(resp) {
-    console.log("u2fSigned", resp);
     $.ajax({
         url:'/user/u2f/sign',
         type:"POST",
@@ -1451,11 +1463,9 @@ function u2fSigned(resp) {
         data: JSON.stringify(resp),
         contentType:"application/json; charset=utf-8",
     }).done(function(res){
-        console.log(res);
         window.location.replace(res);
     }).fail(function (xhr, textStatus) {
-        // TODO error handling
-        console.log(xhr);
+        u2fError(1);
     });
 }
 
@@ -1463,61 +1473,90 @@ function u2fRegistered(resp) {
     if (checkError(resp)) {
         return;
     }
-    if(u2f !== undefined){
-        $.ajax({
-            url:'/user/settings/security/u2f/register',
-            type:"POST",
-            headers: {"X-Csrf-Token": csrf},
-            data: JSON.stringify(resp),
-            contentType:"application/json; charset=utf-8",
-            success: function(){
-                window.location.reload();
-            },
-            fail: function (xhr, textStatus) {
-                console.log(xhr);
-            }
-        });
-    }
+    console.log(resp);
+    $.ajax({
+        url:'/user/settings/security/u2f/register',
+        type:"POST",
+        headers: {"X-Csrf-Token": csrf},
+        data: JSON.stringify(resp),
+        contentType:"application/json; charset=utf-8",
+        success: function(){
+            window.location.reload();
+        },
+        fail: function (xhr, textStatus) {
+            u2fError(1);
+        }
+    });
 }
 
-// TODO better error handling
 function checkError(resp) {
     if (!('errorCode' in resp)) {
         return false;
     }
-    if (resp.errorCode === u2f.ErrorCodes['OK']) {
+    if (resp.errorCode === 0) {
         return false;
     }
-    var msg = 'U2F error code ' + resp.errorCode;
-    for (var code_name in u2f.ErrorCodes) {
-        if (u2f.ErrorCodes[code_name] === resp.errorCode) {
-            msg += ' (' + code_name + ')';
-        }
-    }
-    if (resp.errorMessage) {
-        msg += ': ' + resp.errorMessage;
-    }
-    console.log(msg);
+    u2fError(resp.errorCode);
     return true;
 }
+
+
+function u2fError(errorType) {
+    var u2fErrors = {
+        'browser': $('#unsupported-browser'),
+        1: $('#u2f-error-1'),
+        2: $('#u2f-error-2'),
+        3: $('#u2f-error-3'),
+        4: $('#u2f-error-4'),
+        5: $('.u2f-error-5')
+    };
+    u2fErrors[errorType].removeClass('hide');
+    for(var type in u2fErrors){
+        if(type != errorType){
+            u2fErrors[type].addClass('hide');
+        }
+    }
+    $('#u2f-error').modal('show');
+}
+
 function initU2FRegister() {
+    $('#register-device').modal({allowMultiple: false});
+    $('#u2f-error').modal({allowMultiple: false});
     $('#register-security-key').on('click', function(e) {
         e.preventDefault();
-        $.post("/user/settings/security/u2f/request_register", {
-            "_csrf": csrf,
-            "name": $('#nickname').val()
-        }).success(function(req) {
-            $('#register-device').modal('show');
-            if(req.registeredKeys === null) {
-                req.registeredKeys = []
-            }
-            u2f.register(req.appId, req.registerRequests, req.registeredKeys, u2fRegistered, 30);
-        }).fail(function(xhr, status, error) {
-            if(xhr.status === 409) {
-                $("#nickname").closest("div.field").addClass("error");
-            }
-        });
+        u2fApi.ensureSupport()
+            .then(u2fRegisterRequest)
+            .catch(function() {
+                u2fError('browser');
+            })
     })
+}
+
+function u2fRegisterRequest() {
+    $.post("/user/settings/security/u2f/request_register", {
+        "_csrf": csrf,
+        "name": $('#nickname').val()
+    }).success(function(req) {
+        $("#nickname").closest("div.field").removeClass("error");
+        $('#register-device').modal('show');
+        if(req.registeredKeys === null) {
+            req.registeredKeys = []
+        }
+        console.log(req);
+        u2fApi.register(req.appId, req.registerRequests, req.registeredKeys, 30)
+            .then(u2fRegistered)
+            .catch(function (reason) {
+                if(reason === undefined) {
+                    u2fError(1);
+                    return
+                }
+                u2fError(reason.metaData.code);
+            });
+    }).fail(function(xhr, status, error) {
+        if(xhr.status === 409) {
+            $("#nickname").closest("div.field").addClass("error");
+        }
+    });
 }
 
 $(document).ready(function () {
