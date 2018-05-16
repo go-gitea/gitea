@@ -23,6 +23,6 @@
 			<label for="secret">{{.i18n.Tr "repo.settings.secret"}}</label>
 			<input id="secret" name="secret" type="password" value="{{.Webhook.Secret}}" autocomplete="off">
 		</div>
-		{{template "repo/settings/hook_settings" .}}
+		{{template "repo/settings/webhook/settings" .}}
 	</form>
 {{end}}

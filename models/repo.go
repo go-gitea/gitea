@@ -2456,6 +2456,17 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 		return nil, err
 	}
 
+	oldMode, _ := AccessLevel(doer.ID, oldRepo)
+	mode, _ := AccessLevel(doer.ID, repo)
+
+	if err = PrepareWebhooks(oldRepo, HookEventFork, &api.ForkPayload{
+		Forkee: repo.APIFormat(mode),
+		Repo:   oldRepo.APIFormat(oldMode),
+		Sender: doer.APIFormat(),
+	}); err != nil {
+		log.Error(2, "PrepareWebhooks [repo_id: %d]: %v", oldRepo.ID, err)
+	}
+
 	if err = repo.UpdateSize(); err != nil {
 		log.Error(4, "Failed to update size for repository: %v", err)
 	}
