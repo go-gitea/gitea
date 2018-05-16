@@ -82,8 +82,8 @@ var (
 	}
 
 	subcmdRegenerate = cli.Command{
-		Name:   "regenerate",
-		Usage:  "Regenerate specific files",
+		Name:  "regenerate",
+		Usage: "Regenerate specific files",
 		Subcommands: []cli.Command{
 			microcmdRegenHooks,
 			microcmdRegenKeys,
