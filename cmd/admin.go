@@ -80,6 +80,27 @@ var (
 		Usage:  "Synchronize repository releases with tags",
 		Action: runRepoSyncReleases,
 	}
+
+	subcmdRegenerate = cli.Command{
+		Name:   "regenerate",
+		Usage:  "Regenerate specific files",
+		Subcommands: []cli.Command{
+			microcmdRegenHooks,
+			microcmdRegenKeys,
+		},
+	}
+
+	microcmdRegenHooks = cli.Command{
+		Name:   "hooks",
+		Usage:  "Regenerate git-hooks",
+		Action: runRegenerateHooks,
+	}
+
+	microcmdRegenKeys = cli.Command{
+		Name:   "keys",
+		Usage:  "Regenerate authorized_keys file",
+		Action: runRegenerateKeys,
+	}
 )
 
 func runChangePassword(c *cli.Context) error {
@@ -194,4 +215,20 @@ func getReleaseCount(id int64) (int64, error) {
 			IncludeTags: true,
 		},
 	)
+}
+
+func runRegenerateHooks(c *cli.Context) error {
+	err := models.SyncRepositoryHooks()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func runRegenerateKeys(c *cli.Context) error {
+	err := models.RewriteAllPublicKeys()
+	if err != nil {
+		return err
+	}
+	return nil
 }
