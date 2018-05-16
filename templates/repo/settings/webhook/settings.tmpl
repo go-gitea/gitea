@@ -32,6 +32,26 @@
 				</div>
 			</div>
 		</div>
+		<!-- Delete -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="delete" type="checkbox" tabindex="0" {{if .Webhook.Delete}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_delete"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_delete_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Fork -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="fork" type="checkbox" tabindex="0" {{if .Webhook.Fork}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_fork"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_fork_desc"}}</span>
+				</div>
+			</div>
+		</div>
 		<!-- Push -->
 		<div class="seven wide column">
 			<div class="field">
@@ -39,6 +59,26 @@
 					<input class="hidden" name="push" type="checkbox" tabindex="0" {{if .Webhook.Push}}checked{{end}}>
 					<label>{{.i18n.Tr "repo.settings.event_push"}}</label>
 					<span class="help">{{.i18n.Tr "repo.settings.event_push_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Issues -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="issues" type="checkbox" tabindex="0" {{if .Webhook.Issues}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_issues"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_issues_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Issue Comment -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="issue_comment" type="checkbox" tabindex="0" {{if .Webhook.IssueComment}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_issue_comment"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_issue_comment_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -59,6 +99,16 @@
 					<input class="hidden" name="repository" type="checkbox" tabindex="0" {{if .Webhook.Repository}}checked{{end}}>
 					<label>{{.i18n.Tr "repo.settings.event_repository"}}</label>
 					<span class="help">{{.i18n.Tr "repo.settings.event_repository_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Release -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="release" type="checkbox" tabindex="0" {{if .Webhook.Release}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_release"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_release_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -83,4 +133,4 @@
 	{{end}}
 </div>
 
-{{template "repo/settings/hook_delete_modal" .}}
+{{template "repo/settings/webhook/delete_modal" .}}

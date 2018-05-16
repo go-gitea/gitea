@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -190,8 +191,27 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 	}
 
 	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
+	if err != nil {
+		return err
+	}
 
-	return err
+	if !rel.IsDraft {
+		if err := rel.LoadAttributes(); err != nil {
+			log.Error(2, "LoadAttributes: %v", err)
+		} else {
+			mode, _ := AccessLevel(rel.PublisherID, rel.Repo)
+			if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
+				Action:     api.HookReleasePublished,
+				Release:    rel.APIFormat(),
+				Repository: rel.Repo.APIFormat(mode),
+				Sender:     rel.Publisher.APIFormat(),
+			}); err != nil {
+				log.Error(2, "PrepareWebhooks: %v", err)
+			}
+		}
+	}
+
+	return nil
 }
 
 // GetRelease returns release by given ID.
