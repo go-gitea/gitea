@@ -8,40 +8,15 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/auth/openid"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
-const (
-	tplSettingsOpenID base.TplName = "user/settings/openid"
-)
-
-// SettingsOpenID renders change user's openid page
-func SettingsOpenID(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsOpenID"] = true
-
-	if ctx.Query("openid.return_to") != "" {
-		settingsOpenIDVerify(ctx)
-		return
-	}
-
-	openid, err := models.GetUserOpenIDs(ctx.User.ID)
-	if err != nil {
-		ctx.ServerError("GetUserOpenIDs", err)
-		return
-	}
-	ctx.Data["OpenIDs"] = openid
-
-	ctx.HTML(200, tplSettingsOpenID)
-}
-
 // SettingsOpenIDPost response for change user's openid
 func SettingsOpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsOpenID"] = true
+	ctx.Data["PageIsSettingsSecurity"] = true
 
 	if ctx.HasError() {
 		openid, err := models.GetUserOpenIDs(ctx.User.ID)
@@ -50,7 +25,7 @@ func SettingsOpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
 			return
 		}
 		ctx.Data["OpenIDs"] = openid
-		ctx.HTML(200, tplSettingsOpenID)
+		ctx.HTML(200, tplSettingsSecurity)
 		return
 	}
 
@@ -62,7 +37,7 @@ func SettingsOpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
 
 	id, err := openid.Normalize(form.Openid)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSettingsOpenID, &form)
+		ctx.RenderWithErr(err.Error(), tplSettingsSecurity, &form)
 		return
 	}
 	form.Openid = id
@@ -78,15 +53,15 @@ func SettingsOpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
 	// Check that the OpenID is not already used
 	for _, obj := range oids {
 		if obj.URI == id {
-			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsOpenID, &form)
+			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &form)
 			return
 		}
 	}
 
-	redirectTo := setting.AppURL + "user/settings/openid"
+	redirectTo := setting.AppURL + "user/settings/security"
 	url, err := openid.RedirectURL(id, redirectTo, setting.AppURL)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSettingsOpenID, &form)
+		ctx.RenderWithErr(err.Error(), tplSettingsSecurity, &form)
 		return
 	}
 	ctx.Redirect(url)
@@ -107,7 +82,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 
 	id, err := openid.Verify(fullURL)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSettingsOpenID, &auth.AddOpenIDForm{
+		ctx.RenderWithErr(err.Error(), tplSettingsSecurity, &auth.AddOpenIDForm{
 			Openid: id,
 		})
 		return
@@ -118,7 +93,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 	oid := &models.UserOpenID{UID: ctx.User.ID, URI: id}
 	if err = models.AddUserOpenID(oid); err != nil {
 		if models.IsErrOpenIDAlreadyUsed(err) {
-			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsOpenID, &auth.AddOpenIDForm{Openid: id})
+			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &auth.AddOpenIDForm{Openid: id})
 			return
 		}
 		ctx.ServerError("AddUserOpenID", err)
@@ -127,7 +102,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 	log.Trace("Associated OpenID %s to user %s", id, ctx.User.Name)
 	ctx.Flash.Success(ctx.Tr("settings.add_openid_success"))
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/openid")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 }
 
 // DeleteOpenID response for delete user's openid
@@ -140,7 +115,7 @@ func DeleteOpenID(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("settings.openid_deletion_success"))
 	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/openid",
+		"redirect": setting.AppSubURL + "/user/settings/security",
 	})
 }
 
@@ -151,5 +126,5 @@ func ToggleOpenIDVisibility(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/openid")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 }
