@@ -232,6 +232,8 @@ func TestChangeMilestoneAssign(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	issue := AssertExistsAndLoadBean(t, &Issue{RepoID: 1}).(*Issue)
 	doer := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	assert.NotNil(t, issue)
+	assert.NotNil(t, doer)
 
 	oldMilestoneID := issue.MilestoneID
 	issue.MilestoneID = 2
