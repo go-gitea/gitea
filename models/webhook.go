@@ -66,10 +66,15 @@ func IsValidHookContentType(name string) bool {
 
 // HookEvents is a set of web hook events
 type HookEvents struct {
-	Create      bool `json:"create"`
-	Push        bool `json:"push"`
-	PullRequest bool `json:"pull_request"`
-	Repository  bool `json:"repository"`
+	Create       bool `json:"create"`
+	Delete       bool `json:"delete"`
+	Fork         bool `json:"fork"`
+	Issues       bool `json:"issues"`
+	IssueComment bool `json:"issue_comment"`
+	Push         bool `json:"push"`
+	PullRequest  bool `json:"pull_request"`
+	Repository   bool `json:"repository"`
+	Release      bool `json:"release"`
 }
 
 // HookEvent represents events that will delivery hook.
@@ -155,6 +160,30 @@ func (w *Webhook) HasCreateEvent() bool {
 		(w.ChooseEvents && w.HookEvents.Create)
 }
 
+// HasDeleteEvent returns true if hook enabled delete event.
+func (w *Webhook) HasDeleteEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.Delete)
+}
+
+// HasForkEvent returns true if hook enabled fork event.
+func (w *Webhook) HasForkEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.Fork)
+}
+
+// HasIssuesEvent returns true if hook enabled issues event.
+func (w *Webhook) HasIssuesEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.Issues)
+}
+
+// HasIssueCommentEvent returns true if hook enabled issue_comment event.
+func (w *Webhook) HasIssueCommentEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.IssueComment)
+}
+
 // HasPushEvent returns true if hook enabled push event.
 func (w *Webhook) HasPushEvent() bool {
 	return w.PushOnly || w.SendEverything ||
@@ -167,23 +196,46 @@ func (w *Webhook) HasPullRequestEvent() bool {
 		(w.ChooseEvents && w.HookEvents.PullRequest)
 }
 
+// HasReleaseEvent returns if hook enabled release event.
+func (w *Webhook) HasReleaseEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.Release)
+}
+
 // HasRepositoryEvent returns if hook enabled repository event.
 func (w *Webhook) HasRepositoryEvent() bool {
 	return w.SendEverything ||
 		(w.ChooseEvents && w.HookEvents.Repository)
 }
 
+func (w *Webhook) eventCheckers() []struct {
+	has func() bool
+	typ HookEventType
+} {
+	return []struct {
+		has func() bool
+		typ HookEventType
+	}{
+		{w.HasCreateEvent, HookEventCreate},
+		{w.HasDeleteEvent, HookEventDelete},
+		{w.HasForkEvent, HookEventFork},
+		{w.HasPushEvent, HookEventPush},
+		{w.HasIssuesEvent, HookEventIssues},
+		{w.HasIssueCommentEvent, HookEventIssueComment},
+		{w.HasPullRequestEvent, HookEventPullRequest},
+		{w.HasRepositoryEvent, HookEventRepository},
+		{w.HasReleaseEvent, HookEventRelease},
+	}
+}
+
 // EventsArray returns an array of hook events
 func (w *Webhook) EventsArray() []string {
-	events := make([]string, 0, 3)
-	if w.HasCreateEvent() {
-		events = append(events, "create")
-	}
-	if w.HasPushEvent() {
-		events = append(events, "push")
-	}
-	if w.HasPullRequestEvent() {
-		events = append(events, "pull_request")
+	events := make([]string, 0, 7)
+
+	for _, c := range w.eventCheckers() {
+		if c.has() {
+			events = append(events, string(c.typ))
+		}
 	}
 	return events
 }
@@ -373,10 +425,15 @@ type HookEventType string
 
 // Types of hook events
 const (
-	HookEventCreate      HookEventType = "create"
-	HookEventPush        HookEventType = "push"
-	HookEventPullRequest HookEventType = "pull_request"
-	HookEventRepository  HookEventType = "repository"
+	HookEventCreate       HookEventType = "create"
+	HookEventDelete       HookEventType = "delete"
+	HookEventFork         HookEventType = "fork"
+	HookEventPush         HookEventType = "push"
+	HookEventIssues       HookEventType = "issues"
+	HookEventIssueComment HookEventType = "issue_comment"
+	HookEventPullRequest  HookEventType = "pull_request"
+	HookEventRepository   HookEventType = "repository"
+	HookEventRelease      HookEventType = "release"
 )
 
 // HookRequest represents hook task request information.
@@ -488,22 +545,11 @@ func PrepareWebhook(w *Webhook, repo *Repository, event HookEventType, p api.Pay
 }
 
 func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType, p api.Payloader) error {
-	switch event {
-	case HookEventCreate:
-		if !w.HasCreateEvent() {
-			return nil
-		}
-	case HookEventPush:
-		if !w.HasPushEvent() {
-			return nil
-		}
-	case HookEventPullRequest:
-		if !w.HasPullRequestEvent() {
-			return nil
-		}
-	case HookEventRepository:
-		if !w.HasRepositoryEvent() {
-			return nil
+	for _, e := range w.eventCheckers() {
+		if event == e.typ {
+			if !e.has() {
+				return nil
+			}
 		}
 	}
 

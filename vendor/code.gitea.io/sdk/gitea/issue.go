@@ -118,14 +118,14 @@ func (c *Client) CreateIssue(owner, repo string, opt CreateIssueOption) (*Issue,
 
 // EditIssueOption options for editing an issue
 type EditIssueOption struct {
-	Title     string     `json:"title"`
-	Body      *string    `json:"body"`
-	Assignee  *string    `json:"assignee"`
-	Assignees []string   `json:"assignees"`
-	Milestone *int64     `json:"milestone"`
-	State     *string    `json:"state"`
+	Title     string   `json:"title"`
+	Body      *string  `json:"body"`
+	Assignee  *string  `json:"assignee"`
+	Assignees []string `json:"assignees"`
+	Milestone *int64   `json:"milestone"`
+	State     *string  `json:"state"`
 	// swagger:strfmt date-time
-	Deadline  *time.Time `json:"due_date"`
+	Deadline *time.Time `json:"due_date"`
 }
 
 // EditIssue modify an existing issue for a given repository
@@ -137,4 +137,18 @@ func (c *Client) EditIssue(owner, repo string, index int64, opt EditIssueOption)
 	issue := new(Issue)
 	return issue, c.getParsedResponse("PATCH", fmt.Sprintf("/repos/%s/%s/issues/%d", owner, repo, index),
 		jsonHeader, bytes.NewReader(body), issue)
+}
+
+// EditDeadlineOption options for creating a deadline
+type EditDeadlineOption struct {
+	// required:true
+	// swagger:strfmt date-time
+	Deadline *time.Time `json:"due_date"`
+}
+
+// IssueDeadline represents an issue deadline
+// swagger:model
+type IssueDeadline struct {
+	// swagger:strfmt date-time
+	Deadline *time.Time `json:"due_date"`
 }

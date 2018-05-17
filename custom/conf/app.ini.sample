@@ -288,6 +288,8 @@ RESET_PASSWD_CODE_LIVE_MINUTES = 180
 REGISTER_EMAIL_CONFIRM = false
 ; Disallow registration, only allow admins to create accounts.
 DISABLE_REGISTRATION = false
+; Allow registration only using third part services, it works only when DISABLE_REGISTRATION is false 
+ALLOW_ONLY_EXTERNAL_REGISTRATION = false
 ; User must sign in to view anything.
 REQUIRE_SIGNIN_VIEW = false
 ; Mail notification
