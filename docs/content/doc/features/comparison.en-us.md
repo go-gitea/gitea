@@ -537,7 +537,7 @@ _Symbols used in table:_
     </tr>
     <tr>
       <td>Webhook support</td>
-      <td>⁄</td>
+      <td>✓</td>
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>

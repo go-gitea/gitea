@@ -172,9 +172,14 @@ type PayloadCommitVerification struct {
 
 var (
 	_ Payloader = &CreatePayload{}
+	_ Payloader = &DeletePayload{}
+	_ Payloader = &ForkPayload{}
 	_ Payloader = &PushPayload{}
 	_ Payloader = &IssuePayload{}
+	_ Payloader = &IssueCommentPayload{}
 	_ Payloader = &PullRequestPayload{}
+	_ Payloader = &RepositoryPayload{}
+	_ Payloader = &ReleasePayload{}
 )
 
 // _________                        __
@@ -222,6 +227,123 @@ func ParseCreateHook(raw []byte) (*CreatePayload, error) {
 		return nil, ErrInvalidReceiveHook
 	}
 	return hook, nil
+}
+
+// ________         .__          __
+// \______ \   ____ |  |   _____/  |_  ____
+//  |    |  \_/ __ \|  | _/ __ \   __\/ __ \
+//  |    `   \  ___/|  |_\  ___/|  | \  ___/
+// /_______  /\___  >____/\___  >__|  \___  >
+//         \/     \/          \/          \/
+
+// PusherType define the type to push
+type PusherType string
+
+// describe all the PusherTypes
+const (
+	PusherTypeUser PusherType = "user"
+)
+
+// DeletePayload represents delete payload
+type DeletePayload struct {
+	Ref        string      `json:"ref"`
+	RefType    string      `json:"ref_type"`
+	PusherType PusherType  `json:"pusher_type"`
+	Repo       *Repository `json:"repository"`
+	Sender     *User       `json:"sender"`
+}
+
+// SetSecret implements Payload
+func (p *DeletePayload) SetSecret(secret string) {
+}
+
+// JSONPayload implements Payload
+func (p *DeletePayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
+
+// ___________           __
+// \_   _____/__________|  | __
+//  |    __)/  _ \_  __ \  |/ /
+//  |     \(  <_> )  | \/    <
+//  \___  / \____/|__|  |__|_ \
+//      \/                   \/
+
+// ForkPayload represents fork payload
+type ForkPayload struct {
+	Forkee *Repository `json:"forkee"`
+	Repo   *Repository `json:"repository"`
+	Sender *User       `json:"sender"`
+}
+
+// SetSecret implements Payload
+func (p *ForkPayload) SetSecret(secret string) {
+}
+
+// JSONPayload implements Payload
+func (p *ForkPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
+
+// HookIssueCommentAction defines hook issue comment action
+type HookIssueCommentAction string
+
+// all issue comment actions
+const (
+	HookIssueCommentCreated HookIssueCommentAction = "created"
+	HookIssueCommentEdited  HookIssueCommentAction = "edited"
+	HookIssueCommentDeleted HookIssueCommentAction = "deleted"
+)
+
+// IssueCommentPayload represents a payload information of issue comment event.
+type IssueCommentPayload struct {
+	Action     HookIssueCommentAction `json:"action"`
+	Issue      *Issue                 `json:"issue"`
+	Comment    *Comment               `json:"comment"`
+	Changes    *ChangesPayload        `json:"changes,omitempty"`
+	Repository *Repository            `json:"repository"`
+	Sender     *User                  `json:"sender"`
+}
+
+// SetSecret implements Payload
+func (p *IssueCommentPayload) SetSecret(secret string) {
+}
+
+// JSONPayload implements Payload
+func (p *IssueCommentPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
+
+// __________       .__
+// \______   \ ____ |  |   ____ _____    ______ ____
+//  |       _// __ \|  | _/ __ \\__  \  /  ___// __ \
+//  |    |   \  ___/|  |_\  ___/ / __ \_\___ \\  ___/
+//  |____|_  /\___  >____/\___  >____  /____  >\___  >
+//         \/     \/          \/     \/     \/     \/
+
+// HookReleaseAction defines hook release action type
+type HookReleaseAction string
+
+// all release actions
+const (
+	HookReleasePublished HookReleaseAction = "published"
+)
+
+// ReleasePayload represents a payload information of release event.
+type ReleasePayload struct {
+	Action     HookReleaseAction `json:"action"`
+	Release    *Release          `json:"release"`
+	Repository *Repository       `json:"repository"`
+	Sender     *User             `json:"sender"`
+}
+
+// SetSecret implements Payload
+func (p *ReleasePayload) SetSecret(secret string) {
+}
+
+// JSONPayload implements Payload
+func (p *ReleasePayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
 }
 
 // __________             .__

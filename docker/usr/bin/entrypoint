@@ -1,5 +1,12 @@
 #!/bin/sh
 
+if [ "${USER}" != "git" ]; then
+    # rename user
+    sed -i -e "s/^git\:/${USER}\:/g" /etc/passwd
+    # switch sshd config to different user
+    sed -i -e "s/AllowUsers git/AllowUsers ${USER}/g" /etc/ssh/sshd_config
+fi
+
 ## Change GID for USER?
 if [ -n "${USER_GID}" ] && [ "${USER_GID}" != "`id -g ${USER}`" ]; then
     sed -i -e "s/^${USER}:\([^:]*\):[0-9]*/${USER}:\1:${USER_GID}/" /etc/group
