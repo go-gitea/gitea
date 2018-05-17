@@ -245,9 +245,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/enroll", bindIgnErr(auth.TwoFactorAuthForm{}), userSetting.EnrollTwoFactorPost)
 			})
 			m.Group("/u2f", func() {
-				m.Post("/request_register", bindIgnErr(auth.U2FRegistrationForm{}), user.U2FRegister)
-				m.Post("/register", bindIgnErr(u2f.RegisterResponse{}), user.U2FRegisterPost)
-				m.Post("/delete", bindIgnErr(auth.U2FDeleteForm{}), user.U2FDelete)
+				m.Post("/request_register", bindIgnErr(auth.U2FRegistrationForm{}), userSetting.U2FRegister)
+				m.Post("/register", bindIgnErr(u2f.RegisterResponse{}), userSetting.U2FRegisterPost)
+				m.Post("/delete", bindIgnErr(auth.U2FDeleteForm{}), userSetting.U2FDelete)
 			})
 			m.Group("/openid", func() {
 				m.Post("", bindIgnErr(auth.AddOpenIDForm{}), userSetting.OpenIDPost)
