@@ -25,6 +25,7 @@ var (
 			subcmdCreateUser,
 			subcmdChangePassword,
 			subcmdRepoSyncReleases,
+			subcmdRegenerate,
 		},
 	}
 
@@ -79,6 +80,41 @@ var (
 		Name:   "repo-sync-releases",
 		Usage:  "Synchronize repository releases with tags",
 		Action: runRepoSyncReleases,
+	}
+
+	subcmdRegenerate = cli.Command{
+		Name:  "regenerate",
+		Usage: "Regenerate specific files",
+		Subcommands: []cli.Command{
+			microcmdRegenHooks,
+			microcmdRegenKeys,
+		},
+	}
+
+	microcmdRegenHooks = cli.Command{
+		Name:   "hooks",
+		Usage:  "Regenerate git-hooks",
+		Action: runRegenerateHooks,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "config, c",
+				Value: "custom/conf/app.ini",
+				Usage: "Custom configuration file path",
+			},
+		},
+	}
+
+	microcmdRegenKeys = cli.Command{
+		Name:   "keys",
+		Usage:  "Regenerate authorized_keys file",
+		Action: runRegenerateKeys,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "config, c",
+				Value: "custom/conf/app.ini",
+				Usage: "Custom configuration file path",
+			},
+		},
 	}
 )
 
@@ -194,4 +230,26 @@ func getReleaseCount(id int64) (int64, error) {
 			IncludeTags: true,
 		},
 	)
+}
+
+func runRegenerateHooks(c *cli.Context) error {
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
+	}
+
+	if err := initDB(); err != nil {
+		return err
+	}
+	return models.SyncRepositoryHooks()
+}
+
+func runRegenerateKeys(c *cli.Context) error {
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
+	}
+
+	if err := initDB(); err != nil {
+		return err
+	}
+	return models.RewriteAllPublicKeys()
 }
