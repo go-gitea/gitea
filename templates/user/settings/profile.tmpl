@@ -68,7 +68,7 @@
 				{{.CsrfTokenHtml}}
 				{{if not DisableGravatar}}
 				<div class="inline field">
-					<div class="ui radio checkbox">
+					<div class="ui read-only radio checkbox">
 						<input name="source" value="lookup" type="radio" {{if not .SignedUser.UseCustomAvatar}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.lookup_avatar_by_mail"}}</label>
 					</div>
@@ -80,7 +80,7 @@
 				{{end}}
 
 				<div class="inline field">
-					<div class="ui radio checkbox">
+					<div class="ui read-only radio checkbox">
 						<input name="source" value="local" type="radio" {{if .SignedUser.UseCustomAvatar}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.enable_custom_avatar"}}</label>
 					</div>
