@@ -20,7 +20,7 @@ import (
 	"github.com/blevesearch/bleve/analysis"
 )
 
-const DefaultBooleanIndexingOptions = StoreField | IndexField
+const DefaultBooleanIndexingOptions = StoreField | IndexField | DocValues
 
 type BooleanField struct {
 	name              string
