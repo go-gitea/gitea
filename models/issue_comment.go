@@ -346,7 +346,7 @@ func (c *Comment) LoadReview() error {
 	return c.loadReview(x)
 }
 
-func (c *Comment) checkInvalidation(e Engine, repo *git.Repository, branch string) error {
+func (c *Comment) checkInvalidation(e Engine, doer *User, repo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
 	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
 	if err != nil {
@@ -354,15 +354,15 @@ func (c *Comment) checkInvalidation(e Engine, repo *git.Repository, branch strin
 	}
 	if c.CommitSHA != commit.ID.String() {
 		c.Invalidated = true
-		return UpdateComment(c)
+		return UpdateComment(doer, c, "")
 	}
 	return nil
 }
 
 // CheckInvalidation checks if the line of code comment got changed by another commit.
 // If the line got changed the comment is going to be invalidated.
-func (c *Comment) CheckInvalidation(repo *git.Repository, branch string) error {
-	return c.checkInvalidation(x, repo, branch)
+func (c *Comment) CheckInvalidation(repo *git.Repository, doer *User, branch string) error {
+	return c.checkInvalidation(x, doer, repo, branch)
 }
 
 // DiffSide returns "previous" if Comment.Line is a LOC of the previous changes and "proposed" if it is a LOC of the proposed changes.

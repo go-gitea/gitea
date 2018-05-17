@@ -1100,7 +1100,7 @@ func (prs PullRequestList) LoadAttributes() error {
 	return prs.loadAttributes(x)
 }
 
-func (prs PullRequestList) invalidateCodeComments(e Engine, repo *git.Repository, branch string) error {
+func (prs PullRequestList) invalidateCodeComments(e Engine, doer *User, repo *git.Repository, branch string) error {
 	if len(prs) == 0 {
 		return nil
 	}
@@ -1113,7 +1113,7 @@ func (prs PullRequestList) invalidateCodeComments(e Engine, repo *git.Repository
 		return fmt.Errorf("find code comments: %v", err)
 	}
 	for _, comment := range codeComments {
-		if err := comment.CheckInvalidation(repo, branch); err != nil {
+		if err := comment.CheckInvalidation(repo, doer, branch); err != nil {
 			return err
 		}
 	}
@@ -1121,8 +1121,8 @@ func (prs PullRequestList) invalidateCodeComments(e Engine, repo *git.Repository
 }
 
 // InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
-func (prs PullRequestList) InvalidateCodeComments(repo *git.Repository, branch string) error {
-	return prs.invalidateCodeComments(x, repo, branch)
+func (prs PullRequestList) InvalidateCodeComments(doer *User, repo *git.Repository, branch string) error {
+	return prs.invalidateCodeComments(x, doer, repo, branch)
 }
 
 func addHeadRepoTasks(prs []*PullRequest) {
@@ -1167,7 +1167,7 @@ func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool
 			goto REQUIRED_PROCEDURE
 		}
 		go func() {
-			err := requests.InvalidateCodeComments(gitRepo, branch)
+			err := requests.InvalidateCodeComments(doer, gitRepo, branch)
 			if err != nil {
 				log.Error(4, "PullRequestList.InvalidateCodeComments: %v", err)
 			}
