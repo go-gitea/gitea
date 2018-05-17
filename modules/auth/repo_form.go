@@ -155,12 +155,17 @@ func (f *ProtectBranchForm) Validate(ctx *macaron.Context, errs binding.Errors) 
 
 // WebhookForm form for changing web hook
 type WebhookForm struct {
-	Events      string
-	Create      bool
-	Push        bool
-	PullRequest bool
-	Repository  bool
-	Active      bool
+	Events       string
+	Create       bool
+	Delete       bool
+	Fork         bool
+	Issues       bool
+	IssueComment bool
+	Release      bool
+	Push         bool
+	PullRequest  bool
+	Repository   bool
+	Active       bool
 }
 
 // PushOnly if the hook will be triggered when push

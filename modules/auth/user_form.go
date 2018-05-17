@@ -184,7 +184,7 @@ func (f *AddKeyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding
 
 // NewAccessTokenForm form for creating access token
 type NewAccessTokenForm struct {
-	Name string `binding:"Required"`
+	Name string `binding:"Required;MaxSize(255)"`
 }
 
 // Validate valideates the fields

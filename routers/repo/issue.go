@@ -1102,6 +1102,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
+	oldContent := comment.Content
 	comment.Content = ctx.Query("content")
 	if len(comment.Content) == 0 {
 		ctx.JSON(200, map[string]interface{}{
@@ -1109,7 +1110,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		})
 		return
 	}
-	if err = models.UpdateComment(comment); err != nil {
+	if err = models.UpdateComment(ctx.User, comment, oldContent); err != nil {
 		ctx.ServerError("UpdateComment", err)
 		return
 	}
@@ -1135,7 +1136,7 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if err = models.DeleteComment(comment); err != nil {
+	if err = models.DeleteComment(ctx.User, comment); err != nil {
 		ctx.ServerError("DeleteCommentByID", err)
 		return
 	}

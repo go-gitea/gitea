@@ -1,8 +1,8 @@
-// Copyright 2017 The Gitea Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package user
+package setting
 
 import (
 	"code.gitea.io/gitea/models"
@@ -13,8 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// SettingsOpenIDPost response for change user's openid
-func SettingsOpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
+// OpenIDPost response for change user's openid
+func OpenIDPost(ctx *context.Context, form auth.AddOpenIDForm) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 

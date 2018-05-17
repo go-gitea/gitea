@@ -64,6 +64,13 @@ Admin operations:
             - `--password value`, `-p value`: New password. Required.
         - Examples:
             - `gitea admin change-password --username myname --password asecurepassword`
+    - `regenerate`
+        - Options:
+            - `hooks`: Regenerate git-hooks for all repositories
+            - `keys`: Regenerate authorized_keys file
+        - Examples:
+            - `gitea admin regenerate hooks`
+            - `gitea admin regenerate keys`
 
 #### cert
 
