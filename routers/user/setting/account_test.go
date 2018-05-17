@@ -1,8 +1,8 @@
-// Copyright 2017 The Gitea Authors. All rights reserved.
+// Copyright 2018 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package user
+package setting
 
 import (
 	"net/http"
@@ -56,7 +56,7 @@ func TestChangePassword(t *testing.T) {
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
 
-		SettingsAccountPost(ctx, auth.ChangePasswordForm{
+		AccountPost(ctx, auth.ChangePasswordForm{
 			OldPassword: req.OldPassword,
 			Password:    req.NewPassword,
 			Retype:      req.Retype,
