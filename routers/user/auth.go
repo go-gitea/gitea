@@ -403,6 +403,20 @@ func U2FSign(ctx *context.Context, signResp u2f.SignResponse) {
 				ctx.ServerError("UserSignIn", err)
 				return
 			}
+
+			if ctx.Session.Get("linkAccount") != nil {
+				gothUser := ctx.Session.Get("linkAccountGothUser")
+				if gothUser == nil {
+					ctx.ServerError("UserSignIn", errors.New("not in LinkAccount session"))
+					return
+				}
+
+				err = models.LinkAccountToUser(user, gothUser.(goth.User))
+				if err != nil {
+					ctx.ServerError("UserSignIn", err)
+					return
+				}
+			}
 			redirect := handleSignInFull(ctx, user, remember, false)
 			if redirect == "" {
 				redirect = setting.AppSubURL + "/"
@@ -434,6 +448,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	ctx.Session.Delete("twofaUid")
 	ctx.Session.Delete("twofaRemember")
 	ctx.Session.Delete("u2fChallenge")
+	ctx.Session.Delete("linkAccount")
 	ctx.Session.Set("uid", u.ID)
 	ctx.Session.Set("uname", u.Name)
 
@@ -566,6 +581,14 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 	// User needs to use 2FA, save data and redirect to 2FA page.
 	ctx.Session.Set("twofaUid", u.ID)
 	ctx.Session.Set("twofaRemember", false)
+
+	// If U2F is enrolled -> Redirect to U2F instead
+	regs, err := models.GetU2FRegistrationsByUID(u.ID)
+	if err == nil && len(regs) > 0 {
+		ctx.Redirect(setting.AppSubURL + "/user/u2f")
+		return
+	}
+
 	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
 }
 
@@ -691,6 +714,13 @@ func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
 	ctx.Session.Set("twofaUid", u.ID)
 	ctx.Session.Set("twofaRemember", signInForm.Remember)
 	ctx.Session.Set("linkAccount", true)
+
+	// If U2F is enrolled -> Redirect to U2F instead
+	regs, err := models.GetU2FRegistrationsByUID(u.ID)
+	if err == nil && len(regs) > 0 {
+		ctx.Redirect(setting.AppSubURL + "/user/u2f")
+		return
+	}
 
 	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
 }
