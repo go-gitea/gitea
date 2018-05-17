@@ -22,6 +22,11 @@ type U2FRegistration struct {
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 }
 
+// TableName returns a better table name for U2FRegistration
+func (reg U2FRegistration) TableName() string {
+	return "u2f_registration"
+}
+
 // Parse will convert the db entry U2FRegistration to an u2f.Registration struct
 func (reg *U2FRegistration) Parse() (*u2f.Registration, error) {
 	r := new(u2f.Registration)
