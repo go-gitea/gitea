@@ -1061,8 +1061,9 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		Sender:     issue.Poster.APIFormat(),
 	}); err != nil {
 		log.Error(4, "PrepareWebhooks: %v", err)
+	} else {
+		go HookQueue.Add(issue.RepoID)
 	}
-	go HookQueue.Add(issue.RepoID)
 
 	return nil
 }
