@@ -327,6 +327,8 @@ type HookReleaseAction string
 // all release actions
 const (
 	HookReleasePublished HookReleaseAction = "published"
+	HookReleaseUpdated   HookReleaseAction = "updated"
+	HookReleaseDeleted   HookReleaseAction = "deleted"
 )
 
 // ReleasePayload represents a payload information of release event.
