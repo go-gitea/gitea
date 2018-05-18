@@ -457,15 +457,19 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		log.Error(4, "LoadAttributes: %v", err)
 		return nil
 	}
+
+	mode, _ := AccessLevel(doer.ID, pr.Issue.Repo)
 	if err = PrepareWebhooks(pr.Issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueClosed,
 		Index:       pr.Index,
 		PullRequest: pr.APIFormat(),
-		Repository:  pr.Issue.Repo.APIFormat(AccessModeNone),
+		Repository:  pr.Issue.Repo.APIFormat(mode),
 		Sender:      doer.APIFormat(),
 	}); err != nil {
 		log.Error(4, "PrepareWebhooks: %v", err)
 		return nil
+	} else {
+		go HookQueue.Add(pr.Issue.Repo.ID)
 	}
 
 	l, err := baseGitRepo.CommitsBetweenIDs(pr.MergedCommitID, pr.MergeBase)
@@ -782,16 +786,18 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 
 	pr.Issue = pull
 	pull.PullRequest = pr
+	mode, _ := AccessLevel(pull.Poster.ID, repo)
 	if err = PrepareWebhooks(repo, HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Index,
 		PullRequest: pr.APIFormat(),
-		Repository:  repo.APIFormat(AccessModeNone),
+		Repository:  repo.APIFormat(mode),
 		Sender:      pull.Poster.APIFormat(),
 	}); err != nil {
 		log.Error(4, "PrepareWebhooks: %v", err)
+	} else {
+		go HookQueue.Add(repo.ID)
 	}
-	go HookQueue.Add(repo.ID)
 
 	return nil
 }
