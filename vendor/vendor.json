@@ -9,10 +9,10 @@
 			"revisionTime": "2018-04-21T01:08:19Z"
 		},
 		{
-			"checksumSHA1": "bjqwfSjo+1Lsff5eTrUXY++dX6M=",
+			"checksumSHA1": "LnxY/6xD4h9dCCJ5nxKEfZZs1Vk=",
 			"path": "code.gitea.io/sdk/gitea",
-			"revision": "40e36e1d2f85402456041f90eba7109d22ddf644",
-			"revisionTime": "2018-05-03T14:30:21Z"
+			"revision": "7fa627fa5d67d18c39d6dd3c6c4db836916bf234",
+			"revisionTime": "2018-05-10T12:54:05Z"
 		},
 		{
 			"checksumSHA1": "bOODD4Gbw3GfcuQPU2dI40crxxk=",
@@ -648,10 +648,10 @@
 			"revisionTime": "2016-10-16T15:41:25Z"
 		},
 		{
-			"checksumSHA1": "/X7eCdN7MX8zgCjA9s0ktzgTPlA=",
+			"checksumSHA1": "1zVWfGXRsQi0EuZydyBHgkhl7tU=",
 			"path": "github.com/lafriks/xormstore",
-			"revision": "3a80a383a04b29ec2e1bf61279dd948aa809335b",
-			"revisionTime": "2018-04-09T10:45:24Z"
+			"revision": "9cab149ea91875cf056211bd6ef82379fce9cb67",
+			"revisionTime": "2018-05-10T21:06:47Z"
 		},
 		{
 			"checksumSHA1": "Vxvfs8mukr9GOLSuGIPU4ODyOZc=",
