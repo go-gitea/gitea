@@ -521,6 +521,10 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		return fmt.Errorf("Commit: %v", err)
 	}
 
+	if err = issue.loadPoster(x); err != nil {
+		return fmt.Errorf("loadPoster: %v", err)
+	}
+
 	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
 	if issue.IsPull {
 		err = issue.PullRequest.LoadIssue()
