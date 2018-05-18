@@ -371,12 +371,18 @@ func (issue *Issue) HasLabel(labelID int64) bool {
 func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 	var err error
 
+	if err = issue.loadRepo(x); err != nil {
+		log.Error(4, "loadRepo: %v", err)
+		return
+	}
+
+	if err = issue.loadPoster(x); err != nil {
+		log.Error(4, "loadPoster: %v", err)
+		return
+	}
+
 	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
 	if issue.IsPull {
-		if err = issue.loadRepo(x); err != nil {
-			log.Error(4, "loadRepo: %v", err)
-			return
-		}
 		if err = issue.loadPullRequest(x); err != nil {
 			log.Error(4, "loadPullRequest: %v", err)
 			return
