@@ -85,23 +85,23 @@ const (
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID              int64 `xorm:"pk autoincr"`
-	Type            CommentType
-	PosterID        int64  `xorm:"INDEX"`
-	Poster          *User  `xorm:"-"`
-	IssueID         int64  `xorm:"INDEX"`
-	Issue           *Issue `xorm:"-"`
-	LabelID         int64
-	Label           *Label `xorm:"-"`
-	OldMilestoneID  int64
-	MilestoneID     int64
-	OldMilestone    *Milestone `xorm:"-"`
-	Milestone       *Milestone `xorm:"-"`
-	AssigneeID      int64
-	RemovedAssignee bool
-	Assignee        *User `xorm:"-"`
-	OldTitle        string
-	NewTitle        string
+	ID               int64 `xorm:"pk autoincr"`
+	Type             CommentType
+	PosterID         int64  `xorm:"INDEX"`
+	Poster           *User  `xorm:"-"`
+	IssueID          int64  `xorm:"INDEX"`
+	Issue            *Issue `xorm:"-"`
+	LabelID          int64
+	Label            *Label `xorm:"-"`
+	OldMilestoneID   int64
+	MilestoneID      int64
+	OldMilestone     *Milestone `xorm:"-"`
+	Milestone        *Milestone `xorm:"-"`
+	AssigneeID       int64
+	RemovedAssignee  bool
+	Assignee         *User `xorm:"-"`
+	OldTitle         string
+	NewTitle         string
 	DependentIssueID int64
 	DependentIssue   *Issue `xorm:"-"`
 
