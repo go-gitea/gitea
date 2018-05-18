@@ -43,8 +43,8 @@ func TestUserDeleteAccount(t *testing.T) {
 	prepareTestEnv(t)
 
 	session := loginUser(t, "user8")
-	csrf := GetCSRF(t, session, "/user/settings/delete")
-	urlStr := fmt.Sprintf("/user/settings/delete?password=%s", userPassword)
+	csrf := GetCSRF(t, session, "/user/settings/account")
+	urlStr := fmt.Sprintf("/user/settings/account/delete?password=%s", userPassword)
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		"_csrf": csrf,
 	})
@@ -58,8 +58,8 @@ func TestUserDeleteAccountStillOwnRepos(t *testing.T) {
 	prepareTestEnv(t)
 
 	session := loginUser(t, "user2")
-	csrf := GetCSRF(t, session, "/user/settings/delete")
-	urlStr := fmt.Sprintf("/user/settings/delete?password=%s", userPassword)
+	csrf := GetCSRF(t, session, "/user/settings/account")
+	urlStr := fmt.Sprintf("/user/settings/account/delete?password=%s", userPassword)
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		"_csrf": csrf,
 	})
