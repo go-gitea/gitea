@@ -182,7 +182,7 @@ var migrations = []Migration{
 	NewMigration("add language column for user setting", addLanguageSetting),
 	// v64 -> v65
 	NewMigration("add multiple assignees", addMultipleAssignees),
-	// v65 -> v66
+	// v66 -> v67
 	NewMigration("add review", addReview),
 }
 
