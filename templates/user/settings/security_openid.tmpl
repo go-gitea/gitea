@@ -9,12 +9,12 @@
 		{{range .OpenIDs}}
 			<div class="item">
 				<div class="right floated content">
-						<button class="ui red tiny button delete-button" id="delete-openid" data-url="{{$.Link}}/openid/delete" data-id="{{.ID}}">
+						<button class="ui red tiny button delete-button" id="delete-openid" data-url="{{AppSubUrl}}/user/settings/security/openid/delete" data-id="{{.ID}}">
 							{{$.i18n.Tr "settings.delete_key"}}
 						</button>
 				</div>
 					<div class="right floated content">
-						<form action="{{$.Link}}/openid/toggle_visibility" method="post">
+						<form action="{{AppSubUrl}}/user/settings/security/openid/toggle_visibility" method="post">
 						{{$.CsrfTokenHtml}}
 						<input name="id" type="hidden" value="{{.ID}}">
 						{{if .Show}}
@@ -39,7 +39,7 @@
 	</div>
 </div>
 <div class="ui attached bottom segment">
-	<form class="ui form" action="{{.Link}}/openid" method="post">
+	<form class="ui form" action="{{AppSubUrl}}/user/settings/security/openid" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_OpenID}}error{{end}}">
 			<label for="openid">{{.i18n.Tr "settings.add_new_openid"}}</label>
