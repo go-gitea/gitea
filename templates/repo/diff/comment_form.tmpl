@@ -27,9 +27,9 @@
 			{{else}}
 				<button name="is_review" value="true"  type="submit"
 						class="ui submit green tiny button btn-start-review">{{$.root.i18n.Tr "repo.diff.comment.start_review"}}</button>
+				<button type="submit"
+						class="ui submit tiny basic button btn-add-single">{{$.root.i18n.Tr "repo.diff.comment.add_single_comment"}}</button>
 			{{end}}
-			<button type="submit"
-					class="ui submit tiny basic button btn-add-single">{{$.root.i18n.Tr "repo.diff.comment.add_single_comment"}}</button>
 			<button type="button" class="ui submit tiny basic button btn-cancel">{{$.root.i18n.Tr "cancel"}}</button>
 		</div>
 	</div>

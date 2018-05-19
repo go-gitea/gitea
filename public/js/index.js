@@ -788,6 +788,9 @@ function initPullRequestReview() {
     $('.btn-review').on('click', function(e) {
         e.preventDefault();
         $(this).closest('.dropdown').find('.menu').toggle('visible');
+    }).closest('.dropdown').find('.link.close').on('click', function(e) {
+        e.preventDefault();
+        $(this).closest('.menu').toggle('visible');
     });
 
     $('.code-view .lines-code,.code-view .lines-num')

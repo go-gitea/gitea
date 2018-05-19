@@ -7,9 +7,7 @@
 		<div class="ui clearing segment">
 			<form class="ui form" action="{{.Link}}/reviews/submit" method="post">
 			{{.CsrfTokenHtml}}
-				<div class="ui right floated">
-					<button onclick="$('.btn-review').click()" type="button" class="ui tiny icon button"><i class="icon close"></i></button>
-				</div>
+				<i class="ui right floated link icon close"></i>
 				<div class="header">
 				{{$.i18n.Tr "repo.diff.review.header"}}
 				</div>
