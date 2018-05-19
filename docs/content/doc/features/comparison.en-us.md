@@ -87,7 +87,7 @@ _Symbols used in table:_
     </tr>
     <tr>
       <td>Pull/Merge request inline comments</td>
-      <td>✘</td>
+      <td>✓</td>
       <td>✘</td>
       <td>✓</td>
       <td>✓</td>
@@ -96,7 +96,7 @@ _Symbols used in table:_
     </tr>
     <tr>
       <td>Pull/Merge request approval</td>
-      <td>✘</td>
+      <td>✓</td>
       <td>✘</td>
       <td>⁄</td>
       <td>✓</td>
