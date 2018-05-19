@@ -1439,7 +1439,6 @@ function initU2FAuth() {
     u2fApi.ensureSupport()
         .then(function () {
             $.getJSON('/user/u2f/challenge').success(function(req) {
-                console.log(req);
                 u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
                     .then(u2fSigned)
                     .catch(function (err) {
@@ -1473,7 +1472,6 @@ function u2fRegistered(resp) {
     if (checkError(resp)) {
         return;
     }
-    console.log(resp);
     $.ajax({
         url:'/user/settings/security/u2f/register',
         type:"POST",
@@ -1542,7 +1540,6 @@ function u2fRegisterRequest() {
         if(req.registeredKeys === null) {
             req.registeredKeys = []
         }
-        console.log(req);
         u2fApi.register(req.appId, req.registerRequests, req.registeredKeys, 30)
             .then(u2fRegistered)
             .catch(function (reason) {
