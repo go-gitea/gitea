@@ -99,7 +99,7 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 			return
 		}
 
-		if _, err = models.AddPublicKey(ctx.User.ID, form.Title, content); err != nil {
+		if _, err = models.AddPublicKey(ctx.User.ID, form.Title, content, 0); err != nil {
 			ctx.Data["HasSSHError"] = true
 			switch {
 			case models.IsErrKeyAlreadyExist(err):
