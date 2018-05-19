@@ -20,7 +20,6 @@ type Document struct {
 	ID              string  `json:"id"`
 	Fields          []Field `json:"fields"`
 	CompositeFields []*CompositeField
-	Number          uint64 `json:"-"`
 }
 
 func NewDocument(id string) *Document {
