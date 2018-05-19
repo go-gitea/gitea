@@ -21,7 +21,7 @@ import (
 	"github.com/blevesearch/bleve/numeric"
 )
 
-const DefaultNumericIndexingOptions = StoreField | IndexField
+const DefaultNumericIndexingOptions = StoreField | IndexField | DocValues
 
 const DefaultPrecisionStep uint = 4
 

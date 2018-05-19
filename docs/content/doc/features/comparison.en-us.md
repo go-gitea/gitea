@@ -168,7 +168,7 @@ _Symbols used in table:_
     </tr>
     <tr>
       <td>Multiple assignees for issues</td>
-      <td>✘</td>
+      <td>✓</td>
       <td>✘</td>
       <td>✓</td>
       <td>✓</td>
@@ -536,8 +536,17 @@ _Symbols used in table:_
       <td>✓</td>
     </tr>
     <tr>
+      <td>FIDO U2F (2FA)</td>
+      <td>✓</td>
+      <td>✘</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>✓</td>
+      <td>✓</td>
+    </tr>
+    <tr>
       <td>Webhook support</td>
-      <td>⁄</td>
+      <td>✓</td>
       <td>✓</td>
       <td>✓</td>
       <td>✓</td>

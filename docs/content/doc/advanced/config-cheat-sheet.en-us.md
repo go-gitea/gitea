@@ -201,8 +201,6 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Cache (`cache`)
 
 - `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, or `memcache`.
-   - To use `redis` or `memcache`, be sure to rebuild everything with build tags `redis` or
-     `memcache`: `go build -tags='redis'`.
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory cache only.
 - `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`.
    - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
@@ -273,6 +271,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`.
+
+## U2F (`U2F`)
+- `APP_ID`: **`ROOT_URL`**: Declares the facet of the application. Requires HTTPS.
+- `TRUSTED_FACETS`: List of additional facets which are trusted. This is not support by all browsers.
 
 ## Markup (`markup`)
 

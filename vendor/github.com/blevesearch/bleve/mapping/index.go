@@ -50,6 +50,7 @@ type IndexMappingImpl struct {
 	DefaultField          string                      `json:"default_field"`
 	StoreDynamic          bool                        `json:"store_dynamic"`
 	IndexDynamic          bool                        `json:"index_dynamic"`
+	DocValuesDynamic      bool                        `json:"docvalues_dynamic,omitempty"`
 	CustomAnalysis        *customAnalysis             `json:"analysis,omitempty"`
 	cache                 *registry.Cache
 }
@@ -154,6 +155,7 @@ func NewIndexMapping() *IndexMappingImpl {
 		DefaultField:          defaultField,
 		IndexDynamic:          IndexDynamic,
 		StoreDynamic:          StoreDynamic,
+		DocValuesDynamic:      DocValuesDynamic,
 		CustomAnalysis:        newCustomAnalysis(),
 		cache:                 registry.NewCache(),
 	}
@@ -217,6 +219,7 @@ func (im *IndexMappingImpl) UnmarshalJSON(data []byte) error {
 	im.TypeMapping = make(map[string]*DocumentMapping)
 	im.StoreDynamic = StoreDynamic
 	im.IndexDynamic = IndexDynamic
+	im.DocValuesDynamic = DocValuesDynamic
 
 	var invalidKeys []string
 	for k, v := range tmp {
@@ -271,6 +274,11 @@ func (im *IndexMappingImpl) UnmarshalJSON(data []byte) error {
 			if err != nil {
 				return err
 			}
+		case "docvalues_dynamic":
+			err := json.Unmarshal(v, &im.DocValuesDynamic)
+			if err != nil {
+				return err
+			}
 		default:
 			invalidKeys = append(invalidKeys, k)
 		}
@@ -318,7 +326,7 @@ func (im *IndexMappingImpl) MapDocument(doc *document.Document, data interface{}
 
 		// see if the _all field was disabled
 		allMapping := docMapping.documentMappingForPath("_all")
-		if allMapping == nil || (allMapping.Enabled != false) {
+		if allMapping == nil || allMapping.Enabled {
 			field := document.NewCompositeFieldWithIndexingOptions("_all", true, []string{}, walkContext.excludedFromAll, document.IndexField|document.IncludeTermVectors)
 			doc.AddField(field)
 		}
@@ -339,7 +347,7 @@ func (im *IndexMappingImpl) newWalkContext(doc *document.Document, dm *DocumentM
 		doc:             doc,
 		im:              im,
 		dm:              dm,
-		excludedFromAll: []string{},
+		excludedFromAll: []string{"_id"},
 	}
 }
 

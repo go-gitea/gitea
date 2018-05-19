@@ -20,7 +20,7 @@ import (
 	"github.com/blevesearch/bleve/analysis"
 )
 
-const DefaultTextIndexingOptions = IndexField
+const DefaultTextIndexingOptions = IndexField | DocValues
 
 type TextField struct {
 	name              string

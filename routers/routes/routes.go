@@ -5,6 +5,8 @@
 package routes
 
 import (
+	"encoding/gob"
+	"net/http"
 	"os"
 	"path"
 	"time"
@@ -27,6 +29,7 @@ import (
 	"code.gitea.io/gitea/routers/private"
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
+	userSetting "code.gitea.io/gitea/routers/user/setting"
 
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
@@ -36,11 +39,13 @@ import (
 	"github.com/go-macaron/i18n"
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
+	"github.com/tstranex/u2f"
 	"gopkg.in/macaron.v1"
 )
 
 // NewMacaron initializes Macaron instance.
 func NewMacaron() *macaron.Macaron {
+	gob.Register(&u2f.Challenge{})
 	m := macaron.New()
 	if !setting.DisableRouterLog {
 		m.Use(macaron.Logger())
@@ -212,40 +217,70 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/scratch", user.TwoFactorScratch)
 			m.Post("/scratch", bindIgnErr(auth.TwoFactorScratchAuthForm{}), user.TwoFactorScratchPost)
 		})
+		m.Group("/u2f", func() {
+			m.Get("", user.U2F)
+			m.Get("/challenge", user.U2FChallenge)
+			m.Post("/sign", bindIgnErr(u2f.SignResponse{}), user.U2FSign)
+
+		})
 	}, reqSignOut)
 
 	m.Group("/user/settings", func() {
-		m.Get("", user.Settings)
-		m.Post("", bindIgnErr(auth.UpdateProfileForm{}), user.SettingsPost)
-		m.Combo("/avatar").Get(user.SettingsAvatar).
-			Post(binding.MultipartForm(auth.AvatarForm{}), user.SettingsAvatarPost)
-		m.Post("/avatar/delete", user.SettingsDeleteAvatar)
-		m.Combo("/email").Get(user.SettingsEmails).
-			Post(bindIgnErr(auth.AddEmailForm{}), user.SettingsEmailPost)
-		m.Post("/email/delete", user.DeleteEmail)
-		m.Get("/security", user.SettingsSecurity)
-		m.Post("/security", bindIgnErr(auth.ChangePasswordForm{}), user.SettingsSecurityPost)
-		m.Group("/openid", func() {
-			m.Combo("").Get(user.SettingsOpenID).
-				Post(bindIgnErr(auth.AddOpenIDForm{}), user.SettingsOpenIDPost)
-			m.Post("/delete", user.DeleteOpenID)
-			m.Post("/toggle_visibility", user.ToggleOpenIDVisibility)
-		}, openIDSignInEnabled)
-		m.Combo("/keys").Get(user.SettingsKeys).
-			Post(bindIgnErr(auth.AddKeyForm{}), user.SettingsKeysPost)
-		m.Post("/keys/delete", user.DeleteKey)
-		m.Combo("/applications").Get(user.SettingsApplications).
-			Post(bindIgnErr(auth.NewAccessTokenForm{}), user.SettingsApplicationsPost)
-		m.Post("/applications/delete", user.SettingsDeleteApplication)
-		m.Route("/delete", "GET,POST", user.SettingsDelete)
-		m.Combo("/account_link").Get(user.SettingsAccountLinks).Post(user.SettingsDeleteAccountLink)
-		m.Get("/organization", user.SettingsOrganization)
-		m.Get("/repos", user.SettingsRepos)
-		m.Group("/security/two_factor", func() {
-			m.Post("/regenerate_scratch", user.SettingsTwoFactorRegenerateScratch)
-			m.Post("/disable", user.SettingsTwoFactorDisable)
-			m.Get("/enroll", user.SettingsTwoFactorEnroll)
-			m.Post("/enroll", bindIgnErr(auth.TwoFactorAuthForm{}), user.SettingsTwoFactorEnrollPost)
+		m.Get("", userSetting.Profile)
+		m.Post("", bindIgnErr(auth.UpdateProfileForm{}), userSetting.ProfilePost)
+		m.Post("/avatar", binding.MultipartForm(auth.AvatarForm{}), userSetting.AvatarPost)
+		m.Post("/avatar/delete", userSetting.DeleteAvatar)
+		m.Group("/account", func() {
+			m.Combo("").Get(userSetting.Account).Post(bindIgnErr(auth.ChangePasswordForm{}), userSetting.AccountPost)
+			m.Post("/email", bindIgnErr(auth.AddEmailForm{}), userSetting.EmailPost)
+			m.Post("/email/delete", userSetting.DeleteEmail)
+			m.Post("/delete", userSetting.DeleteAccount)
+		})
+		m.Group("/security", func() {
+			m.Get("", userSetting.Security)
+			m.Group("/two_factor", func() {
+				m.Post("/regenerate_scratch", userSetting.RegenerateScratchTwoFactor)
+				m.Post("/disable", userSetting.DisableTwoFactor)
+				m.Get("/enroll", userSetting.EnrollTwoFactor)
+				m.Post("/enroll", bindIgnErr(auth.TwoFactorAuthForm{}), userSetting.EnrollTwoFactorPost)
+			})
+			m.Group("/u2f", func() {
+				m.Post("/request_register", bindIgnErr(auth.U2FRegistrationForm{}), userSetting.U2FRegister)
+				m.Post("/register", bindIgnErr(u2f.RegisterResponse{}), userSetting.U2FRegisterPost)
+				m.Post("/delete", bindIgnErr(auth.U2FDeleteForm{}), userSetting.U2FDelete)
+			})
+			m.Group("/openid", func() {
+				m.Post("", bindIgnErr(auth.AddOpenIDForm{}), userSetting.OpenIDPost)
+				m.Post("/delete", userSetting.DeleteOpenID)
+				m.Post("/toggle_visibility", userSetting.ToggleOpenIDVisibility)
+			}, openIDSignInEnabled)
+			m.Post("/account_link", userSetting.DeleteAccountLink)
+		})
+		m.Combo("/applications").Get(userSetting.Applications).
+			Post(bindIgnErr(auth.NewAccessTokenForm{}), userSetting.ApplicationsPost)
+		m.Post("/applications/delete", userSetting.DeleteApplication)
+		m.Combo("/keys").Get(userSetting.Keys).
+			Post(bindIgnErr(auth.AddKeyForm{}), userSetting.KeysPost)
+		m.Post("/keys/delete", userSetting.DeleteKey)
+		m.Get("/organization", userSetting.Organization)
+		m.Get("/repos", userSetting.Repos)
+
+		// redirects from old settings urls to new ones
+		// TODO: can be removed on next major version
+		m.Get("/avatar", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL+"/user/settings", http.StatusMovedPermanently)
+		})
+		m.Get("/email", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL+"/user/settings/account", http.StatusMovedPermanently)
+		})
+		m.Get("/delete", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL+"/user/settings/account", http.StatusMovedPermanently)
+		})
+		m.Get("/openid", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL+"/user/settings/security", http.StatusMovedPermanently)
+		})
+		m.Get("/account_link", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL+"/user/settings/security", http.StatusMovedPermanently)
 		})
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
