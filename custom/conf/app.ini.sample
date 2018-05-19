@@ -573,9 +573,9 @@ NAMES = English,简体中文,繁體中文（香港）,繁體中文（台灣）,D
 [U2F]
 ; Two Factor authentication with security keys
 ; https://developers.yubico.com/U2F/App_ID.html
-APP_ID = https://example.com
+APP_ID = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s
 ; Comma seperated list of truisted facets
-TRUSTED_FACETS = https://localhost:3000,https://192.168.178.18:3000
+TRUSTED_FACETS = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s
 
 
 ; Used for datetimepicker
