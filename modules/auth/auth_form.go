@@ -26,6 +26,8 @@ type AuthenticationForm struct {
 	AttributeMail                 string
 	AttributeSSHPublicKey         string
 	AttributesInBind              bool
+	UsePagedSearch                bool
+	SearchPageSize                int
 	Filter                        string
 	AdminFilter                   string
 	IsActive                      bool

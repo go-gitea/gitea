@@ -6,6 +6,8 @@ package models
 
 import (
 	"fmt"
+
+	"github.com/go-xorm/xorm"
 )
 
 // IssueUser represents an issue-user relation.
@@ -14,7 +16,6 @@ type IssueUser struct {
 	UID         int64 `xorm:"INDEX"` // User ID.
 	IssueID     int64
 	IsRead      bool
-	IsAssigned  bool
 	IsMentioned bool
 }
 
@@ -32,9 +33,8 @@ func newIssueUsers(e Engine, repo *Repository, issue *Issue) error {
 	issueUsers := make([]*IssueUser, 0, len(assignees)+1)
 	for _, assignee := range assignees {
 		issueUsers = append(issueUsers, &IssueUser{
-			IssueID:    issue.ID,
-			UID:        assignee.ID,
-			IsAssigned: assignee.ID == issue.AssigneeID,
+			IssueID: issue.ID,
+			UID:     assignee.ID,
 		})
 		isPosterAssignee = isPosterAssignee || assignee.ID == issue.PosterID
 	}
@@ -51,34 +51,38 @@ func newIssueUsers(e Engine, repo *Repository, issue *Issue) error {
 	return nil
 }
 
-func updateIssueUserByAssignee(e Engine, issue *Issue) (err error) {
-	if _, err = e.Exec("UPDATE `issue_user` SET is_assigned = ? WHERE issue_id = ?", false, issue.ID); err != nil {
-		return err
+func updateIssueAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (removed bool, err error) {
+
+	// Check if the user exists
+	_, err = GetUserByID(assigneeID)
+	if err != nil {
+		return false, err
 	}
 
-	// Assignee ID equals to 0 means clear assignee.
-	if issue.AssigneeID > 0 {
-		if _, err = e.Exec("UPDATE `issue_user` SET is_assigned = ? WHERE uid = ? AND issue_id = ?", true, issue.AssigneeID, issue.ID); err != nil {
-			return err
+	// Check if the submitted user is already assigne, if yes delete him otherwise add him
+	var toBeDeleted bool
+	for _, assignee := range issue.Assignees {
+		if assignee.ID == assigneeID {
+			toBeDeleted = true
+			break
 		}
 	}
 
-	return updateIssue(e, issue)
-}
+	assigneeIn := IssueAssignees{AssigneeID: assigneeID, IssueID: issue.ID}
 
-// UpdateIssueUserByAssignee updates issue-user relation for assignee.
-func UpdateIssueUserByAssignee(issue *Issue) (err error) {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
+	if toBeDeleted {
+		_, err = e.Delete(assigneeIn)
+		if err != nil {
+			return toBeDeleted, err
+		}
+	} else {
+		_, err = e.Insert(assigneeIn)
+		if err != nil {
+			return toBeDeleted, err
+		}
 	}
 
-	if err = updateIssueUserByAssignee(sess, issue); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return toBeDeleted, nil
 }
 
 // UpdateIssueUserByRead updates issue-user relation for reading.

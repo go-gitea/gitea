@@ -156,7 +156,7 @@
 						</div>
 					</div>
 
-					<!-- Assignee -->
+					<!-- Assignees -->
 					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.i18n.Tr "repo.issues.action_assignee"}}
@@ -220,9 +220,9 @@
 							<span class="octicon octicon-calendar"></span>
 							<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
 						{{end}}
-						{{if .Assignee}}
-							<a class="ui right assignee poping up" href="{{.Assignee.HomeLink}}" data-content="{{.Assignee.Name}}" data-variation="inverted" data-position="left center">
-								<img class="ui avatar image" src="{{.Assignee.RelAvatarLink}}">
+						{{range .Assignees}}
+							<a class="ui right assignee poping up" href="{{.HomeLink}}" data-content="{{.Name}}" data-variation="inverted" data-position="left center">
+								<img class="ui avatar image" src="{{.RelAvatarLink}}">
 							</a>
 						{{end}}
 					</p>

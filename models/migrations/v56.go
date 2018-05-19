@@ -9,5 +9,15 @@ import (
 )
 
 func removeIsOwnerColumnFromOrgUser(x *xorm.Engine) (err error) {
-	return dropTableColumns(x, "org_user", "is_owner", "num_teams")
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if err := dropTableColumns(sess, "org_user", "is_owner", "num_teams"); err != nil {
+		return err
+	}
+	return sess.Commit()
 }

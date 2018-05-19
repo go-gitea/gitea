@@ -41,8 +41,9 @@ type Source struct {
 	AttributeName         string // First name attribute
 	AttributeSurname      string // Surname attribute
 	AttributeMail         string // E-mail attribute
-	AttributeSSHPublicKey string // LDAP SSH Public Key attribute
 	AttributesInBind      bool   // fetch attributes in bind context (not user)
+	AttributeSSHPublicKey string // LDAP SSH Public Key attribute
+	SearchPageSize        uint32 // Search with paging page size
 	Filter                string // Query filter to validate entry
 	AdminFilter           string // Query filter to check if user is admin
 	Enabled               bool   // if this source is disabled
@@ -271,6 +272,11 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	}
 }
 
+// UsePagedSearch returns if need to use paged search
+func (ls *Source) UsePagedSearch() bool {
+	return ls.SearchPageSize > 0
+}
+
 // SearchEntries : search an LDAP source for all users matching userFilter
 func (ls *Source) SearchEntries() []*SearchResult {
 	l, err := dial(ls)
@@ -300,7 +306,12 @@ func (ls *Source) SearchEntries() []*SearchResult {
 		[]string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey},
 		nil)
 
-	sr, err := l.Search(search)
+	var sr *ldap.SearchResult
+	if ls.UsePagedSearch() {
+		sr, err = l.SearchWithPaging(search, ls.SearchPageSize)
+	} else {
+		sr, err = l.Search(search)
+	}
 	if err != nil {
 		log.Error(4, "LDAP Search failed unexpectedly! (%v)", err)
 		return nil

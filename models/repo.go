@@ -600,9 +600,9 @@ func (repo *Repository) GetAssignees() (_ []*User, err error) {
 	return repo.getAssignees(x)
 }
 
-// GetAssigneeByID returns the user that has write access of repository by given ID.
-func (repo *Repository) GetAssigneeByID(userID int64) (*User, error) {
-	return GetAssigneeByID(repo, userID)
+// GetUserIfHasWriteAccess returns the user that has write access of repository by given ID.
+func (repo *Repository) GetUserIfHasWriteAccess(userID int64) (*User, error) {
+	return GetUserIfHasWriteAccess(repo, userID)
 }
 
 // GetMilestoneByID returns the milestone belongs to repository by given ID.
@@ -2454,6 +2454,17 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 	err = sess.Commit()
 	if err != nil {
 		return nil, err
+	}
+
+	oldMode, _ := AccessLevel(doer.ID, oldRepo)
+	mode, _ := AccessLevel(doer.ID, repo)
+
+	if err = PrepareWebhooks(oldRepo, HookEventFork, &api.ForkPayload{
+		Forkee: repo.APIFormat(mode),
+		Repo:   oldRepo.APIFormat(oldMode),
+		Sender: doer.APIFormat(),
+	}); err != nil {
+		log.Error(2, "PrepareWebhooks [repo_id: %d]: %v", oldRepo.ID, err)
 	}
 
 	if err = repo.UpdateSize(); err != nil {
