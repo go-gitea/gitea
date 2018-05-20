@@ -390,7 +390,7 @@
 			"revisionTime": "2018-04-10T00:32:39Z"
 		},
 		{
-			"checksumSHA1": "HZHDKs2ZV3FhKKTBfMzkv3+moaQ=",
+			"checksumSHA1": "mrz/kicZiUaHxkyfvC/DyQcr8Do=",
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "ecdeabc65495df2dec95d7c4a4c3e021903035e5",
 			"revisionTime": "2017-10-02T20:02:53Z"
@@ -1369,16 +1369,16 @@
 			"revisionTime": "2016-03-11T05:04:36Z"
 		},
 		{
-			"checksumSHA1": "NE1kNfAZ0AAXCUbwx196os/DSUE=",
-			"path": "github.com/tstranex/u2f",
-			"revision": "d21a03e0b1d9fc1df59ff54e7a513655c1748b0c",
-			"revisionTime": "2018-05-05T18:51:14Z"
-		},
-		{
 			"checksumSHA1": "MfWqWj0xRPdk1DpXCN0EXyBCa4Q=",
 			"path": "github.com/tinylib/msgp/msgp",
 			"revision": "c8cf64dff2009d53fa8f8a16df54d1cdfc64c4a7",
 			"revisionTime": "2018-05-16T16:41:16Z"
+		},
+		{
+			"checksumSHA1": "NE1kNfAZ0AAXCUbwx196os/DSUE=",
+			"path": "github.com/tstranex/u2f",
+			"revision": "d21a03e0b1d9fc1df59ff54e7a513655c1748b0c",
+			"revisionTime": "2018-05-05T18:51:14Z"
 		},
 		{
 			"checksumSHA1": "76U6GiRZsKjr9OWohbsdfKPok/E=",
