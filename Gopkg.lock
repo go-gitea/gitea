@@ -747,7 +747,7 @@
     "html/atom",
     "html/charset"
   ]
-  revision = "f01ecb60fe3835d80d9a0b7b2bf24b228c89260e"
+  revision = "f2499483f923065a842d38eb4c7f1927e6fc6e6d"
 
 [[projects]]
   name = "golang.org/x/oauth2"
@@ -870,6 +870,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b117f64a6ebf6d7250141d3b0198bd39e3590b80215854712e55ee0490ff1497"
+  inputs-digest = "011d7b073bbce7e3e0c436ce6398c1bc09a7323ebe4f97e9096e0edaeea8ed9c"
   solver-name = "gps-cdcl"
   solver-version = 1

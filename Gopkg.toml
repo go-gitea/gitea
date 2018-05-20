@@ -27,7 +27,7 @@ ignored = ["google.golang.org/appengine*"]
   name = "golang.org/x/text"
 
 [[constraint]]
-  revision = "f01ecb60fe3835d80d9a0b7b2bf24b228c89260e"
+  revision = "f2499483f923065a842d38eb4c7f1927e6fc6e6d"
   name = "golang.org/x/net"
 
 [[constraint]]
