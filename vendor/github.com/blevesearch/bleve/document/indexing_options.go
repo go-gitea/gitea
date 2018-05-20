@@ -20,6 +20,7 @@ const (
 	IndexField IndexingOptions = 1 << iota
 	StoreField
 	IncludeTermVectors
+	DocValues
 )
 
 func (o IndexingOptions) IsIndexed() bool {
@@ -32,6 +33,10 @@ func (o IndexingOptions) IsStored() bool {
 
 func (o IndexingOptions) IncludeTermVectors() bool {
 	return o&IncludeTermVectors != 0
+}
+
+func (o IndexingOptions) IncludeDocValues() bool {
+	return o&DocValues != 0
 }
 
 func (o IndexingOptions) String() string {
@@ -50,6 +55,12 @@ func (o IndexingOptions) String() string {
 			rv += ", "
 		}
 		rv += "TV"
+	}
+	if o.IncludeDocValues() {
+		if rv != "" {
+			rv += ", "
+		}
+		rv += "DV"
 	}
 	return rv
 }
