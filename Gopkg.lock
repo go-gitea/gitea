@@ -755,7 +755,7 @@
     ".",
     "internal"
   ]
-  revision = "e1e827deaadaeab882fc5bdb00e2c23fd9c568c2"
+  revision = "c10ba270aa0bf8b8c1c986e103859c67a9103061"
 
 [[projects]]
   name = "golang.org/x/sync"
@@ -870,6 +870,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "011d7b073bbce7e3e0c436ce6398c1bc09a7323ebe4f97e9096e0edaeea8ed9c"
+  inputs-digest = "036b8c882671cf8d2c5e2fdbe53b1bdfbd39f7ebd7765bd50276c7c4ecf16687"
   solver-name = "gps-cdcl"
   solver-version = 1
