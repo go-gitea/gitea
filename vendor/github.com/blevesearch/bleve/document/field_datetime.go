@@ -23,7 +23,7 @@ import (
 	"github.com/blevesearch/bleve/numeric"
 )
 
-const DefaultDateTimeIndexingOptions = StoreField | IndexField
+const DefaultDateTimeIndexingOptions = StoreField | IndexField | DocValues
 const DefaultDateTimePrecisionStep uint = 4
 
 var MinTimeRepresentable = time.Unix(0, math.MinInt64)

@@ -33,6 +33,14 @@ func Security(ctx *context.Context) {
 		}
 	}
 	ctx.Data["TwofaEnrolled"] = enrolled
+	if enrolled {
+		ctx.Data["U2FRegistrations"], err = models.GetU2FRegistrationsByUID(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("GetU2FRegistrationsByUID", err)
+			return
+		}
+		ctx.Data["RequireU2F"] = true
+	}
 
 	tokens, err := models.ListAccessTokens(ctx.User.ID)
 	if err != nil {

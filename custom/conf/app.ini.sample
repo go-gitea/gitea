@@ -288,7 +288,7 @@ RESET_PASSWD_CODE_LIVE_MINUTES = 180
 REGISTER_EMAIL_CONFIRM = false
 ; Disallow registration, only allow admins to create accounts.
 DISABLE_REGISTRATION = false
-; Allow registration only using third part services, it works only when DISABLE_REGISTRATION is false 
+; Allow registration only using third part services, it works only when DISABLE_REGISTRATION is false
 ALLOW_ONLY_EXTERNAL_REGISTRATION = false
 ; User must sign in to view anything.
 REQUIRE_SIGNIN_VIEW = false
@@ -569,6 +569,14 @@ MAX_RESPONSE_ITEMS = 50
 [i18n]
 LANGS = en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR
 NAMES = English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,français,Nederlands,latviešu,русский,日本語,español,português do Brasil,polski,български,italiano,suomi,Türkçe,čeština,српски,svenska,한국어
+
+[U2F]
+; Two Factor authentication with security keys
+; https://developers.yubico.com/U2F/App_ID.html
+APP_ID = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s
+; Comma seperated list of truisted facets
+TRUSTED_FACETS = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s
+
 
 ; Used for datetimepicker
 [i18n.datelang]

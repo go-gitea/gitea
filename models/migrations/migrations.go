@@ -182,6 +182,8 @@ var migrations = []Migration{
 	NewMigration("add language column for user setting", addLanguageSetting),
 	// v64 -> v65
 	NewMigration("add multiple assignees", addMultipleAssignees),
+	// v65 -> v66
+	NewMigration("add u2f", addU2FReg),
 }
 
 // Migrate database to current version
