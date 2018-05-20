@@ -1,0 +1,8 @@
+/interpreter/interpreter
+/interpreter/test
+/tidb-server/tidb-server
+coverage.out
+.idea/
+*.iml
+temp_parser_file
+y.output

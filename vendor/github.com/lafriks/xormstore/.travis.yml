@@ -1,0 +1,19 @@
+sudo: required
+services:
+  - docker
+
+branches:
+  only:
+  - master
+
+language: go
+go:
+  - "tip"
+  - "1.8"
+  - "1.9"
+  - "1.10"
+
+script: ./test
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

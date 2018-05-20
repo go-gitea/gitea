@@ -1,0 +1,24 @@
+language: go
+
+go:
+  - 1.5.1
+
+before_script:
+  - cd $TRAVIS_BUILD_DIR
+  - java -version
+  - wget http://archive.apache.org/dist/hbase/0.98.15/hbase-0.98.15-hadoop2-bin.tar.gz
+  - tar -zxf hbase-0.98.15-hadoop2-bin.tar.gz
+  - git clone https://github.com/pingcap/themis.git
+  - cd themis
+  - mvn clean package -DskipTests
+  - cp themis-coprocessor/target/themis-coprocessor-1.0-SNAPSHOT-jar-with-dependencies.jar $TRAVIS_BUILD_DIR/hbase-0.98.15-hadoop2/lib
+  - cd $TRAVIS_BUILD_DIR
+  - git clone https://github.com/qiuyesuifeng/hbase-conf.git
+  - cp hbase-conf/hbase-site-for-themis.xml $TRAVIS_BUILD_DIR/hbase-0.98.15-hadoop2/conf/hbase-site.xml
+  - hbase-0.98.15-hadoop2/bin/start-hbase.sh
+  - sleep 60s
+  - jps
+  - cd $TRAVIS_BUILD_DIR
+
+script:
+  - go test -v

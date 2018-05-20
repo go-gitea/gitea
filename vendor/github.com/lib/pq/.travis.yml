@@ -1,0 +1,56 @@
+language: go
+
+go:
+  - 1.5.x
+  - 1.6.x
+  - 1.7.x
+  - 1.8.x
+  - 1.9.x
+  - master
+
+sudo: true
+
+env:
+  global:
+    - PGUSER=postgres
+    - PQGOSSLTESTS=1
+    - PQSSLCERTTEST_PATH=$PWD/certs
+    - PGHOST=127.0.0.1
+    - MEGACHECK_VERSION=2017.1
+  matrix:
+    - PGVERSION=9.6
+    - PGVERSION=9.5
+    - PGVERSION=9.4
+    - PGVERSION=9.3
+    - PGVERSION=9.2
+    - PGVERSION=9.1
+    - PGVERSION=9.0
+
+before_install:
+  - ./.travis.sh postgresql_uninstall
+  - ./.travis.sh pgdg_repository
+  - ./.travis.sh postgresql_install
+  - ./.travis.sh postgresql_configure
+  - ./.travis.sh client_configure
+  - ./.travis.sh megacheck_install
+  - go get golang.org/x/tools/cmd/goimports
+
+before_script:
+  - createdb pqgotest
+  - createuser -DRS pqgossltest
+  - createuser -DRS pqgosslcert
+
+script:
+  - >
+    goimports -d -e $(find -name '*.go') | awk '{ print } END { exit NR == 0 ? 0 : 1 }'
+  - go vet ./...
+    # For compatibility with Go 1.5, launch only if megacheck is present,
+    # ignore SA1019 (deprecation warnings) in conn_test.go (we have to use the
+    # deprecated driver.Execer and driver.Queryer interfaces) and S1024
+    # (time.Until) everywhere.
+  - >
+    which megacheck > /dev/null
+    && megacheck -ignore 'github.com/lib/pq/conn_test.go:SA1019 github.com/lib/pq/*.go:S1024' ./...
+    || echo 'megacheck is not supported, skipping check'
+  - PQTEST_BINARY_PARAMETERS=no  go test -race -v ./...
+  - PQTEST_BINARY_PARAMETERS=yes go test -race -v ./...

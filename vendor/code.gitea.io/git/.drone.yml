@@ -1,0 +1,46 @@
+workspace:
+  base: /srv/app
+  path: src/code.gitea.io/git
+
+clone:
+  git:
+    image: plugins/git:1
+    # Tests require the entire history (for some reason)
+    #depth: 50
+    tags: true
+
+pipeline:
+  test-general:
+    image: webhippie/golang:edge
+    pull: true
+    commands:
+      - make clean
+      - make vet
+      - make lint
+      - make build
+  testing-git-latest:
+    image: webhippie/golang:edge
+    pull: true
+    commands:
+      - git update-ref refs/heads/test HEAD
+      - git --version && make test
+  testing-git-1.7:
+    image: docker.kbt.io/gitea-git-ci:1.7
+    pull: true
+    commands:
+      - git update-ref refs/heads/test HEAD
+      - PATH=/opt/git-1.7.2/bin git --version && make test
+
+  # coverage:
+  #   image: plugins/coverage:1
+  #   pull: true
+  #   secrets: [ github_token ]
+  #   server: https://coverage.gitea.io
+
+  discord:
+    image: appleboy/drone-discord:1.0.0
+    pull: true
+    secrets: [ discord_webhook_id, discord_webhook_token ]
+    when:
+      event: [ push, tag, pull_request ]
+      status: [ changed, failure ]

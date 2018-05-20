@@ -1,0 +1,17 @@
+language: go
+
+go:
+  - 1.5.1
+
+before_script:
+  - cd $TRAVIS_BUILD_DIR
+  - java -version
+  - wget http://archive.apache.org/dist/hbase/0.98.15/hbase-0.98.15-hadoop2-bin.tar.gz
+  - tar -zxf hbase-0.98.15-hadoop2-bin.tar.gz
+  - hbase-0.98.15-hadoop2/bin/start-hbase.sh
+  - sleep 60s
+  - jps
+  - cd $TRAVIS_BUILD_DIR
+
+script:
+  - go test -v

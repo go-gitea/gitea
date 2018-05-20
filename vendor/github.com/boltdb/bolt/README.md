@@ -21,6 +21,25 @@ consistency and thread safety. Bolt is currently used in high-load production
 environments serving databases as large as 1TB. Many companies such as
 Shopify and Heroku use Bolt-backed services every day.
 
+## A message from the author
+
+> The original goal of Bolt was to provide a simple pure Go key/value store and to
+> not bloat the code with extraneous features. To that end, the project has been
+> a success. However, this limited scope also means that the project is complete.
+> 
+> Maintaining an open source database requires an immense amount of time and energy.
+> Changes to the code can have unintended and sometimes catastrophic effects so
+> even simple changes require hours and hours of careful testing and validation.
+>
+> Unfortunately I no longer have the time or energy to continue this work. Bolt is
+> in a stable state and has years of successful production use. As such, I feel that
+> leaving it in its current state is the most prudent course of action.
+>
+> If you are interested in using a more featureful version of Bolt, I suggest that
+> you look at the CoreOS fork called [bbolt](https://github.com/coreos/bbolt).
+
+- Ben Johnson ([@benbjohnson](https://twitter.com/benbjohnson))
+
 ## Table of Contents
 
 - [Getting Started](#getting-started)
@@ -911,5 +930,6 @@ Below is a list of public, open source projects that use Bolt:
 * [dcrwallet](https://github.com/decred/dcrwallet) - A wallet for the Decred cryptocurrency.
 * [Ironsmith](https://github.com/timshannon/ironsmith) - A simple, script-driven continuous integration (build - > test -> release) tool, with no external dependencies
 * [BoltHold](https://github.com/timshannon/bolthold) - An embeddable NoSQL store for Go types built on BoltDB
+* [Ponzu CMS](https://ponzu-cms.org) - Headless CMS + automatic JSON API with auto-HTTPS, HTTP/2 Server Push, and flexible server framework.
 
 If you are using Bolt in a project please send a pull request to add it to the list.

@@ -1,0 +1,126 @@
+# Gopkg.toml example
+#
+# Refer to https://golang.github.io/dep/docs/Gopkg.toml.html
+# for detailed Gopkg.toml documentation.
+#
+# required = ["github.com/user/thing/cmd/thing"]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+# [[constraint]]
+#   name = "github.com/user/project2"
+#   branch = "dev"
+#   source = "github.com/myfork/project2"
+#
+# [[override]]
+#   name = "github.com/x/y"
+#   version = "2.4.0"
+#
+# [prune]
+#   non-go = false
+#   go-tests = true
+#   unused-packages = true
+
+
+[[constraint]]
+  branch = "master"
+  name = "code.gitea.io/git"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/Unknwon/cae"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/Unknwon/com"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/Unknwon/i18n"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/go-macaron/bindata"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/go-macaron/cache"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/go-macaron/gzip"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/go-macaron/i18n"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/go-macaron/inject"
+
+[[constraint]]
+  name = "github.com/go-xorm/xorm"
+  version = "0.6.6"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/gogits/chardet"
+
+[[constraint]]
+  name = "github.com/gorilla/context"
+  version = "1.1.1"
+
+[[constraint]]
+  name = "github.com/lafriks/xormstore"
+  version = "1.0.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/lunny/dingtalk_webhook"
+
+[[constraint]]
+  name = "github.com/markbates/goth"
+  version = "1.45.5"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/mcuadros/go-version"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/russross/blackfriday"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/tstranex/u2f"
+
+[[constraint]]
+  name = "gopkg.in/editorconfig/editorconfig-core-go.v1"
+  version = "1.2.0"
+
+[[constraint]]
+  branch = "v2"
+  name = "gopkg.in/gomail.v2"
+
+[[constraint]]
+  name = "gopkg.in/ini.v1"
+  version = "1.31.1"
+
+[[constraint]]
+  name = "gopkg.in/ldap.v2"
+  version = "2.4.1"
+
+[[constraint]]
+  name = "gopkg.in/macaron.v1"
+  version = "1.2.4"
+
+[[constraint]]
+  name = "gopkg.in/testfixtures.v2"
+  version = "2.0.0"
+
+[prune]
+  go-tests = true
+  unused-packages = true
