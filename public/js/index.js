@@ -1432,6 +1432,130 @@ function initCodeView() {
     }
 }
 
+function initU2FAuth() {
+    if($('#wait-for-key').length === 0) {
+        return
+    }
+    u2fApi.ensureSupport()
+        .then(function () {
+            $.getJSON('/user/u2f/challenge').success(function(req) {
+                u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
+                    .then(u2fSigned)
+                    .catch(function (err) {
+                        if(err === undefined) {
+                            u2fError(1);
+                            return
+                        }
+                        u2fError(err.metaData.code);
+                    });
+            });
+        }).catch(function () {
+            // Fallback in case browser do not support U2F
+            window.location.href = "/user/two_factor"
+        })
+}
+function u2fSigned(resp) {
+    $.ajax({
+        url:'/user/u2f/sign',
+        type:"POST",
+        headers: {"X-Csrf-Token": csrf},
+        data: JSON.stringify(resp),
+        contentType:"application/json; charset=utf-8",
+    }).done(function(res){
+        window.location.replace(res);
+    }).fail(function (xhr, textStatus) {
+        u2fError(1);
+    });
+}
+
+function u2fRegistered(resp) {
+    if (checkError(resp)) {
+        return;
+    }
+    $.ajax({
+        url:'/user/settings/security/u2f/register',
+        type:"POST",
+        headers: {"X-Csrf-Token": csrf},
+        data: JSON.stringify(resp),
+        contentType:"application/json; charset=utf-8",
+        success: function(){
+            window.location.reload();
+        },
+        fail: function (xhr, textStatus) {
+            u2fError(1);
+        }
+    });
+}
+
+function checkError(resp) {
+    if (!('errorCode' in resp)) {
+        return false;
+    }
+    if (resp.errorCode === 0) {
+        return false;
+    }
+    u2fError(resp.errorCode);
+    return true;
+}
+
+
+function u2fError(errorType) {
+    var u2fErrors = {
+        'browser': $('#unsupported-browser'),
+        1: $('#u2f-error-1'),
+        2: $('#u2f-error-2'),
+        3: $('#u2f-error-3'),
+        4: $('#u2f-error-4'),
+        5: $('.u2f-error-5')
+    };
+    u2fErrors[errorType].removeClass('hide');
+    for(var type in u2fErrors){
+        if(type != errorType){
+            u2fErrors[type].addClass('hide');
+        }
+    }
+    $('#u2f-error').modal('show');
+}
+
+function initU2FRegister() {
+    $('#register-device').modal({allowMultiple: false});
+    $('#u2f-error').modal({allowMultiple: false});
+    $('#register-security-key').on('click', function(e) {
+        e.preventDefault();
+        u2fApi.ensureSupport()
+            .then(u2fRegisterRequest)
+            .catch(function() {
+                u2fError('browser');
+            })
+    })
+}
+
+function u2fRegisterRequest() {
+    $.post("/user/settings/security/u2f/request_register", {
+        "_csrf": csrf,
+        "name": $('#nickname').val()
+    }).success(function(req) {
+        $("#nickname").closest("div.field").removeClass("error");
+        $('#register-device').modal('show');
+        if(req.registeredKeys === null) {
+            req.registeredKeys = []
+        }
+        u2fApi.register(req.appId, req.registerRequests, req.registeredKeys, 30)
+            .then(u2fRegistered)
+            .catch(function (reason) {
+                if(reason === undefined) {
+                    u2fError(1);
+                    return
+                }
+                u2fError(reason.metaData.code);
+            });
+    }).fail(function(xhr, status, error) {
+        if(xhr.status === 409) {
+            $("#nickname").closest("div.field").addClass("error");
+        }
+    });
+}
+
 $(document).ready(function () {
     csrf = $('meta[name=_csrf]').attr("content");
     suburl = $('meta[name=_suburl]').attr("content");
@@ -1643,6 +1767,8 @@ $(document).ready(function () {
     initCtrlEnterSubmit();
     initNavbarContentToggle();
     initTopicbar();
+    initU2FAuth();
+    initU2FRegister();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -2201,7 +2327,7 @@ function initTopicbar() {
                     return
                 }
                 var topicArray = topics.split(",");
-                
+
                 var last = viewDiv.children("a").last();
                 for (var i=0;i < topicArray.length; i++) {
                     $('<div class="ui green basic label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)

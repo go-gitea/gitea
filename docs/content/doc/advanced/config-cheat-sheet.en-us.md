@@ -272,6 +272,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`.
 
+## U2F (`U2F`)
+- `APP_ID`: **`ROOT_URL`**: Declares the facet of the application. Requires HTTPS.
+- `TRUSTED_FACETS`: List of additional facets which are trusted. This is not support by all browsers.
+
 ## Markup (`markup`)
 
 Gitea can support Markup using external tools. The example below will add a markup named `asciidoc`.

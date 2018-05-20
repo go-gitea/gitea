@@ -64,6 +64,9 @@
 {{if .RequireDropzone}}
 	<script src="{{AppSubUrl}}/vendor/plugins/dropzone/dropzone.js"></script>
 {{end}}
+{{if .RequireU2F}}
+	<script src="{{AppSubUrl}}/vendor/plugins/u2f/index.js"></script>
+{{end}}
 {{if .RequireTribute}}
 	<script src="{{AppSubUrl}}/vendor/plugins/tribute/tribute.min.js"></script>
 
