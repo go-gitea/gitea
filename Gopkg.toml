@@ -1,29 +1,10 @@
-# Gopkg.toml example
-#
-# Refer to https://golang.github.io/dep/docs/Gopkg.toml.html
-# for detailed Gopkg.toml documentation.
-#
-# required = ["github.com/user/thing/cmd/thing"]
-# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
-#
-# [[constraint]]
-#   name = "github.com/user/project"
-#   version = "1.0.0"
-#
-# [[constraint]]
-#   name = "github.com/user/project2"
-#   branch = "dev"
-#   source = "github.com/myfork/project2"
-#
-# [[override]]
-#   name = "github.com/x/y"
-#   version = "2.4.0"
-#
-# [prune]
-#   non-go = false
-#   go-tests = true
-#   unused-packages = true
 
+ignored = ["google.golang.org/appengine*"]
+
+[prune]
+  go-tests = true
+  unused-packages = true
+  non-go = true
 
 [[constraint]]
   branch = "master"
@@ -31,43 +12,37 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/Unknwon/cae"
+  name = "code.gitea.io/sdk"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/Unknwon/com"
+  revision = "9f005a07e0d31d45e6656d241bb5c0f2efd4bc94"
+  name = "golang.org/x/crypto"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/Unknwon/i18n"
+  revision = "a646d33e2ee3172a661fc09bca23bb4889a41bc8"
+  name = "golang.org/x/sys"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/go-macaron/bindata"
+  revision = "2bf8f2a19ec09c670e931282edfe6567f6be21c9"
+  name = "golang.org/x/text"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/go-macaron/cache"
+  revision = "f01ecb60fe3835d80d9a0b7b2bf24b228c89260e"
+  name = "golang.org/x/net"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/go-macaron/gzip"
+  #version = "v1.0.0"
+  revision = "33197485abe227dcb254644cf5081c9a3c281669"
+  name = "github.com/pingcap/tidb"
 
-[[constraint]]
-  branch = "master"
-  name = "github.com/go-macaron/i18n"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/go-macaron/inject"
-
-[[constraint]]
+[[override]]
   name = "github.com/go-xorm/xorm"
-  version = "0.6.6"
+  #version = "0.6.5"
+  revision = "d4149d1eee0c2c488a74a5863fd9caf13d60fd03"
 
-[[constraint]]
-  branch = "master"
-  name = "github.com/gogits/chardet"
+[[override]]
+  name = "github.com/gorilla/mux"
+  revision = "757bef944d0f21880861c2dd9c871ca543023cba"
 
 [[constraint]]
   name = "github.com/gorilla/context"
@@ -121,6 +96,11 @@
   name = "gopkg.in/testfixtures.v2"
   version = "2.0.0"
 
-[prune]
-  go-tests = true
-  unused-packages = true
+[[override]]
+  name = "github.com/boltdb/bolt"
+  revision = "ccd680d8c1a0179ac3d68f692b01e1a1589cbfc7"
+  source = "github.com/go-gitea/bolt"
+
+[[override]]
+  revision = "e1e827deaadaeab882fc5bdb00e2c23fd9c568c2"
+  name = "golang.org/x/oauth2"

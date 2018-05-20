@@ -8,9 +8,10 @@
   revision = "0077debc17a58c821f4e62e815a54c1ab52da157"
 
 [[projects]]
+  branch = "master"
   name = "code.gitea.io/sdk"
   packages = ["gitea"]
-  revision = "7fa627fa5d67d18c39d6dd3c6c4db836916bf234"
+  revision = "b2308e3f700875a3642a78bd3f6e5db8ef6f974d"
 
 [[projects]]
   name = "github.com/PuerkitoBio/goquery"
@@ -120,7 +121,8 @@
 [[projects]]
   name = "github.com/boltdb/bolt"
   packages = ["."]
-  revision = "9da31745363232bc1e27dbab3569e77383a51585"
+  revision = "ccd680d8c1a0179ac3d68f692b01e1a1589cbfc7"
+  source = "github.com/go-gitea/bolt"
 
 [[projects]]
   name = "github.com/boombuler/barcode"
@@ -310,8 +312,7 @@
 [[projects]]
   name = "github.com/go-xorm/xorm"
   packages = ["."]
-  revision = "fc1b13e0d8e240788213230aa5747eb557f80f41"
-  version = "v0.6.6"
+  revision = "d4149d1eee0c2c488a74a5863fd9caf13d60fd03"
 
 [[projects]]
   branch = "master"
@@ -343,8 +344,7 @@
 [[projects]]
   name = "github.com/gorilla/mux"
   packages = ["."]
-  revision = "e3702bed27f0d39777b0b37b664b6280e8ef8fbf"
-  version = "v1.6.2"
+  revision = "757bef944d0f21880861c2dd9c871ca543023cba"
 
 [[projects]]
   name = "github.com/gorilla/securecookie"
@@ -743,21 +743,19 @@
   name = "golang.org/x/net"
   packages = [
     "context",
-    "context/ctxhttp",
     "html",
     "html/atom",
     "html/charset"
   ]
-  revision = "e45385e9b226f570b1f086bf287b25d3d4117776"
+  revision = "f01ecb60fe3835d80d9a0b7b2bf24b228c89260e"
 
 [[projects]]
-  branch = "master"
   name = "golang.org/x/oauth2"
   packages = [
     ".",
     "internal"
   ]
-  revision = "cdc340f7c179dbbfa4afd43b7614e8fcadde4269"
+  revision = "e1e827deaadaeab882fc5bdb00e2c23fd9c568c2"
 
 [[projects]]
   name = "golang.org/x/sync"
@@ -798,20 +796,6 @@
     "unicode/norm"
   ]
   revision = "2bf8f2a19ec09c670e931282edfe6567f6be21c9"
-
-[[projects]]
-  name = "google.golang.org/appengine"
-  packages = [
-    "internal",
-    "internal/base",
-    "internal/datastore",
-    "internal/log",
-    "internal/remote_api",
-    "internal/urlfetch",
-    "urlfetch"
-  ]
-  revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
-  version = "v1.0.0"
 
 [[projects]]
   branch = "v3"
@@ -886,6 +870,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cd225eb90a121a51ffda7f441e04be7dd627839b1d4d170fbb06fd04a69dc27b"
+  inputs-digest = "b117f64a6ebf6d7250141d3b0198bd39e3590b80215854712e55ee0490ff1497"
   solver-name = "gps-cdcl"
   solver-version = 1
