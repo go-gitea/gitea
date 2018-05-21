@@ -25,7 +25,7 @@ import (
 const (
 	tplHooks      base.TplName = "repo/settings/webhook/base"
 	tplHookNew    base.TplName = "repo/settings/webhook/new"
-	tplOrgHookNew base.TplName = "org/settings/webhook/new"
+	tplOrgHookNew base.TplName = "org/settings/hook_new"
 )
 
 // Webhooks render web hooks list page
