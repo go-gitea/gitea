@@ -17,7 +17,7 @@ var (
 	receiver notification.NotifyReceiver = &indexerReceiver{}
 )
 
-func ini() {
+func init() {
 	notification.RegisterReceiver(receiver)
 }
 

@@ -20,7 +20,7 @@ var (
 	receiver notification.NotifyReceiver = &actionReceiver{}
 )
 
-func ini() {
+func init() {
 	notification.RegisterReceiver(receiver)
 }
 
