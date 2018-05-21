@@ -207,6 +207,8 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 				Sender:     rel.Publisher.APIFormat(),
 			}); err != nil {
 				log.Error(2, "PrepareWebhooks: %v", err)
+			} else {
+				go HookQueue.Add(rel.Repo.ID)
 			}
 		}
 	}
@@ -371,7 +373,7 @@ func SortReleases(rels []*Release) {
 }
 
 // UpdateRelease updates information of a release.
-func UpdateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []string) (err error) {
+func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachmentUUIDs []string) (err error) {
 	if err = createTag(gitRepo, rel); err != nil {
 		return err
 	}
@@ -382,7 +384,24 @@ func UpdateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 		return err
 	}
 
+	err = rel.loadAttributes(x)
+	if err != nil {
+		return err
+	}
+
 	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
+
+	mode, _ := accessLevel(x, doer.ID, rel.Repo)
+	if err1 := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
+		Action:     api.HookReleaseUpdated,
+		Release:    rel.APIFormat(),
+		Repository: rel.Repo.APIFormat(mode),
+		Sender:     rel.Publisher.APIFormat(),
+	}); err1 != nil {
+		log.Error(2, "PrepareWebhooks: %v", err)
+	} else {
+		go HookQueue.Add(rel.Repo.ID)
+	}
 
 	return err
 }
@@ -427,6 +446,18 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		if _, err = x.ID(rel.ID).AllCols().Update(rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
 		}
+	}
+
+	mode, _ := accessLevel(x, u.ID, rel.Repo)
+	if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
+		Action:     api.HookReleaseDeleted,
+		Release:    rel.APIFormat(),
+		Repository: rel.Repo.APIFormat(mode),
+		Sender:     rel.Publisher.APIFormat(),
+	}); err != nil {
+		log.Error(2, "PrepareWebhooks: %v", err)
+	} else {
+		go HookQueue.Add(rel.Repo.ID)
 	}
 
 	return nil
