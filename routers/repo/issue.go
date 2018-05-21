@@ -488,7 +488,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		return
 	}
 
-	notification.Service.NotifyIssue(issue, ctx.User.ID)
+	notification.NotifyNewIssue(issue)
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
@@ -1070,7 +1070,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 				} else {
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 
-					notification.Service.NotifyIssue(issue, ctx.User.ID)
+					notification.NotifyCloseIssue(issue, ctx.User)
 				}
 			}
 		}
@@ -1098,7 +1098,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
-	notification.Service.NotifyIssue(issue, ctx.User.ID)
+	notification.NotifyCreateIssueComment(ctx.User, ctx.Repo.Repository, issue, comment)
 
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
 }

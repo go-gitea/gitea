@@ -546,7 +546,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	notification.Service.NotifyIssue(pr.Issue, ctx.User.ID)
+	notification.NotifyMergePullRequest(pr, ctx.User, ctx.Repo.GitRepo)
 
 	log.Trace("Pull request merged: %d", pr.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
@@ -836,6 +836,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		BaseRepo:     repo,
 		MergeBase:    prInfo.MergeBase,
 		Type:         models.PullRequestGitea,
+		Issue:        pullIssue,
 	}
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
@@ -852,7 +853,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		return
 	}
 
-	notification.Service.NotifyIssue(pullIssue, ctx.User.ID)
+	notification.NotifyNewPullRequest(pullRequest)
 
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pullIssue.Index))

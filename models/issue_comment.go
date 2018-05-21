@@ -658,18 +658,6 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 		return nil, fmt.Errorf("CreateComment: %v", err)
 	}
 
-	mode, _ := AccessLevel(doer.ID, repo)
-	if err = PrepareWebhooks(repo, HookEventIssueComment, &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentCreated,
-		Issue:      issue.APIFormat(),
-		Comment:    comment.APIFormat(),
-		Repository: repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err != nil {
-		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
-	} else {
-		go HookQueue.Add(repo.ID)
-	}
 	return comment, nil
 }
 

@@ -445,10 +445,6 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		log.Error(4, "setMerged [%d]: %v", pr.ID, err)
 	}
 
-	if err = MergePullRequestAction(doer, pr.Issue.Repo, pr.Issue); err != nil {
-		log.Error(4, "MergePullRequestAction [%d]: %v", pr.ID, err)
-	}
-
 	// Reset cached commit count
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
 
@@ -456,19 +452,6 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 	if err = pr.LoadAttributes(); err != nil {
 		log.Error(4, "LoadAttributes: %v", err)
 		return nil
-	}
-
-	mode, _ := AccessLevel(doer.ID, pr.Issue.Repo)
-	if err = PrepareWebhooks(pr.Issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
-		Action:      api.HookIssueClosed,
-		Index:       pr.Index,
-		PullRequest: pr.APIFormat(),
-		Repository:  pr.Issue.Repo.APIFormat(mode),
-		Sender:      doer.APIFormat(),
-	}); err != nil {
-		log.Error(4, "PrepareWebhooks: %v", err)
-	} else {
-		go HookQueue.Add(pr.Issue.Repo.ID)
 	}
 
 	l, err := baseGitRepo.CommitsBetweenIDs(pr.MergedCommitID, pr.MergeBase)
@@ -489,21 +472,6 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		l.PushFront(mergeCommit)
 	}
 
-	p := &api.PushPayload{
-		Ref:        git.BranchPrefix + pr.BaseBranch,
-		Before:     pr.MergeBase,
-		After:      mergeCommit.ID.String(),
-		CompareURL: setting.AppURL + pr.BaseRepo.ComposeCompareURL(pr.MergeBase, pr.MergedCommitID),
-		Commits:    ListToPushCommits(l).ToAPIPayloadCommits(pr.BaseRepo.HTMLURL()),
-		Repo:       pr.BaseRepo.APIFormat(mode),
-		Pusher:     pr.HeadRepo.MustOwner().APIFormat(),
-		Sender:     doer.APIFormat(),
-	}
-	if err = PrepareWebhooks(pr.BaseRepo, HookEventPush, p); err != nil {
-		log.Error(4, "PrepareWebhooks: %v", err)
-	} else {
-		go HookQueue.Add(pr.BaseRepo.ID)
-	}
 	return nil
 }
 
@@ -769,36 +737,8 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		return fmt.Errorf("Commit: %v", err)
 	}
 
-	UpdateIssueIndexer(pull.ID)
-
-	if err = NotifyWatchers(&Action{
-		ActUserID: pull.Poster.ID,
-		ActUser:   pull.Poster,
-		OpType:    ActionCreatePullRequest,
-		Content:   fmt.Sprintf("%d|%s", pull.Index, pull.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		log.Error(4, "NotifyWatchers: %v", err)
-	} else if err = pull.MailParticipants(); err != nil {
-		log.Error(4, "MailParticipants: %v", err)
-	}
-
 	pr.Issue = pull
 	pull.PullRequest = pr
-	mode, _ := AccessLevel(pull.Poster.ID, repo)
-	if err = PrepareWebhooks(repo, HookEventPullRequest, &api.PullRequestPayload{
-		Action:      api.HookIssueOpened,
-		Index:       pull.Index,
-		PullRequest: pr.APIFormat(),
-		Repository:  repo.APIFormat(mode),
-		Sender:      pull.Poster.APIFormat(),
-	}); err != nil {
-		log.Error(4, "PrepareWebhooks: %v", err)
-	} else {
-		go HookQueue.Add(repo.ID)
-	}
 
 	return nil
 }

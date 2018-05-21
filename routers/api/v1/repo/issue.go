@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/indexer"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -206,6 +207,8 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		ctx.Error(500, "NewIssue", err)
 		return
 	}
+
+	notification.NotifyNewIssue(issue)
 
 	if form.Closed {
 		if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, true); err != nil {

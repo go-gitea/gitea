@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/modules/notification"
+
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -542,6 +544,8 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		ctx.Error(500, "Merge", err)
 		return
 	}
+
+	notification.NotifyMergePullRequest(pr, ctx.User, ctx.Repo.GitRepo)
 
 	log.Trace("Pull request merged: %d", pr.ID)
 	ctx.Status(200)
