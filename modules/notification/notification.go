@@ -75,3 +75,10 @@ func NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string
 		notifier.NotifyUpdateComment(doer, c, oldContent)
 	}
 }
+
+// NotifyDeleteComment notifies update comment to notifiers
+func NotifyDeleteComment(doer *models.User, c *models.Comment) {
+	for _, notifier := range notifiers {
+		notifier.NotifyDeleteComment(doer, c)
+	}
+}

@@ -779,6 +779,15 @@ func UpdateComment(doer *User, c *Comment) error {
 	return nil
 }
 
+// UpdateCommentAction updates action when comment is deleted
+func UpdateCommentAction(comment *Comment) error {
+	if _, err := x.Where("comment_id = ?", comment.ID).
+		Cols("is_deleted").Update(&Action{IsDeleted: true}); err != nil {
+		return err
+	}
+	return nil
+}
+
 // DeleteComment deletes the comment
 func DeleteComment(doer *User, comment *Comment) error {
 	sess := x.NewSession()
@@ -798,35 +807,9 @@ func DeleteComment(doer *User, comment *Comment) error {
 			return err
 		}
 	}
-	if _, err := sess.Where("comment_id = ?", comment.ID).Cols("is_deleted").Update(&Action{IsDeleted: true}); err != nil {
-		return err
-	}
 
 	if err := sess.Commit(); err != nil {
 		return err
-	} else if comment.Type == CommentTypeComment {
-		UpdateIssueIndexer(comment.IssueID)
-	}
-
-	if err := comment.LoadIssue(); err != nil {
-		return err
-	}
-	if err := comment.Issue.LoadAttributes(); err != nil {
-		return err
-	}
-
-	mode, _ := AccessLevel(doer.ID, comment.Issue.Repo)
-
-	if err := PrepareWebhooks(comment.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentDeleted,
-		Issue:      comment.Issue.APIFormat(),
-		Comment:    comment.APIFormat(),
-		Repository: comment.Issue.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err != nil {
-		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
-	} else {
-		go HookQueue.Add(comment.Issue.Repo.ID)
 	}
 
 	return nil

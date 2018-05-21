@@ -49,3 +49,9 @@ func (r *indexerNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 		models.UpdateIssueIndexer(c.IssueID)
 	}
 }
+
+func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models.Comment) {
+	if comment.Type == models.CommentTypeComment {
+		models.UpdateIssueIndexer(comment.IssueID)
+	}
+}

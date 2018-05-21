@@ -1160,6 +1160,8 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
+	notification.NotifyDeleteComment(ctx.User, comment)
+
 	ctx.Status(200)
 }
 

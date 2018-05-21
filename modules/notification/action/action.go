@@ -73,3 +73,9 @@ func (r *actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mo
 
 func (r *actionNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
 }
+
+func (r *actionNotifier) NotifyDeleteComment(doer *models.User, c *models.Comment) {
+	if err := models.UpdateCommentAction(c); err != nil {
+		log.Error(4, "UpdateCommentAction [%d]: %v", c.ID, err)
+	}
+}

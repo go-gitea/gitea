@@ -54,3 +54,6 @@ func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mode
 
 func (m *mailNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
 }
+
+func (m *mailNotifier) NotifyDeleteComment(doer *models.User, c *models.Comment) {
+}

@@ -155,3 +155,19 @@ func (w *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 		go models.HookQueue.Add(c.Issue.Repo.ID)
 	}
 }
+
+func (w *webhookNotifier) NotifyDeleteComment(doer *models.User, comment *models.Comment) {
+	mode, _ := models.AccessLevel(doer.ID, comment.Issue.Repo)
+
+	if err := models.PrepareWebhooks(comment.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
+		Action:     api.HookIssueCommentDeleted,
+		Issue:      comment.Issue.APIFormat(),
+		Comment:    comment.APIFormat(),
+		Repository: comment.Issue.Repo.APIFormat(mode),
+		Sender:     doer.APIFormat(),
+	}); err != nil {
+		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+	} else {
+		go models.HookQueue.Add(comment.Issue.Repo.ID)
+	}
+}

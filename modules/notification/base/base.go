@@ -19,4 +19,5 @@ type Notifier interface {
 	NotifyMergePullRequest(*models.PullRequest, *models.User, *git.Repository)
 	NotifyNewPullRequest(*models.PullRequest)
 	NotifyUpdateComment(*models.User, *models.Comment, string)
+	NotifyDeleteComment(*models.User, *models.Comment)
 }

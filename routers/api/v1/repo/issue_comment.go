@@ -359,5 +359,8 @@ func deleteIssueComment(ctx *context.APIContext) {
 		ctx.Error(500, "DeleteCommentByID", err)
 		return
 	}
+
+	notification.NotifyDeleteComment(ctx.User, comment)
+
 	ctx.Status(204)
 }
