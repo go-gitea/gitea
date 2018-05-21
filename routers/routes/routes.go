@@ -5,6 +5,8 @@
 package routes
 
 import (
+	"encoding/gob"
+	"net/http"
 	"os"
 	"path"
 	"time"
@@ -37,12 +39,13 @@ import (
 	"github.com/go-macaron/i18n"
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
+	"github.com/tstranex/u2f"
 	"gopkg.in/macaron.v1"
-	"net/http"
 )
 
 // NewMacaron initializes Macaron instance.
 func NewMacaron() *macaron.Macaron {
+	gob.Register(&u2f.Challenge{})
 	m := macaron.New()
 	if !setting.DisableRouterLog {
 		m.Use(macaron.Logger())
@@ -214,6 +217,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/scratch", user.TwoFactorScratch)
 			m.Post("/scratch", bindIgnErr(auth.TwoFactorScratchAuthForm{}), user.TwoFactorScratchPost)
 		})
+		m.Group("/u2f", func() {
+			m.Get("", user.U2F)
+			m.Get("/challenge", user.U2FChallenge)
+			m.Post("/sign", bindIgnErr(u2f.SignResponse{}), user.U2FSign)
+
+		})
 	}, reqSignOut)
 
 	m.Group("/user/settings", func() {
@@ -234,6 +243,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/disable", userSetting.DisableTwoFactor)
 				m.Get("/enroll", userSetting.EnrollTwoFactor)
 				m.Post("/enroll", bindIgnErr(auth.TwoFactorAuthForm{}), userSetting.EnrollTwoFactorPost)
+			})
+			m.Group("/u2f", func() {
+				m.Post("/request_register", bindIgnErr(auth.U2FRegistrationForm{}), userSetting.U2FRegister)
+				m.Post("/register", bindIgnErr(u2f.RegisterResponse{}), userSetting.U2FRegisterPost)
+				m.Post("/delete", bindIgnErr(auth.U2FDeleteForm{}), userSetting.U2FDelete)
 			})
 			m.Group("/openid", func() {
 				m.Post("", bindIgnErr(auth.AddOpenIDForm{}), userSetting.OpenIDPost)

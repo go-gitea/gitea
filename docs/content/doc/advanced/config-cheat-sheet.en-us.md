@@ -145,6 +145,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    authentication.
 - `DISABLE_GIT_HOOKS`: **false**: Prevent all users (including admin) from creating custom
    git hooks.
+- `IMPORT_LOCAL_PATHS`: **false**: Prevent all users (including admin) from importing local path on server.
 
 ## OpenID (`openid`)
 
@@ -271,6 +272,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`.
+
+## U2F (`U2F`)
+- `APP_ID`: **`ROOT_URL`**: Declares the facet of the application. Requires HTTPS.
+- `TRUSTED_FACETS`: List of additional facets which are trusted. This is not support by all browsers.
 
 ## Markup (`markup`)
 
