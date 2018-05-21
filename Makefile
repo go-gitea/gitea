@@ -230,7 +230,7 @@ $(EXECUTABLE): $(SOURCES)
 	$(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: release-dirs release-windows release-linux release-darwin release-copy release-check release-compress
+release: release-dirs release-windows release-linux release-darwin release-copy release-compress release-check
 
 .PHONY: release-dirs
 release-dirs:
@@ -279,7 +279,7 @@ release-compress:
 	@hash gxz > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/ulikunitz/xz/cmd/gxz; \
 	fi
-	find $(DIST)/release -name "$(EXECUTABLE)-*" -not -name *.sha256 -print0 | xargs -0 gxz -k -9
+	cd $(DIST)/release; $(foreach file,$(wildcard $(DIST)/binaries/$(EXECUTABLE)-*),gxz -k -9 $(notdir $(file));)
 
 .PHONY: javascripts
 javascripts: public/js/index.js
