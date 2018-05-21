@@ -266,10 +266,13 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 
 	oldContent := comment.Content
 	comment.Content = form.Body
-	if err := models.UpdateComment(ctx.User, comment, oldContent); err != nil {
+	if err := models.UpdateComment(ctx.User, comment); err != nil {
 		ctx.Error(500, "UpdateComment", err)
 		return
 	}
+
+	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
+
 	ctx.JSON(200, comment.APIFormat())
 }
 

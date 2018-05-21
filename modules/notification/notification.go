@@ -7,61 +7,71 @@ package notification
 import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/notification/action"
+	"code.gitea.io/gitea/modules/notification/base"
+	"code.gitea.io/gitea/modules/notification/indexer"
+	"code.gitea.io/gitea/modules/notification/mail"
+	"code.gitea.io/gitea/modules/notification/ui"
+	"code.gitea.io/gitea/modules/notification/webhook"
 )
-
-// NotifyReceiver defines an interface to notify receiver
-type NotifyReceiver interface {
-	Run()
-	NotifyCreateIssueComment(*models.User, *models.Repository,
-		*models.Issue, *models.Comment)
-	NotifyNewIssue(*models.Issue)
-	NotifyCloseIssue(*models.Issue, *models.User)
-	NotifyMergePullRequest(*models.PullRequest, *models.User, *git.Repository)
-	NotifyNewPullRequest(*models.PullRequest)
-}
 
 var (
-	notifyReceivers []NotifyReceiver
+	notifiers []base.Notifier
 )
 
-// RegisterReceiver providers method to receive notify messages
-func RegisterReceiver(receiver NotifyReceiver) {
-	go receiver.Run()
-	notifyReceivers = append(notifyReceivers, receiver)
+// RegisterNotifier providers method to receive notify messages
+func RegisterNotifier(notifier base.Notifier) {
+	go notifier.Run()
+	notifiers = append(notifiers, notifier)
 }
 
-// NotifyCreateIssueComment notifies issue comment related message to receivers
+func init() {
+	RegisterNotifier(webhook.NewNotifier())
+	RegisterNotifier(ui.NewNotifier())
+	RegisterNotifier(mail.NewNotifier())
+	RegisterNotifier(indexer.NewNotifier())
+	RegisterNotifier(action.NewNotifier())
+}
+
+// NotifyCreateIssueComment notifies issue comment related message to notifiers
 func NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
-	for _, receiver := range notifyReceivers {
-		receiver.NotifyCreateIssueComment(doer, repo, issue, comment)
+	for _, notifier := range notifiers {
+		notifier.NotifyCreateIssueComment(doer, repo, issue, comment)
 	}
 }
 
-// NotifyNewIssue notifies new issue to receivers
+// NotifyNewIssue notifies new issue to notifiers
 func NotifyNewIssue(issue *models.Issue) {
-	for _, receiver := range notifyReceivers {
-		receiver.NotifyNewIssue(issue)
+	for _, notifier := range notifiers {
+		notifier.NotifyNewIssue(issue)
 	}
 }
 
-// NotifyCloseIssue notifies close issue to receivers
+// NotifyCloseIssue notifies close issue to notifiers
 func NotifyCloseIssue(issue *models.Issue, doer *models.User) {
-	for _, receiver := range notifyReceivers {
-		receiver.NotifyCloseIssue(issue, doer)
+	for _, notifier := range notifiers {
+		notifier.NotifyCloseIssue(issue, doer)
 	}
 }
 
-// NotifyMergePullRequest notifies merge pull request to receivers
+// NotifyMergePullRequest notifies merge pull request to notifiers
 func NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository) {
-	for _, receiver := range notifyReceivers {
-		receiver.NotifyMergePullRequest(pr, doer, baseGitRepo)
+	for _, notifier := range notifiers {
+		notifier.NotifyMergePullRequest(pr, doer, baseGitRepo)
 	}
 }
 
-// NotifyNewPullRequest notifies new pull request to receivers
+// NotifyNewPullRequest notifies new pull request to notifiers
 func NotifyNewPullRequest(pr *models.PullRequest) {
-	for _, receiver := range notifyReceivers {
-		receiver.NotifyNewPullRequest(pr)
+	for _, notifier := range notifiers {
+		notifier.NotifyNewPullRequest(pr)
+	}
+}
+
+// NotifyUpdateComment notifies update comment to notifiers
+func NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyUpdateComment(doer, c, oldContent)
 	}
 }

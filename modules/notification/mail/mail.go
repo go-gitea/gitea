@@ -8,45 +8,49 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/notification/base"
 )
 
-type mailReceiver struct {
+type mailNotifier struct {
 }
 
 var (
-	receiver notification.NotifyReceiver = &mailReceiver{}
+	_ base.Notifier = &mailNotifier{}
 )
 
-func init() {
-	notification.RegisterReceiver(receiver)
+// NewNotifier create a new mailNotifier notifier
+func NewNotifier() *mailNotifier {
+	return &mailNotifier{}
 }
 
-func (m *mailReceiver) Run() {
+func (m *mailNotifier) Run() {
 }
 
-func (m *mailReceiver) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
+func (m *mailNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
 	panic("not implementation")
 }
 
-func (m *mailReceiver) NotifyNewIssue(issue *models.Issue) {
+func (m *mailNotifier) NotifyNewIssue(issue *models.Issue) {
 	if err := issue.MailParticipants(); err != nil {
 		log.Error(4, "MailParticipants: %v", err)
 	}
 }
 
-func (m *mailReceiver) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
+func (m *mailNotifier) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
 	if err := issue.MailParticipants(); err != nil {
 		log.Error(4, "MailParticipants: %v", err)
 	}
 }
 
-func (m *mailReceiver) NotifyNewPullRequest(pr *models.PullRequest) {
+func (m *mailNotifier) NotifyNewPullRequest(pr *models.PullRequest) {
 	if err := pr.Issue.MailParticipants(); err != nil {
 		log.Error(4, "MailParticipants: %v", err)
 	}
 }
 
-func (m *mailReceiver) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+}
+
+func (m *mailNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
 }

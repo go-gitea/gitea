@@ -719,8 +719,9 @@ func TransferRepoAction(doer, oldOwner *User, repo *Repository) error {
 	return transferRepoAction(x, doer, oldOwner, repo)
 }
 
-func mergePullRequestAction(e Engine, doer *User, repo *Repository, issue *Issue) error {
-	return notifyWatchers(e, &Action{
+// MergePullRequestAction adds new action for merging pull request.
+func MergePullRequestAction(doer *User, repo *Repository, issue *Issue) error {
+	return notifyWatchers(x, &Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		OpType:    ActionMergePullRequest,
@@ -729,11 +730,6 @@ func mergePullRequestAction(e Engine, doer *User, repo *Repository, issue *Issue
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
 	})
-}
-
-// MergePullRequestAction adds new action for merging pull request.
-func MergePullRequestAction(actUser *User, repo *Repository, pull *Issue) error {
-	return mergePullRequestAction(x, actUser, repo, pull)
 }
 
 // GetFeedsOptions options for retrieving feeds

@@ -10,28 +10,29 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/notification/base"
 )
 
-type actionReceiver struct {
+type actionNotifier struct {
 }
 
 var (
-	receiver notification.NotifyReceiver = &actionReceiver{}
+	_ base.Notifier = &actionNotifier{}
 )
 
-func init() {
-	notification.RegisterReceiver(receiver)
+// NewNotifier returns a new actionNotifier
+func NewNotifier() *actionNotifier {
+	return &actionNotifier{}
 }
 
-func (r *actionReceiver) Run() {}
+func (r *actionNotifier) Run() {}
 
-func (r *actionReceiver) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
+func (r *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
 	panic("not implementation")
 }
 
-func (r *actionReceiver) NotifyNewIssue(issue *models.Issue) {
+func (r *actionNotifier) NotifyNewIssue(issue *models.Issue) {
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: issue.Poster.ID,
 		ActUser:   issue.Poster,
@@ -45,11 +46,11 @@ func (r *actionReceiver) NotifyNewIssue(issue *models.Issue) {
 	}
 }
 
-func (r *actionReceiver) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
+func (r *actionNotifier) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
 	panic("not implementation")
 }
 
-func (r *actionReceiver) NotifyNewPullRequest(pr *models.PullRequest) {
+func (r *actionNotifier) NotifyNewPullRequest(pr *models.PullRequest) {
 	issue := pr.Issue
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: issue.Poster.ID,
@@ -64,8 +65,11 @@ func (r *actionReceiver) NotifyNewPullRequest(pr *models.PullRequest) {
 	}
 }
 
-func (r *actionReceiver) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+func (r *actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
 	if err := models.MergePullRequestAction(doer, pr.Issue.Repo, pr.Issue); err != nil {
 		log.Error(4, "MergePullRequestAction [%d]: %v", pr.ID, err)
 	}
+}
+
+func (r *actionNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
 }

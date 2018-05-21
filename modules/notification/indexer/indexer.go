@@ -7,39 +7,45 @@ package indexer
 import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/notification/base"
 )
 
-type indexerReceiver struct {
+type indexerNotifier struct {
 }
 
 var (
-	receiver notification.NotifyReceiver = &indexerReceiver{}
+	_ base.Notifier = &indexerNotifier{}
 )
 
-func init() {
-	notification.RegisterReceiver(receiver)
+// NewNotifier create a new indexerNotifier notifier
+func NewNotifier() *indexerNotifier {
+	return &indexerNotifier{}
 }
 
-func (r *indexerReceiver) Run() {
-
+func (r *indexerNotifier) Run() {
 }
 
-func (r *indexerReceiver) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
+func (r *indexerNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
 }
 
-func (r *indexerReceiver) NotifyNewIssue(issue *models.Issue) {
+func (r *indexerNotifier) NotifyNewIssue(issue *models.Issue) {
 	models.UpdateIssueIndexer(issue.ID)
 }
 
-func (r *indexerReceiver) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
+func (r *indexerNotifier) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
 
 }
 
-func (r *indexerReceiver) NotifyNewPullRequest(pr *models.PullRequest) {
+func (r *indexerNotifier) NotifyNewPullRequest(pr *models.PullRequest) {
 	models.UpdateIssueIndexer(pr.Issue.ID)
 }
 
-func (r *indexerReceiver) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+func (r *indexerNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+}
+
+func (r *indexerNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
+	if c.Type == models.CommentTypeComment {
+		models.UpdateIssueIndexer(c.IssueID)
+	}
 }

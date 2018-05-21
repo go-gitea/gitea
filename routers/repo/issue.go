@@ -1127,10 +1127,12 @@ func UpdateCommentContent(ctx *context.Context) {
 		})
 		return
 	}
-	if err = models.UpdateComment(ctx.User, comment, oldContent); err != nil {
+	if err = models.UpdateComment(ctx.User, comment); err != nil {
 		ctx.ServerError("UpdateComment", err)
 		return
 	}
+
+	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
 
 	ctx.JSON(200, map[string]interface{}{
 		"content": string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),

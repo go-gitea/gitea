@@ -771,36 +771,9 @@ func GetCommentsByRepoIDSince(repoID, since int64) ([]*Comment, error) {
 }
 
 // UpdateComment updates information of comment.
-func UpdateComment(doer *User, c *Comment, oldContent string) error {
+func UpdateComment(doer *User, c *Comment) error {
 	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
-	} else if c.Type == CommentTypeComment {
-		UpdateIssueIndexer(c.IssueID)
-	}
-
-	if err := c.LoadIssue(); err != nil {
-		return err
-	}
-	if err := c.Issue.LoadAttributes(); err != nil {
-		return err
-	}
-
-	mode, _ := AccessLevel(doer.ID, c.Issue.Repo)
-	if err := PrepareWebhooks(c.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
-		Action:  api.HookIssueCommentEdited,
-		Issue:   c.Issue.APIFormat(),
-		Comment: c.APIFormat(),
-		Changes: &api.ChangesPayload{
-			Body: &api.ChangesFromPayload{
-				From: oldContent,
-			},
-		},
-		Repository: c.Issue.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err != nil {
-		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
-	} else {
-		go HookQueue.Add(c.Issue.Repo.ID)
 	}
 
 	return nil

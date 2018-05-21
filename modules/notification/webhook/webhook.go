@@ -8,27 +8,28 @@ import (
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/setting"
 
 	api "code.gitea.io/sdk/gitea"
 )
 
-type webhookReceiver struct {
+type webhookNotifier struct {
 }
 
 var (
-	receiver notification.NotifyReceiver = &webhookReceiver{}
+	_ base.Notifier = &webhookNotifier{}
 )
 
-func init() {
-	notification.RegisterReceiver(receiver)
+// NewNotifier returns a new webhookNotifier
+func NewNotifier() *webhookNotifier {
+	return &webhookNotifier{}
 }
 
-func (w *webhookReceiver) Run() {
+func (w *webhookNotifier) Run() {
 }
 
-func (w *webhookReceiver) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
+func (w *webhookNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
 	mode, _ := models.AccessLevel(doer.ID, repo)
 	if err := models.PrepareWebhooks(repo, models.HookEventIssueComment, &api.IssueCommentPayload{
@@ -45,7 +46,7 @@ func (w *webhookReceiver) NotifyCreateIssueComment(doer *models.User, repo *mode
 }
 
 // NotifyNewIssue implements notification.Receiver
-func (w *webhookReceiver) NotifyNewIssue(issue *models.Issue) {
+func (w *webhookNotifier) NotifyNewIssue(issue *models.Issue) {
 	mode, _ := models.AccessLevel(issue.Poster.ID, issue.Repo)
 	if err := models.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
 		Action:     api.HookIssueOpened,
@@ -61,11 +62,11 @@ func (w *webhookReceiver) NotifyNewIssue(issue *models.Issue) {
 }
 
 // NotifyCloseIssue implements notification.Receiver
-func (w *webhookReceiver) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
+func (w *webhookNotifier) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
 	panic("not implements")
 }
 
-func (w *webhookReceiver) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository) {
+func (w *webhookNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository) {
 	mode, _ := models.AccessLevel(doer.ID, pr.Issue.Repo)
 	if err := models.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueClosed,
@@ -111,7 +112,7 @@ func (w *webhookReceiver) NotifyMergePullRequest(pr *models.PullRequest, doer *m
 	}
 }
 
-func (w *webhookReceiver) NotifyNewPullRequest(pr *models.PullRequest) {
+func (w *webhookNotifier) NotifyNewPullRequest(pr *models.PullRequest) {
 	mode, _ := models.AccessLevel(pr.Issue.Poster.ID, pr.Issue.Repo)
 	if err := models.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
@@ -123,5 +124,34 @@ func (w *webhookReceiver) NotifyNewPullRequest(pr *models.PullRequest) {
 		log.Error(4, "PrepareWebhooks: %v", err)
 	} else {
 		go models.HookQueue.Add(pr.Issue.Repo.ID)
+	}
+}
+
+func (w *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
+	if err := c.LoadIssue(); err != nil {
+		log.Error(2, "LoadIssue [comment_id: %d]: %v", c.ID, err)
+		return
+	}
+	if err := c.Issue.LoadAttributes(); err != nil {
+		log.Error(2, "Issue.LoadAttributes [comment_id: %d]: %v", c.ID, err)
+		return
+	}
+
+	mode, _ := models.AccessLevel(doer.ID, c.Issue.Repo)
+	if err := models.PrepareWebhooks(c.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
+		Action:  api.HookIssueCommentEdited,
+		Issue:   c.Issue.APIFormat(),
+		Comment: c.APIFormat(),
+		Changes: &api.ChangesPayload{
+			Body: &api.ChangesFromPayload{
+				From: oldContent,
+			},
+		},
+		Repository: c.Issue.Repo.APIFormat(mode),
+		Sender:     doer.APIFormat(),
+	}); err != nil {
+		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
+	} else {
+		go models.HookQueue.Add(c.Issue.Repo.ID)
 	}
 }
