@@ -226,6 +226,10 @@ type phrasePart struct {
 	loc  *search.Location
 }
 
+func (p *phrasePart) String() string {
+	return fmt.Sprintf("[%s %v]", p.term, p.loc)
+}
+
 type phrasePath []*phrasePart
 
 func (p phrasePath) MergeInto(in search.TermLocationMap) {
@@ -308,6 +312,15 @@ func (s *PhraseSearcher) Advance(ctx *search.SearchContext, ID index.IndexIntern
 		if err != nil {
 			return nil, err
 		}
+	}
+	if s.currMust != nil {
+		if s.currMust.IndexInternalID.Compare(ID) >= 0 {
+			return s.Next(ctx)
+		}
+		ctx.DocumentMatchPool.Put(s.currMust)
+	}
+	if s.currMust == nil {
+		return nil, nil
 	}
 	var err error
 	s.currMust, err = s.mustSearcher.Advance(ctx, ID)

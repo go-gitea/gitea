@@ -5,7 +5,6 @@
 package simplifiedchinese
 
 import (
-	"errors"
 	"unicode/utf8"
 
 	"golang.org/x/text/encoding"
@@ -31,8 +30,6 @@ func hzGB2312NewEncoder() transform.Transformer {
 	return new(hzGB2312Encoder)
 }
 
-var errInvalidHZGB2312 = errors.New("simplifiedchinese: invalid HZ-GB2312 encoding")
-
 const (
 	asciiState = iota
 	gbState
@@ -50,14 +47,18 @@ loop:
 	for ; nSrc < len(src); nSrc += size {
 		c0 := src[nSrc]
 		if c0 >= utf8.RuneSelf {
-			err = errInvalidHZGB2312
-			break loop
+			r, size = utf8.RuneError, 1
+			goto write
 		}
 
 		if c0 == '~' {
 			if nSrc+1 >= len(src) {
-				err = transform.ErrShortSrc
-				break loop
+				if !atEOF {
+					err = transform.ErrShortSrc
+					break loop
+				}
+				r = utf8.RuneError
+				goto write
 			}
 			size = 2
 			switch src[nSrc+1] {
@@ -78,8 +79,8 @@ loop:
 			case '\n':
 				continue
 			default:
-				err = errInvalidHZGB2312
-				break loop
+				r = utf8.RuneError
+				goto write
 			}
 		}
 
@@ -87,32 +88,36 @@ loop:
 			r, size = rune(c0), 1
 		} else {
 			if nSrc+1 >= len(src) {
-				err = transform.ErrShortSrc
-				break loop
+				if !atEOF {
+					err = transform.ErrShortSrc
+					break loop
+				}
+				r, size = utf8.RuneError, 1
+				goto write
 			}
+			size = 2
 			c1 := src[nSrc+1]
 			if c0 < 0x21 || 0x7e <= c0 || c1 < 0x21 || 0x7f <= c1 {
-				err = errInvalidHZGB2312
-				break loop
-			}
-
-			r, size = '\ufffd', 2
-			if i := int(c0-0x01)*190 + int(c1+0x3f); i < len(decode) {
+				// error
+			} else if i := int(c0-0x01)*190 + int(c1+0x3f); i < len(decode) {
 				r = rune(decode[i])
-				if r == 0 {
-					r = '\ufffd'
+				if r != 0 {
+					goto write
 				}
 			}
+			if c1 > utf8.RuneSelf {
+				// Be consistent and always treat non-ASCII as a single error.
+				size = 1
+			}
+			r = utf8.RuneError
 		}
 
+	write:
 		if nDst+utf8.RuneLen(r) > len(dst) {
 			err = transform.ErrShortDst
 			break loop
 		}
 		nDst += utf8.EncodeRune(dst[nDst:], r)
-	}
-	if atEOF && err == transform.ErrShortSrc {
-		err = errInvalidHZGB2312
 	}
 	return nDst, nSrc, err
 }
