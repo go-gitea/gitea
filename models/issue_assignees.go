@@ -159,12 +159,16 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 		return fmt.Errorf("createAssigneeComment: %v", err)
 	}
 
+	mode, _ := accessLevel(sess, doer.ID, issue.Repo)
 	if issue.IsPull {
-		issue.PullRequest = &PullRequest{Issue: issue}
+		if err = issue.loadPullRequest(sess); err != nil {
+			return fmt.Errorf("loadPullRequest: %v", err)
+		}
+		issue.PullRequest.Issue = issue
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(AccessModeNone),
+			Repository:  issue.Repo.APIFormat(mode),
 			Sender:      doer.APIFormat(),
 		}
 		if removed {
@@ -172,7 +176,23 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 		} else {
 			apiPullRequest.Action = api.HookIssueAssigned
 		}
-		if err := PrepareWebhooks(issue.Repo, HookEventPullRequest, apiPullRequest); err != nil {
+		if err := prepareWebhooks(sess, issue.Repo, HookEventPullRequest, apiPullRequest); err != nil {
+			log.Error(4, "PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
+			return nil
+		}
+	} else {
+		apiIssue := &api.IssuePayload{
+			Index:      issue.Index,
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		}
+		if removed {
+			apiIssue.Action = api.HookIssueUnassigned
+		} else {
+			apiIssue.Action = api.HookIssueAssigned
+		}
+		if err := prepareWebhooks(sess, issue.Repo, HookEventIssues, apiIssue); err != nil {
 			log.Error(4, "PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
 			return nil
 		}

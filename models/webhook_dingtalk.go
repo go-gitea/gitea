@@ -43,7 +43,7 @@ func getDingtalkCreatePayload(p *api.CreatePayload) (*DingtalkPayload, error) {
 			Text:        title,
 			Title:       title,
 			HideAvatar:  "0",
-			SingleTitle: fmt.Sprintf("view branch %s", refName),
+			SingleTitle: fmt.Sprintf("view ref %s", refName),
 			SingleURL:   p.Repo.HTMLURL + "/src/" + refName,
 		},
 	}, nil
@@ -60,7 +60,7 @@ func getDingtalkDeletePayload(p *api.DeletePayload) (*DingtalkPayload, error) {
 			Text:        title,
 			Title:       title,
 			HideAvatar:  "0",
-			SingleTitle: fmt.Sprintf("view branch %s", refName),
+			SingleTitle: fmt.Sprintf("view ref %s", refName),
 			SingleURL:   p.Repo.HTMLURL + "/src/" + refName,
 		},
 	}, nil
@@ -153,23 +153,30 @@ func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
 		title = fmt.Sprintf("[%s] Issue unassigned: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
 	case api.HookIssueLabelUpdated:
-		title = fmt.Sprintf("[%s] Pull request labels updated: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		title = fmt.Sprintf("[%s] Issue labels updated: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
 	case api.HookIssueLabelCleared:
-		title = fmt.Sprintf("[%s] Pull request labels cleared: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		title = fmt.Sprintf("[%s] Issue labels cleared: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
 	case api.HookIssueSynchronized:
-		title = fmt.Sprintf("[%s] Pull request synchronized: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		title = fmt.Sprintf("[%s] Issue synchronized: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		text = p.Issue.Body
+	case api.HookIssueMilestoned:
+		title = fmt.Sprintf("[%s] Issue milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		text = p.Issue.Body
+	case api.HookIssueDemilestoned:
+		title = fmt.Sprintf("[%s] Issue clear milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
 	}
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text:        text,
+			Text: title + "\r\n\r\n" + text,
+			//Markdown:    "# " + title + "\n" + text,
 			Title:       title,
 			HideAvatar:  "0",
-			SingleTitle: "view pull request",
+			SingleTitle: "view issue",
 			SingleURL:   p.Issue.URL,
 		},
 	}, nil
@@ -195,10 +202,10 @@ func getDingtalkIssueCommentPayload(p *api.IssueCommentPayload) (*DingtalkPayloa
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text:        content,
+			Text:        title + "\r\n\r\n" + content,
 			Title:       title,
 			HideAvatar:  "0",
-			SingleTitle: "view pull request",
+			SingleTitle: "view issue comment",
 			SingleURL:   url,
 		},
 	}, nil
@@ -243,12 +250,19 @@ func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload,
 	case api.HookIssueSynchronized:
 		title = fmt.Sprintf("[%s] Pull request synchronized: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
+	case api.HookIssueMilestoned:
+		title = fmt.Sprintf("[%s] Pull request milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+	case api.HookIssueDemilestoned:
+		title = fmt.Sprintf("[%s] Pull request clear milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
 	}
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text:        text,
+			Text: title + "\r\n\r\n" + text,
+			//Markdown:    "# " + title + "\n" + text,
 			Title:       title,
 			HideAvatar:  "0",
 			SingleTitle: "view pull request",
@@ -300,7 +314,34 @@ func getDingtalkReleasePayload(p *api.ReleasePayload) (*DingtalkPayload, error) 
 				Text:        title,
 				Title:       title,
 				HideAvatar:  "0",
-				SingleTitle: "view repository",
+				SingleTitle: "view release",
+				SingleURL:   url,
+			},
+		}, nil
+	case api.HookReleaseUpdated:
+		title = fmt.Sprintf("[%s] Release updated", p.Release.TagName)
+		url = p.Release.URL
+		return &DingtalkPayload{
+			MsgType: "actionCard",
+			ActionCard: dingtalk.ActionCard{
+				Text:        title,
+				Title:       title,
+				HideAvatar:  "0",
+				SingleTitle: "view release",
+				SingleURL:   url,
+			},
+		}, nil
+
+	case api.HookReleaseDeleted:
+		title = fmt.Sprintf("[%s] Release deleted", p.Release.TagName)
+		url = p.Release.URL
+		return &DingtalkPayload{
+			MsgType: "actionCard",
+			ActionCard: dingtalk.ActionCard{
+				Text:        title,
+				Title:       title,
+				HideAvatar:  "0",
+				SingleTitle: "view release",
 				SingleURL:   url,
 			},
 		}, nil
