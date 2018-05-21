@@ -45,33 +45,33 @@ func (ns *notificationService) Run() {
 	}
 }
 
-func (w *notificationService) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
+func (ns *notificationService) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
-	service.issueQueue <- issueNotificationOpts{
+	ns.issueQueue <- issueNotificationOpts{
 		issue,
 		doer.ID,
 	}
 }
 
-func (w *notificationService) NotifyNewIssue(issue *models.Issue) {
-	service.issueQueue <- issueNotificationOpts{
+func (ns *notificationService) NotifyNewIssue(issue *models.Issue) {
+	ns.issueQueue <- issueNotificationOpts{
 		issue,
 		issue.Poster.ID,
 	}
 }
 
-func (w *notificationService) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
-	service.issueQueue <- issueNotificationOpts{
+func (ns *notificationService) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
+	ns.issueQueue <- issueNotificationOpts{
 		issue,
 		doer.ID,
 	}
 }
 
-func (w *notificationService) NotifyMergePullRequest(*models.PullRequest, *models.User, *git.Repository) {
+func (ns *notificationService) NotifyMergePullRequest(*models.PullRequest, *models.User, *git.Repository) {
 }
 
-func (w *notificationService) NotifyNewPullRequest(pr *models.PullRequest) {
-	service.issueQueue <- issueNotificationOpts{
+func (ns *notificationService) NotifyNewPullRequest(pr *models.PullRequest) {
+	ns.issueQueue <- issueNotificationOpts{
 		pr.Issue,
 		pr.Issue.PosterID,
 	}

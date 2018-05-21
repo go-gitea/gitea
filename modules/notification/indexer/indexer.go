@@ -33,11 +33,11 @@ func (r *indexerReceiver) NotifyNewIssue(issue *models.Issue) {
 	models.UpdateIssueIndexer(issue.ID)
 }
 
-func (w *indexerReceiver) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
+func (r *indexerReceiver) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
 
 }
 
-func (w *indexerReceiver) NotifyNewPullRequest(pr *models.PullRequest) {
+func (r *indexerReceiver) NotifyNewPullRequest(pr *models.PullRequest) {
 	models.UpdateIssueIndexer(pr.Issue.ID)
 }
 
