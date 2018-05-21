@@ -254,9 +254,10 @@
   revision = "8aa5919789ab301e865595eb4b1114d6b9847deb"
 
 [[projects]]
+  branch = "master"
   name = "github.com/go-macaron/csrf"
   packages = ["."]
-  revision = "6a9a7df172cc1fcd81e4585f44b09200b6087cc0"
+  revision = "503617c6b37257a55dff6293ec28556506c3a9a8"
 
 [[projects]]
   branch = "master"
