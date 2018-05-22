@@ -1,5 +1,5 @@
 ---
-date: "2017-01-20T15:00:00+08:00"
+date: "2018-05-21T15:00:00+00:00"
 title: "Support Options"
 slug: "seek-help"
 weight: 10
@@ -16,8 +16,7 @@ menu:
 # Support Options
 
 - [Discord](https://discord.gg/NsatcWJ)
-- [#gitea on Freenode](http://webchat.freenode.net?nick=giteachat....&channels=%23gitea&prompt=1)
-- [Matrix](https://matrix.to/#/#gitea-dev:matrix.org)
+- [Discourse Forum](https://discourse.gitea.io/)
 
 ## Bugs
 
