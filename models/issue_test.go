@@ -205,7 +205,7 @@ func TestIssues(t *testing.T) {
 				Page:     1,
 				PageSize: 4,
 			},
-			[]int64{1},
+			[]int64{1}, // issues with **both** label 1 and 2, only issue 1 matches
 		},
 	} {
 		issues, err := Issues(&test.Opts)
