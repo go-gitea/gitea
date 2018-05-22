@@ -35,6 +35,7 @@ if [ ! -f /data/gitea/conf/app.ini ]; then
     DB_USER=${DB_USER:-"root"} \
     DB_PASSWD=${DB_PASSWD:-""} \
     INSTALL_LOCK=${INSTALL_LOCK:-"false"} \
+    DISABLE_REGISTRATION=${DISABLE_REGISTRATION:-"false"} \
     SECRET_KEY=${SECRET_KEY:-""} \
     envsubst < /etc/templates/app.ini > /data/gitea/conf/app.ini
 fi
