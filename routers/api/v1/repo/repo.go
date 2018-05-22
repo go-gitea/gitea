@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/convert"
@@ -233,6 +234,8 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 			if repo != nil {
 				if err = models.DeleteRepository(ctx.User, ctx.User.ID, repo.ID); err != nil {
 					log.Error(4, "DeleteRepository: %v", err)
+				} else {
+					notification.NotifyDeleteRepository(ctx.User, repo)
 				}
 			}
 			ctx.Error(500, "CreateRepository", err)
@@ -406,6 +409,8 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		if repo != nil {
 			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 				log.Error(4, "DeleteRepository: %v", errDelete)
+			} else {
+				notification.NotifyDeleteRepository(ctx.User, repo)
 			}
 		}
 		ctx.Error(500, "MigrateRepository", err)
@@ -522,6 +527,8 @@ func Delete(ctx *context.APIContext) {
 		ctx.Error(500, "DeleteRepository", err)
 		return
 	}
+
+	notification.NotifyDeleteRepository(ctx.User, repo)
 
 	log.Trace("Repository deleted: %s/%s", owner.Name, repo.Name)
 	ctx.Status(204)

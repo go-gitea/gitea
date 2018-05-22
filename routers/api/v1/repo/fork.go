@@ -7,6 +7,7 @@ package repo
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 
 	api "code.gitea.io/sdk/gitea"
@@ -104,5 +105,7 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 		ctx.Error(500, "ForkRepository", err)
 		return
 	}
+	notification.NotifyForkRepository(ctx.User, repo, fork)
+
 	ctx.JSON(202, fork.APIFormat(models.AccessModeOwner))
 }

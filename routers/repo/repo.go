@@ -10,17 +10,17 @@ import (
 	"path"
 	"strings"
 
-	"github.com/Unknwon/com"
-
-	"code.gitea.io/git"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	"code.gitea.io/git"
+	"github.com/Unknwon/com"
 )
 
 const (
@@ -184,6 +184,8 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 	if repo != nil {
 		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 			log.Error(4, "DeleteRepository: %v", errDelete)
+		} else {
+			notification.NotifyDeleteRepository(ctx.User, repo)
 		}
 	}
 
@@ -262,6 +264,8 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	if repo != nil {
 		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
 			log.Error(4, "DeleteRepository: %v", errDelete)
+		} else {
+			notification.NotifyDeleteRepository(ctx.User, repo)
 		}
 	}
 

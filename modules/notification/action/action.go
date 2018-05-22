@@ -21,7 +21,7 @@ var (
 )
 
 // NewNotifier returns a new actionNotifier
-func NewNotifier() *actionNotifier {
+func NewNotifier() base.Notifier {
 	return &actionNotifier{}
 }
 
@@ -78,4 +78,21 @@ func (r *actionNotifier) NotifyDeleteComment(doer *models.User, c *models.Commen
 	if err := models.UpdateCommentAction(c); err != nil {
 		log.Error(4, "UpdateCommentAction [%d]: %v", c.ID, err)
 	}
+}
+
+func (r *actionNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
+
+}
+
+func (r *actionNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
+
+}
+
+func (r *actionNotifier) NotifyNewRelease(rel *models.Release) {
+}
+
+func (r *actionNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Release) {
+}
+
+func (r *actionNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 }

@@ -76,9 +76,44 @@ func NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string
 	}
 }
 
-// NotifyDeleteComment notifies update comment to notifiers
+// NotifyDeleteComment notifies delete comment to notifiers
 func NotifyDeleteComment(doer *models.User, c *models.Comment) {
 	for _, notifier := range notifiers {
 		notifier.NotifyDeleteComment(doer, c)
+	}
+}
+
+// NotifyDeleteRepository notifies delete repository to notifiers
+func NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
+	for _, notifier := range notifiers {
+		notifier.NotifyDeleteRepository(doer, repo)
+	}
+}
+
+// NotifyForkRepository notifies fork repository to notifiers
+func NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
+	for _, notifier := range notifiers {
+		notifier.NotifyForkRepository(doer, oldRepo, repo)
+	}
+}
+
+// NotifyNewRelease notifies new release to notifiers
+func NotifyNewRelease(rel *models.Release) {
+	for _, notifier := range notifiers {
+		notifier.NotifyNewRelease(rel)
+	}
+}
+
+// NotifyUpdateRelease notifies update release to notifiers
+func NotifyUpdateRelease(doer *models.User, rel *models.Release) {
+	for _, notifier := range notifiers {
+		notifier.NotifyUpdateRelease(doer, rel)
+	}
+}
+
+// NotifyDeleteRelease notifies delete release to notifiers
+func NotifyDeleteRelease(doer *models.User, rel *models.Release) {
+	for _, notifier := range notifiers {
+		notifier.NotifyDeleteRelease(doer, rel)
 	}
 }

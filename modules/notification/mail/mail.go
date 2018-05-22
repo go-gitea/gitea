@@ -19,7 +19,7 @@ var (
 )
 
 // NewNotifier create a new mailNotifier notifier
-func NewNotifier() *mailNotifier {
+func NewNotifier() base.Notifier {
 	return &mailNotifier{}
 }
 
@@ -56,4 +56,19 @@ func (m *mailNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment,
 }
 
 func (m *mailNotifier) NotifyDeleteComment(doer *models.User, c *models.Comment) {
+}
+
+func (m *mailNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
+}
+
+func (m *mailNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
+}
+
+func (m *mailNotifier) NotifyNewRelease(rel *models.Release) {
+}
+
+func (m *mailNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Release) {
+}
+
+func (m *mailNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 }

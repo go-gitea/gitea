@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/paginater"
@@ -182,6 +183,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 			}
 			return
 		}
+		notification.NotifyNewRelease(rel)
 	} else {
 		if !rel.IsTag {
 			ctx.Data["Err_TagName"] = true
@@ -202,6 +204,8 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 			ctx.ServerError("UpdateRelease", err)
 			return
 		}
+
+		notification.NotifyUpdateRelease(ctx.User, rel)
 	}
 	log.Trace("Release created: %s/%s:%s", ctx.User.LowerName, ctx.Repo.Repository.Name, form.TagName)
 
@@ -280,14 +284,19 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 		ctx.ServerError("UpdateRelease", err)
 		return
 	}
+
+	notification.NotifyUpdateRelease(ctx.User, rel)
+
 	ctx.Redirect(ctx.Repo.RepoLink + "/releases")
 }
 
 // DeleteRelease delete a release
 func DeleteRelease(ctx *context.Context) {
-	if err := models.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User, true); err != nil {
+	rel, err := models.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User, true)
+	if err != nil {
 		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 	} else {
+		notification.NotifyDeleteRelease(ctx.User, rel)
 		ctx.Flash.Success(ctx.Tr("repo.release.deletion_success"))
 	}
 

@@ -1938,19 +1938,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return fmt.Errorf("Commit: %v", err)
 	}
 
-	if org.IsOrganization() {
-		if err = PrepareWebhooks(repo, HookEventRepository, &api.RepositoryPayload{
-			Action:       api.HookRepoDeleted,
-			Repository:   repo.APIFormat(AccessModeOwner),
-			Organization: org.APIFormat(),
-			Sender:       doer.APIFormat(),
-		}); err != nil {
-			return err
-		}
-		go HookQueue.Add(repo.ID)
-	}
-
-	DeleteRepoFromIndexer(repo)
 	return nil
 }
 
@@ -2149,7 +2136,7 @@ func gatherMissingRepoRecords() ([]*Repository, error) {
 }
 
 // DeleteMissingRepositories deletes all repository records that lost Git files.
-func DeleteMissingRepositories(doer *User) error {
+func DeleteMissingRepositories(doer *User, onDeleted func(doer *User, repo *Repository)) error {
 	repos, err := gatherMissingRepoRecords()
 	if err != nil {
 		return fmt.Errorf("gatherMissingRepoRecords: %v", err)
@@ -2165,6 +2152,8 @@ func DeleteMissingRepositories(doer *User) error {
 			if err2 := CreateRepositoryNotice(fmt.Sprintf("DeleteRepository [%d]: %v", repo.ID, err)); err2 != nil {
 				return fmt.Errorf("CreateRepositoryNotice: %v", err)
 			}
+		} else {
+			onDeleted(doer, repo)
 		}
 	}
 	return nil
@@ -2464,19 +2453,6 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 	err = sess.Commit()
 	if err != nil {
 		return nil, err
-	}
-
-	oldMode, _ := AccessLevel(doer.ID, oldRepo)
-	mode, _ := AccessLevel(doer.ID, repo)
-
-	if err = PrepareWebhooks(oldRepo, HookEventFork, &api.ForkPayload{
-		Forkee: oldRepo.APIFormat(oldMode),
-		Repo:   repo.APIFormat(mode),
-		Sender: doer.APIFormat(),
-	}); err != nil {
-		log.Error(2, "PrepareWebhooks [repo_id: %d]: %v", oldRepo.ID, err)
-	} else {
-		go HookQueue.Add(oldRepo.ID)
 	}
 
 	if err = repo.UpdateSize(); err != nil {

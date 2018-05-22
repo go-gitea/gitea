@@ -7,6 +7,7 @@ package repo
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/notification"
 
 	api "code.gitea.io/sdk/gitea"
 )
@@ -156,6 +157,7 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 			}
 			return
 		}
+		notification.NotifyNewRelease(rel)
 	} else {
 		if !rel.IsTag {
 			ctx.Status(409)
@@ -175,6 +177,8 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 			ctx.ServerError("UpdateRelease", err)
 			return
 		}
+
+		notification.NotifyUpdateRelease(ctx.User, rel)
 	}
 	ctx.JSON(201, rel.APIFormat())
 }
@@ -250,6 +254,8 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 		return
 	}
 
+	notification.NotifyUpdateRelease(ctx.User, rel)
+
 	rel, err = models.GetReleaseByID(id)
 	if err != nil {
 		ctx.Error(500, "GetReleaseByID", err)
@@ -301,9 +307,11 @@ func DeleteRelease(ctx *context.APIContext) {
 		ctx.Status(404)
 		return
 	}
-	if err := models.DeleteReleaseByID(id, ctx.User, false); err != nil {
+	rel, err = models.DeleteReleaseByID(id, ctx.User, false)
+	if err != nil {
 		ctx.Error(500, "DeleteReleaseByID", err)
 		return
 	}
+	notification.NotifyDeleteRelease(ctx.User, rel)
 	ctx.Status(204)
 }

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
@@ -321,6 +322,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.ServerError("DeleteRepository", err)
 			return
 		}
+		notification.NotifyDeleteRepository(ctx.User, repo)
 		log.Trace("Repository deleted: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))

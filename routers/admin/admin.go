@@ -10,15 +10,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
-	"gopkg.in/macaron.v1"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/cron"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/Unknwon/com"
+	"gopkg.in/macaron.v1"
 )
 
 const (
@@ -146,7 +147,7 @@ func Dashboard(ctx *context.Context) {
 			err = models.DeleteRepositoryArchives()
 		case cleanMissingRepos:
 			success = ctx.Tr("admin.dashboard.delete_missing_repos_success")
-			err = models.DeleteMissingRepositories(ctx.User)
+			err = models.DeleteMissingRepositories(ctx.User, notification.NotifyDeleteRepository)
 		case gitGCRepos:
 			success = ctx.Tr("admin.dashboard.git_gc_repos_success")
 			err = models.GitGcRepos()

@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 )
@@ -42,6 +43,7 @@ func DeleteRepo(ctx *context.Context) {
 		ctx.ServerError("DeleteRepository", err)
 		return
 	}
+	notification.NotifyDeleteRepository(ctx.User, repo)
 	log.Trace("Repository deleted: %s/%s", repo.MustOwner().Name, repo.Name)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))

@@ -18,7 +18,7 @@ var (
 )
 
 // NewNotifier create a new indexerNotifier notifier
-func NewNotifier() *indexerNotifier {
+func NewNotifier() base.Notifier {
 	return &indexerNotifier{}
 }
 
@@ -54,4 +54,21 @@ func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models
 	if comment.Type == models.CommentTypeComment {
 		models.UpdateIssueIndexer(comment.IssueID)
 	}
+}
+
+func (r *indexerNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
+	models.DeleteRepoFromIndexer(repo)
+}
+
+func (r *indexerNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
+
+}
+
+func (r *indexerNotifier) NotifyNewRelease(rel *models.Release) {
+}
+
+func (r *indexerNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Release) {
+}
+
+func (r *indexerNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 }

@@ -20,4 +20,9 @@ type Notifier interface {
 	NotifyNewPullRequest(*models.PullRequest)
 	NotifyUpdateComment(*models.User, *models.Comment, string)
 	NotifyDeleteComment(*models.User, *models.Comment)
+	NotifyDeleteRepository(doer *models.User, repo *models.Repository)
+	NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository)
+	NotifyNewRelease(rel *models.Release)
+	NotifyUpdateRelease(doer *models.User, rel *models.Release)
+	NotifyDeleteRelease(doer *models.User, rel *models.Release)
 }

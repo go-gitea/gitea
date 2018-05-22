@@ -27,7 +27,7 @@ var (
 )
 
 // NewNotifier create a new notificationService notifier
-func NewNotifier() *notificationService {
+func NewNotifier() base.Notifier {
 	return &notificationService{
 		issueQueue: make(chan issueNotificationOpts, 100),
 	}
@@ -80,4 +80,19 @@ func (ns *notificationService) NotifyUpdateComment(doer *models.User, c *models.
 }
 
 func (ns *notificationService) NotifyDeleteComment(doer *models.User, c *models.Comment) {
+}
+
+func (ns *notificationService) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
+}
+
+func (ns *notificationService) NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
+}
+
+func (ns *notificationService) NotifyNewRelease(rel *models.Release) {
+}
+
+func (ns *notificationService) NotifyUpdateRelease(doer *models.User, rel *models.Release) {
+}
+
+func (ns *notificationService) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 }

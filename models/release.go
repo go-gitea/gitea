@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"code.gitea.io/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -195,24 +194,6 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 		return err
 	}
 
-	if !rel.IsDraft {
-		if err := rel.LoadAttributes(); err != nil {
-			log.Error(2, "LoadAttributes: %v", err)
-		} else {
-			mode, _ := AccessLevel(rel.PublisherID, rel.Repo)
-			if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
-				Action:     api.HookReleasePublished,
-				Release:    rel.APIFormat(),
-				Repository: rel.Repo.APIFormat(mode),
-				Sender:     rel.Publisher.APIFormat(),
-			}); err != nil {
-				log.Error(2, "PrepareWebhooks: %v", err)
-			} else {
-				go HookQueue.Add(rel.Repo.ID)
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -391,38 +372,26 @@ func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachment
 
 	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
 
-	mode, _ := accessLevel(x, doer.ID, rel.Repo)
-	if err1 := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
-		Action:     api.HookReleaseUpdated,
-		Release:    rel.APIFormat(),
-		Repository: rel.Repo.APIFormat(mode),
-		Sender:     rel.Publisher.APIFormat(),
-	}); err1 != nil {
-		log.Error(2, "PrepareWebhooks: %v", err)
-	} else {
-		go HookQueue.Add(rel.Repo.ID)
-	}
-
 	return err
 }
 
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
-func DeleteReleaseByID(id int64, u *User, delTag bool) error {
+func DeleteReleaseByID(id int64, u *User, delTag bool) (*Release, error) {
 	rel, err := GetReleaseByID(id)
 	if err != nil {
-		return fmt.Errorf("GetReleaseByID: %v", err)
+		return nil, fmt.Errorf("GetReleaseByID: %v", err)
 	}
 
 	repo, err := GetRepositoryByID(rel.RepoID)
 	if err != nil {
-		return fmt.Errorf("GetRepositoryByID: %v", err)
+		return nil, fmt.Errorf("GetRepositoryByID: %v", err)
 	}
 
 	has, err := HasAccess(u.ID, repo, AccessModeWrite)
 	if err != nil {
-		return fmt.Errorf("HasAccess: %v", err)
+		return nil, fmt.Errorf("HasAccess: %v", err)
 	} else if !has {
-		return fmt.Errorf("DeleteReleaseByID: permission denied")
+		return nil, fmt.Errorf("DeleteReleaseByID: permission denied")
 	}
 
 	if delTag {
@@ -430,11 +399,11 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 			fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID),
 			"git", "tag", "-d", rel.TagName)
 		if err != nil && !strings.Contains(stderr, "not found") {
-			return fmt.Errorf("git tag -d: %v - %s", err, stderr)
+			return nil, fmt.Errorf("git tag -d: %v - %s", err, stderr)
 		}
 
 		if _, err = x.ID(rel.ID).Delete(new(Release)); err != nil {
-			return fmt.Errorf("Delete: %v", err)
+			return nil, fmt.Errorf("Delete: %v", err)
 		}
 	} else {
 		rel.IsTag = true
@@ -444,28 +413,12 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		rel.Note = ""
 
 		if _, err = x.ID(rel.ID).AllCols().Update(rel); err != nil {
-			return fmt.Errorf("Update: %v", err)
+			return nil, fmt.Errorf("Update: %v", err)
 		}
 	}
 
 	rel.Repo = repo
-	if err = rel.LoadAttributes(); err != nil {
-		return fmt.Errorf("LoadAttributes: %v", err)
-	}
-
-	mode, _ := accessLevel(x, u.ID, rel.Repo)
-	if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
-		Action:     api.HookReleaseDeleted,
-		Release:    rel.APIFormat(),
-		Repository: rel.Repo.APIFormat(mode),
-		Sender:     rel.Publisher.APIFormat(),
-	}); err != nil {
-		log.Error(2, "PrepareWebhooks: %v", err)
-	} else {
-		go HookQueue.Add(rel.Repo.ID)
-	}
-
-	return nil
+	return rel, nil
 }
 
 // SyncReleasesWithTags synchronizes release table with repository tags

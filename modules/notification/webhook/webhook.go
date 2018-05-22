@@ -22,7 +22,7 @@ var (
 )
 
 // NewNotifier returns a new webhookNotifier
-func NewNotifier() *webhookNotifier {
+func NewNotifier() base.Notifier {
 	return &webhookNotifier{}
 }
 
@@ -169,5 +169,96 @@ func (w *webhookNotifier) NotifyDeleteComment(doer *models.User, comment *models
 		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
 	} else {
 		go models.HookQueue.Add(comment.Issue.Repo.ID)
+	}
+}
+
+func (w *webhookNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
+	org, err := models.GetUserByID(repo.OwnerID)
+	if err != nil {
+		log.Error(2, "GetUserByID [repo_id: %d]: %v", repo.ID, err)
+		return
+	}
+
+	if org.IsOrganization() {
+		if err := models.PrepareWebhooks(repo, models.HookEventRepository, &api.RepositoryPayload{
+			Action:       api.HookRepoDeleted,
+			Repository:   repo.APIFormat(models.AccessModeOwner),
+			Organization: org.APIFormat(),
+			Sender:       doer.APIFormat(),
+		}); err != nil {
+			log.Error(2, "PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+		} else {
+			go models.HookQueue.Add(repo.ID)
+		}
+	}
+}
+
+func (w *webhookNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
+	oldMode, _ := models.AccessLevel(doer.ID, oldRepo)
+	mode, _ := models.AccessLevel(doer.ID, repo)
+
+	if err := models.PrepareWebhooks(oldRepo, models.HookEventFork, &api.ForkPayload{
+		Forkee: oldRepo.APIFormat(oldMode),
+		Repo:   repo.APIFormat(mode),
+		Sender: doer.APIFormat(),
+	}); err != nil {
+		log.Error(2, "PrepareWebhooks [repo_id: %d]: %v", oldRepo.ID, err)
+	} else {
+		go models.HookQueue.Add(oldRepo.ID)
+	}
+}
+
+func (w *webhookNotifier) NotifyNewRelease(rel *models.Release) {
+	if rel.IsDraft {
+		return
+	}
+
+	if err := rel.LoadAttributes(); err != nil {
+		log.Error(2, "LoadAttributes: %v", err)
+	} else {
+		mode, _ := models.AccessLevel(rel.PublisherID, rel.Repo)
+		if err := models.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
+			Action:     api.HookReleasePublished,
+			Release:    rel.APIFormat(),
+			Repository: rel.Repo.APIFormat(mode),
+			Sender:     rel.Publisher.APIFormat(),
+		}); err != nil {
+			log.Error(2, "PrepareWebhooks: %v", err)
+		} else {
+			go models.HookQueue.Add(rel.Repo.ID)
+		}
+	}
+}
+
+func (w *webhookNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Release) {
+	mode, _ := models.AccessLevel(doer.ID, rel.Repo)
+	if err := models.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
+		Action:     api.HookReleaseUpdated,
+		Release:    rel.APIFormat(),
+		Repository: rel.Repo.APIFormat(mode),
+		Sender:     rel.Publisher.APIFormat(),
+	}); err != nil {
+		log.Error(2, "PrepareWebhooks: %v", err)
+	} else {
+		go models.HookQueue.Add(rel.Repo.ID)
+	}
+}
+
+func (w *webhookNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
+	if err := rel.LoadAttributes(); err != nil {
+		log.Error(2, "rel.LoadAttributes: %v", err)
+		return
+	}
+
+	mode, _ := models.AccessLevel(doer.ID, rel.Repo)
+	if err := models.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
+		Action:     api.HookReleaseDeleted,
+		Release:    rel.APIFormat(),
+		Repository: rel.Repo.APIFormat(mode),
+		Sender:     rel.Publisher.APIFormat(),
+	}); err != nil {
+		log.Error(2, "PrepareWebhooks: %v", err)
+	} else {
+		go models.HookQueue.Add(rel.Repo.ID)
 	}
 }
