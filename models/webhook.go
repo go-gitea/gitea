@@ -494,7 +494,14 @@ func (t *HookTask) AfterLoad() {
 
 	t.RequestInfo = &HookRequest{}
 	if err := json.Unmarshal([]byte(t.RequestContent), t.RequestInfo); err != nil {
-		log.Error(3, "Unmarshal[%d]: %v", t.ID, err)
+		log.Error(3, "Unmarshal RequestContent[%d]: %v", t.ID, err)
+	}
+
+	if len(t.ResponseContent) > 0 {
+		t.ResponseInfo = &HookResponse{}
+		if err := json.Unmarshal([]byte(t.ResponseContent), t.ResponseInfo); err != nil {
+			log.Error(3, "Unmarshal ResponseContent[%d]: %v", t.ID, err)
+		}
 	}
 }
 
@@ -665,6 +672,10 @@ func (t *HookTask) deliver() {
 			log.Trace("Hook delivery failed: %s", t.UUID)
 		}
 
+		if err := UpdateHookTask(t); err != nil {
+			log.Error(4, "UpdateHookTask [%d]: %v", t.ID, err)
+		}
+
 		// Update webhook last delivery status.
 		w, err := GetWebhookByID(t.HookID)
 		if err != nil {
@@ -717,10 +728,6 @@ func DeliverHooks() {
 	// Update hook task status.
 	for _, t := range tasks {
 		t.deliver()
-
-		if err := UpdateHookTask(t); err != nil {
-			log.Error(4, "UpdateHookTask [%d]: %v", t.ID, err)
-		}
 	}
 
 	// Start listening on new hook requests.
@@ -741,10 +748,6 @@ func DeliverHooks() {
 		}
 		for _, t := range tasks {
 			t.deliver()
-			if err := UpdateHookTask(t); err != nil {
-				log.Error(4, "UpdateHookTask [%d]: %v", t.ID, err)
-				continue
-			}
 		}
 	}
 }
