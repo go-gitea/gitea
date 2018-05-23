@@ -1,0 +1,106 @@
+
+ignored = ["google.golang.org/appengine*"]
+
+[prune]
+  go-tests = true
+  unused-packages = true
+  non-go = true
+
+[[constraint]]
+  branch = "master"
+  name = "code.gitea.io/git"
+
+[[constraint]]
+  branch = "master"
+  name = "code.gitea.io/sdk"
+
+[[constraint]]
+  revision = "9f005a07e0d31d45e6656d241bb5c0f2efd4bc94"
+  name = "golang.org/x/crypto"
+
+[[constraint]]
+  revision = "a646d33e2ee3172a661fc09bca23bb4889a41bc8"
+  name = "golang.org/x/sys"
+
+[[constraint]]
+  revision = "2bf8f2a19ec09c670e931282edfe6567f6be21c9"
+  name = "golang.org/x/text"
+
+[[constraint]]
+  revision = "f2499483f923065a842d38eb4c7f1927e6fc6e6d"
+  name = "golang.org/x/net"
+
+[[constraint]]
+  #version = "v1.0.0"
+  revision = "33197485abe227dcb254644cf5081c9a3c281669"
+  name = "github.com/pingcap/tidb"
+
+[[override]]
+  name = "github.com/go-xorm/xorm"
+  #version = "0.6.5"
+  revision = "d4149d1eee0c2c488a74a5863fd9caf13d60fd03"
+
+[[override]]
+  name = "github.com/gorilla/mux"
+  revision = "757bef944d0f21880861c2dd9c871ca543023cba"
+
+[[constraint]]
+  name = "github.com/gorilla/context"
+  version = "1.1.1"
+
+[[constraint]]
+  name = "github.com/lafriks/xormstore"
+  version = "1.0.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/lunny/dingtalk_webhook"
+
+[[constraint]]
+  name = "github.com/markbates/goth"
+  version = "1.45.5"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/mcuadros/go-version"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/russross/blackfriday"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/tstranex/u2f"
+
+[[constraint]]
+  name = "gopkg.in/editorconfig/editorconfig-core-go.v1"
+  version = "1.2.0"
+
+[[constraint]]
+  branch = "v2"
+  name = "gopkg.in/gomail.v2"
+
+[[constraint]]
+  name = "gopkg.in/ini.v1"
+  version = "1.31.1"
+
+[[constraint]]
+  name = "gopkg.in/ldap.v2"
+  version = "2.4.1"
+
+[[constraint]]
+  name = "gopkg.in/macaron.v1"
+  version = "1.2.4"
+
+[[constraint]]
+  name = "gopkg.in/testfixtures.v2"
+  version = "2.0.0"
+
+[[override]]
+  name = "github.com/boltdb/bolt"
+  revision = "ccd680d8c1a0179ac3d68f692b01e1a1589cbfc7"
+  source = "github.com/go-gitea/bolt"
+
+[[override]]
+  revision = "c10ba270aa0bf8b8c1c986e103859c67a9103061"
+  name = "golang.org/x/oauth2"
