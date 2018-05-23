@@ -95,6 +95,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
 - `UNIX_SOCKET_PERMISSION`: **666**: Permissions for the Unix socket.
+- `LOCAL_ROOT_URL`: **%(PROTOCOL)s://%(HTTP_ADDR)s:%(HTTP_PORT)s/**: Local
+   (DMZ) URL for Gitea workers (such as SSH update) accessing web service. In
+   most cases you do not need to change the default value. Alter it only if
+   your SSH server node is not the same as HTTP node. Do not set this variable
+   if `PROTOCOL` is set to `unix`.
 - `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
 - `START_SSH_SERVER`: **false**: When enabled, use the built-in SSH server.
 - `SSH_DOMAIN`: **%(DOMAIN)s**: Domain name of this server, used for displayed clone URL.
