@@ -63,7 +63,7 @@ func (w *webhookNotifier) NotifyNewIssue(issue *models.Issue) {
 
 // NotifyCloseIssue implements notification.Receiver
 func (w *webhookNotifier) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
-	panic("not implements")
+
 }
 
 func (w *webhookNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository) {

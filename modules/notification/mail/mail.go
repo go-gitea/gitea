@@ -28,7 +28,6 @@ func (m *mailNotifier) Run() {
 
 func (m *mailNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
-	panic("not implementation")
 }
 
 func (m *mailNotifier) NotifyNewIssue(issue *models.Issue) {

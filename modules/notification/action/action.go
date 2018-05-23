@@ -29,7 +29,6 @@ func (r *actionNotifier) Run() {}
 
 func (r *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
-	panic("not implementation")
 }
 
 func (r *actionNotifier) NotifyNewIssue(issue *models.Issue) {
@@ -47,7 +46,6 @@ func (r *actionNotifier) NotifyNewIssue(issue *models.Issue) {
 }
 
 func (r *actionNotifier) NotifyCloseIssue(issue *models.Issue, doer *models.User) {
-	panic("not implementation")
 }
 
 func (r *actionNotifier) NotifyNewPullRequest(pr *models.PullRequest) {
