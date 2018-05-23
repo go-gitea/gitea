@@ -7,6 +7,7 @@ package repo
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/notification"
 
 	api "code.gitea.io/sdk/gitea"
 )
@@ -113,6 +114,7 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 		ctx.Error(500, "AddLabels", err)
 		return
 	}
+	notification.NotifyIssueChangeLabels(ctx.User, issue, labels, nil)
 
 	labels, err = models.GetLabelsByIssueID(issue.ID)
 	if err != nil {
@@ -307,6 +309,8 @@ func ClearIssueLabels(ctx *context.APIContext) {
 		ctx.Error(500, "ClearLabels", err)
 		return
 	}
+
+	notification.NotifyIssueClearLabels(ctx.User, issue)
 
 	ctx.Status(204)
 }

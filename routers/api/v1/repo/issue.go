@@ -325,6 +325,8 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 			ctx.Error(500, "ChangeMilestoneAssign", err)
 			return
 		}
+
+		notification.NotifyChangeMilestone(ctx.User, issue)
 	}
 
 	if err = models.UpdateIssue(issue); err != nil {

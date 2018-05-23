@@ -96,3 +96,19 @@ func (r *actionNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Rele
 
 func (r *actionNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 }
+
+func (r *actionNotifier) NotifyChangeMilestone(doer *models.User, issue *models.Issue) {
+}
+
+func (r *actionNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
+}
+
+func (r *actionNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
+}
+
+func (r *actionNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
+}
+
+func (r *actionNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
+	addedLabels []*models.Label, removedLabels []*models.Label) {
+}

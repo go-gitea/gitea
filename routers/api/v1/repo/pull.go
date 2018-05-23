@@ -372,6 +372,8 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 			ctx.Error(500, "ChangeMilestoneAssign", err)
 			return
 		}
+
+		notification.NotifyChangeMilestone(ctx.User, issue)
 	}
 
 	if err = models.UpdateIssue(issue); err != nil {

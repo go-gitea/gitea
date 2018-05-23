@@ -72,3 +72,19 @@ func (r *indexerNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Rel
 
 func (r *indexerNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 }
+
+func (r *indexerNotifier) NotifyChangeMilestone(doer *models.User, issue *models.Issue) {
+}
+
+func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
+}
+
+func (r *indexerNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
+}
+
+func (r *indexerNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
+}
+
+func (r *indexerNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
+	addedLabels []*models.Label, removedLabels []*models.Label) {
+}

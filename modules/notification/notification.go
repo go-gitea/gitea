@@ -117,3 +117,39 @@ func NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 		notifier.NotifyDeleteRelease(doer, rel)
 	}
 }
+
+// NotifyChangeMilestone notifies change milestone to notifiers
+func NotifyChangeMilestone(doer *models.User, issue *models.Issue) {
+	for _, notifier := range notifiers {
+		notifier.NotifyChangeMilestone(doer, issue)
+	}
+}
+
+// NotifyIssueChangeContent notifies change content to notifiers
+func NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyIssueChangeContent(doer, issue, oldContent)
+	}
+}
+
+// NotifyIssueClearLabels notifies clear labels to notifiers
+func NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
+	for _, notifier := range notifiers {
+		notifier.NotifyIssueClearLabels(doer, issue)
+	}
+}
+
+// NotifyIssueChangeTitle notifies change title to notifiers
+func NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyIssueChangeTitle(doer, issue, oldTitle)
+	}
+}
+
+// NotifyIssueChangeLabels notifies change labels to notifiers
+func NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
+	addedLabels []*models.Label, removedLabels []*models.Label) {
+	for _, notifier := range notifiers {
+		notifier.NotifyIssueChangeLabels(doer, issue, addedLabels, removedLabels)
+	}
+}

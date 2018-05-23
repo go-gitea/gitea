@@ -72,3 +72,19 @@ func (m *mailNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Releas
 
 func (m *mailNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 }
+
+func (m *mailNotifier) NotifyChangeMilestone(doer *models.User, issue *models.Issue) {
+}
+
+func (m *mailNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
+}
+
+func (m *mailNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
+}
+
+func (m *mailNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
+}
+
+func (m *mailNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
+	addedLabels []*models.Label, removedLabels []*models.Label) {
+}

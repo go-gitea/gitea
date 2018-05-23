@@ -877,10 +877,13 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
+	oldTitle := issue.Title
 	if err := issue.ChangeTitle(ctx.User, title); err != nil {
 		ctx.ServerError("ChangeTitle", err)
 		return
 	}
+
+	notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
 
 	ctx.JSON(200, map[string]interface{}{
 		"title": issue.Title,
@@ -900,10 +903,13 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	content := ctx.Query("content")
+	oldContent := issue.Content
 	if err := issue.ChangeContent(ctx.User, content); err != nil {
 		ctx.ServerError("ChangeContent", err)
 		return
 	}
+
+	notification.NotifyIssueChangeContent(ctx.User, issue, oldContent)
 
 	ctx.JSON(200, map[string]interface{}{
 		"content": string(markdown.Render([]byte(issue.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
@@ -928,6 +934,8 @@ func UpdateIssueMilestone(ctx *context.Context) {
 			ctx.ServerError("ChangeMilestoneAssign", err)
 			return
 		}
+
+		notification.NotifyChangeMilestone(ctx.User, issue)
 	}
 
 	ctx.JSON(200, map[string]interface{}{

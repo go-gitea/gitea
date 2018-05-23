@@ -262,3 +262,237 @@ func (w *webhookNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Rel
 		go models.HookQueue.Add(rel.Repo.ID)
 	}
 }
+
+func (w *webhookNotifier) NotifyChangeMilestone(doer *models.User, issue *models.Issue) {
+	var hookAction api.HookIssueAction
+	if issue.MilestoneID > 0 {
+		hookAction = api.HookIssueMilestoned
+	} else {
+		hookAction = api.HookIssueDemilestoned
+	}
+
+	var err error
+	if err = issue.LoadAttributes(); err != nil {
+		log.Error(2, "LoadAttributes: %v", err)
+		return
+	}
+
+	mode, _ := models.AccessLevel(doer.ID, issue.Repo)
+	if issue.IsPull {
+		err = issue.PullRequest.LoadIssue()
+		if err != nil {
+			log.Error(2, "LoadIssue: %v", err)
+			return
+		}
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+			Action:      hookAction,
+			Index:       issue.Index,
+			PullRequest: issue.PullRequest.APIFormat(),
+			Repository:  issue.Repo.APIFormat(mode),
+			Sender:      doer.APIFormat(),
+		})
+	} else {
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+			Action:     hookAction,
+			Index:      issue.Index,
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		})
+	}
+	if err != nil {
+		log.Error(2, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+	} else {
+		go models.HookQueue.Add(issue.RepoID)
+	}
+}
+
+func (w *webhookNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
+	mode, _ := models.AccessLevel(doer.ID, issue.Repo)
+	var err error
+	if issue.IsPull {
+		issue.PullRequest.Issue = issue
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+			Action: api.HookIssueEdited,
+			Index:  issue.Index,
+			Changes: &api.ChangesPayload{
+				Body: &api.ChangesFromPayload{
+					From: oldContent,
+				},
+			},
+			PullRequest: issue.PullRequest.APIFormat(),
+			Repository:  issue.Repo.APIFormat(mode),
+			Sender:      doer.APIFormat(),
+		})
+	} else {
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+			Action: api.HookIssueEdited,
+			Index:  issue.Index,
+			Changes: &api.ChangesPayload{
+				Body: &api.ChangesFromPayload{
+					From: oldContent,
+				},
+			},
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		})
+	}
+	if err != nil {
+		log.Error(4, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+	} else {
+		go models.HookQueue.Add(issue.RepoID)
+	}
+}
+
+func (w *webhookNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
+	var err error
+	mode, _ := models.AccessLevel(doer.ID, issue.Repo)
+	if issue.IsPull {
+		err = issue.PullRequest.LoadIssue()
+		if err != nil {
+			log.Error(4, "LoadIssue: %v", err)
+			return
+		}
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+			Action:      api.HookIssueLabelCleared,
+			Index:       issue.Index,
+			PullRequest: issue.PullRequest.APIFormat(),
+			Repository:  issue.Repo.APIFormat(mode),
+			Sender:      doer.APIFormat(),
+		})
+	} else {
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+			Action:     api.HookIssueLabelCleared,
+			Index:      issue.Index,
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		})
+	}
+	if err != nil {
+		log.Error(4, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+	} else {
+		go models.HookQueue.Add(issue.RepoID)
+	}
+}
+
+func (w *webhookNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
+	mode, _ := models.AccessLevel(doer.ID, issue.Repo)
+	var err error
+	if issue.IsPull {
+		issue.PullRequest.Issue = issue
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+			Action: api.HookIssueEdited,
+			Index:  issue.Index,
+			Changes: &api.ChangesPayload{
+				Title: &api.ChangesFromPayload{
+					From: oldTitle,
+				},
+			},
+			PullRequest: issue.PullRequest.APIFormat(),
+			Repository:  issue.Repo.APIFormat(mode),
+			Sender:      doer.APIFormat(),
+		})
+	} else {
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+			Action: api.HookIssueEdited,
+			Index:  issue.Index,
+			Changes: &api.ChangesPayload{
+				Title: &api.ChangesFromPayload{
+					From: oldTitle,
+				},
+			},
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     issue.Poster.APIFormat(),
+		})
+	}
+
+	if err != nil {
+		log.Error(4, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+	} else {
+		go models.HookQueue.Add(issue.RepoID)
+	}
+}
+
+/*
+func (w *webhookNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
+	mode, _ := models.AccessLevel(doer.ID, issue.Repo)
+	var err error
+	if issue.IsPull {
+		// Merge pull request calls issue.changeStatus so we need to handle separately.
+		issue.PullRequest.Issue = issue
+		apiPullRequest := &api.PullRequestPayload{
+			Index:       issue.Index,
+			PullRequest: issue.PullRequest.APIFormat(),
+			Repository:  issue.Repo.APIFormat(mode),
+			Sender:      doer.APIFormat(),
+		}
+		if isClosed {
+			apiPullRequest.Action = api.HookIssueClosed
+		} else {
+			apiPullRequest.Action = api.HookIssueReOpened
+		}
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, apiPullRequest)
+	} else {
+		apiIssue := &api.IssuePayload{
+			Index:      issue.Index,
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		}
+		if isClosed {
+			apiIssue.Action = api.HookIssueClosed
+		} else {
+			apiIssue.Action = api.HookIssueReOpened
+		}
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventIssues, apiIssue)
+	}
+	if err != nil {
+		log.Error(4, "PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
+	} else {
+		go models.HookQueue.Add(issue.Repo.ID)
+	}
+}*/
+
+func (w *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
+	addedLabels []*models.Label, removedLabels []*models.Label) {
+	var err error
+	if err = issue.LoadRepo(); err != nil {
+		log.Error(4, "LoadRepo: %v", err)
+		return
+	}
+
+	mode, _ := models.AccessLevel(doer.ID, issue.Repo)
+	if issue.IsPull {
+		if err = issue.LoadPullRequest(); err != nil {
+			log.Error(4, "LoadPullRequest: %v", err)
+			return
+		}
+		if err = issue.PullRequest.LoadIssue(); err != nil {
+			log.Error(4, "LoadIssue: %v", err)
+			return
+		}
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+			Action:      api.HookIssueLabelUpdated,
+			Index:       issue.Index,
+			PullRequest: issue.PullRequest.APIFormat(),
+			Repository:  issue.Repo.APIFormat(mode),
+			Sender:      doer.APIFormat(),
+		})
+	} else {
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+			Action:     api.HookIssueLabelUpdated,
+			Index:      issue.Index,
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		})
+	}
+	if err != nil {
+		log.Error(4, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+	} else {
+		go models.HookQueue.Add(issue.RepoID)
+	}
+}

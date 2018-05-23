@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 )
 
 const (
@@ -145,6 +146,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 				ctx.ServerError("ClearLabels", err)
 				return
 			}
+			notification.NotifyIssueClearLabels(ctx.User, issue)
 		}
 	case "attach", "detach", "toggle":
 		label, err := models.GetLabelByID(ctx.QueryInt64("id"))
@@ -168,20 +170,28 @@ func UpdateIssueLabel(ctx *context.Context) {
 			}
 		}
 
+		var addedLabels = make(map[int][]*models.Label)
+		var removedLabels = make(map[int][]*models.Label)
 		if action == "attach" {
-			for _, issue := range issues {
+			for i, issue := range issues {
 				if err = issue.AddLabel(ctx.User, label); err != nil {
 					ctx.ServerError("AddLabel", err)
 					return
 				}
+				addedLabels[i] = append(addedLabels[i], label)
 			}
 		} else {
-			for _, issue := range issues {
+			for i, issue := range issues {
 				if err = issue.RemoveLabel(ctx.User, label); err != nil {
 					ctx.ServerError("RemoveLabel", err)
 					return
 				}
+				removedLabels[i] = append(removedLabels[i], label)
 			}
+		}
+
+		for i, issue := range issues {
+			notification.NotifyIssueChangeLabels(ctx.User, issue, addedLabels[i], removedLabels[i])
 		}
 	default:
 		log.Warn("Unrecognized action: %s", action)

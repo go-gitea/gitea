@@ -25,4 +25,10 @@ type Notifier interface {
 	NotifyNewRelease(rel *models.Release)
 	NotifyUpdateRelease(doer *models.User, rel *models.Release)
 	NotifyDeleteRelease(doer *models.User, rel *models.Release)
+	NotifyChangeMilestone(doer *models.User, issue *models.Issue)
+	NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string)
+	NotifyIssueClearLabels(doer *models.User, issue *models.Issue)
+	NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string)
+	NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
+		addedLabels []*models.Label, removedLabels []*models.Label)
 }
