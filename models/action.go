@@ -807,7 +807,7 @@ func MergePullRequestAction(doer *User, repo *Repository, pull *Issue, commits *
 	}
 
 	if err := UpdateIssuesComment(doer, repo, pull, nil, true); err != nil {
-		log.Error(4, "UpdateIssuesCommit: %v", err)
+		log.Error(4, "UpdateIssuesComment: %v", err)
 	}
 
 	if err := notifyWatchers(x, &Action{
@@ -832,7 +832,7 @@ func NewPullRequestAction(doer *User, repo *Repository, pull *Issue, commits *Pu
 	}
 
 	if err := UpdateIssuesComment(doer, repo, pull, nil, false); err != nil {
-		log.Error(4, "UpdateIssuesCommit: %v", err)
+		log.Error(4, "UpdateIssuesComment: %v", err)
 	}
 
 	if err := NotifyWatchers(&Action{
