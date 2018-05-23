@@ -201,13 +201,14 @@ func Profile(ctx *context.Context) {
 			ctx.Data["Total"] = total
 		} else {
 			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-				Keyword:   keyword,
-				OwnerID:   ctxUser.ID,
-				OrderBy:   orderBy,
-				Private:   showPrivate,
-				Page:      page,
-				IsProfile: true,
-				PageSize:  setting.UI.User.RepoPagingNum,
+				Keyword:     keyword,
+				OwnerID:     ctxUser.ID,
+				OrderBy:     orderBy,
+				Private:     showPrivate,
+				Page:        page,
+				IsProfile:   true,
+				PageSize:    setting.UI.User.RepoPagingNum,
+				Collaborate: util.OptionalBoolFalse,
 			})
 			if err != nil {
 				ctx.ServerError("SearchRepositoryByName", err)
