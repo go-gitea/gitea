@@ -124,6 +124,7 @@ UNIX_SOCKET_PERMISSION = 666
 ; Local (DMZ) URL for Gitea workers (such as SSH update) accessing web service.
 ; In most cases you do not need to change the default value.
 ; Alter it only if your SSH server node is not the same as HTTP node.
+; Do not set this variable if PROTOCOL is set to 'unix'.
 LOCAL_ROOT_URL = %(PROTOCOL)s://%(HTTP_ADDR)s:%(HTTP_PORT)s/
 ; Disable SSH feature when not available
 DISABLE_SSH = false
