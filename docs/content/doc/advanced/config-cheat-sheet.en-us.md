@@ -115,6 +115,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LFS_START_SERVER`: **false**: Enables git-lfs support.
 - `LFS_CONTENT_PATH`: **./data/lfs**: Where to store LFS files.
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
+- `LFS_HTTP_AUTH_EXPIRY_MINUTES`: **5**: LFS authentication validity period in minutes, pushes taking longer than this may fail.
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, redirects http requests
    on another (https) port.
 - `PORT_TO_REDIRECT`: **80**: Port used when `REDIRECT_OTHER_PORT` is true.
