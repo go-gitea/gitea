@@ -278,6 +278,36 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`.
 
+## i18n (`i18n`)
+
+- `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR**: List of locales shown in language selector
+- `NAMES`: **English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,français,Nederlands,latviešu,русский,日本語,español,português do Brasil,polski,български,italiano,suomi,Türkçe,čeština,српски,svenska,한국어**: Visible names corresponding to the locales
+
+### i18n - Datepicker Language (`i18n.datelang`)
+Maps locales to the languages used by the datepicker plugin
+
+- `en-US`: **en**
+- `zh-CN`: **zh**
+- `zh-HK`: **zh-HK**
+- `zh-TW`: **zh-TW**
+- `de-DE`: **de**
+- `fr-FR`: **fr**
+- `nl-NL`: **nl**
+- `lv-LV`: **lv**
+- `ru-RU`: **ru**
+- `ja-JP`: **ja**
+- `es-ES`: **es**
+- `pt-BR`: **pt-BR**
+- `pl-PL`: **pl**
+- `bg-BG`: **bg**
+- `it-IT`: **it**
+- `fi-FI`: **fi**
+- `tr-TR`: **tr**
+- `cs-CZ`: **cs-CZ**
+- `sr-SP`: **sr**
+- `sv-SE`: **sv**
+- `ko-KR`: **ko**
+
 ## U2F (`U2F`)
 - `APP_ID`: **`ROOT_URL`**: Declares the facet of the application. Requires HTTPS.
 - `TRUSTED_FACETS`: List of additional facets which are trusted. This is not support by all browsers.
