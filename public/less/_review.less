@@ -1,24 +1,24 @@
 .ui.button.add-code-comment {
     font-size: 14px;
     height: 16px;
-    padding: 0;
-    padding-top: 2px;
-    position: absolute;
+    padding: 2px 0 0;
+    position: relative;
     width: 16px;
-    display: none;
+    z-index: 5;
+    float: left;
+    margin: -2px -10px -2px -20px;
+    opacity: 0;
+    transition: transform 0.1s ease-in-out;
+    transform: scale(1, 1);
 
     &:hover {
-        font-size:16px;
-        margin-top: -2px;
-        margin-left: -2px;
-        height: 20px;
-        width: 20px;
+      transform: scale(1.2, 1.2);
     }
 }
 
 .focus-lines-new .ui.button.add-code-comment.add-code-comment-right,
 .focus-lines-old .ui.button.add-code-comment.add-code-comment-left {
-    display: inline-block;
+    opacity: 1;
 }
 
 .comment-code-cloud {

@@ -30,7 +30,9 @@
 				<button type="submit"
 						class="ui submit tiny basic button btn-add-single">{{$.root.i18n.Tr "repo.diff.comment.add_single_comment"}}</button>
 			{{end}}
-			<button type="button" class="ui submit tiny basic button btn-cancel">{{$.root.i18n.Tr "cancel"}}</button>
+			{{if not $.HasComments}}
+				<button type="button" class="ui submit tiny basic button btn-cancel" onclick="$(this).closest('.comment-code-cloud').remove()">{{$.root.i18n.Tr "cancel"}}</button>
+			{{end}}
 		</div>
 	</div>
 </form>

@@ -13,10 +13,10 @@
 			</td>
 			<td class="lines-num lines-num-new">
 				<span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}">{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}</span>
-				<a class="ui green button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">+</a>
 			</td>
 			{{end}}
 			<td class="lines-code {{if (not $line.RightIdx)}}lines-code-old{{end}}">
+				<a class="ui green button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">+</a>
 				<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{$section.GetComputedInlineDiffFor $line}}</code></pre>
 			</td>
 		</tr>
