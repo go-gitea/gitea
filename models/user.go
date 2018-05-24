@@ -557,7 +557,9 @@ func (u *User) GetOrgRepositoryIDs() ([]int64, error) {
 	var ids []int64
 	return ids, x.Table("repository").
 		Cols("repository.id").
-		Join("INNER", "team_user", "repository.owner_id = team_user.org_id AND team_user.uid = ?", u.ID).
+		Join("INNER", "team_user", "repository.owner_id = team_user.org_id").
+		Join("INNER", "team_repo", "(team_user.team_id = team_repo.team_id AND repository.id = team_repo.repo_id) OR repository.is_private = 0").
+		Where("team_user.uid = ?", u.ID).
 		GroupBy("repository.id").Find(&ids)
 }
 

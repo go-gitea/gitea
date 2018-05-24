@@ -4,7 +4,7 @@
   lower_name: owners
   name: Owners
   authorize: 4 # owner
-  num_repos: 2
+  num_repos: 3
   num_members: 1
   unit_types: '[1,2,3,4,5,6,7]'
 
