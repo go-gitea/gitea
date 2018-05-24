@@ -1357,47 +1357,57 @@ func GetWatchedRepos(userID int64, private bool) ([]*Repository, error) {
 }
 
 // deleteKeysMarkedForDeletion returns true if ssh keys needs update
-func deleteKeysMarkedForDeletion(keys []string) (sshKeysNeedUpdate bool, err error) {
+func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 	// Start session
 	sess := x.NewSession()
 	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	if err := sess.Begin(); err != nil {
 		return false, err
 	}
 
 	// Delete keys marked for deletion
+	var sshKeysNeedUpdate bool
 	for _, KeyToDelete := range keys {
 		key, err := SearchPublicKeyByContent(KeyToDelete)
-		err = deletePublicKeys(sess, key.ID)
 		if err != nil {
-			sshKeysNeedUpdate = false
-			log.Trace("deleteKeysMarkedForDeletion: Error: %v", key)
+			log.Error(4, "SearchPublicKeyByContent: %v", err)
+			continue
+		}
+		if err = deletePublicKeys(sess, key.ID); err != nil {
+			log.Error(4, "deletePublicKeys: %v", err)
+			continue
 		}
 		sshKeysNeedUpdate = true
 	}
 
-	return sshKeysNeedUpdate, sess.Commit()
+	if err := sess.Commit(); err != nil {
+		return false, err
+	}
+
+	return sshKeysNeedUpdate, nil
 }
 
-func addLdapSSHPublicKeys(s *LoginSource, usr *User, SSHPublicKeys []string) (sshKeysNeedUpdate bool, err error) {
-	for _, LDAPPublicSSHKey := range SSHPublicKeys {
-		if strings.HasPrefix(strings.ToLower(LDAPPublicSSHKey), "ssh") {
-			LDAPPublicSSHKeyName := strings.Join([]string{s.Name, LDAPPublicSSHKey[0:40]}, "-")
-			_, err := AddPublicKey(usr.ID, LDAPPublicSSHKeyName, LDAPPublicSSHKey, s.ID)
-			if err != nil {
+func addLdapSSHPublicKeys(s *LoginSource, usr *User, SSHPublicKeys []string) bool {
+	var sshKeysNeedUpdate bool
+	for _, sshKey := range SSHPublicKeys {
+		if strings.HasPrefix(strings.ToLower(sshKey), "ssh") {
+			sshKeyName := fmt.Sprintf("%s-%s", s.Name, sshKey[0:40])
+			if _, err := AddPublicKey(usr.ID, sshKeyName, sshKey, s.ID); err != nil {
 				log.Error(4, "addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)
 			} else {
-				log.Trace("addLdapSSHPublicKeys[%s]: Added LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, LDAPPublicSSHKey)
+				log.Trace("addLdapSSHPublicKeys[%s]: Added LDAP Public SSH Key for user %s", s.Name, usr.Name)
 				sshKeysNeedUpdate = true
 			}
 		} else {
-			log.Error(3, "addLdapSSHPublicKeys[%s]: Skipping invalid LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, LDAPPublicSSHKey)
+			log.Warn("addLdapSSHPublicKeys[%s]: Skipping invalid LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, sshKey)
 		}
 	}
-	return sshKeysNeedUpdate, err
+	return sshKeysNeedUpdate
 }
 
-func synchronizeLdapSSHPublicKeys(s *LoginSource, SSHPublicKeys []string, usr *User) (sshKeysNeedUpdate bool, err error) {
+func synchronizeLdapSSHPublicKeys(s *LoginSource, SSHPublicKeys []string, usr *User) bool {
+	var sshKeysNeedUpdate bool
+
 	log.Trace("synchronizeLdapSSHPublicKeys[%s]: Handling LDAP Public SSH Key synchronization for user %s", s.Name, usr.Name)
 
 	// Get Public Keys from DB with current LDAP source
@@ -1421,40 +1431,42 @@ func synchronizeLdapSSHPublicKeys(s *LoginSource, SSHPublicKeys []string, usr *U
 	}
 
 	// Check if Public Key sync is needed
-	var giteaKeysToDelete []string
 	if util.IsEqualSlice(giteaKeys, ldapKeys) {
 		log.Trace("synchronizeLdapSSHPublicKeys[%s]: LDAP Public Keys are already in sync for %s (LDAP:%v/DB:%v)", s.Name, usr.Name, len(ldapKeys), len(giteaKeys))
-	} else {
-		log.Trace("synchronizeLdapSSHPublicKeys[%s]: LDAP Public Key needs update for user %s (LDAP:%v/DB:%v)", s.Name, usr.Name, len(ldapKeys), len(giteaKeys))
+		return false
+	}
+	log.Trace("synchronizeLdapSSHPublicKeys[%s]: LDAP Public Key needs update for user %s (LDAP:%v/DB:%v)", s.Name, usr.Name, len(ldapKeys), len(giteaKeys))
 
-		// Add LDAP Public SSH Keys that doesn't already exist in DB
-		var newLdapSSHKeys []string
-		for _, LDAPPublicSSHKey := range ldapKeys {
-			if !util.ExistsInSlice(LDAPPublicSSHKey, giteaKeys) {
-				newLdapSSHKeys = append(newLdapSSHKeys, LDAPPublicSSHKey)
-			}
+	// Add LDAP Public SSH Keys that doesn't already exist in DB
+	var newLdapSSHKeys []string
+	for _, LDAPPublicSSHKey := range ldapKeys {
+		if !util.ExistsInSlice(LDAPPublicSSHKey, giteaKeys) {
+			newLdapSSHKeys = append(newLdapSSHKeys, LDAPPublicSSHKey)
 		}
-		sshKeysNeedUpdate, err = addLdapSSHPublicKeys(s, usr, newLdapSSHKeys)
-		if err != nil {
-			log.Error(4, "synchronizeLdapSSHPublicKeys[%s]: Error updating LDAP Public SSH Keys for user %s: %v", s.Name, usr.Name, err)
-		}
+	}
+	if addLdapSSHPublicKeys(s, usr, newLdapSSHKeys) {
+		sshKeysNeedUpdate = true
+	}
 
-		// Mark LDAP keys from DB that doesn't exist in LDAP for deletion
-		for _, giteaKey := range giteaKeys {
-			if !util.ExistsInSlice(giteaKey, ldapKeys) {
-				log.Trace("synchronizeLdapSSHPublicKeys[%s]: Marking LDAP Public SSH Key for deletion for user %s: %v", s.Name, usr.Name, giteaKey)
-				giteaKeysToDelete = append(giteaKeysToDelete, giteaKey)
-			}
+	// Mark LDAP keys from DB that doesn't exist in LDAP for deletion
+	var giteaKeysToDelete []string
+	for _, giteaKey := range giteaKeys {
+		if !util.ExistsInSlice(giteaKey, ldapKeys) {
+			log.Trace("synchronizeLdapSSHPublicKeys[%s]: Marking LDAP Public SSH Key for deletion for user %s: %v", s.Name, usr.Name, giteaKey)
+			giteaKeysToDelete = append(giteaKeysToDelete, giteaKey)
 		}
 	}
 
 	// Delete LDAP keys from DB that doesn't exist in LDAP
-	sshKeysNeedUpdate, err = deleteKeysMarkedForDeletion(giteaKeysToDelete)
+	needUpd, err := deleteKeysMarkedForDeletion(giteaKeysToDelete)
 	if err != nil {
 		log.Error(4, "synchronizeLdapSSHPublicKeys[%s]: Error deleting LDAP Public SSH Keys marked for deletion for user %s: %v", s.Name, usr.Name, err)
 	}
+	if needUpd {
+		sshKeysNeedUpdate = true
+	}
 
-	return sshKeysNeedUpdate, err
+	return sshKeysNeedUpdate
 }
 
 // SyncExternalUsers is used to synchronize users with external authorization source
@@ -1534,17 +1546,16 @@ func SyncExternalUsers() {
 						log.Error(4, "SyncExternalUsers[%s]: Error creating user %s: %v", s.Name, su.Username, err)
 					} else if isAttributeSSHPublicKeySet {
 						log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", s.Name, usr.Name)
-						sshKeysNeedUpdate, err = addLdapSSHPublicKeys(s, usr, su.SSHPublicKey)
-						if err != nil {
-							log.Error(4, "SyncExternalUsers[%s]: Error adding LDAP Public SSH Keys for user %s: %v", s.Name, su.Username, err)
+						if addLdapSSHPublicKeys(s, usr, su.SSHPublicKey) {
+							sshKeysNeedUpdate = true
 						}
 					}
 				} else if updateExisting {
 					existingUsers = append(existingUsers, usr.ID)
 
 					// Synchronize SSH Public Key if that attribute is set
-					if isAttributeSSHPublicKeySet {
-						synchronizeLdapSSHPublicKeys(s, su.SSHPublicKey, usr)
+					if isAttributeSSHPublicKeySet && synchronizeLdapSSHPublicKeys(s, su.SSHPublicKey, usr) {
+						sshKeysNeedUpdate = true
 					}
 
 					// Check if user data has changed
@@ -1572,7 +1583,7 @@ func SyncExternalUsers() {
 			}
 
 			// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
-			if isAttributeSSHPublicKeySet && sshKeysNeedUpdate {
+			if sshKeysNeedUpdate {
 				RewriteAllPublicKeys()
 			}
 
