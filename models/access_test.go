@@ -24,8 +24,10 @@ func TestAccessLevel(t *testing.T) {
 	user2 := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 	// A public repository owned by User 2
 	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	assert.False(t, repo1.IsPrivate)
 	// A private repository owned by Org 3
 	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	assert.True(t, repo2.IsPrivate)
 
 	level, err := AccessLevel(user1.ID, repo1)
 	assert.NoError(t, err)
@@ -51,8 +53,10 @@ func TestHasAccess(t *testing.T) {
 	user2 := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 	// A public repository owned by User 2
 	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	assert.False(t, repo1.IsPrivate)
 	// A private repository owned by Org 3
 	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	assert.True(t, repo2.IsPrivate)
 
 	for _, accessMode := range accessModes {
 		has, err := HasAccess(user1.ID, repo1, accessMode)
