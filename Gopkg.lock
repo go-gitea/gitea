@@ -167,7 +167,8 @@
 [[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
-  revision = "ecdeabc65495df2dec95d7c4a4c3e021903035e5"
+  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/denisenkom/go-mssqldb"
@@ -669,7 +670,8 @@
 [[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f"
+  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
+  version = "v1.2.1"
 
 [[projects]]
   name = "github.com/syndtr/goleveldb"
