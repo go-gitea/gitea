@@ -91,7 +91,7 @@ git.example.com {
 }
 ```
 
-##### How do I set up a sub-path with Caddy?
+## Using Caddy with a Sub-path as a reverse proxy
 
 In case you already have a site, and you want Gitea to share the domain name, you can setup Caddy to serve Gitea under a sub-path by adding the following to you server block in your Caddyfile:
 
@@ -100,3 +100,5 @@ git.example.com {
     proxy /git/ http://localhost:3000 # Note: Trailing Slash after /git/
 }
 ```
+
+Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration.

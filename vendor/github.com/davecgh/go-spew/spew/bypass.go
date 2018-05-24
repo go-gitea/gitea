@@ -41,9 +41,9 @@ var (
 	// after commit 82f48826c6c7 which changed the format again to mirror
 	// the original format.  Code in the init function updates these offsets
 	// as necessary.
-	offsetPtr    = ptrSize
+	offsetPtr    = uintptr(ptrSize)
 	offsetScalar = uintptr(0)
-	offsetFlag   = ptrSize * 2
+	offsetFlag   = uintptr(ptrSize * 2)
 
 	// flagKindWidth and flagKindShift indicate various bits that the
 	// reflect package uses internally to track kind information.
@@ -58,7 +58,7 @@ var (
 	// changed their positions.  Code in the init function updates these
 	// flags as necessary.
 	flagKindWidth = uintptr(5)
-	flagKindShift = flagKindWidth - 1
+	flagKindShift = uintptr(flagKindWidth - 1)
 	flagRO        = uintptr(1 << 0)
 	flagIndir     = uintptr(1 << 1)
 )
