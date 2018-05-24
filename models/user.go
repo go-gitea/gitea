@@ -1574,7 +1574,7 @@ func SyncExternalUsers() {
 						}
 						usr.IsActive = true
 
-						err = UpdateUser(usr)
+						err = UpdateUserCols(usr, "full_name", "email", "is_admin", "is_active")
 						if err != nil {
 							log.Error(4, "SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
 						}
