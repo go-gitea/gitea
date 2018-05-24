@@ -278,6 +278,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`.
 
+## API (`api`)
+ 
+- `ENABLE_SWAGGER_ENDPOINT`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true. 
+- `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page
+
 ## i18n (`i18n`)
 
 - `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR**: List of locales shown in language selector
