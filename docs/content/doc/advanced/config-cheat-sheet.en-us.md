@@ -288,7 +288,7 @@ Maps locales to the languages used by the datepicker plugin
 
 - `en-US`: **en**
 - `zh-CN`: **zh**
-- `zh-HK`: **zh-TW**
+- `zh-HK`: **zh-HK**
 - `zh-TW`: **zh-TW**
 - `de-DE`: **de**
 - `fr-FR`: **fr**

@@ -575,7 +575,7 @@ NAMES = English,简体中文,繁體中文（香港）,繁體中文（台灣）,D
 [i18n.datelang]
 en-US = en
 zh-CN = zh
-zh-HK = zh-TW
+zh-HK = zh-HK
 zh-TW = zh-TW
 de-DE = de
 fr-FR = fr
