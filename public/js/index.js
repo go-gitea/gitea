@@ -2301,11 +2301,22 @@ function initNavbarContentToggle() {
     });
 }
 
+function pasteFilter(e) {
+    e.preventDefault();
+    var contentOnBlur = (e.originalEvent || e).clipboardData.getData('text/plain');
+    contentOnBlur = contentOnBlur.replace(/(<([^>]+)>)/ig,'');
+    document.execCommand('insertText', false, contentOnBlur);
+}
+
 function initTopicbar() {
     var mgrBtn = $("#manage_topic")
     var editDiv = $("#topic_edit")
     var viewDiv = $("#repo-topic")
     var saveBtn = $("#save_topic")
+
+    editDiv.on("paste", function(e){
+        pasteFilter(e);
+    });
 
     mgrBtn.click(function() {
         viewDiv.hide();

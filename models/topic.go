@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"html/template"
 	"strings"
 
 	"code.gitea.io/gitea/modules/util"
@@ -95,6 +96,10 @@ func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
 	return topics, sess.Desc("topic.repo_count").Find(&topics)
 }
 
+func validTopic(topicName string) string {
+	return strings.TrimSpace(template.HTMLEscapeString(template.JSEscapeString(topicName)))
+}
+
 // SaveTopics save topics to a repository
 func SaveTopics(repoID int64, topicNames ...string) error {
 	topics, err := FindTopics(&FindTopicOptions{
@@ -113,7 +118,8 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 
 	var addedTopicNames []string
 	for _, topicName := range topicNames {
-		if strings.TrimSpace(topicName) == "" {
+		topicName = validTopic(topicName)
+		if topicName == "" {
 			continue
 		}
 
@@ -133,6 +139,11 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 	for _, t := range topics {
 		var found bool
 		for _, topicName := range topicNames {
+			topicName = validTopic(topicName)
+			if topicName == "" {
+				continue
+			}
+
 			if strings.EqualFold(topicName, t.Name) {
 				found = true
 				break
