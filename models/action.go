@@ -800,10 +800,12 @@ func TransferRepoAction(doer, oldOwner *User, repo *Repository) error {
 	return transferRepoAction(x, doer, oldOwner, repo)
 }
 
-// MergePullRequestAction adds new action for merging pull request.
+// MergePullRequestAction adds new action for merging pull request (including manually merged pull requests).
 func MergePullRequestAction(doer *User, repo *Repository, pull *Issue, commits *PushCommits) error {
-	if err := UpdateIssuesCommit(doer, repo, commits.Commits, true); err != nil {
-		log.Error(4, "UpdateIssuesCommit: %v", err)
+	if commits != nil {
+		if err := UpdateIssuesCommit(doer, repo, commits.Commits, true); err != nil {
+			log.Error(4, "UpdateIssuesCommit: %v", err)
+		}
 	}
 
 	if err := UpdateIssuesComment(doer, repo, pull, nil, true); err != nil {

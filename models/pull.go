@@ -588,6 +588,11 @@ func (pr *PullRequest) manuallyMerged() bool {
 			return false
 		}
 		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
+
+		if err = MergePullRequestAction(pr.Merger, pr.Issue.Repo, pr.Issue, nil); err != nil {
+			log.Error(4, "MergePullRequestAction [%d]: %v", pr.ID, err)
+		}
+
 		return true
 	}
 	return false
