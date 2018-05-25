@@ -1158,6 +1158,9 @@ var Service struct {
 	EnableReverseProxyAuth                  bool
 	EnableReverseProxyAutoRegister          bool
 	EnableCaptcha                           bool
+	EnableRecaptcha                         bool
+	RecaptchaSecret                         string
+	RecaptchaSitekey                        string
 	DefaultKeepEmailPrivate                 bool
 	DefaultAllowCreateOrganization          bool
 	EnableTimetracking                      bool
@@ -1182,7 +1185,10 @@ func newService() {
 	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
-	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool()
+	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool(false)
+	Service.EnableRecaptcha = sec.Key("ENABLE_RECAPTCHA").MustBool(false)
+	Service.RecaptchaSecret = sec.Key("RECAPTCHA_SECRET").MustString("")
+	Service.RecaptchaSitekey = sec.Key("RECAPTCHA_SITEKEY").MustString("")
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
 	Service.EnableTimetracking = sec.Key("ENABLE_TIMETRACKING").MustBool(true)
