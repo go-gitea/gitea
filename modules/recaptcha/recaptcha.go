@@ -37,12 +37,11 @@ func Verify(response string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("Failed to read CAPTCHA response: %s", err)
 	}
-	jsonResponse := Response{Success: false} // set a default of fail for CAPTCHA
+	var jsonResponse Response
 	err = json.Unmarshal(body, &jsonResponse)
 	if err != nil {
 		return false, fmt.Errorf("Failed to parse CAPTCHA response: %s", err)
 	}
 
 	return jsonResponse.Success, nil
-
 }
