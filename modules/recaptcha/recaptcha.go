@@ -25,6 +25,7 @@ type Response struct {
 
 const apiURL = "https://www.google.com/recaptcha/api/siteverify"
 
+// Verify calls Google Recaptcha API to verify token
 func Verify(response string) (bool, error) {
 	resp, err := http.PostForm(apiURL,
 		url.Values{"secret": {setting.Service.RecaptchaSecret}, "response": {response}})
