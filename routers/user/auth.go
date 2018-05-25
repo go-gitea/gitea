@@ -17,8 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/recaptcha"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-macaron/captcha"
 	"github.com/markbates/goth"
