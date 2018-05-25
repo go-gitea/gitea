@@ -16,7 +16,7 @@
 			</td>
 			{{end}}
 			<td class="lines-code {{if (not $line.RightIdx)}}lines-code-old{{end}}">
-				{{if not (len $line.Comments)}}
+				{{if and $.IsSigned (not (len $line.Comments))}}
 					<a class="ui green button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">+</a>
 				{{end}}
 				<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{$section.GetComputedInlineDiffFor $line}}</code></pre>
@@ -31,7 +31,9 @@
 						{{ template "repo/diff/comments" dict "root" $.root "comments" $line.Comments}}
 						</ui>
 					</div>
-				{{template "repo/diff/comment_form_datahandler" dict "root" $.root "comment" (index $line.Comments 0)}}
+					{{if $.IsSigned}}
+						{{template "repo/diff/comment_form_datahandler" dict "root" $.root "comment" (index $line.Comments 0)}}
+					{{end}}
 				</div>
 			</td>
 		</tr>
