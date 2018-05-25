@@ -186,12 +186,6 @@ func NewFuncMap() []template.FuncMap {
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
 		},
-		"EnableRecaptcha": func() bool {
-			return setting.Service.EnableRecaptcha
-		},
-		"RecaptchaSitekey": func() string {
-			return setting.Service.RecaptchaSitekey
-		},
 	}}
 }
 
