@@ -67,6 +67,9 @@
 {{if .RequireU2F}}
 	<script src="{{AppSubUrl}}/vendor/plugins/u2f/index.js"></script>
 {{end}}
+{{if .EnableRecaptcha}}
+	<script src="https://www.google.com/recaptcha/api.js" async></script>
+{{end}}
 {{if .RequireTribute}}
 	<script src="{{AppSubUrl}}/vendor/plugins/tribute/tribute.min.js"></script>
 
