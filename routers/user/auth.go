@@ -768,8 +768,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 	}
 
 	if setting.Service.EnableRecaptcha {
-		ctx.Req.ParseForm()
-		valid, _ := recaptcha.Verify(ctx.Req.Form.Get("g-recaptcha-response"))
+		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
 		if !valid {
 			ctx.Data["Err_Captcha"] = true
 			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplLinkAccount, &form)
@@ -911,8 +910,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 	}
 
 	if setting.Service.EnableRecaptcha {
-		ctx.Req.ParseForm()
-		valid, _ := recaptcha.Verify(ctx.Req.Form.Get("g-recaptcha-response"))
+		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
 		if !valid {
 			ctx.Data["Err_Captcha"] = true
 			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUp, &form)
