@@ -177,6 +177,9 @@ func CreateReview(opts CreateReviewOptions) (*Review, error) {
 }
 
 func getCurrentReview(e Engine, reviewer *User, issue *Issue) (*Review, error) {
+	if reviewer == nil {
+		return nil, nil
+	}
 	reviews, err := findReviews(e, FindReviewOptions{
 		Type:       ReviewTypePending,
 		IssueID:    issue.ID,
