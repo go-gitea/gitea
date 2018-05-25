@@ -22,8 +22,9 @@ func (f *SignInOpenIDForm) Validate(ctx *macaron.Context, errs binding.Errors) b
 
 // SignUpOpenIDForm form for signin up with OpenID
 type SignUpOpenIDForm struct {
-	UserName string `binding:"Required;AlphaDashDot;MaxSize(35)"`
-	Email    string `binding:"Required;Email;MaxSize(254)"`
+	UserName           string `binding:"Required;AlphaDashDot;MaxSize(35)"`
+	Email              string `binding:"Required;Email;MaxSize(254)"`
+	GRecaptchaResponse string `form:"g-recaptcha-response"`
 }
 
 // Validate valideates the fields
