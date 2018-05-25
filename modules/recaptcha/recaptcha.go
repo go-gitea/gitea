@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// Response is the structure of JSON returned from API
 type Response struct {
 	Success     bool      `json:"success"`
 	ChallengeTS time.Time `json:"challenge_ts"`
