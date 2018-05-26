@@ -97,27 +97,56 @@
 
 			<div class="ui divider"></div>
 
-			<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
+				<input id="assignee_ids" name="assignee_ids" type="hidden" value="{{.assignee_ids}}">
+				<div class="ui {{if not .Assignees}}disabled{{end}} floating jump select-assignees dropdown">
+					<span class="text">
+						<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
+						<span class="octicon octicon-gear"></span>
+					</span>
+					<div class="filter menu" data-id="#assignee_ids">
+						<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
+						{{range .Assignees}}
+							<a class="item" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
+								<span class="octicon"></span>
+								<span class="text">
+									<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.Name}}
+								</span>
+							</a>
+						{{end}}
+					</div>
+				</div>
+				<div class="ui assignees list">
+					<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">
+						{{.i18n.Tr "repo.issues.new.no_assignees"}}
+					</span>
+					{{range .Assignees}}
+						<a style="padding: 5px;color:rgba(0, 0, 0, 0.87);" class="hide item" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
+							<img class="ui avatar image" src="{{.RelAvatarLink}}" style="vertical-align: middle;">&nbsp;{{.Name}}
+						</a>
+					{{end}}
+				</div>
+
+			<!-- input id="assignee_ids" name="assignee_ids" type="hidden" value="{{.assignee_id}}">
 			<div class="ui {{if not .Assignees}}disabled{{end}} floating jump select-assignee dropdown">
 				<span class="text">
-					<strong>{{.i18n.Tr "repo.issues.new.assignee"}}</strong>
+					<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
 					<span class="octicon octicon-gear"></span>
 				</span>
-				<div class="menu">
-					<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignee"}}</div>
+				<div class="filter menu">
+					<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
 					{{range .Assignees}}
 						<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?assignee={{.ID}}" data-avatar="{{.RelAvatarLink}}"><img src="{{.RelAvatarLink}}"> {{.Name}}</div>
 					{{end}}
 				</div>
 			</div>
 			<div class="ui select-assignee list">
-				<span class="no-select item {{if .Assignee}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_assignee"}}</span>
+				<span class="no-select item {{if .Assignee}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_assignees"}}</span>
 				<div class="selected">
 					{{if .Assignee}}
 						<a class="item" href="{{.RepoLink}}/issues?assignee={{.Assignee.ID}}"><img class="ui avatar image" src="{{.Assignee.RelAvatarLink}}"> {{.Assignee.Name}}</a>
 					{{end}}
 				</div>
-			</div>
+			</div>-->
 		</div>
 	</div>
 </form>

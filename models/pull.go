@@ -198,6 +198,7 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		Labels:    apiIssue.Labels,
 		Milestone: apiIssue.Milestone,
 		Assignee:  apiIssue.Assignee,
+		Assignees: apiIssue.Assignees,
 		State:     apiIssue.State,
 		Comments:  apiIssue.Comments,
 		HTMLURL:   pr.Issue.HTMLURL(),
@@ -207,6 +208,7 @@ func (pr *PullRequest) APIFormat() *api.PullRequest {
 		Base:      apiBaseBranchInfo,
 		Head:      apiHeadBranchInfo,
 		MergeBase: pr.MergeBase,
+		Deadline:  apiIssue.Deadline,
 		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
 	}
@@ -455,15 +457,18 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		log.Error(4, "LoadAttributes: %v", err)
 		return nil
 	}
+
+	mode, _ := AccessLevel(doer.ID, pr.Issue.Repo)
 	if err = PrepareWebhooks(pr.Issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueClosed,
 		Index:       pr.Index,
 		PullRequest: pr.APIFormat(),
-		Repository:  pr.Issue.Repo.APIFormat(AccessModeNone),
+		Repository:  pr.Issue.Repo.APIFormat(mode),
 		Sender:      doer.APIFormat(),
 	}); err != nil {
 		log.Error(4, "PrepareWebhooks: %v", err)
-		return nil
+	} else {
+		go HookQueue.Add(pr.Issue.Repo.ID)
 	}
 
 	l, err := baseGitRepo.CommitsBetweenIDs(pr.MergedCommitID, pr.MergeBase)
@@ -490,12 +495,14 @@ func (pr *PullRequest) Merge(doer *User, baseGitRepo *git.Repository, mergeStyle
 		After:      mergeCommit.ID.String(),
 		CompareURL: setting.AppURL + pr.BaseRepo.ComposeCompareURL(pr.MergeBase, pr.MergedCommitID),
 		Commits:    ListToPushCommits(l).ToAPIPayloadCommits(pr.BaseRepo.HTMLURL()),
-		Repo:       pr.BaseRepo.APIFormat(AccessModeNone),
+		Repo:       pr.BaseRepo.APIFormat(mode),
 		Pusher:     pr.HeadRepo.MustOwner().APIFormat(),
 		Sender:     doer.APIFormat(),
 	}
 	if err = PrepareWebhooks(pr.BaseRepo, HookEventPush, p); err != nil {
-		return fmt.Errorf("PrepareWebhooks: %v", err)
+		log.Error(4, "PrepareWebhooks: %v", err)
+	} else {
+		go HookQueue.Add(pr.BaseRepo.ID)
 	}
 	return nil
 }
@@ -718,7 +725,7 @@ func (pr *PullRequest) testPatch() (err error) {
 }
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte) (err error) {
+func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte, assigneeIDs []int64) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -731,7 +738,11 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		LabelIDs:    labelIDs,
 		Attachments: uuids,
 		IsPull:      true,
+		AssigneeIDs: assigneeIDs,
 	}); err != nil {
+		if IsErrUserDoesNotHaveAccessToRepo(err) {
+			return err
+		}
 		return fmt.Errorf("newIssue: %v", err)
 	}
 
@@ -776,16 +787,18 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 
 	pr.Issue = pull
 	pull.PullRequest = pr
+	mode, _ := AccessLevel(pull.Poster.ID, repo)
 	if err = PrepareWebhooks(repo, HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Index,
 		PullRequest: pr.APIFormat(),
-		Repository:  repo.APIFormat(AccessModeNone),
+		Repository:  repo.APIFormat(mode),
 		Sender:      pull.Poster.APIFormat(),
 	}); err != nil {
 		log.Error(4, "PrepareWebhooks: %v", err)
+	} else {
+		go HookQueue.Add(repo.ID)
 	}
-	go HookQueue.Add(repo.ID)
 
 	return nil
 }

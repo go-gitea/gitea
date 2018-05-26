@@ -201,6 +201,12 @@
 								</div>
 							</div>
 							<div class="inline field">
+								<div class="ui checkbox" id="allow-only-external-registration">
+									<label class="poping up" data-content="{{.i18n.Tr "install.allow_only_external_registration_popup"}}"><strong>{{.i18n.Tr "install.allow_only_external_registration_popup"}}</strong></label>
+									<input name="allow_only_external_registration" type="checkbox" {{if .allow_only_external_registration}}checked{{end}}>
+								</div>
+							</div>
+							<div class="inline field">
 								<div class="ui checkbox" id="enable-openid-signup">
 									<label class="poping up" data-content="{{.i18n.Tr "install.openid_signup_popup"}}"><strong>{{.i18n.Tr "install.openid_signup"}}</strong></label>
 									<input name="enable_open_id_sign_up" type="checkbox" {{if .enable_open_id_sign_up}}checked{{end}}>

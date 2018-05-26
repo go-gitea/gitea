@@ -733,6 +733,22 @@ func (err ErrRepoFileAlreadyExist) Error() string {
 	return fmt.Sprintf("repository file already exists [file_name: %s]", err.FileName)
 }
 
+// ErrUserDoesNotHaveAccessToRepo represets an error where the user doesn't has access to a given repo
+type ErrUserDoesNotHaveAccessToRepo struct {
+	UserID   int64
+	RepoName string
+}
+
+// IsErrUserDoesNotHaveAccessToRepo checks if an error is a ErrRepoFileAlreadyExist.
+func IsErrUserDoesNotHaveAccessToRepo(err error) bool {
+	_, ok := err.(ErrUserDoesNotHaveAccessToRepo)
+	return ok
+}
+
+func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
+	return fmt.Sprintf("user doesn't have acces to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
+}
+
 // __________                             .__
 // \______   \____________    ____   ____ |  |__
 //  |    |  _/\_  __ \__  \  /    \_/ ___\|  |  \
@@ -1220,4 +1236,26 @@ func IsErrExternalLoginUserNotExist(err error) bool {
 
 func (err ErrExternalLoginUserNotExist) Error() string {
 	return fmt.Sprintf("external login user link does not exists [userID: %d, loginSourceID: %d]", err.UserID, err.LoginSourceID)
+}
+
+// ____ ________________________________              .__          __                 __  .__
+// |    |   \_____  \_   _____/\______   \ ____   ____ |__| _______/  |_____________ _/  |_|__| ____   ____
+// |    |   //  ____/|    __)   |       _// __ \ / ___\|  |/  ___/\   __\_  __ \__  \\   __\  |/  _ \ /    \
+// |    |  //       \|     \    |    |   \  ___// /_/  >  |\___ \  |  |  |  | \// __ \|  | |  (  <_> )   |  \
+// |______/ \_______ \___  /    |____|_  /\___  >___  /|__/____  > |__|  |__|  (____  /__| |__|\____/|___|  /
+// \/   \/            \/     \/_____/         \/                   \/                    \/
+
+// ErrU2FRegistrationNotExist represents a "ErrU2FRegistrationNotExist" kind of error.
+type ErrU2FRegistrationNotExist struct {
+	ID int64
+}
+
+func (err ErrU2FRegistrationNotExist) Error() string {
+	return fmt.Sprintf("U2F registration does not exist [id: %d]", err.ID)
+}
+
+// IsErrU2FRegistrationNotExist checks if an error is a ErrU2FRegistrationNotExist.
+func IsErrU2FRegistrationNotExist(err error) bool {
+	_, ok := err.(ErrU2FRegistrationNotExist)
+	return ok
 }

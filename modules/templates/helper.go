@@ -75,6 +75,7 @@ func NewFuncMap() []template.FuncMap {
 		"RawTimeSince":  base.RawTimeSince,
 		"FileSize":      base.FileSize,
 		"Subtract":      base.Subtract,
+		"EntryIcon":     base.EntryIcon,
 		"Add": func(a, b int) int {
 			return a + b
 		},
@@ -179,8 +180,12 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return dict, nil
 		},
-		"Printf": fmt.Sprintf,
-		"Escape": Escape,
+		"Printf":   fmt.Sprintf,
+		"Escape":   Escape,
+		"Sec2Time": models.SecToTime,
+		"ParseDeadline": func(deadline string) []string {
+			return strings.Split(deadline, "|")
+		},
 	}}
 }
 

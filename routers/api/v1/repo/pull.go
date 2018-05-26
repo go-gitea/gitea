@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	api "code.gitea.io/sdk/gitea"
 )
@@ -210,42 +211,28 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		milestoneID = milestone.ID
 	}
 
-	if len(form.Assignee) > 0 {
-		assigneeUser, err := models.GetUserByName(form.Assignee)
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.Error(422, "", fmt.Sprintf("assignee does not exist: [name: %s]", form.Assignee))
-			} else {
-				ctx.Error(500, "GetUserByName", err)
-			}
-			return
-		}
-
-		assignee, err := repo.GetAssigneeByID(assigneeUser.ID)
-		if err != nil {
-			ctx.Error(500, "GetAssigneeByID", err)
-			return
-		}
-
-		assigneeID = assignee.ID
-	}
-
 	patch, err := headGitRepo.GetPatch(prInfo.MergeBase, headBranch)
 	if err != nil {
 		ctx.Error(500, "GetPatch", err)
 		return
 	}
 
+	var deadlineUnix util.TimeStamp
+	if form.Deadline != nil {
+		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
+	}
+
 	prIssue := &models.Issue{
-		RepoID:      repo.ID,
-		Index:       repo.NextIssueIndex(),
-		Title:       form.Title,
-		PosterID:    ctx.User.ID,
-		Poster:      ctx.User,
-		MilestoneID: milestoneID,
-		AssigneeID:  assigneeID,
-		IsPull:      true,
-		Content:     form.Body,
+		RepoID:       repo.ID,
+		Index:        repo.NextIssueIndex(),
+		Title:        form.Title,
+		PosterID:     ctx.User.ID,
+		Poster:       ctx.User,
+		MilestoneID:  milestoneID,
+		AssigneeID:   assigneeID,
+		IsPull:       true,
+		Content:      form.Body,
+		DeadlineUnix: deadlineUnix,
 	}
 	pr := &models.PullRequest{
 		HeadRepoID:   headRepo.ID,
@@ -259,7 +246,22 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		Type:         models.PullRequestGitea,
 	}
 
-	if err := models.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch); err != nil {
+	// Get all assignee IDs
+	assigneeIDs, err := models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
+		} else {
+			ctx.Error(500, "AddAssigneeByName", err)
+		}
+		return
+	}
+
+	if err := models.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch, assigneeIDs); err != nil {
+		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
+			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
+			return
+		}
 		ctx.Error(500, "NewPullRequest", err)
 		return
 	} else if err := pr.PushToBaseRepo(); err != nil {
@@ -328,28 +330,38 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		issue.Content = form.Body
 	}
 
-	if ctx.Repo.IsWriter() && len(form.Assignee) > 0 &&
-		(issue.Assignee == nil || issue.Assignee.LowerName != strings.ToLower(form.Assignee)) {
-		if len(form.Assignee) == 0 {
-			issue.AssigneeID = 0
-		} else {
-			assignee, err := models.GetUserByName(form.Assignee)
-			if err != nil {
-				if models.IsErrUserNotExist(err) {
-					ctx.Error(422, "", fmt.Sprintf("assignee does not exist: [name: %s]", form.Assignee))
-				} else {
-					ctx.Error(500, "GetUserByName", err)
-				}
-				return
-			}
-			issue.AssigneeID = assignee.ID
-		}
+	// Update Deadline
+	var deadlineUnix util.TimeStamp
+	if form.Deadline != nil && !form.Deadline.IsZero() {
+		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
+	}
 
-		if err = models.UpdateIssueUserByAssignee(issue); err != nil {
-			ctx.Error(500, "UpdateIssueUserByAssignee", err)
+	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
+		ctx.Error(500, "UpdateIssueDeadline", err)
+		return
+	}
+
+	// Add/delete assignees
+
+	// Deleting is done the Github way (quote from their api documentation):
+	// https://developer.github.com/v3/issues/#edit-an-issue
+	// "assignees" (array): Logins for Users to assign to this issue.
+	// Pass one or more user logins to replace the set of assignees on this Issue.
+	// Send an empty array ([]) to clear all assignees from the Issue.
+
+	if ctx.Repo.IsWriter() && (form.Assignees != nil || len(form.Assignee) > 0) {
+
+		err = models.UpdateAPIAssignee(issue, form.Assignee, form.Assignees, ctx.User)
+		if err != nil {
+			if models.IsErrUserNotExist(err) {
+				ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
+			} else {
+				ctx.Error(500, "UpdateAPIAssignee", err)
+			}
 			return
 		}
 	}
+
 	if ctx.Repo.IsWriter() && form.Milestone != 0 &&
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID

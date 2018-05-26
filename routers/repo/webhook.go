@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	tplHooks      base.TplName = "repo/settings/hooks"
-	tplHookNew    base.TplName = "repo/settings/hook_new"
+	tplHooks      base.TplName = "repo/settings/webhook/base"
+	tplHookNew    base.TplName = "repo/settings/webhook/new"
 	tplOrgHookNew base.TplName = "org/settings/hook_new"
 )
 
@@ -118,10 +118,15 @@ func ParseHookEvent(form auth.WebhookForm) *models.HookEvent {
 		SendEverything: form.SendEverything(),
 		ChooseEvents:   form.ChooseEvents(),
 		HookEvents: models.HookEvents{
-			Create:      form.Create,
-			Push:        form.Push,
-			PullRequest: form.PullRequest,
-			Repository:  form.Repository,
+			Create:       form.Create,
+			Delete:       form.Delete,
+			Fork:         form.Fork,
+			Issues:       form.Issues,
+			IssueComment: form.IssueComment,
+			Release:      form.Release,
+			Push:         form.Push,
+			PullRequest:  form.PullRequest,
+			Repository:   form.Repository,
 		},
 	}
 }

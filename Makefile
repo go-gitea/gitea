@@ -91,6 +91,15 @@ generate-swagger:
 	fi
 	swagger generate spec -o ./public/swagger.v1.json
 
+.PHONY: swagger-check
+swagger-check: generate-swagger
+	@diff=$$(git diff public/swagger.v1.json); \
+	if [ -n "$$diff" ]; then \
+		echo "Please run 'make generate-swagger' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi;
+
 .PHONY: errcheck
 errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
@@ -144,18 +153,22 @@ coverage:
 unit-test-coverage:
 	for PKG in $(PACKAGES); do $(GO) test -tags=sqlite -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG || exit 1; done;
 
-.PHONY: test-vendor
-test-vendor:
-	@hash govendor > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/kardianos/govendor; \
+.PHONY: vendor
+vendor:
+	@hash dep > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) get -u github.com/golang/dep/cmd/dep; \
 	fi
-	govendor list +unused | tee "$(TMPDIR)/wc-gitea-unused"
-	[ $$(cat "$(TMPDIR)/wc-gitea-unused" | wc -l) -eq 0 ] || echo "Warning: /!\\ Some vendor are not used /!\\"
+	dep ensure -vendor-only
 
-	govendor list +outside | tee "$(TMPDIR)/wc-gitea-outside"
-	[ $$(cat "$(TMPDIR)/wc-gitea-outside" | wc -l) -eq 0 ] || exit 1
-
-	govendor status || exit 1
+.PHONY: test-vendor
+test-vendor: vendor
+	@diff=$$(git diff vendor/); \
+	if [ -n "$$diff" ]; then \
+		echo "Please run 'make vendor' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi;
+#TODO add dep status -missing when implemented
 
 .PHONY: test-sqlite
 test-sqlite: integrations.sqlite.test
@@ -221,7 +234,7 @@ $(EXECUTABLE): $(SOURCES)
 	$(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: release-dirs release-windows release-linux release-darwin release-copy release-check
+release: release-dirs release-windows release-linux release-darwin release-copy release-compress release-check
 
 .PHONY: release-dirs
 release-dirs:
@@ -265,6 +278,13 @@ release-copy:
 release-check:
 	cd $(DIST)/release; $(foreach file,$(wildcard $(DIST)/release/$(EXECUTABLE)-*),sha256sum $(notdir $(file)) > $(notdir $(file)).sha256;)
 
+.PHONY: release-compress
+release-compress:
+	@hash gxz > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) get -u github.com/ulikunitz/xz/cmd/gxz; \
+	fi
+	cd $(DIST)/release; $(foreach file,$(wildcard $(DIST)/binaries/$(EXECUTABLE)-*),gxz -k -9 $(notdir $(file));)
+
 .PHONY: javascripts
 javascripts: public/js/index.js
 
@@ -283,12 +303,12 @@ stylesheets-check: generate-stylesheets
 
 .PHONY: generate-stylesheets
 generate-stylesheets:
-	node_modules/.bin/lessc --no-ie-compat --clean-css public/less/index.less public/css/index.css
+	node_modules/.bin/lessc --clean-css public/less/index.less public/css/index.css
 
 .PHONY: swagger-ui
 swagger-ui:
 	rm -Rf public/vendor/assets/swagger-ui
-	git clone --depth=10 -b v3.3.2 --single-branch https://github.com/swagger-api/swagger-ui.git $(TMPDIR)/swagger-ui
+	git clone --depth=10 -b v3.13.4 --single-branch https://github.com/swagger-api/swagger-ui.git $(TMPDIR)/swagger-ui
 	mv $(TMPDIR)/swagger-ui/dist public/vendor/assets/swagger-ui
 	rm -Rf $(TMPDIR)/swagger-ui
 	$(SED_INPLACE) "s;http://petstore.swagger.io/v2/swagger.json;../../../swagger.v1.json;g" public/vendor/assets/swagger-ui/index.html

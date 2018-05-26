@@ -115,6 +115,51 @@ func getDiscordCreatePayload(p *api.CreatePayload, meta *DiscordMeta) (*DiscordP
 	}, nil
 }
 
+func getDiscordDeletePayload(p *api.DeletePayload, meta *DiscordMeta) (*DiscordPayload, error) {
+	// deleted tag/branch
+	refName := git.RefEndName(p.Ref)
+	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
+
+	return &DiscordPayload{
+		Username:  meta.Username,
+		AvatarURL: meta.IconURL,
+		Embeds: []DiscordEmbed{
+			{
+				Title: title,
+				URL:   p.Repo.HTMLURL + "/src/" + refName,
+				Color: warnColor,
+				Author: DiscordEmbedAuthor{
+					Name:    p.Sender.UserName,
+					URL:     setting.AppURL + p.Sender.UserName,
+					IconURL: p.Sender.AvatarURL,
+				},
+			},
+		},
+	}, nil
+}
+
+func getDiscordForkPayload(p *api.ForkPayload, meta *DiscordMeta) (*DiscordPayload, error) {
+	// fork
+	title := fmt.Sprintf("%s is forked to %s", p.Forkee.FullName, p.Repo.FullName)
+
+	return &DiscordPayload{
+		Username:  meta.Username,
+		AvatarURL: meta.IconURL,
+		Embeds: []DiscordEmbed{
+			{
+				Title: title,
+				URL:   p.Repo.HTMLURL,
+				Color: successColor,
+				Author: DiscordEmbedAuthor{
+					Name:    p.Sender.UserName,
+					URL:     setting.AppURL + p.Sender.UserName,
+					IconURL: p.Sender.AvatarURL,
+				},
+			},
+		},
+	}, nil
+}
+
 func getDiscordPushPayload(p *api.PushPayload, meta *DiscordMeta) (*DiscordPayload, error) {
 	var (
 		branchName = git.RefEndName(p.Ref)
@@ -165,6 +210,116 @@ func getDiscordPushPayload(p *api.PushPayload, meta *DiscordMeta) (*DiscordPaylo
 	}, nil
 }
 
+func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPayload, error) {
+	var text, title string
+	var color int
+	switch p.Action {
+	case api.HookIssueOpened:
+		title = fmt.Sprintf("[%s] Issue opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		text = p.Issue.Body
+		color = warnColor
+	case api.HookIssueClosed:
+		title = fmt.Sprintf("[%s] Issue closed: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		color = failedColor
+		text = p.Issue.Body
+	case api.HookIssueReOpened:
+		title = fmt.Sprintf("[%s] Issue re-opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		text = p.Issue.Body
+		color = warnColor
+	case api.HookIssueEdited:
+		title = fmt.Sprintf("[%s] Issue edited: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		text = p.Issue.Body
+		color = warnColor
+	case api.HookIssueAssigned:
+		title = fmt.Sprintf("[%s] Issue assigned to %s: #%d %s", p.Repository.FullName,
+			p.Issue.Assignee.UserName, p.Index, p.Issue.Title)
+		text = p.Issue.Body
+		color = successColor
+	case api.HookIssueUnassigned:
+		title = fmt.Sprintf("[%s] Issue unassigned: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		text = p.Issue.Body
+		color = warnColor
+	case api.HookIssueLabelUpdated:
+		title = fmt.Sprintf("[%s] Issue labels updated: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		text = p.Issue.Body
+		color = warnColor
+	case api.HookIssueLabelCleared:
+		title = fmt.Sprintf("[%s] Issue labels cleared: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		text = p.Issue.Body
+		color = warnColor
+	case api.HookIssueSynchronized:
+		title = fmt.Sprintf("[%s] Issue synchronized: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		text = p.Issue.Body
+		color = warnColor
+	case api.HookIssueMilestoned:
+		title = fmt.Sprintf("[%s] Issue milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		text = p.Issue.Body
+		color = warnColor
+	case api.HookIssueDemilestoned:
+		title = fmt.Sprintf("[%s] Issue clear milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
+		text = p.Issue.Body
+		color = warnColor
+	}
+
+	return &DiscordPayload{
+		Username:  meta.Username,
+		AvatarURL: meta.IconURL,
+		Embeds: []DiscordEmbed{
+			{
+				Title:       title,
+				Description: text,
+				URL:         p.Issue.URL,
+				Color:       color,
+				Author: DiscordEmbedAuthor{
+					Name:    p.Sender.UserName,
+					URL:     setting.AppURL + p.Sender.UserName,
+					IconURL: p.Sender.AvatarURL,
+				},
+			},
+		},
+	}, nil
+}
+
+func getDiscordIssueCommentPayload(p *api.IssueCommentPayload, discord *DiscordMeta) (*DiscordPayload, error) {
+	title := fmt.Sprintf("#%d %s", p.Issue.Index, p.Issue.Title)
+	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, CommentHashTag(p.Comment.ID))
+	content := ""
+	var color int
+	switch p.Action {
+	case api.HookIssueCommentCreated:
+		title = "New comment: " + title
+		content = p.Comment.Body
+		color = successColor
+	case api.HookIssueCommentEdited:
+		title = "Comment edited: " + title
+		content = p.Comment.Body
+		color = warnColor
+	case api.HookIssueCommentDeleted:
+		title = "Comment deleted: " + title
+		url = fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Issue.Index)
+		content = p.Comment.Body
+		color = warnColor
+	}
+
+	return &DiscordPayload{
+		Username:  discord.Username,
+		AvatarURL: discord.IconURL,
+		Embeds: []DiscordEmbed{
+			{
+				Title:       title,
+				Description: content,
+				URL:         url,
+				Color:       color,
+				Author: DiscordEmbedAuthor{
+					Name:    p.Sender.UserName,
+					URL:     setting.AppURL + p.Sender.UserName,
+					IconURL: p.Sender.AvatarURL,
+				},
+			},
+		},
+	}, nil
+}
+
 func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) (*DiscordPayload, error) {
 	var text, title string
 	var color int
@@ -191,8 +346,12 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 		text = p.PullRequest.Body
 		color = warnColor
 	case api.HookIssueAssigned:
+		list, err := MakeAssigneeList(&Issue{ID: p.PullRequest.ID})
+		if err != nil {
+			return &DiscordPayload{}, err
+		}
 		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d %s", p.Repository.FullName,
-			p.PullRequest.Assignee.UserName, p.Index, p.PullRequest.Title)
+			list, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 		color = successColor
 	case api.HookIssueUnassigned:
@@ -209,6 +368,14 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 		color = warnColor
 	case api.HookIssueSynchronized:
 		title = fmt.Sprintf("[%s] Pull request synchronized: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+		color = warnColor
+	case api.HookIssueMilestoned:
+		title = fmt.Sprintf("[%s] Pull request milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
+		text = p.PullRequest.Body
+		color = warnColor
+	case api.HookIssueDemilestoned:
+		title = fmt.Sprintf("[%s] Pull request clear milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 		color = warnColor
 	}
@@ -263,6 +430,43 @@ func getDiscordRepositoryPayload(p *api.RepositoryPayload, meta *DiscordMeta) (*
 	}, nil
 }
 
+func getDiscordReleasePayload(p *api.ReleasePayload, meta *DiscordMeta) (*DiscordPayload, error) {
+	var title, url string
+	var color int
+	switch p.Action {
+	case api.HookReleasePublished:
+		title = fmt.Sprintf("[%s] Release created", p.Release.TagName)
+		url = p.Release.URL
+		color = successColor
+	case api.HookReleaseUpdated:
+		title = fmt.Sprintf("[%s] Release updated", p.Release.TagName)
+		url = p.Release.URL
+		color = successColor
+	case api.HookReleaseDeleted:
+		title = fmt.Sprintf("[%s] Release deleted", p.Release.TagName)
+		url = p.Release.URL
+		color = successColor
+	}
+
+	return &DiscordPayload{
+		Username:  meta.Username,
+		AvatarURL: meta.IconURL,
+		Embeds: []DiscordEmbed{
+			{
+				Title:       title,
+				Description: fmt.Sprintf("%s", p.Release.Note),
+				URL:         url,
+				Color:       color,
+				Author: DiscordEmbedAuthor{
+					Name:    p.Sender.UserName,
+					URL:     setting.AppURL + p.Sender.UserName,
+					IconURL: p.Sender.AvatarURL,
+				},
+			},
+		},
+	}, nil
+}
+
 // GetDiscordPayload converts a discord webhook into a DiscordPayload
 func GetDiscordPayload(p api.Payloader, event HookEventType, meta string) (*DiscordPayload, error) {
 	s := new(DiscordPayload)
@@ -275,12 +479,22 @@ func GetDiscordPayload(p api.Payloader, event HookEventType, meta string) (*Disc
 	switch event {
 	case HookEventCreate:
 		return getDiscordCreatePayload(p.(*api.CreatePayload), discord)
+	case HookEventDelete:
+		return getDiscordDeletePayload(p.(*api.DeletePayload), discord)
+	case HookEventFork:
+		return getDiscordForkPayload(p.(*api.ForkPayload), discord)
+	case HookEventIssues:
+		return getDiscordIssuesPayload(p.(*api.IssuePayload), discord)
+	case HookEventIssueComment:
+		return getDiscordIssueCommentPayload(p.(*api.IssueCommentPayload), discord)
 	case HookEventPush:
 		return getDiscordPushPayload(p.(*api.PushPayload), discord)
 	case HookEventPullRequest:
 		return getDiscordPullRequestPayload(p.(*api.PullRequestPayload), discord)
 	case HookEventRepository:
 		return getDiscordRepositoryPayload(p.(*api.RepositoryPayload), discord)
+	case HookEventRelease:
+		return getDiscordReleasePayload(p.(*api.ReleasePayload), discord)
 	}
 
 	return s, nil

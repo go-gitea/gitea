@@ -521,6 +521,11 @@ var (
 		MaxResponseItems:      50,
 	}
 
+	U2F = struct {
+		AppID         string
+		TrustedFacets []string
+	}{}
+
 	// I18n settings
 	Langs     []string
 	Names     []string
@@ -1135,6 +1140,9 @@ func NewContext() {
 			IsInputFile:    sec.Key("IS_INPUT_FILE").MustBool(false),
 		})
 	}
+	sec = Cfg.Section("U2F")
+	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
+	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
 }
 
 // Service settings
@@ -1143,6 +1151,7 @@ var Service struct {
 	ResetPwdCodeLives                       int
 	RegisterEmailConfirm                    bool
 	DisableRegistration                     bool
+	AllowOnlyExternalRegistration           bool
 	ShowRegistrationButton                  bool
 	RequireSignInView                       bool
 	EnableNotifyMail                        bool
@@ -1151,6 +1160,7 @@ var Service struct {
 	EnableCaptcha                           bool
 	DefaultKeepEmailPrivate                 bool
 	DefaultAllowCreateOrganization          bool
+	EnableTimetracking                      bool
 	DefaultEnableTimetracking               bool
 	DefaultAllowOnlyContributorsToTrackTime bool
 	NoReplyAddress                          string
@@ -1167,14 +1177,18 @@ func newService() {
 	Service.ActiveCodeLives = sec.Key("ACTIVE_CODE_LIVE_MINUTES").MustInt(180)
 	Service.ResetPwdCodeLives = sec.Key("RESET_PASSWD_CODE_LIVE_MINUTES").MustInt(180)
 	Service.DisableRegistration = sec.Key("DISABLE_REGISTRATION").MustBool()
-	Service.ShowRegistrationButton = sec.Key("SHOW_REGISTRATION_BUTTON").MustBool(!Service.DisableRegistration)
+	Service.AllowOnlyExternalRegistration = sec.Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").MustBool()
+	Service.ShowRegistrationButton = sec.Key("SHOW_REGISTRATION_BUTTON").MustBool(!(Service.DisableRegistration || Service.AllowOnlyExternalRegistration))
 	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool()
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
-	Service.DefaultEnableTimetracking = sec.Key("DEFAULT_ENABLE_TIMETRACKING").MustBool(true)
+	Service.EnableTimetracking = sec.Key("ENABLE_TIMETRACKING").MustBool(true)
+	if Service.EnableTimetracking {
+		Service.DefaultEnableTimetracking = sec.Key("DEFAULT_ENABLE_TIMETRACKING").MustBool(true)
+	}
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 

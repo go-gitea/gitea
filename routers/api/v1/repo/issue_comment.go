@@ -15,7 +15,7 @@ import (
 
 // ListIssueComments list all the comments of an issue
 func ListIssueComments(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/issue/{index}/comments issue issueGetComments
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/comments issue issueGetComments
 	// ---
 	// summary: List all comments on an issue
 	// produces:
@@ -261,8 +261,9 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
+	oldContent := comment.Content
 	comment.Content = form.Body
-	if err := models.UpdateComment(comment); err != nil {
+	if err := models.UpdateComment(ctx.User, comment, oldContent); err != nil {
 		ctx.Error(500, "UpdateComment", err)
 		return
 	}
@@ -348,7 +349,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = models.DeleteComment(comment); err != nil {
+	if err = models.DeleteComment(ctx.User, comment); err != nil {
 		ctx.Error(500, "DeleteCommentByID", err)
 		return
 	}
