@@ -39,7 +39,7 @@
 				</div>
 				{{if .AllowMerge}}
 					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
-					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowSquash}}
+					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMergeCommit $prUnit.PullRequestsConfig.AllowSquash}}
 						<div class="ui divider"></div>
 						{{if $prUnit.PullRequestsConfig.AllowMerge}}
 						<div class="ui form merge-fields" style="display: none">
@@ -66,6 +66,19 @@
 								{{.CsrfTokenHtml}}
 								<button class="ui green button" type="submit" name="do" value="rebase">
 									{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}
+								</button>
+								<button class="ui button merge-cancel">
+									{{$.i18n.Tr "cancel"}}
+								</button>
+							</form>
+						</div>
+						{{end}}
+						{{if $prUnit.PullRequestsConfig.AllowRebaseMergeCommit}}
+						<div class="ui form rebase-merge-commit-fields" style="display: none">
+							<form action="{{.Link}}/merge" method="post">
+								{{.CsrfTokenHtml}}
+								<button class="ui green button" type="submit" name="do" value="rebase-merge-commit">
+									{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}
 								</button>
 								<button class="ui button merge-cancel">
 									{{$.i18n.Tr "cancel"}}
@@ -102,6 +115,9 @@
 								{{if eq .MergeStyle "rebase"}}
 									{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}
 								{{end}}
+								{{if eq .MergeStyle "rebase-merge-commit"}}
+									{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}
+								{{end}}
 								{{if eq .MergeStyle "squash"}}
 									{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}
 								{{end}}
@@ -115,6 +131,9 @@
 									{{end}}
 									{{if $prUnit.PullRequestsConfig.AllowRebase}}
 									<div class="item{{if eq .MergeStyle "rebase"}} active selected{{end}}" data-do="rebase">{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}</div>
+									{{end}}
+									{{if $prUnit.PullRequestsConfig.AllowRebaseMergeCommit}}
+									<div class="item{{if eq .MergeStyle "rebase-merge-commit"}} active selected{{end}}" data-do="rebase-merge-commit">{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</div>
 									{{end}}
 									{{if $prUnit.PullRequestsConfig.AllowSquash}}
 									<div class="item{{if eq .MergeStyle "squash"}} active selected{{end}}" data-do="squash">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}</div>

@@ -765,6 +765,8 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Data["MergeStyle"] = models.MergeStyleMerge
 			} else if prConfig.AllowRebase {
 				ctx.Data["MergeStyle"] = models.MergeStyleRebase
+			} else if prConfig.AllowRebaseMergeCommit {
+				ctx.Data["MergeStyle"] = models.MergeStyleRebaseMergeCommit
 			} else if prConfig.AllowSquash {
 				ctx.Data["MergeStyle"] = models.MergeStyleSquash
 			} else {

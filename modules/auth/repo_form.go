@@ -110,6 +110,7 @@ type RepoSettingForm struct {
 	PullsIgnoreWhitespace            bool
 	PullsAllowMerge                  bool
 	PullsAllowRebase                 bool
+	PullsAllowRebaseMergeCommit      bool
 	PullsAllowSquash                 bool
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
@@ -352,7 +353,7 @@ func (f *InitializeLabelsForm) Validate(ctx *macaron.Context, errs binding.Error
 
 // MergePullRequestForm form for merging Pull Request
 type MergePullRequestForm struct {
-	Do                string `binding:"Required;In(merge,rebase,squash)"`
+	Do                string `binding:"Required;In(merge,rebase,rebase-merge-commit,squash)"`
 	MergeTitleField   string
 	MergeMessageField string
 }

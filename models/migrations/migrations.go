@@ -186,6 +186,8 @@ var migrations = []Migration{
 	NewMigration("add u2f", addU2FReg),
 	// v66 -> v67
 	NewMigration("add login source id column for public_key table", addLoginSourceIDToPublicKeyTable),
+	// v67 -> v68
+	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMergeCommit),
 }
 
 // Migrate database to current version
