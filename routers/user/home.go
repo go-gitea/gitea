@@ -249,10 +249,9 @@ func Issues(ctx *context.Context) {
 
 	opts.Page = page
 	opts.PageSize = setting.UI.IssuePagingNum
-
-	selectLabels := ctx.Query("labels")
-	opts.Labels = selectLabels
-
+	
+	opts.Labels := ctx.Query("labels")
+	
 	issues, err := models.Issues(opts)
 	if err != nil {
 		ctx.ServerError("Issues", err)
