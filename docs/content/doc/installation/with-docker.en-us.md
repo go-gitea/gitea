@@ -243,6 +243,8 @@ You can configure some of Gitea's settings via environment variables:
 * `DB_PASSWD`: **"<empty>"**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
 * `INSTALL_LOCK`: **false**: Disallow access to the install page.
 * `SECRET_KEY`: **""**: Global secret key. This should be changed. If this has a value and `INSTALL_LOCK` is empty, `INSTALL_LOCK` will automatically set to `true`.
+* `DISABLE_REGISTRATION`: **false**: Disable registration, after which only admin can create accounts for users.
+* `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page.
 
 # Customization
 

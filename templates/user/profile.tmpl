@@ -100,12 +100,12 @@
 					</div>
 				{{else if eq .TabName "stars"}}
 					<div class="stars">
-						{{template "explore/search" .}}
+						{{template "explore/repo_search" .}}
 						{{template "explore/repo_list" .}}
 						{{template "base/paginate" .}}
 					</div>
 				{{else}}
-					{{template "explore/search" .}}
+					{{template "explore/repo_search" .}}
 					{{template "explore/repo_list" .}}
 					{{template "base/paginate" .}}
 				{{end}}

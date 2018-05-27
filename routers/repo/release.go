@@ -197,7 +197,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 		rel.PublisherID = ctx.User.ID
 		rel.IsTag = false
 
-		if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+		if err = models.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
 			ctx.Data["Err_TagName"] = true
 			ctx.ServerError("UpdateRelease", err)
 			return
@@ -276,7 +276,7 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
-	if err = models.UpdateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+	if err = models.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
 		ctx.ServerError("UpdateRelease", err)
 		return
 	}
