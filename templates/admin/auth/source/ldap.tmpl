@@ -62,6 +62,10 @@
 		<label for="attribute_mail">{{.i18n.Tr "admin.auths.attribute_mail"}}</label>
 		<input id="attribute_mail" name="attribute_mail" value="{{.attribute_mail}}" placeholder="e.g. mail">
 	</div>
+	<div class="field">
+	    <label for="attribute_ssh_public_key">{{.i18n.Tr "admin.auths.attribute_ssh_public_key"}}</label>
+	    <input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{.attribute_ssh_public_key}}" placeholder="e.g. SshPublicKey">
+	</div>
 	<div class="ldap inline field {{if not (eq .type 2)}}hide{{end}}">
 		<div class="ui checkbox">
 			<label for="use_paged_search"><strong>{{.i18n.Tr "admin.auths.use_paged_search"}}</strong></label>

@@ -76,7 +76,7 @@ to run the test suite locally.
 ## Vendoring
 
 We keep a cached copy of dependencies within the `vendor/` directory,
-managing updates via [govendor](http://github.com/kardianos/govendor).
+managing updates via [dep](https://github.com/golang/dep).
 
 Pull requests should only include `vendor/` updates if they are part of
 the same change, be it a bugfix or a feature addition.
@@ -84,6 +84,8 @@ the same change, be it a bugfix or a feature addition.
 The `vendor/` update needs to be justified as part of the PR description,
 and must be verified by the reviewers and/or merger to always reference
 an existing upstream commit.
+
+You can find more information on how to get started with it on the [dep project website](https://golang.github.io/dep/docs/introduction.html).
 
 ## Translation
 

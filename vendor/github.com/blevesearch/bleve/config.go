@@ -25,6 +25,9 @@ import (
 	"github.com/blevesearch/bleve/index/upsidedown"
 	"github.com/blevesearch/bleve/registry"
 	"github.com/blevesearch/bleve/search/highlight/highlighter/html"
+
+	// force import of scorch so its accessible by default
+	_ "github.com/blevesearch/bleve/index/scorch"
 )
 
 var bleveExpVar = expvar.NewMap("bleve")

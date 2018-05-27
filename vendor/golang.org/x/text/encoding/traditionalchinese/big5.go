@@ -5,7 +5,6 @@
 package traditionalchinese
 
 import (
-	"errors"
 	"unicode/utf8"
 
 	"golang.org/x/text/encoding"
@@ -26,8 +25,6 @@ var big5 = internal.Encoding{
 	identifier.Big5,
 }
 
-var errInvalidBig5 = errors.New("traditionalchinese: invalid Big5 encoding")
-
 type big5Decoder struct{ transform.NopResetter }
 
 func (big5Decoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc int, err error) {
@@ -40,8 +37,12 @@ loop:
 
 		case 0x81 <= c0 && c0 < 0xff:
 			if nSrc+1 >= len(src) {
-				err = transform.ErrShortSrc
-				break loop
+				if !atEOF {
+					err = transform.ErrShortSrc
+					break loop
+				}
+				r, size = utf8.RuneError, 1
+				goto write
 			}
 			c1 := src[nSrc+1]
 			switch {
@@ -49,9 +50,12 @@ loop:
 				c1 -= 0x40
 			case 0xa1 <= c1 && c1 < 0xff:
 				c1 -= 0x62
+			case c1 < 0x40:
+				r, size = utf8.RuneError, 1
+				goto write
 			default:
-				err = errInvalidBig5
-				break loop
+				r, size = utf8.RuneError, 2
+				goto write
 			}
 			r, size = '\ufffd', 2
 			if i := int(c0-0x81)*157 + int(c1); i < len(decode) {
@@ -80,10 +84,10 @@ loop:
 			}
 
 		default:
-			err = errInvalidBig5
-			break loop
+			r, size = utf8.RuneError, 1
 		}
 
+	write:
 		if nDst+utf8.RuneLen(r) > len(dst) {
 			err = transform.ErrShortDst
 			break loop
@@ -98,9 +102,6 @@ loop:
 		}
 		nDst += copy(dst[nDst:], s)
 		continue loop
-	}
-	if atEOF && err == transform.ErrShortSrc {
-		err = errInvalidBig5
 	}
 	return nDst, nSrc, err
 }
