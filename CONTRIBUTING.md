@@ -70,8 +70,8 @@ running the test suite exactly like we do, you should install
 the CLI for [Drone CI](https://github.com/drone/drone), as
 we are using the server for continous testing, following [these
 instructions](http://readme.drone.io/usage/getting-started-cli). After that,
-you can simply call `drone exec` within your working directory and it will try
-to run the test suite locally.
+you can simply call `drone exec --local --build-event "pull_request"` within
+your working directory and it will try to run the test suite locally.
 
 ## Vendoring
 
