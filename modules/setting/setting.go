@@ -136,11 +136,11 @@ var (
 	}
 
 	LFS struct {
-		StartServer           bool   `ini:"LFS_START_SERVER"`
-		ContentPath           string `ini:"LFS_CONTENT_PATH"`
-		JWTSecretBase64       string `ini:"LFS_JWT_SECRET"`
-		JWTSecretBytes        []byte `ini:"-"`
-		HTTPAuthExpiryMinutes int    `ini:"LFS_HTTP_AUTH_EXPIRY_MINUTES"`
+		StartServer     bool          `ini:"LFS_START_SERVER"`
+		ContentPath     string        `ini:"LFS_CONTENT_PATH"`
+		JWTSecretBase64 string        `ini:"LFS_JWT_SECRET"`
+		JWTSecretBytes  []byte        `ini:"-"`
+		HTTPAuthExpiry  time.Duration `ini:"LFS_HTTP_AUTH_EXPIRY"`
 	}
 
 	// Security settings
@@ -828,7 +828,9 @@ func NewContext() {
 	if !filepath.IsAbs(LFS.ContentPath) {
 		LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
 	}
-	LFS.HTTPAuthExpiryMinutes = sec.Key("LFS_HTTP_AUTH_EXPIRY_MINUTES").MustInt(5)
+
+	sec = Cfg.Section("LFS")
+	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
 
 	if LFS.StartServer {
 

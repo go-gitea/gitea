@@ -268,7 +268,7 @@ func runServ(c *cli.Context) error {
 		claims := jwt.MapClaims{
 			"repo": repo.ID,
 			"op":   lfsVerb,
-			"exp":  now.Add(time.Duration(setting.LFS.HTTPAuthExpiryMinutes) * time.Minute).Unix(),
+			"exp":  now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
 			"nbf":  now.Unix(),
 		}
 		if user != nil {
