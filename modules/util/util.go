@@ -7,6 +7,7 @@ package util
 import (
 	"net/url"
 	"path"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 )
@@ -65,7 +66,7 @@ func URLJoin(base string, elems ...string) string {
 	joinArgs = append(joinArgs, u.Path)
 	joinArgs = append(joinArgs, elems...)
 	u.Path = path.Join(joinArgs...)
-	return u.String()
+	return strings.Replace(u.String(), "%23", "#", 1)
 }
 
 // Min min of two ints
