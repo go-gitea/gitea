@@ -412,7 +412,7 @@ ENABLE_FEDERATED_AVATAR = false
 
 [attachment]
 ; Whether attachments are enabled. Defaults to `true`
-ENABLE = true
+ENABLED = true
 ; Path for attachments. Defaults to `data/attachments`
 PATH = data/attachments
 ; One or more allowed types, e.g. image/jpeg|image/png
