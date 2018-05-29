@@ -373,7 +373,7 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 				a, err = strconv.Unquote(a)
 				if err != nil {
 					return nil, fmt.Errorf("Unquote: %v", err)
-}
+				}
 				b, err = strconv.Unquote(b)
 				if err != nil {
 					return nil, fmt.Errorf("Unquote: %v", err)
