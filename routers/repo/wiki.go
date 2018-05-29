@@ -350,7 +350,7 @@ func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 		return
 	}
 
-	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + models.WikiNameToFilename(wikiName))
+	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + models.WikiNameToSubURL(wikiName))
 }
 
 // EditWiki render wiki modify page
@@ -391,7 +391,7 @@ func EditWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 		return
 	}
 
-	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + models.WikiNameToFilename(newWikiName))
+	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + models.WikiNameToSubURL(newWikiName))
 }
 
 // DeleteWikiPagePost delete wiki page
