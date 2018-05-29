@@ -47,7 +47,7 @@ Version: 1.10.1
 File(s): /vendor/plugins/pdfjs/
 Version: 1.4.20
 
-File(s): u2f-api
+File(s): /vendor/plugins/u2f/
 Version: 1.0.8
 
 File(s): /vendor/assets/font-awesome/fonts/
