@@ -7,6 +7,7 @@ package util
 import (
 	"net/url"
 	"path"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 )
@@ -56,16 +57,25 @@ func Max(a, b int) int {
 
 // URLJoin joins url components, like path.Join, but preserving contents
 func URLJoin(base string, elems ...string) string {
-	u, err := url.Parse(base)
+	if !strings.HasSuffix(base, "/") {
+		base += "/"
+	}
+	baseURL, err := url.Parse(base)
 	if err != nil {
 		log.Error(4, "URLJoin: Invalid base URL %s", base)
 		return ""
 	}
-	joinArgs := make([]string, 0, len(elems)+1)
-	joinArgs = append(joinArgs, u.Path)
-	joinArgs = append(joinArgs, elems...)
-	u.Path = path.Join(joinArgs...)
-	return u.String()
+	joinedPath := path.Join(elems...)
+	argURL, err := url.Parse(joinedPath)
+	if err != nil {
+		log.Error(4, "URLJoin: Invalid arg %s", joinedPath)
+		return ""
+	}
+	joinedURL := baseURL.ResolveReference(argURL).String()
+	if !baseURL.IsAbs() {
+		return joinedURL[1:] // Removing leading '/'
+	}
+	return joinedURL
 }
 
 // Min min of two ints
