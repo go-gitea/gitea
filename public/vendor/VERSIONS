@@ -17,9 +17,6 @@ Version: 1.5.9
 File(s): /vendor/plugins/gitgraph/gitgraph.js
 Version: 9b492e8bf1ddf7908a4997b8f83fa38a809a9da3
 
-File(s): /vendor/plugins/autolink/autolink.js
-Version: 741f66f
-
 File(s): /vendor/plugins/vue/vue.min.js
 Version: 2.1.10
 
@@ -49,6 +46,9 @@ Version: 1.10.1
 
 File(s): /vendor/plugins/pdfjs/
 Version: 1.4.20
+
+File(s): /vendor/plugins/u2f/
+Version: 1.0.8
 
 File(s): /vendor/assets/font-awesome/fonts/
 Version: 4.6.0
