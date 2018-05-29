@@ -9,6 +9,8 @@ import (
 	"container/list"
 	"strconv"
 	"strings"
+
+	"github.com/mcuadros/go-version"
 )
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
@@ -274,7 +276,7 @@ func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 func (repo *Repository) commitsBefore(id SHA1, limit int) (*list.List, error) {
 	cmd := NewCommand("log")
 	if limit > 0 {
-		cmd.AddArguments("-"+ strconv.Itoa(limit), prettyLogFormat, id.String())
+		cmd.AddArguments("-"+strconv.Itoa(limit), prettyLogFormat, id.String())
 	} else {
 		cmd.AddArguments(prettyLogFormat, id.String())
 	}
@@ -316,15 +318,35 @@ func (repo *Repository) getCommitsBeforeLimit(id SHA1, num int) (*list.List, err
 }
 
 func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error) {
-	stdout, err := NewCommand("for-each-ref", "--count="+ strconv.Itoa(limit), "--format=%(refname)", "--contains", commit.ID.String(), BranchPrefix).RunInDir(repo.Path)
+	if version.Compare(gitVersion, "2.7.0", ">=") {
+		stdout, err := NewCommand("for-each-ref", "--count="+strconv.Itoa(limit), "--format=%(refname:strip=2)", "--contains", commit.ID.String(), BranchPrefix).RunInDir(repo.Path)
+		if err != nil {
+			return nil, err
+		}
+
+		branches := strings.Fields(stdout)
+		return branches, nil
+	}
+
+	stdout, err := NewCommand("branch", "--contains", commit.ID.String()).RunInDir(repo.Path)
 	if err != nil {
 		return nil, err
 	}
 
 	refs := strings.Split(stdout, "\n")
-	branches := make([]string, len(refs)-1)
-	for i, ref := range refs[:len(refs)-1] {
-		branches[i] = strings.TrimPrefix(ref, BranchPrefix)
+
+	var max int
+	if len(refs) > limit {
+		max = limit
+	} else {
+		max = len(refs) - 1
+	}
+
+	branches := make([]string, max)
+	for i, ref := range refs[:max] {
+		parts := strings.Fields(ref)
+
+		branches[i] = parts[len(parts)-1]
 	}
 	return branches, nil
 }
