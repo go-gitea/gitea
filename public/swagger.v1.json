@@ -1028,7 +1028,9 @@
           }
         ],
         "responses": {
-          "200": {}
+          "200": {
+            "description": "success"
+          }
         }
       }
     },
@@ -1338,7 +1340,9 @@
           }
         ],
         "responses": {
-          "200": {}
+          "200": {
+            "description": "success"
+          }
         }
       }
     },
@@ -3261,7 +3265,9 @@
           }
         ],
         "responses": {
-          "200": {}
+          "200": {
+            "description": "success"
+          }
         }
       }
     },

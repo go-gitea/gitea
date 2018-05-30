@@ -36,7 +36,8 @@ func GetRawFile(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	//       200:
+	//   200:
+	//     description: success
 	if !ctx.Repo.HasAccess() {
 		ctx.Status(404)
 		return
@@ -85,7 +86,8 @@ func GetArchive(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	//       200:
+	//   200:
+	//     description: success
 	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
@@ -121,7 +123,8 @@ func GetEditorconfig(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	//       200:
+	//   200:
+	//     description: success
 	ec, err := ctx.Repo.GetEditorconfig()
 	if err != nil {
 		if git.IsErrNotExist(err) {
