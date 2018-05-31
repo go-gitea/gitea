@@ -396,7 +396,7 @@ func (c *Comment) AsDiff() (*Diff, error) {
 	if len(diff.Files) == 0 {
 		return nil, fmt.Errorf("no file found for comment ID: %d", c.ID)
 	}
-	// Limit to 4 lines around comment line
+	// Limit to CODE_COMMENT_LINES lines around comment line
 	for _, sec := range diff.Files[0].Sections {
 		var searchedLineIdx int
 		for lineIdx, line := range sec.Lines {
@@ -409,9 +409,9 @@ func (c *Comment) AsDiff() (*Diff, error) {
 				break
 			}
 		}
-		if searchedLineIdx >= 3 {
-			first := searchedLineIdx-3
-			last := searchedLineIdx+1
+		if searchedLineIdx >= setting.UI.CodeCommentLines - 1 {
+			first := searchedLineIdx - setting.UI.CodeCommentLines + 1
+			last := searchedLineIdx + 1
 			sec.Lines = sec.Lines[first:last]
 			diff.Files[0].Sections = []*DiffSection{sec}
 			break
@@ -428,11 +428,12 @@ func (c *Comment) AsDiff() (*Diff, error) {
 func (c *Comment) MustAsDiff() *Diff {
 	diff, err := c.AsDiff()
 	if err != nil {
-		log.Warn( "MustAsDiff: %v", err)
+		log.Warn("MustAsDiff: %v", err)
 	}
 	return diff
 }
 
+// CodeCommentURL returns the url to a comment in code
 func (c *Comment) CodeCommentURL() string {
 	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
@@ -465,7 +466,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		NewTitle:        opts.NewTitle,
 		TreePath:        opts.TreePath,
 		ReviewID:        opts.ReviewID,
-		Patch:	 	 opts.Patch,
+		Patch:           opts.Patch,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -683,7 +684,7 @@ type CreateCommentOptions struct {
 	NewTitle        string
 	CommitID        int64
 	CommitSHA       string
-	Patch		string
+	Patch           string
 	LineNum         int64
 	TreePath        string
 	ReviewID        int64
@@ -786,7 +787,7 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 		TreePath:  treePath,
 		CommitSHA: commit.ID.String(),
 		ReviewID:  reviewID,
-		Patch:	   patchBuf.String(),
+		Patch:     patchBuf.String(),
 	})
 }
 

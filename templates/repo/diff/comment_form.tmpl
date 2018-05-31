@@ -1,6 +1,6 @@
 {{if $.root.SignedUserID}}
 	{{if $.hidden}}
-		<button class="comment-form-reply ui green labeled icon tiny button"><i class="reply icon"></i> Reply</button>
+		<button class="comment-form-reply ui green labeled icon tiny button"><i class="reply icon"></i> {{$.root.i18n.Tr "repo.diff.comment.reply"}}</button>
 	{{end}}
 	<form class="ui form {{if $.hidden}}hide comment-form{{end}}" action="{{$.root.Issue.HTMLURL}}/files/reviews/comments" method="post">
 	{{$.root.CsrfTokenHtml}}
