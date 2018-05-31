@@ -433,6 +433,15 @@ func (c *Comment) MustAsDiff() *Diff {
 	return diff
 }
 
+func (c *Comment) CodeCommentURL() string {
+	err := c.LoadIssue()
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
+		return ""
+	}
+	return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
+}
+
 func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
 	var LabelID int64
 	if opts.Label != nil {

@@ -271,7 +271,7 @@
 									{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
 								</button>
 							{{end}}
-								<code>{{$filename}}</code>
+								<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment">{{$filename}}</a>
 							</div>
 							{{$diff := ((index $comms 0).MustAsDiff)}}
 							{{if $diff}}
