@@ -8,7 +8,9 @@
 			<div class="ui right">
 				<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
 				<a class="ui tiny basic toggle button" data-target="#diff-files">{{.i18n.Tr "repo.diff.show_diff_stats"}}</a>
-				{{template "repo/diff/new_review" .}}
+				{{if $.SignedUserID}}
+					{{template "repo/diff/new_review" .}}
+				{{end}}
 			</div>
 		</div>
 		<ol class="detail-files hide" id="diff-files">
@@ -104,7 +106,7 @@
 
 														</td>
 														<td class="lines-code lines-code-old halfwidth">
-															{{if not (len $line.Comments)}}
+															{{if and $.SignedUserID (not (len $line.Comments))}}
 																<a class="ui green button add-code-comment add-code-comment-right" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}">+</a>
 															{{end}}
 															<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
@@ -114,7 +116,7 @@
 														</td>
 
 														<td class="lines-code lines-code-new halfwidth">
-															{{if not (len $line.Comments)}}
+															{{if and $.SignedUserID (not (len $line.Comments))}}
 																<a class="ui green button add-code-comment add-code-comment-right" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}">+</a>
 															{{end}}
 															<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
@@ -129,7 +131,7 @@
 																		{{ template "repo/diff/comments" dict "root" $ "comments" $line.Comments}}
 																		</ui>
 																	</div>
-																{{template "repo/diff/comment_form_datahandler" dict "root" $ "comment" (index $line.Comments 0)}}
+																	{{template "repo/diff/comment_form_datahandler" dict "hidden" true "root" $ "comment" (index $line.Comments 0)}}
 																</div>
 															</td>
 														</tr>

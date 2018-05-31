@@ -779,6 +779,15 @@ function initPullRequestReview() {
         $("#code-preview-" + id).addClass('hide');
         $("#show-outdated-" + id).removeClass('hide');
     });
+
+    $('.comment-form-reply').on('click', function (e) {
+        e.preventDefault();
+        $(this).hide();
+        var form = $(this).parent().find('.comment-form')
+        form.removeClass('hide');
+        assingMenuAttributes(form.find('.menu'));
+    });
+    // The following part is only for diff views
     if ($('.repository.pull.diff').length == 0) {
         return;
     }
@@ -825,24 +834,26 @@ function initPullRequestReview() {
         if (commentCloud.length === 0) {
             td.html(form);
             commentCloud = td.find('.comment-code-cloud');
-
-            var id = Math.floor(Math.random() * Math.floor(1000000));
-            var menu = commentCloud.find('.menu');
-            menu.attr('data-write', menu.attr('data-write') + id);
-            menu.attr('data-preview', menu.attr('data-preview') + id);
-            menu.find('.item').each(function(i, item) {
-                $(item).attr('data-tab', $(item).attr('data-tab') + id);
-            });
+            assingMenuAttributes(commentCloud.find('.menu'));
             commentCloud.find('.tab.segment').each(function(i, item) {
                 $(item).attr('data-tab', $(item).attr('data-tab') + id);
             });
             td.find("input[name='line']").val(idx);
             td.find("input[name='side']").val(side === "left" ? "previous":"proposed");
             td.find("input[name='path']").val(path);
-            initCommentPreviewTab(commentCloud.find('.form'));
         }
         commentCloud.find('textarea').focus();
     });
+}
+
+function assingMenuAttributes(menu) {
+    var id = Math.floor(Math.random() * Math.floor(1000000));
+    menu.attr('data-write', menu.attr('data-write') + id);
+    menu.attr('data-preview', menu.attr('data-preview') + id);
+    menu.find('.item').each(function(i, item) {
+        $(item).attr('data-tab', $(item).attr('data-tab') + id);
+    });
+    initCommentPreviewTab(menu.parent(".form"))
 }
 
 function initRepositoryCollaboration() {
@@ -2469,4 +2480,14 @@ function deleteDueDate(url) {
     },function( data ) {
         window.location.reload();
     });
+}
+function cancelCodeComment(btn) {
+    var form = $(btn).closest("form");
+    if(form.length > 0 && form.hasClass('comment-form')) {
+        form.addClass('hide');
+        form.parent().find('.comment-form-reply').show();
+    }else {
+        console.log("Hey");
+        form.closest('.comment-code-cloud').remove()
+    }
 }
