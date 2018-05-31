@@ -136,10 +136,11 @@ var (
 	}
 
 	LFS struct {
-		StartServer     bool   `ini:"LFS_START_SERVER"`
-		ContentPath     string `ini:"LFS_CONTENT_PATH"`
-		JWTSecretBase64 string `ini:"LFS_JWT_SECRET"`
-		JWTSecretBytes  []byte `ini:"-"`
+		StartServer     bool          `ini:"LFS_START_SERVER"`
+		ContentPath     string        `ini:"LFS_CONTENT_PATH"`
+		JWTSecretBase64 string        `ini:"LFS_JWT_SECRET"`
+		JWTSecretBytes  []byte        `ini:"-"`
+		HTTPAuthExpiry  time.Duration `ini:"LFS_HTTP_AUTH_EXPIRY"`
 	}
 
 	// Security settings
@@ -828,6 +829,9 @@ func NewContext() {
 		LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
 	}
 
+	sec = Cfg.Section("LFS")
+	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
+
 	if LFS.StartServer {
 
 		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
@@ -947,7 +951,7 @@ func NewContext() {
 	AttachmentAllowedTypes = strings.Replace(sec.Key("ALLOWED_TYPES").MustString("image/jpeg,image/png,application/zip,application/gzip"), "|", ",", -1)
 	AttachmentMaxSize = sec.Key("MAX_SIZE").MustInt64(4)
 	AttachmentMaxFiles = sec.Key("MAX_FILES").MustInt(5)
-	AttachmentEnabled = sec.Key("ENABLE").MustBool(true)
+	AttachmentEnabled = sec.Key("ENABLED").MustBool(true)
 
 	TimeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("RFC1123")
 	TimeFormat = map[string]string{
