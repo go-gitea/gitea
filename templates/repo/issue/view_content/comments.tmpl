@@ -273,126 +273,21 @@
 							{{end}}
 								<code>{{$filename}}</code>
 							</div>
-							<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $invalid}} hide{{end}}">
-								<div class="diff-file-box diff-box file-content tab-size-8">
-									<div class="file-body file-code code-view code-diff code-diff-unified">
-										<table>
-											<tbody>
-
-											<tr class="tag-code nl-0 ol-0">
-
-												<td colspan="2" class="lines-num">
-
-												</td>
-
-												<td class="lines-code lines-code-old">
-													<pre><code class="wrap language-json hljs">@@ <span class="hljs-number">-27</span>,<span class="hljs-number">5</span> +<span class="hljs-number">27</span>,<span class="hljs-number">5</span> @@</code></pre>
-												</td>
-											</tr>
-
-
-											<tr class="same-code nl-1 ol-1">
-
-												<td class="lines-num lines-num-old">
-													<span rel="diff-d9bff1704388955a5d24ad2abc8aea5a312994d0L27">27</span>
-												</td>
-												<td class="lines-num lines-num-new">
-													<span rel="diff-d9bff1704388955a5d24ad2abc8aea5a312994d0R27">27</span>
-													<a class="ui green button add-code-comment add-code-comment-right" data-path="vendor/vendor.json" data-side="right" data-idx="27">+</a>
-												</td>
-
-												<td class="lines-code ">
-													<pre><code class="wrap language-json hljs"> 			<span class="hljs-string">"revisionTime"</span>: <span class="hljs-string">"2016-08-23T15:25:51Z"</span></code></pre>
-												</td>
-											</tr>
-
-
-											<tr class="same-code nl-2 ol-2">
-
-												<td class="lines-num lines-num-old">
-													<span rel="diff-d9bff1704388955a5d24ad2abc8aea5a312994d0L28">28</span>
-												</td>
-												<td class="lines-num lines-num-new">
-													<span rel="diff-d9bff1704388955a5d24ad2abc8aea5a312994d0R28">28</span>
-													<a class="ui green button add-code-comment add-code-comment-right" data-path="vendor/vendor.json" data-side="right" data-idx="28">+</a>
-												</td>
-
-												<td class="lines-code ">
-													<pre><code class="wrap language-json hljs"> 		}</code></pre>
-												</td>
-											</tr>
-
-
-											<tr class="same-code nl-3 ol-3">
-
-												<td class="lines-num lines-num-old">
-													<span rel="diff-d9bff1704388955a5d24ad2abc8aea5a312994d0L29">29</span>
-												</td>
-												<td class="lines-num lines-num-new">
-													<span rel="diff-d9bff1704388955a5d24ad2abc8aea5a312994d0R29">29</span>
-													<a class="ui green button add-code-comment add-code-comment-right" data-path="vendor/vendor.json" data-side="right" data-idx="29">+</a>
-												</td>
-
-												<td class="lines-code ">
-													<pre><code class="wrap language-json hljs"> 	],</code></pre>
-												</td>
-											</tr>
-
-											<tr class="del-code nl-4 ol-4">
-
-												<td class="lines-num lines-num-old">
-													<span rel="diff-d9bff1704388955a5d24ad2abc8aea5a312994d0L30">30</span>
-												</td>
-												<td class="lines-num lines-num-new">
-													<span rel=""></span>
-													<a class="ui green button add-code-comment add-code-comment-left" data-path="vendor/vendor.json" data-side="left" data-idx="30">+</a>
-												</td>
-
-												<td class="lines-code lines-code-old">
-													<pre><code class="wrap language-json hljs">-	<span class="hljs-string">"rootPath"</span>: <span class="hljs-string">"</span><span class="removed-code"><span class="hljs-string">github.com</span></span><span class="hljs-string">/JonasFranzDEV/drone-gitea-release"</span></code></pre>
-												</td>
-											</tr>
-
-
-											<tr class="add-code nl-5 ol-5">
-
-												<td class="lines-num lines-num-old">
-													<span rel=""></span>
-												</td>
-												<td class="lines-num lines-num-new">
-													<span rel="diff-d9bff1704388955a5d24ad2abc8aea5a312994d0R30">30</span>
-													<a class="ui green button add-code-comment add-code-comment-right" data-path="vendor/vendor.json" data-side="right" data-idx="30">+</a>
-												</td>
-
-												<td class="lines-code ">
-													<pre><code class="wrap language-json hljs">+	<span class="hljs-string">"rootPath"</span>: <span class="hljs-string">"</span><span class="added-code"><span class="hljs-string">localhost:3000</span></span><span class="hljs-string">/JonasFranzDEV/drone-gitea-release"</span></code></pre>
-												</td>
-											</tr>
-
-											<tr class="same-code nl-6 ol-6">
-
-												<td class="lines-num lines-num-old">
-													<span rel="diff-d9bff1704388955a5d24ad2abc8aea5a312994d0L31">31</span>
-												</td>
-												<td class="lines-num lines-num-new">
-													<span rel="diff-d9bff1704388955a5d24ad2abc8aea5a312994d0R31">31</span>
-													<a class="ui green button add-code-comment add-code-comment-right" data-path="vendor/vendor.json" data-side="right" data-idx="31">+</a>
-												</td>
-
-												<td class="lines-code ">
-													<pre><code class="wrap language-json hljs"> }</code></pre>
-												</td>
-											</tr>
-
-
-
-
-
-											</tbody>
-										</table>
+							{{$diff := ((index $comms 0).MustAsDiff)}}
+							{{if $diff}}
+								{{$file := (index $diff.Files 0)}}
+								<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $invalid}} hide{{end}}">
+									<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
+										<div class="file-body file-code code-view code-diff code-diff-unified">
+											<table>
+												<tbody>
+													{{template "repo/diff/section_unified" dict "file" $file "root" $}}
+												</tbody>
+											</table>
+										</div>
 									</div>
 								</div>
-							</div>
+							{{end}}
 							<div id="code-comments-{{(index $comms 0).ID}}" class="ui segment{{if $invalid}} hide{{end}}">
 								<div class="ui comments">
 									{{range $comms}}

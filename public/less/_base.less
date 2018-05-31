@@ -442,7 +442,13 @@ footer {
 }
 
 .hide {
-    display: none !important;
+    display: none;
+    &.show-outdated {
+        display: none !important;
+    }
+    &.hide-outdated {
+        display: none !important;
+    }
 }
 .center {
     text-align: center;

@@ -1854,7 +1854,6 @@ $(document).ready(function () {
     initU2FAuth();
     initU2FRegister();
     initPullRequestReview();
-
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
         switch (localStorage.getItem('repo-clone-protocol')) {

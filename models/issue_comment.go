@@ -5,11 +5,13 @@
 package models
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
@@ -110,6 +112,9 @@ type Comment struct {
 	TreePath        string
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
+
+	// Path represents the 4 lines of code cemented by this comment
+	Patch string `xorm:"TEXT"`
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
@@ -381,6 +386,53 @@ func (c *Comment) UnsignedLine() uint64 {
 	return uint64(c.Line)
 }
 
+// AsDiff returns c.Patch as *Diff
+func (c *Comment) AsDiff() (*Diff, error) {
+	diff, err := ParsePatch(setting.Git.MaxGitDiffLines,
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch))
+	if err != nil {
+		return nil, err
+	}
+	if len(diff.Files) == 0 {
+		return nil, fmt.Errorf("no file found for comment ID: %d", c.ID)
+	}
+	// Limit to 4 lines around comment line
+	for _, sec := range diff.Files[0].Sections {
+		var searchedLineIdx int
+		for lineIdx, line := range sec.Lines {
+			if c.Line < 0 && int64(line.LeftIdx) == c.Line {
+				searchedLineIdx = lineIdx
+				break
+			}
+			if c.Line > 0 && int64(line.RightIdx) == c.Line {
+				searchedLineIdx = lineIdx
+				break
+			}
+		}
+		if searchedLineIdx >= 3 {
+			first := searchedLineIdx-3
+			last := searchedLineIdx+1
+			sec.Lines = sec.Lines[first:last]
+			diff.Files[0].Sections = []*DiffSection{sec}
+			break
+		} else if searchedLineIdx > 0 {
+			sec.Lines = sec.Lines[:searchedLineIdx+1]
+			diff.Files[0].Sections = []*DiffSection{sec}
+			break
+		}
+	}
+	return diff, nil
+}
+
+// MustAsDiff executes AsDiff and logs the error instead of returning
+func (c *Comment) MustAsDiff() *Diff {
+	diff, err := c.AsDiff()
+	if err != nil {
+		log.Warn( "MustAsDiff: %v", err)
+	}
+	return diff
+}
+
 func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
 	var LabelID int64
 	if opts.Label != nil {
@@ -404,6 +456,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		NewTitle:        opts.NewTitle,
 		TreePath:        opts.TreePath,
 		ReviewID:        opts.ReviewID,
+		Patch:	 	 opts.Patch,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -621,6 +674,7 @@ type CreateCommentOptions struct {
 	NewTitle        string
 	CommitID        int64
 	CommitSHA       string
+	Patch		string
 	LineNum         int64
 	TreePath        string
 	ReviewID        int64
@@ -699,10 +753,20 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 		gitLine *= -1
 	}
 	// FIXME validate treePath
+	// Get latest commit referencing the commented line
 	commit, err := gitRepo.LineBlame(pr.HeadBranch, gitRepo.Path, treePath, uint(gitLine))
 	if err != nil {
 		return nil, err
 	}
+	headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+	if err != nil {
+		return nil, err
+	}
+	patchBuf := new(bytes.Buffer)
+	if err := GetRawDiffForFile(gitRepo.Path, pr.MergeBase, headCommitID, RawDiffPatch, treePath, patchBuf); err != nil {
+		return nil, err
+	}
+
 	return CreateComment(&CreateCommentOptions{
 		Type:      CommentTypeCode,
 		Doer:      doer,
@@ -713,6 +777,7 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 		TreePath:  treePath,
 		CommitSHA: commit.ID.String(),
 		ReviewID:  reviewID,
+		Patch:	   patchBuf.String(),
 	})
 }
 
@@ -974,7 +1039,6 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 
 		comment.RenderedContent = string(markdown.Render([]byte(comment.Content), issue.Repo.Link(),
 			issue.Repo.ComposeMetas()))
-
 		if pathToLineToComment[comment.TreePath] == nil {
 			pathToLineToComment[comment.TreePath] = make(map[int64][]*Comment)
 		}

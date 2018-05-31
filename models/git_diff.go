@@ -552,32 +552,46 @@ const (
 // GetRawDiff dumps diff results of repository in given commit ID to io.Writer.
 // TODO: move this function to gogits/git-module
 func GetRawDiff(repoPath, commitID string, diffType RawDiffType, writer io.Writer) error {
+	return GetRawDiffForFile(repoPath, "", commitID, diffType, "", writer)
+}
+
+// GetRawDiffForFile dumps diff results of file in given commit ID to io.Writer.
+// TODO: move this function to gogits/git-module
+func GetRawDiffForFile(repoPath, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
 	repo, err := git.OpenRepository(repoPath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
 
-	commit, err := repo.GetCommit(commitID)
+	commit, err := repo.GetCommit(endCommit)
 	if err != nil {
 		return fmt.Errorf("GetCommit: %v", err)
 	}
-
+	fileArgs := make([]string, 0)
+	if len(file) > 0 {
+		fileArgs = append(fileArgs, "--", file)
+	}
 	var cmd *exec.Cmd
 	switch diffType {
 	case RawDiffNormal:
-		if commit.ParentCount() == 0 {
-			cmd = exec.Command("git", "show", commitID)
+		if len(startCommit) != 0 {
+			cmd = exec.Command("git", append([]string{"diff", "-M", startCommit, endCommit}, fileArgs...)...)
+		} else if commit.ParentCount() == 0 {
+			cmd = exec.Command("git", append([]string{"show", endCommit}, fileArgs...)...)
 		} else {
 			c, _ := commit.Parent(0)
-			cmd = exec.Command("git", "diff", "-M", c.ID.String(), commitID)
+			cmd = exec.Command("git", append([]string{"diff", "-M", c.ID.String(), endCommit}, fileArgs...)...)
 		}
 	case RawDiffPatch:
-		if commit.ParentCount() == 0 {
-			cmd = exec.Command("git", "format-patch", "--no-signature", "--stdout", "--root", commitID)
+		if len(startCommit) != 0 {
+			query := fmt.Sprintf("%s...%s", endCommit, startCommit)
+			cmd = exec.Command("git", append([]string{"format-patch", "--no-signature", "--stdout", "--root", query}, fileArgs...)...)
+		} else if commit.ParentCount() == 0 {
+			cmd = exec.Command("git", append([]string{"format-patch", "--no-signature", "--stdout", "--root", endCommit}, fileArgs...)...)
 		} else {
 			c, _ := commit.Parent(0)
-			query := fmt.Sprintf("%s...%s", commitID, c.ID.String())
-			cmd = exec.Command("git", "format-patch", "--no-signature", "--stdout", query)
+			query := fmt.Sprintf("%s...%s", endCommit, c.ID.String())
+			cmd = exec.Command("git", append([]string{"format-patch", "--no-signature", "--stdout", query}, fileArgs...)...)
 		}
 	default:
 		return fmt.Errorf("invalid diffType: %s", diffType)
@@ -588,7 +602,6 @@ func GetRawDiff(repoPath, commitID string, diffType RawDiffType, writer io.Write
 	cmd.Dir = repoPath
 	cmd.Stdout = writer
 	cmd.Stderr = stderr
-
 	if err = cmd.Run(); err != nil {
 		return fmt.Errorf("Run: %v - %s", err, stderr)
 	}
