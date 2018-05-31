@@ -72,8 +72,8 @@ func URLJoin(base string, elems ...string) string {
 		return ""
 	}
 	joinedURL := baseURL.ResolveReference(argURL).String()
-	if !baseURL.IsAbs() {
-		return joinedURL[1:] // Removing leading '/'
+	if !baseURL.IsAbs() && !strings.HasPrefix(base, "/") {
+		return joinedURL[1:] // Removing leading '/' if needed
 	}
 	return joinedURL
 }
