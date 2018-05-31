@@ -409,7 +409,7 @@ func (c *Comment) AsDiff() (*Diff, error) {
 				break
 			}
 		}
-		if searchedLineIdx >= setting.UI.CodeCommentLines - 1 {
+		if searchedLineIdx >= setting.UI.CodeCommentLines-1 {
 			first := searchedLineIdx - setting.UI.CodeCommentLines + 1
 			last := searchedLineIdx + 1
 			sec.Lines = sec.Lines[first:last]
