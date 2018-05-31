@@ -7376,11 +7376,13 @@
       "description": "AccessTokenList represents a list of API access token."
     },
     "Attachment": {
+      "description": "Attachment",
       "schema": {
         "$ref": "#/definitions/Attachment"
       }
     },
     "AttachmentList": {
+      "description": "AttachmentList",
       "schema": {
         "type": "array",
         "items": {
@@ -7389,11 +7391,13 @@
       }
     },
     "Branch": {
+      "description": "Branch",
       "schema": {
         "$ref": "#/definitions/Branch"
       }
     },
     "BranchList": {
+      "description": "BranchList",
       "schema": {
         "type": "array",
         "items": {
@@ -7402,11 +7406,13 @@
       }
     },
     "Comment": {
+      "description": "Comment",
       "schema": {
         "$ref": "#/definitions/Comment"
       }
     },
     "CommentList": {
+      "description": "CommentList",
       "schema": {
         "type": "array",
         "items": {
@@ -7415,11 +7421,13 @@
       }
     },
     "DeployKey": {
+      "description": "DeployKey",
       "schema": {
         "$ref": "#/definitions/DeployKey"
       }
     },
     "DeployKeyList": {
+      "description": "DeployKeyList",
       "schema": {
         "type": "array",
         "items": {
@@ -7428,6 +7436,7 @@
       }
     },
     "EmailList": {
+      "description": "EmailList",
       "schema": {
         "type": "array",
         "items": {
@@ -7436,11 +7445,13 @@
       }
     },
     "GPGKey": {
+      "description": "GPGKey",
       "schema": {
         "$ref": "#/definitions/GPGKey"
       }
     },
     "GPGKeyList": {
+      "description": "GPGKeyList",
       "schema": {
         "type": "array",
         "items": {
@@ -7449,6 +7460,7 @@
       }
     },
     "Hook": {
+      "description": "Hook",
       "schema": {
         "type": "array",
         "items": {
@@ -7457,6 +7469,7 @@
       }
     },
     "HookList": {
+      "description": "HookList",
       "schema": {
         "type": "array",
         "items": {
@@ -7465,11 +7478,13 @@
       }
     },
     "Issue": {
+      "description": "Issue",
       "schema": {
         "$ref": "#/definitions/Issue"
       }
     },
     "IssueList": {
+      "description": "IssueList",
       "schema": {
         "type": "array",
         "items": {
@@ -7478,11 +7493,13 @@
       }
     },
     "Label": {
+      "description": "Label",
       "schema": {
         "$ref": "#/definitions/Label"
       }
     },
     "LabelList": {
+      "description": "LabelList",
       "schema": {
         "type": "array",
         "items": {
@@ -7494,11 +7511,13 @@
       "description": "MarkdownRender is a rendered markdown document"
     },
     "Milestone": {
+      "description": "Milestone",
       "schema": {
         "$ref": "#/definitions/Milestone"
       }
     },
     "MilestoneList": {
+      "description": "MilestoneList",
       "schema": {
         "type": "array",
         "items": {
@@ -7507,11 +7526,13 @@
       }
     },
     "Organization": {
+      "description": "Organization",
       "schema": {
         "$ref": "#/definitions/Organization"
       }
     },
     "OrganizationList": {
+      "description": "OrganizationList",
       "schema": {
         "type": "array",
         "items": {
@@ -7520,11 +7541,13 @@
       }
     },
     "PublicKey": {
+      "description": "PublicKey",
       "schema": {
         "$ref": "#/definitions/PublicKey"
       }
     },
     "PublicKeyList": {
+      "description": "PublicKeyList",
       "schema": {
         "type": "array",
         "items": {
@@ -7533,11 +7556,13 @@
       }
     },
     "PullRequest": {
+      "description": "PullRequest",
       "schema": {
         "$ref": "#/definitions/PullRequest"
       }
     },
     "PullRequestList": {
+      "description": "PullRequestList",
       "schema": {
         "type": "array",
         "items": {
@@ -7546,11 +7571,13 @@
       }
     },
     "Release": {
+      "description": "Release",
       "schema": {
         "$ref": "#/definitions/Release"
       }
     },
     "ReleaseList": {
+      "description": "ReleaseList",
       "schema": {
         "type": "array",
         "items": {
@@ -7559,11 +7586,13 @@
       }
     },
     "Repository": {
+      "description": "Repository",
       "schema": {
         "$ref": "#/definitions/Repository"
       }
     },
     "RepositoryList": {
+      "description": "RepositoryList",
       "schema": {
         "type": "array",
         "items": {
@@ -7572,6 +7601,7 @@
       }
     },
     "SearchResults": {
+      "description": "SearchResults",
       "schema": {
         "$ref": "#/definitions/SearchResults"
       },
@@ -7580,16 +7610,19 @@
       }
     },
     "ServerVersion": {
+      "description": "ServerVersion",
       "schema": {
         "$ref": "#/definitions/ServerVersion"
       }
     },
     "Status": {
+      "description": "Status",
       "schema": {
         "$ref": "#/definitions/Status"
       }
     },
     "StatusList": {
+      "description": "StatusList",
       "schema": {
         "type": "array",
         "items": {
@@ -7598,11 +7631,13 @@
       }
     },
     "Team": {
+      "description": "Team",
       "schema": {
         "$ref": "#/definitions/Team"
       }
     },
     "TeamList": {
+      "description": "TeamList",
       "schema": {
         "type": "array",
         "items": {
@@ -7611,11 +7646,13 @@
       }
     },
     "TrackedTime": {
+      "description": "TrackedTime",
       "schema": {
         "$ref": "#/definitions/TrackedTime"
       }
     },
     "TrackedTimeList": {
+      "description": "TrackedTimeList",
       "schema": {
         "type": "array",
         "items": {
@@ -7624,11 +7661,13 @@
       }
     },
     "User": {
+      "description": "User",
       "schema": {
         "$ref": "#/definitions/User"
       }
     },
     "UserList": {
+      "description": "UserList",
       "schema": {
         "type": "array",
         "items": {
@@ -7637,6 +7676,7 @@
       }
     },
     "WatchInfo": {
+      "description": "WatchInfo",
       "schema": {
         "$ref": "#/definitions/WatchInfo"
       }
@@ -7670,6 +7710,7 @@
       "description": "APINotFound is a not found empty response"
     },
     "parameterBodies": {
+      "description": "parameterBodies",
       "schema": {
         "$ref": "#/definitions/EditAttachmentOptions"
       },
