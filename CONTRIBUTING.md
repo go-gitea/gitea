@@ -69,9 +69,9 @@ and keep the compatibility on upgrade. To make sure you are
 running the test suite exactly like we do, you should install
 the CLI for [Drone CI](https://github.com/drone/drone), as
 we are using the server for continous testing, following [these
-instructions](http://readme.drone.io/usage/getting-started-cli). After that,
-you can simply call `drone exec` within your working directory and it will try
-to run the test suite locally.
+instructions](http://docs.drone.io/cli-installation/). After that,
+you can simply call `drone exec --local --build-event "pull_request"` within
+your working directory and it will try to run the test suite locally.
 
 ## Vendoring
 
@@ -114,7 +114,7 @@ pull request workflow to do that. And, we also use [LGTM](http://lgtm.co)
 to ensure every PR is reviewed by at least 2 maintainers.
 
 Please try to make your pull request easy to review for us. And, please read
-the *[How to get faster PR reviews](https://github.com/kubernetes/community/blob/master/contributors/devel/pull-requests.md#best-practices-for-faster-reviews)* guide;
+the *[How to get faster PR reviews](https://github.com/kubernetes/community/blob/261cb0fd089b64002c91e8eddceebf032462ccd6/contributors/guide/pull-requests.md#best-practices-for-faster-reviews)* guide;
 it has lots of useful tips for any project you may want to contribute.
 Some of the key points:
 
