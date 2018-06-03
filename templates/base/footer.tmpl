@@ -63,7 +63,7 @@
 
 	<script type="text/javascript">
 		$(document).ready(function () {
-			$('.language-flow').each(function(i, flow)=>{
+			$('.language-flow').each(function(i, flow){
 				var eleId = 'flow_' + i;
 				var diagram = flowchart.parse($(flow).text());
 				$('<div id="' + eleId +'"></div>').appendTo($(flow).parent('pre').get(0));
@@ -72,7 +72,7 @@
 			});
 
 			var options = {theme: 'simple'};
-			$('.language-sequence').each(function(i, ele) => {
+			$('.language-sequence').each(function(i, ele){
 				var eleId = 'sequence_' + i;
 				var d = Diagram.parse($(ele).text());
 				$('<div id="' + eleId +'"></div>').appendTo($(ele).parent('pre').get(0));
