@@ -63,6 +63,9 @@ coverage.all
 /integrations/mssql.ini
 /node_modules
 
+# Docker (cross build)
+/docker/Dockerfile.*
+/docker/qemu-*-static
 
 # Snapcraft
 snap/.snapcraft/

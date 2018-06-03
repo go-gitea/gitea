@@ -1,8 +1,11 @@
-
+ARG target=library
 ###################################
 #Build stage
-FROM golang:1.11-alpine3.8 AS build-env
+FROM $target/golang:1.11-alpine3.8 AS build-env
 
+#QEMU phase
+
+ARG GOARCH
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS "bindata $TAGS"
@@ -16,10 +19,15 @@ WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 
 #Checkout version if set
 RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
+ && go env \
  && make clean generate build
 
-FROM alpine:3.8
+###################################
+#Final build
+FROM $target/alpine:3.8
 LABEL maintainer="maintainers@gitea.io"
+
+#QEMU phase
 
 EXPOSE 22 3000
 
@@ -56,6 +64,7 @@ VOLUME ["/data"]
 ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/bin/s6-svscan", "/etc/s6"]
 
-COPY docker /
+COPY docker/etc /etc/
+COPY docker/usr /usr/
 COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
 RUN ln -s /app/gitea/gitea /usr/local/bin/gitea
