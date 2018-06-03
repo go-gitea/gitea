@@ -5005,7 +5005,8 @@
             "type": "string",
             "description": "username of user",
             "name": "username",
-            "in": "path"
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
@@ -5279,7 +5280,8 @@
             "type": "string",
             "description": "username of the user",
             "name": "username",
-            "in": "path"
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
