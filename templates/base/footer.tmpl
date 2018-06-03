@@ -55,33 +55,32 @@
 {{if .RequireHighlightJS}}
 	<script src="{{AppSubUrl}}/vendor/plugins/highlight/highlight.pack.js"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/flow/raphael.min.js"></script>
-    <script src="{{AppSubUrl}}/vendor/plugins/flow/flowchart.min.js"></script>
-    <script src="{{AppSubUrl}}/vendor/plugins/sequence/webfontloader.js"></script>
-    <script src="{{AppSubUrl}}/vendor/plugins/sequence/snap.svg-min.js"></script>
-    <script src="{{AppSubUrl}}/vendor/plugins/sequence/underscore-min.js"></script>
-    <script src="{{AppSubUrl}}/vendor/plugins/sequence/sequence-diagram-min.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/flow/flowchart.min.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/sequence/webfontloader.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/sequence/snap.svg-min.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/sequence/underscore-min.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/sequence/sequence-diagram-min.js"></script>
 
 	<script type="text/javascript">
-        $(document).ready(function () {
-            $('.language-flow').each((i, flow)=>{
-                var eleId = 'flow_' + i;
-                var diagram = flowchart.parse($(flow).text());
-                $('<div id="' + eleId +'"></div>').appendTo($(flow).parent('pre').get(0));
-                diagram.drawSVG(eleId);
-                $(flow).hide();
-            });
+		$(document).ready(function () {
+			$('.language-flow').each((i, flow)=>{
+				var eleId = 'flow_' + i;
+				var diagram = flowchart.parse($(flow).text());
+				$('<div id="' + eleId +'"></div>').appendTo($(flow).parent('pre').get(0));
+				diagram.drawSVG(eleId);
+				$(flow).hide();
+			});
 
-            var options = {theme: 'simple'};
-            $('.language-sequence').each((i, ele) => {
-                var eleId = 'sequence_' + i;
-                var d = Diagram.parse($(ele).text());
-                $('<div id="' + eleId +'"></div>').appendTo($(ele).parent('pre').get(0));
-                d.drawSVG(eleId, options);
-                $(ele).hide();
-            });
-        });
-
-    </script>
+			var options = {theme: 'simple'};
+			$('.language-sequence').each((i, ele) => {
+				var eleId = 'sequence_' + i;
+				var d = Diagram.parse($(ele).text());
+				$('<div id="' + eleId +'"></div>').appendTo($(ele).parent('pre').get(0));
+				d.drawSVG(eleId, options);
+				$(ele).hide();
+			});
+		});
+	</script>
 {{end}}
 {{if .RequireMinicolors}}
 	<script src="{{AppSubUrl}}/vendor/plugins/jquery.minicolors/jquery.minicolors.min.js"></script>
