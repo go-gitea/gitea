@@ -32,6 +32,8 @@ func NewSanitizer() {
 		// We only want to allow HighlightJS specific classes for code blocks
 		sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^language-\w+$`)).OnElements("code")
 
+		sanitizer.policy.AllowAttrs("class", "data-tab").OnElements("div", "a")
+
 		// Checkboxes
 		sanitizer.policy.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
 		sanitizer.policy.AllowAttrs("checked", "disabled").OnElements("input")

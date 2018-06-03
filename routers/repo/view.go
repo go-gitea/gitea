@@ -91,24 +91,24 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		ctx.Data["FileIsText"] = isTextFile
 		ctx.Data["FileName"] = readmeFile.Name()
 		// FIXME: what happens when README file is an image?
-		if isTextFile {
-			if readmeFile.Size() >= setting.UI.MaxDisplayFileSize {
-				// Pretend that this is a normal text file to display 'This file is too large to be shown'
-				ctx.Data["IsFileTooLarge"] = true
-				ctx.Data["IsTextFile"] = true
-				ctx.Data["FileSize"] = readmeFile.Size()
+		//if isTextFile {
+		if readmeFile.Size() >= setting.UI.MaxDisplayFileSize {
+			// Pretend that this is a normal text file to display 'This file is too large to be shown'
+			ctx.Data["IsFileTooLarge"] = true
+			ctx.Data["IsTextFile"] = true
+			ctx.Data["FileSize"] = readmeFile.Size()
+		} else {
+			d, _ := ioutil.ReadAll(dataRc)
+			buf = append(buf, d...)
+			if markup.Type(readmeFile.Name()) != "" {
+				ctx.Data["IsMarkup"] = true
+				ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
 			} else {
-				d, _ := ioutil.ReadAll(dataRc)
-				buf = append(buf, d...)
-				if markup.Type(readmeFile.Name()) != "" {
-					ctx.Data["IsMarkup"] = true
-					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
-				} else {
-					ctx.Data["IsRenderedHTML"] = true
-					ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
-				}
+				ctx.Data["IsRenderedHTML"] = true
+				ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
 			}
 		}
+		//}
 	}
 
 	// Show latest commit info of repository in table header,
@@ -192,7 +192,14 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 
 	switch {
-	case isTextFile:
+	case base.IsPDFFile(buf):
+		ctx.Data["IsPDFFile"] = true
+	case base.IsVideoFile(buf):
+		ctx.Data["IsVideoFile"] = true
+	case base.IsImageFile(buf):
+		ctx.Data["IsImageFile"] = true
+	default:
+		//case isTextFile:
 		if blob.Size() >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
 			break
@@ -209,7 +216,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		} else if readmeExist {
 			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = string(bytes.Replace(buf, []byte("\n"), []byte(`<br>`), -1))
-		} else {
+		} else if isTextFile {
 			// Building code view blocks with line number on server side.
 			var fileContent string
 			if content, err := templates.ToUTF8WithErr(buf); err != nil {
@@ -251,13 +258,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		} else if !ctx.Repo.IsWriter() {
 			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
 		}
-
-	case base.IsPDFFile(buf):
-		ctx.Data["IsPDFFile"] = true
-	case base.IsVideoFile(buf):
-		ctx.Data["IsVideoFile"] = true
-	case base.IsImageFile(buf):
-		ctx.Data["IsImageFile"] = true
 	}
 
 	if ctx.Repo.CanEnableEditor() {
