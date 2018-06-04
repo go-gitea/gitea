@@ -189,6 +189,8 @@ LFS_START_SERVER = false
 LFS_CONTENT_PATH = data/lfs
 ; LFS authentication secret, change this yourself
 LFS_JWT_SECRET =
+; LFS authentication validity period (in time.Duration), pushes taking longer than this may fail.
+LFS_HTTP_AUTH_EXPIRY = 20m
 
 ; Define allowed algorithms and their minimum key length (use -1 to disable a type)
 [ssh.minimum_key_sizes]
