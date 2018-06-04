@@ -17,6 +17,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Added deletion of an empty line at the end of file (#4054) (#4074)
   * Use ResolveReference instead of path.Join (#4073)
   * Fix #4081 Check for leading / in base before removing it (#4083)
+* MISC
+  * Update git vendor (#4059) (#4075)
 
 ## [1.4.1](https://github.com/go-gitea/gitea/releases/tag/v1.4.1) - 2018-05-03
 * BREAKING
