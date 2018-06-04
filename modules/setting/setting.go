@@ -829,7 +829,6 @@ func NewContext() {
 		LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
 	}
 
-	sec = Cfg.Section("LFS")
 	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
 
 	if LFS.StartServer {
