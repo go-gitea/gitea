@@ -1,6 +1,6 @@
 [简体中文](https://github.com/go-gitea/gitea/blob/master/README_ZH.md)
 
-# Gitea /ɡɪ’ti:/ Git with a cup of tea
+# Gitea - Git with a cup of tea
 
 [![Build Status](https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg)](https://drone.gitea.io/go-gitea/gitea)
 [![Join the Discord chat at https://discord.gg/NsatcWJ](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/NsatcWJ)
