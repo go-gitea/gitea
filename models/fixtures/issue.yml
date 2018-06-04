@@ -3,7 +3,6 @@
   repo_id: 1
   index: 1
   poster_id: 1
-  assignee_id: 1
   name: issue1
   content: content for the first issue
   is_closed: false
@@ -67,7 +66,6 @@
   repo_id: 3
   index: 1
   poster_id: 1
-  assignee_id: 1
   name: issue6
   content: content6
   is_closed: false

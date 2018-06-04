@@ -44,6 +44,7 @@ type InstallForm struct {
 	EnableOpenIDSignIn             bool
 	EnableOpenIDSignUp             bool
 	DisableRegistration            bool
+	AllowOnlyExternalRegistration  bool
 	EnableCaptcha                  bool
 	RequireSignInView              bool
 	DefaultKeepEmailPrivate        bool
@@ -109,6 +110,7 @@ type UpdateProfileForm struct {
 	KeepEmailPrivate bool
 	Website          string `binding:"ValidUrl;MaxSize(255)"`
 	Location         string `binding:"MaxSize(50)"`
+	Language         string `binding:"Size(5)"`
 }
 
 // Validate validates the fields
@@ -182,7 +184,7 @@ func (f *AddKeyForm) Validate(ctx *macaron.Context, errs binding.Errors) binding
 
 // NewAccessTokenForm form for creating access token
 type NewAccessTokenForm struct {
-	Name string `binding:"Required"`
+	Name string `binding:"Required;MaxSize(255)"`
 }
 
 // Validate valideates the fields
@@ -207,5 +209,25 @@ type TwoFactorScratchAuthForm struct {
 
 // Validate valideates the fields
 func (f *TwoFactorScratchAuthForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// U2FRegistrationForm for reserving an U2F name
+type U2FRegistrationForm struct {
+	Name string `binding:"Required"`
+}
+
+// Validate valideates the fields
+func (f *U2FRegistrationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// U2FDeleteForm for deleting U2F keys
+type U2FDeleteForm struct {
+	ID int64 `binding:"Required"`
+}
+
+// Validate valideates the fields
+func (f *U2FDeleteForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }

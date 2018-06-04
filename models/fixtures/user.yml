@@ -27,7 +27,7 @@
   is_admin: false
   avatar: avatar2
   avatar_email: user2@example.com
-  num_repos: 4
+  num_repos: 5
   num_stars: 2
   num_followers: 2
   num_following: 1

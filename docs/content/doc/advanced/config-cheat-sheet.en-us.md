@@ -84,7 +84,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `PROTOCOL`: **http**: \[http, https, fcgi, unix\]
 - `DOMAIN`: **localhost**: Domain name of this server.
-- `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**: Full public URL of Gitea server.
+- `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**:
+   Overwrite the automatically generated public URL.
+   This is useful if the internal and the external URL don't match (e.g. in Docker).
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
    - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
@@ -93,6 +95,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
 - `UNIX_SOCKET_PERMISSION`: **666**: Permissions for the Unix socket.
+- `LOCAL_ROOT_URL`: **%(PROTOCOL)s://%(HTTP_ADDR)s:%(HTTP_PORT)s/**: Local
+   (DMZ) URL for Gitea workers (such as SSH update) accessing web service. In
+   most cases you do not need to change the default value. Alter it only if
+   your SSH server node is not the same as HTTP node. Do not set this variable
+   if `PROTOCOL` is set to `unix`.
 - `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
 - `START_SSH_SERVER`: **false**: When enabled, use the built-in SSH server.
 - `SSH_DOMAIN`: **%(DOMAIN)s**: Domain name of this server, used for displayed clone URL.
@@ -108,6 +115,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LFS_START_SERVER`: **false**: Enables git-lfs support.
 - `LFS_CONTENT_PATH`: **./data/lfs**: Where to store LFS files.
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
+- `LFS_HTTP_AUTH_EXPIRY`: **20m**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, redirects http requests
    on another (https) port.
 - `PORT_TO_REDIRECT`: **80**: Port used when `REDIRECT_OTHER_PORT` is true.
@@ -121,6 +129,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
 - `SSL_MODE`: **disable**: For PostgreSQL only.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
+- `LOG_SQL`: **true**: Log the executed SQL.
 
 ## Indexer (`indexer`)
 
@@ -142,6 +151,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    authentication.
 - `DISABLE_GIT_HOOKS`: **false**: Prevent all users (including admin) from creating custom
    git hooks.
+- `IMPORT_LOCAL_PATHS`: **false**: Prevent all users (including admin) from importing local path on server.
 
 ## OpenID (`openid`)
 
@@ -198,8 +208,6 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Cache (`cache`)
 
 - `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, or `memcache`.
-   - To use `redis` or `memcache`, be sure to rebuild everything with build tags `redis` or
-     `memcache`: `go build -tags='redis'`.
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory cache only.
 - `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`.
    - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
@@ -270,6 +278,45 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`.
+
+## API (`api`)
+ 
+- `ENABLE_SWAGGER_ENDPOINT`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true. 
+- `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page
+
+## i18n (`i18n`)
+
+- `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR**: List of locales shown in language selector
+- `NAMES`: **English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,français,Nederlands,latviešu,русский,日本語,español,português do Brasil,polski,български,italiano,suomi,Türkçe,čeština,српски,svenska,한국어**: Visible names corresponding to the locales
+
+### i18n - Datepicker Language (`i18n.datelang`)
+Maps locales to the languages used by the datepicker plugin
+
+- `en-US`: **en**
+- `zh-CN`: **zh**
+- `zh-HK`: **zh-HK**
+- `zh-TW`: **zh-TW**
+- `de-DE`: **de**
+- `fr-FR`: **fr**
+- `nl-NL`: **nl**
+- `lv-LV`: **lv**
+- `ru-RU`: **ru**
+- `ja-JP`: **ja**
+- `es-ES`: **es**
+- `pt-BR`: **pt-BR**
+- `pl-PL`: **pl**
+- `bg-BG`: **bg**
+- `it-IT`: **it**
+- `fi-FI`: **fi**
+- `tr-TR`: **tr**
+- `cs-CZ`: **cs-CZ**
+- `sr-SP`: **sr**
+- `sv-SE`: **sv**
+- `ko-KR`: **ko**
+
+## U2F (`U2F`)
+- `APP_ID`: **`ROOT_URL`**: Declares the facet of the application. Requires HTTPS.
+- `TRUSTED_FACETS`: List of additional facets which are trusted. This is not support by all browsers.
 
 ## Markup (`markup`)
 

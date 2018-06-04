@@ -8,6 +8,7 @@ import (
 	api "code.gitea.io/sdk/gitea"
 )
 
+// ServerVersion
 // swagger:response ServerVersion
 type swaggerResponseServerVersion struct {
 	// in:body

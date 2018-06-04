@@ -37,7 +37,7 @@ type Issue struct {
 	MilestoneID     int64       `xorm:"INDEX"`
 	Milestone       *Milestone  `xorm:"-"`
 	Priority        int
-	AssigneeID      int64        `xorm:"INDEX"`
+	AssigneeID      int64        `xorm:"-"`
 	Assignee        *User        `xorm:"-"`
 	IsClosed        bool         `xorm:"INDEX"`
 	IsRead          bool         `xorm:"-"`
@@ -47,13 +47,16 @@ type Issue struct {
 	Ref             string
 
 	DeadlineUnix util.TimeStamp `xorm:"INDEX"`
-	CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix  util.TimeStamp `xorm:"INDEX updated"`
-	ClosedUnix   util.TimeStamp `xorm:"INDEX"`
 
-	Attachments []*Attachment `xorm:"-"`
-	Comments    []*Comment    `xorm:"-"`
-	Reactions   ReactionList  `xorm:"-"`
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	ClosedUnix  util.TimeStamp `xorm:"INDEX"`
+
+	Attachments      []*Attachment `xorm:"-"`
+	Comments         []*Comment    `xorm:"-"`
+	Reactions        ReactionList  `xorm:"-"`
+	TotalTrackedTime int64         `xorm:"-"`
+	Assignees        []*User       `xorm:"-"`
 }
 
 var (
@@ -69,6 +72,20 @@ func init() {
 	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
 }
 
+func (issue *Issue) loadTotalTimes(e Engine) (err error) {
+	opts := FindTrackedTimesOptions{IssueID: issue.ID}
+	issue.TotalTrackedTime, err = opts.ToSession(e).SumInt(&TrackedTime{}, "time")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// IsOverdue checks if the issue is overdue
+func (issue *Issue) IsOverdue() bool {
+	return util.TimeStampNow() >= issue.DeadlineUnix
+}
+
 func (issue *Issue) loadRepo(e Engine) (err error) {
 	if issue.Repo == nil {
 		issue.Repo, err = getRepositoryByID(e, issue.RepoID)
@@ -77,6 +94,15 @@ func (issue *Issue) loadRepo(e Engine) (err error) {
 		}
 	}
 	return nil
+}
+
+// IsTimetrackerEnabled returns true if the repo enables timetracking
+func (issue *Issue) IsTimetrackerEnabled() bool {
+	if err := issue.loadRepo(x); err != nil {
+		log.Error(4, fmt.Sprintf("loadRepo: %v", err))
+		return false
+	}
+	return issue.Repo.IsTimetrackerEnabled()
 }
 
 // GetPullRequest returns the issue pull request
@@ -107,22 +133,6 @@ func (issue *Issue) loadPoster(e Engine) (err error) {
 			issue.Poster = NewGhostUser()
 			if !IsErrUserNotExist(err) {
 				return fmt.Errorf("getUserByID.(poster) [%d]: %v", issue.PosterID, err)
-			}
-			err = nil
-			return
-		}
-	}
-	return
-}
-
-func (issue *Issue) loadAssignee(e Engine) (err error) {
-	if issue.Assignee == nil && issue.AssigneeID > 0 {
-		issue.Assignee, err = getUserByID(e, issue.AssigneeID)
-		if err != nil {
-			issue.AssigneeID = -1
-			issue.Assignee = NewGhostUser()
-			if !IsErrUserNotExist(err) {
-				return fmt.Errorf("getUserByID.(assignee) [%d]: %v", issue.AssigneeID, err)
 			}
 			err = nil
 			return
@@ -206,7 +216,7 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 		}
 	}
 
-	if err = issue.loadAssignee(e); err != nil {
+	if err = issue.loadAssignees(e); err != nil {
 		return
 	}
 
@@ -224,6 +234,11 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 
 	if err = issue.loadComments(e); err != nil {
 		return err
+	}
+	if issue.IsTimetrackerEnabled() {
+		if err = issue.loadTotalTimes(e); err != nil {
+			return err
+		}
 	}
 
 	return issue.loadReactions(e)
@@ -313,8 +328,11 @@ func (issue *Issue) APIFormat() *api.Issue {
 	if issue.Milestone != nil {
 		apiIssue.Milestone = issue.Milestone.APIFormat()
 	}
-	if issue.Assignee != nil {
-		apiIssue.Assignee = issue.Assignee.APIFormat()
+	if len(issue.Assignees) > 0 {
+		for _, assignee := range issue.Assignees {
+			apiIssue.Assignees = append(apiIssue.Assignees, assignee.APIFormat())
+		}
+		apiIssue.Assignee = issue.Assignees[0].APIFormat() // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
 	}
 	if issue.IsPull {
 		apiIssue.PullRequest = &api.PullRequestMeta{
@@ -323,6 +341,9 @@ func (issue *Issue) APIFormat() *api.Issue {
 		if issue.PullRequest.HasMerged {
 			apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
 		}
+	}
+	if issue.DeadlineUnix != 0 {
+		apiIssue.Deadline = issue.DeadlineUnix.AsTimePtr()
 	}
 
 	return apiIssue
@@ -349,11 +370,19 @@ func (issue *Issue) HasLabel(labelID int64) bool {
 
 func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 	var err error
+
+	if err = issue.loadRepo(x); err != nil {
+		log.Error(4, "loadRepo: %v", err)
+		return
+	}
+
+	if err = issue.loadPoster(x); err != nil {
+		log.Error(4, "loadPoster: %v", err)
+		return
+	}
+
+	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
 	if issue.IsPull {
-		if err = issue.loadRepo(x); err != nil {
-			log.Error(4, "loadRepo: %v", err)
-			return
-		}
 		if err = issue.loadPullRequest(x); err != nil {
 			log.Error(4, "loadPullRequest: %v", err)
 			return
@@ -368,6 +397,14 @@ func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 			PullRequest: issue.PullRequest.APIFormat(),
 			Repository:  issue.Repo.APIFormat(AccessModeNone),
 			Sender:      doer.APIFormat(),
+		})
+	} else {
+		err = PrepareWebhooks(issue.Repo, HookEventIssues, &api.IssuePayload{
+			Action:     api.HookIssueLabelUpdated,
+			Index:      issue.Index,
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
 		})
 	}
 	if err != nil {
@@ -484,6 +521,11 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		return fmt.Errorf("Commit: %v", err)
 	}
 
+	if err = issue.loadPoster(x); err != nil {
+		return fmt.Errorf("loadPoster: %v", err)
+	}
+
+	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
 	if issue.IsPull {
 		err = issue.PullRequest.LoadIssue()
 		if err != nil {
@@ -494,8 +536,16 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 			Action:      api.HookIssueLabelCleared,
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(AccessModeNone),
+			Repository:  issue.Repo.APIFormat(mode),
 			Sender:      doer.APIFormat(),
+		})
+	} else {
+		err = PrepareWebhooks(issue.Repo, HookEventIssues, &api.IssuePayload{
+			Action:     api.HookIssueLabelCleared,
+			Index:      issue.Index,
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
 		})
 	}
 	if err != nil {
@@ -570,19 +620,6 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 	}
 
 	return sess.Commit()
-}
-
-// GetAssignee sets the Assignee attribute of this issue.
-func (issue *Issue) GetAssignee() (err error) {
-	if issue.AssigneeID == 0 || issue.Assignee != nil {
-		return nil
-	}
-
-	issue.Assignee, err = GetUserByID(issue.AssigneeID)
-	if IsErrUserNotExist(err) {
-		return nil
-	}
-	return err
 }
 
 // ReadBy sets issue to be read by given user.
@@ -667,13 +704,14 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 		return fmt.Errorf("Commit: %v", err)
 	}
 
+	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
 	if issue.IsPull {
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
 		issue.PullRequest.Issue = issue
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  repo.APIFormat(AccessModeNone),
+			Repository:  repo.APIFormat(mode),
 			Sender:      doer.APIFormat(),
 		}
 		if isClosed {
@@ -682,6 +720,19 @@ func (issue *Issue) ChangeStatus(doer *User, repo *Repository, isClosed bool) (e
 			apiPullRequest.Action = api.HookIssueReOpened
 		}
 		err = PrepareWebhooks(repo, HookEventPullRequest, apiPullRequest)
+	} else {
+		apiIssue := &api.IssuePayload{
+			Index:      issue.Index,
+			Issue:      issue.APIFormat(),
+			Repository: repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		}
+		if isClosed {
+			apiIssue.Action = api.HookIssueClosed
+		} else {
+			apiIssue.Action = api.HookIssueReOpened
+		}
+		err = PrepareWebhooks(repo, HookEventIssues, apiIssue)
 	}
 	if err != nil {
 		log.Error(4, "PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
@@ -715,6 +766,7 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 		return err
 	}
 
+	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
 	if issue.IsPull {
 		issue.PullRequest.Issue = issue
 		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
@@ -726,10 +778,24 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 				},
 			},
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(AccessModeNone),
+			Repository:  issue.Repo.APIFormat(mode),
 			Sender:      doer.APIFormat(),
 		})
+	} else {
+		err = PrepareWebhooks(issue.Repo, HookEventIssues, &api.IssuePayload{
+			Action: api.HookIssueEdited,
+			Index:  issue.Index,
+			Changes: &api.ChangesPayload{
+				Title: &api.ChangesFromPayload{
+					From: oldTitle,
+				},
+			},
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     issue.Poster.APIFormat(),
+		})
 	}
+
 	if err != nil {
 		log.Error(4, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	} else {
@@ -766,6 +832,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
+	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
 	if issue.IsPull {
 		issue.PullRequest.Issue = issue
 		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
@@ -777,8 +844,21 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 				},
 			},
 			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(AccessModeNone),
+			Repository:  issue.Repo.APIFormat(mode),
 			Sender:      doer.APIFormat(),
+		})
+	} else {
+		err = PrepareWebhooks(issue.Repo, HookEventIssues, &api.IssuePayload{
+			Action: api.HookIssueEdited,
+			Index:  issue.Index,
+			Changes: &api.ChangesPayload{
+				Body: &api.ChangesFromPayload{
+					From: oldContent,
+				},
+			},
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
 		})
 	}
 	if err != nil {
@@ -787,55 +867,6 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		go HookQueue.Add(issue.RepoID)
 	}
 
-	return nil
-}
-
-// ChangeAssignee changes the Assignee field of this issue.
-func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
-	var oldAssigneeID = issue.AssigneeID
-	issue.AssigneeID = assigneeID
-	if err = UpdateIssueUserByAssignee(issue); err != nil {
-		return fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err = issue.loadRepo(sess); err != nil {
-		return fmt.Errorf("loadRepo: %v", err)
-	}
-
-	if _, err = createAssigneeComment(sess, doer, issue.Repo, issue, oldAssigneeID, assigneeID); err != nil {
-		return fmt.Errorf("createAssigneeComment: %v", err)
-	}
-
-	issue.Assignee, err = GetUserByID(issue.AssigneeID)
-	if err != nil && !IsErrUserNotExist(err) {
-		log.Error(4, "GetUserByID [assignee_id: %v]: %v", issue.AssigneeID, err)
-		return nil
-	}
-
-	// Error not nil here means user does not exist, which is remove assignee.
-	isRemoveAssignee := err != nil
-	if issue.IsPull {
-		issue.PullRequest.Issue = issue
-		apiPullRequest := &api.PullRequestPayload{
-			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(AccessModeNone),
-			Sender:      doer.APIFormat(),
-		}
-		if isRemoveAssignee {
-			apiPullRequest.Action = api.HookIssueUnassigned
-		} else {
-			apiPullRequest.Action = api.HookIssueAssigned
-		}
-		if err := PrepareWebhooks(issue.Repo, HookEventPullRequest, apiPullRequest); err != nil {
-			log.Error(4, "PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, isRemoveAssignee, err)
-			return nil
-		}
-	}
-	go HookQueue.Add(issue.RepoID)
 	return nil
 }
 
@@ -854,6 +885,7 @@ type NewIssueOptions struct {
 	Repo        *Repository
 	Issue       *Issue
 	LabelIDs    []int64
+	AssigneeIDs []int64
 	Attachments []string // In UUID format.
 	IsPull      bool
 }
@@ -876,14 +908,32 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	if assigneeID := opts.Issue.AssigneeID; assigneeID > 0 {
-		valid, err := hasAccess(e, assigneeID, opts.Repo, AccessModeWrite)
-		if err != nil {
-			return fmt.Errorf("hasAccess [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
+	// Keep the old assignee id thingy for compatibility reasons
+	if opts.Issue.AssigneeID > 0 {
+		isAdded := false
+		// Check if the user has already been passed to issue.AssigneeIDs, if not, add it
+		for _, aID := range opts.AssigneeIDs {
+			if aID == opts.Issue.AssigneeID {
+				isAdded = true
+				break
+			}
 		}
-		if !valid {
-			opts.Issue.AssigneeID = 0
-			opts.Issue.Assignee = nil
+
+		if !isAdded {
+			opts.AssigneeIDs = append(opts.AssigneeIDs, opts.Issue.AssigneeID)
+		}
+	}
+
+	// Check for and validate assignees
+	if len(opts.AssigneeIDs) > 0 {
+		for _, assigneeID := range opts.AssigneeIDs {
+			valid, err := hasAccess(e, assigneeID, opts.Repo, AccessModeWrite)
+			if err != nil {
+				return fmt.Errorf("hasAccess [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
+			}
+			if !valid {
+				return ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: opts.Repo.Name}
+			}
 		}
 	}
 
@@ -898,11 +948,10 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	if opts.Issue.AssigneeID > 0 {
-		if err = opts.Issue.loadRepo(e); err != nil {
-			return err
-		}
-		if _, err = createAssigneeComment(e, doer, opts.Issue.Repo, opts.Issue, -1, opts.Issue.AssigneeID); err != nil {
+	// Insert the assignees
+	for _, assigneeID := range opts.AssigneeIDs {
+		err = opts.Issue.changeAssignee(e, doer, assigneeID)
+		if err != nil {
 			return err
 		}
 	}
@@ -962,7 +1011,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 }
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
+func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -974,7 +1023,11 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 		Issue:       issue,
 		LabelIDs:    labelIDs,
 		Attachments: uuids,
+		AssigneeIDs: assigneeIDs,
 	}); err != nil {
+		if IsErrUserDoesNotHaveAccessToRepo(err) {
+			return err
+		}
 		return fmt.Errorf("newIssue: %v", err)
 	}
 
@@ -997,6 +1050,19 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 	}
 	if err = issue.MailParticipants(); err != nil {
 		log.Error(4, "MailParticipants: %v", err)
+	}
+
+	mode, _ := AccessLevel(issue.Poster.ID, issue.Repo)
+	if err = PrepareWebhooks(repo, HookEventIssues, &api.IssuePayload{
+		Action:     api.HookIssueOpened,
+		Index:      issue.Index,
+		Issue:      issue.APIFormat(),
+		Repository: repo.APIFormat(mode),
+		Sender:     issue.Poster.APIFormat(),
+	}); err != nil {
+		log.Error(4, "PrepareWebhooks: %v", err)
+	} else {
+		go HookQueue.Add(issue.RepoID)
 	}
 
 	return nil
@@ -1117,7 +1183,8 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
 	}
 
 	if opts.AssigneeID > 0 {
-		sess.And("issue.assignee_id=?", opts.AssigneeID)
+		sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+			And("issue_assignees.assignee_id = ?", opts.AssigneeID)
 	}
 
 	if opts.PosterID > 0 {
@@ -1339,7 +1406,8 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 		}
 
 		if opts.AssigneeID > 0 {
-			sess.And("issue.assignee_id = ?", opts.AssigneeID)
+			sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+				And("issue_assignees.assignee_id = ?", opts.AssigneeID)
 		}
 
 		if opts.PosterID > 0 {
@@ -1405,13 +1473,15 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		}
 	case FilterModeAssign:
 		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
-			And("assignee_id = ?", opts.UserID).
+			Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+			And("issue_assignees.assignee_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
 		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
-			And("assignee_id = ?", opts.UserID).
+			Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+			And("issue_assignees.assignee_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
@@ -1433,7 +1503,8 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 
 	cond = cond.And(builder.Eq{"issue.is_closed": opts.IsClosed})
 	stats.AssignCount, err = x.Where(cond).
-		And("assignee_id = ?", opts.UserID).
+		Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+		And("issue_assignees.assignee_id = ?", opts.UserID).
 		Count(new(Issue))
 	if err != nil {
 		return nil, err
@@ -1472,8 +1543,10 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 
 	switch filterMode {
 	case FilterModeAssign:
-		openCountSession.And("assignee_id = ?", uid)
-		closedCountSession.And("assignee_id = ?", uid)
+		openCountSession.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+			And("issue_assignees.assignee_id = ?", uid)
+		closedCountSession.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+			And("issue_assignees.assignee_id = ?", uid)
 	case FilterModeCreate:
 		openCountSession.And("poster_id = ?", uid)
 		closedCountSession.And("poster_id = ?", uid)
@@ -1497,4 +1570,31 @@ func updateIssue(e Engine, issue *Issue) error {
 // UpdateIssue updates all fields of given issue.
 func UpdateIssue(issue *Issue) error {
 	return updateIssue(x, issue)
+}
+
+// UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
+func UpdateIssueDeadline(issue *Issue, deadlineUnix util.TimeStamp, doer *User) (err error) {
+
+	// if the deadline hasn't changed do nothing
+	if issue.DeadlineUnix == deadlineUnix {
+		return nil
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	// Update the deadline
+	if err = updateIssueCols(sess, &Issue{ID: issue.ID, DeadlineUnix: deadlineUnix}, "deadline_unix"); err != nil {
+		return err
+	}
+
+	// Make the comment
+	if _, err = createDeadlineComment(sess, doer, issue, deadlineUnix); err != nil {
+		return fmt.Errorf("createRemovedDueDateComment: %v", err)
+	}
+
+	return sess.Commit()
 }

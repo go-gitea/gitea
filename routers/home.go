@@ -104,6 +104,14 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = models.SearchOrderBySizeReverse
 	case "size":
 		orderBy = models.SearchOrderBySize
+	case "moststars":
+		orderBy = models.SearchOrderByStarsReverse
+	case "feweststars":
+		orderBy = models.SearchOrderByStars
+	case "mostforks":
+		orderBy = models.SearchOrderByForksReverse
+	case "fewestforks":
+		orderBy = models.SearchOrderByForks
 	default:
 		ctx.Data["SortType"] = "recentupdate"
 		orderBy = models.SearchOrderByRecentUpdated
@@ -164,26 +172,26 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 		users   []*models.User
 		count   int64
 		err     error
-		orderBy string
+		orderBy models.SearchOrderBy
 	)
 
 	ctx.Data["SortType"] = ctx.Query("sort")
 	switch ctx.Query("sort") {
 	case "newest":
-		orderBy = "id DESC"
+		orderBy = models.SearchOrderByIDReverse
 	case "oldest":
-		orderBy = "id ASC"
+		orderBy = models.SearchOrderByID
 	case "recentupdate":
-		orderBy = "updated_unix DESC"
+		orderBy = models.SearchOrderByRecentUpdated
 	case "leastupdate":
-		orderBy = "updated_unix ASC"
+		orderBy = models.SearchOrderByLeastUpdated
 	case "reversealphabetically":
-		orderBy = "name DESC"
+		orderBy = models.SearchOrderByAlphabeticallyReverse
 	case "alphabetically":
-		orderBy = "name ASC"
+		orderBy = models.SearchOrderByAlphabetically
 	default:
 		ctx.Data["SortType"] = "alphabetically"
-		orderBy = "name ASC"
+		orderBy = models.SearchOrderByAlphabetically
 	}
 
 	opts.Keyword = strings.Trim(ctx.Query("q"), " ")

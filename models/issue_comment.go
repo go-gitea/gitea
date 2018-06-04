@@ -60,6 +60,12 @@ const (
 	CommentTypeAddTimeManual
 	// Cancel a stopwatch for time tracking
 	CommentTypeCancelTracking
+	// Added a due date
+	CommentTypeAddedDeadline
+	// Modified the due date
+	CommentTypeModifiedDeadline
+	// Removed a due date
+	CommentTypeRemovedDeadline
 )
 
 // CommentTag defines comment tag type
@@ -75,23 +81,23 @@ const (
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID             int64 `xorm:"pk autoincr"`
-	Type           CommentType
-	PosterID       int64 `xorm:"INDEX"`
-	Poster         *User `xorm:"-"`
-	IssueID        int64 `xorm:"INDEX"`
-	LabelID        int64
-	Label          *Label `xorm:"-"`
-	OldMilestoneID int64
-	MilestoneID    int64
-	OldMilestone   *Milestone `xorm:"-"`
-	Milestone      *Milestone `xorm:"-"`
-	OldAssigneeID  int64
-	AssigneeID     int64
-	Assignee       *User `xorm:"-"`
-	OldAssignee    *User `xorm:"-"`
-	OldTitle       string
-	NewTitle       string
+	ID              int64 `xorm:"pk autoincr"`
+	Type            CommentType
+	PosterID        int64  `xorm:"INDEX"`
+	Poster          *User  `xorm:"-"`
+	IssueID         int64  `xorm:"INDEX"`
+	Issue           *Issue `xorm:"-"`
+	LabelID         int64
+	Label           *Label `xorm:"-"`
+	OldMilestoneID  int64
+	MilestoneID     int64
+	OldMilestone    *Milestone `xorm:"-"`
+	Milestone       *Milestone `xorm:"-"`
+	AssigneeID      int64
+	RemovedAssignee bool
+	Assignee        *User `xorm:"-"`
+	OldTitle        string
+	NewTitle        string
 
 	CommitID        int64
 	Line            int64
@@ -109,6 +115,15 @@ type Comment struct {
 
 	// For view issue page.
 	ShowTag CommentTag `xorm:"-"`
+}
+
+// LoadIssue loads issue from database
+func (c *Comment) LoadIssue() (err error) {
+	if c.Issue != nil {
+		return nil
+	}
+	c.Issue, err = GetIssueByID(c.IssueID)
+	return
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
@@ -141,40 +156,40 @@ func (c *Comment) AfterDelete() {
 
 // HTMLURL formats a URL-string to the issue-comment
 func (c *Comment) HTMLURL() string {
-	issue, err := GetIssueByID(c.IssueID)
+	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "GetIssueByID(%d): %v", c.IssueID, err)
+		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	return fmt.Sprintf("%s#%s", issue.HTMLURL(), c.HashTag())
+	return fmt.Sprintf("%s#%s", c.Issue.HTMLURL(), c.HashTag())
 }
 
 // IssueURL formats a URL-string to the issue
 func (c *Comment) IssueURL() string {
-	issue, err := GetIssueByID(c.IssueID)
+	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "GetIssueByID(%d): %v", c.IssueID, err)
+		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
 
-	if issue.IsPull {
+	if c.Issue.IsPull {
 		return ""
 	}
-	return issue.HTMLURL()
+	return c.Issue.HTMLURL()
 }
 
 // PRURL formats a URL-string to the pull-request
 func (c *Comment) PRURL() string {
-	issue, err := GetIssueByID(c.IssueID)
+	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "GetIssueByID(%d): %v", c.IssueID, err)
+		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
 
-	if !issue.IsPull {
+	if !c.Issue.IsPull {
 		return ""
 	}
-	return issue.HTMLURL()
+	return c.Issue.HTMLURL()
 }
 
 // APIFormat converts a Comment to the api.Comment format
@@ -191,9 +206,14 @@ func (c *Comment) APIFormat() *api.Comment {
 	}
 }
 
+// CommentHashTag returns unique hash tag for comment id.
+func CommentHashTag(id int64) string {
+	return fmt.Sprintf("issuecomment-%d", id)
+}
+
 // HashTag returns unique hash tag for comment.
 func (c *Comment) HashTag() string {
-	return "issuecomment-" + com.ToStr(c.ID)
+	return CommentHashTag(c.ID)
 }
 
 // EventTag returns unique event hash tag for comment.
@@ -241,18 +261,9 @@ func (c *Comment) LoadMilestone() error {
 	return nil
 }
 
-// LoadAssignees if comment.Type is CommentTypeAssignees, then load assignees
-func (c *Comment) LoadAssignees() error {
+// LoadAssigneeUser if comment.Type is CommentTypeAssignees, then load assignees
+func (c *Comment) LoadAssigneeUser() error {
 	var err error
-	if c.OldAssigneeID > 0 {
-		c.OldAssignee, err = getUserByID(x, c.OldAssigneeID)
-		if err != nil {
-			if !IsErrUserNotExist(err) {
-				return err
-			}
-			c.OldAssignee = NewGhostUser()
-		}
-	}
 
 	if c.AssigneeID > 0 {
 		c.Assignee, err = getUserByID(x, c.AssigneeID)
@@ -318,21 +329,21 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		LabelID = opts.Label.ID
 	}
 	comment := &Comment{
-		Type:           opts.Type,
-		PosterID:       opts.Doer.ID,
-		Poster:         opts.Doer,
-		IssueID:        opts.Issue.ID,
-		LabelID:        LabelID,
-		OldMilestoneID: opts.OldMilestoneID,
-		MilestoneID:    opts.MilestoneID,
-		OldAssigneeID:  opts.OldAssigneeID,
-		AssigneeID:     opts.AssigneeID,
-		CommitID:       opts.CommitID,
-		CommitSHA:      opts.CommitSHA,
-		Line:           opts.LineNum,
-		Content:        opts.Content,
-		OldTitle:       opts.OldTitle,
-		NewTitle:       opts.NewTitle,
+		Type:            opts.Type,
+		PosterID:        opts.Doer.ID,
+		Poster:          opts.Doer,
+		IssueID:         opts.Issue.ID,
+		LabelID:         LabelID,
+		OldMilestoneID:  opts.OldMilestoneID,
+		MilestoneID:     opts.MilestoneID,
+		RemovedAssignee: opts.RemovedAssignee,
+		AssigneeID:      opts.AssigneeID,
+		CommitID:        opts.CommitID,
+		CommitSHA:       opts.CommitSHA,
+		Line:            opts.LineNum,
+		Content:         opts.Content,
+		OldTitle:        opts.OldTitle,
+		NewTitle:        opts.NewTitle,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -418,7 +429,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	}
 
 	// update the issue's updated_unix column
-	if err = updateIssueCols(e, opts.Issue); err != nil {
+	if err = updateIssueCols(e, opts.Issue, "updated_unix"); err != nil {
 		return nil, err
 	}
 
@@ -474,14 +485,42 @@ func createMilestoneComment(e *xorm.Session, doer *User, repo *Repository, issue
 	})
 }
 
-func createAssigneeComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldAssigneeID, assigneeID int64) (*Comment, error) {
+func createAssigneeComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, assigneeID int64, removedAssignee bool) (*Comment, error) {
 	return createComment(e, &CreateCommentOptions{
-		Type:          CommentTypeAssignees,
-		Doer:          doer,
-		Repo:          repo,
-		Issue:         issue,
-		OldAssigneeID: oldAssigneeID,
-		AssigneeID:    assigneeID,
+		Type:            CommentTypeAssignees,
+		Doer:            doer,
+		Repo:            repo,
+		Issue:           issue,
+		RemovedAssignee: removedAssignee,
+		AssigneeID:      assigneeID,
+	})
+}
+
+func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix util.TimeStamp) (*Comment, error) {
+
+	var content string
+	var commentType CommentType
+
+	// newDeadline = 0 means deleting
+	if newDeadlineUnix == 0 {
+		commentType = CommentTypeRemovedDeadline
+		content = issue.DeadlineUnix.Format("2006-01-02")
+	} else if issue.DeadlineUnix == 0 {
+		// Check if the new date was added or modified
+		// If the actual deadline is 0 => deadline added
+		commentType = CommentTypeAddedDeadline
+		content = newDeadlineUnix.Format("2006-01-02")
+	} else { // Otherwise modified
+		commentType = CommentTypeModifiedDeadline
+		content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
+	}
+
+	return createComment(e, &CreateCommentOptions{
+		Type:    commentType,
+		Doer:    doer,
+		Repo:    issue.Repo,
+		Issue:   issue,
+		Content: content,
 	})
 }
 
@@ -514,17 +553,17 @@ type CreateCommentOptions struct {
 	Issue *Issue
 	Label *Label
 
-	OldMilestoneID int64
-	MilestoneID    int64
-	OldAssigneeID  int64
-	AssigneeID     int64
-	OldTitle       string
-	NewTitle       string
-	CommitID       int64
-	CommitSHA      string
-	LineNum        int64
-	Content        string
-	Attachments    []string // UUIDs of attachments
+	OldMilestoneID  int64
+	MilestoneID     int64
+	AssigneeID      int64
+	RemovedAssignee bool
+	OldTitle        string
+	NewTitle        string
+	CommitID        int64
+	CommitSHA       string
+	LineNum         int64
+	Content         string
+	Attachments     []string // UUIDs of attachments
 }
 
 // CreateComment creates comment of issue or commit.
@@ -552,7 +591,7 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 
 // CreateIssueComment creates a plain issue comment.
 func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content string, attachments []string) (*Comment, error) {
-	return CreateComment(&CreateCommentOptions{
+	comment, err := CreateComment(&CreateCommentOptions{
 		Type:        CommentTypeComment,
 		Doer:        doer,
 		Repo:        repo,
@@ -560,6 +599,23 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 		Content:     content,
 		Attachments: attachments,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("CreateComment: %v", err)
+	}
+
+	mode, _ := AccessLevel(doer.ID, repo)
+	if err = PrepareWebhooks(repo, HookEventIssueComment, &api.IssueCommentPayload{
+		Action:     api.HookIssueCommentCreated,
+		Issue:      issue.APIFormat(),
+		Comment:    comment.APIFormat(),
+		Repository: repo.APIFormat(mode),
+		Sender:     doer.APIFormat(),
+	}); err != nil {
+		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+	} else {
+		go HookQueue.Add(repo.ID)
+	}
+	return comment, nil
 }
 
 // CreateRefComment creates a commit reference comment to issue.
@@ -672,17 +728,43 @@ func GetCommentsByRepoIDSince(repoID, since int64) ([]*Comment, error) {
 }
 
 // UpdateComment updates information of comment.
-func UpdateComment(c *Comment) error {
+func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
 	} else if c.Type == CommentTypeComment {
 		UpdateIssueIndexer(c.IssueID)
 	}
+
+	if err := c.LoadIssue(); err != nil {
+		return err
+	}
+	if err := c.Issue.LoadAttributes(); err != nil {
+		return err
+	}
+
+	mode, _ := AccessLevel(doer.ID, c.Issue.Repo)
+	if err := PrepareWebhooks(c.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
+		Action:  api.HookIssueCommentEdited,
+		Issue:   c.Issue.APIFormat(),
+		Comment: c.APIFormat(),
+		Changes: &api.ChangesPayload{
+			Body: &api.ChangesFromPayload{
+				From: oldContent,
+			},
+		},
+		Repository: c.Issue.Repo.APIFormat(mode),
+		Sender:     doer.APIFormat(),
+	}); err != nil {
+		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
+	} else {
+		go HookQueue.Add(c.Issue.Repo.ID)
+	}
+
 	return nil
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(comment *Comment) error {
+func DeleteComment(doer *User, comment *Comment) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -709,5 +791,27 @@ func DeleteComment(comment *Comment) error {
 	} else if comment.Type == CommentTypeComment {
 		UpdateIssueIndexer(comment.IssueID)
 	}
+
+	if err := comment.LoadIssue(); err != nil {
+		return err
+	}
+	if err := comment.Issue.LoadAttributes(); err != nil {
+		return err
+	}
+
+	mode, _ := AccessLevel(doer.ID, comment.Issue.Repo)
+
+	if err := PrepareWebhooks(comment.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
+		Action:     api.HookIssueCommentDeleted,
+		Issue:      comment.Issue.APIFormat(),
+		Comment:    comment.APIFormat(),
+		Repository: comment.Issue.Repo.APIFormat(mode),
+		Sender:     doer.APIFormat(),
+	}); err != nil {
+		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+	} else {
+		go HookQueue.Add(comment.Issue.Repo.ID)
+	}
+
 	return nil
 }

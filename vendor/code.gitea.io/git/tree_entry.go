@@ -5,6 +5,7 @@
 package git
 
 import (
+	"io"
 	"sort"
 	"strconv"
 	"strings"
@@ -88,6 +89,45 @@ func (te *TreeEntry) Blob() *Blob {
 		repo:      te.ptree.repo,
 		TreeEntry: te,
 	}
+}
+
+// FollowLink returns the entry pointed to by a symlink
+func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
+	if !te.IsLink() {
+		return nil, ErrBadLink{te.Name(), "not a symlink"}
+	}
+
+	// read the link
+	r, err := te.Blob().Data()
+	if err != nil {
+		return nil, err
+	}
+	buf := make([]byte, te.Size())
+	_, err = io.ReadFull(r, buf)
+	if err != nil {
+		return nil, err
+	}
+
+	lnk := string(buf)
+	t := te.ptree
+
+	// traverse up directories
+	for ; t != nil && strings.HasPrefix(lnk, "../"); lnk = lnk[3:] {
+		t = t.ptree
+	}
+
+	if t == nil {
+		return nil, ErrBadLink{te.Name(), "points outside of repo"}
+	}
+
+	target, err := t.GetTreeEntryByPath(lnk)
+	if err != nil {
+		if IsErrNotExist(err) {
+			return nil, ErrBadLink{te.Name(), "broken link"}
+		}
+		return nil, err
+	}
+	return target, nil
 }
 
 // GetSubJumpablePathName return the full path of subdirectory jumpable ( contains only one directory )

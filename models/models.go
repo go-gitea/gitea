@@ -119,6 +119,8 @@ func init() {
 		new(RepoIndexerStatus),
 		new(LFSLock),
 		new(Reaction),
+		new(IssueAssignees),
+		new(U2FRegistration),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -270,7 +272,7 @@ func SetEngine() (err error) {
 	// WARNING: for serv command, MUST remove the output to os.stdout,
 	// so use log file to instead print to stdout.
 	x.SetLogger(log.XORMLogger)
-	x.ShowSQL(true)
+	x.ShowSQL(setting.LogSQL)
 	return nil
 }
 
@@ -335,7 +337,10 @@ func GetStatistic() (stats Statistic) {
 
 // Ping tests if database is alive
 func Ping() error {
-	return x.Ping()
+	if x != nil {
+		return x.Ping()
+	}
+	return errors.New("database not configured")
 }
 
 // DumpDatabase dumps all data from database according the special database SQL syntax to file system.

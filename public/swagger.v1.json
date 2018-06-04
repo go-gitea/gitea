@@ -1028,7 +1028,9 @@
           }
         ],
         "responses": {
-          "200": {}
+          "200": {
+            "description": "success"
+          }
         }
       }
     },
@@ -1338,7 +1340,9 @@
           }
         ],
         "responses": {
-          "200": {}
+          "200": {
+            "description": "success"
+          }
         }
       }
     },
@@ -1565,113 +1569,16 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/issue/{index}/comments": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "issue"
-        ],
-        "summary": "List all comments on an issue",
-        "operationId": "issueGetComments",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "index of the issue",
-            "name": "id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "if provided, only comments updated since the specified time are returned.",
-            "name": "string",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/CommentList"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/issue/{index}/labels": {
-      "put": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "issue"
-        ],
-        "summary": "Replace an issue's labels",
-        "operationId": "issueReplaceLabels",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "index of the issue",
-            "name": "index",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/IssueLabelsOption"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/LabelList"
-          }
-        }
-      },
+    "/repos/{owner}/{repo}/hooks/{id}/tests": {
       "post": {
-        "consumes": [
-          "application/json"
-        ],
         "produces": [
           "application/json"
         ],
         "tags": [
-          "issue"
+          "repository"
         ],
-        "summary": "Add a label to an issue",
-        "operationId": "issueAddLabel",
+        "summary": "Test a push webhook",
+        "operationId": "repoTestHook",
         "parameters": [
           {
             "type": "string",
@@ -1689,99 +1596,7 @@
           },
           {
             "type": "integer",
-            "description": "index of the issue",
-            "name": "index",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/IssueLabelsOption"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/LabelList"
-          }
-        }
-      },
-      "delete": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "issue"
-        ],
-        "summary": "Remove all labels from an issue",
-        "operationId": "issueClearLabels",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "index of the issue",
-            "name": "index",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/issue/{index}/labels/{id}": {
-      "delete": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "issue"
-        ],
-        "summary": "Remove a label from an issue",
-        "operationId": "issueRemoveLabel",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "index of the issue",
-            "name": "index",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "id of the label to remove",
+            "description": "id of the hook to test",
             "name": "id",
             "in": "path",
             "required": true
@@ -2099,6 +1914,50 @@
       }
     },
     "/repos/{owner}/{repo}/issues/{index}/comments": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "List all comments on an issue",
+        "operationId": "issueGetComments",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "index of the issue",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "if provided, only comments updated since the specified time are returned.",
+            "name": "string",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CommentList"
+          }
+        }
+      },
       "post": {
         "consumes": [
           "application/json"
@@ -2288,6 +2147,187 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Replace an issue's labels",
+        "operationId": "issueReplaceLabels",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/IssueLabelsOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/LabelList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Add a label to an issue",
+        "operationId": "issueAddLabel",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/IssueLabelsOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/LabelList"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Remove all labels from an issue",
+        "operationId": "issueClearLabels",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/labels/{id}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Remove a label from an issue",
+        "operationId": "issueRemoveLabel",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the label to remove",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
           }
         }
       }
@@ -3225,7 +3265,9 @@
           }
         ],
         "responses": {
-          "200": {}
+          "200": {
+            "description": "success"
+          }
         }
       }
     },
@@ -4325,6 +4367,32 @@
         }
       }
     },
+    "/topics/search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "search topics via keyword",
+        "operationId": "topicSearch",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "id of the repo to get",
+            "name": "keyword",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Repository"
+          }
+        }
+      }
+    },
     "/user": {
       "get": {
         "produces": [
@@ -4937,7 +5005,8 @@
             "type": "string",
             "description": "username of user",
             "name": "username",
-            "in": "path"
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
@@ -5211,7 +5280,8 @@
             "type": "string",
             "description": "username of the user",
             "name": "username",
-            "in": "path"
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
@@ -5513,6 +5583,13 @@
           "type": "string",
           "x-go-name": "Assignee"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
+        },
         "body": {
           "type": "string",
           "x-go-name": "Body"
@@ -5520,6 +5597,11 @@
         "closed": {
           "type": "boolean",
           "x-go-name": "Closed"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "labels": {
           "description": "list of label ids",
@@ -5649,6 +5731,13 @@
           "type": "string",
           "x-go-name": "Assignee"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
+        },
         "base": {
           "type": "string",
           "x-go-name": "Base"
@@ -5656,6 +5745,11 @@
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "head": {
           "type": "string",
@@ -5958,9 +6052,21 @@
           "type": "string",
           "x-go-name": "Assignee"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
+        },
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "milestone": {
           "type": "integer",
@@ -6048,9 +6154,21 @@
           "type": "string",
           "x-go-name": "Assignee"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
+        },
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "labels": {
           "type": "array",
@@ -6301,9 +6419,21 @@
         "assignee": {
           "$ref": "#/definitions/User"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/User"
+          },
+          "x-go-name": "Assignees"
+        },
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Closed"
         },
         "comments": {
           "type": "integer",
@@ -6314,6 +6444,11 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "id": {
           "type": "integer",
@@ -6712,12 +6847,24 @@
         "assignee": {
           "$ref": "#/definitions/User"
         },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/User"
+          },
+          "x-go-name": "Assignees"
+        },
         "base": {
           "$ref": "#/definitions/PRBranchInfo"
         },
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Closed"
         },
         "comments": {
           "type": "integer",
@@ -6732,6 +6879,11 @@
         "diff_url": {
           "type": "string",
           "x-go-name": "DiffURL"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
         },
         "head": {
           "$ref": "#/definitions/PRBranchInfo"
@@ -7170,6 +7322,11 @@
           "format": "int64",
           "x-go-name": "ID"
         },
+        "language": {
+          "description": "User locale",
+          "type": "string",
+          "x-go-name": "Language"
+        },
         "login": {
           "description": "the user's username",
           "type": "string",
@@ -7227,11 +7384,13 @@
       "description": "AccessTokenList represents a list of API access token."
     },
     "Attachment": {
+      "description": "Attachment",
       "schema": {
         "$ref": "#/definitions/Attachment"
       }
     },
     "AttachmentList": {
+      "description": "AttachmentList",
       "schema": {
         "type": "array",
         "items": {
@@ -7240,11 +7399,13 @@
       }
     },
     "Branch": {
+      "description": "Branch",
       "schema": {
         "$ref": "#/definitions/Branch"
       }
     },
     "BranchList": {
+      "description": "BranchList",
       "schema": {
         "type": "array",
         "items": {
@@ -7253,11 +7414,13 @@
       }
     },
     "Comment": {
+      "description": "Comment",
       "schema": {
         "$ref": "#/definitions/Comment"
       }
     },
     "CommentList": {
+      "description": "CommentList",
       "schema": {
         "type": "array",
         "items": {
@@ -7266,11 +7429,13 @@
       }
     },
     "DeployKey": {
+      "description": "DeployKey",
       "schema": {
         "$ref": "#/definitions/DeployKey"
       }
     },
     "DeployKeyList": {
+      "description": "DeployKeyList",
       "schema": {
         "type": "array",
         "items": {
@@ -7279,6 +7444,7 @@
       }
     },
     "EmailList": {
+      "description": "EmailList",
       "schema": {
         "type": "array",
         "items": {
@@ -7287,11 +7453,13 @@
       }
     },
     "GPGKey": {
+      "description": "GPGKey",
       "schema": {
         "$ref": "#/definitions/GPGKey"
       }
     },
     "GPGKeyList": {
+      "description": "GPGKeyList",
       "schema": {
         "type": "array",
         "items": {
@@ -7300,6 +7468,7 @@
       }
     },
     "Hook": {
+      "description": "Hook",
       "schema": {
         "type": "array",
         "items": {
@@ -7308,6 +7477,7 @@
       }
     },
     "HookList": {
+      "description": "HookList",
       "schema": {
         "type": "array",
         "items": {
@@ -7316,11 +7486,13 @@
       }
     },
     "Issue": {
+      "description": "Issue",
       "schema": {
         "$ref": "#/definitions/Issue"
       }
     },
     "IssueList": {
+      "description": "IssueList",
       "schema": {
         "type": "array",
         "items": {
@@ -7329,11 +7501,13 @@
       }
     },
     "Label": {
+      "description": "Label",
       "schema": {
         "$ref": "#/definitions/Label"
       }
     },
     "LabelList": {
+      "description": "LabelList",
       "schema": {
         "type": "array",
         "items": {
@@ -7345,11 +7519,13 @@
       "description": "MarkdownRender is a rendered markdown document"
     },
     "Milestone": {
+      "description": "Milestone",
       "schema": {
         "$ref": "#/definitions/Milestone"
       }
     },
     "MilestoneList": {
+      "description": "MilestoneList",
       "schema": {
         "type": "array",
         "items": {
@@ -7358,11 +7534,13 @@
       }
     },
     "Organization": {
+      "description": "Organization",
       "schema": {
         "$ref": "#/definitions/Organization"
       }
     },
     "OrganizationList": {
+      "description": "OrganizationList",
       "schema": {
         "type": "array",
         "items": {
@@ -7371,11 +7549,13 @@
       }
     },
     "PublicKey": {
+      "description": "PublicKey",
       "schema": {
         "$ref": "#/definitions/PublicKey"
       }
     },
     "PublicKeyList": {
+      "description": "PublicKeyList",
       "schema": {
         "type": "array",
         "items": {
@@ -7384,11 +7564,13 @@
       }
     },
     "PullRequest": {
+      "description": "PullRequest",
       "schema": {
         "$ref": "#/definitions/PullRequest"
       }
     },
     "PullRequestList": {
+      "description": "PullRequestList",
       "schema": {
         "type": "array",
         "items": {
@@ -7397,11 +7579,13 @@
       }
     },
     "Release": {
+      "description": "Release",
       "schema": {
         "$ref": "#/definitions/Release"
       }
     },
     "ReleaseList": {
+      "description": "ReleaseList",
       "schema": {
         "type": "array",
         "items": {
@@ -7410,11 +7594,13 @@
       }
     },
     "Repository": {
+      "description": "Repository",
       "schema": {
         "$ref": "#/definitions/Repository"
       }
     },
     "RepositoryList": {
+      "description": "RepositoryList",
       "schema": {
         "type": "array",
         "items": {
@@ -7423,6 +7609,7 @@
       }
     },
     "SearchResults": {
+      "description": "SearchResults",
       "schema": {
         "$ref": "#/definitions/SearchResults"
       },
@@ -7431,16 +7618,19 @@
       }
     },
     "ServerVersion": {
+      "description": "ServerVersion",
       "schema": {
         "$ref": "#/definitions/ServerVersion"
       }
     },
     "Status": {
+      "description": "Status",
       "schema": {
         "$ref": "#/definitions/Status"
       }
     },
     "StatusList": {
+      "description": "StatusList",
       "schema": {
         "type": "array",
         "items": {
@@ -7449,11 +7639,13 @@
       }
     },
     "Team": {
+      "description": "Team",
       "schema": {
         "$ref": "#/definitions/Team"
       }
     },
     "TeamList": {
+      "description": "TeamList",
       "schema": {
         "type": "array",
         "items": {
@@ -7462,11 +7654,13 @@
       }
     },
     "TrackedTime": {
+      "description": "TrackedTime",
       "schema": {
         "$ref": "#/definitions/TrackedTime"
       }
     },
     "TrackedTimeList": {
+      "description": "TrackedTimeList",
       "schema": {
         "type": "array",
         "items": {
@@ -7475,11 +7669,13 @@
       }
     },
     "User": {
+      "description": "User",
       "schema": {
         "$ref": "#/definitions/User"
       }
     },
     "UserList": {
+      "description": "UserList",
       "schema": {
         "type": "array",
         "items": {
@@ -7488,6 +7684,7 @@
       }
     },
     "WatchInfo": {
+      "description": "WatchInfo",
       "schema": {
         "$ref": "#/definitions/WatchInfo"
       }
@@ -7521,6 +7718,7 @@
       "description": "APINotFound is a not found empty response"
     },
     "parameterBodies": {
+      "description": "parameterBodies",
       "schema": {
         "$ref": "#/definitions/EditAttachmentOptions"
       },

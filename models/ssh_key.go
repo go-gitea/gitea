@@ -47,13 +47,14 @@ const (
 
 // PublicKey represents a user or deploy SSH public key.
 type PublicKey struct {
-	ID          int64      `xorm:"pk autoincr"`
-	OwnerID     int64      `xorm:"INDEX NOT NULL"`
-	Name        string     `xorm:"NOT NULL"`
-	Fingerprint string     `xorm:"NOT NULL"`
-	Content     string     `xorm:"TEXT NOT NULL"`
-	Mode        AccessMode `xorm:"NOT NULL DEFAULT 2"`
-	Type        KeyType    `xorm:"NOT NULL DEFAULT 1"`
+	ID            int64      `xorm:"pk autoincr"`
+	OwnerID       int64      `xorm:"INDEX NOT NULL"`
+	Name          string     `xorm:"NOT NULL"`
+	Fingerprint   string     `xorm:"NOT NULL"`
+	Content       string     `xorm:"TEXT NOT NULL"`
+	Mode          AccessMode `xorm:"NOT NULL DEFAULT 2"`
+	Type          KeyType    `xorm:"NOT NULL DEFAULT 1"`
+	LoginSourceID int64      `xorm:"NOT NULL DEFAULT 0"`
 
 	CreatedUnix       util.TimeStamp `xorm:"created"`
 	UpdatedUnix       util.TimeStamp `xorm:"updated"`
@@ -391,7 +392,7 @@ func addKey(e Engine, key *PublicKey) (err error) {
 }
 
 // AddPublicKey adds new public key to database and authorized_keys file.
-func AddPublicKey(ownerID int64, name, content string) (*PublicKey, error) {
+func AddPublicKey(ownerID int64, name, content string, LoginSourceID int64) (*PublicKey, error) {
 	log.Trace(content)
 
 	fingerprint, err := calcFingerprint(content)
@@ -420,12 +421,13 @@ func AddPublicKey(ownerID int64, name, content string) (*PublicKey, error) {
 	}
 
 	key := &PublicKey{
-		OwnerID:     ownerID,
-		Name:        name,
-		Fingerprint: fingerprint,
-		Content:     content,
-		Mode:        AccessModeWrite,
-		Type:        KeyTypeUser,
+		OwnerID:       ownerID,
+		Name:          name,
+		Fingerprint:   fingerprint,
+		Content:       content,
+		Mode:          AccessModeWrite,
+		Type:          KeyTypeUser,
+		LoginSourceID: LoginSourceID,
 	}
 	if err = addKey(sess, key); err != nil {
 		return nil, fmt.Errorf("addKey: %v", err)
@@ -468,6 +470,14 @@ func ListPublicKeys(uid int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
 	return keys, x.
 		Where("owner_id = ?", uid).
+		Find(&keys)
+}
+
+// ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user and login source.
+func ListPublicLdapSSHKeys(uid int64, LoginSourceID int64) ([]*PublicKey, error) {
+	keys := make([]*PublicKey, 0, 5)
+	return keys, x.
+		Where("owner_id = ? AND login_source_id = ?", uid, LoginSourceID).
 		Find(&keys)
 }
 

@@ -136,10 +136,11 @@ var (
 	}
 
 	LFS struct {
-		StartServer     bool   `ini:"LFS_START_SERVER"`
-		ContentPath     string `ini:"LFS_CONTENT_PATH"`
-		JWTSecretBase64 string `ini:"LFS_JWT_SECRET"`
-		JWTSecretBytes  []byte `ini:"-"`
+		StartServer     bool          `ini:"LFS_START_SERVER"`
+		ContentPath     string        `ini:"LFS_CONTENT_PATH"`
+		JWTSecretBase64 string        `ini:"LFS_JWT_SECRET"`
+		JWTSecretBytes  []byte        `ini:"-"`
+		HTTPAuthExpiry  time.Duration `ini:"LFS_HTTP_AUTH_EXPIRY"`
 	}
 
 	// Security settings
@@ -159,6 +160,7 @@ var (
 	UseMSSQL      bool
 	UsePostgreSQL bool
 	UseTiDB       bool
+	LogSQL        bool
 
 	// Indexer settings
 	Indexer struct {
@@ -520,6 +522,11 @@ var (
 		MaxResponseItems:      50,
 	}
 
+	U2F = struct {
+		AppID         string
+		TrustedFacets []string
+	}{}
+
 	// I18n settings
 	Langs     []string
 	Names     []string
@@ -822,6 +829,9 @@ func NewContext() {
 		LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
 	}
 
+	sec = Cfg.Section("LFS")
+	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
+
 	if LFS.StartServer {
 
 		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
@@ -931,6 +941,7 @@ func NewContext() {
 		}
 	}
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
+	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -940,7 +951,7 @@ func NewContext() {
 	AttachmentAllowedTypes = strings.Replace(sec.Key("ALLOWED_TYPES").MustString("image/jpeg,image/png,application/zip,application/gzip"), "|", ",", -1)
 	AttachmentMaxSize = sec.Key("MAX_SIZE").MustInt64(4)
 	AttachmentMaxFiles = sec.Key("MAX_FILES").MustInt(5)
-	AttachmentEnabled = sec.Key("ENABLE").MustBool(true)
+	AttachmentEnabled = sec.Key("ENABLED").MustBool(true)
 
 	TimeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("RFC1123")
 	TimeFormat = map[string]string{
@@ -1133,6 +1144,9 @@ func NewContext() {
 			IsInputFile:    sec.Key("IS_INPUT_FILE").MustBool(false),
 		})
 	}
+	sec = Cfg.Section("U2F")
+	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
+	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
 }
 
 // Service settings
@@ -1141,6 +1155,7 @@ var Service struct {
 	ResetPwdCodeLives                       int
 	RegisterEmailConfirm                    bool
 	DisableRegistration                     bool
+	AllowOnlyExternalRegistration           bool
 	ShowRegistrationButton                  bool
 	RequireSignInView                       bool
 	EnableNotifyMail                        bool
@@ -1149,6 +1164,7 @@ var Service struct {
 	EnableCaptcha                           bool
 	DefaultKeepEmailPrivate                 bool
 	DefaultAllowCreateOrganization          bool
+	EnableTimetracking                      bool
 	DefaultEnableTimetracking               bool
 	DefaultAllowOnlyContributorsToTrackTime bool
 	NoReplyAddress                          string
@@ -1165,14 +1181,18 @@ func newService() {
 	Service.ActiveCodeLives = sec.Key("ACTIVE_CODE_LIVE_MINUTES").MustInt(180)
 	Service.ResetPwdCodeLives = sec.Key("RESET_PASSWD_CODE_LIVE_MINUTES").MustInt(180)
 	Service.DisableRegistration = sec.Key("DISABLE_REGISTRATION").MustBool()
-	Service.ShowRegistrationButton = sec.Key("SHOW_REGISTRATION_BUTTON").MustBool(!Service.DisableRegistration)
+	Service.AllowOnlyExternalRegistration = sec.Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").MustBool()
+	Service.ShowRegistrationButton = sec.Key("SHOW_REGISTRATION_BUTTON").MustBool(!(Service.DisableRegistration || Service.AllowOnlyExternalRegistration))
 	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool()
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
-	Service.DefaultEnableTimetracking = sec.Key("DEFAULT_ENABLE_TIMETRACKING").MustBool(true)
+	Service.EnableTimetracking = sec.Key("ENABLE_TIMETRACKING").MustBool(true)
+	if Service.EnableTimetracking {
+		Service.DefaultEnableTimetracking = sec.Key("DEFAULT_ENABLE_TIMETRACKING").MustBool(true)
+	}
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply.example.org")
 
