@@ -5,6 +5,7 @@
 package git
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -26,43 +27,23 @@ func (id SHA1) Equal(s2 interface{}) bool {
 		}
 		return v == id.String()
 	case []byte:
-		if len(v) != 20 {
-			return false
-		}
-		for i, v := range v {
-			if id[i] != v {
-				return false
-			}
-		}
+		return bytes.Equal(v, id[:])
 	case SHA1:
-		for i, v := range v {
-			if id[i] != v {
-				return false
-			}
-		}
+		return v == id
 	default:
 		return false
 	}
-	return true
 }
 
 // String returns string (hex) representation of the Oid.
 func (id SHA1) String() string {
-	result := make([]byte, 0, 40)
-	hexvalues := []byte("0123456789abcdef")
-	for i := 0; i < 20; i++ {
-		result = append(result, hexvalues[id[i]>>4])
-		result = append(result, hexvalues[id[i]&0xf])
-	}
-	return string(result)
+	return hex.EncodeToString(id[:])
 }
 
 // MustID always creates a new SHA1 from a [20]byte array with no validation of input.
 func MustID(b []byte) SHA1 {
 	var id SHA1
-	for i := 0; i < 20; i++ {
-		id[i] = b[i]
-	}
+	copy(id[:], b)
 	return id
 }
 
