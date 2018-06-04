@@ -21,7 +21,7 @@ the destination platform from the [downloads page](https://dl.gitea.io/gitea), c
 the URL and replace the URL within the commands below:
 
 ```sh
-wget -O gitea https://dl.gitea.io/gitea/1.4.1/gitea-1.4.1-linux-amd64
+wget -O gitea https://dl.gitea.io/gitea/1.4.2/gitea-1.4.2-linux-amd64
 chmod +x gitea
 ```
 
