@@ -69,3 +69,19 @@ func SingleDownload(ctx *context.Context) {
 		ctx.ServerError("ServeBlob", err)
 	}
 }
+
+// DownloadById download a file by sha1 ID
+func DownloadByID(ctx *context.Context) {
+	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.Params["sha"])
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound("GetBlob", nil)
+		} else {
+			ctx.ServerError("GetBlob", err)
+		}
+		return
+	}
+	if err = ServeBlob(ctx, blob); err != nil {
+		ctx.ServerError("ServeBlob", err)
+	}
+}

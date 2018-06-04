@@ -479,6 +479,8 @@ const (
 	RepoRefTag
 	// RepoRefCommit commit
 	RepoRefCommit
+	// RepoRefObject object
+	RepoRefBlob
 )
 
 // RepoRef handles repository reference names when the ref name is not
@@ -514,6 +516,9 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		if refName := getRefName(ctx, RepoRefCommit); len(refName) > 0 {
 			return refName
 		}
+		if refName := getRefName(ctx, RepoRefBlob); len(refName) > 0 {
+			return refName
+		}
 		ctx.Repo.TreePath = path
 		return ctx.Repo.Repository.DefaultBranch
 	case RepoRefBranch:
@@ -526,6 +531,8 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
+	case RepoRefBlob:
+		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsBlobExist)
 	default:
 		log.Error(4, "Unrecognized path type: %v", path)
 	}
