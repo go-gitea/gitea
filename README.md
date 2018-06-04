@@ -76,6 +76,12 @@ Thank you to all our backers! 🙏 [[Become a backer](https://opencollective.com
 
 <a href="https://opencollective.com/gitea#backers" target="_blank"><img src="https://opencollective.com/gitea/backers.svg?width=890"></a>
 
+## Contribution Goal $750
+
+We'd like to increase our budget to self-host gitea and provide for future expansion.
+
+**We only need 5 more sponsors at $5/month to reach our goal!!** Please help us reach our goal at https://opencollective.com/gitea# 
+
 ## Sponsors
 
 Support this project by becoming a sponsor. Your logo will show up here with a link to your website. [[Become a sponsor](https://opencollective.com/gitea#sponsor)]
