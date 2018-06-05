@@ -120,6 +120,14 @@ func createOrUpdateIssueNotifications(e Engine, issue *Issue, notificationAuthor
 	}
 
 	for _, watch := range watches {
+		issue.Repo.Units = nil
+		if issue.IsPull && !issue.Repo.CheckUnitUser(watch.UserID, false, UnitTypePullRequests) {
+			continue
+		}
+		if !issue.IsPull && !issue.Repo.CheckUnitUser(watch.UserID, false, UnitTypeIssues) {
+			continue
+		}
+
 		if err := notifyUser(watch.UserID); err != nil {
 			return err
 		}
