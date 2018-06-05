@@ -38,7 +38,7 @@ Setup up your reverse proxy like shown in the [reverse proxy guide](../reverse-p
 
 After that, enable HTTPS by following one of these guides:
 
-* [nginx](https//nginx.org/en/docs/http/configuring_https_servers.html)
+* [nginx](https://nginx.org/en/docs/http/configuring_https_servers.html)
 * [apache2/httpd](https://httpd.apache.org/docs/2.4/ssl/ssl_howto.html)
 * [caddy](https://caddyserver.com/docs/tls)
 
