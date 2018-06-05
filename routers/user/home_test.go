@@ -29,5 +29,5 @@ func TestIssues(t *testing.T) {
 	assert.EqualValues(t, map[int64]int64{1: 1}, ctx.Data["Counts"])
 	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
 	assert.Len(t, ctx.Data["Issues"], 1)
-	assert.Len(t, ctx.Data["Repos"], 2)
+	assert.Len(t, ctx.Data["Repos"], 1)
 }
