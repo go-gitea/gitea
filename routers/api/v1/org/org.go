@@ -51,6 +51,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	//   in: path
 	//   description: username of user
 	//   type: string
+	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
