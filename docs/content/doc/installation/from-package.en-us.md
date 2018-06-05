@@ -17,16 +17,13 @@ menu:
 
 ## Debian
 
-The only distribution that has any "official" package of Gitea is Debian. This is currently
-in Debian's [contrib](https://wiki.debian.org/SourcesList). This is (currently) only available
-in Debian testing and unstable (but should be installable/functional on stable).
+Although there is a package of Gitea in Debian's [contrib](https://wiki.debian.org/SourcesList),
+it is not supported directly by us.
 
-- Edit /etc/apt/sourced.list
-   - Add "contrib" to "deb http://deb.debian.org/debian unstable main contrib"
-- apt-get update
-- apt-get install gitea
+Unfortunately the package is not maintained anymore and broken because of missing sources.
+Please follow the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide instead.
 
-For other distributions, see the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide.
+Should the packages get updated and fixed, we will provide up-to-date installation instructions here.
 
 ## Windows
 
