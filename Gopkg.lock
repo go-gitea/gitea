@@ -8,10 +8,11 @@
   revision = "31f4b8e8c805438ac6d8914b38accb1d8aaf695e"
 
 [[projects]]
-  branch = "master"
+  branch = "migration"
   name = "code.gitea.io/sdk"
   packages = ["gitea"]
-  revision = "b2308e3f700875a3642a78bd3f6e5db8ef6f974d"
+  revision = "c01e6df2e1cdb53403f6542e5d2248ace831f3ec"
+  source = "github.com/JonasFranzDEV/go-sdk"
 
 [[projects]]
   name = "github.com/PuerkitoBio/goquery"
@@ -873,6 +874,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "036b8c882671cf8d2c5e2fdbe53b1bdfbd39f7ebd7765bd50276c7c4ecf16687"
+  inputs-digest = "6e57d03c2ae6e7ee38ab336d3a8c2171b21f10f2b3f58ce7d19904cc725a2a06"
   solver-name = "gps-cdcl"
   solver-version = 1

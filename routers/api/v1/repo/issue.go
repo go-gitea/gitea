@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
 	api "code.gitea.io/sdk/gitea"
 )
 
@@ -156,6 +155,11 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: suppress_notifications
+	//   in: query
+	//   type: boolean
+	//   description: suppresses notifications and webhooks if true. Requires repo admin permissions.
+	//   required: false
 	// - name: body
 	//   in: body
 	//   schema:
@@ -163,6 +167,8 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	var deadlineUnix util.TimeStamp
 	if form.Deadline != nil {
@@ -178,6 +184,33 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		DeadlineUnix: deadlineUnix,
 	}
 
+	if ctx.User.IsAdmin {
+		if form.Index != 0 {
+			if _, err := models.GetRawIssueByIndex(ctx.Repo.Repository.ID, form.Index); err == nil {
+				ctx.Error(422, "index is already in use", "index is already in use")
+				return
+			} else if err != nil && !models.IsErrIssueNotExist(err) {
+				ctx.Error(500, "GetRawIssueByIndex", err)
+				return
+			}
+			if form.Index <= 0 {
+				ctx.Error(422, "invalid index", "invalid index")
+				return
+			}
+			issue.Index = form.Index
+		}
+		issue.CreatedUnix = util.TimeStamp(form.Created.Unix())
+		issue.GhostName = form.GhostName
+		if len(issue.GhostName) > 0 {
+			issue.PosterID = -1
+			issue.Poster = &models.User{
+				ID:        -1,
+				Name:      form.GhostName,
+				LowerName: strings.ToLower(form.GhostName),
+			}
+		}
+	}
+
 	// Get all assignee IDs
 	assigneeIDs, err := models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
 	if err != nil {
@@ -188,20 +221,29 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		}
 		return
 	}
-
-	if err := models.NewIssue(ctx.Repo.Repository, issue, form.Labels, assigneeIDs, nil); err != nil {
-		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
+	if ctx.QueryBool("suppress_notifications") && ctx.User.IsAdminOfRepo(ctx.Repo.Repository) {
+		if err := models.NewSuppressedIssue(ctx.Repo.Repository, issue, form.Labels, assigneeIDs, nil); err != nil {
+			if models.IsErrUserDoesNotHaveAccessToRepo(err) {
+				ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
+				return
+			}
+			ctx.Error(500, "NewIssue", err)
 			return
 		}
-		ctx.Error(500, "NewIssue", err)
-		return
-	}
-
-	if form.Closed {
-		if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, true); err != nil {
-			ctx.Error(500, "ChangeStatus", err)
+	} else {
+		if err := models.NewIssue(ctx.Repo.Repository, issue, form.Labels, assigneeIDs, nil); err != nil {
+			if models.IsErrUserDoesNotHaveAccessToRepo(err) {
+				ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
+				return
+			}
+			ctx.Error(500, "NewIssue", err)
 			return
+		}
+		if form.Closed {
+			if err := issue.ChangeStatus(ctx.User, ctx.Repo.Repository, true); err != nil {
+				ctx.Error(500, "ChangeStatus", err)
+				return
+			}
 		}
 	}
 

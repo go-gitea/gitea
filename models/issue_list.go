@@ -4,7 +4,10 @@
 
 package models
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // IssueList defines a list of issues
 type IssueList []*Issue
@@ -70,6 +73,11 @@ func (issues IssueList) loadPosters(e Engine) error {
 
 	for _, issue := range issues {
 		if issue.PosterID <= 0 {
+			if issue.GhostName != "" {
+				issue.Poster = NewGhostUser()
+				issue.Poster.Name = issue.GhostName
+				issue.Poster.LowerName = strings.ToLower(issue.GhostName)
+			}
 			continue
 		}
 		var ok bool

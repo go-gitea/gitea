@@ -776,10 +776,21 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 }
 
 // NextIssueIndex returns the next issue index
-// FIXME: should have a mutex to prevent producing same index for two issues that are created
-// closely enough.
-func (repo *Repository) NextIssueIndex() int64 {
-	return int64(repo.NumIssues+repo.NumPulls) + 1
+func (repo *Repository) NextIssueIndex() (latestIndex int64) {
+	var err error
+	if latestIndex, err = repo.latestIndex(x); err != nil {
+		log.Warn("latestIndex: %v", err)
+		return int64(repo.NumIssues+repo.NumPulls) + 1
+	}
+	return latestIndex + 1
+}
+
+func (repo *Repository) latestIndex(e Engine) (int64, error) {
+	latestIdx := struct {
+		LatestIndex int64
+	}{}
+	_, err := e.Table("issue").Select("MAX(`index`) as latest_index").Where("repo_id = ?", repo.ID).Get(&latestIdx)
+	return latestIdx.LatestIndex, err
 }
 
 var (

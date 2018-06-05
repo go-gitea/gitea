@@ -30,12 +30,13 @@ type Issue struct {
 	Index           int64       `xorm:"UNIQUE(repo_index)"` // Index in one repository.
 	PosterID        int64       `xorm:"INDEX"`
 	Poster          *User       `xorm:"-"`
-	Title           string      `xorm:"name"`
-	Content         string      `xorm:"TEXT"`
-	RenderedContent string      `xorm:"-"`
-	Labels          []*Label    `xorm:"-"`
-	MilestoneID     int64       `xorm:"INDEX"`
-	Milestone       *Milestone  `xorm:"-"`
+	GhostName       string
+	Title           string     `xorm:"name"`
+	Content         string     `xorm:"TEXT"`
+	RenderedContent string     `xorm:"-"`
+	Labels          []*Label   `xorm:"-"`
+	MilestoneID     int64      `xorm:"INDEX"`
+	Milestone       *Milestone `xorm:"-"`
 	Priority        int
 	AssigneeID      int64        `xorm:"-"`
 	Assignee        *User        `xorm:"-"`
@@ -48,7 +49,7 @@ type Issue struct {
 
 	DeadlineUnix util.TimeStamp `xorm:"INDEX"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	CreatedUnix util.TimeStamp `xorm:"INDEX"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
 	ClosedUnix  util.TimeStamp `xorm:"INDEX"`
 
@@ -66,6 +67,13 @@ var (
 
 const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sx]\]\s.)|(\n\s*[-*]\s\[[\sx]\]\s.)`
 const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[x]\]\s.)|(\n\s*[-*]\s\[[x]\]\s.)`
+
+// BeforeInsert is invoked before XORM inserts this
+func (issue *Issue) BeforeInsert() {
+	if issue.CreatedUnix == util.TimeStamp(0) {
+		issue.CreatedUnix = util.TimeStampNow()
+	}
+}
 
 func init() {
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
@@ -133,6 +141,10 @@ func (issue *Issue) loadPoster(e Engine) (err error) {
 			issue.Poster = NewGhostUser()
 			if !IsErrUserNotExist(err) {
 				return fmt.Errorf("getUserByID.(poster) [%d]: %v", issue.PosterID, err)
+			}
+			if issue.GhostName != "" {
+				issue.Poster.Name = issue.GhostName
+				issue.Poster.LowerName = strings.ToLower(issue.GhostName)
 			}
 			err = nil
 			return
@@ -892,7 +904,9 @@ type NewIssueOptions struct {
 
 func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
-	opts.Issue.Index = opts.Repo.NextIssueIndex()
+	if opts.Issue.Index == 0 {
+		opts.Issue.Index = opts.Repo.NextIssueIndex()
+	}
 
 	if opts.Issue.MilestoneID > 0 {
 		milestone, err := getMilestoneByRepoID(e, opts.Issue.RepoID, opts.Issue.MilestoneID)
@@ -1010,15 +1024,11 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	return opts.Issue.loadAttributes(e)
 }
 
-// NewIssue creates new issue with labels for repository.
-func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) (err error) {
+// NewSuppressedIssue creates an issue without sending notifications or webhooks
+func NewSuppressedIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) error {
 	sess := x.NewSession()
 	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if err = newIssue(sess, issue.Poster, NewIssueOptions{
+	if err := newIssue(sess, issue.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       issue,
 		LabelIDs:    labelIDs,
@@ -1030,9 +1040,16 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		}
 		return fmt.Errorf("newIssue: %v", err)
 	}
-
-	if err = sess.Commit(); err != nil {
+	if err := sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
+	}
+	return nil
+}
+
+// NewIssue creates new issue with labels for repository.
+func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) (err error) {
+	if err = NewSuppressedIssue(repo, issue, labelIDs, assigneeIDs, uuids); err != nil {
+		return err
 	}
 
 	UpdateIssueIndexer(issue.ID)
