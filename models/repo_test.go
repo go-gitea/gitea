@@ -185,6 +185,6 @@ func TestRepoDescriptionHTML(t *testing.T) {
 
 	actual := repo.DescriptionHTML()
 	expected := fmt.Sprintf(description,
-		fmt.Sprintf(`<a href="%[1]s">%[1]s</a>`, url))
+		fmt.Sprintf(`<a href="%[1]s" target="_blank" rel="noopener">%[1]s</a>`, url))
 	assert.EqualValues(t, expected, actual)
 }
