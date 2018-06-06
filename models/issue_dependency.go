@@ -16,7 +16,7 @@ type IssueDependency struct {
 	UserID       int64          `xorm:"NOT NULL"`
 	IssueID      int64          `xorm:"UNIQUE(issue_dependency) NOT NULL"`
 	DependencyID int64          `xorm:"UNIQUE(issue_dependency) NOT NULL"`
-	CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
+	CreatedUnix  util.TimeStamp `xorm:"created"`
 	UpdatedUnix  util.TimeStamp `xorm:"updated"`
 }
 
