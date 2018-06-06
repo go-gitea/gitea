@@ -5,6 +5,7 @@
 package models
 
 import (
+	"fmt"
 	"path"
 	"testing"
 
@@ -175,4 +176,15 @@ func TestTransferOwnership(t *testing.T) {
 	})
 
 	CheckConsistencyFor(t, &Repository{}, &User{}, &Team{})
+}
+
+func TestRepoDescriptionHTML(t *testing.T) {
+	url := "https://github.com/go-gitea/gitea"
+	description := "GitHub repo: (%s)"
+	repo := &Repository{Description: fmt.Sprintf(description, url)}
+
+	actual := repo.DescriptionHTML()
+	expected := fmt.Sprintf(description,
+		fmt.Sprintf(`<a href="%[1]s">%[1]s</a>`, url))
+	assert.EqualValues(t, expected, actual)
 }
