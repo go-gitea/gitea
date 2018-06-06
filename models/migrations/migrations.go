@@ -186,7 +186,7 @@ var migrations = []Migration{
 	NewMigration("add u2f", addU2FReg),
 	// v66 -> v67
 	NewMigration("add login source id column for public_key table", addLoginSourceIDToPublicKeyTable),
-	// v66 -> v67
+	// v67 -> v68
 	NewMigration("add issue_dependencies", addIssueDependencies),
 }
 
