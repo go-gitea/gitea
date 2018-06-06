@@ -54,7 +54,6 @@ func CreateIssueDependency(user *User, issue, dep *Issue) error {
 		return ErrCircularDependency{issue.ID, dep.ID}
 	}
 
-	// No error means the dependency doesn't exist nor is circular, so we can proceed to create a new one.
 	if _, err := sess.Insert(&IssueDependency{
 		UserID:       user.ID,
 		IssueID:      issue.ID,
