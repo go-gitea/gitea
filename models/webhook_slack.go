@@ -213,7 +213,17 @@ func getSlackIssueCommentPayload(p *api.IssueCommentPayload, slack *SlackMeta) (
 func getSlackReleasePayload(p *api.ReleasePayload, slack *SlackMeta) (*SlackPayload, error) {
 	repoLink := SlackLinkFormatter(p.Repository.HTMLURL, p.Repository.Name)
 	refLink := SlackLinkFormatter(p.Repository.HTMLURL+"/src/"+p.Release.TagName, p.Release.TagName)
-	text := fmt.Sprintf("[%s] new release %s published by %s", repoLink, refLink, p.Sender.UserName)
+	var text string
+
+	switch p.Action {
+	case api.HookReleasePublished:
+		text = fmt.Sprintf("[%s] new release %s published by %s", repoLink, refLink, p.Sender.UserName)
+	case api.HookReleaseUpdated:
+		text = fmt.Sprintf("[%s] new release %s updated by %s", repoLink, refLink, p.Sender.UserName)
+	case api.HookReleaseDeleted:
+		text = fmt.Sprintf("[%s] new release %s deleted by %s", repoLink, refLink, p.Sender.UserName)
+	}
+
 	return &SlackPayload{
 		Channel:  slack.Channel,
 		Text:     text,

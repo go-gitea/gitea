@@ -669,6 +669,8 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 		Sender:     doer.APIFormat(),
 	}); err != nil {
 		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+	} else {
+		go HookQueue.Add(repo.ID)
 	}
 	return comment, nil
 }
@@ -811,6 +813,8 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 		Sender:     doer.APIFormat(),
 	}); err != nil {
 		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
+	} else {
+		go HookQueue.Add(c.Issue.Repo.ID)
 	}
 
 	return nil
@@ -862,6 +866,8 @@ func DeleteComment(doer *User, comment *Comment) error {
 		Sender:     doer.APIFormat(),
 	}); err != nil {
 		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+	} else {
+		go HookQueue.Add(comment.Issue.Repo.ID)
 	}
 
 	return nil

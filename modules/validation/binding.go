@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	// GitRefNamePattern is regular expression wirh unallowed characters in git reference name
+	// GitRefNamePattern is regular expression with unallowed characters in git reference name
 	GitRefNamePattern = regexp.MustCompile("[^\\d\\w-_\\./]")
 )
 

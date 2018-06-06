@@ -1828,6 +1828,8 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&PullRequest{BaseRepoID: repoID},
 		&RepoUnit{RepoID: repoID},
 		&RepoRedirect{RedirectRepoID: repoID},
+		&Webhook{RepoID: repoID},
+		&HookTask{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -2464,11 +2466,13 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 	mode, _ := AccessLevel(doer.ID, repo)
 
 	if err = PrepareWebhooks(oldRepo, HookEventFork, &api.ForkPayload{
-		Forkee: repo.APIFormat(mode),
-		Repo:   oldRepo.APIFormat(oldMode),
+		Forkee: oldRepo.APIFormat(oldMode),
+		Repo:   repo.APIFormat(mode),
 		Sender: doer.APIFormat(),
 	}); err != nil {
 		log.Error(2, "PrepareWebhooks [repo_id: %d]: %v", oldRepo.ID, err)
+	} else {
+		go HookQueue.Add(oldRepo.ID)
 	}
 
 	if err = repo.UpdateSize(); err != nil {

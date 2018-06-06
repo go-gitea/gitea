@@ -54,28 +54,30 @@ func newIssueUsers(e Engine, repo *Repository, issue *Issue) error {
 func updateIssueAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (removed bool, err error) {
 
 	// Check if the user exists
-	_, err = GetUserByID(assigneeID)
+	assignee, err := GetUserByID(assigneeID)
 	if err != nil {
 		return false, err
 	}
 
 	// Check if the submitted user is already assigne, if yes delete him otherwise add him
-	var toBeDeleted bool
-	for _, assignee := range issue.Assignees {
-		if assignee.ID == assigneeID {
-			toBeDeleted = true
+	var i int
+	for i = 0; i < len(issue.Assignees); i++ {
+		if issue.Assignees[i].ID == assigneeID {
 			break
 		}
 	}
 
 	assigneeIn := IssueAssignees{AssigneeID: assigneeID, IssueID: issue.ID}
 
+	toBeDeleted := i < len(issue.Assignees)
 	if toBeDeleted {
+		issue.Assignees = append(issue.Assignees[:i], issue.Assignees[i:]...)
 		_, err = e.Delete(assigneeIn)
 		if err != nil {
 			return toBeDeleted, err
 		}
 	} else {
+		issue.Assignees = append(issue.Assignees, assignee)
 		_, err = e.Insert(assigneeIn)
 		if err != nil {
 			return toBeDeleted, err
