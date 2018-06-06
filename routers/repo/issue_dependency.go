@@ -16,7 +16,7 @@ import (
 func AddDependency(ctx *context.Context) {
 	// Check if the Repo is allowed to have dependencies
 	if !ctx.Repo.CanCreateIssueDependencies(ctx.User) {
-		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies", nil)
+		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}
 
@@ -55,8 +55,10 @@ func AddDependency(ctx *context.Context) {
 	if err != nil {
 		if models.IsErrDependencyExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_exists"))
+			return
 		} else if models.IsErrCircularDependency(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
+			return
 		} else {
 			ctx.ServerError("CreateOrUpdateIssueDependency", err)
 			return
@@ -68,7 +70,7 @@ func AddDependency(ctx *context.Context) {
 func RemoveDependency(ctx *context.Context) {
 	// Check if the Repo is allowed to have dependencies
 	if !ctx.Repo.CanCreateIssueDependencies(ctx.User) {
-		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies", nil)
+		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}
 
@@ -106,12 +108,12 @@ func RemoveDependency(ctx *context.Context) {
 	if err = models.RemoveIssueDependency(ctx.User, issue, dep, depType); err != nil {
 		if models.IsErrDependencyNotExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
+			return
 		} else {
 			ctx.ServerError("RemoveIssueDependency", err)
 			return
 		}
 	}
 
-	url := fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issueIndex)
-	ctx.Redirect(url, http.StatusSeeOther)
+	ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issueIndex), http.StatusSeeOther)
 }
