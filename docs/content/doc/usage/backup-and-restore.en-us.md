@@ -20,7 +20,7 @@ file can be unpacked and used to restore an instance.
 
 ## Backup Command (`dump`)
 
-Switch to the user running gitea: `su git`. Run `./gitea dump` in the gitea installation
+Switch to the user running gitea: `su git`. Run `./gitea dump -c /path/to/app.ini` in the gitea installation
 directory. There should be some output similar to the following:
 
 ```
