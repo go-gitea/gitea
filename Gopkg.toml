@@ -38,7 +38,7 @@ ignored = ["google.golang.org/appengine*"]
 [[override]]
   name = "github.com/go-xorm/xorm"
   #version = "0.6.5"
-  revision = "d4149d1eee0c2c488a74a5863fd9caf13d60fd03"
+  revision = "a8bd843a55a7fdccb311d4fc51f8261e5035cdbb"
 
 [[override]]
   name = "github.com/gorilla/mux"

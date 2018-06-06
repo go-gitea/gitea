@@ -314,7 +314,7 @@
 [[projects]]
   name = "github.com/go-xorm/xorm"
   packages = ["."]
-  revision = "d4149d1eee0c2c488a74a5863fd9caf13d60fd03"
+  revision = "a8bd843a55a7fdccb311d4fc51f8261e5035cdbb"
 
 [[projects]]
   branch = "master"
@@ -873,6 +873,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "036b8c882671cf8d2c5e2fdbe53b1bdfbd39f7ebd7765bd50276c7c4ecf16687"
+  inputs-digest = "afb86c21ceae4915758e1160617fab3d6845bc092307e67bee1656efabac1ab1"
   solver-name = "gps-cdcl"
   solver-version = 1
