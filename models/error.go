@@ -1312,7 +1312,7 @@ func IsErrCircularDependency(err error) bool {
 }
 
 func (err ErrCircularDependency) Error() string {
-	return fmt.Sprintf("cannot create circular dependencies (two issues blocking each other) [issue id: %d, dependency id: %d]", err.IssueID, err.DependencyID)
+	return fmt.Sprintf("circular dependencies exists (two issues blocking each other) [issue id: %d, dependency id: %d]", err.IssueID, err.DependencyID)
 }
 
 // ErrDependenciesLeft represents an error where the issue you're trying to close still has dependencies left.
@@ -1320,14 +1320,14 @@ type ErrDependenciesLeft struct {
 	IssueID int64
 }
 
-// IsErrDependenciesLeft checks if an error is a ErrCircularDependency.
+// IsErrDependenciesLeft checks if an error is a ErrDependenciesLeft.
 func IsErrDependenciesLeft(err error) bool {
 	_, ok := err.(ErrDependenciesLeft)
 	return ok
 }
 
 func (err ErrDependenciesLeft) Error() string {
-	return fmt.Sprintf("cannot close this issue as it still has open dependencies [issue id: %d]", err.IssueID)
+	return fmt.Sprintf("issue has open dependencies [issue id: %d]", err.IssueID)
 }
 
 // ErrUnknownDependencyType represents an error where an unknown dependency type was passed
