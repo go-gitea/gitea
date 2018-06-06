@@ -107,9 +107,8 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 }
 
 // Check if the dependency already exists
-func issueDepExists(e Engine, issueID int64, depID int64) (exists bool, err error) {
-	exists, err = e.Where("(issue_id = ? AND dependency_id = ?)", issueID, depID).Exist(&IssueDependency{})
-	return
+func issueDepExists(e Engine, issueID int64, depID int64) (bool, error) {
+	return e.Where("(issue_id = ? AND dependency_id = ?)", issueID, depID).Exist(&IssueDependency{})
 }
 
 // IssueNoDependenciesLeft checks if issue can be closed

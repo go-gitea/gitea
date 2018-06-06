@@ -21,7 +21,7 @@ func addIssueDependencies(x *xorm.Engine) (err error) {
 		IssueID      int64     `xorm:"NOT NULL"`
 		DependencyID int64     `xorm:"NOT NULL"`
 		Created      time.Time `xorm:"-"`
-		CreatedUnix  int64     `xorm:"INDEX created"`
+		CreatedUnix  int64     `xorm:"created"`
 		Updated      time.Time `xorm:"-"`
 		UpdatedUnix  int64     `xorm:"updated"`
 	}
