@@ -783,7 +783,7 @@ func (repo *Repository) NextIssueIndex() int64 {
 }
 
 var (
-	descPattern = regexp.MustCompile(`https?://\S+`)
+	descPattern = regexp.MustCompile(`https?://[a-zA-Z0-9-_@:;%.,+~#?&/=|!$]+`)
 )
 
 // DescriptionHTML does special handles to description and return HTML string.
