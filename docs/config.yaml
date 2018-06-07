@@ -277,3 +277,46 @@ languages:
           url: https://discourse.gitea.io/
           weight: 80
           pre: group
+
+  ru-ru:
+    weight: 6
+    languageName: Русский
+    menu:
+      page:
+        - name: Веб-сайт
+          url: /ru-ru/
+          weight: 10
+          pre: home
+          post: active
+        - name: Документация
+          url: https://docs.gitea.io/ru-ru/
+          weight: 20
+          pre: question
+        - name: API
+          url: https://try.gitea.io/api/swagger
+          weight: 25
+          pre: plug
+        - name: Блог
+          url: https://blog.gitea.io/
+          weight: 30
+          pre: rss
+        - name: Код
+          url: https://code.gitea.io/
+          weight: 40
+          pre: code
+        - name: Загрузить
+          url: https://dl.gitea.io/
+          weight: 50
+          pre: download
+        - name: GitHub
+          url: https://github.com/go-gitea/
+          weight: 60
+          pre: github
+        - name: Чат в Discord
+          url: https://discord.gg/NsatcWJ
+          weight: 70
+          pre: comment
+        - name: Форум
+          url: https://discourse.gitea.io/
+          weight: 80
+          pre: group
