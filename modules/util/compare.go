@@ -27,3 +27,32 @@ func IsSliceInt64Eq(a, b []int64) bool {
 	}
 	return true
 }
+
+// ExistsInSlice returns true if string exists in slice.
+func ExistsInSlice(target string, slice []string) bool {
+	i := sort.Search(len(slice),
+		func(i int) bool { return slice[i] == target })
+	return i < len(slice)
+}
+
+// IsEqualSlice returns true if slices are equal.
+func IsEqualSlice(target []string, source []string) bool {
+	if len(target) != len(source) {
+		return false
+	}
+
+	if (target == nil) != (source == nil) {
+		return false
+	}
+
+	sort.Strings(target)
+	sort.Strings(source)
+
+	for i, v := range target {
+		if v != source[i] {
+			return false
+		}
+	}
+
+	return true
+}

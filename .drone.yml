@@ -197,6 +197,7 @@ pipeline:
     environment:
       TAGS: bindata sqlite
     commands:
+      - export PATH=$PATH:$GOPATH/bin
       - make release
     when:
       event: [ push, tag ]

@@ -40,7 +40,11 @@ var gitLDAPUsers = []ldapUser{
 		Password: "hermes",
 		FullName: "Conrad Hermes",
 		Email:    "hermes@planetexpress.com",
-		IsAdmin:  true,
+		SSHKeys: []string{
+			"SHA256:qLY06smKfHoW/92yXySpnxFR10QFrLdRjf/GNPvwcW8",
+			"SHA256:QlVTuM5OssDatqidn2ffY+Lc4YA5Fs78U+0KOHI51jQ",
+		},
+		IsAdmin: true,
 	},
 	{
 		UserName: "fry",
@@ -89,26 +93,27 @@ func getLDAPServerHost() string {
 	return host
 }
 
-func addAuthSourceLDAP(t *testing.T) {
+func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string) {
 	session := loginUser(t, "user1")
 	csrf := GetCSRF(t, session, "/admin/auths/new")
 	req := NewRequestWithValues(t, "POST", "/admin/auths/new", map[string]string{
-		"_csrf":              csrf,
-		"type":               "2",
-		"name":               "ldap",
-		"host":               getLDAPServerHost(),
-		"port":               "389",
-		"bind_dn":            "uid=gitea,ou=service,dc=planetexpress,dc=com",
-		"bind_password":      "password",
-		"user_base":          "ou=people,dc=planetexpress,dc=com",
-		"filter":             "(&(objectClass=inetOrgPerson)(memberOf=cn=git,ou=people,dc=planetexpress,dc=com)(uid=%s))",
-		"admin_filter":       "(memberOf=cn=admin_staff,ou=people,dc=planetexpress,dc=com)",
-		"attribute_username": "uid",
-		"attribute_name":     "givenName",
-		"attribute_surname":  "sn",
-		"attribute_mail":     "mail",
-		"is_sync_enabled":    "on",
-		"is_active":          "on",
+		"_csrf":                    csrf,
+		"type":                     "2",
+		"name":                     "ldap",
+		"host":                     getLDAPServerHost(),
+		"port":                     "389",
+		"bind_dn":                  "uid=gitea,ou=service,dc=planetexpress,dc=com",
+		"bind_password":            "password",
+		"user_base":                "ou=people,dc=planetexpress,dc=com",
+		"filter":                   "(&(objectClass=inetOrgPerson)(memberOf=cn=git,ou=people,dc=planetexpress,dc=com)(uid=%s))",
+		"admin_filter":             "(memberOf=cn=admin_staff,ou=people,dc=planetexpress,dc=com)",
+		"attribute_username":       "uid",
+		"attribute_name":           "givenName",
+		"attribute_surname":        "sn",
+		"attribute_mail":           "mail",
+		"attribute_ssh_public_key": sshKeyAttribute,
+		"is_sync_enabled":          "on",
+		"is_active":                "on",
 	})
 	session.MakeRequest(t, req, http.StatusFound)
 }
@@ -119,7 +124,7 @@ func TestLDAPUserSignin(t *testing.T) {
 		return
 	}
 	prepareTestEnv(t)
-	addAuthSourceLDAP(t)
+	addAuthSourceLDAP(t, "")
 
 	u := gitLDAPUsers[0]
 
@@ -140,7 +145,7 @@ func TestLDAPUserSync(t *testing.T) {
 		return
 	}
 	prepareTestEnv(t)
-	addAuthSourceLDAP(t)
+	addAuthSourceLDAP(t, "")
 	models.SyncExternalUsers()
 
 	session := loginUser(t, "user1")
@@ -186,9 +191,41 @@ func TestLDAPUserSigninFailed(t *testing.T) {
 		return
 	}
 	prepareTestEnv(t)
-	addAuthSourceLDAP(t)
+	addAuthSourceLDAP(t, "")
 
 	u := otherLDAPUsers[0]
 
 	testLoginFailed(t, u.UserName, u.Password, i18n.Tr("en", "form.username_password_incorrect"))
+}
+
+func TestLDAPUserSSHKeySync(t *testing.T) {
+	if skipLDAPTests() {
+		t.Skip()
+		return
+	}
+	prepareTestEnv(t)
+	addAuthSourceLDAP(t, "sshPublicKey")
+	models.SyncExternalUsers()
+
+	// Check if users has SSH keys synced
+	for _, u := range gitLDAPUsers {
+		if len(u.SSHKeys) == 0 {
+			continue
+		}
+		session := loginUserWithPassword(t, u.UserName, u.Password)
+
+		req := NewRequest(t, "GET", "/user/settings/keys")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		htmlDoc := NewHTMLParser(t, resp.Body)
+
+		divs := htmlDoc.doc.Find(".key.list .print.meta")
+
+		syncedKeys := make([]string, divs.Length())
+		for i := 0; i < divs.Length(); i++ {
+			syncedKeys[i] = strings.TrimSpace(divs.Eq(i).Text())
+		}
+
+		assert.ElementsMatch(t, u.SSHKeys, syncedKeys)
+	}
 }
