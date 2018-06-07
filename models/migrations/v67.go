@@ -8,6 +8,6 @@ import (
 )
 
 func cleanUnlinkedWebhookAndHookTasks(x *xorm.Engine) error {
-	_, err := x.Exec(`DELETE FROM webhook WHERE (SELECT COUNT(*) FROM repository WHERE id = webhook.repo_id)=0;DELETE FROM hook_task WHERE (SELECT COUNT(*) FROM repository WHERE id = hook_task.repo_id)=0;`)
+	_, err := x.Exec(`DELETE FROM webhook WHERE (SELECT id FROM repository WHERE id = webhook.repo_id) ISNULL;DELETE FROM hook_task WHERE (SELECT id FROM repository WHERE id = hook_task.repo_id) ISNULL;`)
 	return err
 }
