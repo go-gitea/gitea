@@ -1150,8 +1150,8 @@ func NewContext() {
 
 // Service settings
 var Service struct {
-	DefaultVisibility              string
-	DefaultVisibilityMode          int
+	DefaultVisibility                       string
+	DefaultVisibilityMode                   int
 	ActiveCodeLives                         int
 	ResetPwdCodeLives                       int
 	RegisterEmailConfirm                    bool
